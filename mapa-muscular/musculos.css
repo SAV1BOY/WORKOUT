@@ -1,0 +1,18 @@
+:root{--mbody:#CDD4DA;--mline:#A7B1B9;--mprim:#1F5673;--msec:#8FB4C9}
+@media (prefers-color-scheme:dark){:root{--mbody:#343C43;--mline:#4C575F;--mprim:#7FB2CE;--msec:#3E5F73}}
+.p-trapezio{--m-trapezio:var(--mprim)} .s-trapezio{--m-trapezio:var(--msec)}
+.p-ombro{--m-ombro:var(--mprim)} .s-ombro{--m-ombro:var(--msec)}
+.p-ombrop{--m-ombrop:var(--mprim)} .s-ombrop{--m-ombrop:var(--msec)}
+.p-peito{--m-peito:var(--mprim)} .s-peito{--m-peito:var(--msec)}
+.p-biceps{--m-biceps:var(--mprim)} .s-biceps{--m-biceps:var(--msec)}
+.p-triceps{--m-triceps:var(--mprim)} .s-triceps{--m-triceps:var(--msec)}
+.p-antebraco{--m-antebraco:var(--mprim)} .s-antebraco{--m-antebraco:var(--msec)}
+.p-dorsal{--m-dorsal:var(--mprim)} .s-dorsal{--m-dorsal:var(--msec)}
+.p-abdomen{--m-abdomen:var(--mprim)} .s-abdomen{--m-abdomen:var(--msec)}
+.p-obliquo{--m-obliquo:var(--mprim)} .s-obliquo{--m-obliquo:var(--msec)}
+.p-lombar{--m-lombar:var(--mprim)} .s-lombar{--m-lombar:var(--msec)}
+.p-gluteo{--m-gluteo:var(--mprim)} .s-gluteo{--m-gluteo:var(--msec)}
+.p-quadriceps{--m-quadriceps:var(--mprim)} .s-quadriceps{--m-quadriceps:var(--msec)}
+.p-posterior{--m-posterior:var(--mprim)} .s-posterior{--m-posterior:var(--msec)}
+.p-adutor{--m-adutor:var(--mprim)} .s-adutor{--m-adutor:var(--msec)}
+.p-panturrilha{--m-panturrilha:var(--mprim)} .s-panturrilha{--m-panturrilha:var(--msec)}
