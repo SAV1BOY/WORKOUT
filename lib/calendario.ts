@@ -521,7 +521,16 @@ export function semanaCurta(
     else sobrando.push(d);
   }
   for (const d of sobrando) {
-    const livre = disponiveis.find((x) => !ocupado.has(x.dia));
+    /*
+     * SPEC §3.5 ("ao marcar 'não vou treinar HOJE'") com §5.4 ("o app
+     * reorganiza O RESTO da semana"): o dia marcado é hoje, então um dia livre
+     * ANTERIOR a ele já passou e remarcar para lá é impossível. Preferimos
+     * sempre um dia livre posterior; só caímos num anterior quando não há
+     * nenhum depois (o laço de corte acima já garantiu a capacidade).
+     */
+    const livre =
+      disponiveis.find((x) => !ocupado.has(x.dia) && x.data > d.data) ??
+      disponiveis.find((x) => !ocupado.has(x.dia));
     if (!livre) continue;
     ocupado.set(livre.dia, { ...d, data: livre.data, dia: livre.dia });
   }
@@ -541,7 +550,16 @@ export function semanaCurta(
     };
   });
 
-  return { dias: realinharAlternancia(dias), cortados, capacidade };
+  /*
+   * SPEC §5.2 item 3: a escada da Fase 1 sai de `profiles.ultimo_treino`, e a
+   * semana PLANEJADA já a calculou. Reancorá-la no treino que sobrou no
+   * primeiro dia disponível fazia a semana recomeçar pelo mesmo treino da
+   * sessão anterior sempre que o dia marcado era o primeiro dia de força.
+   */
+  const ancoraPlanejada =
+    semanaPlanejada.find((d) => d.tipo === "forca" && d.fase === "fase1")?.treinoId ?? null;
+
+  return { dias: realinharAlternancia(dias, ancoraPlanejada), cortados, capacidade };
 }
 
 /** O Treino A completo da Fase 1 — o que nunca se corta (SPEC §5.4). */
@@ -563,8 +581,16 @@ function treinoACompleto(): TreinoId {
  * escolheu o treino (§3.5) e o app não o desfaz. A alternância se reencadeia ao
  * redor dele: os dias de programa antes e depois seguem a escada a partir do
  * treino escolhido.
+ *
+ * `ancoraPlanejada` é o primeiro treino de força da Fase 1 da semana PLANEJADA
+ * — o que a §5.2 item 3 derivou de `profiles.ultimo_treino`. Sem ela, marcar o
+ * primeiro dia de força como "não vou treinar" reancorava a escada no segundo
+ * treino e a semana recomeçava pelo treino já feito na sessão anterior.
  */
-function realinharAlternancia(dias: DiaDoPlano[]): DiaDoPlano[] {
+function realinharAlternancia(
+  dias: DiaDoPlano[],
+  ancoraPlanejada: TreinoId | null = null,
+): DiaDoPlano[] {
   const forca = dias.filter((d) => d.tipo === "forca" && d.fase === "fase1");
   if (forca.length === 0) return dias;
 
@@ -582,7 +608,7 @@ function realinharAlternancia(dias: DiaDoPlano[]): DiaDoPlano[] {
   } else if (forca.length === 1) {
     atual = treinoACompleto();
   } else {
-    atual = forca[0]?.treinoId ?? treinoACompleto();
+    atual = ancoraPlanejada ?? forca[0]?.treinoId ?? treinoACompleto();
   }
 
   const novos = new Map<string, TreinoId>();

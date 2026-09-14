@@ -38,6 +38,8 @@ export type OndeVaiAAnilha =
   | "porPonta"
   | "noPino"
   | "naMochila"
+  /** A anilha segurada contra o peito (SPEC §4, implemento `anilha`). */
+  | "naAnilha"
   | "nenhum";
 
 export interface Montagem {
@@ -49,6 +51,7 @@ export interface Montagem {
   porPonta?: number[];
   noPino?: number[];
   naMochila?: number[];
+  naAnilha?: number[];
   onde: OndeVaiAAnilha;
   /** Peso da barra (0 na polia e no lastro). */
   pesoBarra: number;
@@ -136,13 +139,22 @@ function configuracao(
       };
     case "barra_fixa":
     case "peso_corporal":
-    case "anilha":
       return {
         base: 0,
         fator: 1,
         limitePorPeso: Number.POSITIVE_INFINITY,
         capacidade: equipamentos.anilhas.total_kg,
         onde: "naMochila",
+      };
+    // SPEC §4: no implemento `anilha` a carga é a anilha segurada contra o
+    // peito — nem barra, nem mochila.
+    case "anilha":
+      return {
+        base: 0,
+        fator: 1,
+        limitePorPeso: Number.POSITIVE_INFINITY,
+        capacidade: equipamentos.anilhas.total_kg,
+        onde: "naAnilha",
       };
     case "corda":
     case "band":
@@ -322,6 +334,7 @@ export function montagem(
   if (cfg.onde === "porLado") m.porLado = anilhas;
   else if (cfg.onde === "porPonta") m.porPonta = anilhas;
   else if (cfg.onde === "noPino") m.noPino = anilhas;
+  else if (cfg.onde === "naAnilha") m.naAnilha = anilhas;
   else m.naMochila = anilhas;
   if (!m.exato) m.diferenca = arredondar(total - pedido);
   if (pedido > cargaMaxima(implemento, opcoes) + 1e-9) {

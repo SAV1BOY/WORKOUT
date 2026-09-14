@@ -75,5 +75,9 @@ describe("rótulo da convenção de carga", () => {
     expect(rotuloDaCarga("halteres")).toBe("por halter");
     expect(rotuloDaCarga("polia")).toBe("no pino");
     expect(rotuloDaCarga("barra_macica")).toBe("na barra");
+    expect(rotuloDaCarga("barra_fixa")).toBe("na mochila");
+    // SPEC §4: no implemento `anilha` a carga é a anilha segurada — nunca "na barra"
+    expect(rotuloDaCarga("anilha")).toBe("na anilha");
+    expect(rotuloDaCarga("peso_corporal")).toBe("peso do corpo");
   });
 });

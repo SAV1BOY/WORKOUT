@@ -552,3 +552,41 @@ describe("decidir — tipos especiais", () => {
     expect(evento?.motivo).toBe("subiu");
   });
 });
+
+describe("semana leve: a base dos 60 % também é projetada na escala (SPEC §6.4/§6.5/§10.5)", () => {
+  const roscaW = acharExercicio("rosca-com-barra-w");
+
+  it("barra W pesada depois da linha gravada (§3.9): a tela pede o que o motor grava", () => {
+    const opcoes = { pesoBarra: 4.8 };
+    const naLeve = estadoDe(roscaW, {
+      semana_leve: true,
+      carga_antes_leve: 2,
+      carga_atual_kg: 2,
+    });
+    const tela = cargaDeHoje(roscaW, naLeve, prescricaoPadrao(roscaW), opcoes);
+    expect(tela.carga_kg).toBe(4.8);
+    expect(tela.montagem?.exato).toBe(true);
+    expect(tela.montagem?.diferenca ?? 0).toBeLessThanOrEqual(0);
+
+    const fim = decidir(roscaW, naLeve, reps(12, 12, 12), { montagem: opcoes });
+    expect(fim.evento?.motivo).toBe("fim_semana_leve");
+    expect(fim.novoEstado.carga_atual_kg).toBe(tela.carga_kg);
+  });
+
+  it("linha importada abaixo da escala e linha acima do teto do kit", () => {
+    const abaixo = estadoDe(supino, {
+      semana_leve: true,
+      carga_antes_leve: 5,
+      carga_atual_kg: 5,
+    });
+    expect(cargaDeHoje(supino, abaixo).carga_kg).toBe(7.5);
+
+    // 120 kg projetados em 107,5 → 60 % = 64,5 → 63,5 (alcançável para baixo)
+    const acima = estadoDe(supino, {
+      semana_leve: true,
+      carga_antes_leve: 120,
+      carga_atual_kg: 63.5,
+    });
+    expect(cargaDeHoje(supino, acima).carga_kg).toBe(63.5);
+  });
+});

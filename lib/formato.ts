@@ -85,7 +85,11 @@ export function lerNumero(texto: string): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
-/** Rótulo da convenção de carga de cada implemento. */
+/**
+ * Rótulo da convenção de carga de cada implemento (SPEC §4: "o campo
+ * `implemento` do exercício diz qual convenção vale — mostrar sempre o rótulo
+ * certo na tela"). Barras (maciça, W, reta oca) são o padrão: peso total.
+ */
 export function rotuloDaCarga(implemento: string): string {
   switch (implemento) {
     case "halteres":
@@ -94,6 +98,13 @@ export function rotuloDaCarga(implemento: string): string {
       return "no pino";
     case "barra_fixa":
       return "na mochila";
+    case "anilha":
+      // A carga é a anilha segurada contra o peito (abdominal com anilha,
+      // russian twist): não existe barra nenhuma no movimento.
+      return "na anilha";
+    case "band":
+      return "com elástico";
+    case "corda":
     case "peso_corporal":
       return "peso do corpo";
     default:

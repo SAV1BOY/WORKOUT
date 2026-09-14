@@ -251,7 +251,11 @@ describe("semana curta (SPEC §5.4)", () => {
     ];
     const r = semanaCurta("seg", semanaDoPlano(INICIO, p, ov));
     const forca = r.dias.filter((d) => d.tipo === "forca");
-    expect(forca.map((d) => d.treinoId)).toEqual(["A1", "B1", "A1"]);
+    // SPEC §5.2 item 3: o último treino foi A1, então a semana (curta ou não)
+    // começa em B1. Este teste esperava ["A1", "B1", "A1"] — a escada
+    // reancorada no treino que sobrou no primeiro dia disponível, que fazia a
+    // semana recomeçar pelo mesmo treino já feito. Corrigido na rodada 5.
+    expect(forca.map((d) => d.treinoId)).toEqual(["B1", "A1", "B1"]);
   });
 
   it("nunca corta o treino com agachamento ou terra antes dos outros", () => {
@@ -282,5 +286,38 @@ describe("o que falta na semana", () => {
     expect(r.perdidos.map((d) => d.dia)).toEqual(["ter"]);
     expect(r.faltando.map((d) => d.dia)).toEqual(["qua", "sex", "sab"]);
     expect(r.total).toBe(5);
+  });
+});
+
+describe("semana curta — remanejo (SPEC §3.5 com §5.2 item 3 e §5.4)", () => {
+  it("a escada da Fase 1 continua ancorada no ultimo_treino do perfil", () => {
+    for (const ultimo of ["A1", "B1"] as const) {
+      const semana = semanaDoPlano(INICIO, perfil({ ultimo_treino: ultimo }));
+      const esperado = proximoTreinoAlternado(ultimo);
+      expect(semana.find((d) => d.tipo === "forca")?.treinoId).toBe(esperado);
+
+      // marcando o primeiro dia de força, a semana NÃO pode recomeçar pelo
+      // treino já feito na sessão anterior
+      const curta = semanaCurta("seg", semana);
+      expect(curta.cortados).toEqual([]);
+      const forca = curta.dias.filter((d) => d.tipo === "forca");
+      expect(forca).toHaveLength(3);
+      expect(forca[0]?.treinoId).toBe(esperado);
+      for (let i = 1; i < forca.length; i++) {
+        expect(forca[i]?.treinoId).not.toBe(forca[i - 1]?.treinoId);
+      }
+    }
+  });
+
+  it("o dia marcado é remarcado para um dia POSTERIOR, nunca para um que já passou", () => {
+    const semana = semanaDoPlano(INICIO, perfil());
+    expect(semana.find((d) => d.dia === "qui")?.tipo).toBe("descanso");
+    expect(semana.find((d) => d.dia === "dom")?.tipo).toBe("descanso");
+
+    const curta = semanaCurta("sex", semana);
+    expect(curta.cortados).toEqual([]);
+    const ocupados = curta.dias.filter((d) => d.tipo !== "descanso").map((d) => d.dia);
+    expect(ocupados).not.toContain("qui");
+    expect(ocupados).toContain("dom");
   });
 });

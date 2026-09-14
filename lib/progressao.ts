@@ -237,9 +237,23 @@ export function cargaDeHoje(
    * mostra seja a decisão gravada.
    */
   if (base.semana_leve && base.carga_antes_leve !== null) {
-    carga = Math.min(
+    /*
+     * SPEC §6.4 e §10.5: a base dos 60 % também é projetada na escala ANTES da
+     * conta, exatamente como `decidir()` faz com `carga_atual_kg` e
+     * `carga_antes_leve`. Sem isso o `Math.min` devolvia o valor cru quando ele
+     * estava fora da escala (barra W pesada depois, §3.9; linha importada de um
+     * backup, §9; carga acima do teto do kit) e a tela pedia uma carga que a
+     * §6.5 não monta — com `exato: false` e diferença POSITIVA — enquanto o
+     * motor gravava outra (§6.6).
+     */
+    const antesLeve = alcancavelParaBaixo(
       base.carga_antes_leve,
-      alcancavelParaBaixo(base.carga_antes_leve * 0.6, exercicio.implemento, opcoes),
+      exercicio.implemento,
+      opcoes,
+    );
+    carga = Math.min(
+      antesLeve,
+      alcancavelParaBaixo(antesLeve * 0.6, exercicio.implemento, opcoes),
     );
   }
 

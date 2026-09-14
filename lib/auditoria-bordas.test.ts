@@ -16,12 +16,14 @@ import {
   cargaMaxima,
   cargaMinima,
   cargasPossiveis,
+  capacidadeDoImplemento,
   limiteDoImplemento,
   montagem,
   PESO_BARRA_A_PESAR,
   type ImplementoMontagem,
 } from "@/lib/montagem";
 import * as C from "@/lib/calendario";
+import { rotuloDaCarga } from "@/lib/formato";
 import * as P from "@/lib/progressao";
 import type { DiaSemana, TreinoId } from "@/lib/schemas";
 
@@ -1038,6 +1040,523 @@ describe("semanas dos planos: repetem com menos de 2 sessões e não voltam", ()
       expect(avancar(13, 0)).toBe(13);
       expect(avancar(13, 2), "duas sessões não podem valer menos que nenhuma")
         .toBeGreaterThanOrEqual(avancar(13, 0));
+    }
+  });
+});
+
+/* ==================================================================== */
+/*  Rodada 5 — auditoria adversarial final, lente "bordas"              */
+/*                                                                      */
+/*  Bordas numéricas e de estoque depois das correções da rodada 4:     */
+/*  ponto flutuante nas reduções, carga fora da escala vinda do banco,  */
+/*  a barra W pesada na balança (SPEC §3.9), colunas null de            */
+/*  exercise_state, séries a mais/a menos, unilateral sem o lado 2,     */
+/*  a virada do ano e a semana que começa na segunda.                   */
+/* ==================================================================== */
+
+/* --------------------- 10. ponto flutuante nas reduções (§6.2 × §6.4) */
+
+describe("reduções de 10 % e 60 % em escala inteira não perdem 1 kg no binário", () => {
+  /**
+   * Polia e lastro têm degraus de 1 kg: ali `carga × 0,9` e `carga × 0,6`
+   * caem em cima de um degrau com frequência, e um resíduo binário para baixo
+   * (20,999999999999996 em vez de 21) faria a queda ser de um degrau a mais.
+   */
+  it("o piso de carga × 0,9 e × 0,6 bate com a conta em inteiros", () => {
+    for (const implemento of ["polia", "barra_fixa"] as ImplementoMontagem[]) {
+      for (const carga of cargasPossiveis(implemento)) {
+        for (const [fator, numerador] of [
+          [0.9, 9],
+          [0.6, 6],
+        ] as [number, number][]) {
+          const exato = Math.floor((carga * numerador) / 10);
+          expect(
+            alcancavelParaBaixo(carga * fator, implemento),
+            `${implemento} ${carga} × ${fator}`,
+          ).toBe(exato);
+        }
+      }
+    }
+  });
+
+  it("dez ciclos de −10 % nunca sobem nem saem da escala", () => {
+    for (const id of [
+      "supino-reto-com-barra",
+      "supino-inclinado-com-halteres",
+      "puxada-alta-na-polia",
+      "barra-fixa-com-lastro",
+    ]) {
+      const e = ex(id);
+      const escala = cargasPossiveis(e.implemento);
+      let carga = cargaMaxima(e.implemento);
+      for (let i = 0; i < 10; i++) {
+        const nova = Math.min(carga, alcancavelParaBaixo(carga * 0.9, e.implemento));
+        expect(escala, `${id} #${i}`).toContain(nova);
+        expect(cent(nova), `${id} #${i} subiu`).toBeLessThanOrEqual(cent(carga));
+        carga = nova;
+      }
+      expect(cent(carga)).toBeGreaterThanOrEqual(cent(cargaMinima(e.implemento)));
+    }
+  });
+});
+
+/* ------------- 11. barra pesada na balança: ciclo inteiro (§3.9 §6.4) */
+
+describe("barra W pesada (override): ciclo sucesso → 2 falhas → leve → volta", () => {
+  const w = ex("rosca-com-barra-w");
+  const alvo = P.prescricaoPadrao(w);
+  const boas = reps(12, 12, 12);
+  const ruins = reps(2, 2, 2);
+
+  it("em seis pesos de barra a escala é exata e a montagem fecha", () => {
+    for (const pesoBarra of [2, 2.4, 4.8, 5.2, 6.1, 7.3]) {
+      const o = { pesoBarra };
+      const escala = cargasPossiveis("barra_w", o);
+      expect(escala[0], `barra ${pesoBarra}`).toBe(pesoBarra);
+      expect(escala[1]).toBe(Math.round((pesoBarra + 2) * 100) / 100);
+      for (const carga of escala) {
+        // numeric(6,2) em supabase/schema.sql: nada de 6,800000000000001
+        expect(cent(carga) % 1, `barra ${pesoBarra} carga ${carga}`).toBe(0);
+        const m = montagem(carga, "barra_w", o);
+        expect(m.exato, `barra ${pesoBarra} carga ${carga}`).toBe(true);
+        expect(m.total).toBe(carga);
+      }
+      expect(cent(cargaMaxima("barra_w", o))).toBeLessThanOrEqual(
+        cent(capacidadeDoImplemento("barra_w", o)),
+      );
+    }
+  });
+
+  it("o ciclo inteiro fica na escala e a tela mostra o que o estado guarda", () => {
+    for (const pesoBarra of [2, 2.4, 4.8, 5.2, 6.1, 7.3]) {
+      const o = { pesoBarra };
+      const escala = cargasPossiveis("barra_w", o);
+      const rotulo = `barra ${pesoBarra}`;
+      // carga guardada abaixo da barra pesada (o 2,0 kg do JSON, §3.9)
+      let estadoAtual: P.EstadoExercicio = estado("rosca-com-barra-w", {
+        carga_atual_kg: 2,
+      });
+
+      const sobe = P.decidir(w, estadoAtual, boas, { montagem: o });
+      expect(sobe.evento?.motivo, rotulo).toBe("subiu");
+      estadoAtual = sobe.novoEstado;
+      expect(estadoAtual.carga_atual_kg, rotulo).toBe(escala[1]);
+
+      const primeira = P.decidir(w, estadoAtual, ruins, { montagem: o });
+      expect(primeira.evento?.motivo, rotulo).toBe("repetiu");
+      expect(primeira.evento?.falha, rotulo).toBe(true);
+      expect(primeira.novoEstado.carga_atual_kg, rotulo).toBe(escala[1]);
+      estadoAtual = primeira.novoEstado;
+
+      const segunda = P.decidir(w, estadoAtual, ruins, { montagem: o });
+      expect(segunda.evento?.motivo, rotulo).toBe("falha_2x_voltou_10");
+      const depoisDaQueda = segunda.novoEstado.carga_atual_kg as number;
+      expect(escala, rotulo).toContain(depoisDaQueda);
+      expect(cent(depoisDaQueda), `${rotulo}: a queda subiu`).toBeLessThan(
+        cent(escala[1] as number),
+      );
+      estadoAtual = segunda.novoEstado;
+
+      const terceira = P.decidir(w, estadoAtual, ruins, { montagem: o });
+      expect(terceira.evento?.motivo, rotulo).toBe("semana_leve_60");
+      estadoAtual = terceira.novoEstado;
+      expect(estadoAtual.semana_leve, rotulo).toBe(true);
+      expect(escala, rotulo).toContain(estadoAtual.carga_atual_kg);
+      expect(estadoAtual.carga_antes_leve, rotulo).toBe(depoisDaQueda);
+      // a tela da semana leve pede a mesma carga que o evento gravou (§6.6)
+      const naLeve = P.cargaDeHoje(w, estadoAtual, alvo, o);
+      expect(naLeve.carga_kg, rotulo).toBe(estadoAtual.carga_atual_kg);
+      expect(naLeve.montagem?.exato, rotulo).toBe(true);
+
+      const fim = P.decidir(w, estadoAtual, boas, { montagem: o });
+      expect(fim.evento?.motivo, rotulo).toBe("fim_semana_leve");
+      expect(fim.novoEstado.carga_atual_kg, rotulo).toBe(depoisDaQueda);
+      expect(fim.novoEstado.incremento_reduzido, rotulo).toBe(false);
+      expect(P.incrementoDe(w, fim.novoEstado), rotulo).toBe(2);
+    }
+  });
+});
+
+/* ------------------ 12. carga fora da escala vinda do banco (§6.4) */
+
+describe("carga fora da escala: acima do teto, abaixo da barra e no meio do degrau", () => {
+  const porImplemento: [string, ImplementoMontagem][] = [
+    ["supino-reto-com-barra", "barra_macica"],
+    ["supino-inclinado-com-halteres", "halteres"],
+    ["puxada-alta-na-polia", "polia"],
+    ["rosca-com-barra-w", "barra_w"],
+    ["barra-fixa-com-lastro", "barra_fixa"],
+  ];
+
+  it("acima do teto a sessão perfeita repete com aviso e guarda o teto", () => {
+    for (const [id, implemento] of porImplemento) {
+      const e = ex(id);
+      const alvo = P.prescricaoPadrao(e);
+      const teto = cargaMaxima(implemento);
+      const st = estado(id, { carga_atual_kg: teto + 17 });
+      expect(P.cargaDeHoje(e, st, alvo).carga_kg, id).toBe(teto);
+      const d = P.decidir(e, st, serieCheia(alvo));
+      expect(d.evento?.motivo, id).toBe("repetiu");
+      expect(d.novoEstado.carga_atual_kg, id).toBe(teto);
+      expect(typeof d.evento?.aviso, `${id}: sem aviso de teto`).toBe("string");
+    }
+  });
+
+  it("abaixo do piso e no meio do degrau a decisão parte da escala", () => {
+    for (const [id, implemento] of porImplemento) {
+      const e = ex(id);
+      const alvo = P.prescricaoPadrao(e);
+      const escala = cargasPossiveis(implemento);
+      const piso = escala[0] as number;
+      const segundo = escala[1] as number;
+      const incremento = P.incrementoDe(e, null);
+
+      for (const cru of [-40, piso - 3, piso + (segundo - piso) / 2]) {
+        const st = estado(id, { carga_atual_kg: cru });
+        const partida = P.cargaDeHoje(e, st, alvo).carga_kg as number;
+        expect(escala, `${id} cru ${cru}`).toContain(partida);
+        const d = P.decidir(e, st, serieCheia(alvo));
+        const nova = d.novoEstado.carga_atual_kg as number;
+        expect(escala, `${id} cru ${cru}`).toContain(nova);
+        expect(cent(nova), `${id} cru ${cru}`).toBe(
+          cent(alcancavelParaBaixo(partida + incremento, implemento)),
+        );
+        // §6.6: o evento fala da carga que a tela pediu, não do valor cru
+        expect(d.evento?.de["carga_kg"], `${id} cru ${cru}`).toBe(partida);
+      }
+    }
+  });
+
+  it("cada carga da escala fecha a montagem exata na tela (§6.5 e §10.5)", () => {
+    for (const [id, implemento] of porImplemento) {
+      const e = ex(id);
+      for (const carga of cargasPossiveis(implemento)) {
+        const st = estado(id, { carga_atual_kg: carga });
+        const hoje = P.cargaDeHoje(e, st);
+        expect(hoje.carga_kg, `${id} ${carga}`).toBe(carga);
+        expect(hoje.montagem?.exato, `${id} ${carga}`).toBe(true);
+        expect(hoje.montagem?.total, `${id} ${carga}`).toBe(carga);
+      }
+    }
+  });
+});
+
+/** Uma sessão no topo da faixa, no formato do tipo da prescrição. */
+function serieCheia(alvo: P.Alvo, topo?: number): P.SerieFeita[] {
+  const v = topo ?? alvo.max ?? 12;
+  return Array.from({ length: alvo.series }, () => {
+    if (alvo.tipo === "tempo_s") {
+      return {
+        concluida: true,
+        tempo_s: v,
+        tempo_s_lado2: alvo.unilateral ? v : null,
+      };
+    }
+    if (alvo.tipo === "passos") return { concluida: true, passos: v };
+    return { concluida: true, reps: v, reps_lado2: alvo.unilateral ? v : null };
+  });
+}
+
+/* ------------- 13. colunas anuláveis de exercise_state, uma a uma (§6.1) */
+
+describe("cada coluna anulável de exercise_state em null, por tipo de progressão", () => {
+  it("carga_atual_kg null: a 2ª falha seguida ainda volta 10 % na escala", () => {
+    const polia = ex("puxada-alta-na-polia");
+    const st = estado("puxada-alta-na-polia", {
+      carga_atual_kg: null,
+      falhas_seguidas: 1,
+    });
+    expect(P.cargaDeHoje(polia, st).carga_kg).toBe(4); // carga_inicial do JSON
+    const d = P.decidir(polia, st, reps(2, 2, 2));
+    expect(d.evento?.motivo).toBe("falha_2x_voltou_10");
+    expect(d.novoEstado.carga_atual_kg).toBe(3); // 4 × 0,9 = 3,6 → 3 no pino
+  });
+
+  it("tempo_alvo_s, reps_alvo e assistencia null caem na prescrição (§6.1)", () => {
+    const prancha = ex("prancha");
+    const t = P.decidir(prancha, estado("prancha", { tempo_alvo_s: null }), [
+      { concluida: true, tempo_s: 60 },
+      { concluida: true, tempo_s: 60 },
+      { concluida: true, tempo_s: 60 },
+    ]);
+    expect(t.evento?.motivo).toBe("subiu");
+    expect(t.novoEstado.tempo_alvo_s).toBe(65);
+
+    const pernas = ex("elevacao-de-pernas-na-barra-fixa");
+    const r = P.decidir(
+      pernas,
+      estado("elevacao-de-pernas-na-barra-fixa", { reps_alvo: null }),
+      reps(15, 15, 15),
+    );
+    expect(r.evento?.motivo).toBe("subiu");
+    expect(r.novoEstado.reps_alvo).toBe(16);
+
+    const fixa = ex("barra-fixa-assistida");
+    const a = P.decidir(
+      fixa,
+      estado("barra-fixa-assistida", { assistencia: null }),
+      reps(8, 8, 8, 8),
+    );
+    expect(a.evento?.motivo).toBe("subiu");
+    expect(a.novoEstado.assistencia).toBe("joelho");
+    expect(a.novoEstado.sessoes_graca).toBe(P.SESSOES_DE_GRACA);
+  });
+
+  it("incremento_kg null usa o do JSON; 0 e 1 travam a subida com sugestão", () => {
+    const sup = ex("supino-reto-com-barra");
+    expect(P.incrementoDe(sup, estado("supino-reto-com-barra"))).toBe(2);
+    for (const override of [0, 1]) {
+      const d = P.decidir(
+        sup,
+        estado("supino-reto-com-barra", { incremento_kg: override }),
+        reps(8, 8, 8),
+      );
+      expect(d.evento?.motivo, `incremento ${override}`).toBe("repetiu");
+      expect(d.novoEstado.carga_atual_kg, `incremento ${override}`).toBe(7.5);
+      // SPEC §6.4: aqui não faltam anilhas — falta incremento (rodada 3, nº 2)
+      expect(d.evento?.aviso, `incremento ${override}`).toBeUndefined();
+      expect(typeof d.evento?.sugestao, `incremento ${override}`).toBe("string");
+    }
+  });
+
+  it("semana_leve com carga_antes_leve null devolve a carga que está lá", () => {
+    const sup = ex("supino-reto-com-barra");
+    const st = estado("supino-reto-com-barra", {
+      carga_atual_kg: 21.5,
+      semana_leve: true,
+      carga_antes_leve: null,
+    });
+    expect(P.cargaDeHoje(sup, st).carga_kg).toBe(21.5);
+    const d = P.decidir(sup, st, reps(8, 8, 8));
+    expect(d.evento?.motivo).toBe("fim_semana_leve");
+    expect(d.novoEstado.carga_atual_kg).toBe(21.5);
+    expect(d.novoEstado.semana_leve).toBe(false);
+  });
+});
+
+/* ------------------- 14. séries a mais, a menos e unilateral (§6.2/§6.3) */
+
+describe("tabela de séries malformadas: concluída × abandonada", () => {
+  const sup = ex("supino-reto-com-barra");
+  const base = () => estado("supino-reto-com-barra", { carga_atual_kg: 25.5 });
+
+  const casos: [string, P.SerieFeita[], string | null, string | null][] = [
+    ["3 no topo", reps(8, 8, 8), "subiu", "subiu"],
+    ["4 no topo", reps(8, 8, 8, 8), "subiu", "subiu"],
+    ["4ª abaixo do piso", reps(8, 8, 8, 3), "repetiu", "repetiu"],
+    ["4ª não concluída", [...reps(8, 8, 8), { concluida: false }], "repetiu", null],
+    ["só 2 séries", reps(8, 8), "repetiu", null],
+    ["1 série", reps(8), "repetiu", null],
+    ["nenhuma série", [], null, null],
+  ];
+
+  it("cada combinação decide o mesmo que a SPEC §6.2 e a §6.3 mandam", () => {
+    for (const [nome, series, concluida, abandonada] of casos) {
+      const a = P.decidir(sup, base(), series);
+      expect(a.evento?.motivo ?? null, `${nome} (concluída)`).toBe(concluida);
+      const b = P.decidir(sup, base(), series, { sessaoAbandonada: true });
+      expect(b.evento?.motivo ?? null, `${nome} (abandonada)`).toBe(abandonada);
+      if (abandonada === null) {
+        // §6.3: "os demais não mudam"
+        expect(b.novoEstado.carga_atual_kg, nome).toBe(25.5);
+        expect(b.novoEstado.falhas_seguidas, nome).toBe(0);
+      }
+    }
+  });
+
+  it("unilateral: lado 2 ausente, nulo e zero (SPEC §6.3 'vale o menor')", () => {
+    const bulgaro = ex("agachamento-bulgaro");
+    const st = () => estado("agachamento-bulgaro", { carga_atual_kg: 5.5 });
+
+    // sem o lado 2 registrado vale o lado que veio
+    expect(P.decidir(bulgaro, st(), reps(10, 10, 10)).evento?.motivo).toBe("subiu");
+    const nulos = P.decidir(bulgaro, st(), [
+      { concluida: true, reps: 10, reps_lado2: null },
+      { concluida: true, reps: 10, reps_lado2: null },
+      { concluida: true, reps: 10, reps_lado2: null },
+    ]);
+    expect(nulos.evento?.motivo).toBe("subiu");
+
+    // zero no outro lado é o menor: falha, não sobe
+    const zero = P.decidir(bulgaro, st(), lados([10, 0], [10, 10], [10, 10]));
+    expect(zero.evento?.motivo).toBe("repetiu");
+    expect(zero.evento?.falha).toBe(true);
+    expect(zero.novoEstado.carga_atual_kg).toBe(5.5);
+
+    // o lado 1 nulo invalida a série inteira (não vale "só o lado 2")
+    const lado1Nulo = P.decidir(bulgaro, st(), [
+      { concluida: true, reps: null, reps_lado2: 10 },
+      ...lados([10, 10], [10, 10]),
+    ]);
+    expect(lado1Nulo.evento?.falha).toBe(true);
+
+    // tempo unilateral (prancha lateral): também vale o menor lado
+    const pl = ex("prancha-lateral");
+    const curto = P.decidir(pl, estado("prancha-lateral"), [
+      { concluida: true, tempo_s: 40, tempo_s_lado2: 30 },
+      { concluida: true, tempo_s: 40, tempo_s_lado2: 40 },
+      { concluida: true, tempo_s: 40, tempo_s_lado2: 40 },
+    ]);
+    expect(curto.evento?.motivo).toBe("repetiu");
+    expect(curto.novoEstado.tempo_alvo_s).toBe(20);
+  });
+});
+
+/* ------------------------ 15. mais viradas de ano e ano bissexto (§5) */
+
+describe("mais viradas de ano, ano bissexto e a segunda como início", () => {
+  const perfil: C.PerfilCalendario = {
+    fase_atual: "fase1",
+    ultimo_treino: "B1",
+    fase_desde: "2026-09-14",
+  };
+
+  it("a semana de 31/12/2027 (sexta) começa em 27/12 e termina em 02/01/2028", () => {
+    expect(C.diaDaSemana("2027-12-31")).toBe("sex");
+    expect(C.iso(C.inicioDaSemana("2027-12-31"))).toBe("2027-12-27");
+    expect(C.diasDaSemana("2027-12-31").map(C.iso)).toEqual([
+      "2027-12-27",
+      "2027-12-28",
+      "2027-12-29",
+      "2027-12-30",
+      "2027-12-31",
+      "2028-01-01",
+      "2028-01-02",
+    ]);
+    expect(C.iso(C.inicioDaSemana("2028-01-03"))).toBe("2028-01-03");
+  });
+
+  it("29/02/2028 cai numa terça e não desalinha a semana", () => {
+    expect(C.diaDaSemana("2028-02-29")).toBe("ter");
+    expect(C.iso(C.inicioDaSemana("2028-02-29"))).toBe("2028-02-28");
+    const semana = C.semanaDoPlano("2028-02-29", perfil);
+    expect(semana.map((d) => d.dia)).toEqual([
+      "seg",
+      "ter",
+      "qua",
+      "qui",
+      "sex",
+      "sab",
+      "dom",
+    ]);
+    expect(semana[1]?.data).toBe("2028-02-29");
+    expect(semana[6]?.data).toBe("2028-03-05");
+  });
+
+  it("semanaDaFase cresce de 1 em 1 e nunca reinicia em 1º de janeiro", () => {
+    let anterior = 0;
+    for (let i = 0; i < 80; i++) {
+      const dia = C.iso(new Date(2026, 8, 14 + i * 7));
+      const semana = C.semanaDaFase(dia, "2026-09-14");
+      expect(semana, dia).toBe(anterior + 1);
+      anterior = semana;
+    }
+    // dentro da mesma semana civil o número não muda, mesmo virando o ano
+    expect(C.semanaDaFase("2026-12-31", "2026-09-14")).toBe(
+      C.semanaDaFase("2027-01-03", "2026-09-14"),
+    );
+  });
+
+  it("toda segunda-feira do ano é o próprio início da sua semana", () => {
+    for (let i = 0; i < 400; i++) {
+      const dia = C.iso(new Date(2026, 11, 1 + i));
+      const inicio = C.iso(C.inicioDaSemana(dia));
+      expect(C.diaDaSemana(inicio), dia).toBe("seg");
+      expect(inicio <= dia, `${inicio} > ${dia}`).toBe(true);
+    }
+  });
+});
+
+/* ------------------ 16. semanas dos planos: nunca andam para trás (§5.5) */
+
+describe("avançar semana de cardio é monótono em qualquer entrada", () => {
+  it("de 1 a 15 semanas e de 0 a 3 sessões, nunca diminui nem pula", () => {
+    const funcoes = [
+      C.avancarSemanaDeCorrida,
+      C.avancarSemanaDeCorda,
+      C.avancarSemanaDeBarraFixa,
+    ];
+    for (const avancar of funcoes) {
+      for (let semana = 1; semana <= 15; semana++) {
+        for (let sessoes = 0; sessoes <= 3; sessoes++) {
+          const nova = avancar(semana, sessoes);
+          expect(nova, `${semana}/${sessoes}`).toBeGreaterThanOrEqual(semana);
+          expect(nova, `${semana}/${sessoes}`).toBeLessThanOrEqual(semana + 1);
+          if (sessoes < 2) expect(nova, `${semana}/${sessoes}`).toBe(semana);
+          expect(nova, `${semana}: fazer não pode valer menos`).toBeGreaterThanOrEqual(
+            avancar(semana, 0),
+          );
+        }
+      }
+    }
+  });
+});
+
+/* ------------------------------------ 17. achados da rodada 5 (bordas) */
+
+describe("ACHADOS — semana curta e rótulo da carga", () => {
+  const perfil: C.PerfilCalendario = {
+    fase_atual: "fase1",
+    ultimo_treino: "B1",
+    fase_desde: "2026-09-14",
+  };
+
+  it("ACHADO A — §5.2 item 3: depois da semana curta o primeiro treino repete o último feito", () => {
+    // SPEC §5.2 item 3: "Força, Fase 1: o treino é o que não foi o último
+    // (profiles.ultimo_treino): se o último foi A1, hoje é B1."
+    // A semana planejada respeita isso (seg = A1 depois de um B1). Ao marcar a
+    // segunda como "não vou treinar" (§5.4), a alternância é reancorada no
+    // treino que sobrou no primeiro dia disponível — que era o SEGUNDO da
+    // escada — e a semana volta a começar pelo mesmo treino já feito.
+    for (const ultimo of ["A1", "B1"] as TreinoId[]) {
+      const semana = C.semanaDoPlano("2026-09-14", { ...perfil, ultimo_treino: ultimo });
+      const esperado = C.proximoTreinoAlternado(ultimo);
+      expect(semana.find((d) => d.tipo === "forca")?.treinoId, ultimo).toBe(esperado);
+
+      const curta = C.semanaCurta(["seg"] as DiaSemana[], semana);
+      const forca = curta.dias.filter((d) => d.tipo === "forca");
+      expect(curta.cortados, `${ultimo}: nada deveria ser cortado`).toEqual([]);
+      expect(forca).toHaveLength(3);
+      expect(
+        forca[0]?.treinoId,
+        `último treino ${ultimo}: a semana curta recomeça em ${String(forca[0]?.treinoId)}`,
+      ).toBe(esperado);
+    }
+  });
+
+  it("ACHADO B — §3.5/§5.4: o treino do dia marcado é remarcado para um dia ANTERIOR", () => {
+    // SPEC §3.5: "Aplica a regra da semana curta (§5.4) ao marcar 'não vou
+    // treinar hoje'"; §5.4: "o app reorganiza O RESTO da semana".
+    // Marcando a sexta, o treino dela vai para a quinta — um dia que já passou
+    // — enquanto o domingo, livre e depois da sexta, fica vazio.
+    const semana = C.semanaDoPlano("2026-09-14", perfil);
+    expect(semana.find((d) => d.dia === "qui")?.tipo).toBe("descanso");
+    expect(semana.find((d) => d.dia === "dom")?.tipo).toBe("descanso");
+
+    const curta = C.semanaCurta(["sex"] as DiaSemana[], semana);
+    expect(curta.cortados).toEqual([]);
+    const ocupados = curta.dias.filter((d) => d.tipo !== "descanso").map((d) => d.dia);
+    expect(
+      ocupados,
+      `o treino da sexta foi para ${ocupados.join("+")}; o domingo ficou livre`,
+    ).not.toContain("qui");
+  });
+
+  it("ACHADO C — §4: o rótulo da carga do implemento `anilha` diz 'na barra'", () => {
+    // SPEC §4: "O campo implemento do exercício diz qual convenção vale —
+    // mostrar sempre o rótulo certo na tela ('por halter', 'no pino')".
+    // Três exercícios do catálogo usam o implemento `anilha` (a carga é a
+    // anilha segurada, 5 kg no abdominal com anilha e no russian twist) e a
+    // tela os rotula como carga "na barra", que não existe no movimento.
+    expect(rotuloDaCarga("halteres")).toBe("por halter");
+    expect(rotuloDaCarga("polia")).toBe("no pino");
+    const comAnilha = exercicios.filter((e) => e.implemento === "anilha");
+    expect(comAnilha.length).toBeGreaterThan(0);
+    for (const e of comAnilha) {
+      expect(
+        rotuloDaCarga(e.implemento),
+        `${e.id} (${e.carga_inicial.kg} kg) rotulado como "${rotuloDaCarga(e.implemento)}"`,
+      ).not.toBe("na barra");
     }
   });
 });

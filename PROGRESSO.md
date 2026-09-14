@@ -524,9 +524,78 @@ Testes do construtor acrescentados (nenhum corrigido): `maximo` sem firme e a
 carga projetada em `lib/progressao.test.ts`; override fixo, override sem
 `workout_id` e o teto do plano em `lib/calendario.test.ts`.
 
+### Auditoria (rodada 5) — o que os auditores acharam e o que mudou
+
+Quinta rodada adversarial sobre os mesmos arquivos. Foram 4 achados e **nos 4 o
+motor estava errado**; um teste do construtor codificava o defeito do achado A e
+foi corrigido citando a seção (nenhum teste de auditoria apagado ou afrouxado).
+
+`lib/progressao.ts`
+
+1. **Semana leve: os 60 % saíam do valor CRU de `carga_antes_leve`**
+   (SPEC §6.4 + §6.5 + §10.5 + §6.6, cenário da §3.9). `decidir()` projeta
+   `carga_atual_kg` e `carga_antes_leve` na escala desde a rodada 4, mas essa
+   projeção nunca chegou ao ramo da semana leve de `cargaDeHoje()`: o
+   `Math.min(carga_antes_leve, alcancavelParaBaixo(carga_antes_leve × 0,6))`
+   devolvia o próprio valor cru quando ele estava **abaixo** da escala. Com a
+   barra W pesada na balança (4,8 kg, §3.9) e a linha gravada antes com 2 kg, a
+   tela pedia 2 kg e a montagem da §6.5 vinha com `exato: false` e diferença
+   **positiva** (+2,8) — contra o contrato "diferença sempre ≤ 0" — enquanto
+   `decidir()` gravava 4,8 (§6.6 quebrada). O mesmo com linha importada de
+   backup (§9, 5 kg na maciça → 7,5) e com linha acima do teto do kit (120 →
+   107,5 → 60 % = 64,5 → **63,5**, e não 71,5). Agora `carga_antes_leve` passa
+   por `alcancavelParaBaixo` (mesmas `opcoes` da montagem) **antes** do `× 0,6`
+   e do `min`, exatamente como `decidir()` faz.
+
+`lib/calendario.ts`
+
+2. **Depois da semana curta o primeiro treino repetia o último feito**
+   (SPEC §5.2 item 3 com §5.4). `realinharAlternancia()` ancorava a escada da
+   Fase 1 no treino que sobrou no **primeiro dia disponível** depois do remanejo
+   (`forca[0].treinoId`). Quando o dia marcado como "não vou treinar" é o
+   primeiro dia de força da semana, o segundo treino da escada virava a âncora:
+   com `ultimo_treino = "B1"` a semana planejada A1(seg)/B1(qua)/A1(sex) virava
+   B1(qua)/A1(qui)/B1(sex) — B1 logo depois de um B1, e a semana com dois
+   treinos de terra e um de agachamento. É o defeito que a rodada 2 (achado 2)
+   corrigiu **dentro** da semana, atravessando a virada da semana. `semanaCurta()`
+   passa agora a âncora que a semana **planejada** já tinha derivado de
+   `profiles.ultimo_treino` (o primeiro dia de força da Fase 1 de
+   `semanaPlanejada`); o override com `workout_id` continua tendo prioridade
+   (rodada 4) e "sobrou um dia só → Treino A" também (rodada 2).
+3. **O treino do dia marcado era remarcado para um dia que já passou**
+   (SPEC §3.5 com §5.4). O remanejo mandava a atividade para
+   `disponiveis.find(x => !ocupado.has(x.dia))` — o primeiro dia livre na ordem
+   seg→dom, **inclusive antes** do dia marcado. Como o gatilho é marcar "não vou
+   treinar **hoje**", esse dia já passou: marcando a sexta na Fase 1, o treino
+   ia para a quinta e o domingo (livre, depois da sexta) ficava vazio. Agora o
+   remanejo prefere um dia livre **posterior** ao dia marcado e só cai num
+   anterior quando não existe nenhum depois (o laço de corte já garante a
+   capacidade).
+
+`lib/formato.ts` + `lib/montagem.ts` (fora dos três arquivos do motor, mesmo
+defeito de convenção)
+
+4. **O implemento `anilha` era rotulado "na barra"** (SPEC §4: "mostrar sempre o
+   rótulo certo na tela"). `rotuloDaCarga()` tratava halteres, polia, barra fixa
+   e peso corporal e mandava todo o resto para o default "na barra" — inclusive
+   os três exercícios de `anilha` do catálogo (abdominal com anilha e russian
+   twist com 5 kg, mergulho no banco com 0), em que a carga é a anilha segurada
+   contra o peito e não existe barra nenhuma. Agora `anilha` → "na anilha",
+   `band` → "com elástico", `corda` → "peso do corpo", e `lib/montagem.ts` ganhou
+   o lugar `naAnilha` (antes `anilha` era classificada como `naMochila`, o lastro
+   da barra fixa).
+
+Teste do construtor corrigido: `lib/calendario.test.ts` > "override sem
+`workout_id` segue a alternância" esperava `["A1", "B1", "A1"]` com
+`ultimo_treino = "A1"` — a semana recomeçando pelo treino já feito, exatamente o
+achado 2. Passou a esperar `["B1", "A1", "B1"]` com a citação da §5.2 item 3 no
+comentário. Testes do construtor acrescentados: semana leve projetada em
+`lib/progressao.test.ts`, âncora da alternância e remanejo para dia posterior em
+`lib/calendario.test.ts`, rótulo do `anilha` em `lib/formato.test.ts`.
+
 ### Como testar
 
-`npm test` (359 testes: 133 do construtor + 226 das três auditorias, quatro
+`npm test` (400 testes: 137 do construtor + 263 das três auditorias, cinco
 rodadas) e
 `npm run build`. Ainda não há tela ligada ao motor: a sessão de força (marco 3)
 é quem vai chamar `cargaDeHoje` no cabeçalho de cada bloco e `decidir` ao
