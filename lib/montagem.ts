@@ -59,8 +59,17 @@ export interface Montagem {
   exato: boolean;
   /** `total - pedido` quando não fecha exato (sempre ≤ 0). */
   diferenca?: number;
+  /**
+   * Quando o pedido passa do teto: o que segura a escala neste implemento —
+   * `estoque` (faltam anilhas, SPEC §6.4) ou `capacidade` (a barra não aguenta
+   * mais, e comprar anilhas não muda nada).
+   */
+  limite?: LimiteDoImplemento;
   aviso?: string;
 }
+
+/** O que segura o topo da escala de um implemento. */
+export type LimiteDoImplemento = "estoque" | "capacidade";
 
 interface Config {
   /** Peso da barra. */
@@ -244,6 +253,33 @@ export function cargaMaxima(
   return escala[escala.length - 1] ?? 0;
 }
 
+/** A capacidade do implemento (o que a barra ou o pino aguenta). */
+export function capacidadeDoImplemento(
+  implemento: ImplementoMontagem,
+  opcoes: OpcoesMontagem = {},
+): number {
+  return configuracao(implemento, opcoes).capacidade;
+}
+
+/**
+ * O que segura o topo da escala (SPEC §6.4): se com o estoque inteiro de
+ * anilhas ainda sobra capacidade na barra, quem limita é o **estoque** (aí sim
+ * "faltam anilhas de 10 kg"); se o estoque passaria da capacidade, quem limita
+ * é a **capacidade** da barra e comprar anilhas não sobe 1 kg.
+ */
+export function limiteDoImplemento(
+  implemento: ImplementoMontagem,
+  opcoes: OpcoesMontagem = {},
+): LimiteDoImplemento {
+  const cfg = configuracao(implemento, opcoes);
+  if (cfg.onde === "nenhum") return "capacidade";
+  const somaDoEstoque = anilhasDisponiveis()
+    .map((a) => a.kg * Math.min(a.qtd, cfg.limitePorPeso))
+    .reduce((s, v) => s + v, 0);
+  const comOEstoqueInteiro = cfg.base + cfg.fator * somaDoEstoque;
+  return comOEstoqueInteiro < cfg.capacidade - 1e-9 ? "estoque" : "capacidade";
+}
+
 /**
  * Quantas anilhas de cada peso, do maior para o menor, em um lado (barra),
  * em uma ponta (halteres), no pino (polia) ou na mochila (lastro).
@@ -289,7 +325,11 @@ export function montagem(
   else m.naMochila = anilhas;
   if (!m.exato) m.diferenca = arredondar(total - pedido);
   if (pedido > cargaMaxima(implemento, opcoes) + 1e-9) {
-    m.aviso = "faltam anilhas de 10 kg";
+    // SPEC §6.4: o aviso é sobre as anilhas que faltam. Quando o teto é a
+    // capacidade da barra (halter 40 kg, barra W 50 kg), comprar anilhas não
+    // resolve — o doc registra "52 → 50" e "41,5 → 39,5" sem aviso nenhum.
+    m.limite = limiteDoImplemento(implemento, opcoes);
+    if (m.limite === "estoque") m.aviso = "faltam anilhas de 10 kg";
   }
   return m;
 }

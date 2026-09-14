@@ -302,8 +302,58 @@ dos planos, `prefs`), então a linha do banco serve direto.
   vencendo o programa; Fase 2 com SA/IA/SB/IB nos dias fixos; semana curta com
   os casos do guia; avanço de semana com 0, 1 e 2 sessões; sugestão da Fase 2.
 
+### Auditoria (rodada 1) — o que os auditores acharam e o que mudou
+
+Três auditorias adversariais independentes (`lib/auditoria-casos.test.ts`,
+`lib/auditoria-spec.test.ts`, `lib/auditoria-bordas.test.ts`, 149 testes novos)
+apontaram 6 defeitos reais. Em todos o motor estava errado; só um teste do
+construtor codificava o erro e foi corrigido.
+
+1. **Sugestão do lastro presa ao sucesso** (SPEC §6.3, caso 15). A sugestão
+   "barra fixa com lastro" só saía dentro do ramo de sucesso de
+   `decidirMaximo()`: quem empacava em 3 × 10 (média igual) nunca a via — o
+   cenário em que ela mais serve. Agora ela depende só de 3 séries ≥ 10 e
+   acompanha qualquer evento (`subiu`, `repetiu`, falha). Passou a valer apenas
+   para a progressão `reps_depois_lastro` (barra fixa, conforme
+   `data/exercicios.json`), não para flexão e mergulho.
+2. **Sugestão da anilha presa ao sucesso** (SPEC §6.3, caso 17). Mesma causa em
+   `subir()`. Saiu para `decidir()` em `sugestaoDaAnilha()`: acima de 20 reps em
+   todas as séries a sugestão é emitida mesmo quando o exercício repetiu.
+3. **`cargaDeHoje().tempo_alvo_s` e `.passos_alvo` traziam o topo da faixa**
+   (SPEC §6.1). Os dois campos têm o nome da coluna `exercise_state` e agora
+   carregam o mesmo valor que ela: o piso na primeira vez (prancha 30 s, farmer's
+   walk 30 passos). O topo que a tela pré-preenche está em `alvo_max` (e no par
+   `reps_alvo_min`/`reps_alvo_max`). `lib/progressao.test.ts` esperava 60 s e foi
+   corrigido citando a §6.1.
+4. **"faltam anilhas de 10 kg" em teto de capacidade** (SPEC §6.4). O aviso saía
+   sempre que o pedido passava do teto, inclusive quando o teto é a capacidade
+   da barra (halter 40 kg, barra W 50 kg, polia 100 kg) — mandando comprar
+   anilhas que não sobem 1 kg. `lib/montagem.ts` ganhou `limiteDoImplemento()`
+   ("estoque" quando o estoque inteiro ainda caberia na barra, "capacidade" caso
+   contrário) e `capacidadeDoImplemento()`; a `Montagem` expõe `limite` e só
+   emite o aviso quando faltam anilhas mesmo (109,5 na barra maciça). No motor,
+   `avisoDeTeto()` escolhe entre "faltam anilhas de 10 kg (marco do guia)" e "no
+   limite do implemento (capacidade X kg): comprar anilhas não sobe a carga".
+5. **Séries de trabalho além da prescrição eram descartadas** (SPEC §6 e §6.2).
+   `decidir()` lia só as `prescricao.series` primeiras: uma 4ª série de 3 reps
+   (piso 5) ou não concluída sumia e o exercício ainda subia de carga —
+   alcançável na Fase 2, que pede 4 séries onde o catálogo pede 3. Agora avalia
+   `max(prescricao.series, séries registradas)`.
+6. **Média do tipo `maximo` comparada em ponto flutuante** (SPEC §6.3). Com
+   dízima (10/3 + 1 > 13/3 em binário), +1 rep em **todas** as séries não subia
+   em ~1/3 das sessões da barra fixa. A comparação passou a ser inteira:
+   `somaAgora × nAntes ≥ (somaAntes + nAntes) × nAgora`.
+7. **`carga_atual_kg` null na 2ª falha** (SPEC §6.1 + §6.2). `subir()` caía na
+   `carga_inicial` do JSON e `falhar()` tratava como exercício sem carga, então
+   a 2ª falha seguida não aplicava os −10 %. `falhar()` passou a ler o estado do
+   mesmo jeito que `subir()`.
+
+Nenhum teste de auditoria foi apagado ou afrouxado.
+
 ### Como testar
 
-`npm test` (128 testes) e `npm run build`. Ainda não há tela ligada ao motor: a
-sessão de força (marco 3) é quem vai chamar `cargaDeHoje` no cabeçalho de cada
-bloco e `decidir` ao concluir o treino.
+`npm test` (277 testes: 128 do construtor + 149 das três auditorias) e
+`npm run build`. Ainda não há tela ligada ao motor: a sessão de força (marco 3)
+é quem vai chamar `cargaDeHoje` no cabeçalho de cada bloco e `decidir` ao
+concluir o treino. Atenção na UI: para pré-preencher reps/tempo/passos use
+`alvo_max`, não `tempo_alvo_s`/`passos_alvo` (que são o estado, §6.1).

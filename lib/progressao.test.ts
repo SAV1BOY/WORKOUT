@@ -92,7 +92,11 @@ describe("cargaDeHoje (SPEC §6.1)", () => {
   it("tempo e assistência também saem do estado", () => {
     const hoje = cargaDeHoje(prancha, null);
     expect(hoje.alvo_min).toBe(30); // piso da faixa
-    expect(hoje.tempo_alvo_s).toBe(60); // topo: o que a tela pré-preenche
+    // SPEC §6.1: "reps/tempo alvo = mínimo da faixa" na primeira vez. O campo
+    // tempo_alvo_s é o mesmo da coluna exercise_state.tempo_alvo_s; o topo que
+    // a tela pré-preenche está em alvo_max.
+    expect(hoje.tempo_alvo_s).toBe(30);
+    expect(hoje.alvo_max).toBe(60);
     expect(estadoInicial(prancha).tempo_alvo_s).toBe(30);
     expect(cargaDeHoje(assistida, null).assistencia).toBe("pe_inteiro");
   });

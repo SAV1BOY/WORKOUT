@@ -10,6 +10,8 @@
  */
 import {
   alcancavelParaBaixo,
+  capacidadeDoImplemento,
+  limiteDoImplemento,
   montagem,
   type Montagem,
   type OpcoesMontagem,
@@ -108,11 +110,20 @@ export interface AlvoDeHoje {
   tipo: PrescricaoTipo;
   /** Piso da faixa (o que o estado guarda na primeira vez). */
   alvo_min: number | null;
-  /** Topo efetivo: o que precisa bater em todas as séries para subir. */
+  /**
+   * Topo efetivo: o que precisa bater em todas as séries para subir — e o que
+   * a tela pré-preenche em cada série (SPEC §3.2).
+   */
   alvo_max: number | null;
   reps_alvo_min: number | null;
   reps_alvo_max: number | null;
+  /**
+   * O alvo de tempo guardado no estado (SPEC §6.1: mínimo da faixa na primeira
+   * vez). Mesmo significado da coluna `exercise_state.tempo_alvo_s`; o topo a
+   * bater está em `alvo_max`.
+   */
   tempo_alvo_s: number | null;
+  /** Idem para passos: o piso da faixa (o topo a bater está em `alvo_max`). */
   passos_alvo: number | null;
   assistencia: Assistencia | null;
   semana_leve: boolean;
@@ -219,13 +230,8 @@ export function cargaDeHoje(
     reps_alvo_max:
       prescricao.tipo === "reps" ? alvoDeCima(exercicio, base, prescricao) : null,
     tempo_alvo_s:
-      prescricao.tipo === "tempo_s"
-        ? alvoDeCima(exercicio, base, prescricao)
-        : null,
-    passos_alvo:
-      prescricao.tipo === "passos"
-        ? alvoDeCima(exercicio, base, prescricao)
-        : null,
+      prescricao.tipo === "tempo_s" ? (base.tempo_alvo_s ?? prescricao.min) : null,
+    passos_alvo: prescricao.tipo === "passos" ? prescricao.min : null,
     assistencia: base.assistencia,
     semana_leve: base.semana_leve,
     exigir_rep_extra: base.exigir_rep_extra,
@@ -336,7 +342,10 @@ export function decidir(
   const series = seriesTrabalho.filter((s) => (s.tipo ?? "trabalho") === "trabalho");
   if (series.length === 0) return nada;
 
-  const esperadas = Math.max(prescricao.series, 1);
+  // SPEC §6: a entrada são "as séries de trabalho da sessão" — uma série a mais
+  // do que a prescrição também é avaliada (§6.2: falha = ALGUMA série de
+  // trabalho abaixo do piso ou não concluída).
+  const esperadas = Math.max(prescricao.series, 1, series.length);
   const valores: (number | null)[] = [];
   for (let i = 0; i < esperadas; i++) {
     const s = series[i];
@@ -398,16 +407,39 @@ export function decidir(
   // Quedas dentro da graça não contam falha.
   if (classe === "falha" && naGraca) classe = "manteve";
 
-  if (classe === "sucesso") {
-    return subir(exercicio, antes, depois, prescricao, valores, opcoes, de);
+  const decisao: Decisao =
+    classe === "sucesso"
+      ? subir(exercicio, antes, depois, prescricao, valores, opcoes, de)
+      : classe === "manteve"
+        ? {
+            novoEstado: depois,
+            evento: { motivo: "repetiu", de, para: foto(depois, exercicio) },
+          }
+        : falhar(exercicio, antes, depois, opcoes, de);
+
+  // SPEC §6.3: a sugestão da anilha depende só de passar de 20 reps em todas as
+  // séries, não de ter subido nesta sessão.
+  const anilha = sugestaoDaAnilha(exercicio, valores);
+  if (anilha && decisao.evento && !decisao.evento.sugestao) {
+    decisao.evento.sugestao = anilha;
   }
-  if (classe === "manteve") {
-    return {
-      novoEstado: depois,
-      evento: { motivo: "repetiu", de, para: foto(depois, exercicio) },
-    };
-  }
-  return falhar(exercicio, antes, depois, opcoes, de);
+  return decisao;
+}
+
+/**
+ * SPEC §6.3 (peso corporal com faixa): "acima de 20 reps em todas as séries,
+ * sugere anilha (2 kg) e volta ao piso da faixa".
+ */
+function sugestaoDaAnilha(
+  exercicio: Exercicio,
+  valores: (number | null)[],
+): string | null {
+  const tipo = exercicio.progressao.tipo;
+  if (tipo !== "reps" && tipo !== "reps_depois_lastro") return null;
+  const feitas = valores.filter((v): v is number => v !== null);
+  if (feitas.length === 0 || feitas.length !== valores.length) return null;
+  if (!feitas.every((v) => v >= REPS_PARA_SUGERIR_ANILHA)) return null;
+  return `Mais de ${REPS_PARA_SUGERIR_ANILHA} repetições em todas as séries: use uma anilha de 2 kg e volte ao piso da faixa.`;
 }
 
 /* ------------------------------------------------------------- subidas */
@@ -421,7 +453,6 @@ function subir(
   opcoes: OpcoesMontagem,
   de: Record<string, unknown>,
 ): Decisao {
-  const feitas = valores.filter((v): v is number => v !== null);
   depois.falhas_seguidas = 0;
 
   const pronto = (
@@ -478,16 +509,7 @@ function subir(
       depois.reps_alvo = topo + passo;
       depois.incremento_reduzido = false;
       depois.exigir_rep_extra = false;
-      const todasAcima =
-        feitas.length > 0 && feitas.every((v) => v >= REPS_PARA_SUGERIR_ANILHA);
-      return pronto(
-        "subiu",
-        todasAcima
-          ? {
-              sugestao: `Mais de ${REPS_PARA_SUGERIR_ANILHA} repetições em todas as séries: use uma anilha de 2 kg e volte ao piso da faixa.`,
-            }
-          : {},
-      );
+      return pronto("subiu");
     }
 
     default: {
@@ -500,11 +522,10 @@ function subir(
         opcoes,
       );
       if (incremento <= 0 || nova <= atual) {
-        // teto do kit: não dá para subir com as anilhas que existem
+        // Teto: ou faltam anilhas (SPEC §6.4, marco do guia) ou a barra chegou
+        // à capacidade — aí comprar anilhas não sobe 1 kg.
         depois.carga_atual_kg = atual;
-        return pronto("repetiu", {
-          aviso: "faltam anilhas de 10 kg (marco do guia)",
-        });
+        return pronto("repetiu", { aviso: avisoDeTeto(exercicio, opcoes) });
       }
       depois.carga_atual_kg = nova;
       depois.incremento_reduzido = false;
@@ -512,6 +533,19 @@ function subir(
       return pronto("subiu");
     }
   }
+}
+
+/**
+ * O aviso de quem encostou no teto do implemento (SPEC §6.4): só é falta de
+ * anilhas quando o estoque acaba antes da capacidade da barra.
+ */
+function avisoDeTeto(exercicio: Exercicio, opcoes: OpcoesMontagem): string {
+  if (limiteDoImplemento(exercicio.implemento, opcoes) === "estoque") {
+    return "faltam anilhas de 10 kg (marco do guia)";
+  }
+  const capacidade = capacidadeDoImplemento(exercicio.implemento, opcoes);
+  const kg = String(capacidade).replace(".", ",");
+  return `no limite do implemento (capacidade ${kg} kg): comprar anilhas não sobe a carga`;
 }
 
 /* -------------------------------------------------------------- falhas */
@@ -525,7 +559,9 @@ function falhar(
 ): Decisao {
   const falhas = antes.falhas_seguidas + 1;
   depois.falhas_seguidas = falhas;
-  const carga = antes.carga_atual_kg;
+  // Estado parcial vindo do banco: sem carga registrada vale a carga inicial do
+  // JSON (SPEC §6.1), a mesma leitura que subir() faz.
+  const carga = antes.carga_atual_kg ?? exercicio.carga_inicial.kg;
   const temCarga = exercicio.progressao.tipo === "carga" && carga !== null && carga > 0;
 
   // 1ª falha (ou exercício sem carga para reduzir): repete a mesma coisa.
@@ -580,6 +616,31 @@ function falhar(
 
 /* -------------------------------------------------- tipo `maximo` §6.3 */
 
+/**
+ * Sucesso no tipo `maximo` (SPEC §6.3): média ≥ média anterior + 1. A conta é
+ * feita em inteiros (soma × nº de séries) porque a média vira dízima quando a
+ * soma não é múltipla do número de séries: em ponto flutuante 13/3 fica
+ * *menor* que 10/3 + 1 e +1 rep em todas as séries deixaria de subir.
+ */
+function mediaSubiu(
+  somaAgora: number,
+  nAgora: number,
+  somaAntes: number,
+  nAntes: number,
+): boolean {
+  return somaAgora * nAntes >= (somaAntes + nAntes) * nAgora;
+}
+
+/** Média de hoje ≥ média anterior (sem exigir o +1), na mesma aritmética. */
+function mediaNaoCaiu(
+  somaAgora: number,
+  nAgora: number,
+  somaAntes: number,
+  nAntes: number,
+): boolean {
+  return somaAgora * nAntes >= somaAntes * nAgora;
+}
+
 function decidirMaximo(
   exercicio: Exercicio,
   antes: EstadoExercicio,
@@ -598,39 +659,49 @@ function decidirMaximo(
     return { novoEstado: depois, evento: null };
   }
 
-  const mediaAntes =
-    anteriores.length > 0 ? media(anteriores) : (antes.reps_alvo ?? 0);
+  const somaAgora = feitas.reduce((s, v) => s + v, 0);
+  const nAgora = Math.max(feitas.length, 1);
+  const comAnteriores = anteriores.length > 0;
+  const somaAntes = comAnteriores
+    ? anteriores.reduce((s, v) => s + v, 0)
+    : (antes.reps_alvo ?? 0);
+  const nAntes = comAnteriores ? anteriores.length : 1;
+
   const caiuEmAlguma = valores.some((v, i) => {
     const anterior = anteriores[i];
     if (anterior === undefined) return false;
     return v === null || v < anterior;
   });
 
-  if (mediaAgora >= mediaAntes + 1 && !caiuEmAlguma) {
+  /*
+   * SPEC §6.3 / data/progressao.json ("sem carga até 3 × 10 limpas; depois
+   * anilha de 2 kg na mochila"): a sugestão do lastro depende só de chegar a 3
+   * séries de 10 — não de melhorar a média nesta sessão. Vale para a barra fixa
+   * (progressão `reps_depois_lastro`), não para flexão e mergulho.
+   */
+  const tresNoTeto =
+    exercicio.progressao.tipo === "reps_depois_lastro" &&
+    feitas.filter((v) => v >= REPS_PARA_SUGERIR_LASTRO).length >= 3;
+  const extra: Partial<EventoProgressao> = tresNoTeto
+    ? {
+        sugestao:
+          "Três séries de 10 repetições: passe para a barra fixa com lastro (2 kg na mochila).",
+      }
+    : {};
+
+  if (mediaSubiu(somaAgora, nAgora, somaAntes, nAntes) && !caiuEmAlguma) {
     depois.reps_alvo = Math.round(mediaAgora);
     depois.falhas_seguidas = 0;
-    const tresNoTeto =
-      feitas.filter((v) => v >= REPS_PARA_SUGERIR_LASTRO).length >= 3;
     return {
       novoEstado: depois,
-      evento: {
-        motivo: "subiu",
-        de,
-        para: foto(depois, exercicio),
-        ...(tresNoTeto
-          ? {
-              sugestao:
-                "Três séries de 10 repetições: passe para a barra fixa com lastro (2 kg na mochila).",
-            }
-          : {}),
-      },
+      evento: { motivo: "subiu", de, para: foto(depois, exercicio), ...extra },
     };
   }
 
-  if (mediaAgora >= mediaAntes) {
+  if (mediaNaoCaiu(somaAgora, nAgora, somaAntes, nAntes)) {
     return {
       novoEstado: depois,
-      evento: { motivo: "repetiu", de, para: foto(depois, exercicio) },
+      evento: { motivo: "repetiu", de, para: foto(depois, exercicio), ...extra },
     };
   }
 
@@ -643,6 +714,7 @@ function decidirMaximo(
       de,
       para: foto(depois, exercicio),
       falha: true,
+      ...extra,
     },
   };
 }
