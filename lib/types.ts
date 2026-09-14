@@ -93,6 +93,7 @@ export interface LinhaSerie {
   reps_lado2: number | null;
   carga_kg: number | null;
   tempo_s: number | null;
+  tempo_s_lado2: number | null;
   passos: number | null;
   assistencia: Assistencia | null;
   concluida: boolean;

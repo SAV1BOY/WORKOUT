@@ -121,12 +121,11 @@ lucide-react 1.46.0 · next-themes 0.4.6 · eslint 9.39.5 · sharp 0.35.4 (dev).
 
 ### O que falta (marcos 2–6)
 
-2. **Hoje + calendário** (SPEC §3.1, §3.5, §5): `lib/calendario.ts` (que dia é
-   hoje, alternância A/B, semana curta, semanas dos planos), tela Hoje com o
-   card do dia e a grade da semana.
-3. **Sessão de força** (§3.2) com IndexedDB + outbox ligados, e o **motor de
-   progressão** `lib/progressao.ts` + `lib/montagem.ts` com os 22 casos de
-   `docs/casos-de-teste-progressao.md`.
+2. **Hoje + calendário** (SPEC §3.1, §3.5): a tela Hoje com o card do dia e a
+   grade da semana. A lógica (§5) já está em `lib/calendario.ts`.
+3. **Sessão de força** (§3.2) com IndexedDB + outbox ligados. O **motor**
+   (`lib/montagem.ts`, `lib/progressao.ts`, `lib/calendario.ts`) já está pronto
+   e testado — ver a seção "Motor" no fim deste arquivo.
 4. **Cardio e barra fixa** (§3.3, §3.4): timers de intervalo, plano de 12
    semanas, repetições soltas.
 5. **Catálogo e ficha** (§3.6), **Progresso** (§3.7) e **Corpo** (§3.8):
@@ -157,3 +156,154 @@ SPEC §10.
 6. No build de produção o app é instalável (manifest + service worker):
    no Chrome, menu ⋮ → "Instalar app". Com o app aberto, ative o modo avião e
    navegue: a tela `/~offline` aparece no lugar do erro do navegador.
+
+
+---
+
+## Motor — progressão, montagem e calendário ✅
+
+As três peças puras do marco 3, escritas com os testes primeiro. Nenhuma delas
+importa React, Supabase ou Dexie: recebem dados e devolvem dados. 88 testes
+novos (`npm test` fecha em 128).
+
+### `lib/montagem.ts` — quais cargas o kit alcança
+
+```ts
+type ImplementoMontagem = Implemento | "barra_reta_oca";
+cargasPossiveis(implemento, { pesoBarra? }): number[]          // escala crescente
+alcancavelParaBaixo(kg, implemento, opcoes?): number           // SPEC §6.4
+cargaMinima(implemento, opcoes?) · cargaMaxima(implemento, opcoes?)
+montagem(kg, implemento, opcoes?): Montagem
+// Montagem = { implemento, anilhas, porLado? | porPonta? | noPino? | naMochila?,
+//              onde, pesoBarra, total, pedido, exato, diferenca?, aviso? }
+PESO_BARRA_A_PESAR = 2
+```
+
+- Uma tabela de configuração por implemento (peso da barra, fator 1 ou 2,
+  limite de unidades por lado, capacidade) e duas rotinas pequenas: o conjunto
+  das somas possíveis (para a escala) e um guloso do maior para o menor **com
+  volta atrás** (para as anilhas). O estoque e as capacidades vêm de
+  `data/equipamentos.json`.
+- Escalas: barra maciça 7,5 → 107,5 (51 cargas, passo 2); halteres 1,5 → 39,5
+  por halter; polia e lastro 0 → 100 de 1 em 1; barra W 2 → 50; barra reta oca
+  2 → 60.
+
+### `lib/progressao.ts` — o motor (SPEC §6)
+
+```ts
+prescricaoPadrao(exercicio) · prescricaoDoTreino(itemDoPrograma, exercicio): Alvo
+estadoInicial(exercicio, prescricao?): EstadoExercicio
+incrementoDe(exercicio, estado?): number
+cargaDeHoje(exercicio, estado | null, prescricao?, opcoes?): AlvoDeHoje
+decidir(exercicio, estado | null, seriesTrabalho, contexto?): Decisao
+// Decisao = { novoEstado, evento: { motivo, de, para, falha?, aviso?, sugestao? } | null }
+// contexto = { prescricao?, ultimaFirme?, sessaoAbandonada?, seriesAnteriores?, montagem? }
+PASSO_MINIMO_KG = 2 · SESSOES_DE_GRACA = 2 · DEGRAUS_ASSISTENCIA
+```
+
+`EstadoExercicio` é a linha de `exercise_state` sem as colunas de identidade, e
+`SerieFeita` é o mínimo que o motor precisa de uma série (concluída, reps,
+`reps_lado2`, tempo, `tempo_s_lado2`, passos, carga, assistência, tipo).
+
+### `lib/calendario.ts` — o que é hoje (SPEC §5)
+
+```ts
+diaDaSemana · inicioDaSemana · diasDaSemana · iso · paraData · semanaDaFase
+tipoDoDia(data, fase, overrides?) · proximoTreinoAlternado(ultimo)
+treinoDeHoje(data, perfil, overrides?): DiaDoPlano
+sessaoCardioDeHoje(data, perfil, overrides?): SessaoCardioDoDia | null
+semanaDoPlano(data, perfil, overrides?): DiaDoPlano[]
+avancarSemanaCardio(semanaAtual, sessoesDaSemanaCivil, opcoes?)
+  + avancarSemanaDeCorrida / DeCorda / DeBarraFixa (com o teto de 12 semanas)
+sugerirFase2(perfil, sessoesConcluidas, hoje) · adiarFase2(hoje)
+treinosComAgachamentoOuTerra(): TreinoId[]
+semanaCurta(diasIndisponiveis, semanaPlanejada): ResultadoSemanaCurta
+oQueFaltaNaSemana(semanaPlanejada, realizados, hoje)
+```
+
+`PerfilCalendario` é um subconjunto de `profiles` (fase, último treino, semanas
+dos planos, `prefs`), então a linha do banco serve direto.
+
+### Decisões de interpretação (onde a spec deixava margem)
+
+- **Topo efetivo da faixa.** Para os tipos `reps` e `tempo`, o alvo de subida é
+  `max(topo da prescrição, alvo guardado no estado)`. É o que faz o caso 16
+  fechar (prancha com alvo 30 e faixa 30–60 → 60 nas três séries → 65 s) e o
+  caso 17 (elevação de pernas com alvo 10 e faixa 10–15 → 15 nas três → 16). Na
+  primeira vez o estado guarda o **piso** da faixa, como diz a §6.1; a tela
+  pré-preenche o topo (`AlvoDeHoje.alvo_max`).
+- **Semana leve.** A 3ª falha já grava a carga leve em `carga_atual_kg` e
+  guarda a anterior em `carga_antes_leve`; `cargaDeHoje` recalcula os 60 % a
+  partir dela (mesmo resultado, à prova de estado inconsistente). A sessão da
+  semana leve **sempre** termina com a volta à carga anterior (evento
+  `fim_semana_leve`), independente de como ela foi — é o que diz o caso 9.
+- **Mudança de degrau do elástico** emite motivo `subiu` (é o que o caso 13
+  pede); `trocou_assistencia` fica reservado para a troca manual no perfil.
+  Chegando em "sem elástico", a subida vira `repetiu` com a sugestão de passar
+  para a barra fixa com lastro.
+- **Graça** (`sessoes_graca`) é genérica: enquanto for > 0, uma queda vira
+  "repetiu" em vez de falha, e cada sessão avaliada consome uma.
+- **Exercícios sem carga** (peso corporal, reps, tempo, assistência) acumulam
+  falhas mas não têm o que reduzir: a 2ª e a 3ª falha repetem o alvo e a 3ª zera
+  o contador — não existe "60 % do peso do corpo".
+- **`exigir_rep_extra`** só é ligado quando `incremento ÷ 2` cai abaixo do passo
+  mínimo de 2 kg (caso 5: 2 kg continuam 2 kg, mas a subida passa a exigir topo
+  + 1 rep). O agachamento (4 kg) só tem o incremento reduzido (caso 6).
+- **Teto do kit**: a subida que não cabe na escala vira `repetiu` com
+  `aviso: "faltam anilhas de 10 kg (marco do guia)"` (caso 22).
+- **Tipo `maximo`**: sucesso = média ≥ média anterior + 1 **e** nenhuma série
+  abaixo da correspondente; média igual ou maior sem isso = `repetiu`; média
+  menor = falha. A sessão sem referência anterior só registra a média em
+  `reps_alvo` e não gera evento. O comparativo série a série vem em
+  `contexto.seriesAnteriores` (a última sessão do exercício), porque o banco não
+  guarda isso no estado.
+- **Sugestões não mexem no estado**: passar de 20 reps em todas as séries ou
+  chegar a 3 × 10 na barra fixa gera `evento.sugestao` (anilha de 2 kg, lastro),
+  e quem decide é o usuário.
+- **Sessão abandonada**: só avalia o exercício se todas as séries prescritas
+  estiverem registradas. Numa sessão **concluída**, série faltando ou sem
+  repetições conta como falha.
+- **Unilateral**: vale sempre o menor lado, em reps e em tempo.
+- **Semana curta**: os dias disponíveis (inclusive os de descanso) são as vagas;
+  o que cabe é remanejado (cada atividade fica no próprio dia quando dá, senão
+  vai para o primeiro dia livre) e só se corta o que não couber, na ordem do
+  guia — cardio de trás para a frente, depois força não protegida, e os treinos
+  com agachamento/terra (`A1, B1, IA, IB`, derivados dos dados) por último.
+  Sobrando um dia, o que resta é o Treino A.
+- **Fase 2**: a sugestão exige 12 semanas civis completas e 30 sessões, e some
+  por 2 semanas quando adiada (`prefs.fase2_adiada_ate`).
+- **Barra W e barra reta oca** têm `peso_kg: null` no JSON; até serem pesadas
+  valem 2,0 kg (`PESO_BARRA_A_PESAR`, o valor dos casos de teste) e toda função
+  aceita `{ pesoBarra }` para quando o Miguel pesar.
+
+### Mudanças no schema (`supabase/schema.sql`)
+
+- `session_sets.tempo_s_lado2 int` — unilateral em tempo (prancha lateral)
+  precisa dos dois lados, como `reps_lado2` faz para repetições.
+- `exercise_state.sessoes_graca` passou a ter **default 0** (era 2): a graça só
+  existe depois de mudar o degrau do elástico, e é o motor que põe 2.
+- Correção em `lib/dados.ts`: `estagioDeCorda(semana)` estava usando a semana
+  como índice da lista; agora casa com a faixa ("1–2", "3–4", … "9–12"), igual a
+  `semanaDeBarraFixa`.
+
+### Testes
+
+- `lib/montagem.test.ts` (27): a tabela inteira de cargas válidas e inválidas,
+  os 5 exemplos de chamada do documento, os limites de estoque e uma varredura
+  da escala (7,5 → 107,5 e 1,5 → 39,5 sempre exatos; 1 kg acima cai para a
+  vizinha inferior; todo inteiro de 0 a 100 fecha no pino).
+- `lib/progressao.test.ts` (45): os 22 casos do documento, um a um e com o
+  número do caso no nome, usando os exercícios reais do catálogo; mais tempo,
+  passos, unilateral em tempo, `maximo` com queda, assistência até "sem
+  elástico", semana leve seguida de subida, aquecimento ignorado e o estado
+  recebido nunca sendo alterado.
+- `lib/calendario.test.ts` (21): 14/09/2026 é segunda e é o Treino A1; terça é
+  corrida da semana 1 (8 × 1/2 min); alternância A→B→A e B→A→B; override
+  vencendo o programa; Fase 2 com SA/IA/SB/IB nos dias fixos; semana curta com
+  os casos do guia; avanço de semana com 0, 1 e 2 sessões; sugestão da Fase 2.
+
+### Como testar
+
+`npm test` (128 testes) e `npm run build`. Ainda não há tela ligada ao motor: a
+sessão de força (marco 3) é quem vai chamar `cargaDeHoje` no cabeçalho de cada
+bloco e `decidir` ao concluir o treino.

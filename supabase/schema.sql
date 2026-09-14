@@ -40,7 +40,7 @@ create table if not exists public.exercise_state (
   exigir_rep_extra boolean not null default false,       -- quando o incremento reduzido cai no passo mínimo: topo da faixa + 1 rep para subir
   semana_leve      boolean not null default false,       -- próxima sessão a 60 % (3ª falha)
   carga_antes_leve numeric(6,2),                         -- para voltar depois da semana leve
-  sessoes_graca    int not null default 2,               -- barra fixa assistida: sessões após mudar o degrau em que queda de reps não conta falha
+  sessoes_graca    int not null default 0,               -- barra fixa assistida: sessões após mudar o degrau em que queda de reps não conta falha (o motor põe 2 ao mudar)
   desativado       boolean not null default false,
   notas            text,
   updated_at       timestamptz not null default now(),
@@ -79,7 +79,8 @@ create table if not exists public.session_sets (
   reps          int,                                     -- feitas (null = não feita); em unilateral = lado direito
   reps_lado2    int,                                     -- unilateral: lado esquerdo (vale o menor dos dois)
   carga_kg      numeric(6,2),                            -- carga usada (barra total / por halter / pino)
-  tempo_s       int,                                     -- para prancha etc.
+  tempo_s       int,                                     -- para prancha etc.; em unilateral = primeiro lado
+  tempo_s_lado2 int,                                     -- unilateral em tempo (prancha lateral): segundo lado
   passos        int,                                     -- farmer's walk
   assistencia   text,                                    -- barra fixa assistida
   concluida     boolean not null default false,

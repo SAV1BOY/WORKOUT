@@ -136,28 +136,30 @@ export function semanaDeCorrida(semana: number) {
   return s;
 }
 
-/** Estágio da corda que cobre a semana pedida. */
+/** "1–2" cobre as semanas 1 e 2; "9–12", da 9 à 12. */
+function cobreASemana(faixa: string, semana: number): boolean {
+  const [de, ate] = faixa.split(/[–-]/).map((n) => Number(n.trim()));
+  if (de === undefined || Number.isNaN(de)) return false;
+  const fim = ate === undefined || Number.isNaN(ate) ? de : ate;
+  return semana >= de && semana <= fim;
+}
+
+/** Estágio da corda que cobre a semana pedida ("1–2", "3–4", … "9–12"). */
 export function estagioDeCorda(semana: number) {
   const lista = cardio.corda.semanas;
-  const i = Math.min(Math.max(semana, 1), lista.length) - 1;
-  const s = lista[i];
-  if (!s) throw new Error("plano de corda vazio");
-  return s;
+  const alvo = Math.max(semana, 1);
+  const ultimo = lista[lista.length - 1];
+  if (!ultimo) throw new Error("plano de corda vazio");
+  return lista.find((s) => cobreASemana(s.semanas, alvo)) ?? ultimo;
 }
 
 /** Bloco de semanas da barra fixa que cobre a semana pedida ("1–2", "3–4"…). */
 export function semanaDeBarraFixa(semana: number) {
   const lista = cardio.barra_fixa.semanas;
   const alvo = Math.max(semana, 1);
-  const achado = lista.find((s) => {
-    const [de, ate] = s.semanas.split(/[–-]/).map((n) => Number(n.trim()));
-    if (de === undefined || Number.isNaN(de)) return false;
-    const fim = ate === undefined || Number.isNaN(ate) ? de : ate;
-    return alvo >= de && alvo <= fim;
-  });
   const ultimo = lista[lista.length - 1];
   if (!ultimo) throw new Error("plano de barra fixa vazio");
-  return achado ?? ultimo;
+  return lista.find((s) => cobreASemana(s.semanas, alvo)) ?? ultimo;
 }
 
 /** Anilhas disponíveis, do maior para o menor peso. */
