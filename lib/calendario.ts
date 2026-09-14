@@ -163,23 +163,39 @@ export function tipoDoDia(
   };
 }
 
+/** O próximo treino da lista da fase depois de `ultimo` (SPEC §5.2 e §5.3). */
+export function proximoTreinoDaFase(
+  fase: FaseId,
+  ultimo: TreinoId | null,
+): TreinoId {
+  const treinos = acharFase(fase).treinos;
+  const primeiro = treinos[0];
+  if (!primeiro) throw new Error(`${fase} sem treinos`);
+  const i = ultimo ? treinos.indexOf(ultimo) : -1;
+  return treinos[(i + 1) % treinos.length] ?? primeiro;
+}
+
 /** Fase 1: o treino é sempre o que não foi o último (SPEC §5.2). */
 export function proximoTreinoAlternado(ultimo: TreinoId | null): TreinoId {
-  const fase = acharFase("fase1");
-  const [a, b] = fase.treinos;
-  if (!a) throw new Error("fase1 sem treinos");
-  if (!b) return a;
-  return ultimo === a ? b : a;
+  return proximoTreinoDaFase("fase1", ultimo);
 }
 
 function treinoDoDia(
   fase: FaseId,
   programa: DiaPrograma,
   ultimo: TreinoId | null,
-): TreinoId | null {
+): TreinoId {
   if (fase === "fase1") return proximoTreinoAlternado(ultimo);
   const t = programa.treino;
-  return t && t !== "alternar" ? t : null;
+  if (t && t !== "alternar") return t;
+  /*
+   * SPEC §5.3: treinar num dia que não era de força (schedule_override com
+   * `workout_id` nulo, §3.5) "vale como o próximo treino". Na Fase 1 a
+   * alternância já resolve; na Fase 2 o dia não tem treino fixo, então vale o
+   * próximo da lista da fase depois de `ultimo_treino` — sem isso a tela Hoje
+   * mostra um card de força sem treino nenhum para começar.
+   */
+  return proximoTreinoDaFase(fase, ultimo);
 }
 
 /** A sessão de cardio do dia, já com a semana do plano (SPEC §5.2 item 4). */

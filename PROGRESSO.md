@@ -413,9 +413,68 @@ Achados 1 e 6 do relatório eram o mesmo defeito visto por duas lentes (semana
 curta / Treino A), assim como 5 e 9 (carga inicial fora da escala do implemento
 depois de pesar a barra).
 
+### Auditoria (rodada 3) — o que os auditores acharam e o que mudou
+
+Terceira rodada adversarial sobre `lib/auditoria-casos.test.ts`,
+`lib/auditoria-spec.test.ts` e `lib/auditoria-bordas.test.ts`. Foram 6 achados:
+**nos 6 o motor estava errado**. Três testes de auditoria de rodadas anteriores
+codificavam o limiar antigo da anilha e foram corrigidos (nenhum apagado nem
+afrouxado), porque contrariavam a SPEC §6.3.
+
+`lib/progressao.ts`
+
+1. **A anilha era sugerida COM 20 reps, não acima de 20** (SPEC §6.3 "acima de
+   20 reps em todas as séries" + `progressao.regra` do JSON, "quando passar de
+   20"). Com `>= 20` a sugestão saía no piso da faixa 20–30 do abdominal
+   bicicleta ("volte ao piso da faixa" para quem já está nele), na primeira
+   sessão perfeita do russian twist (3 × 20 fechado, e ele já segura uma anilha
+   de 5 kg) e uma repetição cedo em outros quatro exercícios. Agora o gatilho é
+   `> 20`. O `≥ 20` do caso 17 de `docs/casos-de-teste-progressao.md` era uma
+   abreviação e ficou explícito no doc ("se todas passarem de 20").
+2. **Aviso de teto falso com incremento curto** (SPEC §6.4 + §3.9). `subir()`
+   tratava qualquer subida que não mudasse de degrau na escala como teto do
+   implemento: com um override em `exercise_state.incremento_kg` menor que o
+   passo (0, 1 ou 1,5 kg numa escala de 2 kg) o app dizia "faltam anilhas de
+   10 kg (marco do guia)" com a barra vazia a 7,5 kg, e "no limite do implemento
+   (capacidade 40 kg)" com o halter a 11,5 kg. O aviso da §6.4 passou a
+   depender de a carga estar de fato no topo da escala
+   (`cargaMaxima(implemento)`); fora do topo sai uma **sugestão** explicando que
+   o incremento não chega ao próximo degrau e quantos kg faltam — a carga
+   continua a mesma (os dois achados, lente spec e lente bordas, eram o mesmo
+   defeito).
+3. **Exercício de elástico recebia conselho de barra fixa** (SPEC §6.3 + regra
+   do JSON). No degrau "sem", o ramo `assistencia` mandava "passe para a barra
+   fixa com lastro" para qualquer exercício — inclusive `abertura-de-ombros` e
+   `good-morning-com-elastico` (implemento `band`), cujo JSON só fala em reduzir
+   a ajuda do elástico. A saída para o lastro ficou restrita ao implemento
+   `barra_fixa`; nos demais a sugestão é trocar por uma variação mais difícil.
+4. **Semana leve: a tela pedia uma carga e o estado guardava outra** (SPEC §6.2,
+   §6.4 e §6.6). `cargaDeHoje()` recalculava os 60 % a partir de
+   `carga_antes_leve` sem o teto "reduzir nunca sobe" que `falhar()` aplica
+   desde a rodada 2, e ainda projetava o resultado na escala. Com a carga
+   guardada abaixo da escala atual (barra W pesada depois, §3.9, ou linha antiga
+   do banco) dava estado 2 kg × tela 6 kg. Agora os 60 % da tela usam o mesmo
+   `min(carga_antes_leve, alcancavelParaBaixo(...))` do evento gravado.
+
+`lib/calendario.ts`
+
+5. **Fase 2: dia trocado para força ficava sem treino** (SPEC §3.5, §5.2 e
+   §5.3). `treinoDoDia()` lia só o treino fixo do dia da semana; num
+   `schedule_override` de tipo `forca` com `workout_id` nulo (quarta de cardio,
+   domingo de descanso) o dia voltava com `treinoId: null` e a tela Hoje ficava
+   com um card de força sem treino, sem exercícios e sem tempo. Entrou
+   `proximoTreinoDaFase(fase, ultimo)` — o próximo treino da lista da fase
+   depois de `ultimo_treino` (§5.3) — usado como fallback na Fase 2 e como base
+   de `proximoTreinoAlternado()` na Fase 1 (mesmo comportamento de antes).
+
+Testes de auditoria corrigidos (com a citação da §6.3 no comentário): caso 17 em
+`auditoria-casos.test.ts` (duas ocorrências) e caso 17 em
+`auditoria-bordas.test.ts` — todos passaram de "20 sugere" para "21 sugere, 20
+não".
+
 ### Como testar
 
-`npm test` (349 testes: 128 do construtor + 221 das três auditorias, duas
+`npm test` (363 testes: 128 do construtor + 235 das três auditorias, três
 rodadas) e
 `npm run build`. Ainda não há tela ligada ao motor: a sessão de força (marco 3)
 é quem vai chamar `cargaDeHoje` no cabeçalho de cada bloco e `decidir` ao

@@ -11,6 +11,8 @@
 import {
   alcancavelParaBaixo,
   capacidadeDoImplemento,
+  cargaMaxima,
+  cargasPossiveis,
   limiteDoImplemento,
   montagem,
   type Montagem,
@@ -217,9 +219,6 @@ export function cargaDeHoje(
    * `exercise_state.carga_atual_kg` e `.assistencia` são anuláveis no schema).
    */
   let carga: number | null = base.carga_atual_kg ?? exercicio.carga_inicial.kg;
-  if (base.semana_leve && base.carga_antes_leve !== null) {
-    carga = base.carga_antes_leve * 0.6;
-  }
   /*
    * SPEC §6.4 e §10.5: toda carga calculada passa por `alcancavel_para_baixo`,
    * então a carga do dia sempre existe na escala do implemento e a montagem da
@@ -228,6 +227,20 @@ export function cargaDeHoje(
    */
   if (carga !== null) {
     carga = alcancavelParaBaixo(carga, exercicio.implemento, opcoes);
+  }
+  /*
+   * Semana leve (SPEC §6.2): os 60 % recalculados a partir de `carga_antes_leve`
+   * com o MESMO teto que `falhar()` aplica ("reduzir nunca sobe", §6.4). Sem
+   * esse `min` a tela e o evento gravado divergem quando a carga guardada está
+   * abaixo da escala atual — barra W ainda com os 2,0 kg do JSON depois de ser
+   * pesada (§3.9) ou linha antiga do banco — e a §6.6 exige que o que a tela
+   * mostra seja a decisão gravada.
+   */
+  if (base.semana_leve && base.carga_antes_leve !== null) {
+    carga = Math.min(
+      base.carga_antes_leve,
+      alcancavelParaBaixo(base.carga_antes_leve * 0.6, exercicio.implemento, opcoes),
+    );
   }
 
   const topo = alvoDeCima(exercicio, base, prescricao);
@@ -452,7 +465,10 @@ function sugestaoDaAnilha(
   if (tipo !== "reps" && tipo !== "reps_depois_lastro") return null;
   const feitas = valores.filter((v): v is number => v !== null);
   if (feitas.length === 0 || feitas.length !== valores.length) return null;
-  if (!feitas.every((v) => v >= REPS_PARA_SUGERIR_ANILHA)) return null;
+  // SPEC §6.3 diz "acima de 20 reps em todas as séries" e a regra do JSON,
+  // "quando passar de 20": 20 no piso de uma faixa 20–30 (abdominal bicicleta)
+  // ou num 3 × 20 fechado (russian twist) ainda não passou de 20.
+  if (!feitas.every((v) => v > REPS_PARA_SUGERIR_ANILHA)) return null;
   return `Mais de ${REPS_PARA_SUGERIR_ANILHA} repetições em todas as séries: use uma anilha de 2 kg e volte ao piso da faixa.`;
 }
 
@@ -486,10 +502,18 @@ function subir(
     case "assistencia": {
       const degrau = proximoDegrau(antes.assistencia);
       if (degrau === null) {
-        // já está sem elástico: a evolução daqui é outro exercício
+        /*
+         * Já está sem elástico: a evolução daqui é outro exercício. A saída
+         * "barra fixa com lastro" é da barra fixa assistida (SPEC §6.3); os
+         * outros exercícios de elástico (implemento `band`) só dizem no JSON
+         * "reduza a ajuda do elástico em vez de mudar carga", então não podem
+         * receber conselho de barra fixa.
+         */
         return pronto("repetiu", {
           sugestao:
-            "Sem elástico em todas as séries: passe para a barra fixa com lastro.",
+            exercicio.implemento === "barra_fixa"
+              ? "Sem elástico em todas as séries: passe para a barra fixa com lastro."
+              : "Sem elástico em todas as séries: troque por uma variação mais difícil.",
         });
       }
       depois.assistencia = degrau;
@@ -536,10 +560,21 @@ function subir(
         opcoes,
       );
       if (incremento <= 0 || nova <= atual) {
-        // Teto: ou faltam anilhas (SPEC §6.4, marco do guia) ou a barra chegou
-        // à capacidade — aí comprar anilhas não sobe 1 kg.
         depois.carga_atual_kg = atual;
-        return pronto("repetiu", { aviso: avisoDeTeto(exercicio, opcoes) });
+        /*
+         * SPEC §6.4: o aviso do teto ("faltam anilhas de 10 kg" / "no limite do
+         * implemento") é só de quem está no topo da escala. Um incremento que
+         * não alcança o próximo degrau — override da §3.9 em
+         * `exercise_state.incremento_kg`, 0, 1 ou 1,5 kg numa escala de 2 kg —
+         * trava a subida longe do teto: aí o que falta explicar é o incremento,
+         * não as anilhas.
+         */
+        if (atual >= cargaMaxima(exercicio.implemento, opcoes) - 1e-9) {
+          return pronto("repetiu", { aviso: avisoDeTeto(exercicio, opcoes) });
+        }
+        return pronto("repetiu", {
+          sugestao: sugestaoDeIncremento(exercicio, opcoes, atual),
+        });
       }
       depois.carga_atual_kg = nova;
       depois.incremento_reduzido = false;
@@ -547,6 +582,25 @@ function subir(
       return pronto("subiu");
     }
   }
+}
+
+/**
+ * Quando o incremento escolhido (SPEC §3.9) é menor que o passo do implemento,
+ * a carga nunca muda: a saída é ajustar o incremento, não comprar anilhas.
+ */
+function sugestaoDeIncremento(
+  exercicio: Exercicio,
+  opcoes: OpcoesMontagem,
+  atual: number,
+): string {
+  const escala = cargasPossiveis(exercicio.implemento, opcoes);
+  const proxima = escala.find((c) => c > atual + 1e-9);
+  const falta =
+    proxima === undefined
+      ? PASSO_MINIMO_KG
+      : Math.round((proxima - atual) * 100) / 100;
+  const kg = String(falta).replace(".", ",");
+  return `O incremento deste exercício não chega ao próximo degrau da escala (faltam ${kg} kg): ajuste o incremento nas preferências.`;
 }
 
 /**

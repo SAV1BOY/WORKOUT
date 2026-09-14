@@ -41,7 +41,7 @@ Prescrição do exercício entre parênteses. "firme" = `ultima_firme = true`.
 | 14 | Barra fixa assistida, `joelho`, 1ª sessão após mudar | | 5, 5, 4, 4 | dentro da graça → `repetiu`, **não** conta falha |
 | 15 | Barra fixa pronada (3 × máximo) | média anterior 4,0 (4, 4, 4) | 5, 5, 5 | `subiu` (média +1, nenhuma série abaixo); quando 3 séries ≥ 10 → sugerir "Barra fixa com lastro" |
 | 16 | Prancha (3 × 30–60 s) | tempo alvo 30 | 60, 60, 60 s; firme | `subiu`: tempo alvo 65 s (acima da faixa: sugerir variação) |
-| 17 | Elevação de pernas na barra fixa (3 × 10–15) | reps alvo 10 | 15, 15, 15; firme | `subiu`: reps alvo 16; se todas ≥ 20 → sugerir anilha de 2 kg entre os pés e voltar a 10 |
+| 17 | Elevação de pernas na barra fixa (3 × 10–15) | reps alvo 10 | 15, 15, 15; firme | `subiu`: reps alvo 16; se todas passarem de 20 (SPEC §6.3 "acima de 20") → sugerir anilha de 2 kg entre os pés e voltar a 10 |
 | 18 | Agachamento búlgaro (3 × 8–10 por perna), halteres 5,5 | | 10/10, 10/10, 10/9 | `repetiu` (menor lado) |
 | 19 | Farmer's walk (3 × 30–40 passos), halteres 11,5 | | 40, 40, 40; firme | `subiu`: 13,5 por halter |
 | 20 | Qualquer exercício, sessão `abandonada` com 1 série registrada | | 8 | não avalia: estado inalterado, sem evento |

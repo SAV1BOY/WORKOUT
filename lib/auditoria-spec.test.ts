@@ -1,21 +1,24 @@
 /**
- * AUDITORIA ADVERSARIAL — lente "spec" (rodada 2).
+ * AUDITORIA ADVERSARIAL — lente "spec" (rodada 3).
  *
- * Conformidade do motor com SPEC.md §5 e §6 e com
- * docs/casos-de-teste-progressao.md, além dos 22 casos do documento. A rodada 1
- * já cobriu a leitura direta de cada regra; aqui o ataque é por *sequência*:
- * cadeias de sessões (subir → falhar → falhar → semana leve → subir), a vida do
- * `exigir_rep_extra`, o estado do elástico degrau a degrau, a semana curta com
- * a alternância A/B da §5.2 e as semanas dos planos de cardio.
+ * Prova de conformidade do motor (lib/progressao.ts, lib/montagem.ts,
+ * lib/calendario.ts) com SPEC.md §5 e §6 e com
+ * docs/casos-de-teste-progressao.md — **além** dos 22 casos do documento.
  *
- * Nada aqui é código de produção: é prova de conformidade.
+ * O ataque desta rodada é pelas bordas que os 22 casos não tocam: o catálogo
+ * inteiro na primeira vez, a prescrição do treino que difere do catálogo, as
+ * faixas de peso corporal cujo piso já é 20 reps, a vida completa do
+ * `exigir_rep_extra` no pino, a assistência até o fim da escada, o tipo
+ * `maximo` com número de séries diferente da sessão anterior, o teto e os
+ * avisos, e o calendário §5.2–§5.5 dia a dia.
+ *
+ * Nada aqui é código de produção.
  */
 import { describe, expect, it } from "vitest";
 import { acharExercicio, acharTreino, exercicios } from "@/lib/dados";
 import {
   alcancavelParaBaixo,
   cargaMaxima,
-  cargaMinima,
   cargasPossiveis,
   montagem,
 } from "@/lib/montagem";
@@ -26,23 +29,26 @@ import {
   incrementoDe,
   prescricaoDoTreino,
   prescricaoPadrao,
-  type Alvo,
   type ContextoDecisao,
-  type Decisao,
   type EstadoExercicio,
   type SerieFeita,
 } from "@/lib/progressao";
 import {
+  adiarFase2,
   avancarSemanaDeBarraFixa,
   avancarSemanaDeCorda,
   avancarSemanaDeCorrida,
+  diaDaSemana,
   proximoTreinoAlternado,
   semanaCurta,
+  semanaDaFase,
   semanaDoPlano,
   sessaoCardioDeHoje,
   sugerirFase2,
   treinoDeHoje,
+  treinosComAgachamentoOuTerra,
   type DiaDoPlano,
+  type ExcecaoAgenda,
   type PerfilCalendario,
 } from "@/lib/calendario";
 import type { Exercicio, TreinoId } from "@/lib/schemas";
@@ -56,11 +62,18 @@ const rosca = acharExercicio("rosca-alternada");
 const puxada = acharExercicio("puxada-alta-na-polia");
 const assistida = acharExercicio("barra-fixa-assistida");
 const pronada = acharExercicio("barra-fixa-pronada");
+const flexao = acharExercicio("flexao-de-braco");
 const prancha = acharExercicio("prancha");
 const pranchaLateral = acharExercicio("prancha-lateral");
 const elevacaoPernas = acharExercicio("elevacao-de-pernas-na-barra-fixa");
-const farmer = acharExercicio("farmer-s-walk");
+const bicicleta = acharExercicio("abdominal-bicicleta");
+const supra = acharExercicio("abdominal-supra");
+const russian = acharExercicio("russian-twist");
 const bulgaro = acharExercicio("agachamento-bulgaro");
+const farmer = acharExercicio("farmer-s-walk");
+const inclinado = acharExercicio("supino-inclinado-com-halteres");
+const roscaW = acharExercicio("rosca-com-barra-w");
+const lastro = acharExercicio("barra-fixa-com-lastro");
 
 function estadoDe(
   ex: Exercicio,
@@ -73,806 +86,1003 @@ function reps(...valores: number[]): SerieFeita[] {
   return valores.map((r) => ({ concluida: true, reps: r }));
 }
 
+function porLado(...pares: [number, number][]): SerieFeita[] {
+  return pares.map(([d, e]) => ({ concluida: true, reps: d, reps_lado2: e }));
+}
+
 function tempos(...valores: number[]): SerieFeita[] {
   return valores.map((t) => ({ concluida: true, tempo_s: t }));
 }
 
-/** Uma sessão de `n` séries no topo da faixa, firme: o gatilho de subida. */
-function noTopo(alvo: Alvo, extra = 0): SerieFeita[] {
-  const v = Math.max(0, (alvo.max ?? 10) + extra);
-  return Array.from({ length: alvo.series }, () => ({
+function temposPorLado(...pares: [number, number][]): SerieFeita[] {
+  return pares.map(([d, e]) => ({
     concluida: true,
-    reps: v,
-    reps_lado2: v,
-    tempo_s: v,
-    tempo_s_lado2: v,
-    passos: v,
+    tempo_s: d,
+    tempo_s_lado2: e,
   }));
 }
 
-const INICIO = "2026-09-14"; // segunda, começo da Fase 1 (SPEC §1)
-
-function perfil(patch: Partial<PerfilCalendario> = {}): PerfilCalendario {
-  return {
-    fase_atual: "fase1",
-    fase_desde: INICIO,
-    ultimo_treino: null,
-    semana_corrida: 1,
-    semana_corda: 1,
-    semana_fixa: 1,
-    ...patch,
-  };
+function passos(...valores: number[]): SerieFeita[] {
+  return valores.map((p) => ({ concluida: true, passos: p }));
 }
 
-/** Encadeia sessões: cada passo recebe o estado que o anterior devolveu. */
-function encadear(
-  ex: Exercicio,
-  inicial: EstadoExercicio | null,
-  sessoes: { series: SerieFeita[]; contexto?: ContextoDecisao }[],
-): { estado: EstadoExercicio; passos: Decisao[] } {
-  let estado = inicial;
-  const passos: Decisao[] = [];
-  for (const s of sessoes) {
-    const d = decidir(ex, estado, s.series, s.contexto);
-    passos.push(d);
-    estado = d.novoEstado;
-  }
-  return { estado: estado ?? estadoInicial(ex), passos };
-}
+/* ==================================================================== */
+/* §6.1 — a primeira vez                                                 */
+/* ==================================================================== */
 
-/* ============================================ §6.1 — a carga de hoje */
-
-describe("§6.1 — a primeira vez e a carga de hoje", () => {
-  it("as convenções de carga inicial e o alvo no piso valem para o catálogo todo", () => {
-    const problemas: string[] = [];
+describe("§6.1 — a primeira vez no exercício", () => {
+  it("os 81 exercícios pedem exatamente a carga_inicial do JSON, e ela fecha na escala", () => {
+    expect(exercicios.length).toBe(81);
     for (const ex of exercicios) {
-      const p = prescricaoPadrao(ex);
       const hoje = cargaDeHoje(ex, null);
-      if (hoje.carga_kg !== ex.carga_inicial.kg) {
-        problemas.push(`${ex.id}: carga ${hoje.carga_kg} ≠ ${ex.carga_inicial.kg}`);
-      }
-      if (hoje.alvo_min !== p.min) problemas.push(`${ex.id}: piso ${hoje.alvo_min}`);
-      if (!hoje.primeira_vez) problemas.push(`${ex.id}: primeira_vez falsa`);
-      // §6.1: o ESTADO guarda o mínimo da faixa
-      const inicial = estadoInicial(ex);
-      if (ex.progressao.tipo === "tempo" && inicial.tempo_alvo_s !== p.min) {
-        problemas.push(`${ex.id}: tempo_alvo ${inicial.tempo_alvo_s} ≠ piso ${p.min}`);
-      }
-      if (ex.progressao.tipo === "reps" && inicial.reps_alvo !== p.min) {
-        problemas.push(`${ex.id}: reps_alvo ${inicial.reps_alvo} ≠ piso ${p.min}`);
-      }
-      if (ex.progressao.tipo === "assistencia" && inicial.assistencia !== "pe_inteiro") {
-        problemas.push(`${ex.id}: assistência inicial ${inicial.assistencia}`);
-      }
+      expect(
+        { id: ex.id, carga: hoje.carga_kg, primeira: hoje.primeira_vez },
+      ).toEqual({
+        id: ex.id,
+        carga: ex.carga_inicial.kg,
+        primeira: true,
+      });
+      // §6.5: a montagem mostrada na tela tem de fechar exata
+      expect({ id: ex.id, exato: hoje.montagem?.exato }).toEqual({
+        id: ex.id,
+        exato: true,
+      });
     }
-    expect(problemas).toEqual([]);
   });
 
-  it("as quatro convenções do §10.2: 7,5 na barra · 1,5 por halter · 4 no pino · 0 no corpo", () => {
-    expect(cargaDeHoje(supino, null).carga_kg).toBe(7.5);
-    expect(cargaDeHoje(agachamento, null).carga_kg).toBe(7.5);
-    expect(cargaDeHoje(rosca, null).carga_kg).toBe(1.5);
-    expect(cargaDeHoje(puxada, null).carga_kg).toBe(4);
-    expect(cargaDeHoje(prancha, null).carga_kg).toBe(0);
-    expect(cargaDeHoje(pronada, null).carga_kg).toBe(0);
-    // §4: a convenção da tela sai da montagem (total · por halter · no pino)
-    expect(cargaDeHoje(supino, null).montagem?.onde).toBe("porLado");
-    expect(cargaDeHoje(rosca, null).montagem?.onde).toBe("porPonta");
-    expect(cargaDeHoje(puxada, null).montagem?.onde).toBe("noPino");
-    expect(cargaDeHoje(pronada, null).montagem?.onde).toBe("naMochila");
+  it("§4/§10.2: 7,5 na barra · 1,5 por halter · 4 no pino · 0 no corpo · 2,0 na barra W a pesar", () => {
+    const cargas = new Map<string, Set<number>>();
+    for (const ex of exercicios) {
+      const conjunto = cargas.get(ex.implemento) ?? new Set<number>();
+      conjunto.add(cargaDeHoje(ex, null).carga_kg ?? Number.NaN);
+      cargas.set(ex.implemento, conjunto);
+    }
+    expect([...(cargas.get("barra_macica") ?? [])]).toEqual([7.5]);
+    expect([...(cargas.get("halteres") ?? [])]).toEqual([1.5]);
+    expect([...(cargas.get("polia") ?? [])]).toEqual([4]);
+    expect([...(cargas.get("peso_corporal") ?? [])]).toEqual([0]);
+    expect([...(cargas.get("barra_w") ?? [])]).toEqual([2]);
   });
 
-  it("§6.1: depois da decisão, a carga de hoje é a que o motor gravou", () => {
-    const alvo = prescricaoPadrao(supino);
-    const d1 = decidir(supino, null, noTopo(alvo));
-    expect(d1.evento?.motivo).toBe("subiu");
-    expect(cargaDeHoje(supino, d1.novoEstado).carga_kg).toBe(9.5);
-    const d2 = decidir(supino, d1.novoEstado, noTopo(alvo));
-    expect(cargaDeHoje(supino, d2.novoEstado).carga_kg).toBe(11.5);
-    expect(cargaDeHoje(supino, d2.novoEstado).primeira_vez).toBe(false);
+  it("§6.1: o estado guarda o PISO da faixa; o topo a bater é o topo da prescrição", () => {
+    const p = cargaDeHoje(prancha, null);
+    expect(p.tempo_alvo_s).toBe(30);
+    expect(p.alvo_min).toBe(30);
+    expect(p.alvo_max).toBe(60);
+    expect(estadoInicial(prancha).tempo_alvo_s).toBe(30);
+
+    const e = cargaDeHoje(elevacaoPernas, null);
+    expect(estadoInicial(elevacaoPernas).reps_alvo).toBe(10);
+    expect([e.alvo_min, e.alvo_max]).toEqual([10, 15]);
+
+    const f = cargaDeHoje(farmer, null);
+    expect([f.passos_alvo, f.alvo_max]).toEqual([30, 40]);
+
+    const a = cargaDeHoje(assistida, null);
+    expect(a.assistencia).toBe("pe_inteiro");
+    expect([a.carga_kg, a.alvo_min, a.alvo_max]).toEqual([0, 5, 8]);
   });
 
-  it("a semana leve aparece na carga de hoje a 60 % e volta sozinha depois", () => {
-    const estado = estadoDe(terra, { carga_atual_kg: 47.5, falhas_seguidas: 2 });
-    const { novoEstado } = decidir(terra, estado, reps(4, 3, 3));
-    const leve = cargaDeHoje(terra, novoEstado);
-    expect(leve.semana_leve).toBe(true);
-    expect(leve.carga_kg).toBe(27.5); // 47,5 × 0,6 = 28,5 → 27,5 (§6.4)
-    expect(leve.montagem?.total).toBe(27.5);
-    const depois = decidir(terra, novoEstado, reps(5, 5, 5));
-    expect(cargaDeHoje(terra, depois.novoEstado).carga_kg).toBe(47.5);
-    expect(cargaDeHoje(terra, depois.novoEstado).semana_leve).toBe(false);
-  });
-});
-
-/* ====================================== §6.2 — a cadeia de decisões */
-
-describe("§6.2 — sequências completas de sessões", () => {
-  it("sobe, falha, falha (−10 % e meio incremento), volta a subir com o incremento cheio", () => {
-    const alvo = prescricaoPadrao(agachamento); // 3 × 5
-    const { estado, passos } = encadear(
-      agachamento,
-      estadoDe(agachamento, { carga_atual_kg: 39.5 }),
-      [
-        { series: reps(5, 5, 5) }, // sobe: 43,5
-        { series: reps(5, 4, 3) }, // 1ª falha
-        { series: reps(5, 4, 3) }, // 2ª falha: −10 % e incremento 2
-        { series: reps(5, 5, 5) }, // sobe com o incremento reduzido
-      ],
-    );
-    expect(passos.map((p) => p.evento?.motivo)).toEqual([
-      "subiu",
-      "repetiu",
-      "falha_2x_voltou_10",
-      "subiu",
-    ]);
-    // 39,5 + 4 = 43,5; 43,5 × 0,9 = 39,15 → 39,5 não cabe → 37,5
-    expect(passos[2]?.novoEstado.carga_atual_kg).toBe(
-      alcancavelParaBaixo(43.5 * 0.9, "barra_macica"),
-    );
-    expect(incrementoDe(agachamento, passos[2]?.novoEstado)).toBe(2);
-    // a subida usou os 2 kg reduzidos e devolveu o incremento cheio (caso 7)
-    expect(estado.carga_atual_kg).toBe(
-      (passos[2]?.novoEstado.carga_atual_kg ?? 0) + 2,
-    );
-    expect(estado.incremento_reduzido).toBe(false);
-    expect(incrementoDe(agachamento, estado)).toBe(4);
-    expect(estado.falhas_seguidas).toBe(0);
-    expect(alvo.series).toBe(3);
-  });
-
-  it("exigir_rep_extra: o topo sozinho não sobe, topo + 1 sobe e desliga a exigência", () => {
-    // caso 5: supino 25,5 com 1 falha → 2ª falha → 21,5, incremento fica 2 e a
-    // subida passa a exigir topo + 1 rep em todas as séries.
-    const antes = estadoDe(supino, { carga_atual_kg: 25.5, falhas_seguidas: 1 });
-    const segunda = decidir(supino, antes, reps(7, 5, 3));
-    expect(segunda.evento?.motivo).toBe("falha_2x_voltou_10");
-    const estado2 = segunda.novoEstado;
-    expect(estado2.carga_atual_kg).toBe(21.5);
-    expect(estado2.exigir_rep_extra).toBe(true);
-    expect(cargaDeHoje(supino, estado2).exigir_rep_extra).toBe(true);
-
-    // topo da faixa (8) em todas: NÃO sobe enquanto a exigência estiver de pé
-    const soNoTopo = decidir(supino, estado2, reps(8, 8, 8));
-    expect(soNoTopo.evento?.motivo).toBe("repetiu");
-    expect(soNoTopo.novoEstado.carga_atual_kg).toBe(21.5);
-    expect(soNoTopo.novoEstado.exigir_rep_extra).toBe(true);
-    expect(soNoTopo.novoEstado.falhas_seguidas).toBe(2); // "manteve" não mexe
-
-    // topo + 1 (9) em todas: sobe e desliga a exigência e o incremento reduzido
-    const subiu = decidir(supino, soNoTopo.novoEstado, reps(9, 9, 9));
-    expect(subiu.evento?.motivo).toBe("subiu");
-    expect(subiu.novoEstado.carga_atual_kg).toBe(23.5);
-    expect(subiu.novoEstado.exigir_rep_extra).toBe(false);
-    expect(subiu.novoEstado.incremento_reduzido).toBe(false);
-    expect(subiu.novoEstado.falhas_seguidas).toBe(0);
-
-    // e na sessão seguinte o topo da faixa volta a bastar
-    const denovo = decidir(supino, subiu.novoEstado, reps(8, 8, 8));
-    expect(denovo.evento?.motivo).toBe("subiu");
-    expect(denovo.novoEstado.carga_atual_kg).toBe(25.5);
-  });
-
-  it("três falhas seguidas: semana leve, volta à carga de antes e sobe normal", () => {
-    const { estado, passos } = encadear(
-      terra,
-      estadoDe(terra, { carga_atual_kg: 47.5 }),
-      [
-        { series: reps(4, 4, 4) }, // 1ª falha
-        { series: reps(4, 4, 4) }, // 2ª falha: 47,5 × 0,9 = 42,75 → 41,5
-        { series: reps(4, 4, 4) }, // 3ª falha: semana leve a 60 %
-        { series: reps(5, 5, 5) }, // a sessão leve: volta à carga de antes
-        { series: reps(5, 5, 5) }, // agora sobe com o incremento cheio
-      ],
-    );
-    expect(passos.map((p) => p.evento?.motivo)).toEqual([
-      "repetiu",
-      "falha_2x_voltou_10",
-      "semana_leve_60",
-      "fim_semana_leve",
-      "subiu",
-    ]);
-    const leve = passos[2]?.novoEstado;
-    expect(leve?.semana_leve).toBe(true);
-    expect(leve?.falhas_seguidas).toBe(0); // §6.2: a 3ª zera o contador
-    expect(leve?.carga_antes_leve).toBe(41.5);
-    expect(leve?.carga_atual_kg).toBe(alcancavelParaBaixo(41.5 * 0.6, "barra_macica"));
-    const voltou = passos[3]?.novoEstado;
-    expect(voltou?.carga_atual_kg).toBe(41.5);
-    expect(voltou?.semana_leve).toBe(false);
-    expect(incrementoDe(terra, voltou)).toBe(4);
-    expect(estado.carga_atual_kg).toBe(45.5);
-  });
-
-  it("a 1ª falha marca falha mas repete a carga; um sucesso no meio zera o contador", () => {
-    const e0 = estadoDe(supino, { carga_atual_kg: 25.5 });
-    const f1 = decidir(supino, e0, reps(8, 6, 4));
-    expect(f1.evento?.motivo).toBe("repetiu");
-    expect(f1.evento?.falha).toBe(true);
-    expect(f1.novoEstado.carga_atual_kg).toBe(25.5);
-    expect(f1.novoEstado.falhas_seguidas).toBe(1);
-
-    const ok = decidir(supino, f1.novoEstado, reps(8, 8, 8));
-    expect(ok.novoEstado.falhas_seguidas).toBe(0);
-    // a falha seguinte volta a ser a "nº 1": repete, não corta 10 %
-    const f2 = decidir(supino, ok.novoEstado, reps(8, 6, 4));
-    expect(f2.evento?.motivo).toBe("repetiu");
-    expect(f2.novoEstado.carga_atual_kg).toBe(ok.novoEstado.carga_atual_kg);
-  });
-
-  it("'manteve' por falta de firmeza não conta falha nem mexe na carga (§6.2)", () => {
-    const e = estadoDe(supino, { carga_atual_kg: 25.5, falhas_seguidas: 1 });
-    const d = decidir(supino, e, reps(8, 8, 8), { ultimaFirme: false });
-    expect(d.evento?.motivo).toBe("repetiu");
-    expect(d.evento?.falha).toBeUndefined();
-    expect(d.novoEstado.carga_atual_kg).toBe(25.5);
-    expect(d.novoEstado.falhas_seguidas).toBe(1);
-  });
-
-  it("a prescrição do treino manda: SA pede 4 × 5–6 do supino, não o 3 × 5–8 do catálogo", () => {
-    const item = acharTreino("SA").exercicios.find(
-      (e) => e.exercicio_id === "supino-reto-com-barra",
+  it("§3.2/§6.1: a prescrição do treino manda — no Treino A o supino é 3 × 5, não 3 × 5–8", () => {
+    const item = acharTreino("A1").exercicios.find(
+      (x) => x.exercicio_id === "supino-reto-com-barra",
     );
     expect(item).toBeDefined();
     const alvo = prescricaoDoTreino(item!, supino);
-    expect(alvo).toMatchObject({ series: 4, min: 5, max: 6 });
-    const e = estadoDe(supino, { carga_atual_kg: 25.5 });
-    // 3 séries de 6 numa sessão concluída = a 4ª faltou → falha (§6.2)
-    const faltou = decidir(supino, e, reps(6, 6, 6), { prescricao: alvo });
-    expect(faltou.evento?.falha).toBe(true);
-    expect(faltou.novoEstado.falhas_seguidas).toBe(1);
-    // as quatro no topo (6) sobem, mesmo sem chegar aos 8 do catálogo
-    const subiu = decidir(supino, e, reps(6, 6, 6, 6), { prescricao: alvo });
-    expect(subiu.evento?.motivo).toBe("subiu");
-    expect(subiu.novoEstado.carga_atual_kg).toBe(27.5);
+    expect([alvo.series, alvo.min, alvo.max]).toEqual([3, 5, 5]);
+
+    const hoje = cargaDeHoje(supino, null, alvo);
+    expect([hoje.carga_kg, hoje.alvo_min, hoje.alvo_max]).toEqual([7.5, 5, 5]);
+
+    // 5, 5, 5 firmes são o topo DESTE treino: sobe, mesmo sendo o piso do catálogo
+    const d = decidir(supino, null, reps(5, 5, 5), { prescricao: alvo });
+    expect(d.evento?.motivo).toBe("subiu");
+    expect(d.novoEstado.carga_atual_kg).toBe(9.5);
+
+    // e com a faixa do catálogo (5–8) as mesmas 5 reps não sobem
+    const c = decidir(supino, null, reps(5, 5, 5));
+    expect(c.evento?.motivo).toBe("repetiu");
+    expect(c.novoEstado.carga_atual_kg).toBe(7.5);
+  });
+});
+
+/* ==================================================================== */
+/* §6.2 — sequências de sessões                                          */
+/* ==================================================================== */
+
+describe("§6.2 — a vida do exigir_rep_extra, no pino", () => {
+  it("sobe, repete, falha, falha (−10 % + topo/+1), o topo sozinho não sobe e topo+1 sobe e desliga", () => {
+    let estado = estadoDe(puxada); // 4 kg no pino, faixa 10–12, incremento 2
+    expect(cargaDeHoje(puxada, estado).carga_kg).toBe(4);
+
+    let d = decidir(puxada, estado, reps(12, 12, 12));
+    expect(d.evento?.motivo).toBe("subiu");
+    expect(d.novoEstado.carga_atual_kg).toBe(6);
+    estado = d.novoEstado;
+
+    d = decidir(puxada, estado, reps(12, 12, 11));
+    expect(d.evento?.motivo).toBe("repetiu");
+    expect(d.evento?.falha).toBeUndefined();
+    expect(d.novoEstado.falhas_seguidas).toBe(0);
+    estado = d.novoEstado;
+
+    d = decidir(puxada, estado, reps(12, 10, 9)); // 9 < piso 10
+    expect(d.evento?.motivo).toBe("repetiu");
+    expect(d.evento?.falha).toBe(true);
+    expect([d.novoEstado.carga_atual_kg, d.novoEstado.falhas_seguidas]).toEqual([
+      6, 1,
+    ]);
+    estado = d.novoEstado;
+
+    d = decidir(puxada, estado, reps(10, 9, 8));
+    expect(d.evento?.motivo).toBe("falha_2x_voltou_10");
+    // 6 × 0,9 = 5,4 → 5 no pino
+    expect(d.novoEstado.carga_atual_kg).toBe(5);
+    // incremento 2 ÷ 2 = 1 < passo mínimo 2 → continua 2 e passa a exigir topo + 1
+    expect(incrementoDe(puxada, d.novoEstado)).toBe(2);
+    expect(d.novoEstado.exigir_rep_extra).toBe(true);
+    expect(cargaDeHoje(puxada, d.novoEstado).exigir_rep_extra).toBe(true);
+    estado = d.novoEstado;
+
+    d = decidir(puxada, estado, reps(12, 12, 12)); // só o topo: não basta
+    expect(d.evento?.motivo).toBe("repetiu");
+    expect(d.novoEstado.carga_atual_kg).toBe(5);
+    expect(d.novoEstado.exigir_rep_extra).toBe(true);
+    estado = d.novoEstado;
+
+    d = decidir(puxada, estado, reps(13, 13, 13)); // topo + 1 em todas
+    expect(d.evento?.motivo).toBe("subiu");
+    expect(d.novoEstado.carga_atual_kg).toBe(7);
+    expect(d.novoEstado.exigir_rep_extra).toBe(false);
+    expect(d.novoEstado.incremento_reduzido).toBe(false);
+    expect(incrementoDe(puxada, d.novoEstado)).toBe(2);
+    estado = d.novoEstado;
+
+    // desligado mesmo: o topo sozinho volta a subir
+    d = decidir(puxada, estado, reps(12, 12, 12));
+    expect(d.evento?.motivo).toBe("subiu");
+    expect(d.novoEstado.carga_atual_kg).toBe(9);
   });
 
-  it("série de trabalho a mais, abaixo do piso, derruba a sessão (§6.2)", () => {
-    const e = estadoDe(supino, { carga_atual_kg: 25.5 });
-    const d = decidir(supino, e, [...reps(8, 8, 8), ...reps(3)]);
+  it("topo + 1 exige a rep extra em TODAS as séries, não só na última", () => {
+    const estado = estadoDe(puxada, {
+      carga_atual_kg: 5,
+      falhas_seguidas: 2,
+      incremento_reduzido: true,
+      exigir_rep_extra: true,
+    });
+    const quase = decidir(puxada, estado, reps(13, 13, 12));
+    expect(quase.evento?.motivo).toBe("repetiu");
+    expect(quase.novoEstado.carga_atual_kg).toBe(5);
+  });
+});
+
+describe("§6.2 — semana leve, do começo ao fim", () => {
+  it("falha ×3 → semana_leve_60 → a tela mostra 60 % → fim_semana_leve → subida com incremento cheio", () => {
+    let estado = estadoDe(agachamento, { carga_atual_kg: 47.5 });
+
+    let d = decidir(agachamento, estado, reps(5, 5, 4));
+    expect(d.novoEstado.falhas_seguidas).toBe(1);
+    estado = d.novoEstado;
+
+    d = decidir(agachamento, estado, reps(5, 4, 4));
+    expect(d.evento?.motivo).toBe("falha_2x_voltou_10");
+    expect(d.novoEstado.carga_atual_kg).toBe(41.5); // 42,75 → 41,5
+    expect(incrementoDe(agachamento, d.novoEstado)).toBe(2);
+    expect(d.novoEstado.exigir_rep_extra).toBe(false); // 4 ÷ 2 = 2 = passo mínimo
+    estado = d.novoEstado;
+
+    d = decidir(agachamento, estado, reps(4, 4, 3));
+    expect(d.evento?.motivo).toBe("semana_leve_60");
+    expect(d.novoEstado.semana_leve).toBe(true);
+    expect(d.novoEstado.carga_antes_leve).toBe(41.5);
+    expect(d.novoEstado.carga_atual_kg).toBe(23.5); // 24,9 → 23,5
+    expect(d.novoEstado.falhas_seguidas).toBe(0);
+    estado = d.novoEstado;
+
+    const leve = cargaDeHoje(agachamento, estado);
+    expect(leve.semana_leve).toBe(true);
+    expect(leve.carga_kg).toBe(23.5);
+    expect(leve.montagem?.exato).toBe(true);
+
+    d = decidir(agachamento, estado, reps(5, 5, 5));
+    expect(d.evento?.motivo).toBe("fim_semana_leve");
+    expect(d.novoEstado.carga_atual_kg).toBe(41.5);
+    expect(d.novoEstado.semana_leve).toBe(false);
+    expect(d.novoEstado.carga_antes_leve).toBeNull();
+    expect(incrementoDe(agachamento, d.novoEstado)).toBe(4);
+    estado = d.novoEstado;
+
+    d = decidir(agachamento, estado, reps(5, 5, 5));
+    expect(d.evento?.motivo).toBe("subiu");
+    expect(d.novoEstado.carga_atual_kg).toBe(45.5);
+  });
+});
+
+describe("§6.2 — o override de incremento do exercise_state", () => {
+  it("manda na subida, na metade da 2ª falha e volta ao cheio depois de subir", () => {
+    const estado = estadoDe(supino, { carga_atual_kg: 25.5, incremento_kg: 4 });
+    expect(incrementoDe(supino, estado)).toBe(4);
+    expect(cargaDeHoje(supino, estado).incremento_kg).toBe(4);
+
+    const sobe = decidir(supino, estado, reps(8, 8, 8));
+    expect(sobe.novoEstado.carga_atual_kg).toBe(29.5);
+
+    const f1 = decidir(supino, estado, reps(8, 8, 4));
+    const f2 = decidir(supino, f1.novoEstado, reps(7, 5, 4));
+    expect(f2.evento?.motivo).toBe("falha_2x_voltou_10");
+    expect(f2.novoEstado.carga_atual_kg).toBe(21.5);
+    // 4 ÷ 2 = 2 kg: o override é que é reduzido, não o do JSON
+    expect(incrementoDe(supino, f2.novoEstado)).toBe(2);
+    expect(f2.novoEstado.exigir_rep_extra).toBe(false);
+
+    const volta = decidir(supino, f2.novoEstado, reps(8, 8, 8));
+    expect(volta.evento?.motivo).toBe("subiu");
+    expect(volta.novoEstado.carga_atual_kg).toBe(23.5);
+    expect(incrementoDe(supino, volta.novoEstado)).toBe(4);
+  });
+});
+
+describe("§6.2 — as três classes e o contador de falhas", () => {
+  it("caso 3: topo em todas mas 'última firme' desligada é repetiu, sem falha", () => {
+    const estado = estadoDe(supino, { carga_atual_kg: 9.5 });
+    const d = decidir(supino, estado, reps(8, 8, 8), { ultimaFirme: false });
+    expect(d.evento?.motivo).toBe("repetiu");
+    expect(d.evento?.falha).toBeUndefined();
+    expect([d.novoEstado.carga_atual_kg, d.novoEstado.falhas_seguidas]).toEqual([
+      9.5, 0,
+    ]);
+  });
+
+  it("um 'manteve' entre duas falhas não zera o contador (§6.2: falhas não muda)", () => {
+    let estado = estadoDe(supino, { carga_atual_kg: 25.5 });
+    estado = decidir(supino, estado, reps(8, 6, 4)).novoEstado; // falha 1
+    expect(estado.falhas_seguidas).toBe(1);
+    estado = decidir(supino, estado, reps(8, 7, 6)).novoEstado; // manteve
+    expect(estado.falhas_seguidas).toBe(1);
+    const d = decidir(supino, estado, reps(7, 5, 3)); // falha 2
+    expect(d.evento?.motivo).toBe("falha_2x_voltou_10");
+  });
+
+  it("uma subida zera o contador de falhas", () => {
+    const comFalha = estadoDe(supino, {
+      carga_atual_kg: 25.5,
+      falhas_seguidas: 1,
+    });
+    const d = decidir(supino, comFalha, reps(8, 8, 8));
+    expect(d.evento?.motivo).toBe("subiu");
+    expect(d.novoEstado.falhas_seguidas).toBe(0);
+  });
+
+  it("§6.1: sem estado no banco, a falha parte da carga inicial do JSON", () => {
+    const d = decidir(supino, null, reps(4, 4, 4));
+    expect(d.evento?.falha).toBe(true);
+    expect([d.novoEstado.carga_atual_kg, d.novoEstado.falhas_seguidas]).toEqual([
+      7.5, 1,
+    ]);
+  });
+
+  it("§6.1: a carga de hoje é a que a decisão do treino anterior gravou", () => {
+    const d = decidir(terra, estadoDe(terra, { carga_atual_kg: 43.5 }), reps(5, 5, 5));
+    expect(d.novoEstado.carga_atual_kg).toBe(47.5);
+    const hoje = cargaDeHoje(terra, d.novoEstado);
+    expect(hoje.carga_kg).toBe(47.5);
+    expect(hoje.primeira_vez).toBe(false);
+    expect(hoje.montagem?.porLado).toEqual([10, 10]); // (47,5 − 7,5) ÷ 2 = 20 por lado
+  });
+});
+
+/* ==================================================================== */
+/* §6.3 — sessão abandonada e substituição                               */
+/* ==================================================================== */
+
+describe("§6.3 — sessão abandonada e substituição", () => {
+  it("caso 20: abandonada com 1 de 3 séries não muda o estado nem gera evento", () => {
+    const estado = estadoDe(supino, { carga_atual_kg: 25.5 });
+    const d = decidir(supino, estado, reps(8), { sessaoAbandonada: true });
+    expect(d.evento).toBeNull();
+    expect(d.novoEstado).toEqual(estado);
+  });
+
+  it("§6.3: numa sessão abandonada, quem TEM todas as séries é avaliado", () => {
+    const estado = estadoDe(supino, { carga_atual_kg: 25.5 });
+    const d = decidir(supino, estado, reps(8, 8, 8), { sessaoAbandonada: true });
+    expect(d.evento?.motivo).toBe("subiu");
+    expect(d.novoEstado.carga_atual_kg).toBe(27.5);
+  });
+
+  it("§6.2: numa sessão CONCLUÍDA, série faltando é falha (não é abandono)", () => {
+    const estado = estadoDe(supino, { carga_atual_kg: 25.5 });
+    const d = decidir(supino, estado, reps(8, 8));
+    expect(d.evento?.motivo).toBe("repetiu");
     expect(d.evento?.falha).toBe(true);
     expect(d.novoEstado.falhas_seguidas).toBe(1);
-    // aquecimento não conta
-    const comAquecimento = decidir(supino, e, [
-      { concluida: true, reps: 5, tipo: "aquecimento" },
-      ...reps(8, 8, 8),
-    ]);
-    expect(comAquecimento.evento?.motivo).toBe("subiu");
   });
 
-  it("sessão abandonada: o exercício completo é avaliado, o incompleto não muda", () => {
-    const e = estadoDe(supino, { carga_atual_kg: 25.5, falhas_seguidas: 1 });
-    const parcial = decidir(supino, e, reps(8), { sessaoAbandonada: true });
-    expect(parcial.evento).toBeNull();
-    expect(parcial.novoEstado).toEqual(e);
-    const completo = decidir(supino, e, reps(8, 8, 8), { sessaoAbandonada: true });
-    expect(completo.evento?.motivo).toBe("subiu");
-    // e o estado de entrada nunca é mutado (função pura)
-    expect(e.carga_atual_kg).toBe(25.5);
-    expect(e.falhas_seguidas).toBe(1);
-  });
-
-  it("incremento override do exercise_state manda na subida e na metade da 2ª falha", () => {
-    const e = estadoDe(supino, { carga_atual_kg: 25.5, incremento_kg: 10 });
-    expect(incrementoDe(supino, e)).toBe(10);
-    const subiu = decidir(supino, e, reps(8, 8, 8));
-    expect(subiu.novoEstado.carga_atual_kg).toBe(35.5);
-    const f2 = decidir(
-      supino,
-      { ...e, falhas_seguidas: 1 },
-      reps(4, 4, 4),
-    );
-    expect(f2.novoEstado.carga_atual_kg).toBe(alcancavelParaBaixo(25.5 * 0.9, "barra_macica"));
-    expect(incrementoDe(supino, f2.novoEstado)).toBe(5); // 10 ÷ 2, acima do passo
-    expect(f2.novoEstado.exigir_rep_extra).toBe(false); // só quando cai no piso de 2 kg
-  });
-});
-
-/* ======================================= §6.3 — os casos especiais */
-
-describe("§6.3 — assistência do elástico, degrau a degrau", () => {
-  it("sobe pe_inteiro → joelho → joelho_dobrado → sem, com 2 sessões de graça em cada", () => {
-    const alvo = prescricaoPadrao(assistida); // 4 × 5–8
-    let estado = estadoDe(assistida);
-    const degraus: (string | null)[] = [];
-    for (let i = 0; i < 3; i++) {
-      const d = decidir(assistida, estado, noTopo(alvo));
-      expect(d.evento?.motivo).toBe("subiu");
-      expect(d.novoEstado.sessoes_graca).toBe(2);
-      expect(d.novoEstado.carga_atual_kg).toBe(0); // a carga nunca muda
-      degraus.push(d.novoEstado.assistencia);
-      estado = d.novoEstado;
-    }
-    expect(degraus).toEqual(["joelho", "joelho_dobrado", "sem"]);
-    // sem elástico: não há degrau acima — repete com a sugestão do lastro
-    const fim = decidir(assistida, estado, noTopo(alvo));
-    expect(fim.evento?.motivo).toBe("repetiu");
-    expect(fim.evento?.sugestao).toMatch(/lastro/i);
-    expect(fim.novoEstado.assistencia).toBe("sem");
-  });
-
-  it("as duas sessões de graça absorvem a queda e a terceira volta a contar falha", () => {
-    const alvo = prescricaoPadrao(assistida);
-    const subiu = decidir(assistida, estadoDe(assistida), noTopo(alvo));
-    const { passos } = encadear(assistida, subiu.novoEstado, [
-      { series: reps(5, 5, 4, 4) }, // graça 2 → 1
-      { series: reps(4, 4, 4, 4) }, // graça 1 → 0
-      { series: reps(4, 4, 4, 4) }, // sem graça: falha
-    ]);
-    expect(passos.map((p) => p.evento?.falha)).toEqual([undefined, undefined, true]);
-    expect(passos.map((p) => p.novoEstado.sessoes_graca)).toEqual([1, 0, 0]);
-    expect(passos.map((p) => p.novoEstado.falhas_seguidas)).toEqual([0, 0, 1]);
-  });
-
-  it("a graça não é gasta por uma sessão abandonada que o motor nem avalia", () => {
-    const e = estadoDe(assistida, { assistencia: "joelho", sessoes_graca: 2 });
-    const d = decidir(assistida, e, reps(4), { sessaoAbandonada: true });
-    expect(d.evento).toBeNull();
-    expect(d.novoEstado.sessoes_graca).toBe(2);
-  });
-});
-
-describe("§6.3 — tipo `maximo` (barra fixa, flexão, mergulho)", () => {
-  it("sucesso exige média + 1 E nenhuma série abaixo da anterior", () => {
-    const anteriores = [4, 4, 4];
-    const e = estadoDe(pronada, { reps_alvo: 4 });
-    const ctx = { seriesAnteriores: anteriores };
-    // média 5 = 4 + 1 e nenhuma caiu → sobe
-    expect(decidir(pronada, e, reps(5, 5, 5), ctx).evento?.motivo).toBe("subiu");
-    // média 5 mas uma série caiu (3 < 4) → repete, sem falha
-    const caiu = decidir(pronada, e, reps(7, 5, 3), ctx);
-    expect(caiu.evento?.motivo).toBe("repetiu");
-    expect(caiu.evento?.falha).toBeUndefined();
-    // média igual → repete sem falha
-    const igual = decidir(pronada, e, reps(4, 4, 4), ctx);
-    expect(igual.evento?.motivo).toBe("repetiu");
-    expect(igual.evento?.falha).toBeUndefined();
-    // média menor → falha
-    const menor = decidir(pronada, e, reps(3, 3, 3), ctx);
-    expect(menor.evento?.falha).toBe(true);
-    expect(menor.novoEstado.falhas_seguidas).toBe(1);
-  });
-
-  it("+1 rep em todas as séries sobe mesmo quando a média é dízima", () => {
-    const ctx = { seriesAnteriores: [3, 3, 4] }; // média 10/3
-    const e = estadoDe(pronada, { reps_alvo: 3 });
-    const d = decidir(pronada, e, reps(4, 4, 5), ctx); // média 13/3
-    expect(d.evento?.motivo).toBe("subiu");
-  });
-
-  it("a sugestão do lastro sai com 3 séries de 10, subindo ou empacado (§6.3)", () => {
-    const e = estadoDe(pronada, { reps_alvo: 10 });
-    const empacou = decidir(pronada, e, reps(10, 10, 10), {
-      seriesAnteriores: [10, 10, 10],
-    });
-    expect(empacou.evento?.motivo).toBe("repetiu");
-    expect(empacou.evento?.sugestao).toMatch(/lastro/i);
-    const subindo = decidir(pronada, e, reps(11, 11, 11), {
-      seriesAnteriores: [10, 10, 10],
-    });
-    expect(subindo.evento?.motivo).toBe("subiu");
-    expect(subindo.evento?.sugestao).toMatch(/lastro/i);
-    // com 2 séries de 10 ainda não é a hora
-    const ainda = decidir(pronada, e, reps(10, 10, 8), {
-      seriesAnteriores: [9, 9, 8],
-    });
-    expect(ainda.evento?.sugestao).toBeUndefined();
-  });
-
-  it("a primeira sessão de um `maximo` só registra a média, sem evento", () => {
-    const d = decidir(pronada, null, reps(3, 2, 2));
-    expect(d.evento).toBeNull();
-    expect(d.novoEstado.reps_alvo).toBe(2); // média 7/3 = 2,33 → 2
-  });
-});
-
-describe("§6.3 — unilateral, tempo, passos e peso corporal", () => {
-  it("unilateral vale o menor lado, em repetições e em tempo", () => {
-    // caso 18: búlgaro 10/10, 10/10, 10/9 → repete
-    const eB = estadoDe(bulgaro, { carga_atual_kg: 5.5 });
-    const d = decidir(bulgaro, eB, [
-      { concluida: true, reps: 10, reps_lado2: 10 },
-      { concluida: true, reps: 10, reps_lado2: 10 },
-      { concluida: true, reps: 10, reps_lado2: 9 },
-    ]);
-    expect(d.evento?.motivo).toBe("repetiu");
-    expect(d.novoEstado.carga_atual_kg).toBe(5.5);
-    // prancha lateral (20–40 s, unilateral): 40/35 não sobe, 40/40 sobe
-    const eP = estadoDe(pranchaLateral);
-    const parcial = decidir(pranchaLateral, eP, [
-      { concluida: true, tempo_s: 40, tempo_s_lado2: 35 },
-      { concluida: true, tempo_s: 40, tempo_s_lado2: 40 },
-      { concluida: true, tempo_s: 40, tempo_s_lado2: 40 },
-    ]);
-    expect(parcial.evento?.motivo).toBe("repetiu");
-    const cheia = decidir(pranchaLateral, eP, [
-      { concluida: true, tempo_s: 40, tempo_s_lado2: 40 },
-      { concluida: true, tempo_s: 40, tempo_s_lado2: 40 },
-      { concluida: true, tempo_s: 40, tempo_s_lado2: 40 },
-    ]);
-    expect(cheia.evento?.motivo).toBe("subiu");
-    expect(cheia.novoEstado.tempo_alvo_s).toBe(45); // +5 s (§6.2)
-  });
-
-  it("tempo: sobe de 5 em 5 e o alvo passa da faixa com a sugestão de variação", () => {
-    const e = estadoDe(prancha); // alvo 30, faixa 30–60
-    const um = decidir(prancha, e, tempos(60, 60, 60));
-    expect(um.novoEstado.tempo_alvo_s).toBe(65);
-    expect(um.evento?.sugestao).toMatch(/varia/i);
-    expect(cargaDeHoje(prancha, um.novoEstado).alvo_max).toBe(65);
-    // agora o topo a bater é 65, não mais os 60 da faixa
-    const soSessenta = decidir(prancha, um.novoEstado, tempos(60, 60, 60));
-    expect(soSessenta.evento?.motivo).toBe("repetiu");
-    const dois = decidir(prancha, um.novoEstado, tempos(65, 65, 65));
-    expect(dois.novoEstado.tempo_alvo_s).toBe(70);
-  });
-
-  it("passos: farmer's walk sobe a carga do halter, não os passos (caso 19)", () => {
-    const e = estadoDe(farmer, { carga_atual_kg: 11.5 });
-    const series: SerieFeita[] = [40, 40, 40].map((p) => ({ concluida: true, passos: p }));
-    const d = decidir(farmer, e, series);
-    expect(d.evento?.motivo).toBe("subiu");
-    expect(d.novoEstado.carga_atual_kg).toBe(13.5);
-    const curto: SerieFeita[] = [40, 40, 35].map((p) => ({ concluida: true, passos: p }));
-    expect(decidir(farmer, e, curto).evento?.motivo).toBe("repetiu");
-  });
-
-  it("peso corporal com faixa: sobe 1 rep e passa de 20 com a sugestão da anilha", () => {
-    const e = estadoDe(elevacaoPernas); // reps alvo 10, faixa 10–15
-    const um = decidir(elevacaoPernas, e, reps(15, 15, 15));
-    expect(um.evento?.motivo).toBe("subiu");
-    expect(um.novoEstado.reps_alvo).toBe(16); // caso 17
-    expect(um.evento?.sugestao).toBeUndefined();
-    const vinte = decidir(
-      elevacaoPernas,
-      estadoDe(elevacaoPernas, { reps_alvo: 20 }),
-      reps(20, 20, 20),
-    );
-    expect(vinte.evento?.sugestao).toMatch(/anilha/i);
-    expect(vinte.evento?.sugestao).toMatch(/piso|10/i);
-  });
-
-  it("exercício sem carga que falha: repete o alvo, nunca corta 10 % nem inventa 60 %", () => {
-    const { passos } = encadear(elevacaoPernas, estadoDe(elevacaoPernas), [
-      { series: reps(8, 8, 8) },
-      { series: reps(8, 8, 8) },
-      { series: reps(8, 8, 8) },
-    ]);
-    for (const p of passos) {
-      expect(p.evento?.motivo).toBe("repetiu");
-      expect(p.evento?.falha).toBe(true);
-      expect(p.novoEstado.reps_alvo).toBe(10);
-      expect(p.novoEstado.carga_atual_kg).toBe(0);
-      expect(p.novoEstado.semana_leve).toBe(false);
-    }
-  });
-
-  it("substituição: o substituto usa o próprio estado e o original fica intacto", () => {
-    const inclinado = acharExercicio("supino-inclinado-com-halteres");
-    const estadoSupino = estadoDe(supino, { carga_atual_kg: 25.5, falhas_seguidas: 1 });
+  it("caso 21: o substituto do dia usa o próprio estado e o original fica intacto", () => {
+    const estadoSupino = estadoDe(supino, { carga_atual_kg: 25.5 });
     const estadoInclinado = estadoDe(inclinado, { carga_atual_kg: 11.5 });
+
     const d = decidir(inclinado, estadoInclinado, reps(12, 12, 12));
     expect(d.evento?.motivo).toBe("subiu");
     expect(d.novoEstado.carga_atual_kg).toBe(13.5);
-    expect(estadoSupino).toEqual(
-      estadoDe(supino, { carga_atual_kg: 25.5, falhas_seguidas: 1 }),
-    );
+
+    // o supino não foi feito: nada é decidido por ele
+    expect(cargaDeHoje(supino, estadoSupino).carga_kg).toBe(25.5);
+    expect(estadoSupino.carga_atual_kg).toBe(25.5);
+    expect(estadoSupino.falhas_seguidas).toBe(0);
   });
 });
 
-/* =================================== §6.4 — arredondamento e limites */
+/* ==================================================================== */
+/* §6.3 — assistência do elástico                                        */
+/* ==================================================================== */
 
-describe("§6.4 — escala, teto e avisos", () => {
+describe("§6.3 — assistência do elástico até o fim da escada", () => {
+  it("pe_inteiro → joelho → joelho_dobrado → sem, sempre com 2 sessões de graça", () => {
+    let estado = estadoDe(assistida);
+    const degraus: string[] = [];
+    for (let i = 0; i < 3; i++) {
+      const d = decidir(assistida, estado, reps(8, 8, 8, 8));
+      expect(d.evento?.motivo).toBe("subiu");
+      expect(d.novoEstado.sessoes_graca).toBe(2);
+      expect(d.novoEstado.carga_atual_kg).toBe(0); // "a carga não muda"
+      degraus.push(String(d.novoEstado.assistencia));
+      estado = { ...d.novoEstado, sessoes_graca: 0 };
+    }
+    expect(degraus).toEqual(["joelho", "joelho_dobrado", "sem"]);
+  });
+
+  it("chegando em `sem`, a subida vira repetiu com a sugestão da barra fixa com lastro", () => {
+    const estado = estadoDe(assistida, { assistencia: "sem" });
+    const d = decidir(assistida, estado, reps(8, 8, 8, 8));
+    expect(d.evento?.motivo).toBe("repetiu");
+    expect(d.novoEstado.assistencia).toBe("sem");
+    expect(d.evento?.sugestao).toMatch(/lastro/i);
+  });
+
+  it("caso 14: a graça absorve 2 quedas; a 3ª sessão volta a contar falha", () => {
+    let estado = estadoDe(assistida, {
+      assistencia: "joelho",
+      sessoes_graca: 2,
+    });
+    for (const restante of [1, 0]) {
+      const d = decidir(assistida, estado, reps(5, 5, 4, 4));
+      expect(d.evento?.motivo).toBe("repetiu");
+      expect(d.evento?.falha).toBeUndefined();
+      expect(d.novoEstado.falhas_seguidas).toBe(0);
+      expect(d.novoEstado.sessoes_graca).toBe(restante);
+      estado = d.novoEstado;
+    }
+    const d = decidir(assistida, estado, reps(5, 5, 4, 4));
+    expect(d.evento?.falha).toBe(true);
+    expect(d.novoEstado.falhas_seguidas).toBe(1);
+  });
+});
+
+/* ==================================================================== */
+/* §6.3 — tipo `maximo`                                                  */
+/* ==================================================================== */
+
+describe("§6.3 — tipo `maximo`: média + 1 E nenhuma série abaixo", () => {
+  const anteriores = (v: number[]): ContextoDecisao => ({ seriesAnteriores: v });
+
+  it("caso 15: 4,4,4 → 5,5,5 sobe", () => {
+    const d = decidir(
+      pronada,
+      estadoDe(pronada, { reps_alvo: 4 }),
+      reps(5, 5, 5),
+      anteriores([4, 4, 4]),
+    );
+    expect(d.evento?.motivo).toBe("subiu");
+    expect(d.novoEstado.reps_alvo).toBe(5);
+  });
+
+  it("a média sobe mas uma série cai: não é sucesso", () => {
+    const d = decidir(
+      pronada,
+      estadoDe(pronada, { reps_alvo: 4 }),
+      reps(8, 4, 3),
+      anteriores([4, 4, 4]),
+    );
+    expect(d.evento?.motivo).not.toBe("subiu");
+    expect(d.novoEstado.reps_alvo).toBe(4);
+  });
+
+  it("nenhuma série cai mas a média não chega a +1: não é sucesso", () => {
+    const d = decidir(
+      pronada,
+      estadoDe(pronada, { reps_alvo: 4 }),
+      reps(6, 4, 4),
+      anteriores([4, 4, 4]),
+    );
+    expect(d.evento?.motivo).not.toBe("subiu");
+  });
+
+  it("média menor que a anterior conta falha", () => {
+    const d = decidir(
+      flexao,
+      estadoDe(flexao, { reps_alvo: 10 }),
+      reps(8, 8, 8),
+      anteriores([10, 10, 10]),
+    );
+    expect(d.evento?.falha).toBe(true);
+    expect(d.novoEstado.falhas_seguidas).toBe(1);
+  });
+
+  it("uma série a mais na sessão de hoje não inventa queda na série que não existia antes", () => {
+    const d = decidir(
+      pronada,
+      estadoDe(pronada, { reps_alvo: 4 }),
+      reps(5, 5, 5, 5),
+      anteriores([4, 4, 4]),
+    );
+    expect(d.evento?.motivo).toBe("subiu");
+  });
+
+  it("caso 15 (parte 2): 3 séries de 10 pedem a barra fixa com lastro, subindo ou empacado", () => {
+    const subiu = decidir(
+      pronada,
+      estadoDe(pronada, { reps_alvo: 9 }),
+      reps(10, 10, 10),
+      anteriores([9, 9, 9]),
+    );
+    expect(subiu.evento?.motivo).toBe("subiu");
+    expect(subiu.evento?.sugestao).toMatch(/lastro/i);
+
+    const empacou = decidir(
+      pronada,
+      estadoDe(pronada, { reps_alvo: 10 }),
+      reps(10, 10, 10),
+      anteriores([10, 10, 10]),
+    );
+    expect(empacou.evento?.sugestao).toMatch(/lastro/i);
+
+    // primeira sessão do exercício, sem referência anterior
+    const primeira = decidir(pronada, null, reps(10, 10, 10));
+    expect(primeira.evento?.sugestao).toMatch(/lastro/i);
+  });
+
+  it("flexão e mergulho (peso corporal, não barra fixa) não recebem sugestão de lastro", () => {
+    const d = decidir(
+      flexao,
+      estadoDe(flexao, { reps_alvo: 9 }),
+      reps(12, 12, 12),
+      anteriores([9, 9, 9]),
+    );
+    expect(d.evento?.motivo).toBe("subiu");
+    expect(d.evento?.sugestao).toBeUndefined();
+  });
+
+  it("a primeira sessão de um `maximo` sem 3 × 10 só registra a média, sem evento", () => {
+    const d = decidir(flexao, null, reps(7, 6, 5));
+    expect(d.evento).toBeNull();
+    expect(d.novoEstado.reps_alvo).toBe(6);
+  });
+});
+
+/* ==================================================================== */
+/* §6.3 — unilateral, tempo, passos, peso corporal                       */
+/* ==================================================================== */
+
+describe("§6.3 — unilateral vale o menor lado, também em tempo", () => {
+  it("prancha lateral (3 × 20–40 s por lado): 40/35 na última segura a subida", () => {
+    const estado = estadoDe(pranchaLateral);
+    const segura = decidir(
+      pranchaLateral,
+      estado,
+      temposPorLado([40, 40], [40, 40], [40, 35]),
+    );
+    expect(segura.evento?.motivo).toBe("repetiu");
+    expect(segura.novoEstado.tempo_alvo_s).toBe(20);
+
+    const sobe = decidir(
+      pranchaLateral,
+      estado,
+      temposPorLado([40, 40], [40, 40], [40, 40]),
+    );
+    expect(sobe.evento?.motivo).toBe("subiu");
+    expect(sobe.novoEstado.tempo_alvo_s).toBe(45);
+  });
+
+  it("o lado fraco abaixo do piso é falha, mesmo com o lado forte no topo", () => {
+    const d = decidir(
+      pranchaLateral,
+      estadoDe(pranchaLateral),
+      temposPorLado([40, 40], [40, 19], [40, 40]),
+    );
+    expect(d.evento?.falha).toBe(true);
+    expect(d.novoEstado.falhas_seguidas).toBe(1);
+  });
+
+  it("casos 10, 11 e 18: halteres unilaterais valem o menor lado", () => {
+    const repete = decidir(
+      rosca,
+      estadoDe(rosca),
+      porLado([12, 12], [12, 12], [12, 11]),
+    );
+    expect(repete.evento?.motivo).toBe("repetiu");
+
+    const sobe = decidir(
+      rosca,
+      estadoDe(rosca),
+      porLado([12, 12], [12, 12], [12, 12]),
+    );
+    expect(sobe.evento?.motivo).toBe("subiu");
+    expect(sobe.novoEstado.carga_atual_kg).toBe(3.5);
+
+    const bulgaroRepete = decidir(
+      bulgaro,
+      estadoDe(bulgaro, { carga_atual_kg: 5.5 }),
+      porLado([10, 10], [10, 10], [10, 9]),
+    );
+    expect(bulgaroRepete.evento?.motivo).toBe("repetiu");
+    expect(bulgaroRepete.novoEstado.carga_atual_kg).toBe(5.5);
+  });
+});
+
+describe("§6.2/§6.3 — tempo e passos", () => {
+  it("caso 16: prancha alvo 30, faixa 30–60, 60 nas três → 65 s com sugestão de variação", () => {
+    const d = decidir(prancha, estadoDe(prancha), tempos(60, 60, 60));
+    expect(d.evento?.motivo).toBe("subiu");
+    expect(d.novoEstado.tempo_alvo_s).toBe(65);
+    expect(d.evento?.sugestao).toMatch(/varia/i);
+    // e o topo a bater da próxima vez passa a ser 65
+    const hoje = cargaDeHoje(prancha, d.novoEstado);
+    expect([hoje.tempo_alvo_s, hoje.alvo_max]).toEqual([65, 65]);
+    const seguinte = decidir(prancha, d.novoEstado, tempos(60, 60, 60));
+    expect(seguinte.evento?.motivo).toBe("repetiu");
+    const bateu = decidir(prancha, d.novoEstado, tempos(65, 65, 65));
+    expect(bateu.novoEstado.tempo_alvo_s).toBe(70);
+  });
+
+  it("caso 19: farmer's walk sobe a carga do halter, não os passos", () => {
+    const d = decidir(
+      farmer,
+      estadoDe(farmer, { carga_atual_kg: 11.5 }),
+      passos(40, 40, 40),
+    );
+    expect(d.evento?.motivo).toBe("subiu");
+    expect(d.novoEstado.carga_atual_kg).toBe(13.5);
+    expect(cargaDeHoje(farmer, d.novoEstado).passos_alvo).toBe(30);
+  });
+
+  it("exercício sem carga que falha repete o alvo — nunca corta 10 % nem inventa 60 %", () => {
+    let estado = estadoDe(elevacaoPernas);
+    for (const esperado of [1, 2, 0]) {
+      const d = decidir(elevacaoPernas, estado, reps(9, 8, 7));
+      expect(d.evento?.motivo).toBe("repetiu");
+      expect(d.evento?.falha).toBe(true);
+      expect(d.novoEstado.carga_atual_kg).toBe(0);
+      expect(d.novoEstado.reps_alvo).toBe(10);
+      expect(d.novoEstado.semana_leve).toBe(false);
+      expect(d.novoEstado.falhas_seguidas).toBe(esperado);
+      estado = d.novoEstado;
+    }
+  });
+});
+
+describe("§6.3 — peso corporal com faixa e a sugestão da anilha", () => {
+  it("caso 17: alvo 10, faixa 10–15, 15 nas três → alvo 16", () => {
+    const d = decidir(elevacaoPernas, estadoDe(elevacaoPernas), reps(15, 15, 15));
+    expect(d.evento?.motivo).toBe("subiu");
+    expect(d.novoEstado.reps_alvo).toBe(16);
+    expect(d.evento?.sugestao).toBeUndefined();
+  });
+
+  it("caso 17: passando de 20 em todas as séries, sugere a anilha de 2 kg", () => {
+    const d = decidir(
+      elevacaoPernas,
+      estadoDe(elevacaoPernas, { reps_alvo: 21 }),
+      reps(22, 22, 22),
+    );
+    expect(d.evento?.sugestao).toMatch(/anilha/i);
+  });
+
+  it("§6.3: a anilha só é sugerida ACIMA de 20 reps — 20 no piso da faixa 20–30 não é", () => {
+    // abdominal bicicleta é 3 × 20–30: 20 em todas as séries é o PISO da faixa,
+    // e mandar "voltar ao piso" quem já está no piso não é o que a §6.3 diz.
+    const noPiso = decidir(bicicleta, estadoDe(bicicleta), reps(20, 20, 20));
+    expect(noPiso.evento?.motivo).toBe("repetiu");
+    expect(noPiso.evento?.sugestao).toBeUndefined();
+
+    // russian twist é 3 × 20 (min = max): a primeira sessão perfeita não pode
+    // sair com "use uma anilha de 2 kg" — ele já segura uma de 5 kg.
+    const exato = decidir(russian, estadoDe(russian), reps(20, 20, 20));
+    expect(exato.evento?.motivo).toBe("subiu");
+    expect(exato.evento?.sugestao).toBeUndefined();
+
+    // acima de 20, aí sim (§6.3 e a regra do próprio JSON: "quando passar de 20")
+    const passou = decidir(bicicleta, estadoDe(bicicleta), reps(21, 21, 21));
+    expect(passou.evento?.sugestao).toMatch(/anilha/i);
+    const acima = decidir(supra, estadoDe(supra), reps(25, 25, 25));
+    expect(acima.evento?.sugestao).toMatch(/anilha/i);
+  });
+});
+
+/* ==================================================================== */
+/* §6.4 — teto, avisos e escala                                          */
+/* ==================================================================== */
+
+describe("§6.4 — teto e avisos", () => {
+  it("caso 22: 107,5 kg na barra repete com o aviso das anilhas de 10 kg", () => {
+    const estado = estadoDe(supino, { carga_atual_kg: 107.5 });
+    const d = decidir(supino, estado, reps(8, 8, 8));
+    expect(d.evento?.motivo).toBe("repetiu");
+    expect(d.novoEstado.carga_atual_kg).toBe(107.5);
+    expect(d.evento?.aviso).toMatch(/anilhas de 10 kg/i);
+    expect(cargaMaxima("barra_macica")).toBe(107.5);
+    expect(montagem(109.5, "barra_macica").aviso).toMatch(/anilhas de 10 kg/i);
+  });
+
+  it("teto por capacidade (halter 40 kg) não manda comprar anilhas de 10 kg", () => {
+    const d = decidir(
+      inclinado,
+      estadoDe(inclinado, { carga_atual_kg: 39.5 }),
+      reps(12, 12, 12),
+    );
+    expect(d.evento?.motivo).toBe("repetiu");
+    expect(d.evento?.aviso ?? "").not.toMatch(/anilhas de 10 kg/i);
+    expect(d.evento?.aviso).toMatch(/40/);
+  });
+
+  it("§6.4: o aviso de faltar anilha só aparece no teto — nunca com a barra quase vazia", () => {
+    // §3.9 deixa o usuário escolher o incremento por exercício e
+    // exercise_state.incremento_kg é numeric(5,2) sem CHECK: 1 kg é gravável e
+    // não existe na escala da barra (passo mínimo 2 kg).
+    const estado = estadoDe(supino, { carga_atual_kg: 7.5, incremento_kg: 1 });
+    const d = decidir(supino, estado, reps(8, 8, 8));
+    expect(d.novoEstado.carga_atual_kg).toBe(7.5);
+    // com o estoque inteiro intocado, "faltam anilhas de 10 kg" é falso (§6.4)
+    expect(d.evento?.aviso ?? "").not.toMatch(/anilhas de 10 kg/i);
+
+    const semIncremento = decidir(
+      supino,
+      estadoDe(supino, { carga_atual_kg: 25.5, incremento_kg: 0 }),
+      reps(8, 8, 8),
+    );
+    expect(semIncremento.evento?.aviso ?? "").not.toMatch(/anilhas de 10 kg/i);
+  });
+
   it("toda carga que o motor grava existe na escala do implemento", () => {
-    const problemas: string[] = [];
     for (const ex of exercicios) {
       if (ex.progressao.tipo !== "carga") continue;
+      const escala = new Set(cargasPossiveis(ex.implemento));
+      let estado = estadoDe(ex);
       const alvo = prescricaoPadrao(ex);
-      const partida = estadoDe(ex, {
-        carga_atual_kg: alcancavelParaBaixo(
-          (ex.carga_inicial.kg || 0) + 20,
-          ex.implemento,
-        ),
-      });
-      const caminhos: EstadoExercicio[] = [];
-      caminhos.push(decidir(ex, partida, noTopo(alvo)).novoEstado); // subida
-      const f1 = decidir(ex, partida, noTopo(alvo, -99)).novoEstado; // 1ª falha
-      const f2 = decidir(ex, f1, noTopo(alvo, -99)).novoEstado; // −10 %
-      const f3 = decidir(ex, f2, noTopo(alvo, -99)).novoEstado; // 60 %
-      caminhos.push(f1, f2, f3);
-      for (const e of caminhos) {
-        const kg = e.carga_atual_kg;
-        if (kg === null) continue;
-        if (alcancavelParaBaixo(kg, ex.implemento) !== kg) {
-          problemas.push(`${ex.id}: ${kg} fora da escala de ${ex.implemento}`);
-        }
-      }
-      if ((f2.carga_atual_kg ?? 0) > (partida.carga_atual_kg ?? 0) * 0.9 + 1e-9) {
-        problemas.push(`${ex.id}: 2ª falha não cortou 10 %`);
-      }
-      if ((f3.carga_antes_leve ?? 0) * 0.6 + 1e-9 < (f3.carga_atual_kg ?? 0)) {
-        problemas.push(`${ex.id}: semana leve acima de 60 %`);
+      const topo = alvo.max ?? 0;
+      const piso = alvo.min ?? 0;
+      const roteiro: SerieFeita[][] = [
+        reps(topo, topo, topo),
+        reps(topo, topo, topo),
+        reps(piso - 1, piso - 1, piso - 1),
+        reps(piso - 1, piso - 1, piso - 1),
+        reps(piso - 1, piso - 1, piso - 1),
+        reps(topo, topo, topo),
+        reps(topo, topo, topo),
+      ];
+      for (const sessao of roteiro) {
+        if (alvo.tipo !== "reps") break;
+        const d = decidir(ex, estado, sessao);
+        const carga = d.novoEstado.carga_atual_kg;
+        expect({ id: ex.id, carga, ok: carga === null || escala.has(carga) }).toEqual(
+          { id: ex.id, carga, ok: true },
+        );
+        estado = d.novoEstado;
       }
     }
-    expect(problemas).toEqual([]);
   });
 
-  it("teto da barra maciça: 107,5 repete com o aviso das anilhas de 10 kg (caso 22)", () => {
-    expect(cargaMaxima("barra_macica")).toBe(107.5);
-    const e = estadoDe(supino, { carga_atual_kg: 107.5 });
-    const d = decidir(supino, e, reps(8, 8, 8));
-    expect(d.evento?.motivo).toBe("repetiu");
-    expect(d.evento?.aviso).toMatch(/anilhas de 10 kg/);
-    expect(d.novoEstado.carga_atual_kg).toBe(107.5);
-    expect(montagem(109.5, "barra_macica").aviso).toBe("faltam anilhas de 10 kg");
-    expect(montagem(109.5, "barra_macica").total).toBe(107.5);
-  });
-
-  it("teto de capacidade (halter 40 kg) não manda comprar anilhas de 10 kg", () => {
-    expect(cargaMaxima("halteres")).toBe(39.5);
-    const e = estadoDe(rosca, { carga_atual_kg: 39.5 });
-    const d = decidir(rosca, e, [
-      { concluida: true, reps: 12, reps_lado2: 12 },
-      { concluida: true, reps: 12, reps_lado2: 12 },
-      { concluida: true, reps: 12, reps_lado2: 12 },
-    ]);
-    expect(d.evento?.motivo).toBe("repetiu");
-    expect(d.evento?.aviso).not.toMatch(/anilhas de 10 kg/);
-    expect(montagem(41.5, "halteres").aviso).toBeUndefined();
+  it("§6.5: as linhas do documento de casos fecham exatamente", () => {
+    expect(montagem(25.5, "barra_macica").porLado).toEqual([5, 4]);
+    const fora = montagem(26.5, "barra_macica");
+    expect([fora.total, fora.exato, fora.diferenca]).toEqual([25.5, false, -1]);
+    expect(montagem(8, "barra_macica").total).toBe(7.5);
+    expect(montagem(110, "barra_macica").total).toBe(107.5);
+    expect(montagem(5.5, "halteres").porPonta).toEqual([2]);
+    expect(montagem(4.5, "halteres").total).toBe(3.5);
     expect(montagem(41.5, "halteres").total).toBe(39.5);
-  });
-
-  it("as escalas do documento: barra 7,5→107,5 de 2 em 2 · halter 1,5→39,5 · pino 0→100", () => {
-    const barra = cargasPossiveis("barra_macica");
-    expect(barra[0]).toBe(7.5);
-    expect(barra[barra.length - 1]).toBe(107.5);
-    expect(barra.every((v, i) => i === 0 || v - (barra[i - 1] ?? 0) === 2)).toBe(true);
-    const halter = cargasPossiveis("halteres");
-    expect(halter[0]).toBe(1.5);
-    expect(halter[halter.length - 1]).toBe(39.5);
-    const pino = cargasPossiveis("polia");
-    expect(pino[0]).toBe(0);
-    expect(pino[pino.length - 1]).toBe(100);
-    expect(pino).toHaveLength(101);
-    // §6.5: guloso do maior para o menor, no máximo 2 de cada por lado
+    expect(montagem(0.5, "polia").total).toBe(0);
+    expect(montagem(101, "polia").total).toBe(100);
+    expect(montagem(52, "barra_w").total).toBe(50);
     expect(montagem(107.5, "barra_macica").porLado).toEqual([
       10, 10, 5, 5, 4, 4, 3, 3, 2, 2, 1, 1,
     ]);
-    expect(montagem(26.5, "barra_macica")).toMatchObject({
-      total: 25.5,
-      exato: false,
-      diferenca: -1,
-    });
-    expect(montagem(5.5, "halteres").porPonta).toEqual([2]);
+  });
+
+  it("§3.9: pesada a barra W, a escala muda e a carga de hoje continua alcançável", () => {
+    const opcoes = { pesoBarra: 5.4 };
+    const estado = estadoDe(roscaW, { carga_atual_kg: 10 });
+    const hoje = cargaDeHoje(roscaW, estado, prescricaoPadrao(roscaW), opcoes);
+    expect(hoje.carga_kg).toBe(alcancavelParaBaixo(10, "barra_w", opcoes));
+    expect(hoje.montagem?.exato).toBe(true);
+    const d = decidir(roscaW, estado, reps(12, 12, 12), { montagem: opcoes });
+    expect(cargasPossiveis("barra_w", opcoes)).toContain(
+      d.novoEstado.carga_atual_kg,
+    );
+  });
+
+  it("barra fixa com lastro: sobe de 0 para 2 kg na mochila", () => {
+    const d = decidir(lastro, estadoDe(lastro), reps(6, 6, 6, 6));
+    expect(d.evento?.motivo).toBe("subiu");
+    expect(d.novoEstado.carga_atual_kg).toBe(2);
   });
 });
 
-/* ============================================= §5 — calendário */
-
-describe("§5.2 — o que é hoje", () => {
-  it("14/09/2026 é segunda e abre a Fase 1 com o Treino A (§1, §10.2)", () => {
-    const dia = treinoDeHoje(INICIO, perfil());
-    expect(dia.dia).toBe("seg");
-    expect(dia.tipo).toBe("forca");
-    expect(dia.treinoId).toBe("A1");
-    expect(dia.treino?.exercicios).toHaveLength(6);
-    expect(dia.min).toBe(44);
+describe("§3.2/§6 — o que o motor ignora e o que ele não avalia", () => {
+  it("as séries de aquecimento não contam para a progressão", () => {
+    const estado = estadoDe(supino, { carga_atual_kg: 25.5 });
+    const series: SerieFeita[] = [
+      { concluida: true, tipo: "aquecimento", reps: 5 },
+      { concluida: true, tipo: "aquecimento", reps: 5 },
+      ...reps(8, 8, 8),
+    ];
+    const d = decidir(supino, estado, series);
+    expect(d.evento?.motivo).toBe("subiu");
+    expect(d.novoEstado.carga_atual_kg).toBe(27.5);
   });
 
-  it("Fase 1 alterna sempre o que não foi o último, semana após semana", () => {
-    const semana1 = semanaDoPlano(INICIO, perfil())
-      .filter((d) => d.tipo === "forca")
-      .map((d) => d.treinoId);
-    expect(semana1).toEqual(["A1", "B1", "A1"]);
-    const semana2 = semanaDoPlano("2026-09-21", perfil({ ultimo_treino: "A1" }))
-      .filter((d) => d.tipo === "forca")
-      .map((d) => d.treinoId);
-    expect(semana2).toEqual(["B1", "A1", "B1"]);
+  it("exercício desativado não é avaliado", () => {
+    const estado = estadoDe(supino, { carga_atual_kg: 25.5, desativado: true });
+    const d = decidir(supino, estado, reps(8, 8, 8));
+    expect(d.evento).toBeNull();
+    expect(d.novoEstado).toEqual(estado);
+  });
+
+  it("§6.4: o corte de 10 % nos halteres cai na escala de 2 em 2 kg", () => {
+    const estado = estadoDe(inclinado, { carga_atual_kg: 21.5, falhas_seguidas: 1 });
+    const d = decidir(inclinado, estado, reps(7, 6, 5));
+    expect(d.evento?.motivo).toBe("falha_2x_voltou_10");
+    expect(d.novoEstado.carga_atual_kg).toBe(
+      alcancavelParaBaixo(21.5 * 0.9, "halteres"),
+    );
+    expect(cargasPossiveis("halteres")).toContain(d.novoEstado.carga_atual_kg);
+  });
+
+  it("depois de mudar o degrau, a tela mostra o novo elástico", () => {
+    const d = decidir(assistida, estadoDe(assistida), reps(8, 8, 8, 8));
+    const hoje = cargaDeHoje(assistida, d.novoEstado);
+    expect(hoje.assistencia).toBe("joelho");
+    expect(hoje.carga_kg).toBe(0);
+  });
+});
+
+/* ==================================================================== */
+/* §5 — calendário                                                       */
+/* ==================================================================== */
+
+const perfil1: PerfilCalendario = {
+  fase_atual: "fase1",
+  ultimo_treino: null,
+  fase_desde: "2026-09-14",
+};
+
+describe("§5.2 — o que é hoje", () => {
+  it("14/09/2026 é segunda, semana 1 da Fase 1, Treino A com 6 exercícios e 44 min", () => {
+    expect(diaDaSemana("2026-09-14")).toBe("seg");
+    expect(semanaDaFase("2026-09-14", "2026-09-14")).toBe(1);
+    const hoje = treinoDeHoje("2026-09-14", perfil1);
+    expect(hoje.tipo).toBe("forca");
+    expect(hoje.treinoId).toBe("A1");
+    expect(hoje.treino?.exercicios.length).toBe(6);
+    expect(hoje.min).toBe(44);
+  });
+
+  it("a alternância nunca repete o último treino, semana após semana", () => {
+    let ultimo: TreinoId | null = null;
+    const vistos: TreinoId[] = [];
+    for (const data of [
+      "2026-09-14",
+      "2026-09-16",
+      "2026-09-18",
+      "2026-09-21",
+      "2026-09-23",
+      "2026-09-25",
+    ]) {
+      const dia = treinoDeHoje(data, { ...perfil1, ultimo_treino: ultimo });
+      expect(dia.tipo).toBe("forca");
+      vistos.push(dia.treinoId as TreinoId);
+      ultimo = dia.treinoId;
+    }
+    expect(vistos).toEqual(["A1", "B1", "A1", "B1", "A1", "B1"]);
     expect(proximoTreinoAlternado("A1")).toBe("B1");
     expect(proximoTreinoAlternado("B1")).toBe("A1");
     expect(proximoTreinoAlternado(null)).toBe("A1");
   });
 
-  it("Fase 2: SA seg · IA ter · SB qui · IB sex, com cardio na quarta e no sábado", () => {
-    const dias = semanaDoPlano(INICIO, perfil({ fase_atual: "fase2" }));
-    expect(dias.map((d) => d.treinoId)).toEqual([
-      "SA",
-      "IA",
-      null,
-      "SB",
-      "IB",
-      null,
-      null,
-    ]);
-    expect(dias.map((d) => d.tipo)).toEqual([
-      "forca",
-      "forca",
-      "cardio",
-      "forca",
-      "forca",
-      "cardio",
-      "descanso",
+  it("Fase 2 tem treino fixo por dia: SA seg · IA ter · SB qui · IB sex", () => {
+    const perfil2: PerfilCalendario = {
+      fase_atual: "fase2",
+      ultimo_treino: "IB",
+      fase_desde: "2026-09-14",
+    };
+    const semana = semanaDoPlano("2026-09-14", perfil2);
+    expect(semana.map((d) => `${d.dia}:${d.tipo}:${d.treinoId ?? "-"}`)).toEqual([
+      "seg:forca:SA",
+      "ter:forca:IA",
+      "qua:cardio:-",
+      "qui:forca:SB",
+      "sex:forca:IB",
+      "sab:cardio:-",
+      "dom:descanso:-",
     ]);
   });
 
-  it("cardio: terça é corrida da semana 1 (8 × 1/2 min) e sábado aceita corda", () => {
-    const ter = sessaoCardioDeHoje("2026-09-15", perfil());
-    expect(ter?.tipo).toBe("corrida");
-    expect(ter?.semana).toBe(1);
-    expect(ter?.descricao).toBe("8 × (1 min corrida / 2 min caminhada)");
-    expect(ter?.permiteCorda).toBe(false);
-    const sab = sessaoCardioDeHoje("2026-09-19", perfil({ semana_corda: 3 }));
-    expect(sab?.permiteCorda).toBe(true);
-    expect(sab?.corda?.semanas).toBe("3–4"); // estágio pela semana de corda
+  it("cardio: terça é a corrida da semana 1 (8 × 1/2 min) e sábado aceita corda", () => {
+    const terca = sessaoCardioDeHoje("2026-09-15", perfil1);
+    expect(terca?.tipo).toBe("corrida");
+    expect(terca?.semana).toBe(1);
+    expect(terca?.descricao).toMatch(/8 × \(1 min corrida \/ 2 min caminhada\)/);
+    expect(terca?.permiteCorda).toBe(false);
+
+    const sabado = sessaoCardioDeHoje("2026-09-19", perfil1);
+    expect(sabado?.permiteCorda).toBe(true);
+    expect(sabado?.corda).not.toBeNull();
   });
 
-  it("override vence o programa e entra na corrente da alternância (§5.2 item 1)", () => {
-    const overrides = [
-      { data: "2026-09-15", tipo: "forca" as const, workout_id: "B1" as TreinoId, sessao: null },
+  it("§5.2 item 5: a quinta traz o lembrete da barra fixa e o domingo, a caminhada leve", () => {
+    const quinta = treinoDeHoje("2026-09-17", perfil1);
+    expect(quinta.tipo).toBe("descanso");
+    expect(quinta.nota).toMatch(/barra fixa/i);
+    const domingo = treinoDeHoje("2026-09-20", perfil1);
+    expect(domingo.tipo).toBe("descanso");
+    expect(domingo.nota).toMatch(/caminhada leve/i);
+  });
+
+  it("§5.2 item 1: o override vence o programa e entra na corrente da alternância", () => {
+    const overrides: ExcecaoAgenda[] = [
+      { data: "2026-09-15", tipo: "forca", workout_id: null, sessao: null },
+      { data: "2026-09-16", tipo: "descanso", workout_id: null, sessao: null },
     ];
-    const dias = semanaDoPlano(INICIO, perfil(), overrides);
-    expect(dias[1]?.tipo).toBe("forca");
-    expect(dias[1]?.treinoId).toBe("B1");
-    expect(dias[1]?.origem).toBe("override");
-    expect(dias.filter((d) => d.tipo === "forca").map((d) => d.treinoId)).toEqual([
-      "A1",
-      "B1",
-      "A1",
-      "B1",
+    const semana = semanaDoPlano("2026-09-14", perfil1, overrides);
+    expect(semana.map((d) => `${d.dia}:${d.tipo}:${d.treinoId ?? "-"}`)).toEqual([
+      "seg:forca:A1",
+      "ter:forca:B1",
+      "qua:descanso:-",
+      "qui:descanso:-",
+      "sex:forca:A1",
+      "sab:cardio:-",
+      "dom:descanso:-",
     ]);
   });
 });
 
-describe("§5.5 — as semanas dos planos", () => {
-  it("2 sessões avançam; 0 e 1 repetem; nada passa da semana 12", () => {
-    for (const avancar of [
-      avancarSemanaDeCorrida,
-      avancarSemanaDeCorda,
-      avancarSemanaDeBarraFixa,
-    ]) {
-      expect(avancar(1, 0)).toBe(1);
-      expect(avancar(1, 1)).toBe(1);
-      expect(avancar(1, 2)).toBe(2);
-      expect(avancar(4, 3)).toBe(5);
-      expect(avancar(12, 2)).toBe(12);
-    }
+describe("§5.5 — as semanas dos planos de corrida, corda e barra fixa", () => {
+  it("2 sessões avançam; 1 e 0 repetem; o plano não passa da semana 12", () => {
+    expect(avancarSemanaDeCorrida(3, 2)).toBe(4);
+    expect(avancarSemanaDeCorrida(3, 1)).toBe(3);
+    expect(avancarSemanaDeCorrida(3, 0)).toBe(3);
+    expect(avancarSemanaDeCorrida(12, 2)).toBe(12);
+
+    expect(avancarSemanaDeCorda(5, 2)).toBe(6);
+    expect(avancarSemanaDeCorda(5, 1)).toBe(5);
+    expect(avancarSemanaDeCorda(12, 2)).toBe(12);
+
+    expect(avancarSemanaDeBarraFixa(7, 2)).toBe(8);
+    expect(avancarSemanaDeBarraFixa(7, 1)).toBe(7);
+    expect(avancarSemanaDeBarraFixa(12, 2)).toBe(12);
+  });
+
+  it("três sessões numa semana civil não pulam duas semanas do plano", () => {
+    expect(avancarSemanaDeCorrida(3, 3)).toBe(4);
   });
 });
 
 describe("§5.1 — a sugestão da Fase 2", () => {
-  it("12 semanas civis E 30 sessões; adiar silencia por 2 semanas", () => {
-    const p = perfil();
-    expect(sugerirFase2(p, 30, "2026-12-06").sugerir).toBe(false); // 11 semanas
-    expect(sugerirFase2(p, 30, "2026-12-07").sugerir).toBe(true);
-    expect(sugerirFase2(p, 29, "2026-12-07").sugerir).toBe(false);
-    const adiado = perfil({ prefs: { fase2_adiada_ate: "2026-12-21" } });
-    expect(sugerirFase2(adiado, 30, "2026-12-14").sugerir).toBe(false);
+  it("exige 12 semanas civis E 30 sessões", () => {
+    const antes = sugerirFase2(perfil1, 40, "2026-11-30"); // 11 semanas
+    expect(antes.semanas).toBe(11);
+    expect(antes.sugerir).toBe(false);
+
+    const poucas = sugerirFase2(perfil1, 29, "2026-12-07");
+    expect(poucas.semanas).toBe(12);
+    expect(poucas.sugerir).toBe(false);
+
+    const vale = sugerirFase2(perfil1, 30, "2026-12-07");
+    expect(vale.sugerir).toBe(true);
+  });
+
+  it("adiar silencia por 2 semanas e a sugestão volta sozinha", () => {
+    const ate = adiarFase2("2026-12-07");
+    expect(ate).toBe("2026-12-21");
+    const adiado: PerfilCalendario = {
+      ...perfil1,
+      prefs: { fase2_adiada_ate: ate },
+    };
+    expect(sugerirFase2(adiado, 30, "2026-12-08").sugerir).toBe(false);
+    expect(sugerirFase2(adiado, 30, "2026-12-20").sugerir).toBe(false);
     expect(sugerirFase2(adiado, 30, "2026-12-21").sugerir).toBe(true);
+  });
+
+  it("na Fase 2 o app não sugere a Fase 2", () => {
+    const perfil2: PerfilCalendario = {
+      fase_atual: "fase2",
+      ultimo_treino: "SA",
+      fase_desde: "2026-09-14",
+    };
+    expect(sugerirFase2(perfil2, 99, "2027-06-07").sugerir).toBe(false);
   });
 });
 
 describe("§5.4 — semana curta", () => {
-  it("com três dias, cortam-se os dois cardios (sábado primeiro) e sobram os três treinos", () => {
-    const semana = semanaDoPlano(INICIO, perfil());
-    const r = semanaCurta(["ter", "qui", "sab", "dom"], semana);
+  const semana = () => semanaDoPlano("2026-09-14", perfil1);
+
+  it("os treinos protegidos saem dos dados: A1, B1, IA e IB", () => {
+    expect(treinosComAgachamentoOuTerra().sort()).toEqual(
+      ["A1", "B1", "IA", "IB"].sort(),
+    );
+  });
+
+  it("com três dias sobram os três treinos de força: cortam-se os dois cardios, sábado primeiro", () => {
+    const r = semanaCurta(["ter", "qui", "sab", "dom"], semana());
+    expect(r.capacidade).toBe(3);
     expect(r.cortados.map((c) => c.dia)).toEqual(["sab", "ter"]);
-    expect(r.dias.filter((d) => d.tipo === "forca").map((d) => d.treinoId)).toEqual([
-      "A1",
+    expect(r.cortados.every((c) => c.tipo === "cardio")).toBe(true);
+    const forca = r.dias.filter((d) => d.tipo === "forca");
+    expect(forca.map((d) => d.treinoId)).toEqual(["A1", "B1", "A1"]);
+    expect(r.dias.filter((d) => d.tipo === "cardio")).toHaveLength(0);
+  });
+
+  it("sobrando um dia só na semana, o que fica é o Treino A — inclusive na semana B-A-B", () => {
+    const bab = semanaDoPlano("2026-09-21", { ...perfil1, ultimo_treino: "A1" });
+    expect(bab.filter((d) => d.tipo === "forca").map((d) => d.treinoId)).toEqual([
       "B1",
       "A1",
+      "B1",
     ]);
+    const r = semanaCurta(["seg", "ter", "qua", "qui", "sex", "sab"], bab);
+    expect(r.capacidade).toBe(1);
+    const restantes = r.dias.filter((d) => d.tipo !== "descanso");
+    expect(restantes).toHaveLength(1);
+    expect(restantes[0]?.tipo).toBe("forca");
+    expect(restantes[0]?.treinoId).toBe("A1");
+    expect(restantes[0]?.dia).toBe("dom");
   });
 
-  it("sobrando um dia só, o que fica é o Treino A — inclusive na semana B-A-B", () => {
-    const foraQuaseTudo = ["seg", "ter", "qua", "qui", "sab", "dom"] as const;
-    const semanaAB = semanaDoPlano(INICIO, perfil({ ultimo_treino: null }));
-    const rAB = semanaCurta([...foraQuaseTudo], semanaAB);
-    expect(rAB.dias.filter((d) => d.tipo !== "descanso").map((d) => d.treinoId)).toEqual([
-      "A1",
+  it("Fase 2: corta os cardios e depois o superior, nunca IA nem IB", () => {
+    const perfil2: PerfilCalendario = {
+      fase_atual: "fase2",
+      ultimo_treino: null,
+      fase_desde: "2026-09-14",
+    };
+    const r = semanaCurta(
+      ["seg", "qua", "sab"],
+      semanaDoPlano("2026-09-14", perfil2),
+    );
+    expect(r.capacidade).toBe(4);
+    expect(r.cortados.map((c) => c.treinoId ?? c.tipo)).toEqual([
+      "cardio",
+      "cardio",
     ]);
-    // a semana par começa pelo Treino B; o que sobra continua tendo de ser o A
-    const semanaBA = semanaDoPlano("2026-09-21", perfil({ ultimo_treino: "A1" }));
-    expect(
-      semanaBA.filter((d) => d.tipo === "forca").map((d) => d.treinoId),
-    ).toEqual(["B1", "A1", "B1"]);
-    const rBA = semanaCurta([...foraQuaseTudo], semanaBA);
-    const sobrou = rBA.dias.filter((d) => d.tipo !== "descanso");
-    expect(sobrou).toHaveLength(1);
-    expect(sobrou[0]?.treinoId).toBe("A1");
+    const ficaram = r.dias
+      .filter((d) => d.tipo === "forca")
+      .map((d) => d.treinoId);
+    expect(ficaram).toContain("IA");
+    expect(ficaram).toContain("IB");
+    expect(ficaram).toHaveLength(4);
   });
 
-  it("Fase 2: corta os cardios e depois o superior, nunca IA/IB", () => {
-    const p = perfil({ fase_atual: "fase2" });
-    const semana = semanaDoPlano(INICIO, p);
-    const r = semanaCurta(["qua", "sex", "sab", "dom"], semana);
-    const restam = r.dias.filter((d) => d.tipo === "forca").map((d) => d.treinoId);
-    expect(restam).toEqual(["SA", "IA", "IB"]);
+  it("marcar um dia de descanso não corta nada", () => {
+    const r = semanaCurta("qui", semana());
+    expect(r.cortados).toHaveLength(0);
+    expect(r.dias.filter((d) => d.tipo === "forca")).toHaveLength(3);
+    expect(r.dias.filter((d) => d.tipo === "cardio")).toHaveLength(2);
+  });
+
+  it("§3.5: marcar o dia por data (e não por 'seg') dá o mesmo resultado", () => {
+    const resumo = (d: DiaDoPlano) => `${d.dia}:${d.tipo}:${d.treinoId ?? "-"}`;
+    const porNome = semanaCurta("seg", semana());
+    const porData = semanaCurta("2026-09-14", semana());
+    expect(porData.capacidade).toBe(porNome.capacidade);
+    expect(porData.dias.map(resumo)).toEqual(porNome.dias.map(resumo));
   });
 
   it("a semana remanejada continua alternando A e B (§5.2 item 3)", () => {
-    const semana = semanaDoPlano(INICIO, perfil());
-    const r = semanaCurta(["seg"], semana);
-    const treinos = r.dias
-      .filter((d): d is DiaDoPlano & { treinoId: TreinoId } => d.treinoId !== null)
-      .map((d) => d.treinoId);
-    expect(treinos.length).toBeGreaterThan(1);
-    const repetidos = treinos.filter((t, i) => i > 0 && t === treinos[i - 1]);
-    expect({ treinos, repetidos }).toMatchObject({ repetidos: [] });
-  });
-
-  it("marcar um dia de descanso não corta nada (a vaga já não era de treino)", () => {
-    const semana = semanaDoPlano(INICIO, perfil());
-    const r = semanaCurta(["qui"], semana);
-    expect(r.cortados).toEqual([]);
-    expect(r.dias.map((d) => d.tipo)).toEqual(
-      semana.map((d) => d.tipo),
-    );
-    expect(r.dias.map((d) => d.treinoId)).toEqual(semana.map((d) => d.treinoId));
-  });
-});
-
-/* ================= §3.1 e §5.2 item 4 — o que a tela Hoje recebe */
-
-describe("§3.1 / §5.2 — os minutos e a nota do dia", () => {
-  it("o dia de cardio traz os minutos da semana do plano, não os do dia do programa", () => {
-    // §3.1: "card da sessão da semana atual (… · 34 min)" — os minutos são os da
-    // sessão que o plano manda fazer hoje (cardio.json: 45 min na semana 12).
-    const s1 = sessaoCardioDeHoje("2026-09-15", perfil({ semana_corrida: 1 }));
-    expect(s1?.corrida?.sessao_min).toBe(34);
-    expect(s1?.min).toBe(34);
-    const s12 = sessaoCardioDeHoje("2026-09-15", perfil({ semana_corrida: 12 }));
-    expect(s12?.descricao).toBe("5 km sem parar");
-    expect(s12?.corrida?.sessao_min).toBe(45);
-    expect(s12?.min).toBe(45);
-  });
-
-  it("com override, o dia não herda os minutos nem a nota do dia que substituiu (§5.2 item 1)", () => {
-    const viraCardio = [
-      { data: INICIO, tipo: "cardio" as const, workout_id: null, sessao: "corrida" },
-    ];
-    const seg = treinoDeHoje(INICIO, perfil(), viraCardio);
-    expect(seg.tipo).toBe("cardio");
-    // 44 min é a duração do Treino A, que este dia deixou de ser
-    expect(seg.min).not.toBe(44);
-    expect(sessaoCardioDeHoje(INICIO, perfil(), viraCardio)?.min).not.toBe(44);
-
-    const viraForca = [
-      {
-        data: "2026-09-17",
-        tipo: "forca" as const,
-        workout_id: "A1" as TreinoId,
-        sessao: null,
-      },
-    ];
-    const qui = treinoDeHoje("2026-09-17", perfil(), viraForca);
-    expect(qui.tipo).toBe("forca");
-    // a nota da quinta é o lembrete do dia de descanso (§5.2 item 5)
-    expect(qui.nota).toBeNull();
-  });
-});
-
-/* ======================= §3.9 e §10.5 — quando as barras forem pesadas */
-
-describe("§10.5 — o motor só propõe cargas alcançáveis", () => {
-  it("a barra W ainda não pesada vale 2 kg e fecha exato", () => {
-    const roscaW = acharExercicio("rosca-com-barra-w");
-    const hoje = cargaDeHoje(roscaW, null);
-    expect(hoje.carga_kg).toBe(2);
-    expect(hoje.montagem?.pesoBarra).toBe(2);
-    expect(hoje.montagem?.exato).toBe(true);
-    expect(cargaMaxima("barra_w")).toBe(50); // §6.4: capacidade da barra W
-    expect(cargaMaxima("barra_reta_oca")).toBe(60);
-    expect(montagem(52, "barra_w").total).toBe(50);
-  });
-
-  it("depois de pesar a barra (§3.9), a carga de hoje continua existindo na escala", () => {
-    const roscaW = acharExercicio("rosca-com-barra-w");
-    const presc = prescricaoPadrao(roscaW);
-    const opcoes = { pesoBarra: 6.5 };
-    expect(cargaMinima("barra_w", opcoes)).toBe(6.5); // a barra vazia
-    const hoje = cargaDeHoje(roscaW, null, presc, opcoes);
-    // §10.5: nada de propor 2,0 kg numa barra que pesa 6,5 kg
-    expect(hoje.montagem?.exato).toBe(true);
-    expect(hoje.carga_kg).toBe(6.5);
+    const r = semanaCurta("seg", semana());
+    const forca = r.dias.filter((d) => d.tipo === "forca").map((d) => d.treinoId);
+    expect(forca).toHaveLength(3);
+    for (let i = 1; i < forca.length; i++) {
+      expect(forca[i]).not.toBe(forca[i - 1]);
+    }
   });
 });
