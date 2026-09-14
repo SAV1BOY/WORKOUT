@@ -1,0 +1,4807 @@
+[
+  {
+    "id": "supino-reto-com-barra",
+    "nome": "Supino reto com barra",
+    "grupo": "Peito",
+    "origem": "guia",
+    "subgrupo": null,
+    "musculos_primarios": [
+      "peito"
+    ],
+    "musculos_secundarios": [
+      "triceps",
+      "ombro"
+    ],
+    "musculos_primarios_nome": [
+      "Peitoral"
+    ],
+    "musculos_secundarios_nome": [
+      "Tríceps",
+      "Deltoide anterior e medial"
+    ],
+    "equipamento_texto": "Barra · Banco · Cavalete",
+    "equipamento": [
+      "anilhas",
+      "banco",
+      "barra-macica",
+      "cavalete"
+    ],
+    "implemento": "barra_macica",
+    "montagem": "Banco reto sob o cavalete, barra na altura de 70–90 cm. Deite com os olhos sob a barra.",
+    "passos": [
+      "Pegada um pouco mais aberta que os ombros, punhos firmes e alinhados com os cotovelos.",
+      "Retire a barra do cavalete e estabilize sobre o peito, escápulas retraídas e pés firmes no chão.",
+      "Desça controlado até tocar de leve o meio do peito, cotovelos a cerca de 45° do tronco.",
+      "Empurre de volta até estender os braços, sem travar o cotovelo com força."
+    ],
+    "erro_comum": "Abrir os cotovelos a 90° do tronco — sobrecarrega o ombro e tira o peito do movimento.",
+    "prescricao_padrao": {
+      "series": 3,
+      "tipo": "reps",
+      "min": 5,
+      "max": 8,
+      "unilateral": false,
+      "texto": "3 × 5–8",
+      "descanso_s": 150
+    },
+    "categoria": "composto_pesado",
+    "carga_inicial": {
+      "kg": 7.5,
+      "nota": "barra maciça vazia (7,5 kg)"
+    },
+    "progressao": {
+      "tipo": "carga",
+      "incremento_kg": 2,
+      "regra": "+2 kg (uma anilha de 1 kg em cada lado) quando completar todas as séries no topo da faixa com a última repetição firme."
+    },
+    "figura": "assets/figuras/supino-reto-com-barra.svg",
+    "fotos": [
+      "assets/fotos/supino-reto-com-barra-1.jpg",
+      "assets/fotos/supino-reto-com-barra-2.jpg"
+    ],
+    "foto_fonte_id": "Barbell_Bench_Press_-_Medium_Grip",
+    "figura_animada": true
+  },
+  {
+    "id": "supino-inclinado-com-barra",
+    "nome": "Supino inclinado com barra",
+    "grupo": "Peito",
+    "origem": "guia",
+    "subgrupo": null,
+    "musculos_primarios": [
+      "peito"
+    ],
+    "musculos_secundarios": [
+      "ombro",
+      "triceps"
+    ],
+    "musculos_primarios_nome": [
+      "Peitoral"
+    ],
+    "musculos_secundarios_nome": [
+      "Deltoide anterior e medial",
+      "Tríceps"
+    ],
+    "equipamento_texto": "Barra · Banco · Cavalete",
+    "equipamento": [
+      "anilhas",
+      "banco",
+      "barra-macica",
+      "cavalete"
+    ],
+    "implemento": "barra_macica",
+    "montagem": "Encosto do banco entre 30° e 45°. Acima disso vira desenvolvimento de ombro.",
+    "passos": [
+      "Deite com o encosto inclinado, escápulas retraídas contra o banco.",
+      "Desça a barra até a parte alta do peito, logo abaixo da clavícula.",
+      "Empurre em linha reta para cima, sem deixar a barra migrar para o rosto."
+    ],
+    "erro_comum": "Inclinar demais o banco. A partir de 50° o peitoral superior sai e o deltoide assume.",
+    "prescricao_padrao": {
+      "series": 3,
+      "tipo": "reps",
+      "min": 8,
+      "max": 10,
+      "unilateral": false,
+      "texto": "3 × 8–10",
+      "descanso_s": 90
+    },
+    "categoria": "composto_moderado",
+    "carga_inicial": {
+      "kg": 7.5,
+      "nota": "barra maciça vazia (7,5 kg)"
+    },
+    "progressao": {
+      "tipo": "carga",
+      "incremento_kg": 2,
+      "regra": "+2 kg (uma anilha de 1 kg em cada lado) quando completar todas as séries no topo da faixa com a última repetição firme."
+    },
+    "figura": "assets/figuras/supino-inclinado-com-barra.svg",
+    "fotos": [
+      "assets/fotos/supino-inclinado-com-barra-1.jpg",
+      "assets/fotos/supino-inclinado-com-barra-2.jpg"
+    ],
+    "foto_fonte_id": "Barbell_Incline_Bench_Press_-_Medium_Grip",
+    "figura_animada": true
+  },
+  {
+    "id": "supino-declinado-com-barra",
+    "nome": "Supino declinado com barra",
+    "grupo": "Peito",
+    "origem": "guia",
+    "subgrupo": null,
+    "musculos_primarios": [
+      "peito"
+    ],
+    "musculos_secundarios": [
+      "triceps"
+    ],
+    "musculos_primarios_nome": [
+      "Peitoral"
+    ],
+    "musculos_secundarios_nome": [
+      "Tríceps"
+    ],
+    "equipamento_texto": "Barra · Banco · Cavalete",
+    "equipamento": [
+      "anilhas",
+      "banco",
+      "barra-macica",
+      "cavalete"
+    ],
+    "implemento": "barra_macica",
+    "montagem": "Banco declinado, pés travados no rolo. Peça ajuda para receber a barra nas primeiras vezes.",
+    "passos": [
+      "Desça a barra até a parte baixa do peito.",
+      "Empurre para cima em trajetória levemente diagonal, em direção aos pés.",
+      "Mantenha a lombar apoiada e o abdômen contraído."
+    ],
+    "erro_comum": "Carga alta no declinado sozinho, sem quem receba a barra. Comece leve.",
+    "prescricao_padrao": {
+      "series": 3,
+      "tipo": "reps",
+      "min": 8,
+      "max": 10,
+      "unilateral": false,
+      "texto": "3 × 8–10",
+      "descanso_s": 90
+    },
+    "categoria": "composto_moderado",
+    "carga_inicial": {
+      "kg": 7.5,
+      "nota": "barra maciça vazia (7,5 kg)"
+    },
+    "progressao": {
+      "tipo": "carga",
+      "incremento_kg": 2,
+      "regra": "+2 kg (uma anilha de 1 kg em cada lado) quando completar todas as séries no topo da faixa com a última repetição firme."
+    },
+    "figura": "assets/figuras/supino-declinado-com-barra.svg",
+    "fotos": [
+      "assets/fotos/supino-declinado-com-barra-1.jpg",
+      "assets/fotos/supino-declinado-com-barra-2.jpg"
+    ],
+    "foto_fonte_id": "Decline_Barbell_Bench_Press",
+    "figura_animada": true
+  },
+  {
+    "id": "supino-reto-com-halteres",
+    "nome": "Supino reto com halteres",
+    "grupo": "Peito",
+    "origem": "guia",
+    "subgrupo": null,
+    "musculos_primarios": [
+      "peito"
+    ],
+    "musculos_secundarios": [
+      "triceps",
+      "ombro"
+    ],
+    "musculos_primarios_nome": [
+      "Peitoral"
+    ],
+    "musculos_secundarios_nome": [
+      "Tríceps",
+      "Deltoide anterior e medial"
+    ],
+    "equipamento_texto": "Halteres · Banco",
+    "equipamento": [
+      "anilhas",
+      "banco",
+      "halteres"
+    ],
+    "implemento": "halteres",
+    "montagem": "Banco reto. Suba os halteres apoiando-os nas coxas e deitando junto com eles.",
+    "passos": [
+      "Halteres na linha do peito, palmas para a frente, cotovelos a 45°.",
+      "Desça até sentir alongamento no peito — mais fundo que a barra permite.",
+      "Suba juntando levemente os halteres no topo, sem batê-los."
+    ],
+    "erro_comum": "Descer rápido demais. A vantagem do halter é a amplitude, e ela exige controle.",
+    "prescricao_padrao": {
+      "series": 3,
+      "tipo": "reps",
+      "min": 8,
+      "max": 12,
+      "unilateral": false,
+      "texto": "3 × 8–12",
+      "descanso_s": 90
+    },
+    "categoria": "composto_moderado",
+    "carga_inicial": {
+      "kg": 1.5,
+      "nota": "por halter: barra de halter vazia (1,5 kg); ou 5 kg no total com anilhas"
+    },
+    "progressao": {
+      "tipo": "carga",
+      "incremento_kg": 2,
+      "regra": "+2 kg em cada halter (uma anilha de 1 kg em cada ponta) quando completar todas as séries no topo da faixa."
+    },
+    "figura": "assets/figuras/supino-reto-com-halteres.svg",
+    "fotos": [
+      "assets/fotos/supino-reto-com-halteres-1.jpg",
+      "assets/fotos/supino-reto-com-halteres-2.jpg"
+    ],
+    "foto_fonte_id": "Dumbbell_Bench_Press",
+    "figura_animada": true
+  },
+  {
+    "id": "supino-inclinado-com-halteres",
+    "nome": "Supino inclinado com halteres",
+    "grupo": "Peito",
+    "origem": "guia",
+    "subgrupo": null,
+    "musculos_primarios": [
+      "peito"
+    ],
+    "musculos_secundarios": [
+      "ombro",
+      "triceps"
+    ],
+    "musculos_primarios_nome": [
+      "Peitoral"
+    ],
+    "musculos_secundarios_nome": [
+      "Deltoide anterior e medial",
+      "Tríceps"
+    ],
+    "equipamento_texto": "Halteres · Banco",
+    "equipamento": [
+      "anilhas",
+      "banco",
+      "halteres"
+    ],
+    "implemento": "halteres",
+    "montagem": "Encosto a 30–45°, halteres apoiados nas coxas antes de deitar.",
+    "passos": [
+      "Desça os halteres até a linha da parte alta do peito.",
+      "Suba em arco, aproximando os halteres sem encostar.",
+      "Pausa de meio segundo embaixo, onde o peitoral está mais alongado."
+    ],
+    "erro_comum": "Deixar o ombro rolar para a frente na descida. Mantenha as escápulas presas no banco.",
+    "prescricao_padrao": {
+      "series": 3,
+      "tipo": "reps",
+      "min": 8,
+      "max": 12,
+      "unilateral": false,
+      "texto": "3 × 8–12",
+      "descanso_s": 90
+    },
+    "categoria": "composto_moderado",
+    "carga_inicial": {
+      "kg": 1.5,
+      "nota": "por halter: barra de halter vazia (1,5 kg); ou 5 kg no total com anilhas"
+    },
+    "progressao": {
+      "tipo": "carga",
+      "incremento_kg": 2,
+      "regra": "+2 kg em cada halter (uma anilha de 1 kg em cada ponta) quando completar todas as séries no topo da faixa."
+    },
+    "figura": "assets/figuras/supino-inclinado-com-halteres.svg",
+    "fotos": [
+      "assets/fotos/supino-inclinado-com-halteres-1.jpg",
+      "assets/fotos/supino-inclinado-com-halteres-2.jpg"
+    ],
+    "foto_fonte_id": "Incline_Dumbbell_Press",
+    "figura_animada": true
+  },
+  {
+    "id": "crucifixo-reto",
+    "nome": "Crucifixo reto",
+    "grupo": "Peito",
+    "origem": "guia",
+    "subgrupo": null,
+    "musculos_primarios": [
+      "peito"
+    ],
+    "musculos_secundarios": [
+      "ombro"
+    ],
+    "musculos_primarios_nome": [
+      "Peitoral"
+    ],
+    "musculos_secundarios_nome": [
+      "Deltoide anterior e medial"
+    ],
+    "equipamento_texto": "Halteres · Banco",
+    "equipamento": [
+      "anilhas",
+      "banco",
+      "halteres"
+    ],
+    "implemento": "halteres",
+    "montagem": "Banco reto, halteres leves. Este é isolamento, não força bruta.",
+    "passos": [
+      "Braços quase estendidos com o cotovelo levemente flexionado e fixo nesse ângulo.",
+      "Abra em arco até os halteres ficarem na linha do peito, sentindo o alongamento.",
+      "Feche pelo mesmo arco, imaginando abraçar um barril."
+    ],
+    "erro_comum": "Flexionar e estender o cotovelo — aí vira supino. O ângulo do cotovelo não muda.",
+    "prescricao_padrao": {
+      "series": 3,
+      "tipo": "reps",
+      "min": 12,
+      "max": 15,
+      "unilateral": false,
+      "texto": "3 × 12–15",
+      "descanso_s": 60
+    },
+    "categoria": "isolamento",
+    "carga_inicial": {
+      "kg": 1.5,
+      "nota": "por halter: barra de halter vazia (1,5 kg); ou 5 kg no total com anilhas"
+    },
+    "progressao": {
+      "tipo": "carga",
+      "incremento_kg": 2,
+      "regra": "+2 kg em cada halter (uma anilha de 1 kg em cada ponta) quando completar todas as séries no topo da faixa."
+    },
+    "figura": "assets/figuras/crucifixo-reto.svg",
+    "fotos": [
+      "assets/fotos/crucifixo-reto-1.jpg",
+      "assets/fotos/crucifixo-reto-2.jpg"
+    ],
+    "foto_fonte_id": "Dumbbell_Flyes",
+    "figura_animada": true
+  },
+  {
+    "id": "crucifixo-inclinado",
+    "nome": "Crucifixo inclinado",
+    "grupo": "Peito",
+    "origem": "guia",
+    "subgrupo": null,
+    "musculos_primarios": [
+      "peito"
+    ],
+    "musculos_secundarios": [
+      "ombro"
+    ],
+    "musculos_primarios_nome": [
+      "Peitoral"
+    ],
+    "musculos_secundarios_nome": [
+      "Deltoide anterior e medial"
+    ],
+    "equipamento_texto": "Halteres · Banco",
+    "equipamento": [
+      "anilhas",
+      "banco",
+      "halteres"
+    ],
+    "implemento": "halteres",
+    "montagem": "Encosto a 30°. Mesma mecânica do crucifixo reto, com ênfase na porção superior.",
+    "passos": [
+      "Abra em arco controlado até a linha do peito.",
+      "Feche concentrando a contração no peitoral, não nos braços."
+    ],
+    "erro_comum": "Carga alta. Crucifixo com peso demais é a via rápida para lesão de ombro.",
+    "prescricao_padrao": {
+      "series": 3,
+      "tipo": "reps",
+      "min": 12,
+      "max": 15,
+      "unilateral": false,
+      "texto": "3 × 12–15",
+      "descanso_s": 60
+    },
+    "categoria": "isolamento",
+    "carga_inicial": {
+      "kg": 1.5,
+      "nota": "por halter: barra de halter vazia (1,5 kg); ou 5 kg no total com anilhas"
+    },
+    "progressao": {
+      "tipo": "carga",
+      "incremento_kg": 2,
+      "regra": "+2 kg em cada halter (uma anilha de 1 kg em cada ponta) quando completar todas as séries no topo da faixa."
+    },
+    "figura": "assets/figuras/crucifixo-inclinado.svg",
+    "fotos": [
+      "assets/fotos/crucifixo-inclinado-1.jpg",
+      "assets/fotos/crucifixo-inclinado-2.jpg"
+    ],
+    "foto_fonte_id": "Incline_Dumbbell_Flyes",
+    "figura_animada": true
+  },
+  {
+    "id": "pullover-com-halter",
+    "nome": "Pullover com halter",
+    "grupo": "Peito",
+    "origem": "guia",
+    "subgrupo": null,
+    "musculos_primarios": [
+      "peito",
+      "dorsal"
+    ],
+    "musculos_secundarios": [
+      "triceps"
+    ],
+    "musculos_primarios_nome": [
+      "Peitoral",
+      "Dorsal (latíssimo)"
+    ],
+    "musculos_secundarios_nome": [
+      "Tríceps"
+    ],
+    "equipamento_texto": "Halter · Banco",
+    "equipamento": [
+      "anilhas",
+      "banco",
+      "halteres"
+    ],
+    "implemento": "halteres",
+    "montagem": "Deite atravessado no banco, só as costas apoiadas, quadril mais baixo. Um halter segurado pelas duas mãos.",
+    "passos": [
+      "Halter sobre o peito, braços quase estendidos.",
+      "Leve o halter para trás da cabeça em arco, até sentir alongamento nas costelas.",
+      "Traga de volta pelo mesmo caminho, sem dobrar os cotovelos."
+    ],
+    "erro_comum": "Descer além do que a mobilidade de ombro permite. Pare onde o alongamento ainda é confortável.",
+    "prescricao_padrao": {
+      "series": 3,
+      "tipo": "reps",
+      "min": 10,
+      "max": 12,
+      "unilateral": false,
+      "texto": "3 × 10–12",
+      "descanso_s": 90
+    },
+    "categoria": "isolamento",
+    "carga_inicial": {
+      "kg": 1.5,
+      "nota": "por halter: barra de halter vazia (1,5 kg); ou 5 kg no total com anilhas"
+    },
+    "progressao": {
+      "tipo": "carga",
+      "incremento_kg": 2,
+      "regra": "+2 kg em cada halter (uma anilha de 1 kg em cada ponta) quando completar todas as séries no topo da faixa."
+    },
+    "figura": "assets/figuras/pullover-com-halter.svg",
+    "fotos": [
+      "assets/fotos/pullover-com-halter-1.jpg",
+      "assets/fotos/pullover-com-halter-2.jpg"
+    ],
+    "foto_fonte_id": "Straight-Arm_Dumbbell_Pullover",
+    "figura_animada": true
+  },
+  {
+    "id": "flexao-declinada",
+    "nome": "Flexão declinada",
+    "grupo": "Peito",
+    "origem": "guia",
+    "subgrupo": null,
+    "musculos_primarios": [
+      "peito"
+    ],
+    "musculos_secundarios": [
+      "triceps",
+      "ombro",
+      "abdomen"
+    ],
+    "musculos_primarios_nome": [
+      "Peitoral"
+    ],
+    "musculos_secundarios_nome": [
+      "Tríceps",
+      "Deltoide anterior e medial",
+      "Reto abdominal"
+    ],
+    "equipamento_texto": "Peso corporal · Banco",
+    "equipamento": [
+      "banco"
+    ],
+    "implemento": "peso_corporal",
+    "montagem": "Pés sobre o banco, mãos no chão um pouco mais abertas que os ombros.",
+    "passos": [
+      "Corpo em linha reta da cabeça ao calcanhar, abdômen contraído.",
+      "Desça até o peito quase tocar o chão, cotovelos a 45°.",
+      "Empurre até estender, sem deixar o quadril subir ou cair."
+    ],
+    "erro_comum": "Quadril em cima ou em baixo da linha. O corpo é uma prancha do começo ao fim.",
+    "prescricao_padrao": {
+      "series": 3,
+      "tipo": "maximo",
+      "min": null,
+      "max": null,
+      "unilateral": false,
+      "texto": "3 × máximo",
+      "descanso_s": 90
+    },
+    "categoria": "composto_moderado",
+    "carga_inicial": {
+      "kg": 0.0,
+      "nota": "peso corporal; anilha só quando passar de 15 limpas"
+    },
+    "progressao": {
+      "tipo": "reps",
+      "incremento_reps": 1,
+      "regra": "Completou todas as séries no topo da faixa: some 1 repetição por série (ou uma anilha de 2 kg contra o peito / na mochila quando passar de 20)."
+    },
+    "figura": "assets/figuras/flexao-declinada.svg",
+    "fotos": [
+      "assets/fotos/flexao-declinada-1.jpg",
+      "assets/fotos/flexao-declinada-2.jpg"
+    ],
+    "foto_fonte_id": "Decline_Push-Up",
+    "figura_animada": true
+  },
+  {
+    "id": "flexao-inclinada",
+    "nome": "Flexão inclinada",
+    "grupo": "Peito",
+    "origem": "guia",
+    "subgrupo": null,
+    "musculos_primarios": [
+      "peito"
+    ],
+    "musculos_secundarios": [
+      "triceps",
+      "ombro"
+    ],
+    "musculos_primarios_nome": [
+      "Peitoral"
+    ],
+    "musculos_secundarios_nome": [
+      "Tríceps",
+      "Deltoide anterior e medial"
+    ],
+    "equipamento_texto": "Peso corporal · Banco",
+    "equipamento": [
+      "banco"
+    ],
+    "implemento": "peso_corporal",
+    "montagem": "Mãos sobre o banco, pés no chão. É a versão mais leve — boa para volume no fim do treino.",
+    "passos": [
+      "Mesma linha de corpo da flexão normal.",
+      "Desça até o peito quase tocar o banco.",
+      "Empurre com força, controlando a descida."
+    ],
+    "erro_comum": "Usar como substituto da flexão normal quando já dá para fazer a normal. Progrida.",
+    "prescricao_padrao": {
+      "series": 3,
+      "tipo": "reps",
+      "min": 12,
+      "max": 20,
+      "unilateral": false,
+      "texto": "3 × 12–20",
+      "descanso_s": 60
+    },
+    "categoria": "composto_moderado",
+    "carga_inicial": {
+      "kg": 0.0,
+      "nota": "peso corporal"
+    },
+    "progressao": {
+      "tipo": "reps",
+      "incremento_reps": 1,
+      "regra": "Completou todas as séries no topo da faixa: some 1 repetição por série (ou uma anilha de 2 kg contra o peito / na mochila quando passar de 20)."
+    },
+    "figura": "assets/figuras/flexao-inclinada.svg",
+    "fotos": [
+      "assets/fotos/flexao-inclinada-1.jpg",
+      "assets/fotos/flexao-inclinada-2.jpg"
+    ],
+    "foto_fonte_id": "Incline_Push-Up",
+    "figura_animada": true
+  },
+  {
+    "id": "crossover-na-polia",
+    "nome": "Crossover na polia",
+    "grupo": "Peito",
+    "origem": "guia",
+    "subgrupo": null,
+    "musculos_primarios": [
+      "peito"
+    ],
+    "musculos_secundarios": [
+      "ombro"
+    ],
+    "musculos_primarios_nome": [
+      "Peitoral"
+    ],
+    "musculos_secundarios_nome": [
+      "Deltoide anterior e medial"
+    ],
+    "equipamento_texto": "Cross over · Estribo",
+    "equipamento": [
+      "cross-over",
+      "puxadores"
+    ],
+    "implemento": "polia",
+    "montagem": "Polia alta, um estribo na mão. Um passo à frente da parede, tronco levemente inclinado.",
+    "passos": [
+      "Braço quase estendido, cotovelo com flexão leve e fixa.",
+      "Traga a mão em arco à frente do peito, cruzando a linha média.",
+      "Segure meio segundo na contração e volte controlado.",
+      "Com um cross over só, faça um braço de cada vez."
+    ],
+    "erro_comum": "Dobrar o cotovelo e transformar em tríceps invertido. O ângulo do cotovelo não muda.",
+    "prescricao_padrao": {
+      "series": 3,
+      "tipo": "reps",
+      "min": 12,
+      "max": 15,
+      "unilateral": true,
+      "texto": "3 × 12–15 por braço",
+      "descanso_s": 60
+    },
+    "categoria": "isolamento",
+    "carga_inicial": {
+      "kg": 4.0,
+      "nota": "2 anilhas de 2 kg no pino; suba de 2 em 2"
+    },
+    "progressao": {
+      "tipo": "carga",
+      "incremento_kg": 2,
+      "regra": "Completou todas as séries no topo da faixa com a última repetição firme: +2 kg no pino (uma anilha de 2 kg) no próximo treino."
+    },
+    "figura": "assets/figuras/crossover-na-polia.svg",
+    "fotos": [
+      "assets/fotos/crossover-na-polia-1.jpg",
+      "assets/fotos/crossover-na-polia-2.jpg"
+    ],
+    "foto_fonte_id": "Cable_Crossover",
+    "figura_animada": true
+  },
+  {
+    "id": "barra-fixa-pronada",
+    "nome": "Barra fixa pronada",
+    "grupo": "Costas",
+    "origem": "guia",
+    "subgrupo": null,
+    "musculos_primarios": [
+      "dorsal"
+    ],
+    "musculos_secundarios": [
+      "biceps",
+      "trapezio",
+      "antebraco"
+    ],
+    "musculos_primarios_nome": [
+      "Dorsal (latíssimo)"
+    ],
+    "musculos_secundarios_nome": [
+      "Bíceps",
+      "Trapézio",
+      "Antebraço"
+    ],
+    "equipamento_texto": "Barra fixa · Super Band",
+    "equipamento": [
+      "barra-fixa",
+      "super-band"
+    ],
+    "implemento": "barra_fixa",
+    "montagem": "Pegada pronada (palmas para a frente), um pouco mais aberta que os ombros. Se não fizer nenhuma, passe o Super Band na barra e apoie o joelho ou o pé nele.",
+    "passos": [
+      "Pendure com os braços estendidos e as escápulas soltas.",
+      "Antes de puxar, deprima as escápulas — ombros para baixo e para trás.",
+      "Puxe até o queixo passar a barra, peito em direção à barra.",
+      "Desça controlado até estender por completo."
+    ],
+    "erro_comum": "Balançar o corpo para ganhar impulso. Se precisa disso, use o elástico e faça limpo.",
+    "prescricao_padrao": {
+      "series": 3,
+      "tipo": "maximo",
+      "min": null,
+      "max": null,
+      "unilateral": false,
+      "texto": "3 × máximo",
+      "descanso_s": 90
+    },
+    "categoria": "composto_moderado",
+    "carga_inicial": {
+      "kg": 0.0,
+      "nota": "peso corporal; anilha só quando passar de 15 limpas"
+    },
+    "progressao": {
+      "tipo": "reps_depois_lastro",
+      "incremento_kg": 2,
+      "regra": "+1 repetição por sessão até 3 × 10 limpas; depois 2 kg de lastro na mochila. Com elástico: reduza a assistência (pé → joelho → joelho com a perna dobrada) antes de pensar em carga."
+    },
+    "figura": "assets/figuras/barra-fixa-pronada.svg",
+    "fotos": [
+      "assets/fotos/barra-fixa-pronada-1.jpg",
+      "assets/fotos/barra-fixa-pronada-2.jpg"
+    ],
+    "foto_fonte_id": "Pullups",
+    "figura_animada": true
+  },
+  {
+    "id": "barra-fixa-supinada",
+    "nome": "Barra fixa supinada",
+    "grupo": "Costas",
+    "origem": "guia",
+    "subgrupo": null,
+    "musculos_primarios": [
+      "dorsal",
+      "biceps"
+    ],
+    "musculos_secundarios": [
+      "antebraco"
+    ],
+    "musculos_primarios_nome": [
+      "Dorsal (latíssimo)",
+      "Bíceps"
+    ],
+    "musculos_secundarios_nome": [
+      "Antebraço"
+    ],
+    "equipamento_texto": "Barra fixa · Super Band",
+    "equipamento": [
+      "barra-fixa",
+      "super-band"
+    ],
+    "implemento": "barra_fixa",
+    "montagem": "Pegada supinada (palmas para você), na largura dos ombros. É a versão mais fácil — comece por ela.",
+    "passos": [
+      "Braços estendidos, escápulas soltas.",
+      "Puxe levando o peito à barra, cotovelos junto ao corpo.",
+      "Desça devagar, resistindo à descida."
+    ],
+    "erro_comum": "Parar no meio da descida. A amplitude completa é o que constrói a dorsal.",
+    "prescricao_padrao": {
+      "series": 3,
+      "tipo": "maximo",
+      "min": null,
+      "max": null,
+      "unilateral": false,
+      "texto": "3 × máximo",
+      "descanso_s": 90
+    },
+    "categoria": "composto_moderado",
+    "carga_inicial": {
+      "kg": 0.0,
+      "nota": "peso corporal; anilha só quando passar de 15 limpas"
+    },
+    "progressao": {
+      "tipo": "reps_depois_lastro",
+      "incremento_kg": 2,
+      "regra": "+1 repetição por sessão até 3 × 10 limpas; depois 2 kg de lastro na mochila. Com elástico: reduza a assistência (pé → joelho → joelho com a perna dobrada) antes de pensar em carga."
+    },
+    "figura": "assets/figuras/barra-fixa-supinada.svg",
+    "fotos": [
+      "assets/fotos/barra-fixa-supinada-1.jpg",
+      "assets/fotos/barra-fixa-supinada-2.jpg"
+    ],
+    "foto_fonte_id": "Chin-Up",
+    "figura_animada": true
+  },
+  {
+    "id": "barra-fixa-com-lastro",
+    "nome": "Barra fixa com lastro",
+    "grupo": "Costas",
+    "origem": "guia",
+    "subgrupo": null,
+    "musculos_primarios": [
+      "dorsal"
+    ],
+    "musculos_secundarios": [
+      "biceps",
+      "antebraco"
+    ],
+    "musculos_primarios_nome": [
+      "Dorsal (latíssimo)"
+    ],
+    "musculos_secundarios_nome": [
+      "Bíceps",
+      "Antebraço"
+    ],
+    "equipamento_texto": "Barra fixa · Anilhas",
+    "equipamento": [
+      "anilhas",
+      "barra-fixa"
+    ],
+    "implemento": "barra_fixa",
+    "montagem": "Quando 10 repetições limpas ficarem fáceis: anilha numa mochila bem apertada nas costas.",
+    "passos": [
+      "Mesma execução da pronada, com o lastro estabilizado.",
+      "Comece com 5 kg e suba de 2 em 2."
+    ],
+    "erro_comum": "Pular direto para carga alta. O ombro precisa se adaptar ao lastro.",
+    "prescricao_padrao": {
+      "series": 4,
+      "tipo": "reps",
+      "min": 4,
+      "max": 6,
+      "unilateral": false,
+      "texto": "4 × 4–6",
+      "descanso_s": 150
+    },
+    "categoria": "composto_moderado",
+    "carga_inicial": {
+      "kg": 0.0,
+      "nota": "peso corporal"
+    },
+    "progressao": {
+      "tipo": "carga",
+      "incremento_kg": 2,
+      "regra": "+2 kg de lastro na mochila quando completar todas as séries no topo da faixa."
+    },
+    "figura": "assets/figuras/barra-fixa-com-lastro.svg",
+    "fotos": [
+      "assets/fotos/barra-fixa-com-lastro-1.jpg",
+      "assets/fotos/barra-fixa-com-lastro-2.jpg"
+    ],
+    "foto_fonte_id": "Weighted_Pull_Ups",
+    "figura_animada": true
+  },
+  {
+    "id": "levantamento-terra",
+    "nome": "Levantamento terra",
+    "grupo": "Costas",
+    "origem": "guia",
+    "subgrupo": null,
+    "musculos_primarios": [
+      "posterior",
+      "lombar",
+      "gluteo"
+    ],
+    "musculos_secundarios": [
+      "trapezio",
+      "dorsal",
+      "quadriceps",
+      "antebraco"
+    ],
+    "musculos_primarios_nome": [
+      "Posterior de coxa",
+      "Lombar (eretores)",
+      "Glúteo"
+    ],
+    "musculos_secundarios_nome": [
+      "Trapézio",
+      "Dorsal (latíssimo)",
+      "Quadríceps",
+      "Antebraço"
+    ],
+    "equipamento_texto": "Barra · Anilhas",
+    "equipamento": [
+      "anilhas",
+      "barra-macica"
+    ],
+    "implemento": "barra_macica",
+    "montagem": "Barra no chão, sobre o meio do pé. Pés na largura do quadril. É o exercício mais completo do seu setup.",
+    "passos": [
+      "Quadril abaixo dos ombros, peito aberto, coluna neutra — nunca arredondada.",
+      "Empurre o chão com os pés e traga o quadril à frente ao mesmo tempo.",
+      "A barra sobe raspando as canelas e as coxas, colada ao corpo.",
+      "No topo, quadril estendido e glúteo contraído. Desça pelo mesmo caminho."
+    ],
+    "erro_comum": "Arredondar a lombar. Se a coluna arredondar, a carga está alta demais — sem exceção.",
+    "prescricao_padrao": {
+      "series": 3,
+      "tipo": "reps",
+      "min": 5,
+      "max": 5,
+      "unilateral": false,
+      "texto": "3 × 5",
+      "descanso_s": 150
+    },
+    "categoria": "composto_pesado",
+    "carga_inicial": {
+      "kg": 7.5,
+      "nota": "barra maciça vazia (7,5 kg)"
+    },
+    "progressao": {
+      "tipo": "carga",
+      "incremento_kg": 4,
+      "regra": "+4 kg (uma anilha de 2 kg em cada lado) a cada treino em que completou todas as séries com a última repetição firme."
+    },
+    "figura": "assets/figuras/levantamento-terra.svg",
+    "fotos": [
+      "assets/fotos/levantamento-terra-1.jpg",
+      "assets/fotos/levantamento-terra-2.jpg"
+    ],
+    "foto_fonte_id": "Barbell_Deadlift",
+    "figura_animada": true
+  },
+  {
+    "id": "remada-curvada-pronada",
+    "nome": "Remada curvada pronada",
+    "grupo": "Costas",
+    "origem": "guia",
+    "subgrupo": null,
+    "musculos_primarios": [
+      "dorsal",
+      "trapezio"
+    ],
+    "musculos_secundarios": [
+      "biceps",
+      "lombar",
+      "ombrop"
+    ],
+    "musculos_primarios_nome": [
+      "Dorsal (latíssimo)",
+      "Trapézio"
+    ],
+    "musculos_secundarios_nome": [
+      "Bíceps",
+      "Lombar (eretores)",
+      "Deltoide posterior"
+    ],
+    "equipamento_texto": "Barra · Anilhas",
+    "equipamento": [
+      "anilhas",
+      "barra-macica"
+    ],
+    "implemento": "barra_macica",
+    "montagem": "Tronco inclinado a cerca de 45°, joelhos levemente flexionados, coluna neutra.",
+    "passos": [
+      "Pegada pronada, um pouco mais aberta que os ombros.",
+      "Puxe a barra em direção ao umbigo, cotovelos passando rente ao corpo.",
+      "Aperte as escápulas no topo por meio segundo.",
+      "Desça controlado sem deixar o tronco subir."
+    ],
+    "erro_comum": "Levantar o tronco a cada repetição. O ângulo do tronco não muda durante a série.",
+    "prescricao_padrao": {
+      "series": 3,
+      "tipo": "reps",
+      "min": 6,
+      "max": 8,
+      "unilateral": false,
+      "texto": "3 × 6–8",
+      "descanso_s": 90
+    },
+    "categoria": "composto_moderado",
+    "carga_inicial": {
+      "kg": 7.5,
+      "nota": "barra maciça vazia (7,5 kg)"
+    },
+    "progressao": {
+      "tipo": "carga",
+      "incremento_kg": 2,
+      "regra": "+2 kg (uma anilha de 1 kg em cada lado) quando completar todas as séries no topo da faixa com a última repetição firme."
+    },
+    "figura": "assets/figuras/remada-curvada-pronada.svg",
+    "fotos": [
+      "assets/fotos/remada-curvada-pronada-1.jpg",
+      "assets/fotos/remada-curvada-pronada-2.jpg"
+    ],
+    "foto_fonte_id": "Bent_Over_Barbell_Row",
+    "figura_animada": true
+  },
+  {
+    "id": "remada-curvada-supinada",
+    "nome": "Remada curvada supinada",
+    "grupo": "Costas",
+    "origem": "guia",
+    "subgrupo": null,
+    "musculos_primarios": [
+      "dorsal"
+    ],
+    "musculos_secundarios": [
+      "biceps",
+      "trapezio"
+    ],
+    "musculos_primarios_nome": [
+      "Dorsal (latíssimo)"
+    ],
+    "musculos_secundarios_nome": [
+      "Bíceps",
+      "Trapézio"
+    ],
+    "equipamento_texto": "Barra · Anilhas",
+    "equipamento": [
+      "anilhas",
+      "barra-macica"
+    ],
+    "implemento": "barra_macica",
+    "montagem": "Mesma posição da pronada, mas com as palmas para cima.",
+    "passos": [
+      "Puxe a barra à altura do umbigo, cotovelos colados ao tronco.",
+      "A pegada supinada recruta mais dorsal e bíceps que a pronada."
+    ],
+    "erro_comum": "Usar carga de remada pronada. A supinada costuma permitir menos peso, e tudo bem.",
+    "prescricao_padrao": {
+      "series": 3,
+      "tipo": "reps",
+      "min": 8,
+      "max": 10,
+      "unilateral": false,
+      "texto": "3 × 8–10",
+      "descanso_s": 90
+    },
+    "categoria": "composto_moderado",
+    "carga_inicial": {
+      "kg": 7.5,
+      "nota": "barra maciça vazia (7,5 kg)"
+    },
+    "progressao": {
+      "tipo": "carga",
+      "incremento_kg": 2,
+      "regra": "+2 kg (uma anilha de 1 kg em cada lado) quando completar todas as séries no topo da faixa com a última repetição firme."
+    },
+    "figura": "assets/figuras/remada-curvada-supinada.svg",
+    "fotos": [
+      "assets/fotos/remada-curvada-supinada-1.jpg",
+      "assets/fotos/remada-curvada-supinada-2.jpg"
+    ],
+    "foto_fonte_id": "Reverse_Grip_Bent-Over_Rows",
+    "figura_animada": true
+  },
+  {
+    "id": "remada-unilateral-serrote",
+    "nome": "Remada unilateral (serrote)",
+    "grupo": "Costas",
+    "origem": "guia",
+    "subgrupo": null,
+    "musculos_primarios": [
+      "dorsal"
+    ],
+    "musculos_secundarios": [
+      "biceps",
+      "trapezio"
+    ],
+    "musculos_primarios_nome": [
+      "Dorsal (latíssimo)"
+    ],
+    "musculos_secundarios_nome": [
+      "Bíceps",
+      "Trapézio"
+    ],
+    "equipamento_texto": "Halter · Banco",
+    "equipamento": [
+      "anilhas",
+      "banco",
+      "halteres"
+    ],
+    "implemento": "halteres",
+    "montagem": "Um joelho e uma mão apoiados no banco, tronco paralelo ao chão, halter na mão livre.",
+    "passos": [
+      "Deixe o braço pender e a escápula alongar embaixo.",
+      "Puxe o halter em direção ao quadril, cotovelo rente ao corpo.",
+      "Aperte a escápula no topo e desça controlado, alongando de novo."
+    ],
+    "erro_comum": "Girar o tronco para ajudar. Os ombros ficam paralelos ao chão o tempo todo.",
+    "prescricao_padrao": {
+      "series": 3,
+      "tipo": "reps",
+      "min": 8,
+      "max": 12,
+      "unilateral": true,
+      "texto": "3 × 8–12 por lado",
+      "descanso_s": 90
+    },
+    "categoria": "composto_moderado",
+    "carga_inicial": {
+      "kg": 1.5,
+      "nota": "por halter: barra de halter vazia (1,5 kg); ou 5 kg no total com anilhas"
+    },
+    "progressao": {
+      "tipo": "carga",
+      "incremento_kg": 2,
+      "regra": "+2 kg em cada halter (uma anilha de 1 kg em cada ponta) quando completar todas as séries no topo da faixa."
+    },
+    "figura": "assets/figuras/remada-unilateral-serrote.svg",
+    "fotos": [
+      "assets/fotos/remada-unilateral-serrote-1.jpg",
+      "assets/fotos/remada-unilateral-serrote-2.jpg"
+    ],
+    "foto_fonte_id": "One-Arm_Dumbbell_Row",
+    "figura_animada": true
+  },
+  {
+    "id": "stiff-terra-romeno",
+    "nome": "Stiff / terra romeno",
+    "grupo": "Costas",
+    "origem": "guia",
+    "subgrupo": null,
+    "musculos_primarios": [
+      "posterior"
+    ],
+    "musculos_secundarios": [
+      "gluteo",
+      "lombar"
+    ],
+    "musculos_primarios_nome": [
+      "Posterior de coxa"
+    ],
+    "musculos_secundarios_nome": [
+      "Glúteo",
+      "Lombar (eretores)"
+    ],
+    "equipamento_texto": "Barra ou Halteres",
+    "equipamento": [
+      "anilhas",
+      "barra-macica",
+      "halteres"
+    ],
+    "implemento": "barra_macica",
+    "montagem": "De pé, barra na altura do quadril, joelhos levemente flexionados e travados nesse ângulo.",
+    "passos": [
+      "Empurre o quadril para trás mantendo a coluna neutra.",
+      "Desça a barra rente às pernas até sentir alongamento forte no posterior.",
+      "Volte empurrando o quadril à frente, contraindo o glúteo no topo."
+    ],
+    "erro_comum": "Confundir com terra convencional. Aqui o joelho quase não dobra — o movimento é do quadril.",
+    "prescricao_padrao": {
+      "series": 3,
+      "tipo": "reps",
+      "min": 8,
+      "max": 10,
+      "unilateral": false,
+      "texto": "3 × 8–10",
+      "descanso_s": 90
+    },
+    "categoria": "composto_moderado",
+    "carga_inicial": {
+      "kg": 7.5,
+      "nota": "barra maciça vazia (7,5 kg)"
+    },
+    "progressao": {
+      "tipo": "carga",
+      "incremento_kg": 4,
+      "regra": "+4 kg (uma anilha de 2 kg em cada lado) a cada treino em que completou todas as séries com a última repetição firme."
+    },
+    "figura": "assets/figuras/stiff-terra-romeno.svg",
+    "fotos": [
+      "assets/fotos/stiff-terra-romeno-1.jpg",
+      "assets/fotos/stiff-terra-romeno-2.jpg"
+    ],
+    "foto_fonte_id": "Romanian_Deadlift",
+    "figura_animada": true
+  },
+  {
+    "id": "encolhimento-de-ombros",
+    "nome": "Encolhimento de ombros",
+    "grupo": "Costas",
+    "origem": "guia",
+    "subgrupo": null,
+    "musculos_primarios": [
+      "trapezio"
+    ],
+    "musculos_secundarios": [
+      "antebraco"
+    ],
+    "musculos_primarios_nome": [
+      "Trapézio"
+    ],
+    "musculos_secundarios_nome": [
+      "Antebraço"
+    ],
+    "equipamento_texto": "Barra ou Halteres",
+    "equipamento": [
+      "anilhas",
+      "barra-macica",
+      "halteres"
+    ],
+    "implemento": "barra_macica",
+    "montagem": "Em pé, peso nas mãos com os braços estendidos ao lado do corpo.",
+    "passos": [
+      "Eleve os ombros em direção às orelhas, sem rodar.",
+      "Segure meio segundo no topo e desça devagar."
+    ],
+    "erro_comum": "Girar os ombros em círculo. O movimento é reto, para cima e para baixo.",
+    "prescricao_padrao": {
+      "series": 3,
+      "tipo": "reps",
+      "min": 12,
+      "max": 15,
+      "unilateral": false,
+      "texto": "3 × 12–15",
+      "descanso_s": 60
+    },
+    "categoria": "isolamento",
+    "carga_inicial": {
+      "kg": 7.5,
+      "nota": "barra maciça vazia (7,5 kg)"
+    },
+    "progressao": {
+      "tipo": "carga",
+      "incremento_kg": 2,
+      "regra": "+2 kg (uma anilha de 1 kg em cada lado) — ou some 1 repetição antes de subir, se a faixa ainda não estiver no topo."
+    },
+    "figura": "assets/figuras/encolhimento-de-ombros.svg",
+    "fotos": [
+      "assets/fotos/encolhimento-de-ombros-1.jpg",
+      "assets/fotos/encolhimento-de-ombros-2.jpg"
+    ],
+    "foto_fonte_id": "Barbell_Shrug",
+    "figura_animada": true
+  },
+  {
+    "id": "good-morning",
+    "nome": "Good morning",
+    "grupo": "Costas",
+    "origem": "guia",
+    "subgrupo": null,
+    "musculos_primarios": [
+      "posterior",
+      "lombar"
+    ],
+    "musculos_secundarios": [
+      "gluteo"
+    ],
+    "musculos_primarios_nome": [
+      "Posterior de coxa",
+      "Lombar (eretores)"
+    ],
+    "musculos_secundarios_nome": [
+      "Glúteo"
+    ],
+    "equipamento_texto": "Barra · Cavalete",
+    "equipamento": [
+      "anilhas",
+      "barra-macica",
+      "cavalete"
+    ],
+    "implemento": "barra_macica",
+    "montagem": "Barra apoiada no trapézio como no agachamento. Carga sempre leve.",
+    "passos": [
+      "Joelhos levemente flexionados, empurre o quadril para trás.",
+      "Incline o tronco até quase paralelo ao chão, coluna neutra.",
+      "Volte contraindo glúteo e posterior."
+    ],
+    "erro_comum": "Carga alta. Este é um exercício de fortalecimento preventivo, não de força máxima.",
+    "prescricao_padrao": {
+      "series": 3,
+      "tipo": "reps",
+      "min": 10,
+      "max": 12,
+      "unilateral": false,
+      "texto": "3 × 10–12",
+      "descanso_s": 90
+    },
+    "categoria": "composto_moderado",
+    "carga_inicial": {
+      "kg": 7.5,
+      "nota": "barra maciça vazia (7,5 kg)"
+    },
+    "progressao": {
+      "tipo": "carga",
+      "incremento_kg": 2,
+      "regra": "+2 kg (uma anilha de 1 kg em cada lado) — ou some 1 repetição antes de subir, se a faixa ainda não estiver no topo."
+    },
+    "figura": "assets/figuras/good-morning.svg",
+    "fotos": [
+      "assets/fotos/good-morning-1.jpg",
+      "assets/fotos/good-morning-2.jpg"
+    ],
+    "foto_fonte_id": "Good_Morning",
+    "figura_animada": true
+  },
+  {
+    "id": "puxada-alta-na-polia",
+    "nome": "Puxada alta na polia",
+    "grupo": "Costas",
+    "origem": "guia",
+    "subgrupo": null,
+    "musculos_primarios": [
+      "dorsal"
+    ],
+    "musculos_secundarios": [
+      "biceps",
+      "trapezio",
+      "ombrop"
+    ],
+    "musculos_primarios_nome": [
+      "Dorsal (latíssimo)"
+    ],
+    "musculos_secundarios_nome": [
+      "Bíceps",
+      "Trapézio",
+      "Deltoide posterior"
+    ],
+    "equipamento_texto": "Cross over · Puxador 1,20 m · Banco",
+    "equipamento": [
+      "banco",
+      "cross-over"
+    ],
+    "implemento": "polia",
+    "montagem": "Banco declinado sob a polia alta, <strong>pés travados no rolo de pernas</strong>. É o rolo que impede você de ser levantado do banco.",
+    "passos": [
+      "Pegada pronada na barra de 1,20 m, mais aberta que os ombros.",
+      "Antes de puxar, deprima as escápulas — ombros para baixo.",
+      "Puxe a barra até a parte alta do peito, cotovelos descendo rente ao corpo.",
+      "Suba controlado até estender por completo, alongando a dorsal."
+    ],
+    "erro_comum": "Jogar o tronco para trás para ajudar. O tronco fica quase vertical o tempo todo.",
+    "prescricao_padrao": {
+      "series": 3,
+      "tipo": "reps",
+      "min": 10,
+      "max": 12,
+      "unilateral": false,
+      "texto": "3 × 10–12",
+      "descanso_s": 90
+    },
+    "categoria": "composto_moderado",
+    "carga_inicial": {
+      "kg": 4.0,
+      "nota": "2 anilhas de 2 kg no pino; suba de 2 em 2"
+    },
+    "progressao": {
+      "tipo": "carga",
+      "incremento_kg": 2,
+      "regra": "Completou todas as séries no topo da faixa com a última repetição firme: +2 kg no pino (uma anilha de 2 kg) no próximo treino."
+    },
+    "figura": "assets/figuras/puxada-alta-na-polia.svg",
+    "fotos": [
+      "assets/fotos/puxada-alta-na-polia-1.jpg",
+      "assets/fotos/puxada-alta-na-polia-2.jpg"
+    ],
+    "foto_fonte_id": "Wide-Grip_Lat_Pulldown",
+    "figura_animada": true
+  },
+  {
+    "id": "puxada-com-triangulo",
+    "nome": "Puxada com triângulo",
+    "grupo": "Costas",
+    "origem": "guia",
+    "subgrupo": null,
+    "musculos_primarios": [
+      "dorsal"
+    ],
+    "musculos_secundarios": [
+      "biceps",
+      "trapezio"
+    ],
+    "musculos_primarios_nome": [
+      "Dorsal (latíssimo)"
+    ],
+    "musculos_secundarios_nome": [
+      "Bíceps",
+      "Trapézio"
+    ],
+    "equipamento_texto": "Cross over · Triângulo · Banco",
+    "equipamento": [
+      "banco",
+      "cross-over",
+      "puxadores"
+    ],
+    "implemento": "polia",
+    "montagem": "Mesmo setup da puxada alta, com o triângulo no lugar da barra.",
+    "passos": [
+      "Pegada neutra, mãos próximas.",
+      "Puxe até o triângulo tocar o esterno.",
+      "A pegada fechada recruta mais a parte inferior da dorsal."
+    ],
+    "erro_comum": "Encolher os ombros na fase final. Escápulas para baixo do início ao fim.",
+    "prescricao_padrao": {
+      "series": 3,
+      "tipo": "reps",
+      "min": 10,
+      "max": 12,
+      "unilateral": false,
+      "texto": "3 × 10–12",
+      "descanso_s": 90
+    },
+    "categoria": "composto_moderado",
+    "carga_inicial": {
+      "kg": 4.0,
+      "nota": "2 anilhas de 2 kg no pino; suba de 2 em 2"
+    },
+    "progressao": {
+      "tipo": "carga",
+      "incremento_kg": 2,
+      "regra": "Completou todas as séries no topo da faixa com a última repetição firme: +2 kg no pino (uma anilha de 2 kg) no próximo treino."
+    },
+    "figura": "assets/figuras/puxada-com-triangulo.svg",
+    "fotos": [
+      "assets/fotos/puxada-com-triangulo-1.jpg",
+      "assets/fotos/puxada-com-triangulo-2.jpg"
+    ],
+    "foto_fonte_id": "V-Bar_Pulldown",
+    "figura_animada": true
+  },
+  {
+    "id": "remada-baixa-na-polia",
+    "nome": "Remada baixa na polia",
+    "grupo": "Costas",
+    "origem": "guia",
+    "subgrupo": null,
+    "musculos_primarios": [
+      "dorsal",
+      "trapezio"
+    ],
+    "musculos_secundarios": [
+      "biceps",
+      "ombrop"
+    ],
+    "musculos_primarios_nome": [
+      "Dorsal (latíssimo)",
+      "Trapézio"
+    ],
+    "musculos_secundarios_nome": [
+      "Bíceps",
+      "Deltoide posterior"
+    ],
+    "equipamento_texto": "Cross over · Triângulo · Tatame",
+    "equipamento": [
+      "cross-over",
+      "puxadores",
+      "tatame"
+    ],
+    "implemento": "polia",
+    "montagem": "Sentado no tatame de frente para a parede, pés apoiados na base, joelhos levemente flexionados.",
+    "passos": [
+      "Tronco vertical, coluna neutra, braços estendidos à frente.",
+      "Puxe o triângulo até o umbigo, cotovelos rentes ao tronco.",
+      "Aperte as escápulas no fim e volte controlado, deixando a escápula alongar."
+    ],
+    "erro_comum": "Balançar o tronco para trás e para a frente. Ele fica quase parado — só as escápulas e os braços se movem.",
+    "prescricao_padrao": {
+      "series": 3,
+      "tipo": "reps",
+      "min": 10,
+      "max": 12,
+      "unilateral": false,
+      "texto": "3 × 10–12",
+      "descanso_s": 90
+    },
+    "categoria": "composto_moderado",
+    "carga_inicial": {
+      "kg": 4.0,
+      "nota": "2 anilhas de 2 kg no pino; suba de 2 em 2"
+    },
+    "progressao": {
+      "tipo": "carga",
+      "incremento_kg": 2,
+      "regra": "Completou todas as séries no topo da faixa com a última repetição firme: +2 kg no pino (uma anilha de 2 kg) no próximo treino."
+    },
+    "figura": "assets/figuras/remada-baixa-na-polia.svg",
+    "fotos": [
+      "assets/fotos/remada-baixa-na-polia-1.jpg",
+      "assets/fotos/remada-baixa-na-polia-2.jpg"
+    ],
+    "foto_fonte_id": "Seated_Cable_Rows",
+    "figura_animada": true
+  },
+  {
+    "id": "pullover-na-polia",
+    "nome": "Pullover na polia",
+    "grupo": "Costas",
+    "origem": "guia",
+    "subgrupo": null,
+    "musculos_primarios": [
+      "dorsal"
+    ],
+    "musculos_secundarios": [
+      "peito",
+      "triceps"
+    ],
+    "musculos_primarios_nome": [
+      "Dorsal (latíssimo)"
+    ],
+    "musculos_secundarios_nome": [
+      "Peitoral",
+      "Tríceps"
+    ],
+    "equipamento_texto": "Cross over · Barra ou corda",
+    "equipamento": [
+      "barra-macica",
+      "cross-over"
+    ],
+    "implemento": "polia",
+    "montagem": "Em pé de frente para a polia alta, um passo atrás, tronco levemente inclinado.",
+    "passos": [
+      "Braços quase estendidos à frente, na altura da cabeça.",
+      "Puxe em arco até as mãos chegarem às coxas, sem dobrar o cotovelo.",
+      "Volte controlado pelo mesmo arco."
+    ],
+    "erro_comum": "Flexionar o cotovelo — aí vira tríceps. Braço reto o tempo todo.",
+    "prescricao_padrao": {
+      "series": 3,
+      "tipo": "reps",
+      "min": 12,
+      "max": 15,
+      "unilateral": false,
+      "texto": "3 × 12–15",
+      "descanso_s": 60
+    },
+    "categoria": "isolamento",
+    "carga_inicial": {
+      "kg": 4.0,
+      "nota": "2 anilhas de 2 kg no pino; suba de 2 em 2"
+    },
+    "progressao": {
+      "tipo": "carga",
+      "incremento_kg": 2,
+      "regra": "Completou todas as séries no topo da faixa com a última repetição firme: +2 kg no pino (uma anilha de 2 kg) no próximo treino."
+    },
+    "figura": "assets/figuras/pullover-na-polia.svg",
+    "fotos": [
+      "assets/fotos/pullover-na-polia-1.jpg",
+      "assets/fotos/pullover-na-polia-2.jpg"
+    ],
+    "foto_fonte_id": "Straight-Arm_Pulldown",
+    "figura_animada": true
+  },
+  {
+    "id": "desenvolvimento-militar-em-pe",
+    "nome": "Desenvolvimento militar em pé",
+    "grupo": "Ombros",
+    "origem": "guia",
+    "subgrupo": null,
+    "musculos_primarios": [
+      "ombro"
+    ],
+    "musculos_secundarios": [
+      "triceps",
+      "trapezio",
+      "abdomen"
+    ],
+    "musculos_primarios_nome": [
+      "Deltoide anterior e medial"
+    ],
+    "musculos_secundarios_nome": [
+      "Tríceps",
+      "Trapézio",
+      "Reto abdominal"
+    ],
+    "equipamento_texto": "Barra · Cavalete",
+    "equipamento": [
+      "anilhas",
+      "barra-macica",
+      "cavalete"
+    ],
+    "implemento": "barra_macica",
+    "montagem": "Cavalete na altura do peito. Retire a barra e dê dois passos para trás.",
+    "passos": [
+      "Barra apoiada na parte alta do peito, pegada pouco mais aberta que os ombros.",
+      "Contraia glúteo e abdômen para travar o tronco — sem arquear a lombar.",
+      "Empurre a barra reto para cima, movendo a cabeça levemente para trás na passagem.",
+      "No topo, a barra fica sobre o meio da cabeça. Desça controlado ao peito."
+    ],
+    "erro_comum": "Arquear a lombar para ajudar. Se acontece, a carga está alta — é o erro mais comum e o mais caro.",
+    "prescricao_padrao": {
+      "series": 3,
+      "tipo": "reps",
+      "min": 5,
+      "max": 8,
+      "unilateral": false,
+      "texto": "3 × 5–8",
+      "descanso_s": 150
+    },
+    "categoria": "composto_pesado",
+    "carga_inicial": {
+      "kg": 7.5,
+      "nota": "barra maciça vazia (7,5 kg)"
+    },
+    "progressao": {
+      "tipo": "carga",
+      "incremento_kg": 2,
+      "regra": "+2 kg (uma anilha de 1 kg em cada lado) quando completar todas as séries no topo da faixa com a última repetição firme."
+    },
+    "figura": "assets/figuras/desenvolvimento-militar-em-pe.svg",
+    "fotos": [
+      "assets/fotos/desenvolvimento-militar-em-pe-1.jpg",
+      "assets/fotos/desenvolvimento-militar-em-pe-2.jpg"
+    ],
+    "foto_fonte_id": "Standing_Military_Press",
+    "figura_animada": true
+  },
+  {
+    "id": "desenvolvimento-sentado-com-barra",
+    "nome": "Desenvolvimento sentado com barra",
+    "grupo": "Ombros",
+    "origem": "guia",
+    "subgrupo": null,
+    "musculos_primarios": [
+      "ombro"
+    ],
+    "musculos_secundarios": [
+      "triceps",
+      "trapezio"
+    ],
+    "musculos_primarios_nome": [
+      "Deltoide anterior e medial"
+    ],
+    "musculos_secundarios_nome": [
+      "Tríceps",
+      "Trapézio"
+    ],
+    "equipamento_texto": "Barra · Banco · Cavalete",
+    "equipamento": [
+      "anilhas",
+      "banco",
+      "barra-macica",
+      "cavalete"
+    ],
+    "implemento": "barra_macica",
+    "montagem": "Encosto do banco a 90°, sentado, barra retirada do cavalete na altura do peito.",
+    "passos": [
+      "Costas apoiadas no encosto, pés firmes no chão.",
+      "Empurre a barra para cima até estender os braços.",
+      "Desça até a altura do queixo, controlado."
+    ],
+    "erro_comum": "Descer atrás da nuca. Aumenta muito o risco no ombro sem ganho nenhum.",
+    "prescricao_padrao": {
+      "series": 3,
+      "tipo": "reps",
+      "min": 8,
+      "max": 10,
+      "unilateral": false,
+      "texto": "3 × 8–10",
+      "descanso_s": 90
+    },
+    "categoria": "composto_moderado",
+    "carga_inicial": {
+      "kg": 7.5,
+      "nota": "barra maciça vazia (7,5 kg)"
+    },
+    "progressao": {
+      "tipo": "carga",
+      "incremento_kg": 2,
+      "regra": "+2 kg (uma anilha de 1 kg em cada lado) quando completar todas as séries no topo da faixa com a última repetição firme."
+    },
+    "figura": "assets/figuras/desenvolvimento-sentado-com-barra.svg",
+    "fotos": [
+      "assets/fotos/desenvolvimento-sentado-com-barra-1.jpg",
+      "assets/fotos/desenvolvimento-sentado-com-barra-2.jpg"
+    ],
+    "foto_fonte_id": "Seated_Barbell_Military_Press",
+    "figura_animada": true
+  },
+  {
+    "id": "desenvolvimento-com-halteres",
+    "nome": "Desenvolvimento com halteres",
+    "grupo": "Ombros",
+    "origem": "guia",
+    "subgrupo": null,
+    "musculos_primarios": [
+      "ombro"
+    ],
+    "musculos_secundarios": [
+      "triceps"
+    ],
+    "musculos_primarios_nome": [
+      "Deltoide anterior e medial"
+    ],
+    "musculos_secundarios_nome": [
+      "Tríceps"
+    ],
+    "equipamento_texto": "Halteres · Banco",
+    "equipamento": [
+      "anilhas",
+      "banco",
+      "halteres"
+    ],
+    "implemento": "halteres",
+    "montagem": "Sentado com encosto a 90°, halteres na altura das orelhas, palmas para a frente.",
+    "passos": [
+      "Empurre para cima aproximando os halteres, sem batê-los.",
+      "Desça até os cotovelos passarem pouco abaixo da linha dos ombros."
+    ],
+    "erro_comum": "Descer demais buscando amplitude. Abaixo da linha do ombro só aumenta o risco.",
+    "prescricao_padrao": {
+      "series": 3,
+      "tipo": "reps",
+      "min": 8,
+      "max": 12,
+      "unilateral": false,
+      "texto": "3 × 8–12",
+      "descanso_s": 90
+    },
+    "categoria": "composto_moderado",
+    "carga_inicial": {
+      "kg": 1.5,
+      "nota": "por halter: barra de halter vazia (1,5 kg); ou 5 kg no total com anilhas"
+    },
+    "progressao": {
+      "tipo": "carga",
+      "incremento_kg": 2,
+      "regra": "+2 kg em cada halter (uma anilha de 1 kg em cada ponta) quando completar todas as séries no topo da faixa."
+    },
+    "figura": "assets/figuras/desenvolvimento-com-halteres.svg",
+    "fotos": [
+      "assets/fotos/desenvolvimento-com-halteres-1.jpg",
+      "assets/fotos/desenvolvimento-com-halteres-2.jpg"
+    ],
+    "foto_fonte_id": "Dumbbell_Shoulder_Press",
+    "figura_animada": true
+  },
+  {
+    "id": "elevacao-lateral",
+    "nome": "Elevação lateral",
+    "grupo": "Ombros",
+    "origem": "guia",
+    "subgrupo": null,
+    "musculos_primarios": [
+      "ombro"
+    ],
+    "musculos_secundarios": [
+      "trapezio"
+    ],
+    "musculos_primarios_nome": [
+      "Deltoide anterior e medial"
+    ],
+    "musculos_secundarios_nome": [
+      "Trapézio"
+    ],
+    "equipamento_texto": "Halteres",
+    "equipamento": [
+      "anilhas",
+      "halteres"
+    ],
+    "implemento": "halteres",
+    "montagem": "Em pé, halteres leves ao lado do corpo. É o exercício que dá largura ao ombro.",
+    "passos": [
+      "Cotovelo levemente flexionado e fixo.",
+      "Eleve os braços pelos lados até a altura dos ombros, não além.",
+      "Desça bem devagar, resistindo — a fase de descida é onde o músculo trabalha."
+    ],
+    "erro_comum": "Usar peso demais e balançar o tronco. Aqui 6 kg bem feitos valem mais que 12 balançando.",
+    "prescricao_padrao": {
+      "series": 3,
+      "tipo": "reps",
+      "min": 12,
+      "max": 15,
+      "unilateral": false,
+      "texto": "3 × 12–15",
+      "descanso_s": 60
+    },
+    "categoria": "isolamento",
+    "carga_inicial": {
+      "kg": 1.5,
+      "nota": "por halter: barra de halter vazia (1,5 kg); ou 5 kg no total com anilhas"
+    },
+    "progressao": {
+      "tipo": "carga",
+      "incremento_kg": 2,
+      "regra": "+2 kg em cada halter (uma anilha de 1 kg em cada ponta) quando completar todas as séries no topo da faixa."
+    },
+    "figura": "assets/figuras/elevacao-lateral.svg",
+    "fotos": [
+      "assets/fotos/elevacao-lateral-1.jpg",
+      "assets/fotos/elevacao-lateral-2.jpg"
+    ],
+    "foto_fonte_id": "Side_Lateral_Raise",
+    "figura_animada": true
+  },
+  {
+    "id": "elevacao-frontal",
+    "nome": "Elevação frontal",
+    "grupo": "Ombros",
+    "origem": "guia",
+    "subgrupo": null,
+    "musculos_primarios": [
+      "ombro"
+    ],
+    "musculos_secundarios": [
+      "peito"
+    ],
+    "musculos_primarios_nome": [
+      "Deltoide anterior e medial"
+    ],
+    "musculos_secundarios_nome": [
+      "Peitoral"
+    ],
+    "equipamento_texto": "Halteres ou Anilha",
+    "equipamento": [
+      "anilhas",
+      "halteres"
+    ],
+    "implemento": "halteres",
+    "montagem": "Em pé, halter em cada mão à frente das coxas — ou uma anilha segurada pelas bordas.",
+    "passos": [
+      "Eleve os braços à frente até a altura dos olhos.",
+      "Desça controlado sem deixar cair."
+    ],
+    "erro_comum": "Jogar o quadril à frente para impulsionar. Fique travado.",
+    "prescricao_padrao": {
+      "series": 3,
+      "tipo": "reps",
+      "min": 12,
+      "max": 15,
+      "unilateral": false,
+      "texto": "3 × 12–15",
+      "descanso_s": 60
+    },
+    "categoria": "isolamento",
+    "carga_inicial": {
+      "kg": 1.5,
+      "nota": "por halter: barra de halter vazia (1,5 kg); ou 5 kg no total com anilhas"
+    },
+    "progressao": {
+      "tipo": "carga",
+      "incremento_kg": 2,
+      "regra": "+2 kg em cada halter (uma anilha de 1 kg em cada ponta) quando completar todas as séries no topo da faixa."
+    },
+    "figura": "assets/figuras/elevacao-frontal.svg",
+    "fotos": [
+      "assets/fotos/elevacao-frontal-1.jpg",
+      "assets/fotos/elevacao-frontal-2.jpg"
+    ],
+    "foto_fonte_id": "Front_Dumbbell_Raise",
+    "figura_animada": true
+  },
+  {
+    "id": "crucifixo-inverso",
+    "nome": "Crucifixo inverso",
+    "grupo": "Ombros",
+    "origem": "guia",
+    "subgrupo": null,
+    "musculos_primarios": [
+      "ombrop"
+    ],
+    "musculos_secundarios": [
+      "trapezio"
+    ],
+    "musculos_primarios_nome": [
+      "Deltoide posterior"
+    ],
+    "musculos_secundarios_nome": [
+      "Trapézio"
+    ],
+    "equipamento_texto": "Halteres · Banco",
+    "equipamento": [
+      "anilhas",
+      "banco",
+      "halteres"
+    ],
+    "implemento": "halteres",
+    "montagem": "Peito apoiado no banco inclinado a 30–45°, halteres pendurados. Trabalha a parte de trás do ombro, que quase todo mundo esquece.",
+    "passos": [
+      "Braços quase estendidos, cotovelo levemente flexionado.",
+      "Abra os braços para os lados, apertando as escápulas.",
+      "Desça bem devagar."
+    ],
+    "erro_comum": "Usar carga alta e transformar em remada. Carga leve e contração no topo.",
+    "prescricao_padrao": {
+      "series": 3,
+      "tipo": "reps",
+      "min": 12,
+      "max": 15,
+      "unilateral": false,
+      "texto": "3 × 12–15",
+      "descanso_s": 60
+    },
+    "categoria": "isolamento",
+    "carga_inicial": {
+      "kg": 1.5,
+      "nota": "por halter: barra de halter vazia (1,5 kg); ou 5 kg no total com anilhas"
+    },
+    "progressao": {
+      "tipo": "carga",
+      "incremento_kg": 2,
+      "regra": "+2 kg em cada halter (uma anilha de 1 kg em cada ponta) quando completar todas as séries no topo da faixa."
+    },
+    "figura": "assets/figuras/crucifixo-inverso.svg",
+    "fotos": [
+      "assets/fotos/crucifixo-inverso-1.jpg",
+      "assets/fotos/crucifixo-inverso-2.jpg"
+    ],
+    "foto_fonte_id": "Reverse_Flyes",
+    "figura_animada": true
+  },
+  {
+    "id": "remada-alta",
+    "nome": "Remada alta",
+    "grupo": "Ombros",
+    "origem": "guia",
+    "subgrupo": null,
+    "musculos_primarios": [
+      "ombro",
+      "trapezio"
+    ],
+    "musculos_secundarios": [
+      "biceps"
+    ],
+    "musculos_primarios_nome": [
+      "Deltoide anterior e medial",
+      "Trapézio"
+    ],
+    "musculos_secundarios_nome": [
+      "Bíceps"
+    ],
+    "equipamento_texto": "Barra",
+    "equipamento": [
+      "anilhas",
+      "barra-macica"
+    ],
+    "implemento": "barra_macica",
+    "montagem": "Em pé, barra à frente das coxas, pegada pronada na largura dos ombros.",
+    "passos": [
+      "Puxe a barra rente ao corpo até a altura do peito.",
+      "Cotovelos sempre acima das mãos.",
+      "Desça controlado."
+    ],
+    "erro_comum": "Puxar até o queixo com pegada fechada. Pare no peito e mantenha a pegada aberta — protege o ombro.",
+    "prescricao_padrao": {
+      "series": 3,
+      "tipo": "reps",
+      "min": 10,
+      "max": 12,
+      "unilateral": false,
+      "texto": "3 × 10–12",
+      "descanso_s": 90
+    },
+    "categoria": "composto_moderado",
+    "carga_inicial": {
+      "kg": 7.5,
+      "nota": "barra maciça vazia (7,5 kg)"
+    },
+    "progressao": {
+      "tipo": "carga",
+      "incremento_kg": 2,
+      "regra": "+2 kg (uma anilha de 1 kg em cada lado) quando completar todas as séries no topo da faixa com a última repetição firme."
+    },
+    "figura": "assets/figuras/remada-alta.svg",
+    "fotos": [
+      "assets/fotos/remada-alta-1.jpg",
+      "assets/fotos/remada-alta-2.jpg"
+    ],
+    "foto_fonte_id": "Upright_Barbell_Row",
+    "figura_animada": true
+  },
+  {
+    "id": "arnold-press",
+    "nome": "Arnold press",
+    "grupo": "Ombros",
+    "origem": "guia",
+    "subgrupo": null,
+    "musculos_primarios": [
+      "ombro"
+    ],
+    "musculos_secundarios": [
+      "triceps"
+    ],
+    "musculos_primarios_nome": [
+      "Deltoide anterior e medial"
+    ],
+    "musculos_secundarios_nome": [
+      "Tríceps"
+    ],
+    "equipamento_texto": "Halteres · Banco",
+    "equipamento": [
+      "anilhas",
+      "banco",
+      "halteres"
+    ],
+    "implemento": "halteres",
+    "montagem": "Sentado, halteres na altura do peito com as palmas voltadas para você.",
+    "passos": [
+      "Ao subir, gire os punhos até as palmas ficarem para a frente.",
+      "Estenda os braços no topo.",
+      "Desça girando de volta à posição inicial."
+    ],
+    "erro_comum": "Girar rápido demais. A rotação é parte do exercício e precisa ser controlada.",
+    "prescricao_padrao": {
+      "series": 3,
+      "tipo": "reps",
+      "min": 10,
+      "max": 12,
+      "unilateral": false,
+      "texto": "3 × 10–12",
+      "descanso_s": 90
+    },
+    "categoria": "composto_moderado",
+    "carga_inicial": {
+      "kg": 1.5,
+      "nota": "por halter: barra de halter vazia (1,5 kg); ou 5 kg no total com anilhas"
+    },
+    "progressao": {
+      "tipo": "carga",
+      "incremento_kg": 2,
+      "regra": "+2 kg em cada halter (uma anilha de 1 kg em cada ponta) quando completar todas as séries no topo da faixa."
+    },
+    "figura": "assets/figuras/arnold-press.svg",
+    "fotos": [
+      "assets/fotos/arnold-press-1.jpg",
+      "assets/fotos/arnold-press-2.jpg"
+    ],
+    "foto_fonte_id": "Arnold_Dumbbell_Press",
+    "figura_animada": true
+  },
+  {
+    "id": "face-pull",
+    "nome": "Face pull",
+    "grupo": "Ombros",
+    "origem": "guia",
+    "subgrupo": null,
+    "musculos_primarios": [
+      "ombrop",
+      "trapezio"
+    ],
+    "musculos_secundarios": [
+      "biceps"
+    ],
+    "musculos_primarios_nome": [
+      "Deltoide posterior",
+      "Trapézio"
+    ],
+    "musculos_secundarios_nome": [
+      "Bíceps"
+    ],
+    "equipamento_texto": "Cross over · Corda",
+    "equipamento": [
+      "cross-over"
+    ],
+    "implemento": "polia",
+    "montagem": "Polia na altura do rosto, corda encaixada. Um passo atrás, braços estendidos à frente.",
+    "passos": [
+      "Pegada neutra nas pontas da corda, polegares para trás.",
+      "Puxe a corda em direção ao rosto, separando as mãos e girando os ombros para fora.",
+      "No fim, os cotovelos ficam altos e as mãos ao lado da cabeça.",
+      "Volte devagar."
+    ],
+    "erro_comum": "Puxar com carga alta e virar remada alta. É o exercício mais importante para a saúde do ombro — carga leve, execução perfeita.",
+    "prescricao_padrao": {
+      "series": 3,
+      "tipo": "reps",
+      "min": 15,
+      "max": 20,
+      "unilateral": false,
+      "texto": "3 × 15–20",
+      "descanso_s": 60
+    },
+    "categoria": "isolamento",
+    "carga_inicial": {
+      "kg": 4.0,
+      "nota": "2 anilhas de 2 kg no pino; suba de 2 em 2"
+    },
+    "progressao": {
+      "tipo": "carga",
+      "incremento_kg": 2,
+      "regra": "Completou todas as séries no topo da faixa com a última repetição firme: +2 kg no pino (uma anilha de 2 kg) no próximo treino."
+    },
+    "figura": "assets/figuras/face-pull.svg",
+    "fotos": [
+      "assets/fotos/face-pull-1.jpg",
+      "assets/fotos/face-pull-2.jpg"
+    ],
+    "foto_fonte_id": "Face_Pull",
+    "figura_animada": true
+  },
+  {
+    "id": "rosca-direta-com-barra",
+    "nome": "Rosca direta com barra",
+    "grupo": "Bíceps",
+    "origem": "guia",
+    "subgrupo": null,
+    "musculos_primarios": [
+      "biceps"
+    ],
+    "musculos_secundarios": [
+      "antebraco"
+    ],
+    "musculos_primarios_nome": [
+      "Bíceps"
+    ],
+    "musculos_secundarios_nome": [
+      "Antebraço"
+    ],
+    "equipamento_texto": "Barra",
+    "equipamento": [
+      "anilhas",
+      "barra-macica"
+    ],
+    "implemento": "barra_macica",
+    "montagem": "Em pé, barra na largura dos ombros, pegada supinada, cotovelos junto ao tronco.",
+    "passos": [
+      "Suba a barra flexionando só o cotovelo, sem mover o ombro.",
+      "Contraia no topo por meio segundo.",
+      "Desça controlado até estender quase por completo."
+    ],
+    "erro_comum": "Balançar o tronco para jogar a barra para cima. Encoste as costas na parede se precisar.",
+    "prescricao_padrao": {
+      "series": 3,
+      "tipo": "reps",
+      "min": 10,
+      "max": 12,
+      "unilateral": false,
+      "texto": "3 × 10–12",
+      "descanso_s": 90
+    },
+    "categoria": "isolamento",
+    "carga_inicial": {
+      "kg": 7.5,
+      "nota": "barra maciça vazia (7,5 kg)"
+    },
+    "progressao": {
+      "tipo": "carga",
+      "incremento_kg": 2,
+      "regra": "+2 kg (uma anilha de 1 kg em cada lado) — ou some 1 repetição antes de subir, se a faixa ainda não estiver no topo."
+    },
+    "figura": "assets/figuras/rosca-direta-com-barra.svg",
+    "fotos": [
+      "assets/fotos/rosca-direta-com-barra-1.jpg",
+      "assets/fotos/rosca-direta-com-barra-2.jpg"
+    ],
+    "foto_fonte_id": "Barbell_Curl",
+    "figura_animada": true
+  },
+  {
+    "id": "rosca-com-barra-w",
+    "nome": "Rosca com barra W",
+    "grupo": "Bíceps",
+    "origem": "guia",
+    "subgrupo": null,
+    "musculos_primarios": [
+      "biceps"
+    ],
+    "musculos_secundarios": [
+      "antebraco"
+    ],
+    "musculos_primarios_nome": [
+      "Bíceps"
+    ],
+    "musculos_secundarios_nome": [
+      "Antebraço"
+    ],
+    "equipamento_texto": "Barra W",
+    "equipamento": [
+      "anilhas",
+      "barra-w"
+    ],
+    "implemento": "barra_w",
+    "montagem": "Mesma execução da rosca direta, com a barra W do kit. As pegadas anguladas aliviam o punho.",
+    "passos": [
+      "Segure nas curvas internas da barra.",
+      "Suba e desça com o cotovelo fixo no lugar."
+    ],
+    "erro_comum": "Ignorar o limite da barra oca. A W do kit aguenta 50 kg — o que é muito mais do que você vai usar em rosca.",
+    "prescricao_padrao": {
+      "series": 3,
+      "tipo": "reps",
+      "min": 10,
+      "max": 12,
+      "unilateral": false,
+      "texto": "3 × 10–12",
+      "descanso_s": 90
+    },
+    "categoria": "isolamento",
+    "carga_inicial": {
+      "kg": 2.0,
+      "nota": "barra W vazia (peso aproximado — pese na balança e corrija no perfil)"
+    },
+    "progressao": {
+      "tipo": "carga",
+      "incremento_kg": 2,
+      "regra": "+2 kg (uma anilha de 1 kg em cada lado) — ou some 1 repetição antes de subir, se a faixa ainda não estiver no topo."
+    },
+    "figura": "assets/figuras/rosca-com-barra-w.svg",
+    "fotos": [
+      "assets/fotos/rosca-com-barra-w-1.jpg",
+      "assets/fotos/rosca-com-barra-w-2.jpg"
+    ],
+    "foto_fonte_id": "EZ-Bar_Curl",
+    "figura_animada": true
+  },
+  {
+    "id": "rosca-alternada",
+    "nome": "Rosca alternada",
+    "grupo": "Bíceps",
+    "origem": "guia",
+    "subgrupo": null,
+    "musculos_primarios": [
+      "biceps"
+    ],
+    "musculos_secundarios": [
+      "antebraco"
+    ],
+    "musculos_primarios_nome": [
+      "Bíceps"
+    ],
+    "musculos_secundarios_nome": [
+      "Antebraço"
+    ],
+    "equipamento_texto": "Halteres",
+    "equipamento": [
+      "anilhas",
+      "halteres"
+    ],
+    "implemento": "halteres",
+    "montagem": "Em pé ou sentado no banco, halteres ao lado do corpo, palmas para dentro.",
+    "passos": [
+      "Suba um halter girando o punho para supinado no meio do caminho.",
+      "Contraia no topo e desça girando de volta.",
+      "Alterne os braços."
+    ],
+    "erro_comum": "Começar o segundo braço antes do primeiro voltar. Um de cada vez, completo.",
+    "prescricao_padrao": {
+      "series": 3,
+      "tipo": "reps",
+      "min": 10,
+      "max": 12,
+      "unilateral": true,
+      "texto": "3 × 10–12 por braço",
+      "descanso_s": 90
+    },
+    "categoria": "isolamento",
+    "carga_inicial": {
+      "kg": 1.5,
+      "nota": "por halter: barra de halter vazia (1,5 kg); ou 5 kg no total com anilhas"
+    },
+    "progressao": {
+      "tipo": "carga",
+      "incremento_kg": 2,
+      "regra": "+2 kg em cada halter (uma anilha de 1 kg em cada ponta) quando completar todas as séries no topo da faixa."
+    },
+    "figura": "assets/figuras/rosca-alternada.svg",
+    "fotos": [
+      "assets/fotos/rosca-alternada-1.jpg",
+      "assets/fotos/rosca-alternada-2.jpg"
+    ],
+    "foto_fonte_id": "Alternate_Hammer_Curl",
+    "figura_animada": true
+  },
+  {
+    "id": "rosca-martelo",
+    "nome": "Rosca martelo",
+    "grupo": "Bíceps",
+    "origem": "guia",
+    "subgrupo": null,
+    "musculos_primarios": [
+      "biceps",
+      "antebraco"
+    ],
+    "musculos_secundarios": [],
+    "musculos_primarios_nome": [
+      "Bíceps",
+      "Antebraço"
+    ],
+    "musculos_secundarios_nome": [],
+    "equipamento_texto": "Halteres",
+    "equipamento": [
+      "anilhas",
+      "halteres"
+    ],
+    "implemento": "halteres",
+    "montagem": "Halteres com as palmas voltadas para dentro o tempo todo, como quem segura um martelo.",
+    "passos": [
+      "Suba sem girar o punho.",
+      "Contraia no topo e desça controlado."
+    ],
+    "erro_comum": "Deixar o cotovelo escapar para a frente. Ele fica colado ao tronco.",
+    "prescricao_padrao": {
+      "series": 3,
+      "tipo": "reps",
+      "min": 10,
+      "max": 12,
+      "unilateral": false,
+      "texto": "3 × 10–12",
+      "descanso_s": 90
+    },
+    "categoria": "isolamento",
+    "carga_inicial": {
+      "kg": 1.5,
+      "nota": "por halter: barra de halter vazia (1,5 kg); ou 5 kg no total com anilhas"
+    },
+    "progressao": {
+      "tipo": "carga",
+      "incremento_kg": 2,
+      "regra": "+2 kg em cada halter (uma anilha de 1 kg em cada ponta) quando completar todas as séries no topo da faixa."
+    },
+    "figura": "assets/figuras/rosca-martelo.svg",
+    "fotos": [
+      "assets/fotos/rosca-martelo-1.jpg",
+      "assets/fotos/rosca-martelo-2.jpg"
+    ],
+    "foto_fonte_id": "Hammer_Curls",
+    "figura_animada": true
+  },
+  {
+    "id": "rosca-inclinada",
+    "nome": "Rosca inclinada",
+    "grupo": "Bíceps",
+    "origem": "guia",
+    "subgrupo": null,
+    "musculos_primarios": [
+      "biceps"
+    ],
+    "musculos_secundarios": [],
+    "musculos_primarios_nome": [
+      "Bíceps"
+    ],
+    "musculos_secundarios_nome": [],
+    "equipamento_texto": "Halteres · Banco",
+    "equipamento": [
+      "anilhas",
+      "banco",
+      "halteres"
+    ],
+    "implemento": "halteres",
+    "montagem": "Sentado no banco a 45–60°, braços pendurados atrás da linha do corpo.",
+    "passos": [
+      "Suba os halteres sem mover o ombro.",
+      "Desça até estender por completo — o alongamento aqui é o ponto do exercício."
+    ],
+    "erro_comum": "Encolher os ombros na subida. Se acontecer, reduza a carga.",
+    "prescricao_padrao": {
+      "series": 3,
+      "tipo": "reps",
+      "min": 10,
+      "max": 12,
+      "unilateral": false,
+      "texto": "3 × 10–12",
+      "descanso_s": 90
+    },
+    "categoria": "isolamento",
+    "carga_inicial": {
+      "kg": 1.5,
+      "nota": "por halter: barra de halter vazia (1,5 kg); ou 5 kg no total com anilhas"
+    },
+    "progressao": {
+      "tipo": "carga",
+      "incremento_kg": 2,
+      "regra": "+2 kg em cada halter (uma anilha de 1 kg em cada ponta) quando completar todas as séries no topo da faixa."
+    },
+    "figura": "assets/figuras/rosca-inclinada.svg",
+    "fotos": [
+      "assets/fotos/rosca-inclinada-1.jpg",
+      "assets/fotos/rosca-inclinada-2.jpg"
+    ],
+    "foto_fonte_id": "Incline_Dumbbell_Curl",
+    "figura_animada": true
+  },
+  {
+    "id": "rosca-concentrada",
+    "nome": "Rosca concentrada",
+    "grupo": "Bíceps",
+    "origem": "guia",
+    "subgrupo": null,
+    "musculos_primarios": [
+      "biceps"
+    ],
+    "musculos_secundarios": [],
+    "musculos_primarios_nome": [
+      "Bíceps"
+    ],
+    "musculos_secundarios_nome": [],
+    "equipamento_texto": "Halter · Banco",
+    "equipamento": [
+      "anilhas",
+      "banco",
+      "halteres"
+    ],
+    "implemento": "halteres",
+    "montagem": "Sentado no banco, cotovelo apoiado na face interna da coxa, halter pendurado.",
+    "passos": [
+      "Suba flexionando só o cotovelo, com o braço travado na coxa.",
+      "Aperte no topo e desça devagar."
+    ],
+    "erro_comum": "Empurrar com a coxa. A coxa é apoio, não motor.",
+    "prescricao_padrao": {
+      "series": 3,
+      "tipo": "reps",
+      "min": 12,
+      "max": 15,
+      "unilateral": true,
+      "texto": "3 × 12–15 por braço",
+      "descanso_s": 60
+    },
+    "categoria": "isolamento",
+    "carga_inicial": {
+      "kg": 1.5,
+      "nota": "por halter: barra de halter vazia (1,5 kg); ou 5 kg no total com anilhas"
+    },
+    "progressao": {
+      "tipo": "carga",
+      "incremento_kg": 2,
+      "regra": "+2 kg em cada halter (uma anilha de 1 kg em cada ponta) quando completar todas as séries no topo da faixa."
+    },
+    "figura": "assets/figuras/rosca-concentrada.svg",
+    "fotos": [
+      "assets/fotos/rosca-concentrada-1.jpg",
+      "assets/fotos/rosca-concentrada-2.jpg"
+    ],
+    "foto_fonte_id": "Concentration_Curls",
+    "figura_animada": true
+  },
+  {
+    "id": "rosca-scott-improvisada",
+    "nome": "Rosca Scott improvisada",
+    "grupo": "Bíceps",
+    "origem": "guia",
+    "subgrupo": null,
+    "musculos_primarios": [
+      "biceps"
+    ],
+    "musculos_secundarios": [],
+    "musculos_primarios_nome": [
+      "Bíceps"
+    ],
+    "musculos_secundarios_nome": [],
+    "equipamento_texto": "Barra W · Banco",
+    "equipamento": [
+      "anilhas",
+      "banco",
+      "barra-w"
+    ],
+    "implemento": "barra_w",
+    "montagem": "Encosto do banco inclinado a 45°. Fique atrás dele e apoie a parte de trás dos braços no estofado.",
+    "passos": [
+      "Braços apoiados, barra na pegada supinada.",
+      "Suba e desça com os braços colados ao encosto o tempo todo."
+    ],
+    "erro_comum": "Estender o cotovelo com peso alto no fim da série. Nesta posição o bíceps fica vulnerável — carga moderada.",
+    "prescricao_padrao": {
+      "series": 3,
+      "tipo": "reps",
+      "min": 10,
+      "max": 12,
+      "unilateral": false,
+      "texto": "3 × 10–12",
+      "descanso_s": 90
+    },
+    "categoria": "isolamento",
+    "carga_inicial": {
+      "kg": 2.0,
+      "nota": "barra W vazia (peso aproximado — pese na balança e corrija no perfil)"
+    },
+    "progressao": {
+      "tipo": "carga",
+      "incremento_kg": 2,
+      "regra": "+2 kg (uma anilha de 1 kg em cada lado) — ou some 1 repetição antes de subir, se a faixa ainda não estiver no topo."
+    },
+    "figura": "assets/figuras/rosca-scott-improvisada.svg",
+    "fotos": [
+      "assets/fotos/rosca-scott-improvisada-1.jpg",
+      "assets/fotos/rosca-scott-improvisada-2.jpg"
+    ],
+    "foto_fonte_id": "Preacher_Curl",
+    "figura_animada": true
+  },
+  {
+    "id": "rosca-inversa",
+    "nome": "Rosca inversa",
+    "grupo": "Bíceps",
+    "origem": "guia",
+    "subgrupo": null,
+    "musculos_primarios": [
+      "antebraco"
+    ],
+    "musculos_secundarios": [
+      "biceps"
+    ],
+    "musculos_primarios_nome": [
+      "Antebraço"
+    ],
+    "musculos_secundarios_nome": [
+      "Bíceps"
+    ],
+    "equipamento_texto": "Barra",
+    "equipamento": [
+      "anilhas",
+      "barra-macica"
+    ],
+    "implemento": "barra_macica",
+    "montagem": "Em pé, barra com pegada pronada, palmas para baixo.",
+    "passos": [
+      "Suba flexionando o cotovelo, punhos firmes e neutros.",
+      "Desça controlado."
+    ],
+    "erro_comum": "Usar a mesma carga da rosca direta. A inversa é bem mais fraca — reduza uns 40%.",
+    "prescricao_padrao": {
+      "series": 3,
+      "tipo": "reps",
+      "min": 12,
+      "max": 15,
+      "unilateral": false,
+      "texto": "3 × 12–15",
+      "descanso_s": 60
+    },
+    "categoria": "isolamento",
+    "carga_inicial": {
+      "kg": 7.5,
+      "nota": "barra maciça vazia (7,5 kg)"
+    },
+    "progressao": {
+      "tipo": "carga",
+      "incremento_kg": 2,
+      "regra": "+2 kg (uma anilha de 1 kg em cada lado) — ou some 1 repetição antes de subir, se a faixa ainda não estiver no topo."
+    },
+    "figura": "assets/figuras/rosca-inversa.svg",
+    "fotos": [
+      "assets/fotos/rosca-inversa-1.jpg",
+      "assets/fotos/rosca-inversa-2.jpg"
+    ],
+    "foto_fonte_id": "Reverse_Barbell_Curl",
+    "figura_animada": true
+  },
+  {
+    "id": "rosca-na-polia-baixa",
+    "nome": "Rosca na polia baixa",
+    "grupo": "Bíceps",
+    "origem": "guia",
+    "subgrupo": null,
+    "musculos_primarios": [
+      "biceps"
+    ],
+    "musculos_secundarios": [
+      "antebraco"
+    ],
+    "musculos_primarios_nome": [
+      "Bíceps"
+    ],
+    "musculos_secundarios_nome": [
+      "Antebraço"
+    ],
+    "equipamento_texto": "Cross over · Barra ou estribo",
+    "equipamento": [
+      "barra-macica",
+      "cross-over",
+      "puxadores"
+    ],
+    "implemento": "polia",
+    "montagem": "Em pé de frente para a polia baixa, cotovelos junto ao tronco.",
+    "passos": [
+      "Suba flexionando só o cotovelo.",
+      "A polia mantém tensão constante — diferente do halter, não existe ponto de descanso no topo.",
+      "Desça resistindo até estender."
+    ],
+    "erro_comum": "Afastar o cotovelo do tronco no fim da série para ajudar. Encoste as costas na parede se precisar.",
+    "prescricao_padrao": {
+      "series": 3,
+      "tipo": "reps",
+      "min": 12,
+      "max": 15,
+      "unilateral": false,
+      "texto": "3 × 12–15",
+      "descanso_s": 60
+    },
+    "categoria": "isolamento",
+    "carga_inicial": {
+      "kg": 4.0,
+      "nota": "2 anilhas de 2 kg no pino; suba de 2 em 2"
+    },
+    "progressao": {
+      "tipo": "carga",
+      "incremento_kg": 2,
+      "regra": "Completou todas as séries no topo da faixa com a última repetição firme: +2 kg no pino (uma anilha de 2 kg) no próximo treino."
+    },
+    "figura": "assets/figuras/rosca-na-polia-baixa.svg",
+    "fotos": [
+      "assets/fotos/rosca-na-polia-baixa-1.jpg",
+      "assets/fotos/rosca-na-polia-baixa-2.jpg"
+    ],
+    "foto_fonte_id": "Standing_Biceps_Cable_Curl",
+    "figura_animada": true
+  },
+  {
+    "id": "triceps-testa",
+    "nome": "Tríceps testa",
+    "grupo": "Tríceps",
+    "origem": "guia",
+    "subgrupo": null,
+    "musculos_primarios": [
+      "triceps"
+    ],
+    "musculos_secundarios": [],
+    "musculos_primarios_nome": [
+      "Tríceps"
+    ],
+    "musculos_secundarios_nome": [],
+    "equipamento_texto": "Barra W · Banco",
+    "equipamento": [
+      "anilhas",
+      "banco",
+      "barra-w"
+    ],
+    "implemento": "barra_w",
+    "montagem": "Deitado no banco reto, barra W acima do peito com os braços estendidos.",
+    "passos": [
+      "Flexione só o cotovelo, levando a barra até a testa ou pouco atrás dela.",
+      "Os cotovelos apontam para cima e não abrem.",
+      "Estenda de volta sem travar."
+    ],
+    "erro_comum": "Deixar os cotovelos abrirem para os lados. Aí vira supino fechado e o tríceps sai.",
+    "prescricao_padrao": {
+      "series": 3,
+      "tipo": "reps",
+      "min": 10,
+      "max": 12,
+      "unilateral": false,
+      "texto": "3 × 10–12",
+      "descanso_s": 90
+    },
+    "categoria": "isolamento",
+    "carga_inicial": {
+      "kg": 2.0,
+      "nota": "barra W vazia (peso aproximado — pese na balança e corrija no perfil)"
+    },
+    "progressao": {
+      "tipo": "carga",
+      "incremento_kg": 2,
+      "regra": "+2 kg (uma anilha de 1 kg em cada lado) — ou some 1 repetição antes de subir, se a faixa ainda não estiver no topo."
+    },
+    "figura": "assets/figuras/triceps-testa.svg",
+    "fotos": [
+      "assets/fotos/triceps-testa-1.jpg",
+      "assets/fotos/triceps-testa-2.jpg"
+    ],
+    "foto_fonte_id": "Lying_Triceps_Press",
+    "figura_animada": true
+  },
+  {
+    "id": "supino-fechado",
+    "nome": "Supino fechado",
+    "grupo": "Tríceps",
+    "origem": "guia",
+    "subgrupo": null,
+    "musculos_primarios": [
+      "triceps"
+    ],
+    "musculos_secundarios": [
+      "peito",
+      "ombro"
+    ],
+    "musculos_primarios_nome": [
+      "Tríceps"
+    ],
+    "musculos_secundarios_nome": [
+      "Peitoral",
+      "Deltoide anterior e medial"
+    ],
+    "equipamento_texto": "Barra · Banco · Cavalete",
+    "equipamento": [
+      "anilhas",
+      "banco",
+      "barra-macica",
+      "cavalete"
+    ],
+    "implemento": "barra_macica",
+    "montagem": "Banco reto, pegada na largura dos ombros — não mais fechada que isso.",
+    "passos": [
+      "Desça a barra até o peito baixo, cotovelos rentes ao tronco.",
+      "Empurre concentrando a força no tríceps."
+    ],
+    "erro_comum": "Fechar demais a pegada. Punhos mais próximos que a largura dos ombros machucam sem recrutar mais tríceps.",
+    "prescricao_padrao": {
+      "series": 3,
+      "tipo": "reps",
+      "min": 8,
+      "max": 10,
+      "unilateral": false,
+      "texto": "3 × 8–10",
+      "descanso_s": 90
+    },
+    "categoria": "composto_moderado",
+    "carga_inicial": {
+      "kg": 7.5,
+      "nota": "barra maciça vazia (7,5 kg)"
+    },
+    "progressao": {
+      "tipo": "carga",
+      "incremento_kg": 2,
+      "regra": "+2 kg (uma anilha de 1 kg em cada lado) quando completar todas as séries no topo da faixa com a última repetição firme."
+    },
+    "figura": "assets/figuras/supino-fechado.svg",
+    "fotos": [
+      "assets/fotos/supino-fechado-1.jpg",
+      "assets/fotos/supino-fechado-2.jpg"
+    ],
+    "foto_fonte_id": "Close-Grip_Barbell_Bench_Press",
+    "figura_animada": true
+  },
+  {
+    "id": "triceps-frances",
+    "nome": "Tríceps francês",
+    "grupo": "Tríceps",
+    "origem": "guia",
+    "subgrupo": null,
+    "musculos_primarios": [
+      "triceps"
+    ],
+    "musculos_secundarios": [],
+    "musculos_primarios_nome": [
+      "Tríceps"
+    ],
+    "musculos_secundarios_nome": [],
+    "equipamento_texto": "Halter · Banco",
+    "equipamento": [
+      "anilhas",
+      "banco",
+      "halteres"
+    ],
+    "implemento": "halteres",
+    "montagem": "Sentado com encosto a 90°, um halter segurado pelas duas mãos acima da cabeça.",
+    "passos": [
+      "Desça o halter atrás da cabeça flexionando só o cotovelo.",
+      "Cotovelos apontados para cima e para dentro.",
+      "Estenda de volta contraindo o tríceps."
+    ],
+    "erro_comum": "Abrir os cotovelos. Mantenha-os apontando para o teto.",
+    "prescricao_padrao": {
+      "series": 3,
+      "tipo": "reps",
+      "min": 10,
+      "max": 12,
+      "unilateral": false,
+      "texto": "3 × 10–12",
+      "descanso_s": 90
+    },
+    "categoria": "isolamento",
+    "carga_inicial": {
+      "kg": 1.5,
+      "nota": "por halter: barra de halter vazia (1,5 kg); ou 5 kg no total com anilhas"
+    },
+    "progressao": {
+      "tipo": "carga",
+      "incremento_kg": 2,
+      "regra": "+2 kg em cada halter (uma anilha de 1 kg em cada ponta) quando completar todas as séries no topo da faixa."
+    },
+    "figura": "assets/figuras/triceps-frances.svg",
+    "fotos": [
+      "assets/fotos/triceps-frances-1.jpg",
+      "assets/fotos/triceps-frances-2.jpg"
+    ],
+    "foto_fonte_id": "Standing_Overhead_Barbell_Triceps_Extension",
+    "figura_animada": true
+  },
+  {
+    "id": "extensao-unilateral",
+    "nome": "Extensão unilateral",
+    "grupo": "Tríceps",
+    "origem": "guia",
+    "subgrupo": null,
+    "musculos_primarios": [
+      "triceps"
+    ],
+    "musculos_secundarios": [],
+    "musculos_primarios_nome": [
+      "Tríceps"
+    ],
+    "musculos_secundarios_nome": [],
+    "equipamento_texto": "Halter",
+    "equipamento": [
+      "anilhas",
+      "halteres"
+    ],
+    "implemento": "halteres",
+    "montagem": "Em pé ou sentado, halter em uma mão acima da cabeça.",
+    "passos": [
+      "Desça atrás da cabeça só com o cotovelo.",
+      "Use a mão livre para segurar o cotovelo no lugar.",
+      "Estenda de volta."
+    ],
+    "erro_comum": "Deixar o cotovelo vagar. A mão livre existe para isso.",
+    "prescricao_padrao": {
+      "series": 3,
+      "tipo": "reps",
+      "min": 12,
+      "max": 15,
+      "unilateral": true,
+      "texto": "3 × 12–15 por braço",
+      "descanso_s": 60
+    },
+    "categoria": "isolamento",
+    "carga_inicial": {
+      "kg": 1.5,
+      "nota": "por halter: barra de halter vazia (1,5 kg); ou 5 kg no total com anilhas"
+    },
+    "progressao": {
+      "tipo": "carga",
+      "incremento_kg": 2,
+      "regra": "+2 kg em cada halter (uma anilha de 1 kg em cada ponta) quando completar todas as séries no topo da faixa."
+    },
+    "figura": "assets/figuras/extensao-unilateral.svg",
+    "fotos": [
+      "assets/fotos/extensao-unilateral-1.jpg",
+      "assets/fotos/extensao-unilateral-2.jpg"
+    ],
+    "foto_fonte_id": "Standing_One-Arm_Dumbbell_Triceps_Extension",
+    "figura_animada": true
+  },
+  {
+    "id": "mergulho-no-banco",
+    "nome": "Mergulho no banco",
+    "grupo": "Tríceps",
+    "origem": "guia",
+    "subgrupo": null,
+    "musculos_primarios": [
+      "triceps"
+    ],
+    "musculos_secundarios": [
+      "peito",
+      "ombro"
+    ],
+    "musculos_primarios_nome": [
+      "Tríceps"
+    ],
+    "musculos_secundarios_nome": [
+      "Peitoral",
+      "Deltoide anterior e medial"
+    ],
+    "equipamento_texto": "Peso corporal · Banco · Anilha",
+    "equipamento": [
+      "anilhas",
+      "banco"
+    ],
+    "implemento": "anilha",
+    "montagem": "Mãos na borda do banco atrás de você, pernas estendidas à frente.",
+    "passos": [
+      "Desça o quadril flexionando os cotovelos até cerca de 90°.",
+      "Empurre de volta até estender.",
+      "Para progredir, coloque uma anilha sobre as coxas."
+    ],
+    "erro_comum": "Descer além de 90° no cotovelo. Sobrecarrega a cápsula do ombro.",
+    "prescricao_padrao": {
+      "series": 3,
+      "tipo": "maximo",
+      "min": null,
+      "max": null,
+      "unilateral": false,
+      "texto": "3 × máximo",
+      "descanso_s": 90
+    },
+    "categoria": "composto_moderado",
+    "carga_inicial": {
+      "kg": 0.0,
+      "nota": "peso corporal; anilha só quando passar de 15 limpas"
+    },
+    "progressao": {
+      "tipo": "reps",
+      "incremento_reps": 1,
+      "regra": "Completou todas as séries no topo da faixa: some 1 repetição por série (ou uma anilha de 2 kg contra o peito / na mochila quando passar de 20)."
+    },
+    "figura": "assets/figuras/mergulho-no-banco.svg",
+    "fotos": [
+      "assets/fotos/mergulho-no-banco-1.jpg",
+      "assets/fotos/mergulho-no-banco-2.jpg"
+    ],
+    "foto_fonte_id": "Bench_Dips",
+    "figura_animada": true
+  },
+  {
+    "id": "triceps-coice",
+    "nome": "Tríceps coice",
+    "grupo": "Tríceps",
+    "origem": "guia",
+    "subgrupo": null,
+    "musculos_primarios": [
+      "triceps"
+    ],
+    "musculos_secundarios": [],
+    "musculos_primarios_nome": [
+      "Tríceps"
+    ],
+    "musculos_secundarios_nome": [],
+    "equipamento_texto": "Halter · Banco",
+    "equipamento": [
+      "anilhas",
+      "banco",
+      "halteres"
+    ],
+    "implemento": "halteres",
+    "montagem": "Um joelho e uma mão no banco, tronco paralelo ao chão, braço com o cotovelo colado ao tronco.",
+    "passos": [
+      "Com o braço a 90°, estenda o cotovelo até o braço ficar reto.",
+      "Contraia no topo e volte controlado."
+    ],
+    "erro_comum": "Mover o ombro. Só o antebraço se move.",
+    "prescricao_padrao": {
+      "series": 3,
+      "tipo": "reps",
+      "min": 12,
+      "max": 15,
+      "unilateral": true,
+      "texto": "3 × 12–15 por braço",
+      "descanso_s": 60
+    },
+    "categoria": "isolamento",
+    "carga_inicial": {
+      "kg": 1.5,
+      "nota": "por halter: barra de halter vazia (1,5 kg); ou 5 kg no total com anilhas"
+    },
+    "progressao": {
+      "tipo": "carga",
+      "incremento_kg": 2,
+      "regra": "+2 kg em cada halter (uma anilha de 1 kg em cada ponta) quando completar todas as séries no topo da faixa."
+    },
+    "figura": "assets/figuras/triceps-coice.svg",
+    "fotos": [
+      "assets/fotos/triceps-coice-1.jpg",
+      "assets/fotos/triceps-coice-2.jpg"
+    ],
+    "foto_fonte_id": "Tricep_Dumbbell_Kickback",
+    "figura_animada": true
+  },
+  {
+    "id": "triceps-na-corda",
+    "nome": "Tríceps na corda",
+    "grupo": "Tríceps",
+    "origem": "guia",
+    "subgrupo": null,
+    "musculos_primarios": [
+      "triceps"
+    ],
+    "musculos_secundarios": [],
+    "musculos_primarios_nome": [
+      "Tríceps"
+    ],
+    "musculos_secundarios_nome": [],
+    "equipamento_texto": "Cross over · Corda",
+    "equipamento": [
+      "cross-over"
+    ],
+    "implemento": "polia",
+    "montagem": "Polia alta com a corda, cotovelos colados ao tronco, tronco levemente inclinado à frente.",
+    "passos": [
+      "Comece com o cotovelo a 90°.",
+      "Estenda o cotovelo empurrando a corda para baixo e <strong>abrindo as pontas</strong> no fim.",
+      "Segure meio segundo embaixo e volte controlado sem deixar o cotovelo subir."
+    ],
+    "erro_comum": "Mover o ombro e transformar em puxada. Só o antebraço se move.",
+    "prescricao_padrao": {
+      "series": 3,
+      "tipo": "reps",
+      "min": 12,
+      "max": 15,
+      "unilateral": false,
+      "texto": "3 × 12–15",
+      "descanso_s": 60
+    },
+    "categoria": "isolamento",
+    "carga_inicial": {
+      "kg": 4.0,
+      "nota": "2 anilhas de 2 kg no pino; suba de 2 em 2"
+    },
+    "progressao": {
+      "tipo": "carga",
+      "incremento_kg": 2,
+      "regra": "Completou todas as séries no topo da faixa com a última repetição firme: +2 kg no pino (uma anilha de 2 kg) no próximo treino."
+    },
+    "figura": "assets/figuras/triceps-na-corda.svg",
+    "fotos": [
+      "assets/fotos/triceps-na-corda-1.jpg",
+      "assets/fotos/triceps-na-corda-2.jpg"
+    ],
+    "foto_fonte_id": "Triceps_Pushdown_-_Rope_Attachment",
+    "figura_animada": true
+  },
+  {
+    "id": "agachamento-livre",
+    "nome": "Agachamento livre",
+    "grupo": "Pernas",
+    "origem": "guia",
+    "subgrupo": null,
+    "musculos_primarios": [
+      "quadriceps",
+      "gluteo"
+    ],
+    "musculos_secundarios": [
+      "posterior",
+      "lombar",
+      "adutor",
+      "abdomen"
+    ],
+    "musculos_primarios_nome": [
+      "Quadríceps",
+      "Glúteo"
+    ],
+    "musculos_secundarios_nome": [
+      "Posterior de coxa",
+      "Lombar (eretores)",
+      "Adutores",
+      "Reto abdominal"
+    ],
+    "equipamento_texto": "Barra · Cavalete",
+    "equipamento": [
+      "anilhas",
+      "barra-macica",
+      "cavalete"
+    ],
+    "implemento": "barra_macica",
+    "montagem": "Cavalete na altura do meio do peito. A barra apoia no trapézio, não no pescoço.",
+    "passos": [
+      "Entre por baixo da barra, apoie no trapézio e destrave dando um passo para trás.",
+      "Pés na largura dos ombros, pontas levemente para fora.",
+      "Empurre o quadril para trás e desça até a coxa passar do paralelo, joelhos acompanhando a linha dos pés.",
+      "Suba empurrando o chão, peito aberto, sem deixar o quadril subir antes dos ombros."
+    ],
+    "erro_comum": "Joelho colapsando para dentro na subida. Pense em 'afastar o chão' com os pés.",
+    "prescricao_padrao": {
+      "series": 3,
+      "tipo": "reps",
+      "min": 5,
+      "max": 5,
+      "unilateral": false,
+      "texto": "3 × 5",
+      "descanso_s": 150
+    },
+    "categoria": "composto_pesado",
+    "carga_inicial": {
+      "kg": 7.5,
+      "nota": "barra maciça vazia (7,5 kg)"
+    },
+    "progressao": {
+      "tipo": "carga",
+      "incremento_kg": 4,
+      "regra": "+4 kg (uma anilha de 2 kg em cada lado) a cada treino em que completou todas as séries com a última repetição firme."
+    },
+    "figura": "assets/figuras/agachamento-livre.svg",
+    "fotos": [
+      "assets/fotos/agachamento-livre-1.jpg",
+      "assets/fotos/agachamento-livre-2.jpg"
+    ],
+    "foto_fonte_id": "Barbell_Full_Squat",
+    "figura_animada": true
+  },
+  {
+    "id": "agachamento-frontal",
+    "nome": "Agachamento frontal",
+    "grupo": "Pernas",
+    "origem": "guia",
+    "subgrupo": null,
+    "musculos_primarios": [
+      "quadriceps"
+    ],
+    "musculos_secundarios": [
+      "gluteo",
+      "abdomen",
+      "lombar"
+    ],
+    "musculos_primarios_nome": [
+      "Quadríceps"
+    ],
+    "musculos_secundarios_nome": [
+      "Glúteo",
+      "Reto abdominal",
+      "Lombar (eretores)"
+    ],
+    "equipamento_texto": "Barra · Cavalete",
+    "equipamento": [
+      "anilhas",
+      "barra-macica",
+      "cavalete"
+    ],
+    "implemento": "barra_macica",
+    "montagem": "Barra apoiada na frente dos ombros, cotovelos bem altos. Exige mobilidade de punho e ombro.",
+    "passos": [
+      "Cotovelos apontando para a frente, tronco o mais vertical possível.",
+      "Desça mantendo o peito erguido.",
+      "Suba sem deixar os cotovelos caírem."
+    ],
+    "erro_comum": "Cotovelos caindo — a barra rola para a frente. Se cair, pare a série.",
+    "prescricao_padrao": {
+      "series": 3,
+      "tipo": "reps",
+      "min": 6,
+      "max": 8,
+      "unilateral": false,
+      "texto": "3 × 6–8",
+      "descanso_s": 90
+    },
+    "categoria": "composto_moderado",
+    "carga_inicial": {
+      "kg": 7.5,
+      "nota": "barra maciça vazia (7,5 kg)"
+    },
+    "progressao": {
+      "tipo": "carga",
+      "incremento_kg": 2,
+      "regra": "+2 kg (uma anilha de 1 kg em cada lado) quando completar todas as séries no topo da faixa com a última repetição firme."
+    },
+    "figura": "assets/figuras/agachamento-frontal.svg",
+    "fotos": [
+      "assets/fotos/agachamento-frontal-1.jpg",
+      "assets/fotos/agachamento-frontal-2.jpg"
+    ],
+    "foto_fonte_id": "Front_Barbell_Squat",
+    "figura_animada": true
+  },
+  {
+    "id": "agachamento-goblet",
+    "nome": "Agachamento goblet",
+    "grupo": "Pernas",
+    "origem": "guia",
+    "subgrupo": null,
+    "musculos_primarios": [
+      "quadriceps",
+      "gluteo"
+    ],
+    "musculos_secundarios": [
+      "abdomen"
+    ],
+    "musculos_primarios_nome": [
+      "Quadríceps",
+      "Glúteo"
+    ],
+    "musculos_secundarios_nome": [
+      "Reto abdominal"
+    ],
+    "equipamento_texto": "Halter",
+    "equipamento": [
+      "anilhas",
+      "halteres"
+    ],
+    "implemento": "halteres",
+    "montagem": "Um halter segurado verticalmente contra o peito, pelas duas mãos.",
+    "passos": [
+      "Desça entre os joelhos mantendo o tronco vertical.",
+      "Cotovelos passam por dentro dos joelhos no fundo.",
+      "Suba empurrando o chão."
+    ],
+    "erro_comum": "Nenhum grave — é o exercício mais seguro para aprender o padrão de agachamento. Use-o nas primeiras semanas.",
+    "prescricao_padrao": {
+      "series": 3,
+      "tipo": "reps",
+      "min": 10,
+      "max": 12,
+      "unilateral": false,
+      "texto": "3 × 10–12",
+      "descanso_s": 90
+    },
+    "categoria": "isolamento",
+    "carga_inicial": {
+      "kg": 1.5,
+      "nota": "por halter: barra de halter vazia (1,5 kg); ou 5 kg no total com anilhas"
+    },
+    "progressao": {
+      "tipo": "carga",
+      "incremento_kg": 2,
+      "regra": "+2 kg em cada halter (uma anilha de 1 kg em cada ponta) quando completar todas as séries no topo da faixa."
+    },
+    "figura": "assets/figuras/agachamento-goblet.svg",
+    "fotos": [
+      "assets/fotos/agachamento-goblet-1.jpg",
+      "assets/fotos/agachamento-goblet-2.jpg"
+    ],
+    "foto_fonte_id": "Goblet_Squat",
+    "figura_animada": true
+  },
+  {
+    "id": "agachamento-bulgaro",
+    "nome": "Agachamento búlgaro",
+    "grupo": "Pernas",
+    "origem": "guia",
+    "subgrupo": null,
+    "musculos_primarios": [
+      "quadriceps",
+      "gluteo"
+    ],
+    "musculos_secundarios": [
+      "posterior",
+      "adutor"
+    ],
+    "musculos_primarios_nome": [
+      "Quadríceps",
+      "Glúteo"
+    ],
+    "musculos_secundarios_nome": [
+      "Posterior de coxa",
+      "Adutores"
+    ],
+    "equipamento_texto": "Halteres · Banco",
+    "equipamento": [
+      "anilhas",
+      "banco",
+      "halteres"
+    ],
+    "implemento": "halteres",
+    "montagem": "Pé de trás apoiado no banco, pé da frente a cerca de um passo e meio à frente.",
+    "passos": [
+      "Halteres ao lado do corpo, tronco levemente inclinado à frente.",
+      "Desça até o joelho de trás quase tocar o chão.",
+      "Suba empurrando com o calcanhar da perna da frente."
+    ],
+    "erro_comum": "Pé da frente muito perto do banco — o joelho passa muito à frente. Ajuste a distância.",
+    "prescricao_padrao": {
+      "series": 3,
+      "tipo": "reps",
+      "min": 8,
+      "max": 10,
+      "unilateral": true,
+      "texto": "3 × 8–10 por perna",
+      "descanso_s": 90
+    },
+    "categoria": "composto_moderado",
+    "carga_inicial": {
+      "kg": 1.5,
+      "nota": "por halter: barra de halter vazia (1,5 kg); ou 5 kg no total com anilhas"
+    },
+    "progressao": {
+      "tipo": "carga",
+      "incremento_kg": 2,
+      "regra": "+2 kg em cada halter (uma anilha de 1 kg em cada ponta) quando completar todas as séries no topo da faixa."
+    },
+    "figura": "assets/figuras/agachamento-bulgaro.svg",
+    "fotos": [
+      "assets/fotos/agachamento-bulgaro-1.jpg",
+      "assets/fotos/agachamento-bulgaro-2.jpg"
+    ],
+    "foto_fonte_id": "Split_Squat_with_Dumbbells",
+    "figura_animada": true
+  },
+  {
+    "id": "afundo-passada",
+    "nome": "Afundo / passada",
+    "grupo": "Pernas",
+    "origem": "guia",
+    "subgrupo": null,
+    "musculos_primarios": [
+      "quadriceps",
+      "gluteo"
+    ],
+    "musculos_secundarios": [
+      "posterior",
+      "adutor"
+    ],
+    "musculos_primarios_nome": [
+      "Quadríceps",
+      "Glúteo"
+    ],
+    "musculos_secundarios_nome": [
+      "Posterior de coxa",
+      "Adutores"
+    ],
+    "equipamento_texto": "Halteres ou Barra",
+    "equipamento": [
+      "anilhas",
+      "barra-macica",
+      "halteres"
+    ],
+    "implemento": "barra_macica",
+    "montagem": "Em pé, halteres ao lado do corpo. Espaço livre à frente para dar passos.",
+    "passos": [
+      "Dê um passo à frente e desça até os dois joelhos formarem 90°.",
+      "Empurre com o calcanhar da frente para voltar ou para dar o passo seguinte.",
+      "Tronco ereto o tempo todo."
+    ],
+    "erro_comum": "Passo curto demais — o joelho da frente ultrapassa muito o pé.",
+    "prescricao_padrao": {
+      "series": 3,
+      "tipo": "reps",
+      "min": 10,
+      "max": 12,
+      "unilateral": true,
+      "texto": "3 × 10–12 por perna",
+      "descanso_s": 90
+    },
+    "categoria": "composto_moderado",
+    "carga_inicial": {
+      "kg": 7.5,
+      "nota": "barra maciça vazia (7,5 kg)"
+    },
+    "progressao": {
+      "tipo": "carga",
+      "incremento_kg": 2,
+      "regra": "+2 kg (uma anilha de 1 kg em cada lado) — ou some 1 repetição antes de subir, se a faixa ainda não estiver no topo."
+    },
+    "figura": "assets/figuras/afundo-passada.svg",
+    "fotos": [
+      "assets/fotos/afundo-passada-1.jpg",
+      "assets/fotos/afundo-passada-2.jpg"
+    ],
+    "foto_fonte_id": "Dumbbell_Lunges",
+    "figura_animada": true
+  },
+  {
+    "id": "agachamento-sumo",
+    "nome": "Agachamento sumô",
+    "grupo": "Pernas",
+    "origem": "guia",
+    "subgrupo": null,
+    "musculos_primarios": [
+      "adutor",
+      "gluteo"
+    ],
+    "musculos_secundarios": [
+      "quadriceps"
+    ],
+    "musculos_primarios_nome": [
+      "Adutores",
+      "Glúteo"
+    ],
+    "musculos_secundarios_nome": [
+      "Quadríceps"
+    ],
+    "equipamento_texto": "Halter ou Barra",
+    "equipamento": [
+      "anilhas",
+      "barra-macica",
+      "halteres"
+    ],
+    "implemento": "barra_macica",
+    "montagem": "Pés bem mais abertos que os ombros, pontas viradas para fora a cerca de 45°.",
+    "passos": [
+      "Desça mantendo o tronco vertical e os joelhos abrindo na linha dos pés.",
+      "Suba contraindo glúteo e parte interna da coxa."
+    ],
+    "erro_comum": "Pontas dos pés e joelhos desalinhados. Eles apontam para a mesma direção.",
+    "prescricao_padrao": {
+      "series": 3,
+      "tipo": "reps",
+      "min": 10,
+      "max": 12,
+      "unilateral": false,
+      "texto": "3 × 10–12",
+      "descanso_s": 90
+    },
+    "categoria": "composto_moderado",
+    "carga_inicial": {
+      "kg": 7.5,
+      "nota": "barra maciça vazia (7,5 kg)"
+    },
+    "progressao": {
+      "tipo": "carga",
+      "incremento_kg": 2,
+      "regra": "+2 kg (uma anilha de 1 kg em cada lado) quando completar todas as séries no topo da faixa com a última repetição firme."
+    },
+    "figura": "assets/figuras/agachamento-sumo.svg",
+    "fotos": [
+      "assets/fotos/agachamento-sumo-1.jpg",
+      "assets/fotos/agachamento-sumo-2.jpg"
+    ],
+    "foto_fonte_id": "Plie_Dumbbell_Squat",
+    "figura_animada": true
+  },
+  {
+    "id": "terra-romeno-com-halteres",
+    "nome": "Terra romeno com halteres",
+    "grupo": "Pernas",
+    "origem": "guia",
+    "subgrupo": null,
+    "musculos_primarios": [
+      "posterior"
+    ],
+    "musculos_secundarios": [
+      "gluteo",
+      "lombar"
+    ],
+    "musculos_primarios_nome": [
+      "Posterior de coxa"
+    ],
+    "musculos_secundarios_nome": [
+      "Glúteo",
+      "Lombar (eretores)"
+    ],
+    "equipamento_texto": "Halteres",
+    "equipamento": [
+      "anilhas",
+      "halteres"
+    ],
+    "implemento": "halteres",
+    "montagem": "Halteres à frente das coxas, joelhos levemente flexionados.",
+    "passos": [
+      "Empurre o quadril para trás descendo os halteres rente às pernas.",
+      "Pare quando sentir o alongamento máximo no posterior.",
+      "Volte contraindo o glúteo."
+    ],
+    "erro_comum": "Dobrar o joelho para descer mais. A amplitude vem da flexibilidade do posterior, não do joelho.",
+    "prescricao_padrao": {
+      "series": 3,
+      "tipo": "reps",
+      "min": 10,
+      "max": 12,
+      "unilateral": false,
+      "texto": "3 × 10–12",
+      "descanso_s": 90
+    },
+    "categoria": "composto_moderado",
+    "carga_inicial": {
+      "kg": 1.5,
+      "nota": "por halter: barra de halter vazia (1,5 kg); ou 5 kg no total com anilhas"
+    },
+    "progressao": {
+      "tipo": "carga",
+      "incremento_kg": 2,
+      "regra": "+2 kg em cada halter (uma anilha de 1 kg em cada ponta) quando completar todas as séries no topo da faixa."
+    },
+    "figura": "assets/figuras/terra-romeno-com-halteres.svg",
+    "fotos": [
+      "assets/fotos/terra-romeno-com-halteres-1.jpg",
+      "assets/fotos/terra-romeno-com-halteres-2.jpg"
+    ],
+    "foto_fonte_id": "Stiff-Legged_Dumbbell_Deadlift",
+    "figura_animada": true
+  },
+  {
+    "id": "step-up-no-banco",
+    "nome": "Step-up no banco",
+    "grupo": "Pernas",
+    "origem": "guia",
+    "subgrupo": null,
+    "musculos_primarios": [
+      "quadriceps",
+      "gluteo"
+    ],
+    "musculos_secundarios": [
+      "posterior"
+    ],
+    "musculos_primarios_nome": [
+      "Quadríceps",
+      "Glúteo"
+    ],
+    "musculos_secundarios_nome": [
+      "Posterior de coxa"
+    ],
+    "equipamento_texto": "Halteres · Banco",
+    "equipamento": [
+      "anilhas",
+      "banco",
+      "halteres"
+    ],
+    "implemento": "halteres",
+    "montagem": "Banco na altura mais baixa e estável. Halteres ao lado do corpo.",
+    "passos": [
+      "Suba colocando o pé inteiro no banco.",
+      "Empurre com o calcanhar até estender a perna de cima.",
+      "Desça controlado com a mesma perna."
+    ],
+    "erro_comum": "Impulsionar com a perna de baixo. Quem faz o trabalho é a perna que está no banco.",
+    "prescricao_padrao": {
+      "series": 3,
+      "tipo": "reps",
+      "min": 10,
+      "max": 10,
+      "unilateral": true,
+      "texto": "3 × 10 por perna",
+      "descanso_s": 90
+    },
+    "categoria": "isolamento",
+    "carga_inicial": {
+      "kg": 1.5,
+      "nota": "por halter: barra de halter vazia (1,5 kg); ou 5 kg no total com anilhas"
+    },
+    "progressao": {
+      "tipo": "carga",
+      "incremento_kg": 2,
+      "regra": "+2 kg em cada halter (uma anilha de 1 kg em cada ponta) quando completar todas as séries no topo da faixa."
+    },
+    "figura": "assets/figuras/step-up-no-banco.svg",
+    "fotos": [
+      "assets/fotos/step-up-no-banco-1.jpg",
+      "assets/fotos/step-up-no-banco-2.jpg"
+    ],
+    "foto_fonte_id": "Dumbbell_Step_Ups",
+    "figura_animada": true
+  },
+  {
+    "id": "elevacao-de-panturrilha-em-pe",
+    "nome": "Elevação de panturrilha em pé",
+    "grupo": "Pernas",
+    "origem": "guia",
+    "subgrupo": null,
+    "musculos_primarios": [
+      "panturrilha"
+    ],
+    "musculos_secundarios": [],
+    "musculos_primarios_nome": [
+      "Panturrilha"
+    ],
+    "musculos_secundarios_nome": [],
+    "equipamento_texto": "Barra · Cavalete ou Halteres",
+    "equipamento": [
+      "anilhas",
+      "barra-macica",
+      "cavalete",
+      "halteres"
+    ],
+    "implemento": "barra_macica",
+    "montagem": "Barra nas costas ou halteres nas mãos. Se tiver um degrau ou tatame empilhado, use para ganhar amplitude.",
+    "passos": [
+      "Suba na ponta dos pés o máximo possível.",
+      "Segure meio segundo no topo.",
+      "Desça bem devagar, alongando embaixo."
+    ],
+    "erro_comum": "Repetições rápidas e curtas. A panturrilha responde a amplitude e pausa, não a velocidade.",
+    "prescricao_padrao": {
+      "series": 4,
+      "tipo": "reps",
+      "min": 15,
+      "max": 20,
+      "unilateral": false,
+      "texto": "4 × 15–20",
+      "descanso_s": 60
+    },
+    "categoria": "isolamento",
+    "carga_inicial": {
+      "kg": 7.5,
+      "nota": "barra maciça vazia (7,5 kg)"
+    },
+    "progressao": {
+      "tipo": "carga",
+      "incremento_kg": 2,
+      "regra": "+2 kg (uma anilha de 1 kg em cada lado) — ou some 1 repetição antes de subir, se a faixa ainda não estiver no topo."
+    },
+    "figura": "assets/figuras/elevacao-de-panturrilha-em-pe.svg",
+    "fotos": [
+      "assets/fotos/elevacao-de-panturrilha-em-pe-1.jpg",
+      "assets/fotos/elevacao-de-panturrilha-em-pe-2.jpg"
+    ],
+    "foto_fonte_id": "Standing_Calf_Raises",
+    "figura_animada": true
+  },
+  {
+    "id": "elevacao-de-panturrilha-sentado",
+    "nome": "Elevação de panturrilha sentado",
+    "grupo": "Pernas",
+    "origem": "guia",
+    "subgrupo": null,
+    "musculos_primarios": [
+      "panturrilha"
+    ],
+    "musculos_secundarios": [],
+    "musculos_primarios_nome": [
+      "Panturrilha"
+    ],
+    "musculos_secundarios_nome": [],
+    "equipamento_texto": "Anilha ou Barra · Banco",
+    "equipamento": [
+      "anilhas",
+      "banco",
+      "barra-macica"
+    ],
+    "implemento": "barra_macica",
+    "montagem": "Sentado no banco, anilha ou barra apoiada sobre os joelhos, com uma toalha embaixo.",
+    "passos": [
+      "Eleve os calcanhares o máximo que der.",
+      "Pause no topo e desça devagar."
+    ],
+    "erro_comum": "Peso apoiado no joelho sem proteção. Use uma toalha dobrada.",
+    "prescricao_padrao": {
+      "series": 3,
+      "tipo": "reps",
+      "min": 15,
+      "max": 20,
+      "unilateral": false,
+      "texto": "3 × 15–20",
+      "descanso_s": 60
+    },
+    "categoria": "isolamento",
+    "carga_inicial": {
+      "kg": 7.5,
+      "nota": "barra maciça vazia (7,5 kg)"
+    },
+    "progressao": {
+      "tipo": "carga",
+      "incremento_kg": 2,
+      "regra": "+2 kg (uma anilha de 1 kg em cada lado) — ou some 1 repetição antes de subir, se a faixa ainda não estiver no topo."
+    },
+    "figura": "assets/figuras/elevacao-de-panturrilha-sentado.svg",
+    "fotos": [
+      "assets/fotos/elevacao-de-panturrilha-sentado-1.jpg",
+      "assets/fotos/elevacao-de-panturrilha-sentado-2.jpg"
+    ],
+    "foto_fonte_id": "Seated_Calf_Raise",
+    "figura_animada": true
+  },
+  {
+    "id": "flexora-e-gluteo-na-polia",
+    "nome": "Flexora e glúteo na polia",
+    "grupo": "Pernas",
+    "origem": "guia",
+    "subgrupo": null,
+    "musculos_primarios": [
+      "posterior",
+      "gluteo"
+    ],
+    "musculos_secundarios": [
+      "lombar"
+    ],
+    "musculos_primarios_nome": [
+      "Posterior de coxa",
+      "Glúteo"
+    ],
+    "musculos_secundarios_nome": [
+      "Lombar (eretores)"
+    ],
+    "equipamento_texto": "Cross over · Tornozeleiras",
+    "equipamento": [
+      "cross-over",
+      "puxadores"
+    ],
+    "implemento": "polia",
+    "montagem": "Tornozeleira presa ao cabo da polia baixa, de pé apoiado na parede ou no cavalete.",
+    "passos": [
+      "<strong>Flexora:</strong> de frente para a parede, flexione o joelho levando o calcanhar ao glúteo.",
+      "<strong>Extensão de quadril:</strong> de frente para a parede, leve a perna reta para trás contraindo o glúteo.",
+      "<strong>Abdução:</strong> de lado, leve a perna para fora.",
+      "Volte controlado em todas as variações."
+    ],
+    "erro_comum": "Usar a lombar para puxar a perna. O tronco fica travado — só a perna se move.",
+    "prescricao_padrao": {
+      "series": 3,
+      "tipo": "reps",
+      "min": 12,
+      "max": 15,
+      "unilateral": true,
+      "texto": "3 × 12–15 por perna",
+      "descanso_s": 60
+    },
+    "categoria": "isolamento",
+    "carga_inicial": {
+      "kg": 4.0,
+      "nota": "2 anilhas de 2 kg no pino; suba de 2 em 2"
+    },
+    "progressao": {
+      "tipo": "carga",
+      "incremento_kg": 2,
+      "regra": "Completou todas as séries no topo da faixa com a última repetição firme: +2 kg no pino (uma anilha de 2 kg) no próximo treino."
+    },
+    "figura": "assets/figuras/flexora-e-gluteo-na-polia.svg",
+    "fotos": [
+      "assets/fotos/flexora-e-gluteo-na-polia-1.jpg",
+      "assets/fotos/flexora-e-gluteo-na-polia-2.jpg"
+    ],
+    "foto_fonte_id": "One-Legged_Cable_Kickback",
+    "figura_animada": true
+  },
+  {
+    "id": "elevacao-de-pernas-na-barra-fixa",
+    "nome": "Elevação de pernas na barra fixa",
+    "grupo": "Core",
+    "origem": "guia",
+    "subgrupo": null,
+    "musculos_primarios": [
+      "abdomen"
+    ],
+    "musculos_secundarios": [
+      "obliquo",
+      "antebraco"
+    ],
+    "musculos_primarios_nome": [
+      "Reto abdominal"
+    ],
+    "musculos_secundarios_nome": [
+      "Oblíquos",
+      "Antebraço"
+    ],
+    "equipamento_texto": "Barra fixa",
+    "equipamento": [
+      "barra-fixa"
+    ],
+    "implemento": "barra_fixa",
+    "montagem": "Pendurado na barra, corpo parado. É o melhor abdominal do seu setup.",
+    "passos": [
+      "Sem balançar, eleve os joelhos até a altura do quadril ou acima.",
+      "Enrole a pelve no topo — não é só levantar a perna, é curvar o quadril.",
+      "Desça devagar sem deixar o corpo oscilar."
+    ],
+    "erro_comum": "Balançar. Se o corpo oscila, faça com os joelhos dobrados até controlar.",
+    "prescricao_padrao": {
+      "series": 3,
+      "tipo": "reps",
+      "min": 10,
+      "max": 15,
+      "unilateral": false,
+      "texto": "3 × 10–15",
+      "descanso_s": 90
+    },
+    "categoria": "core_peso_corporal",
+    "carga_inicial": {
+      "kg": 0.0,
+      "nota": "peso corporal"
+    },
+    "progressao": {
+      "tipo": "reps",
+      "incremento_reps": 1,
+      "regra": "Completou todas as séries no topo da faixa: +1 repetição por série; acima de 15 limpas, joelhos esticados ou anilha entre os pés."
+    },
+    "figura": "assets/figuras/elevacao-de-pernas-na-barra-fixa.svg",
+    "fotos": [
+      "assets/fotos/elevacao-de-pernas-na-barra-fixa-1.jpg",
+      "assets/fotos/elevacao-de-pernas-na-barra-fixa-2.jpg"
+    ],
+    "foto_fonte_id": "Hanging_Leg_Raise",
+    "figura_animada": true
+  },
+  {
+    "id": "abdominal-no-banco-declinado",
+    "nome": "Abdominal no banco declinado",
+    "grupo": "Core",
+    "origem": "guia",
+    "subgrupo": null,
+    "musculos_primarios": [
+      "abdomen"
+    ],
+    "musculos_secundarios": [
+      "obliquo"
+    ],
+    "musculos_primarios_nome": [
+      "Reto abdominal"
+    ],
+    "musculos_secundarios_nome": [
+      "Oblíquos"
+    ],
+    "equipamento_texto": "Banco",
+    "equipamento": [
+      "banco"
+    ],
+    "implemento": "peso_corporal",
+    "montagem": "Banco declinado, pés travados no rolo de pernas.",
+    "passos": [
+      "Mãos cruzadas no peito ou ao lado da cabeça sem puxar o pescoço.",
+      "Suba enrolando a coluna, vértebra por vértebra.",
+      "Desça controlado sem relaxar embaixo."
+    ],
+    "erro_comum": "Puxar a cabeça com as mãos. O queixo fica solto, sem encostar no peito.",
+    "prescricao_padrao": {
+      "series": 3,
+      "tipo": "reps",
+      "min": 15,
+      "max": 20,
+      "unilateral": false,
+      "texto": "3 × 15–20",
+      "descanso_s": 60
+    },
+    "categoria": "core_peso_corporal",
+    "carga_inicial": {
+      "kg": 0.0,
+      "nota": "peso corporal"
+    },
+    "progressao": {
+      "tipo": "reps",
+      "incremento_reps": 1,
+      "regra": "Completou todas as séries no topo da faixa: some 1 repetição por série (ou uma anilha de 2 kg contra o peito / na mochila quando passar de 20)."
+    },
+    "figura": "assets/figuras/abdominal-no-banco-declinado.svg",
+    "fotos": [
+      "assets/fotos/abdominal-no-banco-declinado-1.jpg",
+      "assets/fotos/abdominal-no-banco-declinado-2.jpg"
+    ],
+    "foto_fonte_id": "Decline_Crunch",
+    "figura_animada": true
+  },
+  {
+    "id": "abdominal-com-anilha",
+    "nome": "Abdominal com anilha",
+    "grupo": "Core",
+    "origem": "guia",
+    "subgrupo": null,
+    "musculos_primarios": [
+      "abdomen"
+    ],
+    "musculos_secundarios": [],
+    "musculos_primarios_nome": [
+      "Reto abdominal"
+    ],
+    "musculos_secundarios_nome": [],
+    "equipamento_texto": "Banco · Anilha",
+    "equipamento": [
+      "anilhas",
+      "banco"
+    ],
+    "implemento": "anilha",
+    "montagem": "Mesma posição do declinado, com uma anilha segurada contra o peito.",
+    "passos": [
+      "Suba enrolando a coluna com o peso no peito.",
+      "Comece com 5 kg e progrida devagar."
+    ],
+    "erro_comum": "Usar anilha pesada antes de fazer 20 repetições limpas sem peso.",
+    "prescricao_padrao": {
+      "series": 3,
+      "tipo": "reps",
+      "min": 10,
+      "max": 15,
+      "unilateral": false,
+      "texto": "3 × 10–15",
+      "descanso_s": 90
+    },
+    "categoria": "core_peso_corporal",
+    "carga_inicial": {
+      "kg": 5.0,
+      "nota": "uma anilha de 5 kg"
+    },
+    "progressao": {
+      "tipo": "reps",
+      "incremento_reps": 1,
+      "regra": "Completou todas as séries no topo da faixa: some 1 repetição por série (ou uma anilha de 2 kg contra o peito / na mochila quando passar de 20)."
+    },
+    "figura": "assets/figuras/abdominal-com-anilha.svg",
+    "fotos": [
+      "assets/fotos/abdominal-com-anilha-1.jpg",
+      "assets/fotos/abdominal-com-anilha-2.jpg"
+    ],
+    "foto_fonte_id": "Weighted_Crunches",
+    "figura_animada": true
+  },
+  {
+    "id": "russian-twist",
+    "nome": "Russian twist",
+    "grupo": "Core",
+    "origem": "guia",
+    "subgrupo": null,
+    "musculos_primarios": [
+      "obliquo"
+    ],
+    "musculos_secundarios": [
+      "abdomen"
+    ],
+    "musculos_primarios_nome": [
+      "Oblíquos"
+    ],
+    "musculos_secundarios_nome": [
+      "Reto abdominal"
+    ],
+    "equipamento_texto": "Anilha · Tatame",
+    "equipamento": [
+      "anilhas",
+      "tatame"
+    ],
+    "implemento": "anilha",
+    "montagem": "Sentado no tatame, tronco a cerca de 45°, pés no chão ou elevados.",
+    "passos": [
+      "Anilha segurada com as duas mãos à frente do peito.",
+      "Gire o tronco de um lado ao outro, tocando o chão de leve ao lado do quadril.",
+      "O movimento é do tronco, não só dos braços."
+    ],
+    "erro_comum": "Mover só os braços com o tronco parado. Gire a caixa torácica.",
+    "prescricao_padrao": {
+      "series": 3,
+      "tipo": "reps",
+      "min": 20,
+      "max": 20,
+      "unilateral": false,
+      "texto": "3 × 20 (10 por lado)",
+      "descanso_s": 60
+    },
+    "categoria": "core_peso_corporal",
+    "carga_inicial": {
+      "kg": 5.0,
+      "nota": "uma anilha de 5 kg"
+    },
+    "progressao": {
+      "tipo": "reps",
+      "incremento_reps": 1,
+      "regra": "Completou todas as séries no topo da faixa: some 1 repetição por série (ou uma anilha de 2 kg contra o peito / na mochila quando passar de 20)."
+    },
+    "figura": "assets/figuras/russian-twist.svg",
+    "fotos": [
+      "assets/fotos/russian-twist-1.jpg",
+      "assets/fotos/russian-twist-2.jpg"
+    ],
+    "foto_fonte_id": "Russian_Twist",
+    "figura_animada": true
+  },
+  {
+    "id": "prancha",
+    "nome": "Prancha",
+    "grupo": "Core",
+    "origem": "guia",
+    "subgrupo": null,
+    "musculos_primarios": [
+      "abdomen"
+    ],
+    "musculos_secundarios": [
+      "obliquo",
+      "ombro"
+    ],
+    "musculos_primarios_nome": [
+      "Reto abdominal"
+    ],
+    "musculos_secundarios_nome": [
+      "Oblíquos",
+      "Deltoide anterior e medial"
+    ],
+    "equipamento_texto": "Tatame",
+    "equipamento": [
+      "tatame"
+    ],
+    "implemento": "peso_corporal",
+    "montagem": "Antebraços e pontas dos pés no tatame, cotovelos sob os ombros.",
+    "passos": [
+      "Corpo em linha reta da cabeça ao calcanhar.",
+      "Contraia glúteo e abdômen ao mesmo tempo.",
+      "Respire normalmente e segure."
+    ],
+    "erro_comum": "Quadril subindo. Se subir, o abdômen parou de trabalhar — encerre a série.",
+    "prescricao_padrao": {
+      "series": 3,
+      "tipo": "tempo_s",
+      "min": 30,
+      "max": 60,
+      "unilateral": false,
+      "texto": "3 × 30–60 s",
+      "descanso_s": 60
+    },
+    "categoria": "core_peso_corporal",
+    "carga_inicial": {
+      "kg": 0.0,
+      "nota": "peso corporal"
+    },
+    "progressao": {
+      "tipo": "tempo",
+      "incremento_s": 5,
+      "regra": "Completou todas as séries no tempo máximo da faixa: some 5 s por série no próximo treino."
+    },
+    "figura": "assets/figuras/prancha.svg",
+    "fotos": [
+      "assets/fotos/prancha-1.jpg",
+      "assets/fotos/prancha-2.jpg"
+    ],
+    "foto_fonte_id": "Plank",
+    "figura_animada": false
+  },
+  {
+    "id": "farmer-s-walk",
+    "nome": "Farmer's walk",
+    "grupo": "Core",
+    "origem": "guia",
+    "subgrupo": null,
+    "musculos_primarios": [
+      "antebraco",
+      "trapezio"
+    ],
+    "musculos_secundarios": [
+      "abdomen",
+      "obliquo"
+    ],
+    "musculos_primarios_nome": [
+      "Antebraço",
+      "Trapézio"
+    ],
+    "musculos_secundarios_nome": [
+      "Reto abdominal",
+      "Oblíquos"
+    ],
+    "equipamento_texto": "Halteres",
+    "equipamento": [
+      "anilhas",
+      "halteres"
+    ],
+    "implemento": "halteres",
+    "montagem": "Um halter pesado em cada mão, braços estendidos ao lado do corpo.",
+    "passos": [
+      "Caminhe com passos curtos e o tronco ereto.",
+      "Ombros para trás e para baixo, abdômen contraído.",
+      "Faça o percurso da garagem ida e volta."
+    ],
+    "erro_comum": "Deixar os ombros caírem à frente. É o exercício que constrói a pegada para o terra.",
+    "prescricao_padrao": {
+      "series": 3,
+      "tipo": "passos",
+      "min": 30,
+      "max": 40,
+      "unilateral": false,
+      "texto": "3 × 30–40 passos",
+      "descanso_s": 60
+    },
+    "categoria": "core_peso_corporal",
+    "carga_inicial": {
+      "kg": 1.5,
+      "nota": "por halter: barra de halter vazia (1,5 kg); ou 5 kg no total com anilhas"
+    },
+    "progressao": {
+      "tipo": "carga",
+      "incremento_kg": 2,
+      "regra": "+2 kg em cada halter (1 kg em cada ponta) quando completar os passos com pegada firme."
+    },
+    "figura": "assets/figuras/farmer-s-walk.svg",
+    "fotos": [
+      "assets/fotos/farmer-s-walk-1.jpg",
+      "assets/fotos/farmer-s-walk-2.jpg"
+    ],
+    "foto_fonte_id": "Farmers_Walk",
+    "figura_animada": true
+  },
+  {
+    "id": "flexao-de-braco",
+    "nome": "Flexão de braço",
+    "grupo": "Peito",
+    "origem": "aparelho",
+    "subgrupo": "tatame",
+    "musculos_primarios": [
+      "peito"
+    ],
+    "musculos_secundarios": [
+      "triceps",
+      "ombro",
+      "abdomen"
+    ],
+    "musculos_primarios_nome": [
+      "Peitoral"
+    ],
+    "musculos_secundarios_nome": [
+      "Tríceps",
+      "Deltoide anterior e medial",
+      "Reto abdominal"
+    ],
+    "equipamento_texto": "Tatame · peso corporal",
+    "equipamento": [
+      "tatame"
+    ],
+    "implemento": "peso_corporal",
+    "montagem": "Mãos no tatame um pouco mais abertas que os ombros, corpo em linha reta do calcanhar à cabeça.",
+    "passos": [
+      "Desça até o peito quase encostar, cotovelos a 45° do tronco.",
+      "Empurre o chão e volte sem deixar o quadril cair nem subir.",
+      "Se ainda não sai, faça com as mãos no banco — é a mesma flexão mais leve."
+    ],
+    "erro_comum": "Quadril subindo primeiro. O corpo tem que se mover em bloco; se o quadril lidera, o abdômen desligou.",
+    "prescricao_padrao": {
+      "series": 3,
+      "tipo": "maximo",
+      "min": null,
+      "max": null,
+      "unilateral": false,
+      "texto": "3 × máximo",
+      "descanso_s": 90
+    },
+    "categoria": "composto_moderado",
+    "carga_inicial": {
+      "kg": 0.0,
+      "nota": "peso corporal; anilha só quando passar de 15 limpas"
+    },
+    "progressao": {
+      "tipo": "reps",
+      "incremento_reps": 1,
+      "regra": "Completou todas as séries no topo da faixa: some 1 repetição por série (ou uma anilha de 2 kg contra o peito / na mochila quando passar de 20)."
+    },
+    "figura": null,
+    "fotos": [
+      "assets/fotos/flexao-de-braco-1.jpg",
+      "assets/fotos/flexao-de-braco-2.jpg"
+    ],
+    "foto_fonte_id": "Pushups",
+    "figura_animada": false
+  },
+  {
+    "id": "abdominal-supra",
+    "nome": "Abdominal supra",
+    "grupo": "Core",
+    "origem": "aparelho",
+    "subgrupo": "tatame",
+    "musculos_primarios": [
+      "abdomen"
+    ],
+    "musculos_secundarios": [],
+    "musculos_primarios_nome": [
+      "Reto abdominal"
+    ],
+    "musculos_secundarios_nome": [],
+    "equipamento_texto": "Tatame · peso corporal",
+    "equipamento": [
+      "tatame"
+    ],
+    "implemento": "peso_corporal",
+    "montagem": "Deitado no tatame, joelhos dobrados, pés apoiados, mãos ao lado da cabeça sem puxar o pescoço.",
+    "passos": [
+      "Enrole a coluna tirando só as escápulas do chão.",
+      "Pause meio segundo no topo com o abdômen apertado.",
+      "Desça devagar sem descansar a cabeça entre as repetições."
+    ],
+    "erro_comum": "Puxar a nuca com as mãos. A mão só apoia; quem sobe é o abdômen.",
+    "prescricao_padrao": {
+      "series": 3,
+      "tipo": "reps",
+      "min": 15,
+      "max": 25,
+      "unilateral": false,
+      "texto": "3 × 15–25",
+      "descanso_s": 60
+    },
+    "categoria": "core_peso_corporal",
+    "carga_inicial": {
+      "kg": 0.0,
+      "nota": "peso corporal"
+    },
+    "progressao": {
+      "tipo": "reps",
+      "incremento_reps": 1,
+      "regra": "Completou todas as séries no topo da faixa: some 1 repetição por série (ou uma anilha de 2 kg contra o peito / na mochila quando passar de 20)."
+    },
+    "figura": null,
+    "fotos": [
+      "assets/fotos/abdominal-supra-1.jpg",
+      "assets/fotos/abdominal-supra-2.jpg"
+    ],
+    "foto_fonte_id": "Crunches",
+    "figura_animada": false
+  },
+  {
+    "id": "abdominal-completo",
+    "nome": "Abdominal completo",
+    "grupo": "Core",
+    "origem": "aparelho",
+    "subgrupo": "tatame",
+    "musculos_primarios": [
+      "abdomen"
+    ],
+    "musculos_secundarios": [
+      "obliquo"
+    ],
+    "musculos_primarios_nome": [
+      "Reto abdominal"
+    ],
+    "musculos_secundarios_nome": [
+      "Oblíquos"
+    ],
+    "equipamento_texto": "Tatame · peso corporal",
+    "equipamento": [
+      "tatame"
+    ],
+    "implemento": "peso_corporal",
+    "montagem": "Deitado, joelhos dobrados. Se os pés levantarem, prenda-os embaixo do banco.",
+    "passos": [
+      "Suba até o tronco chegar perto das coxas, enrolando a coluna.",
+      "Desça controlado, vértebra por vértebra.",
+      "Para dificultar, segure uma anilha contra o peito."
+    ],
+    "erro_comum": "Subir com o tronco reto como uma tábua. Isso vira exercício de flexor de quadril e castiga a lombar.",
+    "prescricao_padrao": {
+      "series": 3,
+      "tipo": "reps",
+      "min": 12,
+      "max": 20,
+      "unilateral": false,
+      "texto": "3 × 12–20",
+      "descanso_s": 60
+    },
+    "categoria": "core_peso_corporal",
+    "carga_inicial": {
+      "kg": 0.0,
+      "nota": "peso corporal"
+    },
+    "progressao": {
+      "tipo": "reps",
+      "incremento_reps": 1,
+      "regra": "Completou todas as séries no topo da faixa: some 1 repetição por série (ou uma anilha de 2 kg contra o peito / na mochila quando passar de 20)."
+    },
+    "figura": null,
+    "fotos": [
+      "assets/fotos/abdominal-completo-1.jpg",
+      "assets/fotos/abdominal-completo-2.jpg"
+    ],
+    "foto_fonte_id": "Sit-Up",
+    "figura_animada": false
+  },
+  {
+    "id": "abdominal-cruzado",
+    "nome": "Abdominal cruzado",
+    "grupo": "Core",
+    "origem": "aparelho",
+    "subgrupo": "tatame",
+    "musculos_primarios": [
+      "obliquo"
+    ],
+    "musculos_secundarios": [
+      "abdomen"
+    ],
+    "musculos_primarios_nome": [
+      "Oblíquos"
+    ],
+    "musculos_secundarios_nome": [
+      "Reto abdominal"
+    ],
+    "equipamento_texto": "Tatame · peso corporal",
+    "equipamento": [
+      "tatame"
+    ],
+    "implemento": "peso_corporal",
+    "montagem": "Mesma posição do abdominal supra, mãos ao lado da cabeça.",
+    "passos": [
+      "Leve o cotovelo em direção ao joelho oposto, girando o tronco.",
+      "Alterne os lados a cada repetição.",
+      "O movimento é de rotação, não de puxar o braço."
+    ],
+    "erro_comum": "Girar só o braço. O ombro tem que sair do chão junto — senão o oblíquo não trabalha.",
+    "prescricao_padrao": {
+      "series": 3,
+      "tipo": "reps",
+      "min": 12,
+      "max": 15,
+      "unilateral": true,
+      "texto": "3 × 12–15 por lado",
+      "descanso_s": 60
+    },
+    "categoria": "core_peso_corporal",
+    "carga_inicial": {
+      "kg": 0.0,
+      "nota": "peso corporal"
+    },
+    "progressao": {
+      "tipo": "reps",
+      "incremento_reps": 1,
+      "regra": "Completou todas as séries no topo da faixa: some 1 repetição por série (ou uma anilha de 2 kg contra o peito / na mochila quando passar de 20)."
+    },
+    "figura": null,
+    "fotos": [
+      "assets/fotos/abdominal-cruzado-1.jpg",
+      "assets/fotos/abdominal-cruzado-2.jpg"
+    ],
+    "foto_fonte_id": "Cross-Body_Crunch",
+    "figura_animada": false
+  },
+  {
+    "id": "abdominal-bicicleta",
+    "nome": "Abdominal bicicleta",
+    "grupo": "Core",
+    "origem": "aparelho",
+    "subgrupo": "tatame",
+    "musculos_primarios": [
+      "abdomen",
+      "obliquo"
+    ],
+    "musculos_secundarios": [],
+    "musculos_primarios_nome": [
+      "Reto abdominal",
+      "Oblíquos"
+    ],
+    "musculos_secundarios_nome": [],
+    "equipamento_texto": "Tatame · peso corporal",
+    "equipamento": [
+      "tatame"
+    ],
+    "implemento": "peso_corporal",
+    "montagem": "Deitado, mãos ao lado da cabeça, pernas no ar com joelhos a 90°.",
+    "passos": [
+      "Leve o cotovelo ao joelho oposto enquanto estende a outra perna.",
+      "Alterne em ritmo controlado, sem pressa.",
+      "Mantenha a lombar colada no tatame o tempo todo."
+    ],
+    "erro_comum": "Pedalar rápido e sem amplitude. Devagar e girando de verdade vale mais que o dobro de repetições.",
+    "prescricao_padrao": {
+      "series": 3,
+      "tipo": "reps",
+      "min": 20,
+      "max": 30,
+      "unilateral": false,
+      "texto": "3 × 20–30",
+      "descanso_s": 60
+    },
+    "categoria": "core_peso_corporal",
+    "carga_inicial": {
+      "kg": 0.0,
+      "nota": "peso corporal"
+    },
+    "progressao": {
+      "tipo": "reps",
+      "incremento_reps": 1,
+      "regra": "Completou todas as séries no topo da faixa: some 1 repetição por série (ou uma anilha de 2 kg contra o peito / na mochila quando passar de 20)."
+    },
+    "figura": null,
+    "fotos": [
+      "assets/fotos/abdominal-bicicleta-1.jpg",
+      "assets/fotos/abdominal-bicicleta-2.jpg"
+    ],
+    "foto_fonte_id": "Air_Bike",
+    "figura_animada": false
+  },
+  {
+    "id": "escalador",
+    "nome": "Escalador",
+    "grupo": "Core",
+    "origem": "aparelho",
+    "subgrupo": "tatame",
+    "musculos_primarios": [
+      "abdomen"
+    ],
+    "musculos_secundarios": [
+      "ombro",
+      "quadriceps",
+      "peito"
+    ],
+    "musculos_primarios_nome": [
+      "Reto abdominal"
+    ],
+    "musculos_secundarios_nome": [
+      "Deltoide anterior e medial",
+      "Quadríceps",
+      "Peitoral"
+    ],
+    "equipamento_texto": "Tatame · peso corporal",
+    "equipamento": [
+      "tatame"
+    ],
+    "implemento": "peso_corporal",
+    "montagem": "Posição de flexão, mãos sob os ombros, corpo em linha.",
+    "passos": [
+      "Traga um joelho ao peito e volte, alternando as pernas em ritmo constante.",
+      "O quadril fica na mesma altura do começo ao fim.",
+      "Serve como aquecimento e como bloco de cardio no dia de chuva."
+    ],
+    "erro_comum": "Quadril subindo a cada troca de perna. Isso tira o abdômen e vira só corrida no lugar.",
+    "prescricao_padrao": {
+      "series": 3,
+      "tipo": "tempo_s",
+      "min": 30,
+      "max": 45,
+      "unilateral": false,
+      "texto": "3 × 30–45 s",
+      "descanso_s": 60
+    },
+    "categoria": "core_peso_corporal",
+    "carga_inicial": {
+      "kg": 0.0,
+      "nota": "peso corporal"
+    },
+    "progressao": {
+      "tipo": "tempo",
+      "incremento_s": 5,
+      "regra": "Completou todas as séries no tempo máximo da faixa: some 5 s por série no próximo treino."
+    },
+    "figura": null,
+    "fotos": [
+      "assets/fotos/escalador-1.jpg",
+      "assets/fotos/escalador-2.jpg"
+    ],
+    "foto_fonte_id": "Mountain_Climbers",
+    "figura_animada": false
+  },
+  {
+    "id": "superman",
+    "nome": "Superman",
+    "grupo": "Core",
+    "origem": "aparelho",
+    "subgrupo": "tatame",
+    "musculos_primarios": [
+      "lombar"
+    ],
+    "musculos_secundarios": [
+      "gluteo",
+      "posterior"
+    ],
+    "musculos_primarios_nome": [
+      "Lombar (eretores)"
+    ],
+    "musculos_secundarios_nome": [
+      "Glúteo",
+      "Posterior de coxa"
+    ],
+    "equipamento_texto": "Tatame · peso corporal",
+    "equipamento": [
+      "tatame"
+    ],
+    "implemento": "peso_corporal",
+    "montagem": "Deitado de barriga para baixo, braços estendidos à frente.",
+    "passos": [
+      "Levante braços, peito e pernas ao mesmo tempo, alguns centímetros.",
+      "Segure dois segundos apertando o glúteo.",
+      "Desça devagar sem relaxar por completo entre as repetições."
+    ],
+    "erro_comum": "Jogar a cabeça para trás. Olhe para o chão — o pescoço acompanha a coluna.",
+    "prescricao_padrao": {
+      "series": 3,
+      "tipo": "reps",
+      "min": 12,
+      "max": 15,
+      "unilateral": false,
+      "texto": "3 × 12–15",
+      "descanso_s": 60
+    },
+    "categoria": "core_peso_corporal",
+    "carga_inicial": {
+      "kg": 0.0,
+      "nota": "peso corporal"
+    },
+    "progressao": {
+      "tipo": "reps",
+      "incremento_reps": 1,
+      "regra": "Completou todas as séries no topo da faixa: some 1 repetição por série (ou uma anilha de 2 kg contra o peito / na mochila quando passar de 20)."
+    },
+    "figura": null,
+    "fotos": [
+      "assets/fotos/superman-1.jpg",
+      "assets/fotos/superman-2.jpg"
+    ],
+    "foto_fonte_id": "Superman",
+    "figura_animada": false
+  },
+  {
+    "id": "prancha-lateral",
+    "nome": "Prancha lateral",
+    "grupo": "Core",
+    "origem": "aparelho",
+    "subgrupo": "tatame",
+    "musculos_primarios": [
+      "obliquo"
+    ],
+    "musculos_secundarios": [
+      "abdomen",
+      "ombro"
+    ],
+    "musculos_primarios_nome": [
+      "Oblíquos"
+    ],
+    "musculos_secundarios_nome": [
+      "Reto abdominal",
+      "Deltoide anterior e medial"
+    ],
+    "equipamento_texto": "Tatame · peso corporal",
+    "equipamento": [
+      "tatame"
+    ],
+    "implemento": "peso_corporal",
+    "montagem": "Deitado de lado, cotovelo sob o ombro, pernas estendidas uma sobre a outra.",
+    "passos": [
+      "Suba o quadril até o corpo formar uma linha reta da cabeça ao pé.",
+      "Segure o tempo todo respirando normal.",
+      "Se for difícil, apoie o joelho de baixo no tatame."
+    ],
+    "erro_comum": "Quadril caindo aos poucos sem você perceber. Quando cair, a série acabou — conte o tempo até ali.",
+    "prescricao_padrao": {
+      "series": 3,
+      "tipo": "tempo_s",
+      "min": 20,
+      "max": 40,
+      "unilateral": true,
+      "texto": "3 × 20–40 s por lado",
+      "descanso_s": 60
+    },
+    "categoria": "core_peso_corporal",
+    "carga_inicial": {
+      "kg": 0.0,
+      "nota": "peso corporal"
+    },
+    "progressao": {
+      "tipo": "tempo",
+      "incremento_s": 5,
+      "regra": "Completou todas as séries no tempo máximo da faixa: some 5 s por série no próximo treino."
+    },
+    "figura": null,
+    "fotos": [
+      "assets/fotos/prancha-lateral-1.jpg",
+      "assets/fotos/prancha-lateral-2.jpg"
+    ],
+    "foto_fonte_id": "Side_Bridge",
+    "figura_animada": false
+  },
+  {
+    "id": "salto-basico",
+    "nome": "Salto básico",
+    "grupo": "Cardio",
+    "origem": "aparelho",
+    "subgrupo": "corda",
+    "musculos_primarios": [
+      "panturrilha"
+    ],
+    "musculos_secundarios": [
+      "quadriceps",
+      "ombro",
+      "antebraco",
+      "abdomen"
+    ],
+    "musculos_primarios_nome": [
+      "Panturrilha"
+    ],
+    "musculos_secundarios_nome": [
+      "Quadríceps",
+      "Deltoide anterior e medial",
+      "Antebraço",
+      "Reto abdominal"
+    ],
+    "equipamento_texto": "Corda de pular · Tatame",
+    "equipamento": [
+      "corda",
+      "tatame"
+    ],
+    "implemento": "corda",
+    "montagem": "Corda no comprimento certo: pisando no meio dela, as pontas chegam nas axilas. Sempre em cima do tatame.",
+    "passos": [
+      "Cotovelos junto ao corpo, o giro vem do punho, não do ombro.",
+      "Salte 2 a 3 cm do chão, caindo na ponta dos pés.",
+      "Progrida pelo tempo de bloco, não pela velocidade — a tabela do guia vai de 6 × 30 s a 5 × 3 min."
+    ],
+    "erro_comum": "Saltar alto. Cansa em 40 segundos e é o que provoca canelite. Salto raso e rápido é o certo.",
+    "prescricao_padrao": {
+      "series": null,
+      "tipo": "ver_cardio_corda",
+      "min": null,
+      "max": null,
+      "unilateral": false,
+      "texto": "6 × 30 s a 5 × 3 min",
+      "descanso_s": 60
+    },
+    "categoria": "core_peso_corporal",
+    "carga_inicial": {
+      "kg": 0.0,
+      "nota": "peso corporal"
+    },
+    "progressao": {
+      "tipo": "plano_corda",
+      "regra": "Segue a progressão de corda de cardio.json (6 × 30 s → 5 × 3 min em 12 semanas)."
+    },
+    "figura": null,
+    "fotos": [
+      "assets/fotos/salto-basico-1.jpg",
+      "assets/fotos/salto-basico-2.jpg"
+    ],
+    "foto_fonte_id": "Rope_Jumping",
+    "figura_animada": false
+  },
+  {
+    "id": "corrida-no-lugar-com-a-corda",
+    "nome": "Corrida no lugar com a corda",
+    "grupo": "Cardio",
+    "origem": "aparelho",
+    "subgrupo": "corda",
+    "musculos_primarios": [
+      "panturrilha"
+    ],
+    "musculos_secundarios": [
+      "quadriceps",
+      "posterior",
+      "abdomen"
+    ],
+    "musculos_primarios_nome": [
+      "Panturrilha"
+    ],
+    "musculos_secundarios_nome": [
+      "Quadríceps",
+      "Posterior de coxa",
+      "Reto abdominal"
+    ],
+    "equipamento_texto": "Corda de pular · Tatame",
+    "equipamento": [
+      "corda",
+      "tatame"
+    ],
+    "implemento": "corda",
+    "montagem": "Mesmo ajuste do salto básico.",
+    "passos": [
+      "Alterne os pés a cada giro, como se corresse parado.",
+      "Ritmo mais alto que o salto básico, com menos impacto por pé.",
+      "Use como aquecimento de 2 minutos antes do treino de força."
+    ],
+    "erro_comum": "Levantar demais o joelho no começo. Comece com o pé quase raspando o tatame e suba a amplitude depois.",
+    "prescricao_padrao": {
+      "series": 4,
+      "tipo": "tempo_s",
+      "min": 30,
+      "max": 45,
+      "unilateral": false,
+      "texto": "4 × 30–45 s",
+      "descanso_s": 60
+    },
+    "categoria": "core_peso_corporal",
+    "carga_inicial": {
+      "kg": 0.0,
+      "nota": "peso corporal"
+    },
+    "progressao": {
+      "tipo": "tempo",
+      "incremento_s": 5,
+      "regra": "Completou todas as séries no tempo máximo da faixa: some 5 s por série no próximo treino."
+    },
+    "figura": null,
+    "fotos": [
+      "assets/fotos/corrida-no-lugar-com-a-corda-1.jpg",
+      "assets/fotos/corrida-no-lugar-com-a-corda-2.jpg"
+    ],
+    "foto_fonte_id": "Fast_Skipping",
+    "figura_animada": false
+  },
+  {
+    "id": "salto-com-joelho-alto",
+    "nome": "Salto com joelho alto",
+    "grupo": "Cardio",
+    "origem": "aparelho",
+    "subgrupo": "corda",
+    "musculos_primarios": [
+      "quadriceps"
+    ],
+    "musculos_secundarios": [
+      "gluteo",
+      "panturrilha",
+      "abdomen"
+    ],
+    "musculos_primarios_nome": [
+      "Quadríceps"
+    ],
+    "musculos_secundarios_nome": [
+      "Glúteo",
+      "Panturrilha",
+      "Reto abdominal"
+    ],
+    "equipamento_texto": "Tatame · peso corporal",
+    "equipamento": [
+      "tatame"
+    ],
+    "implemento": "peso_corporal",
+    "montagem": "Em pé no tatame, sem corda. É trabalho de potência, não de resistência.",
+    "passos": [
+      "Salte trazendo os dois joelhos em direção ao peito.",
+      "Caia com o joelho levemente dobrado, absorvendo o impacto.",
+      "Descanse 60 s entre séries — aqui qualidade vale mais que quantidade."
+    ],
+    "erro_comum": "Fazer até a fadiga. Exercício de potência perde o sentido quando você está cansado; pare enquanto os saltos estão altos.",
+    "prescricao_padrao": {
+      "series": 3,
+      "tipo": "reps",
+      "min": 8,
+      "max": 12,
+      "unilateral": false,
+      "texto": "3 × 8–12",
+      "descanso_s": 90
+    },
+    "categoria": "core_peso_corporal",
+    "carga_inicial": {
+      "kg": 0.0,
+      "nota": "peso corporal"
+    },
+    "progressao": {
+      "tipo": "reps",
+      "incremento_reps": 1,
+      "regra": "Completou todas as séries no topo da faixa: some 1 repetição por série (ou uma anilha de 2 kg contra o peito / na mochila quando passar de 20)."
+    },
+    "figura": null,
+    "fotos": [
+      "assets/fotos/salto-com-joelho-alto-1.jpg",
+      "assets/fotos/salto-com-joelho-alto-2.jpg"
+    ],
+    "foto_fonte_id": "Knee_Tuck_Jump",
+    "figura_animada": false
+  },
+  {
+    "id": "barra-fixa-assistida",
+    "nome": "Barra fixa assistida",
+    "grupo": "Costas",
+    "origem": "aparelho",
+    "subgrupo": "band",
+    "musculos_primarios": [
+      "dorsal"
+    ],
+    "musculos_secundarios": [
+      "biceps",
+      "trapezio",
+      "antebraco"
+    ],
+    "musculos_primarios_nome": [
+      "Dorsal (latíssimo)"
+    ],
+    "musculos_secundarios_nome": [
+      "Bíceps",
+      "Trapézio",
+      "Antebraço"
+    ],
+    "equipamento_texto": "Barra fixa · Super Band",
+    "equipamento": [
+      "barra-fixa",
+      "super-band"
+    ],
+    "implemento": "barra_fixa",
+    "montagem": "Passe a Super Band por cima da barra e puxe uma ponta pela outra. Apoie o joelho no laço (mais ajuda) ou o pé (menos).",
+    "passos": [
+      "Pendure com os braços estendidos e as escápulas soltas.",
+      "Puxe levando o peito à barra, cotovelos descendo junto ao corpo.",
+      "Desça controlado até estender por completo."
+    ],
+    "erro_comum": "Deixar o elástico fazer o trabalho no fundo do movimento. Ele ajuda embaixo e quase nada em cima — é para isso que serve.",
+    "prescricao_padrao": {
+      "series": 4,
+      "tipo": "reps",
+      "min": 5,
+      "max": 8,
+      "unilateral": false,
+      "texto": "4 × 5–8",
+      "descanso_s": 150
+    },
+    "categoria": "composto_moderado",
+    "carga_inicial": {
+      "kg": 0.0,
+      "nota": "peso corporal"
+    },
+    "progressao": {
+      "tipo": "assistencia",
+      "incremento_kg": 0,
+      "regra": "Reduza a ajuda do elástico (pé inteiro → joelho → joelho com a perna dobrada para trás) quando completar todas as séries no topo da faixa; a carga não muda."
+    },
+    "figura": null,
+    "fotos": [
+      "assets/fotos/barra-fixa-assistida-1.jpg",
+      "assets/fotos/barra-fixa-assistida-2.jpg"
+    ],
+    "foto_fonte_id": "Band_Assisted_Pull-Up",
+    "figura_animada": false
+  },
+  {
+    "id": "abertura-de-ombros",
+    "nome": "Abertura de ombros",
+    "grupo": "Ombros",
+    "origem": "aparelho",
+    "subgrupo": "band",
+    "musculos_primarios": [
+      "ombrop"
+    ],
+    "musculos_secundarios": [
+      "trapezio"
+    ],
+    "musculos_primarios_nome": [
+      "Deltoide posterior"
+    ],
+    "musculos_secundarios_nome": [
+      "Trapézio"
+    ],
+    "equipamento_texto": "Super Band",
+    "equipamento": [
+      "super-band"
+    ],
+    "implemento": "band",
+    "montagem": "Elástico segurado à frente do peito com os braços estendidos, mãos na largura dos ombros.",
+    "passos": [
+      "Abra os braços para os lados até o elástico tocar o peito.",
+      "Aperte as escápulas uma contra a outra no fim.",
+      "Volte devagar contra a resistência."
+    ],
+    "erro_comum": "Dobrar o cotovelo e transformar em remada. O braço fica reto do começo ao fim.",
+    "prescricao_padrao": {
+      "series": 2,
+      "tipo": "reps",
+      "min": 15,
+      "max": 20,
+      "unilateral": false,
+      "texto": "2 × 15–20",
+      "descanso_s": 60
+    },
+    "categoria": "core_peso_corporal",
+    "carga_inicial": {
+      "kg": 0.0,
+      "nota": "peso corporal"
+    },
+    "progressao": {
+      "tipo": "assistencia",
+      "incremento_kg": 0,
+      "regra": "Reduza a ajuda do elástico (do pé para o joelho, depois joelho com a perna dobrada para trás) em vez de mudar carga."
+    },
+    "figura": null,
+    "fotos": [
+      "assets/fotos/abertura-de-ombros-1.jpg",
+      "assets/fotos/abertura-de-ombros-2.jpg"
+    ],
+    "foto_fonte_id": "Band_Pull_Apart",
+    "figura_animada": false
+  },
+  {
+    "id": "good-morning-com-elastico",
+    "nome": "Good morning com elástico",
+    "grupo": "Pernas",
+    "origem": "aparelho",
+    "subgrupo": "band",
+    "musculos_primarios": [
+      "posterior"
+    ],
+    "musculos_secundarios": [
+      "gluteo",
+      "lombar"
+    ],
+    "musculos_primarios_nome": [
+      "Posterior de coxa"
+    ],
+    "musculos_secundarios_nome": [
+      "Glúteo",
+      "Lombar (eretores)"
+    ],
+    "equipamento_texto": "Super Band",
+    "equipamento": [
+      "super-band"
+    ],
+    "implemento": "band",
+    "montagem": "Pise no elástico e passe a outra ponta por trás do pescoço, sobre o trapézio.",
+    "passos": [
+      "Empurre o quadril para trás mantendo a coluna reta.",
+      "Desça até sentir o alongamento no posterior.",
+      "Volte contraindo o glúteo."
+    ],
+    "erro_comum": "Nenhum grave — é justamente o exercício mais seguro para aprender o movimento de quadril antes de fazer terra com barra.",
+    "prescricao_padrao": {
+      "series": 2,
+      "tipo": "reps",
+      "min": 12,
+      "max": 15,
+      "unilateral": false,
+      "texto": "2 × 12–15",
+      "descanso_s": 60
+    },
+    "categoria": "core_peso_corporal",
+    "carga_inicial": {
+      "kg": 0.0,
+      "nota": "peso corporal"
+    },
+    "progressao": {
+      "tipo": "assistencia",
+      "incremento_kg": 0,
+      "regra": "Reduza a ajuda do elástico (do pé para o joelho, depois joelho com a perna dobrada para trás) em vez de mudar carga."
+    },
+    "figura": null,
+    "fotos": [
+      "assets/fotos/good-morning-com-elastico-1.jpg",
+      "assets/fotos/good-morning-com-elastico-2.jpg"
+    ],
+    "foto_fonte_id": "Band_Good_Morning",
+    "figura_animada": false
+  }
+]

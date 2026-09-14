@@ -1,0 +1,927 @@
+<title>Manual da Garagem</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&display=swap">
+
+<style>
+:root{
+  --ground:#E9EBEE; --surface:#FBFBFC; --surface-2:#F1F3F5; --surface-3:#E2E6EA;
+  --ink:#14171A; --ink-2:#545C64; --ink-3:#7C868F;
+  --line:#CFD4DA; --line-2:#B9C0C7;
+  --accent:#1F5673; --accent-soft:#DCE7EE;
+  --good:#2E6B4F; --good-soft:#DCEAE2;
+  --warn:#9C4A22; --warn-soft:#F3E3D8;
+  --danger:#8E2F2A; --danger-soft:#F2DEDC;
+  --shadow:0 1px 2px rgba(20,23,26,.06), 0 8px 24px -12px rgba(20,23,26,.18);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#101315; --surface:#171B1E; --surface-2:#1E2327; --surface-3:#262C31;
+    --ink:#E8ECEF; --ink-2:#98A3AC; --ink-3:#79848D;
+    --line:#2C3338; --line-2:#3A434A;
+    --accent:#7FB2CE; --accent-soft:#1B2C38;
+    --good:#7BC49D; --good-soft:#172A21;
+    --warn:#DE9A66; --warn-soft:#2E2018;
+    --danger:#E08A82; --danger-soft:#2E1B19;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#101315; --surface:#171B1E; --surface-2:#1E2327; --surface-3:#262C31;
+  --ink:#E8ECEF; --ink-2:#98A3AC; --ink-3:#79848D;
+  --line:#2C3338; --line-2:#3A434A;
+  --accent:#7FB2CE; --accent-soft:#1B2C38;
+  --good:#7BC49D; --good-soft:#172A21;
+  --warn:#DE9A66; --warn-soft:#2E2018;
+  --danger:#E08A82; --danger-soft:#2E1B19;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+}
+
+*{box-sizing:border-box}
+body{
+  background:var(--ground); color:var(--ink);
+  font-family:"Source Sans 3", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size:17px; line-height:1.6; margin:0; -webkit-font-smoothing:antialiased;
+}
+.shell{max-width:1060px; margin:0 auto; padding:0 24px 96px}
+.prose{max-width:66ch}
+h1,h2,h3,h4{font-family:Archivo, ui-sans-serif, system-ui, sans-serif; text-wrap:balance; margin:0}
+a{color:var(--accent); text-decoration:none; border-bottom:1px solid color-mix(in srgb, var(--accent) 35%, transparent)}
+a:hover{border-bottom-color:var(--accent)}
+a:focus-visible{outline:2px solid var(--accent); outline-offset:3px; border-radius:2px}
+
+.masthead{border-bottom:1px solid var(--line); background:var(--surface); margin-bottom:44px}
+.masthead .shell{padding-top:38px; padding-bottom:34px}
+.eyebrow{font-family:"IBM Plex Mono", monospace; font-size:11.5px; font-weight:500;
+  letter-spacing:.16em; text-transform:uppercase; color:var(--ink-3);
+  display:flex; flex-wrap:wrap; gap:8px 14px; align-items:center; margin-bottom:18px}
+.eyebrow span:not(:last-child)::after{content:"·"; color:var(--line-2); margin-left:14px}
+h1{font-size:clamp(34px,5.2vw,52px); font-weight:700; letter-spacing:-.026em; line-height:1.04}
+.dek{max-width:60ch; margin-top:16px; font-size:19px; color:var(--ink-2); line-height:1.5}
+
+.verdict{display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:1px;
+  background:var(--line); border:1px solid var(--line); margin-top:34px; border-radius:3px; overflow:hidden}
+.vcell{background:var(--surface-2); padding:18px 20px}
+.vlabel{font-family:"IBM Plex Mono",monospace; font-size:10.5px; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--ink-3); margin-bottom:9px}
+.vnum{font-family:"IBM Plex Mono",monospace; font-size:25px; font-weight:600; letter-spacing:-.02em;
+  font-variant-numeric:tabular-nums; line-height:1.1}
+.vnote{font-size:13.5px; color:var(--ink-2); margin-top:5px; line-height:1.4}
+.vnum.pos{color:var(--good)}
+
+section{margin-top:60px}
+.snum{font-family:"IBM Plex Mono",monospace; font-size:11.5px; font-weight:500; letter-spacing:.14em;
+  color:var(--accent); text-transform:uppercase; margin-bottom:10px}
+h2{font-size:clamp(24px,3.1vw,31px); font-weight:600; letter-spacing:-.02em; line-height:1.15}
+h3{font-size:19px; font-weight:600; letter-spacing:-.012em; margin-top:34px}
+p{margin:15px 0}
+.lede{font-size:18.5px; color:var(--ink-2)}
+strong{font-weight:600; color:var(--ink)}
+hr.rule{border:0; border-top:1px solid var(--line); margin:0}
+
+.tblwrap{overflow-x:auto; margin:26px 0; border:1px solid var(--line); border-radius:3px; background:var(--surface)}
+table{border-collapse:collapse; width:100%; font-size:15px; min-width:580px}
+th{font-family:"IBM Plex Mono",monospace; font-size:10.5px; font-weight:500; letter-spacing:.12em;
+  text-transform:uppercase; color:var(--ink-3); text-align:left; padding:12px 16px;
+  border-bottom:1px solid var(--line); background:var(--surface-2); white-space:nowrap}
+td{padding:12px 16px; border-bottom:1px solid var(--line); vertical-align:top}
+tbody tr:last-child td{border-bottom:0}
+.num{font-family:"IBM Plex Mono",monospace; font-variant-numeric:tabular-nums; text-align:right; white-space:nowrap}
+th.num{text-align:right}
+tr.total td{background:var(--surface-2); font-weight:600; border-top:2px solid var(--line-2)}
+tr.total td.num{font-size:16px}
+.sub{display:block; font-size:13px; color:var(--ink-3); margin-top:2px; line-height:1.35}
+td.grp{background:var(--surface-2); font-family:"IBM Plex Mono",monospace; font-size:10.5px;
+  letter-spacing:.13em; text-transform:uppercase; color:var(--ink-3); padding:9px 16px}
+
+.call{border-left:3px solid var(--accent); background:var(--surface); padding:18px 22px; margin:28px 0; border-radius:0 3px 3px 0}
+.call.risk{border-left-color:var(--danger); background:var(--danger-soft)}
+.call.win{border-left-color:var(--good); background:var(--good-soft)}
+.call.watch{border-left-color:var(--warn); background:var(--warn-soft)}
+.call h4{font-size:15px; font-weight:600; margin-bottom:7px}
+.call p{margin:0; font-size:15.5px; line-height:1.55}
+.call p + p{margin-top:10px}
+.call ul{margin:10px 0 0; padding-left:20px; font-size:15.5px}
+.call li{margin-bottom:6px; line-height:1.5}
+
+.pill{display:inline-block; font-family:"IBM Plex Mono",monospace; font-size:10.5px; font-weight:500;
+  letter-spacing:.09em; text-transform:uppercase; padding:3px 8px; border-radius:2px; white-space:nowrap}
+.p-good{background:var(--good-soft); color:var(--good)}
+.p-warn{background:var(--warn-soft); color:var(--warn)}
+.p-acc{background:var(--accent-soft); color:var(--accent)}
+.p-neutral{background:var(--surface-3); color:var(--ink-2)}
+
+/* plate rack */
+.plates{display:flex; flex-wrap:wrap; gap:10px; margin:24px 0}
+.plate{background:var(--surface); border:1px solid var(--line); border-radius:3px; padding:14px 16px; min-width:104px; flex:1 1 104px}
+.plate .kg{font-family:"IBM Plex Mono",monospace; font-size:23px; font-weight:600; letter-spacing:-.02em; line-height:1}
+.plate .qt{font-size:13px; color:var(--ink-2); margin-top:6px}
+.plate .tot{font-family:"IBM Plex Mono",monospace; font-size:12px; color:var(--ink-3); margin-top:2px}
+
+.est{color:var(--ink-3); font-size:12px; font-family:"IBM Plex Mono",monospace}
+
+/* route cards */
+.routes{display:grid; grid-template-columns:repeat(auto-fit,minmax(290px,1fr)); gap:18px; margin:30px 0}
+.route{background:var(--surface); border:1px solid var(--line); border-radius:4px; padding:22px; display:flex; flex-direction:column; box-shadow:var(--shadow)}
+.route.pick{border-color:var(--accent); border-width:2px; padding:21px}
+.rtag{font-family:"IBM Plex Mono",monospace; font-size:10.5px; letter-spacing:.13em; text-transform:uppercase;
+  color:var(--ink-3); margin-bottom:9px; display:flex; justify-content:space-between; gap:10px; align-items:baseline}
+.route.pick .rtag{color:var(--accent)}
+.rtitle{font-family:Archivo,sans-serif; font-size:19px; font-weight:600; letter-spacing:-.015em; margin-bottom:6px}
+.rprice{font-family:"IBM Plex Mono",monospace; font-size:28px; font-weight:600; letter-spacing:-.025em;
+  font-variant-numeric:tabular-nums; margin:12px 0 4px}
+.rdelta{font-family:"IBM Plex Mono",monospace; font-size:13px; color:var(--good); margin-bottom:14px}
+.rlist{list-style:none; padding:0; margin:0 0 4px; font-size:14.5px; border-top:1px solid var(--line)}
+.rlist li{display:flex; justify-content:space-between; gap:12px; padding:8px 0; border-bottom:1px solid var(--line); line-height:1.4}
+.rlist li:last-child{border-bottom:0}
+.rlist .num{font-size:14px}
+.rwhy{font-size:14.5px; color:var(--ink-2); margin-top:14px; line-height:1.5; padding-top:14px; border-top:1px solid var(--line)}
+
+/* steps */
+ol.steps{list-style:none; counter-reset:s; padding:0; margin:26px 0}
+ol.steps li{counter-increment:s; position:relative; padding:0 0 22px 52px; border-left:1px solid var(--line); margin-left:14px}
+ol.steps li:last-child{border-left-color:transparent; padding-bottom:0}
+ol.steps li::before{content:counter(s,decimal-leading-zero); position:absolute; left:-15px; top:-2px;
+  width:30px; height:30px; border-radius:50%; background:var(--surface-3); color:var(--ink-2);
+  font-family:"IBM Plex Mono",monospace; font-size:11.5px; font-weight:600;
+  display:flex; align-items:center; justify-content:center; border:1px solid var(--line)}
+ol.steps h4{font-size:16.5px; font-weight:600; margin-bottom:4px}
+ol.steps p{margin:0; font-size:15.5px; color:var(--ink-2); line-height:1.55}
+ol.steps .when{font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--ink-3); display:block; margin-top:6px}
+
+.diag{margin:26px 0;padding:18px 18px 12px;background:var(--surface);border:1px solid var(--line);border-radius:4px;color:var(--ink)}
+.diag svg{display:block;width:100%;height:auto}
+.diag figcaption{margin-top:12px;font-size:14px;line-height:1.5;color:var(--ink-2)}
+.diag figcaption strong{color:var(--ink)}
+/* muscle cards */
+.muscles{display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:16px; margin:28px 0}
+.mus{background:var(--surface); border:1px solid var(--line); border-radius:4px; padding:20px 22px; box-shadow:var(--shadow)}
+.mus h3{margin:0 0 4px; font-size:18px}
+.mus .count{font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.12em;
+  text-transform:uppercase; color:var(--ink-3); margin-bottom:14px}
+.mus ol{list-style:none; padding:0; margin:0; counter-reset:e}
+.mus li{counter-increment:e; display:grid; grid-template-columns:1fr auto; gap:8px;
+  padding:8px 0; border-top:1px solid var(--line); font-size:15px; line-height:1.4; align-items:baseline}
+.mus li:first-child{border-top:0; padding-top:0}
+.mus li .eq{font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--ink-3);
+  letter-spacing:.06em; white-space:nowrap}
+.mus li em{font-style:normal; color:var(--ink-2); font-size:13.5px; display:block; margin-top:1px}
+
+/* program */
+.prog{display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:16px; margin:26px 0}
+.day{background:var(--surface); border:1px solid var(--line); border-radius:4px; padding:20px 22px}
+.day .tag{font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--accent); margin-bottom:8px}
+.day h3{margin:0 0 12px; font-size:17px}
+.day table{min-width:0; font-size:14.5px}
+.day td{padding:7px 0; border-bottom:1px solid var(--line)}
+.day tr:last-child td{border-bottom:0}
+
+footer{margin-top:66px; padding-top:26px; border-top:1px solid var(--line); font-size:14px; color:var(--ink-3)}
+footer a{color:var(--ink-2)}
+footer ul{padding-left:18px; margin:10px 0 0; columns:2; column-gap:32px}
+footer li{margin-bottom:5px; break-inside:avoid}
+@media (max-width:620px){
+  ol.steps li{padding-left:44px}
+  body{font-size:16px}
+  footer ul{columns:1}
+  .mus li{grid-template-columns:1fr}
+  .mus li .eq{margin-top:2px}
+}
+</style>
+
+
+<div class="masthead">
+  <div class="shell">
+    <div class="eyebrow"><span>Comprado · montagem e treino</span><span>10 itens · 4 pedidos</span><span>Garagem · Nova Lima</span><span>31 ago 2026</span></div>
+    <h1>Manual da garagem</h1>
+    <p class="dek">Comprado em 31 de agosto por R$ 4.179,49, em quatro pedidos. O calendário de chegada, a checklist de montagem peça por peça, o inventário completo e os 67 exercícios que esse conjunto libera.</p>
+
+    <div class="verdict">
+      <div class="vcell">
+        <div class="vlabel">Pago</div>
+        <div class="vnum">R$ 4.179,49</div>
+        <div class="vnote">4 pedidos · fretes inclusos</div>
+      </div>
+      <div class="vcell">
+        <div class="vlabel">Entregas</div>
+        <div class="vnum">1 → 11 set</div>
+        <div class="vnote">hoje a barra fixa · dia 11 o ferro</div>
+      </div>
+      <div class="vcell">
+        <div class="vlabel">Cargas na barra</div>
+        <div class="vnum">7,5 → 107,5 kg</div>
+        <div class="vnote">51 cargas, de 2 em 2 kg</div>
+      </div>
+      <div class="vcell">
+        <div class="vlabel">Exercícios liberados</div>
+        <div class="vnum pos">67</div>
+        <div class="vnote">9 a mais com o cross over</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="shell">
+
+<section style="margin-top:0">
+  <div class="snum">Suas perguntas</div>
+  <h2>Não, sua barra não tem 20 kg</h2>
+  <div class="prose">
+    <p class="lede">Três respostas diretas antes dos números, porque elas mudam o que faz sentido comprar.</p>
+
+    <h3>A barra tem 20 kg?</h3>
+    <p>A barra de <strong>20 kg é a olímpica</strong>: 2,20 m de comprimento e furo de <strong>50 mm</strong>. É outro ecossistema — exige anilhas de furo 50 mm, que custam cerca de 40% mais, e um rack maior para acomodar 2,20 m.</p>
+    <p>A barra que você comprou é <strong>recreativa</strong>: 1,50 m, punho de 28,57 mm, e pesa <strong>7,5 kg</strong>. Toda carga que você calcular tem que partir de 7,5 kg, não de 20.</p>
+
+    <h3>Então o supino "de 80 kg" seriam quantas anilhas?</h3>
+    <p>Quando alguém diz "supino 80 kg" quase sempre está falando de barra olímpica de 20 kg + 60 kg de anilhas. No seu padrão, para chegar aos mesmos 80 kg você precisa de <strong>72,5 kg de anilhas</strong> sobre uma barra de 7,5 kg. Com o kit de 100 kg, seu teto é <strong>107,5 kg</strong> — mais do que você vai precisar por muitos anos.</p>
+
+    <h3>60 kg é suficiente para supino, bíceps e tríceps?</h3>
+    <p>Para esses três, <strong>sim, com folga.</strong> Rosca direta de 40 kg já é carga de gente avançada; tríceps testa raramente passa de 35 kg. Onde 60 kg fica curto é em <strong>perna e costas</strong> — agachamento e levantamento terra passam de 67,5 kg em quatro a seis meses de treino consistente.</p>
+  </div>
+
+  <div class="tblwrap">
+    <table>
+      <thead><tr><th>Exercício</th><th class="num">0–6 meses</th><th class="num">1 ano</th><th class="num">2 anos</th><th class="num">Teto c/ 60 kg</th><th class="num">Teto c/ 100 kg</th></tr></thead>
+      <tbody>
+        <tr><td>Supino reto</td><td class="num">20–40 kg</td><td class="num">50–65 kg</td><td class="num">70–90 kg</td><td class="num">67,5 kg</td><td class="num">107,5 kg</td></tr>
+        <tr><td>Desenvolvimento</td><td class="num">20–30 kg</td><td class="num">35–45 kg</td><td class="num">45–60 kg</td><td class="num">67,5 kg</td><td class="num">107,5 kg</td></tr>
+        <tr><td>Rosca direta</td><td class="num">15–25 kg</td><td class="num">25–35 kg</td><td class="num">35–45 kg</td><td class="num">67,5 kg</td><td class="num">107,5 kg</td></tr>
+        <tr><td>Tríceps testa</td><td class="num">15–25 kg</td><td class="num">25–35 kg</td><td class="num">30–40 kg</td><td class="num">67,5 kg</td><td class="num">107,5 kg</td></tr>
+        <tr><td>Remada curvada</td><td class="num">25–40 kg</td><td class="num">45–60 kg</td><td class="num">60–80 kg</td><td class="num">67,5 kg</td><td class="num">107,5 kg</td></tr>
+        <tr><td><strong>Agachamento</strong></td><td class="num">30–50 kg</td><td class="num">60–90 kg</td><td class="num">90–120 kg</td><td class="num" style="color:var(--warn)">67,5 kg</td><td class="num">107,5 kg</td></tr>
+        <tr><td><strong>Levantamento terra</strong></td><td class="num">40–60 kg</td><td class="num">80–110 kg</td><td class="num">110–140 kg</td><td class="num" style="color:var(--warn)">67,5 kg</td><td class="num">107,5 kg</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="call win">
+    <h4>Por isso mudei a recomendação de 60 para 100 kg</h4>
+    <p>Nas contas do dia 31, o quilo marginal de ferro sai entre <strong>R$ 9 e R$ 13</strong>. Sair de 60 para 100 kg custa cerca de R$ 450 e compra três a quatro anos de progressão em agachamento e terra — os dois exercícios que iam travar primeiro. É o item mais barato do setup por unidade de tempo que ele te dá.</p>
+    <p>E há um detalhe que só aparece olhando a composição: o kit de 100 kg da Ciuze vem com <strong>quatro anilhas de cada peso, de 1 kg a 10 kg</strong>. Isso é exatamente a distribuição que faz a barra andar de 2 em 2 kg e os halteres ficarem simétricos — os kits menores da mesma linha não têm as de 10 kg, que é justamente o que falta para carregar agachamento sem encher a barra de disco pequeno.</p>
+  </div>
+</section>
+
+<hr class="rule">
+
+<section>
+  <div class="snum">Especificações</div>
+  <h2>Os cinco itens e a troca que eu fiz</h2>
+  <p class="prose lede">O que cada peça é, com a especificação que importa e o preço pago.</p>
+
+  <div class="call watch">
+    <h4>Troquei a barra — e o motivo é compatibilidade, não preço</h4>
+    <p>A barra da MegaGym que estava no carrinho tinha punho de <strong>25,40 mm</strong>. As anilhas brasileiras têm furo de <strong>30 a 33 mm</strong>. Sobrariam quase 8 mm de folga: o disco balança na barra, senta torto e bate a cada repetição. Funciona, mas é desconfortável e desgasta a presilha.</p>
+    <p>Coloquei no lugar a <strong>Famafit 28,57 mm</strong>, R$ 235,69 — R$ 24 a mais e melhor em tudo que importa: 4,9★ com 128 avaliações contra 4,5★ com 36, suporta <strong>400 kg</strong> em vez de 300, e o encaixe fica justo. Também tem frete grátis.</p>
+  </div>
+
+  <div class="tblwrap">
+    <table>
+      <thead><tr><th>Item</th><th>Spec</th><th class="num">PIX</th><th class="num">Cartão</th><th class="num">Frete</th></tr></thead>
+      <tbody>
+        <tr><td class="grp" colspan="5">Estrutura · frete grátis em tudo</td></tr>
+        <tr>
+          <td>Suporte cavalete regulável<span class="sub">Exercit · 4,6★ (87)</span></td>
+          <td>70–150 cm · 12 posições · 200 kg</td>
+          <td class="num">575,25</td><td class="num">575,25<span class="sub">10× 57,52 s/ juros</span></td><td class="num">grátis</td>
+        </tr>
+        <tr>
+          <td>Banco supino 7 posições<span class="sub">Yangfit · 4,6★ (274) · últimas 4 un.</span></td>
+          <td>reto/inclinado/declinado · dobrável · 200 kg</td>
+          <td class="num">482,71</td><td class="num">524,69<span class="sub">10× 52,47 s/ juros</span></td><td class="num">grátis</td>
+        </tr>
+        <tr>
+          <td>Barra reta maciça 1,50 m 28 mm<span class="sub">Famafit/MegaGym · 4,9★ (128)</span></td>
+          <td>7,5 kg · punho 28,57 mm · <strong>suporta 400 kg</strong> · com presilhas</td>
+          <td class="num">235,69</td><td class="num">235,69<span class="sub">12× 23,33</span></td><td class="num">grátis</td>
+        </tr>
+        <tr>
+          <td>Barra fixa de parede<span class="sub">Barrafixa · 4,7★ (4.993)</span></td>
+          <td>bipartida · 250 kg · resiste a sol e chuva</td>
+          <td class="num">110,48</td><td class="num">116,30</td><td class="num">grátis</td>
+        </tr>
+        <tr class="total"><td>Subtotal estrutura</td><td></td><td class="num">R$ 1.404,13</td><td class="num">R$ 1.451,93</td><td class="num">R$ 0</td></tr>
+
+        <tr><td class="grp" colspan="5">O ferro · frete cobrado</td></tr>
+        <tr>
+          <td>Kit 100 kg + 4 barras, 36 peças<span class="sub">Ciuze / Sepo · 4,8★ (160) · +500 vendidos</span></td>
+          <td>24 anilhas de ferro fundido + barra reta 1,50 m + barra W 1,20 m + 2 barras de halter + 8 presilhas</td>
+          <td class="num">1.389,90</td><td class="num">1.389,90<span class="sub">10× 138,99 s/ juros</span></td><td class="num" style="color:var(--warn)">237,35</td>
+        </tr>
+        <tr class="total"><td>Subtotal ferro</td><td></td><td class="num">R$ 1.627,25</td><td class="num">R$ 1.627,25</td><td class="num">R$ 237,35</td></tr>
+        <tr class="total"><td>Subtotal dos 3 primeiros pedidos</td><td></td><td class="num">R$ 3.031,38</td><td class="num">R$ 3.079,18</td><td class="num">R$ 237,35</td></tr>
+
+        <tr><td class="grp" colspan="5">Cross over e acessórios · pedido #2000014795837403</td></tr>
+        <tr>
+          <td>Cross over de parede<span class="sub">EJ Oliver · loja oficial · FULL</span></td>
+          <td>polia alta e baixa · uso independente dos dois cabos · fixação em alvenaria</td>
+          <td class="num" colspan="2">6 produtos<span class="sub">R$ 1.007,95 no total</span></td>
+          <td class="num">grátis</td>
+        </tr>
+        <tr>
+          <td>Kit de puxadores<span class="sub">Lísia Sport · loja oficial</span></td>
+          <td>barra de puxada + corda + triângulo + estribos</td>
+          <td class="num" colspan="2">—</td><td class="num">incluso</td>
+        </tr>
+        <tr>
+          <td>Tatame EVA 20 mm · 2 un.<span class="sub">Mac Imports</span></td>
+          <td>1 × 1 m cada · encaixe · <strong>2 m² no total</strong></td>
+          <td class="num" colspan="2">—</td><td class="num">incluso</td>
+        </tr>
+        <tr>
+          <td>Corda de pular com rolamento<span class="sub">MB Nutrition</span></td>
+          <td>profissional · rolamento nas alças · comprimento ajustável</td>
+          <td class="num" colspan="2">—</td><td class="num">incluso</td>
+        </tr>
+        <tr>
+          <td>Super Band 45 mm<span class="sub">Yangfit · loja oficial</span></td>
+          <td>extensor extra forte · assistência de barra fixa</td>
+          <td class="num" colspan="2">—</td><td class="num">incluso</td>
+        </tr>
+        <tr class="total">
+          <td>Subtotal cross over</td><td>desconto à vista −R$ 7,49 · frete R$ 76,88</td>
+          <td class="num">R$ 1.077,34</td>
+          <td class="num" style="color:var(--warn)">R$ 1.148,11<span class="sub">2× 10 parcelas <strong>com juros</strong></span></td>
+          <td class="num" style="color:var(--warn)">76,88</td>
+        </tr>
+        <tr class="total"><td><strong>Total pago</strong></td><td>PIX nos dois primeiros pedidos, cartão nos dois últimos</td><td class="num" colspan="2"><strong>R$ 4.179,49</strong><span class="sub">seria R$ 4.108,72 se tudo fosse à vista</span></td><td class="num">R$ 314,23</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  
+</section>
+
+<hr class="rule">
+
+<section>
+  <div class="snum">Inventário</div>
+  <h2>Todo o ferro, peça por peça</h2>
+  <p class="prose lede">O kit de 100 kg da Ciuze já vem na distribuição certa — quatro anilhas de cada peso. Não é sorte: é o que faz a barra andar de 2 em 2 kg e os dois halteres ficarem simétricos sem sobrar disco.</p>
+
+  <div class="plates">
+    <div class="plate"><div class="kg">1 kg</div><div class="qt">4 anilhas</div><div class="tot">= 4 kg</div></div>
+    <div class="plate"><div class="kg">2 kg</div><div class="qt">4 anilhas</div><div class="tot">= 8 kg</div></div>
+    <div class="plate"><div class="kg">3 kg</div><div class="qt">4 anilhas</div><div class="tot">= 12 kg</div></div>
+    <div class="plate"><div class="kg">4 kg</div><div class="qt">4 anilhas</div><div class="tot">= 16 kg</div></div>
+    <div class="plate"><div class="kg">5 kg</div><div class="qt">4 anilhas</div><div class="tot">= 20 kg</div></div>
+    <div class="plate"><div class="kg">10 kg</div><div class="qt">4 anilhas</div><div class="tot">= 40 kg</div></div>
+  </div>
+
+  <div class="tblwrap">
+    <table>
+      <thead><tr><th>Peça</th><th>Qtd.</th><th>Unitário</th><th>Observação</th><th class="num">Total</th></tr></thead>
+      <tbody>
+        <tr><td class="grp" colspan="5">Anilhas — 24 peças, 100 kg, ferro fundido pintado</td></tr>
+        <tr><td>Anilha 1 kg</td><td>4</td><td>1 kg</td><td>Ø externo 140 mm · progressão fina</td><td class="num">4 kg</td></tr>
+        <tr><td>Anilha 2 kg</td><td>4</td><td>2 kg</td><td>Ø 160 mm</td><td class="num">8 kg</td></tr>
+        <tr><td>Anilha 3 kg</td><td>4</td><td>3 kg</td><td>Ø 180 mm</td><td class="num">12 kg</td></tr>
+        <tr><td>Anilha 4 kg</td><td>4</td><td>4 kg</td><td>Ø 200 mm</td><td class="num">16 kg</td></tr>
+        <tr><td>Anilha 5 kg</td><td>4</td><td>5 kg</td><td>Ø 220 mm</td><td class="num">20 kg</td></tr>
+        <tr><td>Anilha 10 kg</td><td>4</td><td>10 kg</td><td>Ø 260 mm · carrega a barra rápido</td><td class="num">40 kg</td></tr>
+
+        <tr><td class="grp" colspan="5">Barras</td></tr>
+        <tr><td><strong>Barra reta maciça 1,50 m Famafit</strong><span class="sub">a que você usa em tudo que é pesado</span></td><td>1</td><td>7,5 kg</td><td>punho 28,57 mm · <strong>suporta 400 kg</strong> · cromada, recartilhada</td><td class="num">7,5 kg</td></tr>
+        <tr><td>Barra reta 1,50 m oca (do kit)</td><td>1</td><td>~3,5 kg</td><td><span class="pill p-warn">limite 60 kg</span> use só em exercício leve</td><td class="num">~3,5 kg</td></tr>
+        <tr><td>Barra W 1,20 m oca (do kit)</td><td>1</td><td>~2,5 kg</td><td>limite 50 kg · rosca e tríceps testa</td><td class="num">~2,5 kg</td></tr>
+        <tr><td>Barra de halter 40 cm (do kit)</td><td>2</td><td>~1,5 kg</td><td>limite ~40 kg cada</td><td class="num">~3 kg</td></tr>
+        <tr><td>Barra fixa de parede</td><td>1</td><td>5 kg</td><td>suporta 250 kg · fixar em alvenaria</td><td class="num">5 kg</td></tr>
+        <tr><td>Presilhas</td><td>10</td><td>—</td><td>8 do kit + 1 par da barra Famafit</td><td class="num">—</td></tr>
+
+        <tr><td class="grp" colspan="5">Estrutura</td></tr>
+        <tr><td>Banco regulável dobrável Yangfit</td><td>1</td><td>10 kg</td><td>7 encostos × 4 assentos · 200 kg · rolo para as pernas</td><td class="num">10 kg</td></tr>
+        <tr><td>Suporte cavalete regulável Exercit</td><td>1</td><td>~12 kg</td><td>base 40 × 70 cm · altura 70–150 cm · 200 kg</td><td class="num">~12 kg</td></tr>
+        <tr class="total"><td>Total na garagem</td><td>42 peças</td><td></td><td></td><td class="num">~143 kg</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>O que dá para montar</h3>
+  <div class="tblwrap">
+    <table>
+      <thead><tr><th>Montagem</th><th>Faixa</th><th>Incremento</th><th class="num">Nº de cargas</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Barra Famafit (7,5 kg)</strong><span class="sub">agachamento, supino, terra, remada, desenvolvimento</span></td><td><strong>7,5 kg</strong> a <strong>107,5 kg</strong></td><td>2 kg — 1 kg de cada lado</td><td class="num">51</td></tr>
+        <tr><td><strong>Par de halteres</strong><span class="sub">supino, crucifixo, serrote, rosca, elevações, búlgaro</span></td><td><strong>1,5 kg</strong> a <strong>51,5 kg</strong> cada</td><td>2 kg por halter</td><td class="num">26</td></tr>
+        <tr><td><strong>Barra W (limite 50 kg)</strong><span class="sub">rosca direta, tríceps testa</span></td><td>2,5 kg a 52,5 kg</td><td>2 kg</td><td class="num">26</td></tr>
+        <tr><td><strong>Peso corporal + lastro</strong><span class="sub">barra fixa, mergulho, flexão declinada</span></td><td>seu peso a <strong>+100 kg</strong></td><td>1 kg</td><td class="num">—</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="call win">
+    <h4>Por que quatro de cada peso resolve os dois usos</h4>
+    <p>Na barra você usa <strong>duas de cada lado</strong>; nos halteres, <strong>uma em cada ponta dos dois</strong>. Com quatro unidades de cada peso, os dois arranjos fecham certinho e sobram zero peças órfãs. E como existe anilha de 1 kg, o menor salto possível é 2 kg na barra — o incremento certo para desenvolvimento e rosca, onde subir 5 kg de uma vez trava o exercício por semanas.</p>
+    <p>As de 10 kg fazem o outro trabalho: carregar rápido. Um agachamento de 47,5 kg fica em <strong>dois discos por lado</strong> (10 + 10) em vez de sete discos pequenos empilhados até a presilha não fechar. Sem elas, todo treino de perna vira um quebra-cabeça de montagem.</p>
+  </div>
+</section>
+
+<hr class="rule">
+
+<section>
+  <div class="snum">Catálogo</div>
+  <h2>Os 67 exercícios que você ganha</h2>
+  <p class="prose lede">Separados por grupo muscular. A sigla à direita diz o que cada um usa: <span class="pill p-neutral">BAR</span> barra longa, <span class="pill p-neutral">HAL</span> halteres, <span class="pill p-neutral">BCO</span> banco, <span class="pill p-neutral">CAV</span> cavalete, <span class="pill p-neutral">FIX</span> barra fixa, <span class="pill p-neutral">POL</span> cross over, <span class="pill p-neutral">PC</span> peso corporal. Os <strong>nove exercícios de polia</strong> aparecem no fim de cada grupo.</p>
+
+  <div class="muscles">
+
+    <article class="mus">
+      <h3>Peito</h3>
+      <div class="count">11 exercícios</div>
+      <ol>
+        <li><span>Supino reto com barra<em>o principal — banco reto sob o cavalete</em></span><span class="eq">BAR·BCO·CAV</span></li>
+        <li><span>Supino inclinado com barra<em>encosto a 30–45°, parte superior do peito</em></span><span class="eq">BAR·BCO·CAV</span></li>
+        <li><span>Supino declinado com barra<em>parte inferior do peito</em></span><span class="eq">BAR·BCO·CAV</span></li>
+        <li><span>Supino reto com halteres<em>amplitude maior que a barra</em></span><span class="eq">HAL·BCO</span></li>
+        <li><span>Supino inclinado com halteres</span><span class="eq">HAL·BCO</span></li>
+        <li><span>Crucifixo reto com halteres<em>isolamento, carga leve</em></span><span class="eq">HAL·BCO</span></li>
+        <li><span>Crucifixo inclinado com halteres</span><span class="eq">HAL·BCO</span></li>
+        <li><span>Pullover com halter<em>peito e dorsal, deitado transversal no banco</em></span><span class="eq">HAL·BCO</span></li>
+        <li><span>Flexão declinada (pés no banco)<em>progride colocando anilha nas costas</em></span><span class="eq">PC·BCO</span></li>
+        <li><span>Flexão inclinada (mãos no banco)<em>versão mais leve para volume</em></span><span class="eq">PC·BCO</span></li>
+      
+        <li><span>Crossover na polia<em>cabos cruzando à frente do peito, tensão constante</em></span><span class="eq">POL</span></li>
+      </ol>
+    </article>
+
+    <article class="mus">
+      <h3>Costas</h3>
+      <div class="count">14 exercícios</div>
+      <ol>
+        <li><span>Barra fixa pronada<em>o melhor exercício de costas que existe</em></span><span class="eq">FIX·PC</span></li>
+        <li><span>Barra fixa supinada<em>dorsal + bíceps, mais fácil de começar</em></span><span class="eq">FIX·PC</span></li>
+        <li><span>Barra fixa com lastro<em>anilha em mochila quando 10 reps ficarem fáceis</em></span><span class="eq">FIX</span></li>
+        <li><span>Levantamento terra<em>o exercício mais completo do conjunto</em></span><span class="eq">BAR</span></li>
+        <li><span>Remada curvada com barra<em>pegada pronada, dorsal e meio das costas</em></span><span class="eq">BAR</span></li>
+        <li><span>Remada curvada supinada<em>mais dorsal e bíceps</em></span><span class="eq">BAR</span></li>
+        <li><span>Remada unilateral (serrote)<em>joelho e mão apoiados no banco</em></span><span class="eq">HAL·BCO</span></li>
+        <li><span>Stiff / terra romeno<em>posterior de coxa e lombar</em></span><span class="eq">BAR</span></li>
+        <li><span>Encolhimento de ombros<em>trapézio, barra ou halteres</em></span><span class="eq">BAR·HAL</span></li>
+        <li><span>Good morning<em>lombar e posterior, carga leve sempre</em></span><span class="eq">BAR·CAV</span></li>
+      
+        <li><span>Puxada alta na polia<em>pés travados no rolo do banco declinado</em></span><span class="eq">POL·BCO</span></li>
+        <li><span>Puxada com triângulo<em>pegada neutra, mais dorsal e menos bíceps</em></span><span class="eq">POL·BCO</span></li>
+        <li><span>Remada baixa na polia<em>sentado no tatame, de frente para a parede</em></span><span class="eq">POL·PC</span></li>
+        <li><span>Pullover na polia<em>dorsal sem envolver o bíceps</em></span><span class="eq">POL</span></li>
+      </ol>
+    </article>
+
+    <article class="mus">
+      <h3>Ombros</h3>
+      <div class="count">9 exercícios</div>
+      <ol>
+        <li><span>Desenvolvimento militar em pé<em>tira a barra do cavalete na altura do peito</em></span><span class="eq">BAR·CAV</span></li>
+        <li><span>Desenvolvimento sentado com barra<em>encosto a 90°</em></span><span class="eq">BAR·BCO·CAV</span></li>
+        <li><span>Desenvolvimento com halteres<em>sentado, mais amplitude</em></span><span class="eq">HAL·BCO</span></li>
+        <li><span>Elevação lateral<em>deltoide medial, o que dá largura</em></span><span class="eq">HAL</span></li>
+        <li><span>Elevação frontal<em>com halter ou segurando uma anilha</em></span><span class="eq">HAL</span></li>
+        <li><span>Crucifixo inverso<em>peito apoiado no banco inclinado, deltoide posterior</em></span><span class="eq">HAL·BCO</span></li>
+        <li><span>Remada alta com barra<em>deltoide e trapézio</em></span><span class="eq">BAR</span></li>
+        <li><span>Arnold press<em>rotação durante o movimento, deltoide inteiro</em></span><span class="eq">HAL·BCO</span></li>
+      
+        <li><span>Face pull<em>deltoide posterior e postura de ombro</em></span><span class="eq">POL</span></li>
+      </ol>
+    </article>
+
+    <article class="mus">
+      <h3>Bíceps</h3>
+      <div class="count">9 exercícios</div>
+      <ol>
+        <li><span>Rosca direta com barra<em>o básico — apoie a barra no cavalete entre séries</em></span><span class="eq">BAR</span></li>
+        <li><span>Rosca alternada com halteres</span><span class="eq">HAL</span></li>
+        <li><span>Rosca simultânea com halteres</span><span class="eq">HAL</span></li>
+        <li><span>Rosca martelo<em>braquial e antebraço</em></span><span class="eq">HAL</span></li>
+        <li><span>Rosca inclinada<em>banco a 45–60°, maior alongamento do bíceps</em></span><span class="eq">HAL·BCO</span></li>
+        <li><span>Rosca concentrada<em>sentado no banco, cotovelo na coxa</em></span><span class="eq">HAL·BCO</span></li>
+        <li><span>Rosca Scott improvisada<em>braço apoiado no encosto inclinado</em></span><span class="eq">BAR·BCO</span></li>
+        <li><span>Rosca inversa<em>pegada pronada, antebraço</em></span><span class="eq">BAR</span></li>
+      
+        <li><span>Rosca na polia baixa<em>tensão constante do início ao fim</em></span><span class="eq">POL</span></li>
+      </ol>
+    </article>
+
+    <article class="mus">
+      <h3>Tríceps</h3>
+      <div class="count">7 exercícios</div>
+      <ol>
+        <li><span>Tríceps testa com barra<em>deitado no banco reto</em></span><span class="eq">BAR·BCO</span></li>
+        <li><span>Supino fechado<em>tríceps com carga alta, pegada na largura dos ombros</em></span><span class="eq">BAR·BCO·CAV</span></li>
+        <li><span>Tríceps francês com halter<em>sentado, halter a duas mãos sobre a cabeça</em></span><span class="eq">HAL·BCO</span></li>
+        <li><span>Extensão unilateral sobre a cabeça</span><span class="eq">HAL</span></li>
+        <li><span>Mergulho no banco<em>mãos no banco, pés no chão — coloque anilha no colo para progredir</em></span><span class="eq">PC·BCO</span></li>
+        <li><span>Tríceps coice<em>tronco apoiado no banco</em></span><span class="eq">HAL·BCO</span></li>
+      
+        <li><span>Tríceps na corda<em>abre as mãos no fim para fechar o movimento</em></span><span class="eq">POL</span></li>
+      </ol>
+    </article>
+
+    <article class="mus">
+      <h3>Pernas</h3>
+      <div class="count">11 exercícios</div>
+      <ol>
+        <li><span>Agachamento livre com barra<em>cavalete na altura do meio do peito — o exercício que o kit original não permitia</em></span><span class="eq">BAR·CAV</span></li>
+        <li><span>Agachamento frontal<em>barra na frente dos ombros, mais quadríceps</em></span><span class="eq">BAR·CAV</span></li>
+        <li><span>Agachamento goblet<em>halter no peito, ótimo para aprender o movimento</em></span><span class="eq">HAL</span></li>
+        <li><span>Agachamento búlgaro<em>pé de trás no banco — unilateral, brutal com pouca carga</em></span><span class="eq">HAL·BCO</span></li>
+        <li><span>Levantamento terra<em>posterior, glúteo, lombar e pegada</em></span><span class="eq">BAR</span></li>
+        <li><span>Stiff<em>isolamento de posterior de coxa</em></span><span class="eq">BAR·HAL</span></li>
+        <li><span>Afundo / passada<em>com halteres ou barra nas costas</em></span><span class="eq">HAL·BAR</span></li>
+        <li><span>Step-up no banco<em>subida unilateral com halteres</em></span><span class="eq">HAL·BCO</span></li>
+        <li><span>Panturrilha em pé<em>barra nas costas ou halteres nas mãos</em></span><span class="eq">BAR·HAL</span></li>
+        <li><span>Panturrilha sentado<em>anilha ou barra sobre os joelhos, no banco</em></span><span class="eq">BAR·BCO</span></li>
+      
+        <li><span>Flexora e glúteo na polia<em>tornozeleira: flexora, extensão de quadril e abdução</em></span><span class="eq">POL</span></li>
+      </ol>
+    </article>
+
+    <article class="mus">
+      <h3>Core e abdômen</h3>
+      <div class="count">6 exercícios</div>
+      <ol>
+        <li><span>Elevação de pernas na barra fixa<em>o melhor abdominal do conjunto</em></span><span class="eq">FIX·PC</span></li>
+        <li><span>Abdominal no banco declinado<em>pés travados no rolo do banco</em></span><span class="eq">BCO·PC</span></li>
+        <li><span>Abdominal com anilha no peito<em>progressão de carga no abdominal</em></span><span class="eq">BCO</span></li>
+        <li><span>Russian twist com anilha<em>oblíquos</em></span><span class="eq">HAL</span></li>
+        <li><span>Prancha<em>no chão, sem equipamento</em></span><span class="eq">PC</span></li>
+        <li><span>Farmer's walk<em>halteres pesados nas mãos — core, trapézio e pegada</em></span><span class="eq">HAL</span></li>
+      </ol>
+    </article>
+
+  </div>
+</section>
+
+<hr class="rule">
+
+<section>
+  <div class="snum">Limites</div>
+  <h2>O que você não vai poder fazer</h2>
+  <p class="prose lede">Com o cross over montado, a lista de lacunas encolheu para quatro itens — e nenhum deles importa nos seus primeiros dois anos.</p>
+
+  <div class="tblwrap">
+    <table>
+      <thead><tr><th>Não dá</th><th>Por quê</th><th>Substituto no seu setup</th></tr></thead>
+      <tbody>
+        <tr><td>Puxada com apoio de coxa</td><td>o cross over não vem com o rolo que prende as pernas</td><td><strong>Inverta o banco</strong> e trave os pés no rolo de pernas dele — resolve por completo <span class="pill p-good">funciona</span></td></tr>
+        <tr><td>Cadeira extensora</td><td>não há pino de carga para a frente da coxa</td><td><strong>Agachamento</strong>, <strong>búlgaro</strong> e <strong>step-up</strong> — treinam mais músculo</td></tr>
+        <tr><td>Leg press e hack squat</td><td>máquina grande demais para garagem</td><td><strong>Agachamento livre</strong>, <strong>frontal</strong> e <strong>afundo</strong></td></tr>
+        <tr><td>Voador / peck deck</td><td>máquina dedicada</td><td><strong>Crossover na polia</strong> e <strong>crucifixo com halteres</strong> nos três ângulos do banco</td></tr>
+        <tr><td>Agachamento com carga alta e segurança total</td><td>cavalete não tem trava de segurança</td><td>ver o protocolo abaixo <span class="pill p-warn">leia</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="call risk">
+    <h4>Protocolo de segurança treinando sozinho</h4>
+    <p>O cavalete resolve tirar e devolver a barra, mas não tem barra de segurança embaixo. Três regras que valem para sempre:</p>
+    <ul>
+      <li><strong>No supino, treine sem as presilhas.</strong> Se você falhar uma repetição, incline a barra e as anilhas escorregam sozinhas para fora. Com presilha travada, a barra fica presa no seu peito. Essa única regra elimina o risco real do supino solo.</li>
+      <li><strong>No agachamento, fique em cargas que você consegue abandonar.</strong> Se travar no fundo, você joga a barra para trás e sai da frente. Isso significa não perseguir máximas sozinho — trabalhe em séries de 5 a 8 repetições com 2 ou 3 de reserva.</li>
+      <li><strong>Regule o cavalete na altura do meio do peito para agachar</strong> (por volta de 130–140 cm) e na altura do supino para peitoral (70–90 cm). Ele muda em 12 posições, então vale marcar as duas alturas com fita antes do primeiro treino.</li>
+    </ul>
+    <p>Se em algum momento você quiser subir carga de verdade no agachamento e no supino, o próximo upgrade certo é uma <strong>gaiola com travas</strong> — e apareceu uma na OLX de BH por R$ 525, que já favoritei. Rack usado é compra de baixo risco: é aço soldado, você só confere as soldas e se as travas encaixam firmes.</p>
+  </div>
+</section>
+
+<hr class="rule">
+
+<section>
+  <div class="snum">Comprado</div>
+  <h2>Os quatro pedidos, confirmados</h2>
+  <p class="prose lede">Fechado em 31 de agosto por <strong>R$ 4.179,49</strong> em quatro pedidos, todos confirmados e com pagamento aprovado. Você comprou o banco em pedido separado do kit de anilhas, e por isso o desconto do PIX foi preservado.</p>
+
+  <div class="tblwrap">
+    <table>
+      <thead><tr><th>Pedido</th><th>Itens</th><th>Pagamento</th><th class="num">Total</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>#2000014792237541</td>
+          <td>Suporte cavalete + Barra maciça 28 mm + Barra fixa de parede<span class="sub">produtos R$ 1.138,15 · desconto −R$ 210,91 · cupons −R$ 5,82</span></td>
+          <td>PIX · frete grátis</td>
+          <td class="num">R$ 921,42</td>
+        </tr>
+        <tr>
+          <td>#2000018205273530</td>
+          <td>Banco supino regulável Yangfit<span class="sub">produto R$ 770,90 · desconto −R$ 246,21 · <strong>cupons −R$ 41,98</strong></span></td>
+          <td>PIX · frete grátis</td>
+          <td class="num">R$ 482,71</td>
+        </tr>
+        <tr>
+          <td>#2000018205544202</td>
+          <td>Kit 100 kg + 4 barras, 36 peças — Ciuze<span class="sub">produto R$ 1.389,90 · frete R$ 237,35</span></td>
+          <td>10× R$ 162,73 · Visa · sem juros</td>
+          <td class="num">R$ 1.627,25</td>
+        </tr>
+        <tr>
+          <td>#2000014795837403</td>
+          <td>Cross over de parede + kit de puxadores + 2 tatames + corda de pular + Super Band<span class="sub">6 produtos R$ 1.007,95 · desconto à vista −R$ 7,49 · frete R$ 76,88</span></td>
+          <td>2× 10 parcelas · Visa · <strong style="color:var(--warn)">com juros</strong></td>
+          <td class="num">R$ 1.148,11</td>
+        </tr>
+        <tr class="total"><td>Total pago</td><td>10 itens · 143 kg de ferro</td><td>R$ 1.404,13 no PIX + R$ 2.775,36 no cartão</td><td class="num">R$ 4.179,49</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="call watch">
+    <h4>Uma coisa para ficar de olho: o quarto pedido tem juros</h4>
+    <p>Os três primeiros pedidos foram <strong>sem juros</strong>. O do cross over não: o subtotal é <strong>R$ 1.077,34</strong> e o cartão vai cobrar <strong>R$ 1.148,11</strong> — <strong>R$ 70,77 de juros</strong>, ou 6,6% sobre o valor, dividido em duas faturas de 10 parcelas (R$ 60,90 + R$ 53,91 = R$ 114,81 por mês).</p>
+    <p>Não é motivo para cancelar: R$ 70,77 em dez meses é barato por manter mil reais em caixa. Mas vale saber que existe, e é o motivo de a fatura ficar em <strong>R$ 114,81 por mês</strong> além das parcelas do kit de anilhas — cerca de <strong>R$ 278 por mês</strong> no total, por dez meses.</p>
+  </div>
+
+  <div class="call win">
+    <h4>Duas coisas deram certo e vale registrar por quê</h4>
+    <p><strong>O split de pedidos funcionou.</strong> A nota do banco mostra "Cupons − R$ 41,98" e total de R$ 482,71. Se ele tivesse ido no mesmo carrinho do kit da Ciuze, teria saído R$ 524,69 — o desconto some quando um item com frete cobrado entra no mesmo checkout.</p>
+    <p><strong>A barra é a certa.</strong> O pedido registra <em>Barra Reta Maciça 1,50 m <strong>28 mm</strong> Cromada</em> — a Famafit de 7,5 kg que suporta 400 kg. A de 25,40 mm, que deixaria a anilha de furo 33 mm balançando na barra, ficou de fora.</p>
+  </div>
+
+  <div class="call watch">
+    <h4>Sobre cupons: não havia nenhum aplicável</h4>
+    <p>Os 453 cupons de Esportes e Fitness do Mercado Livre são todos para <strong>produto importado</strong> ou <strong>em liquidação</strong>, e o kit da Ciuze não está em nenhuma das duas categorias — está no preço cheio, sem badge de desconto. O frete de R$ 237,35 também não tinha saída: o próprio ML avisa que não oferece frete grátis nesse pedido por causa do peso e da distância.</p>
+    <p>Para o futuro, não para agora: uma loja em BH (Cachoeirinha) vende <strong>anilha nova pintada a R$ 9,98/kg</strong> nos tamanhos de 1 a 20 kg, e par de barrinha de halter 40 cm cromada por R$ 190. É onde o quilo sai mais barato quando você quiser expandir — o que, com teto de 107,5 kg, deve levar uns três anos.</p>
+  </div>
+
+  <h3>Calendário de chegada</h3>
+  <p class="prose">A ordem é conveniente: tudo que precisa de furadeira e montagem chega antes do ferro. Entre 3 e 6 de setembro chega quase tudo de uma vez — reserve um sábado.</p>
+
+  <div class="tblwrap">
+    <table>
+      <thead><tr><th>Chega</th><th>Item</th><th>Vendedor</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td><strong>1º de setembro</strong><span class="sub">hoje</span></td><td>Barra fixa de parede</td><td>Barrafixa</td><td>no centro de distribuição do ML</td></tr>
+        <tr><td><strong>1 a 2 de setembro</strong></td><td>Banco supino regulável 7 posições</td><td>Yangfit</td><td>no centro de distribuição do ML</td></tr>
+        <tr><td><strong>3 a 4 de setembro</strong></td><td>Cross over de parede</td><td>EJ Oliver</td><td>entrega agendada</td></tr>
+        <tr><td><strong>3 a 4 de setembro</strong></td><td>Kit de puxadores — barra, corda, triângulo, estribos</td><td>Lísia Sport</td><td>vendedor preparando o pacote</td></tr>
+        <tr><td><strong>3 a 4 de setembro</strong></td><td>Tatame EVA 20 mm · 2 unidades</td><td>Mac Imports</td><td>vendedor preparando o pacote</td></tr>
+        <tr><td><strong>3 a 5 de setembro</strong></td><td>Suporte cavalete regulável</td><td>Exercit Esportes</td><td>vendedor preparando o pacote</td></tr>
+        <tr><td><strong>3 a 6 de setembro</strong></td><td>Super Band 45 mm</td><td>Yangfit</td><td>entrega agendada</td></tr>
+        <tr><td><strong>4 de setembro</strong><span class="sub">sexta-feira</span></td><td>Corda de pular com rolamento</td><td>MB Nutrition</td><td>no centro de distribuição do ML</td></tr>
+        <tr><td><strong>4 a 6 de setembro</strong></td><td>Barra reta maciça 1,50 m 28 mm</td><td>MegaGym</td><td>envio agendado</td></tr>
+        <tr><td><strong>10 de setembro</strong><span class="sub">quinta · previsão da MOVVI (ML diz 11)</span></td><td>Kit 100 kg + 4 barras, 36 peças<span class="sub">NF 24634 · <strong>6 volumes</strong></span></td><td>Ciuze<span class="sub">transporte MOVVI</span></td><td>em trânsito — saiu de Maringá/PR em 02/09 às 9h26</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="call watch">
+    <h4>O kit de anilhas saiu do Mercado Envios — rastreio é por fora</h4>
+    <p>A Ciuze faturou a <strong>nota 24634</strong> em 1º de setembro e despachou pela <strong>MOVVI Logística</strong>, transportadora própria. O rastreio já funciona: em 2 de setembro, 9h26, a carga saiu de <strong>Maringá/PR</strong> com previsão de entrega em <strong>10 de setembro</strong> — um dia antes do que o Mercado Livre mostra. O app do Mercado Livre pode não atualizar o trajeto; o rastreio que vale é o da MOVVI, em <a href="https://movvi.com.br/ferramentas/rastreio" target="_blank" rel="noopener">movvi.com.br/ferramentas/rastreio</a>.</p>
+    <p><strong>O formulário é mais simples do que a mensagem do vendedor sugere.</strong> Não existe campo "tipo cliente" — são só dois: <strong>CNPJ/CPF</strong>, onde vai <strong>41319564000179</strong>, e <strong>número da nota fiscal</strong>, onde vai <strong>24634</strong> sem o zero da frente. Aceite o compartilhamento de dados e clique em Buscar. A primeira atualização pode levar 48 horas.</p>
+    <p>A MOVVI tem centro em <strong>Belo Horizonte</strong>, então a última perna até Nova Lima é local — é o que sustenta a data de 11 de setembro.</p>
+  </div>
+
+  <div class="call risk">
+    <h4>São 6 volumes. Conte antes de assinar.</h4>
+    <p>A nota foi emitida com <strong>6 volumes</strong> — de 12 a 24 kg por caixa (tabela abaixo). Esse é o único momento em que uma falta é fácil de resolver: depois que você assina o canhoto liso, o ônus de provar vira seu.</p>
+    <ul>
+      <li><strong>Conte as caixas com o entregador ainda presente</strong>, antes de qualquer assinatura. Seis, não cinco.</li>
+      <li><strong>Faltando volume, escreva a ressalva no canhoto</strong> e assine embaixo dela: <em>“Recebido com ressalva — NF 24634 declara 6 volumes, recebidos apenas [número]. Falta(m) [número] volume(s).”</em> Se a caixa vier rasgada ou molhada, a ressalva é a mesma coisa com “volume violado”.</li>
+      <li><strong>Fotografe o canhoto assinado e as caixas fechadas</strong> antes de abrir qualquer uma. É a prova que resolve o caso em minutos em vez de semanas.</li>
+      <li><strong>Avise a Ciuze no mesmo dia</strong> pelo chat do Mercado Livre — assim fica registrado na plataforma, não só no WhatsApp.</li>
+    </ul>
+    <p><strong>A Ciuze mandou a composição de cada volume</strong> (2 de setembro, pelo chat do Mercado Livre — fica registrado na plataforma). Use como checklist na porta — o peso identifica a caixa sem abrir:</p>
+    <div class="tblwrap" style="margin:12px 0 14px">
+      <table>
+        <thead><tr><th class="num">Vol.</th><th>Conteúdo declarado</th><th class="num">Peso aprox.</th><th>Confere</th></tr></thead>
+        <tbody>
+          <tr><td class="num">1</td><td>Anilhas de 3 kg (4) · 2 kg (4) · 1 kg (4)</td><td class="num">24 kg</td><td>☐ 12 anilhas</td></tr>
+          <tr><td class="num">2</td><td>Anilhas de 4 kg (4)</td><td class="num">16 kg</td><td>☐ 4 anilhas</td></tr>
+          <tr><td class="num">3</td><td>Anilhas de 5 kg (4)</td><td class="num">20 kg</td><td>☐ 4 anilhas</td></tr>
+          <tr><td class="num">4</td><td>Anilhas de 10 kg (2)</td><td class="num">20 kg</td><td>☐ 2 anilhas</td></tr>
+          <tr><td class="num">5</td><td>Anilhas de 10 kg (2)</td><td class="num">20 kg</td><td>☐ 2 anilhas</td></tr>
+          <tr><td class="num">6</td><td>Barras ocas: reta 1,50 m (1) · halter 0,40 m (2) · W (1) + as 8 presilhas (a Ciuze confirmou: vão junto das barras)</td><td class="num">~12 kg</td><td>☐ 4 barras · ☐ 8 presilhas</td></tr>
+          <tr class="total"><td></td><td>24 anilhas, quatro de cada peso</td><td class="num">100 kg</td><td>☐ 6 volumes</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p><strong>Sobre o pedido de não abrir reclamação:</strong> é razoável dar ao vendedor a chance de resolver primeiro, e a Ciuze tem 4,8★ com mais de 500 vendas. Mas o prazo da Compra Garantida é seu e corre sozinho. Dê alguns dias, e se não houver solução concreta, abra a reclamação <strong>dentro do prazo</strong> — cooperar não é o mesmo que esperar o prazo vencer.</p>
+  </div>
+
+  <div class="call">
+    <h4>O que treinar de 1º a 10 de setembro</h4>
+    <p>Você não fica parado esperando o ferro. Com a barra fixa e o banco na primeira semana já dá para montar um treino real de peso corporal: <strong>barra fixa pronada e supinada</strong>, <strong>flexão declinada com os pés no banco</strong>, <strong>mergulho no banco</strong>, <strong>elevação de pernas na fixa</strong>, <strong>agachamento e afundo sem carga</strong>, prancha. Três sessões nessa semana já constroem o hábito.</p>
+    <p>Do dia 4, com a corda e os tatames, comece o cardio: <strong>6 blocos de 30 segundos de corda</strong> com um minuto de descanso, cerca de 300 saltos, duas vezes na semana. E do dia 6, com a barra maciça em casa, treine <strong>só a técnica com a barra vazia</strong> — 7,5 kg, agachamento e supino, três séries de cinco, focando em profundidade e trajetória. É a semana mais valiosa do seu primeiro ano e a maioria das pessoas pula.</p>
+  </div>
+</section>
+
+<hr class="rule">
+
+<section id="layout">
+  <div class="snum">Layout</div>
+  <h2>Onde cada coisa fica no terraço — e a que altura furar</h2>
+  <p class="prose lede">Só dois itens vão na parede, e os dois na parede do fundo: a <strong>barra fixa</strong> e o <strong>cross over</strong>. Banco, cavalete e barra são soltos no chão — o supino não fura nada. O que decide as alturas é a sua estatura e o pé-direito; o que decide onde furar é o que está atrás do reboco.</p>
+
+  <figure class="diag">
+    <svg viewBox="0 -22 760 512" role="img" aria-label="Corte lateral da parede do fundo: a barra fixa sai 55 centímetros da parede; no topo do movimento a cabeça sobe 25 centímetros acima da barra e passa ao lado da viga, sob a laje. A regra: 35 centímetros livres acima da barra, medidos a 60 centímetros da parede." style="max-width:100%;height:auto" font-family='Source Sans 3',system-ui,sans-serif><defs><marker id="cA" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M1,5 L9,1 L9,9 z" fill="currentColor"/></marker><pattern id="cH" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="8" stroke="currentColor" stroke-width="1" opacity=".35"/></pattern></defs><rect x="100" y="35.0" width="30" height="405.0" fill="url(#cH)" stroke="currentColor" stroke-width="1.2"/><rect x="100" y="23.0" width="615.0" height="12" fill="url(#cH)" stroke="currentColor" stroke-width="1.2"/><rect x="130" y="35.0" width="48.0" height="45.0" fill="url(#cH)" stroke="currentColor" stroke-width="1.2"/><text x="154.0" y="63.0" font-size="11" font-weight="600" text-anchor="middle" fill="currentColor" opacity="1" >viga</text><line x1="86" y1="440" x2="715.0" y2="440" stroke="currentColor" stroke-width="2"/><text x="115.0" y="290.0" font-size="10.5" font-weight="400" text-anchor="middle" fill="currentColor" opacity="1" transform="rotate(-90 115 290.0)" letter-spacing=".12em">PAREDE</text><text x="625.0" y="15.0" font-size="10.5" font-weight="400" text-anchor="middle" fill="currentColor" opacity="1" letter-spacing=".12em">LAJE</text><line x1="130.0" y1="9.0" x2="178.0" y2="9.0" stroke="currentColor" stroke-width="1.1" marker-start="url(#cA)" marker-end="url(#cA)"/><line x1="130.0" y1="4.0" x2="130.0" y2="14.0" stroke="currentColor" stroke-width="1"/><line x1="178.0" y1="4.0" x2="178.0" y2="14.0" stroke="currentColor" stroke-width="1"/><text x="154.0" y="3.0" font-size="10.5" font-weight="400" text-anchor="middle" fill="currentColor" opacity="1" >viga: meça</text><text x="88.0" y="457.0" font-size="10.5" font-weight="400" text-anchor="start" fill="currentColor" opacity="0.7" >piso</text><rect x="130" y="71.0" width="9" height="66.0" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="134.5" cy="77.0" r="4" style="fill:var(--accent)"/><circle cx="134.5" cy="131.0" r="4" style="fill:var(--accent)"/><line x1="139" y1="100.99999999999994" x2="212.5" y2="110.0" stroke="currentColor" stroke-width="3"/><line x1="139" y1="137.0" x2="205.5" y2="114.0" stroke="currentColor" stroke-width="1.5"/><circle cx="212.5" cy="110.0" r="7" fill="currentColor"/><text x="228.5" y="130.0" font-size="11.5" font-weight="600" text-anchor="start" fill="currentColor" opacity="1" >barra</text><line x1="130.0" y1="182.0" x2="212.5" y2="182.0" stroke="currentColor" stroke-width="1.1" marker-start="url(#cA)" marker-end="url(#cA)"/><line x1="130.0" y1="177.0" x2="130.0" y2="187.0" stroke="currentColor" stroke-width="1"/><line x1="212.5" y1="177.0" x2="212.5" y2="187.0" stroke="currentColor" stroke-width="1"/><text x="171.2" y="198.0" font-size="10.5" font-weight="400" text-anchor="middle" fill="currentColor" opacity="1" >braço 50–60 cm</text><circle cx="212.5" cy="89.0" r="13" fill="none" stroke="currentColor" stroke-width="1.7"/><line x1="212.5" y1="102.0" x2="212.5" y2="196.99999999999997" stroke="currentColor" stroke-width="1.9"/><line x1="212.5" y1="196.99999999999997" x2="222.5" y2="263.0" stroke="currentColor" stroke-width="1.9"/><line x1="222.5" y1="263.0" x2="207.5" y2="317.0" stroke="currentColor" stroke-width="1.9"/><line x1="210.5" y1="147.5" x2="212.5" y2="110.0" stroke="currentColor" stroke-width="1.7"/><line x1="212.5" y1="72.5" x2="212.5" y2="35.0" style="stroke:var(--accent)" stroke-width="1.3" stroke-dasharray="4 3"/><text x="222.5" y="50.0" font-size="10.5" font-weight="400" text-anchor="start" fill="currentColor" opacity="1" style="fill:var(--accent)">folga até a laje</text><text x="234.5" y="87.0" font-size="11" font-weight="400" text-anchor="start" fill="currentColor" opacity="1" >topo da cabeça ≈ 25 cm acima da barra —</text><text x="234.5" y="101.0" font-size="11" font-weight="400" text-anchor="start" fill="currentColor" opacity="1" >passa ao lado da viga, não embaixo dela</text><line x1="482.5" y1="440.0" x2="482.5" y2="110.0" stroke="currentColor" stroke-width="1.1" marker-start="url(#cA)" marker-end="url(#cA)"/><line x1="476.5" y1="440.0" x2="488.5" y2="440.0" stroke="currentColor" stroke-width="1"/><line x1="476.5" y1="110.0" x2="488.5" y2="110.0" stroke="currentColor" stroke-width="1"/><text x="492.5" y="286.5" font-size="12" font-weight="600" text-anchor="start" fill="currentColor" opacity="1" >barra: H + 45 cm</text><line x1="482.5" y1="110.0" x2="482.5" y2="57.5" stroke="currentColor" stroke-width="1.1" marker-start="url(#cA)" marker-end="url(#cA)"/><line x1="476.5" y1="110.0" x2="488.5" y2="110.0" stroke="currentColor" stroke-width="1"/><line x1="476.5" y1="57.5" x2="488.5" y2="57.5" stroke="currentColor" stroke-width="1"/><text x="492.5" y="87.8" font-size="12" font-weight="600" text-anchor="start" fill="currentColor" opacity="1" >35 cm livres — a regra</text><line x1="632.5" y1="440.0" x2="632.5" y2="35.0" stroke="currentColor" stroke-width="1.1" marker-start="url(#cA)" marker-end="url(#cA)"/><line x1="626.5" y1="440.0" x2="638.5" y2="440.0" stroke="currentColor" stroke-width="1"/><line x1="626.5" y1="35.0" x2="638.5" y2="35.0" stroke="currentColor" stroke-width="1"/><text x="642.5" y="204.0" font-size="11.5" font-weight="400" text-anchor="start" fill="currentColor" opacity="1" >pé-direito:</text><text x="642.5" y="218.0" font-size="11.5" font-weight="400" text-anchor="start" fill="currentColor" opacity="1" >meça a 60 cm</text><text x="642.5" y="232.0" font-size="11.5" font-weight="400" text-anchor="start" fill="currentColor" opacity="1" >da parede</text></svg>
+    <figcaption><strong>Vista de lado.</strong> A barra sai 50 a 60 cm da parede, e é ali — não junto à parede — que sua cabeça sobe no topo do movimento. A viga de borda ocupa só os primeiros 25 a 40 cm a partir da parede, então a cabeça passa <em>ao lado</em> dela, sob a laje. Por isso o pé-direito que interessa é o medido a 60 cm da parede, e a regra é ter 35 cm livres acima da barra nesse ponto. Se a viga for mais funda que o braço do suporte, a cabeça bate: baixe a barra.</figcaption>
+  </figure>
+
+  <figure class="diag">
+    <svg viewBox="0 0 700 300" role="img" aria-label="Elevação da parede do fundo: barra fixa a pelo menos 80 centímetros do canto, cross over encostado no pilar da ponta, pelo menos 1,8 metro entre os centros; parafusos de cima na viga de concreto; polia alta acima do alcance dos braços e polia baixa a 30 centímetros do piso." style="max-width:100%;height:auto" font-family='Source Sans 3',system-ui,sans-serif><defs><marker id="eA" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M1,5 L9,1 L9,9 z" fill="currentColor"/></marker><pattern id="eH" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="8" stroke="currentColor" stroke-width="1" opacity=".35"/></pattern></defs><rect x="60" y="65.20000000000002" width="500" height="196.8" fill="none" stroke="currentColor" stroke-width="1.2"/><rect x="60" y="40.599999999999994" width="534" height="24.6" fill="url(#eH)" stroke="currentColor" stroke-width="1.2"/><rect x="560" y="65.20000000000002" width="34" height="196.8" fill="url(#eH)" stroke="currentColor" stroke-width="1.2"/><line x1="30" y1="262" x2="624" y2="262" stroke="currentColor" stroke-width="2"/><text x="68.0" y="56.6" font-size="10.5" font-weight="400" text-anchor="start" fill="currentColor" opacity="1" letter-spacing=".08em">VIGA DE CONCRETO — meça onde começa</text><text x="577.0" y="171.8" font-size="10" font-weight="400" text-anchor="middle" fill="currentColor" opacity="1" transform="rotate(-90 577.0 171.8)" letter-spacing=".12em">PILAR</text><rect x="235" y="65.19999999999996" width="10" height="32.8" fill="none" stroke="currentColor" stroke-width="1.3"/><circle cx="240.0" cy="69.3" r="4" style="fill:var(--accent)"/><circle cx="240.0" cy="93.9" r="4" style="fill:var(--accent)"/><rect x="309" y="65.19999999999996" width="10" height="32.8" fill="none" stroke="currentColor" stroke-width="1.3"/><circle cx="314.0" cy="69.3" r="4" style="fill:var(--accent)"/><circle cx="314.0" cy="93.9" r="4" style="fill:var(--accent)"/><line x1="232" y1="81.6" x2="322" y2="81.6" stroke="currentColor" stroke-width="5" stroke-linecap="round"/><text x="277.0" y="121.0" font-size="12" font-weight="600" text-anchor="middle" fill="currentColor" opacity="1" >Barra fixa</text><text x="277.0" y="134.1" font-size="10.5" font-weight="400" text-anchor="middle" fill="currentColor" opacity="0.8" >parafusos de cima na viga,</text><text x="277.0" y="145.6" font-size="10.5" font-weight="400" text-anchor="middle" fill="currentColor" opacity="0.8" >se a chapa alcançar</text><rect x="506" y="61.099999999999994" width="14" height="184.5" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="513.0" cy="233.3" r="4" style="fill:var(--accent)"/><circle cx="513.0" cy="155.4" r="4" style="fill:var(--accent)"/><circle cx="513.0" cy="69.3" r="4" style="fill:var(--accent)"/><circle cx="496" cy="73.4" r="6" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="496" cy="73.4" r="1.8" fill="currentColor"/><circle cx="496" cy="237.4" r="6" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="496" cy="237.4" r="1.8" fill="currentColor"/><text x="513.0" y="26.6" font-size="12" font-weight="600" text-anchor="middle" fill="currentColor" opacity="1" >Cross over</text><text x="484.0" y="93.4" font-size="11" font-weight="400" text-anchor="end" fill="currentColor" opacity="1" >polia alta ≥ H + 40</text><text x="484.0" y="159.4" font-size="10.5" font-weight="400" text-anchor="end" fill="currentColor" opacity="0.8" >coluna encostada no pilar</text><text x="484.0" y="218.4" font-size="11" font-weight="400" text-anchor="end" fill="currentColor" opacity="1" >polia baixa 25–35 cm</text><line x1="344" y1="262.0" x2="344" y2="81.6" stroke="currentColor" stroke-width="1.1" marker-start="url(#eA)" marker-end="url(#eA)"/><line x1="338" y1="262.0" x2="350" y2="262.0" stroke="currentColor" stroke-width="1"/><line x1="338" y1="81.6" x2="350" y2="81.6" stroke="currentColor" stroke-width="1"/><text x="352.0" y="179.9" font-size="12" font-weight="600" text-anchor="start" fill="currentColor" opacity="1" >H + 45 cm</text><line x1="60.0" y1="211.16" x2="228.0" y2="211.16" stroke="currentColor" stroke-width="1.1" marker-start="url(#eA)" marker-end="url(#eA)"/><line x1="60.0" y1="205.16" x2="60.0" y2="217.16" stroke="currentColor" stroke-width="1"/><line x1="228.0" y1="205.16" x2="228.0" y2="217.16" stroke="currentColor" stroke-width="1"/><text x="146.0" y="204.2" font-size="11" font-weight="400" text-anchor="middle" fill="currentColor" opacity="1" >≥ 0,8 m do canto</text><line x1="277.0" y1="250.52" x2="513.0" y2="250.52" stroke="currentColor" stroke-width="1.1" marker-start="url(#eA)" marker-end="url(#eA)"/><line x1="277.0" y1="244.52" x2="277.0" y2="256.52" stroke="currentColor" stroke-width="1"/><line x1="513.0" y1="244.52" x2="513.0" y2="256.52" stroke="currentColor" stroke-width="1"/><text x="395" y="243.5" font-size="11.5" font-weight="600" text-anchor="middle" fill="currentColor">≥ 1,8 m</text><circle cx="68.0" cy="292.0" r="4" style="fill:var(--accent)"/><text x="78.0" y="296.0" font-size="10.5" font-weight="400" text-anchor="start" fill="currentColor" opacity="1" >= furo. Na viga ou no pilar: chumbador de expansão. No tijolo furado: químico ou parafuso passante.</text></svg>
+    <figcaption><strong>Vista de frente.</strong> A barra fixa a pelo menos 0,8 m do canto para o corpo balançar sem bater; o cross over com a coluna encostada no pilar da ponta, que é o ponto mais forte da parede; e, quando a parede permite, 1,8 m entre os centros dos dois para um não invadir o espaço do outro — na sua parede de ≈2,1 m eles ficam a 0,975 m, o que funciona porque você treina sozinho (as cotas fechadas estão no Projeto R1). Os pontos são os furos — os de cima, sempre que a chapa alcançar, entram na viga de concreto. A polia alta precisa ficar acima do seu alcance com os braços esticados; a polia baixa, entre 25 e 35 cm do piso.</figcaption>
+  </figure>
+
+  <h3>As três medidas que faltam</h3>
+  <p class="prose">Tudo abaixo depende de três números que só você pode medir, com uma trena e cinco minutos: <strong>a sua altura</strong> (H), o <strong>pé-direito</strong> — do piso até a laje, medido a 60 cm da parede do fundo, onde sua cabeça vai passar no topo da barra fixa — e <strong>onde a viga começa</strong>: a altura, medida do piso, em que o reboco vira concreto, aquela faixa escura no alto da parede.</p>
+
+  <div class="tblwrap">
+    <table>
+      <thead><tr><th class="num">Sua altura (H)</th><th class="num">Barra fixa — eixo da barra</th><th class="num">Laje precisa estar acima de</th><th class="num">Polia alta — no mínimo</th></tr></thead>
+      <tbody>
+<tr><td class="num"><strong>1,65 m</strong></td><td class="num">2,10 m</td><td class="num">2,45 m</td><td class="num">2,05 m</td></tr>
+<tr><td class="num"><strong>1,70 m</strong></td><td class="num">2,15 m</td><td class="num">2,50 m</td><td class="num">2,10 m</td></tr>
+<tr><td class="num"><strong>1,75 m</strong></td><td class="num">2,20 m</td><td class="num">2,55 m</td><td class="num">2,15 m</td></tr>
+<tr><td class="num"><strong>1,80 m</strong></td><td class="num">2,25 m</td><td class="num">2,60 m</td><td class="num">2,20 m</td></tr>
+<tr><td class="num"><strong>1,85 m</strong></td><td class="num">2,30 m</td><td class="num">2,65 m</td><td class="num">2,25 m</td></tr>
+<tr><td class="num"><strong>1,90 m</strong></td><td class="num">2,35 m</td><td class="num">2,70 m</td><td class="num">2,30 m</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="call watch">
+    <h4>Se a laje estiver mais baixa do que a tabela pede</h4>
+    <p>Pelas fotos, o pé-direito até a viga parece ficar entre 2,4 e 2,7 m — comum em terraço coberto. Se a laje a 60 cm da parede não chegar ao valor da terceira coluna, <strong>baixe a barra em vez de desistir dela</strong>: a 2,00 m você faz barra fixa com os joelhos dobrados e o exercício é exatamente o mesmo. O que não pode é a cabeça bater — meça antes de furar.</p>
+    <p>A elevação de pernas com as pernas esticadas é a única coisa que perde com barra baixa. Com joelhos dobrados ela continua valendo.</p>
+  </div>
+
+  <h3>Onde furar: o que está atrás do reboco</h3>
+  <p class="prose">A parede do fundo é alvenaria rebocada, com uma <strong>viga de concreto</strong> correndo no alto — a faixa escura — e um <strong>pilar</strong> na ponta que dá para a varanda. Isso muda o que usar em cada furo, e é aqui que a maioria dos cross overs de parede afrouxa em seis meses.</p>
+
+  <div class="tblwrap">
+    <table>
+      <thead><tr><th>Onde o furo cai</th><th>Como saber</th><th>O que usar</th><th>Por quê</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Viga ou pilar</strong><span class="sub">concreto</span></td><td>A broca de vídea entra devagar e sai pó cinza claro</td><td><strong>Chumbador de expansão</strong> (parabolt) 3/8" ou 10 mm, a pelo menos 6 cm da borda do concreto</td><td>É o ponto mais forte da parede. Sempre que a chapa alcançar a viga, mande os parafusos de cima para lá.</td></tr>
+        <tr><td><strong>Tijolo cerâmico furado</strong><span class="sub">som oco ao bater</span></td><td>A broca “cai” em vazios; sai pó alaranjado</td><td><strong>Chumbador químico</strong> com camisa de tela, ou <strong>parafuso passante</strong> com chapa e porca do outro lado da parede</td><td>Parabolt em bloco furado <strong>racha o bloco</strong> — a expansão não tem onde apoiar. Para a barra fixa, que puxa para baixo, bucha longa de nylon 10 × 100 mm ainda serve; para o cross over, que puxa <em>para fora</em>, não.</td></tr>
+        <tr><td><strong>Tijolo maciço ou bloco de concreto</strong><span class="sub">som surdo</span></td><td>A broca entra uniforme; pó vermelho escuro ou cinza</td><td>Bucha de nylon longa 10 × 80 mm com parafuso sextavado, ou chumbador de expansão</td><td>Segura os dois itens. Ainda assim, prefira a viga para os parafusos de cima.</td></tr>
+        <tr><td><strong>Laje entre as vigotas</strong><span class="sub">o teto bege</span></td><td>É isopor com uma capa fina de concreto</td><td><strong>Nada.</strong> Nunca pendure carga na laje</td><td>A lajota de isopor não segura parafuso. Só as vigotas de concreto seguram, e elas são estreitas.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="call risk">
+    <h4>A ordem certa dos dois furos</h4>
+    <ul>
+      <li><strong>Primeiro o cross over, depois a barra fixa.</strong> A coluna do cross over é a peça exigente — precisa do pilar ou da viga. Ache o lugar dela, e a barra fixa entra onde sobrar — no seu caso, com o eixo a 1,00 m do canto e 0,975 m do eixo do cross over (Projeto R1).</li>
+      <li><strong>Marque com o próprio equipamento encostado na parede</strong>, nivelado, e fure só um furo de cada peça primeiro. Confira que está no prumo, aperte, e aí fure os outros pelos furos da chapa. Marcar os quatro de uma vez e furar todos é como sai furo torto que não alinha.</li>
+      <li><strong>Teste com o corpo, aos poucos.</strong> Barra fixa: pendure transferindo o peso devagar, sem soltar os pés de uma vez. Cross over: 10 kg e puxe forte ouvindo a parede; estalo seco é motivo para parar e refazer.</li>
+      <li><strong>Reaperte depois do primeiro treino e depois de um mês.</strong> É quando parafuso em alvenaria acomoda.</li>
+    </ul>
+  </div>
+
+  <figure class="diag">
+    <svg viewBox="0 0 700 430" role="img" aria-label="Planta do terraço: barra fixa na parede do fundo à esquerda, cross over junto ao pilar à direita com o tatame de dois por um metro à frente, e na parede da esquerda o cavalete com o banco perpendicular e um corredor livre para recuar no agachamento." style="max-width:100%;height:auto" font-family='Source Sans 3',system-ui,sans-serif><defs><marker id="pA" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M1,5 L9,1 L9,9 z" fill="currentColor"/></marker><pattern id="pH" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="8" stroke="currentColor" stroke-width="1" opacity=".35"/></pattern></defs><line x1="70" y1="44" x2="610.0" y2="44" stroke="currentColor" stroke-width="6"/><line x1="70" y1="44" x2="70" y2="394.0" stroke="currentColor" stroke-width="6"/><rect x="594.0" y="41" width="18" height="18" fill="url(#pH)" stroke="currentColor" stroke-width="1.2"/><text x="618.0" y="57.0" font-size="10.5" font-weight="400" text-anchor="start" fill="currentColor" opacity="1" letter-spacing=".1em">PILAR</text><line x1="610.0" y1="74.0" x2="610.0" y2="394.0" stroke="currentColor" stroke-width="1.2" stroke-dasharray="6 5"/><text x="620.0" y="234.0" font-size="10.5" font-weight="400" text-anchor="middle" fill="currentColor" opacity="0.75" transform="rotate(90 620.0 234.0)">aberto para a varanda</text><text x="340.0" y="28.0" font-size="11" font-weight="400" text-anchor="middle" fill="currentColor" opacity="1" letter-spacing=".08em">PAREDE DO FUNDO — a única que se fura</text><text x="54.0" y="219.0" font-size="11" font-weight="400" text-anchor="middle" fill="currentColor" opacity="1" letter-spacing=".08em" transform="rotate(-90 54 219.0)">PAREDE DA ESQUERDA</text><rect x="170.0" y="44" width="8" height="55.00000000000001" fill="currentColor"/><rect x="272.0" y="44" width="8" height="55.00000000000001" fill="currentColor"/><line x1="170.0" y1="99.0" x2="280.0" y2="99.0" stroke="currentColor" stroke-width="4" stroke-linecap="round"/><rect x="160.0" y="56.0" width="130.0" height="105.0" fill="none" style="stroke:var(--accent)" stroke-width="1.2" stroke-dasharray="4 3"/><text x="225.0" y="130.0" font-size="12" font-weight="600" text-anchor="middle" fill="currentColor" opacity="1" >Barra fixa</text><text x="225.0" y="146.0" font-size="10.5" font-weight="400" text-anchor="middle" fill="currentColor" opacity="0.8" >1,3 × 1,0 m livres</text><rect x="485.00000000000006" y="44" width="20.0" height="15.0" fill="currentColor"/><text x="495.0" y="80.0" font-size="12" font-weight="600" text-anchor="middle" fill="currentColor" opacity="1" >Cross over</text><rect x="395.0" y="94.0" width="200.0" height="100.0" fill="none" stroke="currentColor" stroke-width="1.4"/><line x1="495.0" y1="94.0" x2="495.0" y2="194.0" stroke="currentColor" stroke-width="1" opacity=".45"/><text x="495.0" y="140.0" font-size="11.5" font-weight="400" text-anchor="middle" fill="currentColor" opacity="1" >Tatame 2 × 1 m</text><text x="495.0" y="156.0" font-size="10.5" font-weight="400" text-anchor="middle" fill="currentColor" opacity="0.8" >remada baixa · abdominal · corda</text><rect x="390.0" y="56.0" width="210.0" height="155.0" fill="none" style="stroke:var(--accent)" stroke-width="1.2" stroke-dasharray="4 3"/><text x="495.0" y="228.0" font-size="10.5" font-weight="400" text-anchor="middle" fill="currentColor" opacity="0.8" >2,1 × 1,6 m livres</text><line x1="225.0" y1="206.0" x2="495.0" y2="206.0" stroke="currentColor" stroke-width="1.1" marker-start="url(#pA)" marker-end="url(#pA)"/><line x1="225.0" y1="200.0" x2="225.0" y2="212.0" stroke="currentColor" stroke-width="1"/><line x1="495.0" y1="200.0" x2="495.0" y2="212.0" stroke="currentColor" stroke-width="1"/><text x="360.0" y="199.0" font-size="11" font-weight="400" text-anchor="middle" fill="currentColor" opacity="1" >≥ 1,8 m entre os centros</text><rect x="88.0" y="226.99999999999997" width="270.0" height="155.0" fill="none" style="stroke:var(--accent)" stroke-width="1.2" stroke-dasharray="4 3"/><text x="223.0" y="215.0" font-size="12" font-weight="600" text-anchor="middle" fill="currentColor" opacity="1" >Supino e agachamento — nada na parede</text><rect x="110.0" y="248.99999999999997" width="55.00000000000001" height="110.00000000000001" fill="none" stroke="currentColor" stroke-width="1.6"/><text x="137.5" y="304.0" font-size="10.5" font-weight="400" text-anchor="middle" fill="currentColor" opacity="1" transform="rotate(-90 137.5 303.99999999999994)">cavalete</text><rect x="140.0" y="289.0" width="130.0" height="30.0" fill="none" stroke="currentColor" stroke-width="1.6"/><text x="205.0" y="309.0" font-size="10.5" font-weight="400" text-anchor="middle" fill="currentColor" opacity="1" >banco</text><line x1="90.0" y1="261.0" x2="240.00000000000003" y2="261.0" stroke="currentColor" stroke-width="3" stroke-linecap="round" opacity=".7"/><text x="248.0" y="265.0" font-size="10.5" font-weight="400" text-anchor="start" fill="currentColor" opacity="0.8" >barra 1,5 m</text><line x1="170.0" y1="344.0" x2="320.0" y2="344.0" style="stroke:var(--accent)" stroke-width="1.4" marker-end="url(#pA)" stroke-dasharray="3 3"/><text x="245.0" y="337.0" font-size="10.5" font-weight="400" text-anchor="middle" fill="currentColor" opacity="0.85" >agachamento: sai do cavalete e recua</text><text x="223.0" y="374.0" font-size="10.5" font-weight="400" text-anchor="middle" fill="currentColor" opacity="0.8" >2,7 × 1,55 m livres</text></svg>
+    <figcaption><strong>Planta.</strong> A parede do fundo recebe a barra fixa à esquerda e o cross over junto ao pilar; o tatame de 2 m² fica na frente do cross over, que é onde você senta para a remada baixa e onde a corda cai. Na parede da esquerda, o cavalete a uns 40 cm da parede com o banco perpendicular a ele — e um corredor livre à frente para recuar no agachamento e, se travar, abandonar a barra para trás. As medidas do terraço você mede; as das zonas são as do equipamento.</figcaption>
+  </figure>
+
+  <div class="call win">
+    <h4>Por que esse lado para cada coisa</h4>
+    <p>O terraço é aberto para a varanda no lado direito, então chuva com vento entra por ali. O <strong>cross over e a barra fixa aguentam água</strong> — aço pintado, e a barra fixa é vendida como resistente a sol e chuva. O <strong>banco não</strong>: estofado molhado apodrece e o cavalete enferruja nas soldas. Por isso o supino vai para a esquerda, o lado mais protegido, exatamente como você pensou. Se o vento trouxer água até o tatame, ele seca em minutos; só não deixe a corda de rolamento tomando chuva.</p>
+  </div>
+</section>
+
+<hr class="rule">
+
+<section>
+  <div class="snum">Montagem</div>
+  <h2>Checklist item por item</h2>
+  <p class="prose lede">Cada peça tem uma coisa que, se você errar na montagem, incomoda para sempre. Estão marcadas. <strong>Fure a parede uma vez só:</strong> antes de montar a barra fixa no dia 1º, decida onde o cross over vai ficar — os dois disputam parede alta e livre, e o cross over é o mais exigente dos dois.</p>
+
+  <ol class="steps">
+    <li>
+      <h4>Barra fixa de parede — 1º de setembro</h4>
+      <p><strong>Antes de furar:</strong> confirme que a parede é de <strong>alvenaria</strong> — tijolo ou concreto. Drywall e divisória não seguram 250 kg nem perto. Bata na parede: som oco é drywall, som maciço é alvenaria.</p>
+      <p><strong>Altura:</strong> eixo da barra a <strong>sua altura + 45 cm</strong>, com 35 cm livres acima até a laje — a tabela por estatura e o desenho da parede estão na seção <a href="#layout">Layout</a>. Se a laje não der, baixe a barra e faça com os joelhos dobrados.</p>
+      <p><strong>Ferramenta:</strong> furadeira de impacto e broca de concreto (os parafusos e buchas vêm no kit). <strong>Teste antes de confiar:</strong> pendure aplicando o peso aos poucos, sem soltar os pés de uma vez.</p>
+      <span class="when">Precisa de: furadeira · broca de concreto · nível</span>
+    </li>
+    <li>
+      <h4>Banco Yangfit — 1 a 2 de setembro</h4>
+      <p>Chega praticamente montado, dobrável. Encaixe os pés e o módulo de pernas. <strong>Confira antes do primeiro uso:</strong> os pinos do encosto (7 posições) e do assento (4 posições) travam com clique firme, sem folga. Um pino que não trava por completo cede no meio de uma série.</p>
+      <p><strong>Capacidade de 200 kg inclui você.</strong> Seu peso corporal mais a barra carregada. Só chega perto do limite se você supinar acima de 110 kg — não é um problema real, mas é o motivo de ele ter custado R$ 100 a mais que os de 150 kg.</p>
+      <span class="when">Sem ferramenta · guarda dobrado</span>
+    </li>
+    <li>
+      <h4>Suporte cavalete — 3 a 5 de setembro</h4>
+      <p>Chega desmontado, em metalon 50 × 50. Monte com os parafusos que vêm na caixa e <strong>aperte tudo de novo depois do primeiro treino</strong> — estrutura nova acomoda e afrouxa.</p>
+      <p><strong>A coisa que vale fazer no primeiro dia:</strong> marque com fita as duas alturas que você vai usar sempre. Regule para a barra ficar na altura do <strong>meio do peito</strong> e marque — é a de agachamento, você entra por baixo dela. Depois regule para <strong>70 a 90 cm</strong> e marque — é a de supino, com o banco encaixado entre os pés do cavalete. São 12 posições; sem marcação, você perde cinco minutos toda vez que trocar de exercício.</p>
+      <p><strong>Piso:</strong> concreto de garagem serve. Se o piso for irregular, calce a base — cavalete bambo com barra carregada é o pior cenário do setup.</p>
+      <span class="when">Precisa de: chave de boca ou allen · fita crepe</span>
+    </li>
+    <li>
+      <h4>Barra maciça 28 mm — 4 a 6 de setembro</h4>
+      <p>Chega pronta, com o par de presilhas. <strong>Confira:</strong> o recartilhado (a textura do grip) tem que estar nítido, e o cromo sem amassados ou pontos de ferrugem. Devolução grátis em 30 dias se algo estiver errado.</p>
+      <p><strong>Marque a pegada:</strong> passe fita ou giz nos pontos onde suas mãos ficam no supino. Repetir a mesma pegada em todo treino é o que permite comparar cargas de uma semana para a outra.</p>
+      <span class="when">7,5 kg · suporta 400 kg · a barra de tudo que é pesado</span>
+    </li>
+    <li>
+      <h4>Cross over de parede — 3 a 4 de setembro</h4>
+      <p><strong>Esta é a montagem que exige mais cuidado do conjunto todo.</strong> A coluna fica presa só na parede e recebe carga em ângulo, puxando os parafusos <em>para fora</em>, não para baixo — o oposto da barra fixa. Alvenaria maciça, nunca bloco vazado sem preenchimento, nunca drywall.</p>
+      <p><strong>Onde fixar:</strong> na parede do fundo, <strong>junto ao pilar</strong> da ponta que dá para a varanda — é o ponto mais forte da parede, e se a chapa da coluna couber no pilar, fixe nele. Polia alta acima do seu alcance com os braços esticados (sua altura + 40 cm no mínimo), polia baixa entre 25 e 35 cm do piso; o desenho com as cotas está na seção <a href="#layout">Layout</a>.</p>
+      <p><strong>Buchas:</strong> as que vêm na caixa costumam ser genéricas, e o que substituí-las depende do que está atrás do reboco — a tabela está na seção <a href="#layout">Layout</a>. Em resumo: parafusos que caírem na <strong>viga ou no pilar</strong> levam chumbador de expansão; os que caírem em <strong>tijolo furado</strong> levam chumbador químico ou parafuso passante, <em>nunca</em> parabolt, que racha o bloco. Custa uns R$ 40 a R$ 80 e é a diferença entre uma fixação que dura e uma que folga em seis meses.</p>
+      <p><strong>Teste antes de confiar:</strong> pendure carga baixa e puxe forte com o corpo todo, ouvindo. Rangido metálico é acomodação normal; estalo seco na parede é motivo para parar e refazer.</p>
+      <span class="when">Precisa de: furadeira de impacto · broca de concreto · nível · chave de boca</span>
+    </li>
+    <li>
+      <h4>Kit de puxadores e tatames — 3 a 4 de setembro</h4>
+      <p><strong>Puxadores:</strong> confira se vieram os quatro — barra de puxada, corda, triângulo e o par de estribos — e se os <strong>mosquetões giram livres</strong>. Mosquetão emperrado torce o cabo e é o que mais gasta uma polia caseira.</p>
+      <p><strong>A inversão do banco funciona.</strong> Você perguntou e a resposta é sim: coloque o banco <em>declinado</em> sob a polia alta com o <strong>rolo de pernas virado para a parede</strong> e trave os pés nele. É o que substitui o apoio de coxa da puxada de academia — sem ele, carga acima de uns 30 kg levanta você do banco.</p>
+      <p><strong>Tatames:</strong> são 2 m² no total — o suficiente para o espaço de abdominal, flexão e para pular corda em cima, não para forrar a garagem. Encaixe os dois lado a lado <strong>na frente do cross over</strong>, que é onde você vai fazer remada baixa sentado e onde a corda cai.</p>
+      <span class="when">Sem ferramenta · 2 m² de piso</span>
+    </li>
+    <li>
+      <h4>Corda de pular e Super Band — 4 a 6 de setembro</h4>
+      <p><strong>Ajuste a corda antes do primeiro salto:</strong> pise no meio dela com um pé e puxe as pontas para cima — devem chegar na <strong>altura das axilas</strong>. Corda comprida bate no chão antes da hora e você tropeça; é o motivo número um de gente desistir da corda. Quase toda corda com rolamento ajusta pelo parafuso na alça.</p>
+      <p><strong>Nunca pule direto no concreto.</strong> Sempre em cima do tatame. Mil e oitocentos saltos por sessão em piso duro é o caminho curto para uma canelite.</p>
+      <p><strong>Super Band de 45 mm:</strong> é banda larga, de assistência forte — certa para quem ainda não faz uma barra fixa. Passe por cima da barra, puxe uma ponta pela outra e apoie o <strong>joelho</strong> no laço (mais ajuda) ou o <strong>pé</strong> (menos). A progressão da barra fixa é reduzir essa assistência, nunca somar peso.</p>
+      <span class="when">Sem ferramenta · pule sempre sobre o tatame</span>
+    </li>
+    <li>
+      <h4>Kit 100 kg Ciuze — 10 de setembro (MOVVI) · NF 24634 · 6 volumes</h4>
+      <p><strong>Primeiro conte os volumes, depois o conteúdo.</strong> São <strong>6 caixas</strong> segundo a nota; faltando alguma, recuse com ressalva por escrito no canhoto antes de assinar. A Ciuze confirmou o que vai em cada caixa — a tabela está na seção <em>Comprado</em>: as anilhas vêm nos volumes 1 a 5 (<strong>4 de cada peso — 1, 2, 3, 4, 5 e 10 kg</strong>, 24 no total) e as 4 barras ocas com as 8 presilhas no volume 6. Se vier distribuição diferente (por exemplo, mais discos grandes e nenhum de 1 kg), você perde a progressão fina; abra reclamação pelo Mercado Livre dentro do prazo, a Compra Garantida cobre.</p>
+      <p><strong>Teste o encaixe:</strong> pegue uma anilha e enfie na barra Famafit. O furo é de ~33 mm e o punho de 28,57 mm — deve entrar com folga pequena e a presilha deve travar sem o disco chacoalhar.</p>
+      <p><strong>As barras ocas do kit:</strong> a reta de 1,50 m aguenta 60 kg e a W aguenta 50 kg, segundo o próprio fabricante. Use a W para rosca e tríceps testa, e deixe a reta oca para exercício leve. Tudo que for pesado vai na Famafit.</p>
+      <p><strong>Organização:</strong> sem torre de anilhas, empilhe por peso encostado na parede perto do cavalete, e não no chão do caminho — 100 kg de ferro solto no piso é como se machuca o dedo do pé.</p>
+      <span class="when">36 peças · confira antes de guardar</span>
+    </li>
+    <li>
+      <h4>Primeiro treino completo — a partir de 11 de setembro</h4>
+      <p>Treino A do programa, tudo com a barra vazia. Some 2 kg por sessão no tronco e 4 kg na perna enquanto completar todas as séries com a última repetição ainda firme.</p>
+      <p><strong>A regra de segurança que vale para sempre:</strong> no supino sozinho, <strong>treine sem as presilhas</strong>. Se você falhar uma repetição, incline a barra e as anilhas escorregam para fora. Com presilha travada, a barra fica presa no seu peito.</p>
+      <span class="when">Semana de 15 de setembro</span>
+    </li>
+  </ol>
+</section>
+
+<hr class="rule">
+
+<section>
+  <div class="snum">Programa</div>
+  <h2>Como usar tudo isso na primeira semana</h2>
+  <p class="prose lede">Iniciante rende mais em corpo inteiro três vezes por semana do que em divisão por grupo muscular. Alterne A e B — segunda, quarta e sexta, por exemplo: A, B, A na primeira semana; B, A, B na segunda.</p>
+
+  <div class="prog">
+    <div class="day">
+      <div class="tag">Treino A</div>
+      <h3>Agachamento no centro</h3>
+      <table><tbody>
+        <tr><td>Agachamento livre</td><td class="num">3 × 5</td></tr>
+        <tr><td>Supino reto com barra</td><td class="num">3 × 5</td></tr>
+        <tr><td>Remada curvada</td><td class="num">3 × 5</td></tr>
+        <tr><td>Desenvolvimento com halteres</td><td class="num">2 × 8</td></tr>
+        <tr><td>Rosca direta</td><td class="num">2 × 10</td></tr>
+        <tr><td>Elevação de pernas na fixa</td><td class="num">3 × máx</td></tr>
+      </tbody></table>
+    </div>
+    <div class="day">
+      <div class="tag">Treino B</div>
+      <h3>Terra no centro</h3>
+      <table><tbody>
+        <tr><td>Levantamento terra</td><td class="num">3 × 5</td></tr>
+        <tr><td>Desenvolvimento militar</td><td class="num">3 × 5</td></tr>
+        <tr><td>Barra fixa</td><td class="num">3 × máx</td></tr>
+        <tr><td>Supino inclinado com halteres</td><td class="num">2 × 8</td></tr>
+        <tr><td>Tríceps testa</td><td class="num">2 × 10</td></tr>
+        <tr><td>Panturrilha em pé</td><td class="num">3 × 12</td></tr>
+      </tbody></table>
+    </div>
+  </div>
+
+  <div class="call win">
+    <h4>O programa completo está no outro documento</h4>
+    <p>Este é o treino da primeira semana, para você não ficar parado. O <a href="https://claude.ai/code/artifact/1eabc920-e433-4a9a-b8af-f1e5fffc5d91">Guia de treino da garagem</a> tem os <strong>67 exercícios desenhados</strong>, o programa de duas fases, o descanso entre séries e entre exercícios, o tempo real de cada treino e o plano de <strong>corrida, corda e barra fixa em 12 semanas</strong>.</p>
+  </div>
+
+  <div class="call">
+    <h4>Carga inicial e progressão</h4>
+    <p><strong>Comece tudo com a barra vazia — 7,5 kg.</strong> Parece pouco e é de propósito: nas primeiras semanas você está aprendendo o movimento, e a técnica que você fixar agora é a que vai carregar 90 kg depois. Cada treino, se você completou todas as séries com a última repetição ainda firme, some <strong>2 kg na barra nos exercícios de tronco</strong> (supino, desenvolvimento, remada, rosca) e <strong>4 kg nos de perna</strong> (agachamento e terra).</p>
+    <p>Nesse ritmo, o agachamento sai de 7,5 kg e passa de 60 kg em cerca de quatro meses. Com 100 kg de anilhas, o teto é 107,5 kg — você tem pelo menos três anos de progressão antes de precisar comprar mais uma anilha sequer.</p>
+  </div>
+</section>
+
+<hr class="rule">
+
+<footer>
+  <p><strong>Compra fechada em 31 de agosto de 2026</strong>, em quatro pedidos no Mercado Livre, com entrega para Nova Lima/MG. Valores e números de pedido conferidos nas notas de cada compra. Datas de entrega são as estimativas do Mercado Livre no dia da compra e podem mudar — acompanhe em Minhas compras. Pesos das barras ocas e do cavalete são valores aproximados de catálogo. O anúncio da gaiola usada na OLX é de terceiro e pode sair do ar.</p>
+  <p style="margin-top:18px"><strong>Os itens comprados</strong></p>
+  <ul>
+    <li><a href="https://www.mercadolivre.com.br/suporte-cavalete-regulavel-supino-e-biceps-academia/p/MLB26608265">Suporte cavalete regulável — Exercit</a></li>
+    <li><a href="https://www.mercadolivre.com.br/banco-supino-regulavel-reto-inclinado-declinado-7-posicoes-yangfit/p/MLB26643228">Banco supino regulável 7 posições — Yangfit</a></li>
+    <li><a href="https://www.mercadolivre.com.br/barra-reta-macica-150m-28mm-cromada-par-de-presilhas-para-academia-e-musculacao/p/MLB35298811">Barra reta maciça 1,50 m 28 mm — Famafit</a></li>
+    <li><a href="https://www.mercadolivre.com.br/barra-fixa-de-parede-para-taf-e-treinar-em-casa-cor-preto-com-suporte-de-saco-de-pancada/p/MLB24144362">Barra fixa de parede — Barrafixa</a></li>
+    <li><a href="https://www.mercadolivre.com.br/kit-musculacao-100kg-anilhas-com-barras-36-pecas-completo/up/MLBU1973544088">Kit 100 kg + 4 barras, 36 peças — Ciuze</a></li>
+    <li><a href="https://produto.mercadolivre.com.br/MLB-3432985417-cross-over-parede-puxada-treino-musculaco-polia-alta-baixa-_JM">Cross over de parede — EJ Oliver</a></li>
+    <li><a href="https://produto.mercadolivre.com.br/MLB-3663578407-kit-musculaco-costas-polia-corda-tringulo-estribo-academia-_JM">Kit de puxadores: corda, triângulo e estribo — Lísia Sport</a></li>
+    <li><a href="https://produto.mercadolivre.com.br/MLB-4480042649-tatame-eva-1x1m-20mm-com-encaixe-preto-academia-fitness-liso-_JM">Tatame EVA 1×1 m 20 mm — Mac Imports</a></li>
+    <li><a href="https://produto.mercadolivre.com.br/MLB-3766854085-corda-de-pular-profissional-com-rolamento-treino-crossfit-laranja-c-preto-_JM">Corda de pular com rolamento — MB Nutrition</a></li>
+    <li><a href="https://produto.mercadolivre.com.br/MLB-3488187881-super-band-elastico-extensor-extra-forte-45mm-barra-fixa-yangfit-_JM">Super Band 45 mm — Yangfit</a></li>
+    
+    <li><a href="https://www.olx.com.br/esportes-e-ginastica/estado-mg/belo-horizonte-e-regiao?q=anilhas">Anilhas em BH e região — OLX</a></li>
+    <li><a href="https://www.olx.com.br/esportes-e-ginastica/estado-mg/belo-horizonte-e-regiao?q=gaiola%20agachamento%20rack">Gaiolas e racks em BH — OLX</a></li>
+    <li><a href="https://conta.olx.com.br/favoritos">Seus favoritos na OLX</a></li>
+    <li><a href="https://myaccount.mercadolivre.com.br/purchases/list">Suas compras no Mercado Livre</a></li>
+    <li><a href="https://claude.ai/code/artifact/1eabc920-e433-4a9a-b8af-f1e5fffc5d91">Guia de treino da garagem</a> — os 67 exercícios, o programa e o plano de cardio</li>
+  </ul>
+</footer>
+
+</div>

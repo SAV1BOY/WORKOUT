@@ -1,0 +1,467 @@
+{
+  "corrida": {
+    "objetivo": "de caminhada a 5 km sem parar em 12 semanas (≈35 min, 7 min/km)",
+    "sessoes_por_semana": 2,
+    "regra_dia": "sempre em dia sem treino de perna",
+    "semanas": [
+      {
+        "semana": 1,
+        "descricao": "8 × (1 min corrida / 2 min caminhada)",
+        "aquecimento_min": 5,
+        "soltura_min": 5,
+        "blocos": [
+          {
+            "corrida_min": 1,
+            "caminhada_min": 2
+          },
+          {
+            "corrida_min": 1,
+            "caminhada_min": 2
+          },
+          {
+            "corrida_min": 1,
+            "caminhada_min": 2
+          },
+          {
+            "corrida_min": 1,
+            "caminhada_min": 2
+          },
+          {
+            "corrida_min": 1,
+            "caminhada_min": 2
+          },
+          {
+            "corrida_min": 1,
+            "caminhada_min": 2
+          },
+          {
+            "corrida_min": 1,
+            "caminhada_min": 2
+          },
+          {
+            "corrida_min": 1,
+            "caminhada_min": 2
+          }
+        ],
+        "corrida_min": 8,
+        "km_corridos": 1.0,
+        "km_total": 3.6,
+        "sessao_min": 34,
+        "pace_alvo": "7:49/km"
+      },
+      {
+        "semana": 2,
+        "descricao": "7 × (1 min 30 / 2 min caminhada)",
+        "aquecimento_min": 5,
+        "soltura_min": 5,
+        "blocos": [
+          {
+            "corrida_min": 1.5,
+            "caminhada_min": 2
+          },
+          {
+            "corrida_min": 1.5,
+            "caminhada_min": 2
+          },
+          {
+            "corrida_min": 1.5,
+            "caminhada_min": 2
+          },
+          {
+            "corrida_min": 1.5,
+            "caminhada_min": 2
+          },
+          {
+            "corrida_min": 1.5,
+            "caminhada_min": 2
+          },
+          {
+            "corrida_min": 1.5,
+            "caminhada_min": 2
+          },
+          {
+            "corrida_min": 1.5,
+            "caminhada_min": 2
+          }
+        ],
+        "corrida_min": 10.5,
+        "km_corridos": 1.4,
+        "km_total": 3.8,
+        "sessao_min": 34,
+        "pace_alvo": "7:44/km"
+      },
+      {
+        "semana": 3,
+        "descricao": "6 × (2 min corrida / 2 min caminhada)",
+        "aquecimento_min": 5,
+        "soltura_min": 5,
+        "blocos": [
+          {
+            "corrida_min": 2,
+            "caminhada_min": 2
+          },
+          {
+            "corrida_min": 2,
+            "caminhada_min": 2
+          },
+          {
+            "corrida_min": 2,
+            "caminhada_min": 2
+          },
+          {
+            "corrida_min": 2,
+            "caminhada_min": 2
+          },
+          {
+            "corrida_min": 2,
+            "caminhada_min": 2
+          },
+          {
+            "corrida_min": 2,
+            "caminhada_min": 2
+          }
+        ],
+        "corrida_min": 12,
+        "km_corridos": 1.6,
+        "km_total": 3.8,
+        "sessao_min": 34,
+        "pace_alvo": "7:40/km"
+      },
+      {
+        "semana": 4,
+        "descricao": "5 × (3 min corrida / 2 min caminhada)",
+        "aquecimento_min": 5,
+        "soltura_min": 5,
+        "blocos": [
+          {
+            "corrida_min": 3,
+            "caminhada_min": 2
+          },
+          {
+            "corrida_min": 3,
+            "caminhada_min": 2
+          },
+          {
+            "corrida_min": 3,
+            "caminhada_min": 2
+          },
+          {
+            "corrida_min": 3,
+            "caminhada_min": 2
+          },
+          {
+            "corrida_min": 3,
+            "caminhada_min": 2
+          }
+        ],
+        "corrida_min": 15,
+        "km_corridos": 2.0,
+        "km_total": 4.0,
+        "sessao_min": 35,
+        "pace_alvo": "7:36/km"
+      },
+      {
+        "semana": 5,
+        "descricao": "4 × (4 min corrida / 2 min caminhada)",
+        "aquecimento_min": 5,
+        "soltura_min": 5,
+        "blocos": [
+          {
+            "corrida_min": 4,
+            "caminhada_min": 2
+          },
+          {
+            "corrida_min": 4,
+            "caminhada_min": 2
+          },
+          {
+            "corrida_min": 4,
+            "caminhada_min": 2
+          },
+          {
+            "corrida_min": 4,
+            "caminhada_min": 2
+          }
+        ],
+        "corrida_min": 16,
+        "km_corridos": 2.1,
+        "km_total": 3.9,
+        "sessao_min": 34,
+        "pace_alvo": "7:32/km"
+      },
+      {
+        "semana": 6,
+        "descricao": "3 × (6 min corrida / 2 min caminhada)",
+        "aquecimento_min": 5,
+        "soltura_min": 5,
+        "blocos": [
+          {
+            "corrida_min": 6,
+            "caminhada_min": 2
+          },
+          {
+            "corrida_min": 6,
+            "caminhada_min": 2
+          },
+          {
+            "corrida_min": 6,
+            "caminhada_min": 2
+          }
+        ],
+        "corrida_min": 18,
+        "km_corridos": 2.4,
+        "km_total": 4.0,
+        "sessao_min": 34,
+        "pace_alvo": "7:28/km"
+      },
+      {
+        "semana": 7,
+        "descricao": "2 × (9 min corrida / 2 min caminhada)",
+        "aquecimento_min": 5,
+        "soltura_min": 4,
+        "blocos": [
+          {
+            "corrida_min": 9,
+            "caminhada_min": 2
+          },
+          {
+            "corrida_min": 9,
+            "caminhada_min": 2
+          }
+        ],
+        "corrida_min": 18,
+        "km_corridos": 2.4,
+        "km_total": 3.7,
+        "sessao_min": 31,
+        "pace_alvo": "7:24/km"
+      },
+      {
+        "semana": 8,
+        "descricao": "12 min + 2 min caminhada + 10 min",
+        "aquecimento_min": 5,
+        "soltura_min": 4,
+        "blocos": [
+          {
+            "corrida_min": 12,
+            "caminhada_min": 2
+          },
+          {
+            "corrida_min": 10,
+            "caminhada_min": 0
+          }
+        ],
+        "corrida_min": 22,
+        "km_corridos": 3.0,
+        "km_total": 4.1,
+        "sessao_min": 33,
+        "pace_alvo": "7:20/km"
+      },
+      {
+        "semana": 9,
+        "descricao": "20 min contínuos",
+        "aquecimento_min": 5,
+        "soltura_min": 5,
+        "blocos": [
+          {
+            "corrida_min": 20,
+            "caminhada_min": 0
+          }
+        ],
+        "corrida_min": 20,
+        "km_corridos": 2.8,
+        "km_total": 3.8,
+        "sessao_min": 30,
+        "pace_alvo": "7:16/km"
+      },
+      {
+        "semana": 10,
+        "descricao": "24 min contínuos — cerca de 3,2 km",
+        "aquecimento_min": 5,
+        "soltura_min": 5,
+        "blocos": [
+          {
+            "corrida_min": 24,
+            "caminhada_min": 0
+          }
+        ],
+        "corrida_min": 24,
+        "km_corridos": 3.3,
+        "km_total": 4.3,
+        "sessao_min": 34,
+        "pace_alvo": "7:12/km"
+      },
+      {
+        "semana": 11,
+        "descricao": "30 min contínuos — cerca de 4 km",
+        "aquecimento_min": 5,
+        "soltura_min": 5,
+        "blocos": [
+          {
+            "corrida_min": 30,
+            "caminhada_min": 0
+          }
+        ],
+        "corrida_min": 30,
+        "km_corridos": 4.2,
+        "km_total": 5.2,
+        "sessao_min": 40,
+        "pace_alvo": "7:09/km"
+      },
+      {
+        "semana": 12,
+        "descricao": "5 km sem parar",
+        "aquecimento_min": 4,
+        "soltura_min": 5,
+        "blocos": [
+          {
+            "corrida_min": 36,
+            "caminhada_min": 0
+          }
+        ],
+        "corrida_min": 36,
+        "km_corridos": 5.1,
+        "km_total": 6.0,
+        "sessao_min": 45,
+        "pace_alvo": "7:05/km"
+      }
+    ],
+    "regras": [
+      "Nas semanas 1–8 corra no ritmo em que dá para conversar (7–8 min/km).",
+      "Nas subidas, diminua o passo; nas 6 primeiras semanas, caminhe se a subida for longa.",
+      "Se uma semana der errado (viagem, gripe, dor), repita a semana anterior em vez de pular.",
+      "Da semana 9 em diante o volume sobe 20–25 % por semana, o teto seguro."
+    ]
+  },
+  "corda": {
+    "funcoes": [
+      "aquecimento: 2 min antes de todo treino de força (~200 saltos, sem contar)",
+      "sessão de cardio quando chove ou falta tempo — substitui a corrida"
+    ],
+    "semanas": [
+      {
+        "semanas": "1–2",
+        "blocos": 6,
+        "bloco_s": 30,
+        "descanso_s": 60,
+        "corda_total_min": 3.0,
+        "saltos_aprox": 300,
+        "sessao_min": 13
+      },
+      {
+        "semanas": "3–4",
+        "blocos": 6,
+        "bloco_s": 45,
+        "descanso_s": 60,
+        "corda_total_min": 4.5,
+        "saltos_aprox": 470,
+        "sessao_min": 14
+      },
+      {
+        "semanas": "5–6",
+        "blocos": 8,
+        "bloco_s": 60,
+        "descanso_s": 45,
+        "corda_total_min": 8.0,
+        "saltos_aprox": 880,
+        "sessao_min": 18
+      },
+      {
+        "semanas": "7–8",
+        "blocos": 6,
+        "bloco_s": 120,
+        "descanso_s": 60,
+        "corda_total_min": 12.0,
+        "saltos_aprox": 1380,
+        "sessao_min": 22
+      },
+      {
+        "semanas": "9–12",
+        "blocos": 5,
+        "bloco_s": 180,
+        "descanso_s": 60,
+        "corda_total_min": 15.0,
+        "saltos_aprox": 1800,
+        "sessao_min": 24
+      }
+    ],
+    "ajustes": [
+      "comprimento: pise no meio, as pontas chegam nas axilas",
+      "salto de 2–3 cm, do tornozelo",
+      "sempre sobre o tatame, nunca no concreto"
+    ]
+  },
+  "barra_fixa": {
+    "objetivo": "a primeira barra fixa sem elástico em 8–12 semanas",
+    "sessoes_por_semana": 2,
+    "regra": "a carga nunca muda — o que muda é quanta ajuda o elástico dá",
+    "semanas": [
+      {
+        "semanas": "1–2",
+        "assistencia": "nenhuma — pendurado + negativas (suba no banco, chegue no topo e desça em 4 s)",
+        "por_sessao": "4 × 5",
+        "reps_semana": 40,
+        "treina": "pegada e a parte excêntrica"
+      },
+      {
+        "semanas": "3–4",
+        "assistencia": "elástico sob o pé inteiro (mais ajuda)",
+        "por_sessao": "4 × 6",
+        "reps_semana": 48,
+        "treina": "o movimento completo, com trajetória correta"
+      },
+      {
+        "semanas": "5–6",
+        "assistencia": "elástico sob o pé inteiro",
+        "por_sessao": "4 × 8",
+        "reps_semana": 64,
+        "treina": "volume — o dorsal engrossa"
+      },
+      {
+        "semanas": "7–8",
+        "assistencia": "elástico sob o joelho (menos ajuda; as reps caem e está certo)",
+        "por_sessao": "4 × 6",
+        "reps_semana": 48,
+        "treina": "transferência para menos assistência"
+      },
+      {
+        "semanas": "9–10",
+        "assistencia": "elástico sob o joelho, perna dobrada para trás (quase nenhuma ajuda)",
+        "por_sessao": "4 × 5",
+        "reps_semana": 40,
+        "treina": "a força quase toda já é sua"
+      },
+      {
+        "semanas": "11–12",
+        "assistencia": "tente sem elástico primeiro, depois complete com o elástico no joelho",
+        "por_sessao": "5 × máximo",
+        "reps_semana": "25–45",
+        "treina": "a primeira repetição livre costuma sair aqui"
+      }
+    ],
+    "grease_the_groove": "Toda vez que passar por baixo da barra num dia sem treino, faça 1 repetição com o elástico, longe da falha. 5–6 soltas por dia somam mais que uma sessão extra."
+  },
+  "esforco": {
+    "teste_da_fala": [
+      {
+        "nivel": "fácil",
+        "consegue": "falar frases inteiras sem ofegar",
+        "onde": "toda a corrida deste plano"
+      },
+      {
+        "nivel": "moderado",
+        "consegue": "frases curtas, cortadas",
+        "onde": "subidas e os últimos minutos da semana 12"
+      },
+      {
+        "nivel": "forte",
+        "consegue": "só palavras soltas",
+        "onde": "blocos de corda de 2–3 min; nunca na corrida nesta fase"
+      }
+    ]
+  },
+  "ordem": [
+    "Corrida em dia de perna, nunca. Fase 1: cardio na terça e no sábado; Fase 2: quarta e sábado.",
+    "Se tiver que ser no mesmo dia: 6 h de intervalo e a força primeiro.",
+    "Corda no aquecimento pode e deve, todo dia."
+  ]
+}

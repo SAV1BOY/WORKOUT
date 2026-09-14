@@ -1,0 +1,762 @@
+{
+  "inicio": "2026-09-14",
+  "fase_inicial": "fase1",
+  "semana_comeca": "segunda",
+  "fases": [
+    {
+      "id": "fase1",
+      "nome": "Fase 1 — corpo inteiro, 3× por semana",
+      "periodo": "do primeiro dia até o 3º–4º mês",
+      "frequencia_forca": 3,
+      "treinos": [
+        "A1",
+        "B1"
+      ],
+      "alternancia": "A-B-A na semana ímpar, B-A-B na semana par (sempre o treino que não foi o último)",
+      "semana": [
+        {
+          "dia": "seg",
+          "tipo": "forca",
+          "treino": "alternar",
+          "min": 44
+        },
+        {
+          "dia": "ter",
+          "tipo": "cardio",
+          "sessao": "corrida",
+          "min": 34
+        },
+        {
+          "dia": "qua",
+          "tipo": "forca",
+          "treino": "alternar",
+          "min": 45
+        },
+        {
+          "dia": "qui",
+          "tipo": "descanso",
+          "nota": "1 repetição solta de barra fixa (grease the groove)"
+        },
+        {
+          "dia": "sex",
+          "tipo": "forca",
+          "treino": "alternar",
+          "min": 44
+        },
+        {
+          "dia": "sab",
+          "tipo": "cardio",
+          "sessao": "corrida ou corda",
+          "min": 34
+        },
+        {
+          "dia": "dom",
+          "tipo": "descanso",
+          "nota": "caminhada leve"
+        }
+      ],
+      "total_semana": "3 h 21 (2 h 13 de força, 1 h 08 de cardio)",
+      "quando_mudar": "Ao entrar no 4º mês, ou antes se cada treino já passa de 55 min e a técnica dos três grandes (agachamento, terra, supino) está sólida — o app sugere a troca a partir de 12 semanas completas."
+    },
+    {
+      "id": "fase2",
+      "nome": "Fase 2 — superior e inferior, 4× por semana",
+      "periodo": "do 4º mês em diante",
+      "frequencia_forca": 4,
+      "treinos": [
+        "SA",
+        "IA",
+        "SB",
+        "IB"
+      ],
+      "alternancia": "SA, IA, SB, IB na ordem, uma vez por semana cada",
+      "semana": [
+        {
+          "dia": "seg",
+          "tipo": "forca",
+          "treino": "SA",
+          "min": 54
+        },
+        {
+          "dia": "ter",
+          "tipo": "forca",
+          "treino": "IA",
+          "min": 49
+        },
+        {
+          "dia": "qua",
+          "tipo": "cardio",
+          "sessao": "corrida",
+          "min": 35
+        },
+        {
+          "dia": "qui",
+          "tipo": "forca",
+          "treino": "SB",
+          "min": 54
+        },
+        {
+          "dia": "sex",
+          "tipo": "forca",
+          "treino": "IB",
+          "min": 46
+        },
+        {
+          "dia": "sab",
+          "tipo": "cardio",
+          "sessao": "corrida longa",
+          "min": 40
+        },
+        {
+          "dia": "dom",
+          "tipo": "descanso",
+          "nota": ""
+        }
+      ],
+      "total_semana": "4 h 38 (3 h 23 de força, 1 h 15 de cardio)",
+      "quando_mudar": "Fase de manutenção/evolução — revisar o programa a cada 8–12 semanas (o app avisa)."
+    }
+  ],
+  "treinos": {
+    "A1": {
+      "id": "A1",
+      "nome": "Treino A",
+      "foco": "agachamento no centro",
+      "subtitulo": "Empurrar e agachar",
+      "exercicios": [
+        {
+          "exercicio_id": "agachamento-livre",
+          "nome": "Agachamento livre",
+          "series": 3,
+          "reps": {
+            "tipo": "reps",
+            "min": 5,
+            "max": 5,
+            "texto": "3 × 5"
+          },
+          "descanso_s": 150,
+          "descanso_texto": "2–3 min",
+          "transicao_s": 150,
+          "tempo_min": 9
+        },
+        {
+          "exercicio_id": "supino-reto-com-barra",
+          "nome": "Supino reto com barra",
+          "series": 3,
+          "reps": {
+            "tipo": "reps",
+            "min": 5,
+            "max": 5,
+            "texto": "3 × 5"
+          },
+          "descanso_s": 150,
+          "descanso_texto": "2–3 min",
+          "transicao_s": 150,
+          "tempo_min": 9
+        },
+        {
+          "exercicio_id": "remada-curvada-pronada",
+          "nome": "Remada curvada pronada",
+          "series": 3,
+          "reps": {
+            "tipo": "reps",
+            "min": 6,
+            "max": 8,
+            "texto": "3 × 6–8"
+          },
+          "descanso_s": 90,
+          "descanso_texto": "90 s",
+          "transicao_s": 120,
+          "tempo_min": 7
+        },
+        {
+          "exercicio_id": "desenvolvimento-com-halteres",
+          "nome": "Desenvolvimento com halteres",
+          "series": 2,
+          "reps": {
+            "tipo": "reps",
+            "min": 8,
+            "max": 12,
+            "texto": "2 × 8–12"
+          },
+          "descanso_s": 90,
+          "descanso_texto": "90 s",
+          "transicao_s": 90,
+          "tempo_min": 4
+        },
+        {
+          "exercicio_id": "rosca-direta-com-barra",
+          "nome": "Rosca direta com barra",
+          "series": 2,
+          "reps": {
+            "tipo": "reps",
+            "min": 10,
+            "max": 12,
+            "texto": "2 × 10–12"
+          },
+          "descanso_s": 90,
+          "descanso_texto": "90 s",
+          "transicao_s": 60,
+          "tempo_min": 4
+        },
+        {
+          "exercicio_id": "elevacao-de-pernas-na-barra-fixa",
+          "nome": "Elevação de pernas na barra fixa",
+          "series": 3,
+          "reps": {
+            "tipo": "reps",
+            "min": 10,
+            "max": 15,
+            "texto": "3 × 10–15"
+          },
+          "descanso_s": 90,
+          "descanso_texto": "90 s",
+          "transicao_s": 60,
+          "tempo_min": 6
+        }
+      ],
+      "duracao_min": 44,
+      "aquecimento": "2 min de corda (ou polichinelo) + 2 séries de aproximação no 1º exercício pesado: barra vazia × 5 e metade da carga × 5 (não contam nas séries)"
+    },
+    "B1": {
+      "id": "B1",
+      "nome": "Treino B",
+      "foco": "terra no centro",
+      "subtitulo": "Puxar e articular o quadril",
+      "exercicios": [
+        {
+          "exercicio_id": "levantamento-terra",
+          "nome": "Levantamento terra",
+          "series": 3,
+          "reps": {
+            "tipo": "reps",
+            "min": 5,
+            "max": 5,
+            "texto": "3 × 5"
+          },
+          "descanso_s": 150,
+          "descanso_texto": "2–3 min",
+          "transicao_s": 150,
+          "tempo_min": 9
+        },
+        {
+          "exercicio_id": "desenvolvimento-militar-em-pe",
+          "nome": "Desenvolvimento militar em pé",
+          "series": 3,
+          "reps": {
+            "tipo": "reps",
+            "min": 5,
+            "max": 8,
+            "texto": "3 × 5–8"
+          },
+          "descanso_s": 150,
+          "descanso_texto": "2–3 min",
+          "transicao_s": 150,
+          "tempo_min": 9
+        },
+        {
+          "exercicio_id": "puxada-alta-na-polia",
+          "nome": "Puxada alta na polia",
+          "series": 3,
+          "reps": {
+            "tipo": "reps",
+            "min": 10,
+            "max": 12,
+            "texto": "3 × 10–12"
+          },
+          "descanso_s": 90,
+          "descanso_texto": "90 s",
+          "transicao_s": 120,
+          "tempo_min": 7
+        },
+        {
+          "exercicio_id": "supino-inclinado-com-halteres",
+          "nome": "Supino inclinado com halteres",
+          "series": 2,
+          "reps": {
+            "tipo": "reps",
+            "min": 8,
+            "max": 12,
+            "texto": "2 × 8–12"
+          },
+          "descanso_s": 90,
+          "descanso_texto": "90 s",
+          "transicao_s": 90,
+          "tempo_min": 4
+        },
+        {
+          "exercicio_id": "triceps-na-corda",
+          "nome": "Tríceps na corda",
+          "series": 2,
+          "reps": {
+            "tipo": "reps",
+            "min": 12,
+            "max": 15,
+            "texto": "2 × 12–15"
+          },
+          "descanso_s": 60,
+          "descanso_texto": "60 s",
+          "transicao_s": 60,
+          "tempo_min": 3
+        },
+        {
+          "exercicio_id": "elevacao-de-panturrilha-em-pe",
+          "nome": "Elevação de panturrilha em pé",
+          "series": 4,
+          "reps": {
+            "tipo": "reps",
+            "min": 15,
+            "max": 20,
+            "texto": "4 × 15–20"
+          },
+          "descanso_s": 60,
+          "descanso_texto": "60 s",
+          "transicao_s": 60,
+          "tempo_min": 7
+        }
+      ],
+      "duracao_min": 45,
+      "aquecimento": "2 min de corda (ou polichinelo) + 2 séries de aproximação no 1º exercício pesado: barra vazia × 5 e metade da carga × 5 (não contam nas séries)"
+    },
+    "SA": {
+      "id": "SA",
+      "nome": "Superior A",
+      "foco": "supino no centro",
+      "subtitulo": "Peito, dorsal, tríceps",
+      "exercicios": [
+        {
+          "exercicio_id": "supino-reto-com-barra",
+          "nome": "Supino reto com barra",
+          "series": 4,
+          "reps": {
+            "tipo": "reps",
+            "min": 5,
+            "max": 6,
+            "texto": "4 × 5–6"
+          },
+          "descanso_s": 150,
+          "descanso_texto": "2–3 min",
+          "transicao_s": 150,
+          "tempo_min": 12
+        },
+        {
+          "exercicio_id": "puxada-alta-na-polia",
+          "nome": "Puxada alta na polia",
+          "series": 4,
+          "reps": {
+            "tipo": "reps",
+            "min": 10,
+            "max": 12,
+            "texto": "4 × 10–12"
+          },
+          "descanso_s": 90,
+          "descanso_texto": "90 s",
+          "transicao_s": 120,
+          "tempo_min": 9
+        },
+        {
+          "exercicio_id": "supino-inclinado-com-halteres",
+          "nome": "Supino inclinado com halteres",
+          "series": 3,
+          "reps": {
+            "tipo": "reps",
+            "min": 8,
+            "max": 12,
+            "texto": "3 × 8–12"
+          },
+          "descanso_s": 90,
+          "descanso_texto": "90 s",
+          "transicao_s": 90,
+          "tempo_min": 6
+        },
+        {
+          "exercicio_id": "remada-baixa-na-polia",
+          "nome": "Remada baixa na polia",
+          "series": 3,
+          "reps": {
+            "tipo": "reps",
+            "min": 10,
+            "max": 12,
+            "texto": "3 × 10–12"
+          },
+          "descanso_s": 90,
+          "descanso_texto": "90 s",
+          "transicao_s": 90,
+          "tempo_min": 6
+        },
+        {
+          "exercicio_id": "elevacao-lateral",
+          "nome": "Elevação lateral",
+          "series": 3,
+          "reps": {
+            "tipo": "reps",
+            "min": 12,
+            "max": 15,
+            "texto": "3 × 12–15"
+          },
+          "descanso_s": 60,
+          "descanso_texto": "60 s",
+          "transicao_s": 60,
+          "tempo_min": 5
+        },
+        {
+          "exercicio_id": "triceps-na-corda",
+          "nome": "Tríceps na corda",
+          "series": 3,
+          "reps": {
+            "tipo": "reps",
+            "min": 12,
+            "max": 15,
+            "texto": "3 × 12–15"
+          },
+          "descanso_s": 60,
+          "descanso_texto": "60 s",
+          "transicao_s": 60,
+          "tempo_min": 5
+        },
+        {
+          "exercicio_id": "face-pull",
+          "nome": "Face pull",
+          "series": 3,
+          "reps": {
+            "tipo": "reps",
+            "min": 15,
+            "max": 20,
+            "texto": "3 × 15–20"
+          },
+          "descanso_s": 60,
+          "descanso_texto": "60 s",
+          "transicao_s": 60,
+          "tempo_min": 5
+        }
+      ],
+      "duracao_min": 54,
+      "aquecimento": "2 min de corda (ou polichinelo) + 2 séries de aproximação no 1º exercício pesado: barra vazia × 5 e metade da carga × 5 (não contam nas séries)"
+    },
+    "IA": {
+      "id": "IA",
+      "nome": "Inferior A",
+      "foco": "agachamento no centro",
+      "subtitulo": "Quadríceps, panturrilha, core",
+      "exercicios": [
+        {
+          "exercicio_id": "agachamento-livre",
+          "nome": "Agachamento livre",
+          "series": 4,
+          "reps": {
+            "tipo": "reps",
+            "min": 5,
+            "max": 5,
+            "texto": "4 × 5"
+          },
+          "descanso_s": 150,
+          "descanso_texto": "2–3 min",
+          "transicao_s": 150,
+          "tempo_min": 12
+        },
+        {
+          "exercicio_id": "agachamento-bulgaro",
+          "nome": "Agachamento búlgaro",
+          "series": 3,
+          "reps": {
+            "tipo": "reps",
+            "min": 8,
+            "max": 10,
+            "texto": "3 × 8–10"
+          },
+          "descanso_s": 90,
+          "descanso_texto": "90 s",
+          "transicao_s": 120,
+          "tempo_min": 7
+        },
+        {
+          "exercicio_id": "terra-romeno-com-halteres",
+          "nome": "Terra romeno com halteres",
+          "series": 3,
+          "reps": {
+            "tipo": "reps",
+            "min": 10,
+            "max": 12,
+            "texto": "3 × 10–12"
+          },
+          "descanso_s": 90,
+          "descanso_texto": "90 s",
+          "transicao_s": 90,
+          "tempo_min": 6
+        },
+        {
+          "exercicio_id": "elevacao-de-panturrilha-em-pe",
+          "nome": "Elevação de panturrilha em pé",
+          "series": 4,
+          "reps": {
+            "tipo": "reps",
+            "min": 15,
+            "max": 20,
+            "texto": "4 × 15–20"
+          },
+          "descanso_s": 60,
+          "descanso_texto": "60 s",
+          "transicao_s": 60,
+          "tempo_min": 7
+        },
+        {
+          "exercicio_id": "elevacao-de-pernas-na-barra-fixa",
+          "nome": "Elevação de pernas na barra fixa",
+          "series": 3,
+          "reps": {
+            "tipo": "reps",
+            "min": 10,
+            "max": 15,
+            "texto": "3 × 10–15"
+          },
+          "descanso_s": 90,
+          "descanso_texto": "90 s",
+          "transicao_s": 60,
+          "tempo_min": 6
+        },
+        {
+          "exercicio_id": "prancha",
+          "nome": "Prancha",
+          "series": 3,
+          "reps": {
+            "tipo": "tempo_s",
+            "min": 30,
+            "max": 60,
+            "texto": "3 × 30–60 s"
+          },
+          "descanso_s": 60,
+          "descanso_texto": "60 s",
+          "transicao_s": 45,
+          "tempo_min": 6
+        }
+      ],
+      "duracao_min": 49,
+      "aquecimento": "2 min de corda (ou polichinelo) + 2 séries de aproximação no 1º exercício pesado: barra vazia × 5 e metade da carga × 5 (não contam nas séries)"
+    },
+    "SB": {
+      "id": "SB",
+      "nome": "Superior B",
+      "foco": "militar no centro",
+      "subtitulo": "Ombro, dorsal, bíceps",
+      "exercicios": [
+        {
+          "exercicio_id": "desenvolvimento-militar-em-pe",
+          "nome": "Desenvolvimento militar em pé",
+          "series": 4,
+          "reps": {
+            "tipo": "reps",
+            "min": 5,
+            "max": 6,
+            "texto": "4 × 5–6"
+          },
+          "descanso_s": 150,
+          "descanso_texto": "2–3 min",
+          "transicao_s": 150,
+          "tempo_min": 12
+        },
+        {
+          "exercicio_id": "barra-fixa-pronada",
+          "nome": "Barra fixa pronada",
+          "series": 4,
+          "reps": {
+            "tipo": "maximo",
+            "min": null,
+            "max": null,
+            "texto": "4 × máximo"
+          },
+          "descanso_s": 90,
+          "descanso_texto": "90 s",
+          "transicao_s": 90,
+          "tempo_min": 8
+        },
+        {
+          "exercicio_id": "supino-fechado",
+          "nome": "Supino fechado",
+          "series": 3,
+          "reps": {
+            "tipo": "reps",
+            "min": 8,
+            "max": 10,
+            "texto": "3 × 8–10"
+          },
+          "descanso_s": 90,
+          "descanso_texto": "90 s",
+          "transicao_s": 120,
+          "tempo_min": 7
+        },
+        {
+          "exercicio_id": "remada-unilateral-serrote",
+          "nome": "Remada unilateral (serrote)",
+          "series": 3,
+          "reps": {
+            "tipo": "reps",
+            "min": 8,
+            "max": 12,
+            "texto": "3 × 8–12"
+          },
+          "descanso_s": 90,
+          "descanso_texto": "90 s",
+          "transicao_s": 90,
+          "tempo_min": 6
+        },
+        {
+          "exercicio_id": "crucifixo-inverso",
+          "nome": "Crucifixo inverso",
+          "series": 3,
+          "reps": {
+            "tipo": "reps",
+            "min": 12,
+            "max": 15,
+            "texto": "3 × 12–15"
+          },
+          "descanso_s": 60,
+          "descanso_texto": "60 s",
+          "transicao_s": 60,
+          "tempo_min": 5
+        },
+        {
+          "exercicio_id": "rosca-na-polia-baixa",
+          "nome": "Rosca na polia baixa",
+          "series": 3,
+          "reps": {
+            "tipo": "reps",
+            "min": 12,
+            "max": 15,
+            "texto": "3 × 12–15"
+          },
+          "descanso_s": 60,
+          "descanso_texto": "60 s",
+          "transicao_s": 60,
+          "tempo_min": 5
+        },
+        {
+          "exercicio_id": "crossover-na-polia",
+          "nome": "Crossover na polia",
+          "series": 3,
+          "reps": {
+            "tipo": "reps",
+            "min": 12,
+            "max": 15,
+            "texto": "3 × 12–15"
+          },
+          "descanso_s": 60,
+          "descanso_texto": "60 s",
+          "transicao_s": 60,
+          "tempo_min": 5
+        }
+      ],
+      "duracao_min": 54,
+      "aquecimento": "2 min de corda (ou polichinelo) + 2 séries de aproximação no 1º exercício pesado: barra vazia × 5 e metade da carga × 5 (não contam nas séries)"
+    },
+    "IB": {
+      "id": "IB",
+      "nome": "Inferior B",
+      "foco": "terra no centro",
+      "subtitulo": "Posterior, glúteo, adutor",
+      "exercicios": [
+        {
+          "exercicio_id": "levantamento-terra",
+          "nome": "Levantamento terra",
+          "series": 4,
+          "reps": {
+            "tipo": "reps",
+            "min": 4,
+            "max": 5,
+            "texto": "4 × 4–5"
+          },
+          "descanso_s": 150,
+          "descanso_texto": "2–3 min",
+          "transicao_s": 150,
+          "tempo_min": 12
+        },
+        {
+          "exercicio_id": "agachamento-frontal",
+          "nome": "Agachamento frontal",
+          "series": 3,
+          "reps": {
+            "tipo": "reps",
+            "min": 6,
+            "max": 8,
+            "texto": "3 × 6–8"
+          },
+          "descanso_s": 90,
+          "descanso_texto": "90 s",
+          "transicao_s": 120,
+          "tempo_min": 7
+        },
+        {
+          "exercicio_id": "afundo-passada",
+          "nome": "Afundo / passada",
+          "series": 3,
+          "reps": {
+            "tipo": "reps",
+            "min": 10,
+            "max": 12,
+            "texto": "3 × 10–12"
+          },
+          "descanso_s": 90,
+          "descanso_texto": "90 s",
+          "transicao_s": 90,
+          "tempo_min": 6
+        },
+        {
+          "exercicio_id": "flexora-e-gluteo-na-polia",
+          "nome": "Flexora e glúteo na polia",
+          "series": 3,
+          "reps": {
+            "tipo": "reps",
+            "min": 12,
+            "max": 15,
+            "texto": "3 × 12–15"
+          },
+          "descanso_s": 60,
+          "descanso_texto": "60 s",
+          "transicao_s": 90,
+          "tempo_min": 6
+        },
+        {
+          "exercicio_id": "elevacao-de-panturrilha-sentado",
+          "nome": "Elevação de panturrilha sentado",
+          "series": 3,
+          "reps": {
+            "tipo": "reps",
+            "min": 15,
+            "max": 20,
+            "texto": "3 × 15–20"
+          },
+          "descanso_s": 60,
+          "descanso_texto": "60 s",
+          "transicao_s": 60,
+          "tempo_min": 5
+        },
+        {
+          "exercicio_id": "farmer-s-walk",
+          "nome": "Farmer's walk",
+          "series": 3,
+          "reps": {
+            "tipo": "passos",
+            "min": 30,
+            "max": 40,
+            "texto": "3 × 30–40 passos"
+          },
+          "descanso_s": 60,
+          "descanso_texto": "60 s",
+          "transicao_s": 60,
+          "tempo_min": 5
+        }
+      ],
+      "duracao_min": 46,
+      "aquecimento": "2 min de corda (ou polichinelo) + 2 séries de aproximação no 1º exercício pesado: barra vazia × 5 e metade da carga × 5 (não contam nas séries)"
+    }
+  },
+  "semana_curta": {
+    "regra": "Se a semana só tiver três dias, corte nesta ordem: 1º a corrida de sábado, 2º a segunda sessão de cardio, 3º um treino de força. Nunca corte o treino com agachamento ou terra; se sobrar um dia, que seja o Treino A completo."
+  },
+  "aquecimento": "5 minutos em todo treino: 2 min de corda (ou polichinelo) para subir a temperatura; depois, no primeiro exercício pesado do dia, duas séries de aproximação (barra vazia × 5 e metade da carga de trabalho × 5). Elas não contam nas séries do programa.",
+  "seguranca": [
+    "No supino, treine sem as presilhas: se falhar, incline a barra e as anilhas escorregam.",
+    "No agachamento, só carga que você consegue abandonar para trás; trabalhe com 2–3 repetições de reserva, nunca máximas sozinho.",
+    "Coluna arredondou, a série acabou (terra, remada, stiff, good morning).",
+    "Cavalete: berço na altura do meio do peito para agachar (~130–140 cm) e 70–90 cm para supino; marque com fita."
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "nome": "Miguel",
+  "altura_cm": 190,
+  "nivel": "iniciante",
+  "treina": "sozinho, no terraço coberto de casa (Nova Lima/MG)",
+  "data_inicio": "2026-09-14",
+  "fase_inicial": "fase1",
+  "primeiro_treino": "A1",
+  "objetivo_principal": "ganhar força e músculo",
+  "objetivos_secundarios": [
+    "correr 5 km em 12 semanas",
+    "primeira barra fixa sem elástico em 8–12 semanas"
+  ],
+  "corpo": {
+    "peso_kg": null,
+    "medidas_cm": {
+      "cintura": null,
+      "peito": null,
+      "braco_direito": null,
+      "braco_esquerdo": null,
+      "coxa_direita": null,
+      "coxa_esquerda": null
+    },
+    "nota": "preencher no app na primeira semana; pesar em jejum, 1× por semana; medidas e foto 1× por mês"
+  },
+  "preferencias": {
+    "idioma": "pt-BR",
+    "unidades": "kg · cm · km",
+    "semana_comeca": "segunda",
+    "registro_por_serie": true,
+    "tema": "claro e escuro"
+  }
+}

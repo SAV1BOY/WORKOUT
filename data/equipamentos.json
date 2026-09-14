@@ -1,0 +1,145 @@
+{
+  "anilhas": {
+    "total_kg": 100,
+    "furo_mm": 33,
+    "pecas": [
+      {
+        "kg": 1,
+        "qtd": 4,
+        "diametro_mm": 140
+      },
+      {
+        "kg": 2,
+        "qtd": 4,
+        "diametro_mm": 160
+      },
+      {
+        "kg": 3,
+        "qtd": 4,
+        "diametro_mm": 180
+      },
+      {
+        "kg": 4,
+        "qtd": 4,
+        "diametro_mm": 200
+      },
+      {
+        "kg": 5,
+        "qtd": 4,
+        "diametro_mm": 220
+      },
+      {
+        "kg": 10,
+        "qtd": 4,
+        "diametro_mm": 260
+      }
+    ],
+    "nota": "quatro de cada peso: sempre dá para montar simétrico; incrementos possíveis de 2 em 2 kg na barra (1 kg por lado)"
+  },
+  "barras": [
+    {
+      "id": "barra-macica",
+      "nome": "Barra reta maciça 1,50 m",
+      "peso_kg": 7.5,
+      "diametro_mm": 28,
+      "capacidade_kg": 400,
+      "uso": "agachamento, terra, supino, desenvolvimento, remada, rosca — tudo que é pesado"
+    },
+    {
+      "id": "barra-reta-oca",
+      "nome": "Barra reta oca 1,50 m (kit)",
+      "peso_kg": null,
+      "capacidade_kg": 60,
+      "uso": "reserva; pesar na balança e anotar no perfil"
+    },
+    {
+      "id": "barra-w",
+      "nome": "Barra W oca 1,20 m",
+      "peso_kg": null,
+      "capacidade_kg": 50,
+      "uso": "rosca e tríceps testa; nunca agachamento ou terra"
+    },
+    {
+      "id": "halteres",
+      "nome": "2 barras de halter 40 cm (ocas)",
+      "peso_kg": 1.5,
+      "capacidade_kg": 40,
+      "uso": "isolamento e unilateral; montar simétrico, apertar a rosca antes da série"
+    }
+  ],
+  "presilhas": 8,
+  "itens": [
+    {
+      "id": "banco",
+      "nome": "Banco supino regulável (Yangfit)",
+      "specs": "7 posições de encosto · 4 de assento · dobrável · 200 kg · 104 × 32 cm · assento 42–55 cm",
+      "fotos": "assets/itens/banco/"
+    },
+    {
+      "id": "cavalete",
+      "nome": "Suporte cavalete (Exercit, quadro H)",
+      "specs": "berços de 87 a 147 cm em 13 níveis · 70 × 40 cm · 150 kg (vale o menor) · sem trava de segurança",
+      "fotos": "assets/itens/cavalete/"
+    },
+    {
+      "id": "barra-fixa",
+      "nome": "Barra fixa de parede",
+      "specs": "1,00 m · 40 cm da parede · 250 kg · instalada a 2,30 m na parede da esquerda do terraço (projeto R2)",
+      "fotos": "assets/itens/barra-fixa/"
+    },
+    {
+      "id": "cross-over",
+      "nome": "Cross over de parede (EJ Oliver, mono)",
+      "specs": "polia alta (braço 56 cm, roldana a 2,02 m) + roldana baixa (eixo a 0,20 m), pino de anilhas, cabos 2,20 e 3,70 m · 100 kg · no pilar",
+      "fotos": "assets/itens/cross-over/"
+    },
+    {
+      "id": "puxadores",
+      "nome": "Kit de puxadores (Lísia)",
+      "specs": "barra de puxada 1,20 m, corda, triângulo, estribo, par de tornozeleiras",
+      "fotos": "assets/itens/puxadores/"
+    },
+    {
+      "id": "tatame",
+      "nome": "Tatame EVA 20 mm",
+      "specs": "2 placas de 1 × 1 m encaixadas em frente ao cross over",
+      "fotos": "assets/itens/tatame/"
+    },
+    {
+      "id": "corda",
+      "nome": "Corda de pular com rolamento",
+      "specs": "comprimento ajustável (pontas nas axilas pisando no meio)",
+      "fotos": "assets/itens/corda/"
+    },
+    {
+      "id": "super-band",
+      "nome": "Super Band 45 mm (Yangfit)",
+      "specs": "208 × 4,5 × 0,5 cm · 23–57 kg de assistência",
+      "fotos": "assets/itens/super-band/"
+    },
+    {
+      "id": "kit-100kg",
+      "nome": "Kit 100 kg: 24 anilhas + 4 barras ocas + 8 presilhas",
+      "specs": "ver 'anilhas' e 'barras'",
+      "fotos": "assets/itens/kit-100kg/"
+    },
+    {
+      "id": "barra-macica",
+      "nome": "Barra reta maciça 1,50 m",
+      "specs": "28 mm · 7,5 kg · 400 kg",
+      "fotos": "assets/itens/barra-macica/"
+    }
+  ],
+  "espaco": {
+    "local": "terraço coberto, Nova Lima/MG",
+    "parede_fundo_m": 2.2,
+    "parede_esquerda_m": 5.0,
+    "viga_m": 2.65,
+    "layout": "barra fixa na parede da esquerda (eixo a 1,10 m da parede do fundo, barra a 2,30 m), cross over no pilar, tatame 1 × 2 em frente, cavalete e banco na parede da esquerda a 2,40–3,10 m"
+  },
+  "faltam": [
+    "leg press e cadeira extensora (substituídos por agachamento, búlgaro e afundo)",
+    "puxada com apoio de coxa (a barra fixa segue sendo a puxada principal)",
+    "gaiola com travas (único upgrade que mudaria o treino)"
+  ]
+}

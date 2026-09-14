@@ -1,0 +1,105 @@
+{
+  "principio": "Uma regra só, exercício por exercício: completou todas as séries no topo da faixa com a última repetição ainda firme → sobe no próximo treino. Cada exercício progride no seu ritmo.",
+  "incrementos": [
+    {
+      "exercicios": "agachamento, terra",
+      "incremento": "+4 kg",
+      "anilhas": "uma de 2 kg em cada lado"
+    },
+    {
+      "exercicios": "supino, desenvolvimento, remada, agachamento frontal",
+      "incremento": "+2 kg",
+      "anilhas": "uma de 1 kg em cada lado"
+    },
+    {
+      "exercicios": "rosca, tríceps, elevações, crucifixo",
+      "incremento": "+2 kg",
+      "anilhas": "uma de 1 kg em cada lado — ou some 1 repetição antes de subir"
+    },
+    {
+      "exercicios": "polia (puxada, remada baixa, corda)",
+      "incremento": "+2 kg",
+      "anilhas": "uma de 2 kg no pino"
+    },
+    {
+      "exercicios": "barra fixa",
+      "incremento": "+1 rep",
+      "anilhas": "sem carga até 3 × 10 limpas; depois anilha de 2 kg na mochila; com elástico, reduza a assistência"
+    },
+    {
+      "exercicios": "halteres",
+      "incremento": "+2 kg cada",
+      "anilhas": "uma de 1 kg em cada ponta do halter"
+    },
+    {
+      "exercicios": "peso corporal e core",
+      "incremento": "+1 rep ou +5 s",
+      "anilhas": "anilha contra o peito ou na mochila quando passar de 20 reps"
+    }
+  ],
+  "carga_inicial": "Barra maciça vazia (7,5 kg) em tudo que usa a barra; barra de halter vazia (1,5 kg) ou 5 kg no total nos halteres e isolamentos; 4 kg no pino da polia. As primeiras semanas fixam o padrão de movimento.",
+  "falhas": [
+    {
+      "situacao": "falhou 1 vez",
+      "acao": "repita a mesma carga no treino seguinte"
+    },
+    {
+      "situacao": "falhou 2 vezes seguidas na mesma carga",
+      "acao": "volte 10 % e suba pela metade do incremento (2 kg viram 1 kg)"
+    },
+    {
+      "situacao": "falhou 3 vezes",
+      "acao": "semana leve: 60 % da carga, mesmas séries; volte na semana seguinte"
+    },
+    {
+      "situacao": "dor articular por mais de 48 h",
+      "acao": "tire o exercício por 2 semanas e use a variação do catálogo que dói menos (ex.: supino reto → supino inclinado com halteres)"
+    },
+    {
+      "situacao": "corrida travou no mesmo tempo",
+      "acao": "diminua o ritmo até conseguir falar frases inteiras"
+    },
+    {
+      "situacao": "barra fixa parada há 4 semanas",
+      "acao": "volume, não intensidade: acrescente as repetições soltas (grease the groove) nos dias de descanso"
+    },
+    {
+      "situacao": "sem vontade de treinar há dias",
+      "acao": "normalmente é sono ou comida: uma semana a 60 % da carga resolve mais que parar"
+    }
+  ],
+  "faixas": [
+    {
+      "tipo": "composto_pesado",
+      "exemplos": "agachamento, terra, supino, desenvolvimento militar",
+      "reps": "4–6",
+      "descanso": "2–3 min",
+      "entre_exercicios": "2–3 min"
+    },
+    {
+      "tipo": "composto_moderado",
+      "exemplos": "remada, puxada, supino com halteres, búlgaro",
+      "reps": "6–12",
+      "descanso": "90 s",
+      "entre_exercicios": "2 min"
+    },
+    {
+      "tipo": "isolamento",
+      "exemplos": "rosca, tríceps, elevações, crucifixo, panturrilha",
+      "reps": "12–20",
+      "descanso": "60 s",
+      "entre_exercicios": "1 min"
+    },
+    {
+      "tipo": "core_peso_corporal",
+      "exemplos": "prancha, abdominal, elevação de pernas",
+      "reps": "10–20 ou tempo",
+      "descanso": "45–60 s",
+      "entre_exercicios": "1 min"
+    }
+  ],
+  "marcos": [
+    "agachamento chega perto de 66 kg em ~4 meses somando 4 kg por sessão: hora de comprar mais duas anilhas de 10 kg (OLX)",
+    "teto de carga na barra maciça com o kit atual: 107,5 kg (7,5 + 100)"
+  ]
+}
