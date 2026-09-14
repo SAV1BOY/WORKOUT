@@ -15,10 +15,6 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     "/**": ["./assets/mapa-muscular/**"],
   },
-  experimental: {
-    // os JSON de data/ são importados direto; nada de rede no build
-    typedRoutes: false,
-  },
 };
 
 export default withSerwist(nextConfig);
