@@ -1,0 +1,177 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--fonte-sans);
+  --font-mono: var(--fonte-mono);
+  --font-heading: var(--fonte-sans);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+/* Tema claro — sóbrio, alto contraste, uma cor de destaque (laranja). */
+:root {
+  --fonte-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  --fonte-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+
+  --radius: 0.75rem;
+
+  --background: #fafafa;
+  --foreground: #0a0a0a;
+  --card: #ffffff;
+  --card-foreground: #0a0a0a;
+  --popover: #ffffff;
+  --popover-foreground: #0a0a0a;
+  --primary: #ea580c;
+  --primary-foreground: #ffffff;
+  --secondary: #f1f1f0;
+  --secondary-foreground: #0a0a0a;
+  --muted: #f1f1f0;
+  --muted-foreground: #5c5c5a;
+  --accent: #f1f1f0;
+  --accent-foreground: #0a0a0a;
+  --destructive: #b91c1c;
+  --border: #e3e3e1;
+  --input: #e3e3e1;
+  --ring: #ea580c;
+  --chart-1: #ea580c;
+  --chart-2: #0a0a0a;
+  --chart-3: #737373;
+  --chart-4: #a3a3a3;
+  --chart-5: #d4d4d4;
+
+  /* mapa muscular (assets/mapa-muscular/musculos.css) */
+  --mbody: #e3e3e1;
+  --mprim: #ea580c;
+  --msec: #f8bb92;
+}
+
+/* Tema escuro de verdade: preto, não cinza. */
+.dark {
+  --background: #0a0a0a;
+  --foreground: #f5f5f4;
+  --card: #141414;
+  --card-foreground: #f5f5f4;
+  --popover: #141414;
+  --popover-foreground: #f5f5f4;
+  --primary: #fb923c;
+  --primary-foreground: #0a0a0a;
+  --secondary: #1c1c1c;
+  --secondary-foreground: #f5f5f4;
+  --muted: #1c1c1c;
+  --muted-foreground: #a1a1a0;
+  --accent: #1f1f1f;
+  --accent-foreground: #f5f5f4;
+  --destructive: #f87171;
+  --border: #272727;
+  --input: #2e2e2e;
+  --ring: #fb923c;
+  --chart-1: #fb923c;
+  --chart-2: #f5f5f4;
+  --chart-3: #a1a1a0;
+  --chart-4: #5c5c5a;
+  --chart-5: #2e2e2e;
+
+  --mbody: #272727;
+  --mprim: #fb923c;
+  --msec: #7c4a1e;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    @apply font-sans;
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-background text-foreground;
+    /* celular primeiro: nada de rolagem horizontal a 360 px */
+    overflow-x: hidden;
+  }
+  /* números lidos a um braço de distância */
+  .numero {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+    font-weight: 600;
+  }
+  /* alvo de toque mínimo */
+  .alvo {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  .pb-segura {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .pt-segura {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+}
+
+/* Mapa muscular: classes de destaque descritas em assets/mapa-muscular/README.md.
+   As cores saem das variáveis --mprim / --msec / --mbody definidas acima. */
+.p-trapezio{--m-trapezio:var(--mprim)}
+.s-trapezio{--m-trapezio:var(--msec)}
+.p-ombro{--m-ombro:var(--mprim)}
+.s-ombro{--m-ombro:var(--msec)}
+.p-ombrop{--m-ombrop:var(--mprim)}
+.s-ombrop{--m-ombrop:var(--msec)}
+.p-peito{--m-peito:var(--mprim)}
+.s-peito{--m-peito:var(--msec)}
+.p-biceps{--m-biceps:var(--mprim)}
+.s-biceps{--m-biceps:var(--msec)}
+.p-triceps{--m-triceps:var(--mprim)}
+.s-triceps{--m-triceps:var(--msec)}
+.p-antebraco{--m-antebraco:var(--mprim)}
+.s-antebraco{--m-antebraco:var(--msec)}
+.p-dorsal{--m-dorsal:var(--mprim)}
+.s-dorsal{--m-dorsal:var(--msec)}
+.p-abdomen{--m-abdomen:var(--mprim)}
+.s-abdomen{--m-abdomen:var(--msec)}
+.p-obliquo{--m-obliquo:var(--mprim)}
+.s-obliquo{--m-obliquo:var(--msec)}
+.p-lombar{--m-lombar:var(--mprim)}
+.s-lombar{--m-lombar:var(--msec)}
+.p-gluteo{--m-gluteo:var(--mprim)}
+.s-gluteo{--m-gluteo:var(--msec)}
+.p-quadriceps{--m-quadriceps:var(--mprim)}
+.s-quadriceps{--m-quadriceps:var(--msec)}
+.p-posterior{--m-posterior:var(--mprim)}
+.s-posterior{--m-posterior:var(--msec)}
+.p-adutor{--m-adutor:var(--mprim)}
+.s-adutor{--m-adutor:var(--msec)}
+.p-panturrilha{--m-panturrilha:var(--mprim)}
+.s-panturrilha{--m-panturrilha:var(--msec)}

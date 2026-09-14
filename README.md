@@ -82,3 +82,25 @@ kit-app-treino/
 ## Créditos dos assets
 
 Fotos de execução: free-exercise-db (domínio público). Figuras, mapa muscular, textos e dados: feitos para este projeto a partir do *Guia de treino da garagem* (setembro de 2026). Fotos dos itens: anúncios dos produtos comprados.
+
+## Rodando o app
+
+```bash
+npm install
+cp .env.local.example .env.local   # e preencha as chaves do Supabase
+npm run dev                        # http://localhost:3000
+```
+
+| Comando | O que faz |
+|---|---|
+| `npm run dev` | desenvolvimento (service worker desligado) |
+| `npm run build` | build de produção (roda `validar` + `assets` antes) |
+| `npm run lint` | ESLint |
+| `npm test` | Vitest |
+| `npm run validar` | confere `data/*.json` e os assets referenciados |
+| `npm run assets` | copia `assets/` para `public/` |
+| `npm run icones` | regenera os ícones PNG do PWA |
+
+Sem as variáveis de ambiente o app compila e abre normalmente: a tela de login
+mostra o aviso de configuração em vez de quebrar. O andamento por marco está em
+`PROGRESSO.md`.

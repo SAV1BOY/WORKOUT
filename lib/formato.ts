@@ -1,0 +1,102 @@
+/**
+ * Formatação pt-BR: vírgula decimal, datas dd/MM, durações mm:ss.
+ * Funções puras, sem React — usadas na UI e nos testes.
+ */
+import { format, parseISO } from "date-fns";
+import { ptBR } from "date-fns/locale";
+
+/** Aceita Date ou "2026-09-14" (data pura, sem fuso). */
+export type DataEntrada = Date | string;
+
+export function paraData(valor: DataEntrada): Date {
+  return typeof valor === "string" ? parseISO(valor) : valor;
+}
+
+/** 7.5 → "7,5" · 24 → "24" · 1.25 com 2 casas → "1,25" */
+export function formatarNumero(valor: number, casasMax = 2): string {
+  return new Intl.NumberFormat("pt-BR", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: casasMax,
+  }).format(valor);
+}
+
+/** 7.5 → "7,5 kg" */
+export function formatarKg(valor: number, casasMax = 2): string {
+  return `${formatarNumero(valor, casasMax)} kg`;
+}
+
+/** 96.5 → "96,5 cm" */
+export function formatarCm(valor: number, casasMax = 1): string {
+  return `${formatarNumero(valor, casasMax)} cm`;
+}
+
+/** 3.62 → "3,62 km" */
+export function formatarKm(valor: number, casasMax = 2): string {
+  return `${formatarNumero(valor, casasMax)} km`;
+}
+
+/** 14/09 */
+export function formatarData(valor: DataEntrada): string {
+  return format(paraData(valor), "dd/MM", { locale: ptBR });
+}
+
+/** 14/09/2026 */
+export function formatarDataCompleta(valor: DataEntrada): string {
+  return format(paraData(valor), "dd/MM/yyyy", { locale: ptBR });
+}
+
+/** segunda-feira, 14 de setembro de 2026 */
+export function formatarDataLonga(valor: DataEntrada): string {
+  return format(paraData(valor), "EEEE, d 'de' MMMM 'de' yyyy", {
+    locale: ptBR,
+  });
+}
+
+/** seg · ter · qua … (rótulo curto do calendário) */
+export function formatarDiaCurto(valor: DataEntrada): string {
+  return format(paraData(valor), "EEEEEE", { locale: ptBR }).replace(".", "");
+}
+
+/** 150 → "2:30" · 3720 → "1:02:00" · 45 → "0:45" */
+export function formatarDuracao(segundos: number): string {
+  const total = Math.max(0, Math.round(segundos));
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const s = total % 60;
+  const ss = String(s).padStart(2, "0");
+  if (h > 0) return `${h}:${String(m).padStart(2, "0")}:${ss}`;
+  return `${m}:${ss}`;
+}
+
+/** 44 → "44 min" · 95 → "1 h 35" */
+export function formatarMinutos(minutos: number): string {
+  const total = Math.max(0, Math.round(minutos));
+  if (total < 60) return `${total} min`;
+  const h = Math.floor(total / 60);
+  const m = total % 60;
+  return m === 0 ? `${h} h` : `${h} h ${String(m).padStart(2, "0")}`;
+}
+
+/** "24,5" ou "24.5" → 24.5 · vazio → null */
+export function lerNumero(texto: string): number | null {
+  const limpo = texto.trim().replace(/\s/g, "").replace(",", ".");
+  if (limpo === "") return null;
+  const n = Number(limpo);
+  return Number.isFinite(n) ? n : null;
+}
+
+/** Rótulo da convenção de carga de cada implemento. */
+export function rotuloDaCarga(implemento: string): string {
+  switch (implemento) {
+    case "halteres":
+      return "por halter";
+    case "polia":
+      return "no pino";
+    case "barra_fixa":
+      return "na mochila";
+    case "peso_corporal":
+      return "peso do corpo";
+    default:
+      return "na barra";
+  }
+}

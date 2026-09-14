@@ -1,8 +1,35 @@
+# dependências
 node_modules/
+.pnp
+.pnp.*
+
+# build
 .next/
 out/
+build/
+*.tsbuildinfo
+next-env.d.ts
+
+# testes
+coverage/
+
+# ambiente
 .env.local
 .env*.local
+
+# vercel
 .vercel
+
+# assets copiados de assets/ pelo script npm run assets
+public/figuras/
+public/fotos/
+public/itens/
+public/mapa-muscular/
+
+# service worker gerado pelo Serwist
+public/sw.js
+public/sw.js.map
+public/swe-worker-*.js
+
 *.log
 .DS_Store
