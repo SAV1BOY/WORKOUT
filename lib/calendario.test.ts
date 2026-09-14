@@ -152,6 +152,14 @@ describe("semanas dos planos de cardio (SPEC §5.5)", () => {
     expect(avancarSemanaDeCorrida(11, 2)).toBe(12);
     expect(avancarSemanaDeCorrida(12, 2)).toBe(12);
   });
+
+  it("acima do teto do plano, o clamp segura mas nunca volta atrás (SPEC §5.5)", () => {
+    // Semana ajustada à mão no perfil (§3.3/§3.9): cumprir as duas sessões não
+    // pode valer menos que não fazer nenhuma ("a semana do plano não muda").
+    expect(avancarSemanaDeCorrida(13, 0)).toBe(13);
+    expect(avancarSemanaDeCorrida(13, 2)).toBe(13);
+    expect(avancarSemanaCardio(20, 2, { maximo: 12 })).toBe(20);
+  });
 });
 
 describe("sugestão da Fase 2 (SPEC §5.1)", () => {
@@ -215,6 +223,35 @@ describe("semana curta (SPEC §5.4)", () => {
     expect(sobrou).toHaveLength(1);
     expect(sobrou[0]?.treinoId).toBe("A1");
     expect(r.cortados).toHaveLength(4);
+  });
+
+  it("o treino escolhido num override não é reescrito; a alternância se reencadeia (SPEC §5.2 item 1)", () => {
+    const p = perfil({ ultimo_treino: "A1" });
+    const ov: ExcecaoAgenda[] = [
+      { data: "2026-09-16", tipo: "forca", workout_id: "B1", sessao: null },
+    ];
+    const semana = semanaDoPlano(INICIO, p, ov);
+    expect(semana.find((d) => d.dia === "qua")?.treinoId).toBe("B1");
+
+    for (const marcados of [[], ["dom"], ["seg"]]) {
+      const r = semanaCurta(marcados as never, semana);
+      const qua = r.dias.find((d) => d.dia === "qua");
+      expect(qua?.treinoId).toBe("B1");
+      expect(qua?.min).toBe(45);
+      // e os dias de programa alternam ao redor dele
+      const forca = r.dias.filter((d) => d.tipo === "forca").map((d) => d.treinoId);
+      for (let i = 1; i < forca.length; i++) expect(forca[i]).not.toBe(forca[i - 1]);
+    }
+  });
+
+  it("override sem workout_id segue a alternância (SPEC §5.3: 'vale como o próximo treino')", () => {
+    const p = perfil({ ultimo_treino: "A1" });
+    const ov: ExcecaoAgenda[] = [
+      { data: "2026-09-16", tipo: "forca", workout_id: null, sessao: null },
+    ];
+    const r = semanaCurta("seg", semanaDoPlano(INICIO, p, ov));
+    const forca = r.dias.filter((d) => d.tipo === "forca");
+    expect(forca.map((d) => d.treinoId)).toEqual(["A1", "B1", "A1"]);
   });
 
   it("nunca corta o treino com agachamento ou terra antes dos outros", () => {

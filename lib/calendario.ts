@@ -85,6 +85,12 @@ export interface DiaDoPlano {
   dia: DiaSemana;
   tipo: TipoDia;
   origem: "programa" | "override";
+  /**
+   * O treino do dia foi escolhido à mão num `schedule_override`
+   * (`workout_id` explícito, SPEC §3.5 e §5.2 item 1) — a alternância da Fase 1
+   * não o reescreve; ela se reencadeia ao redor dele.
+   */
+  treinoEscolhido: boolean;
   fase: FaseId;
   treinoId: TreinoId | null;
   treino: Treino | null;
@@ -290,6 +296,7 @@ function montarDia(
     dia: info.dia,
     tipo: info.tipo,
     origem: info.origem,
+    treinoEscolhido: info.tipo === "forca" && info.excecao?.workout_id != null,
     fase: perfil.fase_atual,
     treinoId,
     treino,
@@ -333,7 +340,13 @@ export function avancarSemanaCardio(
   const exigidas = opcoes.exigidas ?? SESSOES_PARA_AVANCAR;
   if (sessoesDaSemanaCivil < exigidas) return semanaAtual;
   const maximo = opcoes.maximo ?? Number.POSITIVE_INFINITY;
-  return Math.min(semanaAtual + 1, maximo);
+  /*
+   * SPEC §5.5: com menos de 2 sessões "a semana do plano não muda"; com 2, ela
+   * avança. Numa semana ajustada à mão para além do teto do plano (§3.3/§3.9),
+   * o teto não pode fazer as duas sessões valerem MENOS que nenhuma: o clamp
+   * segura o avanço, nunca puxa a semana para trás.
+   */
+  return Math.max(semanaAtual, Math.min(semanaAtual + 1, maximo));
 }
 
 export function avancarSemanaDeCorrida(
@@ -519,6 +532,7 @@ export function semanaCurta(
     return {
       ...original,
       tipo: "descanso" as TipoDia,
+      treinoEscolhido: false,
       treinoId: null,
       treino: null,
       cardio: null,
@@ -543,19 +557,37 @@ function treinoACompleto(): TreinoId {
  * deixar dois Treinos A seguidos. E, sobrando um único treino na semana, ele é
  * o **Treino A completo** (SPEC §5.4 e programa.json `semana_curta.regra`).
  * Na Fase 2 os treinos são fixos por dia, então nada muda.
+ *
+ * SPEC §5.2 item 1 ("se existe `schedule_overrides` para a data → vale ele"):
+ * o dia que veio de um override com `workout_id` é **fixo** — o usuário
+ * escolheu o treino (§3.5) e o app não o desfaz. A alternância se reencadeia ao
+ * redor dele: os dias de programa antes e depois seguem a escada a partir do
+ * treino escolhido.
  */
 function realinharAlternancia(dias: DiaDoPlano[]): DiaDoPlano[] {
   const forca = dias.filter((d) => d.tipo === "forca" && d.fase === "fase1");
   if (forca.length === 0) return dias;
 
-  const primeiro = forca[0];
-  let atual: TreinoId =
-    forca.length === 1
-      ? treinoACompleto()
-      : (primeiro?.treinoId ?? treinoACompleto());
+  const escolhido = (d: DiaDoPlano): TreinoId | null =>
+    d.treinoEscolhido ? d.treinoId : null;
+
+  // De onde a escada começa: a âncora é o primeiro dia escolhido no override
+  // (andando para trás até o primeiro dia da semana); sem âncora, o que o
+  // programa já tinha posto no primeiro dia — ou o Treino A, se sobrou um só.
+  const iAncora = forca.findIndex((d) => escolhido(d) !== null);
+  let atual: TreinoId;
+  if (iAncora >= 0) {
+    atual = escolhido(forca[iAncora] as DiaDoPlano) as TreinoId;
+    for (let i = 0; i < iAncora; i++) atual = treinoAnteriorAlternado(atual);
+  } else if (forca.length === 1) {
+    atual = treinoACompleto();
+  } else {
+    atual = forca[0]?.treinoId ?? treinoACompleto();
+  }
 
   const novos = new Map<string, TreinoId>();
   for (const d of forca) {
+    atual = escolhido(d) ?? atual;
     novos.set(d.data, atual);
     atual = proximoTreinoAlternado(atual);
   }
@@ -565,6 +597,14 @@ function realinharAlternancia(dias: DiaDoPlano[]): DiaDoPlano[] {
     if (!id || d.tipo !== "forca") return d;
     return { ...d, treinoId: id, treino: acharTreino(id), min: acharTreino(id).duracao_min };
   });
+}
+
+/** O treino anterior na alternância da Fase 1 (a escada andando para trás). */
+function treinoAnteriorAlternado(atual: TreinoId): TreinoId {
+  const treinos = acharFase("fase1").treinos;
+  const i = treinos.indexOf(atual);
+  if (i < 0) return atual;
+  return treinos[(i - 1 + treinos.length) % treinos.length] ?? atual;
 }
 
 /* --------------------------------------------- o que falta na semana */

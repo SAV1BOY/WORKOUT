@@ -500,6 +500,49 @@ describe("decidir — tipos especiais", () => {
     expect(estado).toEqual(copia);
   });
 
+  it("tipo `maximo` sem 'última firme' repete e não grava a média (SPEC §6.2/§3.2)", () => {
+    // §6.2: "Sucesso = … e `ultima_firme = true`"; a §6.3 só troca o critério
+    // de sucesso (melhorar a média), não dispensa o toggle.
+    const antes = estadoDe(pronada, { reps_alvo: 4 });
+    const series = reps(8, 8, 8);
+    const contexto = { seriesAnteriores: [4, 4, 4] };
+    const firme = decidir(pronada, antes, series, { ...contexto, ultimaFirme: true });
+    expect(firme.evento?.motivo).toBe("subiu");
+    expect(firme.novoEstado.reps_alvo).toBe(8);
+
+    const mole = decidir(pronada, antes, series, { ...contexto, ultimaFirme: false });
+    expect(mole.evento?.motivo).toBe("repetiu");
+    expect(mole.novoEstado.reps_alvo).toBe(4);
+  });
+
+  it("decide sobre a carga que a tela pediu, não sobre o valor cru do banco (SPEC §6.4/§10.5)", () => {
+    // Barra W pesada depois (§3.9): a escala vira 5,2 · 7,2 · … e os 4 kg
+    // guardados ficam abaixo dela — a tela pede a barra vazia e o motor sobe
+    // a partir dela.
+    const roscaW = acharExercicio("rosca-com-barra-w");
+    const opcoes = { pesoBarra: 5.2 };
+    const st = estadoDe(roscaW, { carga_atual_kg: 4 });
+    expect(cargaDeHoje(roscaW, st, prescricaoPadrao(roscaW), opcoes).carga_kg).toBe(5.2);
+    const sobe = decidir(roscaW, st, reps(12, 12, 12), { montagem: opcoes });
+    expect(sobe.novoEstado.carga_atual_kg).toBe(7.2);
+    expect((sobe.evento?.de as { carga_kg: number }).carga_kg).toBe(5.2);
+
+    // e o mesmo na falha: o que fica gravado existe na escala
+    const falhou = decidir(
+      roscaW,
+      estadoDe(roscaW, { carga_atual_kg: 4, falhas_seguidas: 1 }),
+      reps(4, 4, 4),
+      { montagem: opcoes },
+    );
+    expect(falhou.evento?.motivo).toBe("falha_2x_voltou_10");
+    expect(falhou.novoEstado.carga_atual_kg).toBe(5.2);
+
+    // linha acima do teto da barra maciça: a decisão sai de 107,5
+    const acima = decidir(supino, estadoDe(supino, { carga_atual_kg: 120 }), reps(8, 8, 8));
+    expect(acima.novoEstado.carga_atual_kg).toBe(107.5);
+    expect((acima.evento?.para as { carga_kg: number }).carga_kg).toBe(107.5);
+  });
+
   it("a prescrição do treino vence a prescrição padrão do catálogo", () => {
     // no Treino A o supino é 3 × 5 (e não 3 × 5–8 do catálogo)
     const estado = estadoDe(supino, { carga_atual_kg: 9.5 });

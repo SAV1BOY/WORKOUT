@@ -384,6 +384,31 @@ export function decidir(
   if (contexto.sessaoAbandonada && !completas) return nada;
 
   const opcoes = contexto.montagem ?? {};
+  /*
+   * SPEC §6.4 ("arredondar(x) = a carga possível mais próxima para baixo na
+   * escala do implemento") e §10.5 ("o motor só propõe cargas alcançáveis"):
+   * o motor decide sobre a MESMA carga que a tela pediu. `cargaDeHoje` projeta
+   * o valor do banco na escala; aqui a projeção acontece uma vez, antes de
+   * qualquer conta, foto ou evento. Sem ela, uma carga guardada fora da escala
+   * — barra W pesada depois (§3.9), linha antiga/importada, valor acima do teto
+   * — faz a tela, o estado gravado e a linha do tempo da §6.6 divergirem (a
+   * sessão perfeita "sobe" para a mesma carga de hoje).
+   */
+  if (antes.carga_atual_kg !== null) {
+    antes.carga_atual_kg = alcancavelParaBaixo(
+      antes.carga_atual_kg,
+      exercicio.implemento,
+      opcoes,
+    );
+  }
+  if (antes.carga_antes_leve !== null) {
+    antes.carga_antes_leve = alcancavelParaBaixo(
+      antes.carga_antes_leve,
+      exercicio.implemento,
+      opcoes,
+    );
+  }
+
   const depois: EstadoExercicio = { ...antes };
   const de = foto(antes, exercicio);
 
@@ -410,16 +435,23 @@ export function decidir(
     };
   }
 
+  /*
+   * SPEC §6.2: "Sucesso = … **e** `ultima_firme = true`" e "Manteve = … ou
+   * `ultima_firme = false` → repete". O preâmbulo da §6.2 manda consultar a
+   * §6.3 só para definir `alvo_max` do tipo `maximo`, não para dispensar o
+   * toggle — que a §3.2 chama de "o que o motor usa". Vale para todos os tipos.
+   */
+  const firme = contexto.ultimaFirme ?? true;
+
   /* ------------------------- tipo `maximo`: melhorar a média ---------- */
   if (prescricao.tipo === "maximo") {
-    return decidirMaximo(exercicio, antes, depois, valores, contexto, de);
+    return decidirMaximo(exercicio, antes, depois, valores, contexto, de, firme);
   }
 
   /* -------------------------------- classificação (SPEC §6.2) --------- */
   const topo = alvoDeCima(exercicio, antes, prescricao);
   const piso = prescricao.min ?? topo;
   const paraSubir = topo === null ? null : topo + (antes.exigir_rep_extra ? 1 : 0);
-  const firme = contexto.ultimaFirme ?? true;
 
   const abaixoDoPiso = valores.some((v) => v === null || (piso !== null && v < piso));
   const noTopo =
@@ -551,8 +583,10 @@ function subir(
     }
 
     default: {
-      // progressão por carga
-      const atual = antes.carga_atual_kg ?? exercicio.carga_inicial.kg;
+      // progressão por carga (já na escala: decidir() projeta antes de chamar)
+      const atual =
+        antes.carga_atual_kg ??
+        alcancavelParaBaixo(exercicio.carga_inicial.kg, exercicio.implemento, opcoes);
       const incremento = incrementoDe(exercicio, antes);
       const nova = alcancavelParaBaixo(
         atual + incremento,
@@ -628,8 +662,10 @@ function falhar(
   const falhas = antes.falhas_seguidas + 1;
   depois.falhas_seguidas = falhas;
   // Estado parcial vindo do banco: sem carga registrada vale a carga inicial do
-  // JSON (SPEC §6.1), a mesma leitura que subir() faz.
-  const carga = antes.carga_atual_kg ?? exercicio.carga_inicial.kg;
+  // JSON (SPEC §6.1), a mesma leitura que subir() faz — já na escala (§6.4).
+  const carga =
+    antes.carga_atual_kg ??
+    alcancavelParaBaixo(exercicio.carga_inicial.kg, exercicio.implemento, opcoes);
   const temCarga = exercicio.progressao.tipo === "carga" && carga !== null && carga > 0;
 
   // 1ª falha (ou exercício sem carga para reduzir): repete a mesma coisa.
@@ -721,6 +757,7 @@ function decidirMaximo(
   valores: (number | null)[],
   contexto: ContextoDecisao,
   de: Record<string, unknown>,
+  firme: boolean,
 ): Decisao {
   const feitas = valores.map((v) => v ?? 0);
   const mediaAgora = media(feitas);
@@ -769,7 +806,9 @@ function decidirMaximo(
     return v === null || v < anterior;
   });
 
-  if (mediaSubiu(somaAgora, nAgora, somaAntes, nAntes) && !caiuEmAlguma) {
+  // SPEC §6.2: sem "última repetição firme" nada sobe — nem no tipo `maximo`;
+  // a sessão vira "repetiu" e a média nova não é gravada.
+  if (firme && mediaSubiu(somaAgora, nAgora, somaAntes, nAntes) && !caiuEmAlguma) {
     depois.reps_alvo = Math.round(mediaAgora);
     depois.falhas_seguidas = 0;
     return {

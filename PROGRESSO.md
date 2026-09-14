@@ -472,9 +472,61 @@ Testes de auditoria corrigidos (com a citação da §6.3 no comentário): caso 1
 `auditoria-bordas.test.ts` — todos passaram de "20 sugere" para "21 sugere, 20
 não".
 
+### Auditoria (rodada 4) — o que os auditores acharam e o que mudou
+
+Quarta rodada adversarial sobre os mesmos três arquivos. Foram 6 achados
+(um deles com três testes) e **nos 6 o motor estava errado**: nenhum teste de
+auditoria foi corrigido, apagado ou afrouxado.
+
+`lib/progressao.ts`
+
+1. **Tipo `maximo` subia sem a "última repetição firme"** (SPEC §6.2 + §3.2).
+   `decidirMaximo()` ignorava `contexto.ultimaFirme`: com o toggle desligado o
+   supino repetia (certo) e a barra fixa pronada subia (errado), em 5 exercícios
+   do catálogo. O preâmbulo da §6.2 manda consultar a §6.3 só para definir
+   `alvo_max` do tipo `maximo`; o "e `ultima_firme = true`" do Sucesso vale para
+   todos os tipos, e a §3.2 diz que "é esse toggle que o motor usa". Agora
+   `firme` é calculado antes do desvio do tipo `maximo` e entra na condição de
+   sucesso dele: sem firme a sessão vira `repetiu` e a média nova não é gravada.
+2. **O motor decidia sobre o valor cru do banco, a tela sobre a escala**
+   (SPEC §6.2, §6.4, §3.9, §10.5 — uma causa, três sintomas). `cargaDeHoje()`
+   projeta a carga com `alcancavelParaBaixo` desde a rodada 2; `subir()` e
+   `falhar()` partiam de `exercise_state.carga_atual_kg` como veio do banco.
+   Com a barra W pesada (§3.9) a sessão perfeita "subia" para a mesma carga de
+   hoje (4,8 → 4,8; 5,2 → 5,2) e o evento da §6.6 publicava "de 2 kg"; com a
+   linha em 120 kg a tela mostrava 107,5 e o estado guardava 120; com 5 kg na
+   maciça a subida ia de 7,5 para 7,5 em vez de 9,5; e a 2ª falha gravava 4 kg,
+   fora da escala 5,2 · 7,2 · … Agora `decidir()` projeta `carga_atual_kg` e
+   `carga_antes_leve` na escala **uma vez**, antes de qualquer conta, foto ou
+   evento (mesmas `opcoes` de montagem que a tela usa), e os fallbacks de
+   `carga_inicial.kg` em `subir()`/`falhar()` também passam pela escala. Um
+   treino inteiro de sucesso deixou de se perder em cada exercício de barra W.
+
+`lib/calendario.ts`
+
+3. **A semana curta desfazia o treino escolhido à mão** (SPEC §5.2 item 1 com
+   §5.4 e §3.5). `realinharAlternancia()` reescrevia `treinoId` e `min` de todos
+   os dias de força da Fase 1, inclusive o que veio de um `schedule_override`
+   com `workout_id` explícito — mesmo sem cortar nem remanejar o dia: a quarta
+   escolhida como B1 (45 min) voltava a A1 (44 min) em silêncio. Agora
+   `DiaDoPlano` carrega `treinoEscolhido` (override **com** `workout_id`; um
+   override sem `workout_id` continua valendo "o próximo treino", §5.3), esses
+   dias são âncoras fixas e a alternância se reencadeia ao redor deles — para
+   trás e para frente, para não deixar dois treinos iguais seguidos.
+4. **Acima do teto do plano, cumprir as 2 sessões DIMINUÍA a semana**
+   (SPEC §5.5 com §3.3/§3.9). Com a semana ajustada à mão no perfil (13 num
+   plano de 12), `avancarSemanaCardio(13, 2)` devolvia 12 e `(13, 0)` devolvia
+   13 — fazer valia menos que não fazer, nas três funções (corrida, corda, barra
+   fixa). O clamp agora é `max(semanaAtual, min(semanaAtual + 1, maximo))`:
+   segura o avanço no teto, nunca puxa a semana para trás.
+
+Testes do construtor acrescentados (nenhum corrigido): `maximo` sem firme e a
+carga projetada em `lib/progressao.test.ts`; override fixo, override sem
+`workout_id` e o teto do plano em `lib/calendario.test.ts`.
+
 ### Como testar
 
-`npm test` (363 testes: 128 do construtor + 235 das três auditorias, três
+`npm test` (359 testes: 133 do construtor + 226 das três auditorias, quatro
 rodadas) e
 `npm run build`. Ainda não há tela ligada ao motor: a sessão de força (marco 3)
 é quem vai chamar `cargaDeHoje` no cabeçalho de cada bloco e `decidir` ao
