@@ -4,11 +4,14 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:mock": "NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321 NEXT_PUBLIC_SUPABASE_ANON_KEY=mock-anon ALLOWED_EMAIL=miguelgsaviotti29@gmail.com next dev",
     "prebuild": "npm run validar && npm run assets",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
+    "e2e": "playwright test -c e2e/playwright.config.ts",
+    "mock": "tsx scripts/mock-supabase.ts",
     "validar": "tsx scripts/validar-dados.ts",
     "assets": "tsx scripts/copiar-assets.ts",
     "icones": "tsx scripts/gerar-icones.ts"
@@ -37,6 +40,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "@playwright/test": "1.56.0",
     "@serwist/next": "^9.5.12",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^22.20.2",

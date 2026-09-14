@@ -33,3 +33,9 @@ public/swe-worker-*.js
 
 *.log
 .DS_Store
+
+# playwright (e2e)
+test-results/
+playwright-report/
+blob-report/
+.playwright/

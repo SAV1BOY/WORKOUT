@@ -655,3 +655,117 @@ rodadas) e
 é quem vai chamar `cargaDeHoje` no cabeçalho de cada bloco e `decidir` ao
 concluir o treino. Atenção na UI: para pré-preencher reps/tempo/passos use
 `alvo_max`, não `tempo_alvo_s`/`passos_alvo` (que são o estado, §6.1).
+
+---
+
+## Harness E2E — testar o app inteiro sem Supabase ✅
+
+Ainda não existe projeto Supabase (nem `.env.local`), então nada do fluxo real
+— login, RLS, gravação, storage — tinha sido testado de verdade. Este marco
+fecha esse buraco com um **Supabase de mentira local** e testes Playwright num
+Chromium emulando celular.
+
+### O que foi feito
+
+- **`scripts/mock-supabase.ts`** — servidor HTTP só com `node:http` (nenhuma
+  dependência nova; roda com `tsx`), estado em memória, porta
+  `MOCK_SUPABASE_PORT` (padrão 54321), `MOCK_LOG=1` para uma linha por
+  requisição. **Fora de `app/`, `lib/` e `components/`**: nada do app o importa.
+  - **Auth (GoTrue)**: `signup`, `token?grant_type=password`,
+    `token?grant_type=refresh_token`, `GET|PUT /user`, `logout`, `settings`,
+    `jwks.json`. O access token é um JWT HS256 de verdade (`sub`, `email`,
+    `role: authenticated`, `exp` de 1 h) — supabase-js valida a expiração
+    sozinho, então um token de mentira não serviria. Criar usuário dispara o
+    equivalente ao trigger `handle_new_user`: nasce a linha em `profiles`.
+  - **PostgREST**: todas as 11 tabelas de `supabase/schema.sql` e a view
+    `v_records` (calculada de `session_sets`, somente leitura), com `select`,
+    filtros `eq/neq/gt/gte/lt/lte/in/is/like/ilike` (+ `not.`), `order` com
+    `nullsfirst/nullslast`, `limit`/`offset`/`Range`, `Prefer` (`return=`,
+    `resolution=merge-duplicates` com `on_conflict` pelas **chaves reais**,
+    `count=exact` → `Content-Range`), `Accept: …pgrst.object+json` (406 fora de
+    1 linha) e os defaults do schema (uuid, `now()`, `current_date`, `status`,
+    `prefs`…).
+  - **RLS simulada**: sem token → 401; com token, leitura filtrada por `user_id`
+    e escrita com o `user_id` da sessão (outro `user_id` → 403). No bucket, o
+    caminho tem que começar com `<user_id>/`, como a policy do schema.
+  - **Storage**: upload (`POST`/`PUT`), download `authenticated`/`sign`/`public`,
+    URL assinada, `list`, `delete` e `remove` em lote.
+  - **Controle**: `GET /__mock/health`, `GET /__mock/estado`,
+    `POST /__mock/reset`, `POST /__mock/seed`.
+  - **Nunca finge sucesso**: rota, tabela, coluna, operador ou `select` embutido
+    desconhecido → 400 com `mock: … não implementado`.
+- **`e2e/`** com `@playwright/test` **1.56.0 pregado** (é a versão que casa com o
+  Chromium 141 / revisão 1194 já instalado em `/opt/pw-browsers`; nunca rodar
+  `playwright install`).
+  - `playwright.config.ts`: projeto único **"celular"** (360 × 740, `isMobile`,
+    `hasTouch`, `deviceScaleFactor` 2, pt-BR, America/Sao_Paulo), `baseURL`
+    `http://127.0.0.1:3100`, `webServer` subindo o mock **e** `next start -p 3100`
+    com as três variáveis apontando para o mock, `reuseExistingServer` fora de CI.
+  - `fixtures.ts`: `resetarMock`, `semear`, `estadoDoMock`, `sessaoNoMock`,
+    `login(page)` (cria a conta permitida e entra), `fixarRelogio` (14/09/2026
+    via `page.clock`) e `semRolagemHorizontal`.
+  - `login.spec.ts` (6): e-mail de fora recusado com "Este app é pessoal." **e o
+    mock sem receber nada**, criar conta → Hoje com o perfil semeado, senha
+    errada traduzida, sair → login, rota protegida sem sessão → login, entrar de
+    novo.
+  - `shell.spec.ts` (8): navegação inferior com os 5 itens e alvos ≥ 44 px, cada
+    rota abrindo com `aria-current` e sem rolagem horizontal, as rotas internas
+    do marco 1, manifest válido (nome, `start_url`, `standalone`, ícones
+    192/512/maskable existindo de verdade) e o `<link rel="manifest">`.
+  - `mock.spec.ts` (8): o contrato do próprio mock, que os marcos 3+ vão usar —
+    perfil do trigger, 401 sem token, 400 em recurso desconhecido, sessão de
+    força com insert/filtros/ordem/`count`/`v_records`/PATCH, upsert por chave
+    real e 406 do single, coluna fora do schema recusada, storage completo,
+    semente e reset.
+  - `e2e/README.md`: como rodar, como testar à mão no navegador e no celular, o
+    que o mock faz e **as limitações** dele.
+- **Scripts novos**: `npm run e2e` (`playwright test -c e2e/playwright.config.ts`),
+  `npm run mock` (sobe só o mock) e `npm run dev:mock` (`next dev` já com
+  `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` e `ALLOWED_EMAIL`
+  apontando para o mock). `.gitignore` ganhou `test-results/`,
+  `playwright-report/`, `blob-report/`.
+
+### Decisões
+
+- **O app não mudou uma linha.** Tudo que faltava para o fluxo real fechar foi
+  implementado no mock (foi o combinado). O único ajuste fora de `e2e/` e
+  `scripts/` foi o `package.json` e o `.gitignore`.
+- **`npm run e2e` não builda.** Ele reaproveita o `.next/` e sobe `next start`,
+  que é o que a gente quer testar (o service worker do Serwist só existe no
+  build de produção). Ordem: `npm run build && npm run e2e`.
+- **`@playwright/test` pregado em 1.56.0**, sem `^`: com `^` um `npm install`
+  futuro traria uma versão que quer outra revisão de Chromium e não acharia o
+  browser (a máquina não pode baixar nada).
+- **`workers: 1` e `fullyParallel: false`**: o mock é um processo só, com estado
+  global — dois testes em paralelo se atrapalhariam no `reset`.
+- **O config usa `__dirname`, não `import.meta.url`**: o Playwright transpila o
+  config para CJS e `import.meta` quebra o carregamento.
+- **`reuseExistingServer` fora de CI** é conveniente mas morde: um `next start`
+  velho preso na 3100 (sem as variáveis) faz *todos* os testes falharem na tela
+  "Configure NEXT_PUBLIC_…". Está anotado no `e2e/README.md`.
+- **`NEXT_PUBLIC_*` é lido em tempo de execução**, conferido no build: o bundle
+  do servidor guarda `process.env.NEXT_PUBLIC_SUPABASE_URL` sem inlining, então
+  o mesmo `.next/` serve para o mock e para a Vercel.
+
+### O que falta
+
+- Os testes cobrem o que existe (marco 1 + shell). Cada marco novo entra aqui
+  com o seu `*.spec.ts` — a sessão de força (marco 3) é a próxima, e o mock já
+  tem tudo de que ela precisa (`sessions`, `session_sets`, `exercise_state`,
+  `progression_events`, upsert e `v_records`).
+- Quando o projeto Supabase existir, rodar `supabase/schema.sql` e repetir os
+  mesmos fluxos contra ele: o mock imita o schema, não o substitui.
+
+### Como testar no celular
+
+1. `npm run build && npm run e2e` — 22 testes verdes num Chromium de 360 × 740.
+2. Para ver com os próprios olhos, dois terminais: `npm run mock` e
+   `npm run dev:mock`; abra `http://<ip-do-computador>:3000` no celular (troque
+   `127.0.0.1` por esse IP nas variáveis do `dev:mock`, senão o celular não acha
+   o mock).
+3. **Criar conta** com `miguelgsaviotti29@gmail.com` e uma senha de 6+
+   caracteres: entra direto (o mock autoconfirma). Qualquer outro e-mail tem que
+   dar "Este app é pessoal." sem sair do login.
+4. Navegue pelos 5 itens do rodapé; nada pode rolar para o lado e todo alvo tem
+   ≥ 44 px. Em Mais → Sair volta ao login e `/progresso` não abre mais.
+5. `curl -s localhost:54321/__mock/estado` mostra o que foi gravado.

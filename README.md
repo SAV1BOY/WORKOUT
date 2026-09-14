@@ -97,10 +97,15 @@ npm run dev                        # http://localhost:3000
 | `npm run build` | build de produção (roda `validar` + `assets` antes) |
 | `npm run lint` | ESLint |
 | `npm test` | Vitest |
+| `npm run e2e` | Playwright no celular emulado (exige `npm run build` antes) — ver `e2e/README.md` |
+| `npm run mock` | sobe o Supabase de mentira local (`scripts/mock-supabase.ts`) |
+| `npm run dev:mock` | `next dev` já apontando para esse mock |
 | `npm run validar` | confere `data/*.json` e os assets referenciados |
 | `npm run assets` | copia `assets/` para `public/` |
 | `npm run icones` | regenera os ícones PNG do PWA |
 
 Sem as variáveis de ambiente o app compila e abre normalmente: a tela de login
-mostra o aviso de configuração em vez de quebrar. O andamento por marco está em
+mostra o aviso de configuração em vez de quebrar. Enquanto não existe um
+projeto Supabase de verdade, dá para rodar o app inteiro contra o mock local
+(`e2e/README.md`). O andamento por marco está em
 `PROGRESSO.md`.
