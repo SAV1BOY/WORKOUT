@@ -83,6 +83,12 @@ interface Config {
   limitePorPeso: number;
   /** Teto do implemento, na convenção do `total`. */
   capacidade: number;
+  /**
+   * `false` quando não existe barra nem pino para aguentar peso (o lastro da
+   * mochila, a anilha segurada): aí a `capacidade` acima é só o estoque inteiro
+   * de anilhas e quem segura o topo é sempre o estoque (SPEC §6.4).
+   */
+  capacidadePropria: boolean;
   onde: OndeVaiAAnilha;
 }
 
@@ -101,6 +107,7 @@ function configuracao(
         fator: 2,
         limitePorPeso: 2,
         capacidade: capacidadeDaBarra("barra-macica", 400),
+        capacidadePropria: true,
         onde: "porLado",
       };
     case "barra_w":
@@ -109,6 +116,7 @@ function configuracao(
         fator: 2,
         limitePorPeso: 2,
         capacidade: capacidadeDaBarra("barra-w", 50),
+        capacidadePropria: true,
         onde: "porLado",
       };
     case "barra_reta_oca":
@@ -118,6 +126,7 @@ function configuracao(
         fator: 2,
         limitePorPeso: 2,
         capacidade: capacidadeDaBarra("barra-reta-oca", 60),
+        capacidadePropria: true,
         onde: "porLado",
       };
     case "halteres":
@@ -127,6 +136,7 @@ function configuracao(
         // os dois halteres são iguais: 4 pontas × 1 anilha = as 4 do estoque
         limitePorPeso: 1,
         capacidade: capacidadeDaBarra("halteres", 40),
+        capacidadePropria: true,
         onde: "porPonta",
       };
     case "polia":
@@ -134,7 +144,10 @@ function configuracao(
         base: 0,
         fator: 1,
         limitePorPeso: Number.POSITIVE_INFINITY,
+        // SPEC §6.4: "Polia: 100 kg no pino" — teto do próprio implemento, que
+        // por coincidência empata com o estoque (100 kg).
         capacidade: 100,
+        capacidadePropria: true,
         onde: "noPino",
       };
     case "barra_fixa":
@@ -144,6 +157,7 @@ function configuracao(
         fator: 1,
         limitePorPeso: Number.POSITIVE_INFINITY,
         capacidade: equipamentos.anilhas.total_kg,
+        capacidadePropria: false,
         onde: "naMochila",
       };
     // SPEC §4: no implemento `anilha` a carga é a anilha segurada contra o
@@ -154,11 +168,19 @@ function configuracao(
         fator: 1,
         limitePorPeso: Number.POSITIVE_INFINITY,
         capacidade: equipamentos.anilhas.total_kg,
+        capacidadePropria: false,
         onde: "naAnilha",
       };
     case "corda":
     case "band":
-      return { base: 0, fator: 1, limitePorPeso: 0, capacidade: 0, onde: "nenhum" };
+      return {
+        base: 0,
+        fator: 1,
+        limitePorPeso: 0,
+        capacidade: 0,
+        capacidadePropria: true,
+        onde: "nenhum",
+      };
   }
 }
 
@@ -285,6 +307,14 @@ export function limiteDoImplemento(
 ): LimiteDoImplemento {
   const cfg = configuracao(implemento, opcoes);
   if (cfg.onde === "nenhum") return "capacidade";
+  /*
+   * No lastro (mochila) e na anilha segurada não há barra nem pino: a
+   * `capacidade` do Config é o próprio estoque, então o empate
+   * `estoque === capacidade` não é um teto de implemento — comprar anilhas sobe
+   * a carga, e é justamente o aviso que a SPEC §6.4 manda dar. Na polia o mesmo
+   * empate (100 == 100) continua "capacidade": lá o teto é do pino.
+   */
+  if (!cfg.capacidadePropria) return "estoque";
   const somaDoEstoque = anilhasDisponiveis()
     .map((a) => a.kg * Math.min(a.qtd, cfg.limitePorPeso))
     .reduce((s, v) => s + v, 0);

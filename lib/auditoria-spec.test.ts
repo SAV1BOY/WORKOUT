@@ -45,25 +45,55 @@
  *      implemento como `decidir()` faz desde a rodada 4 — a tela pede uma carga
  *      que não se monta e diverge do que o motor gravou.
  *
+ * ---------------------------------------------------------------------
+ * RODADA 6 (as seções marcadas "rodada 6" no fim do arquivo): nova releitura
+ * da §5, da §6 e dos 22 casos do documento, agora atrás das regras que só
+ * tinham exemplo — e re-verificando as correções da rodada 5. O ataque troca o
+ * exemplo pela PROPRIEDADE:
+ *  - §6.2 como escala ordenada: uma repetição a mais nunca pode piorar a
+ *    decisão nem a carga, em todo o catálogo, com e sem "última firme";
+ *  - a escada de falhas inteira (1ª · 2ª −10 % · 3ª semana leve · volta com o
+ *    incremento cheio) rodada em TODO exercício de progressão por carga, com os
+ *    números conferidos contra a escala de cada implemento (§6.2 + §6.4);
+ *  - a graça do elástico medida em sessões (§6.3, casos 13 e 14);
+ *  - toda carga de toda escala montada contra o estoque real de anilhas
+ *    (§6.4 + §6.5), inclusive com a barra W já pesada (§3.9);
+ *  - a ordem de sacrifício da §5.4 como prefixo, nas 128 combinações de dias e
+ *    nas duas fases, e a alternância da §5.2 item 3 atravessando a virada da
+ *    semana (a correção da rodada 5 que ainda não tinha sido re-verificada);
+ *  - a cadeia tela × motor com `pesoBarra` em 24 sessões (§6.1 + §6.6).
+ * Nenhum achado: as oito propriedades passam no motor como ele está.
+ *
  * Nada aqui é código de produção.
  */
 import { describe, expect, it } from "vitest";
-import { acharExercicio, acharTreino, DIAS, exercicios } from "@/lib/dados";
+import {
+  acharExercicio,
+  acharTreino,
+  anilhasDisponiveis,
+  DIAS,
+  exercicios,
+} from "@/lib/dados";
 import {
   alcancavelParaBaixo,
   capacidadeDoImplemento,
   cargaMaxima,
   cargasPossiveis,
   limiteDoImplemento,
+  montagem,
+  type ImplementoMontagem,
 } from "@/lib/montagem";
 import {
   cargaDeHoje,
   decidir,
   estadoInicial,
   incrementoDe,
+  PASSO_MINIMO_KG,
   prescricaoDoTreino,
   prescricaoPadrao,
+  SESSOES_DE_GRACA,
   type Alvo,
+  type Decisao,
   type EstadoExercicio,
   type SerieFeita,
 } from "@/lib/progressao";
@@ -1204,3 +1234,372 @@ describe("rodada 5 · §5.5 — avanço das semanas no teto do plano", () => {
   });
 });
 
+
+/* ==================================================================== */
+/* RODADA 6 — releitura da §5, da §6 e dos 22 casos procurando REGRA     */
+/* sem teste: propriedades varridas em vez de exemplos                   */
+/* ==================================================================== */
+
+/**
+ * O posto de uma decisão na escala da §6.2 (Sucesso > Manteve > Falha).
+ * `fim_semana_leve` e uma sessão sem evento não mexem no alvo: valem "manteve".
+ */
+function posto(d: Decisao): number {
+  const e = d.evento;
+  if (e === null) return 2;
+  if (e.motivo === "subiu") return 3;
+  if (e.motivo === "semana_leve_60") return 0;
+  if (e.motivo === "falha_2x_voltou_10") return 1;
+  return e.falha ? 1 : 2;
+}
+
+describe("rodada 6 · §6.2 — Sucesso > Manteve > Falha é monótono no esforço", () => {
+  it("uma repetição a mais nunca piora a decisão nem a carga, em todo o catálogo", () => {
+    /*
+     * SPEC §6.2 classifica a sessão por comparação com a faixa: sucesso exige
+     * o topo em todas as séries, falha é alguma abaixo do piso. Logo a decisão
+     * tem que ser MONÓTONA — fazer mais repetições (ou mais segundos, ou mais
+     * passos) não pode devolver um resultado pior nem uma carga menor. Vale
+     * também no tipo `maximo` (§6.3: "melhorar a média").
+     */
+    const erros: string[] = [];
+    for (const ex of exercicios) {
+      const presc = prescricaoPadrao(ex);
+      if (presc.tipo === "ver_cardio_corda") continue;
+      const estados: (EstadoExercicio | null)[] = [
+        null,
+        estadoDe(ex),
+        estadoDe(ex, { falhas_seguidas: 1 }),
+        estadoDe(ex, { falhas_seguidas: 2 }),
+        estadoDe(ex, { incremento_reduzido: true, exigir_rep_extra: true }),
+        estadoDe(ex, { sessoes_graca: SESSOES_DE_GRACA }),
+      ];
+      for (const estado of estados) {
+        for (const anteriores of [null, [5, 5, 5], [10, 10, 10]]) {
+          for (const ultimaFirme of [true, false]) {
+            for (let v = 0; v <= 22; v++) {
+              const ctx = { prescricao: presc, ultimaFirme, seriesAnteriores: anteriores };
+              const menos = decidir(ex, estado, sessaoDe(presc, v), ctx);
+              const mais = decidir(ex, estado, sessaoDe(presc, v + 1), ctx);
+              if (posto(mais) < posto(menos)) {
+                erros.push(
+                  `${ex.id} @ ${v}→${v + 1} (firme ${ultimaFirme}): ${menos.evento?.motivo} → ${mais.evento?.motivo}`,
+                );
+              }
+              if ((mais.novoEstado.carga_atual_kg ?? 0) < (menos.novoEstado.carga_atual_kg ?? 0)) {
+                erros.push(
+                  `${ex.id} @ ${v}→${v + 1}: carga ${menos.novoEstado.carga_atual_kg} → ${mais.novoEstado.carga_atual_kg}`,
+                );
+              }
+            }
+          }
+        }
+      }
+    }
+    expect([...new Set(erros)]).toEqual([]);
+  });
+});
+
+describe("rodada 6 · §6.2/§6.4 — a escada de falhas inteira, exercício por exercício", () => {
+  it("1ª repete · 2ª −10 % com meio incremento · 3ª semana leve · volta com o incremento cheio", () => {
+    /*
+     * SPEC §6.2 (as três falhas), §6.4 (`arredondar` para baixo) e a regra
+     * derivada do doc ("incremento reduzido = max(incremento / 2, passo
+     * mínimo)"; "volta ao incremento normal na próxima subida"). Os casos 4–9
+     * do documento fazem isso em três exercícios; aqui a escada inteira roda em
+     * TODOS os exercícios de progressão por carga do catálogo, com os números
+     * conferidos contra a escala real de cada implemento.
+     */
+    const erros: string[] = [];
+    for (const ex of exercicios) {
+      if (ex.progressao.tipo !== "carga") continue;
+      const presc = prescricaoPadrao(ex);
+      if (presc.tipo === "ver_cardio_corda") continue;
+      const escala = cargasPossiveis(ex.implemento);
+      const partida = escala[Math.floor(escala.length / 2)] ?? 0;
+      if (partida <= 0) continue;
+      const incremento = ex.progressao.incremento_kg ?? 0;
+      const piso = presc.min ?? 1;
+      const topo = presc.max ?? piso;
+      const ruim = sessaoDe(presc, Math.max(0, piso - 1));
+      const otima = sessaoDe(presc, topo + 1);
+      const ctx = { prescricao: presc };
+      const conta = (rotulo: string, ok: boolean, detalhe: string) => {
+        if (!ok) erros.push(`${ex.id} ${rotulo}: ${detalhe}`);
+      };
+
+      // 1ª falha: repete a mesma carga, marcada como falha
+      const f1 = decidir(ex, estadoDe(ex, { carga_atual_kg: partida }), ruim, ctx);
+      conta(
+        "1ª falha",
+        f1.evento?.motivo === "repetiu" &&
+          f1.evento.falha === true &&
+          f1.novoEstado.carga_atual_kg === partida &&
+          f1.novoEstado.falhas_seguidas === 1,
+        `${f1.evento?.motivo} carga ${f1.novoEstado.carga_atual_kg} falhas ${f1.novoEstado.falhas_seguidas}`,
+      );
+
+      // 2ª falha: −10 % alcançável para baixo, incremento pela metade
+      const f2 = decidir(ex, f1.novoEstado, ruim, ctx);
+      const menos10 = Math.min(partida, alcancavelParaBaixo(partida * 0.9, ex.implemento));
+      conta(
+        "2ª falha",
+        f2.evento?.motivo === "falha_2x_voltou_10" &&
+          f2.novoEstado.carga_atual_kg === menos10 &&
+          f2.novoEstado.incremento_reduzido === true &&
+          f2.novoEstado.falhas_seguidas === 2,
+        `${f2.evento?.motivo} carga ${f2.novoEstado.carga_atual_kg} (esperado ${menos10})`,
+      );
+      conta(
+        "incremento reduzido",
+        incrementoDe(ex, f2.novoEstado) === Math.max(incremento / 2, PASSO_MINIMO_KG),
+        `${incrementoDe(ex, f2.novoEstado)} kg com incremento ${incremento}`,
+      );
+      // a rep extra só existe quando a metade cai abaixo do passo mínimo (caso 5
+      // sim, caso 6 não)
+      conta(
+        "exigir_rep_extra",
+        f2.novoEstado.exigir_rep_extra === incremento / 2 < PASSO_MINIMO_KG,
+        `${f2.novoEstado.exigir_rep_extra} com incremento ${incremento}`,
+      );
+
+      // 3ª falha: semana leve a 60 %, guardando a carga de antes
+      const f3 = decidir(ex, f2.novoEstado, ruim, ctx);
+      const antesLeve = f2.novoEstado.carga_atual_kg ?? 0;
+      const leve = Math.min(antesLeve, alcancavelParaBaixo(antesLeve * 0.6, ex.implemento));
+      conta(
+        "3ª falha",
+        f3.evento?.motivo === "semana_leve_60" &&
+          f3.novoEstado.semana_leve === true &&
+          f3.novoEstado.carga_atual_kg === leve &&
+          f3.novoEstado.carga_antes_leve === antesLeve &&
+          f3.novoEstado.falhas_seguidas === 0,
+        `${f3.evento?.motivo} carga ${f3.novoEstado.carga_atual_kg} (esperado ${leve}) antes ${f3.novoEstado.carga_antes_leve}`,
+      );
+      // a tela da semana leve pede exatamente a carga gravada (§6.6)
+      conta(
+        "tela da semana leve",
+        cargaDeHoje(ex, f3.novoEstado, presc).carga_kg === leve,
+        `${cargaDeHoje(ex, f3.novoEstado, presc).carga_kg} × ${leve}`,
+      );
+
+      // a sessão da semana leve devolve a carga de antes, com o incremento cheio
+      const volta = decidir(ex, f3.novoEstado, otima, ctx);
+      conta(
+        "fim da semana leve",
+        volta.evento?.motivo === "fim_semana_leve" &&
+          volta.novoEstado.carga_atual_kg === antesLeve &&
+          volta.novoEstado.incremento_reduzido === false &&
+          volta.novoEstado.exigir_rep_extra === false,
+        `${volta.evento?.motivo} carga ${volta.novoEstado.carga_atual_kg} (esperado ${antesLeve})`,
+      );
+      const subida = decidir(ex, volta.novoEstado, otima, ctx);
+      conta(
+        "subida depois da semana leve",
+        subida.novoEstado.carga_atual_kg ===
+          alcancavelParaBaixo(antesLeve + incremento, ex.implemento),
+        `${subida.evento?.motivo} carga ${subida.novoEstado.carga_atual_kg}`,
+      );
+    }
+    expect(erros).toEqual([]);
+  });
+});
+
+describe("rodada 6 · §6.3 — a graça do elástico dura exatamente duas sessões", () => {
+  it("as duas primeiras quedas depois do degrau não contam falha; a terceira conta", () => {
+    /*
+     * SPEC §6.3: "ao mudar de degrau as reps caem e isso é esperado (não conta
+     * como falha por 2 sessões)" e a regra derivada do doc (caso 13/14).
+     */
+    const presc = prescricaoPadrao(assistida);
+    const topo = sessaoDe(presc, presc.max ?? 8);
+    const queda = sessaoDe(presc, (presc.min ?? 5) - 2);
+
+    const sobe = decidir(assistida, estadoDe(assistida), topo, { prescricao: presc });
+    expect(sobe.evento?.motivo).toBe("subiu");
+    expect(sobe.novoEstado.assistencia).toBe("joelho");
+    expect(sobe.novoEstado.sessoes_graca).toBe(SESSOES_DE_GRACA);
+
+    let estado = sobe.novoEstado;
+    for (let i = 1; i <= SESSOES_DE_GRACA; i++) {
+      const d = decidir(assistida, estado, queda, { prescricao: presc });
+      expect(`${i}: ${d.evento?.motivo}/${d.evento?.falha ?? false}`).toBe(`${i}: repetiu/false`);
+      expect(d.novoEstado.falhas_seguidas).toBe(0);
+      expect(d.novoEstado.sessoes_graca).toBe(SESSOES_DE_GRACA - i);
+      expect(d.novoEstado.assistencia).toBe("joelho");
+      estado = d.novoEstado;
+    }
+    // acabada a graça, a queda volta a ser falha (§6.2)
+    const depois = decidir(assistida, estado, queda, { prescricao: presc });
+    expect(depois.evento?.falha).toBe(true);
+    expect(depois.novoEstado.falhas_seguidas).toBe(1);
+  });
+});
+
+describe("rodada 6 · §6.4/§6.5 — toda carga da escala fecha com o estoque real", () => {
+  it("as anilhas de cada carga somam certo e cabem no estoque de 4 de cada peso", () => {
+    /*
+     * SPEC §6.4 (as fórmulas e os limites por lado / ponta) e §6.5 ("respeitando
+     * o estoque (4 de cada, logo no máximo 2 por lado)"). Em vez dos exemplos
+     * do doc, a varredura confere TODA carga de TODO implemento: a soma das
+     * anilhas bate com a fórmula do implemento, todo peso existe no estoque e o
+     * total usado (2 lados na barra, 4 pontas nos dois halteres) cabe nele.
+     */
+    const estoque = new Map(anilhasDisponiveis().map((a) => [a.kg, a.qtd]));
+    const implementos: ImplementoMontagem[] = [
+      "barra_macica",
+      "barra_w",
+      "barra_reta_oca",
+      "halteres",
+      "polia",
+      "barra_fixa",
+      "peso_corporal",
+      "anilha",
+    ];
+    const erros: string[] = [];
+    for (const opcoes of [{}, { pesoBarra: 4.8 }]) {
+      for (const implemento of implementos) {
+        for (const carga of cargasPossiveis(implemento, opcoes)) {
+          const m = montagem(carga, implemento, opcoes);
+          const fator = m.onde === "porLado" || m.onde === "porPonta" ? 2 : 1;
+          const soma = m.anilhas.reduce((s, v) => s + v, 0);
+          const esperado = Math.round(((carga - m.pesoBarra) / fator) * 100) / 100;
+          if (!m.exato) erros.push(`${implemento} ${carga}: montagem inexata`);
+          if (Math.abs(soma - esperado) > 1e-9) {
+            erros.push(`${implemento} ${carga}: anilhas somam ${soma}, esperado ${esperado}`);
+          }
+          const usadas = new Map<number, number>();
+          for (const a of m.anilhas) usadas.set(a, (usadas.get(a) ?? 0) + 1);
+          for (const [kg, n] of usadas) {
+            const total = m.onde === "porPonta" ? n * 4 : m.onde === "porLado" ? n * 2 : n;
+            const disponivel = estoque.get(kg) ?? 0;
+            if (disponivel === 0) erros.push(`${implemento} ${carga}: anilha de ${kg} kg não existe`);
+            if (total > disponivel) {
+              erros.push(`${implemento} ${carga}: usa ${total} anilhas de ${kg} kg (estoque ${disponivel})`);
+            }
+          }
+        }
+      }
+    }
+    expect([...new Set(erros)]).toEqual([]);
+  });
+});
+
+/* ==================================================================== */
+/* RODADA 6 — §5.4 com §5.2 item 3: a semana curta vista por fora        */
+/* ==================================================================== */
+
+describe("rodada 6 · §5.4 — o corte segue a ordem de sacrifício do guia", () => {
+  const COMBINACOES: DiaSemana[][] = Array.from({ length: 128 }, (_, mascara) =>
+    DIAS.filter((_d, i) => (mascara >> i) & 1),
+  );
+
+  const semanas: { rotulo: string; perfil: PerfilCalendario }[] = [
+    { rotulo: "fase1/A1", perfil: { ...perfilF1, ultimo_treino: "A1" } },
+    { rotulo: "fase1/B1", perfil: { ...perfilF1, ultimo_treino: "B1" } },
+    { rotulo: "fase2", perfil: { ...perfilF1, fase_atual: "fase2", ultimo_treino: null } },
+  ];
+
+  it("o que se corta é sempre um prefixo de [cardio de sábado, outro cardio, força não protegida]", () => {
+    /*
+     * SPEC §5.4 e `programa.json` `semana_curta.regra`: "1º a corrida de sábado,
+     * 2º a segunda sessão de cardio, 3º um treino de força. Nunca corte o treino
+     * com agachamento ou terra". A ordem é a mesma para qualquer capacidade —
+     * o que muda é quantos itens dela caem.
+     */
+    const protegidos = treinosComAgachamentoOuTerra();
+    const erros: string[] = [];
+    for (const { rotulo, perfil } of semanas) {
+      const semana = semanaDoPlano("2026-09-14", perfil);
+      const atividades = semana.filter((d) => d.tipo !== "descanso");
+      const dias = (teste: (d: (typeof atividades)[number]) => boolean) =>
+        atividades.filter(teste).map((d) => d.dia).reverse();
+      const ordem = [
+        ...dias((d) => d.tipo === "cardio"),
+        ...dias((d) => d.tipo === "forca" && !protegidos.includes(d.treinoId as TreinoId)),
+        ...dias((d) => d.tipo === "forca" && protegidos.includes(d.treinoId as TreinoId)),
+      ];
+      for (const marcados of COMBINACOES) {
+        const r = semanaCurta(marcados, semana);
+        const quantos = Math.max(0, atividades.length - r.capacidade);
+        const esperado = ordem.slice(0, quantos).join(",");
+        const obtido = r.cortados.map((c) => c.dia).join(",");
+        if (obtido !== esperado) {
+          erros.push(`${rotulo} [${marcados.join(",")}]: cortou ${obtido} (esperado ${esperado})`);
+        }
+      }
+    }
+    expect(erros).toEqual([]);
+  });
+
+  it("§5.2 item 3: o primeiro treino da semana reorganizada nunca repete o último feito", () => {
+    /*
+     * SPEC §5.2 item 3 ("o treino é o que não foi o último") atravessando a
+     * virada da semana: depois do remanejo da §5.4, o primeiro treino que
+     * sobrou ainda tem que ser o próximo da alternância. A única exceção é a
+     * regra explícita da §5.4 — sobrando um dia só, ele é o Treino A, mesmo que
+     * o Treino A tenha sido o último.
+     */
+    const erros: string[] = [];
+    for (const ultimo of ["A1", "B1"] as TreinoId[]) {
+      const semana = semanaDoPlano("2026-09-14", { ...perfilF1, ultimo_treino: ultimo });
+      for (const marcados of COMBINACOES) {
+        const forca = semanaCurta(marcados, semana).dias.filter((d) => d.tipo === "forca");
+        const primeiro = forca[0]?.treinoId ?? null;
+        if (primeiro === null) continue;
+        if (forca.length === 1) {
+          if (primeiro !== "A1") erros.push(`${ultimo} [${marcados.join(",")}]: sobrou ${primeiro}`);
+          continue;
+        }
+        if (primeiro === ultimo) {
+          erros.push(`${ultimo} [${marcados.join(",")}]: recomeça em ${primeiro}`);
+        }
+      }
+    }
+    expect(erros).toEqual([]);
+  });
+});
+
+/* ==================================================================== */
+/* RODADA 6 — §3.9: a barra W pesada na balança, do começo ao fim        */
+/* ==================================================================== */
+
+describe("rodada 6 · §6.1/§6.6 — cadeia inteira com a barra W já pesada", () => {
+  it("a escala muda, mas a tela e o estado andam juntos em 24 sessões", () => {
+    /*
+     * SPEC §3.9 (o peso da barra é editável no perfil), §6.4/§10.5 (só cargas
+     * alcançáveis) e §6.6 (a tela mostra a decisão gravada). As rodadas 4 e 5
+     * corrigiram `decidir()` e `cargaDeHoje()` para projetarem na escala; aqui
+     * as duas correções rodam juntas, do estado inicial do JSON (2,0 kg, fora
+     * da escala de 4,8) até a semana leve e a volta.
+     */
+    const opcoes = { pesoBarra: 4.8 };
+    const escala = cargasPossiveis("barra_w", opcoes);
+    const erros: string[] = [];
+    for (const ex of exercicios) {
+      if (ex.implemento !== "barra_w") continue;
+      const presc = prescricaoPadrao(ex);
+      const topo = presc.max ?? presc.min ?? 10;
+      const piso = presc.min ?? topo;
+      let estado = estadoInicial(ex, presc);
+      for (let i = 0; i < 24; i++) {
+        const valor = i % 3 === 0 ? Math.max(0, piso - 2) : topo + 1;
+        estado = decidir(ex, estado, sessaoDe(presc, valor), {
+          prescricao: presc,
+          montagem: opcoes,
+        }).novoEstado;
+        const hoje = cargaDeHoje(ex, estado, presc, opcoes);
+        if (hoje.carga_kg !== estado.carga_atual_kg) {
+          erros.push(`${ex.id}#${i}: tela ${hoje.carga_kg} × estado ${estado.carga_atual_kg}`);
+        }
+        if (estado.carga_atual_kg !== null && !escala.includes(estado.carga_atual_kg)) {
+          erros.push(`${ex.id}#${i}: ${estado.carga_atual_kg} fora da escala da barra pesada`);
+        }
+        if (hoje.montagem?.exato !== true) {
+          erros.push(`${ex.id}#${i}: montagem inexata (${hoje.montagem?.pedido} → ${hoje.montagem?.total})`);
+        }
+      }
+    }
+    expect(erros).toEqual([]);
+  });
+});

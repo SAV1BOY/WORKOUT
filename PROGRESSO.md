@@ -593,9 +593,63 @@ comentário. Testes do construtor acrescentados: semana leve projetada em
 `lib/progressao.test.ts`, âncora da alternância e remanejo para dia posterior em
 `lib/calendario.test.ts`, rótulo do `anilha` em `lib/formato.test.ts`.
 
+### Auditoria (rodada 6, a segunda da rodada final) — o que os auditores acharam e o que mudou
+
+Três achados da lente "bordas". **Em dois o motor estava errado** e num terceiro
+o motor estava certo pela metade: o defeito era real, mas o valor esperado pelo
+auditor contrariava a própria §6.1 que ele citava — o teste foi corrigido com a
+citação no comentário (nenhum teste apagado ou afrouxado).
+
+`lib/progressao.ts`
+
+1. **A foto do evento lia as colunas anuláveis de `exercise_state` cruas**
+   (SPEC §4 + §6.6 com §6.1). `foto()` era o único ponto do motor sem os
+   fallbacks da §6.1 que `cargaDeHoje()` (rodada 2) e `subir()`/`falhar()`
+   (rodada 1) já aplicavam, e a projeção na escala da rodada 4 não a alcançava
+   porque estava atrás de `if (antes.carga_atual_kg !== null)`. Com
+   `carga_atual_kg = null` a tela mostrava 7,5 kg e o evento gravado saía
+   `de: {carga_kg: null}`; no ramo `repetiu`, `de` e `para` saíam os dois nulos
+   **e o estado continuava nulo**, então a linha do tempo da §6.6 não registrava
+   nada e o caso se repetia em toda sessão seguinte. A §4 exige que
+   `progression_events` explique "por que hoje é 26,5 kg", e `de: null` não
+   explica nada. Agora `decidir()` aplica, antes de qualquer conta ou foto, os
+   fallbacks das **quatro** colunas anuláveis (`carga_atual_kg`, `reps_alvo`,
+   `tempo_alvo_s`, `assistencia`) a partir de `estadoInicial()`: a linha com a
+   coluna nula passa a se comportar exatamente como a linha que ainda não
+   existe.
+
+`lib/montagem.ts`
+
+2. **No teto do lastro o app mandava não comprar anilhas** (SPEC §6.4). No
+   lastro (`barra_fixa`, `peso_corporal`, `anilha`) não existe barra nem pino: a
+   "capacidade" do `Config` era literalmente `equipamentos.anilhas.total_kg`
+   (100 kg = o estoque inteiro), e o empate `estoque === capacidade` caía no
+   lado errado do `<` de `limiteDoImplemento()`. Resultado: `montagem(101,
+   "barra_fixa")` devolvia as 24 anilhas do estoque com `limite: "capacidade"` e
+   **sem aviso**, e a barra fixa com lastro a 100 kg numa sessão perfeita dizia
+   "no limite do implemento (capacidade 100 kg): comprar anilhas não sobe a
+   carga" — o contrário do que a §6.4 manda, porque na mochila comprar anilhas
+   sobe a carga. O `Config` ganhou `capacidadePropria`: `false` no lastro e na
+   anilha segurada (o teto é o estoque, sempre `"estoque"`), `true` nas barras,
+   nos halteres e na polia — onde o mesmo empate 100 == 100 continua
+   `"capacidade"`, porque lá o teto é do pino (§6.4 "Polia: 100 kg no pino").
+
+Teste do auditor corrigido (motor certo): em
+`lib/auditoria-bordas.test.ts` > "ACHADO A — o mesmo com `assistencia`,
+`reps_alvo` e `tempo_alvo_s` nulos", o achado esperava
+`de: {reps_alvo: 15}` e `de: {tempo_alvo_s: 60}` (o **topo** da faixa). A §6.1
+diz "Primeira vez no exercício: … reps/tempo alvo = **mínimo** da faixa",
+`estadoInicial()` grava o mínimo e o próprio `cargaDeHoje()` citado no achado
+devolve `tempo_alvo_s: base.tempo_alvo_s ?? prescricao.min` (30, não 60). O
+esperado virou `{reps_alvo: 10}` e `{tempo_alvo_s: 30}`, com a citação no
+comentário e com a asserção extra de que a coluna nula dá o mesmo evento que
+`estado = null`. A parte real do achado (o `null`) foi corrigida no motor; o
+topo (15 / 60) continua sendo o alvo a bater, que aparece em `para` somado ao
+incremento (16 / 65).
+
 ### Como testar
 
-`npm test` (400 testes: 137 do construtor + 263 das três auditorias, cinco
+`npm test` (417 testes: 137 do construtor + 280 das três auditorias, seis
 rodadas) e
 `npm run build`. Ainda não há tela ligada ao motor: a sessão de força (marco 3)
 é quem vai chamar `cargaDeHoje` no cabeçalho de cada bloco e `decidir` ao

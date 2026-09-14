@@ -1560,3 +1560,471 @@ describe("ACHADOS — semana curta e rótulo da carga", () => {
     }
   });
 });
+
+/* ================================================================== */
+/*  Rodada 2 da lente "bordas" — reverificação e achados novos.        */
+/* ================================================================== */
+
+/* -------------- 18. varredura diferencial do tipo `carga` ---------- */
+
+/** Um gerador determinístico (xorshift32): a varredura é sempre a mesma. */
+function sorteio(semente: number): () => number {
+  let x = (semente >>> 0) || 1;
+  return () => {
+    x ^= x << 13;
+    x >>>= 0;
+    x ^= x >> 17;
+    x ^= x << 5;
+    x >>>= 0;
+    return x / 4294967296;
+  };
+}
+
+interface EstadoDeReferencia {
+  carga: number;
+  falhas: number;
+  reduzido: boolean;
+  repExtra: boolean;
+  leve: boolean;
+  antesLeve: number | null;
+}
+
+/**
+ * A SPEC §6.2 e a §6.4 reescritas do zero, sem olhar lib/progressao.ts: é
+ * contra ela que o motor é comparado sessão a sessão.
+ */
+function referencia(
+  escala: number[],
+  incrementoBase: number,
+  antes: EstadoDeReferencia,
+  valores: (number | null)[],
+  piso: number,
+  topo: number,
+  firme: boolean,
+): { estado: EstadoDeReferencia; motivo: string } {
+  const paraBaixo = (x: number): number => {
+    let melhor = escala[0] as number;
+    for (const c of escala) if (c <= x + 1e-9) melhor = c;
+    return melhor;
+  };
+  const s = { ...antes };
+
+  // "depois volta à carga anterior à semana leve com o incremento normal"
+  if (s.leve) {
+    s.carga = s.antesLeve ?? s.carga;
+    s.antesLeve = null;
+    s.leve = false;
+    s.reduzido = false;
+    s.repExtra = false;
+    s.falhas = 0;
+    return { estado: s, motivo: "fim_semana_leve" };
+  }
+
+  const exigido = topo + (s.repExtra ? 1 : 0);
+  const abaixoDoPiso = valores.some((v) => v === null || v < piso);
+  const noTopo = valores.every((v) => v !== null && v >= exigido);
+
+  if (!abaixoDoPiso && noTopo && firme) {
+    s.falhas = 0;
+    const incremento = s.reduzido
+      ? Math.max(incrementoBase / 2, P.PASSO_MINIMO_KG)
+      : incrementoBase;
+    const nova = paraBaixo(s.carga + incremento);
+    if (incremento <= 0 || nova <= s.carga) return { estado: s, motivo: "repetiu" };
+    s.carga = nova;
+    s.reduzido = false;
+    s.repExtra = false;
+    return { estado: s, motivo: "subiu" };
+  }
+  if (!abaixoDoPiso) return { estado: s, motivo: "repetiu" };
+
+  s.falhas = antes.falhas + 1;
+  if (s.falhas === 1) return { estado: s, motivo: "repetiu" };
+  if (s.falhas === 2) {
+    s.carga = Math.min(s.carga, paraBaixo(s.carga * 0.9));
+    s.reduzido = true;
+    s.repExtra = incrementoBase / 2 < P.PASSO_MINIMO_KG;
+    return { estado: s, motivo: "falha_2x_voltou_10" };
+  }
+  s.antesLeve = s.carga;
+  s.carga = Math.min(s.carga, paraBaixo(s.carga * 0.6));
+  s.leve = true;
+  s.falhas = 0;
+  return { estado: s, motivo: "semana_leve_60" };
+}
+
+describe("carreiras longas contra uma reimplementação independente da §6.2", () => {
+  it("60 sessões em cada exercício de carga, com e sem a barra pesada", () => {
+    const alvos = exercicios.filter(
+      (e) =>
+        e.progressao.tipo === "carga" &&
+        e.prescricao_padrao.tipo === "reps" &&
+        !e.prescricao_padrao.unilateral,
+    );
+    expect(alvos.length).toBeGreaterThan(40);
+
+    for (const e of alvos) {
+      for (const pesoBarra of [undefined, 4.8] as const) {
+        const opcoes = pesoBarra === undefined ? {} : { pesoBarra };
+        const escala = cargasPossiveis(e.implemento, opcoes);
+        const prescricao = P.prescricaoPadrao(e);
+        const piso = prescricao.min as number;
+        const topo = prescricao.max as number;
+        const incremento = e.progressao.incremento_kg ?? 0;
+        const dado = sorteio(e.id.length * 7919 + (pesoBarra ?? 1) * 131);
+
+        let estadoMotor: P.EstadoExercicio = P.estadoInicial(e);
+        let estadoRef: EstadoDeReferencia = {
+          carga: alcancavelParaBaixo(e.carga_inicial.kg, e.implemento, opcoes),
+          falhas: 0,
+          reduzido: false,
+          repExtra: false,
+          leve: false,
+          antesLeve: null,
+        };
+
+        for (let sessao = 0; sessao < 60; sessao++) {
+          const modo = Math.floor(dado() * 4);
+          const firme = dado() > 0.25;
+          const valores = Array.from({ length: prescricao.series }, () =>
+            modo === 0 ? topo + 1 : modo === 1 ? topo : modo === 2 ? piso : piso - 1,
+          );
+          const series: P.SerieFeita[] = valores.map((r) => ({ concluida: true, reps: r }));
+
+          const d = P.decidir(e, estadoMotor, series, {
+            prescricao,
+            ultimaFirme: firme,
+            montagem: opcoes,
+          });
+          const r = referencia(escala, incremento, estadoRef, valores, piso, topo, firme);
+          estadoMotor = d.novoEstado;
+          estadoRef = r.estado;
+
+          const onde = `${e.id} barra=${String(pesoBarra)} sessão ${sessao} ${JSON.stringify(valores)} firme=${firme}`;
+          expect(d.evento?.motivo ?? "sem evento", onde).toBe(r.motivo);
+          expect(cent(estadoMotor.carga_atual_kg ?? 0), onde).toBe(cent(estadoRef.carga));
+          expect(estadoMotor.falhas_seguidas, onde).toBe(estadoRef.falhas);
+          expect(estadoMotor.incremento_reduzido, onde).toBe(estadoRef.reduzido);
+          expect(estadoMotor.exigir_rep_extra, onde).toBe(estadoRef.repExtra);
+          expect(estadoMotor.semana_leve, onde).toBe(estadoRef.leve);
+          expect(escala, onde).toContain(estadoMotor.carga_atual_kg);
+        }
+      }
+    }
+  });
+
+  it("estados sujos aleatórios: o motor nunca sai da escala nem muta a entrada", () => {
+    const degraus: (P.EstadoExercicio["assistencia"])[] = [
+      ...P.DEGRAUS_ASSISTENCIA,
+      null,
+    ];
+    const dado = sorteio(20260914);
+    let casos = 0;
+
+    for (const e of exercicios) {
+      const prescricao = P.prescricaoPadrao(e);
+      for (const pesoBarra of [undefined, 5.2] as const) {
+        const opcoes = pesoBarra === undefined ? {} : { pesoBarra };
+        const escala = cargasPossiveis(e.implemento, opcoes);
+        for (let k = 0; k < 12; k++) {
+          casos++;
+          // colunas anuláveis do schema, cargas fora da escala, flags soltas
+          const entrada: P.EstadoExercicio = {
+            carga_atual_kg: dado() < 0.15 ? null : Math.round(dado() * 130 * 4) / 4,
+            reps_alvo: dado() < 0.4 ? null : Math.floor(dado() * 30),
+            tempo_alvo_s: dado() < 0.4 ? null : Math.floor(dado() * 90),
+            assistencia: degraus[Math.floor(dado() * degraus.length)] ?? null,
+            incremento_kg: dado() < 0.7 ? null : Math.round(dado() * 12) / 2,
+            falhas_seguidas: Math.floor(dado() * 3),
+            incremento_reduzido: dado() < 0.3,
+            exigir_rep_extra: dado() < 0.3,
+            semana_leve: dado() < 0.2,
+            carga_antes_leve: dado() < 0.5 ? null : Math.round(dado() * 130 * 4) / 4,
+            sessoes_graca: Math.floor(dado() * 3),
+            desativado: false,
+          };
+          const copia = JSON.stringify(entrada);
+          const quantas = Math.max(1, prescricao.series + Math.floor(dado() * 3) - 1);
+          const series: P.SerieFeita[] = Array.from({ length: quantas }, () => {
+            const v = Math.floor(dado() * 30);
+            return {
+              concluida: dado() > 0.1,
+              reps: dado() < 0.08 ? null : v,
+              reps_lado2: dado() < 0.5 ? undefined : Math.floor(dado() * 30),
+              tempo_s: dado() < 0.08 ? null : v * 3,
+              tempo_s_lado2: dado() < 0.5 ? undefined : v * 3,
+              passos: v * 2,
+            };
+          });
+
+          const d = P.decidir(e, entrada, series, {
+            prescricao,
+            ultimaFirme: dado() > 0.3,
+            sessaoAbandonada: dado() < 0.2,
+            seriesAnteriores:
+              dado() < 0.5
+                ? null
+                : Array.from({ length: prescricao.series }, () => Math.floor(dado() * 15)),
+            montagem: opcoes,
+          });
+
+          const onde = `${e.id} barra=${String(pesoBarra)} #${k}`;
+          expect(JSON.stringify(entrada), onde).toBe(copia);
+          expect(d.novoEstado.falhas_seguidas, onde).toBeGreaterThanOrEqual(0);
+          expect(d.novoEstado.sessoes_graca, onde).toBeGreaterThanOrEqual(0);
+          if (d.novoEstado.reps_alvo !== null) {
+            expect(Number.isInteger(d.novoEstado.reps_alvo), onde).toBe(true);
+          }
+          if (d.novoEstado.tempo_alvo_s !== null) {
+            expect(Number.isInteger(d.novoEstado.tempo_alvo_s), onde).toBe(true);
+          }
+          // SPEC §6.4/§10.5: decidiu, a carga gravada existe na escala
+          if (d.evento !== null && d.novoEstado.carga_atual_kg !== null) {
+            expect(escala, `${onde} ${String(d.evento.motivo)}`).toContain(
+              d.novoEstado.carga_atual_kg,
+            );
+          }
+          // SPEC §6.5: a montagem que a tela mostra fecha exata e nunca sobra
+          const hoje = P.cargaDeHoje(e, d.novoEstado, prescricao, opcoes);
+          if (hoje.montagem) {
+            expect(hoje.montagem.exato, `${onde} carga ${String(hoje.carga_kg)}`).toBe(true);
+            expect(hoje.montagem.diferenca, onde).toBeUndefined();
+          }
+        }
+      }
+    }
+    expect(casos).toBeGreaterThan(1500);
+  });
+});
+
+/* ------- 19. séries a mais / a menos e unilateral sem o lado 2 ----- */
+
+describe("séries além e aquém da prescrição, e o lado 2 ausente", () => {
+  it("tipo `maximo`: série faltando conta 0 e a média não pode subir", () => {
+    // SPEC §6.3: "sucesso = média de reps ≥ média da última sessão + 1 e
+    // nenhuma série abaixo da anterior"; §6.2: série "não concluída" é falha.
+    const e = ex("barra-fixa-pronada");
+    const quatro = { ...P.prescricaoPadrao(e), series: 4 }; // SB pede 4 × máximo
+    const anteriores = [8, 8, 8, 8];
+
+    const completa = P.decidir(e, estado("barra-fixa-pronada", { reps_alvo: 8 }), reps(9, 9, 9, 9), {
+      prescricao: quatro,
+      seriesAnteriores: anteriores,
+    });
+    expect(completa.evento?.motivo).toBe("subiu");
+
+    const faltando = P.decidir(e, estado("barra-fixa-pronada", { reps_alvo: 8 }), reps(9, 9, 9), {
+      prescricao: quatro,
+      seriesAnteriores: anteriores,
+    });
+    expect(faltando.evento?.motivo).toBe("repetiu");
+    expect(faltando.evento?.falha).toBe(true);
+    expect(faltando.novoEstado.reps_alvo).toBe(8);
+  });
+
+  it("tipo `maximo`: uma série a mais entra na média (SPEC §6.3)", () => {
+    const e = ex("barra-fixa-pronada");
+    const tres = P.prescricaoPadrao(e);
+    const d = P.decidir(e, estado("barra-fixa-pronada", { reps_alvo: 8 }), reps(9, 9, 9, 3), {
+      prescricao: tres,
+      seriesAnteriores: [8, 8, 8],
+    });
+    // média 7,5 < 8: a 4ª série derruba a média e não há subida
+    expect(d.evento?.motivo).toBe("repetiu");
+    expect(d.evento?.falha).toBe(true);
+  });
+
+  it("unilateral em tempo sem o lado 2 (prancha lateral, SPEC §6.3)", () => {
+    const e = ex("prancha-lateral");
+    const presc = P.prescricaoPadrao(e);
+    expect(presc.unilateral).toBe(true);
+    const so1 = [40, 40, 40].map((t) => ({ concluida: true, tempo_s: t }));
+    const dois = [40, 40, 40].map((t) => ({ concluida: true, tempo_s: t, tempo_s_lado2: 25 }));
+
+    const a = P.decidir(e, estado("prancha-lateral"), so1, { ultimaFirme: true });
+    expect(a.evento?.motivo).toBe("subiu");
+    expect(a.novoEstado.tempo_alvo_s).toBe(45);
+
+    // com os dois lados vale o menor: 25 < 40 → não sobe
+    const b = P.decidir(e, estado("prancha-lateral"), dois, { ultimaFirme: true });
+    expect(b.evento?.motivo).toBe("repetiu");
+    expect(b.novoEstado.tempo_alvo_s).toBe(20);
+  });
+});
+
+/* ------- 20. semana curta em toda marcação possível (§5.2/§5.4) ---- */
+
+describe("semana curta: conservação e alternância em toda marcação", () => {
+  const DIAS_SEM: DiaSemana[] = ["seg", "ter", "qua", "qui", "sex", "sab", "dom"];
+
+  function verificar(perfil: C.PerfilCalendario, segunda: string, marcados: DiaSemana[]) {
+    const planejada = C.semanaDoPlano(segunda, perfil);
+    const r = C.semanaCurta(marcados, planejada);
+    const onde = `${segunda} ${perfil.ultimo_treino ?? "-"} marcados=${marcados.join("+")}`;
+
+    // nenhum dia marcado sobra com atividade
+    for (const d of r.dias) {
+      if (marcados.includes(d.dia)) expect(d.tipo, onde).toBe("descanso");
+    }
+    // nada some em silêncio: planejado = o que ficou + o que foi cortado
+    const planejadas = planejada.filter((d) => d.tipo !== "descanso").length;
+    const ficaram = r.dias.filter((d) => d.tipo !== "descanso").length;
+    expect(ficaram + r.cortados.length, onde).toBe(planejadas);
+    expect(ficaram, onde).toBeLessThanOrEqual(r.capacidade);
+
+    // SPEC §5.2 item 3: na Fase 1 dois treinos iguais nunca ficam seguidos
+    if (perfil.fase_atual === "fase1") {
+      const seq = r.dias.filter((d) => d.tipo === "forca").map((d) => d.treinoId);
+      for (let i = 1; i < seq.length; i++) expect(seq[i], `${onde} ${seq.join(">")}`).not.toBe(seq[i - 1]);
+      // SPEC §5.4: sobrando um treino só, é o Treino A completo
+      if (seq.length === 1) expect(seq[0], onde).toBe("A1");
+      // SPEC §5.4: nunca se corta agachamento/terra antes do cardio
+      const cortouForca = r.cortados.some((c) => c.tipo === "forca");
+      const sobrouCardio = r.dias.some((d) => d.tipo === "cardio");
+      if (cortouForca) expect(sobrouCardio, `${onde}: cortou força com cardio de pé`).toBe(false);
+    }
+  }
+
+  it("cada dia isolado e cada par, nas duas fases e na virada do ano", () => {
+    const semanas = ["2026-09-14", "2026-12-28"]; // primeira semana e a do ano novo
+    for (const segunda of semanas) {
+      for (const fase of ["fase1", "fase2"] as const) {
+        for (const ultimo of ["A1", "B1", null] as (TreinoId | null)[]) {
+          const perfil: C.PerfilCalendario = {
+            fase_atual: fase,
+            ultimo_treino: ultimo,
+            fase_desde: "2026-09-14",
+          };
+          for (const a of DIAS_SEM) {
+            verificar(perfil, segunda, [a]);
+            for (const b of DIAS_SEM) {
+              if (b <= a) continue;
+              verificar(perfil, segunda, [a, b]);
+            }
+          }
+        }
+      }
+    }
+  });
+
+  it("a semana inteira marcada menos um dia deixa o Treino A (SPEC §5.4)", () => {
+    for (const ultimo of ["A1", "B1"] as TreinoId[]) {
+      for (const segunda of ["2026-09-14", "2026-12-28", "2027-12-27"]) {
+        const planejada = C.semanaDoPlano(segunda, {
+          fase_atual: "fase1",
+          ultimo_treino: ultimo,
+          fase_desde: "2026-09-14",
+        });
+        const resto = (["ter", "qua", "qui", "sex", "sab", "dom"] as DiaSemana[]);
+        const r = C.semanaCurta(resto, planejada);
+        const ficaram = r.dias.filter((d) => d.tipo !== "descanso");
+        expect(ficaram, `${segunda}/${ultimo}`).toHaveLength(1);
+        expect(ficaram[0]?.treinoId, `${segunda}/${ultimo}`).toBe("A1");
+        expect(ficaram[0]?.dia).toBe("seg");
+      }
+    }
+  });
+});
+
+/* -------- 21. ACHADOS da rodada 2 da lente "bordas" --------------- */
+
+describe("ACHADOS — a foto do evento e o teto do lastro", () => {
+  it("ACHADO A — §4/§6.6: com `carga_atual_kg` null o evento grava de: null", () => {
+    // O schema deixa `exercise_state.carga_atual_kg` anulável e a SPEC §6.1 diz
+    // que sem carga gravada vale a `carga_inicial.kg` do JSON — fallback que a
+    // rodada 2 (achado 6) pôs em cargaDeHoje() e a rodada 1 (achado 7) em
+    // subir()/falhar(). A projeção da rodada 4 acontece "antes de qualquer
+    // conta, foto ou evento", mas está atrás de um `!== null`: a foto do evento
+    // é o único lugar que continua lendo a coluna crua.
+    // SPEC §4: progression_events guarda "cada decisão do motor (de → para,
+    // motivo), para o histórico explicar 'por que hoje é 26,5 kg'"; §6.6 põe
+    // essa linha do tempo na ficha do exercício.
+    const e = ex("supino-reto-com-barra");
+    const doBanco = estado("supino-reto-com-barra", { carga_atual_kg: null });
+    expect(P.cargaDeHoje(e, doBanco).carga_kg).toBe(7.5); // o que a tela mostrou
+
+    const subiu = P.decidir(e, doBanco, reps(8, 8, 8), { ultimaFirme: true });
+    expect(subiu.evento?.motivo).toBe("subiu");
+    expect(subiu.evento?.para).toEqual({ carga_kg: 9.5 });
+    expect(subiu.evento?.de, "de: null com a tela mostrando 7,5 kg").toEqual({
+      carga_kg: 7.5,
+    });
+
+    // pior no "repetiu": de e para saem os dois null e o estado continua null,
+    // então a linha do tempo da §6.6 não registra nada e o caso se repete.
+    const repetiu = P.decidir(e, doBanco, reps(8, 8, 7), { ultimaFirme: true });
+    expect(repetiu.evento?.motivo).toBe("repetiu");
+    expect(repetiu.evento?.de).toEqual({ carga_kg: 7.5 });
+    expect(repetiu.evento?.para).toEqual({ carga_kg: 7.5 });
+    expect(repetiu.novoEstado.carga_atual_kg).toBe(7.5);
+  });
+
+  it("ACHADO A — o mesmo com `assistencia`, `reps_alvo` e `tempo_alvo_s` nulos", () => {
+    // As três colunas são anuláveis no schema e as três têm fallback na §6.1
+    // (assistência → `pe_inteiro`, reps/tempo → a faixa da prescrição).
+    const fixa = ex("barra-fixa-assistida");
+    const semDegrau = estado("barra-fixa-assistida", { assistencia: null });
+    expect(P.cargaDeHoje(fixa, semDegrau).assistencia).toBe("pe_inteiro");
+    const sobeDegrau = P.decidir(fixa, semDegrau, reps(8, 8, 8, 8), { ultimaFirme: true });
+    expect(sobeDegrau.evento?.para).toEqual({ assistencia: "joelho" });
+    expect(sobeDegrau.evento?.de).toEqual({ assistencia: "pe_inteiro" });
+
+    // CORRIGIDO (motor certo, expectativa do auditor errada): em reps e tempo o
+    // fallback da §6.1 é o PISO da faixa, não o topo. A §6.1 diz "Primeira vez
+    // no exercício: … reps/tempo alvo = mínimo da faixa", `estadoInicial()`
+    // grava o mínimo e o próprio `cargaDeHoje()` citado no achado devolve
+    // `tempo_alvo_s: base.tempo_alvo_s ?? prescricao.min` (30, não 60). A coluna
+    // nula tem de se comportar como a linha que ainda não existe: com
+    // `estado = null` o motor já grava `de: {reps_alvo: 10}` / `{tempo_alvo_s:
+    // 30}`. O topo (15 / 60) é o alvo a bater, que sai em `para` somado ao
+    // incremento (16 / 65) — o defeito real do achado era o `null`.
+    const pernas = ex("elevacao-de-pernas-na-barra-fixa");
+    const semReps = estado("elevacao-de-pernas-na-barra-fixa", { reps_alvo: null });
+    expect(P.cargaDeHoje(pernas, semReps).alvo_max).toBe(15);
+    const sobeReps = P.decidir(pernas, semReps, reps(15, 15, 15), { ultimaFirme: true });
+    expect(sobeReps.evento?.para).toEqual({ reps_alvo: 16 });
+    expect(sobeReps.evento?.de).toEqual({ reps_alvo: 10 });
+    expect(P.decidir(pernas, null, reps(15, 15, 15), { ultimaFirme: true }).evento)
+      .toMatchObject({ de: { reps_alvo: 10 }, para: { reps_alvo: 16 } });
+
+    const prancha = ex("prancha");
+    const semTempo = estado("prancha", { tempo_alvo_s: null });
+    expect(P.cargaDeHoje(prancha, semTempo).alvo_max).toBe(60);
+    expect(P.cargaDeHoje(prancha, semTempo).tempo_alvo_s).toBe(30);
+    const segundos = [60, 60, 60].map((t) => ({ concluida: true, tempo_s: t }));
+    const sobeTempo = P.decidir(prancha, semTempo, segundos, { ultimaFirme: true });
+    expect(sobeTempo.evento?.para).toEqual({ tempo_alvo_s: 65 });
+    expect(sobeTempo.evento?.de).toEqual({ tempo_alvo_s: 30 });
+    expect(P.decidir(prancha, null, segundos, { ultimaFirme: true }).evento)
+      .toMatchObject({ de: { tempo_alvo_s: 30 }, para: { tempo_alvo_s: 65 } });
+  });
+
+  it("ACHADO B — §6.4: no teto do lastro o app manda não comprar anilhas", () => {
+    // SPEC §6.4: "Aviso quando a carga pedida exige mais anilhas de 10 kg do
+    // que existem (marco do guia: comprar duas de 10 kg)".
+    // No lastro (mochila) não existe barra nem capacidade: o teto é o estoque
+    // inteiro (equipamentos.anilhas.total_kg = 100), e a própria montagem de
+    // 101 kg devolve as 24 anilhas do estoque. Mesmo assim
+    // limiteDoImplemento() classifica como "capacidade" — o empate
+    // `estoque === capacidade` cai no lado errado — e o motor diz "comprar
+    // anilhas não sobe a carga", que é justamente o contrário.
+    expect(cargaMaxima("barra_fixa")).toBe(100);
+    expect(capacidadeDoImplemento("barra_fixa")).toBe(100);
+    const m = montagem(101, "barra_fixa");
+    expect(m.total).toBe(100);
+    expect(m.anilhas).toHaveLength(24); // as 4 de cada peso: o estoque inteiro
+    expect(m.limite, "o teto do lastro é o estoque, não uma capacidade").toBe("estoque");
+    expect(m.aviso).toBe("faltam anilhas de 10 kg");
+
+    const e = ex("barra-fixa-com-lastro");
+    expect(e.progressao.tipo).toBe("carga");
+    const d = P.decidir(
+      e,
+      estado("barra-fixa-com-lastro", { carga_atual_kg: 100 }),
+      reps(6, 6, 6, 6),
+      { ultimaFirme: true },
+    );
+    expect(d.evento?.motivo).toBe("repetiu");
+    expect(d.evento?.aviso).toBe("faltam anilhas de 10 kg (marco do guia)");
+  });
+});

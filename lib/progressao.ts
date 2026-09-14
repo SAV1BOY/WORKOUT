@@ -399,6 +399,22 @@ export function decidir(
 
   const opcoes = contexto.montagem ?? {};
   /*
+   * SPEC §6.1: as quatro colunas anuláveis de `exercise_state`
+   * (`carga_atual_kg`, `reps_alvo`, `tempo_alvo_s`, `assistencia`) valem, quando
+   * nulas, exatamente o que valeriam na primeira vez — carga_inicial.kg do JSON,
+   * piso da faixa, `pe_inteiro` —, que é o que `cargaDeHoje()` mostra na tela.
+   * A linha com a coluna nula tem de se comportar como a linha que ainda não
+   * existe. Aplicar os fallbacks aqui, ANTES da foto, é o que faz o evento da
+   * §4/§6.6 gravar `de` com o valor que a tela pediu (e não `null`, que não
+   * explica "por que hoje é 26,5 kg") e o estado sair da nulidade em vez de
+   * repetir o caso em toda sessão seguinte.
+   */
+  const inicial = estadoInicial(exercicio, prescricao);
+  antes.carga_atual_kg ??= inicial.carga_atual_kg;
+  antes.reps_alvo ??= inicial.reps_alvo;
+  antes.tempo_alvo_s ??= inicial.tempo_alvo_s;
+  antes.assistencia ??= inicial.assistencia;
+  /*
    * SPEC §6.4 ("arredondar(x) = a carga possível mais próxima para baixo na
    * escala do implemento") e §10.5 ("o motor só propõe cargas alcançáveis"):
    * o motor decide sobre a MESMA carga que a tela pediu. `cargaDeHoje` projeta
