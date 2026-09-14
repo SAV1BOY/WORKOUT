@@ -1,0 +1,1 @@
+Fotos de execução: free-exercise-db (https://github.com/yuhonas/free-exercise-db), domínio público (Unlicense). Duas por exercício: `<id>-1.jpg` = posição inicial, `<id>-2.jpg` = posição final. O campo `foto_fonte_id` em exercicios.json é o id original.
