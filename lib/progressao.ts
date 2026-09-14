@@ -211,13 +211,23 @@ export function cargaDeHoje(
   const primeiraVez = estado === null;
   const base = estado ?? estadoInicial(exercicio, prescricao);
 
-  let carga = base.carga_atual_kg;
+  /*
+   * SPEC §6.1: sem carga gravada vale a `carga_inicial.kg` do JSON — o mesmo
+   * fallback que decidir()/subir()/falhar() aplicam (as colunas
+   * `exercise_state.carga_atual_kg` e `.assistencia` são anuláveis no schema).
+   */
+  let carga: number | null = base.carga_atual_kg ?? exercicio.carga_inicial.kg;
   if (base.semana_leve && base.carga_antes_leve !== null) {
-    carga = alcancavelParaBaixo(
-      base.carga_antes_leve * 0.6,
-      exercicio.implemento,
-      opcoes,
-    );
+    carga = base.carga_antes_leve * 0.6;
+  }
+  /*
+   * SPEC §6.4 e §10.5: toda carga calculada passa por `alcancavel_para_baixo`,
+   * então a carga do dia sempre existe na escala do implemento e a montagem da
+   * §6.5 fecha exata. Vale sobretudo depois de pesar a barra W ou a reta oca
+   * (§3.9): com `pesoBarra` a escala muda e os 2,0 kg do JSON ficam abaixo dela.
+   */
+  if (carga !== null) {
+    carga = alcancavelParaBaixo(carga, exercicio.implemento, opcoes);
   }
 
   const topo = alvoDeCima(exercicio, base, prescricao);
@@ -232,7 +242,11 @@ export function cargaDeHoje(
     tempo_alvo_s:
       prescricao.tipo === "tempo_s" ? (base.tempo_alvo_s ?? prescricao.min) : null,
     passos_alvo: prescricao.tipo === "passos" ? prescricao.min : null,
-    assistencia: base.assistencia,
+    assistencia:
+      base.assistencia ??
+      (exercicio.progressao.tipo === "assistencia"
+        ? (DEGRAUS_ASSISTENCIA[0] ?? null)
+        : null),
     semana_leve: base.semana_leve,
     exigir_rep_extra: base.exigir_rep_extra,
     incremento_kg: incrementoDe(exercicio, base),
@@ -573,13 +587,22 @@ function falhar(
     };
   }
 
+  /*
+   * SPEC §6.2 (× 0,90 e × 0,60) com a §6.4 ("a carga possível mais próxima
+   * para baixo"): `alcancavelParaBaixo` devolve o mínimo da escala quando o
+   * alvo fica abaixo dela, e uma carga do banco abaixo da barra vazia (ou uma
+   * barra pesada depois, §3.9) faria a "queda" virar aumento. Reduzir nunca
+   * sobe: fica o menor entre a carga de antes e a alcançável.
+   */
+  const reduzir = (fator: number): number =>
+    Math.min(
+      carga as number,
+      alcancavelParaBaixo((carga as number) * fator, exercicio.implemento, opcoes),
+    );
+
   // 2ª falha seguida: −10 % e incremento pela metade (mínimo 2 kg).
   if (falhas === 2) {
-    depois.carga_atual_kg = alcancavelParaBaixo(
-      (carga as number) * 0.9,
-      exercicio.implemento,
-      opcoes,
-    );
+    depois.carga_atual_kg = reduzir(0.9);
     depois.incremento_reduzido = true;
     const base = antes.incremento_kg ?? exercicio.progressao.incremento_kg ?? 0;
     depois.exigir_rep_extra = base / 2 < PASSO_MINIMO_KG;
@@ -596,11 +619,7 @@ function falhar(
 
   // 3ª falha: semana leve a 60 %, mesmas séries; volta depois à carga de antes.
   depois.carga_antes_leve = carga;
-  depois.carga_atual_kg = alcancavelParaBaixo(
-    (carga as number) * 0.6,
-    exercicio.implemento,
-    opcoes,
-  );
+  depois.carga_atual_kg = reduzir(0.6);
   depois.semana_leve = true;
   depois.falhas_seguidas = 0;
   return {
@@ -653,10 +672,33 @@ function decidirMaximo(
   const mediaAgora = media(feitas);
   const anteriores = (contexto.seriesAnteriores ?? []).map((v) => v ?? 0);
 
-  // Sem referência anterior: a sessão só registra a média.
+  /*
+   * SPEC §6.3 / data/progressao.json ("sem carga até 3 × 10 limpas; depois
+   * anilha de 2 kg na mochila"): a sugestão do lastro depende só de chegar a 3
+   * séries de 10 — não de melhorar a média nesta sessão nem de existir uma
+   * sessão anterior. Vale para a barra fixa (progressão `reps_depois_lastro`),
+   * não para flexão e mergulho.
+   */
+  const tresNoTeto =
+    exercicio.progressao.tipo === "reps_depois_lastro" &&
+    feitas.filter((v) => v >= REPS_PARA_SUGERIR_LASTRO).length >= 3;
+  const extra: Partial<EventoProgressao> = tresNoTeto
+    ? {
+        sugestao:
+          "Três séries de 10 repetições: passe para a barra fixa com lastro (2 kg na mochila).",
+      }
+    : {};
+
+  // Sem referência anterior: a sessão só registra a média (e, se já forem 3
+  // séries de 10, a sugestão do lastro sai mesmo assim — caso 15).
   if (anteriores.length === 0 && antes.reps_alvo === null) {
     depois.reps_alvo = Math.round(mediaAgora);
-    return { novoEstado: depois, evento: null };
+    return {
+      novoEstado: depois,
+      evento: tresNoTeto
+        ? { motivo: "repetiu", de, para: foto(depois, exercicio), ...extra }
+        : null,
+    };
   }
 
   const somaAgora = feitas.reduce((s, v) => s + v, 0);
@@ -672,22 +714,6 @@ function decidirMaximo(
     if (anterior === undefined) return false;
     return v === null || v < anterior;
   });
-
-  /*
-   * SPEC §6.3 / data/progressao.json ("sem carga até 3 × 10 limpas; depois
-   * anilha de 2 kg na mochila"): a sugestão do lastro depende só de chegar a 3
-   * séries de 10 — não de melhorar a média nesta sessão. Vale para a barra fixa
-   * (progressão `reps_depois_lastro`), não para flexão e mergulho.
-   */
-  const tresNoTeto =
-    exercicio.progressao.tipo === "reps_depois_lastro" &&
-    feitas.filter((v) => v >= REPS_PARA_SUGERIR_LASTRO).length >= 3;
-  const extra: Partial<EventoProgressao> = tresNoTeto
-    ? {
-        sugestao:
-          "Três séries de 10 repetições: passe para a barra fixa com lastro (2 kg na mochila).",
-      }
-    : {};
 
   if (mediaSubiu(somaAgora, nAgora, somaAntes, nAntes) && !caiuEmAlguma) {
     depois.reps_alvo = Math.round(mediaAgora);

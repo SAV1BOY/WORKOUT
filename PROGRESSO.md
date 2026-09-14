@@ -350,9 +350,73 @@ construtor codificava o erro e foi corrigido.
 
 Nenhum teste de auditoria foi apagado ou afrouxado.
 
+### Auditoria (rodada 2) — o que os auditores acharam e o que mudou
+
+Segunda rodada adversarial sobre os mesmos três arquivos (349 testes no total).
+Foram 10 achados e **nos 10 o motor estava errado**: nenhum teste de auditoria
+foi corrigido, apagado ou afrouxado.
+
+`lib/calendario.ts`
+
+1. **Semana curta não garantia o Treino A** (SPEC §5.4 + `programa.json`
+   `semana_curta.regra`). Sobrando uma vaga só, `semanaCurta()` mantinha o que
+   caiu na segunda-feira; na Fase 1 esse treino sai da alternância, então com
+   `ultimo_treino = "A1"` o único dia da semana virava B1 — o treino do
+   levantamento terra. Agora, sobrando **um único treino de força na Fase 1**,
+   ele é o Treino A completo (`realinharAlternancia()`).
+2. **O remanejamento quebrava a alternância** (SPEC §5.2 item 3). Mover a
+   atividade do dia indisponível para o primeiro dia livre mantinha o treino já
+   calculado: marcando só a segunda, o A1 ia para a quinta e a sexta continuava
+   A1 — dois Treinos A seguidos. A mesma `realinharAlternancia()` refaz a
+   alternância em ordem cronológica a partir do primeiro treino que ficou.
+3. **Minutos do cardio vinham do dia, não da semana do plano** (SPEC §3.1
+   "card da sessão da semana atual … 34 min" + §5.2 item 4). `min` saía sempre
+   do valor fixo de `programa.fases[].semana[]`; da semana 7 em diante o plano
+   diverge (31, 33, 30, 34, 40, 45 min) e com corda a diferença é maior ainda.
+   Passou a vir de `cardio.json` (`sessao_min` da semana de corrida ou do
+   estágio de corda), caindo no valor do dia só quando o plano não tem sessão.
+4. **Override herdava `min` e `nota` do dia substituído** (SPEC §5.2 item 1).
+   Uma segunda virada em cardio reportava os 44 min do Treino A; uma quinta
+   virada em força carregava a nota do grease the groove, que a §5.2 item 5
+   prende ao descanso. Com override, `nota` é `null` e `min` vem de quem manda
+   no dia: `treino.duracao_min` (44 no A1, como pede a §10.2) ou a sessão de
+   cardio da semana.
+
+`lib/progressao.ts`
+
+5. **Uma falha podia AUMENTAR a carga** (SPEC §6.2 + §6.4).
+   `alcancavelParaBaixo()` devolve o mínimo da escala quando o alvo fica abaixo
+   dela, então com uma carga do banco abaixo da barra vazia (5 kg na maciça) a
+   2ª falha "caía" para 7,5, e com a barra W pesada (`{ pesoBarra: 4.8 }`) a 2ª
+   falha e a semana leve subiam de 2,0 para 4,8 kg. `falhar()` ganhou
+   `reduzir(fator) = min(carga, alcancavelParaBaixo(carga × fator))`: reduzir
+   nunca sobe.
+6. **`cargaDeHoje()` ignorava o fallback da §6.1** que `decidir()` aplica.
+   `exercise_state.carga_atual_kg` e `.assistencia` são anuláveis no schema;
+   a tela ficava sem carga, sem chips de anilhas e sem degrau do elástico
+   enquanto o motor subia para 9,5 kg "a partir do nada". Agora a carga cai na
+   `carga_inicial.kg` do JSON e a assistência em `pe_inteiro`, exatamente como
+   `subir()`/`falhar()`/`proximoDegrau()` já faziam.
+7. **A carga do dia podia não existir na escala** (SPEC §6.4 + §6.5 + §10.5).
+   Com a barra W pesada na balança a escala vira 4,8 + 2k, mas a carga inicial
+   de 2,0 kg do JSON não era reprojetada: a tela mostrava "2,0 kg" com a
+   montagem de 4,8 (`exato: false`, diferença +2,8) — uma carga que não se
+   monta. `cargaDeHoje()` passou a projetar a carga do dia (inclusive a da
+   semana leve) com `alcancavelParaBaixo` nas mesmas opções da montagem.
+8. **3 × 10 na primeira sessão não sugeria o lastro** (SPEC §6.3, caso 15). O
+   atalho "sem referência anterior" de `decidirMaximo()` saía antes do cálculo
+   de `tresNoTeto` e devolvia `evento: null` — o mesmo acoplamento que a rodada
+   1 desfez nos outros ramos. A sugestão foi movida para antes do atalho; sem
+   sugestão o evento continua nulo (a primeira sessão só registra a média).
+
+Achados 1 e 6 do relatório eram o mesmo defeito visto por duas lentes (semana
+curta / Treino A), assim como 5 e 9 (carga inicial fora da escala do implemento
+depois de pesar a barra).
+
 ### Como testar
 
-`npm test` (277 testes: 128 do construtor + 149 das três auditorias) e
+`npm test` (349 testes: 128 do construtor + 221 das três auditorias, duas
+rodadas) e
 `npm run build`. Ainda não há tela ligada ao motor: a sessão de força (marco 3)
 é quem vai chamar `cargaDeHoje` no cabeçalho de cada bloco e `decidir` ao
 concluir o treino. Atenção na UI: para pré-preencher reps/tempo/passos use

@@ -207,6 +207,20 @@ export function sessaoCardioDeHoje(
       ? (perfil.semana_corda ?? 1)
       : (perfil.semana_corrida ?? 1);
   const plano = tipo === "corrida" ? semanaDeCorrida(semana) : null;
+  const estagio =
+    tipo === "corda" || temCorda ? estagioDeCorda(perfil.semana_corda ?? 1) : null;
+
+  /*
+   * SPEC §3.1: o card é "da sessão da semana atual" — os minutos são os da
+   * sessão que o plano manda fazer hoje (cardio.json `sessao_min`), não o
+   * valor fixo do dia no programa. E SPEC §5.2 item 1: num dia trocado por
+   * override não vale nada do dia original, nem os minutos.
+   */
+  const doPrograma = info.excecao ? null : (info.programa.min ?? null);
+  const min =
+    tipo === "corda"
+      ? (estagio?.sessao_min ?? doPrograma)
+      : (plano?.sessao_min ?? doPrograma);
 
   return {
     tipo,
@@ -214,12 +228,9 @@ export function sessaoCardioDeHoje(
     permiteCorda: temCorda,
     semana,
     corrida: plano,
-    corda:
-      tipo === "corda" || temCorda
-        ? estagioDeCorda(perfil.semana_corda ?? 1)
-        : null,
+    corda: estagio,
     descricao: plano?.descricao ?? null,
-    min: info.programa.min ?? null,
+    min,
   };
 }
 
@@ -245,6 +256,19 @@ function montarDia(
       info.excecao?.workout_id ??
       treinoDoDia(perfil.fase_atual, info.programa, ultimo);
   }
+  const treino = treinoId ? acharTreino(treinoId) : null;
+  const cardioDoDia =
+    info.tipo === "cardio"
+      ? sessaoCardioDeHoje(info.data, perfil, overrides)
+      : null;
+
+  /*
+   * SPEC §5.2 item 1: com override vale o override — o dia não herda os
+   * minutos nem a nota do dia do programa que ele substituiu (a nota da quinta
+   * é o lembrete do descanso, item 5). Os minutos saem de quem manda no dia:
+   * a duração do treino (programa.json) ou a sessão de cardio da semana (§3.1).
+   */
+  const doPrograma = info.excecao ? null : (info.programa.min ?? null);
   return {
     data: info.data,
     dia: info.dia,
@@ -252,13 +276,15 @@ function montarDia(
     origem: info.origem,
     fase: perfil.fase_atual,
     treinoId,
-    treino: treinoId ? acharTreino(treinoId) : null,
-    cardio:
+    treino,
+    cardio: cardioDoDia,
+    nota: info.excecao ? null : (info.programa.nota ?? null),
+    min:
       info.tipo === "cardio"
-        ? sessaoCardioDeHoje(info.data, perfil, overrides)
-        : null,
-    nota: info.programa.nota ?? null,
-    min: info.programa.min ?? null,
+        ? (cardioDoDia?.min ?? null)
+        : info.tipo === "forca"
+          ? (treino?.duracao_min ?? doPrograma)
+          : null,
   };
 }
 
@@ -480,11 +506,49 @@ export function semanaCurta(
       treinoId: null,
       treino: null,
       cardio: null,
+      nota: original.tipo === "descanso" ? original.nota : null,
       min: null,
     };
   });
 
-  return { dias, cortados, capacidade };
+  return { dias: realinharAlternancia(dias), cortados, capacidade };
+}
+
+/** O Treino A completo da Fase 1 — o que nunca se corta (SPEC §5.4). */
+function treinoACompleto(): TreinoId {
+  const [a] = acharFase("fase1").treinos;
+  if (!a) throw new Error("fase1 sem treinos");
+  return a;
+}
+
+/**
+ * Depois de remanejar a semana, os treinos de força da Fase 1 voltam a
+ * alternar (SPEC §5.2 item 3): mover a segunda-feira para a quinta não pode
+ * deixar dois Treinos A seguidos. E, sobrando um único treino na semana, ele é
+ * o **Treino A completo** (SPEC §5.4 e programa.json `semana_curta.regra`).
+ * Na Fase 2 os treinos são fixos por dia, então nada muda.
+ */
+function realinharAlternancia(dias: DiaDoPlano[]): DiaDoPlano[] {
+  const forca = dias.filter((d) => d.tipo === "forca" && d.fase === "fase1");
+  if (forca.length === 0) return dias;
+
+  const primeiro = forca[0];
+  let atual: TreinoId =
+    forca.length === 1
+      ? treinoACompleto()
+      : (primeiro?.treinoId ?? treinoACompleto());
+
+  const novos = new Map<string, TreinoId>();
+  for (const d of forca) {
+    novos.set(d.data, atual);
+    atual = proximoTreinoAlternado(atual);
+  }
+
+  return dias.map((d) => {
+    const id = novos.get(d.data);
+    if (!id || d.tipo !== "forca") return d;
+    return { ...d, treinoId: id, treino: acharTreino(id), min: acharTreino(id).duracao_min };
+  });
 }
 
 /* --------------------------------------------- o que falta na semana */
