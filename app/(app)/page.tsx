@@ -1,22 +1,13 @@
-import { EmConstrucao } from "@/components/em-construcao";
-import { acharFase, programa } from "@/lib/dados";
-import { formatarDataLonga } from "@/lib/formato";
+import { redirect } from "next/navigation";
+import { TelaHoje } from "@/components/hoje/tela-hoje";
+import { idDoUsuario } from "@/lib/supabase/server";
 
 export const metadata = { title: "Hoje — Treino do Terraço" };
+export const dynamic = "force-dynamic";
 
-export default function Hoje() {
-  const fase = acharFase(programa.fase_inicial);
+export default async function Hoje() {
+  const userId = await idDoUsuario();
+  if (!userId) redirect("/login");
 
-  return (
-    <EmConstrucao
-      titulo="Hoje"
-      descricao={`${fase.nome} · começa em ${formatarDataLonga(programa.inicio)}.`}
-      marco={2}
-    >
-      <p className="text-muted-foreground text-xs">
-        O que fazer hoje sai do calendário do programa e das cargas do motor de
-        progressão.
-      </p>
-    </EmConstrucao>
-  );
+  return <TelaHoje userId={userId} />;
 }

@@ -25,3 +25,12 @@ export async function criarClienteServidor() {
     },
   });
 }
+
+/** O id do usuário logado. O layout autenticado já garantiu que existe. */
+export async function idDoUsuario(): Promise<string | null> {
+  const supabase = await criarClienteServidor();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  return user?.id ?? null;
+}

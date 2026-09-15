@@ -130,3 +130,93 @@ export async function requisicoesDoMock(): Promise<
   const estado = await estadoDoMock();
   return (estado.requisicoes ?? []) as { metodo: string; caminho: string }[];
 }
+
+/** Cabeçalhos de uma chamada PostgREST autenticada no mock. */
+function cabecalhos(sessao: SessaoMock): Record<string, string> {
+  return {
+    "content-type": "application/json",
+    apikey: "mock-anon",
+    authorization: `Bearer ${sessao.token}`,
+    prefer: "return=representation",
+  };
+}
+
+/** Insere linhas direto no mock, como o usuário da sessão (RLS aplicada). */
+export async function inserirNoMock(
+  sessao: SessaoMock,
+  tabela: string,
+  linhas: Record<string, unknown>[],
+): Promise<void> {
+  const resposta = await fetch(`${URL_MOCK}/rest/v1/${tabela}`, {
+    method: "POST",
+    headers: cabecalhos(sessao),
+    body: JSON.stringify(linhas),
+  });
+  if (!resposta.ok) {
+    throw new Error(`mock: insert em ${tabela} falhou (${resposta.status}): ${await resposta.text()}`);
+  }
+}
+
+/** Atualiza linhas no mock (ex.: `user_id=eq.<id>`). */
+export async function atualizarNoMock(
+  sessao: SessaoMock,
+  tabela: string,
+  filtro: string,
+  campos: Record<string, unknown>,
+): Promise<void> {
+  const resposta = await fetch(`${URL_MOCK}/rest/v1/${tabela}?${filtro}`, {
+    method: "PATCH",
+    headers: cabecalhos(sessao),
+    body: JSON.stringify(campos),
+  });
+  if (!resposta.ok) {
+    throw new Error(`mock: update em ${tabela} falhou (${resposta.status}): ${await resposta.text()}`);
+  }
+}
+
+/** Lê linhas do mock para conferir o que o app gravou. */
+export async function lerDoMock<T = Record<string, unknown>>(
+  sessao: SessaoMock,
+  tabela: string,
+  consulta = "select=*",
+): Promise<T[]> {
+  const resposta = await fetch(`${URL_MOCK}/rest/v1/${tabela}?${consulta}`, {
+    headers: cabecalhos(sessao),
+  });
+  if (!resposta.ok) {
+    throw new Error(`mock: select em ${tabela} falhou (${resposta.status})`);
+  }
+  return (await resposta.json()) as T[];
+}
+
+/**
+ * Prepara o usuário do app já com o perfil semeado (como `garantirPerfil`
+ * deixaria) e com os ajustes pedidos — `ultimo_treino`, semanas do plano etc.
+ */
+export async function usuarioComPerfil(
+  ajustes: Record<string, unknown> = {},
+): Promise<SessaoMock> {
+  const sessao = await sessaoNoMock();
+  await atualizarNoMock(sessao, "profiles", `user_id=eq.${sessao.userId}`, {
+    nome: "Miguel",
+    altura_cm: 190,
+    data_inicio: "2026-09-14",
+    fase_atual: "fase1",
+    fase_desde: "2026-09-14",
+    ...ajustes,
+  });
+  return sessao;
+}
+
+/** Entra com uma conta que já existe no mock (sem passar por "Criar conta"). */
+export async function entrarNoApp(
+  page: Page,
+  email: string = EMAIL_PERMITIDO,
+  senha: string = SENHA,
+): Promise<void> {
+  await page.goto("/login");
+  await page.getByLabel("E-mail").fill(email);
+  await page.getByLabel("Senha").fill(senha);
+  await page.getByRole("button", { name: "Entrar" }).click();
+  await expect(page.getByRole("heading", { name: "Hoje" })).toBeVisible();
+}

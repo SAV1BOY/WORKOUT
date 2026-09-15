@@ -862,3 +862,168 @@ Igual ao do marco (`npm run build && npm run e2e`, agora **31** testes), mais:
 `curl -s localhost:54321/__mock/estado | head -c 400` durante o `npm run dev:mock`
 mostra a lista `requisicoes` — digite um e-mail que não é o seu na tela de login
 e confira que **nada** aparece em `/auth/v1`.
+
+---
+
+## Marco 2 — Hoje e calendário ✅
+
+A tela **Hoje** (SPEC §3.1) e o **calendário** (§3.5, §5) ligados de verdade ao
+Supabase, com leitura por TanStack Query, cache persistido e escrita pela fila
+de saída. Ainda **sem** o registro de séries: "Começar treino" leva a `/treinar`,
+que continua em construção (marco 3).
+
+### O que foi feito
+
+**Adaptadores puros (com testes)**
+
+- `lib/hoje.ts` — tudo que a tela Hoje mostra, como função pura:
+  `resumoDoTreino` ("Treino A · 6 exercícios · 44 min"), `previaDoTreino`
+  (chama `cargaDeHoje` por exercício com o `exercise_state` do banco e devolve
+  a carga com o rótulo do implemento), `textoDoAlvo`, `textoDaCarga`,
+  `textoDoEvento` ("subiu +2 kg no treino de 12/09", §6.6),
+  `ultimoEventoPorExercicio`, `textoDoCardio`/`descricaoDoCardio`,
+  `alternativaDeCorda`, `statusDoPeso`, `sequenciaDeTreinos`, `totalDeSoltas`,
+  `sessaoAberta`, `avisoCorridaEPerna`, `houveCardioHoje`, `estadoDaLinha` /
+  `estadosPorExercicio` (linha do banco → estado do motor).
+- `lib/semana.ts` — o calendário: `montarGrade` (marca `feito` / `parcial` /
+  `faltou` / `aberto` / `descanso` por dia, com o id da sessão para abrir),
+  `rotuloDoDia`, `detalheDoDia`, `montarMes` (mês em miniatura, semanas seg–dom),
+  `overridesDaSemanaCurta` (o resultado de `semanaCurta()` virando linhas de
+  `schedule_overrides`, só dos dias que mudaram e só a partir do dia marcado) e
+  `intervaloDaSemana`.
+- 44 testes novos (`lib/hoje.test.ts`, `lib/semana.test.ts`); `npm test` fecha
+  em **461**.
+
+**Leitura (TanStack Query)**
+
+- `lib/queries/dados.ts` — `usePerfil`, `useOverrides(de, ate)`, `useSessoes`,
+  `useSessoesAbertas`, `useCardio(de, ate)`, `useUltimoPeso`, `useSoltasDoDia`,
+  `useEstados(ids)`, `useEventos(ids)`. Erros em pt-BR ("Não consegui carregar
+  …"). As chaves ficam em `chaves`.
+- `lib/persistencia-query.ts` — cache persistido no IndexedDB (tabela `cache` do
+  Dexie) com `dehydrate`/`hydrate` do próprio TanStack Query, guardado no
+  máximo 1× por segundo e descartado depois de 7 dias. A tela abre com a última
+  sincronização e atualiza em segundo plano (SPEC §8).
+- `lib/relogio.ts` — `useHoje()`: **quem decide o dia é o aparelho**. Devolve
+  `null` no servidor e no primeiro render (esqueleto), e reavalia a cada minuto
+  e quando a aba volta.
+
+**Escrita (fila de saída)**
+
+- `lib/outbox-supabase.ts` — o enviador da fila: cada item é
+  `{ tabela, op, linha, onConflict, filtro }` e vira `insert` / `upsert` /
+  `update` / `delete` no Supabase. Erro lançado = a fila tenta de novo.
+- `lib/queries/acoes.ts` — `registrarSolta` (+1 de barra fixa),
+  `gravarOverrides` / `apagarOverride` (troca de dia e semana curta) e
+  `descartarSessao`. Todas gravam no IndexedDB na hora, atualizam o cache do
+  Query na mesma chamada (a tela responde igual sem rede) e geram o id no
+  cliente com `crypto.randomUUID`.
+
+**Telas**
+
+- `/` (`components/hoje/`): faixa de status (fase · semana da fase, sequência de
+  treinos concluídos, peso e há quantos dias, com o pedido de pesagem depois de
+  7 dias e o botão para `/corpo`); banner "Você tem um treino aberto de 12/09"
+  com Continuar / Descartar; card de **força** (resumo, "Começar treino" de 56 px
+  e a prévia dos exercícios com "Hoje: 7,5 kg na barra (subiu +2 kg no treino de
+  12/09)"); card de **cardio** (texto da sessão da semana, detalhes do plano,
+  "Começar", "Fazer corda em vez de corrida" e "Treinar mesmo assim (Treino A)");
+  card de **descanso** (lembrete do grease the groove vindo do JSON, total do dia
+  e o botão "+1"). Aviso de corrida + perna no mesmo dia (§5.3), sem bloquear.
+- `/calendario` (`components/calendario/`): grade seg–dom com tipo, o que foi
+  feito e o que falta, navegação por semanas (anterior / Hoje / próxima), resumo
+  "1 feito · 3 a fazer · 1 perdido", mês em miniatura, diálogo do dia (passado →
+  resumo e link para a sessão; hoje/futuro → trocar tipo, treino ou sessão de
+  cardio, com motivo opcional e "Voltar ao programa") e "Não vou treinar hoje",
+  que mostra o que a regra da semana curta vai mudar **antes** de gravar.
+
+### Decisões
+
+- **A configuração do Supabase chega do servidor.** As `NEXT_PUBLIC_*` são
+  embutidas no bundle do navegador **no build**, e este projeto builda sem elas
+  (não existe projeto Supabase ainda; o `npm run e2e` builda antes e só passa as
+  variáveis no `next start`). Então `app/(app)/layout.tsx` — que é
+  `force-dynamic` e lê o ambiente em tempo de execução — renderiza
+  `<ConfigurarSupabase url chave />`, que grava a configuração no módulo
+  `lib/supabase/client.ts` **durante o render**, antes dos filhos, e liga a fila
+  de saída no efeito. São só a URL e a chave anon; a service role nunca sai do
+  servidor (§9). Sem isso o cliente do navegador nascia sem URL e nada do marco 2
+  funcionaria no deploy.
+- **Sem `@tanstack/react-query-persist-client`.** `dehydrate`/`hydrate` já vêm no
+  `@tanstack/react-query`; o persistidor cabe em 60 linhas e evita mais um pacote
+  com versão para casar.
+- **O dia é do navegador, não do servidor.** `useHoje()` devolve `null` na
+  primeira passada para não brigar com a hidratação — daí os esqueletos
+  aparecerem por um instante mesmo com cache.
+- **Uma query por intervalo.** O calendário lê `schedule_overrides` e
+  `cardio_sessions` no intervalo da **grade do mês** (seis semanas), que contém
+  sempre a semana mostrada; `sessions` vem das 60 mais recentes.
+- Os cards usam `CardTitle` do shadcn, que é um `div` — o `h1` de cada tela
+  continua sendo "Hoje" / "Calendário".
+
+### Dois defeitos antigos que este marco descobriu
+
+1. **O formulário de login se apagava sozinho** (`app/(auth)/login/formulario.tsx`).
+   O React 19 dá `form.reset()` automático quando uma ação de formulário
+   termina: depois de um "Criar conta" recusado ("Essa conta já existe"), o
+   e-mail e a senha sumiam e o toque seguinte em "Entrar" enviava o formulário
+   vazio — o `required` do navegador barrava e **nada acontecia**, sem erro
+   nenhum na tela. Os dois campos passaram a ser controlados. Regressão em
+   `e2e/login.spec.ts`.
+2. **A fila de saída engolia o que chegava durante uma rodada** (`lib/outbox.ts`).
+   `processar()` saía na hora se já estivesse rodando (`rodando`), e quem
+   enfileirasse nesse meio-tempo ficava parado até o próximo evento de rede —
+   podia ser nunca. Aparece com três `schedule_overrides` seguidos (semana
+   curta) e apareceria muito mais no marco 3, com uma série atrás da outra.
+   Agora a chamada concorrente marca `repetir` e a rodada em andamento dá mais
+   uma volta no fim (`umaRodada()`). Sem `fake-indexeddb` no projeto, quem prova
+   isso é o e2e da semana curta (3 linhas gravadas, não 1).
+
+### Testes
+
+- **Unitários** (`npm test`, 461): `lib/hoje.test.ts` (29) e `lib/semana.test.ts`
+  (15) cobrem o resumo do treino, a prévia com as cargas iniciais e com estado +
+  evento, os rótulos por implemento, o texto do evento em carga/reps/tempo/
+  elástico, o peso e a sequência, o aviso de corrida + perna, a grade da semana
+  com A/B alternando, as marcações, o mês em miniatura e os overrides da semana
+  curta.
+- **E2E** (`npm run e2e`, **50**): `hoje.spec.ts` (11) e `calendario.spec.ts` (8)
+  novos, mais a regressão do login. Com o relógio do navegador em 14/09/2026 a
+  Hoje mostra "Treino A · 6 exercícios · 44 min" com 7,5 kg na barra, 1,5 kg por
+  halter e peso do corpo; com `ultimo_treino = "A1"` vira o Treino B com 4 kg no
+  pino; em 15/09 é "Corrida · semana 1 · 8 × (1 min corrida / 2 min caminhada) ·
+  34 min" e a corda como alternativa; em 17/09 o "+1" grava em `pullup_singles`;
+  o banner descarta a sessão (`status = abandonada` no banco); o calendário
+  mostra a semana com A/B, marca feito/faltou, troca um dia futuro gravando
+  `schedule_overrides` e aplica a semana curta (3 linhas).
+
+### O que falta
+
+- Marco 3: a sessão de força de verdade (`/treinar`), que é quem cria as
+  `sessions`, grava as séries e chama `decidir()`. Hoje "Começar treino" e
+  "Continuar" levam para a tela em construção.
+- Marco 4: `/cardio/[id]` (o "Começar" do card de cardio leva para lá com a data
+  no lugar do id) e `/barra-fixa`.
+- O peso e as medidas (`/corpo`) — a faixa de status já pede a pesagem e leva
+  para a rota, que ainda está em construção (marco 5).
+
+### Como testar no celular (marco 2)
+
+1. `npm run build && npm run e2e` — 50 testes verdes num Chromium de 360 × 740.
+2. À mão: `npm run mock` num terminal e `npm run dev:mock` no outro (troque
+   `127.0.0.1` pelo IP do computador nas três variáveis do `dev:mock` para abrir
+   pelo celular). Crie a conta com `miguelgsaviotti29@gmail.com`.
+3. Na **Hoje**: numa segunda tem que aparecer "Treino A · 6 exercícios · 44 min",
+   o botão "Começar treino" ocupando a largura toda e a lista dos 6 exercícios
+   com "Hoje: 7,5 kg na barra", "Hoje: 1,5 kg por halter" e "Hoje: peso do
+   corpo". Nada pode rolar para o lado.
+4. Num dia de **cardio** (terça ou sábado), o card traz a sessão da semana com os
+   minutos; "Fazer corda em vez de corrida" troca o conteúdo do card.
+   Num dia de **descanso** (quinta ou domingo), o "+1" aumenta o total na hora —
+   ligue o modo avião antes de tocar: o número sobe do mesmo jeito e, ao voltar
+   a rede, a linha aparece em `curl -s localhost:54321/__mock/estado`.
+5. No **Calendário**: navegue entre as semanas, toque num dia futuro e troque o
+   tipo (a grade muda na hora), e toque em "Não vou treinar hoje" para ver a
+   lista do que vai mudar antes de confirmar.
+6. Abra a Hoje, feche o app e abra de novo: o conteúdo aparece **antes** da rede
+   responder (cache do TanStack Query no IndexedDB) e se atualiza em seguida.

@@ -89,16 +89,29 @@ curl -s -XPOST localhost:54321/__mock/seed -H 'content-type: application/json' \
 | arquivo | o que é |
 |---|---|
 | `playwright.config.ts` | projeto único "celular", `webServer` do mock + do app |
-| `fixtures.ts` | `resetarMock`, `semear`, `estadoDoMock`, `requisicoesDoMock`, `sessaoNoMock`, `login`, `fixarRelogio`, `semRolagemHorizontal` |
+| `fixtures.ts` | `resetarMock`, `semear`, `estadoDoMock`, `requisicoesDoMock`, `sessaoNoMock`, `usuarioComPerfil`, `inserirNoMock`, `atualizarNoMock`, `lerDoMock`, `login`, `entrarNoApp`, `fixarRelogio`, `semRolagemHorizontal` |
 | `login.spec.ts` | e-mail de fora recusado, criar conta → Hoje, senha errada, sair, entrar de novo |
 | `shell.spec.ts` | navegação inferior (5 itens, alvos ≥ 44 px), cada rota abre, nada rola para o lado, manifest válido |
 | `mock.spec.ts` | o contrato do próprio mock (PostgREST, upsert, `v_records`, storage, RLS) |
+| `hoje.spec.ts` | a tela Hoje: Treino A com as cargas iniciais, Treino B pela alternância, a carga que veio do estado com o evento que a explica, corrida da semana 1 + corda, descanso com o "+1", faixa de status, banner do treino aberto e o cache persistido |
+| `calendario.spec.ts` | a grade da semana (A/B alternando, marcações, o que falta), navegação entre semanas, troca de tipo de um dia futuro e a regra da semana curta |
 | `auditoria.spec.ts` | o que os outros não provavam: nenhuma requisição ao Supabase com e-mail de fora, recarregar mantém a sessão, toda rota protegida volta ao login, e o mock recusando coluna/operador/filtro composto inventados |
 
 `fixarRelogio(page)` congela o relógio **do navegador** em 14/09/2026 (a
 segunda-feira em que o programa começa, SPEC §5). O servidor continua com a
 data real — para testar um dia específico no servidor, semeie as linhas com a
-data que você quer.
+data que você quer. **Quem decide o dia é o navegador** (`lib/relogio.ts`), então
+`fixarRelogio(page, "2026-09-17T08:00:00-03:00")` antes de entrar é o que muda a
+tela Hoje de força para descanso.
+
+`usuarioComPerfil({ ultimo_treino: "A1" })` cria a conta permitida direto no mock
+e deixa o perfil como `garantirPerfil` deixaria (nome, altura, `data_inicio`
+14/09/2026), já com os ajustes pedidos — depois é só `entrarNoApp(page)`, que vai
+direto no botão "Entrar" em vez de passar por "Criar conta".
+
+Atenção com `page.clock`: ele congela `setTimeout`/`setInterval`, então tudo que
+depende de um temporizador (a gravação do cache do TanStack Query, por exemplo)
+não acontece nos testes que o usam.
 
 ## O que o mock faz
 

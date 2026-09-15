@@ -1,8 +1,14 @@
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
+import { ConfigurarSupabase } from "@/components/configurar-supabase";
 import { SpriteMuscular } from "@/components/mapa-muscular";
 import { NavInferior } from "@/components/nav-inferior";
-import { emailPermitido, supabaseConfigurado } from "@/lib/env";
+import {
+  SUPABASE_ANON_KEY,
+  SUPABASE_URL,
+  emailPermitido,
+  supabaseConfigurado,
+} from "@/lib/env";
 import { garantirPerfil } from "@/lib/queries/perfil";
 import { criarClienteServidor } from "@/lib/supabase/server";
 
@@ -29,6 +35,7 @@ export default async function LayoutApp({
 
   return (
     <div className="min-h-dvh">
+      <ConfigurarSupabase url={SUPABASE_URL} chave={SUPABASE_ANON_KEY} />
       <SpriteMuscular />
       <main className="pt-segura mx-auto w-full max-w-lg px-4 pt-4 pb-24">
         {children}

@@ -1,13 +1,13 @@
-import { EmConstrucao } from "@/components/em-construcao";
+import { redirect } from "next/navigation";
+import { TelaCalendario } from "@/components/calendario/tela-calendario";
+import { idDoUsuario } from "@/lib/supabase/server";
 
 export const metadata = { title: "Calendário — Treino do Terraço" };
+export const dynamic = "force-dynamic";
 
-export default function Calendario() {
-  return (
-    <EmConstrucao
-      titulo="Calendário"
-      descricao="A semana de segunda a domingo, o que foi feito e o que falta."
-      marco={2}
-    />
-  );
+export default async function Calendario() {
+  const userId = await idDoUsuario();
+  if (!userId) redirect("/login");
+
+  return <TelaCalendario userId={userId} />;
 }

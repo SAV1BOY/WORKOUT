@@ -52,6 +52,11 @@ export function formatarDataLonga(valor: DataEntrada): string {
   });
 }
 
+/** setembro de 2026 */
+export function formatarMesAno(valor: DataEntrada): string {
+  return format(paraData(valor), "MMMM 'de' yyyy", { locale: ptBR });
+}
+
 /** seg · ter · qua … (rótulo curto do calendário) */
 export function formatarDiaCurto(valor: DataEntrada): string {
   return format(paraData(valor), "EEEEEE", { locale: ptBR }).replace(".", "");

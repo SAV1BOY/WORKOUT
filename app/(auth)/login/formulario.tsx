@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { criarConta, entrar, type EstadoLogin } from "@/app/(auth)/login/acoes";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +19,15 @@ export function FormularioLogin({ avisoInicial }: { avisoInicial?: string }) {
   };
   const ocupado = entrando || criando;
 
+  /*
+   * Campos controlados de propósito: o React 19 dá `form.reset()` automático
+   * quando uma ação de formulário termina, e com inputs não controlados um
+   * "Criar conta" que falhou apagava o e-mail e a senha — o toque seguinte em
+   * "Entrar" enviava o formulário vazio e não acontecia nada.
+   */
+  const [email, setEmail] = useState("");
+  const [senha, setSenha] = useState("");
+
   return (
     <form className="flex flex-col gap-4">
       <div className="flex flex-col gap-2">
@@ -31,6 +40,8 @@ export function FormularioLogin({ avisoInicial }: { avisoInicial?: string }) {
           autoComplete="email"
           autoCapitalize="none"
           required
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
           className="alvo h-12 text-base"
         />
       </div>
@@ -44,6 +55,8 @@ export function FormularioLogin({ avisoInicial }: { avisoInicial?: string }) {
           autoComplete="current-password"
           required
           minLength={6}
+          value={senha}
+          onChange={(e) => setSenha(e.target.value)}
           className="alvo h-12 text-base"
         />
       </div>

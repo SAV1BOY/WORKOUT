@@ -19,6 +19,7 @@ export type TipoSaida =
   | "perfil"
   | "cardio"
   | "barra_fixa_solta"
+  | "agenda"
   | "peso"
   | "medidas";
 

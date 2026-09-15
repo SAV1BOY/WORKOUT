@@ -4,6 +4,7 @@ import {
   SENHA,
   estadoDoMock,
   login,
+  usuarioComPerfil,
   resetarMock,
   semRolagemHorizontal,
 } from "./fixtures";
@@ -92,6 +93,25 @@ test.describe("login", () => {
 
     await page.getByLabel("E-mail").fill(EMAIL_PERMITIDO);
     await page.getByLabel("Senha").fill(SENHA);
+    await page.getByRole("button", { name: "Entrar" }).click();
+    await expect(page.getByRole("heading", { name: "Hoje" })).toBeVisible();
+  });
+
+  test("depois de um 'Criar conta' recusado, 'Entrar' ainda funciona", async ({ page }) => {
+    // O React 19 reseta o formulário quando uma ação termina: com campos não
+    // controlados, o e-mail e a senha sumiam e o toque seguinte não fazia nada.
+    await usuarioComPerfil();
+
+    await page.goto("/login");
+    await page.getByLabel("E-mail").fill(EMAIL_PERMITIDO);
+    await page.getByLabel("Senha").fill(SENHA);
+    await page.getByRole("button", { name: "Criar conta" }).click();
+    await expect(page.getByText("Essa conta já existe")).toBeVisible();
+
+    // os campos continuam preenchidos
+    await expect(page.getByLabel("E-mail")).toHaveValue(EMAIL_PERMITIDO);
+    await expect(page.getByLabel("Senha")).toHaveValue(SENHA);
+
     await page.getByRole("button", { name: "Entrar" }).click();
     await expect(page.getByRole("heading", { name: "Hoje" })).toBeVisible();
   });
