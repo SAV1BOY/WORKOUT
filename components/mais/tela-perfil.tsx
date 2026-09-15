@@ -256,8 +256,8 @@ function Fase({
           sugestao.sugerir ? (
             <div className="border-primary/40 bg-primary/5 flex flex-col gap-3 rounded-lg border p-3">
               <p className="text-sm text-balance">
-                Você já tem {semanas} semanas de Fase 1 e {sessoes} treinos
-                concluídos. Dá para passar para a{" "}
+                Você já tem {sugestao.semanas} semanas de Fase 1 e {sessoes}{" "}
+                treinos concluídos. Dá para passar para a{" "}
                 {fase2 ? fase2.nome : "Fase 2"}.
               </p>
               <div className="flex flex-col gap-2">
@@ -282,7 +282,7 @@ function Fase({
             <p className="text-muted-foreground text-sm text-balance">
               A Fase 2 é sugerida com {SEMANAS_PARA_FASE2} semanas de Fase 1 e{" "}
               {SESSOES_PARA_FASE2} treinos de força concluídos (você tem{" "}
-              {semanas} e {sessoes}). {fase.quando_mudar}
+              {sugestao.semanas} e {sessoes}). {fase.quando_mudar}
               {sugestao.adiadaAte
                 ? ` Adiada até ${formatarData(sugestao.adiadaAte)}.`
                 : ""}

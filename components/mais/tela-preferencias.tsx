@@ -197,8 +197,13 @@ function Interruptores({
                 {descricao}
               </p>
             </div>
+            {/*
+              O pill do shadcn tem 18 px de altura: a área de toque dele mora
+              no `::after`, esticada aqui para os 44 px que a SPEC §3 pede.
+            */}
             <Switch
               id={`pref-${chave}`}
+              className="after:-inset-y-[13px]"
               checked={ligado(perfil.prefs, chave)}
               onCheckedChange={(v) => void mudar(chave, v)}
             />

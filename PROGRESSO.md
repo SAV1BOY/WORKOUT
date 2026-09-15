@@ -2423,3 +2423,96 @@ Um índice com quatro rotas próprias (cada uma com o seu título e o seu bundle
    avião** e navegue: a Hoje abre com os dados da última sincronização, o treino
    abre com as figuras e as fotos, e cada série registrada fica no aparelho.
    Desligue o modo avião: em segundos tudo sobe sozinho.
+
+---
+
+## Auditoria do marco 6 (rodada 1) ✅
+
+Auditoria independente do marco 6: `npm run lint`, `npm run build`, `npm test`
+(659) e `npm run e2e` (131) foram rodados do zero e voltaram **verdes**, sem
+aviso no build. Depois o app foi percorrido no Chromium a 360 × 740 contra o
+mock, tela por tela.
+
+### O que foi conferido de verdade
+
+- **`/mais` e as quatro sub-rotas**: perfil grava nome/altura/início; as semanas
+  dos planos sobem e descem; a Fase 2 aparece com os dois gatilhos, adia por 2
+  semanas e, ao aceitar, grava `fase2` + o evento `trocou_fase` com
+  `exercise_id` nulo; equipamento mostra os 10 itens com foto que carrega e o
+  peso medido muda a escala do implemento na Hoje; preferências aplicam tema,
+  interruptores e incremento; sair funciona.
+- **Backup**: o JSON exportado traz as 11 tabelas; importado num mock zerado
+  reproduz sessão, séries, estado, peso e perfil, e importar de novo **não
+  duplica** (conferido em `e2e/mais.spec.ts`, mais dois casos de erro novos).
+- **Offline**: build de produção com o `sw.js` gerado; com o service worker no
+  comando, a **Hoje recarregada sem rede** abre, a navegação inferior anda entre
+  Hoje/Treinar/Mais e a figura do programa vem do cache — é o teste novo
+  `e2e/auditoria-m6.spec.ts`, que faltava (o `pwa.spec.ts` só abria uma rota
+  nova offline, nunca recarregava a Hoje).
+- **360 px em todas as telas** (Hoje, calendário, treinar, sessão, cardio, barra
+  fixa, exercícios, ficha, progresso, corpo ×3 abas, mais ×5): nenhum texto fora
+  do pt-BR, nenhum número com ponto decimal, datas em dd/MM, rótulo de carga
+  certo por implemento ("na barra", "por halter", "no pino", "peso do corpo"),
+  nenhum alvo abaixo de 44 px e **nada vazando a largura** — medido elemento a
+  elemento, porque o `overflow-x: hidden` do `body` esconde a rolagem lateral e
+  o `scrollWidth` da página não a denuncia.
+- Código: nenhum `console.log`, nenhum `any`, nenhum `eslint-disable` sem
+  justificativa, nenhum "em construção", nenhum nome/série/regra de exercício
+  copiado para dentro de `app/`, `lib/` ou `components/` (varredura dos 81 nomes
+  do catálogo: só aparece num comentário de `lib/barra-fixa.ts`).
+
+### O que foi corrigido nesta auditoria
+
+1. **Fase 2 contava semana de dois jeitos** (`components/mais/tela-perfil.tsx`).
+   O texto usava `semanaDaFase` (número da semana, começa em 1) e a regra usava
+   `sugerirFase2` (semanas **cheias**, começa em 0). Com 11 semanas cheias a
+   tela dizia "A Fase 2 é sugerida com 12 semanas … (você tem 12 e 30)" e mesmo
+   assim não oferecia o botão. Agora os dois textos usam `sugestao.semanas`; o
+   "semana N" do cabeçalho continua sendo o número da semana.
+2. **O interruptor das preferências tinha 34 px de alvo**
+   (`components/mais/tela-preferencias.tsx`). O `Switch` do shadcn é um pill de
+   18 px com a área de toque no `::after`; a sessão de força já resolvia isso
+   fazendo a linha inteira virar o botão (`components/treinar/bloco.tsx`), mas a
+   tela nova usou o componente cru. A área de toque foi esticada para 44 px.
+
+Os dois testes novos falham no código anterior (foi verificado) e passam agora.
+
+### Testes acrescentados — `e2e/auditoria-m6.spec.ts` (10)
+
+Hoje recarregada sem rede + nav + figura do cache · as 5 telas de `/mais` a
+360 px com medição elemento a elemento e os interruptores na conta dos 44 px ·
+o toque de polegar no interruptor · o limiar da Fase 2 nos dois lados (11 e 12
+semanas cheias) · um backup de versão futura recusado sem gravar nada.
+
+Total: **659 unitários** e **141 e2e**.
+
+### Problemas que ficam registrados (nenhum bloqueante)
+
+- **`pendente: infra`** — sem projeto Supabase e sem Vercel, os critérios §10.1
+  e §10.2 contra o banco real, o §10.9 (Lighthouse) e o §10.10 (deploy +
+  instalar no celular) continuam por verificar. O mock imita o schema, não o
+  substitui.
+- `supabase/schema.sql` usa `create table if not exists`: num banco onde o
+  schema **antigo** já tivesse rodado, a mudança de `progression_events.
+  exercise_id` para nulo não seria aplicada por reexecutar o arquivo (seria
+  preciso um `alter table … alter column exercise_id drop not null`). Como o
+  projeto ainda vai ser criado do zero, não afeta nada hoje.
+- Números de conteúdo ainda escritos no código, em vez de derivados do JSON: o
+  `maximo: 12` das semanas de corda e barra fixa em `tela-perfil.tsx`, o
+  "As 12 semanas" de `tela-barra-fixa.tsx` (marco 4) e o `formatarKg(2)` da
+  descrição das barras em `tela-equipamento.tsx` (é o `PESO_BARRA_A_PESAR`).
+  Todos batem com `data/cardio.json` e `lib/montagem.ts` hoje.
+- "0 de 1 dias" na aderência de `/progresso` (marco 5) — falta o singular.
+
+### Como testar no celular (auditoria do marco 6)
+
+1. `npm run lint && npm run build && npm test && npm run e2e`.
+2. `npm run mock` + `npm run dev:mock` e, no celular da mesma rede, abra
+   `http://<ip>:3000`.
+3. **Mais → Preferências**: toque **acima** do interruptor "Som no fim do
+   descanso", não no pill — ele tem que virar do mesmo jeito.
+4. **Mais → Perfil**: o texto da Fase 2 tem que dizer o mesmo número de semanas
+   que a regra ("você tem N e M" com N = semanas cheias).
+5. **Offline**: com o app instalado e a Hoje aberta uma vez, ligue o modo avião
+   e **recarregue a Hoje** — ela abre, a barra de baixo continua navegando e as
+   figuras do treino aparecem.
