@@ -389,6 +389,16 @@ test.describe("Explorar (§14.4)", () => {
     await expect(
       page.getByRole("link", { name: "Fazer a sessão da semana" }),
     ).toHaveAttribute("href", "/barra-fixa");
+
+    /*
+     * Um plano se descreve pelo tamanho, não por uma contagem de exercícios:
+     * a corrida não tem exercício em `exercicios.json` e a tela dela mostrava
+     * "0 exercícios · ~1 min" (auditoria do V3).
+     */
+    await page.goto("/explorar/plano/corrida");
+    // `exact`: o próprio objetivo do plano termina em "em 12 semanas (…)"
+    await expect(page.getByText("12 semanas", { exact: true })).toBeVisible();
+    await expect(page.getByText(/exercícios? · ~/)).toHaveCount(0);
   });
 });
 

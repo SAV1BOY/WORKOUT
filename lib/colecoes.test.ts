@@ -143,6 +143,18 @@ describe("planos e treinos do programa", () => {
     expect(colecoesDePlano()).toHaveLength(3);
   });
 
+  it("o detalhe de um plano é o tamanho dele, não uma contagem de exercícios", () => {
+    const [fixa, corrida, corda] = colecoesDePlano();
+    // a corrida não tem exercício em exercicios.json: "0 exercícios · ~1 min"
+    // era o que aparecia na tela antes da auditoria do V3
+    expect(corrida?.detalhe).toBe("12 semanas");
+    expect(fixa?.detalhe).toBe("12 semanas");
+    expect(corda?.detalhe).toBe(`${cardio.corda.semanas.length} semanas`);
+    for (const c of colecoesDePlano()) {
+      expect(c.detalhe).not.toMatch(/exerc[íi]cio/);
+    }
+  });
+
   it("os seis treinos vêm do programa.json, com nome, subtítulo e duração", () => {
     const lista = colecoesDeTreino();
     expect(lista.map((c) => c.treino)).toEqual(["A1", "B1", "SA", "IA", "SB", "IB"]);
@@ -188,8 +200,18 @@ describe("estimativa de minutos (SPEC §14.3)", () => {
     expect(segundosDoExercicio(flexao)).toBe(3 * (10 * 3 + 90));
   });
 
-  it("nenhuma coleção fica com 0 min", () => {
-    for (const c of todasAsColecoes()) expect(c.minutos).toBeGreaterThan(0);
+  it("nenhuma coleção de exercícios fica com 0 min (o plano conta semanas)", () => {
+    for (const c of todasAsColecoes()) {
+      if (c.tipo === "plano") {
+        // um plano é a prescrição por semana de cardio.json, não uma lista
+        expect(c.minutos).toBe(0);
+        expect(c.detalhe).toMatch(/^\d+ semanas$/);
+        continue;
+      }
+      expect(c.exercicios.length).toBeGreaterThan(0);
+      expect(c.minutos).toBeGreaterThan(0);
+      expect(c.detalhe).toMatch(/exerc[íi]cios? · ~/);
+    }
   });
 });
 

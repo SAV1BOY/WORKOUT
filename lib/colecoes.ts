@@ -248,6 +248,14 @@ export function colecaoDoPlano(dados: DadosDoPlano): Colecao {
   const lista = dados.exercicioDaCapa ? fichas([dados.exercicioDaCapa]) : [];
   return montar(`plano:${dados.id}`, "plano", dados.titulo, dados.subtitulo, lista, {
     plano: dados.id,
+    /*
+     * Um plano não é uma lista de exercícios: é a prescrição por semana de
+     * `cardio.json`, e a lista daqui tem no máximo o exercício da capa. Contar
+     * exercícios dava "0 exercícios · ~1 min" na corrida — informação errada
+     * na tela. O que descreve um plano é o tamanho dele, que é do JSON.
+     */
+    minutos: 0,
+    detalhe: `${dados.semanas} semanas`,
   });
 }
 

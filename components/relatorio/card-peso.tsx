@@ -12,7 +12,15 @@ import { formatarData, formatarKg } from "@/lib/formato";
  * Corpo → Peso, que é onde a balança já mora (§3.8).
  */
 export function CardPeso({ pesos }: { pesos: PesoBruto[] }) {
-  const pontos = pontosDePeso(pesos);
+  /*
+   * O eixo x mostra a data em dd/MM, como o gráfico do Corpo (§3.8) e o resto
+   * do app: sem o rótulo, o Recharts desenhava o ISO cru ("2026-09-07"), que
+   * nem é pt-BR nem cabe a 360 px.
+   */
+  const pontos = pontosDePeso(pesos).map((p) => ({
+    ...p,
+    rotulo: formatarData(p.data),
+  }));
   const ultimo = ultimoPeso(pesos);
   const valores = pontos.map((p) => p.peso);
   const maior = valores.length > 0 ? Math.max(...valores) : null;
@@ -49,7 +57,7 @@ export function CardPeso({ pesos }: { pesos: PesoBruto[] }) {
             <GraficoLinha
               titulo="Peso por pesagem"
               dados={pontos}
-              x="data"
+              x="rotulo"
               sufixo=" kg"
               altura={120}
               dominioY={dominioY}

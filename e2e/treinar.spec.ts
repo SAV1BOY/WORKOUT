@@ -562,13 +562,24 @@ test.describe("ajuda, montagem e substituição (SPEC §3.2, §6.5 e §7)", () =
     expect(estados.find((e) => e.exercise_id === "agachamento-livre")).toBeUndefined();
     expect(estados.find((e) => e.exercise_id === "agachamento-frontal")?.reps_alvo).toBe(8);
 
-    const eventos = await lerDoMock<{ exercise_id: string; de: { carga_kg: number } }>(
-      sessao,
-      "progression_events",
-    );
-    expect(eventos.find((e) => e.exercise_id === "agachamento-frontal")?.de).toMatchObject({
-      carga_kg: 31.5,
-    });
+    /*
+     * `progression_events` é uma escrita SEPARADA na fila de saída (§8): a
+     * linha de `exercise_state` pode chegar ao mock antes dela. Ler de uma vez
+     * era uma corrida — a auditoria do V3 pegou a falha nesse ponto. A
+     * asserção continua a mesma; só o "quando" espera a fila.
+     */
+    await expect
+      .poll(
+        async () =>
+          (
+            await lerDoMock<{ exercise_id: string; de: { carga_kg: number } }>(
+              sessao,
+              "progression_events",
+            )
+          ).find((e) => e.exercise_id === "agachamento-frontal")?.de,
+        { timeout: 15_000 },
+      )
+      .toMatchObject({ carga_kg: 31.5 });
   });
 });
 

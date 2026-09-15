@@ -4342,3 +4342,107 @@ componente do Relatório e da conclusão) e Preferências ganhou o link para
 A auditoria final da §14.5 (marco V4), feita por outro agente: usar o app no
 Chromium a 360 × 740 nos dois temas, refazer os quatro portões do zero e
 conferir os sete critérios da §14.5 e os oito da §13.8 um a um.
+
+---
+
+## Auditoria do marco V3 (rodada 1) ✅
+
+Outro agente refez os quatro portões do zero e usou o app no Chromium a
+360 × 740, nos **dois temas**, com dados semeados no mock. Os sete critérios da
+§14.5 e as quatro pendências herdadas do V2 foram conferidos um a um.
+
+### O que a auditoria confirmou
+
+- **§14.5.5** — Desafios com os **três planos reais** e a semana do perfil
+  (barra fixa 3/12 · corrida 3/12 · Fase 1 1/12), carrossel **manual** (o
+  `scrollLeft` não mexe sozinho em 4 s), FAB Ajustar de 56 px, os **8 grupos**
+  em chips, os 6 filtros derivados (Core: 13 exercícios · ~1 h 19 → 8
+  exercícios · ~46 min com "Sem equipamento", e os chips caem para os 3 grupos
+  que ainda têm exercício), "Começar Core" criando a **sessão livre** com
+  `sessions.plano`, Personalizar e Editar/reordenar.
+- **Sessão livre offline** — a sessão de "Core no tatame" começada num
+  navegador foi reaberta noutro **contexto limpo** e voltou em "Série 2 de 3 ·
+  exercício 1 de 6": `reconstruirSessao` refaz mesmo o treino livre a partir
+  do jsonb.
+- **Modo por tempo** — só quatro exercícios do catálogo têm
+  `prescricao_padrao.tipo = "tempo_s"` (prancha, escalador, prancha lateral,
+  corrida no lugar com a corda) e os quatro são `peso_corporal` ou `corda`:
+  barra, halteres e polia **não têm como** cair na contagem regressiva (§13.6).
+- **Contadores do Relatório conferidos à mão** com a semente: 1 sessão de
+  força (45 min) + 1 de cardio (34 min) + 1 sessão de outra semana (30 min) =
+  **3 treinos · 109 minutos**; 3 × 5 × 20 kg + 2 × 8 × 30 kg = **780 kg**.
+- **As 4 pendências do V2 fechadas**, medidas a 360 × 740 nos dois temas:
+  o chip "montagem" termina em **615 px** e a barra de controles começa em
+  **620 px** — cabe sem rolar mesmo no pior caso (nome de duas linhas +
+  "anterior: 12,5 kg na barra × 18"); a nota do "firme?" está em 200 px e os
+  três botões em 268 px (a nota vem **antes**); o descanso antes do
+  aquecimento mostra "5 × 7,5 kg na barra" (o alvo da própria série); e o e2e
+  da sessão livre de core grava `sessions.plano` e `session_sets` no mock.
+- **Transversais** — nenhuma das 10 telas rola para o lado nem vaza elemento
+  a 360 px; nenhum nome de exercício escrito em código (só comentários);
+  nenhuma dependência nova, nenhum asset novo; `/progresso` → `/relatorio`;
+  os gráficos e recordes da §3.7 continuam inteiros abaixo do novo Relatório.
+
+### O que a auditoria corrigiu
+
+1. **`components/relatorio/card-peso.tsx`** — o eixo x do gráfico de peso
+   desenhava a data **ISO crua** ("2026-09-07"), porque o card passava
+   `x="data"`. O gráfico do Corpo usa `x="rotulo"` (dd/MM) desde o marco 5; o
+   card do Relatório passa a fazer o mesmo, com `formatarData`.
+2. **`lib/colecoes.ts`** — a coleção de um **plano** mostrava
+   "0 exercícios · ~1 min" na corrida (e "1 exercício · ~11 min" na barra
+   fixa): a lista de um plano tem no máximo o exercício da capa, então contar
+   exercícios era informação errada na tela. O detalhe passa a ser o tamanho
+   do plano em semanas, que é de `cardio.json` ("12 semanas"). Coberto por
+   dois testes novos em `lib/colecoes.test.ts` (o antigo "nenhuma coleção fica
+   com 0 min" ficou **mais** exigente: as coleções de exercício continuam com
+   minutos > 0 **e** com o detalhe no formato antigo) e por uma asserção nova
+   no e2e da coleção de plano.
+3. **`e2e/treinar.spec.ts`** — o teste do substituto lia `progression_events`
+   **sem esperar a fila**: ele espera `exercise_state`, que a fila grava
+   **antes** dos eventos (§8), e depois lia os eventos de uma vez. Na primeira
+   rodada de portões desta auditoria ele falhou por isso (195/196); sozinho
+   passa 3/3. A asserção é a mesma (`de.carga_kg` = 31,5), agora dentro de um
+   `expect.poll`, como o teste vizinho já fazia com `profiles.ultimo_treino`.
+4. **`e2e/player.spec.ts`** — a mesma classe de corrida no teste do "avançar
+   sozinho": ele desligava o interruptor em Preferências e voltava para o
+   player na hora. A preferência sobe pela **fila** (§8), então o player
+   remontado podia reler o perfil antigo e avançar sozinho mesmo assim — com
+   a máquina carregada isso aconteceu (194/196 na segunda rodada). O teste
+   passa a esperar `prefs.avancar_sozinho = false` chegar ao mock antes de
+   voltar; o que ele prova continua sendo o player obedecendo ao interruptor.
+
+### Conhecido, não corrigido (para o marco V4 decidir)
+
+- **Os contadores do topo do Relatório são acumulados**, não da semana: a
+  §13.5.1 pede "volume da semana" e a tela mostra o volume de tudo (780 kg),
+  com o card antigo "Volume da semana" (300 kg) logo abaixo. Dois números de
+  volume na mesma tela. A §14.4 só diz "volume", e a referência mostra totais
+  — é uma decisão de produto, não um defeito de código.
+- **"Treinos" conta força de sempre + cardio das últimas 26 semanas**
+  (`useSessoesTodas` e `useCardioDesde` têm janelas diferentes). Com o app
+  começando em 14/09/2026 dá no mesmo; daqui a seis meses não dá.
+- **"Todos os registros" mostra 12 e para** ("Mostrando 12 de N"), sem "ver
+  mais": para ver o que ficou de fora é preciso navegar semana a semana.
+- **`Colecao.circuito`** (de `podeCircuito`) é calculado e testado, mas
+  nenhuma tela usa o campo — o player já decide o passo pelo tipo da
+  prescrição.
+- **O FAB Ajustar cobre o canto direito da última linha** da lista quando a
+  tela está rolada até ele (é o comportamento de um FAB; a lista rola).
+
+### Portões depois das correções
+
+Rodados do zero, nesta ordem, numa janela sozinha:
+
+```
+npm run lint   limpo (sem avisos)
+npm run build  ✓ 119 páginas estáticas geradas
+npm test       Test Files 42 passed (42) · Tests 957 passed (957)
+npm run e2e    196 passed (7.7m) — Chromium 360 × 740
+```
+
+Capturas em `capturas/v3/`, agora **nos dois temas**: `01-treino-desafios`,
+`02-treino-parte-do-corpo`, `03-explorar`, `04-colecao`, `05-relatorio`,
+`06-relatorio-registros`, `07-corpo-imc`, `08-preferencias`,
+`09-relatorio-peso` (o eixo em dd/MM) e `10-colecao-plano` ("12 semanas"),
+cada uma com o par `-claro`.

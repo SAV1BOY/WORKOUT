@@ -159,7 +159,7 @@ test.describe("preparação → exercício → descanso (SPEC §14.1.1–3)", ()
     page,
   }) => {
     test.setTimeout(120_000);
-    await usuarioComPerfil({
+    const sessao = await usuarioComPerfil({
       prefs: { preparacao_s: 0, descanso_padrao_s: 20, avancar_sozinho: true },
     });
     await page.clock.install({ time: new Date(SEGUNDA) });
@@ -187,6 +187,24 @@ test.describe("preparação → exercício → descanso (SPEC §14.1.1–3)", ()
       "aria-checked",
       "false",
     );
+    /*
+     * A preferência sobe pela FILA (§8): enquanto ela não chega ao servidor, o
+     * player remontado pode reler o perfil ANTIGO e voltar a avançar sozinho.
+     * Esperar a linha no mock tira a corrida sem afrouxar nada — o que o teste
+     * prova continua sendo o player obedecendo ao interruptor.
+     */
+    await expect
+      .poll(
+        async () =>
+          (
+            await lerDoMock<{ prefs: { avancar_sozinho?: boolean } }>(
+              sessao,
+              "profiles",
+            )
+          )[0]?.prefs.avancar_sozinho,
+        { timeout: 15_000 },
+      )
+      .toBe(false);
     await page.goBack();
     await page.getByRole("button", { name: "Concluir a série" }).click();
     await expect(descanso).toHaveText("0:20");
