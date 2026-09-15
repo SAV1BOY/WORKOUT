@@ -1,0 +1,754 @@
+{
+  "gerado_em": "2026-09-15",
+  "criterio": "Um vídeo por exercício, escolhido nesta ordem de preferência: português do Brasil; curto e focado só na técnica de execução (nada de treino completo ou vlog); canal de educador físico, fisioterapeuta ou canal de musculação reconhecido; imagem boa o bastante para ver a postura. Quando não havia opção decente em pt-BR, aceitei inglês. Todo youtube_id foi conferido um a um no endpoint oEmbed do YouTube (o título e o canal aqui são os que o próprio YouTube devolveu). O campo duracao ficou null porque o ambiente não tem acesso à API/página do YouTube que informa a duração — dá para preencher depois.",
+  "tutoriais": [
+    {
+      "exercicio_id": "supino-reto-com-barra",
+      "youtube_id": "vIGvt-vgrvY",
+      "titulo": "SUPINO RETO COM BARRA - APRENDA COMO FAZR CORRETAMENTE",
+      "canal": "Miqueias Alves Personal",
+      "idioma": "pt-BR",
+      "duracao": null,
+      "url": "https://www.youtube.com/watch?v=vIGvt-vgrvY"
+    },
+    {
+      "exercicio_id": "supino-inclinado-com-barra",
+      "youtube_id": "7lm16JD0S08",
+      "titulo": "SUPINO INCLINADO COM BARRA. Série Execução Perfeita",
+      "canal": "Dan Champions",
+      "idioma": "pt-BR",
+      "duracao": null,
+      "url": "https://www.youtube.com/watch?v=7lm16JD0S08"
+    },
+    {
+      "exercicio_id": "supino-declinado-com-barra",
+      "youtube_id": "bN2Bm8eIpOg",
+      "titulo": "COMO FAZER SUPINO DECLINADO COM BARRA CORRETAMENTE",
+      "canal": "Ademar Rodrigues Personal",
+      "idioma": "pt-BR",
+      "duracao": null,
+      "url": "https://www.youtube.com/watch?v=bN2Bm8eIpOg"
+    },
+    {
+      "exercicio_id": "supino-reto-com-halteres",
+      "youtube_id": "tDxKGeY-hjQ",
+      "titulo": "Supino reto com halteres - Como fazer, Dicas e Postura",
+      "canal": "Treino Mestre",
+      "idioma": "pt-BR",
+      "duracao": null,
+      "url": "https://www.youtube.com/watch?v=tDxKGeY-hjQ"
+    },
+    {
+      "exercicio_id": "supino-inclinado-com-halteres",
+      "youtube_id": "rCPwrZkrVVQ",
+      "titulo": "Supino inclinado com halteres: Como fazer, Dicas e Postura",
+      "canal": "Treino Mestre",
+      "idioma": "pt-BR",
+      "duracao": null,
+      "url": "https://www.youtube.com/watch?v=rCPwrZkrVVQ"
+    },
+    {
+      "exercicio_id": "crucifixo-reto",
+      "youtube_id": "ZjIKUMtW37c",
+      "titulo": "Crucifixo reto com halteres: Como fazer e Cuidados!",
+      "canal": "Treino Mestre",
+      "idioma": "pt-BR",
+      "duracao": null,
+      "url": "https://www.youtube.com/watch?v=ZjIKUMtW37c"
+    },
+    {
+      "exercicio_id": "crucifixo-inclinado",
+      "youtube_id": "oQARSPqhvs8",
+      "titulo": "CRUCIFIXO INCLINADO COM HALTERES - APRENDA COMO FAZER CORRETAMENTE",
+      "canal": "Miqueias Alves Personal",
+      "idioma": "pt-BR",
+      "duracao": null,
+      "url": "https://www.youtube.com/watch?v=oQARSPqhvs8"
+    },
+    {
+      "exercicio_id": "pullover-com-halter",
+      "youtube_id": "TVUYI8UhahE",
+      "titulo": "Como fazer o Pullover com Halter no banco",
+      "canal": "enfit Musculação",
+      "idioma": "pt-BR",
+      "duracao": null,
+      "url": "https://www.youtube.com/watch?v=TVUYI8UhahE"
+    },
+    {
+      "exercicio_id": "flexao-declinada",
+      "youtube_id": "hRJNWz1iHoc",
+      "titulo": "Flexão declinada para peitoral",
+      "canal": "Douglas FwM",
+      "idioma": "pt-BR",
+      "duracao": null,
+      "url": "https://www.youtube.com/watch?v=hRJNWz1iHoc",
+      "nota": "Pés no banco, mãos no chão — mesma montagem descrita no app."
+    },
+    {
+      "exercicio_id": "flexao-inclinada",
+      "youtube_id": "1cydXqE5Bro",
+      "titulo": "COMO FAZER FLEXÃO DE BRAÇOS NO BANCO - Fisioprev",
+      "canal": "Guilherme Stellbrink | FisioPrev",
+      "idioma": "pt-BR",
+      "duracao": null,
+      "url": "https://www.youtube.com/watch?v=1cydXqE5Bro",
+      "nota": "Canal de fisioterapia; mostra a versão com as mãos apoiadas no banco."
+    },
+    {
+      "exercicio_id": "crossover-na-polia",
+      "youtube_id": "pdMWt71MPlw",
+      "titulo": "Como fazer o Crossover (Aprenda em 1 Minuto)",
+      "canal": "Laércio Refundini",
+      "idioma": "pt-BR",
+      "duracao": null,
+      "url": "https://www.youtube.com/watch?v=pdMWt71MPlw",
+      "nota": "Vídeo curto e direto, foco só na técnica."
+    },
+    {
+      "exercicio_id": "barra-fixa-pronada",
+      "youtube_id": "BBmjDutLmAo",
+      "titulo": "BARRA FIXA - COMO FAZER? (PULL-UP)",
+      "canal": "Cinética Escola do Movimento",
+      "idioma": "pt-BR",
+      "duracao": null,
+      "url": "https://www.youtube.com/watch?v=BBmjDutLmAo"
+    },
+    {
+      "exercicio_id": "barra-fixa-supinada",
+      "youtube_id": "oNSMi4d6O0M",
+      "titulo": "COMO FAZER BARRA FIXA PEGADA SUPINADA CORRETAMENTE",
+      "canal": "Ademar Rodrigues Personal",
+      "idioma": "pt-BR",
+      "duracao": null,
+      "url": "https://www.youtube.com/watch?v=oNSMi4d6O0M"
+    },
+    {
+      "exercicio_id": "barra-fixa-com-lastro",
+      "youtube_id": "HuuyDNGrCI8",
+      "titulo": "How To: Weighted Pull-Up",
+      "canal": "ScottHermanFitness",
+      "idioma": "en",
+      "duracao": null,
+      "url": "https://www.youtube.com/watch?v=HuuyDNGrCI8",
+      "nota": "Não achei um tutorial pt-BR focado em barra com carga (só reviews de cinto); usei o passo a passo em inglês do ScottHermanFitness."
+    },
+    {
+      "exercicio_id": "levantamento-terra",
+      "youtube_id": "6E-rUBDENzA",
+      "titulo": "Levantamento Terra - Como Fazer Corretamente - Dead Lift",
+      "canal": "4FitClub",
+      "idioma": "pt-BR",
+      "duracao": null,
+      "url": "https://www.youtube.com/watch?v=6E-rUBDENzA"
+    },
+    {
+      "exercicio_id": "remada-curvada-pronada",
+      "youtube_id": "NQ_-9qZ3R-Y",
+      "titulo": "Remada Curvada Com Pegada Pronada - COMO EXECUTAR E ERROS COMUNS",
+      "canal": "Pedro Almeida - Treinador de força & Powerlifting",
+      "idioma": "pt-BR",
+      "duracao": null,
+      "url": "https://www.youtube.com/watch?v=NQ_-9qZ3R-Y"
+    },
+    {
+      "exercicio_id": "remada-curvada-supinada",
+      "youtube_id": "0BfB6WHRks8",
+      "titulo": "REMADA CURVADA SUPINADA - APRENDA COMO FAZER CORRETAMENTE",
+      "canal": "Miqueias Alves Personal",
+      "idioma": "pt-BR",
+      "duracao": null,
+      "url": "https://www.youtube.com/watch?v=0BfB6WHRks8"
+    },
+    {
+      "exercicio_id": "remada-unilateral-serrote",
+      "youtube_id": "K25eTWoEOWU",
+      "titulo": "Remada Unilateral com Halter (Serrote) - Execução Correta",
+      "canal": "Dicas de Treino",
+      "idioma": "pt-BR",
+      "duracao": null,
+      "url": "https://www.youtube.com/watch?v=K25eTWoEOWU"
+    },
+    {
+      "exercicio_id": "stiff-terra-romeno",
+      "youtube_id": "po5ihi0-5rk",
+      "titulo": "Como fazer STIFF com Barra ou Halteres",
+      "canal": "SAÚDE É TREINO com Renato Reche",
+      "idioma": "pt-BR",
+      "duracao": null,
+      "url": "https://www.youtube.com/watch?v=po5ihi0-5rk",
+      "nota": "Cobre as duas variações (barra e halteres) e a diferença entre stiff e terra romeno."
+    },
+    {
+      "exercicio_id": "encolhimento-de-ombros",
+      "youtube_id": "AdkMdSoRVPE",
+      "titulo": "ENCOLHIMENTO DE OMBROS COM HALTERES - JEITO CERTO DE FAZER",
+      "canal": "Miqueias Alves Personal",
+      "idioma": "pt-BR",
+      "duracao": null,
+      "url": "https://www.youtube.com/watch?v=AdkMdSoRVPE",
+      "nota": "Mostra com halteres; com barra a execução é a mesma."
+    },
+    {
+      "exercicio_id": "good-morning",
+      "youtube_id": "q4GZN3scJxE",
+      "titulo": "Exercício Good Morning: Execução, Dicas e Cuidados",
+      "canal": "Treino Mestre",
+      "idioma": "pt-BR",
+      "duracao": null,
+      "url": "https://www.youtube.com/watch?v=q4GZN3scJxE"
+    },
+    {
+      "exercicio_id": "puxada-alta-na-polia",
+      "youtube_id": "7cCiQUdIXWw",
+      "titulo": "COMO FAZER PUXADA ALTA OU FRENTE (pulley frente) - Fisioprev",
+      "canal": "Guilherme Stellbrink | FisioPrev",
+      "idioma": "pt-BR",
+      "duracao": null,
+      "url": "https://www.youtube.com/watch?v=7cCiQUdIXWw"
+    },
+    {
+      "exercicio_id": "puxada-com-triangulo",
+      "youtube_id": "uAnrJBnxrZ0",
+      "titulo": "Puxada alta com triângulo - Execução, postura e dica",
+      "canal": "Treino Mestre",
+      "idioma": "pt-BR",
+      "duracao": null,
+      "url": "https://www.youtube.com/watch?v=uAnrJBnxrZ0"
+    },
+    {
+      "exercicio_id": "remada-baixa-na-polia",
+      "youtube_id": "2YebbYuuBJQ",
+      "titulo": "Remada baixa com triângulo - Como fazer e postura correta",
+      "canal": "Treino Mestre",
+      "idioma": "pt-BR",
+      "duracao": null,
+      "url": "https://www.youtube.com/watch?v=2YebbYuuBJQ"
+    },
+    {
+      "exercicio_id": "pullover-na-polia",
+      "youtube_id": "WEASDX38bAU",
+      "titulo": "Pullover no Pulley (Polia Alta) com Barra Reta e na Corda",
+      "canal": "Prof. Léo Canolla",
+      "idioma": "pt-BR",
+      "duracao": null,
+      "url": "https://www.youtube.com/watch?v=WEASDX38bAU",
+      "nota": "Mostra as duas pegadas previstas no app: barra e corda."
+    },
+    {
+      "exercicio_id": "desenvolvimento-militar-em-pe",
+      "youtube_id": "28ccCTttSU0",
+      "titulo": "PRESS MILITAR - UMA EXECUÇÃO SEGURA E EFICAZ",
+      "canal": "Amilton Stachin",
+      "idioma": "pt-BR",
+      "duracao": null,
+      "url": "https://www.youtube.com/watch?v=28ccCTttSU0"
+    },
+    {
+      "exercicio_id": "desenvolvimento-sentado-com-barra",
+      "youtube_id": "33fKjb0ep6g",
+      "titulo": "COMO FAZER DESENVOLVIMENTO SENTADO COM BARRA - Fisioprev",
+      "canal": "Guilherme Stellbrink | FisioPrev",
+      "idioma": "pt-BR",
+      "duracao": null,
+      "url": "https://www.youtube.com/watch?v=33fKjb0ep6g"
+    },
+    {
+      "exercicio_id": "desenvolvimento-com-halteres",
+      "youtube_id": "eufDL9MmF8A",
+      "titulo": "Como fazer o Desenvolvimento com Halteres (Aprenda em 1 Minuto)",
+      "canal": "Laércio Refundini",
+      "idioma": "pt-BR",
+      "duracao": null,
+      "url": "https://www.youtube.com/watch?v=eufDL9MmF8A",
+      "nota": "Vídeo de 1 minuto, só técnica."
+    },
+    {
+      "exercicio_id": "elevacao-lateral",
+      "youtube_id": "jannLx4RxKo",
+      "titulo": "Como Fazer - Elevação Lateral com Halteres: Técnica Correta e Erros Comuns",
+      "canal": "Training for Health",
+      "idioma": "pt-BR",
+      "duracao": null,
+      "url": "https://www.youtube.com/watch?v=jannLx4RxKo"
+    },
+    {
+      "exercicio_id": "elevacao-frontal",
+      "youtube_id": "8qw2v6wNIgw",
+      "titulo": "Como Fazer - Elevação Frontal com Halteres",
+      "canal": "Training for Health",
+      "idioma": "pt-BR",
+      "duracao": null,
+      "url": "https://www.youtube.com/watch?v=8qw2v6wNIgw",
+      "nota": "Serve tanto para halteres quanto para a variação com anilha."
+    },
+    {
+      "exercicio_id": "crucifixo-inverso",
+      "youtube_id": "r1efeCcUW-8",
+      "titulo": "CRUCIFIXO INVERSO - 3 DICAS PARA FAZER CERTO",
+      "canal": "Fit Nerdz",
+      "idioma": "pt-BR",
+      "duracao": null,
+      "url": "https://www.youtube.com/watch?v=r1efeCcUW-8"
+    },
+    {
+      "exercicio_id": "remada-alta",
+      "youtube_id": "0FOiIyUFDPE",
+      "titulo": "REMADA ALTA EM PÉ COM BARRA - COMO FAZER CORRETAMENTE",
+      "canal": "Miqueias Alves Personal",
+      "idioma": "pt-BR",
+      "duracao": null,
+      "url": "https://www.youtube.com/watch?v=0FOiIyUFDPE"
+    },
+    {
+      "exercicio_id": "arnold-press",
+      "youtube_id": "yhJWRlfpEuk",
+      "titulo": "COMO FAZER DESENVOLVIMENTO ARNOLD - Fisioprev",
+      "canal": "Guilherme Stellbrink | FisioPrev",
+      "idioma": "pt-BR",
+      "duracao": null,
+      "url": "https://www.youtube.com/watch?v=yhJWRlfpEuk"
+    },
+    {
+      "exercicio_id": "face-pull",
+      "youtube_id": "z4cDN2oTVxQ",
+      "titulo": "FACEPULL (PUXADA NA CARA) - 3 DICAS PARA FAZER CERTO",
+      "canal": "Fit Nerdz",
+      "idioma": "pt-BR",
+      "duracao": null,
+      "url": "https://www.youtube.com/watch?v=z4cDN2oTVxQ"
+    },
+    {
+      "exercicio_id": "rosca-direta-com-barra",
+      "youtube_id": "Et1wgGMGW8w",
+      "titulo": "ROSCA DIRETA COM BARRA - COMO FAZER CORRETAMENTE",
+      "canal": "Miqueias Alves Personal",
+      "idioma": "pt-BR",
+      "duracao": null,
+      "url": "https://www.youtube.com/watch?v=Et1wgGMGW8w"
+    },
+    {
+      "exercicio_id": "rosca-com-barra-w",
+      "youtube_id": "V6UEDzY51gY",
+      "titulo": "COMO FAZER ROSCA DIRETA COM BARRA W - Fisioprev",
+      "canal": "Guilherme Stellbrink | FisioPrev",
+      "idioma": "pt-BR",
+      "duracao": null,
+      "url": "https://www.youtube.com/watch?v=V6UEDzY51gY"
+    },
+    {
+      "exercicio_id": "rosca-alternada",
+      "youtube_id": "G6feTR1uIG4",
+      "titulo": "Rosca alternada com halteres - Como fazer? - TEF Análise de Exercício #90",
+      "canal": "Treino em FOCO",
+      "idioma": "pt-BR",
+      "duracao": null,
+      "url": "https://www.youtube.com/watch?v=G6feTR1uIG4"
+    },
+    {
+      "exercicio_id": "rosca-martelo",
+      "youtube_id": "1-xCKLVxqqg",
+      "titulo": "COMO FAZER ROSCA MARTELO COM HALTERES - Fisioprev",
+      "canal": "Guilherme Stellbrink | FisioPrev",
+      "idioma": "pt-BR",
+      "duracao": null,
+      "url": "https://www.youtube.com/watch?v=1-xCKLVxqqg"
+    },
+    {
+      "exercicio_id": "rosca-inclinada",
+      "youtube_id": "KH_bjsWEVI8",
+      "titulo": "EXERCÍCIO ROSCA BANCO INCLINADO - como executar corretamente",
+      "canal": "Junior Santé",
+      "idioma": "pt-BR",
+      "duracao": null,
+      "url": "https://www.youtube.com/watch?v=KH_bjsWEVI8"
+    },
+    {
+      "exercicio_id": "rosca-concentrada",
+      "youtube_id": "nIUjhJMEmFk",
+      "titulo": "Rosca Concentrada: passo a passo para execução correta | Bíceps bonito, forte e definido",
+      "canal": "Caio Signoretti",
+      "idioma": "pt-BR",
+      "duracao": null,
+      "url": "https://www.youtube.com/watch?v=nIUjhJMEmFk"
+    },
+    {
+      "exercicio_id": "rosca-scott-improvisada",
+      "youtube_id": "FSif6nOClIE",
+      "titulo": "ROSCA SCOTT - 3 DICAS PARA FAZER CERTO",
+      "canal": "Fit Nerdz",
+      "idioma": "pt-BR",
+      "duracao": null,
+      "url": "https://www.youtube.com/watch?v=FSif6nOClIE",
+      "nota": "No app o banco inclinado substitui o banco Scott; as dicas de execução são as mesmas."
+    },
+    {
+      "exercicio_id": "rosca-inversa",
+      "youtube_id": "jbSr9CzJPmA",
+      "titulo": "Como fazer rosca inversa",
+      "canal": "Leandro Twin",
+      "idioma": "pt-BR",
+      "duracao": null,
+      "url": "https://www.youtube.com/watch?v=jbSr9CzJPmA"
+    },
+    {
+      "exercicio_id": "rosca-na-polia-baixa",
+      "youtube_id": "ELxHnN8Q5fw",
+      "titulo": "Como Fazer Rosca na polia baixa no Cross corretamente",
+      "canal": "Renato Silvano",
+      "idioma": "pt-BR",
+      "duracao": null,
+      "url": "https://www.youtube.com/watch?v=ELxHnN8Q5fw"
+    },
+    {
+      "exercicio_id": "triceps-testa",
+      "youtube_id": "-zCw46DgI5M",
+      "titulo": "COMO FAZER TRÍCEPS TESTA COM BARRA W - Fisioprev",
+      "canal": "Guilherme Stellbrink | FisioPrev",
+      "idioma": "pt-BR",
+      "duracao": null,
+      "url": "https://www.youtube.com/watch?v=-zCw46DgI5M"
+    },
+    {
+      "exercicio_id": "supino-fechado",
+      "youtube_id": "yjf114NoPKQ",
+      "titulo": "SUPINO FECHADO BARRA RETA - EXERCÍCIO PARA TRÍCEPS - COMO FAZER CERTO",
+      "canal": "Personal Trainer Fabio Lima",
+      "idioma": "pt-BR",
+      "duracao": null,
+      "url": "https://www.youtube.com/watch?v=yjf114NoPKQ"
+    },
+    {
+      "exercicio_id": "triceps-frances",
+      "youtube_id": "KKMoJR_9HaE",
+      "titulo": "TRÍCEPS FRANCÊS COM HALTER - como executar de maneira correta!",
+      "canal": "Treinador Morin",
+      "idioma": "pt-BR",
+      "duracao": null,
+      "url": "https://www.youtube.com/watch?v=KKMoJR_9HaE"
+    },
+    {
+      "exercicio_id": "extensao-unilateral",
+      "youtube_id": "DYitlWrX8pw",
+      "titulo": "Tríceps Francês Unilateral com Halter - Execução Correta | Otto",
+      "canal": "Otto Leone Personal",
+      "idioma": "pt-BR",
+      "duracao": null,
+      "url": "https://www.youtube.com/watch?v=DYitlWrX8pw",
+      "nota": "Tríceps francês unilateral é o mesmo movimento da extensão unilateral acima da cabeça."
+    },
+    {
+      "exercicio_id": "mergulho-no-banco",
+      "youtube_id": "_3ea8q-7sTY",
+      "titulo": "TRÍCEPS MERGULHO NO BANCO, COMO FAZER?",
+      "canal": "André Della Creche Personal Trainer",
+      "idioma": "pt-BR",
+      "duracao": null,
+      "url": "https://www.youtube.com/watch?v=_3ea8q-7sTY",
+      "nota": "Mostra a versão com peso corporal; a anilha sobre as coxas é a progressão prevista no app."
+    },
+    {
+      "exercicio_id": "triceps-coice",
+      "youtube_id": "yewCya6hr34",
+      "titulo": "TRÍCEPS COICE COM HALTER - Como executar, passo-a-passo e erros comuns",
+      "canal": "Treinador Christian Hartmann",
+      "idioma": "pt-BR",
+      "duracao": null,
+      "url": "https://www.youtube.com/watch?v=yewCya6hr34"
+    },
+    {
+      "exercicio_id": "triceps-na-corda",
+      "youtube_id": "M-DTY40JG9M",
+      "titulo": "Tríceps Pulley na Polia com Corda | Execução Correta (Rope Pushdown)",
+      "canal": "Atlas: Workout & Fitness",
+      "idioma": "pt-BR",
+      "duracao": null,
+      "url": "https://www.youtube.com/watch?v=M-DTY40JG9M"
+    },
+    {
+      "exercicio_id": "agachamento-livre",
+      "youtube_id": "6ppjJrbrW7g",
+      "titulo": "COMO FAZER O AGACHAMENTO LIVRE COM BARRA - técnica correta",
+      "canal": "ANA SENSOLO",
+      "idioma": "pt-BR",
+      "duracao": null,
+      "url": "https://www.youtube.com/watch?v=6ppjJrbrW7g"
+    },
+    {
+      "exercicio_id": "agachamento-frontal",
+      "youtube_id": "Lk2bQ4INdlA",
+      "titulo": "AGACHAMENTO FRONTAL - 3 DICAS PARA FAZER CERTO",
+      "canal": "Fit Nerdz",
+      "idioma": "pt-BR",
+      "duracao": null,
+      "url": "https://www.youtube.com/watch?v=Lk2bQ4INdlA"
+    },
+    {
+      "exercicio_id": "agachamento-goblet",
+      "youtube_id": "ge1vdJRP0UA",
+      "titulo": "COMO FAZER AGACHAMENTO GOBLET (Agachamento frontal) - Fisioprev",
+      "canal": "Guilherme Stellbrink | FisioPrev",
+      "idioma": "pt-BR",
+      "duracao": null,
+      "url": "https://www.youtube.com/watch?v=ge1vdJRP0UA"
+    },
+    {
+      "exercicio_id": "agachamento-bulgaro",
+      "youtube_id": "IL4ebT8L1aQ",
+      "titulo": "AGACHAMENTO BULGARO COM HALTER - como fazer",
+      "canal": "Miqueias Alves Personal",
+      "idioma": "pt-BR",
+      "duracao": null,
+      "url": "https://www.youtube.com/watch?v=IL4ebT8L1aQ"
+    },
+    {
+      "exercicio_id": "afundo-passada",
+      "youtube_id": "EkxC1j8yJV0",
+      "titulo": "COMO FAZER PASSADA COM HALTERES CORRETAMENTE",
+      "canal": "Ademar Rodrigues Personal",
+      "idioma": "pt-BR",
+      "duracao": null,
+      "url": "https://www.youtube.com/watch?v=EkxC1j8yJV0"
+    },
+    {
+      "exercicio_id": "agachamento-sumo",
+      "youtube_id": "ED9NUglcBrs",
+      "titulo": "AGACHAMENTO SUMÔ COM HALTER - O JEITO CERTO DE FAZER",
+      "canal": "Miqueias Alves Personal",
+      "idioma": "pt-BR",
+      "duracao": null,
+      "url": "https://www.youtube.com/watch?v=ED9NUglcBrs"
+    },
+    {
+      "exercicio_id": "terra-romeno-com-halteres",
+      "youtube_id": "tveTE065Ub0",
+      "titulo": "Levantamento Terra Romeno (RDL) com Halter - COMO EXECUTAR E ERROS COMUNS",
+      "canal": "Pedro Almeida - Treinador de força & Powerlifting",
+      "idioma": "pt-BR",
+      "duracao": null,
+      "url": "https://www.youtube.com/watch?v=tveTE065Ub0"
+    },
+    {
+      "exercicio_id": "step-up-no-banco",
+      "youtube_id": "xbdG0bwaNCY",
+      "titulo": "SUBIDA NO BANCO - 3 DICAS PARA FAZER CERTO",
+      "canal": "Fit Nerdz",
+      "idioma": "pt-BR",
+      "duracao": null,
+      "url": "https://www.youtube.com/watch?v=xbdG0bwaNCY"
+    },
+    {
+      "exercicio_id": "elevacao-de-panturrilha-em-pe",
+      "youtube_id": "IC9sJ-k_rGo",
+      "titulo": "181. PANTURRILHA EM PÉ - Treino Correto",
+      "canal": "Treino Correto",
+      "idioma": "pt-BR",
+      "duracao": null,
+      "url": "https://www.youtube.com/watch?v=IC9sJ-k_rGo"
+    },
+    {
+      "exercicio_id": "elevacao-de-panturrilha-sentado",
+      "youtube_id": "Q1xgiM8BJX8",
+      "titulo": "Panturrilha com Barra (Burrico Sentado)",
+      "canal": "MyTrainingPRO",
+      "idioma": "pt-BR",
+      "duracao": null,
+      "url": "https://www.youtube.com/watch?v=Q1xgiM8BJX8",
+      "nota": "Burrico sentado: barra/anilha apoiada sobre os joelhos, exatamente a montagem do app."
+    },
+    {
+      "exercicio_id": "flexora-e-gluteo-na-polia",
+      "youtube_id": "qHeY7yDu1fc",
+      "titulo": "EXTENSÃO DE QUADRIL POLIA - O JEITO CERTO DE FAZER",
+      "canal": "Miqueias Alves Personal",
+      "idioma": "pt-BR",
+      "duracao": null,
+      "url": "https://www.youtube.com/watch?v=qHeY7yDu1fc",
+      "nota": "Mostra a extensão de quadril na polia; a flexora e a abdução usam a mesma tornozeleira e o mesmo ajuste."
+    },
+    {
+      "exercicio_id": "elevacao-de-pernas-na-barra-fixa",
+      "youtube_id": "X1-2oGDeeMY",
+      "titulo": "COMO FAZER ABDOMINAL ELEVAÇÃO DAS PERNAS NA BARRA VERTICAL",
+      "canal": "Ademar Rodrigues Personal",
+      "idioma": "pt-BR",
+      "duracao": null,
+      "url": "https://www.youtube.com/watch?v=X1-2oGDeeMY"
+    },
+    {
+      "exercicio_id": "abdominal-no-banco-declinado",
+      "youtube_id": "TnSKXn1MmHE",
+      "titulo": "Abdominal Banco Declinado como fazer corretamente",
+      "canal": "João Martins Personal Trainer",
+      "idioma": "pt-BR",
+      "duracao": null,
+      "url": "https://www.youtube.com/watch?v=TnSKXn1MmHE"
+    },
+    {
+      "exercicio_id": "abdominal-com-anilha",
+      "youtube_id": "EBOCSHZ8GaQ",
+      "titulo": "Abdominal Supra com Anilha",
+      "canal": "Four Fit Academia",
+      "idioma": "pt-BR",
+      "duracao": null,
+      "url": "https://www.youtube.com/watch?v=EBOCSHZ8GaQ"
+    },
+    {
+      "exercicio_id": "russian-twist",
+      "youtube_id": "Y9ApG7MWIuA",
+      "titulo": "229. Torção Russa - Treino Correto",
+      "canal": "Treino Correto",
+      "idioma": "pt-BR",
+      "duracao": null,
+      "url": "https://www.youtube.com/watch?v=Y9ApG7MWIuA",
+      "nota": "No Brasil também chamado de torção/giro russo."
+    },
+    {
+      "exercicio_id": "prancha",
+      "youtube_id": "DoOtkRaL1BI",
+      "titulo": "Como fazer a prancha abdominal corretamente 2.0",
+      "canal": "VOLL TV",
+      "idioma": "pt-BR",
+      "duracao": null,
+      "url": "https://www.youtube.com/watch?v=DoOtkRaL1BI"
+    },
+    {
+      "exercicio_id": "farmer-s-walk",
+      "youtube_id": "xb1GMZacM8w",
+      "titulo": "FARMER WALK | Guia completo da caminhada do fazendeiro",
+      "canal": "Bruna Nunes - Treinamento Funcional",
+      "idioma": "pt-BR",
+      "duracao": null,
+      "url": "https://www.youtube.com/watch?v=xb1GMZacM8w"
+    },
+    {
+      "exercicio_id": "flexao-de-braco",
+      "youtube_id": "RRi0-tvte6A",
+      "titulo": "Como Fazer Flexão de Braço Corretamente? | Thiago Pugliesi",
+      "canal": "Thiago Pugliesi",
+      "idioma": "pt-BR",
+      "duracao": null,
+      "url": "https://www.youtube.com/watch?v=RRi0-tvte6A"
+    },
+    {
+      "exercicio_id": "abdominal-supra",
+      "youtube_id": "tGobCIvFPHI",
+      "titulo": "Abdominal Supra - Como fazer certo!",
+      "canal": "Dr. Andre Lopes PhD.",
+      "idioma": "pt-BR",
+      "duracao": null,
+      "url": "https://www.youtube.com/watch?v=tGobCIvFPHI"
+    },
+    {
+      "exercicio_id": "abdominal-completo",
+      "youtube_id": "AnA7FAl4Pzs",
+      "titulo": "COMO FAZER ABDOMINAL COMPLETO NO SOLO",
+      "canal": "JULIO MORAES - A CORRIDA INTELIGENTE",
+      "idioma": "pt-BR",
+      "duracao": null,
+      "url": "https://www.youtube.com/watch?v=AnA7FAl4Pzs"
+    },
+    {
+      "exercicio_id": "abdominal-cruzado",
+      "youtube_id": "NdDPiqKrTsk",
+      "titulo": "Abdominal oblíquo cruzado unilateral - Como fazer!",
+      "canal": "Fit Challenge",
+      "idioma": "pt-BR",
+      "duracao": null,
+      "url": "https://www.youtube.com/watch?v=NdDPiqKrTsk"
+    },
+    {
+      "exercicio_id": "abdominal-bicicleta",
+      "youtube_id": "pIaXc4aH1VY",
+      "titulo": "Abdominal bicicleta - Como fazer!",
+      "canal": "Fit Challenge",
+      "idioma": "pt-BR",
+      "duracao": null,
+      "url": "https://www.youtube.com/watch?v=pIaXc4aH1VY"
+    },
+    {
+      "exercicio_id": "escalador",
+      "youtube_id": "Gi5QxKITke4",
+      "titulo": "Escalador ou Abdominal Alpinista - Como fazer!",
+      "canal": "Fit Challenge",
+      "idioma": "pt-BR",
+      "duracao": null,
+      "url": "https://www.youtube.com/watch?v=Gi5QxKITke4"
+    },
+    {
+      "exercicio_id": "superman",
+      "youtube_id": "4mY7IewWVJ8",
+      "titulo": "SUPERMAN - EXTENSÃO DE COLUNA E QUADRIL NO SOLO - EXECUÇÃO",
+      "canal": "Matheus Nascimento",
+      "idioma": "pt-BR",
+      "duracao": null,
+      "url": "https://www.youtube.com/watch?v=4mY7IewWVJ8"
+    },
+    {
+      "exercicio_id": "prancha-lateral",
+      "youtube_id": "RPr51FgCYbA",
+      "titulo": "PRANCHA LATERAL | Como executar corretamente.",
+      "canal": "Smart Fit",
+      "idioma": "pt-BR",
+      "duracao": null,
+      "url": "https://www.youtube.com/watch?v=RPr51FgCYbA"
+    },
+    {
+      "exercicio_id": "salto-basico",
+      "youtube_id": "bB2BMeZTygg",
+      "titulo": "Pular corda para iniciantes - Forma correta, erros comuns e progressões",
+      "canal": "PedroFelipeFit",
+      "idioma": "pt-BR",
+      "duracao": null,
+      "url": "https://www.youtube.com/watch?v=bB2BMeZTygg",
+      "nota": "Cobre o ajuste do comprimento da corda e o salto básico."
+    },
+    {
+      "exercicio_id": "corrida-no-lugar-com-a-corda",
+      "youtube_id": "e5_Dr3dTvDs",
+      "titulo": "APRENDA A PULAR CORDA DA FORMA CORRETA (CORRIDA ESTACIONADA)",
+      "canal": "Ação e Reação - Prof. Edmilson Alves",
+      "idioma": "pt-BR",
+      "duracao": null,
+      "url": "https://www.youtube.com/watch?v=e5_Dr3dTvDs",
+      "nota": "'Corrida estacionada' é o nome usado no vídeo para a corrida no lugar com a corda."
+    },
+    {
+      "exercicio_id": "salto-com-joelho-alto",
+      "youtube_id": "QFJ1zlsn-ao",
+      "titulo": "Saltos Joelhos ao Peito",
+      "canal": "Paulo Sena",
+      "idioma": "pt-BR",
+      "duracao": null,
+      "url": "https://www.youtube.com/watch?v=QFJ1zlsn-ao"
+    },
+    {
+      "exercicio_id": "barra-fixa-assistida",
+      "youtube_id": "zSuNm2EVaL8",
+      "titulo": "Como usar o elástico SUPER BAND no treino de Barra Fixa",
+      "canal": "Danilo Guerra",
+      "idioma": "pt-BR",
+      "duracao": null,
+      "url": "https://www.youtube.com/watch?v=zSuNm2EVaL8"
+    },
+    {
+      "exercicio_id": "abertura-de-ombros",
+      "youtube_id": "PlxU2ryApj8",
+      "titulo": "ABDUÇÃO HORIZONTAL DE OMBROS COM ELÁSTICO | EXERCÍCIO EM CASA COM ELÁSTICO",
+      "canal": "Treino JFIT",
+      "idioma": "pt-BR",
+      "duracao": null,
+      "url": "https://www.youtube.com/watch?v=PlxU2ryApj8",
+      "nota": "Abdução horizontal com elástico = band pull apart, a abertura de ombros do app."
+    },
+    {
+      "exercicio_id": "good-morning-com-elastico",
+      "youtube_id": "q1lOEI3wm8M",
+      "titulo": "Good Morning com Elástico | Movimento do Dia #19",
+      "canal": "Medicina Consulta",
+      "idioma": "pt-BR",
+      "duracao": null,
+      "url": "https://www.youtube.com/watch?v=q1lOEI3wm8M",
+      "nota": "Vídeo curto (Short); foi o único em pt-BR que mostra o good morning feito exatamente com elástico."
+    }
+  ]
+}
