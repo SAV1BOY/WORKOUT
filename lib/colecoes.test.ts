@@ -136,8 +136,12 @@ describe("planos e treinos do programa", () => {
   it("os três planos são os de cardio.json, com as semanas do próprio plano", () => {
     const lista = planos();
     expect(lista.map((p) => p.id)).toEqual(["barra_fixa", "corrida", "corda"]);
-    expect(lista[0]?.titulo).toBe(cardio.barra_fixa.objetivo);
-    expect(lista[1]?.titulo).toBe(cardio.corrida.objetivo);
+    // SPEC §14.3: rótulo de UI com o número de semanas do próprio plano…
+    expect(lista[0]?.titulo).toBe("Primeira barra fixa em 12 semanas");
+    expect(lista[1]?.titulo).toBe("5 km sem parar em 12 semanas");
+    // …e o objetivo do JSON continua na tela, como subtítulo
+    expect(lista[0]?.subtitulo).toBe(cardio.barra_fixa.objetivo);
+    expect(lista[1]?.subtitulo).toBe(cardio.corrida.objetivo);
     expect(lista[1]?.semanas).toBe(12);
     expect(lista[2]?.titulo).toBe("Corda: 5 estágios");
     expect(colecoesDePlano()).toHaveLength(3);
@@ -354,8 +358,10 @@ describe("desafios da aba Treino (SPEC §14.3)", () => {
   it("são os dois planos de cardio.json e a fase do programa.json", () => {
     const lista = desafios(base);
     expect(lista.map((d) => d.id)).toEqual(["barra_fixa", "corrida", "fase"]);
-    expect(lista[0]?.titulo).toBe(cardio.barra_fixa.objetivo);
-    expect(lista[1]?.titulo).toBe(cardio.corrida.objetivo);
+    expect(lista[0]?.titulo).toBe("Primeira barra fixa em 12 semanas");
+    expect(lista[1]?.titulo).toBe("5 km sem parar em 12 semanas");
+    expect(lista[0]?.subtitulo).toBe(cardio.barra_fixa.objetivo);
+    expect(lista[1]?.subtitulo).toBe(cardio.corrida.objetivo);
     expect(lista[2]?.titulo).toBe("Fase 1 — corpo inteiro, 3× por semana");
     expect(lista[2]?.semanas).toBe(12);
   });

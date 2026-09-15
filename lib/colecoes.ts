@@ -25,6 +25,7 @@ import {
   exercicios,
   exerciciosDoTreino,
   programa,
+  semanaDeCorrida,
   ultimaSemanaDeBarraFixa,
   ultimaSemanaDeCorrida,
 } from "@/lib/dados";
@@ -202,7 +203,10 @@ export function circuitos(): Colecao[] {
 
 export interface DadosDoPlano {
   id: PlanoId;
-  /** O título é o objetivo do JSON, com as semanas que o próprio plano tem. */
+  /**
+   * Rótulo de UI curto (SPEC §14.3 e §13.8.6) com o número de semanas que o
+   * próprio plano tem; o `objetivo` do JSON fica no subtítulo.
+   */
   titulo: string;
   subtitulo: string;
   /** Quantas semanas o plano tem (de `cardio.json`). */
@@ -213,21 +217,31 @@ export interface DadosDoPlano {
   exercicioDaCapa: string | null;
 }
 
+/** "5 km sem parar": a descrição da última semana do plano de corrida. */
+function metaDaCorrida(): string {
+  return semanaDeCorrida(ultimaSemanaDeCorrida()).descricao;
+}
+
 /** Os três planos reais de `data/cardio.json` — nenhum desafio inventado. */
 export function planos(): DadosDoPlano[] {
   return [
     {
+      /*
+       * Título de card (SPEC §14.3): rótulo de UI curto com o número de
+       * semanas vindo do plano; o `objetivo` do JSON, que é uma frase inteira
+       * em caixa baixa, fica como subtítulo (§13.8.6).
+       */
       id: "barra_fixa",
-      titulo: cardio.barra_fixa.objetivo,
-      subtitulo: cardio.barra_fixa.regra,
+      titulo: `Primeira barra fixa em ${ultimaSemanaDeBarraFixa()} semanas`,
+      subtitulo: cardio.barra_fixa.objetivo,
       semanas: ultimaSemanaDeBarraFixa(),
       href: "/barra-fixa",
       exercicioDaCapa: "barra-fixa-assistida",
     },
     {
       id: "corrida",
-      titulo: cardio.corrida.objetivo,
-      subtitulo: cardio.corrida.regra_dia,
+      titulo: `${metaDaCorrida()} em ${ultimaSemanaDeCorrida()} semanas`,
+      subtitulo: cardio.corrida.objetivo,
       semanas: ultimaSemanaDeCorrida(),
       href: "/cardio/corrida",
       exercicioDaCapa: null,
@@ -517,9 +531,14 @@ export function desafios(e: EntradaDosDesafios): Desafio[] {
   const semanasDaCorrida = ultimaSemanaDeCorrida();
   return [
     {
+      /*
+       * Título de card (SPEC §14.3): rótulo de UI curto com o número de
+       * semanas vindo do plano; o `objetivo` do JSON, que é uma frase inteira
+       * em caixa baixa, fica como subtítulo (§13.8.6).
+       */
       id: "barra_fixa",
-      titulo: cardio.barra_fixa.objetivo,
-      subtitulo: cardio.barra_fixa.regra,
+      titulo: `Primeira barra fixa em ${semanasDaFixa} semanas`,
+      subtitulo: cardio.barra_fixa.objetivo,
       semanaAtual: semanaPresa(e.semanaFixa, semanasDaFixa),
       semanas: semanasDaFixa,
       capa: capaDoExercicio(acharExercicio("barra-fixa-assistida")),
@@ -528,8 +547,8 @@ export function desafios(e: EntradaDosDesafios): Desafio[] {
     },
     {
       id: "corrida",
-      titulo: cardio.corrida.objetivo,
-      subtitulo: cardio.corrida.regra_dia,
+      titulo: `${metaDaCorrida()} em ${semanasDaCorrida} semanas`,
+      subtitulo: cardio.corrida.objetivo,
       semanaAtual: semanaPresa(e.semanaCorrida, semanasDaCorrida),
       semanas: semanasDaCorrida,
       // não há foto de corrida em assets/; o card fica com o gradiente (§13.3)

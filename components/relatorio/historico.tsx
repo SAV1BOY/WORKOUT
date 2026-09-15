@@ -43,6 +43,8 @@ export function Historico({
   /** Quantas semanas atrás da de hoje a faixa está (0 = esta semana). */
   const [atras, setAtras] = useState(0);
   const [tudo, setTudo] = useState(false);
+  /* quantas páginas de 12 já foram abertas; volta a 1 ao trocar de recorte */
+  const [paginas, setPaginas] = useState(1);
 
   const inicio = useMemo(
     () => iso(addDays(inicioDaSemana(paraData(hoje)), -7 * atras)),
@@ -77,7 +79,7 @@ export function Historico({
   );
 
   const lista = tudo ? todos : daSemana;
-  const mostrados = lista.slice(0, PAGINA);
+  const mostrados = lista.slice(0, PAGINA * paginas);
 
   return (
     <section aria-label="Histórico" className="flex flex-col gap-3">
@@ -86,8 +88,18 @@ export function Historico({
       <FaixaSemana
         dias={dias}
         rotulo={`${formatarData(inicio)} a ${formatarData(fim)}`}
-        aoVoltar={() => setAtras((n) => n + 1)}
-        aoAvancar={atras > 0 ? () => setAtras((n) => Math.max(0, n - 1)) : undefined}
+        aoVoltar={() => {
+          setAtras((n) => n + 1);
+          setPaginas(1);
+        }}
+        aoAvancar={
+          atras > 0
+            ? () => {
+                setAtras((n) => Math.max(0, n - 1));
+                setPaginas(1);
+              }
+            : undefined
+        }
       />
 
       <div className="flex items-baseline justify-between gap-2">
@@ -96,7 +108,10 @@ export function Historico({
         </h3>
         <button
           type="button"
-          onClick={() => setTudo((v) => !v)}
+          onClick={() => {
+            setTudo((v) => !v);
+            setPaginas(1);
+          }}
           aria-pressed={tudo}
           className="alvo text-primary flex items-center text-xs underline underline-offset-4"
         >
@@ -120,10 +135,15 @@ export function Historico({
         </ul>
       )}
 
-      {lista.length > PAGINA ? (
-        <p className="text-muted-foreground text-center text-xs">
-          Mostrando {PAGINA} de {lista.length}.
-        </p>
+      {lista.length > mostrados.length ? (
+        <button
+          type="button"
+          onClick={() => setPaginas((n) => n + 1)}
+          className="alvo border-border hover:bg-accent text-muted-foreground w-full rounded-xl border text-sm"
+        >
+          Ver mais {Math.min(PAGINA, lista.length - mostrados.length)} de{" "}
+          {lista.length}
+        </button>
       ) : null}
     </section>
   );

@@ -69,11 +69,12 @@ export function MediaGrande({
         />
         {midia.credito && !semCredito ? (
           <figcaption className="text-muted-foreground px-1 text-[11px] leading-tight">
+            {/* o texto continua em 11 px; a caixa de toque é de 44 px (§13.8.1) */}
             <a
               href={midia.credito.url_fonte}
               target="_blank"
               rel="noreferrer noopener"
-              className="underline underline-offset-2"
+              className="alvo inline-flex items-center underline underline-offset-2"
             >
               {midia.credito.texto}
             </a>
