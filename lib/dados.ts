@@ -23,6 +23,8 @@ import {
   type Exercicio,
   type Fase,
   type FaseId,
+  type MedidaDoCorpo,
+  type RefDeTexto,
   type Treino,
   type TreinoId,
 } from "@/lib/schemas";
@@ -138,6 +140,36 @@ export function semanaDeCorrida(semana: number) {
   return s;
 }
 
+/** As 8 medidas com fita (SPEC §3.8), como estão em data/perfil.json. */
+export const medidasDoCorpo: readonly MedidaDoCorpo[] = perfilInicial.medidas;
+
+/* -------------------------------------------------- textos do motor §6 */
+
+const TEXTOS_DO_MOTOR: Readonly<Record<string, string>> = {
+  ...progressao.sugestoes,
+  ...progressao.avisos,
+};
+
+/**
+ * A frase de uma sugestão/aviso do motor, com `{reps}` e `{kg}` trocados pelos
+ * números da decisão (vírgula decimal, SPEC §1).
+ */
+export function textoDoMotor(ref: RefDeTexto | null | undefined): string | null {
+  if (!ref) return null;
+  const modelo = TEXTOS_DO_MOTOR[ref.chave];
+  if (modelo === undefined) {
+    throw new Error(`data/progressao.json não tem o texto "${ref.chave}"`);
+  }
+  const dados = ref.dados ?? {};
+  return modelo.replace(/\{(\w+)\}/g, (inteiro, chave: string) => {
+    const valor = dados[chave];
+    if (valor === undefined) return inteiro;
+    return typeof valor === "number" ? String(valor).replace(".", ",") : valor;
+  });
+}
+
+/* ------------------------------------------------------ planos por faixa */
+
 /** "1–2" cobre as semanas 1 e 2; "9–12", da 9 à 12. */
 function cobreASemana(faixa: string, semana: number): boolean {
   const [de, ate] = faixa.split(/[–-]/).map((n) => Number(n.trim()));
@@ -162,6 +194,38 @@ export function semanaDeBarraFixa(semana: number) {
   const ultimo = lista[lista.length - 1];
   if (!ultimo) throw new Error("plano de barra fixa vazio");
   return lista.find((s) => cobreASemana(s.semanas, alvo)) ?? ultimo;
+}
+
+/**
+ * Até que semana um plano por faixas vai ("9–12" → 12). O teto do plano é
+ * conteúdo: mudar `data/cardio.json` tem de mudar o app (SPEC §5.5).
+ */
+export function ultimaSemanaDoPlano(
+  faixas: readonly { semanas: string }[],
+): number {
+  let maior = 1;
+  for (const faixa of faixas) {
+    const partes = faixa.semanas.split(/[–-]/).map((n) => Number(n.trim()));
+    for (const n of partes) {
+      if (Number.isFinite(n) && n > maior) maior = n;
+    }
+  }
+  return maior;
+}
+
+/** Teto do plano de corda (data/cardio.json). */
+export function ultimaSemanaDeCorda(): number {
+  return ultimaSemanaDoPlano(cardio.corda.semanas);
+}
+
+/** Teto do plano da primeira barra fixa (data/cardio.json). */
+export function ultimaSemanaDeBarraFixa(): number {
+  return ultimaSemanaDoPlano(cardio.barra_fixa.semanas);
+}
+
+/** Teto do plano de corrida — este já é uma semana por linha. */
+export function ultimaSemanaDeCorrida(): number {
+  return cardio.corrida.semanas.length;
 }
 
 /** Anilhas disponíveis, do maior para o menor peso. */

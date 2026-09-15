@@ -204,6 +204,7 @@ const ESQUEMA: Record<string, EspecTabela> = {
       iniciada_em: agora,
       concluida_em: nulo,
       duracao_s: nulo,
+      semana_plano: nulo,
       sensacao: nulo,
       peso_corporal: nulo,
       notas: nulo,

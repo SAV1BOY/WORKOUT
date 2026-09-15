@@ -13,6 +13,7 @@ import {
   concluirSessao,
   escritaDaSerie,
   escritaDaSessao,
+  escritaDeDescarte,
   cargaEmUso,
   firmePadrao,
   marcarSerie,
@@ -298,6 +299,31 @@ describe("substituir hoje (SPEC §3.2)", () => {
     expect(lista.some((e) => e.id === "agachamento-frontal")).toBe(true);
   });
 
+  it("as séries que o original já gravou saem do banco (SPEC §3.2)", () => {
+    const s = sessaoA();
+    const b = bloco(s, "agachamento-livre");
+    // nada subiu ainda: não há o que apagar
+    expect(escritaDeDescarte(s, b)).toBeNull();
+
+    const comSerie = marcarSerie(s, 1, b.series[0]!.id, true, "2026-09-14T09:10:00.000Z");
+    const descarte = escritaDeDescarte(comSerie, bloco(comSerie, "agachamento-livre"));
+    expect(descarte).toEqual({
+      tabela: "session_sets",
+      op: "delete",
+      filtro: {
+        session_id: "sess-1",
+        exercise_id: "agachamento-livre",
+        ordem_ex: 1,
+      },
+    });
+
+    // depois da troca, o bloco é do substituto e as linhas locais são novas
+    const trocada = substituirExercicio(comSerie, 1, "agachamento-frontal", null, {
+      novoId: contador("n"),
+    });
+    expect(trocada.blocos[0]?.series.every((x) => x.registradaEm === null)).toBe(true);
+  });
+
   it("o registro fica com o substituto e o original não é avaliado", () => {
     const s = sessaoA();
     const trocada = substituirExercicio(s, 1, "agachamento-frontal", null, {
@@ -521,8 +547,46 @@ describe("escritas da fila de saída (SPEC §8)", () => {
         fase: "fase1",
         status: "em_andamento",
         iniciada_em: "2026-09-14T09:00:00.000Z",
+        // treino do programa: a semana do plano é das sessões de fixa (§3.4)
+        semana_plano: null,
       },
     });
+  });
+
+  it("a sessão de barra fixa grava a semana do plano em que foi criada (§3.4)", () => {
+    const sessao = montarSessaoAvulsa({
+      id: "fixa-1",
+      userId: "u1",
+      data: "2026-09-17",
+      workoutId: "fixa",
+      fase: "fase1",
+      itens: [itemDaSessao(3)],
+      semanaPlano: 3,
+      agora: "2026-09-17T09:00:00.000Z",
+      novoId: contador(),
+    });
+    expect(sessao.semanaPlano).toBe(3);
+    expect(escritaDaSessao(sessao).linha?.["semana_plano"]).toBe(3);
+
+    // refeita noutro aparelho: volta com a prescrição DAQUELA semana (4 × 8
+    // da semana 5–6), e não com a de hoje
+    const refeita = reconstruirSessao(
+      {
+        id: "fixa-1",
+        user_id: "u1",
+        data: "2026-09-17",
+        workout_id: "fixa",
+        fase: "fase1",
+        status: "em_andamento",
+        iniciada_em: "2026-09-17T09:00:00.000Z",
+        semana_plano: 5,
+      },
+      [],
+      { itens: [itemDaSessao(5)], novoId: contador() },
+    );
+    expect(refeita?.semanaPlano).toBe(5);
+    expect(refeita?.blocos[0]?.series).toHaveLength(4);
+    expect(refeita?.blocos[0]?.prescricao.max).toBe(8);
   });
 
   it("cada série concluída é um upsert em session_sets por id", () => {

@@ -23,7 +23,13 @@ import {
   sugerirFase2,
 } from "@/lib/calendario";
 import { type PlanoSemanal } from "@/lib/cardio";
-import { acharFase, cardio, programa } from "@/lib/dados";
+import {
+  acharFase,
+  programa,
+  ultimaSemanaDeBarraFixa,
+  ultimaSemanaDeCorda,
+  ultimaSemanaDeCorrida,
+} from "@/lib/dados";
 import { formatarData, formatarNumero, lerNumero } from "@/lib/formato";
 import { usePerfil } from "@/lib/queries/dados";
 import {
@@ -37,9 +43,9 @@ import { useHoje } from "@/lib/relogio";
 import type { LinhaPerfil } from "@/lib/types";
 
 const PLANOS: { plano: PlanoSemanal; nome: string; maximo: number }[] = [
-  { plano: "corrida", nome: "Corrida", maximo: cardio.corrida.semanas.length },
-  { plano: "corda", nome: "Corda", maximo: 12 },
-  { plano: "fixa", nome: "Barra fixa", maximo: 12 },
+  { plano: "corrida", nome: "Corrida", maximo: ultimaSemanaDeCorrida() },
+  { plano: "corda", nome: "Corda", maximo: ultimaSemanaDeCorda() },
+  { plano: "fixa", nome: "Barra fixa", maximo: ultimaSemanaDeBarraFixa() },
 ];
 
 const CAMPO: Record<PlanoSemanal, keyof LinhaPerfil> = {

@@ -25,9 +25,10 @@ export interface DadosDoFim {
 }
 
 /**
- * O fim da sessão de cardio (SPEC §3.3): distância (opcional), o teste da fala
- * com os textos de `data/cardio.json`, os saltos da corda e uma nota. Nada é
- * gravado antes do "Salvar".
+ * O fim da sessão de cardio (SPEC §3.3): na corrida, distância (opcional) e o
+ * teste da fala com os textos de `data/cardio.json`; na corda, os saltos e o
+ * teste da fala; na **caminhada leve e no "outro", só duração e nota**, como
+ * manda a §3.3. Nada é gravado antes do "Salvar".
  */
 export function FimDoCardio({
   aberto,
@@ -53,6 +54,12 @@ export function FimDoCardio({
   const [esforco, setEsforco] = useState<Esforco | null>(null);
   const [notas, setNotas] = useState("");
   const niveis = niveisDeEsforco();
+  /*
+   * SPEC §3.3: "Caminhada leve / outro: só duração e nota". A distância é da
+   * corrida e o teste da fala é de quem teve esforço planejado (corrida e
+   * corda); na caminhada e no "outro" fica só a nota.
+   */
+  const comEsforco = plano.tipo === "corrida" || plano.tipo === "corda";
 
   return (
     <Dialog open={aberto} onOpenChange={(v) => (v ? null : aoFechar())}>
@@ -77,7 +84,9 @@ export function FimDoCardio({
               aoMudar={setSaltos}
             />
           </section>
-        ) : (
+        ) : null}
+
+        {plano.tipo === "corrida" ? (
           <section className="flex flex-col gap-2">
             <h3 className="text-sm font-semibold">Distância (opcional)</h3>
             <StepperNumerico
@@ -89,33 +98,41 @@ export function FimDoCardio({
               aoMudar={setDistancia}
             />
           </section>
-        )}
+        ) : null}
 
-        <section className="flex flex-col gap-2">
-          <h3 className="text-sm font-semibold">Teste da fala</h3>
-          <div role="radiogroup" aria-label="Esforço" className="flex flex-col gap-1.5">
-            {niveis.map((n) => (
-              <button
-                key={n.valor}
-                type="button"
-                role="radio"
-                aria-checked={esforco === n.valor}
-                onClick={() => setEsforco(n.valor)}
-                className={cn(
-                  "alvo flex flex-col items-start gap-0.5 rounded-lg border px-3 py-2 text-left",
-                  esforco === n.valor
-                    ? "border-primary bg-primary/10"
-                    : "border-input bg-background",
-                )}
-              >
-                <span className="text-sm font-medium capitalize">{n.nivel}</span>
-                <span className="text-muted-foreground text-xs text-balance">
-                  {n.consegue}
-                </span>
-              </button>
-            ))}
-          </div>
-        </section>
+        {comEsforco ? (
+          <section className="flex flex-col gap-2">
+            <h3 className="text-sm font-semibold">Teste da fala</h3>
+            <div
+              role="radiogroup"
+              aria-label="Esforço"
+              className="flex flex-col gap-1.5"
+            >
+              {niveis.map((n) => (
+                <button
+                  key={n.valor}
+                  type="button"
+                  role="radio"
+                  aria-checked={esforco === n.valor}
+                  onClick={() => setEsforco(n.valor)}
+                  className={cn(
+                    "alvo flex flex-col items-start gap-0.5 rounded-lg border px-3 py-2 text-left",
+                    esforco === n.valor
+                      ? "border-primary bg-primary/10"
+                      : "border-input bg-background",
+                  )}
+                >
+                  <span className="text-sm font-medium capitalize">
+                    {n.nivel}
+                  </span>
+                  <span className="text-muted-foreground text-xs text-balance">
+                    {n.consegue}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </section>
+        ) : null}
 
         <section className="flex flex-col gap-2">
           <Label htmlFor="nota-cardio" className="text-sm font-semibold">
@@ -137,9 +154,9 @@ export function FimDoCardio({
             disabled={salvando}
             onClick={() =>
               aoSalvar({
-                distanciaKm: plano.tipo === "corda" ? null : distancia,
+                distanciaKm: plano.tipo === "corrida" ? distancia : null,
                 saltos: plano.tipo === "corda" ? saltos : null,
-                esforco,
+                esforco: comEsforco ? esforco : null,
                 notas: notas.trim() === "" ? null : notas.trim(),
               })
             }

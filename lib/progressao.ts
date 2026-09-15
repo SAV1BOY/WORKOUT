@@ -20,9 +20,12 @@ import {
 } from "@/lib/montagem";
 import type {
   Assistencia,
+  ChaveDeAviso,
+  ChaveDeSugestao,
   Exercicio,
   ExercicioDoTreino,
   PrescricaoTipo,
+  RefDeTexto,
 } from "@/lib/schemas";
 import type { LinhaEstadoExercicio, MotivoProgressao, TipoSerie } from "@/lib/types";
 
@@ -98,8 +101,19 @@ export interface EventoProgressao {
   para: Record<string, unknown>;
   /** A decisão veio de uma falha (série abaixo do piso da faixa). */
   falha?: boolean;
-  aviso?: string;
-  sugestao?: string;
+  /**
+   * A carga que as séries registraram, quando ela é a mesma em TODAS as séries
+   * de trabalho e não é a do `exercise_state` (o ± da carga na série, §3.2):
+   * foi dela que a decisão partiu, e o evento da §6.6 precisa dizer isso.
+   */
+  carga_usada?: number;
+  /**
+   * Teto do kit (SPEC §6.4) e sugestões (§6.3) como CHAVE + números: o texto
+   * mora em `data/progressao.json` e quem o monta é `textoDoMotor`
+   * (lib/dados.ts). O motor não escreve frase nenhuma.
+   */
+  aviso?: RefDeTexto<ChaveDeAviso>;
+  sugestao?: RefDeTexto<ChaveDeSugestao>;
 }
 
 export interface Decisao {
@@ -439,6 +453,28 @@ export function decidir(
     );
   }
 
+  /*
+   * SPEC §6.1/§6.2 + §3.2: a §6.1 manda partir de `exercise_state`, mas a §3.2
+   * deixa mudar a carga na própria série — e é a série que diz o que foi
+   * levantado. Quando TODAS as séries de trabalho trazem a MESMA carga e ela
+   * não é a do estado, é ela a carga da sessão: a decisão parte dela (subir e
+   * voltar 10 % sobre a carga certa) e o evento registra `carga_usada`. Com
+   * cargas diferentes entre as séries não dá para dizer qual era "a carga do
+   * dia": aí vale o estado, como antes.
+   *
+   * A semana leve fica de fora: a carga de lá é a de 60 % calculada pelo motor
+   * e a sessão seguinte volta à `carga_antes_leve` de qualquer jeito (§6.2).
+   */
+  const cargaUsada =
+    antes.semana_leve || exercicio.progressao.tipo !== "carga"
+      ? null
+      : cargaConsistente(series, exercicio, opcoes);
+  const trocouACarga =
+    cargaUsada !== null &&
+    antes.carga_atual_kg !== null &&
+    Math.abs(cargaUsada - antes.carga_atual_kg) > 1e-9;
+  if (trocouACarga && cargaUsada !== null) antes.carga_atual_kg = cargaUsada;
+
   const depois: EstadoExercicio = { ...antes };
   const de = foto(antes, exercicio);
 
@@ -512,7 +548,29 @@ export function decidir(
   if (anilha && decisao.evento && !decisao.evento.sugestao) {
     decisao.evento.sugestao = anilha;
   }
+  if (trocouACarga && cargaUsada !== null && decisao.evento) {
+    decisao.evento.carga_usada = cargaUsada;
+  }
   return decisao;
+}
+
+/**
+ * A carga que a sessão inteira usou, ou `null` quando as séries discordam.
+ *
+ * Só conta quando todas as séries de trabalho trazem uma carga positiva e
+ * igual; o valor volta projetado na escala do implemento (SPEC §6.4), que é
+ * onde o motor sabe trabalhar.
+ */
+function cargaConsistente(
+  series: readonly SerieFeita[],
+  exercicio: Exercicio,
+  opcoes: OpcoesMontagem,
+): number | null {
+  const cargas = series.map((s) => s.carga_kg ?? null);
+  const primeira = cargas[0];
+  if (primeira === null || primeira === undefined || primeira <= 0) return null;
+  if (!cargas.every((c) => c !== null && Math.abs(c - primeira) < 1e-9)) return null;
+  return alcancavelParaBaixo(primeira, exercicio.implemento, opcoes);
 }
 
 /**
@@ -522,7 +580,7 @@ export function decidir(
 function sugestaoDaAnilha(
   exercicio: Exercicio,
   valores: (number | null)[],
-): string | null {
+): RefDeTexto<ChaveDeSugestao> | null {
   const tipo = exercicio.progressao.tipo;
   if (tipo !== "reps" && tipo !== "reps_depois_lastro") return null;
   const feitas = valores.filter((v): v is number => v !== null);
@@ -531,7 +589,10 @@ function sugestaoDaAnilha(
   // "quando passar de 20": 20 no piso de uma faixa 20–30 (abdominal bicicleta)
   // ou num 3 × 20 fechado (russian twist) ainda não passou de 20.
   if (!feitas.every((v) => v > REPS_PARA_SUGERIR_ANILHA)) return null;
-  return `Mais de ${REPS_PARA_SUGERIR_ANILHA} repetições em todas as séries: use uma anilha de 2 kg e volte ao piso da faixa.`;
+  return {
+    chave: "anilha_no_core",
+    dados: { reps: REPS_PARA_SUGERIR_ANILHA },
+  };
 }
 
 /* ------------------------------------------------------------- subidas */
@@ -572,10 +633,12 @@ function subir(
          * receber conselho de barra fixa.
          */
         return pronto("repetiu", {
-          sugestao:
-            exercicio.implemento === "barra_fixa"
-              ? "Sem elástico em todas as séries: passe para a barra fixa com lastro."
-              : "Sem elástico em todas as séries: troque por uma variação mais difícil.",
+          sugestao: {
+            chave:
+              exercicio.implemento === "barra_fixa"
+                ? "sem_elastico_lastro"
+                : "sem_elastico_variacao",
+          },
         });
       }
       depois.assistencia = degrau;
@@ -594,10 +657,7 @@ function subir(
       return pronto(
         "subiu",
         acimaDaFaixa
-          ? {
-              sugestao:
-                "Tempo acima da faixa do plano: troque por uma variação mais difícil.",
-            }
+          ? { sugestao: { chave: "tempo_acima_da_faixa" } }
           : {},
       );
     }
@@ -656,28 +716,29 @@ function sugestaoDeIncremento(
   exercicio: Exercicio,
   opcoes: OpcoesMontagem,
   atual: number,
-): string {
+): RefDeTexto<ChaveDeSugestao> {
   const escala = cargasPossiveis(exercicio.implemento, opcoes);
   const proxima = escala.find((c) => c > atual + 1e-9);
   const falta =
     proxima === undefined
       ? PASSO_MINIMO_KG
       : Math.round((proxima - atual) * 100) / 100;
-  const kg = String(falta).replace(".", ",");
-  return `O incremento deste exercício não chega ao próximo degrau da escala (faltam ${kg} kg): ajuste o incremento nas preferências.`;
+  return { chave: "incremento_curto", dados: { kg: falta } };
 }
 
 /**
  * O aviso de quem encostou no teto do implemento (SPEC §6.4): só é falta de
  * anilhas quando o estoque acaba antes da capacidade da barra.
  */
-function avisoDeTeto(exercicio: Exercicio, opcoes: OpcoesMontagem): string {
+function avisoDeTeto(
+  exercicio: Exercicio,
+  opcoes: OpcoesMontagem,
+): RefDeTexto<ChaveDeAviso> {
   if (limiteDoImplemento(exercicio.implemento, opcoes) === "estoque") {
-    return "faltam anilhas de 10 kg (marco do guia)";
+    return { chave: "teto_anilhas" };
   }
   const capacidade = capacidadeDoImplemento(exercicio.implemento, opcoes);
-  const kg = String(capacidade).replace(".", ",");
-  return `no limite do implemento (capacidade ${kg} kg): comprar anilhas não sobe a carga`;
+  return { chave: "teto_capacidade", dados: { kg: capacidade } };
 }
 
 /* -------------------------------------------------------------- falhas */
@@ -805,8 +866,10 @@ function decidirMaximo(
     feitas.filter((v) => v >= REPS_PARA_SUGERIR_LASTRO).length >= 3;
   const extra: Partial<EventoProgressao> = tresNoTeto
     ? {
-        sugestao:
-          "Três séries de 10 repetições: passe para a barra fixa com lastro (2 kg na mochila).",
+        sugestao: {
+          chave: "barra_fixa_com_lastro",
+          dados: { reps: REPS_PARA_SUGERIR_LASTRO },
+        },
       }
     : {};
 

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   DIAS_DE_HISTORICO,
   historicoDeSoltas,
+  interpretarPorSessao,
   intervaloDoHistorico,
   linhasDoPlano,
   prescricaoDaSemana,
@@ -9,6 +10,7 @@ import {
   soltasDaSemana,
   somarSoltas,
 } from "@/lib/barra-fixa";
+import { cardio } from "@/lib/dados";
 
 describe("tabela das 12 semanas (SPEC §3.4)", () => {
   it("traz as seis faixas do JSON com a semana atual marcada", () => {
@@ -122,5 +124,50 @@ describe("sessões de barra fixa na semana (SPEC §5.5)", () => {
   it("conta só as concluídas, só as de barra fixa e só dentro do intervalo", () => {
     expect(sessoesDeFixaNoIntervalo(sessoes, "2026-09-14", "2026-09-20")).toBe(2);
     expect(sessoesDeFixaNoIntervalo(sessoes, "2026-09-07", "2026-09-13")).toBe(1);
+  });
+});
+
+describe("interpretarPorSessao — o corte do `por_sessao` (SPEC §3.4/§6.3)", () => {
+  it('"4 × 5" são 4 séries de 5 repetições', () => {
+    expect(interpretarPorSessao("4 × 5")).toEqual({
+      series: 4,
+      maximo: false,
+      reps: 5,
+    });
+  });
+
+  it('"5 × máximo" são 5 séries do tipo `maximo`', () => {
+    expect(interpretarPorSessao("5 × máximo")).toEqual({
+      series: 5,
+      maximo: true,
+      reps: null,
+    });
+  });
+
+  it("qualquer palavra depois do × vale máximo (e não NaN repetições)", () => {
+    // o `x` de "má-x-imo" fazia o corte antigo acertar por acidente
+    for (const texto of ["5 × falha", "5 × o que der", "3 x até falhar"]) {
+      const lido = interpretarPorSessao(texto);
+      expect(lido.maximo, texto).toBe(true);
+      expect(lido.reps, texto).toBeNull();
+      expect(Number.isFinite(lido.series), texto).toBe(true);
+    }
+    expect(interpretarPorSessao("3 x até falhar").series).toBe(3);
+  });
+
+  it("texto irreconhecível vira 1 série de máximo, nunca NaN", () => {
+    const lido = interpretarPorSessao("o que der");
+    expect(lido).toEqual({ series: 1, maximo: true, reps: null });
+  });
+
+  it("todas as faixas do JSON são lidas sem NaN", () => {
+    for (const faixa of cardio.barra_fixa.semanas) {
+      const lido = interpretarPorSessao(faixa.por_sessao);
+      expect(Number.isInteger(lido.series), faixa.por_sessao).toBe(true);
+      expect(lido.series, faixa.por_sessao).toBeGreaterThan(0);
+      if (!lido.maximo) {
+        expect(Number.isFinite(lido.reps), faixa.por_sessao).toBe(true);
+      }
+    }
   });
 });

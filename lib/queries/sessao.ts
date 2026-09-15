@@ -17,6 +17,7 @@ import { chaves, type SessaoResumo } from "@/lib/queries/dados";
 import {
   concluirSessao,
   escritaDaSerie,
+  escritaDeDescarte,
   escritaDaSessao,
   montarSessao,
   montarSessaoAvulsa,
@@ -173,6 +174,20 @@ async function registrarSessaoNova(
   ]);
 
   return sessao;
+}
+
+/**
+ * Troca de exercício no bloco (SPEC §3.2): as séries que o original já tinha
+ * gravado saem de `session_sets` — o registro do dia é do substituto. Sem
+ * rede, o delete espera na fila como qualquer outra escrita (§8).
+ */
+export async function descartarSeriesDoBloco(
+  sessao: SessaoLocal,
+  bloco: BlocoLocal,
+): Promise<void> {
+  const escrita = escritaDeDescarte(sessao, bloco);
+  if (!escrita) return;
+  await enfileirar("serie", escrita);
 }
 
 /** Uma série concluída sobe sozinha (upsert por id: remarcar não duplica). */

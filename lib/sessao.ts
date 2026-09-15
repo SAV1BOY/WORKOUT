@@ -9,7 +9,13 @@
  * As regras não são reimplementadas: quem decide é `lib/progressao.ts`, quem
  * monta as anilhas é `lib/montagem.ts` e o conteúdo vem de `lib/dados.ts`.
  */
-import { acharExercicio, acharTreino, equipamentoDisponivel, exercicios } from "@/lib/dados";
+import {
+  acharExercicio,
+  acharTreino,
+  equipamentoDisponivel,
+  exercicios,
+  textoDoMotor,
+} from "@/lib/dados";
 import { formatarKg, formatarNumero, rotuloDaCarga } from "@/lib/formato";
 import {
   alcancavelParaBaixo,
@@ -123,6 +129,12 @@ export interface SessaoLocal {
   status: StatusSessao;
   iniciadaEm: string;
   concluidaEm: string | null;
+  /**
+   * Sessão fora do programa (§3.4): a semana do plano em que ela foi criada.
+   * É ela que remonta a sessão noutro aparelho — o plano pode ter avançado
+   * desde então, e a folha tem de voltar com a prescrição daquele dia.
+   */
+  semanaPlano: number | null;
   sensacao: number | null;
   pesoCorporal: number | null;
   notas: string | null;
@@ -273,6 +285,8 @@ export function itensDoTreino(id: TreinoId): ItemDaSessao[] {
 export interface EntradaAvulsa extends Omit<EntradaMontagem, "treinoId"> {
   workoutId: WorkoutId;
   itens: ItemDaSessao[];
+  /** Semana do plano da barra fixa (§3.4), gravada com a sessão. */
+  semanaPlano?: number | null;
 }
 
 /**
@@ -349,6 +363,7 @@ export function montarSessaoAvulsa(e: EntradaAvulsa): SessaoLocal {
     status: "em_andamento",
     iniciadaEm: agora,
     concluidaEm: null,
+    semanaPlano: e.semanaPlano ?? null,
     sensacao: null,
     pesoCorporal: null,
     notas: null,
@@ -372,7 +387,16 @@ function exerciciosDoTreinoTipado(id: TreinoId) {
  * pré-preenchidas, casadas por `(exercise_id, tipo, set_index)`.
  */
 export function reconstruirSessao(
-  linha: Pick<LinhaSessao, "id" | "user_id" | "data" | "workout_id" | "fase" | "status" | "iniciada_em">,
+  linha: Pick<
+    LinhaSessao,
+    | "id"
+    | "user_id"
+    | "data"
+    | "workout_id"
+    | "fase"
+    | "status"
+    | "iniciada_em"
+  > & { semana_plano?: number | null },
   series: LinhaSerie[],
   resto: Omit<EntradaMontagem, "id" | "userId" | "data" | "treinoId" | "fase"> & {
     /** Sessão fora do programa (§3.4): os itens não estão em `programa.json`. */
@@ -401,6 +425,7 @@ export function reconstruirSessao(
     itens: lista,
     fase: linha.fase,
     agora: linha.iniciada_em,
+    semanaPlano: linha.semana_plano ?? null,
   });
 
   const porChave = new Map(
@@ -778,6 +803,36 @@ export function escritaDaSessao(sessao: SessaoLocal): Escrita {
       fase: sessao.fase,
       status: sessao.status,
       iniciada_em: sessao.iniciadaEm,
+      semana_plano: sessao.semanaPlano,
+    },
+  };
+}
+
+/**
+ * Substituir o exercício do bloco apaga do banco as séries que o ORIGINAL já
+ * tinha gravado nesta sessão.
+ *
+ * A folha promete "as séries já registradas deste bloco serão trocadas pelas
+ * do substituto" e a SPEC §3.2 diz que "o registro fica com o exercício
+ * substituto". Sem isto, as linhas que já subiram ficavam em `session_sets` e
+ * viravam uma sessão fantasma do original no histórico e nos recordes dele
+ * (§3.6/§3.7) — de um exercício que, no fim, não foi o que ele treinou.
+ *
+ * Devolve `null` quando nada daquele bloco chegou a subir.
+ */
+export function escritaDeDescarte(
+  sessao: SessaoLocal,
+  bloco: BlocoLocal,
+): Escrita | null {
+  const subiuAlguma = bloco.series.some((s) => s.registradaEm !== null);
+  if (!subiuAlguma) return null;
+  return {
+    tabela: "session_sets",
+    op: "delete",
+    filtro: {
+      session_id: sessao.id,
+      exercise_id: bloco.exercicioId,
+      ordem_ex: bloco.ordem,
     },
   };
 }
@@ -1029,8 +1084,9 @@ export function avaliarSessao(sessao: SessaoLocal): ResultadoExercicio[] {
       falha: evento?.falha === true,
       naoAvaliado: false,
       texto: textoDaDecisao(exercicio, decisao),
-      aviso: evento?.aviso ?? null,
-      sugestao: evento?.sugestao ?? null,
+      // o motor devolve a chave; o texto vem de data/progressao.json
+      aviso: textoDoMotor(evento?.aviso),
+      sugestao: textoDoMotor(evento?.sugestao),
       recordes: recordesDoBloco(bloco),
       decisao,
     } satisfies ResultadoExercicio;

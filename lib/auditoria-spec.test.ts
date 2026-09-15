@@ -73,6 +73,7 @@ import {
   anilhasDisponiveis,
   DIAS,
   exercicios,
+  textoDoMotor,
 } from "@/lib/dados";
 import {
   alcancavelParaBaixo,
@@ -112,7 +113,16 @@ import {
   type ExcecaoAgenda,
   type PerfilCalendario,
 } from "@/lib/calendario";
-import type { DiaSemana, Exercicio, TreinoId } from "@/lib/schemas";
+import type { DiaSemana, Exercicio, TreinoId, RefDeTexto } from "@/lib/schemas";
+
+/**
+ * O texto de uma sugestão/aviso do motor: o motor devolve só a chave e os
+ * números (SPEC §6.3/§6.4) e a frase mora em `data/progressao.json`, montada
+ * por `textoDoMotor`. As asserções continuam sobre o texto que o app mostra.
+ */
+function txt(ref: RefDeTexto | null | undefined): string {
+  return textoDoMotor(ref) ?? "";
+}
 
 /* ------------------------------------------------------------- atalhos */
 
@@ -450,17 +460,17 @@ describe("§6.1 × §6.4 — a carga que a tela mostra é a que o motor usa", ()
   it("§6.4: aviso do teto só no topo — 107,5 na barra, capacidade no halter e no pino", () => {
     const noTeto = decidir(supino, estadoDe(supino, { carga_atual_kg: 107.5 }), reps(8, 8, 8));
     expect(noTeto.evento?.motivo).toBe("repetiu");
-    expect(noTeto.evento?.aviso).toBe("faltam anilhas de 10 kg (marco do guia)");
+    expect(txt(noTeto.evento?.aviso)).toBe("faltam anilhas de 10 kg (marco do guia)");
     expect(noTeto.novoEstado.carga_atual_kg).toBe(107.5);
 
     const noPino = decidir(puxada, estadoDe(puxada, { carga_atual_kg: cargaMaxima("polia") }), reps(12, 12, 12));
-    expect(noPino.evento?.aviso).toContain("capacidade 100 kg");
-    expect(noPino.evento?.aviso).not.toContain("anilhas de 10 kg");
+    expect(txt(noPino.evento?.aviso)).toContain("capacidade 100 kg");
+    expect(txt(noPino.evento?.aviso)).not.toContain("anilhas de 10 kg");
 
     // longe do teto, com um incremento que não alcança o degrau: não é falta de anilha
     const curto = decidir(supino, estadoDe(supino, { carga_atual_kg: 25.5, incremento_kg: 1 }), reps(8, 8, 8));
     expect(curto.evento?.aviso).toBeUndefined();
-    expect(curto.evento?.sugestao).toContain("incremento");
+    expect(txt(curto.evento?.sugestao)).toContain("incremento");
   });
 });
 
@@ -536,7 +546,7 @@ describe("§6.3 — casos especiais", () => {
     const fim = decidir(assistida, st, reps(8, 8, 8, 8));
     expect(fim.evento?.motivo).toBe("repetiu");
     expect(fim.novoEstado.assistencia).toBe("sem");
-    expect(fim.evento?.sugestao).toContain("lastro");
+    expect(txt(fim.evento?.sugestao)).toContain("lastro");
 
     // a graça absorve 2 quedas; a 3ª volta a contar
     let g = estadoDe(assistida, { assistencia: "joelho", sessoes_graca: 2 });
@@ -569,13 +579,13 @@ describe("§6.3 — casos especiais", () => {
       const d = decidir(pronada, estadoDe(pronada, { reps_alvo: 9 }), reps(10, 10, 10), {
         seriesAnteriores: anteriores,
       });
-      expect(d.evento?.sugestao).toContain("lastro");
+      expect(txt(d.evento?.sugestao)).toContain("lastro");
     }
     // flexão (peso corporal, não barra fixa) não recebe conselho de lastro
     const semLastro = decidir(flexao, estadoDe(flexao, { reps_alvo: 9 }), reps(10, 10, 10), {
       seriesAnteriores: [9, 9, 9],
     });
-    expect(semLastro.evento?.sugestao ?? "").not.toContain("lastro");
+    expect(txt(semLastro.evento?.sugestao)).not.toContain("lastro");
   });
 
   it("caso 16/17/§6.3: tempo, reps de peso corporal e a anilha acima de 20", () => {
@@ -594,7 +604,7 @@ describe("§6.3 — casos especiais", () => {
     const vinte = decidir(elevacaoPernas, estadoDe(elevacaoPernas, { reps_alvo: 20 }), reps(20, 20, 20));
     expect(vinte.evento?.sugestao).toBeUndefined();
     const vinteUm = decidir(elevacaoPernas, estadoDe(elevacaoPernas, { reps_alvo: 21 }), reps(21, 21, 21));
-    expect(vinteUm.evento?.sugestao).toContain("anilha");
+    expect(txt(vinteUm.evento?.sugestao)).toContain("anilha");
     // e só quando TODAS as séries passam de 20
     const umaAbaixo = decidir(elevacaoPernas, estadoDe(elevacaoPernas, { reps_alvo: 21 }), reps(21, 21, 20));
     expect(umaAbaixo.evento?.sugestao).toBeUndefined();
@@ -936,7 +946,7 @@ describe("rodada 5 · §6.1 × §6.4 — qualquer linha do banco vira carga mont
     // de volta ao teto, a sessão perfeita avisa em vez de inventar carga (§6.4)
     const outra = decidir(supino, fim.novoEstado, reps(8, 8, 8));
     expect(outra.evento?.motivo).toBe("repetiu");
-    expect(outra.evento?.aviso).toBe("faltam anilhas de 10 kg (marco do guia)");
+    expect(txt(outra.evento?.aviso)).toBe("faltam anilhas de 10 kg (marco do guia)");
 
     // no piso: 60 % de 7,5 cairia abaixo da barra vazia — reduzir nunca sobe
     const noPiso = estadoDe(supino, { carga_atual_kg: 7.5, falhas_seguidas: 2 });
@@ -971,7 +981,7 @@ describe("rodada 5 · §6.4 — aviso de teto e override de incremento", () => {
         continue;
       }
       expect(d.novoEstado.carga_atual_kg).toBe(teto);
-      const aviso = d.evento.aviso ?? "";
+      const aviso = txt(d.evento.aviso);
       if (limiteDoImplemento(ex.implemento) === "estoque") {
         if (aviso !== "faltam anilhas de 10 kg (marco do guia)") erros.push(`${ex.id}: "${aviso}"`);
       } else {
@@ -993,15 +1003,15 @@ describe("rodada 5 · §6.4 — aviso de teto e override de incremento", () => {
 
     // no teto, com override grande: é falta de anilha mesmo
     const noTeto = decidir(supino, estadoDe(supino, { carga_atual_kg: 107.5, incremento_kg: 10 }), reps(8, 8, 8));
-    expect(noTeto.evento?.aviso).toBe("faltam anilhas de 10 kg (marco do guia)");
+    expect(txt(noTeto.evento?.aviso)).toBe("faltam anilhas de 10 kg (marco do guia)");
 
     // halter e barra W travam na capacidade da barra, não no estoque
     const rosca = acharExercicio("rosca-alternada");
     const halter = decidir(rosca, estadoDe(rosca, { carga_atual_kg: 39.5, incremento_kg: 10 }), reps(12, 12, 12));
-    expect(halter.evento?.aviso).toContain("capacidade 40 kg");
-    expect(halter.evento?.aviso).not.toContain("anilhas de 10 kg");
+    expect(txt(halter.evento?.aviso)).toContain("capacidade 40 kg");
+    expect(txt(halter.evento?.aviso)).not.toContain("anilhas de 10 kg");
     const w = decidir(roscaW, estadoDe(roscaW, { carga_atual_kg: cargaMaxima("barra_w") }), reps(12, 12, 12));
-    expect(w.evento?.aviso).toContain("capacidade 50 kg");
+    expect(txt(w.evento?.aviso)).toContain("capacidade 50 kg");
 
     // longe do teto, um incremento menor que o passo é problema de incremento
     for (const incremento of [0, 1, 1.5]) {
@@ -1009,7 +1019,7 @@ describe("rodada 5 · §6.4 — aviso de teto e override de incremento", () => {
       expect(curto.evento?.motivo).toBe("repetiu");
       expect(curto.novoEstado.carga_atual_kg).toBe(25.5);
       expect(curto.evento?.aviso).toBeUndefined();
-      expect(curto.evento?.sugestao).toContain("incremento");
+      expect(txt(curto.evento?.sugestao)).toContain("incremento");
     }
   });
 });
@@ -1058,7 +1068,7 @@ describe("rodada 5 · §6.2/§6.3 — `maximo` com ultima_firme = false", () => 
       ultimaFirme: false,
     });
     expect(d.evento?.motivo).toBe("repetiu");
-    expect(d.evento?.sugestao).toContain("lastro");
+    expect(txt(d.evento?.sugestao)).toContain("lastro");
   });
 });
 

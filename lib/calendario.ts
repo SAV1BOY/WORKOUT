@@ -25,6 +25,8 @@ import {
   diaDoPrograma,
   estagioDeCorda,
   semanaDeCorrida,
+  ultimaSemanaDeBarraFixa,
+  ultimaSemanaDeCorda,
 } from "@/lib/dados";
 import type {
   DiaPrograma,
@@ -360,7 +362,9 @@ export function avancarSemanaDeCorrida(
 }
 
 export function avancarSemanaDeCorda(semanaAtual: number, sessoes: number): number {
-  return avancarSemanaCardio(semanaAtual, sessoes, { maximo: 12 });
+  return avancarSemanaCardio(semanaAtual, sessoes, {
+    maximo: ultimaSemanaDeCorda(),
+  });
 }
 
 export function avancarSemanaDeBarraFixa(
@@ -369,7 +373,7 @@ export function avancarSemanaDeBarraFixa(
 ): number {
   return avancarSemanaCardio(semanaAtual, sessoes, {
     exigidas: cardio.barra_fixa.sessoes_por_semana,
-    maximo: 12,
+    maximo: ultimaSemanaDeBarraFixa(),
   });
 }
 

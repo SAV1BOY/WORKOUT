@@ -79,6 +79,8 @@ export interface LinhaSessao {
   iniciada_em: string;
   concluida_em: string | null;
   duracao_s: number | null;
+  /** Sessão de barra fixa (§3.4): a semana do plano em que ela foi criada. */
+  semana_plano: number | null;
   sensacao: number | null;
   peso_corporal: number | null;
   notas: string | null;

@@ -2504,6 +2504,9 @@ Total: **659 unitários** e **141 e2e**.
   Todos batem com `data/cardio.json` e `lib/montagem.ts` hoje.
 - "0 de 1 dias" na aderência de `/progresso` (marco 5) — falta o singular.
 
+> Os quatro itens acima (menos o `pendente: infra`) foram corrigidos depois, na
+> varredura das pendências das auditorias — ver a última seção deste arquivo.
+
 ### Como testar no celular (auditoria do marco 6)
 
 1. `npm run lint && npm run build && npm test && npm run e2e`.
@@ -2516,3 +2519,140 @@ Total: **659 unitários** e **141 e2e**.
 5. **Offline**: com o app instalado e a Hoje aberta uma vez, ligue o modo avião
    e **recarregue a Hoje** — ela abre, a barra de baixo continua navegando e as
    figuras do treino aparecem.
+
+---
+
+## Pendências das auditorias — varredura item a item ✅
+
+As 19 anotações que os auditores dos marcos deixaram como "menor" (mais o
+bloqueante do marco 3, já corrigido na rodada seguinte) foram conferidas uma a
+uma no código. O que valia foi corrigido com teste; o que ficou está registrado
+no fim, com o motivo.
+
+### Conteúdo que saiu do código e foi para os JSON
+
+- **As sugestões e os avisos do motor** (`lib/progressao.ts`) eram frases
+  escritas em TypeScript: lastro da barra fixa, anilha no core, "sem elástico",
+  tempo acima da faixa, incremento curto demais e os dois avisos de teto. Agora
+  `data/progressao.json` tem os blocos `sugestoes` e `avisos` (validados em
+  `lib/schemas.ts`), o motor devolve **chave + números**
+  (`RefDeTexto = { chave, dados }`) e quem monta a frase é `textoDoMotor()` em
+  `lib/dados.ts` — `{reps}` e `{kg}` trocados com vírgula decimal. `lib/sessao.ts`
+  resolve o texto uma vez, no `ResultadoExercicio`, e a tela do resumo não mudou.
+  Os ~30 testes que dependiam das strings passaram a comparar o **mesmo texto**
+  resolvido por `txt(...)`, sem afrouxar nenhuma asserção; `lib/dados.test.ts`
+  ganhou a varredura "toda chave vira frase" e o erro ruidoso da chave
+  desconhecida.
+- **A microcópia das medidas com fita** (`lib/corpo.ts`, "na altura do umbigo,
+  sem prender a barriga"…) virou o bloco `medidas` de `data/perfil.json`, com
+  `campoDeMedidaSchema` no zod; `MEDIDAS` agora é só um alias de
+  `medidasDoCorpo` (lib/dados.ts) e `CampoDeMedida` vive em `lib/schemas.ts`.
+- **Os tetos de 12 semanas** saíram do código: `ultimaSemanaDoPlano(faixas)` lê
+  o fim da última faixa ("9–12" → 12) e alimenta `avancarSemanaDeCorda`,
+  `avancarSemanaDeBarraFixa` (lib/calendario.ts), `maximoDoPlano`
+  (lib/queries/perfil.ts), o `PLANOS` de `tela-perfil.tsx` e o "As N semanas" de
+  `tela-barra-fixa.tsx`. `tela-equipamento.tsx` passou a escrever
+  `formatarKg(PESO_BARRA_A_PESAR)` em vez de `formatarKg(2)`.
+
+### Motor e sessão
+
+- **A carga mudada à mão na série chega ao motor** (§3.2 × §6.1/§6.2). Quando
+  **todas** as séries de trabalho trazem a mesma carga e ela não é a do
+  `exercise_state`, é ela a carga da sessão: `decidir()` parte dela (subida e
+  volta de 10 % sobre a carga certa), o evento registra `carga_usada` e o `de`
+  da §6.6 mostra a carga levantada — quem faz 11,5 num dia de 7,5 vê
+  "11,5 → 13,5 kg". Cargas diferentes entre as séries não dizem qual era a do
+  dia: aí continua valendo o estado. A semana leve fica de fora (a sessão dela
+  sempre volta à `carga_antes_leve`). 6 casos novos em `lib/progressao.test.ts`.
+- **Substituir o exercício apaga as séries do original nesta sessão**
+  (`escritaDeDescarte` + `descartarSeriesDoBloco`): a folha promete "as séries
+  já registradas deste bloco serão trocadas pelas do substituto" e a §3.2 diz
+  que "o registro fica com o exercício substituto". O delete por
+  `session_id + exercise_id + ordem_ex` entra na fila de saída como qualquer
+  escrita (funciona offline). Sem isso o original ficava com uma sessão
+  fantasma no histórico e nos recordes (§3.6/§3.7).
+- **A sessão de barra fixa guarda a semana do plano** (`sessions.semana_plano`,
+  coluna nova). Refeita noutro aparelho, ela volta com a prescrição da semana em
+  que foi criada, e não com a de hoje — o plano pode ter ido de 4 × 5 para 4 × 6
+  no meio. `escritaDaSessao`, `montarSessaoAvulsa`, `reconstruirSessao`,
+  `lib/backup.ts`, o mock e `lib/types.ts` acompanham.
+- **O cronômetro não grava mais 4× por segundo**: o tique continua de 250 ms
+  (parar é imediato), mas só avisa quando o **segundo** muda — de ~480
+  gravações no IndexedDB numa prancha de 2 min para 120. Cada segundo continua
+  salvo, então recarregar no meio não perde o valor.
+
+### Telas
+
+- `/cardio/caminhada` e "outro" mostram no fim **só duração e nota** (§3.3): a
+  distância ficou para a corrida, os saltos para a corda e o teste da fala para
+  as duas. O e2e da caminhada confere que o diálogo não tem distância nem
+  esforço.
+- `/progresso`: "0 de 1 **dia**" (singular) e a janela da aderência limitada às
+  semanas a partir de `fase_desde`, com "· desde dd/MM" no card quando isso
+  corta — a grade da fase de hoje não descreve as semanas da fase anterior
+  (§5.1), então a aderência já mostrada não muda mais sozinha na virada.
+- Os gráficos reservam a **altura declarada** enquanto o Recharts carrega (um
+  wrapper por gráfico, em vez do `loading` de 180 px fixos do next/dynamic):
+  acabou o pulinho de layout na primeira carga.
+- `importarBackup()` espera a fila de saída drenar (`esperarFila()`) antes de
+  invalidar as queries: o refetch não volta mais com os dados de antes da
+  importação.
+
+### Banco
+
+- `supabase/schema.sql` ganhou um bloco de **migrações idempotentes** no fim
+  (`alter table … drop not null` do `progression_events.exercise_id`, os
+  `add column if not exists` de `session_sets.tempo_s_lado2`,
+  `exercise_state.sessoes_graca/incremento_reduzido/exigir_rep_extra/
+  carga_antes_leve` e `sessions.semana_plano`): num banco que já tenha uma
+  versão anterior do schema, reexecutar o arquivo agora aplica as mudanças.
+- Conferido por script: `lib/types.ts` e `scripts/mock-supabase.ts` têm
+  exatamente as colunas de `supabase/schema.sql`, tabela por tabela.
+
+### Já resolvido antes desta rodada (conferido no código)
+
+- **Bloqueante do marco 3 — "o substituto usa o próprio estado" (§6.3)**: a
+  tela carrega `exercise_state`, séries anteriores e recordes de todos os
+  substitutos possíveis (`idsComSubstitutos`) e passa os do escolhido em
+  `substituirExercicio(...)`; sem a leitura, o bloco fica `estadoConhecido:
+  false` e não grava progressão. Coberto por `lib/sessao.test.ts` e pelo e2e
+  "o substituto abre com a carga dele e a conclusão parte dela (§6.3)".
+
+### Conhecido, não corrigido (com o motivo)
+
+- **Recordes numa sessão refeita noutro aparelho** (marco 3, rodada 2):
+  `v_records` já inclui as séries desta sessão (elas subiram antes da
+  reconstrução), então o resumo do fim não anuncia recordes novos daquele
+  treino. Corrigir de verdade exige ler os recordes **excluindo a sessão**, e
+  isso não dá para fazer na view: seria varrer `session_sets` de dezenas de
+  exercícios no cliente a cada abertura de sessão — caro no celular para uma
+  linha do resumo. O erro é para o lado seguro (deixa de anunciar, nunca
+  inventa um recorde) e só acontece quando a sessão foi perdida do aparelho.
+- **Primeira carga do app sem rede** (marco 3): enquanto o service worker ainda
+  não assumiu o controle da página, recarregar sem rede cai na tela de erro do
+  Chromium. Da segunda carga em diante — o caso do PWA instalado, que é o do
+  Miguel — a sessão volta inteira offline (coberto por e2e). É como o ciclo de
+  vida do service worker funciona: o primeiro acesso precisa de rede.
+- **O aviso de teto de `lib/montagem.ts`** ("faltam anilhas de 10 kg", no
+  diálogo da montagem) continua escrito no código: é a etiqueta de uma
+  montagem, não um texto de ajuda do motor, e não tem chave em
+  `data/progressao.json`. Os avisos do **motor** (os do evento) já vêm do JSON.
+
+### Testes
+
+`npm test` fecha em **678** (eram 659): 6 casos da carga levantada à mão, 5 do
+corte de `por_sessao`, 4 dos textos do motor/tetos/medidas em `dados.test.ts`,
+2 da semana do plano e do descarte das séries em `sessao.test.ts` e 1 da
+aderência limitada por `fase_desde`. O e2e continua em 141, com a asserção nova
+do diálogo da caminhada.
+
+### Como testar no celular (pendências)
+
+1. `npm run lint && npm run build && npm test && npm run e2e`.
+2. **Sessão de força**: num bloco com carga, mude o ± da carga em **todas** as
+   séries, conclua no topo da faixa — o resumo tem que partir da carga que você
+   levantou (ex.: "11,5 → 13,5 kg"), não da carga que o app tinha proposto.
+3. **Substituir hoje** depois de marcar uma série: a série do exercício antigo
+   some da tela e também do banco (o histórico dele não ganha a sessão).
+4. **/cardio/caminhada** → "Encerrar e registrar": o diálogo tem só a nota.
+5. **/progresso** numa semana com um dia planejado: "0 de 1 dia".

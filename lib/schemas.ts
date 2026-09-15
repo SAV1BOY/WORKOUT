@@ -324,6 +324,25 @@ export const progressaoJsonSchema = z.object({
     }),
   ),
   marcos: z.array(z.string()),
+  /*
+   * Os textos que o motor sugere no fim da sessão (SPEC §6.3 e §6.6). O motor
+   * devolve só a chave e os números; quem monta a frase é `lib/dados.ts`
+   * (`textoDoMotor`), para que o conteúdo continue morando no JSON.
+   * `{reps}` e `{kg}` são trocados pelos valores da decisão.
+   */
+  sugestoes: z.object({
+    anilha_no_core: z.string().min(1),
+    barra_fixa_com_lastro: z.string().min(1),
+    sem_elastico_lastro: z.string().min(1),
+    sem_elastico_variacao: z.string().min(1),
+    tempo_acima_da_faixa: z.string().min(1),
+    incremento_curto: z.string().min(1),
+  }),
+  /** Avisos do teto do kit (SPEC §6.4), na mesma convenção das sugestões. */
+  avisos: z.object({
+    teto_anilhas: z.string().min(1),
+    teto_capacidade: z.string().min(1),
+  }),
 });
 
 /* ---------------------------------------------------------- equipamentos */
@@ -372,6 +391,18 @@ export const equipamentosSchema = z.object({
 
 /* ---------------------------------------------------------------- perfil */
 
+/** As colunas de `body_measurements` que a tela preenche (SPEC §3.8). */
+export const campoDeMedidaSchema = z.enum([
+  "peito_cm",
+  "cintura_cm",
+  "quadril_cm",
+  "braco_dir_cm",
+  "braco_esq_cm",
+  "coxa_dir_cm",
+  "coxa_esq_cm",
+  "panturrilha_cm",
+]);
+
 export const perfilSchema = z.object({
   nome: z.string().min(1),
   altura_cm: z.number().positive(),
@@ -394,6 +425,19 @@ export const perfilSchema = z.object({
     registro_por_serie: z.boolean(),
     tema: z.string(),
   }),
+  /**
+   * As 8 medidas de `body_measurements` (SPEC §3.8) com o nome na tela e onde
+   * passar a fita — a microcópia do formulário mora aqui, não no código.
+   */
+  medidas: z
+    .array(
+      z.object({
+        campo: campoDeMedidaSchema,
+        nome: z.string().min(1),
+        onde: z.string().min(1),
+      }),
+    )
+    .length(8),
 });
 
 /* ----------------------------------------------------------------- tipos */
@@ -426,3 +470,18 @@ export type Equipamentos = z.infer<typeof equipamentosSchema>;
 export type Anilha = z.infer<typeof anilhaSchema>;
 export type Barra = z.infer<typeof barraSchema>;
 export type Perfil = z.infer<typeof perfilSchema>;
+export type CampoDeMedida = z.infer<typeof campoDeMedidaSchema>;
+export type MedidaDoCorpo = Perfil["medidas"][number];
+/** Chave de um texto do motor em `data/progressao.json` (SPEC §6.3/§6.4). */
+export type ChaveDeSugestao = keyof ProgressaoJson["sugestoes"];
+export type ChaveDeAviso = keyof ProgressaoJson["avisos"];
+
+/**
+ * O que o motor devolve no lugar de uma frase: a chave do texto no JSON e os
+ * números que entram nela. Quem monta a frase é `textoDoMotor` (lib/dados.ts),
+ * então o motor continua puro e o texto continua sendo conteúdo.
+ */
+export interface RefDeTexto<C extends string = ChaveDeSugestao | ChaveDeAviso> {
+  chave: C;
+  dados?: Readonly<Record<string, number | string>>;
+}

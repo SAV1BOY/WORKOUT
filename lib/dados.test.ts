@@ -12,8 +12,14 @@ import {
   perfilInicial,
   programa,
   progressao,
+  medidasDoCorpo,
   semanaDeBarraFixa,
   semanaDeCorrida,
+  textoDoMotor,
+  ultimaSemanaDeBarraFixa,
+  ultimaSemanaDeCorda,
+  ultimaSemanaDeCorrida,
+  ultimaSemanaDoPlano,
   urlFotos,
 } from "@/lib/dados";
 import {
@@ -92,5 +98,56 @@ describe("índices e helpers", () => {
     expect(semanaDeCorrida(99).semana).toBe(12);
     expect(semanaDeBarraFixa(1).semanas).toBe("1–2");
     expect(semanaDeBarraFixa(12).semanas).toBe("11–12");
+  });
+});
+
+describe("textos do motor (data/progressao.json)", () => {
+  it("toda chave de sugestão e de aviso vira frase", () => {
+    for (const chave of Object.keys(progressao.sugestoes)) {
+      expect(textoDoMotor({ chave } as never)).toBeTruthy();
+    }
+    for (const chave of Object.keys(progressao.avisos)) {
+      expect(textoDoMotor({ chave } as never)).toBeTruthy();
+    }
+  });
+
+  it("troca {reps} e {kg} com vírgula decimal", () => {
+    expect(textoDoMotor({ chave: "anilha_no_core", dados: { reps: 20 } })).toBe(
+      progressao.sugestoes.anilha_no_core.replace("{reps}", "20"),
+    );
+    expect(
+      textoDoMotor({ chave: "teto_capacidade", dados: { kg: 39.5 } }),
+    ).toContain("39,5 kg");
+  });
+
+  it("sem referência não há texto; chave desconhecida é erro ruidoso", () => {
+    expect(textoDoMotor(null)).toBeNull();
+    expect(textoDoMotor(undefined)).toBeNull();
+    expect(() => textoDoMotor({ chave: "nao_existe" } as never)).toThrow(
+      /progressao.json/,
+    );
+  });
+});
+
+describe("tetos dos planos saem do JSON (SPEC §5.5)", () => {
+  it("a última faixa manda: corda e barra fixa vão até 12", () => {
+    expect(ultimaSemanaDoPlano([{ semanas: "1–2" }, { semanas: "9–12" }])).toBe(12);
+    expect(ultimaSemanaDoPlano([{ semanas: "7" }])).toBe(7);
+    expect(ultimaSemanaDeCorda()).toBe(
+      Number(cardio.corda.semanas[cardio.corda.semanas.length - 1]?.semanas.split(/[–-]/)[1]),
+    );
+    expect(ultimaSemanaDeBarraFixa()).toBe(12);
+    expect(ultimaSemanaDeCorrida()).toBe(cardio.corrida.semanas.length);
+  });
+});
+
+describe("as 8 medidas com fita vêm de data/perfil.json (SPEC §3.8)", () => {
+  it("cada campo tem nome e microcópia", () => {
+    expect(medidasDoCorpo).toHaveLength(8);
+    for (const m of medidasDoCorpo) {
+      expect(m.nome.length).toBeGreaterThan(1);
+      expect(m.onde.length).toBeGreaterThan(5);
+    }
+    expect(medidasDoCorpo.map((m) => m.campo)).toContain("panturrilha_cm");
   });
 });

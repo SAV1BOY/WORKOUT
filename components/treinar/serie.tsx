@@ -260,11 +260,23 @@ function CampoTempo({
     if (concluida) setRodando(false);
   }, [concluida]);
 
+  /*
+   * O tique olha o relógio 4× por segundo (a parada fica responsiva), mas só
+   * avisa quando o SEGUNDO muda: cada aviso regrava a sessão inteira no
+   * IndexedDB (SPEC §8), e numa prancha de 2 minutos eram ~480 gravações para
+   * 120 valores diferentes. Agora é no máximo uma por segundo — e o valor de
+   * cada segundo continua salvo, então recarregar no meio não perde nada.
+   */
+  const ultimoSegundo = useRef<number | null>(null);
   useEffect(() => {
     if (!rodando) return;
     comeco.current = Date.now();
+    ultimoSegundo.current = null;
     const relogio = setInterval(() => {
-      ultimoAoMudar.current(Math.round((Date.now() - comeco.current) / 1000));
+      const segundos = Math.round((Date.now() - comeco.current) / 1000);
+      if (segundos === ultimoSegundo.current) return;
+      ultimoSegundo.current = segundos;
+      ultimoAoMudar.current(segundos);
     }, 250);
     return () => clearInterval(relogio);
   }, [rodando]);

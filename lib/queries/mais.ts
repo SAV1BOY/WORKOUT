@@ -21,6 +21,7 @@ import {
   type TabelaBackup,
 } from "@/lib/backup";
 import { adiarFase2 } from "@/lib/calendario";
+import { esperarFila } from "@/lib/outbox";
 import { enfileirarEscrita } from "@/lib/outbox-supabase";
 import { novoId } from "@/lib/queries/acoes";
 import { chaves } from "@/lib/queries/dados";
@@ -247,7 +248,14 @@ export async function importarBackup(opcoes: {
     }
   }
 
-  // o que estava em tela veio do banco de antes: relê tudo
+  /*
+   * O que estava em tela veio do banco de ANTES da importação: relê tudo — mas
+   * só depois de a fila de saída subir os lotes, senão o refetch volta com os
+   * dados velhos e a tela só se corrige na próxima leitura. Sem rede,
+   * `esperarFila` desiste na hora e a fila termina o serviço quando a rede
+   * voltar (SPEC §8).
+   */
+  await esperarFila();
   await cliente.invalidateQueries();
   return linhas;
 }

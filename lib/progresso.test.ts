@@ -160,6 +160,30 @@ describe("aderência (4 semanas)", () => {
     expect(a.feitos).toBe(0);
   });
 
+  it("a janela não passa de fase_desde e o card diz desde quando (§5.1)", () => {
+    // 10 semanas depois do início, mas a Fase 2 começou na segunda passada
+    const naFase2: PerfilCalendario & { data_inicio: string } = {
+      ...perfil,
+      fase_atual: "fase2",
+      fase_desde: "2026-11-16",
+      data_inicio: SEGUNDA,
+    };
+    const a = aderencia({
+      hoje: "2026-11-18",
+      perfil: naFase2,
+      sessoes: [sessao({ id: "s1", data: "2026-11-16" })],
+      cardios: [],
+    });
+    // só 16, 17 e 18/11 entram (a grade da Fase 2 não vale para trás)
+    expect(a.planejados).toBe(3);
+    expect(a.feitos).toBe(1);
+    expect(a.desde).toBe("2026-11-16");
+
+    // com a fase antiga cabendo na janela inteira, nada é cortado
+    const dentro = aderencia({ hoje: SEGUNDA, perfil, sessoes: [], cardios: [] });
+    expect(dentro.desde).toBeNull();
+  });
+
   it("o dia trocado para descanso sai do planejado", () => {
     const a = aderencia({
       hoje: SEGUNDA,

@@ -101,5 +101,17 @@
   "marcos": [
     "agachamento chega perto de 66 kg em ~4 meses somando 4 kg por sessão: hora de comprar mais duas anilhas de 10 kg (OLX)",
     "teto de carga na barra maciça com o kit atual: 107,5 kg (7,5 + 100)"
-  ]
+  ],
+  "sugestoes": {
+    "anilha_no_core": "Mais de {reps} repetições em todas as séries: use uma anilha de 2 kg e volte ao piso da faixa.",
+    "barra_fixa_com_lastro": "Três séries de {reps} repetições: passe para a barra fixa com lastro (2 kg na mochila).",
+    "sem_elastico_lastro": "Sem elástico em todas as séries: passe para a barra fixa com lastro.",
+    "sem_elastico_variacao": "Sem elástico em todas as séries: troque por uma variação mais difícil.",
+    "tempo_acima_da_faixa": "Tempo acima da faixa do plano: troque por uma variação mais difícil.",
+    "incremento_curto": "O incremento deste exercício não chega ao próximo degrau da escala (faltam {kg} kg): ajuste o incremento nas preferências."
+  },
+  "avisos": {
+    "teto_anilhas": "faltam anilhas de 10 kg (marco do guia)",
+    "teto_capacidade": "no limite do implemento (capacidade {kg} kg): comprar anilhas não sobe a carga"
+  }
 }

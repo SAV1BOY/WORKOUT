@@ -134,7 +134,10 @@ export function TelaProgresso() {
         <Numero
           rotulo="Aderência (4 semanas)"
           valor={`${formatarNumero(ade.percentual)} %`}
-          detalhe={`${ade.feitos} de ${ade.planejados} dias`}
+          detalhe={`${ade.feitos} de ${ade.planejados} ${ade.planejados === 1 ? "dia" : "dias"}${
+            // a janela para em `fase_desde` (a fase de hoje não vale para trás)
+            ade.desde ? ` · desde ${formatarData(ade.desde)}` : ""
+          }`}
         />
         <Numero
           rotulo="Volume da semana"

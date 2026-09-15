@@ -344,6 +344,15 @@ test.describe("Cardio — corrida (SPEC §3.3)", () => {
     await page.clock.runFor(90_000);
     await expect(page.getByRole("timer")).not.toHaveText("0:00");
     await expect(page.getByRole("button", { name: "Pausar" })).toBeVisible();
+
+    // SPEC §3.3: "Caminhada leve / outro: só duração e nota"
+    await page.getByRole("button", { name: "Encerrar e registrar" }).click();
+    const dialogo = page.getByRole("dialog");
+    await expect(dialogo.getByText("1:30")).toBeVisible();
+    await expect(dialogo.getByLabel("Nota (opcional)")).toBeVisible();
+    await expect(dialogo.getByText("Distância (opcional)")).toHaveCount(0);
+    await expect(dialogo.getByText("Teste da fala")).toHaveCount(0);
+    await expect(dialogo.getByRole("radiogroup", { name: "Esforço" })).toHaveCount(0);
   });
 });
 

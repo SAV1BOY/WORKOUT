@@ -72,10 +72,7 @@ export interface PrescricaoFixa {
  */
 export function prescricaoDaSemana(semana: number): PrescricaoFixa {
   const s = semanaDeBarraFixa(semana);
-  const [antes = "", depois = ""] = s.por_sessao.split(/×|x/);
-  const series = Math.max(1, Math.round(Number(antes.trim()) || 1));
-  const reps = Number(depois.trim().replace(",", "."));
-  const maximo = !Number.isFinite(reps);
+  const { series, maximo, reps } = interpretarPorSessao(s.por_sessao);
 
   return {
     alvo: {
@@ -90,6 +87,27 @@ export function prescricaoDaSemana(semana: number): PrescricaoFixa {
     treina: s.treina,
     faixa: s.semanas,
   };
+}
+
+/**
+ * Lê o `por_sessao` do JSON: "4 × 5" → 4 séries de 5; "5 × máximo" (ou "5 ×
+ * falha", "5 × o que der") → 5 séries do tipo `maximo` (SPEC §6.3).
+ *
+ * O corte é explícito de propósito: separar por um `x` solto fazia
+ * "má-x-imo" cair no ramo certo por acidente, e qualquer outra palavra no
+ * JSON viraria NaN repetições sem ninguém perceber.
+ */
+export function interpretarPorSessao(texto: string): {
+  series: number;
+  maximo: boolean;
+  /** `null` quando a semana pede máximo. */
+  reps: number | null;
+} {
+  const m = /^\s*(\d+)\s*[×x]\s*(.+?)\s*$/.exec(texto);
+  const series = Math.max(1, Math.round(Number(m?.[1]) || 1));
+  const reps = Number((m?.[2] ?? "").replace(",", "."));
+  const numerica = m !== null && Number.isFinite(reps) && reps > 0;
+  return { series, maximo: !numerica, reps: numerica ? reps : null };
 }
 
 /**

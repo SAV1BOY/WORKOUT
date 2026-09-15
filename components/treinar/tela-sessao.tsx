@@ -32,6 +32,7 @@ import {
   finalizarSessao,
   salvarSessaoLocal,
   usePendentes,
+  descartarSeriesDoBloco,
   enviarSerie,
 } from "@/lib/queries/sessao";
 import { useQueryClient } from "@tanstack/react-query";
@@ -81,7 +82,15 @@ export function TelaSessao({ sessaoId }: { sessaoId: string }) {
    */
   const workoutId = sessaoQ.data?.workout_id ?? null;
   const ehFixa = workoutId === WORKOUT_BARRA_FIXA;
-  const semanaFixa = perfilQ.data?.semana_fixa ?? 1;
+  /*
+   * A semana do plano é a que a sessão guardou (`sessions.semana_plano`), não
+   * a de hoje: uma sessão antiga refeita noutro aparelho tem de voltar com a
+   * prescrição do dia em que foi criada, mesmo que o plano já tenha ido de
+   * 4 × 5 para 4 × 6 (SPEC §3.4). Sem a coluna (sessão criada antes dela),
+   * vale a semana do perfil.
+   */
+  const semanaFixa =
+    sessao?.semanaPlano ?? sessaoQ.data?.semana_plano ?? perfilQ.data?.semana_fixa ?? 1;
   const itensDaFixa = useMemo(
     () => (ehFixa ? [itemDaSessao(semanaFixa)] : undefined),
     [ehFixa, semanaFixa],
@@ -317,7 +326,13 @@ export function TelaSessao({ sessaoId }: { sessaoId: string }) {
             aoMudarNota={(nota) =>
               mexer((atual) => definirNota(atual, bloco.ordem, nota))
             }
-            aoSubstituir={(novoExercicioId) =>
+            aoSubstituir={(novoExercicioId) => {
+              /*
+               * O que o original já gravou sai do banco: o registro do dia é
+               * do substituto (SPEC §3.2) e a folha promete a troca das
+               * séries já registradas.
+               */
+              void descartarSeriesDoBloco(sessao, bloco);
               mexer((atual) =>
                 substituirExercicio(
                   atual,
@@ -332,8 +347,8 @@ export function TelaSessao({ sessaoId }: { sessaoId: string }) {
                     novoId: () => crypto.randomUUID(),
                   },
                 ),
-              )
-            }
+              );
+            }}
           />
         );
       })}

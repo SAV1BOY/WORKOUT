@@ -7,6 +7,8 @@
  */
 import { addDays, differenceInCalendarDays } from "date-fns";
 import { inicioDaSemana, iso, paraData } from "@/lib/calendario";
+import { medidasDoCorpo } from "@/lib/dados";
+import type { CampoDeMedida, MedidaDoCorpo } from "@/lib/schemas";
 import type {
   AnguloFoto,
   LinhaFotoProgresso,
@@ -130,34 +132,14 @@ export function diasDesdeAPesagem(
 
 /* ------------------------------------------------------------ medidas */
 
-export type CampoDeMedida =
-  | "cintura_cm"
-  | "peito_cm"
-  | "quadril_cm"
-  | "braco_dir_cm"
-  | "braco_esq_cm"
-  | "coxa_dir_cm"
-  | "coxa_esq_cm"
-  | "panturrilha_cm";
+export type { CampoDeMedida, MedidaDoCorpo };
 
-export interface MedidaDoCorpo {
-  campo: CampoDeMedida;
-  nome: string;
-  /** Onde passar a fita — o texto curto que aparece embaixo do campo. */
-  onde: string;
-}
-
-/** Os 8 campos de `body_measurements` (supabase/schema.sql). */
-export const MEDIDAS: readonly MedidaDoCorpo[] = [
-  { campo: "peito_cm", nome: "Peito", onde: "na linha dos mamilos, braços soltos" },
-  { campo: "cintura_cm", nome: "Cintura", onde: "na altura do umbigo, sem prender a barriga" },
-  { campo: "quadril_cm", nome: "Quadril", onde: "na parte mais larga do glúteo" },
-  { campo: "braco_dir_cm", nome: "Braço direito", onde: "no meio do bíceps, braço relaxado" },
-  { campo: "braco_esq_cm", nome: "Braço esquerdo", onde: "no meio do bíceps, braço relaxado" },
-  { campo: "coxa_dir_cm", nome: "Coxa direita", onde: "a 20 cm acima do joelho" },
-  { campo: "coxa_esq_cm", nome: "Coxa esquerda", onde: "a 20 cm acima do joelho" },
-  { campo: "panturrilha_cm", nome: "Panturrilha", onde: "na parte mais grossa" },
-];
+/**
+ * Os 8 campos de `body_measurements` (supabase/schema.sql) com o nome na tela
+ * e a microcópia de onde passar a fita: o conteúdo vem de `data/perfil.json`
+ * (bloco `medidas`), como todo texto de ajuda do app.
+ */
+export const MEDIDAS: readonly MedidaDoCorpo[] = medidasDoCorpo;
 
 export type MedidasBrutas = Pick<LinhaMedidas, "data" | CampoDeMedida>;
 

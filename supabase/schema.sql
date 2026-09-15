@@ -58,6 +58,7 @@ create table if not exists public.sessions (
   iniciada_em   timestamptz not null default now(),
   concluida_em  timestamptz,
   duracao_s     int,
+  semana_plano  int,                                     -- sessão de barra fixa (§3.4): a semana do plano em que ela foi criada
   sensacao      int check (sensacao between 1 and 5),    -- como foi o treino (1 péssimo … 5 ótimo)
   peso_corporal numeric(5,2),                            -- opcional: peso do dia
   notas         text,
@@ -181,6 +182,19 @@ create table if not exists public.schedule_overrides (
   motivo     text,
   unique (user_id, data)
 );
+
+-- ---------- migrações idempotentes ----------
+-- As tabelas acima são criadas com "if not exists": num banco que já tenha uma
+-- versão anterior deste schema, o create não muda nada. Estes alters aplicam as
+-- mudanças posteriores e podem rodar quantas vezes forem precisas.
+alter table public.progression_events alter column exercise_id drop not null;
+alter table public.session_sets  add column if not exists tempo_s_lado2 int;
+alter table public.exercise_state add column if not exists sessoes_graca int not null default 0;
+alter table public.exercise_state alter column sessoes_graca set default 0;
+alter table public.exercise_state add column if not exists incremento_reduzido boolean not null default false;
+alter table public.exercise_state add column if not exists exigir_rep_extra boolean not null default false;
+alter table public.exercise_state add column if not exists carga_antes_leve numeric(6,2);
+alter table public.sessions add column if not exists semana_plano int;
 
 -- ---------- updated_at automático ----------
 create or replace function public.set_updated_at() returns trigger language plpgsql as $$

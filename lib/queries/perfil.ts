@@ -5,14 +5,20 @@
 import type { QueryClient } from "@tanstack/react-query";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { CAMPO_DA_SEMANA, type AvancoDeSemana, type PlanoSemanal } from "@/lib/cardio";
-import { cardio, perfilInicial } from "@/lib/dados";
+import {
+  perfilInicial,
+  ultimaSemanaDeBarraFixa,
+  ultimaSemanaDeCorda,
+  ultimaSemanaDeCorrida,
+} from "@/lib/dados";
 import type { Perfil } from "@/lib/schemas";
 import type { LinhaPerfil, Prefs } from "@/lib/types";
 
-/** O teto de cada plano (as 12 semanas de `data/cardio.json`). */
+/** O teto de cada plano sai do JSON (data/cardio.json), nunca do código. */
 function maximoDoPlano(plano: PlanoSemanal): number {
-  if (plano === "corrida") return cardio.corrida.semanas.length;
-  return 12;
+  if (plano === "corrida") return ultimaSemanaDeCorrida();
+  if (plano === "corda") return ultimaSemanaDeCorda();
+  return ultimaSemanaDeBarraFixa();
 }
 
 export interface SeedPerfil {

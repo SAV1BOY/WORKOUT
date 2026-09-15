@@ -190,6 +190,12 @@ export interface Aderencia {
   /** 0–100, arredondado; 0 quando não havia nada planejado ainda. */
   percentual: number;
   semanas: SemanaDeAderencia[];
+  /**
+   * A janela começou nesta data porque a fase atual começou aí (`fase_desde`)
+   * — a tela mostra "desde dd/MM". `null` quando as 4 semanas couberam
+   * inteiras dentro da fase.
+   */
+  desde: string | null;
 }
 
 /**
@@ -198,6 +204,11 @@ export interface Aderencia {
  * O planejado sai de `lib/calendario` (o programa + as trocas do calendário),
  * então descanso não entra na conta. Só contam os dias que já passaram e que
  * são posteriores ao início do programa — o futuro não é falta.
+ *
+ * A janela também não passa de `profiles.fase_desde`: as semanas antigas
+ * seriam remontadas com a grade da fase de HOJE (não existe histórico de plano
+ * no banco), e a aderência já mostrada mudaria sozinha na virada de fase. Onde
+ * isso corta, o resultado diz `desde` e a tela escreve "desde dd/MM".
  */
 export function aderencia(opcoes: {
   hoje: string | Date;
@@ -212,6 +223,13 @@ export function aderencia(opcoes: {
   const hojeIso = iso(hoje);
   const inicioDoPrograma = perfil.data_inicio ?? null;
 
+  // §5.1: a fase de hoje não descreve as semanas da fase anterior
+  const desdeAFase = perfil.fase_desde ?? null;
+  const inicioDaJanela = [inicioDoPrograma, desdeAFase]
+    .filter((d): d is string => d !== null)
+    .sort()
+    .pop() ?? null;
+
   const forcaFeita = new Set(
     sessoes.filter((s) => s.status === "concluida").map((s) => s.data),
   );
@@ -224,7 +242,7 @@ export function aderencia(opcoes: {
     for (const dia of dias) {
       if (dia.tipo === "descanso") continue;
       if (dia.data > hojeIso) continue;
-      if (inicioDoPrograma && dia.data < inicioDoPrograma) continue;
+      if (inicioDaJanela && dia.data < inicioDaJanela) continue;
       planejados += 1;
       const fez = dia.tipo === "forca" ? forcaFeita.has(dia.data) : cardioFeito.has(dia.data);
       if (fez) feitos += 1;
@@ -234,11 +252,22 @@ export function aderencia(opcoes: {
 
   const planejados = semanas.reduce((t, s) => t + s.planejados, 0);
   const feitos = semanas.reduce((t, s) => t + s.feitos, 0);
+  const primeiraSemana = lista[0] ?? hojeIso;
   return {
     planejados,
     feitos,
     percentual: planejados === 0 ? 0 : Math.round((feitos / planejados) * 100),
     semanas,
+    /*
+     * Só vale dizer "desde" quando quem encurtou a janela foi a troca de fase:
+     * cortar pelo início do programa já é o esperado nas primeiras semanas.
+     */
+    desde:
+      desdeAFase &&
+      desdeAFase > iso(primeiraSemana) &&
+      (!inicioDoPrograma || desdeAFase > inicioDoPrograma)
+        ? desdeAFase
+        : null,
   };
 }
 

@@ -11,7 +11,7 @@
  */
 import { describe, expect, it } from "vitest";
 
-import { acharExercicio, exercicios, programa } from "@/lib/dados";
+import { acharExercicio, exercicios, programa, textoDoMotor } from "@/lib/dados";
 import {
   alcancavelParaBaixo,
   cargaMaxima,
@@ -29,7 +29,16 @@ import {
   type EstadoExercicio,
   type SerieFeita,
 } from "@/lib/progressao";
-import type { Exercicio } from "@/lib/schemas";
+import type { Exercicio, RefDeTexto } from "@/lib/schemas";
+
+/**
+ * O texto de uma sugestão/aviso do motor: o motor devolve só a chave e os
+ * números (SPEC §6.3/§6.4) e a frase mora em `data/progressao.json`, montada
+ * por `textoDoMotor`. As asserções continuam sobre o texto que o app mostra.
+ */
+function txt(ref: RefDeTexto | null | undefined): string {
+  return textoDoMotor(ref) ?? "";
+}
 
 /* ------------------------------------------------------------- utilidades */
 
@@ -635,7 +644,7 @@ describe("caso 15 — barra fixa pronada (3 × máximo), média anterior 4,0 (4,
     const lastro = decidir(fixaPronada, estado(fixaPronada), reps(10, 10, 10), {
       seriesAnteriores: [9, 9, 9],
     });
-    expect(lastro.evento?.sugestao).toMatch(/lastro/i);
+    expect(txt(lastro.evento?.sugestao)).toMatch(/lastro/i);
   });
 });
 
@@ -656,7 +665,7 @@ describe("caso 16 — prancha (3 × 30–60 s), tempo alvo 30, 60/60/60 firme", 
   });
 
   it("acima da faixa: sugere variação", () => {
-    expect(d.evento?.sugestao).toMatch(/varia/i);
+    expect(txt(d.evento?.sugestao)).toMatch(/varia/i);
   });
 
   it("no dia seguinte o alvo a bater é 65 s nas três séries", () => {
@@ -692,8 +701,8 @@ describe("caso 17 — elevação de pernas na barra fixa (3 × 10–15), reps al
       reps(21, 21, 21),
       { ultimaFirme: true },
     );
-    expect(acima.evento?.sugestao).toMatch(/anilha/i);
-    expect(acima.evento?.sugestao).toMatch(/2 kg/i);
+    expect(txt(acima.evento?.sugestao)).toMatch(/anilha/i);
+    expect(txt(acima.evento?.sugestao)).toMatch(/2 kg/i);
   });
 
   it("20 redondas ainda não passaram de 20: sem sugestão", () => {
@@ -815,7 +824,7 @@ describe("caso 22 — supino reto na carga 107,5 (teto), 8/8/8 firme", () => {
   });
 
   it('aviso "faltam anilhas de 10 kg (marco do guia)"', () => {
-    expect(d.evento?.aviso).toBe("faltam anilhas de 10 kg (marco do guia)");
+    expect(txt(d.evento?.aviso)).toBe("faltam anilhas de 10 kg (marco do guia)");
   });
 });
 
@@ -1036,7 +1045,7 @@ describe("caso 15 — 'média anterior 4,0' guardada no estado, sem série a sé
 
   it("3 séries ≥ 10 sugerem o lastro mesmo na 1ª sessão (sem média anterior)", () => {
     const d = decidir(fixaPronada, null, reps(10, 10, 10));
-    expect(d.evento?.sugestao).toMatch(/lastro/i);
+    expect(txt(d.evento?.sugestao)).toMatch(/lastro/i);
   });
 });
 
@@ -1457,7 +1466,7 @@ describe("cruzamento independente — degraus da assistência (casos 13 e 14)", 
     );
     expect(d.evento?.motivo).toBe("repetiu");
     expect(d.novoEstado.assistencia).toBe("sem");
-    expect(d.evento?.sugestao).toMatch(/lastro/i);
+    expect(txt(d.evento?.sugestao)).toMatch(/lastro/i);
   });
 
   it("a graça só protege quedas: uma sessão dentro da faixa segue sendo repetiu", () => {
@@ -1611,8 +1620,8 @@ describe("doc, linha 'barra W' — a progressão anda na escala de 2 em 2 a part
       ultimaFirme: true,
     });
     expect(d.evento?.motivo).toBe("repetiu");
-    expect(d.evento?.aviso).toMatch(/capacidade/i);
-    expect(d.evento?.aviso).not.toMatch(/anilhas de 10/i);
+    expect(txt(d.evento?.aviso)).toMatch(/capacidade/i);
+    expect(txt(d.evento?.aviso)).not.toMatch(/anilhas de 10/i);
   });
 });
 
@@ -1620,12 +1629,12 @@ describe("as sugestões não vazam para quem o doc não manda", () => {
   it("flexão de braço (3 × máximo) não recebe a sugestão de lastro da barra fixa", () => {
     const flexao = acharExercicio("flexao-de-braco");
     const d = decidir(flexao, estado(flexao, { reps_alvo: 9 }), reps(10, 10, 10));
-    expect(d.evento?.sugestao ?? "").not.toMatch(/lastro/i);
+    expect(txt(d.evento?.sugestao)).not.toMatch(/lastro/i);
   });
 
   it("2 séries ≥ 10 na barra fixa ainda não sugerem lastro (o doc pede 3)", () => {
     const d = decidir(fixaPronada, estado(fixaPronada, { reps_alvo: 8 }), reps(10, 10, 9));
-    expect(d.evento?.sugestao ?? "").not.toMatch(/lastro/i);
+    expect(txt(d.evento?.sugestao)).not.toMatch(/lastro/i);
   });
 
   it("subida normal dentro da faixa não gera sugestão nenhuma", () => {

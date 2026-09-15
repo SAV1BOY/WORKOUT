@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { acharExercicio } from "@/lib/dados";
+import { acharExercicio, textoDoMotor } from "@/lib/dados";
 import {
   cargaDeHoje,
   decidir,
@@ -9,7 +9,16 @@ import {
   type EstadoExercicio,
   type SerieFeita,
 } from "@/lib/progressao";
-import type { Exercicio } from "@/lib/schemas";
+import type { Exercicio, RefDeTexto } from "@/lib/schemas";
+
+/**
+ * O texto de uma sugestão/aviso do motor: o motor devolve só a chave e os
+ * números (SPEC §6.3/§6.4) e a frase mora em `data/progressao.json`, montada
+ * por `textoDoMotor`. As asserções continuam sobre o texto que o app mostra.
+ */
+function txt(ref: RefDeTexto | null | undefined): string {
+  return textoDoMotor(ref) ?? "";
+}
 
 /* ------------------------------------------------------------- atalhos */
 
@@ -285,7 +294,7 @@ describe("decidir — os 22 casos de docs/casos-de-teste-progressao.md", () => {
       seriesAnteriores: [9, 9, 9],
     });
     expect(evento?.motivo).toBe("subiu");
-    expect(evento?.sugestao).toContain("lastro");
+    expect(txt(evento?.sugestao)).toContain("lastro");
   });
 
   it("caso 16: prancha 3 × 30–60 s, 60 s nas três firme → alvo 65 s", () => {
@@ -293,7 +302,7 @@ describe("decidir — os 22 casos de docs/casos-de-teste-progressao.md", () => {
     const { novoEstado, evento } = decidir(prancha, estado, tempos(60, 60, 60));
     expect(evento?.motivo).toBe("subiu");
     expect(novoEstado.tempo_alvo_s).toBe(65);
-    expect(evento?.sugestao).toBeTruthy(); // acima da faixa: sugerir variação
+    expect(txt(evento?.sugestao)).toBeTruthy(); // acima da faixa: sugerir variação
   });
 
   it("caso 17: elevação de pernas 3 × 10–15, 15/15/15 firme → alvo 16 reps", () => {
@@ -311,7 +320,7 @@ describe("decidir — os 22 casos de docs/casos-de-teste-progressao.md", () => {
     const estado = estadoDe(elevacaoPernas, { reps_alvo: 20 });
     const { evento } = decidir(elevacaoPernas, estado, reps(21, 21, 21));
     expect(evento?.motivo).toBe("subiu");
-    expect(evento?.sugestao).toContain("2 kg");
+    expect(txt(evento?.sugestao)).toContain("2 kg");
   });
 
   it("caso 18: búlgaro 10/10 · 10/10 · 10/9 → repetiu (menor lado)", () => {
@@ -356,7 +365,7 @@ describe("decidir — os 22 casos de docs/casos-de-teste-progressao.md", () => {
     const estado = estadoDe(supino, { carga_atual_kg: 107.5 });
     const { novoEstado, evento } = decidir(supino, estado, reps(8, 8, 8));
     expect(evento?.motivo).toBe("repetiu");
-    expect(evento?.aviso).toContain("faltam anilhas de 10 kg");
+    expect(txt(evento?.aviso)).toContain("faltam anilhas de 10 kg");
     expect(novoEstado.carga_atual_kg).toBe(107.5);
     expect(novoEstado.falhas_seguidas).toBe(0);
   });
@@ -443,7 +452,7 @@ describe("decidir — tipos especiais", () => {
     });
     const fim = decidir(assistida, semElastico, reps(8, 8, 8, 8));
     expect(fim.evento?.motivo).toBe("repetiu");
-    expect(fim.evento?.sugestao).toBeTruthy();
+    expect(txt(fim.evento?.sugestao)).toBeTruthy();
     expect(fim.novoEstado.assistencia).toBe("sem");
   });
 
@@ -588,5 +597,72 @@ describe("semana leve: a base dos 60 % também é projetada na escala (SPEC §6.
       carga_atual_kg: 63.5,
     });
     expect(cargaDeHoje(supino, acima).carga_kg).toBe(63.5);
+  });
+});
+
+/* ------------------------- §3.2 × §6.2 — a carga mudada na série --------- */
+
+describe("a carga registrada nas séries é a carga da sessão (SPEC §3.2/§6.2)", () => {
+  /** Séries concluídas com reps e a carga que foi mesmo levantada. */
+  function comCarga(kg: number, ...valores: number[]): SerieFeita[] {
+    return valores.map((r) => ({ concluida: true, reps: r, carga_kg: kg }));
+  }
+
+  it("subiu a carga à mão em todas as séries: a decisão parte dela", () => {
+    const estado = estadoDe(supino, { carga_atual_kg: 7.5 });
+    const d = decidir(supino, estado, comCarga(11.5, 8, 8, 8));
+
+    expect(d.evento?.motivo).toBe("subiu");
+    expect(d.evento?.carga_usada).toBe(11.5);
+    // 11,5 + 2 (incremento do supino), não 7,5 + 2
+    expect(d.novoEstado.carga_atual_kg).toBe(13.5);
+    expect(d.evento?.de).toMatchObject({ carga_kg: 11.5 });
+  });
+
+  it("carga fora da escala cai para a alcançável para baixo antes de decidir", () => {
+    const estado = estadoDe(supino, { carga_atual_kg: 7.5 });
+    const d = decidir(supino, estado, comCarga(12, 8, 8, 8));
+    expect(d.evento?.carga_usada).toBe(11.5);
+    expect(d.novoEstado.carga_atual_kg).toBe(13.5);
+  });
+
+  it("falhar na carga levantada volta 10 % dela, não da carga do estado", () => {
+    const estado = estadoDe(supino, { carga_atual_kg: 7.5, falhas_seguidas: 1 });
+    const d = decidir(supino, estado, comCarga(27.5, 4, 4, 4));
+    expect(d.evento?.motivo).toBe("falha_2x_voltou_10");
+    expect(d.evento?.carga_usada).toBe(27.5);
+    // 27,5 × 0,9 = 24,75 → 23,5 na escala da barra
+    expect(d.novoEstado.carga_atual_kg).toBe(23.5);
+  });
+
+  it("séries com cargas diferentes não mudam nada: vale o estado (§6.1)", () => {
+    const estado = estadoDe(supino, { carga_atual_kg: 7.5 });
+    const series: SerieFeita[] = [
+      { concluida: true, reps: 8, carga_kg: 11.5 },
+      { concluida: true, reps: 8, carga_kg: 9.5 },
+      { concluida: true, reps: 8, carga_kg: 9.5 },
+    ];
+    const d = decidir(supino, estado, series);
+    expect(d.evento?.carga_usada).toBeUndefined();
+    expect(d.novoEstado.carga_atual_kg).toBe(9.5);
+  });
+
+  it("a mesma carga do estado não vira evento de carga usada", () => {
+    const estado = estadoDe(supino, { carga_atual_kg: 9.5 });
+    const d = decidir(supino, estado, comCarga(9.5, 8, 8, 8));
+    expect(d.evento?.carga_usada).toBeUndefined();
+    expect(d.novoEstado.carga_atual_kg).toBe(11.5);
+  });
+
+  it("na semana leve a carga da série não desfaz a volta à carga de antes", () => {
+    const estado = estadoDe(supino, {
+      semana_leve: true,
+      carga_antes_leve: 27.5,
+      carga_atual_kg: 15.5,
+    });
+    const d = decidir(supino, estado, comCarga(15.5, 8, 8, 8));
+    expect(d.evento?.motivo).toBe("fim_semana_leve");
+    expect(d.novoEstado.carga_atual_kg).toBe(27.5);
+    expect(d.evento?.carga_usada).toBeUndefined();
   });
 });

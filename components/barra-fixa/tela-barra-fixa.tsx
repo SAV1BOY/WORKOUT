@@ -27,7 +27,7 @@ import {
   soltasDaSemana,
 } from "@/lib/barra-fixa";
 import { avancoDeSemana } from "@/lib/cardio";
-import { cardio } from "@/lib/dados";
+import { cardio, ultimaSemanaDeBarraFixa } from "@/lib/dados";
 import { formatarDiaCurto } from "@/lib/formato";
 import { estadosPorExercicio } from "@/lib/hoje";
 import { registrarSolta } from "@/lib/queries/acoes";
@@ -75,6 +75,8 @@ export function TelaBarraFixa({ userId }: { userId: string }) {
 
   const plano = useMemo(() => prescricaoDaSemana(semana), [semana]);
   const linhas = useMemo(() => linhasDoPlano(semana), [semana]);
+  // quantas semanas o plano tem sai do JSON (data/cardio.json), não do código
+  const totalDeSemanas = ultimaSemanaDeBarraFixa();
   const semanaCivil = hoje ? intervaloDaSemana(hoje) : null;
 
   const soltas = soltasQ.data ?? [];
@@ -141,6 +143,9 @@ export function TelaBarraFixa({ userId }: { userId: string }) {
         data: hoje,
         workoutId: WORKOUT_BARRA_FIXA,
         itens: [itemDaSessao(semana)],
+        // a sessão guarda a semana do plano: refeita noutro aparelho, ela volta
+        // com a prescrição deste dia mesmo que o plano já tenha avançado (§3.4)
+        semanaPlano: semana,
         fase: perfil.fase_atual,
         estados: estadosPorExercicio(estadosQ.data ?? []),
         anteriores: seriesAnterioresPorExercicio(anterioresQ.data ?? []),
@@ -258,11 +263,11 @@ export function TelaBarraFixa({ userId }: { userId: string }) {
       </Card>
 
       <section className="flex flex-col gap-2">
-        <h2 className="text-sm font-semibold">As 12 semanas</h2>
+        <h2 className="text-sm font-semibold">As {totalDeSemanas} semanas</h2>
         <div className="border-border overflow-x-auto rounded-xl border">
           <table className="w-full text-left text-sm">
             <caption className="sr-only">
-              Plano de 12 semanas da primeira barra fixa
+              Plano de {totalDeSemanas} semanas da primeira barra fixa
             </caption>
             <thead className="text-muted-foreground border-border border-b text-xs">
               <tr>

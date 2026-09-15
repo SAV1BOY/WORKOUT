@@ -29,5 +29,47 @@
     "semana_comeca": "segunda",
     "registro_por_serie": true,
     "tema": "claro e escuro"
-  }
+  },
+  "medidas": [
+    {
+      "campo": "peito_cm",
+      "nome": "Peito",
+      "onde": "na linha dos mamilos, braços soltos"
+    },
+    {
+      "campo": "cintura_cm",
+      "nome": "Cintura",
+      "onde": "na altura do umbigo, sem prender a barriga"
+    },
+    {
+      "campo": "quadril_cm",
+      "nome": "Quadril",
+      "onde": "na parte mais larga do glúteo"
+    },
+    {
+      "campo": "braco_dir_cm",
+      "nome": "Braço direito",
+      "onde": "no meio do bíceps, braço relaxado"
+    },
+    {
+      "campo": "braco_esq_cm",
+      "nome": "Braço esquerdo",
+      "onde": "no meio do bíceps, braço relaxado"
+    },
+    {
+      "campo": "coxa_dir_cm",
+      "nome": "Coxa direita",
+      "onde": "a 20 cm acima do joelho"
+    },
+    {
+      "campo": "coxa_esq_cm",
+      "nome": "Coxa esquerda",
+      "onde": "a 20 cm acima do joelho"
+    },
+    {
+      "campo": "panturrilha_cm",
+      "nome": "Panturrilha",
+      "onde": "na parte mais grossa"
+    }
+  ]
 }

@@ -77,7 +77,8 @@ export const COLUNAS_DA_TABELA: Record<TabelaBackup, string[]> = {
   ],
   sessions: [
     "id", "user_id", "data", "workout_id", "fase", "status", "iniciada_em",
-    "concluida_em", "duracao_s", "sensacao", "peso_corporal", "notas",
+    "concluida_em", "duracao_s", "semana_plano", "sensacao", "peso_corporal",
+    "notas",
   ],
   session_sets: [
     "id", "session_id", "user_id", "exercise_id", "ordem_ex", "set_index",

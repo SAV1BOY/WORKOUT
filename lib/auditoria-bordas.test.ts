@@ -10,7 +10,7 @@
  * docs/casos-de-teste-progressao.md.
  */
 import { describe, expect, it } from "vitest";
-import { acharExercicio, exercicios } from "@/lib/dados";
+import { acharExercicio, exercicios, textoDoMotor } from "@/lib/dados";
 import {
   alcancavelParaBaixo,
   cargaMaxima,
@@ -25,7 +25,16 @@ import {
 import * as C from "@/lib/calendario";
 import { rotuloDaCarga } from "@/lib/formato";
 import * as P from "@/lib/progressao";
-import type { DiaSemana, TreinoId } from "@/lib/schemas";
+import type { DiaSemana, TreinoId, RefDeTexto } from "@/lib/schemas";
+
+/**
+ * O texto de uma sugestão/aviso do motor: o motor devolve só a chave e os
+ * números (SPEC §6.3/§6.4) e a frase mora em `data/progressao.json`, montada
+ * por `textoDoMotor`. As asserções continuam sobre o texto que o app mostra.
+ */
+function txt(ref: RefDeTexto | null | undefined): string {
+  return textoDoMotor(ref) ?? "";
+}
 
 /* --------------------------------------------------------------- ajudas */
 
@@ -456,7 +465,7 @@ describe("no teto da escala a subida vira repetiu com o aviso certo (§6.4)", ()
     );
     expect(barra.evento?.motivo).toBe("repetiu");
     expect(barra.novoEstado.carga_atual_kg).toBe(107.5);
-    expect(barra.evento?.aviso).toMatch(/anilhas de 10 kg/);
+    expect(txt(barra.evento?.aviso)).toMatch(/anilhas de 10 kg/);
 
     const halter = P.decidir(
       ex("rosca-martelo"),
@@ -465,22 +474,22 @@ describe("no teto da escala a subida vira repetiu com o aviso certo (§6.4)", ()
     );
     expect(halter.evento?.motivo).toBe("repetiu");
     expect(halter.novoEstado.carga_atual_kg).toBe(39.5);
-    expect(halter.evento?.aviso).toMatch(/capacidade 40 kg/);
-    expect(halter.evento?.aviso).not.toMatch(/faltam anilhas/);
+    expect(txt(halter.evento?.aviso)).toMatch(/capacidade 40 kg/);
+    expect(txt(halter.evento?.aviso)).not.toMatch(/faltam anilhas/);
 
     const pino = P.decidir(
       ex("puxada-alta-na-polia"),
       estado("puxada-alta-na-polia", { carga_atual_kg: 100 }),
       reps(12, 12, 12),
     );
-    expect(pino.evento?.aviso).toMatch(/capacidade 100 kg/);
+    expect(txt(pino.evento?.aviso)).toMatch(/capacidade 100 kg/);
 
     const w = P.decidir(
       ex("rosca-com-barra-w"),
       estado("rosca-com-barra-w", { carga_atual_kg: 50 }),
       reps(12, 12, 12),
     );
-    expect(w.evento?.aviso).toMatch(/capacidade 50 kg/);
+    expect(txt(w.evento?.aviso)).toMatch(/capacidade 50 kg/);
   });
 
   it("um degrau antes do teto ainda sobe, até onde a escala deixa", () => {
@@ -1198,7 +1207,7 @@ describe("carga fora da escala: acima do teto, abaixo da barra e no meio do degr
       const d = P.decidir(e, st, serieCheia(alvo));
       expect(d.evento?.motivo, id).toBe("repetiu");
       expect(d.novoEstado.carga_atual_kg, id).toBe(teto);
-      expect(typeof d.evento?.aviso, `${id}: sem aviso de teto`).toBe("string");
+      expect(txt(d.evento?.aviso), `${id}: sem aviso de teto`).not.toBe("");
     }
   });
 
@@ -1315,7 +1324,7 @@ describe("cada coluna anulável de exercise_state em null, por tipo de progress�
       expect(d.novoEstado.carga_atual_kg, `incremento ${override}`).toBe(7.5);
       // SPEC §6.4: aqui não faltam anilhas — falta incremento (rodada 3, nº 2)
       expect(d.evento?.aviso, `incremento ${override}`).toBeUndefined();
-      expect(typeof d.evento?.sugestao, `incremento ${override}`).toBe("string");
+      expect(txt(d.evento?.sugestao), `incremento ${override}`).not.toBe("");
     }
   });
 
@@ -2025,6 +2034,6 @@ describe("ACHADOS — a foto do evento e o teto do lastro", () => {
       { ultimaFirme: true },
     );
     expect(d.evento?.motivo).toBe("repetiu");
-    expect(d.evento?.aviso).toBe("faltam anilhas de 10 kg (marco do guia)");
+    expect(txt(d.evento?.aviso)).toBe("faltam anilhas de 10 kg (marco do guia)");
   });
 });

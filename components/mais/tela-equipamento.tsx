@@ -27,6 +27,7 @@ import {
   type BarraDoTerraco,
 } from "@/lib/equipamento";
 import { formatarKg, formatarNumero, lerNumero } from "@/lib/formato";
+import { PESO_BARRA_A_PESAR } from "@/lib/montagem";
 import {
   PESO_BARRA_MAX,
   PESO_BARRA_MIN,
@@ -93,7 +94,7 @@ function Barras({ userId, perfil }: { userId: string; perfil: LinhaPerfil }) {
         <CardTitle className="text-base">Barras</CardTitle>
         <CardDescription>
           A barra W e a reta oca ainda serão pesadas: até lá o app usa{" "}
-          {formatarKg(2)} e avisa. Pese na balança e anote aqui.
+          {formatarKg(PESO_BARRA_A_PESAR)} e avisa. Pese na balança e anote aqui.
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
