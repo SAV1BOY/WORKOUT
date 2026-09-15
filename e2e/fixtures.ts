@@ -113,6 +113,18 @@ export async function fixarRelogio(
   await page.clock.install({ time: new Date(quando) });
 }
 
+/**
+ * Fixa só a DATA, deixando os relógios do navegador correndo
+ * (`page.clock.install` congela `setTimeout`/`setInterval` também, e a sessão
+ * de força depende deles: debounce do IndexedDB, timer de descanso, fila).
+ */
+export async function fixarData(
+  page: Page,
+  quando: string = HOJE_FIXO,
+): Promise<void> {
+  await page.clock.setFixedTime(new Date(quando));
+}
+
 /** A 360 px nada pode vazar para o lado. */
 export async function semRolagemHorizontal(page: Page): Promise<void> {
   const vazou = await page.evaluate(

@@ -1,0 +1,650 @@
+/**
+ * Adaptadores da sessão de força (SPEC §3.2, §6.5, §6.6, §8).
+ * O motor já tem os próprios testes: aqui se testa a ponte entre o programa,
+ * o estado do banco, a tela e a fila de saída.
+ */
+import { describe, expect, it } from "vitest";
+import { acharExercicio } from "@/lib/dados";
+import { estadoInicial, type EstadoExercicio } from "@/lib/progressao";
+import {
+  atualizarSerie,
+  avaliarSessao,
+  concluirSessao,
+  escritaDaSerie,
+  escritaDaSessao,
+  firmePadrao,
+  marcarSerie,
+  montarSessao,
+  montagemDaCarga,
+  notasDaSessao,
+  progressoDaSessao,
+  proximaCarga,
+  reconstruirSessao,
+  recordesDoBloco,
+  seriesAnterioresPorExercicio,
+  substituirExercicio,
+  substitutosPara,
+  textoDaCargaDoBloco,
+  type BlocoLocal,
+  type SessaoLocal,
+} from "@/lib/sessao";
+import type { LinhaSerie } from "@/lib/types";
+
+/** Ids previsíveis para os testes (no app é `crypto.randomUUID`). */
+function contador(prefixo = "s") {
+  let n = 0;
+  return () => `${prefixo}${++n}`;
+}
+
+function sessaoA(extras: Partial<Parameters<typeof montarSessao>[0]> = {}): SessaoLocal {
+  return montarSessao({
+    id: "sess-1",
+    userId: "u1",
+    data: "2026-09-14",
+    treinoId: "A1",
+    fase: "fase1",
+    agora: "2026-09-14T09:00:00.000Z",
+    novoId: contador(),
+    ...extras,
+  });
+}
+
+function bloco(sessao: SessaoLocal, exercicioId: string): BlocoLocal {
+  const b = sessao.blocos.find((x) => x.exercicioId === exercicioId);
+  if (!b) throw new Error(`bloco ausente: ${exercicioId}`);
+  return b;
+}
+
+/** Preenche e conclui todas as séries de trabalho de um bloco. */
+function fazerTudoNoTopo(
+  sessao: SessaoLocal,
+  exercicioId: string,
+  valores: Partial<{ reps: number; tempoS: number; passos: number; cargaKg: number }> = {},
+): SessaoLocal {
+  let s = sessao;
+  const b = bloco(s, exercicioId);
+  for (const serie of b.series) {
+    if (serie.tipo !== "trabalho") continue;
+    if (Object.keys(valores).length > 0) {
+      s = atualizarSerie(s, b.ordem, serie.id, valores);
+    }
+    s = marcarSerie(s, b.ordem, serie.id, true, "2026-09-14T09:30:00.000Z");
+  }
+  return s;
+}
+
+/* -------------------------------------------------------- montar a sessão */
+
+describe("montarSessao — as linhas iniciais do treino (SPEC §3.2)", () => {
+  it("monta os 6 blocos do Treino A na ordem do programa", () => {
+    const s = sessaoA();
+    expect(s.blocos.map((b) => b.exercicioId)).toEqual([
+      "agachamento-livre",
+      "supino-reto-com-barra",
+      "remada-curvada-pronada",
+      "desenvolvimento-com-halteres",
+      "rosca-direta-com-barra",
+      "elevacao-de-pernas-na-barra-fixa",
+    ]);
+    expect(s.blocos.map((b) => b.ordem)).toEqual([1, 2, 3, 4, 5, 6]);
+    expect(s.status).toBe("em_andamento");
+    expect(s.workoutId).toBe("A1");
+  });
+
+  it("o aquecimento entra só no PRIMEIRO exercício pesado (barra vazia e metade)", () => {
+    const s = sessaoA();
+    const agachamento = bloco(s, "agachamento-livre");
+    const aquecimento = agachamento.series.filter((x) => x.tipo === "aquecimento");
+
+    expect(aquecimento).toHaveLength(2);
+    expect(aquecimento.map((x) => x.reps)).toEqual([5, 5]);
+    // barra maciça vazia = 7,5 kg; metade de 7,5 cai no piso da escala
+    expect(aquecimento[0]?.cargaKg).toBe(7.5);
+    expect(aquecimento[1]?.cargaKg).toBe(7.5);
+
+    // o supino também é composto_pesado, mas o aquecimento é um por treino
+    expect(
+      bloco(s, "supino-reto-com-barra").series.every((x) => x.tipo === "trabalho"),
+    ).toBe(true);
+  });
+
+  it("a metade da carga é a alcançável para baixo, não a metade exata", () => {
+    const estados: Record<string, EstadoExercicio> = {
+      "agachamento-livre": {
+        ...estadoInicial(acharExercicio("agachamento-livre")),
+        carga_atual_kg: 43.5,
+      },
+    };
+    const s = sessaoA({ estados });
+    const aquecimento = bloco(s, "agachamento-livre").series.filter(
+      (x) => x.tipo === "aquecimento",
+    );
+    // 43,5 ÷ 2 = 21,75 → 21,5 (7,5 + 2 × 7) na escala da barra maciça
+    expect(aquecimento[1]?.cargaKg).toBe(21.5);
+  });
+
+  it("pré-preenche a carga de hoje e o TOPO da faixa em cada série", () => {
+    const s = sessaoA();
+    const trabalho = bloco(s, "agachamento-livre").series.filter(
+      (x) => x.tipo === "trabalho",
+    );
+    expect(trabalho).toHaveLength(3);
+    expect(trabalho.map((x) => x.reps)).toEqual([5, 5, 5]);
+    expect(trabalho.map((x) => x.cargaKg)).toEqual([7.5, 7.5, 7.5]);
+    expect(trabalho.map((x) => x.setIndex)).toEqual([1, 2, 3]);
+
+    // remada: 3 × 6–8 → o topo é 8 (SPEC §3.2)
+    expect(
+      bloco(s, "remada-curvada-pronada").series.map((x) => x.reps),
+    ).toEqual([8, 8, 8]);
+    // desenvolvimento com halteres: 1,5 kg POR HALTER (SPEC §4 e §10.2)
+    expect(bloco(s, "desenvolvimento-com-halteres").series[0]?.cargaKg).toBe(1.5);
+    // peso corporal fica em 0 e não vira carga nenhuma na tela
+    expect(bloco(s, "elevacao-de-pernas-na-barra-fixa").series[0]?.cargaKg).toBe(0);
+    expect(textoDaCargaDoBloco(bloco(s, "elevacao-de-pernas-na-barra-fixa"))).toBe(
+      "peso do corpo",
+    );
+    expect(textoDaCargaDoBloco(bloco(s, "desenvolvimento-com-halteres"))).toBe(
+      "1,5 kg por halter",
+    );
+  });
+
+  it("a carga vem do exercise_state quando existe (SPEC §6.1)", () => {
+    const estados: Record<string, EstadoExercicio> = {
+      "supino-reto-com-barra": {
+        ...estadoInicial(acharExercicio("supino-reto-com-barra")),
+        carga_atual_kg: 9.5,
+      },
+    };
+    const s = sessaoA({ estados });
+    expect(bloco(s, "supino-reto-com-barra").series[0]?.cargaKg).toBe(9.5);
+    expect(bloco(s, "supino-reto-com-barra").alvo.incremento_kg).toBe(2);
+  });
+
+  it("tempo e passos pré-preenchem o campo certo (prancha e farmer's walk)", () => {
+    const iA = montarSessao({
+      id: "x",
+      userId: "u1",
+      data: "2026-09-14",
+      treinoId: "IA",
+      fase: "fase2",
+      novoId: contador("t"),
+    });
+    const prancha = bloco(iA, "prancha").series[0];
+    expect(prancha?.tempoS).toBe(60); // topo da faixa 30–60 s
+    expect(prancha?.reps).toBeNull();
+
+    const iB = montarSessao({
+      id: "y",
+      userId: "u1",
+      data: "2026-09-14",
+      treinoId: "IB",
+      fase: "fase2",
+      novoId: contador("p"),
+    });
+    const farmer = bloco(iB, "farmer-s-walk").series[0];
+    expect(farmer?.passos).toBe(40);
+    expect(farmer?.reps).toBeNull();
+  });
+
+  it("unilateral abre os dois lados (SPEC §6.3)", () => {
+    const sB = montarSessao({
+      id: "z",
+      userId: "u1",
+      data: "2026-09-14",
+      treinoId: "SB",
+      fase: "fase2",
+      novoId: contador("u"),
+    });
+    const serrote = bloco(sB, "remada-unilateral-serrote").series[0];
+    expect(serrote?.reps).not.toBeNull();
+    expect(serrote?.repsLado2).toBe(serrote?.reps);
+    // o `maximo` da barra fixa não pré-preenche reps: quem diz é a série feita
+    expect(bloco(sB, "barra-fixa-pronada").series[0]?.reps).toBeNull();
+  });
+
+  it("conta as séries de trabalho no rodapé (o aquecimento não conta)", () => {
+    const s = sessaoA();
+    expect(progressoDaSessao(s)).toMatchObject({ feitas: 0, total: 16 });
+    const feito = fazerTudoNoTopo(s, "agachamento-livre");
+    expect(progressoDaSessao(feito)).toMatchObject({ feitas: 3, texto: "3/16 séries" });
+  });
+});
+
+/* ------------------------------------------------------ mexer na sessão */
+
+describe("mexer nas séries", () => {
+  it("concluir uma série preenche a seguinte (SPEC §3.2)", () => {
+    const s = sessaoA();
+    const b = bloco(s, "remada-curvada-pronada");
+    const primeira = b.series[0]!;
+    let nova = atualizarSerie(s, b.ordem, primeira.id, { reps: 7, cargaKg: 25.5 });
+    nova = marcarSerie(nova, b.ordem, primeira.id, true, "2026-09-14T09:10:00.000Z");
+
+    const depois = bloco(nova, "remada-curvada-pronada").series;
+    expect(depois[0]?.concluida).toBe(true);
+    expect(depois[0]?.registradaEm).toBe("2026-09-14T09:10:00.000Z");
+    expect(depois[1]?.reps).toBe(7);
+    expect(depois[1]?.cargaKg).toBe(25.5);
+    expect(depois[1]?.concluida).toBe(false);
+    // a terceira continua com o topo até a segunda ser concluída
+    expect(depois[2]?.reps).toBe(8);
+  });
+
+  it("a série de aquecimento não vaza para a primeira de trabalho", () => {
+    const s = sessaoA();
+    const b = bloco(s, "agachamento-livre");
+    const aquece = b.series[1]!; // segunda linha de aquecimento
+    const nova = marcarSerie(s, b.ordem, aquece.id, true);
+    expect(bloco(nova, "agachamento-livre").series[2]?.reps).toBe(5);
+    expect(bloco(nova, "agachamento-livre").series[2]?.tipo).toBe("trabalho");
+  });
+
+  it("desmarcar limpa o horário de registro", () => {
+    const s = sessaoA();
+    const b = bloco(s, "rosca-direta-com-barra");
+    const id = b.series[0]!.id;
+    const marcada = marcarSerie(s, b.ordem, id, true, "2026-09-14T10:00:00.000Z");
+    const desmarcada = marcarSerie(marcada, b.ordem, id, false);
+    expect(bloco(desmarcada, "rosca-direta-com-barra").series[0]?.concluida).toBe(false);
+    expect(bloco(desmarcada, "rosca-direta-com-barra").series[0]?.registradaEm).toBeNull();
+  });
+
+  it("firmePadrao: sim quando todas as séries chegaram ao topo", () => {
+    const s = sessaoA();
+    expect(firmePadrao(bloco(s, "agachamento-livre"))).toBe(false);
+    const tudo = fazerTudoNoTopo(s, "agachamento-livre");
+    expect(firmePadrao(bloco(tudo, "agachamento-livre"))).toBe(true);
+    const curto = fazerTudoNoTopo(s, "remada-curvada-pronada", { reps: 6 });
+    expect(firmePadrao(bloco(curto, "remada-curvada-pronada"))).toBe(false);
+  });
+});
+
+/* ---------------------------------------------------------- substituição */
+
+describe("substituir hoje (SPEC §3.2)", () => {
+  it("só oferece exercícios do mesmo grupo com equipamento daqui", () => {
+    const lista = substitutosPara("agachamento-livre");
+    expect(lista.length).toBeGreaterThan(0);
+    expect(lista.every((e) => e.grupo === "Pernas")).toBe(true);
+    expect(lista.some((e) => e.id === "agachamento-livre")).toBe(false);
+    expect(lista.some((e) => e.id === "agachamento-frontal")).toBe(true);
+  });
+
+  it("o registro fica com o substituto e o original não é avaliado", () => {
+    const s = sessaoA();
+    const trocada = substituirExercicio(s, 1, "agachamento-frontal", null, {
+      novoId: contador("n"),
+    });
+    const b = trocada.blocos[0]!;
+    expect(b.exercicioId).toBe("agachamento-frontal");
+    expect(b.originalId).toBe("agachamento-livre");
+    expect(b.substituido).toBe(true);
+
+    const feita = fazerTudoNoTopo(trocada, "agachamento-frontal");
+    const resultados = avaliarSessao(feita);
+    expect(resultados.map((r) => r.exercicioId)).toContain("agachamento-frontal");
+    expect(resultados.map((r) => r.exercicioId)).not.toContain("agachamento-livre");
+  });
+});
+
+/* ------------------------------------------------------------ steppers */
+
+describe("proximaCarga — o ± da carga só anda em cargas alcançáveis (§6.4)", () => {
+  it("sobe o incremento do exercício na escala da barra", () => {
+    expect(proximaCarga(7.5, "barra_macica", 4, 1)).toBe(11.5);
+    expect(proximaCarga(11.5, "barra_macica", 4, -1)).toBe(7.5);
+    expect(proximaCarga(7.5, "barra_macica", 2, 1)).toBe(9.5);
+  });
+
+  it("não desce abaixo da barra vazia nem sobe acima do teto do kit", () => {
+    expect(proximaCarga(7.5, "barra_macica", 4, -1)).toBe(7.5);
+    expect(proximaCarga(107.5, "barra_macica", 4, 1)).toBe(107.5);
+  });
+
+  it("halteres andam de 2 em 2 por halter e a polia de 1 em 1", () => {
+    expect(proximaCarga(1.5, "halteres", 2, 1)).toBe(3.5);
+    expect(proximaCarga(4, "polia", 2, 1)).toBe(6);
+    expect(proximaCarga(4, "polia", 2, -1)).toBe(2);
+  });
+
+  it("o elástico e a corda não têm carga para andar", () => {
+    expect(proximaCarga(0, "band", 2, 1)).toBe(0);
+    expect(proximaCarga(0, "corda", 2, -1)).toBe(0);
+  });
+
+  it("no lastro da mochila o passo é de 1 kg (SPEC §6.4)", () => {
+    expect(proximaCarga(0, "barra_fixa", 2, 1)).toBe(2);
+    expect(proximaCarga(2, "barra_fixa", 2, -1)).toBe(0);
+  });
+});
+
+/* ------------------------------------------------------------- montagem */
+
+describe("montagem na tela (SPEC §6.5)", () => {
+  it("devolve as anilhas por lado e a diferença quando não fecha", () => {
+    const exata = montagemDaCarga("agachamento-livre", 25.5);
+    expect(exata?.porLado).toEqual([5, 4]);
+    expect(exata?.exato).toBe(true);
+
+    const torta = montagemDaCarga("agachamento-livre", 26.5);
+    expect(torta?.total).toBe(25.5);
+    expect(torta?.exato).toBe(false);
+    expect(torta?.diferenca).toBe(-1);
+  });
+
+  it("peso corporal não monta anilha nenhuma", () => {
+    const m = montagemDaCarga("elevacao-de-pernas-na-barra-fixa", 0);
+    expect(m?.anilhas).toEqual([]);
+  });
+});
+
+/* ------------------------------------------------- escritas da fila (§8) */
+
+describe("escritas da fila de saída (SPEC §8)", () => {
+  it("a criação da sessão é um upsert por id (dá para criar offline)", () => {
+    const s = sessaoA();
+    expect(escritaDaSessao(s)).toEqual({
+      tabela: "sessions",
+      op: "upsert",
+      onConflict: "id",
+      linha: {
+        id: "sess-1",
+        user_id: "u1",
+        data: "2026-09-14",
+        workout_id: "A1",
+        fase: "fase1",
+        status: "em_andamento",
+        iniciada_em: "2026-09-14T09:00:00.000Z",
+      },
+    });
+  });
+
+  it("cada série concluída é um upsert em session_sets por id", () => {
+    const s = fazerTudoNoTopo(sessaoA(), "agachamento-livre");
+    const b = bloco(s, "agachamento-livre");
+    const serie = b.series.find((x) => x.tipo === "trabalho")!;
+    const escrita = escritaDaSerie(s, b, serie);
+
+    expect(escrita.tabela).toBe("session_sets");
+    expect(escrita.op).toBe("upsert");
+    expect(escrita.onConflict).toBe("id");
+    expect(escrita.linha).toMatchObject({
+      id: serie.id,
+      session_id: "sess-1",
+      user_id: "u1",
+      exercise_id: "agachamento-livre",
+      ordem_ex: 1,
+      set_index: 1,
+      tipo: "trabalho",
+      reps: 5,
+      carga_kg: 7.5,
+      concluida: true,
+      reps_alvo_min: 5,
+      reps_alvo_max: 5,
+      // SPEC §3.2: o valor que o motor vai usar, não o "ainda não tocado"
+      ultima_firme: true,
+    });
+  });
+
+  it("as notas dos blocos viram uma nota só da sessão", () => {
+    const s = sessaoA();
+    const comNota: SessaoLocal = {
+      ...s,
+      blocos: s.blocos.map((b) =>
+        b.ordem === 1 ? { ...b, nota: "joelho reclamou" } : b,
+      ),
+    };
+    expect(notasDaSessao(comNota)).toBe("Agachamento livre: joelho reclamou");
+    expect(notasDaSessao(s)).toBeNull();
+  });
+});
+
+/* ----------------------------------------------------------- conclusão */
+
+describe("concluirSessao — o motor e as escritas (SPEC §6.2, §6.6 e §8)", () => {
+  function tudoNoTopo(): SessaoLocal {
+    let s = sessaoA();
+    for (const b of s.blocos) {
+      s = fazerTudoNoTopo(s, b.exercicioId);
+    }
+    return { ...s, status: "concluida" };
+  }
+
+  it("tudo no topo com a última firme: sobe e grava o evento", () => {
+    const { resultados, escritas } = concluirSessao({
+      sessao: tudoNoTopo(),
+      agora: "2026-09-14T09:44:00.000Z",
+      novoId: contador("ev"),
+    });
+
+    const agachamento = resultados.find((r) => r.exercicioId === "agachamento-livre")!;
+    expect(agachamento.simbolo).toBe("↑");
+    expect(agachamento.motivo).toBe("subiu");
+    expect(agachamento.texto).toBe("7,5 → 11,5 kg na barra");
+    expect(agachamento.decisao.novoEstado.carga_atual_kg).toBe(11.5);
+
+    // elevação de pernas progride em reps (SPEC §6.3)
+    const pernas = resultados.find(
+      (r) => r.exercicioId === "elevacao-de-pernas-na-barra-fixa",
+    )!;
+    expect(pernas.simbolo).toBe("↑");
+    /*
+     * SPEC §6.1: na primeira vez o estado guarda o PISO da faixa (10), e é
+     * dele que o evento da §6.6 parte; o topo a bater (15) é o que a tela
+     * pré-preenche em cada série (`alvo_max`).
+     */
+    expect(pernas.texto).toBe("10 → 16 repetições");
+
+    const sessions = escritas.filter((e) => e.tabela === "sessions");
+    expect(sessions).toHaveLength(1);
+    expect(sessions[0]?.op).toBe("update");
+    expect(sessions[0]?.linha).toMatchObject({
+      status: "concluida",
+      concluida_em: "2026-09-14T09:44:00.000Z",
+      duracao_s: 2640,
+    });
+
+    const estados = escritas.filter((e) => e.tabela === "exercise_state");
+    expect(estados).toHaveLength(6);
+    expect(estados[0]).toMatchObject({ op: "upsert", onConflict: "user_id,exercise_id" });
+    expect(estados[0]?.linha).toMatchObject({
+      user_id: "u1",
+      exercise_id: "agachamento-livre",
+      carga_atual_kg: 11.5,
+      falhas_seguidas: 0,
+    });
+
+    const eventos = escritas.filter((e) => e.tabela === "progression_events");
+    expect(eventos).toHaveLength(6);
+    expect(eventos[0]?.op).toBe("insert");
+    expect(eventos[0]?.linha).toMatchObject({
+      user_id: "u1",
+      exercise_id: "agachamento-livre",
+      session_id: "sess-1",
+      data: "2026-09-14",
+      motivo: "subiu",
+      de: { carga_kg: 7.5 },
+      para: { carga_kg: 11.5 },
+    });
+
+    const perfil = escritas.find((e) => e.tabela === "profiles");
+    expect(perfil).toMatchObject({
+      op: "update",
+      filtro: { user_id: "u1" },
+      linha: { ultimo_treino: "A1" },
+    });
+  });
+
+  it("sem a última firme o exercício repete (SPEC §6.2)", () => {
+    let s = tudoNoTopo();
+    s = {
+      ...s,
+      blocos: s.blocos.map((b) =>
+        b.exercicioId === "agachamento-livre" ? { ...b, ultimaFirme: false } : b,
+      ),
+    };
+    const { resultados } = concluirSessao({ sessao: s, novoId: contador("e") });
+    const agachamento = resultados.find((r) => r.exercicioId === "agachamento-livre")!;
+    expect(agachamento.simbolo).toBe("=");
+    expect(agachamento.texto).toBe("repetiu 7,5 kg na barra");
+  });
+
+  it("abandonar mantém o registrado, não avalia o incompleto e não mexe no perfil", () => {
+    let s = sessaoA();
+    s = fazerTudoNoTopo(s, "agachamento-livre");
+    s = { ...s, status: "abandonada" };
+
+    const { resultados, escritas } = concluirSessao({ sessao: s, novoId: contador("e") });
+    const agachamento = resultados.find((r) => r.exercicioId === "agachamento-livre")!;
+    expect(agachamento.motivo).toBe("subiu");
+    const supino = resultados.find((r) => r.exercicioId === "supino-reto-com-barra")!;
+    expect(supino.motivo).toBeNull();
+
+    expect(escritas.find((e) => e.tabela === "profiles")).toBeUndefined();
+    expect(escritas.filter((e) => e.tabela === "progression_events")).toHaveLength(1);
+    expect(escritas[0]?.linha).toMatchObject({ status: "abandonada", concluida_em: null });
+  });
+
+  it("o peso do dia vira uma linha em body_weights (upsert por data)", () => {
+    const s: SessaoLocal = { ...tudoNoTopo(), pesoCorporal: 86.4, sensacao: 4 };
+    const { escritas } = concluirSessao({ sessao: s, novoId: contador("e") });
+    expect(escritas.find((e) => e.tabela === "body_weights")).toMatchObject({
+      op: "upsert",
+      onConflict: "user_id,data",
+      linha: { user_id: "u1", data: "2026-09-14", peso_kg: 86.4 },
+    });
+    expect(escritas[0]?.linha).toMatchObject({ sensacao: 4, peso_corporal: 86.4 });
+  });
+
+  it("uma série abaixo do piso é falha e o resumo mostra ↓ na segunda", () => {
+    const estados: Record<string, EstadoExercicio> = {
+      "agachamento-livre": {
+        ...estadoInicial(acharExercicio("agachamento-livre")),
+        carga_atual_kg: 43.5,
+        falhas_seguidas: 1,
+      },
+    };
+    let s = sessaoA({ estados });
+    s = fazerTudoNoTopo(s, "agachamento-livre", { reps: 3, cargaKg: 43.5 });
+    s = { ...s, status: "concluida" };
+
+    const { resultados } = concluirSessao({ sessao: s, novoId: contador("e") });
+    const agachamento = resultados.find((r) => r.exercicioId === "agachamento-livre")!;
+    expect(agachamento.simbolo).toBe("↓");
+    expect(agachamento.motivo).toBe("falha_2x_voltou_10");
+    // 43,5 × 0,90 = 39,15 → a alcançável para baixo na barra maciça (§6.4)
+    expect(agachamento.decisao.novoEstado.carga_atual_kg).toBe(37.5);
+  });
+});
+
+/* ------------------------------------------------------------- recordes */
+
+describe("recordes no resumo (SPEC §6.6)", () => {
+  it("bate carga, reps e e1RM quando passa do que a view tinha", () => {
+    const s = fazerTudoNoTopo(sessaoA(), "agachamento-livre");
+    const b = bloco(s, "agachamento-livre");
+    const recordes = recordesDoBloco({ ...b, recordeCarga: 5, recordeReps: 4, recordeE1rm: 6 });
+    expect(recordes.map((r) => r.tipo)).toEqual(["carga", "reps", "e1rm"]);
+    expect(recordes[0]?.texto).toBe("7,5 kg na barra");
+    expect(recordes[1]?.texto).toBe("5 repetições");
+  });
+
+  it("não inventa recorde quando a marca antiga é maior", () => {
+    const s = fazerTudoNoTopo(sessaoA(), "agachamento-livre");
+    const b = bloco(s, "agachamento-livre");
+    expect(
+      recordesDoBloco({ ...b, recordeCarga: 60, recordeReps: 12, recordeE1rm: 80 }),
+    ).toEqual([]);
+  });
+
+  it("nada concluído, nenhum recorde", () => {
+    expect(recordesDoBloco(bloco(sessaoA(), "agachamento-livre"))).toEqual([]);
+  });
+});
+
+/* ---------------------------------------------------- séries anteriores */
+
+describe("seriesAnterioresPorExercicio — o tipo `maximo` precisa da última sessão", () => {
+  const linha = (
+    extras: Partial<LinhaSerie> & Pick<LinhaSerie, "session_id" | "set_index" | "reps" | "registrada_em">,
+  ) =>
+    ({
+      exercise_id: "barra-fixa-pronada",
+      tipo: "trabalho",
+      concluida: true,
+      ...extras,
+    }) as LinhaSerie;
+
+  it("pega só a sessão mais recente, na ordem das séries", () => {
+    const linhas = [
+      linha({ session_id: "velha", set_index: 2, reps: 2, registrada_em: "2026-09-01T10:01:00Z" }),
+      linha({ session_id: "velha", set_index: 1, reps: 3, registrada_em: "2026-09-01T10:00:00Z" }),
+      linha({ session_id: "nova", set_index: 1, reps: 4, registrada_em: "2026-09-08T10:00:00Z" }),
+      linha({ session_id: "nova", set_index: 2, reps: 3, registrada_em: "2026-09-08T10:01:00Z" }),
+    ];
+    expect(seriesAnterioresPorExercicio(linhas)).toEqual({
+      "barra-fixa-pronada": [4, 3],
+    });
+  });
+
+  it("ignora a sessão de hoje, o aquecimento e o que não foi concluído", () => {
+    const linhas = [
+      linha({ session_id: "hoje", set_index: 1, reps: 9, registrada_em: "2026-09-14T10:00:00Z" }),
+      linha({ session_id: "velha", set_index: 1, reps: 5, registrada_em: "2026-09-08T10:00:00Z" }),
+      linha({
+        session_id: "velha",
+        set_index: 2,
+        reps: 9,
+        registrada_em: "2026-09-08T10:01:00Z",
+        tipo: "aquecimento",
+      }),
+      linha({
+        session_id: "velha",
+        set_index: 3,
+        reps: 9,
+        registrada_em: "2026-09-08T10:02:00Z",
+        concluida: false,
+      }),
+    ];
+    expect(seriesAnterioresPorExercicio(linhas, "hoje")).toEqual({
+      "barra-fixa-pronada": [5],
+    });
+  });
+});
+
+/* -------------------------------------------------------- reconstrução */
+
+describe("reconstruirSessao — voltar de onde parou sem o aparelho de origem", () => {
+  it("as séries gravadas vencem as pré-preenchidas", () => {
+    const original = fazerTudoNoTopo(sessaoA(), "agachamento-livre");
+    const b = bloco(original, "agachamento-livre");
+    const gravadas = b.series
+      .filter((s) => s.concluida)
+      .map(
+        (s) =>
+          escritaDaSerie(original, b, s).linha as unknown as LinhaSerie,
+      );
+
+    const voltou = reconstruirSessao(
+      {
+        id: "sess-1",
+        user_id: "u1",
+        data: "2026-09-14",
+        workout_id: "A1",
+        fase: "fase1",
+        status: "em_andamento",
+        iniciada_em: "2026-09-14T09:00:00.000Z",
+      },
+      gravadas,
+      { novoId: contador("r") },
+    );
+
+    expect(voltou).not.toBeNull();
+    expect(progressoDaSessao(voltou!)).toMatchObject({ feitas: 3, total: 16 });
+    const reconstruido = voltou!.blocos[0]!;
+    expect(reconstruido.series.filter((s) => s.concluida).map((s) => s.id)).toEqual(
+      b.series.filter((s) => s.concluida).map((s) => s.id),
+    );
+  });
+});

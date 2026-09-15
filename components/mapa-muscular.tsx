@@ -1,24 +1,5 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import type { Musculo } from "@/lib/schemas";
 import { cn } from "@/lib/utils";
-
-let spriteEmCache: string | null = null;
-
-/** O sprite do corpo (assets/mapa-muscular/corpo-sprite.svg), inline uma vez. */
-export function SpriteMuscular() {
-  spriteEmCache ??= readFileSync(
-    join(process.cwd(), "assets", "mapa-muscular", "corpo-sprite.svg"),
-    "utf8",
-  );
-  return (
-    <div
-      aria-hidden="true"
-      className="hidden"
-      dangerouslySetInnerHTML={{ __html: spriteEmCache }}
-    />
-  );
-}
 
 /** Boneco frente/costas com os músculos do exercício destacados. */
 export function MapaMuscular({

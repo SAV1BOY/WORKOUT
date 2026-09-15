@@ -11,6 +11,7 @@ import programaJson from "@/data/programa.json";
 import progressaoJson from "@/data/progressao.json";
 import {
   cardioSchema,
+  equipamentoTagSchema,
   equipamentosSchema,
   exerciciosSchema,
   perfilSchema,
@@ -18,6 +19,7 @@ import {
   progressaoJsonSchema,
   type DiaPrograma,
   type DiaSemana,
+  type EquipamentoTag,
   type Exercicio,
   type Fase,
   type FaseId,
@@ -169,4 +171,22 @@ export function anilhasDisponiveis() {
 
 export function pesoDaBarra(id: string): number | null {
   return equipamentos.barras.find((b) => b.id === id)?.peso_kg ?? null;
+}
+
+/**
+ * As tags de equipamento que existem no terraço (data/equipamentos.json).
+ * Usada pela troca de exercício do dia (SPEC §3.2): só entra na lista quem dá
+ * para fazer aqui. O kit de 100 kg traz as anilhas, as barras ocas e os
+ * halteres; os demais itens têm o próprio id igual à tag do catálogo.
+ */
+export function equipamentoDisponivel(): ReadonlySet<EquipamentoTag> {
+  const tags = new Set<EquipamentoTag>();
+  const talvez = (valor: string) => {
+    const r = equipamentoTagSchema.safeParse(valor);
+    if (r.success) tags.add(r.data);
+  };
+  for (const item of equipamentos.itens) talvez(item.id);
+  for (const barra of equipamentos.barras) talvez(barra.id);
+  if (equipamentos.anilhas.pecas.length > 0) tags.add("anilhas");
+  return tags;
 }

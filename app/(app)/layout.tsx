@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import { ConfigurarSupabase } from "@/components/configurar-supabase";
-import { SpriteMuscular } from "@/components/mapa-muscular";
+import { SpriteMuscular } from "@/components/sprite-muscular";
 import { NavInferior } from "@/components/nav-inferior";
 import {
   SUPABASE_ANON_KEY,

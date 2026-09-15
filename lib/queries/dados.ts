@@ -16,6 +16,8 @@ import type {
   LinhaExcecaoAgenda,
   LinhaPerfil,
   LinhaPeso,
+  LinhaRecorde,
+  LinhaSerie,
   LinhaSessao,
   LinhaSessaoCardio,
 } from "@/lib/types";
@@ -33,6 +35,11 @@ export const chaves = {
   soltas: (data: string) => ["soltas", data] as const,
   estados: (ids: readonly string[]) => ["estados", [...ids].sort().join(",")] as const,
   eventos: (ids: readonly string[]) => ["eventos", [...ids].sort().join(",")] as const,
+  sessao: (id: string) => ["sessao", id] as const,
+  series: (id: string) => ["series", id] as const,
+  seriesAnteriores: (ids: readonly string[]) =>
+    ["series-anteriores", [...ids].sort().join(",")] as const,
+  recordes: (ids: readonly string[]) => ["recordes", [...ids].sort().join(",")] as const,
 };
 
 interface Resposta<T> {
@@ -225,6 +232,87 @@ export function useEventos(ids: readonly string[]): UseQueryResult<EventoResumo[
           .order("data", { ascending: false })
           .limit(120),
         "o histórico de progressão",
+      ),
+  });
+}
+
+/* ------------------------------------------- sessão de força (marco 3) */
+
+/** Uma sessão pelo id (para reabrir num aparelho que não a criou). */
+export function useSessao(id: string | null): UseQueryResult<LinhaSessao | null> {
+  return useQuery({
+    queryKey: chaves.sessao(id ?? ""),
+    enabled: id !== null,
+    queryFn: () =>
+      ler<LinhaSessao>(
+        clienteNavegador()
+          .from("sessions")
+          .select("*")
+          .eq("id", id ?? "")
+          .maybeSingle(),
+        "este treino",
+      ),
+  });
+}
+
+/** As séries já gravadas de uma sessão. */
+export function useSeriesDaSessao(id: string | null): UseQueryResult<LinhaSerie[]> {
+  return useQuery({
+    queryKey: chaves.series(id ?? ""),
+    enabled: id !== null,
+    queryFn: () =>
+      lerLista<LinhaSerie>(
+        clienteNavegador()
+          .from("session_sets")
+          .select("*")
+          .eq("session_id", id ?? "")
+          .order("registrada_em", { ascending: true }),
+        "as séries deste treino",
+      ),
+  });
+}
+
+/** Quantas séries a busca das sessões anteriores traz (tipo `maximo`, §6.3). */
+export const SERIES_ANTERIORES = 200;
+
+export type SerieAnterior = Pick<
+  LinhaSerie,
+  "exercise_id" | "session_id" | "set_index" | "reps" | "tipo" | "concluida" | "registrada_em"
+>;
+
+/** As séries recentes destes exercícios (o tipo `maximo` compara com elas). */
+export function useSeriesAnteriores(
+  ids: readonly string[],
+): UseQueryResult<SerieAnterior[]> {
+  return useQuery({
+    queryKey: chaves.seriesAnteriores(ids),
+    enabled: ids.length > 0,
+    queryFn: () =>
+      lerLista<SerieAnterior>(
+        clienteNavegador()
+          .from("session_sets")
+          .select("exercise_id,session_id,set_index,reps,tipo,concluida,registrada_em")
+          .in("exercise_id", [...ids])
+          .eq("tipo", "trabalho")
+          .order("registrada_em", { ascending: false })
+          .limit(SERIES_ANTERIORES),
+        "as séries anteriores",
+      ),
+  });
+}
+
+/** Recordes por exercício (view `v_records`), para o resumo do fim (§6.6). */
+export function useRecordes(ids: readonly string[]): UseQueryResult<LinhaRecorde[]> {
+  return useQuery({
+    queryKey: chaves.recordes(ids),
+    enabled: ids.length > 0,
+    queryFn: () =>
+      lerLista<LinhaRecorde>(
+        clienteNavegador()
+          .from("v_records")
+          .select("*")
+          .in("exercise_id", [...ids]),
+        "os seus recordes",
       ),
   });
 }

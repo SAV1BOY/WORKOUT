@@ -15,6 +15,7 @@ let enviador: Enviador | null = null;
 let rodando = false;
 let repetir = false;
 let iniciado = false;
+let relogio: ReturnType<typeof setTimeout> | null = null;
 
 /** Define quem envia os itens da fila (chamado pelo provider do app). */
 export function definirEnviador(fn: Enviador) {
@@ -63,7 +64,56 @@ export async function processar(): Promise<number> {
   } finally {
     rodando = false;
   }
+  await agendarProxima();
   return enviados;
+}
+
+/**
+ * Agenda a próxima tentativa para quando o item mais próximo vencer.
+ *
+ * Sem isto, um item que falhou ficava esperando um evento de fora (voltar a
+ * rede, voltar à aba, uma escrita nova) — e num treino no terraço, com o
+ * celular na mão e a rede indo e voltando, "o próximo evento" pode não vir:
+ * a série registrada ficaria parada na fila sem nada para acordá-la.
+ */
+async function agendarProxima(): Promise<void> {
+  if (relogio) {
+    clearTimeout(relogio);
+    relogio = null;
+  }
+  if (!temIndexedDB() || !enviador) return;
+  const proximos = await bd()
+    .outbox.orderBy("proximaTentativa")
+    .limit(1)
+    .toArray()
+    .catch(() => []);
+  const proximo = proximos[0];
+  if (!proximo) return;
+  const espera = Math.max(250, Math.min(proximo.proximaTentativa - Date.now(), ATRASO_MAX_MS));
+  relogio = setTimeout(() => {
+    relogio = null;
+    void processar();
+  }, espera);
+}
+
+/**
+ * A rede voltou: o motivo de todas as falhas acabou, então o backoff também.
+ * Marca tudo como vencido e tenta agora (SPEC §8: nunca perder um registro).
+ */
+export async function tentarAgora(): Promise<number> {
+  if (!temIndexedDB()) return 0;
+  const agora = Date.now();
+  const atrasados = await bd()
+    .outbox.where("proximaTentativa")
+    .above(agora)
+    .toArray()
+    .catch(() => []);
+  for (const item of atrasados) {
+    if (item.id !== undefined) {
+      await bd().outbox.update(item.id, { proximaTentativa: agora });
+    }
+  }
+  return processar();
 }
 
 /** Uma passada pelos itens vencidos. */
@@ -101,6 +151,24 @@ async function umaRodada(): Promise<number> {
   return enviados;
 }
 
+/**
+ * Espera a fila esvaziar, tentando de novo algumas vezes. Devolve quantos
+ * sobraram. Quem chama usa isto para só então reler o que acabou de gravar
+ * (a tela Hoje depois de concluir o treino, SPEC §6.6). Sem rede, desiste na
+ * hora: o que está na fila sobe quando a rede voltar.
+ */
+export async function esperarFila(tentativas = 20, esperaMs = 100): Promise<number> {
+  if (!temIndexedDB()) return 0;
+  for (let i = 0; i < tentativas; i++) {
+    if ((await pendentes()) === 0) return 0;
+    if (typeof navigator !== "undefined" && navigator.onLine === false) break;
+    await processar();
+    if ((await pendentes()) === 0) return 0;
+    await new Promise((pronto) => setTimeout(pronto, esperaMs));
+  }
+  return pendentes();
+}
+
 export async function pendentes(): Promise<number> {
   if (!temIndexedDB()) return 0;
   return bd().outbox.count();
@@ -111,7 +179,7 @@ export function iniciarOutbox() {
   if (iniciado || typeof window === "undefined") return;
   iniciado = true;
   window.addEventListener("online", () => {
-    void processar();
+    void tentarAgora();
   });
   window.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible") void processar();

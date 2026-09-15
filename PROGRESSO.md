@@ -1120,3 +1120,194 @@ ou afrouxado):
    (e não "Abrir o treino"); o X do diálogo agora é um alvo de 44 × 44.
 3. Offline de verdade: abra a Hoje com rede, espere um segundo, ligue o modo
    avião e recarregue — a tela inteira volta na hora, do IndexedDB.
+
+---
+
+## Marco 3 — Sessão de força ✅
+
+O coração do app (SPEC §3.2, §6.5, §6.6 e §8): começar o treino, registrar
+série a série com o polegar, o timer de descanso, o motor decidindo no fim e
+**nada se perdendo** — cada toque vai para o IndexedDB na hora e o Supabase
+recebe pela fila de saída.
+
+### O que foi feito
+
+**Adaptador puro (`lib/sessao.ts`, com testes)**
+
+A sessão inteira é um objeto de dados (`SessaoLocal`), e todas as regras da
+tela são funções puras em cima dele. Nenhuma regra do motor foi reimplementada:
+quem decide é `lib/progressao.ts`, quem monta as anilhas é `lib/montagem.ts`.
+
+```ts
+montarSessao({id, userId, data, treinoId, fase, estados, anteriores, recordes})
+reconstruirSessao(linhaSessao, linhasDeSerie, {estados})   // sessão de outro aparelho
+atualizarSerie · marcarSerie · definirFirme · definirNota  // cada toque
+substituirExercicio(sessao, ordem, novoId, estado) · substitutosPara(id)
+proximaCarga(atual, implemento, incremento, direcao)       // o ± da carga (§6.4)
+progressoDaSessao · firmePadrao · textoDaCargaDoBloco · montagemDaCarga
+escritaDaSessao · escritaDaSerie                           // itens da fila (§8)
+avaliarSessao(sessao) · concluirSessao({sessao, agora})    // motor + escritas
+recordesDoBloco · seriesAnterioresPorExercicio · notasDaSessao
+```
+
+- **O bloco carrega o que o motor vai precisar**: a prescrição do dia, o
+  `AlvoDeHoje` de `cargaDeHoje()`, o `exercise_state` como estava no início, as
+  séries da última sessão (tipo `maximo`) e os recordes da `v_records` — tudo
+  congelado quando a sessão começa. Por isso **concluir funciona offline**: o
+  motor roda inteiro no aparelho, sem reler nada.
+- **Aquecimento** (§3.2): duas linhas (`tipo = 'aquecimento'`) no **primeiro**
+  exercício `composto_pesado` do treino — barra vazia × 5 e metade da carga,
+  as duas passadas por `alcancavelParaBaixo` (a metade de 43,5 é 21,5, não
+  21,75). Não contam no rodapé nem no motor.
+- **Pré-preenchimento**: carga de hoje e **topo** da faixa (`alvo_max`, não o
+  `reps_alvo` do estado — a nota do marco do motor); concluir uma série copia os
+  valores dela para a seguinte, se ainda estiver em branco e for do mesmo tipo.
+- **Substituir hoje**: o bloco passa a ser do substituto (`exercise_id`,
+  prescrição e descanso dele); o original não é avaliado. A lista sai de
+  `equipamentoDisponivel()` (novo em `lib/dados.ts`, lido de
+  `data/equipamentos.json`) cruzada com o grupo do exercício.
+
+**Tela (`components/treinar/`, `app/(app)/treinar/`)**
+
+- `/treinar`: com treino aberto (no aparelho ou em `sessions`), redireciona
+  para ele; senão lista os treinos da fase com o de hoje em destaque, a prévia
+  das cargas e "Começar Treino A".
+- `/treinar/[sessionId]`: um bloco por exercício na ordem do programa, com
+  nome, `séries × reps`, descanso (texto do `programa.json`), **carga de hoje**
+  com o evento da §6.6 ("subiu +4 kg no treino de 14/09"), botão **montagem**
+  (folha com os chips `10 · 5 · 2`, a carga alcançável, a diferença quando não
+  fecha e o aviso de anilhas faltando) e o ícone de **ajuda** (figura animada,
+  duas fotos, montagem, passos, erro comum, mapa muscular e a regra de
+  progressão — tudo dos JSON).
+- Linha de série: visto de 44 px · `StepperNumerico` de repetições (±1) ·
+  carga (± o incremento do exercício, sempre caindo numa carga que a §6.5
+  monta) · segundos com cronômetro (tempo) · passos · só reps (`maximo`) ·
+  seletor de elástico (assistência) · dois campos D/E (unilateral). Digitação
+  direta aceita vírgula (`lerNumero`) e `inputMode` numérico/decimal.
+- `TimerDescanso`: barra fixa no topo, regressiva pelo descanso do exercício,
+  vibração (`navigator.vibrate`) e bipe curto (WebAudio, sem arquivo de áudio)
+  ao zerar, "pular" e "+30 s". `useTelaAcesa` (Wake Lock) durante a sessão, com
+  re-aquisição ao voltar visível; as três preferências saem de `profiles.prefs`
+  (`descanso_som`, `descanso_vibra`, `manter_tela`).
+- Fim do bloco: toggle "Última repetição saiu firme?" (padrão calculado por
+  `firmePadrao`) e nota curta. Rodapé fixo com tempo decorrido, séries
+  feitas/total, "Abandonar" (com confirmação) e "Concluir" → resumo com
+  ↑ subiu / = repetiu / ↓ voltou por exercício, avisos e sugestões do motor,
+  recordes batidos, sensação 1–5 e o peso do dia (opcional) → salva e volta
+  para a Hoje.
+
+**Persistência (§8)**
+
+- `lib/queries/sessao.ts`: `salvarSessaoLocal` grava no Dexie com debounce de
+  **60 ms**, e `descarregarSessao()` grava na hora quando a aba some
+  (`pagehide`, `visibilitychange`) ou ao concluir. Ids no cliente
+  (`crypto.randomUUID`).
+- A fila recebe, nesta ordem: criação da sessão (upsert por `id`), **cada série
+  concluída** (upsert em `session_sets` por `id` — remarcar não duplica), e no
+  fim `update sessions` + `upsert exercise_state` + `insert progression_events`
+  + `update profiles.ultimo_treino` + `upsert body_weights` (peso opcional).
+- Indicador discreto no cabeçalho: "3 para sincronizar" / "sincronizado".
+
+**Duas correções em `lib/outbox.ts`** (defeitos reais que este marco expôs)
+
+1. **Item em backoff podia ficar esperando para sempre.** `processar()` só
+   mandava o que estava vencido e nada reagendava: se a rede voltasse no meio
+   do backoff, o item esperava o próximo evento de fora (`online`,
+   `visibilitychange`, outra escrita) — que pode não vir. Agora cada rodada
+   agenda a próxima para quando o item mais próximo vencer.
+2. **Voltar a rede não cancelava o backoff.** O motivo das falhas tinha acabado,
+   mas o `proximaTentativa` continuava lá na frente. O listener de `online`
+   passou a chamar `tentarAgora()`, que marca tudo como vencido e processa.
+   Entrou também `esperarFila()`, usada depois de concluir o treino: a Hoje só
+   relê `exercise_state`/`progression_events` **depois** que a fila esvazia
+   (sem segurar a navegação), senão ela leria o estado velho.
+
+### Decisões
+
+- **A sessão guarda o `AlvoDeHoje` e o `exercise_state` de quando começou.** É o
+  que permite concluir sem rede e o que garante que a tela e o motor decidam
+  sobre a mesma carga. Se o estado mudar no banco no meio do treino (não
+  acontece: um usuário, um aparelho), vale o que a sessão viu.
+- **`session_sets.ultima_firme` grava o valor efetivo** (`ultimaFirme ?? firmePadrao`),
+  não o `null` de "ainda não tocado": a coluna tem de explicar a decisão do motor.
+- **O rodapé conta só as séries de trabalho** ("3/16 séries"): o aquecimento não
+  está na prescrição e não entra na conta.
+- **O `Switch` do shadcn foi trocado por um botão de linha inteira** no toggle
+  "firme": o primitivo tem 18 px de altura e a §3 pede 44.
+- **Em exercícios de tempo cada campo ocupa a linha inteira** — o botão do
+  cronômetro come 44 px da coluna e a 360 px o número ficaria ilegível.
+- **O campo de carga só aparece quando existe carga** (> 0) ou quando a
+  progressão é por carga: prancha e elevação de pernas não ganham um campo de
+  lastro que ninguém usa.
+- **"Concluir"**, e não "Concluir treino", no rodapé: a 360 px o botão divide a
+  linha com o tempo, as séries e o "Abandonar".
+- **Abandonar não move `profiles.ultimo_treino`**: a alternância da §5.2 só anda
+  com treino concluído. O motor continua avaliando os exercícios completos.
+- `components/mapa-muscular.tsx` foi partido: `SpriteMuscular` (lê o SVG do
+  disco, servidor) foi para `components/sprite-muscular.tsx`, e o
+  `MapaMuscular` ficou puro — sem isso, a ficha do exercício levaria `node:fs`
+  para o bundle do navegador.
+
+### Testes
+
+- **Unitários** (`npm test`, **497**): `lib/sessao.test.ts` (35) cobre a
+  montagem das linhas do Treino A (ordem, aquecimento só no primeiro pesado,
+  metade alcançável, topo da faixa, tempo/passos/unilateral/`maximo`, carga do
+  estado), a cópia de valores para a série seguinte, `firmePadrao`, a
+  substituição, `proximaCarga` nos três implementos, a montagem da §6.5, as
+  escritas da fila, a conclusão (sobe / repete sem firme / falha com ↓ /
+  abandono / peso do dia), os recordes, as séries anteriores do tipo `maximo` e
+  a reconstrução a partir do banco.
+- **E2E** (`npm run e2e`, **67**): `e2e/treinar.spec.ts` (12) começa o Treino A
+  (6 blocos, aquecimento, cargas e rótulos da §10.2, a `sessions` no mock),
+  registra três séries **só pelos steppers**, vê o timer de 2:30 aparecer,
+  recarrega no meio (volta com o visto, a carga e a série seguinte herdada),
+  fica **offline** (mais duas séries, indicador de pendentes, o banco intocado)
+  e volta online (a fila esvazia e as três séries estão lá), conclui com tudo no
+  topo e "firme" (resumo ↑ "7,5 → 11,5 kg na barra", recordes, `exercise_state`
+  = 11,5, `progression_events` `subiu`, `ultimo_treino = A1`) e confere a §10.4
+  na Hoje: "Hoje: 11,5 kg na barra (subiu +4 kg no treino de 14/09)". Mais:
+  sem firme o exercício repete, abandonar guarda as séries sem avaliar o
+  incompleto, a folha de montagem, a ficha com figura/fotos/mapa, a
+  substituição registrando no substituto, e todo alvo do bloco ≥ 44 px sem
+  rolagem lateral.
+- Fixture nova: `fixarData()` (`page.clock.setFixedTime`) — o `install` do
+  marco anterior congela também `setTimeout`/`setInterval`, e a sessão depende
+  deles (debounce do IndexedDB, timer, fila).
+
+### O que falta
+
+- Marco 4: `/cardio/[id]` e `/barra-fixa` — a sessão de barra fixa da §3.4 vai
+  reaproveitar `montarSessao` com um treino de um exercício só.
+- `opcoesMontagem` da sessão está sempre em `{}`: quando a barra W e a reta oca
+  forem pesadas em `/mais` (§3.9), é ela que passa a carregar os pesos — a
+  sessão já os guarda e repassa a `cargaDeHoje`, `decidir` e `montagem`.
+- A sessão aberta manda em `/treinar` mesmo sendo de outro dia: para começar
+  outro treino é preciso descartá-la no banner da Hoje (§3.1). É o que a spec
+  pede, mas vale um atalho quando o marco 6 for polir.
+- O resumo mostra "conta como falha" quando o motor marca falha; a linha do
+  tempo completa dos eventos é a ficha do exercício (marco 5).
+
+### Como testar no celular (marco 3)
+
+1. `npm run build && npm run e2e` — 67 testes verdes num Chromium de 360 × 740
+   (`npm test` fecha em 497).
+2. À mão: `npm run mock` num terminal e `npm run dev:mock` no outro (troque
+   `127.0.0.1` pelo IP do computador nas três variáveis para abrir pelo
+   celular). Entre com `miguelgsaviotti29@gmail.com`.
+3. Na **Hoje** (numa segunda), toque em "Começar treino" → "Começar Treino A".
+   O agachamento abre com duas linhas de aquecimento a 7,5 kg e três séries de
+   3 × 5 a 7,5 kg.
+4. Marque a série 1 **com o polegar**: o timer de 2:30 desce no topo da tela, o
+   celular vibra e apita ao zerar. "+30 s" e "Pular" funcionam. A tela não
+   apaga durante o treino.
+5. Toque em "montagem": as anilhas por lado aparecem como chips; suba a carga
+   para 25,5 kg e confira `5 · 4`. Peça 26,5 e veja "a mais próxima para baixo
+   é 25,5 (−1 kg)".
+6. Ligue o **modo avião** e continue marcando séries: o cabeçalho passa a dizer
+   "n para sincronizar". Feche o app, abra de novo e volte para o treino: está
+   tudo lá. Desligue o avião e o contador volta para "sincronizado"
+   (`curl -s localhost:54321/__mock/estado` mostra as `session_sets`).
+7. "Concluir" → o resumo diz o que sobe e o que repete, mostra os recordes,
+   pede a sensação e (se quiser) o peso do dia. Salve: a Hoje volta com a
+   carga nova na prévia do próximo treino.
