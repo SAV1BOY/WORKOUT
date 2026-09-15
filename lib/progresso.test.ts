@@ -387,3 +387,32 @@ describe("treinos concluídos e dias desde", () => {
   });
 });
 
+
+describe("dataDaSerie no fuso de quem treinou", () => {
+  const serie = (registrada_em: string): SerieBruta => ({
+    exercise_id: "supino-reto-com-barra",
+    session_id: "sem-sessao-na-janela",
+    set_index: 1,
+    tipo: "trabalho",
+    reps: 5,
+    reps_lado2: null,
+    carga_kg: 20,
+    tempo_s: null,
+    tempo_s_lado2: null,
+    passos: null,
+    assistencia: null,
+    concluida: true,
+    registrada_em,
+  });
+
+  it("sem a sessão na janela, o dia é o do relógio local, não o de UTC", () => {
+    // 16/09/2026 às 22h em Nova Lima (UTC−3) = 17/09 01h em UTC
+    const vazio = new Map<string, string>();
+    expect(dataDaSerie(serie("2026-09-17T01:00:00.000Z"), vazio)).toBe("2026-09-16");
+  });
+
+  it("com a sessão na janela, vale a data da sessão", () => {
+    const porSessao = new Map([["sem-sessao-na-janela", "2026-09-16"]]);
+    expect(dataDaSerie(serie("2026-09-17T01:00:00.000Z"), porSessao)).toBe("2026-09-16");
+  });
+});

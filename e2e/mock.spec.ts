@@ -50,6 +50,46 @@ test.describe("mock do Supabase", () => {
     expect(resposta.status()).toBe(401);
   });
 
+  /**
+   * O `@supabase/ssr` renova a sessão no servidor (middleware) e no navegador;
+   * com o token vencido as duas chamadas saem quase juntas com o MESMO refresh
+   * token. O GoTrue tolera isso por uns segundos
+   * (`SECURITY_REFRESH_TOKEN_REUSE_INTERVAL`); sem essa janela o segundo pedido
+   * derrubaria a sessão e o app cairia no /login no meio da navegação.
+   */
+  test("o refresh token aceita ser trocado duas vezes seguidas", async ({ request }) => {
+    const entrada = await request.post(
+      `${URL_MOCK}/auth/v1/token?grant_type=password`,
+      {
+        headers: { apikey: "mock-anon", "content-type": "application/json" },
+        data: { email: "miguelgsaviotti29@gmail.com", password: "senha-de-teste" },
+      },
+    );
+    const sessao = (await json(entrada)) as { refresh_token: string };
+
+    const trocar = () =>
+      request.post(`${URL_MOCK}/auth/v1/token?grant_type=refresh_token`, {
+        headers: { apikey: "mock-anon", "content-type": "application/json" },
+        data: { refresh_token: sessao.refresh_token },
+      });
+
+    const [uma, outra] = await Promise.all([trocar(), trocar()]);
+    expect(uma.status()).toBe(200);
+    expect(outra.status()).toBe(200);
+    const nova = (await json(uma)) as { refresh_token: string };
+    expect(nova.refresh_token).not.toBe(sessao.refresh_token);
+
+    // um token inventado continua sendo recusado
+    const errado = await request.post(
+      `${URL_MOCK}/auth/v1/token?grant_type=refresh_token`,
+      {
+        headers: { apikey: "mock-anon", "content-type": "application/json" },
+        data: { refresh_token: "mock-refresh-inventado" },
+      },
+    );
+    expect(errado.status()).toBe(400);
+  });
+
   test("recurso que o mock não implementa falha alto e claro", async ({ request }) => {
     const resposta = await request.get(`${URL_MOCK}/rest/v1/tabela_inventada?select=*`, {
       headers: comSessao(),

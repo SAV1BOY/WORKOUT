@@ -139,7 +139,9 @@ export function AbaMedidas({
           <CardDescription>
             {variacao === null
               ? "Dois registros e a variação aparece."
-              : `${variacao > 0 ? "+" : "−"}${formatarNumero(Math.abs(variacao))} cm desde o registro anterior`}
+              : variacao === 0
+                ? "Igual ao registro anterior"
+                : `${variacao > 0 ? "+" : "−"}${formatarNumero(Math.abs(variacao))} cm desde o registro anterior`}
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-2">

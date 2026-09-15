@@ -167,7 +167,7 @@ export function TelaProgresso() {
                 >
                   <Link
                     href={`/exercicios/${r.exercise_id}`}
-                    className="min-w-0 flex-1 truncate text-sm underline-offset-2 hover:underline"
+                    className="alvo flex min-w-0 flex-1 items-center truncate text-sm underline-offset-2 hover:underline"
                   >
                     {nomes.get(r.exercise_id) ?? r.exercise_id}
                   </Link>
@@ -202,7 +202,7 @@ export function TelaProgresso() {
                 <div className="flex items-baseline justify-between gap-2">
                   <Link
                     href={`/exercicios/${id}`}
-                    className="text-sm font-medium underline-offset-2 hover:underline"
+                    className="alvo flex items-center text-sm font-medium underline-offset-2 hover:underline"
                   >
                     {exercicio?.nome ?? acharExercicio(id).nome}
                   </Link>
@@ -342,7 +342,7 @@ export function TelaProgresso() {
                       <td className="py-1.5 pr-2">
                         <Link
                           href={`/exercicios/${r.exercise_id}`}
-                          className="underline-offset-2 hover:underline"
+                          className="alvo flex items-center underline-offset-2 hover:underline"
                         >
                           {r.nome}
                         </Link>

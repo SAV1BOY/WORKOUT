@@ -106,6 +106,16 @@ interface Arquivo {
 
 const usuarios = new Map<string, Usuario>(); // id -> usuário
 const refresh = new Map<string, string>(); // refresh_token -> user_id
+/** Quando cada refresh token foi trocado pela primeira vez (ms). */
+const refreshTrocadoEm = new Map<string, number>();
+/**
+ * Janela de reuso do refresh token, como no GoTrue de verdade
+ * (`SECURITY_REFRESH_TOKEN_REUSE_INTERVAL`, 10 s por padrão). Sem ela, o
+ * servidor e o navegador renovando a sessão quase ao mesmo tempo — o que o
+ * `@supabase/ssr` faz em toda navegação com o token vencido — derrubariam a
+ * sessão no segundo pedido.
+ */
+const REUSO_DO_REFRESH_MS = 10_000;
 const arquivos = new Map<string, Arquivo>(); // "<bucket>/<caminho>" -> bytes
 let tabelas: Record<string, Linha[]> = {};
 
@@ -395,6 +405,7 @@ function registrarRequisicao(metodo: string, caminho: string): void {
 function zerar(): void {
   usuarios.clear();
   refresh.clear();
+  refreshTrocadoEm.clear();
   arquivos.clear();
   requisicoes = [];
   tabelas = Object.fromEntries(NOMES_TABELAS.map((t) => [t, [] as Linha[]]));
@@ -606,7 +617,16 @@ async function rotaAuth(
           error_code: "refresh_token_not_found",
         });
       }
-      refresh.delete(antigo);
+      const trocadoEm = refreshTrocadoEm.get(antigo);
+      if (trocadoEm === undefined) {
+        refreshTrocadoEm.set(antigo, Date.now());
+      } else if (Date.now() - trocadoEm > REUSO_DO_REFRESH_MS) {
+        refresh.delete(antigo);
+        refreshTrocadoEm.delete(antigo);
+        throw new ErroMock(400, "Invalid Refresh Token: Already Used", {
+          error_code: "refresh_token_already_used",
+        });
+      }
       return { status: 200, corpo: sessaoDe(u) };
     }
     throw new ErroMock(400, `mock: recurso token?grant_type=${tipo} não implementado`);

@@ -2096,3 +2096,120 @@ foi afrouxada.
    (ainda no aparelho) e sobe sozinha. Ligue o **modo avião** antes de tirar
    outra: a foto aparece igual e o envio espera a rede voltar. Com duas datas,
    a comparação abre com o slider; arraste e veja a foto antiga aparecendo.
+
+---
+
+## Auditoria do marco 5 (rodada 1) ✅
+
+Auditoria independente do marco 5 contra a SPEC §3.6, §3.7, §3.8, §10.7 e
+§10.8, lendo o código e **usando o app** num Chromium de 360 × 740 contra o
+mock. Os quatro portões estavam verdes antes de começar (lint limpo, 612
+testes, build com as 81 rotas `● SSG`, 99 testes e2e).
+
+### O que a varredura confirmou
+
+- **As 81 fichas** (§10.8) abrem em 200, com o `h1` igual ao `nome` do JSON,
+  com **todas** as imagens carregando de verdade (`naturalWidth > 0`: figura +
+  2 fotos, ou só as 2 fotos nos 14 exercícios sem figura), com o mapa muscular
+  e com pelo menos os passos que o JSON tem. Nenhum 404 em
+  `/figuras`, `/fotos`, `/itens` ou `/mapa-muscular` nas 81 navegações.
+- **O mapa muscular** usa mesmo as classes `p-<musculo>` / `s-<musculo>` e o
+  `<use href="#bf">` acha o símbolo do sprite injetado no layout.
+- **Os gráficos** (§10.7) desenham com **1 ponto** (o `dot` aparece) e com
+  **30** (as duas linhas do peso, eixo x ralo com ≤ 8 rótulos), sem rolagem
+  lateral nos dois casos.
+- **A foto** é reduzida no aparelho: um PNG de 2400 × 1200 chega ao bucket
+  como **JPEG de 1600 × 800** no caminho `<user_id>/<data>-<angulo>.jpg` da
+  policy.
+- **A conta da §3.7 bate com a mão**: numa sexta com a semana planejada
+  seg A1 · ter cardio · qua B1 · qui descanso · sex A1, com a força de segunda
+  e a de quarta feitas, a tela mostra **50 % (2 de 4 dias)** — o descanso não
+  conta, o sábado ainda não chegou — e **440 kg** de volume (o unilateral soma
+  os dois lados, o peso do corpo soma 0, a série não concluída e o aquecimento
+  ficam de fora).
+- **Busca e filtros** (§3.6): "triceps" acha os de Tríceps, "supino reto" exige
+  as duas palavras, grupo + implemento se somam e a lista vazia diz isso.
+- **Rótulo da carga por implemento** (§4) na ficha: 7,5 kg **na barra**,
+  1,5 kg **por halter**, 4 kg **no pino**, 5 kg **na anilha**, 2 kg na barra W
+  e "peso do corpo" onde não há carga.
+- Sem `console.log`, sem `any`, sem `@ts-ignore`; os 8 `eslint-disable` são
+  todos `@next/next/no-img-element` com a justificativa na mesma linha. O
+  commit do marco **não mexeu no `package.json`**: nenhuma dependência nova.
+- Varredura de conteúdo copiado: nenhum nome, passo, erro comum, montagem ou
+  regra de progressão de `data/exercicios.json` aparece dentro de `app/`,
+  `lib/` ou `components/` (só em testes e num comentário).
+
+### O que estava errado e foi corrigido
+
+1. **A meta de peso só sabia descer** (SPEC §3.8 com `data/perfil.json`). O
+   objetivo do perfil é *ganhar força e músculo*, então a meta fica **acima**
+   do peso de hoje tanto quanto abaixo — e com meta de 90 kg pesando 82 o card
+   dizia "Você passou da meta de 90 kg". `faltaParaMeta()` devolve a distância
+   com sinal; a tela passou a usar o módulo dela ("Faltam 8 kg para a meta de
+   90 kg") e ganhou o caso do empate ("Você está na meta"). Teste novo nos dois
+   sentidos em `e2e/auditoria-m5.spec.ts`.
+2. **`dataDaSerie()` jogava a série da noite para o dia seguinte**
+   (SPEC §3.7). `registrada_em` é `timestamptz` (UTC); o fallback usado quando
+   a sessão não está na janela lida fatiava os 10 primeiros caracteres, então
+   uma série das 22 h de Nova Lima (UTC−3) virava 17/09 em vez de 16/09 — e ia
+   para a semana errada do volume e dos recordes. Agora o dia sai do relógio
+   local (`iso(new Date(...))`), com teste em `lib/progresso.test.ts`.
+3. **Os testes unitários rodavam no fuso da máquina.** O app é todo de datas
+   locais (§5) e o Playwright já fixa `America/Sao_Paulo`, mas o Vitest rodava
+   em UTC nesta máquina: o defeito 2 passava despercebido e um teste de fuso
+   passaria aqui e falharia no computador do dono. `vitest.config.mts` ganhou
+   `env: { TZ: "America/Sao_Paulo" }` — os 612 testes continuam verdes (614 com
+   os novos).
+4. **Alvos de 20 px em `/progresso`** (CLAUDE.md, alvos ≥ 44 px). Os três
+   caminhos que levam da tela de progresso para a ficha — o nome de cada um dos
+   grandes, a lista de recordes recentes e a tabela de recordes — eram links de
+   texto de 20 px de altura, sem a classe `.alvo` que o resto do app usa.
+   Ganharam `alvo flex items-center`.
+5. **"−0,0 kg" e "−0 cm"** nas variações (§3.8). Semana (ou medida) sem
+   mudança caía no ramo do sinal negativo. Agora o empate tem texto próprio
+   ("0 kg", "Igual ao registro anterior").
+6. **O mock derrubava a sessão no meio da navegação** (harness). O
+   `@supabase/ssr` renova a sessão no servidor e no navegador, e com o token
+   vencido as duas chamadas saem quase juntas com o **mesmo** refresh token. O
+   GoTrue de verdade tolera isso por uns segundos
+   (`SECURITY_REFRESH_TOKEN_REUSE_INTERVAL`, 10 s); o mock apagava o token na
+   primeira troca e devolvia 400 na segunda — o app caía no `/login` no meio de
+   uma varredura de 81 páginas, um falso vermelho que poderia mascarar um
+   defeito de verdade. `scripts/mock-supabase.ts` ganhou a janela de reuso, com
+   teste de contrato em `e2e/mock.spec.ts`.
+
+### O que ficou anotado (não bloqueia)
+
+- **`components/graficos/index.tsx`**: o espaço reservado enquanto o Recharts
+  carrega tem sempre 180 px, mesmo nos gráficos declarados com `altura={140}`
+  ou `150` — um pulinho de layout nos gráficos dos grandes e da corrida. Para
+  resolver, o `loading` precisa receber a altura (um wrapper por altura, ou
+  `dynamic` dentro de um componente que já saiba o tamanho).
+- **`lib/corpo.ts` → `MEDIDAS`**: o "onde passar a fita" de cada medida é
+  microcópia escrita no código. Não é conteúdo do guia (nenhum JSON e nenhum
+  `docs/` fala de fita métrica), mas se o dono quiser versionar esses textos
+  junto com o resto, o lugar é um JSON em `data/`.
+- **`aderencia()`** aplica o perfil de **hoje** (fase, semana do plano) às 4
+  semanas da janela: quem mudar de fase vê as semanas passadas recalculadas
+  pela fase nova. É consequência de não guardar o plano histórico e só aparece
+  na virada de fase.
+
+### Testes acrescentados
+
+`e2e/auditoria-m5.spec.ts` (13): a varredura das 81 fichas, os 14 sem figura +
+as classes do mapa, o gráfico com 1 e com 30 pontos, a foto de 2400 px virando
+1600 px no bucket, o rótulo da carga por implemento, a meta nos dois sentidos,
+o peso que não é número (caso de erro: nada é gravado), a busca sem acento com
+os filtros somados e as três telas a 360 px (sem rolagem lateral, controles ≥
+44 px, as três abas do corpo). `e2e/mock.spec.ts` (+1): a janela de reuso do
+refresh token. `lib/progresso.test.ts` (+2): o dia da série no fuso local.
+
+### Como testar no celular (auditoria)
+
+1. `npm run lint && npm run build && npm test && npm run e2e` — 614 unitários e
+   113 e2e verdes.
+2. **Corpo → Peso**: registre `82,0`, guarde a meta `90,0` e confira
+   "Faltam 8 kg para a meta de 90 kg" (antes dizia que você tinha passado
+   dela). Troque a meta para `78,5` e a frase continua dizendo quanto falta.
+3. **Progresso**: os nomes dos grandes, os recordes recentes e as linhas da
+   tabela agora são alvos de 44 px — dá para acertar com o polegar andando.

@@ -63,12 +63,20 @@ export function datasDasSessoes(
 /**
  * O dia de uma série. Vem da sessão; sem ela (a sessão pode estar fora da
  * janela lida) cai no dia de `registrada_em`, que é sempre dela mesma.
+ *
+ * `registrada_em` é `timestamptz`, então vem em UTC: fatiar os 10 primeiros
+ * caracteres jogaria a série das 22 h de Nova Lima (UTC−3) para o dia seguinte.
+ * O dia é sempre o do relógio de quem treinou.
  */
 export function dataDaSerie(
   serie: SerieBruta,
   porSessao: ReadonlyMap<string, string>,
 ): string {
-  return porSessao.get(serie.session_id) ?? String(serie.registrada_em).slice(0, 10);
+  const daSessao = porSessao.get(serie.session_id);
+  if (daSessao) return daSessao;
+  const bruto = String(serie.registrada_em);
+  const quando = new Date(bruto);
+  return Number.isNaN(quando.getTime()) ? bruto.slice(0, 10) : iso(quando);
 }
 
 /** As segundas-feiras das últimas `semanas` semanas, da mais antiga para hoje. */

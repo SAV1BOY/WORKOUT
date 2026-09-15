@@ -142,11 +142,16 @@ export function AbaPeso({
             {ultimo ? `${formatarKg(ultimo.peso)} em ${formatarData(ultimo.data)}` : "Sem pesagem"}
           </CardTitle>
           <CardDescription>
+            {/*
+              A meta pode estar para baixo (secar) ou para cima (o objetivo do
+              perfil é ganhar músculo): o que falta é a distância, nos dois
+              sentidos.
+            */}
             {falta === null
               ? "Defina uma meta embaixo, se quiser."
-              : falta > 0
-                ? `Faltam ${formatarKg(falta)} para a meta de ${formatarKg(alvo ?? 0)}.`
-                : `Você passou da meta de ${formatarKg(alvo ?? 0)}.`}
+              : falta === 0
+                ? `Você está na meta de ${formatarKg(alvo ?? 0)}.`
+                : `Faltam ${formatarKg(Math.abs(falta))} para a meta de ${formatarKg(alvo ?? 0)}.`}
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-2">
@@ -191,7 +196,9 @@ export function AbaPeso({
                   >
                     {s.variacao === null
                       ? "—"
-                      : `${s.variacao > 0 ? "+" : "−"}${formatarNumero(Math.abs(s.variacao))} kg`}
+                      : s.variacao === 0
+                        ? "0 kg"
+                        : `${s.variacao > 0 ? "+" : "−"}${formatarNumero(Math.abs(s.variacao))} kg`}
                   </span>
                 </li>
               ))}
