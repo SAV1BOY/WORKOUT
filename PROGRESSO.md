@@ -126,19 +126,16 @@ Tudo com o motivo; nada disso impede treinar.
     como `session_sets.session_id` passou a ser: o evento pode existir sem a
     sessão (troca de fase, §5.1) e descartá-lo perderia a linha do tempo da
     §6.6. No banco de verdade a FK recusa sozinha a linha órfã.
-11. **`aderencia()` aplica o perfil de hoje** (fase, semana do plano) às 4
-    semanas da janela: quem mudar de fase vê as semanas passadas recalculadas
-    pela fase nova. Só aparece na virada de fase.
-12. **Sessão de barra fixa antiga refeita noutro aparelho** é remontada com a
-    prescrição da semana de hoje, não com a da semana em que foi criada.
-13. **O aviso "faltam anilhas de 10 kg"** (diálogo da montagem) continua escrito
+11. **O aviso "faltam anilhas de 10 kg"** (diálogo da montagem) continua escrito
     no código: é a etiqueta de uma montagem, não texto de ajuda do motor, e não
     tem chave em `data/progressao.json`. Os avisos do **motor** vêm do JSON.
-14. **Espaço reservado dos gráficos** tem sempre 180 px enquanto o Recharts
-    carrega, mesmo nos declarados com `altura={140}` — um pulinho de layout.
-15. **`supabase/schema.sql` usa `create table if not exists`**: num banco onde
-    uma versão **antiga** do schema já tivesse rodado, mudanças de coluna não
-    seriam reaplicadas. Como o projeto vai ser criado do zero, não afeta nada.
+
+Quatro itens que constavam desta lista foram corrigidos na etapa "Pendências
+das auditorias" e saíram daqui: a aderência agora para em `profiles.fase_desde`
+(`lib/progresso.ts`), a sessão de barra fixa guarda `sessions.semana_plano` e é
+refeita com a semana em que nasceu, o espaço reservado dos gráficos usa a
+altura declarada (`components/graficos/index.tsx`) e `supabase/schema.sql`
+terminou com um bloco de migrações idempotentes (`alter table … if not exists`).
 
 **Ruído de ambiente (não é defeito do app)**
 
