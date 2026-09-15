@@ -37,7 +37,9 @@ function Opcao({
       type="button"
       aria-pressed={aceso}
       className={cn(
-        "alvo border-border flex-1 rounded-lg border px-2 py-2 text-sm font-medium",
+        // `min-w-0`: sem ele o `flex-1` não encolhe abaixo do texto e a folha
+        // do dia media 312 px de conteúdo numa caixa de 296 a 360 px
+        "alvo border-border min-w-0 flex-1 rounded-lg border px-2 py-2 text-sm font-medium",
         aceso ? "border-primary bg-primary/10 text-primary" : "text-muted-foreground",
       )}
       {...props}
@@ -126,7 +128,7 @@ export function DialogoDia({
                   <legend className="text-muted-foreground mb-2 text-xs tracking-wide uppercase">
                     Tipo do dia
                   </legend>
-                  <div className="flex gap-2">
+                  <div className="grid grid-cols-3 gap-2">
                     <Opcao aceso={tipo === "forca"} onClick={() => setTipo("forca")}>
                       Força
                     </Opcao>
@@ -169,7 +171,7 @@ export function DialogoDia({
                     <legend className="text-muted-foreground mb-2 text-xs tracking-wide uppercase">
                       Qual sessão
                     </legend>
-                    <div className="flex gap-2">
+                    <div className="grid grid-cols-2 gap-2">
                       <Opcao
                         aceso={sessao === "corrida"}
                         onClick={() => setSessao("corrida")}

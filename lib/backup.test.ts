@@ -202,6 +202,65 @@ describe("escritas da importação (SPEC §9)", () => {
     expect(linhasParaImportar(backup, EU)).toEqual([]);
   });
 
+  /*
+   * Auditoria final: a importação forçava `user_id`, mas copiava do arquivo
+   * dois campos que apontam para fora do usuário.
+   */
+  it("reescreve o storage_path da foto com o user_id de quem importa", () => {
+    const backup = montarBackup({
+      userId: OUTRO,
+      exportadoEm: AGORA,
+      tabelas: {
+        progress_photos: [
+          {
+            id: "f1",
+            user_id: OUTRO,
+            data: "2026-01-01",
+            angulo: "frente",
+            storage_path: `${OUTRO}/2026-01-01-frente.jpg`,
+          },
+        ],
+      },
+    });
+    const linha = linhasParaImportar(backup, EU)[0]?.linhas[0] ?? {};
+    expect(linha.storage_path).toBe(`${EU}/2026-01-01-frente.jpg`);
+    expect(String(linha.storage_path)).not.toContain(OUTRO);
+  });
+
+  it("foto sem data ou com ângulo inventado não entra", () => {
+    const backup = montarBackup({
+      userId: EU,
+      exportadoEm: AGORA,
+      tabelas: {
+        progress_photos: [
+          { id: "f1", data: "2026-01-01", angulo: "perfil-esquerdo" },
+          { id: "f2", angulo: "frente" },
+          { id: "f3", data: "2026-01-02", angulo: "costas" },
+        ],
+      },
+    });
+    const linhas = linhasParaImportar(backup, EU)[0]?.linhas ?? [];
+    expect(linhas.map((l) => l.id)).toEqual(["f3"]);
+  });
+
+  it("série cuja sessão não vem no arquivo é descartada", () => {
+    const backup = montarBackup({
+      userId: EU,
+      exportadoEm: AGORA,
+      tabelas: {
+        sessions: [{ id: "s1", data: "2026-09-14" }],
+        session_sets: [
+          { id: "x1", session_id: "s1", exercise_id: "supino-reto-com-barra" },
+          // a sessão de outra conta: a FK do Postgres não passa por RLS
+          { id: "x2", session_id: "sessao-de-outro", exercise_id: "agachamento-livre" },
+          { id: "x3", exercise_id: "remada-curvada" },
+        ],
+      },
+    });
+    const series = linhasParaImportar(backup, EU).find((e) => e.tabela === "session_sets");
+    expect(series?.linhas.map((l) => l.id)).toEqual(["x1"]);
+  });
+
   it("os lotes cobrem tudo sem repetir", () => {
     const lista = Array.from({ length: 450 }, (_, i) => i);
     const lotes = emLotes(lista, 200);

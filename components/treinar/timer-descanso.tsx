@@ -97,7 +97,7 @@ export function TimerDescanso({
           <span className="numero text-2xl leading-none">
             {acabou ? "vai!" : formatarDuracao(restante)}
           </span>
-          <span className="text-muted-foreground truncate text-xs">
+          <span className="text-muted-foreground line-clamp-2 text-xs">
             {acabou ? "descanso acabou" : `descanso · ${descanso.exercicio}`}
           </span>
         </div>

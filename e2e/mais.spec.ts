@@ -423,3 +423,50 @@ test.describe("/mais/backup (SPEC §9)", () => {
     expect(await lerDoMock(sessao, "sessions")).toHaveLength(0);
   });
 });
+
+/*
+ * Auditoria final: a fila de saída só aparecia no cabeçalho da sessão de
+ * força. Um item com erro permanente tentaria de 5 em 5 minutos para sempre
+ * sem ninguém ver — nada se perde, mas não havia como descobrir (SPEC §8).
+ */
+test.describe("Sincronização em /mais (SPEC §8)", () => {
+  test("com a fila vazia diz que está tudo sincronizado", async ({ page }) => {
+    await usuarioComPerfil();
+    await entrarNoApp(page);
+    await page.goto("/mais");
+
+    const linha = page.getByLabel("Sincronização");
+    await expect(linha).toBeVisible();
+    await expect(linha.getByText("Tudo sincronizado")).toBeVisible();
+    await expect(linha.getByRole("button", { name: "Tentar agora" })).toHaveCount(0);
+    await semRolagemHorizontal(page);
+  });
+
+  test("o que não sobe aparece na fila e o Tentar agora resolve", async ({ page }) => {
+    const sessao = await usuarioComPerfil();
+    await entrarNoApp(page);
+
+    /*
+     * A escrita do peso é cortada antes de chegar ao Supabase: o registro fica
+     * no IndexedDB (nada se perde, §8) e o item da fila guarda o erro. Aqui é
+     * um abort no lugar de `setOffline` porque o app precisa continuar
+     * navegando — quem cai é a gravação, não o aparelho.
+     */
+    await page.route("**/rest/v1/body_weights**", (rota) => rota.abort());
+    await page.goto("/corpo");
+    await page.getByLabel("Peso (kg)").fill("82,4");
+    await page.getByRole("button", { name: "Registrar" }).click();
+
+    await page.goto("/mais");
+    const linha = page.getByLabel("Sincronização");
+    await expect(linha.getByText(/item esperando|itens esperando/)).toBeVisible({
+      timeout: 15_000,
+    });
+
+    await page.unroute("**/rest/v1/body_weights**");
+    const botao = linha.getByRole("button", { name: "Tentar agora" });
+    if (await botao.isVisible()) await botao.click();
+    await expect(linha.getByText("Tudo sincronizado")).toBeVisible({ timeout: 20_000 });
+    expect(await lerDoMock(sessao, "body_weights")).toHaveLength(1);
+  });
+});

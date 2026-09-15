@@ -198,7 +198,7 @@ function CardDoExercicio({
         <span className="text-sm leading-tight font-medium text-balance">
           {exercicio.nome}
         </span>
-        <span className="text-muted-foreground truncate text-xs">
+        <span className="text-muted-foreground line-clamp-2 text-xs">
           {exercicio.grupo} · {exercicio.equipamento_texto}
         </span>
         <span className="flex items-center gap-2">

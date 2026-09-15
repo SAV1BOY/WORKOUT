@@ -72,7 +72,7 @@ export function StepperNumerico({
   };
 
   return (
-    <div className="flex items-center gap-1">
+    <div className={cn("flex items-center", compacto ? "gap-0.5" : "gap-1")}>
       <Button
         type="button"
         variant="outline"
@@ -85,7 +85,7 @@ export function StepperNumerico({
         <Minus className="size-5" />
       </Button>
 
-      <div className="relative flex-1">
+      <div className="relative min-w-11 flex-1">
         <label className="sr-only" htmlFor={id}>
           {rotulo}
         </label>
@@ -102,7 +102,10 @@ export function StepperNumerico({
           enterKeyHint="done"
           autoComplete="off"
           className={cn(
-            "numero border-input bg-background h-11 w-full rounded-lg border text-center tabular-nums",
+            // 44 px nas DUAS dimensões: quem digita em vez de usar o − e o +
+            // tem o campo como alvo, e na grade de duas colunas da sessão ele
+            // fechava em 37 px de largura.
+            "numero border-input bg-background h-11 w-full min-w-11 rounded-lg border text-center tabular-nums",
             // "107,5" ainda cabe na coluna estreita de 360 px
             compacto ? "px-0.5 text-base" : "px-2 text-lg",
             "focus-visible:border-ring focus-visible:ring-ring/50 outline-none focus-visible:ring-3",

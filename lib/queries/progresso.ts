@@ -7,6 +7,7 @@
 "use client";
 
 import { useQuery, type UseQueryResult } from "@tanstack/react-query";
+import { lerLista } from "@/lib/queries/ler";
 import { clienteNavegador } from "@/lib/supabase/client";
 import type { SerieBruta, SessaoBruta } from "@/lib/progresso";
 import type { LinhaRecorde } from "@/lib/types";
@@ -27,20 +28,6 @@ export const chavesProgresso = {
   seriesDoExercicio: (id: string) => ["progresso", "series-ex", id] as const,
   recordes: () => ["progresso", "recordes"] as const,
 };
-
-interface Resposta<T> {
-  data: T | null;
-  error: { message: string } | null;
-}
-
-async function lerLista<T>(
-  promessa: PromiseLike<Resposta<T[]>>,
-  oQue: string,
-): Promise<T[]> {
-  const { data, error } = await promessa;
-  if (error) throw new Error(`Não consegui carregar ${oQue}. ${error.message}`);
-  return data ?? [];
-}
 
 /** Todas as sessões de força (é um usuário só; 500 cobrem uns três anos). */
 export function useSessoesTodas(): UseQueryResult<SessaoBruta[]> {

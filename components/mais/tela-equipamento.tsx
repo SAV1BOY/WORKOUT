@@ -204,6 +204,13 @@ function LinhaDaBarra({
           />
         </div>
         <Button
+          /*
+           * Desabilitado, o `default` fica marrom com texto quase preto (50 %
+           * de opacidade sobre o laranja): no tema escuro, na tela do terraço,
+           * o botão some. O WCAG isenta controle desabilitado, mas ler é
+           * melhor que não ler.
+           */
+          variant={texto.trim() === "" ? "outline" : "default"}
           className="alvo h-12"
           aria-label={`Salvar peso: ${barra.nome}`}
           disabled={salvando || texto.trim() === ""}

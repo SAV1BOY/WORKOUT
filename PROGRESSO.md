@@ -2739,14 +2739,238 @@ falham no código anterior, com o sintoma exato de cada achado.
 
 ### Conhecido, não corrigido (com o motivo)
 
-- **A fila não aparece fora da tela de treino.** O contador "N para
-  sincronizar" só existe no cabeçalho da sessão; um item com erro permanente
-  (por exemplo um schema desatualizado no Supabase novo) tentaria de 5 em 5
-  minutos sem ninguém ver. Nada se perde — o item fica no IndexedDB —, mas o
-  certo é a `/mais` mostrar quantos itens esperam e o último erro.
+- **A fila não aparece fora da tela de treino.** ~~O contador "N para
+  sincronizar" só existe no cabeçalho da sessão.~~ **Corrigido** na correção
+  final: `/mais` tem a linha "Sincronização" com quantos itens esperam, o erro
+  do mais antigo e um "Tentar agora".
 - **Sem IndexedDB o app não treina.** Em aba anônima do Firefox (onde
   `indexedDB.open` recusa), começar o treino falha com "Não consegui começar o
-  treino agora." e num navegador sem IndexedDB nenhum as escritas são
-  descartadas em silêncio (`enfileirar` devolve sem enfileirar). O certo é
-  testar o banco uma vez ao abrir e avisar na tela. Para o PWA instalado do
-  Miguel o caso não acontece.
+  treino agora."; ~~num navegador sem IndexedDB nenhum as escritas são
+  descartadas em silêncio~~ — isso foi **corrigido** na correção final
+  (`enfileirar` lança e a tela mostra o erro). Falta a checagem única na
+  abertura com o aviso no shell. Para o PWA instalado do Miguel o caso não
+  acontece.
+
+---
+
+## Correção final — os achados da auditoria final (4 lentes) ✅
+
+A auditoria final (4 lentes) apontou 2 problemas importantes e 19 menores. Os
+2 importantes e 15 dos menores foram corrigidos, cada um com teste. Os outros
+4 estão em "Conhecido, não corrigido" no fim desta seção, com o motivo: a
+auditoria de dependências, o Lighthouse da tela Hoje, o `<input type="date">` e
+o achado operacional das etapas concorrentes.
+
+### Importantes
+
+1. **O eixo y de todos os gráficos começava no zero** (SPEC §3.8).
+   O `YAxis` não recebia `domain` e o padrão do Recharts é `[0, "auto"]`: com
+   30 pesagens entre 81 e 83 kg a aba Peso desenhava uma reta num eixo de 0 a
+   100, com a série e a média de 7 dias sobrepostas — e a média móvel é
+   exatamente o que a §3.8 pede para mostrar. O mesmo na aba Medidas (cintura
+   de 88 cm num eixo de 0 a 100).
+   `components/graficos/grafico.tsx` ganhou a prop opcional
+   `dominioY?: [number | string, number | string]`, repassada ao `<YAxis
+   domain>`; sem ela **nada muda** — os gráficos de barra (volume, reps,
+   minutos) e a carga dos grandes continuam com a base zero, onde o zero é
+   informação. Quem passa o domínio é a tela, a partir de
+   `dominioFolgado(valores, folga)` em `lib/corpo.ts` (pura): `[floor(min) −
+   folga, ceil(max) + folga]`, e `["auto", "auto"]` sem valor nenhum. Folga de
+   1 kg no peso (com a média junto, para as duas linhas caberem) e de 2 cm nas
+   medidas.
+   De quebra, o último rótulo do eixo x saía cortado ("09/0" em vez de
+   "09/09"): a margem direita do `LineChart` foi para 16 px e o `<XAxis>` do
+   gráfico de linha ganhou `padding={{ left: 4, right: 12 }}`. Na barra a
+   escala é de banda e o padding só desalinharia, então lá entra só a margem.
+
+2. **`/exercicios/[id]` fechava em 353 kB de first load** (teto de 350 kB).
+   A auditoria apontou o `Dialog` do Radix importado pela ficha; a causa real
+   era outra e maior. Os componentes do shadcn importam do **pacote
+   guarda-chuva** `radix-ui`, e `components/ui/badge.tsx` e `button.tsx` o
+   usavam só para pegar o `Slot`. A ficha do exercício é a única página que
+   renderiza `<Badge>` **direto num Server Component**: nessa fronteira o
+   webpack não sacode o guarda-chuva e ele entrava inteiro — Accordion,
+   Menubar, Popover, Avatar e o resto —, num chunk de 200 kB exclusivo da rota.
+   Os dois arquivos passaram a importar `@radix-ui/react-slot` direto (agora
+   dependência declarada; já vinha instalada como transitiva). A rota caiu de
+   **353 para 275 kB** e nenhuma outra passa de 344 kB.
+   Junto: o ampliador de fotos saiu do `Dialog` do Radix e virou uma camada
+   própria (`components/exercicios/foto-ampliada.tsx`) com `role="dialog"`,
+   `aria-modal`, foco no botão de fechar, Esc e toque fora fechando — é um
+   overlay com uma imagem dentro, não precisava de 40 kB de primitivas.
+
+### Menores corrigidos
+
+3. **O middleware jogava fora os cookies do `signOut`** (`lib/supabase/middleware.ts`).
+   Na recusa por e-mail não permitido o `signOut` escreve os cookies apagados
+   na `resposta` que o `setAll` recria, e a função devolvia um
+   `NextResponse.redirect()` novo: as deleções iam para o lixo e o aparelho
+   ficava com os `sb-*` mortos até expirarem (não era bypass — a sessão já
+   estava revogada no servidor). Os dois ramos de redirect passam por
+   `irParaOLogin()`, que cria o redirect e copia os cookies escritos pelo
+   cliente do Supabase — o padrão do `@supabase/ssr`, que também evita perder
+   um token renovado.
+4. **Nenhum cabeçalho de segurança** (`next.config.ts`). Entrou `async
+   headers()` para `/:caminho*` com `Content-Security-Policy: frame-ancestors
+   'none'`, `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`,
+   `Referrer-Policy: strict-origin-when-cross-origin` e uma `Permissions-Policy`
+   enxuta (câmera, microfone, geolocalização e pagamento desligados;
+   `screen-wake-lock=(self)`, que a §3.2 usa). A CSP completa ficou de fora de
+   propósito — ver "Conhecido, não corrigido".
+5. **A importação copiava dois campos que apontam para fora** (`lib/backup.ts`,
+   §9). `progress_photos.storage_path` vinha do arquivo (um backup editado
+   gravaria `<outro-uid>/2026-01-01-frente.jpg`) e `session_sets.session_id`
+   podia referenciar a sessão de outra conta (a checagem de FK do Postgres não
+   passa por RLS). Agora `linhasParaImportar` reescreve o `storage_path` com
+   `caminhoDaFoto(userId, data, angulo)` — e descarta a foto sem data ou com
+   ângulo inventado — e só aceita a série cuja sessão vem no mesmo arquivo.
+6. **Inversão possível em `schedule_overrides`** (`lib/outbox-supabase.ts`, §8).
+   Marcar um dia (upsert) e desmarcá-lo (delete com filtro `{data}`) na mesma
+   janela offline, com o upsert falhando uma vez, fazia o delete — que não casa
+   com linha nenhuma, logo "sucesso" — sair antes, e o upsert reenviado
+   ressuscitava o dia. `alvoDaEscrita()` passou a devolver
+   `schedule_overrides:<data>`; o resto do mecanismo (travados em `umaRodada`)
+   já cuidava da ordem.
+7. **A fila de saída não aparecia fora da sessão de força** (§8). `/mais` ganhou
+   a linha "Sincronização" (`components/mais/linha-sincronizacao.tsx`): quantos
+   itens esperam, o erro do item mais antigo e um botão "Tentar agora". O texto
+   sai de `resumoDaFila()` (pura, em `lib/outbox.ts`), que aponta o item
+   travado quando ele passou de `MAX_TENTATIVAS`.
+8. **"Sair" deixava tudo no aparelho** (§8 com §2). O logout só revogava a
+   sessão: o cache de leitura do TanStack (uma semana de validade), a
+   sessão/cardio em andamento, os blobs das fotos e as cópias das páginas
+   autenticadas no service worker ficavam no celular. `limparDadosLocais()`
+   (`lib/db.ts`) apaga o Dexie e todos os caches menos o `midia-do-treino` (as
+   figuras, para o app seguir instalável); o `BotaoSair` chama isso e o
+   `queryClient.clear()` antes da server action. Com a fila cheia o primeiro
+   toque avisa quantos registros ainda não subiram e vira "Sair mesmo assim".
+9. **`enfileirar()` devolvia em silêncio sem IndexedDB** (`lib/outbox.ts`).
+   Num navegador sem IndexedDB a tela mostrava o registro salvo (cache
+   otimista) e a escrita nunca chegava ao Supabase — o contrário de "nada se
+   perde". Agora lança, e as telas mostram o erro que já tratam.
+10. **Linhas de uma linha só cortavam informação útil.** `truncate` virou
+    `line-clamp-2` no calendário (`grade.tsx`: a corrida perdia o "· 34 min", a
+    nota do grease the groove sumia), no catálogo (`lista-exercicios.tsx`: a
+    lista de equipamento) e no rótulo do timer de descanso.
+11. **O campo do stepper tinha 37 px de largura** (`components/stepper-numerico.tsx`).
+    A regra do CLAUDE.md é alvo ≥ 44 px nas **duas** dimensões, e o campo é o
+    alvo de quem digita em vez de usar o − e o +. `min-w-11` no campo e no
+    invólucro, `gap-0.5` no modo compacto.
+12. **A folha do dia estava no limite** (`components/calendario/dialogos.tsx`):
+    312 px de conteúdo numa caixa de 296. Os chips Força/Cardio/Descanso viraram
+    `grid grid-cols-3` (Corrida/Corda, `grid-cols-2`) e `Opcao` ganhou
+    `min-w-0` — sem ele o `flex-1` não encolhe abaixo do texto.
+13. **Sem `/robots.txt`** o Next devolvia o HTML do app nessa URL (Lighthouse
+    marcava robots.txt inválido). Entrou `app/robots.ts` com `disallow: "/"` —
+    o app é pessoal — e `/robots.txt` na lista de rotas públicas do middleware.
+14. **O "Salvar" desabilitado sumia no tema escuro**
+    (`components/mais/tela-equipamento.tsx`): `bg-primary` a 50 % de opacidade
+    é marrom com texto quase preto. Enquanto está desabilitado ele usa
+    `variant="outline"`. (O "Guardar" da meta em `aba-peso.tsx` já era outline e
+    nunca fica desabilitado.)
+15. **`lerLista` duplicado** em `lib/queries/progresso.ts` e
+    `lib/queries/corpo.ts` — a única duplicação real da varredura. Foi para
+    `lib/queries/ler.ts`.
+16. **`clsx` e `tailwind-merge` declarados e não usados** (o helper `cn` vem do
+    pacote `cn`; `lib/utils.ts` só o reexporta). Saíram do `package.json` e do
+    lockfile.
+
+### Testes acrescentados
+
+- `lib/corpo.test.ts`: `dominioFolgado` com lista vazia, 1 ponto, 2 pontos, 30
+  pesagens e folga de 2.
+- `lib/backup.test.ts`: `storage_path` reescrito com o `user_id` de quem
+  importa, foto sem data / com ângulo inventado descartada, série cuja sessão
+  não vem no arquivo descartada.
+- `lib/outbox.test.ts`: o alvo das duas pontas de um mesmo dia da agenda e os
+  quatro estados de `resumoDaFila` (vazia, esperando, com erro, travada).
+- `lib/supabase/middleware.test.ts` (novo, com o `@supabase/ssr` de mentira):
+  sem sessão → login, e-mail permitido passa, rota pública passa, e-mail de
+  fora vai para `?erro=app-pessoal` **e o redirect leva junto os cookies
+  apagados pelo `signOut`**.
+- `e2e/corpo.spec.ts`: com 30 pesagens semeadas entre 81 e 83 kg, o menor
+  rótulo do eixo y do gráfico de peso é ≥ 70 (e o maior ≤ 90); o da cintura,
+  ≥ 80.
+- `e2e/shell.spec.ts`: os cinco cabeçalhos de segurança em `/login` e em
+  `/robots.txt`; `/robots.txt` com `Disallow: /` e sem HTML.
+- `e2e/mais.spec.ts`: a linha "Sincronização" com a fila vazia; e, offline, o
+  peso registrado aparecendo como pendente e o "Tentar agora" subindo tudo.
+- `e2e/treinar.spec.ts`: o teste "todo alvo da sessão tem 44 px" passou a medir
+  também a **largura**, com o `aria-label` do alvo na mensagem de falha.
+
+### Conhecido, não corrigido (com o motivo)
+
+- **CSP completa (script/style/connect/img/worker).** Só o `frame-ancestors`
+  entrou. Uma CSP de verdade precisa liberar `connect-src` do domínio do
+  projeto Supabase (rest, auth, storage e o `wss` do realtime), `img-src` com
+  `blob:` e `data:`, `worker-src 'self'` e o `'unsafe-inline'` que o Next usa
+  em style/script — e o projeto Supabase **ainda não existe**. Medir com
+  `Content-Security-Policy-Report-Only` depois do deploy e só então forçar.
+- **`npm audit --omit=dev`: 3 avisos de ferramenta de build.** `browserslist`
+  (2 high) e `postcss` aninhado em `node_modules/next` (4 avisos). Só são
+  exploráveis processando CSS ou config de terceiros durante o build; este
+  projeto compila o próprio CSS. `npm audit fix` (sem `--force`) foi executado
+  e **não mudou nada** — a correção do browserslist não está alcançável a
+  partir da árvore atual; o postcss só sai com `next@16`, que é breaking.
+  Deixar para uma atualização planejada do Next **depois** do deploy.
+- **Aviso na tela quando o navegador não deixa guardar nada.** `enfileirar()`
+  já lança (item 9), mas falta a checagem única na abertura (`bancoUsavel()` no
+  `Providers`) e o aviso fixo no shell ("saia do modo privado"). No PWA
+  instalado, que é o caso do Miguel, o IndexedDB existe sempre.
+- **Lighthouse na tela Hoje: 78 de performance, LCP 4,3 s.** O shell
+  autenticado carrega ~320 kB de JS antes de qualquer leitura. Encostar em 90
+  pede renderizar o cabeçalho e o esqueleto do card no servidor e adiar o que é
+  só interativo — mexida grande na arquitetura das telas, na véspera do deploy.
+  Como o app é instalado e precacheado pelo Serwist, o custo real é só na
+  primeira abertura. (A medição rodou com o mock devolvendo 401 nas leituras,
+  então o número mede o shell, não o caminho completo.)
+- **`<input type="date">` mostra a data no idioma do navegador.** No Chromium
+  do CI (UI em en-US) sai `09/14/2026`, contra a regra de dd/MM da interface.
+  Num celular em pt-BR sai dd/mm/aaaa — é observação de ambiente, não defeito
+  do app. Trocar pelo seletor próprio custaria dois campos numéricos novos nas
+  abas Peso e Medidas sem ganho para o dono.
+- **`progression_events.session_id` não é filtrado na importação** como
+  `session_sets.session_id` passou a ser. O evento pode existir sem a sessão
+  (troca de fase, §5.1) e descartá-lo perderia a linha do tempo da §6.6; no
+  banco de verdade a FK recusa sozinha a linha que aponta para o que não
+  existe.
+- **Etapas irmãs editando o repositório ao mesmo tempo** (achado operacional,
+  não é defeito do app). Durante a auditoria duas medições de portão foram
+  corrompidas por um `npm run build` e por um arquivo de teste sendo escrito
+  no meio da execução. Só vale o portão rodado em janela sem build/vitest/
+  playwright concorrente. Lembrar que `pkill -f "next start"` não mata o
+  servidor (o processo se chama `next-server`): a 3100 e a 54321 ficam
+  ocupadas por órfãos e derrubam o `npm run e2e` com "is already used".
+
+### Portões
+
+`npm run lint` limpo · `npm run build` (nenhuma rota acima de 344 kB de first
+load; `/exercicios/[id]` caiu de 353 para 275 kB) · `npm test` **744**
+unitários · `npm run e2e` **151** no Chromium de 360 × 740.
+
+Nota de flakiness: em duas das quatro rodadas de `npm run e2e` desta etapa o
+teste `auditoria-m5 › as 81 fichas` (e, numa delas, `/mais/preferencias › o
+incremento do agachamento`) falhou; os dois passam sozinhos e as duas rodadas
+seguintes fecharam 151/151. Não foi possível reproduzir com o teste isolado —
+é o mesmo padrão descrito no achado operacional: só vale o portão rodado em
+janela sem build/vitest/playwright concorrente.
+
+### Como testar no celular
+
+1. `npm run build && npm run e2e` (ou `npm run mock` + `npm run dev:mock` em
+   dois terminais e o IP do computador no celular).
+2. **Corpo → Peso**: registre três pesos próximos (82,4 · 82,1 · 82,6). O
+   gráfico tem que mostrar as duas linhas separadas, com o eixo y na faixa dos
+   82 — não uma reta num eixo de 0 a 100. Na aba **Medidas**, idem com a
+   cintura.
+3. **Catálogo → qualquer ficha**: toque numa das duas fotos. Ela abre em tela
+   cheia; Esc, o X ou um toque fora fecham. A ficha é a rota mais pesada do
+   app e agora carrega 275 kB.
+4. **Mais**: a linha "Sincronização" diz "Tudo sincronizado". Ative o modo
+   avião, registre um peso em Corpo, volte para Mais: aparece "1 item
+   esperando". Tire o avião e toque em "Tentar agora".
+5. **Mais → Sair** com algo na fila: o primeiro toque avisa quantos registros
+   não subiram e o botão vira "Sair mesmo assim". Depois de sair, o app não
+   mostra mais nada do usuário nem offline.
+6. **Calendário**: toque num dia futuro — os três chips (Força/Cardio/Descanso)
+   cabem lado a lado sem nada escapar para o lado.

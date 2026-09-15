@@ -102,6 +102,28 @@ export function variacaoPorSemana(linhas: readonly PesoBruto[]): VariacaoSemanal
   });
 }
 
+/**
+ * Domínio folgado para o eixo y de um gráfico de linha (SPEC §3.8).
+ *
+ * O padrão do Recharts é `[0, "auto"]`: com 30 pesagens entre 81 e 83 kg o
+ * eixo vai de 0 a 100, a série e a média de 7 dias viram um traço reto e a
+ * média móvel que a §3.8 pede é justamente o que não dá para ver. Aqui o eixo
+ * cerca os valores com `folga` de cada lado, arredondando para fora para os
+ * rótulos saírem inteiros. Sem valor nenhum devolve `["auto", "auto"]` — o
+ * gráfico nem é desenhado nesse caso, mas o domínio não pode mentir.
+ */
+export function dominioFolgado(
+  valores: readonly number[],
+  folga = 1,
+): [number, number] | ["auto", "auto"] {
+  const finitos = valores.filter((v) => Number.isFinite(v));
+  if (finitos.length === 0) return ["auto", "auto"];
+  return [
+    Math.floor(Math.min(...finitos)) - folga,
+    Math.ceil(Math.max(...finitos)) + folga,
+  ];
+}
+
 /** O peso mais recente. */
 export function ultimoPeso(linhas: readonly PesoBruto[]): { data: string; peso: number } | null {
   const pontos = pontosDePeso(linhas);

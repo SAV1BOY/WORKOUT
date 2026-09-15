@@ -43,9 +43,9 @@ export function GradeDaSemana({
             </span>
 
             <span className="flex min-w-0 flex-1 flex-col">
-              <span className="truncate text-sm font-medium">{d.rotulo}</span>
+              <span className="line-clamp-2 text-sm font-medium">{d.rotulo}</span>
               {d.detalhe ? (
-                <span className="text-muted-foreground truncate text-xs">
+                <span className="text-muted-foreground line-clamp-2 text-xs">
                   {d.detalhe}
                 </span>
               ) : null}

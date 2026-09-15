@@ -1,6 +1,7 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 import {
   entrarNoApp,
+  inserirNoMock,
   estadoDoMock,
   fixarData,
   lerDoMock,
@@ -201,5 +202,68 @@ test.describe("Corpo — fotos (SPEC §3.8)", () => {
     );
 
     await semRolagemHorizontal(page);
+  });
+});
+
+/*
+ * Auditoria final: o YAxis não recebia `domain` e o padrão do Recharts é
+ * `[0, "auto"]` — 30 pesagens entre 81 e 83 kg viravam um traço reto num eixo
+ * de 0 a 100, e a média de 7 dias que a §3.8 pede era justamente o que não
+ * dava para ver.
+ */
+/**
+ * Os números do eixo y de um gráfico: os `<text>` do SVG que ficam na calha da
+ * esquerda (o eixo tem 38 px) e que são número (os do eixo x são datas).
+ */
+async function rotulosDoEixoY(grafico: Locator): Promise<number[]> {
+  return grafico.evaluate((el) =>
+    [...el.querySelectorAll("svg text")]
+      .filter((t) => Number(t.getAttribute("x") ?? "999") <= 40)
+      .map((t) => Number((t.textContent ?? "").replace(",", ".")))
+      .filter((n) => Number.isFinite(n)),
+  );
+}
+
+test.describe("os eixos dos gráficos do corpo (SPEC §3.8)", () => {
+  test("o eixo do peso cerca a faixa das pesagens, não começa no zero", async ({
+    page,
+  }) => {
+    const sessao = await usuarioComPerfil();
+    await inserirNoMock(
+      sessao,
+      "body_weights",
+      Array.from({ length: 30 }, (_, i) => ({
+        data: `2026-08-${String(i + 1).padStart(2, "0")}`,
+        peso_kg: 81 + (i % 21) / 10,
+      })),
+    );
+    await abrirCorpo(page);
+
+    const grafico = page.getByLabel("Peso por data, com a média de 7 dias");
+    await expect(grafico).toBeVisible();
+
+    await expect.poll(() => rotulosDoEixoY(grafico)).not.toHaveLength(0);
+    const numeros = await rotulosDoEixoY(grafico);
+    expect(numeros.length).toBeGreaterThan(1);
+    expect(Math.min(...numeros), `eixo do peso: ${numeros.join(" ")}`).toBeGreaterThanOrEqual(70);
+    expect(Math.max(...numeros)).toBeLessThanOrEqual(90);
+
+    await semRolagemHorizontal(page);
+  });
+
+  test("o eixo da medida cerca a faixa da cintura", async ({ page }) => {
+    const sessao = await usuarioComPerfil();
+    await inserirNoMock(sessao, "body_measurements", [
+      { data: "2026-08-01", cintura_cm: 88 },
+      { data: "2026-09-01", cintura_cm: 86.5 },
+    ]);
+    await abrirCorpo(page, "Medidas");
+
+    const grafico = page.getByLabel("Medida por data");
+    await expect(grafico).toBeVisible();
+    await expect.poll(() => rotulosDoEixoY(grafico)).not.toHaveLength(0);
+    const numeros = await rotulosDoEixoY(grafico);
+    expect(numeros.length).toBeGreaterThan(1);
+    expect(Math.min(...numeros), `eixo da cintura: ${numeros.join(" ")}`).toBeGreaterThanOrEqual(80);
   });
 });

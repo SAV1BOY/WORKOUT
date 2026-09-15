@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   MEDIDAS,
+  dominioFolgado,
   medidasPorData,
   serieDeMedida,
   variacaoDaMedida,
@@ -44,6 +45,8 @@ export function AbaMedidas({
   const [campo, setCampo] = useState<CampoDeMedida>("cintura_cm");
 
   const serie = serieDeMedida(medidas, campo);
+  // cintura de 88 cm num eixo de 0 a 100 é uma reta: o eixo cerca os valores
+  const dominioY = dominioFolgado(serie.map((p) => p.valor), 2);
   const tabela = medidasPorData(medidas).slice(0, 12);
   const variacao = variacaoDaMedida(medidas, campo);
 
@@ -171,6 +174,7 @@ export function AbaMedidas({
               dados={serie}
               x="rotulo"
               sufixo=" cm"
+              dominioY={dominioY}
               series={[{ chave: "valor", nome: "cm" }]}
             />
           )}

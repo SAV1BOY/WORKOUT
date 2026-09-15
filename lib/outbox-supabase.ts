@@ -159,6 +159,21 @@ export function registrarEnviador(): void {
  * ser concluída. Devolver `undefined` quer dizer "pode ir em qualquer ordem".
  */
 export function alvoDaEscrita(escrita: EscritaTabela): string | undefined {
+  /*
+   * `schedule_overrides` sofre a mesma inversão das sessões: marcar um dia
+   * (upsert) e desmarcá-lo (delete com filtro `{data}`) na mesma janela
+   * offline, com o upsert falhando uma vez, faria o delete — que não casa com
+   * linha nenhuma, logo "sucesso" — sair da fila antes, e o upsert reenviado
+   * ressuscitaria o dia marcado. Um alvo por **data** basta: o resto do
+   * mecanismo (travados em `umaRodada`) já cuida da ordem.
+   */
+  if (escrita.tabela === "schedule_overrides") {
+    const data = escrita.linha?.data ?? escrita.filtro?.data;
+    return typeof data === "string" && data !== ""
+      ? `schedule_overrides:${data}`
+      : undefined;
+  }
+
   const daSessao =
     escrita.tabela === "sessions" ||
     escrita.tabela === "session_sets" ||

@@ -8,6 +8,7 @@
  * `lib/queries/mais.ts`; quem guarda offline é a fila de saída (§8).
  */
 import { z } from "zod";
+import { ANGULOS, caminhoDaFoto } from "@/lib/corpo";
 
 /** As 11 tabelas de `supabase/schema.sql` que pertencem ao usuário. */
 export const TABELAS_BACKUP = [
@@ -307,6 +308,39 @@ export interface EscritaDeImportacao {
 }
 
 /**
+ * Conserta (ou descarta) as duas colunas do backup que apontam para fora do
+ * usuário. O resto da importação já força `user_id`, mas estas duas escapavam:
+ *
+ * - `progress_photos.storage_path` é copiado do arquivo, e um backup editado à
+ *   mão gravaria `<outro-uid>/2026-01-01-frente.jpg`. Aqui o caminho é
+ *   **reescrito** a partir do `user_id` de quem importa, da data e do ângulo —
+ *   é a única forma que o bucket aceita (§9 com a policy do `schema.sql`). Sem
+ *   data ou ângulo válidos a linha não descreve foto nenhuma e sai fora.
+ * - `session_sets.session_id` pode referenciar a sessão de outra conta: a
+ *   checagem de chave estrangeira do Postgres não passa por RLS. Só entram as
+ *   séries cuja sessão vem no mesmo arquivo.
+ */
+function apontaParaDentro(
+  tabela: TabelaBackup,
+  linha: Linha,
+  userId: string,
+  sessoesDoArquivo: ReadonlySet<string>,
+): boolean {
+  if (tabela === "progress_photos") {
+    const data = linha.data;
+    const angulo = linha.angulo;
+    if (typeof data !== "string" || data === "") return false;
+    if (!(ANGULOS as readonly string[]).includes(String(angulo))) return false;
+    linha.storage_path = caminhoDaFoto(userId, data, angulo as (typeof ANGULOS)[number]);
+    return true;
+  }
+  if (tabela === "session_sets") {
+    return typeof linha.session_id === "string" && sessoesDoArquivo.has(linha.session_id);
+  }
+  return true;
+}
+
+/**
  * As escritas da importação, na ordem em que as tabelas se referenciam
  * (`sessions` antes de `session_sets`). Cada linha sai com **o `user_id` de
  * quem está importando** — o backup pode ter vindo de outra conta (ou de outro
@@ -317,6 +351,12 @@ export function linhasParaImportar(
   userId: string,
 ): EscritaDeImportacao[] {
   const escritas: EscritaDeImportacao[] = [];
+  // as sessões que o próprio arquivo traz: nada mais pode ser referenciado
+  const sessoesDoArquivo = new Set(
+    (backup.tabelas.sessions ?? [])
+      .map((l) => l.id)
+      .filter((id): id is string => typeof id === "string" && id !== ""),
+  );
 
   for (const tabela of TABELAS_BACKUP) {
     const colunas = COLUNAS_DA_TABELA[tabela];
@@ -329,6 +369,7 @@ export function linhasParaImportar(
         if (coluna in bruta) limpa[coluna] = bruta[coluna];
       }
       limpa.user_id = userId;
+      if (!apontaParaDentro(tabela, limpa, userId, sessoesDoArquivo)) continue;
 
       const chave = chaveDaLinha(tabela, limpa);
       if (chave === null || vistas.has(chave)) continue;

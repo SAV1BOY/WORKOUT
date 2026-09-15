@@ -15,6 +15,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  dominioFolgado,
   faltaParaMeta,
   mediaMovel,
   metaDePeso,
@@ -54,6 +55,8 @@ export function AbaPeso({
   });
 
   const pontos = mediaMovel(pesos);
+  // sem isto o eixo vai de 0 a 100 e a média de 7 dias some dentro da linha
+  const dominioY = dominioFolgado(pontos.flatMap((p) => [p.peso, p.media]), 1);
   const semanas = variacaoPorSemana(pesos).slice(-8).reverse();
   const ultimo = ultimoPeso(pesos);
   const alvo = metaDePeso(perfil.prefs);
@@ -164,6 +167,7 @@ export function AbaPeso({
                 dados={pontos}
                 x="rotulo"
                 sufixo=" kg"
+                dominioY={dominioY}
                 series={SERIES}
               />
               <LegendaDoGrafico series={SERIES} />

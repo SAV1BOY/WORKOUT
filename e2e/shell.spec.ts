@@ -91,3 +91,35 @@ test.describe("shell do app", () => {
     );
   });
 });
+
+/*
+ * Auditoria final: o app não enviava cabeçalho de segurança nenhum — dava para
+ * embutir a aplicação num iframe de outro site (clickjacking em cima dos
+ * botões que gravam no banco) — e `/robots.txt` devolvia o HTML do app.
+ */
+test.describe("cabeçalhos e robots (auditoria final)", () => {
+  test("toda resposta traz os cabeçalhos de segurança", async ({ request }) => {
+    for (const caminho of ["/login", "/robots.txt"]) {
+      const resposta = await request.get(caminho);
+      const cabecalhos = resposta.headers();
+      expect(cabecalhos["x-frame-options"], caminho).toBe("DENY");
+      expect(cabecalhos["content-security-policy"], caminho).toContain(
+        "frame-ancestors 'none'",
+      );
+      expect(cabecalhos["x-content-type-options"], caminho).toBe("nosniff");
+      expect(cabecalhos["referrer-policy"], caminho).toBe(
+        "strict-origin-when-cross-origin",
+      );
+      expect(cabecalhos["permissions-policy"], caminho).toContain("camera=()");
+    }
+  });
+
+  test("/robots.txt existe e proíbe tudo", async ({ request }) => {
+    const resposta = await request.get("/robots.txt");
+    expect(resposta.status()).toBe(200);
+    const texto = await resposta.text();
+    expect(texto).toContain("User-Agent: *");
+    expect(texto).toContain("Disallow: /");
+    expect(texto).not.toContain("<html");
+  });
+});

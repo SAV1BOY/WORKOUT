@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { FotoAmpliada } from "@/components/exercicios/foto-ampliada";
 import { urlFotos } from "@/lib/dados";
 import type { Exercicio } from "@/lib/schemas";
 
@@ -40,21 +40,13 @@ export function FotosAmpliaveis({ exercicio }: { exercicio: Exercicio }) {
         ))}
       </ul>
 
-      <Dialog open={foto !== null} onOpenChange={(v) => !v && setAberta(null)}>
-        <DialogContent className="max-w-[96vw] p-2 sm:max-w-lg">
-          <DialogTitle className="sr-only">
-            {exercicio.nome} — {LEGENDA[aberta ?? 0] ?? "movimento"}
-          </DialogTitle>
-          {foto ? (
-            // eslint-disable-next-line @next/next/no-img-element -- foto local em /public
-            <img
-              src={foto}
-              alt={`${exercicio.nome} — ${LEGENDA[aberta ?? 0] ?? "movimento"}`}
-              className="max-h-[80dvh] w-full rounded-lg object-contain"
-            />
-          ) : null}
-        </DialogContent>
-      </Dialog>
+      {foto ? (
+        <FotoAmpliada
+          url={foto}
+          titulo={`${exercicio.nome} — ${LEGENDA[aberta ?? 0] ?? "movimento"}`}
+          aoFechar={() => setAberta(null)}
+        />
+      ) : null}
     </>
   );
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { atrasoDaTentativa, venceu } from "@/lib/outbox";
+import { MAX_TENTATIVAS, atrasoDaTentativa, resumoDaFila, venceu } from "@/lib/outbox";
 import { alvoDaEscrita, enviarItem } from "@/lib/outbox-supabase";
 
 describe("retry da fila de saída", () => {
@@ -73,6 +73,41 @@ describe("ordem da fila: quem espera por quem (SPEC §8)", () => {
     ).toBe("sessions:sess-1");
   });
 
+  /*
+   * Auditoria final: marcar um dia (upsert) e desmarcá-lo (delete com filtro
+   * `{data}`) na mesma janela offline, com o upsert falhando uma vez, fazia o
+   * delete — que não casa com linha nenhuma, logo "sucesso" — sair antes, e o
+   * upsert reenviado ressuscitava o dia marcado.
+   */
+  it("as duas pontas de um mesmo dia da agenda ficam amarradas pela data", () => {
+    expect(
+      alvoDaEscrita({
+        tabela: "schedule_overrides",
+        op: "upsert",
+        linha: { id: "o1", data: "2026-09-16", tipo: "descanso" },
+      }),
+    ).toBe("schedule_overrides:2026-09-16");
+    expect(
+      alvoDaEscrita({
+        tabela: "schedule_overrides",
+        op: "delete",
+        filtro: { data: "2026-09-16" },
+      }),
+    ).toBe("schedule_overrides:2026-09-16");
+    // dias diferentes não se atrapalham
+    expect(
+      alvoDaEscrita({
+        tabela: "schedule_overrides",
+        op: "delete",
+        filtro: { data: "2026-09-17" },
+      }),
+    ).not.toBe("schedule_overrides:2026-09-16");
+    // sem data não há como amarrar
+    expect(
+      alvoDaEscrita({ tabela: "schedule_overrides", op: "upsert", linha: { id: "o1" } }),
+    ).toBeUndefined();
+  });
+
   it("o que não depende de sessão nenhuma não espera por ninguém", () => {
     expect(
       alvoDaEscrita({ tabela: "body_weights", op: "upsert", linha: { id: "p1" } }),
@@ -135,5 +170,38 @@ describe("escrita sem filtro (SPEC §8)", () => {
 
   it("um item sem tabela nem operação também não passa", async () => {
     await expect(enviarItem(item({ nada: true }))).rejects.toThrow(/sem tabela/);
+  });
+});
+
+describe("resumo da fila em /mais (SPEC §8)", () => {
+  it("fila vazia diz que está tudo sincronizado", () => {
+    const r = resumoDaFila({ quantos: 0 });
+    expect(r.titulo).toBe("Tudo sincronizado");
+    expect(r.travada).toBe(false);
+  });
+
+  it("fila com itens e sem erro diz que sobe quando a rede voltar", () => {
+    expect(resumoDaFila({ quantos: 1 }).titulo).toBe("1 item esperando");
+    const r = resumoDaFila({ quantos: 3 });
+    expect(r.titulo).toBe("3 itens esperando");
+    expect(r.detalhe).toMatch(/rede/);
+    expect(r.travada).toBe(false);
+  });
+
+  it("o erro do item mais antigo aparece", () => {
+    const r = resumoDaFila({ quantos: 2, erro: "PGRST204: coluna não existe", tentativas: 3 });
+    expect(r.detalhe).toContain("PGRST204");
+    expect(r.travada).toBe(false);
+  });
+
+  /* O item que passou do teto de tentativas não tenta mais sozinho. */
+  it("item travado é apontado como travado", () => {
+    const r = resumoDaFila({
+      quantos: 1,
+      erro: "PGRST204: coluna não existe",
+      tentativas: MAX_TENTATIVAS,
+    });
+    expect(r.travada).toBe(true);
+    expect(r.detalhe).toMatch(/Parou de tentar/);
   });
 });

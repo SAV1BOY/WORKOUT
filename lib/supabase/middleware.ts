@@ -14,6 +14,7 @@ const PUBLICAS = [
   "/~offline",
   "/manifest.webmanifest",
   "/sw.js",
+  "/robots.txt",
 ];
 
 export function ehPublica(caminho: string): boolean {
@@ -21,6 +22,28 @@ export function ehPublica(caminho: string): boolean {
     return true;
   }
   return /^\/(figuras|fotos|itens|mapa-muscular|icons)\//.test(caminho);
+}
+
+/**
+ * Redireciona para o login **levando junto** os cookies que o cliente do
+ * Supabase escreveu.
+ *
+ * O `setAll` do `createServerClient` recria a `resposta` e grava nela: um
+ * `NextResponse.redirect()` novo jogaria fora tanto o token renovado quanto os
+ * cookies apagados pelo `signOut` — e o aparelho ficaria com os `sb-*` mortos
+ * até expirarem. É o padrão recomendado pelo `@supabase/ssr`.
+ */
+function irParaOLogin(
+  request: NextRequest,
+  resposta: NextResponse,
+  busca = "",
+): NextResponse {
+  const url = request.nextUrl.clone();
+  url.pathname = "/login";
+  url.search = busca;
+  const saida = NextResponse.redirect(url);
+  for (const cookie of resposta.cookies.getAll()) saida.cookies.set(cookie);
+  return saida;
 }
 
 /**
@@ -35,10 +58,7 @@ export async function updateSession(request: NextRequest) {
 
   if (!supabaseConfigurado()) {
     // sem variáveis não há como checar sessão: a tela de login explica o que falta
-    const url = request.nextUrl.clone();
-    url.pathname = "/login";
-    url.search = "";
-    return NextResponse.redirect(url);
+    return irParaOLogin(request, resposta);
   }
 
   const supabase = createServerClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
@@ -62,19 +82,11 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/login";
-    url.search = "";
-    return NextResponse.redirect(url);
-  }
+  if (!user) return irParaOLogin(request, resposta);
 
   if (!emailPermitido(user.email)) {
     await supabase.auth.signOut();
-    const url = request.nextUrl.clone();
-    url.pathname = "/login";
-    url.search = "?erro=app-pessoal";
-    return NextResponse.redirect(url);
+    return irParaOLogin(request, resposta, "?erro=app-pessoal");
   }
 
   return resposta;

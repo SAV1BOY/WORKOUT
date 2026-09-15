@@ -118,6 +118,40 @@ export function bd(): BancoLocal {
   return instancia;
 }
 
+/**
+ * O cache de mídia do service worker (`app/sw.ts`), o único que sobrevive ao
+ * "Sair": são as figuras e fotos dos exercícios, conteúdo público do app, e
+ * apagá-las deixaria o PWA sem nada para mostrar offline na próxima conta.
+ */
+export const CACHE_DE_MIDIA = "midia-do-treino";
+
+/**
+ * Apaga tudo que é do usuário neste aparelho (SPEC §8 com §9).
+ *
+ * O "Sair" revogava a sessão e pronto: o cache de leitura do TanStack (uma
+ * semana de validade), a sessão/cardio em andamento, os blobs das fotos e as
+ * cópias das páginas autenticadas no service worker continuavam no aparelho —
+ * num celular emprestado ou perdido dava para ver tudo isso depois do logout,
+ * inclusive offline. Nunca lança: sair tem que funcionar de qualquer jeito.
+ */
+export async function limparDadosLocais(): Promise<void> {
+  try {
+    if (temIndexedDB()) await bd().delete();
+    instancia = null;
+  } catch {
+    // aba anônima, banco bloqueado por outra aba: o logout segue
+  }
+  try {
+    if (typeof caches !== "undefined") {
+      for (const nome of await caches.keys()) {
+        if (nome !== CACHE_DE_MIDIA) await caches.delete(nome);
+      }
+    }
+  } catch {
+    // sem Cache Storage não há o que apagar
+  }
+}
+
 export async function guardarCache(chave: string, valor: unknown) {
   await bd().cache.put({ chave, valor, atualizadoEm: Date.now() });
 }

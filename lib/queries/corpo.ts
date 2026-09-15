@@ -11,6 +11,7 @@ import { bd, temIndexedDB } from "@/lib/db";
 import { reduzirFoto } from "@/lib/imagem";
 import { enfileirarArquivo, enfileirarEscrita } from "@/lib/outbox-supabase";
 import { chaves } from "@/lib/queries/dados";
+import { lerLista } from "@/lib/queries/ler";
 import { clienteNavegador } from "@/lib/supabase/client";
 import type { AnguloFoto, LinhaMedidas, LinhaPeso } from "@/lib/types";
 
@@ -26,20 +27,6 @@ export const chavesCorpo = {
   urls: (caminhos: readonly string[]) =>
     ["corpo", "fotos-url", [...caminhos].sort().join("|")] as const,
 };
-
-interface Resposta<T> {
-  data: T | null;
-  error: { message: string } | null;
-}
-
-async function lerLista<T>(
-  promessa: PromiseLike<Resposta<T[]>>,
-  oQue: string,
-): Promise<T[]> {
-  const { data, error } = await promessa;
-  if (error) throw new Error(`Não consegui carregar ${oQue}. ${error.message}`);
-  return data ?? [];
-}
 
 /** Id novo, gerado no cliente (SPEC §8). */
 export function novoId(): string {

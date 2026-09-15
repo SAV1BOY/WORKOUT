@@ -40,6 +40,7 @@ const regras: RuntimeCaching[] = [
   {
     matcher: ({ url, sameOrigin }) => sameOrigin && MIDIA.test(url.pathname),
     handler: new CacheFirst({
+      // mesmo nome em `CACHE_DE_MIDIA` (lib/db.ts): é o cache que o "Sair" poupa
       cacheName: "midia-do-treino",
       plugins: [
         new ExpirationPlugin({

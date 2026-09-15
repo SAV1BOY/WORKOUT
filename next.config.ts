@@ -67,8 +67,36 @@ const withSerwist = withSerwistInit({
   ],
 });
 
+/**
+ * Cabeçalhos de segurança (um app pessoal atrás de login, mas na internet).
+ *
+ * `frame-ancestors 'none'` + `X-Frame-Options` fecham o clickjacking em cima
+ * dos botões que gravam no banco; `nosniff` impede o navegador de adivinhar o
+ * tipo de um arquivo servido de `public/`; a `Referrer-Policy` evita mandar o
+ * caminho da tela para fora. A `Permissions-Policy` desliga o que o app não
+ * usa e deixa a tela acesa (`screen-wake-lock`, §3.2) de pé.
+ *
+ * Uma CSP completa (script/style/connect/img/worker) ficou de fora de
+ * propósito: ela precisa do domínio do projeto Supabase, que ainda não existe
+ * — está anotada em PROGRESSO.md para ser medida em `Report-Only` depois do
+ * deploy, antes de ser forçada.
+ */
+const CABECALHOS_DE_SEGURANCA = [
+  { key: "Content-Security-Policy", value: "frame-ancestors 'none'" },
+  { key: "X-Frame-Options", value: "DENY" },
+  { key: "X-Content-Type-Options", value: "nosniff" },
+  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+  {
+    key: "Permissions-Policy",
+    value: "camera=(), microphone=(), geolocation=(), payment=(), screen-wake-lock=(self)",
+  },
+];
+
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  async headers() {
+    return [{ source: "/:caminho*", headers: CABECALHOS_DE_SEGURANCA }];
+  },
   // o sprite do mapa muscular é lido do disco em runtime
   outputFileTracingIncludes: {
     "/**": ["./assets/mapa-muscular/**"],

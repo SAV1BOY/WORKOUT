@@ -9,7 +9,7 @@ export type Enviador = (item: ItemSaida) => Promise<void>;
 
 const ATRASO_BASE_MS = 2_000;
 const ATRASO_MAX_MS = 5 * 60_000;
-const MAX_TENTATIVAS = 12;
+export const MAX_TENTATIVAS = 12;
 
 let enviador: Enviador | null = null;
 let rodando = false;
@@ -41,13 +41,22 @@ export function venceu(
 }
 
 /**
- * Enfileira uma mudança. Nunca lança: o registro local já foi feito.
+ * Enfileira uma mudança.
  *
  * `alvo` (opcional) amarra este item aos que vieram antes com o mesmo alvo:
  * enquanto um deles não subir, este não é tentado (SPEC §8).
+ *
+ * Sem IndexedDB (navegador antigo, aba privada do Firefox) isto **lança**: a
+ * versão silenciosa devolvia sem enfileirar e a tela mostrava o registro salvo
+ * pelo cache otimista, enquanto a escrita nunca chegava ao Supabase — o
+ * contrário de "nada se perde". As telas já tratam o erro do enfileiramento.
  */
 export async function enfileirar(tipo: TipoSaida, payload: unknown, alvo?: string) {
-  if (!temIndexedDB()) return;
+  if (!temIndexedDB()) {
+    throw new Error(
+      "Este navegador não está deixando guardar nada (saia do modo privado).",
+    );
+  }
   await bd().outbox.add({
     tipo,
     payload,
@@ -216,6 +225,54 @@ export async function esperarFila(tentativas = 20, esperaMs = 100): Promise<numb
     await new Promise((pronto) => setTimeout(pronto, esperaMs));
   }
   return pendentes();
+}
+
+/** O que a fila tem para mostrar em /mais (SPEC §8). */
+export interface EstadoDaFila {
+  quantos: number;
+  /** O erro do item mais antigo, se ele já falhou alguma vez. */
+  erro?: string;
+  tentativas?: number;
+}
+
+/**
+ * O texto da linha "Sincronização" de /mais — puro, para poder ser testado.
+ *
+ * A fila só aparecia no cabeçalho da sessão de força ("N para sincronizar"):
+ * um item com erro permanente (um 400 do PostgREST contra um schema velho)
+ * tentaria de 5 em 5 minutos para sempre sem ninguém ver, e o Miguel
+ * acreditaria que está tudo sincronizado. Nada se perde — o item fica no
+ * IndexedDB —, mas ele precisa poder descobrir.
+ */
+export function resumoDaFila(estado: EstadoDaFila): {
+  titulo: string;
+  detalhe: string;
+  travada: boolean;
+} {
+  if (estado.quantos === 0) {
+    return { titulo: "Tudo sincronizado", detalhe: "Nada esperando a rede.", travada: false };
+  }
+  const titulo =
+    estado.quantos === 1 ? "1 item esperando" : `${estado.quantos} itens esperando`;
+  const travada = (estado.tentativas ?? 0) >= MAX_TENTATIVAS;
+  if (travada && estado.erro) {
+    return { titulo, detalhe: `Parou de tentar sozinho: ${estado.erro}`, travada };
+  }
+  if (estado.erro) return { titulo, detalhe: `Última falha: ${estado.erro}`, travada };
+  return { titulo, detalhe: "Sobe assim que a rede voltar.", travada };
+}
+
+/** O estado da fila para a tela (quantos e o erro do item mais antigo). */
+export async function estadoDaFila(): Promise<EstadoDaFila> {
+  if (!temIndexedDB()) return { quantos: 0 };
+  const quantos = await bd().outbox.count();
+  if (quantos === 0) return { quantos: 0 };
+  const primeiro = await bd().outbox.orderBy("criadoEm").first();
+  return {
+    quantos,
+    ...(primeiro?.erro ? { erro: primeiro.erro } : {}),
+    ...(primeiro ? { tentativas: primeiro.tentativas } : {}),
+  };
 }
 
 export async function pendentes(): Promise<number> {

@@ -1,6 +1,7 @@
 import { ChevronRight, Dumbbell, HardDrive, SlidersHorizontal, User } from "lucide-react";
 import Link from "next/link";
 import { BotaoSair } from "@/components/botao-sair";
+import { LinhaSincronizacao } from "@/components/mais/linha-sincronizacao";
 
 export const metadata = { title: "Mais — Treino do Terraço" };
 
@@ -57,6 +58,8 @@ export default function Mais() {
           ))}
         </ul>
       </nav>
+
+      <LinhaSincronizacao />
 
       <BotaoSair />
 

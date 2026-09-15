@@ -36,6 +36,15 @@ interface Comum {
   sufixo?: string;
   /** Rótulo de acessibilidade — o gráfico é uma figura. */
   titulo: string;
+  /**
+   * Domínio do eixo y (o padrão do Recharts é `[0, "auto"]`).
+   *
+   * Nos gráficos de barra a base zero é informação e fica como está. Nas
+   * linhas de faixa estreita — peso entre 81 e 83 kg, cintura em 88 cm — o
+   * zero achata a série e a média de 7 dias da §3.8 vira um traço reto: lá
+   * quem chama passa um domínio folgado (`lib/corpo.ts`, `dominioFolgado`).
+   */
+  dominioY?: [number | string, number | string];
 }
 
 export const COR_PADRAO = "var(--chart-1)";
@@ -69,7 +78,13 @@ function conteudoDaDica(sufixo: string) {
   };
 }
 
-function eixos(dados: Comum["dados"], x: string, sufixo: string) {
+function eixos(
+  dados: Comum["dados"],
+  x: string,
+  sufixo: string,
+  dominioY?: Comum["dominioY"],
+  folgaNoX = false,
+) {
   return (
     <>
       <CartesianGrid stroke={GRADE} strokeDasharray="3 3" vertical={false} />
@@ -81,8 +96,16 @@ function eixos(dados: Comum["dados"], x: string, sufixo: string) {
         axisLine={{ stroke: GRADE }}
         interval={espacamento(dados.length)}
         minTickGap={4}
+        /*
+         * Na linha o tick do último ponto é centrado nele e, a 360 px, escapava
+         * da área de desenho ("09/0" no lugar de "09/09"). A folga à direita é
+         * do eixo e vale com 1, 2 ou 30 pontos. Na barra a escala é de banda
+         * (cada barra já tem a sua faixa) e o padding só desalinharia.
+         */
+        {...(folgaNoX ? { padding: { left: 4, right: 12 } } : {})}
       />
       <YAxis
+        {...(dominioY ? { domain: dominioY } : {})}
         stroke={EIXO}
         tick={{ fontSize: 10 }}
         tickLine={false}
@@ -122,11 +145,12 @@ export function GraficoLinha({
   altura = 180,
   sufixo = "",
   titulo,
+  dominioY,
 }: Comum) {
   return (
     <Moldura titulo={titulo} altura={altura}>
-      <LineChart data={[...dados] as object[]} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
-        {eixos(dados, x, sufixo)}
+      <LineChart data={[...dados] as object[]} margin={{ top: 8, right: 16, bottom: 0, left: 0 }}>
+        {eixos(dados, x, sufixo, dominioY, true)}
         {series.map((s) => (
           <Line
             key={s.chave}
@@ -154,12 +178,13 @@ export function GraficoBarras({
   altura = 180,
   sufixo = "",
   titulo,
+  dominioY,
   empilhado = false,
 }: Comum & { empilhado?: boolean }) {
   return (
     <Moldura titulo={titulo} altura={altura}>
-      <BarChart data={[...dados] as object[]} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
-        {eixos(dados, x, sufixo)}
+      <BarChart data={[...dados] as object[]} margin={{ top: 8, right: 16, bottom: 0, left: 0 }}>
+        {eixos(dados, x, sufixo, dominioY)}
         {series.map((s) => (
           <Bar
             key={s.chave}

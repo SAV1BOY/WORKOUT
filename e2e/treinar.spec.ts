@@ -627,9 +627,19 @@ test.describe("celular (SPEC §3 e §10.9)", () => {
     for (let i = 0; i < quantos; i++) {
       const caixa = await alvos.nth(i).boundingBox();
       if (!caixa) continue;
+      const nome = await alvos.nth(i).getAttribute("aria-label");
       expect(
         Math.round(caixa.height),
-        `alvo ${i} do primeiro bloco menor que 44 px`,
+        `alvo ${i} (${nome}) do primeiro bloco com menos de 44 px de altura`,
+      ).toBeGreaterThanOrEqual(44);
+      /*
+       * Auditoria final: a regra é 44 px nas DUAS dimensões. Na grade de duas
+       * colunas (reps + carga) o campo do stepper fechava em 37 px de largura
+       * — e ele é o alvo de quem digita em vez de usar o − e o +.
+       */
+      expect(
+        Math.round(caixa.width),
+        `alvo ${i} (${nome}) do primeiro bloco com menos de 44 px de largura`,
       ).toBeGreaterThanOrEqual(44);
     }
 

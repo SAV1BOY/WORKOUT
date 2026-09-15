@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  dominioFolgado,
   ANGULOS,
   MEDIDAS,
   angulosEmComum,
@@ -180,5 +181,36 @@ describe("dimensoesReduzidas", () => {
 
   it("nunca devolve zero", () => {
     expect(dimensoesReduzidas(1, 4000)).toEqual({ largura: 1, altura: 1600 });
+  });
+});
+
+describe("dominioFolgado — o eixo y das linhas (SPEC §3.8)", () => {
+  it("sem ponto nenhum deixa o Recharts decidir", () => {
+    expect(dominioFolgado([])).toEqual(["auto", "auto"]);
+    expect(dominioFolgado([Number.NaN, Number.POSITIVE_INFINITY])).toEqual([
+      "auto",
+      "auto",
+    ]);
+  });
+
+  it("com um ponto só cerca esse ponto", () => {
+    expect(dominioFolgado([82.4])).toEqual([81, 84]);
+  });
+
+  it("com dois pontos cerca os dois", () => {
+    expect(dominioFolgado([82.4, 81.1])).toEqual([80, 84]);
+  });
+
+  /* O defeito: 30 pesagens entre 81 e 83 num eixo de 0 a 100. */
+  it("com 30 pesagens o eixo fica na faixa, não no zero", () => {
+    const pesos = Array.from({ length: 30 }, (_, i) => 81 + (i % 21) / 10);
+    const [min, max] = dominioFolgado(pesos);
+    expect(min).toBe(80);
+    expect(max).toBe(84);
+    expect(min).toBeGreaterThanOrEqual(70);
+  });
+
+  it("a folga é escolhida por quem chama (2 cm nas medidas)", () => {
+    expect(dominioFolgado([88, 91.5], 2)).toEqual([86, 94]);
   });
 });
