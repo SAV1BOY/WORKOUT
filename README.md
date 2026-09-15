@@ -134,8 +134,14 @@ npm run dev:mock    # next dev já apontando para ele
 
 ## Deploy na Vercel
 
-1. **Repositório**: suba a pasta para um repositório **privado** no GitHub.
-2. **Importar**: em https://vercel.com/new escolha o repositório. O framework é
+> O passo a passo completo da infraestrutura (Supabase + Vercel + PWA + o teste
+> do terraço), em ordem e com os comandos, está em **`PROGRESSO.md` → "Checklist
+> de infraestrutura"**. O resumo:
+
+1. **Repositório**: o código de produção fica em `main`, no repositório privado
+   `SAV1BOY/WORKOUT`.
+2. **Importar**: em https://vercel.com/new escolha o repositório e deixe
+   `main` como *Production Branch*. O framework é
    detectado como Next.js; o comando de build é o `npm run build` do projeto
    (ele roda `validar` e `assets` no `prebuild`, então as figuras e as fotos vão
    para `public/` no deploy — a pasta `public/` é gerada, não versionada).
@@ -147,8 +153,12 @@ npm run dev:mock    # next dev já apontando para ele
    | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | a chave **anon public** (nunca a `service_role`) |
    | `ALLOWED_EMAIL` | `miguelgsaviotti29@gmail.com` |
 
-   As duas `NEXT_PUBLIC_*` são lidas em tempo de execução: mudar o valor e dar
-   **Redeploy** basta, não é preciso rebuildar em outra máquina.
+   Pelo painel (Settings → Environment Variables) ou pela CLI
+   (`vercel link`, depois `vercel env add NEXT_PUBLIC_SUPABASE_URL production`
+   e assim por diante, `production` **e** `preview`; confira com
+   `vercel env ls`). As duas `NEXT_PUBLIC_*` são lidas em tempo de execução:
+   mudar o valor e dar **Redeploy** basta, não é preciso rebuildar em outra
+   máquina.
 4. **Supabase → Authentication → URL Configuration**: em *Site URL* ponha a URL
    da Vercel (`https://treino-terraco.vercel.app`) e em *Redirect URLs*
    acrescente `https://treino-terraco.vercel.app/**`. Sem isso o link de

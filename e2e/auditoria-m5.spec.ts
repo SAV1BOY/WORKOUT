@@ -65,6 +65,29 @@ test.describe("§10.8 — as 81 fichas", () => {
         problemas.push(`${exercicio.id}: HTTP ${resposta?.status()}`);
         continue;
       }
+      // As duas fotos da ficha são `loading="lazy"` e, num viewport de 360 ×
+      // 740, podem ainda não ter começado a carregar quando o `load` da página
+      // dispara — medir aqui era uma corrida (o teste falhava em ~1 de 2
+      // rodadas, sempre com "1 de 3 imagens carregaram" e nenhum erro HTTP).
+      // Forçar `eager` e esperar o `complete` não afrouxa nada: `complete`
+      // também fica true quando a imagem falha, então `naturalWidth > 0`
+      // continua sendo a asserção. Se alguma não completar em 10 s, seguimos
+      // assim mesmo para a mensagem de erro detalhada abaixo.
+      await page.evaluate(() => {
+        for (const i of document.querySelectorAll("main img")) {
+          (i as HTMLImageElement).loading = "eager";
+        }
+      });
+      await page
+        .waitForFunction(
+          () =>
+            [...document.querySelectorAll("main img")].every(
+              (i) => (i as HTMLImageElement).complete,
+            ),
+          null,
+          { timeout: 10_000 },
+        )
+        .catch(() => {});
       const visto = await page.evaluate(() => {
         const imagens = [...document.querySelectorAll("main img")].map((i) => {
           const img = i as HTMLImageElement;

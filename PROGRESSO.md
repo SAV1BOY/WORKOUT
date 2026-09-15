@@ -5,6 +5,309 @@ repositório, não um plano.
 
 ---
 
+## Estado da entrega ✅
+
+O app está pronto no código. O que falta é **infraestrutura** (criar o projeto
+Supabase, publicar na Vercel, instalar no celular) — o passo a passo executável
+está no fim desta seção. Nada aqui depende de escrever mais código.
+
+### Critérios de aceite (SPEC §10)
+
+| # | Critério | Como foi verificado | Resultado |
+|---|---|---|---|
+| 1 | Login com o e-mail permitido; qualquer outro é recusado | `e2e/login.spec.ts` (6 testes) e `e2e/auditoria.spec.ts`: o e-mail de fora é recusado **antes** de qualquer requisição — o mock não recebe nada. Criar conta, entrar, sair, senha errada traduzida e rota protegida sem sessão → `/login` | ✅ contra o mock · **pendente de infra** contra o Supabase real |
+| 2 | Perfil semeado de `data/perfil.json`; a Hoje mostra "Treino A · 6 exercícios · 44 min" numa segunda, com 7,5 kg na barra, 1,5 kg por halter e 4 kg no pino | `e2e/hoje.spec.ts` com o relógio fixado em 14/09/2026 (segunda) e o perfil criado pelo trigger do schema | ✅ contra o mock · **pendente de infra** contra o Supabase real |
+| 3 | Sessão completa por série no celular sem teclado físico; timer de descanso ao concluir cada série; sobrevive a fechar/reabrir e a ficar sem rede | `e2e/treinar.spec.ts` e `e2e/auditoria-offline.spec.ts`: teclado numérico (`inputMode`), alvos ≥ 44 px medidos um a um, timer disparando, app fechado **sem rede** e reaberto com a sessão inteira, fila subindo ao voltar a rede | ✅ |
+| 4 | Sobe no sucesso; 2 falhas seguidas = −10 % e incremento pela metade; 3 falhas = semana leve | `lib/progressao.test.ts` (os 22 casos de `docs/casos-de-teste-progressao.md`, um a um, com barra fixa, elástico, tempo e unilateral) + as 6 rodadas de auditoria adversarial do motor | ✅ |
+| 5 | O motor só propõe carga alcançável (26,5 → 25,5) nos três implementos | `lib/montagem.test.ts`: escala inteira varrida (barra maciça 7,5→107,5, halteres 1,5→39,5, pino 0→100), limites de estoque e capacidade | ✅ |
+| 6 | Calendário da Fase 1 com A/B alternando pelo último treino; corrida na terça na semana 1 com 8 × (1 min / 2 min) | `lib/calendario.test.ts`, `e2e/calendario.spec.ts` e `e2e/cardio.spec.ts` (o timer de intervalos rodando) | ✅ |
+| 7 | Peso, medidas e fotos registrados e comparados; gráficos com 1 e com 30 pontos | `e2e/corpo.spec.ts` e `e2e/auditoria-m5.spec.ts`: 1 ponto, 30 pontos, eixo y com folga, foto de 2400 px redimensionada, subida ao bucket e comparação lado a lado | ✅ |
+| 8 | As 81 fichas abrem com figura (ou fotos), músculos destacados, passos e histórico | `e2e/auditoria-m5.spec.ts`: as **81** abertas uma a uma, cada imagem com `naturalWidth > 0` e nenhum 404 | ✅ |
+| 9 | `npm run build` sem erros, `npm run lint` limpo, `npm test` verde, PWA instalável, layout correto a 360 px | os quatro portões desta etapa (abaixo); `e2e/pwa.spec.ts` confere manifest, ícones 192/512/maskable e `sw.js`; rolagem horizontal e alvos de 44 px verificados em cada tela | ✅ · **Lighthouse em si: pendente de infra** (não há Chrome com Lighthouse nesta máquina; a última medição local deu PWA instalável e 78 de performance na Hoje) |
+| 10 | Deploy na Vercel com as variáveis; instalação como PWA no Android/iPhone | — | **pendente de infra** — passo a passo no "Checklist de infraestrutura" abaixo e no README |
+
+### Os quatro portões (rodados do zero nesta etapa, nesta ordem)
+
+```
+npm run lint   limpo (sem avisos)
+npm run build  ✓ Compiled successfully in 22.9s · 90 páginas geradas · 25 rotas
+npm test       Test Files 29 passed (29) · Tests 747 passed (747)
+npm run e2e    151 passed (5.1m) — Chromium 360 × 740
+```
+
+Rodados numa janela sozinha (sem build/vitest/playwright concorrente), e o
+`npm run e2e` rodado **duas vezes seguidas**, 151/151 nas duas — as duas
+instabilidades das etapas anteriores estão resolvidas (abaixo).
+
+- **Unitários: 747** em 29 arquivos (motor, montagem, calendário, sessão,
+  agregações, formato, backup, outbox, queries).
+- **Ponta a ponta: 151** em Chromium emulando celular (360 × 740), contra
+  `scripts/mock-supabase.ts`.
+- **Rotas do build** (First Load JS): `/` 320 kB · `/~offline` 104 kB ·
+  `/barra-fixa` 324 kB · `/calendario` 333 kB · `/cardio/[id]` 334 kB ·
+  `/corpo` 326 kB · `/exercicios` 176 kB · `/exercicios/[id]` 275 kB (SSG, 81
+  páginas) · `/login` 118 kB · `/mais` 165 kB · `/mais/backup` 317 kB ·
+  `/mais/equipamento` 320 kB · `/mais/perfil` 319 kB · `/mais/preferencias`
+  330 kB · `/progresso` 272 kB · `/treinar` 320 kB · `/treinar/[sessionId]`
+  344 kB (a maior) · compartilhado 104 kB · middleware 94,9 kB.
+
+### Os dois testes instáveis viraram verdes de verdade
+
+A primeira rodada de portões desta etapa reproduziu as duas instabilidades que
+as etapas anteriores tinham registrado como "ruído de ambiente". Nenhuma das
+duas era ruído, e nenhum teste foi pulado ou afrouxado para fechar o portão:
+
+1. **`auditoria-m5 › as 81 fichas`** (falhou com "elevacao-lateral: 1 de 3
+   imagens carregaram", sem nenhum erro HTTP). As duas fotos da ficha são
+   `loading="lazy"` e, num viewport de 360 × 740, podem ainda nem ter começado
+   a carregar quando o `load` da página dispara: o teste media uma corrida.
+   Agora ele força `loading = "eager"` e espera o `complete` das imagens antes
+   de medir (com teto de 10 s, para a mensagem detalhada continuar aparecendo
+   se alguma falhar de verdade). `complete` também fica `true` quando a imagem
+   falha, então a asserção continua sendo `naturalWidth > 0`. Três rodadas
+   isoladas verdes.
+2. **`/mais/preferencias › o incremento do agachamento`** — **defeito do app**,
+   não do teste. `salvarIncremento()` (`lib/queries/mais.ts`) atualizava o
+   cache do TanStack só quando o exercício **já tinha** linha em
+   `exercise_state`; no caso mais comum (a primeira vez que se mexe no
+   incremento) o cache guardava o estado antigo. Como esse cache é persistido
+   no Dexie (§8) e o `staleTime` é de 30 s, recarregar a tela logo depois podia
+   mostrar "programa 4 kg · usando 4 kg" com o campo vazio — o valor salvo
+   sumia da tela por até meio minuto, embora estivesse gravado. O cache passa a
+   receber a linha sintética que o upsert cria no banco (os defaults de
+   `exercise_state` em `supabase/schema.sql`). Coberto por
+   `lib/queries/mais.test.ts` (3 testes novos).
+
+### Conhecido, não corrigido (consolidado)
+
+Tudo com o motivo; nada disso impede treinar.
+
+**Depende da infraestrutura**
+
+1. **CSP completa** (`script/style/connect/img/worker`): só o `frame-ancestors`
+   entrou. Uma CSP de verdade precisa liberar `connect-src` do domínio do
+   projeto Supabase (rest, auth, storage, `wss` do realtime) — e o projeto
+   ainda não existe. Medir com `Content-Security-Policy-Report-Only` depois do
+   deploy e só então forçar.
+2. **Lighthouse na Hoje: 78 de performance, LCP 4,3 s.** O shell autenticado
+   carrega ~320 kB de JS antes da primeira leitura. Encostar em 90 pede
+   renderizar o cabeçalho e o esqueleto no servidor — mexida grande na
+   arquitetura, na véspera do deploy. Como o app é instalado e precacheado pelo
+   Serwist, o custo real é só na primeira abertura.
+3. **`npm audit --omit=dev`: 3 avisos de ferramenta de build** (`browserslist`,
+   `postcss` aninhado em `node_modules/next`). Só exploráveis processando CSS
+   ou config de terceiros durante o build; `npm audit fix` não muda nada e o
+   `postcss` só sai com `next@16` (breaking). Deixar para uma atualização
+   planejada do Next depois do deploy.
+
+**Decisões de custo/benefício**
+
+4. **Recordes numa sessão refeita noutro aparelho**: `v_records` já inclui as
+   séries daquela sessão, então o resumo do fim não anuncia recordes novos dela.
+   Corrigir exigiria varrer `session_sets` de dezenas de exercícios no cliente a
+   cada abertura. O erro é para o lado seguro (deixa de anunciar, nunca inventa).
+5. **Primeira carga do app sem rede** cai na tela de erro do navegador: o
+   service worker ainda não assumiu o controle. Da segunda carga em diante — o
+   caso do PWA instalado — tudo abre offline. É o ciclo de vida do SW.
+6. **Sem IndexedDB o app não treina** (aba anônima do Firefox): `enfileirar()`
+   lança e a tela mostra o erro, mas falta a checagem única na abertura com um
+   aviso fixo no shell. No PWA instalado o IndexedDB existe sempre.
+7. **Splash de iOS**: o Android usa o manifest (ícone 512 +
+   `background_color`); o iPhone precisa de uma `apple-touch-startup-image` por
+   tamanho de tela, que não foi gerada — ele abre com a tela preta do
+   `background_color`.
+8. **Apagar uma foto de progresso pela tela** não existe (o bucket e a tabela
+   aceitam; falta o botão).
+9. **`<input type="date">` mostra a data no idioma do navegador**: no Chromium
+   do CI (en-US) sai `09/14/2026`; num celular em pt-BR sai dd/mm/aaaa. É
+   ambiente, não defeito — trocar pelo seletor próprio custaria dois campos
+   numéricos novos em Peso e Medidas.
+10. **`progression_events.session_id` não é filtrado na importação do backup**
+    como `session_sets.session_id` passou a ser: o evento pode existir sem a
+    sessão (troca de fase, §5.1) e descartá-lo perderia a linha do tempo da
+    §6.6. No banco de verdade a FK recusa sozinha a linha órfã.
+11. **`aderencia()` aplica o perfil de hoje** (fase, semana do plano) às 4
+    semanas da janela: quem mudar de fase vê as semanas passadas recalculadas
+    pela fase nova. Só aparece na virada de fase.
+12. **Sessão de barra fixa antiga refeita noutro aparelho** é remontada com a
+    prescrição da semana de hoje, não com a da semana em que foi criada.
+13. **O aviso "faltam anilhas de 10 kg"** (diálogo da montagem) continua escrito
+    no código: é a etiqueta de uma montagem, não texto de ajuda do motor, e não
+    tem chave em `data/progressao.json`. Os avisos do **motor** vêm do JSON.
+14. **Espaço reservado dos gráficos** tem sempre 180 px enquanto o Recharts
+    carrega, mesmo nos declarados com `altura={140}` — um pulinho de layout.
+15. **`supabase/schema.sql` usa `create table if not exists`**: num banco onde
+    uma versão **antiga** do schema já tivesse rodado, mudanças de coluna não
+    seriam reaplicadas. Como o projeto vai ser criado do zero, não afeta nada.
+
+**Ruído de ambiente (não é defeito do app)**
+
+16. Rodar dois portões ao mesmo tempo (um `npm run build` durante o `npm run
+    e2e`, por exemplo) corrompe a medição. Só vale o portão rodado numa janela
+    sozinha. Atenção: `pkill -f "next start"` **não** mata o servidor — o
+    processo se chama `next-server`, e as portas 3100/54321 ficam ocupadas por
+    órfãos. (As duas falhas que as etapas anteriores atribuíam a esse ruído
+    eram reais e foram corrigidas nesta etapa — ver acima.)
+
+---
+
+## Checklist de infraestrutura (passo a passo executável)
+
+Para o dono fazer no ambiente dele, na ordem. Leva uns 30 minutos.
+
+### 1. Criar o projeto no Supabase
+
+1. Abra <https://supabase.com/dashboard> e entre (pode ser **qualquer conta** —
+   o app só precisa da URL e da chave; nada está preso ao e-mail da conta).
+2. **New project**: *Name* `treino-terraco`, *Database Password* forte
+   (guarde), *Region* **South America (São Paulo)**. Criar e esperar o status
+   ficar verde (1–2 min).
+3. **SQL Editor → New query**: cole **todo** o conteúdo de
+   `supabase/schema.sql` e rode (Ctrl+Enter). Tem que aparecer
+   "Success. No rows returned".
+4. Confira em **Table Editor** as 11 tabelas (`profiles`, `sessions`,
+   `session_sets`, `exercise_state`, `progression_events`, `cardio_sessions`,
+   `pullup_singles`, `body_weights`, `body_measurements`, `progress_photos`,
+   `schedule_overrides`) e em **Storage** o bucket `progresso`.
+5. **Authentication → Providers → Email**: *Enable Email provider* ligado e
+   **Confirm email desligado**. Salvar.
+6. **Project Settings → API**: copie a **Project URL**
+   (`https://xxxx.supabase.co`) e a chave **anon public / publishable**
+   (`eyJ...` ou `sb_publishable_...`). **Nunca** use a `service_role`.
+
+### 2. Rodar localmente contra o Supabase de verdade (opcional, mas recomendado)
+
+```bash
+cp .env.local.example .env.local
+# edite .env.local e cole a URL e a chave:
+#   NEXT_PUBLIC_SUPABASE_URL=https://xxxx.supabase.co
+#   NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
+#   ALLOWED_EMAIL=miguelgsaviotti29@gmail.com
+npm install
+npm run build && npm start      # http://localhost:3000
+```
+
+Na tela de login: um e-mail qualquer tem que ser recusado com "Este app é
+pessoal."; com o e-mail permitido, **Criar conta** → a Hoje abre com o perfil
+semeado de `data/perfil.json` (critérios §10.1 e §10.2 contra o banco real).
+
+### 3. Publicar na Vercel
+
+1. O código de produção fica em **`main`** no repositório
+   **`SAV1BOY/WORKOUT`**. Faça o merge do branch de trabalho
+   (`claude/academia-miguel-index-ekvwi0`, PR aberto) para `main`.
+2. Em <https://vercel.com/new> importe `SAV1BOY/WORKOUT`. Framework: Next.js
+   (detectado). *Production Branch*: `main`. O build é o `npm run build` do
+   projeto — o `prebuild` roda `validar` e `assets`, então as figuras e as
+   fotos vão para `public/` no deploy (a pasta é **gerada**, não versionada).
+3. **Environment Variables** — as três, em **Production e Preview**. Pelo
+   painel (Settings → Environment Variables) ou pela CLI:
+
+   ```bash
+   npm i -g vercel && vercel login && vercel link   # escolha SAV1BOY/WORKOUT
+   vercel env add NEXT_PUBLIC_SUPABASE_URL production
+   vercel env add NEXT_PUBLIC_SUPABASE_URL preview
+   vercel env add NEXT_PUBLIC_SUPABASE_ANON_KEY production
+   vercel env add NEXT_PUBLIC_SUPABASE_ANON_KEY preview
+   vercel env add ALLOWED_EMAIL production
+   vercel env add ALLOWED_EMAIL preview
+   # cole o valor quando ele pedir; confira depois com:
+   vercel env ls
+   ```
+
+4. **Redeploy** (Deployments → ⋯ → Redeploy). As duas `NEXT_PUBLIC_*` são
+   lidas em tempo de execução: mudar o valor e redeployar basta, não é preciso
+   rebuildar em outra máquina. Anote a URL final
+   (`https://treino-terraco.vercel.app` ou parecida).
+
+### 4. Fechar o círculo no Supabase
+
+**Authentication → URL Configuration**:
+
+- *Site URL*: `https://SUA-URL.vercel.app`
+- *Redirect URLs*: acrescente `https://SUA-URL.vercel.app/**`
+
+Sem isso a volta do login cai no `localhost`.
+
+### 5. Criar a conta e conferir
+
+1. Abra `https://SUA-URL.vercel.app/login` e crie a conta com
+   **miguelgsaviotti29@gmail.com**. Qualquer outro e-mail tem que ser recusado.
+2. A Hoje abre com o treino do dia e as cargas iniciais (§10.2).
+3. `https://SUA-URL.vercel.app/sw.js` tem que responder **200** (é o service
+   worker) e `/manifest.webmanifest` também.
+
+### 6. Instalar como PWA
+
+- **Android (Chrome)**: menu ⋮ → *Instalar app*.
+- **iPhone (Safari)**: Compartilhar → *Adicionar à Tela de Início*.
+
+O ícone laranja aparece como um app e ele abre sem a barra do navegador.
+
+### 7. O teste do terraço (modo avião)
+
+1. Abra o app instalado e fique uns segundos na **Hoje** (é quando as figuras e
+   as fotos do seu programa entram no cache).
+2. Ligue o **modo avião**.
+3. Comece o treino do dia, registre duas séries, feche o app, abra de novo: a
+   sessão volta inteira, com as figuras.
+4. Conclua o treino ainda sem rede.
+5. Desligue o modo avião: em segundos tudo sobe sozinho. Em **Mais** a linha
+   *Sincronização* volta a dizer "Tudo sincronizado".
+
+---
+
+## Como rodar tudo localmente
+
+```bash
+npm install                 # Node 22, npm 10
+npm run lint                # ESLint
+npm run build               # valida os JSON, copia os assets e builda
+npm test                    # Vitest (744 unitários)
+npm run e2e                 # Playwright no celular emulado — exige o build antes
+```
+
+Os quatro verdes, nessa ordem, são o portão. `npm run e2e` **não builda**: ele
+sobe `next start -p 3100` com o que está em `.next/`, mais o mock do Supabase
+na 54321 (ver `e2e/README.md`).
+
+Para ver o app com os próprios olhos **sem projeto Supabase**, dois terminais:
+
+```bash
+npm run mock        # o Supabase de mentira na 54321
+npm run dev:mock    # next dev já apontando para ele → http://localhost:3000
+```
+
+Com `.env.local` preenchido, o normal: `npm run dev`.
+
+## Como testar no celular na rede local
+
+1. Descubra o IP do computador: `hostname -I | awk '{print $1}'` (Linux) ou
+   `ipconfig getifaddr en0` (Mac) — algo como `192.168.0.12`.
+2. Com `.env.local` preenchido (Supabase de verdade):
+
+   ```bash
+   npm run build && npm start -- -H 0.0.0.0
+   ```
+
+   e no celular, **na mesma rede Wi-Fi**, abra `http://192.168.0.12:3000`.
+3. Sem Supabase, contra o mock, as três variáveis precisam apontar para o
+   **IP**, não para `127.0.0.1` (senão o celular não acha o mock):
+
+   ```bash
+   npm run mock
+   NEXT_PUBLIC_SUPABASE_URL=http://192.168.0.12:54321 \
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=mock-anon \
+   ALLOWED_EMAIL=miguelgsaviotti29@gmail.com \
+   npx next dev -H 0.0.0.0
+   ```
+
+4. No celular, confira a 360 px: nenhuma tela rola para o lado e todo alvo é
+   tocável com o polegar. O service worker (e portanto "Instalar app") só
+   existe no **build de produção** — em `next dev` ele fica desligado.
+
+---
+
 ## Marco 1 — Base ✅
 
 Scaffold do Next.js 15 dentro da pasta do kit (sem tocar em `data/`, `assets/`,
