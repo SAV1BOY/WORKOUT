@@ -551,6 +551,62 @@ test.describe("ajuda, montagem e substituição (SPEC §3.2, §6.5 e §7)", () =
   });
 });
 
+/** Entra na Fase 2 e começa um treino pelo nome (sem congelar o relógio). */
+async function comecarTreinoDaFase2(page: Page, nome: string): Promise<SessaoMock> {
+  const sessao = await usuarioComPerfil({
+    fase_atual: "fase2",
+    fase_desde: "2026-06-01",
+  });
+  await entrarNoApp(page);
+  await page.goto("/treinar");
+  await page.getByRole("button", { name: `Começar ${nome}` }).click();
+  await expect(page).toHaveURL(/\/treinar\/[0-9a-f-]{36}$/);
+  return sessao;
+}
+
+test.describe("cronômetro dos exercícios de tempo (SPEC §3.2 e §8)", () => {
+  /*
+   * O cronômetro corre num `setInterval` e devolve o valor pela sessão inteira.
+   * Se ele guardar a versão da sessão de quando começou, cada tique desfaz o
+   * que foi registrado no meio — um visto marcado noutro bloco voltava a "não
+   * feito" 250 ms depois. Registro perdido é o que a §8 proíbe.
+   */
+  test("o cronômetro rodando não desfaz o que foi marcado", async ({ page }) => {
+    const sessao = await comecarTreinoDaFase2(page, "Inferior A");
+    const prancha = page.getByRole("group", { name: "Série 1 — Prancha" });
+    await prancha.getByRole("button", { name: /Cronômetro/ }).click();
+    await page.waitForTimeout(1_200);
+
+    // com o cronômetro correndo, marcar uma série de outro bloco tem de pegar
+    const visto = page
+      .getByRole("group", { name: "Série 1 — Agachamento livre" })
+      .getByRole("checkbox");
+    await visto.click();
+    await page.waitForTimeout(1_200);
+    await expect(visto).toHaveAttribute("aria-checked", "true");
+    await expect(page.getByText("1/20 séries")).toBeVisible();
+
+    // e marcar a própria série do cronômetro para a contagem
+    const vistoPrancha = prancha.getByRole("checkbox");
+    await vistoPrancha.click();
+    const campo = prancha.getByRole("textbox", { name: "segundos" });
+    const parado = await campo.inputValue();
+    await page.waitForTimeout(1_200);
+    await expect(vistoPrancha).toHaveAttribute("aria-checked", "true");
+    await expect(campo).toHaveValue(parado);
+
+    // o tempo cronometrado subiu para o banco (§8)
+    await expect
+      .poll(async () =>
+        (await lerDoMock<{ exercise_id: string; tempo_s: number | null }>(
+          sessao,
+          "session_sets",
+        )).find((l) => l.exercise_id === "prancha")?.tempo_s,
+      )
+      .toBe(Number(parado));
+  });
+});
+
 test.describe("celular (SPEC §3 e §10.9)", () => {
   test("todo alvo da sessão tem 44 px e nada rola para o lado", async ({ page }) => {
     await comecarTreinoA(page);
@@ -619,7 +675,16 @@ test.describe("timer, tela acesa e voltar sem rede (SPEC §3.2, §8 e §10.3)", 
     await timer.getByRole("button", { name: "30 s" }).click();
     await expect(timer).toContainText("3:00");
 
-    await page.clock.runFor("03:01");
+    /*
+     * "+30 s" soma ao que FALTA. Meio descanso depois (1:00 no relógio), o
+     * botão tem de levar de 2:00 para 2:30 — e não recomeçar em 3:00.
+     */
+    await page.clock.runFor("01:00");
+    await expect(timer).toContainText("2:00");
+    await timer.getByRole("button", { name: "30 s" }).click();
+    await expect(timer).toContainText("2:30");
+
+    await page.clock.runFor("02:31");
     await expect(timer).toContainText("vai!");
     expect(
       await page.evaluate(() => (window as never as { __vibrou: unknown[] }).__vibrou),

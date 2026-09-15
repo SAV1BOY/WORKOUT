@@ -1493,3 +1493,89 @@ para os recordes, que chegavam nulos e faziam qualquer série virar recorde.
    o cabeçalho tem de abrir com a carga **dele**, não com 7,5 kg.
 3. Conclua no topo da faixa: o resumo parte da carga do substituto e, na Hoje,
    a progressão do exercício original continua exatamente onde estava.
+
+### Auditoria do marco 3 (rodada 3) — o que o auditor achou e o que mudou
+
+Auditoria independente com os quatro portões rodados do zero (`npm run lint`
+limpo, `npm run build` sem erro, `npm test` 504/504, `npm run e2e` 71/71), o
+código lido e o app dirigido no Chromium a 360 × 740 contra o mock, com sondas
+descartáveis em `e2e/` (Fase 2 inteira: `maximo`, unilateral D/E, passos, tempo
+com cronômetro, substituição para a barra fixa assistida).
+
+**Confirmado no navegador** (nada disto veio do relatório do construtor):
+
+- §10.4 no **cabeçalho do bloco**, não só na Hoje: com `exercise_state` em
+  11,5 kg e o evento semeado, o Treino A abre com "Hoje: 11,5 kg na barra
+  (subiu +4 kg no treino de 12/09)" — vírgula decimal, data dd/MM e o rótulo do
+  implemento certos.
+- Rótulos por implemento em todos os blocos das Fases 1 e 2: "na barra",
+  "por halter", "no pino", "peso do corpo"; `REPS (D)`/`REPS (E)` nos quatro
+  unilaterais, `PASSOS` no farmer's walk, `SEGUNDOS` com cronômetro na prancha
+  e os quatro degraus do elástico na barra fixa assistida (por substituição).
+- Aquecimento só no primeiro `composto_pesado` do treino (também na Fase 2:
+  militar no SB, terra no IB) e fora da conta do rodapé.
+- A 360 px, em `IB` (o treino mais cheio): **nenhum** alvo abaixo de 44 px em
+  nenhum bloco e nada rolando para o lado.
+- O peso opcional do fim chega ao banco com vírgula decimal (84,3 → 84.3 em
+  `body_weights`).
+- Nenhuma regra de progressão dentro de `app/` ou `components/` (a única
+  constante numérica é o `incremento_kg` que vem do `AlvoDeHoje`), nenhum
+  `console.log`, nenhum `any`, nenhum `@ts-expect-error`, nenhum teste pulado.
+
+**Dois defeitos corrigidos nesta auditoria:**
+
+1. **O cronômetro desfazia o que era registrado enquanto ele corria**
+   (SPEC §3.2 e §8 — "nunca perder um registro"). O `setInterval` de
+   `CampoTempo` fechava sobre o `aoMudar` da renderização em que foi ligado, e
+   esse `aoMudar` carrega a **sessão inteira** daquele instante (cada toque
+   devolve uma sessão nova). Com o cronômetro da prancha correndo, marcar
+   qualquer série — de outro bloco ou da própria prancha — voltava a "não
+   feita" 250 ms depois, e o rodapé voltava a "0/20 séries": o visto sumia da
+   tela e do IndexedDB, mas a série já tinha subido para `session_sets` com
+   `concluida = true`. No fim do treino o motor decidiria sobre uma série que o
+   banco diz que foi feita. Reproduzido no Chromium antes da correção (o visto
+   nunca ficava marcado). O tique passou a chamar sempre o `aoMudar` da última
+   renderização (ref) — o que também apagou o único
+   `eslint-disable react-hooks/exhaustive-deps` do app — e marcar a série agora
+   **para** o cronômetro: o número que subiu para o banco é o que fica na tela.
+2. **"+30 s" recomeçava o descanso em vez de somar 30 s** (SPEC §3.2). O efeito
+   do timer recalculava `fim = agora + (base + extra)` toda vez que `extra`
+   mudava, jogando fora o tempo já decorrido: a 2:26 de um descanso de 2:30 o
+   botão levava a **3:00**, e a 0:10 do fim levaria a 3:00 também. Só não
+   aparecia nos testes porque eles clicavam o botão com o relógio parado no
+   começo da contagem. Agora o componente guarda o **instante do fim** e o
+   "+30 s" empurra esse instante (e reabilita o aviso, se o descanso já tinha
+   zerado): 2:00 + 30 s = 2:30.
+
+**Testes acrescentados** (`npm test` 504, `npm run e2e` **72**):
+
+- `e2e/treinar.spec.ts` > "o cronômetro rodando não desfaz o que foi marcado":
+  na Fase 2 (Inferior A), com o cronômetro da prancha ligado, marca uma série
+  do agachamento e confere que ela continua marcada e que o rodapé conta
+  "1/20 séries"; depois marca a própria série da prancha, confere que o
+  cronômetro parou (o campo não muda mais) e que o `tempo_s` cronometrado
+  chegou a `session_sets`. Falha com o código de antes.
+- `e2e/treinar.spec.ts` > o teste do descanso ganhou o caso do "+30 s" no meio
+  da contagem (1:00 corrido → 2:00 → +30 s → **2:30**, não 3:00).
+
+**Anotado, sem correção** (não bloqueia):
+
+- `reconstruirSessao` (sessão refeita a partir do banco, outro aparelho) lê os
+  recordes **depois** de as séries desta sessão já terem subido, então nada
+  conta como recorde novo no resumo. Só acontece quando o aparelho perde o
+  IndexedDB no meio do treino.
+- As séries já gravadas do exercício **original** continuam em `session_sets`
+  depois de uma substituição (segue da rodada 1).
+- O cronômetro grava no IndexedDB a cada 250 ms enquanto corre; é barato, mas
+  vale um `throttle` se a prancha de 2 min ficar pesada no celular antigo.
+
+### Como testar no celular (auditoria do marco 3, rodada 3)
+
+1. `npm run build && npm run e2e` — **72** testes verdes a 360 × 740
+   (`npm test` fecha em 504).
+2. À mão, com `npm run mock` + `npm run dev:mock`, na Fase 2 (Inferior A):
+   ligue o cronômetro da prancha, marque uma série do agachamento e espere
+   alguns segundos — o visto tem de continuar marcado. Marque a série da
+   prancha: o cronômetro para no número que foi para o banco.
+3. Num descanso qualquer, espere passar meio minuto e toque em "+30 s": o
+   relógio tem de ganhar 30 segundos, não voltar ao tempo cheio.

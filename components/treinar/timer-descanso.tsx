@@ -34,6 +34,8 @@ export function TimerDescanso({
 }) {
   const [restante, setRestante] = useState(descanso?.segundos ?? 0);
   const [extra, setExtra] = useState(0);
+  /** O instante em que o descanso acaba (ms). É ele que o "+30 s" empurra. */
+  const [fim, setFim] = useState(0);
   const tocou = useRef(false);
   const chave = descanso?.chave ?? 0;
   const base = descanso?.segundos ?? 0;
@@ -41,12 +43,23 @@ export function TimerDescanso({
   useEffect(() => {
     if (!descanso) return;
     setExtra(0);
+    setFim(Date.now() + base * 1000);
     tocou.current = false;
-  }, [chave, descanso]);
+  }, [chave, base, descanso]);
+
+  /**
+   * "+30 s" soma 30 segundos ao que FALTA (empurra o fim), em vez de recomeçar
+   * a contagem: a 0:10 do fim de um descanso de 2:30 a resposta é 0:40, não
+   * 3:00. Se o descanso já tinha zerado, o aviso volta a valer para o novo fim.
+   */
+  const somarTrinta = () => {
+    setExtra((e) => e + 30);
+    setFim((f) => Math.max(f, Date.now()) + 30_000);
+    tocou.current = false;
+  };
 
   useEffect(() => {
-    if (!descanso) return;
-    const fim = Date.now() + (base + extra) * 1000;
+    if (!descanso || fim === 0) return;
     const tique = () => {
       const falta = Math.ceil((fim - Date.now()) / 1000);
       setRestante(falta);
@@ -59,7 +72,7 @@ export function TimerDescanso({
     tique();
     const relogio = setInterval(tique, 250);
     return () => clearInterval(relogio);
-  }, [chave, base, extra, descanso, som, vibracao]);
+  }, [fim, descanso, som, vibracao]);
 
   if (!descanso) return null;
 
@@ -92,7 +105,7 @@ export function TimerDescanso({
           variant="outline"
           size="sm"
           className="alvo h-11 gap-1 px-3"
-          onClick={() => setExtra((e) => e + 30)}
+          onClick={somarTrinta}
         >
           <Plus className="size-4" />
           30 s

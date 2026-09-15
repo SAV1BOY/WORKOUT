@@ -136,6 +136,7 @@ export function LinhaSerieForm({
             <CampoTempo
               rotulo={unilateral ? "segundos (D)" : "segundos"}
               valor={serie.tempoS}
+              concluida={serie.concluida}
               aoMudar={(v) => aoMudar({ tempoS: v })}
             />
           ) : tipo === "passos" ? (
@@ -166,6 +167,7 @@ export function LinhaSerieForm({
             <CampoTempo
               rotulo="segundos (E)"
               valor={serie.tempoSLado2}
+              concluida={serie.concluida}
               aoMudar={(v) => aoMudar({ tempoSLado2: v })}
             />
           ) : unilateral ? (
@@ -230,24 +232,41 @@ function Campo({
 function CampoTempo({
   rotulo,
   valor,
+  concluida,
   aoMudar,
 }: {
   rotulo: string;
   valor: number | null;
+  /** A série já foi marcada: o cronômetro para (o valor gravado é este). */
+  concluida: boolean;
   aoMudar: (v: number | null) => void;
 }) {
   const [rodando, setRodando] = useState(false);
   const comeco = useRef<number>(0);
 
+  /*
+   * O tique tem de chamar SEMPRE o `aoMudar` da última renderização. Ele fecha
+   * sobre a sessão inteira (cada toque devolve uma sessão nova), então um tique
+   * com a versão velha desfaz o que foi registrado enquanto o cronômetro corria
+   * — um visto marcado noutro bloco voltava a "não feito" 250 ms depois.
+   */
+  const ultimoAoMudar = useRef(aoMudar);
+  useEffect(() => {
+    ultimoAoMudar.current = aoMudar;
+  });
+
+  // marcar a série encerra a contagem: o número que subiu é o que fica
+  useEffect(() => {
+    if (concluida) setRodando(false);
+  }, [concluida]);
+
   useEffect(() => {
     if (!rodando) return;
     comeco.current = Date.now();
     const relogio = setInterval(() => {
-      aoMudar(Math.round((Date.now() - comeco.current) / 1000));
+      ultimoAoMudar.current(Math.round((Date.now() - comeco.current) / 1000));
     }, 250);
     return () => clearInterval(relogio);
-    // `aoMudar` muda a cada render do pai; o cronômetro só depende de `rodando`
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rodando]);
 
   return (
