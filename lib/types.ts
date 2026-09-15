@@ -111,7 +111,8 @@ export interface LinhaSerie {
 export interface LinhaEventoProgressao {
   id: string;
   user_id: string;
-  exercise_id: string;
+  /** `null` = evento do programa inteiro (a troca de fase, SPEC §5.1). */
+  exercise_id: string | null;
   session_id: string | null;
   data: string;
   de: Record<string, unknown> | null;

@@ -209,3 +209,33 @@ describe("montagem — a escala inteira fecha exata", () => {
     }
   });
 });
+
+describe("pesos das barras medidos no perfil (SPEC §3.9)", () => {
+  it("`pesosBarras` vale por barra; as outras seguem o JSON", () => {
+    const opcoes = { pesosBarras: { "barra-w": 4.8 } } as const;
+    expect(cargasPossiveis("barra_w", opcoes)[0]).toBe(4.8);
+    expect(cargasPossiveis("barra_macica", opcoes)[0]).toBe(7.5);
+    expect(cargasPossiveis("barra_reta_oca", opcoes)[0]).toBe(PESO_BARRA_A_PESAR);
+    expect(cargasPossiveis("halteres", opcoes)[0]).toBe(1.5);
+  });
+
+  it("dá para corrigir a barra que o JSON já traz (e os halteres)", () => {
+    const opcoes = {
+      pesosBarras: { "barra-macica": 7.2, halteres: 1.4 },
+    } as const;
+    expect(cargasPossiveis("barra_macica", opcoes)[0]).toBe(7.2);
+    expect(montagem(11.2, "barra_macica", opcoes).porLado).toEqual([2]);
+    expect(cargasPossiveis("halteres", opcoes)[0]).toBe(1.4);
+  });
+
+  it("o override direto `pesoBarra` continua vencendo", () => {
+    const opcoes = { pesoBarra: 6, pesosBarras: { "barra-w": 4.8 } } as const;
+    expect(cargasPossiveis("barra_w", opcoes)[0]).toBe(6);
+  });
+
+  it("o teto do implemento não muda com a barra mais leve", () => {
+    const opcoes = { pesosBarras: { "barra-w": 4.8 } } as const;
+    const escala = cargasPossiveis("barra_w", opcoes);
+    expect(escala.at(-1)).toBeLessThanOrEqual(50);
+  });
+});

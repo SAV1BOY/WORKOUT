@@ -20,6 +20,8 @@ export interface EscritaTabela {
   tabela: string;
   op: Operacao;
   linha?: Record<string, unknown>;
+  /** Várias linhas de uma vez (importar um backup, §9). Vence `linha`. */
+  linhas?: Record<string, unknown>[];
   /** Colunas da chave única, para o upsert (ex.: "user_id,data"). */
   onConflict?: string;
   /** Filtro de igualdade do update/delete (ex.: `{ id }`). */
@@ -80,15 +82,19 @@ export async function enviarItem(item: ItemSaida): Promise<void> {
   const p = item.payload;
   const tabela = clienteNavegador().from(p.tabela);
 
+  // uma linha ou um lote: o resto do caminho é idêntico
+  const corpo: Record<string, unknown> | Record<string, unknown>[] =
+    p.linhas ?? p.linha ?? {};
+
   if (p.op === "insert") {
-    const { error } = await tabela.insert(p.linha ?? {});
+    const { error } = await tabela.insert(corpo);
     if (error) throw new Error(error.message);
     return;
   }
 
   if (p.op === "upsert") {
     const { error } = await tabela.upsert(
-      p.linha ?? {},
+      corpo,
       p.onConflict ? { onConflict: p.onConflict } : undefined,
     );
     if (error) throw new Error(error.message);

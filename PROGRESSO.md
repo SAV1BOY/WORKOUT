@@ -2213,3 +2213,213 @@ refresh token. `lib/progresso.test.ts` (+2): o dia da série no fuso local.
    dela). Troque a meta para `78,5` e a frase continua dizendo quanto falta.
 3. **Progresso**: os nomes dos grandes, os recordes recentes e as linhas da
    tabela agora são alvos de 44 px — dá para acertar com o polegar andando.
+
+---
+
+## Marco 6 — Mais, offline de verdade e acabamento ✅
+
+A tela que faltava (SPEC §3.9), o backup (§9), o offline como a §8 descreve e o
+acabamento de PWA, textos e documentação.
+
+### O que foi feito
+
+**Peças puras novas (com testes)**
+
+- `lib/preferencias.ts` — `profiles.prefs` lido e escrito sem perder as chaves
+  que outras telas guardam lá (meta de peso §3.8, adiamento da Fase 2 §5.1,
+  marca do avanço de semana §5.5):
+  ```ts
+  temaDasPrefs · temaDoNextThemes · temaDoTema · comTema · TEMAS
+  ligado(prefs, chave) · comLigado · CHAVES_LIGADAS
+  pesosDasBarras(prefs) · comPesoDaBarra · pesoDeBarraValido
+  opcoesDeMontagem(prefs): OpcoesMontagem
+  ```
+- `lib/equipamento.ts` — o terraço para a tela, tudo de `equipamentos.json`:
+  `itensDoTerraco()` (os 10 itens com a primeira foto da pasta),
+  `barrasDoTerraco(prefs)` (peso que vale hoje + de onde ele veio),
+  `anilhasDoKit()`, `totalDeAnilhasKg`, `notaDasAnilhas`, `presilhas`,
+  `oQueFalta`.
+- `lib/backup.ts` — exportar e importar (§9), idempotente por id:
+  `TABELAS_BACKUP` (as 11), `CHAVE_DA_TABELA`, `COLUNAS_DA_TABELA`,
+  `montarBackup`, `nomeDoArquivoBackup`, `textoDoBackup`, `lerBackup` (zod, com
+  mensagem em pt-BR), `chaveDaLinha`, `previaDaImportacao`,
+  `linhasParaImportar`, `emLotes`.
+- `lib/precache-do-programa.ts` — `exerciciosDaFase(fase)` e `midiaDaFase(fase)`
+  (puras) + `aquecerMidiaDaFase` (navegador, silenciosa).
+
+**`lib/montagem.ts` ganhou o peso por barra**
+
+`OpcoesMontagem` passou a ter `pesosBarras?: Partial<Record<BarraId, number>>`
+além do `pesoBarra` (que continua vencendo). Era o que faltava para o §3.9
+funcionar de verdade: uma sessão tem exercícios de barras diferentes, e um
+`pesoBarra` só valeria para todas ao mesmo tempo. Agora pesar a barra W muda a
+escala **dela** (4,8 · 6,8 · …) e a maciça continua 7,5 + 2k.
+
+O `opcoesDeMontagem(perfil.prefs)` foi ligado em todos os lugares que chamam o
+motor: Hoje (prévia), Treinar (criar a sessão), a sessão refeita noutro
+aparelho, a sessão de barra fixa e o "onde você está" da ficha.
+
+**`/mais` (SPEC §3.9)**
+
+Um índice com quatro rotas próprias (cada uma com o seu título e o seu bundle):
+
+- **`/mais/perfil`** — nome, altura e data de início; a fase atual com "desde
+  quando", a semana e quantos treinos concluídos; a **sugestão da Fase 2**
+  (§5.1) com *Passar para a Fase 2* e *Adiar 2 semanas*; e as semanas dos
+  planos de corrida, corda e barra fixa com − e + (§5.5).
+- **`/mais/equipamento`** — as 4 barras com o peso que vale hoje, a etiqueta
+  "a pesar" nas duas que o JSON ainda não tem (barra W e reta oca) e o campo
+  para anotar a balança; as anilhas do kit; os 10 itens com foto e specs; e o
+  que ainda falta comprar.
+- **`/mais/preferencias`** — tema (claro/escuro/automático), som e vibração do
+  descanso, voz do cardio, manter a tela acesa, e o **incremento por
+  exercício** (override em `exercise_state.incremento_kg`, com "programa 4 kg ·
+  usando 6 kg").
+- **`/mais/backup`** — *Exportar* baixa `treino-terraco-<data>.json` com as 11
+  tabelas; *Importar* lê o arquivo, mostra a **prévia** (quantas linhas novas e
+  quantas serão sobrescritas, por tabela) e só então grava.
+
+**Offline como a §8 pede**
+
+- **Precache da instalação**: o shell, os ícones, a página `/~offline` e as **67
+  figuras** (700 kB). Antes ia tudo de `public/` — 18 MB, incluindo as 162 fotos
+  do catálogo e as 6 MB de fotos do equipamento.
+- **Fotos do programa da fase atual**: `components/aquecer-midia.tsx` aquece o
+  cache assim que o service worker assume o controle da aba
+  (`controllerchange`), uma vez por fase.
+- **Fotos do catálogo**: `CacheFirst` sob demanda (`midia-do-treino`, 300
+  entradas, 180 dias), em `app/sw.ts`.
+- **Supabase nunca sai do cache**: uma regra `NetworkOnly` para
+  `/(rest|auth|storage|realtime|functions)/v1/` **antes** do `defaultCache` —
+  cujo último item é um `NetworkFirst` para tudo que é de outra origem, e que
+  guardaria as respostas do PostgREST. Tem teste e2e varrendo todos os caches
+  do navegador depois de navegar pelo app.
+
+**Acabamento**
+
+- `components/em-construcao.tsx` apagado: não sobrou nenhuma tela "em
+  construção".
+- `manifest` com `id`, e o `viewport.themeColor` (claro/escuro) e os ícones
+  192/512/maskable + apple-touch já vinham do marco 1.
+- README com **Testes**, **Deploy na Vercel** (as três variáveis, Site URL e
+  Redirect URLs no Supabase) e **Instalar no celular**.
+- `npm run validar` passou a conferir a foto de cada item do equipamento.
+
+### Decisões
+
+- **Sub-rotas em vez de uma página só.** `/mais` com quatro seções empilhadas
+  passaria de 3 000 px a 360 px e carregaria o Recharts, os 81 exercícios e o
+  leitor de backup de uma vez. Quatro rotas: cada uma tem o seu `<title>`, o seu
+  bundle (o índice fecha em 122 kB) e o botão de voltar do celular funciona
+  como o dedo espera.
+- **`pesosBarras` por barra, não um `pesoBarra` global** (acima). O
+  `pesoBarra` continua existindo porque é o que a montagem de um implemento só
+  usa internamente e o que os testes do motor exercitam.
+- **O tema mora nos dois lugares.** Quem pinta é o `next-themes`
+  (localStorage, sem piscada na primeira renderização); quem manda é
+  `profiles.prefs.tema`, aplicado uma vez por carregamento
+  (`components/tema-do-perfil.tsx`) — assim o tema atravessa aparelhos e a
+  reinstalação do app.
+- **Importar é upsert pela chave primária**, em lotes de 200, pela fila de
+  saída. Idempotente por id, como a §9 pede: o mesmo arquivo duas vezes deixa o
+  banco igual (tem teste e2e). Colunas que não existem no schema são
+  descartadas, e **todo `user_id` é recarimbado** com o de quem está importando
+  — a RLS só aceita linha do dono, e o backup pode vir de outro projeto.
+- **As fotos de progresso não entram no backup.** Elas vivem no bucket privado;
+  o JSON levaria dezenas de MB em base64. O `progress_photos` (o caminho e a
+  data) vai, então importar num projeto com o mesmo bucket reencontra as fotos.
+- **O precache é montado à mão em `next.config.ts`.** O `additionalPrecacheEntries`
+  do `@serwist/next` **substitui** o `globPublicPatterns` em vez de somar
+  (`node_modules/@serwist/next/dist/index.mjs`, "if (!resolvedManifestEntries)"):
+  passar só a `/~offline` deixaria o precache sem nenhum arquivo de `public/`.
+  Então a lista das figuras e dos ícones (com o hash de cada arquivo) é montada
+  no próprio config, com a `/~offline` no fim.
+- **`/~offline` precisa estar no precache.** Sem ela, navegar sem rede para uma
+  rota fora do app cai no erro do navegador. Com ela, o service worker serve o
+  HTML da `/~offline`; numa rota que não existe o Next hidrata em cima e mostra
+  o 404 dele — que é a resposta certa para uma rota que não existe.
+
+### Mudança no schema (`supabase/schema.sql`)
+
+- `progression_events.exercise_id` passou a **aceitar null**: a troca de fase
+  (§5.1 manda registrar um evento `trocou_fase`) é do programa inteiro, não de
+  um exercício. Quem lê eventos filtra por `exercise_id`, então essa linha não
+  aparece em nenhuma ficha; `lib/hoje.ts` pula os nulos ao montar o "último
+  evento por exercício".
+
+### Testes
+
+- **Unitários** (`npm test`, **659**): `lib/preferencias.test.ts` (13),
+  `lib/equipamento.test.ts` (8), `lib/backup.test.ts` (16),
+  `lib/precache-do-programa.test.ts` (4) e 4 novos em `lib/montagem.test.ts`.
+  Cobrem: jsonb torto não vira override de peso; pesar a barra W muda só a
+  escala dela; a foto de cada item existe em `assets/`; o backup recusa arquivo
+  de outro app/versão e descarta tabela e coluna desconhecidas; a importação
+  recarimba o `user_id`, ignora linha sem chave e é idempotente.
+- **E2E** (`npm run e2e`, **131**): `e2e/mais.spec.ts` (13) — o índice com alvos de
+  44 px; perfil gravado; semana do plano com − e +; a Fase 2 nos três estados
+  (sem gatilho, adiada, aceita com o evento `trocou_fase` e a Hoje já no
+  Superior A); os 10 itens com foto que **carrega de verdade**; pesar o halter
+  em 1,4 kg mudando a Hoje de "1,5 kg por halter" para "1,4 kg por halter"; o
+  tema mudando a classe `dark` e voltando depois do reload; o incremento virando
+  `exercise_state.incremento_kg`; e o backup exportado, importado num mock
+  zerado, reproduzindo sessão, séries, estado, peso e perfil — e importado de
+  novo sem duplicar nada. `e2e/pwa.spec.ts` (5) — o `sw.js` com as figuras e a
+  `/~offline` e **sem** as 162 fotos; o manifest com cor de tema e ícones que
+  respondem 200; nenhuma resposta do Supabase em nenhum cache; as fotos da fase
+  no cache depois do aquecimento; e o app abrindo sem rede.
+
+### Critérios de aceite (SPEC §10)
+
+| # | Critério | Como foi verificado |
+|---|---|---|
+| 1 | Login com o e-mail permitido; qualquer outro recusado | `e2e/login.spec.ts` (6) e `e2e/auditoria.spec.ts`: o e-mail de fora é recusado **sem nenhuma requisição** chegar ao Supabase. Contra o Supabase real: **pendente: infra** |
+| 2 | Perfil semeado de `perfil.json` e a Hoje com "Treino A · 6 exercícios · 44 min" numa segunda, com 7,5 kg na barra, 1,5 kg por halter e 4 kg no pino | `e2e/hoje.spec.ts` com o relógio em 14/09/2026 |
+| 3 | Sessão completa por série no celular, sem teclado físico; timer ao concluir; sobrevive a fechar/reabrir e a ficar sem rede | `e2e/treinar.spec.ts` (inclusive fechar o app sem rede e reabrir) |
+| 4 | Sobe no sucesso; 2 falhas = −10 % e incremento pela metade; 3 falhas = semana leve | `lib/progressao.test.ts` (os 22 casos do doc) + 280 testes de auditoria |
+| 5 | O motor só propõe carga alcançável (26,5 → 25,5), nos três implementos | `lib/montagem.test.ts` (escala inteira varrida) |
+| 6 | Calendário da Fase 1 com A/B alternando e a corrida da terça na semana 1 com 8 × (1/2 min) | `e2e/calendario.spec.ts` e `e2e/cardio.spec.ts` |
+| 7 | Peso, medidas e fotos registrados e comparados; gráficos com 1 e com 30 pontos | `e2e/corpo.spec.ts` e `e2e/auditoria-m5.spec.ts` |
+| 8 | As 81 fichas abrem com figura (ou fotos), músculos, passos e histórico | `e2e/auditoria-m5.spec.ts`: as 81 abertas uma a uma, com `naturalWidth > 0` em cada imagem e nenhum 404 |
+| 9 | `npm run build`, `npm run lint` e `npm test` verdes; PWA instalável; 360 px | build, lint e 659 testes verdes; `e2e/pwa.spec.ts` confere manifest, ícones e service worker; a rolagem lateral e os alvos de 44 px são verificados em cada tela. **Lighthouse em si: pendente: infra** (não há Chrome com Lighthouse nesta máquina) |
+| 10 | Deploy na Vercel com as variáveis; instalação como PWA no Android/iPhone | **pendente: infra** — falta o projeto Supabase e o projeto na Vercel. O passo a passo está no README ("Deploy na Vercel" e "Instalar no celular") |
+
+### O que falta
+
+- **Infra** (fora do código): criar o projeto Supabase, rodar
+  `supabase/schema.sql`, preencher as variáveis na Vercel, conferir Site URL e
+  Redirect URLs, e repetir os critérios 1, 2, 9 (Lighthouse) e 10 contra o
+  ambiente de verdade. O mock imita o schema, não o substitui.
+- Apagar uma foto de progresso pela tela (o bucket e a tabela aceitam).
+- Splash de iOS: o Android usa o manifest (ícone 512 + `background_color`); o
+  iPhone precisa de uma `apple-touch-startup-image` por tamanho de tela, que
+  não foi gerada — ele abre com a tela preta do `background_color`.
+
+### Como testar no celular (marco 6)
+
+1. `npm run lint && npm run build && npm test && npm run e2e`.
+2. À mão: `npm run mock` num terminal e `npm run dev:mock` no outro (troque
+   `127.0.0.1` pelo IP do computador nas três variáveis para abrir pelo
+   celular).
+3. **Mais → Preferências**: toque em *Escuro* — a tela vira preta na hora.
+   Feche o app, abra de novo: continua escura (veio do perfil, não do
+   aparelho). Desligue *Som no fim do descanso* e comece um treino: o timer
+   zera calado.
+4. **Mais → Equipamento**: role até *2 barras de halter* e digite `1,4` em
+   "Peso na balança". Volte para a **Hoje**: o desenvolvimento com halteres
+   agora pede **1,4 kg por halter** (antes 1,5) — a escala inteira do
+   implemento se recalculou. Toque em *Limpar* para voltar ao kit.
+5. **Mais → Preferências → Incremento por exercício**: ponha `6` no
+   agachamento. A linha passa a dizer "programa 4 kg · usando 6 kg" e a próxima
+   subida vai somar 6 kg.
+6. **Mais → Perfil**: mude o nome e a altura e salve. Se já tiver 12 semanas e
+   30 treinos, o cartão da fase oferece a Fase 2 — *Adiar 2 semanas* some com a
+   pergunta até lá.
+7. **Mais → Backup → Exportar backup**: o celular baixa
+   `treino-terraco-<data>.json`. Abra *Importar*, escolha o arquivo e veja a
+   prévia dizendo quantas linhas são novas antes de confirmar.
+8. **Offline**: instale o app (Chrome ⋮ → *Instalar app*), espere uns segundos
+   na Hoje (é quando as fotos do seu programa entram no cache), ligue o **modo
+   avião** e navegue: a Hoje abre com os dados da última sincronização, o treino
+   abre com as figuras e as fotos, e cada série registrada fica no aparelho.
+   Desligue o modo avião: em segundos tudo sobe sozinho.

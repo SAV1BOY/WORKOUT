@@ -50,7 +50,7 @@ const exercicios = validar(exerciciosSchema, "exercicios.json");
 const programa = validar(programaSchema, "programa.json");
 validar(cardioSchema, "cardio.json");
 validar(progressaoJsonSchema, "progressao.json");
-validar(equipamentosSchema, "equipamentos.json");
+const equipamentos = validar(equipamentosSchema, "equipamentos.json");
 validar(perfilSchema, "perfil.json");
 
 function conferirReferencias(exs: Exercicio[], prog: Programa) {
@@ -105,6 +105,23 @@ function conferirReferencias(exs: Exercicio[], prog: Programa) {
 }
 
 if (exercicios && programa) conferirReferencias(exercicios, programa);
+
+/**
+ * A tela Equipamento (SPEC §3.9) mostra a primeira foto de cada item —
+ * `assets/itens/<id>/<id>_01.jpg`, derivada da pasta que o JSON guarda.
+ */
+if (equipamentos) {
+  for (const item of equipamentos.itens) {
+    const pasta = item.fotos.replace(/\/+$/, "");
+    const foto = `${pasta}/${item.id}_01.jpg`;
+    if (!existsSync(join(raiz, pasta))) {
+      erros.push(`${pasta} (fotos de ${item.id}) não existe`);
+    } else if (!existsSync(join(raiz, foto))) {
+      erros.push(`${foto} não existe (a tela Equipamento mostra essa foto)`);
+    }
+  }
+  console.log(`  ${equipamentos.itens.length} itens de equipamento com foto`);
+}
 
 // assets fixos que o app usa direto (sprite do mapa muscular)
 for (const arquivo of [

@@ -30,6 +30,7 @@ import {
   useSeriesAnteriores,
   useSessoesAbertas,
 } from "@/lib/queries/dados";
+import { opcoesDeMontagem } from "@/lib/preferencias";
 import { criarSessao, sessaoLocalMaisRecente } from "@/lib/queries/sessao";
 import { useHoje } from "@/lib/relogio";
 import { intervaloDaSemana } from "@/lib/semana";
@@ -121,6 +122,8 @@ export function TelaTreinar({ userId }: { userId: string }) {
          * avalia: uma carga inventada apagaria a progressão real (SPEC §6.3).
          */
         estadoConhecido: estadosQ.data !== undefined && recordesQ.data !== undefined,
+        // as barras já pesadas na balança mudam a escala (SPEC §3.9)
+        opcoesMontagem: opcoesDeMontagem(perfil.prefs),
       });
       router.push(`/treinar/${sessao.id}`);
     } catch {
@@ -178,7 +181,12 @@ export function TelaTreinar({ userId }: { userId: string }) {
               </Button>
               {doDia ? (
                 <Previa
-                  itens={previaDoTreino({ treinoId, estados, eventos })}
+                  itens={previaDoTreino({
+                    treinoId,
+                    estados,
+                    eventos,
+                    montagem: opcoesDeMontagem(perfil.prefs),
+                  })}
                   carregando={estadosQ.isPending && ids.length > 0}
                 />
               ) : null}

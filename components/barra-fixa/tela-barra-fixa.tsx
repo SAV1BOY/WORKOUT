@@ -46,6 +46,7 @@ import { useHoje } from "@/lib/relogio";
 import { intervaloDaSemana } from "@/lib/semana";
 import { seriesAnterioresPorExercicio, type RecordeAntes } from "@/lib/sessao";
 import { cn } from "@/lib/utils";
+import { opcoesDeMontagem } from "@/lib/preferencias";
 
 const IDS = [EXERCICIO_DA_SESSAO];
 
@@ -146,6 +147,8 @@ export function TelaBarraFixa({ userId }: { userId: string }) {
         recordes,
         // sem a leitura do estado o motor não avalia (SPEC §6.3)
         estadoConhecido: estadosQ.data !== undefined && recordesQ.data !== undefined,
+        // as barras já pesadas na balança mudam a escala (SPEC §3.9)
+        opcoesMontagem: opcoesDeMontagem(perfil.prefs),
       });
       router.push(`/treinar/${sessao.id}`);
     } catch {

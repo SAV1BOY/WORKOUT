@@ -86,8 +86,13 @@ export function ajustarSemana(
   return Math.min(Math.max(alvo, 1), Math.max(1, Math.round(maximo)));
 }
 
-/** Os campos de `profiles` que este marco escreve, tipados. */
+/** Os campos de `profiles` que o app escreve, tipados. */
 export interface MudancaDePerfil {
+  nome?: string;
+  altura_cm?: number | null;
+  data_inicio?: string;
+  fase_atual?: Perfil["fase_inicial"];
+  fase_desde?: string;
   semana_corrida?: number;
   semana_corda?: number;
   semana_fixa?: number;

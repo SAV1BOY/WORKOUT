@@ -1,7 +1,9 @@
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
+import { AquecerMidia } from "@/components/aquecer-midia";
 import { ConfigurarSupabase } from "@/components/configurar-supabase";
 import { SpriteMuscular } from "@/components/sprite-muscular";
+import { TemaDoPerfil } from "@/components/tema-do-perfil";
 import { NavInferior } from "@/components/nav-inferior";
 import {
   SUPABASE_ANON_KEY,
@@ -37,6 +39,8 @@ export default async function LayoutApp({
     <div className="min-h-dvh">
       <ConfigurarSupabase url={SUPABASE_URL} chave={SUPABASE_ANON_KEY} />
       <SpriteMuscular />
+      <TemaDoPerfil />
+      <AquecerMidia />
       <main className="pt-segura mx-auto w-full max-w-lg px-4 pt-4 pb-24">
         {children}
       </main>

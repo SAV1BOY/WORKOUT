@@ -28,9 +28,33 @@ export type ImplementoMontagem = Implemento | "barra_reta_oca";
  */
 export const PESO_BARRA_A_PESAR = 2;
 
+/** As barras de `data/equipamentos.json` que o perfil pode pesar (SPEC §3.9). */
+export type BarraId = "barra-macica" | "barra-w" | "barra-reta-oca" | "halteres";
+
 export interface OpcoesMontagem {
-  /** Peso da barra em kg, para sobrescrever o do JSON (barra W / reta oca). */
+  /**
+   * Peso da barra em kg, para sobrescrever o do JSON. Vale para o implemento
+   * que estiver sendo montado — use `pesosBarras` quando a sessão tiver
+   * exercícios de barras diferentes.
+   */
   pesoBarra?: number;
+  /**
+   * Peso de cada barra medido na balança (`profiles.prefs.pesos_barras`,
+   * SPEC §3.9). A barra W e a reta oca vêm com `peso_kg: null` no JSON; quando
+   * o Miguel pesar, a escala inteira do implemento se recalcula.
+   */
+  pesosBarras?: Partial<Record<BarraId, number>>;
+}
+
+/** Peso da barra deste implemento: override direto > perfil > JSON > padrão. */
+function baseDaBarra(
+  opcoes: OpcoesMontagem,
+  id: BarraId,
+  padrao: number,
+): number {
+  return (
+    opcoes.pesoBarra ?? opcoes.pesosBarras?.[id] ?? pesoDaBarra(id) ?? padrao
+  );
 }
 
 export type OndeVaiAAnilha =
@@ -103,7 +127,7 @@ function configuracao(
   switch (implemento) {
     case "barra_macica":
       return {
-        base: opcoes.pesoBarra ?? pesoDaBarra("barra-macica") ?? 7.5,
+        base: baseDaBarra(opcoes, "barra-macica", 7.5),
         fator: 2,
         limitePorPeso: 2,
         capacidade: capacidadeDaBarra("barra-macica", 400),
@@ -112,7 +136,7 @@ function configuracao(
       };
     case "barra_w":
       return {
-        base: opcoes.pesoBarra ?? pesoDaBarra("barra-w") ?? PESO_BARRA_A_PESAR,
+        base: baseDaBarra(opcoes, "barra-w", PESO_BARRA_A_PESAR),
         fator: 2,
         limitePorPeso: 2,
         capacidade: capacidadeDaBarra("barra-w", 50),
@@ -121,8 +145,7 @@ function configuracao(
       };
     case "barra_reta_oca":
       return {
-        base:
-          opcoes.pesoBarra ?? pesoDaBarra("barra-reta-oca") ?? PESO_BARRA_A_PESAR,
+        base: baseDaBarra(opcoes, "barra-reta-oca", PESO_BARRA_A_PESAR),
         fator: 2,
         limitePorPeso: 2,
         capacidade: capacidadeDaBarra("barra-reta-oca", 60),
@@ -131,7 +154,7 @@ function configuracao(
       };
     case "halteres":
       return {
-        base: opcoes.pesoBarra ?? pesoDaBarra("halteres") ?? 1.5,
+        base: baseDaBarra(opcoes, "halteres", 1.5),
         fator: 2,
         // os dois halteres são iguais: 4 pontas × 1 anilha = as 4 do estoque
         limitePorPeso: 1,

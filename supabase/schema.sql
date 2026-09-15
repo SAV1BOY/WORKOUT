@@ -95,7 +95,7 @@ create index if not exists session_sets_session on public.session_sets(session_i
 create table if not exists public.progression_events (
   id           uuid primary key default gen_random_uuid(),
   user_id      uuid not null references auth.users(id) on delete cascade,
-  exercise_id  text not null,
+  exercise_id  text,                                    -- null = evento do programa inteiro (troca de fase, §5.1)
   session_id   uuid references public.sessions(id) on delete set null,
   data         date not null default current_date,
   de           jsonb,                                    -- {"carga_kg":7.5} | {"reps_alvo":8} | {"assistencia":"pe_inteiro"}

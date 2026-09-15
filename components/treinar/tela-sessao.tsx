@@ -54,6 +54,7 @@ import {
   type SessaoLocal,
 } from "@/lib/sessao";
 import { useTelaAcesa } from "@/lib/wake-lock";
+import { opcoesDeMontagem } from "@/lib/preferencias";
 
 type Fim = "concluida" | "abandonada";
 
@@ -68,7 +69,9 @@ export function TelaSessao({ sessaoId }: { sessaoId: string }) {
   const naFila = usePendentes();
 
   const perfilQ = usePerfil();
-  const prefs = perfilQ.data?.prefs ?? {};
+  const perfilPrefs = perfilQ.data?.prefs;
+  // identidade estável: `prefs` entra nas dependências de efeitos (§3.9)
+  const prefs = useMemo(() => perfilPrefs ?? {}, [perfilPrefs]);
   const sessaoQ = useSessao(sessao === null ? sessaoId : null);
   const seriesQ = useSeriesDaSessao(sessao === null ? sessaoId : null);
   /*
@@ -162,12 +165,14 @@ export function TelaSessao({ sessaoId }: { sessaoId: string }) {
     const refeita = reconstruirSessao(linha, seriesQ.data ?? [], {
       ...dadosDoMotor,
       itens: itensDaFixa,
+      // as barras já pesadas na balança mudam a escala (SPEC §3.9)
+      opcoesMontagem: opcoesDeMontagem(prefs),
     });
     if (refeita) {
       salvarSessaoLocal(refeita);
       setSessao(refeita);
     }
-  }, [sessao, sessaoQ.data, seriesQ.data, seriesQ.isPending, dadosDoMotor, itensDaFixa]);
+  }, [sessao, sessaoQ.data, seriesQ.data, seriesQ.isPending, dadosDoMotor, itensDaFixa, prefs]);
 
   /* --------------------------------------------- relógio e saída da aba */
 

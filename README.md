@@ -109,3 +109,66 @@ mostra o aviso de configuração em vez de quebrar. Enquanto não existe um
 projeto Supabase de verdade, dá para rodar o app inteiro contra o mock local
 (`e2e/README.md`). O andamento por marco está em
 `PROGRESSO.md`.
+
+## Testes
+
+```bash
+npm run lint          # ESLint
+npm test              # Vitest — o motor, o calendário e as agregações (puros)
+npm run build         # valida os JSON, copia os assets e builda
+npm run e2e           # Playwright num Chromium de 360 × 740 contra o mock
+```
+
+Os quatro verdes são o portão de cada marco. `npm run e2e` **não builda**: ele
+sobe `next start` com o que está em `.next/`, então rode `npm run build`
+antes. Os testes de ponta a ponta falam com `scripts/mock-supabase.ts` (um
+Supabase de mentira em memória) — nada precisa de rede nem de chaves. Detalhes,
+limitações e como depurar: `e2e/README.md`.
+
+Para ver o app com os próprios olhos sem projeto Supabase, dois terminais:
+
+```bash
+npm run mock        # o Supabase de mentira na 54321
+npm run dev:mock    # next dev já apontando para ele
+```
+
+## Deploy na Vercel
+
+1. **Repositório**: suba a pasta para um repositório **privado** no GitHub.
+2. **Importar**: em https://vercel.com/new escolha o repositório. O framework é
+   detectado como Next.js; o comando de build é o `npm run build` do projeto
+   (ele roda `validar` e `assets` no `prebuild`, então as figuras e as fotos vão
+   para `public/` no deploy — a pasta `public/` é gerada, não versionada).
+3. **Environment Variables** (Production *e* Preview):
+
+   | Variável | Valor |
+   |---|---|
+   | `NEXT_PUBLIC_SUPABASE_URL` | a *Project URL* do Supabase |
+   | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | a chave **anon public** (nunca a `service_role`) |
+   | `ALLOWED_EMAIL` | `miguelgsaviotti29@gmail.com` |
+
+   As duas `NEXT_PUBLIC_*` são lidas em tempo de execução: mudar o valor e dar
+   **Redeploy** basta, não é preciso rebuildar em outra máquina.
+4. **Supabase → Authentication → URL Configuration**: em *Site URL* ponha a URL
+   da Vercel (`https://treino-terraco.vercel.app`) e em *Redirect URLs*
+   acrescente `https://treino-terraco.vercel.app/**`. Sem isso o link de
+   confirmação e a volta do login caem no `localhost`.
+5. **Authentication → Providers → Email**: *Confirm email* desligado (é um
+   usuário só, sem caixa de entrada no meio).
+6. Confira depois do deploy: `/login` recusa qualquer outro e-mail **antes** de
+   falar com o Supabase; entrar cria o perfil a partir de `data/perfil.json`; e
+   `https://SUA-URL/sw.js` responde 200 (é o service worker).
+
+## Instalar no celular
+
+1. Abra a URL da Vercel no **Chrome** (Android) ou no **Safari** (iPhone) e
+   entre com o e-mail permitido.
+2. **Android**: menu ⋮ → *Instalar app*. **iPhone**: Compartilhar → *Adicionar à
+   Tela de Início*. O ícone laranja aparece como um app e ele abre sem a barra
+   do navegador.
+3. Na primeira abertura o app guarda sozinho o shell, as figuras dos exercícios
+   e as fotos do programa da sua fase (uns 5 MB). As fotos do resto do catálogo
+   entram no cache conforme você abre as fichas.
+4. Teste o terraço antes de precisar dele: com o app aberto, ligue o **modo
+   avião**, registre duas séries e conclua o treino — tudo fica salvo no
+   aparelho; desligue o modo avião e em segundos as séries sobem sozinhas.

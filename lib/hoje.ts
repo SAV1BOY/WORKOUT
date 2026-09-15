@@ -150,7 +150,8 @@ export function textoDaCarga(
 }
 
 interface EventoCurto {
-  exercise_id: string;
+  /** `null` no evento do programa inteiro (troca de fase, SPEC §5.1). */
+  exercise_id: string | null;
   data: string;
   motivo: LinhaEventoProgressao["motivo"];
   de: Record<string, unknown> | null;
@@ -214,6 +215,8 @@ export function ultimoEventoPorExercicio(
 ): Record<string, EventoCurto> {
   const mapa: Record<string, EventoCurto> = {};
   for (const e of eventos) {
+    // o evento da troca de fase não é de exercício nenhum (§5.1)
+    if (e.exercise_id === null) continue;
     const atual = mapa[e.exercise_id];
     if (!atual || e.data >= atual.data) mapa[e.exercise_id] = e;
   }

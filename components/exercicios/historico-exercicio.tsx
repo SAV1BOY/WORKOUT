@@ -25,7 +25,8 @@ import {
   sessoesDoExercicio,
   type SerieBruta,
 } from "@/lib/progresso";
-import { useEstados, useEventos, useRecordes } from "@/lib/queries/dados";
+import { opcoesDeMontagem } from "@/lib/preferencias";
+import { useEstados, useEventos, usePerfil, useRecordes } from "@/lib/queries/dados";
 import { useSeriesDoExercicio, useSessoesTodas } from "@/lib/queries/progresso";
 
 /**
@@ -37,6 +38,7 @@ export function HistoricoExercicio({ exercicioId }: { exercicioId: string }) {
   const ids = useMemo(() => [exercicioId], [exercicioId]);
   const exercicio = acharExercicio(exercicioId);
 
+  const perfilQ = usePerfil();
   const estadosQ = useEstados(ids);
   const recordesQ = useRecordes(ids);
   const eventosQ = useEventos(ids);
@@ -76,7 +78,13 @@ export function HistoricoExercicio({ exercicioId }: { exercicioId: string }) {
 
   const estado = estadoDaLinha(estadosQ.data?.[0]);
   const prescricao = prescricaoPadrao(exercicio);
-  const alvo = cargaDeHoje(exercicio, estado, prescricao);
+  // as barras já pesadas na balança mudam a escala (SPEC §3.9)
+  const alvo = cargaDeHoje(
+    exercicio,
+    estado,
+    prescricao,
+    opcoesDeMontagem(perfilQ.data?.prefs),
+  );
   const recorde = recordesQ.data?.[0] ?? null;
   const eventos = eventosQ.data ?? [];
   const temCarga = pontos.some((p) => p.carga > 0);

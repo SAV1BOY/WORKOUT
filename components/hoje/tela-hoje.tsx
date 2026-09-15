@@ -43,6 +43,7 @@ import {
   useUltimoPeso,
 } from "@/lib/queries/dados";
 import { useHoje } from "@/lib/relogio";
+import { opcoesDeMontagem } from "@/lib/preferencias";
 import { intervaloDaSemana } from "@/lib/semana";
 
 /** Nome curto da fase ("Fase 1"), tirado do nome que está no programa.json. */
@@ -90,8 +91,10 @@ export function TelaHoje({ userId }: { userId: string }) {
       treinoId: dia.treinoId,
       estados: estadosPorExercicio(estadosQ.data ?? []),
       eventos: eventosQ.data ?? [],
+      // as barras já pesadas na balança mudam a escala (SPEC §3.9)
+      montagem: opcoesDeMontagem(perfil?.prefs),
     });
-  }, [dia?.treinoId, estadosQ.data, eventosQ.data]);
+  }, [dia?.treinoId, estadosQ.data, eventosQ.data, perfil?.prefs]);
 
   if (perfilQ.isError) {
     return (
