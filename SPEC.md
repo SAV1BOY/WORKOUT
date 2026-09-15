@@ -245,3 +245,69 @@ Vários usuários, social, IA de sugestão de treino, nutrição, integração c
 6. **Mais** (perfil, equipamento, backup), polimento offline, Lighthouse, deploy.
 
 Cada marco termina com build + lint + testes verdes e um commit.
+
+---
+
+## 13. Camada visual v2 — decisão de 15/09/2026 (adendo)
+
+Depois de o app ficar pronto (marcos 1–6 e auditoria final), o dono pediu que o site e o PWA tenham o apelo visual dos apps de treino de celular (cards com foto de capa, faixa da semana, vitrine de coleções, relatório com histórico) **sem perder o que é nosso**: registro por série com carga, motor de progressão, conteúdo dos JSON, offline. Este adendo **revoga parcialmente a §11** (entra gamificação sóbria, definida abaixo) e **substitui a §3** onde conflitar. Tudo o que não está aqui continua valendo.
+
+### 13.1 Regras que não mudam
+- Conteúdo só dos JSON. Coleções, desafios e "dificuldade" são **derivados** por código a partir de `data/*.json`; nada de rotinas inventadas nem texto de marketing. Fotos: só as de `assets/` (fotos de execução, fotos dos itens, figuras). Nenhuma imagem de terceiros.
+- Estilo: o **sóbrio atual** (tema escuro de verdade `#0a0a0a`, uma cor de destaque laranja, tema claro disponível), agora com cards arredondados, capas em foto com gradiente, números grandes, faixa da semana. Sem confete.
+- Celular primeiro a 360 px, alvos ≥ 44 px, pt-BR com vírgula, dd/MM, semana na segunda; offline como na §8; motor e montagem intocados (§6).
+- Não há vídeos no kit. A "demonstração" de cada exercício é a **figura animada** + as **duas fotos**. Fica preparado um vídeo **opcional** local: se existir `assets/videos/<id>.mp4` (copiado para `public/videos/` pelo `npm run assets`), a ficha e o bloco da sessão mostram um `<video muted loop playsinline>` no lugar da figura; sem o arquivo, nada muda. Nenhum vídeo é entregue.
+- Sem kcal (não há sensor; seria chute). O relatório mostra treinos, minutos e volume, que são medidos.
+
+### 13.2 Navegação (5 abas, mistura das duas referências)
+`Treino · Explorar · Relatório · Corpo · Mais`
+- **Treino** (`/`) substitui Hoje e absorve Treinar: é a aba mais importante.
+- **Explorar** (`/explorar`) substitui o catálogo como porta de entrada; `/exercicios` e `/exercicios/[id]` continuam existindo (a ficha é a mesma).
+- **Relatório** (`/relatorio`) substitui Progresso (`/progresso` redireciona) e ganha histórico, contadores e sequência.
+- **Corpo** e **Mais** continuam; Corpo ganha o IMC.
+- `/treinar`, `/treinar/[sessionId]`, `/cardio/[id]`, `/barra-fixa`, `/calendario` continuam como rotas (chegam pelos cards).
+
+### 13.3 Treino (`/`)
+1. **Cabeçalho**: saudação com o dia ("Terça, 15/09"), **sequência** (semanas seguidas com a meta cumprida, com o ícone de chama) e a **faixa da semana** seg–dom: dia de hoje em destaque, ✓ nos dias feitos, ponto nos planejados, cinza no faltou; abaixo, **"Meta semanal: 2/5"** (feitos ÷ meta). A meta padrão = sessões de força da fase (3 ou 4) + 2 de cardio; editável em Mais → Preferências (`prefs.meta_semanal`, inteiro). Tocar na faixa abre `/calendario`.
+2. **Hoje**: um card por sessão do dia, **todas** (força, cardio, reps soltas de barra fixa no descanso, "treinar mesmo assim" nos dias sem força):
+   - **Força**: capa em foto (a foto `-1.jpg` do primeiro exercício do treino, com gradiente escuro), nome do treino e subtítulo do JSON, `44 min · 6 exercícios`, raios de dificuldade, botão largo **"Começar treino"**. Se houver sessão aberta, o card vira "Continuar" com o progresso (séries feitas/total).
+   - **Cardio**: capa (foto de `corrida-no-lugar-com-a-corda-1.jpg` para corda; para corrida, a figura de `salto-basico` ou um gradiente com ícone — nunca imagem de terceiros), "Corrida · semana 3 · 6 × (2 min / 2 min) · 34 min", "Começar", alternativa corda.
+   - **Descanso**: card de reps soltas com "+1" e o total do dia; caminhada leve no domingo.
+3. **Lista do treino do dia** (abaixo dos cards): um item por exercício com **miniatura** (figura animada, ou a foto `-1.jpg`), nome, prescrição e **carga de hoje** com o rótulo do implemento (`3 × 5 · 9,5 kg na barra`, `2 × 8–12 · 1,5 kg por halter`, `3 × 30–60 s`), raios de dificuldade, ícone ⇄ para substituir e toque para abrir a ficha. A linha "subiu +2 kg no treino de 12/09" continua (§6.6).
+4. **Sessão** (`/treinar/[sessionId]`): mesma lógica de registro por série (§3.2), com o visual novo: cabeçalho do bloco com **capa em foto ou figura animada grande**, "próximo: …" no rodapé, timer de descanso como hoje. Nada muda no que é gravado.
+
+### 13.4 Explorar (`/explorar`)
+Vitrine de **coleções derivadas** dos JSON, cada uma com capa (foto de um exercício da coleção), título, `N exercícios · ~M min`, raios, e botão **"Começar"** que abre uma **sessão livre**:
+- **Treino de hoje** em destaque no topo (o mesmo card da aba Treino).
+- **Parte do corpo em foco**: chips dos 8 grupos (`grupo` de `exercicios.json`); cada um lista os exercícios do grupo e oferece "Começar" com os 6 primeiros do grupo que usam equipamento disponível (ordem: compostos primeiro, depois isolamento, como a tabela de faixas de `progressao.json`).
+- **Por aparelho**: os 10 itens de `equipamentos.json` com a foto de `assets/itens/<item>/` e os exercícios que ele permite.
+- **Circuitos** (os 14 exercícios de `origem = "aparelho"`): "Core no tatame" (8), "Corda" (3), "Elástico" (3). Abrem no **modo circuito guiado** (13.6).
+- **Planos e desafios**: "Primeira barra fixa em 12 semanas" (`cardio.barra_fixa`), "Correr 5 km em 12 semanas" (`cardio.corrida`) e "Corda: 5 estágios" (`cardio.corda`), cada um com barra de progresso pela semana atual do perfil e o botão da sessão da semana. "Desafio" aqui é o plano real com progresso visível; não existe desafio inventado.
+- **Treinos do programa**: A1, B1, SA, IA, SB, IB com "Fazer hoje" (vale como próximo da alternância, §5.3).
+- **Busca** por nome de exercício e de coleção, sem acento.
+
+**Sessão livre**: `sessions.workout_id = 'livre'`, com a lista de exercícios e prescrições guardada em `sessions.plano` (jsonb, coluna nova com migração idempotente em `supabase/schema.sql`, refletida em `lib/types.ts`, no mock e no backup). Registra por série como qualquer sessão; a progressão por exercício vale igual (§6), porque o estado é por exercício.
+
+**Dificuldade (raios 1–3)**: derivada da `categoria` do exercício (`composto_pesado` = 3, `composto_moderado` = 2, `isolamento` e `core_peso_corporal` = 1); a coleção mostra a maior. Nunca editada à mão.
+
+### 13.5 Relatório (`/relatorio`)
+1. **Contadores** no topo: treinos concluídos (força + cardio) · minutos treinados · volume da semana (Σ reps × kg).
+2. **Histórico**: faixa da semana (a mesma do Treino) com navegação por semanas; **"Todos os registros"**: lista por data (sessões de força com treino, duração, séries e ↑/=/↓; cardio com tipo, semana e duração; reps soltas), toque abre o resumo da sessão. **Sequência de dias** (dias seguidos com qualquer sessão) e **sequência de semanas** com meta cumprida.
+3. Os gráficos e a lista de recordes da §3.7 continuam abaixo.
+4. Card **Peso** (atual, maior, menor, gráfico pequeno) e card **IMC** com a escala colorida (15–40; faixas abaixo de 18,5 / 18,5–25 / 25–30 / 30–35 / 35+ com o rótulo em pt-BR) e a altura editável — ambos linkando para Corpo.
+
+### 13.6 Modo circuito guiado (só peso corporal, corda e elástico)
+Player por tempo para as coleções "Circuitos" e para qualquer sessão livre composta só de exercícios com `implemento` em `peso_corporal · corda · band · anilha` (anilha = abdominal com anilha): tela cheia com figura animada grande, nome, **contagem regressiva** (exercícios de tempo) ou **contador de reps com "Feito"** (exercícios de reps), descanso entre exercícios com "próximo: …", voz opcional (`speechSynthesis` pt-BR, `prefs.cardio_voz`) e vibração, pausar/pular/voltar, tela acesa. Ao terminar grava a sessão (`workout_id 'livre'`, séries com tempo/reps) como qualquer outra — o registro passa pelo IndexedDB e pela fila. Exercícios com barra, halteres ou polia **nunca** entram no player: para eles vale o registro por série.
+
+### 13.7 Corpo e Mais
+- Corpo: aba Peso ganha o card IMC (mesmo da 13.5) com a altura editável; o resto igual.
+- Mais → Preferências: "Meta semanal" (inteiro, padrão calculado pela fase), "Voz no circuito", "Mostrar raios de dificuldade" (liga/desliga).
+
+### 13.8 Critérios de aceite do adendo
+1. A 360 px, no escuro e no claro: Treino mostra a faixa da semana, a meta, todos os cards do dia e a lista com miniatura, prescrição e carga com o rótulo certo; nada corta, nada rola de lado, alvos ≥ 44 px.
+2. Explorar lista as coleções derivadas (8 grupos, 10 aparelhos, 3 circuitos, 3 planos, 6 treinos) com capas vindas de `assets/`; "Começar" abre uma sessão livre que registra e progride; a busca funciona sem acento.
+3. O circuito guiado roda um circuito de core do início ao fim com voz/vibração (mocks) e grava a sessão; nunca aceita exercício de barra/halter/polia.
+4. Relatório mostra contadores, histórico com "todos os registros", sequências e IMC; `/progresso` redireciona.
+5. Vídeo opcional: com um `assets/videos/<id>.mp4` de teste presente, a ficha mostra o vídeo; sem ele, a figura.
+6. Nada de conteúdo inventado: nenhum nome de coleção, texto de capa ou dificuldade escrito à mão que não seja derivado dos JSON (os rótulos de UI como "Parte do corpo em foco" são UI, não conteúdo).
+7. Lint, build, `npm test` e `npm run e2e` verdes, com e2e novos para 13.3–13.6; os e2e antigos ajustados às rotas novas sem afrouxar o que verificam.
