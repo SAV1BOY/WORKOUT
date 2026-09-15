@@ -3900,3 +3900,146 @@ Conhecidos, para quem pegar o marco V3:
   e2e), mas **gravar como sessão livre** não dá para provar ainda — não existe
   caminho para criar sessão livre, que é "Personalizar treino" / "Parte do
   corpo em foco" do marco V3.
+
+## Camada visual v2.1 — Marco Mídia ✅
+
+O app deixou de depender só das 67 figuras animadas do kit: 77 dos 81
+exercícios passaram a ter **ilustração com licença livre** (Everkinetic e
+wger, CC BY-SA), e o boneco do sprite antigo deu lugar a um **mapa anatômico**
+de frente e costas (MuscleMap, MIT). É a decisão do dono de 15/09/2026 —
+"opções 1 e 2" de `docs/analise-referencia-treino-em-casa.md` §4: usar imagem
+de terceiros só com licença livre e **citando a fonte**.
+
+Nada do motor mudou: `lib/progressao.ts`, `lib/montagem.ts` e o que vai para o
+banco (`session_sets`, `exercise_state`, `progression_events`) continuam iguais
+ao v1. O marco é imagem e crédito, ponto.
+
+### De onde veio cada ilustração
+
+| fonte | correspondência exata | aproximada | total |
+|---|---|---|---|
+| Everkinetic (via Wikimedia Commons / opentraining-exercises) | 60 | 6 | **66** |
+| wger (colaboradores, autor por arquivo) | 10 | 1 | **11** |
+| **total com ilustração** | 70 | 7 | **77** |
+
+Os **4 que seguem com a figura animada do kit**, porque não havia ilustração
+livre que mostrasse o movimento: `farmer-s-walk` (tem figura), `escalador`,
+`salto-basico` e `corrida-no-lugar-com-a-corda` (os três sem figura, com as
+duas fotos). Na ficha deles nada mudou.
+
+Os 7 "aproximada" (a ilustração mostra o movimento, não exatamente a nossa
+variação) são `flexao-inclinada`, `barra-fixa-com-lastro`, `face-pull`,
+`agachamento-goblet`, `abdominal-completo`, `barra-fixa-assistida` e
+`good-morning-com-elastico`. A palavra fica gravada em `data/ilustracoes.json`
+(`correspondencia`), não escondida.
+
+São 145 arquivos em `assets/ilustracoes/` (30 SVG + 115 WebP, ~6,3 MB): duas
+posições por exercício, menos 9 que só tinham uma boa imagem na fonte
+(`remada-unilateral-serrote`, `face-pull`, `rosca-inversa`,
+`agachamento-bulgaro`, `terra-romeno-com-halteres`,
+`elevacao-de-pernas-na-barra-fixa`, `abdominal-com-anilha`, `russian-twist`,
+`salto-com-joelho-alto`) — essas ficam paradas, sem alternância.
+
+### As peças novas
+
+| arquivo | o que faz |
+|---|---|
+| `scripts/importar-ilustracoes.ts` | `npm run ilustracoes <pasta>`: aplica a regra de escolha (Everkinetic exata → wger exata → Everkinetic aproximada → wger aproximada → nenhuma), converte PNG/JPEG/WebP para **WebP de no máximo 640 px** com `sharp` (SVG fica SVG), escreve `assets/ilustracoes/`, `data/ilustracoes.json` e `data/ilustracoes-creditos.md`. **Fora do build**: o resultado é versionado |
+| `data/ilustracoes.json` | 77 entradas `{exercicio_id, fonte, correspondencia, arquivos[{arquivo,largura,altura}], autor, licenca, url_fonte, titulo_fonte, nota}`. Sem autor **e** licença a entrada não existe |
+| `lib/schemas.ts` | `ilustracaoSchema`/`ilustracoesSchema` — o caminho só pode ser `assets/ilustracoes/*.webp|svg`, e autor, licença e link são obrigatórios |
+| `lib/dados.ts` | `ilustracoes`, `ilustracaoPorExercicio(id)` |
+| `lib/midia.ts` (puro, 22 testes) | **quem escolhe a imagem**: vídeo local → ilustração → figura → foto, para a mídia grande (`midiaGrande`), para as listas (`midiaDaMiniatura`), para o segmento da ficha (`opcoesDeMidia`) e para o precache (`urlsDaIlustracao`) |
+| `components/exercicio/ilustracao-alternada.tsx` | as duas posições em **crossfade CSS de 1,2 s** (nenhum arquivo novo é gerado); um toque pausa/volta, com `data-ilustracao` e `data-posicao` para o e2e ler |
+| `components/mapa-anatomico.tsx` + `lib/mapa-anatomico.ts` | o mapa frente/costas; o destaque continua sendo as classes `p-<musculo>`/`s-<musculo>` do `globals.css` |
+| `components/sprite-muscular.tsx` | injeta os dois desenhos uma vez no layout: o sprite antigo (`#bf`/`#bb`, mantido para compatibilidade) e `#mapa-anatomico`, convertido em `<symbol>` na hora de ler o arquivo |
+| `app/(app)/mais/creditos/page.tsx` | Mais → **Créditos**: fontes, licenças, links e o autor de cada ilustração — uma linha por exercício, e a linha inteira é o link (44 px) |
+| `assets/mapa-muscular/mapa-anatomico.svg` + `LICENCA-mapa-anatomico.md` + `NOTICE-openGym-trecho.md` | o desenho e o texto MIT que precisa andar junto dele |
+| `scripts/gerar-mapa-anatomico.py` | como o SVG foi feito a partir de `body-paths.js` (MuscleMap/openGym): reagrupa os caminhos nos 16 nomes do app e troca o `fill` pelas variáveis CSS, sem mexer em nenhum ponto. Fora do build, como o importador |
+
+### O que mudou na tela
+
+- **Ficha (folha e `/exercicios/[id]`), aba Vídeo:** a ilustração alterna as
+  duas posições, com a legenda discreta "Ilustração: `<autor>`, `<licença>`"
+  linkando a página da fonte. O segmento **"Ilustração · Figura · Fotos"**
+  troca a demonstração; a figura animada do kit virou uma opção (e continua
+  sendo o fallback de quem não tem ilustração). O vídeo local (§13.1) segue na
+  frente quando `public/videos/<id>.mp4` existe. Na **página** inteira o
+  "Fotos" sai do segmento: as duas fotos ampliáveis já estão logo abaixo, e
+  repetir seria mostrar a mesma coisa duas vezes.
+- **Aba Músculos:** mapa anatômico de frente e costas lado a lado, primários em
+  `--mprim` e secundários em `--msec`, com a ilustração acima (como na
+  referência) e a legenda em texto — cor nunca é a única pista. O `--msec`
+  subiu para `#b46b2a` no escuro e `#c2691a` no claro: o tom antigo não
+  chegava aos 3:1 pedidos pela auditoria de UX.
+- **Miniaturas:** lista do treino do dia, catálogo, calendário, tutorial e a
+  imagem grande do player e do descanso usam a ilustração (posição 1) quando
+  existe; senão a figura; senão a foto. A escolha está num lugar só
+  (`lib/midia.ts`), e a `Miniatura` marca `data-midia` com o que escolheu.
+  *(Explorar continua a tela "em construção" do marco V3 — quando a vitrine
+  existir, ela já nasce usando `Miniatura`.)*
+- **Offline (§8):** `/ilustracoes/` entrou no cache de mídia do service worker
+  e em `midiaDaFase`, então as ilustrações da fase descem junto com as figuras
+  e as fotos do programa. `npm run assets` copia `assets/ilustracoes` para
+  `public/ilustracoes` (que está no `.gitignore`, como as outras).
+- **Créditos:** Mais → Créditos, e a seção "Créditos de mídia" do `README.md`.
+
+### Testes
+
+- `lib/midia.test.ts` (22) — a ordem de preferência, o crédito montado, o
+  fallback dos 4 sem ilustração, e o casamento entre `data/ilustracoes.json` e
+  os arquivos no disco.
+- `scripts/validar-dados.test.ts` (2) — `npm run validar` passa como está e
+  **falha** ("ilustração ausente") quando um arquivo listado some. O teste
+  esconde o arquivo, roda o validador e o devolve no `afterEach`.
+- `e2e/midia.spec.ts` (8) — a ficha alterna as posições e para no toque, o
+  crédito aparece com link para a fonte, o segmento troca para a figura, quem
+  não tem ilustração continua na figura, o mapa pinta peito (primário) e
+  tríceps (secundário) do supino sem pintar a perna, a lista do dia e o player
+  usam a ilustração, e Mais → Créditos lista as fontes.
+- Ajustados sem afrouxar: `e2e/treino-v2.spec.ts` (a miniatura e a
+  demonstração do agachamento agora são a ilustração — o caminho esperado é
+  lido de `data/ilustracoes.json`, não escrito à mão) e `e2e/auditoria-m5.spec.ts`
+  (a varredura das 81 fichas passou a contar as imagens da ilustração e a
+  exigir que o mapa anatômico pinte **todos** os primários de cada exercício;
+  a checagem dos 404 agora inclui `/ilustracoes/`).
+
+### Como testar no celular
+
+1. `npm run build && npm start` (ou a URL da Vercel) no celular.
+2. **Treino → toque num exercício da lista**: a miniatura já é a ilustração; na
+   ficha, a aba Vídeo mostra o desenho alternando início e fim do movimento.
+   Toque na figura: ela para; toque de novo: volta a alternar. Sob ela, o
+   crédito — toque e ele abre a página da fonte.
+3. No segmento, toque em **Figura**: volta a animação SVG do kit. Em
+   `farmer-s-walk` não há segmento: ele só tem a figura.
+4. **Aba Músculos**: frente e costas lado a lado, laranja forte nos principais
+   e laranja queimado nos auxiliares, com a lista de nomes embaixo.
+5. **Começar treino**: a tela do exercício mostra a ilustração grande; no
+   descanso, a miniatura do próximo passo também.
+6. **Mais → Créditos**: as fontes com link, e "Autor de cada ilustração" abre a
+   lista dos 77 — cada linha é um toque de 44 px para a página da obra.
+7. Modo avião depois de abrir o treino do dia: as ilustrações continuam
+   aparecendo (ficaram no cache do service worker).
+
+### Conhecidos, para o marco V3
+
+- `components/mapa-muscular.tsx` e `assets/mapa-muscular/corpo-sprite.svg` (o
+  boneco compacto `#bf`/`#bb`) continuam no repositório e no layout, mas **não
+  são usados por nenhuma tela** desde que a aba Músculos passou ao mapa
+  anatômico. Ficaram de propósito, para compatibilidade; quando o V3 confirmar
+  que ninguém mais precisa deles, dá para apagar os dois de uma vez.
+- Os 3 exercícios sem figura **e** sem ilustração (`escalador`, `salto-basico`,
+  `corrida-no-lugar-com-a-corda`) deixam a aba Vídeo da **página** vazia — as
+  duas fotos estão logo abaixo, ampliáveis, e é assim desde o v1. Na ficha em
+  folha eles mostram as fotos normalmente.
+- As notas de correspondência em `data/ilustracoes.json` (por que uma
+  ilustração é "aproximada") ainda não aparecem na tela; o texto existe e é
+  curto, então cabe na legenda quando alguém quiser.
+
+### Portões
+
+`npm run lint` ✓ · `npm run build` ✓ (o `prebuild` valida os JSON e copia os
+assets, ilustrações incluídas) · `npm test` **886 testes em 38 arquivos** ✓ ·
+`npm run e2e` **183 testes** ✓ (7,0 min). Capturas em `capturas/midia/`:
+`01-ficha-ilustracao`, `02-ficha-musculos` (as duas também no claro),
+`03-treino-lista`, `04-player-exercicio` e `05-creditos`, todas 360 × 740.

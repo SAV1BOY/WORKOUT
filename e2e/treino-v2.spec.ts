@@ -3,8 +3,8 @@
  * semanal, todos os cards do dia, a lista com miniatura/prescrição/carga, o
  * "Continuar" da sessão aberta, a preferência da meta e o vídeo opcional.
  */
-import { mkdirSync, rmSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { join, resolve } from "node:path";
 import { expect, test, type Page } from "@playwright/test";
 import {
   abrirVisaoGeral,
@@ -28,6 +28,21 @@ const QUINTA = "2026-09-17T08:00:00-03:00";
 const DOMINGO = "2026-09-20T08:00:00-03:00";
 
 const SESSAO_ABERTA = "22222222-2222-4222-8222-222222222222";
+
+/**
+ * Marco Mídia: a miniatura e a demonstração do agachamento passaram a ser a
+ * ilustração com licença livre (posição 1), que vem na frente da figura
+ * animada. O caminho sai de `data/ilustracoes.json` — o mesmo arquivo que o
+ * app lê —, e não de um palpite escrito aqui.
+ */
+const ILUSTRACAO_DO_AGACHAMENTO = (() => {
+  const lista = JSON.parse(
+    readFileSync(resolve(__dirname, "../data/ilustracoes.json"), "utf8"),
+  ) as { exercicio_id: string; arquivos: { arquivo: string }[] }[];
+  const dele = lista.find((i) => i.exercicio_id === "agachamento-livre");
+  if (!dele) throw new Error("agachamento-livre saiu de data/ilustracoes.json");
+  return dele.arquivos[0]!.arquivo.replace(/^assets\//, "/");
+})();
 
 /**
  * `fixarData` (e não `fixarRelogio`): a tela guarda o cache e sobe a fila com
@@ -160,8 +175,10 @@ test.describe("cards do dia (SPEC §13.3)", () => {
     await expect(primeiro).toContainText("1. Agachamento livre");
     await expect(primeiro).toContainText("3 × 5");
     await expect(primeiro).toContainText("Hoje: 7,5 kg na barra");
-    // miniatura: a figura animada do exercício
-    await expect(primeiro.locator('img[src="/figuras/agachamento-livre.svg"]')).toBeVisible();
+    // miniatura: a ilustração do exercício (marco Mídia; antes era a figura)
+    await expect(
+      primeiro.locator(`img[src="${ILUSTRACAO_DO_AGACHAMENTO}"]`),
+    ).toBeVisible();
     // SPEC §14.2: tocar no item abre a ficha em folha, sem sair da aba
     await primeiro.getByRole("button", { name: "Ficha: Agachamento livre" }).click();
     const ficha = page.getByRole("dialog");
@@ -343,7 +360,7 @@ test.describe("vídeo opcional (SPEC §13.1)", () => {
     rmSync(VIDEO, { force: true });
   });
 
-  test("sem o arquivo é a figura; com o arquivo é o vídeo", async ({ page }) => {
+  test("sem o arquivo é a ilustração; com o arquivo é o vídeo", async ({ page }) => {
     await usuarioComPerfil();
     await abrir(page, SEGUNDA);
     await page.getByRole("link", { name: "Começar treino" }).click();
@@ -353,9 +370,9 @@ test.describe("vídeo opcional (SPEC §13.1)", () => {
     // o player abre na preparação (§14.1): a demonstração está no passo seguinte
     await comecarNoPlayer(page);
 
-    // sem vídeo nenhum (o estado do kit): a figura animada
+    // sem vídeo nenhum (o estado do kit): a ilustração do marco Mídia
     await expect(
-      page.locator('img[src="/figuras/agachamento-livre.svg"]').first(),
+      page.locator(`img[src="${ILUSTRACAO_DO_AGACHAMENTO}"]`).first(),
     ).toBeVisible();
     await expect(page.locator("video")).toHaveCount(0);
 

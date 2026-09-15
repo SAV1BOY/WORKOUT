@@ -35,6 +35,8 @@
   --color-descanso: var(--descanso-fundo);
   --color-descanso-foreground: var(--descanso-texto);
   --color-descanso-destaque: var(--descanso-destaque);
+  /* prato claro atrás das ilustrações (traço preto sobre fundo transparente) */
+  --color-ilustracao: var(--ilustracao-fundo);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -87,10 +89,17 @@
   --descanso-texto: #ffffff;
   --descanso-destaque: #ffc59e;
 
+  /*
+   * Ilustrações (marco Mídia): são traço preto sobre fundo transparente, então
+   * vivem num prato claro nos dois temas — no escuro, um branco quebrado para
+   * não estourar ao lado do #0a0a0a.
+   */
+  --ilustracao-fundo: #ffffff;
+
   /* mapa muscular (assets/mapa-muscular/musculos.css) */
   --mbody: #e3e3e1;
   --mprim: #b8400c;
-  --msec: #f8bb92;
+  --msec: #c2691a;
 }
 
 /* Tema escuro de verdade: preto, não cinza. */
@@ -129,9 +138,11 @@
   --descanso-texto: #f5f5f4;
   --descanso-destaque: #fb923c;
 
+  --ilustracao-fundo: #e7e4e0;
+
   --mbody: #272727;
   --mprim: #fb923c;
-  --msec: #7c4a1e;
+  --msec: #b46b2a;
 }
 
 @layer base {

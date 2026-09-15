@@ -16,7 +16,8 @@ import {
   temFiltro,
   type FiltrosCatalogo,
 } from "@/lib/catalogo";
-import { exercicios, urlFigura, urlFotos } from "@/lib/dados";
+import { Miniatura } from "@/components/ui/miniatura";
+import { exercicios } from "@/lib/dados";
 import { evitado, evitadosPorUltimo } from "@/lib/preferencias";
 import { usePerfil } from "@/lib/queries/dados";
 import type { EquipamentoTag, Exercicio, Grupo, Implemento } from "@/lib/schemas";
@@ -185,25 +186,13 @@ function CardDoExercicio({
   noPrograma: boolean;
   evitar: boolean;
 }) {
-  const imagem = urlFigura(exercicio) ?? urlFotos(exercicio)[0] ?? null;
-
   return (
     <Link
       href={`/exercicios/${exercicio.id}`}
       className="alvo border-border bg-card hover:bg-accent flex items-center gap-3 rounded-xl border p-2 transition-colors"
     >
-      {imagem ? (
-        // eslint-disable-next-line @next/next/no-img-element -- SVG animado / foto local de /public
-        <img
-          src={imagem}
-          alt=""
-          aria-hidden="true"
-          loading="lazy"
-          className="bg-muted/40 size-14 shrink-0 rounded-lg object-contain"
-        />
-      ) : (
-        <span aria-hidden="true" className="bg-muted size-14 shrink-0 rounded-lg" />
-      )}
+      {/* marco Mídia: a ilustração vem na frente da figura e da foto */}
+      <Miniatura exercicioId={exercicio.id} decorativa className="rounded-lg" />
       <span className="flex min-w-0 flex-col gap-0.5">
         <span className="text-sm leading-tight font-medium text-balance">
           {exercicio.nome}

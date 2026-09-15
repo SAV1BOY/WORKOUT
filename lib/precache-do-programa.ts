@@ -11,6 +11,7 @@
  * navegador e nunca lança.
  */
 import { acharExercicio, acharFase, acharTreino, urlFigura, urlFotos } from "@/lib/dados";
+import { urlsDaIlustracao } from "@/lib/midia";
 import type { FaseId } from "@/lib/schemas";
 
 /** Os exercícios dos treinos de uma fase, sem repetir, na ordem do programa. */
@@ -27,11 +28,12 @@ export function exerciciosDaFase(fase: FaseId): string[] {
   return ids;
 }
 
-/** As figuras e fotos dos exercícios da fase, na ordem em que aparecem. */
+/** Ilustrações, figuras e fotos dos exercícios da fase, na ordem da tela. */
 export function midiaDaFase(fase: FaseId): string[] {
   const urls: string[] = [];
   for (const id of exerciciosDaFase(fase)) {
     const exercicio = acharExercicio(id);
+    urls.push(...urlsDaIlustracao(id));
     const figura = urlFigura(exercicio);
     if (figura) urls.push(figura);
     urls.push(...urlFotos(exercicio));

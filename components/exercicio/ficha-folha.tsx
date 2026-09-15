@@ -4,9 +4,11 @@ import { ChevronLeft, ChevronRight, Pause, Play, Repeat } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { FotosAmpliaveis } from "@/components/exercicios/fotos-ampliaveis";
 import { HistoricoExercicio } from "@/components/exercicios/historico-exercicio";
+import { IlustracaoAlternada } from "@/components/exercicio/ilustracao-alternada";
 import { MediaGrande } from "@/components/exercicio/media-grande";
+import { FotosExercicio } from "@/components/exercicio/midia";
 import { TutorialDoExercicio } from "@/components/exercicio/tutorial";
-import { MapaMuscular } from "@/components/mapa-muscular";
+import { MapaAnatomico } from "@/components/mapa-anatomico";
 import { StepperNumerico } from "@/components/stepper-numerico";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,6 +24,11 @@ import { NOME_EQUIPAMENTO, treinosDoExercicio } from "@/lib/catalogo";
 import { acharExercicio, acharTreino } from "@/lib/dados";
 import { formatarDescanso, formatarKg, rotuloDaCarga } from "@/lib/formato";
 import type { PrescricaoTipo } from "@/lib/schemas";
+import {
+  ilustracaoDoExercicio,
+  opcoesDeMidia,
+  type TipoDeMidia,
+} from "@/lib/midia";
 import { substitutosPara } from "@/lib/sessao";
 import type { Prefs } from "@/lib/types";
 import { evitado, evitadosPorUltimo } from "@/lib/preferencias";
@@ -205,18 +212,6 @@ function AbasDaMidia({
   temVideo: boolean;
   comoPagina: boolean;
 }) {
-  const exercicio = acharExercicio(exercicioId);
-  const [pausado, setPausado] = useState(false);
-  const video = useRef<HTMLDivElement>(null);
-
-  // pausar só faz sentido no vídeo local; a figura é um SVG animado
-  useEffect(() => {
-    const elemento = video.current?.querySelector("video");
-    if (!elemento) return;
-    if (pausado) elemento.pause();
-    else void elemento.play().catch(() => {});
-  }, [pausado]);
-
   return (
     <Tabs defaultValue="video" className="gap-3">
       <TabsList className="w-full">
@@ -231,50 +226,175 @@ function AbasDaMidia({
         </TabsTrigger>
       </TabsList>
 
-      <TabsContent value="video" className="flex flex-col gap-2">
-        <div ref={video}>
-          <MediaGrande
-            exercicioId={exercicioId}
-            temVideo={temVideo}
-            semFoto={comoPagina}
-            className={comoPagina ? "h-52" : "h-44"}
-          />
-        </div>
-        {temVideo ? (
-          <Button
-            variant="outline"
-            className="alvo h-11 self-start"
-            onClick={() => setPausado((v) => !v)}
-          >
-            {pausado ? <Play className="size-4" /> : <Pause className="size-4" />}
-            {pausado ? "Continuar" : "Pausar"}
-          </Button>
-        ) : null}
+      <TabsContent value="video">
+        <AbaVideo
+          exercicioId={exercicioId}
+          temVideo={temVideo}
+          comoPagina={comoPagina}
+        />
       </TabsContent>
 
-      <TabsContent value="musculos" className="flex flex-col gap-3">
-        <div className="flex items-center gap-3">
-          <MapaMuscular
-            primarios={exercicio.musculos_primarios}
-            secundarios={exercicio.musculos_secundarios}
-          />
-          <ul className="text-muted-foreground flex flex-col gap-1 text-xs">
-            <li>
-              <span className="text-foreground font-medium">Principais:</span>{" "}
-              {exercicio.musculos_primarios_nome.join(", ") || "—"}
-            </li>
-            <li>
-              <span className="text-foreground font-medium">Ajudam:</span>{" "}
-              {exercicio.musculos_secundarios_nome.join(", ") || "—"}
-            </li>
-          </ul>
-        </div>
+      <TabsContent value="musculos">
+        <AbaMusculos exercicioId={exercicioId} />
       </TabsContent>
 
       <TabsContent value="tutorial">
         <TutorialDoExercicio exercicioId={exercicioId} />
       </TabsContent>
     </Tabs>
+  );
+}
+
+const ROTULO_DA_MIDIA: Readonly<Record<TipoDeMidia, string>> = {
+  video: "Vídeo",
+  ilustracao: "Ilustração",
+  figura: "Figura",
+  foto: "Fotos",
+};
+
+/**
+ * A aba Vídeo (SPEC §14.2 e marco Mídia): a ilustração com licença livre
+ * alternando as duas posições, com o segmento "Ilustração · Figura · Fotos"
+ * para trocar de demonstração. O vídeo local (§13.1) continua na frente
+ * quando o arquivo existe.
+ */
+function AbaVideo({
+  exercicioId,
+  temVideo,
+  comoPagina,
+}: {
+  exercicioId: string;
+  temVideo: boolean;
+  comoPagina: boolean;
+}) {
+  const exercicio = acharExercicio(exercicioId);
+  /*
+   * Na página inteira as duas fotos já aparecem logo abaixo, ampliáveis: pôr
+   * "Fotos" também no segmento seria mostrar a mesma coisa duas vezes. Na
+   * folha, que não tem a tira de fotos, a opção fica.
+   */
+  const opcoes = opcoesDeMidia(exercicioId, { temVideo }).filter(
+    (o) => !(comoPagina && o === "foto"),
+  );
+  const [escolhido, setEscolhido] = useState<TipoDeMidia | null>(null);
+  const [pausado, setPausado] = useState(false);
+  const video = useRef<HTMLDivElement>(null);
+
+  // pausar só faz sentido no vídeo local; a ilustração tem o próprio toque
+  useEffect(() => {
+    const elemento = video.current?.querySelector("video");
+    if (!elemento) return;
+    if (pausado) elemento.pause();
+    else void elemento.play().catch(() => {});
+  }, [pausado]);
+
+  const tipo = escolhido && opcoes.includes(escolhido) ? escolhido : opcoes[0];
+
+  return (
+    <div className="flex flex-col gap-2">
+      <div ref={video}>
+        {tipo === "foto" ? (
+          <FotosExercicio exercicio={exercicio} />
+        ) : (
+          <MediaGrande
+            exercicioId={exercicioId}
+            temVideo={temVideo}
+            tipo={tipo}
+            semFoto={comoPagina}
+            className={comoPagina ? "h-52" : "h-44"}
+          />
+        )}
+      </div>
+
+      {opcoes.length > 1 ? (
+        <div
+          role="group"
+          aria-label="Como ver o exercício"
+          className="bg-muted flex items-center gap-1 self-start rounded-lg p-1"
+        >
+          {opcoes.map((opcao) => (
+            <button
+              key={opcao}
+              type="button"
+              aria-pressed={opcao === tipo}
+              onClick={() => setEscolhido(opcao)}
+              className={cn(
+                "alvo h-9 rounded-md px-3 text-xs font-medium",
+                opcao === tipo
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground",
+              )}
+            >
+              {ROTULO_DA_MIDIA[opcao]}
+            </button>
+          ))}
+        </div>
+      ) : null}
+
+      {tipo === "video" ? (
+        <Button
+          variant="outline"
+          className="alvo h-11 self-start"
+          onClick={() => setPausado((v) => !v)}
+        >
+          {pausado ? <Play className="size-4" /> : <Pause className="size-4" />}
+          {pausado ? "Continuar" : "Pausar"}
+        </Button>
+      ) : null}
+    </div>
+  );
+}
+
+/**
+ * A aba Músculos (SPEC §14.2 e marco Mídia): a ilustração em cima e o mapa
+ * anatômico frente/costas embaixo, com a legenda em texto — a cor sozinha
+ * nunca é a única pista.
+ */
+function AbaMusculos({ exercicioId }: { exercicioId: string }) {
+  const exercicio = acharExercicio(exercicioId);
+  const ilustracao = ilustracaoDoExercicio(exercicioId);
+
+  return (
+    <div className="flex flex-col gap-3">
+      {ilustracao ? (
+        <IlustracaoAlternada
+          urls={ilustracao.urls}
+          alt={`Execução do ${exercicio.nome}`}
+          className="h-32"
+        />
+      ) : null}
+
+      <MapaAnatomico
+        primarios={exercicio.musculos_primarios}
+        secundarios={exercicio.musculos_secundarios}
+        className="mx-auto max-w-[280px]"
+      />
+
+      <ul className="text-muted-foreground flex flex-col gap-1 text-xs">
+        <li className="flex items-start gap-2">
+          <span
+            aria-hidden="true"
+            className="mt-0.5 size-3 shrink-0 rounded-full"
+            style={{ background: "var(--mprim)" }}
+          />
+          <span>
+            <span className="text-foreground font-medium">Principais:</span>{" "}
+            {exercicio.musculos_primarios_nome.join(", ") || "—"}
+          </span>
+        </li>
+        <li className="flex items-start gap-2">
+          <span
+            aria-hidden="true"
+            className="mt-0.5 size-3 shrink-0 rounded-full"
+            style={{ background: "var(--msec)" }}
+          />
+          <span>
+            <span className="text-foreground font-medium">Ajudam:</span>{" "}
+            {exercicio.musculos_secundarios_nome.join(", ") || "—"}
+          </span>
+        </li>
+      </ul>
+    </div>
   );
 }
 

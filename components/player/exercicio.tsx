@@ -179,6 +179,7 @@ export function TelaExercicio({
       <MediaGrande
         exercicioId={bloco.exercicioId}
         temVideo={temVideo}
+        semCredito
         className="h-44"
       />
 

@@ -36,6 +36,32 @@ const CATALOGO = JSON.parse(
   readFileSync(resolve(__dirname, "../data/exercicios.json"), "utf8"),
 ) as ExercicioJson[];
 
+interface IlustracaoJson {
+  exercicio_id: string;
+  arquivos: { arquivo: string }[];
+}
+
+/**
+ * Marco Mídia: a aba "Vídeo" da ficha mostra a ilustração com licença livre
+ * quando o exercício tem uma (as duas posições ficam na página, em crossfade),
+ * senão a figura animada do kit. A conta de imagens esperadas sai daqui, do
+ * mesmo JSON que o app lê.
+ */
+const ILUSTRACOES = new Map(
+  (
+    JSON.parse(
+      readFileSync(resolve(__dirname, "../data/ilustracoes.json"), "utf8"),
+    ) as IlustracaoJson[]
+  ).map((i) => [i.exercicio_id, i]),
+);
+
+/** Quantas imagens a demonstração da ficha (página inteira) coloca na tela. */
+function imagensDaDemonstracao(e: ExercicioJson): number {
+  const ilustracao = ILUSTRACOES.get(e.id);
+  if (ilustracao) return ilustracao.arquivos.length;
+  return e.figura ? 1 : 0;
+}
+
 const QUARTA = "2026-09-16T08:00:00-03:00";
 
 test.beforeEach(async () => {
@@ -53,7 +79,10 @@ test.describe("§10.8 — as 81 fichas", () => {
     const quebrados: string[] = [];
     page.on("response", (r) => {
       const url = r.url();
-      if (r.status() >= 400 && /\/(figuras|fotos|itens|mapa-muscular)\//.test(url)) {
+      if (
+        r.status() >= 400 &&
+        /\/(figuras|fotos|ilustracoes|itens|mapa-muscular)\//.test(url)
+      ) {
         quebrados.push(`${r.status()} ${url}`);
       }
     });
@@ -98,18 +127,22 @@ test.describe("§10.8 — as 81 fichas", () => {
         return { imagens, h1, passos };
       });
 
-      // SPEC §14.2: o mapa muscular mora na aba "Músculos" da ficha
+      // SPEC §14.2 e marco Mídia: o mapa anatômico mora na aba "Músculos"
       await page.getByRole("tab", { name: "Músculos" }).click();
       const mapa = await page.evaluate(
-        () => document.querySelector("main figure[class*='p-']") !== null,
+        () =>
+          document
+            .querySelector('main [data-mapa="anatomico"]')
+            ?.getAttribute("class") ?? null,
       );
 
       if (visto.h1 !== exercicio.nome) {
         problemas.push(`${exercicio.id}: h1 "${visto.h1}" ≠ "${exercicio.nome}"`);
       }
-      // figura animada (SVG <img>) ou, nos 14 sem figura, as duas fotos
+      // ilustração (uma imagem por posição) ou figura animada, mais as duas fotos
       const carregadas = visto.imagens.filter((i) => i.ok).length;
-      const esperadas = exercicio.fotos.length + (exercicio.figura ? 1 : 0);
+      const esperadas =
+        exercicio.fotos.length + imagensDaDemonstracao(exercicio);
       if (carregadas < esperadas) {
         problemas.push(
           `${exercicio.id}: ${carregadas} de ${esperadas} imagens carregaram (${visto.imagens
@@ -118,7 +151,15 @@ test.describe("§10.8 — as 81 fichas", () => {
             .join(", ")})`,
         );
       }
-      if (!mapa) problemas.push(`${exercicio.id}: sem o mapa muscular`);
+      if (mapa === null) {
+        problemas.push(`${exercicio.id}: sem o mapa muscular`);
+      } else {
+        for (const m of exercicio.musculos_primarios) {
+          if (!mapa.includes(`p-${m}`)) {
+            problemas.push(`${exercicio.id}: o mapa não pinta p-${m}`);
+          }
+        }
+      }
       if (visto.passos < exercicio.passos.length) {
         problemas.push(
           `${exercicio.id}: ${visto.passos} passos na tela, ${exercicio.passos.length} no JSON`,
@@ -130,7 +171,7 @@ test.describe("§10.8 — as 81 fichas", () => {
     expect(quebrados, "assets com erro HTTP").toEqual([]);
   });
 
-  test("os 14 sem figura caem nas fotos e o mapa usa as classes p-/s-", async ({
+  test("os 14 sem figura caem na ilustração ou nas fotos, e o mapa usa as classes p-/s-", async ({
     page,
   }) => {
     await usuarioComPerfil();
@@ -140,30 +181,50 @@ test.describe("§10.8 — as 81 fichas", () => {
     const semFigura = CATALOGO.filter((e) => !e.figura);
     expect(semFigura.length).toBe(14);
 
-    for (const e of semFigura.slice(0, 3)) {
+    // 11 dos 14 ganharam ilustração no marco Mídia; 3 seguem só com as fotos
+    const comIlustracao = semFigura.filter((e) => ILUSTRACOES.has(e.id));
+    const soFotos = semFigura.filter((e) => !ILUSTRACOES.has(e.id));
+    expect(comIlustracao.length + soFotos.length).toBe(14);
+    expect(soFotos.length).toBeGreaterThan(0);
+
+    for (const e of soFotos) {
       await page.goto(`/exercicios/${e.id}`);
       const fotos = page.locator("main img");
+      // sem figura e sem ilustração: na página ficam só as duas fotos
       await expect(fotos).toHaveCount(e.fotos.length);
       await expect(fotos.first()).toBeVisible();
     }
 
-    // o boneco: as classes p-<musculo> / s-<musculo> e o sprite <use href="#bf">
+    for (const e of comIlustracao.slice(0, 3)) {
+      await page.goto(`/exercicios/${e.id}`);
+      const ilustracao = page.locator("[data-ilustracao]").first();
+      await expect(ilustracao).toBeVisible();
+      await expect(ilustracao.locator("img").first()).toHaveAttribute(
+        "src",
+        new RegExp(`^/ilustracoes/${e.id}-1\\.`),
+      );
+      await expect(page.locator("main img")).toHaveCount(
+        e.fotos.length + ILUSTRACOES.get(e.id)!.arquivos.length,
+      );
+    }
+
+    // o boneco: as classes p-<musculo> / s-<musculo> e o <use> do símbolo
     const alvo = CATALOGO.find((e) => e.id === "supino-reto-com-barra");
     await page.goto(`/exercicios/${alvo?.id}`);
     await page.getByRole("tab", { name: "Músculos" }).click();
-    const mapa = page.locator("main figure").filter({ has: page.locator("svg use") });
+    const mapa = page.locator('main [data-mapa="anatomico"]');
     const classe = await mapa.first().getAttribute("class");
     for (const m of alvo?.musculos_primarios ?? []) expect(classe).toContain(`p-${m}`);
     for (const m of alvo?.musculos_secundarios ?? []) expect(classe).toContain(`s-${m}`);
-    // o sprite é injetado uma vez no layout e pintado de verdade
+    // o desenho é injetado uma vez no layout e pintado de verdade
     const pintado = await page.evaluate(() => {
-      const uso = document.querySelector("main figure svg use");
+      const uso = document.querySelector('main [data-mapa="anatomico"] use');
       if (!uso) return null;
       const id = uso.getAttribute("href") ?? "";
       const simbolo = document.querySelector(id);
       return simbolo ? simbolo.tagName : null;
     });
-    expect(pintado).not.toBeNull();
+    expect(pintado).toBe("symbol");
   });
 });
 

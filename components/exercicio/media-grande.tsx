@@ -1,21 +1,22 @@
 "use client";
 
 import { useState } from "react";
-import { capaDoExercicio, miniaturaDoExercicio } from "@/lib/capas";
-import { acharExercicio } from "@/lib/dados";
-import { urlDoVideo } from "@/lib/videos.cliente";
+import { IlustracaoAlternada } from "@/components/exercicio/ilustracao-alternada";
+import { midiaGrande, type TipoDeMidia } from "@/lib/midia";
 import { cn } from "@/lib/utils";
 
 /**
- * A demonstração grande do exercício (SPEC §13.1 e §13.3): o vídeo opcional
- * quando `public/videos/<id>.mp4` existe, senão a figura animada, senão a foto
- * de início. A lista de vídeos é decidida no servidor — o cliente nunca sai
- * atrás de um arquivo que não existe.
+ * A demonstração grande do exercício (SPEC §13.1/§13.3 e marco Mídia). Quem
+ * escolhe entre vídeo, ilustração, figura e foto é `lib/midia.ts`; aqui só se
+ * desenha. Com `tipo` a escolha vem do segmento "Ilustração · Figura · Fotos"
+ * da ficha.
  */
 export function MediaGrande({
   exercicioId,
   temVideo = false,
   semFoto = false,
+  tipo,
+  semCredito = false,
   className,
 }: {
   exercicioId: string;
@@ -25,44 +26,69 @@ export function MediaGrande({
    * fotos já aparecem logo abaixo, e repetir a primeira aqui seria ruído.
    */
   semFoto?: boolean;
+  /** Força uma opção (o segmento da ficha); sem ela vale a preferência. */
+  tipo?: TipoDeMidia;
+  /** No player o crédito fica na ficha (um toque no "?"), não na tela. */
+  semCredito?: boolean;
   className?: string;
 }) {
-  const exercicio = acharExercicio(exercicioId);
-  const { figura } = miniaturaDoExercicio(exercicioId);
-  const foto = capaDoExercicio(exercicio);
+  const midia = midiaGrande(exercicioId, { temVideo, tipo, semFoto });
   const [figuraQuebrou, setFiguraQuebrou] = useState(false);
 
-  const caixa = cn(
-    "bg-muted/40 h-40 w-full rounded-xl object-contain",
-    className,
-  );
+  const caixa = cn("bg-muted/40 h-40 w-full rounded-xl object-contain", className);
+
+  if (!midia) return null;
 
   /*
    * Quem decide se há vídeo é o servidor, lendo `public/videos` (SPEC §13.1):
    * aqui não há fallback por erro — um arquivo estragado é para aparecer
    * estragado, não para sumir em silêncio.
    */
-  if (temVideo) {
+  if (midia.tipo === "video") {
     return (
       <video
-        src={urlDoVideo(exercicioId)}
+        src={midia.urls[0]}
         muted
         loop
         playsInline
         autoPlay
-        aria-label={`Execução do ${exercicio.nome}`}
+        aria-label={midia.alt}
         data-video={exercicioId}
         className={caixa}
       />
     );
   }
 
-  if (figura && !figuraQuebrou) {
+  if (midia.tipo === "ilustracao") {
+    return (
+      <figure className="flex flex-col gap-1">
+        <IlustracaoAlternada
+          urls={midia.urls}
+          alt={midia.alt}
+          className={cn("h-40", className)}
+        />
+        {midia.credito && !semCredito ? (
+          <figcaption className="text-muted-foreground px-1 text-[11px] leading-tight">
+            <a
+              href={midia.credito.url_fonte}
+              target="_blank"
+              rel="noreferrer noopener"
+              className="underline underline-offset-2"
+            >
+              {midia.credito.texto}
+            </a>
+          </figcaption>
+        ) : null}
+      </figure>
+    );
+  }
+
+  if (midia.tipo === "figura" && !figuraQuebrou) {
     return (
       // eslint-disable-next-line @next/next/no-img-element -- SVG animado de /public: o next/image rasteriza e mata a animação
       <img
-        src={figura}
-        alt={`Execução do ${exercicio.nome}`}
+        src={midia.urls[0]}
+        alt={midia.alt}
         loading="lazy"
         className={cn(caixa, "p-2")}
         onError={() => setFiguraQuebrou(true)}
@@ -70,17 +96,20 @@ export function MediaGrande({
     );
   }
 
-  if (foto && !semFoto) {
-    return (
-      // eslint-disable-next-line @next/next/no-img-element -- foto local em /public
-      <img
-        src={foto}
-        alt={`${exercicio.nome} — início`}
-        loading="lazy"
-        className={cn(caixa, "object-cover")}
-      />
-    );
-  }
+  // figura quebrada no navegador: cai na foto de início, se houver
+  const foto =
+    midia.tipo === "foto"
+      ? midia
+      : midiaGrande(exercicioId, { temVideo, tipo: "foto", semFoto });
+  if (!foto || foto.tipo !== "foto") return null;
 
-  return null;
+  return (
+    // eslint-disable-next-line @next/next/no-img-element -- foto local em /public
+    <img
+      src={foto.urls[0]}
+      alt={foto.alt}
+      loading="lazy"
+      className={cn(caixa, "object-cover")}
+    />
+  );
 }

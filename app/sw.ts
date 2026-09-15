@@ -26,11 +26,13 @@ declare const self: ServiceWorkerGlobalScope;
 const SUPABASE = /\/(rest|auth|storage|realtime|functions)\/v1\//;
 
 /**
- * As figuras e as fotos: arquivos imutáveis com o nome do exercício. As
- * figuras do programa já vêm no precache da instalação (globPublicPatterns em
- * next.config.ts); as fotos do catálogo entram aqui, sob demanda.
+ * As ilustrações, as figuras e as fotos: arquivos imutáveis com o nome do
+ * exercício. As figuras do programa já vêm no precache da instalação
+ * (globPublicPatterns em next.config.ts); as ilustrações e as fotos entram
+ * aqui, sob demanda — e as da fase inteira são puxadas por
+ * `lib/precache-do-programa.ts`.
  */
-const MIDIA = /\/(figuras|fotos|itens|mapa-muscular)\//;
+const MIDIA = /\/(figuras|fotos|ilustracoes|itens|mapa-muscular)\//;
 
 const regras: RuntimeCaching[] = [
   {

@@ -1,11 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { acharExercicio, acharTreino, exercicios } from "@/lib/dados";
-import {
-  capaDoCardio,
-  capaDoExercicio,
-  capaDoTreino,
-  miniaturaDoExercicio,
-} from "@/lib/capas";
+import { acharExercicio, acharTreino } from "@/lib/dados";
+import { capaDoCardio, capaDoExercicio, capaDoTreino } from "@/lib/capas";
 
 describe("capas e miniaturas (SPEC §13.1)", () => {
   it("a capa do exercício é a foto -1 de assets/", () => {
@@ -21,20 +16,6 @@ describe("capas e miniaturas (SPEC §13.1)", () => {
   it("todo treino do programa tem capa", () => {
     for (const id of ["A1", "B1", "SA", "IA", "SB", "IB"] as const) {
       expect(capaDoTreino(id)).toMatch(/^\/fotos\/.+-1\.jpg$/);
-    }
-  });
-
-  it("a miniatura traz figura e foto do JSON", () => {
-    const m = miniaturaDoExercicio("agachamento-livre");
-    expect(m.figura).toBe("/figuras/agachamento-livre.svg");
-    expect(m.foto).toBe("/fotos/agachamento-livre-1.jpg");
-    expect(m.alt).toBe(acharExercicio("agachamento-livre").nome);
-  });
-
-  it("todo exercício do catálogo tem figura ou foto para a miniatura", () => {
-    for (const e of exercicios) {
-      const m = miniaturaDoExercicio(e.id);
-      expect(m.figura ?? m.foto).not.toBeNull();
     }
   });
 

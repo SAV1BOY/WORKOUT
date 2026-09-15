@@ -6,6 +6,7 @@
 import cardioJson from "@/data/cardio.json";
 import equipamentosJson from "@/data/equipamentos.json";
 import exerciciosJson from "@/data/exercicios.json";
+import ilustracoesJson from "@/data/ilustracoes.json";
 import perfilJson from "@/data/perfil.json";
 import programaJson from "@/data/programa.json";
 import progressaoJson from "@/data/progressao.json";
@@ -15,6 +16,7 @@ import {
   equipamentoTagSchema,
   equipamentosSchema,
   exerciciosSchema,
+  ilustracoesSchema,
   perfilSchema,
   programaSchema,
   progressaoJsonSchema,
@@ -25,6 +27,7 @@ import {
   type Exercicio,
   type Fase,
   type FaseId,
+  type Ilustracao,
   type MedidaDoCorpo,
   type RefDeTexto,
   type Treino,
@@ -62,6 +65,11 @@ export const equipamentos = validar(
   "equipamentos.json",
 );
 export const perfilInicial = validar(perfilSchema, perfilJson, "perfil.json");
+export const ilustracoes = validar(
+  ilustracoesSchema,
+  ilustracoesJson,
+  "ilustracoes.json",
+);
 export const tutoriais = validar(
   tutoriaisSchema,
   tutoriaisJson,
@@ -73,6 +81,18 @@ export const tutoriais = validar(
 export const exercicioPorId: ReadonlyMap<string, Exercicio> = new Map(
   exercicios.map((e) => [e.id, e]),
 );
+
+export const ilustracaoPorExercicioId: ReadonlyMap<string, Ilustracao> = new Map(
+  ilustracoes.map((i) => [i.exercicio_id, i]),
+);
+
+/**
+ * A ilustração com licença livre deste exercício (marco Mídia), ou `null`
+ * quando ele fica com a figura animada do kit.
+ */
+export function ilustracaoPorExercicio(id: string): Ilustracao | null {
+  return ilustracaoPorExercicioId.get(id) ?? null;
+}
 
 export const tutorialPorExercicioId: ReadonlyMap<string, Tutorial> = new Map(
   tutoriais.map((t) => [t.exercicio_id, t]),

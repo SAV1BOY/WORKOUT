@@ -1,5 +1,6 @@
 /**
- * npm run assets — copia assets/{figuras,fotos,itens,mapa-muscular} para public/.
+ * npm run assets — copia assets/{figuras,fotos,ilustracoes,itens,mapa-muscular}
+ * para public/.
  * `assets/videos` é opcional (SPEC §13.1): se a pasta existir, os .mp4 vão
  * junto para `public/videos`; se não existir, nada acontece.
  * Idempotente: só copia o que mudou de tamanho ou data. As pastas de destino
@@ -9,7 +10,7 @@ import { cpSync, existsSync, mkdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 
 const raiz = process.cwd();
-const pastas = ["figuras", "fotos", "itens", "mapa-muscular"];
+const pastas = ["figuras", "fotos", "ilustracoes", "itens", "mapa-muscular"];
 /** Pastas que podem não existir — nenhum vídeo vem no kit (SPEC §13.1). */
 const opcionais = ["videos"];
 

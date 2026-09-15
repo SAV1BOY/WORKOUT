@@ -2,52 +2,51 @@
 
 import { Dumbbell } from "lucide-react";
 import { useState } from "react";
-import { miniaturaDoExercicio } from "@/lib/capas";
+import { midiaDaMiniatura } from "@/lib/midia";
 import { cn } from "@/lib/utils";
 
 /**
- * Miniatura de um exercício (SPEC §13.3): a figura animada quando existe, a
- * foto `-1.jpg` quando não, e o ícone quando nem uma nem outra carregam.
- * Todas as imagens saem de `assets/` pelo caminho do JSON (§13.1).
+ * Miniatura de um exercício (SPEC §13.3 e marco Mídia): a ilustração com
+ * licença livre quando existe, senão a figura animada, senão a foto `-1.jpg`,
+ * e o ícone quando nenhuma carrega. A escolha é de `lib/midia.ts`; todas as
+ * imagens saem de `assets/` pelo caminho do JSON (§13.1).
  */
 export function Miniatura({
   exercicioId,
+  decorativa = false,
   className,
 }: {
   exercicioId: string;
+  /** Quando o nome do exercício já está escrito ao lado (catálogo). */
+  decorativa?: boolean;
   className?: string;
 }) {
-  const { figura, foto, alt } = miniaturaDoExercicio(exercicioId);
-  const [figuraQuebrou, setFiguraQuebrou] = useState(false);
-  const [fotoQuebrou, setFotoQuebrou] = useState(false);
-
-  const usarFigura = figura !== null && !figuraQuebrou;
-  const usarFoto = !usarFigura && foto !== null && !fotoQuebrou;
+  const { tipo, url, alt } = midiaDaMiniatura(exercicioId);
+  const [quebrou, setQuebrou] = useState(false);
+  const mostrar = url !== null && !quebrou;
 
   return (
     <span
+      data-midia={mostrar ? tipo : "nenhuma"}
       className={cn(
-        "bg-muted/60 relative block size-14 shrink-0 overflow-hidden rounded-xl",
+        "relative block size-14 shrink-0 overflow-hidden rounded-xl",
+        // a ilustração é traço preto sobre transparente: precisa de fundo claro
+        tipo === "ilustracao" && mostrar ? "bg-ilustracao" : "bg-muted/60",
         className,
       )}
     >
-      {usarFigura ? (
-        // eslint-disable-next-line @next/next/no-img-element -- SVG animado de /public: o next/image rasteriza e mata a animação
+      {mostrar ? (
+        // eslint-disable-next-line @next/next/no-img-element -- imagens locais de /public (SVG animado inclusive: o next/image rasteriza e mata a animação)
         <img
-          src={figura}
-          alt={alt}
+          src={url}
+          alt={decorativa ? "" : alt}
+          aria-hidden={decorativa ? true : undefined}
           loading="lazy"
-          className="size-full object-contain p-1"
-          onError={() => setFiguraQuebrou(true)}
-        />
-      ) : usarFoto ? (
-        // eslint-disable-next-line @next/next/no-img-element -- foto local em /public, tamanho fixo
-        <img
-          src={foto}
-          alt={alt}
-          loading="lazy"
-          className="size-full object-cover"
-          onError={() => setFotoQuebrou(true)}
+          className={cn(
+            "size-full",
+            tipo === "foto" ? "object-cover" : "object-contain p-1",
+          )}
+          onError={() => setQuebrou(true)}
         />
       ) : (
         <span className="text-muted-foreground flex size-full items-center justify-center">
