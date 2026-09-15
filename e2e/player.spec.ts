@@ -9,6 +9,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import {
   comecarNoPlayer,
+  comecarOTreinoDoDia,
   entrarNoApp,
   esperarAbaTreino,
   esperarServiceWorker,
@@ -16,8 +17,8 @@ import {
   lerDoMock,
   resetarMock,
   semRolagemHorizontal,
-  usuarioComPerfil,
   type SessaoMock,
+  usuarioComPerfil,
 } from "./fixtures";
 
 /** 14/09/2026 é a segunda-feira que abre o programa: Treino A (SPEC §5). */
@@ -49,8 +50,7 @@ async function abrirPlayer(page: Page): Promise<SessaoMock> {
   const sessao = await usuarioComPerfil();
   await fixarData(page, SEGUNDA);
   await entrarNoApp(page);
-  await page.getByRole("link", { name: "Começar treino" }).click();
-  await page.getByRole("button", { name: "Começar Treino A" }).click();
+  await comecarOTreinoDoDia(page);
   await expect(page).toHaveURL(/\/treinar\/[0-9a-f-]{36}$/);
   await expect(page.getByRole("timer", { name: "Preparação" })).toBeVisible();
   await comecarNoPlayer(page);
@@ -98,8 +98,7 @@ test.describe("preparação → exercício → descanso (SPEC §14.1.1–3)", ()
     const sessao = await usuarioComPerfil();
     await fixarData(page, SEGUNDA);
     await entrarNoApp(page);
-    await page.getByRole("link", { name: "Começar treino" }).click();
-    await page.getByRole("button", { name: "Começar Treino A" }).click();
+    await comecarOTreinoDoDia(page);
 
     // 1. preparação: contagem de 10 s (prefs.preparacao_s) e o nome do 1º
     await expect(page.getByText("Preparado para começar")).toBeVisible();
@@ -396,6 +395,70 @@ test.describe("o Treino A inteiro pelo player (SPEC §14.5.1 e §14.5.2)", () =>
       (s) => s.exercise_id === "agachamento-livre" && s.tipo === "trabalho",
     );
     expect(depois.every((s) => s.ultima_firme === true)).toBe(true);
+  });
+});
+
+test.describe("o peso do dia na conclusão (SPEC §14.1.5)", () => {
+  /*
+   * O toque no "Próximo" se perdia: o campo só confirmava no `onBlur`, o card
+   * de IMC crescia 94 px entre o apertar e o soltar e o clique nunca chegava
+   * ao botão — a sessão ficava aberta, sem a decisão do motor e sem o peso.
+   */
+  test("digitar o peso e tocar UMA vez conclui, grava o peso e o body_weights", async ({
+    page,
+  }) => {
+    test.setTimeout(90_000);
+    const sessao = await abrirPlayer(page);
+
+    // os dois aquecimentos e as três séries de trabalho do 1º exercício
+    for (let i = 0; i < 5; i++) await concluirSerie(page);
+    await page
+      .getByRole("radiogroup", { name: "Última repetição" })
+      .getByRole("radio", { name: "Firme" })
+      .click();
+
+    const sensacao = page.getByRole("radiogroup", { name: "Sensação" });
+    await irAte(page, sensacao);
+    await sensacao.getByRole("radio", { name: "Na medida certa" }).click();
+    await page.getByRole("button", { name: "Concluído" }).click();
+
+    const fim = page.getByRole("region", { name: "Treino concluído" });
+    await expect(fim.getByText("Excelente! Você concluiu o treino.")).toBeVisible();
+
+    await fim.getByRole("button", { name: "Registrar o peso de hoje" }).click();
+    const campo = fim.getByRole("textbox", { name: "peso de hoje em kg" });
+    await campo.fill("82,4");
+
+    // UM toque só: nada de blur antes, nada de segunda tentativa
+    await fim.getByRole("button", { name: "Próximo" }).click();
+    await esperarAbaTreino(page);
+
+    await expect
+      .poll(
+        async () =>
+          (
+            await lerDoMock<{ status: string; peso_corporal: number | null }>(
+              sessao,
+              "sessions",
+            )
+          )[0],
+        { timeout: 15_000 },
+      )
+      .toMatchObject({ status: "concluida", peso_corporal: 82.4 });
+
+    await expect
+      .poll(async () => (await lerDoMock(sessao, "body_weights")).length, {
+        timeout: 15_000,
+      })
+      .toBe(1);
+    const [peso] = await lerDoMock<{ peso_kg: number }>(sessao, "body_weights");
+    expect(peso?.peso_kg).toBe(82.4);
+
+    // e o motor decidiu, como no caminho sem peso
+    const estados = await lerDoMock<{ exercise_id: string }>(sessao, "exercise_state");
+    expect(estados.length).toBeGreaterThan(0);
+    const eventos = await lerDoMock(sessao, "progression_events");
+    expect(eventos.length).toBeGreaterThan(0);
   });
 });
 

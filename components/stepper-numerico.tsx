@@ -47,7 +47,12 @@ export function StepperNumerico({
 
   // o valor pode mudar por fora (série anterior preenchendo a seguinte)
   useEffect(() => {
-    setTexto(valor === null ? "" : formatarNumero(valor));
+    setTexto((atual) => {
+      // o que está escrito já é este valor ("82," enquanto se digita "82,4"):
+      // reescrever aqui apagaria a vírgula recém-digitada
+      if (lerNumero(atual) === valor) return atual;
+      return valor === null ? "" : formatarNumero(valor);
+    });
   }, [valor]);
 
   const andar = (direcao: 1 | -1) => {
@@ -60,6 +65,21 @@ export function StepperNumerico({
     const bruto = base + direcao * passo;
     const preso = Math.min(maximo ?? Number.POSITIVE_INFINITY, Math.max(minimo, bruto));
     aoMudar(Number(preso.toFixed(2)));
+  };
+
+  /*
+   * Confirmar só no `onBlur` perdia o toque seguinte: o blur muda a tela (o
+   * card de IMC da conclusão cresce 94 px) entre o apertar e o soltar, e o
+   * clique nunca chega ao botão. Enquanto o texto já é um número válido, o
+   * valor sobe a cada tecla; o `onBlur` continua para normalizar e prender
+   * nos limites.
+   */
+  const digitar = (novoTexto: string) => {
+    setTexto(novoTexto);
+    const lido = lerNumero(novoTexto);
+    if (lido === null) return;
+    const preso = Math.min(maximo ?? Number.POSITIVE_INFINITY, Math.max(minimo, lido));
+    if (preso === lido && lido !== valor) aoMudar(lido);
   };
 
   const confirmar = () => {
@@ -95,7 +115,7 @@ export function StepperNumerico({
         <input
           id={id}
           value={texto}
-          onChange={(e) => setTexto(e.target.value)}
+          onChange={(e) => digitar(e.target.value)}
           onBlur={confirmar}
           onKeyDown={(e) => {
             if (e.key === "Enter") (e.target as HTMLInputElement).blur();

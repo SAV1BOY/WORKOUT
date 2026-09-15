@@ -177,10 +177,16 @@ export function TelaConclusao({
         )}
       </section>
 
+      {/*
+        `min-h-48`: sem peso o card tem 98 px e com a barra 192 px. Reservar a
+        altura mantém o "Próximo" parado enquanto se digita o peso — o toque
+        que se perdia entre o apertar e o soltar (auditoria de 15/09).
+      */}
       <CardImc
         pesoKg={peso ?? pesoAtual}
         alturaCm={alturaCm}
         aoMudarAltura={aoMudarAltura}
+        className="min-h-48"
       />
 
       <div className="flex flex-col gap-2 pt-1">
