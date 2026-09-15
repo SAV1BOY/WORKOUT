@@ -4446,3 +4446,153 @@ Capturas em `capturas/v3/`, agora **nos dois temas**: `01-treino-desafios`,
 `06-relatorio-registros`, `07-corpo-imc`, `08-preferencias`,
 `09-relatorio-peso` (o eixo em dd/MM) e `10-colecao-plano` ("12 semanas"),
 cada uma com o par `-claro`.
+
+---
+
+## Fechamento v2.1 — ciclo 1 de correções (três auditorias independentes) ✅
+
+Três auditores varreram o app fechado (V1 · V2 · Mídia · V3) e levantaram um
+bloqueante, seis importantes e doze menores. Esta etapa corrigiu os sete
+primeiros e oito dos menores.
+
+### Bloqueante
+
+**O peso do dia na conclusão engolia o toque em "Próximo".** Digitar 82,4 e
+tocar uma vez não concluía nada: o `StepperNumerico` só confirmava o valor no
+`onBlur`, o blur acontecia no *mousedown* do botão, o card de IMC crescia de
+98 px para 192 px e o "Próximo" descia 94 px entre o apertar e o soltar — o
+clique nunca era disparado. A sessão ficava aberta, sem a decisão do motor, sem
+`ultimo_treino` e sem o peso.
+
+Corrigido em três camadas: (1) `components/stepper-numerico.tsx` passou a
+confirmar o valor **a cada tecla** enquanto o texto já é um número dentro dos
+limites (o `onBlur` continua para normalizar e prender nos limites), com o
+efeito de sincronização preservando o que está escrito quando ele já vale o
+mesmo número — senão a vírgula recém-digitada sumia; (2) o `CardImc` da
+conclusão reserva `min-h-48`, a altura do estado com barra; (3) e2e novo em
+`e2e/player.spec.ts` ("digitar o peso e tocar UMA vez conclui…"), que era
+exatamente a lacuna por onde o defeito passou.
+
+### Importantes
+
+1. **"Começar treino" entra direto no player** (§14.5.1). O botão largo do card
+   do dia era um link para `/treinar` — uma tela a mais antes da Preparação.
+   Agora ele cria a sessão e vai para `/treinar/<id>`. A criação virou um lugar
+   só, `lib/queries/comecar.ts` (`useComecarTreino`), usado pela aba Treino e
+   por `/treinar`, que continua existindo para escolher o outro treino da fase
+   (§5.3, coberto por e2e). A decisão está escrita na SPEC §14.5.1.
+2. **Interruptores com 44 px.** `components/ui/switch.tsx` passou a desenhar o
+   pill (32 × 18,4 px) dentro de um botão de 44 × 44 px — a caixa de toque é o
+   próprio botão, que qualquer medição enxerga (antes ela morava num `::after`
+   invisível ao `getBoundingClientRect`). Medido nos seis interruptores em
+   Preferências **e** na folha do FAB Ajustar: 44 × 44 px em todos.
+3. **HTML literal no JSON.** Cinco textos de `data/exercicios.json` traziam
+   `<strong>` e apareciam crus na tela (flexora-e-gluteo-na-polia,
+   puxada-alta-na-polia, triceps-na-corda). As tags saíram do dado e um teste
+   novo em `lib/dados.test.ts` varre os seis JSON atrás de qualquer marcação.
+4. **Contadores do Relatório** (decisão do orquestrador de 15/09). As três
+   fontes passaram a ler a **mesma janela** (tudo: `useSessoesTodas`,
+   `useSeriesTodas`, `useCardioTodos`), os três contadores do topo ganharam o
+   subtítulo "no total", o card de baixo diz "só força" e a §14.4 registra a
+   decisão. O histórico e as sequências recortam as 26 semanas dessas mesmas
+   listas, sem uma segunda leitura.
+5. **Treino começado sem rede volta a passar pelo motor.** A causa era a chave
+   da consulta: `/treinar` pedia os ids de toda a fase e a aba Treino só os do
+   dia, então o cache de uma não servia para a outra e, offline, a sessão
+   inteira nascia "sem avaliar". Agora `useComecarTreino` monta a sessão a
+   partir do **cache** (`estadosNoCache`/`recordesNoCache`/
+   `seriesAnterioresNoCache` em `lib/queries/dados.ts`, que juntam todas as
+   leituras bem-sucedidas, venham da chave que vierem) e a degradação é **por
+   exercício**: só quem nunca foi lido fica sem avaliação (`conhecidos` em
+   `lib/sessao.ts`). Dois defeitos vizinhos saíram junto: o persistidor
+   guardava só `status === "success"` e apagava do cache, na primeira gravação
+   offline, justamente as cargas atuais (a consulta rehidratada que falha ao
+   revalidar fica "error" **com os dados ainda ali**); e a aba Treino não lia
+   recordes nem séries anteriores. e2e novo em `e2e/auditoria-offline.spec.ts`.
+6. **`e2e/auditoria-m5.spec.ts` respeita `MOCK_SUPABASE_PORT`.** A URL do mock
+   estava escrita à mão numa linha (`54321`), e o portão ficava vermelho por
+   motivo falso justamente no caminho de contorno que o README manda usar.
+   Provado: `MOCK_SUPABASE_PORT=54332 E2E_PORT=3112 npm run e2e -- --grep "uma
+   imagem de 2400 px"` → 1 passed.
+
+### Menores corrigidos
+
+- **Player em tela cheia** (§14.1): a barra de 5 abas some em `/treinar/<id>` e
+  o miolo perde o `pb-24` que existia por causa dela
+  (`components/miolo.tsx`). O passo do exercício, que rolava 130 px, agora cabe
+  de uma vez a 360 × 740 (`scrollHeight` 740, chip "montagem" terminando em
+  574 px contra a barra de controles em 612 px). A **saída** do treino passou a
+  existir de verdade: "Sair do treino" na visão geral (a sessão continua aberta
+  e volta pelo "Continuar" da aba Treino).
+- **Figura do player** de `h-44` para `h-40`, que é o que faltava para o chip
+  "montagem" não encostar na barra de controles.
+- **FAB Ajustar**: a seção da aba Treino ganhou `pb-24` e o FAB subiu para
+  `bottom-24`. Medido a 360 × 740, rolado até o fim: último cartão terminando
+  em 548 px, FAB começando em 588 px — 40 px de folga, e nenhum alvo de 44 px
+  coberto no topo.
+- **Crédito da ilustração** (`components/exercicio/media-grande.tsx`): o link do
+  `figcaption` agora tem caixa de 44 px (301 × 44 medidos), com o texto em
+  11 px.
+- **"Todos os registros"**: o "Mostrando 12 de N" virou botão **"Ver mais 12 de
+  N"** (≥ 44 px), que zera ao trocar de semana ou de recorte.
+- **Títulos dos Desafios** (§14.3): "Primeira barra fixa em 12 semanas" e
+  "5 km sem parar em 12 semanas" — rótulo de UI com o número de semanas e a
+  meta vindos de `cardio.json`; o `objetivo` em caixa baixa continua na tela,
+  como subtítulo. Vale para os Desafios da aba Treino e para os planos do
+  Explorar.
+- **Contradição da §14.1.1**: a SPEC agora diz que a Preparação aparece **ao
+  começar** e que retomar volta ao passo salvo (a regra do fim da seção), que é
+  o que a implementação faz e o que não repete uma contagem no meio do treino.
+- **`kit-100kg`**: a §13.8.2 agora diz **9** coleções por aparelho, com o
+  motivo (nenhum exercício lista esse id; os exercícios usam `anilhas`,
+  `halteres` e `barra-w`, que não são ids de `equipamentos.json`).
+
+### Menores não corrigidos (com o motivo)
+
+- **Ficha em folha fora do player** (lista do dia, Explorar) não tem
+  "Substituir", stepper "só nesta sessão" nem anterior/próximo (n/N): o stepper
+  e o n/N só fazem sentido dentro de uma sessão em andamento, e cada linha da
+  lista já tem o seu botão "Substituir X" ao lado da ficha. A §14.5.4 cobra as
+  três abas, que estão lá.
+- **Subtítulo das coleções de aparelho e circuito** continua sendo o campo
+  `specs` do item. É campo do JSON (a §14.4 pede "descrições só de campos do
+  JSON") e `equipamentos.json` não tem `funcoes`; a alternativa era subtítulo
+  nulo, que perde informação na tela da coleção. Registrado na §13.8.2.
+- **`Colecao.circuito`** continua calculado sem tela que o leia.
+- **CSP completa**: continua esperando o domínio do projeto Supabase para ser
+  medida em `Report-Only` (item 1 dos conhecidos consolidados).
+- **`ultima_firme` parcial** enquanto a sessão está em andamento: a conclusão
+  reenvia o valor final e a reconstrução ignora o retrato parcial. Com o
+  bloqueante corrigido, a sessão que não conclui virou caso raro.
+- **O FAB cobre 13 % do botão "Começar treino"** com a página no topo. É o que
+  um FAB fixo faz; o botão tem 328 px de largura e o centro está livre.
+
+### Portões
+
+Rodados nesta ordem, com a árvore limpa:
+
+```
+npm run lint   limpo (sem avisos)
+npm run build  ✓ Compiled successfully
+npm test       Test Files 43 passed (43) · Tests 971 passed (971)
+npm run e2e    200 passed (7.4m) — Chromium 360 × 740
+```
+
+`git diff` de `lib/progressao.ts` e `lib/montagem.ts` contra o marco 1: vazio.
+
+### Como testar no celular
+
+1. Aba Treino, segunda-feira: tocar em **"Começar treino"** — cai direto na
+   Preparação, sem tela no meio. A barra de 5 abas some enquanto o treino roda;
+   para sair, ícone de lista → **"Sair do treino"**.
+2. No fim: Feedback → Conclusão → **"Registrar o peso de hoje"**, digitar
+   `82,4` e tocar **uma vez** em "Próximo". Volta para a aba Treino com o
+   treino concluído, o peso gravado e o resumo do motor aplicado.
+3. Mais → Preferências: os seis interruptores têm 44 px de alvo (o mesmo vale
+   no FAB **Ajustar** da aba Treino).
+4. Modo avião **na aba Treino** (com o app já aberto uma vez com rede): começar
+   e concluir o treino; ao voltar a rede, o Relatório mostra as setas ↑/=/↓ do
+   motor — não mais "sem avaliar".
+5. Relatório: os três contadores do topo dizem "no total"; o card de baixo diz
+   "só força"; "Todos os registros" tem **"Ver mais 12"**.
+6. Ficha de `puxada-alta-na-polia`: a Montagem não mostra mais `<strong>`.
