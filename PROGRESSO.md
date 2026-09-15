@@ -159,6 +159,9 @@ Para o dono fazer no ambiente dele, na ordem. Leva uns 30 minutos.
 
 1. Abra <https://supabase.com/dashboard> e entre (pode ser **qualquer conta** —
    o app só precisa da URL e da chave; nada está preso ao e-mail da conta).
+   A conta `SAV1BOY` já está no limite do plano gratuito (2 projetos ativos:
+   `ls-interbank-prod` e `satti-evolution-production`); a conta `miguelsaviotti`
+   (sandra.saviotti110772@gmail.com) não tem projeto ativo e serve igual.
 2. **New project**: *Name* `treino-terraco`, *Database Password* forte
    (guarde), *Region* **South America (São Paulo)**. Criar e esperar o status
    ficar verde (1–2 min).
@@ -194,12 +197,22 @@ semeado de `data/perfil.json` (critérios §10.1 e §10.2 contra o banco real).
 ### 3. Publicar na Vercel
 
 1. O código de produção fica em **`main`** no repositório
-   **`SAV1BOY/WORKOUT`**. Faça o merge do branch de trabalho
-   (`claude/academia-miguel-index-ekvwi0`, PR aberto) para `main`.
-2. Em <https://vercel.com/new> importe `SAV1BOY/WORKOUT`. Framework: Next.js
-   (detectado). *Production Branch*: `main`. O build é o `npm run build` do
+   **`SAV1BOY/WORKOUT`**. O PR #1 (marcos 1–6 e auditoria final) já foi
+   mesclado em 15/09/2026; o commit de fechamento (este arquivo) vai num PR
+   novo — mescle-o também.
+2. O projeto **`treino-terraco`** já existe na Vercel (time
+   `saviboys-projects`), vinculado a `SAV1BOY/WORKOUT` com *Production Branch*
+   `main`, e já tem um deploy da `main`. O build é o `npm run build` do
    projeto — o `prebuild` roda `validar` e `assets`, então as figuras e as
    fotos vão para `public/` no deploy (a pasta é **gerada**, não versionada).
+   Dois ajustes só o dono consegue fazer (o token desta sessão não tem
+   permissão de alterar o projeto):
+   - **Settings → Deployment Protection → Vercel Authentication**: está em
+     *All Deployments*, o que manda o celular para o login da Vercel. Mude para
+     **Only Preview Deployments** (ou desligue).
+   - **Settings → Domains**: anote o domínio de produção real
+     (`treino-terraco.vercel.app` respondia 404 sem deployment em 15/09; a
+     Vercel pode ter gerado outro nome).
 3. **Environment Variables** — as três, em **Production e Preview**. Pelo
    painel (Settings → Environment Variables) ou pela CLI:
 
