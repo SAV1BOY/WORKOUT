@@ -572,6 +572,18 @@ export function textoDaCargaDoBloco(bloco: BlocoLocal): string {
 }
 
 /**
+ * A carga que está de fato na barra agora (SPEC §6.5): a da próxima série a
+ * fazer; com tudo marcado, a da última feita. A carga do dia (`alvo.carga_kg`)
+ * é só o ponto de partida — quem toca no ± ou digita muda a barra de verdade,
+ * e é dessa carga que a folha de montagem tem de falar.
+ */
+export function cargaEmUso(bloco: BlocoLocal): number | null {
+  const trabalho = bloco.series.filter((s) => s.tipo === "trabalho");
+  const proxima = trabalho.find((s) => !s.concluida) ?? trabalho[trabalho.length - 1];
+  return proxima?.cargaKg ?? bloco.alvo.carga_kg;
+}
+
+/**
  * O padrão do toggle "Última repetição saiu firme?" (SPEC §3.2): sim quando
  * todas as séries de trabalho chegaram ao topo da faixa.
  */

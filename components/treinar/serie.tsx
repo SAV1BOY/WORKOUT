@@ -4,9 +4,15 @@ import { Check, Pause, Play } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { StepperNumerico } from "@/components/stepper-numerico";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import { acharExercicio } from "@/lib/dados";
 import { formatarKg, rotuloDaCarga } from "@/lib/formato";
-import type { ImplementoMontagem, OpcoesMontagem } from "@/lib/montagem";
+import {
+  alcancavelParaBaixo,
+  cargasPossiveis,
+  type ImplementoMontagem,
+  type OpcoesMontagem,
+} from "@/lib/montagem";
 import { DEGRAUS_ASSISTENCIA } from "@/lib/progressao";
 import {
   nomeDaAssistencia,
@@ -47,6 +53,30 @@ export function LinhaSerieForm({
 
   const nome =
     serie.tipo === "aquecimento" ? `Aquecimento ${indice}` : `Série ${indice}`;
+
+  /**
+   * Carga digitada à mão (SPEC §6.4 e §10.5): o ± já anda pela escala, mas o
+   * teclado aceita qualquer número. Uma carga que o kit não monta não pode
+   * ficar registrada em silêncio — cai na alcançável para baixo e avisa.
+   */
+  const mudarCarga = (kg: number | null) => {
+    if (kg === null) {
+      aoMudar({ cargaKg: null });
+      return;
+    }
+    const escala = cargasPossiveis(implemento, opcoes);
+    if (escala.length < 2) {
+      aoMudar({ cargaKg: kg });
+      return;
+    }
+    const possivel = alcancavelParaBaixo(kg, implemento, opcoes);
+    if (Math.abs(possivel - kg) > 1e-9) {
+      toast.info(
+        `${formatarKg(kg)} não fecha com estas anilhas: ficou ${formatarKg(possivel)} ${rotuloDaCarga(exercicio.implemento)}.`,
+      );
+    }
+    aoMudar({ cargaKg: possivel });
+  };
 
   return (
     <li>
@@ -169,7 +199,7 @@ export function LinhaSerieForm({
                     ),
                   })
                 }
-                aoMudar={(v) => aoMudar({ cargaKg: v })}
+                aoMudar={mudarCarga}
               />
             </Campo>
           ) : null}

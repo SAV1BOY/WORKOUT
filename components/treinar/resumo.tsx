@@ -24,6 +24,7 @@ const SENSACAO = ["péssimo", "fraco", "ok", "bom", "ótimo"];
  */
 export function ResumoDoFim({
   aberto,
+  fim,
   aoFechar,
   resultados,
   duracaoS,
@@ -32,6 +33,8 @@ export function ResumoDoFim({
   aoSalvar,
 }: {
   aberto: boolean;
+  /** "Concluir" ou "Abandonar": o resumo é o mesmo, o título não. */
+  fim: "concluida" | "abandonada";
   aoFechar: () => void;
   resultados: ResultadoExercicio[];
   duracaoS: number;
@@ -52,7 +55,9 @@ export function ResumoDoFim({
     <Dialog open={aberto} onOpenChange={(v) => (v ? null : aoFechar())}>
       <DialogContent className="max-h-[92dvh] gap-4 overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Treino concluído</DialogTitle>
+          <DialogTitle>
+            {fim === "abandonada" ? "Treino abandonado" : "Treino concluído"}
+          </DialogTitle>
           <DialogDescription>
             {formatarDuracao(duracaoS)} · {seriesTexto}
           </DialogDescription>

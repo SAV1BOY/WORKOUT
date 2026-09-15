@@ -258,6 +258,7 @@ export function TelaSessao({ sessaoId }: { sessaoId: string }) {
 
       <ResumoDoFim
         aberto={fim !== null}
+        fim={fim ?? "concluida"}
         aoFechar={() => {
           if (!salvando) setFim(null);
         }}

@@ -346,6 +346,8 @@ test.describe("concluir e o que o motor decide (SPEC §6.2, §6.6, §10.3 e §10
 
     await page.getByRole("button", { name: "Abandonar" }).click();
     await page.getByRole("button", { name: "Confirmar abandono" }).click();
+    // o resumo do abandono não pode dizer "Treino concluído"
+    await expect(page.getByRole("dialog")).toContainText("Treino abandonado");
     await page.getByRole("dialog").getByRole("button", { name: "Salvar e voltar" }).click();
     await expect(page.getByRole("heading", { name: "Hoje", level: 1 })).toBeVisible();
 
@@ -381,9 +383,42 @@ test.describe("ajuda, montagem e substituição (SPEC §3.2, §6.5 e §7)", () =
       .click();
     const folha = page.getByRole("dialog");
     await expect(folha.getByText("por lado")).toBeVisible();
-    // a carga de hoje continua 7,5 kg (o cabeçalho não muda com a série)
-    await expect(folha.getByText("7,5 kg na barra")).toBeVisible();
+    /*
+     * A folha fala da carga que está na barra AGORA (§6.5), não da carga do
+     * dia: 43,5 = 7,5 + 2 × 18, e 18 por lado é 10 · 5 · 3 (guloso, §6.5).
+     */
+    await expect(folha.getByText("43,5 kg na barra")).toBeVisible();
+    await expect(
+      folha.getByRole("list", { name: /Anilhas por lado/ }).getByRole("listitem"),
+    ).toHaveText(["10", "5", "3"]);
     await folha.getByRole("button", { name: "Fechar" }).click();
+  });
+
+  test("uma carga digitada que o kit não monta é ajustada e avisada (§6.4 e §10.5)", async ({
+    page,
+  }) => {
+    await comecarTreinoA(page);
+    const grupo = page.getByRole("group", { name: "Série 1 — Agachamento livre" });
+    const campo = grupo.getByRole("textbox", { name: "carga na barra" });
+
+    // 26,5 kg não existe na escala da barra maciça: cai para 25,5 (SPEC §10.5)
+    await campo.fill("26,5");
+    await campo.blur();
+    await expect(campo).toHaveValue("25,5");
+    await expect(
+      page.getByText("26,5 kg não fecha com estas anilhas: ficou 25,5 kg na barra."),
+    ).toBeVisible();
+
+    await page.locator("#bloco-1").getByRole("button", { name: "montagem" }).click();
+    const folha = page.getByRole("dialog");
+    await expect(folha.getByText("25,5 kg na barra")).toBeVisible();
+    await expect(
+      folha.getByRole("list", { name: /Anilhas por lado/ }).getByRole("listitem"),
+    ).toHaveText(["5", "4"]);
+    await folha.getByRole("button", { name: "Fechar" }).click();
+
+    // e o que sobe para o banco é a carga que dá para montar
+    await marcar(page, "Agachamento livre", 1);
   });
 
   test("a ficha do exercício abre com passos, erro comum e músculos", async ({
@@ -440,5 +475,114 @@ test.describe("celular (SPEC §3 e §10.9)", () => {
     }
 
     await semRolagemHorizontal(page);
+  });
+});
+
+test.describe("timer, tela acesa e voltar sem rede (SPEC §3.2, §8 e §10.3)", () => {
+  test("o descanso zera vibrando, aceita +30 s e pular; a tela fica acesa", async ({
+    page,
+  }) => {
+    await page.addInitScript(() => {
+      const janela = window as unknown as { __vibrou: unknown[]; __tela: string[] };
+      janela.__vibrou = [];
+      janela.__tela = [];
+      Object.defineProperty(navigator, "vibrate", {
+        configurable: true,
+        value: (padrao: unknown) => {
+          janela.__vibrou.push(padrao);
+          return true;
+        },
+      });
+      Object.defineProperty(navigator, "wakeLock", {
+        configurable: true,
+        value: {
+          request: async () => {
+            janela.__tela.push("pedido");
+            return {
+              released: false,
+              release: async () => {
+                janela.__tela.push("solto");
+              },
+            };
+          },
+        },
+      });
+    });
+
+    await comecarTreinoA(page);
+    // Wake Lock pedido assim que a sessão abre (SPEC §3.2)
+    await expect
+      .poll(async () => page.evaluate(() => (window as never as { __tela: string[] }).__tela))
+      .toEqual(["pedido"]);
+
+    // a partir daqui o relógio é nosso: o descanso do agachamento é 2:30
+    await page.clock.install();
+    await marcar(page, "Agachamento livre", 1);
+    const timer = page.getByRole("timer", { name: "Descanso" });
+    await expect(timer).toContainText("2:30");
+
+    await timer.getByRole("button", { name: "30 s" }).click();
+    await expect(timer).toContainText("3:00");
+
+    await page.clock.runFor("03:01");
+    await expect(timer).toContainText("vai!");
+    expect(
+      await page.evaluate(() => (window as never as { __vibrou: unknown[] }).__vibrou),
+    ).toHaveLength(1);
+    await timer.getByRole("button", { name: "Fechar" }).click();
+    await expect(timer).toHaveCount(0);
+
+    // pular fecha o timer sem esperar
+    await marcar(page, "Agachamento livre", 2);
+    await expect(timer).toBeVisible();
+    await timer.getByRole("button", { name: "Pular" }).click();
+    await expect(timer).toHaveCount(0);
+
+    // sair da sessão solta o Wake Lock
+    await page.getByRole("link", { name: "Hoje" }).click();
+    await expect(page.getByRole("heading", { name: "Hoje", level: 1 })).toBeVisible();
+    await expect
+      .poll(async () => page.evaluate(() => (window as never as { __tela: string[] }).__tela))
+      .toEqual(["pedido", "solto"]);
+  });
+
+  test("fechar o app sem rede e abrir de novo: a sessão volta inteira (§8 e §10.3)", async ({
+    page,
+    context,
+  }) => {
+    const sessao = await comecarTreinoA(page);
+    const url = page.url();
+    // a segunda carga já é controlada pelo service worker (o app instalado)
+    await page.reload();
+    await expect(page.getByRole("heading", { name: "Treino A", level: 1 })).toBeVisible();
+
+    await marcar(page, "Agachamento livre", 1);
+    await context.setOffline(true);
+    await marcar(page, "Agachamento livre", 2);
+    await marcar(page, "Agachamento livre", 3);
+    await expect(page.getByText("3/16 séries")).toBeVisible();
+
+    // o app "morreu" no bolso: a aba fecha e outra abre na mesma URL, sem rede
+    await page.close();
+    const voltou = await context.newPage();
+    await fixarData(voltou, SEGUNDA);
+    await voltou.goto(url);
+    await expect(voltou.getByRole("heading", { name: "Treino A", level: 1 })).toBeVisible();
+    await expect(voltou.getByText("3/16 séries")).toBeVisible();
+    await expect(
+      voltou.getByRole("group", { name: "Série 3 — Agachamento livre" }).getByRole("checkbox"),
+    ).toHaveAttribute("aria-checked", "true");
+    await expect(voltou.getByText(/para sincronizar/)).toBeVisible();
+
+    // a rede voltou: nada se perdeu no caminho
+    await context.setOffline(false);
+    await expect
+      .poll(
+        async () =>
+          (await lerDoMock<LinhaSerie>(sessao, "session_sets")).filter((s) => s.concluida)
+            .length,
+        { timeout: 30_000 },
+      )
+      .toBe(3);
   });
 });

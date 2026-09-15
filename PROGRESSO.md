@@ -1311,3 +1311,112 @@ recordesDoBloco · seriesAnterioresPorExercicio · notasDaSessao
 7. "Concluir" → o resumo diz o que sobe e o que repete, mostra os recordes,
    pede a sensação e (se quiser) o peso do dia. Salve: a Hoje volta com a
    carga nova na prévia do próximo treino.
+
+### Auditoria do marco 3 (rodada 1) — o que o auditor achou e o que mudou
+
+Auditoria independente: os quatro portões rodados do zero (`npm run lint` limpo,
+`npm run build` sem erro, `npm test` 497/497, `npm run e2e` 67/67), o código
+lido e o app dirigido à mão no Chromium a 360 × 740 contra o mock, com sondas
+descartáveis em `e2e/` (offline, relógio falso, Wake Lock e `navigator.vibrate`
+simulados).
+
+**Confirmado no navegador** (nada disto veio do relatório do construtor):
+
+- §10.3: o Treino A inteiro registrável só com o polegar (visto de 44 px,
+  steppers de reps e de carga), timer de 2:30 no topo ao concluir a série,
+  recarregar no meio volta com tudo, e com `setOffline(true)` as séries
+  continuam entrando — o banco fica intocado e, ao voltar a rede, as três
+  chegam. **Fechar a aba sem rede e abrir outra na mesma URL** também volta com
+  as três séries (teste novo).
+- §10.4: 3 × 5 no topo com "firme" → resumo ↑ "7,5 → 11,5 kg na barra",
+  `exercise_state` 11,5, `progression_events` `subiu`, `profiles.ultimo_treino`
+  = A1 e a Hoje com "Hoje: 11,5 kg na barra (subiu +4 kg no treino de 14/09)".
+- Timer: conta 2:30, "+30 s" leva a 3:00, ao zerar diz "vai!" e chama
+  `navigator.vibrate` uma vez; "Pular" fecha. Wake Lock é pedido ao abrir a
+  sessão e **solto** ao sair (teste novo com as duas APIs simuladas).
+- §3.2 nos outros tipos: Fase 2 traz "REPS (D)/REPS (E)" no búlgaro, no afundo,
+  no serrote e na flexora; "SEGUNDOS" com cronômetro na prancha (contou 3 s e
+  gravou `tempo_s = 3`); "PASSOS" no farmer's walk; e a barra fixa assistida
+  (por substituição) traz os quatro degraus do elástico. Rótulos por implemento
+  certos: "na barra", "por halter", "no pino", "na mochila".
+- Aquecimento só no primeiro pesado, fora do rodapé ("0/16 séries" com as duas
+  linhas marcadas) e fora do motor.
+- Layout a 360 px: nada rola para o lado, o rodapé fixo não cobre o último
+  bloco e a barra inferior termina no pé da tela.
+- Nenhuma regra do motor dentro de `app/` ou `components/` (a única constante
+  numérica é o `incremento_kg` que vem do próprio `AlvoDeHoje`), nenhum
+  `console.log`, nenhum `any`, os dois `eslint-disable` justificados no lugar.
+
+**Três defeitos corrigidos nesta auditoria:**
+
+1. **A folha de montagem falava da carga do dia, não da que está na barra**
+   (SPEC §6.5 e §10.5). `BotaoMontagem` recebia sempre `bloco.alvo.carga_kg`:
+   subir a carga da série para 43,5 kg e tocar em "montagem" mostrava 7,5 kg e
+   "Sem anilhas: só o implemento" — a resposta errada para a única pergunta que
+   a folha existe para responder. Pior: como a carga do dia vem do motor e é
+   sempre alcançável, o ramo "não fecha com estas anilhas / a mais próxima para
+   baixo é…" era inalcançável na sessão. Entrou `cargaEmUso(bloco)` em
+   `lib/sessao.ts` (a carga da próxima série a fazer; com tudo marcado, a da
+   última feita), com teste unitário e regressão no e2e.
+2. **Carga digitada que o kit não monta entrava em silêncio** (SPEC §6.4 e
+   §10.5). O ± já anda pela escala (`proximaCarga`), mas o teclado aceitava
+   qualquer número: digitar 26,5 na barra maciça gravava 26,5 em
+   `session_sets.carga_kg` — uma carga que não existe no terraço. Agora a
+   digitação passa por `alcancavelParaBaixo` e avisa: "26,5 kg não fecha com
+   estas anilhas: ficou 25,5 kg na barra."
+3. **O resumo do abandono dizia "Treino concluído"** (pt-BR/§3.2). `ResumoDoFim`
+   tinha o título fixo; passou a receber `fim` e a dizer "Treino abandonado".
+
+**Testes acrescentados** (`npm test` 498, `npm run e2e` 70):
+
+- `lib/sessao.test.ts`: `cargaEmUso` em quatro situações.
+- `e2e/treinar.spec.ts`: a folha de montagem seguindo a carga da série
+  (43,5 kg → chips 10 · 5 · 3), a carga digitada inalcançável sendo ajustada e
+  avisada (caso de erro), o timer zerando com vibração + "+30 s" + "Pular" e o
+  Wake Lock pedido/solto, e fechar o app sem rede e voltar na mesma URL.
+
+**Defeito aberto (bloqueia o marco)**
+
+- **O exercício substituído não usa o próprio estado** (SPEC §6.3: "o
+  substituto usa o próprio estado"). `tela-sessao.tsx` chama
+  `substituirExercicio(..., novoId, null)` — sempre `null` —, e a sessão só
+  carrega `exercise_state` dos exercícios do treino. Com 31,5 kg gravados no
+  agachamento frontal, substituir o agachamento livre por ele mostra "Hoje:
+  7,5 kg na barra" e, ao concluir, **sobrescreve** a linha do banco com 9,5 kg
+  e `reps_alvo` nulo: a progressão real do exercício é perdida. O mesmo vale
+  para `seriesAnteriores` (tipo `maximo`) e para os recordes do resumo, que
+  chegam vazios. Correção: carregar os estados/recordes/séries anteriores
+  também dos substituíveis (`substitutosPara` de cada bloco, ou a tabela
+  inteira — são no máximo 81 linhas) e passá-los em `substituirExercicio`;
+  enquanto o estado do substituto for desconhecido (offline sem cache), não
+  gravar `exercise_state` nem `progression_events` daquele bloco.
+
+**Anotado, sem correção nesta rodada** (não bloqueia):
+
+- As séries já gravadas do exercício **original** continuam em `session_sets`
+  depois da substituição (a folha promete "serão trocadas pelas do
+  substituto"): a tela troca as linhas locais, mas as que já subiram ficam lá e
+  vão aparecer no histórico e nos recordes do original no marco 5.
+- Mudar a carga à mão na série não muda o que o motor decide: `decidir()`
+  trabalha sobre `exercise_state.carga_atual_kg` (§6.1), então quem levanta
+  11,5 num dia de 7,5 vê "7,5 → 11,5" e só repete a carga que já fez. É o que a
+  §6.2 diz, mas vale um "usar esta carga a partir de hoje" no polimento.
+- Na **primeira** carga do app num navegador (o service worker ainda não
+  assumiu o controle), recarregar a sessão sem rede cai na tela de erro do
+  Chromium — nem o `/~offline` aparece. Da segunda carga em diante (o caso do
+  PWA instalado) a sessão volta inteira offline, como o teste novo mostra.
+- Uma única execução do teste "sem rede as séries continuam sendo registradas e
+  sobem depois" estourou os 15 s do poll; não repetiu em outras cinco
+  execuções. Vale olhar de novo se voltar.
+
+### Como testar no celular (auditoria do marco 3)
+
+1. `npm run build && npm run e2e` — **70** testes verdes a 360 × 740
+   (`npm test` fecha em 498).
+2. À mão, com `npm run mock` + `npm run dev:mock`: no agachamento, suba a carga
+   da série 1 para 25,5 kg e toque em "montagem" — os chips têm de ser 5 · 4 e
+   o total 25,5 kg (antes mostrava 7,5 kg).
+3. Ainda na série 1, digite 26,5 no campo da carga e toque fora: o campo volta
+   com 25,5 e aparece o aviso "26,5 kg não fecha com estas anilhas".
+4. Toque em "Abandonar" → "Confirmar abandono": o título do resumo é "Treino
+   abandonado".

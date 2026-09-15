@@ -12,6 +12,7 @@ import {
   concluirSessao,
   escritaDaSerie,
   escritaDaSessao,
+  cargaEmUso,
   firmePadrao,
   marcarSerie,
   montarSessao,
@@ -248,6 +249,28 @@ describe("mexer nas séries", () => {
     const desmarcada = marcarSerie(marcada, b.ordem, id, false);
     expect(bloco(desmarcada, "rosca-direta-com-barra").series[0]?.concluida).toBe(false);
     expect(bloco(desmarcada, "rosca-direta-com-barra").series[0]?.registradaEm).toBeNull();
+  });
+
+  it("cargaEmUso: a folha de montagem fala da carga que está na barra (§6.5)", () => {
+    const s = sessaoA();
+    const b = bloco(s, "agachamento-livre");
+    // sem tocar em nada é a carga do dia
+    expect(cargaEmUso(b)).toBe(7.5);
+
+    // mudou a carga da próxima série: é dela que a montagem tem de falar
+    const trabalho = b.series.filter((x) => x.tipo === "trabalho");
+    const mudada = atualizarSerie(s, b.ordem, trabalho[0]!.id, { cargaKg: 25.5 });
+    expect(cargaEmUso(bloco(mudada, "agachamento-livre"))).toBe(25.5);
+
+    // com a primeira já feita, vale a próxima a fazer
+    const feita = marcarSerie(mudada, b.ordem, trabalho[0]!.id, true);
+    expect(cargaEmUso(bloco(feita, "agachamento-livre"))).toBe(25.5);
+    const outra = atualizarSerie(feita, b.ordem, trabalho[1]!.id, { cargaKg: 27.5 });
+    expect(cargaEmUso(bloco(outra, "agachamento-livre"))).toBe(27.5);
+
+    // tudo marcado: a última feita
+    const tudo = fazerTudoNoTopo(s, "agachamento-livre", { cargaKg: 11.5 });
+    expect(cargaEmUso(bloco(tudo, "agachamento-livre"))).toBe(11.5);
   });
 
   it("firmePadrao: sim quando todas as séries chegaram ao topo", () => {

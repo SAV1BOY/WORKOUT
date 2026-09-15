@@ -21,6 +21,7 @@ import { textoDoAlvo } from "@/lib/hoje";
 import type { OpcoesMontagem } from "@/lib/montagem";
 import { cn } from "@/lib/utils";
 import {
+  cargaEmUso,
   firmePadrao,
   substitutosPara,
   textoDaCargaDoBloco,
@@ -83,9 +84,10 @@ export function BlocoExercicio({
         ) : null}
 
         <div className="flex flex-wrap items-center gap-2 pt-1">
+          {/* a montagem fala da carga que está na barra agora, não da do dia */}
           <BotaoMontagem
             exercicioId={bloco.exercicioId}
-            carga={bloco.alvo.carga_kg}
+            carga={cargaEmUso(bloco)}
             opcoes={opcoes}
           />
           <Substituir
