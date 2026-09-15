@@ -2974,3 +2974,54 @@ janela sem build/vitest/playwright concorrente.
    mostra mais nada do usuário nem offline.
 6. **Calendário**: toque num dia futuro — os três chips (Força/Cardio/Descanso)
    cabem lado a lado sem nada escapar para o lado.
+
+---
+
+## Re-verificação final ✅
+
+Conferência independente das duas correções "importantes" da auditoria final,
+no código e no navegador (mock), com os quatro portões rodados do zero numa
+janela sem build/vitest/playwright concorrente.
+
+### Os dois importantes: conferidos
+
+1. **Eixo y dos gráficos de linha** — real e completo. `Comum` tem
+   `dominioY?: [number|string, number|string]`, `eixos()` repassa para
+   `<YAxis domain>` e as duas abas passam `dominioFolgado()` (folga 1 no peso,
+   2 nas medidas). Visto no navegador com 30 pesagens entre 81 e 83 kg: o eixo
+   vai de **80 a 84** e a série e a média de 7 dias aparecem separadas, como a
+   §3.8 pede. As barras (volume, reps de fixa, minutos) e as linhas de carga
+   dos grandes continuam na base zero, que era o pedido.
+2. **First load da ficha** — real. A rota `/exercicios/[id]` fecha em
+   **275 kB** (era 353). A causa de raiz era mais funda do que a auditoria
+   apontou: `badge.tsx` e `button.tsx` importavam o `Slot` pelo guarda-chuva
+   `radix-ui` e, vindos de um Server Component, arrastavam a biblioteca inteira.
+   O ampliador virou `components/exercicios/foto-ampliada.tsx`, uma camada
+   própria (`role="dialog"`, `aria-modal`, foco no X, Esc e toque fora fecham),
+   em vez do `Dialog` do Radix. Conferido no navegador: abre, fecha pelos três
+   caminhos e a sobreposição escurece a barra de navegação junto com o resto da
+   página (medido no pixel: 250 → 50). Nenhuma rota passa de 344 kB.
+
+### Ajuste desta etapa
+
+- `e2e/corpo.spec.ts` > "a foto sobe para o bucket e aparece na galeria" era
+  **instável** (falhou 2 de 5 execuções). Não é defeito do app: a linha de
+  `progress_photos` é um segundo item da fila, enfileirado **depois** do
+  arquivo, então ver o blob no bucket não quer dizer que o upsert já subiu — o
+  teste lia a tabela sem esperar. A leitura virou um `expect.poll`, como as
+  outras asserções de banco do arquivo já faziam. Instrumentado antes de
+  mexer: a linha chega, sempre; só chega um pouco depois do arquivo.
+- O outro teste que falhou numa rodada cheia (`cardio.spec.ts` > "'Fazer sessão
+  de barra fixa' abre a sessão da semana com 4 × 5") passou 5 de 5 isolado e
+  nas duas rodadas cheias seguintes. Fica como o ruído de ambiente já descrito
+  acima, sem alteração.
+
+### Portões (rodados do zero, nesta ordem)
+
+```
+npm run lint   limpo
+npm run build  ✓ Compiled successfully · 90 páginas · maior rota 344 kB
+               /exercicios/[id] 275 kB · shared 104 kB
+npm test       Test Files 28 passed (28) · Tests 744 passed (744)
+npm run e2e    151 passed (5.1m)
+```

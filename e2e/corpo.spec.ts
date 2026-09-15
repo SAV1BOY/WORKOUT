@@ -154,12 +154,23 @@ test.describe("Corpo — fotos (SPEC §3.8)", () => {
       )
       .toContain(`progresso/${caminho}`);
 
-    const [linha] = await lerDoMock<{ storage_path: string; angulo: string }>(
-      sessao,
-      "progress_photos",
-    );
-    expect(linha?.storage_path).toBe(caminho);
-    expect(linha?.angulo).toBe("frente");
+    /*
+     * A linha da tabela é um SEGUNDO item da fila, enfileirado depois do
+     * arquivo: ver o blob no bucket não quer dizer que o upsert já subiu.
+     * Ler sem esperar dava um teste instável (2 em 5).
+     */
+    await expect
+      .poll(
+        async () => {
+          const [linha] = await lerDoMock<{ storage_path: string; angulo: string }>(
+            sessao,
+            "progress_photos",
+          );
+          return linha ? `${linha.storage_path}|${linha.angulo}` : null;
+        },
+        { timeout: 15_000 },
+      )
+      .toBe(`${caminho}|frente`);
 
     // depois de subir, a galeria passa a usar a URL assinada do bucket
     await page.reload();
