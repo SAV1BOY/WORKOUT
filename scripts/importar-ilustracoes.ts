@@ -15,7 +15,8 @@
  * A pasta precisa ter `everkinetic/manifesto.json` e `wger/manifesto.json`
  * junto dos arquivos que eles citam.
  *
- * Regra de escolha por exercício (decisão do dono, 15/09/2026 — veja
+ * Regra de escolha por exercício (decisão do dono, 15/09/2026 — SPEC §15,
+ * "Mídia dos exercícios"; a linha da decisão está em
  * `docs/analise-referencia-treino-em-casa.md` §4):
  *
  *   Everkinetic exata → wger exata → Everkinetic aproximada → wger aproximada

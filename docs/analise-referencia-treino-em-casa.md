@@ -65,7 +65,10 @@ Regras que não mudam: cada toque grava no IndexedDB antes de qualquer animaçã
 | Música | **Não** | o celular já toca música; o app não deve controlar áudio |
 | Gostei / não gostei no exercício | **Sim, leve** | "não gosto" marca o exercício para aparecer por último nas substituições e no Explorar; nada mais |
 | Tutorial no YouTube | **Sim** | um vídeo por exercício, curado em `data/tutoriais.json` (81 entradas, revisáveis), embed `youtube-nocookie` só ao tocar; sem rede a aba some |
-| Vídeo próprio | **Opcional** | `assets/videos/<id>.mp4`, se existir, substitui a figura (SPEC §13.1) |
+| Ilustrações de exercício | **Sim, só com licença livre e crédito** | as 67 figuras do kit não cobrem os 81 exercícios; ilustração de terceiro entra com autor, licença, link e título em `data/ilustracoes.json`, crédito sob a mídia na ficha e em Mais → Créditos, e o texto da licença publicado quando ela exigir (SPEC §15) |
+| Mapa muscular anatômico | **Sim** | MuscleMap (MIT) no lugar do boneco esquemático do sprite; o aviso de copyright viaja junto, servido em `/mapa-muscular/LICENCA-mapa-anatomico.md` (SPEC §15.1) |
+| Imagem de terceiro sem licença ou sem crédito | **Não** | a §13.1 continua fechada para isso; sem os quatro requisitos da §15.1 a imagem não entra |
+| Vídeo próprio | **Opcional** | `assets/videos/<id>.mp4`, se existir, substitui a figura (SPEC §13.1); é o primeiro da ordem da §15.2 |
 | Stepper de duração/reps na ficha | **Sim** | ajusta só a prescrição da sessão de hoje |
 | Editar (reordenar) a lista do dia | **Sim** | ordem só desta sessão, com alças e setas ↑↓ |
 | "Ajustar" (FAB) | **Sim** | descanso padrão, preparação, voz, vibração, tela acesa, raios |
@@ -97,10 +100,11 @@ Regras que não mudam: cada toque grava no IndexedDB antes de qualquer animaçã
 
 | Marco | Entrega | Estado |
 |---|---|---|
-| V1 | Sistema visual v2, navegação, aba Treino (cards, faixa, meta, lista), sessão restilizada, vídeo opcional, preferências | em construção (workflow D1) |
-| V2 | **Player unificado** (preparação, exercício por tipo, descanso em tela cheia, feedback, conclusão), **ficha em folha** com Vídeo · Músculos · Tutorial, stepper, foco, anterior/próximo; reordenar; Ajustar; gostei/não gostei | próximo |
+| V1 | Sistema visual v2, navegação, aba Treino (cards, faixa, meta, lista), sessão restilizada, vídeo opcional, preferências | feito |
+| V2 | **Player unificado** (preparação, exercício por tipo, descanso em tela cheia, feedback, conclusão), **ficha em folha** com Vídeo · Músculos · Tutorial, stepper, foco, anterior/próximo; reordenar; Ajustar; gostei/não gostei | feito |
+| Mídia | **Ilustrações com licença livre** (Everkinetic/wger, CC BY-SA) para 77 dos 81 exercícios e **mapa muscular anatômico** (MuscleMap, MIT) na aba Músculos; `data/ilustracoes.json`, ordem de mídia em `lib/midia.ts`, Mais → Créditos com licenças e links (SPEC §15) | feito |
 | V3 | Treino: Desafios, Parte do corpo em foco, Personalizar; **Explorar**; **Relatório**; Corpo com IMC; `data/tutoriais.json` e a aba Tutorial; Mais | depois |
-| V4 | Auditoria final a 360 px nos dois temas contra este documento e a §14, aceite, fechamento | por último |
+| V4 | Auditoria final a 360 px nos dois temas contra este documento, a §14 e a §15, aceite, fechamento | por último |
 
 Critério de "quase idêntico": alguém que conhece a referência reconhece cada tela e cada gesto (começar, preparar, fazer, descansar, próximo, avaliar, concluir) sem explicação; o que difere é a paleta, a ausência de kcal/confete/lembrete/PRO, e a presença da carga e do resumo do motor.
 

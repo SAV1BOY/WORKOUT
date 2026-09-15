@@ -2,7 +2,7 @@
  * Qual imagem cada tela mostra de um exercício (marco Mídia). Funções puras,
  * sem React e sem Supabase: quem decide é aqui, os componentes só desenham.
  *
- * A ordem é sempre a mesma (SPEC §13.1 e §14.2):
+ * A ordem é sempre a mesma (SPEC §15.2; veja também §13.1 e §14.2):
  *
  *   vídeo local (`assets/videos/<id>.mp4`, opcional)
  *   → **ilustração** com licença livre (`data/ilustracoes.json`)

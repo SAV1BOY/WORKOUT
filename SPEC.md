@@ -253,7 +253,7 @@ Cada marco termina com build + lint + testes verdes e um commit.
 Depois de o app ficar pronto (marcos 1–6 e auditoria final), o dono pediu que o site e o PWA tenham o apelo visual dos apps de treino de celular (cards com foto de capa, faixa da semana, vitrine de coleções, relatório com histórico) **sem perder o que é nosso**: registro por série com carga, motor de progressão, conteúdo dos JSON, offline. Este adendo **revoga parcialmente a §11** (entra gamificação sóbria, definida abaixo) e **substitui a §3** onde conflitar. Tudo o que não está aqui continua valendo.
 
 ### 13.1 Regras que não mudam
-- Conteúdo só dos JSON. Coleções, desafios e "dificuldade" são **derivados** por código a partir de `data/*.json`; nada de rotinas inventadas nem texto de marketing. Fotos: só as de `assets/` (fotos de execução, fotos dos itens, figuras). Nenhuma imagem de terceiros.
+- Conteúdo só dos JSON. Coleções, desafios e "dificuldade" são **derivados** por código a partir de `data/*.json`; nada de rotinas inventadas nem texto de marketing. Fotos: só as de `assets/` (fotos de execução, fotos dos itens, figuras). Imagem de terceiros só nas condições da §15.
 - Estilo: o **sóbrio atual** (tema escuro de verdade `#0a0a0a`, uma cor de destaque laranja, tema claro disponível), agora com cards arredondados, capas em foto com gradiente, números grandes, faixa da semana. Sem confete.
 - Celular primeiro a 360 px, alvos ≥ 44 px, pt-BR com vírgula, dd/MM, semana na segunda; offline como na §8; motor e montagem intocados (§6).
 - Não há vídeos no kit. A "demonstração" de cada exercício é a **figura animada** + as **duas fotos**. Fica preparado um vídeo **opcional** local: se existir `assets/videos/<id>.mp4` (copiado para `public/videos/` pelo `npm run assets`), a ficha e o bloco da sessão mostram um `<video muted loop playsinline>` no lugar da figura; sem o arquivo, nada muda. Nenhum vídeo é entregue.
@@ -354,3 +354,58 @@ Abaixo da lista do treino do dia: **Editar** (modo reordenar com alças e setas 
 5. Editar/reordenar, Ajustar, gostei/não gostei, Desafios, Parte do corpo em foco e Personalizar existem e funcionam como descrito; nenhum conteúdo inventado (toda string de coleção/desafio vem de campos do JSON ou é rótulo de UI).
 6. Relatório e Conclusão mostram Peso e IMC como na referência; nunca kcal; sem confete.
 7. Lint, build, `npm test` e `npm run e2e` verdes, com e2e novos para 14.1–14.4 e os antigos ajustados sem afrouxar.
+
+---
+
+## 15. Mídia dos exercícios — decisão de 15/09/2026 (adendo v2.1, marco Mídia)
+
+O kit trouxe 67 figuras animadas para 81 exercícios e nenhum vídeo. Faltava
+imagem em 14 exercícios e o boneco do sprite muscular era esquemático demais
+para mostrar o que cada exercício trabalha. Em 15/09/2026 o dono decidiu:
+**imagem de terceiros é permitida**, com as condições abaixo. Este adendo
+**altera a §13.1** (a frase "Nenhuma imagem de terceiros" passa a ser "Imagem
+de terceiros só nas condições da §15") e complementa a §14.2; tudo o mais da
+§13.1 continua valendo.
+
+### 15.1 Condições (as quatro, juntas — sem qualquer uma delas a imagem não entra)
+1. **Licença livre.** Só obra com licença livre e compatível com o uso no app
+   (hoje: CC BY-SA 3.0 e 4.0 nas ilustrações, MIT no mapa muscular). Nada de
+   "achado no Google", nada de fotografia de pessoa real, nada sem licença.
+2. **Procedência gravada no JSON.** `autor`, `licenca`, `url_fonte` e
+   `titulo_fonte` de cada arquivo ficam em `data/ilustracoes.json` (validado
+   por Zod em `lib/schemas.ts`, lido por `lib/dados.ts`) e no
+   `data/ilustracoes-creditos.md` gerado junto. Nenhum crédito escrito à mão
+   dentro de componente.
+3. **Atribuição visível.** O crédito aparece **sob a mídia na ficha** (folha e
+   `/exercicios/[id]`) e a lista completa em **Mais → Créditos**, com o link
+   para a obra de origem. Obra derivada de CC BY-SA (redimensionar, converter
+   para WebP) mantém a mesma licença.
+4. **Texto da licença publicado junto** quando a licença exige que ele
+   acompanhe a obra — é o caso da MIT do mapa muscular, cujo aviso de
+   copyright é servido em `/mapa-muscular/LICENCA-mapa-anatomico.md` e
+   linkado em Mais → Créditos.
+
+### 15.2 Ordem de preferência da mídia de um exercício (`lib/midia.ts`, funções puras)
+`vídeo local` (`assets/videos/<id>.mp4`, opcional, §13.1) → **ilustração**
+(`data/ilustracoes.json`) → **figura animada** do kit (`assets/figuras/<id>.svg`)
+→ **foto de execução** (`assets/fotos/<id>-1.jpg`). Quem não tem ilustração
+continua exatamente como antes. Todo caminho sai do JSON; nenhum caminho
+escrito à mão.
+
+### 15.3 O que não muda
+- **Capas** (cards de treino, cardio, coleções) continuam só com as fotos de
+  `assets/` — a §13.3 segue valendo ao pé da letra para elas.
+- O motor (§6), a montagem e o que vai para o banco continuam intocados: o
+  marco é imagem e crédito, nada mais.
+- `npm run validar` continua conferindo que todo arquivo citado nos JSON
+  existe, agora incluindo as ilustrações e o mapa.
+- A importação (`npm run ilustracoes`, `scripts/importar-ilustracoes.ts`) é
+  ferramenta de uma vez só, fora do build e dos portões; o que vale é o
+  resultado versionado.
+
+### 15.4 Critérios de aceite
+1. Toda imagem de terceiro no app tem autor, licença e link no JSON, crédito
+   sob a mídia na ficha e linha em Mais → Créditos (e2e).
+2. Mais → Créditos abre o texto completo da licença MIT do mapa.
+3. Exercício sem ilustração mostra a figura ou a foto, sem crédito e sem erro.
+4. Lint, build, `npm test` e `npm run e2e` verdes.

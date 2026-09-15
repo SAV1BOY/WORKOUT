@@ -3906,9 +3906,11 @@ Conhecidos, para quem pegar o marco V3:
 O app deixou de depender só das 67 figuras animadas do kit: 77 dos 81
 exercícios passaram a ter **ilustração com licença livre** (Everkinetic e
 wger, CC BY-SA), e o boneco do sprite antigo deu lugar a um **mapa anatômico**
-de frente e costas (MuscleMap, MIT). É a decisão do dono de 15/09/2026 —
-"opções 1 e 2" de `docs/analise-referencia-treino-em-casa.md` §4: usar imagem
-de terceiros só com licença livre e **citando a fonte**.
+de frente e costas (MuscleMap, MIT). É a decisão do dono de 15/09/2026, escrita na
+**SPEC §15 ("Mídia dos exercícios")** e na tabela §4 de
+`docs/analise-referencia-treino-em-casa.md`: usar imagem de terceiros só com
+licença livre, com autor/licença/link no JSON, crédito sob a mídia e em
+Mais → Créditos, e o texto da licença publicado quando ela exigir.
 
 Nada do motor mudou: `lib/progressao.ts`, `lib/montagem.ts` e o que vai para o
 banco (`session_sets`, `exercise_state`, `progression_events`) continuam iguais
@@ -4107,3 +4109,37 @@ licença MIT medido em 212 × 44 px.
 Portões rodados do zero nesta auditoria, com os dois ajustes acima aplicados:
 `npm run lint` ✓ · `npm run build` ✓ · `npm test` **886 testes / 38 arquivos** ✓
 · `npm run e2e` **183 testes em 7,1 min** ✓.
+
+### Auditoria independente do marco Mídia (rodada 2) — a decisão virou texto
+
+A rodada 2 apontou um problema só, e de contrato: o marco entrega **imagem de
+terceiros** (145 arquivos CC BY-SA e o mapa MIT), mas a SPEC ainda dizia, na
+§13.1, "Nenhuma imagem de terceiros", e a decisão do dono era citada num lugar
+que não a continha (a §4 de `docs/analise-referencia-treino-em-casa.md`, que é
+a tabela de decisões da referência). Como nos marcos anteriores a regra foi
+escrever a SPEC **antes** de construir, a emenda foi escrita agora, antes do V3:
+
+- **SPEC §15 — "Mídia dos exercícios"** (adendo novo, no formato da §13 e da
+  §14): registra a decisão de 15/09/2026 e as **quatro condições** para usar
+  imagem de terceiro (licença livre · autor, licença, link e título em
+  `data/ilustracoes.json` · atribuição sob a mídia na ficha e em Mais →
+  Créditos · texto da licença publicado quando ela exigir, o caso da MIT), a
+  ordem de preferência **vídeo local → ilustração → figura → foto** (§15.2), o
+  que **não** muda (capas continuam só com as fotos de `assets/`; motor e banco
+  intocados) e os critérios de aceite. A §15 foi numerada como seção nova para
+  não renumerar a §14.3/§14.4/§14.5, já citadas em código e em testes.
+- **SPEC §13.1**: "Nenhuma imagem de terceiros" virou "Imagem de terceiros só
+  nas condições da §15". O resto da §13.1 ficou igual; a §13.3 continua valendo
+  ao pé da letra, porque **capa** nunca usa imagem de terceiro.
+- **`docs/analise-referencia-treino-em-casa.md`**: a tabela da §4 ganhou as
+  linhas "Ilustrações de exercício", "Mapa muscular anatômico" e "Imagem de
+  terceiro sem licença ou sem crédito"; a tabela da §6 ganhou o marco **Mídia**
+  entre o V2 e o V3 (e o V4 passou a auditar contra a §15 também).
+- **Citações penduradas corrigidas** para apontar para a seção que agora
+  existe: cabeçalho de `scripts/importar-ilustracoes.ts`, cabeçalho de
+  `lib/midia.ts` e a abertura desta seção do PROGRESSO.
+
+Nenhuma linha de app mudou nesta rodada — é texto de contrato —, então as
+capturas de `capturas/midia/` continuam valendo sem regerar. Portões rodados
+de novo do zero: `npm run lint` ✓ · `npm run build` ✓ · `npm test` **886
+testes / 38 arquivos** ✓ · `npm run e2e` **183 testes em 6,9 min** ✓.
