@@ -1,12 +1,14 @@
 import { notFound } from "next/navigation";
 import { FotosAmpliaveis } from "@/components/exercicios/fotos-ampliaveis";
 import { HistoricoExercicio } from "@/components/exercicios/historico-exercicio";
+import { MediaGrande } from "@/components/exercicio/media-grande";
 import { FiguraExercicio } from "@/components/exercicio/midia";
 import { MapaMuscular } from "@/components/mapa-muscular";
 import { Badge } from "@/components/ui/badge";
 import { NOME_EQUIPAMENTO, treinosDoExercicio } from "@/lib/catalogo";
 import { acharTreino, exercicioPorId, exercicios, urlFigura } from "@/lib/dados";
 import { formatarDescanso, formatarKg, rotuloDaCarga } from "@/lib/formato";
+import { idsComVideo } from "@/lib/videos";
 
 /** As 81 fichas são conteúdo dos JSON: os ids saem do catálogo. */
 export function generateStaticParams() {
@@ -38,6 +40,12 @@ export default async function FichaExercicio({
 
   const treinos = treinosDoExercicio(exercicio.id);
   const p = exercicio.prescricao_padrao;
+  /*
+   * SPEC §13.1: vídeo é opcional e nenhum vem no kit. A lista sai de
+   * `public/videos` no build destas 81 páginas estáticas — quem largar um
+   * `assets/videos/<id>.mp4` roda `npm run assets` e o build seguinte o mostra.
+   */
+  const comVideo = idsComVideo().includes(exercicio.id);
 
   return (
     <article className="flex flex-col gap-4">
@@ -59,7 +67,11 @@ export default async function FichaExercicio({
         ) : null}
       </header>
 
-      {urlFigura(exercicio) ? <FiguraExercicio exercicio={exercicio} /> : null}
+      {comVideo ? (
+        <MediaGrande exercicioId={exercicio.id} temVideo />
+      ) : urlFigura(exercicio) ? (
+        <FiguraExercicio exercicio={exercicio} />
+      ) : null}
       <FotosAmpliaveis exercicio={exercicio} />
 
       <Secao titulo="Músculos">

@@ -53,7 +53,30 @@ export async function estadoDoMock(): Promise<Record<string, unknown>> {
 }
 
 /**
- * Cria a conta permitida (ou entra, se já existir) e espera cair na Hoje.
+ * A aba Treino (`/`) aberta. A camada visual v2 (SPEC §13.3) trocou o título
+ * "Hoje" pela saudação com a data, então quem espera a tela espera a região.
+ */
+export async function esperarAbaTreino(page: Page): Promise<void> {
+  // `exact`: o banner do treino aberto também é uma região ("Treino aberto")
+  await expect(
+    page.getByRole("region", { name: "Treino", exact: true }),
+  ).toBeVisible({ timeout: 15_000 });
+}
+
+/**
+ * Clica numa das cinco abas (SPEC §13.2) pela navegação inferior. Sempre pelo
+ * `nav`: a lista do dia tem links cujo texto contém "peso do corpo", e um
+ * `getByRole("link", { name: "Corpo" })` solto casaria com eles.
+ */
+export async function irNaAba(page: Page, rotulo: string): Promise<void> {
+  await page
+    .getByRole("navigation", { name: "Navegação principal" })
+    .getByRole("link", { name: rotulo, exact: true })
+    .click();
+}
+
+/**
+ * Cria a conta permitida (ou entra, se já existir) e espera cair na aba Treino.
  * O mock já devolve sessão no signup — não há confirmação de e-mail.
  */
 export async function login(
@@ -77,7 +100,7 @@ export async function login(
     await page.getByRole("button", { name: "Entrar" }).click();
   }
 
-  await expect(page.getByRole("heading", { name: "Hoje" })).toBeVisible();
+  await esperarAbaTreino(page);
 }
 
 export interface SessaoMock {
@@ -243,5 +266,5 @@ export async function entrarNoApp(
   await page.getByLabel("E-mail").fill(email);
   await page.getByLabel("Senha").fill(senha);
   await page.getByRole("button", { name: "Entrar" }).click();
-  await expect(page.getByRole("heading", { name: "Hoje" })).toBeVisible();
+  await esperarAbaTreino(page);
 }

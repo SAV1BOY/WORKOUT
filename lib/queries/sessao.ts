@@ -15,6 +15,7 @@ import { enfileirarEscrita } from "@/lib/outbox-supabase";
 import { esperarFila, pendentes } from "@/lib/outbox";
 import { chaves, type SessaoResumo } from "@/lib/queries/dados";
 import {
+  comSubstituicoes,
   concluirSessao,
   escritaDaSerie,
   escritaDeDescarte,
@@ -125,6 +126,12 @@ const TIPO_POR_TABELA: Record<string, TipoSaida> = {
 export interface EntradaCriacao extends Omit<EntradaMontagem, "id"> {
   cliente: QueryClient;
   id?: string;
+  /**
+   * Substituições escolhidas na lista da aba Treino (SPEC §13.3): exercício do
+   * programa → substituto. Aplicadas à sessão recém-montada, como se a troca
+   * tivesse sido feita no bloco (§3.2).
+   */
+  substituicoes?: Record<string, string>;
 }
 
 /**
@@ -132,9 +139,20 @@ export interface EntradaCriacao extends Omit<EntradaMontagem, "id"> {
  * cliente e entra na fila de saída. A navegação não espera a rede.
  */
 export async function criarSessao(entrada: EntradaCriacao): Promise<SessaoLocal> {
-  const { cliente, ...resto } = entrada;
+  const { cliente, substituicoes, ...resto } = entrada;
   const id = entrada.id ?? novoId();
-  return registrarSessaoNova(montarSessao({ ...resto, id, novoId }), cliente);
+  const montada = montarSessao({ ...resto, id, novoId });
+  const sessao =
+    substituicoes && Object.keys(substituicoes).length > 0
+      ? comSubstituicoes(montada, substituicoes, {
+          estados: resto.estados,
+          anteriores: resto.anteriores,
+          recordes: resto.recordes,
+          estadoConhecido: resto.estadoConhecido,
+          novoId,
+        })
+      : montada;
+  return registrarSessaoNova(sessao, cliente);
 }
 
 export interface EntradaCriacaoAvulsa extends Omit<EntradaAvulsa, "id"> {

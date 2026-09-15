@@ -16,7 +16,7 @@ import {
   type PerfilCalendario,
 } from "@/lib/calendario";
 import { acharTreino } from "@/lib/dados";
-import { formatarData, formatarMinutos } from "@/lib/formato";
+import { formatarData, formatarDiaCurto, formatarMinutos } from "@/lib/formato";
 import { descricaoDoCardio } from "@/lib/hoje";
 import type { TipoDia, TreinoId } from "@/lib/schemas";
 import type { LinhaSessao, LinhaSessaoCardio, TipoCardio } from "@/lib/types";
@@ -151,6 +151,37 @@ export function montarGrade(
       sessaoTipo,
     };
   });
+}
+
+/* -------------------------------------------- faixa da semana (SPEC §13.3) */
+
+export interface DiaDaFaixa {
+  data: string;
+  /** "seg", "ter"… */
+  rotulo: string;
+  numero: number;
+  marca: MarcaDoDia;
+  ehHoje: boolean;
+  /** "Segunda, 14/09 · Treino A · feito" — o que o leitor de tela lê. */
+  titulo: string;
+}
+
+/**
+ * A semana em sete casas (SPEC §13.3): hoje em destaque, ✓ nos dias feitos,
+ * ponto nos planejados, cinza no que faltou. Deriva da mesma grade do
+ * calendário — nada de segunda contagem.
+ */
+export function faixaDaSemana(grade: DiaDaGrade[]): DiaDaFaixa[] {
+  return grade.map((dia) => ({
+    data: dia.data,
+    rotulo: formatarDiaCurto(dia.data),
+    numero: paraData(dia.data).getDate(),
+    marca: dia.marca,
+    ehHoje: dia.ehHoje,
+    titulo: `${formatarDiaCurto(dia.data)}, ${formatarData(dia.data)} · ${dia.rotulo} · ${
+      dia.ehHoje ? "hoje" : NOME_DA_MARCA[dia.marca]
+    }`,
+  }));
 }
 
 /* ------------------------------------------------------ mês em miniatura */

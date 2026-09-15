@@ -1,6 +1,7 @@
 import { expect, test, type Browser, type Locator, type Page } from "@playwright/test";
 import {
   entrarNoApp,
+  esperarAbaTreino,
   inserirNoMock,
   lerDoMock,
   resetarMock,
@@ -148,7 +149,7 @@ test.describe("Cardio — corrida (SPEC §3.3)", () => {
     await dialogo.getByRole("radio", { name: /fácil/i }).click();
     await dialogo.getByRole("button", { name: "Salvar e voltar" }).click();
 
-    await expect(page.getByRole("heading", { name: "Hoje" })).toBeVisible();
+    await esperarAbaTreino(page);
 
     await expect
       .poll(async () => (await lerDoMock(sessao, "cardio_sessions")).length, {
@@ -280,7 +281,7 @@ test.describe("Cardio — corrida (SPEC §3.3)", () => {
     await page.getByRole("dialog").getByRole("button", { name: "Salvar e voltar" }).click();
 
     // a tela volta para a Hoje como se nada fosse; o banco continua vazio
-    await expect(page.getByRole("heading", { name: "Hoje" })).toBeVisible();
+    await esperarAbaTreino(page);
     expect(await lerDoMock(sessao, "cardio_sessions")).toHaveLength(0);
 
     await context.setOffline(false);

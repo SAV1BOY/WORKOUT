@@ -9,6 +9,7 @@ import { acharExercicio } from "@/lib/dados";
 import { estadoInicial, type EstadoExercicio } from "@/lib/progressao";
 import {
   atualizarSerie,
+  comSubstituicoes,
   avaliarSessao,
   concluirSessao,
   escritaDaSerie,
@@ -22,6 +23,7 @@ import {
   montagemDaCarga,
   notasDaSessao,
   progressoDaSessao,
+  proximoExercicio,
   proximaCarga,
   idsComSubstitutos,
   idsQueComparamComAnterior,
@@ -1071,5 +1073,74 @@ describe("sessão avulsa — a barra fixa da semana (SPEC §3.4)", () => {
         { novoId: contador("r") },
       ),
     ).toBeNull();
+  });
+});
+
+describe("comSubstituicoes (SPEC §13.3)", () => {
+  it("troca o bloco pelo substituto escolhido antes de começar", () => {
+    const substituto = substitutosPara("agachamento-livre")[0]!;
+    const sessao = comSubstituicoes(
+      sessaoA(),
+      { "agachamento-livre": substituto.id },
+      { novoId: contador("t") },
+    );
+    const primeiro = sessao.blocos[0]!;
+    expect(primeiro.exercicioId).toBe(substituto.id);
+    expect(primeiro.originalId).toBe("agachamento-livre");
+    expect(primeiro.substituido).toBe(true);
+    // a prescrição passa a ser a do substituto (§6.3)
+    expect(primeiro.series.length).toBe(primeiro.prescricao.series);
+  });
+
+  it("ignora troca vazia, para o próprio exercício e para id inexistente", () => {
+    const base = sessaoA();
+    expect(comSubstituicoes(base, {})).toBe(base);
+    expect(
+      comSubstituicoes(base, { "agachamento-livre": "agachamento-livre" }).blocos[0]
+        ?.exercicioId,
+    ).toBe("agachamento-livre");
+    expect(
+      comSubstituicoes(base, { "agachamento-livre": "nao-existe" }).blocos[0]?.exercicioId,
+    ).toBe("agachamento-livre");
+  });
+
+  it("o estado do substituto é o que vale (a progressão do original não muda)", () => {
+    const substituto = substitutosPara("agachamento-livre")[0]!;
+    const estado = estadoInicial(substituto);
+    const sessao = comSubstituicoes(
+      sessaoA(),
+      { "agachamento-livre": substituto.id },
+      { estados: { [substituto.id]: estado }, novoId: contador("t") },
+    );
+    expect(sessao.blocos[0]?.estado).toEqual(estado);
+    expect(sessao.blocos[0]?.estadoConhecido).toBe(true);
+  });
+});
+
+describe("proximoExercicio (SPEC §13.3)", () => {
+  it("é o segundo bloco com série por fazer", () => {
+    const sessao = sessaoA();
+    const primeiro = sessao.blocos[0]!;
+    const segundo = sessao.blocos[1]!;
+    expect(proximoExercicio(sessao)).toBe(acharExercicio(segundo.exercicioId).nome);
+
+    // com o primeiro bloco inteiro concluído, o próximo é o terceiro
+    let feito = sessao;
+    for (const serie of primeiro.series) {
+      feito = marcarSerie(feito, primeiro.ordem, serie.id, true);
+    }
+    expect(proximoExercicio(feito)).toBe(
+      acharExercicio(sessao.blocos[2]!.exercicioId).nome,
+    );
+  });
+
+  it("no último bloco não há próximo", () => {
+    let sessao = sessaoA();
+    for (const bloco of sessao.blocos.slice(0, -1)) {
+      for (const serie of bloco.series) {
+        sessao = marcarSerie(sessao, bloco.ordem, serie.id, true);
+      }
+    }
+    expect(proximoExercicio(sessao)).toBeNull();
   });
 });

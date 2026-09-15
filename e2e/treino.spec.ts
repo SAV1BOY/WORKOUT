@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import {
+  esperarAbaTreino,
   fixarData,
   fixarRelogio,
   inserirNoMock,
@@ -15,7 +16,7 @@ const SEGUNDA = "2026-09-14T08:00:00-03:00";
 const TERCA = "2026-09-15T08:00:00-03:00";
 const QUINTA = "2026-09-17T08:00:00-03:00";
 
-async function abrirHoje(page: Page, quando: string) {
+async function abrirTreino(page: Page, quando: string) {
   await fixarRelogio(page, quando);
   await entrarNoApp(page);
 }
@@ -24,13 +25,15 @@ test.beforeEach(async () => {
   await resetarMock();
 });
 
-test.describe("Hoje — dia de força (SPEC §3.1 e §10.2)", () => {
+test.describe("Treino — dia de força (SPEC §3.1, §10.2 e §13.3)", () => {
   test("a segunda mostra o Treino A com as cargas iniciais", async ({ page }) => {
     await usuarioComPerfil();
-    await abrirHoje(page, SEGUNDA);
+    await abrirTreino(page, SEGUNDA);
 
-    await expect(page.getByText("Treino A · 6 exercícios · 44 min")).toBeVisible();
+    // SPEC §13.3: o card do dia é capa + nome + subtítulo + "44 min · 6 exercícios"
+    await expect(page.getByRole("heading", { name: "Treino A" })).toBeVisible();
     await expect(page.getByText("agachamento no centro")).toBeVisible();
+    await expect(page.getByText("44 min · 6 exercícios")).toBeVisible();
 
     // SPEC §10.2: 7,5 kg na barra, 1,5 kg por halter
     await expect(page.getByText("Hoje: 7,5 kg na barra").first()).toBeVisible();
@@ -47,7 +50,7 @@ test.describe("Hoje — dia de força (SPEC §3.1 e §10.2)", () => {
 
   test("os seis exercícios do treino aparecem na ordem do programa", async ({ page }) => {
     await usuarioComPerfil();
-    await abrirHoje(page, SEGUNDA);
+    await abrirTreino(page, SEGUNDA);
 
     const itens = page.getByRole("list", { name: "Exercícios de hoje" }).getByRole("listitem");
     await expect(itens).toHaveCount(6);
@@ -56,9 +59,10 @@ test.describe("Hoje — dia de força (SPEC §3.1 e §10.2)", () => {
 
   test("o Treino B vem quando o último treino foi o A", async ({ page }) => {
     await usuarioComPerfil({ ultimo_treino: "A1" });
-    await abrirHoje(page, SEGUNDA);
+    await abrirTreino(page, SEGUNDA);
 
-    await expect(page.getByText("Treino B · 6 exercícios · 45 min")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Treino B" })).toBeVisible();
+    await expect(page.getByText("45 min · 6 exercícios")).toBeVisible();
     // 4 kg no pino da polia (SPEC §10.2)
     await expect(page.getByText("Hoje: 4 kg no pino").first()).toBeVisible();
   });
@@ -78,20 +82,21 @@ test.describe("Hoje — dia de força (SPEC §3.1 e §10.2)", () => {
       },
     ]);
 
-    await abrirHoje(page, SEGUNDA);
+    await abrirTreino(page, SEGUNDA);
     await expect(
       page.getByText("Hoje: 9,5 kg na barra (subiu +2 kg no treino de 12/09)"),
     ).toBeVisible();
   });
 });
 
-test.describe("Hoje — dia de cardio (SPEC §3.1)", () => {
+test.describe("Treino — dia de cardio (SPEC §3.1 e §13.3)", () => {
   test("a terça mostra a corrida da semana 1 e a alternativa da corda", async ({ page }) => {
     await usuarioComPerfil();
-    await abrirHoje(page, TERCA);
+    await abrirTreino(page, TERCA);
 
+    await expect(page.getByRole("heading", { name: "Corrida · semana 1" })).toBeVisible();
     await expect(
-      page.getByText("Corrida · semana 1 · 8 × (1 min corrida / 2 min caminhada) · 34 min"),
+      page.getByText("8 × (1 min corrida / 2 min caminhada) · 34 min"),
     ).toBeVisible();
     await expect(page.getByRole("link", { name: "Começar" })).toBeVisible();
 
@@ -99,8 +104,9 @@ test.describe("Hoje — dia de cardio (SPEC §3.1)", () => {
     await expect(page.getByText("3,6 km no total · ritmo alvo 7:49/km")).toBeVisible();
 
     await page.getByRole("button", { name: "Fazer corda em vez de corrida" }).click();
+    await expect(page.getByRole("heading", { name: "Corda · semana 1" })).toBeVisible();
     await expect(
-      page.getByText("Corda · semana 1 · 6 × 30 s de corda (60 s de descanso) · 13 min"),
+      page.getByText("6 × 30 s de corda (60 s de descanso) · 13 min"),
     ).toBeVisible();
     // milhar com ponto, do jeito pt-BR (≈ 300 saltos na semana 1)
     await expect(page.getByText("≈ 300 saltos")).toBeVisible();
@@ -110,7 +116,7 @@ test.describe("Hoje — dia de cardio (SPEC §3.1)", () => {
 
   test("dá para treinar mesmo assim, com o aviso de corrida e perna (§5.3)", async ({ page }) => {
     await usuarioComPerfil();
-    await abrirHoje(page, TERCA);
+    await abrirTreino(page, TERCA);
 
     await expect(
       page.getByRole("link", { name: "Treinar mesmo assim (Treino A)" }),
@@ -119,10 +125,10 @@ test.describe("Hoje — dia de cardio (SPEC §3.1)", () => {
   });
 });
 
-test.describe("Hoje — descanso e reps soltas (SPEC §3.1)", () => {
+test.describe("Treino — descanso e reps soltas (SPEC §3.1 e §13.3)", () => {
   test("a quinta é descanso, e o +1 grava a repetição solta", async ({ page }) => {
     const sessao = await usuarioComPerfil();
-    await abrirHoje(page, QUINTA);
+    await abrirTreino(page, QUINTA);
 
     await expect(page.getByText("Descanso", { exact: true })).toBeVisible();
     await expect(page.getByText("grease the groove")).toBeVisible();
@@ -144,10 +150,10 @@ test.describe("Hoje — descanso e reps soltas (SPEC §3.1)", () => {
   });
 });
 
-test.describe("Hoje — faixa de status e treino aberto (SPEC §3.1)", () => {
+test.describe("Treino — situação e treino aberto (SPEC §3.1 e §13.3)", () => {
   test("sem pesagem, a faixa pede para pesar e leva ao Corpo", async ({ page }) => {
     await usuarioComPerfil();
-    await abrirHoje(page, SEGUNDA);
+    await abrirTreino(page, SEGUNDA);
 
     await expect(page.getByText("Fase 1 · semana 1")).toBeVisible();
     await expect(page.getByText("Ainda não tem peso registrado.")).toBeVisible();
@@ -163,7 +169,7 @@ test.describe("Hoje — faixa de status e treino aberto (SPEC §3.1)", () => {
       { data: "2026-09-12", peso_kg: 82.4 },
     ]);
 
-    await abrirHoje(page, SEGUNDA);
+    await abrirTreino(page, SEGUNDA);
     await expect(page.getByText("82,4 kg")).toBeVisible();
     await expect(page.getByText("há 2 dias")).toBeVisible();
   });
@@ -180,7 +186,7 @@ test.describe("Hoje — faixa de status e treino aberto (SPEC §3.1)", () => {
       },
     ]);
 
-    await abrirHoje(page, SEGUNDA);
+    await abrirTreino(page, SEGUNDA);
 
     const banner = page.getByRole("region", { name: "Treino aberto" });
     await expect(banner).toContainText("Você tem um treino aberto de 12/09");
@@ -208,7 +214,7 @@ test.describe("Hoje — faixa de status e treino aberto (SPEC §3.1)", () => {
   });
 });
 
-test.describe("Hoje — cache persistido (SPEC §8)", () => {
+test.describe("Treino — cache persistido (SPEC §8)", () => {
   test("a leitura é guardada no IndexedDB para a próxima abertura", async ({ page }) => {
     /*
      * `fixarData` (page.clock.setFixedTime) e não `fixarRelogio`: o cache é
@@ -245,8 +251,8 @@ test.describe("Hoje — cache persistido (SPEC §8)", () => {
   });
 });
 
-test.describe("Hoje — auditoria do marco 2", () => {
-  test("recarregar sem rede ainda mostra a Hoje com os dados da última sincronização", async ({
+test.describe("Treino — auditoria do marco 2", () => {
+  test("recarregar sem rede ainda mostra a aba Treino com os dados da última sincronização", async ({
     page,
     context,
   }) => {
@@ -288,9 +294,9 @@ test.describe("Hoje — auditoria do marco 2", () => {
     try {
       await page.reload();
       // o conteúdo vem do cache do IndexedDB, não da rede (SPEC §8)
-      await expect(page.getByRole("heading", { name: "Hoje" })).toBeVisible();
+      await esperarAbaTreino(page);
       await expect(page.getByText(/^Fase 1 · semana/)).toBeVisible();
-      await expect(page.getByText(/exercícios · \d+ min/)).toBeVisible();
+      await expect(page.getByText(/\d+ min · \d+ exercícios/)).toBeVisible();
       await expect(page.getByRole("list", { name: "Exercícios de hoje" })).toBeVisible();
       await semRolagemHorizontal(page);
     } finally {
@@ -306,7 +312,7 @@ test.describe("Hoje — auditoria do marco 2", () => {
     await inserirNoMock(sessao, "exercise_state", [
       { exercise_id: "agachamento-livre", carga_atual_kg: null },
     ]);
-    await abrirHoje(page, SEGUNDA);
+    await abrirTreino(page, SEGUNDA);
 
     const primeiro = page
       .getByRole("list", { name: "Exercícios de hoje" })

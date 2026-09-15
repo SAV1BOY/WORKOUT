@@ -3338,3 +3338,174 @@ npm run build  ✓ Compiled successfully · 90 páginas · maior rota 344 kB
 npm test       Test Files 28 passed (28) · Tests 744 passed (744)
 npm run e2e    151 passed (5.1m)
 ```
+
+---
+
+## Camada visual v2 — Marco V1 ✅
+
+SPEC §13.2 e §13.3 (mais o vídeo opcional da §13.1 e as preferências novas da
+§13.7). O v1 do app continua inteiro por baixo: motor, montagem, offline e
+registro por série não foram tocados — o que mudou foi a casca.
+
+### O que foi feito
+
+**1. Sistema visual v2** (`components/ui/`, `app/globals.css`)
+
+Tokens novos em `globals.css`, dentro da paleta que já existia (escuro
+`#0a0a0a`, laranja de destaque, claro disponível): `--raio-cartao` (20 px),
+`--sombra-cartao` (discreta no claro, **nenhuma** no escuro — lá quem separa é
+a borda) e as três paradas do gradiente das capas. Três classes: `.cartao`,
+`.capa-gradiente` e `.numero-grande` (a `.numero` do v1 continua).
+
+Seis componentes reutilizáveis, sem biblioteca nova:
+
+| componente | o que é |
+|---|---|
+| `components/ui/card-capa.tsx` | `CardCapa`: foto de capa (de `assets/`) com gradiente escuro, título/subtítulo/detalhe/raios por cima e o conteúdo embaixo. Sem foto vira gradiente com ícone — nunca imagem de terceiros |
+| `components/ui/faixa-semana.tsx` | `FaixaSemana`: seg–dom, hoje em destaque, ✓ feito, ponto planejado, cinza faltou, traço no descanso. Navegável (setas) quando o chamador pede — é o que o Relatório do V2 vai usar |
+| `components/ui/raios.tsx` | `Raios`: 1–3 raios com rótulo acessível ("Dificuldade: pesado (3 de 3)") |
+| `components/ui/contador.tsx` | `Contador`: número grande + rótulo (os contadores do Relatório no V2) |
+| `components/ui/miniatura.tsx` | `Miniatura`: figura animada, foto `-1.jpg` ou ícone, nessa ordem |
+| `components/ui/botao-largo.tsx` | `BotaoLargo`: 56 px de altura, largura toda |
+
+**2. Navegação** (`components/nav-inferior.tsx`) — `Treino · Explorar ·
+Relatório · Corpo · Mais`, ícones lucide. `/` é Treino e acende também em
+`/treinar`, `/cardio`, `/barra-fixa` e `/calendario` (a aba absorveu Treinar,
+§13.2). `/explorar` e `/relatorio` nasceram nesta etapa: Explorar é um lugar
+honesto ("em construção — marco V2", com o atalho para o catálogo) e Relatório
+recebeu a tela de progresso inteira. `/progresso` faz `permanentRedirect` para
+`/relatorio`.
+
+**3. Aba Treino (`/`)** — `components/treino/`:
+
+- `cabecalho.tsx`: saudação ("Quarta, 16/09"), chama com as semanas seguidas
+  com a meta cumprida, `FaixaSemana` da semana civil (toque abre `/calendario`),
+  "Meta semanal 2/5" com barra, e as duas caixas de Fase e Peso (com o pedido de
+  pesagem da §3.1, que a v2 não revoga).
+- `cards.tsx`: um card por sessão do dia. Força com capa na foto `-1` do
+  primeiro exercício, nome + foco do JSON, "45 min · 6 exercícios", raios e
+  "Começar treino" — ou "Continuar" com `2/16 séries` quando a sessão aberta é
+  a de hoje. Cardio com capa (a corda tem foto no kit), "Começar" e a
+  alternativa da corda. Descanso com as reps soltas ("+1" e o total) e, no
+  domingo, "Começar caminhada leve". "Treinar mesmo assim" nos dias sem força.
+- `lista.tsx`: a lista do treino do dia com miniatura, nome, prescrição, carga
+  de hoje com o rótulo do implemento, a linha "(subiu +4 kg no treino de
+  11/09)" (§6.6), raios, ⇄ para substituir e toque que abre a ficha.
+
+**4. Sessão** (`/treinar/[sessionId]`) — cabeçalho de cada bloco com a
+demonstração grande (vídeo se existir, senão a figura animada, senão a foto) e
+"próximo: Desenvolvimento militar em pé" no rodapé fixo. A lista de `/treinar`
+virou `CardCapa`. Nada mudou no que é registrado nem no motor.
+
+**5. Vídeo opcional (§13.1)** — `npm run assets` copia `assets/videos/*.mp4`
+para `public/videos` se a pasta existir; `npm run validar` aceita a pasta
+ausente e, se ela existir, exige `.mp4` de exercícios que existem. A ficha e o
+bloco da sessão mostram `<video muted loop playsinline>` quando o arquivo
+existe. Nenhum vídeo entra no repositório (`.gitignore`).
+
+**6. Preferências (§13.7)** — "Meta semanal" (inteiro ≥ 1, vazio = o padrão da
+fase) e "Mostrar raios de dificuldade" (ligado por padrão), em `profiles.prefs`
+como as demais.
+
+### Funções puras novas (todas com teste)
+
+| arquivo | o que faz |
+|---|---|
+| `lib/dificuldade.ts` | `dificuldadeDe(exercicio)` pela `categoria` (§13.4) e `dificuldadeDaColecao` (a maior) |
+| `lib/metas.ts` | `metaSemanalPadrao` (as sessões de força + cardio da semana da fase, tiradas do `programa.json`), `metaSemanal`/`comMetaSemanal` (prefs), `feitosNaSemana`, `progressoDaMeta`, `sequenciaDeSemanas`, `sequenciaDeDias` |
+| `lib/capas.ts` | `capaDoExercicio`, `capaDoTreino`, `miniaturaDoExercicio`, `capaDoCardio` — todo caminho vem do JSON |
+| `lib/trocas.ts` | a escolha do ⇄ guardada por (data, treino), à prova de storage estragado |
+| `lib/videos.ts` | os ids com `public/videos/<id>.mp4` (lado servidor) e `lib/videos.cliente.ts` com a URL |
+| `lib/semana.ts` | `faixaDaSemana(grade)` — a faixa deriva da mesma grade do calendário |
+| `lib/hoje.ts` | `detalheDoTreino`, `progressoDaAberta` e o `trocas` de `previaDoTreino` |
+| `lib/sessao.ts` | `comSubstituicoes` (aplica as trocas à sessão recém-montada) e `proximoExercicio` |
+| `lib/formato.ts` | `formatarDiaEData` ("terça, 15/09") |
+
+### Decisões desta etapa
+
+1. **O ⇄ da aba Treino guarda a escolha** (`lib/trocas.ts` no `localStorage`,
+   por data + treino) e `criarSessao` a aplica com o mesmo
+   `substituirExercicio` da sessão (§3.2/§6.3): o substituto entra com o estado,
+   a prescrição e o descanso **dele**, e o bloco continua sabendo quem era o
+   original ("no lugar de …"). Era a alternativa mais fiel ao "mesmo fluxo da
+   sessão" — a outra (sair da aba levando a troca na URL) tirava o Miguel da
+   tela no meio da escolha. Sem storage a escolha ainda vale na tela, só não
+   sobrevive ao "Começar treino".
+2. **"Continuar" só para a sessão aberta de hoje.** Uma sessão aberta de outro
+   dia continua no banner com Continuar **e** Descartar (§3.1): o card do dia
+   não pode fingir que o treino de anteontem é o de hoje.
+3. **Capa do cardio.** Corda usa a foto de execução que existe no kit; corrida
+   e caminhada ficam com o gradiente e o ícone — não há foto de corrida em
+   `assets/` e inventar uma seria imagem de terceiros (§13.1).
+4. **A lista do dia só aparece em dia de força.** Em dia de cardio ou descanso
+   o que existe é o card do dia mais o "Treinar mesmo assim"; listar um treino
+   que não é o de hoje confundiria a leitura.
+5. **O vídeo da ficha é decidido no build**, porque as 81 fichas são estáticas
+   (SSG) — quem largar um `assets/videos/<id>.mp4` roda `npm run assets` e o
+   build seguinte mostra. Na **sessão** (rota dinâmica) a lista é lida a cada
+   render, e é por isso que o e2e do vídeo mexe na sessão: ele cria o mp4
+   depois do build. Sem fallback por erro no `<video>`: quem disse que o
+   arquivo existe foi o servidor, e um arquivo estragado tem de aparecer
+   estragado.
+6. **A tela de progresso mudou de endereço, não de conteúdo.** `/relatorio`
+   mostra hoje exatamente o que `/progresso` mostrava (título "Relatório"); os
+   contadores, o histórico, as sequências e o IMC da §13.5 são o marco V2.
+7. **`components/hoje/` saiu** (tela, cards, faixa de status e prévia): tudo o
+   que continuava valendo virou `components/treino/`, sem código morto.
+
+### E2E
+
+- **`e2e/treino-v2.spec.ts`** (11 testes, todos novos): faixa com ✓ nos dias
+  semeados e `data-marca` por dia, meta 2/5, a chama aparecendo quando a meta
+  baixa para 2, os cards de segunda/terça/quinta/domingo, a lista com
+  miniatura + prescrição + carga com rótulo, o "Continuar" com `2/16 séries`, o
+  ⇄ que chega na sessão, `/progresso` → `/relatorio`, Explorar honesto, os
+  raios que a preferência desliga e o vídeo opcional (mp4 temporário, criado e
+  apagado pelo teste).
+- **Antigos ajustados sem afrouxar**: `hoje.spec.ts` → `treino.spec.ts` e
+  `progresso.spec.ts` → `relatorio.spec.ts` (mesmas asserções, rótulos e rotas
+  novas); `shell.spec.ts` com as cinco abas da §13.2; dois ajudantes novos em
+  `fixtures.ts` — `esperarAbaTreino` (a tela `/` não tem mais o título "Hoje") e
+  `irNaAba` (a lista do dia tem links cujo texto contém "peso do corpo", e um
+  `getByRole("link", { name: "Corpo" })` solto casava com eles).
+
+### Portões (rodados nesta ordem, janela sozinha)
+
+```
+npm run lint   limpo
+npm run build  ✓ Compiled successfully · 90 páginas · 27 rotas
+npm test       Test Files 34 passed (34) · Tests 806 passed (806)
+npm run e2e    162 passed (5.5m) — Chromium 360 × 740
+```
+
+Unitários: 747 → **806** (+59). Ponta a ponta: 151 → **162** (+11).
+
+### Como testar no celular
+
+1. `npm run build && npm run mock` num terminal e `npm run dev:mock` noutro (ou
+   `npx next start -p 3100` com as três variáveis).
+2. No celular, `http://<ip-do-computador>:3000`: a aba **Treino** abre com a
+   saudação do dia, a faixa da semana, a meta e o card do dia.
+3. Toque na faixa → calendário. Toque num exercício da lista → ficha. Toque no
+   ⇄ → escolha um substituto e comece o treino: o bloco já nasce com ele.
+4. **Mais → Preferências**: mude a "Meta semanal" para 2 e volte à aba Treino —
+   a barra e a chama mudam. Desligue "Mostrar raios de dificuldade" e os raios
+   somem da lista e dos cards.
+5. Para ver o vídeo opcional: ponha um `.mp4` em `assets/videos/<id>.mp4`, rode
+   `npm run assets` e abra a sessão desse exercício (a ficha pede um build
+   novo).
+
+### Capturas da revisão
+
+`scripts/capturas.ts` (ferramenta, não portão) sobe contra o mock semeado e
+grava as telas a 360 × 740. Nesta etapa: `01-treino-escuro.png`,
+`01-treino-escuro-completo.png`, `02-treino-claro.png`, `03-treino-lista.png`,
+`04-sessao.png`, `05-treinar.png` e `06-mais-preferencias.png`.
+
+### O que falta (marcos V2 e V3)
+
+- **V2**: Explorar de verdade (coleções derivadas, §13.4), sessão livre com
+  `sessions.plano`, circuito guiado (§13.6), Relatório completo (contadores,
+  histórico, sequências, IMC) e o IMC no Corpo (§13.7).
+- **V3**: auditoria da camada visual inteira (360 px nos dois temas, offline,
+  conteúdo só dos JSON) e os critérios de aceite da §13.8.

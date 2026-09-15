@@ -10,6 +10,6 @@ export const config = {
     /*
      * Tudo menos os arquivos estáticos e as imagens copiadas de assets/.
      */
-    "/((?!_next/static|_next/image|favicon.ico|icons/|figuras/|fotos/|itens/|mapa-muscular/|sw.js|swe-worker-.*\\.js|manifest.webmanifest|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|webmanifest)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|icons/|figuras/|fotos/|itens/|mapa-muscular/|videos/|sw.js|swe-worker-.*\\.js|manifest.webmanifest|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|webmanifest|mp4)$).*)",
   ],
 };

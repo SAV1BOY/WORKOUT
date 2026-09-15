@@ -4,6 +4,7 @@ import { expect, test } from "@playwright/test";
 import {
   entrarNoApp,
   fixarData,
+  irNaAba,
   resetarMock,
   semRolagemHorizontal,
   usuarioComPerfil,
@@ -36,7 +37,7 @@ test.describe("Catálogo (SPEC §3.6)", () => {
     await fixarData(page);
     await entrarNoApp(page);
 
-    await page.getByRole("link", { name: "Progresso" }).click();
+    await irNaAba(page, "Relatório");
     await page.getByRole("link", { name: "Catálogo de exercícios" }).click();
     await expect(page.getByRole("heading", { name: "Exercícios" })).toBeVisible();
     await expect(page.getByText(`${TOTAL} exercícios`, { exact: true })).toBeVisible();

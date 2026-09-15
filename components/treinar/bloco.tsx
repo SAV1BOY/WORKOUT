@@ -2,6 +2,7 @@
 
 import { Repeat } from "lucide-react";
 import { useState } from "react";
+import { MediaGrande } from "@/components/exercicio/media-grande";
 import { AjudaExercicio } from "@/components/treinar/ajuda";
 import { BotaoMontagem } from "@/components/treinar/montagem";
 import { LinhaSerieForm } from "@/components/treinar/serie";
@@ -33,6 +34,7 @@ export function BlocoExercicio({
   bloco,
   historico,
   opcoes,
+  temVideo = false,
   aoMudarSerie,
   aoMarcarSerie,
   aoMudarFirme,
@@ -43,6 +45,8 @@ export function BlocoExercicio({
   /** "subiu +2 kg no treino de 12/09" (SPEC §6.6). */
   historico: string | null;
   opcoes: OpcoesMontagem;
+  /** Existe `public/videos/<id>.mp4` para este exercício (SPEC §13.1). */
+  temVideo?: boolean;
   aoMudarSerie: (serieId: string, campos: Partial<SerieLocal>) => void;
   aoMarcarSerie: (serieId: string, concluida: boolean) => void;
   aoMudarFirme: (firme: boolean) => void;
@@ -55,7 +59,14 @@ export function BlocoExercicio({
   let nTrabalho = 0;
 
   return (
-    <Card id={`bloco-${bloco.ordem}`} className="scroll-mt-20 gap-3 py-4">
+    <Card id={`bloco-${bloco.ordem}`} className="cartao scroll-mt-20 gap-3 overflow-hidden pt-0 pb-4">
+      {/* SPEC §13.3: capa em vídeo (quando existe), figura animada ou foto */}
+      <MediaGrande
+        exercicioId={bloco.exercicioId}
+        temVideo={temVideo}
+        className="h-36 rounded-none"
+      />
+
       <CardHeader className="gap-1 px-4">
         <div className="flex items-start gap-1">
           <div className="flex min-w-0 flex-1 flex-col gap-0.5">

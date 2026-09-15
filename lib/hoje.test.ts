@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import { sessaoCardioDeHoje, type PerfilCalendario } from "@/lib/calendario";
 import {
   alternativaDeCorda,
+  detalheDoTreino as detalheDoTreinoV2,
+  progressoDaAberta as progressoDaAbertaV2,
   avisoCorridaEPerna,
   descricaoDoCardio,
   estadosPorExercicio,
@@ -18,6 +20,7 @@ import {
   ultimoEventoPorExercicio,
 } from "@/lib/hoje";
 import { treinoDeHoje } from "@/lib/calendario";
+import { substitutosPara } from "@/lib/sessao";
 import type { LinhaEstadoExercicio } from "@/lib/types";
 
 const PERFIL: PerfilCalendario = {
@@ -341,5 +344,73 @@ describe("corrida e perna no mesmo dia (SPEC §5.3)", () => {
     expect(houveCardioHoje(cardios, "2026-09-15", "corrida")).toBe(true);
     expect(houveCardioHoje(cardios, "2026-09-16", "corda")).toBe(false);
     expect(houveCardioHoje(cardios, "2026-09-17")).toBe(false);
+  });
+});
+
+/* ------------------------------------------------ camada visual v2 (§13.3) */
+
+describe("detalheDoTreino (SPEC §13.3)", () => {
+  it("é minutos · número de exercícios", () => {
+    expect(detalheDoTreinoV2("A1")).toBe("44 min · 6 exercícios");
+  });
+});
+
+describe("progressoDaAberta (SPEC §13.3)", () => {
+  const serie = (concluida: boolean, tipo: "trabalho" | "aquecimento" = "trabalho") => ({
+    tipo,
+    concluida,
+  });
+
+  it("conta só as séries de trabalho concluídas, contra o total do programa", () => {
+    const p = progressoDaAbertaV2("A1", [
+      serie(true, "aquecimento"),
+      serie(true),
+      serie(true),
+      serie(false),
+    ]);
+    expect(p.feitas).toBe(2);
+    expect(p.total).toBe(16);
+    expect(p.texto).toBe("2/16 séries");
+  });
+
+  it("sessão sem treino do programa não tem total", () => {
+    const p = progressoDaAbertaV2("fixa", [serie(true)]);
+    expect(p.total).toBeNull();
+    expect(p.texto).toBe("1 série");
+  });
+
+  it("sessão recém-criada mostra zero", () => {
+    expect(progressoDaAbertaV2("A1").texto).toBe("0/16 séries");
+  });
+});
+
+describe("previaDoTreino com substituição (SPEC §13.3)", () => {
+  it("sem troca, o item é o exercício do programa", () => {
+    const [primeiro] = previaDoTreino({ treinoId: "A1" });
+    expect(primeiro?.exercicioId).toBe("agachamento-livre");
+    expect(primeiro?.originalId).toBe("agachamento-livre");
+    expect(primeiro?.substituido).toBe(false);
+  });
+
+  it("com troca, o item vira o substituto e guarda o original", () => {
+    const substituto = substitutosPara("agachamento-livre")[0]!;
+    const [primeiro] = previaDoTreino({
+      treinoId: "A1",
+      trocas: { "agachamento-livre": substituto.id },
+    });
+    expect(primeiro?.exercicioId).toBe(substituto.id);
+    expect(primeiro?.originalId).toBe("agachamento-livre");
+    expect(primeiro?.substituido).toBe(true);
+    expect(primeiro?.nome).toBe(substituto.nome);
+    // a prescrição passa a ser a do substituto (§6.3)
+    expect(primeiro?.alvoTexto).toContain("×");
+  });
+
+  it("uma troca para o próprio exercício não muda nada", () => {
+    const [primeiro] = previaDoTreino({
+      treinoId: "A1",
+      trocas: { "agachamento-livre": "agachamento-livre" },
+    });
+    expect(primeiro?.substituido).toBe(false);
   });
 });

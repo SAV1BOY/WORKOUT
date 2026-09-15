@@ -29,6 +29,7 @@ import {
   type ChaveLigada,
   type TemaPref,
 } from "@/lib/preferencias";
+import { comMetaSemanal, metaSemanal, metaSemanalPadrao } from "@/lib/metas";
 import { incrementoDe, type EstadoExercicio } from "@/lib/progressao";
 import { estadosPorExercicio } from "@/lib/hoje";
 import { useEstados, usePerfil } from "@/lib/queries/dados";
@@ -56,6 +57,11 @@ const INTERRUPTORES: { chave: ChaveLigada; titulo: string; descricao: string }[]
     chave: "manter_tela",
     titulo: "Manter a tela acesa",
     descricao: "Durante o treino e o cardio a tela não apaga sozinha.",
+  },
+  {
+    chave: "mostrar_raios",
+    titulo: "Mostrar raios de dificuldade",
+    descricao: "Os raios de cada exercício e de cada treino (1 a 3).",
   },
 ];
 
@@ -86,6 +92,7 @@ export function TelaPreferencias({ userId }: { userId: string }) {
   return (
     <Tela>
       <Tema userId={userId} perfil={perfil} />
+      <MetaSemanal userId={userId} perfil={perfil} />
       <Interruptores userId={userId} perfil={perfil} />
       <Incrementos userId={userId} perfil={perfil} />
     </Tela>
@@ -153,6 +160,83 @@ function Tema({ userId, perfil }: { userId: string; perfil: LinhaPerfil }) {
             </Button>
           ))}
         </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+/* ------------------------------------------- meta semanal (SPEC §13.7) */
+
+function MetaSemanal({ userId, perfil }: { userId: string; perfil: LinhaPerfil }) {
+  const cliente = useQueryClient();
+  const padrao = metaSemanalPadrao(perfil.fase_atual);
+  const atual = metaSemanal(perfil.prefs, perfil.fase_atual);
+  const escolhida = perfil.prefs?.meta_semanal;
+  const [texto, setTexto] = useState(
+    typeof escolhida === "number" ? String(escolhida) : "",
+  );
+  const [salvando, setSalvando] = useState(false);
+
+  const salvar = async () => {
+    const limpo = texto.trim();
+    const n = limpo === "" ? null : lerNumero(limpo);
+    if (limpo !== "" && (n === null || !Number.isInteger(n) || n < 1)) {
+      toast.error("Digite quantas sessões por semana, por exemplo 5.");
+      return;
+    }
+    setSalvando(true);
+    try {
+      await salvarPrefs({
+        userId,
+        prefs: comMetaSemanal(perfil.prefs, n),
+        cliente,
+      });
+      toast.success(
+        n === null
+          ? `Meta semanal: de volta ao padrão da fase (${padrao}).`
+          : `Meta semanal: ${n} ${n === 1 ? "sessão" : "sessões"}.`,
+      );
+    } catch {
+      toast.error("Não consegui salvar agora.");
+    } finally {
+      setSalvando(false);
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Meta semanal</CardTitle>
+        <CardDescription>
+          Quantas sessões (força + cardio) contam como semana cumprida na aba
+          Treino. Vazio = o padrão da fase ({padrao}).
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="flex items-end gap-2">
+        <div className="flex min-w-0 flex-1 flex-col gap-1">
+          <Label htmlFor="meta-semanal">Sessões por semana</Label>
+          <p className="text-muted-foreground text-xs">
+            usando {atual} por semana
+          </p>
+        </div>
+        <Input
+          id="meta-semanal"
+          type="text"
+          inputMode="numeric"
+          placeholder={String(padrao)}
+          value={texto}
+          onChange={(e) => setTexto(e.target.value)}
+          className="alvo numero h-12 w-20"
+        />
+        <Button
+          variant="outline"
+          className="alvo h-12"
+          aria-label="Salvar meta semanal"
+          disabled={salvando}
+          onClick={() => void salvar()}
+        >
+          Salvar
+        </Button>
       </CardContent>
     </Card>
   );

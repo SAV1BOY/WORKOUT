@@ -1,9 +1,10 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import {
   entrarNoApp,
-  inserirNoMock,
   estadoDoMock,
   fixarData,
+  inserirNoMock,
+  irNaAba,
   lerDoMock,
   resetarMock,
   semRolagemHorizontal,
@@ -22,7 +23,7 @@ const PNG_16 = Buffer.from(
 async function abrirCorpo(page: Page, aba: "Peso" | "Medidas" | "Fotos" = "Peso") {
   await fixarData(page, QUARTA);
   await entrarNoApp(page);
-  await page.getByRole("link", { name: "Corpo" }).click();
+  await irNaAba(page, "Corpo");
   await expect(page.getByRole("heading", { name: "Corpo" })).toBeVisible();
   if (aba !== "Peso") await page.getByRole("tab", { name: aba }).click();
 }

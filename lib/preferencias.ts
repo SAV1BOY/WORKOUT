@@ -38,12 +38,16 @@ export function temaDoTema(valor: string | undefined): TemaPref {
 
 /* ----------------------------------------------------- liga/desliga */
 
-/** As preferências de sim/não da §3.9, todas ligadas por padrão. */
+/**
+ * As preferências de sim/não da §3.9, todas ligadas por padrão. `mostrar_raios`
+ * entrou com a camada visual v2 (SPEC §13.7).
+ */
 export const CHAVES_LIGADAS = [
   "descanso_som",
   "descanso_vibra",
   "cardio_voz",
   "manter_tela",
+  "mostrar_raios",
 ] as const;
 
 export type ChaveLigada = (typeof CHAVES_LIGADAS)[number];

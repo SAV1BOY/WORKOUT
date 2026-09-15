@@ -123,6 +123,30 @@ if (equipamentos) {
   console.log(`  ${equipamentos.itens.length} itens de equipamento com foto`);
 }
 
+/*
+ * `assets/videos` é opcional (SPEC §13.1): nenhum vídeo vem no kit. Se a pasta
+ * existir, todo arquivo dela tem de ser um .mp4 de um exercício que existe —
+ * um nome errado só apareceria como "sem vídeo", em silêncio.
+ */
+{
+  const pasta = join(raiz, "assets", "videos");
+  if (existsSync(pasta)) {
+    const ids = new Set((exercicios ?? []).map((e) => e.id));
+    const arquivos = readdirSync(pasta).filter((f) => !f.startsWith("."));
+    for (const arquivo of arquivos) {
+      if (!arquivo.toLowerCase().endsWith(".mp4")) {
+        erros.push(`assets/videos/${arquivo}: só .mp4 (SPEC §13.1)`);
+        continue;
+      }
+      const id = arquivo.slice(0, -4);
+      if (exercicios && !ids.has(id)) {
+        erros.push(`assets/videos/${arquivo}: "${id}" não existe em exercicios.json`);
+      }
+    }
+    console.log(`  ${arquivos.length} vídeo(s) opcional(is) em assets/videos`);
+  }
+}
+
 // assets fixos que o app usa direto (sprite do mapa muscular)
 for (const arquivo of [
   "assets/mapa-muscular/corpo-sprite.svg",

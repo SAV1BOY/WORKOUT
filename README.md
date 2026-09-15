@@ -61,7 +61,7 @@ kit-app-treino/
 
 1. `npm run dev` → abra http://localhost:3000.
 2. Crie a sua conta na tela de login com **o e-mail permitido** e uma senha. Qualquer outro e-mail tem que ser recusado.
-3. A tela Hoje deve mostrar o treino do dia (segunda = Treino A). Faça um treino de teste registrando 2 ou 3 séries e conclua; abra Progresso e Histórico e veja se apareceu. Depois apague a sessão de teste no Histórico (ou mantenha, se foi treino de verdade).
+3. A aba Treino deve mostrar o treino do dia (segunda = Treino A). Faça um treino de teste registrando 2 ou 3 séries e conclua; abra Relatório e veja se apareceu. Depois apague a sessão de teste no Histórico (ou mantenha, se foi treino de verdade).
 
 ## Passo 5 — Publicar na Vercel e instalar no celular
 

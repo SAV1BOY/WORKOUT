@@ -56,7 +56,10 @@ const GRANDES = [
 const SEMANAS = 12;
 const SEMANAS_DE_ADERENCIA = 4;
 
-/** `/progresso` (SPEC §3.7): os cards, os gráficos e a lista de recordes. */
+/**
+ * `/relatorio` (SPEC §3.7 e §13.5): os cards, os gráficos e a lista de
+ * recordes. O endereço antigo `/progresso` redireciona para cá.
+ */
 export function TelaProgresso() {
   const hoje = useHoje();
   const janela = hoje ? semanasAte(hoje, SEMANAS)[0] ?? null : null;
@@ -378,7 +381,7 @@ function Tela({ children }: { children: React.ReactNode }) {
     <section className="flex flex-col gap-4">
       <header className="flex flex-col gap-2">
         <div className="flex flex-col gap-0.5">
-          <h1 className="text-2xl font-semibold tracking-tight">Progresso</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Relatório</h1>
           <p className="text-muted-foreground text-sm text-balance">
             O que já foi feito e para onde a carga está indo.
           </p>

@@ -25,12 +25,16 @@ import type {
 /** Quantas sessões de força a tela Hoje e o calendário precisam ver. */
 export const SESSOES_RECENTES = 60;
 
+/** Quantas sessões de cardio as sequências da aba Treino precisam ver. */
+export const CARDIOS_RECENTES = 120;
+
 export const chaves = {
   perfil: () => ["perfil"] as const,
   overrides: (de: string, ate: string) => ["overrides", de, ate] as const,
   sessoes: () => ["sessoes"] as const,
   sessoesAbertas: () => ["sessoes-abertas"] as const,
   cardio: (de: string, ate: string) => ["cardio", de, ate] as const,
+  cardioDesde: (de: string) => ["cardio-desde", de] as const,
   peso: () => ["peso"] as const,
   soltas: (data: string) => ["soltas", data] as const,
   soltasNoPeriodo: (de: string, ate: string) => ["soltas-periodo", de, ate] as const,
@@ -154,6 +158,29 @@ export function useCardio(
           .gte("data", de ?? "")
           .lte("data", ate ?? "")
           .order("data", { ascending: false }),
+        "as sessões de cardio",
+      ),
+  });
+}
+
+/**
+ * As sessões de cardio desde uma data (SPEC §13.3): a sequência de semanas com
+ * a meta cumprida precisa de mais do que a semana em curso.
+ */
+export function useCardioDesde(
+  de: string | null,
+): UseQueryResult<LinhaSessaoCardio[]> {
+  return useQuery({
+    queryKey: chaves.cardioDesde(de ?? ""),
+    enabled: de !== null,
+    queryFn: () =>
+      lerLista<LinhaSessaoCardio>(
+        clienteNavegador()
+          .from("cardio_sessions")
+          .select("*")
+          .gte("data", de ?? "")
+          .order("data", { ascending: false })
+          .limit(CARDIOS_RECENTES),
         "as sessões de cardio",
       ),
   });

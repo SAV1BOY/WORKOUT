@@ -13,6 +13,7 @@ import {
   acharExercicio,
   acharTreino,
   equipamentoDisponivel,
+  exercicioPorId,
   exercicios,
   textoDoMotor,
 } from "@/lib/dados";
@@ -618,6 +619,37 @@ export function substituirExercicio(
   });
 }
 
+/**
+ * As substituições escolhidas antes de começar (SPEC §13.3) aplicadas de uma
+ * vez à sessão recém-montada — o mesmo caminho da troca dentro da sessão
+ * (§3.2), bloco a bloco.
+ */
+export function comSubstituicoes(
+  sessao: SessaoLocal,
+  substituicoes: Record<string, string>,
+  dados: {
+    estados?: Record<string, EstadoExercicio | null>;
+    anteriores?: Record<string, (number | null)[]>;
+    recordes?: Record<string, RecordeAntes>;
+    estadoConhecido?: boolean;
+    novoId?: () => string;
+  } = {},
+): SessaoLocal {
+  let atual = sessao;
+  for (const bloco of sessao.blocos) {
+    const novo = substituicoes[bloco.originalId];
+    if (!novo || novo === bloco.originalId) continue;
+    if (!exercicioPorId.has(novo)) continue;
+    atual = substituirExercicio(atual, bloco.ordem, novo, dados.estados?.[novo] ?? null, {
+      anteriores: dados.anteriores?.[novo] ?? null,
+      recorde: dados.recordes?.[novo],
+      estadoConhecido: dados.estadoConhecido,
+      novoId: dados.novoId,
+    });
+  }
+  return atual;
+}
+
 /** O descanso em texto quando o programa não traz um (troca de exercício). */
 export function textoDoDescanso(segundos: number): string {
   if (segundos < 120) return `${segundos} s`;
@@ -713,6 +745,19 @@ export function progressoDaSessao(sessao: SessaoLocal): ProgressoSessao {
     }
   }
   return { feitas, total, texto: `${feitas}/${total} séries` };
+}
+
+/**
+ * O "próximo: …" do rodapé da sessão (SPEC §13.3): o exercício que vem depois
+ * do que está em andamento — o segundo bloco com série de trabalho por fazer.
+ * `null` quando o treino está no último bloco (ou acabou).
+ */
+export function proximoExercicio(sessao: SessaoLocal): string | null {
+  const pendentes = sessao.blocos.filter((bloco) =>
+    bloco.series.some((s) => s.tipo === "trabalho" && !s.concluida),
+  );
+  const proximo = pendentes[1];
+  return proximo ? acharExercicio(proximo.exercicioId).nome : null;
 }
 
 /** "7,5 kg na barra" / "peso do corpo" — o rótulo certo do implemento (§4). */

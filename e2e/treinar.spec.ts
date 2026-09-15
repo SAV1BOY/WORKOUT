@@ -6,9 +6,11 @@ import { expect, test, type Page } from "@playwright/test";
 import {
   atualizarNoMock,
   entrarNoApp,
+  esperarAbaTreino,
   esperarServiceWorker,
   fixarData,
   inserirNoMock,
+  irNaAba,
   lerDoMock,
   resetarMock,
   semRolagemHorizontal,
@@ -109,7 +111,7 @@ test.describe("começar o treino (SPEC §3.2)", () => {
     await comecarTreinoA(page);
     const url = page.url();
 
-    await page.getByRole("link", { name: "Treinar" }).click();
+    await page.goto("/treinar");
     await expect(page).toHaveURL(url);
   });
 });
@@ -250,7 +252,7 @@ test.describe("concluir e o que o motor decide (SPEC §6.2, §6.6, §10.3 e §10
     await resumo.getByRole("radio", { name: "4 — bom" }).click();
     await resumo.getByRole("button", { name: "Salvar e voltar" }).click();
 
-    await expect(page.getByRole("heading", { name: "Hoje", level: 1 })).toBeVisible();
+    await esperarAbaTreino(page);
 
     /*
      * O banco recebeu a decisão inteira (§6.6 e §8). A fila grava na ordem —
@@ -324,7 +326,7 @@ test.describe("concluir e o que o motor decide (SPEC §6.2, §6.6, §10.3 e §10
     await expect(linha).toContainText("repetiu 7,5 kg na barra");
 
     await page.getByRole("dialog").getByRole("button", { name: "Salvar e voltar" }).click();
-    await expect(page.getByRole("heading", { name: "Hoje", level: 1 })).toBeVisible();
+    await esperarAbaTreino(page);
 
     await expect
       .poll(
@@ -351,7 +353,7 @@ test.describe("concluir e o que o motor decide (SPEC §6.2, §6.6, §10.3 e §10
     // o resumo do abandono não pode dizer "Treino concluído"
     await expect(page.getByRole("dialog")).toContainText("Treino abandonado");
     await page.getByRole("dialog").getByRole("button", { name: "Salvar e voltar" }).click();
-    await expect(page.getByRole("heading", { name: "Hoje", level: 1 })).toBeVisible();
+    await esperarAbaTreino(page);
 
     await expect
       .poll(async () => (await lerDoMock<LinhaSessao>(sessao, "sessions"))[0]?.status, {
@@ -526,7 +528,7 @@ test.describe("ajuda, montagem e substituição (SPEC §3.2, §6.5 e §7)", () =
         .filter({ hasText: "Agachamento frontal" }),
     ).toContainText("31,5 → 33,5 kg na barra");
     await resumo.getByRole("button", { name: "Salvar e voltar" }).click();
-    await expect(page.getByRole("heading", { name: "Hoje", level: 1 })).toBeVisible();
+    await esperarAbaTreino(page);
 
     await expect
       .poll(
@@ -717,8 +719,8 @@ test.describe("timer, tela acesa e voltar sem rede (SPEC §3.2, §8 e §10.3)", 
     await expect(timer).toHaveCount(0);
 
     // sair da sessão solta o Wake Lock
-    await page.getByRole("link", { name: "Hoje" }).click();
-    await expect(page.getByRole("heading", { name: "Hoje", level: 1 })).toBeVisible();
+    await irNaAba(page, "Treino");
+    await esperarAbaTreino(page);
     await expect
       .poll(async () => page.evaluate(() => (window as never as { __tela: string[] }).__tela))
       .toEqual(["pedido", "solto"]);

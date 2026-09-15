@@ -11,6 +11,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import {
   entrarNoApp,
+  esperarAbaTreino,
   fixarData,
   fixarRelogio,
   lerDoMock,
@@ -229,7 +230,7 @@ test.describe("a criação da sessão que falha uma vez (SPEC §8)", () => {
     await expect(resumo.getByText("Treino concluído")).toBeVisible();
     await resumo.getByRole("radio", { name: "4 — bom" }).click();
     await resumo.getByRole("button", { name: "Salvar e voltar" }).click();
-    await expect(page.getByRole("heading", { name: "Hoje", level: 1 })).toBeVisible();
+    await esperarAbaTreino(page);
 
     expect(derrubou).toBe(true);
 
@@ -292,7 +293,7 @@ test.describe("o Supabase cai no meio do treino e volta (SPEC §8 e §10.3)", ()
     await expect(resumo.getByText("Treino concluído")).toBeVisible();
     await resumo.getByRole("radio", { name: "3 — ok" }).click();
     await resumo.getByRole("button", { name: "Salvar e voltar" }).click();
-    await expect(page.getByRole("heading", { name: "Hoje", level: 1 })).toBeVisible();
+    await esperarAbaTreino(page);
 
     // nada subiu: o treino inteiro está só no aparelho
     expect(await lerDoMock(sessao, "sessions")).toHaveLength(0);

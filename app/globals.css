@@ -47,6 +47,12 @@
   --fonte-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
 
   --radius: 0.75rem;
+  /* camada visual v2 (SPEC §13.1): cards arredondados e sombra discreta */
+  --raio-cartao: 1.25rem;
+  --sombra-cartao: 0 1px 2px rgb(10 10 10 / 0.05), 0 6px 20px rgb(10 10 10 / 0.07);
+  --capa-de: rgb(10 10 10 / 0.15);
+  --capa-meio: rgb(10 10 10 / 0.62);
+  --capa-ate: rgb(10 10 10 / 0.93);
 
   --background: #fafafa;
   --foreground: #0a0a0a;
@@ -80,6 +86,12 @@
 
 /* Tema escuro de verdade: preto, não cinza. */
 .dark {
+  /* no escuro a sombra some: quem separa os cards é a borda (SPEC §13.1) */
+  --sombra-cartao: none;
+  --capa-de: rgb(10 10 10 / 0.25);
+  --capa-meio: rgb(10 10 10 / 0.7);
+  --capa-ate: rgb(10 10 10 / 0.96);
+
   --background: #0a0a0a;
   --foreground: #f5f5f4;
   --card: #141414;
@@ -138,6 +150,30 @@
   }
   .pt-segura {
     padding-top: env(safe-area-inset-top, 0px);
+  }
+
+  /* ---------------------------------------- camada visual v2 (SPEC §13.1) */
+
+  /* card arredondado de ~20 px, com sombra só no claro */
+  .cartao {
+    border-radius: var(--raio-cartao);
+    box-shadow: var(--sombra-cartao);
+  }
+  /* o véu escuro que deixa o texto legível sobre a foto de capa */
+  .capa-gradiente {
+    background-image: linear-gradient(
+      to top,
+      var(--capa-ate) 0%,
+      var(--capa-meio) 42%,
+      var(--capa-de) 100%
+    );
+  }
+  /* número grande, lido a um braço de distância */
+  .numero-grande {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.03em;
+    font-weight: 700;
+    line-height: 1;
   }
 }
 

@@ -349,8 +349,8 @@ test.describe("§3.7 — a conta bate com a mão", () => {
 
     await fixarData(page, SEXTA);
     await entrarNoApp(page);
-    await page.goto("/progresso");
-    await expect(page.getByRole("heading", { name: "Progresso" })).toBeVisible();
+    await page.goto("/relatorio");
+    await expect(page.getByRole("heading", { name: "Relatório" })).toBeVisible();
 
     const card = (rotulo: string) =>
       page.locator("div", { hasText: new RegExp(`^${rotulo}`) }).last();
@@ -465,7 +465,7 @@ test.describe("§3.6 — busca sem acento e filtros", () => {
 });
 
 test.describe("celular — as telas do marco 5 a 360 px", () => {
-  for (const rota of ["/exercicios", "/progresso", "/corpo"]) {
+  for (const rota of ["/exercicios", "/relatorio", "/corpo"]) {
     test(`${rota}: nada rola para o lado e todo alvo tem 44 px`, async ({ page }) => {
       await usuarioComPerfil();
       await fixarData(page, QUARTA);

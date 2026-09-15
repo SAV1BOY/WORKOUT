@@ -3,22 +3,16 @@
 import { CalendarClock, Footprints, Plus, TriangleAlert } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
-import { Previa } from "@/components/hoje/previa";
+import { BotaoLargo } from "@/components/ui/botao-largo";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { CardCapa } from "@/components/ui/card-capa";
+import { EXERCICIO_DA_SESSAO } from "@/lib/barra-fixa";
 import type { SessaoCardioDoDia } from "@/lib/calendario";
-import { cardio as dadosCardio } from "@/lib/dados";
+import { capaDoCardio, capaDoExercicio, capaDoTreino } from "@/lib/capas";
+import { acharExercicio, cardio as dadosCardio, exerciciosDoTreino } from "@/lib/dados";
+import { dificuldadeDaColecao } from "@/lib/dificuldade";
 import { formatarKm, formatarMinutos, formatarNumero } from "@/lib/formato";
-import { textoDoCardio, type ItemPrevia, type ResumoDoTreino } from "@/lib/hoje";
-
-/** Botão grande, uma mão, alvo bem acima de 44 px. */
-const GRANDE = "alvo h-14 w-full text-base font-semibold";
+import { descricaoDoCardio, detalheDoTreino, type ResumoDoTreino } from "@/lib/hoje";
 
 /* --------------------------------------------------------------- avisos */
 
@@ -50,7 +44,7 @@ export function BannerSessaoAberta({
     <div
       role="region"
       aria-label="Treino aberto"
-      className="border-primary/50 bg-primary/5 flex flex-col gap-2 rounded-xl border p-3"
+      className="border-primary/50 bg-primary/5 cartao flex flex-col gap-2 border p-3"
     >
       <p className="flex items-center gap-2 text-sm font-medium">
         <CalendarClock className="text-primary size-4 shrink-0" />
@@ -73,7 +67,7 @@ export function BannerSessaoAberta({
 /** SPEC §5.3: treinar num dia de cardio ou descanso é permitido. */
 export function TreinarMesmoAssim({ nomeDoTreino }: { nomeDoTreino: string }) {
   return (
-    <Button asChild variant="outline" className="alvo h-12 w-full">
+    <Button asChild variant="outline" className="alvo h-12 w-full rounded-xl">
       <Link href="/treinar">Treinar mesmo assim ({nomeDoTreino})</Link>
     </Button>
   );
@@ -81,31 +75,44 @@ export function TreinarMesmoAssim({ nomeDoTreino }: { nomeDoTreino: string }) {
 
 /* ------------------------------------------------------------ força */
 
+/** O card do treino do dia (SPEC §13.3), com capa na foto do 1º exercício. */
 export function CardForca({
   resumo,
-  itens,
-  carregandoPrevia,
   aviso,
+  mostrarRaios,
+  aberta,
 }: {
   resumo: ResumoDoTreino;
-  itens: ItemPrevia[];
-  carregandoPrevia: boolean;
   aviso: string | null;
+  mostrarRaios: boolean;
+  /** Sessão em andamento deste treino: o card vira "Continuar". */
+  aberta: { id: string; progresso: string } | null;
 }) {
+  const raios = dificuldadeDaColecao(
+    exerciciosDoTreino(resumo.id).map(({ exercicio }) => exercicio),
+  );
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-xl text-balance">{resumo.texto}</CardTitle>
-        <CardDescription>{resumo.foco}</CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-4">
-        {aviso ? <Aviso texto={aviso} /> : null}
-        <Button asChild className={GRANDE}>
-          <Link href="/treinar">Começar treino</Link>
-        </Button>
-        <Previa itens={itens} carregando={carregandoPrevia} />
-      </CardContent>
-    </Card>
+    <CardCapa
+      titulo={resumo.nome}
+      subtitulo={resumo.foco}
+      detalhe={detalheDoTreino(resumo.id)}
+      foto={capaDoTreino(resumo.id)}
+      raios={mostrarRaios ? raios : null}
+      etiqueta={aberta ? "em andamento" : "hoje"}
+    >
+      {aviso ? <Aviso texto={aviso} /> : null}
+      <BotaoLargo asChild>
+        <Link href={aberta ? `/treinar/${aberta.id}` : "/treinar"}>
+          {aberta ? "Continuar" : "Começar treino"}
+        </Link>
+      </BotaoLargo>
+      {aberta ? (
+        <p className="numero text-muted-foreground text-center text-xs">
+          {aberta.progresso}
+        </p>
+      ) : null}
+    </CardCapa>
   );
 }
 
@@ -140,6 +147,13 @@ function DetalheDaCorda({ sessao }: { sessao: SessaoCardioDoDia }) {
   );
 }
 
+/** "Corrida · semana 1" — o nome vem do tipo da sessão do dia. */
+function tituloDoCardio(sessao: SessaoCardioDoDia): string {
+  const nome =
+    sessao.tipo === "corrida" ? "Corrida" : sessao.tipo === "corda" ? "Corda" : "Caminhada";
+  return `${nome} · semana ${sessao.semana}`;
+}
+
 export function CardCardio({
   sessao,
   alternativaCorda,
@@ -155,14 +169,23 @@ export function CardCardio({
   const mostrada = comCorda && alternativaCorda ? alternativaCorda : sessao;
   /* SPEC §3.3: a rota é o tipo da sessão (corrida | corda | caminhada). */
   const href = `/cardio/${mostrada.tipo}?semana=${mostrada.semana}`;
+  const detalhe = [
+    descricaoDoCardio(mostrada),
+    mostrada.min !== null ? formatarMinutos(mostrada.min) : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-xl text-balance">{textoDoCardio(mostrada)}</CardTitle>
-        <CardDescription>{dadosCardio.ordem[0]}</CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-4">
+    <>
+      <CardCapa
+        titulo={tituloDoCardio(mostrada)}
+        subtitulo={dadosCardio.ordem[0]}
+        detalhe={detalhe}
+        foto={capaDoCardio(mostrada.tipo)}
+        icone={<Footprints aria-hidden="true" className="size-12" />}
+        etiqueta="hoje"
+      >
         {aviso ? <Aviso texto={aviso} /> : null}
         {mostrada.tipo === "corda" ? (
           <DetalheDaCorda sessao={mostrada} />
@@ -170,64 +193,68 @@ export function CardCardio({
           <DetalheDaCorrida sessao={mostrada} />
         )}
 
-        <Button asChild className={GRANDE}>
+        <BotaoLargo asChild>
           <Link href={href}>Começar</Link>
-        </Button>
+        </BotaoLargo>
 
         {alternativaCorda ? (
           <Button
             variant="outline"
-            className="alvo h-12 w-full"
+            className="alvo h-12 w-full rounded-xl"
             onClick={() => setComCorda((v) => !v)}
           >
             <Footprints className="size-4" />
             {comCorda ? "Voltar para a corrida" : "Fazer corda em vez de corrida"}
           </Button>
         ) : null}
+      </CardCapa>
 
-        <TreinarMesmoAssim nomeDoTreino={nomeDoProximoTreino} />
-      </CardContent>
-    </Card>
+      <TreinarMesmoAssim nomeDoTreino={nomeDoProximoTreino} />
+    </>
   );
 }
 
 /* ---------------------------------------------------------- descanso */
 
+/** O card do dia de descanso: reps soltas (§3.1) e a caminhada de domingo. */
 export function CardDescanso({
   nota,
   total,
   aoSomarUma,
   ocupado,
   nomeDoProximoTreino,
+  comCaminhada = false,
 }: {
   nota: string | null;
   total: number;
   aoSomarUma: () => void;
   ocupado: boolean;
   nomeDoProximoTreino: string;
+  /** Domingo: o programa pede caminhada leve (data/programa.json). */
+  comCaminhada?: boolean;
 }) {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-xl">Descanso</CardTitle>
-        <CardDescription className="text-balance">
-          {nota && nota.trim() !== "" ? nota : "Dia livre — o corpo cresce agora."}
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-4">
+    <>
+      <CardCapa
+        titulo="Descanso"
+        subtitulo={nota && nota.trim() !== "" ? nota : "Dia livre — o corpo cresce agora."}
+        foto={capaDoExercicio(acharExercicio(EXERCICIO_DA_SESSAO))}
+        altura="baixa"
+        etiqueta="hoje"
+      >
         <p className="text-muted-foreground text-xs text-balance">
           {dadosCardio.barra_fixa.grease_the_groove}
         </p>
 
-        <div className="border-border flex items-center justify-between gap-3 rounded-lg border p-3">
+        <div className="border-border cartao flex items-center justify-between gap-3 border p-3">
           <div className="flex flex-col">
             <span className="text-muted-foreground text-[11px] tracking-wide uppercase">
               Soltas de hoje
             </span>
-            <span className="numero text-3xl">{total}</span>
+            <span className="numero-grande text-3xl">{total}</span>
           </div>
           <Button
-            className="alvo h-14 px-6 text-base font-semibold"
+            className="alvo h-14 rounded-xl px-6 text-base font-semibold"
             onClick={aoSomarUma}
             disabled={ocupado}
             aria-label="Somar uma repetição solta de barra fixa"
@@ -237,8 +264,17 @@ export function CardDescanso({
           </Button>
         </div>
 
-        <TreinarMesmoAssim nomeDoTreino={nomeDoProximoTreino} />
-      </CardContent>
-    </Card>
+        {comCaminhada ? (
+          <Button asChild variant="outline" className="alvo h-12 w-full rounded-xl">
+            <Link href="/cardio/caminhada">
+              <Footprints className="size-4" />
+              Começar caminhada leve
+            </Link>
+          </Button>
+        ) : null}
+      </CardCapa>
+
+      <TreinarMesmoAssim nomeDoTreino={nomeDoProximoTreino} />
+    </>
   );
 }

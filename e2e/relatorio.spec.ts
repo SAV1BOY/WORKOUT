@@ -3,6 +3,7 @@ import {
   entrarNoApp,
   fixarData,
   inserirNoMock,
+  irNaAba,
   resetarMock,
   semRolagemHorizontal,
   usuarioComPerfil,
@@ -97,15 +98,15 @@ test.beforeEach(async () => {
   await resetarMock();
 });
 
-test.describe("Progresso (SPEC §3.7)", () => {
+test.describe("Relatório (SPEC §3.7 e §13.5)", () => {
   test("os cards contam treinos, aderência, volume e recordes", async ({ page }) => {
     const sessao = await usuarioComPerfil({ ultimo_treino: "B1" });
     await semearTreinos(sessao);
 
     await fixarData(page, QUARTA);
     await entrarNoApp(page);
-    await page.getByRole("link", { name: "Progresso" }).click();
-    await expect(page.getByRole("heading", { name: "Progresso" })).toBeVisible();
+    await irNaAba(page, "Relatório");
+    await expect(page.getByRole("heading", { name: "Relatório" })).toBeVisible();
 
     // 2 treinos na semana civil (14 e 16/09)
     const treinos = page.locator("div", { hasText: /^Treinos na semana/ }).last();
@@ -135,7 +136,7 @@ test.describe("Progresso (SPEC §3.7)", () => {
 
     await fixarData(page, QUARTA);
     await entrarNoApp(page);
-    await page.goto("/progresso");
+    await page.goto("/relatorio");
 
     // um gráfico por grande, mesmo com um ponto só
     await expect(page.getByLabel("Carga do Agachamento livre por sessão")).toBeVisible();
@@ -162,9 +163,9 @@ test.describe("Progresso (SPEC §3.7)", () => {
     await usuarioComPerfil();
     await fixarData(page, QUARTA);
     await entrarNoApp(page);
-    await page.goto("/progresso");
+    await page.goto("/relatorio");
 
-    await expect(page.getByRole("heading", { name: "Progresso" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Relatório" })).toBeVisible();
     await expect(
       page.getByText("O volume aparece depois do primeiro treino registrado."),
     ).toBeVisible();
@@ -177,7 +178,7 @@ test.describe("Progresso (SPEC §3.7)", () => {
     await semearTreinos(sessao);
     await fixarData(page, QUARTA);
     await entrarNoApp(page);
-    await page.goto("/progresso");
+    await page.goto("/relatorio");
 
     await page.getByRole("link", { name: "Agachamento livre" }).first().click();
     await expect(

@@ -5,18 +5,15 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Erro, EsqueletoCard } from "@/components/carregando";
-import { Previa } from "@/components/hoje/previa";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { ListaDoDia } from "@/components/treino/lista";
+import { BotaoLargo } from "@/components/ui/botao-largo";
+import { CardCapa } from "@/components/ui/card-capa";
 import { treinoDeHoje } from "@/lib/calendario";
+import { capaDoTreino } from "@/lib/capas";
 import { acharFase, exerciciosDoTreino } from "@/lib/dados";
+import { dificuldadeDaColecao } from "@/lib/dificuldade";
 import {
+  detalheDoTreino,
   estadosPorExercicio,
   previaDoTreino,
   resumoDoTreino,
@@ -30,7 +27,8 @@ import {
   useSeriesAnteriores,
   useSessoesAbertas,
 } from "@/lib/queries/dados";
-import { opcoesDeMontagem } from "@/lib/preferencias";
+import { ligado, opcoesDeMontagem } from "@/lib/preferencias";
+import { lerTrocasDoAparelho, limparTrocasDoAparelho } from "@/lib/trocas";
 import { criarSessao, sessaoLocalMaisRecente } from "@/lib/queries/sessao";
 import { useHoje } from "@/lib/relogio";
 import { intervaloDaSemana } from "@/lib/semana";
@@ -67,14 +65,32 @@ export function TelaTreinar({ userId }: { userId: string }) {
     return [doDia, ...daFase.filter((t) => t !== doDia)];
   }, [perfil, dia]);
 
+  /*
+   * As trocas escolhidas na aba Treino (SPEC §13.3) valem para o treino de
+   * hoje: entram na sessão que este botão cria, e os ids dos substitutos
+   * entram nas leituras (estado, séries anteriores, recordes).
+   */
+  const treinoDoDia = dia?.tipo === "forca" ? dia.treinoId : null;
+  const [trocas, setTrocas] = useState<Record<string, string>>({});
+  useEffect(() => {
+    if (!hoje || !treinoDoDia) {
+      setTrocas({});
+      return;
+    }
+    setTrocas(lerTrocasDoAparelho(hoje, treinoDoDia));
+  }, [hoje, treinoDoDia]);
+
   const ids = useMemo(
     () =>
       Array.from(
-        new Set(
-          treinos.flatMap((t) => exerciciosDoTreino(t).map(({ exercicio }) => exercicio.id)),
-        ),
+        new Set([
+          ...treinos.flatMap((t) =>
+            exerciciosDoTreino(t).map(({ exercicio }) => exercicio.id),
+          ),
+          ...Object.values(trocas),
+        ]),
       ),
-    [treinos],
+    [treinos, trocas],
   );
 
   const estadosQ = useEstados(ids);
@@ -124,7 +140,10 @@ export function TelaTreinar({ userId }: { userId: string }) {
         estadoConhecido: estadosQ.data !== undefined && recordesQ.data !== undefined,
         // as barras já pesadas na balança mudam a escala (SPEC §3.9)
         opcoesMontagem: opcoesDeMontagem(perfil.prefs),
+        // o ⇄ da aba Treino escolheu antes de começar (SPEC §13.3)
+        substituicoes: treinoId === treinoDoDia ? trocas : {},
       });
+      if (treinoId === treinoDoDia) limparTrocasDoAparelho();
       router.push(`/treinar/${sessao.id}`);
     } catch {
       setCriando(null);
@@ -161,37 +180,42 @@ export function TelaTreinar({ userId }: { userId: string }) {
       {treinos.map((treinoId, i) => {
         const resumo = resumoDoTreino(treinoId);
         const doDia = i === 0 && dia?.tipo === "forca" && dia.treinoId === treinoId;
+        const raios = dificuldadeDaColecao(
+          exerciciosDoTreino(treinoId).map(({ exercicio }) => exercicio),
+        );
         return (
-          <Card key={treinoId} className={doDia ? "border-primary/50" : undefined}>
-            <CardHeader>
-              <CardTitle className="text-lg text-balance">{resumo.texto}</CardTitle>
-              <CardDescription>
-                {doDia ? "o treino de hoje · " : ""}
-                {resumo.foco}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-4">
-              <Button
-                className="alvo h-14 w-full text-base font-semibold"
-                variant={doDia ? "default" : "outline"}
-                disabled={criando !== null}
-                onClick={() => void comecar(treinoId)}
-              >
-                {criando === treinoId ? "Começando…" : `Começar ${resumo.nome}`}
-              </Button>
-              {doDia ? (
-                <Previa
-                  itens={previaDoTreino({
-                    treinoId,
-                    estados,
-                    eventos,
-                    montagem: opcoesDeMontagem(perfil.prefs),
-                  })}
-                  carregando={estadosQ.isPending && ids.length > 0}
-                />
-              ) : null}
-            </CardContent>
-          </Card>
+          <CardCapa
+            key={treinoId}
+            titulo={resumo.nome}
+            subtitulo={resumo.foco}
+            detalhe={detalheDoTreino(treinoId)}
+            foto={capaDoTreino(treinoId)}
+            raios={ligado(perfil.prefs, "mostrar_raios") ? raios : null}
+            etiqueta={doDia ? "hoje" : null}
+            altura={doDia ? "media" : "baixa"}
+            className={doDia ? "border-primary/50" : undefined}
+          >
+            <BotaoLargo
+              variant={doDia ? "default" : "outline"}
+              disabled={criando !== null}
+              onClick={() => void comecar(treinoId)}
+            >
+              {criando === treinoId ? "Começando…" : `Começar ${resumo.nome}`}
+            </BotaoLargo>
+            {doDia ? (
+              <ListaDoDia
+                itens={previaDoTreino({
+                  treinoId,
+                  estados,
+                  eventos,
+                  montagem: opcoesDeMontagem(perfil.prefs),
+                  trocas,
+                })}
+                carregando={estadosQ.isPending && ids.length > 0}
+                mostrarRaios={ligado(perfil.prefs, "mostrar_raios")}
+              />
+            ) : null}
+          </CardCapa>
         );
       })}
     </Tela>

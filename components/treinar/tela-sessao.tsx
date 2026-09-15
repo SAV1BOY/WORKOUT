@@ -47,6 +47,7 @@ import {
   idsQueComparamComAnterior,
   marcarSerie,
   progressoDaSessao,
+  proximoExercicio,
   reconstruirSessao,
   seriesAnterioresPorExercicio,
   substituirExercicio,
@@ -59,7 +60,14 @@ import { opcoesDeMontagem } from "@/lib/preferencias";
 
 type Fim = "concluida" | "abandonada";
 
-export function TelaSessao({ sessaoId }: { sessaoId: string }) {
+export function TelaSessao({
+  sessaoId,
+  videos = [],
+}: {
+  sessaoId: string;
+  /** Ids com `public/videos/<id>.mp4` — lidos no servidor (SPEC §13.1). */
+  videos?: string[];
+}) {
   const router = useRouter();
   const cliente = useQueryClient();
   const [sessao, setSessao] = useState<SessaoLocal | null | undefined>(undefined);
@@ -312,6 +320,7 @@ export function TelaSessao({ sessaoId }: { sessaoId: string }) {
           <BlocoExercicio
             key={bloco.ordem}
             bloco={bloco}
+            temVideo={videos.includes(bloco.exercicioId)}
             historico={evento ? textoDoEvento(evento) : null}
             opcoes={sessao.opcoesMontagem}
             aoMudarSerie={(serieId, campos: Partial<SerieLocal>) =>
@@ -356,6 +365,7 @@ export function TelaSessao({ sessaoId }: { sessaoId: string }) {
       <Rodape
         decorridoS={decorridoS}
         seriesTexto={progresso.texto}
+        proximo={proximoExercicio(sessao)}
         aoConcluir={() => setFim("concluida")}
         aoAbandonar={() => setFim("abandonada")}
       />
@@ -380,11 +390,14 @@ export function TelaSessao({ sessaoId }: { sessaoId: string }) {
 function Rodape({
   decorridoS,
   seriesTexto,
+  proximo,
   aoConcluir,
   aoAbandonar,
 }: {
   decorridoS: number;
   seriesTexto: string;
+  /** "próximo: Remada curvada" (SPEC §13.3). */
+  proximo: string | null;
   aoConcluir: () => void;
   aoAbandonar: () => void;
 }) {
@@ -400,6 +413,12 @@ function Rodape({
       {/* o rodapé é fixo: este espaço impede que ele cubra o último bloco */}
       <div aria-hidden="true" className="h-28" />
       <div className="bg-card/95 border-border pb-segura fixed inset-x-0 bottom-14 z-30 border-t backdrop-blur">
+        {/* SPEC §13.3: o que vem depois, em linha inteira para caber o nome */}
+        {proximo ? (
+          <p className="text-muted-foreground mx-auto w-full max-w-lg truncate px-3 pt-1.5 text-xs">
+            próximo: {proximo}
+          </p>
+        ) : null}
         <div className="mx-auto flex w-full max-w-lg items-center gap-2 px-3 py-2">
           <div className="flex min-w-0 flex-1 flex-col">
             <span className="numero text-lg leading-none">

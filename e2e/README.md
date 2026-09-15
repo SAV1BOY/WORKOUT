@@ -89,25 +89,31 @@ curl -s -XPOST localhost:54321/__mock/seed -H 'content-type: application/json' \
 | arquivo | o que é |
 |---|---|
 | `playwright.config.ts` | projeto único "celular", `webServer` do mock + do app |
-| `fixtures.ts` | `resetarMock`, `semear`, `estadoDoMock`, `requisicoesDoMock`, `sessaoNoMock`, `usuarioComPerfil`, `inserirNoMock`, `atualizarNoMock`, `lerDoMock`, `login`, `entrarNoApp`, `fixarRelogio`, `fixarData`, `esperarServiceWorker`, `semRolagemHorizontal` |
-| `login.spec.ts` | e-mail de fora recusado, criar conta → Hoje, senha errada, sair, entrar de novo |
-| `shell.spec.ts` | navegação inferior (5 itens, alvos ≥ 44 px), cada rota abre, nada rola para o lado, manifest válido |
+| `fixtures.ts` | `resetarMock`, `semear`, `estadoDoMock`, `requisicoesDoMock`, `sessaoNoMock`, `usuarioComPerfil`, `inserirNoMock`, `atualizarNoMock`, `lerDoMock`, `login`, `entrarNoApp`, `esperarAbaTreino`, `irNaAba`, `fixarRelogio`, `fixarData`, `esperarServiceWorker`, `semRolagemHorizontal` |
+| `login.spec.ts` | e-mail de fora recusado, criar conta → aba Treino, senha errada, sair, entrar de novo |
+| `shell.spec.ts` | navegação inferior (Treino · Explorar · Relatório · Corpo · Mais, alvos ≥ 44 px), cada rota abre, nada rola para o lado, manifest válido |
 | `mock.spec.ts` | o contrato do próprio mock (PostgREST, upsert, `v_records`, storage, RLS) |
-| `hoje.spec.ts` | a tela Hoje: Treino A com as cargas iniciais, Treino B pela alternância, a carga que veio do estado com o evento que a explica, corrida da semana 1 + corda, descanso com o "+1", faixa de status, banner do treino aberto e o cache persistido |
+| `treino.spec.ts` | a aba Treino (`/`): Treino A com as cargas iniciais, Treino B pela alternância, a carga que veio do estado com o evento que a explica, corrida da semana 1 + corda, descanso com o "+1", faixa de status, banner do treino aberto e o cache persistido |
 | `calendario.spec.ts` | a grade da semana (A/B alternando, marcações, o que falta), navegação entre semanas, troca de tipo de um dia futuro e a regra da semana curta |
 | `treinar.spec.ts` | a sessão de força série a série, o timer de descanso, offline, recarregar no meio, concluir com o motor decidindo |
 | `cardio.spec.ts` | o timer de intervalos da corrida (`page.clock.runFor`), a corda, o cronômetro da caminhada, o registro em `cardio_sessions`, o avanço da semana do plano (§5.5) e a tela `/barra-fixa` (semana destacada, "+1", sessão `workout_id = 'fixa'`) |
 | `catalogo.spec.ts` | o catálogo dos 81 (busca sem acento, filtros, "no meu programa" batendo com `programa.json`), a ficha com figura/fotos/mapa/passos e o histórico com a linha do tempo do motor |
-| `progresso.spec.ts` | os cards (treinos, aderência, volume, recordes), os gráficos dos grandes, volume, barra fixa e corrida, a tabela da `v_records` e a tela vazia |
+| `relatorio.spec.ts` | os cards (treinos, aderência, volume, recordes), os gráficos dos grandes, volume, barra fixa e corrida, a tabela da `v_records` e a tela vazia |
 | `corpo.spec.ts` | peso (vírgula, upsert por data, média móvel), meta em `prefs`, as 8 medidas, a foto subindo para o bucket (URL assinada depois do reload) e a comparação com slider |
+| `treino-v2.spec.ts` | a camada visual v2 (SPEC §13.2–§13.4): faixa da semana com ✓, meta semanal e sequência, os cards de segunda/terça/quinta/domingo, a lista com miniatura e carga, o "Continuar" da sessão aberta, o ⇄ que vale para a sessão que começa, `/progresso` → `/relatorio`, os raios e o vídeo opcional |
 | `auditoria.spec.ts` | o que os outros não provavam: nenhuma requisição ao Supabase com e-mail de fora, recarregar mantém a sessão, toda rota protegida volta ao login, e o mock recusando coluna/operador/filtro composto inventados |
+
+A camada visual v2 (SPEC §13.3) tirou o título "Hoje" da tela `/`: quem espera
+a tela usa `esperarAbaTreino(page)` (a região "Treino"), e quem troca de aba usa
+`irNaAba(page, "Corpo")` — a lista do dia tem links cujo texto contém "peso do
+corpo", e um `getByRole("link", { name: "Corpo" })` solto casaria com eles.
 
 `fixarRelogio(page)` congela o relógio **do navegador** em 14/09/2026 (a
 segunda-feira em que o programa começa, SPEC §5). O servidor continua com a
 data real — para testar um dia específico no servidor, semeie as linhas com a
 data que você quer. **Quem decide o dia é o navegador** (`lib/relogio.ts`), então
 `fixarRelogio(page, "2026-09-17T08:00:00-03:00")` antes de entrar é o que muda a
-tela Hoje de força para descanso.
+aba Treino de força para descanso.
 
 `usuarioComPerfil({ ultimo_treino: "A1" })` cria a conta permitida direto no mock
 e deixa o perfil como `garantirPerfil` deixaria (nome, altura, `data_inicio`
