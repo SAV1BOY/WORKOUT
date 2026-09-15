@@ -6,10 +6,14 @@
 import { describe, expect, it } from "vitest";
 import { WORKOUT_BARRA_FIXA, itemDaSessao } from "@/lib/barra-fixa";
 import { acharExercicio } from "@/lib/dados";
-import { estadoInicial, type EstadoExercicio } from "@/lib/progressao";
+import { estadoInicial, prescricaoPadrao, type EstadoExercicio } from "@/lib/progressao";
 import {
+  MAX_SERIES_DA_SESSAO,
+  MIN_SERIES_DA_SESSAO,
+  ajustarPrescricaoDaSessao,
   atualizarSerie,
   comSubstituicoes,
+  contadoresDaSessao,
   avaliarSessao,
   concluirSessao,
   escritaDaSerie,
@@ -1142,5 +1146,125 @@ describe("proximoExercicio (SPEC §13.3)", () => {
       }
     }
     expect(proximoExercicio(sessao)).toBeNull();
+  });
+});
+
+describe("prescrição só de hoje (SPEC §14.2)", () => {
+  it("o stepper de repetições muda só as séries que faltam", () => {
+    let s = sessaoA();
+    const b = bloco(s, "agachamento-livre");
+    const primeira = b.series.find((x) => x.tipo === "trabalho")!;
+    s = marcarSerie(s, b.ordem, primeira.id, true, "2026-09-14T09:10:00.000Z");
+
+    s = ajustarPrescricaoDaSessao(s, b.ordem, { alvo: 8 });
+    const depois = bloco(s, "agachamento-livre").series.filter(
+      (x) => x.tipo === "trabalho",
+    );
+    // a concluída fica como foi registrada
+    expect(depois[0]?.reps).toBe(5);
+    expect(depois[1]?.reps).toBe(8);
+    expect(depois[2]?.reps).toBe(8);
+    // o alvo do motor não se mexe (§14.2: nunca o exercise_state)
+    expect(bloco(s, "agachamento-livre").alvo.alvo_max).toBe(5);
+  });
+
+  it("o stepper de séries acrescenta e tira, sem apagar registro", () => {
+    let s = sessaoA();
+    const b = bloco(s, "agachamento-livre");
+    s = ajustarPrescricaoDaSessao(s, b.ordem, { series: 5 }, { novoId: contador("n") });
+    let trabalho = bloco(s, "agachamento-livre").series.filter(
+      (x) => x.tipo === "trabalho",
+    );
+    expect(trabalho).toHaveLength(5);
+    expect(trabalho.map((x) => x.setIndex)).toEqual([1, 2, 3, 4, 5]);
+    expect(bloco(s, "agachamento-livre").prescricao.series).toBe(5);
+    // o aquecimento continua intacto
+    expect(
+      bloco(s, "agachamento-livre").series.filter((x) => x.tipo === "aquecimento"),
+    ).toHaveLength(2);
+
+    s = ajustarPrescricaoDaSessao(s, b.ordem, { series: 1 });
+    trabalho = bloco(s, "agachamento-livre").series.filter((x) => x.tipo === "trabalho");
+    expect(trabalho).toHaveLength(1);
+  });
+
+  it("uma série concluída segura o corte", () => {
+    let s = sessaoA();
+    const b = bloco(s, "agachamento-livre");
+    for (const serie of b.series) {
+      if (serie.tipo === "trabalho") {
+        s = marcarSerie(s, b.ordem, serie.id, true, "2026-09-14T09:10:00.000Z");
+      }
+    }
+    s = ajustarPrescricaoDaSessao(s, b.ordem, { series: 1 });
+    expect(
+      bloco(s, "agachamento-livre").series.filter((x) => x.tipo === "trabalho"),
+    ).toHaveLength(3);
+  });
+
+  it("em tempo e passos o stepper mexe no campo certo", () => {
+    let s = montarSessaoAvulsa({
+      id: "livre-1",
+      userId: "u1",
+      data: "2026-09-14",
+      workoutId: "livre",
+      fase: "fase1",
+      novoId: contador("t"),
+      itens: [
+        {
+          exercicioId: "prancha-lateral",
+          prescricao: prescricaoPadrao(acharExercicio("prancha-lateral")),
+          descansoS: 60,
+          descansoTexto: "60 s",
+        },
+      ],
+    });
+    s = ajustarPrescricaoDaSessao(s, 1, { alvo: 50 });
+    const serie = s.blocos[0]!.series[0]!;
+    expect(serie.tempoS).toBe(50);
+    // unilateral: os dois lados (SPEC §6.3 usa o menor)
+    expect(serie.tempoSLado2).toBe(50);
+    expect(serie.reps).toBeNull();
+  });
+
+  it("os limites: no mínimo 1 série, no máximo 10", () => {
+    const s = sessaoA();
+    const b = bloco(s, "agachamento-livre");
+    expect(
+      ajustarPrescricaoDaSessao(s, b.ordem, { series: 0 }).blocos[0]!.series.filter(
+        (x) => x.tipo === "trabalho",
+      ),
+    ).toHaveLength(MIN_SERIES_DA_SESSAO);
+    expect(
+      ajustarPrescricaoDaSessao(s, b.ordem, { series: 99 }).blocos[0]!.series.filter(
+        (x) => x.tipo === "trabalho",
+      ),
+    ).toHaveLength(MAX_SERIES_DA_SESSAO);
+  });
+});
+
+describe("contadores da conclusão (SPEC §14.1.5)", () => {
+  it("conta exercícios, séries e volume das séries de trabalho concluídas", () => {
+    let s = sessaoA();
+    s = fazerTudoNoTopo(s, "agachamento-livre");
+    const contas = contadoresDaSessao(s);
+    expect(contas.exercicios).toBe(1);
+    expect(contas.series).toBe(3);
+    // 3 × 5 reps × 7,5 kg
+    expect(contas.volumeKg).toBe(112.5);
+  });
+
+  it("sessão em branco não conta nada; aquecimento não soma", () => {
+    const s = sessaoA();
+    expect(contadoresDaSessao(s)).toEqual({ exercicios: 0, series: 0, volumeKg: 0 });
+  });
+
+  it("peso do corpo não soma volume, mas conta como série", () => {
+    let s = sessaoA();
+    s = fazerTudoNoTopo(s, "elevacao-de-pernas-na-barra-fixa");
+    const contas = contadoresDaSessao(s);
+    expect(contas.exercicios).toBe(1);
+    expect(contas.series).toBe(3);
+    expect(contas.volumeKg).toBe(0);
   });
 });

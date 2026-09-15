@@ -268,3 +268,36 @@ export async function entrarNoApp(
   await page.getByRole("button", { name: "Entrar" }).click();
   await esperarAbaTreino(page);
 }
+
+/**
+ * O player (SPEC §14.1) abre na tela de preparação: este ajudante passa dela
+ * para o primeiro exercício quando ela está na frente. Com o relógio fixo
+ * (`fixarData`) a contagem não anda sozinha, então o toque é obrigatório.
+ */
+export async function comecarNoPlayer(page: Page): Promise<void> {
+  const comecar = page.getByRole("button", { name: "Começar agora" });
+  const concluir = page.getByRole("button", { name: "Concluir a série" });
+  // espera o player desenhar: a preparação ou já o primeiro exercício
+  await comecar.or(concluir).first().waitFor();
+  if (await comecar.isVisible().catch(() => false)) await comecar.click();
+  await concluir.waitFor();
+}
+
+/**
+ * A visão geral da sessão — a folha de rolagem com todas as séries, que o
+ * player abre pelo ícone de lista (SPEC §14.1). É por ela que se corrige
+ * qualquer série e se encerra o treino.
+ */
+export async function abrirVisaoGeral(page: Page): Promise<void> {
+  const lista = page.getByRole("button", { name: "Visão geral do treino" });
+  const comecar = page.getByRole("button", { name: "Começar agora" });
+  // espera o player desenhar (preparação ou exercício) antes de decidir
+  await lista.or(comecar).first().waitFor();
+  if (await comecar.isVisible().catch(() => false)) {
+    await comecar.click();
+    // só o passo do exercício tem o ícone de lista: espera ele desenhar
+    await page.getByRole("button", { name: "Concluir a série" }).waitFor();
+  }
+  await lista.click();
+  await page.getByRole("heading", { level: 1 }).waitFor();
+}

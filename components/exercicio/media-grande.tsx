@@ -15,10 +15,16 @@ import { cn } from "@/lib/utils";
 export function MediaGrande({
   exercicioId,
   temVideo = false,
+  semFoto = false,
   className,
 }: {
   exercicioId: string;
   temVideo?: boolean;
+  /**
+   * Não cair na foto quando não há figura: na página inteira da ficha as duas
+   * fotos já aparecem logo abaixo, e repetir a primeira aqui seria ruído.
+   */
+  semFoto?: boolean;
   className?: string;
 }) {
   const exercicio = acharExercicio(exercicioId);
@@ -64,7 +70,7 @@ export function MediaGrande({
     );
   }
 
-  if (foto) {
+  if (foto && !semFoto) {
     return (
       // eslint-disable-next-line @next/next/no-img-element -- foto local em /public
       <img

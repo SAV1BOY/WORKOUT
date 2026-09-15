@@ -1,5 +1,6 @@
 import { expect, test, type Browser, type Locator, type Page } from "@playwright/test";
 import {
+  abrirVisaoGeral,
   entrarNoApp,
   esperarAbaTreino,
   inserirNoMock,
@@ -362,7 +363,9 @@ test.describe("Barra fixa (SPEC §3.4)", () => {
     const sessao = await usuarioComPerfil({ semana_fixa: 1 });
     await abrir(page, QUINTA, "/barra-fixa");
 
-    await expect(page.getByRole("heading", { name: "Barra fixa" })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Barra fixa", exact: true }),
+    ).toBeVisible();
     await expect(page.getByText("Semana 1–2 · 4 × 5")).toBeVisible();
 
     const atual = page.locator("tr[aria-current='true']");
@@ -394,8 +397,11 @@ test.describe("Barra fixa (SPEC §3.4)", () => {
     await abrir(page, QUINTA, "/barra-fixa");
 
     await page.getByRole("button", { name: "Fazer sessão de barra fixa" }).click();
+    await abrirVisaoGeral(page);
 
-    await expect(page.getByRole("heading", { name: "Barra fixa" })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Barra fixa", exact: true }),
+    ).toBeVisible();
     await expect(page.getByText("semana 1–2 · 4 × 5")).toBeVisible();
     await expect(page.getByText("Barra fixa assistida")).toBeVisible();
     // 4 séries de trabalho, sem aquecimento (o exercício não é composto pesado)
@@ -457,6 +463,7 @@ test.describe("Barra fixa (SPEC §3.4)", () => {
     await usuarioComPerfil({ semana_fixa: 1 });
     await abrir(page, QUINTA, "/barra-fixa");
     await page.getByRole("button", { name: "Fazer sessão de barra fixa" }).click();
+    await abrirVisaoGeral(page);
     await expect(page.getByText("0/4 séries")).toBeVisible();
 
     for (let i = 0; i < 4; i++) {
@@ -473,6 +480,15 @@ test.describe("Barra fixa (SPEC §3.4)", () => {
      * daquele instante, não uma decisão: o toggle tem de continuar em "sim".
      */
     const { contexto, pagina } = await outroAparelho(browser, QUINTA, page.url());
+    /*
+     * O outro aparelho não tem o passo salvo no Dexie: o player retoma pelo
+     * que a sessão mostra (SPEC §14.1) e, com tudo registrado, isso é o
+     * feedback. Dois "Voltar" trazem de volta a última série, e dali a folha.
+     */
+    await pagina.getByRole("button", { name: "Voltar", exact: true }).click();
+    await expect(pagina.getByText("Última repetição saiu firme?")).toBeVisible();
+    await pagina.getByRole("button", { name: "Voltar", exact: true }).click();
+    await abrirVisaoGeral(pagina);
     await expect(pagina.getByText("4/4 séries")).toBeVisible();
     await expect(
       pagina.getByRole("switch", { name: /Última repetição firme/ }),

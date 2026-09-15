@@ -1,8 +1,8 @@
 "use client";
 
 import { ChevronRight, Repeat } from "lucide-react";
-import Link from "next/link";
 import { useState } from "react";
+import { FichaEmFolha } from "@/components/exercicio/ficha-folha";
 import { Miniatura } from "@/components/ui/miniatura";
 import { Raios } from "@/components/ui/raios";
 import { Button } from "@/components/ui/button";
@@ -19,7 +19,9 @@ import {
 import { acharExercicio } from "@/lib/dados";
 import { dificuldadeDe } from "@/lib/dificuldade";
 import type { ItemPrevia } from "@/lib/hoje";
+import { evitado, evitadosPorUltimo } from "@/lib/preferencias";
 import { substitutosPara } from "@/lib/sessao";
+import type { Prefs } from "@/lib/types";
 
 /**
  * A lista do treino do dia (SPEC §13.3): miniatura, nome, prescrição, carga de
@@ -30,16 +32,21 @@ export function ListaDoDia({
   itens,
   carregando = false,
   mostrarRaios = true,
+  prefs,
   aoSubstituir,
   titulo = "Exercícios de hoje",
 }: {
   itens: ItemPrevia[];
   carregando?: boolean;
   mostrarRaios?: boolean;
+  /** `profiles.prefs` — o "não gosto" muda a ordem dos substitutos (§14.1.2). */
+  prefs?: Prefs;
   /** Quando existe, cada item ganha o ⇄ (a lista da aba Treino). */
   aoSubstituir?: (originalId: string, novoExercicioId: string) => void;
   titulo?: string;
 }) {
+  const [ficha, setFicha] = useState<string | null>(null);
+
   if (carregando) {
     return (
       <ul className="flex flex-col gap-3" role="status" aria-label="Carregando a lista">
@@ -60,9 +67,12 @@ export function ListaDoDia({
     <ul aria-label={titulo} className="flex flex-col divide-y">
       {itens.map((item) => (
         <li key={item.originalId} className="flex items-center gap-1 py-2 first:pt-0">
-          <Link
-            href={`/exercicios/${item.exercicioId}`}
-            className="hover:bg-muted/40 alvo -mx-1 flex min-w-0 flex-1 items-center gap-3 rounded-xl px-1 py-1"
+          {/* SPEC §14.2: tocar no exercício abre a ficha em folha, por cima */}
+          <button
+            type="button"
+            aria-label={`Ficha: ${item.nome}`}
+            onClick={() => setFicha(item.exercicioId)}
+            className="hover:bg-muted/40 alvo -mx-1 flex min-w-0 flex-1 items-center gap-3 rounded-xl px-1 py-1 text-left"
           >
             <Miniatura exercicioId={item.exercicioId} />
             <span className="flex min-w-0 flex-1 flex-col gap-0.5">
@@ -95,7 +105,7 @@ export function ListaDoDia({
               aria-hidden="true"
               className="text-muted-foreground size-4 shrink-0"
             />
-          </Link>
+          </button>
 
           {aoSubstituir ? (
             <Substituir
@@ -108,10 +118,17 @@ export function ListaDoDia({
                   : undefined
               }
               nomeDoOriginal={acharExercicio(item.originalId).nome}
+              prefs={prefs}
             />
           ) : null}
         </li>
       ))}
+      <FichaEmFolha
+        exercicioId={ficha}
+        aberto={ficha !== null}
+        aoMudarAberto={(v) => setFicha(v ? ficha : null)}
+        prefs={prefs}
+      />
     </ul>
   );
 }
@@ -125,17 +142,19 @@ function Substituir({
   exercicioId,
   nome,
   nomeDoOriginal,
+  prefs,
   aoEscolher,
   aoDesfazer,
 }: {
   exercicioId: string;
   nome: string;
   nomeDoOriginal: string;
+  prefs?: Prefs;
   aoEscolher: (id: string) => void;
   aoDesfazer?: () => void;
 }) {
   const [aberto, setAberto] = useState(false);
-  const lista = substitutosPara(exercicioId);
+  const lista = evitadosPorUltimo(substitutosPara(exercicioId), (e) => e.id, prefs);
   if (lista.length === 0 && !aoDesfazer) return null;
 
   return (
@@ -188,6 +207,7 @@ function Substituir({
                   <span className="text-sm font-medium">{e.nome}</span>
                   <span className="text-muted-foreground text-xs">
                     {e.prescricao_padrao.texto} · {e.equipamento_texto}
+                    {evitado(prefs, e.id) ? " · você marcou como evitar" : ""}
                   </span>
                 </button>
               </SheetClose>

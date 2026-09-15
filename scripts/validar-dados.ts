@@ -11,6 +11,7 @@ import {
   perfilSchema,
   programaSchema,
   progressaoJsonSchema,
+  tutoriaisSchema,
   type Exercicio,
   type Programa,
 } from "../lib/schemas";
@@ -52,6 +53,31 @@ validar(cardioSchema, "cardio.json");
 validar(progressaoJsonSchema, "progressao.json");
 const equipamentos = validar(equipamentosSchema, "equipamentos.json");
 validar(perfilSchema, "perfil.json");
+const tutoriais = validar(tutoriaisSchema, "tutoriais.json");
+
+function conferirTutoriais(exs: Exercicio[]) {
+  if (!tutoriais) return;
+  const porId = new Set(exs.map((e) => e.id));
+  const vistos = new Set<string>();
+  for (const t of tutoriais.tutoriais) {
+    if (!porId.has(t.exercicio_id)) {
+      erros.push(
+        `tutoriais.json: exercício "${t.exercicio_id}" não existe em exercicios.json`,
+      );
+    }
+    if (vistos.has(t.exercicio_id)) {
+      erros.push(`tutoriais.json: "${t.exercicio_id}" aparece mais de uma vez`);
+    }
+    vistos.add(t.exercicio_id);
+  }
+  const semTutorial = exs.filter((e) => !vistos.has(e.id));
+  if (semTutorial.length > 0) {
+    erros.push(
+      `tutoriais.json: ${semTutorial.length} exercício(s) sem tutorial (ex.: ${semTutorial[0]?.id})`,
+    );
+  }
+  console.log(`  ${tutoriais.tutoriais.length} tutoriais, um por exercício`);
+}
 
 function conferirReferencias(exs: Exercicio[], prog: Programa) {
   const porId = new Map(exs.map((e) => [e.id, e]));
@@ -104,6 +130,7 @@ function conferirReferencias(exs: Exercicio[], prog: Programa) {
   );
 }
 
+if (exercicios) conferirTutoriais(exercicios);
 if (exercicios && programa) conferirReferencias(exercicios, programa);
 
 /**

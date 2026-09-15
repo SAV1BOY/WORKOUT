@@ -58,6 +58,10 @@ async function patch(tabela: string, filtro: string, campos: unknown, token: str
   if (!r.ok) throw new Error(`mock patch ${tabela}: ${r.status} ${await r.text()}`);
 }
 
+/** O usuário e o token da última semeadura (o mock não devolve as linhas). */
+let usuarioId = "";
+let tokenAtual = "";
+
 async function semear() {
   await fetch(`${MOCK}/__mock/reset`, { method: "POST" });
   const resposta = await fetch(`${MOCK}/auth/v1/signup`, {
@@ -70,6 +74,8 @@ async function semear() {
     user: { id: string };
   };
   const token = corpo.access_token;
+  usuarioId = corpo.user.id;
+  tokenAtual = token;
 
   await patch("profiles", `user_id=eq.${corpo.user.id}`, {
     nome: "Miguel",
@@ -144,6 +150,16 @@ async function semear() {
   );
 }
 
+/** Põe o perfil na Fase 2 (o Inferior A tem a prancha, um passo por tempo). */
+async function mudarParaFase2() {
+  await patch(
+    "profiles",
+    `user_id=eq.${usuarioId}`,
+    { fase_atual: "fase2", fase_desde: "2026-06-01" },
+    tokenAtual,
+  );
+}
+
 async function entrar(page: Page) {
   await page.clock.setFixedTime(new Date(QUANDO));
   await page.goto(`${APP}/login`);
@@ -160,9 +176,143 @@ async function tirar(page: Page, nome: string, fullPage = false) {
   console.log(`  ✓ ${nome}`);
 }
 
+/** Um contexto de celular a 360 × 740 no tema pedido. */
+async function celular(
+  navegador: Awaited<ReturnType<typeof chromium.launch>>,
+  tema: "dark" | "light",
+) {
+  return navegador.newContext({
+    ...devices["Pixel 5"],
+    viewport: { width: 360, height: 740 },
+    deviceScaleFactor: 2,
+    isMobile: true,
+    hasTouch: true,
+    locale: "pt-BR",
+    timezoneId: "America/Sao_Paulo",
+    colorScheme: tema,
+  });
+}
+
+/** Anda pelo player até `alvo` aparecer (pulando descansos). */
+async function andar(page: Page, alvo: ReturnType<Page["getByText"]>) {
+  for (let i = 0; i < 40; i++) {
+    if (await alvo.isVisible().catch(() => false)) return;
+    for (const nome of ["Pular", "Continuar", "Próximo passo"]) {
+      const botao = page.getByRole("button", { name: nome });
+      if (await botao.isVisible().catch(() => false)) {
+        await botao.click();
+        break;
+      }
+    }
+    await page.waitForTimeout(150);
+  }
+}
+
+/**
+ * As telas do player (SPEC §14.1) e a ficha em folha (§14.2), marco V2.
+ * Roda com `npx tsx scripts/capturas.ts <pasta> v2`.
+ */
+async function capturasDoPlayer(navegador: Awaited<ReturnType<typeof chromium.launch>>) {
+  for (const tema of ["dark", "light"] as const) {
+    // cada tema parte do mesmo estado: a rodada anterior concluiu um treino
+    await semear();
+    const contexto = await celular(navegador, tema);
+    const page = await contexto.newPage();
+    await entrar(page);
+    const escuro = tema === "dark";
+    const sufixo = escuro ? "" : "-claro";
+
+    await page.goto(`${APP}/treinar`);
+    await page.getByRole("button", { name: /^Começar Treino/ }).first().click();
+    await page.waitForURL(/\/treinar\/[0-9a-f-]{36}$/);
+    await page.getByRole("timer", { name: "Preparação" }).waitFor();
+    if (escuro) await tirar(page, "01-preparacao.png");
+
+    await page.getByRole("button", { name: "Começar agora" }).click();
+    await page.getByRole("button", { name: "Concluir a série" }).waitFor();
+    await tirar(page, `02-exercicio-carga${sufixo}.png`);
+
+    if (escuro) {
+      // a ficha em folha, com as três abas
+      await page.getByRole("button", { name: /^Como fazer:/ }).click();
+      await page.getByRole("tab", { name: "Vídeo" }).waitFor();
+      await tirar(page, "08-ficha-video.png");
+      await page.getByRole("tab", { name: "Músculos" }).click();
+      await tirar(page, "09-ficha-musculos.png");
+      await page.getByRole("tab", { name: "Tutorial" }).click();
+      await page.waitForTimeout(800);
+      await tirar(page, "10-ficha-tutorial.png");
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(400);
+
+      // a visão geral (a folha de rolagem, atrás do ícone de lista)
+      await page.getByRole("button", { name: "Visão geral do treino" }).click();
+      await page.getByRole("heading", { level: 1 }).waitFor();
+      await tirar(page, "11-visao-geral.png");
+      await page.getByRole("button", { name: "Voltar ao treino" }).click();
+      await page.waitForTimeout(400);
+
+      // ✓ → descanso em tela cheia
+      await page.getByRole("button", { name: "Concluir a série" }).click();
+      await page.getByRole("timer", { name: "Descanso" }).waitFor();
+      await tirar(page, "03-descanso.png");
+
+      // o resto do 1º exercício, registrando de verdade: a pergunta "firme?"
+      const firme = page.getByText("Última repetição saiu firme?");
+      for (let i = 0; i < 8; i++) {
+        if (await firme.isVisible().catch(() => false)) break;
+        const pular = page.getByRole("button", { name: "Pular" });
+        if (await pular.isVisible().catch(() => false)) {
+          await pular.click();
+          continue;
+        }
+        await page.getByRole("button", { name: "Concluir a série" }).click();
+        await page.waitForTimeout(150);
+      }
+      await firme.waitFor();
+      await tirar(page, "04-firme.png");
+      await page.getByRole("radio", { name: "Firme" }).click();
+    }
+
+    // feedback e conclusão
+    await andar(page, page.getByText("O que você achou do treino de hoje?"));
+    if (escuro) await tirar(page, "06-feedback.png");
+    await page.getByRole("radio", { name: "Na medida certa" }).click();
+    await page.getByRole("button", { name: "Concluído" }).click();
+    await page.getByRole("region", { name: "Treino concluído" }).waitFor();
+    await page.waitForTimeout(600);
+    await tirar(page, `07-conclusao${sufixo}.png`);
+    if (escuro) await tirar(page, "07-conclusao-completa.png", true);
+
+    await contexto.close();
+  }
+
+  /* o passo por tempo: a prancha do Inferior A (Fase 2) */
+  await semear();
+  await mudarParaFase2();
+  const contexto = await celular(navegador, "dark");
+  const page = await contexto.newPage();
+  await entrar(page);
+  await page.goto(`${APP}/treinar`);
+  await page.getByRole("button", { name: "Começar Inferior A" }).click();
+  await page.waitForURL(/\/treinar\/[0-9a-f-]{36}$/);
+  await page.getByRole("button", { name: "Começar agora" }).click();
+  await andar(page, page.getByText("· exercício 6 de 6"));
+  await page.waitForTimeout(400);
+  await tirar(page, "05-exercicio-tempo.png");
+  await contexto.close();
+}
+
 async function main() {
   await semear();
   const navegador = await chromium.launch();
+
+  if (process.argv[3] === "v2") {
+    await capturasDoPlayer(navegador);
+    await navegador.close();
+    console.log(`capturas em ${destino}`);
+    return;
+  }
 
   /*
    * O claro vem primeiro: a sessão só é criada no passo escuro, e assim as

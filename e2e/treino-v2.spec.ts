@@ -7,6 +7,8 @@ import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test, type Page } from "@playwright/test";
 import {
+  abrirVisaoGeral,
+  comecarNoPlayer,
   entrarNoApp,
   esperarAbaTreino,
   fixarData,
@@ -160,11 +162,15 @@ test.describe("cards do dia (SPEC §13.3)", () => {
     await expect(primeiro).toContainText("Hoje: 7,5 kg na barra");
     // miniatura: a figura animada do exercício
     await expect(primeiro.locator('img[src="/figuras/agachamento-livre.svg"]')).toBeVisible();
-    // tocar no item abre a ficha
-    await expect(primeiro.getByRole("link").first()).toHaveAttribute(
-      "href",
-      "/exercicios/agachamento-livre",
-    );
+    // SPEC §14.2: tocar no item abre a ficha em folha, sem sair da aba
+    await primeiro.getByRole("button", { name: "Ficha: Agachamento livre" }).click();
+    const ficha = page.getByRole("dialog");
+    await expect(ficha.getByText("Agachamento livre", { exact: true })).toBeVisible();
+    await expect(ficha.getByRole("tab", { name: "Vídeo" })).toBeVisible();
+    await expect(ficha.getByRole("tab", { name: "Músculos" })).toBeVisible();
+    await expect(ficha.getByRole("tab", { name: "Tutorial" })).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(page).toHaveURL("/");
 
     // um exercício de halteres traz o rótulo do implemento (§4)
     await expect(
@@ -285,6 +291,7 @@ test.describe("substituir pela lista do dia (SPEC §13.3)", () => {
     await page.getByRole("link", { name: "Começar treino" }).click();
     await page.getByRole("button", { name: "Começar Treino A" }).click();
     await expect(page).toHaveURL(/\/treinar\/[0-9a-f-]{36}$/);
+    await abrirVisaoGeral(page);
     await expect(page.getByRole("heading", { name: `1. ${nome}` })).toBeVisible();
     await expect(page.getByText("no lugar de Agachamento livre (só hoje)")).toBeVisible();
 
@@ -343,6 +350,8 @@ test.describe("vídeo opcional (SPEC §13.1)", () => {
     await page.getByRole("button", { name: "Começar Treino A" }).click();
     await expect(page).toHaveURL(/\/treinar\/[0-9a-f-]{36}$/);
     const url = page.url();
+    // o player abre na preparação (§14.1): a demonstração está no passo seguinte
+    await comecarNoPlayer(page);
 
     // sem vídeo nenhum (o estado do kit): a figura animada
     await expect(
@@ -355,12 +364,14 @@ test.describe("vídeo opcional (SPEC §13.1)", () => {
     writeFileSync(VIDEO, Buffer.from("00000018667479706d703432", "hex"));
 
     await page.goto(url);
+    await comecarNoPlayer(page);
     const video = page.locator('video[data-video="agachamento-livre"]');
     await expect(video).toHaveCount(1);
     await expect(video).toHaveAttribute("src", "/videos/agachamento-livre.mp4");
 
     rmSync(VIDEO, { force: true });
     await page.goto(url);
+    await comecarNoPlayer(page);
     await expect(page.locator("video")).toHaveCount(0);
   });
 });

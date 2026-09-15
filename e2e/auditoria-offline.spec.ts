@@ -10,6 +10,7 @@
  */
 import { expect, test, type Page } from "@playwright/test";
 import {
+  abrirVisaoGeral,
   entrarNoApp,
   esperarAbaTreino,
   fixarData,
@@ -171,6 +172,7 @@ test.describe("a rede voltando no meio do treino (SPEC §3.2 e §8)", () => {
     await entrarNoApp(page);
     await page.getByRole("link", { name: "Começar treino" }).click();
     await page.getByRole("button", { name: "Começar Treino A" }).click();
+    await abrirVisaoGeral(page);
     await expect(page.getByRole("heading", { name: "Treino A", level: 1 })).toBeVisible();
 
     await marcar(page, "Agachamento livre", 1);
@@ -221,6 +223,7 @@ test.describe("a criação da sessão que falha uma vez (SPEC §8)", () => {
 
     await page.getByRole("link", { name: "Começar treino" }).click();
     await page.getByRole("button", { name: "Começar Treino A" }).click();
+    await abrirVisaoGeral(page);
     await expect(page.getByRole("heading", { name: "Treino A", level: 1 })).toBeVisible();
 
     for (const n of [1, 2, 3]) await marcar(page, "Agachamento livre", n);
@@ -228,7 +231,7 @@ test.describe("a criação da sessão que falha uma vez (SPEC §8)", () => {
     await page.getByRole("button", { name: "Concluir" }).click();
     const resumo = page.getByRole("dialog");
     await expect(resumo.getByText("Treino concluído")).toBeVisible();
-    await resumo.getByRole("radio", { name: "4 — bom" }).click();
+    await resumo.getByRole("radio", { name: "Um pouco fácil" }).click();
     await resumo.getByRole("button", { name: "Salvar e voltar" }).click();
     await esperarAbaTreino(page);
 
@@ -293,6 +296,7 @@ test.describe("o Supabase cai no meio do treino e volta (SPEC §8 e §10.3)", ()
     await page.route("**/rest/v1/**", (rota) => rota.abort("connectionfailed"));
     await page.getByRole("link", { name: "Começar treino" }).click();
     await page.getByRole("button", { name: "Começar Treino A" }).click();
+    await abrirVisaoGeral(page);
     await expect(page.getByRole("heading", { name: "Treino A", level: 1 })).toBeVisible();
 
     for (const n of [1, 2, 3]) await marcar(page, "Agachamento livre", n);
@@ -300,7 +304,7 @@ test.describe("o Supabase cai no meio do treino e volta (SPEC §8 e §10.3)", ()
     await page.getByRole("button", { name: "Concluir" }).click();
     const resumo = page.getByRole("dialog");
     await expect(resumo.getByText("Treino concluído")).toBeVisible();
-    await resumo.getByRole("radio", { name: "3 — ok" }).click();
+    await resumo.getByRole("radio", { name: "Na medida certa" }).click();
     await resumo.getByRole("button", { name: "Salvar e voltar" }).click();
     await esperarAbaTreino(page);
 

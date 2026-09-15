@@ -93,12 +93,16 @@ test.describe("§10.8 — as 81 fichas", () => {
           const img = i as HTMLImageElement;
           return { src: img.currentSrc || img.src, ok: img.naturalWidth > 0 };
         });
-        const figura = document.querySelector("main figure svg use") !== null;
-        const mapa = document.querySelector("main figure[class*='p-']") !== null;
         const h1 = document.querySelector("h1")?.textContent?.trim() ?? "";
         const passos = document.querySelectorAll("main ol > li").length;
-        return { imagens, figura, mapa, h1, passos };
+        return { imagens, h1, passos };
       });
+
+      // SPEC §14.2: o mapa muscular mora na aba "Músculos" da ficha
+      await page.getByRole("tab", { name: "Músculos" }).click();
+      const mapa = await page.evaluate(
+        () => document.querySelector("main figure[class*='p-']") !== null,
+      );
 
       if (visto.h1 !== exercicio.nome) {
         problemas.push(`${exercicio.id}: h1 "${visto.h1}" ≠ "${exercicio.nome}"`);
@@ -114,7 +118,7 @@ test.describe("§10.8 — as 81 fichas", () => {
             .join(", ")})`,
         );
       }
-      if (!visto.mapa) problemas.push(`${exercicio.id}: sem o mapa muscular`);
+      if (!mapa) problemas.push(`${exercicio.id}: sem o mapa muscular`);
       if (visto.passos < exercicio.passos.length) {
         problemas.push(
           `${exercicio.id}: ${visto.passos} passos na tela, ${exercicio.passos.length} no JSON`,
@@ -146,6 +150,7 @@ test.describe("§10.8 — as 81 fichas", () => {
     // o boneco: as classes p-<musculo> / s-<musculo> e o sprite <use href="#bf">
     const alvo = CATALOGO.find((e) => e.id === "supino-reto-com-barra");
     await page.goto(`/exercicios/${alvo?.id}`);
+    await page.getByRole("tab", { name: "Músculos" }).click();
     const mapa = page.locator("main figure").filter({ has: page.locator("svg use") });
     const classe = await mapa.first().getAttribute("class");
     for (const m of alvo?.musculos_primarios ?? []) expect(classe).toContain(`p-${m}`);

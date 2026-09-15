@@ -46,6 +46,8 @@ export const chaves = {
   seriesAnteriores: (ids: readonly string[]) =>
     ["series-anteriores", [...ids].sort().join(",")] as const,
   recordes: (ids: readonly string[]) => ["recordes", [...ids].sort().join(",")] as const,
+  ultimasSeries: (ids: readonly string[]) =>
+    ["ultimas-series", [...ids].sort().join(",")] as const,
 };
 
 interface Resposta<T> {
@@ -366,6 +368,53 @@ export function useSeriesAnteriores(
           .order("registrada_em", { ascending: false })
           .limit(SERIES_ANTERIORES),
         "as séries anteriores",
+      ),
+  });
+}
+
+/** Quantas séries a linha "anterior: 9,5 kg × 5" do player precisa olhar. */
+export const ULTIMAS_SERIES = 120;
+
+export type UltimaSerie = Pick<
+  LinhaSerie,
+  | "exercise_id"
+  | "session_id"
+  | "set_index"
+  | "reps"
+  | "carga_kg"
+  | "tempo_s"
+  | "tipo"
+  | "concluida"
+  | "registrada_em"
+>;
+
+/**
+ * As últimas séries de trabalho destes exercícios, com carga e tempo — é delas
+ * que sai o "anterior: 9,5 kg × 5" do player (SPEC §14.1.2).
+ *
+ * Consulta separada da `useSeriesAnteriores` de propósito: aquela alimenta o
+ * motor (tipo `maximo`) e é pedida para os exercícios do treino **mais todos
+ * os substitutos possíveis**; misturar as duas mudaria o recorte de linhas que
+ * o motor vê.
+ */
+export function useUltimasSeries(
+  ids: readonly string[],
+): UseQueryResult<UltimaSerie[]> {
+  return useQuery({
+    queryKey: chaves.ultimasSeries(ids),
+    enabled: ids.length > 0,
+    queryFn: () =>
+      lerLista<UltimaSerie>(
+        clienteNavegador()
+          .from("session_sets")
+          .select(
+            "exercise_id,session_id,set_index,reps,carga_kg,tempo_s,tipo,concluida,registrada_em",
+          )
+          .in("exercise_id", [...ids])
+          .eq("tipo", "trabalho")
+          .order("registrada_em", { ascending: false })
+          .limit(ULTIMAS_SERIES),
+        "as séries do treino passado",
       ),
   });
 }

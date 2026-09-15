@@ -4,6 +4,7 @@
  */
 import { expect, test, type Page } from "@playwright/test";
 import {
+  abrirVisaoGeral,
   atualizarNoMock,
   entrarNoApp,
   esperarAbaTreino,
@@ -52,8 +53,14 @@ async function comecarTreinoA(page: Page): Promise<SessaoMock> {
   await entrarNoApp(page);
   await page.getByRole("link", { name: "Começar treino" }).click();
   await page.getByRole("button", { name: "Começar Treino A" }).click();
-  await expect(page.getByRole("heading", { name: "Treino A", level: 1 })).toBeVisible();
   await expect(page).toHaveURL(/\/treinar\/[0-9a-f-]{36}$/);
+  /*
+   * SPEC §14.1: o caminho principal agora é o player. A folha de rolagem com
+   * todas as séries virou a **visão geral**, atrás do ícone de lista — é nela
+   * que estes testes continuam valendo, série a série.
+   */
+  await abrirVisaoGeral(page);
+  await expect(page.getByRole("heading", { name: "Treino A", level: 1 })).toBeVisible();
   return sessao;
 }
 
@@ -181,6 +188,7 @@ test.describe("registrar série a série (SPEC §3.2 e §10.3)", () => {
 
     await page.reload();
 
+    await abrirVisaoGeral(page);
     await expect(page.getByRole("heading", { name: "Treino A", level: 1 })).toBeVisible();
     const depois = page.getByRole("group", { name: "Série 1 — Agachamento livre" });
     await expect(depois.getByRole("checkbox")).toHaveAttribute("aria-checked", "true");
@@ -249,7 +257,7 @@ test.describe("concluir e o que o motor decide (SPEC §6.2, §6.6, §10.3 e §10
       "Agachamento livre",
     );
 
-    await resumo.getByRole("radio", { name: "4 — bom" }).click();
+    await resumo.getByRole("radio", { name: "Um pouco fácil" }).click();
     await resumo.getByRole("button", { name: "Salvar e voltar" }).click();
 
     await esperarAbaTreino(page);
@@ -432,14 +440,16 @@ test.describe("ajuda, montagem e substituição (SPEC §3.2, §6.5 e §7)", () =
     await page.getByRole("button", { name: "Como fazer: Agachamento livre" }).click();
 
     const ficha = page.getByRole("dialog");
-    await expect(ficha.getByRole("heading", { name: "Passos" })).toBeVisible();
+    // SPEC §14.2: a ficha em folha traz instruções, erro comum e as três abas
+    await expect(ficha.getByRole("heading", { name: "Instruções" })).toBeVisible();
     await expect(ficha.getByRole("heading", { name: "Erro comum" })).toBeVisible();
     await expect(ficha.getByRole("img", { name: /Execução do Agachamento livre/ })).toBeVisible();
+    await ficha.getByRole("tab", { name: "Músculos" }).click();
     await expect(ficha.getByRole("img", { name: "Frente" })).toBeVisible();
     await semRolagemHorizontal(page);
 
     // o X da folha também é alvo de dedo (SPEC §3: ≥ 44 px)
-    const fechar = ficha.getByRole("button", { name: "Fechar" });
+    const fechar = ficha.getByRole("button", { name: "Fechar" }).last();
     const caixa = await fechar.boundingBox();
     expect(Math.round(caixa?.width ?? 0)).toBeGreaterThanOrEqual(44);
     expect(Math.round(caixa?.height ?? 0)).toBeGreaterThanOrEqual(44);
@@ -497,6 +507,7 @@ test.describe("ajuda, montagem e substituição (SPEC §3.2, §6.5 e §7)", () =
       ),
     );
     await page.getByRole("button", { name: "Começar Treino A" }).click();
+    await abrirVisaoGeral(page);
     await expect(page.getByRole("heading", { name: "Treino A", level: 1 })).toBeVisible();
     await leituras;
 
@@ -571,6 +582,7 @@ async function comecarTreinoDaFase2(page: Page, nome: string): Promise<SessaoMoc
   await page.goto("/treinar");
   await page.getByRole("button", { name: `Começar ${nome}` }).click();
   await expect(page).toHaveURL(/\/treinar\/[0-9a-f-]{36}$/);
+  await abrirVisaoGeral(page);
   return sessao;
 }
 
@@ -718,7 +730,8 @@ test.describe("timer, tela acesa e voltar sem rede (SPEC §3.2, §8 e §10.3)", 
     await timer.getByRole("button", { name: "Pular" }).click();
     await expect(timer).toHaveCount(0);
 
-    // sair da sessão solta o Wake Lock
+    // sair da sessão solta o Wake Lock (a visão geral fecha primeiro, §14.1)
+    await page.getByRole("button", { name: "Voltar ao treino" }).click();
     await irNaAba(page, "Treino");
     await esperarAbaTreino(page);
     await expect
@@ -736,6 +749,7 @@ test.describe("timer, tela acesa e voltar sem rede (SPEC §3.2, §8 e §10.3)", 
     // abre a sessão sem rede (o precache leva quase um segundo para fechar)
     await esperarServiceWorker(page);
     await page.reload();
+    await abrirVisaoGeral(page);
     await expect(page.getByRole("heading", { name: "Treino A", level: 1 })).toBeVisible();
 
     await marcar(page, "Agachamento livre", 1);
@@ -749,6 +763,7 @@ test.describe("timer, tela acesa e voltar sem rede (SPEC §3.2, §8 e §10.3)", 
     const voltou = await context.newPage();
     await fixarData(voltou, SEGUNDA);
     await voltou.goto(url);
+    await abrirVisaoGeral(voltou);
     await expect(voltou.getByRole("heading", { name: "Treino A", level: 1 })).toBeVisible();
     await expect(voltou.getByText("3/16 séries")).toBeVisible();
     await expect(

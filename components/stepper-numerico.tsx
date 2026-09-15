@@ -24,6 +24,7 @@ export function StepperNumerico({
   sufixo,
   decimal = false,
   compacto = false,
+  grande = false,
   desabilitado = false,
 }: {
   valor: number | null;
@@ -37,6 +38,8 @@ export function StepperNumerico({
   sufixo?: string;
   decimal?: boolean;
   compacto?: boolean;
+  /** Número grande e alvos de 56 px: é o passo do player (SPEC §14.1.2). */
+  grande?: boolean;
   desabilitado?: boolean;
 }) {
   const id = useId();
@@ -72,17 +75,17 @@ export function StepperNumerico({
   };
 
   return (
-    <div className={cn("flex items-center", compacto ? "gap-0.5" : "gap-1")}>
+    <div className={cn("flex items-center", compacto ? "gap-0.5" : "gap-1", grande && "gap-2")}>
       <Button
         type="button"
         variant="outline"
         size="icon"
-        className="alvo size-11 shrink-0"
+        className={cn("alvo shrink-0", grande ? "size-14 rounded-2xl" : "size-11")}
         onClick={() => andar(-1)}
         disabled={desabilitado}
         aria-label={`Diminuir ${rotulo}`}
       >
-        <Minus className="size-5" />
+        <Minus className={grande ? "size-7" : "size-5"} />
       </Button>
 
       <div className="relative min-w-11 flex-1">
@@ -105,9 +108,10 @@ export function StepperNumerico({
             // 44 px nas DUAS dimensões: quem digita em vez de usar o − e o +
             // tem o campo como alvo, e na grade de duas colunas da sessão ele
             // fechava em 37 px de largura.
-            "numero border-input bg-background h-11 w-full min-w-11 rounded-lg border text-center tabular-nums",
+            "numero border-input bg-background w-full min-w-11 rounded-lg border text-center tabular-nums",
+            grande ? "h-14 rounded-2xl" : "h-11",
             // "107,5" ainda cabe na coluna estreita de 360 px
-            compacto ? "px-0.5 text-base" : "px-2 text-lg",
+            grande ? "px-1 text-3xl font-semibold" : compacto ? "px-0.5 text-base" : "px-2 text-lg",
             "focus-visible:border-ring focus-visible:ring-ring/50 outline-none focus-visible:ring-3",
             "disabled:opacity-50",
           )}
@@ -124,12 +128,12 @@ export function StepperNumerico({
         type="button"
         variant="outline"
         size="icon"
-        className="alvo size-11 shrink-0"
+        className={cn("alvo shrink-0", grande ? "size-14 rounded-2xl" : "size-11")}
         onClick={() => andar(1)}
         disabled={desabilitado}
         aria-label={`Aumentar ${rotulo}`}
       >
-        <Plus className="size-5" />
+        <Plus className={grande ? "size-7" : "size-5"} />
       </Button>
     </div>
   );

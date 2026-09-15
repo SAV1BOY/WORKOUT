@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { TelaSessao } from "@/components/treinar/tela-sessao";
+import { TelaPlayer } from "@/components/player/tela-player";
 import { idDoUsuario } from "@/lib/supabase/server";
 import { idsComVideo } from "@/lib/videos";
 
@@ -16,5 +16,5 @@ export default async function Sessao({
 
   const { sessionId } = await params;
   // SPEC §13.1: o vídeo é opcional e mora em public/videos (nenhum vem no kit)
-  return <TelaSessao sessaoId={sessionId} videos={idsComVideo()} />;
+  return <TelaPlayer sessaoId={sessionId} videos={idsComVideo()} />;
 }

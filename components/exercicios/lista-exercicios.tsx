@@ -17,6 +17,8 @@ import {
   type FiltrosCatalogo,
 } from "@/lib/catalogo";
 import { exercicios, urlFigura, urlFotos } from "@/lib/dados";
+import { evitado, evitadosPorUltimo } from "@/lib/preferencias";
+import { usePerfil } from "@/lib/queries/dados";
 import type { EquipamentoTag, Exercicio, Grupo, Implemento } from "@/lib/schemas";
 import { cn } from "@/lib/utils";
 
@@ -31,9 +33,11 @@ export function ListaExercicios() {
   const [filtros, setFiltros] = useState<FiltrosCatalogo>(FILTROS_VAZIOS);
   const doPrograma = useMemo(() => idsDoPrograma(), []);
   const opcoes = useMemo(() => opcoesDoCatalogo(exercicios), []);
+  const prefs = usePerfil().data?.prefs;
+  // SPEC §14.1.2: o que foi marcado como "não gosto" aparece por último
   const achados = useMemo(
-    () => filtrarExercicios(exercicios, filtros, doPrograma),
-    [filtros, doPrograma],
+    () => evitadosPorUltimo(filtrarExercicios(exercicios, filtros, doPrograma), (e) => e.id, prefs),
+    [filtros, doPrograma, prefs],
   );
 
   const mudar = (parte: Partial<FiltrosCatalogo>) =>
@@ -125,7 +129,11 @@ export function ListaExercicios() {
         <ul className="flex flex-col gap-2">
           {achados.map((e) => (
             <li key={e.id}>
-              <CardDoExercicio exercicio={e} noPrograma={doPrograma.has(e.id)} />
+              <CardDoExercicio
+                exercicio={e}
+                noPrograma={doPrograma.has(e.id)}
+                evitar={evitado(prefs, e.id)}
+              />
             </li>
           ))}
         </ul>
@@ -171,9 +179,11 @@ function Selecao({
 function CardDoExercicio({
   exercicio,
   noPrograma,
+  evitar,
 }: {
   exercicio: Exercicio;
   noPrograma: boolean;
+  evitar: boolean;
 }) {
   const imagem = urlFigura(exercicio) ?? urlFotos(exercicio)[0] ?? null;
 
@@ -206,6 +216,11 @@ function CardDoExercicio({
           {noPrograma ? (
             <Badge variant="secondary" className="px-1.5 py-0 text-[10px]">
               no programa
+            </Badge>
+          ) : null}
+          {evitar ? (
+            <Badge variant="outline" className="px-1.5 py-0 text-[10px]">
+              você marcou como evitar
             </Badge>
           ) : null}
         </span>

@@ -38,6 +38,7 @@ import {
   type EstadoExercicio,
   type SerieFeita,
 } from "@/lib/progressao";
+import type { EstadoPlayer } from "@/lib/player";
 import type { Assistencia, Exercicio, FaseId, TreinoId } from "@/lib/schemas";
 import type {
   LinhaEstadoExercicio,
@@ -142,6 +143,14 @@ export interface SessaoLocal {
   /** Barra W / reta oca já pesadas na balança (SPEC §3.9). */
   opcoesMontagem: OpcoesMontagem;
   blocos: BlocoLocal[];
+  /**
+   * Onde o player parou (SPEC §14.1): a chave do passo e, no descanso e na
+   * preparação, o instante em que a contagem acaba. Fica **só** no aparelho
+   * (dentro de `sessaoAtiva`, no Dexie) — nenhuma coluna do banco guarda isto,
+   * e `escritaDaSessao` não o envia. Ausente = a sessão nunca passou pelo
+   * player neste aparelho, e o passo é recalculado por `indiceDeRetomada`.
+   */
+  player?: EstadoPlayer | null;
 }
 
 /* ------------------------------------------------------------ montagem */
@@ -544,6 +553,94 @@ export function marcarSerie(
       };
     }
     return { ...bloco, series };
+  });
+}
+
+/* --------------------------------- prescrição só de hoje (SPEC §14.2) */
+
+export const MIN_SERIES_DA_SESSAO = 1;
+export const MAX_SERIES_DA_SESSAO = 10;
+
+/**
+ * O stepper Duração / Repetições / Séries da ficha (SPEC §14.2): muda **só a
+ * prescrição desta sessão**, nunca o `exercise_state` nem o alvo do motor.
+ *
+ * - `alvo` reescreve o valor pré-preenchido das séries de trabalho que ainda
+ *   não foram marcadas (o que já foi registrado não se mexe);
+ * - `series` acrescenta séries iguais à última ou tira as que sobram no fim,
+ *   sempre preservando as concluídas.
+ *
+ * O motor continua comparando o que foi feito com `bloco.alvo` (a faixa que
+ * ele mandou hoje): fazer mais do que o pedido é sucesso, fazer menos é falha
+ * — exatamente como seria digitando os números na mão.
+ */
+export function ajustarPrescricaoDaSessao(
+  sessao: SessaoLocal,
+  ordem: number,
+  campos: { alvo?: number; series?: number },
+  opcoes: { novoId?: () => string } = {},
+): SessaoLocal {
+  const novoId = opcoes.novoId ?? idPadrao;
+  return trocarBloco(sessao, ordem, (bloco) => {
+    let series = [...bloco.series];
+    let prescricao = bloco.prescricao;
+
+    if (typeof campos.alvo === "number" && Number.isFinite(campos.alvo)) {
+      const valor = Math.max(1, Math.round(campos.alvo));
+      series = series.map((s) => {
+        if (s.tipo !== "trabalho" || s.concluida) return s;
+        if (prescricao.tipo === "tempo_s") {
+          return {
+            ...s,
+            tempoS: valor,
+            tempoSLado2: prescricao.unilateral ? valor : s.tempoSLado2,
+          };
+        }
+        if (prescricao.tipo === "passos") return { ...s, passos: valor };
+        if (prescricao.tipo === "maximo") return s;
+        return {
+          ...s,
+          reps: valor,
+          repsLado2: prescricao.unilateral ? valor : s.repsLado2,
+        };
+      });
+    }
+
+    if (typeof campos.series === "number" && Number.isFinite(campos.series)) {
+      const quantas = Math.min(
+        MAX_SERIES_DA_SESSAO,
+        Math.max(MIN_SERIES_DA_SESSAO, Math.round(campos.series)),
+      );
+      const aquecimento = series.filter((s) => s.tipo === "aquecimento");
+      let trabalho = series.filter((s) => s.tipo === "trabalho");
+
+      while (trabalho.length > quantas) {
+        const ultima = trabalho[trabalho.length - 1];
+        // nunca apagar registro: uma série concluída segura o corte
+        if (!ultima || ultima.concluida) break;
+        trabalho = trabalho.slice(0, -1);
+      }
+      while (trabalho.length < quantas) {
+        const modelo = trabalho[trabalho.length - 1];
+        trabalho = [
+          ...trabalho,
+          modelo
+            ? {
+                ...modelo,
+                id: novoId(),
+                setIndex: trabalho.length + 1,
+                concluida: false,
+                registradaEm: null,
+              }
+            : serieDeTrabalho(1, bloco.alvo, prescricao, novoId),
+        ];
+      }
+      trabalho = trabalho.map((s, i) => ({ ...s, setIndex: i + 1 }));
+      series = [...aquecimento, ...trabalho];
+      prescricao = { ...prescricao, series: trabalho.length };
+    }
+
+    return { ...bloco, series, prescricao };
   });
 }
 
@@ -1272,6 +1369,33 @@ export function concluirSessao(entrada: EntradaConclusao): Conclusao {
   }
 
   return { resultados, escritas };
+}
+
+/** Os três contadores da conclusão (SPEC §14.1.5): exercícios, séries, volume. */
+export interface ContadoresDaSessao {
+  /** Exercícios com pelo menos uma série de trabalho registrada. */
+  exercicios: number;
+  series: number;
+  /** Σ reps × kg das séries de trabalho (peso do corpo não soma). */
+  volumeKg: number;
+}
+
+export function contadoresDaSessao(sessao: SessaoLocal): ContadoresDaSessao {
+  let exercicios = 0;
+  let series = 0;
+  let volumeKg = 0;
+  for (const bloco of sessao.blocos) {
+    let algumaFeita = false;
+    for (const serie of bloco.series) {
+      if (!serie.concluida || serie.tipo !== "trabalho") continue;
+      algumaFeita = true;
+      series += 1;
+      const reps = (serie.reps ?? 0) + (serie.repsLado2 ?? 0);
+      volumeKg += reps * (serie.cargaKg ?? 0);
+    }
+    if (algumaFeita) exercicios += 1;
+  }
+  return { exercicios, series, volumeKg: Math.round(volumeKg * 10) / 10 };
 }
 
 /** Junta as notas dos blocos numa nota só da sessão (o schema tem uma). */

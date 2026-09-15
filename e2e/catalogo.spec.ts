@@ -60,14 +60,17 @@ test.describe("Catálogo (SPEC §3.6)", () => {
     await expect(
       page.getByRole("img", { name: "Execução do Supino reto com barra" }),
     ).toBeVisible();
-    // as duas fotos e o mapa muscular (frente e costas)
+    // as duas fotos e, na aba Músculos (SPEC §14.2), o mapa frente/costas
     await expect(page.getByRole("button", { name: /Ampliar a foto/ })).toHaveCount(2);
+    await expect(page.getByRole("list", { name: "Área de foco" })).toContainText(
+      "Peitoral",
+    );
+    await page.getByRole("tab", { name: "Músculos" }).click();
     await expect(page.getByRole("img", { name: "Frente" })).toBeVisible();
     await expect(page.getByRole("img", { name: "Costas" })).toBeVisible();
-    await expect(page.getByText("Peitoral")).toBeVisible();
 
-    // conteúdo do JSON: passos, erro comum, prescrição, carga inicial e regra
-    await expect(page.getByRole("heading", { name: "Passos" })).toBeVisible();
+    // conteúdo do JSON: instruções, erro comum, prescrição, carga inicial e regra
+    await expect(page.getByRole("heading", { name: "Instruções" })).toBeVisible();
     await expect(page.getByRole("listitem").filter({ hasText: "Pegada um pouco mais aberta" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Erro comum" })).toBeVisible();
     await expect(page.getByText("3 × 5–8").first()).toBeVisible();

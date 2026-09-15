@@ -389,6 +389,31 @@ export const equipamentosSchema = z.object({
   faltam: z.array(z.string()),
 });
 
+/* -------------------------------------------------------------- tutoriais */
+
+/**
+ * Um tutorial do YouTube por exercício (SPEC §14.2). O `youtube_id` tem
+ * exatamente 11 caracteres do alfabeto de ids do YouTube — a miniatura e o
+ * embed são montados a partir dele, então um id torto vira URL quebrada.
+ */
+export const tutorialSchema = z.object({
+  exercicio_id: z.string().min(1),
+  youtube_id: z.string().regex(/^[A-Za-z0-9_-]{11}$/),
+  titulo: z.string().min(1),
+  canal: z.string().min(1),
+  idioma: z.string().min(2),
+  url: z.string().url(),
+  /** Duração em segundos, quando se sabe. */
+  duracao: z.number().positive().nullable(),
+  nota: z.string().optional(),
+});
+
+export const tutoriaisSchema = z.object({
+  gerado_em: z.string().min(1),
+  criterio: z.string().min(1),
+  tutoriais: z.array(tutorialSchema),
+});
+
 /* ---------------------------------------------------------------- perfil */
 
 /** As colunas de `body_measurements` que a tela preenche (SPEC §3.8). */
@@ -471,6 +496,8 @@ export type Anilha = z.infer<typeof anilhaSchema>;
 export type Barra = z.infer<typeof barraSchema>;
 export type Perfil = z.infer<typeof perfilSchema>;
 export type CampoDeMedida = z.infer<typeof campoDeMedidaSchema>;
+export type Tutorial = z.infer<typeof tutorialSchema>;
+export type Tutoriais = z.infer<typeof tutoriaisSchema>;
 export type MedidaDoCorpo = Perfil["medidas"][number];
 /** Chave de um texto do motor em `data/progressao.json` (SPEC §6.3/§6.4). */
 export type ChaveDeSugestao = keyof ProgressaoJson["sugestoes"];

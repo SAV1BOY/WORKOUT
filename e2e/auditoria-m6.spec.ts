@@ -183,6 +183,8 @@ test.describe("celular — as telas de /mais a 360 px", () => {
     await expect(som).toBeChecked();
 
     // um toque 20 px acima do centro: dentro dos 44 px, fora do pill de 18 px
+    // (a tela cresceu com os ajustes do player, §14.4: rolar até ele primeiro)
+    await som.scrollIntoViewIfNeeded();
     const caixa = await som.boundingBox();
     expect(caixa).not.toBeNull();
     await page.mouse.click(

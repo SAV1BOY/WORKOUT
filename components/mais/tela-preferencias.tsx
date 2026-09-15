@@ -5,6 +5,7 @@ import { useTheme } from "next-themes";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Erro, EsqueletoCard } from "@/components/carregando";
+import { AjustesDoTreino } from "@/components/mais/ajustes-do-treino";
 import { CabecalhoMais } from "@/components/mais/cabecalho";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,17 +17,13 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { acharExercicio, acharFase, acharTreino } from "@/lib/dados";
 import { formatarKg, formatarNumero, lerNumero } from "@/lib/formato";
 import {
   TEMAS,
-  comLigado,
   comTema,
-  ligado,
   temaDasPrefs,
   temaDoNextThemes,
-  type ChaveLigada,
   type TemaPref,
 } from "@/lib/preferencias";
 import { comMetaSemanal, metaSemanal, metaSemanalPadrao } from "@/lib/metas";
@@ -36,34 +33,6 @@ import { useEstados, usePerfil } from "@/lib/queries/dados";
 import { salvarIncremento, salvarPrefs } from "@/lib/queries/mais";
 import type { Exercicio } from "@/lib/schemas";
 import type { LinhaPerfil } from "@/lib/types";
-
-const INTERRUPTORES: { chave: ChaveLigada; titulo: string; descricao: string }[] = [
-  {
-    chave: "descanso_som",
-    titulo: "Som no fim do descanso",
-    descricao: "Um apito curto quando o timer zera.",
-  },
-  {
-    chave: "descanso_vibra",
-    titulo: "Vibração no fim do descanso",
-    descricao: "O celular vibra quando o timer zera.",
-  },
-  {
-    chave: "cardio_voz",
-    titulo: "Voz no cardio",
-    descricao: "Fala o próximo bloco (“corrida”, “caminhada”).",
-  },
-  {
-    chave: "manter_tela",
-    titulo: "Manter a tela acesa",
-    descricao: "Durante o treino e o cardio a tela não apaga sozinha.",
-  },
-  {
-    chave: "mostrar_raios",
-    titulo: "Mostrar raios de dificuldade",
-    descricao: "Os raios de cada exercício e de cada treino (1 a 3).",
-  },
-];
 
 /** `/mais/preferencias` (SPEC §3.9). */
 export function TelaPreferencias({ userId }: { userId: string }) {
@@ -93,7 +62,7 @@ export function TelaPreferencias({ userId }: { userId: string }) {
     <Tela>
       <Tema userId={userId} perfil={perfil} />
       <MetaSemanal userId={userId} perfil={perfil} />
-      <Interruptores userId={userId} perfil={perfil} />
+      <Treino userId={userId} perfil={perfil} />
       <Incrementos userId={userId} perfil={perfil} />
     </Tela>
   );
@@ -242,57 +211,19 @@ function MetaSemanal({ userId, perfil }: { userId: string; perfil: LinhaPerfil }
   );
 }
 
-/* ----------------------------------------------------- liga/desliga */
+/* -------------------------------------- treino e player (SPEC §14.4) */
 
-function Interruptores({
-  userId,
-  perfil,
-}: {
-  userId: string;
-  perfil: LinhaPerfil;
-}) {
-  const cliente = useQueryClient();
-
-  const mudar = async (chave: ChaveLigada, valor: boolean) => {
-    try {
-      await salvarPrefs({
-        userId,
-        prefs: comLigado(perfil.prefs, chave, valor),
-        cliente,
-      });
-    } catch {
-      toast.error("Não consegui salvar agora.");
-    }
-  };
-
+function Treino({ userId, perfil }: { userId: string; perfil: LinhaPerfil }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Timer e tela</CardTitle>
+        <CardTitle className="text-base">Treino</CardTitle>
+        <CardDescription>
+          Como o player se comporta: preparação, descanso, avisos e tela.
+        </CardDescription>
       </CardHeader>
-      <CardContent className="flex flex-col gap-4">
-        {INTERRUPTORES.map(({ chave, titulo, descricao }) => (
-          <div key={chave} className="flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <Label htmlFor={`pref-${chave}`} className="text-base">
-                {titulo}
-              </Label>
-              <p className="text-muted-foreground text-xs text-balance">
-                {descricao}
-              </p>
-            </div>
-            {/*
-              O pill do shadcn tem 18 px de altura: a área de toque dele mora
-              no `::after`, esticada aqui para os 44 px que a SPEC §3 pede.
-            */}
-            <Switch
-              id={`pref-${chave}`}
-              className="after:-inset-y-[13px]"
-              checked={ligado(perfil.prefs, chave)}
-              onCheckedChange={(v) => void mudar(chave, v)}
-            />
-          </div>
-        ))}
+      <CardContent>
+        <AjustesDoTreino userId={userId} perfil={perfil} />
       </CardContent>
     </Card>
   );

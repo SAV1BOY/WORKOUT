@@ -9,6 +9,7 @@ import exerciciosJson from "@/data/exercicios.json";
 import perfilJson from "@/data/perfil.json";
 import programaJson from "@/data/programa.json";
 import progressaoJson from "@/data/progressao.json";
+import tutoriaisJson from "@/data/tutoriais.json";
 import {
   cardioSchema,
   equipamentoTagSchema,
@@ -17,6 +18,7 @@ import {
   perfilSchema,
   programaSchema,
   progressaoJsonSchema,
+  tutoriaisSchema,
   type DiaPrograma,
   type DiaSemana,
   type EquipamentoTag,
@@ -27,6 +29,7 @@ import {
   type RefDeTexto,
   type Treino,
   type TreinoId,
+  type Tutorial,
 } from "@/lib/schemas";
 import type { ZodType } from "zod";
 
@@ -59,12 +62,26 @@ export const equipamentos = validar(
   "equipamentos.json",
 );
 export const perfilInicial = validar(perfilSchema, perfilJson, "perfil.json");
+export const tutoriais = validar(
+  tutoriaisSchema,
+  tutoriaisJson,
+  "tutoriais.json",
+).tutoriais;
 
 /* --------------------------------------------------------------- índices */
 
 export const exercicioPorId: ReadonlyMap<string, Exercicio> = new Map(
   exercicios.map((e) => [e.id, e]),
 );
+
+export const tutorialPorExercicioId: ReadonlyMap<string, Tutorial> = new Map(
+  tutoriais.map((t) => [t.exercicio_id, t]),
+);
+
+/** O tutorial do YouTube deste exercício (SPEC §14.2), ou `null`. */
+export function tutorialPorExercicio(id: string): Tutorial | null {
+  return tutorialPorExercicioId.get(id) ?? null;
+}
 
 export const treinoPorId = programa.treinos as Readonly<
   Record<TreinoId, Treino>

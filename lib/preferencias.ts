@@ -5,6 +5,13 @@
  * adiamento da Fase 2 (§5.1).
  */
 import type { BarraId, OpcoesMontagem } from "@/lib/montagem";
+import {
+  DESCANSO_MAX_S,
+  DESCANSO_MIN_S,
+  PREPARACAO_MAX_S,
+  PREPARACAO_MIN_S,
+  PREPARACAO_PADRAO_S,
+} from "@/lib/player";
 import type { Prefs } from "@/lib/types";
 
 /* --------------------------------------------------------------- tema */
@@ -48,6 +55,7 @@ export const CHAVES_LIGADAS = [
   "cardio_voz",
   "manter_tela",
   "mostrar_raios",
+  "avancar_sozinho",
 ] as const;
 
 export type ChaveLigada = (typeof CHAVES_LIGADAS)[number];
@@ -130,4 +138,125 @@ export function comPesoDaBarra(
   if (kg === null || !pesoDeBarraValido(kg)) delete pesos[id];
   else pesos[id] = kg;
   return { ...(prefs ?? {}), pesos_barras: pesos };
+}
+
+/* ---------------------------------------------- o player (SPEC §14.1) */
+
+/**
+ * Segundos da tela de preparação (`prefs.preparacao_s`). Zero é legítimo:
+ * quem não quer a contagem começa direto no primeiro exercício.
+ */
+export function preparacaoS(prefs: Prefs | null | undefined): number {
+  const bruto = prefs?.preparacao_s;
+  if (typeof bruto !== "number" || !Number.isFinite(bruto)) {
+    return PREPARACAO_PADRAO_S;
+  }
+  return Math.min(PREPARACAO_MAX_S, Math.max(PREPARACAO_MIN_S, Math.round(bruto)));
+}
+
+export function comPreparacaoS(
+  prefs: Prefs | null | undefined,
+  segundos: number | null,
+): Prefs {
+  const resto = { ...(prefs ?? {}) };
+  if (segundos === null || !Number.isFinite(segundos)) {
+    delete resto.preparacao_s;
+    return resto;
+  }
+  return {
+    ...resto,
+    preparacao_s: Math.min(
+      PREPARACAO_MAX_S,
+      Math.max(PREPARACAO_MIN_S, Math.round(segundos)),
+    ),
+  };
+}
+
+/**
+ * Descanso padrão (`prefs.descanso_padrao_s`). `null` = usar o `descanso_s` do
+ * exercício, que é o que o guia manda (SPEC §14.4).
+ */
+export function descansoPadraoS(prefs: Prefs | null | undefined): number | null {
+  const bruto = prefs?.descanso_padrao_s;
+  if (typeof bruto !== "number" || !Number.isFinite(bruto) || bruto <= 0) return null;
+  return Math.min(DESCANSO_MAX_S, Math.max(DESCANSO_MIN_S, Math.round(bruto)));
+}
+
+export function comDescansoPadraoS(
+  prefs: Prefs | null | undefined,
+  segundos: number | null,
+): Prefs {
+  const resto = { ...(prefs ?? {}) };
+  if (segundos === null || !Number.isFinite(segundos) || segundos <= 0) {
+    delete resto.descanso_padrao_s;
+    return resto;
+  }
+  return {
+    ...resto,
+    descanso_padrao_s: Math.min(
+      DESCANSO_MAX_S,
+      Math.max(DESCANSO_MIN_S, Math.round(segundos)),
+    ),
+  };
+}
+
+/** O que `lib/player.ts` precisa saber do perfil. */
+export function opcoesDoPlayer(prefs: Prefs | null | undefined): {
+  preparacaoS: number;
+  descansoPadraoS: number | null;
+} {
+  return {
+    preparacaoS: preparacaoS(prefs),
+    descansoPadraoS: descansoPadraoS(prefs),
+  };
+}
+
+/* ------------------------------------------- "não gosto" (SPEC §14.1.2) */
+
+/**
+ * Os exercícios marcados com "não gosto" (`prefs.evitar_exercicios`). Vem do
+ * jsonb do banco (e de um backup importado), então nada aqui confia no
+ * formato: só sobram strings, sem repetição.
+ */
+export function evitarExercicios(prefs: Prefs | null | undefined): string[] {
+  const bruto = prefs?.evitar_exercicios;
+  if (!Array.isArray(bruto)) return [];
+  const limpo = bruto.filter((v): v is string => typeof v === "string" && v !== "");
+  return [...new Set(limpo)];
+}
+
+export function evitado(prefs: Prefs | null | undefined, id: string): boolean {
+  return evitarExercicios(prefs).includes(id);
+}
+
+export function comEvitado(
+  prefs: Prefs | null | undefined,
+  id: string,
+  evitar: boolean,
+): Prefs {
+  const atuais = evitarExercicios(prefs);
+  const novos = evitar
+    ? [...new Set([...atuais, id])]
+    : atuais.filter((v) => v !== id);
+  return { ...(prefs ?? {}), evitar_exercicios: novos };
+}
+
+export function semEvitados(prefs: Prefs | null | undefined): Prefs {
+  return { ...(prefs ?? {}), evitar_exercicios: [] };
+}
+
+/**
+ * A lista com os "não gosto" no fim, sem perder ninguém e sem embaralhar o
+ * resto (SPEC §14.1.2). A ordem de quem fica é a que chegou.
+ */
+export function evitadosPorUltimo<T>(
+  itens: readonly T[],
+  id: (item: T) => string,
+  prefs: Prefs | null | undefined,
+): T[] {
+  const evitar = new Set(evitarExercicios(prefs));
+  if (evitar.size === 0) return [...itens];
+  const fica = itens.filter((i) => !evitar.has(id(i)));
+  const vai = itens.filter((i) => evitar.has(id(i)));
+  return [...fica, ...vai];
 }

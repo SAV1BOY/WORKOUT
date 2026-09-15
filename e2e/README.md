@@ -89,7 +89,7 @@ curl -s -XPOST localhost:54321/__mock/seed -H 'content-type: application/json' \
 | arquivo | o que é |
 |---|---|
 | `playwright.config.ts` | projeto único "celular", `webServer` do mock + do app |
-| `fixtures.ts` | `resetarMock`, `semear`, `estadoDoMock`, `requisicoesDoMock`, `sessaoNoMock`, `usuarioComPerfil`, `inserirNoMock`, `atualizarNoMock`, `lerDoMock`, `login`, `entrarNoApp`, `esperarAbaTreino`, `irNaAba`, `fixarRelogio`, `fixarData`, `esperarServiceWorker`, `semRolagemHorizontal` |
+| `fixtures.ts` | `comecarNoPlayer`, `abrirVisaoGeral`, `resetarMock`, `semear`, `estadoDoMock`, `requisicoesDoMock`, `sessaoNoMock`, `usuarioComPerfil`, `inserirNoMock`, `atualizarNoMock`, `lerDoMock`, `login`, `entrarNoApp`, `esperarAbaTreino`, `irNaAba`, `fixarRelogio`, `fixarData`, `esperarServiceWorker`, `semRolagemHorizontal` |
 | `login.spec.ts` | e-mail de fora recusado, criar conta → aba Treino, senha errada, sair, entrar de novo |
 | `shell.spec.ts` | navegação inferior (Treino · Explorar · Relatório · Corpo · Mais, alvos ≥ 44 px), cada rota abre, nada rola para o lado, manifest válido |
 | `mock.spec.ts` | o contrato do próprio mock (PostgREST, upsert, `v_records`, storage, RLS) |
@@ -100,8 +100,17 @@ curl -s -XPOST localhost:54321/__mock/seed -H 'content-type: application/json' \
 | `catalogo.spec.ts` | o catálogo dos 81 (busca sem acento, filtros, "no meu programa" batendo com `programa.json`), a ficha com figura/fotos/mapa/passos e o histórico com a linha do tempo do motor |
 | `relatorio.spec.ts` | os cards (treinos, aderência, volume, recordes), os gráficos dos grandes, volume, barra fixa e corrida, a tabela da `v_records` e a tela vazia |
 | `corpo.spec.ts` | peso (vírgula, upsert por data, média móvel), meta em `prefs`, as 8 medidas, a foto subindo para o bucket (URL assinada depois do reload) e a comparação com slider |
+| `player.spec.ts` | o player unificado (SPEC §14.1): preparação → exercício → ✓ → descanso (+20 s, editar, pular) → "firme?" → feedback → conclusão com o resumo do motor; fechar e reabrir no meio do descanso; offline sem perder nada; o circuito de core (reps e tempo); a ficha em folha com Vídeo · Músculos · Tutorial (que só chama o YouTube ao tocar e some sem rede); a visão geral e o gostei/não gosto |
 | `treino-v2.spec.ts` | a camada visual v2 (SPEC §13.2–§13.4): faixa da semana com ✓, meta semanal e sequência, os cards de segunda/terça/quinta/domingo, a lista com miniatura e carga, o "Continuar" da sessão aberta, o ⇄ que vale para a sessão que começa, `/progresso` → `/relatorio`, os raios e o vídeo opcional |
 | `auditoria.spec.ts` | o que os outros não provavam: nenhuma requisição ao Supabase com e-mail de fora, recarregar mantém a sessão, toda rota protegida volta ao login, e o mock recusando coluna/operador/filtro composto inventados |
+
+O marco V2 (SPEC §14.1) pôs o **player** em `/treinar/[sessionId]`: a folha de
+rolagem com todas as séries virou a **visão geral**, atrás do ícone de lista.
+Quem testa série a série chama `abrirVisaoGeral(page)` logo depois de começar o
+treino (ela passa da preparação e abre a folha); quem testa o player usa
+`comecarNoPlayer(page)`, que só passa da preparação. Com o relógio congelado
+(`fixarData`) as contagens do player ficam paradas — é o que deixa os testes
+assertarem "2:30" e "10" exatos.
 
 A camada visual v2 (SPEC §13.3) tirou o título "Hoje" da tela `/`: quem espera
 a tela usa `esperarAbaTreino(page)` (a região "Treino"), e quem troca de aba usa

@@ -284,6 +284,7 @@ export function TelaTreino({ userId }: { userId: string }) {
           itens={itens}
           carregando={estadosQ.isPending && ids.length > 0}
           mostrarRaios={mostrarRaios}
+          prefs={perfil?.prefs}
           aoSubstituir={trocar}
         />
       ) : null}

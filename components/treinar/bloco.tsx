@@ -1,9 +1,9 @@
 "use client";
 
-import { Repeat } from "lucide-react";
+import { CircleHelp, Repeat } from "lucide-react";
 import { useState } from "react";
 import { MediaGrande } from "@/components/exercicio/media-grande";
-import { AjudaExercicio } from "@/components/treinar/ajuda";
+import { FichaEmFolha } from "@/components/exercicio/ficha-folha";
 import { BotaoMontagem } from "@/components/treinar/montagem";
 import { LinhaSerieForm } from "@/components/treinar/serie";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,8 @@ import {
 import { acharExercicio } from "@/lib/dados";
 import { textoDoAlvo } from "@/lib/hoje";
 import type { OpcoesMontagem } from "@/lib/montagem";
+import { evitado, evitadosPorUltimo } from "@/lib/preferencias";
+import type { Prefs } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import {
   cargaEmUso,
@@ -34,6 +36,7 @@ export function BlocoExercicio({
   bloco,
   historico,
   opcoes,
+  prefs,
   temVideo = false,
   aoMudarSerie,
   aoMarcarSerie,
@@ -45,6 +48,8 @@ export function BlocoExercicio({
   /** "subiu +2 kg no treino de 12/09" (SPEC §6.6). */
   historico: string | null;
   opcoes: OpcoesMontagem;
+  /** `profiles.prefs` — o "não gosto" muda a ordem dos substitutos (§14.1.2). */
+  prefs?: Prefs;
   /** Existe `public/videos/<id>.mp4` para este exercício (SPEC §13.1). */
   temVideo?: boolean;
   aoMudarSerie: (serieId: string, campos: Partial<SerieLocal>) => void;
@@ -55,6 +60,7 @@ export function BlocoExercicio({
 }) {
   const exercicio = acharExercicio(bloco.exercicioId);
   const firme = bloco.ultimaFirme ?? firmePadrao(bloco);
+  const [ficha, setFicha] = useState(false);
   let nAquecimento = 0;
   let nTrabalho = 0;
 
@@ -78,7 +84,22 @@ export function BlocoExercicio({
               {bloco.descansoTexto}
             </p>
           </div>
-          <AjudaExercicio exercicioId={bloco.exercicioId} />
+          <Button
+            variant="ghost"
+            size="icon"
+            className="alvo size-11 shrink-0"
+            aria-label={`Como fazer: ${exercicio.nome}`}
+            onClick={() => setFicha(true)}
+          >
+            <CircleHelp className="size-5" />
+          </Button>
+          <FichaEmFolha
+            exercicioId={bloco.exercicioId}
+            aberto={ficha}
+            aoMudarAberto={setFicha}
+            temVideo={temVideo}
+            prefs={prefs}
+          />
         </div>
 
         <p className="text-sm">
@@ -104,6 +125,7 @@ export function BlocoExercicio({
           <Substituir
             exercicioId={bloco.exercicioId}
             temRegistro={bloco.series.some((s) => s.concluida)}
+            prefs={prefs}
             aoEscolher={aoSubstituir}
           />
         </div>
@@ -171,14 +193,16 @@ export function BlocoExercicio({
 function Substituir({
   exercicioId,
   temRegistro,
+  prefs,
   aoEscolher,
 }: {
   exercicioId: string;
   temRegistro: boolean;
+  prefs?: Prefs;
   aoEscolher: (id: string) => void;
 }) {
   const [aberto, setAberto] = useState(false);
-  const lista = substitutosPara(exercicioId);
+  const lista = evitadosPorUltimo(substitutosPara(exercicioId), (e) => e.id, prefs);
   if (lista.length === 0) return null;
 
   return (
@@ -210,6 +234,7 @@ function Substituir({
                   <span className="text-sm font-medium">{e.nome}</span>
                   <span className="text-muted-foreground text-xs">
                     {e.prescricao_padrao.texto} · {e.equipamento_texto}
+                    {evitado(prefs, e.id) ? " · você marcou como evitar" : ""}
                   </span>
                 </button>
               </SheetClose>

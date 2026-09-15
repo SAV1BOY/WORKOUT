@@ -3549,3 +3549,234 @@ dentro do texto de `/explorar` tem 70 × 16 px (é um link em linha, e a tela
 inteira é provisória — some no marco V2), e o pill do `Switch` continua com
 18 px de altura com a área de toque no `::after` (herdado do v1, coberto por
 e2e).
+
+---
+
+## Camada visual v2 — Marco V2 ✅
+
+SPEC §14.1 (player unificado), §14.2 (ficha em folha), §14.4 (preferências novas
+e o card de IMC que a conclusão usa). O v1 continua inteiro por baixo: o motor
+(`lib/progressao.ts`), a montagem (`lib/montagem.ts`) e o que é gravado
+(`session_sets`, `exercise_state`, `progression_events`, `profiles.ultimo_treino`)
+não mudaram uma linha.
+
+### Arquitetura do player
+
+```
+app/(app)/treinar/[sessionId]/page.tsx
+  └── components/player/tela-player.tsx      (o container: passo atual + folhas)
+        ├── components/treinar/usar-sessao.ts  (o estado da sessão, um só)
+        ├── lib/player.ts                      (a sequência de passos, pura)
+        ├── components/player/preparacao.tsx   passo "preparacao"
+        ├── components/player/exercicio.tsx    passo "serie"  (+ controles)
+        ├── components/player/descanso.tsx     passo "descanso" (tela cheia)
+        ├── components/player/firme.tsx        passo "firme"
+        ├── components/player/feedback.tsx     passo "feedback"
+        ├── components/player/conclusao.tsx    passo "conclusao"
+        └── components/treinar/visao-geral.tsx (a folha de rolagem, pelo ícone
+                                                de lista — era a tela do v1)
+```
+
+`useSessaoDeTreino` (`components/treinar/usar-sessao.ts`) é o dono do estado:
+carrega a sessão do Dexie (ou a refaz do banco, §8), grava cada toque,
+enfileira as escritas e roda o motor no fim. O player e a visão geral são duas
+telas da **mesma** sessão — não há duas cópias nem duas gravações concorrentes.
+
+### A máquina de estados (`lib/player.ts`, pura, 35 testes)
+
+`sequenciaDoPlayer(sessao, { preparacaoS, descansoPadraoS })` devolve a lista de
+passos:
+
+```
+preparacao → [por exercício: aquecimentos → séries de trabalho → firme?]
+           → feedback → conclusao
+```
+
+com um **descanso** entre séries do mesmo exercício e outro entre exercícios
+(depois do "firme?"). No Treino A isso dá 18 passos de série (16 de trabalho +
+2 de aquecimento), 6 perguntas "firme?" e 5 descansos entre exercícios.
+
+| peça | o que faz |
+|---|---|
+| `Passo` | união de `preparacao · serie · descanso · firme · feedback · conclusao`, cada um com a **chave** estável que o identifica (`serie:<uuid da série>`) |
+| `EstadoPlayer` | `{ chave, fimEm, totalS }` — onde estamos e quando a contagem acaba. Vive **dentro da sessão** (`SessaoLocal.player`), no Dexie; `escritaDaSessao` não o envia ao banco |
+| `indiceDeRetomada` | sem passo salvo (sessão refeita noutro aparelho): preparação se nada foi marcado, a primeira série que falta se algo foi, feedback se tudo foi |
+| `apos` / `seguinte` / `anterior` | o ✓ vai para o passo seguinte (o descanso); as setas **pulam** os descansos, que são passagem, não destino |
+| `estadoDoPasso` / `restanteS` / `somarSegundos` / `definirDuracao` | o relógio, sempre ancorado em `Date.now()` — nunca uma soma de ticks. "+20 s" empurra o **fim** (a 0:10 de um descanso de 2:30 a resposta é 0:30, não 2:50) |
+| `entradaDoPasso` | o bloco central por tipo: `carga · reps · tempo · passos · maximo · assistida`, mais `unilateral` (dois números, D e E) |
+| `OPCOES_DE_FEEDBACK` | as 5 opções da referência → `sessions.sensacao` |
+| `anterioresPorExercicio` / `serieAnteriorDe` | a linha "anterior: 9,5 kg × 5" |
+
+**Mapeamento do feedback (SPEC §14.1.4):** `sessions.sensacao` é o esforço
+percebido de baixo para cima — **1 = Muito difícil · 2 = Um pouco difícil ·
+3 = Na medida certa · 4 = Um pouco fácil · 5 = Muito fácil**. Na tela as opções
+aparecem na ordem da referência (do mais fácil para o mais difícil), por isso a
+lista começa no 5. O resumo do fim (`components/treinar/resumo.tsx`, usado no
+abandono e no "Concluir" da visão geral) passou a usar **as mesmas cinco
+opções** — antes ele tinha uma escala própria ("péssimo… ótimo") na mesma
+coluna, o que dava dois significados para o mesmo número.
+
+### O que cada tela faz
+
+1. **Preparação** — anel SVG próprio (`components/player/anel.tsx`, sem
+   biblioteca nova), "PREPARADO PARA COMEÇAR", nome do 1º exercício com o "?",
+   "Começar agora". Ao zerar, começa sozinha.
+2. **Exercício** — figura animada grande (ou o vídeo local da §13.1), barra fina
+   de progresso, nome + "?", `Série 2 de 3 · exercício 1 de 6`, o bloco central
+   do tipo com números de 30 px tabulares e steppers − / + de 56 px, "anterior:
+   9,5 kg × 5", "montagem", e no topo os ícones **lista · gostei · não gosto ·
+   Ajustar**. Rodapé fixo **anterior · ✓ · próximo** (56 px).
+3. **Descanso** — tela cheia no laranja escurecido (tokens `--descanso-*` em
+   `globals.css`, texto AA nos dois temas), figura do próximo, "PRÓXIMO 2/6" ou
+   "Série 2 de 3", nome × prescrição, contagem de 72 px, "Editar tempo de
+   descanso", "+20 s", "Pular". Ao zerar: bipe (WebAudio) + vibração onde
+   existir; com `prefs.avancar_sozinho` avança 1 s depois, senão espera o toque.
+4. **"Última repetição saiu firme?"** — Fácil · Firme · Falhei (→ `ultima_firme`
+   true/true/false) e a nota curta. Qual dos dois "sim" foi tocado fica só na
+   tela: a coluna do banco é booleana.
+5. **Feedback** — as cinco opções.
+6. **Conclusão** — capa (foto `-1` do 1º exercício), "Excelente! Você concluiu o
+   treino.", subtítulo (`Treino B · semana 2 da fase`), contadores
+   **Exercícios · Minutos · Volume (kg)**, o **resumo do motor** (↑ = ↓,
+   avisos, sugestões, recordes), o card **Semana N · feitos/meta** com os sete
+   círculos e o troféu, **Peso de hoje** e o card **IMC**, e o "Próximo".
+
+### Ficha em folha (§14.2)
+
+`components/exercicio/ficha-folha.tsx` — um componente só, usado como bottom
+sheet (aba Treino, player, catálogo) e como **página inteira** em
+`/exercicios/[id]` (`comoPagina`): título + Substituir, abas **Vídeo ·
+Músculos · Tutorial**, stepper **Repetições/Duração + Séries** (só com uma
+sessão aberta), Instruções, Erro comum, **Área de foco** em chips (primário
+forte, secundário claro), Montagem, Como progredir, histórico e recorde,
+anterior/próximo (n/N) e Fechar.
+
+- **Tutorial**: `data/tutoriais.json` (81 entradas, uma por exercício) passou a
+  ser validado por `tutorialSchema` em `lib/schemas.ts` (id do YouTube com 11
+  caracteres do alfabeto certo) e lido por `tutorialPorExercicio()` em
+  `lib/dados.ts`; `npm run validar` confere que todo exercício tem tutorial e
+  que nenhum id sobra. A aba mostra a miniatura
+  `https://i.ytimg.com/vi/<id>/hqdefault.jpg` com o play e **só ao tocar** vira
+  `<iframe src="https://www.youtube-nocookie.com/embed/<id>">`. Sem rede
+  (`navigator.onLine` false ou a miniatura falhando) a aba vira "Precisa de
+  internet" + "Abrir no YouTube".
+- **Stepper**: `ajustarPrescricaoDaSessao()` (`lib/sessao.ts`) muda **só** as
+  séries desta sessão — o valor pré-preenchido das que faltam e quantas são —
+  nunca `exercise_state` nem o alvo do motor. Série concluída segura o corte.
+
+### Preferências novas (§14.4)
+
+`components/mais/ajustes-do-treino.tsx` é o mesmo bloco em **Mais →
+Preferências** e no **Ajustar** (engrenagem) do player: preparação (s),
+descanso padrão (s, vazio = o do exercício), avançar sozinho, som, vibração,
+voz, tela acesa, mostrar raios e **limpar "não gosto"**. Tudo em
+`profiles.prefs` (`preparacao_s`, `descanso_padrao_s`, `avancar_sozinho`,
+`evitar_exercicios[]`), com as funções puras em `lib/preferencias.ts`.
+
+**Gostei / não gosto**: o polegar para baixo no player grava
+`prefs.evitar_exercicios[]`; `evitadosPorUltimo()` joga esses ids para o fim da
+lista de substitutos (aba Treino, visão geral e ficha) e do catálogo dos 81,
+com a etiqueta "você marcou como evitar". A ordem do treino do dia **não** é
+mexida: ela é o programa.
+
+### Decisões desta etapa
+
+1. **A sessão só é gravada no "Próximo" da conclusão.** A tela de conclusão
+   mostra `avaliarSessao(...)` — exatamente a decisão que `concluirSessao` vai
+   gravar —, e o botão final chama o mesmo `finalizarSessao` de sempre, com a
+   sensação e o peso do dia. Assim nada muda no que é gravado e o resumo nunca
+   pode divergir do que subiu. Fechar o app na conclusão deixa a sessão aberta,
+   como já acontecia com o diálogo do v1; reabrir volta na conclusão.
+2. **A folha de rolagem virou a visão geral**, atrás do ícone de lista, com os
+   mesmos componentes de série (edição de qualquer série, substituir, montagem,
+   nota) e o mesmo rodapé de Concluir/Abandonar. Ela é um overlay que para em
+   cima da barra de abas — a navegação continua alcançável.
+3. **O passo atual mora dentro da sessão** (`SessaoLocal.player`), não numa
+   tabela nova nem numa coluna do banco: é estado de aparelho. Sessão refeita
+   noutro celular não tem passo salvo e usa `indiceDeRetomada`.
+4. **Defeito real encontrado e corrigido:** `useSessaoDeTreino.mexer()` lia a
+   sessão do fecho da renderização. O ✓ do player faz **duas** mudanças no
+   mesmo toque (marcar a série e andar para o descanso), e a segunda partia do
+   estado de antes da primeira — o registro que acabara de entrar sumia da
+   sessão local (subia para o banco, mas a conclusão avaliava como se nada
+   tivesse sido feito). Agora `mexer` parte de uma referência sempre atual
+   (`ultima.current`).
+5. **`useUltimasSeries`** é uma consulta separada da `useSeriesAnteriores`: uma
+   alimenta a linha "anterior: …" do player (com carga e tempo), a outra
+   alimenta o motor no tipo `maximo` e é pedida para o treino **mais todos os
+   substitutos**. Misturar as duas mudaria o recorte de linhas que o motor vê.
+6. **O aquecimento não mostra "anterior: …"** — a comparação é com a série de
+   trabalho correspondente, e o aquecimento não é comparado com nada.
+7. **Sem dependência nova**: o anel de contagem é um SVG de 60 linhas; o som
+   continua sendo o `apitar()` da WebAudio.
+
+### Testes
+
+- **Unitários: 806 → 863** (+57). Novos: `lib/player.test.ts` (35 — sequência do
+  Treino A com aquecimento, tipos carga/reps/tempo/passos/máximo/assistida/
+  unilateral, retomada, pular, +20 s, editar tempo, feedback, "anterior"),
+  `lib/imc.test.ts` (8), mais os de `ajustarPrescricaoDaSessao`,
+  `contadoresDaSessao` e das preferências novas.
+- **Ponta a ponta: 162 → 171** (+9), todos em `e2e/player.spec.ts`: a
+  coreografia preparação → exercício → ✓ → descanso (+20 s, editar, pular);
+  fechar e reabrir no meio do descanso voltando ao mesmo passo; offline no meio
+  sem perder nada; o Treino A inteiro pelo player até a conclusão com a subida
+  no resumo e o `exercise_state` gravado; o circuito de core (reps e tempo);
+  a ficha com as três abas, o Tutorial só ao tocar (e sumindo sem rede) e o
+  stepper que muda só a sessão; a visão geral; o gostei/não gosto.
+- **Antigos ajustados, sem afrouxar**: `treinar.spec.ts`,
+  `auditoria-offline.spec.ts` e `cardio.spec.ts` passam pelo player até a visão
+  geral (`abrirVisaoGeral` em `fixtures.ts`) e continuam verificando as mesmas
+  asserções; `catalogo.spec.ts` e `auditoria-m5.spec.ts` abrem a aba "Músculos"
+  para o mapa (que agora mora nela) e leem "Instruções" no lugar de "Passos";
+  `treino-v2.spec.ts` confere que a lista do dia abre a **folha** (§14.2);
+  `auditoria-m6.spec.ts` rola até o interruptor (a tela de preferências cresceu).
+
+### Portões (rodados nesta ordem, janela sozinha)
+
+```
+npm run lint   limpo
+npm run build  ✓ Compiled successfully · 90 páginas · 27 rotas
+npm test       Test Files 38 passed (38) · Tests 863 passed (863)
+npm run e2e    171 passed (6.7m) — Chromium 360 × 740
+```
+
+### Como testar no celular
+
+1. `npm run build`, `npm run mock` num terminal e `npm run dev:mock` noutro (ou
+   `npx next start -p 3100` com as três variáveis).
+2. No celular, `http://<ip-do-computador>:3000` → **Começar treino**. O player
+   abre na preparação; toque em "Começar agora".
+3. Toque no ✓: o descanso toma a tela inteira com o próximo passo. Experimente
+   "+20 s", "Editar tempo de descanso" e "Pular"; espere zerar para ouvir o
+   bipe e sentir a vibração.
+4. **Feche o app no meio do descanso e abra de novo**: volta no mesmo passo,
+   com o tempo certo (o relógio é o do sistema).
+5. Toque no "?" → a ficha em folha; passeie pelas abas **Vídeo · Músculos ·
+   Tutorial** (o Tutorial só busca o YouTube quando você toca no play) e mexa
+   no stepper "Só nesta sessão".
+6. Ícone de lista (canto superior esquerdo) → a folha com todas as séries;
+   "Voltar ao treino" fecha.
+7. Vá até o fim: "Última repetição saiu firme?" no fim de cada exercício, o
+   feedback do treino e a conclusão com o resumo do motor, a semana e o IMC.
+   O "Próximo" é quem grava.
+8. **Mais → Preferências → Treino**: mude a preparação para 3 s e o descanso
+   padrão para 45 s, desligue "Avançar sozinho" e comece outro treino.
+
+### Capturas da revisão
+
+`scripts/capturas.ts <pasta> v2` (ferramenta, não portão): `01-preparacao`,
+`02-exercicio-carga` (+ `-claro`), `03-descanso`, `04-firme`,
+`05-exercicio-tempo`, `06-feedback`, `07-conclusao` (+ `-completa` e `-claro`),
+`08-ficha-video`, `09-ficha-musculos`, `10-ficha-tutorial`, `11-visao-geral` —
+todas a 360 × 740. Sem internet na máquina de captura, a aba Tutorial aparece
+no estado "Precisa de internet", que é exatamente o que o Miguel vê no modo
+avião.
+
+### O que falta (marco V3)
+
+Explorar de verdade (coleções derivadas, §13.4 e §14.4), sessão livre com
+`sessions.plano`, circuito guiado (§13.6), Relatório completo (contadores,
+histórico, sequências, Peso e IMC), IMC também no Corpo, e os acréscimos da
+§14.3 na aba Treino (Editar/reordenar, FAB Ajustar, Desafios, Parte do corpo em
+foco, Personalizar). Depois, a auditoria final da §14.5.
