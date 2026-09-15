@@ -1782,3 +1782,83 @@ exatamente o que a fixture do marco 3 existe para fazer.
    linha chega ao mock quando a rede voltar) e a barra do dia cresce no
    histórico de 14 dias. "Fazer sessão de barra fixa" abre a sessão de força com
    um exercício só, 4 × 5, e ao concluir o motor decide a assistência.
+
+## Auditoria do marco 4 (rodada 1) ✅
+
+Conferência independente do marco 4, feita lendo o código e **usando o app** no
+Chromium a 360 × 740 contra o mock (`scripts/mock-supabase.ts`).
+
+### Os quatro portões
+
+`npm run lint` limpo · `npm run build` compila (18 rotas) · `npm test` **556** ·
+`npm run e2e` **84** (eram 78: seis testes novos, nenhum desabilitado).
+
+### O que foi conferido de verdade
+
+- **§10.6** — terça 15/09/2026: a Hoje mostra "Corrida · semana 1 · 8 × (1 min
+  corrida / 2 min caminhada) · 34 min" e o "Começar" leva a
+  `/cardio/corrida?semana=1`; o timer abre **parado** em 5:00 com os 18 blocos
+  (aquecimento 5 min, 8 × 1:00/2:00, soltura 5 min). A troca de bloco **vibra**
+  (`navigator.vibrate`) e **fala** em pt-BR ("corrida", "caminhada") — provado
+  com espiões no `e2e/cardio.spec.ts`, e nada é falado só por abrir a tela.
+  Pausar congela o número, retomar volta, pular passa o bloco sem contá-lo; o
+  `cardio_sessions` grava `planejado.total_s = 2040` e
+  `feito.repeticoes_cumpridas` honesto.
+- **Corda e caminhada** — `semana_corda = 7` abre o estágio "6 × 120 s de corda
+  (60 s de descanso)" e `?semana=1` volta para "6 × 30 s"; caminhada e "outro"
+  são cronômetro simples. O "Fazer corda em vez de corrida" da Hoje troca o card
+  e o "Começar" passa a apontar para `/cardio/corda?semana=…`.
+- **§5.5** — testado com 0, 1 e 2 sessões na semana civil, para corrida e para
+  barra fixa: com 1, `semana_corrida`/`semana_fixa` fica onde estava; com 2,
+  sobe exatamente um degrau (a marca em `prefs.avanco_<plano>_em` impede o
+  segundo empurrão na mesma semana).
+- **§3.4** — a tabela vem inteira de `data/cardio.json` (6 faixas × 12 semanas),
+  a faixa da vez tem `aria-current`, "Fazer sessão de barra fixa" cria
+  `workout_id = 'fixa'` com um exercício só em 4 × 5, e o "+1" grava em
+  `pullup_singles` com o total do dia/semana e o histórico de 14 dias.
+- **§8** — recarregar no meio da corrida continua no bloco certo; sem rede o
+  "Encerrar" volta para a Hoje, o banco continua vazio e a sessão sobe sozinha
+  quando a rede volta.
+- **Celular** — a 360 px, `/cardio/corrida`, `/cardio/corda`, `/cardio/caminhada`
+  e `/barra-fixa` não rolam para o lado e **nenhum** alvo clicável fica abaixo
+  de 44 px; a nav inferior não cobre conteúdo.
+- **Conteúdo** — varredura em `app/`, `lib/` e `components/`: nenhum exercício,
+  série, regra ou texto do guia copiado para o código; nenhum `any`,
+  `console.log`, `TODO` ou `eslint-disable` sem justificativa.
+
+### O que a auditoria consertou
+
+1. **A sessão refeita noutro aparelho fixava "última firme: não"** (era o
+   problema sério). `session_sets.ultima_firme` é gravado a cada série com o
+   padrão **daquele instante** — quando a série 1 sobe, as outras ainda nem
+   foram feitas, então vai `false`; só a conclusão grava o valor final.
+   `reconstruirSessao()` herdava esse retrato parcial, e um treino refeito noutro
+   celular (ou com os dados do site limpos) entrava com o toggle em "não" — o
+   motor **repetia a carga em vez de subir**. Agora a sessão `em_andamento`
+   volta com `ultimaFirme = null` e a tela recalcula o padrão; a sessão já
+   terminada continua honrando o que está gravado. Coberto por
+   `lib/sessao.test.ts` e por um e2e com dois aparelhos.
+2. **`Esforço: facil`** aparecia cru na sessão de cardio registrada; agora sai o
+   texto do JSON ("fácil", "moderado", "forte").
+3. **No fim do plano, "Retomar" e "Pular bloco" não faziam nada** e continuavam
+   na tela. Somem quando o timer termina — sobra "Encerrar e registrar".
+
+### Testes novos (e2e)
+
+`e2e/cardio.spec.ts` ganhou seis: a voz/vibração na troca de bloco, 1 corrida na
+semana civil **não** avançando o plano, o "Encerrar" sem rede (caso de erro), o
+calendário abrindo a corrida registrada com o esforço em pt-BR, 1 × 2 sessões de
+barra fixa na semana civil e a sessão de fixa refeita noutro aparelho.
+
+### O que fica para depois (não bloqueia o marco)
+
+- Caminhada leve e "outro" mostram, no fim, "Distância (opcional)" e o teste da
+  fala; a SPEC §3.3 pede "só duração e nota". Os campos são opcionais e não
+  atrapalham, mas dá para enxugar no marco 6.
+- O teto das semanas de corda e de barra fixa está como `12` no código
+  (`lib/calendario.ts`, `lib/queries/perfil.ts`) em vez de ser lido da última
+  faixa do JSON ("9–12", "11–12").
+- `prescricaoDaSemana()` corta `por_sessao` em `/×|x/`: "5 × máximo" só cai no
+  ramo certo porque "má**x**imo" tem um "x". Funciona, mas é frágil.
+- Uma sessão de barra fixa antiga, refeita noutro aparelho, é remontada com a
+  prescrição da semana **de hoje**, não com a da semana em que foi criada.

@@ -13,6 +13,7 @@ import {
   avancar,
   avancoDeSemana,
   decorridoTotal,
+  niveisDeEsforco,
   planoDeCardio,
   pausar,
   pularBloco,
@@ -37,7 +38,7 @@ import {
 import { aplicarAvanco } from "@/lib/queries/perfil";
 import { useHoje } from "@/lib/relogio";
 import { intervaloDaSemana } from "@/lib/semana";
-import type { LinhaSessaoCardio, TipoCardio } from "@/lib/types";
+import type { Esforco, LinhaSessaoCardio, TipoCardio } from "@/lib/types";
 import { useTelaAcesa } from "@/lib/wake-lock";
 
 /**
@@ -416,10 +417,16 @@ function SessaoRegistrada({
         valor={linha.distancia_km !== null ? formatarKm(linha.distancia_km) : "—"}
       />
       <Linha termo="Saltos" valor={linha.saltos !== null ? String(linha.saltos) : "—"} />
-      <Linha termo="Esforço" valor={linha.esforco ?? "—"} />
+      <Linha termo="Esforço" valor={rotuloDoEsforco(linha.esforco)} />
       <Linha termo="Nota" valor={linha.notas ?? "—"} />
     </dl>
   );
+}
+
+/** "facil" é o valor da coluna; na tela vale o texto do JSON ("fácil"). */
+function rotuloDoEsforco(valor: Esforco | null): string {
+  if (!valor) return "—";
+  return niveisDeEsforco().find((n) => n.valor === valor)?.nivel ?? valor;
 }
 
 function Linha({ termo, valor }: { termo: string; valor: string }) {

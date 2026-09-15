@@ -431,11 +431,23 @@ export function reconstruirSessao(
           registradaEm: gravada.registrada_em,
         } satisfies SerieLocal;
       }),
-      ultimaFirme: primeiroFirme(series, bloco.exercicioId),
+      /*
+       * Numa sessão ainda em andamento o `ultima_firme` gravado em cada série
+       * é só o padrão calculado NO MOMENTO daquela escrita (a série 1 é
+       * gravada quando as outras três ainda nem existem, então vai `false`) — o
+       * valor final só é escrito na conclusão, e o toggle só sai do aparelho
+       * ali. Herdar esse retrato parcial fixava "não" numa sessão refeita
+       * noutro celular e fazia o motor repetir a carga em vez de subir.
+       */
+      ultimaFirme:
+        linha.status === "em_andamento"
+          ? null
+          : primeiroFirme(series, bloco.exercicioId),
     })),
   };
 }
 
+/** O `ultima_firme` que a conclusão gravou (só vale em sessão terminada). */
 function primeiroFirme(series: LinhaSerie[], exercicioId: string): boolean | null {
   const com = series.find(
     (s) => s.exercise_id === exercicioId && s.ultima_firme !== null,

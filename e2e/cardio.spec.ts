@@ -1,4 +1,4 @@
-import { expect, test, type Locator, type Page } from "@playwright/test";
+import { expect, test, type Browser, type Locator, type Page } from "@playwright/test";
 import {
   entrarNoApp,
   inserirNoMock,
@@ -29,6 +29,54 @@ async function abrir(page: Page, quando: string, rota?: string) {
 /** O cartão grande do bloco atual (o resto da tela também diz "Corrida"). */
 function blocoAtual(page: Page): Locator {
   return page.getByRole("region", { name: "Timer de intervalos" });
+}
+
+/**
+ * Troca `navigator.vibrate` e `speechSynthesis` por espiões: o Chromium de
+ * teste não vibra nem fala, e o que interessa é QUE o app avisou na troca.
+ */
+async function espiarAvisos(page: Page) {
+  await page.addInitScript(() => {
+    const janela = window as unknown as { __vibrou: unknown[]; __falou: string[] };
+    janela.__vibrou = [];
+    janela.__falou = [];
+    navigator.vibrate = ((padrao: unknown) => {
+      janela.__vibrou.push(padrao);
+      return true;
+    }) as Navigator["vibrate"];
+    Object.defineProperty(window, "speechSynthesis", {
+      configurable: true,
+      value: {
+        cancel() {},
+        speak(fala: { text: string; lang: string }) {
+          janela.__falou.push(`${fala.lang}:${fala.text}`);
+        },
+      },
+    });
+  });
+}
+
+function avisos(page: Page) {
+  return page.evaluate(() => {
+    const janela = window as unknown as { __vibrou: unknown[]; __falou: string[] };
+    return { vibrou: janela.__vibrou.length, falou: [...janela.__falou] };
+  });
+}
+
+/** Outro celular: contexto novo, IndexedDB vazio, mesma conta. */
+async function outroAparelho(browser: Browser, quando: string, url: string) {
+  const contexto = await browser.newContext({
+    viewport: { width: 360, height: 740 },
+    hasTouch: true,
+    deviceScaleFactor: 2,
+    locale: "pt-BR",
+    timezoneId: "America/Sao_Paulo",
+  });
+  const pagina = await contexto.newPage();
+  await pagina.clock.install({ time: new Date(quando) });
+  await entrarNoApp(pagina);
+  await pagina.goto(url);
+  return { contexto, pagina };
 }
 
 test.beforeEach(async () => {
@@ -179,6 +227,103 @@ test.describe("Cardio — corrida (SPEC §3.3)", () => {
       .toBe(2);
   });
 
+  test("a troca de bloco vibra e fala o nome do bloco (SPEC §3.3)", async ({ page }) => {
+    await usuarioComPerfil({ semana_corrida: 1 });
+    await espiarAvisos(page);
+    await abrir(page, TERCA, "/cardio/corrida");
+
+    await page.getByRole("button", { name: "Começar" }).click();
+    // começar não avisa nada: o aviso é da TROCA de bloco
+    expect(await avisos(page)).toMatchObject({ vibrou: 0, falou: [] });
+
+    await page.clock.runFor(5 * 60_000); // fim do aquecimento → corrida 1
+    await expect(page.getByText("bloco 1 de 8")).toBeVisible();
+    expect(await avisos(page)).toMatchObject({ vibrou: 1, falou: ["pt-BR:corrida"] });
+
+    await page.clock.runFor(60_000); // corrida 1 → caminhada 1
+    await expect(blocoAtual(page)).toContainText("Caminhada");
+    expect(await avisos(page)).toMatchObject({
+      vibrou: 2,
+      falou: ["pt-BR:corrida", "pt-BR:caminhada"],
+    });
+  });
+
+  test("uma corrida só na semana civil NÃO avança o plano (§5.5)", async ({ page }) => {
+    const sessao = await usuarioComPerfil({ semana_corrida: 1 });
+    await abrir(page, TERCA, "/cardio/corrida");
+
+    await page.getByRole("button", { name: "Começar" }).click();
+    await page.clock.runFor(60_000);
+    await page.getByRole("button", { name: "Encerrar e registrar" }).click();
+    await page.getByRole("dialog").getByRole("button", { name: "Salvar e voltar" }).click();
+
+    await expect
+      .poll(async () => (await lerDoMock(sessao, "cardio_sessions")).length, {
+        timeout: 10_000,
+      })
+      .toBe(1);
+    const [perfil] = await lerDoMock<{ semana_corrida: number }>(sessao, "profiles");
+    expect(perfil?.semana_corrida).toBe(1);
+  });
+
+  test("sem rede o 'Encerrar' não perde a sessão: ela sobe quando a rede volta (§8)", async ({
+    page,
+    context,
+  }) => {
+    const sessao = await usuarioComPerfil({ semana_corrida: 1 });
+    await abrir(page, TERCA, "/cardio/corrida");
+    await page.getByRole("button", { name: "Começar" }).click();
+    await page.clock.runFor(60_000);
+
+    await context.setOffline(true);
+    await page.getByRole("button", { name: "Encerrar e registrar" }).click();
+    await page.getByRole("dialog").getByRole("button", { name: "Salvar e voltar" }).click();
+
+    // a tela volta para a Hoje como se nada fosse; o banco continua vazio
+    await expect(page.getByRole("heading", { name: "Hoje" })).toBeVisible();
+    expect(await lerDoMock(sessao, "cardio_sessions")).toHaveLength(0);
+
+    await context.setOffline(false);
+    await expect
+      .poll(async () => (await lerDoMock(sessao, "cardio_sessions")).length, {
+        timeout: 20_000,
+      })
+      .toBe(1);
+  });
+
+  test("o calendário abre a corrida registrada com o esforço em pt-BR (§3.5)", async ({
+    page,
+  }) => {
+    const sessao = await usuarioComPerfil({ semana_corrida: 1 });
+    await inserirNoMock(sessao, "cardio_sessions", [
+      {
+        id: "55555555-5555-4555-8555-555555555555",
+        data: "2026-09-15",
+        tipo: "corrida",
+        semana_plano: 1,
+        concluida: true,
+        duracao_min: 34,
+        distancia_km: 3.6,
+        esforco: "facil",
+        feito: { repeticoes_cumpridas: 8, repeticoes_planejadas: 8 },
+      },
+    ]);
+
+    await abrir(page, "2026-09-16T08:00:00-03:00", "/calendario");
+    await page.getByText("Corrida").first().click();
+    const abrirCardio = page.getByRole("link", { name: "Abrir o cardio" });
+    await expect(abrirCardio).toHaveAttribute(
+      "href",
+      "/cardio/corrida?sessao=55555555-5555-4555-8555-555555555555",
+    );
+    await abrirCardio.click();
+
+    await expect(page.getByText("Sessão registrada")).toBeVisible();
+    await expect(page.getByText("8 de 8")).toBeVisible();
+    await expect(page.getByText("3,6 km")).toBeVisible();
+    await expect(page.getByText("fácil")).toBeVisible();
+  });
+
   test("a corda usa o estágio da semana e a caminhada é só cronômetro", async ({
     page,
   }) => {
@@ -255,5 +400,73 @@ test.describe("Barra fixa (SPEC §3.4)", () => {
         { timeout: 10_000 },
       )
       .toBe("fixa");
+  });
+
+  test("uma sessão de fixa não avança o plano; duas na semana civil avançam (§5.5)", async ({
+    page,
+  }) => {
+    const sessao = await usuarioComPerfil({ semana_fixa: 1 });
+    await inserirNoMock(sessao, "sessions", [
+      {
+        id: "66666666-6666-4666-8666-666666666666",
+        data: "2026-09-14",
+        workout_id: "fixa",
+        fase: "fase1",
+        status: "concluida",
+      },
+    ]);
+
+    await abrir(page, QUINTA, "/barra-fixa");
+    await expect(page.getByText("Semana 1–2 · 4 × 5")).toBeVisible();
+    // com uma só, a semana repete
+    expect((await lerDoMock<{ semana_fixa: number }>(sessao, "profiles"))[0]?.semana_fixa).toBe(1);
+
+    await inserirNoMock(sessao, "sessions", [
+      {
+        id: "77777777-7777-4777-8777-777777777777",
+        data: "2026-09-16",
+        workout_id: "fixa",
+        fase: "fase1",
+        status: "concluida",
+      },
+    ]);
+    await page.reload();
+    await expect
+      .poll(
+        async () =>
+          (await lerDoMock<{ semana_fixa: number }>(sessao, "profiles"))[0]?.semana_fixa,
+        { timeout: 10_000 },
+      )
+      .toBe(2);
+  });
+
+  test("a sessão refeita noutro aparelho mantém 'última firme: sim' (§6.2 e §8)", async ({
+    page,
+    browser,
+  }) => {
+    await usuarioComPerfil({ semana_fixa: 1 });
+    await abrir(page, QUINTA, "/barra-fixa");
+    await page.getByRole("button", { name: "Fazer sessão de barra fixa" }).click();
+    await expect(page.getByText("0/4 séries")).toBeVisible();
+
+    for (let i = 0; i < 4; i++) {
+      await page.getByRole("checkbox").nth(i).click();
+    }
+    await expect(page.getByText("4/4 séries")).toBeVisible();
+    const firme = page.getByRole("switch", { name: /Última repetição firme/ });
+    await expect(firme).toHaveAttribute("aria-checked", "true");
+    await expect(page.getByText("· sincronizado")).toBeVisible();
+
+    /*
+     * Outro celular refaz a sessão do que o banco tem. As séries foram
+     * gravadas uma a uma, então o `ultima_firme` da 1ª é `false` — o padrão
+     * daquele instante, não uma decisão: o toggle tem de continuar em "sim".
+     */
+    const { contexto, pagina } = await outroAparelho(browser, QUINTA, page.url());
+    await expect(pagina.getByText("4/4 séries")).toBeVisible();
+    await expect(
+      pagina.getByRole("switch", { name: /Última repetição firme/ }),
+    ).toHaveAttribute("aria-checked", "true");
+    await contexto.close();
   });
 });

@@ -116,23 +116,26 @@ export function TimerIntervalos({
         faltam {formatarMinutos(total / 60)} de sessão
       </p>
 
-      <div className="flex gap-2">
-        <Button
-          className="alvo h-14 flex-1 text-base font-semibold"
-          onClick={pausado ? aoRetomar : aoPausar}
-        >
-          {pausado ? <Play className="size-5" /> : <Pause className="size-5" />}
-          {pausado ? (naoComecou ? "Começar" : "Retomar") : "Pausar"}
-        </Button>
-        <Button
-          variant="outline"
-          className="alvo h-14 flex-1 text-base"
-          onClick={aoPular}
-        >
-          <SkipForward className="size-5" />
-          Pular bloco
-        </Button>
-      </div>
+      {/* No fim do plano os dois não fazem mais nada: o que resta é encerrar. */}
+      {timer.terminado ? null : (
+        <div className="flex gap-2">
+          <Button
+            className="alvo h-14 flex-1 text-base font-semibold"
+            onClick={pausado ? aoRetomar : aoPausar}
+          >
+            {pausado ? <Play className="size-5" /> : <Pause className="size-5" />}
+            {pausado ? (naoComecou ? "Começar" : "Retomar") : "Pausar"}
+          </Button>
+          <Button
+            variant="outline"
+            className="alvo h-14 flex-1 text-base"
+            onClick={aoPular}
+          >
+            <SkipForward className="size-5" />
+            Pular bloco
+          </Button>
+        </div>
+      )}
     </section>
   );
 }

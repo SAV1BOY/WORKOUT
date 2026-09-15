@@ -812,6 +812,53 @@ describe("reconstruirSessao — voltar de onde parou sem o aparelho de origem", 
       b.series.filter((s) => s.concluida).map((s) => s.id),
     );
   });
+
+  it("sessão em andamento não herda o 'última firme' parcial das séries", () => {
+    /*
+     * As séries sobem uma a uma: quando a 1ª é gravada as outras ainda nem
+     * foram feitas, então o `ultima_firme` daquele instante é `false`. Herdar
+     * esse retrato fixava "não" no aparelho que refizesse a sessão e fazia o
+     * motor repetir a carga em vez de subir (SPEC §6.2).
+     */
+    let s = sessaoA();
+    const gravadas: LinhaSerie[] = [];
+    for (const serie of bloco(s, "agachamento-livre").series) {
+      if (serie.tipo !== "trabalho") continue;
+      const antes = bloco(s, "agachamento-livre");
+      s = marcarSerie(s, antes.ordem, serie.id, true, "2026-09-14T09:30:00.000Z");
+      const agora = bloco(s, "agachamento-livre");
+      const viva = agora.series.find((x) => x.id === serie.id)!;
+      gravadas.push(escritaDaSerie(s, agora, viva).linha as unknown as LinhaSerie);
+    }
+    expect(gravadas[0]?.ultima_firme).toBe(false);
+    expect(gravadas[gravadas.length - 1]?.ultima_firme).toBe(true);
+
+    const linha = {
+      id: "sess-1",
+      user_id: "u1",
+      data: "2026-09-14",
+      workout_id: "A1",
+      fase: "fase1",
+      iniciada_em: "2026-09-14T09:00:00.000Z",
+    } as const;
+
+    const aberta = reconstruirSessao(
+      { ...linha, status: "em_andamento" },
+      gravadas,
+      { novoId: contador("r") },
+    );
+    const refeito = bloco(aberta!, "agachamento-livre");
+    expect(refeito.ultimaFirme).toBeNull();
+    expect(firmePadrao(refeito)).toBe(true);
+
+    // terminada, o valor gravado é o final da conclusão e vale como está
+    const fechada = reconstruirSessao(
+      { ...linha, status: "concluida" },
+      gravadas,
+      { novoId: contador("r") },
+    );
+    expect(bloco(fechada!, "agachamento-livre").ultimaFirme).toBe(false);
+  });
 });
 
 describe("sessão avulsa — a barra fixa da semana (SPEC §3.4)", () => {
