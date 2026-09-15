@@ -180,7 +180,9 @@ export function TelaExercicio({
         exercicioId={bloco.exercicioId}
         temVideo={temVideo}
         semCredito
-        className="h-44"
+        /* h-40: com h-44 o chip "montagem" ficava 1,6 px sob a barra de
+           controles numa série com histórico, a 360 × 740 (§13.8.1) */
+        className="h-40"
       />
 
       <div className="flex items-center justify-center gap-1 px-3">

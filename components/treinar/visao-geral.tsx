@@ -1,6 +1,7 @@
 "use client";
 
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, LogOut } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { BlocoExercicio } from "@/components/treinar/bloco";
 import { ResumoDoFim } from "@/components/treinar/resumo";
@@ -60,17 +61,29 @@ export function VisaoGeralDaSessao({
             {naFila > 0 ? ` · ${naFila} para sincronizar` : " · sincronizado"}
           </p>
         </div>
-        {aoFechar ? (
-          <Button
-            variant="outline"
-            size="icon"
-            className="alvo size-11 shrink-0"
-            aria-label="Voltar ao treino"
-            onClick={aoFechar}
-          >
-            <ChevronDown className="size-5" />
+        <div className="flex shrink-0 items-center gap-1">
+          {/*
+            SPEC §14.1: o player é tela cheia (a barra de abas some), então a
+            saída do treino mora aqui, na lista da sessão. A sessão continua
+            aberta e volta pelo "Continuar" da aba Treino (§3.1).
+          */}
+          <Button asChild variant="ghost" size="icon" className="alvo size-11 shrink-0">
+            <Link href="/" aria-label="Sair do treino">
+              <LogOut className="size-5" />
+            </Link>
           </Button>
-        ) : null}
+          {aoFechar ? (
+            <Button
+              variant="outline"
+              size="icon"
+              className="alvo size-11 shrink-0"
+              aria-label="Voltar ao treino"
+              onClick={aoFechar}
+            >
+              <ChevronDown className="size-5" />
+            </Button>
+          ) : null}
+        </div>
       </header>
 
       {sessao.blocos.map((bloco) => (

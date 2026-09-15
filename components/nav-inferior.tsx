@@ -10,6 +10,7 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ComponentType } from "react";
+import { ehPlayer } from "@/components/miolo";
 import { cn } from "@/lib/utils";
 
 interface Item {
@@ -58,6 +59,12 @@ function ativo(caminho: string, prefixos: string[]): boolean {
 
 export function NavInferior() {
   const caminho = usePathname();
+
+  /*
+   * SPEC §14.1: o player é tela cheia — a saída é pelo ícone de lista/voltar
+   * dele. O Descanso já escondia a barra; agora todos os passos escondem.
+   */
+  if (ehPlayer(caminho)) return null;
 
   return (
     <nav

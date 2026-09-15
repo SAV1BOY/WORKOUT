@@ -4,6 +4,7 @@ import { AquecerMidia } from "@/components/aquecer-midia";
 import { ConfigurarSupabase } from "@/components/configurar-supabase";
 import { SpriteMuscular } from "@/components/sprite-muscular";
 import { TemaDoPerfil } from "@/components/tema-do-perfil";
+import { Miolo } from "@/components/miolo";
 import { NavInferior } from "@/components/nav-inferior";
 import {
   SUPABASE_ANON_KEY,
@@ -41,9 +42,7 @@ export default async function LayoutApp({
       <SpriteMuscular />
       <TemaDoPerfil />
       <AquecerMidia />
-      <main className="pt-segura mx-auto w-full max-w-lg px-4 pt-4 pb-24">
-        {children}
-      </main>
+      <Miolo>{children}</Miolo>
       <NavInferior />
     </div>
   );
