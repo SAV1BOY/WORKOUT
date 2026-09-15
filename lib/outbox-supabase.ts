@@ -11,7 +11,7 @@ import {
   supabaseConfiguradoNoNavegador,
 } from "@/lib/supabase/client";
 import { enfileirar, definirEnviador, processar } from "@/lib/outbox";
-import type { ItemSaida, TipoSaida } from "@/lib/db";
+import { bd, temIndexedDB, type ItemSaida, type TipoSaida } from "@/lib/db";
 
 export type Operacao = "insert" | "upsert" | "update" | "delete";
 
@@ -26,6 +26,42 @@ export interface EscritaTabela {
   filtro?: Record<string, string | number | boolean>;
 }
 
+/**
+ * Envio de um arquivo para o Storage (SPEC §3.8). O blob **não** viaja no
+ * item da fila: ele mora em `bd().fotos` até o bucket confirmar, então a
+ * galeria mostra a foto offline e o app pode fechar no meio do envio.
+ */
+export interface EscritaArquivo {
+  bucket: string;
+  /** `<user_id>/<data>-<angulo>.jpg` — a mesma chave da tabela local. */
+  caminho: string;
+  contentType?: string;
+}
+
+function ehEscritaArquivo(valor: unknown): valor is EscritaArquivo {
+  if (typeof valor !== "object" || valor === null) return false;
+  const v = valor as Partial<EscritaArquivo>;
+  return typeof v.bucket === "string" && typeof v.caminho === "string";
+}
+
+/** Sobe o blob guardado no aparelho; some com ele só depois do sucesso. */
+async function enviarArquivo(p: EscritaArquivo): Promise<void> {
+  if (!temIndexedDB()) return;
+  const pendente = await bd().fotos.get(p.caminho);
+  // já subiu numa tentativa anterior (ou o usuário apagou): nada a fazer
+  if (!pendente) return;
+
+  const { error } = await clienteNavegador()
+    .storage.from(p.bucket)
+    .upload(p.caminho, pendente.blob, {
+      upsert: true,
+      contentType: p.contentType ?? pendente.blob.type ?? "image/jpeg",
+    });
+  if (error) throw new Error(error.message);
+
+  await bd().fotos.delete(p.caminho);
+}
+
 function ehEscrita(valor: unknown): valor is EscritaTabela {
   if (typeof valor !== "object" || valor === null) return false;
   const v = valor as Partial<EscritaTabela>;
@@ -34,6 +70,10 @@ function ehEscrita(valor: unknown): valor is EscritaTabela {
 
 /** Envia um item da fila. Lançar aqui faz a fila tentar de novo depois. */
 export async function enviarItem(item: ItemSaida): Promise<void> {
+  if (ehEscritaArquivo(item.payload)) {
+    await enviarArquivo(item.payload);
+    return;
+  }
   if (!ehEscrita(item.payload)) {
     throw new Error("item da fila sem tabela ou operação");
   }
@@ -97,4 +137,9 @@ export async function enfileirarEscrita(
   escrita: EscritaTabela,
 ): Promise<void> {
   await enfileirar(tipo, escrita);
+}
+
+/** Enfileira o envio de um arquivo do Storage (o blob já está no Dexie). */
+export async function enfileirarArquivo(escrita: EscritaArquivo): Promise<void> {
+  await enfileirar("foto", escrita);
 }

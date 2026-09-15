@@ -1,13 +1,8 @@
-import { EmConstrucao } from "@/components/em-construcao";
+import { TelaProgresso } from "@/components/progresso/tela-progresso";
 
 export const metadata = { title: "Progresso — Treino do Terraço" };
+export const dynamic = "force-dynamic";
 
 export default function Progresso() {
-  return (
-    <EmConstrucao
-      titulo="Progresso"
-      descricao="Treinos concluídos, volume semanal, recordes e os gráficos de carga."
-      marco={5}
-    />
-  );
+  return <TelaProgresso />;
 }

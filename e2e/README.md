@@ -89,7 +89,7 @@ curl -s -XPOST localhost:54321/__mock/seed -H 'content-type: application/json' \
 | arquivo | o que é |
 |---|---|
 | `playwright.config.ts` | projeto único "celular", `webServer` do mock + do app |
-| `fixtures.ts` | `resetarMock`, `semear`, `estadoDoMock`, `requisicoesDoMock`, `sessaoNoMock`, `usuarioComPerfil`, `inserirNoMock`, `atualizarNoMock`, `lerDoMock`, `login`, `entrarNoApp`, `fixarRelogio`, `fixarData`, `semRolagemHorizontal` |
+| `fixtures.ts` | `resetarMock`, `semear`, `estadoDoMock`, `requisicoesDoMock`, `sessaoNoMock`, `usuarioComPerfil`, `inserirNoMock`, `atualizarNoMock`, `lerDoMock`, `login`, `entrarNoApp`, `fixarRelogio`, `fixarData`, `esperarServiceWorker`, `semRolagemHorizontal` |
 | `login.spec.ts` | e-mail de fora recusado, criar conta → Hoje, senha errada, sair, entrar de novo |
 | `shell.spec.ts` | navegação inferior (5 itens, alvos ≥ 44 px), cada rota abre, nada rola para o lado, manifest válido |
 | `mock.spec.ts` | o contrato do próprio mock (PostgREST, upsert, `v_records`, storage, RLS) |
@@ -97,6 +97,9 @@ curl -s -XPOST localhost:54321/__mock/seed -H 'content-type: application/json' \
 | `calendario.spec.ts` | a grade da semana (A/B alternando, marcações, o que falta), navegação entre semanas, troca de tipo de um dia futuro e a regra da semana curta |
 | `treinar.spec.ts` | a sessão de força série a série, o timer de descanso, offline, recarregar no meio, concluir com o motor decidindo |
 | `cardio.spec.ts` | o timer de intervalos da corrida (`page.clock.runFor`), a corda, o cronômetro da caminhada, o registro em `cardio_sessions`, o avanço da semana do plano (§5.5) e a tela `/barra-fixa` (semana destacada, "+1", sessão `workout_id = 'fixa'`) |
+| `catalogo.spec.ts` | o catálogo dos 81 (busca sem acento, filtros, "no meu programa" batendo com `programa.json`), a ficha com figura/fotos/mapa/passos e o histórico com a linha do tempo do motor |
+| `progresso.spec.ts` | os cards (treinos, aderência, volume, recordes), os gráficos dos grandes, volume, barra fixa e corrida, a tabela da `v_records` e a tela vazia |
+| `corpo.spec.ts` | peso (vírgula, upsert por data, média móvel), meta em `prefs`, as 8 medidas, a foto subindo para o bucket (URL assinada depois do reload) e a comparação com slider |
 | `auditoria.spec.ts` | o que os outros não provavam: nenhuma requisição ao Supabase com e-mail de fora, recarregar mantém a sessão, toda rota protegida volta ao login, e o mock recusando coluna/operador/filtro composto inventados |
 
 `fixarRelogio(page)` congela o relógio **do navegador** em 14/09/2026 (a
@@ -121,6 +124,12 @@ Atenção com `page.clock`, que tem três usos diferentes:
 - `fixarData(page, quando)` = `page.clock.setFixedTime`: fixa só a data e deixa
   os temporizadores correndo de verdade. É o que os testes que dependem de
   `setTimeout` (cache do TanStack Query, debounce do IndexedDB) precisam.
+`esperarServiceWorker(page)` espera `navigator.serviceWorker.controller` deixar
+de ser `null` — é o que "o app instalado" quer dizer. Registrar o SW não basta:
+enquanto o precache não fecha, uma navegação offline morre em
+`ERR_INTERNET_DISCONNECTED` sem nem chegar ao service worker. Chame antes de
+`context.setOffline(true)` em qualquer teste que dependa do app abrir sem rede.
+
 - **Nunca** `page.clock.pauseAt` neste app: com o relógio totalmente parado o
   Dexie não responde e a tela fica no esqueleto para sempre.
 
@@ -155,7 +164,9 @@ dependência nova). Estado em memória, por processo.
   `GET /storage/v1/object/authenticated|sign|public/progresso/<caminho>`,
   `POST /storage/v1/object/sign/...` (URL assinada de mentira),
   `POST /storage/v1/object/list/progresso`, `DELETE /storage/v1/object/progresso`
-  com `{prefixes:[…]}`.
+  com `{prefixes:[…]}`. O upload do navegador chega como `multipart/form-data`
+  (é o que o supabase-js manda com um `Blob`): o mock desembrulha e guarda só o
+  arquivo, com o `Content-Type` da parte — como o Storage de verdade faz.
 - **Controle** — `GET /__mock/health`, `GET /__mock/estado`,
   `POST /__mock/reset`, `POST /__mock/seed`. O `/estado` traz também
   `requisicoes`: tudo que chegou ao mock desde o último reset (sem contar

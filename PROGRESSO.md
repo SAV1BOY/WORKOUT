@@ -1862,3 +1862,237 @@ barra fixa na semana civil e a sessão de fixa refeita noutro aparelho.
   ramo certo porque "má**x**imo" tem um "x". Funciona, mas é frágil.
 - Uma sessão de barra fixa antiga, refeita noutro aparelho, é remontada com a
   prescrição da semana **de hoje**, não com a da semana em que foi criada.
+
+---
+
+## Marco 5 — Catálogo, progresso e corpo ✅
+
+As três telas que faltavam (SPEC §3.6, §3.7 e §3.8): o catálogo dos 81
+exercícios com a ficha completa, a tela de progresso com os gráficos e a tela
+do corpo com peso, medidas e fotos.
+
+### O que foi feito
+
+**Agregações puras (com testes)**
+
+Nenhuma conta mora na tela. Três módulos novos, sem React, Supabase ou Dexie:
+
+- `lib/catalogo.ts` — a busca e os filtros da §3.6:
+  ```ts
+  semAcento(texto) · idsDoPrograma() · treinosDoExercicio(id)
+  filtrarExercicios(lista, filtros, doPrograma) · temFiltro · opcoesDoCatalogo()
+  itemDoCatalogo(exercicio) · NOME_IMPLEMENTO · NOME_EQUIPAMENTO
+  ```
+  A busca casa **todas** as palavras digitadas contra o nome sem acento
+  ("triceps" acha "Tríceps", "supino reto" acha o supino reto). Os filtros se
+  somam; "está no meu programa" cruza com os `exercicio_id` de `programa.json`.
+- `lib/progresso.ts` — as contas da §3.7, todas a partir das linhas cruas:
+  ```ts
+  datasDasSessoes · dataDaSerie · semanasAte · rotuloDaSemana
+  serieDeTrabalho · repsDaSerie · volumeDaSerie · volumePorSemana · volumeDaSemana
+  treinosConcluidos(sessoes, hoje) · aderencia({hoje, perfil, overrides, …})
+  cargaPorSessao(series, porSessao, id) · e1rmEpley · sessoesDoExercicio
+  idsDeBarraFixa · barraFixaPorSemana · minutosCorrendo · corridaPorSemana
+  recordesRecentes · ordenarRecordes · diasDesde
+  ```
+- `lib/corpo.ts` — as contas da §3.8:
+  ```ts
+  pontosDePeso · mediaMovel(linhas, 7) · variacaoPorSemana · ultimoPeso
+  metaDePeso(prefs) · faltaParaMeta · diasDesdeAPesagem
+  MEDIDAS (os 8 campos) · serieDeMedida · medidasPorData · variacaoDaMedida
+  ANGULOS · caminhoDaFoto(userId, data, angulo) · fotosPorData
+  parDeComparacao · angulosEmComum · dimensoesReduzidas(w, h, 1600)
+  ```
+
+**Telas**
+
+- `/exercicios` (server) + `components/exercicios/lista-exercicios.tsx`
+  (client): campo de busca com limpar, três seletores (grupo, implemento,
+  equipamento), o botão "No meu programa" e a contagem viva ("12 de 81
+  exercícios"). Cada card tem a figura (ou a primeira foto) em 56 px, nome,
+  grupo · equipamento, a prescrição padrão e a etiqueta "no programa".
+- `/exercicios/[id]` (server, **`generateStaticParams` com os 81 ids** — o
+  build mostra `● (SSG)` e as 81 rotas): figura animada, as duas fotos (toque
+  abre em tela cheia), mapa muscular com os nomes, equipamento, montagem,
+  passos numerados, erro comum, prescrição padrão, carga inicial com o rótulo
+  do implemento e a regra de progressão — **todo o texto vem do JSON**.
+- `components/exercicios/historico-exercicio.tsx` (client) fecha a ficha com o
+  histórico: "onde você está" (o `AlvoDeHoje` de `cargaDeHoje`, que já aplica os
+  fallbacks da §6.1), o recorde da `v_records` (carga, reps e e1RM de Epley),
+  o gráfico carga × data (reps × data quando o exercício não tem carga), as
+  últimas 10 sessões com as séries feitas e a linha do tempo dos
+  `progression_events` ("subiu +2 kg no treino de 14/09", §6.6).
+- `/progresso` (client): quatro cards (treinos na semana/mês/total, aderência
+  das últimas 4 semanas, volume da semana, recordes dos últimos 30 dias), a
+  lista de recordes recentes, um gráfico de carga por sessão para cada um dos
+  três grandes + desenvolvimento militar, volume semanal (12 semanas), barra
+  fixa por semana (séries + soltas, barras empilhadas), corrida (minutos
+  correndo e km por semana) e a tabela de recordes da `v_records`. No topo, o
+  link para o catálogo — é por ele que se chega em `/exercicios` (o item
+  "Progresso" do rodapé já acendia nessa rota desde o marco 1).
+- `/corpo` (client) com abas **Peso · Medidas · Fotos**:
+  - **Peso**: data (padrão hoje) + kg com vírgula, `unique (user_id, data)` →
+    upsert; gráfico do peso com a média móvel de 7 dias **de calendário**;
+    variação por semana civil; meta opcional guardada em `profiles.prefs.meta_peso`.
+  - **Medidas**: os 8 campos em cm com a dica de onde passar a fita, upsert por
+    data, seletor de medida + gráfico e a tabela dos últimos 12 registros.
+  - **Fotos**: frente/lado/costas por data, reduzidas para ≤ 1600 px no próprio
+    aparelho (`lib/imagem.ts`, canvas → JPEG 0,82), galeria por dia e a
+    comparação de duas datas com `input[type=range]` e `clip-path`.
+
+**Gráficos**
+
+`components/graficos/grafico.tsx` (Recharts) tem os dois desenhos que o app
+usa — linha e barras — com as cores do tema, eixo x ralo (uns 6 rótulos a
+360 px), dica de toque em pt-BR e `isAnimationActive={false}`. Funcionam com
+**1 ponto e com 30** (critério §10.7). `components/graficos/index.tsx` carrega
+esse módulo com `next/dynamic` (`ssr: false`), e `apoio.tsx` tem o que não
+depende da biblioteca (legenda e "sem dados"): o Recharts sozinho valia 110 kB
+na primeira carga da ficha (462 → 352 kB).
+
+**Fotos: do canvas ao bucket, sem perder nada (§3.8 + §8)**
+
+1. A tela reduz a imagem e guarda o **blob no Dexie** (`bd().fotos`, v3 do
+   banco local, chave = o caminho no bucket).
+2. A fila de saída recebe dois itens: o envio do arquivo
+   (`enfileirarArquivo`, tipo `foto`) e o upsert da linha em `progress_photos`.
+3. `lib/outbox-supabase.ts` ganhou o ramo de Storage: lê o blob do Dexie, sobe
+   com `upsert: true` e **só então** apaga o blob local. Se o app fechar no
+   meio, o blob continua lá e a fila tenta de novo.
+4. A galeria mostra a foto na hora pelo blob local; depois que ela sobe, a URL
+   vem assinada (`createSignedUrl`, 1 h) do bucket privado.
+
+**Leituras**
+
+- `lib/queries/progresso.ts`: `useSessoesTodas()` (500 sessões), 
+  `useSeriesDesde(de)` (as séries da janela de 12 semanas), 
+  `useSeriesDoExercicio(id)` e `useTodosOsRecordes()` (`v_records`).
+- `lib/queries/corpo.ts`: `usePesos`, `useMedidas`, `useFotos`,
+  `useUrlsDasFotos` (blob local ou URL assinada) e as escritas
+  `registrarPeso`, `registrarMedidas`, `enviarFoto` — todas pela fila.
+
+### Decisões
+
+- **As contas ficam em `lib/*.ts` puro; `lib/queries/*` só busca linha.** O
+  pedido do marco era "consultas por agregação em `lib/queries/progresso.ts`
+  com funções puras testadas": as consultas estão lá, e as agregações em
+  `lib/progresso.ts` — importar o módulo de agregação num teste do Vitest não
+  arrasta o TanStack Query nem o cliente do Supabase.
+- **A data de uma série vem da sessão** (`sessions.data`), não de
+  `registrada_em`: o mock (e o PostgREST) não fazem `select` embutido, então a
+  tela lê as sessões e as séries em duas consultas e cruza os ids na memória.
+  Sem a sessão na janela, vale o dia de `registrada_em` — que é sempre dela.
+- **Volume conta os dois lados do unilateral** (Σ (reps + reps_lado2) × kg) e
+  **não conta peso do corpo** (0 kg × reps = 0), como a §3.7 define.
+- **Aderência = dias, não sessões**: para cada dia das últimas 4 semanas,
+  `lib/calendario.semanaDoPlano` diz se era força ou cardio (descanso não
+  conta), e o dia é "feito" se houver sessão concluída (ou cardio concluído)
+  naquela data. Dias antes de `profiles.data_inicio` e dias no futuro ficam
+  fora: o que ainda não aconteceu não é falta.
+- **"Recorde recente" é o recorde que NASCEU na janela.** Para cada exercício
+  se acha o melhor valor de todas as séries e o **primeiro** dia em que ele
+  apareceu; repetir a mesma carga não vira recorde novo.
+- **Minutos correndo saem dos blocos de corrida do `feito`** (o timer do marco
+  4 grava bloco a bloco); sem blocos — sessão importada, caminhada
+  cronometrada — cai na duração total.
+- **A média móvel do peso é de 7 dias de calendário**, não das 7 últimas
+  pesagens: quem pesa três vezes numa semana e some duas não vê a linha mentir.
+- **Um gráfico por grande, não quatro linhas num só.** A 360 px quatro séries
+  com datas diferentes viram rabisco; quatro gráficos de 140 px, cada um com a
+  carga atual ao lado do nome, se leem de relance.
+- **A ficha é estática e o histórico é client.** O layout autenticado continua
+  `force-dynamic` (ele lê cookies), mas a página do exercício declara
+  `generateStaticParams` e o build a prerenderiza para os 81 ids; o `middleware`
+  continua mandando quem não tem sessão para `/login` (tem teste e2e).
+- **A foto é guardada como JPEG**, sempre com o caminho
+  `<user_id>/<data>-<angulo>.jpg` da policy do bucket: trocar a foto do mesmo
+  dia e ângulo substitui o arquivo e reaproveita a linha em `progress_photos`
+  (não existe `unique` nessa tabela — quem casa é o caminho).
+
+### Um defeito do mock que este marco expôs
+
+`scripts/mock-supabase.ts` guardava o **corpo cru** do upload. O supabase-js
+manda o arquivo do navegador dentro de um `multipart/form-data` (um campo de
+`cacheControl` e o arquivo); o Storage de verdade desembrulha e guarda só o
+arquivo, com o tipo dele. O mock guardava o envelope inteiro e devolvia
+`content-type: multipart/form-data` — a foto baixava "com sucesso" e nenhum
+navegador a decodificava (`naturalWidth === 0`). Entrou `extrairDoMultipart()`,
+com teste no contrato do mock (`e2e/mock.spec.ts`).
+
+### Um teste antigo que este marco consertou
+
+`e2e/treinar.spec.ts` > "fechar o app sem rede e abrir de novo" supunha que
+**um `reload` bastava** para o service worker estar no controle. Não basta:
+enquanto o precache não fecha, `navigator.serviceWorker.controller` é `null` e
+a aba nova morre em `ERR_INTERNET_DISCONNECTED` sem nem chegar ao SW. O teste
+passava por sorte e quebrou quando o precache cresceu com as telas deste marco.
+Entrou a fixture `esperarServiceWorker(page)` (espera o controller aparecer —
+uns 800 ms) e o teste passou a usá-la antes de cortar a rede. Nenhuma asserção
+foi afrouxada.
+
+### Testes
+
+- **Unitários** (`npm test`, **612**): `lib/catalogo.test.ts` (13),
+  `lib/progresso.test.ts` (26) e `lib/corpo.test.ts` (17) novos — a busca sem
+  acento, os filtros somados e a conta do "no meu programa" contra
+  `programa.json`; volume por semana (inclusive as vazias), unilateral e peso
+  do corpo, aderência com dia trocado para descanso e com sessão abandonada,
+  carga por sessão com 1 ponto, e1RM, as últimas sessões agrupadas, barra fixa
+  (séries + soltas), minutos correndo com e sem blocos, recorde recente que
+  nasceu antes da janela; média móvel de 7 dias de calendário, variação por
+  semana, meta, as 8 medidas, o agrupamento das fotos, o par da comparação e o
+  redimensionamento para 1600 px.
+- **E2E** (`npm run e2e`, **99**): `e2e/catalogo.spec.ts` (5) — a lista com os
+  81, a busca "triceps", a ficha com figura, as duas fotos, frente e costas do
+  mapa, passos, prescrição e carga inicial; a foto em tela cheia; o filtro "no
+  meu programa" batendo com `programa.json`; a rota protegida sem sessão; e a
+  ficha com histórico, recorde, gráfico e "subiu +2 kg no treino de 14/09".
+  `e2e/progresso.spec.ts` (4) — os cards (2 treinos na semana, 100 % de
+  aderência em 3 dias, 193 kg de volume), os gráficos dos grandes (inclusive o
+  vazio do desenvolvimento militar), volume, barra fixa, corrida e a tabela da
+  `v_records`, a tela vazia sem nenhum treino e o link do recorde para a ficha.
+  `e2e/corpo.spec.ts` (5) — peso com vírgula no gráfico e no banco (e o upsert
+  do mesmo dia), a meta em `profiles.prefs`, as medidas na tabela e no banco, a
+  foto (PNG gerado no teste) subindo para `progresso/<user_id>/<data>-frente.jpg`
+  e aparecendo na galeria — com a URL assinada de verdade depois do reload — e
+  a comparação de duas datas com o slider. Mais 1 teste novo no contrato do
+  mock (upload multipart).
+
+### O que falta
+
+- Marco 6: `/mais` (perfil, equipamento com os pesos das barras, preferências,
+  backup), polimento offline, Lighthouse e deploy.
+- As fotos não têm como ser apagadas pela tela (o bucket e a tabela aceitam);
+  entra no marco 6 junto com o resto do perfil.
+- `/progresso` lê 12 semanas de séries numa consulta só (limite de 3000
+  linhas). Um ano inteiro de treino ainda cabe, mas quando o histórico crescer
+  vale trocar por uma view de agregação no Postgres.
+
+### Como testar no celular (marco 5)
+
+1. `npm run build && npm run e2e` — 99 testes verdes a 360 × 740
+   (`npm test` fecha em 612).
+2. À mão: `npm run mock` num terminal e `npm run dev:mock` no outro (troque
+   `127.0.0.1` pelo IP do computador nas três variáveis para abrir pelo
+   celular). Entre com `miguelgsaviotti29@gmail.com`.
+3. **Progresso → Catálogo de exercícios**: digite "triceps" (sem acento) e veja
+   os exercícios de tríceps; toque em "No meu programa" e a lista cai para os
+   exercícios dos treinos. Nada pode rolar para o lado.
+4. Abra **Supino reto com barra**: a figura anima sozinha, as duas fotos abrem
+   em tela cheia no toque, o boneco destaca peitoral (primário) e tríceps e
+   ombro (secundários), e embaixo estão montagem, passos, erro comum,
+   "3 × 5–8", "7,5 kg na barra" e a regra de progressão.
+5. Faça um treino (ou use o que já registrou) e volte à ficha: "onde você está"
+   mostra a carga de hoje, o recorde aparece, o gráfico ganha um ponto por
+   sessão e a linha do tempo explica "subiu +2 kg no treino de …".
+6. Em **Progresso**, confira os quatro cards e role: um gráfico por grande,
+   volume semanal, barra fixa (séries + soltas) e a corrida em minutos e km.
+7. Em **Corpo → Peso**: registre `82,4` (vírgula) e veja o ponto no gráfico com
+   a linha tracejada da média de 7 dias; guarde uma meta e o card passa a dizer
+   quanto falta.
+8. **Corpo → Medidas**: preencha cintura e peito, salve, e escolha "Cintura" no
+   seletor para ver o gráfico; a tabela rola para o lado dentro do próprio card.
+9. **Corpo → Fotos**: tire a foto de frente pelo celular — ela aparece na hora
+   (ainda no aparelho) e sobe sozinha. Ligue o **modo avião** antes de tirar
+   outra: a foto aparece igual e o envio espera a rede voltar. Com duas datas,
+   a comparação abre com o slider; arraste e veja a foto antiga aparecendo.

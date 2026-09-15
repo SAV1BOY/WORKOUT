@@ -6,6 +6,7 @@ import { expect, test, type Page } from "@playwright/test";
 import {
   atualizarNoMock,
   entrarNoApp,
+  esperarServiceWorker,
   fixarData,
   inserirNoMock,
   lerDoMock,
@@ -712,7 +713,9 @@ test.describe("timer, tela acesa e voltar sem rede (SPEC §3.2, §8 e §10.3)", 
   }) => {
     const sessao = await comecarTreinoA(page);
     const url = page.url();
-    // a segunda carga já é controlada pelo service worker (o app instalado)
+    // "o app instalado": só com o service worker no controle uma aba nova
+    // abre a sessão sem rede (o precache leva quase um segundo para fechar)
+    await esperarServiceWorker(page);
     await page.reload();
     await expect(page.getByRole("heading", { name: "Treino A", level: 1 })).toBeVisible();
 

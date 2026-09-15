@@ -238,6 +238,50 @@ test.describe("mock do Supabase", () => {
     expect((await json(depois)) as unknown[]).toHaveLength(0);
   });
 
+  test("storage: o upload multipart guarda o arquivo, não o envelope", async ({
+    request,
+  }) => {
+    // é assim que o supabase-js sobe um Blob do navegador (SPEC §3.8)
+    const caminho = `${userId}/2026-09-14-lado.jpg`;
+    const limite = "----WebKitFormBoundaryTeste";
+    const conteudo = "bytes-da-foto";
+    const corpo = Buffer.from(
+      `--${limite}\r\n` +
+        `Content-Disposition: form-data; name="cacheControl"\r\n\r\n3600\r\n` +
+        `--${limite}\r\n` +
+        `Content-Disposition: form-data; name=""; filename="foto.jpg"\r\n` +
+        `Content-Type: image/jpeg\r\n\r\n${conteudo}\r\n` +
+        `--${limite}--\r\n`,
+      "latin1",
+    );
+
+    const enviada = await request.post(
+      `${URL_MOCK}/storage/v1/object/progresso/${caminho}`,
+      {
+        headers: {
+          authorization: `Bearer ${token}`,
+          "content-type": `multipart/form-data; boundary=${limite}`,
+        },
+        data: corpo,
+      },
+    );
+    expect(enviada.status()).toBe(200);
+
+    const baixada = await request.get(
+      `${URL_MOCK}/storage/v1/object/authenticated/progresso/${caminho}`,
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+    expect(await baixada.text()).toBe(conteudo);
+    expect(baixada.headers()["content-type"]).toBe("image/jpeg");
+
+    const lista = await request.post(`${URL_MOCK}/storage/v1/object/list/progresso`, {
+      headers: comSessao(),
+      data: { prefix: userId },
+    });
+    const arquivos = (await json(lista)) as { metadata?: { size?: number } }[];
+    expect(arquivos[0]?.metadata?.size).toBe(conteudo.length);
+  });
+
   test("a semente enche as tabelas e o reset esvazia", async ({ request }) => {
     const semeado = await request.post(`${URL_MOCK}/__mock/seed`, {
       headers: { "content-type": "application/json" },

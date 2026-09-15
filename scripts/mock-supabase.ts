@@ -1106,6 +1106,38 @@ function conferirCaminho(usuario: Usuario, bucket: string, caminho: string): voi
   }
 }
 
+/**
+ * O supabase-js manda o upload do navegador como `multipart/form-data` (um
+ * campo de cacheControl e o arquivo). O Storage de verdade desembrulha e
+ * guarda só o arquivo, com o tipo dele; guardar o corpo cru faria o mock
+ * devolver um "JPEG" que nenhum navegador decodifica — fingir sucesso.
+ */
+function extrairDoMultipart(
+  bruto: Buffer,
+  contentType: string,
+): { bytes: Buffer; tipo: string } | null {
+  const marca = /boundary=(?:"([^"]+)"|([^;]+))/i.exec(contentType);
+  const limite = (marca?.[1] ?? marca?.[2] ?? "").trim();
+  if (!limite) return null;
+
+  // latin1 preserva byte a byte: dá para fatiar texto sem estragar binário
+  const texto = bruto.toString("latin1");
+  for (const pedaco of texto.split(`--${limite}`)) {
+    const corte = pedaco.indexOf("\r\n\r\n");
+    if (corte < 0) continue;
+    const cabecalhos = pedaco.slice(0, corte);
+    if (!/filename=/i.test(cabecalhos)) continue;
+    let corpo = pedaco.slice(corte + 4);
+    if (corpo.endsWith("\r\n")) corpo = corpo.slice(0, -2);
+    const tipo = /content-type:\s*([^\r\n;]+)/i.exec(cabecalhos)?.[1]?.trim();
+    return {
+      bytes: Buffer.from(corpo, "latin1"),
+      tipo: tipo ?? "application/octet-stream",
+    };
+  }
+  return null;
+}
+
 function infoArquivo(nome: string, arquivo: Arquivo): Linha {
   return {
     name: nome,
@@ -1224,9 +1256,24 @@ async function rotaStorage(
     if (existente && metodo === "POST" && req.headers["x-upsert"] !== "true") {
       throw new ErroMock(409, "The resource already exists", { error: "Duplicate" });
     }
+
+    const tipoDaRequisicao = String(
+      req.headers["content-type"] ?? "application/octet-stream",
+    );
+    let bytes = bruto;
+    let tipo = tipoDaRequisicao;
+    if (tipoDaRequisicao.startsWith("multipart/form-data")) {
+      const parte = extrairDoMultipart(bruto, tipoDaRequisicao);
+      if (!parte) {
+        throw new ErroMock(400, "mock: upload multipart sem arquivo dentro");
+      }
+      bytes = parte.bytes;
+      tipo = parte.tipo;
+    }
+
     arquivos.set(chave, {
-      bytes: bruto,
-      tipo: String(req.headers["content-type"] ?? "application/octet-stream"),
+      bytes,
+      tipo,
       criado_em: existente?.criado_em ?? agora(),
       atualizado_em: agora(),
     });

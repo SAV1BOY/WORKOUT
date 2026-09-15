@@ -1,6 +1,7 @@
 "use client";
 
 import { CircleHelp } from "lucide-react";
+import Link from "next/link";
 import { FiguraExercicio, FotosExercicio } from "@/components/exercicio/midia";
 import { MapaMuscular } from "@/components/mapa-muscular";
 import { Button } from "@/components/ui/button";
@@ -90,6 +91,13 @@ export function AjudaExercicio({ exercicioId }: { exercicioId: string }) {
             <h3 className="text-sm font-semibold">Como progredir</h3>
             <p className="text-muted-foreground text-sm">{exercicio.progressao.regra}</p>
           </section>
+
+          <Link
+            href={`/exercicios/${exercicio.id}`}
+            className="alvo border-border hover:bg-accent flex items-center justify-center rounded-lg border py-3 text-sm font-medium"
+          >
+            Abrir a ficha completa
+          </Link>
         </div>
       </SheetContent>
     </Sheet>

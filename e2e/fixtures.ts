@@ -125,6 +125,19 @@ export async function fixarData(
   await page.clock.setFixedTime(new Date(quando));
 }
 
+/**
+ * Espera o service worker assumir o controle da página — é o que "o app
+ * instalado" quer dizer (SPEC §8). Registrar não basta: enquanto o precache
+ * não termina, `navigator.serviceWorker.controller` é `null` e uma navegação
+ * offline morre em ERR_INTERNET_DISCONNECTED sem nem chegar ao SW.
+ */
+export async function esperarServiceWorker(page: Page, timeout = 60_000): Promise<void> {
+  await page.waitForFunction(() => Boolean(navigator.serviceWorker.controller), null, {
+    timeout,
+    polling: 200,
+  });
+}
+
 /** A 360 px nada pode vazar para o lado. */
 export async function semRolagemHorizontal(page: Page): Promise<void> {
   const vazou = await page.evaluate(

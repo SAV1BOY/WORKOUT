@@ -21,7 +21,8 @@ export type TipoSaida =
   | "barra_fixa_solta"
   | "agenda"
   | "peso"
-  | "medidas";
+  | "medidas"
+  | "foto";
 
 /** Item da fila de saída para o Supabase. */
 export interface ItemSaida {
@@ -44,6 +45,20 @@ export interface CardioAtivo {
   atualizadoEm: number;
 }
 
+/**
+ * Foto de progresso esperando subir (SPEC §3.8): o blob fica aqui até o
+ * Storage confirmar, então a galeria mostra a foto mesmo sem rede e nada se
+ * perde se o app fechar no meio do envio.
+ */
+export interface FotoPendente {
+  /** `<user_id>/<data>-<angulo>.jpg`, o mesmo caminho do bucket. */
+  caminho: string;
+  blob: Blob;
+  data: string;
+  angulo: string;
+  criadoEm: number;
+}
+
 /** Cache simples chave/valor (última leitura de telas, preferências locais). */
 export interface ItemCache {
   chave: string;
@@ -54,6 +69,7 @@ export interface ItemCache {
 export class BancoLocal extends Dexie {
   sessaoAtiva!: EntityTable<SessaoAtiva, "id">;
   cardioAtivo!: EntityTable<CardioAtivo, "id">;
+  fotos!: EntityTable<FotoPendente, "caminho">;
   outbox!: EntityTable<ItemSaida, "id">;
   cache!: EntityTable<ItemCache, "chave">;
 
@@ -68,6 +84,10 @@ export class BancoLocal extends Dexie {
     // como estavam — o Dexie migra sozinho quem já tem o banco no aparelho.
     this.version(2).stores({
       cardioAtivo: "id, atualizadoEm",
+    });
+    // v3: as fotos de progresso ainda não confirmadas pelo Storage (marco 5).
+    this.version(3).stores({
+      fotos: "caminho, criadoEm",
     });
   }
 }
