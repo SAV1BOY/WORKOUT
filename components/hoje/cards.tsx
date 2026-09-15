@@ -143,18 +143,18 @@ function DetalheDaCorda({ sessao }: { sessao: SessaoCardioDoDia }) {
 export function CardCardio({
   sessao,
   alternativaCorda,
-  href,
   nomeDoProximoTreino,
   aviso,
 }: {
   sessao: SessaoCardioDoDia;
   alternativaCorda: SessaoCardioDoDia | null;
-  href: string;
   nomeDoProximoTreino: string;
   aviso: string | null;
 }) {
   const [comCorda, setComCorda] = useState(false);
   const mostrada = comCorda && alternativaCorda ? alternativaCorda : sessao;
+  /* SPEC §3.3: a rota é o tipo da sessão (corrida | corda | caminhada). */
+  const href = `/cardio/${mostrada.tipo}?semana=${mostrada.semana}`;
 
   return (
     <Card>
@@ -171,7 +171,7 @@ export function CardCardio({
         )}
 
         <Button asChild className={GRANDE}>
-          <Link href={comCorda ? `${href}?tipo=corda` : href}>Começar</Link>
+          <Link href={href}>Começar</Link>
         </Button>
 
         {alternativaCorda ? (

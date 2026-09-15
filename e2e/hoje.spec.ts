@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import {
+  fixarData,
   fixarRelogio,
   inserirNoMock,
   lerDoMock,
@@ -204,8 +205,13 @@ test.describe("Hoje — faixa de status e treino aberto (SPEC §3.1)", () => {
 
 test.describe("Hoje — cache persistido (SPEC §8)", () => {
   test("a leitura é guardada no IndexedDB para a próxima abertura", async ({ page }) => {
-    // sem relógio falso: o cache é salvo por um setTimeout, que o page.clock congela
+    /*
+     * `fixarData` (page.clock.setFixedTime) e não `fixarRelogio`: o cache é
+     * salvo por um setTimeout, que o `page.clock.install` congela. Sem fixar a
+     * data, o teste só passa quando o dia real é de força.
+     */
     await usuarioComPerfil();
+    await fixarData(page, SEGUNDA);
     await entrarNoApp(page);
     await expect(page.getByText(/^Fase 1 · semana/)).toBeVisible();
 
@@ -239,8 +245,13 @@ test.describe("Hoje — auditoria do marco 2", () => {
     page,
     context,
   }) => {
-    // sem relógio falso: o cache é salvo por um setTimeout, que o page.clock congela
+    /*
+     * `fixarData` (page.clock.setFixedTime) e não `fixarRelogio`: o cache é
+     * salvo por um setTimeout, que o `page.clock.install` congela. Sem fixar a
+     * data, o teste só passa quando o dia real é de força.
+     */
     await usuarioComPerfil();
+    await fixarData(page, SEGUNDA);
     await entrarNoApp(page);
     await expect(page.getByText("Começar treino")).toBeVisible();
     // o persistidor guarda no máximo 1× por segundo

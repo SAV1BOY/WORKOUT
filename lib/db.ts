@@ -34,6 +34,16 @@ export interface ItemSaida {
   erro?: string;
 }
 
+/**
+ * Sessão de cardio em andamento (SPEC §3.3): o estado do timer vive aqui, então
+ * recarregar a página ou fechar o app não perde a sessão.
+ */
+export interface CardioAtivo {
+  id: string;
+  dados: unknown;
+  atualizadoEm: number;
+}
+
 /** Cache simples chave/valor (última leitura de telas, preferências locais). */
 export interface ItemCache {
   chave: string;
@@ -43,6 +53,7 @@ export interface ItemCache {
 
 export class BancoLocal extends Dexie {
   sessaoAtiva!: EntityTable<SessaoAtiva, "id">;
+  cardioAtivo!: EntityTable<CardioAtivo, "id">;
   outbox!: EntityTable<ItemSaida, "id">;
   cache!: EntityTable<ItemCache, "chave">;
 
@@ -52,6 +63,11 @@ export class BancoLocal extends Dexie {
       sessaoAtiva: "id, atualizadoEm",
       outbox: "++id, tipo, proximaTentativa, criadoEm",
       cache: "chave, atualizadoEm",
+    });
+    // v2: a sessão de cardio em andamento (marco 4). As tabelas da v1 continuam
+    // como estavam — o Dexie migra sozinho quem já tem o banco no aparelho.
+    this.version(2).stores({
+      cardioAtivo: "id, atualizadoEm",
     });
   }
 }

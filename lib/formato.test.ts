@@ -4,6 +4,7 @@ import {
   formatarData,
   formatarDataCompleta,
   formatarDataLonga,
+  formatarDescanso,
   formatarDuracao,
   formatarKg,
   formatarKm,
@@ -79,5 +80,14 @@ describe("rótulo da convenção de carga", () => {
     // SPEC §4: no implemento `anilha` a carga é a anilha segurada — nunca "na barra"
     expect(rotuloDaCarga("anilha")).toBe("na anilha");
     expect(rotuloDaCarga("peso_corporal")).toBe("peso do corpo");
+  });
+});
+
+describe("formatarDescanso", () => {
+  it("segundos, minutos redondos e minutos com resto", () => {
+    expect(formatarDescanso(90)).toBe("90 s");
+    expect(formatarDescanso(45)).toBe("45 s");
+    expect(formatarDescanso(120)).toBe("2 min");
+    expect(formatarDescanso(150)).toBe("2 min 30 s");
   });
 });

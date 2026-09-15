@@ -52,7 +52,7 @@ create table if not exists public.sessions (
   id            uuid primary key default gen_random_uuid(),
   user_id       uuid not null references auth.users(id) on delete cascade,
   data          date not null,
-  workout_id    text not null,                           -- 'A1','B1','SA','IA','SB','IB' (ou 'livre')
+  workout_id    text not null,                           -- 'A1','B1','SA','IA','SB','IB', 'livre' ou 'fixa' (sessão de barra fixa, §3.4)
   fase          text not null,
   status        text not null default 'em_andamento',    -- 'em_andamento' | 'concluida' | 'abandonada'
   iniciada_em   timestamptz not null default now(),

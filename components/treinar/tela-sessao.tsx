@@ -8,6 +8,12 @@ import { BlocoExercicio } from "@/components/treinar/bloco";
 import { ResumoDoFim } from "@/components/treinar/resumo";
 import { TimerDescanso, type DescansoAtivo } from "@/components/treinar/timer-descanso";
 import { Button } from "@/components/ui/button";
+import {
+  EXERCICIO_DA_SESSAO,
+  WORKOUT_BARRA_FIXA,
+  itemDaSessao,
+  prescricaoDaSemana,
+} from "@/lib/barra-fixa";
 import { acharExercicio, acharTreino } from "@/lib/dados";
 import { formatarDuracao } from "@/lib/formato";
 import { textoDoEvento, ultimoEventoPorExercicio } from "@/lib/hoje";
@@ -33,6 +39,7 @@ import { estadosPorExercicio } from "@/lib/hoje";
 import {
   atualizarSerie,
   avaliarSessao,
+  ehTreinoDoPrograma,
   definirFirme,
   definirNota,
   idsComSubstitutos,
@@ -64,11 +71,27 @@ export function TelaSessao({ sessaoId }: { sessaoId: string }) {
   const prefs = perfilQ.data?.prefs ?? {};
   const sessaoQ = useSessao(sessao === null ? sessaoId : null);
   const seriesQ = useSeriesDaSessao(sessao === null ? sessaoId : null);
-  const treinoId =
-    sessaoQ.data && sessaoQ.data.workout_id !== "livre" ? sessaoQ.data.workout_id : null;
+  /*
+   * A sessão de barra fixa (SPEC §3.4) não é um treino do `programa.json`:
+   * os exercícios dela vêm do plano da semana (`profiles.semana_fixa`), e é
+   * essa lista que refaz a sessão quando ela não está neste aparelho.
+   */
+  const workoutId = sessaoQ.data?.workout_id ?? null;
+  const ehFixa = workoutId === WORKOUT_BARRA_FIXA;
+  const semanaFixa = perfilQ.data?.semana_fixa ?? 1;
+  const itensDaFixa = useMemo(
+    () => (ehFixa ? [itemDaSessao(semanaFixa)] : undefined),
+    [ehFixa, semanaFixa],
+  );
+  const treinoId = workoutId && ehTreinoDoPrograma(workoutId) ? workoutId : null;
   const idsDoTreino = useMemo(
-    () => (treinoId ? acharTreino(treinoId).exercicios.map((e) => e.exercicio_id) : []),
-    [treinoId],
+    () =>
+      treinoId
+        ? acharTreino(treinoId).exercicios.map((e) => e.exercicio_id)
+        : ehFixa
+          ? [EXERCICIO_DA_SESSAO]
+          : [],
+    [treinoId, ehFixa],
   );
   /*
    * SPEC §6.3: "o substituto usa o próprio estado". A troca pode acontecer a
@@ -136,12 +159,15 @@ export function TelaSessao({ sessaoId }: { sessaoId: string }) {
     if (sessao !== null) return;
     const linha = sessaoQ.data;
     if (!linha || seriesQ.isPending || !dadosDoMotor) return;
-    const refeita = reconstruirSessao(linha, seriesQ.data ?? [], { ...dadosDoMotor });
+    const refeita = reconstruirSessao(linha, seriesQ.data ?? [], {
+      ...dadosDoMotor,
+      itens: itensDaFixa,
+    });
     if (refeita) {
       salvarSessaoLocal(refeita);
       setSessao(refeita);
     }
-  }, [sessao, sessaoQ.data, seriesQ.data, seriesQ.isPending, dadosDoMotor]);
+  }, [sessao, sessaoQ.data, seriesQ.data, seriesQ.isPending, dadosDoMotor, itensDaFixa]);
 
   /* --------------------------------------------- relógio e saída da aba */
 
@@ -235,7 +261,11 @@ export function TelaSessao({ sessaoId }: { sessaoId: string }) {
     );
   }
 
-  const treino = sessao.workoutId === "livre" ? null : acharTreino(sessao.workoutId);
+  const treino = ehTreinoDoPrograma(sessao.workoutId)
+    ? acharTreino(sessao.workoutId)
+    : null;
+  const plano =
+    sessao.workoutId === WORKOUT_BARRA_FIXA ? prescricaoDaSemana(semanaFixa) : null;
   const progresso = progressoDaSessao(sessao);
   const decorridoS = Math.max(
     0,
@@ -254,10 +284,10 @@ export function TelaSessao({ sessaoId }: { sessaoId: string }) {
 
       <header className="flex flex-col gap-0.5">
         <h1 className="text-2xl font-semibold tracking-tight">
-          {treino?.nome ?? "Treino"}
+          {treino?.nome ?? (plano ? "Barra fixa" : "Treino")}
         </h1>
         <p className="text-muted-foreground text-sm">
-          {treino?.foco ?? ""}
+          {treino?.foco ?? (plano ? `semana ${plano.faixa} · ${plano.texto}` : "")}
           {naFila > 0 ? ` · ${naFila} para sincronizar` : " · sincronizado"}
         </p>
       </header>

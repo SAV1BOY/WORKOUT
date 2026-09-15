@@ -19,9 +19,11 @@ import {
   escritaDaSerie,
   escritaDaSessao,
   montarSessao,
+  montarSessaoAvulsa,
   notasDaSessao,
   type BlocoLocal,
   type Conclusao,
+  type EntradaAvulsa,
   type EntradaMontagem,
   type Escrita,
   type SerieLocal,
@@ -131,8 +133,30 @@ export interface EntradaCriacao extends Omit<EntradaMontagem, "id"> {
 export async function criarSessao(entrada: EntradaCriacao): Promise<SessaoLocal> {
   const { cliente, ...resto } = entrada;
   const id = entrada.id ?? novoId();
-  const sessao = montarSessao({ ...resto, id, novoId });
+  return registrarSessaoNova(montarSessao({ ...resto, id, novoId }), cliente);
+}
 
+export interface EntradaCriacaoAvulsa extends Omit<EntradaAvulsa, "id"> {
+  cliente: QueryClient;
+  id?: string;
+}
+
+/**
+ * "Fazer sessão de barra fixa" (SPEC §3.4): a mesma sessão de força, com os
+ * exercícios vindo do plano da semana em vez do `programa.json`.
+ */
+export async function criarSessaoAvulsa(
+  entrada: EntradaCriacaoAvulsa,
+): Promise<SessaoLocal> {
+  const { cliente, ...resto } = entrada;
+  const id = entrada.id ?? novoId();
+  return registrarSessaoNova(montarSessaoAvulsa({ ...resto, id, novoId }), cliente);
+}
+
+async function registrarSessaoNova(
+  sessao: SessaoLocal,
+  cliente: QueryClient,
+): Promise<SessaoLocal> {
   await gravar(sessao);
   await enfileirar("sessao", escritaDaSessao(sessao));
 

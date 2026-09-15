@@ -39,9 +39,22 @@ import type {
   MotivoProgressao,
   StatusSessao,
   TipoSerie,
+  WorkoutId,
 } from "@/lib/types";
 
 /* ----------------------------------------------------------------- tipos */
+
+/**
+ * O que `sessions.workout_id` pode ser: um treino do programa, "livre" (treino
+ * fora do plano) ou "fixa", a sessão de barra fixa da SPEC §3.4 — que não é um
+ * treino do programa e por isso não mexe na alternância da §5.2.
+ */
+export type { WorkoutId };
+
+/** É um treino do programa (só eles avançam `profiles.ultimo_treino`)? */
+export function ehTreinoDoPrograma(id: WorkoutId): id is TreinoId {
+  return id !== "livre" && id !== "fixa";
+}
 
 /** Uma linha de série na tela e no `session_sets`. */
 export interface SerieLocal {
@@ -105,7 +118,7 @@ export interface SessaoLocal {
   id: string;
   userId: string;
   data: string;
-  workoutId: TreinoId | "livre";
+  workoutId: WorkoutId;
   fase: FaseId;
   status: StatusSessao;
   iniciadaEm: string;
@@ -234,12 +247,50 @@ export function seriesDeAquecimento(
   }));
 }
 
+/** Um exercício da sessão antes de virar bloco (o programa ou um plano). */
+export interface ItemDaSessao {
+  exercicioId: string;
+  prescricao: Alvo;
+  descansoS: number;
+  /** "2–3 min", "90 s" — o texto que a tela mostra. */
+  descansoTexto: string;
+}
+
+/** Os itens de um treino do programa (data/programa.json). */
+export function itensDoTreino(id: TreinoId): ItemDaSessao[] {
+  return exerciciosDoTreinoTipado(id).map(({ item, exercicio }) => ({
+    exercicioId: exercicio.id,
+    prescricao: prescricaoDoTreino(item, exercicio),
+    descansoS: item.descanso_s,
+    descansoTexto: item.descanso_texto,
+  }));
+}
+
+/**
+ * Uma sessão que não vem de um treino do programa (SPEC §3.4: a sessão de
+ * barra fixa da semana, com um exercício só e as séries/reps do plano).
+ */
+export interface EntradaAvulsa extends Omit<EntradaMontagem, "treinoId"> {
+  workoutId: WorkoutId;
+  itens: ItemDaSessao[];
+}
+
 /**
  * As linhas iniciais da sessão, a partir do programa e do estado de cada
  * exercício (SPEC §3.2). O aquecimento entra no **primeiro** exercício pesado
  * (`categoria = composto_pesado`) do treino.
  */
 export function montarSessao(e: EntradaMontagem): SessaoLocal {
+  const { treinoId, ...resto } = e;
+  return montarSessaoAvulsa({
+    ...resto,
+    workoutId: treinoId,
+    itens: itensDoTreino(treinoId),
+  });
+}
+
+/** A mesma montagem, com os exercícios vindo de fora do programa (§3.4). */
+export function montarSessaoAvulsa(e: EntradaAvulsa): SessaoLocal {
   const novoId = e.novoId ?? idPadrao;
   const opcoes = e.opcoesMontagem ?? {};
   const estados = e.estados ?? {};
@@ -249,8 +300,9 @@ export function montarSessao(e: EntradaMontagem): SessaoLocal {
 
   let aquecimentoUsado = false;
 
-  const blocos = exerciciosDoTreinoTipado(e.treinoId).map(({ item, exercicio }, i) => {
-    const prescricao = prescricaoDoTreino(item, exercicio);
+  const blocos = e.itens.map((item, i) => {
+    const exercicio = acharExercicio(item.exercicioId);
+    const prescricao = item.prescricao;
     const estado = estados[exercicio.id] ?? null;
     const alvo = cargaDeHoje(exercicio, estado, prescricao, opcoes);
 
@@ -273,8 +325,8 @@ export function montarSessao(e: EntradaMontagem): SessaoLocal {
       originalId: exercicio.id,
       substituido: false,
       prescricao,
-      descansoS: item.descanso_s,
-      descansoTexto: item.descanso_texto,
+      descansoS: item.descansoS,
+      descansoTexto: item.descansoTexto,
       alvo,
       estado,
       estadoConhecido: e.estadoConhecido !== false,
@@ -292,7 +344,7 @@ export function montarSessao(e: EntradaMontagem): SessaoLocal {
     id: e.id,
     userId: e.userId,
     data: e.data,
-    workoutId: e.treinoId,
+    workoutId: e.workoutId,
     fase: e.fase,
     status: "em_andamento",
     iniciadaEm: agora,
@@ -322,15 +374,31 @@ function exerciciosDoTreinoTipado(id: TreinoId) {
 export function reconstruirSessao(
   linha: Pick<LinhaSessao, "id" | "user_id" | "data" | "workout_id" | "fase" | "status" | "iniciada_em">,
   series: LinhaSerie[],
-  resto: Omit<EntradaMontagem, "id" | "userId" | "data" | "treinoId" | "fase"> = {},
+  resto: Omit<EntradaMontagem, "id" | "userId" | "data" | "treinoId" | "fase"> & {
+    /** Sessão fora do programa (§3.4): os itens não estão em `programa.json`. */
+    itens?: ItemDaSessao[];
+  } = {},
 ): SessaoLocal | null {
+  const { itens, ...semItens } = resto;
+  /*
+   * Um treino "livre" não tem lista de exercícios em lugar nenhum, e uma
+   * sessão de barra fixa (§3.4) só dá para refazer com os itens do plano da
+   * semana, que a tela passa: sem eles é melhor não refazer nada do que
+   * inventar uma sessão diferente da que foi registrada.
+   */
   if (linha.workout_id === "livre") return null;
-  const base = montarSessao({
-    ...resto,
+  const doPrograma = ehTreinoDoPrograma(linha.workout_id)
+    ? itensDoTreino(linha.workout_id)
+    : null;
+  const lista = itens ?? doPrograma;
+  if (!lista) return null;
+  const base = montarSessaoAvulsa({
+    ...semItens,
     id: linha.id,
     userId: linha.user_id,
     data: linha.data,
-    treinoId: linha.workout_id,
+    workoutId: linha.workout_id,
+    itens: lista,
     fase: linha.fase,
     agora: linha.iniciada_em,
   });
@@ -1051,7 +1119,7 @@ export function concluirSessao(entrada: EntradaConclusao): Conclusao {
   // As notas do bloco viram a nota da série (o schema não tem nota por bloco):
   // a nota curta fica em `sessions.notas`, montada abaixo.
 
-  if (concluida && sessao.workoutId !== "livre") {
+  if (concluida && ehTreinoDoPrograma(sessao.workoutId)) {
     escritas.push({
       tabela: "profiles",
       op: "update",

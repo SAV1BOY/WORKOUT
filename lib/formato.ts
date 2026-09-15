@@ -82,6 +82,18 @@ export function formatarMinutos(minutos: number): string {
   return m === 0 ? `${h} h` : `${h} h ${String(m).padStart(2, "0")}`;
 }
 
+/**
+ * Texto do descanso no estilo do guia: 90 → "90 s", 120 → "2 min",
+ * 150 → "2 min 30 s". Abaixo de dois minutos o guia conta em segundos.
+ */
+export function formatarDescanso(segundos: number): string {
+  const total = Math.max(0, Math.round(segundos));
+  if (total < 120) return `${total} s`;
+  const m = Math.floor(total / 60);
+  const s = total % 60;
+  return s === 0 ? `${m} min` : `${m} min ${s} s`;
+}
+
 /** "24,5" ou "24.5" → 24.5 · vazio → null */
 export function lerNumero(texto: string): number | null {
   const limpo = texto.trim().replace(/\s/g, "").replace(",", ".");

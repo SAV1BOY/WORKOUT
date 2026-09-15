@@ -5,6 +5,12 @@
 import type { Assistencia, FaseId, TreinoId } from "@/lib/schemas";
 
 export type StatusSessao = "em_andamento" | "concluida" | "abandonada";
+/**
+ * `sessions.workout_id`: um treino do programa, "livre" (treino fora do plano)
+ * ou "fixa" — a sessão de barra fixa da SPEC §3.4, que não é um treino do
+ * programa. A coluna é `text` no schema.
+ */
+export type WorkoutId = TreinoId | "livre" | "fixa";
 export type TipoSerie = "aquecimento" | "trabalho";
 export type TipoCardio = "corrida" | "corda" | "caminhada" | "outro";
 export type Esforco = "facil" | "moderado" | "forte";
@@ -67,7 +73,7 @@ export interface LinhaSessao {
   id: string;
   user_id: string;
   data: string;
-  workout_id: TreinoId | "livre";
+  workout_id: WorkoutId;
   fase: FaseId;
   status: StatusSessao;
   iniciada_em: string;

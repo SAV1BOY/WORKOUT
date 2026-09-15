@@ -188,9 +188,10 @@ test.describe("Calendário — auditoria do marco 2", () => {
 
     await page.getByRole("button", { name: /^ter 15\/09/ }).click();
     const dialogo = page.getByRole("dialog");
+    // SPEC §3.3: a rota é por TIPO; o id da sessão vai em `?sessao=`
     await expect(dialogo.getByRole("link", { name: "Abrir o cardio" })).toHaveAttribute(
       "href",
-      "/cardio/22222222-2222-4222-8222-222222222222",
+      "/cardio/corrida?sessao=22222222-2222-4222-8222-222222222222",
     );
   });
 

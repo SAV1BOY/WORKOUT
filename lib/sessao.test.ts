@@ -4,6 +4,7 @@
  * o estado do banco, a tela e a fila de saída.
  */
 import { describe, expect, it } from "vitest";
+import { WORKOUT_BARRA_FIXA, itemDaSessao } from "@/lib/barra-fixa";
 import { acharExercicio } from "@/lib/dados";
 import { estadoInicial, type EstadoExercicio } from "@/lib/progressao";
 import {
@@ -16,6 +17,7 @@ import {
   firmePadrao,
   marcarSerie,
   montarSessao,
+  montarSessaoAvulsa,
   montagemDaCarga,
   notasDaSessao,
   progressoDaSessao,
@@ -809,5 +811,86 @@ describe("reconstruirSessao — voltar de onde parou sem o aparelho de origem", 
     expect(reconstruido.series.filter((s) => s.concluida).map((s) => s.id)).toEqual(
       b.series.filter((s) => s.concluida).map((s) => s.id),
     );
+  });
+});
+
+describe("sessão avulsa — a barra fixa da semana (SPEC §3.4)", () => {
+  function fixa(semana = 1) {
+    return montarSessaoAvulsa({
+      id: "fixa-1",
+      userId: "u1",
+      data: "2026-09-17",
+      workoutId: WORKOUT_BARRA_FIXA,
+      itens: [itemDaSessao(semana)],
+      fase: "fase1",
+      agora: "2026-09-17T09:00:00.000Z",
+      novoId: contador("f"),
+    });
+  }
+
+  it("um bloco só, com as séries e reps do plano da semana", () => {
+    const sessao = fixa(1);
+    expect(sessao.workoutId).toBe("fixa");
+    expect(sessao.blocos).toHaveLength(1);
+    const bloco = sessao.blocos[0]!;
+    expect(bloco.exercicioId).toBe("barra-fixa-assistida");
+    expect(bloco.prescricao).toMatchObject({ series: 4, tipo: "reps", min: 5, max: 5 });
+    // peso corporal: nenhuma série de aquecimento com barra (SPEC §3.2)
+    expect(bloco.series.every((s) => s.tipo === "trabalho")).toBe(true);
+    expect(bloco.series).toHaveLength(4);
+    expect(bloco.series[0]?.repsAlvoMax).toBe(5);
+    expect(progressoDaSessao(sessao)).toMatchObject({ feitas: 0, total: 4 });
+  });
+
+  it("a semana 11 pede 5 × máximo (o tipo `maximo` do motor)", () => {
+    const bloco = fixa(11).blocos[0]!;
+    expect(bloco.prescricao).toMatchObject({ series: 5, tipo: "maximo" });
+    expect(bloco.series).toHaveLength(5);
+    expect(bloco.series[0]?.reps).toBeNull();
+  });
+
+  it("concluir NÃO mexe em profiles.ultimo_treino (não é treino do programa, §5.2)", () => {
+    const sessao = fixa(1);
+    const { escritas } = concluirSessao({
+      sessao: { ...sessao, status: "concluida" },
+      agora: "2026-09-17T09:30:00.000Z",
+      novoId: contador("e"),
+    });
+    expect(escritas.some((e) => e.tabela === "profiles")).toBe(false);
+    expect(escritas[0]).toMatchObject({ tabela: "sessions", op: "update" });
+  });
+
+  it("a sessão volta do banco com os itens do plano", () => {
+    const voltou = reconstruirSessao(
+      {
+        id: "fixa-1",
+        user_id: "u1",
+        data: "2026-09-17",
+        workout_id: "fixa",
+        fase: "fase1",
+        status: "em_andamento",
+        iniciada_em: "2026-09-17T09:00:00.000Z",
+      },
+      [],
+      { itens: [itemDaSessao(1)], novoId: contador("r") },
+    );
+    expect(voltou?.blocos[0]?.exercicioId).toBe("barra-fixa-assistida");
+
+    // sem os itens não dá para refazer: melhor nada do que uma sessão errada
+    expect(
+      reconstruirSessao(
+        {
+          id: "fixa-1",
+          user_id: "u1",
+          data: "2026-09-17",
+          workout_id: "fixa",
+          fase: "fase1",
+          status: "em_andamento",
+          iniciada_em: "2026-09-17T09:00:00.000Z",
+        },
+        [],
+        { novoId: contador("r") },
+      ),
+    ).toBeNull();
   });
 });

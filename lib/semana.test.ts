@@ -171,3 +171,22 @@ describe("intervalo da semana", () => {
     });
   });
 });
+
+describe("grade — a rota do dia de cardio (SPEC §3.3)", () => {
+  it("guarda o tipo da sessão de cardio registrada, não só o id", () => {
+    const perfil = { fase_atual: "fase1", ultimo_treino: null, fase_desde: "2026-09-14" } as const;
+    const semana = semanaDoPlano("2026-09-15", perfil);
+    const grade = montarGrade(
+      semana,
+      [],
+      [{ id: "c1", data: "2026-09-15", tipo: "corda", concluida: true }],
+      "2026-09-16",
+    );
+    const terca = grade.find((d) => d.data === "2026-09-15");
+    expect(terca?.marca).toBe("feito");
+    expect(terca?.sessaoId).toBe("c1");
+    expect(terca?.sessaoTipo).toBe("corda");
+    // dia de força não tem tipo de cardio
+    expect(grade.find((d) => d.data === "2026-09-14")?.sessaoTipo).toBeNull();
+  });
+});

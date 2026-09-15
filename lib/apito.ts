@@ -48,3 +48,31 @@ export function vibrar(padrao: number | number[] = [180, 90, 180]): void {
     // sem vibração: segue o jogo
   }
 }
+
+/**
+ * A voz do timer de intervalos (SPEC §3.3): fala "corrida" / "caminhada" na
+ * troca de bloco, em pt-BR e sem baixar nada. Opcional por preferência; se o
+ * aparelho não tiver `speechSynthesis`, a vibração continua avisando.
+ */
+export function falar(texto: string): void {
+  try {
+    const sintese = window.speechSynthesis;
+    if (!sintese || texto.trim() === "") return;
+    sintese.cancel();
+    const fala = new SpeechSynthesisUtterance(texto);
+    fala.lang = "pt-BR";
+    fala.rate = 1;
+    sintese.speak(fala);
+  } catch {
+    // sem voz: a vibração e a tela já avisam
+  }
+}
+
+/** Cala a voz (sair da tela, encerrar a sessão). */
+export function calar(): void {
+  try {
+    window.speechSynthesis?.cancel();
+  } catch {
+    // nada a fazer
+  }
+}

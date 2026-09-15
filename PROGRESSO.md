@@ -1579,3 +1579,206 @@ com cronômetro, substituição para a barra fixa assistida).
    prancha: o cronômetro para no número que foi para o banco.
 3. Num descanso qualquer, espere passar meio minuto e toque em "+30 s": o
    relógio tem de ganhar 30 segundos, não voltar ao tempo cheio.
+
+---
+
+## Marco 4 — Cardio e barra fixa ✅
+
+As duas telas que faltavam do plano semanal (SPEC §3.3 e §3.4): o timer de
+intervalos da corrida e da corda, o cronômetro da caminhada, o registro em
+`cardio_sessions`, o plano de 12 semanas da primeira barra fixa com a sessão da
+semana e as repetições soltas do grease the groove — mais a regra das semanas
+(§5.5) avançando sozinha.
+
+### O que foi feito
+
+**Adaptadores puros (com testes)**
+
+- `lib/cardio.ts` — o plano da sessão virado em blocos de tempo e o relógio do
+  timer como dado:
+
+  ```ts
+  planoDeCorrida(semana) · planoDeCorda(semana) · planoDeCardio(tipo, semana)
+  // PlanoCardio = { tipo, semana, titulo, descricao, blocos, totalS,
+  //                 repeticoes, sessaoMin, paceAlvo, kmTotal, saltosAprox, notas }
+  // BlocoCardio = { indice, tipo, rotulo, voz, segundos, serie, trabalho }
+  textoDoPlano · TIPOS_DE_CARDIO · ehTipoDeCardio
+  timerInicial · avancar · pularBloco · pausar · retomar
+  decorridoNoBloco · decorridoTotal · restanteDoBlocoS · restanteTotalS
+  trabalhoCumprido · planejadoDaSessao · feitoDaSessao · duracaoEmMinutos
+  saltosEstimados · niveisDeEsforco
+  avancoDeSemana · sessoesDaSemanaCivil · CAMPO_DA_SEMANA · chaveDoAvanco
+  ```
+
+  O `EstadoTimer` é **dado puro** (`indice`, `acumuladoS`, `desdeMs`,
+  `cumpridos`, `anterioresS`, `terminado`), e o "agora" entra por parâmetro:
+  é isso que faz o timer caber no IndexedDB e sobreviver a recarregar a página.
+  `avancar()` recalcula quantos blocos passaram desde a última vez — uma recarga
+  no meio da corrida pode ter deixado quatro blocos para trás.
+- `lib/barra-fixa.ts` — a tabela das 12 semanas (`linhasDoPlano`), a prescrição
+  da sessão da semana lida de `por_sessao` ("4 × 5" → 4 séries de 5;
+  "5 × máximo" → o tipo `maximo` do motor), `itemDaSessao(semana)` (o que a
+  sessão de força precisa) e as soltas (`somarSoltas`, `historicoDeSoltas` de 14
+  dias, `intervaloDoHistorico`, `soltasDaSemana`, `sessoesDeFixaNoIntervalo`).
+- `lib/formato.ts` ganhou `formatarDescanso` (90 → "90 s", 150 → "2 min 30 s").
+
+**Telas**
+
+- `/cardio/[id]` com `id` = `corrida | corda | caminhada | outro` (`?semana=`
+  para uma semana específica, `?sessao=` para abrir uma sessão já registrada):
+  - **Corrida**: `TimerIntervalos` com os blocos da semana do plano
+    (`profiles.semana_corrida`) — aquecimento em caminhada, os pares
+    corrida/caminhada e a soltura. Bloco atual grande com cor por tipo (destaque
+    para corrida/corda, contraste para caminhada/descanso), próximo bloco
+    visível, tempo total restante, barra de progresso, **voz** pt-BR
+    (`speechSynthesis`: "corrida", "caminhada") e **vibração** na troca,
+    pausar / retomar / pular bloco e a tela acesa (Wake Lock) enquanto corre.
+  - **Corda**: blocos × duração com o descanso do estágio da semana
+    (`profiles.semana_corda` → estágio de `cardio.json`) e os saltos
+    aproximados do plano na finalização.
+  - **Caminhada leve / outro**: cronômetro simples, só duração e nota.
+  - **Encerrar**: distância em km com vírgula (corrida), saltos (corda), o
+    **teste da fala** com os textos do JSON (fácil / moderado / forte) e uma
+    nota → `cardio_sessions` com `{tipo, semana_plano, planejado, feito,
+    duracao_min, distancia_km, saltos, esforco, concluida, notas}` pela fila de
+    saída, upsert por `id`.
+- `/barra-fixa`: o card da semana (assistência, `4 × 5`, o que ela treina) com
+  "Fazer sessão de barra fixa", o contador de soltas do dia e da semana com o
+  "+1" de 56 px e o histórico em barras dos últimos 14 dias, e a tabela das 12
+  semanas com a faixa atual destacada (`aria-current`) e a regra do JSON.
+
+**A sessão de barra fixa é uma sessão de força**
+
+`lib/sessao.ts` foi partido em dois: `montarSessao(treino)` continua igual e
+agora delega para `montarSessaoAvulsa({ workoutId, itens })`, que monta os
+blocos a partir de uma lista de `ItemDaSessao` em vez do `programa.json`. A
+sessão da barra fixa é `workout_id = 'fixa'` com um item só ("Barra fixa
+assistida") nas séries/reps da semana; o motor avalia normalmente (a progressão
+do exercício é `assistencia`, e nas semanas 11–12 a prescrição vira `maximo`).
+
+**Persistência (§8)**
+
+- `lib/db.ts` ganhou a tabela `cardioAtivo` (Dexie v2; as tabelas da v1 não
+  mudaram). `lib/queries/cardio.ts` guarda a sessão com o mesmo debounce de
+  60 ms da sessão de força, com descarga em `pagehide`/`visibilitychange` e ao
+  encerrar; `encerrarCardio()` monta a linha e a manda para a fila.
+- `lib/queries/dados.ts`: `useSoltas(de, ate)` (histórico de 14 dias) e
+  `useCardioPorId(id)` (o calendário abrindo um dia que já passou).
+
+**Semanas dos planos (§5.5)**
+
+`avancoDeSemana()` é puro e **idempotente**: além das 2 sessões concluídas na
+semana civil, ele carimba a segunda-feira daquela semana em
+`profiles.prefs.avanco_<plano>_em`. Assim a corrida/corda avança ao encerrar a
+segunda sessão e a barra fixa avança quando a tela conta 2 sessões `fixa`
+concluídas — sem nunca empurrar o plano duas vezes na mesma semana. Em
+`lib/queries/perfil.ts` ficaram prontas, para o marco 6: `ajustarSemana` (pura,
+±1 presa entre 1 e o teto), `gravarPerfil`, `repetirSemana`, `avancarSemana` e
+`aplicarAvanco`.
+
+### Decisões
+
+- **A rota do cardio é por TIPO, não por data nem por id de sessão.** A Hoje
+  linka `/cardio/corrida?semana=1` (ou `/cardio/corda` quando o Miguel troca no
+  card) e o calendário, para um dia que já passou, linka
+  `/cardio/corrida?sessao=<uuid>` — que abre o resumo só leitura. `lib/semana.ts`
+  passou a devolver `sessaoTipo` na grade para isso.
+- **A sessão nasce parada.** Chegar na tela não começa a correr: o botão grande
+  diz "Começar" e só o toque põe o relógio para andar. Voltar depois continua de
+  onde parou.
+- **O relógio é um alvo em milissegundos, não uma soma de ticks.** Com a tela
+  apagada o navegador atrasa o `setInterval`; somar ticks daria uma corrida mais
+  longa que a pedida. `avancar()` recalcula tudo a partir de `Date.now()`.
+- **"Pular bloco" não conta o bloco como cumprido**; o tempo que ele já correu
+  conta na duração. É o que faz `feito.repeticoes_cumpridas` ser honesto.
+- **A corda não ganha aquecimento inventado.** O `sessao_min` do JSON (13 min no
+  estágio 1) inclui ~5 min de aquecimento/soltura que o plano não detalha em
+  blocos; o timer mostra só os blocos que existem no JSON e o card continua
+  mostrando o `sessao_min` do plano.
+- **A assistência da barra fixa continua sendo do motor.** A coluna
+  "assistência" das 12 semanas é texto do guia e aparece na tela como
+  orientação; quem muda `exercise_state.assistencia` é a §6.3, não o plano —
+  senão o plano e o motor brigariam a cada sessão.
+- **`sessions.workout_id` aceita `'fixa'`** (a coluna é `text`; o comentário do
+  `supabase/schema.sql` foi atualizado). `concluirSessao()` só move
+  `profiles.ultimo_treino` para treinos do programa — `ehTreinoDoPrograma()`.
+- **Reconstruir a sessão de barra fixa exige os itens.** O `programa.json` não
+  tem esse treino: `reconstruirSessao()` recebe `itens` da tela (montados de
+  `profiles.semana_fixa`) e, sem eles, devolve `null` em vez de inventar uma
+  sessão diferente da registrada.
+
+### Testes
+
+- **Unitários** (`npm test`, 555): `lib/cardio.test.ts` (30) e
+  `lib/barra-fixa.test.ts` (13) novos — os blocos da semana 1 (aquecimento 5 +
+  8 × (1/2) + soltura 5 = **34 min**), as 12 semanas batendo com o `sessao_min`
+  do JSON, a semana 8 sem bloco vazio, o estágio da corda, o relógio (troca de
+  bloco, recarga com vários blocos de uma vez, pausar/retomar, pular, fim), o
+  `planejado`/`feito`, os saltos, o teste da fala e o avanço de semana com 0, 1
+  e 2 sessões, a idempotência da marca em `prefs` e o teto do plano. Mais a
+  sessão avulsa em `lib/sessao.test.ts` (4), o `sessaoTipo` da grade em
+  `lib/semana.test.ts` (1), `ajustarSemana` em `lib/queries/perfil.test.ts` (2)
+  e `formatarDescanso` em `lib/formato.test.ts` (1).
+- **E2E** (`npm run e2e`, 78): `e2e/cardio.spec.ts` (6) — da Hoje em
+  15/09/2026 até a linha no mock: o link `/cardio/corrida?semana=1`, os 18
+  blocos do plano (1:00 de corrida, 2:00 de caminhada), o timer parado em 5:00,
+  `page.clock.runFor` andando pelo aquecimento e pela corrida 1, pausar
+  congelando o número, pular indo para o bloco 2, e a `cardio_sessions` gravada
+  com `planejado.total_s = 2040`, `feito.repeticoes_cumpridas = 1` e
+  `esforco = 'facil'`; a sobrevivência do timer a um `reload`; as 2 sessões da
+  semana civil virando `semana_corrida = 2`; a corda com 11 blocos e a caminhada
+  como cronômetro; e `/barra-fixa` com a semana 1 destacada, o "+1" gravando
+  duas linhas em `pullup_singles` e a sessão `workout_id = 'fixa'` com
+  "0/4 séries".
+
+### Um teste antigo que este marco consertou
+
+`e2e/hoje.spec.ts` > "recarregar sem rede…" e "a leitura é guardada no
+IndexedDB" não fixavam a data ("o cache é salvo por um `setTimeout`, que o
+`page.clock.install` congela"). Os dois só passavam quando o **dia real** era de
+força: rodando numa terça (15/09/2026) a Hoje mostra o card de corrida e o
+"Começar treino" não existe. Passaram a usar `fixarData`
+(`page.clock.setFixedTime`), que fixa a data **sem** congelar os timers — é
+exatamente o que a fixture do marco 3 existe para fazer.
+
+### O que falta
+
+- Marco 5: catálogo e ficha (§3.6), progresso (§3.7) e corpo (§3.8).
+- Marco 6: o perfil (§3.9) com "repetir semana" / "avançar semana" ligados em
+  `lib/queries/perfil.ts`, a troca de degrau do elástico à mão, equipamento e
+  backup.
+- A **voz** do timer é lida de `profiles.prefs.cardio_voz` (ligada por padrão) e
+  a vibração de `prefs.descanso_vibra`; o interruptor das duas na tela é do
+  marco 6, junto com as outras preferências.
+- A sessão de cardio só vai para o banco no "Encerrar": fechar o app no meio
+  deixa tudo no IndexedDB (e voltar para `/cardio/<tipo>` retoma), mas o
+  Supabase não vê a sessão até ela terminar.
+- `/cardio/<tipo>?sessao=<id>` mostra o resumo em lista; quando o §3.7 entrar,
+  vale mostrar ali o gráfico da evolução do plano.
+
+### Como testar no celular (marco 4)
+
+1. `npm run build && npm run e2e` — 78 testes verdes a 360 × 740
+   (`npm test` fecha em 555).
+2. À mão: `npm run mock` num terminal e `npm run dev:mock` no outro (troque
+   `127.0.0.1` pelo IP do computador nas três variáveis para abrir pelo
+   celular). Entre com `miguelgsaviotti29@gmail.com`.
+3. Numa **terça**, a Hoje mostra "Corrida · semana 1 · 8 × (1 min corrida /
+   2 min caminhada) · 34 min". Toque em "Começar": a tela abre parada no
+   aquecimento de 5:00, com os 18 blocos listados embaixo.
+4. Toque em "Começar" de novo: o relógio anda. Na troca de bloco o celular
+   **vibra** e a voz fala "corrida" / "caminhada" (com o volume ligado). A tela
+   não apaga. "Pausar" congela; "Pular bloco" passa para o próximo sem contar o
+   atual.
+5. Saia do app e volte (ou recarregue a página): a sessão continua de onde o
+   relógio está — inclusive se vários blocos passaram.
+6. "Encerrar e registrar": informe a distância (vírgula decimal), escolha o
+   teste da fala e salve. Volte ao **calendário** e toque na terça: "Abrir o
+   cardio" mostra duração, blocos cumpridos, distância e esforço.
+7. Faça a segunda corrida da mesma semana civil: ao salvar aparece "Semana 2 do
+   plano liberada" e a Hoje passa a mostrar a semana 2.
+8. Em **Barra fixa**: a faixa "1–2" fica destacada na tabela; "+1" sobe o
+   contador do dia na hora (ligue o modo avião antes: o número sobe igual e a
+   linha chega ao mock quando a rede voltar) e a barra do dia cresce no
+   histórico de 14 dias. "Fazer sessão de barra fixa" abre a sessão de força com
+   um exercício só, 4 × 5, e ao concluir o motor decide a assistência.

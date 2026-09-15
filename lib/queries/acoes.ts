@@ -26,9 +26,11 @@ export async function registrarSolta(opcoes: {
   userId: string;
   data: string;
   reps?: number;
+  /** O histórico da tela de barra fixa, para ele subir na hora também (§3.4). */
+  intervalo?: { de: string; ate: string };
   cliente: QueryClient;
 }): Promise<void> {
-  const { userId, data, reps = 1, cliente } = opcoes;
+  const { userId, data, reps = 1, intervalo, cliente } = opcoes;
   const linha = {
     id: novoId(),
     user_id: userId,
@@ -40,6 +42,12 @@ export async function registrarSolta(opcoes: {
     ...(atual ?? []),
     { id: linha.id, data, reps },
   ]);
+  if (intervalo) {
+    cliente.setQueryData<SoltaResumo[]>(
+      chaves.soltasNoPeriodo(intervalo.de, intervalo.ate),
+      (atual) => [{ id: linha.id, data, reps }, ...(atual ?? [])],
+    );
+  }
 
   await enfileirarEscrita("barra_fixa_solta", {
     tabela: "pullup_singles",

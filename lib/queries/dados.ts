@@ -33,6 +33,8 @@ export const chaves = {
   cardio: (de: string, ate: string) => ["cardio", de, ate] as const,
   peso: () => ["peso"] as const,
   soltas: (data: string) => ["soltas", data] as const,
+  soltasNoPeriodo: (de: string, ate: string) => ["soltas-periodo", de, ate] as const,
+  cardioPorId: (id: string) => ["cardio-sessao", id] as const,
   estados: (ids: readonly string[]) => ["estados", [...ids].sort().join(",")] as const,
   eventos: (ids: readonly string[]) => ["eventos", [...ids].sort().join(",")] as const,
   sessao: (id: string) => ["sessao", id] as const,
@@ -191,6 +193,46 @@ export function useSoltasDoDia(data: string | null): UseQueryResult<SoltaResumo[
           .select("id,data,reps")
           .eq("data", data ?? ""),
         "as repetições soltas de hoje",
+      ),
+  });
+}
+
+/** As soltas de um intervalo (o histórico de 14 dias da SPEC §3.4). */
+export function useSoltas(
+  de: string | null,
+  ate: string | null,
+): UseQueryResult<SoltaResumo[]> {
+  return useQuery({
+    queryKey: chaves.soltasNoPeriodo(de ?? "", ate ?? ""),
+    enabled: de !== null && ate !== null,
+    queryFn: () =>
+      lerLista<SoltaResumo>(
+        clienteNavegador()
+          .from("pullup_singles")
+          .select("id,data,reps")
+          .gte("data", de ?? "")
+          .lte("data", ate ?? "")
+          .order("data", { ascending: false }),
+        "as repetições soltas",
+      ),
+  });
+}
+
+/** Uma sessão de cardio pelo id (o calendário abre um dia já registrado). */
+export function useCardioPorId(
+  id: string | null,
+): UseQueryResult<LinhaSessaoCardio | null> {
+  return useQuery({
+    queryKey: chaves.cardioPorId(id ?? ""),
+    enabled: id !== null,
+    queryFn: () =>
+      ler<LinhaSessaoCardio>(
+        clienteNavegador()
+          .from("cardio_sessions")
+          .select("*")
+          .eq("id", id ?? "")
+          .maybeSingle(),
+        "esta sessão de cardio",
       ),
   });
 }

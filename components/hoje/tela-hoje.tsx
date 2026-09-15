@@ -177,7 +177,6 @@ export function TelaHoje({ userId }: { userId: string }) {
               ? alternativaDeCorda(perfil.semana_corda)
               : null
           }
-          href={`/cardio/${hoje}`}
           nomeDoProximoTreino={acharTreino(proximoTreino).nome}
           aviso={aviso}
         />

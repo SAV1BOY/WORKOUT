@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { perfilInicial } from "@/lib/dados";
-import { montarSeedPerfil, precisaSeed } from "@/lib/queries/perfil";
+import { ajustarSemana, montarSeedPerfil, precisaSeed } from "@/lib/queries/perfil";
 import type { LinhaPerfil } from "@/lib/types";
 
 const linhaPadrao: LinhaPerfil = {
@@ -66,5 +66,18 @@ describe("quando fazer o seed", () => {
         data_inicio: "2026-09-14",
       }),
     ).toBe(false);
+  });
+});
+
+describe("ajustarSemana (SPEC §5.5: ajuste manual no perfil)", () => {
+  it("avança e repete um degrau", () => {
+    expect(ajustarSemana(3, 1)).toBe(4);
+    expect(ajustarSemana(3, -1)).toBe(2);
+  });
+
+  it("não sai do plano", () => {
+    expect(ajustarSemana(1, -1)).toBe(1);
+    expect(ajustarSemana(12, 1, 12)).toBe(12);
+    expect(ajustarSemana(20, 1, 12)).toBe(12);
   });
 });

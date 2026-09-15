@@ -19,7 +19,7 @@ import { acharTreino } from "@/lib/dados";
 import { formatarData, formatarMinutos } from "@/lib/formato";
 import { descricaoDoCardio } from "@/lib/hoje";
 import type { TipoDia, TreinoId } from "@/lib/schemas";
-import type { LinhaSessao, LinhaSessaoCardio } from "@/lib/types";
+import type { LinhaSessao, LinhaSessaoCardio, TipoCardio } from "@/lib/types";
 
 /** O que aconteceu no dia: feito, pela metade, perdido ou ainda por fazer. */
 export type MarcaDoDia = "feito" | "parcial" | "faltou" | "aberto" | "descanso";
@@ -57,6 +57,11 @@ export interface DiaDaGrade {
   detalhe: string | null;
   /** Sessão registrada naquele dia (para abrir o resumo). */
   sessaoId: string | null;
+  /**
+   * Num dia de cardio, o tipo da sessão registrada (`cardio_sessions.tipo`):
+   * a rota `/cardio/[id]` é por tipo, não por id (SPEC §3.3). `null` no resto.
+   */
+  sessaoTipo: TipoCardio | null;
 }
 
 /** O rótulo curto do dia: o nome do treino, o tipo de cardio ou "Descanso". */
@@ -86,30 +91,41 @@ export function detalheDoDia(dia: DiaDoPlano): string | null {
   return dia.nota && dia.nota.trim() !== "" ? dia.nota : null;
 }
 
+interface MarcaDaSessao {
+  marca: MarcaDoDia;
+  sessaoId: string | null;
+  sessaoTipo: TipoCardio | null;
+}
+
 function marcarDia(
   dia: DiaDoPlano,
   sessoes: SessaoCurta[],
   cardios: CardioCurto[],
   hoje: string,
-): { marca: MarcaDoDia; sessaoId: string | null } {
-  if (dia.tipo === "descanso") return { marca: "descanso", sessaoId: null };
+): MarcaDaSessao {
+  const vazio = { sessaoId: null, sessaoTipo: null };
+  if (dia.tipo === "descanso") return { marca: "descanso", ...vazio };
 
   if (dia.tipo === "forca") {
     const doDia = sessoes.filter((s) => s.data === dia.data);
     const concluida = doDia.find((s) => s.status === "concluida");
-    if (concluida) return { marca: "feito", sessaoId: concluida.id };
+    if (concluida) return { marca: "feito", sessaoId: concluida.id, sessaoTipo: null };
     const parcial = doDia[0];
-    if (parcial) return { marca: "parcial", sessaoId: parcial.id };
+    if (parcial) return { marca: "parcial", sessaoId: parcial.id, sessaoTipo: null };
   } else {
     const doDia = cardios.filter((c) => c.data === dia.data);
     const concluida = doDia.find((c) => c.concluida);
-    if (concluida) return { marca: "feito", sessaoId: concluida.id };
+    if (concluida) {
+      return { marca: "feito", sessaoId: concluida.id, sessaoTipo: concluida.tipo };
+    }
     const parcial = doDia[0];
-    if (parcial) return { marca: "parcial", sessaoId: parcial.id };
+    if (parcial) {
+      return { marca: "parcial", sessaoId: parcial.id, sessaoTipo: parcial.tipo };
+    }
   }
 
-  if (dia.data < hoje) return { marca: "faltou", sessaoId: null };
-  return { marca: "aberto", sessaoId: null };
+  if (dia.data < hoje) return { marca: "faltou", ...vazio };
+  return { marca: "aberto", ...vazio };
 }
 
 /** A semana inteira pronta para a grade (SPEC §3.5). */
@@ -120,7 +136,7 @@ export function montarGrade(
   hoje: string,
 ): DiaDaGrade[] {
   return semana.map((dia) => {
-    const { marca, sessaoId } = marcarDia(dia, sessoes, cardios, hoje);
+    const { marca, sessaoId, sessaoTipo } = marcarDia(dia, sessoes, cardios, hoje);
     return {
       dia,
       data: dia.data,
@@ -132,6 +148,7 @@ export function montarGrade(
       rotulo: rotuloDoDia(dia),
       detalhe: detalheDoDia(dia),
       sessaoId,
+      sessaoTipo,
     };
   });
 }

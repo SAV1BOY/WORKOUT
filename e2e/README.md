@@ -89,12 +89,14 @@ curl -s -XPOST localhost:54321/__mock/seed -H 'content-type: application/json' \
 | arquivo | o que é |
 |---|---|
 | `playwright.config.ts` | projeto único "celular", `webServer` do mock + do app |
-| `fixtures.ts` | `resetarMock`, `semear`, `estadoDoMock`, `requisicoesDoMock`, `sessaoNoMock`, `usuarioComPerfil`, `inserirNoMock`, `atualizarNoMock`, `lerDoMock`, `login`, `entrarNoApp`, `fixarRelogio`, `semRolagemHorizontal` |
+| `fixtures.ts` | `resetarMock`, `semear`, `estadoDoMock`, `requisicoesDoMock`, `sessaoNoMock`, `usuarioComPerfil`, `inserirNoMock`, `atualizarNoMock`, `lerDoMock`, `login`, `entrarNoApp`, `fixarRelogio`, `fixarData`, `semRolagemHorizontal` |
 | `login.spec.ts` | e-mail de fora recusado, criar conta → Hoje, senha errada, sair, entrar de novo |
 | `shell.spec.ts` | navegação inferior (5 itens, alvos ≥ 44 px), cada rota abre, nada rola para o lado, manifest válido |
 | `mock.spec.ts` | o contrato do próprio mock (PostgREST, upsert, `v_records`, storage, RLS) |
 | `hoje.spec.ts` | a tela Hoje: Treino A com as cargas iniciais, Treino B pela alternância, a carga que veio do estado com o evento que a explica, corrida da semana 1 + corda, descanso com o "+1", faixa de status, banner do treino aberto e o cache persistido |
 | `calendario.spec.ts` | a grade da semana (A/B alternando, marcações, o que falta), navegação entre semanas, troca de tipo de um dia futuro e a regra da semana curta |
+| `treinar.spec.ts` | a sessão de força série a série, o timer de descanso, offline, recarregar no meio, concluir com o motor decidindo |
+| `cardio.spec.ts` | o timer de intervalos da corrida (`page.clock.runFor`), a corda, o cronômetro da caminhada, o registro em `cardio_sessions`, o avanço da semana do plano (§5.5) e a tela `/barra-fixa` (semana destacada, "+1", sessão `workout_id = 'fixa'`) |
 | `auditoria.spec.ts` | o que os outros não provavam: nenhuma requisição ao Supabase com e-mail de fora, recarregar mantém a sessão, toda rota protegida volta ao login, e o mock recusando coluna/operador/filtro composto inventados |
 
 `fixarRelogio(page)` congela o relógio **do navegador** em 14/09/2026 (a
@@ -109,9 +111,18 @@ e deixa o perfil como `garantirPerfil` deixaria (nome, altura, `data_inicio`
 14/09/2026), já com os ajustes pedidos — depois é só `entrarNoApp(page)`, que vai
 direto no botão "Entrar" em vez de passar por "Criar conta".
 
-Atenção com `page.clock`: ele congela `setTimeout`/`setInterval`, então tudo que
-depende de um temporizador (a gravação do cache do TanStack Query, por exemplo)
-não acontece nos testes que o usam.
+Atenção com `page.clock`, que tem três usos diferentes:
+
+- `fixarRelogio(page, quando)` = `page.clock.install`: fixa a **data** e permite
+  empurrar o tempo com `page.clock.runFor(ms)` — é assim que a corrida de 34 min
+  do `cardio.spec.ts` cabe num teste. Entre um `runFor` e outro o relógio
+  continua andando junto com o tempo real, então asserte **qual bloco está
+  valendo**, não o segundo exato.
+- `fixarData(page, quando)` = `page.clock.setFixedTime`: fixa só a data e deixa
+  os temporizadores correndo de verdade. É o que os testes que dependem de
+  `setTimeout` (cache do TanStack Query, debounce do IndexedDB) precisam.
+- **Nunca** `page.clock.pauseAt` neste app: com o relógio totalmente parado o
+  Dexie não responde e a tela fica no esqueleto para sempre.
 
 ## O que o mock faz
 
