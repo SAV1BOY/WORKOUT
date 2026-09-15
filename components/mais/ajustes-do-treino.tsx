@@ -173,20 +173,17 @@ export function AjustesDoTreino({
       </div>
 
       {INTERRUPTORES.map(({ chave, titulo, descricao }) => (
-        <div key={chave} className="flex items-center justify-between gap-3">
+        <div key={chave} className="flex min-h-11 items-center justify-between gap-3">
           <div className="min-w-0">
             <Label htmlFor={`pref-${chave}`} className="text-base">
               {titulo}
             </Label>
             <p className="text-muted-foreground text-xs text-balance">{descricao}</p>
           </div>
-          {/*
-            O pill do shadcn tem 18 px de altura: a área de toque dele mora no
-            `::after`, esticada aqui para os 44 px que a SPEC §3 pede.
-          */}
+          {/* o pill tem 18 px; a caixa de toque de 44 px é o próprio botão */}
           <Switch
             id={`pref-${chave}`}
-            className="after:-inset-y-[13px]"
+            className="-mr-1.5"
             checked={ligado(prefs, chave)}
             onCheckedChange={(v) => void gravar(comLigado(prefs, chave, v))}
           />
