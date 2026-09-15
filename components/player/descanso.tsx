@@ -58,6 +58,17 @@ export function TelaDescanso({
   const acabou = zerou(estado, agora);
   const falta = restanteS(estado, agora);
 
+  /*
+   * O player redesenha a cada 250 ms enquanto conta, e `aoPular` nasce de novo
+   * em cada renderização. Num efeito que dependesse dele, o `setTimeout` de
+   * 1 s seria cancelado e recriado antes de disparar — o "avançar sozinho"
+   * nunca avançava. A referência mantém a função fresca sem ser dependência.
+   */
+  const pular = useRef(aoPular);
+  useEffect(() => {
+    pular.current = aoPular;
+  });
+
   // o aviso toca uma vez por descanso (a chave muda a cada passo novo)
   useEffect(() => {
     if (!acabou || tocou.current === estado.chave) return;
@@ -73,9 +84,9 @@ export function TelaDescanso({
 
   useEffect(() => {
     if (!acabou || !avancarSozinho) return;
-    const relogio = setTimeout(aoPular, 1_000);
+    const relogio = setTimeout(() => pular.current(), 1_000);
     return () => clearTimeout(relogio);
-  }, [acabou, avancarSozinho, aoPular]);
+  }, [acabou, avancarSozinho]);
 
   const exercicio = blocoDoProximo
     ? acharExercicio(blocoDoProximo.exercicioId)
@@ -122,7 +133,13 @@ export function TelaDescanso({
 
       <div className="flex w-full max-w-xs flex-col gap-2">
         {editando ? (
-          <div className="flex items-center gap-2">
+          /*
+           * `text-foreground` de volta: o stepper e os botões de contorno são
+           * componentes do tema normal (fundo `--background`), mas herdavam a
+           * cor do texto da tela de descanso — no tema claro isso dava branco
+           * sobre quase-branco, e o número do tempo sumia.
+           */
+          <div className="text-foreground flex items-center gap-2">
             <StepperNumerico
               rotulo="tempo de descanso em segundos"
               valor={novoTempo}

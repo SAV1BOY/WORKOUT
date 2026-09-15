@@ -145,6 +145,95 @@ test.describe("preparação → exercício → descanso (SPEC §14.1.1–3)", ()
       .toBe(1);
   });
 
+  /*
+   * Aqui o relógio é instalado (`clock.install`) em vez de só fixado: `runFor`
+   * empurra o tempo do navegador, que é a única forma de ver o descanso zerar
+   * e a preferência "avançar sozinho" agir sem esperar de verdade.
+   *
+   * Regressão guardada: `aoPular` nasce de novo a cada renderização do player
+   * (e ele redesenha a cada 250 ms enquanto conta). Com ele na lista de
+   * dependências do efeito, o `setTimeout` de 1 s era cancelado e recriado
+   * antes de disparar — a tela nunca avançava sozinha.
+   */
+  test("ao zerar, 'avançar sozinho' passa ao próximo passo; desligado, espera (§14.1.3)", async ({
+    page,
+  }) => {
+    test.setTimeout(120_000);
+    await usuarioComPerfil({
+      prefs: { preparacao_s: 0, descanso_padrao_s: 20, avancar_sozinho: true },
+    });
+    await page.clock.install({ time: new Date(SEGUNDA) });
+    await entrarNoApp(page);
+    await page.goto("/treinar");
+    await page.getByRole("button", { name: "Começar Treino A" }).click();
+    await expect(page).toHaveURL(/\/treinar\/[0-9a-f-]{36}$/);
+
+    // preparacao_s = 0: sem tela de preparação, o player abre no exercício
+    await expect(page.getByRole("button", { name: "Concluir a série" })).toBeVisible();
+    await expect(page.getByRole("timer", { name: "Preparação" })).toHaveCount(0);
+
+    const descanso = page.getByRole("timer", { name: "Descanso" });
+    await page.getByRole("button", { name: "Concluir a série" }).click();
+    await expect(descanso).toHaveText("0:20");
+    // ninguém toca em nada: a tela sai sozinha e o próximo passo aparece
+    await page.clock.runFor(22_000);
+    await expect(descanso).toBeHidden();
+    await expect(page.getByText("Aquecimento 2 de 2 · exercício 1 de 6")).toBeVisible();
+
+    // desligado, o descanso fica em 0:00 esperando o toque
+    await page.goto("/mais/preferencias");
+    await page.getByRole("switch", { name: "Avançar sozinho" }).click();
+    await expect(page.getByRole("switch", { name: "Avançar sozinho" })).toHaveAttribute(
+      "aria-checked",
+      "false",
+    );
+    await page.goBack();
+    await page.getByRole("button", { name: "Concluir a série" }).click();
+    await expect(descanso).toHaveText("0:20");
+    await page.clock.runFor(25_000);
+    await expect(descanso).toHaveText("0:00");
+    await expect(descanso).toBeVisible();
+    await page.getByRole("button", { name: "Pular" }).click();
+    await expect(page.getByRole("button", { name: "Concluir a série" })).toBeVisible();
+  });
+
+  /*
+   * O "Editar tempo de descanso" abre componentes do tema NORMAL (fundo
+   * `--background`) dentro da tela de descanso, que pinta o texto de
+   * `--descanso-texto`. No tema claro isso era branco sobre quase-branco e o
+   * número do tempo sumia. Aqui a conta de contraste da WCAG é feita com as
+   * cores que o navegador realmente aplicou, nos dois temas.
+   */
+  for (const tema of ["dark", "light"] as const) {
+    test(`o campo do "Editar tempo de descanso" é legível no tema ${tema} (§14.1.3)`, async ({
+      page,
+    }) => {
+      await page.emulateMedia({ colorScheme: tema });
+      await abrirPlayer(page);
+      await page.getByRole("button", { name: "Concluir a série" }).click();
+      await expect(page.getByRole("timer", { name: "Descanso" })).toBeVisible();
+      await page.getByRole("button", { name: "Editar tempo de descanso" }).click();
+
+      const campo = page.getByRole("textbox", { name: /tempo de descanso/ });
+      await expect(campo).toBeVisible();
+      const razao = await campo.evaluate((el) => {
+        const cor = (v: string) => {
+          const [r = 0, g = 0, b = 0] = (v.match(/\d+(\.\d+)?/g) ?? []).map(Number);
+          const lin = (c: number) => {
+            const n = c / 255;
+            return n <= 0.03928 ? n / 12.92 : Math.pow((n + 0.055) / 1.055, 2.4);
+          };
+          return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+        };
+        const s = getComputedStyle(el);
+        const a = cor(s.color);
+        const b = cor(s.backgroundColor);
+        return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+      });
+      expect(razao, `contraste do campo no tema ${tema}`).toBeGreaterThanOrEqual(4.5);
+    });
+  }
+
   test("fechar e reabrir no meio do descanso volta ao mesmo passo (§14.5.2)", async ({
     page,
   }) => {
@@ -345,14 +434,31 @@ test.describe("circuito de core: reps e tempo (SPEC §14.5.3)", () => {
 });
 
 test.describe("ficha em folha (SPEC §14.2 e §14.5.4)", () => {
+  /*
+   * Sem service worker NESTES testes, e só neles. O `page.route` do Playwright
+   * não alcança o que o service worker busca: assim que o Serwist assume a
+   * página (`clientsClaim`), a miniatura do YouTube passa a ser um `fetch` do
+   * worker, a rota falsa nunca é chamada (medido: 0 chamadas) e o pedido sai
+   * para a internet de verdade — que não existe aqui. O `onError` do `<img>`
+   * então troca a miniatura pelo aviso "Precisa de internet" no meio do teste
+   * e o toque cai num elemento que saiu do DOM. Como o worker assume num
+   * momento que depende da carga da máquina, o teste passava sozinho e caía na
+   * suíte inteira. O que se verifica aqui é o comportamento da FICHA (as três
+   * abas, o embed só ao tocar, o stepper da sessão), não o do service worker
+   * — que tem os seus próprios testes em `e2e/pwa.spec.ts`.
+   */
+  test.use({ serviceWorkers: "block" });
+
   test("as três abas, o Tutorial só ao tocar e o stepper só da sessão", async ({
     page,
   }) => {
     test.setTimeout(90_000);
     // a miniatura é servida daqui: nenhum teste sai para a internet
-    await page.route(/i\.ytimg\.com/, (rota) =>
-      rota.fulfill({ contentType: "image/png", body: PNG }),
-    );
+    let serviuMiniatura = 0;
+    await page.route(/i\.ytimg\.com/, (rota) => {
+      serviuMiniatura += 1;
+      return rota.fulfill({ contentType: "image/png", body: PNG });
+    });
     let pediuEmbed = 0;
     await page.route(/youtube-nocookie\.com/, (rota) => {
       pediuEmbed += 1;
@@ -385,6 +491,10 @@ test.describe("ficha em folha (SPEC §14.2 e §14.5.4)", () => {
     // antes do toque o YouTube não é chamado (SPEC §14.2)
     await expect(ficha.locator("[data-tutorial=embed]")).toHaveCount(0);
     expect(pediuEmbed).toBe(0);
+    // a miniatura veio da rota falsa: se sair para a internet, o `onError` do
+    // `<img>` troca tudo por "Precisa de internet" e o toque abaixo some
+    await expect.poll(() => serviuMiniatura).toBeGreaterThan(0);
+    await expect(ficha.locator("[data-tutorial=sem-rede]")).toHaveCount(0);
     await ficha.locator("[data-tutorial=miniatura]").click();
     const embed = ficha.locator("[data-tutorial=embed]");
     await expect(embed).toHaveCount(1);

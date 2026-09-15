@@ -3737,9 +3737,14 @@ mexida: ela é o programa.
 ```
 npm run lint   limpo
 npm run build  ✓ Compiled successfully · 90 páginas · 27 rotas
-npm test       Test Files 38 passed (38) · Tests 863 passed (863)
+npm test       Test Files 36 passed (36) · Tests 863 passed (863)
 npm run e2e    171 passed (6.7m) — Chromium 360 × 740
 ```
+
+> Números refeitos na auditoria independente (rodada 1, mais abaixo): com os
+> três e2e novos (o "avançar sozinho" e os dois de contraste do descanso) a
+> suíte passou a ter **174** testes, e os quatro portões ficaram verdes depois
+> das quatro correções descritas lá.
 
 ### Como testar no celular
 
@@ -3780,3 +3785,118 @@ Explorar de verdade (coleções derivadas, §13.4 e §14.4), sessão livre com
 histórico, sequências, Peso e IMC), IMC também no Corpo, e os acréscimos da
 §14.3 na aba Treino (Editar/reordenar, FAB Ajustar, Desafios, Parte do corpo em
 foco, Personalizar). Depois, a auditoria final da §14.5.
+
+### Auditoria independente do marco V2 (rodada 1)
+
+Outro agente refez os quatro portões do zero e usou o app no Chromium a
+360 × 740, **nos dois temas**, com sessões semeadas no mock e medindo elemento
+a elemento. Quatro defeitos reais saíram daqui — dois do app, um da
+suíte e um dos portões — e os quatro foram corrigidos.
+
+**Defeito 1 (app): o descanso nunca avançava sozinho.** `prefs.avancar_sozinho`
+vem ligado por padrão e a §14.1.3 manda a tela passar ao próximo passo 1 s
+depois de zerar. O efeito de `components/player/descanso.tsx` tinha `aoPular`
+na lista de dependências; como `aoPular` nasce de novo a cada renderização e o
+player redesenha a cada 250 ms enquanto conta, o `setTimeout` de 1 s era
+cancelado e recriado antes de disparar — na prática o descanso ficava parado em
+0:00 esperando um toque, com ou sem a preferência ligada. Agora a função mora
+numa referência (`pular.current`) e o efeito depende só de `acabou` e
+`avancarSozinho`.
+
+A regressão ficou guardada por um e2e novo em `e2e/player.spec.ts` ("ao zerar,
+'avançar sozinho' passa ao próximo passo; desligado, espera"), que instala o
+relógio (`page.clock.install`) e empurra o tempo com `runFor`. **O teste foi
+conferido contra o código antigo**: com o `aoPular` de volta nas dependências
+ele falha ("Expected: hidden / Received: visible"), e passa com a correção.
+
+**Defeito 2 (suíte): o teste da ficha falhava na suíte inteira e passava
+sozinho.** `e2e/player.spec.ts` serve a miniatura do YouTube por `page.route`,
+mas **o `page.route` do Playwright não alcança o que o service worker busca**.
+Assim que o Serwist assume a página (`skipWaiting` + `clientsClaim`), a
+miniatura vira um `fetch` do worker: a rota falsa nunca é chamada e o pedido sai
+para a internet de verdade, que não existe na máquina de testes. O `onError` do
+`<img>` então trocava a miniatura pelo aviso "Precisa de internet" no meio do
+teste e o toque caía num elemento que já saíra do DOM. Como o momento em que o
+worker assume depende da carga da máquina, o teste passava sozinho e caía na
+suíte inteira — foi medido: `page.route` chamada **0 vezes** depois de
+`navigator.serviceWorker.controller` existir.
+
+Correção: `test.use({ serviceWorkers: "block" })` **só** no `describe` da ficha,
+que verifica o comportamento da ficha e não o do service worker (esse tem os
+próprios testes em `e2e/pwa.spec.ts`). Nada foi afrouxado: o teste ganhou duas
+asserções novas — que a rota falsa foi de fato usada e que o aviso "Precisa de
+internet" **não** aparece — para que uma falha futura da miniatura apareça como
+erro claro em vez de instabilidade.
+
+**Defeito 3 (app, tema claro): o campo do "Editar tempo de descanso" sumia.**
+O stepper e os botões de contorno são componentes do tema normal (fundo
+`--background`, quase branco no claro), mas herdavam a cor do texto da tela de
+descanso, que é `--descanso-texto` = `#ffffff`. Resultado: branco sobre
+quase-branco — o número do tempo (e o − e o +) ficavam ilegíveis no tema claro.
+No escuro passava despercebido porque lá o fundo do campo é escuro. A correção
+é uma classe: a linha de edição em `components/player/descanso.tsx` volta a
+`text-foreground`. Guardado por dois e2e novos ("o campo do 'Editar tempo de
+descanso' é legível no tema dark/light"), que fazem a conta de contraste da
+WCAG com as cores que o navegador **de fato** aplicou — não com os tokens do
+CSS, que era justamente o que escondia o problema.
+
+**Defeito 4 (portão): `npm run lint` virava loteria depois de um e2e com
+falha.** O `eslint` varria `test-results/`, e o JS de terceiros que o Playwright
+guarda dentro do `trace.zip` dispara `@typescript-eslint/no-this-alias` — 1
+erro, portão vermelho, sem uma linha de código nossa envolvida. `test-results/**`
+e `playwright-report/**` entraram nos `ignores` de `eslint.config.mjs`.
+
+O que a auditoria mediu, tela a tela, nos dois temas:
+
+- **Nada vaza para o lado e nada fica fora da tela** em preparação, exercício,
+  descanso (inclusive editando o tempo), série de trabalho, "firme?", feedback
+  e conclusão: `scrollWidth - clientWidth = 0` e nenhum retângulo com
+  `right > 360`.
+- **Nenhum alvo abaixo de 44 px** em nenhuma dessas telas, e os três controles
+  do rodapé do player em **56 × 56** (o ✓ em 208 × 56), como a §14.1.2 pede.
+- **Contraste do descanso**: branco sobre `#7a2a08` (claro) = 9,71:1 e
+  `#f5f5f4` sobre `#2a1206` (escuro) = 16,21:1; o destaque dá 6,35:1 e 7,81:1.
+  AA com folga nos dois temas — **depois** do defeito 3, que não estava nos
+  tokens e sim na herança de cor dentro da tela.
+- **Wake Lock** é pedido ao entrar no player e **liberado** ao sair pela barra
+  de abas (stub de `navigator.wakeLock` contando `request`/`release`).
+- **Tutorial**: com `page.on("request")` ligado, **nenhum** pedido ao YouTube
+  antes de abrir a aba; com a aba aberta sai só a miniatura
+  `i.ytimg.com/vi/<id>/hqdefault.jpg`, que é o que a §14.2 manda; o embed
+  `youtube-nocookie.com` só depois do toque.
+- **O stepper da ficha não encosta em `exercise_state`**: a tabela no mock fica
+  byte a byte igual depois de mexer em Repetições e em Séries.
+- **Preferências novas mandam no player**: `preparacao_s` 5 mostra "5" no anel
+  e `descanso_padrao_s` 30 dá "0:30" no descanso.
+- **`data/tutoriais.json` não é conteúdo inventado**: 81 entradas, uma por
+  exercício, sem repetição; 12 `youtube_id` sorteados foram conferidos no
+  oEmbed do YouTube e todos existem, com o canal batendo (duas "divergências"
+  de título são só emoji e truncagem).
+- **Motor e montagem intocados** (`git diff 0085878..HEAD` vazio em
+  `lib/progressao.ts` e `lib/montagem.ts`) e **nenhuma dependência nova**
+  (`package.json` e `package-lock.json` idem). Sem kcal, sem confete.
+- A tela de "Repetições ⇄ Tempo" **não** existe, e está certo: nenhum dos 81
+  exercícios tem prescrição que aceite os dois (§14.1.2, "não inventar").
+
+Capturas em `capturas/v2/`: além das 16 do marco, a auditoria gerou o percurso
+inteiro nos dois temas (`dark-01…07b` e `light-01…07b`), todas 360 × 740.
+
+Conhecidos, para quem pegar o marco V3:
+
+- **O chip "montagem" fica ~11 px por baixo da barra de controles** na série de
+  trabalho que tem a linha "anterior: …" (medido: chip termina em 621,6 px, a
+  barra começa em 611). A página rola 138 px e o chip aparece, mas a tela deixa
+  de caber de uma vez. O orçamento vertical a 740 px é: ícones 16–64, barra de
+  progresso 76–80, figura 92–268 (`h-44`), nome 280–324, "Série 1 de 3" 336–356,
+  steppers 368–534, "anterior" 546–566, chip 578–622. Para caber mesmo com um
+  nome de duas linhas não basta encolher a figura (`h-40` dá 5 px de folga):
+  o jeito seguro é pôr "anterior: …" e o chip **na mesma linha**, que devolve
+  32 px de uma vez.
+- Na tela "Última repetição saiu firme?", tocar numa das três opções já avança:
+  quem quiser escrever a **nota curta** tem de escrever antes de escolher.
+- A tela de descanso mostra a prescrição do **bloco** ("3 × 5") mesmo quando o
+  próximo passo é um aquecimento.
+- §14.5.3 está meio provada: o circuito de core roda no player (reps e tempo,
+  e2e), mas **gravar como sessão livre** não dá para provar ainda — não existe
+  caminho para criar sessão livre, que é "Personalizar treino" / "Parte do
+  corpo em foco" do marco V3.
