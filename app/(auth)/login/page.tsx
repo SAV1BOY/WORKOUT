@@ -33,10 +33,13 @@ export default async function Login({
 
       <FormularioLogin avisoInicial={aviso} />
 
-      <p className="text-muted-foreground text-xs">
-        As chaves ficam em <code>.env.local</code> (veja{" "}
-        <code>.env.local.example</code>).
-      </p>
+      {/* recado de quem instala o app, não do Miguel: só com o app sem chaves */}
+      {aviso ? (
+        <p className="text-muted-foreground text-xs">
+          As chaves ficam em <code>.env.local</code> (veja{" "}
+          <code>.env.local.example</code>).
+        </p>
+      ) : null}
     </main>
   );
 }

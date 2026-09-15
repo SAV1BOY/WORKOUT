@@ -28,6 +28,10 @@ test.describe("login", () => {
     }
     const campo = await page.getByLabel("E-mail").boundingBox();
     expect(campo?.height ?? 0).toBeGreaterThanOrEqual(44);
+
+    // com as chaves no lugar, nada de recado de instalação na tela do Miguel
+    await expect(page.getByText(".env.local")).toHaveCount(0);
+    await expect(page.getByText(/Configure NEXT_PUBLIC/)).toHaveCount(0);
   });
 
   test("e-mail diferente do permitido é recusado sem chamar o Supabase", async ({

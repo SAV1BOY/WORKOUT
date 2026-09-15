@@ -95,10 +95,15 @@ test.describe("Hoje — dia de cardio (SPEC §3.1)", () => {
     ).toBeVisible();
     await expect(page.getByRole("link", { name: "Começar" })).toBeVisible();
 
+    // pt-BR: vírgula decimal no detalhe da corrida (3,6 km, nunca "3.6")
+    await expect(page.getByText("3,6 km no total · ritmo alvo 7:49/km")).toBeVisible();
+
     await page.getByRole("button", { name: "Fazer corda em vez de corrida" }).click();
     await expect(
       page.getByText("Corda · semana 1 · 6 × 30 s de corda (60 s de descanso) · 13 min"),
     ).toBeVisible();
+    // milhar com ponto, do jeito pt-BR (≈ 300 saltos na semana 1)
+    await expect(page.getByText("≈ 300 saltos")).toBeVisible();
 
     await semRolagemHorizontal(page);
   });

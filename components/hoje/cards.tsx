@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/card";
 import type { SessaoCardioDoDia } from "@/lib/calendario";
 import { cardio as dadosCardio } from "@/lib/dados";
-import { formatarMinutos } from "@/lib/formato";
+import { formatarKm, formatarMinutos, formatarNumero } from "@/lib/formato";
 import { textoDoCardio, type ItemPrevia, type ResumoDoTreino } from "@/lib/hoje";
 
 /** Botão grande, uma mão, alvo bem acima de 44 px. */
@@ -121,7 +121,7 @@ function DetalheDaCorrida({ sessao }: { sessao: SessaoCardioDoDia }) {
         {formatarMinutos(c.soltura_min)}
       </li>
       <li>
-        {c.km_total} km no total · ritmo alvo {c.pace_alvo}
+        {formatarKm(c.km_total)} no total · ritmo alvo {c.pace_alvo}
       </li>
     </ul>
   );
@@ -135,7 +135,7 @@ function DetalheDaCorda({ sessao }: { sessao: SessaoCardioDoDia }) {
       <li>
         {c.blocos} blocos de {c.bloco_s} s · {c.descanso_s} s de descanso
       </li>
-      <li>≈ {c.saltos_aprox} saltos</li>
+      <li>≈ {formatarNumero(c.saltos_aprox)} saltos</li>
     </ul>
   );
 }

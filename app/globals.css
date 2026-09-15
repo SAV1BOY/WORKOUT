@@ -54,7 +54,7 @@
   --card-foreground: #0a0a0a;
   --popover: #ffffff;
   --popover-foreground: #0a0a0a;
-  --primary: #ea580c;
+  --primary: #b8400c;
   --primary-foreground: #ffffff;
   --secondary: #f1f1f0;
   --secondary-foreground: #0a0a0a;
@@ -65,8 +65,8 @@
   --destructive: #b91c1c;
   --border: #e3e3e1;
   --input: #e3e3e1;
-  --ring: #ea580c;
-  --chart-1: #ea580c;
+  --ring: #b8400c;
+  --chart-1: #b8400c;
   --chart-2: #0a0a0a;
   --chart-3: #737373;
   --chart-4: #a3a3a3;
@@ -74,7 +74,7 @@
 
   /* mapa muscular (assets/mapa-muscular/musculos.css) */
   --mbody: #e3e3e1;
-  --mprim: #ea580c;
+  --mprim: #b8400c;
   --msec: #f8bb92;
 }
 
