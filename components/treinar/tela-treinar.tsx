@@ -1,9 +1,7 @@
 "use client";
 
-import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { toast } from "sonner";
 import { Erro, EsqueletoCard } from "@/components/carregando";
 import { ListaDoDia } from "@/components/treino/lista";
 import { BotaoLargo } from "@/components/ui/botao-largo";
@@ -28,13 +26,12 @@ import {
   useSessoesAbertas,
 } from "@/lib/queries/dados";
 import { ligado, opcoesDeMontagem } from "@/lib/preferencias";
-import { lerOrdemDoAparelho, limparOrdemDoAparelho } from "@/lib/ordem";
-import { lerTrocasDoAparelho, limparTrocasDoAparelho } from "@/lib/trocas";
-import { criarSessao, sessaoLocalMaisRecente } from "@/lib/queries/sessao";
+import { lerOrdemDoAparelho } from "@/lib/ordem";
+import { lerTrocasDoAparelho } from "@/lib/trocas";
+import { useComecarTreino } from "@/lib/queries/comecar";
+import { sessaoLocalMaisRecente } from "@/lib/queries/sessao";
 import { useHoje } from "@/lib/relogio";
 import { intervaloDaSemana } from "@/lib/semana";
-import { seriesAnterioresPorExercicio } from "@/lib/sessao";
-import type { RecordeAntes } from "@/lib/sessao";
 import type { TreinoId } from "@/lib/schemas";
 
 /**
@@ -43,9 +40,8 @@ import type { TreinoId } from "@/lib/schemas";
  */
 export function TelaTreinar({ userId }: { userId: string }) {
   const router = useRouter();
-  const cliente = useQueryClient();
   const hoje = useHoje();
-  const [criando, setCriando] = useState<TreinoId | null>(null);
+  const { criando, comecar } = useComecarTreino();
 
   const perfilQ = usePerfil();
   const perfil = perfilQ.data ?? null;
@@ -100,8 +96,9 @@ export function TelaTreinar({ userId }: { userId: string }) {
 
   const estadosQ = useEstados(ids);
   const eventosQ = useEventos(ids);
-  const anterioresQ = useSeriesAnteriores(ids);
-  const recordesQ = useRecordes(ids);
+  /* lidos para o cache: quem monta a sessão é useComecarTreino (§6.3) */
+  useSeriesAnteriores(ids);
+  useRecordes(ids);
 
   /* ---------------------------------- já tem treino aberto? vai para ele */
 
@@ -119,47 +116,6 @@ export function TelaTreinar({ userId }: { userId: string }) {
   useEffect(() => {
     if (aberta) router.replace(`/treinar/${aberta.id}`);
   }, [aberta, router]);
-
-  /* ------------------------------------------------------------ começar */
-
-  const comecar = async (treinoId: TreinoId) => {
-    if (!perfil || !hoje) return;
-    setCriando(treinoId);
-    try {
-      const recordes: Record<string, RecordeAntes> = {};
-      for (const r of recordesQ.data ?? []) recordes[r.exercise_id] = r;
-
-      const sessao = await criarSessao({
-        cliente,
-        userId,
-        data: hoje,
-        treinoId,
-        fase: perfil.fase_atual,
-        estados: estadosPorExercicio(estadosQ.data ?? []),
-        anteriores: seriesAnterioresPorExercicio(anterioresQ.data ?? []),
-        recordes,
-        /*
-         * Sem conseguir ler `exercise_state`, a sessão registra tudo mas não
-         * avalia: uma carga inventada apagaria a progressão real (SPEC §6.3).
-         */
-        estadoConhecido: estadosQ.data !== undefined && recordesQ.data !== undefined,
-        // as barras já pesadas na balança mudam a escala (SPEC §3.9)
-        opcoesMontagem: opcoesDeMontagem(perfil.prefs),
-        // o ⇄ da aba Treino escolheu antes de começar (SPEC §13.3)
-        substituicoes: treinoId === treinoDoDia ? trocas : {},
-        // o "Editar" da aba Treino reordenou antes de começar (SPEC §14.3)
-        ordem: treinoId === treinoDoDia ? ordem : [],
-      });
-      if (treinoId === treinoDoDia) {
-        limparTrocasDoAparelho();
-        limparOrdemDoAparelho();
-      }
-      router.push(`/treinar/${sessao.id}`);
-    } catch {
-      setCriando(null);
-      toast.error("Não consegui começar o treino agora.");
-    }
-  };
 
   /* --------------------------------------------------------- renderizar */
 
@@ -208,7 +164,17 @@ export function TelaTreinar({ userId }: { userId: string }) {
             <BotaoLargo
               variant={doDia ? "default" : "outline"}
               disabled={criando !== null}
-              onClick={() => void comecar(treinoId)}
+              onClick={() =>
+                void comecar({
+                  userId,
+                  perfil,
+                  hoje,
+                  treinoId,
+                  trocas,
+                  ordem,
+                  doDia: treinoId === treinoDoDia,
+                })
+              }
             >
               {criando === treinoId ? "Começando…" : `Começar ${resumo.nome}`}
             </BotaoLargo>

@@ -9,6 +9,7 @@ import { expect, test, type Page } from "@playwright/test";
 import {
   abrirVisaoGeral,
   comecarNoPlayer,
+  comecarOTreinoDoDia,
   entrarNoApp,
   esperarAbaTreino,
   fixarData,
@@ -17,8 +18,8 @@ import {
   lerDoMock,
   resetarMock,
   semRolagemHorizontal,
-  usuarioComPerfil,
   type SessaoMock,
+  usuarioComPerfil,
 } from "./fixtures";
 
 const SEGUNDA = "2026-09-14T08:00:00-03:00";
@@ -305,8 +306,7 @@ test.describe("substituir pela lista do dia (SPEC §13.3)", () => {
     await expect(itens.first()).toContainText("no lugar de Agachamento livre");
 
     // e a sessão nasce com ele
-    await page.getByRole("link", { name: "Começar treino" }).click();
-    await page.getByRole("button", { name: "Começar Treino A" }).click();
+    await comecarOTreinoDoDia(page);
     await expect(page).toHaveURL(/\/treinar\/[0-9a-f-]{36}$/);
     await abrirVisaoGeral(page);
     await expect(page.getByRole("heading", { name: `1. ${nome}` })).toBeVisible();
@@ -370,8 +370,7 @@ test.describe("vídeo opcional (SPEC §13.1)", () => {
   test("sem o arquivo é a ilustração; com o arquivo é o vídeo", async ({ page }) => {
     await usuarioComPerfil();
     await abrir(page, SEGUNDA);
-    await page.getByRole("link", { name: "Começar treino" }).click();
-    await page.getByRole("button", { name: "Começar Treino A" }).click();
+    await comecarOTreinoDoDia(page);
     await expect(page).toHaveURL(/\/treinar\/[0-9a-f-]{36}$/);
     const url = page.url();
     // o player abre na preparação (§14.1): a demonstração está no passo seguinte

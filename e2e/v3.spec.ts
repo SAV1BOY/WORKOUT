@@ -12,6 +12,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import {
   comecarNoPlayer,
+  comecarOTreinoDoDia,
   entrarNoApp,
   esperarAbaTreino,
   fixarData,
@@ -20,8 +21,8 @@ import {
   lerDoMock,
   resetarMock,
   semRolagemHorizontal,
-  usuarioComPerfil,
   type SessaoMock,
+  usuarioComPerfil,
 } from "./fixtures";
 
 const SEGUNDA = "2026-09-14T08:00:00-03:00";
@@ -192,12 +193,17 @@ test.describe("aba Treino — Parte do corpo em foco (§14.3)", () => {
     expect(sessoes[0]?.plano?.colecao).toBe("grupo:Core");
     expect(sessoes[0]?.plano?.itens.length).toBe(6);
 
-    const series = await lerDoMock<{ exercise_id: string; concluida: boolean }>(
-      sessao,
-      "session_sets",
-      "select=exercise_id,concluida,tempo_s,reps&concluida=is.true",
-    );
-    expect(series.length).toBeGreaterThanOrEqual(2);
+    /* a série vai para o IndexedDB na hora e sobe pela fila: esperar a fila */
+    const lerSeries = () =>
+      lerDoMock<{ exercise_id: string; concluida: boolean }>(
+        sessao,
+        "session_sets",
+        "select=exercise_id,concluida,tempo_s,reps&concluida=is.true",
+      );
+    await expect
+      .poll(async () => (await lerSeries()).length, { timeout: 15_000 })
+      .toBeGreaterThanOrEqual(2);
+    const series = await lerSeries();
     for (const s of series) {
       expect(sessoes[0]?.plano?.itens.map((i) => i.exercicio_id)).toContain(
         s.exercise_id,
@@ -269,8 +275,7 @@ test.describe("aba Treino — Personalizar e Editar (§14.3)", () => {
     );
 
     // e a sessão nasce com essa ordem em sessions.plano
-    await page.getByRole("link", { name: "Começar treino" }).click();
-    await page.getByRole("button", { name: "Começar Treino A" }).click();
+    await comecarOTreinoDoDia(page);
     await page.waitForURL(/\/treinar\/[0-9a-f-]{36}$/);
     await comecarNoPlayer(page);
 
@@ -281,8 +286,9 @@ test.describe("aba Treino — Personalizar e Editar (§14.3)", () => {
     expect(sessoes[0]?.workout_id).toBe("A1");
     expect(sessoes[0]?.plano?.itens[0]?.exercicio_id).not.toBe("agachamento-livre");
 
-    // de volta na aba Treino, "voltar à ordem do programa" desfaz
-    await irNaAba(page, "Treino");
+    // de volta na aba Treino pelo "Sair do treino" da visão geral (§14.1)
+    await page.getByRole("button", { name: "Visão geral do treino" }).click();
+    await page.getByRole("link", { name: "Sair do treino" }).click();
     await esperarAbaTreino(page);
   });
 

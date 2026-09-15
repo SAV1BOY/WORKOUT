@@ -11,8 +11,10 @@
 import { expect, test, type Page } from "@playwright/test";
 import {
   abrirVisaoGeral,
+  comecarOTreinoDoDia,
   entrarNoApp,
   esperarAbaTreino,
+  esperarServiceWorker,
   fixarData,
   fixarRelogio,
   lerDoMock,
@@ -170,8 +172,7 @@ test.describe("a rede voltando no meio do treino (SPEC §3.2 e §8)", () => {
     await usuarioComPerfil();
     await fixarData(page, SEGUNDA);
     await entrarNoApp(page);
-    await page.getByRole("link", { name: "Começar treino" }).click();
-    await page.getByRole("button", { name: "Começar Treino A" }).click();
+    await comecarOTreinoDoDia(page);
     await abrirVisaoGeral(page);
     await expect(page.getByRole("heading", { name: "Treino A", level: 1 })).toBeVisible();
 
@@ -221,8 +222,7 @@ test.describe("a criação da sessão que falha uma vez (SPEC §8)", () => {
       await rota.continue();
     });
 
-    await page.getByRole("link", { name: "Começar treino" }).click();
-    await page.getByRole("button", { name: "Começar Treino A" }).click();
+    await comecarOTreinoDoDia(page);
     await abrirVisaoGeral(page);
     await expect(page.getByRole("heading", { name: "Treino A", level: 1 })).toBeVisible();
 
@@ -294,8 +294,7 @@ test.describe("o Supabase cai no meio do treino e volta (SPEC §8 e §10.3)", ()
      * espera o evento `online` — ela tem de se virar com o backoff.
      */
     await page.route("**/rest/v1/**", (rota) => rota.abort("connectionfailed"));
-    await page.getByRole("link", { name: "Começar treino" }).click();
-    await page.getByRole("button", { name: "Começar Treino A" }).click();
+    await comecarOTreinoDoDia(page);
     await abrirVisaoGeral(page);
     await expect(page.getByRole("heading", { name: "Treino A", level: 1 })).toBeVisible();
 
@@ -347,5 +346,64 @@ test.describe("o Supabase cai no meio do treino e volta (SPEC §8 e §10.3)", ()
       (await lerDoMock<{ ultimo_treino: string | null }>(sessao, "profiles"))[0]
         ?.ultimo_treino,
     ).toBe("A1");
+  });
+});
+
+test.describe("o treino começado SEM rede (SPEC §6.3, §8 e §14.1)", () => {
+  /*
+   * A aba Treino lê as cargas do treino do dia; `/treinar` lia as da fase
+   * inteira, com outra chave, e o cache de uma não servia para a outra. Sem
+   * rede, quem criava a sessão declarava o estado desconhecido e a sessão
+   * inteira ficava sem avaliação: 0 exercise_state, 0 progression_events.
+   */
+  test("com o cache da aba Treino, o motor decide igual e grava ao voltar a rede", async ({
+    page,
+    context,
+  }) => {
+    test.setTimeout(120_000);
+    const sessao = await usuarioComPerfil();
+    await fixarData(page, SEGUNDA);
+    await entrarNoApp(page);
+    await esperarAbaTreino(page);
+
+    // a aba Treino leu as cargas do dia (é o que vai para o cache persistido)
+    await expect(
+      page.getByRole("button", { name: "Ficha: Agachamento livre" }),
+    ).toContainText("Hoje: 7,5 kg na barra");
+    await esperarServiceWorker(page);
+    // o cache é gravado no máximo 1× por segundo
+    await page.waitForTimeout(1_500);
+
+    await context.setOffline(true);
+    await page.reload();
+    await esperarAbaTreino(page);
+
+    // começa, registra e conclui o treino inteiro sem rede
+    await comecarOTreinoDoDia(page);
+    await abrirVisaoGeral(page);
+    await expect(page.getByRole("heading", { name: "Treino A", level: 1 })).toBeVisible();
+    for (const n of [1, 2, 3]) await marcar(page, "Agachamento livre", n);
+
+    await page.getByRole("button", { name: "Concluir" }).click();
+    const resumo = page.getByRole("dialog");
+    await expect(resumo.getByText("Treino concluído")).toBeVisible();
+    // a sessão foi avaliada: nada de "sem avaliar, porque não consegui ler"
+    await expect(resumo.getByText("Sem avaliar, porque")).toHaveCount(0);
+    await resumo.getByRole("radio", { name: "Um pouco fácil" }).click();
+    await resumo.getByRole("button", { name: "Salvar e voltar" }).click();
+    await esperarAbaTreino(page);
+
+    // nada subiu enquanto não havia rede
+    expect(await lerDoMock(sessao, "exercise_state")).toHaveLength(0);
+
+    await context.setOffline(false);
+    await expect.poll(async () => naFila(page), { timeout: 40_000 }).toBe(0);
+
+    const estados = await lerDoMock<{ exercise_id: string }>(sessao, "exercise_state");
+    const eventos = await lerDoMock<{ exercise_id: string }>(sessao, "progression_events");
+    expect(estados.length).toBeGreaterThan(0);
+    expect(eventos.length).toBeGreaterThan(0);
+    expect(estados.map((e) => e.exercise_id)).toContain("agachamento-livre");
+    expect(eventos.map((e) => e.exercise_id)).toContain("agachamento-livre");
   });
 });

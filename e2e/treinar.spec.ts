@@ -6,17 +6,17 @@ import { expect, test, type Page } from "@playwright/test";
 import {
   abrirVisaoGeral,
   atualizarNoMock,
+  comecarOTreinoDoDia,
   entrarNoApp,
   esperarAbaTreino,
   esperarServiceWorker,
   fixarData,
   inserirNoMock,
-  irNaAba,
   lerDoMock,
   resetarMock,
   semRolagemHorizontal,
-  usuarioComPerfil,
   type SessaoMock,
+  usuarioComPerfil,
 } from "./fixtures";
 
 /** 14/09/2026 é a segunda-feira que abre o programa: Treino A (SPEC §5). */
@@ -51,8 +51,7 @@ async function comecarTreinoA(page: Page): Promise<SessaoMock> {
   const sessao = await usuarioComPerfil();
   await fixarData(page, SEGUNDA);
   await entrarNoApp(page);
-  await page.getByRole("link", { name: "Começar treino" }).click();
-  await page.getByRole("button", { name: "Começar Treino A" }).click();
+  await comecarOTreinoDoDia(page);
   await expect(page).toHaveURL(/\/treinar\/[0-9a-f-]{36}$/);
   /*
    * SPEC §14.1: o caminho principal agora é o player. A folha de rolagem com
@@ -490,8 +489,6 @@ test.describe("ajuda, montagem e substituição (SPEC §3.2, §6.5 e §7)", () =
     ]);
     await fixarData(page, SEGUNDA);
     await entrarNoApp(page);
-    await page.getByRole("link", { name: "Começar treino" }).click();
-
     /*
      * A sessão carrega o estado e os recordes de todos os substitutos, não só
      * dos exercícios do treino — sem isso a troca começaria do zero.
@@ -506,7 +503,7 @@ test.describe("ajuda, montagem e substituição (SPEC §3.2, §6.5 e §7)", () =
         ),
       ),
     );
-    await page.getByRole("button", { name: "Começar Treino A" }).click();
+    await comecarOTreinoDoDia(page);
     await abrirVisaoGeral(page);
     await expect(page.getByRole("heading", { name: "Treino A", level: 1 })).toBeVisible();
     await leituras;
@@ -741,9 +738,11 @@ test.describe("timer, tela acesa e voltar sem rede (SPEC §3.2, §8 e §10.3)", 
     await timer.getByRole("button", { name: "Pular" }).click();
     await expect(timer).toHaveCount(0);
 
-    // sair da sessão solta o Wake Lock (a visão geral fecha primeiro, §14.1)
-    await page.getByRole("button", { name: "Voltar ao treino" }).click();
-    await irNaAba(page, "Treino");
+    /*
+     * Sair da sessão solta o Wake Lock. O player é tela cheia (§14.1): a saída
+     * é o "Sair do treino" da visão geral, não a barra de abas.
+     */
+    await page.getByRole("link", { name: "Sair do treino" }).click();
     await esperarAbaTreino(page);
     await expect
       .poll(async () => page.evaluate(() => (window as never as { __tela: string[] }).__tela))

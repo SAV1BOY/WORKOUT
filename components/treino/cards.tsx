@@ -81,12 +81,17 @@ export function CardForca({
   aviso,
   mostrarRaios,
   aberta,
+  aoComecar,
+  criando,
 }: {
   resumo: ResumoDoTreino;
   aviso: string | null;
   mostrarRaios: boolean;
   /** Sessão em andamento deste treino: o card vira "Continuar". */
   aberta: { id: string; progresso: string } | null;
+  /** Cria a sessão e entra no player, sem tela intermediária (§14.5.1). */
+  aoComecar: () => void;
+  criando: boolean;
 }) {
   const raios = dificuldadeDaColecao(
     exerciciosDoTreino(resumo.id).map(({ exercicio }) => exercicio),
@@ -102,11 +107,20 @@ export function CardForca({
       etiqueta={aberta ? "em andamento" : "hoje"}
     >
       {aviso ? <Aviso texto={aviso} /> : null}
-      <BotaoLargo asChild>
-        <Link href={aberta ? `/treinar/${aberta.id}` : "/treinar"}>
-          {aberta ? "Continuar" : "Começar treino"}
-        </Link>
-      </BotaoLargo>
+      {/*
+        SPEC §14.5.1: "Começar → Preparação → Exercício", sem escala. O botão
+        largo do card do dia cria a sessão e já entra no player; `/treinar`
+        continua sendo a rota para escolher o outro treino da fase (§5.3).
+      */}
+      {aberta ? (
+        <BotaoLargo asChild>
+          <Link href={`/treinar/${aberta.id}`}>Continuar</Link>
+        </BotaoLargo>
+      ) : (
+        <BotaoLargo disabled={criando} onClick={aoComecar}>
+          {criando ? "Começando…" : "Começar treino"}
+        </BotaoLargo>
+      )}
       {aberta ? (
         <p className="numero text-muted-foreground text-center text-xs">
           {aberta.progresso}

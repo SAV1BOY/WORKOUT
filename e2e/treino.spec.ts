@@ -41,7 +41,8 @@ test.describe("Treino — dia de força (SPEC §3.1, §10.2 e §13.3)", () => {
     // peso corporal não vira "0 kg na mochila"
     await expect(page.getByText("Hoje: peso do corpo")).toBeVisible();
 
-    const comecar = page.getByRole("link", { name: "Começar treino" });
+    /* §14.5.1: é botão, não link — ele cria a sessão e entra no player */
+    const comecar = page.getByRole("button", { name: "Começar treino" });
     await expect(comecar).toBeVisible();
     expect((await comecar.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
 
@@ -320,5 +321,43 @@ test.describe("Treino — auditoria do marco 2", () => {
       .first();
     await expect(primeiro).toContainText("1. Agachamento livre");
     await expect(primeiro).toContainText("Hoje: 7,5 kg na barra");
+  });
+});
+
+test.describe('"Começar treino" entra direto no player (SPEC §14.5.1)', () => {
+  test("do card do dia ao player, sem passar por /treinar", async ({ page }) => {
+    const sessao = await usuarioComPerfil();
+    await fixarData(page, SEGUNDA);
+    await entrarNoApp(page);
+    await esperarAbaTreino(page);
+
+    const visitadas: string[] = [];
+    page.on("framenavigated", (quadro) => {
+      if (quadro === page.mainFrame()) visitadas.push(new URL(quadro.url()).pathname);
+    });
+
+    await page.getByRole("button", { name: "Começar treino" }).click();
+    await page.waitForURL(/\/treinar\/[0-9a-f-]{36}$/);
+    // a preparação do player, não a tela "Escolha o treino e registre série a série"
+    await expect(page.getByText("Preparado para começar")).toBeVisible();
+    expect(visitadas).not.toContain("/treinar");
+
+    // e a sessão nasceu de verdade
+    await expect
+      .poll(async () => (await lerDoMock(sessao, "sessions")).length, { timeout: 15_000 })
+      .toBe(1);
+  });
+
+  test("/treinar continua sendo a rota para escolher o outro treino (§5.3)", async ({
+    page,
+  }) => {
+    await usuarioComPerfil();
+    await fixarData(page, QUINTA); // quinta: dia sem força
+    await entrarNoApp(page);
+    await esperarAbaTreino(page);
+
+    await page.getByRole("link", { name: /Treinar mesmo assim/ }).click();
+    await expect(page).toHaveURL(/\/treinar$/);
+    await expect(page.getByRole("button", { name: /^Começar Treino / })).toHaveCount(2);
   });
 });

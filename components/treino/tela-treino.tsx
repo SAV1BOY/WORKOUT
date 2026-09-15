@@ -53,6 +53,7 @@ import {
   mover,
 } from "@/lib/ordem";
 import { descartarSessao, registrarSolta } from "@/lib/queries/acoes";
+import { useComecarTreino } from "@/lib/queries/comecar";
 import {
   useCardio,
   useCardioDesde,
@@ -60,6 +61,8 @@ import {
   useEventos,
   useOverrides,
   usePerfil,
+  useRecordes,
+  useSeriesAnteriores,
   useSeriesDaSessao,
   useSessoes,
   useSessoesAbertas,
@@ -176,6 +179,15 @@ export function TelaTreino({ userId }: { userId: string }) {
 
   const estadosQ = useEstados(ids);
   const eventosQ = useEventos(ids);
+  /*
+   * Recordes e séries anteriores não aparecem nesta tela: são lidos aqui para
+   * o "Começar treino" do card montar a sessão sem passar por outra tela — e
+   * para o cache persistido cobrir o treino começado sem rede (SPEC §6.3).
+   */
+  useRecordes(ids);
+  useSeriesAnteriores(ids);
+
+  const { criando, comecar } = useComecarTreino();
 
   const itens = useMemo(() => {
     if (!treinoId) return [];
@@ -300,6 +312,10 @@ export function TelaTreino({ userId }: { userId: string }) {
             aviso={aviso}
             mostrarRaios={mostrarRaios}
             aberta={abertaDoDia}
+            criando={criando !== null}
+            aoComecar={() =>
+              void comecar({ userId, perfil, hoje, treinoId, trocas, ordem })
+            }
           />
         ) : null}
 
@@ -376,8 +392,9 @@ export function TelaTreino({ userId }: { userId: string }) {
 }
 
 function Tela({ children }: { children: React.ReactNode }) {
+  /* `pb-24`: o FAB "Ajustar" é fixo e cobria o fim da lista sem esta folga */
   return (
-    <section aria-label="Treino" className="flex flex-col gap-4">
+    <section aria-label="Treino" className="flex flex-col gap-4 pb-24">
       {children}
     </section>
   );

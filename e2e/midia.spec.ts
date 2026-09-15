@@ -12,6 +12,7 @@ import { resolve } from "node:path";
 import { expect, test, type Page } from "@playwright/test";
 import {
   comecarNoPlayer,
+  comecarOTreinoDoDia,
   entrarNoApp,
   esperarAbaTreino,
   fixarData,
@@ -193,8 +194,7 @@ test.describe("miniaturas e player", () => {
     await usuarioComPerfil();
     await abrir(page);
 
-    await page.getByRole("link", { name: "Começar treino" }).click();
-    await page.getByRole("button", { name: "Começar Treino A" }).click();
+    await comecarOTreinoDoDia(page);
     await comecarNoPlayer(page);
 
     const ilustracao = page.locator("[data-ilustracao]").first();

@@ -1271,3 +1271,30 @@ describe("contadores da conclusão (SPEC §14.1.5)", () => {
     expect(contas.volumeKg).toBe(0);
   });
 });
+
+describe("SPEC §6.3: sem rede, a degradação é por exercício", () => {
+  it("`conhecidos` deixa sem avaliar só quem não foi lido", () => {
+    const s = sessaoA({ conhecidos: new Set(["agachamento-livre"]) });
+    const avaliaveis = s.blocos.filter((b) => b.estadoConhecido).map((b) => b.exercicioId);
+    expect(avaliaveis).toEqual(["agachamento-livre"]);
+    expect(s.blocos.length).toBeGreaterThan(1);
+
+    const feita = fazerTudoNoTopo(s, "agachamento-livre");
+    const resultado = avaliarSessao(feita).find(
+      (r) => r.exercicioId === "agachamento-livre",
+    )!;
+    expect(resultado.naoAvaliado).toBe(false);
+  });
+
+  it("`conhecidos` vazio é a sessão inteira sem avaliar", () => {
+    const s = sessaoA({ conhecidos: new Set<string>() });
+    expect(s.blocos.every((b) => !b.estadoConhecido)).toBe(true);
+  });
+
+  it("sem `conhecidos`, o antigo `estadoConhecido` continua mandando", () => {
+    expect(sessaoA().blocos.every((b) => b.estadoConhecido)).toBe(true);
+    expect(
+      sessaoA({ estadoConhecido: false }).blocos.every((b) => !b.estadoConhecido),
+    ).toBe(true);
+  });
+});

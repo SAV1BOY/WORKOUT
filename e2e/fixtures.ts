@@ -270,6 +270,16 @@ export async function entrarNoApp(
 }
 
 /**
+ * O gesto da §14.5.1: o botão largo do card do dia **cria a sessão e entra no
+ * player**, sem a tela `/treinar` no meio. `/treinar` continua existindo para
+ * escolher o outro treino da fase (§5.3).
+ */
+export async function comecarOTreinoDoDia(page: Page): Promise<void> {
+  await page.getByRole("button", { name: "Começar treino" }).click();
+  await page.waitForURL(/\/treinar\/[0-9a-f-]{36}$/);
+}
+
+/**
  * O player (SPEC §14.1) abre na tela de preparação: este ajudante passa dela
  * para o primeiro exercício quando ela está na frente. Com o relógio fixo
  * (`fixarData`) a contagem não anda sozinha, então o toque é obrigatório.

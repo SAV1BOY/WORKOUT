@@ -177,6 +177,13 @@ export interface EntradaMontagem {
    * séries normalmente, mas não avalia nem grava a progressão.
    */
   estadoConhecido?: boolean;
+  /**
+   * Quais exercícios tiveram o `exercise_state` lido de verdade. Quando existe,
+   * manda no lugar do `estadoConhecido` acima e a degradação passa a ser **por
+   * exercício**: sem rede, só quem nunca foi lido fica sem avaliação — o resto
+   * do treino continua passando pelo motor (SPEC §6.3 e §14.1).
+   */
+  conhecidos?: ReadonlySet<string>;
   /** Tipo `maximo`: reps da última sessão por exercício (SPEC §6.3). */
   anteriores?: Record<string, (number | null)[]>;
   /** `v_records` por exercício, para o resumo do fim (SPEC §6.6). */
@@ -363,7 +370,9 @@ export function montarSessaoAvulsa(e: EntradaAvulsa): SessaoLocal {
       descansoTexto: item.descansoTexto,
       alvo,
       estado,
-      estadoConhecido: e.estadoConhecido !== false,
+      estadoConhecido: e.conhecidos
+        ? e.conhecidos.has(exercicio.id)
+        : e.estadoConhecido !== false,
       seriesAnteriores: anteriores[exercicio.id] ?? null,
       recordeCarga: rec?.carga_max_kg ?? null,
       recordeReps: rec?.reps_max ?? null,
@@ -742,6 +751,7 @@ export function comSubstituicoes(
     anteriores?: Record<string, (number | null)[]>;
     recordes?: Record<string, RecordeAntes>;
     estadoConhecido?: boolean;
+    conhecidos?: ReadonlySet<string>;
     novoId?: () => string;
   } = {},
 ): SessaoLocal {
@@ -753,7 +763,9 @@ export function comSubstituicoes(
     atual = substituirExercicio(atual, bloco.ordem, novo, dados.estados?.[novo] ?? null, {
       anteriores: dados.anteriores?.[novo] ?? null,
       recorde: dados.recordes?.[novo],
-      estadoConhecido: dados.estadoConhecido,
+      estadoConhecido: dados.conhecidos
+        ? dados.conhecidos.has(novo)
+        : dados.estadoConhecido,
       novoId: dados.novoId,
     });
   }

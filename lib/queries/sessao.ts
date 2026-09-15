@@ -177,6 +177,7 @@ export async function criarSessao(entrada: EntradaCriacao): Promise<SessaoLocal>
           anteriores: resto.anteriores,
           recordes: resto.recordes,
           estadoConhecido: resto.estadoConhecido,
+          conhecidos: resto.conhecidos,
           novoId,
         })
       : montada;
