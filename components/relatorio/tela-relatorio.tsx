@@ -17,10 +17,10 @@ import { metaSemanal, sequenciaDeDias, sequenciaDeSemanas } from "@/lib/metas";
 import { contadoresDoRelatorio } from "@/lib/relatorio";
 import { gravarPerfil } from "@/lib/queries/perfil";
 import { usePesos } from "@/lib/queries/corpo";
-import { useCardioDesde, useOverrides, usePerfil, useSoltas } from "@/lib/queries/dados";
+import { useCardioTodos, useOverrides, usePerfil, useSoltas } from "@/lib/queries/dados";
 import {
   useEventosDesde,
-  useSeriesDesde,
+  useSeriesTodas,
   useSessoesTodas,
 } from "@/lib/queries/progresso";
 import { useHoje } from "@/lib/relogio";
@@ -46,9 +46,14 @@ export function TelaRelatorio() {
   const intervalo = hoje ? intervaloDaSemana(hoje) : null;
 
   const perfilQ = usePerfil();
+  /*
+   * SPEC §14.4: os contadores do topo são acumulados, então as três fontes
+   * leem a MESMA janela (tudo). O histórico e as sequências recortam as 26
+   * semanas destas mesmas listas, sem uma segunda leitura.
+   */
   const sessoesQ = useSessoesTodas();
-  const seriesQ = useSeriesDesde(desde);
-  const cardioQ = useCardioDesde(desde);
+  const seriesQ = useSeriesTodas();
+  const cardioQ = useCardioTodos();
   const soltasQ = useSoltas(desde, hoje);
   const eventosQ = useEventosDesde(desde);
   const overridesQ = useOverrides(intervalo?.de ?? null, intervalo?.ate ?? null);
@@ -62,6 +67,16 @@ export function TelaRelatorio() {
   const contadores = useMemo(
     () => contadoresDoRelatorio({ sessoes, cardios, series }),
     [sessoes, cardios, series],
+  );
+
+  /* a janela do histórico e dos gráficos, recortada do que já foi lido */
+  const seriesDaJanela = useMemo(
+    () => (desde ? series.filter((s) => (s.registrada_em ?? "") >= desde) : series),
+    [series, desde],
+  );
+  const cardiosDaJanela = useMemo(
+    () => (desde ? cardios.filter((c) => c.data >= desde) : cardios),
+    [cardios, desde],
   );
 
   if (!hoje || !perfil) {
@@ -84,11 +99,13 @@ export function TelaRelatorio() {
         <Contador
           rotulo="Treinos"
           valor={formatarNumero(contadores.treinos)}
+          detalhe="no total"
           icone={<Dumbbell aria-hidden="true" className="size-3" />}
         />
         <Contador
           rotulo="Minutos"
           valor={formatarNumero(contadores.minutos)}
+          detalhe="no total"
           icone={<Timer aria-hidden="true" className="size-3" />}
         />
         {/*
@@ -98,6 +115,7 @@ export function TelaRelatorio() {
         <Contador
           rotulo="Volume (kg)"
           valor={formatarNumero(contadores.volumeKg)}
+          detalhe="no total"
           icone={<Weight aria-hidden="true" className="size-3" />}
         />
       </div>
@@ -107,8 +125,8 @@ export function TelaRelatorio() {
         perfil={perfil}
         overrides={overridesQ.data ?? []}
         sessoes={sessoes}
-        cardios={cardios}
-        series={series}
+        cardios={cardiosDaJanela}
+        series={seriesDaJanela}
         soltas={soltasQ.data ?? []}
         eventos={eventosQ.data ?? []}
       />

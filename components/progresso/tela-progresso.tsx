@@ -141,7 +141,8 @@ export function TelaProgresso({
         <Numero
           rotulo="Treinos na semana"
           valor={formatarNumero(treinos.semana)}
-          detalhe={`${treinos.mes} no mês · ${treinos.total} no total`}
+          /* só força: os contadores acumulados do topo somam o cardio (§14.4) */
+          detalhe={`só força · ${treinos.mes} no mês · ${treinos.total} no total`}
         />
         <Numero
           rotulo="Aderência (4 semanas)"

@@ -205,3 +205,47 @@ describe("resumo de uma sessão", () => {
     expect(volumeDaSessao(SERIES, "nenhuma")).toEqual({ reps: 0, volumeKg: 0 });
   });
 });
+
+describe("SPEC §14.4: os contadores do topo são o acumulado", () => {
+  /* 30 semanas antes de 15/09/2026: fora da janela de 26 semanas da tela. */
+  const ANTIGA: SessaoBruta = {
+    id: "velha",
+    data: "2026-02-17",
+    status: "concluida",
+    workout_id: "A1",
+    duracao_s: 3_000,
+    plano: null,
+  };
+  const CARDIO_ANTIGO: CardioBruto = {
+    data: "2026-02-18",
+    tipo: "corrida",
+    duracao_min: 40,
+    distancia_km: 5,
+    feito: null,
+    concluida: true,
+    semana_plano: 1,
+  };
+  const SERIE_ANTIGA = serie({
+    session_id: "velha",
+    reps: 10,
+    carga_kg: 20,
+    registrada_em: "2026-02-17T10:00:00.000Z",
+  });
+
+  it("uma sessão de 30 semanas atrás entra nos três contadores", () => {
+    const antes = contadoresDoRelatorio({
+      sessoes: SESSOES,
+      cardios: CARDIOS,
+      series: [serie({ session_id: "s1" })],
+    });
+    const depois = contadoresDoRelatorio({
+      sessoes: [...SESSOES, ANTIGA],
+      cardios: [...CARDIOS, CARDIO_ANTIGO],
+      series: [serie({ session_id: "s1" }), SERIE_ANTIGA],
+    });
+
+    expect(depois.treinos).toBe(antes.treinos + 2);
+    expect(depois.minutos).toBe(antes.minutos + 50 + 40);
+    expect(depois.volumeKg).toBe(antes.volumeKg + 200);
+  });
+});

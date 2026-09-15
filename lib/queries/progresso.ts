@@ -27,6 +27,7 @@ export const chavesProgresso = {
   sessoesTodas: () => ["progresso", "sessoes"] as const,
   eventosDesde: (de: string) => ["progresso", "eventos", de] as const,
   seriesDesde: (de: string) => ["progresso", "series", de] as const,
+  seriesTodas: () => ["progresso", "series-todas"] as const,
   seriesDoExercicio: (id: string) => ["progresso", "series-ex", id] as const,
   recordes: () => ["progresso", "recordes"] as const,
 };
@@ -58,6 +59,26 @@ export function useSeriesDesde(de: string | null): UseQueryResult<SerieBruta[]> 
           .from("session_sets")
           .select(COLUNAS_SERIE)
           .gte("registrada_em", de ?? "")
+          .order("registrada_em", { ascending: true })
+          .limit(LIMITE_SERIES),
+        "as séries registradas",
+      ),
+  });
+}
+
+/**
+ * Todas as séries registradas (SPEC §14.4): o volume acumulado do topo do
+ * Relatório lê a mesma janela que os treinos e os minutos. O histórico e os
+ * gráficos recortam 26 semanas desta mesma lista, sem uma segunda leitura.
+ */
+export function useSeriesTodas(): UseQueryResult<SerieBruta[]> {
+  return useQuery({
+    queryKey: chavesProgresso.seriesTodas(),
+    queryFn: () =>
+      lerLista<SerieBruta>(
+        clienteNavegador()
+          .from("session_sets")
+          .select(COLUNAS_SERIE)
           .order("registrada_em", { ascending: true })
           .limit(LIMITE_SERIES),
         "as séries registradas",
