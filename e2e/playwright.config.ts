@@ -56,12 +56,20 @@ export default defineConfig({
     },
   ],
 
+  /*
+   * `reuseExistingServer: false` de propósito nos dois: reaproveitar um
+   * servidor que já estava de pé é reaproveitar um servidor DESCONHECIDO —
+   * um `next start` órfão de antes do último build serve o HTML com o hash
+   * antigo do CSS, a página abre sem estilo nenhum e os testes de 44 px
+   * falham como se o app estivesse quebrado. Aqui a porta ocupada vira um
+   * erro claro ("is already used") em vez de um resultado errado.
+   */
   webServer: [
     {
       command: "npx tsx scripts/mock-supabase.ts",
       cwd: raiz,
       url: `${URL_MOCK}/__mock/health`,
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer: false,
       timeout: 30_000,
       stdout: "pipe",
       stderr: "pipe",
@@ -71,7 +79,7 @@ export default defineConfig({
       command: `npx next start -p ${PORTA_APP}`,
       cwd: raiz,
       url: `${URL_APP}/login`,
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer: false,
       timeout: 120_000,
       stdout: "pipe",
       stderr: "pipe",

@@ -122,3 +122,11 @@ export async function semRolagemHorizontal(page: Page): Promise<void> {
   );
   expect(vazou, "a página rolou para o lado a 360 px").toBeLessThanOrEqual(0);
 }
+
+/** As requisições que chegaram ao mock desde o último reset (sem /__mock). */
+export async function requisicoesDoMock(): Promise<
+  { metodo: string; caminho: string }[]
+> {
+  const estado = await estadoDoMock();
+  return (estado.requisicoes ?? []) as { metodo: string; caminho: string }[];
+}

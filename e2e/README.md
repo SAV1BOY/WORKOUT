@@ -47,10 +47,14 @@ O Chromium já está instalado em `/opt/pw-browsers`
 porque é a versão que casa com esse Chromium (revisão 1194). **Nunca** rode
 `playwright install`.
 
-> `reuseExistingServer` está ligado fora de CI: se já tiver alguma coisa
-> escutando na 3100 ou na 54321, o Playwright reaproveita em vez de subir a
-> sua. Se os testes falharem com a tela "Configure NEXT_PUBLIC_…", é um
-> `next start` velho preso na 3100 — mate e rode de novo.
+> **O Playwright sempre sobe os seus dois servidores** (`reuseExistingServer:
+> false`). Se a 3100 ou a 54321 estiver ocupada ele para com "is already used"
+> — é para matar o que está lá e rodar de novo. Reaproveitar era pior do que
+> parece: um `next start` órfão de antes do último `npm run build` serve o HTML
+> apontando para o CSS antigo, a página abre **sem estilo** e os testes de
+> 44 px falham como se o app estivesse quebrado. Cuidado ao matar: o processo
+> se chama `next-server`, não `next start` — `pkill -f "next start"` deixa o
+> servidor vivo.
 
 ## Testar à mão no navegador (ou no celular)
 
@@ -73,7 +77,7 @@ IP nas variáveis do `dev:mock`, senão o navegador do celular não acha o mock.
 O estado do mock vive em memória:
 
 ```bash
-curl -s localhost:54321/__mock/estado            # o que está guardado
+curl -s localhost:54321/__mock/estado            # o que está guardado + requisicoes
 curl -s -XPOST localhost:54321/__mock/reset      # zera tudo
 curl -s -XPOST localhost:54321/__mock/seed -H 'content-type: application/json' \
   -d '{"usuarios":[{"email":"miguelgsaviotti29@gmail.com","senha":"senha123"}],
@@ -85,10 +89,11 @@ curl -s -XPOST localhost:54321/__mock/seed -H 'content-type: application/json' \
 | arquivo | o que é |
 |---|---|
 | `playwright.config.ts` | projeto único "celular", `webServer` do mock + do app |
-| `fixtures.ts` | `resetarMock`, `semear`, `estadoDoMock`, `sessaoNoMock`, `login`, `fixarRelogio`, `semRolagemHorizontal` |
+| `fixtures.ts` | `resetarMock`, `semear`, `estadoDoMock`, `requisicoesDoMock`, `sessaoNoMock`, `login`, `fixarRelogio`, `semRolagemHorizontal` |
 | `login.spec.ts` | e-mail de fora recusado, criar conta → Hoje, senha errada, sair, entrar de novo |
 | `shell.spec.ts` | navegação inferior (5 itens, alvos ≥ 44 px), cada rota abre, nada rola para o lado, manifest válido |
 | `mock.spec.ts` | o contrato do próprio mock (PostgREST, upsert, `v_records`, storage, RLS) |
+| `auditoria.spec.ts` | o que os outros não provavam: nenhuma requisição ao Supabase com e-mail de fora, recarregar mantém a sessão, toda rota protegida volta ao login, e o mock recusando coluna/operador/filtro composto inventados |
 
 `fixarRelogio(page)` congela o relógio **do navegador** em 14/09/2026 (a
 segunda-feira em que o programa começa, SPEC §5). O servidor continua com a
@@ -128,12 +133,17 @@ dependência nova). Estado em memória, por processo.
   `POST /storage/v1/object/list/progresso`, `DELETE /storage/v1/object/progresso`
   com `{prefixes:[…]}`.
 - **Controle** — `GET /__mock/health`, `GET /__mock/estado`,
-  `POST /__mock/reset`, `POST /__mock/seed`.
+  `POST /__mock/reset`, `POST /__mock/seed`. O `/estado` traz também
+  `requisicoes`: tudo que chegou ao mock desde o último reset (sem contar
+  `/__mock`), que é como os testes provam o **negativo** — "o app não chamou o
+  Supabase" (`requisicoesDoMock()` em `fixtures.ts`).
 - **Porta** — `MOCK_SUPABASE_PORT` (padrão 54321). `MOCK_LOG=1` loga cada
   requisição.
 
-Qualquer rota, tabela, coluna, operador ou `select` embutido que ele não conhece
-responde **400 com `mock: … não implementado`**. Ele nunca finge sucesso: se um
+Qualquer rota, tabela, coluna (em `select`, em filtro ou em `order`), operador,
+filtro composto (`or=`/`and=`) ou `select` embutido que ele não conhece responde
+**400**, mesmo quando a tabela está vazia — a validação não depende de haver
+linha para filtrar. Ele nunca finge sucesso: se um
 teste quebrar com essa mensagem, é para implementar no mock — nunca para mudar o
 app até caber nele.
 
@@ -147,7 +157,8 @@ app até caber nele.
   quando ele mudar (colunas fora do schema já são recusadas, o que ajuda a
   perceber).
 - PostgREST pela metade: sem recursos embutidos (`select=a,b(c)`), sem `or`/`and`
-  compostos, sem `rpc`, sem full-text, sem `upsert` com `missing=default`.
+  compostos, sem apelido no select (`select=apelido:coluna`), sem `rpc`, sem
+  full-text, sem `upsert` com `missing=default`. Tudo isso dá 400, não silêncio.
 - Auth pela metade: só e-mail + senha, sempre autoconfirmado. Sem magic link,
   OAuth, recuperação de senha, MFA, captcha ou rate limit. A senha fica em texto
   puro na memória — é um mock de teste, nunca sai da máquina.

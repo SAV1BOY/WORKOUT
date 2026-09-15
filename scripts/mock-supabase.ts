@@ -346,11 +346,57 @@ const ESQUEMA: Record<string, EspecTabela> = {
 const NOMES_TABELAS = Object.keys(ESQUEMA);
 /** view calculada a partir de session_sets (não aceita escrita) */
 const VIEWS = ["v_records"];
+/** colunas das views (as das tabelas saem do ESQUEMA) */
+const COLUNAS_VIEWS: Record<string, string[]> = {
+  v_records: [
+    "user_id",
+    "exercise_id",
+    "carga_max_kg",
+    "e1rm_epley",
+    "reps_max",
+    "tempo_max_s",
+  ],
+};
+
+/** Colunas que o recurso tem de verdade — para não fingir sucesso com typo. */
+function colunasDe(recurso: string): Set<string> {
+  const espec = ESQUEMA[recurso];
+  if (espec) return new Set(Object.keys(espec.colunas));
+  const view = COLUNAS_VIEWS[recurso];
+  if (view) return new Set(view);
+  throw new ErroMock(400, `mock: recurso ${recurso} não implementado`, {
+    code: "PGRST205",
+  });
+}
+
+function exigirColuna(recurso: string, coluna: string): void {
+  if (!colunasDe(recurso).has(coluna)) {
+    throw new ErroMock(
+      400,
+      `mock: coluna ${recurso}.${coluna} não existe em supabase/schema.sql`,
+      { code: "42703" },
+    );
+  }
+}
+
+/**
+ * Requisições recebidas desde o último reset (sem contar /__mock). Serve para
+ * os testes provarem o negativo: "o app NÃO chamou o Supabase".
+ */
+let requisicoes: { metodo: string; caminho: string }[] = [];
+const LIMITE_REQUISICOES = 500;
+
+function registrarRequisicao(metodo: string, caminho: string): void {
+  if (caminho.startsWith("/__mock")) return;
+  requisicoes.push({ metodo, caminho });
+  if (requisicoes.length > LIMITE_REQUISICOES) requisicoes.shift();
+}
 
 function zerar(): void {
   usuarios.clear();
   refresh.clear();
   arquivos.clear();
+  requisicoes = [];
   tabelas = Object.fromEntries(NOMES_TABELAS.map((t) => [t, [] as Linha[]]));
 }
 
@@ -650,7 +696,31 @@ function separarLista(texto: string): string[] {
     .map((v) => v.trim().replace(/^"(.*)"$/, "$1"));
 }
 
-function passaNoFiltro(linha: Linha, coluna: string, expressao: string): boolean {
+const OPERADORES = new Set([
+  "eq",
+  "neq",
+  "gt",
+  "gte",
+  "lt",
+  "lte",
+  "in",
+  "is",
+  "like",
+  "ilike",
+]);
+
+interface Filtro {
+  op: string;
+  bruto: string;
+  negar: boolean;
+}
+
+/**
+ * Lê `coluna=op.valor` e recusa o que o mock não sabe fazer. É separado de
+ * aplicar o filtro de propósito: a tabela pode estar vazia, e um operador
+ * inventado tem de falhar do mesmo jeito (senão o mock finge sucesso).
+ */
+function analisarFiltro(coluna: string, expressao: string): Filtro {
   let expr = expressao;
   let negar = false;
   if (expr.startsWith("not.")) {
@@ -662,7 +732,14 @@ function passaNoFiltro(linha: Linha, coluna: string, expressao: string): boolean
     throw new ErroMock(400, `mock: filtro "${coluna}=${expressao}" não implementado`);
   }
   const op = expr.slice(0, corte);
-  const bruto = expr.slice(corte + 1);
+  if (!OPERADORES.has(op)) {
+    throw new ErroMock(400, `mock: operador "${op}" não implementado`);
+  }
+  return { op, bruto: expr.slice(corte + 1), negar };
+}
+
+function passaNoFiltro(linha: Linha, coluna: string, filtro: Filtro): boolean {
+  const { op, bruto, negar } = filtro;
   const valor = linha[coluna];
   let ok: boolean;
 
@@ -716,21 +793,31 @@ function passaNoFiltro(linha: Linha, coluna: string, expressao: string): boolean
   return negar ? !ok : ok;
 }
 
-function filtrar(base: Linha[], url: URL): Linha[] {
+
+function filtrar(base: Linha[], url: URL, recurso: string): Linha[] {
   let saida = base;
   for (const [chave, valor] of url.searchParams.entries()) {
     if (RESERVADOS.has(chave)) continue;
-    saida = saida.filter((l) => passaNoFiltro(l, chave, valor));
+    if (chave === "or" || chave === "and" || chave === "not.or") {
+      throw new ErroMock(
+        400,
+        `mock: filtro composto "${chave}" não implementado`,
+      );
+    }
+    exigirColuna(recurso, chave);
+    const filtro = analisarFiltro(chave, valor);
+    saida = saida.filter((l) => passaNoFiltro(l, chave, filtro));
   }
   return saida;
 }
 
-function ordenar(base: Linha[], url: URL): Linha[] {
+function ordenar(base: Linha[], url: URL, recurso: string): Linha[] {
   const pedido = url.searchParams.get("order");
   if (!pedido) return base;
   const regras = pedido.split(",").map((parte) => {
     const bits = parte.split(".");
     const coluna = bits[0] ?? "";
+    exigirColuna(recurso, coluna);
     const desc = bits.includes("desc");
     const nullsFirst = bits.includes("nullsfirst")
       ? true
@@ -753,7 +840,7 @@ function ordenar(base: Linha[], url: URL): Linha[] {
   });
 }
 
-function projetar(base: Linha[], url: URL): Linha[] {
+function projetar(base: Linha[], url: URL, recurso: string): Linha[] {
   const select = url.searchParams.get("select");
   if (!select || select.trim() === "*" || select.trim() === "") return base;
   if (select.includes("(")) {
@@ -764,6 +851,7 @@ function projetar(base: Linha[], url: URL): Linha[] {
   }
   const colunas = select.split(",").map((c) => c.trim()).filter(Boolean);
   if (colunas.includes("*")) return base;
+  for (const c of colunas) exigirColuna(recurso, c);
   return base.map((l) => {
     const saida: Linha = {};
     for (const c of colunas) saida[c] = l[c] ?? null;
@@ -870,7 +958,7 @@ async function rotaRest(
     const base = ehView
       ? calcularRecordes(usuario.id)
       : linhas(recurso).filter((l) => l.user_id === usuario.id);
-    const filtradas = ordenar(filtrar(base, url), url);
+    const filtradas = ordenar(filtrar(base, url, recurso), url, recurso);
     const total = filtradas.length;
 
     const faixaHeader = String(req.headers.range ?? "");
@@ -886,7 +974,7 @@ async function rotaRest(
     const pagina = filtradas.slice(de, ate + 1);
     return respostaLista(
       req,
-      projetar(pagina, url),
+      projetar(pagina, url, recurso),
       200,
       prefer.contar ? total : null,
       { de, ate },
@@ -944,7 +1032,7 @@ async function rotaRest(
     }
     return respostaLista(
       req,
-      projetar(gravadas, url),
+      projetar(gravadas, url, recurso),
       201,
       prefer.contar ? gravadas.length : null,
       { de: 0, ate: gravadas.length - 1 },
@@ -957,6 +1045,7 @@ async function rotaRest(
     const alvo = filtrar(
       linhas(recurso).filter((l) => l.user_id === usuario.id),
       url,
+      recurso,
     );
     const mudancas = (corpo ?? {}) as Linha;
     for (const c of Object.keys(mudancas)) {
@@ -974,7 +1063,7 @@ async function rotaRest(
       if (espec.tocaUpdatedAt) linha.updated_at = agora();
     }
     if (!prefer.representacao) return { status: 204, corpo: null, cabecalhos: {} };
-    return respostaLista(req, projetar(alvo, url), 200, prefer.contar ? alvo.length : null, {
+    return respostaLista(req, projetar(alvo, url, recurso), 200, prefer.contar ? alvo.length : null, {
       de: 0,
       ate: alvo.length - 1,
     });
@@ -985,11 +1074,12 @@ async function rotaRest(
     const alvo = filtrar(
       tabela.filter((l) => l.user_id === usuario.id),
       url,
+      recurso,
     );
     const restantes = tabela.filter((l) => !alvo.includes(l));
     tabelas[recurso] = restantes;
     if (!prefer.representacao) return { status: 204, corpo: null, cabecalhos: {} };
-    return respostaLista(req, projetar(alvo, url), 200, prefer.contar ? alvo.length : null, {
+    return respostaLista(req, projetar(alvo, url, recurso), 200, prefer.contar ? alvo.length : null, {
       de: 0,
       ate: alvo.length - 1,
     });
@@ -1185,6 +1275,7 @@ function rotaMock(req: IncomingMessage, url: URL, corpo: unknown): Resposta {
           Object.entries(tabelas).map(([t, l]) => [t, l.length]),
         ),
         arquivos: [...arquivos.keys()],
+        requisicoes,
       },
       cabecalhos: {},
     };
@@ -1247,6 +1338,7 @@ const servidor = createServer((req, res) => {
     const url = new URL(req.url ?? "/", `http://127.0.0.1:${PORTA}`);
     const metodo = req.method ?? "GET";
     let status = 500;
+    if (metodo !== "OPTIONS") registrarRequisicao(metodo, url.pathname);
 
     try {
       if (metodo === "OPTIONS") {

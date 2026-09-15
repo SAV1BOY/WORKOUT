@@ -769,3 +769,96 @@ Chromium emulando celular.
 4. Navegue pelos 5 itens do rodapé; nada pode rolar para o lado e todo alvo tem
    ≥ 44 px. Em Mais → Sair volta ao login e `/progresso` não abre mais.
 5. `curl -s localhost:54321/__mock/estado` mostra o que foi gravado.
+
+### Auditoria do harness (rodada 1) — o que o auditor achou e o que mudou
+
+Auditoria independente do marco: os quatro portões rodados do zero (`npm run
+lint`, `npm run build`, `npm test` 417/417, `npm run e2e` 22/22 duas vezes
+seguidas, sem instabilidade), o mock lido linha a linha e o app dirigido à mão
+no Chromium a 360 × 740 contra o mock. **Três defeitos reais**: dois no mock, do
+mesmo tipo — ele fingia sucesso onde o PostgREST de verdade devolve 400 — e um
+na configuração do Playwright, que podia rodar a suíte inteira contra um build
+velho.
+
+`scripts/mock-supabase.ts`
+
+1. **Coluna inventada passava batido** em `select`, em filtro e em `order`. Só a
+   escrita (`POST`/`PATCH`) conferia as colunas contra o `ESQUEMA`; a leitura
+   não conferia nada. `?coluna_inventada=eq.1` devolvia `200 []`,
+   `?select=user_id,coluna_inventada` devolvia `{"coluna_inventada": null}` e
+   `?order=coluna_inventada.desc` devolvia a lista sem ordenar — quando o
+   PostgREST devolve 400 (`42703`). É o pior tipo de defeito para este harness:
+   um erro de digitação numa query dos marcos 3+ apareceria como "não tem dado"
+   em vez de quebrar o teste, e o `e2e/README.md` já prometia o contrário
+   ("qualquer … coluna … que ele não conhece responde 400"). Entrou
+   `colunasDe(recurso)` (colunas do `ESQUEMA` para as tabelas, `COLUNAS_VIEWS`
+   para a `v_records`) e `exigirColuna()`, chamado em `filtrar`, `projetar` e
+   `ordenar` — que agora recebem o nome do recurso.
+2. **Operador inventado só falhava se a tabela tivesse linha.** A checagem de
+   operador morava dentro de `passaNoFiltro()`, chamado de dentro de
+   `Array.filter`: com a tabela vazia — o caso normal no começo de um teste —
+   `?fase=xpto.fase1` devolvia `200 []`. A análise da expressão saiu para
+   `analisarFiltro()`, que roda **uma vez por parâmetro**, antes de qualquer
+   linha, e recusa o que não estiver na lista de operadores. `or=`/`and=`
+   compostos (que o mock não faz) passaram a ter a própria mensagem em vez de
+   caírem como "coluna inexistente".
+
+`e2e/playwright.config.ts`
+
+3. **`reuseExistingServer` podia fazer a suíte inteira testar o build errado.**
+   Estava ligado fora de CI nos dois servidores, e a pendência anotada pelo
+   construtor ("um `next start` velho na 3100 faz tudo falhar na tela Configure
+   NEXT_PUBLIC_…") era só o caso fácil. O caso difícil apareceu nesta auditoria:
+   um `next start` órfão **com as variáveis certas**, mas de **antes do último
+   `npm run build`, serve o HTML apontando para o hash antigo do CSS. A página
+   abre sem estilo nenhum, e o que quebra são os testes de alvo de 44 px
+   ("botão Entrar menor que 44 px: 21") — um sintoma que aponta para o CSS do
+   app, não para o servidor errado. Os dois servidores passaram a
+   `reuseExistingServer: false`: porta ocupada agora é um erro claro do
+   Playwright em vez de um resultado errado. (Detalhe que ajudou a achar: o
+   processo se chama `next-server`, então `pkill -f "next start"` mata só o
+   wrapper do npm e deixa o servidor vivo — está no `e2e/README.md`.)
+
+Acrescentado também ao mock, para os testes poderem provar o negativo:
+`/__mock/estado` agora traz **`requisicoes`** — método e caminho de tudo que
+chegou desde o último reset (sem contar `/__mock`). Sem isso, "o app não chamou
+o Supabase" só dava para checar por efeito colateral (nenhum usuário criado), o
+que não distingue "não chamou" de "chamou e deu erro".
+
+`e2e/auditoria.spec.ts` (9 testes novos, 31 no total) cobre o que faltava:
+
+- e-mail de fora recusado **com zero requisições em `/auth/v1`** — nos dois
+  botões, provado pelo log do mock;
+- o e-mail permitido de fato chega ao `/auth/v1/signup` e cai na Hoje;
+- **recarregar mantém a sessão** (na raiz e em `/progresso`);
+- **toda** rota protegida sem sessão volta ao login, inclusive a raiz
+  (`shell.spec.ts` só testava `/progresso`);
+- sair derruba a sessão e o botão "voltar" do navegador não a ressuscita;
+- entrar depois de criar a conta usa `/auth/v1/token` (e o sair, `/auth/v1/logout`);
+- os dois defeitos acima, em regressão: coluna inventada em filtro/select/order
+  (inclusive na view), operador inventado **com a tabela vazia**, filtro
+  composto, e o 406 do `single` com 0 **e** com 2 linhas.
+
+Conferido à mão no Chromium a 360 × 740 contra o mock (fora dos testes): login e
+as cinco telas sem rolagem horizontal, `<html lang="pt-BR">`, campo de e-mail com
+`type="email"`/`inputMode="email"` e 48 px de altura, navegação inferior `fixed`
+terminando no rodapé (y 679 + 62 px) com `padding-bottom: 96px` no `<main>` — não
+cobre conteúdo — e **nenhum erro no console**.
+
+Conferido também que o mock não vaza para o app: nada em `app/`, `lib/` ou
+`components/` cita `scripts/mock-supabase.ts`, `__mock` ou as variáveis do mock,
+e `.next/server` e `.next/static` não contêm `mock-anon` nem `127.0.0.1:54321`
+(o único lugar onde essas strings aparecem é o cache do webpack, que é o texto do
+script `dev:mock` do `package.json` — gitignorado e fora do deploy).
+
+Fora do escopo deste marco, anotado para quem mexer no motor: `lib/progressao.ts`
+tem duas sugestões escritas no código ("passe para a barra fixa com lastro…") que
+parafraseiam a `progressao.regra` de `data/exercicios.json`. A regra que o motor
+**aplica** vem do JSON; só o texto da sugestão é do código.
+
+### Como testar no celular (auditoria)
+
+Igual ao do marco (`npm run build && npm run e2e`, agora **31** testes), mais:
+`curl -s localhost:54321/__mock/estado | head -c 400` durante o `npm run dev:mock`
+mostra a lista `requisicoes` — digite um e-mail que não é o seu na tela de login
+e confira que **nada** aparece em `/auth/v1`.
