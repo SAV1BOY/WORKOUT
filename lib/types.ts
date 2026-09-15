@@ -2,7 +2,12 @@
  * Tipos das linhas de supabase/schema.sql (o banco guarda só o que o usuário faz).
  * Se o schema mudar, mude aqui junto.
  */
-import type { Assistencia, FaseId, TreinoId } from "@/lib/schemas";
+import type {
+  Assistencia,
+  FaseId,
+  PrescricaoTipo,
+  TreinoId,
+} from "@/lib/schemas";
 
 export type StatusSessao = "em_andamento" | "concluida" | "abandonada";
 /**
@@ -81,10 +86,38 @@ export interface LinhaSessao {
   duracao_s: number | null;
   /** Sessão de barra fixa (§3.4): a semana do plano em que ela foi criada. */
   semana_plano: number | null;
+  /**
+   * Sessão livre e ordem desta sessão (SPEC §13.4 e §14.3): a lista de
+   * exercícios e prescrições com que a sessão nasceu. É ela que refaz uma
+   * sessão livre noutro aparelho — um `workout_id = 'livre'` não tem lista em
+   * lugar nenhum. `null` numa sessão do programa = a ordem é a do programa.
+   */
+  plano: PlanoDaSessao | null;
   sensacao: number | null;
   peso_corporal: number | null;
   notas: string | null;
   created_at?: string;
+}
+
+/** Um exercício dentro de `sessions.plano` (jsonb). */
+export interface ItemDoPlano {
+  exercicio_id: string;
+  series: number;
+  tipo: PrescricaoTipo;
+  min: number | null;
+  max: number | null;
+  unilateral: boolean;
+  descanso_s: number;
+  descanso_texto: string;
+}
+
+/** `sessions.plano` (jsonb): de onde a sessão veio e o que ela tem. */
+export interface PlanoDaSessao {
+  /** Rótulo da coleção que gerou a sessão ("Core no tatame"), ou `null`. */
+  titulo: string | null;
+  /** Id da coleção derivada que gerou a sessão ("grupo:Core"), ou `null`. */
+  colecao: string | null;
+  itens: ItemDoPlano[];
 }
 
 export interface LinhaSerie {

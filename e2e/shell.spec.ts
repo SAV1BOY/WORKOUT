@@ -1,10 +1,18 @@
 import { expect, test } from "@playwright/test";
-import { fixarRelogio, login, resetarMock, semRolagemHorizontal } from "./fixtures";
+import {
+  esperarAbaTreino,
+  fixarRelogio,
+  login,
+  resetarMock,
+  semRolagemHorizontal,
+} from "./fixtures";
 
+/** SPEC §13.2: Treino · Explorar · Relatório · Corpo · Mais. */
 const ITENS = [
-  { rotulo: "Hoje", caminho: "/", titulo: "Hoje" },
-  { rotulo: "Treinar", caminho: "/treinar", titulo: "Treinar" },
-  { rotulo: "Progresso", caminho: "/progresso", titulo: "Progresso" },
+  // a aba Treino não tem título fixo: o cabeçalho é a saudação do dia (§13.3)
+  { rotulo: "Treino", caminho: "/", titulo: null },
+  { rotulo: "Explorar", caminho: "/explorar", titulo: "Explorar" },
+  { rotulo: "Relatório", caminho: "/relatorio", titulo: "Relatório" },
   { rotulo: "Corpo", caminho: "/corpo", titulo: "Corpo" },
   { rotulo: "Mais", caminho: "/mais", titulo: "Mais" },
 ] as const;
@@ -45,16 +53,19 @@ test.describe("shell do app", () => {
       await expect(page).toHaveURL(
         item.caminho === "/" ? /127\.0\.0\.1:\d+\/$/ : new RegExp(`${item.caminho}$`),
       );
-      await expect(page.getByRole("heading", { name: item.titulo })).toBeVisible();
+      if (item.titulo === null) await esperarAbaTreino(page);
+      else await expect(page.getByRole("heading", { name: item.titulo })).toBeVisible();
       await expect(
-        page.getByRole("link", { name: item.rotulo }),
+        page
+          .getByRole("navigation", { name: "Navegação principal" })
+          .getByRole("link", { name: item.rotulo, exact: true }),
       ).toHaveAttribute("aria-current", "page");
       await semRolagemHorizontal(page);
     });
   }
 
   test("as rotas internas do marco 1 também abrem", async ({ page }) => {
-    for (const caminho of ["/calendario", "/exercicios", "/barra-fixa"]) {
+    for (const caminho of ["/calendario", "/exercicios", "/barra-fixa", "/treinar"]) {
       await page.goto(caminho);
       await expect(page.locator("h1")).toBeVisible();
       await semRolagemHorizontal(page);

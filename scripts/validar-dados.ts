@@ -8,10 +8,13 @@ import {
   cardioSchema,
   equipamentosSchema,
   exerciciosSchema,
+  ilustracoesSchema,
   perfilSchema,
   programaSchema,
   progressaoJsonSchema,
+  tutoriaisSchema,
   type Exercicio,
+  type Ilustracao,
   type Programa,
 } from "../lib/schemas";
 import type { ZodType } from "zod";
@@ -52,6 +55,79 @@ validar(cardioSchema, "cardio.json");
 validar(progressaoJsonSchema, "progressao.json");
 const equipamentos = validar(equipamentosSchema, "equipamentos.json");
 validar(perfilSchema, "perfil.json");
+const tutoriais = validar(tutoriaisSchema, "tutoriais.json");
+const ilustracoes = validar(ilustracoesSchema, "ilustracoes.json");
+
+function conferirTutoriais(exs: Exercicio[]) {
+  if (!tutoriais) return;
+  const porId = new Set(exs.map((e) => e.id));
+  const vistos = new Set<string>();
+  for (const t of tutoriais.tutoriais) {
+    if (!porId.has(t.exercicio_id)) {
+      erros.push(
+        `tutoriais.json: exercício "${t.exercicio_id}" não existe em exercicios.json`,
+      );
+    }
+    if (vistos.has(t.exercicio_id)) {
+      erros.push(`tutoriais.json: "${t.exercicio_id}" aparece mais de uma vez`);
+    }
+    vistos.add(t.exercicio_id);
+  }
+  const semTutorial = exs.filter((e) => !vistos.has(e.id));
+  if (semTutorial.length > 0) {
+    erros.push(
+      `tutoriais.json: ${semTutorial.length} exercício(s) sem tutorial (ex.: ${semTutorial[0]?.id})`,
+    );
+  }
+  console.log(`  ${tutoriais.tutoriais.length} tutoriais, um por exercício`);
+}
+
+/**
+ * As ilustrações com licença livre (marco Mídia): todo arquivo listado existe,
+ * todo exercício existe, ninguém aparece duas vezes, o crédito está completo e
+ * nenhum arquivo de `assets/ilustracoes/` sobra fora do JSON — um arquivo
+ * órfão é crédito que o app não mostra.
+ */
+function conferirIlustracoes(exs: Exercicio[], lista: Ilustracao[]) {
+  const porId = new Set(exs.map((e) => e.id));
+  const vistos = new Set<string>();
+  const usados = new Set<string>();
+
+  for (const i of lista) {
+    if (!porId.has(i.exercicio_id)) {
+      erros.push(
+        `ilustracoes.json: exercício "${i.exercicio_id}" não existe em exercicios.json`,
+      );
+    }
+    if (vistos.has(i.exercicio_id)) {
+      erros.push(`ilustracoes.json: "${i.exercicio_id}" aparece mais de uma vez`);
+    }
+    vistos.add(i.exercicio_id);
+    if (!i.autor.trim() || !i.licenca.trim()) {
+      erros.push(`ilustracoes.json: "${i.exercicio_id}" sem autor ou licença`);
+    }
+    for (const arquivo of i.arquivos) {
+      usados.add(arquivo.arquivo.split("/").pop() ?? "");
+      if (!existsSync(join(raiz, arquivo.arquivo))) {
+        erros.push(`${i.exercicio_id}: ilustração ausente em ${arquivo.arquivo}`);
+      }
+    }
+  }
+
+  const pasta = join(raiz, "assets", "ilustracoes");
+  const naPasta = existsSync(pasta)
+    ? readdirSync(pasta).filter((f) => !f.startsWith("."))
+    : [];
+  for (const f of naPasta) {
+    if (!usados.has(f)) {
+      erros.push(`assets/ilustracoes/${f} não está em data/ilustracoes.json`);
+    }
+  }
+
+  console.log(
+    `  ${lista.length} ilustrações (${usados.size}/${naPasta.length} arquivos) · ${exs.length - lista.length} exercício(s) com a figura do kit`,
+  );
+}
 
 function conferirReferencias(exs: Exercicio[], prog: Programa) {
   const porId = new Map(exs.map((e) => [e.id, e]));
@@ -104,10 +180,13 @@ function conferirReferencias(exs: Exercicio[], prog: Programa) {
   );
 }
 
+if (exercicios) conferirTutoriais(exercicios);
+if (exercicios && ilustracoes) conferirIlustracoes(exercicios, ilustracoes);
 if (exercicios && programa) conferirReferencias(exercicios, programa);
 
 /**
- * A tela Equipamento (SPEC §3.9) mostra a primeira foto de cada item —
+ * A tela Equipamento (SPEC §3.9) e as coleções "Por aparelho" do Explorar
+ * (§13.4) mostram a primeira foto de cada item —
  * `assets/itens/<id>/<id>_01.jpg`, derivada da pasta que o JSON guarda.
  */
 if (equipamentos) {
@@ -123,10 +202,38 @@ if (equipamentos) {
   console.log(`  ${equipamentos.itens.length} itens de equipamento com foto`);
 }
 
+/*
+ * `assets/videos` é opcional (SPEC §13.1): nenhum vídeo vem no kit. Se a pasta
+ * existir, todo arquivo dela tem de ser um .mp4 de um exercício que existe —
+ * um nome errado só apareceria como "sem vídeo", em silêncio.
+ */
+{
+  const pasta = join(raiz, "assets", "videos");
+  if (existsSync(pasta)) {
+    const ids = new Set((exercicios ?? []).map((e) => e.id));
+    const arquivos = readdirSync(pasta).filter((f) => !f.startsWith("."));
+    for (const arquivo of arquivos) {
+      if (!arquivo.toLowerCase().endsWith(".mp4")) {
+        erros.push(`assets/videos/${arquivo}: só .mp4 (SPEC §13.1)`);
+        continue;
+      }
+      const id = arquivo.slice(0, -4);
+      if (exercicios && !ids.has(id)) {
+        erros.push(`assets/videos/${arquivo}: "${id}" não existe em exercicios.json`);
+      }
+    }
+    console.log(`  ${arquivos.length} vídeo(s) opcional(is) em assets/videos`);
+  }
+}
+
 // assets fixos que o app usa direto (sprite do mapa muscular)
 for (const arquivo of [
   "assets/mapa-muscular/corpo-sprite.svg",
   "assets/mapa-muscular/musculos.css",
+  // marco Mídia: o mapa anatômico e a licença MIT que precisa andar junto
+  "assets/mapa-muscular/mapa-anatomico.svg",
+  "assets/mapa-muscular/LICENCA-mapa-anatomico.md",
+  "data/ilustracoes-creditos.md",
 ]) {
   if (!existsSync(join(raiz, arquivo))) erros.push(`${arquivo} não existe`);
 }

@@ -3,10 +3,20 @@ import { cargasPossiveis, montagem } from "@/lib/montagem";
 import {
   PESO_BARRA_MAX,
   PESO_BARRA_MIN,
+  comDescansoPadraoS,
+  comEvitado,
   comLigado,
   comPesoDaBarra,
+  comPreparacaoS,
   comTema,
+  descansoPadraoS,
+  evitadosPorUltimo,
+  evitado,
+  evitarExercicios,
   ligado,
+  opcoesDoPlayer,
+  preparacaoS,
+  semEvitados,
   opcoesDeMontagem,
   pesoDeBarraValido,
   pesosDasBarras,
@@ -133,5 +143,83 @@ describe("pesos das barras (SPEC §3.9 com §6.4)", () => {
       pesoBarra: 6,
     };
     expect(cargasPossiveis("barra_w", opcoes)[0]).toBe(6);
+  });
+});
+
+describe("preferências do player (SPEC §14.1 e §14.4)", () => {
+  it("preparação: 10 s por padrão, presa entre 0 e 60", () => {
+    expect(preparacaoS(null)).toBe(10);
+    expect(preparacaoS({ preparacao_s: 15 })).toBe(15);
+    expect(preparacaoS({ preparacao_s: 0 })).toBe(0);
+    expect(preparacaoS({ preparacao_s: 999 })).toBe(60);
+    expect(preparacaoS({ preparacao_s: -5 })).toBe(0);
+    expect(preparacaoS({ preparacao_s: "dez" })).toBe(10);
+  });
+
+  it("gravar a preparação mantém o resto das prefs; null volta ao padrão", () => {
+    const prefs = comPreparacaoS({ tema: "escuro" }, 20);
+    expect(prefs).toMatchObject({ tema: "escuro", preparacao_s: 20 });
+    expect(comPreparacaoS(prefs, null).preparacao_s).toBeUndefined();
+  });
+
+  it("descanso padrão vazio = o do exercício", () => {
+    expect(descansoPadraoS(null)).toBeNull();
+    expect(descansoPadraoS({ descanso_padrao_s: 0 })).toBeNull();
+    expect(descansoPadraoS({ descanso_padrao_s: 90 })).toBe(90);
+    expect(descansoPadraoS({ descanso_padrao_s: 1 })).toBe(5);
+    expect(descansoPadraoS({ descanso_padrao_s: 99_999 })).toBe(900);
+    expect(comDescansoPadraoS({}, 75).descanso_padrao_s).toBe(75);
+    expect(comDescansoPadraoS({ descanso_padrao_s: 75 }, null).descanso_padrao_s)
+      .toBeUndefined();
+  });
+
+  it("avançar sozinho vem ligado, como as outras chaves de sim/não", () => {
+    expect(ligado(null, "avancar_sozinho")).toBe(true);
+    expect(ligado({ avancar_sozinho: false }, "avancar_sozinho")).toBe(false);
+  });
+
+  it("opcoesDoPlayer junta as duas", () => {
+    expect(opcoesDoPlayer({ preparacao_s: 5, descanso_padrao_s: 60 })).toEqual({
+      preparacaoS: 5,
+      descansoPadraoS: 60,
+    });
+  });
+});
+
+describe('"não gosto" (SPEC §14.1.2)', () => {
+  it("lê a lista sem confiar no jsonb", () => {
+    expect(evitarExercicios(null)).toEqual([]);
+    expect(evitarExercicios({ evitar_exercicios: "prancha" })).toEqual([]);
+    expect(
+      evitarExercicios({ evitar_exercicios: ["prancha", "prancha", 7, "", "burpee"] }),
+    ).toEqual(["prancha", "burpee"]);
+  });
+
+  it("marca e desmarca sem perder as outras chaves", () => {
+    const um = comEvitado({ tema: "claro" }, "prancha", true);
+    expect(um).toMatchObject({ tema: "claro", evitar_exercicios: ["prancha"] });
+    expect(evitado(um, "prancha")).toBe(true);
+    const dois = comEvitado(um, "prancha", true);
+    expect(dois.evitar_exercicios).toEqual(["prancha"]);
+    const zero = comEvitado(dois, "prancha", false);
+    expect(zero.evitar_exercicios).toEqual([]);
+    expect(semEvitados(um).evitar_exercicios).toEqual([]);
+  });
+
+  it("os evitados vão para o fim da lista, sem sumir nem embaralhar", () => {
+    const itens = [{ id: "a" }, { id: "b" }, { id: "c" }, { id: "d" }];
+    const prefs = { evitar_exercicios: ["b", "d"] };
+    expect(evitadosPorUltimo(itens, (i) => i.id, prefs).map((i) => i.id)).toEqual([
+      "a",
+      "c",
+      "b",
+      "d",
+    ]);
+    expect(evitadosPorUltimo(itens, (i) => i.id, null).map((i) => i.id)).toEqual([
+      "a",
+      "b",
+      "c",
+      "d",
+    ]);
   });
 });

@@ -21,7 +21,7 @@ export function ehPublica(caminho: string): boolean {
   if (PUBLICAS.some((p) => caminho === p || caminho.startsWith(`${p}/`))) {
     return true;
   }
-  return /^\/(figuras|fotos|itens|mapa-muscular|icons)\//.test(caminho);
+  return /^\/(figuras|fotos|ilustracoes|itens|mapa-muscular|icons)\//.test(caminho);
 }
 
 /**

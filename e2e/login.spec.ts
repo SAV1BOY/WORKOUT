@@ -1,12 +1,14 @@
 import { expect, test } from "@playwright/test";
 import {
   EMAIL_PERMITIDO,
-  SENHA,
+  esperarAbaTreino,
   estadoDoMock,
+  irNaAba,
   login,
-  usuarioComPerfil,
   resetarMock,
   semRolagemHorizontal,
+  SENHA,
+  usuarioComPerfil,
 } from "./fixtures";
 
 test.beforeEach(async () => {
@@ -64,7 +66,7 @@ test.describe("login", () => {
 
   test("entrar com a senha errada mostra o erro traduzido", async ({ page }) => {
     await login(page);
-    await page.getByRole("link", { name: "Mais" }).click();
+    await irNaAba(page, "Mais");
     await page.getByRole("button", { name: "Sair" }).click();
     await expect(page).toHaveURL(/\/login$/);
 
@@ -77,7 +79,7 @@ test.describe("login", () => {
   test("sair volta ao login e a sessão não abre mais o app", async ({ page }) => {
     await login(page);
 
-    await page.getByRole("link", { name: "Mais" }).click();
+    await irNaAba(page, "Mais");
     await expect(page.getByRole("heading", { name: "Mais" })).toBeVisible();
     await page.getByRole("button", { name: "Sair" }).click();
 
@@ -91,14 +93,14 @@ test.describe("login", () => {
 
   test("entrar de novo com a conta que já existe", async ({ page }) => {
     await login(page);
-    await page.getByRole("link", { name: "Mais" }).click();
+    await irNaAba(page, "Mais");
     await page.getByRole("button", { name: "Sair" }).click();
     await expect(page).toHaveURL(/\/login$/);
 
     await page.getByLabel("E-mail").fill(EMAIL_PERMITIDO);
     await page.getByLabel("Senha").fill(SENHA);
     await page.getByRole("button", { name: "Entrar" }).click();
-    await expect(page.getByRole("heading", { name: "Hoje" })).toBeVisible();
+    await esperarAbaTreino(page);
   });
 
   test("depois de um 'Criar conta' recusado, 'Entrar' ainda funciona", async ({ page }) => {
@@ -117,6 +119,6 @@ test.describe("login", () => {
     await expect(page.getByLabel("Senha")).toHaveValue(SENHA);
 
     await page.getByRole("button", { name: "Entrar" }).click();
-    await expect(page.getByRole("heading", { name: "Hoje" })).toBeVisible();
+    await esperarAbaTreino(page);
   });
 });

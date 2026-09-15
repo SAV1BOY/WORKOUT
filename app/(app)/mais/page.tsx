@@ -1,4 +1,11 @@
-import { ChevronRight, Dumbbell, HardDrive, SlidersHorizontal, User } from "lucide-react";
+import {
+  ChevronRight,
+  Copyright,
+  Dumbbell,
+  HardDrive,
+  SlidersHorizontal,
+  User,
+} from "lucide-react";
 import Link from "next/link";
 import { BotaoSair } from "@/components/botao-sair";
 import { LinhaSincronizacao } from "@/components/mais/linha-sincronizacao";
@@ -23,6 +30,12 @@ const SECOES = [
     titulo: "Preferências",
     descricao: "Tema, som e vibração do timer, tela acesa, incrementos.",
     Icone: SlidersHorizontal,
+  },
+  {
+    href: "/mais/creditos",
+    titulo: "Créditos",
+    descricao: "De onde vêm as ilustrações, o mapa muscular e as fotos.",
+    Icone: Copyright,
   },
   {
     href: "/mais/backup",

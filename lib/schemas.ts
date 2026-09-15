@@ -389,6 +389,62 @@ export const equipamentosSchema = z.object({
   faltam: z.array(z.string()),
 });
 
+/* -------------------------------------------------------------- tutoriais */
+
+/**
+ * Um tutorial do YouTube por exercício (SPEC §14.2). O `youtube_id` tem
+ * exatamente 11 caracteres do alfabeto de ids do YouTube — a miniatura e o
+ * embed são montados a partir dele, então um id torto vira URL quebrada.
+ */
+export const tutorialSchema = z.object({
+  exercicio_id: z.string().min(1),
+  youtube_id: z.string().regex(/^[A-Za-z0-9_-]{11}$/),
+  titulo: z.string().min(1),
+  canal: z.string().min(1),
+  idioma: z.string().min(2),
+  url: z.string().url(),
+  /** Duração em segundos, quando se sabe. */
+  duracao: z.number().positive().nullable(),
+  nota: z.string().optional(),
+});
+
+export const tutoriaisSchema = z.object({
+  gerado_em: z.string().min(1),
+  criterio: z.string().min(1),
+  tutoriais: z.array(tutorialSchema),
+});
+
+/* ------------------------------------------------------------ ilustrações */
+
+/**
+ * Uma ilustração de exercício com licença livre (marco Mídia): as duas
+ * posições do movimento, o autor e a licença. O crédito é obrigatório — é o
+ * que a CC BY-SA exige e o que a tela Mais → Créditos mostra. Sem autor e
+ * licença a entrada não existe: `scripts/importar-ilustracoes.ts` deixa o
+ * exercício de fora e ele segue com a figura animada do kit.
+ */
+export const arquivoDeIlustracaoSchema = z.object({
+  /** Caminho a partir da raiz: `assets/ilustracoes/<id>-1.webp`. */
+  arquivo: z.string().regex(/^assets\/ilustracoes\/[\w.-]+\.(webp|svg)$/),
+  largura: z.number().int().positive(),
+  altura: z.number().int().positive(),
+});
+
+export const ilustracaoSchema = z.object({
+  exercicio_id: z.string().min(1),
+  fonte: z.enum(["everkinetic", "wger"]),
+  correspondencia: z.enum(["exata", "aproximada"]),
+  /** Posição 1 (início) e, quando existe, posição 2 (fim). */
+  arquivos: z.array(arquivoDeIlustracaoSchema).min(1).max(2),
+  autor: z.string().min(1),
+  licenca: z.string().min(1),
+  url_fonte: z.string().url(),
+  titulo_fonte: z.string().min(1),
+  nota: z.string(),
+});
+
+export const ilustracoesSchema = z.array(ilustracaoSchema);
+
 /* ---------------------------------------------------------------- perfil */
 
 /** As colunas de `body_measurements` que a tela preenche (SPEC §3.8). */
@@ -443,6 +499,7 @@ export const perfilSchema = z.object({
 /* ----------------------------------------------------------------- tipos */
 
 export type Grupo = z.infer<typeof grupoSchema>;
+export type Subgrupo = z.infer<typeof subgrupoSchema>;
 export type Musculo = z.infer<typeof musculoSchema>;
 export type EquipamentoTag = z.infer<typeof equipamentoTagSchema>;
 export type Implemento = z.infer<typeof implementoSchema>;
@@ -471,6 +528,10 @@ export type Anilha = z.infer<typeof anilhaSchema>;
 export type Barra = z.infer<typeof barraSchema>;
 export type Perfil = z.infer<typeof perfilSchema>;
 export type CampoDeMedida = z.infer<typeof campoDeMedidaSchema>;
+export type Tutorial = z.infer<typeof tutorialSchema>;
+export type Tutoriais = z.infer<typeof tutoriaisSchema>;
+export type Ilustracao = z.infer<typeof ilustracaoSchema>;
+export type ArquivoDeIlustracao = z.infer<typeof arquivoDeIlustracaoSchema>;
 export type MedidaDoCorpo = Perfil["medidas"][number];
 /** Chave de um texto do motor em `data/progressao.json` (SPEC §6.3/§6.4). */
 export type ChaveDeSugestao = keyof ProgressaoJson["sugestoes"];

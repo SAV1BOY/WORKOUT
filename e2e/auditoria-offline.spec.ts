@@ -10,7 +10,9 @@
  */
 import { expect, test, type Page } from "@playwright/test";
 import {
+  abrirVisaoGeral,
   entrarNoApp,
+  esperarAbaTreino,
   fixarData,
   fixarRelogio,
   lerDoMock,
@@ -170,6 +172,7 @@ test.describe("a rede voltando no meio do treino (SPEC §3.2 e §8)", () => {
     await entrarNoApp(page);
     await page.getByRole("link", { name: "Começar treino" }).click();
     await page.getByRole("button", { name: "Começar Treino A" }).click();
+    await abrirVisaoGeral(page);
     await expect(page.getByRole("heading", { name: "Treino A", level: 1 })).toBeVisible();
 
     await marcar(page, "Agachamento livre", 1);
@@ -220,6 +223,7 @@ test.describe("a criação da sessão que falha uma vez (SPEC §8)", () => {
 
     await page.getByRole("link", { name: "Começar treino" }).click();
     await page.getByRole("button", { name: "Começar Treino A" }).click();
+    await abrirVisaoGeral(page);
     await expect(page.getByRole("heading", { name: "Treino A", level: 1 })).toBeVisible();
 
     for (const n of [1, 2, 3]) await marcar(page, "Agachamento livre", n);
@@ -227,9 +231,9 @@ test.describe("a criação da sessão que falha uma vez (SPEC §8)", () => {
     await page.getByRole("button", { name: "Concluir" }).click();
     const resumo = page.getByRole("dialog");
     await expect(resumo.getByText("Treino concluído")).toBeVisible();
-    await resumo.getByRole("radio", { name: "4 — bom" }).click();
+    await resumo.getByRole("radio", { name: "Um pouco fácil" }).click();
     await resumo.getByRole("button", { name: "Salvar e voltar" }).click();
-    await expect(page.getByRole("heading", { name: "Hoje", level: 1 })).toBeVisible();
+    await esperarAbaTreino(page);
 
     expect(derrubou).toBe(true);
 
@@ -258,6 +262,15 @@ test.describe("a criação da sessão que falha uma vez (SPEC §8)", () => {
         { timeout: 30_000 },
       )
       .toBe(3);
+    /*
+     * Os eventos de progressão são a última coisa que a fila entrega: sem
+     * esperar por eles, a leitura da ordem pegava a fila pela metade e o teste
+     * falhava de vez em quando (auditoria do marco V1). A verificação é a
+     * mesma — o que mudou foi esperar a fila terminar antes de olhar.
+     */
+    await expect
+      .poll(async () => (await ordemDosPosts()).progression_events, { timeout: 30_000 })
+      .toBeDefined();
     const ordem = await ordemDosPosts();
     expect(ordem.sessions).toBeDefined();
     expect(ordem.session_sets).toBeGreaterThan(ordem.sessions as number);
@@ -283,6 +296,7 @@ test.describe("o Supabase cai no meio do treino e volta (SPEC §8 e §10.3)", ()
     await page.route("**/rest/v1/**", (rota) => rota.abort("connectionfailed"));
     await page.getByRole("link", { name: "Começar treino" }).click();
     await page.getByRole("button", { name: "Começar Treino A" }).click();
+    await abrirVisaoGeral(page);
     await expect(page.getByRole("heading", { name: "Treino A", level: 1 })).toBeVisible();
 
     for (const n of [1, 2, 3]) await marcar(page, "Agachamento livre", n);
@@ -290,9 +304,9 @@ test.describe("o Supabase cai no meio do treino e volta (SPEC §8 e §10.3)", ()
     await page.getByRole("button", { name: "Concluir" }).click();
     const resumo = page.getByRole("dialog");
     await expect(resumo.getByText("Treino concluído")).toBeVisible();
-    await resumo.getByRole("radio", { name: "3 — ok" }).click();
+    await resumo.getByRole("radio", { name: "Na medida certa" }).click();
     await resumo.getByRole("button", { name: "Salvar e voltar" }).click();
-    await expect(page.getByRole("heading", { name: "Hoje", level: 1 })).toBeVisible();
+    await esperarAbaTreino(page);
 
     // nada subiu: o treino inteiro está só no aparelho
     expect(await lerDoMock(sessao, "sessions")).toHaveLength(0);

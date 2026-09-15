@@ -10,6 +10,7 @@ import { useQuery, type UseQueryResult } from "@tanstack/react-query";
 import { lerLista } from "@/lib/queries/ler";
 import { clienteNavegador } from "@/lib/supabase/client";
 import type { SerieBruta, SessaoBruta } from "@/lib/progresso";
+import type { EventoDeSessao } from "@/lib/relatorio";
 import type { LinhaRecorde } from "@/lib/types";
 
 /** Quantas sessões de força a tela de progresso lê (o total de §3.7). */
@@ -24,6 +25,7 @@ export const COLUNAS_SERIE =
 
 export const chavesProgresso = {
   sessoesTodas: () => ["progresso", "sessoes"] as const,
+  eventosDesde: (de: string) => ["progresso", "eventos", de] as const,
   seriesDesde: (de: string) => ["progresso", "series", de] as const,
   seriesDoExercicio: (id: string) => ["progresso", "series-ex", id] as const,
   recordes: () => ["progresso", "recordes"] as const,
@@ -37,7 +39,7 @@ export function useSessoesTodas(): UseQueryResult<SessaoBruta[]> {
       lerLista<SessaoBruta>(
         clienteNavegador()
           .from("sessions")
-          .select("id,data,status,workout_id")
+          .select("id,data,status,workout_id,duracao_s,plano")
           .order("data", { ascending: false })
           .limit(LIMITE_SESSOES),
         "os seus treinos",
@@ -91,6 +93,31 @@ export function useTodosOsRecordes(): UseQueryResult<LinhaRecorde[]> {
       lerLista<LinhaRecorde>(
         clienteNavegador().from("v_records").select("*"),
         "os seus recordes",
+      ),
+  });
+}
+
+/** Quantos eventos do motor a janela do histórico lê. */
+export const LIMITE_EVENTOS = 1000;
+
+/**
+ * Os eventos do motor a partir de uma data: é deles que sai o ↑/=/↓ de cada
+ * sessão em "Todos os registros" (SPEC §13.5).
+ */
+export function useEventosDesde(
+  de: string | null,
+): UseQueryResult<EventoDeSessao[]> {
+  return useQuery({
+    queryKey: chavesProgresso.eventosDesde(de ?? ""),
+    enabled: de !== null,
+    queryFn: () =>
+      lerLista<EventoDeSessao>(
+        clienteNavegador()
+          .from("progression_events")
+          .select("session_id,motivo")
+          .gte("data", de ?? "")
+          .limit(LIMITE_EVENTOS),
+        "o histórico de progressão",
       ),
   });
 }

@@ -1,0 +1,115 @@
+"use client";
+
+import { useState } from "react";
+import { IlustracaoAlternada } from "@/components/exercicio/ilustracao-alternada";
+import { midiaGrande, type TipoDeMidia } from "@/lib/midia";
+import { cn } from "@/lib/utils";
+
+/**
+ * A demonstração grande do exercício (SPEC §13.1/§13.3 e marco Mídia). Quem
+ * escolhe entre vídeo, ilustração, figura e foto é `lib/midia.ts`; aqui só se
+ * desenha. Com `tipo` a escolha vem do segmento "Ilustração · Figura · Fotos"
+ * da ficha.
+ */
+export function MediaGrande({
+  exercicioId,
+  temVideo = false,
+  semFoto = false,
+  tipo,
+  semCredito = false,
+  className,
+}: {
+  exercicioId: string;
+  temVideo?: boolean;
+  /**
+   * Não cair na foto quando não há figura: na página inteira da ficha as duas
+   * fotos já aparecem logo abaixo, e repetir a primeira aqui seria ruído.
+   */
+  semFoto?: boolean;
+  /** Força uma opção (o segmento da ficha); sem ela vale a preferência. */
+  tipo?: TipoDeMidia;
+  /** No player o crédito fica na ficha (um toque no "?"), não na tela. */
+  semCredito?: boolean;
+  className?: string;
+}) {
+  const midia = midiaGrande(exercicioId, { temVideo, tipo, semFoto });
+  const [figuraQuebrou, setFiguraQuebrou] = useState(false);
+
+  const caixa = cn("bg-muted/40 h-40 w-full rounded-xl object-contain", className);
+
+  if (!midia) return null;
+
+  /*
+   * Quem decide se há vídeo é o servidor, lendo `public/videos` (SPEC §13.1):
+   * aqui não há fallback por erro — um arquivo estragado é para aparecer
+   * estragado, não para sumir em silêncio.
+   */
+  if (midia.tipo === "video") {
+    return (
+      <video
+        src={midia.urls[0]}
+        muted
+        loop
+        playsInline
+        autoPlay
+        aria-label={midia.alt}
+        data-video={exercicioId}
+        className={caixa}
+      />
+    );
+  }
+
+  if (midia.tipo === "ilustracao") {
+    return (
+      <figure className="flex flex-col gap-1">
+        <IlustracaoAlternada
+          urls={midia.urls}
+          alt={midia.alt}
+          className={cn("h-40", className)}
+        />
+        {midia.credito && !semCredito ? (
+          <figcaption className="text-muted-foreground px-1 text-[11px] leading-tight">
+            <a
+              href={midia.credito.url_fonte}
+              target="_blank"
+              rel="noreferrer noopener"
+              className="underline underline-offset-2"
+            >
+              {midia.credito.texto}
+            </a>
+          </figcaption>
+        ) : null}
+      </figure>
+    );
+  }
+
+  if (midia.tipo === "figura" && !figuraQuebrou) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element -- SVG animado de /public: o next/image rasteriza e mata a animação
+      <img
+        src={midia.urls[0]}
+        alt={midia.alt}
+        loading="lazy"
+        className={cn(caixa, "p-2")}
+        onError={() => setFiguraQuebrou(true)}
+      />
+    );
+  }
+
+  // figura quebrada no navegador: cai na foto de início, se houver
+  const foto =
+    midia.tipo === "foto"
+      ? midia
+      : midiaGrande(exercicioId, { temVideo, tipo: "foto", semFoto });
+  if (!foto || foto.tipo !== "foto") return null;
+
+  return (
+    // eslint-disable-next-line @next/next/no-img-element -- foto local em /public
+    <img
+      src={foto.urls[0]}
+      alt={foto.alt}
+      loading="lazy"
+      className={cn(caixa, "object-cover")}
+    />
+  );
+}

@@ -6,6 +6,7 @@ import {
 } from "@/lib/calendario";
 import {
   detalheDoDia,
+  faixaDaSemana,
   intervaloDaSemana,
   montarGrade,
   montarMes,
@@ -188,5 +189,58 @@ describe("grade — a rota do dia de cardio (SPEC §3.3)", () => {
     expect(terca?.sessaoTipo).toBe("corda");
     // dia de força não tem tipo de cardio
     expect(grade.find((d) => d.data === "2026-09-14")?.sessaoTipo).toBeNull();
+  });
+});
+
+describe("faixa da semana (SPEC §13.3)", () => {
+  const sessoes = [
+    { id: "s1", data: "2026-09-14", status: "concluida" as const, workout_id: "A1" as const },
+  ];
+  const cardios = [
+    { id: "c1", data: "2026-09-15", tipo: "corrida" as const, concluida: true },
+  ];
+
+  it("são sete casas, de segunda a domingo, com o dia do mês", () => {
+    const faixa = faixaDaSemana(
+      montarGrade(semanaDoPlano(SEMANA_1, PERFIL), [], [], SEMANA_1),
+    );
+    expect(faixa).toHaveLength(7);
+    expect(faixa.map((d) => d.rotulo)).toEqual([
+      "seg",
+      "ter",
+      "qua",
+      "qui",
+      "sex",
+      "sab",
+      "dom",
+    ]);
+    expect(faixa.map((d) => d.numero)).toEqual([14, 15, 16, 17, 18, 19, 20]);
+  });
+
+  it("marca ✓ no que foi feito, ponto no planejado e cinza no que faltou", () => {
+    const hoje = "2026-09-16";
+    const faixa = faixaDaSemana(
+      montarGrade(semanaDoPlano(hoje, PERFIL), sessoes, cardios, hoje),
+    );
+    expect(faixa[0]?.marca).toBe("feito"); // segunda: treino concluído
+    expect(faixa[1]?.marca).toBe("feito"); // terça: corrida concluída
+    expect(faixa[2]?.marca).toBe("aberto"); // quarta: é hoje, ainda a fazer
+    expect(faixa[2]?.ehHoje).toBe(true);
+    expect(faixa[3]?.marca).toBe("descanso");
+    expect(faixa[4]?.marca).toBe("aberto");
+  });
+
+  it("um dia de força passado sem sessão fica como faltou", () => {
+    const hoje = "2026-09-18";
+    const faixa = faixaDaSemana(montarGrade(semanaDoPlano(hoje, PERFIL), [], [], hoje));
+    expect(faixa[0]?.marca).toBe("faltou");
+  });
+
+  it("o título conta o dia, a data, o que era e como ficou", () => {
+    const faixa = faixaDaSemana(
+      montarGrade(semanaDoPlano(SEMANA_1, PERFIL), sessoes, [], SEMANA_1),
+    );
+    expect(faixa[0]?.titulo).toBe("seg, 14/09 · Treino A · hoje");
+    expect(faixa[2]?.titulo).toBe("qua, 16/09 · Treino B · a fazer");
   });
 });

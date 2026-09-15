@@ -314,7 +314,7 @@ function CampoTempo({
 }
 
 /** Degraus do elástico da barra fixa assistida (SPEC §6.3). */
-function SeletorAssistencia({
+export function SeletorAssistencia({
   valor,
   aoMudar,
 }: {

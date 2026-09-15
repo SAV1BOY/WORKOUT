@@ -1,9 +1,10 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import {
   entrarNoApp,
-  inserirNoMock,
   estadoDoMock,
   fixarData,
+  inserirNoMock,
+  irNaAba,
   lerDoMock,
   resetarMock,
   semRolagemHorizontal,
@@ -22,8 +23,14 @@ const PNG_16 = Buffer.from(
 async function abrirCorpo(page: Page, aba: "Peso" | "Medidas" | "Fotos" = "Peso") {
   await fixarData(page, QUARTA);
   await entrarNoApp(page);
-  await page.getByRole("link", { name: "Corpo" }).click();
-  await expect(page.getByRole("heading", { name: "Corpo" })).toBeVisible();
+  await irNaAba(page, "Corpo");
+  /*
+   * `exact`: o marco V3 pôs "Parte do corpo em foco" e o nome da fase ("Fase 1
+   * — corpo inteiro…") na aba Treino, e um nome solto casaria com os dois.
+   */
+  await expect(
+    page.getByRole("heading", { name: "Corpo", exact: true }),
+  ).toBeVisible();
   if (aba !== "Peso") await page.getByRole("tab", { name: aba }).click();
 }
 

@@ -53,7 +53,30 @@ export async function estadoDoMock(): Promise<Record<string, unknown>> {
 }
 
 /**
- * Cria a conta permitida (ou entra, se já existir) e espera cair na Hoje.
+ * A aba Treino (`/`) aberta. A camada visual v2 (SPEC §13.3) trocou o título
+ * "Hoje" pela saudação com a data, então quem espera a tela espera a região.
+ */
+export async function esperarAbaTreino(page: Page): Promise<void> {
+  // `exact`: o banner do treino aberto também é uma região ("Treino aberto")
+  await expect(
+    page.getByRole("region", { name: "Treino", exact: true }),
+  ).toBeVisible({ timeout: 15_000 });
+}
+
+/**
+ * Clica numa das cinco abas (SPEC §13.2) pela navegação inferior. Sempre pelo
+ * `nav`: a lista do dia tem links cujo texto contém "peso do corpo", e um
+ * `getByRole("link", { name: "Corpo" })` solto casaria com eles.
+ */
+export async function irNaAba(page: Page, rotulo: string): Promise<void> {
+  await page
+    .getByRole("navigation", { name: "Navegação principal" })
+    .getByRole("link", { name: rotulo, exact: true })
+    .click();
+}
+
+/**
+ * Cria a conta permitida (ou entra, se já existir) e espera cair na aba Treino.
  * O mock já devolve sessão no signup — não há confirmação de e-mail.
  */
 export async function login(
@@ -77,7 +100,7 @@ export async function login(
     await page.getByRole("button", { name: "Entrar" }).click();
   }
 
-  await expect(page.getByRole("heading", { name: "Hoje" })).toBeVisible();
+  await esperarAbaTreino(page);
 }
 
 export interface SessaoMock {
@@ -243,5 +266,38 @@ export async function entrarNoApp(
   await page.getByLabel("E-mail").fill(email);
   await page.getByLabel("Senha").fill(senha);
   await page.getByRole("button", { name: "Entrar" }).click();
-  await expect(page.getByRole("heading", { name: "Hoje" })).toBeVisible();
+  await esperarAbaTreino(page);
+}
+
+/**
+ * O player (SPEC §14.1) abre na tela de preparação: este ajudante passa dela
+ * para o primeiro exercício quando ela está na frente. Com o relógio fixo
+ * (`fixarData`) a contagem não anda sozinha, então o toque é obrigatório.
+ */
+export async function comecarNoPlayer(page: Page): Promise<void> {
+  const comecar = page.getByRole("button", { name: "Começar agora" });
+  const concluir = page.getByRole("button", { name: "Concluir a série" });
+  // espera o player desenhar: a preparação ou já o primeiro exercício
+  await comecar.or(concluir).first().waitFor();
+  if (await comecar.isVisible().catch(() => false)) await comecar.click();
+  await concluir.waitFor();
+}
+
+/**
+ * A visão geral da sessão — a folha de rolagem com todas as séries, que o
+ * player abre pelo ícone de lista (SPEC §14.1). É por ela que se corrige
+ * qualquer série e se encerra o treino.
+ */
+export async function abrirVisaoGeral(page: Page): Promise<void> {
+  const lista = page.getByRole("button", { name: "Visão geral do treino" });
+  const comecar = page.getByRole("button", { name: "Começar agora" });
+  // espera o player desenhar (preparação ou exercício) antes de decidir
+  await lista.or(comecar).first().waitFor();
+  if (await comecar.isVisible().catch(() => false)) {
+    await comecar.click();
+    // só o passo do exercício tem o ícone de lista: espera ele desenhar
+    await page.getByRole("button", { name: "Concluir a série" }).waitFor();
+  }
+  await lista.click();
+  await page.getByRole("heading", { level: 1 }).waitFor();
 }

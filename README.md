@@ -61,7 +61,7 @@ kit-app-treino/
 
 1. `npm run dev` → abra http://localhost:3000.
 2. Crie a sua conta na tela de login com **o e-mail permitido** e uma senha. Qualquer outro e-mail tem que ser recusado.
-3. A tela Hoje deve mostrar o treino do dia (segunda = Treino A). Faça um treino de teste registrando 2 ou 3 séries e conclua; abra Progresso e Histórico e veja se apareceu. Depois apague a sessão de teste no Histórico (ou mantenha, se foi treino de verdade).
+3. A aba Treino deve mostrar o treino do dia (segunda = Treino A). Faça um treino de teste registrando 2 ou 3 séries e conclua; abra Relatório e veja se apareceu. Depois apague a sessão de teste no Histórico (ou mantenha, se foi treino de verdade).
 
 ## Passo 5 — Publicar na Vercel e instalar no celular
 
@@ -81,7 +81,33 @@ kit-app-treino/
 
 ## Créditos dos assets
 
-Fotos de execução: free-exercise-db (domínio público). Figuras, mapa muscular, textos e dados: feitos para este projeto a partir do *Guia de treino da garagem* (setembro de 2026). Fotos dos itens: anúncios dos produtos comprados.
+Fotos de execução: free-exercise-db (domínio público). Figuras, textos e dados: feitos para este projeto a partir do *Guia de treino da garagem* (setembro de 2026). Fotos dos itens: anúncios dos produtos comprados.
+
+## Créditos de mídia
+
+O app mostra imagens de terceiros, e todas exigem atribuição. Ela está dentro
+do app, em **Mais → Créditos**, e sob cada ilustração na ficha do exercício.
+
+| O quê | De onde | Licença |
+|---|---|---|
+| Ilustrações de 77 dos 81 exercícios (`assets/ilustracoes/`) | Everkinetic, via Wikimedia Commons (66), e colaboradores do wger (11) | CC BY-SA 3.0 / 4.0 |
+| Mapa muscular anatômico (`assets/mapa-muscular/mapa-anatomico.svg`) | MuscleMap, de Melih Colpan, pela conversão publicada em openGym | MIT |
+| Fotos de execução (`assets/fotos/`) | free-exercise-db | Unlicense (domínio público) |
+| Figuras animadas, fotos dos itens, textos e dados | feitos para este projeto | — |
+
+Quem é o autor de cada ilustração está em `data/ilustracoes.json` (uma entrada
+por exercício, com autor, licença e link para a página da fonte) e em
+`data/ilustracoes-creditos.md`, que é a mesma lista em texto. As de bitmap
+foram reduzidas a 640 px de largura e convertidas para WebP (as vetoriais
+continuam SVG); **as versões redimensionadas continuam sob CC BY-SA**, com o
+mesmo autor. O texto da licença MIT do mapa anda junto do desenho, em
+`assets/mapa-muscular/LICENCA-mapa-anatomico.md`, que também explica como o SVG
+foi derivado (`scripts/gerar-mapa-anatomico.py`).
+
+Para refazer a importação a partir de um levantamento novo:
+`npm run ilustracoes <pasta>` (`scripts/importar-ilustracoes.ts` — escolhe uma
+ilustração por exercício, converte, e reescreve `data/ilustracoes.json` e os
+créditos). O resultado é versionado; o script não roda no build.
 
 ## Rodando o app
 
@@ -103,6 +129,7 @@ npm run dev                        # http://localhost:3000
 | `npm run validar` | confere `data/*.json` e os assets referenciados |
 | `npm run assets` | copia `assets/` para `public/` |
 | `npm run icones` | regenera os ícones PNG do PWA |
+| `npm run ilustracoes` | reimporta as ilustrações com licença livre (fora do build) |
 
 Sem as variáveis de ambiente o app compila e abre normalmente: a tela de login
 mostra o aviso de configuração em vez de quebrar. Enquanto não existe um
@@ -134,8 +161,14 @@ npm run dev:mock    # next dev já apontando para ele
 
 ## Deploy na Vercel
 
-1. **Repositório**: suba a pasta para um repositório **privado** no GitHub.
-2. **Importar**: em https://vercel.com/new escolha o repositório. O framework é
+> O passo a passo completo da infraestrutura (Supabase + Vercel + PWA + o teste
+> do terraço), em ordem e com os comandos, está em **`PROGRESSO.md` → "Checklist
+> de infraestrutura"**. O resumo:
+
+1. **Repositório**: o código de produção fica em `main`, no repositório privado
+   `SAV1BOY/WORKOUT`.
+2. **Importar**: em https://vercel.com/new escolha o repositório e deixe
+   `main` como *Production Branch*. O framework é
    detectado como Next.js; o comando de build é o `npm run build` do projeto
    (ele roda `validar` e `assets` no `prebuild`, então as figuras e as fotos vão
    para `public/` no deploy — a pasta `public/` é gerada, não versionada).
@@ -147,8 +180,12 @@ npm run dev:mock    # next dev já apontando para ele
    | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | a chave **anon public** (nunca a `service_role`) |
    | `ALLOWED_EMAIL` | `miguelgsaviotti29@gmail.com` |
 
-   As duas `NEXT_PUBLIC_*` são lidas em tempo de execução: mudar o valor e dar
-   **Redeploy** basta, não é preciso rebuildar em outra máquina.
+   Pelo painel (Settings → Environment Variables) ou pela CLI
+   (`vercel link`, depois `vercel env add NEXT_PUBLIC_SUPABASE_URL production`
+   e assim por diante, `production` **e** `preview`; confira com
+   `vercel env ls`). As duas `NEXT_PUBLIC_*` são lidas em tempo de execução:
+   mudar o valor e dar **Redeploy** basta, não é preciso rebuildar em outra
+   máquina.
 4. **Supabase → Authentication → URL Configuration**: em *Site URL* ponha a URL
    da Vercel (`https://treino-terraco.vercel.app`) e em *Redirect URLs*
    acrescente `https://treino-terraco.vercel.app/**`. Sem isso o link de

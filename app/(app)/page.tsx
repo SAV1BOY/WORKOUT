@@ -1,13 +1,13 @@
 import { redirect } from "next/navigation";
-import { TelaHoje } from "@/components/hoje/tela-hoje";
+import { TelaTreino } from "@/components/treino/tela-treino";
 import { idDoUsuario } from "@/lib/supabase/server";
 
-export const metadata = { title: "Hoje — Treino do Terraço" };
+export const metadata = { title: "Treino — Treino do Terraço" };
 export const dynamic = "force-dynamic";
 
-export default async function Hoje() {
+export default async function Treino() {
   const userId = await idDoUsuario();
   if (!userId) redirect("/login");
 
-  return <TelaHoje userId={userId} />;
+  return <TelaTreino userId={userId} />;
 }

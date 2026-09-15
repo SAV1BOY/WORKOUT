@@ -11,13 +11,15 @@
 import { expect, test } from "@playwright/test";
 import {
   EMAIL_PERMITIDO,
-  SENHA,
-  URL_MOCK,
+  esperarAbaTreino,
+  irNaAba,
   login,
   requisicoesDoMock,
   resetarMock,
   semRolagemHorizontal,
+  SENHA,
   sessaoNoMock,
+  URL_MOCK,
 } from "./fixtures";
 
 test.beforeEach(async () => {
@@ -58,13 +60,13 @@ test.describe("porta de entrada", () => {
     await login(page);
 
     await page.reload();
-    await expect(page.getByRole("heading", { name: "Hoje" })).toBeVisible();
+    await esperarAbaTreino(page);
     await expect(page).toHaveURL(/127\.0\.0\.1:\d+\/$/);
 
-    await page.goto("/progresso");
+    await page.goto("/relatorio");
     await page.reload();
-    await expect(page.getByRole("heading", { name: "Progresso" })).toBeVisible();
-    await expect(page).toHaveURL(/\/progresso$/);
+    await expect(page.getByRole("heading", { name: "Relatório" })).toBeVisible();
+    await expect(page).toHaveURL(/\/relatorio$/);
   });
 
   test("sem sessão toda rota protegida volta ao login (inclusive a raiz)", async ({
@@ -79,7 +81,7 @@ test.describe("porta de entrada", () => {
 
   test("sair derruba a sessão e voltar não a ressuscita", async ({ page }) => {
     await login(page);
-    await page.getByRole("link", { name: "Mais" }).click();
+    await irNaAba(page, "Mais");
     await page.getByRole("button", { name: "Sair" }).click();
     await expect(page).toHaveURL(/\/login$/);
 
@@ -160,12 +162,12 @@ test.describe("o mock não finge sucesso", () => {
     page,
   }) => {
     await login(page);
-    await page.getByRole("link", { name: "Mais" }).click();
+    await irNaAba(page, "Mais");
     await page.getByRole("button", { name: "Sair" }).click();
     await page.getByLabel("E-mail").fill(EMAIL_PERMITIDO);
     await page.getByLabel("Senha").fill(SENHA);
     await page.getByRole("button", { name: "Entrar" }).click();
-    await expect(page.getByRole("heading", { name: "Hoje" })).toBeVisible();
+    await esperarAbaTreino(page);
 
     const caminhos = (await requisicoesDoMock()).map((r) => r.caminho);
     expect(caminhos).toContain("/auth/v1/token");

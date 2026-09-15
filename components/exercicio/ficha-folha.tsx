@@ -1,0 +1,598 @@
+"use client";
+
+import { ChevronLeft, ChevronRight, Pause, Play, Repeat } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { FotosAmpliaveis } from "@/components/exercicios/fotos-ampliaveis";
+import { HistoricoExercicio } from "@/components/exercicios/historico-exercicio";
+import { IlustracaoAlternada } from "@/components/exercicio/ilustracao-alternada";
+import { MediaGrande } from "@/components/exercicio/media-grande";
+import { FotosExercicio } from "@/components/exercicio/midia";
+import { TutorialDoExercicio } from "@/components/exercicio/tutorial";
+import { MapaAnatomico } from "@/components/mapa-anatomico";
+import { StepperNumerico } from "@/components/stepper-numerico";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { NOME_EQUIPAMENTO, treinosDoExercicio } from "@/lib/catalogo";
+import { acharExercicio, acharTreino } from "@/lib/dados";
+import { formatarDescanso, formatarKg, rotuloDaCarga } from "@/lib/formato";
+import type { PrescricaoTipo } from "@/lib/schemas";
+import {
+  ilustracaoDoExercicio,
+  opcoesDeMidia,
+  type TipoDeMidia,
+} from "@/lib/midia";
+import { substitutosPara } from "@/lib/sessao";
+import type { Prefs } from "@/lib/types";
+import { evitado, evitadosPorUltimo } from "@/lib/preferencias";
+import { cn } from "@/lib/utils";
+
+/** O que a ficha ganha quando é aberta de dentro de uma sessão (SPEC §14.2). */
+export interface ContextoDaFicha {
+  /** Séries desta sessão (o stepper mexe só nelas). */
+  series: number;
+  /** Repetições, segundos ou passos de hoje — conforme `tipo`. */
+  alvo: number | null;
+  tipo: PrescricaoTipo;
+  aoMudarSeries: (n: number) => void;
+  aoMudarAlvo: (v: number) => void;
+  aoSubstituir?: (novoExercicioId: string) => void;
+  /** Posição no treino, para o "anterior/próximo (n/N)". */
+  indice: number;
+  total: number;
+  aoIr?: (indice: number) => void;
+}
+
+const MIN_SERIES = 1;
+const MAX_SERIES = 10;
+
+/**
+ * A ficha do exercício (SPEC §14.2): título, Substituir, as abas
+ * **Vídeo · Músculos · Tutorial**, o stepper da prescrição de hoje,
+ * instruções, erro comum, área de foco, histórico e recorde.
+ *
+ * O mesmo componente serve a folha (bottom sheet, por cima de qualquer tela) e
+ * a página `/exercicios/[id]` — não há duas fichas.
+ */
+export function ConteudoDaFicha({
+  exercicioId,
+  temVideo = false,
+  contexto,
+  prefs,
+  comoPagina = false,
+  aoFechar,
+}: {
+  exercicioId: string;
+  temVideo?: boolean;
+  contexto?: ContextoDaFicha;
+  prefs?: Prefs;
+  /** Página inteira (`/exercicios/[id]`): sem o "Fechar" e com tudo aberto. */
+  comoPagina?: boolean;
+  aoFechar?: () => void;
+}) {
+  const exercicio = acharExercicio(exercicioId);
+  const treinos = treinosDoExercicio(exercicio.id);
+  const p = exercicio.prescricao_padrao;
+
+  return (
+    <div className="flex flex-col gap-4">
+      {contexto?.aoSubstituir ? (
+        <Substituir
+          exercicioId={exercicioId}
+          prefs={prefs}
+          aoEscolher={contexto.aoSubstituir}
+        />
+      ) : null}
+
+      <AbasDaMidia
+        exercicioId={exercicioId}
+        temVideo={temVideo}
+        comoPagina={comoPagina}
+      />
+
+      {contexto ? <StepperDaSessao contexto={contexto} /> : null}
+
+      {comoPagina ? (
+        <>
+          {treinos.length > 0 ? (
+            <p className="flex flex-wrap items-center gap-1">
+              {treinos.map((t) => (
+                <Badge key={t} variant="secondary" className="text-[10px]">
+                  {acharTreino(t).nome}
+                </Badge>
+              ))}
+            </p>
+          ) : null}
+          <FotosAmpliaveis exercicio={exercicio} />
+        </>
+      ) : null}
+
+      <Secao titulo="Instruções">
+        <ol className="text-muted-foreground flex list-decimal flex-col gap-1 pl-5 text-sm">
+          {exercicio.passos.map((passo) => (
+            <li key={passo}>{passo}</li>
+          ))}
+        </ol>
+      </Secao>
+
+      <section className="border-destructive/40 bg-destructive/5 flex flex-col gap-1 rounded-lg border p-3">
+        <h3 className="text-sm font-semibold">Erro comum</h3>
+        <p className="text-sm text-balance">{exercicio.erro_comum}</p>
+      </section>
+
+      <AreaDeFoco exercicioId={exercicioId} />
+
+      <Secao titulo="Montagem">
+        <p className="text-muted-foreground text-sm text-balance">{exercicio.montagem}</p>
+      </Secao>
+
+      {comoPagina ? (
+        <>
+          <Secao titulo="Equipamento">
+            <p className="text-muted-foreground text-sm">{exercicio.equipamento_texto}</p>
+            <ul className="flex flex-wrap gap-1 pt-1">
+              {exercicio.equipamento.map((tag) => (
+                <li key={tag}>
+                  <Badge variant="outline" className="text-[10px]">
+                    {NOME_EQUIPAMENTO[tag]}
+                  </Badge>
+                </li>
+              ))}
+            </ul>
+          </Secao>
+
+          <Secao titulo="Prescrição padrão">
+            <p className="numero text-lg">{p.texto}</p>
+            <p className="text-muted-foreground text-sm">
+              Descanso de {formatarDescanso(p.descanso_s)}
+              {p.unilateral ? " · um lado de cada vez" : ""}
+            </p>
+          </Secao>
+
+          <Secao titulo="Carga inicial">
+            <p className="numero text-lg">
+              {exercicio.carga_inicial.kg > 0
+                ? `${formatarKg(exercicio.carga_inicial.kg)} ${rotuloDaCarga(exercicio.implemento)}`
+                : "peso do corpo"}
+            </p>
+            <p className="text-muted-foreground text-sm text-balance">
+              {exercicio.carga_inicial.nota}
+            </p>
+          </Secao>
+        </>
+      ) : null}
+
+      <Secao titulo="Como progredir">
+        <p className="text-muted-foreground text-sm text-balance">
+          {exercicio.progressao.regra}
+        </p>
+      </Secao>
+
+      <h3 className={comoPagina ? "pt-2 text-lg font-semibold" : "text-sm font-semibold"}>
+        Seu histórico
+      </h3>
+      <HistoricoExercicio exercicioId={exercicioId} />
+
+      {contexto && contexto.total > 1 ? (
+        <Navegacao contexto={contexto} />
+      ) : null}
+
+      {!comoPagina && aoFechar ? (
+        <Button variant="outline" className="alvo h-12" onClick={aoFechar}>
+          Fechar
+        </Button>
+      ) : null}
+    </div>
+  );
+}
+
+function Secao({ titulo, children }: { titulo: string; children: React.ReactNode }) {
+  return (
+    <section className="flex flex-col gap-1">
+      <h3 className="text-sm font-semibold">{titulo}</h3>
+      {children}
+    </section>
+  );
+}
+
+/** Vídeo · Músculos · Tutorial (SPEC §14.2). */
+function AbasDaMidia({
+  exercicioId,
+  temVideo,
+  comoPagina,
+}: {
+  exercicioId: string;
+  temVideo: boolean;
+  comoPagina: boolean;
+}) {
+  return (
+    <Tabs defaultValue="video" className="gap-3">
+      <TabsList className="w-full">
+        <TabsTrigger value="video" className="alvo flex-1">
+          Vídeo
+        </TabsTrigger>
+        <TabsTrigger value="musculos" className="alvo flex-1">
+          Músculos
+        </TabsTrigger>
+        <TabsTrigger value="tutorial" className="alvo flex-1">
+          Tutorial
+        </TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="video">
+        <AbaVideo
+          exercicioId={exercicioId}
+          temVideo={temVideo}
+          comoPagina={comoPagina}
+        />
+      </TabsContent>
+
+      <TabsContent value="musculos">
+        <AbaMusculos exercicioId={exercicioId} />
+      </TabsContent>
+
+      <TabsContent value="tutorial">
+        <TutorialDoExercicio exercicioId={exercicioId} />
+      </TabsContent>
+    </Tabs>
+  );
+}
+
+const ROTULO_DA_MIDIA: Readonly<Record<TipoDeMidia, string>> = {
+  video: "Vídeo",
+  ilustracao: "Ilustração",
+  figura: "Figura",
+  foto: "Fotos",
+};
+
+/**
+ * A aba Vídeo (SPEC §14.2 e marco Mídia): a ilustração com licença livre
+ * alternando as duas posições, com o segmento "Ilustração · Figura · Fotos"
+ * para trocar de demonstração. O vídeo local (§13.1) continua na frente
+ * quando o arquivo existe.
+ */
+function AbaVideo({
+  exercicioId,
+  temVideo,
+  comoPagina,
+}: {
+  exercicioId: string;
+  temVideo: boolean;
+  comoPagina: boolean;
+}) {
+  const exercicio = acharExercicio(exercicioId);
+  /*
+   * Na página inteira as duas fotos já aparecem logo abaixo, ampliáveis: pôr
+   * "Fotos" também no segmento seria mostrar a mesma coisa duas vezes. Na
+   * folha, que não tem a tira de fotos, a opção fica.
+   */
+  const opcoes = opcoesDeMidia(exercicioId, { temVideo }).filter(
+    (o) => !(comoPagina && o === "foto"),
+  );
+  const [escolhido, setEscolhido] = useState<TipoDeMidia | null>(null);
+  const [pausado, setPausado] = useState(false);
+  const video = useRef<HTMLDivElement>(null);
+
+  // pausar só faz sentido no vídeo local; a ilustração tem o próprio toque
+  useEffect(() => {
+    const elemento = video.current?.querySelector("video");
+    if (!elemento) return;
+    if (pausado) elemento.pause();
+    else void elemento.play().catch(() => {});
+  }, [pausado]);
+
+  const tipo = escolhido && opcoes.includes(escolhido) ? escolhido : opcoes[0];
+
+  return (
+    <div className="flex flex-col gap-2">
+      <div ref={video}>
+        {tipo === "foto" ? (
+          <FotosExercicio exercicio={exercicio} />
+        ) : (
+          <MediaGrande
+            exercicioId={exercicioId}
+            temVideo={temVideo}
+            tipo={tipo}
+            semFoto={comoPagina}
+            className={comoPagina ? "h-52" : "h-44"}
+          />
+        )}
+      </div>
+
+      {opcoes.length > 1 ? (
+        <div
+          role="group"
+          aria-label="Como ver o exercício"
+          className="bg-muted flex items-center gap-1 self-start rounded-lg p-1"
+        >
+          {opcoes.map((opcao) => (
+            <button
+              key={opcao}
+              type="button"
+              aria-pressed={opcao === tipo}
+              onClick={() => setEscolhido(opcao)}
+              className={cn(
+                "alvo h-9 rounded-md px-3 text-xs font-medium",
+                opcao === tipo
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground",
+              )}
+            >
+              {ROTULO_DA_MIDIA[opcao]}
+            </button>
+          ))}
+        </div>
+      ) : null}
+
+      {tipo === "video" ? (
+        <Button
+          variant="outline"
+          className="alvo h-11 self-start"
+          onClick={() => setPausado((v) => !v)}
+        >
+          {pausado ? <Play className="size-4" /> : <Pause className="size-4" />}
+          {pausado ? "Continuar" : "Pausar"}
+        </Button>
+      ) : null}
+    </div>
+  );
+}
+
+/**
+ * A aba Músculos (SPEC §14.2 e marco Mídia): a ilustração em cima e o mapa
+ * anatômico frente/costas embaixo, com a legenda em texto — a cor sozinha
+ * nunca é a única pista.
+ */
+function AbaMusculos({ exercicioId }: { exercicioId: string }) {
+  const exercicio = acharExercicio(exercicioId);
+  const ilustracao = ilustracaoDoExercicio(exercicioId);
+
+  return (
+    <div className="flex flex-col gap-3">
+      {ilustracao ? (
+        <IlustracaoAlternada
+          urls={ilustracao.urls}
+          alt={`Execução do ${exercicio.nome}`}
+          className="h-32"
+        />
+      ) : null}
+
+      <MapaAnatomico
+        primarios={exercicio.musculos_primarios}
+        secundarios={exercicio.musculos_secundarios}
+        className="mx-auto max-w-[280px]"
+      />
+
+      <ul className="text-muted-foreground flex flex-col gap-1 text-xs">
+        <li className="flex items-start gap-2">
+          <span
+            aria-hidden="true"
+            className="mt-0.5 size-3 shrink-0 rounded-full"
+            style={{ background: "var(--mprim)" }}
+          />
+          <span>
+            <span className="text-foreground font-medium">Principais:</span>{" "}
+            {exercicio.musculos_primarios_nome.join(", ") || "—"}
+          </span>
+        </li>
+        <li className="flex items-start gap-2">
+          <span
+            aria-hidden="true"
+            className="mt-0.5 size-3 shrink-0 rounded-full"
+            style={{ background: "var(--msec)" }}
+          />
+          <span>
+            <span className="text-foreground font-medium">Ajudam:</span>{" "}
+            {exercicio.musculos_secundarios_nome.join(", ") || "—"}
+          </span>
+        </li>
+      </ul>
+    </div>
+  );
+}
+
+/** "Área de foco" em chips: primário forte, secundário claro (SPEC §14.2). */
+function AreaDeFoco({ exercicioId }: { exercicioId: string }) {
+  const exercicio = acharExercicio(exercicioId);
+  const primarios = exercicio.musculos_primarios_nome;
+  const secundarios = exercicio.musculos_secundarios_nome;
+  if (primarios.length === 0 && secundarios.length === 0) return null;
+
+  return (
+    <Secao titulo="Área de foco">
+      <ul aria-label="Área de foco" className="flex flex-wrap gap-1.5">
+        {primarios.map((nome) => (
+          <li
+            key={`p-${nome}`}
+            data-foco="primario"
+            className="border-primary bg-primary/15 text-foreground rounded-full border px-2.5 py-1 text-xs font-semibold"
+          >
+            {nome}
+          </li>
+        ))}
+        {secundarios.map((nome) => (
+          <li
+            key={`s-${nome}`}
+            data-foco="secundario"
+            className="border-border text-muted-foreground rounded-full border px-2.5 py-1 text-xs"
+          >
+            {nome}
+          </li>
+        ))}
+      </ul>
+    </Secao>
+  );
+}
+
+/** Duração / Repetições / Séries — só a prescrição desta sessão (SPEC §14.2). */
+function StepperDaSessao({ contexto }: { contexto: ContextoDaFicha }) {
+  const rotuloAlvo =
+    contexto.tipo === "tempo_s"
+      ? "Duração (s)"
+      : contexto.tipo === "passos"
+        ? "Passos"
+        : "Repetições";
+  const mostraAlvo = contexto.tipo !== "maximo";
+
+  return (
+    <section className="border-border cartao flex flex-col gap-2 border p-3">
+      <h3 className="text-sm font-semibold">Só nesta sessão</h3>
+      {mostraAlvo ? (
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-muted-foreground text-xs uppercase">{rotuloAlvo}</span>
+          <StepperNumerico
+            rotulo={rotuloAlvo}
+            valor={contexto.alvo}
+            passo={contexto.tipo === "tempo_s" ? 5 : 1}
+            minimo={1}
+            aoMudar={(v) => contexto.aoMudarAlvo(v ?? 1)}
+          />
+        </div>
+      ) : null}
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-muted-foreground text-xs uppercase">Séries</span>
+        <StepperNumerico
+          rotulo="Séries"
+          valor={contexto.series}
+          passo={1}
+          minimo={MIN_SERIES}
+          maximo={MAX_SERIES}
+          aoMudar={(v) => contexto.aoMudarSeries(v ?? MIN_SERIES)}
+        />
+      </div>
+      <p className="text-muted-foreground text-xs">
+        Muda só o treino de hoje. A progressão do exercício continua como está.
+      </p>
+    </section>
+  );
+}
+
+function Navegacao({ contexto }: { contexto: ContextoDaFicha }) {
+  const ir = contexto.aoIr;
+  return (
+    <div className="flex items-center justify-between gap-2">
+      <Button
+        variant="outline"
+        className="alvo h-12 px-3"
+        disabled={!ir || contexto.indice <= 0}
+        onClick={() => ir?.(contexto.indice - 1)}
+        aria-label="Exercício anterior"
+      >
+        <ChevronLeft className="size-5" />
+      </Button>
+      <span className="numero text-muted-foreground text-sm">
+        {contexto.indice + 1}/{contexto.total}
+      </span>
+      <Button
+        variant="outline"
+        className="alvo h-12 px-3"
+        disabled={!ir || contexto.indice >= contexto.total - 1}
+        onClick={() => ir?.(contexto.indice + 1)}
+        aria-label="Próximo exercício"
+      >
+        <ChevronRight className="size-5" />
+      </Button>
+    </div>
+  );
+}
+
+/** "Substituir hoje" (SPEC §3.2 e §14.1.2: quem é "evitar" vai para o fim). */
+function Substituir({
+  exercicioId,
+  prefs,
+  aoEscolher,
+}: {
+  exercicioId: string;
+  prefs?: Prefs;
+  aoEscolher: (id: string) => void;
+}) {
+  const [aberto, setAberto] = useState(false);
+  const lista = evitadosPorUltimo(substitutosPara(exercicioId), (e) => e.id, prefs);
+  if (lista.length === 0) return null;
+
+  return (
+    <div className="flex flex-col gap-1">
+      <Button
+        variant="outline"
+        className="alvo h-11 self-start"
+        onClick={() => setAberto((v) => !v)}
+      >
+        <Repeat className="size-4" />
+        Substituir
+      </Button>
+      {aberto ? (
+        <ul className="flex flex-col gap-1">
+          {lista.map((e) => (
+            <li key={e.id}>
+              <button
+                type="button"
+                onClick={() => {
+                  setAberto(false);
+                  aoEscolher(e.id);
+                }}
+                className={cn(
+                  "hover:bg-muted alvo flex w-full flex-col items-start gap-0.5 rounded-lg px-3 py-2 text-left",
+                )}
+              >
+                <span className="text-sm font-medium">{e.nome}</span>
+                <span className="text-muted-foreground text-xs">
+                  {e.prescricao_padrao.texto} · {e.equipamento_texto}
+                  {evitado(prefs, e.id) ? " · você marcou como evitar" : ""}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
+  );
+}
+
+/** A ficha por cima de qualquer tela, sem perder o estado (SPEC §14.2). */
+export function FichaEmFolha({
+  exercicioId,
+  aberto,
+  aoMudarAberto,
+  temVideo = false,
+  contexto,
+  prefs,
+}: {
+  exercicioId: string | null;
+  aberto: boolean;
+  aoMudarAberto: (v: boolean) => void;
+  temVideo?: boolean;
+  contexto?: ContextoDaFicha;
+  prefs?: Prefs;
+}) {
+  if (!exercicioId) return null;
+  const exercicio = acharExercicio(exercicioId);
+
+  return (
+    <Sheet open={aberto} onOpenChange={aoMudarAberto}>
+      <SheetContent side="bottom" className="max-h-[92dvh] overflow-y-auto pb-8">
+        <SheetHeader className="pb-0">
+          <SheetTitle className="text-balance">{exercicio.nome}</SheetTitle>
+          <SheetDescription>
+            {exercicio.grupo} · {exercicio.equipamento_texto}
+          </SheetDescription>
+        </SheetHeader>
+        <div className="px-4">
+          <ConteudoDaFicha
+            exercicioId={exercicioId}
+            temVideo={temVideo}
+            contexto={contexto}
+            prefs={prefs}
+            aoFechar={() => aoMudarAberto(false)}
+          />
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}

@@ -1,0 +1,158 @@
+"use client";
+
+import { Check, ChevronLeft, ChevronRight } from "lucide-react";
+import Link from "next/link";
+import type { DiaDaFaixa } from "@/lib/semana";
+import { cn } from "@/lib/utils";
+
+/**
+ * A faixa da semana (SPEC §13.3): seg–dom, hoje em destaque, ✓ nos dias
+ * feitos, ponto nos planejados, cinza no que faltou. Os dias entram prontos de
+ * `faixaDaSemana()` — este componente só desenha.
+ *
+ * Com `href` a faixa inteira leva ao calendário; com `aoVoltar`/`aoAvancar`
+ * ela ganha as setas de navegação por semana (Relatório, §13.5).
+ */
+export function FaixaSemana({
+  dias,
+  href,
+  rotulo,
+  aoVoltar,
+  aoAvancar,
+  className,
+}: {
+  dias: DiaDaFaixa[];
+  href?: string;
+  /** "15 a 21/09" — só aparece quando a faixa é navegável. */
+  rotulo?: string;
+  aoVoltar?: () => void;
+  aoAvancar?: () => void;
+  className?: string;
+}) {
+  const navegavel = Boolean(aoVoltar || aoAvancar);
+
+  const grade = (
+    <ol className="flex items-stretch justify-between gap-1">
+      {dias.map((dia) => (
+        <li key={dia.data} className="flex-1">
+          <span
+            title={dia.titulo}
+            aria-label={dia.titulo}
+            data-dia={dia.data}
+            data-marca={dia.ehHoje ? "hoje" : dia.marca}
+            className={cn(
+              "flex flex-col items-center gap-1 rounded-xl px-0.5 py-1.5",
+              dia.ehHoje && "bg-primary/15 ring-primary/50 ring-1",
+            )}
+          >
+            <span
+              className={cn(
+                "text-[11px] leading-none",
+                dia.ehHoje ? "text-primary font-semibold" : "text-muted-foreground",
+              )}
+            >
+              {dia.rotulo}
+            </span>
+            <Marca marca={dia.marca} ehHoje={dia.ehHoje} />
+            <span
+              className={cn(
+                "numero text-[11px] leading-none",
+                dia.ehHoje ? "text-foreground" : "text-muted-foreground",
+              )}
+            >
+              {dia.numero}
+            </span>
+          </span>
+        </li>
+      ))}
+    </ol>
+  );
+
+  const miolo = href ? (
+    <Link
+      href={href}
+      aria-label="Abrir o calendário da semana"
+      className="hover:bg-muted/40 alvo block rounded-2xl px-1 py-1"
+    >
+      {grade}
+    </Link>
+  ) : (
+    <div className="px-1 py-1">{grade}</div>
+  );
+
+  return (
+    <section
+      aria-label="Semana"
+      className={cn("cartao border-border bg-card border p-1.5", className)}
+    >
+      {navegavel ? (
+        <div className="flex items-center justify-between gap-2 px-1 pt-1 pb-0.5">
+          <button
+            type="button"
+            onClick={aoVoltar}
+            aria-label="Semana anterior"
+            disabled={!aoVoltar}
+            className="alvo text-muted-foreground hover:text-foreground flex items-center justify-center rounded-lg disabled:opacity-40"
+          >
+            <ChevronLeft className="size-5" />
+          </button>
+          <span className="numero text-sm">{rotulo}</span>
+          <button
+            type="button"
+            onClick={aoAvancar}
+            aria-label="Próxima semana"
+            disabled={!aoAvancar}
+            className="alvo text-muted-foreground hover:text-foreground flex items-center justify-center rounded-lg disabled:opacity-40"
+          >
+            <ChevronRight className="size-5" />
+          </button>
+        </div>
+      ) : null}
+      {miolo}
+    </section>
+  );
+}
+
+/** ✓ feito · ponto planejado · cinza faltou · traço no descanso. */
+function Marca({ marca, ehHoje }: { marca: DiaDaFaixa["marca"]; ehHoje: boolean }) {
+  if (marca === "feito") {
+    return (
+      <span className="bg-primary text-primary-foreground flex size-6 items-center justify-center rounded-full">
+        <Check aria-hidden="true" className="size-4" strokeWidth={3} />
+      </span>
+    );
+  }
+  if (marca === "parcial") {
+    return (
+      <span className="border-primary flex size-6 items-center justify-center rounded-full border-2">
+        <span aria-hidden="true" className="bg-primary size-2 rounded-full" />
+      </span>
+    );
+  }
+  if (marca === "descanso") {
+    return (
+      <span className="flex size-6 items-center justify-center">
+        <span aria-hidden="true" className="bg-border h-0.5 w-3 rounded-full" />
+      </span>
+    );
+  }
+  if (marca === "faltou") {
+    return (
+      <span className="flex size-6 items-center justify-center">
+        <span aria-hidden="true" className="bg-muted-foreground/40 size-2.5 rounded-full" />
+      </span>
+    );
+  }
+  // planejado
+  return (
+    <span className="flex size-6 items-center justify-center">
+      <span
+        aria-hidden="true"
+        className={cn(
+          "size-2.5 rounded-full",
+          ehHoje ? "bg-primary" : "border-muted-foreground/60 border-2",
+        )}
+      />
+    </span>
+  );
+}

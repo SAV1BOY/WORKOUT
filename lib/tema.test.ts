@@ -119,6 +119,8 @@ describe.each([
 
   it("o mapa muscular distingue principal, auxiliar e corpo", () => {
     expect(contraste(pega("mprim"), pega("mbody"))).toBeGreaterThanOrEqual(3);
-    expect(contraste(pega("msec"), pega("mbody"))).toBeGreaterThanOrEqual(1.2);
+    // 3:1 também para o auxiliar: é elemento gráfico, e no mapa anatômico do
+    // marco Mídia ele é a única marca de "esse músculo ajuda" na figura
+    expect(contraste(pega("msec"), pega("mbody"))).toBeGreaterThanOrEqual(3);
   });
 });

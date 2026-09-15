@@ -25,12 +25,16 @@ import type {
 /** Quantas sessões de força a tela Hoje e o calendário precisam ver. */
 export const SESSOES_RECENTES = 60;
 
+/** Quantas sessões de cardio as sequências da aba Treino precisam ver. */
+export const CARDIOS_RECENTES = 120;
+
 export const chaves = {
   perfil: () => ["perfil"] as const,
   overrides: (de: string, ate: string) => ["overrides", de, ate] as const,
   sessoes: () => ["sessoes"] as const,
   sessoesAbertas: () => ["sessoes-abertas"] as const,
   cardio: (de: string, ate: string) => ["cardio", de, ate] as const,
+  cardioDesde: (de: string) => ["cardio-desde", de] as const,
   peso: () => ["peso"] as const,
   soltas: (data: string) => ["soltas", data] as const,
   soltasNoPeriodo: (de: string, ate: string) => ["soltas-periodo", de, ate] as const,
@@ -42,6 +46,8 @@ export const chaves = {
   seriesAnteriores: (ids: readonly string[]) =>
     ["series-anteriores", [...ids].sort().join(",")] as const,
   recordes: (ids: readonly string[]) => ["recordes", [...ids].sort().join(",")] as const,
+  ultimasSeries: (ids: readonly string[]) =>
+    ["ultimas-series", [...ids].sort().join(",")] as const,
 };
 
 interface Resposta<T> {
@@ -154,6 +160,29 @@ export function useCardio(
           .gte("data", de ?? "")
           .lte("data", ate ?? "")
           .order("data", { ascending: false }),
+        "as sessões de cardio",
+      ),
+  });
+}
+
+/**
+ * As sessões de cardio desde uma data (SPEC §13.3): a sequência de semanas com
+ * a meta cumprida precisa de mais do que a semana em curso.
+ */
+export function useCardioDesde(
+  de: string | null,
+): UseQueryResult<LinhaSessaoCardio[]> {
+  return useQuery({
+    queryKey: chaves.cardioDesde(de ?? ""),
+    enabled: de !== null,
+    queryFn: () =>
+      lerLista<LinhaSessaoCardio>(
+        clienteNavegador()
+          .from("cardio_sessions")
+          .select("*")
+          .gte("data", de ?? "")
+          .order("data", { ascending: false })
+          .limit(CARDIOS_RECENTES),
         "as sessões de cardio",
       ),
   });
@@ -339,6 +368,53 @@ export function useSeriesAnteriores(
           .order("registrada_em", { ascending: false })
           .limit(SERIES_ANTERIORES),
         "as séries anteriores",
+      ),
+  });
+}
+
+/** Quantas séries a linha "anterior: 9,5 kg × 5" do player precisa olhar. */
+export const ULTIMAS_SERIES = 120;
+
+export type UltimaSerie = Pick<
+  LinhaSerie,
+  | "exercise_id"
+  | "session_id"
+  | "set_index"
+  | "reps"
+  | "carga_kg"
+  | "tempo_s"
+  | "tipo"
+  | "concluida"
+  | "registrada_em"
+>;
+
+/**
+ * As últimas séries de trabalho destes exercícios, com carga e tempo — é delas
+ * que sai o "anterior: 9,5 kg × 5" do player (SPEC §14.1.2).
+ *
+ * Consulta separada da `useSeriesAnteriores` de propósito: aquela alimenta o
+ * motor (tipo `maximo`) e é pedida para os exercícios do treino **mais todos
+ * os substitutos possíveis**; misturar as duas mudaria o recorte de linhas que
+ * o motor vê.
+ */
+export function useUltimasSeries(
+  ids: readonly string[],
+): UseQueryResult<UltimaSerie[]> {
+  return useQuery({
+    queryKey: chaves.ultimasSeries(ids),
+    enabled: ids.length > 0,
+    queryFn: () =>
+      lerLista<UltimaSerie>(
+        clienteNavegador()
+          .from("session_sets")
+          .select(
+            "exercise_id,session_id,set_index,reps,carga_kg,tempo_s,tipo,concluida,registrada_em",
+          )
+          .in("exercise_id", [...ids])
+          .eq("tipo", "trabalho")
+          .order("registrada_em", { ascending: false })
+          .limit(ULTIMAS_SERIES),
+        "as séries do treino passado",
       ),
   });
 }

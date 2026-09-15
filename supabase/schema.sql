@@ -59,7 +59,8 @@ create table if not exists public.sessions (
   concluida_em  timestamptz,
   duracao_s     int,
   semana_plano  int,                                     -- sessão de barra fixa (§3.4): a semana do plano em que ela foi criada
-  sensacao      int check (sensacao between 1 and 5),    -- como foi o treino (1 péssimo … 5 ótimo)
+  plano         jsonb,                                   -- sessão livre e ordem desta sessão (§13.4/§14.3): {titulo, colecao, itens[]}
+  sensacao      int check (sensacao between 1 and 5),    -- como foi o treino (1 muito difícil … 5 muito fácil)
   peso_corporal numeric(5,2),                            -- opcional: peso do dia
   notas         text,
   created_at    timestamptz not null default now()
@@ -195,6 +196,7 @@ alter table public.exercise_state add column if not exists incremento_reduzido b
 alter table public.exercise_state add column if not exists exigir_rep_extra boolean not null default false;
 alter table public.exercise_state add column if not exists carga_antes_leve numeric(6,2);
 alter table public.sessions add column if not exists semana_plano int;
+alter table public.sessions add column if not exists plano jsonb;
 
 -- ---------- updated_at automático ----------
 create or replace function public.set_updated_at() returns trigger language plpgsql as $$

@@ -12,10 +12,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { formatarDuracao } from "@/lib/formato";
+import { OPCOES_DE_FEEDBACK } from "@/lib/player";
 import type { ResultadoExercicio } from "@/lib/sessao";
 import { cn } from "@/lib/utils";
-
-const SENSACAO = ["péssimo", "fraco", "ok", "bom", "ótimo"];
 
 /**
  * O fim do treino (SPEC §3.2 e §6.6): ↑ subiu / = repetiu / ↓ voltou por
@@ -134,29 +133,26 @@ export function ResumoDoFim({
         ) : null}
 
         <section className="flex flex-col gap-2">
-          <h3 className="text-sm font-semibold">Como foi o treino?</h3>
-          <div role="radiogroup" aria-label="Sensação" className="flex gap-1.5">
-            {SENSACAO.map((nome, i) => {
-              const nota = i + 1;
-              return (
-                <button
-                  key={nome}
-                  type="button"
-                  role="radio"
-                  aria-checked={sensacao === nota}
-                  aria-label={`${nota} — ${nome}`}
-                  onClick={() => setSensacao(nota)}
-                  className={cn(
-                    "alvo numero h-12 flex-1 rounded-lg border text-base",
-                    sensacao === nota
-                      ? "border-primary bg-primary/10"
-                      : "border-input bg-background",
-                  )}
-                >
-                  {nota}
-                </button>
-              );
-            })}
+          {/* as mesmas cinco opções do player (SPEC §14.1.4): 1 = muito difícil */}
+          <h3 className="text-sm font-semibold">O que você achou do treino de hoje?</h3>
+          <div role="radiogroup" aria-label="Sensação" className="flex flex-col gap-1.5">
+            {OPCOES_DE_FEEDBACK.map((opcao) => (
+              <button
+                key={opcao.valor}
+                type="button"
+                role="radio"
+                aria-checked={sensacao === opcao.valor}
+                onClick={() => setSensacao(opcao.valor)}
+                className={cn(
+                  "alvo h-12 rounded-lg border text-sm",
+                  sensacao === opcao.valor
+                    ? "border-primary bg-primary/10"
+                    : "border-input bg-background",
+                )}
+              >
+                {opcao.rotulo}
+              </button>
+            ))}
           </div>
         </section>
 

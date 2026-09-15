@@ -52,6 +52,15 @@ export function formatarDataLonga(valor: DataEntrada): string {
   });
 }
 
+/**
+ * "terça, 15/09" — a saudação da aba Treino (SPEC §13.3). A maiúscula é da
+ * tela (`first-letter:uppercase`), como no resto do app.
+ */
+export function formatarDiaEData(valor: DataEntrada): string {
+  const dia = format(paraData(valor), "EEEE", { locale: ptBR }).replace(/-feira$/, "");
+  return `${dia}, ${formatarData(valor)}`;
+}
+
 /** setembro de 2026 */
 export function formatarMesAno(valor: DataEntrada): string {
   return format(paraData(valor), "MMMM 'de' yyyy", { locale: ptBR });
