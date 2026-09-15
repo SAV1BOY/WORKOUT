@@ -74,6 +74,21 @@ async function naFila(page: Page): Promise<number> {
   ).catch(() => -1);
 }
 
+/**
+ * "A rede voltou": o evento que zera o backoff da fila (SPEC §8).
+ *
+ * Os testes daqui congelam o relógio do navegador (a data do programa importa),
+ * e o backoff da fila anda por `Date.now()` — sem este empurrão nada vence
+ * aqui dentro. No celular quem acorda a fila é o tempo passar **ou** este
+ * mesmo evento; cutucar de novo a cada volta do `poll` é o que o backoff de
+ * verdade faria sozinho.
+ */
+async function redeVoltou(page: Page): Promise<void> {
+  await page
+    .evaluate(() => window.dispatchEvent(new Event("online")))
+    .catch(() => {});
+}
+
 /** Marca a série `n` do exercício e espera o visto ficar marcado. */
 async function marcar(page: Page, exercicio: string, n: number) {
   const visto = page
@@ -131,15 +146,17 @@ test.describe("a resposta que se perde depois de o servidor gravar (SPEC §8)", 
     expect(engoliu).toBe(true);
 
     await page.unroute("**/rest/v1/pullup_singles*");
-    /*
-     * O relógio do navegador está congelado neste teste (`fixarRelogio`) e o
-     * backoff da fila anda por `Date.now()`: no celular quem acorda a fila é o
-     * tempo passar ou a rede voltar — este disparo imita a segunda.
-     */
-    await page.evaluate(() => window.dispatchEvent(new Event("online")));
 
     // o reenvio limpa a fila (upsert por id) e não cria uma segunda linha
-    await expect.poll(async () => naFila(page), { timeout: 30_000 }).toBe(0);
+    await expect
+      .poll(
+        async () => {
+          await redeVoltou(page);
+          return naFila(page);
+        },
+        { timeout: 30_000 },
+      )
+      .toBe(0);
     expect(await lerDoMock(sessao, "pullup_singles")).toHaveLength(1);
   });
 });
@@ -216,19 +233,13 @@ test.describe("a criação da sessão que falha uma vez (SPEC §8)", () => {
 
     expect(derrubou).toBe(true);
 
-    /*
-     * O relógio do navegador está congelado neste teste (`fixarData`), e o
-     * backoff da fila anda por `Date.now()`: sem isto o item nunca venceria
-     * aqui dentro. No celular de verdade quem acorda a fila é o tempo passar
-     * ou o evento `online` — que é o que este disparo imita.
-     */
-    await page.evaluate(() => window.dispatchEvent(new Event("online")));
-
     // a sessão chega inteira e CONCLUÍDA, com a duração e a sensação
     await expect
       .poll(
-        async () =>
-          (await lerDoMock<LinhaSessao>(sessao, "sessions"))[0]?.status ?? "sem linha",
+        async () => {
+          await redeVoltou(page);
+          return (await lerDoMock<LinhaSessao>(sessao, "sessions"))[0]?.status ?? "sem linha";
+        },
         { timeout: 60_000 },
       )
       .toBe("concluida");
@@ -289,12 +300,13 @@ test.describe("o Supabase cai no meio do treino e volta (SPEC §8 e §10.3)", ()
 
     // o servidor voltou (o evento `online` é o que zera o backoff, §8)
     await page.unroute("**/rest/v1/**");
-    await page.evaluate(() => window.dispatchEvent(new Event("online")));
 
     await expect
       .poll(
-        async () =>
-          (await lerDoMock<LinhaSessao>(sessao, "sessions"))[0]?.status ?? "sem linha",
+        async () => {
+          await redeVoltou(page);
+          return (await lerDoMock<LinhaSessao>(sessao, "sessions"))[0]?.status ?? "sem linha";
+        },
         { timeout: 60_000 },
       )
       .toBe("concluida");
@@ -308,7 +320,15 @@ test.describe("o Supabase cai no meio do treino e volta (SPEC §8 e §10.3)", ()
     expect(ordem.session_sets).toBeGreaterThan(ordem.sessions as number);
 
     // a fila esvazia sozinha e o perfil sabe qual foi o último treino (§5.2)
-    await expect.poll(async () => naFila(page), { timeout: 30_000 }).toBe(0);
+    await expect
+      .poll(
+        async () => {
+          await redeVoltou(page);
+          return naFila(page);
+        },
+        { timeout: 30_000 },
+      )
+      .toBe(0);
     expect(
       (await lerDoMock<{ ultimo_treino: string | null }>(sessao, "profiles"))[0]
         ?.ultimo_treino,
