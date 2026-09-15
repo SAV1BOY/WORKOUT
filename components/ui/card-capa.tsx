@@ -47,10 +47,15 @@ export function CardCapa({
         className,
       )}
     >
+      {/*
+        A capa cresce com o texto (`min-h`, não `h`): um título ou um subtítulo
+        de duas linhas empurrava a caixa de texto para fora da foto e ela subia
+        por cima do selo "hoje" (auditoria do marco V1).
+      */}
       <div
         className={cn(
-          "relative w-full",
-          altura === "baixa" ? "h-28" : "h-40",
+          "relative flex w-full flex-col justify-end",
+          altura === "baixa" ? "min-h-28" : "min-h-40",
           comFoto ? "bg-muted" : "from-primary/25 to-card bg-gradient-to-br",
         )}
       >
@@ -60,7 +65,7 @@ export function CardCapa({
             src={foto ?? ""}
             alt=""
             aria-hidden="true"
-            className="size-full object-cover"
+            className="absolute inset-0 size-full object-cover"
             onError={() => setQuebrou(true)}
           />
         ) : icone ? (
@@ -77,7 +82,13 @@ export function CardCapa({
           </span>
         ) : null}
 
-        <div className="absolute inset-x-0 bottom-0 flex flex-col gap-1 p-4 text-white">
+        <div
+          className={cn(
+            "relative flex flex-col gap-1 p-4 text-white",
+            // espaço para o selo, que fica no alto da capa
+            etiqueta && "pt-12",
+          )}
+        >
           <h2 className="text-xl leading-tight font-semibold text-balance">
             {titulo}
           </h2>

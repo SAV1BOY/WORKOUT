@@ -259,6 +259,15 @@ test.describe("a criação da sessão que falha uma vez (SPEC §8)", () => {
         { timeout: 30_000 },
       )
       .toBe(3);
+    /*
+     * Os eventos de progressão são a última coisa que a fila entrega: sem
+     * esperar por eles, a leitura da ordem pegava a fila pela metade e o teste
+     * falhava de vez em quando (auditoria do marco V1). A verificação é a
+     * mesma — o que mudou foi esperar a fila terminar antes de olhar.
+     */
+    await expect
+      .poll(async () => (await ordemDosPosts()).progression_events, { timeout: 30_000 })
+      .toBeDefined();
     const ordem = await ordemDosPosts();
     expect(ordem.sessions).toBeDefined();
     expect(ordem.session_sets).toBeGreaterThan(ordem.sessions as number);

@@ -3509,3 +3509,43 @@ grava as telas a 360 × 740. Nesta etapa: `01-treino-escuro.png`,
   histórico, sequências, IMC) e o IMC no Corpo (§13.7).
 - **V3**: auditoria da camada visual inteira (360 px nos dois temas, offline,
   conteúdo só dos JSON) e os critérios de aceite da §13.8.
+
+### Auditoria independente do marco V1 (rodada 1)
+
+Outro agente rodou os quatro portões de novo (lint limpo, build ✓, 806
+unitários, 162 e2e) e usou o app no Chromium a 360 × 740 contra o mock semeado,
+nos dois temas, em quatro dias (segunda de força, terça de cardio, quinta de
+descanso, domingo de caminhada). Medido elemento a elemento: **nada vaza** dos
+360 px, **nenhum alvo** abaixo de 44 px na aba Treino e **nenhum texto** abaixo
+do contraste AA (4,5:1, ou 3:1 no texto grande) nos dois temas. A sessão foi
+feita de ponta a ponta — steppers, timer de 2:30, recarregar no meio, uma série
+registrada **sem rede** que subiu sozinha ao voltar, conclusão com o resumo,
+seis `progression_events` e o `exercise_state` atualizado. O vídeo opcional foi
+conferido de verdade: com `assets/videos/agachamento-livre.mp4` + `npm run
+assets` + build, a **ficha** mostra o `<video>`; sem o arquivo, a figura — e o
+console não tem nenhum 404.
+
+Um defeito visual foi encontrado e corrigido nesta rodada:
+
+- **O selo "hoje" passava por cima do título do card de cardio.** A caixa de
+  texto da capa era `absolute bottom-0` dentro de uma capa de altura fixa: com
+  o subtítulo e o detalhe em duas linhas, ela crescia para cima, saía da foto e
+  batia no selo. Agora a capa é `min-h` com `justify-end` e a caixa de texto é
+  `relative` (com espaço reservado para o selo), então a capa cresce em vez de
+  transbordar — `components/ui/card-capa.tsx`.
+- **O subtítulo do card de cardio era a regra de agenda do `cardio.json`**
+  ("Corrida em dia de perna, nunca. Fase 1: cardio na terça…"), que já aparece
+  logo abaixo como aviso e não descreve a sessão do dia. A §13.3 pede título,
+  detalhe e botão — o subtítulo saiu (`components/treino/cards.tsx`).
+
+E um e2e antigo foi endurecido (sem afrouxar o que ele verifica): em
+`e2e/auditoria-offline.spec.ts`, "a conclusão não passa na frente" lia a ordem
+dos POSTs sem esperar os `progression_events`, que são a última coisa que a
+fila entrega — falhava uma vez a cada tantas rodadas. Agora espera a fila
+terminar e confere a mesma ordem.
+
+Pendências pequenas registradas, sem bloquear o marco: o link "Exercícios"
+dentro do texto de `/explorar` tem 70 × 16 px (é um link em linha, e a tela
+inteira é provisória — some no marco V2), e o pill do `Switch` continua com
+18 px de altura com a área de toque no `::after` (herdado do v1, coberto por
+e2e).

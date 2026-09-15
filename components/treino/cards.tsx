@@ -180,7 +180,6 @@ export function CardCardio({
     <>
       <CardCapa
         titulo={tituloDoCardio(mostrada)}
-        subtitulo={dadosCardio.ordem[0]}
         detalhe={detalhe}
         foto={capaDoCardio(mostrada.tipo)}
         icone={<Footprints aria-hidden="true" className="size-12" />}
