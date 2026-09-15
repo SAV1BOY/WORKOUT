@@ -7,6 +7,7 @@ import {
   atualizarNoMock,
   entrarNoApp,
   fixarData,
+  inserirNoMock,
   lerDoMock,
   resetarMock,
   semRolagemHorizontal,
@@ -453,6 +454,100 @@ test.describe("ajuda, montagem e substituição (SPEC §3.2, §6.5 e §7)", () =
       .toBe(1);
     const [serie] = await lerDoMock<LinhaSerie>(sessao, "session_sets");
     expect(serie?.exercise_id).toBe("agachamento-frontal");
+  });
+
+  /*
+   * SPEC §6.3: "o substituto usa o próprio estado". Com 31,5 kg gravados no
+   * agachamento frontal, a troca tem de partir dos 31,5 — e o upsert do fim
+   * também, senão a progressão real do exercício é apagada.
+   */
+  test("o substituto abre com a carga dele e a conclusão parte dela (§6.3)", async ({
+    page,
+  }) => {
+    const sessao = await usuarioComPerfil();
+    await inserirNoMock(sessao, "exercise_state", [
+      { exercise_id: "agachamento-frontal", carga_atual_kg: 31.5, reps_alvo: 8 },
+    ]);
+    await fixarData(page, SEGUNDA);
+    await entrarNoApp(page);
+    await page.getByRole("link", { name: "Começar treino" }).click();
+
+    /*
+     * A sessão carrega o estado e os recordes de todos os substitutos, não só
+     * dos exercícios do treino — sem isso a troca começaria do zero.
+     */
+    const leituras = Promise.all(
+      ["exercise_state", "v_records"].map((tabela) =>
+        page.waitForResponse(
+          (r) =>
+            r.url().includes(`/rest/v1/${tabela}?`) &&
+            r.url().includes("agachamento-frontal") &&
+            r.status() === 200,
+        ),
+      ),
+    );
+    await page.getByRole("button", { name: "Começar Treino A" }).click();
+    await expect(page.getByRole("heading", { name: "Treino A", level: 1 })).toBeVisible();
+    await leituras;
+
+    await page.locator("#bloco-1").getByRole("button", { name: "substituir hoje" }).click();
+    await page
+      .getByRole("dialog")
+      .getByRole("button", { name: /Agachamento frontal/ })
+      .click();
+
+    const bloco = page.locator("#bloco-1");
+    await expect(bloco).toContainText("Hoje: 31,5 kg na barra");
+
+    // 3 × 8 (topo da faixa 6–8) com a última firme: +2 kg a partir de 31,5
+    for (const n of [1, 2, 3]) {
+      const grupo = page.getByRole("group", { name: `Série ${n} — Agachamento frontal` });
+      await expect(grupo.getByRole("textbox", { name: "carga na barra" })).toHaveValue(
+        "31,5",
+      );
+      await expect(grupo.getByRole("textbox", { name: "repetições" })).toHaveValue("8");
+      await marcar(page, "Agachamento frontal", n);
+    }
+
+    await page.getByRole("button", { name: "Concluir" }).click();
+    const resumo = page.getByRole("dialog");
+    await expect(
+      resumo
+        .getByRole("list", { name: "Resumo por exercício" })
+        .getByRole("listitem")
+        .filter({ hasText: "Agachamento frontal" }),
+    ).toContainText("31,5 → 33,5 kg na barra");
+    await resumo.getByRole("button", { name: "Salvar e voltar" }).click();
+    await expect(page.getByRole("heading", { name: "Hoje", level: 1 })).toBeVisible();
+
+    await expect
+      .poll(
+        async () =>
+          (
+            await lerDoMock<{ exercise_id: string; carga_atual_kg: number }>(
+              sessao,
+              "exercise_state",
+            )
+          ).find((e) => e.exercise_id === "agachamento-frontal")?.carga_atual_kg,
+        { timeout: 15_000 },
+      )
+      .toBe(33.5);
+
+    const estados = await lerDoMock<{ exercise_id: string; reps_alvo: number | null }>(
+      sessao,
+      "exercise_state",
+    );
+    // o exercício que saiu do lugar não é tocado (§6.3)
+    expect(estados.find((e) => e.exercise_id === "agachamento-livre")).toBeUndefined();
+    expect(estados.find((e) => e.exercise_id === "agachamento-frontal")?.reps_alvo).toBe(8);
+
+    const eventos = await lerDoMock<{ exercise_id: string; de: { carga_kg: number } }>(
+      sessao,
+      "progression_events",
+    );
+    expect(eventos.find((e) => e.exercise_id === "agachamento-frontal")?.de).toMatchObject({
+      carga_kg: 31.5,
+    });
   });
 });
 

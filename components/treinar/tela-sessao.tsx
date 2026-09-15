@@ -15,6 +15,8 @@ import {
   useEstados,
   useEventos,
   usePerfil,
+  useRecordes,
+  useSeriesAnteriores,
   useSeriesDaSessao,
   useSessao,
 } from "@/lib/queries/dados";
@@ -33,10 +35,14 @@ import {
   avaliarSessao,
   definirFirme,
   definirNota,
+  idsComSubstitutos,
+  idsQueComparamComAnterior,
   marcarSerie,
   progressoDaSessao,
   reconstruirSessao,
+  seriesAnterioresPorExercicio,
   substituirExercicio,
+  type RecordeAntes,
   type SerieLocal,
   type SessaoLocal,
 } from "@/lib/sessao";
@@ -64,12 +70,52 @@ export function TelaSessao({ sessaoId }: { sessaoId: string }) {
     () => (treinoId ? acharTreino(treinoId).exercicios.map((e) => e.exercicio_id) : []),
     [treinoId],
   );
-  const estadosQ = useEstados(idsDoTreino);
+  /*
+   * SPEC §6.3: "o substituto usa o próprio estado". A troca pode acontecer a
+   * qualquer momento (inclusive sem rede), então o estado, as séries
+   * anteriores e os recordes de **todos os substitutos possíveis** são
+   * carregados junto com os do treino — no máximo algumas dezenas de linhas.
+   */
+  const idsDosBlocos = useMemo(
+    () =>
+      sessao
+        ? Array.from(
+            new Set(sessao.blocos.flatMap((b) => [b.originalId, b.exercicioId])),
+          )
+            .sort()
+            .join(",")
+        : idsDoTreino.join(","),
+    [sessao, idsDoTreino],
+  );
+  const ids = useMemo(
+    () => (idsDosBlocos ? idsComSubstitutos(idsDosBlocos.split(",")) : []),
+    [idsDosBlocos],
+  );
+  const idsComparados = useMemo(() => idsQueComparamComAnterior(ids), [ids]);
+
+  const estadosQ = useEstados(ids);
+  const anterioresQ = useSeriesAnteriores(idsComparados);
+  const recordesQ = useRecordes(ids);
+
   const idsNaTela = useMemo(
     () => sessao?.blocos.map((b) => b.exercicioId) ?? [],
     [sessao],
   );
   const eventosQ = useEventos(idsNaTela);
+
+  /** O que o motor precisa saber de um exercício — ou `null` se não deu para ler. */
+  const dadosDoMotor = useMemo(() => {
+    if (!estadosQ.data || !recordesQ.data) return null;
+    if (idsComparados.length > 0 && !anterioresQ.data) return null;
+    const recordes: Record<string, RecordeAntes> = {};
+    for (const r of recordesQ.data) recordes[r.exercise_id] = r;
+    return {
+      estados: estadosPorExercicio(estadosQ.data),
+      // as séries desta sessão não são "as anteriores" dela mesma (§6.3)
+      anteriores: seriesAnterioresPorExercicio(anterioresQ.data ?? [], sessaoId),
+      recordes,
+    };
+  }, [estadosQ.data, anterioresQ.data, recordesQ.data, idsComparados, sessaoId]);
 
   useTelaAcesa(prefs.manter_tela !== false && sessao != null && fim === null);
 
@@ -89,15 +135,13 @@ export function TelaSessao({ sessaoId }: { sessaoId: string }) {
   useEffect(() => {
     if (sessao !== null) return;
     const linha = sessaoQ.data;
-    if (!linha || seriesQ.isPending || estadosQ.isPending) return;
-    const refeita = reconstruirSessao(linha, seriesQ.data ?? [], {
-      estados: estadosPorExercicio(estadosQ.data ?? []),
-    });
+    if (!linha || seriesQ.isPending || !dadosDoMotor) return;
+    const refeita = reconstruirSessao(linha, seriesQ.data ?? [], { ...dadosDoMotor });
     if (refeita) {
       salvarSessaoLocal(refeita);
       setSessao(refeita);
     }
-  }, [sessao, sessaoQ.data, seriesQ.data, seriesQ.isPending, estadosQ.data, estadosQ.isPending]);
+  }, [sessao, sessaoQ.data, seriesQ.data, seriesQ.isPending, dadosDoMotor]);
 
   /* --------------------------------------------- relógio e saída da aba */
 
@@ -238,11 +282,21 @@ export function TelaSessao({ sessaoId }: { sessaoId: string }) {
             aoMudarNota={(nota) =>
               mexer((atual) => definirNota(atual, bloco.ordem, nota))
             }
-            aoSubstituir={(novoId) =>
+            aoSubstituir={(novoExercicioId) =>
               mexer((atual) =>
-                substituirExercicio(atual, bloco.ordem, novoId, null, {
-                  novoId: () => crypto.randomUUID(),
-                }),
+                substituirExercicio(
+                  atual,
+                  bloco.ordem,
+                  novoExercicioId,
+                  dadosDoMotor?.estados[novoExercicioId] ?? null,
+                  {
+                    anteriores: dadosDoMotor?.anteriores[novoExercicioId] ?? null,
+                    recorde: dadosDoMotor?.recordes[novoExercicioId],
+                    // sem a leitura, o bloco fica sem avaliação (§6.3)
+                    estadoConhecido: dadosDoMotor !== null,
+                    novoId: () => crypto.randomUUID(),
+                  },
+                ),
               )
             }
           />

@@ -116,6 +116,11 @@ export function TelaTreinar({ userId }: { userId: string }) {
         estados: estadosPorExercicio(estadosQ.data ?? []),
         anteriores: seriesAnterioresPorExercicio(anterioresQ.data ?? []),
         recordes,
+        /*
+         * Sem conseguir ler `exercise_state`, a sessão registra tudo mas não
+         * avalia: uma carga inventada apagaria a progressão real (SPEC §6.3).
+         */
+        estadoConhecido: estadosQ.data !== undefined && recordesQ.data !== undefined,
       });
       router.push(`/treinar/${sessao.id}`);
     } catch {

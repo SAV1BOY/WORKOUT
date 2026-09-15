@@ -20,6 +20,8 @@ import {
   notasDaSessao,
   progressoDaSessao,
   proximaCarga,
+  idsComSubstitutos,
+  idsQueComparamComAnterior,
   reconstruirSessao,
   recordesDoBloco,
   seriesAnterioresPorExercicio,
@@ -308,6 +310,144 @@ describe("substituir hoje (SPEC §3.2)", () => {
     const resultados = avaliarSessao(feita);
     expect(resultados.map((r) => r.exercicioId)).toContain("agachamento-frontal");
     expect(resultados.map((r) => r.exercicioId)).not.toContain("agachamento-livre");
+  });
+
+  /*
+   * SPEC §6.3: "o substituto usa o próprio estado". Passar `null` aqui seria
+   * dizer "nunca fez este exercício" e o upsert do fim apagaria a progressão
+   * real dele — o defeito que a auditoria do marco 3 pegou.
+   */
+  it("o substituto parte da carga dele, e é dela que a subida sai", () => {
+    const frontal = acharExercicio("agachamento-frontal");
+    const estado: EstadoExercicio = {
+      ...estadoInicial(frontal),
+      carga_atual_kg: 31.5,
+      reps_alvo: 8,
+    };
+    const trocada = substituirExercicio(sessaoA(), 1, "agachamento-frontal", estado, {
+      novoId: contador("n"),
+    });
+    const b = trocada.blocos[0]!;
+    expect(b.alvo.carga_kg).toBe(31.5);
+    expect(textoDaCargaDoBloco(b)).toBe("31,5 kg na barra");
+    expect(b.series.every((x) => x.cargaKg === 31.5)).toBe(true);
+
+    const { resultados, escritas } = concluirSessao({
+      sessao: fazerTudoNoTopo(trocada, "agachamento-frontal"),
+      agora: "2026-09-14T10:00:00.000Z",
+      novoId: contador("e"),
+    });
+    const resultado = resultados.find((r) => r.exercicioId === "agachamento-frontal")!;
+    expect(resultado.naoAvaliado).toBe(false);
+    // 3 × 8 no topo da faixa 6–8 com a última firme: +2 kg (§6.2)
+    expect(resultado.texto).toBe("31,5 → 33,5 kg na barra");
+
+    const upsert = escritas.find(
+      (e) =>
+        e.tabela === "exercise_state" &&
+        e.linha?.["exercise_id"] === "agachamento-frontal",
+    );
+    expect(upsert?.linha).toMatchObject({ carga_atual_kg: 33.5, reps_alvo: 8 });
+    // e nada é escrito no nome do exercício que saiu
+    expect(
+      escritas.some((e) => e.linha?.["exercise_id"] === "agachamento-livre"),
+    ).toBe(false);
+  });
+
+  it("o substituto leva as séries anteriores e os recordes dele", () => {
+    const trocada = substituirExercicio(sessaoA(), 6, "barra-fixa-pronada", null, {
+      anteriores: [5, 5, 5],
+      recorde: { carga_max_kg: 0, reps_max: 6, e1rm_epley: 0 },
+      novoId: contador("n"),
+    });
+    const b = trocada.blocos[5]!;
+    expect(b.seriesAnteriores).toEqual([5, 5, 5]);
+    expect(b.recordeReps).toBe(6);
+
+    // 3 × 6 contra 5/5/5: a média sobe 1 e nenhuma série cai (§6.3)
+    const feita = fazerTudoNoTopo(trocada, "barra-fixa-pronada", { reps: 6 });
+    const resultado = avaliarSessao(feita).find(
+      (r) => r.exercicioId === "barra-fixa-pronada",
+    )!;
+    expect(resultado.motivo).toBe("subiu");
+    // 6 repetições não batem o recorde de 6 que ele já tinha (§6.6)
+    expect(resultado.recordes).toEqual([]);
+  });
+
+  /*
+   * Offline sem cache: não dá para saber a carga do substituto. Melhor não
+   * avaliar do que apagar a progressão dele (SPEC §6.3).
+   */
+  it("com o estado do substituto desconhecido, nada é avaliado nem gravado", () => {
+    const trocada = substituirExercicio(sessaoA(), 1, "agachamento-frontal", null, {
+      estadoConhecido: false,
+      novoId: contador("n"),
+    });
+    const feita = fazerTudoNoTopo(trocada, "agachamento-frontal");
+    const { resultados, escritas } = concluirSessao({
+      sessao: { ...feita, status: "concluida" },
+      agora: "2026-09-14T10:00:00.000Z",
+      novoId: contador("e"),
+    });
+
+    const resultado = resultados.find((r) => r.exercicioId === "agachamento-frontal")!;
+    expect(resultado.naoAvaliado).toBe(true);
+    expect(resultado.motivo).toBeNull();
+    expect(resultado.decisao.evento).toBeNull();
+    // sem os recordes de verdade, qualquer série viraria recorde
+    expect(resultado.recordes).toEqual([]);
+    expect(recordesDoBloco(feita.blocos[0]!)).toEqual([]);
+
+    expect(
+      escritas.some(
+        (e) =>
+          (e.tabela === "exercise_state" || e.tabela === "progression_events") &&
+          e.linha?.["exercise_id"] === "agachamento-frontal",
+      ),
+    ).toBe(false);
+    // as séries do bloco continuam indo para o banco (SPEC §8)
+    const b = feita.blocos[0]!;
+    expect(escritaDaSerie(feita, b, b.series[2]!).linha).toMatchObject({
+      exercise_id: "agachamento-frontal",
+    });
+  });
+
+  it("uma sessão gravada antes deste campo continua sendo avaliada", () => {
+    const s = fazerTudoNoTopo(sessaoA(), "agachamento-livre");
+    const antiga: SessaoLocal = {
+      ...s,
+      blocos: s.blocos.map((b) => {
+        const semCampo: Partial<BlocoLocal> = { ...b };
+        delete semCampo.estadoConhecido;
+        return semCampo as BlocoLocal;
+      }),
+    };
+    const resultado = avaliarSessao(antiga).find(
+      (r) => r.exercicioId === "agachamento-livre",
+    )!;
+    expect(resultado.naoAvaliado).toBe(false);
+    expect(resultado.motivo).toBe("subiu");
+  });
+});
+
+describe("o que a tela precisa carregar antes de uma substituição (SPEC §6.3)", () => {
+  it("idsComSubstitutos traz os substitutos possíveis de cada bloco", () => {
+    const ids = idsComSubstitutos(["agachamento-livre", "supino-reto-com-barra"]);
+    expect(ids).toContain("agachamento-livre");
+    expect(ids).toContain("agachamento-frontal");
+    expect(ids).toContain("supino-reto-com-barra");
+    for (const e of substitutosPara("supino-reto-com-barra")) expect(ids).toContain(e.id);
+    // sem repetição e em ordem estável (a chave do cache é ela)
+    expect(ids).toEqual([...new Set(ids)].sort());
+  });
+
+  it("idsQueComparamComAnterior fica só com o tipo `maximo`", () => {
+    const ids = idsQueComparamComAnterior([
+      "agachamento-livre",
+      "barra-fixa-pronada",
+      "flexao-de-braco",
+    ]);
+    expect(ids).toEqual(["barra-fixa-pronada", "flexao-de-braco"]);
   });
 });
 

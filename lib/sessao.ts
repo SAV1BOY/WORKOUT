@@ -80,6 +80,14 @@ export interface BlocoLocal {
   alvo: AlvoDeHoje;
   /** `exercise_state` como estava no início (a conclusão funciona offline). */
   estado: EstadoExercicio | null;
+  /**
+   * O `exercise_state` deste exercício foi **lido de verdade**? `null` acima
+   * quer dizer "nunca fez este exercício"; quando nem isso dá para afirmar
+   * (substituir hoje sem conseguir ler o estado do substituto, SPEC §6.3),
+   * este campo é `false` e o bloco não é avaliado nem gravado: melhor não
+   * avaliar do que apagar a progressão real do exercício.
+   */
+  estadoConhecido: boolean;
   /** Tipo `maximo`: as reps da última sessão, série a série (SPEC §6.3). */
   seriesAnteriores: (number | null)[] | null;
   /** Recordes antes desta sessão (view `v_records`), para o resumo. */
@@ -120,6 +128,12 @@ export interface EntradaMontagem {
   fase: FaseId;
   /** `exercise_state` por exercício. */
   estados?: Record<string, EstadoExercicio | null>;
+  /**
+   * `estados` veio de uma leitura que deu certo? `false` quando a tela não
+   * conseguiu ler `exercise_state` (offline sem cache): a sessão registra as
+   * séries normalmente, mas não avalia nem grava a progressão.
+   */
+  estadoConhecido?: boolean;
   /** Tipo `maximo`: reps da última sessão por exercício (SPEC §6.3). */
   anteriores?: Record<string, (number | null)[]>;
   /** `v_records` por exercício, para o resumo do fim (SPEC §6.6). */
@@ -263,6 +277,7 @@ export function montarSessao(e: EntradaMontagem): SessaoLocal {
       descansoTexto: item.descanso_texto,
       alvo,
       estado,
+      estadoConhecido: e.estadoConhecido !== false,
       seriesAnteriores: anteriores[exercicio.id] ?? null,
       recordeCarga: rec?.carga_max_kg ?? null,
       recordeReps: rec?.reps_max ?? null,
@@ -455,6 +470,12 @@ export function substituirExercicio(
   extras: {
     anteriores?: (number | null)[] | null;
     recorde?: RecordeAntes;
+    /**
+     * `estado` acima é o que o banco tem mesmo (`null` = exercício novo)?
+     * `false` quando não deu para ler `exercise_state` do substituto: o bloco
+     * fica sem avaliação em vez de sobrescrever a progressão dele (§6.3).
+     */
+    estadoConhecido?: boolean;
     novoId?: () => string;
   } = {},
 ): SessaoLocal {
@@ -481,6 +502,7 @@ export function substituirExercicio(
       descansoTexto: textoDoDescanso(exercicio.prescricao_padrao.descanso_s),
       alvo,
       estado,
+      estadoConhecido: extras.estadoConhecido !== false,
       seriesAnteriores: extras.anteriores ?? null,
       recordeCarga: extras.recorde?.carga_max_kg ?? null,
       recordeReps: extras.recorde?.reps_max ?? null,
@@ -510,6 +532,31 @@ export function substitutosPara(exercicioId: string): Exercicio[] {
         e.equipamento.every((tag) => disponivel.has(tag)),
     )
     .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+}
+
+/**
+ * Todos os exercícios que esta sessão pode acabar registrando: os dos blocos e
+ * os substitutos possíveis de cada um (SPEC §3.2 e §6.3). É desta lista que a
+ * tela carrega `exercise_state`, séries anteriores e recordes — "o substituto
+ * usa o próprio estado", e para isso o estado dele precisa estar em mãos
+ * antes da troca (que pode acontecer offline).
+ */
+export function idsComSubstitutos(ids: readonly string[]): string[] {
+  const todos = new Set<string>();
+  for (const id of ids) {
+    todos.add(id);
+    for (const e of substitutosPara(id)) todos.add(e.id);
+  }
+  return [...todos].sort();
+}
+
+/**
+ * Destes ids, os que o motor compara série a série com a sessão anterior
+ * (prescrição do tipo `maximo`, SPEC §6.3) — os únicos que precisam das séries
+ * anteriores carregadas.
+ */
+export function idsQueComparamComAnterior(ids: readonly string[]): string[] {
+  return ids.filter((id) => acharExercicio(id).prescricao_padrao.tipo === "maximo");
 }
 
 /* ------------------------------------------------------------- steppers */
@@ -710,6 +757,11 @@ export interface ResultadoExercicio {
   simbolo: "↑" | "=" | "↓" | null;
   /** A decisão veio de uma série abaixo do piso ou faltando (SPEC §6.2). */
   falha: boolean;
+  /**
+   * O bloco ficou de fora do motor porque o `exercise_state` dele é
+   * desconhecido (SPEC §6.3): as séries são gravadas, a progressão não.
+   */
+  naoAvaliado: boolean;
   /** "7,5 → 9,5 kg na barra", "10 → 11 repetições", "repetiu 7,5 kg na barra". */
   texto: string;
   aviso: string | null;
@@ -782,6 +834,8 @@ export function nomeDaAssistencia(valor: string): string {
 
 /** Recordes batidos neste bloco, comparando com a view `v_records` (§6.6). */
 export function recordesDoBloco(bloco: BlocoLocal): RecordeNovo[] {
+  // sem os recordes de verdade deste exercício, qualquer série viraria recorde
+  if (!blocoAvaliavel(bloco)) return [];
   const feitas = bloco.series.filter((s) => s.tipo === "trabalho" && s.concluida);
   if (feitas.length === 0) return [];
 
@@ -823,6 +877,15 @@ export function recordesDoBloco(bloco: BlocoLocal): RecordeNovo[] {
   return novos;
 }
 
+/**
+ * Dá para passar este bloco pelo motor? Só quando o `exercise_state` dele foi
+ * lido de verdade (SPEC §6.3). A comparação é com `false` de propósito: uma
+ * sessão gravada no aparelho antes deste campo existir vale como conhecida.
+ */
+export function blocoAvaliavel(bloco: BlocoLocal): boolean {
+  return bloco.estadoConhecido !== false;
+}
+
 /** Passa cada bloco pelo motor (SPEC §6.2). Não grava nada. */
 export function avaliarSessao(sessao: SessaoLocal): ResultadoExercicio[] {
   const abandonada = sessao.status === "abandonada";
@@ -842,6 +905,28 @@ export function avaliarSessao(sessao: SessaoLocal): ResultadoExercicio[] {
         montagem: sessao.opcoesMontagem,
       },
     );
+    /*
+     * Estado desconhecido (SPEC §6.3): a decisão sairia de uma carga inventada
+     * e o upsert apagaria a progressão real. O evento vira nulo — e é ele que
+     * `concluirSessao` usa para decidir o que gravar.
+     */
+    if (!blocoAvaliavel(bloco)) {
+      return {
+        exercicioId: bloco.exercicioId,
+        nome: exercicio.nome,
+        ordem: bloco.ordem,
+        motivo: null,
+        simbolo: null,
+        falha: false,
+        naoAvaliado: true,
+        texto: "não avaliado: não consegui ler a carga atual deste exercício",
+        aviso: null,
+        sugestao: null,
+        recordes: [],
+        decisao: { novoEstado: decisao.novoEstado, evento: null },
+      } satisfies ResultadoExercicio;
+    }
+
     const evento = decisao.evento;
     const simbolo = evento
       ? simboloDoMotivo(
@@ -862,6 +947,7 @@ export function avaliarSessao(sessao: SessaoLocal): ResultadoExercicio[] {
       motivo: evento?.motivo ?? null,
       simbolo,
       falha: evento?.falha === true,
+      naoAvaliado: false,
       texto: textoDaDecisao(exercicio, decisao),
       aviso: evento?.aviso ?? null,
       sugestao: evento?.sugestao ?? null,
@@ -936,6 +1022,8 @@ export function concluirSessao(entrada: EntradaConclusao): Conclusao {
   for (const resultado of resultados) {
     const bloco = sessao.blocos.find((b) => b.ordem === resultado.ordem);
     if (!bloco) continue;
+    // estado desconhecido: nem `exercise_state` nem `progression_events` (§6.3)
+    if (resultado.naoAvaliado) continue;
     if (!resultado.decisao.evento) continue;
 
     escritas.push({

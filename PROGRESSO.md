@@ -1375,7 +1375,7 @@ simulados).
   avisada (caso de erro), o timer zerando com vibração + "+30 s" + "Pular" e o
   Wake Lock pedido/solto, e fechar o app sem rede e voltar na mesma URL.
 
-**Defeito aberto (bloqueia o marco)**
+**Defeito que bloqueou o marco** (corrigido na rodada 2, mais abaixo)
 
 - **O exercício substituído não usa o próprio estado** (SPEC §6.3: "o
   substituto usa o próprio estado"). `tela-sessao.tsx` chama
@@ -1420,3 +1420,76 @@ simulados).
    com 25,5 e aparece o aviso "26,5 kg não fecha com estas anilhas".
 4. Toque em "Abandonar" → "Confirmar abandono": o título do resumo é "Treino
    abandonado".
+
+### Auditoria do marco 3 (rodada 2) — o que mudou
+
+O auditor reprovou o marco pelo defeito bloqueante da rodada 1 (o substituto
+sem o próprio estado) e confirmou como corrigido, ainda na auditoria dele, o
+problema da folha de montagem + carga digitada (`cargaEmUso` em
+`lib/sessao.ts`, `alcancavelParaBaixo` na digitação — nada a fazer aqui além de
+manter os testes verdes).
+
+**O substituto passou a usar o próprio estado** (SPEC §6.3)
+
+O buraco era de ponta a ponta: a sessão só carregava `exercise_state` dos
+exercícios **do treino** (e, na tela da sessão, nem isso — a consulta ficava
+desligada quando a sessão vinha do aparelho), e `tela-sessao.tsx` chamava
+`substituirExercicio(..., novoId, null)`, sempre `null`. Com 31,5 kg gravados
+no agachamento frontal, trocar o agachamento livre por ele mostrava "Hoje:
+7,5 kg na barra" e o fim do treino **sobrescrevia** a linha do banco com 9,5 kg
+e `reps_alvo` nulo. O mesmo valia para as séries anteriores (tipo `maximo`) e
+para os recordes, que chegavam nulos e faziam qualquer série virar recorde.
+
+- `lib/sessao.ts` ganhou `idsComSubstitutos(ids)` (os blocos mais todos os
+  substitutos possíveis de cada um — algumas dezenas de exercícios) e
+  `idsQueComparamComAnterior(ids)` (só o tipo `maximo` precisa das séries
+  anteriores; o programa nunca muda o tipo do catálogo, então o filtro é o
+  `prescricao_padrao.tipo`).
+- `components/treinar/tela-sessao.tsx` carrega `exercise_state`, séries
+  anteriores e `v_records` **dessa lista ampliada** (as consultas passaram a
+  valer também quando a sessão veio do IndexedDB) e passa o estado, as
+  `anteriores` e o `recorde` do escolhido em `substituirExercicio`. As séries
+  desta sessão são descartadas do cálculo das "anteriores" (`ignorarSessao`),
+  senão o `maximo` se compararia consigo mesmo.
+- A reconstrução da sessão a partir do banco (outro aparelho) também passou a
+  receber `anteriores` e `recordes` — antes reconstruía sem nenhum dos dois.
+- **Estado desconhecido não avalia**: `BlocoLocal.estadoConhecido` (e
+  `EntradaMontagem.estadoConhecido`) distingue "nunca fez este exercício"
+  (`estado: null`) de "não consegui ler `exercise_state`" (offline sem cache).
+  Quando é `false`, `avaliarSessao` devolve o bloco como `naoAvaliado` com
+  evento nulo, `recordesDoBloco` devolve vazio e `concluirSessao` **não grava**
+  `exercise_state` nem `progression_events` daquele bloco — as séries sobem
+  para o banco como sempre. Melhor não avaliar do que apagar a progressão.
+  `/treinar` marca o mesmo quando começa um treino sem ter lido o estado.
+  O teste é com `=== false`: uma sessão gravada no aparelho antes deste campo
+  existir continua sendo avaliada.
+- O resumo do fim lista, em uma linha, os exercícios que ficaram sem avaliação
+  e diz que as séries foram guardadas.
+
+**Testes** (`npm test` 504, `npm run e2e` 71)
+
+- `lib/sessao.test.ts`: o substituto partindo de 31,5 kg e subindo para 33,5
+  (com o upsert e o evento saindo de 31,5, e nada escrito no nome do exercício
+  que saiu); as séries anteriores e os recordes do substituto chegando ao
+  motor; o estado desconhecido não gerando `exercise_state`/`progression_events`
+  nem recordes (mas gerando as séries); a sessão antiga sem o campo continuando
+  a ser avaliada; `idsComSubstitutos` e `idsQueComparamComAnterior`.
+- `e2e/treinar.spec.ts`: com `exercise_state` do agachamento frontal semeado em
+  31,5 kg / `reps_alvo` 8, a sessão espera as leituras de `exercise_state` e
+  `v_records` **com o id do substituto**, troca o exercício, confere "Hoje:
+  31,5 kg na barra" e as três séries pré-preenchidas em 31,5 × 8, conclui com
+  "31,5 → 33,5 kg na barra" e confere no banco `carga_atual_kg` 33,5,
+  `reps_alvo` 8, o evento saindo de 31,5 e **nenhuma** linha para o
+  agachamento livre. O teste falha com o código de antes (mostra 7,5 kg).
+
+### Como testar no celular (auditoria do marco 3, rodada 2)
+
+1. `npm run build && npm run e2e` — **71** testes verdes a 360 × 740
+   (`npm test` fecha em 504).
+2. À mão, com `npm run mock` + `npm run dev:mock`: grave uma carga no
+   substituto antes de começar
+   (`curl -X POST localhost:54321/rest/v1/exercise_state …` ou faça um treino
+   com ele) e, no treino, toque em "substituir hoje" → "Agachamento frontal":
+   o cabeçalho tem de abrir com a carga **dele**, não com 7,5 kg.
+3. Conclua no topo da faixa: o resumo parte da carga do substituto e, na Hoje,
+   a progressão do exercício original continua exatamente onde estava.

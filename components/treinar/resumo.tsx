@@ -47,6 +47,7 @@ export function ResumoDoFim({
   const [mostraPeso, setMostraPeso] = useState(false);
 
   const comEvento = resultados.filter((r) => r.motivo !== null);
+  const naoAvaliados = resultados.filter((r) => r.naoAvaliado);
   const recordes = resultados.flatMap((r) =>
     r.recordes.map((rec) => ({ nome: r.nome, texto: rec.texto })),
   );
@@ -105,6 +106,14 @@ export function ResumoDoFim({
               ))}
             </ul>
           )}
+          {/* SPEC §6.3: sem a carga atual do exercício não dá para avaliar */}
+          {naoAvaliados.length > 0 ? (
+            <p className="text-muted-foreground text-xs">
+              Sem avaliar, porque não consegui ler a carga atual:{" "}
+              {naoAvaliados.map((r) => r.nome).join(" · ")}. As séries foram
+              guardadas; a progressão fica como está.
+            </p>
+          ) : null}
         </section>
 
         {recordes.length > 0 ? (
