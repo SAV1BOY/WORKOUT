@@ -1,9 +1,5 @@
 import { FormularioLogin } from "@/app/(auth)/login/formulario";
-import {
-  AVISO_CONFIG,
-  emailPermitidoConfigurado,
-  supabaseConfigurado,
-} from "@/lib/env";
+import { avisoDeConfiguracao } from "@/lib/env";
 
 export const metadata = { title: "Entrar — Treino do Terraço" };
 
@@ -13,7 +9,7 @@ export default async function Login({
   searchParams: Promise<{ erro?: string }>;
 }) {
   const { erro } = await searchParams;
-  const faltaConfig = !supabaseConfigurado() || !emailPermitidoConfigurado();
+  const aviso = avisoDeConfiguracao();
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center gap-6 px-4 py-10">
@@ -35,7 +31,7 @@ export default async function Login({
         </p>
       ) : null}
 
-      <FormularioLogin avisoInicial={faltaConfig ? AVISO_CONFIG : undefined} />
+      <FormularioLogin avisoInicial={aviso} />
 
       <p className="text-muted-foreground text-xs">
         As chaves ficam em <code>.env.local</code> (veja{" "}

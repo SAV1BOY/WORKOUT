@@ -2,9 +2,8 @@
 
 import { redirect } from "next/navigation";
 import {
-  AVISO_CONFIG,
+  avisoDeConfiguracao,
   emailPermitido,
-  emailPermitidoConfigurado,
   supabaseConfigurado,
 } from "@/lib/env";
 import { traduzirErroAuth } from "@/lib/erros-auth";
@@ -31,9 +30,8 @@ function conferirBasico({
   email: string;
   senha: string;
 }): EstadoLogin | null {
-  if (!supabaseConfigurado() || !emailPermitidoConfigurado()) {
-    return { aviso: AVISO_CONFIG };
-  }
+  const aviso = avisoDeConfiguracao();
+  if (aviso) return { aviso };
   if (email === "" || senha === "") {
     return { erro: "Preencha o e-mail e a senha." };
   }

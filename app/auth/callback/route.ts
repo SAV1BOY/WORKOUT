@@ -1,12 +1,14 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { emailPermitido, supabaseConfigurado } from "@/lib/env";
+import { destinoInterno } from "@/lib/rotas";
 import { criarClienteServidor } from "@/lib/supabase/server";
 
 /** Troca o `code` do Supabase por uma sessão e volta para o app. */
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = request.nextUrl;
   const code = searchParams.get("code");
-  const proximo = searchParams.get("next") ?? "/";
+  // o `next` vem da URL: só caminho interno (`lib/rotas.ts`)
+  const proximo = destinoInterno(searchParams.get("next"));
 
   if (!supabaseConfigurado() || !code) {
     return NextResponse.redirect(`${origin}/login`);
@@ -22,5 +24,5 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(`${origin}/login?erro=app-pessoal`);
   }
 
-  return NextResponse.redirect(`${origin}${proximo}`);
+  return NextResponse.redirect(new URL(proximo, origin));
 }

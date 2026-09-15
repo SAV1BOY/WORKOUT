@@ -240,7 +240,12 @@ create policy "progresso_dono_delete" on storage.objects for delete to authentic
   using (bucket_id = 'progresso' and (storage.foldername(name))[1] = auth.uid()::text);
 
 -- ---------- view útil: melhor série por exercício (recorde) ----------
-create or replace view public.v_records as
+-- `security_invoker = true` é obrigatório: sem ele a view roda com os direitos
+-- de quem a criou (o dono do banco) e passa POR CIMA da RLS de session_sets —
+-- e como o PostgREST publica o schema public, qualquer um com a chave anon (que
+-- é pública, vai no navegador) leria os recordes de todo mundo. Com o invoker a
+-- view respeita a policy "session_sets_dono". Exige Postgres 15+ (o Supabase é).
+create or replace view public.v_records with (security_invoker = true) as
 select user_id, exercise_id,
        max(carga_kg) as carga_max_kg,
        max(carga_kg * (1 + coalesce(reps,0)/30.0)) as e1rm_epley,
@@ -249,3 +254,11 @@ select user_id, exercise_id,
 from public.session_sets
 where concluida and tipo = 'trabalho'
 group by user_id, exercise_id;
+
+-- quem não entrou não lê a view (o app consulta sempre autenticado)
+do $$
+begin
+  if exists (select 1 from pg_roles where rolname = 'anon') then
+    execute 'revoke all on public.v_records from anon';
+  end if;
+end $$;
