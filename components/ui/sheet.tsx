@@ -70,9 +70,10 @@ function SheetContent({
         {children}
         {showCloseButton && (
           <SheetPrimitive.Close data-slot="sheet-close" asChild>
+            {/* o X da folha é alvo de dedo no terraço: 44 px, como no dialog */}
             <Button
               variant="ghost"
-              className="absolute top-3 right-3"
+              className="alvo absolute top-3 right-3"
               size="icon-sm"
             >
               <XIcon

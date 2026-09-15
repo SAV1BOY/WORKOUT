@@ -435,7 +435,14 @@ test.describe("ajuda, montagem e substituição (SPEC §3.2, §6.5 e §7)", () =
     await expect(ficha.getByRole("img", { name: /Execução do Agachamento livre/ })).toBeVisible();
     await expect(ficha.getByRole("img", { name: "Frente" })).toBeVisible();
     await semRolagemHorizontal(page);
-    await ficha.getByRole("button", { name: "Fechar" }).click();
+
+    // o X da folha também é alvo de dedo (SPEC §3: ≥ 44 px)
+    const fechar = ficha.getByRole("button", { name: "Fechar" });
+    const caixa = await fechar.boundingBox();
+    expect(Math.round(caixa?.width ?? 0)).toBeGreaterThanOrEqual(44);
+    expect(Math.round(caixa?.height ?? 0)).toBeGreaterThanOrEqual(44);
+
+    await fechar.click();
   });
 
   test("substituir hoje troca o exercício do bloco e o registro vai para ele", async ({
