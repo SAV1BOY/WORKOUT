@@ -640,6 +640,69 @@ describe("concluirSessao — o motor e as escritas (SPEC §6.2, §6.6 e §8)", (
     return { ...s, status: "concluida" };
   }
 
+  /*
+   * A fila de saída (SPEC §8) não garante que a criação da sessão já tenha
+   * subido quando a conclusão vai: basta o POST da criação falhar uma vez. Um
+   * `update` que não casa com nenhuma linha é sucesso no PostgREST (204, zero
+   * linhas) e sairia da fila como enviado, deixando a sessão "em_andamento"
+   * para sempre. Por isso a conclusão regrava a linha inteira por upsert.
+   */
+  it("a conclusão é um upsert da linha inteira, não um update (§8)", () => {
+    const sessao: SessaoLocal = {
+      ...tudoNoTopo(),
+      sensacao: 4,
+      pesoCorporal: 86.4,
+      notas: "joelho reclamou",
+    };
+    const { escritas } = concluirSessao({
+      sessao,
+      agora: "2026-09-14T09:44:00.000Z",
+      novoId: contador("ev"),
+    });
+
+    const daSessao = escritas.filter((e) => e.tabela === "sessions");
+    expect(daSessao).toHaveLength(1);
+    expect(daSessao[0]?.filtro).toBeUndefined();
+    expect(daSessao[0]).toEqual({
+      tabela: "sessions",
+      op: "upsert",
+      onConflict: "id",
+      linha: {
+        // tudo que a criação gravaria, para a linha ficar completa mesmo se
+        // este for o primeiro item da sessão a chegar no banco
+        id: "sess-1",
+        user_id: "u1",
+        data: "2026-09-14",
+        workout_id: "A1",
+        fase: "fase1",
+        iniciada_em: "2026-09-14T09:00:00.000Z",
+        semana_plano: null,
+        // e o que o fim do treino acrescenta
+        status: "concluida",
+        concluida_em: "2026-09-14T09:44:00.000Z",
+        duracao_s: 44 * 60,
+        sensacao: 4,
+        peso_corporal: 86.4,
+        notas: "joelho reclamou",
+      },
+    });
+  });
+
+  it("o evento de progressão também é upsert por id (reenviar não duplica, §8)", () => {
+    const { escritas } = concluirSessao({
+      sessao: tudoNoTopo(),
+      agora: "2026-09-14T09:44:00.000Z",
+      novoId: contador("ev"),
+    });
+    const eventos = escritas.filter((e) => e.tabela === "progression_events");
+    expect(eventos.length).toBeGreaterThan(0);
+    for (const evento of eventos) {
+      expect(evento.op).toBe("upsert");
+      expect(evento.onConflict).toBe("id");
+      expect(evento.linha?.id).toBeTruthy();
+    }
+  });
+
   it("tudo no topo com a última firme: sobe e grava o evento", () => {
     const { resultados, escritas } = concluirSessao({
       sessao: tudoNoTopo(),
@@ -667,7 +730,9 @@ describe("concluirSessao — o motor e as escritas (SPEC §6.2, §6.6 e §8)", (
 
     const sessions = escritas.filter((e) => e.tabela === "sessions");
     expect(sessions).toHaveLength(1);
-    expect(sessions[0]?.op).toBe("update");
+    // a linha inteira por upsert, para a ordem da fila não perder o fim do
+    // treino (§8) — ver "a conclusão é um upsert da linha inteira"
+    expect(sessions[0]?.op).toBe("upsert");
     expect(sessions[0]?.linha).toMatchObject({
       status: "concluida",
       concluida_em: "2026-09-14T09:44:00.000Z",
@@ -686,7 +751,8 @@ describe("concluirSessao — o motor e as escritas (SPEC §6.2, §6.6 e §8)", (
 
     const eventos = escritas.filter((e) => e.tabela === "progression_events");
     expect(eventos).toHaveLength(6);
-    expect(eventos[0]?.op).toBe("insert");
+    // upsert pelo id do cliente: reenviar não duplica (§8)
+    expect(eventos[0]?.op).toBe("upsert");
     expect(eventos[0]?.linha).toMatchObject({
       user_id: "u1",
       exercise_id: "agachamento-livre",
@@ -968,7 +1034,9 @@ describe("sessão avulsa — a barra fixa da semana (SPEC §3.4)", () => {
       novoId: contador("e"),
     });
     expect(escritas.some((e) => e.tabela === "profiles")).toBe(false);
-    expect(escritas[0]).toMatchObject({ tabela: "sessions", op: "update" });
+    // SPEC §8: a conclusão grava a linha inteira por upsert (ver o teste da
+    // ordem da fila mais abaixo), não um update do que mudou
+    expect(escritas[0]).toMatchObject({ tabela: "sessions", op: "upsert" });
   });
 
   it("a sessão volta do banco com os itens do plano", () => {

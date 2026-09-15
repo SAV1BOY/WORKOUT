@@ -2656,3 +2656,97 @@ do diálogo da caminhada.
    some da tela e também do banco (o histórico dele não ganha a sessão).
 4. **/cardio/caminhada** → "Encerrar e registrar": o diálogo tem só a nota.
 5. **/progresso** numa semana com um dia planejado: "0 de 1 dia".
+
+---
+
+## Auditoria final — lente "offline, robustez e dados" ✅
+
+Auditoria independente de `lib/db.ts`, `lib/outbox.ts`, `lib/outbox-supabase.ts`,
+`lib/sessao.ts`, `lib/queries/**`, `components/treinar/**`, `components/cardio/**`,
+`app/sw.ts` e `app/providers.tsx`, procurando o que acontece quando a escrita
+**quase** dá certo. Seis achados, todos corrigidos aqui, com 4 testes e2e novos
+(`e2e/auditoria-offline.spec.ts`) e 20 unitários — os três primeiros testes e2e
+falham no código anterior, com o sintoma exato de cada achado.
+
+### O que estava errado
+
+1. **A conclusão do treino podia sumir** (SPEC §8). O fim da sessão era um
+   `update` em `sessions` filtrado pelo id, e a criação da sessão é **outro
+   item** da fila. Um `update` que não casa com nenhuma linha é **sucesso** no
+   PostgREST (204, zero linhas): bastava o POST da criação falhar uma vez (um
+   401 de token vencido ao voltar a rede, um timeout) para o `update` chegar
+   antes, sair da fila como enviado e a sessão ficar `em_andamento` **para
+   sempre** no banco — sem duração, sem sensação, sem notas, sem o peso do dia,
+   e com o banner de "treino aberto" na Hoje até o Miguel descartar à mão.
+   Agora a conclusão é um **upsert da linha inteira** (`escritaDaSessao` +
+   os campos do fim): grava certo em qualquer ordem e pode ser repetida.
+2. **Três escritas não eram idempotentes** (SPEC §8): `progression_events` (fim
+   da sessão e troca de fase) e `pullup_singles` (+1 da barra fixa) iam como
+   `insert` com o id gerado no cliente. Quando a rede cai **depois** de o
+   servidor gravar e antes de a resposta voltar, o item continua na fila e o
+   reenvio bate num 409 de chave repetida: um item envenenado para sempre,
+   tentando de 5 em 5 minutos, numa fila que só aparece na tela de treino. As
+   três viraram `upsert` por `id`.
+3. **A fila não tinha ordem entre itens ligados** (SPEC §8 + as FK do
+   `supabase/schema.sql`). A rodada mandava tudo que estivesse vencido: com a
+   criação da sessão no backoff, a série e o evento de progressão iam na
+   frente — e no Postgres de verdade `session_sets.session_id` e
+   `progression_events.session_id` **recusam** a linha (a sessão ainda não
+   existe). Cada item da fila agora carrega um `alvo` (`sessions:<uuid>`,
+   derivado da própria escrita em `alvoDaEscrita`) e quem não sobe segura os
+   que vieram depois com o mesmo alvo — sem gastar tentativa e sem girar em
+   vazio (o item que espera adia para o mesmo instante de quem o segura).
+   Itens de outros alvos seguem normais: um item envenenado nunca tranca a
+   fila inteira. Os lotes do backup importado (§9) compartilham
+   `sessions:lote`, então `sessions` sobe antes de `session_sets`.
+4. **O relógio do aparelho andando para trás prendia a fila** (SPEC §8). O
+   backoff é `Date.now() + atraso`; com o relógio corrigido para trás (NTP, o
+   Miguel mexendo na hora) o item só venceria horas depois, sem nada na tela
+   dizendo isso. `venceu()` trata como vencido qualquer item marcado para mais
+   longe do que o atraso máximo (5 min).
+5. **A rede voltando recarregava o app no meio do treino** (SPEC §3.2 e §8).
+   `reloadOnOnline: true` no `next.config.ts` liga um `location.reload()` a
+   **cada** evento `online` — no terraço, com o 4G indo e voltando, é o app
+   recarregando com o Miguel embaixo da barra: o timer de descanso some, o
+   cronômetro da prancha para sem avisar e a recarga ainda atropela o flush da
+   fila (o `tentarAgora`, que roda no mesmo evento, é cortado pela metade — foi
+   assim que o achado 1 apareceu no e2e). Passou a `false`: a leitura já vem do
+   cache do TanStack Query e a escrita já vive na fila; versão nova entra pelo
+   service worker (`skipWaiting` + `clientsClaim`) na próxima navegação.
+6. **Rede de proteção**: um `update`/`delete` sem nenhum filtro seria aplicado
+   pelo PostgREST na tabela inteira. Nenhuma escrita do app chega assim — e é
+   por isso que um item desses só pode ser bug. `enviarItem` recusa.
+
+### O que foi conferido e está certo
+
+- Nada se perde na sessão: cada toque grava no IndexedDB com debounce de 60 ms
+  e descarga em `pagehide`/`visibilitychange`; o cronômetro de tempo grava uma
+  vez por segundo e usa sempre o `aoMudar` da última renderização.
+- Ids gerados no cliente em tudo (sessão, série, cardio, peso, medidas, foto),
+  upsert por id ou pela chave real — reenviar não duplica.
+- Timers de descanso e de cardio andam por relógio de parede (`Date.now()`),
+  não por soma de ticks: segundo plano e tela apagada não atrasam nem adiantam.
+  O timer de cardio vive no Dexie e sobrevive à recarga.
+- Wake Lock é solto no fim e repedido ao voltar à aba.
+- Datas de sessão/peso/semana usam `format(..., "yyyy-MM-dd")` no fuso do
+  aparelho (nunca `toISOString().slice(0,10)`), e a sessão congela a data em que
+  começou: virar o dia no meio do treino não muda o registro.
+- Cache do TanStack persistido no Dexie não briga com o que está na tela: o
+  `hydrate` só sobrescreve dado mais velho.
+- Cache do service worker: 177 arquivos de mídia sob demanda (163 fotos, 10
+  itens, 4 do mapa) com teto de 300 entradas; as figuras e o shell vão no
+  precache. Sem risco de estourar a cota.
+
+### Conhecido, não corrigido (com o motivo)
+
+- **A fila não aparece fora da tela de treino.** O contador "N para
+  sincronizar" só existe no cabeçalho da sessão; um item com erro permanente
+  (por exemplo um schema desatualizado no Supabase novo) tentaria de 5 em 5
+  minutos sem ninguém ver. Nada se perde — o item fica no IndexedDB —, mas o
+  certo é a `/mais` mostrar quantos itens esperam e o último erro.
+- **Sem IndexedDB o app não treina.** Em aba anônima do Firefox (onde
+  `indexedDB.open` recusa), começar o treino falha com "Não consegui começar o
+  treino agora." e num navegador sem IndexedDB nenhum as escritas são
+  descartadas em silêncio (`enfileirar` devolve sem enfileirar). O certo é
+  testar o banco uma vez ao abrir e avisar na tela. Para o PWA instalado do
+  Miguel o caso não acontece.

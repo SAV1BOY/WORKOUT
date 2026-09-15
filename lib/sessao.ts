@@ -1139,12 +1139,25 @@ export function concluirSessao(entrada: EntradaConclusao): Conclusao {
     Math.round((new Date(agora).getTime() - new Date(sessao.iniciadaEm).getTime()) / 1000),
   );
 
+  /*
+   * A linha INTEIRA por upsert, não um `update` do que mudou (SPEC §8).
+   *
+   * A criação da sessão e a conclusão dela são dois itens da fila de saída, e
+   * a fila não garante que o primeiro tenha subido quando o segundo vai: basta
+   * o POST da criação falhar uma vez (um 401 de token vencido ao voltar a
+   * rede, um timeout) para o `update` chegar antes. Um `update` que não casa
+   * com nenhuma linha é **sucesso** no PostgREST (204, zero linhas), então o
+   * item saía da fila como enviado e a sessão ficava "em_andamento" para
+   * sempre no banco — sem duração, sem sensação, sem as notas, sem o peso do
+   * dia. O upsert por id grava a sessão inteira em qualquer ordem e pode ser
+   * repetido à vontade.
+   */
+  const base = escritaDaSessao(sessao);
   const escritas: Escrita[] = [
     {
-      tabela: "sessions",
-      op: "update",
-      filtro: { id: sessao.id },
+      ...base,
       linha: {
+        ...base.linha,
         status: sessao.status,
         concluida_em: concluida ? agora : null,
         duracao_s: duracaoS,
@@ -1169,8 +1182,11 @@ export function concluirSessao(entrada: EntradaConclusao): Conclusao {
       linha: { ...linhaDeEstado(sessao, bloco.exercicioId, resultado.decisao.novoEstado) },
     });
     escritas.push({
+      // upsert pelo id do cliente: reenviar o item não duplica a linha nem
+      // trava a fila num 409 de chave repetida (SPEC §8)
       tabela: "progression_events",
-      op: "insert",
+      op: "upsert",
+      onConflict: "id",
       linha: {
         id: novoId(),
         user_id: sessao.userId,

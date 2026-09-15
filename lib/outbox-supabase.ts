@@ -80,6 +80,19 @@ export async function enviarItem(item: ItemSaida): Promise<void> {
     throw new Error("item da fila sem tabela ou operação");
   }
   const p = item.payload;
+  /*
+   * Rede de proteção: sem `.eq()` nenhum, o PostgREST aplica o update ou o
+   * delete na TABELA INTEIRA (a RLS limita ao dono — que é o único usuário
+   * daqui). Nenhuma escrita do app chega assim, e é exatamente por isso que
+   * um item destes só pode ser bug: melhor ele ficar na fila com erro do que
+   * varrer o histórico do Miguel.
+   */
+  if (
+    (p.op === "update" || p.op === "delete") &&
+    Object.keys(p.filtro ?? {}).length === 0
+  ) {
+    throw new Error(`escrita em ${p.tabela} sem filtro: recusada`);
+  }
   const tabela = clienteNavegador().from(p.tabela);
 
   // uma linha ou um lote: o resto do caminho é idêntico
@@ -137,12 +150,36 @@ export function registrarEnviador(): void {
   void processar();
 }
 
+/**
+ * De qual linha de `sessions` esta escrita depende (SPEC §8).
+ *
+ * É a única dependência de ordem que existe entre as escritas do app: as três
+ * tabelas abaixo apontam para `sessions.id` (chave estrangeira no
+ * `supabase/schema.sql`), e a própria `sessions` tem de ser criada antes de
+ * ser concluída. Devolver `undefined` quer dizer "pode ir em qualquer ordem".
+ */
+export function alvoDaEscrita(escrita: EscritaTabela): string | undefined {
+  const daSessao =
+    escrita.tabela === "sessions" ||
+    escrita.tabela === "session_sets" ||
+    escrita.tabela === "progression_events";
+  if (!daSessao) return undefined;
+
+  // lote de um backup importado (§9): os lotes de sessão vão na ordem em que
+  // foram enfileirados — `sessions` antes de `session_sets`
+  if (escrita.linhas) return "sessions:lote";
+
+  const campo = escrita.tabela === "sessions" ? "id" : "session_id";
+  const valor = escrita.linha?.[campo] ?? escrita.filtro?.[campo];
+  return typeof valor === "string" && valor !== "" ? `sessions:${valor}` : undefined;
+}
+
 /** Enfileira uma escrita. O IndexedDB recebe na hora; o Supabase, quando der. */
 export async function enfileirarEscrita(
   tipo: TipoSaida,
   escrita: EscritaTabela,
 ): Promise<void> {
-  await enfileirar(tipo, escrita);
+  await enfileirar(tipo, escrita, alvoDaEscrita(escrita));
 }
 
 /** Enfileira o envio de um arquivo do Storage (o blob já está no Dexie). */

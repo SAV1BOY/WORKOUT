@@ -33,6 +33,17 @@ export interface ItemSaida {
   proximaTentativa: number;
   criadoEm: number;
   erro?: string;
+  /**
+   * Quem este item depende de ter chegado antes (`"sessions:<uuid>"`).
+   *
+   * A fila envia por ordem de criação, mas um item que falha fica para depois
+   * enquanto os seguintes continuam indo: a linha de `session_sets` chegaria
+   * antes da sessão (chave estrangeira no banco de verdade) e a conclusão
+   * antes da criação (a criação, reenviada, desfaria o fim do treino). Itens
+   * com o mesmo `alvo` esperam uns pelos outros — só eles (SPEC §8). Campo
+   * novo sem índice: o Dexie não precisa de versão nova para ele.
+   */
+  alvo?: string;
 }
 
 /**

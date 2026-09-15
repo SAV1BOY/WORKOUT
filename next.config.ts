@@ -50,7 +50,17 @@ const withSerwist = withSerwistInit({
   swDest: "public/sw.js",
   // em desenvolvimento o service worker atrapalha mais do que ajuda
   disable: process.env.NODE_ENV === "development",
-  reloadOnOnline: true,
+  /*
+   * `reloadOnOnline` liga um `location.reload()` a cada evento `online` do
+   * navegador. No terraço, com o 4G indo e voltando, isso é o app se
+   * recarregando NO MEIO do treino: o timer de descanso some, o cronômetro da
+   * prancha para sem avisar e a recarga ainda atropela o flush da fila de
+   * saída (o `tentarAgora`, que roda no mesmo evento, é cortado pela metade).
+   * Não há o que ganhar: a leitura já vem do cache do TanStack Query (§8) e a
+   * escrita já vive na fila; versão nova do app entra pelo service worker
+   * (`skipWaiting` + `clientsClaim`) na próxima navegação.
+   */
+  reloadOnOnline: false,
   additionalPrecacheEntries: [
     ...arquivosDoPublic(),
     { url: "/~offline", revision: REVISAO },

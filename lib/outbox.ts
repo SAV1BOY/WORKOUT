@@ -26,8 +26,27 @@ export function atrasoDaTentativa(tentativas: number): number {
   return Math.min(ATRASO_BASE_MS * 2 ** tentativas, ATRASO_MAX_MS);
 }
 
-/** Enfileira uma mudança. Nunca lança: o registro local já foi feito. */
-export async function enfileirar(tipo: TipoSaida, payload: unknown) {
+/**
+ * Chegou a hora deste item? Um `proximaTentativa` mais longe do que o atraso
+ * máximo só acontece com o relógio do aparelho andando para trás (o Miguel
+ * mexendo na hora, o NTP corrigindo o celular): sem este cuidado a série
+ * registrada ficava presa na fila até o relógio alcançar a marca — horas, e
+ * sem nada na tela dizendo isso (SPEC §8).
+ */
+export function venceu(
+  item: Pick<ItemSaida, "proximaTentativa">,
+  agora: number,
+): boolean {
+  return item.proximaTentativa <= agora || item.proximaTentativa - agora > ATRASO_MAX_MS;
+}
+
+/**
+ * Enfileira uma mudança. Nunca lança: o registro local já foi feito.
+ *
+ * `alvo` (opcional) amarra este item aos que vieram antes com o mesmo alvo:
+ * enquanto um deles não subir, este não é tentado (SPEC §8).
+ */
+export async function enfileirar(tipo: TipoSaida, payload: unknown, alvo?: string) {
   if (!temIndexedDB()) return;
   await bd().outbox.add({
     tipo,
@@ -35,6 +54,7 @@ export async function enfileirar(tipo: TipoSaida, payload: unknown) {
     tentativas: 0,
     proximaTentativa: Date.now(),
     criadoEm: Date.now(),
+    ...(alvo ? { alvo } : {}),
   });
   void processar();
 }
@@ -116,20 +136,47 @@ export async function tentarAgora(): Promise<number> {
   return processar();
 }
 
-/** Uma passada pelos itens vencidos. */
+/**
+ * Uma passada pela fila, na ordem em que os itens foram criados.
+ *
+ * Um item que não sobe **segura os que vieram depois com o mesmo `alvo`**,
+ * tenha ele falhado agora ou só estar esperando o próprio backoff: a série
+ * não vai antes da sessão a que pertence (a chave estrangeira do
+ * `supabase/schema.sql` recusaria) e a conclusão não vai antes da criação (a
+ * criação, reenviada depois, desfaria o fim do treino). Quem espera não gasta
+ * tentativa: só adia para o mesmo instante de quem está segurando — e é isso
+ * que impede a fila de girar em vazio a cada 250 ms. Itens de outros alvos
+ * seguem normalmente, então um item envenenado nunca tranca a fila inteira
+ * (SPEC §8).
+ */
 async function umaRodada(): Promise<number> {
   const enviar = enviador;
   if (!enviar) return 0;
 
   let enviados = 0;
   const agora = Date.now();
-  const pendentes = await bd()
-    .outbox.where("proximaTentativa")
-    .belowOrEqual(agora)
-    .sortBy("criadoEm");
+  const pendentes = await bd().outbox.orderBy("criadoEm").toArray();
+
+  /** alvo → quando o item que está segurando a fila vai tentar de novo. */
+  const travados = new Map<string, number>();
 
   for (const item of pendentes) {
     if (item.id === undefined) continue;
+
+    const espera = item.alvo === undefined ? undefined : travados.get(item.alvo);
+    if (espera !== undefined) {
+      if (item.proximaTentativa !== espera) {
+        await bd().outbox.update(item.id, { proximaTentativa: espera });
+      }
+      continue;
+    }
+
+    // ainda no backoff: não é a vez dele nem de quem vem atrás no mesmo alvo
+    if (!venceu(item, agora)) {
+      if (item.alvo !== undefined) travados.set(item.alvo, item.proximaTentativa);
+      continue;
+    }
+
     try {
       await enviar(item);
       await bd().outbox.delete(item.id);
@@ -140,11 +187,13 @@ async function umaRodada(): Promise<number> {
         tentativas >= MAX_TENTATIVAS
           ? ATRASO_MAX_MS
           : atrasoDaTentativa(tentativas);
+      const proximaTentativa = agora + atraso;
       await bd().outbox.update(item.id, {
         tentativas,
-        proximaTentativa: agora + atraso,
+        proximaTentativa,
         erro: (e as Error).message,
       });
+      if (item.alvo !== undefined) travados.set(item.alvo, proximaTentativa);
     }
   }
 

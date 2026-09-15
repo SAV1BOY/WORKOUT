@@ -49,9 +49,17 @@ export async function registrarSolta(opcoes: {
     );
   }
 
+  /*
+   * Upsert pelo id gerado aqui, não insert (SPEC §8). A rede pode cair depois
+   * de o servidor gravar e antes de a resposta voltar: o item continua na fila
+   * e o reenvio do insert bateria num 409 de chave repetida — um item
+   * envenenado para sempre, tentando de 5 em 5 minutos, numa fila que ninguém
+   * vê fora da tela de treino. Repetir o upsert é inofensivo.
+   */
   await enfileirarEscrita("barra_fixa_solta", {
     tabela: "pullup_singles",
-    op: "insert",
+    op: "upsert",
+    onConflict: "id",
     linha,
   });
 }

@@ -71,8 +71,11 @@ export async function aceitarFase2(opcoes: {
   });
 
   await enfileirarEscrita("evento_progressao", {
+    // upsert pelo id do cliente: reenviar o item não duplica nem trava a fila
+    // num 409 de chave repetida (SPEC §8)
     tabela: "progression_events",
-    op: "insert",
+    op: "upsert",
+    onConflict: "id",
     linha: {
       id: novoId(),
       user_id: userId,
