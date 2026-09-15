@@ -25,7 +25,7 @@ import {
   type AlvoDeHoje,
   type EstadoExercicio,
 } from "@/lib/progressao";
-import type { Implemento, TreinoId } from "@/lib/schemas";
+import type { Grupo, Implemento, TreinoId } from "@/lib/schemas";
 import type {
   LinhaEstadoExercicio,
   LinhaEventoProgressao,
@@ -356,6 +356,9 @@ export function totalDeSoltas(
 
 /* ------------------------------------------- aviso de corrida + perna */
 
+/** O grupo de `data/exercicios.json` que marca um treino como "de perna". */
+const GRUPO_PERNAS: Grupo = "Pernas";
+
 /**
  * SPEC §5.3 e `cardio.json` `ordem`: correr e treinar perna no mesmo dia não é
  * bloqueado, mas avisa. Só faz sentido quando o dia tem as duas coisas.
@@ -366,10 +369,10 @@ export function avisoCorridaEPerna(
   houveCorridaHoje: boolean,
 ): string | null {
   if (!treinoId) return null;
-  const temPerna = acharTreino(treinoId).exercicios.some((e) =>
-    /^agachamento|terra|stiff|afundo|panturrilha/i.test(
-      acharExercicio(e.exercicio_id).nome,
-    ),
+  // quem é exercício de perna sai do `grupo` de `data/exercicios.json`, não de
+  // uma lista de nomes escrita aqui.
+  const temPerna = acharTreino(treinoId).exercicios.some(
+    (e) => acharExercicio(e.exercicio_id).grupo === GRUPO_PERNAS,
   );
   if (!temPerna) return null;
   const vaiCorrer = dia.tipo === "cardio" && dia.cardio?.tipo === "corrida";

@@ -101,7 +101,14 @@ export function DialogoDia({
               <div className="flex flex-col gap-3">
                 {dia.sessaoId ? (
                   <Button asChild className="alvo h-12 w-full">
-                    <Link href={`/treinar/${dia.sessaoId}`}>Abrir o treino</Link>
+                    {/* o id é de `sessions` num dia de força e de
+                        `cardio_sessions` num dia de cardio: cada um abre na
+                        sua própria rota (SPEC §3.2 e §3.3). */}
+                    {dia.dia.tipo === "cardio" ? (
+                      <Link href={`/cardio/${dia.sessaoId}`}>Abrir o cardio</Link>
+                    ) : (
+                      <Link href={`/treinar/${dia.sessaoId}`}>Abrir o treino</Link>
+                    )}
                   </Button>
                 ) : (
                   <p className="text-muted-foreground text-sm">

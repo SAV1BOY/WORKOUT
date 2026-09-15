@@ -314,6 +314,25 @@ describe("corrida e perna no mesmo dia (SPEC §5.3)", () => {
     expect(avisoCorridaEPerna(terca, null, true)).toBeNull();
   });
 
+  /**
+   * Quem é "de perna" sai do `grupo` de `data/exercicios.json`, não de uma
+   * lista de nomes no código: os quatro treinos com exercícios do grupo
+   * "Pernas" avisam e os dois de superior, não.
+   */
+  it("avisa exatamente nos treinos que têm exercício do grupo Pernas", () => {
+    const terca = treinoDeHoje("2026-09-15", PERFIL);
+    const avisa = (id: Parameters<typeof avisoCorridaEPerna>[1]) =>
+      avisoCorridaEPerna(terca, id, false) !== null;
+
+    expect([avisa("A1"), avisa("B1"), avisa("IA"), avisa("IB")]).toEqual([
+      true,
+      true,
+      true,
+      true,
+    ]);
+    expect([avisa("SA"), avisa("SB")]).toEqual([false, false]);
+  });
+
   it("houveCardioHoje olha data, tipo e conclusão", () => {
     const cardios = [
       { data: "2026-09-15", tipo: "corrida" as const, concluida: true },

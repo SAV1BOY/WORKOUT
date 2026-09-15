@@ -10,7 +10,7 @@ import {
   clienteNavegador,
   supabaseConfiguradoNoNavegador,
 } from "@/lib/supabase/client";
-import { enfileirar, definirEnviador } from "@/lib/outbox";
+import { enfileirar, definirEnviador, processar } from "@/lib/outbox";
 import type { ItemSaida, TipoSaida } from "@/lib/db";
 
 export type Operacao = "insert" | "upsert" | "update" | "delete";
@@ -85,6 +85,10 @@ export function registrarEnviador(): void {
   if (registrado || !supabaseConfiguradoNoNavegador()) return;
   registrado = true;
   definirEnviador(enviarItem);
+  // `iniciarOutbox()` pode já ter rodado sem enviador (o app abriu no /login):
+  // nesse caso o flush de partida não aconteceu e o que estava na fila de uma
+  // sessão anterior ficaria parado. Uma rodada aqui fecha esse buraco (§8).
+  void processar();
 }
 
 /** Enfileira uma escrita. O IndexedDB recebe na hora; o Supabase, quando der. */

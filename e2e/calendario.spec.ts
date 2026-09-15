@@ -168,3 +168,49 @@ test.describe("Calendário — semana curta (SPEC §5.4)", () => {
       .toEqual(["2026-09-14", "2026-09-16", "2026-09-17"]);
   });
 });
+
+test.describe("Calendário — auditoria do marco 2", () => {
+  test("um dia passado de cardio abre a sessão de cardio, não a de força", async ({
+    page,
+  }) => {
+    const sessao = await usuarioComPerfil();
+    await inserirNoMock(sessao, "cardio_sessions", [
+      {
+        id: "22222222-2222-4222-8222-222222222222",
+        data: "2026-09-15",
+        tipo: "corrida",
+        semana_plano: 1,
+        concluida: true,
+      },
+    ]);
+
+    await abrirCalendario(page, "2026-09-18T08:00:00-03:00");
+
+    await page.getByRole("button", { name: /^ter 15\/09/ }).click();
+    const dialogo = page.getByRole("dialog");
+    await expect(dialogo.getByRole("link", { name: "Abrir o cardio" })).toHaveAttribute(
+      "href",
+      "/cardio/22222222-2222-4222-8222-222222222222",
+    );
+  });
+
+  test("o X do diálogo também é um alvo de 44 px e está em pt-BR", async ({ page }) => {
+    await usuarioComPerfil();
+    await abrirCalendario(page);
+
+    await page.getByRole("button", { name: /^qua 16\/09/ }).click();
+    const fechar = page.getByRole("dialog").getByRole("button", { name: "Fechar" });
+    await expect(fechar).toBeVisible();
+    // offsetWidth/Height é a caixa de layout: o boundingBox pega a animação de
+    // entrada do diálogo (zoom-in-95) ainda no meio do caminho
+    const caixa = await fechar.evaluate((el) => ({
+      largura: (el as HTMLElement).offsetWidth,
+      altura: (el as HTMLElement).offsetHeight,
+    }));
+    expect(caixa.altura).toBeGreaterThanOrEqual(44);
+    expect(caixa.largura).toBeGreaterThanOrEqual(44);
+
+    await fechar.click();
+    await expect(page.getByRole("dialog")).toBeHidden();
+  });
+});

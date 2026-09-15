@@ -987,7 +987,7 @@ que continua em construção (marco 3).
   elástico, o peso e a sequência, o aviso de corrida + perna, a grade da semana
   com A/B alternando, as marcações, o mês em miniatura e os overrides da semana
   curta.
-- **E2E** (`npm run e2e`, **50**): `hoje.spec.ts` (11) e `calendario.spec.ts` (8)
+- **E2E** (`npm run e2e`, **51**): `hoje.spec.ts` (11) e `calendario.spec.ts` (8)
   novos, mais a regressão do login. Com o relógio do navegador em 14/09/2026 a
   Hoje mostra "Treino A · 6 exercícios · 44 min" com 7,5 kg na barra, 1,5 kg por
   halter e peso do corpo; com `ultimo_treino = "A1"` vira o Treino B com 4 kg no
@@ -1009,7 +1009,7 @@ que continua em construção (marco 3).
 
 ### Como testar no celular (marco 2)
 
-1. `npm run build && npm run e2e` — 50 testes verdes num Chromium de 360 × 740.
+1. `npm run build && npm run e2e` — 55 testes verdes num Chromium de 360 × 740.
 2. À mão: `npm run mock` num terminal e `npm run dev:mock` no outro (troque
    `127.0.0.1` pelo IP do computador nas três variáveis do `dev:mock` para abrir
    pelo celular). Crie a conta com `miguelgsaviotti29@gmail.com`.
@@ -1027,3 +1027,96 @@ que continua em construção (marco 3).
    lista do que vai mudar antes de confirmar.
 6. Abra a Hoje, feche o app e abra de novo: o conteúdo aparece **antes** da rede
    responder (cache do TanStack Query no IndexedDB) e se atualiza em seguida.
+
+### Auditoria do marco 2 (rodada 1) — o que o auditor achou e o que mudou
+
+Auditoria independente: os quatro portões rodados do zero (`npm run lint` limpo,
+`npm run build` sem erro, `npm test` 461/461, `npm run e2e` **51**/51 — o marco
+dizia 50, era um a mais), o código lido e o app dirigido à mão no Chromium a
+360 × 740 contra o mock. Confirmados no navegador, sem nenhum erro de console:
+
+- **§10.2**: segunda 14/09/2026 → "Treino A · 6 exercícios · 44 min" com
+  7,5 kg na barra (agachamento, supino, remada, rosca), 1,5 kg por halter
+  (desenvolvimento) e peso do corpo (elevação de pernas); Treino B com 4 kg no
+  pino; Fase 2 com Superior A na segunda e Inferior A na terça.
+- **§5.2**: override vira a segunda em corrida (e o card traz a sessão da semana
+  do plano, não os 44 min do treino); a alternância segue `ultimo_treino`;
+  descanso de quinta traz "1 repetição solta de barra fixa (grease the groove)"
+  e o de domingo "caminhada leve" — os dois textos vindos do `programa.json`.
+- **§5.3/§5.4**: "Treinar mesmo assim (Treino A)" nos dias de cardio e descanso;
+  marcando a segunda, a semana curta mostra `14/09 Treino A → Descanso`,
+  `16/09 Treino B → Treino A`, `17/09 Descanso → Treino B` antes de gravar as
+  três linhas — o Treino A (agachamento) continua na semana.
+- **§3.5**: grade seg→dom, mês em miniatura também começando na segunda,
+  ✓ / ~ / ✕ coerentes com as sessões semeadas, navegação entre semanas.
+- **§8**: com `context.setOffline(true)`, recarregar mostra a Hoje inteira em
+  **181 ms**, vinda do cache do IndexedDB.
+- Layout: a 360 px nada rola para o lado, `<html lang="pt-BR">`, a barra inferior
+  termina em y = 740 (o pé da tela) com `padding-bottom: 96px` no `<main>`, e
+  todo botão/link das telas do marco tem ≥ 44 px.
+
+**Quatro defeitos, todos corrigidos nesta auditoria** (nenhum teste foi apagado
+ou afrouxado):
+
+1. **Dia passado de cardio abria a rota de força**
+   (`components/calendario/dialogos.tsx`, SPEC §3.3). O diálogo do dia usava
+   sempre `/treinar/<sessaoId>` com o rótulo "Abrir o treino", mas em dia de
+   cardio esse id é de `cardio_sessions`: tocar na terça de uma corrida feita
+   levava para a sessão de força com o id errado. Agora um dia de cardio abre
+   `/cardio/<id>` com "Abrir o cardio". Regressão em `e2e/calendario.spec.ts`.
+2. **O X do diálogo tinha 28 px e dizia "Close"** (`components/ui/dialog.tsx`,
+   e o mesmo em `components/ui/sheet.tsx`). É o único alvo abaixo de 44 px que
+   sobrou nas telas do marco, e o rótulo de leitor de tela estava em inglês
+   numa interface em pt-BR — os dois vinham do primitivo do shadcn. Ganhou a
+   classe `.alvo` (44 × 44) e virou "Fechar". Regressão em
+   `e2e/calendario.spec.ts`.
+3. **A fila de saída podia não dar o flush de partida** (`lib/outbox-supabase.ts`,
+   SPEC §8). `iniciarOutbox()` é idempotente por uma flag; quando o app abre no
+   `/login`, o `Providers` já a liga **sem enviador** (o `ConfigurarSupabase` só
+   existe dentro do shell autenticado). Depois de entrar, `registrarEnviador()`
+   definia o enviador mas a chamada seguinte de `iniciarOutbox()` saía na hora —
+   e o que estivesse na fila de uma sessão anterior ficava parado até o próximo
+   `online`, `visibilitychange` ou nova escrita. `registrarEnviador()` passou a
+   dar uma rodada (`void processar()`) logo depois de definir o enviador.
+4. **O aviso de corrida + perna decidia por nome de exercício** (`lib/hoje.ts`,
+   regra de conteúdo no código). `avisoCorridaEPerna()` testava
+   `/^agachamento|terra|stiff|afundo|panturrilha/i` contra o **nome** do
+   exercício — conteúdo duplicado fora do JSON, que já traz `grupo`. Além de
+   frágil, deixava de fora "Flexora e glúteo na polia" (grupo Pernas, no IB).
+   Agora o teste é `exercicio.grupo === "Pernas"`, com o valor tipado pelo enum
+   de `lib/schemas.ts`. Teste novo em `lib/hoje.test.ts` fixando o resultado nos
+   seis treinos (A1, B1, IA, IB avisam; SA e SB não).
+
+**Testes acrescentados** (`npm test` 462, `npm run e2e` 55):
+
+- `lib/hoje.test.ts`: o aviso de perna pelos seis treinos.
+- `e2e/hoje.spec.ts`: recarregar **sem rede** (`context.setOffline(true)`) e a
+  Hoje inteira ainda aparecer — era o que faltava para provar a §8 de ponta a
+  ponta (o teste antigo só olhava a linha no IndexedDB); e o caso de erro de uma
+  linha de `exercise_state` com `carga_atual_kg` nula, que tem de cair na
+  `carga_inicial` do JSON (§6.1) em vez de sumir com a carga.
+- `e2e/calendario.spec.ts`: a rota do dia passado de cardio e o alvo/rótulo do X.
+
+**Anotado, sem correção neste marco** (não bloqueia):
+
+- `lib/queries/acoes.ts` > `gravarOverrides()` gera um `id` novo a cada upsert do
+  mesmo `(user_id, data)`, então a chave primária da linha troca a cada edição
+  do dia. Hoje é inofensivo (nada referencia `schedule_overrides.id`); quando o
+  backup/importação da §9 entrar, vale reaproveitar o id existente.
+- `previaDoTreino()` ainda não recebe `OpcoesMontagem`: quando a barra W e a
+  reta oca forem pesadas em `/mais` (§3.9), a prévia precisa passar os pesos
+  para `cargaDeHoje` como a sessão vai fazer no marco 3.
+- `lib/calendario.ts` > `treinosComAgachamentoOuTerra()` continua usando regex
+  sobre o nome (`/^agachamento|terra/i`); é do motor, já auditado, e não há
+  campo no JSON que marque "treino pesado" — fica registrado como o próximo
+  candidato a virar dado.
+
+### Como testar no celular (auditoria do marco 2)
+
+1. `npm run build && npm run e2e` — **55** testes verdes num Chromium de
+   360 × 740 (`npm test` fecha em 462).
+2. À mão, com `npm run mock` + `npm run dev:mock`: no **Calendário**, toque num
+   dia de cardio que já passou e confira que o botão diz "Abrir o cardio"
+   (e não "Abrir o treino"); o X do diálogo agora é um alvo de 44 × 44.
+3. Offline de verdade: abra a Hoje com rede, espere um segundo, ligue o modo
+   avião e recarregue — a tela inteira volta na hora, do IndexedDB.

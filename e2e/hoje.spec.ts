@@ -233,3 +233,70 @@ test.describe("Hoje — cache persistido (SPEC §8)", () => {
     expect(await guardado()).toContain("perfil");
   });
 });
+
+test.describe("Hoje — auditoria do marco 2", () => {
+  test("recarregar sem rede ainda mostra a Hoje com os dados da última sincronização", async ({
+    page,
+    context,
+  }) => {
+    // sem relógio falso: o cache é salvo por um setTimeout, que o page.clock congela
+    await usuarioComPerfil();
+    await entrarNoApp(page);
+    await expect(page.getByText("Começar treino")).toBeVisible();
+    // o persistidor guarda no máximo 1× por segundo
+    await expect
+      .poll(
+        () =>
+          page.evaluate(
+            () =>
+              new Promise<boolean>((resolver) => {
+                const pedido = indexedDB.open("treino-terraco");
+                pedido.onerror = () => resolver(false);
+                pedido.onsuccess = () => {
+                  const banco = pedido.result;
+                  if (!banco.objectStoreNames.contains("cache")) return resolver(false);
+                  const busca = banco
+                    .transaction("cache", "readonly")
+                    .objectStore("cache")
+                    .get("react-query-v1");
+                  busca.onerror = () => resolver(false);
+                  busca.onsuccess = () => resolver(Boolean(busca.result));
+                };
+              }),
+          ),
+        { timeout: 10_000 },
+      )
+      .toBe(true);
+
+    await context.setOffline(true);
+    try {
+      await page.reload();
+      // o conteúdo vem do cache do IndexedDB, não da rede (SPEC §8)
+      await expect(page.getByRole("heading", { name: "Hoje" })).toBeVisible();
+      await expect(page.getByText(/^Fase 1 · semana/)).toBeVisible();
+      await expect(page.getByText(/exercícios · \d+ min/)).toBeVisible();
+      await expect(page.getByRole("list", { name: "Exercícios de hoje" })).toBeVisible();
+      await semRolagemHorizontal(page);
+    } finally {
+      await context.setOffline(false);
+    }
+  });
+
+  test("a prévia não aparece com carga inventada quando o exercício não tem estado", async ({
+    page,
+  }) => {
+    const sessao = await usuarioComPerfil();
+    // uma linha com carga_atual_kg nula: o motor cai na carga_inicial do JSON (§6.1)
+    await inserirNoMock(sessao, "exercise_state", [
+      { exercise_id: "agachamento-livre", carga_atual_kg: null },
+    ]);
+    await abrirHoje(page, SEGUNDA);
+
+    const primeiro = page
+      .getByRole("list", { name: "Exercícios de hoje" })
+      .getByRole("listitem")
+      .first();
+    await expect(primeiro).toContainText("1. Agachamento livre");
+    await expect(primeiro).toContainText("Hoje: 7,5 kg na barra");
+  });
+});
