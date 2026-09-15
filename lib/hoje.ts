@@ -20,6 +20,7 @@ import {
   rotuloDaCarga,
 } from "@/lib/formato";
 import type { OpcoesMontagem } from "@/lib/montagem";
+import { aplicarOrdem } from "@/lib/ordem";
 import {
   cargaDeHoje,
   prescricaoDoTreino,
@@ -285,6 +286,12 @@ export interface EntradaPrevia {
   eventos?: EventoCurto[];
   /** Barra W / reta oca já pesadas na balança (SPEC §3.9). */
   montagem?: OpcoesMontagem;
+  /**
+   * A ordem escolhida em "Editar" (SPEC §14.3), por id do exercício **do
+   * programa**. Vazia = a ordem do programa. Quem não está na lista fica no
+   * fim, na ordem do programa (`aplicarOrdem`): ninguém some.
+   */
+  ordem?: readonly string[];
 }
 
 /**
@@ -297,10 +304,20 @@ export function previaDoTreino({
   eventos = [],
   montagem = {},
   trocas = {},
+  ordem = [],
 }: EntradaPrevia): ItemPrevia[] {
   const ultimos = ultimoEventoPorExercicio(eventos);
+  const doTreino = exerciciosDoTreino(treinoId);
+  const posicao = aplicarOrdem(
+    doTreino.map(({ exercicio }) => exercicio.id),
+    ordem,
+  );
+  const naOrdem = posicao.flatMap((id) => {
+    const achado = doTreino.find(({ exercicio }) => exercicio.id === id);
+    return achado ? [achado] : [];
+  });
 
-  return exerciciosDoTreino(treinoId).map(({ item, exercicio: doPrograma }, i) => {
+  return naOrdem.map(({ item, exercicio: doPrograma }, i) => {
     const substitutoId = trocas[doPrograma.id];
     const exercicio =
       substitutoId && substitutoId !== doPrograma.id

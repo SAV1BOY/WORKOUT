@@ -4143,3 +4143,202 @@ Nenhuma linha de app mudou nesta rodada — é texto de contrato —, então as
 capturas de `capturas/midia/` continuam valendo sem regerar. Portões rodados
 de novo do zero: `npm run lint` ✓ · `npm run build` ✓ · `npm test` **886
 testes / 38 arquivos** ✓ · `npm run e2e` **183 testes em 6,9 min** ✓.
+
+---
+
+## Camada visual v2.1 — Marco V3 ✅
+
+SPEC §14.3 (aba Treino completa), §14.4 (Explorar, Relatório, Corpo, Mais) e o
+que faltava da §13.4–§13.7: **sessão livre**, coleções derivadas, circuitos,
+histórico e as duas sequências. O v1 continua inteiro por baixo: o motor
+(`lib/progressao.ts`), a montagem (`lib/montagem.ts`) e o que vai para o banco
+não mudaram uma linha — a única coluna nova é `sessions.plano`, que a §13.4 já
+previa.
+
+### O que foi feito
+
+**1. Sessão livre de verdade (§13.4)** — `sessions.workout_id = 'livre'` com a
+lista de exercícios em **`sessions.plano` (jsonb)**, a coluna nova com migração
+idempotente em `supabase/schema.sql`, refletida em `lib/types.ts`, no mock e no
+backup. `lib/livre.ts` (puro) faz a ida e a volta: `planoDaSessao()` monta o
+jsonb, `itensDoPlano()` o lê **sem confiar no formato** (item torto cai no
+padrão do catálogo, plano vazio devolve `null`) e `reconstruirSessao()` passou a
+aceitar um treino livre quando a lista chega — antes ela desistia sempre. Daí em
+diante a sessão livre é uma sessão de força como qualquer outra: registro por
+série, IndexedDB, fila, motor e recordes iguais (§6).
+
+A mesma coluna guarda a **ordem desta sessão** quando o treino do dia é
+reordenado — sem isso, uma sessão reordenada refeita noutro aparelho voltaria na
+ordem do programa e as séries não casariam.
+
+**2. Coleções derivadas (`lib/colecoes.ts`, puro)** — tudo sai dos JSON:
+
+| coleção | de onde vem | quantas |
+|---|---|---|
+| Treinos do programa | `programa.treinos` (nome, subtítulo, `duracao_min`) | 6 |
+| Parte do corpo | o campo `grupo` de `exercicios.json` | 8 |
+| Circuitos | o campo `subgrupo` (`tatame` · `corda` · `band`) — os 14 de `origem = "aparelho"` | 3 (8 · 3 · 3) |
+| Por aparelho | `equipamentos.itens`, com a foto `assets/itens/<id>/<id>_01.jpg` | 10 |
+| Planos | `cardio.barra_fixa` · `cardio.corrida` · `cardio.corda` | 3 |
+
+`~M min` é `séries × (reps médias × 3 s + descanso)` somado (o unilateral conta
+os dois lados; quem não tem faixa — `máximo`, corda — usa uma série de 10 reps).
+Os raios são a maior dificuldade do conjunto (§13.4). A tela da coleção é
+`/explorar/[tipo]/[valor]`, **29 páginas estáticas** geradas no build.
+
+**3. Aba Treino (§14.3)** — abaixo da lista do dia entraram:
+
+- **Editar** (`components/treino/editar.tsx`): modo reordenar com a alça ⣿ e as
+  setas ↑↓ (o alvo de toque é a seta: funciona com uma mão, sem arrastar),
+  "Voltar à ordem do programa" e "Pronto". A ordem fica no aparelho por
+  (data, treino) — `lib/ordem.ts`, o mesmo desenho de `lib/trocas.ts` — e entra
+  em `sessions.plano` quando o treino começa.
+- **Desafios**: carrossel **manual** (scroll-snap, sem rotação automática) com
+  os planos reais — a primeira barra fixa e a corrida de `cardio.json` e a
+  **fase em curso** do `programa.json` —, cada um com capa de `assets/`, semana
+  atual, barra de progresso e "Fazer a sessão da semana".
+- **Parte do corpo em foco**: chips dos 8 grupos, `N exercícios · ~M min`,
+  raios, a lista com miniatura e o "Começar", que abre a sessão livre com os 6
+  primeiros (compostos antes de isolamento, só o que o equipamento do terraço
+  permite, "não gosto" por último).
+- **Chips de filtro derivados** (≤ 15 min · 15–30 min · com/sem equipamento ·
+  core · cardio).
+- **Personalizar treino** ("Crie o seu próprio"): folha com busca sem acento
+  sobre os 81, escolha numerada e "Começar (n)".
+- **FAB Ajustar**: o mesmo bloco de `components/mais/ajustes-do-treino.tsx` do
+  player e de Mais → Preferências.
+
+**4. Explorar (§14.4)** — busca sempre visível no topo (uma só: ela também
+alimenta o catálogo dos 81, que perdeu a caixa própria quando é controlado de
+fora), **um destaque** (o treino de hoje ou a sessão da semana do plano),
+"Escolhas para você" com as cinco seções e "Ver todos", e o catálogo embaixo. A
+busca acha por título da coleção **e** por nome de exercício de dentro dela.
+
+**5. Relatório (§13.5 e §14.4)** — `components/relatorio/`: contadores
+**Treinos · Minutos · Volume** no topo; **Histórico** com a faixa da semana
+navegável e "Todos os registros" (força com treino, duração, séries e ↑/=/↓;
+cardio com tipo, semana e duração; reps soltas somadas por dia; toque abre o
+resumo); **sequência de dias** e **de semanas com meta**; os cards **Peso**
+(atual, maior, menor, gráfico) e **IMC**; e, abaixo, os gráficos e recordes da
+§3.7, que continuam os mesmos.
+
+**6. Corpo e Mais** — o card de IMC entrou na aba Peso do Corpo (o mesmo
+componente do Relatório e da conclusão) e Preferências ganhou o link para
+**Mais → Créditos**. O resto da §14.4 já existia desde o V2.
+
+### Funções puras novas (todas com teste)
+
+| arquivo | o que faz |
+|---|---|
+| `lib/livre.ts` | itens da sessão livre, `sessions.plano` (ida e volta), `podeCircuito`, a estimativa de minutos |
+| `lib/colecoes.ts` | as 30 coleções derivadas, filtros, busca, `exerciciosParaSessao` (compostos → isolamento, equipamento, "não gosto") e os Desafios |
+| `lib/ordem.ts` | `mover`/`subir`/`descer`, `aplicarOrdem` e o storage por (data, treino) |
+| `lib/relatorio.ts` | contadores, "Todos os registros" e o ↑/=/↓ por sessão |
+
+### Decisões desta etapa
+
+1. **O rótulo do circuito é de UI, o conteúdo é do JSON.** "Core no tatame",
+   "Corda" e "Elástico" são os três `subgrupo` de `exercicios.json` com um nome
+   legível na frente (a §13.8.6 permite rótulo de UI). Quem manda em **quem
+   está** em cada circuito é o JSON: 8 · 3 · 3, os 14 de `origem = "aparelho"`.
+2. **O circuito do Elástico não roda no modo por tempo** — `barra-fixa-assistida`
+   tem `implemento = barra_fixa`, e a §13.6 não deixa barra entrar. A coleção
+   existe e abre sessão livre; o passo dela é o de carga/assistência de sempre.
+3. **Os filtros de conteúdo encolhem a lista, não escondem o grupo.** "Sem
+   equipamento" exigido da coleção inteira esvaziaria os oito grupos (todo grupo
+   mistura barra e peso do corpo). Agora "com/sem equipamento", "core" e
+   "cardio" filtram **exercício por exercício**, a contagem e os minutos são
+   recalculados, e um grupo que fica sem nada some do chip (Bíceps não tem
+   exercício de peso do corpo). Só "≤ 15 min" e "15–30 min" olham a coleção.
+4. **Coleção de plano não abre sessão livre.** Os três planos de `cardio.json`
+   têm prescrição por semana; mandar o Miguel para `/barra-fixa` ou
+   `/cardio/corrida` respeita o plano em vez de improvisar uma sessão.
+5. **O Desafio da fase é a fase, não um plano inventado.** O terceiro card do
+   carrossel é `programa.fases[atual]` com as 12 semanas de
+   `SEMANAS_PARA_FASE2` — o mesmo número que o app já usa para sugerir a Fase 2.
+6. **A ordem de "Editar" vale para a sessão, não para o programa.** Ela some no
+   dia seguinte (o par data+treino), é apagada quando a sessão começa e volta
+   inteira no "Voltar à ordem do programa". O aquecimento acompanha: a sessão é
+   montada a partir da lista **já reordenada**, então as duas séries de barra
+   vazia entram no primeiro exercício pesado da ordem nova.
+7. **`~M min` usa `formatarMinutos`**, o mesmo do resto do app: "~44 min" para
+   um treino e "~1 h 19" para um grupo inteiro de 13 exercícios. Um "79 min"
+   seria mais literal que a SPEC, mas menos parecido com as outras telas.
+8. **Nada de contagem nova no banco.** Os contadores e o histórico saem de
+   `sessions`, `session_sets`, `cardio_sessions`, `pullup_singles` e
+   `progression_events` — as mesmas tabelas de sempre, lidas por uma consulta
+   nova (`useEventosDesde`) que só pega `session_id` e `motivo`.
+
+### Pendências do V2 que este marco fechou
+
+- `components/player/exercicio.tsx`: "anterior: …" e o chip "montagem" passaram
+  para a **mesma linha** (flex, centro). A 360 × 740 o chip ficava ~11 px sob a
+  barra de controles quando o exercício tinha histórico; juntos cabem de uma vez.
+- `components/player/firme.tsx`: a "Nota curta (opcional)" subiu para **cima**
+  dos três botões. Tocar em Fácil/Firme/Falhei já responde e sai da tela (é o
+  gesto da referência), então a nota tinha de vir antes na ordem de leitura.
+- `components/player/descanso.tsx`: quando o próximo passo é **aquecimento**, a
+  tela mostra o alvo da própria série ("5 × 7,5 kg na barra") em vez das séries
+  de trabalho do bloco — antes lia-se "AQUECIMENTO 2 DE 2" acima de "3 × 5".
+- **§14.5.3 inteira**: existia player de circuito, faltava o caminho que cria a
+  sessão livre. O e2e novo sai da aba Treino → Parte do corpo (Core) → Começar,
+  roda um passo de reps e um de tempo no player e confere no mock que `sessions`
+  ganhou a linha `workout_id = 'livre'` com `plano` e `session_sets` as séries.
+
+### Como testar no celular
+
+1. **Aba Treino**: role até **Desafios** e arraste o carrossel para o lado — ele
+   não gira sozinho. Cada card mostra a semana do seu perfil (`semana_fixa`,
+   `semana_corrida`, a semana da fase) e o botão leva à sessão da semana.
+2. Logo abaixo, **Parte do corpo em foco**: toque em "Core", confira
+   `13 exercícios · ~1 h 19`, ligue "Sem equipamento" e veja a lista encolher.
+   "Começar Core" abre o player com uma sessão livre de 6 exercícios.
+3. **Editar** (acima dos Desafios): as setas ↑↓ reordenam, "Pronto" fecha, e o
+   treino que você começar sai nessa ordem.
+4. **Personalizar treino**: busque "abdominal", toque em três e "Começar (3)".
+5. **Explorar**: busque "triceps" (sem acento) — a coleção do grupo aparece em
+   cima e os exercícios embaixo. Toque numa coleção para ver a tela dela.
+6. **Relatório**: os três contadores no topo, a faixa da semana com as setas,
+   "Todos os registros" para ver tudo, as duas sequências, Peso e IMC.
+7. **Corpo → Peso**: o IMC está no topo, com "Editar altura".
+8. **Mais → Preferências**: tudo da §14.4 mais o link dos créditos.
+
+### Testes
+
+- **Unitários (Vitest)**: `lib/colecoes.test.ts` (34), `lib/livre.test.ts` (14),
+  `lib/ordem.test.ts` (11) e `lib/relatorio.test.ts` (11) — as contagens por
+  grupo/aparelho/circuito conferidas contra o próprio JSON (8 grupos = 81
+  exercícios; 8 · 3 · 3 = os 14 de `origem = "aparelho"`), a estimativa de
+  minutos exercício a exercício, a ordem compostos → isolamento, o "não gosto"
+  por último, os filtros que encolhem a lista, a ida e a volta de
+  `sessions.plano` (inclusive jsonb estragado) e o ↑/=/↓ do histórico.
+  `lib/sessao.test.ts` ganhou o `plano: null` nas duas escritas de `sessions`.
+- **E2E (`e2e/v3.spec.ts`, 10 testes)**: Desafios com a semana do perfil e o
+  carrossel manual; Parte do corpo → Começar → **sessão livre** no player com um
+  passo de reps e um de tempo, conferindo no mock `workout_id = 'livre'` +
+  `plano` + `session_sets`; Personalizar com 3 exercícios; Editar que reordena e
+  chega em `sessions.plano`; o FAB Ajustar (≥ 44 px); Explorar com as cinco
+  seções, "Ver todos", a busca sem acento e a tela da coleção; a coleção de
+  plano que leva ao plano; Relatório com registros semeados, sequências, Peso e
+  IMC; "Todos os registros" fora da semana; IMC no Corpo com a altura gravando;
+  Preferências com tudo da §14.4.
+- **E2E antigos ajustados sem afrouxar**: `treino-v2.spec.ts` trocou
+  "Em construção — marco V2" pelas coleções de verdade (continua provando que a
+  aba abre pela navegação, tem o título e não rola para o lado) e
+  `corpo.spec.ts` passou a pedir o título "Corpo" **exato** (a aba Treino agora
+  tem "Parte do corpo em foco" e "Fase 1 — corpo inteiro…").
+
+### Portões
+
+`npm run lint` ✓ · `npm run build` ✓ (29 páginas de coleção estáticas, além das
+81 fichas) · `npm test` **956 testes em 42 arquivos** ✓ · `npm run e2e`
+**196 testes** ✓ (7,7 min). Capturas em `capturas/v3/`: `01-treino-desafios`,
+`02-treino-parte-do-corpo`, `03-explorar`, `04-colecao`, `05-relatorio`,
+`06-relatorio-registros`, `07-corpo-imc`, `08-preferencias` — e `01`, `03` e
+`05` também no tema claro.
+
+### O que falta
+
+A auditoria final da §14.5 (marco V4), feita por outro agente: usar o app no
+Chromium a 360 × 740 nos dois temas, refazer os quatro portões do zero e
+conferir os sete critérios da §14.5 e os oito da §13.8 um a um.

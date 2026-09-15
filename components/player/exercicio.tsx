@@ -217,13 +217,17 @@ export function TelaExercicio({
           aoMudarCarga={mudarCarga}
         />
 
-        {anterior && !passo.aquecimento ? (
-          <p className="text-muted-foreground numero text-center text-sm">
-            anterior: {textoDoAnterior(anterior, exercicio.implemento)}
-          </p>
-        ) : null}
-
-        <div className="flex justify-center">
+        {/*
+          "anterior: …" e o chip "montagem" na MESMA linha: em pilha, com as
+          duas, a tela de 740 px deixava o chip ~11 px por baixo da barra de
+          controles (auditoria do marco V2). Juntos cabem de uma vez.
+        */}
+        <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
+          {anterior && !passo.aquecimento ? (
+            <p className="text-muted-foreground numero text-center text-sm">
+              anterior: {textoDoAnterior(anterior, exercicio.implemento)}
+            </p>
+          ) : null}
           <BotaoMontagem
             exercicioId={bloco.exercicioId}
             carga={serie.cargaKg}

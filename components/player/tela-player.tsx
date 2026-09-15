@@ -336,6 +336,7 @@ export function TelaPlayer({
         agora={agora}
         proximo={proximo}
         blocoDoProximo={blocoDoProximo}
+        serieDoProximo={proximo ? serieDoPasso(sessao, proximo) : null}
         som={ligado(prefs, "descanso_som")}
         vibracao={ligado(prefs, "descanso_vibra")}
         avancarSozinho={ligado(prefs, "avancar_sozinho")}
@@ -378,7 +379,8 @@ export function TelaPlayer({
 
   const primeiro = sessao.blocos[0]?.exercicioId ?? null;
   const nomeDoTreino =
-    dados.treino?.nome ?? (dados.plano ? "Barra fixa" : "Treino livre");
+    dados.treino?.nome ??
+    (dados.plano ? "Barra fixa" : (dados.tituloLivre ?? "Treino livre"));
   const semana = perfil ? semanaDaFase(sessao.data, perfil.fase_desde) : null;
 
   return (

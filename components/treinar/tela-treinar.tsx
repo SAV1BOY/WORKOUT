@@ -28,6 +28,7 @@ import {
   useSessoesAbertas,
 } from "@/lib/queries/dados";
 import { ligado, opcoesDeMontagem } from "@/lib/preferencias";
+import { lerOrdemDoAparelho, limparOrdemDoAparelho } from "@/lib/ordem";
 import { lerTrocasDoAparelho, limparTrocasDoAparelho } from "@/lib/trocas";
 import { criarSessao, sessaoLocalMaisRecente } from "@/lib/queries/sessao";
 import { useHoje } from "@/lib/relogio";
@@ -72,12 +73,16 @@ export function TelaTreinar({ userId }: { userId: string }) {
    */
   const treinoDoDia = dia?.tipo === "forca" ? dia.treinoId : null;
   const [trocas, setTrocas] = useState<Record<string, string>>({});
+  /* a ordem escolhida em "Editar" (SPEC §14.3) vale para a sessão que começa */
+  const [ordem, setOrdem] = useState<string[]>([]);
   useEffect(() => {
     if (!hoje || !treinoDoDia) {
       setTrocas({});
+      setOrdem([]);
       return;
     }
     setTrocas(lerTrocasDoAparelho(hoje, treinoDoDia));
+    setOrdem(lerOrdemDoAparelho(hoje, treinoDoDia));
   }, [hoje, treinoDoDia]);
 
   const ids = useMemo(
@@ -142,8 +147,13 @@ export function TelaTreinar({ userId }: { userId: string }) {
         opcoesMontagem: opcoesDeMontagem(perfil.prefs),
         // o ⇄ da aba Treino escolheu antes de começar (SPEC §13.3)
         substituicoes: treinoId === treinoDoDia ? trocas : {},
+        // o "Editar" da aba Treino reordenou antes de começar (SPEC §14.3)
+        ordem: treinoId === treinoDoDia ? ordem : [],
       });
-      if (treinoId === treinoDoDia) limparTrocasDoAparelho();
+      if (treinoId === treinoDoDia) {
+        limparTrocasDoAparelho();
+        limparOrdemDoAparelho();
+      }
       router.push(`/treinar/${sessao.id}`);
     } catch {
       setCriando(null);

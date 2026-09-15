@@ -328,13 +328,20 @@ test.describe("navegação v2 (SPEC §13.2)", () => {
     await expect(page.getByRole("heading", { name: "Relatório" })).toBeVisible();
   });
 
-  test("Explorar existe e diz o que ainda não é", async ({ page }) => {
+  /*
+   * O marco V3 entregou a vitrine: onde havia "em construção — marco V2" agora
+   * estão as coleções derivadas dos JSON. O que este teste garante continua
+   * sendo o mesmo — a aba abre pela navegação, tem o título e não rola para o
+   * lado —, agora com o conteúdo de verdade no lugar do aviso.
+   */
+  test("Explorar abre pela navegação com as coleções derivadas", async ({ page }) => {
     await usuarioComPerfil();
     await abrir(page, SEGUNDA);
 
     await irNaAba(page, "Explorar");
     await expect(page.getByRole("heading", { name: "Explorar" })).toBeVisible();
-    await expect(page.getByText("Em construção — marco V2")).toBeVisible();
+    await expect(page.getByText("Escolhas para você")).toBeVisible();
+    await expect(page.getByRole("region", { name: "Circuitos" })).toBeVisible();
     await semRolagemHorizontal(page);
   });
 });

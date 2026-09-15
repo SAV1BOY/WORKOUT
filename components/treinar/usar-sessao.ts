@@ -11,6 +11,7 @@ import {
   prescricaoDaSemana,
 } from "@/lib/barra-fixa";
 import { acharTreino } from "@/lib/dados";
+import { itensDoPlano, tituloDoPlano } from "@/lib/livre";
 import {
   estadosPorExercicio,
   textoDoEvento,
@@ -110,19 +111,31 @@ export function useSessaoDeTreino(sessaoId: string) {
   const ehFixa = workoutId === WORKOUT_BARRA_FIXA;
   const semanaFixa =
     sessao?.semanaPlano ?? sessaoQ.data?.semana_plano ?? perfilQ.data?.semana_fixa ?? 1;
+  /*
+   * A sessão livre (SPEC §13.4) e a sessão do programa que foi **reordenada**
+   * (§14.3) não dão para refazer a partir do `programa.json`: a lista está em
+   * `sessions.plano`, e é ela que manda quando existe.
+   */
+  const planoDaLinha = sessao?.plano ?? sessaoQ.data?.plano ?? null;
+  const itensDoPlanoDaLinha = useMemo(
+    () => itensDoPlano(planoDaLinha) ?? undefined,
+    [planoDaLinha],
+  );
   const itensDaFixa = useMemo(
-    () => (ehFixa ? [itemDaSessao(semanaFixa)] : undefined),
-    [ehFixa, semanaFixa],
+    () => (ehFixa ? [itemDaSessao(semanaFixa)] : itensDoPlanoDaLinha),
+    [ehFixa, semanaFixa, itensDoPlanoDaLinha],
   );
   const treinoId = workoutId && ehTreinoDoPrograma(workoutId) ? workoutId : null;
   const idsDoTreino = useMemo(
     () =>
-      treinoId
-        ? acharTreino(treinoId).exercicios.map((e) => e.exercicio_id)
-        : ehFixa
-          ? [EXERCICIO_DA_SESSAO]
-          : [],
-    [treinoId, ehFixa],
+      itensDoPlanoDaLinha
+        ? itensDoPlanoDaLinha.map((i) => i.exercicioId)
+        : treinoId
+          ? acharTreino(treinoId).exercicios.map((e) => e.exercicio_id)
+          : ehFixa
+            ? [EXERCICIO_DA_SESSAO]
+            : [],
+    [treinoId, ehFixa, itensDoPlanoDaLinha],
   );
 
   /*
@@ -355,6 +368,8 @@ export function useSessaoDeTreino(sessaoId: string) {
     : null;
   const plano =
     sessao?.workoutId === WORKOUT_BARRA_FIXA ? prescricaoDaSemana(semanaFixa) : null;
+  /** O rótulo da coleção que gerou a sessão livre ("Core no tatame"). */
+  const tituloLivre = tituloDoPlano(sessao?.plano ?? null);
   const progresso = sessao ? progressoDaSessao(sessao) : null;
   const decorridoS = sessao
     ? Math.max(0, Math.round((agora - new Date(sessao.iniciadaEm).getTime()) / 1000))
@@ -381,6 +396,7 @@ export function useSessaoDeTreino(sessaoId: string) {
     salvando,
     treino,
     plano,
+    tituloLivre,
     progresso,
     decorridoS,
     anteriores,

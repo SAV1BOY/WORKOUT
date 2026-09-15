@@ -185,7 +185,8 @@ if (exercicios && ilustracoes) conferirIlustracoes(exercicios, ilustracoes);
 if (exercicios && programa) conferirReferencias(exercicios, programa);
 
 /**
- * A tela Equipamento (SPEC §3.9) mostra a primeira foto de cada item —
+ * A tela Equipamento (SPEC §3.9) e as coleções "Por aparelho" do Explorar
+ * (§13.4) mostram a primeira foto de cada item —
  * `assets/itens/<id>/<id>_01.jpg`, derivada da pasta que o JSON guarda.
  */
 if (equipamentos) {

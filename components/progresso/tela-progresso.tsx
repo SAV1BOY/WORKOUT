@@ -60,7 +60,16 @@ const SEMANAS_DE_ADERENCIA = 4;
  * `/relatorio` (SPEC §3.7 e §13.5): os cards, os gráficos e a lista de
  * recordes. O endereço antigo `/progresso` redireciona para cá.
  */
-export function TelaProgresso() {
+export function TelaProgresso({
+  comCabecalho = true,
+}: {
+  /**
+   * `false` quando a tela entra **dentro** do Relatório do marco V3, que já
+   * tem o próprio cabeçalho (SPEC §13.5.3: "os gráficos e a lista de recordes
+   * continuam abaixo").
+   */
+  comCabecalho?: boolean;
+} = {}) {
   const hoje = useHoje();
   const janela = hoje ? semanasAte(hoje, SEMANAS)[0] ?? null : null;
   const janelaAderencia = hoje ? semanasAte(hoje, SEMANAS_DE_ADERENCIA)[0] ?? null : null;
@@ -82,7 +91,7 @@ export function TelaProgresso() {
 
   if (erro) {
     return (
-      <Tela>
+      <Tela comCabecalho={comCabecalho}>
         <Erro
           mensagem={(erro as Error).message}
           aoTentarDeNovo={() => {
@@ -96,7 +105,7 @@ export function TelaProgresso() {
 
   if (!hoje || !perfilQ.data || sessoesQ.isPending || seriesQ.isPending) {
     return (
-      <Tela>
+      <Tela comCabecalho={comCabecalho}>
         <EsqueletoCard linhas={3} />
         <EsqueletoCard linhas={5} />
       </Tela>
@@ -127,7 +136,7 @@ export function TelaProgresso() {
   const semTreino = sessoes.length === 0;
 
   return (
-    <Tela>
+    <Tela comCabecalho={comCabecalho}>
       <div className="grid grid-cols-2 gap-2">
         <Numero
           rotulo="Treinos na semana"
@@ -376,9 +385,16 @@ export function TelaProgresso() {
   );
 }
 
-function Tela({ children }: { children: React.ReactNode }) {
+function Tela({
+  children,
+  comCabecalho = true,
+}: {
+  children: React.ReactNode;
+  comCabecalho?: boolean;
+}) {
   return (
     <section className="flex flex-col gap-4">
+      {comCabecalho ? (
       <header className="flex flex-col gap-2">
         <div className="flex flex-col gap-0.5">
           <h1 className="text-2xl font-semibold tracking-tight">Relatório</h1>
@@ -394,6 +410,7 @@ function Tela({ children }: { children: React.ReactNode }) {
           <span aria-hidden="true">→</span>
         </Link>
       </header>
+      ) : null}
       {children}
     </section>
   );

@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { apitar, vibrar } from "@/lib/apito";
 import { acharExercicio } from "@/lib/dados";
 import { formatarDuracao } from "@/lib/formato";
-import { textoDoAlvo } from "@/lib/hoje";
+import { textoDaCarga, textoDoAlvo } from "@/lib/hoje";
 import {
   DESCANSO_MAX_S,
   DESCANSO_MIN_S,
@@ -19,7 +19,8 @@ import {
   type EstadoPlayer,
   type PassoSerie,
 } from "@/lib/player";
-import type { BlocoLocal } from "@/lib/sessao";
+import type { Implemento } from "@/lib/schemas";
+import type { BlocoLocal, SerieLocal } from "@/lib/sessao";
 
 /**
  * O descanso em tela cheia (SPEC §14.1.3): fundo laranja escurecido, a figura
@@ -34,6 +35,7 @@ export function TelaDescanso({
   agora,
   proximo,
   blocoDoProximo,
+  serieDoProximo,
   som,
   vibracao,
   avancarSozinho,
@@ -45,6 +47,12 @@ export function TelaDescanso({
   agora: number;
   proximo: PassoSerie | null;
   blocoDoProximo: BlocoLocal | null;
+  /**
+   * A série do próximo passo. Num passo de **aquecimento** o alvo é o dela
+   * (5 reps com a barra vazia), não as séries de trabalho do bloco — mostrar
+   * "3 × 5" sob "AQUECIMENTO 2 DE 2" era o defeito da auditoria do marco V2.
+   */
+  serieDoProximo: SerieLocal | null;
   som: boolean;
   vibracao: boolean;
   avancarSozinho: boolean;
@@ -112,7 +120,9 @@ export function TelaDescanso({
             <Miniatura exercicioId={blocoDoProximo.exercicioId} className="size-24" />
             <h2 className="text-lg font-semibold text-balance">{exercicio.nome}</h2>
             <p className="text-descanso-destaque numero text-sm">
-              {textoDoAlvo(blocoDoProximo.prescricao.series, blocoDoProximo.alvo)}
+              {proximo?.aquecimento
+                ? textoDoAquecimento(exercicio.implemento, serieDoProximo)
+                : textoDoAlvo(blocoDoProximo.prescricao.series, blocoDoProximo.alvo)}
             </p>
           </>
         ) : null}
@@ -191,4 +201,15 @@ export function TelaDescanso({
       </div>
     </section>
   );
+}
+
+/** "5 × 7,5 kg na barra" — o alvo da própria série de aquecimento (§14.1.2). */
+function textoDoAquecimento(
+  implemento: Implemento,
+  serie: SerieLocal | null,
+): string {
+  if (!serie) return "aquecimento";
+  const reps = serie.repsAlvoMax ?? serie.repsAlvoMin ?? serie.reps;
+  const carga = textoDaCarga(implemento, serie.cargaKg);
+  return reps === null ? carga : `${reps} × ${carga}`;
 }

@@ -30,15 +30,28 @@ import { cn } from "@/lib/utils";
  * O conteúdo vem de `data/exercicios.json` (nada é escrito aqui) e a filtragem
  * é de `lib/catalogo.ts`, que os testes cobrem.
  */
-export function ListaExercicios() {
+export function ListaExercicios({
+  busca,
+}: {
+  /**
+   * Busca vinda de fora (a barra única do Explorar, SPEC §14.4). Quando vem,
+   * a caixa daqui some: duas buscas na mesma tela confundem.
+   */
+  busca?: string;
+} = {}) {
   const [filtros, setFiltros] = useState<FiltrosCatalogo>(FILTROS_VAZIOS);
+  const deFora = busca !== undefined;
   const doPrograma = useMemo(() => idsDoPrograma(), []);
   const opcoes = useMemo(() => opcoesDoCatalogo(exercicios), []);
   const prefs = usePerfil().data?.prefs;
   // SPEC §14.1.2: o que foi marcado como "não gosto" aparece por último
+  const usados = useMemo(
+    () => (deFora ? { ...filtros, busca: busca ?? "" } : filtros),
+    [deFora, filtros, busca],
+  );
   const achados = useMemo(
-    () => evitadosPorUltimo(filtrarExercicios(exercicios, filtros, doPrograma), (e) => e.id, prefs),
-    [filtros, doPrograma, prefs],
+    () => evitadosPorUltimo(filtrarExercicios(exercicios, usados, doPrograma), (e) => e.id, prefs),
+    [usados, doPrograma, prefs],
   );
 
   const mudar = (parte: Partial<FiltrosCatalogo>) =>
@@ -46,6 +59,7 @@ export function ListaExercicios() {
 
   return (
     <div className="flex flex-col gap-3">
+      {deFora ? null : (
       <div className="relative">
         <Search
           className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2"
@@ -71,6 +85,7 @@ export function ListaExercicios() {
           </button>
         ) : null}
       </div>
+      )}
 
       <div className="grid grid-cols-2 gap-2">
         <Selecao

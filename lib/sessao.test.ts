@@ -555,6 +555,8 @@ describe("escritas da fila de saída (SPEC §8)", () => {
         iniciada_em: "2026-09-14T09:00:00.000Z",
         // treino do programa: a semana do plano é das sessões de fixa (§3.4)
         semana_plano: null,
+        // e sem `sessions.plano`: a ordem é a do programa (§14.3)
+        plano: null,
       },
     });
   });
@@ -683,6 +685,7 @@ describe("concluirSessao — o motor e as escritas (SPEC §6.2, §6.6 e §8)", (
         fase: "fase1",
         iniciada_em: "2026-09-14T09:00:00.000Z",
         semana_plano: null,
+        plano: null,
         // e o que o fim do treino acrescenta
         status: "concluida",
         concluida_em: "2026-09-14T09:44:00.000Z",

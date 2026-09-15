@@ -37,12 +37,14 @@ export type SerieBruta = Pick<
   | "registrada_em"
 >;
 
-export type SessaoBruta = Pick<LinhaSessao, "id" | "data" | "status" | "workout_id">;
+export type SessaoBruta = Pick<LinhaSessao, "id" | "data" | "status" | "workout_id"> &
+  Partial<Pick<LinhaSessao, "duracao_s" | "plano">>;
 export type SoltaBruta = Pick<LinhaBarraFixaSolta, "data" | "reps">;
 export type CardioBruto = Pick<
   LinhaSessaoCardio,
   "data" | "tipo" | "duracao_min" | "distancia_km" | "feito" | "concluida"
->;
+> &
+  Partial<Pick<LinhaSessaoCardio, "semana_plano">>;
 
 /** Um ponto de qualquer gráfico semanal: a segunda-feira e o valor. */
 export interface PontoSemanal {

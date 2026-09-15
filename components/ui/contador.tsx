@@ -20,6 +20,7 @@ export function Contador({
 }) {
   return (
     <div
+      data-contador={rotulo}
       className={cn(
         "cartao border-border bg-card flex flex-col gap-0.5 border px-3 py-2.5",
         className,

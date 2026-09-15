@@ -45,6 +45,7 @@ import type {
   LinhaSerie,
   LinhaSessao,
   MotivoProgressao,
+  PlanoDaSessao,
   StatusSessao,
   TipoSerie,
   WorkoutId,
@@ -137,6 +138,13 @@ export interface SessaoLocal {
    * desde então, e a folha tem de voltar com a prescrição daquele dia.
    */
   semanaPlano: number | null;
+  /**
+   * `sessions.plano` (SPEC §13.4 e §14.3): a lista de exercícios com que a
+   * sessão nasceu. Obrigatório na sessão livre — ela não está em lugar nenhum
+   * — e usado também para guardar a **ordem desta sessão** quando o Miguel
+   * reordena o treino do dia. `null` = a ordem é a do programa.
+   */
+  plano: PlanoDaSessao | null;
   sensacao: number | null;
   pesoCorporal: number | null;
   notas: string | null;
@@ -297,6 +305,8 @@ export interface EntradaAvulsa extends Omit<EntradaMontagem, "treinoId"> {
   itens: ItemDaSessao[];
   /** Semana do plano da barra fixa (§3.4), gravada com a sessão. */
   semanaPlano?: number | null;
+  /** `sessions.plano` (§13.4): o que refaz esta sessão noutro aparelho. */
+  plano?: PlanoDaSessao | null;
 }
 
 /**
@@ -374,6 +384,7 @@ export function montarSessaoAvulsa(e: EntradaAvulsa): SessaoLocal {
     iniciadaEm: agora,
     concluidaEm: null,
     semanaPlano: e.semanaPlano ?? null,
+    plano: e.plano ?? null,
     sensacao: null,
     pesoCorporal: null,
     notas: null,
@@ -406,7 +417,7 @@ export function reconstruirSessao(
     | "fase"
     | "status"
     | "iniciada_em"
-  > & { semana_plano?: number | null },
+  > & { semana_plano?: number | null; plano?: PlanoDaSessao | null },
   series: LinhaSerie[],
   resto: Omit<EntradaMontagem, "id" | "userId" | "data" | "treinoId" | "fase"> & {
     /** Sessão fora do programa (§3.4): os itens não estão em `programa.json`. */
@@ -415,12 +426,13 @@ export function reconstruirSessao(
 ): SessaoLocal | null {
   const { itens, ...semItens } = resto;
   /*
-   * Um treino "livre" não tem lista de exercícios em lugar nenhum, e uma
-   * sessão de barra fixa (§3.4) só dá para refazer com os itens do plano da
-   * semana, que a tela passa: sem eles é melhor não refazer nada do que
-   * inventar uma sessão diferente da que foi registrada.
+   * Um treino "livre" não está escrito em lugar nenhum: os itens dele vêm de
+   * `sessions.plano` (§13.4), que a tela lê e passa aqui. Uma sessão de barra
+   * fixa (§3.4) idem, com os itens do plano da semana. Sem a lista é melhor
+   * não refazer nada do que inventar uma sessão diferente da registrada — e a
+   * MESMA lista vale para um treino do programa que foi reordenado, senão a
+   * sessão volta na ordem do programa e as séries não casam.
    */
-  if (linha.workout_id === "livre") return null;
   const doPrograma = ehTreinoDoPrograma(linha.workout_id)
     ? itensDoTreino(linha.workout_id)
     : null;
@@ -436,6 +448,7 @@ export function reconstruirSessao(
     fase: linha.fase,
     agora: linha.iniciada_em,
     semanaPlano: linha.semana_plano ?? null,
+    plano: linha.plano ?? null,
   });
 
   const porChave = new Map(
@@ -946,6 +959,7 @@ export function escritaDaSessao(sessao: SessaoLocal): Escrita {
       status: sessao.status,
       iniciada_em: sessao.iniciadaEm,
       semana_plano: sessao.semanaPlano,
+      plano: sessao.plano,
     },
   };
 }

@@ -102,6 +102,7 @@ curl -s -XPOST localhost:54321/__mock/seed -H 'content-type: application/json' \
 | `corpo.spec.ts` | peso (vírgula, upsert por data, média móvel), meta em `prefs`, as 8 medidas, a foto subindo para o bucket (URL assinada depois do reload) e a comparação com slider |
 | `player.spec.ts` | o player unificado (SPEC §14.1): preparação → exercício → ✓ → descanso (+20 s, editar, pular) → "firme?" → feedback → conclusão com o resumo do motor; fechar e reabrir no meio do descanso; offline sem perder nada; o circuito de core (reps e tempo); a ficha em folha com Vídeo · Músculos · Tutorial (que só chama o YouTube ao tocar e some sem rede); a visão geral e o gostei/não gosto |
 | `treino-v2.spec.ts` | a camada visual v2 (SPEC §13.2–§13.4): faixa da semana com ✓, meta semanal e sequência, os cards de segunda/terça/quinta/domingo, a lista com miniatura e carga, o "Continuar" da sessão aberta, o ⇄ que vale para a sessão que começa, `/progresso` → `/relatorio`, os raios e o vídeo opcional |
+| `v3.spec.ts` | o marco V3 (SPEC §14.3 e §14.4): os Desafios com a semana do perfil, a Parte do corpo em foco (chips, filtros derivados e o "Começar" que cria a **sessão livre** e grava `sessions.plano`), o Personalizar, o Editar/reordenar, o FAB Ajustar, o Explorar com as coleções derivadas e a busca sem acento, a tela de uma coleção, o Relatório com contadores/registros/sequências/Peso/IMC, o IMC no Corpo e as Preferências |
 | `auditoria.spec.ts` | o que os outros não provavam: nenhuma requisição ao Supabase com e-mail de fora, recarregar mantém a sessão, toda rota protegida volta ao login, e o mock recusando coluna/operador/filtro composto inventados |
 
 O marco V2 (SPEC §14.1) pôs o **player** em `/treinar/[sessionId]`: a folha de
@@ -111,6 +112,10 @@ treino (ela passa da preparação e abre a folha); quem testa o player usa
 `comecarNoPlayer(page)`, que só passa da preparação. Com o relógio congelado
 (`fixarData`) as contagens do player ficam paradas — é o que deixa os testes
 assertarem "2:30" e "10" exatos.
+
+O marco V3 (SPEC §14.3) pôs na aba Treino um "Parte do corpo em foco" e o nome
+da fase ("Fase 1 — corpo inteiro…"): um `getByRole("heading", { name: "Corpo" })`
+solto casa com os dois, e quem quer o título da aba Corpo usa `exact: true`.
 
 A camada visual v2 (SPEC §13.3) tirou o título "Hoje" da tela `/`: quem espera
 a tela usa `esperarAbaTreino(page)` (a região "Treino"), e quem troca de aba usa

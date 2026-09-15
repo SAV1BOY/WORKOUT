@@ -1,6 +1,7 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
+import Link from "next/link";
 import { useTheme } from "next-themes";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -64,6 +65,23 @@ export function TelaPreferencias({ userId }: { userId: string }) {
       <MetaSemanal userId={userId} perfil={perfil} />
       <Treino userId={userId} perfil={perfil} />
       <Incrementos userId={userId} perfil={perfil} />
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Créditos das imagens</CardTitle>
+          <CardDescription>
+            Autor, licença e link de cada ilustração e do mapa muscular (SPEC §15).
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Link
+            href="/mais/creditos"
+            className="alvo border-border bg-card hover:bg-accent flex items-center justify-between rounded-xl border px-3 py-2 text-sm font-medium"
+          >
+            Ver os créditos
+            <span aria-hidden="true">→</span>
+          </Link>
+        </CardContent>
+      </Card>
     </Tela>
   );
 }

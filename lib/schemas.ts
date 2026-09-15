@@ -499,6 +499,7 @@ export const perfilSchema = z.object({
 /* ----------------------------------------------------------------- tipos */
 
 export type Grupo = z.infer<typeof grupoSchema>;
+export type Subgrupo = z.infer<typeof subgrupoSchema>;
 export type Musculo = z.infer<typeof musculoSchema>;
 export type EquipamentoTag = z.infer<typeof equipamentoTagSchema>;
 export type Implemento = z.infer<typeof implementoSchema>;

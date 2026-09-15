@@ -12,7 +12,13 @@ import {
   CardForca,
 } from "@/components/treino/cards";
 import { CabecalhoDoTreino } from "@/components/treino/cabecalho";
+import { Desafios } from "@/components/treino/desafios";
+import { ModoEditar } from "@/components/treino/editar";
+import { FabAjustar } from "@/components/treino/fab-ajustar";
 import { ListaDoDia } from "@/components/treino/lista";
+import { ParteDoCorpo } from "@/components/treino/parte-do-corpo";
+import { Personalizar } from "@/components/treino/personalizar";
+import { Button } from "@/components/ui/button";
 import {
   iso,
   inicioDaSemana,
@@ -36,7 +42,16 @@ import {
   statusDoPeso,
   totalDeSoltas,
 } from "@/lib/hoje";
+import { desafios as montarDesafios } from "@/lib/colecoes";
 import { metaSemanal, progressoDaMeta, sequenciaDeSemanas } from "@/lib/metas";
+import {
+  aplicarOrdem,
+  ehAOrdemDoPrograma,
+  guardarOrdemNoAparelho,
+  lerOrdemDoAparelho,
+  limparOrdemDoAparelho,
+  mover,
+} from "@/lib/ordem";
 import { descartarSessao, registrarSolta } from "@/lib/queries/acoes";
 import {
   useCardio,
@@ -59,6 +74,7 @@ import {
   lerTrocasDoAparelho,
   limparTrocasDoAparelho,
 } from "@/lib/trocas";
+import { Pencil } from "lucide-react";
 
 /** Quantas semanas para trás a sequência de semanas precisa ler. */
 const SEMANAS_LIDAS = 16;
@@ -75,6 +91,9 @@ export function TelaTreino({ userId }: { userId: string }) {
   const cliente = useQueryClient();
   const [somando, setSomando] = useState(false);
   const [trocas, setTrocas] = useState<Record<string, string>>({});
+  /* "Editar" (SPEC §14.3): a ordem vale só para a sessão que vai começar */
+  const [ordem, setOrdem] = useState<string[]>([]);
+  const [editando, setEditando] = useState(false);
 
   const intervalo = hoje ? intervaloDaSemana(hoje) : null;
   const desde = hoje
@@ -106,6 +125,7 @@ export function TelaTreino({ userId }: { userId: string }) {
       return;
     }
     setTrocas(lerTrocasDoAparelho(hoje, treinoId));
+    setOrdem(lerOrdemDoAparelho(hoje, treinoId));
   }, [hoje, treinoId]);
 
   const trocar = useCallback(
@@ -121,6 +141,32 @@ export function TelaTreino({ userId }: { userId: string }) {
     },
     [hoje, treinoId],
   );
+
+  /** Os ids do programa, na ordem do programa (a base de "Editar"). */
+  const idsDoPrograma = useMemo(
+    () =>
+      treinoId
+        ? exerciciosDoTreino(treinoId).map(({ exercicio }) => exercicio.id)
+        : [],
+    [treinoId],
+  );
+
+  const reordenar = useCallback(
+    (de: number, para: number) => {
+      if (!hoje || !treinoId) return;
+      setOrdem((atual) => {
+        const nova = mover(aplicarOrdem(idsDoPrograma, atual), de, para);
+        guardarOrdemNoAparelho(hoje, treinoId, idsDoPrograma, nova);
+        return nova;
+      });
+    },
+    [hoje, treinoId, idsDoPrograma],
+  );
+
+  const voltarAoPrograma = useCallback(() => {
+    setOrdem([]);
+    limparOrdemDoAparelho();
+  }, []);
 
   const ids = useMemo(() => {
     if (!treinoId) return [];
@@ -140,8 +186,9 @@ export function TelaTreino({ userId }: { userId: string }) {
       // as barras já pesadas na balança mudam a escala (SPEC §3.9)
       montagem: opcoesDeMontagem(perfil?.prefs),
       trocas,
+      ordem,
     });
-  }, [treinoId, estadosQ.data, eventosQ.data, perfil?.prefs, trocas]);
+  }, [treinoId, estadosQ.data, eventosQ.data, perfil?.prefs, trocas, ordem]);
 
   const aberta = sessaoAberta(abertasQ.data ?? []);
   const seriesDaAbertaQ = useSeriesDaSessao(aberta?.id ?? null);
@@ -280,14 +327,50 @@ export function TelaTreino({ userId }: { userId: string }) {
       </section>
 
       {treinoId ? (
-        <ListaDoDia
-          itens={itens}
-          carregando={estadosQ.isPending && ids.length > 0}
-          mostrarRaios={mostrarRaios}
-          prefs={perfil?.prefs}
-          aoSubstituir={trocar}
-        />
+        editando ? (
+          <ModoEditar
+            itens={itens}
+            aoMover={reordenar}
+            aoVoltarAoPrograma={voltarAoPrograma}
+            aoFechar={() => setEditando(false)}
+            ehAOrdemDoPrograma={ehAOrdemDoPrograma(idsDoPrograma, ordem)}
+          />
+        ) : (
+          <>
+            <ListaDoDia
+              itens={itens}
+              carregando={estadosQ.isPending && ids.length > 0}
+              mostrarRaios={mostrarRaios}
+              prefs={perfil?.prefs}
+              aoSubstituir={trocar}
+            />
+            <Button
+              variant="outline"
+              className="alvo h-12 w-full rounded-xl"
+              onClick={() => setEditando(true)}
+            >
+              <Pencil aria-hidden="true" className="size-4" />
+              Editar
+            </Button>
+          </>
+        )
       ) : null}
+
+      <Desafios
+        desafios={montarDesafios({
+          fase: perfil.fase_atual,
+          semanaDaFase: semanaDaFase(hoje, perfil.fase_desde),
+          semanaFixa: perfil.semana_fixa,
+          semanaCorrida: perfil.semana_corrida,
+          proximoTreino,
+        })}
+      />
+
+      <ParteDoCorpo prefs={perfil.prefs} mostrarRaios={mostrarRaios} />
+
+      <Personalizar prefs={perfil.prefs} />
+
+      <FabAjustar perfil={perfil} />
     </Tela>
   );
 }
