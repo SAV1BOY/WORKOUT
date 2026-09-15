@@ -14,6 +14,9 @@ export default function Creditos() {
     ilustracoes.filter((i) => i.fonte === fonte);
   const everkinetic = porFonte("everkinetic");
   const wger = porFonte("wger");
+  /* A licença mostrada sai do JSON, não de um texto escrito aqui. */
+  const licencasDe = (lista: typeof ilustracoes) =>
+    [...new Set(lista.map((i) => i.licenca))].sort().join(" e ");
 
   return (
     <section className="flex flex-col gap-5">
@@ -29,13 +32,13 @@ export default function Creditos() {
         <Fonte
           nome="Everkinetic, via Wikimedia Commons"
           url="https://commons.wikimedia.org/wiki/Category:Everkinetic"
-          licenca="CC BY-SA 3.0"
+          licenca={licencasDe(everkinetic)}
           quantos={everkinetic.length}
         />
         <Fonte
           nome="wger (colaboradores)"
           url="https://wger.de/"
-          licenca="CC BY-SA 3.0 e 4.0"
+          licenca={licencasDe(wger)}
           quantos={wger.length}
         />
         <details className="text-muted-foreground text-xs">
@@ -83,9 +86,25 @@ export default function Creditos() {
           url="https://github.com/DuarteSantos8/openGym"
           licenca="MIT (a geometria; o resto do projeto é AGPL)"
         />
-        <p className="text-muted-foreground text-xs">
-          O texto completo da licença MIT anda junto do desenho, em
-          <code className="px-1">assets/mapa-muscular/LICENCA-mapa-anatomico.md</code>.
+        {/*
+          A MIT exige que o aviso de copyright viaje junto do que é
+          distribuído: o arquivo é publicado com o desenho, e aqui ele é um
+          link de verdade — não um caminho que só existe no repositório.
+        */}
+        <p className="text-sm">
+          <a
+            href="/mapa-muscular/LICENCA-mapa-anatomico.md"
+            target="_blank"
+            rel="noreferrer noopener"
+            className="alvo inline-flex items-center font-medium underline underline-offset-2"
+          >
+            Texto completo da licença MIT
+          </a>
+          <span className="text-muted-foreground">
+            {" "}
+            — anda junto do desenho, com a atribuição e o que foi feito com a
+            geometria
+          </span>
         </p>
       </Bloco>
 

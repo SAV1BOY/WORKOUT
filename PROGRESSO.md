@@ -4043,3 +4043,67 @@ assets, ilustrações incluídas) · `npm test` **886 testes em 38 arquivos** �
 `npm run e2e` **183 testes** ✓ (7,0 min). Capturas em `capturas/midia/`:
 `01-ficha-ilustracao`, `02-ficha-musculos` (as duas também no claro),
 `03-treino-lista`, `04-player-exercicio` e `05-creditos`, todas 360 × 740.
+
+### Auditoria independente do marco Mídia (rodada 1)
+
+Conferido no Chromium a 360 × 740 contra o mock, **nos dois temas**, com dados
+semeados — não só pelos testes:
+
+- **`data/ilustracoes.json`**: 77 entradas, todas com autor, licença e link;
+  145 arquivos listados = 145 no disco (nenhum órfão dos dois lados); 115 WebP
+  (largura máxima **640 px**, como o importador promete) + 30 SVG; 6,6 MB no
+  total. Nenhum `.mov`/`.mp4` e nenhuma fotografia de pessoa real entre os
+  escolhidos.
+- **A regra de escolha bate com os manifestos** nos cinco conferidos um a um:
+  `supino-reto-com-barra` (Everkinetic exata), `agachamento-bulgaro` (a wger
+  exata ganha da Everkinetic aproximada), `barra-fixa-assistida` (Everkinetic
+  aproximada, porque no wger não há imagem), `farmer-s-walk` (nenhuma das duas
+  fontes tem) e `abertura-de-ombros` (Everkinetic exata).
+- **Nada foi recortado nem recolorido**: os SVG do repositório são
+  byte a byte iguais aos do levantamento (md5 conferido em três deles) e os
+  bitmaps só foram redimensionados e convertidos.
+- **Ficha**: a ilustração alterna as duas posições (medido pelo `opacity` das
+  duas imagens no meio do crossfade), o toque pausa, o segmento troca para a
+  figura e volta, e o crédito linka a página da fonte.
+- **Mapa anatômico**: pintura conferida **por pixel** na imagem renderizada de
+  `supino-reto-com-barra`, `agachamento-livre` e `prancha`, nos dois temas — as
+  duas cores aparecem nas três. Contraste do secundário contra o corpo:
+  **3,61:1** no escuro e **3,07:1** no claro (≥ 3:1).
+- **Miniaturas**: aba Treino, `/treinar`, catálogo e player usam a ilustração;
+  no descanso ela volta como miniatura de 96 px.
+- **360 px**: `scrollWidth == clientWidth == 360` e nenhum elemento fora da
+  janela na aba Treino, na ficha (Vídeo e Músculos), no catálogo, nos créditos
+  e no player; nenhum alvo abaixo de 44 px nessas telas; nenhuma resposta HTTP
+  ≥ 400 em toda a varredura.
+
+Dois ajustes pequenos saíram desta auditoria (o resto virou observação):
+
+1. **A licença MIT do mapa agora é um link que abre** —
+   `/mapa-muscular/LICENCA-mapa-anatomico.md` é publicado junto do desenho, mas
+   a tela de créditos só citava o caminho `assets/…`, que não existe para quem
+   usa o app. A MIT exige que o aviso viaje com o que é distribuído.
+2. **A licença de cada fonte na tela de créditos sai do JSON** (`CC BY-SA 3.0`
+   para a Everkinetic, `CC BY-SA 4.0` para o wger) em vez do texto fixo
+   "CC BY-SA 3.0 e 4.0", que não batia com os dados. `e2e/midia.spec.ts` passou
+   a conferir as duas coisas (o arquivo da licença responde 200 e contém o
+   texto da MIT; a contagem por fonte é lida de `data/ilustracoes.json`).
+
+Observações registradas, sem correção nesta rodada:
+
+- O crédito sob a ilustração é um link de 13 px de altura. O alvo de 44 px
+  existe em **Mais → Créditos** (uma linha por exercício), então o crédito da
+  ficha é um atalho, não o único caminho.
+- `agachamento-bulgaro` é a única ilustração com menos de 320 px de largura
+  (308 × 164, o que o wger tem): no player ela sobe para 328 px e fica mole.
+- Nos três sem figura **e** sem ilustração (`escalador`, `salto-basico`,
+  `corrida-no-lugar-com-a-corda`) a aba Vídeo da **página** fica com altura
+  zero. É de antes deste marco (`semFoto` na página já existia no V2) e as duas
+  fotos aparecem logo abaixo.
+
+Capturas desta auditoria em `capturas/midia/`: as cinco do marco (duas também
+no claro) e `06-creditos-licenca-mit` (escuro e claro), com o link novo da
+licença MIT medido em 212 × 44 px.
+
+Portões rodados do zero nesta auditoria, com os dois ajustes acima aplicados:
+`npm run lint` ✓ · `npm run build` ✓ · `npm test` **886 testes / 38 arquivos** ✓
+· `npm run e2e` **183 testes em 7,1 min** ✓.

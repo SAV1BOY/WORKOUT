@@ -7,6 +7,8 @@
  * mapa pinta primário e secundário do supino, a lista do dia e o player usam a
  * ilustração, e Mais → Créditos lista todas as fontes com seus links.
  */
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { expect, test, type Page } from "@playwright/test";
 import {
   comecarNoPlayer,
@@ -18,6 +20,17 @@ import {
   semRolagemHorizontal,
   usuarioComPerfil,
 } from "./fixtures";
+
+/** O mesmo JSON que o app lê: a contagem da tela de créditos sai daqui. */
+const ILUSTRACOES = JSON.parse(
+  readFileSync(resolve(__dirname, "../data/ilustracoes.json"), "utf8"),
+) as { fonte: string; licenca: string }[];
+
+function resumoDaFonte(fonte: string): string {
+  const lista = ILUSTRACOES.filter((i) => i.fonte === fonte);
+  const licencas = [...new Set(lista.map((i) => i.licenca))].sort().join(" e ");
+  return `${licencas} · ${lista.length} exercícios`;
+}
 
 /** Segunda, 14/09/2026: primeiro dia do programa, Treino A (SPEC §5). */
 const SEGUNDA = "2026-09-14T08:00:00-03:00";
@@ -220,6 +233,20 @@ test.describe("Mais → Créditos", () => {
       page.getByText(/^CC BY-SA obriga a citar o autor/),
     ).toBeVisible();
     await expect(page.getByText("MIT").first()).toBeVisible();
+
+    // a MIT exige o aviso junto do que é distribuído: o link tem que abrir
+    const licencaMit = page.getByRole("link", {
+      name: "Texto completo da licença MIT",
+    });
+    const href = await licencaMit.getAttribute("href");
+    expect(href).toBe("/mapa-muscular/LICENCA-mapa-anatomico.md");
+    const arquivo = await page.request.get(href!);
+    expect(arquivo.status()).toBe(200);
+    expect(await arquivo.text()).toContain("Permission is hereby granted");
+
+    // a licença de cada fonte sai do JSON, não de um texto escrito na tela
+    await expect(page.getByText(resumoDaFonte("everkinetic"))).toBeVisible();
+    await expect(page.getByText(resumoDaFonte("wger"))).toBeVisible();
 
     // o autor de cada ilustração está lá, atrás do "Autor de cada ilustração"
     await page.getByText("Autor de cada ilustração").click();
