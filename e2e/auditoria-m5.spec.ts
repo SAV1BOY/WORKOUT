@@ -8,6 +8,7 @@ import {
   lerDoMock,
   resetarMock,
   semRolagemHorizontal,
+  URL_MOCK,
   usuarioComPerfil,
   type SessaoMock,
 } from "./fixtures";
@@ -326,8 +327,8 @@ async function medirNoBucket(
   caminho: string,
 ): Promise<{ tamanho: { largura: number; altura: number }; tipo: string }> {
   return page.evaluate(
-    async ({ token, caminho }) => {
-      const url = `http://127.0.0.1:54321/storage/v1/object/authenticated/progresso/${caminho}`;
+    async ({ token, caminho, base }) => {
+      const url = `${base}/storage/v1/object/authenticated/progresso/${caminho}`;
       const resposta = await fetch(url, {
         headers: { authorization: `Bearer ${token}`, apikey: "mock-anon" },
       });
@@ -339,7 +340,7 @@ async function medirNoBucket(
         tipo,
       };
     },
-    { token: sessao.token, caminho },
+    { token: sessao.token, caminho, base: URL_MOCK },
   );
 }
 
