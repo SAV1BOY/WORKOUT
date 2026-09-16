@@ -1,62 +1,19 @@
 "use client";
 
-import {
-  ChartLine,
-  Compass,
-  Dumbbell,
-  Ellipsis,
-  PersonStanding,
-} from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { ComponentType } from "react";
+import { ICONE_DA_ABA } from "@/components/icones-das-abas";
 import { ehPlayer } from "@/components/miolo";
+import { ABAS } from "@/lib/abas";
 import { cn } from "@/lib/utils";
 
-interface Item {
-  href: string;
-  rotulo: string;
-  Icone: ComponentType<{ className?: string }>;
-  /** rotas que acendem este item */
-  prefixos: string[];
-}
-
-/** SPEC §13.2: Treino · Explorar · Relatório · Corpo · Mais. */
-const ITENS: Item[] = [
-  {
-    href: "/",
-    rotulo: "Treino",
-    Icone: Dumbbell,
-    // a aba Treino absorveu Treinar: a sessão e o calendário acendem ela
-    prefixos: ["/", "/treinar", "/cardio", "/barra-fixa", "/calendario"],
-  },
-  {
-    href: "/explorar",
-    rotulo: "Explorar",
-    Icone: Compass,
-    prefixos: ["/explorar", "/exercicios"],
-  },
-  {
-    href: "/relatorio",
-    rotulo: "Relatório",
-    Icone: ChartLine,
-    prefixos: ["/relatorio", "/progresso"],
-  },
-  {
-    href: "/corpo",
-    rotulo: "Corpo",
-    Icone: PersonStanding,
-    prefixos: ["/corpo"],
-  },
-  { href: "/mais", rotulo: "Mais", Icone: Ellipsis, prefixos: ["/mais"] },
-];
-
-function ativo(caminho: string, prefixos: string[]): boolean {
+function ativo(caminho: string, prefixos: readonly string[]): boolean {
   return prefixos.some((p) =>
     p === "/" ? caminho === "/" : caminho === p || caminho.startsWith(`${p}/`),
   );
 }
 
+/** A barra de baixo (SPEC §13.2). A lista das abas vive em `lib/abas.ts`. */
 export function NavInferior() {
   const caminho = usePathname();
 
@@ -72,8 +29,9 @@ export function NavInferior() {
       className="bg-background/95 border-border pb-segura fixed inset-x-0 bottom-0 z-40 border-t backdrop-blur"
     >
       <ul className="mx-auto flex max-w-lg">
-        {ITENS.map(({ href, rotulo, Icone, prefixos }) => {
+        {ABAS.map(({ href, rotulo, icone, prefixos }) => {
           const aceso = ativo(caminho, prefixos);
+          const Icone = ICONE_DA_ABA[icone];
           return (
             <li key={href} className="flex-1">
               <Link
