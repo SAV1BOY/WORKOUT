@@ -4596,3 +4596,149 @@ npm run e2e    200 passed (7.4m) — Chromium 360 × 740
 5. Relatório: os três contadores do topo dizem "no total"; o card de baixo diz
    "só força"; "Todos os registros" tem **"Ver mais 12"**.
 6. Ficha de `puxada-alta-na-polia`: a Montagem não mostra mais `<strong>`.
+
+---
+
+## Fechamento v2.1 — ciclo 2 de correções (três auditorias independentes) ✅
+
+Commits `fdea2db`, `cd54cb7` e `3c3f90d`. Três problemas importantes, todos
+corrigidos, mais a explicação do que aconteceu com os "menores" desta rodada.
+
+### 1. Exercício sem série registrada gravava falha (`fdea2db`)
+
+O pior dos três, porque estragava sozinho o coração do app. Concluir uma sessão
+com exercícios em branco escrevia `exercise_state` + `progression_events` com
+`falhas_seguidas += 1` para cada um deles: a montagem já cria as `SerieLocal`
+vazias, então a guarda `if (series.length === 0)` de `lib/progressao.ts` nunca
+pegava e o motor lia "série não concluída" = falha (§6.2). Pelo acumulado, duas
+sessões assim tiram 10 % da carga e cortam o incremento pela metade; a terceira
+manda semana leve a 60 % — de exercícios nunca tentados. E com o player da
+§14.1, em que andar pelos exercícios sem registrar é o gesto normal e
+"Concluído" é a saída principal, isso ia acontecer sozinho.
+
+- `avaliarSessao` (`lib/sessao.ts`) manda a lista **vazia** ao motor quando o
+  bloco não tem nenhuma série de trabalho concluída. O resultado vira
+  `naoAvaliado` com `motivoNaoAvaliado: "nao_feito"` — o mesmo caminho da §6.3
+  que já existia para o estado desconhecido: nem estado, nem evento, nem falha.
+- **O motor não foi tocado**: `lib/progressao.ts` e `lib/montagem.ts` continuam
+  iguais ao commit do marco 1. A decisão de "o que é uma sessão feita" é da
+  camada da sessão, não do motor.
+- O resumo do fim (aba Treino e player) agora tem duas frases separadas: "Sem
+  avaliar, porque não consegui ler a carga atual: …" e "Não foi feito nesta
+  sessão, então não conta como falha: …".
+- Testes: uma sessão concluída de 6 blocos com 1 preenchido dá **1** escrita de
+  estado e **1** evento, e os outros 5 vêm com `falha: false`; e um exercício
+  FEITO abaixo do piso continua sendo falha (o teste que impede a correção de
+  virar anistia geral). Os dois falham sem a correção.
+- Escrito na **SPEC §6.3**.
+
+### 2. `/treinar` parada no esqueleto (`cd54cb7`)
+
+A auditoria mediu ~10 % de cargas frias de `/treinar` presas no esqueleto para
+sempre: HTML do servidor na tela, tudo em 200, console vazio, app nunca
+interativo. **Não reproduziu contra um build fresco**: 0 travas em 90
+navegações (20 seguidas com a conta cheia e o service worker no controle; 40 em
+10 contextos novos com `clock.setFixedTime`, tema claro e escuro; 30 com a
+semente cheia — perfil, 4 sessões, 24 séries por sessão, eventos, estado,
+cardio e pesos). O que explica a medição é o ambiente: havia um `next start` de
+**20:27** ainda de pé na 3101 servindo um build **anterior** às correções do
+ciclo 1 (22:40), enquanto outros builds reescreviam `.next` por baixo dele — a
+mesma máquina, dois agentes. A prova é que os "menores" desta rodada descrevem
+exatamente o app **antes** do ciclo 1 (medições abaixo).
+
+Mesmo assim o buraco é real e ficou tapado, porque quando a hidratação não
+acontece **nenhum `useEffect` roda** — nenhuma tela de erro em React aparece —
+e na Vercel um deploy no meio de uma navegação faz o mesmo estrago:
+
+- **`lib/vigia.ts`**: script inline no `layout`, sem React, disparado no parse.
+  Passados 12 s sem sinal de vida (`window.__appVivo`, que os Providers marcam
+  ao hidratar), ele desenha à mão a faixa "O app não terminou de abrir." com um
+  botão **Recarregar** de 44 px. Se o React acordar depois, `marcarAppVivo()`
+  tira a faixa. **Não recarrega sozinho** — o mesmo motivo de
+  `reloadOnOnline: false`.
+- **`lib/espera.ts` + `/treinar`**: dez segundos no esqueleto sem perfil e sem
+  erro trocam o `EsqueletoCard` pelo `Erro` com "Tentar de novo".
+- **A lacuna de teste que deixou isso passar**: todos os e2e chegavam a
+  `/treinar` por **clique**. Agora há um que abre a URL direto (carga fria,
+  três voltas) exigindo os dois cards, e outro que corta o pacote principal do
+  React (`serviceWorkers: "block"` + `page.route`) e exige a faixa do vigia, o
+  alvo de 44 px e o app de volta depois do toque.
+
+### 3. Fotos dos itens sem licença (`3c3f90d`)
+
+As 95 fotos de `assets/itens/` são de anúncio dos produtos comprados — obra de
+terceiro sem licença livre, contra as condições 1 e 2 da §15.1, e desde o V3
+elas eram a **capa** das coleções por aparelho no Explorar. Decisão escrita na
+**SPEC §15.3**: elas ficam, porque não são mídia de exercício e sim o registro
+particular das compras do dono num app de um usuário só atrás de login — com
+três condições, todas implementadas:
+
+1. **Só no inventário.** `colecaoDoAparelho` não passa mais `capa`: a coleção
+   por aparelho usa a mesma capa das outras (a foto de execução do primeiro
+   exercício). `fotoDoItem` de `lib/colecoes.ts` saiu; o de `lib/equipamento.ts`
+   (Mais → Equipamento) ficou.
+2. **Procedência no JSON.** `fotos_dos_itens` em `data/equipamentos.json`
+   (`pasta`, `origem`, `licenca: null`, `uso`), validado por Zod.
+3. **Dito na cara.** Mais → Créditos ganhou o bloco "Fotos dos itens do
+   terraço" montado desse JSON; a tabela "Créditos de mídia" do README ganhou a
+   linha e a frase da linha 84 foi corrigida.
+
+Testes: nenhuma coleção (aparelho, circuito ou grupo) com capa em `/itens/`; a
+procedência no JSON; e a e2e de Mais → Créditos exigindo o bloco novo.
+
+### Os "menores" desta rodada: medidos de novo no build atual
+
+Sete dos onze já estavam corrigidos no ciclo 1 (`32ddee7`, `8f28fad`) e a
+auditoria os viu no servidor velho. Medido agora, a 360 × 740, com a conta
+semeada:
+
+| o que a auditoria relatou | medido agora |
+|---|---|
+| FAB cobre 49 % do ⇄ da 1ª linha | **0 %** (FAB em 288/588, ⇄ em 300/696) |
+| crédito da ilustração 300,7 × **13** px | 300,7 × **44** px |
+| barra de 5 abas visível no player | **ausente** na preparação e no exercício |
+| passo do exercício rola 130 px | `scrollHeight` **740** = `innerHeight` 740 |
+| Desafios com o `objetivo` em caixa baixa como título | "Primeira barra fixa em 12 semanas" e "5 km sem parar em 12 semanas", com o `objetivo` de subtítulo |
+| "Todos os registros" sem "ver mais" | botão "Ver mais 12 de N" |
+| §14.1.1 contradiz "volta ao mesmo passo" | texto da SPEC já ajustado no ciclo 1 |
+
+Os quatro que continuam de pé estão na lista de conhecidos do ciclo 1 e não
+mudaram: ficha em folha fora do player sem stepper/n-N, subtítulo das coleções
+de aparelho vindo de `specs`, `Colecao.circuito` calculado sem leitor, CSP
+completa esperando o domínio do Supabase, e `ultima_firme` parcial enquanto a
+sessão corre (com o item 1 corrigido, a sessão que nunca conclui virou caso
+raro).
+
+### Portões
+
+Rodados nesta ordem, com a árvore limpa, numa janela sozinha:
+
+```
+npm run lint   limpo (sem avisos)
+npm run build  ✓ Compiled successfully · 90 páginas
+npm test       Test Files 43 passed (43) · Tests 975 passed (975)
+npm run e2e    202 passed (7.3m) — Chromium 360 × 740
+```
+
+`git diff` de `lib/progressao.ts` e `lib/montagem.ts`: vazio.
+
+> Nota de ambiente: o `npm run e2e` desta etapa rodou com `E2E_PORT=3110
+> MOCK_SUPABASE_PORT=54340` porque a 3100/54321 e a 3101 estavam ocupadas por
+> outro agente. **Antes de auditar, confira que o servidor que você está
+> medindo é o do build atual** — compare o hash do CSS do HTML servido com
+> `ls .next/static/css/`. Foi essa confusão que produziu sete achados falsos
+> nesta rodada.
+
+### Como testar no celular
+
+1. Comece um treino, registre **só o primeiro exercício** e toque em
+   "Concluído": o resumo diz "Não foi feito nesta sessão, então não conta como
+   falha: …" com os outros cinco, e o Relatório não mostra ↓ nenhum para eles.
+2. Registre um exercício **abaixo do piso** e conclua: esse continua com
+   "conta como falha".
+3. Explorar → "Por aparelho" → a capa do Banco agora é a foto de execução do
+   primeiro exercício, não a foto do banco. Mais → Equipamento continua com as
+   fotos dos itens, e Mais → Créditos explica de onde elas vêm.
+4. Abra `/treinar` direto pela URL (atalho ou outra aba): os dois treinos da
+   fase aparecem em menos de um segundo. Se um dia a tela ficar parada, depois
+   de 12 s aparece a faixa "O app não terminou de abrir." com **Recarregar**.
