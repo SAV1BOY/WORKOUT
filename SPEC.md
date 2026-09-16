@@ -707,8 +707,15 @@ cardio concluída (`cardio_sessions.concluida`) ou repetição solta de barra fi
 (`pullup_singles`). Sem nenhuma atividade o resultado é `null`: quem nunca
 treinou não está voltando de pausa nenhuma, e o card não aparece.
 
-A conta corre **ao abrir a aba Treino** e de novo **ao tocar em "Começar
-treino"**.
+A conta corre **ao abrir a aba Treino** e de novo a cada gesto que começa um
+treino (§18.3).
+
+Uma ressalva, e é ela que segura o card de pé: enquanto a pausa **não foi
+decidida**, a atividade registrada **hoje** não a apaga. Sem isso, quem voltou
+de 30 dias e tocou no "+1" da barra fixa antes de olhar o card veria a conta
+cair para zero, o card sumir sozinho — sem decisão nenhuma gravada — e treinaria
+no dia seguinte com a carga cheia, que é exatamente o que este adendo existe
+para evitar. No dia seguinte a conta já é 1 e não há card nenhum.
 
 ### 18.2 As faixas e o que cada opção grava
 
@@ -764,10 +771,19 @@ começo; o histórico fica) e só o **segundo** toque confirma.
 Decidida a retomada, o card **some** e a aba Treino e o `/calendario` se
 atualizam na hora (o cache do TanStack Query é **atualizado à mão**, não
 invalidado: sem rede, invalidar refaria a leitura e jogaria a aba Treino na tela
-de erro — §8). Tocar em **"Começar
-treino"** com o card pendente **não** começa o treino: leva ao card, com foco e
-destaque — decidir vem antes de treinar. Pelo mesmo motivo, o **FAB "Ajustar"**
-da aba Treino (§14.3) **não aparece** enquanto a pausa não foi decidida: ele é
+de erro — §8).
+
+Com o card pendente, **todo** gesto da aba Treino que começa um treino ou
+registra atividade leva ao card, com foco, destaque e o aviso "Antes: escolha
+como você quer voltar." — e não faz mais nada. São eles: **"Começar treino"** do
+card de força, **"Começar"** do card de cardio (inclusive na alternativa de
+corda), o **"+1"** das repetições soltas do dia de descanso, **"Começar
+caminhada leve"** do domingo e **"Treinar mesmo assim"**. Decidir vem antes de
+treinar, e vale para qualquer tipo de treino: no dia de cardio, começar sem
+decidir correria a semana errada do plano; no dia de descanso, o "+1" grava na
+hora e a própria atividade de hoje faria o card sumir (§18.1). Pelo mesmo
+motivo, o **FAB
+"Ajustar"** da aba Treino (§14.3) **não aparece** enquanto a pausa não foi decidida: ele é
 `fixed` e passava por cima do card, comendo o fim da frase de uma das opções e o
 toque naquele canto.
 
@@ -805,7 +821,12 @@ sequências.
    7 dias parado trazem o card de novo.
 6. **0–6 dias** não mostram card nenhum.
 7. Sem rede a escolha **entra na fila** e a tela responde na hora (§8).
-8. O card a 360 px: alvos ≥ 44 px, nada corta, nada rola para o lado, nos dois
+8. Num dia de **cardio**, tocar em "Começar" com o card pendente **não** abre a
+   sessão de cardio: leva ao card. Num dia de **descanso**, o "+1" da barra fixa
+   **não** registra a repetição: leva ao card. E se alguma atividade de hoje já
+   tiver sido registrada (de outra tela, do calendário), o card **continua** de
+   pé até ele decidir (§18.1).
+9. O card a 360 px: alvos ≥ 44 px, nada corta, nada rola para o lado, nos dois
    temas. Lint, build, `npm test` e `npm run e2e` verdes, com unitários das
    quatro faixas, das quatro escolhas e do "perguntar uma vez por pausa", e e2e
    novos desta seção.

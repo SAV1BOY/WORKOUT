@@ -237,6 +237,59 @@ export function deveMostrarRetomada({
   return ultima > ancoraDaRetomada(decidida);
 }
 
+export interface EntradaDaPausa {
+  hoje: Data;
+  sessoes?: readonly SessaoParada[];
+  cardios?: readonly CardioParado[];
+  fixas?: readonly FixaParada[];
+  prefs?: Prefs | null;
+}
+
+export interface PausaCorrente {
+  dias: number | null;
+  ultima: string | null;
+  /** O card tem de estar na tela (SPEC §18.3). */
+  mostrar: boolean;
+}
+
+/**
+ * A pausa que a aba Treino mostra (SPEC §18.1). É `diasParado` mais uma
+ * ressalva: enquanto a pausa não foi decidida, a atividade registrada **hoje**
+ * não a apaga. Quem voltou de 30 dias, tocou no "+1" da barra fixa e só depois
+ * olhou o card ainda precisa escolher como voltar — sem isso a conta caía para
+ * zero, o card sumia por conta própria e ele treinaria no dia seguinte com a
+ * carga cheia. No dia seguinte a conta já é 1 e não há card nenhum.
+ */
+export function pausaCorrente({
+  hoje,
+  sessoes = [],
+  cardios = [],
+  fixas = [],
+  prefs,
+}: EntradaDaPausa): PausaCorrente {
+  const data = typeof hoje === "string" ? hoje : iso(hoje);
+  const cru = {
+    dias: diasParado(hoje, sessoes, cardios, fixas),
+    ultima: ultimaAtividade(sessoes, cardios, fixas),
+  };
+  if (deveMostrarRetomada({ ...cru, prefs })) return { ...cru, mostrar: true };
+
+  const antes = <T extends { data: string }>(linhas: readonly T[]) =>
+    linhas.filter((l) => l.data < data);
+  const anteriores = {
+    sessoes: antes(sessoes),
+    cardios: antes(cardios),
+    fixas: antes(fixas),
+  };
+  const semHoje = {
+    dias: diasParado(hoje, anteriores.sessoes, anteriores.cardios, anteriores.fixas),
+    ultima: ultimaAtividade(anteriores.sessoes, anteriores.cardios, anteriores.fixas),
+  };
+  if (deveMostrarRetomada({ ...semHoje, prefs })) return { ...semHoje, mostrar: true };
+
+  return { ...cru, mostrar: false };
+}
+
 /* ------------------------------------------- o que cada escolha grava */
 
 /** Um upsert em `exercise_state` (só as colunas que mudam + a chave). */

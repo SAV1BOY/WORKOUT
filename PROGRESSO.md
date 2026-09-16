@@ -5520,7 +5520,8 @@ Relatório.
 
 ### Visto e **não** corrigido (vai para o dono decidir)
 
-1. **Só "Começar treino" passa pelo card.** Num dia de **cardio**, o "Começar"
+1. **Só "Começar treino" passa pelo card.** *(corrigido na rodada 1 de
+   correção, abaixo.)* Num dia de **cardio**, o "Começar"
    é um `<Link>` para `/cardio/corrida?semana=N` e leva direto; num dia de
    **descanso**, o "+1" da barra fixa grava na hora. Como a conta de dias parado
    olha a **última atividade**, qualquer um dos dois zera a pausa e o card
@@ -5536,3 +5537,70 @@ Relatório.
    faixa são as mesmas dos dois jeitos (28+), então só o número engana.
    Conserto: uma leitura própria da última atividade (um `order`+`limit 1` por
    tabela, sem janela) para `diasParado`.
+
+---
+
+## Correção da auditoria do marco Retomada — rodada 1 (16/09/2026)
+
+O auditor reprovou o marco por **um** problema, e ele foi corrigido dos dois
+jeitos que ele apontou — um fecha o buraco na interface, o outro fecha o mesmo
+buraco nos dados, para quando a atividade chega de outra tela.
+
+### O problema
+
+O portão da §18.3 existia só no "Começar treino" do card de força. Num dia de
+**cardio** o "Começar" era um `<Link>` e ia direto para `/cardio/<tipo>?semana=N`;
+num dia de **descanso** o "+1" da barra fixa gravava na hora; "Treinar mesmo
+assim" e a caminhada leve de domingo também eram links. Como a conta de dias
+parado olha a **última atividade**, qualquer um desses gestos punha atividade em
+hoje, a conta caía para zero e o card **sumia sem nunca ter sido decidido**:
+quem voltou de 30 dias e tocou no "+1" nunca receberia "Voltar mais leve" e
+treinaria no dia seguinte com a carga cheia.
+
+### O que mudou
+
+- **`components/treino/tela-treino.tsx`** — um `pedirDecisao()` só: com a pausa
+  por decidir, ele rola até o card, põe o foco nele, destaca e avisa "Antes:
+  escolha como você quer voltar.", devolvendo `true` para quem o chamou parar
+  ali. Passam por ele o "Começar treino", o `somarUma()` do "+1" e (via
+  `bloqueado` / `aoBloquear`) os botões dos cards de cardio e de descanso.
+- **`components/treino/cards.tsx`** — `CardCardio` e `CardDescanso` aceitam
+  `bloqueado` + `aoBloquear`. Bloqueados, o "Começar" do cardio, o "Começar
+  caminhada leve" e o "Treinar mesmo assim" viram `<Button>` que chama o portão;
+  sem pausa pendente continuam `<Link>`, para não perder o prefetch do Next.
+- **`lib/retomada.ts`** — `pausaCorrente()`, a rede de segurança: enquanto a
+  pausa **não foi decidida**, a atividade registrada **hoje** não entra na conta.
+  Se algo for registrado de outra tela (calendário, outro aparelho, fila que
+  subiu), o card continua de pé o dia inteiro e só some quando ele decide. No
+  dia seguinte a conta já é 1 e não há card nenhum.
+- **SPEC §18.1 e §18.3** ganharam as duas frases (quais gestos passam pelo card
+  e a ressalva da atividade de hoje) e a §18.6 um critério de aceite novo (o 8).
+
+### Testes
+
+- **Unitários: 1097 → 1102** (+5, em `lib/retomada.test.ts`): a atividade de
+  hoje que não apaga a pausa (barra fixa, cardio e força), a pausa já decidida
+  que não volta, o dia seguinte com a conta em 1 e o caso sem pausa nenhuma.
+- **Ponta a ponta: 250 passed**, com **4 testes novos** em
+  `e2e/retomada.spec.ts` (16 → 20 no arquivo), um por gesto: o
+  dia de cardio em que "Começar" e "Treinar mesmo assim" levam ao card e nada é
+  gravado; o dia de descanso em que o "+1" leva ao card, **`pullup_singles`
+  continua vazia** e, depois de decidir, o mesmo toque registra; o domingo com a
+  caminhada leve; e a pausa que sobrevive a uma atividade de hoje vinda de fora.
+
+### Portões
+
+`npm run lint` limpo · `npm run build` ✓ · `npm test` **1102 em 46 arquivos** ·
+`npm run e2e` **250 passed (9.3 min)**. Motor e montagem intocados. Capturas em
+`capturas/retomada/`, agora com `05-dia-de-cardio-bloqueado.png` e
+`06-dia-de-descanso-mais-um.png`.
+
+### Como testar no celular
+
+1. Fique 30 dias sem registrar nada e abra a aba **Treino** num **dia de
+   cardio**: toque em "Começar" — o app rola até o card e pede a decisão.
+2. Num **dia de descanso**, toque no **+1** da barra fixa: nada é somado e o
+   card ganha o destaque. Escolha "Voltar mais leve" e toque no +1 de novo: aí
+   sim o contador anda.
+3. Registre alguma coisa hoje (por outra tela) e recarregue: o card **continua**
+   lá com os mesmos N dias, até você decidir.

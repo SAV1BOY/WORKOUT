@@ -16,6 +16,7 @@ import {
   escritasDaRetomada,
   faixaDaRetomada,
   faixaDeDias,
+  pausaCorrente,
   retomadaDasPrefs,
   semanaAnterior,
   ultimaAtividade,
@@ -382,6 +383,76 @@ describe("perguntar uma vez por pausa (SPEC §18.4)", () => {
     expect(deveMostrarRetomada({ dias: 10, ultima: "2026-09-17", prefs })).toBe(true);
     // mas 6 dias parado depois do treino novo continuam não perguntando
     expect(deveMostrarRetomada({ dias: 6, ultima: "2026-09-17", prefs })).toBe(false);
+  });
+
+  it("a atividade de HOJE não apaga uma pausa ainda por decidir (§18.1)", () => {
+    // ele voltou de 30 dias e tocou no "+1" antes de olhar o card
+    const pausa = pausaCorrente({
+      hoje: HOJE,
+      sessoes: [{ data: "2026-08-17", status: "concluida" }],
+      fixas: [{ data: HOJE }],
+      prefs: {},
+    });
+    expect(pausa.mostrar).toBe(true);
+    expect(pausa.dias).toBe(30);
+    expect(pausa.ultima).toBe("2026-08-17");
+  });
+
+  it("o mesmo vale para o cardio e a força registrados hoje", () => {
+    for (const registro of [
+      { cardios: [{ data: HOJE, concluida: true }] },
+      {
+        sessoes: [
+          { data: "2026-09-02", status: "concluida" },
+          { data: HOJE, status: "concluida" },
+        ],
+      },
+    ]) {
+      const pausa = pausaCorrente({
+        hoje: HOJE,
+        sessoes: [{ data: "2026-09-02", status: "concluida" }],
+        prefs: {},
+        ...registro,
+      });
+      expect(pausa.mostrar).toBe(true);
+      expect(pausa.dias).toBe(14);
+    }
+  });
+
+  it("decidida a pausa, treinar hoje não traz o card de volta", () => {
+    const prefs = comRetomada({}, { em: HOJE, dias: 30, escolha: "leve" });
+    const pausa = pausaCorrente({
+      hoje: HOJE,
+      sessoes: [{ data: "2026-08-17", status: "concluida" }],
+      fixas: [{ data: HOJE }],
+      prefs,
+    });
+    expect(pausa.mostrar).toBe(false);
+    // e a conta volta a ser a de verdade: ele treinou hoje
+    expect(pausa.dias).toBe(0);
+  });
+
+  it("no dia seguinte a conta é 1 e não há card nenhum", () => {
+    const pausa = pausaCorrente({
+      hoje: "2026-09-17",
+      sessoes: [{ data: "2026-08-17", status: "concluida" }],
+      fixas: [{ data: HOJE }],
+      prefs: {},
+    });
+    expect(pausa.mostrar).toBe(false);
+    expect(pausa.dias).toBe(1);
+  });
+
+  it("sem pausa longa nenhuma, a atividade de hoje manda", () => {
+    const pausa = pausaCorrente({
+      hoje: HOJE,
+      sessoes: [
+        { data: "2026-09-13", status: "concluida" },
+        { data: HOJE, status: "concluida" },
+      ],
+      prefs: {},
+    });
+    expect(pausa).toEqual({ dias: 0, ultima: HOJE, mostrar: false });
   });
 
   it("lê e escreve a decisão nas prefs sem confiar no jsonb", () => {

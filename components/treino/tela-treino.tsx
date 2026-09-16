@@ -75,10 +75,8 @@ import {
 import { useHoje } from "@/lib/relogio";
 import { ligado, opcoesDeMontagem } from "@/lib/preferencias";
 import {
-  deveMostrarRetomada,
-  diasParado,
   faixaDaRetomada,
-  ultimaAtividade,
+  pausaCorrente,
   type EscolhaRetomada,
 } from "@/lib/retomada";
 import { faixaDaSemana, intervaloDaSemana, montarGrade } from "@/lib/semana";
@@ -148,23 +146,24 @@ export function TelaTreino({ userId }: { userId: string }) {
   /*
    * SPEC §18.1: há quantos dias inteiros ele não registra nada — força, cardio
    * ou barra fixa. A conta corre a cada desenho da tela, então vale tanto ao
-   * abrir a aba quanto ao tocar em "Começar treino".
+   * abrir a aba quanto ao tocar em "Começar treino"; e a atividade registrada
+   * hoje não derruba uma pausa que ainda não foi decidida.
    */
-  const pausa = useMemo(() => {
-    const feitas = sessoesQ.data ?? [];
-    const corridas = cardioDesdeQ.data ?? [];
-    const fixas = soltasDoPeriodoQ.data ?? [];
-    return {
-      dias: hoje ? diasParado(hoje, feitas, corridas, fixas) : null,
-      ultima: ultimaAtividade(feitas, corridas, fixas),
-    };
-  }, [hoje, sessoesQ.data, cardioDesdeQ.data, soltasDoPeriodoQ.data]);
+  const pausa = useMemo(
+    () =>
+      hoje
+        ? pausaCorrente({
+            hoje,
+            sessoes: sessoesQ.data ?? [],
+            cardios: cardioDesdeQ.data ?? [],
+            fixas: soltasDoPeriodoQ.data ?? [],
+            prefs: perfil?.prefs,
+          })
+        : { dias: null, ultima: null, mostrar: false },
+    [hoje, sessoesQ.data, cardioDesdeQ.data, soltasDoPeriodoQ.data, perfil?.prefs],
+  );
 
-  const mostrarRetomada = deveMostrarRetomada({
-    dias: pausa.dias,
-    ultima: pausa.ultima,
-    prefs: perfil?.prefs,
-  });
+  const mostrarRetomada = pausa.mostrar;
   const opcoesDaRetomada = mostrarRetomada
     ? faixaDaRetomada(pausa.dias).opcoes
     : [];
@@ -319,6 +318,22 @@ export function TelaTreino({ userId }: { userId: string }) {
         }
       : null;
 
+  /*
+   * SPEC §18.3: o portão da retomada. Todo gesto da aba Treino que começa um
+   * treino ou registra atividade — "Começar treino", o "Começar" do cardio, o
+   * "+1" da barra fixa, "Treinar mesmo assim" e a caminhada leve — passa por
+   * aqui: com a pausa por decidir, o toque leva ao card (foco, destaque e um
+   * aviso) e não faz mais nada. Devolve `true` quando barrou.
+   */
+  const pedirDecisao = (): boolean => {
+    if (!mostrarRetomada) return false;
+    setDestacarRetomada(true);
+    refRetomada.current?.scrollIntoView({ block: "start" });
+    refRetomada.current?.focus({ preventScroll: true });
+    toast.info("Antes: escolha como você quer voltar.");
+    return true;
+  };
+
   /* SPEC §18.2: a escolha vai para a fila e o card some. */
   const escolherRetomada = async (escolha: EscolhaRetomada) => {
     if (pausa.dias === null) return;
@@ -343,6 +358,8 @@ export function TelaTreino({ userId }: { userId: string }) {
   };
 
   const somarUma = async () => {
+    /* SPEC §18.3: a repetição solta grava na hora — decidir vem antes dela */
+    if (pedirDecisao()) return;
     setSomando(true);
     try {
       await registrarSolta({ userId, data: hoje, cliente });
@@ -408,13 +425,7 @@ export function TelaTreino({ userId }: { userId: string }) {
             criando={criando !== null}
             aoComecar={() => {
               /* SPEC §18.3: com a retomada pendente, decidir vem antes */
-              if (mostrarRetomada) {
-                setDestacarRetomada(true);
-                refRetomada.current?.scrollIntoView({ block: "start" });
-                refRetomada.current?.focus({ preventScroll: true });
-                toast.info("Antes: escolha como você quer voltar.");
-                return;
-              }
+              if (pedirDecisao()) return;
               void comecar({ userId, perfil, hoje, treinoId, trocas, ordem });
             }}
           />
@@ -428,6 +439,9 @@ export function TelaTreino({ userId }: { userId: string }) {
             }
             nomeDoProximoTreino={acharTreino(proximoTreino).nome}
             aviso={aviso}
+            /* SPEC §18.3: sem a decisão, o "Começar" leva ao card */
+            bloqueado={mostrarRetomada}
+            aoBloquear={pedirDecisao}
           />
         ) : null}
 
@@ -439,6 +453,9 @@ export function TelaTreino({ userId }: { userId: string }) {
             ocupado={somando}
             nomeDoProximoTreino={acharTreino(proximoTreino).nome}
             comCaminhada={dia.dia === "dom"}
+            /* SPEC §18.3: idem para a caminhada e o "Treinar mesmo assim" */
+            bloqueado={mostrarRetomada}
+            aoBloquear={pedirDecisao}
           />
         ) : null}
       </section>

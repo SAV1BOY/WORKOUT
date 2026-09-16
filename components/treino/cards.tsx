@@ -62,14 +62,63 @@ export function BannerSessaoAberta({
   );
 }
 
+/* ------------------------------------------------- o portão da retomada */
+
+/**
+ * SPEC §18.3: enquanto a pausa não foi decidida, os botões que levam a começar
+ * uma atividade chamam `aoBloquear` (que leva ao card) em vez de navegar. Sem
+ * pausa pendente continuam sendo `<Link>` — o prefetch do Next não se perde.
+ */
+export interface Bloqueio {
+  bloqueado?: boolean;
+  aoBloquear?: () => void;
+}
+
+function BotaoQueLeva({
+  href,
+  bloqueado,
+  aoBloquear,
+  className,
+  variant,
+  children,
+}: Bloqueio & {
+  href: string;
+  className: string;
+  variant?: "outline";
+  children: React.ReactNode;
+}) {
+  if (bloqueado) {
+    return (
+      <Button type="button" variant={variant} className={className} onClick={aoBloquear}>
+        {children}
+      </Button>
+    );
+  }
+  return (
+    <Button asChild variant={variant} className={className}>
+      <Link href={href}>{children}</Link>
+    </Button>
+  );
+}
+
 /* --------------------------------------------------- treinar mesmo assim */
 
 /** SPEC §5.3: treinar num dia de cardio ou descanso é permitido. */
-export function TreinarMesmoAssim({ nomeDoTreino }: { nomeDoTreino: string }) {
+export function TreinarMesmoAssim({
+  nomeDoTreino,
+  bloqueado,
+  aoBloquear,
+}: Bloqueio & { nomeDoTreino: string }) {
   return (
-    <Button asChild variant="outline" className="alvo h-12 w-full rounded-xl">
-      <Link href="/treinar">Treinar mesmo assim ({nomeDoTreino})</Link>
-    </Button>
+    <BotaoQueLeva
+      href="/treinar"
+      variant="outline"
+      className="alvo h-12 w-full rounded-xl"
+      bloqueado={bloqueado}
+      aoBloquear={aoBloquear}
+    >
+      Treinar mesmo assim ({nomeDoTreino})
+    </BotaoQueLeva>
   );
 }
 
@@ -182,7 +231,9 @@ export function CardCardio({
   alternativaCorda,
   nomeDoProximoTreino,
   aviso,
-}: {
+  bloqueado,
+  aoBloquear,
+}: Bloqueio & {
   sessao: SessaoCardioDoDia;
   alternativaCorda: SessaoCardioDoDia | null;
   nomeDoProximoTreino: string;
@@ -215,9 +266,16 @@ export function CardCardio({
           <DetalheDaCorrida sessao={mostrada} />
         )}
 
-        <BotaoLargo asChild>
-          <Link href={href}>Começar</Link>
-        </BotaoLargo>
+        {/* SPEC §18.3: com a pausa por decidir, "Começar" leva ao card */}
+        {bloqueado ? (
+          <BotaoLargo type="button" onClick={aoBloquear}>
+            Começar
+          </BotaoLargo>
+        ) : (
+          <BotaoLargo asChild>
+            <Link href={href}>Começar</Link>
+          </BotaoLargo>
+        )}
 
         {alternativaCorda ? (
           <Button
@@ -231,7 +289,11 @@ export function CardCardio({
         ) : null}
       </CardCapa>
 
-      <TreinarMesmoAssim nomeDoTreino={nomeDoProximoTreino} />
+      <TreinarMesmoAssim
+        nomeDoTreino={nomeDoProximoTreino}
+        bloqueado={bloqueado}
+        aoBloquear={aoBloquear}
+      />
     </>
   );
 }
@@ -246,7 +308,9 @@ export function CardDescanso({
   ocupado,
   nomeDoProximoTreino,
   comCaminhada = false,
-}: {
+  bloqueado,
+  aoBloquear,
+}: Bloqueio & {
   nota: string | null;
   total: number;
   aoSomarUma: () => void;
@@ -287,16 +351,24 @@ export function CardDescanso({
         </div>
 
         {comCaminhada ? (
-          <Button asChild variant="outline" className="alvo h-12 w-full rounded-xl">
-            <Link href="/cardio/caminhada">
-              <Footprints className="size-4" />
-              Começar caminhada leve
-            </Link>
-          </Button>
+          <BotaoQueLeva
+            href="/cardio/caminhada"
+            variant="outline"
+            className="alvo h-12 w-full rounded-xl"
+            bloqueado={bloqueado}
+            aoBloquear={aoBloquear}
+          >
+            <Footprints className="size-4" />
+            Começar caminhada leve
+          </BotaoQueLeva>
         ) : null}
       </CardCapa>
 
-      <TreinarMesmoAssim nomeDoTreino={nomeDoProximoTreino} />
+      <TreinarMesmoAssim
+        nomeDoTreino={nomeDoProximoTreino}
+        bloqueado={bloqueado}
+        aoBloquear={aoBloquear}
+      />
     </>
   );
 }

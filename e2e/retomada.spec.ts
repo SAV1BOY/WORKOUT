@@ -54,9 +54,16 @@ interface LinhaEstadoMock {
   reps_alvo: number | null;
 }
 
-/** Quantos dias antes de hoje (26/10/2026). */
-function diasAtras(dias: number): string {
-  const d = new Date("2026-10-26T12:00:00Z");
+/** Terça 27/10/2026, dia de cardio (corrida) na Fase 1 (SPEC §5). */
+const HOJE_CARDIO = "2026-10-27T08:00:00-03:00";
+/** Quinta 29/10/2026, dia de descanso. */
+const HOJE_DESCANSO = "2026-10-29T08:00:00-03:00";
+/** Domingo 01/11/2026, descanso com caminhada leve. */
+const HOJE_DOMINGO = "2026-11-01T08:00:00-03:00";
+
+/** Quantos dias antes do dia de referência (26/10/2026, por padrão). */
+function diasAtras(dias: number, base = "2026-10-26"): string {
+  const d = new Date(`${base}T12:00:00Z`);
   d.setUTCDate(d.getUTCDate() - dias);
   return d.toISOString().slice(0, 10);
 }
@@ -65,14 +72,14 @@ function diasAtras(dias: number): string {
  * O usuário com a última sessão concluída há `dias` dias e uma carga já
  * conquistada no agachamento. O último treino foi o B, então o de hoje é o A.
  */
-async function usuarioParado(dias: number): Promise<SessaoMock> {
+async function usuarioParado(dias: number, base?: string): Promise<SessaoMock> {
   const sessao = await usuarioComPerfil({
     ultimo_treino: "B1",
     semana_corrida: 3,
     semana_corda: 2,
     semana_fixa: 4,
   });
-  const data = diasAtras(dias);
+  const data = diasAtras(dias, base);
   await inserirNoMock(sessao, "sessions", [
     {
       data,
@@ -556,5 +563,108 @@ test.describe("auditoria do marco Retomada", () => {
     await opcao(page, "continuar").click();
     await esperarEscolha(page, sessao, "continuar");
     await expect(fab).toBeVisible();
+  });
+});
+
+/* --------------------------- correção da auditoria: os outros gestos (§18.3) */
+
+test.describe("todo gesto passa pelo card (SPEC §18.3)", () => {
+  test("no dia de cardio, 'Começar' leva ao card e não abre a sessão", async ({
+    page,
+  }) => {
+    const sessao = await usuarioParado(30, "2026-10-27");
+    await fixarData(page, HOJE_CARDIO);
+    await entrarNoApp(page);
+    await esperarAbaTreino(page);
+    await expect(card(page)).toContainText("Você ficou 30 dias sem treinar");
+
+    const hojeNaTela = page.getByRole("region", { name: "Hoje" });
+    await hojeNaTela.getByRole("button", { name: "Começar", exact: true }).click();
+
+    // nada de /cardio/corrida: a decisão vem antes
+    await expect(page).toHaveURL(/\/$/);
+    await expect(card(page)).toBeVisible();
+    await expect(card(page)).toBeFocused();
+    expect((await perfilDoMock(sessao))?.prefs?.retomada).toBeUndefined();
+    await semRolagemHorizontal(page);
+    await page.screenshot({
+      path: `${CAPTURAS}/05-dia-de-cardio-bloqueado.png`,
+      fullPage: true,
+    });
+
+    // e "Treinar mesmo assim" também passa pelo card
+    await hojeNaTela.getByRole("button", { name: /Treinar mesmo assim/ }).click();
+    await expect(page).toHaveURL(/\/$/);
+    await expect(card(page)).toBeVisible();
+  });
+
+  test("no dia de descanso, o '+1' leva ao card e não registra a repetição", async ({
+    page,
+  }) => {
+    const sessao = await usuarioParado(30, "2026-10-29");
+    await fixarData(page, HOJE_DESCANSO);
+    await entrarNoApp(page);
+    await esperarAbaTreino(page);
+    await expect(card(page)).toContainText("Você ficou 30 dias sem treinar");
+
+    await page
+      .getByRole("button", { name: "Somar uma repetição solta de barra fixa" })
+      .click();
+    await expect(card(page)).toBeFocused();
+    await semRolagemHorizontal(page);
+    await page.screenshot({
+      path: `${CAPTURAS}/06-dia-de-descanso-mais-um.png`,
+      fullPage: true,
+    });
+    // nada foi gravado: nem no banco, nem na fila que sobe para ele
+    await page.waitForTimeout(1_000);
+    expect(await lerDoMock(sessao, "pullup_singles")).toHaveLength(0);
+    expect((await perfilDoMock(sessao))?.prefs?.retomada).toBeUndefined();
+
+    // decidida a pausa, o mesmo toque registra
+    await opcao(page, "leve").click();
+    await esperarEscolha(page, sessao, "leve");
+    await page
+      .getByRole("button", { name: "Somar uma repetição solta de barra fixa" })
+      .click();
+    await expect
+      .poll(async () => (await lerDoMock(sessao, "pullup_singles")).length, {
+        timeout: 15_000,
+      })
+      .toBe(1);
+  });
+
+  test("no domingo, a caminhada leve também leva ao card", async ({ page }) => {
+    await usuarioParado(30, "2026-11-01");
+    await fixarData(page, HOJE_DOMINGO);
+    await entrarNoApp(page);
+    await esperarAbaTreino(page);
+
+    await page.getByRole("button", { name: "Começar caminhada leve" }).click();
+    await expect(page).toHaveURL(/\/$/);
+    await expect(card(page)).toBeFocused();
+  });
+
+  test("a atividade de hoje não apaga a pausa por decidir (SPEC §18.1)", async ({
+    page,
+  }) => {
+    // ele voltou de 30 dias e já registrou algo hoje (de outra tela)
+    const sessao = await usuarioParado(30, "2026-10-29");
+    await inserirNoMock(sessao, "pullup_singles", [
+      { data: diasAtras(0, "2026-10-29"), reps: 1 },
+    ]);
+    await fixarData(page, HOJE_DESCANSO);
+    await entrarNoApp(page);
+    await esperarAbaTreino(page);
+
+    await expect(card(page)).toContainText("Você ficou 30 dias sem treinar");
+    await expect(opcao(page, "zero")).toBeVisible();
+
+    // decidido, o card some e não volta
+    await opcao(page, "leve").click();
+    await esperarEscolha(page, sessao, "leve");
+    await page.reload();
+    await esperarAbaTreino(page);
+    await expect(card(page)).toHaveCount(0);
   });
 });
