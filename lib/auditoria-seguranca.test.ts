@@ -67,6 +67,53 @@ describe("schema.sql: RLS", () => {
   });
 });
 
+describe("schema.sql: só o e-mail permitido tem conta (SPEC §9)", () => {
+  /** O literal do bloco "AJUSTE AQUI" (public.allowed_email()). */
+  function emailDaConstante(): string | undefined {
+    return /create or replace function public\.allowed_email\(\)[\s\S]*?select '([^']+)'::text/
+      .exec(schema)?.[1];
+  }
+
+  it("a constante devolve o mesmo e-mail do ALLOWED_EMAIL", () => {
+    const exemplo = readFileSync(join(RAIZ, ".env.local.example"), "utf8");
+    const doEnv = /ALLOWED_EMAIL=(.+)/.exec(exemplo)?.[1]?.trim();
+    expect(doEnv).toBeTruthy();
+    expect(emailDaConstante()).toBe(doEnv);
+  });
+
+  it("um trigger `before insert on auth.users` barra qualquer outro e-mail", () => {
+    // BEFORE, para abortar antes do AFTER que cria o perfil
+    expect(schema).toMatch(
+      /create trigger on_auth_user_email_permitido before insert on auth\.users/,
+    );
+    expect(schema).toMatch(
+      /lower\(coalesce\(new\.email, ''\)\) is distinct from lower\(public\.allowed_email\(\)\)/,
+    );
+    expect(schema).toContain("raise exception 'Este app é pessoal");
+    // roda como dono: o supabase_auth_admin não tem execute na constante
+    expect(schema).toMatch(
+      /function public\.exigir_email_permitido\(\) returns trigger[\s\S]{0,120}security definer/,
+    );
+  });
+
+  it("a constante não vaza pelo PostgREST", () => {
+    expect(schema).toContain(
+      "revoke all on function public.allowed_email() from public",
+    );
+  });
+
+  it("nenhuma policy libera `true` para authenticated", () => {
+    const policies = [...schema.matchAll(/create policy[\s\S]*?;/g)].map(
+      (m) => m[0],
+    );
+    expect(policies.length).toBeGreaterThan(0);
+    for (const policy of policies) {
+      expect(policy, `policy sem auth.uid(): ${policy}`).toContain("auth.uid()");
+      expect(policy).not.toMatch(/using \(true\)|with check \(true\)/);
+    }
+  });
+});
+
 describe("schema.sql: views", () => {
   it("toda view roda com os direitos de quem consulta (security_invoker)", () => {
     const views = [

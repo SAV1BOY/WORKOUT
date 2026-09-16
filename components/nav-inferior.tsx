@@ -1,9 +1,16 @@
 "use client";
 
-import { ChartLine, Dumbbell, Ellipsis, House, PersonStanding } from "lucide-react";
+import {
+  ChartLine,
+  Compass,
+  Dumbbell,
+  Ellipsis,
+  PersonStanding,
+} from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ComponentType } from "react";
+import { ehPlayer } from "@/components/miolo";
 import { cn } from "@/lib/utils";
 
 interface Item {
@@ -14,19 +21,26 @@ interface Item {
   prefixos: string[];
 }
 
+/** SPEC §13.2: Treino · Explorar · Relatório · Corpo · Mais. */
 const ITENS: Item[] = [
-  { href: "/", rotulo: "Hoje", Icone: House, prefixos: ["/", "/calendario"] },
   {
-    href: "/treinar",
-    rotulo: "Treinar",
+    href: "/",
+    rotulo: "Treino",
     Icone: Dumbbell,
-    prefixos: ["/treinar", "/cardio", "/barra-fixa"],
+    // a aba Treino absorveu Treinar: a sessão e o calendário acendem ela
+    prefixos: ["/", "/treinar", "/cardio", "/barra-fixa", "/calendario"],
   },
   {
-    href: "/progresso",
-    rotulo: "Progresso",
+    href: "/explorar",
+    rotulo: "Explorar",
+    Icone: Compass,
+    prefixos: ["/explorar", "/exercicios"],
+  },
+  {
+    href: "/relatorio",
+    rotulo: "Relatório",
     Icone: ChartLine,
-    prefixos: ["/progresso", "/exercicios"],
+    prefixos: ["/relatorio", "/progresso"],
   },
   {
     href: "/corpo",
@@ -45,6 +59,12 @@ function ativo(caminho: string, prefixos: string[]): boolean {
 
 export function NavInferior() {
   const caminho = usePathname();
+
+  /*
+   * SPEC §14.1: o player é tela cheia — a saída é pelo ícone de lista/voltar
+   * dele. O Descanso já escondia a barra; agora todos os passos escondem.
+   */
+  if (ehPlayer(caminho)) return null;
 
   return (
     <nav

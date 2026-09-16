@@ -20,6 +20,14 @@ const eslintConfig = [
       "next-env.d.ts",
       // gerado pelo Serwist no build
       "public/**",
+      /*
+       * Rastros e capturas que o Playwright deixa quando um e2e falha. Não é
+       * código nosso — e o JS que vai dentro do trace (bundles de terceiros)
+       * fazia `npm run lint` FALHAR depois de uma suíte com falha, o que
+       * transformava o portão numa loteria.
+       */
+      "test-results/**",
+      "playwright-report/**",
     ],
   },
 ];

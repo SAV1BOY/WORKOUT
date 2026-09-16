@@ -1,8 +1,6 @@
-import { TelaProgresso } from "@/components/progresso/tela-progresso";
+import { permanentRedirect } from "next/navigation";
 
-export const metadata = { title: "Progresso — Treino do Terraço" };
-export const dynamic = "force-dynamic";
-
+/** SPEC §13.2: Progresso virou Relatório; o endereço antigo continua valendo. */
 export default function Progresso() {
-  return <TelaProgresso />;
+  permanentRedirect("/relatorio");
 }

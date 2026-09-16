@@ -4,16 +4,19 @@
  */
 import { expect, test, type Page } from "@playwright/test";
 import {
+  abrirVisaoGeral,
   atualizarNoMock,
+  comecarOTreinoDoDia,
   entrarNoApp,
+  esperarAbaTreino,
   esperarServiceWorker,
   fixarData,
   inserirNoMock,
   lerDoMock,
   resetarMock,
   semRolagemHorizontal,
-  usuarioComPerfil,
   type SessaoMock,
+  usuarioComPerfil,
 } from "./fixtures";
 
 /** 14/09/2026 é a segunda-feira que abre o programa: Treino A (SPEC §5). */
@@ -48,10 +51,15 @@ async function comecarTreinoA(page: Page): Promise<SessaoMock> {
   const sessao = await usuarioComPerfil();
   await fixarData(page, SEGUNDA);
   await entrarNoApp(page);
-  await page.getByRole("link", { name: "Começar treino" }).click();
-  await page.getByRole("button", { name: "Começar Treino A" }).click();
-  await expect(page.getByRole("heading", { name: "Treino A", level: 1 })).toBeVisible();
+  await comecarOTreinoDoDia(page);
   await expect(page).toHaveURL(/\/treinar\/[0-9a-f-]{36}$/);
+  /*
+   * SPEC §14.1: o caminho principal agora é o player. A folha de rolagem com
+   * todas as séries virou a **visão geral**, atrás do ícone de lista — é nela
+   * que estes testes continuam valendo, série a série.
+   */
+  await abrirVisaoGeral(page);
+  await expect(page.getByRole("heading", { name: "Treino A", level: 1 })).toBeVisible();
   return sessao;
 }
 
@@ -109,7 +117,7 @@ test.describe("começar o treino (SPEC §3.2)", () => {
     await comecarTreinoA(page);
     const url = page.url();
 
-    await page.getByRole("link", { name: "Treinar" }).click();
+    await page.goto("/treinar");
     await expect(page).toHaveURL(url);
   });
 });
@@ -179,6 +187,7 @@ test.describe("registrar série a série (SPEC §3.2 e §10.3)", () => {
 
     await page.reload();
 
+    await abrirVisaoGeral(page);
     await expect(page.getByRole("heading", { name: "Treino A", level: 1 })).toBeVisible();
     const depois = page.getByRole("group", { name: "Série 1 — Agachamento livre" });
     await expect(depois.getByRole("checkbox")).toHaveAttribute("aria-checked", "true");
@@ -247,10 +256,10 @@ test.describe("concluir e o que o motor decide (SPEC §6.2, §6.6, §10.3 e §10
       "Agachamento livre",
     );
 
-    await resumo.getByRole("radio", { name: "4 — bom" }).click();
+    await resumo.getByRole("radio", { name: "Um pouco fácil" }).click();
     await resumo.getByRole("button", { name: "Salvar e voltar" }).click();
 
-    await expect(page.getByRole("heading", { name: "Hoje", level: 1 })).toBeVisible();
+    await esperarAbaTreino(page);
 
     /*
      * O banco recebeu a decisão inteira (§6.6 e §8). A fila grava na ordem —
@@ -324,7 +333,7 @@ test.describe("concluir e o que o motor decide (SPEC §6.2, §6.6, §10.3 e §10
     await expect(linha).toContainText("repetiu 7,5 kg na barra");
 
     await page.getByRole("dialog").getByRole("button", { name: "Salvar e voltar" }).click();
-    await expect(page.getByRole("heading", { name: "Hoje", level: 1 })).toBeVisible();
+    await esperarAbaTreino(page);
 
     await expect
       .poll(
@@ -351,7 +360,7 @@ test.describe("concluir e o que o motor decide (SPEC §6.2, §6.6, §10.3 e §10
     // o resumo do abandono não pode dizer "Treino concluído"
     await expect(page.getByRole("dialog")).toContainText("Treino abandonado");
     await page.getByRole("dialog").getByRole("button", { name: "Salvar e voltar" }).click();
-    await expect(page.getByRole("heading", { name: "Hoje", level: 1 })).toBeVisible();
+    await esperarAbaTreino(page);
 
     await expect
       .poll(async () => (await lerDoMock<LinhaSessao>(sessao, "sessions"))[0]?.status, {
@@ -430,14 +439,16 @@ test.describe("ajuda, montagem e substituição (SPEC §3.2, §6.5 e §7)", () =
     await page.getByRole("button", { name: "Como fazer: Agachamento livre" }).click();
 
     const ficha = page.getByRole("dialog");
-    await expect(ficha.getByRole("heading", { name: "Passos" })).toBeVisible();
+    // SPEC §14.2: a ficha em folha traz instruções, erro comum e as três abas
+    await expect(ficha.getByRole("heading", { name: "Instruções" })).toBeVisible();
     await expect(ficha.getByRole("heading", { name: "Erro comum" })).toBeVisible();
     await expect(ficha.getByRole("img", { name: /Execução do Agachamento livre/ })).toBeVisible();
+    await ficha.getByRole("tab", { name: "Músculos" }).click();
     await expect(ficha.getByRole("img", { name: "Frente" })).toBeVisible();
     await semRolagemHorizontal(page);
 
     // o X da folha também é alvo de dedo (SPEC §3: ≥ 44 px)
-    const fechar = ficha.getByRole("button", { name: "Fechar" });
+    const fechar = ficha.getByRole("button", { name: "Fechar" }).last();
     const caixa = await fechar.boundingBox();
     expect(Math.round(caixa?.width ?? 0)).toBeGreaterThanOrEqual(44);
     expect(Math.round(caixa?.height ?? 0)).toBeGreaterThanOrEqual(44);
@@ -478,8 +489,6 @@ test.describe("ajuda, montagem e substituição (SPEC §3.2, §6.5 e §7)", () =
     ]);
     await fixarData(page, SEGUNDA);
     await entrarNoApp(page);
-    await page.getByRole("link", { name: "Começar treino" }).click();
-
     /*
      * A sessão carrega o estado e os recordes de todos os substitutos, não só
      * dos exercícios do treino — sem isso a troca começaria do zero.
@@ -494,7 +503,8 @@ test.describe("ajuda, montagem e substituição (SPEC §3.2, §6.5 e §7)", () =
         ),
       ),
     );
-    await page.getByRole("button", { name: "Começar Treino A" }).click();
+    await comecarOTreinoDoDia(page);
+    await abrirVisaoGeral(page);
     await expect(page.getByRole("heading", { name: "Treino A", level: 1 })).toBeVisible();
     await leituras;
 
@@ -526,7 +536,7 @@ test.describe("ajuda, montagem e substituição (SPEC §3.2, §6.5 e §7)", () =
         .filter({ hasText: "Agachamento frontal" }),
     ).toContainText("31,5 → 33,5 kg na barra");
     await resumo.getByRole("button", { name: "Salvar e voltar" }).click();
-    await expect(page.getByRole("heading", { name: "Hoje", level: 1 })).toBeVisible();
+    await esperarAbaTreino(page);
 
     await expect
       .poll(
@@ -549,13 +559,24 @@ test.describe("ajuda, montagem e substituição (SPEC §3.2, §6.5 e §7)", () =
     expect(estados.find((e) => e.exercise_id === "agachamento-livre")).toBeUndefined();
     expect(estados.find((e) => e.exercise_id === "agachamento-frontal")?.reps_alvo).toBe(8);
 
-    const eventos = await lerDoMock<{ exercise_id: string; de: { carga_kg: number } }>(
-      sessao,
-      "progression_events",
-    );
-    expect(eventos.find((e) => e.exercise_id === "agachamento-frontal")?.de).toMatchObject({
-      carga_kg: 31.5,
-    });
+    /*
+     * `progression_events` é uma escrita SEPARADA na fila de saída (§8): a
+     * linha de `exercise_state` pode chegar ao mock antes dela. Ler de uma vez
+     * era uma corrida — a auditoria do V3 pegou a falha nesse ponto. A
+     * asserção continua a mesma; só o "quando" espera a fila.
+     */
+    await expect
+      .poll(
+        async () =>
+          (
+            await lerDoMock<{ exercise_id: string; de: { carga_kg: number } }>(
+              sessao,
+              "progression_events",
+            )
+          ).find((e) => e.exercise_id === "agachamento-frontal")?.de,
+        { timeout: 15_000 },
+      )
+      .toMatchObject({ carga_kg: 31.5 });
   });
 });
 
@@ -569,6 +590,7 @@ async function comecarTreinoDaFase2(page: Page, nome: string): Promise<SessaoMoc
   await page.goto("/treinar");
   await page.getByRole("button", { name: `Começar ${nome}` }).click();
   await expect(page).toHaveURL(/\/treinar\/[0-9a-f-]{36}$/);
+  await abrirVisaoGeral(page);
   return sessao;
 }
 
@@ -716,9 +738,12 @@ test.describe("timer, tela acesa e voltar sem rede (SPEC §3.2, §8 e §10.3)", 
     await timer.getByRole("button", { name: "Pular" }).click();
     await expect(timer).toHaveCount(0);
 
-    // sair da sessão solta o Wake Lock
-    await page.getByRole("link", { name: "Hoje" }).click();
-    await expect(page.getByRole("heading", { name: "Hoje", level: 1 })).toBeVisible();
+    /*
+     * Sair da sessão solta o Wake Lock. O player é tela cheia (§14.1): a saída
+     * é o "Sair do treino" da visão geral, não a barra de abas.
+     */
+    await page.getByRole("link", { name: "Sair do treino" }).click();
+    await esperarAbaTreino(page);
     await expect
       .poll(async () => page.evaluate(() => (window as never as { __tela: string[] }).__tela))
       .toEqual(["pedido", "solto"]);
@@ -734,6 +759,7 @@ test.describe("timer, tela acesa e voltar sem rede (SPEC §3.2, §8 e §10.3)", 
     // abre a sessão sem rede (o precache leva quase um segundo para fechar)
     await esperarServiceWorker(page);
     await page.reload();
+    await abrirVisaoGeral(page);
     await expect(page.getByRole("heading", { name: "Treino A", level: 1 })).toBeVisible();
 
     await marcar(page, "Agachamento livre", 1);
@@ -747,6 +773,7 @@ test.describe("timer, tela acesa e voltar sem rede (SPEC §3.2, §8 e §10.3)", 
     const voltou = await context.newPage();
     await fixarData(voltou, SEGUNDA);
     await voltou.goto(url);
+    await abrirVisaoGeral(voltou);
     await expect(voltou.getByRole("heading", { name: "Treino A", level: 1 })).toBeVisible();
     await expect(voltou.getByText("3/16 séries")).toBeVisible();
     await expect(

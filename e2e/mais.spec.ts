@@ -1,10 +1,13 @@
 import { readFileSync } from "node:fs";
 import { expect, test, type Page } from "@playwright/test";
 import {
+  EMAIL_PERMITIDO,
+  SENHA,
   entrarNoApp,
   fixarData,
   inserirNoMock,
   lerDoMock,
+  requisicoesDoMock,
   resetarMock,
   semRolagemHorizontal,
   usuarioComPerfil,
@@ -468,5 +471,90 @@ test.describe("Sincronização em /mais (SPEC §8)", () => {
     if (await botao.isVisible()) await botao.click();
     await expect(linha.getByText("Tudo sincronizado")).toBeVisible({ timeout: 20_000 });
     expect(await lerDoMock(sessao, "body_weights")).toHaveLength(1);
+  });
+});
+
+/*
+ * A conta nasce no banco com uma senha temporária (o painel do Supabase não
+ * está ao alcance de quem treina), então a troca precisa acontecer dentro do
+ * app, no primeiro acesso — SPEC §9.
+ */
+test.describe("/mais/senha — trocar a senha (SPEC §9)", () => {
+  const NOVA = "senha-nova-do-terraco";
+
+  test("senha curta, senhas diferentes e sem rede não chamam o Supabase", async ({
+    page,
+  }) => {
+    await usuarioComPerfil();
+    await entrarNoApp(page);
+    await page.goto("/mais");
+
+    await page.getByRole("link", { name: /Trocar senha/ }).click();
+    await expect(page).toHaveURL(/\/mais\/senha$/);
+    await expect(page.getByRole("heading", { name: "Trocar senha" })).toBeVisible();
+
+    const nova = page.getByLabel("Nova senha", { exact: true });
+    const repetida = page.getByLabel("Repetir a nova senha");
+    const salvar = page.getByRole("button", { name: "Salvar" });
+    // dentro do `main`: o anunciador de rota do Next também é um role=alert
+    const aviso = page.locator("main [role='alert']");
+    // teclado de senha: nada do que se digita aqui aparece na tela
+    await expect(nova).toHaveAttribute("type", "password");
+    await expect(repetida).toHaveAttribute("autocomplete", "new-password");
+    expect((await salvar.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
+
+    await nova.fill("1234567");
+    await repetida.fill("1234567");
+    await salvar.click();
+    await expect(aviso).toHaveText(/pelo menos 8 caracteres/);
+
+    await nova.fill(NOVA);
+    await repetida.fill(`${NOVA}-x`);
+    await salvar.click();
+    await expect(aviso).toHaveText(/precisam ser iguais/);
+
+    // sem rede a tela avisa e não enfileira nada (§8: fila é para tabela)
+    await repetida.fill(NOVA);
+    await page.context().setOffline(true);
+    await salvar.click();
+    await expect(aviso).toHaveText(/Precisa de internet para trocar a senha/);
+    await page.context().setOffline(false);
+
+    // nenhuma das três recusas chegou ao GoTrue
+    const chamadas = await requisicoesDoMock();
+    expect(
+      chamadas.filter((c) => c.metodo === "PUT" && c.caminho === "/auth/v1/user"),
+    ).toEqual([]);
+
+    await semRolagemHorizontal(page);
+  });
+
+  test("troca a senha, volta para Mais e o login passa a exigir a nova", async ({
+    page,
+  }) => {
+    await usuarioComPerfil();
+    await entrarNoApp(page);
+    await page.goto("/mais/senha");
+
+    await page.getByLabel("Nova senha", { exact: true }).fill(NOVA);
+    await page.getByLabel("Repetir a nova senha").fill(NOVA);
+    await page.getByRole("button", { name: "Salvar" }).click();
+
+    await expect(page.getByText("Senha trocada.")).toBeVisible();
+    // 1,5 s depois a tela volta sozinha para o índice de Mais
+    await expect(page).toHaveURL(/\/mais$/, { timeout: 10_000 });
+
+    await esperarFila(page);
+    await page.getByRole("button", { name: "Sair" }).click();
+    await expect(page).toHaveURL(/\/login$/);
+
+    // a senha antiga não entra mais
+    await page.getByLabel("E-mail").fill(EMAIL_PERMITIDO);
+    await page.getByLabel("Senha").fill(SENHA);
+    await page.getByRole("button", { name: "Entrar" }).click();
+    await expect(page.getByText("E-mail ou senha incorretos.")).toBeVisible();
+
+    // a nova entra
+    await entrarNoApp(page, EMAIL_PERMITIDO, NOVA);
   });
 });

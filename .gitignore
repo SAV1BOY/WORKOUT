@@ -23,8 +23,12 @@ coverage/
 # assets copiados de assets/ pelo script npm run assets
 public/figuras/
 public/fotos/
+public/ilustracoes/
 public/itens/
 public/mapa-muscular/
+# vídeos opcionais (SPEC §13.1): nenhum vem no repositório
+public/videos/
+assets/videos/
 
 # service worker gerado pelo Serwist
 public/sw.js

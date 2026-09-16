@@ -40,8 +40,15 @@ export function persistirQueryClient(cliente: QueryClient): () => void {
   const salvar = () => {
     agendado = null;
     const estado = dehydrate(cliente, {
-      // só o que deu certo: erro e carregamento não valem a pena guardar
-      shouldDehydrateQuery: (q) => q.state.status === "success",
+      /*
+       * Tudo que TEM dado, não só o que está com `status: "success"`. Sem rede
+       * a consulta rehidratada falha ao revalidar e passa para "error" com os
+       * dados ainda ali; guardando só o "success", a primeira gravação depois
+       * de ficar offline apagava do cache justamente o que faz o app funcionar
+       * sem rede (SPEC §8) — as cargas atuais, entre elas.
+       */
+      shouldDehydrateQuery: (q) =>
+        q.state.data !== undefined && q.state.status !== "pending",
     });
     void guardarCache(CHAVE_CACHE, {
       salvoEm: Date.now(),

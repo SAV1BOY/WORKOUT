@@ -65,7 +65,7 @@ test.describe("PWA e offline (SPEC §8)", () => {
     await esperarServiceWorker(page);
 
     await page.goto("/calendario");
-    await page.goto("/progresso");
+    await page.goto("/relatorio");
     await page.goto("/");
     await page.waitForTimeout(1_000);
 

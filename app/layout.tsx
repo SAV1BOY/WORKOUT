@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import { Providers } from "@/app/providers";
+import { scriptDoVigia } from "@/lib/vigia";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -38,6 +39,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="pt-BR" suppressHydrationWarning>
       <body className="antialiased">
+        {/* a saída de uma tela que nunca hidratou (lib/vigia.ts) */}
+        <script dangerouslySetInnerHTML={{ __html: scriptDoVigia() }} />
         <Providers>{children}</Providers>
       </body>
     </html>

@@ -10,6 +10,7 @@ import { useQuery, type UseQueryResult } from "@tanstack/react-query";
 import { lerLista } from "@/lib/queries/ler";
 import { clienteNavegador } from "@/lib/supabase/client";
 import type { SerieBruta, SessaoBruta } from "@/lib/progresso";
+import type { EventoDeSessao } from "@/lib/relatorio";
 import type { LinhaRecorde } from "@/lib/types";
 
 /** Quantas sessões de força a tela de progresso lê (o total de §3.7). */
@@ -24,7 +25,9 @@ export const COLUNAS_SERIE =
 
 export const chavesProgresso = {
   sessoesTodas: () => ["progresso", "sessoes"] as const,
+  eventosDesde: (de: string) => ["progresso", "eventos", de] as const,
   seriesDesde: (de: string) => ["progresso", "series", de] as const,
+  seriesTodas: () => ["progresso", "series-todas"] as const,
   seriesDoExercicio: (id: string) => ["progresso", "series-ex", id] as const,
   recordes: () => ["progresso", "recordes"] as const,
 };
@@ -37,7 +40,7 @@ export function useSessoesTodas(): UseQueryResult<SessaoBruta[]> {
       lerLista<SessaoBruta>(
         clienteNavegador()
           .from("sessions")
-          .select("id,data,status,workout_id")
+          .select("id,data,status,workout_id,duracao_s,plano")
           .order("data", { ascending: false })
           .limit(LIMITE_SESSOES),
         "os seus treinos",
@@ -56,6 +59,26 @@ export function useSeriesDesde(de: string | null): UseQueryResult<SerieBruta[]> 
           .from("session_sets")
           .select(COLUNAS_SERIE)
           .gte("registrada_em", de ?? "")
+          .order("registrada_em", { ascending: true })
+          .limit(LIMITE_SERIES),
+        "as séries registradas",
+      ),
+  });
+}
+
+/**
+ * Todas as séries registradas (SPEC §14.4): o volume acumulado do topo do
+ * Relatório lê a mesma janela que os treinos e os minutos. O histórico e os
+ * gráficos recortam 26 semanas desta mesma lista, sem uma segunda leitura.
+ */
+export function useSeriesTodas(): UseQueryResult<SerieBruta[]> {
+  return useQuery({
+    queryKey: chavesProgresso.seriesTodas(),
+    queryFn: () =>
+      lerLista<SerieBruta>(
+        clienteNavegador()
+          .from("session_sets")
+          .select(COLUNAS_SERIE)
           .order("registrada_em", { ascending: true })
           .limit(LIMITE_SERIES),
         "as séries registradas",
@@ -91,6 +114,31 @@ export function useTodosOsRecordes(): UseQueryResult<LinhaRecorde[]> {
       lerLista<LinhaRecorde>(
         clienteNavegador().from("v_records").select("*"),
         "os seus recordes",
+      ),
+  });
+}
+
+/** Quantos eventos do motor a janela do histórico lê. */
+export const LIMITE_EVENTOS = 1000;
+
+/**
+ * Os eventos do motor a partir de uma data: é deles que sai o ↑/=/↓ de cada
+ * sessão em "Todos os registros" (SPEC §13.5).
+ */
+export function useEventosDesde(
+  de: string | null,
+): UseQueryResult<EventoDeSessao[]> {
+  return useQuery({
+    queryKey: chavesProgresso.eventosDesde(de ?? ""),
+    enabled: de !== null,
+    queryFn: () =>
+      lerLista<EventoDeSessao>(
+        clienteNavegador()
+          .from("progression_events")
+          .select("session_id,motivo")
+          .gte("data", de ?? "")
+          .limit(LIMITE_EVENTOS),
+        "o histórico de progressão",
       ),
   });
 }

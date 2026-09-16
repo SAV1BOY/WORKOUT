@@ -13,6 +13,7 @@ import {
   acharExercicio,
   acharTreino,
   equipamentoDisponivel,
+  exercicioPorId,
   exercicios,
   textoDoMotor,
 } from "@/lib/dados";
@@ -37,12 +38,14 @@ import {
   type EstadoExercicio,
   type SerieFeita,
 } from "@/lib/progressao";
+import type { EstadoPlayer } from "@/lib/player";
 import type { Assistencia, Exercicio, FaseId, TreinoId } from "@/lib/schemas";
 import type {
   LinhaEstadoExercicio,
   LinhaSerie,
   LinhaSessao,
   MotivoProgressao,
+  PlanoDaSessao,
   StatusSessao,
   TipoSerie,
   WorkoutId,
@@ -135,12 +138,27 @@ export interface SessaoLocal {
    * desde então, e a folha tem de voltar com a prescrição daquele dia.
    */
   semanaPlano: number | null;
+  /**
+   * `sessions.plano` (SPEC §13.4 e §14.3): a lista de exercícios com que a
+   * sessão nasceu. Obrigatório na sessão livre — ela não está em lugar nenhum
+   * — e usado também para guardar a **ordem desta sessão** quando o Miguel
+   * reordena o treino do dia. `null` = a ordem é a do programa.
+   */
+  plano: PlanoDaSessao | null;
   sensacao: number | null;
   pesoCorporal: number | null;
   notas: string | null;
   /** Barra W / reta oca já pesadas na balança (SPEC §3.9). */
   opcoesMontagem: OpcoesMontagem;
   blocos: BlocoLocal[];
+  /**
+   * Onde o player parou (SPEC §14.1): a chave do passo e, no descanso e na
+   * preparação, o instante em que a contagem acaba. Fica **só** no aparelho
+   * (dentro de `sessaoAtiva`, no Dexie) — nenhuma coluna do banco guarda isto,
+   * e `escritaDaSessao` não o envia. Ausente = a sessão nunca passou pelo
+   * player neste aparelho, e o passo é recalculado por `indiceDeRetomada`.
+   */
+  player?: EstadoPlayer | null;
 }
 
 /* ------------------------------------------------------------ montagem */
@@ -159,6 +177,13 @@ export interface EntradaMontagem {
    * séries normalmente, mas não avalia nem grava a progressão.
    */
   estadoConhecido?: boolean;
+  /**
+   * Quais exercícios tiveram o `exercise_state` lido de verdade. Quando existe,
+   * manda no lugar do `estadoConhecido` acima e a degradação passa a ser **por
+   * exercício**: sem rede, só quem nunca foi lido fica sem avaliação — o resto
+   * do treino continua passando pelo motor (SPEC §6.3 e §14.1).
+   */
+  conhecidos?: ReadonlySet<string>;
   /** Tipo `maximo`: reps da última sessão por exercício (SPEC §6.3). */
   anteriores?: Record<string, (number | null)[]>;
   /** `v_records` por exercício, para o resumo do fim (SPEC §6.6). */
@@ -287,6 +312,8 @@ export interface EntradaAvulsa extends Omit<EntradaMontagem, "treinoId"> {
   itens: ItemDaSessao[];
   /** Semana do plano da barra fixa (§3.4), gravada com a sessão. */
   semanaPlano?: number | null;
+  /** `sessions.plano` (§13.4): o que refaz esta sessão noutro aparelho. */
+  plano?: PlanoDaSessao | null;
 }
 
 /**
@@ -343,7 +370,9 @@ export function montarSessaoAvulsa(e: EntradaAvulsa): SessaoLocal {
       descansoTexto: item.descansoTexto,
       alvo,
       estado,
-      estadoConhecido: e.estadoConhecido !== false,
+      estadoConhecido: e.conhecidos
+        ? e.conhecidos.has(exercicio.id)
+        : e.estadoConhecido !== false,
       seriesAnteriores: anteriores[exercicio.id] ?? null,
       recordeCarga: rec?.carga_max_kg ?? null,
       recordeReps: rec?.reps_max ?? null,
@@ -364,6 +393,7 @@ export function montarSessaoAvulsa(e: EntradaAvulsa): SessaoLocal {
     iniciadaEm: agora,
     concluidaEm: null,
     semanaPlano: e.semanaPlano ?? null,
+    plano: e.plano ?? null,
     sensacao: null,
     pesoCorporal: null,
     notas: null,
@@ -396,7 +426,7 @@ export function reconstruirSessao(
     | "fase"
     | "status"
     | "iniciada_em"
-  > & { semana_plano?: number | null },
+  > & { semana_plano?: number | null; plano?: PlanoDaSessao | null },
   series: LinhaSerie[],
   resto: Omit<EntradaMontagem, "id" | "userId" | "data" | "treinoId" | "fase"> & {
     /** Sessão fora do programa (§3.4): os itens não estão em `programa.json`. */
@@ -405,12 +435,13 @@ export function reconstruirSessao(
 ): SessaoLocal | null {
   const { itens, ...semItens } = resto;
   /*
-   * Um treino "livre" não tem lista de exercícios em lugar nenhum, e uma
-   * sessão de barra fixa (§3.4) só dá para refazer com os itens do plano da
-   * semana, que a tela passa: sem eles é melhor não refazer nada do que
-   * inventar uma sessão diferente da que foi registrada.
+   * Um treino "livre" não está escrito em lugar nenhum: os itens dele vêm de
+   * `sessions.plano` (§13.4), que a tela lê e passa aqui. Uma sessão de barra
+   * fixa (§3.4) idem, com os itens do plano da semana. Sem a lista é melhor
+   * não refazer nada do que inventar uma sessão diferente da registrada — e a
+   * MESMA lista vale para um treino do programa que foi reordenado, senão a
+   * sessão volta na ordem do programa e as séries não casam.
    */
-  if (linha.workout_id === "livre") return null;
   const doPrograma = ehTreinoDoPrograma(linha.workout_id)
     ? itensDoTreino(linha.workout_id)
     : null;
@@ -426,6 +457,7 @@ export function reconstruirSessao(
     fase: linha.fase,
     agora: linha.iniciada_em,
     semanaPlano: linha.semana_plano ?? null,
+    plano: linha.plano ?? null,
   });
 
   const porChave = new Map(
@@ -546,6 +578,94 @@ export function marcarSerie(
   });
 }
 
+/* --------------------------------- prescrição só de hoje (SPEC §14.2) */
+
+export const MIN_SERIES_DA_SESSAO = 1;
+export const MAX_SERIES_DA_SESSAO = 10;
+
+/**
+ * O stepper Duração / Repetições / Séries da ficha (SPEC §14.2): muda **só a
+ * prescrição desta sessão**, nunca o `exercise_state` nem o alvo do motor.
+ *
+ * - `alvo` reescreve o valor pré-preenchido das séries de trabalho que ainda
+ *   não foram marcadas (o que já foi registrado não se mexe);
+ * - `series` acrescenta séries iguais à última ou tira as que sobram no fim,
+ *   sempre preservando as concluídas.
+ *
+ * O motor continua comparando o que foi feito com `bloco.alvo` (a faixa que
+ * ele mandou hoje): fazer mais do que o pedido é sucesso, fazer menos é falha
+ * — exatamente como seria digitando os números na mão.
+ */
+export function ajustarPrescricaoDaSessao(
+  sessao: SessaoLocal,
+  ordem: number,
+  campos: { alvo?: number; series?: number },
+  opcoes: { novoId?: () => string } = {},
+): SessaoLocal {
+  const novoId = opcoes.novoId ?? idPadrao;
+  return trocarBloco(sessao, ordem, (bloco) => {
+    let series = [...bloco.series];
+    let prescricao = bloco.prescricao;
+
+    if (typeof campos.alvo === "number" && Number.isFinite(campos.alvo)) {
+      const valor = Math.max(1, Math.round(campos.alvo));
+      series = series.map((s) => {
+        if (s.tipo !== "trabalho" || s.concluida) return s;
+        if (prescricao.tipo === "tempo_s") {
+          return {
+            ...s,
+            tempoS: valor,
+            tempoSLado2: prescricao.unilateral ? valor : s.tempoSLado2,
+          };
+        }
+        if (prescricao.tipo === "passos") return { ...s, passos: valor };
+        if (prescricao.tipo === "maximo") return s;
+        return {
+          ...s,
+          reps: valor,
+          repsLado2: prescricao.unilateral ? valor : s.repsLado2,
+        };
+      });
+    }
+
+    if (typeof campos.series === "number" && Number.isFinite(campos.series)) {
+      const quantas = Math.min(
+        MAX_SERIES_DA_SESSAO,
+        Math.max(MIN_SERIES_DA_SESSAO, Math.round(campos.series)),
+      );
+      const aquecimento = series.filter((s) => s.tipo === "aquecimento");
+      let trabalho = series.filter((s) => s.tipo === "trabalho");
+
+      while (trabalho.length > quantas) {
+        const ultima = trabalho[trabalho.length - 1];
+        // nunca apagar registro: uma série concluída segura o corte
+        if (!ultima || ultima.concluida) break;
+        trabalho = trabalho.slice(0, -1);
+      }
+      while (trabalho.length < quantas) {
+        const modelo = trabalho[trabalho.length - 1];
+        trabalho = [
+          ...trabalho,
+          modelo
+            ? {
+                ...modelo,
+                id: novoId(),
+                setIndex: trabalho.length + 1,
+                concluida: false,
+                registradaEm: null,
+              }
+            : serieDeTrabalho(1, bloco.alvo, prescricao, novoId),
+        ];
+      }
+      trabalho = trabalho.map((s, i) => ({ ...s, setIndex: i + 1 }));
+      series = [...aquecimento, ...trabalho];
+      prescricao = { ...prescricao, series: trabalho.length };
+    }
+
+    return { ...bloco, series, prescricao };
+  });
+}
+
 /** O toggle "Última repetição saiu firme?" e a nota do bloco. */
 export function definirFirme(
   sessao: SessaoLocal,
@@ -616,6 +736,40 @@ export function substituirExercicio(
       ultimaFirme: null,
     };
   });
+}
+
+/**
+ * As substituições escolhidas antes de começar (SPEC §13.3) aplicadas de uma
+ * vez à sessão recém-montada — o mesmo caminho da troca dentro da sessão
+ * (§3.2), bloco a bloco.
+ */
+export function comSubstituicoes(
+  sessao: SessaoLocal,
+  substituicoes: Record<string, string>,
+  dados: {
+    estados?: Record<string, EstadoExercicio | null>;
+    anteriores?: Record<string, (number | null)[]>;
+    recordes?: Record<string, RecordeAntes>;
+    estadoConhecido?: boolean;
+    conhecidos?: ReadonlySet<string>;
+    novoId?: () => string;
+  } = {},
+): SessaoLocal {
+  let atual = sessao;
+  for (const bloco of sessao.blocos) {
+    const novo = substituicoes[bloco.originalId];
+    if (!novo || novo === bloco.originalId) continue;
+    if (!exercicioPorId.has(novo)) continue;
+    atual = substituirExercicio(atual, bloco.ordem, novo, dados.estados?.[novo] ?? null, {
+      anteriores: dados.anteriores?.[novo] ?? null,
+      recorde: dados.recordes?.[novo],
+      estadoConhecido: dados.conhecidos
+        ? dados.conhecidos.has(novo)
+        : dados.estadoConhecido,
+      novoId: dados.novoId,
+    });
+  }
+  return atual;
 }
 
 /** O descanso em texto quando o programa não traz um (troca de exercício). */
@@ -715,6 +869,19 @@ export function progressoDaSessao(sessao: SessaoLocal): ProgressoSessao {
   return { feitas, total, texto: `${feitas}/${total} séries` };
 }
 
+/**
+ * O "próximo: …" do rodapé da sessão (SPEC §13.3): o exercício que vem depois
+ * do que está em andamento — o segundo bloco com série de trabalho por fazer.
+ * `null` quando o treino está no último bloco (ou acabou).
+ */
+export function proximoExercicio(sessao: SessaoLocal): string | null {
+  const pendentes = sessao.blocos.filter((bloco) =>
+    bloco.series.some((s) => s.tipo === "trabalho" && !s.concluida),
+  );
+  const proximo = pendentes[1];
+  return proximo ? acharExercicio(proximo.exercicioId).nome : null;
+}
+
 /** "7,5 kg na barra" / "peso do corpo" — o rótulo certo do implemento (§4). */
 export function textoDaCargaDoBloco(bloco: BlocoLocal): string {
   const exercicio = acharExercicio(bloco.exercicioId);
@@ -804,6 +971,7 @@ export function escritaDaSessao(sessao: SessaoLocal): Escrita {
       status: sessao.status,
       iniciada_em: sessao.iniciadaEm,
       semana_plano: sessao.semanaPlano,
+      plano: sessao.plano,
     },
   };
 }
@@ -893,10 +1061,17 @@ export interface ResultadoExercicio {
   /** A decisão veio de uma série abaixo do piso ou faltando (SPEC §6.2). */
   falha: boolean;
   /**
-   * O bloco ficou de fora do motor porque o `exercise_state` dele é
-   * desconhecido (SPEC §6.3): as séries são gravadas, a progressão não.
+   * O bloco ficou de fora do motor: as séries (se houver) são gravadas, a
+   * progressão não. São dois casos, em `motivoNaoAvaliado`.
    */
   naoAvaliado: boolean;
+  /**
+   * Por que ficou de fora:
+   * - `"nao_feito"`: nenhuma série de trabalho concluída (SPEC §6.3) — o
+   *   exercício não foi tentado, então não conta como falha;
+   * - `"estado_desconhecido"`: o `exercise_state` dele não foi lido.
+   */
+  motivoNaoAvaliado: "nao_feito" | "estado_desconhecido" | null;
   /** "7,5 → 9,5 kg na barra", "10 → 11 repetições", "repetiu 7,5 kg na barra". */
   texto: string;
   aviso: string | null;
@@ -1028,10 +1203,21 @@ export function avaliarSessao(sessao: SessaoLocal): ResultadoExercicio[] {
   return sessao.blocos.map((bloco) => {
     const exercicio = acharExercicio(bloco.exercicioId);
     const firme = bloco.ultimaFirme ?? firmePadrao(bloco);
+    const trabalho = bloco.series.filter((s) => s.tipo === "trabalho");
+    /*
+     * SPEC §6.3: um bloco sem NENHUMA série de trabalho concluída não foi
+     * feito — e o que não foi tentado não pode virar falha. A montagem já cria
+     * as séries vazias, então mandá-las ao motor seria ler "série não
+     * concluída" = falha (§6.2) para um exercício que o dono pulou: duas
+     * sessões assim tirariam 10 % da carga de um exercício nunca tentado.
+     * Passar a lista vazia faz o motor devolver `nada` (nem estado, nem
+     * evento); as séries continuam gravadas como sempre.
+     */
+    const nadaFeito = !trabalho.some((s) => s.concluida);
     const decisao = decidir(
       exercicio,
       bloco.estado,
-      bloco.series.filter((s) => s.tipo === "trabalho").map(serieParaMotor),
+      nadaFeito ? [] : trabalho.map(serieParaMotor),
       {
         prescricao: bloco.prescricao,
         ultimaFirme: firme,
@@ -1041,11 +1227,12 @@ export function avaliarSessao(sessao: SessaoLocal): ResultadoExercicio[] {
       },
     );
     /*
-     * Estado desconhecido (SPEC §6.3): a decisão sairia de uma carga inventada
-     * e o upsert apagaria a progressão real. O evento vira nulo — e é ele que
+     * Fora do motor (SPEC §6.3), por não ter sido feito ou porque a carga
+     * atual dele é desconhecida — aí a decisão sairia de uma carga inventada e
+     * o upsert apagaria a progressão real. O evento vira nulo — e é ele que
      * `concluirSessao` usa para decidir o que gravar.
      */
-    if (!blocoAvaliavel(bloco)) {
+    if (nadaFeito || !blocoAvaliavel(bloco)) {
       return {
         exercicioId: bloco.exercicioId,
         nome: exercicio.nome,
@@ -1054,7 +1241,10 @@ export function avaliarSessao(sessao: SessaoLocal): ResultadoExercicio[] {
         simbolo: null,
         falha: false,
         naoAvaliado: true,
-        texto: "não avaliado: não consegui ler a carga atual deste exercício",
+        motivoNaoAvaliado: nadaFeito ? "nao_feito" : "estado_desconhecido",
+        texto: nadaFeito
+          ? "sem série registrada: não foi feito nesta sessão"
+          : "não avaliado: não consegui ler a carga atual deste exercício",
         aviso: null,
         sugestao: null,
         recordes: [],
@@ -1083,6 +1273,7 @@ export function avaliarSessao(sessao: SessaoLocal): ResultadoExercicio[] {
       simbolo,
       falha: evento?.falha === true,
       naoAvaliado: false,
+      motivoNaoAvaliado: null,
       texto: textoDaDecisao(exercicio, decisao),
       // o motor devolve a chave; o texto vem de data/progressao.json
       aviso: textoDoMotor(evento?.aviso),
@@ -1227,6 +1418,33 @@ export function concluirSessao(entrada: EntradaConclusao): Conclusao {
   }
 
   return { resultados, escritas };
+}
+
+/** Os três contadores da conclusão (SPEC §14.1.5): exercícios, séries, volume. */
+export interface ContadoresDaSessao {
+  /** Exercícios com pelo menos uma série de trabalho registrada. */
+  exercicios: number;
+  series: number;
+  /** Σ reps × kg das séries de trabalho (peso do corpo não soma). */
+  volumeKg: number;
+}
+
+export function contadoresDaSessao(sessao: SessaoLocal): ContadoresDaSessao {
+  let exercicios = 0;
+  let series = 0;
+  let volumeKg = 0;
+  for (const bloco of sessao.blocos) {
+    let algumaFeita = false;
+    for (const serie of bloco.series) {
+      if (!serie.concluida || serie.tipo !== "trabalho") continue;
+      algumaFeita = true;
+      series += 1;
+      const reps = (serie.reps ?? 0) + (serie.repsLado2 ?? 0);
+      volumeKg += reps * (serie.cargaKg ?? 0);
+    }
+    if (algumaFeita) exercicios += 1;
+  }
+  return { exercicios, series, volumeKg: Math.round(volumeKg * 10) / 10 };
 }
 
 /** Junta as notas dos blocos numa nota só da sessão (o schema tem uma). */

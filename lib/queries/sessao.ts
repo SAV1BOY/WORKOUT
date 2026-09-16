@@ -11,14 +11,23 @@
 import type { QueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { bd, temIndexedDB } from "@/lib/db";
+import { acharTreino } from "@/lib/dados";
+import {
+  WORKOUT_LIVRE,
+  itensDeIds,
+  itensNaOrdem,
+  planoDaSessao,
+} from "@/lib/livre";
 import { enfileirarEscrita } from "@/lib/outbox-supabase";
 import { esperarFila, pendentes } from "@/lib/outbox";
 import { chaves, type SessaoResumo } from "@/lib/queries/dados";
 import {
+  comSubstituicoes,
   concluirSessao,
   escritaDaSerie,
   escritaDeDescarte,
   escritaDaSessao,
+  itensDoTreino,
   montarSessao,
   montarSessaoAvulsa,
   notasDaSessao,
@@ -125,6 +134,18 @@ const TIPO_POR_TABELA: Record<string, TipoSaida> = {
 export interface EntradaCriacao extends Omit<EntradaMontagem, "id"> {
   cliente: QueryClient;
   id?: string;
+  /**
+   * Substituições escolhidas na lista da aba Treino (SPEC §13.3): exercício do
+   * programa → substituto. Aplicadas à sessão recém-montada, como se a troca
+   * tivesse sido feita no bloco (§3.2).
+   */
+  substituicoes?: Record<string, string>;
+  /**
+   * A ordem escolhida em "Editar" (SPEC §14.3), por id do exercício do
+   * programa. Quando há ordem, ela vai junto para `sessions.plano`: é o que
+   * refaz a sessão na mesma ordem noutro aparelho.
+   */
+  ordem?: readonly string[];
 }
 
 /**
@@ -132,14 +153,76 @@ export interface EntradaCriacao extends Omit<EntradaMontagem, "id"> {
  * cliente e entra na fila de saída. A navegação não espera a rede.
  */
 export async function criarSessao(entrada: EntradaCriacao): Promise<SessaoLocal> {
-  const { cliente, ...resto } = entrada;
+  const { cliente, substituicoes, ordem, ...resto } = entrada;
   const id = entrada.id ?? novoId();
-  return registrarSessaoNova(montarSessao({ ...resto, id, novoId }), cliente);
+  const base = itensDoTreino(resto.treinoId);
+  const reordenado = ordem && ordem.length > 0 ? itensNaOrdem(base, ordem) : null;
+  const montada = reordenado
+    ? montarSessaoAvulsa({
+        ...resto,
+        id,
+        novoId,
+        workoutId: resto.treinoId,
+        itens: reordenado,
+        plano: planoDaSessao(reordenado, {
+          titulo: acharTreino(resto.treinoId).nome,
+          colecao: `treino:${resto.treinoId}`,
+        }),
+      })
+    : montarSessao({ ...resto, id, novoId });
+  const sessao =
+    substituicoes && Object.keys(substituicoes).length > 0
+      ? comSubstituicoes(montada, substituicoes, {
+          estados: resto.estados,
+          anteriores: resto.anteriores,
+          recordes: resto.recordes,
+          estadoConhecido: resto.estadoConhecido,
+          conhecidos: resto.conhecidos,
+          novoId,
+        })
+      : montada;
+  return registrarSessaoNova(sessao, cliente);
 }
 
 export interface EntradaCriacaoAvulsa extends Omit<EntradaAvulsa, "id"> {
   cliente: QueryClient;
   id?: string;
+}
+
+export interface EntradaCriacaoLivre
+  extends Omit<EntradaAvulsa, "id" | "workoutId" | "itens"> {
+  cliente: QueryClient;
+  id?: string;
+  /** Os exercícios escolhidos, na ordem em que vão ser feitos. */
+  exercicios: readonly string[];
+  /** O rótulo da coleção que gerou a sessão ("Core no tatame"). */
+  titulo?: string | null;
+  /** O id da coleção derivada ("grupo:Core"), quando veio de uma. */
+  colecao?: string | null;
+}
+
+/**
+ * "Começar" numa coleção ou no "Personalizar treino" (SPEC §13.4 e §14.3): a
+ * sessão nasce com `workout_id = 'livre'` e a lista vai para `sessions.plano`,
+ * que é o que a refaz noutro aparelho. Daí para a frente ela é uma sessão de
+ * força como qualquer outra — registro por série, motor e fila iguais (§6).
+ */
+export async function criarSessaoLivre(
+  entrada: EntradaCriacaoLivre,
+): Promise<SessaoLocal> {
+  const { cliente, exercicios, titulo, colecao, ...resto } = entrada;
+  const id = entrada.id ?? novoId();
+  const itens = itensDeIds(exercicios);
+  if (itens.length === 0) throw new Error("sessão livre sem exercício");
+  const sessao = montarSessaoAvulsa({
+    ...resto,
+    id,
+    novoId,
+    workoutId: WORKOUT_LIVRE,
+    itens,
+    plano: planoDaSessao(itens, { titulo, colecao }),
+  });
+  return registrarSessaoNova(sessao, cliente);
 }
 
 /**

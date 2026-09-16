@@ -1,0 +1,1651 @@
+[
+  {
+    "exercicio_id": "supino-reto-com-barra",
+    "fonte": "everkinetic",
+    "correspondencia": "exata",
+    "arquivos": [
+      {
+        "arquivo": "assets/ilustracoes/supino-reto-com-barra-1.svg",
+        "largura": 276,
+        "altura": 287
+      },
+      {
+        "arquivo": "assets/ilustracoes/supino-reto-com-barra-2.svg",
+        "largura": 276,
+        "altura": 287
+      }
+    ],
+    "autor": "Everkinetic (everkinetic.com)",
+    "licenca": "CC BY-SA 3.0",
+    "url_fonte": "https://commons.wikimedia.org/wiki/File:Bench_press_1.svg",
+    "titulo_fonte": "Bench press 1.svg",
+    "nota": ""
+  },
+  {
+    "exercicio_id": "supino-inclinado-com-barra",
+    "fonte": "everkinetic",
+    "correspondencia": "exata",
+    "arquivos": [
+      {
+        "arquivo": "assets/ilustracoes/supino-inclinado-com-barra-1.webp",
+        "largura": 640,
+        "altura": 751
+      },
+      {
+        "arquivo": "assets/ilustracoes/supino-inclinado-com-barra-2.webp",
+        "largura": 640,
+        "altura": 751
+      }
+    ],
+    "autor": "Everkinetic (everkinetic.com)",
+    "licenca": "CC BY-SA 3.0",
+    "url_fonte": "https://commons.wikimedia.org/wiki/File:Incline_bench_press_1.svg",
+    "titulo_fonte": "Incline bench press 1.svg",
+    "nota": ""
+  },
+  {
+    "exercicio_id": "supino-declinado-com-barra",
+    "fonte": "everkinetic",
+    "correspondencia": "exata",
+    "arquivos": [
+      {
+        "arquivo": "assets/ilustracoes/supino-declinado-com-barra-1.webp",
+        "largura": 640,
+        "altura": 530
+      },
+      {
+        "arquivo": "assets/ilustracoes/supino-declinado-com-barra-2.webp",
+        "largura": 640,
+        "altura": 530
+      }
+    ],
+    "autor": "Everkinetic (everkinetic.com)",
+    "licenca": "CC BY-SA 3.0",
+    "url_fonte": "https://commons.wikimedia.org/wiki/File:Decline_barbell_bench_press_1.svg",
+    "titulo_fonte": "Decline barbell bench press 1.svg",
+    "nota": ""
+  },
+  {
+    "exercicio_id": "supino-reto-com-halteres",
+    "fonte": "everkinetic",
+    "correspondencia": "exata",
+    "arquivos": [
+      {
+        "arquivo": "assets/ilustracoes/supino-reto-com-halteres-1.webp",
+        "largura": 640,
+        "altura": 893
+      },
+      {
+        "arquivo": "assets/ilustracoes/supino-reto-com-halteres-2.webp",
+        "largura": 640,
+        "altura": 893
+      }
+    ],
+    "autor": "Everkinetic (everkinetic.com)",
+    "licenca": "CC BY-SA 3.0",
+    "url_fonte": "https://commons.wikimedia.org/wiki/File:Bench_press_dumbbell_1.svg",
+    "titulo_fonte": "Bench press dumbbell 1.svg",
+    "nota": ""
+  },
+  {
+    "exercicio_id": "supino-inclinado-com-halteres",
+    "fonte": "everkinetic",
+    "correspondencia": "exata",
+    "arquivos": [
+      {
+        "arquivo": "assets/ilustracoes/supino-inclinado-com-halteres-1.webp",
+        "largura": 640,
+        "altura": 965
+      },
+      {
+        "arquivo": "assets/ilustracoes/supino-inclinado-com-halteres-2.webp",
+        "largura": 640,
+        "altura": 965
+      }
+    ],
+    "autor": "Everkinetic (everkinetic.com)",
+    "licenca": "CC BY-SA 3.0",
+    "url_fonte": "https://commons.wikimedia.org/wiki/File:Incline_dumbbell_press_1.svg",
+    "titulo_fonte": "Incline dumbbell press 1.svg",
+    "nota": ""
+  },
+  {
+    "exercicio_id": "crucifixo-reto",
+    "fonte": "everkinetic",
+    "correspondencia": "exata",
+    "arquivos": [
+      {
+        "arquivo": "assets/ilustracoes/crucifixo-reto-1.svg",
+        "largura": 747,
+        "altura": 900
+      },
+      {
+        "arquivo": "assets/ilustracoes/crucifixo-reto-2.svg",
+        "largura": 747,
+        "altura": 900
+      }
+    ],
+    "autor": "Everkinetic (everkinetic.com)",
+    "licenca": "CC BY-SA 3.0",
+    "url_fonte": "https://commons.wikimedia.org/wiki/File:Dumbbell_flys_1.svg",
+    "titulo_fonte": "Dumbbell flys 1.svg",
+    "nota": ""
+  },
+  {
+    "exercicio_id": "crucifixo-inclinado",
+    "fonte": "everkinetic",
+    "correspondencia": "exata",
+    "arquivos": [
+      {
+        "arquivo": "assets/ilustracoes/crucifixo-inclinado-1.webp",
+        "largura": 640,
+        "altura": 816
+      },
+      {
+        "arquivo": "assets/ilustracoes/crucifixo-inclinado-2.webp",
+        "largura": 640,
+        "altura": 816
+      }
+    ],
+    "autor": "Everkinetic (everkinetic.com)",
+    "licenca": "CC BY-SA 3.0",
+    "url_fonte": "https://commons.wikimedia.org/wiki/File:Incline_dumbbell_flys_1.svg",
+    "titulo_fonte": "Incline dumbbell flys 1.svg",
+    "nota": ""
+  },
+  {
+    "exercicio_id": "pullover-com-halter",
+    "fonte": "everkinetic",
+    "correspondencia": "exata",
+    "arquivos": [
+      {
+        "arquivo": "assets/ilustracoes/pullover-com-halter-1.webp",
+        "largura": 640,
+        "altura": 555
+      },
+      {
+        "arquivo": "assets/ilustracoes/pullover-com-halter-2.webp",
+        "largura": 640,
+        "altura": 555
+      }
+    ],
+    "autor": "Everkinetic (everkinetic.com)",
+    "licenca": "CC BY-SA 3.0",
+    "url_fonte": "https://commons.wikimedia.org/wiki/File:Straight_arm_dumbbell_pullover_1.svg",
+    "titulo_fonte": "Straight arm dumbbell pullover 1.svg",
+    "nota": ""
+  },
+  {
+    "exercicio_id": "flexao-declinada",
+    "fonte": "everkinetic",
+    "correspondencia": "exata",
+    "arquivos": [
+      {
+        "arquivo": "assets/ilustracoes/flexao-declinada-1.webp",
+        "largura": 640,
+        "altura": 447
+      },
+      {
+        "arquivo": "assets/ilustracoes/flexao-declinada-2.webp",
+        "largura": 640,
+        "altura": 447
+      }
+    ],
+    "autor": "Everkinetic (everkinetic.com)",
+    "licenca": "CC BY-SA 3.0",
+    "url_fonte": "https://commons.wikimedia.org/wiki/File:Push_up_feet_elevated_2_1.svg",
+    "titulo_fonte": "Push up feet elevated 2 1.svg",
+    "nota": "Flexao com os pes elevados (declinada)."
+  },
+  {
+    "exercicio_id": "flexao-inclinada",
+    "fonte": "everkinetic",
+    "correspondencia": "aproximada",
+    "arquivos": [
+      {
+        "arquivo": "assets/ilustracoes/flexao-inclinada-1.svg",
+        "largura": 225,
+        "altura": 123
+      },
+      {
+        "arquivo": "assets/ilustracoes/flexao-inclinada-2.svg",
+        "largura": 225,
+        "altura": 123
+      }
+    ],
+    "autor": "Everkinetic (everkinetic.com)",
+    "licenca": "CC BY-SA 3.0",
+    "url_fonte": "https://commons.wikimedia.org/wiki/File:Push_ups_1.svg",
+    "titulo_fonte": "Push ups 1.svg",
+    "nota": "A colecao Everkinetic nao tem flexao com as MAOS elevadas; usada a flexao no chao."
+  },
+  {
+    "exercicio_id": "crossover-na-polia",
+    "fonte": "everkinetic",
+    "correspondencia": "exata",
+    "arquivos": [
+      {
+        "arquivo": "assets/ilustracoes/crossover-na-polia-1.webp",
+        "largura": 640,
+        "altura": 746
+      },
+      {
+        "arquivo": "assets/ilustracoes/crossover-na-polia-2.webp",
+        "largura": 640,
+        "altura": 746
+      }
+    ],
+    "autor": "Everkinetic (everkinetic.com)",
+    "licenca": "CC BY-SA 3.0",
+    "url_fonte": "https://commons.wikimedia.org/wiki/File:Cable_crossover_1.svg",
+    "titulo_fonte": "Cable crossover 1.svg",
+    "nota": ""
+  },
+  {
+    "exercicio_id": "barra-fixa-pronada",
+    "fonte": "everkinetic",
+    "correspondencia": "exata",
+    "arquivos": [
+      {
+        "arquivo": "assets/ilustracoes/barra-fixa-pronada-1.webp",
+        "largura": 640,
+        "altura": 968
+      },
+      {
+        "arquivo": "assets/ilustracoes/barra-fixa-pronada-2.webp",
+        "largura": 640,
+        "altura": 968
+      }
+    ],
+    "autor": "Everkinetic (everkinetic.com)",
+    "licenca": "CC BY-SA 3.0",
+    "url_fonte": "https://commons.wikimedia.org/wiki/File:Pull_ups_1.svg",
+    "titulo_fonte": "Pull ups 1.svg",
+    "nota": ""
+  },
+  {
+    "exercicio_id": "barra-fixa-supinada",
+    "fonte": "everkinetic",
+    "correspondencia": "exata",
+    "arquivos": [
+      {
+        "arquivo": "assets/ilustracoes/barra-fixa-supinada-1.webp",
+        "largura": 640,
+        "altura": 1014
+      },
+      {
+        "arquivo": "assets/ilustracoes/barra-fixa-supinada-2.webp",
+        "largura": 640,
+        "altura": 1014
+      }
+    ],
+    "autor": "Everkinetic (everkinetic.com)",
+    "licenca": "CC BY-SA 3.0",
+    "url_fonte": "https://commons.wikimedia.org/wiki/File:Chin_ups_1.svg",
+    "titulo_fonte": "Chin ups 1.svg",
+    "nota": ""
+  },
+  {
+    "exercicio_id": "barra-fixa-com-lastro",
+    "fonte": "everkinetic",
+    "correspondencia": "aproximada",
+    "arquivos": [
+      {
+        "arquivo": "assets/ilustracoes/barra-fixa-com-lastro-1.webp",
+        "largura": 640,
+        "altura": 968
+      },
+      {
+        "arquivo": "assets/ilustracoes/barra-fixa-com-lastro-2.webp",
+        "largura": 640,
+        "altura": 968
+      }
+    ],
+    "autor": "Everkinetic (everkinetic.com)",
+    "licenca": "CC BY-SA 3.0",
+    "url_fonte": "https://commons.wikimedia.org/wiki/File:Pull_ups_1.svg",
+    "titulo_fonte": "Pull ups 1.svg",
+    "nota": "Mesma barra fixa pronada; a figura nao mostra o lastro/cinto."
+  },
+  {
+    "exercicio_id": "levantamento-terra",
+    "fonte": "everkinetic",
+    "correspondencia": "exata",
+    "arquivos": [
+      {
+        "arquivo": "assets/ilustracoes/levantamento-terra-1.webp",
+        "largura": 640,
+        "altura": 937
+      },
+      {
+        "arquivo": "assets/ilustracoes/levantamento-terra-2.webp",
+        "largura": 640,
+        "altura": 937
+      }
+    ],
+    "autor": "Everkinetic (everkinetic.com)",
+    "licenca": "CC BY-SA 3.0",
+    "url_fonte": "https://commons.wikimedia.org/wiki/File:Barbell_dead_lifts_1.svg",
+    "titulo_fonte": "Barbell dead lifts 1.svg",
+    "nota": ""
+  },
+  {
+    "exercicio_id": "remada-curvada-pronada",
+    "fonte": "everkinetic",
+    "correspondencia": "exata",
+    "arquivos": [
+      {
+        "arquivo": "assets/ilustracoes/remada-curvada-pronada-1.webp",
+        "largura": 640,
+        "altura": 676
+      },
+      {
+        "arquivo": "assets/ilustracoes/remada-curvada-pronada-2.webp",
+        "largura": 640,
+        "altura": 676
+      }
+    ],
+    "autor": "Everkinetic (everkinetic.com)",
+    "licenca": "CC BY-SA 3.0",
+    "url_fonte": "https://commons.wikimedia.org/wiki/File:Rear_deltoid_row_barbell_1.svg",
+    "titulo_fonte": "Rear deltoid row barbell 1.svg",
+    "nota": "Conferido visualmente: e a remada curvada com barra, pegada pronada (a fonte chama de 'rear deltoid row barbell')."
+  },
+  {
+    "exercicio_id": "remada-curvada-supinada",
+    "fonte": "everkinetic",
+    "correspondencia": "exata",
+    "arquivos": [
+      {
+        "arquivo": "assets/ilustracoes/remada-curvada-supinada-1.webp",
+        "largura": 640,
+        "altura": 679
+      },
+      {
+        "arquivo": "assets/ilustracoes/remada-curvada-supinada-2.webp",
+        "largura": 640,
+        "altura": 679
+      }
+    ],
+    "autor": "Everkinetic (everkinetic.com)",
+    "licenca": "CC BY-SA 3.0",
+    "url_fonte": "https://commons.wikimedia.org/wiki/File:Reverse_grips_bent_over_barbell_rows_1.svg",
+    "titulo_fonte": "Reverse grips bent over barbell rows 1.svg",
+    "nota": ""
+  },
+  {
+    "exercicio_id": "remada-unilateral-serrote",
+    "fonte": "wger",
+    "correspondencia": "exata",
+    "arquivos": [
+      {
+        "arquivo": "assets/ilustracoes/remada-unilateral-serrote-1.webp",
+        "largura": 474,
+        "altura": 316
+      }
+    ],
+    "autor": "Franpol",
+    "licenca": "CC BY-SA 4.0",
+    "url_fonte": "https://wger.de/en/exercise/81/view/",
+    "titulo_fonte": "Bent Over Dumbbell Rows",
+    "nota": ""
+  },
+  {
+    "exercicio_id": "stiff-terra-romeno",
+    "fonte": "everkinetic",
+    "correspondencia": "exata",
+    "arquivos": [
+      {
+        "arquivo": "assets/ilustracoes/stiff-terra-romeno-1.webp",
+        "largura": 640,
+        "altura": 933
+      },
+      {
+        "arquivo": "assets/ilustracoes/stiff-terra-romeno-2.webp",
+        "largura": 640,
+        "altura": 933
+      }
+    ],
+    "autor": "Everkinetic (everkinetic.com)",
+    "licenca": "CC BY-SA 3.0",
+    "url_fonte": "https://commons.wikimedia.org/wiki/File:Romanian_dead_lift_1.svg",
+    "titulo_fonte": "Romanian dead lift 1.svg",
+    "nota": ""
+  },
+  {
+    "exercicio_id": "encolhimento-de-ombros",
+    "fonte": "everkinetic",
+    "correspondencia": "exata",
+    "arquivos": [
+      {
+        "arquivo": "assets/ilustracoes/encolhimento-de-ombros-1.svg",
+        "largura": 612,
+        "altura": 896
+      },
+      {
+        "arquivo": "assets/ilustracoes/encolhimento-de-ombros-2.svg",
+        "largura": 612,
+        "altura": 896
+      }
+    ],
+    "autor": "Everkinetic (everkinetic.com)",
+    "licenca": "CC BY-SA 3.0",
+    "url_fonte": "https://commons.wikimedia.org/wiki/File:Barbell_shrugs_1.svg",
+    "titulo_fonte": "Barbell shrugs 1.svg",
+    "nota": ""
+  },
+  {
+    "exercicio_id": "good-morning",
+    "fonte": "everkinetic",
+    "correspondencia": "exata",
+    "arquivos": [
+      {
+        "arquivo": "assets/ilustracoes/good-morning-1.webp",
+        "largura": 640,
+        "altura": 763
+      },
+      {
+        "arquivo": "assets/ilustracoes/good-morning-2.webp",
+        "largura": 640,
+        "altura": 763
+      }
+    ],
+    "autor": "Everkinetic (everkinetic.com)",
+    "licenca": "CC BY-SA 3.0",
+    "url_fonte": "https://commons.wikimedia.org/wiki/File:Barbell_good_mornings_1.svg",
+    "titulo_fonte": "Barbell good mornings 1.svg",
+    "nota": ""
+  },
+  {
+    "exercicio_id": "puxada-alta-na-polia",
+    "fonte": "everkinetic",
+    "correspondencia": "exata",
+    "arquivos": [
+      {
+        "arquivo": "assets/ilustracoes/puxada-alta-na-polia-1.webp",
+        "largura": 640,
+        "altura": 969
+      },
+      {
+        "arquivo": "assets/ilustracoes/puxada-alta-na-polia-2.webp",
+        "largura": 640,
+        "altura": 969
+      }
+    ],
+    "autor": "Everkinetic (everkinetic.com)",
+    "licenca": "CC BY-SA 3.0",
+    "url_fonte": "https://commons.wikimedia.org/wiki/File:Wide_grip_lat_pull_down_1.svg",
+    "titulo_fonte": "Wide grip lat pull down 1.svg",
+    "nota": ""
+  },
+  {
+    "exercicio_id": "puxada-com-triangulo",
+    "fonte": "everkinetic",
+    "correspondencia": "exata",
+    "arquivos": [
+      {
+        "arquivo": "assets/ilustracoes/puxada-com-triangulo-1.webp",
+        "largura": 640,
+        "altura": 1617
+      },
+      {
+        "arquivo": "assets/ilustracoes/puxada-com-triangulo-2.webp",
+        "largura": 640,
+        "altura": 1617
+      }
+    ],
+    "autor": "Everkinetic (everkinetic.com)",
+    "licenca": "CC BY-SA 3.0",
+    "url_fonte": "https://commons.wikimedia.org/wiki/File:V_bar_pull_down_1.svg",
+    "titulo_fonte": "V bar pull down 1.svg",
+    "nota": ""
+  },
+  {
+    "exercicio_id": "remada-baixa-na-polia",
+    "fonte": "everkinetic",
+    "correspondencia": "exata",
+    "arquivos": [
+      {
+        "arquivo": "assets/ilustracoes/remada-baixa-na-polia-1.webp",
+        "largura": 640,
+        "altura": 434
+      },
+      {
+        "arquivo": "assets/ilustracoes/remada-baixa-na-polia-2.webp",
+        "largura": 640,
+        "altura": 434
+      }
+    ],
+    "autor": "Everkinetic (everkinetic.com)",
+    "licenca": "CC BY-SA 3.0",
+    "url_fonte": "https://commons.wikimedia.org/wiki/File:Seated_cable_rows_1.svg",
+    "titulo_fonte": "Seated cable rows 1.svg",
+    "nota": ""
+  },
+  {
+    "exercicio_id": "pullover-na-polia",
+    "fonte": "everkinetic",
+    "correspondencia": "exata",
+    "arquivos": [
+      {
+        "arquivo": "assets/ilustracoes/pullover-na-polia-1.webp",
+        "largura": 640,
+        "altura": 1568
+      },
+      {
+        "arquivo": "assets/ilustracoes/pullover-na-polia-2.webp",
+        "largura": 640,
+        "altura": 1568
+      }
+    ],
+    "autor": "Everkinetic (everkinetic.com)",
+    "licenca": "CC BY-SA 3.0",
+    "url_fonte": "https://commons.wikimedia.org/wiki/File:Straight_arm_push_down_1.svg",
+    "titulo_fonte": "Straight arm push down 1.svg",
+    "nota": ""
+  },
+  {
+    "exercicio_id": "desenvolvimento-militar-em-pe",
+    "fonte": "everkinetic",
+    "correspondencia": "exata",
+    "arquivos": [
+      {
+        "arquivo": "assets/ilustracoes/desenvolvimento-militar-em-pe-1.webp",
+        "largura": 640,
+        "altura": 857
+      },
+      {
+        "arquivo": "assets/ilustracoes/desenvolvimento-militar-em-pe-2.webp",
+        "largura": 640,
+        "altura": 857
+      }
+    ],
+    "autor": "Everkinetic (everkinetic.com)",
+    "licenca": "CC BY-SA 3.0",
+    "url_fonte": "https://commons.wikimedia.org/wiki/File:Barbell_shoulder_press_1.svg",
+    "titulo_fonte": "Barbell shoulder press 1.svg",
+    "nota": ""
+  },
+  {
+    "exercicio_id": "desenvolvimento-sentado-com-barra",
+    "fonte": "everkinetic",
+    "correspondencia": "exata",
+    "arquivos": [
+      {
+        "arquivo": "assets/ilustracoes/desenvolvimento-sentado-com-barra-1.webp",
+        "largura": 640,
+        "altura": 836
+      },
+      {
+        "arquivo": "assets/ilustracoes/desenvolvimento-sentado-com-barra-2.webp",
+        "largura": 640,
+        "altura": 836
+      }
+    ],
+    "autor": "Everkinetic (everkinetic.com)",
+    "licenca": "CC BY-SA 3.0",
+    "url_fonte": "https://commons.wikimedia.org/wiki/File:Seated_military_press_1.svg",
+    "titulo_fonte": "Seated military press 1.svg",
+    "nota": ""
+  },
+  {
+    "exercicio_id": "desenvolvimento-com-halteres",
+    "fonte": "everkinetic",
+    "correspondencia": "exata",
+    "arquivos": [
+      {
+        "arquivo": "assets/ilustracoes/desenvolvimento-com-halteres-1.webp",
+        "largura": 640,
+        "altura": 1061
+      },
+      {
+        "arquivo": "assets/ilustracoes/desenvolvimento-com-halteres-2.webp",
+        "largura": 640,
+        "altura": 1061
+      }
+    ],
+    "autor": "Everkinetic (everkinetic.com)",
+    "licenca": "CC BY-SA 3.0",
+    "url_fonte": "https://commons.wikimedia.org/wiki/File:Dumbbell_shoulder_press_1.svg",
+    "titulo_fonte": "Dumbbell shoulder press 1.svg",
+    "nota": ""
+  },
+  {
+    "exercicio_id": "elevacao-lateral",
+    "fonte": "everkinetic",
+    "correspondencia": "exata",
+    "arquivos": [
+      {
+        "arquivo": "assets/ilustracoes/elevacao-lateral-1.webp",
+        "largura": 640,
+        "altura": 712
+      },
+      {
+        "arquivo": "assets/ilustracoes/elevacao-lateral-2.webp",
+        "largura": 640,
+        "altura": 712
+      }
+    ],
+    "autor": "Everkinetic (everkinetic.com)",
+    "licenca": "CC BY-SA 3.0",
+    "url_fonte": "https://commons.wikimedia.org/wiki/File:Lateral_dumbbell_raises_1.svg",
+    "titulo_fonte": "Lateral dumbbell raises 1.svg",
+    "nota": ""
+  },
+  {
+    "exercicio_id": "elevacao-frontal",
+    "fonte": "everkinetic",
+    "correspondencia": "exata",
+    "arquivos": [
+      {
+        "arquivo": "assets/ilustracoes/elevacao-frontal-1.webp",
+        "largura": 640,
+        "altura": 1726
+      },
+      {
+        "arquivo": "assets/ilustracoes/elevacao-frontal-2.webp",
+        "largura": 640,
+        "altura": 1726
+      }
+    ],
+    "autor": "Everkinetic (everkinetic.com)",
+    "licenca": "CC BY-SA 3.0",
+    "url_fonte": "https://commons.wikimedia.org/wiki/File:Front_raises_1.svg",
+    "titulo_fonte": "Front raises 1.svg",
+    "nota": ""
+  },
+  {
+    "exercicio_id": "crucifixo-inverso",
+    "fonte": "wger",
+    "correspondencia": "exata",
+    "arquivos": [
+      {
+        "arquivo": "assets/ilustracoes/crucifixo-inverso-1.webp",
+        "largura": 640,
+        "altura": 646
+      },
+      {
+        "arquivo": "assets/ilustracoes/crucifixo-inverso-2.webp",
+        "largura": 640,
+        "altura": 646
+      }
+    ],
+    "autor": "cshep442",
+    "licenca": "CC BY-SA 4.0",
+    "url_fonte": "https://wger.de/en/exercise/487/view/",
+    "titulo_fonte": "Rear Delt Raises",
+    "nota": ""
+  },
+  {
+    "exercicio_id": "remada-alta",
+    "fonte": "everkinetic",
+    "correspondencia": "exata",
+    "arquivos": [
+      {
+        "arquivo": "assets/ilustracoes/remada-alta-1.webp",
+        "largura": 640,
+        "altura": 759
+      },
+      {
+        "arquivo": "assets/ilustracoes/remada-alta-2.webp",
+        "largura": 640,
+        "altura": 759
+      }
+    ],
+    "autor": "Everkinetic (everkinetic.com)",
+    "licenca": "CC BY-SA 3.0",
+    "url_fonte": "https://commons.wikimedia.org/wiki/File:Upright_barbell_rows_1.svg",
+    "titulo_fonte": "Upright barbell rows 1.svg",
+    "nota": ""
+  },
+  {
+    "exercicio_id": "arnold-press",
+    "fonte": "everkinetic",
+    "correspondencia": "exata",
+    "arquivos": [
+      {
+        "arquivo": "assets/ilustracoes/arnold-press-1.svg",
+        "largura": 149,
+        "altura": 269
+      },
+      {
+        "arquivo": "assets/ilustracoes/arnold-press-2.svg",
+        "largura": 149,
+        "altura": 269
+      }
+    ],
+    "autor": "Everkinetic (everkinetic.com)",
+    "licenca": "CC BY-SA 3.0",
+    "url_fonte": "https://commons.wikimedia.org/wiki/File:Arnold_press_1.svg",
+    "titulo_fonte": "Arnold press 1.svg",
+    "nota": ""
+  },
+  {
+    "exercicio_id": "face-pull",
+    "fonte": "wger",
+    "correspondencia": "aproximada",
+    "arquivos": [
+      {
+        "arquivo": "assets/ilustracoes/face-pull-1.webp",
+        "largura": 640,
+        "altura": 336
+      }
+    ],
+    "autor": "AlucardEvil40",
+    "licenca": "CC BY-SA 4.0",
+    "url_fonte": "https://wger.de/en/exercise/1639/view/",
+    "titulo_fonte": "Dumbbell Bent Over Face Pull",
+    "nota": "Face pull com halteres, curvado; a nossa e na polia."
+  },
+  {
+    "exercicio_id": "rosca-direta-com-barra",
+    "fonte": "everkinetic",
+    "correspondencia": "exata",
+    "arquivos": [
+      {
+        "arquivo": "assets/ilustracoes/rosca-direta-com-barra-1.webp",
+        "largura": 640,
+        "altura": 590
+      },
+      {
+        "arquivo": "assets/ilustracoes/rosca-direta-com-barra-2.webp",
+        "largura": 640,
+        "altura": 590
+      }
+    ],
+    "autor": "Everkinetic (everkinetic.com)",
+    "licenca": "CC BY-SA 3.0",
+    "url_fonte": "https://commons.wikimedia.org/wiki/File:Bicep_curls_with_barbell_1.svg",
+    "titulo_fonte": "Bicep curls with barbell 1.svg",
+    "nota": ""
+  },
+  {
+    "exercicio_id": "rosca-com-barra-w",
+    "fonte": "everkinetic",
+    "correspondencia": "exata",
+    "arquivos": [
+      {
+        "arquivo": "assets/ilustracoes/rosca-com-barra-w-1.webp",
+        "largura": 640,
+        "altura": 677
+      },
+      {
+        "arquivo": "assets/ilustracoes/rosca-com-barra-w-2.webp",
+        "largura": 640,
+        "altura": 677
+      }
+    ],
+    "autor": "Everkinetic (everkinetic.com)",
+    "licenca": "CC BY-SA 3.0",
+    "url_fonte": "https://commons.wikimedia.org/wiki/File:Ez_bar_curl_with_barbell_1.svg",
+    "titulo_fonte": "Ez bar curl with barbell 1.svg",
+    "nota": ""
+  },
+  {
+    "exercicio_id": "rosca-alternada",
+    "fonte": "everkinetic",
+    "correspondencia": "exata",
+    "arquivos": [
+      {
+        "arquivo": "assets/ilustracoes/rosca-alternada-1.webp",
+        "largura": 640,
+        "altura": 1179
+      },
+      {
+        "arquivo": "assets/ilustracoes/rosca-alternada-2.webp",
+        "largura": 640,
+        "altura": 1179
+      }
+    ],
+    "autor": "Everkinetic (everkinetic.com)",
+    "licenca": "CC BY-SA 3.0",
+    "url_fonte": "https://commons.wikimedia.org/wiki/File:Alternating_bicep_curl_with_dumbbell_1.svg",
+    "titulo_fonte": "Alternating bicep curl with dumbbell 1.svg",
+    "nota": ""
+  },
+  {
+    "exercicio_id": "rosca-martelo",
+    "fonte": "everkinetic",
+    "correspondencia": "exata",
+    "arquivos": [
+      {
+        "arquivo": "assets/ilustracoes/rosca-martelo-1.webp",
+        "largura": 640,
+        "altura": 1191
+      },
+      {
+        "arquivo": "assets/ilustracoes/rosca-martelo-2.webp",
+        "largura": 640,
+        "altura": 1191
+      }
+    ],
+    "autor": "Everkinetic (everkinetic.com)",
+    "licenca": "CC BY-SA 3.0",
+    "url_fonte": "https://commons.wikimedia.org/wiki/File:Bicep_hammer_curl_with_dumbbell_1.svg",
+    "titulo_fonte": "Bicep hammer curl with dumbbell 1.svg",
+    "nota": ""
+  },
+  {
+    "exercicio_id": "rosca-inclinada",
+    "fonte": "everkinetic",
+    "correspondencia": "exata",
+    "arquivos": [
+      {
+        "arquivo": "assets/ilustracoes/rosca-inclinada-1.webp",
+        "largura": 640,
+        "altura": 915
+      },
+      {
+        "arquivo": "assets/ilustracoes/rosca-inclinada-2.webp",
+        "largura": 640,
+        "altura": 915
+      }
+    ],
+    "autor": "Everkinetic (everkinetic.com)",
+    "licenca": "CC BY-SA 3.0",
+    "url_fonte": "https://commons.wikimedia.org/wiki/File:Alternating_incline_curl_with_dumbbell_1.svg",
+    "titulo_fonte": "Alternating incline curl with dumbbell 1.svg",
+    "nota": ""
+  },
+  {
+    "exercicio_id": "rosca-concentrada",
+    "fonte": "everkinetic",
+    "correspondencia": "exata",
+    "arquivos": [
+      {
+        "arquivo": "assets/ilustracoes/rosca-concentrada-1.svg",
+        "largura": 117,
+        "altura": 188
+      },
+      {
+        "arquivo": "assets/ilustracoes/rosca-concentrada-2.svg",
+        "largura": 117,
+        "altura": 188
+      }
+    ],
+    "autor": "Everkinetic (everkinetic.com)",
+    "licenca": "CC BY-SA 3.0",
+    "url_fonte": "https://commons.wikimedia.org/wiki/File:Concentration-curls-1.png",
+    "titulo_fonte": "Concentration-curls-1.png",
+    "nota": "SVG do repositorio opentraining-exercises (conversao do PNG do Commons)."
+  },
+  {
+    "exercicio_id": "rosca-scott-improvisada",
+    "fonte": "everkinetic",
+    "correspondencia": "exata",
+    "arquivos": [
+      {
+        "arquivo": "assets/ilustracoes/rosca-scott-improvisada-1.webp",
+        "largura": 640,
+        "altura": 1132
+      },
+      {
+        "arquivo": "assets/ilustracoes/rosca-scott-improvisada-2.webp",
+        "largura": 640,
+        "altura": 1132
+      }
+    ],
+    "autor": "Everkinetic (everkinetic.com)",
+    "licenca": "CC BY-SA 3.0",
+    "url_fonte": "https://commons.wikimedia.org/wiki/File:Two_arm_preacher_curl_with_dumbbell_1.svg",
+    "titulo_fonte": "Two arm preacher curl with dumbbell 1.svg",
+    "nota": ""
+  },
+  {
+    "exercicio_id": "rosca-inversa",
+    "fonte": "wger",
+    "correspondencia": "exata",
+    "arquivos": [
+      {
+        "arquivo": "assets/ilustracoes/rosca-inversa-1.webp",
+        "largura": 474,
+        "altura": 320
+      }
+    ],
+    "autor": "Franpol",
+    "licenca": "CC BY-SA 4.0",
+    "url_fonte": "https://wger.de/en/exercise/1290/view/",
+    "titulo_fonte": "Reverse Grip Barbell Curls",
+    "nota": ""
+  },
+  {
+    "exercicio_id": "rosca-na-polia-baixa",
+    "fonte": "everkinetic",
+    "correspondencia": "exata",
+    "arquivos": [
+      {
+        "arquivo": "assets/ilustracoes/rosca-na-polia-baixa-1.webp",
+        "largura": 640,
+        "altura": 1384
+      },
+      {
+        "arquivo": "assets/ilustracoes/rosca-na-polia-baixa-2.webp",
+        "largura": 640,
+        "altura": 1384
+      }
+    ],
+    "autor": "Everkinetic (everkinetic.com)",
+    "licenca": "CC BY-SA 3.0",
+    "url_fonte": "https://commons.wikimedia.org/wiki/File:Standing_biceps_curl_with_cable_1.svg",
+    "titulo_fonte": "Standing biceps curl with cable 1.svg",
+    "nota": ""
+  },
+  {
+    "exercicio_id": "triceps-testa",
+    "fonte": "everkinetic",
+    "correspondencia": "exata",
+    "arquivos": [
+      {
+        "arquivo": "assets/ilustracoes/triceps-testa-1.webp",
+        "largura": 640,
+        "altura": 559
+      },
+      {
+        "arquivo": "assets/ilustracoes/triceps-testa-2.webp",
+        "largura": 640,
+        "altura": 559
+      }
+    ],
+    "autor": "Everkinetic (everkinetic.com)",
+    "licenca": "CC BY-SA 3.0",
+    "url_fonte": "https://commons.wikimedia.org/wiki/File:Lying_triceps_press_with_barbell_1.svg",
+    "titulo_fonte": "Lying triceps press with barbell 1.svg",
+    "nota": ""
+  },
+  {
+    "exercicio_id": "supino-fechado",
+    "fonte": "everkinetic",
+    "correspondencia": "exata",
+    "arquivos": [
+      {
+        "arquivo": "assets/ilustracoes/supino-fechado-1.webp",
+        "largura": 640,
+        "altura": 629
+      },
+      {
+        "arquivo": "assets/ilustracoes/supino-fechado-2.webp",
+        "largura": 640,
+        "altura": 629
+      }
+    ],
+    "autor": "Everkinetic (everkinetic.com)",
+    "licenca": "CC BY-SA 3.0",
+    "url_fonte": "https://commons.wikimedia.org/wiki/File:Close_grip_barbell_bench_press_1.svg",
+    "titulo_fonte": "Close grip barbell bench press 1.svg",
+    "nota": ""
+  },
+  {
+    "exercicio_id": "triceps-frances",
+    "fonte": "everkinetic",
+    "correspondencia": "exata",
+    "arquivos": [
+      {
+        "arquivo": "assets/ilustracoes/triceps-frances-1.webp",
+        "largura": 640,
+        "altura": 899
+      },
+      {
+        "arquivo": "assets/ilustracoes/triceps-frances-2.webp",
+        "largura": 640,
+        "altura": 899
+      }
+    ],
+    "autor": "Everkinetic (everkinetic.com)",
+    "licenca": "CC BY-SA 3.0",
+    "url_fonte": "https://commons.wikimedia.org/wiki/File:Standing_overhead_triceps_extension_with_barbell_1.svg",
+    "titulo_fonte": "Standing overhead triceps extension with barbell 1.svg",
+    "nota": ""
+  },
+  {
+    "exercicio_id": "extensao-unilateral",
+    "fonte": "everkinetic",
+    "correspondencia": "exata",
+    "arquivos": [
+      {
+        "arquivo": "assets/ilustracoes/extensao-unilateral-1.webp",
+        "largura": 640,
+        "altura": 1712
+      },
+      {
+        "arquivo": "assets/ilustracoes/extensao-unilateral-2.webp",
+        "largura": 640,
+        "altura": 1712
+      }
+    ],
+    "autor": "Everkinetic (everkinetic.com)",
+    "licenca": "CC BY-SA 3.0",
+    "url_fonte": "https://commons.wikimedia.org/wiki/File:Standing_one_arm_triceps_extension_with_dumbbell_1.svg",
+    "titulo_fonte": "Standing one arm triceps extension with dumbbell 1.svg",
+    "nota": ""
+  },
+  {
+    "exercicio_id": "mergulho-no-banco",
+    "fonte": "everkinetic",
+    "correspondencia": "exata",
+    "arquivos": [
+      {
+        "arquivo": "assets/ilustracoes/mergulho-no-banco-1.svg",
+        "largura": 242,
+        "altura": 176
+      },
+      {
+        "arquivo": "assets/ilustracoes/mergulho-no-banco-2.svg",
+        "largura": 242,
+        "altura": 176
+      }
+    ],
+    "autor": "Everkinetic (everkinetic.com)",
+    "licenca": "CC BY-SA 3.0",
+    "url_fonte": "https://commons.wikimedia.org/wiki/File:Bench_dips_1.svg",
+    "titulo_fonte": "Bench dips 1.svg",
+    "nota": ""
+  },
+  {
+    "exercicio_id": "triceps-coice",
+    "fonte": "everkinetic",
+    "correspondencia": "exata",
+    "arquivos": [
+      {
+        "arquivo": "assets/ilustracoes/triceps-coice-1.svg",
+        "largura": 277,
+        "altura": 311
+      },
+      {
+        "arquivo": "assets/ilustracoes/triceps-coice-2.svg",
+        "largura": 277,
+        "altura": 311
+      }
+    ],
+    "autor": "Everkinetic (everkinetic.com)",
+    "licenca": "CC BY-SA 3.0",
+    "url_fonte": "https://commons.wikimedia.org/wiki/File:Triceps-kickback-1.gif",
+    "titulo_fonte": "Triceps-kickback-1.gif",
+    "nota": "SVG do repositorio opentraining-exercises (conversao do GIF do Commons)."
+  },
+  {
+    "exercicio_id": "triceps-na-corda",
+    "fonte": "everkinetic",
+    "correspondencia": "exata",
+    "arquivos": [
+      {
+        "arquivo": "assets/ilustracoes/triceps-na-corda-1.webp",
+        "largura": 640,
+        "altura": 1807
+      },
+      {
+        "arquivo": "assets/ilustracoes/triceps-na-corda-2.webp",
+        "largura": 640,
+        "altura": 1807
+      }
+    ],
+    "autor": "Everkinetic (everkinetic.com)",
+    "licenca": "CC BY-SA 3.0",
+    "url_fonte": "https://commons.wikimedia.org/wiki/File:Triceps_pushdown_with_rope_and_cable_1.svg",
+    "titulo_fonte": "Triceps pushdown with rope and cable 1.svg",
+    "nota": ""
+  },
+  {
+    "exercicio_id": "agachamento-livre",
+    "fonte": "everkinetic",
+    "correspondencia": "exata",
+    "arquivos": [
+      {
+        "arquivo": "assets/ilustracoes/agachamento-livre-1.svg",
+        "largura": 763,
+        "altura": 901
+      },
+      {
+        "arquivo": "assets/ilustracoes/agachamento-livre-2.svg",
+        "largura": 763,
+        "altura": 901
+      }
+    ],
+    "autor": "Everkinetic (everkinetic.com)",
+    "licenca": "CC BY-SA 3.0",
+    "url_fonte": "https://commons.wikimedia.org/wiki/File:Squats-1.png",
+    "titulo_fonte": "Squats-1.png",
+    "nota": "SVG do repositorio opentraining-exercises (conversao do PNG do Commons)."
+  },
+  {
+    "exercicio_id": "agachamento-frontal",
+    "fonte": "everkinetic",
+    "correspondencia": "exata",
+    "arquivos": [
+      {
+        "arquivo": "assets/ilustracoes/agachamento-frontal-1.webp",
+        "largura": 640,
+        "altura": 775
+      },
+      {
+        "arquivo": "assets/ilustracoes/agachamento-frontal-2.webp",
+        "largura": 640,
+        "altura": 775
+      }
+    ],
+    "autor": "Everkinetic (everkinetic.com)",
+    "licenca": "CC BY-SA 3.0",
+    "url_fonte": "https://commons.wikimedia.org/wiki/File:Front_squat_with_barbell_1.svg",
+    "titulo_fonte": "Front squat with barbell 1.svg",
+    "nota": ""
+  },
+  {
+    "exercicio_id": "agachamento-goblet",
+    "fonte": "everkinetic",
+    "correspondencia": "aproximada",
+    "arquivos": [
+      {
+        "arquivo": "assets/ilustracoes/agachamento-goblet-1.webp",
+        "largura": 640,
+        "altura": 1510
+      },
+      {
+        "arquivo": "assets/ilustracoes/agachamento-goblet-2.webp",
+        "largura": 640,
+        "altura": 1510
+      }
+    ],
+    "autor": "Everkinetic (everkinetic.com)",
+    "licenca": "CC BY-SA 3.0",
+    "url_fonte": "https://commons.wikimedia.org/wiki/File:Squats_using_dumbbells_1.svg",
+    "titulo_fonte": "Squats using dumbbells 1.svg",
+    "nota": "Agachamento com halteres ao lado do corpo; no goblet o halter fica a frente do peito."
+  },
+  {
+    "exercicio_id": "agachamento-bulgaro",
+    "fonte": "wger",
+    "correspondencia": "exata",
+    "arquivos": [
+      {
+        "arquivo": "assets/ilustracoes/agachamento-bulgaro-1.webp",
+        "largura": 308,
+        "altura": 164
+      }
+    ],
+    "autor": "AlucardEvil40",
+    "licenca": "CC BY-SA 4.0",
+    "url_fonte": "https://wger.de/en/exercise/1706/view/",
+    "titulo_fonte": "Bulgarian Squat with Dumbbells",
+    "nota": ""
+  },
+  {
+    "exercicio_id": "afundo-passada",
+    "fonte": "everkinetic",
+    "correspondencia": "exata",
+    "arquivos": [
+      {
+        "arquivo": "assets/ilustracoes/afundo-passada-1.webp",
+        "largura": 640,
+        "altura": 685
+      },
+      {
+        "arquivo": "assets/ilustracoes/afundo-passada-2.webp",
+        "largura": 640,
+        "altura": 685
+      }
+    ],
+    "autor": "Everkinetic (everkinetic.com)",
+    "licenca": "CC BY-SA 3.0",
+    "url_fonte": "https://commons.wikimedia.org/wiki/File:Barbell_lunges_1.svg",
+    "titulo_fonte": "Barbell lunges 1.svg",
+    "nota": "Afundo com barra (o app usa barra ou halteres)."
+  },
+  {
+    "exercicio_id": "agachamento-sumo",
+    "fonte": "everkinetic",
+    "correspondencia": "exata",
+    "arquivos": [
+      {
+        "arquivo": "assets/ilustracoes/agachamento-sumo-1.webp",
+        "largura": 640,
+        "altura": 1099
+      },
+      {
+        "arquivo": "assets/ilustracoes/agachamento-sumo-2.webp",
+        "largura": 640,
+        "altura": 1099
+      }
+    ],
+    "autor": "Everkinetic (everkinetic.com)",
+    "licenca": "CC BY-SA 3.0",
+    "url_fonte": "https://commons.wikimedia.org/wiki/File:Pile_squat_with_dumbbell_1.svg",
+    "titulo_fonte": "Pile squat with dumbbell 1.svg",
+    "nota": "Grafia da fonte: 'pile squat' = plie/sumo com halter."
+  },
+  {
+    "exercicio_id": "terra-romeno-com-halteres",
+    "fonte": "wger",
+    "correspondencia": "exata",
+    "arquivos": [
+      {
+        "arquivo": "assets/ilustracoes/terra-romeno-com-halteres-1.webp",
+        "largura": 640,
+        "altura": 336
+      }
+    ],
+    "autor": "AlucardEvil40",
+    "licenca": "CC BY-SA 4.0",
+    "url_fonte": "https://wger.de/en/exercise/1652/view/",
+    "titulo_fonte": "Dumbbell Romanian Deadlift",
+    "nota": ""
+  },
+  {
+    "exercicio_id": "step-up-no-banco",
+    "fonte": "everkinetic",
+    "correspondencia": "exata",
+    "arquivos": [
+      {
+        "arquivo": "assets/ilustracoes/step-up-no-banco-1.webp",
+        "largura": 640,
+        "altura": 1184
+      },
+      {
+        "arquivo": "assets/ilustracoes/step-up-no-banco-2.webp",
+        "largura": 640,
+        "altura": 1184
+      }
+    ],
+    "autor": "Everkinetic (everkinetic.com)",
+    "licenca": "CC BY-SA 3.0",
+    "url_fonte": "https://commons.wikimedia.org/wiki/File:Step_ups_with_dumbbells_1.svg",
+    "titulo_fonte": "Step ups with dumbbells 1.svg",
+    "nota": ""
+  },
+  {
+    "exercicio_id": "elevacao-de-panturrilha-em-pe",
+    "fonte": "everkinetic",
+    "correspondencia": "exata",
+    "arquivos": [
+      {
+        "arquivo": "assets/ilustracoes/elevacao-de-panturrilha-em-pe-1.webp",
+        "largura": 640,
+        "altura": 543
+      },
+      {
+        "arquivo": "assets/ilustracoes/elevacao-de-panturrilha-em-pe-2.webp",
+        "largura": 640,
+        "altura": 543
+      }
+    ],
+    "autor": "Everkinetic (everkinetic.com)",
+    "licenca": "CC BY-SA 3.0",
+    "url_fonte": "https://commons.wikimedia.org/wiki/File:Standing_barbell_calf_raise_1.svg",
+    "titulo_fonte": "Standing barbell calf raise 1.svg",
+    "nota": ""
+  },
+  {
+    "exercicio_id": "elevacao-de-panturrilha-sentado",
+    "fonte": "everkinetic",
+    "correspondencia": "exata",
+    "arquivos": [
+      {
+        "arquivo": "assets/ilustracoes/elevacao-de-panturrilha-sentado-1.webp",
+        "largura": 640,
+        "altura": 953
+      },
+      {
+        "arquivo": "assets/ilustracoes/elevacao-de-panturrilha-sentado-2.webp",
+        "largura": 640,
+        "altura": 953
+      }
+    ],
+    "autor": "Everkinetic (everkinetic.com)",
+    "licenca": "CC BY-SA 3.0",
+    "url_fonte": "https://commons.wikimedia.org/wiki/File:Seated_calf_raise_with_barbell_1.svg",
+    "titulo_fonte": "Seated calf raise with barbell 1.svg",
+    "nota": ""
+  },
+  {
+    "exercicio_id": "flexora-e-gluteo-na-polia",
+    "fonte": "everkinetic",
+    "correspondencia": "exata",
+    "arquivos": [
+      {
+        "arquivo": "assets/ilustracoes/flexora-e-gluteo-na-polia-1.webp",
+        "largura": 640,
+        "altura": 965
+      },
+      {
+        "arquivo": "assets/ilustracoes/flexora-e-gluteo-na-polia-2.webp",
+        "largura": 640,
+        "altura": 965
+      }
+    ],
+    "autor": "Everkinetic (everkinetic.com)",
+    "licenca": "CC BY-SA 3.0",
+    "url_fonte": "https://commons.wikimedia.org/wiki/File:One_legged_cable_kickback_1.svg",
+    "titulo_fonte": "One legged cable kickback 1.svg",
+    "nota": ""
+  },
+  {
+    "exercicio_id": "elevacao-de-pernas-na-barra-fixa",
+    "fonte": "wger",
+    "correspondencia": "exata",
+    "arquivos": [
+      {
+        "arquivo": "assets/ilustracoes/elevacao-de-pernas-na-barra-fixa-1.webp",
+        "largura": 640,
+        "altura": 454
+      }
+    ],
+    "autor": "clafal",
+    "licenca": "CC BY-SA 4.0",
+    "url_fonte": "https://wger.de/en/exercise/979/view/",
+    "titulo_fonte": "Leg raises pull up bar",
+    "nota": ""
+  },
+  {
+    "exercicio_id": "abdominal-no-banco-declinado",
+    "fonte": "everkinetic",
+    "correspondencia": "exata",
+    "arquivos": [
+      {
+        "arquivo": "assets/ilustracoes/abdominal-no-banco-declinado-1.svg",
+        "largura": 197,
+        "altura": 179
+      },
+      {
+        "arquivo": "assets/ilustracoes/abdominal-no-banco-declinado-2.svg",
+        "largura": 197,
+        "altura": 179
+      }
+    ],
+    "autor": "Everkinetic (everkinetic.com)",
+    "licenca": "CC BY-SA 3.0",
+    "url_fonte": "https://commons.wikimedia.org/wiki/File:Decline_crunch_1.svg",
+    "titulo_fonte": "Decline crunch 1.svg",
+    "nota": ""
+  },
+  {
+    "exercicio_id": "abdominal-com-anilha",
+    "fonte": "wger",
+    "correspondencia": "exata",
+    "arquivos": [
+      {
+        "arquivo": "assets/ilustracoes/abdominal-com-anilha-1.webp",
+        "largura": 640,
+        "altura": 360
+      }
+    ],
+    "autor": "AlucardEvil40",
+    "licenca": "CC BY-SA 4.0",
+    "url_fonte": "https://wger.de/en/exercise/1648/view/",
+    "titulo_fonte": "Weighted Crunch",
+    "nota": "Peso e halter em vez de anilha."
+  },
+  {
+    "exercicio_id": "russian-twist",
+    "fonte": "wger",
+    "correspondencia": "exata",
+    "arquivos": [
+      {
+        "arquivo": "assets/ilustracoes/russian-twist-1.webp",
+        "largura": 640,
+        "altura": 230
+      }
+    ],
+    "autor": "lion",
+    "licenca": "CC BY-SA 4.0",
+    "url_fonte": "https://wger.de/en/exercise/1193/view/",
+    "titulo_fonte": "Russian Twist",
+    "nota": ""
+  },
+  {
+    "exercicio_id": "prancha",
+    "fonte": "wger",
+    "correspondencia": "exata",
+    "arquivos": [
+      {
+        "arquivo": "assets/ilustracoes/prancha-1.webp",
+        "largura": 640,
+        "altura": 233
+      },
+      {
+        "arquivo": "assets/ilustracoes/prancha-2.webp",
+        "largura": 640,
+        "altura": 233
+      }
+    ],
+    "autor": "utkb",
+    "licenca": "CC BY-SA 4.0",
+    "url_fonte": "https://wger.de/en/exercise/458/view/",
+    "titulo_fonte": "Plank",
+    "nota": ""
+  },
+  {
+    "exercicio_id": "flexao-de-braco",
+    "fonte": "everkinetic",
+    "correspondencia": "exata",
+    "arquivos": [
+      {
+        "arquivo": "assets/ilustracoes/flexao-de-braco-1.svg",
+        "largura": 225,
+        "altura": 123
+      },
+      {
+        "arquivo": "assets/ilustracoes/flexao-de-braco-2.svg",
+        "largura": 225,
+        "altura": 123
+      }
+    ],
+    "autor": "Everkinetic (everkinetic.com)",
+    "licenca": "CC BY-SA 3.0",
+    "url_fonte": "https://commons.wikimedia.org/wiki/File:Push_ups_1.svg",
+    "titulo_fonte": "Push ups 1.svg",
+    "nota": ""
+  },
+  {
+    "exercicio_id": "abdominal-supra",
+    "fonte": "everkinetic",
+    "correspondencia": "exata",
+    "arquivos": [
+      {
+        "arquivo": "assets/ilustracoes/abdominal-supra-1.svg",
+        "largura": 626,
+        "altura": 280
+      },
+      {
+        "arquivo": "assets/ilustracoes/abdominal-supra-2.svg",
+        "largura": 626,
+        "altura": 280
+      }
+    ],
+    "autor": "Everkinetic (everkinetic.com)",
+    "licenca": "CC BY-SA 3.0",
+    "url_fonte": "https://commons.wikimedia.org/wiki/File:Crunches_1.svg",
+    "titulo_fonte": "Crunches 1.svg",
+    "nota": ""
+  },
+  {
+    "exercicio_id": "abdominal-completo",
+    "fonte": "everkinetic",
+    "correspondencia": "aproximada",
+    "arquivos": [
+      {
+        "arquivo": "assets/ilustracoes/abdominal-completo-1.webp",
+        "largura": 640,
+        "altura": 512
+      },
+      {
+        "arquivo": "assets/ilustracoes/abdominal-completo-2.webp",
+        "largura": 640,
+        "altura": 512
+      }
+    ],
+    "autor": "Everkinetic (everkinetic.com)",
+    "licenca": "CC BY-SA 3.0",
+    "url_fonte": "https://commons.wikimedia.org/wiki/File:Decline-sit-up-1.png",
+    "titulo_fonte": "Decline-sit-up-1.png",
+    "nota": "Sit-up completo, porem no banco declinado; nao ha sit-up no chao na colecao."
+  },
+  {
+    "exercicio_id": "abdominal-cruzado",
+    "fonte": "everkinetic",
+    "correspondencia": "exata",
+    "arquivos": [
+      {
+        "arquivo": "assets/ilustracoes/abdominal-cruzado-1.svg",
+        "largura": 220,
+        "altura": 109
+      },
+      {
+        "arquivo": "assets/ilustracoes/abdominal-cruzado-2.svg",
+        "largura": 220,
+        "altura": 109
+      }
+    ],
+    "autor": "Everkinetic (everkinetic.com)",
+    "licenca": "CC BY-SA 3.0",
+    "url_fonte": "https://commons.wikimedia.org/wiki/File:Cross_body_crunch_1.svg",
+    "titulo_fonte": "Cross body crunch 1.svg",
+    "nota": ""
+  },
+  {
+    "exercicio_id": "abdominal-bicicleta",
+    "fonte": "everkinetic",
+    "correspondencia": "exata",
+    "arquivos": [
+      {
+        "arquivo": "assets/ilustracoes/abdominal-bicicleta-1.webp",
+        "largura": 640,
+        "altura": 270
+      },
+      {
+        "arquivo": "assets/ilustracoes/abdominal-bicicleta-2.webp",
+        "largura": 640,
+        "altura": 270
+      }
+    ],
+    "autor": "Everkinetic (everkinetic.com)",
+    "licenca": "CC BY-SA 3.0",
+    "url_fonte": "https://commons.wikimedia.org/wiki/File:Air_bike_1.svg",
+    "titulo_fonte": "Air bike 1.svg",
+    "nota": ""
+  },
+  {
+    "exercicio_id": "superman",
+    "fonte": "everkinetic",
+    "correspondencia": "exata",
+    "arquivos": [
+      {
+        "arquivo": "assets/ilustracoes/superman-1.svg",
+        "largura": 302,
+        "altura": 66
+      },
+      {
+        "arquivo": "assets/ilustracoes/superman-2.svg",
+        "largura": 302,
+        "altura": 66
+      }
+    ],
+    "autor": "Everkinetic (everkinetic.com)",
+    "licenca": "CC BY-SA 3.0",
+    "url_fonte": "https://commons.wikimedia.org/wiki/File:Supermans_1.svg",
+    "titulo_fonte": "Supermans 1.svg",
+    "nota": ""
+  },
+  {
+    "exercicio_id": "prancha-lateral",
+    "fonte": "everkinetic",
+    "correspondencia": "exata",
+    "arquivos": [
+      {
+        "arquivo": "assets/ilustracoes/prancha-lateral-1.svg",
+        "largura": 901,
+        "altura": 414
+      },
+      {
+        "arquivo": "assets/ilustracoes/prancha-lateral-2.svg",
+        "largura": 901,
+        "altura": 414
+      }
+    ],
+    "autor": "Everkinetic (everkinetic.com)",
+    "licenca": "CC BY-SA 3.0",
+    "url_fonte": "https://commons.wikimedia.org/wiki/File:Side_plank_1.svg",
+    "titulo_fonte": "Side plank 1.svg",
+    "nota": ""
+  },
+  {
+    "exercicio_id": "salto-com-joelho-alto",
+    "fonte": "wger",
+    "correspondencia": "exata",
+    "arquivos": [
+      {
+        "arquivo": "assets/ilustracoes/salto-com-joelho-alto-1.webp",
+        "largura": 530,
+        "altura": 388
+      }
+    ],
+    "autor": "nate303303",
+    "licenca": "CC BY-SA 4.0",
+    "url_fonte": "https://wger.de/en/exercise/285/view/",
+    "titulo_fonte": "High Knee Jumps",
+    "nota": ""
+  },
+  {
+    "exercicio_id": "barra-fixa-assistida",
+    "fonte": "everkinetic",
+    "correspondencia": "aproximada",
+    "arquivos": [
+      {
+        "arquivo": "assets/ilustracoes/barra-fixa-assistida-1.webp",
+        "largura": 640,
+        "altura": 968
+      },
+      {
+        "arquivo": "assets/ilustracoes/barra-fixa-assistida-2.webp",
+        "largura": 640,
+        "altura": 968
+      }
+    ],
+    "autor": "Everkinetic (everkinetic.com)",
+    "licenca": "CC BY-SA 3.0",
+    "url_fonte": "https://commons.wikimedia.org/wiki/File:Pull_ups_1.svg",
+    "titulo_fonte": "Pull ups 1.svg",
+    "nota": "Barra fixa pronada; a figura nao mostra o elastico de assistencia."
+  },
+  {
+    "exercicio_id": "abertura-de-ombros",
+    "fonte": "everkinetic",
+    "correspondencia": "exata",
+    "arquivos": [
+      {
+        "arquivo": "assets/ilustracoes/abertura-de-ombros-1.webp",
+        "largura": 640,
+        "altura": 810
+      },
+      {
+        "arquivo": "assets/ilustracoes/abertura-de-ombros-2.webp",
+        "largura": 640,
+        "altura": 810
+      }
+    ],
+    "autor": "Everkinetic (everkinetic.com)",
+    "licenca": "CC BY-SA 3.0",
+    "url_fonte": "https://commons.wikimedia.org/wiki/File:Back_flys_exercise_band_1.svg",
+    "titulo_fonte": "Back flys exercise band 1.svg",
+    "nota": "Conferido visualmente: abertura de ombros com elastico (band pull apart)."
+  },
+  {
+    "exercicio_id": "good-morning-com-elastico",
+    "fonte": "everkinetic",
+    "correspondencia": "aproximada",
+    "arquivos": [
+      {
+        "arquivo": "assets/ilustracoes/good-morning-com-elastico-1.webp",
+        "largura": 640,
+        "altura": 763
+      },
+      {
+        "arquivo": "assets/ilustracoes/good-morning-com-elastico-2.webp",
+        "largura": 640,
+        "altura": 763
+      }
+    ],
+    "autor": "Everkinetic (everkinetic.com)",
+    "licenca": "CC BY-SA 3.0",
+    "url_fonte": "https://commons.wikimedia.org/wiki/File:Barbell_good_mornings_1.svg",
+    "titulo_fonte": "Barbell good mornings 1.svg",
+    "nota": "Good morning com barra; nao ha a versao com elastico."
+  }
+]

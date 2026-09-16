@@ -10,6 +10,7 @@ import {
   acharTreino,
   estagioDeCorda,
   exerciciosDoTreino,
+  treinoPorId,
 } from "@/lib/dados";
 import {
   formatarData,
@@ -19,15 +20,18 @@ import {
   rotuloDaCarga,
 } from "@/lib/formato";
 import type { OpcoesMontagem } from "@/lib/montagem";
+import { aplicarOrdem } from "@/lib/ordem";
 import {
   cargaDeHoje,
   prescricaoDoTreino,
+  prescricaoPadrao,
   type AlvoDeHoje,
   type EstadoExercicio,
 } from "@/lib/progressao";
 import type { Grupo, Implemento, TreinoId } from "@/lib/schemas";
 import type {
   LinhaEstadoExercicio,
+  LinhaSerie,
   LinhaEventoProgressao,
   LinhaPeso,
   LinhaSessao,
@@ -102,10 +106,55 @@ export function resumoDoTreino(id: TreinoId): ResumoDoTreino {
   };
 }
 
+/** "44 min · 6 exercícios" — o detalhe do card de força (SPEC §13.3). */
+export function detalheDoTreino(id: TreinoId): string {
+  const treino = acharTreino(id);
+  const n = treino.exercicios.length;
+  return `${formatarMinutos(treino.duracao_min)} · ${n} exercício${n === 1 ? "" : "s"}`;
+}
+
+/* ------------------------------------------------ sessão aberta: progresso */
+
+export interface ProgressoDaAberta {
+  feitas: number;
+  /** `null` quando a sessão não é um treino do programa (barra fixa, livre). */
+  total: number | null;
+  /** "3/15 séries" ou "3 séries" */
+  texto: string;
+}
+
+/**
+ * Séries de trabalho já registradas numa sessão aberta (SPEC §13.3, o card
+ * "Continuar"). O total vem da prescrição do treino em `programa.json`.
+ */
+export function progressoDaAberta(
+  workoutId: string,
+  series: Pick<LinhaSerie, "tipo" | "concluida">[] = [],
+): ProgressoDaAberta {
+  const feitas = series.filter((s) => s.tipo === "trabalho" && s.concluida).length;
+  // "fixa" e "livre" não são treinos do `programa.json`: não há total prescrito
+  const treino = treinoPorId[workoutId as TreinoId] ?? null;
+  if (!treino) {
+    return {
+      feitas,
+      total: null,
+      texto: `${feitas} série${feitas === 1 ? "" : "s"}`,
+    };
+  }
+  const total = exerciciosDoTreino(workoutId as TreinoId).reduce(
+    (soma, { item, exercicio }) => soma + prescricaoDoTreino(item, exercicio).series,
+    0,
+  );
+  return { feitas, total, texto: `${feitas}/${total} séries` };
+}
+
 /* ---------------------------------------------------- prévia do treino */
 
 export interface ItemPrevia {
   exercicioId: string;
+  /** O exercício do programa, mesmo quando um substituto tomou o lugar. */
+  originalId: string;
+  substituido: boolean;
   nome: string;
   implemento: Implemento;
   ordem: number;
@@ -225,12 +274,24 @@ export function ultimoEventoPorExercicio(
 
 export interface EntradaPrevia {
   treinoId: TreinoId;
+  /**
+   * Substituições escolhidas na lista do dia (SPEC §13.3): exercício do
+   * programa → substituto. A prescrição passa a ser a **dele**, como na sessão
+   * (§3.2 e §6.3).
+   */
+  trocas?: Record<string, string>;
   /** `exercise_state` por exercício (o que o motor já decidiu). */
   estados?: Record<string, EstadoExercicio | null>;
   /** `progression_events` dos exercícios do treino, em qualquer ordem. */
   eventos?: EventoCurto[];
   /** Barra W / reta oca já pesadas na balança (SPEC §3.9). */
   montagem?: OpcoesMontagem;
+  /**
+   * A ordem escolhida em "Editar" (SPEC §14.3), por id do exercício **do
+   * programa**. Vazia = a ordem do programa. Quem não está na lista fica no
+   * fim, na ordem do programa (`aplicarOrdem`): ninguém some.
+   */
+  ordem?: readonly string[];
 }
 
 /**
@@ -242,17 +303,42 @@ export function previaDoTreino({
   estados = {},
   eventos = [],
   montagem = {},
+  trocas = {},
+  ordem = [],
 }: EntradaPrevia): ItemPrevia[] {
   const ultimos = ultimoEventoPorExercicio(eventos);
+  const doTreino = exerciciosDoTreino(treinoId);
+  const posicao = aplicarOrdem(
+    doTreino.map(({ exercicio }) => exercicio.id),
+    ordem,
+  );
+  const naOrdem = posicao.flatMap((id) => {
+    const achado = doTreino.find(({ exercicio }) => exercicio.id === id);
+    return achado ? [achado] : [];
+  });
 
-  return exerciciosDoTreino(treinoId).map(({ item, exercicio }, i) => {
-    const prescricao = prescricaoDoTreino(item, exercicio);
+  return naOrdem.map(({ item, exercicio: doPrograma }, i) => {
+    const substitutoId = trocas[doPrograma.id];
+    const exercicio =
+      substitutoId && substitutoId !== doPrograma.id
+        ? acharExercicio(substitutoId)
+        : doPrograma;
+    const substituido = exercicio.id !== doPrograma.id;
+    /*
+     * Com substituto vale a prescrição dele (SPEC §6.3), guardando o número de
+     * séries do programa — é o que `substituirExercicio` faz na sessão.
+     */
+    const prescricao = substituido
+      ? { ...prescricaoPadrao(exercicio), series: prescricaoPadrao(exercicio).series || item.series }
+      : prescricaoDoTreino(item, exercicio);
     const estado = estados[exercicio.id] ?? null;
     const alvo = cargaDeHoje(exercicio, estado, prescricao, montagem);
     const evento = ultimos[exercicio.id];
 
     return {
       exercicioId: exercicio.id,
+      originalId: doPrograma.id,
+      substituido,
       nome: exercicio.nome,
       implemento: exercicio.implemento,
       ordem: i + 1,

@@ -1,7 +1,7 @@
 /**
  * Auditoria do marco 6: o que os outros testes não provavam.
  *
- *  - a Hoje **recarregada** sem rede (não só uma rota nova) e a navegação
+ *  - a aba Treino **recarregada** sem rede (não só uma rota nova) e a navegação
  *    inferior andando offline, com a figura do treino vindo do cache (§8);
  *  - as cinco telas de `/mais` a 360 px medindo **elemento por elemento**
  *    (o `body` tem `overflow-x: hidden`, então o scrollWidth da página não
@@ -13,9 +13,11 @@
 import { expect, test, type Page } from "@playwright/test";
 import {
   entrarNoApp,
+  esperarAbaTreino,
   esperarServiceWorker,
   fixarData,
   inserirNoMock,
+  irNaAba,
   lerDoMock,
   resetarMock,
   usuarioComPerfil,
@@ -33,7 +35,7 @@ test.beforeEach(async ({ page }) => {
 /* ------------------------------------------------------------- offline */
 
 test.describe("offline de verdade (SPEC §8)", () => {
-  test("a Hoje recarrega sem rede, a nav anda e a figura vem do cache", async ({
+  test("a aba Treino recarrega sem rede, a nav anda e a figura vem do cache", async ({
     page,
     context,
   }) => {
@@ -42,26 +44,28 @@ test.describe("offline de verdade (SPEC §8)", () => {
     await esperarServiceWorker(page);
 
     // o app precisa ter visto as telas uma vez (é o que a §8 promete)
-    await page.getByRole("link", { name: "Treinar" }).click();
+    await page.goto("/treinar");
     await expect(page.getByRole("heading", { name: "Treinar" })).toBeVisible();
-    await page.getByRole("link", { name: "Mais" }).click();
+    await irNaAba(page, "Explorar");
+    await expect(page.getByRole("heading", { name: "Explorar" })).toBeVisible();
+    await irNaAba(page, "Mais");
     await expect(page.getByRole("heading", { name: "Mais" })).toBeVisible();
-    await page.getByRole("link", { name: "Hoje" }).click();
-    await expect(page.getByRole("heading", { name: "Hoje" })).toBeVisible();
+    await irNaAba(page, "Treino");
+    await esperarAbaTreino(page);
     // tempo para o aquecimento das figuras da fase (lib/precache-do-programa)
     await page.waitForTimeout(2_000);
 
     await context.setOffline(true);
     try {
       await page.reload();
-      await expect(page.getByRole("heading", { name: "Hoje" })).toBeVisible();
+      await esperarAbaTreino(page);
       // e a prévia do treino continua lá, com a carga da última sincronização
       await expect(page.getByText(/kg/).first()).toBeVisible();
 
-      await page.getByRole("link", { name: "Mais" }).click();
+      await irNaAba(page, "Mais");
       await expect(page.getByRole("heading", { name: "Mais" })).toBeVisible();
-      await page.getByRole("link", { name: "Treinar" }).click();
-      await expect(page.getByRole("heading", { name: "Treinar" })).toBeVisible();
+      await irNaAba(page, "Explorar");
+      await expect(page.getByRole("heading", { name: "Explorar" })).toBeVisible();
 
       // a figura do primeiro exercício da fase abre sem rede
       const daFase = "/figuras/agachamento-livre.svg";
@@ -83,7 +87,9 @@ const ROTAS_MAIS = [
   "/mais/perfil",
   "/mais/equipamento",
   "/mais/preferencias",
+  "/mais/creditos",
   "/mais/backup",
+  "/mais/senha",
 ];
 
 /**
@@ -179,6 +185,8 @@ test.describe("celular — as telas de /mais a 360 px", () => {
     await expect(som).toBeChecked();
 
     // um toque 20 px acima do centro: dentro dos 44 px, fora do pill de 18 px
+    // (a tela cresceu com os ajustes do player, §14.4: rolar até ele primeiro)
+    await som.scrollIntoViewIfNeeded();
     const caixa = await som.boundingBox();
     expect(caixa).not.toBeNull();
     await page.mouse.click(

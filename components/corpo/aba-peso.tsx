@@ -4,6 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 import { GraficoLinha, LegendaDoGrafico, SemDados } from "@/components/graficos";
+import { CardImc } from "@/components/corpo/card-imc";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -96,8 +97,24 @@ export function AbaPeso({
     }
   };
 
+  const mudarAltura = async (cm: number) => {
+    try {
+      await gravarPerfil({ userId, mudanca: { altura_cm: cm }, cliente });
+      toast.success(`Altura de ${cm} cm guardada.`);
+    } catch {
+      toast.error("Não consegui guardar a altura agora.");
+    }
+  };
+
   return (
     <div className="flex flex-col gap-4">
+      {/* O IMC da §13.7: o mesmo card do Relatório e da conclusão do treino. */}
+      <CardImc
+        pesoKg={ultimo?.peso ?? null}
+        alturaCm={perfil.altura_cm}
+        aoMudarAltura={(cm) => void mudarAltura(cm)}
+      />
+
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Registrar peso</CardTitle>

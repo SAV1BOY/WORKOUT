@@ -134,7 +134,32 @@ export async function salvarIncremento(opcoes: {
             : l,
         );
       }
-      return linhas;
+      // Exercício ainda sem linha em `exercise_state`: o upsert abaixo vai
+      // criá-la com os defaults do schema. Sem acrescentá-la aqui, o cache
+      // (que é persistido no Dexie, SPEC §8) guardava o estado de antes e a
+      // tela voltava dizendo "usando 4 kg" depois de recarregar, até o
+      // `staleTime` de 30 s vencer. A linha sintética é exatamente a que o
+      // banco cria.
+      return [
+        ...linhas,
+        {
+          user_id: userId,
+          exercise_id: exercicioId,
+          carga_atual_kg: null,
+          reps_alvo: null,
+          tempo_alvo_s: null,
+          assistencia: null,
+          incremento_kg: incrementoKg,
+          falhas_seguidas: 0,
+          incremento_reduzido: false,
+          exigir_rep_extra: false,
+          semana_leve: false,
+          carga_antes_leve: null,
+          sessoes_graca: 0,
+          desativado: false,
+          notas: null,
+        },
+      ];
     },
   );
 

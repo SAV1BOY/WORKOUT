@@ -31,6 +31,12 @@
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
+  /* tela de descanso do player (SPEC §14.1.3): laranja escurecido, texto AA */
+  --color-descanso: var(--descanso-fundo);
+  --color-descanso-foreground: var(--descanso-texto);
+  --color-descanso-destaque: var(--descanso-destaque);
+  /* prato claro atrás das ilustrações (traço preto sobre fundo transparente) */
+  --color-ilustracao: var(--ilustracao-fundo);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -47,6 +53,12 @@
   --fonte-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
 
   --radius: 0.75rem;
+  /* camada visual v2 (SPEC §13.1): cards arredondados e sombra discreta */
+  --raio-cartao: 1.25rem;
+  --sombra-cartao: 0 1px 2px rgb(10 10 10 / 0.05), 0 6px 20px rgb(10 10 10 / 0.07);
+  --capa-de: rgb(10 10 10 / 0.15);
+  --capa-meio: rgb(10 10 10 / 0.62);
+  --capa-ate: rgb(10 10 10 / 0.93);
 
   --background: #fafafa;
   --foreground: #0a0a0a;
@@ -72,14 +84,32 @@
   --chart-4: #a3a3a3;
   --chart-5: #d4d4d4;
 
+  /* descanso em tela cheia (SPEC §14.1.3) */
+  --descanso-fundo: #7a2a08;
+  --descanso-texto: #ffffff;
+  --descanso-destaque: #ffc59e;
+
+  /*
+   * Ilustrações (marco Mídia): são traço preto sobre fundo transparente, então
+   * vivem num prato claro nos dois temas — no escuro, um branco quebrado para
+   * não estourar ao lado do #0a0a0a.
+   */
+  --ilustracao-fundo: #ffffff;
+
   /* mapa muscular (assets/mapa-muscular/musculos.css) */
   --mbody: #e3e3e1;
   --mprim: #b8400c;
-  --msec: #f8bb92;
+  --msec: #c2691a;
 }
 
 /* Tema escuro de verdade: preto, não cinza. */
 .dark {
+  /* no escuro a sombra some: quem separa os cards é a borda (SPEC §13.1) */
+  --sombra-cartao: none;
+  --capa-de: rgb(10 10 10 / 0.25);
+  --capa-meio: rgb(10 10 10 / 0.7);
+  --capa-ate: rgb(10 10 10 / 0.96);
+
   --background: #0a0a0a;
   --foreground: #f5f5f4;
   --card: #141414;
@@ -104,9 +134,15 @@
   --chart-4: #5c5c5a;
   --chart-5: #2e2e2e;
 
+  --descanso-fundo: #2a1206;
+  --descanso-texto: #f5f5f4;
+  --descanso-destaque: #fb923c;
+
+  --ilustracao-fundo: #e7e4e0;
+
   --mbody: #272727;
   --mprim: #fb923c;
-  --msec: #7c4a1e;
+  --msec: #b46b2a;
 }
 
 @layer base {
@@ -138,6 +174,30 @@
   }
   .pt-segura {
     padding-top: env(safe-area-inset-top, 0px);
+  }
+
+  /* ---------------------------------------- camada visual v2 (SPEC §13.1) */
+
+  /* card arredondado de ~20 px, com sombra só no claro */
+  .cartao {
+    border-radius: var(--raio-cartao);
+    box-shadow: var(--sombra-cartao);
+  }
+  /* o véu escuro que deixa o texto legível sobre a foto de capa */
+  .capa-gradiente {
+    background-image: linear-gradient(
+      to top,
+      var(--capa-ate) 0%,
+      var(--capa-meio) 42%,
+      var(--capa-de) 100%
+    );
+  }
+  /* número grande, lido a um braço de distância */
+  .numero-grande {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.03em;
+    font-weight: 700;
+    line-height: 1;
   }
 }
 

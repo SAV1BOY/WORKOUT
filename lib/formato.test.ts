@@ -5,6 +5,7 @@ import {
   formatarDataCompleta,
   formatarDataLonga,
   formatarDescanso,
+  formatarDiaEData,
   formatarDuracao,
   formatarKg,
   formatarKm,
@@ -89,5 +90,14 @@ describe("formatarDescanso", () => {
     expect(formatarDescanso(45)).toBe("45 s");
     expect(formatarDescanso(120)).toBe("2 min");
     expect(formatarDescanso(150)).toBe("2 min 30 s");
+  });
+});
+
+describe("formatarDiaEData (SPEC §13.3)", () => {
+  it("é o dia da semana sem -feira, com a data dd/MM", () => {
+    expect(formatarDiaEData("2026-09-15")).toBe("terça, 15/09");
+    expect(formatarDiaEData("2026-09-14")).toBe("segunda, 14/09");
+    expect(formatarDiaEData("2026-09-19")).toBe("sábado, 19/09");
+    expect(formatarDiaEData("2026-09-20")).toBe("domingo, 20/09");
   });
 });

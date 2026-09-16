@@ -1,10 +1,12 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
+import Link from "next/link";
 import { useTheme } from "next-themes";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Erro, EsqueletoCard } from "@/components/carregando";
+import { AjustesDoTreino } from "@/components/mais/ajustes-do-treino";
 import { CabecalhoMais } from "@/components/mais/cabecalho";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,48 +18,22 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { acharExercicio, acharFase, acharTreino } from "@/lib/dados";
 import { formatarKg, formatarNumero, lerNumero } from "@/lib/formato";
 import {
   TEMAS,
-  comLigado,
   comTema,
-  ligado,
   temaDasPrefs,
   temaDoNextThemes,
-  type ChaveLigada,
   type TemaPref,
 } from "@/lib/preferencias";
+import { comMetaSemanal, metaSemanal, metaSemanalPadrao } from "@/lib/metas";
 import { incrementoDe, type EstadoExercicio } from "@/lib/progressao";
 import { estadosPorExercicio } from "@/lib/hoje";
 import { useEstados, usePerfil } from "@/lib/queries/dados";
 import { salvarIncremento, salvarPrefs } from "@/lib/queries/mais";
 import type { Exercicio } from "@/lib/schemas";
 import type { LinhaPerfil } from "@/lib/types";
-
-const INTERRUPTORES: { chave: ChaveLigada; titulo: string; descricao: string }[] = [
-  {
-    chave: "descanso_som",
-    titulo: "Som no fim do descanso",
-    descricao: "Um apito curto quando o timer zera.",
-  },
-  {
-    chave: "descanso_vibra",
-    titulo: "Vibração no fim do descanso",
-    descricao: "O celular vibra quando o timer zera.",
-  },
-  {
-    chave: "cardio_voz",
-    titulo: "Voz no cardio",
-    descricao: "Fala o próximo bloco (“corrida”, “caminhada”).",
-  },
-  {
-    chave: "manter_tela",
-    titulo: "Manter a tela acesa",
-    descricao: "Durante o treino e o cardio a tela não apaga sozinha.",
-  },
-];
 
 /** `/mais/preferencias` (SPEC §3.9). */
 export function TelaPreferencias({ userId }: { userId: string }) {
@@ -86,8 +62,26 @@ export function TelaPreferencias({ userId }: { userId: string }) {
   return (
     <Tela>
       <Tema userId={userId} perfil={perfil} />
-      <Interruptores userId={userId} perfil={perfil} />
+      <MetaSemanal userId={userId} perfil={perfil} />
+      <Treino userId={userId} perfil={perfil} />
       <Incrementos userId={userId} perfil={perfil} />
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Créditos das imagens</CardTitle>
+          <CardDescription>
+            Autor, licença e link de cada ilustração e do mapa muscular (SPEC §15).
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Link
+            href="/mais/creditos"
+            className="alvo border-border bg-card hover:bg-accent flex items-center justify-between rounded-xl border px-3 py-2 text-sm font-medium"
+          >
+            Ver os créditos
+            <span aria-hidden="true">→</span>
+          </Link>
+        </CardContent>
+      </Card>
     </Tela>
   );
 }
@@ -158,57 +152,96 @@ function Tema({ userId, perfil }: { userId: string; perfil: LinhaPerfil }) {
   );
 }
 
-/* ----------------------------------------------------- liga/desliga */
+/* ------------------------------------------- meta semanal (SPEC §13.7) */
 
-function Interruptores({
-  userId,
-  perfil,
-}: {
-  userId: string;
-  perfil: LinhaPerfil;
-}) {
+function MetaSemanal({ userId, perfil }: { userId: string; perfil: LinhaPerfil }) {
   const cliente = useQueryClient();
+  const padrao = metaSemanalPadrao(perfil.fase_atual);
+  const atual = metaSemanal(perfil.prefs, perfil.fase_atual);
+  const escolhida = perfil.prefs?.meta_semanal;
+  const [texto, setTexto] = useState(
+    typeof escolhida === "number" ? String(escolhida) : "",
+  );
+  const [salvando, setSalvando] = useState(false);
 
-  const mudar = async (chave: ChaveLigada, valor: boolean) => {
+  const salvar = async () => {
+    const limpo = texto.trim();
+    const n = limpo === "" ? null : lerNumero(limpo);
+    if (limpo !== "" && (n === null || !Number.isInteger(n) || n < 1)) {
+      toast.error("Digite quantas sessões por semana, por exemplo 5.");
+      return;
+    }
+    setSalvando(true);
     try {
       await salvarPrefs({
         userId,
-        prefs: comLigado(perfil.prefs, chave, valor),
+        prefs: comMetaSemanal(perfil.prefs, n),
         cliente,
       });
+      toast.success(
+        n === null
+          ? `Meta semanal: de volta ao padrão da fase (${padrao}).`
+          : `Meta semanal: ${n} ${n === 1 ? "sessão" : "sessões"}.`,
+      );
     } catch {
       toast.error("Não consegui salvar agora.");
+    } finally {
+      setSalvando(false);
     }
   };
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Timer e tela</CardTitle>
+        <CardTitle className="text-base">Meta semanal</CardTitle>
+        <CardDescription>
+          Quantas sessões (força + cardio) contam como semana cumprida na aba
+          Treino. Vazio = o padrão da fase ({padrao}).
+        </CardDescription>
       </CardHeader>
-      <CardContent className="flex flex-col gap-4">
-        {INTERRUPTORES.map(({ chave, titulo, descricao }) => (
-          <div key={chave} className="flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <Label htmlFor={`pref-${chave}`} className="text-base">
-                {titulo}
-              </Label>
-              <p className="text-muted-foreground text-xs text-balance">
-                {descricao}
-              </p>
-            </div>
-            {/*
-              O pill do shadcn tem 18 px de altura: a área de toque dele mora
-              no `::after`, esticada aqui para os 44 px que a SPEC §3 pede.
-            */}
-            <Switch
-              id={`pref-${chave}`}
-              className="after:-inset-y-[13px]"
-              checked={ligado(perfil.prefs, chave)}
-              onCheckedChange={(v) => void mudar(chave, v)}
-            />
-          </div>
-        ))}
+      <CardContent className="flex items-end gap-2">
+        <div className="flex min-w-0 flex-1 flex-col gap-1">
+          <Label htmlFor="meta-semanal">Sessões por semana</Label>
+          <p className="text-muted-foreground text-xs">
+            usando {atual} por semana
+          </p>
+        </div>
+        <Input
+          id="meta-semanal"
+          type="text"
+          inputMode="numeric"
+          placeholder={String(padrao)}
+          value={texto}
+          onChange={(e) => setTexto(e.target.value)}
+          className="alvo numero h-12 w-20"
+        />
+        <Button
+          variant="outline"
+          className="alvo h-12"
+          aria-label="Salvar meta semanal"
+          disabled={salvando}
+          onClick={() => void salvar()}
+        >
+          Salvar
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+/* -------------------------------------- treino e player (SPEC §14.4) */
+
+function Treino({ userId, perfil }: { userId: string; perfil: LinhaPerfil }) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Treino</CardTitle>
+        <CardDescription>
+          Como o player se comporta: preparação, descanso, avisos e tela.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <AjustesDoTreino userId={userId} perfil={perfil} />
       </CardContent>
     </Card>
   );

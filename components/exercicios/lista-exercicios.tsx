@@ -16,7 +16,10 @@ import {
   temFiltro,
   type FiltrosCatalogo,
 } from "@/lib/catalogo";
-import { exercicios, urlFigura, urlFotos } from "@/lib/dados";
+import { Miniatura } from "@/components/ui/miniatura";
+import { exercicios } from "@/lib/dados";
+import { evitado, evitadosPorUltimo } from "@/lib/preferencias";
+import { usePerfil } from "@/lib/queries/dados";
 import type { EquipamentoTag, Exercicio, Grupo, Implemento } from "@/lib/schemas";
 import { cn } from "@/lib/utils";
 
@@ -27,13 +30,28 @@ import { cn } from "@/lib/utils";
  * O conteúdo vem de `data/exercicios.json` (nada é escrito aqui) e a filtragem
  * é de `lib/catalogo.ts`, que os testes cobrem.
  */
-export function ListaExercicios() {
+export function ListaExercicios({
+  busca,
+}: {
+  /**
+   * Busca vinda de fora (a barra única do Explorar, SPEC §14.4). Quando vem,
+   * a caixa daqui some: duas buscas na mesma tela confundem.
+   */
+  busca?: string;
+} = {}) {
   const [filtros, setFiltros] = useState<FiltrosCatalogo>(FILTROS_VAZIOS);
+  const deFora = busca !== undefined;
   const doPrograma = useMemo(() => idsDoPrograma(), []);
   const opcoes = useMemo(() => opcoesDoCatalogo(exercicios), []);
+  const prefs = usePerfil().data?.prefs;
+  // SPEC §14.1.2: o que foi marcado como "não gosto" aparece por último
+  const usados = useMemo(
+    () => (deFora ? { ...filtros, busca: busca ?? "" } : filtros),
+    [deFora, filtros, busca],
+  );
   const achados = useMemo(
-    () => filtrarExercicios(exercicios, filtros, doPrograma),
-    [filtros, doPrograma],
+    () => evitadosPorUltimo(filtrarExercicios(exercicios, usados, doPrograma), (e) => e.id, prefs),
+    [usados, doPrograma, prefs],
   );
 
   const mudar = (parte: Partial<FiltrosCatalogo>) =>
@@ -41,6 +59,7 @@ export function ListaExercicios() {
 
   return (
     <div className="flex flex-col gap-3">
+      {deFora ? null : (
       <div className="relative">
         <Search
           className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2"
@@ -66,6 +85,7 @@ export function ListaExercicios() {
           </button>
         ) : null}
       </div>
+      )}
 
       <div className="grid grid-cols-2 gap-2">
         <Selecao
@@ -125,7 +145,11 @@ export function ListaExercicios() {
         <ul className="flex flex-col gap-2">
           {achados.map((e) => (
             <li key={e.id}>
-              <CardDoExercicio exercicio={e} noPrograma={doPrograma.has(e.id)} />
+              <CardDoExercicio
+                exercicio={e}
+                noPrograma={doPrograma.has(e.id)}
+                evitar={evitado(prefs, e.id)}
+              />
             </li>
           ))}
         </ul>
@@ -171,29 +195,19 @@ function Selecao({
 function CardDoExercicio({
   exercicio,
   noPrograma,
+  evitar,
 }: {
   exercicio: Exercicio;
   noPrograma: boolean;
+  evitar: boolean;
 }) {
-  const imagem = urlFigura(exercicio) ?? urlFotos(exercicio)[0] ?? null;
-
   return (
     <Link
       href={`/exercicios/${exercicio.id}`}
       className="alvo border-border bg-card hover:bg-accent flex items-center gap-3 rounded-xl border p-2 transition-colors"
     >
-      {imagem ? (
-        // eslint-disable-next-line @next/next/no-img-element -- SVG animado / foto local de /public
-        <img
-          src={imagem}
-          alt=""
-          aria-hidden="true"
-          loading="lazy"
-          className="bg-muted/40 size-14 shrink-0 rounded-lg object-contain"
-        />
-      ) : (
-        <span aria-hidden="true" className="bg-muted size-14 shrink-0 rounded-lg" />
-      )}
+      {/* marco Mídia: a ilustração vem na frente da figura e da foto */}
+      <Miniatura exercicioId={exercicio.id} decorativa className="rounded-lg" />
       <span className="flex min-w-0 flex-col gap-0.5">
         <span className="text-sm leading-tight font-medium text-balance">
           {exercicio.nome}
@@ -206,6 +220,11 @@ function CardDoExercicio({
           {noPrograma ? (
             <Badge variant="secondary" className="px-1.5 py-0 text-[10px]">
               no programa
+            </Badge>
+          ) : null}
+          {evitar ? (
+            <Badge variant="outline" className="px-1.5 py-0 text-[10px]">
+              você marcou como evitar
             </Badge>
           ) : null}
         </span>

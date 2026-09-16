@@ -137,6 +137,12 @@
     "viga_m": 2.65,
     "layout": "barra fixa na parede da esquerda (eixo a 1,10 m da parede do fundo, barra a 2,30 m), cross over no pilar, tatame 1 × 2 em frente, cavalete e banco na parede da esquerda a 2,40–3,10 m"
   },
+  "fotos_dos_itens": {
+    "pasta": "assets/itens/",
+    "origem": "anúncios dos produtos comprados pelo dono",
+    "licenca": null,
+    "uso": "registro particular do inventário do terraço, só em Mais → Equipamento (SPEC §15.3)"
+  },
   "faltam": [
     "leg press e cadeira extensora (substituídos por agachamento, búlgaro e afundo)",
     "puxada com apoio de coxa (a barra fixa segue sendo a puxada principal)",

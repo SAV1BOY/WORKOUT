@@ -21,6 +21,20 @@ import {
 
 const PORTA = Number(process.env.MOCK_SUPABASE_PORT ?? 54321);
 const LOG = process.env.MOCK_LOG === "1";
+/**
+ * O único e-mail que pode ter conta, como no banco de verdade: o
+ * `public.allowed_email()` de `supabase/schema.sql` e o trigger
+ * `on_auth_user_email_permitido` (SPEC §9). A mensagem abaixo é a mesma que o
+ * trigger levanta — o GoTrue de produção a embrulha em "Database error saving
+ * new user", e `lib/erros-auth.ts` traduz as duas para "Este app é pessoal.".
+ */
+const EMAIL_PERMITIDO = (
+  process.env.ALLOWED_EMAIL ?? "miguelgsaviotti29@gmail.com"
+)
+  .trim()
+  .toLowerCase();
+const ERRO_EMAIL_NAO_PERMITIDO =
+  "Este app é pessoal: só o e-mail autorizado pode entrar.";
 const SEGREDO_JWT = process.env.MOCK_JWT_SECRET ?? "mock-jwt-secret-terraco";
 const EMISSOR = `http://127.0.0.1:${PORTA}/auth/v1`;
 const VALIDADE_S = 3600;
@@ -205,6 +219,7 @@ const ESQUEMA: Record<string, EspecTabela> = {
       concluida_em: nulo,
       duracao_s: nulo,
       semana_plano: nulo,
+      plano: nulo,
       sensacao: nulo,
       peso_corporal: nulo,
       notas: nulo,
@@ -525,8 +540,21 @@ function acharPorEmail(email: string): Usuario | null {
   return null;
 }
 
-/** simula o trigger handle_new_user do schema */
+/**
+ * Simula o trigger `before insert on auth.users` do schema: e-mail que não é o
+ * permitido nem chega a virar linha (nem usuário, nem perfil).
+ */
+function exigirEmailPermitido(email: string): void {
+  if (email.trim().toLowerCase() !== EMAIL_PERMITIDO) {
+    throw new ErroMock(403, ERRO_EMAIL_NAO_PERMITIDO, {
+      error_code: "email_nao_permitido",
+    });
+  }
+}
+
+/** simula os triggers de auth.users: bloqueio do e-mail + handle_new_user */
 function criarUsuario(email: string, senha: string): Usuario {
+  exigirEmailPermitido(email);
   const u: Usuario = {
     id: randomUUID(),
     email: email.trim().toLowerCase(),
@@ -601,6 +629,10 @@ async function rotaAuth(
   if (caminho === "/token" && metodo === "POST") {
     const tipo = url.searchParams.get("grant_type");
     if (tipo === "password") {
+      // No banco de verdade uma conta de fora nem existe (o trigger barrou o
+      // insert); aqui o "entrar" recusa com a mesma mensagem, para o app não
+      // depender só do middleware.
+      exigirEmailPermitido(String(dados.email ?? ""));
       const u = acharPorEmail(String(dados.email ?? ""));
       if (!u || u.senha !== String(dados.password ?? "")) {
         throw new ErroMock(400, "Invalid login credentials", {
@@ -642,7 +674,28 @@ async function rotaAuth(
     }
     if (metodo === "GET") return { status: 200, corpo: usuarioPublico(u) };
     if (metodo === "PUT") {
-      if (typeof dados.password === "string") u.senha = dados.password;
+      /*
+       * `supabase.auth.updateUser({ password })` — a tela `/mais/senha`
+       * (SPEC §9). As duas recusas são as do GoTrue, com as mensagens dele
+       * (é o que `lib/erros-auth.ts` traduz); a senha nova passa a valer no
+       * `token?grant_type=password`, e a antiga deixa de valer.
+       */
+      if (typeof dados.password === "string") {
+        const nova = dados.password;
+        if (nova.length < 6) {
+          throw new ErroMock(422, "Password should be at least 6 characters", {
+            error_code: "weak_password",
+          });
+        }
+        if (nova === u.senha) {
+          throw new ErroMock(
+            422,
+            "New password should be different from the old password.",
+            { error_code: "same_password" },
+          );
+        }
+        u.senha = nova;
+      }
       if (typeof dados.email === "string") u.email = dados.email.toLowerCase();
       return { status: 200, corpo: usuarioPublico(u) };
     }

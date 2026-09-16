@@ -6,9 +6,14 @@
 import { describe, expect, it } from "vitest";
 import { WORKOUT_BARRA_FIXA, itemDaSessao } from "@/lib/barra-fixa";
 import { acharExercicio } from "@/lib/dados";
-import { estadoInicial, type EstadoExercicio } from "@/lib/progressao";
+import { estadoInicial, prescricaoPadrao, type EstadoExercicio } from "@/lib/progressao";
 import {
+  MAX_SERIES_DA_SESSAO,
+  MIN_SERIES_DA_SESSAO,
+  ajustarPrescricaoDaSessao,
   atualizarSerie,
+  comSubstituicoes,
+  contadoresDaSessao,
   avaliarSessao,
   concluirSessao,
   escritaDaSerie,
@@ -22,6 +27,7 @@ import {
   montagemDaCarga,
   notasDaSessao,
   progressoDaSessao,
+  proximoExercicio,
   proximaCarga,
   idsComSubstitutos,
   idsQueComparamComAnterior,
@@ -440,6 +446,56 @@ describe("substituir hoje (SPEC §3.2)", () => {
     });
   });
 
+  /*
+   * SPEC §6.3: "Concluído" com cinco exercícios em branco não é cinco falhas.
+   * A montagem já cria as séries vazias, então sem esta guarda o motor lia
+   * "série não concluída" = falha (§6.2) e gravava `falhas_seguidas` para
+   * exercícios que o dono nem tentou — duas sessões assim tiravam 10 % da
+   * carga deles e a terceira mandava semana leve.
+   */
+  it("exercício sem nenhuma série registrada não é avaliado nem conta falha", () => {
+    const feita = fazerTudoNoTopo(sessaoA(), "agachamento-livre");
+    const { resultados, escritas } = concluirSessao({
+      sessao: { ...feita, status: "concluida" },
+      agora: "2026-09-14T10:00:00.000Z",
+      novoId: contador("e"),
+    });
+
+    const agachamento = resultados.find((r) => r.exercicioId === "agachamento-livre")!;
+    expect(agachamento.naoAvaliado).toBe(false);
+    expect(agachamento.motivo).toBe("subiu");
+
+    // os outros cinco blocos ficaram em branco
+    const emBranco = resultados.filter((r) => r.exercicioId !== "agachamento-livre");
+    expect(emBranco).toHaveLength(5);
+    for (const r of emBranco) {
+      expect(r.naoAvaliado).toBe(true);
+      expect(r.motivoNaoAvaliado).toBe("nao_feito");
+      expect(r.falha).toBe(false);
+      expect(r.motivo).toBeNull();
+      expect(r.decisao.evento).toBeNull();
+      expect(r.texto).toBe("sem série registrada: não foi feito nesta sessão");
+    }
+
+    // uma escrita de estado e um evento: só o exercício que foi feito
+    const estados = escritas.filter((e) => e.tabela === "exercise_state");
+    const eventos = escritas.filter((e) => e.tabela === "progression_events");
+    expect(estados).toHaveLength(1);
+    expect(eventos).toHaveLength(1);
+    expect(estados[0]?.linha).toMatchObject({ exercise_id: "agachamento-livre" });
+    expect(eventos[0]?.linha).toMatchObject({ exercise_id: "agachamento-livre" });
+  });
+
+  it("série registrada abaixo do piso continua sendo falha", () => {
+    // o bloco foi FEITO (3 séries concluídas), só que fraco: isso é falha
+    const feita = fazerTudoNoTopo(sessaoA(), "agachamento-livre", { reps: 3 });
+    const resultado = avaliarSessao({ ...feita, status: "concluida" }).find(
+      (r) => r.exercicioId === "agachamento-livre",
+    )!;
+    expect(resultado.naoAvaliado).toBe(false);
+    expect(resultado.falha).toBe(true);
+  });
+
   it("uma sessão gravada antes deste campo continua sendo avaliada", () => {
     const s = fazerTudoNoTopo(sessaoA(), "agachamento-livre");
     const antiga: SessaoLocal = {
@@ -549,6 +605,8 @@ describe("escritas da fila de saída (SPEC §8)", () => {
         iniciada_em: "2026-09-14T09:00:00.000Z",
         // treino do programa: a semana do plano é das sessões de fixa (§3.4)
         semana_plano: null,
+        // e sem `sessions.plano`: a ordem é a do programa (§14.3)
+        plano: null,
       },
     });
   });
@@ -677,6 +735,7 @@ describe("concluirSessao — o motor e as escritas (SPEC §6.2, §6.6 e §8)", (
         fase: "fase1",
         iniciada_em: "2026-09-14T09:00:00.000Z",
         semana_plano: null,
+        plano: null,
         // e o que o fim do treino acrescenta
         status: "concluida",
         concluida_em: "2026-09-14T09:44:00.000Z",
@@ -1071,5 +1130,221 @@ describe("sessão avulsa — a barra fixa da semana (SPEC §3.4)", () => {
         { novoId: contador("r") },
       ),
     ).toBeNull();
+  });
+});
+
+describe("comSubstituicoes (SPEC §13.3)", () => {
+  it("troca o bloco pelo substituto escolhido antes de começar", () => {
+    const substituto = substitutosPara("agachamento-livre")[0]!;
+    const sessao = comSubstituicoes(
+      sessaoA(),
+      { "agachamento-livre": substituto.id },
+      { novoId: contador("t") },
+    );
+    const primeiro = sessao.blocos[0]!;
+    expect(primeiro.exercicioId).toBe(substituto.id);
+    expect(primeiro.originalId).toBe("agachamento-livre");
+    expect(primeiro.substituido).toBe(true);
+    // a prescrição passa a ser a do substituto (§6.3)
+    expect(primeiro.series.length).toBe(primeiro.prescricao.series);
+  });
+
+  it("ignora troca vazia, para o próprio exercício e para id inexistente", () => {
+    const base = sessaoA();
+    expect(comSubstituicoes(base, {})).toBe(base);
+    expect(
+      comSubstituicoes(base, { "agachamento-livre": "agachamento-livre" }).blocos[0]
+        ?.exercicioId,
+    ).toBe("agachamento-livre");
+    expect(
+      comSubstituicoes(base, { "agachamento-livre": "nao-existe" }).blocos[0]?.exercicioId,
+    ).toBe("agachamento-livre");
+  });
+
+  it("o estado do substituto é o que vale (a progressão do original não muda)", () => {
+    const substituto = substitutosPara("agachamento-livre")[0]!;
+    const estado = estadoInicial(substituto);
+    const sessao = comSubstituicoes(
+      sessaoA(),
+      { "agachamento-livre": substituto.id },
+      { estados: { [substituto.id]: estado }, novoId: contador("t") },
+    );
+    expect(sessao.blocos[0]?.estado).toEqual(estado);
+    expect(sessao.blocos[0]?.estadoConhecido).toBe(true);
+  });
+});
+
+describe("proximoExercicio (SPEC §13.3)", () => {
+  it("é o segundo bloco com série por fazer", () => {
+    const sessao = sessaoA();
+    const primeiro = sessao.blocos[0]!;
+    const segundo = sessao.blocos[1]!;
+    expect(proximoExercicio(sessao)).toBe(acharExercicio(segundo.exercicioId).nome);
+
+    // com o primeiro bloco inteiro concluído, o próximo é o terceiro
+    let feito = sessao;
+    for (const serie of primeiro.series) {
+      feito = marcarSerie(feito, primeiro.ordem, serie.id, true);
+    }
+    expect(proximoExercicio(feito)).toBe(
+      acharExercicio(sessao.blocos[2]!.exercicioId).nome,
+    );
+  });
+
+  it("no último bloco não há próximo", () => {
+    let sessao = sessaoA();
+    for (const bloco of sessao.blocos.slice(0, -1)) {
+      for (const serie of bloco.series) {
+        sessao = marcarSerie(sessao, bloco.ordem, serie.id, true);
+      }
+    }
+    expect(proximoExercicio(sessao)).toBeNull();
+  });
+});
+
+describe("prescrição só de hoje (SPEC §14.2)", () => {
+  it("o stepper de repetições muda só as séries que faltam", () => {
+    let s = sessaoA();
+    const b = bloco(s, "agachamento-livre");
+    const primeira = b.series.find((x) => x.tipo === "trabalho")!;
+    s = marcarSerie(s, b.ordem, primeira.id, true, "2026-09-14T09:10:00.000Z");
+
+    s = ajustarPrescricaoDaSessao(s, b.ordem, { alvo: 8 });
+    const depois = bloco(s, "agachamento-livre").series.filter(
+      (x) => x.tipo === "trabalho",
+    );
+    // a concluída fica como foi registrada
+    expect(depois[0]?.reps).toBe(5);
+    expect(depois[1]?.reps).toBe(8);
+    expect(depois[2]?.reps).toBe(8);
+    // o alvo do motor não se mexe (§14.2: nunca o exercise_state)
+    expect(bloco(s, "agachamento-livre").alvo.alvo_max).toBe(5);
+  });
+
+  it("o stepper de séries acrescenta e tira, sem apagar registro", () => {
+    let s = sessaoA();
+    const b = bloco(s, "agachamento-livre");
+    s = ajustarPrescricaoDaSessao(s, b.ordem, { series: 5 }, { novoId: contador("n") });
+    let trabalho = bloco(s, "agachamento-livre").series.filter(
+      (x) => x.tipo === "trabalho",
+    );
+    expect(trabalho).toHaveLength(5);
+    expect(trabalho.map((x) => x.setIndex)).toEqual([1, 2, 3, 4, 5]);
+    expect(bloco(s, "agachamento-livre").prescricao.series).toBe(5);
+    // o aquecimento continua intacto
+    expect(
+      bloco(s, "agachamento-livre").series.filter((x) => x.tipo === "aquecimento"),
+    ).toHaveLength(2);
+
+    s = ajustarPrescricaoDaSessao(s, b.ordem, { series: 1 });
+    trabalho = bloco(s, "agachamento-livre").series.filter((x) => x.tipo === "trabalho");
+    expect(trabalho).toHaveLength(1);
+  });
+
+  it("uma série concluída segura o corte", () => {
+    let s = sessaoA();
+    const b = bloco(s, "agachamento-livre");
+    for (const serie of b.series) {
+      if (serie.tipo === "trabalho") {
+        s = marcarSerie(s, b.ordem, serie.id, true, "2026-09-14T09:10:00.000Z");
+      }
+    }
+    s = ajustarPrescricaoDaSessao(s, b.ordem, { series: 1 });
+    expect(
+      bloco(s, "agachamento-livre").series.filter((x) => x.tipo === "trabalho"),
+    ).toHaveLength(3);
+  });
+
+  it("em tempo e passos o stepper mexe no campo certo", () => {
+    let s = montarSessaoAvulsa({
+      id: "livre-1",
+      userId: "u1",
+      data: "2026-09-14",
+      workoutId: "livre",
+      fase: "fase1",
+      novoId: contador("t"),
+      itens: [
+        {
+          exercicioId: "prancha-lateral",
+          prescricao: prescricaoPadrao(acharExercicio("prancha-lateral")),
+          descansoS: 60,
+          descansoTexto: "60 s",
+        },
+      ],
+    });
+    s = ajustarPrescricaoDaSessao(s, 1, { alvo: 50 });
+    const serie = s.blocos[0]!.series[0]!;
+    expect(serie.tempoS).toBe(50);
+    // unilateral: os dois lados (SPEC §6.3 usa o menor)
+    expect(serie.tempoSLado2).toBe(50);
+    expect(serie.reps).toBeNull();
+  });
+
+  it("os limites: no mínimo 1 série, no máximo 10", () => {
+    const s = sessaoA();
+    const b = bloco(s, "agachamento-livre");
+    expect(
+      ajustarPrescricaoDaSessao(s, b.ordem, { series: 0 }).blocos[0]!.series.filter(
+        (x) => x.tipo === "trabalho",
+      ),
+    ).toHaveLength(MIN_SERIES_DA_SESSAO);
+    expect(
+      ajustarPrescricaoDaSessao(s, b.ordem, { series: 99 }).blocos[0]!.series.filter(
+        (x) => x.tipo === "trabalho",
+      ),
+    ).toHaveLength(MAX_SERIES_DA_SESSAO);
+  });
+});
+
+describe("contadores da conclusão (SPEC §14.1.5)", () => {
+  it("conta exercícios, séries e volume das séries de trabalho concluídas", () => {
+    let s = sessaoA();
+    s = fazerTudoNoTopo(s, "agachamento-livre");
+    const contas = contadoresDaSessao(s);
+    expect(contas.exercicios).toBe(1);
+    expect(contas.series).toBe(3);
+    // 3 × 5 reps × 7,5 kg
+    expect(contas.volumeKg).toBe(112.5);
+  });
+
+  it("sessão em branco não conta nada; aquecimento não soma", () => {
+    const s = sessaoA();
+    expect(contadoresDaSessao(s)).toEqual({ exercicios: 0, series: 0, volumeKg: 0 });
+  });
+
+  it("peso do corpo não soma volume, mas conta como série", () => {
+    let s = sessaoA();
+    s = fazerTudoNoTopo(s, "elevacao-de-pernas-na-barra-fixa");
+    const contas = contadoresDaSessao(s);
+    expect(contas.exercicios).toBe(1);
+    expect(contas.series).toBe(3);
+    expect(contas.volumeKg).toBe(0);
+  });
+});
+
+describe("SPEC §6.3: sem rede, a degradação é por exercício", () => {
+  it("`conhecidos` deixa sem avaliar só quem não foi lido", () => {
+    const s = sessaoA({ conhecidos: new Set(["agachamento-livre"]) });
+    const avaliaveis = s.blocos.filter((b) => b.estadoConhecido).map((b) => b.exercicioId);
+    expect(avaliaveis).toEqual(["agachamento-livre"]);
+    expect(s.blocos.length).toBeGreaterThan(1);
+
+    const feita = fazerTudoNoTopo(s, "agachamento-livre");
+    const resultado = avaliarSessao(feita).find(
+      (r) => r.exercicioId === "agachamento-livre",
+    )!;
+    expect(resultado.naoAvaliado).toBe(false);
+  });
+
+  it("`conhecidos` vazio é a sessão inteira sem avaliar", () => {
+    const s = sessaoA({ conhecidos: new Set<string>() });
+    expect(s.blocos.every((b) => !b.estadoConhecido)).toBe(true);
+  });
+
+  it("sem `conhecidos`, o antigo `estadoConhecido` continua mandando", () => {
+    expect(sessaoA().blocos.every((b) => b.estadoConhecido)).toBe(true);
+    expect(
+      sessaoA({ estadoConhecido: false }).blocos.every((b) => !b.estadoConhecido),
+    ).toBe(true);
   });
 });

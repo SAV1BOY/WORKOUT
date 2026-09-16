@@ -151,3 +151,40 @@ describe("as 8 medidas com fita vêm de data/perfil.json (SPEC §3.8)", () => {
     expect(medidasDoCorpo.map((m) => m.campo)).toContain("panturrilha_cm");
   });
 });
+
+describe("nenhum texto dos JSON traz marcação HTML", () => {
+  /*
+   * O React escapa a string, então um "<strong>" no dado aparece literal na
+   * ficha, no player e na página do exercício. O conteúdo é texto puro.
+   */
+  const MARCACAO = /<\/?[a-zA-Z]/;
+
+  function textos(valor: unknown, caminho: string): [string, string][] {
+    if (typeof valor === "string") return [[caminho, valor]];
+    if (Array.isArray(valor)) {
+      return valor.flatMap((v, i) => textos(v, `${caminho}[${i}]`));
+    }
+    if (valor && typeof valor === "object") {
+      return Object.entries(valor).flatMap(([k, v]) => textos(v, `${caminho}.${k}`));
+    }
+    return [];
+  }
+
+  const TUDO: [string, unknown][] = [
+    ["exercicios.json", exercicios],
+    ["programa.json", programa],
+    ["cardio.json", cardio],
+    ["progressao.json", progressao],
+    ["equipamentos.json", equipamentos],
+    ["perfil.json", perfilInicial],
+  ];
+
+  for (const [nome, dados] of TUDO) {
+    it(nome, () => {
+      const comTag = textos(dados, nome)
+        .filter(([, texto]) => MARCACAO.test(texto))
+        .map(([caminho, texto]) => `${caminho}: ${texto}`);
+      expect(comTag).toEqual([]);
+    });
+  }
+});
