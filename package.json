@@ -7,6 +7,7 @@
     "dev:mock": "NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321 NEXT_PUBLIC_SUPABASE_ANON_KEY=mock-anon ALLOWED_EMAIL=miguelgsaviotti29@gmail.com next dev",
     "prebuild": "npm run validar && npm run assets",
     "build": "next build",
+    "build:e2e": "NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:${MOCK_SUPABASE_PORT:-54321} NEXT_PUBLIC_SUPABASE_ANON_KEY=mock-anon ALLOWED_EMAIL=miguelgsaviotti29@gmail.com npm run build",
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",

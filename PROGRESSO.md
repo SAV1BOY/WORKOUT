@@ -5066,3 +5066,107 @@ Nada mudou na tela. O que dá para conferir, na hora de publicar:
    Authentication → Sign In / Providers. Tente criar outra conta de outro
    e-mail: o app recusa na tela, e mesmo quem falasse direto com o Supabase
    esbarraria no trigger.
+
+---
+
+## Marco Semana (SPEC §16) — 16/09/2026 ✅
+
+O dono pediu: *"Quero que mostre os treinos dos dias e tenha também o app vai
+saber que dia da semana é e que treino eu devo fazer em cada dia da semana,
+segunda treino x, terça y, semana 3, segunda treino x3, etc... assim por diante
+até eu progredir e ir evoluindo sempre."* O plano já existia em
+`data/programa.json` e em `lib/calendario.ts`; o que faltava era a tela **dizer**
+qual treino é o de cada dia — e o calendário estava **rotulando a semana
+errada**. A regra nova está escrita em `SPEC.md §16`, com um ponteiro na §5.2.
+
+### O defeito, com o caso
+
+`semanaDoPlano(inicioDaSemana, perfil)` montava a semana **inteira** a partir de
+`profiles.ultimo_treino` **começando na segunda**. Como `ultimo_treino` é o
+estado de **agora** (já contando a sessão de segunda), a projeção saía um degrau
+atrás. Reproduzido com o relógio em quarta 30/09/2026, `ultimo_treino = A1` e
+uma sessão A1 concluída na segunda 28/09:
+
+| dia | o que a aba Treino dizia | o que o calendário dizia | o certo |
+|---|---|---|---|
+| seg 28 | — | **Treino B ✓** | Treino A ✓ (foi A) |
+| qua 30 | **HOJE Treino B** | **Treino A** | Treino B |
+| sex 02 | — | **Treino B** | Treino A |
+
+**A regra certa** (§16.2), num só lugar: `semanaCoerente()` /
+`semanaEEstado()` em `lib/calendario.ts`, que `montarGrade()` (`lib/semana.ts`)
+passou a usar — a mesma fonte para o calendário, para a faixa e para o card do
+dia, de modo que as duas telas não podem mais discordar:
+
+1. override com `workout_id` vale sempre;
+2. **dia passado** = o treino da sessão que existe nele (concluída ou parcial);
+   sem sessão, o treino que era **esperado naquele momento** (o próximo depois
+   da última sessão anterior àquela data) e, sem histórico nenhum, só "Treino de
+   força";
+3. **hoje e o futuro** = a projeção a partir de **hoje**, ancorada em
+   `ultimo_treino` — um dia passado nunca avança a âncora;
+4. **as semanas seguintes** continuam de onde a corrente terminou;
+5. na **Fase 2** os treinos são fixos por dia (nada muda);
+6. **semana curta e overrides** continuam valendo por cima.
+
+### O que mais foi feito
+
+- **Faixa da semana com o treino de cada dia** (§16.3): sob o número, a sigla —
+  `A`, `B` (ou `SA`, `IA`, `SB`, `IB` na Fase 2), `Corr.`, `Corda`, `Longa`,
+  `Desc.`. O ✓/ponto/traço e o destaque de hoje continuam; o `aria-label` do dia
+  passou a ser o nome completo ("quarta 16/09: Treino B, hoje"). Medido a
+  360 px: sete colunas, fonte de 11 px, nada cortado, nada rolando de lado.
+- **Semana da fase nos cards** (§16.4): o cabeçalho do `/calendario` mostra
+  "Fase 1 · semana 1 de 12" (12 = `SEMANAS_PARA_FASE2`; na Fase 2, só "Fase 2 ·
+  semana N") e acompanha a navegação entre semanas; cada dia de força na grade
+  virou "Treino A · semana 1", cada dia de cardio "Corrida · semana 1 do plano";
+  o card do dia na aba Treino ganhou "· semana N" no detalhe.
+- **Nada mais mudou**: motor, montagem, offline, o que vai para o banco e o
+  resto do Relatório e da aba Treino continuam iguais. Sem gamificação nova.
+
+### Achado de fora do pedido: o build do e2e
+
+`npm run e2e` estava falhando em **todo** teste que entra na conta — inclusive
+os antigos, antes de qualquer mudança desta etapa. Causa: `.env.production`
+(commit `624c9ec`) tem a URL e a chave do Supabase **de produção**, e as
+variáveis `NEXT_PUBLIC_*` são assadas no build; um `npm run build` comum gerava
+um app que falava com o Supabase real, o mock não recebia nada e o login morria
+em "E-mail ou senha incorretos". Corrigido com um script novo,
+**`npm run build:e2e`** (o mesmo build com as três variáveis apontando para o
+mock, respeitando `MOCK_SUPABASE_PORT`), documentado em `e2e/README.md`.
+`npm run build` continua sendo o portão de produção, intocado.
+
+### Portões
+
+Rodados nesta ordem, numa janela sozinha:
+
+```
+npm run lint      limpo (sem avisos)
+npm run build     ✓ Compiled successfully · 119 páginas
+npm test          Test Files 44 passed (44) · Tests 1005 passed (1005)
+npm run build:e2e ✓ (o mesmo build apontando para o mock)
+npm run e2e       212 passed (8,0m) — Chromium 360 × 740, portas 3100/54321
+```
+
+Provas novas: `lib/calendario.test.ts` (o caso do defeito, a semana seguinte e a
+seguinte da seguinte, o dia passado sem sessão, sem histórico, Fase 2, override
+e semana curta por cima), `lib/semana.test.ts` (a grade coerente, os rótulos com
+a semana, as siglas da faixa nas duas fases) e `e2e/semana.spec.ts` (o caso no
+navegador, nos dois temas, com as capturas).
+
+### Como testar no celular
+
+1. Abra a aba **Treino**. A faixa de cima agora diz, embaixo do número de cada
+   dia, **qual treino é o daquele dia**: `A`, `B`, `Corr.`, `Desc.` — e o dia de
+   hoje aparece em destaque com a sigla do treino que o card de baixo manda
+   fazer. Os dois têm que bater **sempre**.
+2. Toque na faixa: abre o **Calendário**. Logo abaixo do intervalo da semana
+   está "Fase 1 · semana N de 12". Cada linha diz "Treino A · semana N" ou
+   "Corrida · semana N do plano".
+3. Confira o **passado**: o dia em que você treinou mostra o treino que você
+   **fez** (com ✓), não o que a projeção acha. Um dia de força que você pulou
+   mostra o treino que era para ser, com a marca de não feito.
+4. Toque em **›** (próxima semana): a alternância continua de onde esta semana
+   terminou — se a sexta é A, a segunda que vem é B — e a semana da fase sobe.
+5. Depois de concluir um treino, volte à aba Treino: o dia de hoje vira ✓ e o
+   próximo dia de força já mostra a outra letra.

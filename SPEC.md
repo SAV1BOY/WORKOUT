@@ -128,6 +128,8 @@ Tipos TypeScript: gerar de `exercicios.json` etc. com `zod` (schemas em `lib/sch
 4. Cardio: `sessao` do dia ("corrida", "corrida ou corda", "corrida longa") + a semana do plano (`profiles.semana_corrida` / `semana_corda`).
 5. Descanso: mostra o lembrete da barra fixa (qui) ou caminhada leve (dom).
 
+Como o **calendário** rotula cada dia da semana (passado pela sessão real; hoje e futuro pela projeção a partir de `ultimo_treino`, começando em hoje) está na **§16**.
+
 ### 5.3 Treino fora do dia
 Treinar num dia de descanso ou cardio é permitido ("Treinar mesmo assim"): a sessão vale como o próximo treino da alternância e o calendário mostra o desvio. Corrida e treino de perna no mesmo dia: avisar (regra do guia: 6 h de intervalo, força primeiro), não bloquear.
 
@@ -430,3 +432,96 @@ condições, e só elas:
 2. Mais → Créditos abre o texto completo da licença MIT do mapa.
 3. Exercício sem ilustração mostra a figura ou a foto, sem crédito e sem erro.
 4. Lint, build, `npm test` e `npm run e2e` verdes.
+
+---
+
+## 16. Semana visível — decisão de 16/09/2026 (adendo, marco Semana)
+
+O dono pediu, com estas palavras: *"Quero que mostre os treinos dos dias e
+tenha também o app vai saber que dia da semana é e que treino eu devo fazer em
+cada dia da semana, segunda treino x, terça y, semana 3, segunda treino x3,
+etc... assim por diante até eu progredir e ir evoluindo sempre."*
+
+O plano já existia (`programa.json` §5, `lib/calendario.ts`), mas a tela não o
+dizia: a faixa da semana da aba Treino mostrava só ✓/ponto/traço, sem o nome do
+treino de cada dia, e o calendário **rotulava a semana errada** — ver §16.1.
+Este adendo complementa a §3.5, a §5.2 e a §13.3; nada muda no que é gravado no
+banco, no motor (§6) nem na montagem.
+
+### 16.1 O defeito: a semana corrente projetada da segunda
+`semanaDoPlano(inicioDaSemana, perfil)` montava a semana **inteira** a partir de
+`profiles.ultimo_treino` **começando na segunda**. Como `ultimo_treino` é o
+estado de **agora** (já contando a sessão de segunda), a projeção saía deslocada
+um degrau para trás. Caso reproduzido: hoje é quarta 30/09/2026,
+`ultimo_treino = A1`, uma sessão A1 concluída na segunda 28/09. A aba Treino
+dizia "HOJE Treino B" (certo) e o calendário dizia seg 28 "Treino B ✓" (foi A),
+qua 30 "Treino A" (é B) e sex 02 "Treino B" (será A) — as duas telas discordando
+sobre o mesmo dia.
+
+### 16.2 A regra de rotulagem da semana (§3.5 e §5.2 item 3)
+Numa semana da **Fase 1** (treino "alternar"), dia a dia, de segunda a domingo:
+1. **Override com `workout_id`** (§3.5): vale ele, em qualquer dia — passado,
+   hoje ou futuro.
+2. **Dias passados** (`data < hoje`): vale a **sessão que existe naquele dia**,
+   concluída ou parcial — o treino que de fato foi feito. Sem sessão, o dia é
+   "não feito" e mostra **o treino que era esperado naquele momento**: o próximo
+   da alternância depois da última sessão de força **anterior** àquela data. Sem
+   nenhuma sessão anterior conhecida, o dia fica só "Treino de força".
+3. **Hoje e os dias futuros**: a projeção da alternância **a partir de hoje**,
+   ancorada em `profiles.ultimo_treino` — nunca a partir da segunda. Cada dia de
+   força projetado avança a âncora; um dia passado **nunca** a avança
+   (`ultimo_treino` já o contabilizou).
+4. **Semanas seguintes** continuam a projeção **de onde a semana corrente
+   terminou**: a âncora ao fim de uma semana é o ponto de partida da próxima, e
+   assim por diante, semana após semana.
+5. **Fase 2**: os treinos são **fixos por dia da semana** (SA seg, IA ter, SB
+   qui, IB sex) — nada aqui muda nada.
+6. **Semana curta** (§5.4) e overrides continuam valendo **por cima** do que
+   esta regra produziu.
+
+Implementação: `semanaCoerente()` / `semanaEEstado()` em `lib/calendario.ts`
+(funções puras). `semanaDoPlano()` continua existindo para quem projeta uma
+semana solta, e recebe o ponto de partida certo. `montarGrade()` (`lib/semana.ts`)
+passa a montar a semana por `semanaCoerente()`, com `hoje` e as sessões do
+período — é a mesma fonte para o calendário, para a faixa e para o card do dia,
+de modo que **as duas telas nunca discordam**.
+
+### 16.3 A faixa da semana com o treino de cada dia (§13.3 item 1)
+Sob o número do dia, um **rótulo curto** derivado do plano daquele dia:
+- **força** → a sigla do treino: `A`, `B` (Fase 1), `SA`, `IA`, `SB`, `IB`
+  (Fase 2); sem treino conhecido, `Força`;
+- **cardio** → `Corr.`, `Corda`, `Longa` ou `Cam.`, conforme a sessão do dia;
+- **descanso** → `Desc.`
+
+Continuam o ✓/ponto/traço e o destaque de hoje; tocar na faixa continua abrindo
+`/calendario`. O `title`/`aria-label` do dia passa a trazer o nome completo:
+`"quarta 30/09: Treino B, hoje"`. A 360 px são sete colunas de ≥ 44 px, fonte
+≥ 11 px, nada corta e nada rola de lado.
+
+### 16.4 A semana da fase nos cards (§3.5 e §13.3)
+- Cabeçalho do `/calendario`: **"Fase 1 · semana 3 de 12"** (12 =
+  `SEMANAS_PARA_FASE2`, o ponto em que o app sugere a Fase 2, §5.1); na Fase 2,
+  só **"Fase 2 · semana N"**. Navegar para outra semana mostra a semana **daquela**
+  semana.
+- Cada dia de força na grade: **"Treino A · semana 3"** (a semana da fase).
+- Cada dia de cardio na grade: **"Corrida · semana 3 do plano"** (a semana do
+  plano de corrida/corda do perfil, §5.5).
+- O card do dia na aba Treino ganha a mesma semana da fase; o card de cardio já
+  trazia "semana N" do plano (§13.3 item 2).
+
+### 16.5 Critérios de aceite
+1. Com uma sessão A1 concluída na segunda e hoje na quarta, a faixa da aba
+   Treino, o card do dia e o `/calendario` dizem **a mesma coisa**: seg "Treino
+   A ✓", qua "Treino B" (hoje), sex "Treino A". A semana seguinte começa em
+   "Treino B", qua "A", sex "B" (unitário e e2e, nos dois temas).
+2. Um dia passado sem sessão mostra o treino que era esperado naquele momento e
+   a marca de não feito; sem nenhuma sessão anterior, só "Treino de força".
+3. A faixa mostra a sigla do treino de cada dia a 360 px sem cortar e sem
+   rolagem lateral, com alvos ≥ 44 px, e o `aria-label` traz o nome completo.
+4. Na Fase 2 a faixa e o calendário mostram SA · IA · corrida · SB · IB ·
+   corrida longa · descanso, fixos, em qualquer semana.
+5. O cabeçalho do calendário mostra a fase e a semana da fase, e acompanha a
+   navegação entre semanas.
+6. Override e semana curta continuam valendo por cima da rotulagem.
+7. Lint, build, `npm test` e `npm run e2e` verdes, com e2e novos para esta seção
+   e os antigos ajustados sem afrouxar o que verificam.

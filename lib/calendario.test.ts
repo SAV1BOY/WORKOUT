@@ -6,6 +6,7 @@ import {
   diaDaSemana,
   oQueFaltaNaSemana,
   proximoTreinoAlternado,
+  semanaCoerente,
   semanaCurta,
   semanaDaFase,
   semanaDoPlano,
@@ -290,9 +291,16 @@ describe("o que falta na semana", () => {
 });
 
 describe("semana curta — remanejo (SPEC §3.5 com §5.2 item 3 e §5.4)", () => {
-  it("a escada da Fase 1 continua ancorada no ultimo_treino do perfil", () => {
+  it("a escada da Fase 1 continua ancorada no ultimo_treino do perfil, a partir de HOJE", () => {
     for (const ultimo of ["A1", "B1"] as const) {
-      const semana = semanaDoPlano(INICIO, perfil({ ultimo_treino: ultimo }));
+      /*
+       * SPEC §16.2 item 3: a âncora vale para HOJE e para os dias seguintes —
+       * aqui hoje é a própria segunda, o primeiro dia da semana, então o
+       * primeiro treino da semana é o próximo da alternância.
+       */
+      const semana = semanaCoerente(INICIO, perfil({ ultimo_treino: ultimo }), {
+        hoje: INICIO,
+      });
       const esperado = proximoTreinoAlternado(ultimo);
       expect(semana.find((d) => d.tipo === "forca")?.treinoId).toBe(esperado);
 
@@ -319,5 +327,130 @@ describe("semana curta — remanejo (SPEC §3.5 com §5.2 item 3 e §5.4)", () =
     const ocupados = curta.dias.filter((d) => d.tipo !== "descanso").map((d) => d.dia);
     expect(ocupados).not.toContain("qui");
     expect(ocupados).toContain("dom");
+  });
+});
+
+
+describe("semana coerente: passado real, futuro projetado (SPEC §16.2)", () => {
+  /* O caso do defeito de 16/09/2026: quarta 30/09, ultimo_treino A1, uma
+   * sessão A1 concluída na segunda 28/09. Antes, a semana inteira era
+   * projetada da segunda a partir do ultimo_treino e saía um degrau atrás:
+   * seg "Treino B", qua "Treino A", sex "Treino B" — discordando da aba
+   * Treino, que dizia (certo) "HOJE Treino B". */
+  const QUARTA = "2026-09-30";
+  const SEGUNDA = "2026-09-28";
+  const feitoNaSegunda = [{ data: SEGUNDA, workout_id: "A1" }];
+  const emQuarta = perfil({ ultimo_treino: "A1" });
+
+  function forca(dias: ReturnType<typeof semanaCoerente>): (string | null)[] {
+    return dias.filter((d) => d.tipo === "forca").map((d) => d.treinoId);
+  }
+
+  it("o dia passado mostra o treino da sessão que existe nele", () => {
+    const semana = semanaCoerente(QUARTA, emQuarta, {
+      sessoes: feitoNaSegunda,
+      hoje: QUARTA,
+    });
+    expect(semana[0]?.data).toBe(SEGUNDA);
+    expect(semana[0]?.treinoId).toBe("A1");
+  });
+
+  it("hoje e o futuro projetam a alternância a partir de HOJE", () => {
+    const semana = semanaCoerente(QUARTA, emQuarta, {
+      sessoes: feitoNaSegunda,
+      hoje: QUARTA,
+    });
+    // seg 28 = A (feito), qua 30 = B (hoje), sex 02 = A
+    expect(forca(semana)).toEqual(["A1", "B1", "A1"]);
+  });
+
+  it("a semana seguinte continua de onde a corrente terminou", () => {
+    const proxima = semanaCoerente("2026-10-05", emQuarta, {
+      sessoes: feitoNaSegunda,
+      hoje: QUARTA,
+    });
+    expect(proxima[0]?.data).toBe("2026-10-05");
+    // a corrente terminou em A (sexta 02/10) → seg B, qua A, sex B
+    expect(forca(proxima)).toEqual(["B1", "A1", "B1"]);
+  });
+
+  it("e a seguinte da seguinte continua a mesma escada", () => {
+    const terceira = semanaCoerente("2026-10-12", emQuarta, {
+      sessoes: feitoNaSegunda,
+      hoje: QUARTA,
+    });
+    expect(forca(terceira)).toEqual(["A1", "B1", "A1"]);
+  });
+
+  it("dia passado sem sessão mostra o treino que era esperado naquele momento", () => {
+    // sexta 02/10: segunda feita (A), quarta sem sessão → esperava-se B
+    const semana = semanaCoerente("2026-10-02", perfil({ ultimo_treino: "A1" }), {
+      sessoes: feitoNaSegunda,
+      hoje: "2026-10-02",
+    });
+    expect(semana[2]?.treinoId).toBe("B1"); // quarta, não feita
+    expect(semana[2]?.data).toBe("2026-09-30");
+    // e a sexta (hoje) continua ancorada no ultimo_treino do perfil
+    expect(semana[4]?.treinoId).toBe("B1");
+  });
+
+  it("sem nenhuma sessão anterior, o dia passado fica só como dia de força", () => {
+    const semana = semanaCoerente(QUARTA, emQuarta, { sessoes: [], hoje: QUARTA });
+    expect(semana[0]?.tipo).toBe("forca");
+    expect(semana[0]?.treinoId).toBeNull();
+    // hoje e o futuro continuam projetando normalmente
+    expect(semana[2]?.treinoId).toBe("B1");
+  });
+
+  it("sem `hoje`, a semana inteira é projeção — como semanaDoPlano", () => {
+    expect(forca(semanaCoerente(QUARTA, emQuarta, { sessoes: feitoNaSegunda }))).toEqual(
+      forca(semanaDoPlano(QUARTA, emQuarta)),
+    );
+  });
+
+  it("na Fase 2 os treinos são fixos por dia da semana — nada muda", () => {
+    const f2 = perfil({ fase_atual: "fase2", ultimo_treino: "IB" });
+    const semana = semanaCoerente(QUARTA, f2, {
+      // uma sessão SB registrada na segunda não reescreve a segunda (é SA)
+      sessoes: [{ data: SEGUNDA, workout_id: "SB" }],
+      hoje: QUARTA,
+    });
+    expect(semana.map((d) => d.treinoId)).toEqual([
+      "SA",
+      "IA",
+      null,
+      "SB",
+      "IB",
+      null,
+      null,
+    ]);
+  });
+
+  it("o override com treino escolhido vale por cima, no passado e no futuro", () => {
+    const ov: ExcecaoAgenda[] = [
+      { data: SEGUNDA, tipo: "forca", workout_id: "B1", sessao: null },
+      { data: "2026-10-02", tipo: "forca", workout_id: "B1", sessao: null },
+    ];
+    const semana = semanaCoerente(QUARTA, emQuarta, {
+      overrides: ov,
+      sessoes: feitoNaSegunda,
+      hoje: QUARTA,
+    });
+    expect(semana[0]?.treinoId).toBe("B1"); // o escolhido ganha da sessão
+    expect(semana[0]?.treinoEscolhido).toBe(true);
+    expect(semana[4]?.treinoId).toBe("B1"); // e ganha da projeção
+  });
+
+  it("a semana curta continua valendo por cima da semana coerente", () => {
+    const semana = semanaCoerente(QUARTA, emQuarta, {
+      sessoes: feitoNaSegunda,
+      hoje: QUARTA,
+    });
+    const curta = semanaCurta("qua", semana);
+    expect(curta.dias.find((d) => d.dia === "qua")?.tipo).toBe("descanso");
+    const restantes = curta.dias.filter((d) => d.tipo === "forca").map((d) => d.treinoId);
+    for (let i = 1; i < restantes.length; i++) {
+      expect(restantes[i]).not.toBe(restantes[i - 1]);
+    }
   });
 });

@@ -9,16 +9,26 @@ import {
   inicioDaSemana,
   iso,
   paraData,
+  semanaCoerente,
+  semanaDaFase,
   semanaDoPlano,
+  SEMANAS_PARA_FASE2,
   tipoDoDia,
+  type Data,
   type DiaDoPlano,
   type ExcecaoAgenda,
   type PerfilCalendario,
+  type SessaoDeForca,
 } from "@/lib/calendario";
-import { acharTreino } from "@/lib/dados";
-import { formatarData, formatarDiaCurto, formatarMinutos } from "@/lib/formato";
+import { acharFase, acharTreino } from "@/lib/dados";
+import {
+  formatarData,
+  formatarDiaCurto,
+  formatarDiaLongo,
+  formatarMinutos,
+} from "@/lib/formato";
 import { descricaoDoCardio } from "@/lib/hoje";
-import type { TipoDia, TreinoId } from "@/lib/schemas";
+import type { FaseId, TipoDia, TreinoId } from "@/lib/schemas";
 import type { LinhaSessao, LinhaSessaoCardio, TipoCardio } from "@/lib/types";
 
 /** O que aconteceu no dia: feito, pela metade, perdido ou ainda por fazer. */
@@ -53,6 +63,12 @@ export interface DiaDaGrade {
   futuro: boolean;
   /** "Treino A", "Corrida", "Descanso" */
   rotulo: string;
+  /** "Treino A · semana 3", "Corrida · semana 3 do plano" (SPEC §16.4). */
+  rotuloLongo: string;
+  /** "A", "SA", "Corr.", "Desc." — o rótulo curto da faixa (SPEC §16.3). */
+  sigla: string;
+  /** Em que semana da fase cai este dia (SPEC §5.1). */
+  semanaDaFase: number;
   /** "6 exercícios · 44 min", "8 × (1 min corrida / 2 min caminhada) · 34 min" */
   detalhe: string | null;
   /** Sessão registrada naquele dia (para abrir o resumo). */
@@ -64,16 +80,67 @@ export interface DiaDaGrade {
   sessaoTipo: TipoCardio | null;
 }
 
-/** O rótulo curto do dia: o nome do treino, o tipo de cardio ou "Descanso". */
+/** O rótulo do dia: o nome do treino, o tipo de cardio ou "Descanso". */
 export function rotuloDoDia(dia: DiaDoPlano): string {
   if (dia.tipo === "forca") {
-    return dia.treinoId ? acharTreino(dia.treinoId).nome : "Força";
+    // SPEC §16.2 item 2: um dia passado sem sessão e sem histórico anterior
+    // não sabe qual treino era — mas sabe que era de força.
+    return dia.treinoId ? acharTreino(dia.treinoId).nome : "Treino de força";
+  }
+  if (dia.tipo === "cardio") return nomeDoCardio(dia);
+  return "Descanso";
+}
+
+function nomeDoCardio(dia: DiaDoPlano): string {
+  const t = dia.cardio?.tipo;
+  return t === "corda" ? "Corda" : t === "caminhada" ? "Caminhada" : "Corrida";
+}
+
+/** A corrida longa da Fase 2 é a corrida de sábado (`programa.json`). */
+function corridaLonga(dia: DiaDoPlano): boolean {
+  return /longa/i.test(dia.cardio?.sessao ?? "");
+}
+
+/**
+ * A sigla do dia na faixa da semana (SPEC §16.3): a letra do treino de força
+ * ("A", "B", "SA", "IA", "SB", "IB"), o cardio do dia ou o descanso.
+ */
+export function siglaDoDia(dia: DiaDoPlano): string {
+  if (dia.tipo === "forca") {
+    // "A1" → "A", "B1" → "B"; "SA"/"IB" não têm número e ficam como estão
+    return dia.treinoId ? dia.treinoId.replace(/\d+$/, "") : "Força";
   }
   if (dia.tipo === "cardio") {
+    if (corridaLonga(dia)) return "Longa";
     const t = dia.cardio?.tipo;
-    return t === "corda" ? "Corda" : t === "caminhada" ? "Caminhada" : "Corrida";
+    return t === "corda" ? "Corda" : t === "caminhada" ? "Cam." : "Corr.";
   }
-  return "Descanso";
+  return "Desc.";
+}
+
+/**
+ * O rótulo do card do dia com a semana (SPEC §16.4): a semana da **fase** num
+ * dia de força, a semana do **plano** num dia de cardio.
+ */
+export function rotuloLongoDoDia(dia: DiaDoPlano, semanaDaFaseDoDia: number): string {
+  const nome = rotuloDoDia(dia);
+  if (dia.tipo === "forca") return `${nome} · semana ${semanaDaFaseDoDia}`;
+  if (dia.tipo === "cardio" && dia.cardio) {
+    return `${nome} · semana ${dia.cardio.semana} do plano`;
+  }
+  return nome;
+}
+
+/**
+ * "Fase 1 · semana 3 de 12" — o cabeçalho do calendário (SPEC §16.4). O total
+ * é o ponto em que o app sugere a Fase 2 (§5.1); na Fase 2 não há total.
+ */
+export function rotuloDaFase(fase: FaseId, semana: number): string {
+  const [curto] = acharFase(fase).nome.split("—");
+  const nome = (curto ?? fase).trim();
+  return fase === "fase1"
+    ? `${nome} · semana ${semana} de ${SEMANAS_PARA_FASE2}`
+    : `${nome} · semana ${semana}`;
 }
 
 /** A segunda linha do dia: o que a sessão tem de concreto. */
@@ -128,15 +195,47 @@ function marcarDia(
   return { marca: "aberto", ...vazio };
 }
 
-/** A semana inteira pronta para a grade (SPEC §3.5). */
-export function montarGrade(
+/** De onde a grade tira a semana (SPEC §16.2). */
+export interface FonteDaGrade {
+  /** Qualquer dia da semana que se quer ver. */
+  data: Data;
+  perfil: PerfilCalendario;
+  overrides?: ExcecaoAgenda[];
+  sessoes?: SessaoCurta[];
+  cardios?: CardioCurto[];
+  /** Hoje (ISO) — o que separa o passado registrado da projeção. */
+  hoje: string;
+}
+
+/**
+ * A semana inteira pronta para a grade (SPEC §3.5), montada por
+ * `semanaCoerente()` (§16.2): os dias passados com o treino da sessão que
+ * existe neles, hoje e o futuro com a alternância projetada a partir de hoje.
+ * É a mesma fonte da faixa da semana e do card do dia — as telas não discordam.
+ */
+export function montarGrade(fonte: FonteDaGrade): DiaDaGrade[] {
+  const { data, perfil, hoje } = fonte;
+  const sessoes = fonte.sessoes ?? [];
+  const cardios = fonte.cardios ?? [];
+  const semana = semanaCoerente(data, perfil, {
+    overrides: fonte.overrides ?? [],
+    sessoes: sessoes as SessaoDeForca[],
+    hoje,
+  });
+  return montarGradeDe(semana, sessoes, cardios, hoje, perfil);
+}
+
+/** A grade de uma semana já montada (a reorganizada da §5.4, por exemplo). */
+export function montarGradeDe(
   semana: DiaDoPlano[],
   sessoes: SessaoCurta[] = [],
   cardios: CardioCurto[] = [],
   hoje: string,
+  perfil?: Pick<PerfilCalendario, "fase_desde">,
 ): DiaDaGrade[] {
   return semana.map((dia) => {
     const { marca, sessaoId, sessaoTipo } = marcarDia(dia, sessoes, cardios, hoje);
+    const semanaDaFaseDoDia = semanaDaFase(dia.data, perfil?.fase_desde ?? dia.data);
     return {
       dia,
       data: dia.data,
@@ -146,6 +245,9 @@ export function montarGrade(
       ehHoje: dia.data === hoje,
       futuro: dia.data > hoje,
       rotulo: rotuloDoDia(dia),
+      rotuloLongo: rotuloLongoDoDia(dia, semanaDaFaseDoDia),
+      sigla: siglaDoDia(dia),
+      semanaDaFase: semanaDaFaseDoDia,
       detalhe: detalheDoDia(dia),
       sessaoId,
       sessaoTipo,
@@ -160,9 +262,11 @@ export interface DiaDaFaixa {
   /** "seg", "ter"… */
   rotulo: string;
   numero: number;
+  /** "A", "B", "SA", "Corr.", "Desc." — o treino do dia (SPEC §16.3). */
+  treino: string;
   marca: MarcaDoDia;
   ehHoje: boolean;
-  /** "Segunda, 14/09 · Treino A · feito" — o que o leitor de tela lê. */
+  /** "quarta 30/09: Treino B, hoje" — o que o leitor de tela lê (§16.3). */
   titulo: string;
 }
 
@@ -176,9 +280,10 @@ export function faixaDaSemana(grade: DiaDaGrade[]): DiaDaFaixa[] {
     data: dia.data,
     rotulo: formatarDiaCurto(dia.data),
     numero: paraData(dia.data).getDate(),
+    treino: dia.sigla,
     marca: dia.marca,
     ehHoje: dia.ehHoje,
-    titulo: `${formatarDiaCurto(dia.data)}, ${formatarData(dia.data)} · ${dia.rotulo} · ${
+    titulo: `${formatarDiaLongo(dia.data)} ${formatarData(dia.data)}: ${dia.rotulo}, ${
       dia.ehHoje ? "hoje" : NOME_DA_MARCA[dia.marca]
     }`,
   }));

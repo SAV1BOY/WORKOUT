@@ -11,7 +11,9 @@ import {
   montarGrade,
   montarMes,
   overridesDaSemanaCurta,
+  rotuloDaFase,
   rotuloDoDia,
+  siglaDoDia,
 } from "@/lib/semana";
 
 const PERFIL: PerfilCalendario = {
@@ -28,7 +30,7 @@ const SEMANA_1 = "2026-09-14";
 
 describe("grade da semana (SPEC §3.5 e §10.6)", () => {
   it("mostra a semana da Fase 1 com A e B alternando", () => {
-    const grade = montarGrade(semanaDoPlano(SEMANA_1, PERFIL), [], [], SEMANA_1);
+    const grade = montarGrade({ data: SEMANA_1, perfil: PERFIL, hoje: SEMANA_1 });
     expect(grade.map((d) => d.rotulo)).toEqual([
       "Treino A",
       "Corrida",
@@ -41,12 +43,11 @@ describe("grade da semana (SPEC §3.5 e §10.6)", () => {
   });
 
   it("a alternância segue o último treino do perfil", () => {
-    const grade = montarGrade(
-      semanaDoPlano(SEMANA_1, { ...PERFIL, ultimo_treino: "A1" }),
-      [],
-      [],
-      SEMANA_1,
-    );
+    const grade = montarGrade({
+      data: SEMANA_1,
+      perfil: { ...PERFIL, ultimo_treino: "A1" },
+      hoje: SEMANA_1,
+    });
     expect(grade.filter((d) => d.dia.tipo === "forca").map((d) => d.rotulo)).toEqual([
       "Treino B",
       "Treino A",
@@ -55,28 +56,28 @@ describe("grade da semana (SPEC §3.5 e §10.6)", () => {
   });
 
   it("a terça traz a corrida da semana 1 com os minutos do plano", () => {
-    const grade = montarGrade(semanaDoPlano(SEMANA_1, PERFIL), [], [], SEMANA_1);
+    const grade = montarGrade({ data: SEMANA_1, perfil: PERFIL, hoje: SEMANA_1 });
     expect(grade[1]?.detalhe).toBe(
       "8 × (1 min corrida / 2 min caminhada) · 34 min",
     );
   });
 
   it("o dia de força mostra quantos exercícios e quanto tempo", () => {
-    const grade = montarGrade(semanaDoPlano(SEMANA_1, PERFIL), [], [], SEMANA_1);
+    const grade = montarGrade({ data: SEMANA_1, perfil: PERFIL, hoje: SEMANA_1 });
     expect(grade[0]?.detalhe).toBe("6 exercícios · 44 min");
   });
 
   it("marca feito, parcial, faltou e a fazer", () => {
     const hoje = "2026-09-18"; // sexta
-    const grade = montarGrade(
-      semanaDoPlano(SEMANA_1, PERFIL),
-      [
+    const grade = montarGrade({
+      data: SEMANA_1,
+      perfil: PERFIL,
+      sessoes: [
         { id: "s1", data: "2026-09-14", status: "concluida", workout_id: "A1" },
         { id: "s2", data: "2026-09-16", status: "abandonada", workout_id: "B1" },
       ],
-      [],
       hoje,
-    );
+    });
     expect(grade[0]).toMatchObject({ marca: "feito", simbolo: "✓", sessaoId: "s1" });
     expect(grade[1]).toMatchObject({ marca: "faltou", simbolo: "✕" }); // terça sem corrida
     expect(grade[2]).toMatchObject({ marca: "parcial", sessaoId: "s2" });
@@ -86,12 +87,12 @@ describe("grade da semana (SPEC §3.5 e §10.6)", () => {
   });
 
   it("o cardio concluído marca o dia como feito", () => {
-    const grade = montarGrade(
-      semanaDoPlano(SEMANA_1, PERFIL),
-      [],
-      [{ id: "c1", data: "2026-09-15", tipo: "corrida", concluida: true }],
-      "2026-09-16",
-    );
+    const grade = montarGrade({
+      data: SEMANA_1,
+      perfil: PERFIL,
+      cardios: [{ id: "c1", data: "2026-09-15", tipo: "corrida", concluida: true }],
+      hoje: "2026-09-16",
+    });
     expect(grade[1]).toMatchObject({ marca: "feito", sessaoId: "c1" });
   });
 
@@ -176,13 +177,12 @@ describe("intervalo da semana", () => {
 describe("grade — a rota do dia de cardio (SPEC §3.3)", () => {
   it("guarda o tipo da sessão de cardio registrada, não só o id", () => {
     const perfil = { fase_atual: "fase1", ultimo_treino: null, fase_desde: "2026-09-14" } as const;
-    const semana = semanaDoPlano("2026-09-15", perfil);
-    const grade = montarGrade(
-      semana,
-      [],
-      [{ id: "c1", data: "2026-09-15", tipo: "corda", concluida: true }],
-      "2026-09-16",
-    );
+    const grade = montarGrade({
+      data: "2026-09-15",
+      perfil,
+      cardios: [{ id: "c1", data: "2026-09-15", tipo: "corda", concluida: true }],
+      hoje: "2026-09-16",
+    });
     const terca = grade.find((d) => d.data === "2026-09-15");
     expect(terca?.marca).toBe("feito");
     expect(terca?.sessaoId).toBe("c1");
@@ -202,7 +202,7 @@ describe("faixa da semana (SPEC §13.3)", () => {
 
   it("são sete casas, de segunda a domingo, com o dia do mês", () => {
     const faixa = faixaDaSemana(
-      montarGrade(semanaDoPlano(SEMANA_1, PERFIL), [], [], SEMANA_1),
+      montarGrade({ data: SEMANA_1, perfil: PERFIL, hoje: SEMANA_1 }),
     );
     expect(faixa).toHaveLength(7);
     expect(faixa.map((d) => d.rotulo)).toEqual([
@@ -220,7 +220,7 @@ describe("faixa da semana (SPEC §13.3)", () => {
   it("marca ✓ no que foi feito, ponto no planejado e cinza no que faltou", () => {
     const hoje = "2026-09-16";
     const faixa = faixaDaSemana(
-      montarGrade(semanaDoPlano(hoje, PERFIL), sessoes, cardios, hoje),
+      montarGrade({ data: hoje, perfil: PERFIL, sessoes, cardios, hoje }),
     );
     expect(faixa[0]?.marca).toBe("feito"); // segunda: treino concluído
     expect(faixa[1]?.marca).toBe("feito"); // terça: corrida concluída
@@ -232,15 +232,104 @@ describe("faixa da semana (SPEC §13.3)", () => {
 
   it("um dia de força passado sem sessão fica como faltou", () => {
     const hoje = "2026-09-18";
-    const faixa = faixaDaSemana(montarGrade(semanaDoPlano(hoje, PERFIL), [], [], hoje));
+    const faixa = faixaDaSemana(montarGrade({ data: hoje, perfil: PERFIL, hoje }));
     expect(faixa[0]?.marca).toBe("faltou");
   });
 
   it("o título conta o dia, a data, o que era e como ficou", () => {
     const faixa = faixaDaSemana(
-      montarGrade(semanaDoPlano(SEMANA_1, PERFIL), sessoes, [], SEMANA_1),
+      montarGrade({ data: SEMANA_1, perfil: PERFIL, sessoes, hoje: SEMANA_1 }),
     );
-    expect(faixa[0]?.titulo).toBe("seg, 14/09 · Treino A · hoje");
-    expect(faixa[2]?.titulo).toBe("qua, 16/09 · Treino B · a fazer");
+    // SPEC §16.3: o nome completo do dia e do treino, para o leitor de tela
+    expect(faixa[0]?.titulo).toBe("segunda 14/09: Treino A, hoje");
+    expect(faixa[2]?.titulo).toBe("quarta 16/09: Treino B, a fazer");
+  });
+});
+
+
+describe("a grade é coerente com a aba Treino (SPEC §16.2)", () => {
+  /* O caso do defeito: quarta 30/09/2026, ultimo_treino A1, uma sessão A1
+   * concluída na segunda 28/09. */
+  const QUARTA = "2026-09-30";
+  const perfil: PerfilCalendario = { ...PERFIL, ultimo_treino: "A1" };
+  const sessoes = [
+    {
+      id: "s1",
+      data: "2026-09-28",
+      status: "concluida" as const,
+      workout_id: "A1" as const,
+    },
+  ];
+
+  const grade = montarGrade({ data: QUARTA, perfil, sessoes, hoje: QUARTA });
+
+  it("a segunda mostra o treino que foi feito, com ✓", () => {
+    expect(grade[0]).toMatchObject({ rotulo: "Treino A", marca: "feito", simbolo: "✓" });
+  });
+
+  it("hoje e a sexta seguem a alternância a partir de hoje", () => {
+    expect(grade[2]).toMatchObject({ rotulo: "Treino B", ehHoje: true });
+    expect(grade[4]?.rotulo).toBe("Treino A");
+  });
+
+  it("a semana seguinte continua a escada", () => {
+    const proxima = montarGrade({ data: "2026-10-05", perfil, sessoes, hoje: QUARTA });
+    expect(proxima.filter((d) => d.dia.tipo === "forca").map((d) => d.rotulo)).toEqual([
+      "Treino B",
+      "Treino A",
+      "Treino B",
+    ]);
+  });
+
+  it("os rótulos com a semana da fase entram nos cards", () => {
+    // fase_desde 14/09 → a semana de 28/09 é a 3ª
+    expect(grade[0]?.semanaDaFase).toBe(3);
+    expect(grade[0]?.rotuloLongo).toBe("Treino A · semana 3");
+    expect(grade[1]?.rotuloLongo).toBe("Corrida · semana 1 do plano");
+    expect(grade[3]?.rotuloLongo).toBe("Descanso");
+  });
+
+  it("a faixa traz a sigla do treino de cada dia", () => {
+    expect(faixaDaSemana(grade).map((d) => d.treino)).toEqual([
+      "A",
+      "Corr.",
+      "B",
+      "Desc.",
+      "A",
+      "Corr.",
+      "Desc.",
+    ]);
+  });
+
+  it("na Fase 2 as siglas são as do dia fixo, com a corrida longa de sábado", () => {
+    const f2 = montarGrade({
+      data: QUARTA,
+      perfil: { ...PERFIL, fase_atual: "fase2", ultimo_treino: "IB" },
+      hoje: QUARTA,
+    });
+    expect(faixaDaSemana(f2).map((d) => d.treino)).toEqual([
+      "SA",
+      "IA",
+      "Corr.",
+      "SB",
+      "IB",
+      "Longa",
+      "Desc.",
+    ]);
+  });
+});
+
+describe("rótulos curtos e semana da fase (SPEC §16.3 e §16.4)", () => {
+  const semana = montarGrade({ data: SEMANA_1, perfil: PERFIL, hoje: SEMANA_1 });
+
+  it("um dia de força sem treino conhecido é só um dia de força", () => {
+    const desconhecido = { ...semana[0]!.dia, treinoId: null, treino: null };
+    expect(rotuloDoDia(desconhecido)).toBe("Treino de força");
+    expect(siglaDoDia(desconhecido)).toBe("Força");
+  });
+
+  it("o cabeçalho do calendário conta a fase e a semana da fase", () => {
+    expect(rotuloDaFase("fase1", 3)).toBe("Fase 1 · semana 3 de 12");
+    expect(rotuloDaFase("fase2", 5)).toBe("Fase 2 · semana 5");
   });
 });

@@ -25,7 +25,6 @@ import {
   paraData,
   proximoTreinoDaFase,
   semanaDaFase,
-  semanaDoPlano,
   treinoDeHoje,
 } from "@/lib/calendario";
 import { acharFase, acharTreino, exerciciosDoTreino } from "@/lib/dados";
@@ -228,12 +227,16 @@ export function TelaTreino({ userId }: { userId: string }) {
   const cardiosDaSemana = cardioQ.data ?? [];
   const cardios = cardioDesdeQ.data ?? cardiosDaSemana;
 
-  const grade = montarGrade(
-    semanaDoPlano(hoje, perfil, overridesQ.data ?? []),
+  // SPEC §16.2: a mesma fonte do /calendario — passado pela sessão real,
+  // hoje e futuro pela projeção a partir de hoje.
+  const grade = montarGrade({
+    data: hoje,
+    perfil,
+    overrides: overridesQ.data ?? [],
     sessoes,
-    cardiosDaSemana,
+    cardios: cardiosDaSemana,
     hoje,
-  );
+  });
   const meta = metaSemanal(perfil.prefs, perfil.fase_atual);
   const progresso = progressoDaMeta({
     sessoes,
@@ -311,6 +314,7 @@ export function TelaTreino({ userId }: { userId: string }) {
             resumo={resumoDoTreino(treinoId)}
             aviso={aviso}
             mostrarRaios={mostrarRaios}
+            semanaDaFase={semanaDaFase(hoje, perfil.fase_desde)}
             aberta={abertaDoDia}
             criando={criando !== null}
             aoComecar={() =>

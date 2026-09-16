@@ -80,6 +80,7 @@ export function CardForca({
   resumo,
   aviso,
   mostrarRaios,
+  semanaDaFase,
   aberta,
   aoComecar,
   criando,
@@ -87,6 +88,8 @@ export function CardForca({
   resumo: ResumoDoTreino;
   aviso: string | null;
   mostrarRaios: boolean;
+  /** Em que semana da fase este treino cai (SPEC §16.4). */
+  semanaDaFase?: number;
   /** Sessão em andamento deste treino: o card vira "Continuar". */
   aberta: { id: string; progresso: string } | null;
   /** Cria a sessão e entra no player, sem tela intermediária (§14.5.1). */
@@ -97,11 +100,17 @@ export function CardForca({
     exerciciosDoTreino(resumo.id).map(({ exercicio }) => exercicio),
   );
 
+  // SPEC §16.4: "6 exercícios · 44 min · semana 3" — a semana da fase no card
+  const detalhe =
+    semanaDaFase !== undefined
+      ? `${detalheDoTreino(resumo.id)} · semana ${semanaDaFase}`
+      : detalheDoTreino(resumo.id);
+
   return (
     <CardCapa
       titulo={resumo.nome}
       subtitulo={resumo.foco}
-      detalhe={detalheDoTreino(resumo.id)}
+      detalhe={detalhe}
       foto={capaDoTreino(resumo.id)}
       raios={mostrarRaios ? raios : null}
       etiqueta={aberta ? "em andamento" : "hoje"}

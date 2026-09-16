@@ -43,7 +43,8 @@ export function GradeDaSemana({
             </span>
 
             <span className="flex min-w-0 flex-1 flex-col">
-              <span className="line-clamp-2 text-sm font-medium">{d.rotulo}</span>
+              {/* SPEC §16.4: "Treino A · semana 3", "Corrida · semana 3 do plano" */}
+              <span className="line-clamp-2 text-sm font-medium">{d.rotuloLongo}</span>
               {d.detalhe ? (
                 <span className="text-muted-foreground line-clamp-2 text-xs">
                   {d.detalhe}

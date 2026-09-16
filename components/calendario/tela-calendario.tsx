@@ -14,8 +14,9 @@ import {
   inicioDaSemana,
   iso,
   oQueFaltaNaSemana,
+  semanaDaFase,
+  semanaCoerente,
   semanaCurta,
-  semanaDoPlano,
   type Realizado,
 } from "@/lib/calendario";
 import { acharTreino } from "@/lib/dados";
@@ -27,6 +28,7 @@ import {
   montarGrade,
   montarMes,
   overridesDaSemanaCurta,
+  rotuloDaFase,
   type DiaDaGrade,
 } from "@/lib/semana";
 
@@ -56,15 +58,20 @@ export function TelaCalendario({ userId }: { userId: string }) {
   const sessoes = useMemo(() => sessoesQ.data ?? [], [sessoesQ.data]);
   const cardios = useMemo(() => cardioQ.data ?? [], [cardioQ.data]);
 
-  const semana = useMemo(
-    () => (ref && perfil ? semanaDoPlano(ref, perfil, overrides) : []),
-    [ref, perfil, overrides],
+  /*
+   * SPEC §16.2: a semana sai de `montarGrade`, que já sabe separar o passado
+   * (a sessão que existe no dia) da projeção (a partir de HOJE) — e é a mesma
+   * fonte da faixa da aba Treino, para as duas telas nunca discordarem.
+   */
+  const grade = useMemo(
+    () =>
+      ref && perfil && hoje
+        ? montarGrade({ data: ref, perfil, overrides, sessoes, cardios, hoje })
+        : [],
+    [ref, perfil, overrides, sessoes, cardios, hoje],
   );
 
-  const grade = useMemo(
-    () => (hoje ? montarGrade(semana, sessoes, cardios, hoje) : []),
-    [semana, sessoes, cardios, hoje],
-  );
+  const semana = useMemo(() => grade.map((d) => d.dia), [grade]);
 
   const mes = useMemo(
     () =>
@@ -99,7 +106,11 @@ export function TelaCalendario({ userId }: { userId: string }) {
 
   const previaSemanaCurta = useMemo(() => {
     if (!hoje || !perfil) return null;
-    const planejada = semanaDoPlano(hoje, perfil, overrides);
+    const planejada = semanaCoerente(hoje, perfil, {
+      overrides,
+      sessoes,
+      hoje,
+    });
     const resultado = semanaCurta(hoje, planejada);
     return {
       mudancas: overridesDaSemanaCurta(planejada, resultado.dias, hoje),
@@ -107,7 +118,7 @@ export function TelaCalendario({ userId }: { userId: string }) {
         c.treinoId ? acharTreino(c.treinoId).nome : (c.sessao ?? "cardio"),
       ),
     };
-  }, [hoje, perfil, overrides]);
+  }, [hoje, perfil, overrides, sessoes]);
 
   if (perfilQ.isError) {
     return (
@@ -188,7 +199,10 @@ export function TelaCalendario({ userId }: { userId: string }) {
   };
 
   return (
-    <Tela titulo={`${formatarData(primeiro)} – ${formatarData(ultimo)}`}>
+    <Tela
+      titulo={`${formatarData(primeiro)} – ${formatarData(ultimo)}`}
+      fase={rotuloDaFase(perfil.fase_atual, semanaDaFase(ref, perfil.fase_desde))}
+    >
       <div className="flex items-center gap-2">
         <Button
           variant="outline"
@@ -259,9 +273,12 @@ export function TelaCalendario({ userId }: { userId: string }) {
 
 function Tela({
   titulo,
+  fase,
   children,
 }: {
   titulo: string | null;
+  /** "Fase 1 · semana 3 de 12" (SPEC §16.4). */
+  fase?: string;
   children: React.ReactNode;
 }) {
   return (
@@ -269,6 +286,7 @@ function Tela({
       <header className="flex flex-col gap-0.5">
         <h1 className="text-2xl font-semibold tracking-tight">Calendário</h1>
         <p className="text-muted-foreground numero text-sm">{titulo ?? " "}</p>
+        {fase ? <p className="text-primary text-xs font-medium">{fase}</p> : null}
       </header>
       {children}
     </section>

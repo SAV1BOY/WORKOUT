@@ -11,11 +11,19 @@ Enquanto não existe um projeto Supabase de verdade (e `.env.local` não existe)
 ## Rodar
 
 ```bash
-npm run build && npm run e2e
+npm run build:e2e && npm run e2e
 ```
 
 `npm run e2e` **não builda**: ele sobe `next start -p 3100` com o que já está em
 `.next/`. Se você mudou código, builde de novo antes.
+
+> **Builde com `build:e2e`, não com `build`.** As variáveis `NEXT_PUBLIC_*` são
+> **assadas no build**, e o repositório tem um `.env.production` com a URL e a
+> chave do Supabase **de verdade** (produção na Vercel). Um `npm run build`
+> comum gera um app que fala com o Supabase real: o mock não recebe nada e todo
+> teste que entra na conta falha com "E-mail ou senha incorretos". `build:e2e`
+> é o mesmo build com as três variáveis apontando para o mock (respeita
+> `MOCK_SUPABASE_PORT`). O `npm run build` continua sendo o portão de produção.
 
 O Playwright sobe sozinho dois servidores (`webServer`) e derruba no fim:
 
@@ -94,6 +102,7 @@ curl -s -XPOST localhost:54321/__mock/seed -H 'content-type: application/json' \
 | `shell.spec.ts` | navegação inferior (Treino · Explorar · Relatório · Corpo · Mais, alvos ≥ 44 px), cada rota abre, nada rola para o lado, manifest válido |
 | `mock.spec.ts` | o contrato do próprio mock (PostgREST, upsert, `v_records`, storage, RLS) |
 | `treino.spec.ts` | a aba Treino (`/`): Treino A com as cargas iniciais, Treino B pela alternância, a carga que veio do estado com o evento que a explica, corrida da semana 1 + corda, descanso com o "+1", faixa de status, banner do treino aberto e o cache persistido |
+| `semana.spec.ts` | o marco Semana (SPEC §16): o caso do defeito no navegador (seg A ✓ · qua B hoje · sex A, nos dois temas) com a aba Treino e o `/calendario` dizendo o mesmo, a faixa com a sigla do treino de cada dia a 360 px, a semana seguinte continuando a alternância, o dia passado sem sessão e a Fase 2 fixa por dia |
 | `calendario.spec.ts` | a grade da semana (A/B alternando, marcações, o que falta), navegação entre semanas, troca de tipo de um dia futuro e a regra da semana curta |
 | `treinar.spec.ts` | a sessão de força série a série, o timer de descanso, offline, recarregar no meio, concluir com o motor decidindo |
 | `cardio.spec.ts` | o timer de intervalos da corrida (`page.clock.runFor`), a corda, o cronômetro da caminhada, o registro em `cardio_sessions`, o avanço da semana do plano (§5.5) e a tela `/barra-fixa` (semana destacada, "+1", sessão `workout_id = 'fixa'`) |

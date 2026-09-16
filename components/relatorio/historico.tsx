@@ -6,7 +6,7 @@ import { addDays } from "date-fns";
 import { useMemo, useState } from "react";
 import { FaixaSemana } from "@/components/ui/faixa-semana";
 import { formatarData } from "@/lib/formato";
-import { iso, inicioDaSemana, paraData, semanaDoPlano } from "@/lib/calendario";
+import { iso, inicioDaSemana, paraData } from "@/lib/calendario";
 import { registros, textoDoMotorDaSessao, type EventoDeSessao } from "@/lib/relatorio";
 import type { CardioBruto, SerieBruta, SessaoBruta, SoltaBruta } from "@/lib/progresso";
 import { faixaDaSemana, montarGrade } from "@/lib/semana";
@@ -52,22 +52,25 @@ export function Historico({
   );
   const fim = useMemo(() => iso(addDays(paraData(inicio), 6)), [inicio]);
 
-  const dias = useMemo(() => {
-    const semana = semanaDoPlano(inicio, perfil, overrides);
-    return faixaDaSemana(
-      montarGrade(
-        semana,
-        sessoes.map((s) => ({ ...s, id: s.id })),
-        cardios.map((c, i) => ({
-          id: `c${i}`,
-          data: c.data,
-          tipo: c.tipo,
-          concluida: c.concluida,
-        })),
-        hoje,
+  const dias = useMemo(
+    () =>
+      faixaDaSemana(
+        montarGrade({
+          data: inicio,
+          perfil,
+          overrides,
+          sessoes: sessoes.map((s) => ({ ...s, id: s.id })),
+          cardios: cardios.map((c, i) => ({
+            id: `c${i}`,
+            data: c.data,
+            tipo: c.tipo,
+            concluida: c.concluida,
+          })),
+          hoje,
+        }),
       ),
-    );
-  }, [inicio, perfil, overrides, sessoes, cardios, hoje]);
+    [inicio, perfil, overrides, sessoes, cardios, hoje],
+  );
 
   const daSemana = useMemo(
     () => registros({ sessoes, cardios, series, soltas, eventos, de: inicio, ate: fim }),
