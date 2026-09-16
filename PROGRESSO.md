@@ -5,9 +5,158 @@ repositório, não um plano.
 
 ---
 
-## Estado da entrega ✅
+## Estado da entrega — v2.1 (camada visual) ✅
 
-O app está pronto no código. O que falta é **infraestrutura** (criar o projeto
+A camada visual está pronta no código: 5 abas, player unificado, ficha em
+folha, ilustrações com licença livre e crédito, Explorar, Relatório, Corpo e
+Mais. Fechada em três auditorias independentes (fidelidade à referência a
+360 × 740 · dados, offline e segurança · SPEC linha a linha) e dois ciclos de
+correção; o que sobrou está em "Conhecido, não corrigido" abaixo, tudo menor.
+**O que falta não é código: é infraestrutura** — o projeto Supabase, as
+variáveis na Vercel, o merge do PR #2 e a instalação no celular (a "Checklist
+de infraestrutura" mais abaixo, revisada nesta etapa).
+
+Os critérios do app v1 (SPEC §10) continuam na seção "Estado da entrega — v1"
+logo depois desta, com a mesma tabela de antes.
+
+### Critérios de aceite da camada visual — §13.8, §14.5 e §15.4
+
+**18 de 18.** "Como foi provado" é medição desta rodada (Chromium a 360 × 740,
+build de produção contra `scripts/mock-supabase.ts`, nos dois temas, com a
+conta semeada: perfil, `exercise_state`, 6 sessões de força, 4 de cardio,
+soltas, peso e medidas, hoje = segunda 28/09/2026, semana 3 da Fase 1).
+
+#### SPEC §13.8 — camada visual v2
+
+| # | Critério | Como foi provado | Teste que cobre |
+|---|---|---|---|
+| 13.8.1 | Treino a 360 px nos dois temas: faixa da semana, meta, cards do dia, lista com miniatura, prescrição e carga; nada corta, nada rola de lado, alvos ≥ 44 px | `getBoundingClientRect` em 30 telas: `scrollWidth == clientWidth` em todas (overflow horizontal 0), nenhum elemento com `right > 360` fora de carrossel, nenhum alvo interativo < 44 px, nenhum texto reprovado em contraste AA | `e2e/treino-v2.spec.ts` (11) · `e2e/shell.spec.ts` (`semRolagemHorizontal` em cada rota) · `lib/semana.test.ts` |
+| 13.8.2 | Explorar com as coleções derivadas (8 grupos, 9 aparelhos, 3 circuitos, 3 planos, 6 treinos), capas de `assets/`, subtítulo do campo `specs`, "Começar" abrindo sessão livre, busca sem acento | Tela contada à mão: destaque, "Escolhas para você", 6 treinos, 8 grupos, 9 aparelhos, 3 circuitos, 3 planos, catálogo com 6 filtros; busca por "biceps" e "agachamento bulgaro" achou | `e2e/v3.spec.ts` ("destaque, coleções derivadas e busca sem acento", "a tela de uma coleção começa uma sessão livre", "a coleção de um plano leva ao plano") · `lib/colecoes.test.ts` · `lib/capas.test.ts` |
+| 13.8.3 | Circuito de core do início ao fim, gravando a sessão; nunca exercício de barra/halter/polia | Um circuito de core rodado inteiro pelo player (passos de reps e de tempo) gravou sessão livre concluída com `plano = {titulo "Core", 6 itens}` e o motor aplicado por exercício | `e2e/v3.spec.ts` ("Começar abre uma sessão livre de core e grava plano e séries") · `e2e/player.spec.ts` ("o passo por reps tem ×N e o de tempo tem contagem regressiva") · `lib/livre.test.ts` |
+| 13.8.4 | Relatório com contadores, "todos os registros", sequências e IMC; `/progresso` redireciona | Contadores conferidos à mão contra a semente: TREINOS 10 (6 força + 4 cardio), MINUTOS 387 (15 780 s + 124 min), VOLUME 1.003 (Σ reps × kg = 1002,5), com "no total"; "Todos os registros" com 12 linhas em dd/MM e "Ver mais"; DIAS SEGUIDOS 0 e SEMANAS SEGUIDAS 2; `/progresso` → `/relatorio` | `e2e/v3.spec.ts` ("contadores, registros, sequências, Peso e IMC", "Todos os registros mostra também o que está fora da semana", "o IMC aparece na aba Peso") · `e2e/treino-v2.spec.ts` ("/progresso redireciona") · `lib/relatorio.test.ts` · `lib/imc.test.ts` |
+| 13.8.5 | Vídeo opcional: com `assets/videos/<id>.mp4` a ficha mostra o vídeo; sem ele, a figura | Com um mp4 de teste em `public/videos`, `/exercicios/agachamento-livre` e o player mostraram `<video>`; sem o arquivo, a ilustração (o arquivo foi removido; `public/videos` é gerado, não versionado) | `e2e/treino-v2.spec.ts` ("sem o arquivo é a ilustração; com o arquivo é o vídeo") · `lib/videos.test.ts` |
+| 13.8.6 | Nada de conteúdo inventado: nome de coleção, capa e dificuldade sempre derivados dos JSON | Títulos e subtítulos de coleções e desafios rastreados até `cardio.json`, `programa.json` e `equipamentos.json`; varredura de strings em `app/`, `components/` e `lib/` sem texto de conteúdo solto | `lib/colecoes.test.ts` · `lib/dificuldade.test.ts` · `lib/dados.test.ts` · `lib/auditoria-spec.test.ts` |
+| 13.8.7 | Lint, build, `npm test` e `npm run e2e` verdes, com e2e novos para 13.3–13.6 | Os quatro portões abaixo, rodados do zero numa janela sozinha | "Portões finais" abaixo |
+
+#### SPEC §14.5 — adaptação à referência "Treino em Casa"
+
+| # | Critério | Como foi provado | Teste que cobre |
+|---|---|---|---|
+| 14.5.1 | "Começar treino" cria a sessão e entra no player **sem tela no meio**; `/treinar` continua para escolher o outro treino da fase | Um toque no botão largo do card do dia foi de `/` a `/treinar/<uuid>` direto, na Preparação; `/treinar` aberta pela URL mostra os dois treinos da fase | `e2e/player.spec.ts` ("a preparação anuncia o 1º exercício e o ✓ abre o descanso com o próximo") · `e2e/treino-v2.spec.ts` ("segunda: card de força com capa, raios e a lista") · `e2e/treino.spec.ts` ("abrir /treinar direto na URL (carga fria) desenha os dois treinos") |
+| 14.5.2 | No Treino A o player registra 3 séries com carga e reps, dispara o descanso, pergunta "firme?" e conclui com o resumo do motor; fechar e reabrir volta ao mesmo passo; offline nada se perde | Coreografia inteira percorrida: Preparação (anel de 10 s) → Exercício → ✓ → Descanso ("PRÓXIMO 6/6", 2:30, "Editar tempo", "+20 s", "Pular") → "Última repetição saiu firme?" → Feedback (5 opções) → Conclusão; fechar e reabrir voltou ao mesmo passo com a carga editada (17,5 kg) e o peso digitado; um toque em "Próximo" gravou `sessions.status = concluida`, `sensacao`, `peso_corporal`, 6 `progression_events`, `exercise_state`, `profiles.ultimo_treino` e a linha em `body_weights`. Passo de cada tipo encontrado: carga (steppers de 56 px, `inputmode` numérico, "anterior: …", chip de montagem), peso corporal (×15), tempo (prancha 1:00), máximo (barra fixa pronada), assistida (seletor de elástico) | `e2e/player.spec.ts` ("3 séries do agachamento, 'firme?', feedback e a subida no resumo", "fechar e reabrir no meio do descanso volta ao mesmo passo", "sem rede o player continua registrando e a fila sobe depois", "digitar o peso e tocar UMA vez conclui") · `lib/player.test.ts` (35) · `lib/sessao.test.ts` |
+| 14.5.3 | Num circuito de core o player roda igual à referência e grava a sessão livre | Mesma prova do §13.8.3, ponta a ponta pelo player | `e2e/v3.spec.ts` ("§14.5.3") · `lib/livre.test.ts` |
+| 14.5.4 | A ficha em folha abre de Treino, do player e de Explorar com Vídeo · Músculos · Tutorial; o Tutorial só carrega o YouTube ao tocar e some sem rede; o stepper muda só a sessão do dia | Aberta das três origens: Vídeo com a ilustração alternando 1↔2, botão de pausa e crédito ("Everkinetic… CC BY-SA 3.0" / "clafal, CC BY-SA 4.0"); Músculos com o mapa anatômico frente/costas; Tutorial com miniatura + título + canal (só `i.ytimg.com` é pedido até o toque; sem rede, "Precisa de internet" + "Abrir no YouTube"); stepper "Só nesta sessão" e Substituir | `e2e/player.spec.ts` ("as três abas, o Tutorial só ao tocar e o stepper só da sessão", "sem rede o Tutorial some e sobra o link do YouTube") · `e2e/midia.spec.ts` (8) · `lib/trocas.test.ts` |
+| 14.5.5 | Editar/reordenar, Ajustar, gostei/não gosto, Desafios, Parte do corpo em foco e Personalizar funcionam; nenhum conteúdo inventado | Subir/Descer de 44 × 44 com "Voltar à ordem do programa" (ordem persistiu), FAB Ajustar completo, "não gosto" marcou a preferência e jogou o agachamento para o fim da coleção Pernas, 3 Desafios reais, 8 chips de parte do corpo, 6 chips de filtro, Personalizar | `e2e/v3.spec.ts` (6 testes: carrossel dos planos, chips dos 8 grupos, Personalizar, Editar/reordenar, FAB Ajustar, coleções) · `e2e/player.spec.ts` ("não gosto marca a preferência e joga o exercício para o fim") · `lib/ordem.test.ts` · `lib/preferencias.test.ts` |
+| 14.5.6 | Relatório e Conclusão mostram Peso e IMC; nunca kcal; sem confete | Peso e IMC medidos nas duas telas (IMC recalculou para 22,8 com os 82,4 digitados); `grep` de "kcal", "lb" e "confete/confetti" vazio em `app/`, `components/` e `lib/` | `e2e/v3.spec.ts` ("contadores, registros, sequências, Peso e IMC") · `e2e/player.spec.ts` ("digitar o peso e tocar UMA vez conclui, grava o peso e o body_weights") · `lib/imc.test.ts` |
+| 14.5.7 | Lint, build, `npm test` e `npm run e2e` verdes, com e2e novos para 14.1–14.4 | Os quatro portões abaixo | "Portões finais" abaixo |
+
+#### SPEC §15.4 — mídia dos exercícios
+
+| # | Critério | Como foi provado | Teste que cobre |
+|---|---|---|---|
+| 15.4.1 | Toda imagem de terceiro tem autor, licença e link no JSON, crédito sob a mídia e linha em Mais → Créditos | `npm run validar` no `prebuild` conta 77 ilustrações (145/145 arquivos), uma entrada por exercício em `data/ilustracoes.json` com autor, licença e link; o crédito aparece sob a mídia na ficha (alvo de 44 px) e cada fonte tem linha em Créditos com o link certo | `e2e/midia.spec.ts` ("o crédito da ilustração aparece sob a mídia, com link para a fonte", "lista as fontes, as licenças e os links") · `lib/midia.test.ts` · `scripts/validar-dados.ts` |
+| 15.4.2 | Mais → Créditos abre o texto completo da licença MIT do mapa | A tela linka `/mapa-muscular/LICENCA-mapa-anatomico.md` ("Texto completo da licença MIT"), servido de `public/` | `e2e/midia.spec.ts` ("lista as fontes, as licenças e os links") |
+| 15.4.3 | Exercício sem ilustração mostra a figura ou a foto, sem crédito e sem erro | As 81 fichas abertas uma a uma, cada imagem com `naturalWidth > 0` e nenhum 404; os 14 sem figura caem na ilustração ou nas fotos | `e2e/midia.spec.ts` ("sem ilustração a ficha continua com a figura animada") · `e2e/auditoria-m5.spec.ts` ("as 81 fichas", "os 14 sem figura") |
+| 15.4.4 | Lint, build, `npm test` e `npm run e2e` verdes | Os quatro portões abaixo | "Portões finais" abaixo |
+
+Fora da tabela, três coisas que valem registro:
+
+- **O motor não foi tocado pela camada visual.** `git diff` de
+  `lib/progressao.ts` e `lib/montagem.ts` entre `c3de09f` (o último commit que
+  os alterou, anterior ao marco V1) e o HEAD desta entrega: **vazio**.
+- **Mapa muscular**: contraste dos músculos contra o corpo medido em 6,60:1
+  (primários) e 3,61:1 (secundários) no escuro; 4,33 e 3,07 no claro.
+- **Fotos dos itens** (`assets/itens/`) são a única mídia sem licença livre, e
+  ficam pela exceção escrita na **SPEC §15.3**: só no inventário (Mais →
+  Equipamento), nunca como capa no Explorar, com procedência em
+  `data/equipamentos.json` e bloco próprio em Mais → Créditos.
+
+### Portões finais
+
+Rodados do zero nesta etapa, nesta ordem, com a árvore limpa e numa janela
+sozinha (sem build, vitest ou Playwright concorrente):
+
+```
+npm run lint   limpo (sem avisos)
+npm run build  ✓ Compiled successfully in 6,6s · 119 páginas geradas · 26 rotas
+npm test       Test Files 43 passed (43) · Tests 975 passed (975)
+npm run e2e    202 passed (7,4m) — Chromium 360 × 740, contra scripts/mock-supabase.ts
+```
+
+`git diff c3de09f HEAD -- lib/progressao.ts lib/montagem.ts` (o último commit
+que tocou o motor, anterior ao marco V1): **vazio**. A camada visual inteira
+não mudou uma linha do motor nem da montagem.
+
+Números do build desta rodada: `/` 397 kB · `/treinar/[sessionId]` 403 kB (a
+maior) · `/relatorio` 342 kB · `/explorar` 295 kB · `/exercicios/[id]` 319 kB
+(SSG, 81 páginas) · `/explorar/[tipo]/[valor]` 374 kB (SSG, 29 páginas) ·
+`/login` 118 kB · compartilhado 104 kB · middleware 95,1 kB. Os unitários são
+43 arquivos (motor, montagem, calendário, player, sessão, coleções, mídia,
+relatório, formato, backup, outbox, queries); os 202 de ponta a ponta rodam em
+20 arquivos em `e2e/`.
+
+### Conhecido, não corrigido (v2.1)
+
+Nenhum destes impede treinar; cada um vem com o contorno. Os conhecidos do app
+v1 (CSP completa, Lighthouse, splash do iOS, apagar foto, `<input type=date>`…)
+continuam na seção "Estado da entrega — v1" e não se repetem aqui.
+
+| # | O quê | Onde | Contorno |
+|---|---|---|---|
+| 1 | O FAB **Ajustar** (fixo, 56 px) cobre parte do botão ⇄ "Substituir" de uma linha da lista do dia conforme a rolagem (medido: 49 % no topo, 31 % a 600 px); um toque no centro daquele alvo abre a folha Ajustar | `components/treino/fab-ajustar.tsx` | Tocar na **linha** do exercício abre a ficha, que tem "Substituir" — nada fica inacessível |
+| 2 | O passo de série de trabalho **com a linha "anterior: …"** mede `scrollHeight` 758 contra 740 de tela: 18 px de rolagem que a referência não tem | `components/player/exercicio.tsx` | Nada some — os controles e o chip de montagem ficam acima de 676 px; é só um balanço de rolagem |
+| 3 | A faixa da semana escreve **"sab"** sem acento (`format(EEEEEE, ptBR)` do date-fns) enquanto o calendário escreve "SÁB" | `lib/formato.ts` (`formatarDiaCurto`) | Só o rótulo curto; a data completa e o calendário estão certos. `lib/hoje.ts` já tem o mapa com "sáb" para copiar |
+| 4 | No player o **polegar para cima aparece pressionado** por padrão (`text-primary` e `aria-pressed` quando o exercício não está entre os evitados), afirmando uma escolha que o usuário não fez | `components/player/exercicio.tsx` | Tocar em qualquer um dos dois grava a escolha de verdade; o "não gosto" funciona |
+| 5 | A ficha em folha aberta **fora do player** ignora o vídeo local opcional: `components/treino/lista.tsx` e `components/colecoes/lista-da-colecao.tsx` não passam `temVideo` (só `tela-player.tsx` passa) | `components/exercicio/ficha-folha.tsx` e os dois chamadores | A ficha em página (`/exercicios/[id]`) mostra o vídeo, que é o que a §13.8.5 cobra — e nenhum vídeo vem no kit |
+| 6 | Os Desafios dizem "Semana 3 de 12" com a barra em 17 %: `progressoDoDesafio` é `(semanaAtual − 1) / semanas`, isto é semanas **concluídas** | `lib/colecoes.ts` + `components/treino/desafios.tsx` | A conta está certa, o rótulo é que não diz qual das duas leituras é; vale também para os planos do Explorar |
+| 7 | No Relatório o rótulo "VOLUME (KG)" quebra em duas linhas a 360 px e desalinha a base dos três contadores do topo | `components/relatorio/tela-relatorio.tsx` | Só alinhamento; os três números estão certos e legíveis |
+| 8 | Na Conclusão, depois de digitar o peso, fechar e reabrir volta a mostrar o convite "Registrar o peso de hoje" embora o valor esteja guardado (o IMC ao lado já usa o valor novo) | `components/player/conclusao.tsx` | Nada se perde: abrindo o campo, o valor digitado está lá |
+| 9 | A ficha em folha **fora do player** não tem stepper "só nesta sessão" nem anterior/próximo (n/N) | `components/exercicio/ficha-folha.tsx` | São gestos de sessão em andamento; cada linha da lista já tem o seu "Substituir" ao lado |
+| 10 | O subtítulo das coleções de **aparelho** e de **circuito** é o campo `specs` do item, que descreve o aparelho e não a coleção | `lib/colecoes.ts` | É campo do JSON (a §14.4 exige isso); a alternativa era subtítulo vazio. Registrado na §13.8.2 |
+| 11 | `Colecao.circuito` continua calculado e testado sem nenhuma tela que o leia | `lib/colecoes.ts` | Código morto inofensivo; o player decide o passo pelo tipo da prescrição |
+| 12 | `ultima_firme` fica parcial enquanto a sessão está em andamento | `lib/sessao.ts` | A conclusão reenvia o valor final e a reconstrução ignora o retrato parcial |
+
+### Como testar no celular (v2.1)
+
+Depois da "Checklist de infraestrutura" (abaixo), com o app instalado:
+
+1. **Instalar**: abra a URL da Vercel no Chrome (Android, menu ⋮ → *Instalar
+   app*) ou no Safari (iPhone, Compartilhar → *Adicionar à Tela de Início*).
+   Fique alguns segundos na aba **Treino**: é quando as ilustrações e as fotos
+   do seu programa entram no cache.
+2. **O treino inteiro pelo player**: aba Treino → **"Começar treino"** (cai
+   direto na Preparação, sem tela no meio; a barra de 5 abas some). Anel de
+   10 s → **"Começar agora"** → registre a série e toque no **✓**: o descanso
+   abre sozinho anunciando o próximo ("+20 s", "Editar tempo", "Pular"). No fim
+   do exercício, **"Última repetição saiu firme?"** → Feedback → Conclusão.
+   Digite `82,4` no peso do dia e toque **uma vez** em "Próximo".
+3. **Fechar no meio**: com o treino aberto, feche o app e reabra — volta ao
+   mesmo passo, com a carga que você editou. Em **modo avião** funciona igual e
+   nada se perde; ao voltar a rede, Mais → *Sincronização* diz "Tudo
+   sincronizado".
+4. **Ficha do exercício**: toque no nome do exercício (na lista do dia, no
+   player ou dentro de uma coleção): **Vídeo** (a ilustração alternando as duas
+   posições, com o crédito e o link da licença embaixo), **Músculos** (o boneco
+   frente/costas pintado) e **Tutorial** (a miniatura do YouTube; ele só carrega
+   o vídeo quando você toca, e sem rede vira "Abrir no YouTube"). O stepper
+   "Só nesta sessão" muda a carga do dia sem mexer no programa.
+5. **Explorar**: destaque, "Escolhas para você", os 6 treinos, 8 grupos, 9
+   aparelhos, 3 circuitos e 3 planos. Busque **"biceps"** sem acento. Abra uma
+   coleção e toque em "Começar" para uma sessão livre — ela registra e progride
+   como um treino normal.
+6. **Relatório**: os três contadores do topo são o acumulado ("no total"); o
+   card de baixo é "Esta semana". "Todos os registros" tem "Ver mais 12". Peso
+   e IMC aparecem no fim, com o mesmo número da Conclusão.
+7. **Corpo e Mais**: peso com vírgula, 8 medidas, fotos lado a lado; Mais →
+   **Créditos** mostra de onde vem cada ilustração, o mapa muscular (com o
+   texto completo da licença MIT) e as fotos dos itens do terraço.
+
+---
+
+## Estado da entrega — v1 (marcos 1–6, SPEC §10) ✅
+
+O estado da **camada visual v2.1** está na seção acima; esta é a do app v1,
+mantida como estava. O app está pronto no código. O que falta é **infraestrutura** (criar o projeto
 Supabase, publicar na Vercel, instalar no celular) — o passo a passo executável
 está no fim desta seção. Nada aqui depende de escrever mais código.
 
@@ -188,15 +337,20 @@ npm run build && npm start      # http://localhost:3000
 ```
 
 Na tela de login: um e-mail qualquer tem que ser recusado com "Este app é
-pessoal."; com o e-mail permitido, **Criar conta** → a Hoje abre com o perfil
-semeado de `data/perfil.json` (critérios §10.1 e §10.2 contra o banco real).
+pessoal."; com o e-mail permitido, **Criar conta** → a **aba Treino** abre com
+o perfil semeado de `data/perfil.json` (critérios §10.1 e §10.2 contra o banco
+real). É a tela nova da v2.1: faixa da semana, meta, card do dia com capa e a
+lista do treino.
 
 ### 3. Publicar na Vercel
 
 1. O código de produção fica em **`main`** no repositório
    **`SAV1BOY/WORKOUT`**. O PR #1 (marcos 1–6 e auditoria final) já foi
-   mesclado em 15/09/2026; o commit de fechamento (este arquivo) vai num PR
-   novo — mescle-o também.
+   mesclado em 15/09/2026. A **camada visual v2.1** (marcos V1, V2, Mídia e V3,
+   as três auditorias e os dois ciclos de correção) está na branch
+   `claude/academia-miguel-index-ekvwi0`, no **PR #2** — nada dela chega ao
+   celular antes do merge em `main`. **Mescle o PR #2** e espere o deploy de
+   produção terminar.
 2. O projeto **`treino-terraco`** já existe na Vercel (time
    `saviboys-projects`), vinculado a `SAV1BOY/WORKOUT` com *Production Branch*
    `main`, e já tem um deploy da `main`. O build é o `npm run build` do
@@ -243,9 +397,14 @@ Sem isso a volta do login cai no `localhost`.
 
 1. Abra `https://SUA-URL.vercel.app/login` e crie a conta com
    **miguelgsaviotti29@gmail.com**. Qualquer outro e-mail tem que ser recusado.
-2. A Hoje abre com o treino do dia e as cargas iniciais (§10.2).
+2. A aba **Treino** abre com o treino do dia e as cargas iniciais (§10.2), e a
+   barra de baixo tem as **cinco abas** (Treino · Explorar · Relatório · Corpo ·
+   Mais) — se só aparecerem as telas antigas, o PR #2 ainda não foi mesclado ou
+   o deploy é anterior a ele.
 3. `https://SUA-URL.vercel.app/sw.js` tem que responder **200** (é o service
    worker) e `/manifest.webmanifest` também.
+4. O roteiro completo do que olhar no celular está em "Como testar no celular
+   (v2.1)", no começo deste arquivo.
 
 ### 6. Instalar como PWA
 
@@ -256,8 +415,8 @@ O ícone laranja aparece como um app e ele abre sem a barra do navegador.
 
 ### 7. O teste do terraço (modo avião)
 
-1. Abra o app instalado e fique uns segundos na **Hoje** (é quando as figuras e
-   as fotos do seu programa entram no cache).
+1. Abra o app instalado e fique uns segundos na aba **Treino** (é quando as
+   ilustrações e as fotos do seu programa entram no cache).
 2. Ligue o **modo avião**.
 3. Comece o treino do dia, registre duas séries, feche o app, abra de novo: a
    sessão volta inteira, com as figuras.
@@ -273,7 +432,7 @@ O ícone laranja aparece como um app e ele abre sem a barra do navegador.
 npm install                 # Node 22, npm 10
 npm run lint                # ESLint
 npm run build               # valida os JSON, copia os assets e builda
-npm test                    # Vitest (744 unitários)
+npm test                    # Vitest (975 unitários)
 npm run e2e                 # Playwright no celular emulado — exige o build antes
 ```
 
