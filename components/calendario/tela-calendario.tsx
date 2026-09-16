@@ -2,7 +2,8 @@
 
 import { useQueryClient } from "@tanstack/react-query";
 import { addDays, addWeeks, startOfMonth } from "date-fns";
-import { CalendarOff, ChevronLeft, ChevronRight } from "lucide-react";
+import { CalendarCog, CalendarOff, ChevronLeft, ChevronRight } from "lucide-react";
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { DialogoDia, DialogoSemanaCurta, type TrocaDoDia } from "@/components/calendario/dialogos";
@@ -283,10 +284,19 @@ function Tela({
 }) {
   return (
     <section className="flex flex-col gap-4">
-      <header className="flex flex-col gap-0.5">
-        <h1 className="text-2xl font-semibold tracking-tight">Calendário</h1>
-        <p className="text-muted-foreground numero text-sm">{titulo ?? " "}</p>
-        {fase ? <p className="text-primary text-xs font-medium">{fase}</p> : null}
+      <header className="flex items-start justify-between gap-2">
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <h1 className="text-2xl font-semibold tracking-tight">Calendário</h1>
+          <p className="text-muted-foreground numero text-sm">{titulo ?? " "}</p>
+          {fase ? <p className="text-primary text-xs font-medium">{fase}</p> : null}
+        </div>
+        {/* SPEC §17.1: o atalho para o card "Dias de treino" das Preferências */}
+        <Button asChild variant="outline" className="alvo h-11 shrink-0 px-3">
+          <Link href="/mais/preferencias#dias-de-treino">
+            <CalendarCog className="size-4" />
+            Meus dias
+          </Link>
+        </Button>
       </header>
       {children}
     </section>

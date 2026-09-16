@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { Erro, EsqueletoCard } from "@/components/carregando";
 import { AjustesDoTreino } from "@/components/mais/ajustes-do-treino";
 import { CabecalhoMais } from "@/components/mais/cabecalho";
+import { DiasDeTreino } from "@/components/mais/dias-de-treino";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -62,6 +63,7 @@ export function TelaPreferencias({ userId }: { userId: string }) {
   return (
     <Tela>
       <Tema userId={userId} perfil={perfil} />
+      <DiasDeTreino userId={userId} perfil={perfil} />
       <MetaSemanal userId={userId} perfil={perfil} />
       <Treino userId={userId} perfil={perfil} />
       <Incrementos userId={userId} perfil={perfil} />
@@ -156,7 +158,7 @@ function Tema({ userId, perfil }: { userId: string; perfil: LinhaPerfil }) {
 
 function MetaSemanal({ userId, perfil }: { userId: string; perfil: LinhaPerfil }) {
   const cliente = useQueryClient();
-  const padrao = metaSemanalPadrao(perfil.fase_atual);
+  const padrao = metaSemanalPadrao(perfil.fase_atual, perfil.prefs);
   const atual = metaSemanal(perfil.prefs, perfil.fase_atual);
   const escolhida = perfil.prefs?.meta_semanal;
   const [texto, setTexto] = useState(

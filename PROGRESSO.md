@@ -5248,3 +5248,91 @@ pedido do dono e mexem em comportamento antigo):
 - A faixa escreve o sábado como "sab" (`formatarDiaCurto`, de `EEEEEE`) e a
   grade do calendário como "SÁB" (`diaCurto`, em `lib/hoje.ts`) — duas grafias
   para o mesmo dia, herdadas do Marco 1.
+
+---
+
+## Marco Dias (SPEC §17) — 16/09/2026
+
+O dono pediu: *"ter a opção do usuario selecionar quais dias ele vai treinar
+[…] e o plano ser personalizado desta forma, e ele vai ver no historico quantas
+vezes o usuario treinou na semana e se voltar na proxima ele vai falar qual
+treino ele deve fazer e o que deve fazer."* Até aqui a semana era a do
+`programa.json` e ponto — quem treinava sábado e não segunda via "descanso" no
+dia em que ia treinar.
+
+### O que foi feito
+
+- **SPEC §17 escrita antes do código** (e uma frase na §5.2 apontando para ela):
+  onde se escolhe, como a semana é distribuída, o que passa a ler a semana
+  montada e nove critérios de aceite.
+- **`lib/dias.ts`** (funções puras, sem React nem Supabase):
+  `semanaPersonalizada(fase, dias)` devolve os sete dias no **mesmo formato** de
+  `programa.fases[fase].semana`. Sem a preferência (`null`), devolve a semana do
+  JSON tal como está. Com uma lista: força primeiro nas quantidades da fase
+  (escolhida entre **todas** as combinações, minimizando dias consecutivos
+  quando a fase pede folga e preferindo os dias do próprio programa), depois o
+  cardio nos dias que sobram (com os nomes e minutos da fase), depois o dia
+  livre com as notas de descanso do programa. Faltando dia, corta na ordem de
+  sacrifício da §5.4; sobrando um dia só, é o Treino A.
+  Junto: `diasDeTreinoDasPrefs`, `comDiasDeTreino`, `diasPadraoDaFase`,
+  `resumoDosDias`, `treinosParaNDias`.
+- **Ligado no calendário**: `tipoDoDia()` passa a receber o **perfil** (que
+  carrega `prefs`) em vez da fase solta e lê `semanaDoPerfil()`; com isso
+  `montarDia`, `treinoDeHoje`, `sessaoCardioDeHoje`, `semanaDoPlano`,
+  `semanaCoerente`/`semanaEEstado`, `montarGrade`, `montarMes`, a semana curta
+  e `oQueFaltaNaSemana` passam todos a ver a semana escolhida. Uma fase solta
+  continua aceita (vale a semana do programa).
+  `treinoDoDia()` passou a honrar um treino escrito no dia também na Fase 1 —
+  é o que faz o "Treino A" da semana de um dia só valer.
+- **Meta semanal**: `metaSemanalPadrao(fase, prefs)` conta as sessões da semana
+  **montada**. `prefs.meta_semanal` continua mandando por cima.
+- **UI**: card **"Dias de treino"** em Mais → Preferências
+  (`components/mais/dias-de-treino.tsx`) com sete chips de ≥ 44 px em duas
+  linhas, o resumo do que a escolha produz ("3 de força · 2 de cardio · 1 livre
+  · meta semanal 5") e "Voltar aos dias do programa"; atalho **"Meus dias"** no
+  cabeçalho do `/calendario`. Salva como as outras preferências: sobe pela fila
+  (§8) e o cache do TanStack Query é invalidado, então a aba Treino e o
+  calendário mudam na hora.
+
+### Decisões
+
+- **Quem manda no empate** entre distribuições: primeiro a folga (só nas fases
+  que a pedem — a Fase 1, corpo inteiro; a Fase 2 já põe seg-ter e qui-sex
+  juntos no próprio programa), depois os dias do programa, depois o começo da
+  semana. É o que faz "seg a sáb" cair em seg/qua/sex na Fase 1 e em
+  SA/IA/SB/IB na Fase 2, sem nada disso estar escrito no código.
+- **Dia escolhido que sobra** é um dia livre com a nota do programa (barra fixa,
+  depois caminhada leve); **dia não escolhido** é descanso seco, com "Treinar
+  mesmo assim" (§5.3) sempre disponível.
+- **Nada muda no banco**: só `profiles.prefs.dias_de_treino` (o `prefs` já é
+  `jsonb`). `supabase/schema.sql` intocado, motor e montagem intocados.
+
+### Como testar no celular
+
+1. **Mais → Preferências → Dias de treino**: os chips já vêm marcados nos dias
+   do programa. Toque em **qui** — a linha embaixo passa a dizer "3 de força ·
+   2 de cardio · 1 livre · meta semanal 5".
+2. Volte para **Treino**: a faixa da semana mostra `A · Corr. · B · Desc. ·
+   A · Corr. · Desc.` e a meta continua em 5. Toque na faixa: o `/calendario`
+   diz a mesma coisa, com a quinta como "Descanso — 1 repetição solta de barra
+   fixa" e o domingo como descanso seco.
+3. Desligue **ter** e **sáb**: sobram seg, qua e sex, o cardio some da semana e
+   a meta semanal vira **3** (na aba Treino e no Relatório, em "Semanas
+   seguidas · com a meta de 3").
+4. Abra o app num **domingo** com essa escolha: o card do dia é "Descanso" com
+   **"Treinar mesmo assim"** — treinar ali continua valendo como o próximo da
+   alternância.
+5. **"Voltar aos dias do programa"** apaga a escolha e a semana volta a ser a do
+   `programa.json`.
+6. No `/calendario`, o botão **"Meus dias"** no cabeçalho leva direto ao card.
+
+### Portões
+
+`npm run lint` limpo · `npm run build` ✓ · `npm test` **1062 testes**
+(45 arquivos; 39 novos em `lib/dias.test.ts`, incluindo a propriedade sobre os
+**127** conjuntos de dias: na Fase 1 nunca dois treinos de força seguidos
+quando havia alternativa) · `npm run e2e` **222 passed (7,8 min)**, com
+`e2e/dias.spec.ts` novo (9 testes, nos dois temas) e nenhum antigo afrouxado.
+Capturas em `capturas/dias/`: `01-preferencias-dias.png` (+ claro),
+`02-treino-faixa-6-dias.png` (+ claro), `03-calendario-6-dias.png`,
+`04-domingo.png`.

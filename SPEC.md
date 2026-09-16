@@ -130,6 +130,8 @@ Tipos TypeScript: gerar de `exercicios.json` etc. com `zod` (schemas em `lib/sch
 
 Como o **calendário** rotula cada dia da semana (passado pela sessão real; hoje e futuro pela projeção a partir de `ultimo_treino`, começando em hoje) está na **§16**.
 
+A **semana da fase** deixa de ser lida direto do `programa.json` quando o usuário escolhe os seus dias de treino: quem manda no item 2 passa a ser a semana montada por `semanaPersonalizada()` a partir de `profiles.prefs.dias_de_treino` — ver **§17**.
+
 ### 5.3 Treino fora do dia
 Treinar num dia de descanso ou cardio é permitido ("Treinar mesmo assim"): a sessão vale como o próximo treino da alternância e o calendário mostra o desvio. Corrida e treino de perna no mesmo dia: avisar (regra do guia: 6 h de intervalo, força primeiro), não bloquear.
 
@@ -530,3 +532,131 @@ Continuam o ✓/ponto/traço e o destaque de hoje; tocar na faixa continua abrin
 6. Override e semana curta continuam valendo por cima da rotulagem.
 7. Lint, build, `npm test` e `npm run e2e` verdes, com e2e novos para esta seção
    e os antigos ajustados sem afrouxar o que verificam.
+
+---
+
+## 17. Dias de treino — decisão de 16/09/2026 (adendo, marco Dias)
+
+O dono pediu, com estas palavras: *"ter a opção do usuario selecionar quais
+dias ele vai treinar, tipo, segunda, terça, quarta, quinta, sexta e sabado,
+domingo não e o plano ser personalizado desta forma, e ele vai ver no historico
+quantas vezes o usuario treinou na semana e se voltar na proxima ele vai falar
+qual treino ele deve fazer e o que deve fazer."*
+
+Até aqui a semana era a do `programa.json` e ponto: seg/qua/sex de força,
+ter/sáb de cardio, qui/dom de descanso (Fase 1). Quem treina sábado e não
+segunda via o app dizer "descanso" no dia em que ia treinar. Este adendo põe os
+**dias** nas mãos do usuário e faz o resto do app ler a semana que sai daí —
+sem mudar o motor (§6), a montagem (§6.5) nem nada do que se grava no banco
+além de `profiles.prefs`.
+
+### 17.1 Onde se escolhe
+- **Mais → Preferências**, card **"Dias de treino"**: sete chips `seg ter qua
+  qui sex sáb dom`, cada um um alvo de ≥ 44 px que liga e desliga (`aria-pressed`),
+  com a contagem do que a escolha produz por baixo ("3 de força · 2 de cardio ·
+  1 livre"). Salva como as outras preferências: sobe pela fila (§8) e o cache do
+  TanStack Query é invalidado, então a aba Treino e o `/calendario` mudam na hora.
+- **Calendário**: um atalho **"Meus dias"** no cabeçalho leva ao mesmo card.
+- Guardado em **`profiles.prefs.dias_de_treino`**: um array de `'seg' | 'ter' |
+  'qua' | 'qui' | 'sex' | 'sab' | 'dom'`, na ordem da semana, sem repetição.
+  Nada muda no `supabase/schema.sql` — `prefs` já é `jsonb`.
+- **Ausente** (o padrão): vale a semana do `programa.json` tal como está, com as
+  notas dos dias de descanso. Quem nunca mexer não vê diferença nenhuma. Os
+  chips já nascem marcados nos dias que o programa da fase usa (Fase 1: seg ter
+  qua sex sáb; Fase 2: seg ter qua qui sex sáb), e escolher exatamente esses
+  dias reproduz o plano do JSON (os mesmos dias de força e de cardio; as notas
+  de descanso só vão para os dias **escolhidos** que sobram, item 4).
+- **Voltar ao padrão** é um botão do card: apaga a chave e a semana volta a ser
+  a do programa.
+
+### 17.2 A distribuição (`lib/dias.ts`, funções puras)
+`semanaPersonalizada(fase, diasEscolhidos)` devolve os **sete dias** no mesmo
+formato de `programa.fases[fase].semana` (`dia`, `tipo`, `treino` | `sessao`,
+`min`, `nota`). Com `diasEscolhidos` ausente (`null`), devolve a semana do JSON
+sem tocar em nada. Com uma lista, monta assim:
+
+1. **Força primeiro**, nas quantidades da fase (`frequencia_forca`: 3 na Fase 1,
+   4 na Fase 2). Entre todas as maneiras de escolher esses dias entre os
+   escolhidos, vence:
+   1. **a folga**, quando a fase pede folga — menos pares de dias de força em
+      dias **consecutivos**. A fase "pede folga" quando a semana dela no
+      `programa.json` não tem dois dias de força seguidos: é o caso da Fase 1
+      (corpo inteiro, o guia pede 48 h entre sessões). A Fase 2 alterna superior
+      e inferior e o próprio programa põe seg-ter e qui-sex seguidos, então ali
+      a folga não pontua;
+   2. **a semana do programa** — mais coincidências com os dias de força da
+      fase no JSON. É o que faz "seg a sáb" na Fase 1 cair em seg/qua/sex e
+      "seg a sáb" na Fase 2 cair em SA seg, IA ter, SB qui, IB sex;
+   3. **o começo da semana** — empatado o resto, os dias mais cedo.
+   Quando não há como evitar, os dias de força ficam **consecutivos** (a regra
+   avisa, não bloqueia — §5.3).
+2. **O treino de cada dia de força**: Fase 1 continua `"alternar"` (a escada do
+   §5.2 item 3 e do §16.2 decide qual é qual); Fase 2 recebe os treinos da fase
+   **na ordem** `SA, IA, SB, IB`.
+3. **Cardio** nos dias escolhidos que sobraram, nas quantidades e com os nomes e
+   minutos da fase ("corrida" e "corrida ou corda" na Fase 1; "corrida" e
+   "corrida longa" na Fase 2), na ordem do programa. Entre os dias que sobraram
+   vence: (a) mais coincidências com os dias de cardio da fase no JSON; (b)
+   menos dias logo **depois** de um treino de perna (os treinos com agachamento
+   ou terra, §5.4 — na Fase 1 os dois treinos têm, então o critério não separa
+   ninguém); (c) os dias mais cedo.
+4. **Sobra** (dia escolhido que não virou força nem cardio) → **descanso ativo**:
+   `tipo: "descanso"` com as notas de descanso do programa, na ordem (1ª sobra:
+   o lembrete da barra fixa "grease the groove"; 2ª: caminhada leve). Na tela é
+   um **dia livre**, com o "Treinar mesmo assim" da §5.3.
+5. **Dia não escolhido** → descanso, sem nota.
+6. **Menos dias do que sessões**: corta na **ordem de sacrifício da §5.4** — 1º
+   a última sessão de cardio da semana (a corrida de sábado), 2º a outra sessão
+   de cardio, 3º um treino de força que **não** tenha agachamento nem terra
+   (Fase 2: SB, depois SA); sobrando **um dia só**, ele é o **Treino A** da fase
+   (`A1` na Fase 1, `SA` na Fase 2). Com zero dias escolhidos a semana é toda de
+   descanso.
+
+### 17.3 O que passa a ler a semana montada
+`tipoDoDia()`, `montarDia()`, `treinoDeHoje()`, `sessaoCardioDeHoje()`,
+`semanaDoPlano()`, `semanaCoerente()`/`semanaEEstado()` (§16.2),
+`montarGrade()`/`montarMes()` (`lib/semana.ts`), a semana curta (§5.4) e
+`oQueFaltaNaSemana()` passam a receber o **perfil** (que carrega `prefs`) em vez
+da fase solta, e a fase é resolvida por `semanaDoPerfil(perfil)`. A regra de
+rotulagem da §16.2 não muda: ela só passa a correr sobre os dias escolhidos.
+
+- **Próximo treino**: a alternância da Fase 1 e a ordem fixa da Fase 2 continuam
+  ancoradas em `profiles.ultimo_treino`, agora sobre os **dias de força
+  escolhidos**. Abrir o app num dia escolhido de força mostra o card do dia com
+  o treino certo e a lista do que fazer; num dia não escolhido mostra
+  **"Descanso"** com **"Treinar mesmo assim"**.
+- **Meta semanal** (§13.3): o padrão passa a ser o número de sessões da semana
+  **montada** (força + cardio), a menos que `prefs.meta_semanal` esteja
+  definido. `metaSemanalPadrao(fase, prefs)`.
+- **Histórico**: a faixa da semana, a "Meta semanal N/M" da aba Treino e o
+  Relatório (contadores da semana, sequência de semanas) contam contra a semana
+  personalizada. Nada muda no que se grava em `sessions`, `cardio_sessions` ou
+  `schedule_overrides`.
+- **Overrides e semana curta** continuam valendo **por cima** da semana montada,
+  como na §16.2 item 6.
+
+### 17.4 Critérios de aceite
+1. Sem `prefs.dias_de_treino` o app é idêntico ao de antes: a semana da Fase 1 é
+   seg força · ter corrida · qua força · qui descanso (barra fixa) · sex força ·
+   sáb corrida ou corda · dom descanso (caminhada leve).
+2. Escolhendo **seg a sáb** na Fase 1: força em seg, qua e sex (nunca dois dias
+   seguidos), cardio em ter e sáb, quinta como **dia livre** com a nota da barra
+   fixa e domingo como descanso. A faixa da aba Treino e o `/calendario` dizem a
+   mesma coisa.
+3. Escolhendo **seg, qua e sex**: três dias de força e **nenhum** cardio (as
+   duas sessões caíram na ordem da §5.4); a meta semanal padrão passa a ser 3.
+4. Escolhendo **dois dias**: dois treinos de força e nenhum cardio. Escolhendo
+   **um dia**: o Treino A.
+5. Escolhendo os **sete dias**: as duas sobras viram dias livres com as notas do
+   programa (barra fixa e caminhada leve).
+6. Fase 2 com **seis dias**: SA, IA, SB e IB nos quatro dias de força mais as
+   duas sessões de cardio. Fase 2 com **quatro dias**: só os quatro de força.
+7. Abrir o app num dia **não escolhido** mostra "Descanso" e o botão "Treinar
+   mesmo assim" — treinar ali continua valendo como o próximo da alternância
+   (§5.3).
+8. O card "Dias de treino" a 360 px: sete chips de ≥ 44 px, nada corta, nada
+   rola para o lado, e a escolha sobe pela fila quando não há rede.
+9. Lint, build, `npm test` e `npm run e2e` verdes, com unitários para cada caso
+   da §17.2, a propriedade "nunca dois dias de força seguidos na Fase 1 quando
+   havia alternativa", e e2e novos desta seção, os antigos ajustados sem
+   afrouxar o que verificam.

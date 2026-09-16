@@ -22,12 +22,12 @@ import {
   acharTreino,
   cardio,
   DIAS,
-  diaDoPrograma,
   estagioDeCorda,
   semanaDeCorrida,
   ultimaSemanaDeBarraFixa,
   ultimaSemanaDeCorda,
 } from "@/lib/dados";
+import { diasDeTreinoDasPrefs, semanaPersonalizada } from "@/lib/dias";
 import type {
   DiaPrograma,
   DiaSemana,
@@ -153,13 +153,41 @@ function excecaoDe(
   return overrides.find((o) => o.data === data) ?? null;
 }
 
+/**
+ * A semana que vale para este perfil (SPEC §17.3): a personalizada quando
+ * `prefs.dias_de_treino` existe, senão a do `programa.json`.
+ */
+export function semanaDoPerfil(perfil: PerfilCalendario): DiaPrograma[] {
+  return semanaPersonalizada(perfil.fase_atual, diasDeTreinoDasPrefs(perfil.prefs));
+}
+
+/**
+ * Quem chama o calendário passa o **perfil** (que carrega `prefs`, SPEC §17.3).
+ * Uma fase solta continua aceita: vale a semana do programa daquela fase.
+ */
+export type FaseOuPerfil = FaseId | PerfilCalendario;
+
+function resolver(x: FaseOuPerfil): { fase: FaseId; semana: DiaPrograma[] } {
+  if (typeof x === "string") {
+    return { fase: x, semana: acharFase(x).semana };
+  }
+  return { fase: x.fase_atual, semana: semanaDoPerfil(x) };
+}
+
+/** O dia da semana montada (SPEC §17.2) — o que antes vinha do JSON direto. */
+function diaDaSemanaMontada(semana: DiaPrograma[], dia: DiaSemana): DiaPrograma {
+  const d = semana.find((x) => x.dia === dia);
+  if (!d) throw new Error(`dia ${dia} ausente na semana`);
+  return d;
+}
+
 export function tipoDoDia(
   d: Data,
-  fase: FaseId,
+  faseOuPerfil: FaseOuPerfil,
   overrides: ExcecaoAgenda[] = [],
 ): TipoDoDia {
   const dia = diaDaSemana(d);
-  const programa = diaDoPrograma(fase, dia);
+  const programa = diaDaSemanaMontada(resolver(faseOuPerfil).semana, dia);
   const excecao = excecaoDe(d, overrides);
   return {
     data: iso(d),
@@ -193,9 +221,13 @@ function treinoDoDia(
   programa: DiaPrograma,
   ultimo: TreinoId | null,
 ): TreinoId {
-  if (fase === "fase1") return proximoTreinoAlternado(ultimo);
   const t = programa.treino;
+  /*
+   * O dia com treino escrito vale como está: os dias fixos da Fase 2 e, na
+   * semana personalizada de um dia só, o Treino A da §5.4 (SPEC §17.2 item 6).
+   */
   if (t && t !== "alternar") return t;
+  if (fase === "fase1") return proximoTreinoAlternado(ultimo);
   /*
    * SPEC §5.3: treinar num dia que não era de força (schedule_override com
    * `workout_id` nulo, §3.5) "vale como o próximo treino". Na Fase 1 a
@@ -212,7 +244,7 @@ export function sessaoCardioDeHoje(
   perfil: PerfilCalendario,
   overrides: ExcecaoAgenda[] = [],
 ): SessaoCardioDoDia | null {
-  const info = tipoDoDia(d, perfil.fase_atual, overrides);
+  const info = tipoDoDia(d, perfil, overrides);
   if (info.tipo !== "cardio") return null;
 
   const texto = info.excecao?.sessao ?? info.programa.sessao ?? "";
@@ -264,7 +296,7 @@ export function treinoDeHoje(
   perfil: PerfilCalendario,
   overrides: ExcecaoAgenda[] = [],
 ): DiaDoPlano {
-  const info = tipoDoDia(d, perfil.fase_atual, overrides);
+  const info = tipoDoDia(d, perfil, overrides);
   return montarDia(info, perfil, overrides, perfil.ultimo_treino);
 }
 
@@ -405,7 +437,7 @@ function montarSemana(
 ): { dias: DiaDoPlano[]; ultimo: TreinoId | null } {
   let ancora = ancoraInicial;
   const dias = diasDaSemana(d).map((data) => {
-    const info = tipoDoDia(data, perfil.fase_atual, overrides);
+    const info = tipoDoDia(data, perfil, overrides);
 
     // o dia cujo treino é fixo no programa (Fase 2) ou escolhido à mão num
     // override: não há o que rotular, vale o que está escrito

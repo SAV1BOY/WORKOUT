@@ -5,7 +5,7 @@
  */
 import { addDays, differenceInCalendarDays } from "date-fns";
 import { inicioDaSemana, iso, paraData, type Data } from "@/lib/calendario";
-import { acharFase } from "@/lib/dados";
+import { diasDeTreinoDasPrefs, semanaPersonalizada } from "@/lib/dias";
 import type { FaseId } from "@/lib/schemas";
 import type { LinhaSessao, LinhaSessaoCardio, Prefs } from "@/lib/types";
 
@@ -18,15 +18,19 @@ export const SEMANAS_OLHADAS = 104;
 export const DIAS_OLHADOS = 400;
 
 /**
- * A meta padrão da fase (SPEC §13.3): as sessões de força mais as de cardio da
- * semana do programa — 3 + 2 na Fase 1, 4 + 2 na Fase 2.
+ * A meta padrão (SPEC §13.3 e §17.3): as sessões de força mais as de cardio da
+ * semana que vale para o usuário — a do programa (3 + 2 na Fase 1, 4 + 2 na
+ * Fase 2) ou a montada a partir dos dias que ele escolheu (`prefs`).
  */
-export function metaSemanalPadrao(fase: FaseId): number {
-  const semana = acharFase(fase).semana;
+export function metaSemanalPadrao(
+  fase: FaseId,
+  prefs?: Prefs | null,
+): number {
+  const semana = semanaPersonalizada(fase, diasDeTreinoDasPrefs(prefs));
   return semana.filter((d) => d.tipo === "forca" || d.tipo === "cardio").length;
 }
 
-/** A meta em uso: `prefs.meta_semanal` quando for inteiro ≥ 1, senão a da fase. */
+/** A meta em uso: `prefs.meta_semanal` quando for inteiro ≥ 1, senão a padrão. */
 export function metaSemanal(
   prefs: Prefs | null | undefined,
   fase: FaseId,
@@ -35,7 +39,7 @@ export function metaSemanal(
   if (typeof bruto === "number" && Number.isInteger(bruto) && bruto >= 1) {
     return bruto;
   }
-  return metaSemanalPadrao(fase);
+  return metaSemanalPadrao(fase, prefs);
 }
 
 /** Grava a meta semanal (ou volta ao padrão da fase com `null`). */

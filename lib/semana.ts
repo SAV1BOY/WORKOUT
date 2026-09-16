@@ -329,7 +329,7 @@ export function montarMes(
 
   while (cursor <= ultimo) {
     const dias = diasDaSemana(cursor).map((data): DiaDoMes => {
-      const info = tipoDoDia(data, perfil.fase_atual, overrides);
+      const info = tipoDoDia(data, perfil, overrides);
       const dia: DiaDoPlano = {
         data: info.data,
         dia: info.dia,
