@@ -18,7 +18,6 @@ import {
   colecaoFiltrada,
   exercicioPassaNoFiltro,
   filtrarColecoes,
-  fotoDoItem,
   grupos,
   passaNoTempo,
   planos,
@@ -88,14 +87,22 @@ describe("coleções por aparelho (SPEC §13.4)", () => {
     }
   });
 
-  it("o título e o subtítulo saem do JSON, e a capa da pasta do item", () => {
+  it("o título e o subtítulo saem do JSON", () => {
     const tatame = colecaoDoAparelho("tatame");
     const item = equipamentos.itens.find((i) => i.id === "tatame");
     expect(tatame?.titulo).toBe(item?.nome);
     expect(tatame?.subtitulo).toBe(item?.specs);
-    expect(tatame?.capa).toBe("/itens/tatame/tatame_01.jpg");
-    expect(fotoDoItem("banco")).toBe("/itens/banco/banco_01.jpg");
-    expect(fotoDoItem("nao-existe")).toBeNull();
+  });
+
+  /*
+   * SPEC §15.3: as fotos de `assets/itens/` são fotografia de anúncio — obra
+   * de terceiro sem licença livre. Elas ficam no inventário particular (Mais →
+   * Equipamento) e NUNCA na vitrine do Explorar.
+   */
+  it("nenhuma coleção usa foto de item como capa", () => {
+    for (const c of [...colecoesPorAparelho(), ...circuitos(), ...colecoesPorGrupo()]) {
+      expect(c.capa ?? "").not.toContain("/itens/");
+    }
   });
 
   it("lista só quem tem a tag do item", () => {

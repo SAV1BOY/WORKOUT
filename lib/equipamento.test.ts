@@ -32,6 +32,20 @@ describe("itens do terraço (SPEC §3.9)", () => {
     }
   });
 
+  /*
+   * SPEC §15.3: a exceção das fotos dos itens só vale escrita. A procedência
+   * mora no JSON (como a condição 2 da §15.1 exige das imagens que entram por
+   * licença livre), com `licenca: null` dizendo em letra que não há licença
+   * livre aqui — é isso que Mais → Créditos e o README mostram.
+   */
+  it("a procedência das fotos dos itens está no JSON, sem licença livre", () => {
+    const fotos = equipamentos.fotos_dos_itens;
+    expect(fotos.pasta).toBe("assets/itens/");
+    expect(fotos.origem).toContain("anúncios");
+    expect(fotos.licenca).toBeNull();
+    expect(fotos.uso).toContain("Equipamento");
+  });
+
   it("a pasta do JSON vira a URL pública da primeira foto", () => {
     expect(fotoDoItem("banco", "assets/itens/banco/")).toBe(
       "/itens/banco/banco_01.jpg",

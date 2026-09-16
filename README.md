@@ -81,7 +81,7 @@ kit-app-treino/
 
 ## Créditos dos assets
 
-Fotos de execução: free-exercise-db (domínio público). Figuras, textos e dados: feitos para este projeto a partir do *Guia de treino da garagem* (setembro de 2026). Fotos dos itens: anúncios dos produtos comprados.
+Fotos de execução: free-exercise-db (domínio público). Figuras, textos e dados: feitos para este projeto a partir do *Guia de treino da garagem* (setembro de 2026). Fotos dos itens (`assets/itens/`): tiradas dos anúncios dos produtos que o dono comprou — **não são obra de licença livre**; a exceção que as mantém no app está escrita na SPEC §15.3 e a procedência está em `data/equipamentos.json` (`fotos_dos_itens`).
 
 ## Créditos de mídia
 
@@ -93,7 +93,8 @@ do app, em **Mais → Créditos**, e sob cada ilustração na ficha do exercíci
 | Ilustrações de 77 dos 81 exercícios (`assets/ilustracoes/`) | Everkinetic, via Wikimedia Commons (66), e colaboradores do wger (11) | CC BY-SA 3.0 / 4.0 |
 | Mapa muscular anatômico (`assets/mapa-muscular/mapa-anatomico.svg`) | MuscleMap, de Melih Colpan, pela conversão publicada em openGym | MIT |
 | Fotos de execução (`assets/fotos/`) | free-exercise-db | Unlicense (domínio público) |
-| Figuras animadas, fotos dos itens, textos e dados | feitos para este projeto | — |
+| Figuras animadas, textos e dados | feitos para este projeto | — |
+| Fotos dos 10 itens do terraço (`assets/itens/`) | anúncios dos produtos comprados pelo dono | **sem licença livre** — exceção da SPEC §15.3: inventário particular, atrás de login, fora das capas do Explorar |
 
 Quem é o autor de cada ilustração está em `data/ilustracoes.json` (uma entrada
 por exercício, com autor, licença e link para a página da fonte) e em

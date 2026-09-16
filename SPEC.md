@@ -396,6 +396,26 @@ escrito à mão.
 ### 15.3 O que não muda
 - **Capas** (cards de treino, cardio, coleções) continuam só com as fotos de
   `assets/` — a §13.3 segue valendo ao pé da letra para elas.
+
+**A exceção das fotos dos itens (decisão de 16/09/2026).** As 95 fotos de
+`assets/itens/` (os 10 itens comprados para o terraço) são fotografia de
+**anúncio do produto**: obra de terceiro, sem licença livre. Elas não cumprem
+a condição 1 da §15.1 e nunca vão cumprir — mas também não são mídia de
+exercício: são o **registro particular das compras do dono**, num app de um
+usuário só, atrás de login, sem página pública. Ficam no app sob três
+condições, e só elas:
+1. **Só no inventário.** Aparecem em **Mais → Equipamento** e em mais lugar
+   nenhum. Desde 16/09/2026 elas **não são capa** de coleção no Explorar (a
+   capa de "Por aparelho" é a mesma das outras coleções, a foto de execução do
+   primeiro exercício) — a vitrine do app não mostra imagem sem licença.
+2. **Procedência no JSON.** `fotos_dos_itens` em `data/equipamentos.json`
+   (`pasta`, `origem`, `licenca`, `uso`), validado em `lib/schemas.ts` e lido
+   por `lib/dados.ts`. `licenca` é `null` de propósito: é o que diz que não há
+   licença livre aqui.
+3. **Dito na cara.** **Mais → Créditos** tem o bloco "Fotos dos itens do
+   terraço", montado desse JSON, e a tabela "Créditos de mídia" do README tem a
+   linha correspondente. Se um dia o app virar público, ou estas fotos são
+   refeitas pelo dono (aí a exceção some) ou saem.
 - O motor (§6), a montagem e o que vai para o banco continuam intocados: o
   marco é imagem e crédito, nada mais.
 - `npm run validar` continua conferindo que todo arquivo citado nos JSON

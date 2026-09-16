@@ -17,7 +17,6 @@ import {
   acharExercicio,
   acharFase,
   acharTreino,
-  caminhoPublico,
   cardio,
   equipamentoDisponivel,
   equipamentos,
@@ -130,20 +129,13 @@ export function colecoesPorGrupo(): Colecao[] {
 
 /* ------------------------------------------------- por aparelho (§13.4) */
 
-/**
- * A primeira foto de um item do terraço. A **pasta** vem de
- * `equipamentos.json` (`fotos: "assets/itens/banco/"`) e o arquivo segue o
- * padrão do kit, `<id>_01.jpg`, que `npm run validar` confere para os dez
- * itens — nenhum caminho escrito à mão, nenhuma imagem de terceiros (§13.1).
+/*
+ * A capa das coleções por aparelho NÃO é a foto do item (SPEC §15.3): as 95
+ * fotos de `assets/itens/` são fotografia de anúncio — obra de terceiro sem
+ * licença livre, que só se justifica como o registro particular das compras do
+ * dono em Mais → Equipamento. A vitrine do Explorar usa a mesma capa das
+ * outras coleções: a foto de execução do primeiro exercício da lista.
  */
-export const PRIMEIRA_FOTO = (id: string) => `${id}_01.jpg`;
-
-export function fotoDoItem(id: string): string | null {
-  const item = equipamentos.itens.find((i) => i.id === id);
-  if (!item) return null;
-  const pasta = item.fotos.endsWith("/") ? item.fotos : `${item.fotos}/`;
-  return caminhoPublico(`${pasta}${PRIMEIRA_FOTO(id)}`);
-}
 
 /** Os exercícios que este item de `equipamentos.json` permite. */
 export function exerciciosDoAparelho(id: string): Exercicio[] {
@@ -155,9 +147,7 @@ export function colecaoDoAparelho(id: string): Colecao | null {
   if (!item) return null;
   const lista = exerciciosDoAparelho(id);
   if (lista.length === 0) return null;
-  return montar(`aparelho:${id}`, "aparelho", item.nome, item.specs, lista, {
-    capa: fotoDoItem(id) ?? undefined,
-  });
+  return montar(`aparelho:${id}`, "aparelho", item.nome, item.specs, lista);
 }
 
 export function colecoesPorAparelho(): Colecao[] {

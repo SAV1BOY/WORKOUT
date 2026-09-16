@@ -1,5 +1,5 @@
 import { CabecalhoMais } from "@/components/mais/cabecalho";
-import { acharExercicio, ilustracoes } from "@/lib/dados";
+import { acharExercicio, equipamentos, ilustracoes } from "@/lib/dados";
 
 export const metadata = { title: "Créditos — Treino do Terraço" };
 
@@ -17,6 +17,7 @@ export default function Creditos() {
   /* A licença mostrada sai do JSON, não de um texto escrito aqui. */
   const licencasDe = (lista: typeof ilustracoes) =>
     [...new Set(lista.map((i) => i.licenca))].sort().join(" e ");
+  const fotos = equipamentos.fotos_dos_itens;
 
   return (
     <section className="flex flex-col gap-5">
@@ -121,7 +122,18 @@ export default function Creditos() {
 
       <Bloco
         titulo="Figuras animadas, textos e dados"
-        resumo="Feitos para este app a partir do Guia de treino da garagem. As fotos dos itens do terraço são dos anúncios dos produtos comprados."
+        resumo="Feitos para este app a partir do Guia de treino da garagem."
+      />
+
+      {/*
+        SPEC §15.3: as fotos dos itens NÃO cumprem a §15.1 (não têm licença
+        livre). Estão aqui porque a regra do app é dizer de onde vem cada
+        imagem — inclusive a que entrou por exceção. A procedência sai de
+        data/equipamentos.json; nada escrito à mão.
+      */}
+      <Bloco
+        titulo="Fotos dos itens do terraço"
+        resumo={`${equipamentos.itens.length} itens do terraço. Origem das fotos: ${fotos.origem}. Sem licença livre — ${fotos.uso}.`}
       />
 
       <p className="text-muted-foreground text-xs text-balance">

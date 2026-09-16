@@ -252,6 +252,16 @@ test.describe("Mais → Créditos", () => {
     await page.getByText("Autor de cada ilustração").click();
     await expect(page.getByText(/Everkinetic \(everkinetic\.com\)/).first()).toBeVisible();
 
+    /*
+     * SPEC §15.3: a imagem que entrou por EXCEÇÃO também se declara. As fotos
+     * dos itens são de anúncio (sem licença livre) e a tela diz isso, com o
+     * texto vindo de data/equipamentos.json.
+     */
+    await expect(
+      page.getByRole("heading", { name: "Fotos dos itens do terraço" }),
+    ).toBeVisible();
+    await expect(page.getByText(/Sem licença livre/)).toBeVisible();
+
     await semRolagemHorizontal(page);
   });
 });

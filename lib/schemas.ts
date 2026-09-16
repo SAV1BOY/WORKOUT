@@ -379,6 +379,18 @@ export const equipamentosSchema = z.object({
       fotos: z.string(),
     }),
   ),
+  /*
+   * As 95 fotos de `assets/itens/` são fotografia de terceiro (anúncio do
+   * produto), não obra de licença livre: elas NÃO passam pelas condições da
+   * §15.1 e por isso a procedência delas mora aqui, no JSON, e a §15.3 escreve
+   * a exceção — inventário particular, atrás de login, fora das capas.
+   */
+  fotos_dos_itens: z.object({
+    pasta: z.string(),
+    origem: z.string(),
+    licenca: z.string().nullable(),
+    uso: z.string(),
+  }),
   espaco: z.object({
     local: z.string(),
     parede_fundo_m: z.number().positive(),
