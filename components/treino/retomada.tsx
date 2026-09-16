@@ -24,6 +24,11 @@ function explicacao(dias: number): string {
   return "Foi um mês ou mais. Voltar mais leve costuma bastar; recomeçar do zero é para quando a pausa foi longa demais.";
 }
 
+/** As opções que só dá para gravar com todas as cargas em mãos (SPEC §18.2). */
+function precisaDasCargas(opcao: OpcaoRetomada): boolean {
+  return opcao.escolha === "leve" || opcao.escolha === "zero";
+}
+
 /**
  * O card da retomada (SPEC §18.3): aparece no topo da aba Treino quando a
  * pausa passou de uma semana, com as opções da faixa. "Recomeçar do zero" é
@@ -33,6 +38,7 @@ export function CardRetomada({
   dias,
   opcoes,
   ocupado,
+  semCargas,
   destacado,
   aoEscolher,
   ref,
@@ -40,6 +46,13 @@ export function CardRetomada({
   dias: number;
   opcoes: readonly OpcaoRetomada[];
   ocupado: boolean;
+  /**
+   * As cargas de todos os exercícios ainda não chegaram (SPEC §18.3): sem elas
+   * "Voltar mais leve" e "Recomeçar do zero" gravariam vazio, então só essas
+   * duas ficam de fora — "Continuar" tem de funcionar sempre, ou a pausa sem
+   * rede tranca a aba Treino inteira, que é toda barrada pelo card.
+   */
+  semCargas: boolean;
   /** Ele tocou em "Começar treino" com o card pendente (SPEC §18.3). */
   destacado: boolean;
   aoEscolher: (escolha: EscolhaRetomada) => void;
@@ -75,7 +88,7 @@ export function CardRetomada({
             type="button"
             variant={opcao.destrutiva ? "ghost" : "outline"}
             data-retomada-opcao={opcao.escolha}
-            disabled={ocupado}
+            disabled={ocupado || (semCargas && precisaDasCargas(opcao))}
             onClick={() => (opcao.destrutiva ? setEtapa(1) : aoEscolher(opcao.escolha))}
             className={cn(
               "alvo h-auto min-h-12 w-full flex-col items-start gap-0.5 rounded-xl px-3 py-2 text-left whitespace-normal",
@@ -89,6 +102,13 @@ export function CardRetomada({
           </Button>
         ))}
       </div>
+
+      {semCargas && opcoes.some(precisaDasCargas) ? (
+        <p data-retomada-sem-cargas className="text-muted-foreground text-xs text-balance">
+          As suas cargas ainda não carregaram. Sem rede dá para continuar de onde
+          parou; as outras opções voltam quando o app conseguir lê-las.
+        </p>
+      ) : null}
 
       <Dialog open={etapa !== 0} onOpenChange={(v) => !v && setEtapa(0)}>
         <DialogContent

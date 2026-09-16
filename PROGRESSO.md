@@ -5485,7 +5485,9 @@ o diálogo de confirmação.
 - Com **14 dias ou mais** e **nenhuma** leitura de `exercise_state` em cache
   (primeira abertura, sem rede, sem cache), os botões do card ficam
   desabilitados até as cargas carregarem: sem elas, "mais leve" e "do zero"
-  gravariam vazio. Preferi travar a decisão a gravar errado.
+  gravariam vazio. Preferi travar a decisão a gravar errado. *(Corrigido na
+  auditoria da rodada 2, abaixo: só "mais leve" e "do zero" desligam;
+  "Continuar" nunca desliga.)*
 
 ---
 
@@ -5604,3 +5606,71 @@ treinaria no dia seguinte com a carga cheia.
    sim o contador anda.
 3. Registre alguma coisa hoje (por outra tela) e recarregue: o card **continua**
    lá com os mesmos N dias, até você decidir.
+
+---
+
+## Auditoria do marco Retomada — rodada 2 (16/09/2026)
+
+Auditoria independente, do zero: `npm run lint` limpo · `npm run build` ✓ ·
+`npm test` **1102 em 46 arquivos** · `npm run e2e` verde. Motor e montagem
+intocados (`git diff origin/main` vazio em `lib/progressao.ts` e
+`lib/montagem.ts`); no schema só os dois motivos no comentário.
+
+Conferido usando o app no Chromium a 360 × 740 contra o mock, **nos dois
+temas**, com dados semeados: a contagem de dias (sessão **em andamento** de hoje
+não conta; um **cardio concluído** mais recente manda na conta; um cardio **não
+concluído** não conta), as faixas e as opções, o diálogo de duas etapas dentro
+dos 360 px com alvos ≥ 44 px, e o que cada escolha grava **linha a linha** no
+mock:
+
+- **leve** (20 dias) — `agachamento-livre` 39,5 → **23,5** com
+  `carga_antes_leve = 39,5` e `semana_leve = true`; `supino-reto-com-barra`
+  29,5 → **17,5**; `falhas_seguidas` **intacto** (1 e 0); semanas 3/2/4 → 2/1/3;
+  dois `retomada_leve` com `dias_parado: 20`; `ultimo_treino` e `fase_desde`
+  intactos. Na sessão seguinte o motor devolve a carga cheia (`fim_semana_leve`,
+  sem falha).
+- **zero** (40 dias) — as duas cargas de volta a **7,5** (`carga_inicial` do
+  JSON), `reps_alvo`/`tempo_alvo_s`/`assistencia` nulos, `falhas_seguidas = 0`,
+  `semana_leve = false`, `carga_antes_leve` nulo, `sessoes_graca = 0`,
+  `desativado` e `incremento_kg` preservados; semanas 1/1/1,
+  `ultimo_treino = null`, `fase_desde = hoje`, `fase_atual` igual; três
+  `recomeco` (dois por exercício, um do programa com `exercise_id` nulo);
+  `prefs.retomada = {em, dias: 40, escolha: "zero"}` e a linha no Relatório.
+
+### Corrigido aqui
+
+1. **A pausa sem rede trancava a aba Treino.** A leitura de **todas** as cargas
+   (`estados-todos`) só roda quando a faixa tem "mais leve" — ou seja, a
+   primeira vez que o card é desenhado é a primeira vez que essa leitura
+   acontece. Sem rede ela fica pausada, e o card inteiro ficava desabilitado:
+   com o card barrando todo gesto da §18.3 e o FAB fora da tela, não dava para
+   decidir **nem treinar**. Reproduzido no navegador (com a leitura abortada:
+   `continuar` e `leve` desabilitados, "Começar treino" barrado, FAB ausente).
+   Agora só **"Voltar mais leve"** e **"Recomeçar do zero"** desligam, com uma
+   linha dizendo por quê; **"Continuar de onde parou" nunca desliga**.
+   `components/treino/retomada.tsx` (prop `semCargas`) e
+   `components/treino/tela-treino.tsx`; SPEC §18.3 e o critério de aceite 9
+   novo; e2e novo em `e2e/retomada.spec.ts` ("sem as cargas lidas, só
+   'Continuar' fica de pé").
+
+### Visto e **não** corrigido (fica para o dono)
+
+1. **A janela de 16 semanas** (achado da rodada 1, ainda de pé):
+   `useCardioDesde`/`useSoltas` leem só as últimas 16 semanas, então uma
+   atividade mais antiga que isso não entra em `ultimaAtividade()`. Com um
+   cardio de 150 dias como **única** atividade da vida o card não aparece; com
+   uma sessão de força de 200 dias mais um cardio de 150, o card diz "200 dias".
+   As opções da faixa são as mesmas (28+), então só o número engana. Conserto:
+   uma leitura própria da última atividade (`order` + `limit 1` por tabela, sem
+   janela) só para `diasParado`.
+2. **Decidido é decidido, mesmo que a pausa cresça.** Quem escolhe "Continuar"
+   aos 10 dias e fica outros 40 sem treinar não recebe mais nada — a âncora é a
+   mesma pausa (SPEC §18.4, decisão do orquestrador). Está certo pela spec; só
+   vale o dono saber.
+
+### Como testar no celular
+
+1. Ligue o modo avião **antes** de abrir o app depois de uma pausa de 14 dias ou
+   mais: "Continuar de onde parou" funciona, as outras duas aparecem apagadas
+   com a explicação, e dá para treinar depois de decidir.
+2. Com rede, as três voltam a funcionar assim que as cargas carregam.

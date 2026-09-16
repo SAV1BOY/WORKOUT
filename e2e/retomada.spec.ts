@@ -548,6 +548,35 @@ test.describe("auditoria do marco Retomada", () => {
       .toBe(CARGA_LEVE);
   });
 
+  test("sem as cargas lidas, só 'Continuar' fica de pé (SPEC §18.3 e §18.6-9)", async ({
+    page,
+  }) => {
+    /*
+     * A primeira vez que o card é desenhado sem rede é a primeira vez que a
+     * leitura de TODAS as cargas não chega (ela só roda quando a faixa tem
+     * "mais leve"). Se ela desligasse o card inteiro, a pausa trancaria a aba
+     * Treino: o card barra todo gesto e o FAB some.
+     */
+    const sessao = await usuarioParado(20);
+    await fixarData(page, HOJE);
+    await page.route(/exercise_state\?select=\*$/, (rota) => rota.abort());
+    await entrarNoApp(page);
+    await esperarAbaTreino(page);
+
+    await expect(card(page)).toContainText("Você ficou 20 dias sem treinar");
+    await expect(opcao(page, "leve")).toBeDisabled();
+    await expect(page.locator("[data-retomada-sem-cargas]")).toBeVisible();
+    await expect(opcao(page, "continuar")).toBeEnabled();
+    await semRolagemHorizontal(page);
+
+    await opcao(page, "continuar").click();
+    await esperarEscolha(page, sessao, "continuar");
+    // e daí em diante dá para treinar
+    await expect(page.getByRole("button", { name: "Começar treino" })).toBeVisible();
+    const estados = await estadosDoMock(sessao);
+    expect(estados.map((e) => e.carga_atual_kg)).toEqual([CARGA, 29.5]);
+  });
+
   test("o FAB Ajustar sai da tela enquanto a pausa não foi decidida (SPEC §18.3)", async ({
     page,
   }) => {

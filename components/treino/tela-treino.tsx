@@ -407,8 +407,9 @@ export function TelaTreino({ userId }: { userId: string }) {
           ref={refRetomada}
           dias={pausa.dias}
           opcoes={opcoesDaRetomada}
+          ocupado={decidindo}
           /* sem as cargas lidas, "mais leve" e "do zero" escreveriam vazio */
-          ocupado={decidindo || (precisaDasCargas && !estadosTodosQ.isSuccess)}
+          semCargas={precisaDasCargas && !estadosTodosQ.isSuccess}
           destacado={destacarRetomada}
           aoEscolher={(escolha) => void escolherRetomada(escolha)}
         />

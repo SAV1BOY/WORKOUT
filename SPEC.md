@@ -737,9 +737,13 @@ para evitar. No dia seguinte a conta já é 1 e não há card nenhum.
   em semana leve **exatamente como a 3ª falha da §6.2**: `carga_antes_leve =
   carga_atual_kg`, `carga_atual_kg = arredondar(carga × 0,60)` e `semana_leve =
   true` — é isso que faz o motor devolver a carga cheia na sessão seguinte, sem
-  nenhum código novo. `falhas_seguidas` **não muda**: pausa não é falha. Quem já
-  estava em semana leve fica como está (o `carga_antes_leve` de antes não se
-  perde). Um `progression_events` por exercício com motivo **`retomada_leve`**.
+  nenhum código novo. `falhas_seguidas` **não muda**: pausa não é falha (na
+  sessão seguinte o motor o zera, como zera no fim de qualquer semana leve —
+  §6.2). Quem já estava em semana leve fica como está (o `carga_antes_leve` de
+  antes não se perde), e quem já está no **piso do implemento** — sem nenhum
+  degrau abaixo na escala da §6.4 — também fica: uma "semana leve" que não
+  alivia nada só faria o motor devolver a mesma carga na sessão seguinte. Um
+  `progression_events` por exercício com motivo **`retomada_leve`**.
   As semanas dos planos também voltam uma, como em "Recomeçar a semana".
 - **Recomeçar do zero** (com **confirmação em duas etapas**) — cada linha de
   `exercise_state` volta ao estado inicial da §6.1: `carga_atual_kg =
@@ -767,6 +771,14 @@ dias sem treinar"**, uma frase do que isso significa e os botões da faixa,
 empilhados, com alvo ≥ 44 px a 360 px. "Recomeçar do zero" é destrutivo: abre um
 diálogo que diz **o que se perde** (as cargas de todos os exercícios voltam ao
 começo; o histórico fica) e só o **segundo** toque confirma.
+
+"Voltar mais leve" e "Recomeçar do zero" mexem em **todas** as cargas, então só
+ficam tocáveis depois de o app ler `exercise_state` inteiro; enquanto isso as
+duas aparecem desligadas com uma linha dizendo por quê. **"Continuar de onde
+parou" nunca desliga**: o card barra a aba Treino inteira (e some com o FAB),
+e a primeira vez que ele é desenhado sem rede é justamente a primeira vez que a
+leitura das cargas não chega — se ela desligasse tudo, a pausa trancaria o app
+sem deixar nem decidir nem treinar.
 
 Decidida a retomada, o card **some** e a aba Treino e o `/calendario` se
 atualizam na hora (o cache do TanStack Query é **atualizado à mão**, não
@@ -826,7 +838,10 @@ sequências.
    **não** registra a repetição: leva ao card. E se alguma atividade de hoje já
    tiver sido registrada (de outra tela, do calendário), o card **continua** de
    pé até ele decidir (§18.1).
-9. O card a 360 px: alvos ≥ 44 px, nada corta, nada rola para o lado, nos dois
-   temas. Lint, build, `npm test` e `npm run e2e` verdes, com unitários das
-   quatro faixas, das quatro escolhas e do "perguntar uma vez por pausa", e e2e
-   novos desta seção.
+9. Sem as cargas lidas (a primeira vez do card sem rede), "Voltar mais leve" e
+   "Recomeçar do zero" ficam desligadas com a linha que explica, e **"Continuar"
+   continua tocável** — decidir e treinar nunca ficam trancados.
+10. O card a 360 px: alvos ≥ 44 px, nada corta, nada rola para o lado, nos dois
+    temas. Lint, build, `npm test` e `npm run e2e` verdes, com unitários das
+    quatro faixas, das quatro escolhas e do "perguntar uma vez por pausa", e e2e
+    novos desta seção.
