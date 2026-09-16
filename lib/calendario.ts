@@ -361,7 +361,7 @@ function treinoDaFase(fase: FaseId, id: string | null | undefined): TreinoId | n
   return treinos.includes(id) ? (id as TreinoId) : null;
 }
 
-/** A sessão de força registrada num dia (a concluída na frente da parcial). */
+/** A sessão de força registrada num dia (a primeira da lista, que vem ordenada). */
 function sessaoDoDia(
   sessoes: SessaoDeForca[],
   fase: FaseId,

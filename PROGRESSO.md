@@ -5170,3 +5170,46 @@ navegador, nos dois temas, com as capturas).
    terminou — se a sexta é A, a segunda que vem é B — e a semana da fase sobe.
 5. Depois de concluir um treino, volte à aba Treino: o dia de hoje vira ✓ e o
    próximo dia de força já mostra a outra letra.
+
+---
+
+## Auditoria do marco Semana (SPEC §16) — 16/09/2026
+
+Auditoria independente do commit `c4bf82b`, com os quatro portões rodados do
+zero e o app dirigido no Chromium a 360 × 740 contra o mock, nos dois temas.
+
+### O que passou
+
+- **O defeito da §16.1 está morto**: com a segunda 14/09 concluída em A1 e
+  `ultimo_treino = A1`, com o relógio na quarta 16/09, a faixa da aba Treino, o
+  card do dia e o `/calendario` dizem a mesma coisa — seg "Treino A ✓", qua
+  "Treino B" (hoje), sex "Treino A" — nos dois temas. A semana seguinte segue
+  B · A · B e a terceira A · B · A; voltar e avançar continua coerente.
+- **Segunda sem sessão** vira "Treino de força ✕" na grade e "Força/faltou" na
+  faixa: o calendário não inventa que foi feito.
+- **Faixa a 360 px**: sete casas de 40,3 px dentro de um alvo de 314 × 89 px,
+  sigla de 11 px, nada cortado, `scrollWidth == clientWidth == 360`, e o
+  `aria-label` com o nome completo ("quarta 16/09: Treino B, hoje").
+- **Fase 2** fixa por dia (SA · IA · Corr. · SB · IB · Longa · Desc.), override
+  com treino escolhido e semana curta continuam valendo por cima.
+- Motor e montagem intocados (`git diff` vazio em `lib/progressao.ts` e
+  `lib/montagem.ts` contra `origin/main`).
+
+### Corrigido nesta auditoria
+
+- **"Fase 1 · semana 0 de 12"**: hoje é a semana 1 da fase, então um toque em
+  "‹" no calendário já mostrava a semana anterior a `fase_desde` com "semana 0"
+  no cabeçalho e "Treino de força · semana 0" nos cards (e "semana −1" mais
+  atrás). Agora, antes do começo da fase, o cabeçalho mostra só "Fase 1" e o dia
+  só o nome. Escrito na §16.4 e coberto por unitário.
+
+### Achado que ficou aberto (vai para a próxima etapa)
+
+- **O dia de hoje depois de treinado** ainda mostra o treino da projeção, não o
+  que foi feito. Com A1 na segunda e o B1 de hoje (quarta) concluído, o
+  calendário mostra "QUA 16 Treino A ✓" (foi B) e empurra a sexta para "Treino
+  B" (deveria ser A) — a faixa e o card dizem o mesmo. É a §16.1 sobrevivendo no
+  dia em que ele mais olha o app. A regra da §16.2 item 2 precisa valer para
+  `data <= hoje` quando existe sessão no dia (sem avançar a âncora, que o
+  `ultimo_treino` já contabilizou); um dia de hoje **sem** sessão continua
+  projetando.

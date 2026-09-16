@@ -508,6 +508,9 @@ Continuam o ✓/ponto/traço e o destaque de hoje; tocar na faixa continua abrin
   plano de corrida/corda do perfil, §5.5).
 - O card do dia na aba Treino ganha a mesma semana da fase; o card de cardio já
   trazia "semana N" do plano (§13.3 item 2).
+- **Antes do começo da fase** (navegar para trás passa de `fase_desde`) não há
+  semana para contar: o cabeçalho mostra só **"Fase 1"** e os dias só o nome
+  ("Treino de força", "Corrida") — nunca "semana 0" ou "semana −1".
 
 ### 16.5 Critérios de aceite
 1. Com uma sessão A1 concluída na segunda e hoje na quarta, a faixa da aba
@@ -521,7 +524,7 @@ Continuam o ✓/ponto/traço e o destaque de hoje; tocar na faixa continua abrin
 4. Na Fase 2 a faixa e o calendário mostram SA · IA · corrida · SB · IB ·
    corrida longa · descanso, fixos, em qualquer semana.
 5. O cabeçalho do calendário mostra a fase e a semana da fase, e acompanha a
-   navegação entre semanas.
+   navegação entre semanas — sem "semana 0" ou negativa antes de `fase_desde`.
 6. Override e semana curta continuam valendo por cima da rotulagem.
 7. Lint, build, `npm test` e `npm run e2e` verdes, com e2e novos para esta seção
    e os antigos ajustados sem afrouxar o que verificam.

@@ -332,4 +332,30 @@ describe("rótulos curtos e semana da fase (SPEC §16.3 e §16.4)", () => {
     expect(rotuloDaFase("fase1", 3)).toBe("Fase 1 · semana 3 de 12");
     expect(rotuloDaFase("fase2", 5)).toBe("Fase 2 · semana 5");
   });
+
+  /*
+   * Auditoria do marco Semana: hoje é a semana 1 da fase, então um toque em
+   * "‹" já mostra a semana anterior ao começo dela. Ali não existe "semana N"
+   * — antes, o cabeçalho dizia "Fase 1 · semana 0 de 12" e os cards "Treino de
+   * força · semana 0" (e "semana −1" mais atrás).
+   */
+  it("antes do começo da fase não inventa semana 0 nem semana negativa", () => {
+    expect(rotuloDaFase("fase1", 0)).toBe("Fase 1");
+    expect(rotuloDaFase("fase1", -1)).toBe("Fase 1");
+    expect(rotuloDaFase("fase2", 0)).toBe("Fase 2");
+
+    const anterior = montarGrade({
+      data: "2026-09-07",
+      perfil: PERFIL,
+      hoje: SEMANA_1,
+    });
+    expect(anterior.map((d) => d.rotuloLongo)).not.toContain("Treino A · semana 0");
+    for (const d of anterior) {
+      expect(d.rotuloLongo).not.toMatch(/semana (0|-\d)/);
+      expect(d.rotuloLongo).toBe(d.rotulo);
+    }
+    // e a semana da fase corrente continua contando normalmente
+    const corrente = montarGrade({ data: SEMANA_1, perfil: PERFIL, hoje: SEMANA_1 });
+    expect(corrente[0]?.rotuloLongo).toBe("Treino A · semana 1");
+  });
 });

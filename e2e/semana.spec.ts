@@ -64,7 +64,7 @@ test.describe("Semana visível — a aba Treino e o calendário dizem o mesmo (S
       await entrarNoApp(page);
       await esperarAbaTreino(page);
 
-      // 1) o card do dia: hoje é Treino B, na semana 3 da fase
+      // 1) o card do dia: hoje é Treino B, na semana 1 da fase
       const hoje = page.getByRole("region", { name: "Hoje" });
       await expect(hoje.getByRole("heading", { name: "Treino B" })).toBeVisible();
       await expect(hoje).toContainText("semana 1");
@@ -135,6 +135,30 @@ test.describe("Semana visível — a aba Treino e o calendário dizem o mesmo (S
 
     await semRolagemHorizontal(page);
     await page.screenshot({ path: `${CAPTURAS}/03-calendario-proxima.png` });
+  });
+
+  /*
+   * Auditoria: hoje é a semana 1 da fase, então um toque em "‹" já passa do
+   * começo dela — ali o cabeçalho dizia "Fase 1 · semana 0 de 12" e os cards
+   * "Treino de força · semana 0" (SPEC §16.4).
+   */
+  test("antes do começo da fase não aparece semana 0 nem negativa", async ({ page }) => {
+    await usuarioDoCaso();
+    await fixarRelogio(page, QUARTA);
+    await entrarNoApp(page);
+    await page.goto("/calendario");
+    await expect(page.getByText("Fase 1 · semana 1 de 12")).toBeVisible();
+
+    await page.getByRole("button", { name: "Semana anterior" }).click();
+    await expect(page.getByText("07/09 – 13/09")).toBeVisible();
+    await expect(page.getByText("Fase 1", { exact: true })).toBeVisible();
+    await expect(page.getByText(/semana (0|-\d)/)).toHaveCount(0);
+
+    const textos = await rotulos(page);
+    for (const texto of textos) expect(texto).not.toMatch(/semana (0|-\d)/);
+    expect(textos[0]).toContain("Treino de força");
+
+    await semRolagemHorizontal(page);
   });
 
   test("um dia passado sem sessão mostra o treino esperado e a marca de não feito", async ({

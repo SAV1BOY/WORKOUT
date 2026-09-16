@@ -124,6 +124,11 @@ export function siglaDoDia(dia: DiaDoPlano): string {
  */
 export function rotuloLongoDoDia(dia: DiaDoPlano, semanaDaFaseDoDia: number): string {
   const nome = rotuloDoDia(dia);
+  /*
+   * Navegar para trás passa do começo da fase: ali não existe "semana N" para
+   * contar (seria 0, −1…). O dia continua aparecendo, só sem a semana.
+   */
+  if (semanaDaFaseDoDia < 1) return nome;
   if (dia.tipo === "forca") return `${nome} · semana ${semanaDaFaseDoDia}`;
   if (dia.tipo === "cardio" && dia.cardio) {
     return `${nome} · semana ${dia.cardio.semana} do plano`;
@@ -138,6 +143,8 @@ export function rotuloLongoDoDia(dia: DiaDoPlano, semanaDaFaseDoDia: number): st
 export function rotuloDaFase(fase: FaseId, semana: number): string {
   const [curto] = acharFase(fase).nome.split("—");
   const nome = (curto ?? fase).trim();
+  // antes do começo da fase não há semana para contar: só o nome da fase
+  if (semana < 1) return nome;
   return fase === "fase1"
     ? `${nome} · semana ${semana} de ${SEMANAS_PARA_FASE2}`
     : `${nome} · semana ${semana}`;
