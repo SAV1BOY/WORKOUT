@@ -222,11 +222,27 @@ const TREINO: SecaoDoGuia = {
       grupo: TELA,
     },
     {
+      id: "corda-em-vez",
+      nome: "Fazer corda em vez de corrida",
+      oQueFaz:
+        "No dia de corrida, o card troca para a sessão de corda da mesma semana — e volta quando você quiser.",
+      caminho: ["Treino", "Fazer corda em vez de corrida"],
+      grupo: TELA,
+    },
+    {
       id: "card-descanso",
       nome: "Card de descanso",
       oQueFaz:
         "No dia de folga, a nota do dia e qual é o próximo treino.",
       caminho: ["Treino"],
+      grupo: TELA,
+    },
+    {
+      id: "caminhada",
+      nome: "Começar caminhada leve",
+      oQueFaz:
+        "No domingo o programa pede uma caminhada; o botão do card de descanso abre o cronômetro dela.",
+      caminho: ["Treino", "Começar caminhada leve"],
       grupo: TELA,
     },
     {
@@ -290,7 +306,8 @@ const TREINO: SecaoDoGuia = {
     {
       id: "parte-do-corpo",
       nome: "Parte do corpo em foco",
-      oQueFaz: "Atalhos por grupo muscular, direto da aba Treino.",
+      oQueFaz:
+        "Escolha o grupo nos chips, filtre por tempo ou equipamento e o “Começar” abre uma sessão livre com os exercícios da lista.",
       caminho: ["Treino", "Parte do corpo em foco"],
       grupo: TELA,
     },
@@ -298,7 +315,7 @@ const TREINO: SecaoDoGuia = {
       id: "desafios",
       nome: "Desafios",
       oQueFaz:
-        "Os planos longos (primeira barra fixa, corrida, corda) com a semana em que você está e o botão para fazer a sessão de hoje.",
+        "Os três cards do carrossel — primeira barra fixa, corrida e a fase do programa — com a semana em que você está e o botão “Fazer a sessão da semana”.",
       caminho: ["Treino", "Desafios"],
       grupo: TELA,
     },

@@ -148,12 +148,21 @@ export function TelaTreino({ userId }: { userId: string }) {
   const perfil = perfilQ.data ?? null;
 
   /* SPEC §20.1: conta sem `prefs.guia_visto` cai no guia antes de tudo. */
-  const paraOGuia = perfil !== null && !guiaVisto(perfil.prefs);
+  const semGuiaVisto = perfil !== null && !guiaVisto(perfil.prefs);
+  /*
+   * Quem desvia é ESTA montagem: a marca de módulo só impede um segundo desvio.
+   * Sem isto, voltar para a aba Treino sem ter reconhecido o guia (o "Ir" do
+   * próprio guia leva a `/`) deixava a tela no esqueleto para sempre — não
+   * desviava mais e também não desenhava nada.
+   */
+  const desviouAqui = useRef(false);
+  const desviando = semGuiaVisto && (desviouAqui.current || !jaMandouParaOGuia);
   useEffect(() => {
-    if (!paraOGuia || jaMandouParaOGuia) return;
+    if (!semGuiaVisto || jaMandouParaOGuia) return;
     jaMandouParaOGuia = true;
+    desviouAqui.current = true;
     router.replace("/mais/guia?inicio=1");
-  }, [paraOGuia, router]);
+  }, [semGuiaVisto, router]);
 
   const dia = useMemo(() => {
     if (!hoje || !perfil) return null;
@@ -291,7 +300,7 @@ export function TelaTreino({ userId }: { userId: string }) {
    * O esqueleto cobre o vão do redirecionamento (§20.1): sem isto a aba Treino
    * pisca inteira antes de o guia abrir.
    */
-  if (!hoje || !perfil || !dia || !intervalo || paraOGuia) {
+  if (!hoje || !perfil || !dia || !intervalo || desviando) {
     return (
       <Tela>
         <EsqueletoCard linhas={4} />

@@ -5874,3 +5874,34 @@ barra continua com cinco abas** e o guia é a rota `/mais/guia`.
 5. **Mais → Como usar o app** abre o mesmo guia, sem "Pular por agora"; o botão
    do fim é "Entendi" e volta para Mais.
 6. **Sem rede** funciona igual: a marca entra na fila e sobe depois.
+
+### Auditoria do marco (16/09/2026)
+
+Auditoria independente com o app rodando no Chromium a 360×740 contra o mock,
+nos dois temas. Portões verdes antes e depois. Corrigido aqui:
+
+1. **A aba Treino ficava parada no esqueleto** quando se saía do guia da
+   primeira entrada por um "Ir" que volta para `/` (o passo "Começar o primeiro
+   treino", a seção Treino, a miniatura da barra): a marca de módulo impedia um
+   segundo desvio, mas o esqueleto continuava no lugar da tela — sem nada, para
+   sempre, até recarregar. Agora o esqueleto é só da montagem que **de fato**
+   desvia (`desviouAqui`); quem volta para `/` sem reconhecer o guia vê a aba
+   Treino inteira e o guia reaparece no carregamento seguinte. E2E novo em
+   `e2e/guia.spec.ts` prende o caso.
+2. **"Desafios" prometia corda**: os três cards são barra fixa, corrida e a
+   **fase do programa** (`lib/colecoes.ts: desafios()`). O texto do guia foi
+   corrigido e passou a citar o botão real, "Fazer a sessão da semana".
+3. **Duas funções da aba Treino faltavam** no guia: "Fazer corda em vez de
+   corrida" (card de corrida) e "Começar caminhada leve" (card de descanso, no
+   domingo). Entraram na seção Treino e na lista de cobertura do unitário.
+4. **SPEC §20.2** dizia que os dois botões invalidam o cache do TanStack Query;
+   o código (de propósito) só atualiza o perfil no cache. A §20.2 passou a
+   descrever o que o código faz, e a §20.1 diz que o esqueleto é só da montagem
+   que desvia.
+
+Conferido e **sem ressalva**: contraste do guia ≥ 5,9:1 nos dois temas; nada
+rola de lado e todo alvo tem 44 px; as cinco âncoras das Preferências param no
+card certo; abrir por Mais não grava nada e não mostra "Pular por agora"; sem
+rede o "Entendi, começar a treinar" volta para a aba Treino e a marca sobe
+quando a rede volta; a miniatura da barra sai de `lib/abas.ts`; nenhuma frase do
+`docs/` no guia; `lib/progressao.ts` e `lib/montagem.ts` intocados.

@@ -198,6 +198,8 @@ describe("guia: cobertura da §20.5", () => {
     "Pesar",
     "Repetições soltas",
     "Treinar mesmo assim",
+    "Fazer corda em vez de corrida",
+    "Começar caminhada leve",
     "⇄ Substituir",
     "Editar",
     "Ajustar",

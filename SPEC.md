@@ -1049,7 +1049,10 @@ layout do app (barra visível), e chega por dois caminhos:
    `profiles.prefs.guia_visto`, faz `router.replace('/mais/guia?inicio=1')` —
    uma vez por carregamento, sem laço. Enquanto a decisão não é tomada a tela
    mostra o **esqueleto** que ela já mostra enquanto o perfil carrega: nada de
-   piscar a aba Treino antes de sair dela.
+   piscar a aba Treino antes de sair dela. O esqueleto é **só da montagem que
+   desvia**: quem volta para `/` sem ter reconhecido o guia (pelo "Ir" do
+   próprio guia, por exemplo) vê a aba Treino inteira, e o guia reaparece no
+   carregamento seguinte — nunca uma tela parada no esqueleto.
 2. **Mais → "Como usar o app"**, a **primeira** linha da lista de ajustes (ícone
    lucide `CircleHelp`), sempre disponível.
 
@@ -1062,7 +1065,9 @@ Só dois gestos gravam:
 - **"Entendi, começar a treinar"**, no fim do guia;
 - **"Pular por agora"**, no topo — que só existe no modo `?inicio=1`.
 
-Os dois invalidam o cache do TanStack Query e voltam para `/`. **Fechar o app
+Os dois atualizam o perfil no cache do TanStack Query (é o que `salvarPrefs`
+faz, sem `invalidateQueries`: reler o banco antes de a fila subir traria o
+perfil velho e o guia de novo) e voltam para `/`. **Fechar o app
 sem tocar em nenhum dos dois faz o guia aparecer de novo na próxima entrada** —
 é o comportamento desejado: a marca é do reconhecimento, não da visita.
 
@@ -1116,7 +1121,8 @@ O que não existir no código fica **de fora** — nada de função inventada.
 
 Em particular: Treino (saudação e sequência, faixa da semana com a sigla do
 treino e o ✓, meta semanal, fase e peso, "Pesar", card do dia com "Começar
-treino"/"Continuar", cardio, descanso, repetições soltas, "Treinar mesmo
+treino"/"Continuar", cardio com "Fazer corda em vez de corrida", descanso com
+"Começar caminhada leve" no domingo, repetições soltas, "Treinar mesmo
 assim", lista do dia com carga e ⇄, ficha em folha, "Editar", "Ajustar",
 "Personalizar treino", "Parte do corpo em foco", "Desafios", card de retomada,
 banner do treino aberto); Player (preparação, série a série, "Última

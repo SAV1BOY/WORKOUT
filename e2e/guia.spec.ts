@@ -164,6 +164,31 @@ test.describe("primeira entrada da conta (SPEC §20.1)", () => {
       .toBe(true);
   });
 
+  test("sair do guia por um “Ir” não deixa a aba Treino no esqueleto", async ({
+    page,
+  }) => {
+    /*
+     * O guia da primeira entrada tem "Ir" que voltam para `/` (o passo
+     * "Começar o primeiro treino", a seção Treino, a miniatura da barra). O
+     * desvio é uma vez por carregamento — e a aba Treino, que não desvia mais,
+     * precisa DESENHAR: já ficou parada no esqueleto aqui.
+     */
+    await contaNova();
+    await fixarData(page, QUARTA);
+    await entrarSemEsperar(page);
+    await page.waitForURL(/\/mais\/guia\?inicio=1$/, { timeout: 20_000 });
+
+    await page.locator('a[data-ir="/"]').first().click();
+    await page.waitForURL((url) => url.pathname === "/", { timeout: 20_000 });
+    await esperarAbaTreino(page);
+    await expect(page.getByRole("region", { name: "Hoje" })).toBeVisible({
+      timeout: 20_000,
+    });
+    // e continua sem a marca: o guia volta no próximo carregamento
+    await page.goto("/");
+    await page.waitForURL(/\/mais\/guia\?inicio=1$/, { timeout: 20_000 });
+  });
+
   test("conta antiga (com a marca) entra direto na aba Treino", async ({
     page,
   }) => {
