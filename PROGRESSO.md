@@ -85,7 +85,7 @@ sozinha (sem build, vitest ou Playwright concorrente):
 ```
 npm run lint   limpo (sem avisos)
 npm run build  ✓ Compiled successfully in 6,6s · 119 páginas geradas · 26 rotas
-npm test       Test Files 43 passed (43) · Tests 976 passed (976)
+npm test       Test Files 43 passed (43) · Tests 980 passed (980)
 npm run e2e    203 passed (7,7m) — Chromium 360 × 740, contra scripts/mock-supabase.ts
 ```
 
@@ -458,7 +458,7 @@ O ícone laranja aparece como um app e ele abre sem a barra do navegador.
 npm install                 # Node 22, npm 10
 npm run lint                # ESLint
 npm run build               # valida os JSON, copia os assets e builda
-npm test                    # Vitest (975 unitários)
+npm test                    # Vitest (980 unitários)
 npm run e2e                 # Playwright no celular emulado — exige o build antes
 ```
 
@@ -5038,7 +5038,7 @@ Rodados nesta ordem, com a árvore limpa, numa janela sozinha:
 ```
 npm run lint   limpo (sem avisos)
 npm run build  ✓ Compiled successfully in 6,6s · 119 páginas geradas
-npm test       Test Files 43 passed (43) · Tests 976 passed (976)
+npm test       Test Files 43 passed (43) · Tests 980 passed (980)
 npm run e2e    203 passed (7,7m) — Chromium 360 × 740, portas 3100/54321
 ```
 
