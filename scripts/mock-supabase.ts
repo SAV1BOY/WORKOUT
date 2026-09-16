@@ -674,7 +674,28 @@ async function rotaAuth(
     }
     if (metodo === "GET") return { status: 200, corpo: usuarioPublico(u) };
     if (metodo === "PUT") {
-      if (typeof dados.password === "string") u.senha = dados.password;
+      /*
+       * `supabase.auth.updateUser({ password })` — a tela `/mais/senha`
+       * (SPEC §9). As duas recusas são as do GoTrue, com as mensagens dele
+       * (é o que `lib/erros-auth.ts` traduz); a senha nova passa a valer no
+       * `token?grant_type=password`, e a antiga deixa de valer.
+       */
+      if (typeof dados.password === "string") {
+        const nova = dados.password;
+        if (nova.length < 6) {
+          throw new ErroMock(422, "Password should be at least 6 characters", {
+            error_code: "weak_password",
+          });
+        }
+        if (nova === u.senha) {
+          throw new ErroMock(
+            422,
+            "New password should be different from the old password.",
+            { error_code: "same_password" },
+          );
+        }
+        u.senha = nova;
+      }
       if (typeof dados.email === "string") u.email = dados.email.toLowerCase();
       return { status: 200, corpo: usuarioPublico(u) };
     }

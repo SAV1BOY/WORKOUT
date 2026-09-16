@@ -20,7 +20,24 @@ describe("erros do Supabase em pt-BR", () => {
       "Este app é pessoal.",
     );
   });
+  it("as recusas da troca de senha (SPEC §9)", () => {
+    expect(traduzirErroAuth("Password should be at least 6 characters")).toBe(
+      "A senha precisa ter pelo menos 6 caracteres.",
+    );
+    expect(
+      traduzirErroAuth("New password should be different from the old password."),
+    ).toBe("A senha nova precisa ser diferente da atual.");
+  });
   it("mensagem desconhecida vira texto genérico", () => {
     expect(traduzirErroAuth("boom")).toMatch(/Tente de novo/);
+  });
+  it("quem chama de fora do login escolhe o texto genérico", () => {
+    expect(traduzirErroAuth("boom", "Não deu para trocar a senha agora.")).toBe(
+      "Não deu para trocar a senha agora.",
+    );
+    // o que o app sabe traduzir não depende do padrão de quem chamou
+    expect(
+      traduzirErroAuth("Invalid login credentials", "Não deu para trocar a senha agora."),
+    ).toBe("E-mail ou senha incorretos.");
   });
 });

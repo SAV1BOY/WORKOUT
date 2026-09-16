@@ -42,7 +42,7 @@ Cinco abas na barra de baixo:
 | **Explorar** | as coleções derivadas dos JSON: 6 treinos, 8 grupos musculares, 9 aparelhos, 3 circuitos e 3 planos, mais o catálogo dos 81 com filtros e busca sem acento. "Começar" abre uma **sessão livre**, que registra e progride como um treino do programa |
 | **Relatório** | os contadores do acumulado (treinos, minutos, volume), o card da semana, o histórico com "todos os registros", as sequências, os recordes, os gráficos e o peso com o IMC |
 | **Corpo** | peso (com vírgula e média móvel), as 8 medidas, as fotos de progresso lado a lado e o IMC |
-| **Mais** | perfil, equipamento, preferências, backup, sincronização e **Créditos** |
+| **Mais** | perfil, equipamento, preferências, backup, sincronização, **Créditos** e a conta: **Trocar senha** (a senha temporária com que a conta nasce no banco vira a sua no primeiro acesso) e Sair |
 
 O **player** (`/treinar/[sessionId]`) é o caminho principal de um treino:
 Preparação → Exercício → ✓ → Descanso com o próximo → … → "firme?" →

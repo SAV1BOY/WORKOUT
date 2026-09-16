@@ -164,7 +164,13 @@ dependência nova). Estado em memória, por processo.
   `GET /auth/v1/.well-known/jwks.json`. Access token é um JWT HS256 de verdade
   (`sub`, `email`, `role: authenticated`, `exp` de 1 h). Criar usuário dispara o
   equivalente ao trigger `handle_new_user` do schema: nasce a linha em
-  `profiles` com os defaults.
+  `profiles` com os defaults. O `PUT /auth/v1/user` é o que a tela
+  **Trocar senha** (`/mais/senha`, SPEC §9) usa: exige o Bearer (401 sem ele),
+  recusa senha de menos de 6 caracteres e senha igual à atual com os 422 e as
+  mensagens do GoTrue ("Password should be at least 6 characters", "New
+  password should be different from the old password.") e, quando aceita,
+  guarda a senha nova — o `token?grant_type=password` passa a exigir ela e a
+  antiga vira "Invalid login credentials".
 - **PostgREST** — `GET/HEAD/POST/PATCH/DELETE /rest/v1/<tabela>` para **todas** as
   tabelas de `supabase/schema.sql` e a view `v_records` (calculada de
   `session_sets`, somente leitura). Suporta `select` (colunas e `*`), filtros

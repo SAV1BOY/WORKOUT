@@ -19,6 +19,22 @@ de infraestrutura" mais abaixo, revisada nesta etapa).
 Os critérios do app v1 (SPEC §10) continuam na seção "Estado da entrega — v1"
 logo depois desta, com a mesma tabela de antes.
 
+**Mais → Trocar senha (`/mais/senha`)** — acrescentada depois da v2.1, por uma
+necessidade da infraestrutura: a conta do Miguel vai ser criada **direto no
+banco**, com uma senha temporária, porque o painel do Supabase não está ao
+alcance dele. Sem esta tela ele ficaria preso à senha que outra pessoa
+escolheu. Ela pede a senha nova duas vezes (mínimo de 8 caracteres, mais do que
+os 6 do GoTrue), chama `supabase.auth.updateUser({ password })` pelo cliente do
+navegador e volta para *Mais* 1,5 s depois de "Senha trocada."; os erros saem
+traduzidos por `lib/erros-auth.ts` e **nada disso vai para a fila** (§8) — sem
+rede a tela diz "Precisa de internet para trocar a senha" e não chama nada.
+Nada de e-mail e nada de "esqueci a senha". Provas: `lib/senha.test.ts` (a
+validação pura) e `e2e/mais.spec.ts` (troca a senha, sai, a antiga deixa de
+entrar e a nova entra), com a rota também no varredor de 360 px/44 px de
+`e2e/auditoria-m6.spec.ts`. Portões desta mudança, na ordem e numa janela
+sozinha: `npm run lint` limpo · `npm run build` ✓ Compiled successfully ·
+`npm test` 44 arquivos, 987 testes · `npm run e2e` 206 passed (8,1m).
+
 ### Critérios de aceite da camada visual — §13.8, §14.5 e §15.4
 
 **18 de 18.** "Como foi provado" é medição desta rodada (Chromium a 360 × 740,
@@ -418,7 +434,12 @@ Sem isso a volta do login cai no `localhost`.
    **miguelgsaviotti29@gmail.com**. Qualquer outro e-mail tem que ser recusado
    — na tela, com "Este app é pessoal.", e **no banco**, pelo trigger
    `on_auth_user_email_permitido` (a chave anon é pública, então o bloqueio não
-   pode viver só no navegador).
+   pode viver só no navegador). Se em vez disso você criar o usuário direto no
+   banco (*Authentication → Users → Add user*), com uma **senha temporária**,
+   entregue essa senha ao Miguel e peça para ele **trocar a senha em Mais →
+   Trocar senha no primeiro acesso**: a tela `/mais/senha` existe justamente
+   para isso, e depois dela o painel do Supabase não precisa mais estar ao
+   alcance dele.
 2. A aba **Treino** abre com o treino do dia e as cargas iniciais (§10.2), e a
    barra de baixo tem as **cinco abas** (Treino · Explorar · Relatório · Corpo ·
    Mais) — se só aparecerem as telas antigas, o PR #2 ainda não foi mesclado ou
@@ -459,7 +480,7 @@ O ícone laranja aparece como um app e ele abre sem a barra do navegador.
 npm install                 # Node 22, npm 10
 npm run lint                # ESLint
 npm run build               # valida os JSON, copia os assets e builda
-npm test                    # Vitest (980 unitários)
+npm test                    # Vitest (987 unitários)
 npm run e2e                 # Playwright no celular emulado — exige o build antes
 ```
 

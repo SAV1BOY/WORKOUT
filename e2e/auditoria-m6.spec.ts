@@ -89,6 +89,7 @@ const ROTAS_MAIS = [
   "/mais/preferencias",
   "/mais/creditos",
   "/mais/backup",
+  "/mais/senha",
 ];
 
 /**
