@@ -4,7 +4,17 @@
  * Sem navegador — só HTTP.
  */
 import { expect, test, type APIRequestContext } from "@playwright/test";
-import { URL_MOCK, resetarMock, sessaoNoMock } from "./fixtures";
+import {
+  EMAIL_PERMITIDO,
+  URL_MOCK,
+  estadoDoMock,
+  resetarMock,
+  sessaoNoMock,
+} from "./fixtures";
+
+/** A mesma mensagem que o trigger do schema levanta (supabase/schema.sql). */
+const MENSAGEM_EMAIL_DE_FORA =
+  "Este app é pessoal: só o e-mail autorizado pode entrar.";
 
 let token = "";
 let userId = "";
@@ -41,6 +51,44 @@ test.describe("mock do Supabase", () => {
     expect(linhas[0]?.nome).toBe("Miguel");
     expect(linhas[0]?.fase_atual).toBe("fase1");
     expect(linhas[0]?.prefs).toMatchObject({ tema: "auto" });
+  });
+
+  /**
+   * O par do trigger `on_auth_user_email_permitido` de `supabase/schema.sql`
+   * (SPEC §9): no banco de verdade um e-mail de fora nem chega a virar linha em
+   * `auth.users`. A tela de login e o middleware já barram antes, mas a chave
+   * anon é pública — quem falasse com o GoTrue direto tem que esbarrar aqui.
+   */
+  test("e-mail de fora não cria conta nem entra (o trigger do schema)", async ({
+    request,
+  }) => {
+    const cabecalhos = { apikey: "mock-anon", "content-type": "application/json" };
+    const intruso = { email: "outra.pessoa@exemplo.com", password: "senha123456" };
+
+    const cadastro = await request.post(`${URL_MOCK}/auth/v1/signup`, {
+      headers: cabecalhos,
+      data: intruso,
+    });
+    expect(cadastro.status()).toBe(403);
+    expect(((await json(cadastro)) as { message: string }).message).toBe(
+      MENSAGEM_EMAIL_DE_FORA,
+    );
+
+    const entrada = await request.post(
+      `${URL_MOCK}/auth/v1/token?grant_type=password`,
+      { headers: cabecalhos, data: intruso },
+    );
+    expect(entrada.status()).toBe(403);
+    expect(((await json(entrada)) as { message: string }).message).toBe(
+      MENSAGEM_EMAIL_DE_FORA,
+    );
+
+    // nada ficou para trás: só o usuário permitido do beforeEach e o perfil dele
+    const estado = await estadoDoMock();
+    expect((estado.usuarios as { email: string }[]).map((u) => u.email)).toEqual([
+      EMAIL_PERMITIDO,
+    ]);
+    expect((estado.tabelas as Record<string, number>).profiles).toBe(1);
   });
 
   test("sem token a RLS não devolve linha nenhuma", async ({ request }) => {

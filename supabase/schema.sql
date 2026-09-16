@@ -8,6 +8,23 @@
 
 create extension if not exists "pgcrypto";
 
+-- =====================================================================
+--  AJUSTE AQUI — o único e-mail que pode ter conta neste banco
+-- ---------------------------------------------------------------------
+--  A chave anon é pública (vai no navegador), então qualquer pessoa que a
+--  veja pode chamar o /auth/v1/signup do projeto. A RLS por `auth.uid()`
+--  isola os dados de cada linha, mas sem a trava abaixo o banco aceitaria
+--  contas estranhas. O e-mail aqui tem que ser o MESMO do `ALLOWED_EMAIL`
+--  do app (.env.local e Vercel) — confira antes de rodar este arquivo.
+--  Uma função é mais simples que uma tabela de configuração: não precisa de
+--  RLS e o `revoke` abaixo tira o anon e o authenticated, então ela não
+--  vaza pelo /rest/v1/rpc do PostgREST.
+-- =====================================================================
+create or replace function public.allowed_email() returns text
+  language sql immutable parallel safe
+  as $$ select 'miguelgsaviotti29@gmail.com'::text $$;
+revoke all on function public.allowed_email() from public;
+
 -- ---------- perfil ----------
 create table if not exists public.profiles (
   user_id        uuid primary key references auth.users(id) on delete cascade,
@@ -206,6 +223,28 @@ create trigger profiles_updated before update on public.profiles for each row ex
 drop trigger if exists exercise_state_updated on public.exercise_state;
 create trigger exercise_state_updated before update on public.exercise_state for each row execute function public.set_updated_at();
 
+-- ---------- só o e-mail permitido pode ter conta (SPEC §9) ----------
+-- O par do `ALLOWED_EMAIL` do middleware, do lado do banco: cinto e
+-- suspensório. É um `before insert`, então roda ANTES do `after insert` que
+-- cria o perfil (no Postgres todo BEFORE vem antes de qualquer AFTER) — a
+-- exceção aborta a transação inteira e não sobra linha nenhuma, nem em
+-- auth.users nem em public.profiles. A mensagem é a mesma que
+-- `scripts/mock-supabase.ts` devolve nos testes de ponta a ponta; o GoTrue
+-- embrulha erros de trigger como "Database error saving new user", e
+-- `lib/erros-auth.ts` traduz os dois para "Este app é pessoal.".
+create or replace function public.exigir_email_permitido() returns trigger
+  language plpgsql security definer set search_path = public as $$
+begin
+  if lower(coalesce(new.email, '')) is distinct from lower(public.allowed_email()) then
+    raise exception 'Este app é pessoal: só o e-mail autorizado pode entrar.'
+      using errcode = '42501';   -- insufficient_privilege
+  end if;
+  return new;
+end $$;
+drop trigger if exists on_auth_user_email_permitido on auth.users;
+create trigger on_auth_user_email_permitido before insert on auth.users
+  for each row execute function public.exigir_email_permitido();
+
 -- ---------- perfil criado automaticamente no primeiro login ----------
 create or replace function public.handle_new_user() returns trigger language plpgsql security definer set search_path = public as $$
 begin
@@ -216,6 +255,10 @@ drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created after insert on auth.users for each row execute function public.handle_new_user();
 
 -- ---------- RLS: cada linha só do dono ----------
+-- Toda policy deste arquivo filtra por `auth.uid()` (as de tabela por
+-- `user_id`, as do storage pela primeira pasta do caminho). Nenhuma usa
+-- `using (true)` para `authenticated`: com a chave anon pública, um `true`
+-- aqui abriria as linhas de qualquer conta que entrasse no projeto.
 do $$
 declare t text;
 begin

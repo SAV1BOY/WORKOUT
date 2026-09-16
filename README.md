@@ -118,10 +118,13 @@ puras, sem React e sem Supabase, cobertas pelos 22 casos de
 > ordem e com os comandos, está em **`PROGRESSO.md` → "Checklist de
 > infraestrutura"**. O resumo:
 
-1. **Supabase**: novo projeto, rodar `supabase/schema.sql` inteiro no SQL
-   Editor, conferir as 11 tabelas e o bucket `progresso`, e em *Authentication →
-   Providers → Email* deixar **Confirm email desligado**. Copiar a *Project URL*
-   e a chave **anon public** (a `service_role` nunca sai do painel).
+1. **Supabase**: novo projeto; **antes de colar o schema**, confira no topo de
+   `supabase/schema.sql` o bloco **"AJUSTE AQUI"** — a função
+   `public.allowed_email()` tem que devolver o mesmo e-mail do `ALLOWED_EMAIL`
+   do app. Rodar o arquivo inteiro no SQL Editor (é idempotente), conferir as
+   11 tabelas e o bucket `progresso`, e em *Authentication → Providers → Email*
+   deixar **Confirm email desligado**. Copiar a *Project URL* e a chave
+   **anon public** (a `service_role` nunca sai do painel).
 2. **Repositório**: o código de produção fica em `main`, no repositório privado
    `SAV1BOY/WORKOUT`. A camada visual v2.1 está no **PR #2** — sem o merge, o
    celular continua com o app antigo.
@@ -144,6 +147,11 @@ puras, sem React e sem Supabase, cobertas pelos 22 casos de
 5. **Conferir**: `/login` recusa qualquer outro e-mail **antes** de falar com o
    Supabase; entrar cria o perfil a partir de `data/perfil.json`; a barra de
    baixo tem as cinco abas; e `https://SUA-URL/sw.js` responde 200.
+6. **Depois de criar a conta do Miguel, fechar a porta**: *Authentication →
+   Sign In / Providers* → desligar **"Allow new users to sign up"**. O
+   `ALLOWED_EMAIL` já é checado no middleware e o trigger
+   `on_auth_user_email_permitido` do schema recusa outro e-mail dentro do
+   banco (a chave anon é pública); desligar o cadastro é o terceiro cinto.
 
 ## Instalar no celular
 
@@ -165,8 +173,12 @@ puras, sem React e sem Supabase, cobertas pelos 22 casos de
 - "Invalid API key" ou tela em branco depois do login: as variáveis de ambiente
   estão erradas ou faltam na Vercel (Settings → Environment Variables) — corrija
   e faça **Redeploy**.
-- Login recusado com o e-mail certo: confira `ALLOWED_EMAIL` (sem espaços) e se
-  o *Confirm email* está desligado no Supabase.
+- Login recusado com o e-mail certo: confira `ALLOWED_EMAIL` (sem espaços), o
+  e-mail do bloco "AJUSTE AQUI" de `supabase/schema.sql`
+  (`public.allowed_email()`, usado pelo trigger que barra contas de fora) e se
+  o *Confirm email* está desligado no Supabase. "Este app é pessoal." vindo
+  depois de "Criar conta" é o trigger falando: o e-mail da constante está
+  diferente do `ALLOWED_EMAIL`.
 - O `schema.sql` pode ser rodado mais de uma vez (usa `if not exists` e recria
   as policies).
 - Fotos não sobem: o bucket `progresso` precisa existir (o SQL cria) e o arquivo
