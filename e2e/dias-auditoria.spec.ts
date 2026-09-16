@@ -306,6 +306,15 @@ test.describe("o próximo treino sobre os dias escolhidos (SPEC §17.3)", () => 
     const siglas = await siglasDaFaixa(page);
     expect(siglas[3]).toBe("B");
     expect(siglas[5]).toBe("A");
+    /*
+     * SPEC §16.2 item 7: a quarta não era dia escolhido, mas ele treinou lá —
+     * a faixa mostra "A" e a marca de feito, não "Desc." sem marca nenhuma.
+     */
+    expect(siglas[2]).toBe("A");
+    await expect(page.locator('[data-dia="2026-09-16"]').first()).toHaveAttribute(
+      "data-marca",
+      "feito",
+    );
     // e a sessão da quarta conta na meta da semana personalizada (§17.3)
     await expect(page.getByRole("progressbar", { name: "Meta semanal" })).toHaveAttribute(
       "aria-valuenow",

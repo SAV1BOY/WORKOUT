@@ -482,6 +482,13 @@ Numa semana da **Fase 1** (treino "alternar"), dia a dia, de segunda a domingo:
    qui, IB sex) — nada aqui muda nada.
 6. **Semana curta** (§5.4) e overrides continuam valendo **por cima** do que
    esta regra produziu.
+7. **Treino feito num dia que o plano dizia descanso ou cardio** ("Treinar mesmo
+   assim", §5.3 — e, desde a §17, qualquer dia não escolhido): o dia mostra a
+   **sigla do treino** e a marca de feito, não "Desc." sem marca. A sessão já
+   contava na meta semanal e no Relatório; era só o histórico visual que a
+   escondia (correção de 16/09/2026). Um **cardio** feito num dia de descanso
+   ganha a marca de feito e mantém o rótulo do plano. Com **override** no dia,
+   vale o override (item 1).
 
 Implementação: `semanaCoerente()` / `semanaEEstado()` em `lib/calendario.ts`
 (funções puras). `semanaDoPlano()` continua existindo para quem projeta uma
@@ -608,9 +615,19 @@ sem tocar em nada. Com uma lista, monta assim:
 6. **Menos dias do que sessões**: corta na **ordem de sacrifício da §5.4** — 1º
    a última sessão de cardio da semana (a corrida de sábado), 2º a outra sessão
    de cardio, 3º um treino de força que **não** tenha agachamento nem terra
-   (Fase 2: SB, depois SA); sobrando **um dia só**, ele é o **Treino A** da fase
-   (`A1` na Fase 1, `SA` na Fase 2). Com zero dias escolhidos a semana é toda de
-   descanso.
+   (Fase 2: SB). Com duas correções, porque aqui a escolha é **permanente** e a
+   §5.4 foi escrita para uma semana curta (decisão de 16/09/2026, depois da
+   auditoria do marco):
+   - o corte **nunca deixa a semana só com treinos de perna**: sobrando **dois**
+     dias na Fase 2, é um superior e um inferior (**SA e IA**), não IA e IB —
+     senão peito, costas e ombro ficariam de fora da semana inteira;
+   - sobrando **um dia só**, na Fase 2 ele é o **Treino A** (`SA`); na **Fase 1**
+     ele continua `"alternar"`, e é a alternância do §5.2 item 3 que diz se hoje
+     é A1 ou B1 — prender o único dia no Treino A faria o levantamento terra do
+     Treino B nunca chegar (`proximoTreinoAlternado(null)` já começa em A1 para
+     quem está começando).
+
+   Com zero dias escolhidos a semana é toda de descanso.
 
 ### 17.3 O que passa a ler a semana montada
 `tipoDoDia()`, `montarDia()`, `treinoDeHoje()`, `sessaoCardioDeHoje()`,
@@ -645,8 +662,9 @@ rotulagem da §16.2 não muda: ela só passa a correr sobre os dias escolhidos.
    mesma coisa.
 3. Escolhendo **seg, qua e sex**: três dias de força e **nenhum** cardio (as
    duas sessões caíram na ordem da §5.4); a meta semanal padrão passa a ser 3.
-4. Escolhendo **dois dias**: dois treinos de força e nenhum cardio. Escolhendo
-   **um dia**: o Treino A.
+4. Escolhendo **dois dias**: dois treinos de força e nenhum cardio (na Fase 2,
+   SA e IA — nunca dois de perna). Escolhendo **um dia**: na Fase 2 o Treino A;
+   na Fase 1 o dia é "alternar" e a alternância segue semana a semana.
 5. Escolhendo os **sete dias**: as duas sobras viram dias livres com as notas do
    programa (barra fixa e caminhada leve).
 6. Fase 2 com **seis dias**: SA, IA, SB e IB nos quatro dias de força mais as
@@ -660,3 +678,4 @@ rotulagem da §16.2 não muda: ela só passa a correr sobre os dias escolhidos.
    da §17.2, a propriedade "nunca dois dias de força seguidos na Fase 1 quando
    havia alternativa", e e2e novos desta seção, os antigos ajustados sem
    afrouxar o que verificam.
+

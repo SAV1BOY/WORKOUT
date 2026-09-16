@@ -529,14 +529,18 @@ describe("a semana montada dos dias escolhidos (SPEC §17.3)", () => {
     expect(sessaoCardioDeHoje("2026-09-15", p)).toBeNull();
   });
 
-  it("um dia só na semana é o Treino A, toda semana (§5.4)", () => {
+  it("um dia só na semana alterna A e B semana a semana (§17.2 item 6)", () => {
     const p = perfil({
       ultimo_treino: "A1",
       prefs: { dias_de_treino: ["sab"] },
     });
     const sabado = treinoDeHoje("2026-09-19", p);
     expect(sabado.tipo).toBe("forca");
-    expect(sabado.treinoId).toBe("A1");
+    // o último foi A1, então o único dia da semana é o B1 — com um dia só, o
+    // Treino B nunca chegaria se o dia ficasse preso no Treino A
+    expect(sabado.treinoId).toBe("B1");
+    const comecando = perfil({ ultimo_treino: null, prefs: { dias_de_treino: ["sab"] } });
+    expect(treinoDeHoje("2026-09-19", comecando).treinoId).toBe("A1");
   });
 
   it("a semana coerente rotula os dias escolhidos e só eles", () => {

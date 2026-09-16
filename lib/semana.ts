@@ -178,7 +178,32 @@ function marcarDia(
   hoje: string,
 ): MarcaDaSessao {
   const vazio = { sessaoId: null, sessaoTipo: null };
-  if (dia.tipo === "descanso") return { marca: "descanso", ...vazio };
+  if (dia.tipo === "descanso") {
+    /*
+     * SPEC §16.2: descanso em que ele treinou mesmo assim (§5.3) ganha a marca
+     * de feito — a sessão já contava na meta semanal e no Relatório, e só o
+     * histórico visual a escondia. O rótulo do dia continua sendo o do plano.
+     */
+    const forca = sessoes.filter((s) => s.data === dia.data);
+    const concluida = forca.find((s) => s.status === "concluida");
+    if (concluida) return { marca: "feito", sessaoId: concluida.id, sessaoTipo: null };
+    const cardio = cardios.filter((c) => c.data === dia.data);
+    const cardioFeito = cardio.find((c) => c.concluida);
+    if (cardioFeito) {
+      return { marca: "feito", sessaoId: cardioFeito.id, sessaoTipo: cardioFeito.tipo };
+    }
+    const parcial = forca[0];
+    if (parcial) return { marca: "parcial", sessaoId: parcial.id, sessaoTipo: null };
+    const cardioParcial = cardio[0];
+    if (cardioParcial) {
+      return {
+        marca: "parcial",
+        sessaoId: cardioParcial.id,
+        sessaoTipo: cardioParcial.tipo,
+      };
+    }
+    return { marca: "descanso", ...vazio };
+  }
 
   if (dia.tipo === "forca") {
     const doDia = sessoes.filter((s) => s.data === dia.data);

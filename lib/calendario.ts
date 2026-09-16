@@ -457,6 +457,22 @@ function montarSemana(
     const feito =
       passado || ehHoje ? sessaoDoDia(sessoes, perfil.fase_atual, info.data) : null;
 
+    /*
+     * SPEC §16.2: um treino feito num dia que o plano dizia descanso ou cardio
+     * ("Treinar mesmo assim", §5.3 — e, desde a §17, qualquer dia não escolhido)
+     * conta e aparece: o dia vira força com a sigla do treino e o ✓, em vez de
+     * "Desc." sem marca nenhuma. Com override no dia vale o override (item 1).
+     */
+    if (info.tipo !== "forca" && feito && !info.excecao) {
+      return montarDia(
+        { ...info, tipo: "forca", programa: { ...info.programa, tipo: "forca" } },
+        perfil,
+        overrides,
+        ancora,
+        { treinoId: feito },
+      );
+    }
+
     if (info.tipo !== "forca" || fixo || (!passado && !feito)) {
       const dia = montarDia(info, perfil, overrides, ancora);
       // SPEC §16.2 item 3: um dia passado nunca avança a âncora — o

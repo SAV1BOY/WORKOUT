@@ -20,6 +20,7 @@ import {
   diasPadraoDaFase,
   resumoDosDias,
 } from "@/lib/dias";
+import { metaSemanal } from "@/lib/metas";
 import { salvarPrefs } from "@/lib/queries/mais";
 import type { DiaSemana } from "@/lib/schemas";
 import type { LinhaPerfil } from "@/lib/types";
@@ -55,6 +56,12 @@ export function DiasDeTreino({
   const [salvando, setSalvando] = useState(false);
 
   const resumo = resumoDosDias(perfil.fase_atual, gravados);
+  /*
+   * A meta que a aba Treino está usando de verdade: `prefs.meta_semanal`
+   * quando ele a definiu no card logo abaixo, senão o padrão que estes dias
+   * produzem. Sem isto os dois cards da mesma tela diziam números diferentes.
+   */
+  const meta = metaSemanal(perfil.prefs, perfil.fase_atual);
 
   const gravar = async (dias: DiaSemana[] | null, aviso: string) => {
     setSalvando(true);
@@ -123,7 +130,7 @@ export function DiasDeTreino({
         <p className="text-muted-foreground text-xs" data-resumo-dias>
           {escolhidos.length === 0
             ? "Nenhum dia escolhido: a semana fica toda de descanso."
-            : `${resumoEmTexto(resumo.forca, resumo.cardio, resumo.livres)} · meta semanal ${resumo.sessoes}`}
+            : `${resumoEmTexto(resumo.forca, resumo.cardio, resumo.livres)} · meta semanal ${meta}`}
           {personalizado ? "" : " (os dias do programa)"}
         </p>
 

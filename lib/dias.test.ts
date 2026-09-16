@@ -191,10 +191,16 @@ describe("Fase 1 (SPEC §17.2)", () => {
     expect(treinos(semana)).toEqual(["alternar", "alternar"]);
   });
 
-  it("um dia só: o Treino A (SPEC §5.4)", () => {
+  it("um dia só: a alternância continua decidindo (SPEC §17.2 item 6)", () => {
     const semana = semanaPersonalizada("fase1", ["qua"]);
     expect(porTipo(semana, "forca")).toEqual(["qua"]);
-    expect(treinos(semana)).toEqual(["A1"]);
+    /*
+     * "alternar", não "A1": com um dia de treino por semana o Treino B (o do
+     * levantamento terra) nunca chegaria. `proximoTreinoAlternado(null)` já
+     * começa em A1 para quem está começando, e daí a alternância roda semana a
+     * semana.
+     */
+    expect(treinos(semana)).toEqual(["alternar"]);
     expect(porTipo(semana, "cardio")).toEqual([]);
   });
 
@@ -272,8 +278,14 @@ describe("Fase 2 (SPEC §17.2)", () => {
     expect(treinos(semana)).toEqual(["SA", "IA", "IB"]);
   });
 
-  it("dois dias: sobram os dois de perna", () => {
-    expect(treinosParaNDias("fase2", 2)).toEqual(["IA", "IB"]);
+  it("dois dias: um superior e um inferior (SPEC §17.2 item 6)", () => {
+    /*
+     * A ordem de sacrifício da §5.4 sozinha deixaria IA e IB — duas pernas e
+     * nenhum superior a semana inteira. Como escolha permanente de dias, o
+     * corte preserva um treino de cada metade.
+     */
+    expect(treinosParaNDias("fase2", 2)).toEqual(["SA", "IA"]);
+    expect(treinos(semanaPersonalizada("fase2", ["seg", "qui"]))).toEqual(["SA", "IA"]);
   });
 
   it("um dia só: o Treino A da fase", () => {

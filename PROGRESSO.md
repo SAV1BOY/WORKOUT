@@ -5379,3 +5379,40 @@ contra o mock, nos dois temas.
 4. O card "Dias de treino" escreve "meta semanal N" com o **padrão** da semana
    montada mesmo quando `prefs.meta_semanal` manda outro número no card logo
    abaixo ("usando N por semana") — dois números diferentes na mesma tela.
+
+---
+
+## Marco Dias — ajustes decididos depois da auditoria (16/09/2026) ✅
+
+Os quatro itens da lista "Visto e **não** corrigido" acima, decididos pelo dono
+e aplicados. Motor e montagem continuam intocados (`git diff origin/main` vazio
+em `lib/progressao.ts` e `lib/montagem.ts`).
+
+1. **Fase 1 com um dia só volta a alternar** (`lib/dias.ts`): o dia fica com
+   `treino: "alternar"` em vez de `A1`, e a escada do §5.2 item 3 decide se hoje
+   é A ou B. `proximoTreinoAlternado(null)` já começa em A1 para quem está
+   começando, então nada muda no primeiro treino — e o Treino B (o do
+   levantamento terra) passa a chegar. SPEC §17.2 item 6 e §17.4 item 4
+   reescritos; unitários de `lib/dias.test.ts` e `lib/calendario.test.ts`
+   ajustados (o de calendário agora exige B1 depois de um A1 e A1 para quem
+   começa — mais forte do que o de antes, não mais frouxo).
+2. **Fase 2 com dois dias vira SA + IA** (`treinosParaNDias`): o corte da §5.4
+   nunca deixa a semana só com treinos de perna. A regra nova é "não corte o
+   último leve enquanto sobrar mais de um pesado"; com três dias continua SA,
+   IA, IB, como antes.
+3. **Treino feito em dia de descanso aparece** (SPEC §16.2 item 7): em
+   `montarSemana()` (`lib/calendario.ts`) um dia que o plano dizia descanso ou
+   cardio, mas que tem uma sessão de força registrada, vira dia de força com a
+   sigla do treino; em `marcarDia()` (`lib/semana.ts`) o descanso com sessão ou
+   cardio concluído ganha ✓ (parcial quando a sessão ficou aberta). Com override
+   no dia, vale o override. Quatro unitários novos em `lib/semana.test.ts` e o
+   e2e `dias-auditoria` agora confere a quarta não escolhida com "A" e `feito`.
+4. **"meta semanal N" do card "Dias de treino"** passa a usar
+   `metaSemanal(prefs, fase)`: quando `prefs.meta_semanal` existe, os dois cards
+   da mesma tela dizem o mesmo número.
+
+**Conhecido, não corrigido**: um **cardio** feito num dia de descanso ganha o ✓,
+mas o rótulo do dia continua "Desc." — mudar a sigla exigiria levar as sessões
+de cardio para dentro de `semanaCoerente()`, que hoje só recebe as de força. A
+marca já resolve o que incomodava: o dia treinado parecia vazio.
+

@@ -383,3 +383,58 @@ describe("rótulos curtos e semana da fase (SPEC §16.3 e §16.4)", () => {
     expect(corrente[0]?.rotuloLongo).toBe("Treino A · semana 1");
   });
 });
+
+describe("treino feito num dia de descanso (SPEC §16.2 e §5.3)", () => {
+  /* quinta 17/09: descanso no programa da Fase 1 */
+  const QUINTA = "2026-09-17";
+
+  it("a quinta em que ele treinou mostra a sigla do treino e o ✓", () => {
+    const grade = montarGrade({
+      data: SEMANA_1,
+      perfil: PERFIL,
+      hoje: "2026-09-20",
+      sessoes: [
+        { id: "s1", data: QUINTA, status: "concluida", workout_id: "A1" },
+      ],
+    });
+    const quinta = grade[3];
+    expect(quinta?.data).toBe(QUINTA);
+    expect(quinta?.sigla).toBe("A");
+    expect(quinta?.rotulo).toBe("Treino A");
+    expect(quinta?.marca).toBe("feito");
+    expect(quinta?.sessaoId).toBe("s1");
+  });
+
+  it("o cardio feito no domingo também marca o dia como feito", () => {
+    const grade = montarGrade({
+      data: SEMANA_1,
+      perfil: PERFIL,
+      hoje: "2026-09-20",
+      cardios: [{ id: "c1", data: "2026-09-20", tipo: "corrida", concluida: true }],
+    });
+    const domingo = grade[6];
+    expect(domingo?.marca).toBe("feito");
+    expect(domingo?.sessaoTipo).toBe("corrida");
+    // o rótulo continua sendo o do plano: o domingo não vira dia de corrida
+    expect(domingo?.sigla).toBe("Desc.");
+  });
+
+  it("uma sessão abandonada no descanso fica como parcial", () => {
+    const grade = montarGrade({
+      data: SEMANA_1,
+      perfil: PERFIL,
+      hoje: "2026-09-20",
+      sessoes: [
+        { id: "s2", data: QUINTA, status: "abandonada", workout_id: "B1" },
+      ],
+    });
+    expect(grade[3]?.marca).toBe("parcial");
+    expect(grade[3]?.sigla).toBe("B");
+  });
+
+  it("a quinta vazia continua descanso, sem marca", () => {
+    const grade = montarGrade({ data: SEMANA_1, perfil: PERFIL, hoje: "2026-09-20" });
+    expect(grade[3]?.marca).toBe("descanso");
+    expect(grade[3]?.sigla).toBe("Desc.");
+  });
+});

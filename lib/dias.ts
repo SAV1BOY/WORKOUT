@@ -266,6 +266,12 @@ export function escolherDiasDeCardio(
  * Os treinos da Fase 2 que cabem em `quantos` dias, na ordem SA, IA, SB, IB.
  * Faltando dia, corta na ordem da §5.4: o último treino que **não** tem
  * agachamento nem terra; sobrando um dia só, é o Treino A da fase.
+ *
+ * Com uma exceção (SPEC §17.2 item 6): o corte nunca deixa a semana **só** com
+ * treinos de perna. A §5.4 foi escrita para uma semana curta, em que sacrificar
+ * o superior custa uma vez; como escolha permanente de dias, ela deixaria
+ * peito, costas e ombro fora da semana inteira. Sobrando dois dias na Fase 2, é
+ * um superior e um inferior (SA e IA).
  */
 export function treinosParaNDias(fase: FaseId, quantos: number): TreinoId[] {
   const todos = [...acharFase(fase).treinos];
@@ -277,15 +283,16 @@ export function treinosParaNDias(fase: FaseId, quantos: number): TreinoId[] {
   const pesados = treinosPesados(fase);
   const restantes = [...todos];
   while (restantes.length > quantos) {
-    let i = -1;
-    for (let k = restantes.length - 1; k >= 0; k -= 1) {
-      if (!pesados.includes(restantes[k] as TreinoId)) {
-        i = k;
-        break;
-      }
-    }
-    if (i < 0) i = restantes.length - 1;
-    restantes.splice(i, 1);
+    const leves = restantes.filter((t) => !pesados.includes(t));
+    const duros = restantes.filter((t) => pesados.includes(t));
+    // cortar o último leve apagaria o único superior que restava: corta um
+    // pesado no lugar, enquanto houver mais de um (§17.2 item 6)
+    const alvo =
+      leves.length <= 1 && duros.length > 1
+        ? duros[duros.length - 1]
+        : (leves[leves.length - 1] ?? duros[duros.length - 1]);
+    const i = alvo ? restantes.indexOf(alvo) : restantes.length - 1;
+    restantes.splice(i < 0 ? restantes.length - 1 : i, 1);
   }
   return restantes;
 }
@@ -320,16 +327,21 @@ export function semanaPersonalizada(
 
   const diasDeForca = escolherDiasDeForca(fase, escolhidos, nForca);
 
-  // Fase 1: "alternar" (a escada do §5.2 decide); com um dia só, o Treino A.
-  // Fase 2: os treinos da fase na ordem, cortando pela §5.4 quando falta dia.
+  /*
+   * Fase 1: "alternar" — a escada do §5.2 decide qual treino é o de cada dia,
+   * inclusive quando há UM dia só na semana (SPEC §17.2 item 6). Escrever `A1`
+   * ali prendia o dia no Treino A para sempre e o levantamento terra do Treino
+   * B nunca chegava: a regra "sobrando um dia só, é o Treino A" da §5.4 é de
+   * semana curta, não de uma configuração permanente.
+   * Fase 2: os treinos da fase na ordem, cortando pela §5.4 quando falta dia.
+   */
   const alternar = daFase.semana.some((d) => d.treino === "alternar");
   const treinos = alternar
     ? diasDeForca.map(() => "alternar" as const)
     : treinosParaNDias(fase, diasDeForca.length);
-  const umSo = diasDeForca.length === 1 ? treinosParaNDias(fase, 1)[0] : null;
 
   const diasDePerna = diasDeForca.filter((_, i) => {
-    const t = umSo ?? treinos[i];
+    const t = treinos[i];
     if (!t || t === "alternar") return treinosPesados(fase).length > 0;
     return treinosPesados(fase).includes(t);
   });
@@ -344,7 +356,7 @@ export function semanaPersonalizada(
   return DIAS.map((dia): DiaPrograma => {
     const iForca = diasDeForca.indexOf(dia);
     if (iForca >= 0) {
-      const treino = umSo ?? treinos[iForca] ?? "alternar";
+      const treino = treinos[iForca] ?? "alternar";
       const min =
         treino === "alternar"
           ? (minForca[iForca] ?? minForca[0])
