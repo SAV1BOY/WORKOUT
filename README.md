@@ -128,8 +128,12 @@ puras, sem React e sem Supabase, cobertas pelos 22 casos de
 2. **Repositório**: o código de produção fica em `main`, no repositório privado
    `SAV1BOY/WORKOUT`. A camada visual v2.1 está no **PR #2** — sem o merge, o
    celular continua com o app antigo.
-3. **Vercel**: importar o repositório com *Production Branch* `main` e criar as
-   três variáveis em **Production e Preview**:
+3. **Vercel**: importar o repositório com *Production Branch* `main`. As
+   três variáveis vão **versionadas em `.env.production`** (só valores
+   públicos por desenho: a URL e a chave **anon** do Supabase, que de qualquer
+   forma vão para o navegador, e o e-mail permitido, que já está no schema);
+   a `service_role` nunca entra no repositório. Quem preferir variáveis no
+   painel apaga o arquivo e cadastra as três em **Production e Preview**:
 
    | Variável | Valor |
    |---|---|
@@ -137,10 +141,9 @@ puras, sem React e sem Supabase, cobertas pelos 22 casos de
    | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | a chave **anon public** |
    | `ALLOWED_EMAIL` | `miguelgsaviotti29@gmail.com` |
 
-   As duas `NEXT_PUBLIC_*` são lidas em tempo de execução: mudar o valor e dar
-   **Redeploy** basta. Em *Settings → Deployment Protection*, a proteção da
-   Vercel tem que ficar em **Only Preview Deployments** — em *All Deployments*
-   ela manda o celular para o login da Vercel.
+   *Deployment Protection* pode ficar em *Standard Protection*: ela protege só
+   os links internos de deploy e de preview; `https://treino-terraco.vercel.app`
+   abre sem login da Vercel.
 4. **Supabase → Authentication → URL Configuration**: *Site URL* = a URL da
    Vercel e *Redirect URLs* = `https://SUA-URL.vercel.app/**`. Sem isso a volta
    do login cai no `localhost`.

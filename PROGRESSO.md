@@ -388,36 +388,26 @@ lista do treino.
    produção terminar.
 2. O projeto **`treino-terraco`** já existe na Vercel (time
    `saviboys-projects`), vinculado a `SAV1BOY/WORKOUT` com *Production Branch*
-   `main`, e já tem um deploy da `main`. O build é o `npm run build` do
-   projeto — o `prebuild` roda `validar` e `assets`, então as figuras e as
-   fotos vão para `public/` no deploy (a pasta é **gerada**, não versionada).
-   Dois ajustes só o dono consegue fazer (o token desta sessão não tem
-   permissão de alterar o projeto):
-   - **Settings → Deployment Protection → Vercel Authentication**: está em
-     *All Deployments*, o que manda o celular para o login da Vercel. Mude para
-     **Only Preview Deployments** (ou desligue).
-   - **Settings → Domains**: anote o domínio de produção real
-     (`treino-terraco.vercel.app` respondia 404 sem deployment em 15/09; a
-     Vercel pode ter gerado outro nome).
-3. **Environment Variables** — as três, em **Production e Preview**. Pelo
-   painel (Settings → Environment Variables) ou pela CLI:
-
-   ```bash
-   npm i -g vercel && vercel login && vercel link   # escolha SAV1BOY/WORKOUT
-   vercel env add NEXT_PUBLIC_SUPABASE_URL production
-   vercel env add NEXT_PUBLIC_SUPABASE_URL preview
-   vercel env add NEXT_PUBLIC_SUPABASE_ANON_KEY production
-   vercel env add NEXT_PUBLIC_SUPABASE_ANON_KEY preview
-   vercel env add ALLOWED_EMAIL production
-   vercel env add ALLOWED_EMAIL preview
-   # cole o valor quando ele pedir; confira depois com:
-   vercel env ls
-   ```
-
-4. **Redeploy** (Deployments → ⋯ → Redeploy). As duas `NEXT_PUBLIC_*` são
-   lidas em tempo de execução: mudar o valor e redeployar basta, não é preciso
-   rebuildar em outra máquina. Anote a URL final
-   (`https://treino-terraco.vercel.app` ou parecida).
+   `main`. O build é o `npm run build` do projeto — o `prebuild` roda `validar`
+   e `assets`, então as figuras e as fotos vão para `public/` no deploy (a
+   pasta é **gerada**, não versionada). O domínio de produção é
+   **`https://treino-terraco.vercel.app`**.
+   - **Deployment Protection** fica como está (*Standard Protection*): ela
+     protege só os links internos de deploy e de preview; o domínio de
+     produção abre sem login da Vercel (conferido em 16/09/2026). Use sempre
+     o endereço acima no celular.
+3. **Variáveis**: em 16/09/2026 elas passaram a ir **versionadas em
+   `.env.production`** (`NEXT_PUBLIC_SUPABASE_URL`,
+   `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `ALLOWED_EMAIL`), porque o conector da
+   Vercel desta sessão não cria variáveis no painel. É seguro: a URL e a chave
+   anon vão para o navegador de qualquer jeito (são públicas por desenho) e o
+   e-mail já está em `supabase/schema.sql`; a `service_role` nunca entra no
+   repositório. O Next.js lê o arquivo no `next build` da Vercel. Se um dia
+   quiser trocar para variáveis do painel, apague o arquivo e cadastre as três
+   em **Production e Preview** (Settings → Environment Variables ou
+   `vercel env add`).
+4. **Deploy**: cada push em `main` gera o deploy de produção. Para forçar um
+   novo, Deployments → ⋯ → Redeploy.
 
 ### 4. Fechar o círculo no Supabase
 

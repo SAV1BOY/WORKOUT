@@ -21,7 +21,7 @@ create extension if not exists "pgcrypto";
 --  vaza pelo /rest/v1/rpc do PostgREST.
 -- =====================================================================
 create or replace function public.allowed_email() returns text
-  language sql immutable parallel safe
+  language sql immutable parallel safe set search_path = public
   as $$ select 'miguelgsaviotti29@gmail.com'::text $$;
 revoke all on function public.allowed_email() from public;
 
@@ -216,7 +216,7 @@ alter table public.sessions add column if not exists semana_plano int;
 alter table public.sessions add column if not exists plano jsonb;
 
 -- ---------- updated_at automático ----------
-create or replace function public.set_updated_at() returns trigger language plpgsql as $$
+create or replace function public.set_updated_at() returns trigger language plpgsql set search_path = public as $$
 begin new.updated_at = now(); return new; end $$;
 drop trigger if exists profiles_updated on public.profiles;
 create trigger profiles_updated before update on public.profiles for each row execute function public.set_updated_at();
@@ -244,6 +244,8 @@ end $$;
 drop trigger if exists on_auth_user_email_permitido on auth.users;
 create trigger on_auth_user_email_permitido before insert on auth.users
   for each row execute function public.exigir_email_permitido();
+-- função de trigger não é para ser chamada pelo /rest/v1/rpc (advisor 0028/0029)
+revoke all on function public.exigir_email_permitido() from public, anon, authenticated;
 
 -- ---------- perfil criado automaticamente no primeiro login ----------
 create or replace function public.handle_new_user() returns trigger language plpgsql security definer set search_path = public as $$
@@ -253,6 +255,7 @@ begin
 end $$;
 drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created after insert on auth.users for each row execute function public.handle_new_user();
+revoke all on function public.handle_new_user() from public, anon, authenticated;
 
 -- ---------- RLS: cada linha só do dono ----------
 -- Toda policy deste arquivo filtra por `auth.uid()` (as de tabela por
