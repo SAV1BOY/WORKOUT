@@ -5486,3 +5486,53 @@ o diálogo de confirmação.
   (primeira abertura, sem rede, sem cache), os botões do card ficam
   desabilitados até as cargas carregarem: sem elas, "mais leve" e "do zero"
   gravariam vazio. Preferi travar a decisão a gravar errado.
+
+---
+
+## Auditoria do marco Retomada — rodada 1 (16/09/2026)
+
+Portões rodados do zero: `npm run lint` limpo · `npm run build` ✓ ·
+`npm test` **1097** · `npm run e2e` **240 passed (8.8 min)**. Motor e montagem
+intocados (`git diff origin/main` vazio em `lib/progressao.ts` e
+`lib/montagem.ts`); no schema só os dois motivos no comentário.
+
+Conferido no Chromium a 360 × 740 contra o mock, nos dois temas, com dados
+semeados: as quatro faixas nas bordas exatas (7, 13, 14, 27 e 28 dias), o que
+cada escolha grava linha a linha no mock (`exercise_state`,
+`progression_events`, `profiles.semana_*`, `prefs.retomada`, `ultimo_treino`,
+`fase_desde`), a sessão em andamento que **não** conta, o card que some e não
+volta para a mesma pausa mas volta numa pausa nova, e a linha da pausa no
+Relatório.
+
+### Corrigido aqui
+
+1. **O FAB "Ajustar" cobria o card.** Ele é `fixed right-4 bottom-24` e caía em
+   cima da opção "Voltar mais leve", comendo o fim da frase e o toque naquele
+   canto. Com a pausa por decidir ele sai da tela (SPEC §18.3 ganhou a frase).
+2. **SPEC §18.3 dizia "cache do TanStack Query invalidado"** e o código
+   atualiza o cache **à mão** — de propósito, porque invalidar sem rede jogaria
+   a aba Treino na tela de erro. A frase foi corrigida para o que o código faz.
+3. **Seis e2e novos** em `e2e/retomada.spec.ts` (16 no total do arquivo): as
+   bordas das faixas, a pausa nova que pergunta de novo, a sessão depois da
+   semana leve devolvendo a carga cheia **sem contar falha** (`fim_semana_leve`,
+   `falhas_seguidas = 0`), a linha do Relatório, o "Voltar mais leve" offline
+   (as cargas vêm do cache persistido) e o FAB que some.
+
+### Visto e **não** corrigido (vai para o dono decidir)
+
+1. **Só "Começar treino" passa pelo card.** Num dia de **cardio**, o "Começar"
+   é um `<Link>` para `/cardio/corrida?semana=N` e leva direto; num dia de
+   **descanso**, o "+1" da barra fixa grava na hora. Como a conta de dias parado
+   olha a **última atividade**, qualquer um dos dois zera a pausa e o card
+   **some sem nunca ter sido decidido** — quem voltou de 30 dias e tocou no "+1"
+   nunca recebe "Voltar mais leve". Confirmado no navegador. Conserto: passar os
+   outros gestos da aba Treino pelo mesmo portão da §18.3 (o "Começar" do
+   cardio, o "+1", o "Treinar mesmo assim" e a caminhada), ou fazer a conta
+   ignorar a atividade **de hoje** enquanto a pausa não foi decidida.
+2. **A pausa longa some da janela de 16 semanas.** `useCardioDesde`/`useSoltas`
+   leem só as últimas 16 semanas: com **um cardio de 150 dias** como única
+   atividade da vida, o card **não aparece**; com uma sessão de força de 200
+   dias mais um cardio de 150, o card diz "200 dias" em vez de 150. As opções da
+   faixa são as mesmas dos dois jeitos (28+), então só o número engana.
+   Conserto: uma leitura própria da última atividade (um `order`+`limit 1` por
+   tabela, sem janela) para `diasParado`.

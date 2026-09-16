@@ -487,7 +487,12 @@ export function TelaTreino({ userId }: { userId: string }) {
 
       <Personalizar prefs={perfil.prefs} />
 
-      <FabAjustar perfil={perfil} />
+      {/*
+        SPEC §18.3: o FAB é `fixed` e passa por cima do card da retomada, comendo
+        o fim da frase de uma das opções e o toque naquele canto. Com a pausa por
+        decidir ele sai da tela — decidir vem antes de ajustar.
+      */}
+      {mostrarRetomada ? null : <FabAjustar perfil={perfil} />}
     </Tela>
   );
 }

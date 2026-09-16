@@ -16,6 +16,7 @@ import {
   fixarData,
   fixarRelogio,
   inserirNoMock,
+  irNaAba,
   lerDoMock,
   resetarMock,
   semRolagemHorizontal,
@@ -384,5 +385,176 @@ test.describe("a escolha sem rede (SPEC §8 e §18.2)", () => {
         { timeout: 40_000 },
       )
       .toBe(2);
+  });
+});
+
+/* ------------------------------------------ auditoria do marco (16/09/2026) */
+
+test.describe("auditoria do marco Retomada", () => {
+  test("as bordas das quatro faixas: 7, 13, 14, 27 e 28 dias (SPEC §18.2)", async ({
+    page,
+  }) => {
+    const faixas: [number, string[]][] = [
+      [7, ["continuar", "semana"]],
+      [13, ["continuar", "semana"]],
+      [14, ["continuar", "leve"]],
+      [27, ["continuar", "leve"]],
+      [28, ["continuar", "leve", "zero"]],
+    ];
+    for (const [dias, esperadas] of faixas) {
+      await resetarMock();
+      await usuarioParado(dias);
+      await fixarData(page, HOJE);
+      await entrarNoApp(page);
+      await esperarAbaTreino(page);
+      await expect(card(page)).toContainText(`Você ficou ${dias} dias sem treinar`);
+      for (const e of ["continuar", "semana", "leve", "zero"]) {
+        await expect(opcao(page, e)).toHaveCount(esperadas.includes(e) ? 1 : 0);
+      }
+      for (const e of esperadas) {
+        const caixa = await opcao(page, e).boundingBox();
+        expect(caixa?.height ?? 0).toBeGreaterThanOrEqual(44);
+        expect((caixa?.x ?? 0) + (caixa?.width ?? 0)).toBeLessThanOrEqual(360);
+      }
+      await semRolagemHorizontal(page);
+      await page.context().clearCookies();
+    }
+  });
+
+  test("uma pausa NOVA pergunta de novo (SPEC §18.4)", async ({ page }) => {
+    const sessao = await usuarioParado(10);
+    await fixarData(page, HOJE);
+    await entrarNoApp(page);
+    await esperarAbaTreino(page);
+    await opcao(page, "continuar").click();
+    await esperarEscolha(page, sessao, "continuar");
+
+    // voltou a treinar no dia seguinte e parou outros 9 dias
+    await inserirNoMock(sessao, "sessions", [
+      {
+        data: "2026-10-27",
+        workout_id: "A1",
+        fase: "fase1",
+        status: "concluida",
+        concluida_em: "2026-10-27T11:00:00-03:00",
+      },
+    ]);
+    await fixarData(page, "2026-11-05T08:00:00-03:00");
+    await page.reload();
+    await esperarAbaTreino(page);
+    await expect(card(page)).toContainText("Você ficou 9 dias sem treinar");
+  });
+
+  test("a sessão depois da semana leve devolve a carga cheia, sem falha (§6.2)", async ({
+    page,
+  }) => {
+    const sessao = await usuarioParado(20);
+    await fixarData(page, HOJE);
+    await entrarNoApp(page);
+    await esperarAbaTreino(page);
+
+    await opcao(page, "leve").click();
+    await esperarEscolha(page, sessao, "leve");
+
+    await comecarOTreinoDoDia(page);
+    await abrirVisaoGeral(page);
+    for (const n of [1, 2, 3]) {
+      const grupo = page.getByRole("group", { name: `Série ${n} — Agachamento livre` });
+      await grupo.getByRole("checkbox").click();
+      await expect(grupo.getByRole("checkbox")).toHaveAttribute("aria-checked", "true");
+    }
+    await page.getByRole("button", { name: "Concluir" }).click();
+    const resumo = page.getByRole("dialog");
+    await expect(resumo.getByText("Treino concluído")).toBeVisible();
+    await resumo.getByRole("button", { name: "Salvar e voltar" }).click();
+    await esperarAbaTreino(page);
+
+    await expect
+      .poll(
+        async () =>
+          (await estadosDoMock(sessao)).find(
+            (e) => e.exercise_id === "agachamento-livre",
+          ),
+        { timeout: 20_000 },
+      )
+      .toMatchObject({
+        carga_atual_kg: CARGA,
+        semana_leve: false,
+        carga_antes_leve: null,
+        falhas_seguidas: 0,
+      });
+
+    const eventos = await lerDoMock<{ motivo: string }>(sessao, "progression_events");
+    expect(eventos.map((e) => e.motivo)).toContain("retomada_leve");
+    expect(eventos.map((e) => e.motivo)).toContain("fim_semana_leve");
+  });
+
+  test("o Histórico do Relatório ganha a linha da pausa (SPEC §18.5)", async ({
+    page,
+  }) => {
+    const sessao = await usuarioParado(10);
+    await fixarData(page, HOJE);
+    await entrarNoApp(page);
+    await esperarAbaTreino(page);
+    await opcao(page, "semana").click();
+    await esperarEscolha(page, sessao, "semana");
+
+    await irNaAba(page, "Relatório");
+    const linha = page.locator('[data-registro="pausa"]');
+    await expect(linha).toContainText("Pausa de 10 dias");
+    await expect(linha).toContainText("recomeçar a semana");
+    await semRolagemHorizontal(page);
+  });
+
+  test("offline, com 20 dias, 'Voltar mais leve' vale na hora e sobe depois (§18.6)", async ({
+    page,
+    context,
+  }) => {
+    const sessao = await usuarioParado(20);
+    await fixarData(page, HOJE);
+    await entrarNoApp(page);
+    await esperarAbaTreino(page);
+    await expect(opcao(page, "leve")).toBeEnabled();
+    await esperarServiceWorker(page);
+    // o cache de leitura é gravado no máximo 1× por segundo
+    await page.waitForTimeout(1_500);
+
+    await context.setOffline(true);
+    await page.reload();
+    await esperarAbaTreino(page);
+    // as cargas vêm do cache persistido: sem elas a decisão ficaria travada
+    await expect(opcao(page, "leve")).toBeEnabled({ timeout: 15_000 });
+    await opcao(page, "leve").click();
+    await expect(card(page)).toHaveCount(0);
+
+    await context.setOffline(false);
+    await expect
+      .poll(
+        async () => {
+          await page.evaluate(() => window.dispatchEvent(new Event("online")));
+          return (await estadosDoMock(sessao)).find(
+            (e) => e.exercise_id === "agachamento-livre",
+          )?.carga_atual_kg;
+        },
+        { timeout: 40_000 },
+      )
+      .toBe(CARGA_LEVE);
+  });
+
+  test("o FAB Ajustar sai da tela enquanto a pausa não foi decidida (SPEC §18.3)", async ({
+    page,
+  }) => {
+    const sessao = await usuarioParado(40);
+    await fixarData(page, HOJE);
+    await entrarNoApp(page);
+    await esperarAbaTreino(page);
+
+    const fab = page.getByRole("button", { name: "Ajustar" });
+    await expect(card(page)).toBeVisible();
+    await expect(fab).toHaveCount(0);
+
+    await opcao(page, "continuar").click();
+    await esperarEscolha(page, sessao, "continuar");
+    await expect(fab).toBeVisible();
   });
 });

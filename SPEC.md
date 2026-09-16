@@ -762,9 +762,14 @@ diálogo que diz **o que se perde** (as cargas de todos os exercícios voltam ao
 começo; o histórico fica) e só o **segundo** toque confirma.
 
 Decidida a retomada, o card **some** e a aba Treino e o `/calendario` se
-atualizam na hora (cache do TanStack Query invalidado). Tocar em **"Começar
+atualizam na hora (o cache do TanStack Query é **atualizado à mão**, não
+invalidado: sem rede, invalidar refaria a leitura e jogaria a aba Treino na tela
+de erro — §8). Tocar em **"Começar
 treino"** com o card pendente **não** começa o treino: leva ao card, com foco e
-destaque — decidir vem antes de treinar.
+destaque — decidir vem antes de treinar. Pelo mesmo motivo, o **FAB "Ajustar"**
+da aba Treino (§14.3) **não aparece** enquanto a pausa não foi decidida: ele é
+`fixed` e passava por cima do card, comendo o fim da frase de uma das opções e o
+toque naquele canto.
 
 ### 18.4 Perguntar uma vez por pausa
 A escolha vai para
