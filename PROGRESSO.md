@@ -336,8 +336,9 @@ Para o dono fazer no ambiente dele, na ordem. Leva uns 30 minutos.
    `schedule_overrides`) e em **Storage** o bucket `progresso`.
 6. **Authentication → Providers → Email**: *Enable Email provider* ligado e
    **Confirm email desligado**. Salvar. (O interruptor *Allow new users to sign
-   up* fica **ligado por enquanto** — você ainda vai criar a conta do Miguel no
-   passo 5 desta checklist; é lá que ele é desligado.)
+   up* fica **ligado por enquanto** — você ainda vai criar a conta do Miguel na
+   etapa **5. Criar a conta e conferir** desta checklist; é lá que ele é
+   desligado.)
 7. **Project Settings → API**: copie a **Project URL**
    (`https://xxxx.supabase.co`) e a chave **anon public / publishable**
    (`eyJ...` ou `sb_publishable_...`). **Nunca** use a `service_role`.
