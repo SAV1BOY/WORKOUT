@@ -165,6 +165,7 @@ Seja `alvo_max` o topo da faixa (`prescricao.max`; para "3 × 5" min = max = 5; 
 - **Peso corporal com faixa** (abdominais, elevação de pernas): progride em reps; acima de 20 reps em todas as séries, sugere anilha (2 kg) e volta ao piso da faixa.
 - **Substituição de exercício** no dia: o substituto usa o próprio estado; o original não é avaliado.
 - **Sessão abandonada**: só os exercícios com todas as séries registradas são avaliados; os demais não mudam.
+- **Exercício sem nenhuma série registrada** (decisão de 16/09/2026, vale também na sessão **concluída**): não foi feito, então **não é avaliado** — nem `exercise_state`, nem `progression_events`, e `falhas_seguidas` não muda. O "não concluída" da §6.2 é falha dentro de um exercício que o dono *tentou* (alguma série de trabalho concluída); o bloco inteiro em branco é ausência, não fracasso. Sem esta regra, andar pelos exercícios com o "Próximo passo" da §14.1 e tocar em "Concluído" tiraria 10 % da carga de exercícios nunca tentados. O resumo do fim (§6.6 e §14.1.5) diz "Não foi feito nesta sessão, então não conta como falha: …" e as séries em branco continuam indo para o banco como sempre.
 
 ### 6.4 Arredondamento e limites
 - Barra maciça: cargas possíveis = 7,5 + 2 × (soma de anilhas de um lado); passos de 2 kg (1 kg por lado). Teto 107,5 kg com o kit atual.

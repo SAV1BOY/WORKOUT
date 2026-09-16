@@ -46,7 +46,8 @@ export function ResumoDoFim({
   const [mostraPeso, setMostraPeso] = useState(false);
 
   const comEvento = resultados.filter((r) => r.motivo !== null);
-  const naoAvaliados = resultados.filter((r) => r.naoAvaliado);
+  const semCarga = resultados.filter((r) => r.motivoNaoAvaliado === "estado_desconhecido");
+  const naoFeitos = resultados.filter((r) => r.motivoNaoAvaliado === "nao_feito");
   const recordes = resultados.flatMap((r) =>
     r.recordes.map((rec) => ({ nome: r.nome, texto: rec.texto })),
   );
@@ -106,11 +107,18 @@ export function ResumoDoFim({
             </ul>
           )}
           {/* SPEC §6.3: sem a carga atual do exercício não dá para avaliar */}
-          {naoAvaliados.length > 0 ? (
+          {semCarga.length > 0 ? (
             <p className="text-muted-foreground text-xs">
               Sem avaliar, porque não consegui ler a carga atual:{" "}
-              {naoAvaliados.map((r) => r.nome).join(" · ")}. As séries foram
+              {semCarga.map((r) => r.nome).join(" · ")}. As séries foram
               guardadas; a progressão fica como está.
+            </p>
+          ) : null}
+          {/* SPEC §6.3: o que não foi tentado não conta como falha */}
+          {naoFeitos.length > 0 ? (
+            <p className="text-muted-foreground text-xs">
+              Não foi feito nesta sessão, então não conta como falha:{" "}
+              {naoFeitos.map((r) => r.nome).join(" · ")}. A progressão fica como está.
             </p>
           ) : null}
         </section>

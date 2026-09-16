@@ -446,6 +446,56 @@ describe("substituir hoje (SPEC §3.2)", () => {
     });
   });
 
+  /*
+   * SPEC §6.3: "Concluído" com cinco exercícios em branco não é cinco falhas.
+   * A montagem já cria as séries vazias, então sem esta guarda o motor lia
+   * "série não concluída" = falha (§6.2) e gravava `falhas_seguidas` para
+   * exercícios que o dono nem tentou — duas sessões assim tiravam 10 % da
+   * carga deles e a terceira mandava semana leve.
+   */
+  it("exercício sem nenhuma série registrada não é avaliado nem conta falha", () => {
+    const feita = fazerTudoNoTopo(sessaoA(), "agachamento-livre");
+    const { resultados, escritas } = concluirSessao({
+      sessao: { ...feita, status: "concluida" },
+      agora: "2026-09-14T10:00:00.000Z",
+      novoId: contador("e"),
+    });
+
+    const agachamento = resultados.find((r) => r.exercicioId === "agachamento-livre")!;
+    expect(agachamento.naoAvaliado).toBe(false);
+    expect(agachamento.motivo).toBe("subiu");
+
+    // os outros cinco blocos ficaram em branco
+    const emBranco = resultados.filter((r) => r.exercicioId !== "agachamento-livre");
+    expect(emBranco).toHaveLength(5);
+    for (const r of emBranco) {
+      expect(r.naoAvaliado).toBe(true);
+      expect(r.motivoNaoAvaliado).toBe("nao_feito");
+      expect(r.falha).toBe(false);
+      expect(r.motivo).toBeNull();
+      expect(r.decisao.evento).toBeNull();
+      expect(r.texto).toBe("sem série registrada: não foi feito nesta sessão");
+    }
+
+    // uma escrita de estado e um evento: só o exercício que foi feito
+    const estados = escritas.filter((e) => e.tabela === "exercise_state");
+    const eventos = escritas.filter((e) => e.tabela === "progression_events");
+    expect(estados).toHaveLength(1);
+    expect(eventos).toHaveLength(1);
+    expect(estados[0]?.linha).toMatchObject({ exercise_id: "agachamento-livre" });
+    expect(eventos[0]?.linha).toMatchObject({ exercise_id: "agachamento-livre" });
+  });
+
+  it("série registrada abaixo do piso continua sendo falha", () => {
+    // o bloco foi FEITO (3 séries concluídas), só que fraco: isso é falha
+    const feita = fazerTudoNoTopo(sessaoA(), "agachamento-livre", { reps: 3 });
+    const resultado = avaliarSessao({ ...feita, status: "concluida" }).find(
+      (r) => r.exercicioId === "agachamento-livre",
+    )!;
+    expect(resultado.naoAvaliado).toBe(false);
+    expect(resultado.falha).toBe(true);
+  });
+
   it("uma sessão gravada antes deste campo continua sendo avaliada", () => {
     const s = fazerTudoNoTopo(sessaoA(), "agachamento-livre");
     const antiga: SessaoLocal = {

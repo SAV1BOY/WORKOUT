@@ -1061,10 +1061,17 @@ export interface ResultadoExercicio {
   /** A decisão veio de uma série abaixo do piso ou faltando (SPEC §6.2). */
   falha: boolean;
   /**
-   * O bloco ficou de fora do motor porque o `exercise_state` dele é
-   * desconhecido (SPEC §6.3): as séries são gravadas, a progressão não.
+   * O bloco ficou de fora do motor: as séries (se houver) são gravadas, a
+   * progressão não. São dois casos, em `motivoNaoAvaliado`.
    */
   naoAvaliado: boolean;
+  /**
+   * Por que ficou de fora:
+   * - `"nao_feito"`: nenhuma série de trabalho concluída (SPEC §6.3) — o
+   *   exercício não foi tentado, então não conta como falha;
+   * - `"estado_desconhecido"`: o `exercise_state` dele não foi lido.
+   */
+  motivoNaoAvaliado: "nao_feito" | "estado_desconhecido" | null;
   /** "7,5 → 9,5 kg na barra", "10 → 11 repetições", "repetiu 7,5 kg na barra". */
   texto: string;
   aviso: string | null;
@@ -1196,10 +1203,21 @@ export function avaliarSessao(sessao: SessaoLocal): ResultadoExercicio[] {
   return sessao.blocos.map((bloco) => {
     const exercicio = acharExercicio(bloco.exercicioId);
     const firme = bloco.ultimaFirme ?? firmePadrao(bloco);
+    const trabalho = bloco.series.filter((s) => s.tipo === "trabalho");
+    /*
+     * SPEC §6.3: um bloco sem NENHUMA série de trabalho concluída não foi
+     * feito — e o que não foi tentado não pode virar falha. A montagem já cria
+     * as séries vazias, então mandá-las ao motor seria ler "série não
+     * concluída" = falha (§6.2) para um exercício que o dono pulou: duas
+     * sessões assim tirariam 10 % da carga de um exercício nunca tentado.
+     * Passar a lista vazia faz o motor devolver `nada` (nem estado, nem
+     * evento); as séries continuam gravadas como sempre.
+     */
+    const nadaFeito = !trabalho.some((s) => s.concluida);
     const decisao = decidir(
       exercicio,
       bloco.estado,
-      bloco.series.filter((s) => s.tipo === "trabalho").map(serieParaMotor),
+      nadaFeito ? [] : trabalho.map(serieParaMotor),
       {
         prescricao: bloco.prescricao,
         ultimaFirme: firme,
@@ -1209,11 +1227,12 @@ export function avaliarSessao(sessao: SessaoLocal): ResultadoExercicio[] {
       },
     );
     /*
-     * Estado desconhecido (SPEC §6.3): a decisão sairia de uma carga inventada
-     * e o upsert apagaria a progressão real. O evento vira nulo — e é ele que
+     * Fora do motor (SPEC §6.3), por não ter sido feito ou porque a carga
+     * atual dele é desconhecida — aí a decisão sairia de uma carga inventada e
+     * o upsert apagaria a progressão real. O evento vira nulo — e é ele que
      * `concluirSessao` usa para decidir o que gravar.
      */
-    if (!blocoAvaliavel(bloco)) {
+    if (nadaFeito || !blocoAvaliavel(bloco)) {
       return {
         exercicioId: bloco.exercicioId,
         nome: exercicio.nome,
@@ -1222,7 +1241,10 @@ export function avaliarSessao(sessao: SessaoLocal): ResultadoExercicio[] {
         simbolo: null,
         falha: false,
         naoAvaliado: true,
-        texto: "não avaliado: não consegui ler a carga atual deste exercício",
+        motivoNaoAvaliado: nadaFeito ? "nao_feito" : "estado_desconhecido",
+        texto: nadaFeito
+          ? "sem série registrada: não foi feito nesta sessão"
+          : "não avaliado: não consegui ler a carga atual deste exercício",
         aviso: null,
         sugestao: null,
         recordes: [],
@@ -1251,6 +1273,7 @@ export function avaliarSessao(sessao: SessaoLocal): ResultadoExercicio[] {
       simbolo,
       falha: evento?.falha === true,
       naoAvaliado: false,
+      motivoNaoAvaliado: null,
       texto: textoDaDecisao(exercicio, decisao),
       // o motor devolve a chave; o texto vem de data/progressao.json
       aviso: textoDoMotor(evento?.aviso),
