@@ -260,3 +260,19 @@ export function evitadosPorUltimo<T>(
   const vai = itens.filter((i) => evitar.has(id(i)));
   return [...fica, ...vai];
 }
+
+/* --------------------------------------- guia de uso (SPEC §20.2) */
+
+/**
+ * `prefs.guia_visto`: a marca de que o guia de uso já foi reconhecido —
+ * "Entendi, começar a treinar" ou "Pular por agora". Ausente = a conta é nova
+ * e a aba Treino manda para o guia. Só `true` conta: o jsonb vem do banco (e
+ * de um backup importado), então nada aqui confia no formato.
+ */
+export function guiaVisto(prefs: Prefs | null | undefined): boolean {
+  return prefs?.guia_visto === true;
+}
+
+export function comGuiaVisto(prefs: Prefs | null | undefined): Prefs {
+  return { ...(prefs ?? {}), guia_visto: true };
+}

@@ -176,6 +176,13 @@ const ESQUEMA: Record<string, EspecTabela> = {
         descanso_som: true,
         descanso_vibra: true,
         manter_tela: true,
+        /*
+         * SPEC §20.1: sem esta marca a aba Treino manda todo mundo para o guia
+         * de uso. O perfil padrão do mock já nasce com o guia reconhecido para
+         * os e2e antigos entrarem direto; o spec do guia semeia um perfil SEM a
+         * chave (`prefs: {}`) para testar a primeira entrada.
+         */
+        guia_visto: true,
       }),
       created_at: agora,
       updated_at: agora,

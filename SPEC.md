@@ -94,6 +94,8 @@ Lista com busca e filtros (grupo, equipamento, implemento, "está no meu program
 ### 3.9 `/mais`
 Perfil (nome, altura, data de início, fase atual e desde quando, semanas de corrida/corda/fixa com botões de ajuste), equipamento (lista com fotos e specs, pesos das barras editáveis — a barra W e a reta oca ainda serão pesadas), preferências (tema, som/vibração do timer, manter tela acesa, incremento por exercício), **exportar backup** (JSON com tudo) e importar, sair.
 
+**"Como usar o app"** é a primeira linha da lista e abre o guia de uso da §20.
+
 ---
 
 ## 4. Modelo de dados
@@ -309,6 +311,7 @@ Player por tempo para as coleções "Circuitos" e para qualquer sessão livre co
 ### 13.7 Corpo e Mais
 - Corpo: aba Peso ganha o card IMC (mesmo da 13.5) com a altura editável; o resto igual.
 - Mais → Preferências: "Meta semanal" (inteiro, padrão calculado pela fase), "Voz no circuito", "Mostrar raios de dificuldade" (liga/desliga).
+- Mais: a linha **"Como usar o app"** no topo da lista abre o guia de uso (§20).
 
 ### 13.8 Critérios de aceite do adendo
 1. A 360 px, no escuro e no claro: Treino mostra a faixa da semana, a meta, todos os cards do dia e a lista com miniatura, prescrição e carga com o rótulo certo; nada corta, nada rola de lado, alvos ≥ 44 px.
@@ -1020,3 +1023,146 @@ orquestrador previa exatamente isso). As conquistas moram no Relatório.
 6. Unitários cobrindo **cada** conquista com um caso que fecha e um que não
    fecha, os três períodos e o recorte por data; lint, build, `npm test` e
    `npm run e2e` verdes, com e2e novos desta seção.
+
+
+---
+
+## 20. Guia de uso — decisão de 16/09/2026 (adendo, marco Guia de uso)
+
+O dono pediu, com estas palavras: *"Crie um guia para os iniciantes, tipo uma
+aba de tutorial, onde ele mostra pra pessoa quando for a primeira vez ou quando
+ela quer saber como usar a plataforma mostrando todas as abas e todas as funções
+mostrando o caminho e onde clicar para ir em cada função."* E, logo depois:
+*"ao invés de uma aba, esta parte do tutorial pode ser na primeira vez que
+alguem criar a conta no app e na aba mais ter o botão de mostrar o tutorial"*.
+
+O app tem cinco abas (§13.2) e muita coisa escondida atrás de um toque: a faixa
+da semana leva ao calendário, o ⇄ troca um exercício, o FAB abre os ajustes. O
+guia é **uma tela que diz onde cada coisa está e leva até lá** — não é um passeio
+com balões por cima da interface, não é vídeo e não é conteúdo de treino.
+
+### 20.1 Onde ele aparece (não é uma aba nova)
+A barra continua com **cinco** abas. O guia é a rota **`/mais/guia`**, dentro do
+layout do app (barra visível), e chega por dois caminhos:
+
+1. **Primeira entrada da conta.** A aba Treino (`/`), ao carregar o perfil sem
+   `profiles.prefs.guia_visto`, faz `router.replace('/mais/guia?inicio=1')` —
+   uma vez por carregamento, sem laço. Enquanto a decisão não é tomada a tela
+   mostra o **esqueleto** que ela já mostra enquanto o perfil carrega: nada de
+   piscar a aba Treino antes de sair dela.
+2. **Mais → "Como usar o app"**, a **primeira** linha da lista de ajustes (ícone
+   lucide `CircleHelp`), sempre disponível.
+
+### 20.2 `prefs.guia_visto`
+**Nada muda no banco**: `profiles.prefs` já é `jsonb` (§4). A única gravação
+nova é `prefs.guia_visto = true`, pela fila de saída (§8), no mesmo caminho de
+`conquistas_vistas` (§19.5) e `dias_de_treino` (§17.1).
+
+Só dois gestos gravam:
+- **"Entendi, começar a treinar"**, no fim do guia;
+- **"Pular por agora"**, no topo — que só existe no modo `?inicio=1`.
+
+Os dois invalidam o cache do TanStack Query e voltam para `/`. **Fechar o app
+sem tocar em nenhum dos dois faz o guia aparecer de novo na próxima entrada** —
+é o comportamento desejado: a marca é do reconhecimento, não da visita.
+
+Aberto por Mais (sem `?inicio=1`), o guia **não redireciona e não grava nada**;
+o botão do fim só volta para `/mais`.
+
+### 20.3 O formato
+**Uma página rolável** a 360 px (não é carrossel, não tem "próximo/anterior"):
+- um **índice de chips** no topo que rola até cada seção (âncoras `#treino`,
+  `#explorar`, …), com alvo ≥ 44 px;
+- **uma seção por assunto**, com ícone, nome, uma frase de "para que serve" e,
+  quando a seção é uma tela, o botão **"Ir"**;
+- dentro da seção, a **lista de funções**. Cada função é uma linha com: nome,
+  uma frase do que faz, o **caminho em chips** (`Treino → Começar treino →
+  Player`, `Mais → Preferências → Dias de treino`) e o botão **"Ir"** quando a
+  função tem rota própria — com âncora quando existe
+  (`/mais/preferencias#dias-de-treino`).
+
+Função que só existe **dentro de um fluxo** (registrar uma série no player,
+"Treinar mesmo assim", o card de retomada, o aviso de conquista) **não tem
+"Ir"**: o caminho já diz onde ela aparece.
+
+Estilo: o sóbrio do app (§7, §13.1) — cards, chips, ícones lucide, nos dois
+temas, alvos ≥ 44 px, nada corta nem rola de lado a 360 px. Sem ilustração
+inventada, sem GIF, sem imagem de terceiros, sem confete e sem "parabéns".
+
+### 20.4 As seções, nesta ordem
+1. **Primeiros passos** — quatro itens com "Ir": marcar os dias de treino
+   (Mais → Preferências → Dias de treino), conferir o equipamento e o peso das
+   barras (Mais → Equipamento), instalar o app no celular (Android: menu do
+   Chrome → "Instalar app"; iPhone: Safari → Compartilhar → "Adicionar à Tela
+   de Início" — este não tem "Ir", é o navegador) e começar o primeiro treino
+   (Treino → "Começar treino").
+2. **A barra de abas** — uma **miniatura da barra real**, com os mesmos ícones e
+   rótulos da barra de baixo, e uma frase por aba. A lista das abas é **uma
+   só** no código (`lib/abas.ts`, lida por `components/nav-inferior.tsx` e pelo
+   guia): o guia nunca redigita os rótulos.
+3. **Treino** (`/`) — com os blocos "A tela", "No player", "Cardio" e
+   "Barra fixa", que são os fluxos que saem dessa aba.
+4. **Explorar** (`/explorar`).
+5. **Relatório** (`/relatorio`).
+6. **Corpo** (`/corpo`).
+7. **Mais** (`/mais`).
+8. **Calendário** (`/calendario`) — não é aba: chega-se pela faixa da semana.
+9. **Sem internet e conta** — o app offline, a fila de envio, trocar senha e sair.
+
+### 20.5 Cobertura
+O guia cobre **o que existe, e só o que existe**. Os rótulos escritos nele são
+os **rótulos reais** das telas, com a mesma grafia, e o caminho é o caminho real.
+O que não existir no código fica **de fora** — nada de função inventada.
+
+Em particular: Treino (saudação e sequência, faixa da semana com a sigla do
+treino e o ✓, meta semanal, fase e peso, "Pesar", card do dia com "Começar
+treino"/"Continuar", cardio, descanso, repetições soltas, "Treinar mesmo
+assim", lista do dia com carga e ⇄, ficha em folha, "Editar", "Ajustar",
+"Personalizar treino", "Parte do corpo em foco", "Desafios", card de retomada,
+banner do treino aberto); Player (preparação, série a série, "Última
+repetição", carga de hoje, descanso, visão geral, "O que muda no próximo
+treino", Conclusão e o aviso de conquista); Cardio (timer de intervalos,
+cronômetro, "Encerrar e registrar" com distância, saltos e esforço); Barra fixa
+("Fazer sessão de barra fixa" e as repetições soltas); Explorar (busca sem
+acento, destaque de hoje, "Escolhas para você" — Treinos do programa, Parte do
+corpo, Circuitos, Por aparelho, Planos —, "Começar" da sessão livre, "Todos os
+exercícios"); Relatório (Totais, Números com Semana · Mês · Tudo, Conquistas e a
+folha, Histórico e "Todos os registros", Sequências, Peso, IMC, gráficos e
+recordes); Corpo (Peso com média de 7 dias, variação e meta, Medidas, Fotos com
+Comparar, IMC com a altura); Calendário (semana em lista, resumo "N feitos · N a
+fazer · N perdidos", mês em miniatura, tocar num dia, "Não vou treinar hoje",
+"Meus dias", setas e "Hoje"); Mais (Como usar o app, Perfil, Equipamento,
+Preferências — tema, dias de treino, meta semanal, treino/player, incrementos —,
+Créditos, Backup, sincronização, Trocar senha, Sair).
+
+**O mapa muscular não aparece na aba Corpo** — ele é a figura da ficha do
+exercício (§15) —, então o guia não o promete ali.
+
+### 20.6 Onde mora o código
+- **`lib/abas.ts`** — as cinco abas (href, rótulo, nome do ícone, prefixos):
+  fonte única da barra e do guia, sem React.
+- **`lib/guia.ts`** — os dados do guia (seções, funções, caminho, href, âncora),
+  tipados, **sem React e sem Supabase**.
+- **`lib/guia.test.ts`** — todo `href` do guia corresponde a uma página que
+  existe em `app/(app)/` (o teste lê o sistema de arquivos), toda seção tem ao
+  menos uma função, nenhum texto vazio e os nomes das abas são os de
+  `lib/abas.ts` (a mesma lista que `nav-inferior.tsx` desenha).
+- **`components/mais/guia.tsx`** — a tela.
+
+O texto do guia é **copy de interface**, escrita aqui: não é conteúdo de treino
+e **não sai do `docs/`**. Nenhuma frase do guia de treino é copiada.
+
+### 20.7 Critérios de aceite
+1. Conta nova (perfil sem `prefs.guia_visto`): entrar cai em `/mais/guia?inicio=1`
+   com "Pular por agora" no topo, sem piscar a aba Treino e sem laço de
+   redirecionamento.
+2. "Entendi, começar a treinar" grava `prefs.guia_visto = true` e volta para `/`;
+   recarregar não redireciona mais. "Pular por agora" faz o mesmo.
+3. **Mais → "Como usar o app"** abre o mesmo guia **sem** "Pular por agora", não
+   grava nada ao abrir, e o botão do fim volta para Mais.
+4. **Todo** botão "Ir" leva a uma página existente do app (nenhum link morto), e
+   o índice de chips rola até a seção certa.
+5. A 360 px, nos dois temas: nada corta, nada rola para o lado, alvos ≥ 44 px.
+6. Nada de novo no banco (`supabase/schema.sql` intocado), motor (§6) e montagem
+   (§6.5) intocados; lint, build, `npm test` e `npm run e2e` verdes, com e2e
+   novos desta seção.

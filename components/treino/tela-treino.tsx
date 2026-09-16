@@ -2,6 +2,7 @@
 
 import { useQueryClient } from "@tanstack/react-query";
 import { addDays } from "date-fns";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Erro, EsqueletoCard } from "@/components/carregando";
@@ -73,7 +74,7 @@ import {
   useUltimoPeso,
 } from "@/lib/queries/dados";
 import { useHoje } from "@/lib/relogio";
-import { ligado, opcoesDeMontagem } from "@/lib/preferencias";
+import { guiaVisto, ligado, opcoesDeMontagem } from "@/lib/preferencias";
 import {
   faixaDaRetomada,
   pausaCorrente,
@@ -95,6 +96,15 @@ const AVISO_DA_ESCOLHA: Record<EscolhaRetomada, string> = {
   zero: "Programa recomeçado. O histórico continua aí.",
 };
 
+/**
+ * SPEC §20.1: a primeira entrada da conta vai para o guia — **uma vez por
+ * carregamento**. A marca é de módulo: depois de mandar uma vez, esta carga do
+ * app não manda de novo, nem que o perfil volte do banco sem `guia_visto`
+ * enquanto a gravação ainda está na fila (§8). Recarregar zera a marca, que é
+ * o comportamento desejado: quem fecha o app sem reconhecer vê o guia outra vez.
+ */
+let jaMandouParaOGuia = false;
+
 /** Quantas semanas para trás a sequência de semanas precisa ler. */
 const SEMANAS_LIDAS = 16;
 
@@ -107,6 +117,7 @@ function nomeCurtoDaFase(nome: string): string {
 /** A aba Treino (SPEC §13.3): o cabeçalho, os cards do dia e a lista do treino. */
 export function TelaTreino({ userId }: { userId: string }) {
   const hoje = useHoje();
+  const router = useRouter();
   const cliente = useQueryClient();
   const [somando, setSomando] = useState(false);
   const [trocas, setTrocas] = useState<Record<string, string>>({});
@@ -135,6 +146,14 @@ export function TelaTreino({ userId }: { userId: string }) {
   const soltasDoPeriodoQ = useSoltas(desde, hoje);
 
   const perfil = perfilQ.data ?? null;
+
+  /* SPEC §20.1: conta sem `prefs.guia_visto` cai no guia antes de tudo. */
+  const paraOGuia = perfil !== null && !guiaVisto(perfil.prefs);
+  useEffect(() => {
+    if (!paraOGuia || jaMandouParaOGuia) return;
+    jaMandouParaOGuia = true;
+    router.replace("/mais/guia?inicio=1");
+  }, [paraOGuia, router]);
 
   const dia = useMemo(() => {
     if (!hoje || !perfil) return null;
@@ -268,7 +287,11 @@ export function TelaTreino({ userId }: { userId: string }) {
     );
   }
 
-  if (!hoje || !perfil || !dia || !intervalo) {
+  /*
+   * O esqueleto cobre o vão do redirecionamento (§20.1): sem isto a aba Treino
+   * pisca inteira antes de o guia abrir.
+   */
+  if (!hoje || !perfil || !dia || !intervalo || paraOGuia) {
     return (
       <Tela>
         <EsqueletoCard linhas={4} />

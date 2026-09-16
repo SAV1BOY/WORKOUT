@@ -5775,3 +5775,102 @@ que não fecha. Os três casos que fecham entraram em `lib/conquistas.test.ts`.
    mostra o card sóbrio antes do "Próximo"; toque em **Ok** e ele não volta —
    nem ali, nem no Relatório.
 5. **Sem rede** tudo funciona igual: as contas são locais e o "Ok" entra na fila.
+
+---
+
+## Marco Guia de uso (SPEC §20) — 16/09/2026 ✅
+
+O dono pediu um tutorial "tipo uma aba", e logo corrigiu: *"ao invés de uma aba,
+esta parte do tutorial pode ser na primeira vez que alguem criar a conta no app
+e na aba mais ter o botão de mostrar o tutorial"*. Foi exatamente isso: **a
+barra continua com cinco abas** e o guia é a rota `/mais/guia`.
+
+### O que foi feito
+
+- **SPEC §20** escrita antes do código, no formato dos adendos (§16–§19), com o
+  pedido literal, onde o guia aparece, o formato, as nove seções, a cobertura,
+  a chave `prefs.guia_visto` e os critérios de aceite. §3.9 e §13.7 ganharam um
+  ponteiro de uma linha. **`supabase/schema.sql` intocado** (`prefs` já é jsonb).
+- **`lib/abas.ts`** (novo): as cinco abas numa lista só — href, rótulo, **nome**
+  do ícone lucide e prefixos, sem React. `components/nav-inferior.tsx` passou a
+  desenhar essa lista (o ícone é resolvido por
+  `components/icones-das-abas.tsx`), e o guia lê a mesma: os rótulos das abas
+  **não** são redigitados em lugar nenhum. Um unitário prende isso.
+- **`lib/guia.ts`** (novo, sem React/Supabase/Dexie): nove seções — Primeiros
+  passos, A barra de abas, Treino, Explorar, Relatório, Corpo, Mais, Calendário,
+  Sem internet e conta — com **80 funções**, cada uma com nome (o rótulo real da
+  tela), uma frase, o caminho em chips e o `href` quando tem rota própria (com
+  âncora: `/mais/preferencias#dias-de-treino`). A seção Treino vem em quatro
+  blocos: "A tela", "No player", "Cardio" e "Barra fixa".
+- **`lib/guia.test.ts`** (novo): todo `href` do guia tem um
+  `app/(app)/<rota>/page.tsx` de verdade (o teste lê o disco), toda âncora é um
+  `id=` que existe em alguma tela, toda seção tem função, nada vazio, ids únicos,
+  e os nomes das abas são os de `lib/abas.ts` — mais a lista de cobertura da
+  §20.5. Novas âncoras nas Preferências: `#tema`, `#meta`, `#treino`,
+  `#incrementos` (o `#dias-de-treino` já existia, do marco Dias).
+- **`components/mais/guia.tsx`** + `app/(app)/mais/guia/page.tsx` (novos): uma
+  página rolável a 360 px com o índice de chips (rola até a seção), a
+  **miniatura da barra de abas** desenhada com os mesmos ícones e rótulos da
+  barra real, e as seções em cards. Cada função é uma linha com o caminho em
+  chips e o botão **"Ir"** (44 px) quando tem rota.
+- **Primeira entrada** (`components/treino/tela-treino.tsx`): perfil sem
+  `prefs.guia_visto` → `router.replace("/mais/guia?inicio=1")`, **uma vez por
+  carregamento** (marca de módulo, sem laço), com o esqueleto na tela até o
+  desvio acontecer — a aba Treino não pisca.
+- **Mais**: "Como usar o app" é a **primeira** linha da lista, com o ícone
+  `CircleHelp`.
+- **A marca**: só "Entendi, começar a treinar" (fim) e "Pular por agora" (topo,
+  só no modo `?inicio=1`) gravam `prefs.guia_visto = true`, pela fila de saída
+  (§8), e voltam para `/`. Abrir por Mais não grava nada e o botão do fim volta
+  para Mais. Fechar o app sem tocar em nenhum dos dois faz o guia voltar na
+  próxima entrada — é o comportamento desejado.
+- **Mock e e2e**: `scripts/mock-supabase.ts` semeia `guia_visto: true` no perfil
+  padrão e `usuarioComPerfil` (e2e/fixtures.ts) repõe a marca mesmo quando o
+  teste passa `prefs` próprio — sem isso, todo e2e antigo cairia no guia. O spec
+  novo escreve o perfil **sem** a chave para testar a primeira entrada.
+
+### Decisões
+
+- **Sem `invalidateQueries` depois de gravar a marca.** `salvarPrefs` já põe o
+  perfil novo no cache do TanStack; invalidar releria o banco **antes** de a fila
+  subir e traria o perfil velho — ou seja, o guia de novo. É o mesmo caminho de
+  `conquistas_vistas`.
+- **Player, Cardio e Barra fixa ficaram dentro da seção Treino**, em blocos: são
+  fluxos que saem daquela aba, e a §20.4 fecha a lista de seções.
+- **Ir só onde há rota própria.** Função de dentro de um fluxo ("Treinar mesmo
+  assim", o card de retomada, registrar uma série) não tem "Ir": o caminho em
+  chips já diz onde ela aparece.
+
+### O que ficou de fora (não existe no app)
+
+- **Mapa muscular na aba Corpo**: o mapa é a figura da ficha do exercício
+  (§15), não tem nada em `/corpo`. O guia não promete.
+- **`/progresso`**: é um redirecionamento para `/relatorio`, não uma tela; os
+  gráficos e recordes estão listados dentro de Relatório.
+- **Rotas com parâmetro** (`/cardio/[id]`, `/treinar/[sessionId]`,
+  `/exercicios/[id]`, `/explorar/[tipo]/[valor]`): não abrem sozinhas, então não
+  viram "Ir" — o caminho diz como chegar.
+
+### Portões
+
+`npm run lint` limpo · `npm run build` ✓ · `npm test` **1225** (62 novos:
+`lib/guia.test.ts` e o bloco do guia em `lib/preferencias.test.ts`) ·
+`npm run build:e2e && npm run e2e` **286 passed** (28 novos em
+`e2e/guia.spec.ts`, incluindo um teste por "Ir" gerado a partir de
+`lib/guia.ts`). Capturas em `capturas/guia/`: `01-guia-topo` (escuro e claro),
+`02-guia-treino`, `03-guia-mais` e `04-primeira-entrada`.
+
+### Como testar no celular
+
+1. **Conta nova**: entre com uma conta que nunca viu o guia. A primeira tela é
+   **Como usar o app**, com "Pular por agora" no canto de cima e a barra das
+   cinco abas no rodapé.
+2. Role: **Primeiros passos** (4 itens com "Ir"), a **miniatura da barra**, e
+   uma seção por aba. Toque num chip do índice — a página pula para a seção.
+3. Toque em qualquer **"Ir"**: ele abre a tela certa, com âncora quando existe
+   (o "Ir" de *Dias de treino* cai direto no card das Preferências).
+4. No fim, **"Entendi, começar a treinar"** volta para a aba Treino. Feche e
+   abra o app: ele **não** manda mais para o guia.
+5. **Mais → Como usar o app** abre o mesmo guia, sem "Pular por agora"; o botão
+   do fim é "Entendi" e volta para Mais.
+6. **Sem rede** funciona igual: a marca entra na fila e sobe depois.

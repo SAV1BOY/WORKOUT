@@ -7,9 +7,11 @@ import {
   comEvitado,
   comLigado,
   comPesoDaBarra,
+  comGuiaVisto,
   comPreparacaoS,
   comTema,
   descansoPadraoS,
+  guiaVisto,
   evitadosPorUltimo,
   evitado,
   evitarExercicios,
@@ -221,5 +223,30 @@ describe('"não gosto" (SPEC §14.1.2)', () => {
       "c",
       "d",
     ]);
+  });
+});
+
+describe("guia de uso (SPEC §20.2)", () => {
+  it("conta nova: sem a chave, o guia ainda não foi visto", () => {
+    expect(guiaVisto(undefined)).toBe(false);
+    expect(guiaVisto(null)).toBe(false);
+    expect(guiaVisto({})).toBe(false);
+  });
+
+  it("só `true` conta (o jsonb pode vir de um backup)", () => {
+    expect(guiaVisto({ guia_visto: true })).toBe(true);
+    expect(guiaVisto({ guia_visto: false })).toBe(false);
+    expect(guiaVisto({ guia_visto: "sim" })).toBe(false);
+    expect(guiaVisto({ guia_visto: 1 })).toBe(false);
+  });
+
+  it("marcar não perde as outras chaves", () => {
+    const antes: Prefs = { tema: "escuro", conquistas_vistas: ["forca-1"] };
+    const depois = comGuiaVisto(antes);
+    expect(depois.guia_visto).toBe(true);
+    expect(depois.tema).toBe("escuro");
+    expect(depois.conquistas_vistas).toEqual(["forca-1"]);
+    // sem mutar o original
+    expect(antes.guia_visto).toBeUndefined();
   });
 });

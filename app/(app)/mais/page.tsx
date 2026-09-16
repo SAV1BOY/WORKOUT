@@ -1,5 +1,6 @@
 import {
   ChevronRight,
+  CircleHelp,
   Copyright,
   Dumbbell,
   HardDrive,
@@ -22,6 +23,13 @@ interface Secao {
 }
 
 const SECOES: Secao[] = [
+  /* SPEC §20.1: a porta do guia de uso fica no topo, sempre disponível. */
+  {
+    href: "/mais/guia",
+    titulo: "Como usar o app",
+    descricao: "Todas as abas e funções, com o caminho até cada uma.",
+    Icone: CircleHelp,
+  },
   {
     href: "/mais/perfil",
     titulo: "Perfil",

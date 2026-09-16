@@ -122,7 +122,7 @@ function Tema({ userId, perfil }: { userId: string; perfil: LinhaPerfil }) {
   };
 
   return (
-    <Card>
+    <Card id="tema" className="scroll-mt-4">
       <CardHeader>
         <CardTitle className="text-base">Tema</CardTitle>
         <CardDescription>
@@ -193,7 +193,7 @@ function MetaSemanal({ userId, perfil }: { userId: string; perfil: LinhaPerfil }
   };
 
   return (
-    <Card>
+    <Card id="meta" className="scroll-mt-4">
       <CardHeader>
         <CardTitle className="text-base">Meta semanal</CardTitle>
         <CardDescription>
@@ -235,7 +235,7 @@ function MetaSemanal({ userId, perfil }: { userId: string; perfil: LinhaPerfil }
 
 function Treino({ userId, perfil }: { userId: string; perfil: LinhaPerfil }) {
   return (
-    <Card>
+    <Card id="treino" className="scroll-mt-4">
       <CardHeader>
         <CardTitle className="text-base">Treino</CardTitle>
         <CardDescription>
@@ -279,7 +279,7 @@ function Incrementos({
   const estados = estadosPorExercicio(estadosQ.data ?? []);
 
   return (
-    <Card>
+    <Card id="incrementos" className="scroll-mt-4">
       <CardHeader>
         <CardTitle className="text-base">Incremento por exercício</CardTitle>
         <CardDescription>

@@ -245,6 +245,16 @@ export async function usuarioComPerfil(
   ajustes: Record<string, unknown> = {},
 ): Promise<SessaoMock> {
   const sessao = await sessaoNoMock();
+  /*
+   * SPEC §20.1: um perfil sem `prefs.guia_visto` é conta nova, e a aba Treino
+   * manda para o guia de uso. Como o `prefs` daqui SUBSTITUI o do mock, a marca
+   * é reposta sempre — quem quiser a primeira entrada de verdade (e2e/guia)
+   * escreve o perfil com `atualizarNoMock` e `prefs` sem a chave.
+   */
+  const prefs = {
+    guia_visto: true,
+    ...((ajustes.prefs as Record<string, unknown> | undefined) ?? {}),
+  };
   await atualizarNoMock(sessao, "profiles", `user_id=eq.${sessao.userId}`, {
     nome: "Miguel",
     altura_cm: 190,
@@ -252,6 +262,7 @@ export async function usuarioComPerfil(
     fase_atual: "fase1",
     fase_desde: "2026-09-14",
     ...ajustes,
+    prefs,
   });
   return sessao;
 }
