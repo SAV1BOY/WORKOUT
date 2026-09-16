@@ -5145,9 +5145,9 @@ Rodados nesta ordem, numa janela sozinha:
 ```
 npm run lint      limpo (sem avisos)
 npm run build     ✓ Compiled successfully · 119 páginas
-npm test          Test Files 44 passed (44) · Tests 1005 passed (1005)
+npm test          Test Files 44 passed (44) · Tests 1009 passed (1009)
 npm run build:e2e ✓ (o mesmo build apontando para o mock)
-npm run e2e       212 passed (8,0m) — Chromium 360 × 740, portas 3100/54321
+npm run e2e       214 passed (7,6m) — Chromium 360 × 740, portas 3100/54321
 ```
 
 Provas novas: `lib/calendario.test.ts` (o caso do defeito, a semana seguinte e a
@@ -5225,3 +5225,26 @@ zero e o app dirigido no Chromium a 360 × 740 contra o mock, nos dois temas.
 Na quarta, depois de concluir o treino do dia: o `/calendario` e a faixa da aba
 Treino mostram o treino **que você fez** no dia de hoje (com ✓), e o próximo dia
 de força da semana segue a alternância a partir dele.
+
+### Rodada 2 da auditoria (16/09/2026)
+
+Os quatro portões rodados do zero sobre `eded899`, nesta ordem, numa janela
+sozinha: `npm run lint` limpo · `npm run build` ✓ (119 páginas) ·
+`npm test` 44 arquivos, 1009 testes · `npm run build:e2e` ✓ · `npm run e2e`
+**214 passed (7,6m)**. Depois, o app dirigido à mão no Chromium a 360 × 740
+contra o mock, nos dois temas, refazendo o caso do defeito, a segunda sem
+sessão, a Fase 2, o override e a semana curta: tudo confere com o que está
+escrito acima (faixa de sete casas de 40,3 px num alvo de 314 × 89 px, sigla de
+11 px, `scrollWidth == clientWidth == 360`, nada cortado).
+
+Ficaram dois detalhes pequenos, anotados e **não** corrigidos aqui (não são do
+pedido do dono e mexem em comportamento antigo):
+
+- Um dia de **cardio** mostra sempre a semana do plano **do perfil**
+  (`profiles.semana_corrida`, §5.5), então navegar para outra semana continua
+  dizendo "Corrida · semana 1 do plano" enquanto os dias de força já dizem
+  "semana 2", "semana 3". É o que a §16.4 escreve, mas vale rever quando o
+  plano de cardio ganhar projeção por data.
+- A faixa escreve o sábado como "sab" (`formatarDiaCurto`, de `EEEEEE`) e a
+  grade do calendário como "SÁB" (`diaCurto`, em `lib/hoje.ts`) — duas grafias
+  para o mesmo dia, herdadas do Marco 1.
