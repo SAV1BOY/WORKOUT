@@ -5336,3 +5336,46 @@ quando havia alternativa) · `npm run e2e` **222 passed (7,8 min)**, com
 Capturas em `capturas/dias/`: `01-preferencias-dias.png` (+ claro),
 `02-treino-faixa-6-dias.png` (+ claro), `03-calendario-6-dias.png`,
 `04-domingo.png`.
+
+### Auditoria independente (16/09/2026)
+
+Portões rodados do zero (`lint` limpo · `build` ✓ · `npm test` **1062** ·
+`npm run e2e` **230 passed**), a distribuição conferida **à mão** contra 14
+combinações de dias nas duas fases e depois na tela, no Chromium a 360 × 740
+contra o mock, nos dois temas.
+
+- **Novo**: `e2e/dias-auditoria.spec.ts` (8 testes) cobre o que faltava — uma
+  combinação **fora** dos dias do programa (seg, ter, qui, sex e sáb → força
+  seg/qui/sáb e cardio ter/sex, quarta em descanso seco), a **Fase 2** com seis
+  dias (SA · IA · Corr. · SB · IB · Longa) e com **quinta a domingo** (os quatro
+  treinos na ordem, sem cardio, meta 4), a escolha que sobrevive a **recarregar**
+  a página, a escolha feita **sem rede** (vai para a fila do §8 e sobe no
+  "Tentar agora") e a alternância ancorada em `ultimo_treino` **sobre os dias
+  escolhidos**, inclusive depois de treinar num dia que ele não escolheu — a
+  sessão conta na meta da semana e o próximo dia de força é o outro treino.
+- **Corrigido aqui**: `diaDoPrograma()` (`lib/dados.ts`) ficou sem nenhum uso
+  depois do marco — quem lê o dia agora é `semanaDoPerfil()` — e foi removida.
+- **Conferido**: sem `prefs.dias_de_treino` a semana é byte a byte a do
+  `programa.json` (unitário) e os 222 e2e antigos passam sem um ajuste sequer;
+  `git diff origin/main` vazio em `lib/progressao.ts` e `lib/montagem.ts`;
+  `supabase/schema.sql` intocado; nada rola de lado a 360 px; tudo em pt-BR e
+  sem nome inventado (treinos, sessões e notas saem do JSON).
+
+### Visto e **não** corrigido (decisões para o dono)
+
+1. **Fase 1 com um dia só** fica no **Treino A para sempre**: a §17.2 item 6
+   escreve `A1` no dia e, com o `treinoDoDia()` novo, a alternância não roda
+   mais ali — ele nunca faz o Treino B (o do terra). Deixar `"alternar"` no dia
+   já daria "Treino A" para quem está começando (`ultimo_treino` vazio) e
+   alternaria depois.
+2. **Fase 2 com dois dias** sobra com **IA e IB** — dois treinos de perna e
+   nenhum de superior —, porque a §5.4 só proíbe cortar quem tem agachamento ou
+   terra. Um par superior + inferior (SA e IA) seria mais treino pelo mesmo
+   tempo.
+3. Uma sessão feita num **dia não escolhido** continua "Descanso" na faixa e na
+   grade (sem ✓), embora conte na meta e no Relatório: a §16.2 só rotula pela
+   sessão real os dias cujo tipo é força. É de antes deste marco, mas aparece
+   muito mais agora que qualquer dia pode ser descanso.
+4. O card "Dias de treino" escreve "meta semanal N" com o **padrão** da semana
+   montada mesmo quando `prefs.meta_semanal` manda outro número no card logo
+   abaixo ("usando N por semana") — dois números diferentes na mesma tela.
