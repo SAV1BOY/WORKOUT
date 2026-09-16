@@ -364,6 +364,29 @@ describe("semana coerente: passado real, futuro projetado (SPEC §16.2)", () => 
     expect(forca(semana)).toEqual(["A1", "B1", "A1"]);
   });
 
+  it("o dia de hoje já treinado mostra o treino feito e não desloca o resto", () => {
+    /*
+     * Auditoria: quarta 30/09 depois de treinar — `ultimo_treino` já é B1 e já
+     * contabilizou a sessão de hoje. Antes, hoje voltava a projetar dele e
+     * mostrava "Treino A" (dois A na mesma semana, o B feito sumia) e empurrava
+     * a sexta para B.
+     */
+    const semana = semanaCoerente(QUARTA, perfil({ ultimo_treino: "B1" }), {
+      sessoes: [...feitoNaSegunda, { data: QUARTA, workout_id: "B1" }],
+      hoje: QUARTA,
+    });
+    expect(forca(semana)).toEqual(["A1", "B1", "A1"]);
+    expect(semana[2]?.data).toBe(QUARTA);
+  });
+
+  it("hoje SEM sessão continua projetando de ultimo_treino", () => {
+    const semana = semanaCoerente(QUARTA, emQuarta, {
+      sessoes: feitoNaSegunda,
+      hoje: QUARTA,
+    });
+    expect(semana[2]?.treinoId).toBe("B1");
+  });
+
   it("a semana seguinte continua de onde a corrente terminou", () => {
     const proxima = semanaCoerente("2026-10-05", emQuarta, {
       sessoes: feitoNaSegunda,

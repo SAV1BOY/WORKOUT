@@ -5099,12 +5099,14 @@ passou a usar — a mesma fonte para o calendário, para a faixa e para o card d
 dia, de modo que as duas telas não podem mais discordar:
 
 1. override com `workout_id` vale sempre;
-2. **dia passado** = o treino da sessão que existe nele (concluída ou parcial);
-   sem sessão, o treino que era **esperado naquele momento** (o próximo depois
-   da última sessão anterior àquela data) e, sem histórico nenhum, só "Treino de
-   força";
-3. **hoje e o futuro** = a projeção a partir de **hoje**, ancorada em
-   `ultimo_treino` — um dia passado nunca avança a âncora;
+2. **dia já vivido** (passado, e o próprio dia de hoje quando já existe sessão
+   nele) = o treino da sessão que existe nele (concluída ou parcial); num dia
+   passado sem sessão, o treino que era **esperado naquele momento** (o próximo
+   depois da última sessão anterior àquela data) e, sem histórico nenhum, só
+   "Treino de força";
+3. **hoje sem sessão e o futuro** = a projeção a partir de **hoje**, ancorada em
+   `ultimo_treino` — um dia passado (ou um hoje já treinado) nunca avança a
+   âncora;
 4. **as semanas seguintes** continuam de onde a corrente terminou;
 5. na **Fase 2** os treinos são fixos por dia (nada muda);
 6. **semana curta e overrides** continuam valendo por cima.
@@ -5203,13 +5205,23 @@ zero e o app dirigido no Chromium a 360 × 740 contra o mock, nos dois temas.
   atrás). Agora, antes do começo da fase, o cabeçalho mostra só "Fase 1" e o dia
   só o nome. Escrito na §16.4 e coberto por unitário.
 
-### Achado que ficou aberto (vai para a próxima etapa)
+### Corrigido na rodada 1 da auditoria (16/09/2026)
 
-- **O dia de hoje depois de treinado** ainda mostra o treino da projeção, não o
-  que foi feito. Com A1 na segunda e o B1 de hoje (quarta) concluído, o
-  calendário mostra "QUA 16 Treino A ✓" (foi B) e empurra a sexta para "Treino
-  B" (deveria ser A) — a faixa e o card dizem o mesmo. É a §16.1 sobrevivendo no
-  dia em que ele mais olha o app. A regra da §16.2 item 2 precisa valer para
-  `data <= hoje` quando existe sessão no dia (sem avançar a âncora, que o
-  `ultimo_treino` já contabilizou); um dia de hoje **sem** sessão continua
-  projetando.
+- **O dia de hoje depois de treinado** mostrava o treino da projeção, não o que
+  foi feito. Com A1 na segunda e o B1 de hoje (quarta) concluído, o calendário
+  mostrava "QUA 16 Treino A ✓" (foi B), fazia aparecer dois "Treino A" na mesma
+  semana e empurrava a sexta para "Treino B" (deveria ser A) — a faixa e o
+  diálogo do dia diziam o mesmo. Em `montarSemana()` (`lib/calendario.ts`) a
+  rotulagem pelo que aconteceu passou a valer também para **hoje quando existe
+  sessão no dia**: o dia mostra o treino feito e **não** avança a âncora (o
+  `ultimo_treino` já o contabilizou), então a sexta volta a projetar A. Um dia
+  de hoje **sem** sessão continua projetando de `ultimo_treino`. Escrito na
+  §16.2 (itens 2 e 3), com unitários em `lib/calendario.test.ts` e
+  `lib/semana.test.ts` e um e2e em `e2e/semana.spec.ts` que semeia a sessão de
+  hoje.
+
+### Como testar no celular
+
+Na quarta, depois de concluir o treino do dia: o `/calendario` e a faixa da aba
+Treino mostram o treino **que você fez** no dia de hoje (com ✓), e o próximo dia
+de força da semana segue a alternância a partir dele.

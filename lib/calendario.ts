@@ -414,8 +414,18 @@ function montarSemana(
       info.excecao?.workout_id != null;
 
     const passado = hoje !== null && info.data < hoje;
+    const ehHoje = hoje !== null && info.data === hoje;
 
-    if (info.tipo !== "forca" || fixo || !passado) {
+    /*
+     * SPEC §16.2 item 2: vale a sessão que existe no dia — inclusive no próprio
+     * dia de hoje depois de treinar. Sem isto, hoje continuava projetando de
+     * `ultimo_treino`, que já contabilizou a sessão de hoje: o dia mostrava o
+     * treino seguinte (dois "Treino A" na mesma semana) e deslocava o resto.
+     */
+    const feito =
+      passado || ehHoje ? sessaoDoDia(sessoes, perfil.fase_atual, info.data) : null;
+
+    if (info.tipo !== "forca" || fixo || (!passado && !feito)) {
       const dia = montarDia(info, perfil, overrides, ancora);
       // SPEC §16.2 item 3: um dia passado nunca avança a âncora — o
       // `ultimo_treino` do perfil já o contabilizou.
@@ -423,9 +433,8 @@ function montarSemana(
       return dia;
     }
 
-    // SPEC §16.2 item 2: dia passado = o que aconteceu nele; sem sessão, o que
-    // era esperado naquele momento (e nada disso mexe na âncora de hoje).
-    const feito = sessaoDoDia(sessoes, perfil.fase_atual, info.data);
+    // O treino que de fato foi feito, sem avançar a âncora (o `ultimo_treino`
+    // já o contabilizou); sem sessão, o que era esperado naquele momento.
     if (feito) return montarDia(info, perfil, overrides, ancora, { treinoId: feito });
 
     const antes = ultimoTreinoAntesDe(sessoes, perfil.fase_atual, info.data);

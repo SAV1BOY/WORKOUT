@@ -237,8 +237,15 @@ describe("faixa da semana (SPEC §13.3)", () => {
   });
 
   it("o título conta o dia, a data, o que era e como ficou", () => {
+    // a sessão A1 da segunda é a de hoje, então o perfil já a contabilizou
+    // (§16.2 item 2): a segunda mostra o A feito e a quarta projeta o B.
     const faixa = faixaDaSemana(
-      montarGrade({ data: SEMANA_1, perfil: PERFIL, sessoes, hoje: SEMANA_1 }),
+      montarGrade({
+        data: SEMANA_1,
+        perfil: { ...PERFIL, ultimo_treino: "A1" },
+        sessoes,
+        hoje: SEMANA_1,
+      }),
     );
     // SPEC §16.3: o nome completo do dia e do treino, para o leitor de tela
     expect(faixa[0]?.titulo).toBe("segunda 14/09: Treino A, hoje");
@@ -270,6 +277,23 @@ describe("a grade é coerente com a aba Treino (SPEC §16.2)", () => {
   it("hoje e a sexta seguem a alternância a partir de hoje", () => {
     expect(grade[2]).toMatchObject({ rotulo: "Treino B", ehHoje: true });
     expect(grade[4]?.rotulo).toBe("Treino A");
+  });
+
+  it("depois de treinar hoje, o dia mostra o que foi feito e a sexta não desloca", () => {
+    // auditoria: quarta 30/09 com a sessão B1 de hoje já concluída
+    const depois = montarGrade({
+      data: QUARTA,
+      perfil: { ...PERFIL, ultimo_treino: "B1" },
+      sessoes: [
+        ...sessoes,
+        { id: "s2", data: QUARTA, status: "concluida" as const, workout_id: "B1" as const },
+      ],
+      hoje: QUARTA,
+    });
+    expect(depois[0]?.rotulo).toBe("Treino A");
+    expect(depois[2]).toMatchObject({ rotulo: "Treino B", marca: "feito", ehHoje: true });
+    expect(depois[4]?.rotulo).toBe("Treino A");
+    expect(faixaDaSemana(depois)[2]?.titulo).toBe("quarta 30/09: Treino B, hoje");
   });
 
   it("a semana seguinte continua a escada", () => {

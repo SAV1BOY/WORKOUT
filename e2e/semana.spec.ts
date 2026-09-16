@@ -161,6 +161,46 @@ test.describe("Semana visível — a aba Treino e o calendário dizem o mesmo (S
     await semRolagemHorizontal(page);
   });
 
+  /*
+   * Auditoria: depois de treinar hoje, o dia de hoje mostrava o treino da
+   * projeção (o `ultimo_treino` já tinha contabilizado a sessão) — apareciam
+   * dois "Treino A" na mesma semana e a sexta virava B.
+   */
+  test("depois de treinar hoje, a quarta mostra o B feito e a sexta volta a ser A", async ({
+    page,
+  }) => {
+    const sessao = await usuarioComPerfil({ ultimo_treino: "B1" });
+    await inserirNoMock(sessao, "sessions", [
+      { data: SEGUNDA, workout_id: "A1", fase: "fase1", status: "concluida" },
+      { data: "2026-09-16", workout_id: "B1", fase: "fase1", status: "concluida" },
+    ]);
+    await fixarRelogio(page, QUARTA);
+    await entrarNoApp(page);
+    await esperarAbaTreino(page);
+
+    // a faixa: seg A feito, qua B (hoje, feito), sex A
+    await expect(casaDaFaixa(page, SEGUNDA)).toContainText("A");
+    await expect(casaDaFaixa(page, "2026-09-16")).toContainText("B");
+    await expect(casaDaFaixa(page, "2026-09-16")).toHaveAttribute(
+      "aria-label",
+      "quarta 16/09: Treino B, hoje",
+    );
+    await expect(casaDaFaixa(page, "2026-09-18")).toContainText("A");
+
+    await page.goto("/calendario");
+    await expect(page.getByRole("heading", { name: "Calendário" })).toBeVisible();
+    const textos = await rotulos(page);
+    expect(textos[0]).toContain("Treino A · semana 1");
+    expect(textos[2]).toContain("Treino B · semana 1");
+    expect(textos[4]).toContain("Treino A · semana 1");
+    await expect(
+      page.getByRole("button", { name: /^qua 16\/09.*Treino B, feito$/ }),
+    ).toBeVisible();
+
+    await semRolagemHorizontal(page);
+    await page.screenshot({ path: `${CAPTURAS}/05-hoje-ja-treinado.png` });
+  });
+
   test("um dia passado sem sessão mostra o treino esperado e a marca de não feito", async ({
     page,
   }) => {

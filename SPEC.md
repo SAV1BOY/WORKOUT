@@ -462,15 +462,17 @@ sobre o mesmo dia.
 Numa semana da **Fase 1** (treino "alternar"), dia a dia, de segunda a domingo:
 1. **Override com `workout_id`** (§3.5): vale ele, em qualquer dia — passado,
    hoje ou futuro.
-2. **Dias passados** (`data < hoje`): vale a **sessão que existe naquele dia**,
-   concluída ou parcial — o treino que de fato foi feito. Sem sessão, o dia é
-   "não feito" e mostra **o treino que era esperado naquele momento**: o próximo
-   da alternância depois da última sessão de força **anterior** àquela data. Sem
-   nenhuma sessão anterior conhecida, o dia fica só "Treino de força".
-3. **Hoje e os dias futuros**: a projeção da alternância **a partir de hoje**,
+2. **Dias já vividos** (`data <= hoje` quando existe sessão no dia): vale a
+   **sessão que existe naquele dia**, concluída ou parcial — o treino que de
+   fato foi feito, inclusive no próprio dia de hoje depois de treinar. Num dia
+   **passado** sem sessão, o dia é "não feito" e mostra **o treino que era
+   esperado naquele momento**: o próximo da alternância depois da última sessão
+   de força **anterior** àquela data. Sem nenhuma sessão anterior conhecida, o
+   dia fica só "Treino de força".
+3. **Hoje sem sessão e os dias futuros**: a projeção da alternância **a partir de hoje**,
    ancorada em `profiles.ultimo_treino` — nunca a partir da segunda. Cada dia de
-   força projetado avança a âncora; um dia passado **nunca** a avança
-   (`ultimo_treino` já o contabilizou).
+   força projetado avança a âncora; um dia passado — e o dia de hoje que já tem
+   sessão — **nunca** a avança (`ultimo_treino` já o contabilizou).
 4. **Semanas seguintes** continuam a projeção **de onde a semana corrente
    terminou**: a âncora ao fim de uma semana é o ponto de partida da próxima, e
    assim por diante, semana após semana.
