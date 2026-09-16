@@ -360,4 +360,73 @@ test.describe('"Começar treino" entra direto no player (SPEC §14.5.1)', () => 
     await expect(page).toHaveURL(/\/treinar$/);
     await expect(page.getByRole("button", { name: /^Começar Treino / })).toHaveCount(2);
   });
+
+  /*
+   * Todos os outros testes chegam a `/treinar` por CLIQUE (navegação do
+   * cliente, que reaproveita o app já hidratado). A carga fria — abrir a URL
+   * direto, que é o que o atalho do celular e o "abrir em outra aba" fazem —
+   * não tinha teste nenhum, e foi por essa fresta que a auditoria viu a tela
+   * parada no esqueleto.
+   */
+  test("abrir /treinar direto na URL (carga fria) desenha os dois treinos", async ({
+    page,
+  }) => {
+    await usuarioComPerfil();
+    await fixarData(page, SEGUNDA);
+    await entrarNoApp(page);
+    await esperarAbaTreino(page);
+
+    for (let volta = 0; volta < 3; volta++) {
+      await page.goto("/treinar");
+      await expect(page.getByRole("button", { name: /^Começar Treino / })).toHaveCount(
+        2,
+        { timeout: 15_000 },
+      );
+      // e a tela desenhou de verdade: nem esqueleto, nem a saída do vigia
+      await expect(page.getByRole("status", { name: "Carregando" })).toHaveCount(0);
+      await expect(page.locator("#vigia-hidratacao")).toHaveCount(0);
+    }
+  });
+});
+
+/*
+ * A tela morta tem saída (lib/vigia.ts): com o pacote principal do React
+ * cortado, a página abre, mostra o HTML do servidor e NUNCA hidrata — é o
+ * retrato do defeito que a auditoria mediu (esqueleto para sempre, sem erro e
+ * sem botão). O vigia desenha à mão a faixa com "Recarregar", que é a única
+ * coisa que resta ao dono.
+ *
+ * `serviceWorkers: "block"`: o que o service worker serve do cache dele não
+ * passa por `page.route`, e o corte do pacote precisa ser certo, não provável.
+ */
+test.describe("o vigia da hidratação (lib/vigia.ts)", () => {
+  test.use({ serviceWorkers: "block" });
+  test.describe.configure({ timeout: 90_000 });
+
+  test("página que não hidrata ganha a faixa 'Recarregar'", async ({ page }) => {
+    await usuarioComPerfil();
+    await fixarData(page, SEGUNDA);
+    await entrarNoApp(page);
+    await esperarAbaTreino(page);
+
+    await page.route("**/_next/static/chunks/main-app-*.js", (rota) => rota.abort());
+    await page.goto("/treinar");
+
+    const faixa = page.locator("#vigia-hidratacao");
+    await expect(faixa).toBeVisible({ timeout: 30_000 });
+    await expect(faixa).toContainText("O app não terminou de abrir.");
+
+    // o alvo do dedo (SPEC §13.8.1)
+    const botao = faixa.getByRole("button", { name: "Recarregar" });
+    const caixa = await botao.boundingBox();
+    expect(caixa?.height ?? 0).toBeGreaterThanOrEqual(44);
+
+    // e o botão traz o app de volta, com o pacote liberado
+    await page.unroute("**/_next/static/chunks/main-app-*.js");
+    await botao.click();
+    await expect(page.getByRole("button", { name: /^Começar Treino / })).toHaveCount(2, {
+      timeout: 20_000,
+    });
+    await expect(page.locator("#vigia-hidratacao")).toHaveCount(0);
+  });
 });

@@ -29,6 +29,7 @@ import { ligado, opcoesDeMontagem } from "@/lib/preferencias";
 import { lerOrdemDoAparelho } from "@/lib/ordem";
 import { lerTrocasDoAparelho } from "@/lib/trocas";
 import { useComecarTreino } from "@/lib/queries/comecar";
+import { useDemorouDemais } from "@/lib/espera";
 import { sessaoLocalMaisRecente } from "@/lib/queries/sessao";
 import { useHoje } from "@/lib/relogio";
 import { intervaloDaSemana } from "@/lib/semana";
@@ -119,6 +120,9 @@ export function TelaTreinar({ userId }: { userId: string }) {
 
   /* --------------------------------------------------------- renderizar */
 
+  const semConteudo = !perfil || !hoje || treinos.length === 0;
+  const demorou = useDemorouDemais(semConteudo);
+
   if (perfilQ.isError) {
     return (
       <Tela>
@@ -130,7 +134,23 @@ export function TelaTreinar({ userId }: { userId: string }) {
     );
   }
 
-  if (!perfil || !hoje || treinos.length === 0) {
+  if (semConteudo) {
+    /*
+     * O esqueleto tem hora para acabar: se o perfil não chegou em dez segundos
+     * e nem deu erro (a leitura presa, o Dexie sem responder), a tela vira um
+     * `Erro` com saída em vez de ficar morta (SPEC §3.1). A tela boa aparece
+     * em menos de um segundo, então este aviso nunca aparece por lentidão.
+     */
+    if (demorou) {
+      return (
+        <Tela>
+          <Erro
+            mensagem="Não consegui carregar os treinos."
+            aoTentarDeNovo={() => window.location.reload()}
+          />
+        </Tela>
+      );
+    }
     return (
       <Tela>
         <EsqueletoCard linhas={4} />

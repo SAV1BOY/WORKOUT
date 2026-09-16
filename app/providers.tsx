@@ -6,6 +6,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { iniciarOutbox } from "@/lib/outbox";
 import { persistirQueryClient } from "@/lib/persistencia-query";
+import { marcarAppVivo } from "@/lib/vigia";
 
 export function Providers({ children }: { children: ReactNode }) {
   const [cliente] = useState(
@@ -22,6 +23,8 @@ export function Providers({ children }: { children: ReactNode }) {
   );
 
   useEffect(() => {
+    // o React hidratou: o vigia da tela morta pode descansar (lib/vigia.ts)
+    marcarAppVivo();
     iniciarOutbox();
     // SPEC §8: a tela abre com os dados da última sincronização
     return persistirQueryClient(cliente);
