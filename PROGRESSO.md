@@ -5416,3 +5416,73 @@ mas o rótulo do dia continua "Desc." — mudar a sigla exigiria levar as sessõ
 de cardio para dentro de `semanaCoerente()`, que hoje só recebe as de força. A
 marca já resolve o que incomodava: o dia treinado parecia vazio.
 
+---
+
+## Marco Retomada (SPEC §18) — 16/09/2026 ✅
+
+O pedido do dono, literal: *"se ele não finalizar a semana ou os dias, ter a
+opção de resetar ou de continuar, dependendo de quantos dias foi desde o ultimo
+treino"*.
+
+**SPEC §18 foi escrita antes do código** (faixas, opções, o que cada uma grava,
+critérios de aceite), e a §5.5 ganhou a frase que aponta para ela.
+
+### O que foi feito
+
+- **`lib/retomada.ts`** (puro, sem React nem Supabase): `diasParado()` e
+  `ultimaAtividade()` (força concluída, cardio concluído ou repetição solta de
+  barra fixa), `faixaDaRetomada()` (0–6 nada · 7–13 continuar/semana · 14–27
+  continuar/leve · 28+ continuar/leve/zero), `deveMostrarRetomada()` (a pausa é
+  reconhecida pela **âncora** `em − dias`: a mesma pausa não pergunta duas
+  vezes, uma pausa nova pergunta) e `escritasDaRetomada()`, que devolve as
+  linhas a gravar sem tocar no banco. **27 unitários** em `lib/retomada.test.ts`.
+- **O motor não mudou uma linha.** "Voltar mais leve" escreve nos exercícios
+  exatamente os campos da 3ª falha da §6.2 (`semana_leve`, `carga_antes_leve`,
+  60 % arredondados para baixo na escala do implemento) e é o motor de sempre
+  que devolve a carga cheia na sessão seguinte. "Recomeçar do zero" escreve o
+  estado inicial da §6.1 (`carga_inicial.kg` do JSON; reps/tempo/assistência de
+  volta a `null`, que é como o motor guarda "nunca fez"), preservando o override
+  de incremento, o `desativado` e as notas.
+- **`lib/queries/retomada.ts`**: enfileira tudo pelos caminhos que já existiam —
+  upsert em `exercise_state`, upsert por id em `progression_events` e update em
+  `profiles` —, atualizando o cache do TanStack Query na hora. O perfil vai por
+  último: é o `prefs.retomada` que faz o card sumir.
+- **`components/treino/retomada.tsx`**: o card "Você ficou N dias sem treinar"
+  no topo da aba Treino, acima do card do dia, com as opções da faixa (alvos de
+  ≥ 44 px, texto em duas linhas, nada rola de lado a 360 px). "Recomeçar do
+  zero" abre um diálogo de **duas etapas** (o que se perde → a confirmação).
+  Tocar em "Começar treino" com o card pendente **não** começa o treino: rola
+  até o card, põe o foco nele e destaca — decidir vem antes.
+- **Relatório**: uma linha "Pausa de N dias · escolheu …" no Histórico quando há
+  `prefs.retomada` (rótulo de tela, tirado das prefs — nenhuma tabela nova).
+- **Banco**: nada novo. Só os dois motivos `retomada_leve` e `recomeco` no
+  comentário de `progression_events.motivo` e o tipo `MotivoProgressao`.
+
+### Portões
+
+`npm run lint` limpo · `npm run build` ✓ · `npm test` **1097** ·
+`npm run e2e` **240 passed** (11 novos em `e2e/retomada.spec.ts`).
+Capturas em `capturas/retomada/`: 10 dias (escuro e claro), 20 dias, 40 dias e
+o diálogo de confirmação.
+
+### Como testar no celular
+
+1. **Mais → Backup** não precisa de nada aqui; a pausa é calculada sozinha.
+2. Fique **7 dias** sem registrar nada (ou registre a última sessão com data
+   antiga pelo Supabase) e abra a aba **Treino**: o card aparece no topo com
+   "Continuar de onde parou" e "Recomeçar a semana".
+3. Toque em **Começar treino** antes de decidir: o app leva de volta ao card.
+4. Com **14 dias ou mais**, "Voltar mais leve" põe todos os exercícios com carga
+   a 60 %; a lista do dia já mostra a carga nova e o próximo treino abre com
+   ela. Na sessão seguinte o motor devolve a carga cheia sozinho.
+5. Com **28 dias ou mais** aparece "Recomeçar do zero", que só grava depois das
+   duas confirmações. Depois dele, o Relatório mostra a linha da pausa e o
+   próximo treino volta a ser o Treino A.
+6. **Sem rede** a escolha vale na hora e sobe quando o sinal voltar (fila do §8).
+
+### Conhecido, não corrigido
+
+- Com **14 dias ou mais** e **nenhuma** leitura de `exercise_state` em cache
+  (primeira abertura, sem rede, sem cache), os botões do card ficam
+  desabilitados até as cargas carregarem: sem elas, "mais leve" e "do zero"
+  gravariam vazio. Preferi travar a decisão a gravar errado.

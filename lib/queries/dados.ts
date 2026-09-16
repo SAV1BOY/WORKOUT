@@ -44,6 +44,8 @@ export const chaves = {
   soltasNoPeriodo: (de: string, ate: string) => ["soltas-periodo", de, ate] as const,
   cardioPorId: (id: string) => ["cardio-sessao", id] as const,
   estados: (ids: readonly string[]) => ["estados", [...ids].sort().join(",")] as const,
+  /** Todas as linhas de `exercise_state` — a retomada (SPEC §18.2). */
+  estadosTodos: () => ["estados-todos"] as const,
   eventos: (ids: readonly string[]) => ["eventos", [...ids].sort().join(",")] as const,
   sessao: (id: string) => ["sessao", id] as const,
   series: (id: string) => ["series", id] as const,
@@ -304,6 +306,25 @@ export function useEstados(
           .from("exercise_state")
           .select("*")
           .in("exercise_id", [...ids]),
+        "as cargas dos exercícios",
+      ),
+  });
+}
+
+/**
+ * Todas as cargas do usuário (SPEC §18.2): "Voltar mais leve" e "Recomeçar do
+ * zero" mexem em TODOS os exercícios, não só nos do treino do dia. Só carrega
+ * quando a retomada precisa dela — a aba Treino não paga por isso todo dia.
+ */
+export function useEstadosTodos(
+  ativo: boolean,
+): UseQueryResult<LinhaEstadoExercicio[]> {
+  return useQuery({
+    queryKey: chaves.estadosTodos(),
+    enabled: ativo,
+    queryFn: () =>
+      lerLista<LinhaEstadoExercicio>(
+        clienteNavegador().from("exercise_state").select("*"),
         "as cargas dos exercícios",
       ),
   });

@@ -28,7 +28,10 @@ export type MotivoProgressao =
   | "fim_semana_leve"
   | "trocou_assistencia"
   | "manual"
-  | "trocou_fase";
+  | "trocou_fase"
+  /* SPEC §18.2: a volta de uma pausa longa */
+  | "retomada_leve"
+  | "recomeco";
 
 export interface Prefs {
   tema?: "auto" | "claro" | "escuro";

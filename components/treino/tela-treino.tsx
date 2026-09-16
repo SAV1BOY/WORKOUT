@@ -2,7 +2,7 @@
 
 import { useQueryClient } from "@tanstack/react-query";
 import { addDays } from "date-fns";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Erro, EsqueletoCard } from "@/components/carregando";
 import {
@@ -18,6 +18,7 @@ import { FabAjustar } from "@/components/treino/fab-ajustar";
 import { ListaDoDia } from "@/components/treino/lista";
 import { ParteDoCorpo } from "@/components/treino/parte-do-corpo";
 import { Personalizar } from "@/components/treino/personalizar";
+import { CardRetomada } from "@/components/treino/retomada";
 import { Button } from "@/components/ui/button";
 import {
   iso,
@@ -52,11 +53,13 @@ import {
   mover,
 } from "@/lib/ordem";
 import { descartarSessao, registrarSolta } from "@/lib/queries/acoes";
+import { aplicarRetomada } from "@/lib/queries/retomada";
 import { useComecarTreino } from "@/lib/queries/comecar";
 import {
   useCardio,
   useCardioDesde,
   useEstados,
+  useEstadosTodos,
   useEventos,
   useOverrides,
   usePerfil,
@@ -65,11 +68,19 @@ import {
   useSeriesDaSessao,
   useSessoes,
   useSessoesAbertas,
+  useSoltas,
   useSoltasDoDia,
   useUltimoPeso,
 } from "@/lib/queries/dados";
 import { useHoje } from "@/lib/relogio";
 import { ligado, opcoesDeMontagem } from "@/lib/preferencias";
+import {
+  deveMostrarRetomada,
+  diasParado,
+  faixaDaRetomada,
+  ultimaAtividade,
+  type EscolhaRetomada,
+} from "@/lib/retomada";
 import { faixaDaSemana, intervaloDaSemana, montarGrade } from "@/lib/semana";
 import {
   guardarTrocasNoAparelho,
@@ -77,6 +88,14 @@ import {
   limparTrocasDoAparelho,
 } from "@/lib/trocas";
 import { Pencil } from "lucide-react";
+
+/** O que a tela diz depois de cada escolha da retomada (SPEC §18.2). */
+const AVISO_DA_ESCOLHA: Record<EscolhaRetomada, string> = {
+  continuar: "Seguindo de onde você parou.",
+  semana: "Corrida, corda e barra fixa voltaram uma semana.",
+  leve: "Semana leve: 60 % da carga. O app devolve a carga depois.",
+  zero: "Programa recomeçado. O histórico continua aí.",
+};
 
 /** Quantas semanas para trás a sequência de semanas precisa ler. */
 const SEMANAS_LIDAS = 16;
@@ -96,6 +115,10 @@ export function TelaTreino({ userId }: { userId: string }) {
   /* "Editar" (SPEC §14.3): a ordem vale só para a sessão que vai começar */
   const [ordem, setOrdem] = useState<string[]>([]);
   const [editando, setEditando] = useState(false);
+  /* SPEC §18: a retomada decidida antes de treinar */
+  const [decidindo, setDecidindo] = useState(false);
+  const [destacarRetomada, setDestacarRetomada] = useState(false);
+  const refRetomada = useRef<HTMLElement>(null);
 
   const intervalo = hoje ? intervaloDaSemana(hoje) : null;
   const desde = hoje
@@ -110,6 +133,8 @@ export function TelaTreino({ userId }: { userId: string }) {
   const cardioDesdeQ = useCardioDesde(desde);
   const pesoQ = useUltimoPeso();
   const soltasQ = useSoltasDoDia(hoje);
+  /* SPEC §18.1: a barra fixa solta também conta como atividade */
+  const soltasDoPeriodoQ = useSoltas(desde, hoje);
 
   const perfil = perfilQ.data ?? null;
 
@@ -119,6 +144,35 @@ export function TelaTreino({ userId }: { userId: string }) {
   }, [hoje, perfil, overridesQ.data]);
 
   const treinoId = dia?.tipo === "forca" ? dia.treinoId : null;
+
+  /*
+   * SPEC §18.1: há quantos dias inteiros ele não registra nada — força, cardio
+   * ou barra fixa. A conta corre a cada desenho da tela, então vale tanto ao
+   * abrir a aba quanto ao tocar em "Começar treino".
+   */
+  const pausa = useMemo(() => {
+    const feitas = sessoesQ.data ?? [];
+    const corridas = cardioDesdeQ.data ?? [];
+    const fixas = soltasDoPeriodoQ.data ?? [];
+    return {
+      dias: hoje ? diasParado(hoje, feitas, corridas, fixas) : null,
+      ultima: ultimaAtividade(feitas, corridas, fixas),
+    };
+  }, [hoje, sessoesQ.data, cardioDesdeQ.data, soltasDoPeriodoQ.data]);
+
+  const mostrarRetomada = deveMostrarRetomada({
+    dias: pausa.dias,
+    ultima: pausa.ultima,
+    prefs: perfil?.prefs,
+  });
+  const opcoesDaRetomada = mostrarRetomada
+    ? faixaDaRetomada(pausa.dias).opcoes
+    : [];
+  /* "Voltar mais leve" e "Recomeçar do zero" mexem em TODAS as cargas (§18.2) */
+  const precisaDasCargas = opcoesDaRetomada.some(
+    (o) => o.escolha === "leve" || o.escolha === "zero",
+  );
+  const estadosTodosQ = useEstadosTodos(precisaDasCargas);
 
   /* a escolha do ⇄ vale para o treino de hoje e some sozinha no dia seguinte */
   useEffect(() => {
@@ -265,6 +319,29 @@ export function TelaTreino({ userId }: { userId: string }) {
         }
       : null;
 
+  /* SPEC §18.2: a escolha vai para a fila e o card some. */
+  const escolherRetomada = async (escolha: EscolhaRetomada) => {
+    if (pausa.dias === null) return;
+    setDecidindo(true);
+    try {
+      await aplicarRetomada({
+        userId,
+        perfil,
+        estados: estadosTodosQ.data ?? [],
+        escolha,
+        dias: pausa.dias,
+        hoje,
+        cliente,
+      });
+      setDestacarRetomada(false);
+      toast.success(AVISO_DA_ESCOLHA[escolha]);
+    } catch {
+      toast.error("Não consegui salvar agora. Fica na fila.");
+    } finally {
+      setDecidindo(false);
+    }
+  };
+
   const somarUma = async () => {
     setSomando(true);
     try {
@@ -308,6 +385,18 @@ export function TelaTreino({ userId }: { userId: string }) {
         />
       ) : null}
 
+      {mostrarRetomada && pausa.dias !== null ? (
+        <CardRetomada
+          ref={refRetomada}
+          dias={pausa.dias}
+          opcoes={opcoesDaRetomada}
+          /* sem as cargas lidas, "mais leve" e "do zero" escreveriam vazio */
+          ocupado={decidindo || (precisaDasCargas && !estadosTodosQ.isSuccess)}
+          destacado={destacarRetomada}
+          aoEscolher={(escolha) => void escolherRetomada(escolha)}
+        />
+      ) : null}
+
       <section aria-label="Hoje" className="flex flex-col gap-3">
         {dia.tipo === "forca" && treinoId ? (
           <CardForca
@@ -317,9 +406,17 @@ export function TelaTreino({ userId }: { userId: string }) {
             semanaDaFase={semanaDaFase(hoje, perfil.fase_desde)}
             aberta={abertaDoDia}
             criando={criando !== null}
-            aoComecar={() =>
-              void comecar({ userId, perfil, hoje, treinoId, trocas, ordem })
-            }
+            aoComecar={() => {
+              /* SPEC §18.3: com a retomada pendente, decidir vem antes */
+              if (mostrarRetomada) {
+                setDestacarRetomada(true);
+                refRetomada.current?.scrollIntoView({ block: "start" });
+                refRetomada.current?.focus({ preventScroll: true });
+                toast.info("Antes: escolha como você quer voltar.");
+                return;
+              }
+              void comecar({ userId, perfil, hoje, treinoId, trocas, ordem });
+            }}
           />
         ) : null}
 

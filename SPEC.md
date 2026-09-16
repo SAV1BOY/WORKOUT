@@ -141,6 +141,8 @@ Ao marcar um dia como "não vou treinar", o app reorganiza o resto da semana na 
 ### 5.5 Semanas dos planos de cardio e barra fixa
 `semana_corrida` avança quando as 2 sessões de corrida da semana civil foram concluídas; se a semana passar com 0 sessões, a semana do plano **não muda** (repete); com 1 sessão, repete também (regra "repita a semana anterior em vez de pular"). Igual para corda (`semana_corda`) e barra fixa (`semana_fixa`, 2 sessões). Tudo ajustável no perfil.
 
+Quando a pausa passa de uma semana — viagem, gripe, a vida —, o que o app oferece ao voltar (continuar, recomeçar a semana, voltar mais leve ou recomeçar do zero, conforme os dias parado) está na **§18**.
+
 ---
 
 ## 6. Motor de progressão (o coração do app)
@@ -679,3 +681,126 @@ rotulagem da §16.2 não muda: ela só passa a correr sobre os dias escolhidos.
    havia alternativa", e e2e novos desta seção, os antigos ajustados sem
    afrouxar o que verificam.
 
+---
+
+## 18. Retomada — decisão de 16/09/2026 (adendo, marco Retomada)
+
+O dono pediu, com estas palavras: *"se ele não finalizar a semana ou os dias,
+ter a opção de resetar ou de continuar, dependendo de quantos dias foi desde o
+ultimo treino"*
+
+O guia tem uma regra só para isso, e é de cardio: *"se uma semana der errado —
+viajou, gripou, doeu algo —, repita a semana anterior em vez de pular para a
+seguinte"* (já é a §5.5). Para a força não há regra de volta de pausa escrita em
+lugar nenhum — mas o motor já tem o mecanismo certo: a **semana leve** da §6.2
+(60 % da carga, com `carga_antes_leve` para devolver a carga na sessão
+seguinte). Este adendo usa esses dois mecanismos e **não muda uma linha do
+motor** (§6) nem da montagem (§6.5): a semana leve passa a ser acionada por
+**dados**, não por código novo.
+
+### 18.1 Dias parado
+`diasParado(hoje, sessoes, cardios, fixas)` em **`lib/retomada.ts`** (funções
+puras, sem React nem Supabase): os **dias inteiros de calendário** entre hoje e
+a última atividade — sessão de força **concluída** (`sessions.status =
+'concluida'`, incluídas as de barra fixa, `workout_id = 'fixa'`), sessão de
+cardio concluída (`cardio_sessions.concluida`) ou repetição solta de barra fixa
+(`pullup_singles`). Sem nenhuma atividade o resultado é `null`: quem nunca
+treinou não está voltando de pausa nenhuma, e o card não aparece.
+
+A conta corre **ao abrir a aba Treino** e de novo **ao tocar em "Começar
+treino"**.
+
+### 18.2 As faixas e o que cada opção grava
+
+| dias parado | o que o card oferece |
+|---|---|
+| 0–6 | nada de novo — os dias perdidos já aparecem no calendário e a semana do plano de cardio repete sozinha (§5.5). Semana parcial sem pausa longa é semana normal: continua. |
+| 7–13 | **Continuar de onde parou** · **Recomeçar a semana** |
+| 14–27 | **Continuar** · **Voltar mais leve** |
+| 28 ou mais | **Continuar** · **Voltar mais leve** · **Recomeçar do zero** |
+
+- **Continuar de onde parou** — não grava nada além de `prefs.retomada`. O
+  próximo treino é o da alternância (Fase 1) ou o da ordem da fase (Fase 2), e
+  as semanas dos planos ficam como estão, repetindo pela §5.5.
+- **Recomeçar a semana** — `semana_corrida`, `semana_corda` e `semana_fixa`
+  voltam **uma** semana, com o piso em **1**. A força não muda: a alternância
+  continua de onde parou.
+- **Voltar mais leve** — cada linha de `exercise_state` **com carga**
+  (`carga_atual_kg` não nula e maior que zero, exercício não desativado) entra
+  em semana leve **exatamente como a 3ª falha da §6.2**: `carga_antes_leve =
+  carga_atual_kg`, `carga_atual_kg = arredondar(carga × 0,60)` e `semana_leve =
+  true` — é isso que faz o motor devolver a carga cheia na sessão seguinte, sem
+  nenhum código novo. `falhas_seguidas` **não muda**: pausa não é falha. Quem já
+  estava em semana leve fica como está (o `carga_antes_leve` de antes não se
+  perde). Um `progression_events` por exercício com motivo **`retomada_leve`**.
+  As semanas dos planos também voltam uma, como em "Recomeçar a semana".
+- **Recomeçar do zero** (com **confirmação em duas etapas**) — cada linha de
+  `exercise_state` volta ao estado inicial da §6.1: `carga_atual_kg =
+  carga_inicial.kg` do JSON, `reps_alvo` / `tempo_alvo_s` / `assistencia` de
+  volta a `null` (é assim que o motor guarda "nunca fez": na sessão seguinte
+  valem o mínimo da faixa **daquele treino**, §6.1), `falhas_seguidas = 0`, `incremento_reduzido = false`,
+  `exigir_rep_extra = false`, `semana_leve = false`, `carga_antes_leve = null`,
+  `sessoes_graca = 0`. Continuam como estavam o override de incremento
+  (`incremento_kg`), o `desativado` e as notas — são ajustes do equipamento e da
+  pessoa, não progresso. Além disso: `semana_corrida = semana_corda =
+  semana_fixa = 1`, `ultimo_treino = null` (o próximo treino volta a ser o
+  Treino A da fase) e `fase_desde = hoje` — **a fase continua a mesma**. Um
+  `progression_events` com motivo **`recomeco`** por exercício e mais um do
+  programa (`exercise_id` nulo). **Nada é apagado**: sessões, séries, cardio,
+  fotos e pesos continuam lá — o histórico é o que prova a pausa.
+
+Tudo passa pela **fila de saída** (§8) e pelos caminhos que já existem: upsert
+em `exercise_state`, insert em `progression_events`, update em `profiles`. No
+`supabase/schema.sql` só mudam os dois motivos novos no comentário de
+`progression_events.motivo`; nenhuma tabela, nenhuma coluna.
+
+### 18.3 Onde o card aparece
+Um card **no topo da aba Treino, acima do card do dia**: título **"Você ficou N
+dias sem treinar"**, uma frase do que isso significa e os botões da faixa,
+empilhados, com alvo ≥ 44 px a 360 px. "Recomeçar do zero" é destrutivo: abre um
+diálogo que diz **o que se perde** (as cargas de todos os exercícios voltam ao
+começo; o histórico fica) e só o **segundo** toque confirma.
+
+Decidida a retomada, o card **some** e a aba Treino e o `/calendario` se
+atualizam na hora (cache do TanStack Query invalidado). Tocar em **"Começar
+treino"** com o card pendente **não** começa o treino: leva ao card, com foco e
+destaque — decidir vem antes de treinar.
+
+### 18.4 Perguntar uma vez por pausa
+A escolha vai para
+**`profiles.prefs.retomada = { em: 'AAAA-MM-DD', dias: N, escolha: 'continuar' |
+'semana' | 'leve' | 'zero' }`**. A pausa já decidida é reconhecida pela sua
+**âncora** (`em` menos `dias` = o dia da última atividade de então): enquanto a
+última atividade for aquela, o card não volta, nem recarregando o app. Uma
+atividade **nova** seguida de um **novo** intervalo de 7 dias ou mais faz o card
+aparecer outra vez.
+
+### 18.5 No Relatório
+Quando há `prefs.retomada`, o **Histórico** ganha uma linha na data da escolha:
+**"Pausa de N dias · escolheu continuar"** (ou "recomeçou a semana", "voltou
+mais leve", "recomeçou do zero"). É rótulo de tela, tirado das prefs: nenhuma
+tabela nova, nenhum contador muda. As faltas já aparecem nos registros e nas
+sequências.
+
+### 18.6 Critérios de aceite
+1. Última sessão concluída há **10 dias**: o card diz "Você ficou 10 dias sem
+   treinar" e oferece **duas** opções. "Recomeçar a semana" baixa
+   `semana_corrida`, `semana_corda` e `semana_fixa` em 1 (piso 1) e não mexe em
+   `exercise_state`.
+2. Há **20 dias**: o card oferece "Continuar" e "Voltar mais leve"; escolhendo
+   "Voltar mais leve", todo exercício com carga fica com `semana_leve = true` e
+   `carga_antes_leve` igual à carga de antes, e o treino seguinte mostra a carga
+   a **60 %** — sem nenhuma mudança no motor.
+3. Há **40 dias**: aparece também "Recomeçar do zero", que só grava depois da
+   **confirmação em duas etapas**: cargas de volta à `carga_inicial` do JSON,
+   semanas dos planos em 1, `ultimo_treino` nulo, `fase_desde` hoje e a fase
+   igual.
+4. "Continuar" grava **só** `prefs.retomada`.
+5. Decidida a pausa, o card **não volta** ao recarregar; uma sessão nova e mais
+   7 dias parado trazem o card de novo.
+6. **0–6 dias** não mostram card nenhum.
+7. Sem rede a escolha **entra na fila** e a tela responde na hora (§8).
+8. O card a 360 px: alvos ≥ 44 px, nada corta, nada rola para o lado, nos dois
+   temas. Lint, build, `npm test` e `npm run e2e` verdes, com unitários das
+   quatro faixas, das quatro escolhas e do "perguntar uma vez por pausa", e e2e
+   novos desta seção.
