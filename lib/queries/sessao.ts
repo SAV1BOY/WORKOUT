@@ -342,6 +342,12 @@ export async function finalizarSessao(entrada: EntradaFim): Promise<Conclusao> {
     void cliente.invalidateQueries({ queryKey: ["estados"] });
     void cliente.invalidateQueries({ queryKey: ["eventos"] });
     void cliente.invalidateQueries({ queryKey: chaves.perfil() });
+    /*
+     * SPEC §19: os Números e as conquistas leem as listas completas
+     * (`["progresso", …]`), que o Relatório e a Conclusão compartilham. Sem
+     * isto, a sessão que acabou de subir só apareceria no próximo carregamento.
+     */
+    void cliente.invalidateQueries({ queryKey: ["progresso"] });
   });
 
   return conclusao;

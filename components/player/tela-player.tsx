@@ -385,6 +385,7 @@ export function TelaPlayer({
 
   return (
     <TelaConclusao
+      sessaoId={sessao.id}
       titulo={`${nomeDoTreino} concluído`}
       subtitulo={
         semana ? `${nomeDoTreino} · semana ${semana} da fase` : nomeDoTreino

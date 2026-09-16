@@ -11,7 +11,12 @@
 import type { QueryClient } from "@tanstack/react-query";
 import { bd, temIndexedDB } from "@/lib/db";
 import { enfileirarEscrita } from "@/lib/outbox-supabase";
-import { chaves, type SessaoResumo, type SoltaResumo } from "@/lib/queries/dados";
+import {
+  chaves,
+  type SessaoResumo,
+  type SoltaComAssistencia,
+  type SoltaResumo,
+} from "@/lib/queries/dados";
 import type { NovoOverride } from "@/lib/semana";
 import type { LinhaExcecaoAgenda } from "@/lib/types";
 
@@ -48,6 +53,10 @@ export async function registrarSolta(opcoes: {
       (atual) => [{ id: linha.id, data, reps }, ...(atual ?? [])],
     );
   }
+  /* SPEC §19.2: a lista completa alimenta os Números e as conquistas */
+  cliente.setQueryData<SoltaComAssistencia[]>(chaves.soltasTodas(), (atual) =>
+    atual ? [{ id: linha.id, data, reps, assistencia: null }, ...atual] : atual,
+  );
 
   /*
    * Upsert pelo id gerado aqui, não insert (SPEC §8). A rede pode cair depois

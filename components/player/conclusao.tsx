@@ -4,6 +4,7 @@ import { Trophy } from "lucide-react";
 import { useState } from "react";
 import { CardImc } from "@/components/corpo/card-imc";
 import { CardDaSemana } from "@/components/player/card-da-semana";
+import { AvisoDeConquista } from "@/components/relatorio/aviso-conquista";
 import { StepperNumerico } from "@/components/stepper-numerico";
 import { BotaoLargo } from "@/components/ui/botao-largo";
 import { Button } from "@/components/ui/button";
@@ -24,6 +25,7 @@ import { cn } from "@/lib/utils";
  * vai para o banco (`avaliarSessao`, o mesmo que `concluirSessao` usa).
  */
 export function TelaConclusao({
+  sessaoId,
   titulo,
   subtitulo,
   primeiroExercicioId,
@@ -41,6 +43,8 @@ export function TelaConclusao({
   aoSeguir,
   aoVoltar,
 }: {
+  /** A sessão que acabou — ela conta nas conquistas antes de subir (§19.5). */
+  sessaoId: string;
   titulo: string;
   subtitulo: string;
   primeiroExercicioId: string | null;
@@ -160,6 +164,9 @@ export function TelaConclusao({
           </ul>
         </section>
       ) : null}
+
+      {/* SPEC §19.5: a conquista nova, sóbria, antes do "Próximo" */}
+      <AvisoDeConquista sessaoConcluida={{ id: sessaoId, data: dataDaSessao }} />
 
       <CardDaSemana hoje={hoje} dataDaSessao={dataDaSessao} />
 

@@ -5674,3 +5674,83 @@ mock:
    mais: "Continuar de onde parou" funciona, as outras duas aparecem apagadas
    com a explicação, e dá para treinar depois de decidir.
 2. Com rede, as três voltam a funcionar assim que as cargas carregam.
+
+---
+
+## Marco Números e Conquistas (SPEC §19) — 16/09/2026 ✅
+
+O pedido do dono, literal: *"ele também vai ter o historico mostrando quantos
+treinos fizemos quantos de força, cardio, barra, etc... gamificando o site e
+plataforma"*.
+
+**SPEC §19 foi escrita antes do código** (períodos, contagens, a tabela das 26
+conquistas com a regra de cada uma, a tela, o aviso e os critérios de aceite), e
+a §7 ganhou a frase que amarra as duas: *"gamificação sóbria = §13 e §19"* —
+sem confete, som, pontos, níveis, ranking ou compartilhamento. O que sobe é o
+número real.
+
+### O que foi feito
+
+- **`lib/numeros.ts`** (puro): `intervaloDoPeriodo()` (Semana civil seg–dom ·
+  Mês civil · Tudo) e `numerosDoPeriodo()`, que devolve **Força** (sessões
+  concluídas, por treino com o nome de `programa.json` e as livres à parte),
+  **Cardio** (corrida · corda · outros, minutos, km, saltos), **Barra fixa**
+  (sessões, reps em sessão, reps soltas, total e melhor série), **Minutos** e
+  **Volume**. Os exercícios de barra fixa saem do catálogo (`implemento =
+  'barra_fixa'` e `grupo = 'Costas'`), não de uma lista escrita à mão. Sessão
+  em andamento ou abandonada não conta em nada. **22 unitários.**
+- **`lib/conquistas.ts`** (puro): as **26 conquistas** da §19.3 com id, nome,
+  descrição, regra, ícone (o *nome* do ícone lucide — a lib não importa React) e
+  grupo, avaliadas em três formas de medir: **acumulado** (a data é a do
+  registro que passou do alvo), **melhor registro** (a data é a do primeiro que
+  sozinho alcançou) e **sequência** (a data é a do registro que fechou a
+  N-ésima seguida). Cada uma devolve `atingida`, `em`, `atual/alvo` e o texto do
+  que falta ("faltam 13 treinos"). **37 unitários**, com um caso que fecha e um
+  que não fecha para cada conquista.
+- **As 26**: força 1 · 10 · 25 · 50 · 100 · dias seguidos 3 e 7 · semanas com a
+  meta 2 · 4 · 8 · 12 · Semana completa · primeira corrida · 20 min correndo ·
+  5 km sem parar · 1.000 saltos de corda · primeira barra fixa sem elástico ·
+  5 numa série · 10 numa série · 100 repetições soltas · 20, 40 e 60 kg na barra
+  no agachamento ou terra · 10.000 e 50.000 kg de volume · Fase 2.
+- **Relatório**: a seção **"Números"** logo abaixo dos contadores do topo, com o
+  seletor de três botões (44 px cada) e a grade; e a seção **"Conquistas"**, com
+  a grade de 3 colunas (desbloqueada em laranja com a data, bloqueada em cinza
+  com o que falta) e a folha de detalhe com a descrição, a regra e o progresso.
+  Os contadores acumulados do topo viraram a região **"Totais"**, para não se
+  confundirem com os do período.
+- **Aviso de conquista nova** (`components/relatorio/aviso-conquista.tsx`): card
+  sóbrio "Conquista · Semana completa" com ícone, data e um botão **"Ok"** que
+  grava `profiles.prefs.conquistas_vistas` pela fila (§8). Aparece no Relatório
+  e na **Conclusão** do player, onde a sessão que acabou já conta antes de subir
+  (como o card da semana da §14.1.5). Enquanto não recebe o "Ok", ele volta.
+- **Cache**: concluir uma sessão agora invalida também as listas completas
+  (`["progresso", …]`), e concluir um cardio ou registrar uma repetição solta
+  atualiza `cardio-todos` e `soltas-todas`. Sem isso, os Números e as conquistas
+  só veriam a sessão nova no carregamento seguinte.
+- **Banco**: nada novo. A única gravação nova é `prefs.conquistas_vistas`.
+- **Aba Treino**: nada muda. O chip "N conquistas" ao lado da sequência foi
+  medido a 360 px e não cabe sem apertar a saudação e a chama (§19.6).
+
+### Portões
+
+`npm run lint` limpo · `npm run build` ✓ · `npm test` **1161** (59 novos:
+22 em `lib/numeros.test.ts` e 37 em `lib/conquistas.test.ts`) ·
+`npm run e2e` **258 passed** (7 novos em `e2e/conquistas.spec.ts`).
+Capturas em `capturas/conquistas/`: `01-relatorio-numeros` e
+`02-relatorio-conquistas` (escuro e claro), `03-conquista-detalhe` e
+`04-conclusao-conquista`.
+
+### Como testar no celular
+
+1. Abra a aba **Relatório**. Logo abaixo de Treinos · Minutos · Volume está
+   **Números**, com **Semana** selecionado.
+2. Toque em **Mês** e em **Tudo**: as três linhas de detalhe mudam junto —
+   "Força Treino A 8 · Treino B 4", "Cardio Corrida 3 · 89 min · 8,7 km",
+   "Barra fixa 2 sessões · 16 em sessão · 5 soltas · melhor série 5".
+3. Role até **Conquistas**: as conquistadas ficam em laranja com a data, as
+   outras em cinza com "faltam N". Toque numa delas para abrir a folha com a
+   regra e o progresso ("12 de 25").
+4. Termine um treino. Se ele fechar uma conquista, a tela de **Conclusão**
+   mostra o card sóbrio antes do "Próximo"; toque em **Ok** e ele não volta —
+   nem ali, nem no Relatório.
+5. **Sem rede** tudo funciona igual: as contas são locais e o "Ok" entra na fila.

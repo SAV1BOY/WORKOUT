@@ -200,7 +200,7 @@ Função `montagem(carga_total, implemento)` → lista de anilhas por lado, gulo
 - **StepperNumerico**: − valor + com passo configurável e digitação direta; teclado numérico (`inputMode="decimal"`).
 - Copiar os assets para `public/figuras`, `public/fotos`, `public/itens`, `public/mapa-muscular` no scaffold (script `scripts/copiar-assets.ts`).
 
-Design: sóbrio, alto contraste, tipografia grande nos números (é lido a um braço de distância, no sol do terraço), tema escuro de verdade (não cinza), cor de destaque única. Sem confete, sem gamificação barata; a recompensa é o gráfico subindo.
+Design: sóbrio, alto contraste, tipografia grande nos números (é lido a um braço de distância, no sol do terraço), tema escuro de verdade (não cinza), cor de destaque única. Sem confete, sem gamificação barata; a recompensa é o gráfico subindo. **Gamificação sóbria = §13 e §19**: contadores, números por tipo e conquistas derivadas dos registros — nunca confete, som, pontos, níveis, ranking ou compartilhamento.
 
 ---
 
@@ -845,3 +845,178 @@ sequências.
     temas. Lint, build, `npm test` e `npm run e2e` verdes, com unitários das
     quatro faixas, das quatro escolhas e do "perguntar uma vez por pausa", e e2e
     novos desta seção.
+
+---
+
+## 19. Números e conquistas — decisão de 16/09/2026 (adendo, marco Números e Conquistas)
+
+O dono pediu, com estas palavras: *"ele também vai ter o historico mostrando
+quantos treinos fizemos quantos de força, cardio, barra, etc... gamificando o
+site e plataforma"*
+
+O Relatório já conta **treinos · minutos · volume** no total (§13.5 e §14.4).
+Falta o que ele pediu: **quantos de cada coisa**, num período que ele escolhe, e
+uma camada de **conquistas** — que aqui quer dizer marcos reais dos registros,
+não pontos. Este adendo complementa a §13.5 e mantém intacto o que existe:
+contadores, faixa da semana, "Todos os registros", sequências, Peso, IMC,
+gráficos e recordes continuam onde estão.
+
+**A gamificação continua sóbria** (§7 e §13.1): sem confete, sem som, sem
+pontos, sem níveis, sem ranking, sem compartilhar. O que sobe é o número real.
+
+### 19.1 Regras que não mudam
+- Conteúdo só dos JSON: nome de treino sai de `programa.json`, tipo de cardio e
+  alvo dos planos saem de `cardio.json`, exercício sai de `exercicios.json`
+  (por `lib/dados.ts`). Os **limiares** das conquistas (1 · 10 · 25…) são a
+  definição da conquista, que é desta seção — não são conteúdo de treino.
+- Funções **puras** e testadas: `lib/numeros.ts` e `lib/conquistas.ts` sem
+  React, sem Supabase, sem Dexie. Motor (§6) e montagem (§6.5) intocados.
+- **Nada novo no banco**. A única gravação nova é
+  `profiles.prefs.conquistas_vistas` (lista de ids já avisados), pela fila de
+  saída da §8. Nenhuma tabela, nenhuma coluna, nenhuma view.
+- Celular a 360 px, alvos ≥ 44 px, nada rola de lado; pt-BR, vírgula decimal,
+  dd/MM; offline igual.
+- **Sessão em andamento e sessão abandonada não contam** em número nenhum e em
+  conquista nenhuma: só `sessions.status = 'concluida'` e
+  `cardio_sessions.concluida`.
+
+### 19.2 Números (`lib/numeros.ts`)
+No Relatório, **logo abaixo dos contadores do topo**, uma seção "Números" com um
+seletor de período de três botões (alvo ≥ 44 px cada):
+
+| período | intervalo |
+|---|---|
+| **Semana** | a semana civil de hoje, segunda a domingo (§1) |
+| **Mês** | o mês civil de hoje, do dia 1 ao último |
+| **Tudo** | sem recorte |
+
+Dentro do período, as contagens — todas derivadas das linhas do banco:
+
+- **Força**: sessões de força concluídas (treinos do programa + sessões livres e
+  circuitos). Detalhe **por treino**, com o nome de `programa.json`: Treino A,
+  Treino B, Superior A, Inferior A, Superior B, Inferior B; e **Livres** à parte
+  (sessões `workout_id = 'livre'`). As sessões de barra fixa (`workout_id =
+  'fixa'`) **não** entram aqui — elas são o bloco Barra fixa, para nada ser
+  contado duas vezes.
+- **Cardio**: sessões de cardio concluídas, divididas por tipo (**Corrida**,
+  **Corda**, e as demais somadas em **Outros**), **minutos** somados, **km**
+  somados (só aparece quando há distância registrada) e **saltos** de corda
+  somados (só aparece quando há saltos).
+- **Barra fixa**: **sessões** de barra fixa concluídas (`workout_id = 'fixa'`),
+  **repetições em sessão** (as séries concluídas de qualquer exercício de barra
+  fixa — `implemento = 'barra_fixa'` e `grupo = 'Costas'` no catálogo —, em
+  qualquer treino), **repetições soltas** (`pullup_singles`), o **total** das
+  duas e a **melhor série** do período.
+- **Minutos**: `sessions.duracao_s` das sessões de força concluídas (inclusive
+  as de barra fixa) + `cardio_sessions.duracao_min`.
+- **Volume**: Σ reps × kg das séries de **trabalho** concluídas, pelo dia da
+  sessão (a mesma conta da §3.7).
+
+A data de uma série é a da sessão dela (`lib/progresso.ts`), nunca o fuso do
+`registrada_em`.
+
+### 19.3 As conquistas (`lib/conquistas.ts`)
+Lista **fixa** de 26 conquistas, cada uma com `id`, `nome` (curto, cabe na
+grade), `descricao`, `regra` (a frase que a folha mostra), `icone` (nome de um
+ícone lucide, resolvido na tela — a lib não importa React) e `grupo`. Cada uma é
+avaliada sobre os registros e devolve: **atingida**, **em** (a data do registro
+que a fechou), **atual/alvo** e **o que falta**.
+
+| id | nome | fecha quando |
+|---|---|---|
+| `forca-1` | Primeiro treino | 1 sessão de força concluída |
+| `forca-10` | 10 treinos | 10 sessões de força concluídas |
+| `forca-25` | 25 treinos | 25 sessões de força concluídas |
+| `forca-50` | 50 treinos | 50 sessões de força concluídas |
+| `forca-100` | 100 treinos | 100 sessões de força concluídas |
+| `semanas-2` | 2 semanas | 2 semanas civis seguidas com a meta semanal cumprida |
+| `semanas-4` | 4 semanas | 4 semanas seguidas com a meta |
+| `semanas-8` | 8 semanas | 8 semanas seguidas com a meta |
+| `semanas-12` | 12 semanas | 12 semanas seguidas com a meta |
+| `dias-3` | 3 dias seguidos | 3 dias de calendário seguidos com alguma sessão concluída |
+| `dias-7` | 7 dias seguidos | 7 dias seguidos com alguma sessão |
+| `semana-completa` | Semana completa | uma semana civil em que **todas** as sessões planejadas (força + cardio da semana da fase, §17.3) foram feitas |
+| `corrida-1` | Primeira corrida | 1 sessão de corrida concluída |
+| `corrida-20min` | 20 min correndo | uma corrida com um bloco contínuo de corrida ≥ 20 min em `cardio_sessions.feito` |
+| `corrida-5km` | 5 km sem parar | uma corrida concluída com ≥ 5 km **sem bloco de caminhada** (é a semana 12 de `cardio.json`, "5 km sem parar") |
+| `corda-1000` | 1.000 saltos | uma sessão de corda com ≥ 1.000 saltos |
+| `fixa-sem-elastico` | Sem elástico | 1 repetição de barra fixa sem elástico: numa série com `assistencia = 'sem'`, ou num exercício que não é a barra fixa assistida (a pronada, a supinada e a com lastro não têm elástico). A **repetição solta** não tem exercício, então só conta com `assistencia = 'sem'` explícito |
+| `fixa-5` | 5 numa série | uma série de barra fixa com ≥ 5 repetições |
+| `fixa-10` | 10 numa série | uma série de barra fixa com ≥ 10 repetições |
+| `fixa-100-soltas` | 100 soltas | 100 repetições soltas somadas (`pullup_singles`) |
+| `carga-20` | 20 kg na barra | agachamento ou terra com ≥ 20 kg **na barra** (carga total) |
+| `carga-40` | 40 kg na barra | o mesmo com ≥ 40 kg |
+| `carga-60` | 60 kg na barra | o mesmo com ≥ 60 kg |
+| `volume-10k` | 10.000 kg | volume acumulado ≥ 10.000 kg |
+| `volume-50k` | 50.000 kg | volume acumulado ≥ 50.000 kg |
+| `fase-2` | Fase 2 | `profiles.fase_atual = 'fase2'` (a data é `fase_desde`) |
+
+"Agachamento ou terra" são os cinco exercícios de barra maciça do catálogo cujo
+padrão é agachar ou levantar do chão: `agachamento-livre`, `agachamento-frontal`,
+`agachamento-sumo`, `levantamento-terra`, `stiff-terra-romeno`. Os ids são
+referências ao catálogo (como `lib/barra-fixa.ts` já faz); nome e carga saem do
+JSON.
+
+**Como cada tipo de regra acha a data e o que falta**
+- **Acumulado** (treinos, soltas, volume): soma por data crescente; a data é a
+  do registro em que o acumulado alcançou o alvo. Falta = alvo − acumulado.
+- **Melhor registro** (reps numa série, saltos, km, minutos contínuos, carga): a
+  data é a do primeiro registro que sozinho alcançou o alvo; o progresso é o
+  maior registro até hoje.
+- **Sequência** (dias, semanas): a data é a do último registro do dia/semana que
+  fechou a N-ésima seguida; o progresso é a **maior** sequência já feita.
+- **Semana completa**: a primeira semana civil cujos feitos ≥ planejados; a data
+  é a do último registro daquela semana.
+
+### 19.4 A tela
+Seção **"Conquistas"** no Relatório, abaixo de "Números":
+- Grade de **3 colunas** a 360 px. Cada célula é um botão com alvo ≥ 44 px:
+  ícone num círculo, nome curto, e embaixo a **data** (dd/MM) quando
+  desbloqueada, ou **o que falta** ("faltam 3 treinos") quando não.
+  Desbloqueada em cor de destaque; bloqueada em cinza, com `aria-pressed`.
+- O toque abre uma **folha** (`Sheet`) com o nome, a descrição, a **regra** e, se
+  desbloqueada, "Conquistada em dd/MM/aaaa"; se não, o progresso ("12 de 25").
+- Um resumo acima da grade: "N de 26 conquistadas".
+
+### 19.5 O aviso de conquista nova
+Uma conquista **atingida** e **ainda não avisada** (id fora de
+`profiles.prefs.conquistas_vistas`) mostra um card sóbrio:
+
+> **Conquista** · 10 treinos de força
+
+com o ícone, a data e um botão **"Ok"**. Ele aparece em dois lugares:
+1. **Relatório**, acima da seção "Números", ao abrir a tela.
+2. **Conclusão** do player (§14.1.5), acima do "Próximo" — ali a sessão que
+   acabou entra na conta antes de subir pela fila, como o card da semana já faz.
+
+O **"Ok"** grava os ids listados em `prefs.conquistas_vistas` pela fila de saída
+(§8) e o card some; sem rede, some na hora e a fila sobe depois. Enquanto não é
+tocado, o card volta — é um aviso que espera ser reconhecido, não um pop-up.
+Nunca há confete, som, pontos, níveis ou compartilhamento.
+
+Quando há mais de uma conquista nova, o card lista todas (as mais recentes
+primeiro) e o "Ok" marca todas de uma vez.
+
+### 19.6 Aba Treino
+Nada muda. O chip "N conquistas" ao lado da sequência foi **medido a 360 px** e
+não cabe sem apertar a saudação e a chama, então não entra (a decisão do
+orquestrador previa exatamente isso). As conquistas moram no Relatório.
+
+### 19.7 Critérios de aceite
+1. Com 12 sessões de força (8 do Treino A e 4 do Treino B), 3 corridas, 2
+   sessões de barra fixa e repetições soltas semeadas: em **Tudo**, Números
+   mostra Força **12** (Treino A 8 · Treino B 4), Cardio **3** (Corrida 3) com
+   os minutos e os km somados, e Barra fixa com as sessões, as reps em sessão,
+   as soltas e a melhor série; em **Semana**, só o que caiu na semana civil de
+   hoje.
+2. Conquistas mostra **"10 treinos" desbloqueada com a data** do 10º treino e
+   **"25 treinos" bloqueada com "faltam 13"**; o toque abre a folha com a regra.
+3. Uma sessão concluída que fecha **"Semana completa"** mostra o aviso na
+   **Conclusão**; depois do "Ok" ele **não repete** — nem ali, nem no Relatório.
+4. Sessão **em andamento** e sessão **abandonada** não entram em número nenhum
+   nem em conquista nenhuma.
+5. A 360 px, nos dois temas: seletor e grade com alvos ≥ 44 px, nada corta,
+   nada rola para o lado.
+6. Unitários cobrindo **cada** conquista com um caso que fecha e um que não
+   fecha, os três períodos e o recorte por data; lint, build, `npm test` e
+   `npm run e2e` verdes, com e2e novos desta seção.

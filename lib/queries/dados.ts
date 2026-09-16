@@ -42,6 +42,8 @@ export const chaves = {
   peso: () => ["peso"] as const,
   soltas: (data: string) => ["soltas", data] as const,
   soltasNoPeriodo: (de: string, ate: string) => ["soltas-periodo", de, ate] as const,
+  /** Todas as repetições soltas — os Números e as conquistas (SPEC §19). */
+  soltasTodas: () => ["soltas-todas"] as const,
   cardioPorId: (id: string) => ["cardio-sessao", id] as const,
   estados: (ids: readonly string[]) => ["estados", [...ids].sort().join(",")] as const,
   /** Todas as linhas de `exercise_state` — a retomada (SPEC §18.2). */
@@ -237,6 +239,10 @@ export function useUltimoPeso(): UseQueryResult<PesoResumo[]> {
 
 export type SoltaResumo = Pick<LinhaBarraFixaSolta, "id" | "data" | "reps">;
 
+/** A solta com a assistência (a conquista "sem elástico", SPEC §19.3). */
+export type SoltaComAssistencia = SoltaResumo &
+  Pick<LinhaBarraFixaSolta, "assistencia">;
+
 export function useSoltasDoDia(data: string | null): UseQueryResult<SoltaResumo[]> {
   return useQuery({
     queryKey: chaves.soltas(data ?? ""),
@@ -268,6 +274,28 @@ export function useSoltas(
           .gte("data", de ?? "")
           .lte("data", ate ?? "")
           .order("data", { ascending: false }),
+        "as repetições soltas",
+      ),
+  });
+}
+
+/** Quantos dias de repetições soltas o Relatório lê (uns cinco anos). */
+export const SOLTAS_TODAS = 2000;
+
+/**
+ * Todas as repetições soltas (SPEC §19.2): os Números por período e as
+ * conquistas de barra fixa contam desde o começo, não só a janela do histórico.
+ */
+export function useSoltasTodas(): UseQueryResult<SoltaComAssistencia[]> {
+  return useQuery({
+    queryKey: chaves.soltasTodas(),
+    queryFn: () =>
+      lerLista<SoltaComAssistencia>(
+        clienteNavegador()
+          .from("pullup_singles")
+          .select("id,data,reps,assistencia")
+          .order("data", { ascending: false })
+          .limit(SOLTAS_TODAS),
         "as repetições soltas",
       ),
   });
