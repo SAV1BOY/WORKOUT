@@ -21,7 +21,6 @@ import {
   programaSchema,
   progressaoJsonSchema,
   tutoriaisSchema,
-  type DiaPrograma,
   type DiaSemana,
   type EquipamentoTag,
   type Exercicio,
@@ -151,13 +150,6 @@ export function urlFigura(e: Exercicio): string | null {
 
 export function urlFotos(e: Exercicio): string[] {
   return e.fotos.map(caminhoPublico);
-}
-
-/** O dia do programa (seg…dom) de uma fase. */
-export function diaDoPrograma(fase: FaseId, dia: DiaSemana): DiaPrograma {
-  const d = acharFase(fase).semana.find((x) => x.dia === dia);
-  if (!d) throw new Error(`dia ${dia} ausente na ${fase}`);
-  return d;
 }
 
 /** Exercícios de um treino já com a ficha do catálogo ao lado. */

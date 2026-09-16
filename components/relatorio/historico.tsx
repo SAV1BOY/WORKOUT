@@ -1,13 +1,14 @@
 "use client";
 
-import { Flame } from "lucide-react";
+import { Flame, Pause } from "lucide-react";
 import Link from "next/link";
 import { addDays } from "date-fns";
 import { useMemo, useState } from "react";
 import { FaixaSemana } from "@/components/ui/faixa-semana";
 import { formatarData } from "@/lib/formato";
-import { iso, inicioDaSemana, paraData, semanaDoPlano } from "@/lib/calendario";
+import { iso, inicioDaSemana, paraData } from "@/lib/calendario";
 import { registros, textoDoMotorDaSessao, type EventoDeSessao } from "@/lib/relatorio";
+import { retomadaDasPrefs } from "@/lib/retomada";
 import type { CardioBruto, SerieBruta, SessaoBruta, SoltaBruta } from "@/lib/progresso";
 import { faixaDaSemana, montarGrade } from "@/lib/semana";
 import type { LinhaPerfil, LinhaExcecaoAgenda } from "@/lib/types";
@@ -52,30 +53,46 @@ export function Historico({
   );
   const fim = useMemo(() => iso(addDays(paraData(inicio), 6)), [inicio]);
 
-  const dias = useMemo(() => {
-    const semana = semanaDoPlano(inicio, perfil, overrides);
-    return faixaDaSemana(
-      montarGrade(
-        semana,
-        sessoes.map((s) => ({ ...s, id: s.id })),
-        cardios.map((c, i) => ({
-          id: `c${i}`,
-          data: c.data,
-          tipo: c.tipo,
-          concluida: c.concluida,
-        })),
-        hoje,
+  const dias = useMemo(
+    () =>
+      faixaDaSemana(
+        montarGrade({
+          data: inicio,
+          perfil,
+          overrides,
+          sessoes: sessoes.map((s) => ({ ...s, id: s.id })),
+          cardios: cardios.map((c, i) => ({
+            id: `c${i}`,
+            data: c.data,
+            tipo: c.tipo,
+            concluida: c.concluida,
+          })),
+          hoje,
+        }),
       ),
-    );
-  }, [inicio, perfil, overrides, sessoes, cardios, hoje]);
+    [inicio, perfil, overrides, sessoes, cardios, hoje],
+  );
+
+  /* SPEC §18.5: a pausa decidida, que mora nas prefs do perfil */
+  const retomada = useMemo(() => retomadaDasPrefs(perfil.prefs), [perfil.prefs]);
 
   const daSemana = useMemo(
-    () => registros({ sessoes, cardios, series, soltas, eventos, de: inicio, ate: fim }),
-    [sessoes, cardios, series, soltas, eventos, inicio, fim],
+    () =>
+      registros({
+        sessoes,
+        cardios,
+        series,
+        soltas,
+        eventos,
+        retomada,
+        de: inicio,
+        ate: fim,
+      }),
+    [sessoes, cardios, series, soltas, eventos, retomada, inicio, fim],
   );
   const todos = useMemo(
-    () => registros({ sessoes, cardios, series, soltas, eventos }),
-    [sessoes, cardios, series, soltas, eventos],
+    () => registros({ sessoes, cardios, series, soltas, eventos, retomada }),
+    [sessoes, cardios, series, soltas, eventos, retomada],
   );
 
   const lista = tudo ? todos : daSemana;
@@ -166,7 +183,9 @@ function LinhaDoRegistro({
         )}
         aria-hidden="true"
       >
-        {r.tipo === "soltas" ? <Flame className="size-4" /> : r.titulo.slice(0, 1)}
+        {r.tipo === "soltas" ? <Flame className="size-4" /> : null}
+        {r.tipo === "pausa" ? <Pause className="size-4" /> : null}
+        {r.tipo === "soltas" || r.tipo === "pausa" ? null : r.titulo.slice(0, 1)}
       </span>
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="text-sm font-medium text-balance">{r.titulo}</span>
@@ -182,7 +201,11 @@ function LinhaDoRegistro({
   );
 
   if (!r.href) {
-    return <span className="flex items-center gap-3 py-2">{miolo}</span>;
+    return (
+      <span data-registro={r.tipo} className="flex items-center gap-3 py-2">
+        {miolo}
+      </span>
+    );
   }
   return (
     <Link

@@ -249,3 +249,60 @@ describe("SPEC §14.4: os contadores do topo são o acumulado", () => {
     expect(depois.volumeKg).toBe(antes.volumeKg + 200);
   });
 });
+
+describe("a linha da pausa no histórico (SPEC §18.5)", () => {
+  const retomada = { em: "2026-09-16", dias: 20, escolha: "leve" as const };
+
+  it("aparece na data da escolha, com o que ele escolheu", () => {
+    const lista = registros({
+      sessoes: SESSOES,
+      cardios: CARDIOS,
+      series: SERIES,
+      retomada,
+    });
+    const pausa = lista.find((r) => r.tipo === "pausa");
+    expect(pausa?.titulo).toBe("Pausa de 20 dias");
+    expect(pausa?.detalhe).toBe("escolheu voltar mais leve");
+    expect(pausa?.data).toBe("2026-09-16");
+    expect(pausa?.href).toBeNull();
+    // vai para o topo com os registros do dia mais recente (16/09)
+    expect(lista[0]?.data).toBe("2026-09-16");
+    expect(lista.slice(0, 2).map((r) => r.chave)).toContain("pausa:2026-09-16");
+  });
+
+  it("cada escolha tem o seu texto, e um dia só fica no singular", () => {
+    const texto = (escolha: "continuar" | "semana" | "leve" | "zero", dias: number) =>
+      registros({
+        sessoes: [],
+        cardios: [],
+        series: [],
+        retomada: { em: "2026-09-16", dias, escolha },
+      })[0];
+    expect(texto("continuar", 7)?.detalhe).toBe("escolheu continuar");
+    expect(texto("semana", 1)?.titulo).toBe("Pausa de 1 dia");
+    expect(texto("zero", 40)?.detalhe).toBe("escolheu recomeçar do zero");
+  });
+
+  it("fica de fora quando a semana em tela não é a da escolha", () => {
+    const lista = registros({
+      sessoes: SESSOES,
+      cardios: CARDIOS,
+      series: SERIES,
+      retomada,
+      de: "2026-09-07",
+      ate: "2026-09-13",
+    });
+    expect(lista.some((r) => r.tipo === "pausa")).toBe(false);
+  });
+
+  it("sem pausa decidida nada muda no histórico", () => {
+    const com = registros({ sessoes: SESSOES, cardios: CARDIOS, series: SERIES });
+    const sem = registros({
+      sessoes: SESSOES,
+      cardios: CARDIOS,
+      series: SERIES,
+      retomada: null,
+    });
+    expect(sem).toEqual(com);
+  });
+});

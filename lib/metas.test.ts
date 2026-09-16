@@ -168,3 +168,27 @@ describe("dias desde a última sessão", () => {
     expect(diasDesdeAUltimaSessao({ hoje: "2026-09-15" })).toBeNull();
   });
 });
+
+describe("a meta padrão segue os dias escolhidos (SPEC §17.3)", () => {
+  it("sem escolha, continua a da fase: 5 na Fase 1, 6 na Fase 2", () => {
+    expect(metaSemanalPadrao("fase1")).toBe(5);
+    expect(metaSemanalPadrao("fase2")).toBe(6);
+    expect(metaSemanalPadrao("fase1", null)).toBe(5);
+  });
+
+  it("três dias escolhidos: a meta padrão vira 3", () => {
+    const prefs = { dias_de_treino: ["seg", "qua", "sex"] };
+    expect(metaSemanalPadrao("fase1", prefs)).toBe(3);
+    expect(metaSemanal(prefs, "fase1")).toBe(3);
+  });
+
+  it("seis dias escolhidos na Fase 1: 3 de força + 2 de cardio = 5", () => {
+    const prefs = { dias_de_treino: ["seg", "ter", "qua", "qui", "sex", "sab"] };
+    expect(metaSemanal(prefs, "fase1")).toBe(5);
+  });
+
+  it("a meta escrita à mão continua mandando", () => {
+    const prefs = { dias_de_treino: ["seg", "qua", "sex"], meta_semanal: 4 };
+    expect(metaSemanal(prefs, "fase1")).toBe(4);
+  });
+});

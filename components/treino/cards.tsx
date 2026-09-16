@@ -62,14 +62,63 @@ export function BannerSessaoAberta({
   );
 }
 
+/* ------------------------------------------------- o portão da retomada */
+
+/**
+ * SPEC §18.3: enquanto a pausa não foi decidida, os botões que levam a começar
+ * uma atividade chamam `aoBloquear` (que leva ao card) em vez de navegar. Sem
+ * pausa pendente continuam sendo `<Link>` — o prefetch do Next não se perde.
+ */
+export interface Bloqueio {
+  bloqueado?: boolean;
+  aoBloquear?: () => void;
+}
+
+function BotaoQueLeva({
+  href,
+  bloqueado,
+  aoBloquear,
+  className,
+  variant,
+  children,
+}: Bloqueio & {
+  href: string;
+  className: string;
+  variant?: "outline";
+  children: React.ReactNode;
+}) {
+  if (bloqueado) {
+    return (
+      <Button type="button" variant={variant} className={className} onClick={aoBloquear}>
+        {children}
+      </Button>
+    );
+  }
+  return (
+    <Button asChild variant={variant} className={className}>
+      <Link href={href}>{children}</Link>
+    </Button>
+  );
+}
+
 /* --------------------------------------------------- treinar mesmo assim */
 
 /** SPEC §5.3: treinar num dia de cardio ou descanso é permitido. */
-export function TreinarMesmoAssim({ nomeDoTreino }: { nomeDoTreino: string }) {
+export function TreinarMesmoAssim({
+  nomeDoTreino,
+  bloqueado,
+  aoBloquear,
+}: Bloqueio & { nomeDoTreino: string }) {
   return (
-    <Button asChild variant="outline" className="alvo h-12 w-full rounded-xl">
-      <Link href="/treinar">Treinar mesmo assim ({nomeDoTreino})</Link>
-    </Button>
+    <BotaoQueLeva
+      href="/treinar"
+      variant="outline"
+      className="alvo h-12 w-full rounded-xl"
+      bloqueado={bloqueado}
+      aoBloquear={aoBloquear}
+    >
+      Treinar mesmo assim ({nomeDoTreino})
+    </BotaoQueLeva>
   );
 }
 
@@ -80,6 +129,7 @@ export function CardForca({
   resumo,
   aviso,
   mostrarRaios,
+  semanaDaFase,
   aberta,
   aoComecar,
   criando,
@@ -87,6 +137,8 @@ export function CardForca({
   resumo: ResumoDoTreino;
   aviso: string | null;
   mostrarRaios: boolean;
+  /** Em que semana da fase este treino cai (SPEC §16.4). */
+  semanaDaFase?: number;
   /** Sessão em andamento deste treino: o card vira "Continuar". */
   aberta: { id: string; progresso: string } | null;
   /** Cria a sessão e entra no player, sem tela intermediária (§14.5.1). */
@@ -97,11 +149,17 @@ export function CardForca({
     exerciciosDoTreino(resumo.id).map(({ exercicio }) => exercicio),
   );
 
+  // SPEC §16.4: "6 exercícios · 44 min · semana 3" — a semana da fase no card
+  const detalhe =
+    semanaDaFase !== undefined
+      ? `${detalheDoTreino(resumo.id)} · semana ${semanaDaFase}`
+      : detalheDoTreino(resumo.id);
+
   return (
     <CardCapa
       titulo={resumo.nome}
       subtitulo={resumo.foco}
-      detalhe={detalheDoTreino(resumo.id)}
+      detalhe={detalhe}
       foto={capaDoTreino(resumo.id)}
       raios={mostrarRaios ? raios : null}
       etiqueta={aberta ? "em andamento" : "hoje"}
@@ -173,7 +231,9 @@ export function CardCardio({
   alternativaCorda,
   nomeDoProximoTreino,
   aviso,
-}: {
+  bloqueado,
+  aoBloquear,
+}: Bloqueio & {
   sessao: SessaoCardioDoDia;
   alternativaCorda: SessaoCardioDoDia | null;
   nomeDoProximoTreino: string;
@@ -206,9 +266,16 @@ export function CardCardio({
           <DetalheDaCorrida sessao={mostrada} />
         )}
 
-        <BotaoLargo asChild>
-          <Link href={href}>Começar</Link>
-        </BotaoLargo>
+        {/* SPEC §18.3: com a pausa por decidir, "Começar" leva ao card */}
+        {bloqueado ? (
+          <BotaoLargo type="button" onClick={aoBloquear}>
+            Começar
+          </BotaoLargo>
+        ) : (
+          <BotaoLargo asChild>
+            <Link href={href}>Começar</Link>
+          </BotaoLargo>
+        )}
 
         {alternativaCorda ? (
           <Button
@@ -222,7 +289,11 @@ export function CardCardio({
         ) : null}
       </CardCapa>
 
-      <TreinarMesmoAssim nomeDoTreino={nomeDoProximoTreino} />
+      <TreinarMesmoAssim
+        nomeDoTreino={nomeDoProximoTreino}
+        bloqueado={bloqueado}
+        aoBloquear={aoBloquear}
+      />
     </>
   );
 }
@@ -237,7 +308,9 @@ export function CardDescanso({
   ocupado,
   nomeDoProximoTreino,
   comCaminhada = false,
-}: {
+  bloqueado,
+  aoBloquear,
+}: Bloqueio & {
   nota: string | null;
   total: number;
   aoSomarUma: () => void;
@@ -278,16 +351,24 @@ export function CardDescanso({
         </div>
 
         {comCaminhada ? (
-          <Button asChild variant="outline" className="alvo h-12 w-full rounded-xl">
-            <Link href="/cardio/caminhada">
-              <Footprints className="size-4" />
-              Começar caminhada leve
-            </Link>
-          </Button>
+          <BotaoQueLeva
+            href="/cardio/caminhada"
+            variant="outline"
+            className="alvo h-12 w-full rounded-xl"
+            bloqueado={bloqueado}
+            aoBloquear={aoBloquear}
+          >
+            <Footprints className="size-4" />
+            Começar caminhada leve
+          </BotaoQueLeva>
         ) : null}
       </CardCapa>
 
-      <TreinarMesmoAssim nomeDoTreino={nomeDoProximoTreino} />
+      <TreinarMesmoAssim
+        nomeDoTreino={nomeDoProximoTreino}
+        bloqueado={bloqueado}
+        aoBloquear={aoBloquear}
+      />
     </>
   );
 }

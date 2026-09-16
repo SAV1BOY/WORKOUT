@@ -62,6 +62,20 @@ export function FaixaSemana({
             >
               {dia.numero}
             </span>
+            {/*
+              SPEC §16.3: sob o número, o treino daquele dia — a sigla da força
+              ("A", "B", "SA"…), o cardio ("Corr.", "Corda", "Longa") ou
+              "Desc.". O nome completo vai no title/aria-label do dia.
+            */}
+            <span
+              aria-hidden="true"
+              className={cn(
+                "text-[11px] leading-none font-medium",
+                dia.ehHoje ? "text-primary" : "text-muted-foreground/80",
+              )}
+            >
+              {dia.treino}
+            </span>
           </span>
         </li>
       ))}

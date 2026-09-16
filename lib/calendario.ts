@@ -22,12 +22,12 @@ import {
   acharTreino,
   cardio,
   DIAS,
-  diaDoPrograma,
   estagioDeCorda,
   semanaDeCorrida,
   ultimaSemanaDeBarraFixa,
   ultimaSemanaDeCorda,
 } from "@/lib/dados";
+import { diasDeTreinoDasPrefs, semanaPersonalizada } from "@/lib/dias";
 import type {
   DiaPrograma,
   DiaSemana,
@@ -153,13 +153,41 @@ function excecaoDe(
   return overrides.find((o) => o.data === data) ?? null;
 }
 
+/**
+ * A semana que vale para este perfil (SPEC §17.3): a personalizada quando
+ * `prefs.dias_de_treino` existe, senão a do `programa.json`.
+ */
+export function semanaDoPerfil(perfil: PerfilCalendario): DiaPrograma[] {
+  return semanaPersonalizada(perfil.fase_atual, diasDeTreinoDasPrefs(perfil.prefs));
+}
+
+/**
+ * Quem chama o calendário passa o **perfil** (que carrega `prefs`, SPEC §17.3).
+ * Uma fase solta continua aceita: vale a semana do programa daquela fase.
+ */
+export type FaseOuPerfil = FaseId | PerfilCalendario;
+
+function resolver(x: FaseOuPerfil): { fase: FaseId; semana: DiaPrograma[] } {
+  if (typeof x === "string") {
+    return { fase: x, semana: acharFase(x).semana };
+  }
+  return { fase: x.fase_atual, semana: semanaDoPerfil(x) };
+}
+
+/** O dia da semana montada (SPEC §17.2) — o que antes vinha do JSON direto. */
+function diaDaSemanaMontada(semana: DiaPrograma[], dia: DiaSemana): DiaPrograma {
+  const d = semana.find((x) => x.dia === dia);
+  if (!d) throw new Error(`dia ${dia} ausente na semana`);
+  return d;
+}
+
 export function tipoDoDia(
   d: Data,
-  fase: FaseId,
+  faseOuPerfil: FaseOuPerfil,
   overrides: ExcecaoAgenda[] = [],
 ): TipoDoDia {
   const dia = diaDaSemana(d);
-  const programa = diaDoPrograma(fase, dia);
+  const programa = diaDaSemanaMontada(resolver(faseOuPerfil).semana, dia);
   const excecao = excecaoDe(d, overrides);
   return {
     data: iso(d),
@@ -193,9 +221,13 @@ function treinoDoDia(
   programa: DiaPrograma,
   ultimo: TreinoId | null,
 ): TreinoId {
-  if (fase === "fase1") return proximoTreinoAlternado(ultimo);
   const t = programa.treino;
+  /*
+   * O dia com treino escrito vale como está: os dias fixos da Fase 2 e, na
+   * semana personalizada de um dia só, o Treino A da §5.4 (SPEC §17.2 item 6).
+   */
   if (t && t !== "alternar") return t;
+  if (fase === "fase1") return proximoTreinoAlternado(ultimo);
   /*
    * SPEC §5.3: treinar num dia que não era de força (schedule_override com
    * `workout_id` nulo, §3.5) "vale como o próximo treino". Na Fase 1 a
@@ -212,7 +244,7 @@ export function sessaoCardioDeHoje(
   perfil: PerfilCalendario,
   overrides: ExcecaoAgenda[] = [],
 ): SessaoCardioDoDia | null {
-  const info = tipoDoDia(d, perfil.fase_atual, overrides);
+  const info = tipoDoDia(d, perfil, overrides);
   if (info.tipo !== "cardio") return null;
 
   const texto = info.excecao?.sessao ?? info.programa.sessao ?? "";
@@ -264,7 +296,7 @@ export function treinoDeHoje(
   perfil: PerfilCalendario,
   overrides: ExcecaoAgenda[] = [],
 ): DiaDoPlano {
-  const info = tipoDoDia(d, perfil.fase_atual, overrides);
+  const info = tipoDoDia(d, perfil, overrides);
   return montarDia(info, perfil, overrides, perfil.ultimo_treino);
 }
 
@@ -273,12 +305,20 @@ function montarDia(
   perfil: PerfilCalendario,
   overrides: ExcecaoAgenda[],
   ultimo: TreinoId | null,
+  /**
+   * O treino que o dia mostra, decidido de fora (SPEC §16.2): num dia passado
+   * é o da sessão que existe nele, ou o que era esperado naquele momento.
+   * `{ treinoId: null }` é um dia de força sem treino conhecido — diferente de
+   * não passar nada, que manda projetar a alternância.
+   */
+  forcado?: { treinoId: TreinoId | null },
 ): DiaDoPlano {
   let treinoId: TreinoId | null = null;
   if (info.tipo === "forca") {
-    treinoId =
-      info.excecao?.workout_id ??
-      treinoDoDia(perfil.fase_atual, info.programa, ultimo);
+    treinoId = forcado
+      ? forcado.treinoId
+      : (info.excecao?.workout_id ??
+        treinoDoDia(perfil.fase_atual, info.programa, ultimo));
   }
   const treino = treinoId ? acharTreino(treinoId) : null;
   const cardioDoDia =
@@ -313,19 +353,183 @@ function montarDia(
   };
 }
 
-/** A semana inteira (segunda a domingo), com a alternância encadeada. */
+/**
+ * A semana inteira (segunda a domingo) **projetada** a partir de
+ * `perfil.ultimo_treino`, começando na segunda.
+ *
+ * É a projeção de uma semana solta — quem quer a semana que o usuário vê (a
+ * corrente, com o passado já acontecido) usa `semanaCoerente()`, e quem quer
+ * uma semana futura passa aqui um perfil cujo `ultimo_treino` é **o estado ao
+ * fim da semana anterior** (SPEC §16.2 item 4).
+ */
 export function semanaDoPlano(
   d: Data,
   perfil: PerfilCalendario,
   overrides: ExcecaoAgenda[] = [],
 ): DiaDoPlano[] {
-  let ultimo = perfil.ultimo_treino;
-  return diasDaSemana(d).map((data) => {
-    const info = tipoDoDia(data, perfil.fase_atual, overrides);
-    const dia = montarDia(info, perfil, overrides, ultimo);
-    if (dia.treinoId) ultimo = dia.treinoId;
-    return dia;
+  return montarSemana(d, perfil, overrides, [], null, perfil.ultimo_treino).dias;
+}
+
+/* -------------------------------------------- a semana coerente (§16.2) */
+
+/** Uma sessão de força já registrada — o que a semana lê do passado. */
+export interface SessaoDeForca {
+  data: string;
+  workout_id: string | null;
+}
+
+export interface OpcoesDaSemana {
+  overrides?: ExcecaoAgenda[];
+  /** As sessões de força do período (concluídas ou parciais). */
+  sessoes?: SessaoDeForca[];
+  /** Hoje. Sem ele, a semana inteira é projeção (o comportamento antigo). */
+  hoje?: Data | null;
+}
+
+/** O treino da fase por trás de um `workout_id` ("livre"/"fixa" não contam). */
+function treinoDaFase(fase: FaseId, id: string | null | undefined): TreinoId | null {
+  if (!id) return null;
+  const treinos = acharFase(fase).treinos as readonly string[];
+  return treinos.includes(id) ? (id as TreinoId) : null;
+}
+
+/** A sessão de força registrada num dia (a primeira da lista, que vem ordenada). */
+function sessaoDoDia(
+  sessoes: SessaoDeForca[],
+  fase: FaseId,
+  data: string,
+): TreinoId | null {
+  for (const s of sessoes) {
+    if (s.data !== data) continue;
+    const id = treinoDaFase(fase, s.workout_id);
+    if (id) return id;
+  }
+  return null;
+}
+
+/** O treino da última sessão de força registrada ANTES de `data`. */
+function ultimoTreinoAntesDe(
+  sessoes: SessaoDeForca[],
+  fase: FaseId,
+  data: string,
+): TreinoId | null {
+  let melhor: { data: string; id: TreinoId } | null = null;
+  for (const s of sessoes) {
+    if (s.data >= data) continue;
+    const id = treinoDaFase(fase, s.workout_id);
+    if (!id) continue;
+    if (!melhor || s.data > melhor.data) melhor = { data: s.data, id };
+  }
+  return melhor?.id ?? null;
+}
+
+/**
+ * Monta uma semana (segunda a domingo) e devolve também a âncora da
+ * alternância ao fim dela — o que a semana seguinte continua (SPEC §16.2).
+ */
+function montarSemana(
+  d: Data,
+  perfil: PerfilCalendario,
+  overrides: ExcecaoAgenda[],
+  sessoes: SessaoDeForca[],
+  hoje: string | null,
+  ancoraInicial: TreinoId | null,
+): { dias: DiaDoPlano[]; ultimo: TreinoId | null } {
+  let ancora = ancoraInicial;
+  const dias = diasDaSemana(d).map((data) => {
+    const info = tipoDoDia(data, perfil, overrides);
+
+    // o dia cujo treino é fixo no programa (Fase 2) ou escolhido à mão num
+    // override: não há o que rotular, vale o que está escrito
+    const fixo =
+      Boolean(info.programa.treino && info.programa.treino !== "alternar") ||
+      info.excecao?.workout_id != null;
+
+    const passado = hoje !== null && info.data < hoje;
+    const ehHoje = hoje !== null && info.data === hoje;
+
+    /*
+     * SPEC §16.2 item 2: vale a sessão que existe no dia — inclusive no próprio
+     * dia de hoje depois de treinar. Sem isto, hoje continuava projetando de
+     * `ultimo_treino`, que já contabilizou a sessão de hoje: o dia mostrava o
+     * treino seguinte (dois "Treino A" na mesma semana) e deslocava o resto.
+     */
+    const feito =
+      passado || ehHoje ? sessaoDoDia(sessoes, perfil.fase_atual, info.data) : null;
+
+    /*
+     * SPEC §16.2: um treino feito num dia que o plano dizia descanso ou cardio
+     * ("Treinar mesmo assim", §5.3 — e, desde a §17, qualquer dia não escolhido)
+     * conta e aparece: o dia vira força com a sigla do treino e o ✓, em vez de
+     * "Desc." sem marca nenhuma. Com override no dia vale o override (item 1).
+     */
+    if (info.tipo !== "forca" && feito && !info.excecao) {
+      return montarDia(
+        { ...info, tipo: "forca", programa: { ...info.programa, tipo: "forca" } },
+        perfil,
+        overrides,
+        ancora,
+        { treinoId: feito },
+      );
+    }
+
+    if (info.tipo !== "forca" || fixo || (!passado && !feito)) {
+      const dia = montarDia(info, perfil, overrides, ancora);
+      // SPEC §16.2 item 3: um dia passado nunca avança a âncora — o
+      // `ultimo_treino` do perfil já o contabilizou.
+      if (dia.treinoId && !passado) ancora = dia.treinoId;
+      return dia;
+    }
+
+    // O treino que de fato foi feito, sem avançar a âncora (o `ultimo_treino`
+    // já o contabilizou); sem sessão, o que era esperado naquele momento.
+    if (feito) return montarDia(info, perfil, overrides, ancora, { treinoId: feito });
+
+    const antes = ultimoTreinoAntesDe(sessoes, perfil.fase_atual, info.data);
+    const esperado = antes ? proximoTreinoDaFase(perfil.fase_atual, antes) : null;
+    return montarDia(info, perfil, overrides, ancora, { treinoId: esperado });
   });
+
+  return { dias, ultimo: ancora };
+}
+
+/**
+ * A semana como o usuário a vê (SPEC §16.2): os dias passados com o treino da
+ * sessão que existe neles, hoje e o futuro com a alternância projetada a partir
+ * de **hoje**, e as semanas seguintes continuando de onde a corrente terminou.
+ */
+export function semanaEEstado(
+  d: Data,
+  perfil: PerfilCalendario,
+  opcoes: OpcoesDaSemana = {},
+): { dias: DiaDoPlano[]; ultimo: TreinoId | null } {
+  const overrides = opcoes.overrides ?? [];
+  const sessoes = opcoes.sessoes ?? [];
+  const hoje = opcoes.hoje ? iso(opcoes.hoje) : null;
+
+  const inicioAlvo = inicioDaSemana(d);
+  const inicioHoje = hoje ? inicioDaSemana(hoje) : inicioAlvo;
+
+  // as semanas entre a de hoje e a pedida, só para encadear a alternância
+  let ancora = perfil.ultimo_treino;
+  for (
+    let cursor = inicioHoje;
+    cursor < inicioAlvo;
+    cursor = addDays(cursor, 7)
+  ) {
+    ancora = montarSemana(cursor, perfil, overrides, sessoes, hoje, ancora).ultimo;
+  }
+
+  return montarSemana(inicioAlvo, perfil, overrides, sessoes, hoje, ancora);
+}
+
+/** Só os dias de `semanaEEstado()`. */
+export function semanaCoerente(
+  d: Data,
+  perfil: PerfilCalendario,
+  opcoes: OpcoesDaSemana = {},
+): DiaDoPlano[] {
+  return semanaEEstado(d, perfil, opcoes).dias;
 }
 
 /* -------------------------------------------- semanas dos planos (§5.5) */

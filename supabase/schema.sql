@@ -119,7 +119,7 @@ create table if not exists public.progression_events (
   data         date not null default current_date,
   de           jsonb,                                    -- {"carga_kg":7.5} | {"reps_alvo":8} | {"assistencia":"pe_inteiro"}
   para         jsonb,
-  motivo       text not null,                            -- 'subiu' | 'repetiu' | 'falha_2x_voltou_10' | 'semana_leve_60' | 'fim_semana_leve' | 'trocou_assistencia' | 'manual' | 'trocou_fase'
+  motivo       text not null,                            -- 'subiu' | 'repetiu' | 'falha_2x_voltou_10' | 'semana_leve_60' | 'fim_semana_leve' | 'trocou_assistencia' | 'manual' | 'trocou_fase' | 'retomada_leve' | 'recomeco'
   created_at   timestamptz not null default now()
 );
 create index if not exists progression_user_ex on public.progression_events(user_id, exercise_id, data desc);

@@ -490,10 +490,15 @@ test.describe("Relatório (§13.5 e §14.4)", () => {
     await expect(tela).toContainText("Minutos");
     await expect(tela).toContainText("Volume");
 
-    // 1 força + 1 cardio = 2 treinos; 45 + 34 = 79 min; 2 × 5 × 20 = 200 kg
-    await expect(tela.locator('[data-contador="Treinos"]')).toContainText("2");
-    await expect(tela.locator('[data-contador="Minutos"]')).toContainText("79");
-    await expect(tela.locator('[data-contador="Volume (kg)"]')).toContainText("200");
+    /*
+     * 1 força + 1 cardio = 2 treinos; 45 + 34 = 79 min; 2 × 5 × 20 = 200 kg.
+     * Os contadores do topo são os acumulados: a seção "Totais" (a de "Números",
+     * SPEC §19.2, tem os mesmos rótulos recortados por período).
+     */
+    const totais = tela.getByRole("region", { name: "Totais" });
+    await expect(totais.locator('[data-contador="Treinos"]')).toContainText("2");
+    await expect(totais.locator('[data-contador="Minutos"]')).toContainText("79");
+    await expect(totais.locator('[data-contador="Volume (kg)"]')).toContainText("200");
 
     // histórico: a faixa da semana navegável e os registros da semana
     const historico = page.getByRole("region", { name: "Histórico" });

@@ -6,8 +6,12 @@ import { addDays } from "date-fns";
 import { useMemo } from "react";
 import { EsqueletoCard } from "@/components/carregando";
 import { CardImc } from "@/components/corpo/card-imc";
+import { AvisoDeConquista } from "@/components/relatorio/aviso-conquista";
 import { CardPeso } from "@/components/relatorio/card-peso";
+import { Conquistas } from "@/components/relatorio/conquistas";
 import { Historico } from "@/components/relatorio/historico";
+import { Numeros } from "@/components/relatorio/numeros";
+import { useConquistas } from "@/components/relatorio/usar-conquistas";
 import { TelaProgresso } from "@/components/progresso/tela-progresso";
 import { Contador } from "@/components/ui/contador";
 import { iso, inicioDaSemana, paraData } from "@/lib/calendario";
@@ -17,7 +21,13 @@ import { metaSemanal, sequenciaDeDias, sequenciaDeSemanas } from "@/lib/metas";
 import { contadoresDoRelatorio } from "@/lib/relatorio";
 import { gravarPerfil } from "@/lib/queries/perfil";
 import { usePesos } from "@/lib/queries/corpo";
-import { useCardioTodos, useOverrides, usePerfil, useSoltas } from "@/lib/queries/dados";
+import {
+  useCardioTodos,
+  useOverrides,
+  usePerfil,
+  useSoltas,
+  useSoltasTodas,
+} from "@/lib/queries/dados";
 import {
   useEventosDesde,
   useSeriesTodas,
@@ -55,6 +65,8 @@ export function TelaRelatorio() {
   const seriesQ = useSeriesTodas();
   const cardioQ = useCardioTodos();
   const soltasQ = useSoltas(desde, hoje);
+  /* SPEC §19.2: os Números e as conquistas contam desde o começo */
+  const soltasTodasQ = useSoltasTodas();
   const eventosQ = useEventosDesde(desde);
   const overridesQ = useOverrides(intervalo?.de ?? null, intervalo?.ate ?? null);
   const pesosQ = usePesos();
@@ -64,10 +76,14 @@ export function TelaRelatorio() {
   const cardios = useMemo(() => cardioQ.data ?? [], [cardioQ.data]);
   const series = useMemo(() => seriesQ.data ?? [], [seriesQ.data]);
 
+  const soltasTodas = useMemo(() => soltasTodasQ.data ?? [], [soltasTodasQ.data]);
+
   const contadores = useMemo(
     () => contadoresDoRelatorio({ sessoes, cardios, series }),
     [sessoes, cardios, series],
   );
+
+  const conquistas = useConquistas();
 
   /* a janela do histórico e dos gráficos, recortada do que já foi lido */
   const seriesDaJanela = useMemo(
@@ -95,7 +111,7 @@ export function TelaRelatorio() {
 
   return (
     <Tela>
-      <div className="grid grid-cols-3 gap-2">
+      <section aria-label="Totais" className="grid grid-cols-3 gap-2">
         <Contador
           rotulo="Treinos"
           valor={formatarNumero(contadores.treinos)}
@@ -118,7 +134,19 @@ export function TelaRelatorio() {
           detalhe="no total"
           icone={<Weight aria-hidden="true" className="size-3" />}
         />
-      </div>
+      </section>
+
+      <AvisoDeConquista />
+
+      <Numeros
+        hoje={hoje}
+        sessoes={sessoes}
+        series={series}
+        cardios={cardios}
+        soltas={soltasTodas}
+      />
+
+      <Conquistas lista={conquistas.lista} />
 
       <Historico
         hoje={hoje}

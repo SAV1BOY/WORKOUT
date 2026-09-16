@@ -102,6 +102,8 @@ export interface MudancaDePerfil {
   semana_corrida?: number;
   semana_corda?: number;
   semana_fixa?: number;
+  /** SPEC §18.2: "Recomeçar do zero" zera a âncora da alternância. */
+  ultimo_treino?: LinhaPerfil["ultimo_treino"];
   prefs?: Prefs;
 }
 

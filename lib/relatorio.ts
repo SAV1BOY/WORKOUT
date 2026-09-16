@@ -17,6 +17,7 @@ import {
   type SoltaBruta,
 } from "@/lib/progresso";
 import { ehTreinoDoPrograma } from "@/lib/sessao";
+import type { RetomadaGravada } from "@/lib/retomada";
 import type { MotivoProgressao, TipoCardio } from "@/lib/types";
 
 /* ------------------------------------------------------- contadores */
@@ -57,10 +58,10 @@ export function contadoresDoRelatorio({
 
 /* --------------------------------------------- todos os registros */
 
-export type TipoDeRegistro = "forca" | "cardio" | "soltas";
+export type TipoDeRegistro = "forca" | "cardio" | "soltas" | "pausa";
 
 export interface Registro {
-  /** Chave estável para a lista (`forca:<id>`, `cardio:<id>`, `soltas:<data>`). */
+  /** Chave estável (`forca:<id>`, `cardio:<id>`, `soltas:<data>`, `pausa:<data>`). */
   chave: string;
   tipo: TipoDeRegistro;
   data: string;
@@ -117,6 +118,8 @@ function contarMotor(eventos: readonly EventoDeSessao[], sessaoId: string) {
 export interface EntradaDosRegistros extends EntradaDosContadores {
   soltas?: readonly SoltaBruta[];
   eventos?: readonly EventoDeSessao[];
+  /** A pausa decidida em `prefs.retomada` (SPEC §18.5), se houver. */
+  retomada?: RetomadaGravada | null;
   /** Só o que caiu dentro de um intervalo (a faixa da semana), se houver. */
   de?: string | null;
   ate?: string | null;
@@ -133,6 +136,7 @@ export function registros({
   series,
   soltas = [],
   eventos = [],
+  retomada = null,
   de = null,
   ate = null,
 }: EntradaDosRegistros): Registro[] {
@@ -191,10 +195,38 @@ export function registros({
     href: "/barra-fixa",
   }));
 
-  return [...deForca, ...deCardio, ...deSoltas].sort((a, b) =>
+  /*
+   * SPEC §18.5: a pausa decidida vira uma linha na data da escolha. Sai das
+   * prefs, não de uma tabela nova — as faltas em si já aparecem nos registros
+   * que não existem e nas sequências.
+   */
+  const dePausa: Registro[] =
+    retomada && dentro(retomada.em)
+      ? [
+          {
+            chave: `pausa:${retomada.em}`,
+            tipo: "pausa" as const,
+            data: retomada.em,
+            titulo: `Pausa de ${retomada.dias} ${retomada.dias === 1 ? "dia" : "dias"}`,
+            detalhe: `escolheu ${TEXTO_DA_ESCOLHA[retomada.escolha]}`,
+            motor: null,
+            href: null,
+          },
+        ]
+      : [];
+
+  return [...deForca, ...deCardio, ...deSoltas, ...dePausa].sort((a, b) =>
     a.data === b.data ? a.chave.localeCompare(b.chave) : b.data.localeCompare(a.data),
   );
 }
+
+/** Como cada escolha da retomada aparece no histórico (SPEC §18.5). */
+const TEXTO_DA_ESCOLHA: Record<RetomadaGravada["escolha"], string> = {
+  continuar: "continuar",
+  semana: "recomeçar a semana",
+  leve: "voltar mais leve",
+  zero: "recomeçar do zero",
+};
 
 /** "↑ 2 · = 3 · ↓ 1" — o resumo do motor de uma sessão, ou `null`. */
 export function textoDoMotorDaSessao(motor: Registro["motor"]): string | null {

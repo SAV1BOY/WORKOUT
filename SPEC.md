@@ -128,6 +128,10 @@ Tipos TypeScript: gerar de `exercicios.json` etc. com `zod` (schemas em `lib/sch
 4. Cardio: `sessao` do dia ("corrida", "corrida ou corda", "corrida longa") + a semana do plano (`profiles.semana_corrida` / `semana_corda`).
 5. Descanso: mostra o lembrete da barra fixa (qui) ou caminhada leve (dom).
 
+Como o **calendário** rotula cada dia da semana (passado pela sessão real; hoje e futuro pela projeção a partir de `ultimo_treino`, começando em hoje) está na **§16**.
+
+A **semana da fase** deixa de ser lida direto do `programa.json` quando o usuário escolhe os seus dias de treino: quem manda no item 2 passa a ser a semana montada por `semanaPersonalizada()` a partir de `profiles.prefs.dias_de_treino` — ver **§17**.
+
 ### 5.3 Treino fora do dia
 Treinar num dia de descanso ou cardio é permitido ("Treinar mesmo assim"): a sessão vale como o próximo treino da alternância e o calendário mostra o desvio. Corrida e treino de perna no mesmo dia: avisar (regra do guia: 6 h de intervalo, força primeiro), não bloquear.
 
@@ -136,6 +140,8 @@ Ao marcar um dia como "não vou treinar", o app reorganiza o resto da semana na 
 
 ### 5.5 Semanas dos planos de cardio e barra fixa
 `semana_corrida` avança quando as 2 sessões de corrida da semana civil foram concluídas; se a semana passar com 0 sessões, a semana do plano **não muda** (repete); com 1 sessão, repete também (regra "repita a semana anterior em vez de pular"). Igual para corda (`semana_corda`) e barra fixa (`semana_fixa`, 2 sessões). Tudo ajustável no perfil.
+
+Quando a pausa passa de uma semana — viagem, gripe, a vida —, o que o app oferece ao voltar (continuar, recomeçar a semana, voltar mais leve ou recomeçar do zero, conforme os dias parado) está na **§18**.
 
 ---
 
@@ -194,7 +200,7 @@ Função `montagem(carga_total, implemento)` → lista de anilhas por lado, gulo
 - **StepperNumerico**: − valor + com passo configurável e digitação direta; teclado numérico (`inputMode="decimal"`).
 - Copiar os assets para `public/figuras`, `public/fotos`, `public/itens`, `public/mapa-muscular` no scaffold (script `scripts/copiar-assets.ts`).
 
-Design: sóbrio, alto contraste, tipografia grande nos números (é lido a um braço de distância, no sol do terraço), tema escuro de verdade (não cinza), cor de destaque única. Sem confete, sem gamificação barata; a recompensa é o gráfico subindo.
+Design: sóbrio, alto contraste, tipografia grande nos números (é lido a um braço de distância, no sol do terraço), tema escuro de verdade (não cinza), cor de destaque única. Sem confete, sem gamificação barata; a recompensa é o gráfico subindo. **Gamificação sóbria = §13 e §19**: contadores, números por tipo e conquistas derivadas dos registros — nunca confete, som, pontos, níveis, ranking ou compartilhamento.
 
 ---
 
@@ -430,3 +436,587 @@ condições, e só elas:
 2. Mais → Créditos abre o texto completo da licença MIT do mapa.
 3. Exercício sem ilustração mostra a figura ou a foto, sem crédito e sem erro.
 4. Lint, build, `npm test` e `npm run e2e` verdes.
+
+---
+
+## 16. Semana visível — decisão de 16/09/2026 (adendo, marco Semana)
+
+O dono pediu, com estas palavras: *"Quero que mostre os treinos dos dias e
+tenha também o app vai saber que dia da semana é e que treino eu devo fazer em
+cada dia da semana, segunda treino x, terça y, semana 3, segunda treino x3,
+etc... assim por diante até eu progredir e ir evoluindo sempre."*
+
+O plano já existia (`programa.json` §5, `lib/calendario.ts`), mas a tela não o
+dizia: a faixa da semana da aba Treino mostrava só ✓/ponto/traço, sem o nome do
+treino de cada dia, e o calendário **rotulava a semana errada** — ver §16.1.
+Este adendo complementa a §3.5, a §5.2 e a §13.3; nada muda no que é gravado no
+banco, no motor (§6) nem na montagem.
+
+### 16.1 O defeito: a semana corrente projetada da segunda
+`semanaDoPlano(inicioDaSemana, perfil)` montava a semana **inteira** a partir de
+`profiles.ultimo_treino` **começando na segunda**. Como `ultimo_treino` é o
+estado de **agora** (já contando a sessão de segunda), a projeção saía deslocada
+um degrau para trás. Caso reproduzido: hoje é quarta 30/09/2026,
+`ultimo_treino = A1`, uma sessão A1 concluída na segunda 28/09. A aba Treino
+dizia "HOJE Treino B" (certo) e o calendário dizia seg 28 "Treino B ✓" (foi A),
+qua 30 "Treino A" (é B) e sex 02 "Treino B" (será A) — as duas telas discordando
+sobre o mesmo dia.
+
+### 16.2 A regra de rotulagem da semana (§3.5 e §5.2 item 3)
+Numa semana da **Fase 1** (treino "alternar"), dia a dia, de segunda a domingo:
+1. **Override com `workout_id`** (§3.5): vale ele, em qualquer dia — passado,
+   hoje ou futuro.
+2. **Dias já vividos** (`data <= hoje` quando existe sessão no dia): vale a
+   **sessão que existe naquele dia**, concluída ou parcial — o treino que de
+   fato foi feito, inclusive no próprio dia de hoje depois de treinar. Num dia
+   **passado** sem sessão, o dia é "não feito" e mostra **o treino que era
+   esperado naquele momento**: o próximo da alternância depois da última sessão
+   de força **anterior** àquela data. Sem nenhuma sessão anterior conhecida, o
+   dia fica só "Treino de força".
+3. **Hoje sem sessão e os dias futuros**: a projeção da alternância **a partir de hoje**,
+   ancorada em `profiles.ultimo_treino` — nunca a partir da segunda. Cada dia de
+   força projetado avança a âncora; um dia passado — e o dia de hoje que já tem
+   sessão — **nunca** a avança (`ultimo_treino` já o contabilizou).
+4. **Semanas seguintes** continuam a projeção **de onde a semana corrente
+   terminou**: a âncora ao fim de uma semana é o ponto de partida da próxima, e
+   assim por diante, semana após semana.
+5. **Fase 2**: os treinos são **fixos por dia da semana** (SA seg, IA ter, SB
+   qui, IB sex) — nada aqui muda nada.
+6. **Semana curta** (§5.4) e overrides continuam valendo **por cima** do que
+   esta regra produziu.
+7. **Treino feito num dia que o plano dizia descanso ou cardio** ("Treinar mesmo
+   assim", §5.3 — e, desde a §17, qualquer dia não escolhido): o dia mostra a
+   **sigla do treino** e a marca de feito, não "Desc." sem marca. A sessão já
+   contava na meta semanal e no Relatório; era só o histórico visual que a
+   escondia (correção de 16/09/2026). Um **cardio** feito num dia de descanso
+   ganha a marca de feito e mantém o rótulo do plano. Com **override** no dia,
+   vale o override (item 1).
+
+Implementação: `semanaCoerente()` / `semanaEEstado()` em `lib/calendario.ts`
+(funções puras). `semanaDoPlano()` continua existindo para quem projeta uma
+semana solta, e recebe o ponto de partida certo. `montarGrade()` (`lib/semana.ts`)
+passa a montar a semana por `semanaCoerente()`, com `hoje` e as sessões do
+período — é a mesma fonte para o calendário, para a faixa e para o card do dia,
+de modo que **as duas telas nunca discordam**.
+
+### 16.3 A faixa da semana com o treino de cada dia (§13.3 item 1)
+Sob o número do dia, um **rótulo curto** derivado do plano daquele dia:
+- **força** → a sigla do treino: `A`, `B` (Fase 1), `SA`, `IA`, `SB`, `IB`
+  (Fase 2); sem treino conhecido, `Força`;
+- **cardio** → `Corr.`, `Corda`, `Longa` ou `Cam.`, conforme a sessão do dia;
+- **descanso** → `Desc.`
+
+Continuam o ✓/ponto/traço e o destaque de hoje; tocar na faixa continua abrindo
+`/calendario`. O `title`/`aria-label` do dia passa a trazer o nome completo:
+`"quarta 30/09: Treino B, hoje"`. A 360 px são sete colunas de ≥ 44 px, fonte
+≥ 11 px, nada corta e nada rola de lado.
+
+### 16.4 A semana da fase nos cards (§3.5 e §13.3)
+- Cabeçalho do `/calendario`: **"Fase 1 · semana 3 de 12"** (12 =
+  `SEMANAS_PARA_FASE2`, o ponto em que o app sugere a Fase 2, §5.1); na Fase 2,
+  só **"Fase 2 · semana N"**. Navegar para outra semana mostra a semana **daquela**
+  semana.
+- Cada dia de força na grade: **"Treino A · semana 3"** (a semana da fase).
+- Cada dia de cardio na grade: **"Corrida · semana 3 do plano"** (a semana do
+  plano de corrida/corda do perfil, §5.5).
+- O card do dia na aba Treino ganha a mesma semana da fase; o card de cardio já
+  trazia "semana N" do plano (§13.3 item 2).
+- **Antes do começo da fase** (navegar para trás passa de `fase_desde`) não há
+  semana para contar: o cabeçalho mostra só **"Fase 1"** e os dias só o nome
+  ("Treino de força", "Corrida") — nunca "semana 0" ou "semana −1".
+
+### 16.5 Critérios de aceite
+1. Com uma sessão A1 concluída na segunda e hoje na quarta, a faixa da aba
+   Treino, o card do dia e o `/calendario` dizem **a mesma coisa**: seg "Treino
+   A ✓", qua "Treino B" (hoje), sex "Treino A". A semana seguinte começa em
+   "Treino B", qua "A", sex "B" (unitário e e2e, nos dois temas).
+2. Um dia passado sem sessão mostra o treino que era esperado naquele momento e
+   a marca de não feito; sem nenhuma sessão anterior, só "Treino de força".
+3. A faixa mostra a sigla do treino de cada dia a 360 px sem cortar e sem
+   rolagem lateral, com alvos ≥ 44 px, e o `aria-label` traz o nome completo.
+4. Na Fase 2 a faixa e o calendário mostram SA · IA · corrida · SB · IB ·
+   corrida longa · descanso, fixos, em qualquer semana.
+5. O cabeçalho do calendário mostra a fase e a semana da fase, e acompanha a
+   navegação entre semanas — sem "semana 0" ou negativa antes de `fase_desde`.
+6. Override e semana curta continuam valendo por cima da rotulagem.
+7. Lint, build, `npm test` e `npm run e2e` verdes, com e2e novos para esta seção
+   e os antigos ajustados sem afrouxar o que verificam.
+
+---
+
+## 17. Dias de treino — decisão de 16/09/2026 (adendo, marco Dias)
+
+O dono pediu, com estas palavras: *"ter a opção do usuario selecionar quais
+dias ele vai treinar, tipo, segunda, terça, quarta, quinta, sexta e sabado,
+domingo não e o plano ser personalizado desta forma, e ele vai ver no historico
+quantas vezes o usuario treinou na semana e se voltar na proxima ele vai falar
+qual treino ele deve fazer e o que deve fazer."*
+
+Até aqui a semana era a do `programa.json` e ponto: seg/qua/sex de força,
+ter/sáb de cardio, qui/dom de descanso (Fase 1). Quem treina sábado e não
+segunda via o app dizer "descanso" no dia em que ia treinar. Este adendo põe os
+**dias** nas mãos do usuário e faz o resto do app ler a semana que sai daí —
+sem mudar o motor (§6), a montagem (§6.5) nem nada do que se grava no banco
+além de `profiles.prefs`.
+
+### 17.1 Onde se escolhe
+- **Mais → Preferências**, card **"Dias de treino"**: sete chips `seg ter qua
+  qui sex sáb dom`, cada um um alvo de ≥ 44 px que liga e desliga (`aria-pressed`),
+  com a contagem do que a escolha produz por baixo ("3 de força · 2 de cardio ·
+  1 livre"). Salva como as outras preferências: sobe pela fila (§8) e o cache do
+  TanStack Query é invalidado, então a aba Treino e o `/calendario` mudam na hora.
+- **Calendário**: um atalho **"Meus dias"** no cabeçalho leva ao mesmo card.
+- Guardado em **`profiles.prefs.dias_de_treino`**: um array de `'seg' | 'ter' |
+  'qua' | 'qui' | 'sex' | 'sab' | 'dom'`, na ordem da semana, sem repetição.
+  Nada muda no `supabase/schema.sql` — `prefs` já é `jsonb`.
+- **Ausente** (o padrão): vale a semana do `programa.json` tal como está, com as
+  notas dos dias de descanso. Quem nunca mexer não vê diferença nenhuma. Os
+  chips já nascem marcados nos dias que o programa da fase usa (Fase 1: seg ter
+  qua sex sáb; Fase 2: seg ter qua qui sex sáb), e escolher exatamente esses
+  dias reproduz o plano do JSON (os mesmos dias de força e de cardio; as notas
+  de descanso só vão para os dias **escolhidos** que sobram, item 4).
+- **Voltar ao padrão** é um botão do card: apaga a chave e a semana volta a ser
+  a do programa.
+
+### 17.2 A distribuição (`lib/dias.ts`, funções puras)
+`semanaPersonalizada(fase, diasEscolhidos)` devolve os **sete dias** no mesmo
+formato de `programa.fases[fase].semana` (`dia`, `tipo`, `treino` | `sessao`,
+`min`, `nota`). Com `diasEscolhidos` ausente (`null`), devolve a semana do JSON
+sem tocar em nada. Com uma lista, monta assim:
+
+1. **Força primeiro**, nas quantidades da fase (`frequencia_forca`: 3 na Fase 1,
+   4 na Fase 2). Entre todas as maneiras de escolher esses dias entre os
+   escolhidos, vence:
+   1. **a folga**, quando a fase pede folga — menos pares de dias de força em
+      dias **consecutivos**. A fase "pede folga" quando a semana dela no
+      `programa.json` não tem dois dias de força seguidos: é o caso da Fase 1
+      (corpo inteiro, o guia pede 48 h entre sessões). A Fase 2 alterna superior
+      e inferior e o próprio programa põe seg-ter e qui-sex seguidos, então ali
+      a folga não pontua;
+   2. **a semana do programa** — mais coincidências com os dias de força da
+      fase no JSON. É o que faz "seg a sáb" na Fase 1 cair em seg/qua/sex e
+      "seg a sáb" na Fase 2 cair em SA seg, IA ter, SB qui, IB sex;
+   3. **o começo da semana** — empatado o resto, os dias mais cedo.
+   Quando não há como evitar, os dias de força ficam **consecutivos** (a regra
+   avisa, não bloqueia — §5.3).
+2. **O treino de cada dia de força**: Fase 1 continua `"alternar"` (a escada do
+   §5.2 item 3 e do §16.2 decide qual é qual); Fase 2 recebe os treinos da fase
+   **na ordem** `SA, IA, SB, IB`.
+3. **Cardio** nos dias escolhidos que sobraram, nas quantidades e com os nomes e
+   minutos da fase ("corrida" e "corrida ou corda" na Fase 1; "corrida" e
+   "corrida longa" na Fase 2), na ordem do programa. Entre os dias que sobraram
+   vence: (a) mais coincidências com os dias de cardio da fase no JSON; (b)
+   menos dias logo **depois** de um treino de perna (os treinos com agachamento
+   ou terra, §5.4 — na Fase 1 os dois treinos têm, então o critério não separa
+   ninguém); (c) os dias mais cedo.
+4. **Sobra** (dia escolhido que não virou força nem cardio) → **descanso ativo**:
+   `tipo: "descanso"` com as notas de descanso do programa, na ordem (1ª sobra:
+   o lembrete da barra fixa "grease the groove"; 2ª: caminhada leve). Na tela é
+   um **dia livre**, com o "Treinar mesmo assim" da §5.3.
+5. **Dia não escolhido** → descanso, sem nota.
+6. **Menos dias do que sessões**: corta na **ordem de sacrifício da §5.4** — 1º
+   a última sessão de cardio da semana (a corrida de sábado), 2º a outra sessão
+   de cardio, 3º um treino de força que **não** tenha agachamento nem terra
+   (Fase 2: SB). Com duas correções, porque aqui a escolha é **permanente** e a
+   §5.4 foi escrita para uma semana curta (decisão de 16/09/2026, depois da
+   auditoria do marco):
+   - o corte **nunca deixa a semana só com treinos de perna**: sobrando **dois**
+     dias na Fase 2, é um superior e um inferior (**SA e IA**), não IA e IB —
+     senão peito, costas e ombro ficariam de fora da semana inteira;
+   - sobrando **um dia só**, na Fase 2 ele é o **Treino A** (`SA`); na **Fase 1**
+     ele continua `"alternar"`, e é a alternância do §5.2 item 3 que diz se hoje
+     é A1 ou B1 — prender o único dia no Treino A faria o levantamento terra do
+     Treino B nunca chegar (`proximoTreinoAlternado(null)` já começa em A1 para
+     quem está começando).
+
+   Com zero dias escolhidos a semana é toda de descanso.
+
+### 17.3 O que passa a ler a semana montada
+`tipoDoDia()`, `montarDia()`, `treinoDeHoje()`, `sessaoCardioDeHoje()`,
+`semanaDoPlano()`, `semanaCoerente()`/`semanaEEstado()` (§16.2),
+`montarGrade()`/`montarMes()` (`lib/semana.ts`), a semana curta (§5.4) e
+`oQueFaltaNaSemana()` passam a receber o **perfil** (que carrega `prefs`) em vez
+da fase solta, e a fase é resolvida por `semanaDoPerfil(perfil)`. A regra de
+rotulagem da §16.2 não muda: ela só passa a correr sobre os dias escolhidos.
+
+- **Próximo treino**: a alternância da Fase 1 e a ordem fixa da Fase 2 continuam
+  ancoradas em `profiles.ultimo_treino`, agora sobre os **dias de força
+  escolhidos**. Abrir o app num dia escolhido de força mostra o card do dia com
+  o treino certo e a lista do que fazer; num dia não escolhido mostra
+  **"Descanso"** com **"Treinar mesmo assim"**.
+- **Meta semanal** (§13.3): o padrão passa a ser o número de sessões da semana
+  **montada** (força + cardio), a menos que `prefs.meta_semanal` esteja
+  definido. `metaSemanalPadrao(fase, prefs)`.
+- **Histórico**: a faixa da semana, a "Meta semanal N/M" da aba Treino e o
+  Relatório (contadores da semana, sequência de semanas) contam contra a semana
+  personalizada. Nada muda no que se grava em `sessions`, `cardio_sessions` ou
+  `schedule_overrides`.
+- **Overrides e semana curta** continuam valendo **por cima** da semana montada,
+  como na §16.2 item 6.
+
+### 17.4 Critérios de aceite
+1. Sem `prefs.dias_de_treino` o app é idêntico ao de antes: a semana da Fase 1 é
+   seg força · ter corrida · qua força · qui descanso (barra fixa) · sex força ·
+   sáb corrida ou corda · dom descanso (caminhada leve).
+2. Escolhendo **seg a sáb** na Fase 1: força em seg, qua e sex (nunca dois dias
+   seguidos), cardio em ter e sáb, quinta como **dia livre** com a nota da barra
+   fixa e domingo como descanso. A faixa da aba Treino e o `/calendario` dizem a
+   mesma coisa.
+3. Escolhendo **seg, qua e sex**: três dias de força e **nenhum** cardio (as
+   duas sessões caíram na ordem da §5.4); a meta semanal padrão passa a ser 3.
+4. Escolhendo **dois dias**: dois treinos de força e nenhum cardio (na Fase 2,
+   SA e IA — nunca dois de perna). Escolhendo **um dia**: na Fase 2 o Treino A;
+   na Fase 1 o dia é "alternar" e a alternância segue semana a semana.
+5. Escolhendo os **sete dias**: as duas sobras viram dias livres com as notas do
+   programa (barra fixa e caminhada leve).
+6. Fase 2 com **seis dias**: SA, IA, SB e IB nos quatro dias de força mais as
+   duas sessões de cardio. Fase 2 com **quatro dias**: só os quatro de força.
+7. Abrir o app num dia **não escolhido** mostra "Descanso" e o botão "Treinar
+   mesmo assim" — treinar ali continua valendo como o próximo da alternância
+   (§5.3).
+8. O card "Dias de treino" a 360 px: sete chips de ≥ 44 px, nada corta, nada
+   rola para o lado, e a escolha sobe pela fila quando não há rede.
+9. Lint, build, `npm test` e `npm run e2e` verdes, com unitários para cada caso
+   da §17.2, a propriedade "nunca dois dias de força seguidos na Fase 1 quando
+   havia alternativa", e e2e novos desta seção, os antigos ajustados sem
+   afrouxar o que verificam.
+
+---
+
+## 18. Retomada — decisão de 16/09/2026 (adendo, marco Retomada)
+
+O dono pediu, com estas palavras: *"se ele não finalizar a semana ou os dias,
+ter a opção de resetar ou de continuar, dependendo de quantos dias foi desde o
+ultimo treino"*
+
+O guia tem uma regra só para isso, e é de cardio: *"se uma semana der errado —
+viajou, gripou, doeu algo —, repita a semana anterior em vez de pular para a
+seguinte"* (já é a §5.5). Para a força não há regra de volta de pausa escrita em
+lugar nenhum — mas o motor já tem o mecanismo certo: a **semana leve** da §6.2
+(60 % da carga, com `carga_antes_leve` para devolver a carga na sessão
+seguinte). Este adendo usa esses dois mecanismos e **não muda uma linha do
+motor** (§6) nem da montagem (§6.5): a semana leve passa a ser acionada por
+**dados**, não por código novo.
+
+### 18.1 Dias parado
+`diasParado(hoje, sessoes, cardios, fixas)` em **`lib/retomada.ts`** (funções
+puras, sem React nem Supabase): os **dias inteiros de calendário** entre hoje e
+a última atividade — sessão de força **concluída** (`sessions.status =
+'concluida'`, incluídas as de barra fixa, `workout_id = 'fixa'`), sessão de
+cardio concluída (`cardio_sessions.concluida`) ou repetição solta de barra fixa
+(`pullup_singles`). Sem nenhuma atividade o resultado é `null`: quem nunca
+treinou não está voltando de pausa nenhuma, e o card não aparece.
+
+A conta corre **ao abrir a aba Treino** e de novo a cada gesto que começa um
+treino (§18.3).
+
+Uma ressalva, e é ela que segura o card de pé: enquanto a pausa **não foi
+decidida**, a atividade registrada **hoje** não a apaga. Sem isso, quem voltou
+de 30 dias e tocou no "+1" da barra fixa antes de olhar o card veria a conta
+cair para zero, o card sumir sozinho — sem decisão nenhuma gravada — e treinaria
+no dia seguinte com a carga cheia, que é exatamente o que este adendo existe
+para evitar. No dia seguinte a conta já é 1 e não há card nenhum.
+
+### 18.2 As faixas e o que cada opção grava
+
+| dias parado | o que o card oferece |
+|---|---|
+| 0–6 | nada de novo — os dias perdidos já aparecem no calendário e a semana do plano de cardio repete sozinha (§5.5). Semana parcial sem pausa longa é semana normal: continua. |
+| 7–13 | **Continuar de onde parou** · **Recomeçar a semana** |
+| 14–27 | **Continuar** · **Voltar mais leve** |
+| 28 ou mais | **Continuar** · **Voltar mais leve** · **Recomeçar do zero** |
+
+- **Continuar de onde parou** — não grava nada além de `prefs.retomada`. O
+  próximo treino é o da alternância (Fase 1) ou o da ordem da fase (Fase 2), e
+  as semanas dos planos ficam como estão, repetindo pela §5.5.
+- **Recomeçar a semana** — `semana_corrida`, `semana_corda` e `semana_fixa`
+  voltam **uma** semana, com o piso em **1**. A força não muda: a alternância
+  continua de onde parou.
+- **Voltar mais leve** — cada linha de `exercise_state` **com carga**
+  (`carga_atual_kg` não nula e maior que zero, exercício não desativado) entra
+  em semana leve **exatamente como a 3ª falha da §6.2**: `carga_antes_leve =
+  carga_atual_kg`, `carga_atual_kg = arredondar(carga × 0,60)` e `semana_leve =
+  true` — é isso que faz o motor devolver a carga cheia na sessão seguinte, sem
+  nenhum código novo. `falhas_seguidas` **não muda**: pausa não é falha (na
+  sessão seguinte o motor o zera, como zera no fim de qualquer semana leve —
+  §6.2). Quem já estava em semana leve fica como está (o `carga_antes_leve` de
+  antes não se perde), e quem já está no **piso do implemento** — sem nenhum
+  degrau abaixo na escala da §6.4 — também fica: uma "semana leve" que não
+  alivia nada só faria o motor devolver a mesma carga na sessão seguinte. Um
+  `progression_events` por exercício com motivo **`retomada_leve`**.
+  As semanas dos planos também voltam uma, como em "Recomeçar a semana".
+- **Recomeçar do zero** (com **confirmação em duas etapas**) — cada linha de
+  `exercise_state` volta ao estado inicial da §6.1: `carga_atual_kg =
+  carga_inicial.kg` do JSON, `reps_alvo` / `tempo_alvo_s` / `assistencia` de
+  volta a `null` (é assim que o motor guarda "nunca fez": na sessão seguinte
+  valem o mínimo da faixa **daquele treino**, §6.1), `falhas_seguidas = 0`, `incremento_reduzido = false`,
+  `exigir_rep_extra = false`, `semana_leve = false`, `carga_antes_leve = null`,
+  `sessoes_graca = 0`. Continuam como estavam o override de incremento
+  (`incremento_kg`), o `desativado` e as notas — são ajustes do equipamento e da
+  pessoa, não progresso. Além disso: `semana_corrida = semana_corda =
+  semana_fixa = 1`, `ultimo_treino = null` (o próximo treino volta a ser o
+  Treino A da fase) e `fase_desde = hoje` — **a fase continua a mesma**. Um
+  `progression_events` com motivo **`recomeco`** por exercício e mais um do
+  programa (`exercise_id` nulo). **Nada é apagado**: sessões, séries, cardio,
+  fotos e pesos continuam lá — o histórico é o que prova a pausa.
+
+Tudo passa pela **fila de saída** (§8) e pelos caminhos que já existem: upsert
+em `exercise_state`, insert em `progression_events`, update em `profiles`. No
+`supabase/schema.sql` só mudam os dois motivos novos no comentário de
+`progression_events.motivo`; nenhuma tabela, nenhuma coluna.
+
+### 18.3 Onde o card aparece
+Um card **no topo da aba Treino, acima do card do dia**: título **"Você ficou N
+dias sem treinar"**, uma frase do que isso significa e os botões da faixa,
+empilhados, com alvo ≥ 44 px a 360 px. "Recomeçar do zero" é destrutivo: abre um
+diálogo que diz **o que se perde** (as cargas de todos os exercícios voltam ao
+começo; o histórico fica) e só o **segundo** toque confirma.
+
+"Voltar mais leve" e "Recomeçar do zero" mexem em **todas** as cargas, então só
+ficam tocáveis depois de o app ler `exercise_state` inteiro; enquanto isso as
+duas aparecem desligadas com uma linha dizendo por quê. **"Continuar de onde
+parou" nunca desliga**: o card barra a aba Treino inteira (e some com o FAB),
+e a primeira vez que ele é desenhado sem rede é justamente a primeira vez que a
+leitura das cargas não chega — se ela desligasse tudo, a pausa trancaria o app
+sem deixar nem decidir nem treinar.
+
+Decidida a retomada, o card **some** e a aba Treino e o `/calendario` se
+atualizam na hora (o cache do TanStack Query é **atualizado à mão**, não
+invalidado: sem rede, invalidar refaria a leitura e jogaria a aba Treino na tela
+de erro — §8).
+
+Com o card pendente, **todo** gesto da aba Treino que começa um treino ou
+registra atividade leva ao card, com foco, destaque e o aviso "Antes: escolha
+como você quer voltar." — e não faz mais nada. São eles: **"Começar treino"** do
+card de força, **"Começar"** do card de cardio (inclusive na alternativa de
+corda), o **"+1"** das repetições soltas do dia de descanso, **"Começar
+caminhada leve"** do domingo e **"Treinar mesmo assim"**. Decidir vem antes de
+treinar, e vale para qualquer tipo de treino: no dia de cardio, começar sem
+decidir correria a semana errada do plano; no dia de descanso, o "+1" grava na
+hora e a própria atividade de hoje faria o card sumir (§18.1). Pelo mesmo
+motivo, o **FAB
+"Ajustar"** da aba Treino (§14.3) **não aparece** enquanto a pausa não foi decidida: ele é
+`fixed` e passava por cima do card, comendo o fim da frase de uma das opções e o
+toque naquele canto.
+
+### 18.4 Perguntar uma vez por pausa
+A escolha vai para
+**`profiles.prefs.retomada = { em: 'AAAA-MM-DD', dias: N, escolha: 'continuar' |
+'semana' | 'leve' | 'zero' }`**. A pausa já decidida é reconhecida pela sua
+**âncora** (`em` menos `dias` = o dia da última atividade de então): enquanto a
+última atividade for aquela, o card não volta, nem recarregando o app. Uma
+atividade **nova** seguida de um **novo** intervalo de 7 dias ou mais faz o card
+aparecer outra vez.
+
+### 18.5 No Relatório
+Quando há `prefs.retomada`, o **Histórico** ganha uma linha na data da escolha:
+**"Pausa de N dias · escolheu continuar"** (ou "recomeçou a semana", "voltou
+mais leve", "recomeçou do zero"). É rótulo de tela, tirado das prefs: nenhuma
+tabela nova, nenhum contador muda. As faltas já aparecem nos registros e nas
+sequências.
+
+### 18.6 Critérios de aceite
+1. Última sessão concluída há **10 dias**: o card diz "Você ficou 10 dias sem
+   treinar" e oferece **duas** opções. "Recomeçar a semana" baixa
+   `semana_corrida`, `semana_corda` e `semana_fixa` em 1 (piso 1) e não mexe em
+   `exercise_state`.
+2. Há **20 dias**: o card oferece "Continuar" e "Voltar mais leve"; escolhendo
+   "Voltar mais leve", todo exercício com carga fica com `semana_leve = true` e
+   `carga_antes_leve` igual à carga de antes, e o treino seguinte mostra a carga
+   a **60 %** — sem nenhuma mudança no motor.
+3. Há **40 dias**: aparece também "Recomeçar do zero", que só grava depois da
+   **confirmação em duas etapas**: cargas de volta à `carga_inicial` do JSON,
+   semanas dos planos em 1, `ultimo_treino` nulo, `fase_desde` hoje e a fase
+   igual.
+4. "Continuar" grava **só** `prefs.retomada`.
+5. Decidida a pausa, o card **não volta** ao recarregar; uma sessão nova e mais
+   7 dias parado trazem o card de novo.
+6. **0–6 dias** não mostram card nenhum.
+7. Sem rede a escolha **entra na fila** e a tela responde na hora (§8).
+8. Num dia de **cardio**, tocar em "Começar" com o card pendente **não** abre a
+   sessão de cardio: leva ao card. Num dia de **descanso**, o "+1" da barra fixa
+   **não** registra a repetição: leva ao card. E se alguma atividade de hoje já
+   tiver sido registrada (de outra tela, do calendário), o card **continua** de
+   pé até ele decidir (§18.1).
+9. Sem as cargas lidas (a primeira vez do card sem rede), "Voltar mais leve" e
+   "Recomeçar do zero" ficam desligadas com a linha que explica, e **"Continuar"
+   continua tocável** — decidir e treinar nunca ficam trancados.
+10. O card a 360 px: alvos ≥ 44 px, nada corta, nada rola para o lado, nos dois
+    temas. Lint, build, `npm test` e `npm run e2e` verdes, com unitários das
+    quatro faixas, das quatro escolhas e do "perguntar uma vez por pausa", e e2e
+    novos desta seção.
+
+---
+
+## 19. Números e conquistas — decisão de 16/09/2026 (adendo, marco Números e Conquistas)
+
+O dono pediu, com estas palavras: *"ele também vai ter o historico mostrando
+quantos treinos fizemos quantos de força, cardio, barra, etc... gamificando o
+site e plataforma"*
+
+O Relatório já conta **treinos · minutos · volume** no total (§13.5 e §14.4).
+Falta o que ele pediu: **quantos de cada coisa**, num período que ele escolhe, e
+uma camada de **conquistas** — que aqui quer dizer marcos reais dos registros,
+não pontos. Este adendo complementa a §13.5 e mantém intacto o que existe:
+contadores, faixa da semana, "Todos os registros", sequências, Peso, IMC,
+gráficos e recordes continuam onde estão.
+
+**A gamificação continua sóbria** (§7 e §13.1): sem confete, sem som, sem
+pontos, sem níveis, sem ranking, sem compartilhar. O que sobe é o número real.
+
+### 19.1 Regras que não mudam
+- Conteúdo só dos JSON: nome de treino sai de `programa.json`, tipo de cardio e
+  alvo dos planos saem de `cardio.json`, exercício sai de `exercicios.json`
+  (por `lib/dados.ts`). Os **limiares** das conquistas (1 · 10 · 25…) são a
+  definição da conquista, que é desta seção — não são conteúdo de treino.
+- Funções **puras** e testadas: `lib/numeros.ts` e `lib/conquistas.ts` sem
+  React, sem Supabase, sem Dexie. Motor (§6) e montagem (§6.5) intocados.
+- **Nada novo no banco**. A única gravação nova é
+  `profiles.prefs.conquistas_vistas` (lista de ids já avisados), pela fila de
+  saída da §8. Nenhuma tabela, nenhuma coluna, nenhuma view.
+- Celular a 360 px, alvos ≥ 44 px, nada rola de lado; pt-BR, vírgula decimal,
+  dd/MM; offline igual.
+- **Sessão em andamento e sessão abandonada não contam** em número nenhum e em
+  conquista nenhuma: só `sessions.status = 'concluida'` e
+  `cardio_sessions.concluida`.
+
+### 19.2 Números (`lib/numeros.ts`)
+No Relatório, **logo abaixo dos contadores do topo**, uma seção "Números" com um
+seletor de período de três botões (alvo ≥ 44 px cada):
+
+| período | intervalo |
+|---|---|
+| **Semana** | a semana civil de hoje, segunda a domingo (§1) |
+| **Mês** | o mês civil de hoje, do dia 1 ao último |
+| **Tudo** | sem recorte |
+
+Dentro do período, as contagens — todas derivadas das linhas do banco:
+
+- **Força**: sessões de força concluídas (treinos do programa + sessões livres e
+  circuitos). Detalhe **por treino**, com o nome de `programa.json`: Treino A,
+  Treino B, Superior A, Inferior A, Superior B, Inferior B; e **Livres** à parte
+  (sessões `workout_id = 'livre'`). As sessões de barra fixa (`workout_id =
+  'fixa'`) **não** entram aqui — elas são o bloco Barra fixa, para nada ser
+  contado duas vezes.
+- **Cardio**: sessões de cardio concluídas, divididas por tipo (**Corrida**,
+  **Corda**, e as demais somadas em **Outros**), **minutos** somados, **km**
+  somados (só aparece quando há distância registrada) e **saltos** de corda
+  somados (só aparece quando há saltos).
+- **Barra fixa**: **sessões** de barra fixa concluídas (`workout_id = 'fixa'`),
+  **repetições em sessão** (as séries concluídas de qualquer exercício de barra
+  fixa — `implemento = 'barra_fixa'` e `grupo = 'Costas'` no catálogo —, em
+  qualquer treino), **repetições soltas** (`pullup_singles`), o **total** das
+  duas e a **melhor série** do período.
+- **Minutos**: `sessions.duracao_s` das sessões de força concluídas (inclusive
+  as de barra fixa) + `cardio_sessions.duracao_min`.
+- **Volume**: Σ reps × kg das séries de **trabalho** concluídas, pelo dia da
+  sessão (a mesma conta da §3.7).
+
+A data de uma série é a da sessão dela (`lib/progresso.ts`), nunca o fuso do
+`registrada_em`.
+
+### 19.3 As conquistas (`lib/conquistas.ts`)
+Lista **fixa** de 26 conquistas, cada uma com `id`, `nome` (curto, cabe na
+grade), `descricao`, `regra` (a frase que a folha mostra), `icone` (nome de um
+ícone lucide, resolvido na tela — a lib não importa React) e `grupo`. Cada uma é
+avaliada sobre os registros e devolve: **atingida**, **em** (a data do registro
+que a fechou), **atual/alvo** e **o que falta**.
+
+| id | nome | fecha quando |
+|---|---|---|
+| `forca-1` | Primeiro treino | 1 sessão de força concluída |
+| `forca-10` | 10 treinos | 10 sessões de força concluídas |
+| `forca-25` | 25 treinos | 25 sessões de força concluídas |
+| `forca-50` | 50 treinos | 50 sessões de força concluídas |
+| `forca-100` | 100 treinos | 100 sessões de força concluídas |
+| `semanas-2` | 2 semanas | 2 semanas civis seguidas com a meta semanal cumprida |
+| `semanas-4` | 4 semanas | 4 semanas seguidas com a meta |
+| `semanas-8` | 8 semanas | 8 semanas seguidas com a meta |
+| `semanas-12` | 12 semanas | 12 semanas seguidas com a meta |
+| `dias-3` | 3 dias seguidos | 3 dias de calendário seguidos com alguma sessão concluída |
+| `dias-7` | 7 dias seguidos | 7 dias seguidos com alguma sessão |
+| `semana-completa` | Semana completa | uma semana civil em que **todas** as sessões planejadas (força + cardio da semana da fase, §17.3) foram feitas |
+| `corrida-1` | Primeira corrida | 1 sessão de corrida concluída |
+| `corrida-20min` | 20 min correndo | uma corrida com um bloco contínuo de corrida ≥ 20 min em `cardio_sessions.feito` |
+| `corrida-5km` | 5 km sem parar | uma corrida concluída com ≥ 5 km **sem bloco de caminhada** (é a semana 12 de `cardio.json`, "5 km sem parar") |
+| `corda-1000` | 1.000 saltos | uma sessão de corda com ≥ 1.000 saltos |
+| `fixa-sem-elastico` | Sem elástico | 1 repetição de barra fixa sem elástico: numa série com `assistencia = 'sem'`, ou num exercício que não é a barra fixa assistida (a pronada, a supinada e a com lastro não têm elástico). A **repetição solta** não tem exercício, então só conta com `assistencia = 'sem'` explícito |
+| `fixa-5` | 5 numa série | uma série de barra fixa com ≥ 5 repetições |
+| `fixa-10` | 10 numa série | uma série de barra fixa com ≥ 10 repetições |
+| `fixa-100-soltas` | 100 soltas | 100 repetições soltas somadas (`pullup_singles`) |
+| `carga-20` | 20 kg na barra | agachamento ou terra com ≥ 20 kg **na barra** (carga total) |
+| `carga-40` | 40 kg na barra | o mesmo com ≥ 40 kg |
+| `carga-60` | 60 kg na barra | o mesmo com ≥ 60 kg |
+| `volume-10k` | 10.000 kg | volume acumulado ≥ 10.000 kg |
+| `volume-50k` | 50.000 kg | volume acumulado ≥ 50.000 kg |
+| `fase-2` | Fase 2 | `profiles.fase_atual = 'fase2'` (a data é `fase_desde`) |
+
+"Agachamento ou terra" são os cinco exercícios de barra maciça do catálogo cujo
+padrão é agachar ou levantar do chão: `agachamento-livre`, `agachamento-frontal`,
+`agachamento-sumo`, `levantamento-terra`, `stiff-terra-romeno`. Os ids são
+referências ao catálogo (como `lib/barra-fixa.ts` já faz); nome e carga saem do
+JSON.
+
+**Como cada tipo de regra acha a data e o que falta**
+- **Acumulado** (treinos, soltas, volume): soma por data crescente; a data é a
+  do registro em que o acumulado alcançou o alvo. Falta = alvo − acumulado.
+- **Melhor registro** (reps numa série, saltos, km, minutos contínuos, carga): a
+  data é a do primeiro registro que sozinho alcançou o alvo; o progresso é o
+  maior registro até hoje.
+- **Sequência** (dias, semanas): a data é a do último registro do dia/semana que
+  fechou a N-ésima seguida; o progresso é a **maior** sequência já feita.
+- **Semana completa**: a primeira semana civil cujos feitos ≥ planejados; a data
+  é a do último registro daquela semana.
+
+### 19.4 A tela
+Seção **"Conquistas"** no Relatório, abaixo de "Números":
+- Grade de **3 colunas** a 360 px. Cada célula é um botão com alvo ≥ 44 px:
+  ícone num círculo, nome curto, e embaixo a **data** (dd/MM) quando
+  desbloqueada, ou **o que falta** ("faltam 3 treinos") quando não.
+  Desbloqueada em cor de destaque; bloqueada em cinza, com `aria-pressed`.
+- O toque abre uma **folha** (`Sheet`) com o nome, a descrição, a **regra** e, se
+  desbloqueada, "Conquistada em dd/MM/aaaa"; se não, o progresso ("12 de 25").
+- Um resumo acima da grade: "N de 26 conquistadas".
+
+### 19.5 O aviso de conquista nova
+Uma conquista **atingida** e **ainda não avisada** (id fora de
+`profiles.prefs.conquistas_vistas`) mostra um card sóbrio:
+
+> **Conquista** · 10 treinos de força
+
+com o ícone, a data e um botão **"Ok"**. Ele aparece em dois lugares:
+1. **Relatório**, acima da seção "Números", ao abrir a tela.
+2. **Conclusão** do player (§14.1.5), acima do "Próximo" — ali a sessão que
+   acabou entra na conta antes de subir pela fila, como o card da semana já faz.
+
+O **"Ok"** grava os ids listados em `prefs.conquistas_vistas` pela fila de saída
+(§8) e o card some; sem rede, some na hora e a fila sobe depois. Enquanto não é
+tocado, o card volta — é um aviso que espera ser reconhecido, não um pop-up.
+Nunca há confete, som, pontos, níveis ou compartilhamento.
+
+Quando há mais de uma conquista nova, o card lista todas (as mais recentes
+primeiro) e o "Ok" marca todas de uma vez.
+
+### 19.6 Aba Treino
+Nada muda. O chip "N conquistas" ao lado da sequência foi **medido a 360 px** e
+não cabe sem apertar a saudação e a chama, então não entra (a decisão do
+orquestrador previa exatamente isso). As conquistas moram no Relatório.
+
+### 19.7 Critérios de aceite
+1. Com 12 sessões de força (8 do Treino A e 4 do Treino B), 3 corridas, 2
+   sessões de barra fixa e repetições soltas semeadas: em **Tudo**, Números
+   mostra Força **12** (Treino A 8 · Treino B 4), Cardio **3** (Corrida 3) com
+   os minutos e os km somados, e Barra fixa com as sessões, as reps em sessão,
+   as soltas e a melhor série; em **Semana**, só o que caiu na semana civil de
+   hoje.
+2. Conquistas mostra **"10 treinos" desbloqueada com a data** do 10º treino e
+   **"25 treinos" bloqueada com "faltam 13"**; o toque abre a folha com a regra.
+3. Uma sessão concluída que fecha **"Semana completa"** mostra o aviso na
+   **Conclusão**; depois do "Ok" ele **não repete** — nem ali, nem no Relatório.
+4. Sessão **em andamento** e sessão **abandonada** não entram em número nenhum
+   nem em conquista nenhuma.
+5. A 360 px, nos dois temas: seletor e grade com alvos ≥ 44 px, nada corta,
+   nada rola para o lado.
+6. Unitários cobrindo **cada** conquista com um caso que fecha e um que não
+   fecha, os três períodos e o recorte por data; lint, build, `npm test` e
+   `npm run e2e` verdes, com e2e novos desta seção.

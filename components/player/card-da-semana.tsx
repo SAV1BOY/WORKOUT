@@ -3,7 +3,7 @@
 import { Trophy } from "lucide-react";
 import { useMemo } from "react";
 import { FaixaSemana } from "@/components/ui/faixa-semana";
-import { semanaDaFase, semanaDoPlano } from "@/lib/calendario";
+import { semanaDaFase } from "@/lib/calendario";
 import { metaSemanal, progressoDaMeta } from "@/lib/metas";
 import { useCardio, useOverrides, usePerfil, useSessoes } from "@/lib/queries/dados";
 import { faixaDaSemana, intervaloDaSemana, montarGrade } from "@/lib/semana";
@@ -49,8 +49,14 @@ export function CardDaSemana({
 
   if (!perfil) return null;
 
-  const semana = semanaDoPlano(hoje, perfil, overridesQ.data ?? []);
-  const grade = montarGrade(semana, sessoes, cardioQ.data ?? [], hoje);
+  const grade = montarGrade({
+    data: hoje,
+    perfil,
+    overrides: overridesQ.data ?? [],
+    sessoes,
+    cardios: cardioQ.data ?? [],
+    hoje,
+  });
   const dias = faixaDaSemana(grade);
   const meta = progressoDaMeta({
     sessoes,
