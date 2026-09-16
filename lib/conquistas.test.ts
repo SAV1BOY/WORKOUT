@@ -241,8 +241,9 @@ describe("dias e semanas seguidas (SPEC §19.3)", () => {
     expect(uma("semanas-2", { sessoes, meta: 5 }).atingida).toBe(false);
   });
 
-  it("8 e 12 semanas seguidas fecham quando há 12 semanas seguidas", () => {
+  it("4, 8 e 12 semanas seguidas fecham quando há 12 semanas seguidas", () => {
     const sessoes = Array.from({ length: 12 }, (_, i) => sessao(`s${i}`, dia(i * 7)));
+    expect(uma("semanas-4", { sessoes, meta: 1 }).em).toBe(dia(21));
     expect(uma("semanas-8", { sessoes, meta: 1 }).em).toBe(dia(49));
     expect(uma("semanas-12", { sessoes, meta: 1 }).em).toBe(dia(77));
     const onze = sessoes.slice(0, 11);
@@ -441,6 +442,17 @@ describe("carga e volume (SPEC §19.3)", () => {
     expect(sessenta.falta).toBe("faltam 15 kg");
   });
 
+  it("60 kg no terra fecham na data da série que aguentou o peso", () => {
+    const series = [
+      serie("a", "levantamento-terra", 5, 45),
+      serie("b", "levantamento-terra", 3, 60),
+    ];
+    const sessenta = uma("carga-60", { sessoes, series });
+    expect(sessenta.atingida).toBe(true);
+    expect(sessenta.em).toBe(dia(3));
+    expect(sessenta.atual).toBe(60);
+  });
+
   it("supino pesado não fecha a conquista de agachamento ou terra", () => {
     const series = [serie("a", "supino-reto-com-barra", 5, 60)];
     expect(uma("carga-20", { sessoes, series }).atingida).toBe(false);
@@ -466,6 +478,17 @@ describe("carga e volume (SPEC §19.3)", () => {
     const cinquenta = uma("volume-50k", { sessoes, series });
     expect(cinquenta.atingida).toBe(false);
     expect(cinquenta.falta).toBe("faltam 40.000 kg");
+  });
+
+  it("50.000 kg fecham na série que passou do alvo", () => {
+    /* 250 × 5 × 40 = 50.000 kg; a 125ª série ainda está na sessão do dia 0 */
+    const series = Array.from({ length: 250 }, (_, i) =>
+      serie(i < 125 ? "a" : "b", "agachamento-livre", 5, 40),
+    );
+    const cinquenta = uma("volume-50k", { sessoes, series });
+    expect(cinquenta.atingida).toBe(true);
+    expect(cinquenta.em).toBe(dia(3));
+    expect(cinquenta.atual).toBe(50000);
   });
 
   it("série não concluída não soma volume", () => {

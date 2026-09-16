@@ -5705,7 +5705,7 @@ número real.
   registro que passou do alvo), **melhor registro** (a data é a do primeiro que
   sozinho alcançou) e **sequência** (a data é a do registro que fechou a
   N-ésima seguida). Cada uma devolve `atingida`, `em`, `atual/alvo` e o texto do
-  que falta ("faltam 13 treinos"). **37 unitários**, com um caso que fecha e um
+  que falta ("faltam 13 treinos"). **39 unitários**, com um caso que fecha e um
   que não fecha para cada conquista.
 - **As 26**: força 1 · 10 · 25 · 50 · 100 · dias seguidos 3 e 7 · semanas com a
   meta 2 · 4 · 8 · 12 · Semana completa · primeira corrida · 20 min correndo ·
@@ -5733,12 +5733,33 @@ número real.
 
 ### Portões
 
-`npm run lint` limpo · `npm run build` ✓ · `npm test` **1161** (59 novos:
-22 em `lib/numeros.test.ts` e 37 em `lib/conquistas.test.ts`) ·
+`npm run lint` limpo · `npm run build` ✓ · `npm test` **1163** (61 novos:
+22 em `lib/numeros.test.ts` e 39 em `lib/conquistas.test.ts`) ·
 `npm run e2e` **258 passed** (7 novos em `e2e/conquistas.spec.ts`).
 Capturas em `capturas/conquistas/`: `01-relatorio-numeros` e
 `02-relatorio-conquistas` (escuro e claro), `03-conquista-detalhe` e
 `04-conclusao-conquista`.
+
+> **Lembrete do portão de e2e**: builde com `npm run build:e2e` antes de
+> `npm run e2e` (o `npm run build` comum assa o `.env.production`, aponta o app
+> para o Supabase de verdade e todo teste que entra na conta falha). Está em
+> `e2e/README.md`.
+
+### Auditoria (16/09/2026)
+
+Conferido no Chromium a 360 × 740, nos dois temas, contra o mock com 12 sessões
+de força, 2 de barra fixa, 3 corridas, soltas e uma sessão em andamento e uma
+abandonada. As contagens dos três períodos batem com a conta à mão (Semana
+Força 3 · Cardio 1 · Barra fixa 17 · 179 min · 200 kg; Mês 3 · 1 · 27 · 189 min;
+Tudo 12 (A 8 · B 4) · 3 (89 min · 8,7 km) · 27 (2 sessões · 22 em sessão ·
+5 soltas · melhor série 6) · 649 min), a sessão em andamento e a abandonada não
+entram em nada, e as 26 conquistas mostram a data certa ou o "faltam N" certo.
+As 26 células têm alvo ≥ 44 px, nenhuma corta texto e nada rola para o lado; o
+"Fechar" da folha mede 44 × 44.
+
+**Ajuste da auditoria**: a §19.7.6 pede um caso que fecha e um que não fecha
+para **cada** conquista; `semanas-4`, `carga-60` e `volume-50k` só tinham o caso
+que não fecha. Os três casos que fecham entraram em `lib/conquistas.test.ts`.
 
 ### Como testar no celular
 
