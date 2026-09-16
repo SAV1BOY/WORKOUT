@@ -59,8 +59,14 @@ soltas, peso e medidas, hoje = segunda 28/09/2026, semana 3 da Fase 1).
 | 15.4.3 | Exercício sem ilustração mostra a figura ou a foto, sem crédito e sem erro | As 81 fichas abertas uma a uma, cada imagem com `naturalWidth > 0` e nenhum 404; os 14 sem figura caem na ilustração ou nas fotos | `e2e/midia.spec.ts` ("sem ilustração a ficha continua com a figura animada") · `e2e/auditoria-m5.spec.ts` ("as 81 fichas", "os 14 sem figura") |
 | 15.4.4 | Lint, build, `npm test` e `npm run e2e` verdes | Os quatro portões abaixo | "Portões finais" abaixo |
 
-Fora da tabela, três coisas que valem registro:
+Fora da tabela, quatro coisas que valem registro:
 
+- **O `ALLOWED_EMAIL` agora também é do banco** (SPEC §9): `supabase/schema.sql`
+  tem a constante `public.allowed_email()` num bloco "AJUSTE AQUI" e o trigger
+  `on_auth_user_email_permitido` (`before insert on auth.users`), que recusa
+  qualquer outro e-mail antes de o perfil nascer. Com a chave anon pública, sem
+  ele o projeto aceitaria contas estranhas mesmo com a RLS por `auth.uid()`
+  isolando os dados. Provado num Postgres 16 local (detalhes no "ciclo 3").
 - **O motor não foi tocado pela camada visual.** `git diff` de
   `lib/progressao.ts` e `lib/montagem.ts` entre `c3de09f` (o último commit que
   os alterou, anterior ao marco V1) e o HEAD desta entrega: **vazio**.
@@ -79,9 +85,12 @@ sozinha (sem build, vitest ou Playwright concorrente):
 ```
 npm run lint   limpo (sem avisos)
 npm run build  ✓ Compiled successfully in 6,6s · 119 páginas geradas · 26 rotas
-npm test       Test Files 43 passed (43) · Tests 975 passed (975)
-npm run e2e    202 passed (7,4m) — Chromium 360 × 740, contra scripts/mock-supabase.ts
+npm test       Test Files 43 passed (43) · Tests 976 passed (976)
+npm run e2e    203 passed (7,7m) — Chromium 360 × 740, contra scripts/mock-supabase.ts
 ```
+
+(Números do HEAD: os quatro foram rodados de novo no ciclo 3, depois da trava
+do e-mail no banco — ela trouxe 5 unitários e 1 de ponta a ponta.)
 
 `git diff c3de09f HEAD -- lib/progressao.ts lib/montagem.ts` (o último commit
 que tocou o motor, anterior ao marco V1): **vazio**. A camada visual inteira
@@ -92,7 +101,7 @@ maior) · `/relatorio` 342 kB · `/explorar` 295 kB · `/exercicios/[id]` 319 kB
 (SSG, 81 páginas) · `/explorar/[tipo]/[valor]` 374 kB (SSG, 29 páginas) ·
 `/login` 118 kB · compartilhado 104 kB · middleware 95,1 kB. Os unitários são
 43 arquivos (motor, montagem, calendário, player, sessão, coleções, mídia,
-relatório, formato, backup, outbox, queries); os 202 de ponta a ponta rodam em
+relatório, formato, backup, outbox, queries); os 203 de ponta a ponta rodam em
 20 arquivos em `e2e/`.
 
 ### Conhecido, não corrigido (v2.1)
@@ -311,16 +320,25 @@ Para o dono fazer no ambiente dele, na ordem. Leva uns 30 minutos.
 2. **New project**: *Name* `treino-terraco`, *Database Password* forte
    (guarde), *Region* **South America (São Paulo)**. Criar e esperar o status
    ficar verde (1–2 min).
-3. **SQL Editor → New query**: cole **todo** o conteúdo de
+3. **Antes de colar o schema, confira o e-mail da constante.** No topo de
+   `supabase/schema.sql` tem o bloco **"AJUSTE AQUI"** com
+   `public.allowed_email()` devolvendo `miguelgsaviotti29@gmail.com`: é o
+   mesmo valor do `ALLOWED_EMAIL` do app. O trigger
+   `on_auth_user_email_permitido` recusa qualquer outro e-mail **no banco**,
+   então um valor errado aqui trava até o seu login.
+4. **SQL Editor → New query**: cole **todo** o conteúdo de
    `supabase/schema.sql` e rode (Ctrl+Enter). Tem que aparecer
-   "Success. No rows returned".
-4. Confira em **Table Editor** as 11 tabelas (`profiles`, `sessions`,
+   "Success. No rows returned". O arquivo é idempotente: pode rodar de novo
+   quantas vezes precisar (só sai aviso de "already exists").
+5. Confira em **Table Editor** as 11 tabelas (`profiles`, `sessions`,
    `session_sets`, `exercise_state`, `progression_events`, `cardio_sessions`,
    `pullup_singles`, `body_weights`, `body_measurements`, `progress_photos`,
    `schedule_overrides`) e em **Storage** o bucket `progresso`.
-5. **Authentication → Providers → Email**: *Enable Email provider* ligado e
-   **Confirm email desligado**. Salvar.
-6. **Project Settings → API**: copie a **Project URL**
+6. **Authentication → Providers → Email**: *Enable Email provider* ligado e
+   **Confirm email desligado**. Salvar. (O interruptor *Allow new users to sign
+   up* fica **ligado por enquanto** — você ainda vai criar a conta do Miguel no
+   passo 5 desta checklist; é lá que ele é desligado.)
+7. **Project Settings → API**: copie a **Project URL**
    (`https://xxxx.supabase.co`) e a chave **anon public / publishable**
    (`eyJ...` ou `sb_publishable_...`). **Nunca** use a `service_role`.
 
@@ -396,14 +414,22 @@ Sem isso a volta do login cai no `localhost`.
 ### 5. Criar a conta e conferir
 
 1. Abra `https://SUA-URL.vercel.app/login` e crie a conta com
-   **miguelgsaviotti29@gmail.com**. Qualquer outro e-mail tem que ser recusado.
+   **miguelgsaviotti29@gmail.com**. Qualquer outro e-mail tem que ser recusado
+   — na tela, com "Este app é pessoal.", e **no banco**, pelo trigger
+   `on_auth_user_email_permitido` (a chave anon é pública, então o bloqueio não
+   pode viver só no navegador).
 2. A aba **Treino** abre com o treino do dia e as cargas iniciais (§10.2), e a
    barra de baixo tem as **cinco abas** (Treino · Explorar · Relatório · Corpo ·
    Mais) — se só aparecerem as telas antigas, o PR #2 ainda não foi mesclado ou
    o deploy é anterior a ele.
-3. `https://SUA-URL.vercel.app/sw.js` tem que responder **200** (é o service
+3. **Com a conta criada, feche a porta**: *Authentication → Sign In /
+   Providers* → desligue **"Allow new users to sign up"** e salve. Cinto e
+   suspensório: o middleware (`ALLOWED_EMAIL`) já barra o e-mail de fora, o
+   trigger do banco também, e agora nem cadastro novo o projeto aceita. Se um
+   dia precisar de outra conta, é só religar.
+4. `https://SUA-URL.vercel.app/sw.js` tem que responder **200** (é o service
    worker) e `/manifest.webmanifest` também.
-4. O roteiro completo do que olhar no celular está em "Como testar no celular
+5. O roteiro completo do que olhar no celular está em "Como testar no celular
    (v2.1)", no começo deste arquivo.
 
 ### 6. Instalar como PWA
@@ -4737,7 +4763,12 @@ npm test       Test Files 43 passed (43) · Tests 971 passed (971)
 npm run e2e    200 passed (7.4m) — Chromium 360 × 740
 ```
 
-`git diff` de `lib/progressao.ts` e `lib/montagem.ts` contra o marco 1: vazio.
+`git diff c3de09f..HEAD -- lib/progressao.ts lib/montagem.ts`: **vazio**
+(`c3de09f`, "Aplica as pendências menores das auditorias dos marcos", é o
+último commit que tocou o motor, ainda no v1 — a linha de base certa para a
+camada visual). Contra o **marco 1** (`cb069e5`) o diff **não** é vazio, e nem
+deveria ser: o motor mudou durante o v1, nas auditorias do motor e na conta das
+barras (`pesosBarras`/`BarraId`).
 
 ### Como testar no celular
 
@@ -4780,8 +4811,10 @@ manda semana leve a 60 % — de exercícios nunca tentados. E com o player da
   `naoAvaliado` com `motivoNaoAvaliado: "nao_feito"` — o mesmo caminho da §6.3
   que já existia para o estado desconhecido: nem estado, nem evento, nem falha.
 - **O motor não foi tocado**: `lib/progressao.ts` e `lib/montagem.ts` continuam
-  iguais ao commit do marco 1. A decisão de "o que é uma sessão feita" é da
-  camada da sessão, não do motor.
+  iguais ao `c3de09f` (o último commit que os alterou, ainda no v1 —
+  `git diff c3de09f..HEAD -- lib/progressao.ts lib/montagem.ts` vazio; contra o
+  marco 1 o diff não é vazio, o motor evoluiu durante o v1). A decisão de "o que
+  é uma sessão feita" é da camada da sessão, não do motor.
 - O resumo do fim (aba Treino e player) agora tem duas frases separadas: "Sem
   avaliar, porque não consegui ler a carga atual: …" e "Não foi feito nesta
   sessão, então não conta como falha: …".
@@ -4879,7 +4912,8 @@ npm test       Test Files 43 passed (43) · Tests 975 passed (975)
 npm run e2e    202 passed (7.3m) — Chromium 360 × 740
 ```
 
-`git diff` de `lib/progressao.ts` e `lib/montagem.ts`: vazio.
+`git diff c3de09f..HEAD -- lib/progressao.ts lib/montagem.ts` (`c3de09f` é o
+último commit que tocou o motor, ainda no v1): **vazio**.
 
 > Nota de ambiente: o `npm run e2e` desta etapa rodou com `E2E_PORT=3110
 > MOCK_SUPABASE_PORT=54340` porque a 3100/54321 e a 3101 estavam ocupadas por
@@ -4901,3 +4935,122 @@ npm run e2e    202 passed (7.3m) — Chromium 360 × 740
 4. Abra `/treinar` direto pela URL (atalho ou outra aba): os dois treinos da
    fase aparecem em menos de um segundo. Se um dia a tela ficar parada, depois
    de 12 s aparece a faixa "O app não terminou de abrir." com **Recarregar**.
+
+---
+
+## Fechamento v2.1 — ciclo 3 de correções (os três "importantes" que sobraram) ✅
+
+Três itens vindos da auditoria final (rodada 3): a trava do e-mail no banco
+(lente B, segurança) e duas frases de PROGRESSO.md que não correspondiam ao
+repositório (lente C). Nenhuma linha de app/, components/ ou lib/ mudou de
+comportamento — só `lib/erros-auth.ts` ganhou uma tradução nova.
+
+### 1. `ALLOWED_EMAIL` também no banco (SPEC §9)
+
+Até aqui o e-mail permitido só era checado no middleware. A chave anon é
+pública (vai no navegador), então qualquer pessoa que a visse podia chamar o
+`/auth/v1/signup` do projeto: a RLS por `auth.uid()` isolava os dados de cada
+linha, mas o banco ficava aberto a contas estranhas — e o trigger
+`handle_new_user` criava perfil para todas.
+
+Em `supabase/schema.sql`, tudo idempotente (o arquivo continua podendo ser
+colado inteiro, quantas vezes quiser):
+
+- **A constante**, no topo, num bloco de comentário **"AJUSTE AQUI"**:
+  `public.allowed_email()` — uma função `sql immutable` que devolve o literal
+  `miguelgsaviotti29@gmail.com`. Escolhida em vez de uma tabela
+  `public.app_config` porque é mais simples: não precisa de RLS e sai do
+  PostgREST com um `revoke all on function public.allowed_email() from public`
+  (o `anon` não consegue nem ler o e-mail por RPC — conferido no Postgres
+  local: `ERROR: permission denied for function allowed_email`).
+- **O bloqueio**: `public.exigir_email_permitido()` (`security definer`, para
+  poder ler a constante revogada) e o trigger
+  `on_auth_user_email_permitido` **`before insert on auth.users`**, que faz
+  `raise exception 'Este app é pessoal: só o e-mail autorizado pode entrar.'`
+  quando `lower(new.email)` é diferente de `lower(public.allowed_email())`.
+  Como no Postgres todo BEFORE roda antes de qualquer AFTER, ele barra **antes**
+  do `handle_new_user`, e a exceção aborta a transação inteira: não sobra linha
+  nem em `auth.users` nem em `public.profiles`.
+- **Policies**: nenhuma mudança era necessária, e foi conferido que não há
+  nenhuma `using (true)` para `authenticated` — as 14 filtram por `auth.uid()`
+  (11 por `user_id`, 3 pela primeira pasta do caminho no bucket). Agora tem
+  teste: `lib/auditoria-seguranca.test.ts`.
+
+**Como foi provado** (Postgres 16.13 local, com os stubs de `auth`/`storage` que
+a lente B já usava — não existe Supabase real nesta máquina):
+
+1. `schema.sql` aplicado do zero num banco novo: sem erro. Aplicado de novo:
+   sem erro (só avisos de "already exists"). E uma terceira vez, já com dados:
+   sem erro e sem perder linha.
+2. `insert into auth.users (email) values ('miguelgsaviotti29@gmail.com')` →
+   `usuarios=1 perfis=1` (o perfil nasceu pelo `handle_new_user`).
+3. `insert into auth.users (email) values ('outra.pessoa@exemplo.com')` →
+   `ERROR: Este app é pessoal: só o e-mail autorizado pode entrar.` e, depois
+   dele, ainda `usuarios=1 perfis=1` — nada foi criado.
+4. `'MIGUELGSAVIOTTI29@GMAIL.COM'` **passa** (a comparação é em `lower`) e
+   `null` é recusado.
+
+**No harness**: `scripts/mock-supabase.ts` ganhou a mesma trava e a **mesma
+mensagem** — `exigirEmailPermitido()` é chamada no `criarUsuario` (que simula os
+triggers de `auth.users`, então vale para `/auth/v1/signup` e para a semente) e
+no `/auth/v1/token?grant_type=password`, devolvendo 403. `lib/erros-auth.ts`
+traduz tanto a mensagem crua quanto o "Database error saving new user" com que
+o GoTrue embrulha erros de trigger para o mesmo **"Este app é pessoal."** que a
+tela de login já mostrava no bloqueio do middleware.
+
+Cobertura nova: `e2e/mock.spec.ts` ("e-mail de fora não cria conta nem entra (o
+trigger do schema)": signup 403, entrar 403, mesma mensagem, nenhum usuário e
+nenhum perfil a mais), `lib/erros-auth.test.ts` (as duas formas da mensagem) e
+`lib/auditoria-seguranca.test.ts` (4 testes: a constante bate com o
+`ALLOWED_EMAIL` do `.env.local.example`, o trigger é `before insert` e levanta
+exceção, a constante é revogada do `public`, nenhuma policy com `true`).
+
+Cinto e suspensório na **Checklist de infraestrutura** e no **README**: conferir
+o e-mail da constante antes de colar o schema, e desligar *Authentication →
+Sign In / Providers → "Allow new users to sign up"* depois de criar a conta do
+Miguel.
+
+### 2 e 3. Duas frases erradas sobre o motor
+
+- "`git diff` de `lib/progressao.ts` e `lib/montagem.ts` **contra o marco 1**:
+  vazio" (ciclo 1) e "continuam **iguais ao commit do marco 1**" (marco Mídia)
+  eram falsas: contra `cb069e5` são 477 inserções e 87 remoções nos 2
+  arquivos (`git diff --stat cb069e5..HEAD -- …`), porque o
+  motor evoluiu durante o v1 (auditorias do motor, `pesosBarras`/`BarraId`).
+  O que é verdade — e é o que a camada visual promete — é o diff contra
+  `c3de09f`, o último commit que tocou os dois arquivos, ainda no v1:
+  `git diff c3de09f..HEAD -- lib/progressao.ts lib/montagem.ts` **vazio**.
+  As duas frases agora dizem a linha de base e o comando.
+- A terceira ("…: vazio", sem base, no ciclo 2) ganhou a mesma base explícita.
+  As outras ocorrências foram conferidas uma a uma com
+  `git diff --stat <base>..HEAD -- lib/progressao.ts lib/montagem.ts`: a do
+  marco V2 (`git diff 0085878..HEAD`) e as duas do "Estado da entrega — v2.1"
+  (`c3de09f`) estavam certas e ficaram como estavam.
+- Os números do "Estado da entrega — v2.1" foram recontados no HEAD depois
+  destas mudanças (ver "Portões" abaixo) e a seção "Estado da entrega — v1"
+  continua rotulada como histórico, com a frase "esta é a do app v1, mantida
+  como estava" logo no começo.
+
+### Portões
+
+Rodados nesta ordem, com a árvore limpa, numa janela sozinha:
+
+```
+npm run lint   limpo (sem avisos)
+npm run build  ✓ Compiled successfully in 6,6s · 119 páginas geradas
+npm test       Test Files 43 passed (43) · Tests 976 passed (976)
+npm run e2e    203 passed (7,7m) — Chromium 360 × 740, portas 3100/54321
+```
+
+### Como testar no celular
+
+Nada mudou na tela. O que dá para conferir, na hora de publicar:
+
+1. Antes de colar `supabase/schema.sql` no SQL Editor, veja o bloco "AJUSTE
+   AQUI" no topo: o e-mail ali tem que ser o mesmo do `ALLOWED_EMAIL` da
+   Vercel. Se forem diferentes, o seu próprio "Criar conta" vai responder
+   "Este app é pessoal.".
+2. Depois de criar a conta do Miguel, desligue *Allow new users to sign up* em
+   Authentication → Sign In / Providers. Tente criar outra conta de outro
+   e-mail: o app recusa na tela, e mesmo quem falasse direto com o Supabase
+   esbarraria no trigger.
