@@ -35,7 +35,7 @@ create trigger app_config_updated before update on public.app_config for each ro
 create or replace function public.sou_o_dono() returns boolean
   language sql stable security definer set search_path = public
   as $$ select lower(coalesce(auth.jwt() ->> 'email', '')) = lower(public.allowed_email()) $$;
-revoke all on function public.sou_o_dono() from public;
+revoke all on function public.sou_o_dono() from public, anon;
 grant execute on function public.sou_o_dono() to authenticated;
 
 -- a cota é do dono: ninguém mais lê nem muda `app_config`
@@ -108,7 +108,7 @@ create or replace function public.contas_cadastradas()
   from auth.users u
   where u.deleted_at is null and public.sou_o_dono()
   order by u.created_at $$;
-revoke all on function public.contas_cadastradas() from public;
+revoke all on function public.contas_cadastradas() from public, anon;
 grant execute on function public.contas_cadastradas() to authenticated;
 
 -- ---------- perfil criado automaticamente no primeiro login ----------
@@ -123,3 +123,11 @@ begin
   return new;
 end $$;
 revoke all on function public.handle_new_user() from public, anon, authenticated;
+
+-- ---------- fecha os grants padrão do Supabase (medido em produção, 17/09/2026) ----------
+-- "revoke ... from public" não desfaz o EXECUTE que o `alter default privileges`
+-- do projeto dá a anon/authenticated em toda função nova: a constante do e-mail
+-- respondia ao /rest/v1/rpc com a chave anônima. Tira os dois papéis de tudo o
+-- que não é para o navegador chamar.
+revoke all on function public.allowed_email() from public, anon, authenticated;
+revoke all on function public.set_updated_at() from public, anon, authenticated;

@@ -6106,3 +6106,21 @@ Portões: lint · build · 1284 unitários · 303 e2e, todos verdes.
   uma tela de `/mais` dá página em branco em vez do `/~offline` (comportamento
   antigo do service worker com a navegação RSC do App Router); e o caminho das
   capturas fixo no scratchpad da sessão em 7 specs de e2e.
+
+### Vazamento fechado antes do deploy (17/09/2026)
+
+Ao aplicar a migração no projeto real, uma sondagem pela API pública mostrou
+que `POST /rest/v1/rpc/allowed_email` com a chave anônima **devolvia o e-mail
+do dono** — desde a v2.1. Causa: o Supabase tem `alter default privileges`
+dando EXECUTE a `anon`/`authenticated`/`service_role` em toda função nova, e
+`revoke … from public` não desfaz esse grant explícito (o advisor 0028/0029 já
+tinha levado as funções de trigger a revogar `anon, authenticated` pelo nome;
+a constante e as funções novas do marco só revogavam `public`). Correção,
+aplicada em produção (migração `revokes_anon_authenticated_funcoes`) e
+espelhada no `schema.sql`, no delta e nos testes: `allowed_email()` e
+`set_updated_at()` revogadas de `public, anon, authenticated`; `sou_o_dono()` e
+`contas_cadastradas()` de `public, anon` (o app logado precisa delas). Medido
+depois: as três respondem `401 permission denied` ao anon; só
+`vagas_para_conta()` continua pública, com dois números. Um teste novo em
+`lib/auditoria-seguranca.test.ts` prende cada revoke pelo nome e garante que a
+única função com grant para `anon` é a da cota.

@@ -119,7 +119,7 @@ describe("schema.sql: a cota de contas (SPEC §21)", () => {
 
   it("a constante não vaza pelo PostgREST", () => {
     expect(schema).toContain(
-      "revoke all on function public.allowed_email() from public",
+      "revoke all on function public.allowed_email() from public, anon, authenticated",
     );
     // e não ganhou grant nenhum depois do revoke
     expect(schema).not.toMatch(
@@ -133,7 +133,7 @@ describe("schema.sql: a cota de contas (SPEC §21)", () => {
     expect(corpo).toContain("security definer");
     expect(corpo).toContain("auth.jwt() ->> 'email'");
     expect(schema).toContain(
-      "revoke all on function public.sou_o_dono() from public",
+      "revoke all on function public.sou_o_dono() from public, anon",
     );
     expect(schema).toContain(
       "grant execute on function public.sou_o_dono() to authenticated",
@@ -204,7 +204,7 @@ describe("schema.sql: a cota de contas (SPEC §21)", () => {
     // a condição está DENTRO da consulta: sem ela a função entregaria auth.users
     expect(corpo).toContain("public.sou_o_dono()");
     expect(schema).toContain(
-      "revoke all on function public.contas_cadastradas() from public",
+      "revoke all on function public.contas_cadastradas() from public, anon",
     );
     expect(schema).toContain(
       "grant execute on function public.contas_cadastradas() to authenticated",
@@ -371,5 +371,36 @@ describe("o mock do Supabase não vai para o app", () => {
         );
       }
     }
+  });
+});
+
+describe("schema.sql: os grants padrão do Supabase (medido em produção, 17/09/2026)", () => {
+  /*
+   * O projeto tem `alter default privileges … grant execute on functions to
+   * anon, authenticated, service_role`: toda função nova nasce chamável pelo
+   * /rest/v1/rpc com a chave anônima, e `revoke … from public` NÃO desfaz esse
+   * grant explícito. Foi assim que `allowed_email()` respondeu o e-mail do dono
+   * ao anon em produção. Tudo o que não é para o navegador chamar tira `anon`
+   * (e `authenticated`, quando nem o app logado precisa) pelo nome.
+   */
+  it.each([
+    ["public.allowed_email()", "public, anon, authenticated"],
+    ["public.set_updated_at()", "public, anon, authenticated"],
+    ["public.exigir_vaga_para_conta()", "public, anon, authenticated"],
+    ["public.handle_new_user()", "public, anon, authenticated"],
+    ["public.sou_o_dono()", "public, anon"],
+    ["public.contas_cadastradas()", "public, anon"],
+  ])("%s é revogada de %s", (funcao, papeis) => {
+    expect(schema).toContain(`revoke all on function ${funcao} from ${papeis};`);
+  });
+
+  it("só a cota fica aberta ao anon (dois números, nada mais)", () => {
+    expect(schema).toContain(
+      "grant execute on function public.vagas_para_conta() to anon, authenticated",
+    );
+    const abertas = [...schema.matchAll(/grant execute on function public\.(\w+)\(\) to ([^;]+);/g)]
+      .filter((m) => /\banon\b/.test(m[2] ?? ""))
+      .map((m) => m[1]);
+    expect(abertas).toEqual(["vagas_para_conta"]);
   });
 });

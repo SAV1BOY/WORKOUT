@@ -1222,6 +1222,13 @@ dono, o número certo é decisão dele a qualquer momento.
    `stable security definer`; `revoke all … from public`, `grant execute … to
    anon, authenticated`. É o que a tela de login consulta antes de oferecer
    "Criar conta". Devolve só dois números.
+   **Atenção aos grants padrão do Supabase**: o projeto dá EXECUTE a
+   `anon`/`authenticated` em toda função nova, e `revoke … from public` não
+   desfaz isso — cada função que o navegador não deve chamar revoga `anon` (e
+   `authenticated`, quando nem o app logado precisa) **pelo nome**:
+   `allowed_email()` e `set_updated_at()` de `public, anon, authenticated`;
+   `sou_o_dono()` e `contas_cadastradas()` de `public, anon`. Só
+   `vagas_para_conta()` fica aberta ao `anon`.
 5. **`public.contas_cadastradas()`** `returns table (email text, criada_em
    timestamptz, ultimo_acesso timestamptz)`, `stable security definer`: lê
    `auth.users` (`deleted_at is null`, ordem de criação) **só quando

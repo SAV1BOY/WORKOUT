@@ -27,7 +27,12 @@ create extension if not exists "pgcrypto";
 create or replace function public.allowed_email() returns text
   language sql immutable parallel safe set search_path = public
   as $$ select 'miguelgsaviotti29@gmail.com'::text $$;
-revoke all on function public.allowed_email() from public;
+-- "from public" NÃO basta no Supabase: o projeto tem `alter default privileges`
+-- dando EXECUTE a anon, authenticated e service_role em toda função nova, e
+-- esse grant explícito sobrevive ao revoke do PUBLIC. Sem os dois papéis aqui,
+-- `POST /rest/v1/rpc/allowed_email` com a chave anônima devolvia o e-mail
+-- (medido em produção em 17/09/2026).
+revoke all on function public.allowed_email() from public, anon, authenticated;
 
 -- ---------- perfil ----------
 create table if not exists public.profiles (
@@ -223,6 +228,7 @@ alter table public.profiles alter column nome set default '';
 -- ---------- updated_at automático ----------
 create or replace function public.set_updated_at() returns trigger language plpgsql set search_path = public as $$
 begin new.updated_at = now(); return new; end $$;
+revoke all on function public.set_updated_at() from public, anon, authenticated;
 drop trigger if exists profiles_updated on public.profiles;
 create trigger profiles_updated before update on public.profiles for each row execute function public.set_updated_at();
 drop trigger if exists exercise_state_updated on public.exercise_state;
@@ -248,7 +254,7 @@ create trigger app_config_updated before update on public.app_config for each ro
 create or replace function public.sou_o_dono() returns boolean
   language sql stable security definer set search_path = public
   as $$ select lower(coalesce(auth.jwt() ->> 'email', '')) = lower(public.allowed_email()) $$;
-revoke all on function public.sou_o_dono() from public;
+revoke all on function public.sou_o_dono() from public, anon;
 grant execute on function public.sou_o_dono() to authenticated;
 
 -- a cota é do dono: ninguém mais lê nem muda `app_config`
@@ -321,7 +327,7 @@ create or replace function public.contas_cadastradas()
   from auth.users u
   where u.deleted_at is null and public.sou_o_dono()
   order by u.created_at $$;
-revoke all on function public.contas_cadastradas() from public;
+revoke all on function public.contas_cadastradas() from public, anon;
 grant execute on function public.contas_cadastradas() to authenticated;
 
 -- ---------- perfil criado automaticamente no primeiro login ----------
