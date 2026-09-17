@@ -113,8 +113,9 @@ export default async function Mais() {
         <BotaoSair />
       </section>
 
+      {/* SPEC §21: o app deixou de ser de um usuário só — o rodapé também */}
       <p className="text-muted-foreground text-center text-xs">
-        Treino do Terraço · app pessoal
+        Treino do Terraço · cada conta vê só os próprios treinos
       </p>
     </section>
   );

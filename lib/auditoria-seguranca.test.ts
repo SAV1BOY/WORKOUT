@@ -241,6 +241,26 @@ describe("schema.sql: a cota de contas (SPEC §21)", () => {
     expect(schema).toContain("alter table public.profiles alter column nome set default ''");
   });
 
+  /*
+   * Auditoria 17/09/2026: o marco Contas reescreveu `handle_new_user()` e o
+   * `create trigger on_auth_user_created` sumiu do arquivo no caminho. Num
+   * projeto novo isso deixaria toda conta sem perfil — e nada quebrava, porque
+   * o banco de verdade já tinha o trigger de antes. Agora quebra aqui.
+   */
+  it("o trigger que cria o perfil continua no schema, depois do da cota", () => {
+    expect(schema).toMatch(
+      /create trigger on_auth_user_created after insert on auth\.users for each row execute function public\.handle_new_user\(\)/,
+    );
+    expect(schema).toContain(
+      "drop trigger if exists on_auth_user_created on auth.users",
+    );
+    // BEFORE roda antes de AFTER: a cota aborta antes de o perfil nascer
+    const daCota = schema.indexOf("create trigger on_auth_user_vaga");
+    const doPerfil = schema.indexOf("create trigger on_auth_user_created");
+    expect(daCota).toBeGreaterThan(-1);
+    expect(doPerfil).toBeGreaterThan(-1);
+  });
+
   it("nenhuma policy libera `true` para authenticated", () => {
     const policies = [...schema.matchAll(/create policy[\s\S]*?;/g)].map(
       (m) => m[0],

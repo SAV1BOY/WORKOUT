@@ -7,7 +7,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Treino do Terraço",
   description:
-    "App pessoal de treino: o que fazer hoje, registro por série e progressão de carga.",
+    "Treino de força e cardio: o que fazer hoje, registro por série e progressão de carga.",
   applicationName: "Treino do Terraço",
   manifest: "/manifest.webmanifest",
   appleWebApp: {

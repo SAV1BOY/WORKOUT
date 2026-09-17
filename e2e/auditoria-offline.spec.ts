@@ -131,7 +131,17 @@ test.describe("a resposta que se perde depois de o servidor gravar (SPEC §8)", 
       if (!engoliu && rota.request().method() === "POST") {
         engoliu = true;
         await rota.fetch();
-        await rota.abort("connectionfailed");
+        /*
+         * Auditoria 17/09/2026: de vez em quando o navegador desiste da
+         * requisição enquanto o `fetch` acima ainda corre. A rota já está
+         * "handled" e o `abort` estoura com "Route is already handled!" —
+         * o teste ficava vermelho por um detalhe do harness, com o app
+         * fazendo exatamente o que o teste queria (o servidor gravou, a
+         * resposta não voltou). Engolir a exceção não afrouxa nada: o que
+         * vale continua sendo verificado embaixo (uma linha só no servidor e
+         * a fila zerada).
+         */
+        await rota.abort("connectionfailed").catch(() => {});
         return;
       }
       await rota.continue();

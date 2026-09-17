@@ -12,6 +12,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { traduzirErroAuth } from "@/lib/erros-auth";
 import { formatarData, formatarDataCompleta } from "@/lib/formato";
 import {
   LIMITE_MAXIMO,
@@ -64,7 +65,8 @@ export function TelaContas() {
         }
       } catch (e) {
         if (!vivo) return;
-        setErro((e as Error).message || NAO_DEU);
+        // o recado é da tela, em pt-BR: "Failed to fetch" não é português
+        setErro(traduzirErroAuth((e as Error).message, NAO_DEU));
         setContas([]);
       }
     })();
@@ -88,7 +90,7 @@ export function TelaContas() {
       setLimiteSalvo(novo);
       toast.success("Limite salvo.");
     } catch (e) {
-      setErro((e as Error).message || NAO_DEU);
+      setErro(traduzirErroAuth((e as Error).message, NAO_DEU));
     } finally {
       setSalvando(false);
     }

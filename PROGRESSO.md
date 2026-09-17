@@ -6037,3 +6037,55 @@ continua igual.
    Saia: o login agora mostra só "Entrar" e o aviso *"Cadastro fechado no
    momento: o limite de contas foi atingido."*.
 7. Tudo a 360 px, nos dois temas, sem rolar de lado e com alvos de 44 px.
+
+### Auditoria do marco Contas — 17/09/2026
+
+Auditoria independente (portões rodados do zero, SQL lido linha a linha,
+navegador a 360 × 740 nos dois temas). O que foi corrigido aqui:
+
+1. **O trigger que cria o perfil tinha sumido do `supabase/schema.sql`.**
+   Ao reescrever `handle_new_user()` para o nome vir do e-mail, o
+   `create trigger on_auth_user_created after insert on auth.users` saiu junto.
+   No banco que já está no ar nada quebra (o trigger de antes continua lá, e o
+   delta `supabase/migracoes/2026-09-17-contas.sql` só troca a função), mas num
+   **projeto novo** — que roda o `schema.sql` inteiro — nenhuma conta ganharia
+   perfil: o nome não viria do e-mail e o `garantirPerfil` semearia o perfil do
+   JSON. Nenhum teste pegava, porque o mock simula o trigger em código. O
+   trigger voltou e `lib/auditoria-seguranca.test.ts` ganhou um teste que não
+   deixa ele sumir de novo.
+2. **Inglês na tela de Contas.** `components/mais/tela-contas.tsx` mostrava a
+   mensagem crua do erro (`(e as Error).message`) — sem rede isso vira
+   "Failed to fetch" na cara de quem usa. Agora passa por `traduzirErroAuth`
+   com o recado da tela como padrão, como `/mais/senha` já fazia.
+3. **Sobras de "app pessoal".** O rodapé de **Mais** dizia "Treino do Terraço ·
+   app pessoal" e a `description` de `app/layout.tsx` dizia "App pessoal de
+   treino" — as duas contradizem a §21 e são vistas por qualquer conta.
+   Trocadas.
+4. **Um e2e piscando (não é do marco).** `e2e/auditoria-offline.spec.ts` falhava
+   uma vez a cada tantas com `route.abort: Route is already handled!`: quando o
+   navegador desiste da requisição enquanto o `route.fetch()` do harness ainda
+   corre, a rota já está tratada. O `abort` agora tolera isso; **nenhuma
+   verificação do teste mudou** (continua exigindo uma linha só no servidor e a
+   fila zerada). Rodado 5 vezes seguidas antes e depois.
+
+Conferido e **sem problema**: nenhuma policy com `true`; `allowed_email()` sem
+grant e sem vazar pelo PostgREST (só o booleano de `sou_o_dono()`);
+`vagas_para_conta()` devolvendo só `contas` e `limite`; `contas_cadastradas()`
+com o `sou_o_dono()` dentro da consulta (zero linhas para os outros, provado
+pelo REST); `on_auth_user_vaga` BEFORE, com o dono sempre passando e a contagem
+ignorando `deleted_at`; `app_config` com RLS e a policy exigindo o dono nos dois
+lados; o delta idempotente e contido no `schema.sql`; `search_path` fixado e
+`security definer` só onde precisa; `alter column nome set default ''` não
+tocando no perfil que já existe. No navegador: contraste AA medido em todo o
+texto do login (com e sem vaga) e de Contas, nos dois temas; nada rolando de
+lado a 360 px; Contas sem rede avisando e **nada** entrando na fila (IndexedDB
+vazio, nenhum PATCH no mock). Motor (`lib/progressao.ts`) e montagem
+(`lib/montagem.ts`) intocados.
+
+**Fica para depois** (fora do escopo da §21, anotado para não se perder):
+`garantirPerfil` ainda semeia altura 190 cm e início 14/09/2026 — os dados do
+dono, de `data/perfil.json` — em toda conta nova; e navegar **sem rede** para
+uma tela de `/mais` (Contas, Trocar senha, Créditos, todas iguais) dá página em
+branco em vez do `/~offline`.
+
+Portões: lint · build · 1284 unitários · 303 e2e, todos verdes.
