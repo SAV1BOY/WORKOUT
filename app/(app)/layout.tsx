@@ -6,7 +6,12 @@ import { SpriteMuscular } from "@/components/sprite-muscular";
 import { TemaDoPerfil } from "@/components/tema-do-perfil";
 import { Miolo } from "@/components/miolo";
 import { NavInferior } from "@/components/nav-inferior";
-import { SUPABASE_ANON_KEY, SUPABASE_URL, supabaseConfigurado } from "@/lib/env";
+import {
+  SUPABASE_ANON_KEY,
+  SUPABASE_URL,
+  ehDono,
+  supabaseConfigurado,
+} from "@/lib/env";
 import { garantirPerfil } from "@/lib/queries/perfil";
 import { criarClienteServidor } from "@/lib/supabase/server";
 
@@ -27,8 +32,9 @@ export default async function LayoutApp({
 
   if (!user) redirect("/login");
 
-  // primeiro acesso: perfil vem de data/perfil.json
-  await garantirPerfil(supabase, user.id);
+  // primeiro acesso do dono: perfil vem de data/perfil.json; as outras contas
+  // ficam com o que o schema deu (SPEC §21.3)
+  await garantirPerfil(supabase, user.id, { dono: ehDono(user.email) });
 
   return (
     <div className="min-h-dvh">

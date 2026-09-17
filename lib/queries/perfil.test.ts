@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { perfilInicial } from "@/lib/dados";
-import { ajustarSemana, montarSeedPerfil, precisaSeed } from "@/lib/queries/perfil";
+import {
+  ajustarSemana,
+  garantirPerfil,
+  montarSeedPerfil,
+  precisaSeed,
+} from "@/lib/queries/perfil";
 import type { LinhaPerfil } from "@/lib/types";
 
 const linhaPadrao: LinhaPerfil = {
@@ -79,5 +84,83 @@ describe("ajustarSemana (SPEC §5.5: ajuste manual no perfil)", () => {
     expect(ajustarSemana(1, -1)).toBe(1);
     expect(ajustarSemana(12, 1, 12)).toBe(12);
     expect(ajustarSemana(20, 1, 12)).toBe(12);
+  });
+});
+
+/* ------------------------------------------------ garantirPerfil (SPEC §21.3) */
+
+/** Um cliente Supabase de mentira só com o que `garantirPerfil` usa. */
+function clienteFalso(linha: LinhaPerfil | null) {
+  const escritas: unknown[] = [];
+  const cliente = {
+    from() {
+      return {
+        select() {
+          return {
+            eq() {
+              return { maybeSingle: async () => ({ data: linha, error: null }) };
+            },
+          };
+        },
+        upsert(valores: unknown) {
+          escritas.push(valores);
+          return {
+            select() {
+              return {
+                maybeSingle: async () => ({
+                  data: { ...(linha ?? {}), ...(valores as object) },
+                  error: null,
+                }),
+              };
+            },
+          };
+        },
+      };
+    },
+  };
+  return { cliente, escritas };
+}
+
+describe("garantirPerfil: o seed do JSON é só do dono (SPEC §21.3)", () => {
+  const recemCriada: LinhaPerfil = {
+    ...linhaPadrao,
+    nome: "joana.ferreira",
+    altura_cm: null,
+  };
+
+  it("o dono com o perfil recém-criado recebe o seed de data/perfil.json", async () => {
+    const { cliente, escritas } = clienteFalso(recemCriada);
+    const perfil = await garantirPerfil(
+      cliente as never,
+      "u1",
+      { dono: true },
+    );
+    expect(escritas).toHaveLength(1);
+    expect(escritas[0]).toMatchObject({
+      user_id: "u1",
+      altura_cm: perfilInicial.altura_cm,
+      data_inicio: perfilInicial.data_inicio,
+    });
+    expect(perfil?.altura_cm).toBe(perfilInicial.altura_cm);
+  });
+
+  it("uma conta nova (não dono) fica como o schema criou: nada é escrito", async () => {
+    const { cliente, escritas } = clienteFalso(recemCriada);
+    const perfil = await garantirPerfil(
+      cliente as never,
+      "u2",
+      { dono: false },
+    );
+    expect(escritas).toHaveLength(0);
+    expect(perfil).toEqual(recemCriada);
+    // a altura do Miguel nunca vai parar no perfil de outra pessoa
+    expect(perfil?.altura_cm).toBeNull();
+    expect(perfil?.nome).toBe("joana.ferreira");
+  });
+
+  it("sem opção explícita continua sendo o seed do dono (compatível com o de antes)", async () => {
+    const { cliente, escritas } = clienteFalso(null);
+    await garantirPerfil(cliente as never, "u1");
+    expect(escritas).toHaveLength(1);
   });
 });

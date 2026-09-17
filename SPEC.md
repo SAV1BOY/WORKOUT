@@ -226,7 +226,7 @@ Design: sóbrio, alto contraste, tipografia grande nos números (é lido a um br
 ## 10. Critérios de aceite (o que precisa funcionar antes de dizer "pronto")
 
 1. Login com o e-mail do dono; qualquer pessoa cria conta enquanto houver vaga na cota, e com a cota cheia o cadastro é recusado (critérios completos na §21.5).
-2. No primeiro login o perfil é criado com `data/perfil.json` e a tela Hoje mostra "Treino A · 6 exercícios · 44 min" numa segunda-feira, com as cargas iniciais (7,5 kg na barra, 1,5 kg por halter, 4 kg no pino).
+2. No primeiro login **do dono** (§21.3; as outras contas nascem com os defaults do schema) o perfil é criado com `data/perfil.json` e a tela Hoje mostra "Treino A · 6 exercícios · 44 min" numa segunda-feira, com as cargas iniciais (7,5 kg na barra, 1,5 kg por halter, 4 kg no pino).
 3. Uma sessão completa do Treino A pode ser registrada por série no celular sem usar teclado físico; o timer de descanso dispara ao concluir cada série; a sessão sobrevive a fechar e reabrir o app e a ficar sem rede.
 4. Ao concluir com todas as séries no topo da faixa e "última firme", a próxima sessão mostra a carga + incremento; duas falhas seguidas reduzem 10 % e o incremento cai pela metade; três falhas geram a semana leve — tudo coberto por testes unitários em `lib/progressao.test.ts` (mínimo 12 casos, incluindo barra fixa, elástico, tempo, unilateral).
 5. Montagem da barra: o motor só propõe cargas alcançáveis. Na barra maciça toda carga é 7,5 + 2 × (soma inteira de anilhas de um lado), ou seja 9,5, 11,5, 13,5, …; para um pedido impossível (26,5 kg) a função devolve a alcançável mais próxima para baixo (25,5 = 5 · 4 por lado) e mostra a diferença. Nos halteres: 1,5 + 2 × (anilhas de uma ponta) por halter, os dois iguais, fechando com o estoque de 4 anilhas de cada peso. Testes cobrem os três implementos (barra, halter, pino).
@@ -1268,6 +1268,12 @@ dono, o número certo é decisão dele a qualquer momento.
   Criar conta`, sem "Ir"); a seção Mais ganha **"Contas (só o dono)"** com "Ir"
   para `/mais/contas`; a lista de cobertura do unitário acompanha.
 - **Perfil**: o nome vem do e-mail até a pessoa editar (a edição já existe).
+  O **seed de `data/perfil.json`** (§2, §10 item 2: altura, data de início,
+  fase) **é só do dono** — `garantirPerfil` recebe `{ dono }` do layout e, para
+  qualquer outra conta, apenas lê. Uma conta nova fica com o que o schema deu:
+  altura vazia (a aba Corpo pede para ver o IMC), `data_inicio` e `fase_desde`
+  no dia do cadastro, Fase 1, semanas 1 dos planos. Os dados do Miguel nunca
+  vão parar no perfil de outra pessoa.
 - **Mock** (`scripts/mock-supabase.ts`): tabela `app_config` semeada com 5 (o
   reset do `__mock` volta a 5); `/auth/v1/signup` conta os usuários e recusa
   com a mensagem do trigger quando não há vaga; `token?grant_type=password`

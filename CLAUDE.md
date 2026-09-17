@@ -1,6 +1,6 @@
 # CLAUDE.md — Treino do Terraço
 
-Você está construindo um app pessoal de treino para um usuário só (Miguel). Este repositório começa com o **kit**: a especificação, os dados prontos e os assets. Seu trabalho é transformar isso no app descrito em `SPEC.md`.
+Você está construindo um app de treino cujo dono é o Miguel e que aceita outras contas dentro de uma cota que ele administra (SPEC §21). Este repositório começa com o **kit**: a especificação, os dados prontos e os assets. Seu trabalho é transformar isso no app descrito em `SPEC.md`.
 
 ## Leia nesta ordem antes de escrever código
 1. `SPEC.md` — o que o app faz, telas, modelo de dados, motor de progressão, critérios de aceite, marcos.

@@ -52,10 +52,19 @@ export function precisaSeed(linha: LinhaPerfil | null | undefined): boolean {
   return false;
 }
 
-/** Lê o perfil e, se ainda estiver no padrão, grava o seed. */
+/**
+ * Lê o perfil e, se ainda estiver no padrão, grava o seed — **só para o dono**.
+ *
+ * SPEC §21.3: `data/perfil.json` é o perfil do Miguel (altura, data de início,
+ * fase). Uma conta nova (§21) nasce com o que o schema dá: nome vindo do
+ * e-mail (trigger `handle_new_user`), altura vazia (a aba Corpo pede),
+ * `data_inicio` e `fase_desde` no dia do cadastro, Fase 1, semanas 1. Para ela
+ * esta função só lê — nunca escreve os dados do dono no perfil de outra pessoa.
+ */
 export async function garantirPerfil(
   supabase: SupabaseClient,
   userId: string,
+  opcoes: { dono: boolean } = { dono: true },
 ): Promise<LinhaPerfil | null> {
   const { data, error } = await supabase
     .from("profiles")
@@ -64,6 +73,7 @@ export async function garantirPerfil(
     .maybeSingle<LinhaPerfil>();
 
   if (error) return null;
+  if (!opcoes.dono) return data;
   if (!precisaSeed(data)) return data;
 
   /*

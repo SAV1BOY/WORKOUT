@@ -6089,3 +6089,20 @@ uma tela de `/mais` (Contas, Trocar senha, Créditos, todas iguais) dá página 
 branco em vez do `/~offline`.
 
 Portões: lint · build · 1284 unitários · 303 e2e, todos verdes.
+
+### Ajuste do orquestrador depois da auditoria (17/09/2026)
+
+- **O seed de `data/perfil.json` passou a ser só do dono** (SPEC §21.3, item
+  "menor" da auditoria). `garantirPerfil` recebe `{ dono: ehDono(e-mail) }`
+  do layout: para uma conta nova ele só lê, e o perfil fica como o schema criou
+  — nome vindo do e-mail, altura vazia (a aba Corpo pede), `data_inicio` e
+  `fase_desde` no dia do cadastro, Fase 1, semanas 1. Antes, a altura (190 cm)
+  e a data de início do Miguel eram gravadas em toda conta nova, o que dava um
+  IMC errado e uma semana do programa contada a partir do começo dele. Provas:
+  três casos novos em `lib/queries/perfil.test.ts` (dono recebe o seed; conta
+  nova não recebe escrita nenhuma; sem opção continua o comportamento antigo).
+- `CLAUDE.md` deixa de abrir com "app pessoal … um usuário só" (§21).
+- Ficam anotados, fora do escopo deste marco: navegar **sem rede** direto para
+  uma tela de `/mais` dá página em branco em vez do `/~offline` (comportamento
+  antigo do service worker com a navegação RSC do App Router); e o caminho das
+  capturas fixo no scratchpad da sessão em 7 specs de e2e.
