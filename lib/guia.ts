@@ -694,6 +694,14 @@ const MAIS: SecaoDoGuia = {
       caminho: ["Mais", "Backup"],
       href: "/mais/backup",
     },
+    {
+      id: "contas",
+      nome: "Contas (só o dono)",
+      oQueFaz:
+        "Quem tem conta no app, quando cada uma foi criada e quantas cabem no total. O limite se muda ali mesmo.",
+      caminho: ["Mais", "Contas"],
+      href: "/mais/contas",
+    },
   ],
 };
 
@@ -782,6 +790,13 @@ const OFFLINE: SecaoDoGuia = {
         "O que ainda não subiu fica numa fila e sobe sozinho quando a rede volta. A linha em Mais mostra quantos itens faltam e tem o “Tentar agora”.",
       caminho: ["Mais", "Sincronização", "Tentar agora"],
       href: "/mais",
+    },
+    {
+      id: "criar-conta",
+      nome: "Criar conta",
+      oQueFaz:
+        "Na tela de login, quem ainda não tem conta cria a sua com e-mail e senha e entra na hora. Enquanto houver vaga: o app tem um limite de contas.",
+      caminho: ["Login", "Criar conta"],
     },
     {
       id: "senha",

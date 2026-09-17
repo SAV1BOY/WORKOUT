@@ -9,7 +9,7 @@ import { NavInferior } from "@/components/nav-inferior";
 import {
   SUPABASE_ANON_KEY,
   SUPABASE_URL,
-  emailPermitido,
+  ehDono,
   supabaseConfigurado,
 } from "@/lib/env";
 import { garantirPerfil } from "@/lib/queries/perfil";
@@ -31,10 +31,10 @@ export default async function LayoutApp({
   } = await supabase.auth.getUser();
 
   if (!user) redirect("/login");
-  if (!emailPermitido(user.email)) redirect("/login?erro=app-pessoal");
 
-  // primeiro acesso: perfil vem de data/perfil.json
-  await garantirPerfil(supabase, user.id);
+  // primeiro acesso do dono: perfil vem de data/perfil.json; as outras contas
+  // ficam com o que o schema deu (SPEC §21.3)
+  await garantirPerfil(supabase, user.id, { dono: ehDono(user.email) });
 
   return (
     <div className="min-h-dvh">

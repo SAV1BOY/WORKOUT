@@ -5,7 +5,7 @@
  */
 import { expect, test, type APIRequestContext } from "@playwright/test";
 import {
-  EMAIL_PERMITIDO,
+  EMAIL_DONO,
   URL_MOCK,
   estadoDoMock,
   resetarMock,
@@ -13,8 +13,7 @@ import {
 } from "./fixtures";
 
 /** A mesma mensagem que o trigger do schema levanta (supabase/schema.sql). */
-const MENSAGEM_EMAIL_DE_FORA =
-  "Este app é pessoal: só o e-mail autorizado pode entrar.";
+const MENSAGEM_SEM_VAGA = "Cadastro fechado: o limite de contas foi atingido.";
 
 let token = "";
 let userId = "";
@@ -48,47 +47,75 @@ test.describe("mock do Supabase", () => {
     const linhas = (await json(resposta)) as Record<string, unknown>[];
     expect(linhas).toHaveLength(1);
     expect(linhas[0]?.user_id).toBe(userId);
-    expect(linhas[0]?.nome).toBe("Miguel");
+    // handle_new_user: o nome nasce da parte do e-mail antes do @ (SPEC §21.2)
+    expect(linhas[0]?.nome).toBe(EMAIL_DONO.split("@")[0]);
     expect(linhas[0]?.fase_atual).toBe("fase1");
     expect(linhas[0]?.prefs).toMatchObject({ tema: "auto" });
   });
 
   /**
-   * O par do trigger `on_auth_user_email_permitido` de `supabase/schema.sql`
-   * (SPEC §9): no banco de verdade um e-mail de fora nem chega a virar linha em
-   * `auth.users`. A tela de login e o middleware já barram antes, mas a chave
-   * anon é pública — quem falasse com o GoTrue direto tem que esbarrar aqui.
+   * O par do trigger `on_auth_user_vaga` de `supabase/schema.sql` (SPEC §21.2):
+   * a tela de login esconde o botão quando a cota fecha, mas a chave anon é
+   * pública — quem falasse com o GoTrue direto tem que esbarrar aqui.
    */
-  test("e-mail de fora não cria conta nem entra (o trigger do schema)", async ({
+  test("sem vaga na cota o signup é recusado (o trigger do schema)", async ({
     request,
   }) => {
     const cabecalhos = { apikey: "mock-anon", "content-type": "application/json" };
-    const intruso = { email: "outra.pessoa@exemplo.com", password: "senha123456" };
+
+    // o beforeEach já criou a conta do dono: faltam 4 vagas do limite de 5
+    for (let i = 1; i <= 4; i += 1) {
+      const ok = await request.post(`${URL_MOCK}/auth/v1/signup`, {
+        headers: cabecalhos,
+        data: { email: `pessoa${i}@exemplo.com`, password: "senha123456" },
+      });
+      expect(ok.status(), `a conta ${i} deveria caber na cota`).toBe(200);
+    }
+
+    const sexta = await request.post(`${URL_MOCK}/auth/v1/signup`, {
+      headers: cabecalhos,
+      data: { email: "pessoa5@exemplo.com", password: "senha123456" },
+    });
+    expect(sexta.status()).toBe(403);
+    expect(((await json(sexta)) as { message: string }).message).toBe(
+      MENSAGEM_SEM_VAGA,
+    );
+
+    // a 6ª conta não existe e não sobrou perfil órfão
+    const estado = await estadoDoMock();
+    const emails = (estado.usuarios as { email: string }[]).map((u) => u.email);
+    expect(emails).toHaveLength(5);
+    expect(emails).not.toContain("pessoa5@exemplo.com");
+    expect((estado.tabelas as Record<string, number>).profiles).toBe(5);
+  });
+
+  test("entrar não olha e-mail nenhum: quem tem conta entra (SPEC §21.3)", async ({
+    request,
+  }) => {
+    const cabecalhos = { apikey: "mock-anon", "content-type": "application/json" };
+    const outra = { email: "outra.pessoa@exemplo.com", password: "senha123456" };
 
     const cadastro = await request.post(`${URL_MOCK}/auth/v1/signup`, {
       headers: cabecalhos,
-      data: intruso,
+      data: outra,
     });
-    expect(cadastro.status()).toBe(403);
-    expect(((await json(cadastro)) as { message: string }).message).toBe(
-      MENSAGEM_EMAIL_DE_FORA,
-    );
+    expect(cadastro.status()).toBe(200);
 
     const entrada = await request.post(
       `${URL_MOCK}/auth/v1/token?grant_type=password`,
-      { headers: cabecalhos, data: intruso },
+      { headers: cabecalhos, data: outra },
     );
-    expect(entrada.status()).toBe(403);
-    expect(((await json(entrada)) as { message: string }).message).toBe(
-      MENSAGEM_EMAIL_DE_FORA,
-    );
+    expect(entrada.status()).toBe(200);
 
-    // nada ficou para trás: só o usuário permitido do beforeEach e o perfil dele
-    const estado = await estadoDoMock();
-    expect((estado.usuarios as { email: string }[]).map((u) => u.email)).toEqual([
-      EMAIL_PERMITIDO,
-    ]);
-    expect((estado.tabelas as Record<string, number>).profiles).toBe(1);
+    // e quem não tem conta esbarra nas credenciais, não numa regra de e-mail
+    const fantasma = await request.post(
+      `${URL_MOCK}/auth/v1/token?grant_type=password`,
+      { headers: cabecalhos, data: { email: "ninguem@exemplo.com", password: "x" } },
+    );
+    expect(fantasma.status()).toBe(400);
+    expect(((await json(fantasma)) as { message: string }).message).toBe(
+      "Invalid login credentials",
+    );
   });
 
   test("sem token a RLS não devolve linha nenhuma", async ({ request }) => {

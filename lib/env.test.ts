@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { chaveEhSecreta, emailPermitido } from "@/lib/env";
+import { chaveEhSecreta, ehDono } from "@/lib/env";
 
 /** Um JWT de mentira com o papel pedido (só o payload importa aqui). */
 function jwt(papel: string): string {
@@ -37,11 +37,11 @@ describe("chaveEhSecreta", () => {
   });
 });
 
-describe("emailPermitido", () => {
-  it("compara sem caixa nem espaço", () => {
+describe("ehDono", () => {
+  it("sem ALLOWED_EMAIL ninguém é dono", () => {
     // ALLOWED_EMAIL não está definido no ambiente dos testes
-    expect(emailPermitido("qualquer@exemplo.com")).toBe(false);
-    expect(emailPermitido(null)).toBe(false);
+    expect(ehDono("qualquer@exemplo.com")).toBe(false);
+    expect(ehDono(null)).toBe(false);
   });
 });
 
@@ -59,15 +59,16 @@ describe("com o ambiente configurado", () => {
     return import("@/lib/env");
   }
 
-  it("aceita o e-mail permitido com outra caixa e com espaços", async () => {
+  it("reconhece o dono com outra caixa e com espaços", async () => {
     const env = await carregar({
       NEXT_PUBLIC_SUPABASE_URL: "https://projeto.supabase.co",
       NEXT_PUBLIC_SUPABASE_ANON_KEY: jwt("anon"),
       ALLOWED_EMAIL: "  Miguel@Exemplo.COM ",
     });
-    expect(env.emailPermitido("miguel@exemplo.com")).toBe(true);
-    expect(env.emailPermitido("  MIGUEL@exemplo.com  ")).toBe(true);
-    expect(env.emailPermitido("outro@exemplo.com")).toBe(false);
+    expect(env.ehDono("miguel@exemplo.com")).toBe(true);
+    expect(env.ehDono("  MIGUEL@exemplo.com  ")).toBe(true);
+    // SPEC §21.1: outro e-mail entra no app — só não é o dono
+    expect(env.ehDono("outro@exemplo.com")).toBe(false);
     expect(env.supabaseConfigurado()).toBe(true);
     expect(env.avisoDeConfiguracao()).toBeUndefined();
   });
@@ -83,13 +84,15 @@ describe("com o ambiente configurado", () => {
     expect(env.avisoDeConfiguracao()).toBe(env.AVISO_CHAVE_SECRETA);
   });
 
-  it("sem ALLOWED_EMAIL ninguém entra", async () => {
+  it("sem ALLOWED_EMAIL não há dono — e isso é um aviso de configuração", async () => {
     const env = await carregar({
       NEXT_PUBLIC_SUPABASE_URL: "https://projeto.supabase.co",
       NEXT_PUBLIC_SUPABASE_ANON_KEY: jwt("anon"),
       ALLOWED_EMAIL: "",
     });
-    expect(env.emailPermitido("miguel@exemplo.com")).toBe(false);
+    // sem dono não há quem administre a cota de contas (SPEC §21.3)
+    expect(env.ehDono("miguel@exemplo.com")).toBe(false);
+    expect(env.donoConfigurado()).toBe(false);
     expect(env.avisoDeConfiguracao()).toBe(env.AVISO_CONFIG);
   });
 });

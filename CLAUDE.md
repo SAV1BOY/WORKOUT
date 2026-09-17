@@ -1,6 +1,6 @@
 # CLAUDE.md — Treino do Terraço
 
-Você está construindo um app pessoal de treino para um usuário só (Miguel). Este repositório começa com o **kit**: a especificação, os dados prontos e os assets. Seu trabalho é transformar isso no app descrito em `SPEC.md`.
+Você está construindo um app de treino cujo dono é o Miguel e que aceita outras contas dentro de uma cota que ele administra (SPEC §21). Este repositório começa com o **kit**: a especificação, os dados prontos e os assets. Seu trabalho é transformar isso no app descrito em `SPEC.md`.
 
 ## Leia nesta ordem antes de escrever código
 1. `SPEC.md` — o que o app faz, telas, modelo de dados, motor de progressão, critérios de aceite, marcos.
@@ -18,7 +18,7 @@ Next.js 15 App Router · TypeScript estrito · React 19 · Tailwind · shadcn/ui
 - **Celular primeiro.** Tudo a 360 px de largura, uma mão, teclado numérico, alvos ≥ 44 px. Só depois o desktop.
 - **Nunca perder um registro.** Cada série digitada vai para o IndexedDB na hora; o envio ao Supabase é assíncrono com fila e retry.
 - **pt-BR em toda a interface**, vírgula decimal na tela, datas dd/mm, semana começa na segunda.
-- Um usuário: RLS em tudo, `ALLOWED_EMAIL` bloqueia outros e-mails. Nunca colocar a service role no cliente.
+- Contas com cota (SPEC §21): RLS em tudo; `ALLOWED_EMAIL` é o **dono** — quem vê e muda o limite de contas em Mais → Contas. Nunca colocar a service role no cliente.
 - Sem gamificação, sem feature fora de `SPEC.md` §11. Pequeno e sólido.
 - Commits pequenos por marco (§12 da spec), mensagens em português, `npm run lint && npm run build && npm test` verdes antes de cada commit.
 - Ao terminar cada marco, escreva em `PROGRESSO.md` o que foi feito, o que falta e como testar no celular.

@@ -1,6 +1,14 @@
 const PADRAO_AO_ENTRAR = "Não deu para entrar agora. Tente de novo.";
 
 /**
+ * A cota cheia, em uma frase (SPEC §21.3). É o que a tela de login mostra
+ * quando não há vaga e o que sai quando o trigger `on_auth_user_vaga` barra um
+ * cadastro no meio do caminho.
+ */
+export const CADASTRO_FECHADO =
+  "Cadastro fechado no momento: o limite de contas foi atingido.";
+
+/**
  * Mensagens do Supabase Auth em pt-BR.
  *
  * `padrao` é o que sobra quando a mensagem é desconhecida: na tela de login é
@@ -12,13 +20,16 @@ export function traduzirErroAuth(
   padrao: string = PADRAO_AO_ENTRAR,
 ): string {
   const m = mensagem.toLowerCase();
-  // O trigger `on_auth_user_email_permitido` de supabase/schema.sql barra
-  // qualquer e-mail fora do ALLOWED_EMAIL. O GoTrue devolve a mensagem crua do
-  // Postgres ou a embrulha em "Database error saving new user" — e como este é
-  // o único trigger de `auth.users` que levanta exceção, os dois casos são o
-  // mesmo recado (o harness de ponta a ponta responde a primeira forma).
-  if (m.includes("app é pessoal") || m.includes("database error saving new user"))
-    return "Este app é pessoal.";
+  // O trigger `on_auth_user_vaga` de supabase/schema.sql recusa a conta quando
+  // a cota está cheia (SPEC §21). O GoTrue devolve a mensagem crua do Postgres
+  // ou a embrulha em "Database error saving new user" — e como este é o único
+  // trigger de `auth.users` que levanta exceção, os dois casos são o mesmo
+  // recado (o harness de ponta a ponta responde a primeira forma).
+  if (
+    m.includes("limite de contas") ||
+    m.includes("database error saving new user")
+  )
+    return CADASTRO_FECHADO;
   if (m.includes("invalid login credentials"))
     return "E-mail ou senha incorretos.";
   if (m.includes("email not confirmed"))

@@ -1,15 +1,35 @@
 import { FormularioLogin } from "@/app/(auth)/login/formulario";
-import { avisoDeConfiguracao } from "@/lib/env";
+import { avisoDeConfiguracao, supabaseConfigurado } from "@/lib/env";
+import { haVaga, vagasParaConta } from "@/lib/queries/contas";
+import { criarClienteServidor } from "@/lib/supabase/server";
 
 export const metadata = { title: "Entrar — Treino do Terraço" };
 
-export default async function Login({
-  searchParams,
-}: {
-  searchParams: Promise<{ erro?: string }>;
-}) {
-  const { erro } = await searchParams;
+// a cota é perguntada ao banco a cada visita: nada de HTML guardado
+export const dynamic = "force-dynamic";
+
+/**
+ * Ainda cabe alguém? (SPEC §21.3)
+ *
+ * A pergunta é feita **no servidor**, com a chave anon — `vagas_para_conta()`
+ * devolve só dois números e é a única função da cota liberada para o anon.
+ * Qualquer tropeço (sem chaves, sem rede, função ainda não aplicada) responde
+ * "sim": os dois botões aparecem e quem barra é o trigger. O "Entrar" nunca
+ * depende disto.
+ */
+async function aindaCabeAlguem(): Promise<boolean> {
+  if (!supabaseConfigurado()) return true;
+  try {
+    const supabase = await criarClienteServidor();
+    return haVaga(await vagasParaConta(supabase));
+  } catch {
+    return true;
+  }
+}
+
+export default async function Login() {
   const aviso = avisoDeConfiguracao();
+  const comVaga = await aindaCabeAlguem();
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center gap-6 px-4 py-10">
@@ -18,22 +38,13 @@ export default async function Login({
           Treino do Terraço
         </h1>
         <p className="text-muted-foreground text-sm">
-          App pessoal. Entre com o seu e-mail.
+          Entre com o seu e-mail ou crie a sua conta.
         </p>
       </header>
 
-      {erro === "app-pessoal" ? (
-        <p
-          role="alert"
-          className="border-destructive/40 text-destructive rounded-lg border px-3 py-2 text-sm"
-        >
-          Este app é pessoal.
-        </p>
-      ) : null}
+      <FormularioLogin avisoInicial={aviso} comVaga={comVaga} />
 
-      <FormularioLogin avisoInicial={aviso} />
-
-      {/* recado de quem instala o app, não do Miguel: só com o app sem chaves */}
+      {/* recado de quem instala o app, não de quem treina: só com o app sem chaves */}
       {aviso ? (
         <p className="text-muted-foreground text-xs">
           As chaves ficam em <code>.env.local</code> (veja{" "}

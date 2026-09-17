@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { traduzirErroAuth } from "@/lib/erros-auth";
+import { CADASTRO_FECHADO, traduzirErroAuth } from "@/lib/erros-auth";
 
 describe("erros do Supabase em pt-BR", () => {
   it("credenciais inválidas", () => {
@@ -10,15 +10,29 @@ describe("erros do Supabase em pt-BR", () => {
   it("conta já existente", () => {
     expect(traduzirErroAuth("User already registered")).toMatch(/já existe/);
   });
-  it("o bloqueio do trigger vira o recado do app pessoal", () => {
+  it("o bloqueio da cota vira o recado de cadastro fechado (SPEC §21)", () => {
     // a mensagem crua do raise exception de supabase/schema.sql
     expect(
-      traduzirErroAuth("Este app é pessoal: só o e-mail autorizado pode entrar."),
-    ).toBe("Este app é pessoal.");
+      traduzirErroAuth("Cadastro fechado: o limite de contas foi atingido."),
+    ).toBe(CADASTRO_FECHADO);
     // e o embrulho que o GoTrue põe em cima de um erro de trigger
     expect(traduzirErroAuth("Database error saving new user")).toBe(
-      "Este app é pessoal.",
+      CADASTRO_FECHADO,
     );
+    expect(CADASTRO_FECHADO).toBe(
+      "Cadastro fechado no momento: o limite de contas foi atingido.",
+    );
+  });
+
+  it("o app deixou de ser de um usuário só: nada de “app pessoal”", () => {
+    for (const mensagem of [
+      "Invalid login credentials",
+      "Database error saving new user",
+      "User already registered",
+      "boom",
+    ]) {
+      expect(traduzirErroAuth(mensagem).toLowerCase()).not.toContain("pessoal");
+    }
   });
   it("as recusas da troca de senha (SPEC §9)", () => {
     expect(traduzirErroAuth("Password should be at least 6 characters")).toBe(

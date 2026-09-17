@@ -236,6 +236,8 @@ describe("guia: cobertura da §20.5", () => {
     "Backup",
     "Não vou treinar hoje",
     "Meus dias",
+    "Criar conta",
+    "Contas (só o dono)",
     "Trocar senha",
     "Sair",
   ])("cobre %s", (nome) => {

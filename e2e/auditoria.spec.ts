@@ -1,8 +1,8 @@
 /**
  * Auditoria do harness: o que os outros specs não provavam.
  *
- * - o e-mail de fora é recusado **sem nenhuma requisição** ao Supabase
- *   (provado pelo log do mock, não pelo efeito colateral);
+ * - a tela de login só pergunta a cota ao Supabase, e uma senha curta não
+ *   chega ao GoTrue (provado pelo log do mock, não pelo efeito colateral);
  * - a sessão sobrevive ao recarregar;
  * - toda rota protegida (inclusive a raiz) volta para o login sem sessão;
  * - o mock recusa coluna inventada em filtro, select e order — ele nunca pode
@@ -10,7 +10,8 @@
  */
 import { expect, test } from "@playwright/test";
 import {
-  EMAIL_PERMITIDO,
+  EMAIL_DONO,
+  encherACota,
   esperarAbaTreino,
   irNaAba,
   login,
@@ -27,28 +28,54 @@ test.beforeEach(async () => {
 });
 
 test.describe("porta de entrada", () => {
-  test("e-mail de fora: nenhuma requisição chega ao Supabase", async ({ page }) => {
+  /*
+   * SPEC §21.3: a tela de login é pública — o middleware nem monta o cliente do
+   * Supabase — e a única coisa que ela pergunta ao banco é a cota, que devolve
+   * dois números. Nenhuma chamada de auth antes de alguém tocar num botão.
+   */
+  test("a tela de login só pergunta a cota, e nada de auth", async ({ page }) => {
     await page.goto("/login");
-    // a tela de login é pública: o middleware nem monta o cliente do Supabase
-    expect(await requisicoesDoMock()).toEqual([]);
+    await expect(page.getByRole("button", { name: "Entrar" })).toBeVisible();
 
-    for (const botao of ["Criar conta", "Entrar"]) {
-      await page.getByLabel("E-mail").fill("outra.pessoa@exemplo.com");
-      await page.getByLabel("Senha").fill("senha123456");
-      await page.getByRole("button", { name: botao }).click();
-      await expect(page.getByText("Este app é pessoal.")).toBeVisible();
+    const caminhos = (await requisicoesDoMock()).map((r) => r.caminho);
+    expect([...new Set(caminhos)]).toEqual(["/rest/v1/rpc/vagas_para_conta"]);
+  });
 
-      const auth = (await requisicoesDoMock()).filter((r) =>
-        r.caminho.startsWith("/auth/v1"),
-      );
-      expect(auth, `"${botao}" chamou o Supabase com e-mail de fora`).toEqual([]);
-    }
+  test("a senha curta é barrada no servidor do app, sem chegar ao GoTrue", async ({
+    page,
+  }) => {
+    await page.goto("/login");
+    await page.getByLabel("E-mail").fill("nova.pessoa@exemplo.com");
+    await page.getByLabel("Senha").fill("1234567");
+    await page.getByRole("button", { name: "Criar conta" }).click();
+    await expect(
+      page.getByText("A senha precisa ter pelo menos 8 caracteres."),
+    ).toBeVisible();
 
+    const auth = (await requisicoesDoMock()).filter((r) =>
+      r.caminho.startsWith("/auth/v1"),
+    );
+    expect(auth, "a senha curta chamou o Supabase").toEqual([]);
     await expect(page).toHaveURL(/\/login$/);
     await semRolagemHorizontal(page);
   });
 
-  test("com o e-mail permitido o signup acontece e cai na Hoje", async ({ page }) => {
+  test("com a cota cheia o cadastro não chega ao GoTrue", async ({ page }) => {
+    await encherACota(5);
+    await page.goto("/login");
+    await expect(page.getByRole("button", { name: "Criar conta" })).toHaveCount(0);
+
+    // e mesmo forçando a ação do servidor pelo teclado não há signup: só Entrar
+    await page.getByLabel("E-mail").fill("mais.uma@exemplo.com");
+    await page.getByLabel("Senha").fill("senha123456");
+    await page.getByRole("button", { name: "Entrar" }).click();
+    await expect(page.getByText("E-mail ou senha incorretos.")).toBeVisible();
+
+    const caminhos = (await requisicoesDoMock()).map((r) => r.caminho);
+    expect(caminhos).not.toContain("/auth/v1/signup");
+  });
+
+  test("com o e-mail do dono o signup acontece e cai na Hoje", async ({ page }) => {
     await login(page);
     await expect(page).toHaveURL(/127\.0\.0\.1:\d+\/$/);
 
@@ -164,7 +191,7 @@ test.describe("o mock não finge sucesso", () => {
     await login(page);
     await irNaAba(page, "Mais");
     await page.getByRole("button", { name: "Sair" }).click();
-    await page.getByLabel("E-mail").fill(EMAIL_PERMITIDO);
+    await page.getByLabel("E-mail").fill(EMAIL_DONO);
     await page.getByLabel("Senha").fill(SENHA);
     await page.getByRole("button", { name: "Entrar" }).click();
     await esperarAbaTreino(page);

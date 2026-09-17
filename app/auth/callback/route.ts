@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { emailPermitido, supabaseConfigurado } from "@/lib/env";
+import { supabaseConfigurado } from "@/lib/env";
 import { destinoInterno } from "@/lib/rotas";
 import { criarClienteServidor } from "@/lib/supabase/server";
 
@@ -15,14 +15,11 @@ export async function GET(request: NextRequest) {
   }
 
   const supabase = await criarClienteServidor();
-  const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+  // desde o marco Contas (SPEC §21) o callback só exige sessão: quem pode ter
+  // conta é decidido pela cota, no banco
+  const { error } = await supabase.auth.exchangeCodeForSession(code);
 
   if (error) return NextResponse.redirect(`${origin}/login`);
-
-  if (!emailPermitido(data.user?.email)) {
-    await supabase.auth.signOut();
-    return NextResponse.redirect(`${origin}/login?erro=app-pessoal`);
-  }
 
   return NextResponse.redirect(new URL(proximo, origin));
 }

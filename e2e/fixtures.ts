@@ -8,8 +8,8 @@ export const URL_MOCK =
   process.env.MOCK_SUPABASE_URL ??
   `http://127.0.0.1:${process.env.MOCK_SUPABASE_PORT ?? 54321}`;
 
-/** O único e-mail que o app aceita (ALLOWED_EMAIL do playwright.config.ts). */
-export const EMAIL_PERMITIDO =
+/** O e-mail do dono do app (ALLOWED_EMAIL do playwright.config.ts, SPEC §21.1). */
+export const EMAIL_DONO =
   process.env.ALLOWED_EMAIL ?? "miguelgsaviotti29@gmail.com";
 
 export const SENHA = "senha-de-teste";
@@ -19,6 +19,8 @@ export const HOJE_FIXO = "2026-09-14T08:00:00-03:00";
 
 export interface Semente {
   usuarios?: { email: string; senha?: string }[];
+  /** `app_config.max_contas` — a cota de contas do cenário (SPEC §21) */
+  max_contas?: number;
   /** linhas por tabela de supabase/schema.sql; sem user_id usa o único usuário */
   tabelas?: Record<string, Record<string, unknown>[]>;
 }
@@ -44,6 +46,24 @@ export async function resetarMock(): Promise<void> {
 /** Semeia usuários e linhas no mock. */
 export async function semear(dados: Semente): Promise<unknown> {
   return chamarMock("/__mock/seed", dados);
+}
+
+/**
+ * Muda a cota de contas no mock, sem passar pela tela (SPEC §21): é o cenário
+ * do teste, como o `usuarios` da semente.
+ */
+export async function definirCota(max_contas: number): Promise<void> {
+  await semear({ max_contas });
+}
+
+/** Ocupa a cota com contas de mentira, além da do dono. */
+export async function encherACota(quantas: number): Promise<void> {
+  await semear({
+    usuarios: Array.from({ length: quantas }, (_, i) => ({
+      email: `pessoa${i + 1}@exemplo.com`,
+      senha: SENHA,
+    })),
+  });
 }
 
 /** O que o mock guardou (útil para conferir gravações). */
@@ -76,12 +96,36 @@ export async function irNaAba(page: Page, rotulo: string): Promise<void> {
 }
 
 /**
- * Cria a conta permitida (ou entra, se já existir) e espera cair na aba Treino.
- * O mock já devolve sessão no signup — não há confirmação de e-mail.
+ * SPEC §20.1: uma conta recém-criada não tem `prefs.guia_visto`, então a aba
+ * Treino a manda para o guia de uso. Este ajudante reconhece o guia e volta —
+ * é o caminho de quem acabou de se cadastrar. Se o guia não aparecer (conta já
+ * semeada com a marca), não faz nada.
+ */
+export async function passarPeloGuiaDaPrimeiraEntrada(page: Page): Promise<void> {
+  /*
+   * Esperar o botão, e não perguntar se ele já está na tela: o desvio para
+   * `/mais/guia?inicio=1` acontece no navegador, depois de o perfil chegar, e
+   * o próprio guia tem uma seção "Treino" — quem espera "a aba Treino ou o
+   * botão" acha a seção do guia e segue em frente achando que já entrou.
+   */
+  const entendi = page.getByRole("button", { name: "Entendi, começar a treinar" });
+  try {
+    await entendi.waitFor({ timeout: 10_000 });
+  } catch {
+    return;   // conta semeada com `prefs.guia_visto`: não há guia no caminho
+  }
+  await entendi.click();
+  await page.waitForURL((url) => url.pathname === "/", { timeout: 20_000 });
+}
+
+/**
+ * Cria a conta do dono (ou entra, se já existir), passa pelo guia da primeira
+ * entrada e espera cair na aba Treino. O mock já devolve sessão no signup —
+ * não há confirmação de e-mail.
  */
 export async function login(
   page: Page,
-  email: string = EMAIL_PERMITIDO,
+  email: string = EMAIL_DONO,
   senha: string = SENHA,
 ): Promise<void> {
   await page.goto("/login");
@@ -92,14 +136,17 @@ export async function login(
   // conta já criada num teste anterior: entra com a mesma senha
   const jaExiste = page.getByText("Essa conta já existe");
   await expect
-    .poll(async () => (await jaExiste.count()) > 0 || page.url().endsWith("/"), {
-      timeout: 15_000,
-    })
+    .poll(
+      async () =>
+        (await jaExiste.count()) > 0 || !new URL(page.url()).pathname.startsWith("/login"),
+      { timeout: 15_000 },
+    )
     .toBe(true);
   if ((await jaExiste.count()) > 0) {
     await page.getByRole("button", { name: "Entrar" }).click();
   }
 
+  await passarPeloGuiaDaPrimeiraEntrada(page);
   await esperarAbaTreino(page);
 }
 
@@ -110,7 +157,7 @@ export interface SessaoMock {
 
 /** Cria a conta direto no mock (sem UI) e devolve o access token. */
 export async function sessaoNoMock(
-  email: string = EMAIL_PERMITIDO,
+  email: string = EMAIL_DONO,
   senha: string = SENHA,
 ): Promise<SessaoMock> {
   const resposta = await fetch(`${URL_MOCK}/auth/v1/signup`, {
@@ -270,7 +317,7 @@ export async function usuarioComPerfil(
 /** Entra com uma conta que já existe no mock (sem passar por "Criar conta"). */
 export async function entrarNoApp(
   page: Page,
-  email: string = EMAIL_PERMITIDO,
+  email: string = EMAIL_DONO,
   senha: string = SENHA,
 ): Promise<void> {
   await page.goto("/login");

@@ -22,19 +22,24 @@ import {
 const PORTA = Number(process.env.MOCK_SUPABASE_PORT ?? 54321);
 const LOG = process.env.MOCK_LOG === "1";
 /**
- * O único e-mail que pode ter conta, como no banco de verdade: o
- * `public.allowed_email()` de `supabase/schema.sql` e o trigger
- * `on_auth_user_email_permitido` (SPEC §9). A mensagem abaixo é a mesma que o
- * trigger levanta — o GoTrue de produção a embrulha em "Database error saving
- * new user", e `lib/erros-auth.ts` traduz as duas para "Este app é pessoal.".
+ * O e-mail do DONO, como no banco de verdade (`public.allowed_email()` de
+ * `supabase/schema.sql`, SPEC §21.1). Ele sempre pode criar conta — mesmo com
+ * a cota cheia — e é o único que lê `contas_cadastradas()` e escreve em
+ * `app_config`.
  */
-const EMAIL_PERMITIDO = (
+const EMAIL_DO_DONO = (
   process.env.ALLOWED_EMAIL ?? "miguelgsaviotti29@gmail.com"
 )
   .trim()
   .toLowerCase();
-const ERRO_EMAIL_NAO_PERMITIDO =
-  "Este app é pessoal: só o e-mail autorizado pode entrar.";
+/**
+ * A cota de contas (`public.app_config.max_contas`). A mensagem é a mesma que
+ * o trigger `on_auth_user_vaga` levanta — o GoTrue de produção a embrulha em
+ * "Database error saving new user", e `lib/erros-auth.ts` traduz as duas para
+ * "Cadastro fechado no momento…".
+ */
+const LIMITE_PADRAO_DE_CONTAS = 5;
+const ERRO_SEM_VAGA = "Cadastro fechado: o limite de contas foi atingido.";
 const SEGREDO_JWT = process.env.MOCK_JWT_SECRET ?? "mock-jwt-secret-terraco";
 const EMISSOR = `http://127.0.0.1:${PORTA}/auth/v1`;
 const VALIDADE_S = 3600;
@@ -109,6 +114,8 @@ interface Usuario {
   email: string;
   senha: string;
   created_at: string;
+  /** last_sign_in_at de auth.users — a coluna que Mais → Contas mostra. */
+  ultimo_acesso: string | null;
 }
 
 interface Arquivo {
@@ -132,6 +139,12 @@ const refreshTrocadoEm = new Map<string, number>();
 const REUSO_DO_REFRESH_MS = 10_000;
 const arquivos = new Map<string, Arquivo>(); // "<bucket>/<caminho>" -> bytes
 let tabelas: Record<string, Linha[]> = {};
+/**
+ * `public.app_config` — a linha única da cota (SPEC §21.2). Fora do ESQUEMA
+ * de propósito: não tem `user_id`, então não passa pela RLS por dono das
+ * outras tabelas; quem manda nela é `sou_o_dono()`.
+ */
+let appConfig = { max_contas: LIMITE_PADRAO_DE_CONTAS, updated_at: agora() };
 
 // ---------------------------------------------------------------------
 //  o schema (supabase/schema.sql) traduzido para defaults e chaves
@@ -161,7 +174,7 @@ const ESQUEMA: Record<string, EspecTabela> = {
   profiles: {
     colunas: {
       user_id: nulo,
-      nome: lit("Miguel"),
+      nome: lit(""),   // handle_new_user() põe a parte do e-mail antes do @
       altura_cm: nulo,
       data_inicio: hoje,
       fase_atual: lit("fase1"),
@@ -171,18 +184,18 @@ const ESQUEMA: Record<string, EspecTabela> = {
       semana_corda: lit(1),
       semana_fixa: lit(1),
       ultimo_treino: nulo,
+      /*
+       * O default do `prefs` de supabase/schema.sql, letra por letra — SEM
+       * `guia_visto`. SPEC §20.1 + §21.5.1: toda conta criada pelo cadastro
+       * cai no guia de uso na primeira entrada, e é assim que os e2e a veem.
+       * Quem quer entrar direto semeia o perfil com a marca
+       * (`usuarioComPerfil` das fixtures faz isso).
+       */
       prefs: () => ({
         tema: "auto",
         descanso_som: true,
         descanso_vibra: true,
         manter_tela: true,
-        /*
-         * SPEC §20.1: sem esta marca a aba Treino manda todo mundo para o guia
-         * de uso. O perfil padrão do mock já nasce com o guia reconhecido para
-         * os e2e antigos entrarem direto; o spec do guia semeia um perfil SEM a
-         * chave (`prefs: {}`) para testar a primeira entrada.
-         */
-        guia_visto: true,
       }),
       created_at: agora,
       updated_at: agora,
@@ -431,6 +444,7 @@ function zerar(): void {
   refreshTrocadoEm.clear();
   arquivos.clear();
   requisicoes = [];
+  appConfig = { max_contas: LIMITE_PADRAO_DE_CONTAS, updated_at: agora() };
   tabelas = Object.fromEntries(NOMES_TABELAS.map((t) => [t, [] as Linha[]]));
 }
 
@@ -513,6 +527,7 @@ function usuarioPublico(u: Usuario): Linha {
 }
 
 function sessaoDe(u: Usuario): Linha {
+  u.ultimo_acesso = agora();   // last_sign_in_at de auth.users
   const iat = Math.floor(Date.now() / 1000);
   const exp = iat + VALIDADE_S;
   const access_token = criarJwt({
@@ -547,29 +562,51 @@ function acharPorEmail(email: string): Usuario | null {
   return null;
 }
 
+/** É o dono do app? (public.sou_o_dono() do schema, SPEC §21.2) */
+function ehODono(email: string | null | undefined): boolean {
+  if (!email) return false;
+  return email.trim().toLowerCase() === EMAIL_DO_DONO;
+}
+
 /**
- * Simula o trigger `before insert on auth.users` do schema: e-mail que não é o
- * permitido nem chega a virar linha (nem usuário, nem perfil).
+ * Simula o trigger `on_auth_user_vaga` (`before insert on auth.users`): sem
+ * vaga na cota a conta não chega a virar linha — nem usuário, nem perfil. O
+ * dono passa sempre.
  */
-function exigirEmailPermitido(email: string): void {
-  if (email.trim().toLowerCase() !== EMAIL_PERMITIDO) {
-    throw new ErroMock(403, ERRO_EMAIL_NAO_PERMITIDO, {
-      error_code: "email_nao_permitido",
-    });
+function exigirVagaParaConta(email: string): void {
+  if (ehODono(email)) return;
+  if (usuarios.size >= appConfig.max_contas) {
+    throw new ErroMock(403, ERRO_SEM_VAGA, { error_code: "cota_cheia" });
   }
 }
 
-/** simula os triggers de auth.users: bloqueio do e-mail + handle_new_user */
-function criarUsuario(email: string, senha: string): Usuario {
-  exigirEmailPermitido(email);
+/**
+ * Simula os triggers de auth.users: a cota (`on_auth_user_vaga`) e o
+ * `handle_new_user`, que grava o perfil com o nome vindo do e-mail.
+ *
+ * `semCota` é só para a semente dos testes (`POST /__mock/seed`): ali as
+ * contas são o cenário, não um cadastro pela tela.
+ */
+function criarUsuario(
+  email: string,
+  senha: string,
+  { semCota = false }: { semCota?: boolean } = {},
+): Usuario {
+  if (!semCota) exigirVagaParaConta(email);
   const u: Usuario = {
     id: randomUUID(),
     email: email.trim().toLowerCase(),
     senha,
     created_at: agora(),
+    ultimo_acesso: null,
   };
   usuarios.set(u.id, u);
-  linhas("profiles").push(novaLinha("profiles", { user_id: u.id }));
+  linhas("profiles").push(
+    novaLinha("profiles", {
+      user_id: u.id,
+      nome: u.email.split("@")[0] ?? "",
+    }),
+  );
   return u;
 }
 
@@ -636,10 +673,8 @@ async function rotaAuth(
   if (caminho === "/token" && metodo === "POST") {
     const tipo = url.searchParams.get("grant_type");
     if (tipo === "password") {
-      // No banco de verdade uma conta de fora nem existe (o trigger barrou o
-      // insert); aqui o "entrar" recusa com a mesma mensagem, para o app não
-      // depender só do middleware.
-      exigirEmailPermitido(String(dados.email ?? ""));
+      // SPEC §21.3: "entrar" não olha e-mail nenhum — quem tem conta, entra.
+      // Quem não tem esbarra em "Invalid login credentials", como no GoTrue.
       const u = acharPorEmail(String(dados.email ?? ""));
       if (!u || u.senha !== String(dados.password ?? "")) {
         throw new ErroMock(400, "Invalid login credentials", {
@@ -1008,6 +1043,102 @@ function respostaLista(
   return { status, corpo: dados, cabecalhos };
 }
 
+/**
+ * As funções da cota publicadas pelo PostgREST (`/rest/v1/rpc/...`), com os
+ * mesmos grants do schema (SPEC §21.2):
+ *  - `vagas_para_conta` é liberada ao **anon**: a tela de login pergunta antes
+ *    de qualquer sessão, e a resposta são só dois números;
+ *  - `contas_cadastradas` é liberada ao authenticated, mas a condição
+ *    `sou_o_dono()` está dentro da consulta — para qualquer outra conta ela
+ *    devolve zero linhas.
+ */
+function rotaRpc(req: IncomingMessage, url: URL): Resposta {
+  const nome = url.pathname.replace(/^\/rest\/v1\/rpc\//, "");
+  const usuario = usuarioDaRequisicao(req);
+
+  if (nome === "vagas_para_conta") {
+    return {
+      status: 200,
+      corpo: { contas: usuarios.size, limite: appConfig.max_contas },
+      cabecalhos: {},
+    };
+  }
+
+  if (nome === "sou_o_dono") {
+    return { status: 200, corpo: ehODono(usuario?.email), cabecalhos: {} };
+  }
+
+  if (nome === "contas_cadastradas") {
+    if (!ehODono(usuario?.email)) return { status: 200, corpo: [], cabecalhos: {} };
+    const lista = [...usuarios.values()]
+      .sort((a, b) => a.created_at.localeCompare(b.created_at))
+      .map((u) => ({
+        email: u.email,
+        criada_em: u.created_at,
+        ultimo_acesso: u.ultimo_acesso,
+      }));
+    return { status: 200, corpo: lista, cabecalhos: {} };
+  }
+
+  throw new ErroMock(404, `mock: função ${nome} não existe`, { code: "PGRST202" });
+}
+
+/**
+ * `public.app_config` — a cota. A policy `app_config_dono` do schema só dá
+ * linha para o dono: para qualquer outra conta o select volta vazio e o update
+ * não muda nada (é assim que a RLS se comporta, e não com um erro).
+ */
+function rotaAppConfig(
+  req: IncomingMessage,
+  corpo: unknown,
+): Resposta {
+  const metodo = req.method ?? "GET";
+  const usuario = usuarioDaRequisicao(req);
+  if (!usuario) {
+    throw new ErroMock(
+      401,
+      "mock: sem sessão — a RLS de supabase/schema.sql exige um usuário autenticado",
+      { code: "42501" },
+    );
+  }
+  const dono = ehODono(usuario.email);
+  const linha = () => ({ id: true, ...appConfig });
+  const prefer = lerPrefer(req);
+
+  if (metodo === "GET" || metodo === "HEAD") {
+    return { status: 200, corpo: dono ? [linha()] : [], cabecalhos: {} };
+  }
+
+  if (metodo === "PATCH") {
+    const mudancas = (corpo ?? {}) as Linha;
+    for (const c of Object.keys(mudancas)) {
+      if (c !== "max_contas") {
+        throw new ErroMock(
+          400,
+          `mock: coluna app_config.${c} não existe em supabase/schema.sql`,
+          { code: "PGRST204" },
+        );
+      }
+    }
+    if (dono && typeof mudancas.max_contas === "number") {
+      // check (max_contas >= 1) do schema
+      if (!Number.isInteger(mudancas.max_contas) || mudancas.max_contas < 1) {
+        throw new ErroMock(
+          400,
+          'new row for relation "app_config" violates check constraint "app_config_max_contas_check"',
+          { code: "23514" },
+        );
+      }
+      appConfig = { max_contas: mudancas.max_contas, updated_at: agora() };
+    }
+    const alvo = dono ? [linha()] : [];
+    if (!prefer.representacao) return { status: 204, corpo: null, cabecalhos: {} };
+    return { status: 200, corpo: alvo, cabecalhos: {} };
+  }
+
+  throw new ErroMock(400, `mock: método ${metodo} em app_config não implementado`);
+}
+
 async function rotaRest(
   req: IncomingMessage,
   url: URL,
@@ -1015,6 +1146,9 @@ async function rotaRest(
 ): Promise<Resposta> {
   const metodo = req.method ?? "GET";
   const recurso = url.pathname.replace(/^\/rest\/v1\//, "").split("/")[0] ?? "";
+
+  if (recurso === "rpc") return rotaRpc(req, url);
+  if (recurso === "app_config") return rotaAppConfig(req, corpo);
 
   if (!NOMES_TABELAS.includes(recurso) && !VIEWS.includes(recurso)) {
     throw new ErroMock(400, `mock: recurso ${recurso} não implementado`, {
@@ -1399,6 +1533,7 @@ function rotaMock(req: IncomingMessage, url: URL, corpo: unknown): Resposta {
       status: 200,
       corpo: {
         usuarios: [...usuarios.values()].map((u) => ({ id: u.id, email: u.email })),
+        max_contas: appConfig.max_contas,
         tabelas: Object.fromEntries(
           Object.entries(tabelas).map(([t, l]) => [t, l.length]),
         ),
@@ -1411,12 +1546,18 @@ function rotaMock(req: IncomingMessage, url: URL, corpo: unknown): Resposta {
   if (caminho === "/seed" && metodo === "POST") {
     const pedido = (corpo ?? {}) as Linha;
     const criados: Linha[] = [];
+    // a cota da semente é o cenário do teste, não um cadastro pela tela
+    if (typeof pedido.max_contas === "number") {
+      appConfig = { max_contas: pedido.max_contas, updated_at: agora() };
+    }
     const listaUsuarios = Array.isArray(pedido.usuarios) ? pedido.usuarios : [];
     for (const bruto of listaUsuarios) {
       const u = bruto as Linha;
       const email = String(u.email ?? "");
       const existente = acharPorEmail(email);
-      const criado = existente ?? criarUsuario(email, String(u.senha ?? "senha123"));
+      const criado =
+        existente ??
+        criarUsuario(email, String(u.senha ?? "senha123"), { semCota: true });
       criados.push({ id: criado.id, email: criado.email });
     }
     const unico = usuarios.size === 1 ? [...usuarios.values()][0] : undefined;
