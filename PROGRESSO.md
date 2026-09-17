@@ -5905,3 +5905,135 @@ card certo; abrir por Mais não grava nada e não mostra "Pular por agora"; sem
 rede o "Entendi, começar a treinar" volta para a aba Treino e a marca sobe
 quando a rede volta; a miniatura da barra sai de `lib/abas.ts`; nenhuma frase do
 `docs/` no guia; `lib/progressao.ts` e `lib/montagem.ts` intocados.
+
+---
+
+## Marco Contas (SPEC §21) — 17/09/2026 ✅
+
+O dono pediu, com estas palavras: *"Quero fazer com que novas pessoas possam
+cadastrar no app, mas, no total até 5 pessoas até que eu possa decidir se eu
+aumento a cota de novos usuários ou não"*. O app deixou de ser de um usuário
+só: qualquer pessoa cria conta pela tela de login **enquanto houver vaga**, e
+quantas vagas existem é um número que o dono muda de dentro do app, sem deploy.
+
+### O que foi feito
+
+**Banco (`supabase/schema.sql`, tudo idempotente)**
+
+- `public.app_config` — uma linha só (`id boolean primary key check (id)`),
+  `max_contas int not null default 5 check (max_contas >= 1)`, `updated_at` com
+  o trigger `set_updated_at`. Semeada com 5. RLS ligada e uma policy só:
+  `app_config_dono`, `using (public.sou_o_dono()) with check (…)`.
+- `public.sou_o_dono()` — compara o e-mail do JWT com `public.allowed_email()`
+  e devolve **só um booleano**: o e-mail do dono não sai pelo PostgREST.
+- `public.exigir_vaga_para_conta()` + trigger `on_auth_user_vaga`
+  **`before insert on auth.users`**: o dono passa sempre; para os outros, se
+  `count(auth.users) >= max_contas`, `raise exception 'Cadastro fechado: o
+  limite de contas foi atingido.'`. BEFORE de propósito — aborta antes do AFTER
+  que cria o perfil, então não sobra nem usuário nem perfil órfão.
+- **Saíram** o trigger `on_auth_user_email_permitido` e a função
+  `exigir_email_permitido()` (a regra de um usuário só, §9).
+- `public.vagas_para_conta()` → `{"contas": N, "limite": L}`, liberada ao
+  **anon** (é o que a tela de login pergunta antes de qualquer sessão).
+- `public.contas_cadastradas()` → e-mail, criada em, último acesso, com
+  `public.sou_o_dono()` **dentro** da consulta: para qualquer outra conta,
+  zero linhas.
+- `handle_new_user()` grava `nome = split_part(email, '@', 1)`, e
+  `profiles.nome` perdeu o default `'Miguel'`.
+- **Delta pronto para aplicar**: `supabase/migracoes/2026-09-17-contas.sql` —
+  só o que muda em relação ao schema que está no ar, idempotente.
+  `lib/migracao-contas.test.ts` confere comando a comando que o delta é um
+  pedaço do `schema.sql` (nenhum dos dois pode andar sozinho).
+
+**App**
+
+- `lib/env.ts`: `emailPermitido()` virou **`ehDono()`**; `ALLOWED_EMAIL` deixou
+  de ser "quem entra" e passou a ser "quem manda". Sem ele, o aviso de
+  configuração continua (sem dono não há quem administre a cota).
+- Middleware, `/auth/callback` e o layout autenticado só exigem **sessão**.
+  `?erro=app-pessoal` não existe mais.
+- **Login**: subtítulo "Entre com o seu e-mail ou crie a sua conta."; a página
+  consulta `vagas_para_conta()` no servidor — com vaga, "Entrar" e "Criar
+  conta"; sem vaga, só "Entrar" e o aviso (`role="status"`) "Cadastro fechado
+  no momento: o limite de contas foi atingido.". `criarConta` exige senha de 8
+  caracteres e pergunta a cota de novo antes do `signUp`.
+- **Mais → Contas** (`/mais/contas`), só para o dono: card "Contas" com
+  "N de L" e a lista (e-mail, criada em dd/MM/aaaa, último acesso dd/MM ou —)
+  e card "Limite de contas" com stepper 1–99 e "Salvar" (toast "Limite salvo.").
+  A linha em Mais só aparece para o dono, e a rota diz "Só o dono vê esta tela."
+  para qualquer outra conta.
+- **Guia** (§20): "Criar conta" em *Offline e conta* e "Contas (só o dono)" na
+  seção *Mais*, com "Ir".
+- **Perfil**: o nome vem do e-mail até a pessoa editar — `garantirPerfil` não
+  sobrescreve mais o nome que o trigger gravou.
+
+### Decisões
+
+1. **Sem resposta do banco, a porta fica aberta.** Se `vagas_para_conta()`
+   falhar (rede, função ainda não aplicada), o login mostra os dois botões e
+   deixa o trigger decidir. Esconder "Criar conta" no escuro esconderia o
+   problema — e "Entrar" nunca pode depender da cota.
+2. **A cota é uma tabela, não uma variável de ambiente.** Mudar o limite não
+   pede deploy nem painel do Supabase: é um stepper e um "Salvar".
+3. **`app_config` não entra no backup nem no laço da RLS por `user_id`**: é do
+   app, não de quem exporta. `lib/auditoria-seguranca.test.ts` separa as duas
+   listas em vez de afrouxar a regra ("toda tabela tem `user_id`").
+4. **Baixar o limite não expulsa ninguém**: quem já tem conta continua
+   entrando; a cota só fecha a porta de quem ainda não tem.
+5. **A tela Contas não vai para a fila** (como `/mais/senha`, §8): sem rede ela
+   diz "Precisa de internet para mudar o limite." e não chama nada.
+6. **O mock ficou fiel em mais um ponto**: o perfil criado pelo cadastro nasce
+   **sem** `prefs.guia_visto`, como no schema — então toda conta nova cai no
+   guia da primeira entrada (§20.1) também nos e2e.
+
+### Portões
+
+`npm run lint` · `npm run build` · `npm test` (51 arquivos, 1 283 testes) ·
+`npm run build:e2e && npm run e2e` — verdes.
+E2E novo: `e2e/contas.spec.ts` (critérios 1–4 e 6 da §21.5), com as leituras
+cruzadas de `profiles` e `sessions` no mock e o `POST` direto em
+`/auth/v1/signup` recusado. Ajustados sem afrouxar: `e2e/login.spec.ts`,
+`e2e/auditoria.spec.ts`, `e2e/mock.spec.ts`, `e2e/guia.spec.ts`,
+`lib/env.test.ts`, `lib/supabase/middleware.test.ts`, `lib/erros-auth.test.ts`,
+`lib/auditoria-seguranca.test.ts`, `lib/guia.test.ts`.
+
+Um vizinho apareceu no caminho e foi endurecido, não afrouxado: em
+`e2e/retomada.spec.ts`, o teste da semana leve lia `progression_events` de uma
+vez só, logo depois de o `exercise_state` chegar — e os eventos sobem pela fila
+(§8), numa requisição sua. A leitura virou `expect.poll`; o que ele verifica
+continua igual.
+
+### O que o dono precisa saber
+
+- **A cota começa em 5, contando a sua conta.** Com 5 contas o botão "Criar
+  conta" some da tela de login e aparece o aviso. Para deixar mais gente entrar:
+  **Mais → Contas** → suba o número → **Salvar**. Vale na hora, sem deploy.
+- **Só você vê Mais → Contas** — é o e-mail de `ALLOWED_EMAIL`. Quem entrar com
+  outra conta não vê a linha, e a tela não mostra lista nenhuma.
+- **Quem esquecer a senha fala com você.** O app não manda e-mail de
+  recuperação: a senha se redefine no painel do Supabase
+  (*Authentication → Users*).
+- **O nome vem do e-mail.** Quem criar conta com `joana.ferreira@exemplo.com`
+  começa chamada de "joana.ferreira" e muda isso em Mais → Perfil.
+- **Cada conta é uma ilha**: treinos, cargas, fotos e conquistas são de quem
+  registrou. Você não vê os dados dos outros e eles não veem os seus.
+- **Para aplicar no projeto real**: rode
+  `supabase/migracoes/2026-09-17-contas.sql` no SQL Editor (é idempotente) e
+  deixe *Allow new users to sign up* **ligado** — quem barra agora é a cota.
+
+### Como testar no celular
+
+1. **Entre com a sua conta.** Vá em **Mais** e confira a linha **Contas** (ela
+   só aparece para você). Abra: "1 de 5" e a sua conta na lista.
+2. **Suba o limite**: toque no **+**, depois em **Salvar** — o toast "Limite
+   salvo." aparece e o "N de L" muda na hora.
+3. **Saia** (Mais → Sair). Na tela de login estão "Entrar" e **"Criar conta"**.
+4. **Crie uma conta de teste** com outro e-mail e uma senha de 8 caracteres:
+   ela entra na hora e cai no **guia de uso**. Vá em Mais → Perfil: o nome é a
+   parte do e-mail. Repare que essa conta **não** tem a linha Contas.
+5. **Volte para a sua conta** e abra Mais → Contas: as duas estão na lista, com
+   a data de criação e o último acesso.
+6. **Feche a porta**: ponha o limite no número de contas que já existem e salve.
+   Saia: o login agora mostra só "Entrar" e o aviso *"Cadastro fechado no
+   momento: o limite de contas foi atingido."*.
+7. Tudo a 360 px, nos dois temas, sem rolar de lado e com alvos de 44 px.

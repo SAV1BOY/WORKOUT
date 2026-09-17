@@ -7,13 +7,18 @@ import {
   KeyRound,
   SlidersHorizontal,
   User,
+  Users,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { BotaoSair } from "@/components/botao-sair";
 import { LinhaSincronizacao } from "@/components/mais/linha-sincronizacao";
+import { ehDono } from "@/lib/env";
+import { emailDoUsuario } from "@/lib/supabase/server";
 
 export const metadata = { title: "Mais — Treino do Terraço" };
+// a lista muda conforme quem está logado (a linha Contas é só do dono)
+export const dynamic = "force-dynamic";
 
 interface Secao {
   href: string;
@@ -62,6 +67,14 @@ const SECOES: Secao[] = [
   },
 ];
 
+/* Só o dono (SPEC §21.3): administrar a cota de contas do app. */
+const CONTAS: Secao = {
+  href: "/mais/contas",
+  titulo: "Contas",
+  descricao: "Quem tem conta no app e quantas contas cabem.",
+  Icone: Users,
+};
+
 /* A conta fica separada dos ajustes: trocar a senha e sair mexem no login. */
 const CONTA: Secao[] = [
   {
@@ -72,13 +85,17 @@ const CONTA: Secao[] = [
   },
 ];
 
-export default function Mais() {
+export default async function Mais() {
+  // o e-mail vem do servidor: o cliente não decide quem é o dono
+  const dono = ehDono(await emailDoUsuario());
+  const ajustes = dono ? [...SECOES, CONTAS] : SECOES;
+
   return (
     <section className="flex flex-col gap-4">
       <h1 className="text-2xl font-semibold tracking-tight">Mais</h1>
 
       <nav aria-label="Ajustes">
-        <Lista secoes={SECOES} />
+        <Lista secoes={ajustes} />
       </nav>
 
       <LinhaSincronizacao />

@@ -12,9 +12,9 @@ Tudo que é conteúdo de treino — exercícios, programa, cardio, regras de pro
 |---|---|
 | Stack | Next.js 15 (App Router, TypeScript, React 19) · Tailwind · shadcn/ui · Supabase (Postgres, Auth, Storage) · Vercel |
 | Forma | PWA instalável no celular (manifest + service worker), tema claro/escuro, funciona sem sinal durante o treino (ver §8) |
-| Usuário | Um só. Login por e-mail + senha no Supabase Auth; a variável `ALLOWED_EMAIL` bloqueia qualquer outro e-mail no login e no cadastro |
+| Usuário | Contas com cota (**§21**, 17/09/2026): qualquer pessoa cria conta pela tela de login enquanto houver vaga, e o dono ajusta o limite em Mais → Contas. `ALLOWED_EMAIL` é o e-mail do **dono** — quem administra a cota. Login por e-mail + senha no Supabase Auth; RLS por `auth.uid()` isola os dados de cada conta |
 | Conteúdo | Catálogo (81 exercícios), programa (2 fases, 6 treinos), cardio e regras vêm de `data/*.json` **embutidos no build** (importados como módulos tipados). Nada disso vai para o banco |
-| Dados do usuário | Supabase, schema em `supabase/schema.sql` (11 tabelas + view + bucket), RLS por `user_id` |
+| Dados do usuário | Supabase, schema em `supabase/schema.sql` (11 tabelas + view + bucket, mais `app_config` — a cota da §21), RLS por `user_id` |
 | Registro | **Por série**: repetições e carga (ou tempo, passos, assistência do elástico) em cada série, com checkbox de concluída e um toggle "última repetição firme?" por exercício |
 | Corpo | Peso (1× por semana), medidas com fita (1× por mês) e fotos de progresso (frente/lado/costas, 1× por mês) com comparação lado a lado |
 | Objetivo principal | Força e músculo: progressão de carga, volume semanal e recordes em primeiro plano; corrida, corda e barra fixa continuam no calendário |
@@ -217,15 +217,15 @@ Design: sóbrio, alto contraste, tipografia grande nos números (é lido a um br
 
 ## 9. Autenticação e segurança
 
-- Supabase Auth, e-mail + senha (magic link opcional). `ALLOWED_EMAIL` (env) checado no middleware e num trigger/policy simples: se o e-mail logado for outro, sair e mostrar "app pessoal".
-- RLS em todas as tabelas (`user_id = auth.uid()`), bucket `progresso` privado com policy por pasta do usuário. Chaves `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_ANON_KEY` no cliente; **nunca** a service role no cliente.
+- Supabase Auth, e-mail + senha (magic link opcional). **Desde a §21** o app não é mais de um usuário só: o middleware só exige sessão, quem pode criar conta é decidido pela cota no banco (`on_auth_user_vaga`) e `ALLOWED_EMAIL` passou a significar *o dono* — quem vê e muda a cota em Mais → Contas. A regra antiga ("e-mail diferente → sair e mostrar 'app pessoal'") **não existe mais**; ver §21.
+- RLS em todas as tabelas (`user_id = auth.uid()`; a única sem `user_id` é `app_config`, presa a `public.sou_o_dono()` — §21.2), bucket `progresso` privado com policy por pasta do usuário. Chaves `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_ANON_KEY` no cliente; **nunca** a service role no cliente.
 - Backup: exportar JSON de todas as tabelas do usuário; importar restaura (idempotente por id).
 
 ---
 
 ## 10. Critérios de aceite (o que precisa funcionar antes de dizer "pronto")
 
-1. Login com o e-mail permitido; qualquer outro e-mail é recusado.
+1. Login com o e-mail do dono; qualquer pessoa cria conta enquanto houver vaga na cota, e com a cota cheia o cadastro é recusado (critérios completos na §21.5).
 2. No primeiro login o perfil é criado com `data/perfil.json` e a tela Hoje mostra "Treino A · 6 exercícios · 44 min" numa segunda-feira, com as cargas iniciais (7,5 kg na barra, 1,5 kg por halter, 4 kg no pino).
 3. Uma sessão completa do Treino A pode ser registrada por série no celular sem usar teclado físico; o timer de descanso dispara ao concluir cada série; a sessão sobrevive a fechar e reabrir o app e a ficar sem rede.
 4. Ao concluir com todas as séries no topo da faixa e "última firme", a próxima sessão mostra a carga + incremento; duas falhas seguidas reduzem 10 % e o incremento cai pela metade; três falhas geram a semana leve — tudo coberto por testes unitários em `lib/progressao.test.ts` (mínimo 12 casos, incluindo barra fixa, elástico, tempo, unilateral).
@@ -1172,3 +1172,141 @@ e **não sai do `docs/`**. Nenhuma frase do guia de treino é copiada.
 6. Nada de novo no banco (`supabase/schema.sql` intocado), motor (§6) e montagem
    (§6.5) intocados; lint, build, `npm test` e `npm run e2e` verdes, com e2e
    novos desta seção.
+
+---
+
+## 21. Cadastro com limite de contas — decisão de 17/09/2026 (adendo, marco Contas)
+
+O dono pediu, com estas palavras: *"Quero fazer com que novas pessoas possam
+cadastrar no app, mas, no total até 5 pessoas até que eu possa decidir se eu
+aumento a cota de novos usuários ou não"*.
+
+Até aqui o app era de um usuário só (§1, §9): um trigger em `auth.users` e o
+middleware barravam qualquer e-mail diferente de `ALLOWED_EMAIL`. Este adendo
+**substitui essa regra**: qualquer pessoa pode criar conta pela tela de login
+**enquanto houver vaga**, e o número de vagas é uma **cota** que o dono ajusta
+de dentro do app, sem deploy. Os dados continuam isolados por RLS — nada muda
+nas policies das 11 tabelas nem no storage (§9). "Até 5 pessoas" é lido como
+**5 contas no total, contando a do dono**; como a cota é ajustável pelo próprio
+dono, o número certo é decisão dele a qualquer momento.
+
+### 21.1 Os papéis
+- **Dono**: o e-mail de `ALLOWED_EMAIL` (env, servidor) e de
+  `public.allowed_email()` (schema) — continuam obrigatórios e iguais. O dono
+  sempre pode entrar, é uma das contas da cota e é o único que vê e altera a
+  cota (Mais → Contas).
+- **Usuário comum**: qualquer outro e-mail cuja conta foi criada enquanto havia
+  vaga. Usa o app inteiro; só não vê a tela Contas. Cada um tem perfil, estado
+  por exercício, sessões, cardio, corpo, fotos e conquistas próprios (RLS por
+  `auth.uid()`, como sempre).
+
+### 21.2 A cota, no banco (`supabase/schema.sql`, idempotente)
+1. **`public.app_config`** — uma linha só (`id boolean primary key default true
+   check (id)`), `max_contas int not null default 5 check (max_contas >= 1)`,
+   `updated_at` com o trigger `set_updated_at`. Semeada com `5` (`insert … on
+   conflict do nothing`). RLS ligada; policy `app_config_dono` `for all to
+   authenticated using (public.sou_o_dono()) with check (public.sou_o_dono())`.
+2. **`public.sou_o_dono()`** `returns boolean`, `stable security definer set
+   search_path = public`: compara `lower(auth.jwt() ->> 'email')` com
+   `lower(public.allowed_email())`. `revoke all … from public`; `grant execute …
+   to authenticated`. Devolve só verdadeiro/falso — o e-mail não vaza.
+3. **Trigger `on_auth_user_vaga` `before insert on auth.users`**, função
+   `public.exigir_vaga_para_conta()` (`security definer`): se `new.email` é o do
+   dono, passa; senão conta `auth.users where deleted_at is null` e, se o total
+   já é `>= max_contas`, `raise exception 'Cadastro fechado: o limite de contas
+   foi atingido.' using errcode = '42501'`. BEFORE, para abortar antes do AFTER
+   que cria o perfil. **Substitui** `on_auth_user_email_permitido` /
+   `exigir_email_permitido()` (`drop trigger if exists`, `drop function if
+   exists`). `revoke all … from public, anon, authenticated`.
+4. **`public.vagas_para_conta()`** `returns jsonb` `{"contas": N, "limite": L}`,
+   `stable security definer`; `revoke all … from public`, `grant execute … to
+   anon, authenticated`. É o que a tela de login consulta antes de oferecer
+   "Criar conta". Devolve só dois números.
+5. **`public.contas_cadastradas()`** `returns table (email text, criada_em
+   timestamptz, ultimo_acesso timestamptz)`, `stable security definer`: lê
+   `auth.users` (`deleted_at is null`, ordem de criação) **só quando
+   `public.sou_o_dono()`**; para qualquer outro, zero linhas. `revoke all …
+   from public`, `grant execute … to authenticated`.
+6. **`handle_new_user()`** passa a gravar `nome` = a parte do e-mail antes do
+   `@` (`split_part(new.email, '@', 1)`), e `profiles.nome` deixa de ter o
+   default `'Miguel'` (`alter column nome set default ''`). O perfil novo nasce
+   sem `prefs.guia_visto`, então o guia (§20) abre na primeira entrada.
+7. A mesma mudança é aplicada no projeto real como migração **pelo
+   orquestrador, depois do ok do dono** — o agente que constrói não toca no
+   projeto real.
+
+### 21.3 O app
+- **Middleware** (`lib/supabase/middleware.ts`) e **`/auth/callback`**: só
+  exigem sessão. A regra "e-mail diferente → sair" e o `?erro=app-pessoal`
+  deixam de existir. `lib/env.ts`: `emailPermitido()` vira **`ehDono()`**;
+  `ALLOWED_EMAIL` ausente continua sendo aviso de configuração (sem dono não há
+  quem administre a cota).
+- **Login** (`/login`): subtítulo "Entre com o seu e-mail ou crie a sua conta.".
+  A página consulta `vagas_para_conta()` no servidor: **com vaga**, os botões
+  "Entrar" e "Criar conta"; **sem vaga**, só "Entrar" e o aviso (`role="status"`)
+  **"Cadastro fechado no momento: o limite de contas foi atingido."**.
+  `criarConta`: senha com **≥ 8 caracteres** ("A senha precisa ter pelo menos 8
+  caracteres."), consulta a cota de novo antes do `signUp` (se fechou no meio, o
+  trigger barra e a mensagem traduzida é a mesma); com sessão → `redirect("/")`;
+  sem sessão (confirmação de e-mail ligada no projeto) → "Conta criada. Confirme
+  o e-mail e depois entre com a sua senha." (já existe). `entrar` não checa
+  e-mail nenhum. `lib/erros-auth.ts`: "database error saving new user" e
+  "limite de contas" → **"Cadastro fechado no momento: o limite de contas foi
+  atingido."**; a tradução "Este app é pessoal." some.
+- **Mais → Contas** (`/mais/contas`, `components/mais/tela-contas.tsx`), **só
+  para o dono**: a linha "Contas" da lista de Mais (ícone `Users`, descrição
+  curta) só aparece quando `ehDono(e-mail da sessão)`; para um usuário comum a
+  rota mostra apenas "Só o dono vê esta tela." (e o RPC devolve vazio de
+  qualquer jeito). A tela: card **"Contas"** com **"N de L"** e a lista
+  (e-mail, "criada em dd/MM/aaaa", "último acesso dd/MM" ou "—"); card
+  **"Limite de contas"** com stepper numérico (1–99, alvos ≥ 44 px) e
+  **"Salvar"** (PATCH em `app_config` pela RLS; toast "Limite salvo."). Precisa
+  de internet: sem rede, "Precisa de internet para mudar o limite." e **nada
+  vai para a fila** (como `/mais/senha`, §8). Depois de salvar, "N de L" e o
+  login refletem o novo limite na hora.
+- **Guia** (§20): "Offline e conta" ganha **"Criar conta"** (caminho `Login →
+  Criar conta`, sem "Ir"); a seção Mais ganha **"Contas (só o dono)"** com "Ir"
+  para `/mais/contas`; a lista de cobertura do unitário acompanha.
+- **Perfil**: o nome vem do e-mail até a pessoa editar (a edição já existe).
+- **Mock** (`scripts/mock-supabase.ts`): tabela `app_config` semeada com 5 (o
+  reset do `__mock` volta a 5); `/auth/v1/signup` conta os usuários e recusa
+  com a mensagem do trigger quando não há vaga; `token?grant_type=password`
+  deixa de exigir o e-mail permitido; `rpc/vagas_para_conta` (anon) e
+  `rpc/contas_cadastradas` (vazio sem o JWT do dono); `PATCH app_config` só com
+  o JWT do dono. Os helpers do `__mock` que as fixtures usam para criar
+  usuários **não** passam pela cota (são a semente dos testes, não o cadastro).
+- **Docs**: §1 (linha "Usuário"), §9 e §10 item 1 apontam para esta seção;
+  `CLAUDE.md` (regra "Um usuário…" vira "Contas com cota, §21: RLS em tudo;
+  `ALLOWED_EMAIL` é o dono"); `README.md` (instalação e "Problemas");
+  `.env.local.example`; `PROGRESSO.md`.
+
+### 21.4 O que não muda
+RLS das 11 tabelas e do storage; o backup exporta e importa só as tabelas de
+quem está logado; motor (§6), montagem (§6.5), conteúdo (§2), offline (§8),
+guia (§20). Nada de e-mail transacional novo, nada de "esqueci a senha"
+(quem esquecer fala com o dono, que redefine no painel do Supabase).
+
+### 21.5 Critérios de aceite
+1. Com 1 conta (o dono) e limite 5, o login mostra "Criar conta"; criar conta
+   com um e-mail novo entra direto, cai no guia da primeira entrada (§20), tem
+   perfil com `nome` = parte do e-mail e prefs padrão. O dono não vê os dados
+   dela e ela não vê os do dono (provado no mock por leituras cruzadas de
+   `profiles` e `sessions`).
+2. Com 5 contas, "Criar conta" some e o aviso aparece; um `POST` direto em
+   `/auth/v1/signup` é recusado com a mensagem do trigger; a 6ª conta não
+   existe e não há perfil órfão.
+3. O dono vê Mais → Contas com "5 de 5" e a lista, sobe o limite para 6 e
+   salva; o login volta a mostrar "Criar conta"; a 6ª conta entra. Um usuário
+   comum não vê a linha Contas, e `/mais/contas` para ele não mostra a lista.
+4. Um usuário comum logado navega em tudo; sem sessão qualquer rota vai para
+   `/login`; não existe mais `?erro=app-pessoal`.
+5. Unitários: `env` (`ehDono`), `middleware`, `erros-auth`,
+   `auditoria-seguranca` (trigger novo `before insert`, policy de `app_config`
+   por `sou_o_dono()`, nenhuma policy `true`, `revoke`/`grant` de cada função,
+   `vagas_para_conta` liberada ao anon e devolvendo só dois números),
+   `mock.spec`.
+6. A 360 px nos dois temas: login e Contas sem cortar nem rolar de lado, alvos
+   ≥ 44 px, contraste AA.
+7. Lint, build, `npm test`, `npm run build:e2e && npm run e2e` verdes, com e2e
+   novos desta seção e os antigos ("Este app é pessoal") ajustados para a
+   regra nova sem afrouxar o que verificam.

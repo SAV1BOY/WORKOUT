@@ -1,15 +1,21 @@
 /**
- * O middleware (SPEC §2): quem entra, quem não entra e o que sobra no
- * aparelho de quem foi recusado.
+ * O middleware (SPEC §2 e §21.3): quem entra e quem não entra.
+ *
+ * Desde o marco Contas ele só pergunta uma coisa — **há sessão?**. Quem pode
+ * ter conta é decidido pela cota, no banco (`on_auth_user_vaga`), e o que
+ * separa os dados de cada pessoa é a RLS. Não existe mais `?erro=app-pessoal`.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const PERMITIDO = "miguelgsaviotti29@gmail.com";
+const DONO = "miguelgsaviotti29@gmail.com";
 
 /** O que o cliente do Supabase de mentira vai devolver em `getUser`. */
 let emailDoUsuario: string | null = null;
-/** Cookies que o `signOut` manda escrever (apagados, `maxAge: 0`). */
-let cookiesDoSignOut: { name: string; value: string; options?: object }[] = [];
+/**
+ * Cookies que o `getUser` manda escrever pelo `setAll` — é o que acontece de
+ * verdade quando o `@supabase/ssr` renova o token no meio da navegação.
+ */
+let cookiesDaRenovacao: { name: string; value: string; options?: object }[] = [];
 
 vi.mock("@supabase/ssr", () => ({
   createServerClient: (
@@ -18,14 +24,13 @@ vi.mock("@supabase/ssr", () => ({
     opcoes: { cookies: { getAll: () => unknown; setAll: (n: unknown[]) => void } },
   ) => ({
     auth: {
-      getUser: () =>
-        Promise.resolve({
+      getUser: () => {
+        if (cookiesDaRenovacao.length > 0) opcoes.cookies.setAll(cookiesDaRenovacao);
+        return Promise.resolve({
           data: { user: emailDoUsuario === null ? null : { email: emailDoUsuario } },
-        }),
-      signOut: () => {
-        opcoes.cookies.setAll(cookiesDoSignOut);
-        return Promise.resolve({ error: null });
+        });
       },
+      signOut: () => Promise.resolve({ error: null }),
     },
   }),
 }));
@@ -41,10 +46,10 @@ async function rodar(caminho: string) {
 beforeEach(() => {
   vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://exemplo.supabase.co");
   vi.stubEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY", "chave-anon-de-teste");
-  vi.stubEnv("ALLOWED_EMAIL", PERMITIDO);
+  vi.stubEnv("ALLOWED_EMAIL", DONO);
   vi.resetModules();
   emailDoUsuario = null;
-  cookiesDoSignOut = [];
+  cookiesDaRenovacao = [];
 });
 
 afterEach(() => {
@@ -58,10 +63,28 @@ describe("controle de acesso", () => {
     expect(resposta.headers.get("location")).toBe("https://treino.app/login");
   });
 
-  it("o e-mail permitido passa", async () => {
-    emailDoUsuario = PERMITIDO;
+  it("o dono passa", async () => {
+    emailDoUsuario = DONO;
     const resposta = await rodar("/corpo");
     expect(resposta.headers.get("location")).toBeNull();
+  });
+
+  /* SPEC §21.3: o app deixou de ser de um usuário só. */
+  it("uma conta comum passa igual à do dono", async () => {
+    emailDoUsuario = "outra.pessoa@exemplo.com";
+    const resposta = await rodar("/corpo");
+    expect(resposta.status).toBe(200);
+    expect(resposta.headers.get("location")).toBeNull();
+    // e nada de cookie apagado: a sessão dela continua de pé
+    expect(resposta.cookies.get("sb-abc-auth-token")).toBeUndefined();
+  });
+
+  it("nenhuma rota leva ao antigo ?erro=app-pessoal", async () => {
+    for (const email of [null, "outra.pessoa@exemplo.com", DONO]) {
+      emailDoUsuario = email;
+      const resposta = await rodar("/");
+      expect(resposta.headers.get("location") ?? "").not.toContain("app-pessoal");
+    }
   });
 
   it("rota pública passa sem sessão", async () => {
@@ -71,30 +94,29 @@ describe("controle de acesso", () => {
 });
 
 /*
- * Auditoria final: o `signOut` escrevia os cookies apagados na `resposta` que
- * o `setAll` recria, e a função devolvia um `NextResponse.redirect()` novo —
- * as deleções iam para o lixo e o aparelho ficava com os `sb-*` mortos.
+ * Auditoria final: o `setAll` do `createServerClient` RECRIA a `resposta`, e um
+ * `NextResponse.redirect()` novo jogaria fora o que ele acabou de escrever. Com
+ * a sessão vencida o token renovado ia para o lixo e o aparelho ficava rodando
+ * com os `sb-*` velhos.
  */
-describe("e-mail de fora (SPEC §2)", () => {
+describe("o redirect para o login leva os cookies renovados", () => {
   beforeEach(() => {
-    emailDoUsuario = "outra.pessoa@exemplo.com";
-    cookiesDoSignOut = [
+    emailDoUsuario = null;   // token vencido: renova e mesmo assim não há usuário
+    cookiesDaRenovacao = [
       { name: "sb-abc-auth-token", value: "", options: { maxAge: 0, path: "/" } },
     ];
   });
 
-  it("é mandado para o login com o aviso", async () => {
+  it("vai para o login", async () => {
     const resposta = await rodar("/");
-    expect(resposta.headers.get("location")).toBe(
-      "https://treino.app/login?erro=app-pessoal",
-    );
+    expect(resposta.headers.get("location")).toBe("https://treino.app/login");
   });
 
-  it("o redirect leva junto os cookies apagados pelo signOut", async () => {
+  it("o redirect não perde o que o setAll escreveu", async () => {
     const resposta = await rodar("/");
-    const apagado = resposta.cookies.get("sb-abc-auth-token");
-    expect(apagado, "o redirect perdeu a deleção do cookie de sessão").toBeDefined();
-    expect(apagado?.value).toBe("");
-    expect(apagado?.maxAge).toBe(0);
+    const cookie = resposta.cookies.get("sb-abc-auth-token");
+    expect(cookie, "o redirect perdeu o cookie que o Supabase escreveu").toBeDefined();
+    expect(cookie?.value).toBe("");
+    expect(cookie?.maxAge).toBe(0);
   });
 });

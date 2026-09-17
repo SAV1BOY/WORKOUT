@@ -5,7 +5,9 @@
  *  1. `supabase/schema.sql` — RLS ligada e policy do dono em TODA tabela, view
  *     com `security_invoker` (sem isso a view passa por cima da RLS e o
  *     PostgREST entrega os dados a quem tiver a chave anon, que é pública),
- *     bucket das fotos privado e preso ao `user_id` no caminho.
+ *     bucket das fotos privado e preso ao `user_id` no caminho, e a cota de
+ *     contas da SPEC §21 (trigger de vaga, `app_config` só do dono, e o e-mail
+ *     do dono sem sair pelo PostgREST).
  *  2. As 11 tabelas do backup (§9) são exatamente as tabelas com RLS: uma
  *     tabela nova sem policy, ou um backup apontando para tabela que não
  *     existe, quebra aqui.
@@ -22,11 +24,24 @@ import { TABELAS_BACKUP } from "@/lib/backup";
 const RAIZ = fileURLToPath(new URL("..", import.meta.url));
 const schema = readFileSync(join(RAIZ, "supabase", "schema.sql"), "utf8");
 
+/**
+ * `public.app_config` (SPEC §21.2) é a única tabela sem `user_id`: é a cota de
+ * contas, uma linha só, e quem a protege é `sou_o_dono()` em vez da RLS por
+ * dono da linha. Ela fica de fora das listas "por usuário" e tem testes
+ * próprios mais abaixo.
+ */
+const TABELAS_DE_CONFIGURACAO = ["app_config"];
+
 /** As tabelas criadas no schema. */
 function tabelasCriadas(): string[] {
   return [...schema.matchAll(/create table if not exists public\.(\w+)/g)].map(
     (m) => m[1] as string,
   );
+}
+
+/** As tabelas de dados do usuário (todas menos as de configuração). */
+function tabelasDoUsuario(): string[] {
+  return tabelasCriadas().filter((t) => !TABELAS_DE_CONFIGURACAO.includes(t));
 }
 
 /** Os nomes listados no laço que liga a RLS e cria a policy do dono. */
@@ -39,10 +54,18 @@ function tabelasComRls(): string[] {
 }
 
 describe("schema.sql: RLS", () => {
-  it("existem tabelas e todas passam pelo laço da RLS", () => {
-    const criadas = tabelasCriadas();
+  it("existem tabelas e todas as do usuário passam pelo laço da RLS", () => {
+    const criadas = tabelasDoUsuario();
     expect(criadas.length).toBeGreaterThan(0);
     expect([...tabelasComRls()].sort()).toEqual([...criadas].sort());
+  });
+
+  it("a tabela de configuração existe e NÃO entra no laço por user_id", () => {
+    // se app_config entrasse no laço, a policy pediria um user_id que ela não tem
+    for (const tabela of TABELAS_DE_CONFIGURACAO) {
+      expect(tabelasCriadas(), `${tabela} não existe no schema`).toContain(tabela);
+      expect(tabelasComRls()).not.toContain(tabela);
+    }
   });
 
   it("o laço liga a RLS e cria a policy do dono com `using` e `with check`", () => {
@@ -52,8 +75,8 @@ describe("schema.sql: RLS", () => {
     expect(schema).toContain("for all to authenticated");
   });
 
-  it("toda tabela tem user_id (a policy depende dele)", () => {
-    for (const tabela of tabelasCriadas()) {
+  it("toda tabela do usuário tem user_id (a policy depende dele)", () => {
+    for (const tabela of tabelasDoUsuario()) {
       const corpo = new RegExp(
         `create table if not exists public\\.${tabela} \\(([\\s\\S]*?)\\n\\);`,
       ).exec(schema);
@@ -63,43 +86,159 @@ describe("schema.sql: RLS", () => {
   });
 
   it("as 11 tabelas do backup (§9) são as tabelas com RLS", () => {
-    expect([...TABELAS_BACKUP].sort()).toEqual([...tabelasCriadas()].sort());
+    expect([...TABELAS_BACKUP].sort()).toEqual([...tabelasDoUsuario()].sort());
+    // a cota é do app, não de quem exporta: nunca entra no backup
+    for (const tabela of TABELAS_DE_CONFIGURACAO) {
+      expect([...TABELAS_BACKUP]).not.toContain(tabela);
+    }
   });
 });
 
-describe("schema.sql: só o e-mail permitido tem conta (SPEC §9)", () => {
+describe("schema.sql: a cota de contas (SPEC §21)", () => {
   /** O literal do bloco "AJUSTE AQUI" (public.allowed_email()). */
   function emailDaConstante(): string | undefined {
     return /create or replace function public\.allowed_email\(\)[\s\S]*?select '([^']+)'::text/
       .exec(schema)?.[1];
   }
 
-  it("a constante devolve o mesmo e-mail do ALLOWED_EMAIL", () => {
+  /** O corpo de uma função do schema, do `create` até o `$$;` que a fecha. */
+  function corpoDaFuncao(nome: string): string {
+    const achado = new RegExp(
+      `create or replace function public\\.${nome}\\([\\s\\S]*?\\$\\$;`,
+    ).exec(schema);
+    expect(achado, `função ${nome} não existe no schema`).not.toBeNull();
+    return achado?.[0] ?? "";
+  }
+
+  it("a constante devolve o mesmo e-mail do ALLOWED_EMAIL (o dono)", () => {
     const exemplo = readFileSync(join(RAIZ, ".env.local.example"), "utf8");
     const doEnv = /ALLOWED_EMAIL=(.+)/.exec(exemplo)?.[1]?.trim();
     expect(doEnv).toBeTruthy();
     expect(emailDaConstante()).toBe(doEnv);
   });
 
-  it("um trigger `before insert on auth.users` barra qualquer outro e-mail", () => {
-    // BEFORE, para abortar antes do AFTER que cria o perfil
-    expect(schema).toMatch(
-      /create trigger on_auth_user_email_permitido before insert on auth\.users/,
-    );
-    expect(schema).toMatch(
-      /lower\(coalesce\(new\.email, ''\)\) is distinct from lower\(public\.allowed_email\(\)\)/,
-    );
-    expect(schema).toContain("raise exception 'Este app é pessoal");
-    // roda como dono: o supabase_auth_admin não tem execute na constante
-    expect(schema).toMatch(
-      /function public\.exigir_email_permitido\(\) returns trigger[\s\S]{0,120}security definer/,
-    );
-  });
-
   it("a constante não vaza pelo PostgREST", () => {
     expect(schema).toContain(
       "revoke all on function public.allowed_email() from public",
     );
+    // e não ganhou grant nenhum depois do revoke
+    expect(schema).not.toMatch(
+      /grant execute on function public\.allowed_email\(\)/,
+    );
+  });
+
+  it("o e-mail do dono só sai como booleano (sou_o_dono)", () => {
+    const corpo = corpoDaFuncao("sou_o_dono");
+    expect(corpo).toContain("returns boolean");
+    expect(corpo).toContain("security definer");
+    expect(corpo).toContain("auth.jwt() ->> 'email'");
+    expect(schema).toContain(
+      "revoke all on function public.sou_o_dono() from public",
+    );
+    expect(schema).toContain(
+      "grant execute on function public.sou_o_dono() to authenticated",
+    );
+    // nunca para o anon: quem não entrou não pergunta quem é o dono
+    expect(schema).not.toMatch(
+      /grant execute on function public\.sou_o_dono\(\) to[^;]*anon/,
+    );
+  });
+
+  it("um trigger `before insert on auth.users` recusa a conta sem vaga", () => {
+    // BEFORE, para abortar antes do AFTER que cria o perfil
+    expect(schema).toMatch(
+      /create trigger on_auth_user_vaga before insert on auth\.users/,
+    );
+    const corpo = corpoDaFuncao("exigir_vaga_para_conta");
+    expect(corpo).toContain("returns trigger");
+    // roda como dono: o supabase_auth_admin não lê auth.users nem app_config
+    expect(corpo).toContain("security definer");
+    // o dono passa sempre; os outros contam contra o max_contas
+    expect(corpo).toMatch(
+      /lower\(coalesce\(new\.email, ''\)\) = lower\(public\.allowed_email\(\)\)/,
+    );
+    expect(corpo).toContain("select count(*) into total from auth.users");
+    expect(corpo).toContain("total >= limite");
+    expect(corpo).toContain(
+      "raise exception 'Cadastro fechado: o limite de contas foi atingido.'",
+    );
+    expect(corpo).toContain("errcode = '42501'");
+    expect(schema).toContain(
+      "revoke all on function public.exigir_vaga_para_conta() from public, anon, authenticated",
+    );
+  });
+
+  it("a regra antiga de um usuário só foi removida", () => {
+    expect(schema).toContain(
+      "drop trigger if exists on_auth_user_email_permitido on auth.users",
+    );
+    expect(schema).toContain(
+      "drop function if exists public.exigir_email_permitido()",
+    );
+    expect(schema).not.toMatch(
+      /create (or replace )?function public\.exigir_email_permitido/,
+    );
+    expect(schema).not.toContain("Este app é pessoal");
+  });
+
+  it("vagas_para_conta é liberada ao anon e devolve só dois números", () => {
+    const corpo = corpoDaFuncao("vagas_para_conta");
+    expect(corpo).toContain("returns jsonb");
+    expect(corpo).toContain("security definer");
+    // a tela de login pergunta sem sessão
+    expect(schema).toContain(
+      "revoke all on function public.vagas_para_conta() from public",
+    );
+    expect(schema).toContain(
+      "grant execute on function public.vagas_para_conta() to anon, authenticated",
+    );
+    // dois números e nada mais: nenhum e-mail sai daqui
+    const chaves = [...corpo.matchAll(/'(\w+)',/g)].map((m) => m[1]);
+    expect(chaves).toEqual(["contas", "limite"]);
+    expect(corpo).not.toContain("email");
+  });
+
+  it("contas_cadastradas só devolve linha para o dono", () => {
+    const corpo = corpoDaFuncao("contas_cadastradas");
+    expect(corpo).toContain("security definer");
+    // a condição está DENTRO da consulta: sem ela a função entregaria auth.users
+    expect(corpo).toContain("public.sou_o_dono()");
+    expect(schema).toContain(
+      "revoke all on function public.contas_cadastradas() from public",
+    );
+    expect(schema).toContain(
+      "grant execute on function public.contas_cadastradas() to authenticated",
+    );
+    expect(schema).not.toMatch(
+      /grant execute on function public\.contas_cadastradas\(\) to[^;]*anon/,
+    );
+  });
+
+  it("app_config tem RLS ligada e policy só do dono", () => {
+    expect(schema).toContain("alter table public.app_config enable row level security");
+    const policy = /create policy "app_config_dono"[\s\S]*?;/.exec(schema)?.[0] ?? "";
+    expect(policy).toContain("for all to authenticated");
+    expect(policy).toContain("using (public.sou_o_dono())");
+    expect(policy).toContain("with check (public.sou_o_dono())");
+  });
+
+  it("app_config é uma linha só, com limite mínimo de 1, e já nasce semeada", () => {
+    const corpo = /create table if not exists public\.app_config \(([\s\S]*?)\n\);/
+      .exec(schema)?.[1];
+    expect(corpo).toBeTruthy();
+    expect(corpo).toContain("id          boolean primary key default true check (id)");
+    expect(corpo).toContain("check (max_contas >= 1)");
+    expect(corpo).toContain("default 5");
+    expect(schema).toContain(
+      "insert into public.app_config (id) values (true) on conflict do nothing",
+    );
+  });
+
+  it("o perfil novo nasce com o nome vindo do e-mail", () => {
+    const corpo = corpoDaFuncao("handle_new_user");
+    expect(corpo).toContain("split_part(coalesce(new.email, ''), '@', 1)");
+    expect(corpo).not.toContain("Miguel");
+    expect(schema).toContain("alter table public.profiles alter column nome set default ''");
   });
 
   it("nenhuma policy libera `true` para authenticated", () => {
@@ -108,7 +247,11 @@ describe("schema.sql: só o e-mail permitido tem conta (SPEC §9)", () => {
     );
     expect(policies.length).toBeGreaterThan(0);
     for (const policy of policies) {
-      expect(policy, `policy sem auth.uid(): ${policy}`).toContain("auth.uid()");
+      // ou filtra pela linha do usuário, ou é a cota — que só o dono vê
+      expect(
+        /auth\.uid\(\)/.test(policy) || /public\.sou_o_dono\(\)/.test(policy),
+        `policy sem filtro de dono: ${policy}`,
+      ).toBe(true);
       expect(policy).not.toMatch(/using \(true\)|with check \(true\)/);
     }
   });

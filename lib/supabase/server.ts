@@ -34,3 +34,12 @@ export async function idDoUsuario(): Promise<string | null> {
   } = await supabase.auth.getUser();
   return user?.id ?? null;
 }
+
+/** O e-mail de quem está logado — é com ele que `ehDono()` decide (SPEC §21). */
+export async function emailDoUsuario(): Promise<string | null> {
+  const supabase = await criarClienteServidor();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  return user?.email ?? null;
+}

@@ -66,9 +66,19 @@ export async function garantirPerfil(
   if (error) return null;
   if (!precisaSeed(data)) return data;
 
+  /*
+   * SPEC §21.2: o trigger `handle_new_user` já gravou o nome — a parte do
+   * e-mail antes do @ — e ele é de quem criou a conta, não do JSON. O seed
+   * completa o resto (altura, data de início, fase) e só escreve `nome` quando
+   * o perfil ainda está sem nenhum.
+   */
+  const seed = montarSeedPerfil();
+  const nomeDoBanco = data?.nome?.trim() ?? "";
+  if (nomeDoBanco !== "") seed.nome = nomeDoBanco;
+
   const { data: gravado, error: erroGravar } = await supabase
     .from("profiles")
-    .upsert({ user_id: userId, ...montarSeedPerfil() }, { onConflict: "user_id" })
+    .upsert({ user_id: userId, ...seed }, { onConflict: "user_id" })
     .select("*")
     .maybeSingle<LinhaPerfil>();
 

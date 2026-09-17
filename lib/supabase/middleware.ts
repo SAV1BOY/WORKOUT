@@ -1,11 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import {
-  SUPABASE_ANON_KEY,
-  SUPABASE_URL,
-  emailPermitido,
-  supabaseConfigurado,
-} from "@/lib/env";
+import { SUPABASE_ANON_KEY, SUPABASE_URL, supabaseConfigurado } from "@/lib/env";
 
 /** Rotas que abrem sem sessão. */
 const PUBLICAS = [
@@ -47,8 +42,12 @@ function irParaOLogin(
 }
 
 /**
- * Renova a sessão nos cookies e faz o controle de acesso:
- * sem sessão → /login; e-mail diferente do permitido → sai e /login?erro=app-pessoal.
+ * Renova a sessão nos cookies e faz o controle de acesso: sem sessão → /login.
+ *
+ * É só isso desde o marco Contas (SPEC §21): o app deixou de ser de um usuário
+ * só, então **qualquer conta que existe** entra. Quem decide se uma conta pode
+ * nascer é a cota, no banco (`on_auth_user_vaga`), e o que separa os dados de
+ * cada pessoa é a RLS por `auth.uid()` — não este arquivo.
  */
 export async function updateSession(request: NextRequest) {
   const caminho = request.nextUrl.pathname;
@@ -83,11 +82,6 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   if (!user) return irParaOLogin(request, resposta);
-
-  if (!emailPermitido(user.email)) {
-    await supabase.auth.signOut();
-    return irParaOLogin(request, resposta, "?erro=app-pessoal");
-  }
 
   return resposta;
 }

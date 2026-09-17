@@ -1,8 +1,9 @@
 # Treino do Terraço
 
-App pessoal de treino, de um usuário só (Miguel), para o terraço de casa:
-Next.js 15 + Supabase, instalável como PWA, feito para um celular de 360 px e
-para funcionar sem rede. Todo o conteúdo — 81 exercícios, o programa das duas
+App de treino para o terraço de casa: Next.js 15 + Supabase, instalável como
+PWA, feito para um celular de 360 px e para funcionar sem rede. Qualquer pessoa
+pode criar conta pela tela de login **enquanto houver vaga** — o dono ajusta o
+limite em Mais → Contas (SPEC §21) — e cada conta só vê os próprios dados. Todo o conteúdo — 81 exercícios, o programa das duas
 fases, os planos de cardio e de barra fixa, as regras de progressão e o
 equipamento — vem dos JSON em `data/`; o código não escreve treino nenhum.
 
@@ -76,6 +77,7 @@ npm run dev                        # http://localhost:3000
 | `npm run validar` | confere `data/*.json` contra os schemas Zod e cada asset referenciado |
 | `npm run assets` | copia `assets/` para `public/` (a pasta `public/` é **gerada**, não versionada) |
 | `npm run mock` | sobe o Supabase de mentira local (`scripts/mock-supabase.ts`) |
+| `npm run build:e2e` | build apontando para esse mock (é o build que o `npm run e2e` espera) |
 | `npm run dev:mock` | `next dev` já apontando para esse mock |
 | `npm run icones` | regenera os ícones PNG do PWA |
 | `npm run ilustracoes` | reimporta as ilustrações de licença livre (fora do build) |
@@ -121,17 +123,21 @@ puras, sem React e sem Supabase, cobertas pelos 22 casos de
 1. **Supabase**: novo projeto; **antes de colar o schema**, confira no topo de
    `supabase/schema.sql` o bloco **"AJUSTE AQUI"** — a função
    `public.allowed_email()` tem que devolver o mesmo e-mail do `ALLOWED_EMAIL`
-   do app. Rodar o arquivo inteiro no SQL Editor (é idempotente), conferir as
-   11 tabelas e o bucket `progresso`, e em *Authentication → Providers → Email*
-   deixar **Confirm email desligado**. Copiar a *Project URL* e a chave
-   **anon public** (a `service_role` nunca sai do painel).
+   do app (é o e-mail do **dono**: quem administra a cota de contas). Rodar o
+   arquivo inteiro no SQL Editor (é idempotente), conferir as 11 tabelas, a
+   tabela `app_config` (a cota, semeada com 5) e o bucket `progresso`, e em
+   *Authentication → Providers → Email* deixar **Confirm email desligado**.
+   Copiar a *Project URL* e a chave **anon public** (a `service_role` nunca sai
+   do painel). Num banco que já tem uma versão anterior deste schema, o delta
+   do marco Contas está em `supabase/migracoes/2026-09-17-contas.sql` — também
+   idempotente.
 2. **Repositório**: o código de produção fica em `main`, no repositório privado
    `SAV1BOY/WORKOUT`. A camada visual v2.1 está no **PR #2** — sem o merge, o
    celular continua com o app antigo.
 3. **Vercel**: importar o repositório com *Production Branch* `main`. As
    três variáveis vão **versionadas em `.env.production`** (só valores
    públicos por desenho: a URL e a chave **anon** do Supabase, que de qualquer
-   forma vão para o navegador, e o e-mail permitido, que já está no schema);
+   forma vão para o navegador, e o e-mail do dono, que já está no schema);
    a `service_role` nunca entra no repositório. Quem preferir variáveis no
    painel apaga o arquivo e cadastra as três em **Production e Preview**:
 
@@ -139,7 +145,7 @@ puras, sem React e sem Supabase, cobertas pelos 22 casos de
    |---|---|
    | `NEXT_PUBLIC_SUPABASE_URL` | a *Project URL* do Supabase |
    | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | a chave **anon public** |
-   | `ALLOWED_EMAIL` | `miguelgsaviotti29@gmail.com` |
+   | `ALLOWED_EMAIL` | `miguelgsaviotti29@gmail.com` — o e-mail do **dono** (§21) |
 
    *Deployment Protection* pode ficar em *Standard Protection*: ela protege só
    os links internos de deploy e de preview; `https://treino-terraco.vercel.app`
@@ -147,19 +153,20 @@ puras, sem React e sem Supabase, cobertas pelos 22 casos de
 4. **Supabase → Authentication → URL Configuration**: *Site URL* = a URL da
    Vercel e *Redirect URLs* = `https://SUA-URL.vercel.app/**`. Sem isso a volta
    do login cai no `localhost`.
-5. **Conferir**: `/login` recusa qualquer outro e-mail **antes** de falar com o
-   Supabase; entrar cria o perfil a partir de `data/perfil.json`; a barra de
-   baixo tem as cinco abas; e `https://SUA-URL/sw.js` responde 200.
-6. **Depois de criar a conta do Miguel, fechar a porta**: *Authentication →
-   Sign In / Providers* → desligar **"Allow new users to sign up"**. O
-   `ALLOWED_EMAIL` já é checado no middleware e o trigger
-   `on_auth_user_email_permitido` do schema recusa outro e-mail dentro do
-   banco (a chave anon é pública); desligar o cadastro é o terceiro cinto.
+5. **Conferir**: `/login` mostra "Entrar" e "Criar conta" enquanto houver vaga;
+   entrar cria o perfil a partir de `data/perfil.json`; a barra de baixo tem as
+   cinco abas; e `https://SUA-URL/sw.js` responde 200.
+6. **A cota, não a porta fechada** (§21): *Authentication → Sign In / Providers*
+   fica com **"Allow new users to sign up" LIGADO** — quem barra é o trigger
+   `on_auth_user_vaga` do schema, que conta as contas de `auth.users` contra o
+   `max_contas` de `app_config`. Para mudar o limite não é preciso painel nem
+   deploy: **Mais → Contas**, que só o dono enxerga. Para fechar de vez, basta
+   pôr o limite no número de contas que já existem.
 
 ## Instalar no celular
 
 1. Abra a URL da Vercel no **Chrome** (Android) ou no **Safari** (iPhone) e
-   entre com o e-mail permitido.
+   entre com a sua conta (ou toque em **Criar conta**, se ainda houver vaga).
 2. **Android**: menu ⋮ → *Instalar app*. **iPhone**: Compartilhar → *Adicionar à
    Tela de Início*. O ícone laranja aparece como um app e ele abre sem a barra
    do navegador.
@@ -176,12 +183,19 @@ puras, sem React e sem Supabase, cobertas pelos 22 casos de
 - "Invalid API key" ou tela em branco depois do login: as variáveis de ambiente
   estão erradas ou faltam na Vercel (Settings → Environment Variables) — corrija
   e faça **Redeploy**.
-- Login recusado com o e-mail certo: confira `ALLOWED_EMAIL` (sem espaços), o
-  e-mail do bloco "AJUSTE AQUI" de `supabase/schema.sql`
-  (`public.allowed_email()`, usado pelo trigger que barra contas de fora) e se
-  o *Confirm email* está desligado no Supabase. "Este app é pessoal." vindo
-  depois de "Criar conta" é o trigger falando: o e-mail da constante está
-  diferente do `ALLOWED_EMAIL`.
+- **"Cadastro fechado no momento: o limite de contas foi atingido."**: a cota
+  está cheia (§21). O dono abre **Mais → Contas**, vê "N de L", sobe o limite e
+  salva — o login volta a oferecer "Criar conta" na hora.
+- **O dono não vê Mais → Contas**: a linha só aparece para o e-mail de
+  `ALLOWED_EMAIL`. Confira a variável (sem espaços, mesma caixa) e o e-mail do
+  bloco "AJUSTE AQUI" de `supabase/schema.sql` (`public.allowed_email()`) — os
+  dois têm que ser o mesmo.
+- **Esqueci a senha**: o app não manda e-mail de recuperação (§21.4). A pessoa
+  fala com o dono, que redefine a senha em *Authentication → Users* no painel do
+  Supabase.
+- Login recusado com a senha certa: confira se o *Confirm email* está desligado
+  no Supabase (com ele ligado a conta nasce sem sessão e o app pede para
+  confirmar o e-mail antes de entrar).
 - O `schema.sql` pode ser rodado mais de uma vez (usa `if not exists` e recria
   as policies).
 - Fotos não sobem: o bucket `progresso` precisa existir (o SQL cria) e o arquivo

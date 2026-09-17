@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { expect, test, type Page } from "@playwright/test";
 import {
-  EMAIL_PERMITIDO,
+  EMAIL_DONO,
   SENHA,
   entrarNoApp,
   fixarData,
@@ -549,12 +549,12 @@ test.describe("/mais/senha — trocar a senha (SPEC §9)", () => {
     await expect(page).toHaveURL(/\/login$/);
 
     // a senha antiga não entra mais
-    await page.getByLabel("E-mail").fill(EMAIL_PERMITIDO);
+    await page.getByLabel("E-mail").fill(EMAIL_DONO);
     await page.getByLabel("Senha").fill(SENHA);
     await page.getByRole("button", { name: "Entrar" }).click();
     await expect(page.getByText("E-mail ou senha incorretos.")).toBeVisible();
 
     // a nova entra
-    await entrarNoApp(page, EMAIL_PERMITIDO, NOVA);
+    await entrarNoApp(page, EMAIL_DONO, NOVA);
   });
 });

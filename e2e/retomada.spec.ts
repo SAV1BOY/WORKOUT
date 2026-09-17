@@ -491,9 +491,20 @@ test.describe("auditoria do marco Retomada", () => {
         falhas_seguidas: 0,
       });
 
-    const eventos = await lerDoMock<{ motivo: string }>(sessao, "progression_events");
-    expect(eventos.map((e) => e.motivo)).toContain("retomada_leve");
-    expect(eventos.map((e) => e.motivo)).toContain("fim_semana_leve");
+    /*
+     * Esperando, não lendo de uma vez: os eventos sobem pela fila de saída
+     * (§8), numa requisição sua, e o `exercise_state` acima pode chegar antes
+     * deles. Uma leitura seca falha de vez em quando sem nada estar errado.
+     */
+    await expect
+      .poll(
+        async () =>
+          (
+            await lerDoMock<{ motivo: string }>(sessao, "progression_events")
+          ).map((e) => e.motivo),
+        { timeout: 20_000 },
+      )
+      .toEqual(expect.arrayContaining(["retomada_leve", "fim_semana_leve"]));
   });
 
   test("o Histórico do Relatório ganha a linha da pausa (SPEC §18.5)", async ({

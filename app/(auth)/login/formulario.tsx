@@ -5,10 +5,22 @@ import { criarConta, entrar, type EstadoLogin } from "@/app/(auth)/login/acoes";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { CADASTRO_FECHADO } from "@/lib/erros-auth";
 
 const inicial: EstadoLogin = {};
 
-export function FormularioLogin({ avisoInicial }: { avisoInicial?: string }) {
+/**
+ * `comVaga` vem do servidor (SPEC §21.3): com vaga, os dois botões; sem vaga,
+ * só "Entrar" e o recado de cadastro fechado. Quem já tem conta entra sempre —
+ * a cota só fecha a porta de quem ainda não tem.
+ */
+export function FormularioLogin({
+  avisoInicial,
+  comVaga = true,
+}: {
+  avisoInicial?: string;
+  comVaga?: boolean;
+}) {
   const [estadoEntrar, acaoEntrar, entrando] = useActionState(entrar, inicial);
   const [estadoCriar, acaoCriar, criando] = useActionState(criarConta, inicial);
 
@@ -91,15 +103,24 @@ export function FormularioLogin({ avisoInicial }: { avisoInicial?: string }) {
       >
         {entrando ? "Entrando…" : "Entrar"}
       </Button>
-      <Button
-        type="submit"
-        variant="outline"
-        formAction={acaoCriar}
-        disabled={ocupado}
-        className="alvo h-12 w-full text-base"
-      >
-        {criando ? "Criando…" : "Criar conta"}
-      </Button>
+      {comVaga ? (
+        <Button
+          type="submit"
+          variant="outline"
+          formAction={acaoCriar}
+          disabled={ocupado}
+          className="alvo h-12 w-full text-base"
+        >
+          {criando ? "Criando…" : "Criar conta"}
+        </Button>
+      ) : (
+        <p
+          role="status"
+          className="text-muted-foreground border-border rounded-lg border border-dashed px-3 py-2 text-sm text-balance"
+        >
+          {CADASTRO_FECHADO}
+        </p>
+      )}
     </form>
   );
 }

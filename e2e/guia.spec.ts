@@ -15,7 +15,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { SECOES, hrefsDoGuia, rotaDoHref } from "../lib/guia";
 import {
-  EMAIL_PERMITIDO,
+  EMAIL_DONO,
   SENHA,
   atualizarNoMock,
   entrarNoApp,
@@ -57,6 +57,8 @@ const TITULO_DA_ROTA: Record<string, string> = {
   "/mais/creditos": "Créditos",
   "/mais/backup": "Backup",
   "/mais/senha": "Trocar senha",
+  // SPEC §21.3: só o dono vê o link, e os e2e do guia entram como o dono
+  "/mais/contas": "Contas",
 };
 
 test.beforeEach(async () => {
@@ -67,7 +69,7 @@ test.beforeEach(async () => {
 async function contaNova(): Promise<SessaoMock> {
   const sessao = await sessaoNoMock();
   await atualizarNoMock(sessao, "profiles", `user_id=eq.${sessao.userId}`, {
-    nome: "Miguel",
+    nome: EMAIL_DONO.split("@")[0],
     altura_cm: 190,
     data_inicio: "2026-09-14",
     fase_atual: "fase1",
@@ -86,7 +88,7 @@ async function contaNova(): Promise<SessaoMock> {
 /** Entra sem esperar a aba Treino (a conta nova é desviada para o guia). */
 async function entrarSemEsperar(page: Page): Promise<void> {
   await page.goto("/login");
-  await page.getByLabel("E-mail").fill(EMAIL_PERMITIDO);
+  await page.getByLabel("E-mail").fill(EMAIL_DONO);
   await page.getByLabel("Senha").fill(SENHA);
   await page.getByRole("button", { name: "Entrar" }).click();
 }

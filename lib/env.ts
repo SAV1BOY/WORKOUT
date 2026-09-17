@@ -12,7 +12,7 @@ export const SUPABASE_ANON_KEY =
   process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
   "";
 
-/** Único e-mail que pode entrar no app (só no servidor). */
+/** O e-mail do dono do app — quem administra a cota (só no servidor, §21.1). */
 export const ALLOWED_EMAIL = (process.env.ALLOWED_EMAIL ?? "")
   .trim()
   .toLowerCase();
@@ -56,13 +56,21 @@ export function supabaseConfigurado(): boolean {
   return !chaveEhSecreta(SUPABASE_ANON_KEY);
 }
 
-export function emailPermitidoConfigurado(): boolean {
+export function donoConfigurado(): boolean {
   return ALLOWED_EMAIL.length > 0;
 }
 
-/** App de um usuário só: qualquer outro e-mail é recusado. */
-export function emailPermitido(email: string | null | undefined): boolean {
-  if (!email || !emailPermitidoConfigurado()) return false;
+/**
+ * Este e-mail é o do dono? (SPEC §21.1)
+ *
+ * Desde o marco Contas o app tem mais de uma conta: qualquer pessoa entra
+ * enquanto houver vaga na cota. O que o `ALLOWED_EMAIL` decide não é mais
+ * *quem entra*, e sim **quem manda**: só o dono vê e muda a cota em
+ * Mais → Contas. Sem `ALLOWED_EMAIL` ninguém é dono — daí o aviso de
+ * configuração, porque aí não há quem administre a cota.
+ */
+export function ehDono(email: string | null | undefined): boolean {
+  if (!email || !donoConfigurado()) return false;
   return email.trim().toLowerCase() === ALLOWED_EMAIL;
 }
 
@@ -75,6 +83,6 @@ export const AVISO_CHAVE_SECRETA =
 /** O que a tela de login precisa avisar sobre a configuração, ou nada. */
 export function avisoDeConfiguracao(): string | undefined {
   if (chaveEhSecreta(SUPABASE_ANON_KEY)) return AVISO_CHAVE_SECRETA;
-  if (!supabaseConfigurado() || !emailPermitidoConfigurado()) return AVISO_CONFIG;
+  if (!supabaseConfigurado() || !donoConfigurado()) return AVISO_CONFIG;
   return undefined;
 }
