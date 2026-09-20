@@ -11,6 +11,9 @@ const Toaster = ({ ...props }: ToasterProps) => {
     <Sonner
       theme={theme as ToasterProps["theme"]}
       className="toaster group"
+      // SPEC §22.4 item 7: o padrão do Sonner é "Notifications alt+T", a única
+      // string em inglês que sobrava na interface (CLAUDE.md: pt-BR em tudo).
+      containerAriaLabel="Avisos"
       icons={{
         success: (
           <CircleCheckIcon className="size-4" />
