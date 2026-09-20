@@ -6457,7 +6457,12 @@ anel, o que no claro dava o verde falso. Medindo com espera, 0 de 85 focáveis
 ficam sem anel; com espera zero voltam as 141 "falhas", idênticas nos dois
 temas — e os próprios logs mostravam a instabilidade (revar2 reprovou e revar3,
 no MESMO commit, passou). A varredura agora espera a transição assentar (até
-400 ms, saindo assim que o anel aparece) e exige cor **não-transparente**.
+400 ms, saindo assim que o anel aparece) e exige cor **não-transparente** — e
+com isso as 141 "falhas" somem. **O item segue parcial**, mas por um motivo
+agora verdadeiro e medido: restam DOIS focáveis em `/corpo`, iguais nos dois
+temas — o cartão do IMC (um `div` com `tabindex` que não recebeu a utilitária
+`.foco`) e um `<input>` sem nome acessível. As outras onze rotas passam nos
+dois temas; o `fixme` fica até esses dois terem anel.
 Arquivos: `app/globals.css`, `components/ui/button.tsx`,
 `components/ui/input.tsx`, `components/nav-inferior.tsx`,
 `e2e/ultraloop-varredura.spec.ts`.
@@ -6513,8 +6518,9 @@ quatro rotas, o degrau das superfícies, a borda de todo `<input>` de `/corpo` e
 do FAB, nenhum texto abaixo de 10 px em cinco rotas, o anel de foco do card e
 da aba, a barra da aba acesa, o vazio do catálogo com "Limpar filtros"
 funcionando, o `aria-label`/`title` do card cortado e os 44 px do voltar de
-Mais. As cinco varreduras — rolagem lateral, 44 px, contraste AA, anel de
-foco e reduced-motion — passam nas doze rotas nos dois temas.
+Mais. Quatro das cinco varreduras — rolagem lateral, 44 px, contraste AA e
+reduced-motion — passam nas doze rotas nos dois temas; a do anel de foco
+segue em `fixme` pelos dois focáveis de `/corpo` (veja L3-7).
 
 **Como testar no celular.** Abra o app no escuro: os cards agora se **separam**
 do fundo (antes eram a mesma tinta), a ficha de um exercício não acende mais
@@ -6564,8 +6570,11 @@ o lote com cinco achados; todos foram corrigidos e cada um virou teste.
    com o seu título. Arquivos: `components/graficos/apoio.tsx`,
    `components/corpo/aba-fotos.tsx`, `components/corpo/aba-medidas.tsx`.
 5. **O diagnóstico do `fixme` do foco estava errado** — veja L3-7 acima: a
-   causa é o `transition-all` do `Button`, não o `:focus-visible`. O texto foi
-   corrigido no teste, na SPEC §22.3 item 7 e aqui, e o `fixme` saiu.
+   causa é o `transition-all` do `Button`, não o `:focus-visible`, e a régua
+   aceitava sombra transparente como anel. O texto foi corrigido no teste, na
+   SPEC §22.3 item 7 e aqui; com a medição consertada as 141 "falhas" somem e
+   sobram só dois focáveis de `/corpo` (o cartão do IMC e um `<input>` sem
+   nome), então o `fixme` fica — agora com o motivo certo.
 
 Provas novas em `e2e/ultraloop-a-r2.spec.ts` (15 testes): trilho e polegar do
 interruptor nos dois estados e nos dois temas, a aba acesa mais clara que a

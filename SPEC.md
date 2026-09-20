@@ -1488,6 +1488,10 @@ a tela — afrouxar o limite não é uma opção.
    transparente — daí a varredura esperar até 400 ms e exigir cor
    **não-transparente** no `outline` ou no `box-shadow` (aceitar
    `box-shadow !== "none"` deixava passar cinco sombras transparentes).
+   **Falta**, medido: o cartão do IMC de `/corpo` (um `div` com `tabindex`
+   sem a utilitária `.foco`) e um `<input>` sem nome acessível na mesma tela
+   — os dois únicos focáveis sem anel nas doze rotas, iguais nos dois temas.
+   Até eles terem anel a varredura do foco segue em `fixme`.
 8. **Aba acesa com forma, não só cor.** O item aceso da barra de baixo ganha
    uma barra de 2 px no topo e o rótulo em semibold, além do laranja.
 9. **Estado vazio com saída.** `components/ui/vazio.tsx` (ícone, título curto,
