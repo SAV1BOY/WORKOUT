@@ -125,7 +125,7 @@ export function TelaExercicio({
         <Button
           variant="ghost"
           size="icon"
-          className="alvo size-11"
+          className="alvo"
           aria-label="Visão geral do treino"
           onClick={aoAbrirLista}
         >
@@ -160,7 +160,7 @@ export function TelaExercicio({
           <Button
             variant="ghost"
             size="icon"
-            className="alvo size-11"
+            className="alvo"
             aria-label="Ajustar"
             onClick={aoAjustar}
           >
@@ -201,7 +201,7 @@ export function TelaExercicio({
         <Button
           variant="ghost"
           size="icon"
-          className="alvo size-11 shrink-0"
+          className="alvo shrink-0"
           aria-label={`Como fazer: ${exercicio.nome}`}
           onClick={aoAbrirFicha}
         >
@@ -392,7 +392,7 @@ function LinhaGrande({
 }) {
   return (
     <div className="flex flex-col gap-1">
-      <span className="text-muted-foreground text-center text-[0.7rem] tracking-wide uppercase">
+      <span className="text-muted-foreground text-center text-rotulo tracking-wide uppercase">
         {rotulo}
       </span>
       {children}
@@ -451,7 +451,7 @@ function Cronometro({
 
   return (
     <div className="flex flex-col items-center gap-2">
-      <span className="text-muted-foreground text-[0.7rem] tracking-wide uppercase">
+      <span className="text-muted-foreground text-rotulo tracking-wide uppercase">
         {unilateral ? "segundos (D)" : "segundos"}
       </span>
       <span

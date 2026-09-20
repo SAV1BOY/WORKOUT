@@ -54,7 +54,7 @@ export function ModoEditar({
               aria-label={`Subir ${item.nome}`}
               disabled={i === 0}
               onClick={() => aoMover(i, i - 1)}
-              className="alvo size-11 shrink-0"
+              className="alvo shrink-0"
             >
               <ChevronUp className="size-5" />
             </Button>
@@ -64,7 +64,7 @@ export function ModoEditar({
               aria-label={`Descer ${item.nome}`}
               disabled={i === itens.length - 1}
               onClick={() => aoMover(i, i + 1)}
-              className="alvo size-11 shrink-0"
+              className="alvo shrink-0"
             >
               <ChevronDown className="size-5" />
             </Button>

@@ -1445,9 +1445,54 @@ a tela — afrouxar o limite não é uma opção.
     uma faixa que rola sozinha (`overflow-x: auto/scroll`); a rolagem da página
     continua tendo de ser zero.
 
-### 22.3 Lote 3
+### 22.3 Lote 3 — Fundação visual
 
-(a preencher pelo lote)
+1. **44 px é o padrão, não a exceção.** A escala do `Button` passa a ser do
+   projeto: `sm` 40 px (sempre com `alvo`), `default` **44 px**, `lg` 48 px,
+   `xl` 56 px, `icon` 44 px e `icon-sm` 40 px; o `Input` nasce com 44 px. Os
+   tamanhos `xs`/`icon-xs` do shadcn (24 px) deixam de existir. Nenhum controle
+   da tela fica abaixo de 44 px — a varredura mede.
+2. **Um degrau real entre card e fundo.** O card mede **≥ 1,3:1** contra o
+   fundo e a borda **≥ 1,5:1** contra o card, nos dois temas. No escuro quem
+   sobe é o card (`#141414` → `#262626`, com `secondary`/`muted`/`accent`
+   acima dele); no claro quem desce é o fundo (`#fafafa` → `#e0e0dd`), com o
+   card seguindo branco. O laranja do tema claro escurece um degrau
+   (`#b8400c` → `#a03608`) para o pill `bg-primary/10` manter os 4,5:1.
+3. **Borda de campo visível.** `--input` deixa de ser a mesma cor dos
+   separadores e passa a valer como elemento de interface (WCAG SC 1.4.11):
+   **≥ 3:1** contra card, fundo e superfície secundária, nos dois temas.
+4. **Ilustrações sem placa acesa.** No tema escuro a placa clara atrás das
+   ilustrações de traço não passa de **60 % de luminância** (`#e7e4e0` →
+   `#cfcac4`); no claro ela é a cor do card. O traço continua com ≥ 4,5:1.
+5. **Elevação que existe nos dois temas.** O que flutua (o FAB "Ajustar", o
+   play do tutorial) usa `--sombra-flutuante`/`.flutuante` no lugar de
+   `shadow-lg`: sombra no tema claro, anel de 1 px na cor de destaque mais
+   glow curto no escuro, onde sombra preta sobre preto não aparece.
+6. **Texto pequeno com nome.** `text-rotulo` (11 px) e `text-micro` (10 px)
+   substituem os 43 `text-[11px]`/`[10px]`/`[9px]`/`[0.7rem]`/`[0.8rem]`
+   soltos. Nenhum texto da interface fica abaixo de 10 px.
+7. **Anel de foco em tudo que recebe foco.** `app/globals.css` desenha
+   `outline: 2px solid var(--ring)` em todo focável — link de card, linha de
+   lista, o cartão do IMC, as abas de baixo —, e o anel dos botões e campos
+   deixa de ser meio transparente (`ring-ring/50`) para ser a cor cheia. O
+   anel mede ≥ 3:1 contra o fundo nos dois temas.
+8. **Aba acesa com forma, não só cor.** O item aceso da barra de baixo ganha
+   uma barra de 2 px no topo e o rótulo em semibold, além do laranja.
+9. **Estado vazio com saída.** `components/ui/vazio.tsx` (ícone, título curto,
+   frase e ação opcional) substitui os `<p>` tracejados de uma linha nos oito
+   vazios secos, cada um com a ação útil quando existe ("Limpar filtros",
+   "Limpar busca", "Todos os registros", "Ver o treino de hoje").
+10. **Esqueleto com a forma da tela.** Além do `EsqueletoCard`, há
+    `EsqueletoCapa` (a capa do dia da aba Treino), `EsqueletoGrade3` (os três
+    contadores do Relatório) e `EsqueletoLista` (linhas com miniatura).
+11. **Texto cortado continua legível.** Todo `line-clamp` leva o texto inteiro
+    no `title` e, quando o elemento é clicável, também no nome acessível. Os
+    `title` que serviam só de tooltip (raios de dificuldade, dia da faixa da
+    semana, dia da grade do mês) viram texto só-leitor — no celular não existe
+    passar o mouse.
+12. **Voltar de Mais é botão.** O "Mais" do topo das telas de dentro de
+    `/mais` é um botão de ícone de 44 px com rótulo, padronizado com o topo do
+    player.
 
 ### 22.4 Lote 4
 

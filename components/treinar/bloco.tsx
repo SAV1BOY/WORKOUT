@@ -87,7 +87,7 @@ export function BlocoExercicio({
           <Button
             variant="ghost"
             size="icon"
-            className="alvo size-11 shrink-0"
+            className="alvo shrink-0"
             aria-label={`Como fazer: ${exercicio.nome}`}
             onClick={() => setFicha(true)}
           >
@@ -182,7 +182,7 @@ export function BlocoExercicio({
           onChange={(e) => aoMudarNota(e.target.value)}
           placeholder="Nota curta (opcional)"
           aria-label={`Nota do ${exercicio.nome}`}
-          className="border-input bg-background focus-visible:border-ring focus-visible:ring-ring/50 h-11 w-full rounded-lg border px-3 text-sm outline-none focus-visible:ring-3"
+          className="border-input bg-background focus-visible:border-ring focus-visible:ring-ring h-11 w-full rounded-lg border px-3 text-sm outline-none focus-visible:ring-3"
         />
       </CardContent>
     </Card>
@@ -208,7 +208,7 @@ function Substituir({
   return (
     <Sheet open={aberto} onOpenChange={setAberto}>
       <SheetTrigger asChild>
-        <Button variant="ghost" size="sm" className="alvo h-11 gap-1.5 px-3">
+        <Button variant="ghost" size="sm" className="alvo gap-1.5 px-3">
           <Repeat className="size-4" />
           substituir hoje
         </Button>

@@ -95,7 +95,7 @@ export function TelaGuia() {
           <div className="flex justify-end">
             <Button
               variant="ghost"
-              className="alvo text-muted-foreground -mr-2 h-11"
+              className="alvo text-muted-foreground -mr-2"
               disabled={salvando}
               onClick={() => void reconhecer("/")}
             >
@@ -200,7 +200,7 @@ function Secao({ secao }: { secao: SecaoDoGuia }) {
         {blocos.map((bloco, i) => (
           <div key={bloco.grupo ?? `bloco-${i}`}>
             {bloco.grupo ? (
-              <h3 className="text-muted-foreground border-border border-b pt-3 pb-1 text-[11px] font-medium tracking-wide uppercase first:pt-1">
+              <h3 className="text-muted-foreground border-border border-b pt-3 pb-1 text-rotulo font-medium tracking-wide uppercase first:pt-1">
                 {bloco.grupo}
               </h3>
             ) : null}
@@ -234,7 +234,7 @@ function MiniaturaDaBarra() {
         return (
           <span
             key={aba.href}
-            className={`flex flex-1 flex-col items-center gap-1 text-[10px] font-medium ${
+            className={`flex flex-1 flex-col items-center gap-1 text-micro font-medium ${
               i === 0 ? "text-primary" : "text-muted-foreground"
             }`}
           >
@@ -280,11 +280,11 @@ function Caminho({ chips }: { chips: readonly string[] }) {
       {chips.map((chip, i) => (
         <li key={`${chip}-${i}`} className="flex items-center gap-1">
           {i > 0 ? (
-            <span aria-hidden="true" className="text-muted-foreground text-[11px]">
+            <span aria-hidden="true" className="text-muted-foreground text-rotulo">
               →
             </span>
           ) : null}
-          <span className="bg-muted text-muted-foreground rounded-md px-1.5 py-0.5 text-[11px] font-medium">
+          <span className="bg-muted text-muted-foreground rounded-md px-1.5 py-0.5 text-rotulo font-medium">
             {chip}
           </span>
         </li>
@@ -296,7 +296,7 @@ function Caminho({ chips }: { chips: readonly string[] }) {
 /** O botão "Ir" (alvo ≥ 44 px) que abre a tela da função. */
 function Ir({ href, nome }: { href: string; nome: string }) {
   return (
-    <Button asChild variant="outline" className="alvo h-11 shrink-0 px-3">
+    <Button asChild variant="outline" className="alvo shrink-0 px-3">
       <Link href={href} data-ir={href} aria-label={`Ir para ${nome}`}>
         Ir
       </Link>

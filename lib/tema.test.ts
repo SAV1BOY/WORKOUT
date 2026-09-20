@@ -43,7 +43,7 @@ function sobre(frente: Cor, fundo: Cor, alfa: number): Cor {
   };
 }
 
-function luminancia({ r, g, b }: Cor): number {
+export function luminancia({ r, g, b }: Cor): number {
   const canal = (v: number) => {
     const x = v / 255;
     return x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4;
@@ -109,6 +109,33 @@ describe.each([
   it("o anel de foco aparece sobre o fundo (3:1, elemento gráfico)", () => {
     expect(contraste(pega("ring"), pega("background"))).toBeGreaterThanOrEqual(3);
     expect(contraste(pega("ring"), pega("card"))).toBeGreaterThanOrEqual(3);
+    expect(contraste(pega("ring"), pega("muted"))).toBeGreaterThanOrEqual(3);
+  });
+
+  /*
+   * SPEC §22.3 item 2. Medido antes do lote: card contra fundo dava 1,07:1 no
+   * escuro e 1,04:1 no claro — as superfícies praticamente não existiam. Os
+   * limiares deste bloco só sobem; afrouxar aqui é desfazer o item.
+   */
+  it("o card é um degrau acima do fundo, e a borda um degrau acima do card", () => {
+    expect(contraste(pega("card"), pega("background"))).toBeGreaterThanOrEqual(1.3);
+    expect(contraste(pega("popover"), pega("background"))).toBeGreaterThanOrEqual(1.3);
+    expect(contraste(pega("border"), pega("card"))).toBeGreaterThanOrEqual(1.5);
+    // as superfícies secundárias não podem voltar a ser buracos no card
+    for (const chave of ["secondary", "muted", "accent"] as const) {
+      expect(contraste(pega(chave), pega("card"))).toBeGreaterThanOrEqual(1.1);
+    }
+  });
+
+  /*
+   * SPEC §22.3 item 3 — WCAG SC 1.4.11: a borda de um campo é um elemento de
+   * interface, e precisa de 3:1 contra a superfície que o cerca. `--input`
+   * valia 1,36–1,46:1 no escuro.
+   */
+  it("a borda do campo tem 3:1 contra card, fundo e superfície secundária", () => {
+    for (const fundo of ["card", "background", "muted", "secondary"] as const) {
+      expect(contraste(pega("input"), pega(fundo))).toBeGreaterThanOrEqual(3);
+    }
   });
 
   it("as linhas dos gráficos sobre o card (3:1, elemento gráfico)", () => {
@@ -117,10 +144,64 @@ describe.each([
     }
   });
 
+  it("as linhas auxiliares dos gráficos aparecem sobre o card", () => {
+    // `chart-5` era #2e2e2e no escuro: sumia dentro do card novo
+    for (const chave of ["chart-4", "chart-5"] as const) {
+      expect(contraste(pega(chave), pega("card"))).toBeGreaterThanOrEqual(1.4);
+    }
+  });
+
   it("o mapa muscular distingue principal, auxiliar e corpo", () => {
     expect(contraste(pega("mprim"), pega("mbody"))).toBeGreaterThanOrEqual(3);
     // 3:1 também para o auxiliar: é elemento gráfico, e no mapa anatômico do
     // marco Mídia ele é a única marca de "esse músculo ajuda" na figura
     expect(contraste(pega("msec"), pega("mbody"))).toBeGreaterThanOrEqual(3);
+  });
+});
+
+/*
+ * SPEC §22.3 item 4: a placa clara atrás das ilustrações de traço. No escuro
+ * ela era `#e7e4e0` — 78 % de luminância, uma janela acesa de 328×208 px na
+ * ficha do exercício. Acima de 60 % ela volta a ofuscar num treino à noite.
+ */
+describe("a placa das ilustrações (tema escuro)", () => {
+  it("não passa de 60 % de luminância e mantém o traço legível", () => {
+    const placa = ESCURO["ilustracao-fundo"];
+    if (!placa) throw new Error("token --ilustracao-fundo não existe no .dark");
+    expect(luminancia(placa)).toBeLessThanOrEqual(0.6);
+    // o traço das ilustrações é preto puro sobre a placa
+    expect(contraste(placa, { r: 0, g: 0, b: 0 })).toBeGreaterThanOrEqual(4.5);
+  });
+});
+
+/*
+ * SPEC §22.3 item 5: o que flutua (o FAB "Ajustar", o play do tutorial) tem de
+ * ter contorno nos DOIS temas. `shadow-lg` é sombra preta: sobre `#0a0a0a` ela
+ * não existe, então o escuro ganha um anel na cor de destaque.
+ */
+describe("a elevação do que flutua", () => {
+  const bloco = (seletor: string): string => {
+    const i = CSS.indexOf(`${seletor} {`);
+    const j = CSS.indexOf("\n}", i);
+    return CSS.slice(i, j);
+  };
+
+  it("os dois temas definem --sombra-flutuante e o utilitário existe", () => {
+    expect(bloco(":root")).toContain("--sombra-flutuante:");
+    expect(bloco(".dark")).toContain("--sombra-flutuante:");
+    expect(CSS).toContain("box-shadow: var(--sombra-flutuante)");
+  });
+
+  it("no escuro o contorno é um anel de 1 px visível contra o fundo", () => {
+    const escuro = bloco(".dark");
+    const trecho = escuro.slice(escuro.indexOf("--sombra-flutuante:"));
+    const anel = trecho.match(/0 0 0 1px rgb\((\d+) (\d+) (\d+) \/ ([\d.]+)\)/);
+    if (!anel) throw new Error("o tema escuro não tem anel de 1 px na sombra flutuante");
+    const [, r, g, b, alfa] = anel;
+    const cor = { r: Number(r), g: Number(g), b: Number(b) };
+    const sobreFundo = sobre(cor, ESCURO.background!, Number(alfa));
+    const sobreCard = sobre(cor, ESCURO.card!, Number(alfa));
+    expect(contraste(sobreFundo, ESCURO.background!)).toBeGreaterThanOrEqual(3);
+    expect(contraste(sobreCard, ESCURO.card!)).toBeGreaterThanOrEqual(3);
   });
 });

@@ -84,7 +84,7 @@ export function CardCapa({
           (auditoria do lote 2).
         */}
         {etiqueta ? (
-          <span className="bg-primary text-primary-foreground absolute top-3 left-3 z-10 rounded-full px-2.5 py-1 text-[11px] font-semibold tracking-wide uppercase">
+          <span className="bg-primary text-primary-foreground absolute top-3 left-3 z-10 rounded-full px-2.5 py-1 text-rotulo font-semibold tracking-wide uppercase">
             {etiqueta}
           </span>
         ) : null}

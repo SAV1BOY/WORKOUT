@@ -233,11 +233,13 @@ test("varredura: todo texto visível passa no contraste AA", async ({ page }) =>
 // =====================================================================
 
 /*
- * FIXME (lote de Corpo): em `/corpo`, nos dois temas, o 2º focável (o cartão
- * do IMC, uma `div` focável) e o 7º (um `input`) não desenham anel nenhum —
- * nem `outline`, nem `box-shadow`. As outras onze rotas passam.
+ * Arrumado no Lote 3 (SPEC §22.3 item 7): `app/globals.css` passou a desenhar
+ * `outline: 2px solid var(--ring)` em TODO focável — link de card, linha de
+ * lista, o cartão do IMC de `/corpo`, as abas de baixo —, e o anel dos
+ * botões e campos do shadcn deixou de ser `ring-ring/50` (2,9:1 no escuro,
+ * 2,2:1 no claro) para ser a cor cheia.
  */
-test.fixme("varredura: o Tab deixa um anel de foco visível", async ({ page }) => {
+test("varredura: o Tab deixa um anel de foco visível", async ({ page }) => {
   const problemas: string[] = [];
   for (const tema of TEMAS) {
     for (const rota of ROTAS) {

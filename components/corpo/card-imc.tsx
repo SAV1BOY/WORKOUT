@@ -81,7 +81,7 @@ export function CardImc({
             aoMudar={setAltura}
           />
           <Button
-            className="alvo h-11 shrink-0"
+            className="alvo shrink-0"
             onClick={() => {
               if (altura) aoMudarAltura(altura);
               setEditando(false);
@@ -124,10 +124,10 @@ export function CardImc({
               className="border-background bg-foreground absolute top-0 size-4 -translate-x-1/2 rounded-full border-2"
               style={{ left: `${(posicao ?? 0) * 100}%` }}
             />
-            <span className="text-muted-foreground numero absolute bottom-0 left-0 text-[10px]">
+            <span className="text-muted-foreground numero absolute bottom-0 left-0 text-micro">
               {IMC_MIN}
             </span>
-            <span className="text-muted-foreground numero absolute right-0 bottom-0 text-[10px]">
+            <span className="text-muted-foreground numero absolute right-0 bottom-0 text-micro">
               {IMC_MAX}
             </span>
           </div>

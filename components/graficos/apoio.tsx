@@ -3,6 +3,8 @@
  * carrega a legenda e o "sem dados" sem trazer a biblioteca junto
  * (`components/graficos/index.tsx` importa o gráfico sob demanda).
  */
+import { ChartSpline } from "lucide-react";
+import { Vazio, type AcaoDoVazio } from "@/components/ui/vazio";
 export interface SerieDoGrafico {
   chave: string;
   nome: string;
@@ -31,11 +33,18 @@ export function LegendaDoGrafico({ series }: { series: readonly SerieDoGrafico[]
   );
 }
 
-/** O que aparece no lugar do gráfico enquanto não há dado nenhum. */
-export function SemDados({ children }: { children: React.ReactNode }) {
-  return (
-    <p className="border-border text-muted-foreground rounded-lg border border-dashed px-3 py-6 text-center text-sm text-balance">
-      {children}
-    </p>
-  );
+/**
+ * O que aparece no lugar do gráfico enquanto não há dado nenhum (SPEC §22.3
+ * item 9). `acao` é opcional: nem todo gráfico tem uma saída óbvia.
+ */
+export function SemDados({
+  children,
+  titulo = "Sem dados por enquanto",
+  acao,
+}: {
+  children: React.ReactNode;
+  titulo?: string;
+  acao?: AcaoDoVazio;
+}) {
+  return <Vazio icone={ChartSpline} titulo={titulo} frase={children} acao={acao} />;
 }

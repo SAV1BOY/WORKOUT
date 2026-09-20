@@ -51,10 +51,10 @@ export function BannerSessaoAberta({
         {texto}
       </p>
       <div className="flex gap-2">
-        <Button asChild className="alvo h-11 flex-1">
+        <Button asChild className="alvo flex-1">
           <Link href={href}>Continuar</Link>
         </Button>
-        <Button variant="outline" className="alvo h-11 flex-1" onClick={aoDescartar}>
+        <Button variant="outline" className="alvo flex-1" onClick={aoDescartar}>
           Descartar
         </Button>
       </div>
@@ -334,7 +334,7 @@ export function CardDescanso({
 
         <div className="border-border cartao flex items-center justify-between gap-3 border p-3">
           <div className="flex flex-col">
-            <span className="text-muted-foreground text-[11px] tracking-wide uppercase">
+            <span className="text-muted-foreground text-rotulo tracking-wide uppercase">
               Soltas de hoje
             </span>
             <span className="numero-grande text-3xl">{total}</span>

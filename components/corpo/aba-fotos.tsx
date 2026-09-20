@@ -112,7 +112,7 @@ export function AbaFotos({
               >
                 <Camera className="size-5" aria-hidden="true" />
                 <span className="text-xs font-medium">{NOME_ANGULO[angulo]}</span>
-                <span className="text-muted-foreground text-[10px]">
+                <span className="text-muted-foreground text-micro">
                   {enviando === angulo ? "enviando…" : "escolher"}
                 </span>
                 <input
@@ -180,7 +180,7 @@ export function AbaFotos({
                               {foto ? "…" : "—"}
                             </span>
                           )}
-                          <figcaption className="text-muted-foreground text-center text-[10px]">
+                          <figcaption className="text-muted-foreground text-center text-micro">
                             {NOME_ANGULO[angulo]}
                           </figcaption>
                         </figure>
@@ -248,7 +248,7 @@ function Comparacao({
           <>
             <div className="grid grid-cols-2 gap-2">
               <label className="flex flex-col gap-1">
-                <span className="text-muted-foreground text-[11px] tracking-wide uppercase">
+                <span className="text-muted-foreground text-rotulo tracking-wide uppercase">
                   Antes
                 </span>
                 <select
@@ -264,7 +264,7 @@ function Comparacao({
                 </select>
               </label>
               <label className="flex flex-col gap-1">
-                <span className="text-muted-foreground text-[11px] tracking-wide uppercase">
+                <span className="text-muted-foreground text-rotulo tracking-wide uppercase">
                   Depois
                 </span>
                 <select

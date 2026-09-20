@@ -428,11 +428,11 @@ function Numero({
 }) {
   return (
     <div className="border-border bg-card flex flex-col gap-0.5 rounded-xl border p-3">
-      <span className="text-muted-foreground text-[11px] tracking-wide uppercase">
+      <span className="text-muted-foreground text-rotulo tracking-wide uppercase">
         {rotulo}
       </span>
       <span className="numero text-2xl">{valor}</span>
-      <span className="text-muted-foreground text-[11px] text-balance">{detalhe}</span>
+      <span className="text-muted-foreground text-rotulo text-balance">{detalhe}</span>
     </div>
   );
 }

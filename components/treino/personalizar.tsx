@@ -1,11 +1,12 @@
 "use client";
 
-import { Check, Plus, Search, X } from "lucide-react";
+import { Check, Plus, Search, SearchX, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useSessaoLivre } from "@/components/colecoes/usar-sessao-livre";
 import { BotaoLargo } from "@/components/ui/botao-largo";
 import { Input } from "@/components/ui/input";
 import { Miniatura } from "@/components/ui/miniatura";
+import { Vazio } from "@/components/ui/vazio";
 import {
   Sheet,
   SheetContent,
@@ -155,8 +156,14 @@ export function Personalizar({ prefs }: { prefs?: Prefs }) {
               );
             })}
             {achados.length === 0 ? (
-              <li className="text-muted-foreground py-6 text-center text-sm">
-                Nenhum exercício com esse nome.
+              <li>
+                <Vazio
+                  icone={SearchX}
+                  titulo="Nenhum exercício com esse nome"
+                  frase="A busca olha o nome do exercício; tente uma palavra só."
+                  acao={{ rotulo: "Limpar busca", aoTocar: () => setBusca("") }}
+                  className="border-0"
+                />
               </li>
             ) : null}
           </ul>

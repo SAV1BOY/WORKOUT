@@ -119,7 +119,7 @@ export function AbaMedidas({
                   }
                   className="alvo numero h-12"
                 />
-                <span className="text-muted-foreground text-[10px] text-balance">
+                <span className="text-muted-foreground text-micro text-balance">
                   {m.onde}
                 </span>
               </div>
@@ -149,7 +149,7 @@ export function AbaMedidas({
         </CardHeader>
         <CardContent className="flex flex-col gap-2">
           <label className="flex flex-col gap-1">
-            <span className="text-muted-foreground text-[11px] tracking-wide uppercase">
+            <span className="text-muted-foreground text-rotulo tracking-wide uppercase">
               Medida
             </span>
             <select

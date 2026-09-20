@@ -1,10 +1,11 @@
 "use client";
 
-import { Flame, Pause } from "lucide-react";
+import { Flame, History, Pause } from "lucide-react";
 import Link from "next/link";
 import { addDays } from "date-fns";
 import { useMemo, useState } from "react";
 import { FaixaSemana } from "@/components/ui/faixa-semana";
+import { Vazio } from "@/components/ui/vazio";
 import { formatarData } from "@/lib/formato";
 import { iso, inicioDaSemana, paraData } from "@/lib/calendario";
 import { registros, textoDoMotorDaSessao, type EventoDeSessao } from "@/lib/relatorio";
@@ -137,11 +138,26 @@ export function Historico({
       </div>
 
       {mostrados.length === 0 ? (
-        <p className="border-border text-muted-foreground rounded-lg border border-dashed px-3 py-6 text-center text-sm">
-          {tudo
-            ? "Nenhum registro ainda — o primeiro treino concluído aparece aqui."
-            : "Nada registrado nesta semana."}
-        </p>
+        <Vazio
+          icone={History}
+          titulo={tudo ? "Nenhum registro ainda" : "Nada registrado nesta semana"}
+          frase={
+            tudo
+              ? "O primeiro treino concluído aparece aqui, com séries, carga e tempo."
+              : "Esta semana está vazia; os registros antigos continuam guardados."
+          }
+          acao={
+            tudo
+              ? { rotulo: "Ver o treino de hoje", href: "/" }
+              : {
+                  rotulo: "Todos os registros",
+                  aoTocar: () => {
+                    setTudo(true);
+                    setPaginas(1);
+                  },
+                }
+          }
+        />
       ) : (
         <ul aria-label="Registros" className="flex flex-col divide-y">
           {mostrados.map((r) => (

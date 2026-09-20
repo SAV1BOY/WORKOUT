@@ -28,6 +28,7 @@ import {
   type ConquistaAvaliada,
   type IconeDaConquista,
 } from "@/lib/conquistas";
+import { Vazio } from "@/components/ui/vazio";
 import { formatarData, formatarDataCompleta, formatarNumero } from "@/lib/formato";
 import { cn } from "@/lib/utils";
 
@@ -74,6 +75,19 @@ export function Conquistas({ lista }: { lista: ConquistaAvaliada[] }) {
         </p>
       </div>
 
+      {/*
+        SPEC §22.3 item 9: sem avaliação na mão (conta nova, leitura que
+        falhou) a seção ficava como um título solto sobre o nada.
+      */}
+      {lista.length === 0 ? (
+        <Vazio
+          icone={Trophy}
+          titulo="Nenhuma conquista avaliada ainda"
+          frase="Elas saem dos seus registros: conclua um treino e a contagem começa."
+          acao={{ rotulo: "Ver o treino de hoje", href: "/" }}
+        />
+      ) : null}
+
       <ul aria-label="Lista de conquistas" className="grid grid-cols-3 gap-2">
         {lista.map((c) => (
           <li key={c.id}>
@@ -102,7 +116,7 @@ export function Conquistas({ lista }: { lista: ConquistaAvaliada[] }) {
               </span>
               <span
                 className={cn(
-                  "text-[11px] leading-tight font-medium text-balance",
+                  "text-rotulo leading-tight font-medium text-balance",
                   c.atingida ? "text-foreground" : "text-muted-foreground",
                 )}
               >
@@ -110,7 +124,7 @@ export function Conquistas({ lista }: { lista: ConquistaAvaliada[] }) {
               </span>
               <span
                 className={cn(
-                  "text-[10px] leading-tight text-balance",
+                  "text-micro leading-tight text-balance",
                   c.atingida ? "numero text-primary" : "text-muted-foreground",
                 )}
               >
