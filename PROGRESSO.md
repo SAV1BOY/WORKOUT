@@ -6153,9 +6153,101 @@ de fumaça na URL. Fumaça vermelha = rollback imediato para o deploy anterior.
 Nada entra em produção sem capturas comparadas contra a base e sem a lista de
 telas que era esperado mudar.
 
-### Rodada 1 — Lote 1
+### Rodada 1 — Lote 1 — player, offline e rótulos (faixa A) ✅
 
-(a preencher)
+Branch `ultraloop/l1-player-offline`, oito itens. O que mudou, item a item:
+
+**L1-1 · sem rede, `/mais/*` caía na página de erro do navegador.**
+Era: o fallback do service worker (`app/sw.ts`) só cobria
+`request.destination === "document"`; a navegação do App Router tem duas formas
+— o documento e o `fetch` de RSC (`RSC: 1`, `?_rsc=…`) — e a segunda morria
+antes de virar navegação. `/mais/contas`, `/mais/senha` e `/mais/creditos`
+abriam em branco. É: uma regra própria, **antes** do `defaultCache`, atende
+toda navegação de mesma origem (rede primeiro, cache depois) e, sem nem um nem
+outro, devolve a `/~offline`; no caminho do RSC devolve um 503 sem corpo, que
+faz o roteador desistir da navegação suave e recarregar a URL — a recarga é um
+documento e cai na página de offline, com o endereço que o usuário pediu
+intacto. Se o precache da `/~offline` tiver falhado, um HTML mínimo embutido
+garante que a navegação nunca morra num erro do navegador.
+Arquivos: `app/sw.ts`, `e2e/auditoria-offline.spec.ts`.
+
+**L1-2 · a `/~offline` era um parágrafo solto.**
+Era: título e uma frase, sem saída. É: ícone de rede cortada (lucide
+`WifiOff`), "Sem conexão", a frase curta, **Tentar de novo** (recarrega) e **Ir
+para o Treino** — alvos de 48 px, `max-w-lg`, área segura e os dois temas.
+Arquivo: `app/~offline/page.tsx`.
+
+**L1-3 · o player reservava 56 px para uma barra que não existe.**
+Era: os controles (anterior · ✓ · próximo) e o rodapé da visão geral paravam em
+`bottom-14`, o espaço da barra de abas — que o player devolve como `null`. Uma
+faixa morta bem onde fica o polegar. É: `bottom-0` + `.pb-segura`
+(`env(safe-area-inset-bottom)`) nos dois, a seção rolável com `pb-24` em vez de
+`pb-40`, e o descanso e o FAB "Ajustar" somando a área segura ao respiro que já
+tinham. Arquivos: `components/player/exercicio.tsx`,
+`components/player/tela-player.tsx`, `components/player/descanso.tsx`,
+`components/treino/fab-ajustar.tsx`, `components/treinar/visao-geral.tsx`.
+
+**L1-4 · `prefers-reduced-motion` não era respeitado.**
+Era: os esqueletos `animate-pulse` giravam para sempre mesmo com a preferência
+ligada, e a ilustração de duas posições alternava sozinha. É: um bloco global no
+fim de `app/globals.css` corta duração e repetição de toda animação CSS sob
+`reduce`, e a `IlustracaoAlternada` nasce **parada** sob `reduce` ou com a aba
+escondida (`visibilitychange`) — o botão continua mandando: quem tocar volta a
+ver o movimento. Contagens e anel de progresso são JavaScript e não mudaram.
+O `test.fixme` da varredura saiu. Arquivos: `app/globals.css`,
+`components/exercicio/ilustracao-alternada.tsx`, `lib/preferencias.ts`
+(`ilustracaoAlternando`, função pura com teste), `e2e/ultraloop-varredura.spec.ts`.
+
+**L1-5 · o polegar para cima vinha "pressionado".**
+Era: `aria-pressed={!evitado}` — o app afirmava, por escrito, um "gostei" que o
+usuário nunca deu. É: três estados — nenhum (padrão, os dois polegares
+neutros e **sem** `aria-pressed`), preferido (`prefs.preferidos`, novo no
+jsonb) e evitado (`prefs.evitar_exercicios`, como antes). Tocar no polegar
+aceso desfaz o voto; gostar de um exercício deixa de evitá-lo e vice-versa.
+Arquivos: `components/player/exercicio.tsx`, `components/player/tela-player.tsx`,
+`lib/preferencias.ts` (+ teste), `e2e/player.spec.ts`.
+
+**L1-6 · a conclusão pedia de novo o peso já registrado.**
+Era: `useState(false)` fixo — fechar e reabrir a tela trazia de volta o convite
+"Registrar o peso de hoje", mesmo com a pesagem do dia no banco ou com o peso
+digitado dois passos atrás. É: o campo nasce aberto quando há peso digitado
+nesta sessão e, havendo a pesagem de hoje (`body_weights` com a data de hoje),
+a tela mostra **"Peso de hoje: 82,4 kg"** com um "Corrigir" ao lado.
+Arquivos: `components/player/conclusao.tsx`, `components/player/tela-player.tsx`,
+`e2e/player.spec.ts`.
+
+**L1-7 · "sab" sem acento na faixa da semana.**
+Era: `format("EEEEEE", ptBR)` devolvia "sab" na faixa, ao lado de um calendário
+que escreve "SÁB". É: um mapa de sete rótulos em `lib/formato.ts`, com teste que
+prende a igualdade com o `diaCurto` do calendário em toda a semana.
+Arquivos: `lib/formato.ts`, `lib/formato.test.ts`.
+
+**L1-8 · não dava para saber qual build estava no ar.**
+Era: a fumaça do deploy só conseguia dizer "abriu". É: `GET /versao` devolve
+`{commit, construidoEm}` (rota pública, `Cache-Control: no-store`), com o commit
+vindo de `VERCEL_GIT_COMMIT_SHA` ou do `git rev-parse` do build; o rodapé de
+Mais → Créditos mostra "Versão abc1234". Arquivos: `app/versao/route.ts`,
+`next.config.ts`, `lib/supabase/middleware.ts`,
+`app/(app)/mais/creditos/page.tsx`, `e2e/shell.spec.ts`.
+
+**Provas.** Portões completos pelo `portoes.sh` (lint · tsc · vitest · build de
+produção · build de e2e · e2e · varredura). Unitários novos em
+`lib/preferencias.test.ts` (polegar de três estados e a regra da ilustração) e
+`lib/formato.test.ts` (os sete rótulos). E2E novos ou ajustados em
+`e2e/ultraloop-a-r1.spec.ts` (controles colados no rodapé nos dois temas, a
+`/~offline` com saída, `reduced-motion`), `e2e/auditoria-offline.spec.ts`
+(`/mais/*` sem rede), `e2e/player.spec.ts` (polegar e peso do dia) e
+`e2e/shell.spec.ts` (`/versao`). Capturas dos dois temas em
+`rodada-1/l1/capturas/construtor/`.
+
+**Como testar no celular.** Entre no treino do dia e vá até o primeiro
+exercício: o ✓ agora encosta no rodapé, sem faixa cinza embaixo, e os dois
+polegares no topo começam apagados — toque no de baixo e ele acende sozinho,
+toque de novo e apaga. Termine o treino: se você já se pesou hoje, a conclusão
+mostra o peso em vez de pedir de novo. Ligue "Reduzir movimento" nos ajustes do
+celular e abra uma ficha de exercício: a ilustração fica parada até você tocar
+nela. Por fim, ative o modo avião e abra Mais → Contas: em vez da tela de erro
+do navegador aparece "Sem conexão", com "Tentar de novo" e "Ir para o Treino".
 
 ### Rodada 1 — Lote 2
 

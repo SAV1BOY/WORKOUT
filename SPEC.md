@@ -1368,9 +1368,38 @@ A varredura que mede 1–4 em doze rotas × dois temas é
 marcado com `test.fixme` e o motivo; tirar o fixme é tarefa do lote que arruma
 a tela — afrouxar o limite não é uma opção.
 
-### 22.1 Lote 1
+### 22.1 Lote 1 — Player, offline e rótulos
 
-(a preencher pelo lote)
+1. **Sem rede, qualquer rota cai na `/~offline`.** O fallback do service worker
+   deixava de fora a navegação do App Router (o `fetch` de RSC e o documento que
+   não chega a ser um `destination: "document"`): `/mais/contas`, `/mais/senha` e
+   `/mais/creditos` abriam a página de erro do navegador. Agora uma regra própria
+   atende toda navegação de mesma origem — documento **ou** RSC — e, quando não
+   há rede nem cache, entrega a `/~offline`; no caminho do RSC ela devolve uma
+   resposta que não é payload, o que faz o roteador desistir da navegação suave e
+   recarregar a URL, que aí cai na página de offline.
+2. **A `/~offline` tem identidade e saída:** ícone de rede cortada, "Sem
+   conexão", "Tentar de novo" (recarrega) e "Ir para o Treino".
+3. **O player usa a tela inteira.** A barra de abas não existe no player, então
+   os controles (anterior · ✓ · próximo) e o overlay da visão geral deixam de
+   reservar os 56 px dela e passam a respeitar a área segura do aparelho
+   (`env(safe-area-inset-bottom)`), como o descanso e o botão "Ajustar".
+4. **`prefers-reduced-motion: reduce` é respeitado em todo o app**: nenhuma
+   animação CSS se repete para sempre (os esqueletos de carregamento incluídos) e
+   a ilustração de duas posições nasce **parada** — sob `reduce` ou com a aba
+   escondida. O botão de pausar/retomar continua mandando: quem tocar volta a
+   alternar. Contagens e anéis de progresso são JavaScript e não mudam.
+5. **O polegar para cima deixa de vir "pressionado".** A avaliação do exercício
+   vira de três estados — nenhum (padrão), preferido (`prefs.preferidos`) e
+   evitado (`prefs.evitar_exercicios`) — e nenhum dos dois botões afirma um
+   estado (`aria-pressed`) antes do primeiro toque.
+6. **A conclusão não reoferece o peso já registrado**: havendo pesagem de hoje
+   (ou peso digitado nesta sessão), a tela mostra "Peso de hoje: 82,4 kg" com um
+   "Corrigir" em vez do convite "Registrar o peso de hoje".
+7. **"sáb" com acento** na faixa da semana, igual ao calendário.
+8. **`/versao`** devolve `{commit, construidoEm}` (rota pública, `no-store`) e o
+   rodapé de Mais → Créditos mostra "Versão abc1234": é o que o teste de fumaça
+   do deploy compara para saber qual build está no ar.
 
 ### 22.2 Lote 2
 

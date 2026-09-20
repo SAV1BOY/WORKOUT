@@ -70,9 +70,19 @@ export function formatarMesAno(valor: DataEntrada): string {
   return format(paraData(valor), "MMMM 'de' yyyy", { locale: ptBR });
 }
 
-/** seg · ter · qua … (rótulo curto do calendário) */
+/**
+ * seg · ter · qua · qui · sex · **sáb** · dom — o rótulo curto do calendário e
+ * da faixa da semana.
+ *
+ * O `EEEEEE` do date-fns devolve "sab" sem acento, e a faixa da semana ficava
+ * escrevendo "sab" ao lado de um calendário que escreve "SÁB" (SPEC §22.1).
+ * O mapa é o mesmo de `diaCurto` em `lib/hoje.ts`; o índice é o do relógio
+ * local, como todo o resto do app (SPEC §5).
+ */
+const DIAS_CURTOS = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"] as const;
+
 export function formatarDiaCurto(valor: DataEntrada): string {
-  return format(paraData(valor), "EEEEEE", { locale: ptBR }).replace(".", "");
+  return DIAS_CURTOS[paraData(valor).getDay()] ?? "";
 }
 
 /** 150 → "2:30" · 3720 → "1:02:00" · 45 → "0:45" */

@@ -205,13 +205,14 @@ describe("faixa da semana (SPEC §13.3)", () => {
       montarGrade({ data: SEMANA_1, perfil: PERFIL, hoje: SEMANA_1 }),
     );
     expect(faixa).toHaveLength(7);
+    // "sáb" com acento, igual ao calendário (SPEC §22.1)
     expect(faixa.map((d) => d.rotulo)).toEqual([
       "seg",
       "ter",
       "qua",
       "qui",
       "sex",
-      "sab",
+      "sáb",
       "dom",
     ]);
     expect(faixa.map((d) => d.numero)).toEqual([14, 15, 16, 17, 18, 19, 20]);
