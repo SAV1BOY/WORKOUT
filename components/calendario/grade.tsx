@@ -102,20 +102,20 @@ export function MesEmMiniatura({
         ))}
         {semanas.flat().map((d) => (
           /*
-            SPEC §22.3 item 11: `title` era tooltip — no celular não existe.
-            A data completa e a marca vão num texto só-leitor.
+            SPEC §22.3 item 11: `title` era tooltip — no celular não existe. A
+            data completa e a marca viram o nome acessível da casa (`role=img`
+            + `aria-label`), sem texto novo na página.
           */
           <span
             key={d.data}
+            role="img"
+            aria-label={`${formatarData(d.data)}: ${NOME_DA_MARCA[d.marca]}`}
             className={cn(
               "flex flex-col items-center gap-0.5 rounded py-1 text-rotulo",
               d.doMes ? "" : "opacity-30",
               d.ehHoje && "bg-primary/15 font-semibold",
             )}
           >
-            <span className="sr-only">
-              {formatarData(d.data)}: {NOME_DA_MARCA[d.marca]}
-            </span>
             <span aria-hidden className="numero">
               {d.numero}
             </span>

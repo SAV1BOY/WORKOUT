@@ -106,8 +106,10 @@ test("o card é um degrau acima do fundo e a borda do campo tem 3:1", async ({
       const fundo = [raiz[0], raiz[1], raiz[2]];
       const estilo = getComputedStyle(document.documentElement);
       const hex = (nome) => estilo.getPropertyValue(nome).trim();
+      // o CSS servido vem minificado: #ffffff vira #fff
       const paraRgb = (v) => {
-        const n = v.replace('#', '');
+        let n = v.trim().replace('#', '');
+        if (n.length === 3) n = n[0] + n[0] + n[1] + n[1] + n[2] + n[2];
         return [parseInt(n.slice(0,2),16), parseInt(n.slice(2,4),16), parseInt(n.slice(4,6),16)];
       };
       const card = paraRgb(hex('--card'));
@@ -330,7 +332,10 @@ test("o texto cortado em duas linhas continua inteiro no title", async ({ page }
 
 test("o voltar de Mais é um botão de 44 px", async ({ page }) => {
   await abrir(page, "/mais/preferencias", "dark");
-  const voltar = page.getByRole("link", { name: "Mais", exact: true });
+  // dentro do cabeçalho: a barra de abas também tem um link "Mais"
+  const voltar = page
+    .locator("header")
+    .getByRole("link", { name: "Mais", exact: true });
   await expect(voltar).toBeVisible();
   const caixa = await voltar.boundingBox();
   expect(Math.round(caixa?.height ?? 0)).toBeGreaterThanOrEqual(44);

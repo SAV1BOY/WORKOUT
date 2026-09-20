@@ -1,7 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { cn } from "cn";
+import { cn } from "@/lib/utils";
 
 /** A saída oferecida pelo estado vazio: um link ou um botão. */
 export type AcaoDoVazio =

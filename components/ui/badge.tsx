@@ -1,6 +1,6 @@
 import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
-import { cn } from "cn"
+import { cn } from "@/lib/utils"
 /*
  * `@radix-ui/react-slot` direto, e não o guarda-chuva `radix-ui`: importado de
  * um Server Component (a ficha do exercício usa <Badge> direto na página), o

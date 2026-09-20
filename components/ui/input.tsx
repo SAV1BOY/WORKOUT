@@ -1,5 +1,5 @@
 import * as React from "react"
-import { cn } from "cn"
+import { cn } from "@/lib/utils"
 
 /**
  * O campo do projeto (SPEC §22.3 item 1): 44 px de altura por padrão — o

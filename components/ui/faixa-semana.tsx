@@ -36,11 +36,14 @@ export function FaixaSemana({
       {dias.map((dia) => (
         <li key={dia.data} className="flex-1">
           {/*
-            SPEC §22.3 item 11: sem `title` (tooltip não existe no celular).
-            O dia inteiro — "Quarta 16/09: Treino A, feito" — vai num texto
-            só-leitor, que é o que o leitor de tela anuncia.
+            SPEC §22.3 item 11: sem `title` — tooltip não existe no celular, e
+            o dia inteiro ("Quarta 16/09: Treino A, feito") já é o nome
+            acessível do próprio item. Texto `sr-only` foi tentado e
+            descartado: ele entra no `getByText` como texto da página.
           */}
           <span
+            role="img"
+            aria-label={dia.titulo}
             data-dia={dia.data}
             data-marca={dia.ehHoje ? "hoje" : dia.marca}
             className={cn(
@@ -48,7 +51,6 @@ export function FaixaSemana({
               dia.ehHoje && "bg-primary/15 ring-primary/50 ring-1",
             )}
           >
-            <span className="sr-only">{dia.titulo}</span>
             <span
               aria-hidden="true"
               className={cn(

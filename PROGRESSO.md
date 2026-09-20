@@ -6422,6 +6422,16 @@ Era: `text-[11px]`, `text-[10px]`, `text-[9px]`, `text-[0.7rem]` e
 degraus com nome no `@theme` — `text-rotulo` (11 px) e `text-micro` (10 px) —,
 e nada abaixo de 10 px. Arquivos: `app/globals.css` e os 20 pontos de uso.
 
+*A armadilha, que os testes pegaram:* o mesclador de classes (`cn`) não
+conhecia os dois nomes novos e os classificava como **cor** de texto — todo
+`text-<algo>` desconhecido cai no grupo da cor. Numa chamada como
+`cn("text-rotulo leading-none", aceso ? "text-primary" : "text-muted-foreground")`
+ele jogava o tamanho fora, e a faixa da semana e a barra de abas voltavam aos
+16 px herdados: a faixa passou a vazar 13 px dos 360. `lib/utils.ts` agora cria
+o `cn` com `createCn({ extend: { classGroups: { "font-size": [{ text: ["rotulo",
+"micro"] }] } } })`, os treze arquivos que importavam de `"cn"` passam por ele, e
+`lib/utils.test.ts` prende o comportamento.
+
 **L3-7 · o foco só existia em botão e campo.**
 Era: o `<Link>` de um card, a linha de uma lista, o cartão do IMC de `/corpo` e
 as abas de baixo não desenhavam **nada** ao receber Tab, e o anel dos botões e
@@ -6444,7 +6454,7 @@ Arquivo: `components/nav-inferior.tsx`.
 Era: "Nenhum exercício com esses filtros." numa linha, sem dizer o que fazer.
 É: `components/ui/vazio.tsx` — ícone, título curto, uma frase e a ação quando
 ela existe — nos oito: catálogo e parte do corpo ("Limpar filtros"), Explorar e
-treino personalizado ("Limpar busca"), histórico do Relatório ("Todos os
+treino personalizado ("Limpar busca"), histórico do Relatório ("Ver todos os
 registros" / "Ver o treino de hoje"), gráficos sem dado, conquistas ainda não
 avaliadas e Mais → Contas. Textos de **interface**; nada de conteúdo de treino,
 que só sai dos JSON. Arquivos: `components/ui/vazio.tsx` e os oito usos.
@@ -6474,7 +6484,7 @@ Era: um `<Link>` de 14 px com `alvo`, sem cara de botão. É: botão fantasma co
 `ChevronLeft` de 20 px e o rótulo "Mais", 44 px de altura, igual ao topo do
 player. Arquivo: `components/mais/cabecalho.tsx`.
 
-**Provas.** `lib/tema.test.ts` cresceu de 21 para 25 casos: o degrau
+**Provas.** `lib/tema.test.ts` cresceu de 16 para 25 casos: o degrau
 card/fundo e borda/card, a borda do campo com 3:1 contra quatro superfícies, o
 anel de foco contra o `muted`, as linhas auxiliares dos gráficos, a placa das
 ilustrações abaixo de 60 % de luminância e o anel da sombra flutuante — os
