@@ -7,6 +7,8 @@ const PUBLICAS = [
   "/login",
   "/auth/callback",
   "/~offline",
+  // o teste de fumaça do deploy pergunta qual build está no ar (SPEC §22.1)
+  "/versao",
   "/manifest.webmanifest",
   "/sw.js",
   "/robots.txt",

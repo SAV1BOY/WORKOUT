@@ -271,12 +271,12 @@ test.fixme("varredura: o Tab deixa um anel de foco visível", async ({ page }) =
 // =====================================================================
 
 /*
- * FIXME (lote de Calendário): os esqueletos de carregamento do `/calendario`
- * usam `animate-pulse`, que é uma animação infinita e não é desligada por
- * `prefers-reduced-motion: reduce` — nove delas continuam rodando no tema
- * escuro. O conserto é no CSS global, não neste teste.
+ * Resolvido no lote 1 da rodada 1 (SPEC §22.1): o bloco global de
+ * `prefers-reduced-motion: reduce` em `app/globals.css` corta a repetição de
+ * toda animação CSS — os esqueletos `animate-pulse` do `/calendario`
+ * inclusive —, e a ilustração alternada nasce parada por conta própria.
  */
-test.fixme("varredura: com reduced-motion nada anima para sempre", async ({ page }) => {
+test("varredura: com reduced-motion nada anima para sempre", async ({ page }) => {
   const problemas: string[] = [];
   for (const tema of TEMAS) {
     for (const rota of ROTAS) {

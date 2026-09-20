@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
@@ -38,6 +39,30 @@ function arquivosDoPublic(): { url: string; revision: string }[] {
   }
   return entradas;
 }
+
+/**
+ * O commit que virou este build (SPEC §22.1). Na Vercel ele vem pronto na
+ * `VERCEL_GIT_COMMIT_SHA`; aqui é o `git rev-parse` mesmo. Sem git e sem
+ * variável (um `npm run build` dentro de um tarball) fica "dev" — a rota
+ * `/versao` continua respondendo, dizendo a verdade.
+ */
+function commitDoBuild(): string {
+  const daVercel = process.env.VERCEL_GIT_COMMIT_SHA;
+  if (daVercel) return daVercel;
+  try {
+    return (
+      execFileSync("git", ["rev-parse", "HEAD"], {
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "ignore"],
+      }).trim() || "dev"
+    );
+  } catch {
+    return "dev";
+  }
+}
+
+const COMMIT = commitDoBuild();
+const CONSTRUIDO_EM = new Date().toISOString();
 
 /** Muda a cada build: é o que faz o service worker rebaixar o HTML velho. */
 const REVISAO = createHash("md5")
@@ -94,6 +119,11 @@ const CABECALHOS_DE_SEGURANCA = [
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  /* o que a rota `/versao` e o rodapé dos Créditos mostram (SPEC §22.1) */
+  env: {
+    NEXT_PUBLIC_COMMIT: COMMIT,
+    NEXT_PUBLIC_CONSTRUIDO_EM: CONSTRUIDO_EM,
+  },
   async headers() {
     return [{ source: "/:caminho*", headers: CABECALHOS_DE_SEGURANCA }];
   },

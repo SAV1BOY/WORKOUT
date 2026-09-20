@@ -12,7 +12,7 @@ import { CardCapa } from "@/components/ui/card-capa";
 import { Contador } from "@/components/ui/contador";
 import { capaDoExercicio } from "@/lib/capas";
 import { acharExercicio } from "@/lib/dados";
-import { formatarNumero } from "@/lib/formato";
+import { formatarKg, formatarNumero } from "@/lib/formato";
 import type { ContadoresDaSessao, ResultadoExercicio } from "@/lib/sessao";
 import { cn } from "@/lib/utils";
 
@@ -35,6 +35,7 @@ export function TelaConclusao({
   hoje,
   dataDaSessao,
   pesoAtual,
+  pesoDeHoje,
   alturaCm,
   peso,
   aoMudarPeso,
@@ -55,6 +56,8 @@ export function TelaConclusao({
   dataDaSessao: string;
   /** Último peso registrado (para o IMC, enquanto não há o de hoje). */
   pesoAtual: number | null;
+  /** A pesagem de HOJE, se já existe (`body_weights`) — SPEC §22.1. */
+  pesoDeHoje: number | null;
   alturaCm: number | null;
   peso: number | null;
   aoMudarPeso: (kg: number | null) => void;
@@ -63,7 +66,15 @@ export function TelaConclusao({
   aoSeguir: () => void;
   aoVoltar: () => void;
 }) {
-  const [mostraPeso, setMostraPeso] = useState(false);
+  /*
+   * SPEC §22.1: `useState(false)` fixo fazia o convite "Registrar o peso de
+   * hoje" voltar a cada vez que a tela era fechada e reaberta — mesmo com a
+   * pesagem do dia já gravada, e mesmo com o peso digitado dois passos atrás.
+   * O campo nasce aberto quando há peso digitado nesta sessão; havendo só a
+   * pesagem de hoje, a tela mostra o número em vez de pedir de novo.
+   */
+  const [editando, setEditando] = useState(peso !== null);
+  const registrado = peso ?? pesoDeHoje;
   const capa = primeiroExercicioId
     ? capaDoExercicio(acharExercicio(primeiroExercicioId))
     : null;
@@ -172,7 +183,7 @@ export function TelaConclusao({
 
       <section className="cartao border-border bg-card flex flex-col gap-2 border p-3">
         <h3 className="text-sm font-semibold">Peso de hoje</h3>
-        {mostraPeso ? (
+        {editando ? (
           <StepperNumerico
             rotulo="peso de hoje em kg"
             valor={peso}
@@ -181,11 +192,25 @@ export function TelaConclusao({
             sufixo="kg"
             aoMudar={aoMudarPeso}
           />
+        ) : registrado !== null ? (
+          <div className="flex items-center justify-between gap-2">
+            <p className="numero text-base">Peso de hoje: {formatarKg(registrado)}</p>
+            <Button
+              variant="ghost"
+              className="alvo h-11"
+              onClick={() => {
+                aoMudarPeso(registrado);
+                setEditando(true);
+              }}
+            >
+              Corrigir
+            </Button>
+          </div>
         ) : (
           <Button
             variant="outline"
             className="alvo h-11"
-            onClick={() => setMostraPeso(true)}
+            onClick={() => setEditando(true)}
           >
             Registrar o peso de hoje
           </Button>

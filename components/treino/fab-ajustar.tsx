@@ -18,8 +18,9 @@ import type { LinhaPerfil } from "@/lib/types";
  * O FAB "Ajustar" da aba Treino (SPEC §14.3): o mesmo bloco de ajustes do
  * player e de Mais → Preferências — são as mesmas chaves em `profiles.prefs`.
  *
- * Fica acima da barra de abas (56 px + respiro) para não cobrir a navegação;
- * a seção da aba Treino tem `pb-24` para o fim da lista não ficar embaixo dele.
+ * Fica acima da barra de abas (56 px + respiro) para não cobrir a navegação —
+ * mais a área segura do aparelho, que a barra também respeita (§22.1); a
+ * seção da aba Treino tem `pb-24` para o fim da lista não ficar embaixo dele.
  */
 export function FabAjustar({ perfil }: { perfil: LinhaPerfil | null }) {
   const [aberto, setAberto] = useState(false);
@@ -30,7 +31,8 @@ export function FabAjustar({ perfil }: { perfil: LinhaPerfil | null }) {
         <button
           type="button"
           aria-label="Ajustar"
-          className="bg-primary text-primary-foreground alvo fixed right-4 bottom-24 z-40 flex size-14 items-center justify-center rounded-full shadow-lg"
+          className="bg-primary text-primary-foreground alvo fixed right-4 z-40 flex size-14 items-center justify-center rounded-full shadow-lg"
+          style={{ bottom: "calc(6rem + env(safe-area-inset-bottom, 0px))" }}
         >
           <Settings2 aria-hidden="true" className="size-6" />
         </button>

@@ -252,3 +252,20 @@
 .s-adutor{--m-adutor:var(--msec)}
 .p-panturrilha{--m-panturrilha:var(--mprim)}
 .s-panturrilha{--m-panturrilha:var(--msec)}
+
+/* ------------------------------------------- menos movimento (SPEC §22.1)
+   Quem pede `prefers-reduced-motion: reduce` no sistema não vê mais nenhuma
+   animação CSS se repetindo — os esqueletos `animate-pulse` do carregamento
+   incluídos — nem transição perceptível. As contagens do player, o anel de
+   progresso e a ilustração alternada são JavaScript: continuam corretos, e a
+   ilustração respeita a preferência por conta própria (nasce parada). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

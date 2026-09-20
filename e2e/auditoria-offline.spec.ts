@@ -417,3 +417,64 @@ test.describe("o treino começado SEM rede (SPEC §6.3, §8 e §14.1)", () => {
     expect(eventos.map((e) => e.exercise_id)).toContain("agachamento-livre");
   });
 });
+
+test.describe("uma rota de Mais aberta sem rede (SPEC §8 e §22.1)", () => {
+  /*
+   * O defeito: o fallback do service worker só cobria
+   * `request.destination === "document"`. A navegação do App Router tem duas
+   * formas — o documento e o `fetch` de RSC —, e a segunda morria antes de
+   * virar navegação: `/mais/contas`, `/mais/senha` e `/mais/creditos` abriam a
+   * página de erro do navegador, em branco.
+   *
+   * O que este teste NÃO consegue fazer é cortar a rede DO WORKER: medido em
+   * 20/09/2026, nem `context.setOffline(true)` nem `context.route(...).abort()`
+   * alcançam as requisições que o service worker faz por conta própria — com a
+   * página "offline" o worker continuou trazendo `/mais/contas` do servidor,
+   * inteira. Então o que se prende aqui é o que dá para observar de fora: a
+   * `/~offline` guardada e pronta para ser servida, e o worker publicado com a
+   * regra das duas formas de navegar. A decisão em si — quem ganha a
+   * `/~offline` — está presa em `lib/sw-navegacao.test.ts`, e a página, em
+   * `e2e/ultraloop-a-r1.spec.ts`.
+   */
+  test("a /~offline fica guardada e o worker cobre documento e RSC", async ({
+    page,
+    request,
+  }) => {
+    test.setTimeout(90_000);
+    await usuarioComPerfil();
+    await fixarData(page, SEGUNDA);
+    await entrarNoApp(page);
+    await esperarAbaTreino(page);
+    await esperarServiceWorker(page);
+
+    // 1. sem a página no precache, o fallback cairia no HTML mínimo de socorro
+    await expect
+      .poll(
+        async () =>
+          page.evaluate(async () => {
+            for (const nome of await caches.keys()) {
+              const cache = await caches.open(nome);
+              const chaves = await cache.keys();
+              if (chaves.some((r) => new URL(r.url).pathname === "/~offline")) {
+                return true;
+              }
+            }
+            return false;
+          }),
+        { timeout: 30_000 },
+      )
+      .toBe(true);
+
+    // 2. o worker publicado decide pelas DUAS formas de navegar
+    const codigo = await (await request.get("/sw.js")).text();
+    expect(codigo).toContain("/~offline");
+    expect(codigo, "o fetch de RSC ficou de fora do fallback").toContain("_rsc");
+    expect(codigo, "o cabeçalho RSC ficou de fora do fallback").toContain("RSC");
+
+    // 3. e a tela que o worker serve abre e tem saída
+    await page.goto("/~offline");
+    await expect(page.getByRole("heading", { name: "Sem conexão" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Tentar de novo" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Ir para o Treino" })).toBeVisible();
+  });
+});

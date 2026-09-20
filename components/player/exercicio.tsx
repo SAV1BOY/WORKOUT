@@ -34,6 +34,7 @@ import {
   type PassoSerie,
   type SerieDeOutroDia,
 } from "@/lib/player";
+import type { VotoDoExercicio } from "@/lib/preferencias";
 import { proximaCarga, type BlocoLocal, type SerieLocal } from "@/lib/sessao";
 import { cn } from "@/lib/utils";
 
@@ -50,7 +51,7 @@ export function TelaExercicio({
   opcoes,
   temVideo,
   anteriores,
-  evitado,
+  voto,
   feitas,
   total,
   aoMudar,
@@ -70,7 +71,8 @@ export function TelaExercicio({
   temVideo: boolean;
   /** As séries do mesmo exercício na última sessão (SPEC §14.1.2). */
   anteriores?: SerieDeOutroDia[];
-  evitado: boolean;
+  /** "preferido", "evitado" ou `null` — ninguém votou ainda (SPEC §22.1). */
+  voto: VotoDoExercicio;
   feitas: number;
   total: number;
   aoMudar: (campos: Partial<SerieLocal>) => void;
@@ -80,7 +82,7 @@ export function TelaExercicio({
   aoAbrirFicha: () => void;
   aoAbrirLista: () => void;
   aoAjustar: () => void;
-  aoAvaliar: (evitar: boolean) => void;
+  aoAvaliar: (voto: VotoDoExercicio) => void;
 }) {
   const exercicio = acharExercicio(bloco.exercicioId);
   const implemento = exercicio.implemento as ImplementoMontagem;
@@ -114,7 +116,9 @@ export function TelaExercicio({
   return (
     <section
       aria-label={`${rotuloDoPasso(passo)} — ${exercicio.nome}`}
-      className="flex flex-1 flex-col gap-3 pb-40"
+      /* pb-24: os controles são 72 px colados no rodapé (§22.1) — os 160 px
+         de antes reservavam também a barra de abas, que o player não tem */
+      className="flex flex-1 flex-col gap-3 pb-24"
     >
       {/* ícones do topo (SPEC §14.1.2) */}
       <div className="flex items-center justify-between gap-1 px-3 pt-1">
@@ -128,23 +132,28 @@ export function TelaExercicio({
           <List className="size-5" />
         </Button>
         <div className="flex items-center gap-0.5">
+          {/*
+            SPEC §22.1: sem voto os dois polegares ficam neutros e nenhum
+            `aria-pressed` afirma uma escolha que o usuário não fez. Tocar de
+            novo no polegar aceso desfaz o voto — os três estados, no mesmo par.
+          */}
           <Button
             variant="ghost"
             size="icon"
-            className={cn("alvo size-11", !evitado && "text-primary")}
+            className={cn("alvo size-11", voto === "preferido" && "text-primary")}
             aria-label="Gostei deste exercício"
-            aria-pressed={!evitado}
-            onClick={() => aoAvaliar(false)}
+            aria-pressed={voto === null ? undefined : voto === "preferido"}
+            onClick={() => aoAvaliar(voto === "preferido" ? null : "preferido")}
           >
             <ThumbsUp className="size-5" />
           </Button>
           <Button
             variant="ghost"
             size="icon"
-            className={cn("alvo size-11", evitado && "text-destructive")}
+            className={cn("alvo size-11", voto === "evitado" && "text-destructive")}
             aria-label="Não gosto deste exercício"
-            aria-pressed={evitado}
-            onClick={() => aoAvaliar(true)}
+            aria-pressed={voto === null ? undefined : voto === "evitado"}
+            onClick={() => aoAvaliar(voto === "evitado" ? null : "evitado")}
           >
             <ThumbsDown className="size-5" />
           </Button>
@@ -476,7 +485,15 @@ function Cronometro({
   );
 }
 
-/** anterior · ✓ · próximo, fixos no rodapé com 56 px (SPEC §14.1.2). */
+/**
+ * anterior · ✓ · próximo, fixos no rodapé (SPEC §14.1.2).
+ *
+ * Colados em `bottom-0`: a barra de abas devolve `null` no player (SPEC
+ * §14.1), e os 56 px que a barra ocuparia eram faixa morta — 56 px a menos
+ * para a figura e para os números, no aparelho onde isso mais custa. O
+ * `pb-segura` põe por baixo dos botões a área do indicador de home, para o
+ * ✓ não ficar sob ele.
+ */
 export function ControlesDoPlayer({
   concluida,
   aoAnterior,
@@ -489,7 +506,7 @@ export function ControlesDoPlayer({
   aoConcluir: () => void;
 }) {
   return (
-    <div className="bg-card/95 border-border fixed inset-x-0 bottom-14 z-30 border-t backdrop-blur">
+    <div className="bg-card/95 border-border pb-segura fixed inset-x-0 bottom-0 z-30 border-t backdrop-blur">
       <div className="mx-auto flex w-full max-w-lg items-center gap-2 px-3 py-2">
         <Button
           variant="outline"

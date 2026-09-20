@@ -44,6 +44,28 @@ test.describe("shell do app", () => {
     expect(caixaNav?.y ?? 0).toBeGreaterThan(740 - 120);
   });
 
+  /*
+   * SPEC §22.1: o teste de fumaça do deploy precisa saber QUAL build está no
+   * ar — "a página abriu" não distingue o deploy novo do anterior.
+   */
+  test("/versao diz qual build está no ar, sem cache", async ({ page, request }) => {
+    const resposta = await request.get("/versao");
+    expect(resposta.status()).toBe(200);
+    expect(resposta.headers()["cache-control"]).toContain("no-store");
+
+    const corpo = (await resposta.json()) as {
+      commit: string;
+      construidoEm: string | null;
+    };
+    expect(corpo.commit.length, `commit curto demais: ${corpo.commit}`)
+      .toBeGreaterThanOrEqual(7);
+    expect(corpo.construidoEm).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+
+    // e o rodapé dos Créditos mostra os 7 primeiros caracteres do mesmo commit
+    await page.goto("/mais/creditos");
+    await expect(page.getByText(`Versão ${corpo.commit.slice(0, 7)}`)).toBeVisible();
+  });
+
   for (const item of ITENS) {
     test(`abre ${item.rotulo} pela navegação, sem rolagem horizontal`, async ({ page }) => {
       await page.getByRole("navigation", { name: "Navegação principal" })
