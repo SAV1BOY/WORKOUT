@@ -284,8 +284,8 @@ test.describe("Números por tipo e período (SPEC §19.2)", () => {
       await expect(numeros.locator('[data-contador="Cardio"]')).toContainText("1");
       /* 9 na sessão de barra fixa de 16/09 + 2 soltas = 11 */
       await expect(numeros.locator('[data-contador="Barra fixa"]')).toContainText("11");
-      await expect(detalhe(page, "Força")).toContainText("Treino A 2");
-      await expect(detalhe(page, "Força")).toContainText("Treino B 1");
+      await expect(detalhe(page, "Força")).toContainText("Treino A × 2");
+      await expect(detalhe(page, "Força")).toContainText("Treino B × 1");
       await expect(detalhe(page, "Cardio")).toContainText("Corrida × 1");
       await expect(detalhe(page, "Cardio")).toContainText("34 min");
       await expect(detalhe(page, "Cardio")).toContainText("3,2 km");
@@ -505,7 +505,7 @@ test.describe("o aviso de conquista nova", () => {
 
     const aviso = page.getByRole("status", { name: "Conquista nova" });
     await expect(aviso).toBeVisible();
-    await expect(aviso).toContainText("Conquista");
+    await expect(aviso).toContainText("Nova conquista");
     await expect(aviso).toContainText("Semana completa");
     await expect(aviso).toHaveAttribute("data-aviso-conquista", "semana-completa");
     await semRolagemHorizontal(page);
