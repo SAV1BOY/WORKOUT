@@ -556,9 +556,16 @@ async function irAte(page: Page, alvo: ReturnType<Page["getByRole"]>) {
       await pular.click();
       continue;
     }
-    const continuar = page.getByRole("button", { name: "Continuar" });
-    if (await continuar.isVisible().catch(() => false)) {
-      await continuar.click();
+    // o primário da pergunta "firme?" se chama "Pular esta pergunta"
+    // enquanto ninguém responde (SPEC §22.5 item 4)
+    const pergunta = page
+      .getByRole("region", { name: "Última repetição" })
+      .or(page.getByRole("region", { name: "Feedback do treino" }))
+      .getByRole("button", {
+        name: /^(Pular esta pergunta|Continuar|Concluir sem responder|Concluído)$/,
+      });
+    if (await pergunta.isVisible().catch(() => false)) {
+      await pergunta.click();
       continue;
     }
     const proximo = page.getByRole("button", { name: "Próximo passo" });
