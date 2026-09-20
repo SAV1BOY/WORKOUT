@@ -7039,6 +7039,16 @@ SPEC §22.5. Dez itens, na ordem de prioridade do lote.
 
 **Provas**
 
+- Portões verdes no HEAD do lote (lint · tsc · 1.359 testes de unidade ·
+  build de produção · build:e2e · e2e · varredura).
+- Capturas dos dois temas em
+  `scratchpad/ultraloop/rodada-3/l5/capturas/construtor` (60 de 60) e
+  comparador contra a base: **só** `28-player-exercicio`,
+  `29-player-descanso` e `30-player-conclusao` mudaram — "nenhuma tela mudou
+  fora do esperado".
+- `lib/player.test.ts`: `avisoDoDescanso` — cala no meio, fala nos marcos de
+  30 s e 10 s e no fim, e nunca promete um marco que não cabe no descanso
+  (num descanso de 20 s ninguém ouve "faltam 30 segundos").
 - `e2e/ultraloop-a-r3.spec.ts` (novo): o 2º toque no mesmo ponto não descarta;
   a conclusão grava ao entrar e a aba Treino não oferece retomar; Esc e o
   voltar fecham a Visão geral e devolvem o foco; nenhuma opção marcada antes
