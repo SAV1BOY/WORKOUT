@@ -113,7 +113,7 @@ test.describe("o player usa a tela inteira (SPEC §22.1)", () => {
     await page.getByRole("button", { name: "Concluir série" }).click();
     await expect(page.getByRole("timer", { name: "Descanso" })).toBeVisible();
 
-    const pular = page.getByRole("button", { name: "Pular" });
+    const pular = page.getByRole("button", { name: "Pular descanso" });
     const caixa = await pular.boundingBox();
     expect(caixa?.height ?? 0).toBeGreaterThanOrEqual(44);
     /* a tela de descanso reserva 2rem + a área segura embaixo do último botão */

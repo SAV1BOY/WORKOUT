@@ -551,7 +551,7 @@ test.describe("o aviso de conquista nova", () => {
 async function irAte(page: Page, alvo: ReturnType<Page["getByRole"]>) {
   for (let i = 0; i < 60; i++) {
     if (await alvo.isVisible().catch(() => false)) return;
-    const pular = page.getByRole("button", { name: "Pular" });
+    const pular = page.getByRole("button", { name: "Pular descanso" });
     if (await pular.isVisible().catch(() => false)) {
       await pular.click();
       continue;

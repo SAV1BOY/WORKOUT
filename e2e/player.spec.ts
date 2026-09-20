@@ -62,7 +62,7 @@ async function abrirPlayer(page: Page): Promise<SessaoMock> {
 /** ✓ na série atual e pula o descanso que vem logo depois. */
 async function concluirSerie(page: Page) {
   await page.getByRole("button", { name: "Concluir série" }).click();
-  const pular = page.getByRole("button", { name: "Pular" });
+  const pular = page.getByRole("button", { name: "Pular descanso" });
   if (await pular.isVisible().catch(() => false)) await pular.click();
 }
 
@@ -74,7 +74,7 @@ async function concluirSerie(page: Page) {
 async function irAte(page: Page, alvo: ReturnType<Page["getByText"]>) {
   for (let i = 0; i < 40; i++) {
     if (await alvo.isVisible().catch(() => false)) return;
-    const pular = page.getByRole("button", { name: "Pular" });
+    const pular = page.getByRole("button", { name: "Pular descanso" });
     if (await pular.isVisible().catch(() => false)) {
       await pular.click();
       continue;
@@ -142,7 +142,7 @@ test.describe("preparação → exercício → descanso (SPEC §14.1.1–3)", ()
     await page.getByRole("button", { name: "Salvar" }).click();
     await expect(descanso).toHaveText("0:45");
 
-    await page.getByRole("button", { name: "Pular" }).click();
+    await page.getByRole("button", { name: "Pular descanso" }).click();
     await expect(page.getByText("Aquecimento 2 de 2 · exercício 1 de 6")).toBeVisible();
 
     // a série do aquecimento já subiu para o banco (§8)
@@ -217,7 +217,7 @@ test.describe("preparação → exercício → descanso (SPEC §14.1.1–3)", ()
     await page.clock.runFor(25_000);
     await expect(descanso).toHaveText("0:00");
     await expect(descanso).toBeVisible();
-    await page.getByRole("button", { name: "Pular" }).click();
+    await page.getByRole("button", { name: "Pular descanso" }).click();
     await expect(page.getByRole("button", { name: "Concluir série" })).toBeVisible();
   });
 
@@ -271,7 +271,7 @@ test.describe("preparação → exercício → descanso (SPEC §14.1.1–3)", ()
     // o passo vive no Dexie: volta o MESMO descanso, com o mesmo próximo
     await expect(page.getByRole("timer", { name: "Descanso" })).toHaveText("2:30");
     await expect(page.getByText("Aquecimento 2 de 2")).toBeVisible();
-    await page.getByRole("button", { name: "Pular" }).click();
+    await page.getByRole("button", { name: "Pular descanso" }).click();
     await expect(page.getByText("Aquecimento 2 de 2 · exercício 1 de 6")).toBeVisible();
   });
 

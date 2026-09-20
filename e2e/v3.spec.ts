@@ -41,7 +41,7 @@ test.beforeEach(async () => {
 /** ✓ na série atual e pula o descanso que vem logo depois. */
 async function concluirSerie(page: Page) {
   await page.getByRole("button", { name: "Concluir série" }).click();
-  const pular = page.getByRole("button", { name: "Pular" });
+  const pular = page.getByRole("button", { name: "Pular descanso" });
   if (await pular.isVisible().catch(() => false)) await pular.click();
 }
 
@@ -49,7 +49,7 @@ async function concluirSerie(page: Page) {
 async function irAte(page: Page, alvo: ReturnType<Page["getByText"]>) {
   for (let i = 0; i < 40; i++) {
     if (await alvo.isVisible().catch(() => false)) return;
-    const pular = page.getByRole("button", { name: "Pular" });
+    const pular = page.getByRole("button", { name: "Pular descanso" });
     if (await pular.isVisible().catch(() => false)) {
       await pular.click();
       continue;
