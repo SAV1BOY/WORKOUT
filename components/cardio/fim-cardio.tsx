@@ -165,7 +165,7 @@ export function FimDoCardio({
           </Button>
           <Button
             variant="ghost"
-            className="alvo h-11"
+            className="alvo"
             onClick={aoFechar}
             disabled={salvando}
           >

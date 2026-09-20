@@ -1,7 +1,7 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
-import { Camera } from "lucide-react";
+import { Camera, ImageOff } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { SemDados } from "@/components/graficos/apoio";
@@ -112,7 +112,7 @@ export function AbaFotos({
               >
                 <Camera className="size-5" aria-hidden="true" />
                 <span className="text-xs font-medium">{NOME_ANGULO[angulo]}</span>
-                <span className="text-muted-foreground text-[10px]">
+                <span className="text-muted-foreground text-micro">
                   {enviando === angulo ? "enviando…" : "escolher"}
                 </span>
                 <input
@@ -138,7 +138,7 @@ export function AbaFotos({
         </CardHeader>
         <CardContent>
           {dias.length === 0 ? (
-            <SemDados>Nenhuma foto ainda.</SemDados>
+            <SemDados icone={Camera} titulo="Nenhuma foto ainda." />
           ) : (
             <ul className="flex flex-col gap-4">
               {dias.map((dia) => (
@@ -169,6 +169,8 @@ export function AbaFotos({
                               <img
                                 src={url}
                                 alt={`${NOME_ANGULO[angulo]} em ${formatarData(dia.data)}`}
+                                loading="lazy"
+                                decoding="async"
                                 className="bg-muted aspect-[3/4] w-full rounded-lg object-cover"
                               />
                             </button>
@@ -180,7 +182,7 @@ export function AbaFotos({
                               {foto ? "…" : "—"}
                             </span>
                           )}
-                          <figcaption className="text-muted-foreground text-center text-[10px]">
+                          <figcaption className="text-muted-foreground text-center text-micro">
                             {NOME_ANGULO[angulo]}
                           </figcaption>
                         </figure>
@@ -243,12 +245,14 @@ function Comparacao({
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
         {dias.length < 2 ? (
-          <SemDados>A comparação precisa de fotos de dois dias diferentes.</SemDados>
+          <SemDados icone={ImageOff} titulo="Só um dia com foto">
+            A comparação precisa de fotos de dois dias diferentes.
+          </SemDados>
         ) : (
           <>
             <div className="grid grid-cols-2 gap-2">
               <label className="flex flex-col gap-1">
-                <span className="text-muted-foreground text-[11px] tracking-wide uppercase">
+                <span className="text-muted-foreground text-rotulo tracking-wide uppercase">
                   Antes
                 </span>
                 <select
@@ -264,7 +268,7 @@ function Comparacao({
                 </select>
               </label>
               <label className="flex flex-col gap-1">
-                <span className="text-muted-foreground text-[11px] tracking-wide uppercase">
+                <span className="text-muted-foreground text-rotulo tracking-wide uppercase">
                   Depois
                 </span>
                 <select
@@ -282,7 +286,9 @@ function Comparacao({
             </div>
 
             {comuns.length === 0 ? (
-              <SemDados>Essas duas datas não têm o mesmo ângulo de foto.</SemDados>
+              <SemDados icone={ImageOff} titulo="Sem ângulo em comum">
+                Essas duas datas não têm o mesmo ângulo de foto.
+              </SemDados>
             ) : (
               <>
                 <div className="flex gap-2" role="group" aria-label="Ângulo da comparação">
@@ -310,6 +316,8 @@ function Comparacao({
                     <img
                       src={urlDepois}
                       alt={`Depois — ${formatarData(diaDepois?.data ?? "")}`}
+                      loading="lazy"
+                      decoding="async"
                       className="absolute inset-0 size-full object-cover"
                     />
                   ) : null}
@@ -318,6 +326,8 @@ function Comparacao({
                     <img
                       src={urlAntes}
                       alt={`Antes — ${formatarData(diaAntes?.data ?? "")}`}
+                      loading="lazy"
+                      decoding="async"
                       className="absolute inset-0 size-full object-cover"
                       style={{ clipPath: `inset(0 ${100 - posicao}% 0 0)` }}
                     />

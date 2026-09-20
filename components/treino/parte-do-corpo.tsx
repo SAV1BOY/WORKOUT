@@ -1,11 +1,13 @@
 "use client";
 
+import { FilterX } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { ListaDaColecao } from "@/components/colecoes/lista-da-colecao";
 import { useSessaoLivre } from "@/components/colecoes/usar-sessao-livre";
 import { BotaoLargo } from "@/components/ui/botao-largo";
 import { Raios } from "@/components/ui/raios";
+import { Vazio } from "@/components/ui/vazio";
 import {
   FILTROS,
   colecaoDoGrupo,
@@ -106,9 +108,12 @@ export function ParteDoCorpo({
       </ul>
 
       {colecao === null ? (
-        <p className="border-border text-muted-foreground rounded-lg border border-dashed px-3 py-6 text-center text-sm">
-          Nenhuma parte do corpo com esses filtros.
-        </p>
+        <Vazio
+          icone={FilterX}
+          titulo="Nenhuma parte do corpo com esses filtros"
+          frase="Os filtros combinam; solte um deles para voltar a ver as partes."
+          acao={{ rotulo: "Limpar filtros", aoTocar: () => setFiltros([]) }}
+        />
       ) : (
         <>
           <div className="flex items-baseline justify-between gap-2">

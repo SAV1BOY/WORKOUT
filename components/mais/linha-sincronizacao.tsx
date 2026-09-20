@@ -60,14 +60,18 @@ export function LinhaSincronizacao() {
       />
       <span className="flex min-w-0 flex-col">
         <span className="font-medium">{titulo}</span>
-        <span className="text-muted-foreground line-clamp-3 text-xs text-balance">
+        {/* SPEC §22.3 item 11: o detalhe é cortado em três linhas. */}
+        <span
+          className="text-muted-foreground line-clamp-3 text-xs text-balance"
+          title={detalhe}
+        >
           {detalhe}
         </span>
       </span>
       {estado.quantos > 0 ? (
         <Button
           variant="outline"
-          className="alvo ml-auto h-11 shrink-0"
+          className="alvo ml-auto shrink-0"
           disabled={tentando}
           onClick={() => void tentar()}
         >

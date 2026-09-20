@@ -98,11 +98,15 @@ export function TutorialDoExercicio({ exercicioId }: { exercicioId: string }) {
             <img
               src={urlDaMiniatura(tutorial.youtube_id)}
               alt=""
+              width={480}
+              height={360}
+              loading="lazy"
+              decoding="async"
               onError={() => setSemRede(true)}
               className="size-full object-cover"
             />
             <span className="absolute inset-0 flex items-center justify-center bg-black/30">
-              <span className="bg-primary text-primary-foreground flex size-14 items-center justify-center rounded-full shadow-lg">
+              <span className="bg-primary text-primary-foreground flutuante flex size-14 items-center justify-center rounded-full">
                 <Play aria-hidden="true" className="size-7 translate-x-0.5" fill="currentColor" />
               </span>
             </span>

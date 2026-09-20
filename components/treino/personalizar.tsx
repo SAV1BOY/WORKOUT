@@ -1,11 +1,12 @@
 "use client";
 
-import { Check, Plus, Search, X } from "lucide-react";
+import { Check, Plus, Search, SearchX, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useSessaoLivre } from "@/components/colecoes/usar-sessao-livre";
 import { BotaoLargo } from "@/components/ui/botao-largo";
 import { Input } from "@/components/ui/input";
 import { Miniatura } from "@/components/ui/miniatura";
+import { Vazio } from "@/components/ui/vazio";
 import {
   Sheet,
   SheetContent,
@@ -131,7 +132,7 @@ export function Personalizar({ prefs }: { prefs?: Prefs }) {
                     onClick={() => alternar(e.id)}
                     className="hover:bg-muted/40 alvo flex w-full items-center gap-3 py-2 text-left"
                   >
-                    <Miniatura exercicioId={e.id} decorativa />
+                    <Miniatura exercicioId={e.id} />
                     <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                       <span className="text-sm font-medium text-balance">{e.nome}</span>
                       <span className="numero text-muted-foreground text-xs">
@@ -155,8 +156,14 @@ export function Personalizar({ prefs }: { prefs?: Prefs }) {
               );
             })}
             {achados.length === 0 ? (
-              <li className="text-muted-foreground py-6 text-center text-sm">
-                Nenhum exercício com esse nome.
+              <li>
+                <Vazio
+                  icone={SearchX}
+                  titulo="Nenhum exercício com esse nome"
+                  frase="A busca olha o nome do exercício; tente uma palavra só."
+                  acao={{ rotulo: "Limpar busca", aoTocar: () => setBusca("") }}
+                  className="border-0"
+                />
               </li>
             ) : null}
           </ul>

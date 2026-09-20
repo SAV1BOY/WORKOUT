@@ -457,6 +457,34 @@ export const ilustracaoSchema = z.object({
 
 export const ilustracoesSchema = z.array(ilustracaoSchema);
 
+/* ------------------------------------------------------- medidas da foto */
+
+/**
+ * `data/medidas-de-foto.json` (SPEC §22.4 item 3): a medida **medida** de cada
+ * foto de execução do kit e da derivada WebP que as telas pedem. O arquivo é
+ * gerado por `npm run assets` — quem abre as imagens com o sharp é
+ * `scripts/copiar-assets.ts` — e `lib/medidas-de-foto.test.ts` confere foto
+ * por foto. Ninguém escreve medida à mão: as fotos do kit não são uniformes
+ * (auditoria do lote 4).
+ */
+export const parDeMedidasSchema = z.tuple([
+  z.number().int().positive(),
+  z.number().int().positive(),
+]);
+
+export const medidaDeFotoSchema = z.object({
+  /** O JPEG de `assets/fotos/<nome>.jpg`, que é a reserva do `onError`. */
+  kit: parDeMedidasSchema,
+  /** A derivada `public/fotos/<nome>.webp` — o arquivo que a `<img>` pede. */
+  webp: parDeMedidasSchema,
+});
+
+export const medidasDeFotoSchema = z.object({
+  gerado_por: z.string().min(1),
+  formato: z.string().min(1),
+  fotos: z.record(z.string().regex(/^[\w-]+$/), medidaDeFotoSchema),
+});
+
 /* ---------------------------------------------------------------- perfil */
 
 /** As colunas de `body_measurements` que a tela preenche (SPEC §3.8). */
@@ -544,6 +572,8 @@ export type Tutorial = z.infer<typeof tutorialSchema>;
 export type Tutoriais = z.infer<typeof tutoriaisSchema>;
 export type Ilustracao = z.infer<typeof ilustracaoSchema>;
 export type ArquivoDeIlustracao = z.infer<typeof arquivoDeIlustracaoSchema>;
+export type MedidaDeFoto = z.infer<typeof medidaDeFotoSchema>;
+export type MedidasDeFoto = z.infer<typeof medidasDeFotoSchema>;
 export type MedidaDoCorpo = Perfil["medidas"][number];
 /** Chave de um texto do motor em `data/progressao.json` (SPEC §6.3/§6.4). */
 export type ChaveDeSugestao = keyof ProgressaoJson["sugestoes"];

@@ -34,7 +34,7 @@ export function Contador({
     >
       <span
         data-rotulo={rotulo}
-        className="text-muted-foreground flex h-4 items-center gap-1 overflow-hidden text-[10px] tracking-wide whitespace-nowrap uppercase"
+        className="text-muted-foreground flex h-4 items-center gap-1 overflow-hidden text-micro tracking-wide whitespace-nowrap uppercase"
       >
         {icone ? <span className="flex shrink-0 items-center">{icone}</span> : null}
         <span className="min-w-0 truncate">{rotulo}</span>

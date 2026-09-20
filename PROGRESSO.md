@@ -6263,6 +6263,12 @@ produção · build de e2e · e2e · varredura). Unitários novos em
 `e2e/shell.spec.ts` (`/versao`). Capturas dos dois temas em
 `rodada-1/l1/capturas/construtor/`.
 
+**Capturas.** As trinta telas do gerador, nos dois temas, ficam em
+`scratchpad/ultraloop/rodada-2/l3/capturas/construtor/` e foram comparadas com
+a linha de base por `scripts/comparar-capturas.ts` (`diff/comparacao.md`).
+Todas mudam de aparência — a paleta é a fundação do app —, e é isso que a lista
+de esperadas do comparador declara.
+
 **Como testar no celular.** Entre no treino do dia e vá até o primeiro
 exercício: o ✓ agora encosta no rodapé, sem faixa cinza embaixo, e os dois
 polegares no topo começam apagados — toque no de baixo e ele acende sozinho,
@@ -6414,13 +6420,592 @@ Chromium local não confia na CA do proxy de saída); a régua de 360 px, 44 px,
 contraste e foco já correra verde nas 30 telas no portão local.
 **Rollback: não.**
 
-### Rodada 2 — Lote 3
+### Rodada 2 — Lote 3 — fundação visual (faixa A) ✅
 
-(a preencher)
+Branch `ultraloop/l3-fundacao-visual`, doze itens. Este lote mexe na base — a
+escala dos controles, as cores das superfícies, o foco e o texto pequeno —,
+então quase toda tela muda de aparência, ainda que nenhuma mude de lugar.
 
-### Rodada 2 — Lote 4
+**L3-1 · o botão padrão tinha 32 px de altura.**
+Era: `components/ui/button.tsx` vinha do shadcn com `default: h-8` (32 px),
+`sm: h-7` (28 px) e `icon: size-8` — todos abaixo dos 44 px que a SPEC §3
+exige —, e o app corrigia isso **à mão**, em 141 chamadas com `h-11`, `h-12`,
+`h-14` e `alvo`. Quem esquecesse a classe entregava um alvo pequeno. É: a
+escala é do projeto — `sm` 40 px, `default` **44 px**, `lg` 48 px, `xl` 56 px,
+`icon` 44 px, `icon-sm` 40 px —, o `Input` nasce com 44 px e os tamanhos
+`xs`/`icon-xs` (24 px) deixaram de existir. As 37 classes `h-11`/`size-11`
+redundantes saíram das chamadas; as escolhidas de propósito (`h-12`, `h-14`)
+ficaram. Arquivos: `components/ui/button.tsx`, `components/ui/input.tsx` e 24
+arquivos de chamada.
 
-(a preencher)
+**L3-2 · card e fundo eram a mesma cor.**
+Era: medido, o card dava **1,07:1** contra o fundo no escuro (`#141414` sobre
+`#0a0a0a`) e 1,04:1 no claro (`#ffffff` sobre `#fafafa`); a borda, 1,23–1,28:1.
+Na prática não havia superfície: o app era uma folha só, com linhas quase
+invisíveis. É: no escuro quem sobe é o card (`#262626`, **1,31:1**) com a borda
+em `#424242` (**1,51:1**) e `secondary`/`muted`/`accent` acima do card — eram
+mais escuros que ele e viravam buracos; no claro quem desce é o fundo
+(`#e0e0dd`, **1,32:1**), o card segue branco e a borda vai a `#c8c8c4`
+(**1,68:1**). O laranja do tema claro escureceu um degrau (`#b8400c` →
+`#a03608`) para o pill `bg-primary/10` manter os 4,5:1 contra o próprio texto.
+Arquivos: `app/globals.css`, `lib/tema.test.ts`.
+
+**L3-3 · a borda dos campos sumia no escuro.**
+Era: `--input: #2e2e2e` dava 1,36–1,46:1 contra o que cerca o campo — metade
+do mínimo de 3:1 que a WCAG SC 1.4.11 pede para elemento de interface. É:
+`--input` deixou de ser a cor dos separadores e virou a cor da **borda do
+campo**: `#7a7a78` no escuro (3,52:1 contra o card, 4,60:1 contra o fundo) e
+`#807f7d` no claro (4,00:1 e 3,02:1). Arquivos: `app/globals.css`,
+`lib/tema.test.ts`.
+
+**L3-4 · a placa das ilustrações ofuscava no escuro.**
+Era: `--ilustracao-fundo: #e7e4e0` (78 % de luminância) virava uma janela acesa
+de 328×208 px na ficha do exercício e seis quadrados brancos na lista de hoje.
+É: `#cfcac4`, 59,5 % de luminância, com o traço preto ainda em 12,9:1. Inverter
+o traço (`filter: invert(1)`) foi **descartado**: algumas ilustrações têm cor
+de verdade — a prancha tem camisa vermelha — e a inversão as estragaria. No
+tema claro a placa passou a ser a cor do card. Arquivo: `app/globals.css`.
+
+**L3-5 · o que flutua não flutuava.**
+Era: o FAB "Ajustar" e o play do tutorial usavam `shadow-lg` — sombra preta a
+10 % —, que sobre `#0a0a0a` simplesmente não aparece. É: `--sombra-flutuante`
+nos dois temas e o utilitário `.flutuante`: no claro sombra de verdade
+(`0 10px 24px`); no escuro um **anel de 1 px** em `primary/75` (5,2:1 contra o
+fundo) com glow curto, porque sombra preta sobre preto não existe. Arquivos:
+`app/globals.css`, `components/treino/fab-ajustar.tsx`,
+`components/exercicio/tutorial.tsx`.
+
+**L3-6 · 43 tamanhos de texto escritos à mão.**
+Era: `text-[11px]`, `text-[10px]`, `text-[9px]`, `text-[0.7rem]` e
+`text-[0.8rem]` espalhados por 20 arquivos — inclusive um de **9 px**. É: dois
+degraus com nome no `@theme` — `text-rotulo` (11 px) e `text-micro` (10 px) —,
+e nada abaixo de 10 px. Arquivos: `app/globals.css` e os 20 pontos de uso.
+
+*A armadilha, que os testes pegaram:* o mesclador de classes (`cn`) não
+conhecia os dois nomes novos e os classificava como **cor** de texto — todo
+`text-<algo>` desconhecido cai no grupo da cor. Numa chamada como
+`cn("text-rotulo leading-none", aceso ? "text-primary" : "text-muted-foreground")`
+ele jogava o tamanho fora, e a faixa da semana e a barra de abas voltavam aos
+16 px herdados: a faixa passou a vazar 13 px dos 360. `lib/utils.ts` agora cria
+o `cn` com `createCn({ extend: { classGroups: { "font-size": [{ text: ["rotulo",
+"micro"] }] } } })`, os treze arquivos que importavam de `"cn"` passam por ele, e
+`lib/utils.test.ts` prende o comportamento.
+
+**L3-7 · o foco só existia em botão e campo.**
+Era: o `<Link>` de um card, a linha de uma lista, o cartão do IMC de `/corpo` e
+as abas de baixo não desenhavam **nada** ao receber Tab, e o anel dos botões e
+campos era `ring-ring/50` — medido, 2,9:1 no escuro e 2,2:1 no claro, abaixo
+dos 3:1. É: `app/globals.css` desenha `outline: 2px solid var(--ring)` em todo
+focável (com `:where()`, para não roubar a vez de ninguém), há a utilitária
+`.foco` para quem carrega `outline-none` do shadcn, e o anel dos botões e
+campos passou a ser a cor cheia (8,7:1 no escuro, 5,2:1 no claro).
+**O `test.fixme` da varredura saiu** — e o diagnóstico que o acompanhava
+estava errado: não era o `:focus-visible` que deixava de casar (ele casa,
+`el.matches(':focus-visible')` é verdadeiro e `--tw-ring-shadow` já vale
+`0 0 0 3px #fb923c`), era o **relógio**. O `Button` do shadcn anima com
+`transition-all` de 150 ms, então a leitura feita no mesmo tique do Tab pegava
+o `box-shadow` ainda todo transparente; e a condição antiga
+(`boxShadow !== "none"`) aceitava justamente essas sombras transparentes como
+anel, o que no claro dava o verde falso. Medindo com espera, 0 de 85 focáveis
+ficam sem anel; com espera zero voltam as 141 "falhas", idênticas nos dois
+temas — e os próprios logs mostravam a instabilidade (revar2 reprovou e revar3,
+no MESMO commit, passou). A varredura agora espera a transição assentar (até
+400 ms, saindo assim que o anel aparece) e exige cor **não-transparente**, lida
+pelo **canvas** (o Chromium devolve `oklab()` em toda sombra que passa por
+`color-mix`; uma expressão regular de `rgb()` daria transparente para todas) —
+e com isso as 141 "falhas" somem. Os DOIS focáveis que ainda sobravam em
+`/corpo` caíram na segunda correção da auditoria (veja abaixo): o **painel** da
+aba, que o Radix deixa focável e que o shadcn entregava com `outline-none`, e o
+`input[type="date"]`, cujo último Tab entra no shadow DOM do navegador. **O
+item está completo**: a varredura do foco passa nas doze rotas nos dois temas,
+sem `fixme`.
+Arquivos: `app/globals.css`, `components/ui/button.tsx`,
+`components/ui/input.tsx`, `components/ui/tabs.tsx`,
+`components/nav-inferior.tsx`, `e2e/ultraloop-varredura.spec.ts`.
+
+**L3-8 · a aba acesa era só laranja.**
+Era: `text-primary` e nada mais — quem não distingue a cor não sabia em que
+aba estava. É: barra de 2 px no topo do item (`data-aba-ativa="barra"`) e
+rótulo em semibold, além da cor. Os 44 px e a área segura não mudaram.
+Arquivo: `components/nav-inferior.tsx`.
+
+**L3-9 · oito estados vazios eram um `<p>` tracejado.**
+Era: "Nenhum exercício com esses filtros." numa linha, sem dizer o que fazer.
+É: `components/ui/vazio.tsx` — ícone, título curto, uma frase e a ação quando
+ela existe — nos oito: catálogo e parte do corpo ("Limpar filtros"), Explorar e
+treino personalizado ("Limpar busca"), histórico do Relatório ("Ver o histórico
+completo" / "Ver o treino de hoje"), gráficos sem dado, conquistas ainda não
+avaliadas e Mais → Contas. Textos de **interface**; nada de conteúdo de treino,
+que só sai dos JSON. Arquivos: `components/ui/vazio.tsx` e os oito usos.
+
+**L3-10 · um esqueleto genérico para telas de formas diferentes.**
+Era: `EsqueletoCard` — três barras num retângulo — anunciando a aba Treino (que
+abre com uma capa alta), o Relatório (três contadores lado a lado) e as listas
+(miniatura + duas linhas). É: `EsqueletoCapa`, `EsqueletoGrade3` e
+`EsqueletoLista` ao lado do genérico, usados em Treino, Relatório e no
+histórico do exercício. Arquivo: `components/carregando.tsx`.
+
+**L3-11 · texto cortado sem como ler o resto, e `title` de tooltip.**
+Era: sete `line-clamp` cortavam rótulo, subtítulo e detalhe sem oferecer o
+texto inteiro, e quatro `title` eram usados como tooltip — que no celular não
+existe. É: todo `line-clamp` leva o texto completo no `title` e, quando o
+elemento é clicável (linha do calendário, linha de coleção, card do exercício),
+também no nome acessível; os `title` de tooltip viraram texto só-leitor (dia da
+faixa da semana, dia da grade do mês) ou nome acessível de imagem (os raios de
+dificuldade, agora `role="img"`). Arquivos: `components/calendario/grade.tsx`,
+`components/treinar/timer-descanso.tsx`, `components/colecoes/linha-colecao.tsx`,
+`components/treino/desafios.tsx`, `components/exercicios/lista-exercicios.tsx`,
+`components/mais/linha-sincronizacao.tsx`, `components/ui/raios.tsx`,
+`components/ui/faixa-semana.tsx`.
+
+**L3-12 · o voltar de Mais era texto.**
+Era: um `<Link>` de 14 px com `alvo`, sem cara de botão. É: botão fantasma com
+`ChevronLeft` de 20 px e o rótulo "Mais", 44 px de altura, igual ao topo do
+player. Arquivo: `components/mais/cabecalho.tsx`.
+
+**Provas.** `lib/tema.test.ts` cresceu de 16 para 25 casos: o degrau
+card/fundo e borda/card, a borda do campo com 3:1 contra quatro superfícies, o
+anel de foco contra o `muted`, as linhas auxiliares dos gráficos, a placa das
+ilustrações abaixo de 60 % de luminância e o anel da sombra flutuante — os
+limiares **só sobem**. `e2e/ultraloop-a-r2.spec.ts` (11 testes) mede no
+navegador, nos dois temas: nenhum `data-slot=button`/`input` abaixo de 44 px em
+quatro rotas, o degrau das superfícies, a borda de todo `<input>` de `/corpo` e
+`/mais/contas`, nenhuma superfície acima de 60 % de luz no escuro, o `box-shadow`
+do FAB, nenhum texto abaixo de 10 px em cinco rotas, o anel de foco do card e
+da aba, a barra da aba acesa, o vazio do catálogo com "Limpar filtros"
+funcionando, o `aria-label`/`title` do card cortado e os 44 px do voltar de
+Mais. **As cinco varreduras** — rolagem lateral, 44 px, contraste AA, anel de
+foco e reduced-motion — passam nas doze rotas nos dois temas, sem `fixme`
+nenhum (a do foco fechou na segunda correção da auditoria).
+
+**Como testar no celular.** Abra o app no escuro: os cards agora se **separam**
+do fundo (antes eram a mesma tinta), a ficha de um exercício não acende mais
+uma placa branca atrás da ilustração e o botão redondo "Ajustar" da aba Treino
+tem um contorno alaranjado. Toque em qualquer campo (Corpo → peso, Mais →
+Contas): a borda dele aparece antes mesmo do toque. Na barra de baixo, a aba em
+que você está tem uma barrinha no topo além do laranja. Em Mais → Preferências,
+o "Mais" do topo é um botão de dedo, não uma palavra. No catálogo, busque
+"zzzz": em vez de uma linha tracejada, aparece o cartão de vazio com **Limpar
+filtros**. E qualquer botão do app, em qualquer tela, tem pelo menos 44 px.
+
+**Correção da auditoria do lote (rodada 2).** Um auditor independente reprovou
+o lote com cinco achados; todos foram corrigidos e cada um virou teste.
+
+1. **O interruptor não dizia o estado no escuro** (SPEC §22.3 item 13). O
+   trilho trazia `bg-input … group-data-checked:bg-primary … dark:bg-input/80`
+   e a variante `dark:` (0,2,0) vencia a de estado (0,1,0): medido, o MESMO
+   cinza `--input` a 80 % ligado e desligado. Só o polegar mudava — e ao
+   contrário do tema claro: **preto** quando ligado. Como o item 3 do lote
+   levou `--input` de `#2e2e2e` para `#7a7a78`, o que era um pill quase
+   invisível virou um pill cinza-claro bem visível nos dois estados, e as seis
+   chaves de Preferências passaram a ler "ligado" como "desligado". Agora cada
+   estado tem a sua regra (nenhuma pega os dois) e o polegar é claro sempre; a
+   borda de 1 px do polegar segura os 3:1 contra o laranja do tema escuro.
+   Arquivo: `components/ui/switch.tsx`.
+2. **A aba acesa ficou mais escura que as apagadas no claro** (item 14).
+   `TabsTrigger` usava `data-active:bg-background` e o lote baixou
+   `--background` de `#fafafa` para `#e0e0dd`: em `/corpo` a lista media
+   `#efefec` e a aba ativa `#e0e0dd` — a cor da página, mais escura que a
+   lista —, invertendo a leitura do estado; o mesmo nas abas da ficha de
+   exercício. Passou a `data-active:bg-card` (o escuro segue com
+   `input/30`). Arquivo: `components/ui/tabs.tsx`.
+3. **O degrau do item 2 não chegou a `/mais` nem a `/mais/creditos`.** O bloco
+   de menu e as seções de créditos eram transparentes: no escuro, preto sobre
+   preto com uma borda — exatamente o defeito que o item dizia ter matado (a
+   captura 18-mais-escuro mudou 2,62 % e a 24-creditos-escuro 1,83 %, só a
+   borda). Levaram `bg-card`, e a varredura do repositório achou mais dois
+   blocos `border-border` + `cartao` sem fundo próprio. Arquivos:
+   `app/(app)/mais/page.tsx`, `app/(app)/mais/creditos/page.tsx`,
+   `components/exercicio/ficha-folha.tsx`, `components/treino/cards.tsx`.
+4. **O vazio de gráfico vazou para fotos e medidas** (item 15). O item 9
+   trocou o `SemDados` por `Vazio` com ícone `ChartSpline` e título "Sem dados
+   por enquanto", e a galeria de fotos vazia passou a anunciar isso com um
+   gráfico de linha em cima de "Nenhuma foto ainda.". `SemDados` ganhou
+   `icone` (o `ChartSpline` só como padrão) e frase opcional; a galeria usa
+   `Camera`, o comparador `ImageOff` e a tabela de medidas `Ruler`, cada um
+   com o seu título. Arquivos: `components/graficos/apoio.tsx`,
+   `components/corpo/aba-fotos.tsx`, `components/corpo/aba-medidas.tsx`.
+5. **O diagnóstico do `fixme` do foco estava errado** — veja L3-7 acima: a
+   causa é o `transition-all` do `Button`, não o `:focus-visible`, e a régua
+   aceitava sombra transparente como anel. O texto foi corrigido no teste, na
+   SPEC §22.3 item 7 e aqui; com a medição consertada as 141 "falhas" somem e
+   sobraram só dois focáveis de `/corpo`, que a **segunda** correção fechou.
+
+Provas novas em `e2e/ultraloop-a-r2.spec.ts` (15 testes): trilho e polegar do
+interruptor nos dois estados e nos dois temas, a aba acesa mais clara que a
+lista em `/corpo` e na ficha do exercício, o fundo REAL do bloco de `/mais` e
+das seções de `/mais/creditos` contra o fundo da página, e o título do vazio da
+galeria de fotos.
+
+**Segunda correção da auditoria do lote (rodada 2).** O auditor reprovou de
+novo, com cinco achados. Todos corrigidos.
+
+1. **O anel de foco fechou — o `fixme` saiu** (bloqueante do item 7). Medindo
+   focável por focável em `/corpo`, os dois que faltavam não eram o que o
+   relatório anterior dizia:
+   - o **painel da aba** (`div[data-slot=tabs-content]`), que o Radix deixa
+     focável com `tabindex="0"` para o teclado cair dentro do conteúdo. O
+     `.textContent` dele começa em "IMC Editar altura…", o que o fazia passar
+     por "cartão do IMC"; o `CardImc` é um `<section>` e nunca teve
+     `tabindex`. Ele vinha com `outline-none` do shadcn — uma **utilitária**,
+     que ganha da regra global de `app/globals.css` por estar numa camada
+     acima —, então trocamos `outline-none` pela `.foco`.
+   - o campo `#peso-data`, um `input[type="date"]`. O Chromium lhe dá shadow
+     DOM: o Tab anda por dia, mês, ano **e ainda pelo ícone do calendário**.
+     Nesse quarto passo o `document.activeElement` continua sendo o campo,
+     mas quem tem o foco é um nó de dentro, então o host deixa de casar
+     `:focus-visible` e o anel sumia. O `Input` ganhou
+     `focus-within:ring-3 focus-within:ring-ring` ao lado do `focus-visible`;
+     `:focus-within` casa com o host enquanto o foco estiver na sombra, e nos
+     campos de texto os dois estados coincidem, então nada mais muda. O campo
+     **tem** nome acessível (`<Label htmlFor="peso-data">` "Data"): o que o
+     relatório leu como "sem nome" era o `textContent` vazio de um `<input>`.
+   A régua também passou a ler a cor pelo **canvas** (`fillStyle` + um pixel),
+   que aceita `rgb()`, `oklab()`, `oklch()` e `color()` — o Chromium devolve
+   `oklab()` em toda sombra que passa por `color-mix`, e a expressão regular
+   antiga dava transparente para elas. Arquivos: `components/ui/tabs.tsx`,
+   `components/ui/input.tsx`, `e2e/ultraloop-varredura.spec.ts`.
+2. **O polegar do interruptor tinha cor crua** (item 13).
+   `shadow-[0_0_0_1px_rgb(10_10_10_/_0.22)]` virou
+   `shadow-[0_0_0_1px_var(--polegar-borda)]`, com o token nos dois temas —
+   `rgb(10 10 10 / 0.22)` no claro e `rgb(10 10 10 / 0.26)` no escuro, onde o
+   trilho ligado é o laranja mais claro. Medido sobre o trilho ligado, a borda
+   dá 3,5:1 contra o polegar no escuro e 9,2:1 no claro; `lib/tema.test.ts`
+   prende a conta e proíbe a volta da cor crua. Arquivos:
+   `components/ui/switch.tsx`, `app/globals.css`, `lib/tema.test.ts`.
+3. **O corpo do mapa muscular sumia no claro** (item 16, novo). O item 2 baixou
+   o fundo da página para `#e0e0dd` e `--mbody: #c8c8c4` ficou em 1,27:1 contra
+   ele — e em `/exercicios/[id]` → Músculos a figura é desenhada **direto sobre
+   a página**, sem card embaixo. É `#c0c0bc`: 1,38:1 contra o fundo, com o
+   músculo principal ainda em 3,80:1 e o auxiliar em 3,25:1 contra o corpo.
+   `lib/tema.test.ts` passou a medir o corpo contra a página também. Arquivos:
+   `app/globals.css`, `lib/tema.test.ts`.
+4. **A aba tinha anel de 1 px** (item 7). O `TabsTrigger` do shadcn trazia
+   `focus-visible:outline-1 focus-visible:outline-ring`, utilitária que vencia
+   os 2 px da regra global: saiu, e a aba passou a usar o mesmo anel do resto
+   do app. Arquivo: `components/ui/tabs.tsx`.
+5. **Indentação e contagem.** O vazio do comparador de fotos estava com o corpo
+   indentado dois espaços a mais; e o relatório do lote e estes documentos
+   divergiam sobre o item do foco. Fica dito: **o item do foco (`L3-7` aqui,
+   `L3-4` na lista do lote) está completo**, assim como os esqueletos (`L3-10`
+   aqui, `L3-7` na lista) — os doze itens do lote estão fechados. Arquivo:
+   `components/corpo/aba-fotos.tsx`.
+
+*Como testar no celular.* Em Corpo, com um teclado bluetooth (ou o Tab de um
+navegador de mesa a 360 px), segure Tab: depois da aba "Peso" o **conteúdo
+inteiro** ganha um contorno laranja de 2 px, e o campo de Data mantém o anel
+nos quatro passos — dia, mês, ano e o ícone do calendário. Em Mais →
+Preferências, o pontinho claro das chaves tem um fio escuro em volta nos dois
+temas. Na ficha de um exercício, aba Músculos, a silhueta cinza aparece contra
+o fundo da página no tema claro (antes ela quase sumia).
+
+Provas novas em `e2e/ultraloop-a-r2.spec.ts` (17 testes): o painel da aba e os
+quatro passos do campo de data com anel nos dois temas, e o nome acessível
+"Data" do campo. Em `lib/tema.test.ts` (28 casos): a borda do polegar com 3:1
+sobre o trilho ligado nos dois temas, a proibição da cor crua no `Switch` e o
+corpo do mapa muscular contra a página.
+
+### Rodada 2 — Lote 4 — imagens, mídia e entrega (faixa B)
+
+Branch `ultraloop/l4-imagens-midia-entrega`, a partir de
+`ultraloop/l2-relatorio-corpo-calendario`. SPEC §22.4.
+
+#### 1. Derivadas de imagem no prebuild (L4-1)
+
+**Era:** `public/fotos` (11 MB, 162 JPEG de 850 px de largura) e `public/itens` (6,2 MB,
+85 JPEG) só tinham o arquivo original, e o app nunca gerou derivada nenhuma.
+A miniatura de 56 px recebia os 850 px inteiros — 7,6× o necessário, 71 kB
+por linha de lista — e a capa de 326×160 recebia a mesma foto a 1,30×, que no
+retina é mole.
+
+**É:** `npm run assets` (prebuild) gera em `public/`, com `sharp` e cache por
+data de modificação:
+
+| derivada | tamanho | de quem | quem pede |
+| --- | --- | --- | --- |
+| `<nome>.webp` | até 1200 px, q78 | só as fotos | ficha do exercício e foto em tela cheia |
+| `<nome>-mini.webp` | 112×112 | fotos, ilustrações e itens | miniaturas das listas |
+| `<nome>-capa.webp` | 720×360 | as fotos `-1` que viram capa | cartões com capa |
+
+635 arquivos na primeira vez, nada nas seguintes. A miniatura ficou com
+**2,4 kB de média** (era 71 kB: 29×), a capa com 22 kB e a versão grande com
+**44 kB** (era 70: −37 % na tela mais pesada de imagem do app).
+`lib/midia.ts` (`urlWebp`, `urlMiniatura`) e `lib/capas.ts` (`urlCapa`) montam
+o nome; a imagem cai sozinha no arquivo original quando a derivada falta
+(`onError` em dois degraus), então um build sem `npm run assets` continua
+desenhando. `scripts/validar-dados.ts` recusa um arquivo do kit chamado
+`-mini`/`-capa` ou um `.webp` ao lado de um `.jpg` de mesmo nome — a derivada
+o sobrescreveria em silêncio. Nada disso entra em `assets/` nem no git.
+
+**Auditoria da rodada 2.** A versão grande era gerada (162 fotos + 85 itens) e
+não era servida: `urlWebp` e `temDerivada` não tinham chamada fora do teste, e
+a ficha continuava baixando o JPEG de 71 kB. Corrigido dos dois lados: as
+quatro `<img>` de foto de execução (`components/exercicio/midia.tsx`,
+`components/exercicio/media-grande.tsx`,
+`components/exercicios/fotos-ampliaveis.tsx` e
+`components/exercicios/foto-ampliada.tsx`) passaram a pedir `urlWebp(url)`, e o
+item de equipamento — que nunca aparece maior que a caixa de 56 px — deixou de
+ganhar a versão grande (85 arquivos e 3,5 MB a menos por deploy). O degrau da
+reserva virou `fonteComReserva`/`reservaDaImagem` em
+`components/ui/imagem.ts`: sem derivada para aquele caminho a reserva sai
+`undefined`, e o `onError` não repete o mesmo pedido que acabou de falhar.
+`temDerivada`, que ninguém chamava, saiu. Prova em
+`e2e/ultraloop-b-r2.spec.ts` ("a ficha e a foto em tela cheia pedem a derivada
+WebP"): em `/exercicios/agachamento-livre` toda foto da tela é `.webp` e
+carrega (`naturalWidth > 0`), e a foto ampliada também.
+
+Arquivos: `scripts/copiar-assets.ts`, `scripts/validar-dados.ts`,
+`lib/midia.ts`, `lib/capas.ts`, `components/ui/imagem.ts`,
+`components/ui/miniatura.tsx`, `components/ui/card-capa.tsx`,
+`components/colecoes/linha-colecao.tsx`, `components/exercicio/midia.tsx`,
+`components/exercicio/media-grande.tsx`,
+`components/exercicios/fotos-ampliaveis.tsx`,
+`components/exercicios/foto-ampliada.tsx`,
+`components/mais/tela-equipamento.tsx`.
+
+#### 2. Cache-Control da mídia (performance-05)
+
+**Era:** `next.config.ts` devolvia só os cabeçalhos de segurança para
+`/:caminho*`, então toda imagem saía com `max-age=0` — 12 revalidações 304
+numa navegação pela aba Treino.
+**É:** `/fotos`, `/ilustracoes`, `/itens`, `/figuras`, `/icons` e
+`/mapa-muscular` saem com `public, max-age=604800, stale-while-revalidate=86400`.
+Uma semana em vez de `immutable`: o nome do arquivo não tem hash e trocar uma
+foto não pode ficar preso a um renomeio.
+
+#### 3. Dimensões, lazy, decoding e prioridade (L4-2)
+
+**Era:** 15 `<img>` sem `width`/`height` (com `data/ilustracoes.json` trazendo
+largura e altura), sem `decoding` e, em vários casos, sem `loading`.
+**É:** `midiaGrande()` devolve `largura`/`altura`; a ilustração, a figura, as
+fotos do corpo, a foto ampliada, a miniatura do tutorial e as miniaturas das
+listas levam tamanho, `loading` e `decoding="async"`. A capa da primeira dobra
+(o cartão com selo "hoje"/"em andamento", um por tela) é `loading="eager"` +
+`fetchpriority="high"`; as outras capas ficam `lazy`.
+
+#### 4. Enquadramento e texto alternativo da miniatura (imagens-08)
+
+**Era:** 52 dos 145 arquivos de ilustração são mais altos que largos
+(proporção até 0,35) e apareciam encolhidos no meio da caixa quadrada, com
+`object-contain`, enquanto a foto usava `object-cover` na mesma lista. O `alt`
+repetia o nome do exercício que já estava escrito ao lado.
+**É:** a derivada já nasce quadrada — a ilustração alta (proporção < 0,7) é
+cortada pelo alto, o corpo ocupa a caixa — e foto e ilustração usam **um**
+enquadramento só (`object-cover`). O `alt` inverteu o padrão: vazio quando há
+texto ao lado (todos os usos de hoje), nome só com `sozinha`.
+
+#### 5. Manifest e ícones (L4-3) — parcial
+
+**Era:** o manifest não tinha atalhos nem maskable de 192, e
+`scripts/gerar-icones.ts` desenhava com `#f97316` — um laranja que não existe
+nos tokens do app.
+**É:** o manifest ganhou os atalhos (Treino `/`, Relatório `/relatorio`, Corpo
+`/corpo`) e o `icone-maskable-192`; o gerador lê `--primary` do bloco `.dark`
+de `app/globals.css` (`#fb923c`).
+
+**O que ficou de fora e por quê.** A `theme-color` seguir o tema **escolhido**
+(e não o do aparelho) foi implementado, medido e **revertido**. Reescrever as
+metas no cliente só cola enquanto ninguém navega: a cada troca de tela o Next
+reescreve o `<head>` com o `viewport` do layout e devolve as duas cores por
+`prefers-color-scheme`. Refazer no `usePathname` chega tarde em parte das
+navegações, e a versão com `MutationObserver` no `<head>` — que funcionava —
+custou caro: `e2e/guia.spec.ts` passou a estourar 20 s em três navegações para
+`/mais*` (cada mutação de `<head>`, e o Next prefetch insere muitas, forçava um
+recálculo de estilo). Fica para um lote que trate disso na raiz, provavelmente
+escrevendo a meta no `viewport` a partir do tema lido no servidor.
+
+#### 6. `/favicon.ico` responde imagem (imagens-14)
+
+**Era:** 404 com 11 kB de HTML — o App Router só serve esse caminho a partir
+de `app/favicon.ico`, e só havia `app/icon.png`.
+**É:** `npm run icones` escreve `app/favicon.ico` (um PNG de 32 px dentro do
+cabeçalho .ico, 355 bytes, sem dependência nova) e `app/layout.tsx` o declara.
+
+#### 7. Região de avisos em português (a11y-11)
+
+**Era:** `aria-label="Notifications alt+T"`, a única string em inglês do app.
+**É:** `containerAriaLabel="Avisos"` em `components/ui/sonner.tsx`.
+
+#### 8. Sprite órfão fora do layout (L4-5)
+
+**Era:** `SpriteMuscular` injetava `corpo-sprite.svg` (o boneco `#bf`/`#bb`,
+4,7 kB) no HTML de **toda** página, e o único componente que o usava,
+`components/mapa-muscular.tsx`, não era importado por ninguém desde o marco
+Mídia.
+**É:** os dois saíram; o `MapaAnatomico` da ficha continua igual.
+
+#### 9. Esqueleto do shell (L4-6) — revertido, fica na fila
+
+`app/(app)/loading.tsx` foi escrito, funcionou (o esqueleto aparecia na troca
+de aba, com o servidor atrasado de propósito) e **saiu**: um `loading.tsx` no
+grupo `(app)` põe uma fronteira de Suspense em **todas** as rotas
+autenticadas, e `e2e/auditoria-m5.spec.ts` (as 81 fichas) passou a ler a
+página antes de o corpo chegar em 29 delas. O ganho é real, mas precisa de um
+`loading.tsx` por rota, com o esqueleto daquela tela, em vez de um só no
+grupo — e isso é trabalho de um lote inteiro.
+
+#### 10. Bundle das rotas pesadas (L4-7) — revertido, fica na fila
+
+`next/dynamic` para a ficha em folha (com o tutorial e o iframe do YouTube
+dentro), para a folha de ajustes do player, para o bloco de recordes e
+gráficos do Relatório e para Desafios/ParteDoCorpo/Personalizar. Medido no
+build, antes → depois: `/explorar/[tipo]/[valor]` 377 → **346 kB**, `/treinar`
+374 → 358, `/` 403 → 386, player 412 → 397, `/relatorio` 371 → 369.
+
+Duas coisas mataram o item nesta rodada:
+
+1. A meta de 350 kB só caiu numa rota. O que sobra não é código de tela: são
+   os chunks de fornecedor que toda rota autenticada precisa na primeira carga
+   — o cliente do Supabase (195 kB bruto, é ele que valida a sessão), o Dexie
+   da fila offline (94 kB) e o runtime do React/Next.
+2. `components/exercicio/ficha-folha.tsx` é importado **estaticamente** pela
+   página `/exercicios/[id]` (o `ConteudoDaFicha`) e dinamicamente pelos
+   quatro lugares que abrem a folha. Com o `next/dynamic`, a ficha em página
+   inteira passou a renderizar só o cabeçalho: `e2e/auditoria-m5.spec.ts`
+   acusou "0 imagens, 0 passos" em 29 das 81 fichas. Dividir esse módulo em
+   dois (a folha e o conteúdo) resolve, e é o primeiro passo do lote que
+   pegar este item.
+
+Nada disso está no commit: a árvore ficou como estava, com as medições
+anotadas aqui para quem continuar.
+
+#### 11. Abertura do iPhone (L4-4)
+
+**Era:** sem `apple-touch-startup-image`, o app instalado abria numa tela preta
+vazia até o shell pintar.
+**É:** `npm run icones` gera as seis aberturas comuns (1170×2532, 1284×2778,
+1179×2556, 1290×2796, 828×1792, 750×1334) com fundo `#0a0a0a` e o ícone no
+meio, e `app/layout.tsx` as declara com as media queries de cada aparelho. Elas
+ficam **fora** do precache do service worker: o iOS as busca uma vez, na
+instalação.
+
+#### Segunda auditoria da rodada 2 — o que o corretor mudou
+
+1. **O aquecimento da fase seguia pedindo os originais** (SPEC §8, o problema
+   importante). `midiaDaFase()` listava `urlsDaIlustracao` + `urlFigura` +
+   `urlFotos`, isto é, o JPEG do kit — enquanto a lista de hoje passou a pedir
+   `-mini.webp`, o cartão `-capa.webp` e a ficha `.webp`. Sem rede, o treino
+   do dia podia abrir sem exatamente as imagens que as telas buscam. Agora a
+   lista é **o que as telas pedem**, com o mesmo degrau de
+   `fonteComReserva`: a capa de cada treino da fase, a miniatura de cada
+   exercício, as ilustrações e a figura (que a ficha usa como estão) e o WebP
+   das fotos de execução — e nenhum `.jpg`. São 73 arquivos na fase 1 (eram
+   73 originais). `lib/precache-do-programa.test.ts` monta a lista esperada
+   chamando as funções dos próprios componentes (`fonteComReserva`, `urlCapa`,
+   `urlMiniatura`, `urlWebp`) e compara item a item, nas duas fases, com um
+   exercício de cada tipo de mídia (foto, ilustração, figura);
+   `e2e/auditoria-offline.spec.ts` espera a miniatura da lista entrar no cache
+   e, depois de cortar a rede, exige que ela **desenhe** (`naturalWidth > 0`).
+2. **As quatro fotos de execução não diziam o tamanho.** `lib/midia.ts` ganhou
+   `MEDIDA_DA_FIGURA` (o `viewBox` 132×100 das 67 figuras) e `medidaDaFoto()`,
+   que devolve `null` para a foto do Corpo — essa vem do storage e ninguém
+   sabe quanto mede. As quatro `<img>` de foto e as duas de figura passaram a
+   levar `width`/`height`; o teste "§22.4-3" agora roda na aba Treino, na
+   ficha `/exercicios/[id]`, na foto em tela cheia e em Mais → Equipamento.
+   (A medida da foto era uma constante `MEDIDA_DA_FOTO` de 850×567 "igual nas
+   162 fotos" — era falso, e a terceira auditoria abaixo desfez isso.)
+3. **A queda da miniatura ficava presa.** Sem derivada (`mini === null`) o
+   primeiro degrau já era o original e o segundo pedia o mesmo arquivo que
+   acabara de falhar. `components/ui/miniatura.tsx` passou a montar os degraus
+   com `fonteComReserva`: o que a tela pede, a reserva do kit **quando existe**
+   e o ícone. O degrau continua em estado (e não pelo DOM, como o
+   `reservaDaImagem`) porque o enquadramento muda junto — a derivada é
+   quadrada, o original não.
+4. **`/favicon.ico` era declarado três vezes** no `<head>`: o do App Router
+   (`app/favicon.ico`), o de `icons.icon` e o de `icons.shortcut`. Ficou só o
+   do App Router; o teste "§22.4-6" conta os `<link>` e continua exigindo
+   200 com `content-type` de imagem. O comentário do `viewport` dizia que a
+   `theme-color` é corrigida no cliente — isso foi revertido neste mesmo lote
+   e o comentário agora descreve o que o código faz.
+5. **Comentários apontando para um item que não existe.** `app/layout.tsx`,
+   `next.config.ts` e `scripts/gerar-icones.ts` citavam "SPEC §22.4 item 11";
+   a abertura do iPhone é o item **9**. E a tabela de assets da SPEC (§1) ainda
+   mandava para o componente `MapaMuscular`, que saiu no item 8 — passou a
+   descrever o mapa anatômico e o `MapaAnatomico`, e o §7 diz onde o sprite
+   antigo foi parar.
+6. **A foto do item do terraço estava a 1,75×.** A caixa era de 64 px para uma
+   derivada de 112. Virou 56 px (`size-14`), a mesma das outras miniaturas —
+   2× exatos, medidos no navegador pelo teste "a foto do item do terraço
+   também tem o dobro da caixa" (`caixa === 56`, `naturalWidth ≥ 112`).
+
+#### Provas
+
+- `e2e/ultraloop-b-r2.spec.ts`: 13 testes, um por item que se vê — peso de
+  imagem do Explorar, capa a 2× da caixa, zero revalidação 304, dimensões e
+  `decoding` de toda imagem de exercício, capa da primeira dobra `eager`,
+  enquadramento e ocupação da miniatura, atalhos do manifest, `/favicon.ico`,
+  nenhum rótulo em inglês e o boneco antigo fora do HTML.
+- `e2e/treino-v2.spec.ts` passou a exigir a **derivada** na capa do card do dia
+  e na miniatura da lista (o nome sai do mesmo caminho do JSON, como antes): o
+  que o teste verifica continua sendo "a tela pede a imagem certa e ela
+  carrega", agora com o arquivo certo.
+- Unitários novos em `lib/midia.test.ts` e `lib/capas.test.ts` para as funções
+  puras das derivadas, e `lib/medidas-de-foto.test.ts` para as medidas (abre
+  as 162 fotos e as derivadas com o `sharp`).
+
+#### Terceira auditoria da rodada 2 — o que o corretor mudou
+
+**O problema:** `MEDIDA_DA_FOTO = {850, 567}` era uma suposição, declarada no
+comentário do próprio arquivo, na mensagem do commit, aqui no PROGRESSO e na
+SPEC §22.4 como "a medida das 162 fotos do kit e da derivada WebP". Dez fotos
+fogem dela: `agachamento-bulgaro-1/-2`, `barra-fixa-assistida-1/-2` e
+`barra-fixa-com-lastro-1/-2` medem 850×1275 (a derivada, limitada a 1200 px no
+maior lado, sai 800×1200) e `agachamento-goblet-1/-2` e `salto-basico-1/-2`
+medem 850×569. Em três das quatro `<img>` o CSS escondia o erro
+(`aspect-square`, `h-40`), mas em `components/exercicios/foto-ampliada.tsx` a
+classe é `max-h-[80dvh] w-full max-w-lg object-contain`: com o `height:auto` do
+preflight, quem manda antes de a foto chegar é a proporção dos atributos. A
+caixa reservada era 344×229 e pulava para 344×516 quando a imagem carregava —
+287 px de salto numa tela de 740 px, na imagem mais pesada do app, que é
+exatamente o que o item 3 existe para eliminar. O teste "§22.4-3" só conferia
+que `width`/`height` existiam, então passava com o dado errado.
+
+**O que passou a valer:**
+
+1. **A medida é medida, não suposta.** `scripts/copiar-assets.ts` já abre cada
+   foto com o `sharp` para gerar as derivadas; agora grava também
+   `data/medidas-de-foto.json` — 162 linhas com `kit` (o JPEG de
+   `assets/fotos`) e `webp` (a derivada de `public/fotos`, que é o arquivo que
+   a tela pede). É o mesmo papel que `data/ilustracoes.json` cumpre para as
+   ilustrações: conteúdo em JSON, nada de medida escrita no código. O arquivo
+   entra no git (as telas o importam por `lib/dados.ts`, com schema zod) e só é
+   reescrito quando muda.
+2. **`medidaDaFoto()` lê dali** e devolve a medida **do arquivo pedido**: a da
+   derivada para `/fotos/x.webp`, a do kit para `/fotos/x.jpg`. As quatro
+   `<img>` de foto passaram a perguntar pela URL que elas realmente pedem
+   (`fonte.src`), e não pelo original. `MEDIDA_DA_FOTO` deixou de existir.
+3. **Um unitário que teria pegado isto hoje.** `lib/medidas-de-foto.test.ts`
+   percorre `assets/fotos` com o `sharp` e reprova se o JSON discordar de
+   qualquer arquivo — do kit e da derivada —, se sobrar ou faltar foto, ou se a
+   derivada perder a proporção do original. São 8 casos, 1 s.
+   `npm run validar` também cobra o par (foto no kit ↔ medida no JSON) antes do
+   build, com o recado "rode npm run assets".
+4. **O e2e deixou de aceitar qualquer par de números.** O "§22.4-3" agora exige
+   `width`/`height` **iguais** a `naturalWidth`/`naturalHeight` em toda foto do
+   kit já carregada, e roda em duas fichas: `agachamento-livre` (850×567) e
+   `agachamento-bulgaro` (a derivada de 800×1200). E há um teste novo que
+   segura a foto na rede, mede a caixa vazia, solta a imagem e exige a mesma
+   altura depois — a prova do item, na imagem mais pesada do app.
+5. **Os textos.** SPEC §22.4 itens 1 e 3, este PROGRESSO e os comentários que
+   afirmavam "igual nas 162 fotos" passaram a dizer o que é verdade: 152 fotos
+   de 850×567, seis de 850×1275 e quatro de 850×569.
+
+#### Como testar no celular
+
+0. Abra **Explorar → agachamento búlgaro** e toque numa das duas fotos para
+   ampliar: a foto abre já na altura final, sem a tela dar um pulo quando a
+   imagem termina de carregar (antes o salto era de 287 px).
+1. Abra a aba **Treino**. A capa do treino de hoje tem de aparecer nítida
+   (é uma imagem de 720 px numa caixa de 326) e as linhas da lista já vêm com
+   a miniatura sem aquele pisca de imagem grande chegando depois.
+2. **Mais → Equipamento**: a lista de itens abre quase instantânea (as fotos
+   agora são 2,4 kB em vez de 70 kB cada).
+3. Abra a mesma tela duas vezes seguidas: na segunda não há rede nenhuma para
+   as imagens (elas valem por uma semana).
+4. Instale o app (Adicionar à tela de início). No iPhone, a abertura mostra o
+   ícone sobre o fundo preto em vez da tela preta vazia; segurando o ícone,
+   aparecem os atalhos Treino, Relatório e Corpo.
+
 
 ### Rodada 3 — Lote 5
 

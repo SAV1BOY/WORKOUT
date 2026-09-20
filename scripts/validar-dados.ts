@@ -9,6 +9,7 @@ import {
   equipamentosSchema,
   exerciciosSchema,
   ilustracoesSchema,
+  medidasDeFotoSchema,
   perfilSchema,
   programaSchema,
   progressaoJsonSchema,
@@ -57,6 +58,7 @@ const equipamentos = validar(equipamentosSchema, "equipamentos.json");
 validar(perfilSchema, "perfil.json");
 const tutoriais = validar(tutoriaisSchema, "tutoriais.json");
 const ilustracoes = validar(ilustracoesSchema, "ilustracoes.json");
+const medidasDeFoto = validar(medidasDeFotoSchema, "medidas-de-foto.json");
 
 function conferirTutoriais(exs: Exercicio[]) {
   if (!tutoriais) return;
@@ -226,9 +228,77 @@ if (equipamentos) {
   }
 }
 
+/*
+ * Os sufixos que `npm run assets` reserva para as derivadas (SPEC §22.4
+ * item 1). Um arquivo do kit chamado `x-mini.webp` seria sobrescrito em
+ * silêncio pela derivada de `x.jpg` — e um `x.webp` ao lado de `x.jpg`
+ * viraria a versão grande de si mesmo. Aqui isso vira erro de build, não uma
+ * imagem trocada na tela.
+ */
+{
+  const reservado = /-(mini|capa)\.(webp|jpe?g|svg|png)$/i;
+  for (const pasta of ["fotos", "itens", "ilustracoes"]) {
+    const raizDaPasta = join(raiz, "assets", pasta);
+    if (!existsSync(raizDaPasta)) continue;
+    const andar = (dir: string) => {
+      for (const entrada of readdirSync(dir, { withFileTypes: true })) {
+        const caminho = join(dir, entrada.name);
+        if (entrada.isDirectory()) {
+          andar(caminho);
+          continue;
+        }
+        if (reservado.test(entrada.name)) {
+          erros.push(
+            `assets/${pasta}/${entrada.name}: "-mini"/"-capa" são das derivadas (SPEC §22.4)`,
+          );
+        }
+        if (/\.jpe?g$/i.test(entrada.name)) {
+          const irmao = caminho.replace(/\.jpe?g$/i, ".webp");
+          if (existsSync(irmao)) {
+            erros.push(
+              `assets/${pasta}/${entrada.name}: já existe um .webp com o mesmo nome (a derivada o sobrescreveria)`,
+            );
+          }
+        }
+      }
+    };
+    andar(raizDaPasta);
+  }
+  console.log("  nomes livres para as derivadas de imagem (-mini, -capa, .webp)");
+}
+
+/*
+ * `data/medidas-de-foto.json` (SPEC §22.4 item 3) tem de falar das fotos que
+ * existem hoje. Quem mede é `npm run assets`, com o sharp; aqui só se confere
+ * que ninguém entrou nem saiu do kit sem o arquivo ser refeito — uma foto sem
+ * medida perde o `width`/`height` da `<img>` em silêncio, e uma medida órfã é
+ * de uma foto que já não existe. As medidas em si são conferidas arquivo por
+ * arquivo em `lib/medidas-de-foto.test.ts`.
+ */
+if (medidasDeFoto) {
+  const naPasta = readdirSync(join(raiz, "assets", "fotos"))
+    .filter((f) => /\.jpe?g$/i.test(f))
+    .map((f) => f.replace(/\.jpe?g$/i, ""));
+  const medidas = new Set(Object.keys(medidasDeFoto.fotos));
+  const semMedida = naPasta.filter((n) => !medidas.has(n));
+  const orfas = [...medidas].filter((n) => !naPasta.includes(n));
+  for (const n of semMedida) {
+    erros.push(
+      `data/medidas-de-foto.json: falta a medida de ${n}.jpg (rode "npm run assets")`,
+    );
+  }
+  for (const n of orfas) {
+    erros.push(
+      `data/medidas-de-foto.json: "${n}" não existe em assets/fotos (rode "npm run assets")`,
+    );
+  }
+  console.log(`  ${medidas.size} fotos medidas em data/medidas-de-foto.json`);
+}
+
 // assets fixos que o app usa direto (sprite do mapa muscular)
 for (const arquivo of [
-  "assets/mapa-muscular/corpo-sprite.svg",
+  // o boneco antigo (#bf/#bb) saiu do layout no lote 4 (SPEC §22.4 item 8);
+  // `musculos.css` segue sendo a fonte dos tokens --mbody/--mprim/--msec
   "assets/mapa-muscular/musculos.css",
   // marco Mídia: o mapa anatômico e a licença MIT que precisa andar junto
   "assets/mapa-muscular/mapa-anatomico.svg",

@@ -197,7 +197,7 @@ export function TelaConclusao({
             <p className="numero text-base">Peso de hoje: {formatarKg(registrado)}</p>
             <Button
               variant="ghost"
-              className="alvo h-11"
+              className="alvo"
               onClick={() => {
                 aoMudarPeso(registrado);
                 setEditando(true);
@@ -209,7 +209,7 @@ export function TelaConclusao({
         ) : (
           <Button
             variant="outline"
-            className="alvo h-11"
+            className="alvo"
             onClick={() => setEditando(true)}
           >
             Registrar o peso de hoje
@@ -235,7 +235,7 @@ export function TelaConclusao({
         </BotaoLargo>
         <Button
           variant="ghost"
-          className="alvo h-11"
+          className="alvo"
           disabled={salvando}
           onClick={aoVoltar}
         >

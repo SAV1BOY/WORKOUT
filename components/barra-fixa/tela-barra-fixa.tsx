@@ -214,7 +214,7 @@ export function TelaBarraFixa({ userId }: { userId: string }) {
         <CardContent className="flex flex-col gap-4">
           <div className="border-border flex items-center justify-between gap-3 rounded-lg border p-3">
             <div className="flex flex-col">
-              <span className="text-muted-foreground text-[11px] tracking-wide uppercase">
+              <span className="text-muted-foreground text-rotulo tracking-wide uppercase">
                 hoje
               </span>
               <span className="numero text-3xl">{totalHoje}</span>
@@ -240,7 +240,7 @@ export function TelaBarraFixa({ userId }: { userId: string }) {
             >
               {dias.map((d) => (
                 <li key={d.data} className="flex flex-1 flex-col items-center gap-1">
-                  <span className="numero text-[10px]">{d.reps > 0 ? d.reps : ""}</span>
+                  <span className="numero text-micro">{d.reps > 0 ? d.reps : ""}</span>
                   <span
                     aria-hidden="true"
                     className={cn(
@@ -252,7 +252,7 @@ export function TelaBarraFixa({ userId }: { userId: string }) {
                       height: `${Math.max(4, (d.reps / maximoDoDia) * 40)}px`,
                     }}
                   />
-                  <span className="text-muted-foreground text-[9px]">
+                  <span className="text-muted-foreground text-micro">
                     {formatarDiaCurto(d.data)}
                   </span>
                 </li>

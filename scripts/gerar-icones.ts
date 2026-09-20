@@ -1,14 +1,37 @@
 /**
  * npm run icones — desenha o ícone do app em SVG e rasteriza em PNG com sharp.
  * Sem rede: o SVG é gerado aqui. Os PNG ficam em public/icons e vão para o git.
+ *
+ * SPEC §22.4 itens 5, 6 e 9 — além dos ícones, este script gera:
+ *   · o `icone-maskable-192`, que faltava no manifest;
+ *   · o `app/favicon.ico`, para `/favicon.ico` responder imagem e não o HTML
+ *     de 404 (o App Router só serve esse caminho a partir deste arquivo);
+ *   · as telas de abertura do iPhone (`apple-touch-startup-image`).
+ *
+ * A cor do destaque sai do token `--primary` do tema escuro em
+ * `app/globals.css` — antes era um `#f97316` escrito à mão aqui, fora dos
+ * tokens, e o ícone instalado tinha um laranja que não existe no app.
  */
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import sharp from "sharp";
 
+const raiz = process.cwd();
+
+/** Lê `--primary` de dentro do bloco `.dark` de app/globals.css. */
+function primariaDoTemaEscuro(): string {
+  const css = readFileSync(join(raiz, "app", "globals.css"), "utf8");
+  const escuro = /\.dark\s*\{([\s\S]*?)\n\}/.exec(css);
+  const cor = escuro && /--primary:\s*(#[0-9a-fA-F]{3,8})\s*;/.exec(escuro[1]!);
+  if (!cor) {
+    throw new Error("não achei --primary no bloco .dark de app/globals.css");
+  }
+  return cor[1]!;
+}
+
 const fundo = "#0a0a0a";
-const destaque = "#f97316";
-const destino = join(process.cwd(), "public", "icons");
+const destaque = primariaDoTemaEscuro();
+const destino = join(raiz, "public", "icons");
 
 /** Barra com anilhas, centralizada; `margem` em % para a versão maskable. */
 function svg(tamanho: number, margem: number): string {
@@ -28,11 +51,51 @@ function svg(tamanho: number, margem: number): string {
 </svg>`;
 }
 
+/**
+ * As telas de abertura do iPhone: o app instalado abria num preto sem nada
+ * até o shell pintar. Fundo `#0a0a0a` (o mesmo `background_color` do
+ * manifest) e o ícone no meio, a 30 % do lado menor.
+ */
+const ABERTURAS: Array<[largura: number, altura: number]> = [
+  [1170, 2532],
+  [1284, 2778],
+  [1179, 2556],
+  [1290, 2796],
+  [828, 1792],
+  [750, 1334],
+];
+
+/**
+ * Um .ico com um PNG dentro (o formato aceita isso desde o Vista e todo
+ * navegador que interessa lê). Assim não entra dependência nova só para
+ * escrever 22 bytes de cabeçalho.
+ */
+function icoComPng(png: Buffer, lado: number): Buffer {
+  const cabecalho = Buffer.alloc(6);
+  cabecalho.writeUInt16LE(0, 0); // reservado
+  cabecalho.writeUInt16LE(1, 2); // 1 = ícone
+  cabecalho.writeUInt16LE(1, 4); // uma imagem só
+  const entrada = Buffer.alloc(16);
+  entrada.writeUInt8(lado >= 256 ? 0 : lado, 0); // largura (0 = 256)
+  entrada.writeUInt8(lado >= 256 ? 0 : lado, 1); // altura
+  entrada.writeUInt8(0, 2); // paleta: nenhuma
+  entrada.writeUInt8(0, 3); // reservado
+  entrada.writeUInt16LE(1, 4); // planos
+  entrada.writeUInt16LE(32, 6); // bits por pixel
+  entrada.writeUInt32LE(png.length, 8);
+  entrada.writeUInt32LE(6 + 16, 12); // onde o PNG começa
+  return Buffer.concat([cabecalho, entrada, png]);
+}
+
 async function gerar() {
   mkdirSync(destino, { recursive: true });
+  console.log(`  destaque ${destaque} (--primary do tema escuro)`);
   const arquivos: Array<[string, number, number]> = [
     ["icone-192.png", 192, 0.06],
     ["icone-512.png", 512, 0.06],
+    // o manifest pedia um maskable de 192: sem ele o Android reescalava o de
+    // 512 e o atalho da tela inicial saía com o desenho borrado
+    ["icone-maskable-192.png", 192, 0.18],
     ["icone-maskable-512.png", 512, 0.18],
     ["apple-touch-icon.png", 180, 0.06],
   ];
@@ -41,10 +104,33 @@ async function gerar() {
     writeFileSync(join(destino, nome), png);
     console.log(`  public/icons/${nome}`);
   }
-  // favicon do app router (app/icon.png)
+
+  // ícone do app router (app/icon.png) e o /favicon.ico, que é outro arquivo
   const favicon = await sharp(Buffer.from(svg(256, 0.06))).png().toBuffer();
-  writeFileSync(join(process.cwd(), "app", "icon.png"), favicon);
+  writeFileSync(join(raiz, "app", "icon.png"), favicon);
   console.log("  app/icon.png");
+  const de32 = await sharp(Buffer.from(svg(32, 0.06))).png().toBuffer();
+  writeFileSync(join(raiz, "app", "favicon.ico"), icoComPng(de32, 32));
+  console.log("  app/favicon.ico");
+
+  for (const [largura, altura] of ABERTURAS) {
+    const lado = Math.round(Math.min(largura, altura) * 0.3);
+    const icone = await sharp(Buffer.from(svg(lado, 0.06))).png().toBuffer();
+    const png = await sharp({
+      create: {
+        width: largura,
+        height: altura,
+        channels: 4,
+        background: fundo,
+      },
+    })
+      .composite([{ input: icone, gravity: "centre" }])
+      .png({ compressionLevel: 9 })
+      .toBuffer();
+    const nome = `abertura-${largura}x${altura}.png`;
+    writeFileSync(join(destino, nome), png);
+    console.log(`  public/icons/${nome}`);
+  }
   console.log("✓ ícones gerados");
 }
 

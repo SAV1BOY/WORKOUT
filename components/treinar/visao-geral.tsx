@@ -67,7 +67,7 @@ export function VisaoGeralDaSessao({
             saída do treino mora aqui, na lista da sessão. A sessão continua
             aberta e volta pelo "Continuar" da aba Treino (§3.1).
           */}
-          <Button asChild variant="ghost" size="icon" className="alvo size-11 shrink-0">
+          <Button asChild variant="ghost" size="icon" className="alvo shrink-0">
             <Link href="/" aria-label="Sair do treino">
               <LogOut className="size-5" />
             </Link>
@@ -76,7 +76,7 @@ export function VisaoGeralDaSessao({
             <Button
               variant="outline"
               size="icon"
-              className="alvo size-11 shrink-0"
+              className="alvo shrink-0"
               aria-label="Voltar ao treino"
               onClick={aoFechar}
             >

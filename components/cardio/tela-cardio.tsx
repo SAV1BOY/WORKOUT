@@ -315,7 +315,7 @@ export function TelaCardio({
         </ul>
       ) : null}
 
-      <Button variant="ghost" className="alvo h-11" onClick={() => void descartar()}>
+      <Button variant="ghost" className="alvo" onClick={() => void descartar()}>
         Sair sem registrar
       </Button>
 

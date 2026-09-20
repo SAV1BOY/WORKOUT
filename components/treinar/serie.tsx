@@ -220,7 +220,7 @@ function Campo({
 }) {
   return (
     <div className="flex min-w-0 flex-col gap-1">
-      <span className="text-muted-foreground text-[0.7rem] uppercase">
+      <span className="text-muted-foreground text-rotulo uppercase">
         {rotulo}
       </span>
       {children}
@@ -323,7 +323,7 @@ export function SeletorAssistencia({
 }) {
   return (
     <div className="flex flex-col gap-1">
-      <span className="text-muted-foreground text-[0.7rem] uppercase">
+      <span className="text-muted-foreground text-rotulo uppercase">
         elástico
       </span>
       <div

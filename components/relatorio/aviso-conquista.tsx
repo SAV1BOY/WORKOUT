@@ -30,7 +30,7 @@ export function AvisoDeConquista({
       data-aviso-conquista={novas.map((c) => c.id).join(" ")}
       className="cartao border-primary/40 bg-primary/5 flex flex-col gap-2 border p-3"
     >
-      <h2 className="text-muted-foreground text-[11px] font-medium tracking-wide uppercase">
+      <h2 className="text-muted-foreground text-rotulo font-medium tracking-wide uppercase">
         {novas.length === 1 ? "Conquista" : "Conquistas"}
       </h2>
       <ul className="flex flex-col gap-2">
@@ -55,7 +55,7 @@ export function AvisoDeConquista({
       </ul>
       <Button
         variant="outline"
-        className="alvo h-11"
+        className="alvo"
         onClick={() => {
           setFechado(true);
           void marcarComoVistas(novas.map((c) => c.id));

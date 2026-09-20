@@ -51,7 +51,7 @@ export function TelaPreparacao({
         <Button
           variant="ghost"
           size="icon"
-          className="alvo size-11 shrink-0"
+          className="alvo shrink-0"
           aria-label={`Como fazer: ${exercicio.nome}`}
           onClick={aoAbrirFicha}
         >

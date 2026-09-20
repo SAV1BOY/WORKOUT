@@ -2,6 +2,8 @@
 
 import { Trash2, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { fonteComReserva, reservaDaImagem } from "@/components/ui/imagem";
+import { medidaDaFoto, urlWebp } from "@/lib/midia";
 
 /**
  * A foto em tela cheia (SPEC §3.6 e §7).
@@ -31,6 +33,24 @@ export function FotoAmpliada({
   aoApagar?: () => void;
   apagando?: boolean;
 }) {
+  /*
+   * A foto de execução do kit tem derivada WebP (SPEC §22.4 item 1): 44 kB no
+   * lugar de 70, e esta é a tela mais pesada de imagem do app. A foto de
+   * progresso do Corpo vem do storage do Supabase, não de `public/` — ali
+   * `urlWebp` devolve `null` e a URL assinada segue inteira.
+   */
+  const fonte = fonteComReserva(url, urlWebp(url));
+  /*
+   * A medida é a do arquivo que esta `<img>` pede, tirada de
+   * `data/medidas-de-foto.json` (SPEC §22.4 item 3). Aqui ela decide a caixa:
+   * com `object-contain` e o `height:auto` do preflight, quem manda antes de a
+   * foto chegar é a proporção dos atributos — seis fotos do kit são 800×1200
+   * na derivada, e declarar 850×567 nelas reservava 344×229 para uma imagem
+   * que entrava com 344×516 (auditoria do lote 4). A foto do Corpo vem do
+   * storage e ninguém sabe quanto ela mede: sem `width`/`height`, a caixa
+   * continua sendo a do CSS.
+   */
+  const medida = medidaDaFoto(fonte.src);
   const fechar = useRef<HTMLButtonElement>(null);
   const confirmar = useRef<HTMLButtonElement>(null);
   const [confirmando, setConfirmando] = useState(false);
@@ -79,8 +99,15 @@ export function FotoAmpliada({
       </button>
       {/* eslint-disable-next-line @next/next/no-img-element -- foto local em /public */}
       <img
-        src={url}
+        src={fonte.src}
+        data-reserva={fonte.reserva}
+        onError={reservaDaImagem}
         alt={titulo}
+        width={medida?.largura}
+        height={medida?.altura}
+        loading="eager"
+        fetchPriority="high"
+        decoding="async"
         onClick={(e) => e.stopPropagation()}
         className="max-h-[80dvh] w-full max-w-lg rounded-lg object-contain"
       />

@@ -12,7 +12,14 @@
  * Toda imagem sai de `assets/` pelo caminho que o JSON guarda — nenhum caminho
  * escrito à mão, nenhuma imagem de terceiros sem crédito registrado.
  */
-import { acharExercicio, caminhoPublico, ilustracaoPorExercicio, urlFigura, urlFotos } from "@/lib/dados";
+import {
+  acharExercicio,
+  caminhoPublico,
+  ilustracaoPorExercicio,
+  medidasDeFoto,
+  urlFigura,
+  urlFotos,
+} from "@/lib/dados";
 import type { Ilustracao } from "@/lib/schemas";
 import { urlDoVideo } from "@/lib/videos.cliente";
 
@@ -46,12 +53,108 @@ export interface MidiaGrande {
   urls: string[];
   alt: string;
   credito: CreditoDaMidia | null;
+  /**
+   * As dimensões da ilustração, que `data/ilustracoes.json` guarda (SPEC §22.4
+   * item 3). Com elas o navegador reserva a caixa antes de baixar a imagem e a
+   * tela para de pular. Vídeo, figura e foto vêm sem: a figura tem o `viewBox`
+   * fixo (`MEDIDA_DA_FIGURA`) e a foto tem a medida do próprio arquivo, que
+   * `medidaDaFoto` lê de `data/medidas-de-foto.json` já sabendo qual arquivo a
+   * tela vai pedir.
+   */
+  largura: number | null;
+  altura: number | null;
 }
 
 export interface MidiaDaMiniatura {
   tipo: TipoDeMidia | null;
+  /** O arquivo original de `assets/` — a reserva, se a derivada faltar. */
   url: string | null;
+  /** A derivada quadrada de 112 px (SPEC §22.4 item 1), quando existe. */
+  mini: string | null;
   alt: string;
+}
+
+/*
+ * As derivadas que `npm run assets` gera em `public/` (SPEC §22.4 item 1).
+ * Aqui só se monta o nome: quem confere se o arquivo existe é o navegador, e o
+ * componente volta para o original no `onError`. Nada de caminho escrito à mão
+ * — todas saem da URL que o JSON já deu.
+ */
+
+/**
+ * Só a foto de execução vira WebP grande: a figura é SVG animado e fica como
+ * está, e o item de equipamento nunca aparece maior que a caixa de 56 px —
+ * gerar a versão grande dele era 85 arquivos que ninguém pedia (auditoria do
+ * lote 4).
+ */
+const COM_WEBP = /^\/fotos\/.+\.jpe?g$/i;
+/** A miniatura sai de foto, item e ilustração (SVG ou WebP). */
+const COM_MINI = /^\/(fotos|itens)\/.+\.jpe?g$|^\/ilustracoes\/.+\.(webp|svg)$/i;
+
+function trocarSufixo(url: string, sufixo: string): string {
+  const ponto = url.lastIndexOf(".");
+  return `${url.slice(0, ponto)}${sufixo}.webp`;
+}
+
+/**
+ * `/fotos/x-1.jpg` → `/fotos/x-1.webp` (a versão grande), senão `null`.
+ *
+ * É o que a ficha do exercício e a foto em tela cheia pedem: 44 kB no lugar
+ * dos 70 kB do JPEG do kit, na mesma proporção (o `fit: inside` do sharp não
+ * corta nada; só as seis fotos de 850×1275 encolhem para 800×1200, por causa
+ * do limite de 1200 px no maior lado). Quem chama passa o original como
+ * reserva (`fonteComReserva`), para a tela continuar desenhando num build sem
+ * `npm run assets`.
+ */
+export function urlWebp(url: string | null | undefined): string | null {
+  if (!url || !COM_WEBP.test(url)) return null;
+  return trocarSufixo(url, "");
+}
+
+/** `/fotos/x-1.jpg` → `/fotos/x-1-mini.webp` (112×112), senão `null`. */
+export function urlMiniatura(url: string | null | undefined): string | null {
+  if (!url || !COM_MINI.test(url)) return null;
+  return trocarSufixo(url, "-mini");
+}
+
+export interface MedidaDaImagem {
+  largura: number;
+  altura: number;
+}
+
+/** As 67 figuras animadas do kit compartilham o mesmo `viewBox` 132×100. */
+export const MEDIDA_DA_FIGURA: MedidaDaImagem = { largura: 132, altura: 100 };
+
+/** `/fotos/<nome>.jpg` ou `/fotos/<nome>.webp` — nome e extensão. */
+const FOTO_DO_KIT = /^\/fotos\/([^/]+)\.(jpe?g|webp)$/i;
+
+/**
+ * A medida do arquivo que a `<img>` pede, para reservar a caixa antes de a
+ * imagem chegar (SPEC §22.4 item 3).
+ *
+ * As medidas saem de `data/medidas-de-foto.json`, que `npm run assets` gera
+ * abrindo foto por foto com o sharp — as 162 fotos do kit **não** são
+ * uniformes: 152 medem 850×567, seis medem 850×1275 (derivada 800×1200) e
+ * quatro medem 850×569. Declarar uma medida só punha a foto em tela cheia a
+ * reservar 344×229 e a pular para 344×516 quando o arquivo chegava — o salto
+ * que este item existe para eliminar (auditoria do lote 4).
+ *
+ * Devolve `null` quando a URL não é foto de exercício do kit: a foto de
+ * progresso do Corpo vem do storage do Supabase e ninguém aqui sabe quanto ela
+ * mede, e as derivadas `-mini`/`-capa` têm medida fixa, declarada por quem as
+ * desenha.
+ */
+export function medidaDaFoto(url: string | null | undefined): MedidaDaImagem | null {
+  if (!url) return null;
+  const caminho = url.startsWith("http") ? new URL(url).pathname : url;
+  const achado = FOTO_DO_KIT.exec(caminho);
+  if (!achado) return null;
+  const medidas = medidasDeFoto[achado[1]!];
+  if (!medidas) return null;
+  // a `<img>` diz o tamanho do arquivo que ela pede, não o do irmão
+  const [largura, altura] =
+    achado[2]!.toLowerCase() === "webp" ? medidas.webp : medidas.kit;
+  return { largura, altura };
 }
 
 function credito(i: Ilustracao): CreditoDaMidia {
@@ -136,21 +239,37 @@ export function midiaGrande(
   const escolhido = tipo && disponiveis.includes(tipo) ? tipo : disponiveis[0];
   if (!escolhido) return null;
 
+  const semMedida = { largura: null, altura: null };
+
   if (escolhido === "video") {
-    return { tipo: "video", urls: [urlDoVideo(id)], alt, credito: null };
+    return { tipo: "video", urls: [urlDoVideo(id)], alt, credito: null, ...semMedida };
   }
   if (escolhido === "ilustracao") {
     const i = ilustracaoDoExercicio(id)!;
-    return { tipo: "ilustracao", urls: i.urls, alt, credito: i.credito };
+    return {
+      tipo: "ilustracao",
+      urls: i.urls,
+      alt,
+      credito: i.credito,
+      largura: i.largura,
+      altura: i.altura,
+    };
   }
   if (escolhido === "figura") {
-    return { tipo: "figura", urls: [urlFigura(exercicio)!], alt, credito: null };
+    return {
+      tipo: "figura",
+      urls: [urlFigura(exercicio)!],
+      alt,
+      credito: null,
+      ...semMedida,
+    };
   }
   return {
     tipo: "foto",
     urls: [urlFotos(exercicio)[0]!],
     alt: `${exercicio.nome} — início`,
     credito: null,
+    ...semMedida,
   };
 }
 
@@ -161,13 +280,19 @@ export function midiaGrande(
 export function midiaDaMiniatura(id: string): MidiaDaMiniatura {
   const exercicio = acharExercicio(id);
   const alt = exercicio.nome;
+  const escolher = (tipo: TipoDeMidia, url: string): MidiaDaMiniatura => ({
+    tipo,
+    url,
+    mini: urlMiniatura(url),
+    alt,
+  });
   const ilustracao = ilustracaoDoExercicio(id);
-  if (ilustracao) return { tipo: "ilustracao", url: ilustracao.urls[0]!, alt };
+  if (ilustracao) return escolher("ilustracao", ilustracao.urls[0]!);
   const figura = urlFigura(exercicio);
-  if (figura) return { tipo: "figura", url: figura, alt };
+  if (figura) return escolher("figura", figura);
   const foto = urlFotos(exercicio)[0];
-  if (foto) return { tipo: "foto", url: foto, alt };
-  return { tipo: null, url: null, alt };
+  if (foto) return escolher("foto", foto);
+  return { tipo: null, url: null, mini: null, alt };
 }
 
 /** Todas as URLs de ilustração de um exercício (precache offline, §8). */

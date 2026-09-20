@@ -42,7 +42,7 @@ export function ListaDaColecao({
                 onClick={() => setFicha(id)}
                 className="hover:bg-muted/40 alvo -mx-1 flex w-[calc(100%+0.5rem)] items-center gap-3 rounded-xl px-1 py-2 text-left"
               >
-                <Miniatura exercicioId={id} decorativa />
+                <Miniatura exercicioId={id} />
                 <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                   <span className="flex items-center gap-1.5">
                     <span className="min-w-0 flex-1 text-sm font-medium text-balance">

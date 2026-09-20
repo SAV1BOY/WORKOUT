@@ -53,10 +53,15 @@ function useAbaEscondida(): boolean {
 export function IlustracaoAlternada({
   urls,
   alt,
+  largura = null,
+  altura = null,
   className,
 }: {
   urls: string[];
   alt: string;
+  /** Dimensões do arquivo (data/ilustracoes.json) — SPEC §22.4 item 3. */
+  largura?: number | null;
+  altura?: number | null;
   className?: string;
 }) {
   const [posicao, setPosicao] = useState(0);
@@ -88,6 +93,10 @@ export function IlustracaoAlternada({
       src={url}
       alt={i === 0 ? alt : ""}
       aria-hidden={i === 0 ? undefined : true}
+      width={largura ?? undefined}
+      height={altura ?? undefined}
+      loading="lazy"
+      decoding="async"
       className={cn(
         "absolute inset-0 size-full object-contain p-2 transition-opacity duration-500 ease-in-out",
         i === posicao ? "opacity-100" : "opacity-0",

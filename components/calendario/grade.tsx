@@ -29,6 +29,13 @@ export function GradeDaSemana({
             type="button"
             onClick={() => aoTocar(d)}
             aria-label={`${diaCurto(d.data)} ${formatarData(d.data)}: ${d.rotulo}, ${NOME_DA_MARCA[d.marca]}`}
+            /*
+              SPEC §22.3 item 11: o rótulo longo e o detalhe são cortados em
+              duas linhas pelo `line-clamp`. O nome acessível segue curto — é
+              o que o leitor de tela anuncia a cada seta —, e o texto INTEIRO
+              fica no `title` do próprio botão, que é o elemento clicável.
+            */
+            title={[d.rotuloLongo, d.detalhe].filter(Boolean).join(" · ")}
             className={cn(
               "alvo border-border bg-card flex w-full items-center gap-3 rounded-lg border px-3 py-2 text-left",
               d.ehHoje && "border-primary",
@@ -36,7 +43,7 @@ export function GradeDaSemana({
             )}
           >
             <span className="flex w-11 shrink-0 flex-col items-center">
-              <span className="text-muted-foreground text-[11px] uppercase">
+              <span className="text-muted-foreground text-rotulo uppercase">
                 {diaCurto(d.data)}
               </span>
               <span className="numero text-base">{paraData(d.data).getDate()}</span>
@@ -89,21 +96,29 @@ export function MesEmMiniatura({
       </h2>
       <div className="grid grid-cols-7 gap-1 text-center">
         {["seg", "ter", "qua", "qui", "sex", "sáb", "dom"].map((d) => (
-          <span key={d} className="text-muted-foreground text-[10px] uppercase">
+          <span key={d} className="text-muted-foreground text-micro uppercase">
             {d}
           </span>
         ))}
         {semanas.flat().map((d) => (
+          /*
+            SPEC §22.3 item 11: `title` era tooltip — no celular não existe. A
+            data completa e a marca viram o nome acessível da casa (`role=img`
+            + `aria-label`), sem texto novo na página.
+          */
           <span
             key={d.data}
-            title={d.data}
+            role="img"
+            aria-label={`${formatarData(d.data)}: ${NOME_DA_MARCA[d.marca]}`}
             className={cn(
-              "flex flex-col items-center gap-0.5 rounded py-1 text-[11px]",
+              "flex flex-col items-center gap-0.5 rounded py-1 text-rotulo",
               d.doMes ? "" : "opacity-30",
               d.ehHoje && "bg-primary/15 font-semibold",
             )}
           >
-            <span className="numero">{d.numero}</span>
+            <span aria-hidden className="numero">
+              {d.numero}
+            </span>
             <span
               aria-hidden
               className={cn(

@@ -93,23 +93,28 @@ test.describe("PWA e offline (SPEC §8)", () => {
     await entrarNoApp(page);
     await esperarServiceWorker(page);
 
-    // o aquecimento da fase roda em segundo plano (lib/precache-do-programa.ts)
+    /**
+     * O aquecimento da fase roda em segundo plano
+     * (`lib/precache-do-programa.ts`) e guarda **o que as telas pedem**: desde
+     * as derivadas do lote 4 a ficha baixa o WebP, e não o JPEG do kit — que
+     * é só a reserva do `onError` (auditoria da rodada 2).
+     */
+    const noCache = (url: string) =>
+      page.evaluate(async (u) => {
+        for (const nome of await caches.keys()) {
+          const cache = await caches.open(nome);
+          if (await cache.match(u)) return true;
+        }
+        return false;
+      }, url);
+
     await expect
-      .poll(
-        async () =>
-          page.evaluate(async () => {
-            for (const nome of await caches.keys()) {
-              const cache = await caches.open(nome);
-              const achou = await cache.match(
-                "/fotos/agachamento-livre-1.jpg",
-              );
-              if (achou) return true;
-            }
-            return false;
-          }),
-        { timeout: 20_000 },
-      )
+      .poll(() => noCache("/fotos/agachamento-livre-1.webp"), { timeout: 20_000 })
       .toBe(true);
+    expect(
+      await noCache("/fotos/agachamento-livre-1.jpg"),
+      "o aquecimento baixou o JPEG do kit, que nenhuma tela pede",
+    ).toBe(false);
   });
 
   test("sem rede, o app continua abrindo e o que está fora dele cai na ~offline", async ({

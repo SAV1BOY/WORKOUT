@@ -384,9 +384,41 @@ test.describe("o treino começado SEM rede (SPEC §6.3, §8 e §14.1)", () => {
     // o cache é gravado no máximo 1× por segundo
     await page.waitForTimeout(1_500);
 
+    /*
+     * O aquecimento da fase (SPEC §8) guarda **o que as telas pedem**: desde
+     * as derivadas do lote 4, a miniatura da lista de hoje é a de 112 px, e
+     * não o JPEG do kit (auditoria da rodada 2). Espera-se aqui, com rede,
+     * que ela esteja no cache — senão a lista abriria sem imagem no terraço.
+     */
+    const miniDaLista = await page.evaluate(() => {
+      const img = document.querySelector<HTMLImageElement>("[data-midia] img");
+      return img ? new URL(img.currentSrc || img.src).pathname : null;
+    });
+    expect(miniDaLista, "a lista de hoje não tem miniatura").toBeTruthy();
+    await expect
+      .poll(
+        () =>
+          page.evaluate(
+            (url) => caches.match(url).then((r) => Boolean(r)),
+            miniDaLista as string,
+          ),
+        { timeout: 30_000 },
+      )
+      .toBe(true);
+
     await context.setOffline(true);
     await page.reload();
     await esperarAbaTreino(page);
+
+    // e sem rede ela desenha mesmo
+    await expect
+      .poll(() =>
+        page.evaluate(() => {
+          const img = document.querySelector<HTMLImageElement>("[data-midia] img");
+          return img?.naturalWidth ?? 0;
+        }),
+      )
+      .toBeGreaterThan(0);
 
     // começa, registra e conclui o treino inteiro sem rede
     await comecarOTreinoDoDia(page);
