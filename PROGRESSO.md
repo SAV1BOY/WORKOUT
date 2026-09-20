@@ -6445,8 +6445,14 @@ campos era `ring-ring/50` — medido, 2,9:1 no escuro e 2,2:1 no claro, abaixo
 dos 3:1. É: `app/globals.css` desenha `outline: 2px solid var(--ring)` em todo
 focável (com `:where()`, para não roubar a vez de ninguém), há a utilitária
 `.foco` para quem carrega `outline-none` do shadcn, e o anel dos botões e
-campos passou a ser a cor cheia (8,7:1 no escuro, 5,2:1 no claro). O
-`test.fixme` da varredura saiu. Arquivos: `app/globals.css`,
+campos passou a ser a cor cheia (8,7:1 no escuro, 5,2:1 no claro).
+**Este item ficou PARCIAL**: o `test.fixme` da varredura chegou a sair, mas a
+varredura reprova 141 focáveis no tema **escuro** (botão do card de exercício,
+dia do calendário, `select` do catálogo, aba do relatório). No claro ela passa
+— só que passa porque esses elementos têm `box-shadow` e o teste aceita sombra
+como anel; o escuro, sem sombra na superfície, é o único que mede o `outline`.
+Então o `:focus-visible` global não casa nesses elementos e o verde do claro
+era falso. O `fixme` voltou, com a explicação no próprio teste. Arquivos: `app/globals.css`,
 `components/ui/button.tsx`, `components/ui/input.tsx`,
 `components/nav-inferior.tsx`, `e2e/ultraloop-varredura.spec.ts`.
 
@@ -6501,8 +6507,9 @@ quatro rotas, o degrau das superfícies, a borda de todo `<input>` de `/corpo` e
 do FAB, nenhum texto abaixo de 10 px em cinco rotas, o anel de foco do card e
 da aba, a barra da aba acesa, o vazio do catálogo com "Limpar filtros"
 funcionando, o `aria-label`/`title` do card cortado e os 44 px do voltar de
-Mais. A varredura perdeu o `test.fixme` do foco: as doze rotas passam nos dois
-temas.
+Mais. A varredura do foco continua em `fixme` (veja L3-7); as outras quatro
+varreduras — rolagem lateral, 44 px, contraste AA e reduced-motion — passam
+nas doze rotas nos dois temas.
 
 **Como testar no celular.** Abra o app no escuro: os cards agora se **separam**
 do fundo (antes eram a mesma tinta), a ficha de um exercício não acende mais
