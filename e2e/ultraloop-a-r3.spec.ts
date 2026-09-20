@@ -117,6 +117,23 @@ test.describe("§22.5 item 1 — dois toques no mesmo ponto não jogam o treino 
     await expect(page.getByRole("alertdialog")).toHaveCount(0);
     await expect(page).toHaveURL(/\/treinar\/[0-9a-f-]{36}$/);
   });
+
+  test("antes da 1ª série, a pergunta não promete \"0 séries\" salvas", async ({
+    page,
+  }) => {
+    // o caso mais comum: abrir o treino, mudar de ideia e descartar sem
+    // ter gravado nada. O diálogo destrutivo tem de falar disso, não de zero.
+    await abrirPlayer(page);
+    await abrirVisaoGeral(page);
+
+    await page.getByRole("button", { name: "Descartar este treino" }).click();
+    const pergunta = page.getByRole("alertdialog");
+    await expect(pergunta).toBeVisible();
+    await expect(pergunta).toContainText("Descartar este treino?");
+    await expect(pergunta).toContainText("Nenhuma série foi registrada ainda.");
+    await expect(pergunta).not.toContainText("0 séries");
+    await expect(pergunta).not.toContainText("já registradas");
+  });
 });
 
 test.describe("§22.5 item 2 — a conclusão grava ao entrar", () => {

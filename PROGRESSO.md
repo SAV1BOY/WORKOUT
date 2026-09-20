@@ -6964,9 +6964,12 @@ SPEC §22.5. Dez itens, na ordem de prioridade do lote.
 1. **Descartar (`ux-heuristicas-01`).** Era: "Abandonar" virava "Confirmar
    abandono" no MESMO ponto (x 138,8–241,4 → x 71,6–241,4, mesma faixa de y) —
    dois toques seguidos descartavam a sessão sem diálogo nenhum. É: um
-   `AlertDialog` ("Descartar este treino? As N séries já registradas continuam
+   `AlertDialog` ("Descartar este treino?" e, embaixo, o que já está salvo —
+   "Nenhuma série foi registrada ainda." antes da primeira série, "A 1 série já
+   registrada continua salva." ou "As N séries já registradas continuam
    salvas." · Cancelar / Descartar este treino), com o Cancelar nascendo com o
-   foco e o clique fora sem efeito. Arquivos: `components/ui/alert-dialog.tsx`
+   foco e o clique fora sem efeito. O zero é o caso mais comum (abrir, mudar de
+   ideia e sair antes de gravar) e tem frase própria — nunca "As 0 séries". Arquivos: `components/ui/alert-dialog.tsx`
    (novo, sobre o pacote `radix-ui` que já estava nas dependências),
    `components/treinar/visao-geral.tsx`.
 2. **Gravar ao entrar na conclusão (`tela-treino-player-01`).** Era: nada ia

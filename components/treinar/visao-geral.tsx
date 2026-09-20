@@ -279,9 +279,11 @@ function Rodape({
           <AlertDialogHeader>
             <AlertDialogTitle>Descartar este treino?</AlertDialogTitle>
             <AlertDialogDescription>
-              {seriesFeitas === 1
-                ? "A 1 série já registrada continua salva."
-                : `As ${seriesFeitas} séries já registradas continuam salvas.`}{" "}
+              {seriesFeitas === 0
+                ? "Nenhuma série foi registrada ainda."
+                : seriesFeitas === 1
+                  ? "A 1 série já registrada continua salva."
+                  : `As ${seriesFeitas} séries já registradas continuam salvas.`}{" "}
               O treino fica guardado como abandonado e não conta para a
               progressão.
             </AlertDialogDescription>

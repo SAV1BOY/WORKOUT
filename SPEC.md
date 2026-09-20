@@ -1607,9 +1607,10 @@ a tela — afrouxar o limite não é uma opção.
    abandono" **no mesmo ponto** da tela (x 138,8–241,4 → x 71,6–241,4, na
    mesma faixa de y): dois toques seguidos jogavam a sessão fora sem nenhum
    diálogo. A confirmação em linha saiu; o descarte passa por um
-   `AlertDialog` ("Descartar este treino? As N séries já registradas
-   continuam salvas." · Cancelar / Descartar este treino), com o Cancelar
-   nascendo com o foco. O componente é `components/ui/alert-dialog.tsx`,
+   `AlertDialog` ("Descartar este treino?" + o que já está salvo — "Nenhuma
+   série foi registrada ainda." antes da primeira, "A 1 série já registrada
+   continua salva." ou "As N séries já registradas continuam salvas." ·
+   Cancelar / Descartar este treino), com o Cancelar nascendo com o foco. O componente é `components/ui/alert-dialog.tsx`,
    escrito sobre o pacote `radix-ui` que o projeto já usa — **nenhuma
    dependência nova**.
 2. **A conclusão grava ao ENTRAR, não 2.244 px abaixo.** O topo dizia
