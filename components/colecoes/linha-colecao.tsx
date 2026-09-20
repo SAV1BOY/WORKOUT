@@ -25,6 +25,12 @@ export function LinhaColecao({
     <Link
       href={hrefDaColecao(colecao)}
       data-colecao={colecao.id}
+      /*
+        SPEC §22.3 item 11: o subtítulo é cortado numa linha só; o texto
+        inteiro fica no `title` do link, sem `aria-label` — ele apagaria o
+        selo "Circuito" e o detalhe do nome acessível.
+      */
+      title={[colecao.titulo, colecao.subtitulo].filter(Boolean).join(" · ")}
       className={cn(
         "hover:bg-muted/40 alvo flex items-center gap-3 rounded-xl py-2 text-left",
         className,
@@ -50,7 +56,7 @@ export function LinhaColecao({
           {colecao.circuito ? (
             <span
               data-selo="circuito"
-              className="border-border rounded-full border px-1.5 py-px text-[10px] tracking-wide uppercase"
+              className="border-border rounded-full border px-1.5 py-px text-micro tracking-wide uppercase"
             >
               Circuito
             </span>

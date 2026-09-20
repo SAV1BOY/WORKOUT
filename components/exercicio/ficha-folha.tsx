@@ -104,7 +104,7 @@ export function ConteudoDaFicha({
           {treinos.length > 0 ? (
             <p className="flex flex-wrap items-center gap-1">
               {treinos.map((t) => (
-                <Badge key={t} variant="secondary" className="text-[10px]">
+                <Badge key={t} variant="secondary" className="text-micro">
                   {acharTreino(t).nome}
                 </Badge>
               ))}
@@ -140,7 +140,7 @@ export function ConteudoDaFicha({
             <ul className="flex flex-wrap gap-1 pt-1">
               {exercicio.equipamento.map((tag) => (
                 <li key={tag}>
-                  <Badge variant="outline" className="text-[10px]">
+                  <Badge variant="outline" className="text-micro">
                     {NOME_EQUIPAMENTO[tag]}
                   </Badge>
                 </li>
@@ -334,7 +334,7 @@ function AbaVideo({
       {tipo === "video" ? (
         <Button
           variant="outline"
-          className="alvo h-11 self-start"
+          className="alvo self-start"
           onClick={() => setPausado((v) => !v)}
         >
           {pausado ? <Play className="size-4" /> : <Pause className="size-4" />}
@@ -442,7 +442,7 @@ function StepperDaSessao({ contexto }: { contexto: ContextoDaFicha }) {
   const mostraAlvo = contexto.tipo !== "maximo";
 
   return (
-    <section className="border-border cartao flex flex-col gap-2 border p-3">
+    <section className="border-border bg-card cartao flex flex-col gap-2 border p-3">
       <h3 className="text-sm font-semibold">Só nesta sessão</h3>
       {mostraAlvo ? (
         <div className="flex items-center justify-between gap-2">
@@ -521,7 +521,7 @@ function Substituir({
     <div className="flex flex-col gap-1">
       <Button
         variant="outline"
-        className="alvo h-11 self-start"
+        className="alvo self-start"
         onClick={() => setAberto((v) => !v)}
       >
         <Repeat className="size-4" />

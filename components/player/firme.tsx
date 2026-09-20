@@ -69,7 +69,7 @@ export function TelaFirme({
         onChange={(e) => aoMudarNota(e.target.value)}
         placeholder="Nota curta (opcional)"
         aria-label={`Nota do ${exercicio.nome}`}
-        className="border-input bg-background focus-visible:border-ring focus-visible:ring-ring/50 h-12 w-full rounded-xl border px-3 text-sm outline-none focus-visible:ring-3"
+        className="border-input bg-background focus-visible:border-ring focus-visible:ring-ring h-12 w-full rounded-xl border px-3 text-sm outline-none focus-visible:ring-3"
       />
 
       <div role="radiogroup" aria-label="Última repetição" className="flex flex-col gap-2">

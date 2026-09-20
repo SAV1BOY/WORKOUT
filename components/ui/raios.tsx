@@ -19,8 +19,13 @@ export function Raios({
   return (
     <span
       className={cn("inline-flex items-center gap-px", className)}
+      /*
+        SPEC §22.3 item 11: o `title` era tooltip — no celular ninguém passa o
+        mouse. Quem precisa do nome do nível tem o `role="img"` com o nome
+        acessível; quem enxerga conta os raios acesos.
+      */
+      role="img"
       aria-label={`Dificuldade: ${NOME_DA_DIFICULDADE[nivel]} (${nivel} de 3)`}
-      title={`Dificuldade: ${NOME_DA_DIFICULDADE[nivel]}`}
       data-raios={nivel}
     >
       {[1, 2, 3].map((i) => (

@@ -1,6 +1,6 @@
 "use client";
 
-import { Search, X } from "lucide-react";
+import { FilterX, Search, X } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +17,7 @@ import {
   type FiltrosCatalogo,
 } from "@/lib/catalogo";
 import { Miniatura } from "@/components/ui/miniatura";
+import { Vazio } from "@/components/ui/vazio";
 import { exercicios } from "@/lib/dados";
 import { evitado, evitadosPorUltimo } from "@/lib/preferencias";
 import { usePerfil } from "@/lib/queries/dados";
@@ -123,7 +124,7 @@ export function ListaExercicios({
           <Button
             type="button"
             variant="ghost"
-            className="alvo h-11"
+            className="alvo"
             onClick={() => setFiltros(FILTROS_VAZIOS)}
           >
             Limpar
@@ -138,9 +139,18 @@ export function ListaExercicios({
       </p>
 
       {achados.length === 0 ? (
-        <p className="border-border text-muted-foreground rounded-lg border border-dashed px-3 py-6 text-center text-sm">
-          Nenhum exercício com esses filtros.
-        </p>
+        <Vazio
+          icone={FilterX}
+          titulo="Nenhum exercício com esses filtros"
+          frase="Solte um filtro de cada vez para ver o que volta."
+          /* com a busca vindo do Explorar, limpar os filtros daqui não
+             desfaz o que foi digitado lá: aí o vazio não promete saída. */
+          acao={
+            deFora && !temFiltro(filtros)
+              ? undefined
+              : { rotulo: "Limpar filtros", aoTocar: () => setFiltros(FILTROS_VAZIOS) }
+          }
+        />
       ) : (
         <ul className="flex flex-col gap-2">
           {achados.map((e) => (
@@ -173,7 +183,7 @@ function Selecao({
 }) {
   return (
     <label className={cn("flex flex-col gap-1", className)}>
-      <span className="text-muted-foreground text-[11px] tracking-wide uppercase">
+      <span className="text-muted-foreground text-rotulo tracking-wide uppercase">
         {rotulo}
       </span>
       <select
@@ -204,6 +214,13 @@ function CardDoExercicio({
   return (
     <Link
       href={`/exercicios/${exercicio.id}`}
+      /*
+        SPEC §22.3 item 11: a linha do grupo e do equipamento é cortada em
+        duas pelo `line-clamp`; o texto inteiro fica no `title` do link. Sem
+        `aria-label`: ele apagaria os selos ("no programa", "evitar") do nome
+        acessível, que hoje saem do próprio conteúdo.
+      */
+      title={`${exercicio.nome} · ${exercicio.grupo} · ${exercicio.equipamento_texto}`}
       className="alvo border-border bg-card hover:bg-accent flex items-center gap-3 rounded-xl border p-2 transition-colors"
     >
       {/* marco Mídia: a ilustração vem na frente da figura e da foto */}
@@ -218,12 +235,12 @@ function CardDoExercicio({
         <span className="flex items-center gap-2">
           <span className="numero text-xs">{exercicio.prescricao_padrao.texto}</span>
           {noPrograma ? (
-            <Badge variant="secondary" className="px-1.5 py-0 text-[10px]">
+            <Badge variant="secondary" className="px-1.5 py-0 text-micro">
               no programa
             </Badge>
           ) : null}
           {evitar ? (
-            <Badge variant="outline" className="px-1.5 py-0 text-[10px]">
+            <Badge variant="outline" className="px-1.5 py-0 text-micro">
               você marcou como evitar
             </Badge>
           ) : null}

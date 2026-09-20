@@ -35,8 +35,14 @@ export function FaixaSemana({
     <ol className="flex items-stretch justify-between gap-1">
       {dias.map((dia) => (
         <li key={dia.data} className="flex-1">
+          {/*
+            SPEC §22.3 item 11: sem `title` — tooltip não existe no celular, e
+            o dia inteiro ("Quarta 16/09: Treino A, feito") já é o nome
+            acessível do próprio item. Texto `sr-only` foi tentado e
+            descartado: ele entra no `getByText` como texto da página.
+          */}
           <span
-            title={dia.titulo}
+            role="img"
             aria-label={dia.titulo}
             data-dia={dia.data}
             data-marca={dia.ehHoje ? "hoje" : dia.marca}
@@ -46,8 +52,9 @@ export function FaixaSemana({
             )}
           >
             <span
+              aria-hidden="true"
               className={cn(
-                "text-[11px] leading-none",
+                "text-rotulo leading-none",
                 dia.ehHoje ? "text-primary font-semibold" : "text-muted-foreground",
               )}
             >
@@ -55,8 +62,9 @@ export function FaixaSemana({
             </span>
             <Marca marca={dia.marca} ehHoje={dia.ehHoje} />
             <span
+              aria-hidden="true"
               className={cn(
-                "numero text-[11px] leading-none",
+                "numero text-rotulo leading-none",
                 dia.ehHoje ? "text-foreground" : "text-muted-foreground",
               )}
             >
@@ -70,7 +78,7 @@ export function FaixaSemana({
             <span
               aria-hidden="true"
               className={cn(
-                "text-[11px] leading-none font-medium",
+                "text-rotulo leading-none font-medium",
                 dia.ehHoje ? "text-primary" : "text-muted-foreground/80",
               )}
             >

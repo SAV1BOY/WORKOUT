@@ -6240,6 +6240,12 @@ produção · build de e2e · e2e · varredura). Unitários novos em
 `e2e/shell.spec.ts` (`/versao`). Capturas dos dois temas em
 `rodada-1/l1/capturas/construtor/`.
 
+**Capturas.** As trinta telas do gerador, nos dois temas, ficam em
+`scratchpad/ultraloop/rodada-2/l3/capturas/construtor/` e foram comparadas com
+a linha de base por `scripts/comparar-capturas.ts` (`diff/comparacao.md`).
+Todas mudam de aparência — a paleta é a fundação do app —, e é isso que a lista
+de esperadas do comparador declara.
+
 **Como testar no celular.** Entre no treino do dia e vá até o primeiro
 exercício: o ✓ agora encosta no rodapé, sem faixa cinza embaixo, e os dois
 polegares no topo começam apagados — toque no de baixo e ele acende sozinho,
@@ -6361,9 +6367,290 @@ e os três problemas foram corrigidos:
    `video[data-video="<id>"]` com o arquivo e a ilustração sem ele — mais a
    asserção de contraste do item 2, nos dois temas.
 
-### Rodada 2 — Lote 3
+### Rodada 2 — Lote 3 — fundação visual (faixa A) ✅
 
-(a preencher)
+Branch `ultraloop/l3-fundacao-visual`, doze itens. Este lote mexe na base — a
+escala dos controles, as cores das superfícies, o foco e o texto pequeno —,
+então quase toda tela muda de aparência, ainda que nenhuma mude de lugar.
+
+**L3-1 · o botão padrão tinha 32 px de altura.**
+Era: `components/ui/button.tsx` vinha do shadcn com `default: h-8` (32 px),
+`sm: h-7` (28 px) e `icon: size-8` — todos abaixo dos 44 px que a SPEC §3
+exige —, e o app corrigia isso **à mão**, em 141 chamadas com `h-11`, `h-12`,
+`h-14` e `alvo`. Quem esquecesse a classe entregava um alvo pequeno. É: a
+escala é do projeto — `sm` 40 px, `default` **44 px**, `lg` 48 px, `xl` 56 px,
+`icon` 44 px, `icon-sm` 40 px —, o `Input` nasce com 44 px e os tamanhos
+`xs`/`icon-xs` (24 px) deixaram de existir. As 37 classes `h-11`/`size-11`
+redundantes saíram das chamadas; as escolhidas de propósito (`h-12`, `h-14`)
+ficaram. Arquivos: `components/ui/button.tsx`, `components/ui/input.tsx` e 24
+arquivos de chamada.
+
+**L3-2 · card e fundo eram a mesma cor.**
+Era: medido, o card dava **1,07:1** contra o fundo no escuro (`#141414` sobre
+`#0a0a0a`) e 1,04:1 no claro (`#ffffff` sobre `#fafafa`); a borda, 1,23–1,28:1.
+Na prática não havia superfície: o app era uma folha só, com linhas quase
+invisíveis. É: no escuro quem sobe é o card (`#262626`, **1,31:1**) com a borda
+em `#424242` (**1,51:1**) e `secondary`/`muted`/`accent` acima do card — eram
+mais escuros que ele e viravam buracos; no claro quem desce é o fundo
+(`#e0e0dd`, **1,32:1**), o card segue branco e a borda vai a `#c8c8c4`
+(**1,68:1**). O laranja do tema claro escureceu um degrau (`#b8400c` →
+`#a03608`) para o pill `bg-primary/10` manter os 4,5:1 contra o próprio texto.
+Arquivos: `app/globals.css`, `lib/tema.test.ts`.
+
+**L3-3 · a borda dos campos sumia no escuro.**
+Era: `--input: #2e2e2e` dava 1,36–1,46:1 contra o que cerca o campo — metade
+do mínimo de 3:1 que a WCAG SC 1.4.11 pede para elemento de interface. É:
+`--input` deixou de ser a cor dos separadores e virou a cor da **borda do
+campo**: `#7a7a78` no escuro (3,52:1 contra o card, 4,60:1 contra o fundo) e
+`#807f7d` no claro (4,00:1 e 3,02:1). Arquivos: `app/globals.css`,
+`lib/tema.test.ts`.
+
+**L3-4 · a placa das ilustrações ofuscava no escuro.**
+Era: `--ilustracao-fundo: #e7e4e0` (78 % de luminância) virava uma janela acesa
+de 328×208 px na ficha do exercício e seis quadrados brancos na lista de hoje.
+É: `#cfcac4`, 59,5 % de luminância, com o traço preto ainda em 12,9:1. Inverter
+o traço (`filter: invert(1)`) foi **descartado**: algumas ilustrações têm cor
+de verdade — a prancha tem camisa vermelha — e a inversão as estragaria. No
+tema claro a placa passou a ser a cor do card. Arquivo: `app/globals.css`.
+
+**L3-5 · o que flutua não flutuava.**
+Era: o FAB "Ajustar" e o play do tutorial usavam `shadow-lg` — sombra preta a
+10 % —, que sobre `#0a0a0a` simplesmente não aparece. É: `--sombra-flutuante`
+nos dois temas e o utilitário `.flutuante`: no claro sombra de verdade
+(`0 10px 24px`); no escuro um **anel de 1 px** em `primary/75` (5,2:1 contra o
+fundo) com glow curto, porque sombra preta sobre preto não existe. Arquivos:
+`app/globals.css`, `components/treino/fab-ajustar.tsx`,
+`components/exercicio/tutorial.tsx`.
+
+**L3-6 · 43 tamanhos de texto escritos à mão.**
+Era: `text-[11px]`, `text-[10px]`, `text-[9px]`, `text-[0.7rem]` e
+`text-[0.8rem]` espalhados por 20 arquivos — inclusive um de **9 px**. É: dois
+degraus com nome no `@theme` — `text-rotulo` (11 px) e `text-micro` (10 px) —,
+e nada abaixo de 10 px. Arquivos: `app/globals.css` e os 20 pontos de uso.
+
+*A armadilha, que os testes pegaram:* o mesclador de classes (`cn`) não
+conhecia os dois nomes novos e os classificava como **cor** de texto — todo
+`text-<algo>` desconhecido cai no grupo da cor. Numa chamada como
+`cn("text-rotulo leading-none", aceso ? "text-primary" : "text-muted-foreground")`
+ele jogava o tamanho fora, e a faixa da semana e a barra de abas voltavam aos
+16 px herdados: a faixa passou a vazar 13 px dos 360. `lib/utils.ts` agora cria
+o `cn` com `createCn({ extend: { classGroups: { "font-size": [{ text: ["rotulo",
+"micro"] }] } } })`, os treze arquivos que importavam de `"cn"` passam por ele, e
+`lib/utils.test.ts` prende o comportamento.
+
+**L3-7 · o foco só existia em botão e campo.**
+Era: o `<Link>` de um card, a linha de uma lista, o cartão do IMC de `/corpo` e
+as abas de baixo não desenhavam **nada** ao receber Tab, e o anel dos botões e
+campos era `ring-ring/50` — medido, 2,9:1 no escuro e 2,2:1 no claro, abaixo
+dos 3:1. É: `app/globals.css` desenha `outline: 2px solid var(--ring)` em todo
+focável (com `:where()`, para não roubar a vez de ninguém), há a utilitária
+`.foco` para quem carrega `outline-none` do shadcn, e o anel dos botões e
+campos passou a ser a cor cheia (8,7:1 no escuro, 5,2:1 no claro).
+**O `test.fixme` da varredura saiu** — e o diagnóstico que o acompanhava
+estava errado: não era o `:focus-visible` que deixava de casar (ele casa,
+`el.matches(':focus-visible')` é verdadeiro e `--tw-ring-shadow` já vale
+`0 0 0 3px #fb923c`), era o **relógio**. O `Button` do shadcn anima com
+`transition-all` de 150 ms, então a leitura feita no mesmo tique do Tab pegava
+o `box-shadow` ainda todo transparente; e a condição antiga
+(`boxShadow !== "none"`) aceitava justamente essas sombras transparentes como
+anel, o que no claro dava o verde falso. Medindo com espera, 0 de 85 focáveis
+ficam sem anel; com espera zero voltam as 141 "falhas", idênticas nos dois
+temas — e os próprios logs mostravam a instabilidade (revar2 reprovou e revar3,
+no MESMO commit, passou). A varredura agora espera a transição assentar (até
+400 ms, saindo assim que o anel aparece) e exige cor **não-transparente**, lida
+pelo **canvas** (o Chromium devolve `oklab()` em toda sombra que passa por
+`color-mix`; uma expressão regular de `rgb()` daria transparente para todas) —
+e com isso as 141 "falhas" somem. Os DOIS focáveis que ainda sobravam em
+`/corpo` caíram na segunda correção da auditoria (veja abaixo): o **painel** da
+aba, que o Radix deixa focável e que o shadcn entregava com `outline-none`, e o
+`input[type="date"]`, cujo último Tab entra no shadow DOM do navegador. **O
+item está completo**: a varredura do foco passa nas doze rotas nos dois temas,
+sem `fixme`.
+Arquivos: `app/globals.css`, `components/ui/button.tsx`,
+`components/ui/input.tsx`, `components/ui/tabs.tsx`,
+`components/nav-inferior.tsx`, `e2e/ultraloop-varredura.spec.ts`.
+
+**L3-8 · a aba acesa era só laranja.**
+Era: `text-primary` e nada mais — quem não distingue a cor não sabia em que
+aba estava. É: barra de 2 px no topo do item (`data-aba-ativa="barra"`) e
+rótulo em semibold, além da cor. Os 44 px e a área segura não mudaram.
+Arquivo: `components/nav-inferior.tsx`.
+
+**L3-9 · oito estados vazios eram um `<p>` tracejado.**
+Era: "Nenhum exercício com esses filtros." numa linha, sem dizer o que fazer.
+É: `components/ui/vazio.tsx` — ícone, título curto, uma frase e a ação quando
+ela existe — nos oito: catálogo e parte do corpo ("Limpar filtros"), Explorar e
+treino personalizado ("Limpar busca"), histórico do Relatório ("Ver o histórico
+completo" / "Ver o treino de hoje"), gráficos sem dado, conquistas ainda não
+avaliadas e Mais → Contas. Textos de **interface**; nada de conteúdo de treino,
+que só sai dos JSON. Arquivos: `components/ui/vazio.tsx` e os oito usos.
+
+**L3-10 · um esqueleto genérico para telas de formas diferentes.**
+Era: `EsqueletoCard` — três barras num retângulo — anunciando a aba Treino (que
+abre com uma capa alta), o Relatório (três contadores lado a lado) e as listas
+(miniatura + duas linhas). É: `EsqueletoCapa`, `EsqueletoGrade3` e
+`EsqueletoLista` ao lado do genérico, usados em Treino, Relatório e no
+histórico do exercício. Arquivo: `components/carregando.tsx`.
+
+**L3-11 · texto cortado sem como ler o resto, e `title` de tooltip.**
+Era: sete `line-clamp` cortavam rótulo, subtítulo e detalhe sem oferecer o
+texto inteiro, e quatro `title` eram usados como tooltip — que no celular não
+existe. É: todo `line-clamp` leva o texto completo no `title` e, quando o
+elemento é clicável (linha do calendário, linha de coleção, card do exercício),
+também no nome acessível; os `title` de tooltip viraram texto só-leitor (dia da
+faixa da semana, dia da grade do mês) ou nome acessível de imagem (os raios de
+dificuldade, agora `role="img"`). Arquivos: `components/calendario/grade.tsx`,
+`components/treinar/timer-descanso.tsx`, `components/colecoes/linha-colecao.tsx`,
+`components/treino/desafios.tsx`, `components/exercicios/lista-exercicios.tsx`,
+`components/mais/linha-sincronizacao.tsx`, `components/ui/raios.tsx`,
+`components/ui/faixa-semana.tsx`.
+
+**L3-12 · o voltar de Mais era texto.**
+Era: um `<Link>` de 14 px com `alvo`, sem cara de botão. É: botão fantasma com
+`ChevronLeft` de 20 px e o rótulo "Mais", 44 px de altura, igual ao topo do
+player. Arquivo: `components/mais/cabecalho.tsx`.
+
+**Provas.** `lib/tema.test.ts` cresceu de 16 para 25 casos: o degrau
+card/fundo e borda/card, a borda do campo com 3:1 contra quatro superfícies, o
+anel de foco contra o `muted`, as linhas auxiliares dos gráficos, a placa das
+ilustrações abaixo de 60 % de luminância e o anel da sombra flutuante — os
+limiares **só sobem**. `e2e/ultraloop-a-r2.spec.ts` (11 testes) mede no
+navegador, nos dois temas: nenhum `data-slot=button`/`input` abaixo de 44 px em
+quatro rotas, o degrau das superfícies, a borda de todo `<input>` de `/corpo` e
+`/mais/contas`, nenhuma superfície acima de 60 % de luz no escuro, o `box-shadow`
+do FAB, nenhum texto abaixo de 10 px em cinco rotas, o anel de foco do card e
+da aba, a barra da aba acesa, o vazio do catálogo com "Limpar filtros"
+funcionando, o `aria-label`/`title` do card cortado e os 44 px do voltar de
+Mais. **As cinco varreduras** — rolagem lateral, 44 px, contraste AA, anel de
+foco e reduced-motion — passam nas doze rotas nos dois temas, sem `fixme`
+nenhum (a do foco fechou na segunda correção da auditoria).
+
+**Como testar no celular.** Abra o app no escuro: os cards agora se **separam**
+do fundo (antes eram a mesma tinta), a ficha de um exercício não acende mais
+uma placa branca atrás da ilustração e o botão redondo "Ajustar" da aba Treino
+tem um contorno alaranjado. Toque em qualquer campo (Corpo → peso, Mais →
+Contas): a borda dele aparece antes mesmo do toque. Na barra de baixo, a aba em
+que você está tem uma barrinha no topo além do laranja. Em Mais → Preferências,
+o "Mais" do topo é um botão de dedo, não uma palavra. No catálogo, busque
+"zzzz": em vez de uma linha tracejada, aparece o cartão de vazio com **Limpar
+filtros**. E qualquer botão do app, em qualquer tela, tem pelo menos 44 px.
+
+**Correção da auditoria do lote (rodada 2).** Um auditor independente reprovou
+o lote com cinco achados; todos foram corrigidos e cada um virou teste.
+
+1. **O interruptor não dizia o estado no escuro** (SPEC §22.3 item 13). O
+   trilho trazia `bg-input … group-data-checked:bg-primary … dark:bg-input/80`
+   e a variante `dark:` (0,2,0) vencia a de estado (0,1,0): medido, o MESMO
+   cinza `--input` a 80 % ligado e desligado. Só o polegar mudava — e ao
+   contrário do tema claro: **preto** quando ligado. Como o item 3 do lote
+   levou `--input` de `#2e2e2e` para `#7a7a78`, o que era um pill quase
+   invisível virou um pill cinza-claro bem visível nos dois estados, e as seis
+   chaves de Preferências passaram a ler "ligado" como "desligado". Agora cada
+   estado tem a sua regra (nenhuma pega os dois) e o polegar é claro sempre; a
+   borda de 1 px do polegar segura os 3:1 contra o laranja do tema escuro.
+   Arquivo: `components/ui/switch.tsx`.
+2. **A aba acesa ficou mais escura que as apagadas no claro** (item 14).
+   `TabsTrigger` usava `data-active:bg-background` e o lote baixou
+   `--background` de `#fafafa` para `#e0e0dd`: em `/corpo` a lista media
+   `#efefec` e a aba ativa `#e0e0dd` — a cor da página, mais escura que a
+   lista —, invertendo a leitura do estado; o mesmo nas abas da ficha de
+   exercício. Passou a `data-active:bg-card` (o escuro segue com
+   `input/30`). Arquivo: `components/ui/tabs.tsx`.
+3. **O degrau do item 2 não chegou a `/mais` nem a `/mais/creditos`.** O bloco
+   de menu e as seções de créditos eram transparentes: no escuro, preto sobre
+   preto com uma borda — exatamente o defeito que o item dizia ter matado (a
+   captura 18-mais-escuro mudou 2,62 % e a 24-creditos-escuro 1,83 %, só a
+   borda). Levaram `bg-card`, e a varredura do repositório achou mais dois
+   blocos `border-border` + `cartao` sem fundo próprio. Arquivos:
+   `app/(app)/mais/page.tsx`, `app/(app)/mais/creditos/page.tsx`,
+   `components/exercicio/ficha-folha.tsx`, `components/treino/cards.tsx`.
+4. **O vazio de gráfico vazou para fotos e medidas** (item 15). O item 9
+   trocou o `SemDados` por `Vazio` com ícone `ChartSpline` e título "Sem dados
+   por enquanto", e a galeria de fotos vazia passou a anunciar isso com um
+   gráfico de linha em cima de "Nenhuma foto ainda.". `SemDados` ganhou
+   `icone` (o `ChartSpline` só como padrão) e frase opcional; a galeria usa
+   `Camera`, o comparador `ImageOff` e a tabela de medidas `Ruler`, cada um
+   com o seu título. Arquivos: `components/graficos/apoio.tsx`,
+   `components/corpo/aba-fotos.tsx`, `components/corpo/aba-medidas.tsx`.
+5. **O diagnóstico do `fixme` do foco estava errado** — veja L3-7 acima: a
+   causa é o `transition-all` do `Button`, não o `:focus-visible`, e a régua
+   aceitava sombra transparente como anel. O texto foi corrigido no teste, na
+   SPEC §22.3 item 7 e aqui; com a medição consertada as 141 "falhas" somem e
+   sobraram só dois focáveis de `/corpo`, que a **segunda** correção fechou.
+
+Provas novas em `e2e/ultraloop-a-r2.spec.ts` (15 testes): trilho e polegar do
+interruptor nos dois estados e nos dois temas, a aba acesa mais clara que a
+lista em `/corpo` e na ficha do exercício, o fundo REAL do bloco de `/mais` e
+das seções de `/mais/creditos` contra o fundo da página, e o título do vazio da
+galeria de fotos.
+
+**Segunda correção da auditoria do lote (rodada 2).** O auditor reprovou de
+novo, com cinco achados. Todos corrigidos.
+
+1. **O anel de foco fechou — o `fixme` saiu** (bloqueante do item 7). Medindo
+   focável por focável em `/corpo`, os dois que faltavam não eram o que o
+   relatório anterior dizia:
+   - o **painel da aba** (`div[data-slot=tabs-content]`), que o Radix deixa
+     focável com `tabindex="0"` para o teclado cair dentro do conteúdo. O
+     `.textContent` dele começa em "IMC Editar altura…", o que o fazia passar
+     por "cartão do IMC"; o `CardImc` é um `<section>` e nunca teve
+     `tabindex`. Ele vinha com `outline-none` do shadcn — uma **utilitária**,
+     que ganha da regra global de `app/globals.css` por estar numa camada
+     acima —, então trocamos `outline-none` pela `.foco`.
+   - o campo `#peso-data`, um `input[type="date"]`. O Chromium lhe dá shadow
+     DOM: o Tab anda por dia, mês, ano **e ainda pelo ícone do calendário**.
+     Nesse quarto passo o `document.activeElement` continua sendo o campo,
+     mas quem tem o foco é um nó de dentro, então o host deixa de casar
+     `:focus-visible` e o anel sumia. O `Input` ganhou
+     `focus-within:ring-3 focus-within:ring-ring` ao lado do `focus-visible`;
+     `:focus-within` casa com o host enquanto o foco estiver na sombra, e nos
+     campos de texto os dois estados coincidem, então nada mais muda. O campo
+     **tem** nome acessível (`<Label htmlFor="peso-data">` "Data"): o que o
+     relatório leu como "sem nome" era o `textContent` vazio de um `<input>`.
+   A régua também passou a ler a cor pelo **canvas** (`fillStyle` + um pixel),
+   que aceita `rgb()`, `oklab()`, `oklch()` e `color()` — o Chromium devolve
+   `oklab()` em toda sombra que passa por `color-mix`, e a expressão regular
+   antiga dava transparente para elas. Arquivos: `components/ui/tabs.tsx`,
+   `components/ui/input.tsx`, `e2e/ultraloop-varredura.spec.ts`.
+2. **O polegar do interruptor tinha cor crua** (item 13).
+   `shadow-[0_0_0_1px_rgb(10_10_10_/_0.22)]` virou
+   `shadow-[0_0_0_1px_var(--polegar-borda)]`, com o token nos dois temas —
+   `rgb(10 10 10 / 0.22)` no claro e `rgb(10 10 10 / 0.26)` no escuro, onde o
+   trilho ligado é o laranja mais claro. Medido sobre o trilho ligado, a borda
+   dá 3,5:1 contra o polegar no escuro e 9,2:1 no claro; `lib/tema.test.ts`
+   prende a conta e proíbe a volta da cor crua. Arquivos:
+   `components/ui/switch.tsx`, `app/globals.css`, `lib/tema.test.ts`.
+3. **O corpo do mapa muscular sumia no claro** (item 16, novo). O item 2 baixou
+   o fundo da página para `#e0e0dd` e `--mbody: #c8c8c4` ficou em 1,27:1 contra
+   ele — e em `/exercicios/[id]` → Músculos a figura é desenhada **direto sobre
+   a página**, sem card embaixo. É `#c0c0bc`: 1,38:1 contra o fundo, com o
+   músculo principal ainda em 3,80:1 e o auxiliar em 3,25:1 contra o corpo.
+   `lib/tema.test.ts` passou a medir o corpo contra a página também. Arquivos:
+   `app/globals.css`, `lib/tema.test.ts`.
+4. **A aba tinha anel de 1 px** (item 7). O `TabsTrigger` do shadcn trazia
+   `focus-visible:outline-1 focus-visible:outline-ring`, utilitária que vencia
+   os 2 px da regra global: saiu, e a aba passou a usar o mesmo anel do resto
+   do app. Arquivo: `components/ui/tabs.tsx`.
+5. **Indentação e contagem.** O vazio do comparador de fotos estava com o corpo
+   indentado dois espaços a mais; e o relatório do lote e estes documentos
+   divergiam sobre o item do foco. Fica dito: **o item do foco (`L3-7` aqui,
+   `L3-4` na lista do lote) está completo**, assim como os esqueletos (`L3-10`
+   aqui, `L3-7` na lista) — os doze itens do lote estão fechados. Arquivo:
+   `components/corpo/aba-fotos.tsx`.
+
+*Como testar no celular.* Em Corpo, com um teclado bluetooth (ou o Tab de um
+navegador de mesa a 360 px), segure Tab: depois da aba "Peso" o **conteúdo
+inteiro** ganha um contorno laranja de 2 px, e o campo de Data mantém o anel
+nos quatro passos — dia, mês, ano e o ícone do calendário. Em Mais →
+Preferências, o pontinho claro das chaves tem um fio escuro em volta nos dois
+temas. Na ficha de um exercício, aba Músculos, a silhueta cinza aparece contra
+o fundo da página no tema claro (antes ela quase sumia).
+
+Provas novas em `e2e/ultraloop-a-r2.spec.ts` (17 testes): o painel da aba e os
+quatro passos do campo de data com anel nos dois temas, e o nome acessível
+"Data" do campo. Em `lib/tema.test.ts` (28 casos): a borda do polegar com 3:1
+sobre o trilho ligado nos dois temas, a proibição da cor crua no `Switch` e o
+corpo do mapa muscular contra a página.
 
 ### Rodada 2 — Lote 4 — imagens, mídia e entrega (faixa B)
 

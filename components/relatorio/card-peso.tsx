@@ -34,7 +34,7 @@ export function CardPeso({ pesos }: { pesos: PesoBruto[] }) {
     >
       <div className="flex items-baseline justify-between gap-2">
         <h3 className="text-sm font-semibold">Peso</h3>
-        <Button asChild variant="ghost" className="alvo text-primary -mr-2 h-11 text-xs">
+        <Button asChild variant="ghost" className="alvo text-primary -mr-2 text-xs">
           <Link href="/corpo">Registrar</Link>
         </Button>
       </div>

@@ -31,7 +31,7 @@ export function FabAjustar({ perfil }: { perfil: LinhaPerfil | null }) {
         <button
           type="button"
           aria-label="Ajustar"
-          className="bg-primary text-primary-foreground alvo fixed right-4 z-40 flex size-14 items-center justify-center rounded-full shadow-lg"
+          className="bg-primary text-primary-foreground alvo flutuante fixed right-4 z-40 flex size-14 items-center justify-center rounded-full"
           style={{ bottom: "calc(6rem + env(safe-area-inset-bottom, 0px))" }}
         >
           <Settings2 aria-hidden="true" className="size-6" />

@@ -132,7 +132,7 @@ export function StepperNumerico({
             grande ? "h-14 rounded-2xl" : "h-11",
             // "107,5" ainda cabe na coluna estreita de 360 px
             grande ? "px-1 text-3xl font-semibold" : compacto ? "px-0.5 text-base" : "px-2 text-lg",
-            "focus-visible:border-ring focus-visible:ring-ring/50 outline-none focus-visible:ring-3",
+            "focus-visible:border-ring focus-visible:ring-ring outline-none focus-visible:ring-3",
             "disabled:opacity-50",
           )}
           aria-label={rotulo}

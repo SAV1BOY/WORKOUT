@@ -85,7 +85,7 @@ export function MediaGrande({
           className={cn("h-40", className)}
         />
         {!semCredito && (midia.credito || nota) ? (
-          <figcaption className="text-muted-foreground flex flex-col px-1 text-[11px] leading-tight">
+          <figcaption className="text-muted-foreground flex flex-col px-1 text-rotulo leading-tight">
             {/* o texto continua em 11 px; a caixa de toque é de 44 px (§13.8.1) */}
             {midia.credito ? (
               <a

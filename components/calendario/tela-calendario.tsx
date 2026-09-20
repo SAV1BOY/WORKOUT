@@ -207,7 +207,7 @@ export function TelaCalendario({ userId }: { userId: string }) {
       <div className="flex items-center gap-2">
         <Button
           variant="outline"
-          className="alvo size-11 p-0"
+          className="alvo p-0"
           aria-label="Semana anterior"
           onClick={() => irPara(-1)}
         >
@@ -222,7 +222,7 @@ export function TelaCalendario({ userId }: { userId: string }) {
         </Button>
         <Button
           variant="outline"
-          className="alvo size-11 p-0"
+          className="alvo p-0"
           aria-label="Próxima semana"
           onClick={() => irPara(1)}
         >
@@ -291,7 +291,7 @@ function Tela({
           {fase ? <p className="text-primary text-xs font-medium">{fase}</p> : null}
         </div>
         {/* SPEC §17.1: o atalho para o card "Dias de treino" das Preferências */}
-        <Button asChild variant="outline" className="alvo h-11 shrink-0 px-3">
+        <Button asChild variant="outline" className="alvo shrink-0 px-3">
           <Link href="/mais/preferencias#dias-de-treino">
             <CalendarCog className="size-4" />
             Meus dias

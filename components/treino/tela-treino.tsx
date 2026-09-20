@@ -5,7 +5,7 @@ import { addDays } from "date-fns";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Erro, EsqueletoCard } from "@/components/carregando";
+import { Erro, EsqueletoCapa, EsqueletoLista } from "@/components/carregando";
 import {
   BannerSessaoAberta,
   CardCardio,
@@ -303,7 +303,8 @@ export function TelaTreino({ userId }: { userId: string }) {
   if (!hoje || !perfil || !dia || !intervalo || desviando) {
     return (
       <Tela>
-        <EsqueletoCard linhas={4} />
+        <EsqueletoCapa />
+        <EsqueletoLista linhas={3} />
       </Tela>
     );
   }

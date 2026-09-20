@@ -168,7 +168,7 @@ function Substituir({
           variant="ghost"
           size="icon"
           aria-label={`Substituir ${nome}`}
-          className="alvo text-muted-foreground size-11 shrink-0"
+          className="alvo text-muted-foreground shrink-0"
         >
           <Repeat className="size-5" />
         </Button>

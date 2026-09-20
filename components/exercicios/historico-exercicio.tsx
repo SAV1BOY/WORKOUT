@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { GraficoLinha, SemDados } from "@/components/graficos";
-import { EsqueletoCard, Erro } from "@/components/carregando";
+import { EsqueletoLista, Erro } from "@/components/carregando";
 import {
   Card,
   CardContent,
@@ -74,7 +74,7 @@ export function HistoricoExercicio({ exercicioId }: { exercicioId: string }) {
       />
     );
   }
-  if (carregando) return <EsqueletoCard linhas={4} />;
+  if (carregando) return <EsqueletoLista linhas={3} />;
 
   const estado = estadoDaLinha(estadosQ.data?.[0]);
   const prescricao = prescricaoPadrao(exercicio);
@@ -222,7 +222,7 @@ export function HistoricoExercicio({ exercicioId }: { exercicioId: string }) {
 function Recorde({ rotulo, valor }: { rotulo: string; valor: string }) {
   return (
     <div className="border-border rounded-lg border p-2">
-      <dt className="text-muted-foreground text-[10px] tracking-wide uppercase">{rotulo}</dt>
+      <dt className="text-muted-foreground text-micro tracking-wide uppercase">{rotulo}</dt>
       <dd className="numero text-lg">{valor}</dd>
     </div>
   );

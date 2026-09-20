@@ -97,14 +97,19 @@ export function TimerDescanso({
           <span className="numero text-2xl leading-none">
             {acabou ? "vai!" : formatarDuracao(restante)}
           </span>
-          <span className="text-muted-foreground line-clamp-2 text-xs">
+          {/* SPEC §22.3 item 11: o nome longo é cortado em duas linhas, então
+              o texto inteiro fica no `title` da própria barra. */}
+          <span
+            className="text-muted-foreground line-clamp-2 text-xs"
+            title={acabou ? "descanso acabou" : `descanso · ${descanso.exercicio}`}
+          >
             {acabou ? "descanso acabou" : `descanso · ${descanso.exercicio}`}
           </span>
         </div>
         <Button
           variant="outline"
           size="sm"
-          className="alvo h-11 gap-1 px-3"
+          className="alvo gap-1 px-3"
           onClick={somarTrinta}
         >
           <Plus className="size-4" />

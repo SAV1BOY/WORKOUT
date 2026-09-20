@@ -116,7 +116,7 @@ export function BotaoMontagem({
   return (
     <Sheet>
       <SheetTrigger asChild>
-        <Button variant="outline" size="sm" className="alvo h-11 gap-1.5 px-3">
+        <Button variant="outline" size="sm" className="alvo gap-1.5 px-3">
           <Layers className="size-4" />
           montagem
         </Button>

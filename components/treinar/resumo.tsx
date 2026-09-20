@@ -180,7 +180,7 @@ export function ResumoDoFim({
           ) : (
             <Button
               variant="outline"
-              className="alvo h-11"
+              className="alvo"
               onClick={() => setMostraPeso(true)}
             >
               Registrar o peso de hoje
@@ -196,7 +196,7 @@ export function ResumoDoFim({
           >
             {salvando ? "Salvando…" : "Salvar e voltar"}
           </Button>
-          <Button variant="ghost" className="alvo h-11" onClick={aoFechar} disabled={salvando}>
+          <Button variant="ghost" className="alvo" onClick={aoFechar} disabled={salvando}>
             Voltar ao treino
           </Button>
         </div>

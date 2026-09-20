@@ -233,11 +233,49 @@ test("varredura: todo texto visível passa no contraste AA", async ({ page }) =>
 // =====================================================================
 
 /*
- * FIXME (lote de Corpo): em `/corpo`, nos dois temas, o 2º focável (o cartão
- * do IMC, uma `div` focável) e o 7º (um `input`) não desenham anel nenhum —
- * nem `outline`, nem `box-shadow`. As outras onze rotas passam.
+ * Arrumado no Lote 3 (SPEC §22.3 item 7), com a medição consertada na
+ * correção da auditoria. `app/globals.css` desenha `outline: 2px solid
+ * var(--ring)` em todo focável — link de card, linha de lista, o cartão do
+ * IMC de `/corpo`, as abas de baixo — e o anel dos botões e campos do shadcn
+ * deixou de ser `ring-ring/50` (2,9:1 no escuro, 2,2:1 no claro) para ser a
+ * cor cheia.
+ *
+ * O diagnóstico ANTIGO ("o `:focus-visible` não pega nesses elementos, e o
+ * claro dava um falso verde") estava errado e foi corrigido: o
+ * `:focus-visible` pega (`el.matches(':focus-visible')` é verdadeiro) e
+ * `--tw-ring-shadow` já vale `0 0 0 3px` na cor cheia. O que dava o falso
+ * vermelho era o RELÓGIO: o `<Button>` do shadcn tem `transition-all` de
+ * 150 ms, então lido no mesmo tique do Tab o `box-shadow` do anel ainda está
+ * todo transparente — e a condição antiga (`boxShadow !== "none"`) aceitava
+ * justamente essas sombras transparentes como "anel". O teste agora espera a
+ * transição assentar (até 400 ms, saindo assim que o anel aparece) e exige
+ * cor NÃO-transparente; com isso as 141 "falhas" somem.
+ *
+ * Sobravam então DOIS focáveis, os dois em `/corpo` e iguais nos dois temas,
+ * e este lote fechou os dois — o `fixme` saiu:
+ *   1. o PAINEL da aba (`div[data-slot=tabs-content]`, que o Radix deixa
+ *      focável com `tabindex="0"`; o Tab cai nele logo depois da lista de
+ *      abas e o `.textContent` começa em "IMC Editar altura…", o que fazia
+ *      parecer o cartão do IMC). Ele trazia `outline-none` do shadcn — uma
+ *      utilitária, que ganha da regra global de `app/globals.css` — e por
+ *      isso recebia o foco sem desenhar nada. Agora leva `.foco`.
+ *   2. o campo `#peso-data`, um `input[type="date"]`: o Chromium lhe dá
+ *      shadow DOM e o Tab anda por dia, mês, ano e ainda pelo ícone do
+ *      calendário. Nesse último passo o `document.activeElement` continua
+ *      sendo o campo, mas quem tem o foco é um nó de DENTRO, então o host
+ *      deixa de casar `:focus-visible` e o anel sumia. O `Input` ganhou
+ *      `focus-within:ring-3`, que casa com o host enquanto o foco estiver na
+ *      sombra. (O campo TEM nome acessível — o `<Label htmlFor="peso-data">`
+ *      "Data"; o que o relatório antigo via como "sem nome" era só o
+ *      `textContent` vazio de um `<input>`.)
+ *
+ * A cor do anel é lida pelo CANVAS, não por `regex`: o Chromium devolve
+ * `oklab(… / 0.5)` em `box-shadow` sempre que a cor passa por `color-mix`
+ * (`ring-ring/50`, `border-border`), e uma expressão que só entende `rgb()`
+ * daria transparente — falso vermelho — para todas elas. O canvas aceita
+ * `rgb()`, `oklab()`, `oklch()` e `color()` do mesmo jeito.
  */
-test.fixme("varredura: o Tab deixa um anel de foco visível", async ({ page }) => {
+test("varredura: o Tab deixa um anel de foco visível", async ({ page }) => {
   const problemas: string[] = [];
   for (const tema of TEMAS) {
     for (const rota of ROTAS) {
@@ -245,15 +283,52 @@ test.fixme("varredura: o Tab deixa um anel de foco visível", async ({ page }) =
       await page.evaluate(() => document.body.focus());
       for (let i = 0; i < 15; i++) {
         await page.keyboard.press("Tab");
-        const resultado = await page.evaluate(() => {
+        const resultado = await page.evaluate(async () => {
+          /**
+           * Uma cor só conta como anel se não for transparente. Quem decide é
+           * o próprio navegador: pintar 1 px num canvas aceita QUALQUER
+           * notação do CSS Color 4 — `rgb()`, `oklab()`, `oklch()`, `color()`
+           * —, e o alfa sai do pixel. Antes de cada leitura a tinta volta a
+           * ser transparente, então uma notação que o canvas recusar cai como
+           * transparente (o teste reclama) em vez de herdar a cor anterior.
+           */
+          const tinta = document.createElement("canvas").getContext("2d", {
+            willReadFrequently: true,
+          });
+          const opaca = (cor: string): boolean => {
+            if (!tinta || !cor) return false;
+            tinta.clearRect(0, 0, 1, 1);
+            tinta.fillStyle = "rgba(0, 0, 0, 0)";
+            tinta.fillStyle = cor;
+            tinta.fillRect(0, 0, 1, 1);
+            return tinta.getImageData(0, 0, 1, 1).data[3]! / 255 > 0.05;
+          };
+          /** As cores de um `box-shadow`, em qualquer notação. */
+          const coresDaSombra = (sombra: string): string[] =>
+            sombra.match(/(?:rgba?|oklab|oklch|hsla?|lab|lch|color)\([^)]*\)|#[0-9a-fA-F]{3,8}/g) ??
+            [];
+          const temAnel = (el: Element): boolean => {
+            const e = getComputedStyle(el);
+            const contorno =
+              e.outlineStyle !== "none" &&
+              Number.parseFloat(e.outlineWidth) > 0 &&
+              opaca(e.outlineColor);
+            const sombra =
+              e.boxShadow !== "none" &&
+              e.boxShadow !== "" &&
+              coresDaSombra(e.boxShadow).some(opaca);
+            return contorno || sombra;
+          };
           const el = document.activeElement;
           if (!el || el === document.body) return null;
-          const e = getComputedStyle(el);
-          const anel =
-            (e.outlineStyle !== "none" && Number.parseFloat(e.outlineWidth) > 0) ||
-            (e.boxShadow !== "none" && e.boxShadow !== "");
+          // o anel entra por transição (`transition-all` de 150 ms do Button):
+          // medir no mesmo tique do Tab lê a sombra ainda transparente
+          const ate = performance.now() + 400;
+          while (!temAnel(el) && performance.now() < ate) {
+            await new Promise((r) => requestAnimationFrame(() => r(null)));
+          }
           return {
-            anel,
+            anel: temAnel(el),
             alvo: `${el.tagName} "${(el.textContent ?? "").trim().slice(0, 24)}"`,
           };
         });
