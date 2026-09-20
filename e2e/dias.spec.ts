@@ -7,6 +7,7 @@
  * com "Treinar mesmo assim", a meta semanal seguindo os dias e a volta ao
  * programa.
  */
+import { mkdirSync } from "node:fs";
 import { expect, test, type Page } from "@playwright/test";
 import {
   entrarNoApp,
@@ -36,7 +37,8 @@ const DIAS_DA_SEMANA = [
 ];
 
 const CAPTURAS =
-  "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/capturas/dias";
+  process.env.CAPTURAS_DIR ?? "test-results/capturas/dias";
+mkdirSync(CAPTURAS, { recursive: true });
 
 /** O chip de um dia no card "Dias de treino". */
 function chip(page: Page, dia: string) {

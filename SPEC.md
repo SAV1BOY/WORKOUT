@@ -1323,3 +1323,71 @@ guia (§20). Nada de e-mail transacional novo, nada de "esqueci a senha"
 7. Lint, build, `npm test`, `npm run build:e2e && npm run e2e` verdes, com e2e
    novos desta seção e os antigos ("Este app é pessoal") ajustados para a
    regra nova sem afrouxar o que verificam.
+
+## 22. Polimento contínuo — decisão de 20/09/2026 (adendo, ultraloop)
+
+O pedido do dono, literal:
+
+> "Utilize o fable 5.1 e delegue os workflows para o opus 5 Max e melhore
+> completamente tudo o que pode no app, interface, uxui, design, imagens, tudo
+> o que for possível..."
+
+### 22.0 O que foi decidido
+
+- **Deploy automático por rodada auditada.** Cada rodada de lotes só vai para
+  produção depois dos portões (lint, tsc, teste, build de produção, e2e) e de
+  um teste de fumaça na URL publicada; se a fumaça falhar, **rollback** para o
+  deploy anterior, sem discussão e sem tentar consertar no ar.
+- **Amplitude máxima, inclusive banco.** Nada está fora do alcance — telas,
+  componentes, tipografia, ilustrações, cópia, e também `supabase/schema.sql`.
+  Toda mudança de banco segue o **protocolo expand-only**: só acrescentar
+  (coluna nova, tabela nova, valor novo), nunca renomear nem apagar enquanto o
+  código antigo ainda estiver no ar; a remoção, se um dia vier, é um marco
+  próprio depois de o app novo estar publicado e estável.
+- **Prioridades, nesta ordem:** (1) Relatório, Corpo e Calendário; (2) Explorar
+  e as fichas de exercício; (3) Treino e o player.
+
+### 22.0.1 Regras de qualidade (valem para todo lote)
+
+1. **360 px, uma mão.** Nada rola para o lado; nada vaza a largura.
+2. **Alvos ≥ 44 px**, interruptores incluídos.
+3. **Contraste AA** de todo texto visível contra o fundo efetivo — 4,5:1, ou
+   3:1 só para texto ≥ 24 px ou negrito ≥ 19 px.
+4. **`prefers-reduced-motion: reduce` respeitado**: nenhuma animação infinita
+   continua rodando.
+5. **Dois temas.** Escuro e claro conferidos lado a lado, sempre.
+6. **Capturas comparadas.** `scripts/capturas-ultraloop.ts` gera a mesma lista
+   fixa de telas antes e depois; `scripts/comparar-capturas.ts` diz o que
+   mudou. Tela que mudou sem estar na lista de esperadas reprova o lote.
+7. **Motor intocado.** `lib/progressao.ts` e `lib/montagem.ts` não mudam: o
+   polimento é da casca, não da regra de treino.
+8. **Conteúdo só dos JSON** (`data/*.json`) e nenhuma imagem de terceiros.
+
+A varredura que mede 1–4 em doze rotas × dois temas é
+`e2e/ultraloop-varredura.spec.ts` (`VARREDURA=1`). O que hoje reprova está
+marcado com `test.fixme` e o motivo; tirar o fixme é tarefa do lote que arruma
+a tela — afrouxar o limite não é uma opção.
+
+### 22.1 Lote 1
+
+(a preencher pelo lote)
+
+### 22.2 Lote 2
+
+(a preencher pelo lote)
+
+### 22.3 Lote 3
+
+(a preencher pelo lote)
+
+### 22.4 Lote 4
+
+(a preencher pelo lote)
+
+### 22.5 Lote 5
+
+(a preencher pelo lote)
+
+### 22.6 Lote 6
+
+(a preencher pelo lote)

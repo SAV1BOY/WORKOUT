@@ -6124,3 +6124,59 @@ depois: as três respondem `401 permission denied` ao anon; só
 `vagas_para_conta()` continua pública, com dois números. Um teste novo em
 `lib/auditoria-seguranca.test.ts` prende cada revoke pelo nome e garante que a
 única função com grant para `anon` é a da cota.
+
+## Ultraloop 20/09/2026 — polimento contínuo (madrugada)
+
+### Relatório para o dono (9h)
+
+(a preencher)
+
+### Como funcionou
+
+Duas faixas de trabalho em paralelo, cada uma numa worktree própria com porta
+de app e porta de mock só dela: a faixa A em `/home/user/wt-a` (3100/54321) e a
+faixa B em `/home/user/wt-b` (3110/54331). Cada lote nasce de um branch
+`ultraloop/lN-<nome>` e passa por três papéis — construtor, auditor, corretor —
+antes de voltar para a faixa. Uma terceira worktree, `/home/user/wt-base`, fica
+parada no commit do preparo servindo o app "antes": é contra ela que as
+capturas novas são comparadas e é nela que os testes críticos rodam sem o
+código do lote no caminho.
+
+Os portões são sempre os mesmos e sempre pelo mesmo script
+(`portoes.sh`): lint, `tsc --noEmit`, `vitest`, build, build de e2e, a bateria
+de ponta a ponta e a varredura de 360 px / 44 px / contraste / foco /
+reduced-motion. Os pesados correm sob um `flock` único, porque a máquina tem 4
+CPUs e dois builds ao mesmo tempo só fazem os dois falharem por tempo.
+
+Cada rodada aprovada vira um deploy: build de produção, publicação e um teste
+de fumaça na URL. Fumaça vermelha = rollback imediato para o deploy anterior.
+Nada entra em produção sem capturas comparadas contra a base e sem a lista de
+telas que era esperado mudar.
+
+### Rodada 1 — Lote 1
+
+(a preencher)
+
+### Rodada 1 — Lote 2
+
+(a preencher)
+
+### Rodada 2 — Lote 3
+
+(a preencher)
+
+### Rodada 2 — Lote 4
+
+(a preencher)
+
+### Rodada 3 — Lote 5
+
+(a preencher)
+
+### Rodada 3 — Lote 6
+
+(a preencher)
+
+### Fila (o que não coube)
+
+(a preencher)

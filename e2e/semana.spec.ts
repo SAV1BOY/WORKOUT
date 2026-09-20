@@ -6,6 +6,7 @@
  * treino de cada dia, a semana seguinte continuando a alternância e a Fase 2
  * fixa por dia da semana.
  */
+import { mkdirSync } from "node:fs";
 import { expect, test, type Page } from "@playwright/test";
 import {
   entrarNoApp,
@@ -22,7 +23,8 @@ const QUARTA = "2026-09-16T08:00:00-03:00";
 const SEGUNDA = "2026-09-14";
 
 const CAPTURAS =
-  "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/capturas/semana";
+  process.env.CAPTURAS_DIR ?? "test-results/capturas/semana";
+mkdirSync(CAPTURAS, { recursive: true });
 
 /**
  * O usuário do caso: `ultimo_treino = A1` e uma sessão A1 concluída na segunda

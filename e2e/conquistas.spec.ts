@@ -6,6 +6,7 @@
  * data e o que falta, a folha de detalhe e o aviso de conquista nova na
  * Conclusão do player — que, depois do "Ok", não repete.
  */
+import { mkdirSync } from "node:fs";
 import { expect, test, type Page } from "@playwright/test";
 import {
   comecarNoPlayer,
@@ -26,7 +27,8 @@ import {
 const QUARTA = "2026-09-16T08:00:00-03:00";
 
 const CAPTURAS =
-  "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/capturas/conquistas";
+  process.env.CAPTURAS_DIR ?? "test-results/capturas/conquistas";
+mkdirSync(CAPTURAS, { recursive: true });
 
 /**
  * Os 26 ids da SPEC §19.3, na ordem de `lib/conquistas.ts` (um unitário prende
