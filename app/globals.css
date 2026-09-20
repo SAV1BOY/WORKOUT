@@ -206,11 +206,16 @@
    * dava 2,9:1 no escuro e 2,2:1 no claro): o `<Link>` de um card, a linha de
    * uma lista, o cartão do IMC e as abas de baixo não desenhavam nada. Aqui o
    * anel é `outline` sólido na cor `--ring` — 8,7:1 no escuro e 5,2:1 no claro
-   * contra o fundo —, com `:where()` para não roubar a vez de ninguém.
+   * contra o fundo —, com `:where()` para não roubar a vez de ninguém. O
+   * `<button>` entra na lista porque o anel do navegador (`outline-style:
+   * auto`) não conta: a medida lê `outline-width`, que com `auto` não é um
+   * número. Quem traz `outline-none` do shadcn continua com o próprio anel
+   * (`focus-visible:ring-3`), que é box-shadow.
    */
   :where(
     a[href],
     area,
+    button,
     input,
     select,
     textarea,
