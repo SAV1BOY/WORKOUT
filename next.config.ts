@@ -31,6 +31,9 @@ function arquivosDoPublic(): { url: string; revision: string }[] {
       continue;
     }
     for (const nome of nomes) {
+      // as telas de abertura do iPhone (SPEC §22.4 item 11) são 95 kB que o
+      // iOS busca uma vez, na instalação: não têm o que fazer no precache
+      if (nome.startsWith("abertura-")) continue;
       const hash = createHash("md5")
         .update(readFileSync(join(caminho, nome)))
         .digest("hex");
@@ -117,6 +120,26 @@ const CABECALHOS_DE_SEGURANCA = [
   },
 ];
 
+/**
+ * Cache dos ~24 MB de mídia (SPEC §22.4 item 2).
+ *
+ * Sem isto todo arquivo de `public/` sai com `max-age=0`: uma navegação pela
+ * aba Treino gastava doze revalidações 304 só para receber "não mudou nada".
+ * As imagens são estáticas e todas saem de `assets/` pelo caminho do JSON, mas
+ * `immutable` seria demais — o nome do arquivo não tem hash, e trocar uma foto
+ * ficaria preso até alguém renomear. Uma semana com `stale-while-revalidate`
+ * dá as duas coisas: nenhuma ida à rede no uso normal e a troca chegando no
+ * dia seguinte, em segundo plano.
+ */
+const MIDIA_DE_PUBLIC = "/:pasta(fotos|ilustracoes|itens|figuras|icons|mapa-muscular)/:arquivo*";
+
+const CACHE_DA_MIDIA = [
+  {
+    key: "Cache-Control",
+    value: "public, max-age=604800, stale-while-revalidate=86400",
+  },
+];
+
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   /* o que a rota `/versao` e o rodapé dos Créditos mostram (SPEC §22.1) */
@@ -125,7 +148,10 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_CONSTRUIDO_EM: CONSTRUIDO_EM,
   },
   async headers() {
-    return [{ source: "/:caminho*", headers: CABECALHOS_DE_SEGURANCA }];
+    return [
+      { source: "/:caminho*", headers: CABECALHOS_DE_SEGURANCA },
+      { source: MIDIA_DE_PUBLIC, headers: CACHE_DA_MIDIA },
+    ];
   },
   // o sprite do mapa muscular é lido do disco em runtime
   outputFileTracingIncludes: {

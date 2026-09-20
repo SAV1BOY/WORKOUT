@@ -13,7 +13,10 @@ import {
   notaDaIlustracao,
   opcoesDeMidia,
   posicoesDaIlustracao,
+  temDerivada,
+  urlMiniatura,
   urlsDaIlustracao,
+  urlWebp,
 } from "@/lib/midia";
 import { ilustracoesSchema } from "@/lib/schemas";
 
@@ -215,5 +218,62 @@ describe("ilustração aproximada (SPEC §15.2 e §22.2 item 6)", () => {
       expect(notaDaIlustracao(i.exercicio_id), i.exercicio_id).toBeNull();
     }
     expect(notaDaIlustracao("nao-existe")).toBeNull();
+  });
+});
+
+describe("derivadas de imagem (SPEC §22.4 item 1)", () => {
+  it("a foto grande ganha WebP e miniatura; a figura animada não", () => {
+    expect(urlWebp("/fotos/agachamento-livre-1.jpg")).toBe(
+      "/fotos/agachamento-livre-1.webp",
+    );
+    expect(urlMiniatura("/fotos/agachamento-livre-1.jpg")).toBe(
+      "/fotos/agachamento-livre-1-mini.webp",
+    );
+    // SVG animado: rasterizar mataria a animação (SPEC §13.1)
+    expect(urlWebp("/figuras/agachamento-livre.svg")).toBeNull();
+    expect(urlMiniatura("/figuras/agachamento-livre.svg")).toBeNull();
+  });
+
+  it("a ilustração (SVG ou WebP) ganha só a miniatura quadrada", () => {
+    expect(urlMiniatura("/ilustracoes/supino-reto-com-barra-1.svg")).toBe(
+      "/ilustracoes/supino-reto-com-barra-1-mini.webp",
+    );
+    expect(urlMiniatura("/ilustracoes/barra-fixa-pronada-1.webp")).toBe(
+      "/ilustracoes/barra-fixa-pronada-1-mini.webp",
+    );
+    expect(urlWebp("/ilustracoes/barra-fixa-pronada-1.webp")).toBeNull();
+  });
+
+  it("a foto do equipamento, que mora em subpasta, também ganha as duas", () => {
+    expect(urlWebp("/itens/banco/banco_01.jpg")).toBe("/itens/banco/banco_01.webp");
+    expect(urlMiniatura("/itens/banco/banco_01.jpg")).toBe(
+      "/itens/banco/banco_01-mini.webp",
+    );
+  });
+
+  it("nada fora de /fotos, /itens e /ilustracoes tem derivada", () => {
+    expect(temDerivada("/fotos/x-1.jpg")).toBe(true);
+    expect(temDerivada("/itens/banco/banco_01.jpg")).toBe(true);
+    expect(temDerivada("/ilustracoes/x-1.webp")).toBe(true);
+    expect(temDerivada("/figuras/x.svg")).toBe(false);
+    expect(temDerivada("/icons/icone-192.png")).toBe(false);
+    expect(temDerivada(null)).toBe(false);
+  });
+
+  it("toda miniatura do catálogo aponta para uma derivada, menos as 4 figuras", () => {
+    let comDerivada = 0;
+    let figuras = 0;
+    for (const e of exercicios) {
+      const m = midiaDaMiniatura(e.id);
+      if (m.tipo === "figura") {
+        figuras += 1;
+        expect(m.mini).toBeNull();
+        continue;
+      }
+      expect(m.mini).toMatch(/-mini\.webp$/);
+      comDerivada += 1;
+    }
+    expect(comDerivada).toBe(exercicios.length - figuras);
+    expect(figuras).toBeGreaterThan(0);
   });
 });

@@ -1,7 +1,7 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, type SyntheticEvent } from "react";
 import { toast } from "sonner";
 import { Erro, EsqueletoCard } from "@/components/carregando";
 import { CabecalhoMais } from "@/components/mais/cabecalho";
@@ -15,6 +15,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { urlMiniatura } from "@/lib/midia";
 import { Label } from "@/components/ui/label";
 import {
   anilhasDoKit,
@@ -39,6 +40,21 @@ import { salvarPrefs } from "@/lib/queries/mais";
 import type { LinhaPerfil } from "@/lib/types";
 
 /** `/mais/equipamento` (SPEC §3.9): o que tem no terraço e quanto pesa. */
+
+/**
+ * A foto do item vem da derivada de 112 px (SPEC §22.4 item 1) — a caixa tem
+ * 64 px e o JPEG do kit tem 850 px de largura, 70 kB por item. Se a derivada
+ * faltar (build sem `npm run assets`), o `data-reserva` devolve o original: a
+ * troca acontece no DOM, sem estado por item numa lista de dez.
+ */
+function reservaDaImagem(evento: SyntheticEvent<HTMLImageElement>) {
+  const img = evento.currentTarget;
+  const reserva = img.dataset.reserva;
+  if (!reserva) return;
+  delete img.dataset.reserva;
+  img.src = reserva;
+}
+
 export function TelaEquipamento({ userId }: { userId: string }) {
   const perfilQ = usePerfil();
   const perfil = perfilQ.data ?? null;
@@ -282,9 +298,14 @@ function Itens() {
             <li key={item.id} className="flex items-start gap-3 py-3 first:pt-0">
               {/* eslint-disable-next-line @next/next/no-img-element -- foto estática do kit, sem otimização do Next */}
               <img
-                src={item.foto}
+                src={urlMiniatura(item.foto) ?? item.foto}
+                data-reserva={item.foto}
                 alt={item.nome}
+                width={112}
+                height={112}
                 loading="lazy"
+                decoding="async"
+                onError={reservaDaImagem}
                 className="bg-muted size-16 shrink-0 rounded-md object-cover"
               />
               <div className="min-w-0">

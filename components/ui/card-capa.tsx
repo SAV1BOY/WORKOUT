@@ -2,6 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 import { Raios } from "@/components/ui/raios";
+import { urlCapa } from "@/lib/capas";
 import type { Raios as NivelDeRaios } from "@/lib/dificuldade";
 import { cn } from "@/lib/utils";
 
@@ -12,7 +13,14 @@ import { cn } from "@/lib/utils";
  *
  * Sem foto, a capa é um gradiente com o ícone da própria tela — nunca uma
  * imagem de terceiros.
+ *
+ * SPEC §22.4 itens 1 e 3: a imagem pedida é a derivada de 720×360 (2,2× a
+ * caixa de 326×160), com o JPEG original de reserva; a capa da primeira dobra
+ * carrega `eager` com prioridade alta e as outras ficam `lazy`.
  */
+
+/** Tamanho da derivada da capa — 2× a caixa, arredondado para 2:1. */
+const CAPA = { largura: 720, altura: 360 };
 export function CardCapa({
   titulo,
   subtitulo,
@@ -21,6 +29,7 @@ export function CardCapa({
   icone,
   raios,
   etiqueta,
+  prioridade,
   altura = "media",
   children,
   className,
@@ -33,12 +42,22 @@ export function CardCapa({
   raios?: NivelDeRaios | null;
   /** Selo no alto da capa ("hoje", "em andamento"). */
   etiqueta?: string | null;
+  /**
+   * Primeira dobra: carrega na hora, com prioridade alta. O padrão é a
+   * presença do selo — em todas as telas do app o cartão etiquetado ("hoje",
+   * "em andamento") é justamente o primeiro, e só ele; os outros ficam `lazy`.
+   */
+  prioridade?: boolean;
   altura?: "baixa" | "media";
   children?: ReactNode;
   className?: string;
 }) {
-  const [quebrou, setQuebrou] = useState(false);
-  const comFoto = Boolean(foto) && !quebrou;
+  /** 0 = derivada da capa · 1 = foto original · 2 = desisti, fica o gradiente. */
+  const [queda, setQueda] = useState(0);
+  const derivada = urlCapa(foto);
+  const fonte = queda === 0 ? (derivada ?? foto) : queda === 1 ? foto : null;
+  const comFoto = Boolean(fonte);
+  const naPrimeiraDobra = prioridade ?? Boolean(etiqueta);
 
   return (
     <article
@@ -63,11 +82,16 @@ export function CardCapa({
         {comFoto ? (
           // eslint-disable-next-line @next/next/no-img-element -- foto local em /public, capa de tamanho fixo
           <img
-            src={foto ?? ""}
+            src={fonte ?? ""}
             alt=""
             aria-hidden="true"
+            width={CAPA.largura}
+            height={CAPA.altura}
+            loading={naPrimeiraDobra ? "eager" : "lazy"}
+            fetchPriority={naPrimeiraDobra ? "high" : "auto"}
+            decoding={naPrimeiraDobra ? "sync" : "async"}
             className="absolute inset-0 size-full object-cover"
-            onError={() => setQuebrou(true)}
+            onError={() => setQueda((q) => q + 1)}
           />
         ) : icone ? (
           <span className="text-primary/70 absolute inset-0 flex items-center justify-center">

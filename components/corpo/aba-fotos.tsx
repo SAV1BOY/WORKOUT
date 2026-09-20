@@ -169,6 +169,8 @@ export function AbaFotos({
                               <img
                                 src={url}
                                 alt={`${NOME_ANGULO[angulo]} em ${formatarData(dia.data)}`}
+                                loading="lazy"
+                                decoding="async"
                                 className="bg-muted aspect-[3/4] w-full rounded-lg object-cover"
                               />
                             </button>
@@ -310,6 +312,8 @@ function Comparacao({
                     <img
                       src={urlDepois}
                       alt={`Depois — ${formatarData(diaDepois?.data ?? "")}`}
+                      loading="lazy"
+                      decoding="async"
                       className="absolute inset-0 size-full object-cover"
                     />
                   ) : null}
@@ -318,6 +322,8 @@ function Comparacao({
                     <img
                       src={urlAntes}
                       alt={`Antes — ${formatarData(diaAntes?.data ?? "")}`}
+                      loading="lazy"
+                      decoding="async"
                       className="absolute inset-0 size-full object-cover"
                       style={{ clipPath: `inset(0 ${100 - posicao}% 0 0)` }}
                     />

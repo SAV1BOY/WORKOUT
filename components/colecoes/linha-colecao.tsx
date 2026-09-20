@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { Raios } from "@/components/ui/raios";
 import { hrefDaColecao, type Colecao } from "@/lib/colecoes";
+import { urlMiniatura } from "@/lib/midia";
 import { cn } from "@/lib/utils";
 
 /**
@@ -66,21 +67,40 @@ export function LinhaColecao({
   );
 }
 
-/** A capa pequena da linha: foto de `assets/` ou o ícone, nunca outra coisa. */
+/**
+ * A capa pequena da linha: foto de `assets/` ou o ícone, nunca outra coisa.
+ * SPEC §22.4 item 1: a caixa tem 56 px, então quem vem é a derivada de 112 —
+ * 2,4 kB no lugar dos 70 kB do JPEG inteiro; o original fica de reserva.
+ */
 export function CapaPequena({ foto }: { foto: string | null }) {
   const [quebrou, setQuebrou] = useState(false);
   const mostrar = foto !== null && !quebrou;
+  const mini = urlMiniatura(foto);
   return (
     <span className="bg-muted/60 relative block size-14 shrink-0 overflow-hidden rounded-xl">
       {mostrar ? (
         // eslint-disable-next-line @next/next/no-img-element -- foto local em /public, miniatura de tamanho fixo
         <img
-          src={foto}
+          src={mini ?? foto}
+          data-reserva={mini ? foto : undefined}
           alt=""
           aria-hidden="true"
+          width={112}
+          height={112}
           loading="lazy"
+          decoding="async"
           className="size-full object-cover"
-          onError={() => setQuebrou(true)}
+          onError={(evento) => {
+            // primeiro a derivada, depois o arquivo do kit, e só então o ícone
+            const img = evento.currentTarget;
+            const reserva = img.dataset.reserva;
+            if (reserva) {
+              delete img.dataset.reserva;
+              img.src = reserva;
+              return;
+            }
+            setQuebrou(true);
+          }}
         />
       ) : (
         <span className="text-muted-foreground flex size-full items-center justify-center">

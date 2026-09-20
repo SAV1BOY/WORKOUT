@@ -207,7 +207,7 @@ function CardDoExercicio({
       className="alvo border-border bg-card hover:bg-accent flex items-center gap-3 rounded-xl border p-2 transition-colors"
     >
       {/* marco Mídia: a ilustração vem na frente da figura e da foto */}
-      <Miniatura exercicioId={exercicio.id} decorativa className="rounded-lg" />
+      <Miniatura exercicioId={exercicio.id} className="rounded-lg" />
       <span className="flex min-w-0 flex-col gap-0.5">
         <span className="text-sm leading-tight font-medium text-balance">
           {exercicio.nome}

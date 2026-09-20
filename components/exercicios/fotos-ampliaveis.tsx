@@ -33,6 +33,7 @@ export function FotosAmpliaveis({ exercicio }: { exercicio: Exercicio }) {
                 src={url}
                 alt={`${exercicio.nome} — ${LEGENDA[i] ?? "movimento"}`}
                 loading="lazy"
+                decoding="async"
                 className="bg-muted/40 aspect-square w-full rounded-lg object-cover"
               />
             </button>

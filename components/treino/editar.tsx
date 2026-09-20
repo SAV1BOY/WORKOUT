@@ -39,7 +39,7 @@ export function ModoEditar({
               aria-hidden="true"
               className="text-muted-foreground size-5 shrink-0"
             />
-            <Miniatura exercicioId={item.exercicioId} decorativa className="size-11" />
+            <Miniatura exercicioId={item.exercicioId} className="size-11" />
             <span className="flex min-w-0 flex-1 flex-col gap-0.5">
               <span className="text-sm font-medium text-balance">
                 {i + 1}. {item.nome}

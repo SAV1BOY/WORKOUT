@@ -131,7 +131,7 @@ export function Personalizar({ prefs }: { prefs?: Prefs }) {
                     onClick={() => alternar(e.id)}
                     className="hover:bg-muted/40 alvo flex w-full items-center gap-3 py-2 text-left"
                   >
-                    <Miniatura exercicioId={e.id} decorativa />
+                    <Miniatura exercicioId={e.id} />
                     <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                       <span className="text-sm font-medium text-balance">{e.nome}</span>
                       <span className="numero text-muted-foreground text-xs">

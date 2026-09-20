@@ -72,6 +72,8 @@ export function MediaGrande({
         <IlustracaoAlternada
           urls={midia.urls}
           alt={midia.alt}
+          largura={midia.largura}
+          altura={midia.altura}
           className={cn("h-40", className)}
         />
         {!semCredito && (midia.credito || nota) ? (
@@ -105,6 +107,7 @@ export function MediaGrande({
         src={midia.urls[0]}
         alt={midia.alt}
         loading="lazy"
+        decoding="async"
         className={cn(caixa, "p-2")}
         onError={() => setFiguraQuebrou(true)}
       />
@@ -124,6 +127,7 @@ export function MediaGrande({
       src={foto.urls[0]}
       alt={foto.alt}
       loading="lazy"
+      decoding="async"
       className={cn(caixa, "object-cover")}
     />
   );

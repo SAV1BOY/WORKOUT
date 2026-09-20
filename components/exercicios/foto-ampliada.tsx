@@ -81,6 +81,9 @@ export function FotoAmpliada({
       <img
         src={url}
         alt={titulo}
+        loading="eager"
+        fetchPriority="high"
+        decoding="async"
         onClick={(e) => e.stopPropagation()}
         className="max-h-[80dvh] w-full max-w-lg rounded-lg object-contain"
       />

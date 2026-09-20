@@ -28,6 +28,7 @@ export function FiguraExercicio({
       className={cn("bg-muted/40 h-44 w-full rounded-lg object-contain p-2", className)}
       onError={() => setQuebrou(true)}
       loading="lazy"
+      decoding="async"
     />
   );
 }
@@ -53,6 +54,7 @@ export function FotosExercicio({
           alt={`${exercicio.nome} — ${i === 0 ? "início" : "fim"}`}
           className="bg-muted/40 aspect-square w-full rounded-lg object-cover"
           loading="lazy"
+          decoding="async"
         />
       ))}
     </div>

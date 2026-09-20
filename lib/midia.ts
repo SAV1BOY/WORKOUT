@@ -46,12 +46,58 @@ export interface MidiaGrande {
   urls: string[];
   alt: string;
   credito: CreditoDaMidia | null;
+  /**
+   * As dimensões do arquivo, quando o JSON as conhece (SPEC §22.4 item 3):
+   * hoje só `data/ilustracoes.json` as guarda. Com elas o navegador reserva a
+   * caixa antes de baixar a imagem e a tela para de pular.
+   */
+  largura: number | null;
+  altura: number | null;
 }
 
 export interface MidiaDaMiniatura {
   tipo: TipoDeMidia | null;
+  /** O arquivo original de `assets/` — a reserva, se a derivada faltar. */
   url: string | null;
+  /** A derivada quadrada de 112 px (SPEC §22.4 item 1), quando existe. */
+  mini: string | null;
   alt: string;
+}
+
+/*
+ * As derivadas que `npm run assets` gera em `public/` (SPEC §22.4 item 1).
+ * Aqui só se monta o nome: quem confere se o arquivo existe é o navegador, e o
+ * componente volta para o original no `onError`. Nada de caminho escrito à mão
+ * — todas saem da URL que o JSON já deu.
+ */
+
+/** As três pastas de `public/` que ganham derivada. */
+const COM_DERIVADA = /^\/(fotos|itens|ilustracoes)\//;
+/** Só estas viram WebP grande: a figura é SVG animado e fica como está. */
+const COM_WEBP = /^\/(fotos|itens)\/.+\.jpe?g$/i;
+/** A miniatura sai de foto, item e ilustração (SVG ou WebP). */
+const COM_MINI = /^\/(fotos|itens)\/.+\.jpe?g$|^\/ilustracoes\/.+\.(webp|svg)$/i;
+
+function trocarSufixo(url: string, sufixo: string): string {
+  const ponto = url.lastIndexOf(".");
+  return `${url.slice(0, ponto)}${sufixo}.webp`;
+}
+
+/** `/fotos/x-1.jpg` → `/fotos/x-1.webp` (a versão grande), senão `null`. */
+export function urlWebp(url: string | null | undefined): string | null {
+  if (!url || !COM_WEBP.test(url)) return null;
+  return trocarSufixo(url, "");
+}
+
+/** `/fotos/x-1.jpg` → `/fotos/x-1-mini.webp` (112×112), senão `null`. */
+export function urlMiniatura(url: string | null | undefined): string | null {
+  if (!url || !COM_MINI.test(url)) return null;
+  return trocarSufixo(url, "-mini");
+}
+
+/** Um arquivo de `public/` que tem alguma derivada gerada no prebuild. */
+export function temDerivada(url: string | null | undefined): boolean {
+  return Boolean(url && COM_DERIVADA.test(url));
 }
 
 function credito(i: Ilustracao): CreditoDaMidia {
@@ -136,21 +182,37 @@ export function midiaGrande(
   const escolhido = tipo && disponiveis.includes(tipo) ? tipo : disponiveis[0];
   if (!escolhido) return null;
 
+  const semMedida = { largura: null, altura: null };
+
   if (escolhido === "video") {
-    return { tipo: "video", urls: [urlDoVideo(id)], alt, credito: null };
+    return { tipo: "video", urls: [urlDoVideo(id)], alt, credito: null, ...semMedida };
   }
   if (escolhido === "ilustracao") {
     const i = ilustracaoDoExercicio(id)!;
-    return { tipo: "ilustracao", urls: i.urls, alt, credito: i.credito };
+    return {
+      tipo: "ilustracao",
+      urls: i.urls,
+      alt,
+      credito: i.credito,
+      largura: i.largura,
+      altura: i.altura,
+    };
   }
   if (escolhido === "figura") {
-    return { tipo: "figura", urls: [urlFigura(exercicio)!], alt, credito: null };
+    return {
+      tipo: "figura",
+      urls: [urlFigura(exercicio)!],
+      alt,
+      credito: null,
+      ...semMedida,
+    };
   }
   return {
     tipo: "foto",
     urls: [urlFotos(exercicio)[0]!],
     alt: `${exercicio.nome} — início`,
     credito: null,
+    ...semMedida,
   };
 }
 
@@ -161,13 +223,19 @@ export function midiaGrande(
 export function midiaDaMiniatura(id: string): MidiaDaMiniatura {
   const exercicio = acharExercicio(id);
   const alt = exercicio.nome;
+  const escolher = (tipo: TipoDeMidia, url: string): MidiaDaMiniatura => ({
+    tipo,
+    url,
+    mini: urlMiniatura(url),
+    alt,
+  });
   const ilustracao = ilustracaoDoExercicio(id);
-  if (ilustracao) return { tipo: "ilustracao", url: ilustracao.urls[0]!, alt };
+  if (ilustracao) return escolher("ilustracao", ilustracao.urls[0]!);
   const figura = urlFigura(exercicio);
-  if (figura) return { tipo: "figura", url: figura, alt };
+  if (figura) return escolher("figura", figura);
   const foto = urlFotos(exercicio)[0];
-  if (foto) return { tipo: "foto", url: foto, alt };
-  return { tipo: null, url: null, alt };
+  if (foto) return escolher("foto", foto);
+  return { tipo: null, url: null, mini: null, alt };
 }
 
 /** Todas as URLs de ilustração de um exercício (precache offline, §8). */

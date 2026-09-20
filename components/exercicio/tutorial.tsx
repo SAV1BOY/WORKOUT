@@ -98,6 +98,10 @@ export function TutorialDoExercicio({ exercicioId }: { exercicioId: string }) {
             <img
               src={urlDaMiniatura(tutorial.youtube_id)}
               alt=""
+              width={480}
+              height={360}
+              loading="lazy"
+              decoding="async"
               onError={() => setSemRede(true)}
               className="size-full object-cover"
             />
