@@ -6,6 +6,7 @@ import { SpriteMuscular } from "@/components/sprite-muscular";
 import { TemaDoPerfil } from "@/components/tema-do-perfil";
 import { Miolo } from "@/components/miolo";
 import { NavInferior } from "@/components/nav-inferior";
+import { VideosDoApp } from "@/components/videos-do-app";
 import {
   SUPABASE_ANON_KEY,
   SUPABASE_URL,
@@ -14,6 +15,7 @@ import {
 } from "@/lib/env";
 import { garantirPerfil } from "@/lib/queries/perfil";
 import { criarClienteServidor } from "@/lib/supabase/server";
+import { idsComVideo } from "@/lib/videos";
 
 // o shell autenticado lê cookies: nunca é pré-renderizado estático
 export const dynamic = "force-dynamic";
@@ -42,7 +44,10 @@ export default async function LayoutApp({
       <SpriteMuscular />
       <TemaDoPerfil />
       <AquecerMidia />
-      <Miolo>{children}</Miolo>
+      {/* a lista de vídeos é lida do disco aqui e desce pronta (§22.2 item 7) */}
+      <VideosDoApp ids={idsComVideo()}>
+        <Miolo>{children}</Miolo>
+      </VideosDoApp>
       <NavInferior />
     </div>
   );

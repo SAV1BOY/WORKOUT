@@ -346,6 +346,23 @@ describe("semana coerente: passado real, futuro projetado (SPEC §16.2)", () => 
     return dias.filter((d) => d.tipo === "forca").map((d) => d.treinoId);
   }
 
+  it("o cardio registrado num descanso passado vira o dia (SPEC §22.2)", () => {
+    // domingo 20/09 é descanso no programa; ele correu mesmo assim
+    const DOMINGO = "2026-09-20";
+    const semana = semanaCoerente(INICIO, perfil({ ultimo_treino: "A1" }), {
+      cardios: [{ data: DOMINGO, tipo: "corrida", concluida: true }],
+      hoje: DOMINGO,
+    });
+    const domingo = semana.find((d) => d.data === DOMINGO);
+    expect(domingo?.tipo).toBe("cardio");
+    expect(domingo?.cardio?.tipo).toBe("corrida");
+    // sem o registro, o mesmo domingo continua sendo descanso
+    const semCardio = semanaCoerente(INICIO, perfil({ ultimo_treino: "A1" }), {
+      hoje: DOMINGO,
+    });
+    expect(semCardio.find((d) => d.data === DOMINGO)?.tipo).toBe("descanso");
+  });
+
   it("o dia passado mostra o treino da sessão que existe nele", () => {
     const semana = semanaCoerente(QUARTA, emQuarta, {
       sessoes: feitoNaSegunda,

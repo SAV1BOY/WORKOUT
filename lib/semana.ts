@@ -252,6 +252,8 @@ export function montarGrade(fonte: FonteDaGrade): DiaDaGrade[] {
   const semana = semanaCoerente(data, perfil, {
     overrides: fonte.overrides ?? [],
     sessoes: sessoes as SessaoDeForca[],
+    // SPEC §22.2 item 5: o cardio de um dia de descanso também monta o dia
+    cardios,
     hoje,
   });
   return montarGradeDe(semana, sessoes, cardios, hoje, perfil);

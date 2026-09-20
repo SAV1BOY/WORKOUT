@@ -203,6 +203,32 @@ test.describe("Semana visível — a aba Treino e o calendário dizem o mesmo (S
     await page.screenshot({ path: `${CAPTURAS}/05-hoje-ja-treinado.png` });
   });
 
+  test("cardio feito num descanso mostra a sigla do cardio (SPEC §22.2 item 5)", async ({
+    page,
+  }) => {
+    const sessao = await usuarioDoCaso();
+    // quinta 17/09 é descanso no programa; ele correu mesmo assim
+    await inserirNoMock(sessao, "cardio_sessions", [
+      { data: "2026-09-17", tipo: "corrida", concluida: true, duracao_min: 30 },
+    ]);
+    // sexta 18/09: a quinta já passou
+    await fixarRelogio(page, "2026-09-18T08:00:00-03:00");
+    await entrarNoApp(page);
+    await esperarAbaTreino(page);
+
+    // a faixa da semana: a quinta deixa de dizer "Desc." e diz o cardio feito
+    const quinta = casaDaFaixa(page, "2026-09-17");
+    await expect(quinta).toContainText("Corr.");
+    await expect(quinta).not.toContainText("Desc.");
+
+    // e o calendário concorda: o dia é a corrida, com o ✓
+    await page.goto("/calendario");
+    await expect(page.getByRole("heading", { name: "Calendário" })).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: /^qui 17\/09.*Corrida, feito$/ }),
+    ).toBeVisible();
+  });
+
   test("um dia passado sem sessão mostra o treino esperado e a marca de não feito", async ({
     page,
   }) => {

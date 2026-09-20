@@ -6159,7 +6159,85 @@ telas que era esperado mudar.
 
 ### Rodada 1 — Lote 2
 
-(a preencher)
+**Relatório, Corpo, Calendário e Explorar** (branch
+`ultraloop/l2-relatorio-corpo-calendario`, SPEC §22.2). Onze itens, cada um com
+prova. O que mudou, era → é:
+
+1. **Contadores (L2-1)** — era: em `/relatorio` o rótulo "VOLUME (KG)" não
+   cabia numa das três colunas a 360 px, quebrava em duas linhas e o número
+   descia meia linha em relação aos vizinhos ("BARRA FIXA", nos Números, fazia
+   o mesmo). É: `components/ui/contador.tsx` desenha o rótulo numa linha de
+   altura fixa que não quebra, e o total do volume virou "Volume" com a unidade
+   no detalhe ("kg no total") em `components/relatorio/tela-relatorio.tsx`.
+2. **Explorar (L2-2)** — era: `/explorar` montava sem o destaque e a tela
+   pulava quando o perfil chegava. É: o lugar do `CardCapa` fica reservado por
+   um esqueleto da mesma forma até perfil e overrides chegarem
+   (`components/explorar/tela-explorar.tsx`).
+3. **Apagar foto (L2-3)** — era: não havia como apagar uma foto de progresso,
+   embora a policy `progresso_dono_delete` já existisse. É: um toque na foto da
+   galeria abre a foto em tela cheia com **Apagar** e confirmação ("Apagar esta
+   foto? Não dá para desfazer."); apagar tira o arquivo do bucket `progresso`,
+   a linha de `progress_photos`, o blob do Dexie e o que ainda estivesse na
+   fila de saída. Exige internet, como trocar a senha (`components/corpo/aba-fotos.tsx`,
+   `components/exercicios/foto-ampliada.tsx`, `lib/queries/corpo.ts`).
+4. **Esqueleto por aba (L2-4)** — era: só o esqueleto do topo cobria as
+   pesagens; Medidas e Fotos apareciam vazias enquanto carregavam. É: cada aba
+   espera a sua leitura com o esqueleto da própria forma
+   (`components/corpo/tela-corpo.tsx`).
+5. **Cardio no descanso (L2-5)** — era: um cardio feito num dia de descanso
+   ganhava ✓ mas a faixa continuava dizendo "Desc.". É: `semanaCoerente()`
+   passa a receber os cardios registrados e o dia vira o cardio que foi feito —
+   "Corr."/"Corda"/"Cam." e "Corrida" no calendário (`lib/calendario.ts`,
+   `lib/semana.ts`). "outro" não tem sessão no plano e não mexe no dia.
+6. **Ilustração aproximada (L2-6)** — era: sete exercícios têm ilustração só
+   aproximada e a nota que explica a diferença ficava só no JSON. É: a legenda
+   ganha uma segunda linha com a nota (`notaDaIlustracao()` em `lib/midia.ts`,
+   `components/exercicio/media-grande.tsx`); as sete notas de
+   `data/ilustracoes.json` foram acentuadas (eram "colecao", "nao ha").
+7. **Vídeo fora do player (L2-7)** — era: só o player passava `temVideo`, então
+   a mesma ficha aberta pela lista do dia ou pela lista de uma coleção mostrava
+   a ilustração mesmo havendo vídeo. É: o layout do app lê `public/videos` uma
+   vez e a lista desce por contexto (`components/videos-do-app.tsx`,
+   `app/(app)/layout.tsx`, `components/treino/lista.tsx`,
+   `components/colecoes/lista-da-colecao.tsx`).
+8. **Desafio (L2-8)** — era: "Semana 3 de 12" com a barra em 17 % — duas
+   leituras brigando. É: "Semana 3 de 12 · 2 concluídas", barra e
+   `aria-valuenow` nas semanas concluídas (`lib/colecoes.ts`,
+   `components/treino/desafios.tsx`).
+9. **Selo Circuito (L2-9)** — era: `Colecao.circuito` era calculado e só os
+   testes liam. É: as 5 coleções que dão para rodar em circuito mostram um selo
+   discreto na vitrine (`components/colecoes/linha-colecao.tsx`).
+10. **Contraste da capa (L2-11)** — era: no tema claro o "Treino A" branco
+    sobre o cartão claro media 1,13:1. É: o bloco de texto do `CardCapa` tem véu
+    escuro próprio e passa de 4,5:1 nos dois temas
+    (`components/ui/card-capa.tsx`); o `test.fixme` de contraste saiu da
+    varredura.
+11. **Régua de rolagem (L2-12)** — era: a régua de 360 px contava os 96 cartões
+    dentro dos carrosséis de `/` e `/explorar` como vazamento. É: ela sobe até o
+    ancestral que rola e ignora o que está dentro de rolagem intencional,
+    continuando a exigir `scrollWidth == clientWidth` da página
+    (`e2e/auditoria-helpers.ts`); o `test.fixme` de rolagem saiu da varredura.
+
+**Provas.** Unitários novos/atualizados em `lib/semana.test.ts` (cardio no
+descanso vira o dia; "outro" não; cardio futuro não reescreve),
+`lib/calendario.test.ts` (`semanaCoerente` com cardio), `lib/midia.test.ts`
+(nota só na correspondência aproximada) e `lib/colecoes.test.ts` (barra e
+rótulo leem a mesma coisa). E2E: `e2e/ultraloop-b-r1.spec.ts` (contadores nos
+dois temas, contraste da capa nos dois temas, selo de circuito, esqueleto do
+destaque, desafio, nota da ilustração, apagar foto com e sem rede, esqueleto de
+Medidas) e um caso novo em `e2e/semana.spec.ts`. A varredura roda sem os dois
+`test.fixme` que eram deste lote.
+
+**Como testar no celular.** (1) Relatório: os três totais no topo, rótulo numa
+linha e números alinhados — confira nos dois temas. (2) Corpo → Fotos: mande
+uma foto, toque nela, **Apagar**, confirme; ela some da galeria e do comparador.
+No modo avião o app avisa "Precisa de internet para apagar." e não apaga nada.
+(3) Corpo → Medidas: entrando com a rede lenta, a aba mostra a forma dos campos
+em vez de aparecer vazia. (4) Faça um cardio num dia de descanso: a faixa da
+semana passa a mostrar "Corr." naquele dia, e o calendário diz "Corrida".
+(5) Explorar: as coleções de circuito mostram o selo, e o destaque não pula
+mais quando a tela abre. (6) Abra a ficha do face pull: sob a ilustração há a
+nota dizendo que a figura é aproximada.
 
 ### Rodada 2 — Lote 3
 

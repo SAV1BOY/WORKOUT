@@ -1372,9 +1372,45 @@ a tela — afrouxar o limite não é uma opção.
 
 (a preencher pelo lote)
 
-### 22.2 Lote 2
+### 22.2 Lote 2 — Relatório, Corpo, Calendário e Explorar
 
-(a preencher pelo lote)
+1. **Contadores numa linha só.** O rótulo do contador (`components/ui/contador.tsx`)
+   nunca quebra em duas linhas: o texto fica numa linha e os contadores de uma
+   mesma faixa compartilham a base. No Relatório o total de volume é
+   "Volume" com a unidade no detalhe ("kg no total"), não "Volume (kg)".
+2. **Explorar com esqueleto.** Enquanto o perfil não chega, `/explorar` mostra
+   um esqueleto com a forma do destaque e das seções, no lugar de montar a tela
+   sem o destaque e empurrá-la quando o perfil chega.
+3. **Apagar foto de progresso.** Na galeria de Corpo → Fotos um toque abre a
+   foto em tela cheia; ali há **Apagar**, com confirmação ("Apagar esta foto?
+   Não dá para desfazer."). Apagar remove o arquivo do bucket `progresso` e a
+   linha de `progress_photos`, e a galeria e o comparador deixam de mostrá-la.
+   É a única escrita do app que **exige internet** (como trocar a senha): sem
+   rede o botão avisa "Precisa de internet para apagar" e nada é apagado.
+4. **Esqueleto por aba no Corpo.** Medidas e Fotos têm o esqueleto da própria
+   forma enquanto carregam, em vez de aparecerem vazias.
+5. **Cardio num dia de descanso aparece como cardio.** Um cardio registrado num
+   dia que o plano dizia descanso passa a valer como o dia (§16.2, como já
+   valia para a força): o rótulo vira Corrida/Corda/Caminhada e a sigla da
+   faixa vira "Corr."/"Corda"/"Cam." no lugar de "Desc.".
+6. **Ilustração aproximada avisa.** Quando `data/ilustracoes.json` marca a
+   correspondência como "aproximada", a legenda da ilustração ganha uma segunda
+   linha discreta com a nota do JSON (§15.2). Nenhum texto novo em código.
+7. **Vídeo na ficha aberta fora do player.** A ficha em folha aberta pela lista
+   do dia e pela lista de uma coleção recebe o mesmo `temVideo` que o player já
+   passava — com vídeo em `public/videos/<id>.mp4`, as três telas mostram vídeo.
+8. **Desafio com uma leitura só.** O card do desafio diz "Semana 3 de 12 · 2
+   concluídas" e a barra mede as semanas **concluídas** — o rótulo e a barra
+   param de discordar.
+9. **Selo "Circuito".** A coleção que dá para rodar como circuito guiado (§13.6)
+   mostra um selo discreto na vitrine; o campo `circuito` deixa de ser calculado
+   sem leitor.
+10. **Texto sobre a capa com contraste AA.** O texto branco do `CardCapa` fica
+    sobre um véu escuro próprio, nos dois temas, com pelo menos 4,5:1.
+11. **Régua de rolagem ciente de carrossel.** A auditoria de 360 px
+    (`e2e/auditoria-helpers.ts`) não conta como vazamento o que está dentro de
+    uma faixa que rola sozinha (`overflow-x: auto/scroll`); a rolagem da página
+    continua tendo de ser zero.
 
 ### 22.3 Lote 3
 

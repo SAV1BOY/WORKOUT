@@ -238,3 +238,75 @@ export async function enviarFoto(opcoes: {
 
   return linha;
 }
+
+/* ------------------------------------------------------------- apagar */
+
+/** Apagar mexe no Storage, e o Storage não tem fila (SPEC §22.2 item 3). */
+export const SEM_REDE_PARA_APAGAR = "Precisa de internet para apagar.";
+
+/**
+ * A foto apagada não pode voltar pela fila: se o blob ainda estava esperando
+ * rede (o arquivo e a linha da tabela), os itens saem da fila junto.
+ */
+async function tirarDaFila(foto: FotoBruta): Promise<void> {
+  if (!temIndexedDB()) return;
+  const naFila = await bd()
+    .outbox.where("tipo")
+    .equals("foto")
+    .toArray()
+    .catch(() => []);
+  const ids = naFila
+    .filter((item) => {
+      const p = item.payload as
+        | { caminho?: string; linha?: { id?: string } }
+        | null
+        | undefined;
+      return p?.caminho === foto.storage_path || p?.linha?.id === foto.id;
+    })
+    .map((item) => item.id)
+    .filter((id): id is number => typeof id === "number");
+  if (ids.length > 0) await bd().outbox.bulkDelete(ids);
+}
+
+/**
+ * Apagar uma foto de progresso (SPEC §3.8 e §22.2 item 3): tira o arquivo do
+ * bucket privado e a linha de `progress_photos` (a policy `progresso_dono_*`
+ * do `supabase/schema.sql` garante que só o dono apaga as suas).
+ *
+ * **Exige internet**, como trocar a senha (§9): a fila de saída guarda o que
+ * *chega*, e apagar um arquivo do Storage e depois reenviá-lo por engano é o
+ * caminho mais curto para perder uma foto de verdade.
+ */
+export async function apagarFoto(opcoes: {
+  foto: FotoBruta;
+  cliente: QueryClient;
+}): Promise<void> {
+  const { foto, cliente } = opcoes;
+  if (typeof navigator !== "undefined" && navigator.onLine === false) {
+    throw new Error(SEM_REDE_PARA_APAGAR);
+  }
+
+  const supabase = clienteNavegador();
+  const { error: erroDoArquivo } = await supabase.storage
+    .from(BUCKET_FOTOS)
+    .remove([foto.storage_path]);
+  if (erroDoArquivo) throw new Error(erroDoArquivo.message);
+
+  const { error } = await supabase.from("progress_photos").delete().eq("id", foto.id);
+  if (error) throw new Error(error.message);
+
+  await tirarDaFila(foto);
+  if (temIndexedDB()) {
+    await bd().fotos.delete(foto.storage_path).catch(() => undefined);
+  }
+  const urlVelha = urlsLocais.get(foto.storage_path);
+  if (urlVelha) {
+    URL.revokeObjectURL(urlVelha);
+    urlsLocais.delete(foto.storage_path);
+  }
+
+  cliente.setQueryData<FotoBruta[]>(chavesCorpo.fotos(), (atual) =>
+    (atual ?? []).filter((f) => f.id !== foto.id),
+  );
+  void cliente.invalidateQueries({ queryKey: ["corpo", "fotos-url"] });
+}

@@ -22,8 +22,9 @@ import {
   parDeComparacao,
   type FotoBruta,
 } from "@/lib/corpo";
+import { FotoAmpliada } from "@/components/exercicios/foto-ampliada";
 import { formatarData } from "@/lib/formato";
-import { enviarFoto, useUrlsDasFotos } from "@/lib/queries/corpo";
+import { apagarFoto, enviarFoto, useUrlsDasFotos } from "@/lib/queries/corpo";
 import type { AnguloFoto } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -43,6 +44,9 @@ export function AbaFotos({
   const cliente = useQueryClient();
   const [data, setData] = useState(hoje);
   const [enviando, setEnviando] = useState<AnguloFoto | null>(null);
+  /** A foto aberta em tela cheia (onde fica o Apagar, SPEC §22.2 item 3). */
+  const [aberta, setAberta] = useState<{ foto: FotoBruta; titulo: string } | null>(null);
+  const [apagando, setApagando] = useState(false);
 
   const dias = useMemo(() => fotosPorData(fotos), [fotos]);
   const caminhos = useMemo(() => fotos.map((f) => f.storage_path), [fotos]);
@@ -61,6 +65,20 @@ export function AbaFotos({
       toast.error("Não consegui guardar essa foto.");
     } finally {
       setEnviando(null);
+    }
+  };
+
+  const apagar = async () => {
+    if (!aberta) return;
+    setApagando(true);
+    try {
+      await apagarFoto({ foto: aberta.foto, cliente });
+      setAberta(null);
+      toast.success("Foto apagada.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Não consegui apagar essa foto.");
+    } finally {
+      setApagando(false);
     }
   };
 
@@ -132,13 +150,26 @@ export function AbaFotos({
                       const url = foto ? urls[foto.storage_path] : undefined;
                       return (
                         <figure key={angulo} className="flex flex-col gap-1">
-                          {url ? (
-                            // eslint-disable-next-line @next/next/no-img-element -- blob local ou URL assinada do bucket
-                            <img
-                              src={url}
-                              alt={`${NOME_ANGULO[angulo]} em ${formatarData(dia.data)}`}
-                              className="bg-muted aspect-[3/4] w-full rounded-lg object-cover"
-                            />
+                          {url && foto ? (
+                            // um toque abre a foto em tela cheia, onde fica o Apagar (§22.2)
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setAberta({
+                                  foto,
+                                  titulo: `${NOME_ANGULO[angulo]} em ${formatarData(dia.data)}`,
+                                })
+                              }
+                              aria-label={`Ver a foto de ${NOME_ANGULO[angulo].toLowerCase()} de ${formatarData(dia.data)}`}
+                              className="alvo block w-full"
+                            >
+                              {/* eslint-disable-next-line @next/next/no-img-element -- blob local ou URL assinada do bucket */}
+                              <img
+                                src={url}
+                                alt={`${NOME_ANGULO[angulo]} em ${formatarData(dia.data)}`}
+                                className="bg-muted aspect-[3/4] w-full rounded-lg object-cover"
+                              />
+                            </button>
                           ) : (
                             <span
                               aria-hidden="true"
@@ -162,6 +193,16 @@ export function AbaFotos({
       </Card>
 
       <Comparacao dias={dias} urls={urls} />
+
+      {aberta && urls[aberta.foto.storage_path] ? (
+        <FotoAmpliada
+          url={urls[aberta.foto.storage_path] ?? ""}
+          titulo={aberta.titulo}
+          aoFechar={() => setAberta(null)}
+          aoApagar={() => void apagar()}
+          apagando={apagando}
+        />
+      ) : null}
     </div>
   );
 }

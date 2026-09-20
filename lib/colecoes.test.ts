@@ -24,6 +24,7 @@ import {
   semEquipamento,
   progressoDoDesafio,
   semanaPresa,
+  semanasConcluidasDoDesafio,
   todasAsColecoes,
   type Colecao,
 } from "@/lib/colecoes";
@@ -385,6 +386,18 @@ describe("desafios da aba Treino (SPEC §14.3)", () => {
     expect(progressoDoDesafio({ semanaAtual: 1, semanas: 12 })).toBe(0);
     expect(progressoDoDesafio({ semanaAtual: 7, semanas: 12 })).toBeCloseTo(0.5);
     expect(progressoDoDesafio({ semanaAtual: 13, semanas: 12 })).toBe(1);
+  });
+
+  it("a barra e o rótulo leem a mesma coisa (SPEC §22.2 item 8)", () => {
+    // "Semana 3 de 12 · 2 concluídas" → barra em 2/12
+    const d = { semanaAtual: 3, semanas: 12 };
+    expect(semanasConcluidasDoDesafio(d)).toBe(2);
+    expect(progressoDoDesafio(d)).toBeCloseTo(2 / 12);
+    expect(semanasConcluidasDoDesafio({ semanaAtual: 1, semanas: 12 })).toBe(0);
+    // nunca passa do total, nem fica negativo
+    expect(semanasConcluidasDoDesafio({ semanaAtual: 30, semanas: 12 })).toBe(12);
+    expect(semanasConcluidasDoDesafio({ semanaAtual: 0, semanas: 12 })).toBe(0);
+    expect(semanasConcluidasDoDesafio({ semanaAtual: 3, semanas: 0 })).toBe(0);
   });
 
   it("a capa sai sempre de assets/ (ou é nenhuma)", () => {

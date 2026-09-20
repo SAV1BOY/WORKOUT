@@ -42,6 +42,7 @@ export function CardCapa({
 
   return (
     <article
+      data-capa={titulo}
       className={cn(
         "cartao border-border bg-card overflow-hidden border",
         className,
@@ -82,9 +83,15 @@ export function CardCapa({
           </span>
         ) : null}
 
+        {/*
+          SPEC §22.2 item 10: o texto é branco, então ele carrega o próprio véu
+          escuro. O gradiente da capa (`--capa-*`) é decorativo e some quando o
+          cartão não tem foto — no tema claro o título ficava branco sobre o
+          cartão claro, 1,13:1. Com o véu, os dois temas passam de 4,5:1.
+        */}
         <div
           className={cn(
-            "relative flex flex-col gap-1 p-4 text-white",
+            "relative flex flex-col gap-1 bg-black/65 p-4 text-white",
             // espaço para o selo, que fica no alto da capa
             etiqueta && "pt-12",
           )}
