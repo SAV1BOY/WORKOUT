@@ -1470,7 +1470,11 @@ a tela — afrouxar o limite não é uma opção.
    glow curto no escuro, onde sombra preta sobre preto não aparece.
 6. **Texto pequeno com nome.** `text-rotulo` (11 px) e `text-micro` (10 px)
    substituem os 43 `text-[11px]`/`[10px]`/`[9px]`/`[0.7rem]`/`[0.8rem]`
-   soltos. Nenhum texto da interface fica abaixo de 10 px.
+   soltos. Nenhum texto da interface fica abaixo de 10 px. Todo tamanho de
+   fonte criado no `@theme` tem de ser declarado ao mesclador de classes em
+   `lib/utils.ts` (`createCn({ extend: { classGroups: { "font-size": … } } })`):
+   sem isso ele lê `text-<nome>` como COR e descarta o tamanho quando a mesma
+   chamada traz uma cor de texto.
 7. **Anel de foco em tudo que recebe foco.** `app/globals.css` desenha
    `outline: 2px solid var(--ring)` em todo focável — link de card, linha de
    lista, o cartão do IMC, as abas de baixo —, e o anel dos botões e campos

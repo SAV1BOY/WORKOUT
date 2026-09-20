@@ -6240,6 +6240,12 @@ produção · build de e2e · e2e · varredura). Unitários novos em
 `e2e/shell.spec.ts` (`/versao`). Capturas dos dois temas em
 `rodada-1/l1/capturas/construtor/`.
 
+**Capturas.** As trinta telas do gerador, nos dois temas, ficam em
+`scratchpad/ultraloop/rodada-2/l3/capturas/construtor/` e foram comparadas com
+a linha de base por `scripts/comparar-capturas.ts` (`diff/comparacao.md`).
+Todas mudam de aparência — a paleta é a fundação do app —, e é isso que a lista
+de esperadas do comparador declara.
+
 **Como testar no celular.** Entre no treino do dia e vá até o primeiro
 exercício: o ✓ agora encosta no rodapé, sem faixa cinza embaixo, e os dois
 polegares no topo começam apagados — toque no de baixo e ele acende sozinho,
