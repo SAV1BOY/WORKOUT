@@ -18,7 +18,9 @@ import { Switch as SwitchPrimitive } from "radix-ui"
  * claro. Agora cada estado tem a sua regra (nenhuma pega os dois) e o polegar
  * é claro sempre, nos dois temas: quem conta o estado é a cor do trilho
  * (cinza `--input` desligado, laranja `--primary` ligado) mais a posição. A
- * borda de 1 px do polegar mantém 3:1 contra o laranja claro do tema escuro.
+ * borda de 1 px do polegar sai do token `--polegar-borda` (um por tema, em
+ * `app/globals.css`) e mantém 3:1 contra o laranja do trilho ligado — antes
+ * era um `rgb(10 10 10 / 0.22)` cru, fora da paleta.
  */
 function Switch({
   className,
@@ -43,7 +45,7 @@ function Switch({
       >
         <SwitchPrimitive.Thumb
           data-slot="switch-thumb"
-          className="pointer-events-none block rounded-full bg-card shadow-[0_0_0_1px_rgb(10_10_10_/_0.22)] ring-0 transition-transform group-data-[size=default]/switch:size-4 group-data-[size=sm]/switch:size-3 group-data-[size=default]/switch:data-checked:translate-x-[calc(100%-2px)] group-data-[size=sm]/switch:data-checked:translate-x-[calc(100%-2px)] group-data-[size=default]/switch:data-unchecked:translate-x-0 group-data-[size=sm]/switch:data-unchecked:translate-x-0 dark:bg-foreground"
+          className="pointer-events-none block rounded-full bg-card shadow-[0_0_0_1px_var(--polegar-borda)] ring-0 transition-transform group-data-[size=default]/switch:size-4 group-data-[size=sm]/switch:size-3 group-data-[size=default]/switch:data-checked:translate-x-[calc(100%-2px)] group-data-[size=sm]/switch:data-checked:translate-x-[calc(100%-2px)] group-data-[size=default]/switch:data-unchecked:translate-x-0 group-data-[size=sm]/switch:data-unchecked:translate-x-0 dark:bg-foreground"
         />
       </span>
     </SwitchPrimitive.Root>

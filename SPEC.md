@@ -1487,11 +1487,21 @@ a tela — afrouxar o limite não é uma opção.
    lido no mesmo tique do Tab, o `box-shadow` do anel ainda está todo
    transparente — daí a varredura esperar até 400 ms e exigir cor
    **não-transparente** no `outline` ou no `box-shadow` (aceitar
-   `box-shadow !== "none"` deixava passar cinco sombras transparentes).
-   **Falta**, medido: o cartão do IMC de `/corpo` (um `div` com `tabindex`
-   sem a utilitária `.foco`) e um `<input>` sem nome acessível na mesma tela
-   — os dois únicos focáveis sem anel nas doze rotas, iguais nos dois temas.
-   Até eles terem anel a varredura do foco segue em `fixme`.
+   `box-shadow !== "none"` deixava passar cinco sombras transparentes). A cor
+   é lida pelo **canvas**, não por expressão regular: o Chromium devolve
+   `oklab()` em toda sombra que passa por `color-mix`, e uma régua que só
+   entende `rgb()` daria transparente para todas elas. Nenhum controle pode
+   levar um anel próprio mais fino que o padrão — o `TabsTrigger` do shadcn
+   trazia `focus-visible:outline-1`, uma utilitária, que vencia os 2 px da
+   regra global. Dois focáveis exigem cuidado extra, e são a razão de o
+   `fixme` só ter saído agora: o **painel** da aba (`[data-slot=tabs-content]`,
+   que o Radix deixa focável com `tabindex="0"`) carregava `outline-none` do
+   shadcn e recebia o foco sem desenhar nada; e o `input[type="date"]` tem
+   shadow DOM — o Tab anda por dia, mês, ano e ainda pelo ícone do calendário,
+   e nesse último passo quem tem o foco é um nó de dentro, então o host deixa
+   de casar `:focus-visible` (o `Input` ganhou `focus-within` ao lado dele).
+   **Fechado**: a varredura do foco passa nas doze rotas nos dois temas, sem
+   `fixme`.
 8. **Aba acesa com forma, não só cor.** O item aceso da barra de baixo ganha
    uma barra de 2 px no topo e o rótulo em semibold, além do laranja.
 9. **Estado vazio com saída.** `components/ui/vazio.tsx` (ícone, título curto,
@@ -1514,7 +1524,11 @@ a tela — afrouxar o limite não é uma opção.
     temas; o polegar é **claro sempre**. Nenhuma regra pode pegar os dois
     estados: `dark:bg-input/80` pesa (0,2,0) contra os (0,1,0) da variante de
     estado e apagava a diferença no escuro, onde só o polegar mudava — e
-    mudava ao contrário do tema claro (preto quando ligado).
+    mudava ao contrário do tema claro (preto quando ligado). A borda de 1 px
+    que separa o polegar do trilho sai do token **`--polegar-borda`** (um por
+    tema, em `app/globals.css`), nunca de uma cor crua na classe do
+    componente, e mede **≥ 3:1** contra o polegar sobre o trilho ligado —
+    3,5:1 no escuro, onde o laranja é mais claro, e 9,2:1 no claro.
 14. **A aba acesa é mais clara que a lista.** O `TabsTrigger` aceso usa
     `bg-card`, não `bg-background`: com o fundo da página em `#e0e0dd` a aba
     ativa ficava da cor da PÁGINA, mais escura que a lista `bg-muted`. Nos
@@ -1524,6 +1538,12 @@ a tela — afrouxar o limite não é uma opção.
     título de gráfico só como PADRÃO; galeria de fotos, comparador e tabela de
     medidas passam os seus (`Camera`, `ImageOff`, `Ruler`), senão a tela anuncia
     "Sem dados por enquanto" debaixo de um gráfico de linha que ninguém pediu.
+16. **O corpo do mapa muscular existe contra a página.** Em
+    `/exercicios/[id]` → Músculos a figura é desenhada **direto sobre a
+    página**, sem card embaixo: `--mbody` mede **≥ 1,3:1** contra
+    `--background` nos dois temas, sem perder os 3:1 que o músculo principal
+    e o auxiliar precisam ter contra ela. Com o fundo claro em `#e0e0dd` o
+    corpo `#c8c8c4` dava 1,27:1 — a silhueta sumia; é `#c0c0bc` (1,38:1).
 
 ### 22.4 Lote 4
 

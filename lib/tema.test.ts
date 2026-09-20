@@ -152,6 +152,9 @@ describe.each([
   });
 
   it("o mapa muscular distingue principal, auxiliar e corpo", () => {
+    // em `/exercicios/[id]` → Músculos a figura é desenhada direto sobre a
+    // PÁGINA: o corpo do mapa tem de existir contra ela, como o card existe
+    expect(contraste(pega("mbody"), pega("background"))).toBeGreaterThanOrEqual(1.3);
     expect(contraste(pega("mprim"), pega("mbody"))).toBeGreaterThanOrEqual(3);
     // 3:1 também para o auxiliar: é elemento gráfico, e no mapa anatômico do
     // marco Mídia ele é a única marca de "esse músculo ajuda" na figura
@@ -203,5 +206,41 @@ describe("a elevação do que flutua", () => {
     const sobreCard = sobre(cor, ESCURO.card!, Number(alfa));
     expect(contraste(sobreFundo, ESCURO.background!)).toBeGreaterThanOrEqual(3);
     expect(contraste(sobreCard, ESCURO.card!)).toBeGreaterThanOrEqual(3);
+  });
+});
+
+/*
+ * SPEC §22.3 item 13: o polegar do interruptor é claro nos DOIS temas, então
+ * quem o separa do trilho é a borda de 1 px. Ela era uma cor crua dentro da
+ * classe do componente (`shadow-[0_0_0_1px_rgb(10_10_10_/_0.22)]`); agora é o
+ * token `--polegar-borda`, e a conta que justifica o valor mora aqui.
+ */
+describe("a borda do polegar do interruptor", () => {
+  const polegarBorda = (seletor: string): { cor: Cor; alfa: number } => {
+    const i = CSS.indexOf(`${seletor} {`);
+    const bloco = CSS.slice(i, CSS.indexOf("\n}", i));
+    const m = bloco.match(/--polegar-borda:\s*rgb\((\d+) (\d+) (\d+) \/ ([\d.]+)\)/);
+    if (!m) throw new Error(`${seletor} não define --polegar-borda`);
+    return {
+      cor: { r: Number(m[1]), g: Number(m[2]), b: Number(m[3]) },
+      alfa: Number(m[4]),
+    };
+  };
+
+  it.each([
+    // trilho ligado, polegar, tema
+    [".dark", "#fb923c", "#f5f5f4"],
+    [":root", "#a03608", "#ffffff"],
+  ])("em %s a borda tem 3:1 contra o polegar sobre o trilho ligado", (tema, trilho, polegar) => {
+    const { cor, alfa } = polegarBorda(tema);
+    // a borda é box-shadow POR FORA do polegar: ela se mistura com o trilho
+    const sobreTrilho = sobre(cor, hex6(trilho), alfa);
+    expect(contraste(sobreTrilho, hex6(polegar))).toBeGreaterThanOrEqual(3);
+  });
+
+  it("nenhum componente volta a cravar a cor crua do polegar", () => {
+    const switchTsx = readFileSync(resolve(__dirname, "../components/ui/switch.tsx"), "utf8");
+    expect(switchTsx).toContain("shadow-[0_0_0_1px_var(--polegar-borda)]");
+    expect(switchTsx).not.toMatch(/shadow-\[0_0_0_1px_rgb\(/);
   });
 });

@@ -6457,15 +6457,18 @@ anel, o que no claro dava o verde falso. Medindo com espera, 0 de 85 focáveis
 ficam sem anel; com espera zero voltam as 141 "falhas", idênticas nos dois
 temas — e os próprios logs mostravam a instabilidade (revar2 reprovou e revar3,
 no MESMO commit, passou). A varredura agora espera a transição assentar (até
-400 ms, saindo assim que o anel aparece) e exige cor **não-transparente** — e
-com isso as 141 "falhas" somem. **O item segue parcial**, mas por um motivo
-agora verdadeiro e medido: restam DOIS focáveis em `/corpo`, iguais nos dois
-temas — o cartão do IMC (um `div` com `tabindex` que não recebeu a utilitária
-`.foco`) e um `<input>` sem nome acessível. As outras onze rotas passam nos
-dois temas; o `fixme` fica até esses dois terem anel.
+400 ms, saindo assim que o anel aparece) e exige cor **não-transparente**, lida
+pelo **canvas** (o Chromium devolve `oklab()` em toda sombra que passa por
+`color-mix`; uma expressão regular de `rgb()` daria transparente para todas) —
+e com isso as 141 "falhas" somem. Os DOIS focáveis que ainda sobravam em
+`/corpo` caíram na segunda correção da auditoria (veja abaixo): o **painel** da
+aba, que o Radix deixa focável e que o shadcn entregava com `outline-none`, e o
+`input[type="date"]`, cujo último Tab entra no shadow DOM do navegador. **O
+item está completo**: a varredura do foco passa nas doze rotas nos dois temas,
+sem `fixme`.
 Arquivos: `app/globals.css`, `components/ui/button.tsx`,
-`components/ui/input.tsx`, `components/nav-inferior.tsx`,
-`e2e/ultraloop-varredura.spec.ts`.
+`components/ui/input.tsx`, `components/ui/tabs.tsx`,
+`components/nav-inferior.tsx`, `e2e/ultraloop-varredura.spec.ts`.
 
 **L3-8 · a aba acesa era só laranja.**
 Era: `text-primary` e nada mais — quem não distingue a cor não sabia em que
@@ -6518,9 +6521,9 @@ quatro rotas, o degrau das superfícies, a borda de todo `<input>` de `/corpo` e
 do FAB, nenhum texto abaixo de 10 px em cinco rotas, o anel de foco do card e
 da aba, a barra da aba acesa, o vazio do catálogo com "Limpar filtros"
 funcionando, o `aria-label`/`title` do card cortado e os 44 px do voltar de
-Mais. Quatro das cinco varreduras — rolagem lateral, 44 px, contraste AA e
-reduced-motion — passam nas doze rotas nos dois temas; a do anel de foco
-segue em `fixme` pelos dois focáveis de `/corpo` (veja L3-7).
+Mais. **As cinco varreduras** — rolagem lateral, 44 px, contraste AA, anel de
+foco e reduced-motion — passam nas doze rotas nos dois temas, sem `fixme`
+nenhum (a do foco fechou na segunda correção da auditoria).
 
 **Como testar no celular.** Abra o app no escuro: os cards agora se **separam**
 do fundo (antes eram a mesma tinta), a ficha de um exercício não acende mais
@@ -6573,14 +6576,81 @@ o lote com cinco achados; todos foram corrigidos e cada um virou teste.
    causa é o `transition-all` do `Button`, não o `:focus-visible`, e a régua
    aceitava sombra transparente como anel. O texto foi corrigido no teste, na
    SPEC §22.3 item 7 e aqui; com a medição consertada as 141 "falhas" somem e
-   sobram só dois focáveis de `/corpo` (o cartão do IMC e um `<input>` sem
-   nome), então o `fixme` fica — agora com o motivo certo.
+   sobraram só dois focáveis de `/corpo`, que a **segunda** correção fechou.
 
 Provas novas em `e2e/ultraloop-a-r2.spec.ts` (15 testes): trilho e polegar do
 interruptor nos dois estados e nos dois temas, a aba acesa mais clara que a
 lista em `/corpo` e na ficha do exercício, o fundo REAL do bloco de `/mais` e
 das seções de `/mais/creditos` contra o fundo da página, e o título do vazio da
 galeria de fotos.
+
+**Segunda correção da auditoria do lote (rodada 2).** O auditor reprovou de
+novo, com cinco achados. Todos corrigidos.
+
+1. **O anel de foco fechou — o `fixme` saiu** (bloqueante do item 7). Medindo
+   focável por focável em `/corpo`, os dois que faltavam não eram o que o
+   relatório anterior dizia:
+   - o **painel da aba** (`div[data-slot=tabs-content]`), que o Radix deixa
+     focável com `tabindex="0"` para o teclado cair dentro do conteúdo. O
+     `.textContent` dele começa em "IMC Editar altura…", o que o fazia passar
+     por "cartão do IMC"; o `CardImc` é um `<section>` e nunca teve
+     `tabindex`. Ele vinha com `outline-none` do shadcn — uma **utilitária**,
+     que ganha da regra global de `app/globals.css` por estar numa camada
+     acima —, então trocamos `outline-none` pela `.foco`.
+   - o campo `#peso-data`, um `input[type="date"]`. O Chromium lhe dá shadow
+     DOM: o Tab anda por dia, mês, ano **e ainda pelo ícone do calendário**.
+     Nesse quarto passo o `document.activeElement` continua sendo o campo,
+     mas quem tem o foco é um nó de dentro, então o host deixa de casar
+     `:focus-visible` e o anel sumia. O `Input` ganhou
+     `focus-within:ring-3 focus-within:ring-ring` ao lado do `focus-visible`;
+     `:focus-within` casa com o host enquanto o foco estiver na sombra, e nos
+     campos de texto os dois estados coincidem, então nada mais muda. O campo
+     **tem** nome acessível (`<Label htmlFor="peso-data">` "Data"): o que o
+     relatório leu como "sem nome" era o `textContent` vazio de um `<input>`.
+   A régua também passou a ler a cor pelo **canvas** (`fillStyle` + um pixel),
+   que aceita `rgb()`, `oklab()`, `oklch()` e `color()` — o Chromium devolve
+   `oklab()` em toda sombra que passa por `color-mix`, e a expressão regular
+   antiga dava transparente para elas. Arquivos: `components/ui/tabs.tsx`,
+   `components/ui/input.tsx`, `e2e/ultraloop-varredura.spec.ts`.
+2. **O polegar do interruptor tinha cor crua** (item 13).
+   `shadow-[0_0_0_1px_rgb(10_10_10_/_0.22)]` virou
+   `shadow-[0_0_0_1px_var(--polegar-borda)]`, com o token nos dois temas —
+   `rgb(10 10 10 / 0.22)` no claro e `rgb(10 10 10 / 0.26)` no escuro, onde o
+   trilho ligado é o laranja mais claro. Medido sobre o trilho ligado, a borda
+   dá 3,5:1 contra o polegar no escuro e 9,2:1 no claro; `lib/tema.test.ts`
+   prende a conta e proíbe a volta da cor crua. Arquivos:
+   `components/ui/switch.tsx`, `app/globals.css`, `lib/tema.test.ts`.
+3. **O corpo do mapa muscular sumia no claro** (item 16, novo). O item 2 baixou
+   o fundo da página para `#e0e0dd` e `--mbody: #c8c8c4` ficou em 1,27:1 contra
+   ele — e em `/exercicios/[id]` → Músculos a figura é desenhada **direto sobre
+   a página**, sem card embaixo. É `#c0c0bc`: 1,38:1 contra o fundo, com o
+   músculo principal ainda em 3,80:1 e o auxiliar em 3,25:1 contra o corpo.
+   `lib/tema.test.ts` passou a medir o corpo contra a página também. Arquivos:
+   `app/globals.css`, `lib/tema.test.ts`.
+4. **A aba tinha anel de 1 px** (item 7). O `TabsTrigger` do shadcn trazia
+   `focus-visible:outline-1 focus-visible:outline-ring`, utilitária que vencia
+   os 2 px da regra global: saiu, e a aba passou a usar o mesmo anel do resto
+   do app. Arquivo: `components/ui/tabs.tsx`.
+5. **Indentação e contagem.** O vazio do comparador de fotos estava com o corpo
+   indentado dois espaços a mais; e o relatório do lote e estes documentos
+   divergiam sobre o item do foco. Fica dito: **o item do foco (`L3-7` aqui,
+   `L3-4` na lista do lote) está completo**, assim como os esqueletos (`L3-10`
+   aqui, `L3-7` na lista) — os doze itens do lote estão fechados. Arquivo:
+   `components/corpo/aba-fotos.tsx`.
+
+*Como testar no celular.* Em Corpo, com um teclado bluetooth (ou o Tab de um
+navegador de mesa a 360 px), segure Tab: depois da aba "Peso" o **conteúdo
+inteiro** ganha um contorno laranja de 2 px, e o campo de Data mantém o anel
+nos quatro passos — dia, mês, ano e o ícone do calendário. Em Mais →
+Preferências, o pontinho claro das chaves tem um fio escuro em volta nos dois
+temas. Na ficha de um exercício, aba Músculos, a silhueta cinza aparece contra
+o fundo da página no tema claro (antes ela quase sumia).
+
+Provas novas em `e2e/ultraloop-a-r2.spec.ts` (17 testes): o painel da aba e os
+quatro passos do campo de data com anel nos dois temas, e o nome acessível
+"Data" do campo. Em `lib/tema.test.ts` (28 casos): a borda do polegar com 3:1
+sobre o trilho ligado nos dois temas, a proibição da cor crua no `Switch` e o
+corpo do mapa muscular contra a página.
 
 ### Rodada 2 — Lote 4
 

@@ -251,14 +251,31 @@ test("varredura: todo texto visível passa no contraste AA", async ({ page }) =>
  * transição assentar (até 400 ms, saindo assim que o anel aparece) e exige
  * cor NÃO-transparente; com isso as 141 "falhas" somem.
  *
- * Ainda assim ele fica em `fixme`, e agora pelo motivo VERDADEIRO e medido:
- * sobram DOIS focáveis de `/corpo`, iguais nos dois temas — o cartão do IMC
- * (`DIV "IMC Editar altura…"`, um `div` com `tabindex` que não recebeu a
- * utilitária `.foco`) e um `<input>` sem nome acessível, o 7º do Tab. As
- * outras onze rotas passam nos dois temas. Tarefa do próximo lote: dar anel
- * a esses dois e tirar o `fixme` — afrouxar o limite não é uma opção.
+ * Sobravam então DOIS focáveis, os dois em `/corpo` e iguais nos dois temas,
+ * e este lote fechou os dois — o `fixme` saiu:
+ *   1. o PAINEL da aba (`div[data-slot=tabs-content]`, que o Radix deixa
+ *      focável com `tabindex="0"`; o Tab cai nele logo depois da lista de
+ *      abas e o `.textContent` começa em "IMC Editar altura…", o que fazia
+ *      parecer o cartão do IMC). Ele trazia `outline-none` do shadcn — uma
+ *      utilitária, que ganha da regra global de `app/globals.css` — e por
+ *      isso recebia o foco sem desenhar nada. Agora leva `.foco`.
+ *   2. o campo `#peso-data`, um `input[type="date"]`: o Chromium lhe dá
+ *      shadow DOM e o Tab anda por dia, mês, ano e ainda pelo ícone do
+ *      calendário. Nesse último passo o `document.activeElement` continua
+ *      sendo o campo, mas quem tem o foco é um nó de DENTRO, então o host
+ *      deixa de casar `:focus-visible` e o anel sumia. O `Input` ganhou
+ *      `focus-within:ring-3`, que casa com o host enquanto o foco estiver na
+ *      sombra. (O campo TEM nome acessível — o `<Label htmlFor="peso-data">`
+ *      "Data"; o que o relatório antigo via como "sem nome" era só o
+ *      `textContent` vazio de um `<input>`.)
+ *
+ * A cor do anel é lida pelo CANVAS, não por `regex`: o Chromium devolve
+ * `oklab(… / 0.5)` em `box-shadow` sempre que a cor passa por `color-mix`
+ * (`ring-ring/50`, `border-border`), e uma expressão que só entende `rgb()`
+ * daria transparente — falso vermelho — para todas elas. O canvas aceita
+ * `rgb()`, `oklab()`, `oklch()` e `color()` do mesmo jeito.
  */
-test.fixme("varredura: o Tab deixa um anel de foco visível", async ({ page }) => {
+test("varredura: o Tab deixa um anel de foco visível", async ({ page }) => {
   const problemas: string[] = [];
   for (const tema of TEMAS) {
     for (const rota of ROTAS) {
@@ -267,14 +284,29 @@ test.fixme("varredura: o Tab deixa um anel de foco visível", async ({ page }) =
       for (let i = 0; i < 15; i++) {
         await page.keyboard.press("Tab");
         const resultado = await page.evaluate(async () => {
-          /** Uma cor só conta como anel se não for transparente. */
+          /**
+           * Uma cor só conta como anel se não for transparente. Quem decide é
+           * o próprio navegador: pintar 1 px num canvas aceita QUALQUER
+           * notação do CSS Color 4 — `rgb()`, `oklab()`, `oklch()`, `color()`
+           * —, e o alfa sai do pixel. Antes de cada leitura a tinta volta a
+           * ser transparente, então uma notação que o canvas recusar cai como
+           * transparente (o teste reclama) em vez de herdar a cor anterior.
+           */
+          const tinta = document.createElement("canvas").getContext("2d", {
+            willReadFrequently: true,
+          });
           const opaca = (cor: string): boolean => {
-            const m = String(cor).match(/rgba?\(([^)]+)\)/);
-            if (!m) return false;
-            const p = (m[1] ?? "").split(/[,/]/).map((x) => Number.parseFloat(x.trim()));
-            const a = p[3];
-            return !Number.isFinite(a) || (a as number) > 0.05;
+            if (!tinta || !cor) return false;
+            tinta.clearRect(0, 0, 1, 1);
+            tinta.fillStyle = "rgba(0, 0, 0, 0)";
+            tinta.fillStyle = cor;
+            tinta.fillRect(0, 0, 1, 1);
+            return tinta.getImageData(0, 0, 1, 1).data[3]! / 255 > 0.05;
           };
+          /** As cores de um `box-shadow`, em qualquer notação. */
+          const coresDaSombra = (sombra: string): string[] =>
+            sombra.match(/(?:rgba?|oklab|oklch|hsla?|lab|lch|color)\([^)]*\)|#[0-9a-fA-F]{3,8}/g) ??
+            [];
           const temAnel = (el: Element): boolean => {
             const e = getComputedStyle(el);
             const contorno =
@@ -284,7 +316,7 @@ test.fixme("varredura: o Tab deixa um anel de foco visível", async ({ page }) =
             const sombra =
               e.boxShadow !== "none" &&
               e.boxShadow !== "" &&
-              (e.boxShadow.match(/rgba?\([^)]+\)/g) ?? []).some(opaca);
+              coresDaSombra(e.boxShadow).some(opaca);
             return contorno || sombra;
           };
           const el = document.activeElement;

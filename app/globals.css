@@ -125,8 +125,23 @@
    */
   --ilustracao-fundo: var(--card);
 
-  /* mapa muscular (assets/mapa-muscular/musculos.css) */
-  --mbody: #c8c8c4;
+  /*
+   * A borda de 1 px do polegar do interruptor (SPEC §22.3 item 13). O polegar
+   * é claro nos dois temas, então quem o separa do trilho é esta linha; ela
+   * vira token para não ser uma cor crua dentro da classe do componente. Sobre
+   * o trilho ligado do escuro (`#fb923c`, o laranja mais claro) ela dá 3,5:1
+   * contra o polegar `#f5f5f4`; no claro, 9,2:1 contra o polegar branco.
+   */
+  --polegar-borda: rgb(10 10 10 / 0.22);
+
+  /*
+   * Mapa muscular (assets/mapa-muscular/musculos.css). O corpo era `#c8c8c4`:
+   * 1,27:1 contra o fundo novo da página (`#e0e0dd`) — e em
+   * `/exercicios/[id]` → Músculos a figura é desenhada DIRETO sobre a página,
+   * então a silhueta sumia. `#c0c0bc` sobe para 1,38:1 sem perder os 3:1 que o
+   * principal (3,80:1) e o auxiliar (3,25:1) precisam ter contra ela.
+   */
+  --mbody: #c0c0bc;
   --mprim: #a03608;
   --msec: #9c4f0d;
 }
@@ -190,6 +205,10 @@
    * descartado: algumas ilustrações têm cor (a camisa vermelha da prancha).
    */
   --ilustracao-fundo: #cfcac4;
+
+  /* um fio mais forte que o do claro: o trilho ligado aqui é o laranja claro
+     (`#fb923c`) e a borda precisa de 3:1 contra o polegar — dá 3,5:1 */
+  --polegar-borda: rgb(10 10 10 / 0.26);
 
   --mbody: #424242;
   --mprim: #fb923c;

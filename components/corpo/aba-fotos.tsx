@@ -244,8 +244,8 @@ function Comparacao({
       <CardContent className="flex flex-col gap-3">
         {dias.length < 2 ? (
           <SemDados icone={ImageOff} titulo="Só um dia com foto">
-              A comparação precisa de fotos de dois dias diferentes.
-            </SemDados>
+            A comparação precisa de fotos de dois dias diferentes.
+          </SemDados>
         ) : (
           <>
             <div className="grid grid-cols-2 gap-2">

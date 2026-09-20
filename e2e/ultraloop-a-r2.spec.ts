@@ -521,3 +521,73 @@ test("a galeria de fotos vazia não se anuncia como gráfico", async ({ page }) 
   await expect(vazio).toContainText("Nenhuma foto ainda.");
   await expect(vazio).not.toContainText("Sem dados por enquanto");
 });
+
+/*
+ * item 7, o que faltava para o `fixme` da varredura sair: os dois focáveis de
+ * `/corpo` que recebiam Tab sem desenhar nada. O painel da aba (o Radix lhe dá
+ * `tabindex="0"`) vinha com `outline-none` do shadcn; e o campo de data tem
+ * shadow DOM — o Tab passa por dia, mês, ano E pelo ícone do calendário, e
+ * nesse último passo o host deixa de casar `:focus-visible`.
+ */
+test("o painel da aba e o campo de data desenham anel de foco", async ({ page }) => {
+  for (const tema of TEMAS) {
+    await abrir(page, "/corpo", tema);
+    await page.evaluate(() => document.body.focus());
+
+    // 1º Tab: a aba "Peso". 2º: o painel. Do 3º ao 6º: "Editar altura" e os
+    // quatro passos do campo de data — o último dentro da sombra.
+    const vistos: { slot: string; id: string; anel: boolean }[] = [];
+    for (let i = 0; i < 8; i++) {
+      await page.keyboard.press("Tab");
+      vistos.push(
+        (await page.evaluate(async () => {
+          const el = document.activeElement as HTMLElement | null;
+          if (!el || el === document.body) return { slot: "", id: "", anel: false };
+          // o anel do Button entra por transição de 150 ms
+          await new Promise((r) => setTimeout(() => r(null), 420));
+          const e = getComputedStyle(el);
+          // a cor sai do canvas: o Chromium devolve `oklab()` no `color-mix`
+          const tinta = document.createElement("canvas").getContext("2d");
+          const opaca = (cor: string): boolean => {
+            if (!tinta) return false;
+            tinta.clearRect(0, 0, 1, 1);
+            tinta.fillStyle = "rgba(0, 0, 0, 0)";
+            tinta.fillStyle = cor;
+            tinta.fillRect(0, 0, 1, 1);
+            return tinta.getImageData(0, 0, 1, 1).data[3]! / 255 > 0.05;
+          };
+          const contorno =
+            e.outlineStyle !== "none" &&
+            Number.parseFloat(e.outlineWidth) >= 2 &&
+            opaca(e.outlineColor);
+          const sombra = (
+            e.boxShadow.match(
+              /(?:rgba?|oklab|oklch|hsla?|lab|lch|color)\([^)]*\)|#[0-9a-fA-F]{3,8}/g,
+            ) ?? []
+          ).some(opaca);
+          return {
+            slot: el.getAttribute("data-slot") ?? "",
+            id: el.id,
+            anel: contorno || sombra,
+          };
+        })) as { slot: string; id: string; anel: boolean },
+      );
+    }
+
+    const painel = vistos.find((v) => v.slot === "tabs-content");
+    expect(painel, `${tema}: o painel da aba não recebeu Tab`).toBeTruthy();
+    expect(painel?.anel, `${tema}: painel da aba sem anel`).toBe(true);
+
+    const data = vistos.filter((v) => v.id === "peso-data");
+    expect(data.length, `${tema}: o campo de data não recebeu Tab`).toBeGreaterThan(3);
+    for (const passo of data) {
+      expect(passo.anel, `${tema}: campo de data sem anel em um dos passos`).toBe(true);
+    }
+  }
+});
+
+/* o mesmo campo tem nome acessível em pt-BR — o `<Label htmlFor>` da tela */
+test("o campo de data de /corpo tem nome acessível", async ({ page }) => {
+  await abrir(page, "/corpo", "dark");
+  await expect(page.locator("#peso-data")).toHaveAccessibleName("Data");
+});
