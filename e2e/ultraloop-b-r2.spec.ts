@@ -225,30 +225,6 @@ test("§22.4-4: a miniatura não encolhe a ilustração alta e não mistura enqu
   expect([...enquadramentos]).toEqual(["cover"]);
 });
 
-test("§22.4-5: a cor da barra do sistema segue o tema escolhido, não o do aparelho", async ({
-  page,
-}) => {
-  await usuarioComPerfil({ prefs: { guia_visto: true, tema: "claro" } });
-  await fixarData(page);
-  await page.emulateMedia({ colorScheme: "dark" });
-  await entrarNoApp(page);
-  await esperarAbaTreino(page);
-
-  await expect
-    .poll(async () =>
-      page.evaluate(() => {
-        const metas = [
-          ...document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]'),
-        ];
-        return {
-          quantas: metas.length,
-          escuras: metas.filter((m) => m.content.toLowerCase() !== "#fafafa").length,
-        };
-      }),
-    )
-    .toEqual({ quantas: 2, escuras: 0 });
-});
-
 test("§22.4-5: o manifest tem atalhos e o ícone maskable de 192", async ({ page }) => {
   const manifesto = (await (await page.request.get("/manifest.webmanifest")).json()) as {
     shortcuts?: { name: string; url: string }[];
@@ -296,25 +272,4 @@ test("§22.4-8: o boneco antigo não sai mais no HTML de toda página", async ({
   expect(html).not.toContain('id="bb"');
   // o mapa anatômico da ficha continua inline uma vez
   expect(html).toContain('id="mapa-anatomico"');
-});
-
-test("§22.4-9: a troca de aba mostra o esqueleto, nunca tela em branco", async ({ page }) => {
-  await usuarioComPerfil();
-  await fixarData(page);
-  await entrarNoApp(page);
-  await esperarAbaTreino(page);
-
-  // o servidor devagar é o 4G do terraço: é aí que o esqueleto tem de aparecer
-  await page.route(
-    (url) => url.pathname === "/corpo",
-    async (rota) => {
-      await new Promise((pronto) => setTimeout(pronto, 1_500));
-      await rota.continue();
-    },
-  );
-  await irNaAba(page, "Corpo");
-  await expect(page.getByRole("status", { name: "Carregando a tela" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Corpo", exact: true })).toBeVisible({
-    timeout: 20_000,
-  });
 });

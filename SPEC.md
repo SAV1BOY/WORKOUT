@@ -1472,23 +1472,17 @@ a tela — afrouxar o limite não é uma opção.
    alto (o corpo aparece) em vez de encolher no meio da caixa. O texto
    alternativo virou o contrário: vazio quando o nome do exercício já está
    escrito ao lado, nome só quando a miniatura aparece sozinha.
-5. **Cor da barra do sistema segue o tema escolhido.** A `theme-color` deixa de
-   olhar só o `prefers-color-scheme` e passa a acompanhar o tema que está
-   valendo. O `manifest` ganhou atalhos (Treino, Relatório, Corpo) e um ícone
-   maskable de 192; os ícones são gerados na cor `--primary` do tema escuro.
+5. **Manifest e ícones.** O `manifest` ganhou atalhos (Treino, Relatório,
+   Corpo) e um ícone maskable de 192; os ícones são gerados na cor `--primary`
+   do tema escuro, em vez de um laranja escrito à mão fora dos tokens. A
+   `theme-color` continua presa ao `prefers-color-scheme` — segui-la pelo tema
+   escolhido ficou para outro lote (ver PROGRESSO.md).
 6. **`/favicon.ico` responde imagem**, em vez do HTML de 404.
 7. **Avisos em português.** A região do Sonner se chama "Avisos" — não sobrou
    nenhum rótulo acessível em inglês.
 8. **Sprite antigo fora do layout.** O boneco `#bf`/`#bb` e o `MapaMuscular` que
    ninguém usava saíram; o `MapaAnatomico` da ficha continua igual.
-9. **Esqueleto entre as abas.** `app/(app)/loading.tsx` pinta cabeçalho e dois
-   cartões enquanto o servidor responde — a troca de aba deixa de mostrar tela
-   em branco.
-10. **Rotas pesadas divididas.** Gráficos e recordes do Relatório, tutorial e
-    ficha em folha do player e os blocos abaixo da dobra da aba Treino entram
-    por `next/dynamic`: o JavaScript da primeira carga dessas rotas cai sem
-    mudar o que a tela faz.
-11. **Abertura do iPhone.** O app declara `apple-touch-startup-image` nos
+9. **Abertura do iPhone.** O app declara `apple-touch-startup-image` nos
     tamanhos comuns, com o fundo `#0a0a0a` e o ícone no meio — o app instalado
     para de abrir com a tela preta.
 

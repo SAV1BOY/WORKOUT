@@ -2,7 +2,6 @@
 
 import { useQueryClient } from "@tanstack/react-query";
 import { addDays } from "date-fns";
-import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -14,9 +13,12 @@ import {
   CardForca,
 } from "@/components/treino/cards";
 import { CabecalhoDoTreino } from "@/components/treino/cabecalho";
+import { Desafios } from "@/components/treino/desafios";
 import { ModoEditar } from "@/components/treino/editar";
 import { FabAjustar } from "@/components/treino/fab-ajustar";
 import { ListaDoDia } from "@/components/treino/lista";
+import { ParteDoCorpo } from "@/components/treino/parte-do-corpo";
+import { Personalizar } from "@/components/treino/personalizar";
 import { CardRetomada } from "@/components/treino/retomada";
 import { Button } from "@/components/ui/button";
 import {
@@ -86,29 +88,6 @@ import {
 } from "@/lib/trocas";
 import { Pencil } from "lucide-react";
 
-
-/*
- * SPEC §22.4 item 10: os três blocos do fim da aba Treino — os desafios, o
- * atalho por parte do corpo e o "Personalizar" — ficam abaixo da dobra e
- * ninguém decide nada por eles antes de rolar. Entrando por `next/dynamic`,
- * eles saem do JavaScript da primeira carga da rota `/` (a mais visitada do
- * app) e chegam logo depois, cada um com a própria altura reservada para a
- * rolagem não pular no meio do caminho.
- */
-const Desafios = dynamic(
-  () => import("@/components/treino/desafios").then((m) => m.Desafios),
-  { ssr: false, loading: () => <EsqueletoCard linhas={2} /> },
-);
-
-const ParteDoCorpo = dynamic(
-  () => import("@/components/treino/parte-do-corpo").then((m) => m.ParteDoCorpo),
-  { ssr: false, loading: () => <EsqueletoCard linhas={2} /> },
-);
-
-const Personalizar = dynamic(
-  () => import("@/components/treino/personalizar").then((m) => m.Personalizar),
-  { ssr: false, loading: () => <EsqueletoCard linhas={1} /> },
-);
 /** O que a tela diz depois de cada escolha da retomada (SPEC §18.2). */
 const AVISO_DA_ESCOLHA: Record<EscolhaRetomada, string> = {
   continuar: "Seguindo de onde você parou.",

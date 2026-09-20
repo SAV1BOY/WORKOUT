@@ -1,7 +1,7 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import { useState } from "react";
+import { FichaEmFolha } from "@/components/exercicio/ficha-folha";
 import { useTemVideo } from "@/components/videos-do-app";
 import { Miniatura } from "@/components/ui/miniatura";
 import { Raios } from "@/components/ui/raios";
@@ -9,17 +9,6 @@ import { acharExercicio } from "@/lib/dados";
 import { dificuldadeDe } from "@/lib/dificuldade";
 import { evitado } from "@/lib/preferencias";
 import type { Prefs } from "@/lib/types";
-
-/**
- * SPEC §22.4 item 10: a ficha em folha (mídia grande, mapa anatômico, tutorial
- * e o iframe do YouTube) só existe depois de um toque no "?" — carregá-la
- * junto com a tela era peso parado no caminho de quem só quer treinar. Entra
- * por `next/dynamic`, no primeiro toque.
- */
-const FichaEmFolha = dynamic(
-  () => import("@/components/exercicio/ficha-folha").then((m) => m.FichaEmFolha),
-  { ssr: false },
-);
 
 /**
  * A lista de exercícios de uma coleção (SPEC §14.3): miniatura, nome,
@@ -81,15 +70,13 @@ export function ListaDaColecao({
           );
         })}
       </ul>
-      {ficha !== null ? (
-        <FichaEmFolha
-          exercicioId={ficha}
-          aberto
-          aoMudarAberto={(v) => setFicha(v ? ficha : null)}
-          prefs={prefs}
-          temVideo={temVideo}
-        />
-      ) : null}
+      <FichaEmFolha
+        exercicioId={ficha}
+        aberto={ficha !== null}
+        aoMudarAberto={(v) => setFicha(v ? ficha : null)}
+        prefs={prefs}
+        temVideo={temVideo}
+      />
     </>
   );
 }

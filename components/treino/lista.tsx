@@ -1,8 +1,8 @@
 "use client";
 
 import { ChevronRight, Repeat } from "lucide-react";
-import dynamic from "next/dynamic";
 import { useState } from "react";
+import { FichaEmFolha } from "@/components/exercicio/ficha-folha";
 import { useTemVideo } from "@/components/videos-do-app";
 import { Miniatura } from "@/components/ui/miniatura";
 import { Raios } from "@/components/ui/raios";
@@ -23,17 +23,6 @@ import type { ItemPrevia } from "@/lib/hoje";
 import { evitado, evitadosPorUltimo } from "@/lib/preferencias";
 import { substitutosPara } from "@/lib/sessao";
 import type { Prefs } from "@/lib/types";
-
-/**
- * SPEC §22.4 item 10: a ficha em folha (mídia grande, mapa anatômico, tutorial
- * e o iframe do YouTube) só existe depois de um toque no "?" — carregá-la
- * junto com a tela era peso parado no caminho de quem só quer treinar. Entra
- * por `next/dynamic`, no primeiro toque.
- */
-const FichaEmFolha = dynamic(
-  () => import("@/components/exercicio/ficha-folha").then((m) => m.FichaEmFolha),
-  { ssr: false },
-);
 
 /**
  * A lista do treino do dia (SPEC §13.3): miniatura, nome, prescrição, carga de
@@ -137,15 +126,13 @@ export function ListaDoDia({
           ) : null}
         </li>
       ))}
-      {ficha !== null ? (
-        <FichaEmFolha
-          exercicioId={ficha}
-          aberto
-          aoMudarAberto={(v) => setFicha(v ? ficha : null)}
-          prefs={prefs}
-          temVideo={temVideo}
-        />
-      ) : null}
+      <FichaEmFolha
+        exercicioId={ficha}
+        aberto={ficha !== null}
+        aoMudarAberto={(v) => setFicha(v ? ficha : null)}
+        prefs={prefs}
+        temVideo={temVideo}
+      />
     </ul>
   );
 }

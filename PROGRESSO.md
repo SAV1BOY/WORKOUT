@@ -6433,17 +6433,25 @@ cortada pelo alto, o corpo ocupa a caixa — e foto e ilustração usam **um**
 enquadramento só (`object-cover`). O `alt` inverteu o padrão: vazio quando há
 texto ao lado (todos os usos de hoje), nome só com `sozinha`.
 
-#### 5. theme-color, manifest e ícones (L4-3)
+#### 5. Manifest e ícones (L4-3) — parcial
 
-**Era:** a `theme-color` vinha presa ao `prefers-color-scheme`, então quem
-escolheu o tema claro num celular no escuro ficava com a barra do sistema de
-uma cor e a tela de outra. O manifest não tinha atalhos nem maskable de 192, e
+**Era:** o manifest não tinha atalhos nem maskable de 192, e
 `scripts/gerar-icones.ts` desenhava com `#f97316` — um laranja que não existe
 nos tokens do app.
-**É:** `components/tema-do-perfil.tsx` reescreve as metas com o `--background`
-que está valendo assim que o tema resolve; o manifest ganhou os atalhos
-(Treino `/`, Relatório `/relatorio`, Corpo `/corpo`) e o `icone-maskable-192`;
-o gerador lê `--primary` do bloco `.dark` de `app/globals.css` (`#fb923c`).
+**É:** o manifest ganhou os atalhos (Treino `/`, Relatório `/relatorio`, Corpo
+`/corpo`) e o `icone-maskable-192`; o gerador lê `--primary` do bloco `.dark`
+de `app/globals.css` (`#fb923c`).
+
+**O que ficou de fora e por quê.** A `theme-color` seguir o tema **escolhido**
+(e não o do aparelho) foi implementado, medido e **revertido**. Reescrever as
+metas no cliente só cola enquanto ninguém navega: a cada troca de tela o Next
+reescreve o `<head>` com o `viewport` do layout e devolve as duas cores por
+`prefers-color-scheme`. Refazer no `usePathname` chega tarde em parte das
+navegações, e a versão com `MutationObserver` no `<head>` — que funcionava —
+custou caro: `e2e/guia.spec.ts` passou a estourar 20 s em três navegações para
+`/mais*` (cada mutação de `<head>`, e o Next prefetch insere muitas, forçava um
+recálculo de estilo). Fica para um lote que trate disso na raiz, provavelmente
+escrevendo a meta no `viewport` a partir do tema lido no servidor.
 
 #### 6. `/favicon.ico` responde imagem (imagens-14)
 
@@ -6465,34 +6473,40 @@ cabeçalho .ico, 355 bytes, sem dependência nova) e `app/layout.tsx` o declara.
 Mídia.
 **É:** os dois saíram; o `MapaAnatomico` da ficha continua igual.
 
-#### 9. Esqueleto do shell (L4-6)
+#### 9. Esqueleto do shell (L4-6) — revertido, fica na fila
 
-**Era:** zero `loading.tsx` — cada troca de aba esperava o servidor antes de
-pintar qualquer coisa.
-**É:** `app/(app)/loading.tsx` desenha cabeçalho e dois cartões dentro do
-`Miolo`, herdando a folga da barra de 5 abas.
+`app/(app)/loading.tsx` foi escrito, funcionou (o esqueleto aparecia na troca
+de aba, com o servidor atrasado de propósito) e **saiu**: um `loading.tsx` no
+grupo `(app)` põe uma fronteira de Suspense em **todas** as rotas
+autenticadas, e `e2e/auditoria-m5.spec.ts` (as 81 fichas) passou a ler a
+página antes de o corpo chegar em 29 delas. O ganho é real, mas precisa de um
+`loading.tsx` por rota, com o esqueleto daquela tela, em vez de um só no
+grupo — e isso é trabalho de um lote inteiro.
 
-#### 10. Bundle das rotas pesadas (L4-7) — parcial
+#### 10. Bundle das rotas pesadas (L4-7) — revertido, fica na fila
 
 `next/dynamic` para a ficha em folha (com o tutorial e o iframe do YouTube
 dentro), para a folha de ajustes do player, para o bloco de recordes e
-gráficos do Relatório e para Desafios/ParteDoCorpo/Personalizar, abaixo da
-dobra da aba Treino. First Load JS, antes → depois:
+gráficos do Relatório e para Desafios/ParteDoCorpo/Personalizar. Medido no
+build, antes → depois: `/explorar/[tipo]/[valor]` 377 → **346 kB**, `/treinar`
+374 → 358, `/` 403 → 386, player 412 → 397, `/relatorio` 371 → 369.
 
-| rota | antes | depois |
-| --- | --- | --- |
-| `/explorar/[tipo]/[valor]` | 377 kB | **346 kB** |
-| `/treinar` | 374 kB | 358 kB |
-| `/` | 403 kB | 386 kB |
-| `/treinar/[sessionId]` (player) | 412 kB | 397 kB |
-| `/relatorio` | 371 kB | 369 kB |
+Duas coisas mataram o item nesta rodada:
 
-A meta de 350 kB só caiu em `/explorar/[tipo]/[valor]`. O que sobra não é
-código de tela: são três chunks de fornecedor que toda rota autenticada
-precisa na primeira carga — o cliente do Supabase (195 kB bruto, é ele que
-valida a sessão), o Dexie da fila offline (94 kB) e o runtime do React/Next.
-Cortar isso é mudar arquitetura (sessão sem cliente pesado, fila carregada sob
-demanda), não é polimento de lote: **fica na fila**.
+1. A meta de 350 kB só caiu numa rota. O que sobra não é código de tela: são
+   os chunks de fornecedor que toda rota autenticada precisa na primeira carga
+   — o cliente do Supabase (195 kB bruto, é ele que valida a sessão), o Dexie
+   da fila offline (94 kB) e o runtime do React/Next.
+2. `components/exercicio/ficha-folha.tsx` é importado **estaticamente** pela
+   página `/exercicios/[id]` (o `ConteudoDaFicha`) e dinamicamente pelos
+   quatro lugares que abrem a folha. Com o `next/dynamic`, a ficha em página
+   inteira passou a renderizar só o cabeçalho: `e2e/auditoria-m5.spec.ts`
+   acusou "0 imagens, 0 passos" em 29 das 81 fichas. Dividir esse módulo em
+   dois (a folha e o conteúdo) resolve, e é o primeiro passo do lote que
+   pegar este item.
+
+Nada disso está no commit: a árvore ficou como estava, com as medições
+anotadas aqui para quem continuar.
 
 #### 11. Abertura do iPhone (L4-4)
 
@@ -6506,12 +6520,15 @@ instalação.
 
 #### Provas
 
-- `e2e/ultraloop-b-r2.spec.ts`: 12 testes, um por item que se vê — peso de
+- `e2e/ultraloop-b-r2.spec.ts`: 10 testes, um por item que se vê — peso de
   imagem do Explorar, capa a 2× da caixa, zero revalidação 304, dimensões e
   `decoding` de toda imagem de exercício, capa da primeira dobra `eager`,
-  enquadramento e ocupação da miniatura, `theme-color` seguindo o tema
-  escolhido, atalhos do manifest, `/favicon.ico`, nenhum rótulo em inglês,
-  boneco antigo fora do HTML e o esqueleto na troca de aba.
+  enquadramento e ocupação da miniatura, atalhos do manifest, `/favicon.ico`,
+  nenhum rótulo em inglês e o boneco antigo fora do HTML.
+- `e2e/treino-v2.spec.ts` passou a exigir a **derivada** na capa do card do dia
+  e na miniatura da lista (o nome sai do mesmo caminho do JSON, como antes): o
+  que o teste verifica continua sendo "a tela pede a imagem certa e ela
+  carrega", agora com o arquivo certo.
 - Unitários novos em `lib/midia.test.ts` e `lib/capas.test.ts` para as funções
   puras das derivadas.
 
@@ -6520,15 +6537,11 @@ instalação.
 1. Abra a aba **Treino**. A capa do treino de hoje tem de aparecer nítida
    (é uma imagem de 720 px numa caixa de 326) e as linhas da lista já vêm com
    a miniatura sem aquele pisca de imagem grande chegando depois.
-2. Role até o fim: **Desafios**, **Parte do corpo** e **Personalizar** entram
-   logo depois do resto — se você vir um esqueleto por um instante, é isso.
-3. Troque de aba (Treino → Corpo → Relatório). Em vez de a tela ficar parada
-   esperando, aparece o esqueleto do shell.
-4. Em **Mais → Preferências**, escolha o tema **claro** com o celular no modo
-   escuro: a barra de cima do navegador tem de ficar clara junto com a tela.
-5. **Mais → Equipamento**: a lista de itens abre quase instantânea (as fotos
+2. **Mais → Equipamento**: a lista de itens abre quase instantânea (as fotos
    agora são 2,4 kB em vez de 70 kB cada).
-6. Instale o app (Adicionar à tela de início). No iPhone, a abertura mostra o
+3. Abra a mesma tela duas vezes seguidas: na segunda não há rede nenhuma para
+   as imagens (elas valem por uma semana).
+4. Instale o app (Adicionar à tela de início). No iPhone, a abertura mostra o
    ícone sobre o fundo preto em vez da tela preta vazia; segurando o ícone,
    aparecem os atalhos Treino, Relatório e Corpo.
 
