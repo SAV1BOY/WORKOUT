@@ -233,23 +233,22 @@ test("varredura: todo texto visível passa no contraste AA", async ({ page }) =>
 // =====================================================================
 
 /*
- * PARCIAL no Lote 3 (SPEC §22.3 item 7). Feito: `app/globals.css` desenha
- * `outline: 2px solid var(--ring)` no focável de cada tipo — link de card,
- * linha de lista, o cartão do IMC de `/corpo`, as abas de baixo — e o anel
- * dos botões e campos do shadcn deixou de ser `ring-ring/50` (2,9:1 no
- * escuro, 2,2:1 no claro) para ser a cor cheia; `ultraloop-a-r2.spec.ts`
- * cobre o link de card e a aba, e passa.
+ * Arrumado no Lote 3 (SPEC §22.3 item 7), com a medição consertada na
+ * correção da auditoria. `app/globals.css` desenha `outline: 2px solid
+ * var(--ring)` em todo focável — link de card, linha de lista, o cartão do
+ * IMC de `/corpo`, as abas de baixo — e o anel dos botões e campos do shadcn
+ * deixou de ser `ring-ring/50` (2,9:1 no escuro, 2,2:1 no claro) para ser a
+ * cor cheia.
  *
- * Falta: esta varredura ainda acusa 141 focáveis no TEMA ESCURO (botões dos
- * cards de exercício, dias do calendário, `select` do catálogo, abas do
- * relatório). No claro ela passa — mas passa porque esses elementos têm
- * `box-shadow` e o próprio teste aceita sombra como anel, então o escuro,
- * onde a superfície não usa sombra, é o único que mede o `outline` de
- * verdade. Ou seja: o `:focus-visible` global não está pegando nesses
- * elementos e o teste no claro estava dando um falso verde. Reabrir com
- * tempo: descobrir por que a regra não casa e só então tirar o `fixme`.
+ * O que dava o falso vermelho era o RELÓGIO, não o CSS: o `<Button>` do
+ * shadcn tem `transition-all` de 150 ms, então lido no mesmo tique do Tab o
+ * `box-shadow` do anel ainda está todo transparente — e a condição antiga
+ * (`boxShadow !== "none"`) também aceitava justamente essas cinco sombras
+ * transparentes como "anel". Agora o teste espera a transição assentar (até
+ * 400 ms, saindo assim que o anel aparece) e exige cor NÃO-transparente no
+ * `outline` ou no `box-shadow`.
  */
-test.fixme("varredura: o Tab deixa um anel de foco visível", async ({ page }) => {
+test("varredura: o Tab deixa um anel de foco visível", async ({ page }) => {
   const problemas: string[] = [];
   for (const tema of TEMAS) {
     for (const rota of ROTAS) {
@@ -257,15 +256,37 @@ test.fixme("varredura: o Tab deixa um anel de foco visível", async ({ page }) =
       await page.evaluate(() => document.body.focus());
       for (let i = 0; i < 15; i++) {
         await page.keyboard.press("Tab");
-        const resultado = await page.evaluate(() => {
+        const resultado = await page.evaluate(async () => {
+          /** Uma cor só conta como anel se não for transparente. */
+          const opaca = (cor: string): boolean => {
+            const m = String(cor).match(/rgba?\(([^)]+)\)/);
+            if (!m) return false;
+            const p = (m[1] ?? "").split(/[,/]/).map((x) => Number.parseFloat(x.trim()));
+            const a = p[3];
+            return !Number.isFinite(a) || (a as number) > 0.05;
+          };
+          const temAnel = (el: Element): boolean => {
+            const e = getComputedStyle(el);
+            const contorno =
+              e.outlineStyle !== "none" &&
+              Number.parseFloat(e.outlineWidth) > 0 &&
+              opaca(e.outlineColor);
+            const sombra =
+              e.boxShadow !== "none" &&
+              e.boxShadow !== "" &&
+              (e.boxShadow.match(/rgba?\([^)]+\)/g) ?? []).some(opaca);
+            return contorno || sombra;
+          };
           const el = document.activeElement;
           if (!el || el === document.body) return null;
-          const e = getComputedStyle(el);
-          const anel =
-            (e.outlineStyle !== "none" && Number.parseFloat(e.outlineWidth) > 0) ||
-            (e.boxShadow !== "none" && e.boxShadow !== "");
+          // o anel entra por transição (`transition-all` de 150 ms do Button):
+          // medir no mesmo tique do Tab lê a sombra ainda transparente
+          const ate = performance.now() + 400;
+          while (!temAnel(el) && performance.now() < ate) {
+            await new Promise((r) => requestAnimationFrame(() => r(null)));
+          }
           return {
-            anel,
+            anel: temAnel(el),
             alvo: `${el.tagName} "${(el.textContent ?? "").trim().slice(0, 24)}"`,
           };
         });

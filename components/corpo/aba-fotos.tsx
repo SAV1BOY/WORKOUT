@@ -1,7 +1,7 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
-import { Camera } from "lucide-react";
+import { Camera, ImageOff } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { SemDados } from "@/components/graficos/apoio";
@@ -138,7 +138,7 @@ export function AbaFotos({
         </CardHeader>
         <CardContent>
           {dias.length === 0 ? (
-            <SemDados>Nenhuma foto ainda.</SemDados>
+            <SemDados icone={Camera} titulo="Nenhuma foto ainda." />
           ) : (
             <ul className="flex flex-col gap-4">
               {dias.map((dia) => (
@@ -243,7 +243,9 @@ function Comparacao({
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
         {dias.length < 2 ? (
-          <SemDados>A comparação precisa de fotos de dois dias diferentes.</SemDados>
+          <SemDados icone={ImageOff} titulo="Só um dia com foto">
+              A comparação precisa de fotos de dois dias diferentes.
+            </SemDados>
         ) : (
           <>
             <div className="grid grid-cols-2 gap-2">
@@ -282,7 +284,9 @@ function Comparacao({
             </div>
 
             {comuns.length === 0 ? (
-              <SemDados>Essas duas datas não têm o mesmo ângulo de foto.</SemDados>
+              <SemDados icone={ImageOff} titulo="Sem ângulo em comum">
+                Essas duas datas não têm o mesmo ângulo de foto.
+              </SemDados>
             ) : (
               <>
                 <div className="flex gap-2" role="group" aria-label="Ângulo da comparação">

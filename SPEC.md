@@ -1453,7 +1453,10 @@ a tela — afrouxar o limite não é uma opção.
    tamanhos `xs`/`icon-xs` do shadcn (24 px) deixam de existir. Nenhum controle
    da tela fica abaixo de 44 px — a varredura mede.
 2. **Um degrau real entre card e fundo.** O card mede **≥ 1,3:1** contra o
-   fundo e a borda **≥ 1,5:1** contra o card, nos dois temas. No escuro quem
+   fundo e a borda **≥ 1,5:1** contra o card, nos dois temas — e isso vale
+   para **todo bloco que se apoia na página**, não só para o `Card`: o menu de
+   `/mais` e as seções de `/mais/creditos` levam `bg-card` junto com a borda,
+   senão no escuro sobra preto sobre preto com um fio em volta. No escuro quem
    sobe é o card (`#141414` → `#262626`, com `secondary`/`muted`/`accent`
    acima dele); no claro quem desce é o fundo (`#fafafa` → `#e0e0dd`), com o
    card seguindo branco. O laranja do tema claro escurece um degrau
@@ -1479,7 +1482,12 @@ a tela — afrouxar o limite não é uma opção.
    `outline: 2px solid var(--ring)` em todo focável — link de card, linha de
    lista, o cartão do IMC, as abas de baixo —, e o anel dos botões e campos
    deixa de ser meio transparente (`ring-ring/50`) para ser a cor cheia. O
-   anel mede ≥ 3:1 contra o fundo nos dois temas.
+   anel mede ≥ 3:1 contra o fundo nos dois temas. Quem mede tem de **esperar
+   a transição**: o `Button` do shadcn anima com `transition-all` de 150 ms e,
+   lido no mesmo tique do Tab, o `box-shadow` do anel ainda está todo
+   transparente — daí a varredura esperar até 400 ms e exigir cor
+   **não-transparente** no `outline` ou no `box-shadow` (aceitar
+   `box-shadow !== "none"` deixava passar cinco sombras transparentes).
 8. **Aba acesa com forma, não só cor.** O item aceso da barra de baixo ganha
    uma barra de 2 px no topo e o rótulo em semibold, além do laranja.
 9. **Estado vazio com saída.** `components/ui/vazio.tsx` (ícone, título curto,
@@ -1497,6 +1505,21 @@ a tela — afrouxar o limite não é uma opção.
 12. **Voltar de Mais é botão.** O "Mais" do topo das telas de dentro de
     `/mais` é um botão de ícone de 44 px com rótulo, padronizado com o topo do
     player.
+13. **O interruptor diz o estado nos dois temas.** O trilho do `Switch` é
+    cinza (`--input`) desligado e laranja (`--primary`) ligado, nos dois
+    temas; o polegar é **claro sempre**. Nenhuma regra pode pegar os dois
+    estados: `dark:bg-input/80` pesa (0,2,0) contra os (0,1,0) da variante de
+    estado e apagava a diferença no escuro, onde só o polegar mudava — e
+    mudava ao contrário do tema claro (preto quando ligado).
+14. **A aba acesa é mais clara que a lista.** O `TabsTrigger` aceso usa
+    `bg-card`, não `bg-background`: com o fundo da página em `#e0e0dd` a aba
+    ativa ficava da cor da PÁGINA, mais escura que a lista `bg-muted`. Nos
+    dois temas a luminância da aba acesa é **maior** que a da lista, com
+    contraste **≥ 1,15**.
+15. **O vazio de gráfico não vaza para o resto.** `SemDados` tem ícone e
+    título de gráfico só como PADRÃO; galeria de fotos, comparador e tabela de
+    medidas passam os seus (`Camera`, `ImageOff`, `Ruler`), senão a tela anuncia
+    "Sem dados por enquanto" debaixo de um gráfico de linha que ninguém pediu.
 
 ### 22.4 Lote 4
 

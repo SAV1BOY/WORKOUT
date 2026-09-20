@@ -332,7 +332,7 @@ export function CardDescanso({
           {dadosCardio.barra_fixa.grease_the_groove}
         </p>
 
-        <div className="border-border cartao flex items-center justify-between gap-3 border p-3">
+        <div className="border-border bg-card cartao flex items-center justify-between gap-3 border p-3">
           <div className="flex flex-col">
             <span className="text-muted-foreground text-rotulo tracking-wide uppercase">
               Soltas de hoje

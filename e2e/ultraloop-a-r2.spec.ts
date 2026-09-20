@@ -340,3 +340,167 @@ test("o voltar de Mais é um botão de 44 px", async ({ page }) => {
   const caixa = await voltar.boundingBox();
   expect(Math.round(caixa?.height ?? 0)).toBeGreaterThanOrEqual(44);
 });
+
+// =====================================================================
+//  itens 13 a 15 — o que a auditoria do lote pegou
+// =====================================================================
+
+/*
+ * item 13: no escuro o interruptor não mudava de cor entre ligado e
+ * desligado (`dark:bg-input/80` vencia a regra de estado) e só o polegar
+ * virava — preto quando LIGADO, o inverso do tema claro.
+ */
+test("o interruptor muda de cor entre ligado e desligado nos dois temas", async ({
+  page,
+}) => {
+  for (const tema of TEMAS) {
+    await abrir(page, "/mais/preferencias", tema);
+    const chave = page.getByRole("switch").first();
+    await expect(chave).toBeVisible();
+
+    const medir = () =>
+      page.evaluate(`(() => {
+        ${MEDIDAS}
+        const paraRgb = (v) => {
+          let n = v.trim().replace('#', '');
+          if (n.length === 3) n = n[0] + n[0] + n[1] + n[1] + n[2] + n[2];
+          return [parseInt(n.slice(0,2),16), parseInt(n.slice(2,4),16), parseInt(n.slice(4,6),16)];
+        };
+        const raiz = document.querySelector('[data-slot=switch]');
+        const trilho = raiz.querySelector('[data-slot=switch-track]');
+        const polegar = raiz.querySelector('[data-slot=switch-thumb]');
+        const corTrilho = sobrepor(rgba(getComputedStyle(trilho).backgroundColor), fundoDe(raiz));
+        const corPolegar = sobrepor(rgba(getComputedStyle(polegar).backgroundColor), corTrilho);
+        const primaria = paraRgb(getComputedStyle(document.documentElement).getPropertyValue('--primary'));
+        return {
+          estado: raiz.getAttribute('data-state'),
+          trilho: corTrilho,
+          luzPolegar: lum(corPolegar),
+          trilhoEhPrimaria: razao(corTrilho, primaria) < 1.05,
+        };
+      })()`) as Promise<{
+        estado: string;
+        trilho: [number, number, number];
+        luzPolegar: number;
+        trilhoEhPrimaria: boolean;
+      }>;
+
+    const antes = await medir();
+    await chave.click();
+    await expect(chave).toHaveAttribute(
+      "data-state",
+      antes.estado === "checked" ? "unchecked" : "checked",
+    );
+    await page.waitForTimeout(300);
+    const depois = await medir();
+
+    // 1. o TRILHO diz o estado: as duas cores são visivelmente diferentes
+    const contraste = await page.evaluate(
+      `(() => { ${MEDIDAS} return razao(${JSON.stringify(antes.trilho)}, ${JSON.stringify(depois.trilho)}); })()`,
+    );
+    expect(contraste as number, `trilho ligado × desligado (${tema})`).toBeGreaterThanOrEqual(1.4);
+
+    // 2. quem está LIGADO usa a cor de destaque, nos dois temas
+    const ligado = antes.estado === "checked" ? antes : depois;
+    const desligado = antes.estado === "checked" ? depois : antes;
+    expect(ligado.trilhoEhPrimaria, `trilho ligado = --primary (${tema})`).toBe(true);
+    expect(desligado.trilhoEhPrimaria, `trilho desligado ≠ --primary (${tema})`).toBe(false);
+
+    // 3. o polegar é CLARO nos dois estados e nos dois temas
+    for (const m of [antes, depois]) {
+      expect(m.luzPolegar, `polegar claro (${tema}, ${m.estado})`).toBeGreaterThan(0.5);
+    }
+
+    // devolve a preferência ao valor de origem
+    await chave.click();
+    await expect(chave).toHaveAttribute("data-state", antes.estado);
+  }
+});
+
+/*
+ * item 14: com `--background` em #e0e0dd, `data-active:bg-background` pintava
+ * a aba acesa da cor da PÁGINA — mais escura que a lista — e invertia a
+ * leitura do estado no tema claro.
+ */
+test("a aba acesa é um degrau ACIMA da lista nos dois temas", async ({ page }) => {
+  for (const tema of TEMAS) {
+    for (const rota of ["/corpo", "/exercicios/supino-reto-com-barra"]) {
+      await abrir(page, rota, tema);
+      const abas = (await page.evaluate(`(() => {
+        ${MEDIDAS}
+        return [...document.querySelectorAll('[data-slot=tabs-list]')]
+          .map((lista) => {
+            const acesa = lista.querySelector('[role=tab][aria-selected=true]');
+            if (!acesa) return null;
+            const corLista = fundoDe(lista);
+            const propria = rgba(getComputedStyle(lista).backgroundColor);
+            // a variante "line" é transparente de propósito: não há degrau a medir
+            if (!propria || propria[3] < 0.05) return null;
+            const corAcesa = sobrepor(rgba(getComputedStyle(acesa).backgroundColor), corLista);
+            return {
+              rotulo: (acesa.textContent || '').trim().slice(0, 20),
+              luzLista: lum(corLista),
+              luzAcesa: lum(corAcesa),
+              contraste: razao(corAcesa, corLista),
+            };
+          })
+          .filter(Boolean);
+      })()`)) as {
+        rotulo: string;
+        luzLista: number;
+        luzAcesa: number;
+        contraste: number;
+      }[];
+      expect(abas.length, `${rota} (${tema}): nenhuma lista de abas medida`).toBeGreaterThan(0);
+      for (const a of abas) {
+        expect(
+          a.luzAcesa,
+          `${rota} (${tema}): a aba "${a.rotulo}" está mais escura que a lista`,
+        ).toBeGreaterThan(a.luzLista);
+        expect(a.contraste, `${rota} (${tema}): aba "${a.rotulo}" × lista`).toBeGreaterThanOrEqual(1.15);
+      }
+    }
+  }
+});
+
+/*
+ * item 2, agora medido no ELEMENTO e fora da rota `/`: o bloco de menu de
+ * `/mais` e as seções de `/mais/creditos` eram transparentes — no escuro,
+ * preto sobre preto com uma borda.
+ */
+test("o bloco de Mais e as seções de Créditos têm fundo próprio", async ({ page }) => {
+  for (const tema of TEMAS) {
+    for (const [rota, seletor] of [
+      ["/mais", "main nav ul"],
+      ["/mais/creditos", "main section.cartao"],
+    ] as const) {
+      await abrir(page, rota, tema);
+      const medido = (await page.evaluate(`(() => {
+        ${MEDIDAS}
+        const raiz = rgba(getComputedStyle(document.documentElement).backgroundColor) || [0,0,0,1];
+        const pagina = [raiz[0], raiz[1], raiz[2]];
+        return [...document.querySelectorAll('${seletor}')].map((el) => ({
+          alvo: el.className.toString().slice(0, 30),
+          contraste: razao(fundoDe(el), pagina),
+        }));
+      })()`)) as { alvo: string; contraste: number }[];
+      expect(medido.length, `${rota} (${tema}): bloco não encontrado`).toBeGreaterThan(0);
+      for (const b of medido) {
+        expect(b.contraste, `${rota} (${tema}): ${b.alvo} sem degrau`).toBeGreaterThanOrEqual(1.3);
+      }
+    }
+  }
+});
+
+/*
+ * item 15: o vazio de GRÁFICO vazou para a galeria de fotos — ícone de
+ * gráfico de linha e "Sem dados por enquanto" acima de "Nenhuma foto ainda.".
+ */
+test("a galeria de fotos vazia não se anuncia como gráfico", async ({ page }) => {
+  await abrir(page, "/corpo", "dark");
+  await page.getByRole("tab", { name: "Fotos" }).click();
+  const vazio = page.locator("[data-slot=vazio]").first();
+  await expect(vazio).toBeVisible();
+  await expect(vazio).toContainText("Nenhuma foto ainda.");
+  await expect(vazio).not.toContainText("Sem dados por enquanto");
+});

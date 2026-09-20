@@ -1,6 +1,7 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
+import { Ruler } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { GraficoLinha, SemDados } from "@/components/graficos";
@@ -187,7 +188,9 @@ export function AbaMedidas({
         </CardHeader>
         <CardContent>
           {tabela.length === 0 ? (
-            <SemDados>Nenhuma medida registrada até agora.</SemDados>
+            <SemDados icone={Ruler} titulo="Sem registros ainda">
+              Nenhuma medida registrada até agora.
+            </SemDados>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm whitespace-nowrap">

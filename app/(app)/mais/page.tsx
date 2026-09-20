@@ -123,7 +123,7 @@ export default async function Mais() {
 
 function Lista({ secoes }: { secoes: Secao[] }) {
   return (
-    <ul className="border-border divide-border divide-y overflow-hidden rounded-lg border">
+    <ul className="border-border divide-border bg-card divide-y overflow-hidden rounded-lg border">
       {secoes.map(({ href, titulo, descricao, Icone }) => (
         <li key={href}>
           <Link

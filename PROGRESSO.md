@@ -6446,15 +6446,21 @@ dos 3:1. É: `app/globals.css` desenha `outline: 2px solid var(--ring)` em todo
 focável (com `:where()`, para não roubar a vez de ninguém), há a utilitária
 `.foco` para quem carrega `outline-none` do shadcn, e o anel dos botões e
 campos passou a ser a cor cheia (8,7:1 no escuro, 5,2:1 no claro).
-**Este item ficou PARCIAL**: o `test.fixme` da varredura chegou a sair, mas a
-varredura reprova 141 focáveis no tema **escuro** (botão do card de exercício,
-dia do calendário, `select` do catálogo, aba do relatório). No claro ela passa
-— só que passa porque esses elementos têm `box-shadow` e o teste aceita sombra
-como anel; o escuro, sem sombra na superfície, é o único que mede o `outline`.
-Então o `:focus-visible` global não casa nesses elementos e o verde do claro
-era falso. O `fixme` voltou, com a explicação no próprio teste. Arquivos: `app/globals.css`,
-`components/ui/button.tsx`, `components/ui/input.tsx`,
-`components/nav-inferior.tsx`, `e2e/ultraloop-varredura.spec.ts`.
+**O `test.fixme` da varredura saiu** — e o diagnóstico que o acompanhava
+estava errado: não era o `:focus-visible` que deixava de casar (ele casa,
+`el.matches(':focus-visible')` é verdadeiro e `--tw-ring-shadow` já vale
+`0 0 0 3px #fb923c`), era o **relógio**. O `Button` do shadcn anima com
+`transition-all` de 150 ms, então a leitura feita no mesmo tique do Tab pegava
+o `box-shadow` ainda todo transparente; e a condição antiga
+(`boxShadow !== "none"`) aceitava justamente essas sombras transparentes como
+anel, o que no claro dava o verde falso. Medindo com espera, 0 de 85 focáveis
+ficam sem anel; com espera zero voltam as 141 "falhas", idênticas nos dois
+temas — e os próprios logs mostravam a instabilidade (revar2 reprovou e revar3,
+no MESMO commit, passou). A varredura agora espera a transição assentar (até
+400 ms, saindo assim que o anel aparece) e exige cor **não-transparente**.
+Arquivos: `app/globals.css`, `components/ui/button.tsx`,
+`components/ui/input.tsx`, `components/nav-inferior.tsx`,
+`e2e/ultraloop-varredura.spec.ts`.
 
 **L3-8 · a aba acesa era só laranja.**
 Era: `text-primary` e nada mais — quem não distingue a cor não sabia em que
@@ -6507,9 +6513,8 @@ quatro rotas, o degrau das superfícies, a borda de todo `<input>` de `/corpo` e
 do FAB, nenhum texto abaixo de 10 px em cinco rotas, o anel de foco do card e
 da aba, a barra da aba acesa, o vazio do catálogo com "Limpar filtros"
 funcionando, o `aria-label`/`title` do card cortado e os 44 px do voltar de
-Mais. A varredura do foco continua em `fixme` (veja L3-7); as outras quatro
-varreduras — rolagem lateral, 44 px, contraste AA e reduced-motion — passam
-nas doze rotas nos dois temas.
+Mais. As cinco varreduras — rolagem lateral, 44 px, contraste AA, anel de
+foco e reduced-motion — passam nas doze rotas nos dois temas.
 
 **Como testar no celular.** Abra o app no escuro: os cards agora se **separam**
 do fundo (antes eram a mesma tinta), a ficha de um exercício não acende mais
@@ -6520,6 +6525,53 @@ que você está tem uma barrinha no topo além do laranja. Em Mais → Preferên
 o "Mais" do topo é um botão de dedo, não uma palavra. No catálogo, busque
 "zzzz": em vez de uma linha tracejada, aparece o cartão de vazio com **Limpar
 filtros**. E qualquer botão do app, em qualquer tela, tem pelo menos 44 px.
+
+**Correção da auditoria do lote (rodada 2).** Um auditor independente reprovou
+o lote com cinco achados; todos foram corrigidos e cada um virou teste.
+
+1. **O interruptor não dizia o estado no escuro** (SPEC §22.3 item 13). O
+   trilho trazia `bg-input … group-data-checked:bg-primary … dark:bg-input/80`
+   e a variante `dark:` (0,2,0) vencia a de estado (0,1,0): medido, o MESMO
+   cinza `--input` a 80 % ligado e desligado. Só o polegar mudava — e ao
+   contrário do tema claro: **preto** quando ligado. Como o item 3 do lote
+   levou `--input` de `#2e2e2e` para `#7a7a78`, o que era um pill quase
+   invisível virou um pill cinza-claro bem visível nos dois estados, e as seis
+   chaves de Preferências passaram a ler "ligado" como "desligado". Agora cada
+   estado tem a sua regra (nenhuma pega os dois) e o polegar é claro sempre; a
+   borda de 1 px do polegar segura os 3:1 contra o laranja do tema escuro.
+   Arquivo: `components/ui/switch.tsx`.
+2. **A aba acesa ficou mais escura que as apagadas no claro** (item 14).
+   `TabsTrigger` usava `data-active:bg-background` e o lote baixou
+   `--background` de `#fafafa` para `#e0e0dd`: em `/corpo` a lista media
+   `#efefec` e a aba ativa `#e0e0dd` — a cor da página, mais escura que a
+   lista —, invertendo a leitura do estado; o mesmo nas abas da ficha de
+   exercício. Passou a `data-active:bg-card` (o escuro segue com
+   `input/30`). Arquivo: `components/ui/tabs.tsx`.
+3. **O degrau do item 2 não chegou a `/mais` nem a `/mais/creditos`.** O bloco
+   de menu e as seções de créditos eram transparentes: no escuro, preto sobre
+   preto com uma borda — exatamente o defeito que o item dizia ter matado (a
+   captura 18-mais-escuro mudou 2,62 % e a 24-creditos-escuro 1,83 %, só a
+   borda). Levaram `bg-card`, e a varredura do repositório achou mais dois
+   blocos `border-border` + `cartao` sem fundo próprio. Arquivos:
+   `app/(app)/mais/page.tsx`, `app/(app)/mais/creditos/page.tsx`,
+   `components/exercicio/ficha-folha.tsx`, `components/treino/cards.tsx`.
+4. **O vazio de gráfico vazou para fotos e medidas** (item 15). O item 9
+   trocou o `SemDados` por `Vazio` com ícone `ChartSpline` e título "Sem dados
+   por enquanto", e a galeria de fotos vazia passou a anunciar isso com um
+   gráfico de linha em cima de "Nenhuma foto ainda.". `SemDados` ganhou
+   `icone` (o `ChartSpline` só como padrão) e frase opcional; a galeria usa
+   `Camera`, o comparador `ImageOff` e a tabela de medidas `Ruler`, cada um
+   com o seu título. Arquivos: `components/graficos/apoio.tsx`,
+   `components/corpo/aba-fotos.tsx`, `components/corpo/aba-medidas.tsx`.
+5. **O diagnóstico do `fixme` do foco estava errado** — veja L3-7 acima: a
+   causa é o `transition-all` do `Button`, não o `:focus-visible`. O texto foi
+   corrigido no teste, na SPEC §22.3 item 7 e aqui, e o `fixme` saiu.
+
+Provas novas em `e2e/ultraloop-a-r2.spec.ts` (15 testes): trilho e polegar do
+interruptor nos dois estados e nos dois temas, a aba acesa mais clara que a
+lista em `/corpo` e na ficha do exercício, o fundo REAL do bloco de `/mais` e
+das seções de `/mais/creditos` contra o fundo da página, e o título do vazio da
+galeria de fotos.
 
 ### Rodada 2 — Lote 4
 

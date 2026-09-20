@@ -442,7 +442,7 @@ function StepperDaSessao({ contexto }: { contexto: ContextoDaFicha }) {
   const mostraAlvo = contexto.tipo !== "maximo";
 
   return (
-    <section className="border-border cartao flex flex-col gap-2 border p-3">
+    <section className="border-border bg-card cartao flex flex-col gap-2 border p-3">
       <h3 className="text-sm font-semibold">Só nesta sessão</h3>
       {mostraAlvo ? (
         <div className="flex items-center justify-between gap-2">
