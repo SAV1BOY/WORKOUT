@@ -6129,7 +6129,30 @@ depois: as três respondem `401 permission denied` ao anon; só
 
 ### Relatório para o dono (9h)
 
-(a preencher)
+Primeira rodada no ar desde as 15:07 UTC de 20/09 (main `b6e8135`), sem
+rollback. O que mudou no app que você abre no celular:
+
+- **Sem rede o app não quebra mais.** Abrir Mais → Contas no modo avião agora
+  leva a uma tela "Sem conexão" com "Tentar de novo" e "Ir para o Treino", em
+  vez da página de erro do navegador.
+- **O player ficou inteiro na tela.** Sumiu a faixa cinza embaixo do ✓, os dois
+  polegares começam apagados (antes um parecia já escolhido) e, ao terminar o
+  treino, se você já se pesou hoje ele mostra o peso em vez de perguntar de
+  novo.
+- **Quem liga "Reduzir movimento" no celular** agora tem as animações
+  desligadas no app inteiro, e a ilustração do exercício fica parada até você
+  tocar nela.
+- **Relatório, Corpo e Explorar pararam de pular** enquanto carregam, os
+  contadores do topo ficaram alinhados e dá para **apagar uma foto de
+  progresso** enviada por engano, com confirmação.
+- **Detalhes de conteúdo corrigidos**: "sáb" com acento, "Semana N de 12"
+  batendo com a barra, o selo Circuito nas coleções, o cardio do dia de
+  descanso com a sigla certa e o vídeo do exercício abrindo na ficha, fora do
+  treino em andamento.
+
+Portões antes de publicar: lint limpo, build ok, 1.318 testes unitários e 332
+de ponta a ponta, mais a varredura das 30 telas nos dois temas. Nada de banco
+mudou nesta rodada.
 
 ### Como funcionou
 
@@ -6249,6 +6272,19 @@ celular e abra uma ficha de exercício: a ilustração fica parada até você to
 nela. Por fim, ative o modo avião e abra Mais → Contas: em vez da tela de erro
 do navegador aparece "Sem conexão", com "Tentar de novo" e "Ir para o Treino".
 
+**Deploy.** No ar em 20/09/2026 às 15:07 UTC, junto com o lote 2, pelo PR #6
+(main `b6e8135`). Produção saiu de `dpl_3GkqME59j2QWFvtJqfbPSzADzzTE` para
+`dpl_4xNZ9sdTBX6PbdRjD8qrm12YSC57`; `GET /versao` passou a devolver
+`{"commit":"b6e8135c28ac5fe1ba375b1b180427846398b9bb","construidoEm":"2026-09-20T15:05:54.343Z"}`
+(antes a rota não existia e caía em 307) e o css de `/login` trocou de
+`053059c178efbf99` para `12175adeeb38d042`. Fumaça verde na primeira tentativa,
+item a item: `/login` 200 com "Treino do Terraço" e "Entrar" e sem aviso de
+configuração — ok; `/` → 307 para `/login` — ok; `/versao` igual ao sha de main
+— ok; `/sw.js` 200 com `/~offline`, `figuras/`, `_rsc` e o mesmo css do HTML de
+`/login` — ok; `/manifest.webmanifest` 200 com "Treino do Terraço" — ok;
+`/~offline` 200 com "Sem conexão", "Tentar de novo" e "Ir para o Treino" — ok;
+os 12 scripts `/_next/static` de `/login` em 200 — ok. **Rollback: não.**
+
 ### Rodada 1 — Lote 2
 
 **Relatório, Corpo, Calendário e Explorar** (branch
@@ -6360,6 +6396,23 @@ e os três problemas foram corrigidos:
    `/explorar/treino/B1` (levantamento terra), exigindo o
    `video[data-video="<id>"]` com o arquivo e a ilustração sem ele — mais a
    asserção de contraste do item 2, nos dois temas.
+
+**Deploy.** No ar em 20/09/2026 às 15:07 UTC, no mesmo merge do lote 1 (a faixa
+B já continha a A), pelo PR #6 (main `b6e8135`). Produção saiu de
+`dpl_3GkqME59j2QWFvtJqfbPSzADzzTE` para `dpl_4xNZ9sdTBX6PbdRjD8qrm12YSC57`;
+`/versao` devolve `b6e8135c28ac5fe1ba375b1b180427846398b9bb`. Além dos sete
+itens obrigatórios da fumaça (todos ok, descritos na subseção do lote 1), os
+marcadores deste lote nos pacotes publicados: o chunk de `app/(app)/corpo`
+contém "Apagar" — ok; o de `app/(app)/relatorio` contém "kg no total" (o
+contador de volume reescrito) — ok; o de `app/(app)/explorar` contém "Circuito"
+(o selo das coleções) — ok. O marcador previsto para
+`app/(app)/mais/creditos` ("Vers") não se aplica: a página é server component,
+então o texto não vai para o chunk do cliente — a prova equivalente é `/versao`
+devolvendo o mesmo `NEXT_PUBLIC_COMMIT` que alimenta o "Versão b6e8135" da
+tela. A sonda opcional de Playwright a 360 px contra a URL pública não rodou (o
+Chromium local não confia na CA do proxy de saída); a régua de 360 px, 44 px,
+contraste e foco já correra verde nas 30 telas no portão local.
+**Rollback: não.**
 
 ### Rodada 2 — Lote 3
 
