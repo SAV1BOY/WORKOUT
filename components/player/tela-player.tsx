@@ -462,6 +462,7 @@ export function TelaPlayer({
         som={ligado(prefs, "descanso_som")}
         vibracao={ligado(prefs, "descanso_vibra")}
         avancarSozinho={ligado(prefs, "avancar_sozinho")}
+        aviso={aviso}
         aoSomar={(s) => guardar(somarSegundos(estado, s, Date.now()))}
         aoDefinir={(s) => guardar(definirDuracao(estado, s, Date.now()))}
         aoPular={() => ir(passo.indiceProximo)}

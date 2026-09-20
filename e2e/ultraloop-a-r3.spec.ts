@@ -14,6 +14,7 @@ import {
   entrarNoApp,
   esperarAbaTreino,
   fixarData,
+  lerDoMock,
   resetarMock,
   usuarioComPerfil,
 } from "./fixtures";
@@ -42,6 +43,21 @@ async function concluirSerie(page: Page) {
   if (await pular.isVisible().catch(() => false)) await pular.click();
 }
 
+/**
+ * O primário da tela de pergunta atual, se houver uma.
+ *
+ * Precisa ser procurado DENTRO da região: o cronômetro dos exercícios de
+ * tempo também tem um botão "Continuar", e ele começa a contagem.
+ */
+function primarioDaPergunta(page: Page) {
+  return page
+    .getByRole("region", { name: "Última repetição" })
+    .or(page.getByRole("region", { name: "Feedback do treino" }))
+    .getByRole("button", {
+      name: /^(Pular esta pergunta|Continuar|Concluir sem responder|Concluído)$/,
+    });
+}
+
 /** Do 1º exercício até a tela de conclusão, respondendo tudo pelo primário. */
 async function irAteAConclusao(page: Page) {
   for (let i = 0; i < 40; i++) {
@@ -58,11 +74,7 @@ async function irAteAConclusao(page: Page) {
       await pular.click();
       continue;
     }
-    const pergunta = page
-      .getByRole("button", {
-        name: /^(Pular esta pergunta|Continuar|Concluir sem responder)$/,
-      })
-      .first();
+    const pergunta = primarioDaPergunta(page);
     if (await pergunta.isVisible().catch(() => false)) {
       await pergunta.click();
       continue;
@@ -90,7 +102,7 @@ test.describe("§22.5 item 1 — dois toques no mesmo ponto não jogam o treino 
     const pergunta = page.getByRole("alertdialog");
     await expect(pergunta).toBeVisible();
     await expect(pergunta).toContainText("Descartar este treino?");
-    await expect(pergunta).toContainText("continuam salvas");
+    await expect(pergunta).toContainText("já registrada");
 
     // o 2º toque cai no mesmo ponto: nada é descartado, a pergunta continua
     await page.mouse.click(
@@ -111,26 +123,34 @@ test.describe("§22.5 item 2 — a conclusão grava ao entrar", () => {
   test("ver a conclusão já basta: nada fica 'em andamento' na aba Treino", async ({
     page,
   }) => {
-    test.setTimeout(120_000);
-    await abrirPlayer(page);
+    test.setTimeout(150_000);
+    const sessao = await abrirPlayer(page);
     await irAteAConclusao(page);
 
     const fim = page.getByRole("region", { name: "Treino concluído" });
-    await expect(fim.getByRole("status")).toContainText("Treino salvo", {
-      timeout: 15_000,
-    });
+    await expect(fim.getByText(/Treino salvo/)).toBeVisible({ timeout: 15_000 });
 
     // o "Próximo" está na barra fixa: visível SEM rolar os 2.244 px de antes
     const proximo = fim.getByRole("button", { name: "Próximo" });
     const caixa = await proximo.boundingBox();
+    const altura = page.viewportSize()?.height ?? 740;
     expect(caixa).not.toBeNull();
-    expect(caixa?.y ?? 0).toBeLessThan(740);
+    expect(caixa?.y ?? 0).toBeLessThan(altura);
+
+    // a sessão subiu com status "concluida" antes de qualquer toque no rodapé
+    await expect
+      .poll(
+        async () => (await lerDoMock<{ status: string }>(sessao, "sessions"))[0]?.status,
+        { timeout: 20_000 },
+      )
+      .toBe("concluida");
 
     // sair pela URL, sem tocar no "Próximo": a aba Treino não oferece retomar
     await page.goto("/");
     await esperarAbaTreino(page);
-    await expect(page.getByText("Em andamento")).toHaveCount(0);
-    await expect(page.getByRole("link", { name: /^Continuar/ })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Começar treino" })).toBeVisible();
+    await expect(page.getByText("em andamento")).toHaveCount(0);
+    await expect(page.getByRole("link", { name: "Continuar" })).toHaveCount(0);
   });
 });
 
@@ -217,15 +237,13 @@ test.describe("§22.5 itens 4 e 5 — as perguntas chegam sem resposta e com cor
     );
 
     const sensacao = page.getByRole("radiogroup", { name: "Sensação" });
-    for (let i = 0; i < 20 && !(await sensacao.isVisible().catch(() => false)); i++) {
+    for (let i = 0; i < 80 && !(await sensacao.isVisible().catch(() => false)); i++) {
       const pular = page.getByRole("button", { name: "Pular descanso" });
       if (await pular.isVisible().catch(() => false)) {
         await pular.click();
         continue;
       }
-      const pergunta = page
-        .getByRole("button", { name: /^(Pular esta pergunta|Continuar)$/ })
-        .first();
+      const pergunta = primarioDaPergunta(page);
       if (await pergunta.isVisible().catch(() => false)) {
         await pergunta.click();
         continue;
@@ -260,7 +278,9 @@ test.describe("§22.5 itens 6, 7, 8 e 10 — a barra, o descanso e o que se ouve
     await expect(barra).toHaveAttribute("aria-valuemax", /\d+/);
 
     // item 10: o rótulo visível diz o que o número é
-    await expect(page.getByText("CARGA NA BARRA")).toBeVisible();
+    const rotulo = page.getByText("carga na barra", { exact: true }).first();
+    await expect(rotulo).toBeVisible();
+    await expect(rotulo).toHaveCSS("text-transform", "uppercase");
 
     // item 6
     const concluir = page.getByRole("button", { name: "Concluir série" });
@@ -278,15 +298,19 @@ test.describe("§22.5 itens 6, 7, 8 e 10 — a barra, o descanso e o que se ouve
     await abrirPlayer(page);
     await page.getByRole("button", { name: "Concluir série" }).click();
 
-    // item 10: o leitor de tela ouve o que foi gravado
-    await expect(page.getByRole("status").first()).toContainText(
-      /registrada.*repetições/,
-    );
-
     // item 8: o descanso ganhou o anel da preparação
     const descanso = page.locator('[data-tela="descanso"]');
     await expect(descanso).toBeVisible();
-    await expect(descanso.locator("svg circle")).toHaveCount(2);
+
+    /*
+     * item 10: o leitor de tela ouve o que foi gravado. O aviso viaja para a
+     * tela de descanso porque a de exercício sai do ar no MESMO toque que
+     * grava — o `status` dela nunca chegaria a ser lido.
+     */
+    await expect(descanso.getByRole("status")).toContainText(
+      /registrada.*repetições/,
+    );
+    await expect(descanso.locator('svg[viewBox="0 0 220 220"] circle')).toHaveCount(2);
     await expect(descanso.getByRole("timer", { name: "Descanso" })).toBeVisible();
 
     // item 7: os dois botões de tempo dizem o sinal em texto, com 56 px
@@ -311,7 +335,12 @@ test.describe("§22.5 itens 6, 7, 8 e 10 — a barra, o descanso e o que se ouve
     expect(fundos.botao).toBe("rgba(0, 0, 0, 0)");
     expect(fundos.tela).not.toBe("rgba(0, 0, 0, 0)");
 
-    // item 7: o fim do descanso é anunciado sem depender do som
-    await expect(descanso.getByRole("status")).toHaveText("", { timeout: 5_000 });
+    /*
+     * item 7: o aviso só-leitor existe ao lado do `role="timer"` (que tem
+     * `aria-live` desligado). Com o relógio fixo (`fixarData`) a contagem não
+     * anda, então o que se cobra aqui é o contrato; os textos dos marcos são
+     * do `avisoDoDescanso`, testado na unidade.
+     */
+    await expect(descanso.locator('p[role="status"].sr-only')).toHaveCount(1);
   });
 });

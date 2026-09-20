@@ -360,9 +360,14 @@ test.describe("concluir e o que o motor decide (SPEC §6.2, §6.6, §10.3 e §10
     const pergunta = page.getByRole("alertdialog");
     await expect(pergunta).toContainText("Descartar este treino?");
     await pergunta.getByRole("button", { name: "Descartar este treino" }).click();
-    // o resumo do abandono não pode dizer "Treino concluído"
-    await expect(page.getByRole("dialog")).toContainText("Treino abandonado");
-    await page.getByRole("dialog").getByRole("button", { name: "Salvar e voltar" }).click();
+    /*
+     * O resumo do abandono não pode dizer "Treino concluído" — e agora é
+     * preciso nomear o diálogo: desde a §22.5 item 3 a própria Visão geral é
+     * um `role="dialog"`.
+     */
+    const resumo = page.getByRole("dialog", { name: "Treino abandonado" });
+    await expect(resumo).toContainText("Treino abandonado");
+    await resumo.getByRole("button", { name: "Salvar e voltar" }).click();
     await esperarAbaTreino(page);
 
     await expect

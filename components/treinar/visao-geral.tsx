@@ -242,16 +242,11 @@ function Rodape({
           </div>
           <div className="flex items-center gap-2">
             {aoFechar ? (
-              <Button
-                variant="outline"
-                size="lg"
-                className="alvo flex-1"
-                onClick={aoFechar}
-              >
+              <Button variant="outline" className="alvo flex-1" onClick={aoFechar}>
                 Voltar ao treino
               </Button>
             ) : null}
-            <Button size="lg" className="alvo flex-1 font-semibold" onClick={aoConcluir}>
+            <Button className="alvo flex-1 font-semibold" onClick={aoConcluir}>
               Concluir
             </Button>
           </div>

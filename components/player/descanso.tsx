@@ -11,6 +11,7 @@ import { acharExercicio } from "@/lib/dados";
 import { formatarDuracao } from "@/lib/formato";
 import { textoDaCarga, textoDoAlvo } from "@/lib/hoje";
 import {
+  avisoDoDescanso,
   DESCANSO_MAX_S,
   DESCANSO_MIN_S,
   EXTRA_DESCANSO_S,
@@ -44,6 +45,7 @@ export function TelaDescanso({
   som,
   vibracao,
   avancarSozinho,
+  aviso = "",
   aoSomar,
   aoDefinir,
   aoPular,
@@ -61,6 +63,13 @@ export function TelaDescanso({
   som: boolean;
   vibracao: boolean;
   avancarSozinho: boolean;
+  /**
+   * "Série 2 de 3 registrada: …" (SPEC §22.5 item 10). Ele chega aqui porque
+   * a tela de exercício **sai do ar** no mesmo toque que grava: o `status`
+   * dela nunca chegaria a ser lido. Some assim que um marco do descanso tem
+   * algo a dizer.
+   */
+  aviso?: string;
   aoSomar: (segundos: number) => void;
   aoDefinir: (segundos: number) => void;
   aoPular: () => void;
@@ -162,7 +171,7 @@ export function TelaDescanso({
         </span>
       </AnelDeContagem>
       <p role="status" className="sr-only">
-        {avisoDoDescanso(falta, estado.totalS ?? 0, acabou)}
+        {avisoDoDescanso(falta, estado.totalS ?? 0, acabou) || aviso}
       </p>
 
       <div className="flex w-full max-w-xs flex-col gap-2">
@@ -249,25 +258,6 @@ export function TelaDescanso({
       </div>
     </section>
   );
-}
-
-/**
- * O que o leitor de tela ouve durante o descanso (SPEC §22.5 item 7).
- *
- * O texto só muda em MARCOS — 30 s, 10 s e o fim. Um `role="status"` que
- * mudasse a cada segundo faria o leitor falar por cima de si mesmo; um
- * `role="timer"` sozinho (o que havia) tem `aria-live` desligado por padrão e
- * nunca anuncia nada.
- */
-export function avisoDoDescanso(
-  falta: number,
-  totalS: number,
-  acabou: boolean,
-): string {
-  if (acabou) return "Descanso terminado, próxima série.";
-  if (falta <= 10 && totalS > 10) return "Faltam 10 segundos de descanso.";
-  if (falta <= 30 && totalS > 30) return "Faltam 30 segundos de descanso.";
-  return "";
 }
 
 /** "5 × 7,5 kg na barra" — o alvo da própria série de aquecimento (§14.1.2). */

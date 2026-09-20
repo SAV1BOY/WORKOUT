@@ -129,9 +129,12 @@ test.describe("preparação → exercício → descanso (SPEC §14.1.1–3)", ()
     await expect(page.getByText("Aquecimento 2 de 2")).toBeVisible();
     await expect(page.getByText("Agachamento livre")).toBeVisible();
 
-    // +20 s empurra o fim; editar o tempo recomeça a contagem
-    await page.getByRole("button", { name: "20 s" }).click();
+    // +20 s empurra o fim e −20 s o puxa de volta (SPEC §22.5 item 7);
+    // editar o tempo recomeça a contagem
+    await page.getByRole("button", { name: "Somar 20 segundos ao descanso" }).click();
     await expect(descanso).toHaveText("2:50");
+    await page.getByRole("button", { name: "Tirar 20 segundos do descanso" }).click();
+    await expect(descanso).toHaveText("2:30");
     await page.getByRole("button", { name: "Editar tempo de descanso" }).click();
     await page
       .getByRole("textbox", { name: "tempo de descanso em segundos" })
@@ -448,7 +451,7 @@ test.describe("o peso do dia na conclusão (SPEC §14.1.5)", () => {
      * não volta enquanto a tela vive.
      */
     await expect(fim.getByRole("button", { name: "Voltar ao treino" })).toHaveCount(0);
-    await expect(fim.getByRole("status")).toContainText("Treino salvo");
+    await expect(fim.getByText(/Treino salvo/)).toBeVisible();
 
     // "Corrigir" abre o campo já com o valor de hoje
     await fim.getByRole("button", { name: "Corrigir" }).click();
@@ -536,9 +539,13 @@ test.describe("circuito de core: reps e tempo (SPEC §14.5.3)", () => {
     await expect(page).toHaveURL(/\/treinar\/[0-9a-f-]{36}$/);
     await comecarNoPlayer(page);
 
-    // até a elevação de pernas (peso do corpo, por repetições)
-    // o alvo é o passo do exercício (a tela de descanso também mostra o nome)
-    await irAte(page, page.getByText("· exercício 5 de 6"));
+    /*
+     * Até a elevação de pernas (peso do corpo, por repetições). O alvo é o
+     * `h1` só-leitor do player (SPEC §22.5 item 10): a tela de descanso mostra
+     * o nome do próximo e, desde a §22.5, também "· exercício 5 de 6" — só o
+     * `h1` existe apenas no passo do exercício.
+     */
+    await irAte(page, page.getByRole("heading", { level: 1, name: /exercício 5 de 6/ }));
     await expect(
       page.getByRole("heading", { name: "Elevação de pernas na barra fixa" }),
     ).toBeVisible();
@@ -549,7 +556,7 @@ test.describe("circuito de core: reps e tempo (SPEC §14.5.3)", () => {
     await concluirSerie(page);
 
     // a prancha: contagem regressiva com Começar/Pausar (SPEC §14.1.2)
-    await irAte(page, page.getByText("· exercício 6 de 6"));
+    await irAte(page, page.getByRole("heading", { level: 1, name: /exercício 6 de 6/ }));
     await expect(page.getByRole("heading", { name: "Prancha" })).toBeVisible();
     const contagem = page.getByRole("timer", { name: "Contagem do exercício" });
     await expect(contagem).toHaveText("1:00");
