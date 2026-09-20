@@ -160,7 +160,9 @@ export function AbaFotos({
                                   titulo: `${NOME_ANGULO[angulo]} em ${formatarData(dia.data)}`,
                                 })
                               }
-                              aria-label={`Ver a foto de ${NOME_ANGULO[angulo].toLowerCase()} de ${formatarData(dia.data)}`}
+                              // "Ver a foto: Frente em 16/09" — sem repetir o
+                              // rótulo do input de upload ("Foto de frente")
+                              aria-label={`Ver a foto: ${NOME_ANGULO[angulo]} em ${formatarData(dia.data)}`}
                               className="alvo block w-full"
                             >
                               {/* eslint-disable-next-line @next/next/no-img-element -- blob local ou URL assinada do bucket */}

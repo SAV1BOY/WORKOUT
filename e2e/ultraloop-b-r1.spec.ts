@@ -270,7 +270,7 @@ test.describe("Lote 2 — Corpo (SPEC §22.2 itens 3 e 4)", () => {
       .toBe(1);
 
     // a foto abre em tela cheia, e é de lá que se apaga
-    await page.getByRole("button", { name: /Ver a foto de frente/ }).click();
+    await page.getByRole("button", { name: /Ver a foto: Frente/ }).click();
     const camada = page.getByRole("dialog", { name: "Frente em 16/09" });
     await expect(camada).toBeVisible();
 

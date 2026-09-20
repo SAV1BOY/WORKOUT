@@ -88,10 +88,17 @@ export function CardCapa({
           escuro. O gradiente da capa (`--capa-*`) é decorativo e some quando o
           cartão não tem foto — no tema claro o título ficava branco sobre o
           cartão claro, 1,13:1. Com o véu, os dois temas passam de 4,5:1.
+
+          A cor é escrita à mão (`rgb(10 10 10 / 0.68)`, o mesmo preto dos
+          tokens `--capa-*`) e não `bg-black/68`: o utilitário de opacidade do
+          Tailwind 4 vira `color-mix(in oklab, …)`, que o navegador devolve
+          como `color(srgb …)` — e as réguas de contraste (a auditoria e a
+          varredura) leem `rgb()`/`rgba()`. Com o utilitário, o véu existia na
+          tela mas era invisível para a medição, que continuava acusando 1,13:1.
         */}
         <div
           className={cn(
-            "relative flex flex-col gap-1 bg-black/65 p-4 text-white",
+            "relative flex flex-col gap-1 bg-[rgb(10_10_10_/_0.68)] p-4 text-white",
             // espaço para o selo, que fica no alto da capa
             etiqueta && "pt-12",
           )}
