@@ -7,6 +7,7 @@ import cardioJson from "@/data/cardio.json";
 import equipamentosJson from "@/data/equipamentos.json";
 import exerciciosJson from "@/data/exercicios.json";
 import ilustracoesJson from "@/data/ilustracoes.json";
+import medidasDeFotoJson from "@/data/medidas-de-foto.json";
 import perfilJson from "@/data/perfil.json";
 import programaJson from "@/data/programa.json";
 import progressaoJson from "@/data/progressao.json";
@@ -17,6 +18,7 @@ import {
   equipamentosSchema,
   exerciciosSchema,
   ilustracoesSchema,
+  medidasDeFotoSchema,
   perfilSchema,
   programaSchema,
   progressaoJsonSchema,
@@ -27,6 +29,7 @@ import {
   type Fase,
   type FaseId,
   type Ilustracao,
+  type MedidaDeFoto,
   type MedidaDoCorpo,
   type RefDeTexto,
   type Treino,
@@ -74,6 +77,19 @@ export const tutoriais = validar(
   tutoriaisJson,
   "tutoriais.json",
 ).tutoriais;
+
+/**
+ * A medida de cada foto de execução do kit e da derivada WebP (SPEC §22.4
+ * item 3). O arquivo é gerado por `npm run assets`, que abre foto por foto
+ * com o sharp — as 162 fotos **não** têm todas a mesma medida, e supor isso
+ * fazia a `<img>` mais pesada do app reservar uma caixa de proporção errada
+ * (auditoria do lote 4). Quem lê isto na tela é `medidaDaFoto` (lib/midia.ts).
+ */
+export const medidasDeFoto: Readonly<Record<string, MedidaDeFoto>> = validar(
+  medidasDeFotoSchema,
+  medidasDeFotoJson,
+  "medidas-de-foto.json",
+).fotos;
 
 /* --------------------------------------------------------------- índices */
 

@@ -53,7 +53,9 @@ export function FotosExercicio({
       {fotos.map((foto, i) => {
         // a derivada WebP (SPEC §22.4 item 1) pesa 44 kB contra 70 do JPEG
         const fonte = fonteComReserva(foto, urlWebp(foto));
-        const medida = medidaDaFoto(foto);
+        // a medida é a do arquivo pedido (SPEC §22.4 item 3): a derivada,
+        // quando ela existe; o JPEG do kit, no build sem `npm run assets`
+        const medida = medidaDaFoto(fonte.src);
         return (
           // eslint-disable-next-line @next/next/no-img-element -- fotos locais em /public, tamanho fixo
           <img

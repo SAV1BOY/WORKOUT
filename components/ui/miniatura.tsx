@@ -18,7 +18,7 @@ const LADO_DA_DERIVADA = 112;
  * SPEC §22.4 itens 1 e 4 — o que muda aqui:
  *
  * - a imagem pedida é a derivada de 112 px (2× a caixa de 56), não o JPEG de
- *   850×567 que vinha antes; o original é a reserva do `onError`;
+ *   850 px de largura que vinha antes; o original é a reserva do `onError`;
  * - a derivada já nasce quadrada, com a ilustração alta cortada pelo alto, e
  *   por isso foto e ilustração usam **um** enquadramento só;
  * - o texto alternativo é vazio por padrão: em toda lista do app o nome do

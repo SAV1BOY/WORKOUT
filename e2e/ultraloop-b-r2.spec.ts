@@ -126,22 +126,57 @@ test("§22.4-2: a segunda navegação não revalida nenhuma imagem", async ({ pa
   ).toEqual([]);
 });
 
-/** As `<img>` de mídia da tela que não dizem o tamanho (SPEC §22.4 item 3). */
+/**
+ * As `<img>` de mídia da tela que não dizem o tamanho — ou que dizem o tamanho
+ * **errado** (SPEC §22.4 item 3).
+ *
+ * Dizer qualquer par de números não serve: o navegador reserva a caixa pela
+ * proporção dos atributos, então uma medida que não é a do arquivo servido só
+ * troca um salto de layout por outro. Nas fotos do kit dá para cobrar o
+ * arquivo — `naturalWidth`/`naturalHeight` é o que chegou. (Na ilustração e na
+ * figura a medida sai de `data/ilustracoes.json` e do `viewBox`.)
+ */
 function semTamanho(page: Page) {
   return page.evaluate(() => {
     const falhas: string[] = [];
     for (const img of document.querySelectorAll("img")) {
-      const src = new URL(img.src).pathname;
+      const src = new URL(img.currentSrc || img.src).pathname;
       if (!/\/(fotos|ilustracoes|itens|figuras)\//.test(src)) continue;
-      if (!img.getAttribute("width") || !img.getAttribute("height")) {
+      const largura = img.getAttribute("width");
+      const altura = img.getAttribute("height");
+      if (!largura || !altura) {
         falhas.push(`sem width/height: ${src}`);
       }
       if (img.getAttribute("decoding") !== "async" && img.loading !== "eager") {
         falhas.push(`sem decoding=async: ${src}`);
       }
+      // já carregada: o que a `<img>` diz tem de ser o que chegou
+      const erradaW = Number(largura) !== img.naturalWidth;
+      const erradaH = Number(altura) !== img.naturalHeight;
+      if (/^\/fotos\//.test(src) && img.naturalWidth > 0 && (erradaW || erradaH)) {
+        falhas.push(
+          `medida errada: ${src} attr=${largura}x${altura} arquivo=${img.naturalWidth}x${img.naturalHeight}`,
+        );
+      }
     }
     return falhas;
   });
+}
+
+/** Espera toda foto do kit da tela terminar de carregar, para poder medir. */
+async function esperarAsFotos(page: Page) {
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          [...document.querySelectorAll("img")].filter(
+            (i) =>
+              /^\/fotos\//.test(new URL(i.currentSrc || i.src).pathname) &&
+              i.naturalWidth === 0,
+          ).length,
+      ),
+    )
+    .toBe(0);
 }
 
 test("§22.4-3: toda imagem de exercício diz o tamanho e decodifica fora da linha", async ({
@@ -156,19 +191,91 @@ test("§22.4-3: toda imagem de exercício diz o tamanho e decodifica fora da lin
   /*
    * A ficha é a tela mais pesada de imagem do app (auditoria do lote 4): as
    * duas fotos de execução, a ilustração ou a figura, e a foto em tela cheia.
+   * Duas fichas, de propósito: uma foto de 850×567 (a medida de 152 das 162
+   * do kit) e uma de 850×1275, cuja derivada sai 800×1200 — esta é a que
+   * pegava o app declarando 850×567 em toda foto.
    */
-  await page.goto("/exercicios/agachamento-livre");
-  await expect(page.getByRole("button", { name: /Ampliar a foto do início/ })).toBeVisible();
-  expect(await semTamanho(page), "ficha do exercício").toEqual([]);
+  for (const exercicio of ["agachamento-livre", "agachamento-bulgaro"]) {
+    await page.goto(`/exercicios/${exercicio}`);
+    const ampliar = page.getByRole("button", { name: /Ampliar a foto do início/ });
+    await ampliar.scrollIntoViewIfNeeded();
+    await expect(ampliar).toBeVisible();
+    await esperarAsFotos(page);
+    expect(await semTamanho(page), `ficha de ${exercicio}`).toEqual([]);
 
-  await page.getByRole("button", { name: /Ampliar a foto do início/ }).click();
-  await expect(page.getByRole("dialog")).toBeVisible();
-  expect(await semTamanho(page), "foto em tela cheia").toEqual([]);
+    await ampliar.click();
+    await expect(page.getByRole("dialog")).toBeVisible();
+    await esperarAsFotos(page);
+    expect(await semTamanho(page), `foto em tela cheia de ${exercicio}`).toEqual([]);
+  }
 
   // e as fotos dos 10 itens do terraço
   await page.goto("/mais/equipamento");
   await expect(page.locator("li img[src^='/itens/']").first()).toBeVisible();
   expect(await semTamanho(page), "Mais → Equipamento").toEqual([]);
+});
+
+/**
+ * `serviceWorkers: "block"` neste teste e só nele: o que o service worker
+ * serve do cache dele não passa pelo `page.route`, e aqui a foto precisa ficar
+ * presa de verdade para a caixa vazia poder ser medida.
+ */
+test.describe("§22.4-3 com a foto presa na rede", () => {
+  test.use({ serviceWorkers: "block" });
+
+  test("§22.4-3: a foto em tela cheia não muda de caixa quando a imagem chega", async ({
+    page,
+  }) => {
+    /*
+     * A prova do item, na imagem mais pesada do app e na medida que não é a do
+     * resto do kit: a foto fica **presa** na rede, a caixa é medida vazia e só
+     * então a imagem é solta. Se os atributos mentirem a proporção, é aqui que
+     * a caixa muda de altura — eram 344×229 reservados para uma imagem que
+     * entrava com 344×516 (auditoria do lote 4).
+     *
+     * A rota entra antes de qualquer navegação: o aquecimento da fase (§8)
+     * também pede esta foto, e uma resposta guardada no cache do navegador
+     * (uma semana, §22.4 item 2) faria a imagem aparecer pronta.
+     */
+    let soltar = () => {};
+    const presa = new Promise<void>((resolver) => {
+      soltar = resolver;
+    });
+    await page.route("**/fotos/agachamento-bulgaro-1.webp", async (rota) => {
+      await presa;
+      await rota.continue();
+    });
+
+    await usuarioComPerfil();
+    await fixarData(page);
+    await entrarNoApp(page);
+    await page.goto("/exercicios/agachamento-bulgaro");
+    const ampliar = page.getByRole("button", { name: /Ampliar a foto do início/ });
+    await ampliar.scrollIntoViewIfNeeded();
+    await expect(ampliar).toBeVisible();
+    await ampliar.click();
+
+    const grande = page.getByRole("dialog").locator("img").first();
+    await expect(grande).toHaveAttribute("src", "/fotos/agachamento-bulgaro-1.webp");
+    const vazia = await grande.evaluate((el) => {
+      const img = el as HTMLImageElement;
+      return { altura: el.getBoundingClientRect().height, natural: img.naturalWidth };
+    });
+    expect(vazia.natural, "a foto chegou antes de a caixa ser medida").toBe(0);
+    expect(vazia.altura, "a caixa reservada segue a proporção 800×1200").toBeGreaterThan(
+      400,
+    );
+
+    soltar();
+    await expect
+      .poll(() => grande.evaluate((el) => (el as HTMLImageElement).naturalWidth))
+      .toBe(800);
+    const cheia = await grande.evaluate((el) => el.getBoundingClientRect().height);
+    expect(
+      Math.abs(cheia - vazia.altura),
+      `caixa ${vazia.altura} → ${cheia}`,
+    ).toBeLessThan(2);
+  });
 });
 
 test("§22.4-1: a foto do item do terraço também tem o dobro da caixa", async ({

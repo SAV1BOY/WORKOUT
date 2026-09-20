@@ -1464,15 +1464,28 @@ a tela — afrouxar o limite não é uma opção.
    — a mesma das outras miniaturas, 2× a derivada — e por isso só ganha a
    miniatura. Se a derivada faltar (um build sem o
    prebuild), o `data-reserva` da `<img>` devolve o arquivo original — nenhuma
-   imagem nova, nenhum arquivo de terceiros a mais.
+   imagem nova, nenhum arquivo de terceiros a mais. O mesmo script, que já abre
+   cada foto com o `sharp`, grava em `data/medidas-de-foto.json` (este sim no
+   git) a medida **medida** de cada foto do kit e da derivada dela: as 162
+   fotos não são uniformes — 152 medem 850×567, seis medem 850×1275 (derivada
+   800×1200, pelo limite de 1200 px) e quatro medem 850×569.
 2. **Cache da mídia.** `/fotos`, `/ilustracoes`, `/itens`, `/figuras`, `/icons` e
    `/mapa-muscular` saem com `Cache-Control: public, max-age=604800,
    stale-while-revalidate=86400`. Uma semana: a segunda navegação não revalida
    mais nada e ainda dá para trocar uma foto sem renomear o arquivo.
-3. **Toda imagem diz o tamanho.** As imagens de exercício levam `width`/`height`
-   (as dimensões que `data/ilustracoes.json` guarda, ou as da derivada),
-   `decoding="async"` e `loading="lazy"` — menos a capa da primeira dobra, que
-   é `eager` com `fetchpriority="high"`.
+3. **Toda imagem diz o tamanho — o tamanho certo.** As imagens de exercício
+   levam `width`/`height`, `decoding="async"` e `loading="lazy"` — menos a capa
+   da primeira dobra, que é `eager` com `fetchpriority="high"`. As dimensões
+   são as **do arquivo que aquela `<img>` pede**: as da ilustração saem de
+   `data/ilustracoes.json`, as da foto de execução saem de
+   `data/medidas-de-foto.json` (a derivada quando ela existe, o JPEG do kit
+   quando a `<img>` cai na reserva), a figura tem o `viewBox` 132×100 e as
+   derivadas de lista e de capa têm medida fixa (112×112 e 720×360). Um par de
+   números qualquer não serve: o navegador reserva a caixa pela proporção dos
+   atributos, e declarar 850×567 numa foto que chega 800×1200 trocava um salto
+   de layout por outro. Quem garante isso é `lib/medidas-de-foto.test.ts`, que
+   abre foto por foto com o `sharp`, e o teste "§22.4-3", que cobra no
+   navegador `width`/`height` iguais a `naturalWidth`/`naturalHeight`.
 4. **Miniatura enquadrada.** A miniatura usa a derivada quadrada de 112 px, com
    um enquadramento só para foto e ilustração; a ilustração alta é cortada pelo
    alto (o corpo aparece) em vez de encolher no meio da caixa. O texto

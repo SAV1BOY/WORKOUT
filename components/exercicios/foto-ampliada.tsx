@@ -41,11 +41,16 @@ export function FotoAmpliada({
    */
   const fonte = fonteComReserva(url, urlWebp(url));
   /*
-   * A medida só existe para a foto do kit (SPEC §22.4 item 3); a do Corpo vem
-   * do storage e ninguém aqui sabe quanto ela mede — sem `width`/`height`, a
-   * caixa continua sendo a do CSS.
+   * A medida é a do arquivo que esta `<img>` pede, tirada de
+   * `data/medidas-de-foto.json` (SPEC §22.4 item 3). Aqui ela decide a caixa:
+   * com `object-contain` e o `height:auto` do preflight, quem manda antes de a
+   * foto chegar é a proporção dos atributos — seis fotos do kit são 800×1200
+   * na derivada, e declarar 850×567 nelas reservava 344×229 para uma imagem
+   * que entrava com 344×516 (auditoria do lote 4). A foto do Corpo vem do
+   * storage e ninguém sabe quanto ela mede: sem `width`/`height`, a caixa
+   * continua sendo a do CSS.
    */
-  const medida = medidaDaFoto(url);
+  const medida = medidaDaFoto(fonte.src);
   const fechar = useRef<HTMLButtonElement>(null);
   const confirmar = useRef<HTMLButtonElement>(null);
   const [confirmando, setConfirmando] = useState(false);

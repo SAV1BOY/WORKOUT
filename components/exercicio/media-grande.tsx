@@ -133,8 +133,8 @@ export function MediaGrande({
 
   // a derivada WebP (SPEC §22.4 item 1), com o JPEG do kit de reserva
   const fonte = fonteComReserva(foto.urls[0]!, urlWebp(foto.urls[0]));
-  // as fotos do kit têm todas a mesma medida (SPEC §22.4 item 3)
-  const medida = medidaDaFoto(foto.urls[0]);
+  // a medida do arquivo pedido, foto a foto (SPEC §22.4 item 3)
+  const medida = medidaDaFoto(fonte.src);
 
   return (
     // eslint-disable-next-line @next/next/no-img-element -- foto local em /public

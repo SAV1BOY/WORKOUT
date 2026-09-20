@@ -1,6 +1,6 @@
 # data/ — os dados do app (fonte da verdade)
 
-Todos os arquivos são UTF-8, JSON com indentação, chaves em português sem acento nos nomes de campo. Nada aqui é gerado pelo app: é conteúdo editorial. Se precisar mudar um exercício, uma série ou uma regra, mude aqui.
+Todos os arquivos são UTF-8, JSON com indentação, chaves em português sem acento nos nomes de campo. Tudo aqui é conteúdo editorial — se precisar mudar um exercício, uma série ou uma regra, mude aqui —, com uma exceção anotada no fim: `medidas-de-foto.json` é **gerado** por `npm run assets`.
 
 ## exercicios.json — lista de 81 exercícios
 
@@ -89,3 +89,9 @@ Exemplo (resumido):
 
 ## perfil.json
 Dados iniciais do usuário para o seed do perfil: nome, altura, nível, data de início, fase e treino iniciais, objetivos, `corpo` (peso e medidas em null — o app pede), `preferencias`.
+
+## medidas-de-foto.json — gerado, não editar à mão
+
+A medida real de cada foto de execução do kit e da derivada WebP que as telas pedem (SPEC §22.4 item 3). Quem escreve é `npm run assets` (`scripts/copiar-assets.ts`), que já abre cada arquivo com o `sharp` para gerar as derivadas: `<nome>: { "kit": [largura, altura], "webp": [largura, altura] }`.
+
+Existe porque as 162 fotos do kit **não** têm todas a mesma medida — 152 são 850×567, seis são 850×1275 (derivada 800×1200, pelo limite de 1200 px no maior lado) e quatro são 850×569 —, e a `<img>` só reserva a caixa certa se disser o tamanho do arquivo que ela pede. Quem lê na tela é `medidaDaFoto()` (`lib/midia.ts`); `lib/medidas-de-foto.test.ts` confere foto por foto contra os arquivos, e `npm run validar` cobra que nenhuma foto entre ou saia do kit sem o arquivo ser refeito.

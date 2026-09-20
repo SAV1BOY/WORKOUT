@@ -25,8 +25,9 @@ export function FotosAmpliaveis({ exercicio }: { exercicio: Exercicio }) {
         {fotos.map((url, i) => {
           // a derivada WebP (SPEC §22.4 item 1): 44 kB no lugar de 70
           const fonte = fonteComReserva(url, urlWebp(url));
-          // toda foto do kit mede 850×567 (SPEC §22.4 item 3)
-          const medida = medidaDaFoto(url);
+          // a medida do arquivo pedido, de `data/medidas-de-foto.json`
+          // (SPEC §22.4 item 3) — as fotos do kit não são uniformes
+          const medida = medidaDaFoto(fonte.src);
           return (
             <li key={url}>
               <button

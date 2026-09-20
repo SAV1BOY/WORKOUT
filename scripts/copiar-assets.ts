@@ -8,9 +8,22 @@
  *
  * As derivadas nascem aqui e só aqui — nada delas entra em `assets/` nem no
  * git, e nenhuma imagem nova é baixada: são recortes do que já veio no kit.
+ *
+ * O que entra no git é `data/medidas-de-foto.json`: a medida **medida** de
+ * cada foto do kit e da derivada que as telas pedem (SPEC §22.4 item 3). Quem
+ * abre cada arquivo com o sharp é este script, então é ele quem sabe — nada de
+ * supor que as 162 fotos têm todas o mesmo tamanho (auditoria do lote 4).
  */
-import { cpSync, existsSync, mkdirSync, readdirSync, statSync } from "node:fs";
-import { extname, join, relative } from "node:path";
+import {
+  cpSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
+import { basename, extname, join, relative } from "node:path";
 import sharp, { type Sharp } from "sharp";
 
 const raiz = process.cwd();
@@ -78,8 +91,9 @@ console.log(
 /* ------------------------------------------------------------------ *
  * Derivadas (SPEC §22.4 item 1)
  *
- * O kit só tem JPEG grande: a foto de execução é 850×567 e ia inteira para
- * uma miniatura de 56 px (7,6× o necessário) e para a capa de 326×160 (1,30×,
+ * O kit só tem JPEG grande: a foto de execução tem 850 px de largura (a
+ * altura varia, ver o bloco das medidas mais abaixo) e ia inteira para uma
+ * miniatura de 56 px (7,6× o necessário) e para a capa de 326×160 (1,30×,
  * mole no retina). Aqui cada original ganha, em `public/`:
  *
  *   <nome>.webp        só as fotos, até 1200 px — a versão grande
@@ -113,8 +127,8 @@ const ORIGINAIS: Record<string, RegExp> = {
   ilustracoes: /\.(webp|svg)$/i,
 };
 
-function arquivosDe(pasta: string, aceita: RegExp): string[] {
-  const raizDaPasta = join(raiz, "public", pasta);
+function arquivosDe(pasta: string, aceita: RegExp, base = "public"): string[] {
+  const raizDaPasta = join(raiz, base, pasta);
   const achados: string[] = [];
   const andar = (dir: string) => {
     for (const entrada of readdirSync(dir, { withFileTypes: true })) {
@@ -234,7 +248,93 @@ async function gerarDerivadas() {
   console.log(`✓ ${feitas} derivada(s) de imagem geradas em public/`);
 }
 
-gerarDerivadas().catch((e: unknown) => {
-  console.error(e);
-  process.exit(1);
-});
+/* ------------------------------------------------------------------ *
+ * A medida de cada foto (SPEC §22.4 item 3)
+ *
+ * A `<img>` só reserva a caixa certa se disser o tamanho **do arquivo que
+ * ela pede**. As fotos do kit não são uniformes — 152 medem 850×567, seis
+ * medem 850×1275 (e a derivada, limitada a 1200 px no maior lado, sai
+ * 800×1200) e quatro medem 850×569 —, então supor uma medida só punha a
+ * `<img>` mais pesada do app para reservar uma caixa de proporção errada
+ * (auditoria do lote 4).
+ *
+ * Como este script já abre cada foto com o sharp, é aqui que a medida real
+ * fica registrada, em `data/medidas-de-foto.json` — o mesmo papel que
+ * `data/ilustracoes.json` cumpre para as ilustrações. O arquivo entra no git
+ * (as telas o importam pelo `lib/dados.ts`) e é reescrito só quando muda.
+ * ------------------------------------------------------------------ */
+
+const ARQUIVO_DAS_MEDIDAS = join(raiz, "data", "medidas-de-foto.json");
+
+type Par = [number, number];
+
+async function medir(arquivo: string): Promise<Par> {
+  const { width, height } = await sharp(arquivo).metadata();
+  if (!width || !height) {
+    throw new Error(`não deu para medir ${relative(raiz, arquivo)}`);
+  }
+  return [width, height];
+}
+
+async function medirFotos() {
+  const originais = arquivosDe("fotos", /\.jpe?g$/i, "assets").sort();
+  const fotos: Record<string, { kit: Par; webp: Par }> = {};
+  const faltando: string[] = [];
+
+  for (const original of originais) {
+    const nome = basename(original, extname(original));
+    const derivada = join(raiz, "public", "fotos", `${nome}.webp`);
+    if (!existsSync(derivada)) {
+      faltando.push(nome);
+      continue;
+    }
+    fotos[nome] = { kit: await medir(original), webp: await medir(derivada) };
+  }
+
+  if (faltando.length > 0) {
+    console.error(
+      `✗ ${faltando.length} foto(s) sem derivada WebP em public/fotos (ex.: ${faltando[0]})`,
+    );
+    process.exit(1);
+  }
+
+  // uma foto por linha: 162 entradas de quatro números ficam ilegíveis se o
+  // JSON.stringify quebrar cada par em três linhas
+  const linhas = Object.entries(fotos).map(
+    ([nome, m]) =>
+      `    ${JSON.stringify(nome)}: { "kit": [${m.kit.join(", ")}], "webp": [${m.webp.join(", ")}] }`,
+  );
+  const cabecalho = {
+    gerado_por:
+      "npm run assets (scripts/copiar-assets.ts) — medido com sharp, não editar à mão",
+    formato:
+      "<nome da foto>: kit = [largura, altura] de assets/fotos/<nome>.jpg · webp = [largura, altura] da derivada public/fotos/<nome>.webp, que é o arquivo que as telas pedem",
+  };
+  const texto = [
+    "{",
+    `  ${JSON.stringify("gerado_por")}: ${JSON.stringify(cabecalho.gerado_por)},`,
+    `  ${JSON.stringify("formato")}: ${JSON.stringify(cabecalho.formato)},`,
+    '  "fotos": {',
+    linhas.join(",\n"),
+    "  }",
+    "}",
+    "",
+  ].join("\n");
+
+  const antes = existsSync(ARQUIVO_DAS_MEDIDAS)
+    ? readFileSync(ARQUIVO_DAS_MEDIDAS, "utf8")
+    : "";
+  if (antes === texto) {
+    console.log(`✓ data/medidas-de-foto.json já tinha as ${originais.length} fotos`);
+    return;
+  }
+  writeFileSync(ARQUIVO_DAS_MEDIDAS, texto);
+  console.log(`✓ data/medidas-de-foto.json: ${originais.length} fotos medidas`);
+}
+
+gerarDerivadas()
+  .then(medirFotos)
+  .catch((e: unknown) => {
+    console.error(e);
+    process.exit(1);
+  });

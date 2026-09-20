@@ -12,7 +12,14 @@
  * Toda imagem sai de `assets/` pelo caminho que o JSON guarda — nenhum caminho
  * escrito à mão, nenhuma imagem de terceiros sem crédito registrado.
  */
-import { acharExercicio, caminhoPublico, ilustracaoPorExercicio, urlFigura, urlFotos } from "@/lib/dados";
+import {
+  acharExercicio,
+  caminhoPublico,
+  ilustracaoPorExercicio,
+  medidasDeFoto,
+  urlFigura,
+  urlFotos,
+} from "@/lib/dados";
 import type { Ilustracao } from "@/lib/schemas";
 import { urlDoVideo } from "@/lib/videos.cliente";
 
@@ -47,9 +54,12 @@ export interface MidiaGrande {
   alt: string;
   credito: CreditoDaMidia | null;
   /**
-   * As dimensões do arquivo, quando o JSON as conhece (SPEC §22.4 item 3):
-   * hoje só `data/ilustracoes.json` as guarda. Com elas o navegador reserva a
-   * caixa antes de baixar a imagem e a tela para de pular.
+   * As dimensões da ilustração, que `data/ilustracoes.json` guarda (SPEC §22.4
+   * item 3). Com elas o navegador reserva a caixa antes de baixar a imagem e a
+   * tela para de pular. Vídeo, figura e foto vêm sem: a figura tem o `viewBox`
+   * fixo (`MEDIDA_DA_FIGURA`) e a foto tem a medida do próprio arquivo, que
+   * `medidaDaFoto` lê de `data/medidas-de-foto.json` já sabendo qual arquivo a
+   * tela vai pedir.
    */
   largura: number | null;
   altura: number | null;
@@ -90,9 +100,11 @@ function trocarSufixo(url: string, sufixo: string): string {
  * `/fotos/x-1.jpg` → `/fotos/x-1.webp` (a versão grande), senão `null`.
  *
  * É o que a ficha do exercício e a foto em tela cheia pedem: 44 kB no lugar
- * dos 70 kB do JPEG do kit, com a mesma medida de 850×567. Quem chama passa o
- * original como reserva (`fonteComReserva`), para a tela continuar desenhando
- * num build sem `npm run assets`.
+ * dos 70 kB do JPEG do kit, na mesma proporção (o `fit: inside` do sharp não
+ * corta nada; só as seis fotos de 850×1275 encolhem para 800×1200, por causa
+ * do limite de 1200 px no maior lado). Quem chama passa o original como
+ * reserva (`fonteComReserva`), para a tela continuar desenhando num build sem
+ * `npm run assets`.
  */
 export function urlWebp(url: string | null | undefined): string | null {
   if (!url || !COM_WEBP.test(url)) return null;
@@ -110,29 +122,39 @@ export interface MedidaDaImagem {
   altura: number;
 }
 
-/**
- * As 162 fotos de execução do kit têm todas a mesma medida, e a derivada WebP
- * também (o limite de 1200 px do maior lado não corta 850). É o que deixa a
- * `<img>` dizer o tamanho (SPEC §22.4 item 3) numa foto que não está em JSON
- * nenhum: `data/ilustracoes.json` guarda as medidas das ilustrações, as fotos
- * do kit são uniformes.
- */
-export const MEDIDA_DA_FOTO: MedidaDaImagem = { largura: 850, altura: 567 };
-
 /** As 67 figuras animadas do kit compartilham o mesmo `viewBox` 132×100. */
 export const MEDIDA_DA_FIGURA: MedidaDaImagem = { largura: 132, altura: 100 };
 
-const FOTO_DO_KIT = /^\/fotos\/[^/]+\.(jpe?g|webp)$/i;
+/** `/fotos/<nome>.jpg` ou `/fotos/<nome>.webp` — nome e extensão. */
+const FOTO_DO_KIT = /^\/fotos\/([^/]+)\.(jpe?g|webp)$/i;
 
 /**
- * A medida de uma foto de exercício de `public/fotos` (original ou derivada),
- * ou `null` quando a URL não é do kit — a foto de progresso do Corpo vem do
- * storage do Supabase e ninguém aqui sabe quanto ela mede.
+ * A medida do arquivo que a `<img>` pede, para reservar a caixa antes de a
+ * imagem chegar (SPEC §22.4 item 3).
+ *
+ * As medidas saem de `data/medidas-de-foto.json`, que `npm run assets` gera
+ * abrindo foto por foto com o sharp — as 162 fotos do kit **não** são
+ * uniformes: 152 medem 850×567, seis medem 850×1275 (derivada 800×1200) e
+ * quatro medem 850×569. Declarar uma medida só punha a foto em tela cheia a
+ * reservar 344×229 e a pular para 344×516 quando o arquivo chegava — o salto
+ * que este item existe para eliminar (auditoria do lote 4).
+ *
+ * Devolve `null` quando a URL não é foto de exercício do kit: a foto de
+ * progresso do Corpo vem do storage do Supabase e ninguém aqui sabe quanto ela
+ * mede, e as derivadas `-mini`/`-capa` têm medida fixa, declarada por quem as
+ * desenha.
  */
 export function medidaDaFoto(url: string | null | undefined): MedidaDaImagem | null {
   if (!url) return null;
   const caminho = url.startsWith("http") ? new URL(url).pathname : url;
-  return FOTO_DO_KIT.test(caminho) ? MEDIDA_DA_FOTO : null;
+  const achado = FOTO_DO_KIT.exec(caminho);
+  if (!achado) return null;
+  const medidas = medidasDeFoto[achado[1]!];
+  if (!medidas) return null;
+  // a `<img>` diz o tamanho do arquivo que ela pede, não o do irmão
+  const [largura, altura] =
+    achado[2]!.toLowerCase() === "webp" ? medidas.webp : medidas.kit;
+  return { largura, altura };
 }
 
 function credito(i: Ilustracao): CreditoDaMidia {

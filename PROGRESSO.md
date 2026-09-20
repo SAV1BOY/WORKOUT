@@ -6372,7 +6372,7 @@ Branch `ultraloop/l4-imagens-midia-entrega`, a partir de
 
 #### 1. Derivadas de imagem no prebuild (L4-1)
 
-**Era:** `public/fotos` (11 MB, 162 JPEG de 850×567) e `public/itens` (6,2 MB,
+**Era:** `public/fotos` (11 MB, 162 JPEG de 850 px de largura) e `public/itens` (6,2 MB,
 85 JPEG) só tinham o arquivo original, e o app nunca gerou derivada nenhuma.
 A miniatura de 56 px recebia os 850 px inteiros — 7,6× o necessário, 71 kB
 por linha de lista — e a capa de 326×160 recebia a mesma foto a 1,30×, que no
@@ -6557,12 +6557,13 @@ instalação.
    `e2e/auditoria-offline.spec.ts` espera a miniatura da lista entrar no cache
    e, depois de cortar a rede, exige que ela **desenhe** (`naturalWidth > 0`).
 2. **As quatro fotos de execução não diziam o tamanho.** `lib/midia.ts` ganhou
-   `MEDIDA_DA_FOTO` (850×567, igual nas 162 fotos do kit e na derivada WebP),
    `MEDIDA_DA_FIGURA` (o `viewBox` 132×100 das 67 figuras) e `medidaDaFoto()`,
    que devolve `null` para a foto do Corpo — essa vem do storage e ninguém
    sabe quanto mede. As quatro `<img>` de foto e as duas de figura passaram a
    levar `width`/`height`; o teste "§22.4-3" agora roda na aba Treino, na
    ficha `/exercicios/[id]`, na foto em tela cheia e em Mais → Equipamento.
+   (A medida da foto era uma constante `MEDIDA_DA_FOTO` de 850×567 "igual nas
+   162 fotos" — era falso, e a terceira auditoria abaixo desfez isso.)
 3. **A queda da miniatura ficava presa.** Sem derivada (`mini === null`) o
    primeiro degrau já era o original e o segundo pedia o mesmo arquivo que
    acabara de falhar. `components/ui/miniatura.tsx` passou a montar os degraus
@@ -6589,7 +6590,7 @@ instalação.
 
 #### Provas
 
-- `e2e/ultraloop-b-r2.spec.ts`: 12 testes, um por item que se vê — peso de
+- `e2e/ultraloop-b-r2.spec.ts`: 13 testes, um por item que se vê — peso de
   imagem do Explorar, capa a 2× da caixa, zero revalidação 304, dimensões e
   `decoding` de toda imagem de exercício, capa da primeira dobra `eager`,
   enquadramento e ocupação da miniatura, atalhos do manifest, `/favicon.ico`,
@@ -6599,10 +6600,61 @@ instalação.
   que o teste verifica continua sendo "a tela pede a imagem certa e ela
   carrega", agora com o arquivo certo.
 - Unitários novos em `lib/midia.test.ts` e `lib/capas.test.ts` para as funções
-  puras das derivadas.
+  puras das derivadas, e `lib/medidas-de-foto.test.ts` para as medidas (abre
+  as 162 fotos e as derivadas com o `sharp`).
+
+#### Terceira auditoria da rodada 2 — o que o corretor mudou
+
+**O problema:** `MEDIDA_DA_FOTO = {850, 567}` era uma suposição, declarada no
+comentário do próprio arquivo, na mensagem do commit, aqui no PROGRESSO e na
+SPEC §22.4 como "a medida das 162 fotos do kit e da derivada WebP". Dez fotos
+fogem dela: `agachamento-bulgaro-1/-2`, `barra-fixa-assistida-1/-2` e
+`barra-fixa-com-lastro-1/-2` medem 850×1275 (a derivada, limitada a 1200 px no
+maior lado, sai 800×1200) e `agachamento-goblet-1/-2` e `salto-basico-1/-2`
+medem 850×569. Em três das quatro `<img>` o CSS escondia o erro
+(`aspect-square`, `h-40`), mas em `components/exercicios/foto-ampliada.tsx` a
+classe é `max-h-[80dvh] w-full max-w-lg object-contain`: com o `height:auto` do
+preflight, quem manda antes de a foto chegar é a proporção dos atributos. A
+caixa reservada era 344×229 e pulava para 344×516 quando a imagem carregava —
+287 px de salto numa tela de 740 px, na imagem mais pesada do app, que é
+exatamente o que o item 3 existe para eliminar. O teste "§22.4-3" só conferia
+que `width`/`height` existiam, então passava com o dado errado.
+
+**O que passou a valer:**
+
+1. **A medida é medida, não suposta.** `scripts/copiar-assets.ts` já abre cada
+   foto com o `sharp` para gerar as derivadas; agora grava também
+   `data/medidas-de-foto.json` — 162 linhas com `kit` (o JPEG de
+   `assets/fotos`) e `webp` (a derivada de `public/fotos`, que é o arquivo que
+   a tela pede). É o mesmo papel que `data/ilustracoes.json` cumpre para as
+   ilustrações: conteúdo em JSON, nada de medida escrita no código. O arquivo
+   entra no git (as telas o importam por `lib/dados.ts`, com schema zod) e só é
+   reescrito quando muda.
+2. **`medidaDaFoto()` lê dali** e devolve a medida **do arquivo pedido**: a da
+   derivada para `/fotos/x.webp`, a do kit para `/fotos/x.jpg`. As quatro
+   `<img>` de foto passaram a perguntar pela URL que elas realmente pedem
+   (`fonte.src`), e não pelo original. `MEDIDA_DA_FOTO` deixou de existir.
+3. **Um unitário que teria pegado isto hoje.** `lib/medidas-de-foto.test.ts`
+   percorre `assets/fotos` com o `sharp` e reprova se o JSON discordar de
+   qualquer arquivo — do kit e da derivada —, se sobrar ou faltar foto, ou se a
+   derivada perder a proporção do original. São 8 casos, 1 s.
+   `npm run validar` também cobra o par (foto no kit ↔ medida no JSON) antes do
+   build, com o recado "rode npm run assets".
+4. **O e2e deixou de aceitar qualquer par de números.** O "§22.4-3" agora exige
+   `width`/`height` **iguais** a `naturalWidth`/`naturalHeight` em toda foto do
+   kit já carregada, e roda em duas fichas: `agachamento-livre` (850×567) e
+   `agachamento-bulgaro` (a derivada de 800×1200). E há um teste novo que
+   segura a foto na rede, mede a caixa vazia, solta a imagem e exige a mesma
+   altura depois — a prova do item, na imagem mais pesada do app.
+5. **Os textos.** SPEC §22.4 itens 1 e 3, este PROGRESSO e os comentários que
+   afirmavam "igual nas 162 fotos" passaram a dizer o que é verdade: 152 fotos
+   de 850×567, seis de 850×1275 e quatro de 850×569.
 
 #### Como testar no celular
 
+0. Abra **Explorar → agachamento búlgaro** e toque numa das duas fotos para
+   ampliar: a foto abre já na altura final, sem a tela dar um pulo quando a
+   imagem termina de carregar (antes o salto era de 287 px).
 1. Abra a aba **Treino**. A capa do treino de hoje tem de aparecer nítida
    (é uma imagem de 720 px numa caixa de 326) e as linhas da lista já vêm com
    a miniatura sem aquele pisca de imagem grande chegando depois.
