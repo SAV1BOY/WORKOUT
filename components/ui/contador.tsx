@@ -34,7 +34,13 @@ export function Contador({
     >
       <span
         data-rotulo={rotulo}
-        className="text-muted-foreground flex h-4 items-center gap-1 overflow-hidden text-micro tracking-wide whitespace-nowrap uppercase"
+        /*
+         * Sem `overflow-hidden` (SPEC §22.6 item 7): a caixa de 16 px cortava
+         * o til de "SESSÕES" em versalete — a linha aparecia como "SESSOES".
+         * Quem corta o que não cabe na largura continua sendo o `truncate` do
+         * span de dentro; a altura fixa, que alinha os três números, fica.
+         */
+        className="text-muted-foreground flex h-4 items-center gap-1 text-micro tracking-wide whitespace-nowrap uppercase"
       >
         {icone ? <span className="flex shrink-0 items-center">{icone}</span> : null}
         <span className="min-w-0 truncate">{rotulo}</span>

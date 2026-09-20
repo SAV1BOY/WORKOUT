@@ -6958,9 +6958,107 @@ que `width`/`height` existiam, então passava com o dado errado.
 
 (a preencher)
 
-### Rodada 3 — Lote 6
+### Rodada 3 — Lote 6 — Relatório: estrutura, números e conquistas (faixa B)
 
-(a preencher)
+SPEC §22.6. Dez itens, todos na faixa B (`/home/user/wt-b`, portas 3110/54331).
+
+**1. O Relatório em cinco seções dobráveis** (`components/relatorio/tela-relatorio.tsx`)
+— era: um `<Tela>` só empilhando Totais, aviso, Números, Conquistas, Histórico,
+sequências, Peso, IMC e a tela inteira de gráficos — **5.444 px** de rolagem, e
+quem quisesse o Histórico rolava às cegas. É: cinco `<details>` — **Resumo**,
+**Conquistas**, **Histórico**, **Corpo** e **Gráficos** —, cabeçalho `sticky`
+com alvo de 44 px, estado lembrado em `localStorage` (`relatorio:secoes`) e
+montagem preguiçosa (o conteúdo de uma seção fechada nunca é montado: a seção
+Gráficos não pede consulta nem desenha Recharts enquanto ninguém a abrir).
+Medido a 360 × 740: **1.211 px** de rolagem com a tela aberta como ela nasce
+(Resumo aberto), contra 5.444.
+
+**2. CLS 0,39/0,44 → 0,0016/0,0030** (`tela-relatorio.tsx`) — era: as ~10
+leituras resolviam depois da primeira pintura e o **aviso de conquista** nascia
+no alto da tela, empurrando 297 px de conteúdo já pintado para baixo (sozinho,
+0,3155 de CLS). É: o aviso mora ao lado do assunto dele (entre o Resumo e a
+seção Conquistas, fora da primeira dobra), cada seção reserva a própria caixa e
+o esqueleto dos Números tem a forma dos Números (cabeçalho, seletor de período,
+fileira de três, três linhas de detalhe, fileira de dois). Medido com
+`PerformanceObserver('layout-shift')`: **0,0016 no escuro e 0,0030 no claro**.
+
+**3 e 4. Conquistas em duas colunas, com progresso e separação**
+(`components/relatorio/conquistas.tsx`) — era: `grid-cols-3` a 360 px (cartão de
+~100 px, nome em três linhas, linhas de alturas diferentes) e um "7 de 26" solto
+no cabeçalho. É: `grid-cols-2 sm:grid-cols-3`, cartão em
+`grid-rows-[auto_1fr_auto]` com `line-clamp-2` no nome e `line-clamp-1` na
+legenda (texto inteiro no `title` e no nome acessível, §22.3 item 11), barra
+fina de progresso com `role="progressbar"` e dois grupos rotulados —
+**Conquistadas** e **A conquistar**, cada um com a contagem.
+
+**5. O aviso de conquista** (`components/relatorio/aviso-conquista.tsx`) — era:
+uma linha por conquista nova, com descrição, sem limite, com a data sempre
+visível (uma conquista de 1º de junho anunciada como novidade) e rotulada
+"Conquistas", igual ao título da seção da mesma tela. É: `novas.slice(0, 3)` com
+"e mais N conquistas · veja em Conquistas", **uma linha por conquista** (ícone,
+nome, data), data **escondida quando é a de hoje**, `role="status"` na `<section>`
+e o rótulo "Nova conquista" / "Novas conquistas".
+
+**6. Rótulos que se contradiziam** (`tela-relatorio.tsx`,
+`components/progresso/tela-progresso.tsx`) — era: "TREINOS / 51 / no total" no
+topo e "6 no mês · 46 no total" no card de treinos, na mesma rolagem. É:
+"SESSÕES / 51 / no total (força + cardio)" e "só força · 6 no mês · 46 de força
+no total".
+
+**7. Ladrilhos alinhados** (`components/relatorio/numeros.tsx`,
+`components/ui/contador.tsx`) — cada contador é `grid-rows-[auto_1fr_auto]`
+(rótulo, número, legenda colada no rodapé) e o ícone do rótulo subiu de 12 px
+para 14 px (`size-3.5 shrink-0`). O rótulo perdeu o `overflow-hidden`, que
+cortava o til de "SESSÕES" em versalete ("SESSOES"); quem corta o que não cabe
+na largura continua sendo o `truncate` de dentro.
+
+**8. Cabeçalho de seção com dois papéis separados** (`tela-relatorio.tsx`,
+`numeros.tsx`) — era: título e frase de explicação na mesma linha (a 360 px a
+frase comia metade da linha). É: contador curto ("7 de 26") na linha de base do
+título e a explicação como subtítulo de 12 px `muted` na linha de baixo — e só
+na seção **aberta**, para o cabeçalho recolhido ser uma linha de 56 px. O atalho
+"Catálogo de exercícios" saiu de cima dos totais e foi para o fim da tela: o
+Relatório começa pelos números.
+
+**9. Sem sigla nem notação matemática** (`tela-progresso.tsx`, `numeros.tsx`,
+`lib/formato.ts`) — "e1RM (Epley)" → "carga máxima estimada" (coluna
+"Máx. estimada"); "Σ reps × kg, últimas 12 semanas" → "Soma de repetições ×
+carga, nas últimas 12 semanas"; "Aderência (4 semanas)" → "Constância
+(4 semanas)"; "reps × kg nas séries de trabalho" → "repetições × carga nas
+séries de trabalho"; `${…} %` → `formatarPercentual()` ("78%", símbolo colado,
+um formato só no app, com unitário em `lib/formato.test.ts`); "Treino B 1" →
+"Treino B × 1" (e "Corrida × 1", na mesma lista); as linhas Força / Cardio /
+Barra fixa viraram `grid-cols-[5.5rem_1fr]`, com o valor sempre no mesmo x.
+
+**10. Legenda da faixa e cartão vazio de uma linha**
+(`components/relatorio/historico.tsx`, `tela-progresso.tsx`) — a faixa da semana
+ganhou "✓ feito · ○ a fazer · ● faltou · — descanso · hoje em destaque"; em
+"Carga dos grandes" o exercício sem registro virou **uma linha** (nome + "sem
+registro", 44 px) no lugar de um cartão de altura cheia com um vazio de gráfico
+dentro.
+
+**Provas.** Portões completos (lint, tsc, test, build, build:e2e, e2e,
+varredura) pelo `portoes.sh`, logs em
+`scratchpad/ultraloop/rodada-3/l6/logs`. Testes novos: `e2e/ultraloop-b-r3.spec.ts`
+(10 casos — rolagem < 1.500 px, memória da seção, CLS < 0,1 nos dois temas,
+duas colunas com linhas de mesma altura, o aviso de 3 linhas, rótulos que não se
+contradizem, linha de base dos números, nenhuma sigla, legenda e cartão de uma
+linha) e o bloco "porcentagem" em `lib/formato.test.ts`. Ajustados, sem
+afrouxar: `e2e/v3.spec.ts`, `e2e/conquistas.spec.ts`, `e2e/relatorio.spec.ts`,
+`e2e/retomada.spec.ts`, `e2e/auditoria-m5.spec.ts` (abrem a seção antes de
+medir) e `e2e/fixtures.ts` (o ajudante `abrirSecaoDoRelatorio`). Capturas nos
+dois temas em `scratchpad/ultraloop/rodada-3/l6/capturas/construtor`: mudaram só
+`11-relatorio-topo`, `12-relatorio-numeros`, `13-relatorio-conquistas`,
+`14-relatorio-historico` e `30-player-conclusao` — nenhuma tela fora da lista.
+
+**Como testar no celular.** Abra `/relatorio`: a tela começa pelos três
+acumulados ("SESSÕES · 51 · no total (força + cardio)") e pelos Números; os
+outros quatro blocos são cabeçalhos de um toque. Abra "Conquistas": a barra de
+progresso diz quantas faltam e os cartões vêm em duas colunas, separados entre
+"Conquistadas" e "A conquistar". Feche o Resumo, saia da tela e volte: a
+memória das seções é a sua. Abra "Histórico": a legenda da faixa está logo
+abaixo dela. Abra "Gráficos": nada de sigla — "Constância (4 semanas)", "78%",
+"carga máxima estimada" — e o exercício sem registro ocupa uma linha só.
 
 ### Fila (o que não coube)
 

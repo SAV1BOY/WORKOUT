@@ -1605,6 +1605,67 @@ a tela — afrouxar o limite não é uma opção.
 
 (a preencher pelo lote)
 
-### 22.6 Lote 6
+### 22.6 Lote 6 — Relatório: estrutura, números e conquistas
 
-(a preencher pelo lote)
+1. **O Relatório vira cinco seções dobráveis.** Os 5.444 px de rolagem de uma
+   `<Tela>` só passam a cinco `<details>` — **Resumo** (totais, Números e
+   sequências), **Conquistas**, **Histórico**, **Corpo** (peso e IMC) e
+   **Gráficos** — cada um com o cabeçalho grudado no topo (`sticky`) e o
+   estado lembrado em `localStorage` (`relatorio:secoes`). A tela **abre com
+   o Resumo** e as outras recolhidas: menos de 1.500 px de rolagem a
+   360 × 740, e todo bloco a um toque do cabeçalho. O conteúdo de uma seção
+   só é montado quando ela abre pela primeira vez — a seção Gráficos não
+   pede as consultas nem desenha os Recharts enquanto ninguém a abrir.
+2. **A caixa vem antes do dado.** Cada seção reserva a própria altura
+   (`min-height` por seção, a mesma da versão final) e o esqueleto do Resumo
+   tem a forma do Resumo (três contadores, o seletor de período, a grade de
+   números e as duas sequências), em vez de um esqueleto genérico que
+   empurrava tudo quando as ~10 leituras chegavam. Alvo: **CLS < 0,1** em
+   `/relatorio` nos dois temas (medido 0,3895 no escuro e 0,4430 no claro).
+3. **Cabeçalho de seção com dois papéis separados.** O contador curto
+   ("7 de 26") fica na linha de base do título, à direita; a frase de
+   explicação desce para um subtítulo de 12 px `muted`. Nenhum título de
+   seção divide a linha com uma frase — a 360 px uma frase de 203 px ao lado
+   do título roubava a leitura. O atalho "Catálogo de exercícios" sai de
+   cima dos totais e vai para o fim da tela: o Relatório **começa pelos
+   números**.
+4. **Contadores sem rótulos que se contradizem.** O contador acumulado do
+   topo passa a ser **"Sessões · no total (força + cardio)"** (51) e o card de
+   treinos do bloco de gráficos diz **"só força · 6 no mês · 46 de força no
+   total"** (46): o mesmo rótulo "no total" não devolve mais dois números
+   diferentes na mesma rolagem.
+5. **Conquistas em duas colunas, com progresso e separação.** A grade é
+   `grid-cols-2 sm:grid-cols-3` (a 360 px três colunas espremiam o cartão),
+   o subtítulo tem `line-clamp-2` com o texto inteiro no `title` (§22.3
+   item 11) e a altura do cartão é travada. Sob o título entram uma barra
+   fina de progresso ("7 de 26") e dois grupos rotulados — **Conquistadas**
+   e **A conquistar** —, para saber quantas faltam sem contar cartão por
+   cartão.
+6. **O aviso de conquista não vira lista.** No máximo **3** linhas, com
+   "e mais N" quando houver mais; a data **só aparece quando não é a de
+   hoje** (anunciar como novidade uma conquista de 1º de junho tira a
+   credibilidade); a `<section>` leva `role="status"` para o leitor de tela
+   anunciar quando ela surge; e o rótulo passa a ser **"Nova conquista"**,
+   que não colide com o título da seção "Conquistas" da mesma tela.
+7. **Ladrilho de número alinhado.** Cada contador é uma grade
+   `grid-rows-[auto_1fr_auto]`: o rótulo ocupa a primeira linha de altura
+   fixa, o número cresce na do meio e a legenda cola no rodapé do card —
+   os números de uma fileira caem na mesma linha de base mesmo quando um
+   rótulo é mais longo. O ícone do rótulo sobe de 12 px para 14 px
+   (`size-3.5`, `shrink-0`): a 12 px ele sumia ao lado de um número de
+   24–30 px. E o rótulo perdeu o `overflow-hidden`: a caixa de 16 px cortava
+   o til de "SESSÕES" em versalete ("SESSOES"); quem corta o que não cabe na
+   largura continua sendo o `truncate`.
+8. **Sem sigla nem notação sem tradução.** "e1RM (Epley)" vira "carga máxima
+   estimada", "Σ reps × kg" vira "soma de repetições × carga, nas últimas 12
+   semanas", "Aderência" vira "Constância (4 semanas)" e a contagem se separa
+   do nome do treino ("Treino B × 1", não "Treino B 1"). A porcentagem tem um
+   formato só no app — `formatarPercentual()` em `lib/formato.ts`, com o
+   símbolo colado ("78%") —, no lugar do `${…} %` escrito à mão. As linhas
+   Força / Cardio / Barra fixa viram uma grade `grid-cols-[5.5rem_1fr]`, com
+   o valor sempre no mesmo x.
+9. **Legenda da faixa e cartão vazio de uma linha.** O histórico ganha uma
+   legenda de uma linha sob a faixa da semana ("✓ feito · ● hoje · ○ a
+   fazer · — descanso"); em "Carga dos grandes" o exercício sem registro
+   encolhe para uma linha (nome + "sem registro"), em vez de um cartão de
+   altura cheia com um vazio de gráfico dentro.

@@ -101,8 +101,6 @@ export function Historico({
 
   return (
     <section aria-label="Histórico" className="flex flex-col gap-3">
-      <h2 className="text-base font-semibold">Histórico</h2>
-
       <FaixaSemana
         dias={dias}
         rotulo={`${formatarData(inicio)} a ${formatarData(fim)}`}
@@ -119,6 +117,14 @@ export function Historico({
             : undefined
         }
       />
+
+      {/*
+        SPEC §22.6 item 9: as marcas da faixa não se explicavam sozinhas — um
+        ✓, um anel vazio e um traço cinza, sem uma palavra em volta.
+      */}
+      <p className="text-muted-foreground text-micro -mt-1.5 text-center text-balance">
+        ✓ feito · ○ a fazer · ● faltou · — descanso · hoje em destaque
+      </p>
 
       <div className="flex items-baseline justify-between gap-2">
         <h3 className="text-sm font-semibold">

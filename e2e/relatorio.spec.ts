@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import {
+  abrirSecaoDoRelatorio,
   entrarNoApp,
   fixarData,
   inserirNoMock,
@@ -107,6 +108,8 @@ test.describe("Relatório (SPEC §3.7 e §13.5)", () => {
     await entrarNoApp(page);
     await irNaAba(page, "Relatório");
     await expect(page.getByRole("heading", { name: "Relatório" })).toBeVisible();
+    /* SPEC §22.6 item 1: os gráficos moram numa seção dobrável */
+    await abrirSecaoDoRelatorio(page, "graficos");
 
     // 2 treinos na semana civil (14 e 16/09)
     const treinos = page.locator("div", { hasText: /^Treinos na semana/ }).last();
@@ -114,8 +117,8 @@ test.describe("Relatório (SPEC §3.7 e §13.5)", () => {
     await expect(treinos).toContainText("2 no mês");
 
     // seg (força ✓), ter (cardio ✓), qua (força ✓) = 3 de 3
-    const ade = page.locator("div", { hasText: /^Aderência \(4 semanas\)/ }).last();
-    await expect(ade).toContainText("100 %");
+    const ade = page.locator("div", { hasText: /^Constância \(4 semanas\)/ }).last();
+    await expect(ade).toContainText("100%");
     await expect(ade).toContainText("3 de 3 dias");
 
     // volume da semana: 7,5×5 + 7,5×5 + 7,5×8 + 11,5×5 = 192,5 → 193 kg
@@ -137,6 +140,7 @@ test.describe("Relatório (SPEC §3.7 e §13.5)", () => {
     await fixarData(page, QUARTA);
     await entrarNoApp(page);
     await page.goto("/relatorio");
+    await abrirSecaoDoRelatorio(page, "graficos");
 
     // um gráfico por grande, mesmo com um ponto só
     await expect(page.getByLabel("Carga do Agachamento livre por sessão")).toBeVisible();
@@ -144,7 +148,10 @@ test.describe("Relatório (SPEC §3.7 e §13.5)", () => {
     await expect(
       page.getByLabel("Carga do Desenvolvimento militar em pé por sessão"),
     ).toBeHidden();
-    await expect(page.getByText("Sem sessão registrada ainda.").first()).toBeVisible();
+    /* SPEC §22.6 item 9: sem registro, o grande vira UMA linha */
+    await expect(
+      page.locator('[data-grande="desenvolvimento-militar-em-pe"]'),
+    ).toContainText("sem registro");
 
     await expect(page.getByLabel("Volume por semana")).toBeVisible();
     await expect(page.getByLabel("Repetições de barra fixa por semana")).toBeVisible();
@@ -166,6 +173,7 @@ test.describe("Relatório (SPEC §3.7 e §13.5)", () => {
     await page.goto("/relatorio");
 
     await expect(page.getByRole("heading", { name: "Relatório" })).toBeVisible();
+    await abrirSecaoDoRelatorio(page, "graficos");
     await expect(
       page.getByText("O volume aparece depois do primeiro treino registrado."),
     ).toBeVisible();
@@ -179,6 +187,7 @@ test.describe("Relatório (SPEC §3.7 e §13.5)", () => {
     await fixarData(page, QUARTA);
     await entrarNoApp(page);
     await page.goto("/relatorio");
+    await abrirSecaoDoRelatorio(page, "graficos");
 
     await page.getByRole("link", { name: "Agachamento livre" }).first().click();
     await expect(

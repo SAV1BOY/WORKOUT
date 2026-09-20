@@ -1,0 +1,362 @@
+/**
+ * Ultraloop 20/09 — Rodada 3, Lote 6 (SPEC §22.6): o Relatório em seções,
+ * a caixa reservada antes do dado, as conquistas em duas colunas e os
+ * rótulos que pararam de se contradizer. Um teste por item que se vê.
+ */
+import { expect, test, type Page } from "@playwright/test";
+import {
+  abrirSecaoDoRelatorio as abrirSecao,
+  entrarNoApp,
+  fixarData,
+  inserirNoMock,
+  resetarMock,
+  semRolagemHorizontal,
+  usuarioComPerfil,
+  type SessaoMock,
+} from "./fixtures";
+
+/** Quarta, 16/09/2026 (SPEC §5). */
+const QUARTA = "2026-09-16T08:00:00-03:00";
+
+/** As cinco seções dobráveis, na ordem da tela. */
+const SECOES = ["resumo", "conquistas", "historico", "corpo", "graficos"] as const;
+
+function uuid(prefixo: string, n: number): string {
+  return `${prefixo}-0000-4000-8000-${String(n).padStart(12, "0")}`;
+}
+
+/**
+ * Doze sessões de força concluídas entre junho e setembro: o bastante para
+ * fechar várias conquistas de uma vez (é o que o aviso precisa) e para o
+ * Histórico e os gráficos terem o que desenhar.
+ */
+async function semearForca(sessao: SessaoMock, quantas = 12): Promise<void> {
+  const datas = [
+    "2026-06-01",
+    "2026-06-03",
+    "2026-06-08",
+    "2026-06-10",
+    "2026-06-15",
+    "2026-06-17",
+    "2026-06-22",
+    "2026-06-24",
+    "2026-09-14",
+    "2026-09-15",
+    "2026-09-16",
+    "2026-09-16",
+  ].slice(0, quantas);
+  await inserirNoMock(
+    sessao,
+    "sessions",
+    datas.map((data, i) => ({
+      id: uuid("aaaaaaaa", i + 1),
+      data,
+      workout_id: i % 2 === 0 ? "A1" : "B1",
+      fase: "fase1",
+      status: "concluida",
+      concluida_em: `${data}T13:00:00.000Z`,
+      duracao_s: 2700,
+    })),
+  );
+  await inserirNoMock(sessao, "session_sets", [
+    {
+      id: uuid("dddddddd", 1),
+      session_id: uuid("aaaaaaaa", 9),
+      exercise_id: "agachamento-livre",
+      ordem_ex: 1,
+      set_index: 1,
+      tipo: "trabalho",
+      reps: 5,
+      carga_kg: 20,
+      concluida: true,
+      registrada_em: "2026-09-14T13:00:00.000Z",
+    },
+  ]);
+}
+
+/** Abre a tela já logada, com o relógio preso na quarta. */
+async function abrirRelatorio(page: Page): Promise<void> {
+  await fixarData(page, QUARTA);
+  await entrarNoApp(page);
+  await page.goto("/relatorio");
+  await expect(page.getByRole("heading", { name: "Relatório" })).toBeVisible();
+}
+
+/** O `<details>` de uma seção e o cabeçalho que a abre. */
+function secao(page: Page, id: string) {
+  return page.locator(`details[data-secao="${id}"]`);
+}
+
+test.beforeEach(async () => {
+  await resetarMock();
+});
+
+/* ---------------------------------------------------- item 1: as seções */
+
+test("§22.6-1: o Relatório abre com menos de 1.500 px e cada bloco a um toque", async ({
+  page,
+}) => {
+  const sessao = await usuarioComPerfil();
+  await semearForca(sessao);
+  await abrirRelatorio(page);
+  await page.waitForTimeout(800);
+
+  /* a tela abre pelo Resumo, com as outras quatro recolhidas */
+  for (const id of SECOES) {
+    await expect(secao(page, id)).toHaveCount(1);
+  }
+  expect(
+    await secao(page, "resumo").evaluate((d) => (d as HTMLDetailsElement).open),
+  ).toBe(true);
+  for (const id of ["conquistas", "historico", "corpo", "graficos"]) {
+    expect(
+      await secao(page, id).evaluate((d) => (d as HTMLDetailsElement).open),
+      id,
+    ).toBe(false);
+  }
+
+  const rolagem = await page.evaluate(() => document.documentElement.scrollHeight);
+  expect(rolagem, `rolagem de ${rolagem} px`).toBeLessThan(1500);
+
+  /* todo bloco é alcançável por UM toque no cabeçalho */
+  for (const id of SECOES) {
+    await abrirSecao(page, id);
+    await expect(secao(page, id).locator("summary")).toBeVisible();
+  }
+  await expect(page.getByRole("region", { name: "Números" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Conquistas" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Histórico" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Peso" })).toBeVisible();
+
+  /* o cabeçalho de toda seção tem alvo de dedo */
+  for (const id of SECOES) {
+    const caixa = await secao(page, id).locator("summary").boundingBox();
+    expect(caixa?.height ?? 0, id).toBeGreaterThanOrEqual(44);
+  }
+  await semRolagemHorizontal(page);
+});
+
+test("§22.6-1: a seção aberta é lembrada na próxima visita", async ({ page }) => {
+  const sessao = await usuarioComPerfil();
+  await semearForca(sessao);
+  await abrirRelatorio(page);
+
+  await abrirSecao(page, "conquistas");
+  await secao(page, "resumo").locator("summary").click();
+
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "Relatório" })).toBeVisible();
+  await expect(secao(page, "conquistas")).toHaveAttribute("open", "");
+  expect(
+    await secao(page, "resumo").evaluate((d) => (d as HTMLDetailsElement).open),
+  ).toBe(false);
+});
+
+/* ------------------------------------------------------- item 2: o CLS */
+
+for (const tema of ["dark", "light"] as const) {
+  test(`§22.6-2: o CLS de /relatorio fica abaixo de 0,1 — tema ${tema}`, async ({
+    page,
+  }) => {
+    const sessao = await usuarioComPerfil();
+    await semearForca(sessao);
+    await page.emulateMedia({ colorScheme: tema });
+    await fixarData(page, QUARTA);
+    await entrarNoApp(page);
+
+    await page.addInitScript(() => {
+      (window as unknown as { __cls: number }).__cls = 0;
+      new PerformanceObserver((lista) => {
+        for (const e of lista.getEntries() as (PerformanceEntry & {
+          value: number;
+          hadRecentInput: boolean;
+        })[]) {
+          if (!e.hadRecentInput) {
+            (window as unknown as { __cls: number }).__cls += e.value;
+          }
+        }
+      }).observe({ type: "layout-shift", buffered: true });
+    });
+
+    await page.goto("/relatorio");
+    await expect(page.getByRole("heading", { name: "Relatório" })).toBeVisible();
+    await page.waitForTimeout(2500);
+
+    const cls = await page.evaluate(
+      () => (window as unknown as { __cls: number }).__cls,
+    );
+    expect(cls, `CLS ${cls.toFixed(4)} no tema ${tema}`).toBeLessThan(0.1);
+  });
+}
+
+/* ------------------------------------------- itens 4 e 5: as conquistas */
+
+test("§22.6-5: duas colunas, linhas de mesma altura e progresso visível", async ({
+  page,
+}) => {
+  const sessao = await usuarioComPerfil();
+  await semearForca(sessao);
+  await abrirRelatorio(page);
+  await abrirSecao(page, "conquistas");
+
+  const grade = page.getByRole("region", { name: "Conquistas" });
+  await expect(grade).toBeVisible();
+
+  /* a barra de progresso diz quantas faltam sem contar cartão a cartão */
+  const barra = grade.getByRole("progressbar", { name: "Conquistas fechadas" });
+  await expect(barra).toBeVisible();
+  const total = Number(await barra.getAttribute("aria-valuemax"));
+  const feitas = Number(await barra.getAttribute("aria-valuenow"));
+  expect(total).toBe(26);
+  expect(feitas).toBeGreaterThan(0);
+
+  /* os dois grupos rotulados */
+  await expect(grade.getByRole("list", { name: "Conquistadas" })).toBeVisible();
+  await expect(grade.getByRole("list", { name: "A conquistar" })).toBeVisible();
+
+  /* duas colunas a 360 px: os dois primeiros cartões dividem a linha */
+  const cartoes = grade.getByRole("list", { name: "A conquistar" }).getByRole("button");
+  const caixas = await cartoes.evaluateAll((els) =>
+    els.map((e) => {
+      const r = e.getBoundingClientRect();
+      return { x: Math.round(r.x), y: Math.round(r.y), h: Math.round(r.height) };
+    }),
+  );
+  expect(caixas.length).toBeGreaterThan(2);
+  const porLinha = caixas.filter((c) => c.y === caixas[0]!.y).length;
+  expect(porLinha, "cartões por linha a 360 px").toBe(2);
+
+  /* toda linha tem a mesma altura */
+  const alturasPorLinha = new Map<number, number[]>();
+  for (const c of caixas) {
+    alturasPorLinha.set(c.y, [...(alturasPorLinha.get(c.y) ?? []), c.h]);
+  }
+  for (const [y, alturas] of alturasPorLinha) {
+    expect(Math.max(...alturas) - Math.min(...alturas), `linha y=${y}`).toBeLessThanOrEqual(1);
+  }
+
+  /* e nenhum título quebra em três linhas */
+  const linhasDoTitulo = await cartoes
+    .locator("span.line-clamp-2")
+    .evaluateAll((els) =>
+      els.map((e) => {
+        const cs = getComputedStyle(e);
+        return Math.round(e.getBoundingClientRect().height / parseFloat(cs.lineHeight));
+      }),
+    );
+  expect(Math.max(...linhasDoTitulo)).toBeLessThanOrEqual(2);
+  await semRolagemHorizontal(page);
+});
+
+/* ---------------------------------------------- item 6: o aviso de nova */
+
+test("§22.6-6: o aviso corta em 3, esconde a data de hoje e é um status", async ({
+  page,
+}) => {
+  const sessao = await usuarioComPerfil({ prefs: { conquistas_vistas: [] } });
+  await semearForca(sessao);
+  await abrirRelatorio(page);
+
+  const aviso = page.getByRole("status", { name: "Conquista nova" });
+  await expect(aviso).toBeVisible();
+
+  const ids = (await aviso.getAttribute("data-aviso-conquista"))?.split(" ") ?? [];
+  expect(ids.length, "a semente fecha mais de 3 conquistas de uma vez").toBeGreaterThan(3);
+
+  await expect(aviso.getByRole("listitem")).toHaveCount(3);
+  await expect(aviso).toContainText("e mais");
+  /* o rótulo não repete o título da seção "Conquistas" da mesma tela */
+  await expect(aviso).toContainText("Novas conquistas");
+
+  /* data só do que não é de hoje: nada de 16/09 anunciado como novidade */
+  await expect(aviso).not.toContainText("16/09");
+});
+
+/* --------------------------------------- itens 3, 4, 7 e 8: os rótulos */
+
+test("§22.6-4: nenhum par de números com o mesmo rótulo se contradiz", async ({
+  page,
+}) => {
+  const sessao = await usuarioComPerfil();
+  await semearForca(sessao);
+  await abrirRelatorio(page);
+
+  const totais = page.getByRole("region", { name: "Totais" });
+  const sessoes = totais.locator('[data-contador="Sessões"]');
+  await expect(sessoes).toContainText("no total (força + cardio)");
+
+  await abrirSecao(page, "graficos");
+  const treinos = page.getByText(/de força no total/).first();
+  await expect(treinos).toBeVisible();
+
+  /* "no total" sozinho não aparece mais em dois lugares com números diferentes */
+  const corpo = ((await page.locator("body").textContent()) ?? "").toLowerCase();
+  expect(corpo).not.toContain("no mês · 46 no total");
+});
+
+test("§22.6-7: os números de uma fileira caem na mesma linha de base", async ({
+  page,
+}) => {
+  const sessao = await usuarioComPerfil();
+  await semearForca(sessao);
+  await abrirRelatorio(page);
+
+  for (const regiao of ["Totais", "Sequências"]) {
+    const numeros = page
+      .getByRole("region", { name: regiao })
+      .locator(".numero-grande");
+    const tops = await numeros.evaluateAll((els) =>
+      els.map((e) => Math.round(e.getBoundingClientRect().top)),
+    );
+    expect(tops.length).toBeGreaterThan(1);
+    expect(Math.max(...tops) - Math.min(...tops), regiao).toBeLessThanOrEqual(1);
+  }
+
+  /* o ícone do rótulo tem 14 px: a 12 px ele sumia ao lado do número */
+  const icone = page
+    .getByRole("region", { name: "Totais" })
+    .locator("[data-rotulo] svg")
+    .first();
+  const caixa = await icone.boundingBox();
+  expect(Math.round(caixa?.width ?? 0)).toBe(14);
+});
+
+test("§22.6-8: nenhuma sigla nem notação matemática sem tradução", async ({ page }) => {
+  const sessao = await usuarioComPerfil();
+  await semearForca(sessao);
+  await abrirRelatorio(page);
+  for (const id of SECOES) await abrirSecao(page, id);
+  await page.waitForTimeout(400);
+
+  const texto = (await page.locator("body").textContent()) ?? "";
+  expect(texto).not.toContain("e1RM");
+  expect(texto).not.toContain("Σ");
+  expect(texto).not.toContain("Aderência");
+  expect(texto).toContain("Constância (4 semanas)");
+  expect(texto).toContain("carga máxima estimada");
+  /* um formato só de porcentagem: colado, nunca "78 %" */
+  expect(texto).not.toMatch(/\d\s%/);
+  /* a contagem separada do nome do treino */
+  expect(texto).toMatch(/Treino [AB] × \d/);
+});
+
+/* ------------------------------------- item 9: legenda e cartão de uma linha */
+
+test("§22.6-9: a faixa tem legenda e o exercício sem registro é uma linha", async ({
+  page,
+}) => {
+  const sessao = await usuarioComPerfil();
+  await semearForca(sessao);
+  await abrirRelatorio(page);
+
+  await abrirSecao(page, "historico");
+  const historico = page.getByRole("region", { name: "Histórico" });
+  await expect(historico.getByText("✓ feito", { exact: false })).toBeVisible();
+
+  await abrirSecao(page, "graficos");
+  const vazio = page.locator('[data-grande="desenvolvimento-militar-em-pe"]');
+  await expect(vazio).toContainText("sem registro");
+  const caixa = await vazio.boundingBox();
+  expect(caixa?.height ?? 0, "o card sem registro é uma linha").toBeLessThanOrEqual(48);
+  await expect(page.getByText("Sem sessão registrada ainda.")).toHaveCount(0);
+});

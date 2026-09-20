@@ -369,3 +369,18 @@ export async function abrirVisaoGeral(page: Page): Promise<void> {
   await lista.click();
   await page.getByRole("heading", { level: 1 }).waitFor();
 }
+
+/**
+ * Abre uma das cinco seções dobráveis do Relatório (SPEC §22.6 item 1):
+ * `resumo`, `conquistas`, `historico`, `corpo` ou `graficos`. A tela abre só
+ * com o Resumo — as outras estão a um toque do cabeçalho, e é esse toque que
+ * este ajudante dá. Se a seção já estiver aberta (o estado é lembrado em
+ * `localStorage`), não faz nada.
+ */
+export async function abrirSecaoDoRelatorio(page: Page, id: string): Promise<void> {
+  const secao = page.locator(`details[data-secao="${id}"]`);
+  await secao.waitFor();
+  if (await secao.evaluate((d) => (d as HTMLDetailsElement).open)) return;
+  await secao.locator("summary").click();
+  await expect(secao).toHaveAttribute("open", "");
+}
