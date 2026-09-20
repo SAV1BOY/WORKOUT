@@ -6460,8 +6460,8 @@ Arquivo: `components/nav-inferior.tsx`.
 Era: "Nenhum exercício com esses filtros." numa linha, sem dizer o que fazer.
 É: `components/ui/vazio.tsx` — ícone, título curto, uma frase e a ação quando
 ela existe — nos oito: catálogo e parte do corpo ("Limpar filtros"), Explorar e
-treino personalizado ("Limpar busca"), histórico do Relatório ("Ver todos os
-registros" / "Ver o treino de hoje"), gráficos sem dado, conquistas ainda não
+treino personalizado ("Limpar busca"), histórico do Relatório ("Ver o histórico
+completo" / "Ver o treino de hoje"), gráficos sem dado, conquistas ainda não
 avaliadas e Mais → Contas. Textos de **interface**; nada de conteúdo de treino,
 que só sai dos JSON. Arquivos: `components/ui/vazio.tsx` e os oito usos.
 

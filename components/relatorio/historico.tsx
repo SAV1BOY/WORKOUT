@@ -150,10 +150,11 @@ export function Historico({
             tudo
               ? { rotulo: "Ver o treino de hoje", href: "/" }
               : {
-                  /* "Ver todos…" e não "Todos os registros": o botão de cima
-                     já usa esse rótulo, e dois controles com o mesmo nome na
-                     mesma região confundem leitor de tela e teste. */
-                  rotulo: "Ver todos os registros",
+                  /* Rótulo próprio, sem repetir nem CONTER o do botão de
+                     cima ("Todos os registros"): dois controles com nomes que
+                     se sobrepõem na mesma região confundem leitor de tela — e
+                     o locator por nome acessível casa com os dois. */
+                  rotulo: "Ver o histórico completo",
                   aoTocar: () => {
                     setTudo(true);
                     setPaginas(1);

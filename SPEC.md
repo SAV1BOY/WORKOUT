@@ -1485,7 +1485,7 @@ a tela — afrouxar o limite não é uma opção.
 9. **Estado vazio com saída.** `components/ui/vazio.tsx` (ícone, título curto,
    frase e ação opcional) substitui os `<p>` tracejados de uma linha nos oito
    vazios secos, cada um com a ação útil quando existe ("Limpar filtros",
-   "Limpar busca", "Ver todos os registros", "Ver o treino de hoje").
+   "Limpar busca", "Ver o histórico completo", "Ver o treino de hoje").
 10. **Esqueleto com a forma da tela.** Além do `EsqueletoCard`, há
     `EsqueletoCapa` (a capa do dia da aba Treino), `EsqueletoGrade3` (os três
     contadores do Relatório) e `EsqueletoLista` (linhas com miniatura).
