@@ -1,7 +1,7 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useState } from "react";
-import { FichaEmFolha } from "@/components/exercicio/ficha-folha";
 import { useTemVideo } from "@/components/videos-do-app";
 import { Miniatura } from "@/components/ui/miniatura";
 import { Raios } from "@/components/ui/raios";
@@ -9,6 +9,17 @@ import { acharExercicio } from "@/lib/dados";
 import { dificuldadeDe } from "@/lib/dificuldade";
 import { evitado } from "@/lib/preferencias";
 import type { Prefs } from "@/lib/types";
+
+/**
+ * SPEC §22.4 item 10: a ficha em folha (mídia grande, mapa anatômico, tutorial
+ * e o iframe do YouTube) só existe depois de um toque no "?" — carregá-la
+ * junto com a tela era peso parado no caminho de quem só quer treinar. Entra
+ * por `next/dynamic`, no primeiro toque.
+ */
+const FichaEmFolha = dynamic(
+  () => import("@/components/exercicio/ficha-folha").then((m) => m.FichaEmFolha),
+  { ssr: false },
+);
 
 /**
  * A lista de exercícios de uma coleção (SPEC §14.3): miniatura, nome,
@@ -42,7 +53,7 @@ export function ListaDaColecao({
                 onClick={() => setFicha(id)}
                 className="hover:bg-muted/40 alvo -mx-1 flex w-[calc(100%+0.5rem)] items-center gap-3 rounded-xl px-1 py-2 text-left"
               >
-                <Miniatura exercicioId={id} decorativa />
+                <Miniatura exercicioId={id} />
                 <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                   <span className="flex items-center gap-1.5">
                     <span className="min-w-0 flex-1 text-sm font-medium text-balance">
@@ -70,13 +81,15 @@ export function ListaDaColecao({
           );
         })}
       </ul>
-      <FichaEmFolha
-        exercicioId={ficha}
-        aberto={ficha !== null}
-        aoMudarAberto={(v) => setFicha(v ? ficha : null)}
-        prefs={prefs}
-        temVideo={temVideo}
-      />
+      {ficha !== null ? (
+        <FichaEmFolha
+          exercicioId={ficha}
+          aberto
+          aoMudarAberto={(v) => setFicha(v ? ficha : null)}
+          prefs={prefs}
+          temVideo={temVideo}
+        />
+      ) : null}
     </>
   );
 }

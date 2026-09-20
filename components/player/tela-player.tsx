@@ -1,11 +1,11 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Erro, EsqueletoCard } from "@/components/carregando";
-import { FichaEmFolha, type ContextoDaFicha } from "@/components/exercicio/ficha-folha";
-import { AjustesDoTreino } from "@/components/mais/ajustes-do-treino";
+import type { ContextoDaFicha } from "@/components/exercicio/ficha-folha";
 import { TelaConclusao } from "@/components/player/conclusao";
 import { TelaDescanso } from "@/components/player/descanso";
 import { TelaExercicio } from "@/components/player/exercicio";
@@ -57,6 +57,23 @@ import {
   type SessaoLocal,
 } from "@/lib/sessao";
 
+
+/**
+ * SPEC §22.4 item 10: a ficha em folha traz junto o tutorial e o iframe do
+ * YouTube, e nada disso aparece antes de alguém tocar no "?". Com
+ * `next/dynamic` ela sai do caminho da primeira série — a rota do player era
+ * a mais pesada do app — e chega no primeiro toque.
+ */
+const FichaEmFolha = dynamic(
+  () => import("@/components/exercicio/ficha-folha").then((m) => m.FichaEmFolha),
+  { ssr: false },
+);
+
+/** Idem para a folha de ajustes: ela é a mesma tela de Mais → Preferências. */
+const AjustesDoTreino = dynamic(
+  () => import("@/components/mais/ajustes-do-treino").then((m) => m.AjustesDoTreino),
+  { ssr: false, loading: () => <EsqueletoCard linhas={3} /> },
+);
 /**
  * O player (SPEC §14.1): preparação → exercício → descanso → "firme?" →
  * feedback → conclusão, para qualquer sessão de força.
@@ -250,14 +267,17 @@ export function TelaPlayer({
 
   const folha = (
     <>
-      <FichaEmFolha
-        exercicioId={ficha}
-        aberto={ficha !== null}
-        aoMudarAberto={(v) => setFicha(v ? ficha : null)}
-        temVideo={ficha !== null && videos.includes(ficha)}
-        contexto={contextoDaFicha}
-        prefs={prefs}
-      />
+      {/* a folha já devolvia `null` sem exercício: aqui ela também não baixa */}
+      {ficha !== null ? (
+        <FichaEmFolha
+          exercicioId={ficha}
+          aberto
+          aoMudarAberto={(v) => setFicha(v ? ficha : null)}
+          temVideo={videos.includes(ficha)}
+          contexto={contextoDaFicha}
+          prefs={prefs}
+        />
+      ) : null}
       <Sheet open={ajustar} onOpenChange={setAjustar}>
         <SheetContent side="bottom" className="max-h-[88dvh] overflow-y-auto pb-8">
           <SheetHeader className="pb-0">
@@ -267,7 +287,7 @@ export function TelaPlayer({
             </SheetDescription>
           </SheetHeader>
           <div className="px-4">
-            {perfil ? (
+            {perfil && ajustar ? (
               <AjustesDoTreino userId={perfil.user_id} perfil={perfil} />
             ) : (
               <EsqueletoCard linhas={3} />

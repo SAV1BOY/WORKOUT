@@ -6365,9 +6365,173 @@ e os três problemas foram corrigidos:
 
 (a preencher)
 
-### Rodada 2 — Lote 4
+### Rodada 2 — Lote 4 — imagens, mídia e entrega (faixa B)
 
-(a preencher)
+Branch `ultraloop/l4-imagens-midia-entrega`, a partir de
+`ultraloop/l2-relatorio-corpo-calendario`. SPEC §22.4.
+
+#### 1. Derivadas de imagem no prebuild (L4-1)
+
+**Era:** `public/fotos` (11 MB, 162 JPEG de 850×567) e `public/itens` (6,2 MB,
+85 JPEG) só tinham o arquivo original, e o app nunca gerou derivada nenhuma.
+A miniatura de 56 px recebia os 850 px inteiros — 7,6× o necessário, 71 kB
+por linha de lista — e a capa de 326×160 recebia a mesma foto a 1,30×, que no
+retina é mole.
+
+**É:** `npm run assets` (prebuild) gera em `public/`, com `sharp` e cache por
+data de modificação:
+
+| derivada | tamanho | de quem |
+| --- | --- | --- |
+| `<nome>.webp` | até 1200 px, q78 | fotos e itens |
+| `<nome>-mini.webp` | 112×112 | fotos, ilustrações e itens |
+| `<nome>-capa.webp` | 720×360 | as fotos `-1` que viram capa |
+
+720 arquivos em 7,7 s na primeira vez, nada nas seguintes. A miniatura ficou
+com **2,4 kB de média** (era 71 kB: 29×) e a capa com 22 kB (era 71 kB).
+`lib/midia.ts` (`urlWebp`, `urlMiniatura`, `temDerivada`) e `lib/capas.ts`
+(`urlCapa`) montam o nome; a imagem cai sozinha no arquivo original quando a
+derivada falta (`onError` em dois degraus), então um build sem
+`npm run assets` continua desenhando. `scripts/validar-dados.ts` recusa um
+arquivo do kit chamado `-mini`/`-capa` ou um `.webp` ao lado de um `.jpg` de
+mesmo nome — a derivada o sobrescreveria em silêncio. Nada disso entra em
+`assets/` nem no git.
+
+Arquivos: `scripts/copiar-assets.ts`, `scripts/validar-dados.ts`,
+`lib/midia.ts`, `lib/capas.ts`, `components/ui/miniatura.tsx`,
+`components/ui/card-capa.tsx`, `components/colecoes/linha-colecao.tsx`,
+`components/mais/tela-equipamento.tsx`.
+
+#### 2. Cache-Control da mídia (performance-05)
+
+**Era:** `next.config.ts` devolvia só os cabeçalhos de segurança para
+`/:caminho*`, então toda imagem saía com `max-age=0` — 12 revalidações 304
+numa navegação pela aba Treino.
+**É:** `/fotos`, `/ilustracoes`, `/itens`, `/figuras`, `/icons` e
+`/mapa-muscular` saem com `public, max-age=604800, stale-while-revalidate=86400`.
+Uma semana em vez de `immutable`: o nome do arquivo não tem hash e trocar uma
+foto não pode ficar preso a um renomeio.
+
+#### 3. Dimensões, lazy, decoding e prioridade (L4-2)
+
+**Era:** 15 `<img>` sem `width`/`height` (com `data/ilustracoes.json` trazendo
+largura e altura), sem `decoding` e, em vários casos, sem `loading`.
+**É:** `midiaGrande()` devolve `largura`/`altura`; a ilustração, a figura, as
+fotos do corpo, a foto ampliada, a miniatura do tutorial e as miniaturas das
+listas levam tamanho, `loading` e `decoding="async"`. A capa da primeira dobra
+(o cartão com selo "hoje"/"em andamento", um por tela) é `loading="eager"` +
+`fetchpriority="high"`; as outras capas ficam `lazy`.
+
+#### 4. Enquadramento e texto alternativo da miniatura (imagens-08)
+
+**Era:** 52 dos 145 arquivos de ilustração são mais altos que largos
+(proporção até 0,35) e apareciam encolhidos no meio da caixa quadrada, com
+`object-contain`, enquanto a foto usava `object-cover` na mesma lista. O `alt`
+repetia o nome do exercício que já estava escrito ao lado.
+**É:** a derivada já nasce quadrada — a ilustração alta (proporção < 0,7) é
+cortada pelo alto, o corpo ocupa a caixa — e foto e ilustração usam **um**
+enquadramento só (`object-cover`). O `alt` inverteu o padrão: vazio quando há
+texto ao lado (todos os usos de hoje), nome só com `sozinha`.
+
+#### 5. theme-color, manifest e ícones (L4-3)
+
+**Era:** a `theme-color` vinha presa ao `prefers-color-scheme`, então quem
+escolheu o tema claro num celular no escuro ficava com a barra do sistema de
+uma cor e a tela de outra. O manifest não tinha atalhos nem maskable de 192, e
+`scripts/gerar-icones.ts` desenhava com `#f97316` — um laranja que não existe
+nos tokens do app.
+**É:** `components/tema-do-perfil.tsx` reescreve as metas com o `--background`
+que está valendo assim que o tema resolve; o manifest ganhou os atalhos
+(Treino `/`, Relatório `/relatorio`, Corpo `/corpo`) e o `icone-maskable-192`;
+o gerador lê `--primary` do bloco `.dark` de `app/globals.css` (`#fb923c`).
+
+#### 6. `/favicon.ico` responde imagem (imagens-14)
+
+**Era:** 404 com 11 kB de HTML — o App Router só serve esse caminho a partir
+de `app/favicon.ico`, e só havia `app/icon.png`.
+**É:** `npm run icones` escreve `app/favicon.ico` (um PNG de 32 px dentro do
+cabeçalho .ico, 355 bytes, sem dependência nova) e `app/layout.tsx` o declara.
+
+#### 7. Região de avisos em português (a11y-11)
+
+**Era:** `aria-label="Notifications alt+T"`, a única string em inglês do app.
+**É:** `containerAriaLabel="Avisos"` em `components/ui/sonner.tsx`.
+
+#### 8. Sprite órfão fora do layout (L4-5)
+
+**Era:** `SpriteMuscular` injetava `corpo-sprite.svg` (o boneco `#bf`/`#bb`,
+4,7 kB) no HTML de **toda** página, e o único componente que o usava,
+`components/mapa-muscular.tsx`, não era importado por ninguém desde o marco
+Mídia.
+**É:** os dois saíram; o `MapaAnatomico` da ficha continua igual.
+
+#### 9. Esqueleto do shell (L4-6)
+
+**Era:** zero `loading.tsx` — cada troca de aba esperava o servidor antes de
+pintar qualquer coisa.
+**É:** `app/(app)/loading.tsx` desenha cabeçalho e dois cartões dentro do
+`Miolo`, herdando a folga da barra de 5 abas.
+
+#### 10. Bundle das rotas pesadas (L4-7) — parcial
+
+`next/dynamic` para a ficha em folha (com o tutorial e o iframe do YouTube
+dentro), para a folha de ajustes do player, para o bloco de recordes e
+gráficos do Relatório e para Desafios/ParteDoCorpo/Personalizar, abaixo da
+dobra da aba Treino. First Load JS, antes → depois:
+
+| rota | antes | depois |
+| --- | --- | --- |
+| `/explorar/[tipo]/[valor]` | 377 kB | **346 kB** |
+| `/treinar` | 374 kB | 358 kB |
+| `/` | 403 kB | 386 kB |
+| `/treinar/[sessionId]` (player) | 412 kB | 397 kB |
+| `/relatorio` | 371 kB | 369 kB |
+
+A meta de 350 kB só caiu em `/explorar/[tipo]/[valor]`. O que sobra não é
+código de tela: são três chunks de fornecedor que toda rota autenticada
+precisa na primeira carga — o cliente do Supabase (195 kB bruto, é ele que
+valida a sessão), o Dexie da fila offline (94 kB) e o runtime do React/Next.
+Cortar isso é mudar arquitetura (sessão sem cliente pesado, fila carregada sob
+demanda), não é polimento de lote: **fica na fila**.
+
+#### 11. Abertura do iPhone (L4-4)
+
+**Era:** sem `apple-touch-startup-image`, o app instalado abria numa tela preta
+vazia até o shell pintar.
+**É:** `npm run icones` gera as seis aberturas comuns (1170×2532, 1284×2778,
+1179×2556, 1290×2796, 828×1792, 750×1334) com fundo `#0a0a0a` e o ícone no
+meio, e `app/layout.tsx` as declara com as media queries de cada aparelho. Elas
+ficam **fora** do precache do service worker: o iOS as busca uma vez, na
+instalação.
+
+#### Provas
+
+- `e2e/ultraloop-b-r2.spec.ts`: 12 testes, um por item que se vê — peso de
+  imagem do Explorar, capa a 2× da caixa, zero revalidação 304, dimensões e
+  `decoding` de toda imagem de exercício, capa da primeira dobra `eager`,
+  enquadramento e ocupação da miniatura, `theme-color` seguindo o tema
+  escolhido, atalhos do manifest, `/favicon.ico`, nenhum rótulo em inglês,
+  boneco antigo fora do HTML e o esqueleto na troca de aba.
+- Unitários novos em `lib/midia.test.ts` e `lib/capas.test.ts` para as funções
+  puras das derivadas.
+
+#### Como testar no celular
+
+1. Abra a aba **Treino**. A capa do treino de hoje tem de aparecer nítida
+   (é uma imagem de 720 px numa caixa de 326) e as linhas da lista já vêm com
+   a miniatura sem aquele pisca de imagem grande chegando depois.
+2. Role até o fim: **Desafios**, **Parte do corpo** e **Personalizar** entram
+   logo depois do resto — se você vir um esqueleto por um instante, é isso.
+3. Troque de aba (Treino → Corpo → Relatório). Em vez de a tela ficar parada
+   esperando, aparece o esqueleto do shell.
+4. Em **Mais → Preferências**, escolha o tema **claro** com o celular no modo
+   escuro: a barra de cima do navegador tem de ficar clara junto com a tela.
+5. **Mais → Equipamento**: a lista de itens abre quase instantânea (as fotos
+   agora são 2,4 kB em vez de 70 kB cada).
+6. Instale o app (Adicionar à tela de início). No iPhone, a abertura mostra o
+   ícone sobre o fundo preto em vez da tela preta vazia; segurando o ícone,
+   aparecem os atalhos Treino, Relatório e Corpo.
+
 
 ### Rodada 3 — Lote 5
 

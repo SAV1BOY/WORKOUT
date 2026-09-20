@@ -1,9 +1,9 @@
 "use client";
 
 import { CircleHelp, Repeat } from "lucide-react";
+import dynamic from "next/dynamic";
 import { useState } from "react";
 import { MediaGrande } from "@/components/exercicio/media-grande";
-import { FichaEmFolha } from "@/components/exercicio/ficha-folha";
 import { BotaoMontagem } from "@/components/treinar/montagem";
 import { LinhaSerieForm } from "@/components/treinar/serie";
 import { Button } from "@/components/ui/button";
@@ -31,6 +31,17 @@ import {
   type BlocoLocal,
   type SerieLocal,
 } from "@/lib/sessao";
+
+/**
+ * SPEC §22.4 item 10: a ficha em folha (mídia grande, mapa anatômico, tutorial
+ * e o iframe do YouTube) só existe depois de um toque no "?" — carregá-la
+ * junto com a tela era peso parado no caminho de quem só quer treinar. Entra
+ * por `next/dynamic`, no primeiro toque.
+ */
+const FichaEmFolha = dynamic(
+  () => import("@/components/exercicio/ficha-folha").then((m) => m.FichaEmFolha),
+  { ssr: false },
+);
 
 export function BlocoExercicio({
   bloco,
@@ -93,13 +104,15 @@ export function BlocoExercicio({
           >
             <CircleHelp className="size-5" />
           </Button>
-          <FichaEmFolha
-            exercicioId={bloco.exercicioId}
-            aberto={ficha}
-            aoMudarAberto={setFicha}
-            temVideo={temVideo}
-            prefs={prefs}
-          />
+          {ficha ? (
+            <FichaEmFolha
+              exercicioId={bloco.exercicioId}
+              aberto
+              aoMudarAberto={setFicha}
+              temVideo={temVideo}
+              prefs={prefs}
+            />
+          ) : null}
         </div>
 
         <p className="text-sm">

@@ -1449,9 +1449,48 @@ a tela — afrouxar o limite não é uma opção.
 
 (a preencher pelo lote)
 
-### 22.4 Lote 4
+### 22.4 Lote 4 — Imagens, mídia e entrega
 
-(a preencher pelo lote)
+1. **Derivadas de imagem no prebuild.** `npm run assets` passou a gerar, dentro
+   de `public/` (que continua fora do git), três derivadas com `sharp`, com
+   cache por data de modificação: `<nome>.webp` (qualidade 78, no máximo
+   1200 px no maior lado) para as fotos e os itens de equipamento,
+   `<nome>-mini.webp` de 112×112 (2× a caixa de 56 px) para fotos, ilustrações
+   e itens, e `<nome>-capa.webp` de 720×360 para as fotos `-1` que viram capa de
+   cartão. O app pede a derivada e, se ela faltar, cai sozinho no arquivo
+   original — nenhuma imagem nova, nenhum arquivo de terceiros a mais.
+2. **Cache da mídia.** `/fotos`, `/ilustracoes`, `/itens`, `/figuras`, `/icons` e
+   `/mapa-muscular` saem com `Cache-Control: public, max-age=604800,
+   stale-while-revalidate=86400`. Uma semana: a segunda navegação não revalida
+   mais nada e ainda dá para trocar uma foto sem renomear o arquivo.
+3. **Toda imagem diz o tamanho.** As imagens de exercício levam `width`/`height`
+   (as dimensões que `data/ilustracoes.json` guarda, ou as da derivada),
+   `decoding="async"` e `loading="lazy"` — menos a capa da primeira dobra, que
+   é `eager` com `fetchpriority="high"`.
+4. **Miniatura enquadrada.** A miniatura usa a derivada quadrada de 112 px, com
+   um enquadramento só para foto e ilustração; a ilustração alta é cortada pelo
+   alto (o corpo aparece) em vez de encolher no meio da caixa. O texto
+   alternativo virou o contrário: vazio quando o nome do exercício já está
+   escrito ao lado, nome só quando a miniatura aparece sozinha.
+5. **Cor da barra do sistema segue o tema escolhido.** A `theme-color` deixa de
+   olhar só o `prefers-color-scheme` e passa a acompanhar o tema que está
+   valendo. O `manifest` ganhou atalhos (Treino, Relatório, Corpo) e um ícone
+   maskable de 192; os ícones são gerados na cor `--primary` do tema escuro.
+6. **`/favicon.ico` responde imagem**, em vez do HTML de 404.
+7. **Avisos em português.** A região do Sonner se chama "Avisos" — não sobrou
+   nenhum rótulo acessível em inglês.
+8. **Sprite antigo fora do layout.** O boneco `#bf`/`#bb` e o `MapaMuscular` que
+   ninguém usava saíram; o `MapaAnatomico` da ficha continua igual.
+9. **Esqueleto entre as abas.** `app/(app)/loading.tsx` pinta cabeçalho e dois
+   cartões enquanto o servidor responde — a troca de aba deixa de mostrar tela
+   em branco.
+10. **Rotas pesadas divididas.** Gráficos e recordes do Relatório, tutorial e
+    ficha em folha do player e os blocos abaixo da dobra da aba Treino entram
+    por `next/dynamic`: o JavaScript da primeira carga dessas rotas cai sem
+    mudar o que a tela faz.
+11. **Abertura do iPhone.** O app declara `apple-touch-startup-image` nos
+    tamanhos comuns, com o fundo `#0a0a0a` e o ícone no meio — o app instalado
+    para de abrir com a tela preta.
 
 ### 22.5 Lote 5
 

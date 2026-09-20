@@ -2,6 +2,7 @@
 
 import { Dumbbell, Flame, Timer, Weight } from "lucide-react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { addDays } from "date-fns";
 import { useMemo } from "react";
 import { EsqueletoCard } from "@/components/carregando";
@@ -12,7 +13,6 @@ import { Conquistas } from "@/components/relatorio/conquistas";
 import { Historico } from "@/components/relatorio/historico";
 import { Numeros } from "@/components/relatorio/numeros";
 import { useConquistas } from "@/components/relatorio/usar-conquistas";
-import { TelaProgresso } from "@/components/progresso/tela-progresso";
 import { Contador } from "@/components/ui/contador";
 import { iso, inicioDaSemana, paraData } from "@/lib/calendario";
 import { formatarNumero } from "@/lib/formato";
@@ -36,6 +36,18 @@ import {
 import { useHoje } from "@/lib/relogio";
 import { useQueryClient } from "@tanstack/react-query";
 import { intervaloDaSemana } from "@/lib/semana";
+
+/**
+ * SPEC §22.4 item 10: o bloco de recordes e gráficos fica no fim da tela,
+ * abaixo de tudo o que se lê primeiro (números da semana, peso, IMC), e
+ * carrega o Recharts atrás de si. Entrando por `next/dynamic` ele sai do
+ * JavaScript da primeira carga do Relatório sem mudar o que a tela mostra —
+ * o espaço dele fica reservado por um esqueleto, então nada pula.
+ */
+const TelaProgresso = dynamic(
+  () => import("@/components/progresso/tela-progresso").then((m) => m.TelaProgresso),
+  { ssr: false, loading: () => <EsqueletoCard linhas={4} /> },
+);
 
 /** Quantas semanas para trás o histórico e as sequências leem. */
 const SEMANAS = 26;
