@@ -6154,6 +6154,28 @@ Portões antes de publicar: lint limpo, build ok, 1.318 testes unitários e 332
 de ponta a ponta, mais a varredura das 30 telas nos dois temas. Nada de banco
 mudou nesta rodada.
 
+**Segunda rodada no ar desde as 21:35 UTC de 20/09** (main `c7d947a`), também
+sem rollback. Esta foi a rodada da aparência e do peso das imagens:
+
+- **Nada mais é pequeno demais para o dedo.** Todo botão do app nasce com
+  44 px de altura (muitos tinham 32 px), e o texto miúdo passou a sair de um
+  tamanho só, em vez de cinco tamanhos parecidos espalhados pelas telas.
+- **Dá para usar o app pelo teclado sem se perder**: cards, listas, abas,
+  campos e a barra de baixo desenham o mesmo anel laranja de foco, e a aba
+  aberta agora tem um indicador, não só a cor do rótulo.
+- **As telas vazias e os carregamentos ficaram iguais entre si** — oito textos
+  soltos viraram um componente só, e o esqueleto imita a forma do que vem.
+- **As fotos ficaram leves e pararam de empurrar a tela.** As 162 fotos e os
+  itens de equipamento agora são WebP com versões menores (miniatura de 112 px
+  e capa de 720 px), toda imagem tem altura reservada antes de carregar, e as
+  imagens valem uma semana no cache do celular.
+- **Instalado no iPhone, o app abre melhor**: ícone e tela de abertura
+  próprios, e ao segurar o ícone aparecem os atalhos Treino, Relatório e Corpo.
+
+Portões desta rodada: lint limpo, build ok, 1.355 testes unitários e 358 de
+ponta a ponta, mais a varredura das 30 telas nos dois temas. Nada de banco
+mudou nesta rodada.
+
 ### Como funcionou
 
 Duas faixas de trabalho em paralelo, cada uma numa worktree própria com porta
@@ -6705,6 +6727,22 @@ quatro passos do campo de data com anel nos dois temas, e o nome acessível
 sobre o trilho ligado nos dois temas, a proibição da cor crua no `Switch` e o
 corpo do mapa muscular contra a página.
 
+**Deploy.** No ar em 20/09/2026 às 21:35 UTC, no mesmo merge do lote 4 (a
+faixa B já continha a A), pelo PR #7 (main `c7d947a`). Produção saiu de
+`dpl_4xNZ9sdTBX6PbdRjD8qrm12YSC57` para o deploy de `c7d947a`; `/versao`
+devolve `c7d947ab088e21b0728bda7b482eae24f45982fb` (construído 21:34:12Z) e o
+CSS de `/login` mudou de `12175adeeb38d042.css` para `57d136fb92e14898.css`.
+Fumaça verde na primeira tentativa, item a item: `/login` 200 com "Treino do
+Terraço" e "Entrar" e sem aviso de configuração — ok; `/` → 307 para `/login`
+— ok; `/versao` igual ao sha de main — ok; `/sw.js` 200 com `/~offline`,
+`figuras/` e o mesmo CSS do `/login` — ok; `/manifest.webmanifest` 200 com
+"Treino do Terraço" — ok; `/~offline` 200 — ok; os 12 scripts
+`/_next/static` do `/login` → 200 — ok. Marcadores deste lote: o CSS
+publicado `57d136fb92e14898.css` contém `.text-rotulo{font-size:11px}` e
+`.foco` — ok; e os chunks das telas mudadas trazem a classe nova (a home
+`app/(app)/page` e `app/(app)/treinar/[sessionId]` contêm `text-rotulo`) —
+ok. **Rollback: não.**
+
 ### Rodada 2 — Lote 4 — imagens, mídia e entrega (faixa B)
 
 Branch `ultraloop/l4-imagens-midia-entrega`, a partir de
@@ -7006,6 +7044,25 @@ que `width`/`height` existiam, então passava com o dado errado.
    ícone sobre o fundo preto em vez da tela preta vazia; segurando o ícone,
    aparecem os atalhos Treino, Relatório e Corpo.
 
+
+**Deploy.** No ar em 20/09/2026 às 21:35 UTC, pelo PR #7 (main `c7d947a`),
+no mesmo merge do lote 3. Produção saiu de
+`dpl_4xNZ9sdTBX6PbdRjD8qrm12YSC57` para o deploy de `c7d947a`; `/versao`
+devolve `c7d947ab088e21b0728bda7b482eae24f45982fb`. Além dos sete itens
+obrigatórios da fumaça (todos ok, listados na subseção do lote 3), os
+marcadores deste lote nas rotas públicas: `/manifest.webmanifest` contém
+`shortcuts` e `maskable` — ok; `/favicon.ico` → 200 `image/x-icon` — ok; o
+HTML de `/login` contém `apple-touch-startup-image` — ok;
+`/fotos/agachamento-bulgaro-1.webp` → 200 `image/webp` — ok;
+`/fotos/agachamento-bulgaro-1-mini.webp` → 200 `image/webp` — ok; `/sw.js`
+**não** contém `id="bf"` (o sprite órfão saiu) e o `/login` não cita
+`mapa-muscular.tsx` — ok. No pacote publicado, o chunk compartilhado
+`1580-7dcad54a8a41be73.js` traz a função que deriva o sufixo `-mini` e as
+medidas padrão `{largura:132,altura:100}` — a prova das derivadas dentro do
+bundle. A sonda opcional de Playwright a 360 px contra a URL pública não
+rodou (o Chromium local não confia na CA do proxy de saída); a régua de
+360 px, 44 px, contraste e foco já correra verde nas 30 telas no portão
+local. **Rollback: não.**
 
 ### Rodada 3 — Lote 5
 
