@@ -48,6 +48,23 @@ const MEDIDAS = `
     return [p[0] || 0, p[1] || 0, p[2] || 0, Number.isFinite(p[3]) ? p[3] : 1];
   };
   const sobrepor = (f, b) => [f[0] * f[3] + b[0] * (1 - f[3]), f[1] * f[3] + b[1] * (1 - f[3]), f[2] * f[3] + b[2] * (1 - f[3])];
+  /*
+    O Chromium devolve \`oklab(0.578 -0.0008 0.0028 / 0.8)\` para toda cor com
+    opacidade do Tailwind 4 (\`bg-input/80\`, \`bg-input/30\`) — a regex de
+    \`rgba()\` lê null e a conta morre. O canvas de 1 px pinta o fundo, pinta a
+    cor por cima em QUALQUER sintaxe de CSS Color 4 e devolve o sRGB composto.
+  */
+  const pintar = (cor, fundo) => {
+    const tela = document.createElement('canvas');
+    tela.width = 1; tela.height = 1;
+    const ctx = tela.getContext('2d');
+    ctx.fillStyle = 'rgb(' + Math.round(fundo[0]) + ',' + Math.round(fundo[1]) + ',' + Math.round(fundo[2]) + ')';
+    ctx.fillRect(0, 0, 1, 1);
+    ctx.fillStyle = cor;
+    ctx.fillRect(0, 0, 1, 1);
+    const d = ctx.getImageData(0, 0, 1, 1).data;
+    return [d[0], d[1], d[2]];
+  };
   const fundoDe = (el) => {
     const pilha = [];
     let atual = el;
@@ -369,8 +386,8 @@ test("o interruptor muda de cor entre ligado e desligado nos dois temas", async 
         const raiz = document.querySelector('[data-slot=switch]');
         const trilho = raiz.querySelector('[data-slot=switch-track]');
         const polegar = raiz.querySelector('[data-slot=switch-thumb]');
-        const corTrilho = sobrepor(rgba(getComputedStyle(trilho).backgroundColor), fundoDe(raiz));
-        const corPolegar = sobrepor(rgba(getComputedStyle(polegar).backgroundColor), corTrilho);
+        const corTrilho = pintar(getComputedStyle(trilho).backgroundColor, fundoDe(raiz));
+        const corPolegar = pintar(getComputedStyle(polegar).backgroundColor, corTrilho);
         const primaria = paraRgb(getComputedStyle(document.documentElement).getPropertyValue('--primary'));
         return {
           estado: raiz.getAttribute('data-state'),
@@ -433,10 +450,10 @@ test("a aba acesa é um degrau ACIMA da lista nos dois temas", async ({ page }) 
             const acesa = lista.querySelector('[role=tab][aria-selected=true]');
             if (!acesa) return null;
             const corLista = fundoDe(lista);
-            const propria = rgba(getComputedStyle(lista).backgroundColor);
+            const propria = getComputedStyle(lista).backgroundColor;
             // a variante "line" é transparente de propósito: não há degrau a medir
-            if (!propria || propria[3] < 0.05) return null;
-            const corAcesa = sobrepor(rgba(getComputedStyle(acesa).backgroundColor), corLista);
+            if (propria === 'transparent' || /rgba\(0, 0, 0, 0\)/.test(propria)) return null;
+            const corAcesa = pintar(getComputedStyle(acesa).backgroundColor, corLista);
             return {
               rotulo: (acesa.textContent || '').trim().slice(0, 20),
               luzLista: lum(corLista),
