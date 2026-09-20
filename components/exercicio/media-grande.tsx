@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { IlustracaoAlternada } from "@/components/exercicio/ilustracao-alternada";
-import { midiaGrande, notaDaIlustracao, type TipoDeMidia } from "@/lib/midia";
+import { fonteComReserva, reservaDaImagem } from "@/components/ui/imagem";
+import { midiaGrande, notaDaIlustracao, urlWebp, type TipoDeMidia } from "@/lib/midia";
 import { cn } from "@/lib/utils";
 
 /**
@@ -121,10 +122,15 @@ export function MediaGrande({
       : midiaGrande(exercicioId, { temVideo, tipo: "foto", semFoto });
   if (!foto || foto.tipo !== "foto") return null;
 
+  // a derivada WebP (SPEC §22.4 item 1), com o JPEG do kit de reserva
+  const fonte = fonteComReserva(foto.urls[0]!, urlWebp(foto.urls[0]));
+
   return (
     // eslint-disable-next-line @next/next/no-img-element -- foto local em /public
     <img
-      src={foto.urls[0]}
+      src={fonte.src}
+      data-reserva={fonte.reserva}
+      onError={reservaDaImagem}
       alt={foto.alt}
       loading="lazy"
       decoding="async"

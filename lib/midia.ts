@@ -71,10 +71,13 @@ export interface MidiaDaMiniatura {
  * — todas saem da URL que o JSON já deu.
  */
 
-/** As três pastas de `public/` que ganham derivada. */
-const COM_DERIVADA = /^\/(fotos|itens|ilustracoes)\//;
-/** Só estas viram WebP grande: a figura é SVG animado e fica como está. */
-const COM_WEBP = /^\/(fotos|itens)\/.+\.jpe?g$/i;
+/**
+ * Só a foto de execução vira WebP grande: a figura é SVG animado e fica como
+ * está, e o item de equipamento nunca aparece maior que a caixa de 64 px —
+ * gerar a versão grande dele era 85 arquivos que ninguém pedia (auditoria do
+ * lote 4).
+ */
+const COM_WEBP = /^\/fotos\/.+\.jpe?g$/i;
 /** A miniatura sai de foto, item e ilustração (SVG ou WebP). */
 const COM_MINI = /^\/(fotos|itens)\/.+\.jpe?g$|^\/ilustracoes\/.+\.(webp|svg)$/i;
 
@@ -83,7 +86,14 @@ function trocarSufixo(url: string, sufixo: string): string {
   return `${url.slice(0, ponto)}${sufixo}.webp`;
 }
 
-/** `/fotos/x-1.jpg` → `/fotos/x-1.webp` (a versão grande), senão `null`. */
+/**
+ * `/fotos/x-1.jpg` → `/fotos/x-1.webp` (a versão grande), senão `null`.
+ *
+ * É o que a ficha do exercício e a foto em tela cheia pedem: 44 kB no lugar
+ * dos 70 kB do JPEG do kit, com a mesma medida de 850×567. Quem chama passa o
+ * original como reserva (`fonteComReserva`), para a tela continuar desenhando
+ * num build sem `npm run assets`.
+ */
 export function urlWebp(url: string | null | undefined): string | null {
   if (!url || !COM_WEBP.test(url)) return null;
   return trocarSufixo(url, "");
@@ -93,11 +103,6 @@ export function urlWebp(url: string | null | undefined): string | null {
 export function urlMiniatura(url: string | null | undefined): string | null {
   if (!url || !COM_MINI.test(url)) return null;
   return trocarSufixo(url, "-mini");
-}
-
-/** Um arquivo de `public/` que tem alguma derivada gerada no prebuild. */
-export function temDerivada(url: string | null | undefined): boolean {
-  return Boolean(url && COM_DERIVADA.test(url));
 }
 
 function credito(i: Ilustracao): CreditoDaMidia {

@@ -82,9 +82,14 @@ console.log(
  * uma miniatura de 56 px (7,6× o necessário) e para a capa de 326×160 (1,30×,
  * mole no retina). Aqui cada original ganha, em `public/`:
  *
- *   <nome>.webp        fotos e itens, até 1200 px — a versão grande
+ *   <nome>.webp        só as fotos, até 1200 px — a versão grande
  *   <nome>-mini.webp   112×112 (2× de 56) — fotos, ilustrações e itens
  *   <nome>-capa.webp   720×360 (2× da caixa da capa) — só as fotos `-1`
+ *
+ * A versão grande é da foto de execução e só dela: é o que a ficha do
+ * exercício e a foto em tela cheia pedem (44 kB no lugar de 70). O item de
+ * equipamento nunca aparece maior que a caixa de 64 px, então gerar a versão
+ * grande dele eram 85 arquivos que ninguém pedia (auditoria do lote 4).
  *
  * Quem aponta para elas é `lib/midia.ts`/`lib/capas.ts`, sempre com o arquivo
  * original de reserva: se a derivada faltar, a tela continua desenhando.
@@ -152,9 +157,11 @@ for (const [pasta, aceita] of Object.entries(ORIGINAIS)) {
       pedir(origem, "-mini", (s) => s);
       continue;
     }
-    pedir(origem, "", (s) =>
-      s.resize(LADO_MAXIMO, LADO_MAXIMO, { fit: "inside", withoutEnlargement: true }),
-    );
+    if (pasta === "fotos") {
+      pedir(origem, "", (s) =>
+        s.resize(LADO_MAXIMO, LADO_MAXIMO, { fit: "inside", withoutEnlargement: true }),
+      );
+    }
     pedir(origem, "-mini", (s) =>
       s.resize(LADO_MINI, LADO_MINI, {
         fit: "cover",

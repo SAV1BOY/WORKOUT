@@ -2,6 +2,8 @@
 
 import { Trash2, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { fonteComReserva, reservaDaImagem } from "@/components/ui/imagem";
+import { urlWebp } from "@/lib/midia";
 
 /**
  * A foto em tela cheia (SPEC §3.6 e §7).
@@ -31,6 +33,13 @@ export function FotoAmpliada({
   aoApagar?: () => void;
   apagando?: boolean;
 }) {
+  /*
+   * A foto de execução do kit tem derivada WebP (SPEC §22.4 item 1): 44 kB no
+   * lugar de 70, e esta é a tela mais pesada de imagem do app. A foto de
+   * progresso do Corpo vem do storage do Supabase, não de `public/` — ali
+   * `urlWebp` devolve `null` e a URL assinada segue inteira.
+   */
+  const fonte = fonteComReserva(url, urlWebp(url));
   const fechar = useRef<HTMLButtonElement>(null);
   const confirmar = useRef<HTMLButtonElement>(null);
   const [confirmando, setConfirmando] = useState(false);
@@ -79,7 +88,9 @@ export function FotoAmpliada({
       </button>
       {/* eslint-disable-next-line @next/next/no-img-element -- foto local em /public */}
       <img
-        src={url}
+        src={fonte.src}
+        data-reserva={fonte.reserva}
+        onError={reservaDaImagem}
         alt={titulo}
         loading="eager"
         fetchPriority="high"

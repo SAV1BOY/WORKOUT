@@ -1454,11 +1454,16 @@ a tela — afrouxar o limite não é uma opção.
 1. **Derivadas de imagem no prebuild.** `npm run assets` passou a gerar, dentro
    de `public/` (que continua fora do git), três derivadas com `sharp`, com
    cache por data de modificação: `<nome>.webp` (qualidade 78, no máximo
-   1200 px no maior lado) para as fotos e os itens de equipamento,
-   `<nome>-mini.webp` de 112×112 (2× a caixa de 56 px) para fotos, ilustrações
-   e itens, e `<nome>-capa.webp` de 720×360 para as fotos `-1` que viram capa de
-   cartão. O app pede a derivada e, se ela faltar, cai sozinho no arquivo
-   original — nenhuma imagem nova, nenhum arquivo de terceiros a mais.
+   1200 px no maior lado) para as fotos de execução, `<nome>-mini.webp` de
+   112×112 (2× a caixa de 56 px) para fotos, ilustrações e itens, e
+   `<nome>-capa.webp` de 720×360 para as fotos `-1` que viram capa de cartão.
+   Cada derivada existe porque uma tela a pede: a grande é o que a ficha do
+   exercício e a foto em tela cheia baixam (44 kB no lugar dos 70 do JPEG do
+   kit, a tela mais pesada de imagem do app), a mini é das listas e a capa é
+   dos cartões. O item de equipamento nunca aparece maior que a caixa de 64 px
+   e por isso só ganha a miniatura. Se a derivada faltar (um build sem o
+   prebuild), o `data-reserva` da `<img>` devolve o arquivo original — nenhuma
+   imagem nova, nenhum arquivo de terceiros a mais.
 2. **Cache da mídia.** `/fotos`, `/ilustracoes`, `/itens`, `/figuras`, `/icons` e
    `/mapa-muscular` saem com `Cache-Control: public, max-age=604800,
    stale-while-revalidate=86400`. Uma semana: a segunda navegação não revalida

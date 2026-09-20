@@ -6381,25 +6381,46 @@ retina é mole.
 **É:** `npm run assets` (prebuild) gera em `public/`, com `sharp` e cache por
 data de modificação:
 
-| derivada | tamanho | de quem |
-| --- | --- | --- |
-| `<nome>.webp` | até 1200 px, q78 | fotos e itens |
-| `<nome>-mini.webp` | 112×112 | fotos, ilustrações e itens |
-| `<nome>-capa.webp` | 720×360 | as fotos `-1` que viram capa |
+| derivada | tamanho | de quem | quem pede |
+| --- | --- | --- | --- |
+| `<nome>.webp` | até 1200 px, q78 | só as fotos | ficha do exercício e foto em tela cheia |
+| `<nome>-mini.webp` | 112×112 | fotos, ilustrações e itens | miniaturas das listas |
+| `<nome>-capa.webp` | 720×360 | as fotos `-1` que viram capa | cartões com capa |
 
-720 arquivos em 7,7 s na primeira vez, nada nas seguintes. A miniatura ficou
-com **2,4 kB de média** (era 71 kB: 29×) e a capa com 22 kB (era 71 kB).
-`lib/midia.ts` (`urlWebp`, `urlMiniatura`, `temDerivada`) e `lib/capas.ts`
-(`urlCapa`) montam o nome; a imagem cai sozinha no arquivo original quando a
-derivada falta (`onError` em dois degraus), então um build sem
-`npm run assets` continua desenhando. `scripts/validar-dados.ts` recusa um
-arquivo do kit chamado `-mini`/`-capa` ou um `.webp` ao lado de um `.jpg` de
-mesmo nome — a derivada o sobrescreveria em silêncio. Nada disso entra em
-`assets/` nem no git.
+635 arquivos na primeira vez, nada nas seguintes. A miniatura ficou com
+**2,4 kB de média** (era 71 kB: 29×), a capa com 22 kB e a versão grande com
+**44 kB** (era 70: −37 % na tela mais pesada de imagem do app).
+`lib/midia.ts` (`urlWebp`, `urlMiniatura`) e `lib/capas.ts` (`urlCapa`) montam
+o nome; a imagem cai sozinha no arquivo original quando a derivada falta
+(`onError` em dois degraus), então um build sem `npm run assets` continua
+desenhando. `scripts/validar-dados.ts` recusa um arquivo do kit chamado
+`-mini`/`-capa` ou um `.webp` ao lado de um `.jpg` de mesmo nome — a derivada
+o sobrescreveria em silêncio. Nada disso entra em `assets/` nem no git.
+
+**Auditoria da rodada 2.** A versão grande era gerada (162 fotos + 85 itens) e
+não era servida: `urlWebp` e `temDerivada` não tinham chamada fora do teste, e
+a ficha continuava baixando o JPEG de 71 kB. Corrigido dos dois lados: as
+quatro `<img>` de foto de execução (`components/exercicio/midia.tsx`,
+`components/exercicio/media-grande.tsx`,
+`components/exercicios/fotos-ampliaveis.tsx` e
+`components/exercicios/foto-ampliada.tsx`) passaram a pedir `urlWebp(url)`, e o
+item de equipamento — que nunca aparece maior que a caixa de 64 px — deixou de
+ganhar a versão grande (85 arquivos e 3,5 MB a menos por deploy). O degrau da
+reserva virou `fonteComReserva`/`reservaDaImagem` em
+`components/ui/imagem.ts`: sem derivada para aquele caminho a reserva sai
+`undefined`, e o `onError` não repete o mesmo pedido que acabou de falhar.
+`temDerivada`, que ninguém chamava, saiu. Prova em
+`e2e/ultraloop-b-r2.spec.ts` ("a ficha e a foto em tela cheia pedem a derivada
+WebP"): em `/exercicios/agachamento-livre` toda foto da tela é `.webp` e
+carrega (`naturalWidth > 0`), e a foto ampliada também.
 
 Arquivos: `scripts/copiar-assets.ts`, `scripts/validar-dados.ts`,
-`lib/midia.ts`, `lib/capas.ts`, `components/ui/miniatura.tsx`,
-`components/ui/card-capa.tsx`, `components/colecoes/linha-colecao.tsx`,
+`lib/midia.ts`, `lib/capas.ts`, `components/ui/imagem.ts`,
+`components/ui/miniatura.tsx`, `components/ui/card-capa.tsx`,
+`components/colecoes/linha-colecao.tsx`, `components/exercicio/midia.tsx`,
+`components/exercicio/media-grande.tsx`,
+`components/exercicios/fotos-ampliaveis.tsx`,
+`components/exercicios/foto-ampliada.tsx`,
 `components/mais/tela-equipamento.tsx`.
 
 #### 2. Cache-Control da mídia (performance-05)

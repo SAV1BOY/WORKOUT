@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { fonteComReserva, reservaDaImagem } from "@/components/ui/imagem";
 import { urlFigura, urlFotos } from "@/lib/dados";
+import { urlWebp } from "@/lib/midia";
 import type { Exercicio } from "@/lib/schemas";
 import { cn } from "@/lib/utils";
 
@@ -46,17 +48,23 @@ export function FotosExercicio({
 
   return (
     <div className={cn("grid grid-cols-2 gap-2", className)}>
-      {fotos.map((foto, i) => (
-        // eslint-disable-next-line @next/next/no-img-element -- fotos locais em /public, tamanho fixo
-        <img
-          key={foto}
-          src={foto}
-          alt={`${exercicio.nome} — ${i === 0 ? "início" : "fim"}`}
-          className="bg-muted/40 aspect-square w-full rounded-lg object-cover"
-          loading="lazy"
-          decoding="async"
-        />
-      ))}
+      {fotos.map((foto, i) => {
+        // a derivada WebP (SPEC §22.4 item 1) pesa 44 kB contra 70 do JPEG
+        const fonte = fonteComReserva(foto, urlWebp(foto));
+        return (
+          // eslint-disable-next-line @next/next/no-img-element -- fotos locais em /public, tamanho fixo
+          <img
+            key={foto}
+            src={fonte.src}
+            data-reserva={fonte.reserva}
+            onError={reservaDaImagem}
+            alt={`${exercicio.nome} — ${i === 0 ? "início" : "fim"}`}
+            className="bg-muted/40 aspect-square w-full rounded-lg object-cover"
+            loading="lazy"
+            decoding="async"
+          />
+        );
+      })}
     </div>
   );
 }

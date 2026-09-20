@@ -273,3 +273,51 @@ test("§22.4-8: o boneco antigo não sai mais no HTML de toda página", async ({
   // o mapa anatômico da ficha continua inline uma vez
   expect(html).toContain('id="mapa-anatomico"');
 });
+
+test("§22.4-1: a ficha e a foto em tela cheia pedem a derivada WebP", async ({
+  page,
+}) => {
+  await usuarioComPerfil();
+  await fixarData(page);
+  await entrarNoApp(page);
+  await page.goto("/exercicios/agachamento-livre");
+
+  const ampliar = page.getByRole("button", { name: /Ampliar a foto do início/ });
+  await ampliar.scrollIntoViewIfNeeded();
+  await expect(ampliar).toBeVisible();
+
+  /** As fotos de execução da tela — sem as derivadas de lista e de capa. */
+  const fotosDaTela = () =>
+    page.evaluate(() =>
+      [...document.querySelectorAll("img")]
+        .map((el) => {
+          const img = el as HTMLImageElement;
+          return {
+            src: new URL(img.currentSrc || img.src).pathname,
+            natural: img.naturalWidth,
+          };
+        })
+        .filter((f) => f.src.startsWith("/fotos/") && !/-(mini|capa)\.webp$/.test(f.src)),
+    );
+
+  // lazy: espera as duas terminarem de carregar antes de medir
+  await expect
+    .poll(async () => (await fotosDaTela()).filter((f) => f.natural === 0).map((f) => f.src))
+    .toEqual([]);
+
+  const fotos = await fotosDaTela();
+  expect(fotos.length).toBeGreaterThanOrEqual(2);
+  for (const f of fotos) {
+    expect(f.src, "a ficha ainda pede o JPEG do kit").toMatch(/\.webp$/);
+  }
+
+  // e a foto em tela cheia, que é a imagem mais pesada do app
+  await ampliar.click();
+  const dialogo = page.getByRole("dialog");
+  await expect(dialogo).toBeVisible();
+  const grande = dialogo.locator("img").first();
+  await expect(grande).toHaveAttribute("src", "/fotos/agachamento-livre-1.webp");
+  await expect
+    .poll(() => grande.evaluate((el) => (el as HTMLImageElement).naturalWidth))
+    .toBeGreaterThan(0);
+});
