@@ -46,6 +46,19 @@ const ILUSTRACAO_DO_AGACHAMENTO = (() => {
 })();
 
 /**
+ * As derivadas que `npm run assets` gera (SPEC §22.4 item 1): a miniatura
+ * quadrada de 112 px e a capa de 720×360. O nome sai do mesmo caminho do JSON
+ * — nada escrito à mão — e conferir por ele é conferir que a tela pede a
+ * derivada, e não o arquivo grande.
+ */
+const MINIATURA_DO_AGACHAMENTO = ILUSTRACAO_DO_AGACHAMENTO.replace(
+  /\.[^.]+$/,
+  "-mini.webp",
+);
+const CAPA_DO_AGACHAMENTO = "/fotos/agachamento-livre-1-capa.webp";
+const CAPA_DA_CORDA = "/fotos/corrida-no-lugar-com-a-corda-1-capa.webp";
+
+/**
  * `fixarData` (e não `fixarRelogio`): a tela guarda o cache e sobe a fila com
  * temporizadores, que `page.clock.install` congelaria (e2e/README.md).
  */
@@ -163,7 +176,7 @@ test.describe("cards do dia (SPEC §13.3)", () => {
     await expect(hoje.getByRole("heading", { name: "Treino A" })).toBeVisible();
     await expect(hoje.getByText("44 min · 6 exercícios")).toBeVisible();
     // a capa é a foto -1 do primeiro exercício do treino (§13.3)
-    const capa = hoje.locator('img[src="/fotos/agachamento-livre-1.jpg"]');
+    const capa = hoje.locator(`img[src="${CAPA_DO_AGACHAMENTO}"]`);
     await expect(capa).toBeVisible();
     expect(await capa.evaluate((img: HTMLImageElement) => img.naturalWidth)).toBeGreaterThan(0);
     // raios de dificuldade: o agachamento é composto pesado (3 de 3)
@@ -178,7 +191,7 @@ test.describe("cards do dia (SPEC §13.3)", () => {
     await expect(primeiro).toContainText("Hoje: 7,5 kg na barra");
     // miniatura: a ilustração do exercício (marco Mídia; antes era a figura)
     await expect(
-      primeiro.locator(`img[src="${ILUSTRACAO_DO_AGACHAMENTO}"]`),
+      primeiro.locator(`img[src="${MINIATURA_DO_AGACHAMENTO}"]`),
     ).toBeVisible();
     // SPEC §14.2: tocar no item abre a ficha em folha, sem sair da aba
     await primeiro.getByRole("button", { name: "Ficha: Agachamento livre" }).click();
@@ -212,7 +225,7 @@ test.describe("cards do dia (SPEC §13.3)", () => {
     await page.getByRole("button", { name: "Fazer corda em vez de corrida" }).click();
     await expect(page.getByRole("heading", { name: "Corda · semana 1" })).toBeVisible();
     await expect(
-      page.locator('img[src="/fotos/corrida-no-lugar-com-a-corda-1.jpg"]'),
+      page.locator(`img[src="${CAPA_DA_CORDA}"]`),
     ).toBeVisible();
 
     await semRolagemHorizontal(page);

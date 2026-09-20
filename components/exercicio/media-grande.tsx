@@ -2,7 +2,15 @@
 
 import { useState } from "react";
 import { IlustracaoAlternada } from "@/components/exercicio/ilustracao-alternada";
-import { midiaGrande, notaDaIlustracao, type TipoDeMidia } from "@/lib/midia";
+import { fonteComReserva, reservaDaImagem } from "@/components/ui/imagem";
+import {
+  MEDIDA_DA_FIGURA,
+  medidaDaFoto,
+  midiaGrande,
+  notaDaIlustracao,
+  urlWebp,
+  type TipoDeMidia,
+} from "@/lib/midia";
 import { cn } from "@/lib/utils";
 
 /**
@@ -72,10 +80,12 @@ export function MediaGrande({
         <IlustracaoAlternada
           urls={midia.urls}
           alt={midia.alt}
+          largura={midia.largura}
+          altura={midia.altura}
           className={cn("h-40", className)}
         />
         {!semCredito && (midia.credito || nota) ? (
-          <figcaption className="text-muted-foreground flex flex-col px-1 text-[11px] leading-tight">
+          <figcaption className="text-muted-foreground flex flex-col px-1 text-rotulo leading-tight">
             {/* o texto continua em 11 px; a caixa de toque é de 44 px (§13.8.1) */}
             {midia.credito ? (
               <a
@@ -104,7 +114,10 @@ export function MediaGrande({
       <img
         src={midia.urls[0]}
         alt={midia.alt}
+        width={MEDIDA_DA_FIGURA.largura}
+        height={MEDIDA_DA_FIGURA.altura}
         loading="lazy"
+        decoding="async"
         className={cn(caixa, "p-2")}
         onError={() => setFiguraQuebrou(true)}
       />
@@ -118,12 +131,22 @@ export function MediaGrande({
       : midiaGrande(exercicioId, { temVideo, tipo: "foto", semFoto });
   if (!foto || foto.tipo !== "foto") return null;
 
+  // a derivada WebP (SPEC §22.4 item 1), com o JPEG do kit de reserva
+  const fonte = fonteComReserva(foto.urls[0]!, urlWebp(foto.urls[0]));
+  // a medida do arquivo pedido, foto a foto (SPEC §22.4 item 3)
+  const medida = medidaDaFoto(fonte.src);
+
   return (
     // eslint-disable-next-line @next/next/no-img-element -- foto local em /public
     <img
-      src={foto.urls[0]}
+      src={fonte.src}
+      data-reserva={fonte.reserva}
+      onError={reservaDaImagem}
       alt={foto.alt}
+      width={medida?.largura}
+      height={medida?.altura}
       loading="lazy"
+      decoding="async"
       className={cn(caixa, "object-cover")}
     />
   );

@@ -1,10 +1,12 @@
 "use client";
 
+import { Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { CabecalhoMais } from "@/components/mais/cabecalho";
 import { StepperNumerico } from "@/components/stepper-numerico";
 import { Button } from "@/components/ui/button";
+import { Vazio } from "@/components/ui/vazio";
 import {
   Card,
   CardContent,
@@ -123,7 +125,11 @@ export function TelaContas() {
           {contas === null ? (
             <p className="text-muted-foreground text-sm">Carregando…</p>
           ) : contas.length === 0 ? (
-            <p className="text-muted-foreground text-sm">Nenhuma conta ainda.</p>
+            <Vazio
+              icone={Users}
+              titulo="Nenhuma conta ainda"
+              frase="Quem entrar pela tela de acesso aparece nesta lista."
+            />
           ) : (
             <ul className="divide-border divide-y">
               {contas.map((conta) => (

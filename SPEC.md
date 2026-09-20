@@ -35,7 +35,7 @@ Tudo que é conteúdo de treino — exercícios, programa, cardio, regras de pro
 | `data/perfil.json` | Dados iniciais do Miguel (altura 1,90, iniciante, data de início, objetivos, preferências); peso e medidas em `null` para preencher no app | Seed do perfil no primeiro login |
 | `assets/figuras/<id>.svg` | 67 figuras de execução (boneco lateral, posição inicial em cinza → final em destaque, seta), 66 animadas com SMIL; CSS e cores embutidos, respeitam `prefers-color-scheme` | `<img src>` ou inline; animação roda sozinha |
 | `assets/fotos/<id>-1.jpg`, `-2.jpg` | 162 fotos de execução (início e fim) do free-exercise-db, domínio público | Tela de exercício e sessão |
-| `assets/mapa-muscular/` | Sprite SVG do corpo (frente `#bf`, costas `#bb`), CSS das classes `p-<musculo>` / `s-<musculo>`, exemplo | Componente `MapaMuscular` (§7) |
+| `assets/mapa-muscular/` | Mapa anatômico SVG (`mapa-anatomico.svg`, MIT) com um grupo por músculo, o CSS das classes `p-<musculo>` / `s-<musculo>` e a licença | Componente `MapaAnatomico` (§7) |
 | `assets/itens/<item>/` | Fotos reais dos 10 itens comprados + `ficha.md` | Tela Equipamento |
 | `docs/` | O guia de treino completo (HTML), o manual da garagem e o catálogo dos itens — referência de tom e conteúdo | Leitura; não entra no bundle |
 
@@ -196,7 +196,7 @@ Função `montagem(carga_total, implemento)` → lista de anilhas por lado, gulo
 
 - **FiguraExercicio**: `<img src={"/figuras/"+id+".svg"} />` (as figuras já trazem CSS e cores claro/escuro; a animação SMIL roda sozinha). Fallback: as duas fotos lado a lado.
 - **FotosExercicio**: `-1.jpg` (início) → `-2.jpg` (fim), com toque para ampliar.
-- **MapaMuscular**: sprite `assets/mapa-muscular/corpo-sprite.svg` inline uma vez (layout) + `<svg><use href="#bf"/></svg>` e `#bb`, com as classes `p-<musculo>` e `s-<musculo>` do exercício; cores por CSS variables (ver `assets/mapa-muscular/README.md`).
+- **MapaAnatomico**: `assets/mapa-muscular/mapa-anatomico.svg` inline no servidor, com as classes `p-<musculo>` e `s-<musculo>` do exercício; cores por CSS variables (ver `assets/mapa-muscular/README.md`). O sprite antigo do boneco (`#bf`/`#bb`) e o componente `MapaMuscular` saíram do app no lote 4 (§22.4 item 8).
 - **TimerDescanso**: barra fixa no topo, contagem regressiva, vibração (`navigator.vibrate`) + som curto ao zerar, botão pular / +30 s.
 - **TimerIntervalos** (cardio): blocos com cor por tipo, próximo bloco visível, fala opcional ("corrida", "caminhada") via `speechSynthesis` em pt-BR.
 - **StepperNumerico**: − valor + com passo configurável e digitação direta; teclado numérico (`inputMode="decimal"`).
@@ -1445,13 +1445,161 @@ a tela — afrouxar o limite não é uma opção.
     uma faixa que rola sozinha (`overflow-x: auto/scroll`); a rolagem da página
     continua tendo de ser zero.
 
-### 22.3 Lote 3
+### 22.3 Lote 3 — Fundação visual
 
-(a preencher pelo lote)
+1. **44 px é o padrão, não a exceção.** A escala do `Button` passa a ser do
+   projeto: `sm` 40 px (sempre com `alvo`), `default` **44 px**, `lg` 48 px,
+   `xl` 56 px, `icon` 44 px e `icon-sm` 40 px; o `Input` nasce com 44 px. Os
+   tamanhos `xs`/`icon-xs` do shadcn (24 px) deixam de existir. Nenhum controle
+   da tela fica abaixo de 44 px — a varredura mede.
+2. **Um degrau real entre card e fundo.** O card mede **≥ 1,3:1** contra o
+   fundo e a borda **≥ 1,5:1** contra o card, nos dois temas — e isso vale
+   para **todo bloco que se apoia na página**, não só para o `Card`: o menu de
+   `/mais` e as seções de `/mais/creditos` levam `bg-card` junto com a borda,
+   senão no escuro sobra preto sobre preto com um fio em volta. No escuro quem
+   sobe é o card (`#141414` → `#262626`, com `secondary`/`muted`/`accent`
+   acima dele); no claro quem desce é o fundo (`#fafafa` → `#e0e0dd`), com o
+   card seguindo branco. O laranja do tema claro escurece um degrau
+   (`#b8400c` → `#a03608`) para o pill `bg-primary/10` manter os 4,5:1.
+3. **Borda de campo visível.** `--input` deixa de ser a mesma cor dos
+   separadores e passa a valer como elemento de interface (WCAG SC 1.4.11):
+   **≥ 3:1** contra card, fundo e superfície secundária, nos dois temas.
+4. **Ilustrações sem placa acesa.** No tema escuro a placa clara atrás das
+   ilustrações de traço não passa de **60 % de luminância** (`#e7e4e0` →
+   `#cfcac4`); no claro ela é a cor do card. O traço continua com ≥ 4,5:1.
+5. **Elevação que existe nos dois temas.** O que flutua (o FAB "Ajustar", o
+   play do tutorial) usa `--sombra-flutuante`/`.flutuante` no lugar de
+   `shadow-lg`: sombra no tema claro, anel de 1 px na cor de destaque mais
+   glow curto no escuro, onde sombra preta sobre preto não aparece.
+6. **Texto pequeno com nome.** `text-rotulo` (11 px) e `text-micro` (10 px)
+   substituem os 43 `text-[11px]`/`[10px]`/`[9px]`/`[0.7rem]`/`[0.8rem]`
+   soltos. Nenhum texto da interface fica abaixo de 10 px. Todo tamanho de
+   fonte criado no `@theme` tem de ser declarado ao mesclador de classes em
+   `lib/utils.ts` (`createCn({ extend: { classGroups: { "font-size": … } } })`):
+   sem isso ele lê `text-<nome>` como COR e descarta o tamanho quando a mesma
+   chamada traz uma cor de texto.
+7. **Anel de foco em tudo que recebe foco.** `app/globals.css` desenha
+   `outline: 2px solid var(--ring)` em todo focável — link de card, linha de
+   lista, o cartão do IMC, as abas de baixo —, e o anel dos botões e campos
+   deixa de ser meio transparente (`ring-ring/50`) para ser a cor cheia. O
+   anel mede ≥ 3:1 contra o fundo nos dois temas. Quem mede tem de **esperar
+   a transição**: o `Button` do shadcn anima com `transition-all` de 150 ms e,
+   lido no mesmo tique do Tab, o `box-shadow` do anel ainda está todo
+   transparente — daí a varredura esperar até 400 ms e exigir cor
+   **não-transparente** no `outline` ou no `box-shadow` (aceitar
+   `box-shadow !== "none"` deixava passar cinco sombras transparentes). A cor
+   é lida pelo **canvas**, não por expressão regular: o Chromium devolve
+   `oklab()` em toda sombra que passa por `color-mix`, e uma régua que só
+   entende `rgb()` daria transparente para todas elas. Nenhum controle pode
+   levar um anel próprio mais fino que o padrão — o `TabsTrigger` do shadcn
+   trazia `focus-visible:outline-1`, uma utilitária, que vencia os 2 px da
+   regra global. Dois focáveis exigem cuidado extra, e são a razão de o
+   `fixme` só ter saído agora: o **painel** da aba (`[data-slot=tabs-content]`,
+   que o Radix deixa focável com `tabindex="0"`) carregava `outline-none` do
+   shadcn e recebia o foco sem desenhar nada; e o `input[type="date"]` tem
+   shadow DOM — o Tab anda por dia, mês, ano e ainda pelo ícone do calendário,
+   e nesse último passo quem tem o foco é um nó de dentro, então o host deixa
+   de casar `:focus-visible` (o `Input` ganhou `focus-within` ao lado dele).
+   **Fechado**: a varredura do foco passa nas doze rotas nos dois temas, sem
+   `fixme`.
+8. **Aba acesa com forma, não só cor.** O item aceso da barra de baixo ganha
+   uma barra de 2 px no topo e o rótulo em semibold, além do laranja.
+9. **Estado vazio com saída.** `components/ui/vazio.tsx` (ícone, título curto,
+   frase e ação opcional) substitui os `<p>` tracejados de uma linha nos oito
+   vazios secos, cada um com a ação útil quando existe ("Limpar filtros",
+   "Limpar busca", "Ver o histórico completo", "Ver o treino de hoje").
+10. **Esqueleto com a forma da tela.** Além do `EsqueletoCard`, há
+    `EsqueletoCapa` (a capa do dia da aba Treino), `EsqueletoGrade3` (os três
+    contadores do Relatório) e `EsqueletoLista` (linhas com miniatura).
+11. **Texto cortado continua legível.** Todo `line-clamp` leva o texto inteiro
+    no `title` e, quando o elemento é clicável, também no nome acessível. Os
+    `title` que serviam só de tooltip (raios de dificuldade, dia da faixa da
+    semana, dia da grade do mês) viram texto só-leitor — no celular não existe
+    passar o mouse.
+12. **Voltar de Mais é botão.** O "Mais" do topo das telas de dentro de
+    `/mais` é um botão de ícone de 44 px com rótulo, padronizado com o topo do
+    player.
+13. **O interruptor diz o estado nos dois temas.** O trilho do `Switch` é
+    cinza (`--input`) desligado e laranja (`--primary`) ligado, nos dois
+    temas; o polegar é **claro sempre**. Nenhuma regra pode pegar os dois
+    estados: `dark:bg-input/80` pesa (0,2,0) contra os (0,1,0) da variante de
+    estado e apagava a diferença no escuro, onde só o polegar mudava — e
+    mudava ao contrário do tema claro (preto quando ligado). A borda de 1 px
+    que separa o polegar do trilho sai do token **`--polegar-borda`** (um por
+    tema, em `app/globals.css`), nunca de uma cor crua na classe do
+    componente, e mede **≥ 3:1** contra o polegar sobre o trilho ligado —
+    3,5:1 no escuro, onde o laranja é mais claro, e 9,2:1 no claro.
+14. **A aba acesa é mais clara que a lista.** O `TabsTrigger` aceso usa
+    `bg-card`, não `bg-background`: com o fundo da página em `#e0e0dd` a aba
+    ativa ficava da cor da PÁGINA, mais escura que a lista `bg-muted`. Nos
+    dois temas a luminância da aba acesa é **maior** que a da lista, com
+    contraste **≥ 1,15**.
+15. **O vazio de gráfico não vaza para o resto.** `SemDados` tem ícone e
+    título de gráfico só como PADRÃO; galeria de fotos, comparador e tabela de
+    medidas passam os seus (`Camera`, `ImageOff`, `Ruler`), senão a tela anuncia
+    "Sem dados por enquanto" debaixo de um gráfico de linha que ninguém pediu.
+16. **O corpo do mapa muscular existe contra a página.** Em
+    `/exercicios/[id]` → Músculos a figura é desenhada **direto sobre a
+    página**, sem card embaixo: `--mbody` mede **≥ 1,3:1** contra
+    `--background` nos dois temas, sem perder os 3:1 que o músculo principal
+    e o auxiliar precisam ter contra ela. Com o fundo claro em `#e0e0dd` o
+    corpo `#c8c8c4` dava 1,27:1 — a silhueta sumia; é `#c0c0bc` (1,38:1).
 
-### 22.4 Lote 4
+### 22.4 Lote 4 — Imagens, mídia e entrega
 
-(a preencher pelo lote)
+1. **Derivadas de imagem no prebuild.** `npm run assets` passou a gerar, dentro
+   de `public/` (que continua fora do git), três derivadas com `sharp`, com
+   cache por data de modificação: `<nome>.webp` (qualidade 78, no máximo
+   1200 px no maior lado) para as fotos de execução, `<nome>-mini.webp` de
+   112×112 (2× a caixa de 56 px) para fotos, ilustrações e itens, e
+   `<nome>-capa.webp` de 720×360 para as fotos `-1` que viram capa de cartão.
+   Cada derivada existe porque uma tela a pede: a grande é o que a ficha do
+   exercício e a foto em tela cheia baixam (44 kB no lugar dos 70 do JPEG do
+   kit, a tela mais pesada de imagem do app), a mini é das listas e a capa é
+   dos cartões. O item de equipamento nunca aparece maior que a caixa de 56 px
+   — a mesma das outras miniaturas, 2× a derivada — e por isso só ganha a
+   miniatura. Se a derivada faltar (um build sem o
+   prebuild), o `data-reserva` da `<img>` devolve o arquivo original — nenhuma
+   imagem nova, nenhum arquivo de terceiros a mais. O mesmo script, que já abre
+   cada foto com o `sharp`, grava em `data/medidas-de-foto.json` (este sim no
+   git) a medida **medida** de cada foto do kit e da derivada dela: as 162
+   fotos não são uniformes — 152 medem 850×567, seis medem 850×1275 (derivada
+   800×1200, pelo limite de 1200 px) e quatro medem 850×569.
+2. **Cache da mídia.** `/fotos`, `/ilustracoes`, `/itens`, `/figuras`, `/icons` e
+   `/mapa-muscular` saem com `Cache-Control: public, max-age=604800,
+   stale-while-revalidate=86400`. Uma semana: a segunda navegação não revalida
+   mais nada e ainda dá para trocar uma foto sem renomear o arquivo.
+3. **Toda imagem diz o tamanho — o tamanho certo.** As imagens de exercício
+   levam `width`/`height`, `decoding="async"` e `loading="lazy"` — menos a capa
+   da primeira dobra, que é `eager` com `fetchpriority="high"`. As dimensões
+   são as **do arquivo que aquela `<img>` pede**: as da ilustração saem de
+   `data/ilustracoes.json`, as da foto de execução saem de
+   `data/medidas-de-foto.json` (a derivada quando ela existe, o JPEG do kit
+   quando a `<img>` cai na reserva), a figura tem o `viewBox` 132×100 e as
+   derivadas de lista e de capa têm medida fixa (112×112 e 720×360). Um par de
+   números qualquer não serve: o navegador reserva a caixa pela proporção dos
+   atributos, e declarar 850×567 numa foto que chega 800×1200 trocava um salto
+   de layout por outro. Quem garante isso é `lib/medidas-de-foto.test.ts`, que
+   abre foto por foto com o `sharp`, e o teste "§22.4-3", que cobra no
+   navegador `width`/`height` iguais a `naturalWidth`/`naturalHeight`.
+4. **Miniatura enquadrada.** A miniatura usa a derivada quadrada de 112 px, com
+   um enquadramento só para foto e ilustração; a ilustração alta é cortada pelo
+   alto (o corpo aparece) em vez de encolher no meio da caixa. O texto
+   alternativo virou o contrário: vazio quando o nome do exercício já está
+   escrito ao lado, nome só quando a miniatura aparece sozinha.
+5. **Manifest e ícones.** O `manifest` ganhou atalhos (Treino, Relatório,
+   Corpo) e um ícone maskable de 192; os ícones são gerados na cor `--primary`
+   do tema escuro, em vez de um laranja escrito à mão fora dos tokens. A
+   `theme-color` continua presa ao `prefers-color-scheme` — segui-la pelo tema
+   escolhido ficou para outro lote (ver PROGRESSO.md).
+6. **`/favicon.ico` responde imagem**, em vez do HTML de 404.
+7. **Avisos em português.** A região do Sonner se chama "Avisos" — não sobrou
+   nenhum rótulo acessível em inglês.
+8. **Sprite antigo fora do layout.** O boneco `#bf`/`#bb` e o `MapaMuscular` que
+   ninguém usava saíram; o `MapaAnatomico` da ficha continua igual.
+9. **Abertura do iPhone.** O app declara `apple-touch-startup-image` nos
+    tamanhos comuns, com o fundo `#0a0a0a` e o ícone no meio — o app instalado
+    para de abrir com a tela preta.
 
 ### 22.5 Lote 5
 

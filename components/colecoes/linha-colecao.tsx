@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { Raios } from "@/components/ui/raios";
 import { hrefDaColecao, type Colecao } from "@/lib/colecoes";
+import { urlMiniatura } from "@/lib/midia";
 import { cn } from "@/lib/utils";
 
 /**
@@ -24,6 +25,12 @@ export function LinhaColecao({
     <Link
       href={hrefDaColecao(colecao)}
       data-colecao={colecao.id}
+      /*
+        SPEC §22.3 item 11: o subtítulo é cortado numa linha só; o texto
+        inteiro fica no `title` do link, sem `aria-label` — ele apagaria o
+        selo "Circuito" e o detalhe do nome acessível.
+      */
+      title={[colecao.titulo, colecao.subtitulo].filter(Boolean).join(" · ")}
       className={cn(
         "hover:bg-muted/40 alvo flex items-center gap-3 rounded-xl py-2 text-left",
         className,
@@ -49,7 +56,7 @@ export function LinhaColecao({
           {colecao.circuito ? (
             <span
               data-selo="circuito"
-              className="border-border rounded-full border px-1.5 py-px text-[10px] tracking-wide uppercase"
+              className="border-border rounded-full border px-1.5 py-px text-micro tracking-wide uppercase"
             >
               Circuito
             </span>
@@ -66,21 +73,40 @@ export function LinhaColecao({
   );
 }
 
-/** A capa pequena da linha: foto de `assets/` ou o ícone, nunca outra coisa. */
+/**
+ * A capa pequena da linha: foto de `assets/` ou o ícone, nunca outra coisa.
+ * SPEC §22.4 item 1: a caixa tem 56 px, então quem vem é a derivada de 112 —
+ * 2,4 kB no lugar dos 70 kB do JPEG inteiro; o original fica de reserva.
+ */
 export function CapaPequena({ foto }: { foto: string | null }) {
   const [quebrou, setQuebrou] = useState(false);
   const mostrar = foto !== null && !quebrou;
+  const mini = urlMiniatura(foto);
   return (
     <span className="bg-muted/60 relative block size-14 shrink-0 overflow-hidden rounded-xl">
       {mostrar ? (
         // eslint-disable-next-line @next/next/no-img-element -- foto local em /public, miniatura de tamanho fixo
         <img
-          src={foto}
+          src={mini ?? foto}
+          data-reserva={mini ? foto : undefined}
           alt=""
           aria-hidden="true"
+          width={112}
+          height={112}
           loading="lazy"
+          decoding="async"
           className="size-full object-cover"
-          onError={() => setQuebrou(true)}
+          onError={(evento) => {
+            // primeiro a derivada, depois o arquivo do kit, e só então o ícone
+            const img = evento.currentTarget;
+            const reserva = img.dataset.reserva;
+            if (reserva) {
+              delete img.dataset.reserva;
+              img.src = reserva;
+              return;
+            }
+            setQuebrou(true);
+          }}
         />
       ) : (
         <span className="text-muted-foreground flex size-full items-center justify-center">

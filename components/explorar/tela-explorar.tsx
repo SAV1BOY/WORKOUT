@@ -1,6 +1,6 @@
 "use client";
 
-import { Search, X } from "lucide-react";
+import { Search, SearchX, X } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { LinhaColecao } from "@/components/colecoes/linha-colecao";
@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ListaExercicios } from "@/components/exercicios/lista-exercicios";
 import { BotaoLargo } from "@/components/ui/botao-largo";
 import { Button } from "@/components/ui/button";
+import { Vazio } from "@/components/ui/vazio";
 import { CardCapa } from "@/components/ui/card-capa";
 import { Input } from "@/components/ui/input";
 import { treinoDeHoje } from "@/lib/calendario";
@@ -113,9 +114,12 @@ export function TelaExplorar() {
             Coleções ({achadas.length})
           </h2>
           {achadas.length === 0 ? (
-            <p className="border-border text-muted-foreground rounded-lg border border-dashed px-3 py-6 text-center text-sm">
-              Nenhuma coleção com esse nome.
-            </p>
+            <Vazio
+              icone={SearchX}
+              titulo="Nenhuma coleção com esse nome"
+              frase="Tente uma palavra mais curta, ou desça para as seções do catálogo."
+              acao={{ rotulo: "Limpar busca", aoTocar: () => setBusca("") }}
+            />
           ) : (
             <ul className="flex flex-col divide-y">
               {achadas.map((c) => (
@@ -270,7 +274,7 @@ function Secao({
         {itens.length > PREVIA ? (
           <Button
             variant="ghost"
-            className="alvo text-primary -mr-2 h-11 text-xs"
+            className="alvo text-primary -mr-2 text-xs"
             aria-expanded={tudo}
             onClick={() => setTudo((v) => !v)}
           >

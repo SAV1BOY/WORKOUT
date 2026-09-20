@@ -37,14 +37,17 @@ function comoSimbolo(): string {
 }
 
 /**
- * Os corpos do mapa muscular, inline uma vez no layout: o sprite antigo
- * (`#bf`/`#bb`, compacto) e o mapa anatômico do marco Mídia
- * (`#mapa-anatomico`). Fica separado dos componentes de mapa porque lê do
- * disco: importar este arquivo de um componente de cliente levaria `node:fs`
- * para o navegador.
+ * O mapa anatômico do marco Mídia (`#mapa-anatomico`), inline uma vez no
+ * layout. Fica separado dos componentes de mapa porque lê do disco: importar
+ * este arquivo de um componente de cliente levaria `node:fs` para o navegador.
+ *
+ * SPEC §22.4 item 8: o boneco antigo (`corpo-sprite.svg`, `#bf`/`#bb`) saía
+ * junto no HTML de **toda** página — 4,7 kB por navegação — e o único
+ * componente que o usava (`MapaMuscular`) não era importado por ninguém desde
+ * o marco Mídia. Os dois foram embora; a ficha continua com o `MapaAnatomico`.
  */
 export function SpriteMuscular() {
-  spriteEmCache ??= ler("corpo-sprite.svg") + comoSimbolo();
+  spriteEmCache ??= comoSimbolo();
   return (
     <div
       aria-hidden="true"

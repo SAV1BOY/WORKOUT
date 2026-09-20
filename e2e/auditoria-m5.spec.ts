@@ -524,9 +524,13 @@ test.describe("§3.6 — busca sem acento e filtros", () => {
     ).length;
     await expect(contagem).toHaveText(`${peitoHalteres} de 81 exercícios`);
 
-    // nada casa: a tela diz isso, não some em silêncio
+    // nada casa: a tela diz isso, não some em silêncio — e oferece a saída
+    // (SPEC §22.3 item 9: o `<p>` tracejado virou o componente `Vazio`)
     await busca.fill("zzz");
-    await expect(page.getByText("Nenhum exercício com esses filtros.")).toBeVisible();
+    const vazio = page.locator("[data-slot=vazio]");
+    await expect(vazio).toBeVisible();
+    await expect(vazio).toContainText("Nenhum exercício com esses filtros");
+    await expect(vazio.getByRole("button", { name: "Limpar filtros" })).toBeVisible();
     await semRolagemHorizontal(page);
   });
 });

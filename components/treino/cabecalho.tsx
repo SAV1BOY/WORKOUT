@@ -99,7 +99,7 @@ export function CabecalhoDoTreino({
               ? "Ainda não tem peso registrado."
               : `Último peso em ${formatarData(peso.data)}. Pese-se em jejum, 1× por semana.`}
           </p>
-          <Button asChild variant="outline" className="alvo h-11 shrink-0 px-3">
+          <Button asChild variant="outline" className="alvo shrink-0 px-3">
             <Link href="/corpo">Pesar</Link>
           </Button>
         </div>
@@ -111,7 +111,7 @@ export function CabecalhoDoTreino({
 function Caixa({ rotulo, children }: { rotulo: string; children: React.ReactNode }) {
   return (
     <div className="cartao border-border bg-card flex flex-col gap-0.5 border px-3 py-2">
-      <span className="text-muted-foreground text-[11px] tracking-wide uppercase">
+      <span className="text-muted-foreground text-rotulo tracking-wide uppercase">
         {rotulo}
       </span>
       <span className="numero text-base">{children}</span>

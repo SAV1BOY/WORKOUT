@@ -4,7 +4,7 @@ import { Dumbbell, Flame, Timer, Weight } from "lucide-react";
 import Link from "next/link";
 import { addDays } from "date-fns";
 import { useMemo } from "react";
-import { EsqueletoCard } from "@/components/carregando";
+import { EsqueletoCard, EsqueletoGrade3 } from "@/components/carregando";
 import { CardImc } from "@/components/corpo/card-imc";
 import { AvisoDeConquista } from "@/components/relatorio/aviso-conquista";
 import { CardPeso } from "@/components/relatorio/card-peso";
@@ -98,6 +98,7 @@ export function TelaRelatorio() {
   if (!hoje || !perfil) {
     return (
       <Tela>
+        <EsqueletoGrade3 />
         <EsqueletoCard linhas={3} />
       </Tela>
     );

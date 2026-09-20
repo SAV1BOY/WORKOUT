@@ -59,7 +59,10 @@ function CardDoDesafio({ desafio }: { desafio: Desafio }) {
             {desafio.titulo}
           </h3>
           {desafio.subtitulo ? (
-            <p className="text-muted-foreground line-clamp-2 text-xs text-balance">
+            <p
+              className="text-muted-foreground line-clamp-2 text-xs text-balance"
+              title={desafio.subtitulo}
+            >
               {desafio.subtitulo}
             </p>
           ) : null}

@@ -7,6 +7,19 @@
 import { acharExercicio, caminhoPublico, exerciciosDoTreino } from "@/lib/dados";
 import type { Exercicio, TreinoId } from "@/lib/schemas";
 
+/**
+ * A derivada 720×360 da capa (SPEC §22.4 item 1): a caixa do cartão tem
+ * 326×160, então 720 px é 2,2× — nítido no retina e um quinto do peso da foto
+ * inteira. Só as fotos `-1` viram capa; qualquer outro caminho devolve `null`
+ * e o cartão desenha o arquivo original.
+ */
+const FOTO_DE_CAPA = /^\/fotos\/.+-1\.jpe?g$/i;
+
+export function urlCapa(url: string | null | undefined): string | null {
+  if (!url || !FOTO_DE_CAPA.test(url)) return null;
+  return `${url.slice(0, url.lastIndexOf("."))}-capa.webp`;
+}
+
 /** A foto de início (`-1.jpg`) do exercício, que é a capa (SPEC §13.3). */
 export function capaDoExercicio(exercicio: Exercicio): string | null {
   const primeira = exercicio.fotos[0];
