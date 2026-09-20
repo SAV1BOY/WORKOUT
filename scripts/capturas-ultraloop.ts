@@ -39,6 +39,11 @@ const EMAIL: Record<Tema, string> = {
   dark: "capturas@exemplo.com",
   light: "capturas-claro@exemplo.com",
 };
+/**
+ * O id das linhas semeadas é fixo (determinismo), e no mock ele é único na
+ * TABELA inteira, não por usuário — então cada tema precisa da sua marca.
+ */
+const MARCA: Record<Tema, string> = { dark: "cafe11aa", light: "cafe11bb" };
 
 type Tema = "dark" | "light";
 
@@ -257,7 +262,7 @@ function datasDeForca(): string[] {
   return datas;
 }
 
-async function semear(s: Sessao) {
+async function semear(s: Sessao, marca: string) {
   await limpar(s);
   await mock(
     `/rest/v1/profiles?user_id=eq.${s.userId}`,
@@ -282,7 +287,7 @@ async function semear(s: Sessao) {
     "/rest/v1/sessions",
     "POST",
     datas.map((data, i) => ({
-      id: `cabeca11-0000-4000-8000-${String(i).padStart(12, "0")}`,
+      id: `${marca}-0000-4000-8000-${String(i).padStart(12, "0")}`,
       data,
       workout_id: i % 2 === 0 ? "A1" : "B1",
       fase: "fase1",
@@ -298,7 +303,7 @@ async function semear(s: Sessao) {
     "/rest/v1/cardio_sessions",
     "POST",
     cardio.map((data, i) => ({
-      id: `cabeca22-0000-4000-8000-${String(i).padStart(12, "0")}`,
+      id: `${marca}-2222-4000-8000-${String(i).padStart(12, "0")}`,
       data,
       tipo: "corrida",
       semana_plano: 2,
@@ -536,7 +541,7 @@ async function main() {
   for (const tema of ["dark", "light"] as const) {
     console.log(`— tema ${tema}`);
     const sessao = await contaDasCapturas(EMAIL[tema]);
-    await semear(sessao);
+    await semear(sessao, MARCA[tema]);
 
     const contexto = await contextoDeCelular(navegador, tema);
     const page = await contexto.newPage();
