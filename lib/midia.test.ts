@@ -10,6 +10,7 @@ import {
   ilustracaoDoExercicio,
   midiaDaMiniatura,
   midiaGrande,
+  notaDaIlustracao,
   opcoesDeMidia,
   posicoesDaIlustracao,
   urlsDaIlustracao,
@@ -188,5 +189,31 @@ describe("mapa anatômico (geometria MuscleMap, MIT)", () => {
       expect(svg).toContain(`id="m-${m}"`);
       expect(svg).toContain(`var(--m-${m}`);
     }
+  });
+});
+
+describe("ilustração aproximada (SPEC §15.2 e §22.2 item 6)", () => {
+  const todas = ilustracoes as { exercicio_id: string; correspondencia: string; nota: string }[];
+
+  it("toda ilustração aproximada tem a nota que explica a diferença", () => {
+    const aproximadas = todas.filter((i) => i.correspondencia === "aproximada");
+    expect(aproximadas.length).toBeGreaterThan(0);
+    for (const i of aproximadas) {
+      expect(i.nota.trim(), i.exercicio_id).not.toBe("");
+      // a legenda mostra a nota do JSON: ela precisa estar em pt-BR de verdade
+      expect(ilustracaoDoExercicio(i.exercicio_id)?.nota).toBe(i.nota);
+      expect(ilustracaoDoExercicio(i.exercicio_id)?.correspondencia).toBe("aproximada");
+    }
+  });
+
+  it("a nota da legenda sai do JSON e só na correspondência aproximada", () => {
+    for (const i of todas.filter((x) => x.correspondencia === "aproximada")) {
+      expect(notaDaIlustracao(i.exercicio_id), i.exercicio_id).toBe(i.nota);
+    }
+    // ilustração exata não mostra nota, mesmo quando o JSON descreve a figura
+    for (const i of todas.filter((x) => x.correspondencia === "exata")) {
+      expect(notaDaIlustracao(i.exercicio_id), i.exercicio_id).toBeNull();
+    }
+    expect(notaDaIlustracao("nao-existe")).toBeNull();
   });
 });

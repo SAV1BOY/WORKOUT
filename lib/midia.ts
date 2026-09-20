@@ -80,6 +80,19 @@ export function ilustracaoDoExercicio(id: string): IlustracaoDoExercicio | null 
   };
 }
 
+/**
+ * A nota que a legenda mostra quando a ilustração é só **aproximada** (SPEC
+ * §15.2 e §22.2 item 6): sete exercícios não têm o movimento exato na coleção
+ * livre, e o JSON guarda a frase que explica a diferença. Ilustração exata não
+ * tem nota para mostrar, mesmo quando o JSON descreve a figura.
+ */
+export function notaDaIlustracao(id: string): string | null {
+  const i = ilustracaoDoExercicio(id);
+  if (!i || i.correspondencia !== "aproximada") return null;
+  const nota = i.nota.trim();
+  return nota === "" ? null : nota;
+}
+
 /** Quantas posições a ilustração tem (2 = dá para alternar as duas). */
 export function posicoesDaIlustracao(id: string): number {
   return ilustracaoDoExercicio(id)?.urls.length ?? 0;

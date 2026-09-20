@@ -140,6 +140,11 @@ export default function Creditos() {
         CC BY-SA obriga a citar o autor e a manter a mesma licença nas obras
         derivadas: as imagens redimensionadas continuam sob CC BY-SA.
       </p>
+
+      {/* SPEC §22.1: qual build está no ar — o mesmo commit de `/versao` */}
+      <p className="text-muted-foreground numero text-xs">
+        Versão {(process.env.NEXT_PUBLIC_COMMIT ?? "dev").slice(0, 7)}
+      </p>
     </section>
   );
 }

@@ -4,6 +4,7 @@ import { Search, X } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { LinhaColecao } from "@/components/colecoes/linha-colecao";
+import { Skeleton } from "@/components/ui/skeleton";
 import { ListaExercicios } from "@/components/exercicios/lista-exercicios";
 import { BotaoLargo } from "@/components/ui/botao-largo";
 import { Button } from "@/components/ui/button";
@@ -66,6 +67,9 @@ export function TelaExplorar() {
     [],
   );
 
+  /** O destaque só aparece com perfil e overrides na mão (§22.2 item 2). */
+  const pronto = Boolean(hoje && perfil) && !overridesQ.isPending;
+
   const achadas = useMemo(
     () => (busca.trim() === "" ? [] : buscarColecoes(busca)),
     [busca],
@@ -124,7 +128,18 @@ export function TelaExplorar() {
         </section>
       ) : (
         <>
-          <Destaque perfil={perfil} dia={dia} hoje={hoje} mostrarRaios={mostrarRaios} />
+          {/*
+            SPEC §22.2 item 2: o destaque é a única parte de `/explorar` que
+            espera o servidor (perfil + overrides da semana). Enquanto ele não
+            chega, o lugar dele fica reservado com um esqueleto da MESMA forma
+            do `CardCapa` — antes a tela montava sem destaque e pulava quando o
+            perfil chegava. As seções e o catálogo saem dos JSON e não esperam.
+          */}
+          {pronto ? (
+            <Destaque perfil={perfil} dia={dia} hoje={hoje} mostrarRaios={mostrarRaios} />
+          ) : (
+            <EsqueletoDoDestaque />
+          )}
           <h2 className="text-base font-semibold">Escolhas para você</h2>
           {secoes.map((s) => (
             <Secao
@@ -146,6 +161,26 @@ export function TelaExplorar() {
 }
 
 /* --------------------------------------------------------- destaque */
+
+/** A forma do `CardCapa` do destaque, para a tela não pular (SPEC §22.2). */
+function EsqueletoDoDestaque() {
+  return (
+    <article
+      role="status"
+      aria-label="Carregando o destaque"
+      className="cartao border-border bg-card overflow-hidden border"
+    >
+      <div className="bg-muted/60 flex min-h-40 w-full flex-col justify-end gap-2 p-4">
+        <Skeleton className="h-6 w-2/3" />
+        <Skeleton className="h-4 w-1/2" />
+        <Skeleton className="h-3 w-1/3" />
+      </div>
+      <div className="p-4">
+        <Skeleton className="h-12 w-full" />
+      </div>
+    </article>
+  );
+}
 
 type Dia = ReturnType<typeof treinoDeHoje> | null;
 

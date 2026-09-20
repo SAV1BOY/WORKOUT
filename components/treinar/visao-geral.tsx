@@ -165,7 +165,8 @@ function Rodape({
     <>
       {/* o rodapé é fixo: este espaço impede que ele cubra o último bloco */}
       <div aria-hidden="true" className="h-28" />
-      <div className="bg-card/95 border-border fixed inset-x-0 bottom-14 z-30 border-t backdrop-blur">
+      {/* colado no rodapé: dentro do player não há barra de abas (§22.1) */}
+      <div className="bg-card/95 border-border pb-segura fixed inset-x-0 bottom-0 z-30 border-t backdrop-blur">
         {/* SPEC §13.3: o que vem depois, em linha inteira para caber o nome */}
         {proximo ? (
           <p className="text-muted-foreground mx-auto w-full max-w-lg truncate px-3 pt-1.5 text-xs">

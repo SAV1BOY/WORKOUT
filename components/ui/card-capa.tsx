@@ -42,6 +42,7 @@ export function CardCapa({
 
   return (
     <article
+      data-capa={titulo}
       className={cn(
         "cartao border-border bg-card overflow-hidden border",
         className,
@@ -76,15 +77,39 @@ export function CardCapa({
 
         <div className="capa-gradiente absolute inset-0" />
 
+        {/*
+          `z-10`: o véu do bloco de texto vem depois no DOM e, sem camada, era
+          pintado por cima do selo — o "hoje"/"em andamento" aparecia cortado ao
+          meio por uma linha reta, com a metade de baixo 32 % mais escura
+          (auditoria do lote 2).
+        */}
         {etiqueta ? (
-          <span className="bg-primary text-primary-foreground absolute top-3 left-3 rounded-full px-2.5 py-1 text-[11px] font-semibold tracking-wide uppercase">
+          <span className="bg-primary text-primary-foreground absolute top-3 left-3 z-10 rounded-full px-2.5 py-1 text-[11px] font-semibold tracking-wide uppercase">
             {etiqueta}
           </span>
         ) : null}
 
+        {/*
+          SPEC §22.2 item 10: o texto é branco, então ele carrega o próprio véu
+          escuro. O gradiente da capa (`--capa-*`) é decorativo e some quando o
+          cartão não tem foto — no tema claro o título ficava branco sobre o
+          cartão claro, 1,13:1. Com o véu, os dois temas passam de 4,5:1.
+
+          A cor é escrita à mão (`rgb(10 10 10 / 0.68)`, o mesmo preto dos
+          tokens `--capa-*`) e não `bg-black/68`: o utilitário de opacidade do
+          Tailwind 4 vira `color-mix(in oklab, …)`, que o navegador devolve
+          como `color(srgb …)` — e as réguas de contraste (a auditoria e a
+          varredura) leem `rgb()`/`rgba()`. Com o utilitário, o véu existia na
+          tela mas era invisível para a medição, que continuava acusando 1,13:1.
+
+          `.veu-capa` corta a borda de cima com uma máscara de 28 px: sem ela o
+          véu entrava na capa com uma linha reta e dura, que atravessava o
+          cartão por cima da foto. A máscara não mexe no `background-color`
+          computado, então as réguas continuam medindo os mesmos 0,68 de preto.
+        */}
         <div
           className={cn(
-            "relative flex flex-col gap-1 p-4 text-white",
+            "veu-capa relative flex flex-col gap-1 bg-[rgb(10_10_10_/_0.68)] p-4 text-white",
             // espaço para o selo, que fica no alto da capa
             etiqueta && "pt-12",
           )}

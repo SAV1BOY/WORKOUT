@@ -71,14 +71,11 @@ async function abrir(page: Page, rota: string, tema: Tema): Promise<void> {
 // =====================================================================
 
 /*
- * FIXME (lote de Treino/Explorar): em `/` e em `/explorar` as faixas
- * horizontais de cartões (LI `snap-start shrink-0` numa faixa que rola
- * sozinha) são contadas como vazamento — 96 elementos nos dois temas. A régua
- * olha o `overflow-x` do PRÓPRIO elemento e não sabe subir até o ancestral que
- * rola, e as faixas de fato passam de 360 px. O lote decide: ou a faixa cabe,
- * ou a régua aprende a subir. A rolagem da PÁGINA já está limpa.
+ * Arrumado no Lote 2 (SPEC §22.2 item 11): a régua sobe até o ancestral que
+ * rola, então o cartão dentro de um carrossel não conta como vazamento — só a
+ * rolagem da própria página e o que escapa dela.
  */
-test.fixme("varredura: nada rola para o lado a 360 px", async ({ page }) => {
+test("varredura: nada rola para o lado a 360 px", async ({ page }) => {
   const problemas: string[] = [];
   for (const tema of TEMAS) {
     for (const rota of ROTAS) {
@@ -214,11 +211,11 @@ async function textoComPoucoContraste(page: Page) {
 }
 
 /*
- * FIXME (lote de Treino/Explorar): no tema CLARO o título do cartão do treino
- * (`H2 "Treino A"`) continua branco sobre o cartão claro — 1,13:1 contra os
- * 4,5:1 exigidos, em `/` e em `/explorar`. É cor fixa onde devia ser token.
+ * Arrumado no Lote 2 (SPEC §22.2 item 10): o texto branco do `CardCapa` passou
+ * a ter véu escuro próprio, então o título do cartão do treino deixa de ser
+ * branco sobre cartão claro no tema claro.
  */
-test.fixme("varredura: todo texto visível passa no contraste AA", async ({ page }) => {
+test("varredura: todo texto visível passa no contraste AA", async ({ page }) => {
   const problemas: string[] = [];
   for (const tema of TEMAS) {
     for (const rota of ROTAS) {
@@ -274,12 +271,12 @@ test.fixme("varredura: o Tab deixa um anel de foco visível", async ({ page }) =
 // =====================================================================
 
 /*
- * FIXME (lote de Calendário): os esqueletos de carregamento do `/calendario`
- * usam `animate-pulse`, que é uma animação infinita e não é desligada por
- * `prefers-reduced-motion: reduce` — nove delas continuam rodando no tema
- * escuro. O conserto é no CSS global, não neste teste.
+ * Resolvido no lote 1 da rodada 1 (SPEC §22.1): o bloco global de
+ * `prefers-reduced-motion: reduce` em `app/globals.css` corta a repetição de
+ * toda animação CSS — os esqueletos `animate-pulse` do `/calendario`
+ * inclusive —, e a ilustração alternada nasce parada por conta própria.
  */
-test.fixme("varredura: com reduced-motion nada anima para sempre", async ({ page }) => {
+test("varredura: com reduced-motion nada anima para sempre", async ({ page }) => {
   const problemas: string[] = [];
   for (const tema of TEMAS) {
     for (const rota of ROTAS) {

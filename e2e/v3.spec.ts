@@ -498,7 +498,10 @@ test.describe("Relatório (§13.5 e §14.4)", () => {
     const totais = tela.getByRole("region", { name: "Totais" });
     await expect(totais.locator('[data-contador="Treinos"]')).toContainText("2");
     await expect(totais.locator('[data-contador="Minutos"]')).toContainText("79");
-    await expect(totais.locator('[data-contador="Volume (kg)"]')).toContainText("200");
+    // SPEC §22.2 item 1: no topo o rótulo é "Volume" e o "kg" vai no detalhe
+    const volume = totais.locator('[data-contador="Volume"]');
+    await expect(volume).toContainText("200");
+    await expect(volume).toContainText("kg no total");
 
     // histórico: a faixa da semana navegável e os registros da semana
     const historico = page.getByRole("region", { name: "Histórico" });

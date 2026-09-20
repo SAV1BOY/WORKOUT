@@ -1368,13 +1368,82 @@ A varredura que mede 1–4 em doze rotas × dois temas é
 marcado com `test.fixme` e o motivo; tirar o fixme é tarefa do lote que arruma
 a tela — afrouxar o limite não é uma opção.
 
-### 22.1 Lote 1
+### 22.1 Lote 1 — Player, offline e rótulos
 
-(a preencher pelo lote)
+1. **Sem rede, qualquer rota cai na `/~offline`.** O fallback do service worker
+   deixava de fora a navegação do App Router (o `fetch` de RSC e o documento que
+   não chega a ser um `destination: "document"`): `/mais/contas`, `/mais/senha` e
+   `/mais/creditos` abriam a página de erro do navegador. Agora uma regra própria
+   atende toda navegação de mesma origem — documento **ou** RSC — e, quando não
+   há rede nem cache, entrega a `/~offline`; no caminho do RSC ela devolve uma
+   resposta que não é payload, o que faz o roteador desistir da navegação suave e
+   recarregar a URL, que aí cai na página de offline.
+2. **A `/~offline` tem identidade e saída:** ícone de rede cortada, "Sem
+   conexão", "Tentar de novo" (recarrega) e "Ir para o Treino".
+3. **O player usa a tela inteira.** A barra de abas não existe no player, então
+   os controles (anterior · ✓ · próximo) e o overlay da visão geral deixam de
+   reservar os 56 px dela e passam a respeitar a área segura do aparelho
+   (`env(safe-area-inset-bottom)`), como o descanso e o botão "Ajustar".
+4. **`prefers-reduced-motion: reduce` é respeitado em todo o app**: nenhuma
+   animação CSS se repete para sempre (os esqueletos de carregamento incluídos) e
+   a ilustração de duas posições nasce **parada** — sob `reduce` ou com a aba
+   escondida. O botão de pausar/retomar continua mandando: quem tocar volta a
+   alternar. Contagens e anéis de progresso são JavaScript e não mudam.
+5. **O polegar para cima deixa de vir "pressionado".** A avaliação do exercício
+   vira de três estados — nenhum (padrão), preferido (`prefs.preferidos`) e
+   evitado (`prefs.evitar_exercicios`) — e nenhum dos dois botões afirma um
+   estado (`aria-pressed`) antes do primeiro toque.
+6. **A conclusão não reoferece o peso já registrado**: havendo pesagem de hoje
+   (ou peso digitado nesta sessão), a tela mostra "Peso de hoje: 82,4 kg" com um
+   "Corrigir" em vez do convite "Registrar o peso de hoje".
+7. **"sáb" com acento** na faixa da semana, igual ao calendário.
+8. **`/versao`** devolve `{commit, construidoEm}` (rota pública, `no-store`) e o
+   rodapé de Mais → Créditos mostra "Versão abc1234": é o que o teste de fumaça
+   do deploy compara para saber qual build está no ar.
 
-### 22.2 Lote 2
+### 22.2 Lote 2 — Relatório, Corpo, Calendário e Explorar
 
-(a preencher pelo lote)
+1. **Contadores numa linha só.** O rótulo do contador (`components/ui/contador.tsx`)
+   nunca quebra em duas linhas: o texto fica numa linha e os contadores de uma
+   mesma faixa compartilham a base. No Relatório o total de volume é
+   "Volume" com a unidade no detalhe ("kg no total"), não "Volume (kg)".
+2. **Explorar com esqueleto.** Enquanto o perfil não chega, `/explorar` mostra
+   um esqueleto com a forma do destaque e das seções, no lugar de montar a tela
+   sem o destaque e empurrá-la quando o perfil chega.
+3. **Apagar foto de progresso.** Na galeria de Corpo → Fotos um toque abre a
+   foto em tela cheia; ali há **Apagar**, com confirmação ("Apagar esta foto?
+   Não dá para desfazer."). Apagar remove o arquivo do bucket `progresso` e a
+   linha de `progress_photos`, e a galeria e o comparador deixam de mostrá-la.
+   É a única escrita do app que **exige internet** (como trocar a senha): sem
+   rede o botão avisa "Precisa de internet para apagar" e nada é apagado.
+4. **Esqueleto por aba no Corpo.** Medidas e Fotos têm o esqueleto da própria
+   forma enquanto carregam, em vez de aparecerem vazias.
+5. **Cardio num dia de descanso aparece como cardio.** Um cardio registrado num
+   dia que o plano dizia descanso passa a valer como o dia (§16.2, como já
+   valia para a força): o rótulo vira Corrida/Corda/Caminhada e a sigla da
+   faixa vira "Corr."/"Corda"/"Cam." no lugar de "Desc.".
+6. **Ilustração aproximada avisa.** Quando `data/ilustracoes.json` marca a
+   correspondência como "aproximada", a legenda da ilustração ganha uma segunda
+   linha discreta com a nota do JSON (§15.2). Nenhum texto novo em código.
+7. **Vídeo na ficha aberta fora do player.** A ficha em folha aberta pela lista
+   do dia e pela lista de uma coleção recebe o mesmo `temVideo` que o player já
+   passava — com vídeo em `public/videos/<id>.mp4`, as três telas mostram vídeo.
+8. **Desafio com uma leitura só.** O card do desafio diz "Semana 3 de 12 · 2
+   concluídas" e a barra mede as semanas **concluídas** — o rótulo e a barra
+   param de discordar.
+9. **Selo "Circuito".** A coleção que dá para rodar como circuito guiado (§13.6)
+   mostra um selo discreto na vitrine; o campo `circuito` deixa de ser calculado
+   sem leitor.
+10. **Texto sobre a capa com contraste AA.** O texto branco do `CardCapa` fica
+    sobre um véu escuro próprio, nos dois temas, com pelo menos 4,5:1 — sem
+    passar por cima do selo ("hoje", "em andamento"), que continua inteiro, e
+    sem apagar a foto: a borda de cima do véu é esfumada, em vez de cortar o
+    cartão com uma linha reta, e a vinheta decorativa da capa não soma com ele
+    até virar tarja.
+11. **Régua de rolagem ciente de carrossel.** A auditoria de 360 px
+    (`e2e/auditoria-helpers.ts`) não conta como vazamento o que está dentro de
+    uma faixa que rola sozinha (`overflow-x: auto/scroll`); a rolagem da página
+    continua tendo de ser zero.
 
 ### 22.3 Lote 3
 

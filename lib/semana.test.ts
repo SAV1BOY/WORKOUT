@@ -205,13 +205,14 @@ describe("faixa da semana (SPEC §13.3)", () => {
       montarGrade({ data: SEMANA_1, perfil: PERFIL, hoje: SEMANA_1 }),
     );
     expect(faixa).toHaveLength(7);
+    // "sáb" com acento, igual ao calendário (SPEC §22.1)
     expect(faixa.map((d) => d.rotulo)).toEqual([
       "seg",
       "ter",
       "qua",
       "qui",
       "sex",
-      "sab",
+      "sáb",
       "dom",
     ]);
     expect(faixa.map((d) => d.numero)).toEqual([14, 15, 16, 17, 18, 19, 20]);
@@ -405,7 +406,7 @@ describe("treino feito num dia de descanso (SPEC §16.2 e §5.3)", () => {
     expect(quinta?.sessaoId).toBe("s1");
   });
 
-  it("o cardio feito no domingo também marca o dia como feito", () => {
+  it("o cardio feito no domingo marca o dia e mostra a sigla do cardio", () => {
     const grade = montarGrade({
       data: SEMANA_1,
       perfil: PERFIL,
@@ -415,8 +416,45 @@ describe("treino feito num dia de descanso (SPEC §16.2 e §5.3)", () => {
     const domingo = grade[6];
     expect(domingo?.marca).toBe("feito");
     expect(domingo?.sessaoTipo).toBe("corrida");
-    // o rótulo continua sendo o do plano: o domingo não vira dia de corrida
-    expect(domingo?.sigla).toBe("Desc.");
+    /*
+     * SPEC §22.2 item 5: o dia de descanso em que houve cardio passa a ser o
+     * cardio que foi feito — antes ganhava o ✓ mas continuava dizendo "Desc.".
+     */
+    expect(domingo?.sigla).toBe("Corr.");
+    expect(domingo?.rotulo).toBe("Corrida");
+    expect(domingo?.dia.tipo).toBe("cardio");
+  });
+
+  it("a corda feita no descanso vira 'Corda'; 'outro' não mexe no dia", () => {
+    const comCorda = montarGrade({
+      data: SEMANA_1,
+      perfil: PERFIL,
+      hoje: "2026-09-20",
+      cardios: [{ id: "c2", data: "2026-09-20", tipo: "corda", concluida: true }],
+    });
+    expect(comCorda[6]?.sigla).toBe("Corda");
+    expect(comCorda[6]?.rotulo).toBe("Corda");
+
+    const comOutro = montarGrade({
+      data: SEMANA_1,
+      perfil: PERFIL,
+      hoje: "2026-09-20",
+      cardios: [{ id: "c3", data: "2026-09-20", tipo: "outro", concluida: true }],
+    });
+    // "outro" não tem sessão no plano nem sigla: o domingo continua descanso
+    expect(comOutro[6]?.sigla).toBe("Desc.");
+    expect(comOutro[6]?.marca).toBe("feito");
+  });
+
+  it("um cardio no futuro não reescreve o dia de descanso", () => {
+    const grade = montarGrade({
+      data: SEMANA_1,
+      perfil: PERFIL,
+      hoje: "2026-09-16",
+      cardios: [{ id: "c4", data: "2026-09-20", tipo: "corrida", concluida: true }],
+    });
+    // 20/09 ainda não chegou: a semana projeta o plano, não o registro
+    expect(grade[6]?.sigla).toBe("Desc.");
   });
 
   it("uma sessão abandonada no descanso fica como parcial", () => {

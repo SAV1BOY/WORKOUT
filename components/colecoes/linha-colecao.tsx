@@ -39,7 +39,22 @@ export function LinhaColecao({
             <Raios nivel={colecao.raios} tamanho="sm" className="text-primary shrink-0" />
           ) : null}
         </span>
-        <span className="numero text-muted-foreground text-xs">{colecao.detalhe}</span>
+        <span className="numero text-muted-foreground flex flex-wrap items-center gap-x-1.5 text-xs">
+          {colecao.detalhe}
+          {/*
+            SPEC §13.6 e §22.2 item 9: a coleção em que TODO exercício serve
+            para circuito (`podeCircuito`) avisa aqui — o campo era calculado e
+            só os testes liam. Selo sem cor forte: é informação, não promoção.
+          */}
+          {colecao.circuito ? (
+            <span
+              data-selo="circuito"
+              className="border-border rounded-full border px-1.5 py-px text-[10px] tracking-wide uppercase"
+            >
+              Circuito
+            </span>
+          ) : null}
+        </span>
         {colecao.subtitulo ? (
           <span className="text-muted-foreground line-clamp-1 text-xs">
             {colecao.subtitulo}

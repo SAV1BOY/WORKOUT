@@ -18,6 +18,28 @@ export async function nadaVazaALargura(page: Page): Promise<void> {
 export async function elementosQueVazam(page: Page) {
   return page.evaluate(() => {
     const largura = document.documentElement.clientWidth;
+    /** Quem rola sozinho (tabela, gráfico, carrossel) pode ser mais largo. */
+    const rolaSozinho = (el: Element) => {
+      const e = getComputedStyle(el);
+      return e.overflowX === "auto" || e.overflowX === "scroll";
+    };
+    /*
+     * SPEC §22.2 item 11: o cartão dentro de um carrossel (faixa com
+     * `overflow-x: auto`) passa dos 360 px de propósito — a rolagem é da faixa,
+     * não da página. Antes a régua olhava só o `overflow-x` do PRÓPRIO elemento
+     * e contava os 96 cartões de `/` e `/explorar` como vazamento. Agora ela
+     * sobe até `main`: quem tem um ancestral que rola está dentro da rolagem
+     * intencional. A rolagem da PÁGINA continua tendo de ser zero (quem chama
+     * mede `document.documentElement.scrollWidth`).
+     */
+    const dentroDeQuemRola = (el: Element) => {
+      let atual: Element | null = el.parentElement;
+      while (atual && atual !== document.documentElement) {
+        if (rolaSozinho(atual)) return true;
+        atual = atual.parentElement;
+      }
+      return false;
+    };
     return [...document.querySelectorAll("main *")]
       .map((el) => {
         const r = el.getBoundingClientRect();
@@ -31,9 +53,8 @@ export async function elementosQueVazam(page: Page) {
             r.height > 0 &&
             estilo.visibility !== "hidden" &&
             estilo.display !== "none" &&
-            // quem rola sozinho (tabela, gráfico) pode ser mais largo
-            estilo.overflowX !== "auto" &&
-            estilo.overflowX !== "scroll",
+            !rolaSozinho(el) &&
+            !dentroDeQuemRola(el),
         };
       })
       .filter((e) => e.visivel && (e.direita > largura + 1 || e.esquerda < -1));

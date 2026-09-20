@@ -105,7 +105,10 @@ export function TelaDescanso({
     <section
       aria-label="Descanso"
       data-tela="descanso"
-      className="bg-descanso text-descanso-foreground fixed inset-0 z-50 flex flex-col items-center justify-between gap-4 overflow-y-auto px-4 py-8"
+      className="bg-descanso text-descanso-foreground fixed inset-0 z-50 flex flex-col items-center justify-between gap-4 overflow-y-auto px-4 pt-8"
+      /* a área segura entra somada aos 2rem de respiro: o "Pular" é o botão
+         mais baixo da tela e não pode ficar sob o indicador de home (§22.1) */
+      style={{ paddingBottom: "calc(2rem + env(safe-area-inset-bottom, 0px))" }}
     >
       <div className="flex flex-col items-center gap-2 text-center">
         <p className="text-descanso-destaque text-xs font-semibold tracking-[0.2em] uppercase">

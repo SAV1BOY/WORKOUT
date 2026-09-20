@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { FichaEmFolha } from "@/components/exercicio/ficha-folha";
+import { useTemVideo } from "@/components/videos-do-app";
 import { Miniatura } from "@/components/ui/miniatura";
 import { Raios } from "@/components/ui/raios";
 import { acharExercicio } from "@/lib/dados";
@@ -25,6 +26,8 @@ export function ListaDaColecao({
   prefs?: Prefs;
 }) {
   const [ficha, setFicha] = useState<string | null>(null);
+  // a ficha aberta daqui mostra vídeo igual à do player (SPEC §22.2 item 7)
+  const temVideo = useTemVideo(ficha);
 
   return (
     <>
@@ -72,6 +75,7 @@ export function ListaDaColecao({
         aberto={ficha !== null}
         aoMudarAberto={(v) => setFicha(v ? ficha : null)}
         prefs={prefs}
+        temVideo={temVideo}
       />
     </>
   );

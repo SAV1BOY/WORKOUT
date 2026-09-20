@@ -56,9 +56,15 @@
   /* camada visual v2 (SPEC §13.1): cards arredondados e sombra discreta */
   --raio-cartao: 1.25rem;
   --sombra-cartao: 0 1px 2px rgb(10 10 10 / 0.05), 0 6px 20px rgb(10 10 10 / 0.07);
-  --capa-de: rgb(10 10 10 / 0.15);
-  --capa-meio: rgb(10 10 10 / 0.62);
-  --capa-ate: rgb(10 10 10 / 0.93);
+  /*
+    Vinheta decorativa da capa (SPEC §13.1). Quem deixa o texto legível é o véu
+    do próprio bloco de texto (`.veu-capa`, 0,68 de preto): se a vinheta também
+    fechasse em 0,93 embaixo, as duas camadas somariam ~0,98 de preto e a foto
+    de capa sumia atrás de uma tarja. Aqui ela só escurece o pé da foto.
+  */
+  --capa-de: rgb(10 10 10 / 0.1);
+  --capa-meio: rgb(10 10 10 / 0.28);
+  --capa-ate: rgb(10 10 10 / 0.4);
 
   --background: #fafafa;
   --foreground: #0a0a0a;
@@ -106,9 +112,9 @@
 .dark {
   /* no escuro a sombra some: quem separa os cards é a borda (SPEC §13.1) */
   --sombra-cartao: none;
-  --capa-de: rgb(10 10 10 / 0.25);
-  --capa-meio: rgb(10 10 10 / 0.7);
-  --capa-ate: rgb(10 10 10 / 0.96);
+  --capa-de: rgb(10 10 10 / 0.16);
+  --capa-meio: rgb(10 10 10 / 0.36);
+  --capa-ate: rgb(10 10 10 / 0.5);
 
   --background: #0a0a0a;
   --foreground: #f5f5f4;
@@ -183,7 +189,7 @@
     border-radius: var(--raio-cartao);
     box-shadow: var(--sombra-cartao);
   }
-  /* o véu escuro que deixa o texto legível sobre a foto de capa */
+  /* a vinheta decorativa que escurece o pé da foto de capa */
   .capa-gradiente {
     background-image: linear-gradient(
       to top,
@@ -191,6 +197,17 @@
       var(--capa-meio) 42%,
       var(--capa-de) 100%
     );
+  }
+  /*
+    O véu do bloco de texto da capa (SPEC §22.2 item 10). O `background-color`
+    sólido fica no componente (`bg-[rgb(10_10_10_/_0.68)]`), porque é ele que
+    as réguas de contraste leem; aqui só se corta a borda de cima com uma
+    máscara, para o véu nascer transparente em vez de atravessar o cartão com
+    uma linha reta por cima da foto e do selo "hoje".
+  */
+  .veu-capa {
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 28px);
+    mask-image: linear-gradient(to bottom, transparent 0, #000 28px);
   }
   /* número grande, lido a um braço de distância */
   .numero-grande {
@@ -235,3 +252,20 @@
 .s-adutor{--m-adutor:var(--msec)}
 .p-panturrilha{--m-panturrilha:var(--mprim)}
 .s-panturrilha{--m-panturrilha:var(--msec)}
+
+/* ------------------------------------------- menos movimento (SPEC §22.1)
+   Quem pede `prefers-reduced-motion: reduce` no sistema não vê mais nenhuma
+   animação CSS se repetindo — os esqueletos `animate-pulse` do carregamento
+   incluídos — nem transição perceptível. As contagens do player, o anel de
+   progresso e a ilustração alternada são JavaScript: continuam corretos, e a
+   ilustração respeita a preferência por conta própria (nasce parada). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

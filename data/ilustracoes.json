@@ -217,7 +217,7 @@
     "licenca": "CC BY-SA 3.0",
     "url_fonte": "https://commons.wikimedia.org/wiki/File:Push_ups_1.svg",
     "titulo_fonte": "Push ups 1.svg",
-    "nota": "A colecao Everkinetic nao tem flexao com as MAOS elevadas; usada a flexao no chao."
+    "nota": "A coleção Everkinetic não tem flexão com as MÃOS elevadas; usada a flexão no chão."
   },
   {
     "exercicio_id": "crossover-na-polia",
@@ -305,7 +305,7 @@
     "licenca": "CC BY-SA 3.0",
     "url_fonte": "https://commons.wikimedia.org/wiki/File:Pull_ups_1.svg",
     "titulo_fonte": "Pull ups 1.svg",
-    "nota": "Mesma barra fixa pronada; a figura nao mostra o lastro/cinto."
+    "nota": "Mesma barra fixa pronada; a figura não mostra o lastro/cinto."
   },
   {
     "exercicio_id": "levantamento-terra",
@@ -735,7 +735,7 @@
     "licenca": "CC BY-SA 4.0",
     "url_fonte": "https://wger.de/en/exercise/1639/view/",
     "titulo_fonte": "Dumbbell Bent Over Face Pull",
-    "nota": "Face pull com halteres, curvado; a nossa e na polia."
+    "nota": "Face pull com halteres, curvado; a nossa é na polia."
   },
   {
     "exercicio_id": "rosca-direta-com-barra",
@@ -1148,7 +1148,7 @@
     "licenca": "CC BY-SA 3.0",
     "url_fonte": "https://commons.wikimedia.org/wiki/File:Squats_using_dumbbells_1.svg",
     "titulo_fonte": "Squats using dumbbells 1.svg",
-    "nota": "Agachamento com halteres ao lado do corpo; no goblet o halter fica a frente do peito."
+    "nota": "Agachamento com halteres ao lado do corpo; no goblet o halter fica à frente do peito."
   },
   {
     "exercicio_id": "agachamento-bulgaro",
@@ -1475,7 +1475,7 @@
     "licenca": "CC BY-SA 3.0",
     "url_fonte": "https://commons.wikimedia.org/wiki/File:Decline-sit-up-1.png",
     "titulo_fonte": "Decline-sit-up-1.png",
-    "nota": "Sit-up completo, porem no banco declinado; nao ha sit-up no chao na colecao."
+    "nota": "Sit-up completo, porém no banco declinado; não há sit-up no chão na coleção."
   },
   {
     "exercicio_id": "abdominal-cruzado",
@@ -1602,7 +1602,7 @@
     "licenca": "CC BY-SA 3.0",
     "url_fonte": "https://commons.wikimedia.org/wiki/File:Pull_ups_1.svg",
     "titulo_fonte": "Pull ups 1.svg",
-    "nota": "Barra fixa pronada; a figura nao mostra o elastico de assistencia."
+    "nota": "Barra fixa pronada; a figura não mostra o elástico de assistência."
   },
   {
     "exercicio_id": "abertura-de-ombros",
@@ -1646,6 +1646,6 @@
     "licenca": "CC BY-SA 3.0",
     "url_fonte": "https://commons.wikimedia.org/wiki/File:Barbell_good_mornings_1.svg",
     "titulo_fonte": "Barbell good mornings 1.svg",
-    "nota": "Good morning com barra; nao ha a versao com elastico."
+    "nota": "Good morning com barra; não há a versão com elástico."
   }
 ]

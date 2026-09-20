@@ -509,10 +509,25 @@ export function semanaPresa(semana: number, total: number): number {
   return Math.min(Math.max(Math.round(semana), 1), Math.max(1, total));
 }
 
-/** Quanto do plano já foi, de 0 a 1 (a semana em curso conta como começada). */
+/**
+ * Quantas semanas do plano já foram **fechadas** — a semana atual está em
+ * curso e ainda não conta (SPEC §22.2 item 8).
+ */
+export function semanasConcluidasDoDesafio(
+  d: Pick<Desafio, "semanaAtual" | "semanas">,
+): number {
+  if (d.semanas <= 0) return 0;
+  return Math.min(d.semanas, Math.max(0, Math.round(d.semanaAtual) - 1));
+}
+
+/**
+ * Quanto do plano já foi, de 0 a 1: as semanas concluídas sobre o total. O
+ * card mostra a mesma leitura por extenso ("Semana 3 de 12 · 2 concluídas"),
+ * para o rótulo e a barra nunca discordarem.
+ */
 export function progressoDoDesafio(d: Pick<Desafio, "semanaAtual" | "semanas">): number {
   if (d.semanas <= 0) return 0;
-  return Math.min(1, Math.max(0, (d.semanaAtual - 1) / d.semanas));
+  return semanasConcluidasDoDesafio(d) / d.semanas;
 }
 
 export function desafios(e: EntradaDosDesafios): Desafio[] {

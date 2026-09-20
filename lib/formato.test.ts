@@ -5,6 +5,7 @@ import {
   formatarDataCompleta,
   formatarDataLonga,
   formatarDescanso,
+  formatarDiaCurto,
   formatarDiaEData,
   formatarDuracao,
   formatarKg,
@@ -99,5 +100,31 @@ describe("formatarDiaEData (SPEC §13.3)", () => {
     expect(formatarDiaEData("2026-09-14")).toBe("segunda, 14/09");
     expect(formatarDiaEData("2026-09-19")).toBe("sábado, 19/09");
     expect(formatarDiaEData("2026-09-20")).toBe("domingo, 20/09");
+  });
+});
+
+describe("formatarDiaCurto (SPEC §22.1)", () => {
+  it("é o rótulo de três letras da semana, com o acento de sábado", () => {
+    expect(formatarDiaCurto("2026-09-14")).toBe("seg");
+    expect(formatarDiaCurto("2026-09-15")).toBe("ter");
+    expect(formatarDiaCurto("2026-09-16")).toBe("qua");
+    expect(formatarDiaCurto("2026-09-17")).toBe("qui");
+    expect(formatarDiaCurto("2026-09-18")).toBe("sex");
+    expect(formatarDiaCurto("2026-09-19")).toBe("sáb");
+    expect(formatarDiaCurto("2026-09-20")).toBe("dom");
+  });
+
+  /* a faixa da semana (lib/semana.ts) e o calendário (lib/hoje.ts) escrevem o
+     mesmo rótulo: era "sab" de um lado e "sáb" do outro */
+  it("bate com o `diaCurto` do calendário em toda a semana", async () => {
+    const { diaCurto } = await import("@/lib/hoje");
+    for (const dia of [14, 15, 16, 17, 18, 19, 20]) {
+      const data = `2026-09-${dia}`;
+      expect(formatarDiaCurto(data)).toBe(diaCurto(data));
+    }
+  });
+
+  it("aceita Date além da data pura", () => {
+    expect(formatarDiaCurto(new Date(2026, 8, 19, 10, 0, 0))).toBe("sáb");
   });
 });
