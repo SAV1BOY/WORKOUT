@@ -6,6 +6,7 @@
  * banco, a confirmação em duas etapas do "Recomeçar do zero", o card que não
  * volta a perguntar pela mesma pausa e a escolha feita sem rede.
  */
+import { mkdirSync } from "node:fs";
 import { expect, test, type Page } from "@playwright/test";
 import {
   abrirVisaoGeral,
@@ -28,7 +29,8 @@ import {
 const HOJE = "2026-10-26T08:00:00-03:00";
 
 const CAPTURAS =
-  "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/capturas/retomada";
+  process.env.CAPTURAS_DIR ?? "test-results/capturas/retomada";
+mkdirSync(CAPTURAS, { recursive: true });
 
 /** A carga do agachamento antes da pausa (barra maciça: 7,5 + 2 kg). */
 const CARGA = 39.5;

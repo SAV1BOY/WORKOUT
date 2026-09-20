@@ -10,7 +10,7 @@
  *    mesmo jeito que a regra que libera o botão;
  *  - um backup de versão futura recusado sem gravar nada (§9).
  */
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 import {
   entrarNoApp,
   esperarAbaTreino,
@@ -23,6 +23,7 @@ import {
   usuarioComPerfil,
   type SessaoMock,
 } from "./fixtures";
+import { alvosDe44px, nadaVazaALargura } from "./auditoria-helpers";
 
 /** Segunda, 14/09/2026 — o primeiro dia do programa (SPEC §5). */
 const SEGUNDA = "2026-09-14T08:00:00-03:00";
@@ -91,72 +92,6 @@ const ROTAS_MAIS = [
   "/mais/backup",
   "/mais/senha",
 ];
-
-/**
- * O `body` esconde a rolagem lateral (`overflow-x: hidden` em globals.css),
- * então medir `scrollWidth` não prova nada: aqui se pergunta a cada elemento
- * visível onde ele termina.
- */
-async function nadaVazaALargura(page: Page): Promise<void> {
-  const vazando = await page.evaluate(() => {
-    const largura = document.documentElement.clientWidth;
-    return [...document.querySelectorAll("main *")]
-      .map((el) => {
-        const r = el.getBoundingClientRect();
-        const estilo = getComputedStyle(el);
-        return {
-          alvo: `${el.tagName}.${el.className.toString().slice(0, 40)}`,
-          direita: Math.round(r.right),
-          esquerda: Math.round(r.left),
-          visivel:
-            r.width > 0 &&
-            r.height > 0 &&
-            estilo.visibility !== "hidden" &&
-            estilo.display !== "none" &&
-            // quem rola sozinho (tabela, gráfico) pode ser mais largo
-            estilo.overflowX !== "auto" &&
-            estilo.overflowX !== "scroll",
-        };
-      })
-      .filter((e) => e.visivel && (e.direita > largura + 1 || e.esquerda < -1));
-  });
-  expect(vazando, "elemento vazando a largura de 360 px").toEqual([]);
-}
-
-/** Todo controle da tela, inclusive os interruptores, tem 44 px. */
-async function alvosDe44px(page: Page): Promise<void> {
-  const pequenos = await page.evaluate(() => {
-    const alvos = [
-      ...document.querySelectorAll(
-        "main .alvo, main button, main a, main select, main [role=switch], main input:not([type=range]):not(.sr-only)",
-      ),
-    ];
-    return alvos
-      .map((el) => {
-        const r = el.getBoundingClientRect();
-        // o interruptor é um pill pequeno com a área de toque no ::after
-        const depois = getComputedStyle(el, "::after");
-        const cresceY =
-          depois.content !== "none"
-            ? Math.abs(Number.parseFloat(depois.top || "0")) +
-              Math.abs(Number.parseFloat(depois.bottom || "0"))
-            : 0;
-        const cresceX =
-          depois.content !== "none"
-            ? Math.abs(Number.parseFloat(depois.left || "0")) +
-              Math.abs(Number.parseFloat(depois.right || "0"))
-            : 0;
-        return {
-          alvo: `${el.tagName} ${(el.textContent ?? "").trim().slice(0, 24)}`,
-          h: Math.round(r.height + (Number.isFinite(cresceY) ? cresceY : 0)),
-          w: Math.round(r.width + (Number.isFinite(cresceX) ? cresceX : 0)),
-          bruto: Math.round(r.height),
-        };
-      })
-      .filter((a) => a.bruto > 0 && (a.h < 44 || a.w < 44));
-  });
-  expect(pequenos, "alvos menores que 44 px").toEqual([]);
-}
 
 test.describe("celular — as telas de /mais a 360 px", () => {
   for (const rota of ROTAS_MAIS) {

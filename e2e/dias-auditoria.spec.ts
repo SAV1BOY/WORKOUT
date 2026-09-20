@@ -5,6 +5,7 @@
  * a escolha feita sem rede (que sobe pela fila do §8) e a alternância da Fase 1
  * ancorada em `ultimo_treino` sobre os dias escolhidos.
  */
+import { mkdirSync } from "node:fs";
 import { expect, test, type Page } from "@playwright/test";
 import {
   entrarNoApp,
@@ -35,7 +36,8 @@ const DIAS_DA_SEMANA = [
 ];
 
 const CAPTURAS =
-  "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/capturas/auditoria-dias";
+  process.env.CAPTURAS_DIR ?? "test-results/capturas/dias-auditoria";
+mkdirSync(CAPTURAS, { recursive: true });
 
 function chip(page: Page, dia: string) {
   return page.locator(`[data-dia-chip="${dia}"]`);

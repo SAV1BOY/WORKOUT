@@ -3,7 +3,11 @@
 import Link from "next/link";
 import { CapaPequena } from "@/components/colecoes/linha-colecao";
 import { BotaoLargo } from "@/components/ui/botao-largo";
-import { progressoDoDesafio, type Desafio } from "@/lib/colecoes";
+import {
+  progressoDoDesafio,
+  semanasConcluidasDoDesafio,
+  type Desafio,
+} from "@/lib/colecoes";
 
 /**
  * Desafios (SPEC §14.3): carrossel **manual** (sem rotação automática) com os
@@ -39,6 +43,12 @@ export function Desafios({ desafios }: { desafios: Desafio[] }) {
 function CardDoDesafio({ desafio }: { desafio: Desafio }) {
   const fracao = progressoDoDesafio(desafio);
   const porcento = Math.round(fracao * 100);
+  /*
+   * SPEC §22.2 item 8: a barra mede as semanas CONCLUÍDAS, então o rótulo diz
+   * as duas coisas — em que semana ele está e quantas já fechou. Antes o card
+   * dizia "Semana 3 de 12" com a barra em 17 %, e as duas leituras brigavam.
+   */
+  const concluidas = semanasConcluidasDoDesafio(desafio);
 
   return (
     <article className="cartao border-border bg-card flex h-full flex-col gap-3 border p-3">
@@ -59,16 +69,17 @@ function CardDoDesafio({ desafio }: { desafio: Desafio }) {
       <div className="flex flex-col gap-1">
         <p className="numero text-muted-foreground flex items-baseline justify-between text-xs">
           <span>
-            Semana {desafio.semanaAtual} de {desafio.semanas}
+            Semana {desafio.semanaAtual} de {desafio.semanas} · {concluidas}{" "}
+            {concluidas === 1 ? "concluída" : "concluídas"}
           </span>
           <span>{porcento}%</span>
         </p>
         <div
           role="progressbar"
-          aria-valuenow={desafio.semanaAtual}
-          aria-valuemin={1}
+          aria-valuenow={concluidas}
+          aria-valuemin={0}
           aria-valuemax={desafio.semanas}
-          aria-label={`Progresso: semana ${desafio.semanaAtual} de ${desafio.semanas}`}
+          aria-label={`Progresso: ${concluidas} de ${desafio.semanas} semanas concluídas`}
           className="bg-muted h-2 w-full overflow-hidden rounded-full"
         >
           <div className="bg-primary h-full" style={{ width: `${porcento}%` }} />

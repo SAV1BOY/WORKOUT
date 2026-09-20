@@ -6,6 +6,7 @@
  * treino de cada dia, a semana seguinte continuando a alternância e a Fase 2
  * fixa por dia da semana.
  */
+import { mkdirSync } from "node:fs";
 import { expect, test, type Page } from "@playwright/test";
 import {
   entrarNoApp,
@@ -22,7 +23,8 @@ const QUARTA = "2026-09-16T08:00:00-03:00";
 const SEGUNDA = "2026-09-14";
 
 const CAPTURAS =
-  "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/capturas/semana";
+  process.env.CAPTURAS_DIR ?? "test-results/capturas/semana";
+mkdirSync(CAPTURAS, { recursive: true });
 
 /**
  * O usuário do caso: `ultimo_treino = A1` e uma sessão A1 concluída na segunda
@@ -199,6 +201,32 @@ test.describe("Semana visível — a aba Treino e o calendário dizem o mesmo (S
 
     await semRolagemHorizontal(page);
     await page.screenshot({ path: `${CAPTURAS}/05-hoje-ja-treinado.png` });
+  });
+
+  test("cardio feito num descanso mostra a sigla do cardio (SPEC §22.2 item 5)", async ({
+    page,
+  }) => {
+    const sessao = await usuarioDoCaso();
+    // quinta 17/09 é descanso no programa; ele correu mesmo assim
+    await inserirNoMock(sessao, "cardio_sessions", [
+      { data: "2026-09-17", tipo: "corrida", concluida: true, duracao_min: 30 },
+    ]);
+    // sexta 18/09: a quinta já passou
+    await fixarRelogio(page, "2026-09-18T08:00:00-03:00");
+    await entrarNoApp(page);
+    await esperarAbaTreino(page);
+
+    // a faixa da semana: a quinta deixa de dizer "Desc." e diz o cardio feito
+    const quinta = casaDaFaixa(page, "2026-09-17");
+    await expect(quinta).toContainText("Corr.");
+    await expect(quinta).not.toContainText("Desc.");
+
+    // e o calendário concorda: o dia é a corrida, com o ✓
+    await page.goto("/calendario");
+    await expect(page.getByRole("heading", { name: "Calendário" })).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: /^qui 17\/09.*Corrida, feito$/ }),
+    ).toBeVisible();
   });
 
   test("um dia passado sem sessão mostra o treino esperado e a marca de não feito", async ({

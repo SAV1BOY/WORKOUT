@@ -6124,3 +6124,259 @@ depois: as três respondem `401 permission denied` ao anon; só
 `vagas_para_conta()` continua pública, com dois números. Um teste novo em
 `lib/auditoria-seguranca.test.ts` prende cada revoke pelo nome e garante que a
 única função com grant para `anon` é a da cota.
+
+## Ultraloop 20/09/2026 — polimento contínuo (madrugada)
+
+### Relatório para o dono (9h)
+
+(a preencher)
+
+### Como funcionou
+
+Duas faixas de trabalho em paralelo, cada uma numa worktree própria com porta
+de app e porta de mock só dela: a faixa A em `/home/user/wt-a` (3100/54321) e a
+faixa B em `/home/user/wt-b` (3110/54331). Cada lote nasce de um branch
+`ultraloop/lN-<nome>` e passa por três papéis — construtor, auditor, corretor —
+antes de voltar para a faixa. Uma terceira worktree, `/home/user/wt-base`, fica
+parada no commit do preparo servindo o app "antes": é contra ela que as
+capturas novas são comparadas e é nela que os testes críticos rodam sem o
+código do lote no caminho.
+
+Os portões são sempre os mesmos e sempre pelo mesmo script
+(`portoes.sh`): lint, `tsc --noEmit`, `vitest`, build, build de e2e, a bateria
+de ponta a ponta e a varredura de 360 px / 44 px / contraste / foco /
+reduced-motion. Os pesados correm sob um `flock` único, porque a máquina tem 4
+CPUs e dois builds ao mesmo tempo só fazem os dois falharem por tempo.
+
+Cada rodada aprovada vira um deploy: build de produção, publicação e um teste
+de fumaça na URL. Fumaça vermelha = rollback imediato para o deploy anterior.
+Nada entra em produção sem capturas comparadas contra a base e sem a lista de
+telas que era esperado mudar.
+
+### Rodada 1 — Lote 1 — player, offline e rótulos (faixa A) ✅
+
+Branch `ultraloop/l1-player-offline`, oito itens. O que mudou, item a item:
+
+**L1-1 · sem rede, `/mais/*` caía na página de erro do navegador.**
+Era: o fallback do service worker (`app/sw.ts`) só cobria
+`request.destination === "document"`; a navegação do App Router tem duas formas
+— o documento e o `fetch` de RSC (`RSC: 1`, `?_rsc=…`) — e a segunda morria
+antes de virar navegação. `/mais/contas`, `/mais/senha` e `/mais/creditos`
+abriam em branco. É: uma regra própria, **antes** do `defaultCache`, atende
+toda navegação de mesma origem (rede primeiro, cache depois) e, sem nem um nem
+outro, devolve a `/~offline`; no caminho do RSC devolve um 503 sem corpo, que
+faz o roteador desistir da navegação suave e recarregar a URL — a recarga é um
+documento e cai na página de offline, com o endereço que o usuário pediu
+intacto. Se o precache da `/~offline` tiver falhado, um HTML mínimo embutido
+garante que a navegação nunca morra num erro do navegador.
+Arquivos: `app/sw.ts`, `e2e/auditoria-offline.spec.ts`.
+
+**L1-2 · a `/~offline` era um parágrafo solto.**
+Era: título e uma frase, sem saída. É: ícone de rede cortada (lucide
+`WifiOff`), "Sem conexão", a frase curta, **Tentar de novo** (recarrega) e **Ir
+para o Treino** — alvos de 48 px, `max-w-lg`, área segura e os dois temas.
+Arquivo: `app/~offline/page.tsx`.
+
+**L1-3 · o player reservava 56 px para uma barra que não existe.**
+Era: os controles (anterior · ✓ · próximo) e o rodapé da visão geral paravam em
+`bottom-14`, o espaço da barra de abas — que o player devolve como `null`. Uma
+faixa morta bem onde fica o polegar. É: `bottom-0` + `.pb-segura`
+(`env(safe-area-inset-bottom)`) nos dois, a seção rolável com `pb-24` em vez de
+`pb-40`, e o descanso e o FAB "Ajustar" somando a área segura ao respiro que já
+tinham. Arquivos: `components/player/exercicio.tsx`,
+`components/player/tela-player.tsx`, `components/player/descanso.tsx`,
+`components/treino/fab-ajustar.tsx`, `components/treinar/visao-geral.tsx`.
+
+**L1-4 · `prefers-reduced-motion` não era respeitado.**
+Era: os esqueletos `animate-pulse` giravam para sempre mesmo com a preferência
+ligada, e a ilustração de duas posições alternava sozinha. É: um bloco global no
+fim de `app/globals.css` corta duração e repetição de toda animação CSS sob
+`reduce`, e a `IlustracaoAlternada` nasce **parada** sob `reduce` ou com a aba
+escondida (`visibilitychange`) — o botão continua mandando: quem tocar volta a
+ver o movimento. Contagens e anel de progresso são JavaScript e não mudaram.
+O `test.fixme` da varredura saiu. Arquivos: `app/globals.css`,
+`components/exercicio/ilustracao-alternada.tsx`, `lib/preferencias.ts`
+(`ilustracaoAlternando`, função pura com teste), `e2e/ultraloop-varredura.spec.ts`.
+
+**L1-5 · o polegar para cima vinha "pressionado".**
+Era: `aria-pressed={!evitado}` — o app afirmava, por escrito, um "gostei" que o
+usuário nunca deu. É: três estados — nenhum (padrão, os dois polegares
+neutros e **sem** `aria-pressed`), preferido (`prefs.preferidos`, novo no
+jsonb) e evitado (`prefs.evitar_exercicios`, como antes). Tocar no polegar
+aceso desfaz o voto; gostar de um exercício deixa de evitá-lo e vice-versa.
+Arquivos: `components/player/exercicio.tsx`, `components/player/tela-player.tsx`,
+`lib/preferencias.ts` (+ teste), `e2e/player.spec.ts`.
+
+**L1-6 · a conclusão pedia de novo o peso já registrado.**
+Era: `useState(false)` fixo — fechar e reabrir a tela trazia de volta o convite
+"Registrar o peso de hoje", mesmo com a pesagem do dia no banco ou com o peso
+digitado dois passos atrás. É: o campo nasce aberto quando há peso digitado
+nesta sessão e, havendo a pesagem de hoje (`body_weights` com a data de hoje),
+a tela mostra **"Peso de hoje: 82,4 kg"** com um "Corrigir" ao lado.
+Arquivos: `components/player/conclusao.tsx`, `components/player/tela-player.tsx`,
+`e2e/player.spec.ts`.
+
+**L1-7 · "sab" sem acento na faixa da semana.**
+Era: `format("EEEEEE", ptBR)` devolvia "sab" na faixa, ao lado de um calendário
+que escreve "SÁB". É: um mapa de sete rótulos em `lib/formato.ts`, com teste que
+prende a igualdade com o `diaCurto` do calendário em toda a semana.
+Arquivos: `lib/formato.ts`, `lib/formato.test.ts`.
+
+**L1-8 · não dava para saber qual build estava no ar.**
+Era: a fumaça do deploy só conseguia dizer "abriu". É: `GET /versao` devolve
+`{commit, construidoEm}` (rota pública, `Cache-Control: no-store`), com o commit
+vindo de `VERCEL_GIT_COMMIT_SHA` ou do `git rev-parse` do build; o rodapé de
+Mais → Créditos mostra "Versão abc1234". Arquivos: `app/versao/route.ts`,
+`next.config.ts`, `lib/supabase/middleware.ts`,
+`app/(app)/mais/creditos/page.tsx`, `e2e/shell.spec.ts`.
+
+**Provas.** Portões completos pelo `portoes.sh` (lint · tsc · vitest · build de
+produção · build de e2e · e2e · varredura). Unitários novos em
+`lib/preferencias.test.ts` (polegar de três estados e a regra da ilustração) e
+`lib/formato.test.ts` (os sete rótulos). E2E novos ou ajustados em
+`e2e/ultraloop-a-r1.spec.ts` (controles colados no rodapé nos dois temas, a
+`/~offline` com saída, `reduced-motion`), `e2e/auditoria-offline.spec.ts`
+(`/mais/*` sem rede), `e2e/player.spec.ts` (polegar e peso do dia) e
+`e2e/shell.spec.ts` (`/versao`). Capturas dos dois temas em
+`rodada-1/l1/capturas/construtor/`.
+
+**Como testar no celular.** Entre no treino do dia e vá até o primeiro
+exercício: o ✓ agora encosta no rodapé, sem faixa cinza embaixo, e os dois
+polegares no topo começam apagados — toque no de baixo e ele acende sozinho,
+toque de novo e apaga. Termine o treino: se você já se pesou hoje, a conclusão
+mostra o peso em vez de pedir de novo. Ligue "Reduzir movimento" nos ajustes do
+celular e abra uma ficha de exercício: a ilustração fica parada até você tocar
+nela. Por fim, ative o modo avião e abra Mais → Contas: em vez da tela de erro
+do navegador aparece "Sem conexão", com "Tentar de novo" e "Ir para o Treino".
+
+### Rodada 1 — Lote 2
+
+**Relatório, Corpo, Calendário e Explorar** (branch
+`ultraloop/l2-relatorio-corpo-calendario`, SPEC §22.2). Onze itens, cada um com
+prova. O que mudou, era → é:
+
+1. **Contadores (L2-1)** — era: em `/relatorio` o rótulo "VOLUME (KG)" não
+   cabia numa das três colunas a 360 px, quebrava em duas linhas e o número
+   descia meia linha em relação aos vizinhos ("BARRA FIXA", nos Números, fazia
+   o mesmo). É: `components/ui/contador.tsx` desenha o rótulo numa linha de
+   altura fixa que não quebra, e o total do volume virou "Volume" com a unidade
+   no detalhe ("kg no total") em `components/relatorio/tela-relatorio.tsx`.
+2. **Explorar (L2-2)** — era: `/explorar` montava sem o destaque e a tela
+   pulava quando o perfil chegava. É: o lugar do `CardCapa` fica reservado por
+   um esqueleto da mesma forma até perfil e overrides chegarem
+   (`components/explorar/tela-explorar.tsx`).
+3. **Apagar foto (L2-3)** — era: não havia como apagar uma foto de progresso,
+   embora a policy `progresso_dono_delete` já existisse. É: um toque na foto da
+   galeria abre a foto em tela cheia com **Apagar** e confirmação ("Apagar esta
+   foto? Não dá para desfazer."); apagar tira o arquivo do bucket `progresso`,
+   a linha de `progress_photos`, o blob do Dexie e o que ainda estivesse na
+   fila de saída. Exige internet, como trocar a senha (`components/corpo/aba-fotos.tsx`,
+   `components/exercicios/foto-ampliada.tsx`, `lib/queries/corpo.ts`).
+4. **Esqueleto por aba (L2-4)** — era: só o esqueleto do topo cobria as
+   pesagens; Medidas e Fotos apareciam vazias enquanto carregavam. É: cada aba
+   espera a sua leitura com o esqueleto da própria forma
+   (`components/corpo/tela-corpo.tsx`).
+5. **Cardio no descanso (L2-5)** — era: um cardio feito num dia de descanso
+   ganhava ✓ mas a faixa continuava dizendo "Desc.". É: `semanaCoerente()`
+   passa a receber os cardios registrados e o dia vira o cardio que foi feito —
+   "Corr."/"Corda"/"Cam." e "Corrida" no calendário (`lib/calendario.ts`,
+   `lib/semana.ts`). "outro" não tem sessão no plano e não mexe no dia.
+6. **Ilustração aproximada (L2-6)** — era: sete exercícios têm ilustração só
+   aproximada e a nota que explica a diferença ficava só no JSON. É: a legenda
+   ganha uma segunda linha com a nota (`notaDaIlustracao()` em `lib/midia.ts`,
+   `components/exercicio/media-grande.tsx`); as sete notas de
+   `data/ilustracoes.json` foram acentuadas (eram "colecao", "nao ha").
+7. **Vídeo fora do player (L2-7)** — era: só o player passava `temVideo`, então
+   a mesma ficha aberta pela lista do dia ou pela lista de uma coleção mostrava
+   a ilustração mesmo havendo vídeo. É: o layout do app lê `public/videos` uma
+   vez e a lista desce por contexto (`components/videos-do-app.tsx`,
+   `app/(app)/layout.tsx`, `components/treino/lista.tsx`,
+   `components/colecoes/lista-da-colecao.tsx`).
+8. **Desafio (L2-8)** — era: "Semana 3 de 12" com a barra em 17 % — duas
+   leituras brigando. É: "Semana 3 de 12 · 2 concluídas", barra e
+   `aria-valuenow` nas semanas concluídas (`lib/colecoes.ts`,
+   `components/treino/desafios.tsx`).
+9. **Selo Circuito (L2-9)** — era: `Colecao.circuito` era calculado e só os
+   testes liam. É: as 5 coleções que dão para rodar em circuito mostram um selo
+   discreto na vitrine (`components/colecoes/linha-colecao.tsx`).
+10. **Contraste da capa (L2-11)** — era: no tema claro o "Treino A" branco
+    sobre o cartão claro media 1,13:1. É: o bloco de texto do `CardCapa` tem véu
+    escuro próprio e passa de 4,5:1 nos dois temas
+    (`components/ui/card-capa.tsx`); o `test.fixme` de contraste saiu da
+    varredura.
+11. **Régua de rolagem (L2-12)** — era: a régua de 360 px contava os 96 cartões
+    dentro dos carrosséis de `/` e `/explorar` como vazamento. É: ela sobe até o
+    ancestral que rola e ignora o que está dentro de rolagem intencional,
+    continuando a exigir `scrollWidth == clientWidth` da página
+    (`e2e/auditoria-helpers.ts`); o `test.fixme` de rolagem saiu da varredura.
+
+**Provas.** Unitários novos/atualizados em `lib/semana.test.ts` (cardio no
+descanso vira o dia; "outro" não; cardio futuro não reescreve),
+`lib/calendario.test.ts` (`semanaCoerente` com cardio), `lib/midia.test.ts`
+(nota só na correspondência aproximada) e `lib/colecoes.test.ts` (barra e
+rótulo leem a mesma coisa). E2E: `e2e/ultraloop-b-r1.spec.ts` (contadores nos
+dois temas, contraste da capa nos dois temas, selo de circuito, esqueleto do
+destaque, desafio, nota da ilustração, apagar foto com e sem rede, esqueleto de
+Medidas, vídeo na ficha aberta pela lista do dia e pela lista de uma coleção,
+contraste dos botões da confirmação de apagar nos dois temas) e um caso novo em
+`e2e/semana.spec.ts`. A varredura roda sem os dois `test.fixme` que eram deste
+lote.
+
+**Como testar no celular.** (1) Relatório: os três totais no topo, rótulo numa
+linha e números alinhados — confira nos dois temas. (2) Corpo → Fotos: mande
+uma foto, toque nela, **Apagar**, confirme; ela some da galeria e do comparador.
+No modo avião o app avisa "Precisa de internet para apagar." e não apaga nada.
+(3) Corpo → Medidas: entrando com a rede lenta, a aba mostra a forma dos campos
+em vez de aparecer vazia. (4) Faça um cardio num dia de descanso: a faixa da
+semana passa a mostrar "Corr." naquele dia, e o calendário diz "Corrida".
+(5) Explorar: as coleções de circuito mostram o selo, e o destaque não pula
+mais quando a tela abre. (6) Abra a ficha do face pull: sob a ilustração há a
+nota dizendo que a figura é aproximada.
+
+**Correções da auditoria (rodada 1).** Um auditor independente reprovou o lote
+e os três problemas foram corrigidos:
+
+1. **O selo cortado e a tarja por cima da foto de capa** (bloqueante). O véu do
+   item 10 era pintado depois do selo e sem camada, então o "hoje"/"em
+   andamento" aparecia cortado ao meio por uma linha reta, com a metade de
+   baixo 32 % mais escura; e o véu (0,68 de preto) somava com a vinheta
+   `--capa-*` (0,93 no claro, 0,96 no escuro, no pé), deixando a faixa do texto
+   em ~0,98 de preto — a foto de capa sumia atrás de uma tarja com borda reta.
+   Agora o selo tem `z-10`; o véu ganhou uma máscara de 28 px que apaga a borda
+   (`.veu-capa` em `app/globals.css`, com o `background-color` intacto em
+   `rgb(10 10 10 / 0.68)`, que é o que as réguas de contraste leem); e a
+   vinheta desceu para 0,40 (claro) e 0,50 (escuro) no pé, de modo que a foto
+   volta a aparecer sob o texto sem perder o AA.
+2. **O botão que apaga a foto no tema escuro** (importante). `bg-destructive`
+   com rótulo branco dava 2,77:1 no escuro, porque lá o `--destructive` é claro
+   (`#f87171`) — e é o botão que apaga uma foto de progresso para sempre. O
+   rótulo virou `text-background`: 6,5:1 no claro e 7,2:1 no escuro
+   (`components/exercicios/foto-ampliada.tsx`).
+3. **O item 7 sem teste** (importante). O vídeo na ficha aberta fora do player
+   funcionava, mas nenhum teste o exercitava, embora o caminho passe pelo
+   layout do shell autenticado. `e2e/ultraloop-b-r1.spec.ts` ganhou dois casos
+   que escrevem um mp4 temporário em `public/videos` e abrem a ficha pela lista
+   do dia em `/` (supino reto, o Treino A da quarta) e pela lista de
+   `/explorar/treino/B1` (levantamento terra), exigindo o
+   `video[data-video="<id>"]` com o arquivo e a ilustração sem ele — mais a
+   asserção de contraste do item 2, nos dois temas.
+
+### Rodada 2 — Lote 3
+
+(a preencher)
+
+### Rodada 2 — Lote 4
+
+(a preencher)
+
+### Rodada 3 — Lote 5
+
+(a preencher)
+
+### Rodada 3 — Lote 6
+
+(a preencher)
+
+### Fila (o que não coube)
+
+(a preencher)

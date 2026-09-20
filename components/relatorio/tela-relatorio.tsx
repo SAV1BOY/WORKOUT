@@ -125,13 +125,14 @@ export function TelaRelatorio() {
           icone={<Timer aria-hidden="true" className="size-3" />}
         />
         {/*
-          A unidade vai no rótulo: "300 kg" em 22 px não cabe numa das três
-          colunas a 360 px e quebrava em duas linhas (só o número cabe).
+          A unidade vai no detalhe (SPEC §22.2 item 1): "300 kg" em 22 px não
+          cabe numa das três colunas a 360 px, e "VOLUME (KG)" no rótulo
+          quebrava em duas linhas e desalinhava a base dos três contadores.
         */}
         <Contador
-          rotulo="Volume (kg)"
+          rotulo="Volume"
           valor={formatarNumero(contadores.volumeKg)}
-          detalhe="no total"
+          detalhe="kg no total"
           icone={<Weight aria-hidden="true" className="size-3" />}
         />
       </section>

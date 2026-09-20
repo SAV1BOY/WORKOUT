@@ -15,9 +15,15 @@ import {
   evitadosPorUltimo,
   evitado,
   evitarExercicios,
+  ilustracaoAlternando,
   ligado,
+  comPreferido,
+  comVoto,
   opcoesDoPlayer,
+  preferido,
+  preferidos,
   preparacaoS,
+  votoDoExercicio,
   semEvitados,
   opcoesDeMontagem,
   pesoDeBarraValido,
@@ -248,5 +254,90 @@ describe("guia de uso (SPEC §20.2)", () => {
     expect(depois.conquistas_vistas).toEqual(["forca-1"]);
     // sem mutar o original
     expect(antes.guia_visto).toBeUndefined();
+  });
+});
+
+describe('"gostei" e o polegar de três estados (SPEC §22.1)', () => {
+  it("sem nenhum voto, o exercício não é preferido nem evitado", () => {
+    expect(preferidos({})).toEqual([]);
+    expect(preferido({}, "supino-reto")).toBe(false);
+    expect(votoDoExercicio({}, "supino-reto")).toBeNull();
+    expect(votoDoExercicio(null, "supino-reto")).toBeNull();
+  });
+
+  it("o jsonb vem do banco: só sobram strings, sem repetição", () => {
+    expect(preferidos({ preferidos: ["a", "a", "", 7, null, "b"] })).toEqual([
+      "a",
+      "b",
+    ]);
+    expect(preferidos({ preferidos: "a" })).toEqual([]);
+    expect(preferidos({ preferidos: null })).toEqual([]);
+  });
+
+  it("marcar e desmarcar não perde as outras chaves", () => {
+    const antes: Prefs = { tema: "escuro", evitar_exercicios: ["remada"] };
+    const gostou = comPreferido(antes, "supino-reto", true);
+    expect(gostou.preferidos).toEqual(["supino-reto"]);
+    expect(gostou.tema).toBe("escuro");
+    expect(gostou.evitar_exercicios).toEqual(["remada"]);
+    expect(preferidos(comPreferido(gostou, "supino-reto", false))).toEqual([]);
+    // sem mutar o original
+    expect(antes.preferidos).toBeUndefined();
+  });
+
+  it("o voto é um só: gostar deixa de evitar, e evitar deixa de preferir", () => {
+    const evitando = comVoto({}, "supino-reto", "evitado");
+    expect(votoDoExercicio(evitando, "supino-reto")).toBe("evitado");
+    expect(evitarExercicios(evitando)).toEqual(["supino-reto"]);
+    expect(preferidos(evitando)).toEqual([]);
+
+    const gostando = comVoto(evitando, "supino-reto", "preferido");
+    expect(votoDoExercicio(gostando, "supino-reto")).toBe("preferido");
+    expect(evitarExercicios(gostando)).toEqual([]);
+    expect(preferidos(gostando)).toEqual(["supino-reto"]);
+
+    const nenhum = comVoto(gostando, "supino-reto", null);
+    expect(votoDoExercicio(nenhum, "supino-reto")).toBeNull();
+    expect(evitarExercicios(nenhum)).toEqual([]);
+    expect(preferidos(nenhum)).toEqual([]);
+  });
+
+  it("o voto de um exercício não mexe no voto dos outros", () => {
+    const antes = comVoto(comVoto({}, "remada", "evitado"), "agacho", "preferido");
+    const depois = comVoto(antes, "supino-reto", "evitado");
+    expect(evitarExercicios(depois).sort()).toEqual(["remada", "supino-reto"]);
+    expect(preferidos(depois)).toEqual(["agacho"]);
+  });
+});
+
+describe("ilustração alternada e o menos movimento (SPEC §22.1)", () => {
+  const base = {
+    duasPosicoes: true,
+    escolha: null as boolean | null,
+    menosMovimento: false,
+    escondido: false,
+  };
+
+  it("com uma posição só não há o que alternar", () => {
+    expect(ilustracaoAlternando({ ...base, duasPosicoes: false })).toBe(false);
+  });
+
+  it("sem toque nenhum, alterna — a não ser sob reduced-motion", () => {
+    expect(ilustracaoAlternando(base)).toBe(true);
+    expect(ilustracaoAlternando({ ...base, menosMovimento: true })).toBe(false);
+  });
+
+  it("depois do toque manda o toque, mesmo sob reduced-motion", () => {
+    expect(
+      ilustracaoAlternando({ ...base, menosMovimento: true, escolha: false }),
+    ).toBe(true);
+    expect(ilustracaoAlternando({ ...base, escolha: true })).toBe(false);
+  });
+
+  it("a aba escondida nunca anima, tenha havido toque ou não", () => {
+    expect(ilustracaoAlternando({ ...base, escondido: true })).toBe(false);
+    expect(
+      ilustracaoAlternando({ ...base, escondido: true, escolha: false }),
+    ).toBe(false);
   });
 });

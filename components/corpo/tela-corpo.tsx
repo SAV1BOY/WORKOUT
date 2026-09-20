@@ -4,6 +4,7 @@ import { AbaFotos } from "@/components/corpo/aba-fotos";
 import { AbaMedidas } from "@/components/corpo/aba-medidas";
 import { AbaPeso } from "@/components/corpo/aba-peso";
 import { Erro, EsqueletoCard } from "@/components/carregando";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useFotos, useMedidas, usePesos } from "@/lib/queries/corpo";
 import { usePerfil } from "@/lib/queries/dados";
@@ -34,13 +35,15 @@ export function TelaCorpo({ userId }: { userId: string }) {
     );
   }
 
-  if (!hoje || !perfilQ.data || pesosQ.isPending) {
+  if (!hoje || !perfilQ.data) {
     return (
       <Tela>
         <EsqueletoCard linhas={4} />
       </Tela>
     );
   }
+
+  const perfil = perfilQ.data;
 
   return (
     <Tela>
@@ -57,22 +60,78 @@ export function TelaCorpo({ userId }: { userId: string }) {
           </TabsTrigger>
         </TabsList>
 
+        {/*
+          SPEC §22.2 item 4: cada aba espera a SUA leitura. Antes só o esqueleto
+          do topo cobria as pesagens e as abas Medidas e Fotos apareciam vazias
+          (como se não houvesse medida nenhuma) enquanto carregavam.
+        */}
         <TabsContent value="peso" className="pt-3">
-          <AbaPeso
-            userId={userId}
-            hoje={hoje}
-            pesos={pesosQ.data ?? []}
-            perfil={perfilQ.data}
-          />
+          {pesosQ.isPending ? (
+            <EsqueletoDaAba forma="peso" />
+          ) : (
+            <AbaPeso userId={userId} hoje={hoje} pesos={pesosQ.data ?? []} perfil={perfil} />
+          )}
         </TabsContent>
         <TabsContent value="medidas" className="pt-3">
-          <AbaMedidas userId={userId} hoje={hoje} medidas={medidasQ.data ?? []} />
+          {medidasQ.isPending ? (
+            <EsqueletoDaAba forma="medidas" />
+          ) : (
+            <AbaMedidas userId={userId} hoje={hoje} medidas={medidasQ.data ?? []} />
+          )}
         </TabsContent>
         <TabsContent value="fotos" className="pt-3">
-          <AbaFotos userId={userId} hoje={hoje} fotos={fotosQ.data ?? []} />
+          {fotosQ.isPending ? (
+            <EsqueletoDaAba forma="fotos" />
+          ) : (
+            <AbaFotos userId={userId} hoje={hoje} fotos={fotosQ.data ?? []} />
+          )}
         </TabsContent>
       </Tabs>
     </Tela>
+  );
+}
+
+/**
+ * O esqueleto de cada aba tem a FORMA do que vem depois (SPEC §22.2 item 4):
+ * o gráfico e o campo do peso, os pares de medidas, os três ângulos de foto.
+ */
+function EsqueletoDaAba({ forma }: { forma: "peso" | "medidas" | "fotos" }) {
+  return (
+    <div role="status" aria-label="Carregando" className="flex flex-col gap-4">
+      <div className="border-border bg-card flex flex-col gap-3 rounded-xl border p-4">
+        <Skeleton className="h-5 w-2/5" />
+        {forma === "peso" ? (
+          <>
+            <Skeleton className="h-12 w-full" />
+            <Skeleton className="h-40 w-full" />
+          </>
+        ) : null}
+        {forma === "medidas" ? (
+          <div className="grid grid-cols-2 gap-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="flex flex-col gap-1">
+                <Skeleton className="h-3 w-1/2" />
+                <Skeleton className="h-12 w-full" />
+              </div>
+            ))}
+          </div>
+        ) : null}
+        {forma === "fotos" ? (
+          <>
+            <Skeleton className="h-12 w-full" />
+            <div className="grid grid-cols-3 gap-2">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <Skeleton key={i} className="aspect-[3/4] w-full" />
+              ))}
+            </div>
+          </>
+        ) : null}
+      </div>
+      <div className="border-border bg-card flex flex-col gap-3 rounded-xl border p-4">
+        <Skeleton className="h-5 w-1/3" />
+        <Skeleton className="h-24 w-full" />
+      </div>
+    </div>
   );
 }
 

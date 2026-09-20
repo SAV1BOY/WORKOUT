@@ -12,6 +12,7 @@
  *  - o índice de chips rola até a seção;
  *  - a 360 px, nos dois temas, nada rola de lado e todo alvo tem 44 px.
  */
+import { mkdirSync } from "node:fs";
 import { expect, test, type Page } from "@playwright/test";
 import { SECOES, hrefsDoGuia, rotaDoHref } from "../lib/guia";
 import {
@@ -34,7 +35,8 @@ import {
 const QUARTA = "2026-09-16T08:00:00-03:00";
 
 const CAPTURAS =
-  "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/capturas/guia";
+  process.env.CAPTURAS_DIR ?? "test-results/capturas/guia";
+mkdirSync(CAPTURAS, { recursive: true });
 
 /**
  * O título esperado de cada rota para onde o guia manda. Tudo o que

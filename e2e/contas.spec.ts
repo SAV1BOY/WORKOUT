@@ -16,6 +16,7 @@
  *    existe mais;
  *  - a 360 px, nos dois temas, nada rola de lado e todo alvo tem 44 px.
  */
+import { mkdirSync } from "node:fs";
 import { expect, test, type Page } from "@playwright/test";
 import {
   EMAIL_DONO,
@@ -41,7 +42,8 @@ import {
 const QUARTA = "2026-09-16T08:00:00-03:00";
 
 const CAPTURAS =
-  "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/capturas/contas";
+  process.env.CAPTURAS_DIR ?? "test-results/capturas/contas";
+mkdirSync(CAPTURAS, { recursive: true });
 
 const NOVA_PESSOA = "joana.ferreira@exemplo.com";
 const SENHA_NOVA = "senha-da-joana";

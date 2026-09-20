@@ -244,19 +244,33 @@ export function sessaoCardioDeHoje(
   perfil: PerfilCalendario,
   overrides: ExcecaoAgenda[] = [],
 ): SessaoCardioDoDia | null {
-  const info = tipoDoDia(d, perfil, overrides);
+  return sessaoCardioDe(tipoDoDia(d, perfil, overrides), perfil);
+}
+
+/**
+ * A mesma sessão, a partir do dia já resolvido. `tipoForcado` é o cardio que
+ * de fato foi registrado naquele dia (SPEC §22.2 item 5): num dia de descanso
+ * não há texto no programa de onde tirar o tipo.
+ */
+function sessaoCardioDe(
+  info: TipoDoDia,
+  perfil: PerfilCalendario,
+  tipoForcado: SessaoCardioDoDia["tipo"] | null = null,
+): SessaoCardioDoDia | null {
   if (info.tipo !== "cardio") return null;
 
   const texto = info.excecao?.sessao ?? info.programa.sessao ?? "";
   const temCorrida = /corrida/i.test(texto);
   const temCorda = /corda/i.test(texto);
-  const tipo: SessaoCardioDoDia["tipo"] = temCorrida
-    ? "corrida"
-    : temCorda
-      ? "corda"
-      : /caminhada/i.test(texto)
-        ? "caminhada"
-        : "corrida";
+  const tipo: SessaoCardioDoDia["tipo"] =
+    tipoForcado ??
+    (temCorrida
+      ? "corrida"
+      : temCorda
+        ? "corda"
+        : /caminhada/i.test(texto)
+          ? "caminhada"
+          : "corrida");
 
   const semana =
     tipo === "corda"
@@ -311,20 +325,20 @@ function montarDia(
    * `{ treinoId: null }` é um dia de força sem treino conhecido — diferente de
    * não passar nada, que manda projetar a alternância.
    */
-  forcado?: { treinoId: TreinoId | null },
+  forcado?: { treinoId: TreinoId | null } | { cardioTipo: SessaoCardioDoDia["tipo"] },
 ): DiaDoPlano {
+  const treinoForcado = forcado && "treinoId" in forcado ? forcado : null;
+  const cardioForcado = forcado && "cardioTipo" in forcado ? forcado.cardioTipo : null;
   let treinoId: TreinoId | null = null;
   if (info.tipo === "forca") {
-    treinoId = forcado
-      ? forcado.treinoId
+    treinoId = treinoForcado
+      ? treinoForcado.treinoId
       : (info.excecao?.workout_id ??
         treinoDoDia(perfil.fase_atual, info.programa, ultimo));
   }
   const treino = treinoId ? acharTreino(treinoId) : null;
   const cardioDoDia =
-    info.tipo === "cardio"
-      ? sessaoCardioDeHoje(info.data, perfil, overrides)
-      : null;
+    info.tipo === "cardio" ? sessaoCardioDe(info, perfil, cardioForcado) : null;
 
   /*
    * SPEC §5.2 item 1: com override vale o override — o dia não herda os
@@ -378,12 +392,36 @@ export interface SessaoDeForca {
   workout_id: string | null;
 }
 
+/** Um cardio já registrado — o que a semana lê do passado (SPEC §22.2 item 5). */
+export interface CardioRegistrado {
+  data: string;
+  /** `cardio_sessions.tipo` (inclui "outro", que não vira dia de cardio). */
+  tipo: SessaoCardioDoDia["tipo"] | "outro";
+  concluida?: boolean;
+}
+
 export interface OpcoesDaSemana {
   overrides?: ExcecaoAgenda[];
   /** As sessões de força do período (concluídas ou parciais). */
   sessoes?: SessaoDeForca[];
+  /** As sessões de cardio do período (concluídas ou parciais). */
+  cardios?: CardioRegistrado[];
   /** Hoje. Sem ele, a semana inteira é projeção (o comportamento antigo). */
   hoje?: Data | null;
+}
+
+/**
+ * O cardio registrado num dia: o concluído na frente do que ficou pela metade.
+ * "outro" não tem sessão no plano nem sigla — o dia continua como estava.
+ */
+function cardioDoDiaRegistrado(
+  cardios: CardioRegistrado[],
+  data: string,
+): SessaoCardioDoDia["tipo"] | null {
+  const doDia = cardios.filter(
+    (c) => c.data === data && c.tipo !== "outro",
+  ) as (CardioRegistrado & { tipo: SessaoCardioDoDia["tipo"] })[];
+  return (doDia.find((c) => c.concluida) ?? doDia[0])?.tipo ?? null;
 }
 
 /** O treino da fase por trás de um `workout_id` ("livre"/"fixa" não contam). */
@@ -434,6 +472,7 @@ function montarSemana(
   sessoes: SessaoDeForca[],
   hoje: string | null,
   ancoraInicial: TreinoId | null,
+  cardios: CardioRegistrado[] = [],
 ): { dias: DiaDoPlano[]; ultimo: TreinoId | null } {
   let ancora = ancoraInicial;
   const dias = diasDaSemana(d).map((data) => {
@@ -473,6 +512,25 @@ function montarSemana(
       );
     }
 
+    /*
+     * SPEC §22.2 item 5: o mesmo vale para o cardio. Um cardio registrado num
+     * dia que o plano dizia descanso vira o dia — a faixa da semana mostra
+     * "Corr."/"Corda"/"Cam." com o ✓ em vez de "Desc." sem sigla nenhuma. A
+     * força vem antes (o bloco acima) e o override manda (item 1).
+     */
+    if (info.tipo === "descanso" && !info.excecao && (passado || ehHoje)) {
+      const cardioFeito = cardioDoDiaRegistrado(cardios, info.data);
+      if (cardioFeito) {
+        return montarDia(
+          { ...info, tipo: "cardio", programa: { ...info.programa, tipo: "cardio" } },
+          perfil,
+          overrides,
+          ancora,
+          { cardioTipo: cardioFeito },
+        );
+      }
+    }
+
     if (info.tipo !== "forca" || fixo || (!passado && !feito)) {
       const dia = montarDia(info, perfil, overrides, ancora);
       // SPEC §16.2 item 3: um dia passado nunca avança a âncora — o
@@ -505,6 +563,7 @@ export function semanaEEstado(
 ): { dias: DiaDoPlano[]; ultimo: TreinoId | null } {
   const overrides = opcoes.overrides ?? [];
   const sessoes = opcoes.sessoes ?? [];
+  const cardios = opcoes.cardios ?? [];
   const hoje = opcoes.hoje ? iso(opcoes.hoje) : null;
 
   const inicioAlvo = inicioDaSemana(d);
@@ -517,10 +576,11 @@ export function semanaEEstado(
     cursor < inicioAlvo;
     cursor = addDays(cursor, 7)
   ) {
-    ancora = montarSemana(cursor, perfil, overrides, sessoes, hoje, ancora).ultimo;
+    ancora = montarSemana(cursor, perfil, overrides, sessoes, hoje, ancora, cardios)
+      .ultimo;
   }
 
-  return montarSemana(inicioAlvo, perfil, overrides, sessoes, hoje, ancora);
+  return montarSemana(inicioAlvo, perfil, overrides, sessoes, hoje, ancora, cardios);
 }
 
 /** Só os dias de `semanaEEstado()`. */

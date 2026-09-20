@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { IlustracaoAlternada } from "@/components/exercicio/ilustracao-alternada";
-import { midiaGrande, type TipoDeMidia } from "@/lib/midia";
+import { midiaGrande, notaDaIlustracao, type TipoDeMidia } from "@/lib/midia";
 import { cn } from "@/lib/utils";
 
 /**
@@ -60,6 +60,13 @@ export function MediaGrande({
   }
 
   if (midia.tipo === "ilustracao") {
+    /*
+     * SPEC §15.2 e §22.2 item 6: sete exercícios têm ilustração só
+     * **aproximada** (a coleção livre não tem aquele movimento exato). A nota
+     * que explica a diferença está em `data/ilustracoes.json` — nada de texto
+     * escrito aqui — e vira a segunda linha da legenda.
+     */
+    const nota = notaDaIlustracao(exercicioId);
     return (
       <figure className="flex flex-col gap-1">
         <IlustracaoAlternada
@@ -67,17 +74,24 @@ export function MediaGrande({
           alt={midia.alt}
           className={cn("h-40", className)}
         />
-        {midia.credito && !semCredito ? (
-          <figcaption className="text-muted-foreground px-1 text-[11px] leading-tight">
+        {!semCredito && (midia.credito || nota) ? (
+          <figcaption className="text-muted-foreground flex flex-col px-1 text-[11px] leading-tight">
             {/* o texto continua em 11 px; a caixa de toque é de 44 px (§13.8.1) */}
-            <a
-              href={midia.credito.url_fonte}
-              target="_blank"
-              rel="noreferrer noopener"
-              className="alvo inline-flex items-center underline underline-offset-2"
-            >
-              {midia.credito.texto}
-            </a>
+            {midia.credito ? (
+              <a
+                href={midia.credito.url_fonte}
+                target="_blank"
+                rel="noreferrer noopener"
+                className="alvo inline-flex items-center underline underline-offset-2"
+              >
+                {midia.credito.texto}
+              </a>
+            ) : null}
+            {nota ? (
+              <span data-nota-ilustracao={exercicioId} className="text-balance">
+                {nota}
+              </span>
+            ) : null}
           </figcaption>
         ) : null}
       </figure>

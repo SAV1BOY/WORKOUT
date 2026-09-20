@@ -14,6 +14,7 @@ import {
   esperarAbaTreino,
   esperarServiceWorker,
   fixarData,
+  inserirNoMock,
   lerDoMock,
   resetarMock,
   semRolagemHorizontal,
@@ -399,6 +400,59 @@ test.describe("o Treino A inteiro pelo player (SPEC §14.5.1 e §14.5.2)", () =>
 });
 
 test.describe("o peso do dia na conclusão (SPEC §14.1.5)", () => {
+  /** Do 1º exercício até a tela de conclusão, com a sessão já aberta. */
+  async function irAteAConclusao(page: Page) {
+    for (let i = 0; i < 5; i++) await concluirSerie(page);
+    await page
+      .getByRole("radiogroup", { name: "Última repetição" })
+      .getByRole("radio", { name: "Firme" })
+      .click();
+    const sensacao = page.getByRole("radiogroup", { name: "Sensação" });
+    await irAte(page, sensacao);
+    await sensacao.getByRole("radio", { name: "Na medida certa" }).click();
+    await page.getByRole("button", { name: "Concluído" }).click();
+  }
+
+  /*
+   * SPEC §22.1: o convite "Registrar o peso de hoje" voltava a cada vez que a
+   * conclusão era fechada e reaberta — e voltava mesmo com a pesagem do dia já
+   * gravada, pedindo de novo o que já estava no banco.
+   */
+  test("com a pesagem de hoje no banco, mostra o número em vez de pedir de novo", async ({
+    page,
+  }) => {
+    test.setTimeout(90_000);
+    const sessao = await usuarioComPerfil();
+    await inserirNoMock(sessao, "body_weights", [
+      { user_id: sessao.userId, data: "2026-09-14", peso_kg: 82.4 },
+    ]);
+    await fixarData(page, SEGUNDA);
+    await entrarNoApp(page);
+    await comecarOTreinoDoDia(page);
+    await comecarNoPlayer(page);
+    await irAteAConclusao(page);
+
+    const fim = page.getByRole("region", { name: "Treino concluído" });
+    await expect(fim.getByText("Peso de hoje: 82,4 kg")).toBeVisible();
+    await expect(
+      fim.getByRole("button", { name: "Registrar o peso de hoje" }),
+    ).toHaveCount(0);
+
+    // fechar e reabrir a conclusão não faz o convite voltar
+    await fim.getByRole("button", { name: "Voltar ao treino" }).click();
+    await page.getByRole("button", { name: "Concluído" }).click();
+    await expect(fim.getByText("Peso de hoje: 82,4 kg")).toBeVisible();
+    await expect(
+      fim.getByRole("button", { name: "Registrar o peso de hoje" }),
+    ).toHaveCount(0);
+
+    // "Corrigir" abre o campo já com o valor de hoje
+    await fim.getByRole("button", { name: "Corrigir" }).click();
+    await expect(fim.getByRole("textbox", { name: "peso de hoje em kg" })).toHaveValue(
+      "82,4",
+    );
+  });
+
   /*
    * O toque no "Próximo" se perdia: o campo só confirmava no `onBlur`, o card
    * de IMC crescia 94 px entre o apertar e o soltar e o clique nunca chegava
@@ -642,7 +696,21 @@ test.describe("visão geral e gostei/não gosto (SPEC §14.1.2)", () => {
     page,
   }) => {
     const sessao = await abrirPlayer(page);
-    await page.getByRole("button", { name: "Não gosto deste exercício" }).click();
+    const gostei = page.getByRole("button", { name: "Gostei deste exercício" });
+    const naoGosto = page.getByRole("button", { name: "Não gosto deste exercício" });
+
+    /*
+     * SPEC §22.1: sem voto nenhum, nenhum dos dois polegares pode afirmar um
+     * estado — o "gostei" vinha desenhado como pressionado, dizendo por escrito
+     * (`aria-pressed="true"`) uma escolha que o usuário nunca fez.
+     */
+    await expect(gostei).not.toHaveAttribute("aria-pressed", "true");
+    await expect(gostei).not.toHaveAttribute("aria-pressed", "false");
+    await expect(naoGosto).not.toHaveAttribute("aria-pressed", "true");
+
+    await naoGosto.click();
+    await expect(naoGosto).toHaveAttribute("aria-pressed", "true");
+    await expect(gostei).toHaveAttribute("aria-pressed", "false");
     await expect
       .poll(
         async () =>
@@ -663,18 +731,35 @@ test.describe("visão geral e gostei/não gosto (SPEC §14.1.2)", () => {
     const todos = page.locator("main ul > li");
     await expect(todos.last()).toContainText("Agachamento livre");
 
-    // e o "gostei" desfaz
+    // e o "gostei" desfaz — e passa a valer como voto próprio (§22.1)
     await page.goBack();
     await page.getByRole("button", { name: "Gostei deste exercício" }).click();
     await expect
       .poll(
         async () =>
           (
-            await lerDoMock<{ prefs: { evitar_exercicios?: string[] } }>(
+            await lerDoMock<{
+              prefs: { evitar_exercicios?: string[]; preferidos?: string[] };
+            }>(sessao, "profiles")
+          )[0]?.prefs,
+        { timeout: 10_000 },
+      )
+      .toMatchObject({ evitar_exercicios: [], preferidos: ["agachamento-livre"] });
+    await expect(
+      page.getByRole("button", { name: "Gostei deste exercício" }),
+    ).toHaveAttribute("aria-pressed", "true");
+
+    // tocar de novo no polegar aceso desfaz o voto: volta a não haver escolha
+    await page.getByRole("button", { name: "Gostei deste exercício" }).click();
+    await expect
+      .poll(
+        async () =>
+          (
+            await lerDoMock<{ prefs: { preferidos?: string[] } }>(
               sessao,
               "profiles",
             )
-          )[0]?.prefs.evitar_exercicios,
+          )[0]?.prefs.preferidos,
         { timeout: 10_000 },
       )
       .toEqual([]);

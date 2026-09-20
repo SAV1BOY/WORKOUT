@@ -41,10 +41,11 @@ import {
   type PassoSerie,
 } from "@/lib/player";
 import {
-  comEvitado,
-  evitado as estaEvitado,
+  comVoto,
   ligado,
   opcoesDoPlayer,
+  votoDoExercicio,
+  type VotoDoExercicio,
 } from "@/lib/preferencias";
 import { salvarPerfil, salvarPrefs } from "@/lib/queries/mais";
 import { useUltimoPeso } from "@/lib/queries/dados";
@@ -150,11 +151,11 @@ export function TelaPlayer({
   /* ------------------------------------------------------ ações */
 
   const avaliarExercicio = useCallback(
-    (exercicioId: string, evitar: boolean) => {
+    (exercicioId: string, voto: VotoDoExercicio) => {
       if (!perfil) return;
       void salvarPrefs({
         userId: perfil.user_id,
-        prefs: comEvitado(prefs, exercicioId, evitar),
+        prefs: comVoto(prefs, exercicioId, voto),
         cliente,
       });
     },
@@ -188,9 +189,10 @@ export function TelaPlayer({
 
   if (visaoGeral) {
     return (
-      /* a barra de abas continua alcançável: o overlay para em cima dela */
-      <div className="bg-background fixed inset-x-0 top-0 bottom-14 z-50 overflow-y-auto">
-        <div className="mx-auto w-full max-w-lg px-4 pt-4">
+      /* tela cheia: no player a barra de abas devolve `null` (§14.1), então
+         parar 56 px antes do fim só deixava uma faixa morta (§22.1) */
+      <div className="bg-background fixed inset-0 z-50 overflow-y-auto">
+        <div className="pb-segura mx-auto w-full max-w-lg px-4 pt-4">
           <VisaoGeralDaSessao
             sessao={sessao}
             dados={dados}
@@ -304,7 +306,7 @@ export function TelaPlayer({
           opcoes={sessao.opcoesMontagem}
           temVideo={videos.includes(bloco.exercicioId)}
           anteriores={dados.anteriores[bloco.exercicioId]}
-          evitado={estaEvitado(prefs, bloco.exercicioId)}
+          voto={votoDoExercicio(prefs, bloco.exercicioId)}
           feitas={posicaoNaSequencia(seq, indice)}
           total={totalDeSeries(seq)}
           aoMudar={(campos) => dados.mudarSerie(bloco.ordem, serie.id, campos)}
@@ -317,7 +319,7 @@ export function TelaPlayer({
           aoAbrirFicha={() => setFicha(bloco.exercicioId)}
           aoAbrirLista={() => setVisaoGeral(true)}
           aoAjustar={() => setAjustar(true)}
-          aoAvaliar={(evitar) => avaliarExercicio(bloco.exercicioId, evitar)}
+          aoAvaliar={(voto) => avaliarExercicio(bloco.exercicioId, voto)}
         />
         {folha}
       </>
@@ -397,6 +399,11 @@ export function TelaPlayer({
       hoje={hoje ?? sessao.data}
       dataDaSessao={sessao.data}
       pesoAtual={pesoQ.data?.[0]?.peso_kg ?? null}
+      pesoDeHoje={
+        pesoQ.data?.[0]?.data === (hoje ?? sessao.data)
+          ? (pesoQ.data?.[0]?.peso_kg ?? null)
+          : null
+      }
       alturaCm={perfil?.altura_cm ?? null}
       peso={sessao.pesoCorporal}
       aoMudarPeso={(kg) => dados.mexer((atual) => ({ ...atual, pesoCorporal: kg }))}
