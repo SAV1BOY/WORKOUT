@@ -40,7 +40,7 @@ test.beforeEach(async () => {
 
 /** ✓ na série atual e pula o descanso que vem logo depois. */
 async function concluirSerie(page: Page) {
-  await page.getByRole("button", { name: "Concluir a série" }).click();
+  await page.getByRole("button", { name: "Concluir série" }).click();
   const pular = page.getByRole("button", { name: "Pular" });
   if (await pular.isVisible().catch(() => false)) await pular.click();
 }
@@ -180,7 +180,7 @@ test.describe("aba Treino — Parte do corpo em foco (§14.3)", () => {
     await expect(
       page.getByRole("timer", { name: "Contagem do exercício" }),
     ).toHaveText("1:00");
-    await page.getByRole("button", { name: "Concluir a série" }).click();
+    await page.getByRole("button", { name: "Concluir série" }).click();
 
     // 3) o mock tem a sessão livre com o plano e as séries
     const sessoes = await lerDoMock<{
@@ -286,9 +286,9 @@ test.describe("aba Treino — Personalizar e Editar (§14.3)", () => {
     expect(sessoes[0]?.workout_id).toBe("A1");
     expect(sessoes[0]?.plano?.itens[0]?.exercicio_id).not.toBe("agachamento-livre");
 
-    // de volta na aba Treino pelo "Sair do treino" da visão geral (§14.1)
+    // de volta na aba Treino pelo "Continuar depois" da visão geral (§14.1)
     await page.getByRole("button", { name: "Visão geral do treino" }).click();
-    await page.getByRole("link", { name: "Sair do treino" }).click();
+    await page.getByRole("link", { name: "Continuar depois" }).click();
     await esperarAbaTreino(page);
   });
 

@@ -1601,9 +1601,86 @@ a tela — afrouxar o limite não é uma opção.
     tamanhos comuns, com o fundo `#0a0a0a` e o ícone no meio — o app instalado
     para de abrir com a tela preta.
 
-### 22.5 Lote 5
+### 22.5 Lote 5 — Player: gravar sem perder o treino
 
-(a preencher pelo lote)
+1. **Descartar um treino pede uma pergunta.** "Abandonar" virava "Confirmar
+   abandono" **no mesmo ponto** da tela (x 138,8–241,4 → x 71,6–241,4, na
+   mesma faixa de y): dois toques seguidos jogavam a sessão fora sem nenhum
+   diálogo. A confirmação em linha saiu; o descarte passa por um
+   `AlertDialog` ("Descartar este treino? As N séries já registradas
+   continuam salvas." · Cancelar / Descartar este treino), com o Cancelar
+   nascendo com o foco. O componente é `components/ui/alert-dialog.tsx`,
+   escrito sobre o pacote `radix-ui` que o projeto já usa — **nenhuma
+   dependência nova**.
+2. **A conclusão grava ao ENTRAR, não 2.244 px abaixo.** O topo dizia
+   "Excelente! Você concluiu o treino." e nada tinha sido gravado: quem só
+   lia a tela e saía deixava a aba Treino mostrando "EM ANDAMENTO ·
+   Continuar · 17/17 séries". Agora `finalizarSessao` roda ao entrar no passo
+   de conclusão (`salvar(..., { navegar: false })`), a tela diz em
+   `role="status"` que o treino está salvo e o "Próximo" mora numa **barra
+   fixa no rodapé**, com o mesmo padrão de `ControlesDoPlayer`. Consequências
+   assumidas: não há mais "Voltar ao treino" na conclusão (voltar rodaria o
+   motor duas vezes) e o peso do dia, digitado depois da gravação, vai pelo
+   caminho do Corpo (`registrarPeso`, upsert em `user_id,data`) mais uma
+   atualização de `sessions.peso_corporal` — mexer na sessão gravada a
+   devolveria ao Dexie como sessão em andamento, que é justamente o defeito.
+3. **A Visão geral é um diálogo de verdade.** `role="dialog"` +
+   `aria-modal="true"`, fecha no **Escape** e no **voltar do celular**
+   (`history.pushState` ao abrir; o `popstate` consome a entrada, e quem fecha
+   pelo botão a desfaz — só quando ela ainda é a do topo, senão sair do treino
+   voltaria para dentro dele) e devolve o foco ao botão que a abriu. O rodapé
+   deixou de ter só as duas saídas que terminam a sessão: "Voltar ao treino"
+   está repetido nele.
+4. **A pergunta que decide a carga não vem respondida.** "Última repetição
+   saiu firme?" chegava com "Firme" em `aria-checked="true"` sem ninguém
+   responder. A escolha começa em `null`, o palpite do motor aparece como
+   **dica em texto** ("Pelas repetições, parece que saiu firme."), o primário
+   se chama "Pular esta pergunta" enquanto ninguém responde e o toque numa
+   opção espera 350 ms antes de virar a tela — antes o avanço era no mesmo
+   tique e ninguém via o que tinha escolhido. O feedback do treino ganhou o
+   mesmo tratamento: "(opcional)", o que a resposta faz e o primário
+   "Concluir sem responder"; o peso do dia da conclusão diz "(opcional)" e
+   para onde vai.
+5. **As opções deixaram de ser pintadas com a cor da página.** `bg-background`
+   é exatamente `--background` no tema claro (1,00:1): a única pista de que
+   havia cinco alvos tocáveis era uma borda de 1,15:1. As opções de "firme?" e
+   do feedback usam `bg-card`, e o "Voltar" perdeu o tratamento idêntico ao
+   das opções (h-14, cantos 2xl) que o fazia parecer mais uma delas.
+6. **24 px entre gravar a série e perdê-la.** "Próximo passo" (que pula a
+   série sem gravar) ficava a 8 px do "Concluir série". A barra passa a
+   `gap-6`; as setas descem para os 44 px padrão do projeto e o ✓ segue sendo
+   o único alvo de 56 px.
+7. **O fim do descanso é anunciado sem som.** Os timers usam `role="timer"`,
+   que tem `aria-live` desligado — quem usa leitor de tela só descobria o fim
+   pelo bipe, e o bipe é um interruptor que ele pode ter desligado. Ao lado do
+   número (que continua `role="timer"`) há um `<p role="status" class="sr-only">`
+   que só muda em **marcos**: "Faltam 30 segundos de descanso.", "Faltam 10
+   segundos de descanso.", "Descanso terminado, próxima série." A contagem dos
+   exercícios de tempo ganhou o equivalente. Os botões de tempo dizem o sinal
+   em texto: "−20 s" e "+20 s", dois alvos de 56 px na cor da própria tela
+   (`--descanso-destaque`), com nome acessível dizendo o que fazem.
+8. **O descanso tem anel, e "Pular descanso" não é o botão mais forte.** O
+   timer do descanso passou para dentro do `AnelDeContagem` que a preparação
+   já usava (`fracaoRestante`), com as cores da tela de descanso — o
+   `AnelDeContagem` recebeu `classeTrilho`/`classeArco` porque `--muted` e
+   `--primary` não existem como contraste ali. "Pular" virou "Pular descanso"
+   em **contorno** sobre o marrom (`border-descanso-foreground/40`): um app de
+   treino não empurra ninguém a cortar o descanso.
+9. **Três saídas, três verbos.** O ícone `LogOut` mudo virou "Continuar
+   depois" com texto visível, "Abandonar" virou "Descartar este treino" e o
+   par de ícones do cabeçalho virou um botão só, "Fechar" — sair preservando
+   mora no rodapé, junto do "Concluir".
+10. **Gravar a série deixou de ser silencioso.** Depois do ✓, um
+    `<p role="status" class="sr-only">` diz "Série 2 de 3 registrada: 5
+    repetições com 7,5 kg na barra. Descanso de 2:30."; a `progressbar` ganhou
+    `aria-valuetext` ("exercício 2 de 6") junto do `aria-valuenow`/`valuemax`;
+    o player ganhou um `h1` só-leitor ("Treino A — exercício 1 de 6") — era a
+    única rota sem `h1`; o nome acessível do primário passou a ser o texto
+    escrito ("Concluir série"/"Série feita", sem `aria-label` divergente); e os
+    rótulos visíveis foram fixados: **"CARGA NA BARRA"** no lugar de "NA
+    BARRA", e uma só grafia de "Aquecimento 2 de 2 · exercício 1 de 6" no
+    exercício e no descanso (que dizia "Próximo 2/6"), com o caixa-alta feito
+    por CSS.
 
 ### 22.6 Lote 6
 

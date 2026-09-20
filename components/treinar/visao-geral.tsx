@@ -1,12 +1,22 @@
 "use client";
 
-import { ChevronDown, LogOut } from "lucide-react";
+import { ChevronDown, LogOut, Trash2 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { BlocoExercicio } from "@/components/treinar/bloco";
 import { ResumoDoFim } from "@/components/treinar/resumo";
 import { TimerDescanso, type DescansoAtivo } from "@/components/treinar/timer-descanso";
 import type { FimDaSessao, SessaoDeTreino } from "@/components/treinar/usar-sessao";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { acharExercicio } from "@/lib/dados";
 import { formatarDuracao } from "@/lib/formato";
@@ -19,6 +29,11 @@ import { proximoExercicio, type SessaoLocal } from "@/lib/sessao";
  *
  * O player abre esta tela pelo ícone de lista. O estado é o mesmo — quem manda
  * nele é `useSessaoDeTreino`.
+ *
+ * SPEC §22.5: ela é um **diálogo** de verdade (`role="dialog"` + `aria-modal`),
+ * fecha no Esc e no voltar do celular e devolve o foco a quem a abriu; as
+ * saídas têm três verbos distintos ("Continuar depois", "Descartar este
+ * treino", "Concluir") e nenhuma delas descarta nada sem um diálogo.
  */
 export function VisaoGeralDaSessao({
   sessao,
@@ -30,6 +45,10 @@ export function VisaoGeralDaSessao({
   dados: SessaoDeTreino;
   /** Ids com `public/videos/<id>.mp4` (SPEC §13.1). */
   videos?: string[];
+  /**
+   * Fecha a lista e volta ao player. Precisa ser **estável** (`useCallback`):
+   * é dependência do efeito que empilha o estado do "voltar" do celular.
+   */
   aoFechar?: () => void;
 }) {
   const [descanso, setDescanso] = useState<DescansoAtivo | null>(null);
@@ -42,8 +61,45 @@ export function VisaoGeralDaSessao({
     [fim, dados],
   );
 
+  /*
+   * SPEC §22.5 item 3: a lista é uma página de ~5.700 px que cobre o player
+   * inteiro. Sem contrato de diálogo, a única saída era um ícone no topo — e
+   * o "voltar" do celular jogava para fora do treino. Agora o Escape e o
+   * voltar fecham a lista, e só ela: `pushState` põe uma entrada de história
+   * para o `popstate` consumir, e quem fecha pelo botão desfaz essa entrada.
+   */
+  useEffect(() => {
+    if (!aoFechar) return;
+    window.history.pushState({ visaoGeralDoTreino: true }, "");
+    const aoVoltarDoCelular = () => aoFechar();
+    const naTecla = (evento: KeyboardEvent) => {
+      if (evento.key !== "Escape") return;
+      evento.preventDefault();
+      aoFechar();
+    };
+    window.addEventListener("popstate", aoVoltarDoCelular);
+    window.addEventListener("keydown", naTecla);
+    return () => {
+      window.removeEventListener("popstate", aoVoltarDoCelular);
+      window.removeEventListener("keydown", naTecla);
+      /*
+       * Só desfaz a entrada se ela AINDA for a do topo: quem fechou pelo
+       * próprio "voltar" já a consumiu, e quem saiu do treino ("Continuar
+       * depois", "Concluir") empilhou outra por cima — um `back()` cego ali
+       * levaria de volta para dentro do treino que acabou de terminar.
+       */
+      const estado = window.history.state as { visaoGeralDoTreino?: boolean } | null;
+      if (estado?.visaoGeralDoTreino) window.history.back();
+    };
+  }, [aoFechar]);
+
   return (
-    <div className="flex flex-col gap-3">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Visão geral do treino"
+      className="flex flex-col gap-3"
+    >
       <TimerDescanso
         descanso={descanso}
         aoFechar={() => setDescanso(null)}
@@ -61,29 +117,22 @@ export function VisaoGeralDaSessao({
             {naFila > 0 ? ` · ${naFila} para sincronizar` : " · sincronizado"}
           </p>
         </div>
-        <div className="flex shrink-0 items-center gap-1">
-          {/*
-            SPEC §14.1: o player é tela cheia (a barra de abas some), então a
-            saída do treino mora aqui, na lista da sessão. A sessão continua
-            aberta e volta pelo "Continuar" da aba Treino (§3.1).
-          */}
-          <Button asChild variant="ghost" size="icon" className="alvo shrink-0">
-            <Link href="/" aria-label="Sair do treino">
-              <LogOut className="size-5" />
-            </Link>
+        {/*
+          SPEC §22.5 item 9: um botão só no cabeçalho, e com texto. O par de
+          ícones (sair do treino · fechar a lista) fazia duas coisas
+          diferentes com o mesmo peso visual; sair preservando mudou-se para o
+          rodapé, junto do "Concluir".
+        */}
+        {aoFechar ? (
+          <Button
+            variant="outline"
+            className="alvo shrink-0"
+            onClick={aoFechar}
+          >
+            <ChevronDown className="size-5" />
+            Fechar
           </Button>
-          {aoFechar ? (
-            <Button
-              variant="outline"
-              size="icon"
-              className="alvo shrink-0"
-              aria-label="Voltar ao treino"
-              onClick={aoFechar}
-            >
-              <ChevronDown className="size-5" />
-            </Button>
-          ) : null}
-        </div>
+        ) : null}
       </header>
 
       {sessao.blocos.map((bloco) => (
@@ -116,9 +165,11 @@ export function VisaoGeralDaSessao({
       <Rodape
         decorridoS={decorridoS}
         seriesTexto={progresso?.texto ?? ""}
+        seriesFeitas={progresso?.feitas ?? 0}
         proximo={proximoExercicio(sessao)}
+        aoFechar={aoFechar}
         aoConcluir={() => setFim("concluida")}
-        aoAbandonar={() => setFim("abandonada")}
+        aoDescartar={() => setFim("abandonada")}
       />
 
       <ResumoDoFim
@@ -139,72 +190,115 @@ export function VisaoGeralDaSessao({
   );
 }
 
-/** Rodapé fixo: tempo, séries e as duas saídas (SPEC §3.2). */
+/**
+ * Rodapé fixo: tempo, séries e as saídas (SPEC §3.2 e §22.5 itens 3 e 9).
+ *
+ * São quatro verbos, e só um deles termina a sessão sem gravá-la:
+ * "Voltar ao treino" (volta ao player), "Continuar depois" (sai preservando),
+ * "Concluir" e "Descartar este treino" — este último atrás de um
+ * `AlertDialog`, nunca de um segundo toque no mesmo lugar.
+ */
 function Rodape({
   decorridoS,
   seriesTexto,
+  seriesFeitas,
   proximo,
+  aoFechar,
   aoConcluir,
-  aoAbandonar,
+  aoDescartar,
 }: {
   decorridoS: number;
   seriesTexto: string;
+  /** Quantas séries já foram registradas — o número que o diálogo promete. */
+  seriesFeitas: number;
   /** "próximo: Remada curvada" (SPEC §13.3). */
   proximo: string | null;
+  aoFechar?: () => void;
   aoConcluir: () => void;
-  aoAbandonar: () => void;
+  aoDescartar: () => void;
 }) {
   const [confirmando, setConfirmando] = useState(false);
-  const relogio = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => () => {
-    if (relogio.current) clearTimeout(relogio.current);
-  }, []);
 
   return (
     <>
       {/* o rodapé é fixo: este espaço impede que ele cubra o último bloco */}
-      <div aria-hidden="true" className="h-28" />
+      <div aria-hidden="true" className="h-44" />
       {/* colado no rodapé: dentro do player não há barra de abas (§22.1) */}
       <div className="bg-card/95 border-border pb-segura fixed inset-x-0 bottom-0 z-30 border-t backdrop-blur">
-        {/* SPEC §13.3: o que vem depois, em linha inteira para caber o nome */}
-        {proximo ? (
-          <p className="text-muted-foreground mx-auto w-full max-w-lg truncate px-3 pt-1.5 text-xs">
-            próximo: {proximo}
-          </p>
-        ) : null}
-        <div className="mx-auto flex w-full max-w-lg items-center gap-2 px-3 py-2">
-          <div className="flex min-w-0 flex-1 flex-col">
+        <div className="mx-auto flex w-full max-w-lg flex-col gap-1.5 px-3 py-2">
+          {/* SPEC §13.3: o que vem depois, em linha inteira para caber o nome */}
+          {proximo ? (
+            <p className="text-muted-foreground w-full truncate text-xs">
+              próximo: {proximo}
+            </p>
+          ) : null}
+          <div className="flex items-baseline gap-2">
             <span className="numero text-lg leading-none">
               {formatarDuracao(decorridoS)}
             </span>
-            <span className="text-muted-foreground text-xs">{seriesTexto}</span>
+            <span className="text-muted-foreground truncate text-xs">
+              {seriesTexto}
+            </span>
           </div>
-          {confirmando ? (
-            <Button
-              variant="destructive"
-              className="alvo h-12 px-3"
-              onClick={aoAbandonar}
-            >
-              Confirmar abandono
+          <div className="flex items-center gap-2">
+            {aoFechar ? (
+              <Button
+                variant="outline"
+                size="lg"
+                className="alvo flex-1"
+                onClick={aoFechar}
+              >
+                Voltar ao treino
+              </Button>
+            ) : null}
+            <Button size="lg" className="alvo flex-1 font-semibold" onClick={aoConcluir}>
+              Concluir
             </Button>
-          ) : (
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button asChild variant="ghost" className="alvo flex-1 px-2">
+              <Link href="/">
+                <LogOut className="size-4" />
+                Continuar depois
+              </Link>
+            </Button>
             <Button
               variant="ghost"
-              className="alvo h-12 px-3"
-              onClick={() => {
-                setConfirmando(true);
-                relogio.current = setTimeout(() => setConfirmando(false), 5_000);
-              }}
+              className="alvo text-destructive hover:text-destructive flex-1 px-2"
+              onClick={() => setConfirmando(true)}
             >
-              Abandonar
+              <Trash2 className="size-4" />
+              Descartar este treino
             </Button>
-          )}
-          <Button className="alvo h-12 px-4 font-semibold" onClick={aoConcluir}>
-            Concluir
-          </Button>
+          </div>
         </div>
       </div>
+
+      {/*
+        SPEC §22.5 item 1: era uma confirmação NO MESMO PONTO — "Abandonar"
+        virava "Confirmar abandono" na mesma faixa de y, e dois toques seguidos
+        jogavam o treino fora sem nenhuma pergunta.
+      */}
+      <AlertDialog open={confirmando} onOpenChange={setConfirmando}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Descartar este treino?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {seriesFeitas === 1
+                ? "A 1 série já registrada continua salva."
+                : `As ${seriesFeitas} séries já registradas continuam salvas.`}{" "}
+              O treino fica guardado como abandonado e não conta para a
+              progressão.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction variant="destructive" onClick={aoDescartar}>
+              Descartar este treino
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

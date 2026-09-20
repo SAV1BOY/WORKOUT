@@ -1,14 +1,25 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { acharExercicio } from "@/lib/dados";
 import { cn } from "@/lib/utils";
+
+/** O tempo que o marcador fica aceso antes de a tela virar (SPEC §22.5). */
+const ESPERA_DO_AVANCO_MS = 350;
+
+type Escolha = "Fácil" | "Firme" | "Falhei";
 
 /**
  * "Última repetição saiu firme?" no fim de cada exercício (SPEC §14.1.2).
  * É este valor que o motor usa (`session_sets.ultima_firme`): Fácil e Firme
  * gravam `true`, Falhei grava `false`.
+ *
+ * SPEC §22.5 item 4: a pergunta **não vem respondida**. O palpite do motor
+ * aparece como dica em texto, nenhuma opção nasce com `aria-checked`, e o
+ * toque numa delas acende o marcador por {@link ESPERA_DO_AVANCO_MS} ms antes
+ * de a tela virar — antes o avanço era no mesmo tique e ninguém via o que
+ * tinha escolhido.
  */
 export function TelaFirme({
   exercicioId,
@@ -20,6 +31,7 @@ export function TelaFirme({
   aoVoltar,
 }: {
   exercicioId: string;
+  /** O palpite do motor pelas repetições — dica, nunca resposta. */
   firme: boolean;
   nota: string | null;
   aoResponder: (firme: boolean) => void;
@@ -31,16 +43,27 @@ export function TelaFirme({
   /*
    * A coluna do banco é um booleano (`ultima_firme`), mas a referência tem
    * três botões: "Fácil" e "Firme" gravam o mesmo `true`. Qual dos dois foi
-   * tocado fica só na tela, para o marcador não acender nos dois.
+   * tocado fica só na tela, para o marcador não acender nos dois — e começa
+   * em `null`, porque ninguém respondeu ainda.
    */
-  const [escolha, setEscolha] = useState<"Fácil" | "Firme" | "Falhei">(
-    firme ? "Firme" : "Falhei",
+  const [escolha, setEscolha] = useState<Escolha | null>(null);
+  const relogio = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const seguir = useRef(aoSeguir);
+  useEffect(() => {
+    seguir.current = aoSeguir;
+  });
+  useEffect(
+    () => () => {
+      if (relogio.current) clearTimeout(relogio.current);
+    },
+    [],
   );
 
-  const responder = (rotulo: "Fácil" | "Firme" | "Falhei", valor: boolean) => {
+  const responder = (rotulo: Escolha, valor: boolean) => {
+    if (escolha !== null) return;
     setEscolha(rotulo);
     aoResponder(valor);
-    aoSeguir();
+    relogio.current = setTimeout(() => seguir.current(), ESPERA_DO_AVANCO_MS);
   };
 
   return (
@@ -55,6 +78,10 @@ export function TelaFirme({
         </h2>
         <p className="text-muted-foreground text-sm text-balance">
           É isto que o motor usa para decidir a carga do próximo treino.
+          {" "}
+          {firme
+            ? "Pelas repetições, parece que saiu firme."
+            : "Pelas repetições, parece que você falhou nesta."}
         </p>
       </header>
 
@@ -69,7 +96,7 @@ export function TelaFirme({
         onChange={(e) => aoMudarNota(e.target.value)}
         placeholder="Nota curta (opcional)"
         aria-label={`Nota do ${exercicio.nome}`}
-        className="border-input bg-background focus-visible:border-ring focus-visible:ring-ring h-12 w-full rounded-xl border px-3 text-sm outline-none focus-visible:ring-3"
+        className="border-input bg-card focus-visible:border-ring focus-visible:ring-ring h-12 w-full rounded-xl border px-3 text-sm outline-none focus-visible:ring-3"
       />
 
       <div role="radiogroup" aria-label="Última repetição" className="flex flex-col gap-2">
@@ -90,15 +117,22 @@ export function TelaFirme({
         />
       </div>
 
+      {/*
+        SPEC §22.5 item 5: o "Voltar" tinha o tratamento IDÊNTICO ao das três
+        opções (h-14, rounded-2xl, contorno), e parecia a quarta. Agora é o
+        botão padrão do projeto, ao lado de um primário que diz a verdade
+        enquanto ninguém responde.
+      */}
       <div className="flex items-center gap-2">
-        <Button variant="outline" className="alvo h-14 rounded-2xl px-4" onClick={aoVoltar}>
+        <Button variant="outline" className="alvo" onClick={aoVoltar}>
           Voltar
         </Button>
         <Button
-          className="alvo h-14 flex-1 rounded-2xl text-base font-semibold"
+          size="xl"
+          className="alvo flex-1 rounded-2xl font-semibold"
           onClick={aoSeguir}
         >
-          Continuar
+          {escolha === null ? "Pular esta pergunta" : "Continuar"}
         </Button>
       </div>
     </section>
@@ -122,7 +156,9 @@ function Opcao({
       onClick={aoTocar}
       className={cn(
         "alvo flex h-14 items-center justify-center rounded-2xl border text-base font-medium",
-        marcada ? "border-primary bg-primary/10" : "border-input bg-background",
+        /* SPEC §22.5 item 5: `bg-background` era a cor exata da página no
+           tema claro (1,00:1) — as cinco opções só existiam pela borda. */
+        marcada ? "border-primary bg-primary/10" : "border-input bg-card",
       )}
     >
       {rotulo}

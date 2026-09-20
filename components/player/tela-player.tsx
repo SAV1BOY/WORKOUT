@@ -2,7 +2,7 @@
 
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Erro, EsqueletoCard } from "@/components/carregando";
 import { FichaEmFolha, type ContextoDaFicha } from "@/components/exercicio/ficha-folha";
 import { AjustesDoTreino } from "@/components/mais/ajustes-do-treino";
@@ -22,6 +22,8 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { semanaDaFase } from "@/lib/calendario";
+import { acharExercicio } from "@/lib/dados";
+import { formatarDuracao, formatarKg, rotuloDaCarga } from "@/lib/formato";
 import {
   anterior as passoAnterior,
   apos,
@@ -31,6 +33,7 @@ import {
   indiceDeRetomada,
   irPara,
   posicaoNaSequencia,
+  rotuloDoPasso,
   seguinte,
   sequenciaDoPlayer,
   serieDoPasso,
@@ -47,6 +50,8 @@ import {
   votoDoExercicio,
   type VotoDoExercicio,
 } from "@/lib/preferencias";
+import { enfileirarEscrita } from "@/lib/outbox-supabase";
+import { registrarPeso } from "@/lib/queries/corpo";
 import { salvarPerfil, salvarPrefs } from "@/lib/queries/mais";
 import { useUltimoPeso } from "@/lib/queries/dados";
 import { useHoje } from "@/lib/relogio";
@@ -54,6 +59,8 @@ import {
   ajustarPrescricaoDaSessao,
   contadoresDaSessao,
   firmePadrao,
+  type BlocoLocal,
+  type SerieLocal,
   type SessaoLocal,
 } from "@/lib/sessao";
 
@@ -85,6 +92,24 @@ export function TelaPlayer({
   const [visaoGeral, setVisaoGeral] = useState(false);
   const [ficha, setFicha] = useState<string | null>(null);
   const [ajustar, setAjustar] = useState(false);
+  /** Muda ao fechar a Visão geral: o foco volta ao botão que a abriu (§22.5). */
+  const [pedidoDeFoco, setPedidoDeFoco] = useState(0);
+  /** O que o leitor de tela ouve depois de gravar uma série (§22.5 item 10). */
+  const [aviso, setAviso] = useState("");
+  /**
+   * SPEC §22.5 item 2: a gravação acontece ao ENTRAR na conclusão. "pendente"
+   * é o estado de quem ainda não chegou lá (ou está gravando agora).
+   */
+  const [gravacao, setGravacao] = useState<"pendente" | "feita" | "falhou">(
+    "pendente",
+  );
+  /**
+   * O peso do dia vive aqui depois da gravação: mexer na sessão gravada a
+   * devolveria ao Dexie como "em andamento" — exatamente o defeito que o
+   * item 2 conserta. Depois de gravada, o peso vai pelo caminho do Corpo
+   * (`registrarPeso`, upsert por `user_id,data`).
+   */
+  const [pesoDigitado, setPesoDigitado] = useState<number | null>(null);
 
   const opcoes = useMemo(() => opcoesDoPlayer(prefs), [prefs]);
   const seq = useMemo(
@@ -122,6 +147,12 @@ export function TelaPlayer({
     [guardar, seq],
   );
 
+  /* estável de propósito: é dependência do efeito de história da Visão geral */
+  const fecharVisaoGeral = useCallback(() => {
+    setVisaoGeral(false);
+    setPedidoDeFoco((n) => n + 1);
+  }, []);
+
   /* ------------------------------------------------------ relógio */
 
   const contando = estado?.fimEm !== null && estado?.fimEm !== undefined;
@@ -147,6 +178,89 @@ export function TelaPlayer({
     if (tipoDoPasso !== "preparacao" || !estado || !zerou(estado, agora)) return;
     ir(indice + 1);
   }, [tipoDoPasso, estado, agora, indice, ir]);
+
+  /* ------------------------------------------- gravar ao chegar no fim */
+
+  /*
+   * SPEC §22.5 item 2: a sessão vai para o banco ao ENTRAR na conclusão.
+   * `dados` nasce de novo a cada renderização, então ele entra por referência
+   * — o efeito depende só do tipo do passo, e o `gravando` impede a segunda
+   * chamada (StrictMode inclusive), que rodaria o motor duas vezes.
+   */
+  const referencia = useRef(dados);
+  useEffect(() => {
+    referencia.current = dados;
+  });
+  const gravando = useRef(false);
+
+  const gravarAgora = useCallback(() => {
+    if (gravando.current) return;
+    gravando.current = true;
+    const atual = referencia.current;
+    const daSessao = atual.sessao;
+    void atual
+      .salvar(
+        "concluida",
+        {
+          sensacao: daSessao?.sensacao ?? null,
+          peso: daSessao?.pesoCorporal ?? null,
+        },
+        { navegar: false },
+      )
+      .then((certo) => {
+        setGravacao(certo ? "feita" : "falhou");
+        gravando.current = certo;
+      });
+  }, []);
+
+  useEffect(() => {
+    if (tipoDoPasso !== "conclusao") return;
+    gravarAgora();
+  }, [tipoDoPasso, gravarAgora]);
+
+  /*
+   * O peso do dia, depois da gravação, é uma escrita do Corpo — não da
+   * sessão. Um `mexer` aqui gravaria a sessão de novo no aparelho, e a aba
+   * Treino voltaria a mostrar "EM ANDAMENTO". A espera junta os toques do
+   * stepper numa escrita só; sair da tela grava o que estiver pendente.
+   */
+  const relogioDoPeso = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pesoPendente = useRef<number | null>(null);
+  const dadosDoPeso = useRef({ perfil, hoje, cliente });
+  useEffect(() => {
+    dadosDoPeso.current = { perfil, hoje, cliente };
+  });
+
+  const escreverPeso = useCallback(() => {
+    if (relogioDoPeso.current) {
+      clearTimeout(relogioDoPeso.current);
+      relogioDoPeso.current = null;
+    }
+    const kg = pesoPendente.current;
+    pesoPendente.current = null;
+    const { perfil: quem, hoje: dia, cliente: qc } = dadosDoPeso.current;
+    if (kg === null || kg <= 0 || !quem || !dia) return;
+    void registrarPeso({ userId: quem.user_id, data: dia, pesoKg: kg, cliente: qc });
+    // a sessão já está gravada: a pesagem dela vai por uma atualização à parte
+    void enfileirarEscrita("sessao", {
+      tabela: "sessions",
+      op: "update",
+      filtro: { id: sessaoId },
+      linha: { peso_corporal: kg },
+    });
+  }, [sessaoId]);
+
+  useEffect(() => () => escreverPeso(), [escreverPeso]);
+
+  const anotarPeso = useCallback(
+    (kg: number | null) => {
+      setPesoDigitado(kg);
+      pesoPendente.current = kg;
+      if (relogioDoPeso.current) clearTimeout(relogioDoPeso.current);
+      relogioDoPeso.current = setTimeout(escreverPeso, 600);
+    },
+    [escreverPeso],
+  );
 
   /* ------------------------------------------------------ ações */
 
@@ -197,7 +311,7 @@ export function TelaPlayer({
             sessao={sessao}
             dados={dados}
             videos={videos}
-            aoFechar={() => setVisaoGeral(false)}
+            aoFechar={fecharVisaoGeral}
           />
         </div>
       </div>
@@ -309,10 +423,16 @@ export function TelaPlayer({
           voto={votoDoExercicio(prefs, bloco.exercicioId)}
           feitas={posicaoNaSequencia(seq, indice)}
           total={totalDeSeries(seq)}
+          nomeDoTreino={nomeDaSessao(dados)}
+          aviso={aviso}
+          pedidoDeFoco={pedidoDeFoco}
           aoMudar={(campos) => dados.mudarSerie(bloco.ordem, serie.id, campos)}
           aoConcluir={() => {
             if (!serie.concluida) dados.marcar(bloco.ordem, serie.id, true);
-            ir(apos(seq, indice));
+            const destino = apos(seq, indice);
+            // SPEC §22.5 item 10: gravar a série deixa de ser silencioso
+            setAviso(textoDaSerieGravada(passo, bloco, serie, seq[destino] ?? null));
+            ir(destino);
           }}
           aoAnterior={() => ir(passoAnterior(seq, indice))}
           aoProximo={() => ir(seguinte(seq, indice))}
@@ -380,10 +500,9 @@ export function TelaPlayer({
   }
 
   const primeiro = sessao.blocos[0]?.exercicioId ?? null;
-  const nomeDoTreino =
-    dados.treino?.nome ??
-    (dados.plano ? "Barra fixa" : (dados.tituloLivre ?? "Treino livre"));
+  const nomeDoTreino = nomeDaSessao(dados);
   const semana = perfil ? semanaDaFase(sessao.data, perfil.fase_desde) : null;
+  const pesoDaTela = pesoDigitado ?? sessao.pesoCorporal;
 
   return (
     <TelaConclusao
@@ -405,17 +524,71 @@ export function TelaPlayer({
           : null
       }
       alturaCm={perfil?.altura_cm ?? null}
-      peso={sessao.pesoCorporal}
-      aoMudarPeso={(kg) => dados.mexer((atual) => ({ ...atual, pesoCorporal: kg }))}
+      peso={pesoDaTela}
+      aoMudarPeso={anotarPeso}
       aoMudarAltura={perfil ? mudarAltura : undefined}
       salvando={dados.salvando}
-      aoSeguir={() =>
-        void dados.salvar("concluida", {
-          sensacao: sessao.sensacao,
-          peso: sessao.pesoCorporal,
-        })
+      gravada={gravacao === "feita"}
+      falhou={gravacao === "falhou"}
+      aoSeguir={() => {
+        if (gravacao === "falhou") {
+          gravarAgora();
+          return;
+        }
+        escreverPeso();
+        router.push("/");
+      }}
+      /*
+        SPEC §22.5 item 2: com a sessão já gravada não há para onde voltar —
+        reentrar na conclusão rodaria o motor de novo. O "Voltar ao treino" só
+        existe enquanto a gravação não terminou.
+      */
+      aoVoltar={
+        gravacao === "feita" ? undefined : () => ir(passoAnterior(seq, indice))
       }
-      aoVoltar={() => ir(passoAnterior(seq, indice))}
     />
   );
+}
+
+/** "Treino B" · "Barra fixa" · "Core no tatame" — o nome desta sessão. */
+function nomeDaSessao(dados: {
+  treino: { nome: string } | null;
+  plano: unknown;
+  tituloLivre: string | null;
+}): string {
+  return (
+    dados.treino?.nome ??
+    (dados.plano ? "Barra fixa" : (dados.tituloLivre ?? "Treino livre"))
+  );
+}
+
+/**
+ * "Série 2 de 3 registrada: 5 repetições com 7,5 kg na barra. Descanso de
+ * 2 min 30." — SPEC §22.5 item 10.
+ *
+ * O `role="status"` da tela de exercício lê este texto; sem ele, gravar uma
+ * série era completamente silencioso para quem usa leitor de tela.
+ */
+function textoDaSerieGravada(
+  passo: PassoSerie,
+  bloco: BlocoLocal,
+  serie: SerieLocal,
+  proximo: { tipo: string; segundos?: number } | null,
+): string {
+  const exercicio = acharExercicio(bloco.exercicioId);
+  const partes: string[] = [];
+  if (serie.reps !== null) partes.push(`${serie.reps} repetições`);
+  else if (serie.tempoS !== null) partes.push(`${serie.tempoS} segundos`);
+  else if (serie.passos !== null) partes.push(`${serie.passos} passos`);
+  if (serie.cargaKg !== null && serie.cargaKg > 0) {
+    partes.push(
+      `com ${formatarKg(serie.cargaKg)} ${rotuloDaCarga(exercicio.implemento)}`,
+    );
+  }
+  const feito = partes.length > 0 ? `: ${partes.join(" ")}` : "";
+  const descanso =
+    proximo && proximo.tipo === "descanso" && proximo.segundos
+      ? ` Descanso de ${formatarDuracao(proximo.segundos)}.`
+      : "";
+  return `${rotuloDoPasso(passo)} registrada${feito}.${descanso}`;
 }

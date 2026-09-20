@@ -19,10 +19,15 @@ import { cn } from "@/lib/utils";
 /**
  * A conclusão (SPEC §14.1.5): capa, os três contadores, **o resumo do motor**
  * (o nosso diferencial), o card da semana com a meta, o peso do dia com o IMC
- * e o "Próximo", que é quem grava a sessão e volta para a aba Treino.
+ * e o "Próximo", que volta para a aba Treino.
  *
- * Nada é gravado antes do "Próximo": o resumo aqui é exatamente a decisão que
- * vai para o banco (`avaliarSessao`, o mesmo que `concluirSessao` usa).
+ * SPEC §22.5 item 2: a sessão é gravada ao **entrar** nesta tela, não no
+ * "Próximo" — que ficava a 2.244 px do topo de uma página de 2.464 px,
+ * enquanto o topo já dizia "Excelente! Você concluiu o treino." e a aba
+ * Treino ainda mostrava "EM ANDAMENTO · Continuar · 17/17 séries". O resumo
+ * aqui é exatamente a decisão que foi para o banco (`avaliarSessao`, o mesmo
+ * que `concluirSessao` usa), e o "Próximo" mora numa barra fixa no rodapé,
+ * com o mesmo padrão de `ControlesDoPlayer`.
  */
 export function TelaConclusao({
   sessaoId,
@@ -41,6 +46,8 @@ export function TelaConclusao({
   aoMudarPeso,
   aoMudarAltura,
   salvando,
+  gravada,
+  falhou,
   aoSeguir,
   aoVoltar,
 }: {
@@ -63,8 +70,13 @@ export function TelaConclusao({
   aoMudarPeso: (kg: number | null) => void;
   aoMudarAltura?: (cm: number) => void;
   salvando: boolean;
+  /** A sessão já foi gravada (ao entrar nesta tela) — SPEC §22.5 item 2. */
+  gravada: boolean;
+  /** A gravação de entrada falhou; o rodapé vira "Tentar salvar de novo". */
+  falhou: boolean;
   aoSeguir: () => void;
-  aoVoltar: () => void;
+  /** Só existe enquanto a sessão NÃO foi gravada: depois não dá para voltar. */
+  aoVoltar?: () => void;
 }) {
   /*
    * SPEC §22.1: `useState(false)` fixo fazia o convite "Registrar o peso de
@@ -93,6 +105,21 @@ export function TelaConclusao({
         titulo="Excelente! Você concluiu o treino."
         subtitulo={subtitulo}
       />
+
+      {/* SPEC §22.5 item 2: o estado da gravação, em texto, no alto da tela */}
+      <p
+        role="status"
+        className={cn(
+          "text-sm",
+          falhou ? "text-destructive" : "text-muted-foreground",
+        )}
+      >
+        {falhou
+          ? "Não consegui salvar agora. Está tudo guardado no aparelho — dá para tentar de novo aqui embaixo."
+          : gravada
+            ? "Treino salvo. Já está no histórico, mesmo que você saia agora."
+            : "Salvando o treino…"}
+      </p>
 
       <div className="grid grid-cols-3 gap-2">
         <Contador valor={contadores.exercicios} rotulo="Exercícios" />
@@ -183,6 +210,10 @@ export function TelaConclusao({
 
       <section className="cartao border-border bg-card flex flex-col gap-2 border p-3">
         <h3 className="text-sm font-semibold">Peso de hoje</h3>
+        {/* SPEC §22.5 item 4: opcional, e dizendo o que o número faz */}
+        <p className="text-muted-foreground text-xs">
+          (opcional) Entra no gráfico de peso e no IMC da aba Corpo.
+        </p>
         {editando ? (
           <StepperNumerico
             rotulo="peso de hoje em kg"
@@ -229,20 +260,29 @@ export function TelaConclusao({
         className="min-h-48"
       />
 
-      <div className="flex flex-col gap-2 pt-1">
-        <BotaoLargo disabled={salvando} onClick={aoSeguir}>
-          {salvando ? "Salvando…" : "Próximo"}
-        </BotaoLargo>
-        <Button
-          variant="ghost"
-          className="alvo"
-          disabled={salvando}
-          onClick={aoVoltar}
-        >
+      {aoVoltar ? (
+        <Button variant="ghost" className="alvo" disabled={salvando} onClick={aoVoltar}>
           Voltar ao treino
         </Button>
-      </div>
+      ) : null}
       <p className="sr-only">{titulo}</p>
+
+      {/*
+        SPEC §22.5 item 2: barra fixa, o mesmo padrão de `ControlesDoPlayer`
+        (`components/player/exercicio.tsx`). O "Próximo" estava no fim de uma
+        página de 2.464 px — para chegar até ele era preciso rolar 2.244 px.
+      */}
+      <div className="bg-card/95 border-border pb-segura fixed inset-x-0 bottom-0 z-30 border-t backdrop-blur">
+        <div className="mx-auto w-full max-w-lg px-3 py-2">
+          <BotaoLargo disabled={salvando} onClick={aoSeguir}>
+            {salvando
+              ? "Salvando…"
+              : falhou
+                ? "Tentar salvar de novo"
+                : "Próximo"}
+          </BotaoLargo>
+        </div>
+      </div>
     </section>
   );
 }

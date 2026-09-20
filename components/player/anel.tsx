@@ -13,12 +13,21 @@ export function AnelDeContagem({
   espessura = 10,
   children,
   className,
+  classeTrilho = "stroke-muted",
+  classeArco = "stroke-primary",
 }: {
   fracao: number;
   tamanho?: number;
   espessura?: number;
   children?: React.ReactNode;
   className?: string;
+  /**
+   * SPEC §22.5 item 8: o descanso é tela cheia com fundo próprio, onde
+   * `--muted` e `--primary` não existem como contraste. Quem chama diz as
+   * duas cores do anel; o padrão continua o da preparação.
+   */
+  classeTrilho?: string;
+  classeArco?: string;
 }) {
   const raio = (tamanho - espessura) / 2;
   const volta = 2 * Math.PI * raio;
@@ -42,7 +51,7 @@ export function AnelDeContagem({
           r={raio}
           fill="none"
           strokeWidth={espessura}
-          className="stroke-muted"
+          className={classeTrilho}
         />
         <circle
           cx={tamanho / 2}
@@ -53,7 +62,10 @@ export function AnelDeContagem({
           strokeLinecap="round"
           strokeDasharray={volta}
           strokeDashoffset={volta * (1 - preso)}
-          className="stroke-primary transition-[stroke-dashoffset] duration-200 ease-linear"
+          className={cn(
+            "transition-[stroke-dashoffset] duration-200 ease-linear",
+            classeArco,
+          )}
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center gap-1">

@@ -6954,9 +6954,118 @@ que `width`/`height` existiam, então passava com o dado errado.
    aparecem os atalhos Treino, Relatório e Corpo.
 
 
-### Rodada 3 — Lote 5
+### Rodada 3 — Lote 5 — player: gravar sem perder o treino (faixa A)
 
-(a preencher)
+Branch `ultraloop/l5-player-gravar`, a partir de `ultraloop/l4-imagens-midia-entrega`.
+SPEC §22.5. Dez itens, na ordem de prioridade do lote.
+
+**Era → é, item a item**
+
+1. **Descartar (`ux-heuristicas-01`).** Era: "Abandonar" virava "Confirmar
+   abandono" no MESMO ponto (x 138,8–241,4 → x 71,6–241,4, mesma faixa de y) —
+   dois toques seguidos descartavam a sessão sem diálogo nenhum. É: um
+   `AlertDialog` ("Descartar este treino? As N séries já registradas continuam
+   salvas." · Cancelar / Descartar este treino), com o Cancelar nascendo com o
+   foco e o clique fora sem efeito. Arquivos: `components/ui/alert-dialog.tsx`
+   (novo, sobre o pacote `radix-ui` que já estava nas dependências),
+   `components/treinar/visao-geral.tsx`.
+2. **Gravar ao entrar na conclusão (`tela-treino-player-01`).** Era: nada ia
+   para o banco antes do "Próximo", que ficava a 2.244 px do topo de uma
+   página de 2.464 px — e o topo já dizia "Excelente! Você concluiu o
+   treino."; quem lia e saía deixava "EM ANDAMENTO · Continuar · 17/17 séries"
+   na aba Treino. É: `finalizarSessao` roda ao ENTRAR no passo de conclusão
+   (`salvar(..., { navegar: false })`), um `role="status"` no alto diz "Treino
+   salvo. Já está no histórico, mesmo que você saia agora." e o "Próximo" está
+   numa barra fixa no rodapé, com o padrão de `ControlesDoPlayer`. Se a
+   gravação falhar, o rodapé vira "Tentar salvar de novo". Arquivos:
+   `components/player/tela-player.tsx`, `components/player/conclusao.tsx`,
+   `components/treinar/usar-sessao.ts` (a opção `navegar`).
+3. **A Visão geral é um diálogo (`ux-heuristicas-03`).** Era: 5.700 px sem
+   `role=dialog`, sem Esc, sem voltar do celular, com uma saída de 44 px no
+   topo e um rodapé que só oferecia as duas saídas que terminam a sessão. É:
+   `role="dialog"` + `aria-modal`, Escape e `popstate` fecham, o foco volta ao
+   botão que a abriu e "Voltar ao treino" está repetido no rodapé fixo.
+   Arquivos: `components/treinar/visao-geral.tsx`,
+   `components/player/tela-player.tsx`, `components/player/exercicio.tsx`.
+4. **A pergunta chega sem resposta (`ux-heuristicas-09/-10/-11`).** Era:
+   "Firme" com `aria-checked="true"` sem ninguém tocar, e o toque avançava
+   rápido demais para o marcado aparecer. É: escolha começa em `null`, o
+   palpite vira dica em texto ("Pelas repetições, parece que saiu firme."), o
+   primário se chama "Pular esta pergunta" enquanto ninguém responde e o
+   avanço espera 350 ms. O feedback ganhou "(opcional)", o que a resposta faz
+   e o primário "Concluir sem responder"; o peso da conclusão diz "(opcional)
+   Entra no gráfico de peso e no IMC da aba Corpo." Arquivos:
+   `components/player/firme.tsx`, `components/player/feedback.tsx`,
+   `components/player/conclusao.tsx`.
+5. **Opções com cor própria (`tela-treino-player-30`).** Era: `bg-background`
+   — no tema claro, exatamente a cor da página (1,00:1), com uma borda de
+   1,15:1 como única pista. É: `bg-card`, e o "Voltar" perdeu o tratamento
+   idêntico ao das opções. Arquivos: `components/player/firme.tsx`,
+   `components/player/feedback.tsx`.
+6. **24 px entre gravar e perder (`tela-treino-player-10`).** Era: 8 px
+   (`gap-2`) entre "Concluir série" e "Próximo passo", que pula sem gravar. É:
+   `gap-6` (24 px) dos dois lados, setas nos 44 px padrão, ✓ com 56 px.
+   Arquivo: `components/player/exercicio.tsx`.
+7. **O fim do descanso anunciado (`a11y-02`, `ux-heuristicas-05/-07`,
+   `tela-treino-player-05`).** Era: três `role="timer"` com `aria-live` off —
+   o fim só existia no bipe, e o bipe é um interruptor. É: o número continua
+   `role="timer"` e ao lado há um `role="status"` só-leitor que muda só em
+   marcos (30 s, 10 s, fim); os botões de tempo dizem "−20 s" e "+20 s" em
+   texto, com 56 px e nome acessível ("Tirar/Somar 20 segundos ao/do
+   descanso"), na cor `--descanso-destaque`. Arquivos:
+   `components/player/descanso.tsx`, `components/player/exercicio.tsx`.
+8. **Hierarquia do descanso (`tela-treino-player-02/-03`).** Era: "Pular" era
+   o botão mais forte da tela (branco cheio sobre o marrom) e o timer não
+   tinha anel. É: "Pular descanso" em contorno
+   (`border-descanso-foreground/40`) e o timer dentro do `AnelDeContagem`, com
+   `fracaoRestante`. O `AnelDeContagem` ganhou `classeTrilho`/`classeArco`
+   porque `--muted`/`--primary` não valem naquele fundo. Arquivos:
+   `components/player/descanso.tsx`, `components/player/anel.tsx`.
+9. **Três verbos (`ux-heuristicas-04`).** Era: um `LogOut` mudo, "Abandonar" e
+   um par de ícones no cabeçalho. É: "Continuar depois" (com texto),
+   "Descartar este treino", "Concluir" — e um botão só no cabeçalho,
+   "Fechar". Arquivo: `components/treinar/visao-geral.tsx`.
+10. **Gravar deixou de ser silencioso (`a11y-06`, `a11y-15`,
+    `ux-heuristicas-08`, `copy-22/-23`).** Era: nenhum aviso, `progressbar`
+    sem `aria-valuetext`, a única rota sem `h1`, nome acessível ("Concluir a
+    série") diferente do texto ("Concluir série"), "NA BARRA" sozinho e duas
+    grafias para a mesma posição ("Próximo 2/6" no descanso). É: um
+    `role="status"` só-leitor com "Série 2 de 3 registrada: 5 repetições com
+    7,5 kg na barra. Descanso de 2:30.", `aria-valuetext="exercício 2 de 6"`,
+    um `h1` só-leitor, nome acessível igual ao texto, **"CARGA NA BARRA"** e
+    "Aquecimento 2 de 2 · exercício 1 de 6" nas duas telas, com o caixa-alta
+    por CSS. Arquivos: `components/player/exercicio.tsx`,
+    `components/player/tela-player.tsx`, `components/player/descanso.tsx`.
+
+**Provas**
+
+- `e2e/ultraloop-a-r3.spec.ts` (novo): o 2º toque no mesmo ponto não descarta;
+  a conclusão grava ao entrar e a aba Treino não oferece retomar; Esc e o
+  voltar fecham a Visão geral e devolvem o foco; nenhuma opção marcada antes
+  do toque, nas duas telas; ≥ 24 px entre o ✓ e o "Próximo passo"; o `h1`, o
+  `aria-valuetext` e o "CARGA NA BARRA"; o anel, os dois botões de 56 px e o
+  "Pular descanso" em contorno.
+- Testes antigos ajustados sem afrouxar: `e2e/treinar.spec.ts` (o descarte
+  passa pelo `alertdialog`), `e2e/player.spec.ts` (a conclusão não reabre —
+  voltar rodaria o motor duas vezes; a §22.1 continua cobrada), `e2e/v3.spec.ts`,
+  `e2e/conquistas.spec.ts`, `e2e/ultraloop-a-r1.spec.ts`, `e2e/fixtures.ts`
+  (nomes novos dos botões).
+
+**Como testar no celular**
+
+1. Comece o treino do dia. Na 1ª série, toque em **Concluir série** — o
+   descanso abre com **anel**, com **−20 s** e **+20 s** e com **Pular
+   descanso** em contorno. Com o VoiceOver/TalkBack ligado e o som do app
+   desligado, o fim do descanso é falado.
+2. Toque no ícone de lista (Visão geral). Aperte o **voltar** do aparelho: a
+   lista fecha e o treino continua. No rodapé há **Voltar ao treino**,
+   **Concluir**, **Continuar depois** e **Descartar este treino** — este
+   último abre uma pergunta; toque duas vezes no mesmo lugar e nada é
+   descartado.
+3. Vá até o fim do treino. Em "Última repetição saiu firme?" **nenhuma opção
+   está marcada** e o botão grande diz "Pular esta pergunta". Na conclusão, o
+   alto já diz **"Treino salvo"** e o **Próximo** está fixo no rodapé — feche
+   o app ali e volte: a aba Treino **não** oferece "Continuar".
 
 ### Rodada 3 — Lote 6
 

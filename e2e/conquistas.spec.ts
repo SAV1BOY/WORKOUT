@@ -488,7 +488,7 @@ test.describe("o aviso de conquista nova", () => {
 
     await comecarOTreinoDoDia(page);
     await comecarNoPlayer(page);
-    await page.getByRole("button", { name: "Concluir a série" }).click();
+    await page.getByRole("button", { name: "Concluir série" }).click();
 
     /* as setas levam até o feedback e dele à conclusão (SPEC §14.1) */
     const sensacao = page.getByRole("radiogroup", { name: "Sensação" });
