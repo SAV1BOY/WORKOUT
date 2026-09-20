@@ -3,7 +3,7 @@
 import { Trash2, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { fonteComReserva, reservaDaImagem } from "@/components/ui/imagem";
-import { urlWebp } from "@/lib/midia";
+import { medidaDaFoto, urlWebp } from "@/lib/midia";
 
 /**
  * A foto em tela cheia (SPEC §3.6 e §7).
@@ -40,6 +40,12 @@ export function FotoAmpliada({
    * `urlWebp` devolve `null` e a URL assinada segue inteira.
    */
   const fonte = fonteComReserva(url, urlWebp(url));
+  /*
+   * A medida só existe para a foto do kit (SPEC §22.4 item 3); a do Corpo vem
+   * do storage e ninguém aqui sabe quanto ela mede — sem `width`/`height`, a
+   * caixa continua sendo a do CSS.
+   */
+  const medida = medidaDaFoto(url);
   const fechar = useRef<HTMLButtonElement>(null);
   const confirmar = useRef<HTMLButtonElement>(null);
   const [confirmando, setConfirmando] = useState(false);
@@ -92,6 +98,8 @@ export function FotoAmpliada({
         data-reserva={fonte.reserva}
         onError={reservaDaImagem}
         alt={titulo}
+        width={medida?.largura}
+        height={medida?.altura}
         loading="eager"
         fetchPriority="high"
         decoding="async"

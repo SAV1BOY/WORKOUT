@@ -2,6 +2,7 @@
 
 import { Dumbbell } from "lucide-react";
 import { useState } from "react";
+import { fonteComReserva } from "@/components/ui/imagem";
 import { midiaDaMiniatura } from "@/lib/midia";
 import { cn } from "@/lib/utils";
 
@@ -35,26 +36,35 @@ export function Miniatura({
   className?: string;
 }) {
   const { tipo, url, mini, alt } = midiaDaMiniatura(exercicioId);
-  /** 0 = derivada · 1 = arquivo original · 2 = desisti, fica o ícone. */
+  /*
+   * O mesmo degrau único de `components/ui/imagem.ts`: a tela pede a derivada
+   * e, quando ela não existe, já pede o arquivo do kit — sem derivada não há
+   * reserva, e a queda vai direto para o ícone. (Antes, um exercício sem
+   * derivada pedia duas vezes o mesmo arquivo que acabara de falhar.) Aqui o
+   * degrau é de estado, e não pelo DOM como no `reservaDaImagem`, porque o
+   * enquadramento muda junto: a derivada é quadrada, o original não.
+   */
+  const fonte = url === null ? null : fonteComReserva(url, mini);
+  /** 0 = o que a tela pede · 1 = a reserva do kit · 2 = desisti, fica o ícone. */
   const [queda, setQueda] = useState(0);
-  const fonte = queda === 0 ? (mini ?? url) : queda === 1 ? url : null;
-  const naDerivada = fonte !== null && fonte === mini;
+  const src = queda === 0 ? (fonte?.src ?? null) : queda === 1 ? (fonte?.reserva ?? null) : null;
+  const naDerivada = queda === 0 && fonte?.reserva !== undefined;
 
   return (
     <span
-      data-midia={fonte ? tipo : "nenhuma"}
+      data-midia={src ? tipo : "nenhuma"}
       data-derivada={naDerivada ? "sim" : "nao"}
       className={cn(
         "relative block size-14 shrink-0 overflow-hidden rounded-xl",
         // a ilustração é traço preto sobre transparente: precisa de fundo claro
-        tipo === "ilustracao" && fonte ? "bg-ilustracao" : "bg-muted/60",
+        tipo === "ilustracao" && src ? "bg-ilustracao" : "bg-muted/60",
         className,
       )}
     >
-      {fonte ? (
+      {src ? (
         // eslint-disable-next-line @next/next/no-img-element -- imagens locais de /public (SVG animado inclusive: o next/image rasteriza e mata a animação)
         <img
-          src={fonte}
+          src={src}
           alt={sozinha ? alt : ""}
           width={LADO_DA_DERIVADA}
           height={LADO_DA_DERIVADA}

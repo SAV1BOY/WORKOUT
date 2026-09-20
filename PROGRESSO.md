@@ -6404,7 +6404,7 @@ quatro `<img>` de foto de execução (`components/exercicio/midia.tsx`,
 `components/exercicio/media-grande.tsx`,
 `components/exercicios/fotos-ampliaveis.tsx` e
 `components/exercicios/foto-ampliada.tsx`) passaram a pedir `urlWebp(url)`, e o
-item de equipamento — que nunca aparece maior que a caixa de 64 px — deixou de
+item de equipamento — que nunca aparece maior que a caixa de 56 px — deixou de
 ganhar a versão grande (85 arquivos e 3,5 MB a menos por deploy). O degrau da
 reserva virou `fonteComReserva`/`reservaDaImagem` em
 `components/ui/imagem.ts`: sem derivada para aquele caminho a reserva sai
@@ -6539,9 +6539,57 @@ meio, e `app/layout.tsx` as declara com as media queries de cada aparelho. Elas
 ficam **fora** do precache do service worker: o iOS as busca uma vez, na
 instalação.
 
+#### Segunda auditoria da rodada 2 — o que o corretor mudou
+
+1. **O aquecimento da fase seguia pedindo os originais** (SPEC §8, o problema
+   importante). `midiaDaFase()` listava `urlsDaIlustracao` + `urlFigura` +
+   `urlFotos`, isto é, o JPEG do kit — enquanto a lista de hoje passou a pedir
+   `-mini.webp`, o cartão `-capa.webp` e a ficha `.webp`. Sem rede, o treino
+   do dia podia abrir sem exatamente as imagens que as telas buscam. Agora a
+   lista é **o que as telas pedem**, com o mesmo degrau de
+   `fonteComReserva`: a capa de cada treino da fase, a miniatura de cada
+   exercício, as ilustrações e a figura (que a ficha usa como estão) e o WebP
+   das fotos de execução — e nenhum `.jpg`. São 73 arquivos na fase 1 (eram
+   73 originais). `lib/precache-do-programa.test.ts` monta a lista esperada
+   chamando as funções dos próprios componentes (`fonteComReserva`, `urlCapa`,
+   `urlMiniatura`, `urlWebp`) e compara item a item, nas duas fases, com um
+   exercício de cada tipo de mídia (foto, ilustração, figura);
+   `e2e/auditoria-offline.spec.ts` espera a miniatura da lista entrar no cache
+   e, depois de cortar a rede, exige que ela **desenhe** (`naturalWidth > 0`).
+2. **As quatro fotos de execução não diziam o tamanho.** `lib/midia.ts` ganhou
+   `MEDIDA_DA_FOTO` (850×567, igual nas 162 fotos do kit e na derivada WebP),
+   `MEDIDA_DA_FIGURA` (o `viewBox` 132×100 das 67 figuras) e `medidaDaFoto()`,
+   que devolve `null` para a foto do Corpo — essa vem do storage e ninguém
+   sabe quanto mede. As quatro `<img>` de foto e as duas de figura passaram a
+   levar `width`/`height`; o teste "§22.4-3" agora roda na aba Treino, na
+   ficha `/exercicios/[id]`, na foto em tela cheia e em Mais → Equipamento.
+3. **A queda da miniatura ficava presa.** Sem derivada (`mini === null`) o
+   primeiro degrau já era o original e o segundo pedia o mesmo arquivo que
+   acabara de falhar. `components/ui/miniatura.tsx` passou a montar os degraus
+   com `fonteComReserva`: o que a tela pede, a reserva do kit **quando existe**
+   e o ícone. O degrau continua em estado (e não pelo DOM, como o
+   `reservaDaImagem`) porque o enquadramento muda junto — a derivada é
+   quadrada, o original não.
+4. **`/favicon.ico` era declarado três vezes** no `<head>`: o do App Router
+   (`app/favicon.ico`), o de `icons.icon` e o de `icons.shortcut`. Ficou só o
+   do App Router; o teste "§22.4-6" conta os `<link>` e continua exigindo
+   200 com `content-type` de imagem. O comentário do `viewport` dizia que a
+   `theme-color` é corrigida no cliente — isso foi revertido neste mesmo lote
+   e o comentário agora descreve o que o código faz.
+5. **Comentários apontando para um item que não existe.** `app/layout.tsx`,
+   `next.config.ts` e `scripts/gerar-icones.ts` citavam "SPEC §22.4 item 11";
+   a abertura do iPhone é o item **9**. E a tabela de assets da SPEC (§1) ainda
+   mandava para o componente `MapaMuscular`, que saiu no item 8 — passou a
+   descrever o mapa anatômico e o `MapaAnatomico`, e o §7 diz onde o sprite
+   antigo foi parar.
+6. **A foto do item do terraço estava a 1,75×.** A caixa era de 64 px para uma
+   derivada de 112. Virou 56 px (`size-14`), a mesma das outras miniaturas —
+   2× exatos, medidos no navegador pelo teste "a foto do item do terraço
+   também tem o dobro da caixa" (`caixa === 56`, `naturalWidth ≥ 112`).
+
 #### Provas
 
-- `e2e/ultraloop-b-r2.spec.ts`: 10 testes, um por item que se vê — peso de
+- `e2e/ultraloop-b-r2.spec.ts`: 12 testes, um por item que se vê — peso de
   imagem do Explorar, capa a 2× da caixa, zero revalidação 304, dimensões e
   `decoding` de toda imagem de exercício, capa da primeira dobra `eager`,
   enquadramento e ocupação da miniatura, atalhos do manifest, `/favicon.ico`,

@@ -3,7 +3,14 @@
 import { useState } from "react";
 import { IlustracaoAlternada } from "@/components/exercicio/ilustracao-alternada";
 import { fonteComReserva, reservaDaImagem } from "@/components/ui/imagem";
-import { midiaGrande, notaDaIlustracao, urlWebp, type TipoDeMidia } from "@/lib/midia";
+import {
+  MEDIDA_DA_FIGURA,
+  medidaDaFoto,
+  midiaGrande,
+  notaDaIlustracao,
+  urlWebp,
+  type TipoDeMidia,
+} from "@/lib/midia";
 import { cn } from "@/lib/utils";
 
 /**
@@ -107,6 +114,8 @@ export function MediaGrande({
       <img
         src={midia.urls[0]}
         alt={midia.alt}
+        width={MEDIDA_DA_FIGURA.largura}
+        height={MEDIDA_DA_FIGURA.altura}
         loading="lazy"
         decoding="async"
         className={cn(caixa, "p-2")}
@@ -124,6 +133,8 @@ export function MediaGrande({
 
   // a derivada WebP (SPEC §22.4 item 1), com o JPEG do kit de reserva
   const fonte = fonteComReserva(foto.urls[0]!, urlWebp(foto.urls[0]));
+  // as fotos do kit têm todas a mesma medida (SPEC §22.4 item 3)
+  const medida = medidaDaFoto(foto.urls[0]);
 
   return (
     // eslint-disable-next-line @next/next/no-img-element -- foto local em /public
@@ -132,6 +143,8 @@ export function MediaGrande({
       data-reserva={fonte.reserva}
       onError={reservaDaImagem}
       alt={foto.alt}
+      width={medida?.largura}
+      height={medida?.altura}
       loading="lazy"
       decoding="async"
       className={cn(caixa, "object-cover")}

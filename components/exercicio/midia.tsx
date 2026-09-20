@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { fonteComReserva, reservaDaImagem } from "@/components/ui/imagem";
 import { urlFigura, urlFotos } from "@/lib/dados";
-import { urlWebp } from "@/lib/midia";
+import { MEDIDA_DA_FIGURA, medidaDaFoto, urlWebp } from "@/lib/midia";
 import type { Exercicio } from "@/lib/schemas";
 import { cn } from "@/lib/utils";
 
@@ -27,6 +27,8 @@ export function FiguraExercicio({
     <img
       src={url}
       alt={`Execução do ${exercicio.nome}`}
+      width={MEDIDA_DA_FIGURA.largura}
+      height={MEDIDA_DA_FIGURA.altura}
       className={cn("bg-muted/40 h-44 w-full rounded-lg object-contain p-2", className)}
       onError={() => setQuebrou(true)}
       loading="lazy"
@@ -51,6 +53,7 @@ export function FotosExercicio({
       {fotos.map((foto, i) => {
         // a derivada WebP (SPEC §22.4 item 1) pesa 44 kB contra 70 do JPEG
         const fonte = fonteComReserva(foto, urlWebp(foto));
+        const medida = medidaDaFoto(foto);
         return (
           // eslint-disable-next-line @next/next/no-img-element -- fotos locais em /public, tamanho fixo
           <img
@@ -59,6 +62,8 @@ export function FotosExercicio({
             data-reserva={fonte.reserva}
             onError={reservaDaImagem}
             alt={`${exercicio.nome} — ${i === 0 ? "início" : "fim"}`}
+            width={medida?.largura}
+            height={medida?.altura}
             className="bg-muted/40 aspect-square w-full rounded-lg object-cover"
             loading="lazy"
             decoding="async"

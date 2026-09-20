@@ -284,8 +284,9 @@ function Itens() {
           {itens.map((item) => {
             /*
              * A foto do item vem da derivada de 112 px (SPEC §22.4 item 1) — a
-             * caixa tem 64 px e o JPEG do kit tem 850 de largura, 70 kB por
-             * item. Sem a derivada, a reserva devolve o original.
+             * caixa tem 56 px, como toda miniatura do app, e assim a derivada
+             * entra a 2× (o JPEG do kit tem 850 de largura, 70 kB por item).
+             * Sem a derivada, a reserva devolve o original.
              */
             const fonte = fonteComReserva(item.foto, urlMiniatura(item.foto));
             return (
@@ -300,7 +301,7 @@ function Itens() {
                   height={112}
                   loading="lazy"
                   decoding="async"
-                  className="bg-muted size-16 shrink-0 rounded-md object-cover"
+                  className="bg-muted size-14 shrink-0 rounded-md object-cover"
                 />
                 <div className="min-w-0">
                   <p className="font-medium text-balance">{item.nome}</p>

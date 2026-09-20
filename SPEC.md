@@ -35,7 +35,7 @@ Tudo que é conteúdo de treino — exercícios, programa, cardio, regras de pro
 | `data/perfil.json` | Dados iniciais do Miguel (altura 1,90, iniciante, data de início, objetivos, preferências); peso e medidas em `null` para preencher no app | Seed do perfil no primeiro login |
 | `assets/figuras/<id>.svg` | 67 figuras de execução (boneco lateral, posição inicial em cinza → final em destaque, seta), 66 animadas com SMIL; CSS e cores embutidos, respeitam `prefers-color-scheme` | `<img src>` ou inline; animação roda sozinha |
 | `assets/fotos/<id>-1.jpg`, `-2.jpg` | 162 fotos de execução (início e fim) do free-exercise-db, domínio público | Tela de exercício e sessão |
-| `assets/mapa-muscular/` | Sprite SVG do corpo (frente `#bf`, costas `#bb`), CSS das classes `p-<musculo>` / `s-<musculo>`, exemplo | Componente `MapaMuscular` (§7) |
+| `assets/mapa-muscular/` | Mapa anatômico SVG (`mapa-anatomico.svg`, MIT) com um grupo por músculo, o CSS das classes `p-<musculo>` / `s-<musculo>` e a licença | Componente `MapaAnatomico` (§7) |
 | `assets/itens/<item>/` | Fotos reais dos 10 itens comprados + `ficha.md` | Tela Equipamento |
 | `docs/` | O guia de treino completo (HTML), o manual da garagem e o catálogo dos itens — referência de tom e conteúdo | Leitura; não entra no bundle |
 
@@ -196,7 +196,7 @@ Função `montagem(carga_total, implemento)` → lista de anilhas por lado, gulo
 
 - **FiguraExercicio**: `<img src={"/figuras/"+id+".svg"} />` (as figuras já trazem CSS e cores claro/escuro; a animação SMIL roda sozinha). Fallback: as duas fotos lado a lado.
 - **FotosExercicio**: `-1.jpg` (início) → `-2.jpg` (fim), com toque para ampliar.
-- **MapaMuscular**: sprite `assets/mapa-muscular/corpo-sprite.svg` inline uma vez (layout) + `<svg><use href="#bf"/></svg>` e `#bb`, com as classes `p-<musculo>` e `s-<musculo>` do exercício; cores por CSS variables (ver `assets/mapa-muscular/README.md`).
+- **MapaAnatomico**: `assets/mapa-muscular/mapa-anatomico.svg` inline no servidor, com as classes `p-<musculo>` e `s-<musculo>` do exercício; cores por CSS variables (ver `assets/mapa-muscular/README.md`). O sprite antigo do boneco (`#bf`/`#bb`) e o componente `MapaMuscular` saíram do app no lote 4 (§22.4 item 8).
 - **TimerDescanso**: barra fixa no topo, contagem regressiva, vibração (`navigator.vibrate`) + som curto ao zerar, botão pular / +30 s.
 - **TimerIntervalos** (cardio): blocos com cor por tipo, próximo bloco visível, fala opcional ("corrida", "caminhada") via `speechSynthesis` em pt-BR.
 - **StepperNumerico**: − valor + com passo configurável e digitação direta; teclado numérico (`inputMode="decimal"`).
@@ -1460,8 +1460,9 @@ a tela — afrouxar o limite não é uma opção.
    Cada derivada existe porque uma tela a pede: a grande é o que a ficha do
    exercício e a foto em tela cheia baixam (44 kB no lugar dos 70 do JPEG do
    kit, a tela mais pesada de imagem do app), a mini é das listas e a capa é
-   dos cartões. O item de equipamento nunca aparece maior que a caixa de 64 px
-   e por isso só ganha a miniatura. Se a derivada faltar (um build sem o
+   dos cartões. O item de equipamento nunca aparece maior que a caixa de 56 px
+   — a mesma das outras miniaturas, 2× a derivada — e por isso só ganha a
+   miniatura. Se a derivada faltar (um build sem o
    prebuild), o `data-reserva` da `<img>` devolve o arquivo original — nenhuma
    imagem nova, nenhum arquivo de terceiros a mais.
 2. **Cache da mídia.** `/fotos`, `/ilustracoes`, `/itens`, `/figuras`, `/icons` e

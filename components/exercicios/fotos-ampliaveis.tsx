@@ -4,7 +4,7 @@ import { useState } from "react";
 import { FotoAmpliada } from "@/components/exercicios/foto-ampliada";
 import { fonteComReserva, reservaDaImagem } from "@/components/ui/imagem";
 import { urlFotos } from "@/lib/dados";
-import { urlWebp } from "@/lib/midia";
+import { medidaDaFoto, urlWebp } from "@/lib/midia";
 import type { Exercicio } from "@/lib/schemas";
 
 const LEGENDA = ["início do movimento", "fim do movimento"];
@@ -25,6 +25,8 @@ export function FotosAmpliaveis({ exercicio }: { exercicio: Exercicio }) {
         {fotos.map((url, i) => {
           // a derivada WebP (SPEC §22.4 item 1): 44 kB no lugar de 70
           const fonte = fonteComReserva(url, urlWebp(url));
+          // toda foto do kit mede 850×567 (SPEC §22.4 item 3)
+          const medida = medidaDaFoto(url);
           return (
             <li key={url}>
               <button
@@ -39,6 +41,8 @@ export function FotosAmpliaveis({ exercicio }: { exercicio: Exercicio }) {
                   data-reserva={fonte.reserva}
                   onError={reservaDaImagem}
                   alt={`${exercicio.nome} — ${LEGENDA[i] ?? "movimento"}`}
+                  width={medida?.largura}
+                  height={medida?.altura}
                   loading="lazy"
                   decoding="async"
                   className="bg-muted/40 aspect-square w-full rounded-lg object-cover"

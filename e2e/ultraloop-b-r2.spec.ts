@@ -126,15 +126,9 @@ test("§22.4-2: a segunda navegação não revalida nenhuma imagem", async ({ pa
   ).toEqual([]);
 });
 
-test("§22.4-3: toda imagem de exercício diz o tamanho e decodifica fora da linha", async ({
-  page,
-}) => {
-  await usuarioComPerfil();
-  await fixarData(page);
-  await entrarNoApp(page);
-  await esperarAbaTreino(page);
-
-  const semAtributo = await page.evaluate(() => {
+/** As `<img>` de mídia da tela que não dizem o tamanho (SPEC §22.4 item 3). */
+function semTamanho(page: Page) {
+  return page.evaluate(() => {
     const falhas: string[] = [];
     for (const img of document.querySelectorAll("img")) {
       const src = new URL(img.src).pathname;
@@ -148,7 +142,57 @@ test("§22.4-3: toda imagem de exercício diz o tamanho e decodifica fora da lin
     }
     return falhas;
   });
-  expect(semAtributo).toEqual([]);
+}
+
+test("§22.4-3: toda imagem de exercício diz o tamanho e decodifica fora da linha", async ({
+  page,
+}) => {
+  await usuarioComPerfil();
+  await fixarData(page);
+  await entrarNoApp(page);
+  await esperarAbaTreino(page);
+  expect(await semTamanho(page), "aba Treino").toEqual([]);
+
+  /*
+   * A ficha é a tela mais pesada de imagem do app (auditoria do lote 4): as
+   * duas fotos de execução, a ilustração ou a figura, e a foto em tela cheia.
+   */
+  await page.goto("/exercicios/agachamento-livre");
+  await expect(page.getByRole("button", { name: /Ampliar a foto do início/ })).toBeVisible();
+  expect(await semTamanho(page), "ficha do exercício").toEqual([]);
+
+  await page.getByRole("button", { name: /Ampliar a foto do início/ }).click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+  expect(await semTamanho(page), "foto em tela cheia").toEqual([]);
+
+  // e as fotos dos 10 itens do terraço
+  await page.goto("/mais/equipamento");
+  await expect(page.locator("li img[src^='/itens/']").first()).toBeVisible();
+  expect(await semTamanho(page), "Mais → Equipamento").toEqual([]);
+});
+
+test("§22.4-1: a foto do item do terraço também tem o dobro da caixa", async ({
+  page,
+}) => {
+  await usuarioComPerfil();
+  await fixarData(page);
+  await entrarNoApp(page);
+  await page.goto("/mais/equipamento");
+  const foto = page.locator("li img[src^='/itens/']").first();
+  await expect(foto).toBeVisible();
+
+  const medida = await foto.evaluate((el) => {
+    const img = el as HTMLImageElement;
+    return {
+      src: new URL(img.currentSrc || img.src).pathname,
+      natural: img.naturalWidth,
+      caixa: img.getBoundingClientRect().width,
+    };
+  });
+  expect(medida.src).toMatch(/-mini\.webp$/);
+  // a caixa é a mesma das outras miniaturas (56 px): a derivada de 112 é 2×
+  expect(medida.caixa).toBe(56);
+  expect(medida.natural).toBeGreaterThanOrEqual(medida.caixa * 2);
 });
 
 test("§22.4-3: a capa da primeira dobra é eager e prioritária; as outras, lazy", async ({
@@ -236,11 +280,23 @@ test("§22.4-5: o manifest tem atalhos e o ícone maskable de 192", async ({ pag
   ).toBe(true);
 });
 
-test("§22.4-6: /favicon.ico responde imagem", async ({ page }) => {
+test("§22.4-6: /favicon.ico responde imagem e é declarado uma vez só", async ({
+  page,
+}) => {
   const r = await page.request.get("/favicon.ico");
   expect(r.status()).toBe(200);
   expect(r.headers()["content-type"]).toMatch(/^image\//);
   expect((await r.body()).byteLength).toBeGreaterThan(100);
+
+  // o App Router já declara `app/favicon.ico`: repetir em `icons`/`shortcut`
+  // punha três <link> para o mesmo arquivo no <head> (auditoria do lote 4)
+  await page.goto("/login");
+  const links = await page.evaluate(() =>
+    [...document.querySelectorAll("link")]
+      .filter((l) => new URL(l.href, location.origin).pathname === "/favicon.ico")
+      .map((l) => l.rel),
+  );
+  expect(links.length, `rel: ${links.join(", ")}`).toBe(1);
 });
 
 test("§22.4-7: nenhum rótulo acessível em inglês", async ({ page }) => {

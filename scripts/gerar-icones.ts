@@ -2,7 +2,7 @@
  * npm run icones — desenha o ícone do app em SVG e rasteriza em PNG com sharp.
  * Sem rede: o SVG é gerado aqui. Os PNG ficam em public/icons e vão para o git.
  *
- * SPEC §22.4 itens 5, 6 e 11 — além dos ícones, este script gera:
+ * SPEC §22.4 itens 5, 6 e 9 — além dos ícones, este script gera:
  *   · o `icone-maskable-192`, que faltava no manifest;
  *   · o `app/favicon.ico`, para `/favicon.ico` responder imagem e não o HTML
  *     de 404 (o App Router só serve esse caminho a partir deste arquivo);

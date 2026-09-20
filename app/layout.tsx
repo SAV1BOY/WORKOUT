@@ -5,7 +5,7 @@ import { scriptDoVigia } from "@/lib/vigia";
 import "./globals.css";
 
 /**
- * As telas de abertura do iPhone (SPEC §22.4 item 11). Sem elas o app
+ * As telas de abertura do iPhone (SPEC §22.4 item 9). Sem elas o app
  * instalado abre numa tela preta vazia até o shell pintar. Cada arquivo é
  * gerado por `npm run icones` no tamanho exato de um aparelho — o iOS não
  * reescala: ou bate, ou não mostra nada.
@@ -38,15 +38,18 @@ export const metadata: Metadata = {
   },
   formatDetection: { telephone: false },
   icons: {
-    // SPEC §22.4 item 6: `/favicon.ico` vem de `app/favicon.ico` (gerado por
-    // `npm run icones`) e é declarado aqui — antes a aba do navegador pedia
-    // esse caminho e recebia 11 kB do HTML de 404.
+    /*
+     * SPEC §22.4 item 6: `/favicon.ico` vem de `app/favicon.ico` (gerado por
+     * `npm run icones`) — antes a aba do navegador pedia esse caminho e recebia
+     * 11 kB do HTML de 404. Quem declara esse arquivo é o próprio App Router,
+     * e declará-lo **também** aqui (em `icon` e em `shortcut`) punha três
+     * `<link>` para o mesmo ícone no `<head>` (auditoria do lote 4). Ficam só
+     * os PNG, que o App Router não conhece.
+     */
     icon: [
-      { url: "/favicon.ico", sizes: "32x32", type: "image/x-icon" },
       { url: "/icons/icone-192.png", sizes: "192x192", type: "image/png" },
       { url: "/icons/icone-512.png", sizes: "512x512", type: "image/png" },
     ],
-    shortcut: [{ url: "/favicon.ico" }],
     apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180" }],
   },
 };
@@ -56,10 +59,11 @@ export const viewport: Viewport = {
   initialScale: 1,
   viewportFit: "cover",
   /*
-   * O ponto de partida, para o HTML já sair com a barra do sistema na cor
-   * certa. Quem escolheu "claro" no aparelho escuro (ou o contrário) tem a
-   * meta corrigida no cliente por `components/tema-do-perfil.tsx`, assim que
-   * o tema resolve (SPEC §22.4 item 5).
+   * A barra do sistema segue o `prefers-color-scheme` do aparelho, e o HTML
+   * já sai com a cor certa. Quem escolheu "claro" no aparelho escuro (ou o
+   * contrário) fica com a barra do aparelho: seguir o tema escolhido pedia
+   * mexer na meta pelo cliente, e isso voltou atrás neste mesmo lote — ficou
+   * para outro (SPEC §22.4 item 5 e PROGRESSO.md).
    */
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#fafafa" },

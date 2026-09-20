@@ -31,7 +31,7 @@ function arquivosDoPublic(): { url: string; revision: string }[] {
       continue;
     }
     for (const nome of nomes) {
-      // as telas de abertura do iPhone (SPEC §22.4 item 11) são 95 kB que o
+      // as telas de abertura do iPhone (SPEC §22.4 item 9) são 95 kB que o
       // iOS busca uma vez, na instalação: não têm o que fazer no precache
       if (nome.startsWith("abertura-")) continue;
       const hash = createHash("md5")

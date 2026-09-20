@@ -73,7 +73,7 @@ export interface MidiaDaMiniatura {
 
 /**
  * Só a foto de execução vira WebP grande: a figura é SVG animado e fica como
- * está, e o item de equipamento nunca aparece maior que a caixa de 64 px —
+ * está, e o item de equipamento nunca aparece maior que a caixa de 56 px —
  * gerar a versão grande dele era 85 arquivos que ninguém pedia (auditoria do
  * lote 4).
  */
@@ -103,6 +103,36 @@ export function urlWebp(url: string | null | undefined): string | null {
 export function urlMiniatura(url: string | null | undefined): string | null {
   if (!url || !COM_MINI.test(url)) return null;
   return trocarSufixo(url, "-mini");
+}
+
+export interface MedidaDaImagem {
+  largura: number;
+  altura: number;
+}
+
+/**
+ * As 162 fotos de execução do kit têm todas a mesma medida, e a derivada WebP
+ * também (o limite de 1200 px do maior lado não corta 850). É o que deixa a
+ * `<img>` dizer o tamanho (SPEC §22.4 item 3) numa foto que não está em JSON
+ * nenhum: `data/ilustracoes.json` guarda as medidas das ilustrações, as fotos
+ * do kit são uniformes.
+ */
+export const MEDIDA_DA_FOTO: MedidaDaImagem = { largura: 850, altura: 567 };
+
+/** As 67 figuras animadas do kit compartilham o mesmo `viewBox` 132×100. */
+export const MEDIDA_DA_FIGURA: MedidaDaImagem = { largura: 132, altura: 100 };
+
+const FOTO_DO_KIT = /^\/fotos\/[^/]+\.(jpe?g|webp)$/i;
+
+/**
+ * A medida de uma foto de exercício de `public/fotos` (original ou derivada),
+ * ou `null` quando a URL não é do kit — a foto de progresso do Corpo vem do
+ * storage do Supabase e ninguém aqui sabe quanto ela mede.
+ */
+export function medidaDaFoto(url: string | null | undefined): MedidaDaImagem | null {
+  if (!url) return null;
+  const caminho = url.startsWith("http") ? new URL(url).pathname : url;
+  return FOTO_DO_KIT.test(caminho) ? MEDIDA_DA_FOTO : null;
 }
 
 function credito(i: Ilustracao): CreditoDaMidia {
