@@ -300,10 +300,10 @@ test.describe("Números por tipo e período (SPEC §19.2)", () => {
       await periodo(page, "tudo").click();
       await expect(periodo(page, "tudo")).toHaveAttribute("aria-pressed", "true");
       await expect(numeros.locator('[data-contador="Força"]')).toContainText("12");
-      await expect(detalhe(page, "Força")).toContainText("Treino A 8");
-      await expect(detalhe(page, "Força")).toContainText("Treino B 4");
+      await expect(detalhe(page, "Força")).toContainText("Treino A × 8");
+      await expect(detalhe(page, "Força")).toContainText("Treino B × 4");
       await expect(numeros.locator('[data-contador="Cardio"]')).toContainText("3");
-      await expect(detalhe(page, "Cardio")).toContainText("Corrida 3");
+      await expect(detalhe(page, "Cardio")).toContainText("Corrida × 3");
       await expect(detalhe(page, "Cardio")).toContainText("89 min");
       await expect(detalhe(page, "Cardio")).toContainText("8,7 km");
       /* 16 nas sessões + 5 soltas = 21 */
@@ -540,6 +540,7 @@ test.describe("o aviso de conquista nova", () => {
     await expect(page.getByRole("heading", { name: "Relatório" })).toBeVisible();
     await expect(page.getByRole("region", { name: "Números" })).toBeVisible();
     await expect(page.getByRole("status", { name: "Conquista nova" })).toHaveCount(0);
+    await abrirSecaoDoRelatorio(page, "conquistas");
     await expect(conquista(page, "semana-completa")).toHaveAttribute(
       "data-atingida",
       "sim",
