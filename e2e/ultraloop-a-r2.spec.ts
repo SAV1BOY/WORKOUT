@@ -236,7 +236,14 @@ test("o link de um card e a aba de baixo desenham anel de foco", async ({ page }
   for (const tema of TEMAS) {
     await abrir(page, "/exercicios", tema);
     const link = page.locator("main a[href^='/exercicios/']").first();
+    /*
+      Foco pelo TECLADO, não por `focus()`: `:focus-visible` depende da
+      modalidade da última interação, e um foco programático pode não
+      contar. O Shift+Tab sai e o Tab volta — agora é teclado de verdade.
+    */
     await link.focus();
+    await page.keyboard.press("Shift+Tab");
+    await page.keyboard.press("Tab");
     const anel = await link.evaluate((el) => {
       const e = getComputedStyle(el);
       return {
@@ -252,6 +259,8 @@ test("o link de um card e a aba de baixo desenham anel de foco", async ({ page }
       .getByRole("link")
       .first();
     await aba.focus();
+    await page.keyboard.press("Shift+Tab");
+    await page.keyboard.press("Tab");
     const anelDaAba = await aba.evaluate((el) => {
       const e = getComputedStyle(el);
       return Number.parseFloat(e.outlineWidth) * (e.outlineStyle === "none" ? 0 : 1);
