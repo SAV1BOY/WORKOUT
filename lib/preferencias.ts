@@ -245,6 +245,65 @@ export function semEvitados(prefs: Prefs | null | undefined): Prefs {
   return { ...(prefs ?? {}), evitar_exercicios: [] };
 }
 
+/* ------------------------------------- "gostei" (SPEC §14.1.2 e §22.1) */
+
+/**
+ * Os exercícios marcados com "gostei" (`prefs.preferidos`). O polegar para
+ * cima era desenhado como pressionado por padrão — afirmava uma escolha que
+ * ninguém tinha feito. Agora a avaliação tem três estados: nenhum, preferido e
+ * evitado. Vem do mesmo jsonb, então também não confia no formato.
+ */
+export function preferidos(prefs: Prefs | null | undefined): string[] {
+  const bruto = prefs?.preferidos;
+  if (!Array.isArray(bruto)) return [];
+  const limpo = bruto.filter((v): v is string => typeof v === "string" && v !== "");
+  return [...new Set(limpo)];
+}
+
+export function preferido(prefs: Prefs | null | undefined, id: string): boolean {
+  return preferidos(prefs).includes(id);
+}
+
+export function comPreferido(
+  prefs: Prefs | null | undefined,
+  id: string,
+  gostou: boolean,
+): Prefs {
+  const atuais = preferidos(prefs);
+  const novos = gostou
+    ? [...new Set([...atuais, id])]
+    : atuais.filter((v) => v !== id);
+  return { ...(prefs ?? {}), preferidos: novos };
+}
+
+/** O voto do polegar: os três estados, num valor só. */
+export type VotoDoExercicio = "preferido" | "evitado" | null;
+
+export function votoDoExercicio(
+  prefs: Prefs | null | undefined,
+  id: string,
+): VotoDoExercicio {
+  if (evitado(prefs, id)) return "evitado";
+  if (preferido(prefs, id)) return "preferido";
+  return null;
+}
+
+/**
+ * Grava o voto sem deixar os dois estados ligados ao mesmo tempo: quem gosta
+ * deixa de evitar, e quem evita deixa de preferir.
+ */
+export function comVoto(
+  prefs: Prefs | null | undefined,
+  id: string,
+  voto: VotoDoExercicio,
+): Prefs {
+  return comPreferido(
+    comEvitado(prefs, id, voto === "evitado"),
+    id,
+    voto === "preferido",
+  );
+}
+
 /**
  * A lista com os "não gosto" no fim, sem perder ninguém e sem embaralhar o
  * resto (SPEC §14.1.2). A ordem de quem fica é a que chegou.
@@ -275,4 +334,33 @@ export function guiaVisto(prefs: Prefs | null | undefined): boolean {
 
 export function comGuiaVisto(prefs: Prefs | null | undefined): Prefs {
   return { ...(prefs ?? {}), guia_visto: true };
+}
+
+/* ------------------------------------- menos movimento (SPEC §22.1) */
+
+/**
+ * A ilustração de duas posições está alternando? Regra pura, para o componente
+ * ficar só com o React:
+ *
+ * - com uma posição só não há o que alternar;
+ * - a aba escondida não anima nada (ninguém vê, e a bateria agradece);
+ * - sem nenhum toque (`escolha: null`) quem manda é o sistema: com
+ *   `prefers-reduced-motion: reduce` ela **nasce parada**;
+ * - depois do toque manda o toque, mesmo sob `reduce` — quem pediu para ver as
+ *   duas posições tem o direito de vê-las.
+ */
+export function ilustracaoAlternando({
+  duasPosicoes,
+  escolha,
+  menosMovimento,
+  escondido,
+}: {
+  duasPosicoes: boolean;
+  /** `true` = pausada pelo toque, `false` = alternando pelo toque, `null` = ninguém tocou. */
+  escolha: boolean | null;
+  menosMovimento: boolean;
+  escondido: boolean;
+}): boolean {
+  if (!duasPosicoes || escondido) return false;
+  return escolha === null ? !menosMovimento : !escolha;
 }
