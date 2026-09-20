@@ -1406,7 +1406,11 @@ a tela — afrouxar o limite não é uma opção.
    mostra um selo discreto na vitrine; o campo `circuito` deixa de ser calculado
    sem leitor.
 10. **Texto sobre a capa com contraste AA.** O texto branco do `CardCapa` fica
-    sobre um véu escuro próprio, nos dois temas, com pelo menos 4,5:1.
+    sobre um véu escuro próprio, nos dois temas, com pelo menos 4,5:1 — sem
+    passar por cima do selo ("hoje", "em andamento"), que continua inteiro, e
+    sem apagar a foto: a borda de cima do véu é esfumada, em vez de cortar o
+    cartão com uma linha reta, e a vinheta decorativa da capa não soma com ele
+    até virar tarja.
 11. **Régua de rolagem ciente de carrossel.** A auditoria de 360 px
     (`e2e/auditoria-helpers.ts`) não conta como vazamento o que está dentro de
     uma faixa que rola sozinha (`overflow-x: auto/scroll`); a rolagem da página

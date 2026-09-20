@@ -111,20 +111,29 @@ export function FotoAmpliada({
           <div className="flex gap-2">
             <button
               type="button"
+              data-confirmacao="cancelar"
               onClick={() => setConfirmando(false)}
               className="alvo border-input h-12 flex-1 rounded-md border text-sm font-medium"
             >
               Cancelar
             </button>
+            {/*
+              `text-background`, e não `text-white`: no tema escuro o
+              `--destructive` é claro (#f87171) e o branco em cima dele dava
+              2,77:1 — reprovado no AA, e logo no botão que apaga uma foto de
+              progresso para sempre. Com a cor do fundo do tema o rótulo fecha
+              6,5:1 no claro e 7,2:1 no escuro (auditoria do lote 2).
+            */}
             <button
               ref={confirmar}
               type="button"
+              data-confirmacao="apagar"
               disabled={apagando}
               onClick={() => {
                 setConfirmando(false);
                 aoApagar();
               }}
-              className="alvo bg-destructive h-12 flex-1 rounded-md text-sm font-medium text-white disabled:opacity-60"
+              className="alvo bg-destructive text-background h-12 flex-1 rounded-md text-sm font-medium disabled:opacity-60"
             >
               {apagando ? "Apagando…" : "Apagar"}
             </button>

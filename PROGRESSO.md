@@ -6225,8 +6225,10 @@ descanso vira o dia; "outro" não; cardio futuro não reescreve),
 rótulo leem a mesma coisa). E2E: `e2e/ultraloop-b-r1.spec.ts` (contadores nos
 dois temas, contraste da capa nos dois temas, selo de circuito, esqueleto do
 destaque, desafio, nota da ilustração, apagar foto com e sem rede, esqueleto de
-Medidas) e um caso novo em `e2e/semana.spec.ts`. A varredura roda sem os dois
-`test.fixme` que eram deste lote.
+Medidas, vídeo na ficha aberta pela lista do dia e pela lista de uma coleção,
+contraste dos botões da confirmação de apagar nos dois temas) e um caso novo em
+`e2e/semana.spec.ts`. A varredura roda sem os dois `test.fixme` que eram deste
+lote.
 
 **Como testar no celular.** (1) Relatório: os três totais no topo, rótulo numa
 linha e números alinhados — confira nos dois temas. (2) Corpo → Fotos: mande
@@ -6238,6 +6240,34 @@ semana passa a mostrar "Corr." naquele dia, e o calendário diz "Corrida".
 (5) Explorar: as coleções de circuito mostram o selo, e o destaque não pula
 mais quando a tela abre. (6) Abra a ficha do face pull: sob a ilustração há a
 nota dizendo que a figura é aproximada.
+
+**Correções da auditoria (rodada 1).** Um auditor independente reprovou o lote
+e os três problemas foram corrigidos:
+
+1. **O selo cortado e a tarja por cima da foto de capa** (bloqueante). O véu do
+   item 10 era pintado depois do selo e sem camada, então o "hoje"/"em
+   andamento" aparecia cortado ao meio por uma linha reta, com a metade de
+   baixo 32 % mais escura; e o véu (0,68 de preto) somava com a vinheta
+   `--capa-*` (0,93 no claro, 0,96 no escuro, no pé), deixando a faixa do texto
+   em ~0,98 de preto — a foto de capa sumia atrás de uma tarja com borda reta.
+   Agora o selo tem `z-10`; o véu ganhou uma máscara de 28 px que apaga a borda
+   (`.veu-capa` em `app/globals.css`, com o `background-color` intacto em
+   `rgb(10 10 10 / 0.68)`, que é o que as réguas de contraste leem); e a
+   vinheta desceu para 0,40 (claro) e 0,50 (escuro) no pé, de modo que a foto
+   volta a aparecer sob o texto sem perder o AA.
+2. **O botão que apaga a foto no tema escuro** (importante). `bg-destructive`
+   com rótulo branco dava 2,77:1 no escuro, porque lá o `--destructive` é claro
+   (`#f87171`) — e é o botão que apaga uma foto de progresso para sempre. O
+   rótulo virou `text-background`: 6,5:1 no claro e 7,2:1 no escuro
+   (`components/exercicios/foto-ampliada.tsx`).
+3. **O item 7 sem teste** (importante). O vídeo na ficha aberta fora do player
+   funcionava, mas nenhum teste o exercitava, embora o caminho passe pelo
+   layout do shell autenticado. `e2e/ultraloop-b-r1.spec.ts` ganhou dois casos
+   que escrevem um mp4 temporário em `public/videos` e abrem a ficha pela lista
+   do dia em `/` (supino reto, o Treino A da quarta) e pela lista de
+   `/explorar/treino/B1` (levantamento terra), exigindo o
+   `video[data-video="<id>"]` com o arquivo e a ilustração sem ele — mais a
+   asserção de contraste do item 2, nos dois temas.
 
 ### Rodada 2 — Lote 3
 

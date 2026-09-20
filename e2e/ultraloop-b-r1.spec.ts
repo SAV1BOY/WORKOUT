@@ -2,6 +2,8 @@
  * Ultraloop 20/09 — Lote 2 (SPEC §22.2): Relatório, Corpo, Calendário e
  * Explorar. Um teste por item que se vê na tela.
  */
+import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { expect, test, type Page } from "@playwright/test";
 import {
   entrarNoApp,
@@ -309,6 +311,34 @@ test.describe("Lote 2 — Corpo (SPEC §22.2 itens 3 e 4)", () => {
     await expect(page.getByRole("img", { name: "Frente em 16/09" })).toHaveCount(0);
   });
 
+  /*
+   * O botão que apaga a foto é sólido (`bg-destructive`) e no tema escuro o
+   * `--destructive` é claro: com o rótulo branco dava 2,77:1. A varredura não
+   * chega aqui — esta camada só existe depois de mandar uma foto e tocar nela.
+   */
+  for (const tema of ["dark", "light"] as const) {
+    test(`os botões da confirmação de apagar passam no contraste AA — tema ${tema}`, async ({
+      page,
+    }) => {
+      await usuarioComPerfil();
+      await page.emulateMedia({ colorScheme: tema });
+      await abrirFotos(page);
+      await enviarFoto(page, "frente");
+      await expect(page.getByRole("img", { name: "Frente em 16/09" })).toBeVisible();
+
+      await page.getByRole("button", { name: /Ver a foto: Frente/ }).click();
+      const camada = page.getByRole("dialog", { name: "Frente em 16/09" });
+      await expect(camada).toBeVisible();
+      await camada.getByRole("button", { name: "Apagar" }).click();
+      await expect(page.getByRole("alertdialog")).toBeVisible();
+
+      const apagar = '[role="alertdialog"] [data-confirmacao="apagar"]';
+      const cancelar = '[role="alertdialog"] [data-confirmacao="cancelar"]';
+      expect(await contrasteDe(page, apagar)).toBeGreaterThanOrEqual(4.5);
+      expect(await contrasteDe(page, cancelar)).toBeGreaterThanOrEqual(4.5);
+    });
+  }
+
   test("Medidas e Fotos esperam a leitura com o esqueleto da própria forma", async ({
     page,
   }) => {
@@ -326,5 +356,81 @@ test.describe("Lote 2 — Corpo (SPEC §22.2 itens 3 e 4)", () => {
 
     // e a aba se preenche quando a leitura chega
     await expect(page.getByLabel("Cintura (cm)")).toBeVisible({ timeout: 20_000 });
+  });
+});
+
+/*
+ * SPEC §22.2 item 7. O caminho passa pelo layout do shell autenticado — que lê
+ * `public/videos` e desce a lista por contexto —, então uma regressão aqui
+ * afetaria todas as telas. A receita do mp4 temporário é a do e2e do player
+ * (e2e/treino-v2.spec.ts): nenhum vídeo é entregue no kit.
+ */
+test.describe("Lote 2 — vídeo fora do player (SPEC §22.2 item 7)", () => {
+  /** Quarta é o Treino A do programa (§5.2): o supino abre a lista do dia. */
+  const NA_LISTA = { id: "supino-reto-com-barra", nome: "Supino reto com barra" };
+  /** E o levantamento terra abre a lista da coleção do Treino B. */
+  const NA_COLECAO = { id: "levantamento-terra", nome: "Levantamento terra" };
+  const PASTA = join(process.cwd(), "public", "videos");
+  const arquivo = (id: string) => join(PASTA, `${id}.mp4`);
+
+  function criarOVideo(id: string) {
+    mkdirSync(PASTA, { recursive: true });
+    writeFileSync(arquivo(id), Buffer.from("00000018667479706d703432", "hex"));
+  }
+
+  test.afterEach(() => {
+    // o agachamento é do e2e do player: aqui só se mexe nestes dois
+    for (const e of [NA_LISTA, NA_COLECAO]) rmSync(arquivo(e.id), { force: true });
+  });
+
+  async function abrirAFicha(page: Page, nome: string) {
+    await page.getByRole("button", { name: `Ficha: ${nome}` }).first().click();
+    await expect(page.getByRole("dialog", { name: nome })).toBeVisible();
+  }
+
+  test("a ficha aberta pela lista do dia troca a ilustração pelo vídeo", async ({
+    page,
+  }) => {
+    await usuarioComPerfil();
+    await fixarData(page, QUARTA);
+    await entrarNoApp(page);
+    await esperarAbaTreino(page);
+
+    // sem o arquivo (o estado do kit) a ficha mostra a ilustração
+    await abrirAFicha(page, NA_LISTA.nome);
+    await expect(page.locator(`video[data-video="${NA_LISTA.id}"]`)).toHaveCount(0);
+
+    criarOVideo(NA_LISTA.id);
+    await page.reload();
+    await esperarAbaTreino(page);
+    await abrirAFicha(page, NA_LISTA.nome);
+    const video = page.locator(`video[data-video="${NA_LISTA.id}"]`);
+    await expect(video).toHaveCount(1);
+    await expect(video).toHaveAttribute("src", `/videos/${NA_LISTA.id}.mp4`);
+  });
+
+  test("a ficha aberta pela lista de uma coleção troca a ilustração pelo vídeo", async ({
+    page,
+  }) => {
+    await usuarioComPerfil();
+    await fixarData(page, QUARTA);
+    await entrarNoApp(page);
+
+    await page.goto("/explorar/treino/B1");
+    await abrirAFicha(page, NA_COLECAO.nome);
+    await expect(page.locator(`video[data-video="${NA_COLECAO.id}"]`)).toHaveCount(0);
+
+    criarOVideo(NA_COLECAO.id);
+    await page.goto("/explorar/treino/B1");
+    await abrirAFicha(page, NA_COLECAO.nome);
+    const video = page.locator(`video[data-video="${NA_COLECAO.id}"]`);
+    await expect(video).toHaveCount(1);
+    await expect(video).toHaveAttribute("src", `/videos/${NA_COLECAO.id}.mp4`);
+
+    // e sem o arquivo de novo, volta a ilustração
+    rmSync(arquivo(NA_COLECAO.id), { force: true });
+    await page.goto("/explorar/treino/B1");
+    await abrirAFicha(page, NA_COLECAO.nome);
+    await expect(page.locator(`video[data-video="${NA_COLECAO.id}"]`)).toHaveCount(0);
   });
 });
