@@ -6279,15 +6279,40 @@ Portões antes de publicar: lint limpo, build ok, 1.378 testes unitários e 403
 de ponta a ponta, mais a varredura das telas nos dois temas. Nada de banco
 mudou nesta rodada. Fumaça em produção verde 21 de 21, duas vezes seguidas.
 
-**O que ficou na fila.** A **aba Treino (lote 7)** foi construída e reprovada
-na auditoria: a faixa fixa de "Continuar" usa `pointer-events-none`, e o toque
-atravessa o corpo do cartão para alvos escondidos atrás dela (341 pontos
-medidos). A correção já está escrita — envolver a faixa inteira no `Link` do
-"Continuar" — mas não coube antes do fechamento. O trabalho está preservado na
-branch `ultraloop/l7-aba-treino` (`b8ede08`, portões verdes) — nada foi
-descartado, é só retomar a correção e mandar para a auditoria.
+**Sétima rodada no ar desde as 12:11 UTC de 21/09** (main `d696b33`), também
+sem rollback, e é a última: o loop acabou aqui. Ela levou um lote só, o que
+tinha ficado faltando — a **aba Treino**:
 
-**Encerramento (10:25 UTC de 21/09, 07:25 em Brasília).** A pedido do dono, o loop parou com tudo o que estava 100 % aprovado já publicado: produção serve `8830fe5`, igual à `main`, com oito lotes no ar (L1–L6, L8 e L9) em seis deploys, todos com fumaça verde na primeira execução e nenhum rollback. Nenhuma migração de banco foi aplicada nesta madrugada. Desde o ponto de partida (`c82b744`) foram 71 commits e 181 arquivos alterados (+14.006/−1.169 linhas); os portões do head publicado são 1.378 testes unitários, 403 de ponta a ponta e a varredura das 30 telas nos dois temas. A auditoria de fechamento (regressão total contra a base inicial) foi interrompida antes de terminar; cada lote publicado já havia sido comparado contra a base do deploy anterior na própria auditoria. O que não coube está na seção **Fila (o que não coube)** abaixo, em ordem de prioridade, pronto para as próximas rodadas.
+- **O "Ajustar" saiu do botão flutuante** e foi para o cabeçalho, ao lado da
+  data; a folha que ele abre grava sozinha, sem botão de salvar.
+- **Com um treino começado, uma faixa fixa no alto** diz "Continuar — Treino A,
+  3/12 séries" e é um botão inteiro: dá para tocar em qualquer parte dela, e o
+  toque não atravessa mais para o cartão de trás (1.395 pontos varridos, 0 fora).
+- **A lista ficou mais fácil de ler**: nome do exercício antes da carga, e o
+  primeiro item não fica escondido embaixo da faixa quando você rola.
+- **Os desafios viraram um carrossel com posição** ("2 de 5"), os chips ganharam
+  degradê, o botão diz qual treino é ("Começar o Treino B") e, ao voltar do
+  player com séries por gravar, o app avisa.
+
+Portões antes de publicar: lint limpo, `tsc` limpo, build ok, 1.378 testes
+unitários e 417 de ponta a ponta, mais a varredura do toque. Nada de banco
+mudou nesta rodada. Fumaça em produção verde 20 de 20, duas vezes seguidas.
+
+**Lote 7 no ar (rodada 7).** A **aba Treino** entrou em produção às 12:11 UTC
+de 21/09. O que mudou: o **Ajustar** saiu do botão flutuante e foi para o
+cabeçalho, **ao lado da data**; quando há treino começado, uma **faixa fixa no
+alto** diz "Continuar — Treino A, 3/12 séries" e é **um botão inteiro** — dá
+para tocar em qualquer parte dela, e o toque **não atravessa** para o cartão
+que está atrás; na lista, o **nome do exercício vem antes da carga**; os
+desafios viraram um **carrossel que mostra a posição** ("2 de 5"); quando não
+há sessão em andamento, o botão diz **"Começar o Treino B"**, com o nome do
+treino; e, ao **voltar do player** com séries por gravar, o app avisa. Como ver
+no celular: abra o app, comece um treino, **feche e abra de novo** — a faixa
+"Continuar" tem de estar no alto, e tocar em qualquer ponto dela leva ao
+player; depois **role a lista da aba Treino com a sessão iniciada** — o
+primeiro exercício não fica escondido embaixo da faixa.
+
+**Encerramento (10:25 UTC de 21/09, 07:25 em Brasília).** A pedido do dono, o loop parou com tudo o que estava 100 % aprovado já publicado: produção serve `8830fe5`, igual à `main`, com oito lotes no ar (L1–L6, L8 e L9) em seis deploys, todos com fumaça verde na primeira execução e nenhum rollback. Nenhuma migração de banco foi aplicada nesta madrugada. Desde o ponto de partida (`c82b744`) foram 71 commits e 181 arquivos alterados (+14.006/−1.169 linhas); os portões do head publicado são 1.378 testes unitários, 403 de ponta a ponta e a varredura das 30 telas nos dois temas. A auditoria de fechamento (regressão total contra a base inicial) foi interrompida antes de terminar; cada lote publicado já havia sido comparado contra a base do deploy anterior na própria auditoria. O que não coube está na seção **Fila (o que não coube)** abaixo, em ordem de prioridade, pronto para as próximas rodadas. Atualização (rodada 7, 12:11 UTC): o lote 7 entrou em produção em `d696b33`, nove lotes no ar, sete deploys, nenhum rollback; o loop está encerrado e nada ficou agendado.
 
 ### Como funcionou
 
@@ -7735,11 +7760,32 @@ consultar. Esta branch também recebeu a **main publicada** (L6, L8 e L9) por
 merge, resolvendo SPEC.md e PROGRESSO.md com os dois lados. Nenhuma migração de
 banco, nenhuma dependência nova.
 
+**Deploy (rodada 7, 21/09 12:11 UTC).** Publicado. Deployment anterior
+`dpl_2eyW1Nm8SL3agTdRyptPnkXGqVbW` → novo `dpl_DzidCCiyUk1eNNkPaHXYVsS74VWB`;
+`main` passou de `2e8b2e2` para `d696b3317da7585fd65298befc095c87e7c52576`
+(PR #13) e `/versao` devolveu esse sha às 12:11:35, ~2,5 min depois do merge.
+O merge na integração entrou **sem conflito** (a branch já tinha trazido a
+`main` `2e8b2e2`) e a árvore ficou byte a byte igual à de `14ad203`, a que
+passou nos portões — lint e `tsc` reconferidos no tree de integração, e2e não
+repetido. Fumaça em produção **20 de 20, duas execuções seguidas** (12:12 e
+12:13, 40 s de intervalo), item a item: `/login` 200 · com "Treino do Terraço"
+· com "Entrar" · sem "Configure NEXT_PUBLIC_SUPABASE_URL" · sem "é secreta" ·
+`/` → 307 para `/login` · `/versao` == sha do merge · `/sw.js` 200 (54.417 b) ·
+com `/~offline` · com `figuras/` · com o mesmo CSS do HTML de `/login`
+(`301bf89aee08a5c8`) · `/manifest.webmanifest` 200 com "Treino do Terraço" ·
+`/~offline` 200 · os 14 scripts `/_next/static` de `/login` 200 · marcador: o
+`/sw.js` lista `app/(app)/page-346b446c29f32d9a.js` · esse chunk 200 (74.467 b)
+· contém `data-faixa-do-dia` · contém "Treino de hoje" · o CSS de `/login`
+contém `:root:has([data-faixa-do-dia])` · contém `scroll-padding-top`.
+Capturas: só `03-treino-topo` e `04-treino-lista` mudaram (46,65 % / 45,09 % e
+29,50 % / 28,97 % nos dois temas); as outras 28 telas ficaram em 0,00 %.
+Nenhuma migração de banco. **Rollback: não.**
+
 ### Fila (o que não coube) — lista para as próximas rodadas
 
-Nada abaixo está publicado. Ordem sugerida: A → B → C. Cada item traz a origem (rodada/lote/auditoria) e o motivo registrado pelo agente; a íntegra está em `ultraloop/fila.json` do scratchpad da sessão e nos vereditos de cada rodada.
+Nada abaixo está publicado. Ordem sugerida: B → C. Cada item traz a origem (rodada/lote/auditoria) e o motivo registrado pelo agente; a íntegra está em `ultraloop/fila.json` do scratchpad da sessão e nos vereditos de cada rodada.
 
-**A. Lote 7 — aba Treino (SPEC §22.7): a uma correção de entrar.** Branch `ultraloop/l7-aba-treino` (`b8ede08`, base `ultraloop/l5-player-gravar`), portões completos verdes (1.359 unitários / 378 e2e), 9 itens implementados: Ajustar no cabeçalho em vez do FAB, faixa fixa da sessão em andamento, folha Ajustar gravando sozinha, ladrilhos Fase/Peso alinhados, nome do exercício antes da carga, carrossel de desafios com posição, degradê nos chips, "Começar o Treino B", aviso ao voltar do player. Pendência única (importante): a faixa fixa usa `pointer-events-none` e deixa o toque atravessar para alvos escondidos. Correção indicada pelo auditor: envolver a faixa inteira no `Link` do "Continuar"/"Começar", tirar o `pointer-events-none`, reescrever a SPEC §22.7 item 2 e estender o e2e para varrer a largura da faixa exigindo `elementFromPoint` dentro dela. Antes de retomar: merge de `main` na branch (a base do lote é anterior ao L6/L8/L9).
+**A. (publicado)** O lote 7 — aba Treino entrou em produção na rodada 7 (`d696b33`); nada pendente aqui. Ordem sugerida: B → C.
 
 **B. Lotes planejados na análise e não executados (33 itens).** Os textos completos, com linhas e proposta, estão em `lotes-r5.json` e `lotes-r6.json` do scratchpad (o L12 precisa ser remontado: parte dele já entrou com L3/L4).
 
