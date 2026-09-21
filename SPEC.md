@@ -1829,7 +1829,7 @@ a tela — afrouxar o limite não é uma opção.
 4. **Um vazio só, citando o termo.** Busca sem nenhum resultado mostrava dois
    vazios empilhados, e o segundo ("Nenhum exercício com esses filtros")
    mentia — não havia filtro nenhum. Agora é **um** vazio: *Nada para
-   «zzzz»* com **"Limpar a busca"**. A mensagem de filtro do catálogo só
+   «zzzz»* com **"Limpar busca"**. A mensagem de filtro do catálogo só
    aparece quando há mesmo filtro (`temFiltro`).
 5. **Chegar por uma busca mostra resultado, não controle.** No catálogo com
    busca vinda de fora e não vazia, o bloco de filtros fica recolhido atrás do

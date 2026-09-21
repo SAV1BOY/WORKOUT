@@ -105,7 +105,7 @@ test.describe("Explorar e catálogo (SPEC §22.9)", () => {
       page.getByText("Nenhum exercício com esses filtros"),
     ).toBeHidden();
 
-    await page.getByRole("button", { name: "Limpar a busca" }).click();
+    await vazios.getByRole("button", { name: "Limpar busca" }).click();
     await expect(page.getByRole("link", { name: /Ver os 81 exercícios/ })).toBeVisible();
   });
 
@@ -152,6 +152,7 @@ test.describe("Explorar e catálogo (SPEC §22.9)", () => {
       "Planos",
     ];
     const repetidas: string[] = [];
+    let capas = 0;
     for (const rotulo of SECOES) {
       const secao = page.locator(`section[aria-label="${rotulo}"]`);
       const fontes = (
@@ -159,7 +160,7 @@ test.describe("Explorar e catálogo (SPEC §22.9)", () => {
           imgs.map((i) => (i as HTMLImageElement).getAttribute("src") ?? ""),
         )
       ).filter(Boolean);
-      expect(fontes.length + 1, `${rotulo} sem linhas`).toBeGreaterThan(0);
+      capas += fontes.length;
       const vistas = new Set<string>();
       for (const f of fontes) {
         if (vistas.has(f)) repetidas.push(`${rotulo}: ${f}`);
@@ -167,6 +168,7 @@ test.describe("Explorar e catálogo (SPEC §22.9)", () => {
       }
     }
     expect(repetidas, "capas repetidas na mesma seção").toEqual([]);
+    expect(capas, "a vitrine mostra fotos de capa").toBeGreaterThan(5);
   });
 
   test("item 8: o título de seção tem degrau sobre o rótulo", async ({ page }) => {

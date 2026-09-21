@@ -141,7 +141,7 @@ export function TelaExplorar() {
           icone={SearchX}
           titulo={`Nada para «${busca.trim()}»`}
           frase="Tente uma palavra mais curta, ou o nome do aparelho."
-          acao={{ rotulo: "Limpar a busca", aoTocar: () => setBusca("") }}
+          acao={{ rotulo: "Limpar busca", aoTocar: () => setBusca("") }}
         />
       ) : buscando ? (
         <>

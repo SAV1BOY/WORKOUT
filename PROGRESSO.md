@@ -7469,7 +7469,7 @@ SPEC §22.9. Sete itens; a régua de cada um está no aceite do próprio item.
 4. **Um vazio só, citando o termo** (`tela-explorar.tsx`, `lista-exercicios.tsx`).
    **Era:** busca sem resultado mostrava **dois** vazios empilhados, e o
    segundo — "Nenhum exercício com esses filtros" — mentia: não havia filtro
-   nenhum. **É:** *Nada para «zzzz»* com **"Limpar a busca"**, um só; a
+   nenhum. **É:** *Nada para «zzzz»* com **"Limpar busca"**, um só; a
    mensagem de filtro do catálogo só aparece quando `temFiltro(filtros)` é
    verdade ali dentro.
 5. **Chegar por uma busca mostra resultado, não controle** (`lista-exercicios.tsx`).
