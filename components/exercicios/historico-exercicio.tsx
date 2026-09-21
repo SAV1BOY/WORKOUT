@@ -127,7 +127,7 @@ export function HistoricoExercicio({ exercicioId }: { exercicioId: string }) {
                 valor={recorde.reps_max ? formatarNumero(recorde.reps_max) : "—"}
               />
               <Recorde
-                rotulo="e1RM (Epley)"
+                rotulo="Máx. estimada"
                 valor={
                   recorde.e1rm_epley
                     ? `${formatarKg(Math.round(recorde.e1rm_epley * 10) / 10)}`

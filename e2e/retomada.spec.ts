@@ -9,6 +9,7 @@
 import { mkdirSync } from "node:fs";
 import { expect, test, type Page } from "@playwright/test";
 import {
+  abrirSecaoDoRelatorio,
   abrirVisaoGeral,
   comecarOTreinoDoDia,
   entrarNoApp,
@@ -520,6 +521,7 @@ test.describe("auditoria do marco Retomada", () => {
     await esperarEscolha(page, sessao, "semana");
 
     await irNaAba(page, "Relatório");
+    await abrirSecaoDoRelatorio(page, "historico");
     const linha = page.locator('[data-registro="pausa"]');
     await expect(linha).toContainText("Pausa de 10 dias");
     await expect(linha).toContainText("recomeçar a semana");

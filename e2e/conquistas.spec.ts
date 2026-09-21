@@ -9,6 +9,7 @@
 import { mkdirSync } from "node:fs";
 import { expect, test, type Page } from "@playwright/test";
 import {
+  abrirSecaoDoRelatorio,
   comecarNoPlayer,
   comecarOTreinoDoDia,
   entrarNoApp,
@@ -248,7 +249,7 @@ function conquista(page: Page, id: string) {
  * e da grade começam por aqui, para a tela ficar como no uso do dia a dia.
  */
 async function reconhecerOAviso(page: Page): Promise<void> {
-  const aviso = page.getByRole("region", { name: "Conquista nova" });
+  const aviso = page.getByRole("status", { name: "Conquista nova" });
   await expect(aviso).toBeVisible();
   await expect(aviso).toContainText("10 treinos");
   await aviso.getByRole("button", { name: "Ok" }).click();
@@ -283,9 +284,9 @@ test.describe("Números por tipo e período (SPEC §19.2)", () => {
       await expect(numeros.locator('[data-contador="Cardio"]')).toContainText("1");
       /* 9 na sessão de barra fixa de 16/09 + 2 soltas = 11 */
       await expect(numeros.locator('[data-contador="Barra fixa"]')).toContainText("11");
-      await expect(detalhe(page, "Força")).toContainText("Treino A 2");
-      await expect(detalhe(page, "Força")).toContainText("Treino B 1");
-      await expect(detalhe(page, "Cardio")).toContainText("Corrida 1");
+      await expect(detalhe(page, "Força")).toContainText("Treino A × 2");
+      await expect(detalhe(page, "Força")).toContainText("Treino B × 1");
+      await expect(detalhe(page, "Cardio")).toContainText("Corrida × 1");
       await expect(detalhe(page, "Cardio")).toContainText("34 min");
       await expect(detalhe(page, "Cardio")).toContainText("3,2 km");
       await expect(detalhe(page, "Barra fixa")).toContainText("1 sessão");
@@ -299,10 +300,10 @@ test.describe("Números por tipo e período (SPEC §19.2)", () => {
       await periodo(page, "tudo").click();
       await expect(periodo(page, "tudo")).toHaveAttribute("aria-pressed", "true");
       await expect(numeros.locator('[data-contador="Força"]')).toContainText("12");
-      await expect(detalhe(page, "Força")).toContainText("Treino A 8");
-      await expect(detalhe(page, "Força")).toContainText("Treino B 4");
+      await expect(detalhe(page, "Força")).toContainText("Treino A × 8");
+      await expect(detalhe(page, "Força")).toContainText("Treino B × 4");
       await expect(numeros.locator('[data-contador="Cardio"]')).toContainText("3");
-      await expect(detalhe(page, "Cardio")).toContainText("Corrida 3");
+      await expect(detalhe(page, "Cardio")).toContainText("Corrida × 3");
       await expect(detalhe(page, "Cardio")).toContainText("89 min");
       await expect(detalhe(page, "Cardio")).toContainText("8,7 km");
       /* 16 nas sessões + 5 soltas = 21 */
@@ -357,6 +358,8 @@ test.describe("a grade de conquistas (SPEC §19.4)", () => {
       await page.goto("/relatorio");
       await reconhecerOAviso(page);
 
+      /* SPEC §22.6 item 1: a grade mora numa seção dobrável */
+      await abrirSecaoDoRelatorio(page, "conquistas");
       const grade = page.getByRole("region", { name: "Conquistas" });
       await expect(grade).toBeVisible();
 
@@ -396,6 +399,7 @@ test.describe("a grade de conquistas (SPEC §19.4)", () => {
     await page.goto("/relatorio");
     await reconhecerOAviso(page);
 
+    await abrirSecaoDoRelatorio(page, "conquistas");
     await conquista(page, "forca-25").click();
     const folha = page.getByRole("dialog");
     await expect(folha).toBeVisible();
@@ -484,7 +488,7 @@ test.describe("o aviso de conquista nova", () => {
     await esperarAbaTreino(page);
 
     /* nada de aviso na aba Treino: as conquistas moram no Relatório (§19.6) */
-    await expect(page.getByRole("region", { name: "Conquista nova" })).toHaveCount(0);
+    await expect(page.getByRole("status", { name: "Conquista nova" })).toHaveCount(0);
 
     await comecarOTreinoDoDia(page);
     await comecarNoPlayer(page);
@@ -499,9 +503,9 @@ test.describe("o aviso de conquista nova", () => {
     const fim = page.getByRole("region", { name: "Treino concluído" });
     await expect(fim.getByText("Excelente! Você concluiu o treino.")).toBeVisible();
 
-    const aviso = page.getByRole("region", { name: "Conquista nova" });
+    const aviso = page.getByRole("status", { name: "Conquista nova" });
     await expect(aviso).toBeVisible();
-    await expect(aviso).toContainText("Conquista");
+    await expect(aviso).toContainText("Nova conquista");
     await expect(aviso).toContainText("Semana completa");
     await expect(aviso).toHaveAttribute("data-aviso-conquista", "semana-completa");
     await semRolagemHorizontal(page);
@@ -535,7 +539,8 @@ test.describe("o aviso de conquista nova", () => {
     await irNaAba(page, "Relatório");
     await expect(page.getByRole("heading", { name: "Relatório" })).toBeVisible();
     await expect(page.getByRole("region", { name: "Números" })).toBeVisible();
-    await expect(page.getByRole("region", { name: "Conquista nova" })).toHaveCount(0);
+    await expect(page.getByRole("status", { name: "Conquista nova" })).toHaveCount(0);
+    await abrirSecaoDoRelatorio(page, "conquistas");
     await expect(conquista(page, "semana-completa")).toHaveAttribute(
       "data-atingida",
       "sim",

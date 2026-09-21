@@ -11,6 +11,7 @@
  */
 import { expect, test, type Page } from "@playwright/test";
 import {
+  abrirSecaoDoRelatorio,
   comecarNoPlayer,
   comecarOTreinoDoDia,
   entrarNoApp,
@@ -493,7 +494,7 @@ test.describe("Relatório (§13.5 e §14.4)", () => {
     await irNaAba(page, "Relatório");
 
     const tela = page.getByRole("region", { name: "Relatório" });
-    await expect(tela).toContainText("Treinos");
+    await expect(tela).toContainText("Sessões");
     await expect(tela).toContainText("Minutos");
     await expect(tela).toContainText("Volume");
 
@@ -503,7 +504,7 @@ test.describe("Relatório (§13.5 e §14.4)", () => {
      * SPEC §19.2, tem os mesmos rótulos recortados por período).
      */
     const totais = tela.getByRole("region", { name: "Totais" });
-    await expect(totais.locator('[data-contador="Treinos"]')).toContainText("2");
+    await expect(totais.locator('[data-contador="Sessões"]')).toContainText("2");
     await expect(totais.locator('[data-contador="Minutos"]')).toContainText("79");
     // SPEC §22.2 item 1: no topo o rótulo é "Volume" e o "kg" vai no detalhe
     const volume = totais.locator('[data-contador="Volume"]');
@@ -511,6 +512,8 @@ test.describe("Relatório (§13.5 e §14.4)", () => {
     await expect(volume).toContainText("kg no total");
 
     // histórico: a faixa da semana navegável e os registros da semana
+    /* SPEC §22.6 item 1: Histórico, Corpo e Gráficos são seções dobráveis */
+    await abrirSecaoDoRelatorio(page, "historico");
     const historico = page.getByRole("region", { name: "Histórico" });
     await expect(historico.getByRole("button", { name: "Semana anterior" })).toBeVisible();
     const registros = historico.getByRole("list", { name: "Registros" });
@@ -533,6 +536,7 @@ test.describe("Relatório (§13.5 e §14.4)", () => {
     await expect(sequencias).toContainText("Semanas seguidas");
 
     // Peso e IMC
+    await abrirSecaoDoRelatorio(page, "corpo");
     const peso = page.getByRole("region", { name: "Peso" });
     await expect(peso).toContainText("85,2 kg");
     await expect(peso).toContainText("maior 86 kg");
@@ -554,6 +558,7 @@ test.describe("Relatório (§13.5 e §14.4)", () => {
     // a semana civil de 21/09 não tem nada: a faixa fica vazia
     await abrir(page, "2026-09-23T08:00:00-03:00");
     await irNaAba(page, "Relatório");
+    await abrirSecaoDoRelatorio(page, "historico");
 
     const historico = page.getByRole("region", { name: "Histórico" });
     await expect(historico).toContainText("Nada registrado nesta semana");

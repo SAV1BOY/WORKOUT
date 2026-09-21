@@ -50,6 +50,40 @@ export const NOME_DA_MARCA: Record<MarcaDoDia, string> = {
   descanso: "descanso",
 };
 
+/**
+ * O desenho com que a FAIXA da semana (`components/ui/faixa-semana.tsx`)
+ * pinta cada marca, escrito como glifo para a legenda (SPEC §22.6 item 9).
+ * É `Record<MarcaDoDia, …>` de propósito: uma marca nova em `MarcaDoDia`
+ * quebra a compilação aqui e entra na legenda no mesmo movimento — a
+ * legenda anterior explicava quatro glifos para cinco marcas.
+ */
+export const GLIFO_DA_MARCA: Record<MarcaDoDia, string> = {
+  feito: "✓",
+  parcial: "◉",
+  aberto: "○",
+  faltou: "●",
+  descanso: "—",
+};
+
+/** A ordem em que a legenda lê as marcas: do dia vencido ao dia de folga. */
+export const ORDEM_DA_LEGENDA: readonly MarcaDoDia[] = [
+  "feito",
+  "parcial",
+  "aberto",
+  "faltou",
+  "descanso",
+];
+
+/**
+ * "✓ feito · ◉ parcial · ○ a fazer · ● faltou · — descanso · hoje em
+ * destaque" — a legenda inteira, montada das duas tabelas acima para não
+ * poder discordar do que a faixa desenha.
+ */
+export const LEGENDA_DA_FAIXA: string = [
+  ...ORDEM_DA_LEGENDA.map((m) => `${GLIFO_DA_MARCA[m]} ${NOME_DA_MARCA[m]}`),
+  "hoje em destaque",
+].join(" · ");
+
 export type SessaoCurta = Pick<LinhaSessao, "id" | "data" | "status" | "workout_id">;
 export type CardioCurto = Pick<LinhaSessaoCardio, "id" | "data" | "tipo" | "concluida">;
 

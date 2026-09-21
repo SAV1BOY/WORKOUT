@@ -2,6 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import {
+  abrirSecaoDoRelatorio,
   entrarNoApp,
   fixarData,
   inserirNoMock,
@@ -418,14 +419,15 @@ test.describe("§3.7 — a conta bate com a mão", () => {
     await entrarNoApp(page);
     await page.goto("/relatorio");
     await expect(page.getByRole("heading", { name: "Relatório" })).toBeVisible();
+    await abrirSecaoDoRelatorio(page, "graficos");
 
     const card = (rotulo: string) =>
       page.locator("div", { hasText: new RegExp(`^${rotulo}`) }).last();
 
     await expect(card("Treinos na semana")).toContainText("2");
-    await expect(card("Treinos na semana")).toContainText("2 no mês · 2 no total");
-    await expect(card("Aderência \\(4 semanas\\)")).toContainText("50 %");
-    await expect(card("Aderência \\(4 semanas\\)")).toContainText("2 de 4 dias");
+    await expect(card("Treinos na semana")).toContainText("2 no mês · 2 de força no total");
+    await expect(card("Constância \\(4 semanas\\)")).toContainText("50%");
+    await expect(card("Constância \\(4 semanas\\)")).toContainText("2 de 4 dias");
     await expect(card("Volume da semana")).toContainText("440 kg");
 
     // três recordes nasceram na janela: 20 kg, 10 kg e 12 reps

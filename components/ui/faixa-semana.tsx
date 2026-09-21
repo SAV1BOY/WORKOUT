@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 
 /**
  * A faixa da semana (SPEC §13.3): seg–dom, hoje em destaque, ✓ nos dias
- * feitos, ponto nos planejados, cinza no que faltou. Os dias entram prontos de
+ * feitos, anel nos que faltam fazer, cinza no que faltou. Os dias entram de
  * `faixaDaSemana()` — este componente só desenha.
  *
  * Com `href` a faixa inteira leva ao calendário; com `aoVoltar`/`aoAvancar`
@@ -135,44 +135,65 @@ export function FaixaSemana({
   );
 }
 
-/** ✓ feito · ponto planejado · cinza faltou · traço no descanso. */
+/**
+ * Um desenho por marca, e cada desenho com um SÓ significado — é isso que a
+ * legenda de `LEGENDA_DA_FAIXA` promete (SPEC §22.6 item 9):
+ *
+ *   ✓ feito · ◉ parcial · ○ a fazer · ● faltou · — descanso
+ *
+ * O dia de HOJE ainda por fazer era a exceção que estragava a promessa: ele
+ * vinha como ponto CHEIO na cor primária, o mesmo desenho de "faltou" (só que
+ * colorido), e é o estado mais comum da tela — todo dia, até o treino sair.
+ * Hoje por fazer é agora o mesmo ANEL dos outros dias por fazer, na cor
+ * primária; quem diz que o dia é hoje é o realce do ladrilho inteiro
+ * (`bg-primary/15` + `ring`), não a forma da marca.
+ *
+ * `data-glifo` leva a marca de verdade: no `<li>` o `data-marca` de hoje vira
+ * "hoje" e esconde qual era o estado.
+ */
 function Marca({ marca, ehHoje }: { marca: DiaDaFaixa["marca"]; ehHoje: boolean }) {
   if (marca === "feito") {
     return (
-      <span className="bg-primary text-primary-foreground flex size-6 items-center justify-center rounded-full">
+      <span
+        data-glifo="feito"
+        className="bg-primary text-primary-foreground flex size-6 items-center justify-center rounded-full"
+      >
         <Check aria-hidden="true" className="size-4" strokeWidth={3} />
       </span>
     );
   }
   if (marca === "parcial") {
     return (
-      <span className="border-primary flex size-6 items-center justify-center rounded-full border-2">
+      <span
+        data-glifo="parcial"
+        className="border-primary flex size-6 items-center justify-center rounded-full border-2"
+      >
         <span aria-hidden="true" className="bg-primary size-2 rounded-full" />
       </span>
     );
   }
   if (marca === "descanso") {
     return (
-      <span className="flex size-6 items-center justify-center">
+      <span data-glifo="descanso" className="flex size-6 items-center justify-center">
         <span aria-hidden="true" className="bg-border h-0.5 w-3 rounded-full" />
       </span>
     );
   }
   if (marca === "faltou") {
     return (
-      <span className="flex size-6 items-center justify-center">
+      <span data-glifo="faltou" className="flex size-6 items-center justify-center">
         <span aria-hidden="true" className="bg-muted-foreground/40 size-2.5 rounded-full" />
       </span>
     );
   }
-  // planejado
+  // aberto: anel, hoje ou não
   return (
-    <span className="flex size-6 items-center justify-center">
+    <span data-glifo="aberto" className="flex size-6 items-center justify-center">
       <span
         aria-hidden="true"
         className={cn(
-          "size-2.5 rounded-full",
-          ehHoje ? "bg-primary" : "border-muted-foreground/60 border-2",
+          "size-2.5 rounded-full border-2",
+          ehHoje ? "border-primary" : "border-muted-foreground/60",
         )}
       />
     </span>

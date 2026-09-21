@@ -12,6 +12,7 @@ import {
   formatarKm,
   formatarMinutos,
   formatarNumero,
+  formatarPercentual,
   lerNumero,
   rotuloDaCarga,
 } from "@/lib/formato";
@@ -126,5 +127,19 @@ describe("formatarDiaCurto (SPEC §22.1)", () => {
 
   it("aceita Date além da data pura", () => {
     expect(formatarDiaCurto(new Date(2026, 8, 19, 10, 0, 0))).toBe("sáb");
+  });
+});
+
+/* SPEC §22.6 item 8: um formato só de porcentagem no app */
+describe("porcentagem", () => {
+  it("cola o símbolo no número", () => {
+    expect(formatarPercentual(78)).toBe("78%");
+    expect(formatarPercentual(0)).toBe("0%");
+    expect(formatarPercentual(100)).toBe("100%");
+  });
+
+  it("arredonda para inteiro por padrão e aceita casas", () => {
+    expect(formatarPercentual(78.4)).toBe("78%");
+    expect(formatarPercentual(78.45, 1)).toBe("78,5%");
   });
 });

@@ -11,7 +11,7 @@ import { iso, inicioDaSemana, paraData } from "@/lib/calendario";
 import { registros, textoDoMotorDaSessao, type EventoDeSessao } from "@/lib/relatorio";
 import { retomadaDasPrefs } from "@/lib/retomada";
 import type { CardioBruto, SerieBruta, SessaoBruta, SoltaBruta } from "@/lib/progresso";
-import { faixaDaSemana, montarGrade } from "@/lib/semana";
+import { LEGENDA_DA_FAIXA, faixaDaSemana, montarGrade } from "@/lib/semana";
 import type { LinhaPerfil, LinhaExcecaoAgenda } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -101,8 +101,6 @@ export function Historico({
 
   return (
     <section aria-label="Histórico" className="flex flex-col gap-3">
-      <h2 className="text-base font-semibold">Histórico</h2>
-
       <FaixaSemana
         dias={dias}
         rotulo={`${formatarData(inicio)} a ${formatarData(fim)}`}
@@ -119,6 +117,17 @@ export function Historico({
             : undefined
         }
       />
+
+      {/*
+        SPEC §22.6 item 9: as marcas da faixa não se explicavam sozinhas — um
+        ✓, um anel vazio e um traço cinza, sem uma palavra em volta. O texto
+        vem de `LEGENDA_DA_FAIXA`, montado a partir de `MarcaDoDia`: escrito à
+        mão ele explicava quatro glifos para as cinco marcas que a faixa
+        desenha, e "parcial" ficava de fora.
+      */}
+      <p className="text-muted-foreground text-micro -mt-1.5 text-center text-balance">
+        {LEGENDA_DA_FAIXA}
+      </p>
 
       <div className="flex items-baseline justify-between gap-2">
         <h3 className="text-sm font-semibold">

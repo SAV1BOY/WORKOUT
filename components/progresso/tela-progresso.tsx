@@ -23,6 +23,7 @@ import {
   formatarKg,
   formatarKm,
   formatarNumero,
+  formatarPercentual,
 } from "@/lib/formato";
 import {
   aderencia,
@@ -44,6 +45,7 @@ import {
   useTodosOsRecordes,
 } from "@/lib/queries/progresso";
 import { useHoje } from "@/lib/relogio";
+import { cn } from "@/lib/utils";
 
 /** Os três grandes + o desenvolvimento militar (SPEC §3.7). */
 const GRANDES = [
@@ -141,12 +143,18 @@ export function TelaProgresso({
         <Numero
           rotulo="Treinos na semana"
           valor={formatarNumero(treinos.semana)}
-          /* só força: os contadores acumulados do topo somam o cardio (§14.4) */
-          detalhe={`só força · ${treinos.mes} no mês · ${treinos.total} no total`}
+          /*
+           * SPEC §22.6 item 4: o rótulo do total diz DE QUE é o total. Os
+           * contadores acumulados do topo somam o cardio (§14.4), e os dois
+           * "no total" — 51 lá em cima, 46 aqui — se contradiziam na mesma
+           * rolagem.
+           */
+          detalhe={`só força · ${treinos.mes} no mês · ${treinos.total} de força no total`}
         />
         <Numero
-          rotulo="Aderência (4 semanas)"
-          valor={`${formatarNumero(ade.percentual)} %`}
+          /* "aderência" é palavra de planilha; o que se mede é constância */
+          rotulo="Constância (4 semanas)"
+          valor={formatarPercentual(ade.percentual)}
           detalhe={`${ade.feitos} de ${ade.planejados} ${ade.planejados === 1 ? "dia" : "dias"}${
             // a janela para em `fase_desde` (a fase de hoje não vale para trás)
             ade.desde ? ` · desde ${formatarData(ade.desde)}` : ""
@@ -155,7 +163,7 @@ export function TelaProgresso({
         <Numero
           rotulo="Volume da semana"
           valor={formatarKg(volumeSemana, 0)}
-          detalhe="reps × kg nas séries de trabalho"
+          detalhe="repetições × carga nas séries de trabalho"
         />
         <Numero
           rotulo="Recordes (30 dias)"
@@ -210,27 +218,37 @@ export function TelaProgresso({
           <CardDescription>A série mais pesada de cada sessão</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
+          {/*
+            SPEC §22.6 item 9: o exercício ainda sem registro ocupava um
+            cartão de altura cheia com um vazio de gráfico dentro — três
+            deles enchiam a tela sem dizer nada. Agora é UMA linha.
+          */}
           {GRANDES.map((id) => {
             const pontos = cargaPorSessao(series, porSessao, id);
             const exercicio = exercicioPorId.get(id);
+            const nome = exercicio?.nome ?? acharExercicio(id).nome;
+            const semRegistro = pontos.length === 0;
             return (
-              <div key={id} className="flex flex-col gap-1">
+              <div key={id} data-grande={id} className="flex flex-col gap-1">
                 <div className="flex items-baseline justify-between gap-2">
                   <Link
                     href={`/exercicios/${id}`}
                     className="alvo flex items-center text-sm font-medium underline-offset-2 hover:underline"
                   >
-                    {exercicio?.nome ?? acharExercicio(id).nome}
+                    {nome}
                   </Link>
-                  <span className="numero text-sm">
-                    {pontos.length > 0
-                      ? formatarKg(pontos[pontos.length - 1]?.carga ?? 0)
-                      : "—"}
+                  <span
+                    className={cn(
+                      "shrink-0 text-sm",
+                      semRegistro ? "text-muted-foreground text-xs" : "numero",
+                    )}
+                  >
+                    {semRegistro
+                      ? "sem registro"
+                      : formatarKg(pontos[pontos.length - 1]?.carga ?? 0)}
                   </span>
                 </div>
-                {pontos.length === 0 ? (
-                  <SemDados>Sem sessão registrada ainda.</SemDados>
-                ) : (
+                {semRegistro ? null : (
                   <GraficoLinha
                     titulo={`Carga do ${exercicio?.nome ?? id} por sessão`}
                     dados={pontos}
@@ -249,7 +267,9 @@ export function TelaProgresso({
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Volume semanal</CardTitle>
-          <CardDescription>Σ reps × kg, últimas {SEMANAS} semanas</CardDescription>
+          <CardDescription>
+            Soma de repetições × carga, nas últimas {SEMANAS} semanas
+          </CardDescription>
         </CardHeader>
         <CardContent>
           {semTreino ? (
@@ -327,7 +347,9 @@ export function TelaProgresso({
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Recordes por exercício</CardTitle>
-          <CardDescription>Melhor carga, melhor série e e1RM (Epley)</CardDescription>
+          <CardDescription>
+            Melhor carga, melhor série e carga máxima estimada
+          </CardDescription>
         </CardHeader>
         <CardContent>
           {recordes.length === 0 ? (
@@ -348,7 +370,7 @@ export function TelaProgresso({
                       Reps
                     </th>
                     <th scope="col" className="py-1 text-right">
-                      e1RM
+                      Máx. estimada
                     </th>
                   </tr>
                 </thead>
@@ -417,6 +439,11 @@ function Tela({
   );
 }
 
+/**
+ * Um card de número (SPEC §22.6 itens 7 e 8): grade de três linhas — rótulo,
+ * número e legenda —, para os quatro cards da grade terminarem a legenda no
+ * mesmo rodapé mesmo quando um rótulo quebra em duas linhas.
+ */
 function Numero({
   rotulo,
   valor,
@@ -427,11 +454,11 @@ function Numero({
   detalhe: string;
 }) {
   return (
-    <div className="border-border bg-card flex flex-col gap-0.5 rounded-xl border p-3">
+    <div className="border-border bg-card grid grid-rows-[auto_1fr_auto] gap-0.5 rounded-xl border p-3">
       <span className="text-muted-foreground text-rotulo tracking-wide uppercase">
         {rotulo}
       </span>
-      <span className="numero text-2xl">{valor}</span>
+      <span className="numero text-2xl leading-tight">{valor}</span>
       <span className="text-muted-foreground text-rotulo text-balance">{detalhe}</span>
     </div>
   );

@@ -1683,6 +1683,127 @@ a tela — afrouxar o limite não é uma opção.
     exercício e no descanso (que dizia "Próximo 2/6"), com o caixa-alta feito
     por CSS.
 
-### 22.6 Lote 6
+### 22.6 Lote 6 — Relatório: estrutura, números e conquistas
 
-(a preencher pelo lote)
+1. **O Relatório vira cinco seções dobráveis.** Os 5.444 px de rolagem de uma
+   `<Tela>` só passam a cinco `<details>` — **Resumo** (totais, Números e
+   sequências), **Conquistas**, **Histórico**, **Corpo** (peso e IMC) e
+   **Gráficos** — cada um com o cabeçalho grudado no topo (`sticky`) e o
+   estado lembrado em `localStorage` (`relatorio:secoes`). A tela **abre com
+   o Resumo** e as outras recolhidas: menos de 1.500 px de rolagem a
+   360 × 740, e todo bloco a um toque do cabeçalho. O conteúdo de uma seção
+   só é montado quando ela abre pela primeira vez — a seção Gráficos não
+   pede as consultas nem desenha os Recharts enquanto ninguém a abrir.
+2. **A caixa vem antes do dado.** Quem reserva a altura é o **esqueleto**,
+   não um `min-height` por seção: o do Resumo tem a forma e as medidas do
+   Resumo pronto (três contadores, o seletor de período, a grade de números
+   com `h-[4.75rem]` por ladrilho — a mesma altura do ladrilho final — e as
+   duas sequências), em vez de um esqueleto genérico que empurrava tudo
+   quando as ~10 leituras chegavam. Seção recolhida não tem altura a
+   reservar, e a aberta já está do tamanho certo antes de o dado chegar.
+   Alvo: **CLS < 0,1** em `/relatorio` nos dois temas (antes da mudança:
+   0,3895 no escuro e 0,4430 no claro).
+3. **Cabeçalho de seção com dois papéis separados.** O contador curto
+   ("7 de 26") fica na linha de base do título, à direita; a frase de
+   explicação desce para um subtítulo de 12 px `muted`. Nenhum título de
+   seção divide a linha com uma frase — a 360 px uma frase de 203 px ao lado
+   do título roubava a leitura. O atalho "Catálogo de exercícios" sai de
+   cima dos totais e vai para o fim da tela: o Relatório **começa pelos
+   números**.
+4. **Contadores sem rótulos que se contradizem.** O contador acumulado do
+   topo passa a ser **"Sessões · no total (força + cardio)"** (51) e o card de
+   treinos do bloco de gráficos diz **"só força · 6 no mês · 46 de força no
+   total"** (46): o mesmo rótulo "no total" não devolve mais dois números
+   diferentes na mesma rolagem.
+5. **Conquistas em duas colunas, com progresso e separação.** A grade é
+   `grid-cols-2 sm:grid-cols-3` (a 360 px três colunas espremiam o cartão),
+   o subtítulo tem `line-clamp-2` com o texto inteiro no `title` (§22.3
+   item 11) e a altura do cartão é travada. Sob o título entram uma barra
+   fina de progresso ("7 de 26") e dois grupos rotulados — **Conquistadas**
+   e **A conquistar** —, para saber quantas faltam sem contar cartão por
+   cartão.
+6. **O aviso de conquista não vira lista.** No máximo **3** linhas, com
+   "e mais N" quando houver mais; a data **só aparece quando não é a de
+   hoje** (anunciar como novidade uma conquista de 1º de junho tira a
+   credibilidade); a `<section>` leva `role="status"` para o leitor de tela
+   anunciar quando ela surge; e o rótulo passa a ser **"Nova conquista"**,
+   que não colide com o título da seção "Conquistas" da mesma tela.
+7. **Ladrilho de número alinhado.** No `Contador` o que é fixo é a **linha
+   do rótulo** (`h-4`, uma linha só, sem quebra): é ela que impede um rótulo
+   comprido de empurrar o número para baixo, em qualquer tela. O alinhamento
+   da legenda no rodapé precisa de mais e vem do chamador: os três
+   contadores da fileira de Totais recebem
+   `className="grid grid-rows-[auto_1fr_auto]"` — rótulo na primeira linha,
+   número crescendo na do meio, legenda colada no rodapé —, e é aí que os
+   números de uma fileira caem na mesma linha de base mesmo quando um rótulo
+   é mais longo. O ícone do rótulo sobe de 12 px para 14 px
+   (`size-3.5`, `shrink-0`): a 12 px ele sumia ao lado de um número de
+   24–30 px. E **nada recorta o rótulo na vertical**: o til de "SESSÕES" em
+   versalete sobe acima da caixa de linha de 12 px (`text-micro`: 10 px ×
+   1,2), e qualquer `overflow` que recorte em y come o acento — a linha saía
+   "SESSOES". Mas tirar o recorte dos dois eixos também não serve: nesta
+   fileira o ladrilho é uma **grade**, e num item de grade o `min-width:
+   auto` só vira 0 quando o `overflow` do item não é `visible` — com os dois
+   eixos `visible` um rótulo maior que o ladrilho de 95 px não encolhe nem
+   encurta, **estoura**, e a página passa a rolar para o lado a 360 px. Os
+   **dois** spans do rótulo (o de fora e o de dentro, que desenha o "…")
+   levam então `min-w-0` + `overflow-x-clip` + `overflow-y-visible`, a única
+   combinação que o CSS deixa conviver com `visible`: o til pinta e o que
+   não cabe na largura continua encurtando com "…". Como o `innerText` diz
+   "SESSÕES" nos dois casos, o teste que fecha isto não é de texto: mede o
+   recorte computado de todo `[data-rotulo]`, compara os pixels do rótulo
+   com e sem o recorte forçado a `visible` e — o caso negativo — injeta um
+   rótulo longo num ladrilho e exige que ele encurte, caiba no ladrilho e
+   não alargue a página além dos 360 px. O encurtamento, porém, é a **rede**,
+   não o normal: **nenhum rótulo real do app pode chegar nela**. Dentro do
+   `<details>` a fileira de três perdeu ~9 px por coluna (o ladrilho caiu de
+   ~104 px para 95 px) e "BARRA FIXA" — 62 px de texto para 55 px de linha —
+   saía "BARRA F…", cortado nos dois temas e também numa conta nova. Os
+   pixels voltam em três lugares: o ladrilho do `Contador` usa `px-2` (8 px,
+   e não 10), o rótulo perde o `tracking-wide` (a 10 px ele custava 0,25 px
+   por letra, justo no rótulo mais comprido) e o corpo de uma seção do
+   Relatório usa `px-2` no lugar de `px-3`, o que devolve ~2,7 px a cada
+   coluna de três. São **64 px de linha para 60 px de texto** onde faltavam
+   7 px. O teste que fecha este lado também mede: em `/relatorio`, com as
+   cinco seções abertas, nenhum `[data-rotulo]` de rótulo REAL pode ter
+   `scrollWidth > clientWidth`.
+8. **Sem sigla nem notação sem tradução.** "e1RM" sai do app **inteiro**,
+   não só de `/relatorio`: o gráfico diz "carga máxima estimada" e "Máx.
+   estimada", o card Recorde do histórico de um exercício diz "Máx.
+   estimada" e o recorde do resumo da sessão diz "45 kg de carga máxima
+   estimada". "Σ reps × kg" vira "soma de repetições × carga, nas últimas 12
+   semanas" no gráfico e "Soma de repetições × carga das séries de trabalho
+   concluídas chega a 50.000 kg" na folha de detalhe de uma conquista de
+   volume (`lib/conquistas.ts`) — a folha está a um toque da grade, e com
+   ela fechada nenhum teste de texto da página a alcança, então quem fecha
+   isto para as 26 conquistas é um teste de unidade sobre `nome`,
+   `descricao` e `regra`, e o e2e abre uma folha antes de medir. O "×"
+   fica: na tela ele lê "vezes" ("4× por semana", "Treino B × 1").
+   "Aderência" vira "Constância (4 semanas)" e a contagem se separa
+   do nome do treino ("Treino B × 1", não "Treino B 1"). A porcentagem tem um
+   formato só no app — `formatarPercentual()` em `lib/formato.ts`, com o
+   símbolo colado ("78%") —, no lugar do `${…} %` escrito à mão. As linhas
+   Força / Cardio / Barra fixa viram uma grade `grid-cols-[5.5rem_1fr]`, com
+   o valor sempre no mesmo x.
+9. **Legenda da faixa e cartão vazio de uma linha.** O histórico ganha uma
+   legenda de uma linha sob a faixa da semana: **"✓ feito · ◉ parcial ·
+   ○ a fazer · ● faltou · — descanso · hoje em destaque"**. A legenda não é
+   escrita à mão — sai de `LEGENDA_DA_FAIXA` (`lib/semana.ts`), montada de
+   `GLIFO_DA_MARCA` e `NOME_DA_MARCA`, ambos `Record<MarcaDoDia, …>`: a
+   versão à mão explicava **quatro** glifos para as **cinco** marcas que a
+   faixa desenha e deixava "parcial" de fora (a sessão começada e não
+   concluída, que `montarGrade` emite de verdade). Com o `Record`, uma marca
+   nova quebra a compilação e entra na legenda no mesmo movimento, e os
+   nomes são os que o leitor de tela já lê no dia. **E nenhum desenho serve a
+   duas marcas**: o dia de HOJE ainda por fazer era um ponto **cheio** na cor
+   primária — o mesmo desenho que a legenda ensina para "faltou", e o estado
+   mais comum da tela, todo dia até o treino sair. Hoje por fazer passa a ser
+   o mesmo **anel** dos outros dias por fazer, só que `border-primary`; quem
+   diz que o dia é hoje é o realce do ladrilho inteiro (`bg-primary/15` +
+   `ring`), não a forma da marca. O ponto cheio fica sendo de "faltou" e de
+   mais ninguém. Cada marca leva `data-glifo` (no `<li>` o `data-marca` de
+   hoje vira "hoje" e esconde o estado), e o teste que fecha isto mede o
+   desenho — largura de borda e preenchimento —, não o texto. Em "Carga dos
+   grandes" o exercício sem registro encolhe para uma linha (nome + "sem
+   registro"), em vez de um cartão de altura cheia com um vazio de gráfico
+   dentro.
