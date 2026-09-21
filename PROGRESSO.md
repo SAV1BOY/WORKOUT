@@ -6176,6 +6176,39 @@ Portões desta rodada: lint limpo, build ok, 1.355 testes unitários e 358 de
 ponta a ponta, mais a varredura das 30 telas nos dois temas. Nada de banco
 mudou nesta rodada.
 
+**Terceira rodada no ar desde as 02:05 UTC de 21/09** (main `2826972`),
+também sem rollback. Esta foi a rodada do player — a tela onde o treino é
+registrado:
+
+- **Não dá mais para descartar o treino sem querer.** Antes, "Abandonar"
+  virava "Confirmar abandono" no mesmo ponto da tela: dois toques seguidos no
+  mesmo lugar apagavam a sessão. Agora aparece uma pergunta que diz o que já
+  está salvo ("Nenhuma série foi registrada ainda", "A 1 série já registrada
+  continua salva" ou "As N séries...") e o botão seguro é o que nasce com o
+  foco.
+- **O treino é gravado assim que você chega na conclusão**, não no "Próximo"
+  lá embaixo. O alto da tela diz "Treino salvo. Já está no histórico, mesmo
+  que você saia agora", e o "Próximo" ficou fixo no rodapé. Fechar o app ali
+  não deixa mais "EM ANDAMENTO" na aba Treino.
+- **A Visão geral virou uma janela de verdade**: o Esc e o voltar do celular
+  fecham a lista e o treino continua — antes o voltar podia tirar você do
+  treino. E as três saídas têm nomes diferentes: "Continuar depois",
+  "Descartar este treino" e "Fechar".
+- **A pergunta "saiu firme?" chega sem resposta marcada.** Antes "Firme" já
+  aparecia escolhido sem ninguém tocar; agora o palpite é só uma frase de
+  apoio e o botão grande diz "Pular esta pergunta".
+- **O descanso avisa quando acaba** (não só pelo bipe, que é um interruptor):
+  os marcos de 30 s, 10 s e fim são anunciados, os botões de tempo dizem
+  "−20 s" e "+20 s" em texto, o contador ganhou um anel e o "Pular descanso"
+  deixou de ser o botão mais forte da tela.
+- **Distância entre gravar e perder**: 24 px entre "Concluir série" e
+  "Próximo passo" (eram 8 px, e "Próximo passo" pula sem gravar).
+
+Portões desta rodada: lint limpo, build ok, 1.359 testes unitários e 366 de
+ponta a ponta, mais a varredura das 30 telas nos dois temas. Nada de banco
+mudou nesta rodada. O lote do Relatório foi reprovado na segunda auditoria e
+não entrou: fica para a próxima rodada.
+
 ### Como funcionou
 
 Duas faixas de trabalho em paralelo, cada uma numa worktree própria com porta
@@ -7193,6 +7226,27 @@ SPEC §22.5. Dez itens, na ordem de prioridade do lote.
    está marcada** e o botão grande diz "Pular esta pergunta". Na conclusão, o
    alto já diz **"Treino salvo"** e o **Próximo** está fixo no rodapé — feche
    o app ali e volte: a aba Treino **não** oferece "Continuar".
+
+**Deploy.** No ar em 21/09/2026 às 02:05 UTC, pelo PR #8 (main `2826972`).
+Produção saiu de `dpl_8NHHgUvey1oBJCXj3CT5yp95YqLV` para o deploy de
+`2826972`; `/versao` devolve
+`28269724cf9b8b8d8b8daa496896e0b59d67bc83` (construído às 02:03:42Z) e o CSS
+de `/login` foi de `57d136fb92e14898.css` para `220c01c1442d7833.css`.
+Fumaça verde 9/9 na primeira execução útil, item a item: `/login` 200 com
+"Treino do Terraço" e "Entrar", sem "Configure NEXT_PUBLIC_SUPABASE_URL" e
+sem "é secreta" — ok; `/` → 307 para `/login` — ok; `/versao` igual ao sha de
+main — ok; `/sw.js` 200 com `/~offline`, `figuras/` e o mesmo CSS do `/login`
+— ok; `/manifest.webmanifest` 200 com "Treino do Terraço" — ok; `/~offline`
+200 — ok; os 12 scripts `/_next/static` do `/login` → 200 — ok; marcador do
+lote: o `/sw.js` lista o chunk novo do player
+(`app/(app)/treinar/%5BsessionId%5D/page-1922983e9f6290b9.js`) — ok; e esse
+chunk, baixado (200, 63.471 bytes), contém **"Descartar este treino"**,
+**"Continuar depois"** e **"Pular esta pergunta"** — ok (o bundle escapa os
+acentos, como em `Concluir s\xe9rie`, então os marcadores foram procurados sem
+acento). A sonda opcional de Playwright a 360 px contra a URL pública não
+rodou (o Chromium local não confia na CA do proxy de saída); a régua de 360 px,
+44 px, contraste e foco já correu verde nas 30 telas no portão local.
+**Rollback: não.**
 
 ### Rodada 3 — Lote 6
 
