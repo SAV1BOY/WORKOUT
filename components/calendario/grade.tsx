@@ -18,6 +18,7 @@ const CORES_DA_MARCA: Record<string, string> = {
   faltou: "text-destructive",
   aberto: "text-muted-foreground",
   descanso: "text-muted-foreground",
+  antes: "text-muted-foreground",
 };
 
 /** A semana de segunda a domingo, um dia por linha (SPEC §3.5). */
@@ -93,6 +94,9 @@ export function GradeDaSemana({
  * muda a FORMA — disco cheio, anel, ✕ —, não só o tom; o tipo do dia separa
  * força (círculo) de cardio (losango). É o mesmo componente na grade e na
  * legenda: nenhuma das duas pode passar a mentir sobre a outra.
+ *
+ * SPEC §22.8 item 11: "antes" (dia anterior a `profiles.data_inicio`) e
+ * "descanso" não desenham nada — a casa fica com o número e mais nada.
  */
 function GlifoDoMes({ marca, tipo }: { marca: MarcaDoDia; tipo: TipoDia }) {
   const miolo =
@@ -102,7 +106,7 @@ function GlifoDoMes({ marca, tipo }: { marca: MarcaDoDia; tipo: TipoDia }) {
       <span className="border-primary size-2.5 rounded-full border-2" />
     ) : marca === "faltou" ? (
       <span className="text-destructive text-micro leading-none font-semibold">✕</span>
-    ) : marca === "descanso" ? null : tipo === "cardio" ? (
+    ) : marca === "descanso" || marca === "antes" ? null : tipo === "cardio" ? (
       <span className="border-foreground/60 size-2 rotate-45 border" />
     ) : (
       <span className="border-primary/70 size-2.5 rounded-full border" />

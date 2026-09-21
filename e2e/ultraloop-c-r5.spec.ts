@@ -298,6 +298,42 @@ test("§22.8-7: a semana sem perdidos não escreve “perdidos”", async ({ pag
   expect(caixas.altura).toBe(8);
 });
 
+/* ----------------------------------------------------------------- item 11 */
+
+/*
+ * O perfil padrão começou na segunda 14/09 e hoje é quarta 16/09: antes da
+ * correção o mês de setembro tinha DEZ ✕ vermelhos em dias anteriores ao
+ * começo do programa (31/08, 01, 02, 04, 05, 07, 08, 09, 11 e 12/09), com o
+ * nome acessível dizendo "faltou" em cada um.
+ */
+test("§22.8-11: nada é “perdido” antes do começo do programa", async ({ page }) => {
+  await usuarioComPerfil();
+  await abrirCalendario(page);
+
+  const setembro = mesDe(page, "setembro de 2026");
+  const perdidos = setembro.locator('[aria-label*="faltou"]');
+  /* só os dois dias planejados que já venceram DEPOIS do começo */
+  await expect(perdidos).toHaveCount(2);
+  await expect(perdidos.nth(0)).toHaveAccessibleName("14/09: faltou");
+  await expect(perdidos.nth(1)).toHaveAccessibleName("15/09: faltou");
+
+  /* o dia anterior ao começo se anuncia pelo que é, e não desenha nada */
+  const antes = setembro.getByRole("button", { name: /^05\/09/ });
+  await expect(antes).toHaveAccessibleName("05/09: antes do começo");
+  await expect(antes).not.toContainText("✕");
+  expect(await antes.locator("span > span").count()).toBe(0);
+
+  /* nem a semana anterior ao começo: sem marca e sem contagem de perdidos */
+  await page.getByRole("button", { name: "Semana anterior" }).click();
+  await expect(page.getByText("07/09 – 13/09")).toBeVisible();
+  /* a contagem da semana some por inteiro — a legenda do MÊS, que explica o
+     ✕, continua escrita ali embaixo e não fala desta semana */
+  await expect(page.getByText(/^\d+ feitos? · \d+ a fazer/)).toHaveCount(0);
+  const semana = page.getByRole("list", { name: "Semana" });
+  await expect(semana.locator('[aria-label*="faltou"]')).toHaveCount(0);
+  await expect(semana.getByRole("button")).toHaveCount(7);
+});
+
 /* ------------------------------------------------------------------ item 8 */
 
 test("§22.8-8: o intervalo da semana fica entre as setas e “Hoje” só volta quando sai", async ({

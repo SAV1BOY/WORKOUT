@@ -74,7 +74,15 @@ export function TelaCalendario({ userId }: { userId: string }) {
     [ref, perfil, overrides, sessoes, cardios, hoje],
   );
 
-  const semana = useMemo(() => grade.map((d) => d.dia), [grade]);
+  /*
+   * SPEC §22.8 item 11: a contagem da semana lê a MESMA grade, já sem os dias
+   * anteriores a `data_inicio` — senão a barra diria "5 perdidos" numa semana
+   * em que a grade não desenha perdido nenhum.
+   */
+  const semanaContada = useMemo(
+    () => grade.filter((d) => d.marca !== "antes").map((d) => d.dia),
+    [grade],
+  );
 
   const mes = useMemo(
     () =>
@@ -101,8 +109,8 @@ export function TelaCalendario({ userId }: { userId: string }) {
   );
 
   const falta = useMemo(
-    () => (hoje ? oQueFaltaNaSemana(semana, realizados, hoje) : null),
-    [semana, realizados, hoje],
+    () => (hoje ? oQueFaltaNaSemana(semanaContada, realizados, hoje) : null),
+    [semanaContada, realizados, hoje],
   );
 
   /* ------------------------------------------------ semana curta (§5.4) */
@@ -302,7 +310,7 @@ export function TelaCalendario({ userId }: { userId: string }) {
         )}
       </div>
 
-      {contagem && resumoDaSemana ? (
+      {contagem && resumoDaSemana && total > 0 ? (
         <div className="flex flex-col gap-1">
           {total > 0 ? (
             <span

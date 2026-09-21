@@ -193,6 +193,14 @@ function Marca({ marca, ehHoje }: { marca: DiaDaFaixa["marca"]; ehHoje: boolean 
       </span>
     );
   }
+  /*
+   * SPEC §22.8 item 11: o dia anterior ao começo do programa não desenha
+   * nada — mas a CAIXA continua sendo a mesma de 20 × 20, para a faixa de uma
+   * semana anterior ao começo não perder a linha de base das outras.
+   */
+  if (marca === "antes") {
+    return <span data-glifo="antes" className="flex size-5" />;
+  }
   if (marca === "faltou") {
     return (
       <span data-glifo="faltou" className="flex size-5 items-center justify-center">

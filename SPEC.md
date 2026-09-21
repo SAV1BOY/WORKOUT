@@ -1796,3 +1796,19 @@ a tela — afrouxar o limite não é uma opção.
     grade, e os cartões da semana usam `line-clamp-1` no rótulo e no detalhe
     com altura mínima fixa — os sete ficam do mesmo tamanho e o texto
     inteiro continua no `DialogoDia`.
+11. **Antes do começo do programa não existe falta.** `marcarDia()`
+    (`lib/semana.ts`) não conhecia `profiles.data_inicio`: qualquer dia de
+    força ou cardio ANTERIOR ao começo do programa e sem sessão virava
+    "faltou" — com o item 6 acima, um ✕ vermelho na grade do mês (dez deles
+    em setembro, para quem começou no dia 14) e a palavra "faltou" no nome
+    acessível. Entra a marca **"antes"**: o dia anterior a `data_inicio` não
+    desenha nada, anuncia-se como **"antes do começo"** e fica de fora da
+    contagem da semana — a linha "N perdidos" some junto, e a semana inteira
+    anterior ao começo não escreve contagem nenhuma. "antes" é a ausência de
+    marca, então não entra na legenda: `MarcaVisivel`
+    (`Exclude<MarcaDoDia, "antes">`) guarda o contrato da §22.6 item 9 —
+    qualquer OUTRA marca nova continua quebrando a compilação de
+    `GLIFO_DA_MARCA`/`ORDEM_DA_LEGENDA`. Uma sessão gravada antes do começo
+    (quem mudou a data de início depois de já ter treinado) continua valendo
+    como feita. É a §11 na prática: o app não cobra dias em que o usuário
+    ainda não existia.

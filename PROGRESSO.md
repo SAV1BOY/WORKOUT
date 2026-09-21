@@ -7303,6 +7303,28 @@ texto inteiro continua no `title` e no `DialogoDia`. Prova: e2e `§22.8-10`
 (as sete alturas são o mesmo número; o `h2` mede 16 px e `text-transform:
 none`).
 
+**11. Antes do começo do programa não existe falta** (`lib/semana.ts`,
+`grade.tsx`, `faixa-semana.tsx`, `tela-calendario.tsx`) — **correção da
+auditoria deste lote**. Era: `marcarDia()` não conhecia
+`profiles.data_inicio`, então todo dia planejado anterior ao começo do
+programa e sem sessão virava "faltou"; com o item 6 acima isso deixou de ser
+um ponto quase invisível e virou ✕ vermelho na grade do mês — dez deles em
+setembro para o perfil que começou em 14/09 (31/08, 01, 02, 04, 05, 07, 08,
+09, 11 e 12/09), com o nome acessível repetindo "faltou". É: a marca nova
+**"antes"**, devolvida por `marcarDia()` para todo dia anterior a
+`data_inicio` sem sessão gravada; ela não desenha nada (grade do mês, faixa
+da semana e coluna do símbolo), diz "antes do começo" no nome acessível e sai
+da contagem da semana — numa semana inteiramente anterior ao começo a linha
+"N feitos · N a fazer · N perdidos" some. `MarcaVisivel`
+(`Exclude<MarcaDoDia, "antes">`) segura o contrato da legenda (§22.6 item 9):
+"antes" é a única marca fora dela, e qualquer outra nova continua quebrando a
+compilação. Sessão gravada antes do começo continua "feito". Prova: e2e
+`§22.8-11` (o mês de setembro tem exatamente dois `[aria-label*="faltou"]`,
+14/09 e 15/09; 05/09 lê "05/09: antes do começo" e não desenha nada; a semana
+de 07/09 não tem marca nem contagem) e `lib/semana.test.ts` ("o começo do
+programa (SPEC §22.8 item 11)", quatro casos, incluindo o perfil sem
+`data_inicio`, em que a regra antiga continua valendo).
+
 **Como testar no celular** (360 px): Calendário → o topo lê "Calendário" e
 "Fase 1 · semana 1 de 12"; a linha seguinte é "‹ 14/09 – 20/09 ›" e o "Hoje"
 só aparece depois de tocar em ›. Abaixo, a barrinha de três segmentos com "0
@@ -7310,7 +7332,10 @@ feitos · 3 a fazer · 2 perdidos" (na semana que vem, sem a palavra
 "perdidos"). Os sete cartões têm a mesma altura. Depois da grade, o divisor
 com "Se hoje (16/09) não rolar" e o botão. No mês, toque em qualquer dia —
 abre a mesma folha do cartão da semana —, as setas ‹ › trocam de mês, o dia de
-hoje está marcado e a legenda embaixo explica os cinco desenhos. Com o zoom do
+hoje está marcado e a legenda embaixo explica os cinco desenhos. Nenhum dia
+anterior ao começo do programa (o 14/09 do perfil) tem ✕: toque em 05/09 e o
+leitor de tela lê "05/09: antes do começo"; ‹ na semana volta para 07/09 –
+13/09, que fica sem marca nenhuma e sem a linha de contagem. Com o zoom do
 navegador em 200 %, o Calendário não rola mais para o lado e a faixa dos sete
 dias rola sozinha (na aba Treino ainda sobra a barra de abas do rodapé, que é
 de outro lote).

@@ -9,6 +9,7 @@ import {
   LEGENDA_DA_FAIXA,
   NOME_DA_MARCA,
   ORDEM_DA_LEGENDA,
+  SIMBOLO,
   detalheDoDia,
   faixaDaSemana,
   faseCumprida,
@@ -20,6 +21,7 @@ import {
   rotuloDoDia,
   siglaDoDia,
   type MarcaDoDia,
+  type MarcaVisivel,
 } from "@/lib/semana";
 
 const PERFIL: PerfilCalendario = {
@@ -108,6 +110,58 @@ describe("grade da semana (SPEC §3.5 e §10.6)", () => {
     expect(quinta).toBeDefined();
     expect(rotuloDoDia(quinta!)).toBe("Descanso");
     expect(detalheDoDia(quinta!)).toMatch(/grease the groove/);
+  });
+});
+
+/**
+ * SPEC §22.8 item 11: o programa começa em `profiles.data_inicio`. O dia
+ * planejado ANTERIOR a esse começo aparecia como "faltou" — um ✕ vermelho na
+ * grade do mês e um "faltou" no nome acessível —, cobrando do usuário dias em
+ * que ele ainda não existia no app. Agora vira "antes": sem desenho, sem
+ * acusação (§11: sem culpa).
+ */
+describe("o começo do programa (SPEC §22.8 item 11)", () => {
+  /** Miguel começou na segunda 14/09; a semana de 07/09 é anterior a tudo. */
+  const COMECOU_EM_14: PerfilCalendario & { data_inicio: string } = {
+    ...PERFIL,
+    data_inicio: SEMANA_1,
+  };
+  const QUARTA = "2026-09-16";
+
+  it("dia anterior ao começo do programa não é perdido", () => {
+    const grade = montarGrade({
+      data: "2026-09-07",
+      perfil: COMECOU_EM_14,
+      hoje: QUARTA,
+    });
+    expect(grade.map((d) => d.marca)).toEqual(new Array(7).fill("antes"));
+    expect(grade.every((d) => d.simbolo === "")).toBe(true);
+    expect(SIMBOLO.antes).toBe("");
+    /* e o nome acessível deixa de dizer "faltou" */
+    expect(faixaDaSemana(grade).every((d) => !d.titulo.includes("faltou"))).toBe(true);
+  });
+
+  it("o mês só cobra os dias a partir do começo", () => {
+    const mes = montarMes("2026-09-14", COMECOU_EM_14, [], [], [], QUARTA);
+    const perdidos = mes.flat().filter((d) => d.marca === "faltou");
+    expect(perdidos.map((d) => d.data)).toEqual(["2026-09-14", "2026-09-15"]);
+  });
+
+  it("uma sessão gravada antes do começo continua feita", () => {
+    const grade = montarGrade({
+      data: "2026-09-07",
+      perfil: COMECOU_EM_14,
+      sessoes: [
+        { id: "s0", data: "2026-09-07", status: "concluida", workout_id: "A1" },
+      ],
+      hoje: QUARTA,
+    });
+    expect(grade[0]).toMatchObject({ marca: "feito", sessaoId: "s0" });
+  });
+
+  it("sem `data_inicio` a regra antiga continua valendo", () => {
+    const grade = montarGrade({ data: "2026-09-07", perfil: PERFIL, hoje: QUARTA });
+    expect(grade.some((d) => d.marca === "faltou")).toBe(true);
   });
 });
 
@@ -518,16 +572,35 @@ describe("treino feito num dia de descanso (SPEC §16.2 e §5.3)", () => {
  * para a próxima marca nova não passar despercebida.
  */
 describe("a legenda da faixa da semana", () => {
-  const MARCAS: MarcaDoDia[] = ["feito", "parcial", "faltou", "aberto", "descanso"];
+  const MARCAS: MarcaDoDia[] = [
+    "feito",
+    "parcial",
+    "faltou",
+    "aberto",
+    "descanso",
+    "antes",
+  ];
+  /* "antes" é a AUSÊNCIA de marca (§22.8 item 11): não desenha, não entra */
+  const DESENHADAS: MarcaVisivel[] = [
+    "feito",
+    "parcial",
+    "faltou",
+    "aberto",
+    "descanso",
+  ];
 
-  it("tem um glifo e um nome para cada marca possível", () => {
-    expect(Object.keys(GLIFO_DA_MARCA).sort()).toEqual([...MARCAS].sort());
-    expect([...ORDEM_DA_LEGENDA].sort()).toEqual([...MARCAS].sort());
-    expect(new Set(Object.values(GLIFO_DA_MARCA)).size).toBe(MARCAS.length);
+  it("tem um nome para cada marca e um glifo para cada marca desenhada", () => {
+    expect(Object.keys(NOME_DA_MARCA).sort()).toEqual([...MARCAS].sort());
+    expect(Object.keys(SIMBOLO).sort()).toEqual([...MARCAS].sort());
+    expect(Object.keys(GLIFO_DA_MARCA).sort()).toEqual([...DESENHADAS].sort());
+    expect([...ORDEM_DA_LEGENDA].sort()).toEqual([...DESENHADAS].sort());
+    expect(new Set(Object.values(GLIFO_DA_MARCA)).size).toBe(DESENHADAS.length);
+    /* a marca que não desenha também não escreve nada na grade da semana */
+    expect(SIMBOLO.antes).toBe("");
   });
 
   it("cita todas as marcas, com o nome que o leitor de tela usa", () => {
-    for (const marca of MARCAS) {
+    for (const marca of DESENHADAS) {
       expect(LEGENDA_DA_FAIXA, marca).toContain(
         `${GLIFO_DA_MARCA[marca]} ${NOME_DA_MARCA[marca]}`,
       );
