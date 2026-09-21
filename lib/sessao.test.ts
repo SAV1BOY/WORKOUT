@@ -902,6 +902,9 @@ describe("recordes no resumo (SPEC §6.6)", () => {
     expect(recordes.map((r) => r.tipo)).toEqual(["carga", "reps", "e1rm"]);
     expect(recordes[0]?.texto).toBe("7,5 kg na barra");
     expect(recordes[1]?.texto).toBe("5 repetições");
+    /* SPEC §22.6 item 8: "e1RM" não chega à tela em lugar nenhum do app */
+    expect(recordes[2]?.texto).toContain("de carga máxima estimada");
+    for (const r of recordes) expect(r.rotulo + r.texto).not.toContain("1RM");
   });
 
   it("não inventa recorde quando a marca antiga é maior", () => {

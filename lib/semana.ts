@@ -31,8 +31,28 @@ import { descricaoDoCardio } from "@/lib/hoje";
 import type { FaseId, TipoDia, TreinoId } from "@/lib/schemas";
 import type { LinhaSessao, LinhaSessaoCardio, TipoCardio } from "@/lib/types";
 
-/** O que aconteceu no dia: feito, pela metade, perdido ou ainda por fazer. */
-export type MarcaDoDia = "feito" | "parcial" | "faltou" | "aberto" | "descanso";
+/**
+ * O que aconteceu no dia: feito, pela metade, perdido, ainda por fazer,
+ * descanso — ou "antes", o dia que o calendário mostra mas que é ANTERIOR ao
+ * começo do programa (`profiles.data_inicio`, SPEC §22.8 item 11). Esse
+ * último não desenha nada: não há o que cobrar de quem ainda não tinha
+ * começado.
+ */
+export type MarcaDoDia =
+  | "feito"
+  | "parcial"
+  | "faltou"
+  | "aberto"
+  | "descanso"
+  | "antes";
+
+/**
+ * As marcas que a faixa DESENHA — as únicas que a legenda precisa explicar.
+ * "antes" fica de fora de propósito: é a ausência de marca (SPEC §22.8
+ * item 11). Qualquer outra marca nova em `MarcaDoDia` quebra a compilação
+ * das tabelas abaixo e entra na legenda no mesmo movimento.
+ */
+export type MarcaVisivel = Exclude<MarcaDoDia, "antes">;
 
 export const SIMBOLO: Record<MarcaDoDia, string> = {
   feito: "✓",
@@ -40,6 +60,7 @@ export const SIMBOLO: Record<MarcaDoDia, string> = {
   faltou: "✕",
   aberto: "",
   descanso: "",
+  antes: "",
 };
 
 export const NOME_DA_MARCA: Record<MarcaDoDia, string> = {
@@ -48,7 +69,44 @@ export const NOME_DA_MARCA: Record<MarcaDoDia, string> = {
   faltou: "faltou",
   aberto: "a fazer",
   descanso: "descanso",
+  antes: "antes do começo",
 };
+
+/**
+ * O desenho com que a FAIXA da semana (`components/ui/faixa-semana.tsx`)
+ * pinta cada marca, escrito como glifo para a legenda (SPEC §22.6 item 9).
+ * É `Record<MarcaVisivel, …>` de propósito: uma marca nova em `MarcaDoDia`
+ * quebra a compilação aqui e entra na legenda no mesmo movimento — a
+ * legenda anterior explicava quatro glifos para cinco marcas. A única que
+ * fica de fora é "antes", que não desenha nada (SPEC §22.8 item 11): não há
+ * glifo para explicar.
+ */
+export const GLIFO_DA_MARCA: Record<MarcaVisivel, string> = {
+  feito: "✓",
+  parcial: "◉",
+  aberto: "○",
+  faltou: "●",
+  descanso: "—",
+};
+
+/** A ordem em que a legenda lê as marcas: do dia vencido ao dia de folga. */
+export const ORDEM_DA_LEGENDA: readonly MarcaVisivel[] = [
+  "feito",
+  "parcial",
+  "aberto",
+  "faltou",
+  "descanso",
+];
+
+/**
+ * "✓ feito · ◉ parcial · ○ a fazer · ● faltou · — descanso · hoje em
+ * destaque" — a legenda inteira, montada das duas tabelas acima para não
+ * poder discordar do que a faixa desenha.
+ */
+export const LEGENDA_DA_FAIXA: string = [
+  ...ORDEM_DA_LEGENDA.map((m) => `${GLIFO_DA_MARCA[m]} ${NOME_DA_MARCA[m]}`),
+  "hoje em destaque",
+].join(" · ");
 
 export type SessaoCurta = Pick<LinhaSessao, "id" | "data" | "status" | "workout_id">;
 export type CardioCurto = Pick<LinhaSessaoCardio, "id" | "data" | "tipo" | "concluida">;
@@ -137,17 +195,33 @@ export function rotuloLongoDoDia(dia: DiaDoPlano, semanaDaFaseDoDia: number): st
 }
 
 /**
+ * A Fase 1 já cobriu as `SEMANAS_PARA_FASE2` semanas do plano (SPEC §5.1): a
+ * tela pode oferecer a passagem para a Fase 2 em vez de continuar contando.
+ */
+export function faseCumprida(fase: FaseId, semana: number): boolean {
+  return fase === "fase1" && semana >= SEMANAS_PARA_FASE2;
+}
+
+/**
  * "Fase 1 · semana 3 de 12" — o cabeçalho do calendário (SPEC §16.4). O total
  * é o ponto em que o app sugere a Fase 2 (§5.1); na Fase 2 não há total.
+ *
+ * SPEC §22.8 item 1: quem não passa para a Fase 2 na semana 12 continua na
+ * Fase 1, e a conta virava "semana 16 de 12" — um numerador maior que o
+ * denominador, que não quer dizer nada. Da semana 13 em diante a fração para
+ * de crescer e vira "12 de 12 concluída"; `faseCumprida()` avisa a tela para
+ * oferecer a Fase 2 ao lado.
  */
 export function rotuloDaFase(fase: FaseId, semana: number): string {
   const [curto] = acharFase(fase).nome.split("—");
   const nome = (curto ?? fase).trim();
   // antes do começo da fase não há semana para contar: só o nome da fase
   if (semana < 1) return nome;
-  return fase === "fase1"
-    ? `${nome} · semana ${semana} de ${SEMANAS_PARA_FASE2}`
-    : `${nome} · semana ${semana}`;
+  if (fase !== "fase1") return `${nome} · semana ${semana}`;
+  if (semana > SEMANAS_PARA_FASE2) {
+    return `${nome} · ${SEMANAS_PARA_FASE2} de ${SEMANAS_PARA_FASE2} concluída`;
+  }
+  return `${nome} · semana ${semana} de ${SEMANAS_PARA_FASE2}`;
 }
 
 /** A segunda linha do dia: o que a sessão tem de concreto. */
@@ -171,13 +245,23 @@ interface MarcaDaSessao {
   sessaoTipo: TipoCardio | null;
 }
 
+/**
+ * A marca de um dia (SPEC §16.2). `inicioDoPrograma` é `profiles.data_inicio`:
+ * antes dele o app não existia para o usuário, então o dia planejado que já
+ * passou **não é falta** — é "antes", que não desenha nada e não acusa nada
+ * (SPEC §11: sem culpa; §22.8 item 11). Uma sessão registrada naquele dia
+ * (quem mudou a data de início depois de treinar) continua valendo mais que a
+ * regra: feito é feito.
+ */
 function marcarDia(
   dia: DiaDoPlano,
   sessoes: SessaoCurta[],
   cardios: CardioCurto[],
   hoje: string,
+  inicioDoPrograma: string | null = null,
 ): MarcaDaSessao {
   const vazio = { sessaoId: null, sessaoTipo: null };
+  const antesDoComeco = inicioDoPrograma !== null && dia.data < inicioDoPrograma;
   if (dia.tipo === "descanso") {
     /*
      * SPEC §16.2: descanso em que ele treinou mesmo assim (§5.3) ganha a marca
@@ -202,7 +286,7 @@ function marcarDia(
         sessaoTipo: cardioParcial.tipo,
       };
     }
-    return { marca: "descanso", ...vazio };
+    return { marca: antesDoComeco ? "antes" : "descanso", ...vazio };
   }
 
   if (dia.tipo === "forca") {
@@ -223,6 +307,7 @@ function marcarDia(
     }
   }
 
+  if (antesDoComeco) return { marca: "antes", ...vazio };
   if (dia.data < hoje) return { marca: "faltou", ...vazio };
   return { marca: "aberto", ...vazio };
 }
@@ -231,7 +316,8 @@ function marcarDia(
 export interface FonteDaGrade {
   /** Qualquer dia da semana que se quer ver. */
   data: Data;
-  perfil: PerfilCalendario;
+  /** O perfil inteiro: `data_inicio` separa o que é falta do que é "antes". */
+  perfil: PerfilCalendario & { data_inicio?: string };
   overrides?: ExcecaoAgenda[];
   sessoes?: SessaoCurta[];
   cardios?: CardioCurto[];
@@ -265,10 +351,16 @@ export function montarGradeDe(
   sessoes: SessaoCurta[] = [],
   cardios: CardioCurto[] = [],
   hoje: string,
-  perfil?: Pick<PerfilCalendario, "fase_desde">,
+  perfil?: Pick<PerfilCalendario, "fase_desde"> & { data_inicio?: string },
 ): DiaDaGrade[] {
   return semana.map((dia) => {
-    const { marca, sessaoId, sessaoTipo } = marcarDia(dia, sessoes, cardios, hoje);
+    const { marca, sessaoId, sessaoTipo } = marcarDia(
+      dia,
+      sessoes,
+      cardios,
+      hoje,
+      perfil?.data_inicio ?? null,
+    );
     const semanaDaFaseDoDia = semanaDaFase(dia.data, perfil?.fase_desde ?? dia.data);
     return {
       dia,
@@ -340,7 +432,7 @@ export interface DiaDoMes {
  */
 export function montarMes(
   mesDeReferencia: string | Date,
-  perfil: PerfilCalendario,
+  perfil: PerfilCalendario & { data_inicio?: string },
   overrides: ExcecaoAgenda[] = [],
   sessoes: SessaoCurta[] = [],
   cardios: CardioCurto[] = [],
@@ -370,7 +462,13 @@ export function montarMes(
         nota: null,
         min: null,
       };
-      const { marca } = marcarDia(dia, sessoes, cardios, hoje);
+      const { marca } = marcarDia(
+        dia,
+        sessoes,
+        cardios,
+        hoje,
+        perfil.data_inicio ?? null,
+      );
       return {
         data: info.data,
         numero: paraData(data).getDate(),

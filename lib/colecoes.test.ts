@@ -25,6 +25,10 @@ import {
   progressoDoDesafio,
   semanaPresa,
   semanasConcluidasDoDesafio,
+  colecaoDaRota,
+  hrefDaColecao,
+  segmentoDaColecao,
+  semCapasRepetidas,
   todasAsColecoes,
   type Colecao,
 } from "@/lib/colecoes";
@@ -404,5 +408,75 @@ describe("desafios da aba Treino (SPEC §14.3)", () => {
     for (const d of desafios(base)) {
       if (d.capa !== null) expect(d.capa).toMatch(/^\/(fotos|figuras|itens)\//);
     }
+  });
+});
+
+describe("a rota da coleção (SPEC §22.9 item 9)", () => {
+  it("o segmento é minúsculo, sem acento e sem espaço", () => {
+    expect(segmentoDaColecao("Bíceps")).toBe("biceps");
+    expect(segmentoDaColecao("Core no tatame")).toBe("core-no-tatame");
+    expect(segmentoDaColecao("A1")).toBe("a1");
+  });
+
+  it("toda coleção abre pela URL que a própria vitrine gerou", () => {
+    for (const c of todasAsColecoes()) {
+      const [, , tipo = "", valor = ""] = hrefDaColecao(c).split("/");
+      const volta = colecaoDaRota(tipo, valor);
+      expect(volta, `${c.id} → ${hrefDaColecao(c)}`).not.toBeNull();
+      expect(volta?.id).toBe(c.id);
+    }
+  });
+
+  it("dois segmentos nunca colidem depois de normalizados", () => {
+    const vistos = new Map<string, string>();
+    for (const c of todasAsColecoes()) {
+      const rota = hrefDaColecao(c);
+      const antes = vistos.get(rota);
+      expect(antes, `${rota} serve a ${antes} e a ${c.id}`).toBeUndefined();
+      vistos.set(rota, c.id);
+    }
+  });
+
+  it("o link antigo, com acento e maiúscula, continua abrindo", () => {
+    expect(colecaoDaRota("grupo", "Core")?.id).toBe("grupo:Core");
+    expect(colecaoDaRota("grupo", "Bíceps")?.id).toBe("grupo:Bíceps");
+    expect(colecaoDaRota("grupo", encodeURIComponent("Bíceps"))?.id).toBe("grupo:Bíceps");
+    expect(colecaoDaRota("treino", "B1")?.id).toBe("treino:B1");
+    expect(colecaoDaRota("grupo", "nao-existe")).toBeNull();
+  });
+});
+
+describe("capas de uma seção (SPEC §22.9 item 7)", () => {
+  const secoes = () => [
+    colecoesDeTreino(),
+    colecoesPorGrupo(),
+    circuitos(),
+    colecoesPorAparelho(),
+    colecoesDePlano(),
+  ];
+
+  it("hoje a mesma foto repete dentro de uma seção — e depois não repete", () => {
+    for (const secao of secoes()) {
+      const limpa = semCapasRepetidas(secao);
+      const capas = limpa.map((c) => c.capa).filter((f): f is string => f !== null);
+      expect(new Set(capas).size).toBe(capas.length);
+      // e nenhuma coleção some nem troca de lugar
+      expect(limpa.map((c) => c.id)).toEqual(secao.map((c) => c.id));
+    }
+  });
+
+  it("a capa continua saindo de assets/, e nunca de uma foto de item", () => {
+    for (const secao of secoes()) {
+      for (const c of semCapasRepetidas(secao)) {
+        if (c.capa === null) continue;
+        expect(c.capa).toMatch(/^\/(fotos|figuras)\//);
+      }
+    }
+  });
+
+  it("a coleção guardada não muda: a tela da coleção mantém a foto do primeiro", () => {
+    const antes = colecoesPorGrupo().map((c) => c.capa);
+    semCapasRepetidas(colecoesPorGrupo());
+    expect(colecoesPorGrupo().map((c) => c.capa)).toEqual(antes);
   });
 });

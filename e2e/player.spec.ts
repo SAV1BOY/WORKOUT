@@ -737,6 +737,9 @@ test.describe("visão geral e gostei/não gosto (SPEC §14.1.2)", () => {
 
     // no catálogo ele cai para o fim da lista, com a etiqueta (SPEC §14.1.2)
     await page.goto("/exercicios");
+    // SPEC §22.9 item 2: o catálogo monta 20 por vez; o evitado é o último
+    const verMais = page.getByRole("button", { name: /^Ver mais/ });
+    for (let i = 0; i < 10 && (await verMais.isVisible()); i += 1) await verMais.click();
     const item = page.getByRole("link", { name: /Agachamento livre/ });
     await expect(item.first()).toContainText("você marcou como evitar");
     const todos = page.locator("main ul > li");

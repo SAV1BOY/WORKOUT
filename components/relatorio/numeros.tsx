@@ -43,10 +43,14 @@ export function Numeros({
 
   return (
     <section aria-label="Números" className="flex flex-col gap-3">
-      <div className="flex items-baseline justify-between gap-2">
+      {/*
+        SPEC §22.6 item 3: o título não divide a linha com a frase — a 360 px
+        "quantos de cada coisa no período" comia metade da linha do "Números".
+      */}
+      <div className="flex flex-col gap-0.5">
         <h2 className="text-base font-semibold">Números</h2>
         <p className="text-muted-foreground text-xs">
-          quantos de cada coisa no período
+          Quantos de cada coisa no período.
         </p>
       </div>
 
@@ -76,22 +80,25 @@ export function Numeros({
 
       <div className="grid grid-cols-3 gap-2">
         <Contador
+          className="grid grid-rows-[auto_1fr_auto]"
           rotulo="Força"
           valor={formatarNumero(numeros.forca.sessoes)}
           detalhe={numeros.forca.sessoes === 1 ? "sessão" : "sessões"}
-          icone={<Dumbbell aria-hidden="true" className="size-3" />}
+          icone={<Dumbbell aria-hidden="true" className="size-3.5 shrink-0" />}
         />
         <Contador
+          className="grid grid-rows-[auto_1fr_auto]"
           rotulo="Cardio"
           valor={formatarNumero(numeros.cardio.sessoes)}
           detalhe={numeros.cardio.sessoes === 1 ? "sessão" : "sessões"}
-          icone={<Footprints aria-hidden="true" className="size-3" />}
+          icone={<Footprints aria-hidden="true" className="size-3.5 shrink-0" />}
         />
         <Contador
+          className="grid grid-rows-[auto_1fr_auto]"
           rotulo="Barra fixa"
           valor={formatarNumero(numeros.barraFixa.reps)}
           detalhe={numeros.barraFixa.reps === 1 ? "repetição" : "repetições"}
-          icone={<ChevronsUp aria-hidden="true" className="size-3" />}
+          icone={<ChevronsUp aria-hidden="true" className="size-3.5 shrink-0" />}
         />
       </div>
 
@@ -103,54 +110,64 @@ export function Numeros({
 
       <div className="grid grid-cols-2 gap-2">
         <Contador
+          className="grid grid-rows-[auto_1fr_auto]"
           rotulo="Minutos"
           valor={formatarNumero(numeros.minutos)}
           detalhe="no período"
-          icone={<Timer aria-hidden="true" className="size-3" />}
+          icone={<Timer aria-hidden="true" className="size-3.5 shrink-0" />}
         />
         <Contador
+          className="grid grid-rows-[auto_1fr_auto]"
           rotulo="Volume (kg)"
           valor={formatarNumero(numeros.volumeKg)}
           detalhe="no período"
-          icone={<Weight aria-hidden="true" className="size-3" />}
+          icone={<Weight aria-hidden="true" className="size-3.5 shrink-0" />}
         />
       </div>
     </section>
   );
 }
 
+/**
+ * Uma linha do detalhe (SPEC §22.6 item 8): duas colunas de verdade, com o
+ * valor sempre no mesmo x. Com `flex-wrap` cada valor começava depois do
+ * rótulo — "Força", "Cardio" e "Barra fixa" têm larguras diferentes — e as
+ * três linhas ficavam em escada.
+ */
 function Linha({ rotulo, partes }: { rotulo: string; partes: string[] }) {
   return (
     <div
       data-detalhe={rotulo}
-      className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5"
+      className="grid grid-cols-[5.5rem_1fr] items-baseline gap-x-2 gap-y-0.5"
     >
-      <dt className="text-muted-foreground shrink-0 text-xs font-medium">
-        {rotulo}
-      </dt>
-      <dd className="numero min-w-0 flex-1 text-xs text-balance">
+      <dt className="text-muted-foreground text-xs font-medium">{rotulo}</dt>
+      <dd className="numero min-w-0 text-xs text-balance">
         {partes.length > 0 ? partes.join(" · ") : "nada ainda"}
       </dd>
     </div>
   );
 }
 
-/** "Treino A 8 · Treino B 4 · Livres 1" — nome vindo de programa.json. */
+/**
+ * "Treino A × 8 · Treino B × 4 · Livres × 1" — nome vindo de programa.json.
+ * O "×" separa a contagem do nome (SPEC §22.6 item 8): "Treino B 1" lia-se
+ * como o nome de um treino chamado "B 1".
+ */
 function detalheDaForca(numeros: Numeros): string[] {
   const partes = treinosComSessao(numeros.forca).map(
-    (t) => `${t.nome} ${formatarNumero(t.sessoes)}`,
+    (t) => `${t.nome} × ${formatarNumero(t.sessoes)}`,
   );
   if (numeros.forca.livres > 0) {
-    partes.push(`Livres ${formatarNumero(numeros.forca.livres)}`);
+    partes.push(`Livres × ${formatarNumero(numeros.forca.livres)}`);
   }
   return partes;
 }
 
 function detalheDoCardio({ cardio }: Numeros): string[] {
   const partes: string[] = [];
-  if (cardio.corrida > 0) partes.push(`Corrida ${formatarNumero(cardio.corrida)}`);
-  if (cardio.corda > 0) partes.push(`Corda ${formatarNumero(cardio.corda)}`);
-  if (cardio.outros > 0) partes.push(`Outros ${formatarNumero(cardio.outros)}`);
+  if (cardio.corrida > 0) partes.push(`Corrida × ${formatarNumero(cardio.corrida)}`);
+  if (cardio.corda > 0) partes.push(`Corda × ${formatarNumero(cardio.corda)}`);
+  if (cardio.outros > 0) partes.push(`Outros × ${formatarNumero(cardio.outros)}`);
   if (cardio.minutos > 0) partes.push(`${formatarNumero(cardio.minutos)} min`);
   if (cardio.km > 0) partes.push(formatarKm(cardio.km));
   if (cardio.saltos > 0) partes.push(`${formatarNumero(cardio.saltos)} saltos`);

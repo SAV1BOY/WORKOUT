@@ -65,9 +65,66 @@ export interface Tela {
 //  a lista FIXA de telas
 // =====================================================================
 
+/**
+ * Rola até o alvo. SEM `catch`: se o alvo não existe, a tela vai para o
+ * índice como `alcancada: false` e a régua avisa. Engolir a falha em silêncio
+ * já deixou três capturas do Relatório idênticas entre si, fotografando o
+ * topo da tela em vez da seção pedida — uma régua cega é pior do que régua
+ * nenhuma.
+ */
 async function rolarAte(page: Page, alvo: Locator) {
-  await alvo.scrollIntoViewIfNeeded().catch(() => {});
+  await alvo.scrollIntoViewIfNeeded({ timeout: 15_000 });
   await page.waitForTimeout(250);
+}
+
+/**
+ * Encosta o alvo no TOPO da janela. `scrollIntoViewIfNeeded` não serve para
+ * enquadrar: se o alvo já aparece — nem que seja na última linha da tela —
+ * ele não rola nada, e foi assim que `12-relatorio-numeros` virou uma cópia
+ * byte a byte de `11-relatorio-topo`. Aqui a tela fica sempre no mesmo lugar,
+ * com a região pedida em cima.
+ */
+async function enquadrar(page: Page, alvo: Locator) {
+  await alvo.waitFor({ state: "visible", timeout: 15_000 });
+  await alvo.evaluate((el) => el.scrollIntoView({ block: "start", behavior: "instant" }));
+  await page.waitForTimeout(400);
+}
+
+/** As seções dobráveis de /relatorio (SPEC §22.6 item 1). */
+type SecaoDoRelatorio = "resumo" | "conquistas" | "historico" | "corpo" | "graficos";
+
+/**
+ * Abre /relatorio com UMA seção aberta, sempre a partir do mesmo estado.
+ *
+ * O conteúdo de uma seção fechada nem é montado, então fotografar Conquistas
+ * ou Histórico exige abrir a seção antes de rolar. E como o estado mora em
+ * `localStorage`, o que uma captura abre vazaria para a seguinte: a chave é
+ * limpa antes, e cada tela do Relatório fica independente da ordem.
+ */
+async function abrirRelatorioEm(page: Page, secao: SecaoDoRelatorio) {
+  await page.goto(`${APP}/relatorio`, { waitUntil: "domcontentloaded" });
+  await page.evaluate(() => {
+    try {
+      window.localStorage.removeItem("relatorio:secoes");
+    } catch {
+      /* navegação privada */
+    }
+  });
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await page.getByRole("heading", { name: "Relatório" }).waitFor({ timeout: 20_000 });
+  const alvo = page.locator(`details[data-secao="${secao}"]`);
+  await alvo.waitFor({ timeout: 20_000 });
+  if (!(await alvo.evaluate((d) => (d as HTMLDetailsElement).open))) {
+    await alvo.locator("summary").click();
+    await page.waitForFunction(
+      (id) =>
+        document.querySelector<HTMLDetailsElement>(`details[data-secao="${id}"]`)?.open ===
+        true,
+      secao,
+      { timeout: 10_000 },
+    );
+  }
+  await page.waitForTimeout(700);
 }
 
 export const TELAS: Tela[] = [
@@ -103,32 +160,32 @@ export const TELAS: Tela[] = [
     },
   },
 
-  // --- relatório
-  { nome: "11-relatorio-topo", rota: "/relatorio" },
+  // --- relatório (cada tela abre a SUA seção: fechada, ela nem é montada)
+  {
+    nome: "11-relatorio-topo",
+    acao: async (page) => {
+      await abrirRelatorioEm(page, "resumo");
+    },
+  },
   {
     nome: "12-relatorio-numeros",
     acao: async (page) => {
-      await page.goto(`${APP}/relatorio`);
-      await page.getByRole("heading", { name: "Relatório" }).waitFor();
-      await rolarAte(page, page.getByRole("region", { name: "Números" }).first());
+      await abrirRelatorioEm(page, "resumo");
+      await enquadrar(page, page.getByRole("region", { name: "Números" }).first());
     },
   },
   {
     nome: "13-relatorio-conquistas",
     acao: async (page) => {
-      await page.goto(`${APP}/relatorio`);
-      await page.getByRole("heading", { name: "Relatório" }).waitFor();
-      await rolarAte(page, page.getByRole("region", { name: "Conquistas" }).first());
+      await abrirRelatorioEm(page, "conquistas");
+      await enquadrar(page, page.getByRole("region", { name: "Conquistas" }).first());
     },
   },
   {
     nome: "14-relatorio-historico",
     acao: async (page) => {
-      await page.goto(`${APP}/relatorio`);
-      await page.getByRole("heading", { name: "Relatório" }).waitFor();
-      await page.waitForTimeout(600);
-      await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-      await page.waitForTimeout(400);
+      await abrirRelatorioEm(page, "historico");
+      await enquadrar(page, page.getByRole("region", { name: "Histórico" }).first());
     },
   },
 
@@ -520,7 +577,9 @@ async function telasDoPlayer(page: Page, tema: Tema, indice: Registro[]) {
       .getByRole("region", { name: "Treino concluído" })
       .waitFor({ timeout: 20_000 });
     await page.waitForTimeout(800);
-    const aviso = page.getByRole("region", { name: "Conquista nova" });
+    /* `role="status"`, não `region` (SPEC §22.6 item 6) — com o papel errado
+       o "Ok" nunca era clicado e a conclusão saía com o aviso por cima. */
+    const aviso = page.getByRole("status", { name: "Conquista nova" });
     if (await aviso.isVisible().catch(() => false)) {
       await aviso.getByRole("button", { name: "Ok" }).click().catch(() => {});
       await page.waitForTimeout(400);

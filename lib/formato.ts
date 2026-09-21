@@ -35,6 +35,15 @@ export function formatarKm(valor: number, casasMax = 2): string {
   return `${formatarNumero(valor, casasMax)} km`;
 }
 
+/**
+ * 78 → "78%" — um formato só de porcentagem no app (SPEC §22.6 item 8). O
+ * símbolo fica COLADO no número: a tela escrevia `${…} %` à mão, com um
+ * espaço, e a mesma tela tinha "78%" em outro lugar.
+ */
+export function formatarPercentual(valor: number, casasMax = 0): string {
+  return `${formatarNumero(valor, casasMax)}%`;
+}
+
 /** 14/09 */
 export function formatarData(valor: DataEntrada): string {
   return format(paraData(valor), "dd/MM", { locale: ptBR });

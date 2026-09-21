@@ -422,7 +422,7 @@ function deVolume(alvo: number, nome: string): Definicao {
     id: `volume-${alvo / 1000}k`,
     nome,
     descricao: `${formatarNumero(alvo)} kg levantados somando todas as séries de trabalho.`,
-    regra: `Σ repetições × carga das séries de trabalho concluídas chega a ${formatarNumero(alvo)} kg.`,
+    regra: `Soma de repetições × carga das séries de trabalho concluídas chega a ${formatarNumero(alvo)} kg.`,
     icone: "Layers",
     grupo: "volume",
     alvo,

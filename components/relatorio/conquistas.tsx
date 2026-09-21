@@ -29,7 +29,12 @@ import {
   type IconeDaConquista,
 } from "@/lib/conquistas";
 import { Vazio } from "@/components/ui/vazio";
-import { formatarData, formatarDataCompleta, formatarNumero } from "@/lib/formato";
+import {
+  formatarData,
+  formatarDataCompleta,
+  formatarNumero,
+  formatarPercentual,
+} from "@/lib/formato";
 import { cn } from "@/lib/utils";
 
 /** O ícone lucide de cada conquista (a lib guarda só o nome, SPEC §19.3). */
@@ -59,20 +64,47 @@ export function IconeDaCelula({
 }
 
 /**
- * "Conquistas" (SPEC §19.4): grade de 3 colunas a 360 px, desbloqueadas com a
- * data e bloqueadas com o que falta; o toque abre a folha com a regra.
+ * "Conquistas" (SPEC §19.4 e §22.6 itens 4 e 5): barra de progresso, dois
+ * grupos rotulados — Conquistadas e A conquistar — e uma grade de **duas**
+ * colunas a 360 px, com a data quando fechou e o que falta quando não. O
+ * toque abre a folha com a regra.
  */
 export function Conquistas({ lista }: { lista: ConquistaAvaliada[] }) {
   const [aberta, setAberta] = useState<ConquistaAvaliada | null>(null);
   const feitas = totalConquistado(lista);
+  const pct = Math.round((feitas / TOTAL_DE_CONQUISTAS) * 100);
+
+  /* SPEC §22.6 item 5: dá para ver quantas faltam sem contar cartão a cartão */
+  const conquistadas = lista.filter((c) => c.atingida);
+  const aConquistar = lista.filter((c) => !c.atingida);
 
   return (
     <section aria-label="Conquistas" className="flex flex-col gap-3">
-      <div className="flex items-baseline justify-between gap-2">
-        <h2 className="text-base font-semibold">Conquistas</h2>
-        <p className="numero text-muted-foreground text-xs">
-          {formatarNumero(feitas)} de {formatarNumero(TOTAL_DE_CONQUISTAS)}
-        </p>
+      {/*
+        A barra fina de progresso: o mesmo par "N de 26" do cabeçalho da
+        seção, agora como forma, não só como número.
+      */}
+      <div className="flex flex-col gap-1">
+        <div className="flex items-baseline justify-between gap-2">
+          <p className="numero text-sm">
+            <span className="font-semibold">{formatarNumero(feitas)}</span> de{" "}
+            {formatarNumero(TOTAL_DE_CONQUISTAS)}
+          </p>
+          <p className="numero text-muted-foreground text-xs">
+            {formatarPercentual(pct)}
+          </p>
+        </div>
+        <div
+          role="progressbar"
+          aria-label="Conquistas fechadas"
+          aria-valuemin={0}
+          aria-valuemax={TOTAL_DE_CONQUISTAS}
+          aria-valuenow={feitas}
+          aria-valuetext={`${formatarNumero(feitas)} de ${formatarNumero(TOTAL_DE_CONQUISTAS)}`}
+          className="bg-muted h-1.5 w-full overflow-hidden rounded-full"
+        >
+          <div className="bg-primary h-full rounded-full" style={{ width: `${pct}%` }} />
+        </div>
       </div>
 
       {/*
@@ -88,52 +120,18 @@ export function Conquistas({ lista }: { lista: ConquistaAvaliada[] }) {
         />
       ) : null}
 
-      <ul aria-label="Lista de conquistas" className="grid grid-cols-3 gap-2">
-        {lista.map((c) => (
-          <li key={c.id}>
-            <button
-              type="button"
-              data-conquista={c.id}
-              data-atingida={c.atingida ? "sim" : "nao"}
-              aria-pressed={c.atingida}
-              onClick={() => setAberta(c)}
-              className={cn(
-                "cartao alvo flex h-full w-full flex-col items-center gap-1 border px-1.5 py-2 text-center",
-                c.atingida
-                  ? "border-primary/40 bg-primary/5"
-                  : "border-border bg-card",
-              )}
-            >
-              <span
-                className={cn(
-                  "flex size-8 shrink-0 items-center justify-center rounded-full",
-                  c.atingida
-                    ? "bg-primary/15 text-primary"
-                    : "bg-muted text-muted-foreground",
-                )}
-              >
-                <IconeDaCelula nome={c.icone} className="size-4" />
-              </span>
-              <span
-                className={cn(
-                  "text-rotulo leading-tight font-medium text-balance",
-                  c.atingida ? "text-foreground" : "text-muted-foreground",
-                )}
-              >
-                {c.nome}
-              </span>
-              <span
-                className={cn(
-                  "text-micro leading-tight text-balance",
-                  c.atingida ? "numero text-primary" : "text-muted-foreground",
-                )}
-              >
-                {c.atingida && c.em ? formatarData(c.em) : c.falta}
-              </span>
-            </button>
-          </li>
-        ))}
-      </ul>
+      <Grupo
+        rotulo="Conquistadas"
+        lista={conquistadas}
+        vazio="Nenhuma ainda — a primeira fecha com o primeiro treino."
+        aoAbrir={setAberta}
+      />
+      <Grupo
+        rotulo="A conquistar"
+        lista={aConquistar}
+        vazio="Todas fechadas. Não sobrou nenhuma."
+        aoAbrir={setAberta}
+      />
 
       <Sheet open={aberta !== null} onOpenChange={(v) => !v && setAberta(null)}>
         <SheetContent side="bottom" className="max-h-[80svh] overflow-y-auto pb-6">
@@ -141,6 +139,91 @@ export function Conquistas({ lista }: { lista: ConquistaAvaliada[] }) {
         </SheetContent>
       </Sheet>
     </section>
+  );
+}
+
+/**
+ * Um grupo da grade (SPEC §22.6 itens 4 e 5). A 360 px são **duas** colunas:
+ * com três o cartão ficava com ~100 px e o nome quebrava em três linhas. A
+ * altura é travada — nome e legenda com `line-clamp`, o texto inteiro no
+ * `title` (§22.3 item 11) —, então todas as linhas medem igual.
+ */
+function Grupo({
+  rotulo,
+  lista,
+  vazio,
+  aoAbrir,
+}: {
+  rotulo: string;
+  lista: ConquistaAvaliada[];
+  vazio: string;
+  aoAbrir: (c: ConquistaAvaliada) => void;
+}) {
+  return (
+    <div data-grupo={rotulo} className="flex flex-col gap-1.5">
+      <h3 className="text-muted-foreground text-rotulo font-medium tracking-wide uppercase">
+        {rotulo} · {formatarNumero(lista.length)}
+      </h3>
+      {lista.length === 0 ? (
+        <p className="text-muted-foreground text-xs">{vazio}</p>
+      ) : (
+        <ul
+          aria-label={rotulo}
+          className="grid grid-cols-2 gap-2 sm:grid-cols-3"
+        >
+          {lista.map((c) => {
+            const legenda = (c.atingida && c.em ? formatarData(c.em) : c.falta) ?? "";
+            return (
+              <li key={c.id}>
+                <button
+                  type="button"
+                  data-conquista={c.id}
+                  data-atingida={c.atingida ? "sim" : "nao"}
+                  aria-pressed={c.atingida}
+                  aria-label={`${c.nome}${legenda ? ` · ${legenda}` : ""}`}
+                  onClick={() => aoAbrir(c)}
+                  className={cn(
+                    "cartao alvo grid h-full w-full grid-rows-[auto_1fr_auto] justify-items-center gap-1 border px-1.5 py-2 text-center",
+                    c.atingida
+                      ? "border-primary/40 bg-primary/5"
+                      : "border-border bg-card",
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "flex size-8 shrink-0 items-center justify-center rounded-full",
+                      c.atingida
+                        ? "bg-primary/15 text-primary"
+                        : "bg-muted text-muted-foreground",
+                    )}
+                  >
+                    <IconeDaCelula nome={c.icone} className="size-4" />
+                  </span>
+                  <span
+                    title={c.nome}
+                    className={cn(
+                      "text-rotulo line-clamp-2 leading-tight font-medium text-balance",
+                      c.atingida ? "text-foreground" : "text-muted-foreground",
+                    )}
+                  >
+                    {c.nome}
+                  </span>
+                  <span
+                    title={legenda}
+                    className={cn(
+                      "text-micro line-clamp-1 leading-tight",
+                      c.atingida ? "numero text-primary" : "text-muted-foreground",
+                    )}
+                  >
+                    {legenda}
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
   );
 }
 

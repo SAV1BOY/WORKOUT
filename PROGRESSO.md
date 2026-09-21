@@ -6129,7 +6129,165 @@ depois: as três respondem `401 permission denied` ao anon; só
 
 ### Relatório para o dono (9h)
 
-(a preencher)
+Primeira rodada no ar desde as 15:07 UTC de 20/09 (main `b6e8135`), sem
+rollback. O que mudou no app que você abre no celular:
+
+- **Sem rede o app não quebra mais.** Abrir Mais → Contas no modo avião agora
+  leva a uma tela "Sem conexão" com "Tentar de novo" e "Ir para o Treino", em
+  vez da página de erro do navegador.
+- **O player ficou inteiro na tela.** Sumiu a faixa cinza embaixo do ✓, os dois
+  polegares começam apagados (antes um parecia já escolhido) e, ao terminar o
+  treino, se você já se pesou hoje ele mostra o peso em vez de perguntar de
+  novo.
+- **Quem liga "Reduzir movimento" no celular** agora tem as animações
+  desligadas no app inteiro, e a ilustração do exercício fica parada até você
+  tocar nela.
+- **Relatório, Corpo e Explorar pararam de pular** enquanto carregam, os
+  contadores do topo ficaram alinhados e dá para **apagar uma foto de
+  progresso** enviada por engano, com confirmação.
+- **Detalhes de conteúdo corrigidos**: "sáb" com acento, "Semana N de 12"
+  batendo com a barra, o selo Circuito nas coleções, o cardio do dia de
+  descanso com a sigla certa e o vídeo do exercício abrindo na ficha, fora do
+  treino em andamento.
+
+Portões antes de publicar: lint limpo, build ok, 1.318 testes unitários e 332
+de ponta a ponta, mais a varredura das 30 telas nos dois temas. Nada de banco
+mudou nesta rodada.
+
+**Segunda rodada no ar desde as 21:35 UTC de 20/09** (main `c7d947a`), também
+sem rollback. Esta foi a rodada da aparência e do peso das imagens:
+
+- **Nada mais é pequeno demais para o dedo.** Todo botão do app nasce com
+  44 px de altura (muitos tinham 32 px), e o texto miúdo passou a sair de um
+  tamanho só, em vez de cinco tamanhos parecidos espalhados pelas telas.
+- **Dá para usar o app pelo teclado sem se perder**: cards, listas, abas,
+  campos e a barra de baixo desenham o mesmo anel laranja de foco, e a aba
+  aberta agora tem um indicador, não só a cor do rótulo.
+- **As telas vazias e os carregamentos ficaram iguais entre si** — oito textos
+  soltos viraram um componente só, e o esqueleto imita a forma do que vem.
+- **As fotos ficaram leves e pararam de empurrar a tela.** As 162 fotos e os
+  itens de equipamento agora são WebP com versões menores (miniatura de 112 px
+  e capa de 720 px), toda imagem tem altura reservada antes de carregar, e as
+  imagens valem uma semana no cache do celular.
+- **Instalado no iPhone, o app abre melhor**: ícone e tela de abertura
+  próprios, e ao segurar o ícone aparecem os atalhos Treino, Relatório e Corpo.
+
+Portões desta rodada: lint limpo, build ok, 1.355 testes unitários e 358 de
+ponta a ponta, mais a varredura das 30 telas nos dois temas. Nada de banco
+mudou nesta rodada.
+
+**Terceira rodada no ar desde as 02:05 UTC de 21/09** (main `2826972`),
+também sem rollback. Esta foi a rodada do player — a tela onde o treino é
+registrado:
+
+- **Não dá mais para descartar o treino sem querer.** Antes, "Abandonar"
+  virava "Confirmar abandono" no mesmo ponto da tela: dois toques seguidos no
+  mesmo lugar apagavam a sessão. Agora aparece uma pergunta que diz o que já
+  está salvo ("Nenhuma série foi registrada ainda", "A 1 série já registrada
+  continua salva" ou "As N séries...") e o botão seguro é o que nasce com o
+  foco.
+- **O treino é gravado assim que você chega na conclusão**, não no "Próximo"
+  lá embaixo. O alto da tela diz "Treino salvo. Já está no histórico, mesmo
+  que você saia agora", e o "Próximo" ficou fixo no rodapé. Fechar o app ali
+  não deixa mais "EM ANDAMENTO" na aba Treino.
+- **A Visão geral virou uma janela de verdade**: o Esc e o voltar do celular
+  fecham a lista e o treino continua — antes o voltar podia tirar você do
+  treino. E as três saídas têm nomes diferentes: "Continuar depois",
+  "Descartar este treino" e "Fechar".
+- **A pergunta "saiu firme?" chega sem resposta marcada.** Antes "Firme" já
+  aparecia escolhido sem ninguém tocar; agora o palpite é só uma frase de
+  apoio e o botão grande diz "Pular esta pergunta".
+- **O descanso avisa quando acaba** (não só pelo bipe, que é um interruptor):
+  os marcos de 30 s, 10 s e fim são anunciados, os botões de tempo dizem
+  "−20 s" e "+20 s" em texto, o contador ganhou um anel e o "Pular descanso"
+  deixou de ser o botão mais forte da tela.
+- **Distância entre gravar e perder**: 24 px entre "Concluir série" e
+  "Próximo passo" (eram 8 px, e "Próximo passo" pula sem gravar).
+
+Portões desta rodada: lint limpo, build ok, 1.359 testes unitários e 366 de
+ponta a ponta, mais a varredura das 30 telas nos dois temas. Nada de banco
+mudou nesta rodada. O lote do Relatório foi reprovado na segunda auditoria e
+não entrou: fica para a próxima rodada.
+
+**Quarta rodada no ar desde as 06:41 UTC de 21/09** (main `3c9864a`), também
+sem rollback. Esta foi a rodada do **Relatório**:
+
+- **O Relatório abre rápido e não é mais um rolo sem fim.** Virou cinco
+  seções que você abre e fecha, com o cabeçalho parado no topo; ele lembra o
+  que você deixou aberto. A rolagem da tela caiu de 5.444 px para cerca de
+  1.200 px e a tela parou de dançar enquanto carrega.
+- **As Conquistas ficaram legíveis**: duas colunas de altura fixa, uma barra
+  de progresso e os grupos "Conquistadas" e "A conquistar" — dá para ver de
+  relance o que falta.
+- **Sumiu o jargão.** Onde estava escrito "e1RM" agora está **"carga máxima
+  estimada"**, no app inteiro; o resumo virou duas colunas e a constância diz
+  "Constância (4 semanas)".
+- **Os números ficaram honestos**: "SESSÕES" com til, os rótulos não quebram
+  mais no meio e agora está escrito quando o número é "no total (força +
+  cardio)" e quando é "só força".
+- **A faixa da semana ganhou legenda** — "✓ feito · ◉ parcial · ○ a fazer ·
+  ● faltou" — e o dia de hoje que você ainda não treinou é um **anel**, não
+  uma bolinha cheia (bolinha cheia virou sinal de dia perdido).
+
+Portões antes de publicar: lint limpo, build ok, 1.365 testes unitários e 384
+de ponta a ponta. Nada de banco mudou nesta rodada. A aba Treino (lote 7) não
+entrou: reprovou na auditoria e segue em correção.
+
+**Quinta rodada no ar desde as 08:37 UTC de 21/09** (main `9d2c001`), também
+sem rollback. Esta foi a rodada do **Calendário**:
+
+- **"Fase 1 · semana 16 de 12" acabou.** Quem passa da semana 12 sem trocar de
+  fase agora lê **"Fase 1 · 12 de 12 concluída"**, com o botão **"Passar para
+  a Fase 2"** ao lado.
+- **Todo dia do mês virou botão.** Tocar em qualquer dia abre a mesma janela
+  do cartão da semana, e as setas ‹ › trocam de mês.
+- **Nada mais vaza com o zoom em 200 %**: a faixa dos sete dias rola sozinha
+  na horizontal em vez de empurrar a tela para o lado.
+- **A semana ficou mais fácil de ler**: barra de três segmentos (feitos · a
+  fazer · perdidos), "perdidos" só aparece quando existe algum, o intervalo da
+  semana fica entre as setas e o "Hoje" só surge quando você saiu da semana
+  atual. Embaixo da grade do mês, uma legenda de uma linha explica os desenhos.
+- **Dias antes de você começar o programa não contam como perdidos** — o
+  calendário parou de acusar falta em dia nenhum anterior à sua data de início.
+
+Portões antes de publicar: lint limpo, build ok, 1.371 testes unitários e 391
+de ponta a ponta, mais a varredura das telas nos dois temas. Nada de banco
+mudou nesta rodada. A aba Treino (lote 7) e o Explorar (lote 9) seguem em
+auditoria e entram numa segunda parte, se aprovados.
+
+**Sexta rodada no ar desde as 10:01 UTC de 21/09** (main `8830fe5`), também
+sem rollback — **este foi o último deploy da madrugada**. Esta foi a rodada do
+**Explorar e do catálogo**:
+
+- **O Explorar parou de despejar os 81 exercícios.** A página tinha doze telas
+  de celular de altura (8.915 px); agora tem três (3.084 px): uma prévia de 12
+  exercícios e o botão "Ver os 81 exercícios", que leva ao catálogo.
+- **O catálogo abre 20 de cada vez**, com "Ver mais 20 de 81" — de 7.197 px
+  para 2.187 px. Chegando pela busca, os filtros já vêm recolhidos.
+- **A busca mostra os exercícios primeiro.** A linha "Exercícios (N) ·
+  Coleções (N)" só aparece quando existem os dois blocos, e o número do título
+  é sempre o mesmo da lista embaixo, com filtro ou sem.
+- **Quem busca e não acha lê uma mensagem só**, citando o termo — antes vinham
+  duas, uma para cada bloco.
+- **Link velho não cai mais em tela inglesa.** Um atalho guardado no início,
+  ou um exercício que mudou de nome, agora abre "Essa tela não existe mais."
+  em português, com as saídas Hoje, Explorar e Exercícios.
+- **As capas das coleções não se repetem mais** dentro da mesma seção, e os
+  títulos ganharam régua ("Escolhas para você" virou um rótulo pequeno).
+
+Portões antes de publicar: lint limpo, build ok, 1.378 testes unitários e 403
+de ponta a ponta, mais a varredura das telas nos dois temas. Nada de banco
+mudou nesta rodada. Fumaça em produção verde 21 de 21, duas vezes seguidas.
+
+**O que ficou na fila.** A **aba Treino (lote 7)** foi construída e reprovada
+na auditoria: a faixa fixa de "Continuar" usa `pointer-events-none`, e o toque
+atravessa o corpo do cartão para alvos escondidos atrás dela (341 pontos
+medidos). A correção já está escrita — envolver a faixa inteira no `Link` do
+"Continuar" — mas não coube antes do fechamento. O trabalho está preservado na
+branch `ultraloop/l7-aba-treino` (`b8ede08`, portões verdes) — nada foi
+descartado, é só retomar a correção e mandar para a auditoria.
+
+**Encerramento (10:25 UTC de 21/09, 07:25 em Brasília).** A pedido do dono, o loop parou com tudo o que estava 100 % aprovado já publicado: produção serve `8830fe5`, igual à `main`, com oito lotes no ar (L1–L6, L8 e L9) em seis deploys, todos com fumaça verde na primeira execução e nenhum rollback. Nenhuma migração de banco foi aplicada nesta madrugada. Desde o ponto de partida (`c82b744`) foram 71 commits e 181 arquivos alterados (+14.006/−1.169 linhas); os portões do head publicado são 1.378 testes unitários, 403 de ponta a ponta e a varredura das 30 telas nos dois temas. A auditoria de fechamento (regressão total contra a base inicial) foi interrompida antes de terminar; cada lote publicado já havia sido comparado contra a base do deploy anterior na própria auditoria. O que não coube está na seção **Fila (o que não coube)** abaixo, em ordem de prioridade, pronto para as próximas rodadas.
 
 ### Como funcionou
 
@@ -6255,6 +6413,19 @@ celular e abra uma ficha de exercício: a ilustração fica parada até você to
 nela. Por fim, ative o modo avião e abra Mais → Contas: em vez da tela de erro
 do navegador aparece "Sem conexão", com "Tentar de novo" e "Ir para o Treino".
 
+**Deploy.** No ar em 20/09/2026 às 15:07 UTC, junto com o lote 2, pelo PR #6
+(main `b6e8135`). Produção saiu de `dpl_3GkqME59j2QWFvtJqfbPSzADzzTE` para
+`dpl_4xNZ9sdTBX6PbdRjD8qrm12YSC57`; `GET /versao` passou a devolver
+`{"commit":"b6e8135c28ac5fe1ba375b1b180427846398b9bb","construidoEm":"2026-09-20T15:05:54.343Z"}`
+(antes a rota não existia e caía em 307) e o css de `/login` trocou de
+`053059c178efbf99` para `12175adeeb38d042`. Fumaça verde na primeira tentativa,
+item a item: `/login` 200 com "Treino do Terraço" e "Entrar" e sem aviso de
+configuração — ok; `/` → 307 para `/login` — ok; `/versao` igual ao sha de main
+— ok; `/sw.js` 200 com `/~offline`, `figuras/`, `_rsc` e o mesmo css do HTML de
+`/login` — ok; `/manifest.webmanifest` 200 com "Treino do Terraço" — ok;
+`/~offline` 200 com "Sem conexão", "Tentar de novo" e "Ir para o Treino" — ok;
+os 12 scripts `/_next/static` de `/login` em 200 — ok. **Rollback: não.**
+
 ### Rodada 1 — Lote 2
 
 **Relatório, Corpo, Calendário e Explorar** (branch
@@ -6366,6 +6537,23 @@ e os três problemas foram corrigidos:
    `/explorar/treino/B1` (levantamento terra), exigindo o
    `video[data-video="<id>"]` com o arquivo e a ilustração sem ele — mais a
    asserção de contraste do item 2, nos dois temas.
+
+**Deploy.** No ar em 20/09/2026 às 15:07 UTC, no mesmo merge do lote 1 (a faixa
+B já continha a A), pelo PR #6 (main `b6e8135`). Produção saiu de
+`dpl_3GkqME59j2QWFvtJqfbPSzADzzTE` para `dpl_4xNZ9sdTBX6PbdRjD8qrm12YSC57`;
+`/versao` devolve `b6e8135c28ac5fe1ba375b1b180427846398b9bb`. Além dos sete
+itens obrigatórios da fumaça (todos ok, descritos na subseção do lote 1), os
+marcadores deste lote nos pacotes publicados: o chunk de `app/(app)/corpo`
+contém "Apagar" — ok; o de `app/(app)/relatorio` contém "kg no total" (o
+contador de volume reescrito) — ok; o de `app/(app)/explorar` contém "Circuito"
+(o selo das coleções) — ok. O marcador previsto para
+`app/(app)/mais/creditos` ("Vers") não se aplica: a página é server component,
+então o texto não vai para o chunk do cliente — a prova equivalente é `/versao`
+devolvendo o mesmo `NEXT_PUBLIC_COMMIT` que alimenta o "Versão b6e8135" da
+tela. A sonda opcional de Playwright a 360 px contra a URL pública não rodou (o
+Chromium local não confia na CA do proxy de saída); a régua de 360 px, 44 px,
+contraste e foco já correra verde nas 30 telas no portão local.
+**Rollback: não.**
 
 ### Rodada 2 — Lote 3 — fundação visual (faixa A) ✅
 
@@ -6651,6 +6839,22 @@ quatro passos do campo de data com anel nos dois temas, e o nome acessível
 "Data" do campo. Em `lib/tema.test.ts` (28 casos): a borda do polegar com 3:1
 sobre o trilho ligado nos dois temas, a proibição da cor crua no `Switch` e o
 corpo do mapa muscular contra a página.
+
+**Deploy.** No ar em 20/09/2026 às 21:35 UTC, no mesmo merge do lote 4 (a
+faixa B já continha a A), pelo PR #7 (main `c7d947a`). Produção saiu de
+`dpl_4xNZ9sdTBX6PbdRjD8qrm12YSC57` para o deploy de `c7d947a`; `/versao`
+devolve `c7d947ab088e21b0728bda7b482eae24f45982fb` (construído 21:34:12Z) e o
+CSS de `/login` mudou de `12175adeeb38d042.css` para `57d136fb92e14898.css`.
+Fumaça verde na primeira tentativa, item a item: `/login` 200 com "Treino do
+Terraço" e "Entrar" e sem aviso de configuração — ok; `/` → 307 para `/login`
+— ok; `/versao` igual ao sha de main — ok; `/sw.js` 200 com `/~offline`,
+`figuras/` e o mesmo CSS do `/login` — ok; `/manifest.webmanifest` 200 com
+"Treino do Terraço" — ok; `/~offline` 200 — ok; os 12 scripts
+`/_next/static` do `/login` → 200 — ok. Marcadores deste lote: o CSS
+publicado `57d136fb92e14898.css` contém `.text-rotulo{font-size:11px}` e
+`.foco` — ok; e os chunks das telas mudadas trazem a classe nova (a home
+`app/(app)/page` e `app/(app)/treinar/[sessionId]` contêm `text-rotulo`) —
+ok. **Rollback: não.**
 
 ### Rodada 2 — Lote 4 — imagens, mídia e entrega (faixa B)
 
@@ -6954,6 +7158,25 @@ que `width`/`height` existiam, então passava com o dado errado.
    aparecem os atalhos Treino, Relatório e Corpo.
 
 
+**Deploy.** No ar em 20/09/2026 às 21:35 UTC, pelo PR #7 (main `c7d947a`),
+no mesmo merge do lote 3. Produção saiu de
+`dpl_4xNZ9sdTBX6PbdRjD8qrm12YSC57` para o deploy de `c7d947a`; `/versao`
+devolve `c7d947ab088e21b0728bda7b482eae24f45982fb`. Além dos sete itens
+obrigatórios da fumaça (todos ok, listados na subseção do lote 3), os
+marcadores deste lote nas rotas públicas: `/manifest.webmanifest` contém
+`shortcuts` e `maskable` — ok; `/favicon.ico` → 200 `image/x-icon` — ok; o
+HTML de `/login` contém `apple-touch-startup-image` — ok;
+`/fotos/agachamento-bulgaro-1.webp` → 200 `image/webp` — ok;
+`/fotos/agachamento-bulgaro-1-mini.webp` → 200 `image/webp` — ok; `/sw.js`
+**não** contém `id="bf"` (o sprite órfão saiu) e o `/login` não cita
+`mapa-muscular.tsx` — ok. No pacote publicado, o chunk compartilhado
+`1580-7dcad54a8a41be73.js` traz a função que deriva o sufixo `-mini` e as
+medidas padrão `{largura:132,altura:100}` — a prova das derivadas dentro do
+bundle. A sonda opcional de Playwright a 360 px contra a URL pública não
+rodou (o Chromium local não confia na CA do proxy de saída); a régua de
+360 px, 44 px, contraste e foco já correra verde nas 30 telas no portão
+local. **Rollback: não.**
+
 ### Rodada 3 — Lote 5 — player: gravar sem perder o treino (faixa A)
 
 Branch `ultraloop/l5-player-gravar`, a partir de `ultraloop/l4-imagens-midia-entrega`.
@@ -7084,9 +7307,296 @@ SPEC §22.5. Dez itens, na ordem de prioridade do lote.
    alto já diz **"Treino salvo"** e o **Próximo** está fixo no rodapé — feche
    o app ali e volte: a aba Treino **não** oferece "Continuar".
 
-### Rodada 3 — Lote 6
+**Deploy.** No ar em 21/09/2026 às 02:05 UTC, pelo PR #8 (main `2826972`).
+Produção saiu de `dpl_8NHHgUvey1oBJCXj3CT5yp95YqLV` para o deploy de
+`2826972`; `/versao` devolve
+`28269724cf9b8b8d8b8daa496896e0b59d67bc83` (construído às 02:03:42Z) e o CSS
+de `/login` foi de `57d136fb92e14898.css` para `220c01c1442d7833.css`.
+Fumaça verde 9/9 na primeira execução útil, item a item: `/login` 200 com
+"Treino do Terraço" e "Entrar", sem "Configure NEXT_PUBLIC_SUPABASE_URL" e
+sem "é secreta" — ok; `/` → 307 para `/login` — ok; `/versao` igual ao sha de
+main — ok; `/sw.js` 200 com `/~offline`, `figuras/` e o mesmo CSS do `/login`
+— ok; `/manifest.webmanifest` 200 com "Treino do Terraço" — ok; `/~offline`
+200 — ok; os 12 scripts `/_next/static` do `/login` → 200 — ok; marcador do
+lote: o `/sw.js` lista o chunk novo do player
+(`app/(app)/treinar/%5BsessionId%5D/page-1922983e9f6290b9.js`) — ok; e esse
+chunk, baixado (200, 63.471 bytes), contém **"Descartar este treino"**,
+**"Continuar depois"** e **"Pular esta pergunta"** — ok (o bundle escapa os
+acentos, como em `Concluir s\xe9rie`, então os marcadores foram procurados sem
+acento). A sonda opcional de Playwright a 360 px contra a URL pública não
+rodou (o Chromium local não confia na CA do proxy de saída); a régua de 360 px,
+44 px, contraste e foco já correu verde nas 30 telas no portão local.
+**Rollback: não.**
 
-(a preencher)
+### Rodada 3 — Lote 6 — Relatório: estrutura, números e conquistas (faixa B)
+
+SPEC §22.6. Dez itens, todos na faixa B (`/home/user/wt-b`, portas 3110/54331).
+
+**1. O Relatório em cinco seções dobráveis** (`components/relatorio/tela-relatorio.tsx`)
+— era: um `<Tela>` só empilhando Totais, aviso, Números, Conquistas, Histórico,
+sequências, Peso, IMC e a tela inteira de gráficos — **5.444 px** de rolagem, e
+quem quisesse o Histórico rolava às cegas. É: cinco `<details>` — **Resumo**,
+**Conquistas**, **Histórico**, **Corpo** e **Gráficos** —, cabeçalho `sticky`
+com alvo de 44 px, estado lembrado em `localStorage` (`relatorio:secoes`) e
+montagem preguiçosa (o conteúdo de uma seção fechada nunca é montado: a seção
+Gráficos não pede consulta nem desenha Recharts enquanto ninguém a abrir).
+Medido a 360 × 740: **1.211 px** de rolagem com a tela aberta como ela nasce
+(Resumo aberto), contra 5.444.
+
+**2. CLS 0,39/0,44 → 0,0016/0,0030** (`tela-relatorio.tsx`) — era: as ~10
+leituras resolviam depois da primeira pintura e o **aviso de conquista** nascia
+no alto da tela, empurrando 297 px de conteúdo já pintado para baixo (sozinho,
+0,3155 de CLS). É: o aviso mora ao lado do assunto dele (entre o Resumo e a
+seção Conquistas, fora da primeira dobra), cada seção reserva a própria caixa e
+o esqueleto dos Números tem a forma dos Números (cabeçalho, seletor de período,
+fileira de três, três linhas de detalhe, fileira de dois). Medido com
+`PerformanceObserver('layout-shift')`: **0,0016 no escuro e 0,0030 no claro**.
+
+**3 e 4. Conquistas em duas colunas, com progresso e separação**
+(`components/relatorio/conquistas.tsx`) — era: `grid-cols-3` a 360 px (cartão de
+~100 px, nome em três linhas, linhas de alturas diferentes) e um "7 de 26" solto
+no cabeçalho. É: `grid-cols-2 sm:grid-cols-3`, cartão em
+`grid-rows-[auto_1fr_auto]` com `line-clamp-2` no nome e `line-clamp-1` na
+legenda (texto inteiro no `title` e no nome acessível, §22.3 item 11), barra
+fina de progresso com `role="progressbar"` e dois grupos rotulados —
+**Conquistadas** e **A conquistar**, cada um com a contagem.
+
+**5. O aviso de conquista** (`components/relatorio/aviso-conquista.tsx`) — era:
+uma linha por conquista nova, com descrição, sem limite, com a data sempre
+visível (uma conquista de 1º de junho anunciada como novidade) e rotulada
+"Conquistas", igual ao título da seção da mesma tela. É: `novas.slice(0, 3)` com
+"e mais N conquistas · veja em Conquistas", **uma linha por conquista** (ícone,
+nome, data), data **escondida quando é a de hoje**, `role="status"` na `<section>`
+e o rótulo "Nova conquista" / "Novas conquistas".
+
+**6. Rótulos que se contradiziam** (`tela-relatorio.tsx`,
+`components/progresso/tela-progresso.tsx`) — era: "TREINOS / 51 / no total" no
+topo e "6 no mês · 46 no total" no card de treinos, na mesma rolagem. É:
+"SESSÕES / 51 / no total (força + cardio)" e "só força · 6 no mês · 46 de força
+no total".
+
+**7. Ladrilhos alinhados** (`components/relatorio/numeros.tsx`,
+`components/ui/contador.tsx`) — cada contador é `grid-rows-[auto_1fr_auto]`
+(rótulo, número, legenda colada no rodapé) e o ícone do rótulo subiu de 12 px
+para 14 px (`size-3.5 shrink-0`). E nada recorta mais o rótulo na vertical: o
+til de "SESSÕES" em versalete sobe acima da caixa de linha de 12 px, e o
+`overflow: hidden` a cortava ("SESSOES"). Tirar o `overflow-hidden` do span de
+FORA não resolveu — quem recortava era o `truncate` do span de DENTRO —, então
+o de dentro passou a recortar só na horizontal (`overflow-x-clip` +
+`overflow-y-visible` + `text-ellipsis`), mantendo o "…" de quem não cabe na
+largura.
+
+**8. Cabeçalho de seção com dois papéis separados** (`tela-relatorio.tsx`,
+`numeros.tsx`) — era: título e frase de explicação na mesma linha (a 360 px a
+frase comia metade da linha). É: contador curto ("7 de 26") na linha de base do
+título e a explicação como subtítulo de 12 px `muted` na linha de baixo — e só
+na seção **aberta**, para o cabeçalho recolhido ser uma linha de 56 px. O atalho
+"Catálogo de exercícios" saiu de cima dos totais e foi para o fim da tela: o
+Relatório começa pelos números.
+
+**9. Sem sigla nem notação matemática** (`tela-progresso.tsx`, `numeros.tsx`,
+`lib/formato.ts`) — "e1RM (Epley)" → "carga máxima estimada" (coluna
+"Máx. estimada"); "Σ reps × kg, últimas 12 semanas" → "Soma de repetições ×
+carga, nas últimas 12 semanas"; "Aderência (4 semanas)" → "Constância
+(4 semanas)"; "reps × kg nas séries de trabalho" → "repetições × carga nas
+séries de trabalho"; `${…} %` → `formatarPercentual()` ("78%", símbolo colado,
+um formato só no app, com unitário em `lib/formato.test.ts`); "Treino B 1" →
+"Treino B × 1" (e "Corrida × 1", na mesma lista); as linhas Força / Cardio /
+Barra fixa viraram `grid-cols-[5.5rem_1fr]`, com o valor sempre no mesmo x.
+
+**10. Legenda da faixa e cartão vazio de uma linha**
+(`components/relatorio/historico.tsx`, `tela-progresso.tsx`) — a faixa da semana
+ganhou "✓ feito · ○ a fazer · ● faltou · — descanso · hoje em destaque"; em
+"Carga dos grandes" o exercício sem registro virou **uma linha** (nome + "sem
+registro", 44 px) no lugar de um cartão de altura cheia com um vazio de gráfico
+dentro.
+
+**Provas.** Portões completos (lint, tsc, test, build, build:e2e, e2e,
+varredura) pelo `portoes.sh`, logs em
+`scratchpad/ultraloop/rodada-3/l6/logs`. Testes novos: `e2e/ultraloop-b-r3.spec.ts`
+(10 casos — rolagem < 1.500 px, memória da seção, CLS < 0,1 nos dois temas,
+duas colunas com linhas de mesma altura, o aviso de 3 linhas, rótulos que não se
+contradizem, linha de base dos números, nenhuma sigla, legenda e cartão de uma
+linha) e o bloco "porcentagem" em `lib/formato.test.ts`. Ajustados, sem
+afrouxar: `e2e/v3.spec.ts`, `e2e/conquistas.spec.ts`, `e2e/relatorio.spec.ts`,
+`e2e/retomada.spec.ts`, `e2e/auditoria-m5.spec.ts` (abrem a seção antes de
+medir) e `e2e/fixtures.ts` (o ajudante `abrirSecaoDoRelatorio`). Capturas nos
+dois temas em `scratchpad/ultraloop/rodada-3/l6/capturas/construtor`: mudaram só
+`11-relatorio-topo`, `12-relatorio-numeros`, `13-relatorio-conquistas`,
+`14-relatorio-historico` e `30-player-conclusao` — nenhuma tela fora da lista.
+
+**Como testar no celular.** Abra `/relatorio`: a tela começa pelos três
+acumulados ("SESSÕES · 51 · no total (força + cardio)") e pelos Números; os
+outros quatro blocos são cabeçalhos de um toque. Abra "Conquistas": a barra de
+progresso diz quantas faltam e os cartões vêm em duas colunas, separados entre
+"Conquistadas" e "A conquistar". Feche o Resumo, saia da tela e volte: a
+memória das seções é a sua. Abra "Histórico": a legenda da faixa está logo
+abaixo dela. Abra "Gráficos": nada de sigla — "Constância (4 semanas)", "78%",
+"carga máxima estimada" — e o exercício sem registro ocupa uma linha só.
+
+#### Correção da auditoria do Lote 6 (21/09/2026)
+
+Um auditor independente reprovou o lote por três defeitos — dois deles na
+própria **instrumentação**, que é o pior tipo de portão verde: o que mede fica
+cego e a rodada seguinte não vê a regressão.
+
+1. **O til de "SESSÕES" continuava cortado** (`components/ui/contador.tsx`). O
+   lote tirou o `overflow-hidden` do span de FORA (`[data-rotulo]`, 16 px de
+   altura), mas quem recortava era o span de DENTRO: `truncate` traz
+   `overflow: hidden` numa caixa de linha de 12 px (`text-micro`: 10 px ×
+   1,2), e o acento do Õ em versalete mora acima dela. O `innerText` diz
+   "SESSÕES" nos dois casos — por isso nenhum teste de texto pegava. Agora os
+   **dois** spans recortam só na horizontal (`min-w-0` + `overflow-x-clip` +
+   `overflow-y-visible`, com `text-ellipsis` no de dentro): o til pinta e o
+   "…" de quem não cabe na largura fica. Tirar o recorte do span de FORA não
+   era neutro, e essa foi a terceira passada do auditor: na fileira de
+   Totais o ladrilho é uma **grade** (`grid-rows-[auto_1fr_auto]`), o span é
+   um item de grade, e num item de grade o `min-width: auto` só vira 0
+   quando o `overflow` do item não é `visible` — com os dois eixos `visible`
+   o rótulo longo ia a 283 px dentro de um ladrilho de 95 px, sem "…", e o
+   `documentElement.scrollWidth` subia de 360 para 427. Medido num Chromium
+   isolado com o ladrilho em grade: `visible/visible` → 206 px e sem "…";
+   `min-w-0` + `clip/visible` → 77 px, `encurtado: true` e `overflow-y`
+   ainda `visible`.
+   O teste que fecha isto (`e2e/ultraloop-b-r3.spec.ts`, §22.6-7) não é de
+   texto e tem os dois lados: confere que nenhum `[data-rotulo]` — nem o
+   span de fora, nem o de dentro — tem `overflow-y` diferente de `visible`,
+   compara os PIXELS do rótulo com os do mesmo rótulo com o recorte forçado
+   a `visible` (se algo cortasse o desenho, as duas fotos seriam
+   diferentes) e, no caso NEGATIVO, injeta um rótulo longo em
+   `[data-contador="Minutos"]` exigindo `scrollWidth > clientWidth`, largura
+   dentro do ladrilho e `documentElement.scrollWidth === 360`.
+2. **A régua visual ficou cega justamente nas telas do lote**
+   (`scripts/capturas-ultraloop.ts`). Com a montagem preguiçosa, uma seção
+   fechada nem existe no DOM: `rolarAte(region "Conquistas")` não achava nada
+   e o `.catch(() => {})` engolia a falha, então `11-relatorio-topo`,
+   `12-relatorio-numeros` e `13-relatorio-conquistas` saíam BYTE-IDÊNTICAS e
+   `14-relatorio-historico` fotografava o rodapé. Agora cada tela do
+   Relatório abre a SUA seção (`abrirRelatorioEm`, que ainda limpa
+   `relatorio:secoes` para uma captura não vazar estado na seguinte),
+   `rolarAte` não tem mais `catch` (a falha vai para o `indice.json` como
+   `alcancada: false`) e o aviso do player é dispensado por
+   `getByRole("status", …)`, o papel que o lote deu a ele — com `region` o
+   "Ok" nunca era clicado.
+3. **A varredura media só o Resumo** (`e2e/ultraloop-varredura.spec.ts`). Os
+   cinco itens (rolagem lateral, alvo de 44 px, contraste AA, anel de foco,
+   reduced-motion) deixaram de ver ~4/5 de `/relatorio` pelo mesmo motivo.
+   `abrir()` agora chama `abrirTudo(page)`, genérico sobre
+   `details[data-secao]`: vale para qualquer tela futura com conteúdo montado
+   sob demanda.
+
+Numa segunda passada o mesmo auditor achou mais um portão cego, do mesmo
+feitio, e uma inconsistência de vocabulário:
+
+4. **O "Σ" sobreviveu na folha de detalhe de uma conquista**
+   (`lib/conquistas.ts`). A regra de volume dizia "Σ repetições × carga das
+   séries de trabalho concluídas chega a 50.000 kg" — a um toque da grade que
+   este lote refez. O teste §22.6-8 passava porque lia `body.textContent` com
+   as folhas FECHADAS: a folha é um `Sheet` e o texto dela não está no
+   documento enquanto ninguém a abre. A regra virou "**Soma de** repetições ×
+   carga…", e agora dois testes fecham o buraco: um de unidade
+   (`lib/conquistas.test.ts`) que varre `nome`, `descricao` e `regra` das **26**
+   conquistas atrás de notação solta — o único jeito barato de cobrir todas —,
+   e o e2e, que abre `[data-conquista="volume-50k"]`, espera o `role=dialog` e
+   repete a medida sobre o texto do diálogo. O "×" fica de propósito: na tela
+   ele lê "vezes", como em "4× por semana" e "Treino B × 1".
+5. **"e1RM" saiu do app inteiro** (`lib/sessao.ts`,
+   `components/exercicios/historico-exercicio.tsx`). O lote traduziu a sigla só
+   em `/relatorio`, e o app passou a falar duas línguas para a mesma coisa: o
+   gráfico dizia "carga máxima estimada" e "Máx. estimada", enquanto o card
+   Recorde do histórico de um exercício dizia "e1RM (Epley)" e o recorde do
+   resumo da sessão dizia "45 kg de e1RM". Agora são "Máx. estimada" e "45 kg
+   de carga máxima estimada"; o discriminante interno `tipo: "e1rm"` fica (não
+   é texto de tela) e `lib/sessao.test.ts` trava o texto do recorde.
+
+E a SPEC §22.6 descrevia quatro coisas que a tela não fazia — descrição
+errada é dívida igual a código errado, porque a próxima rodada audita contra
+ela. Foram corrigidos: o item 2 (não existe `min-height` por seção; quem
+reserva a altura é o esqueleto, que tem as medidas do conteúdo final), o
+item 7 (a grade `grid-rows-[auto_1fr_auto]` vem do chamador, na fileira de
+Totais; no `Contador` o que é fixo é a linha do rótulo, `h-4`), o item 8 (o
+alcance real da tradução, incluindo a folha de detalhe) e o item 9 (a
+legenda da faixa, que o texto descrevia por alto).
+
+**Como testar no celular** (360 px): Relatório → "Conquistas" → toque em
+qualquer cartão de volume ("10.000 kg" ou "50.000 kg"): a folha que sobe diz
+"Como fecha: Soma de repetições × carga…", sem "Σ". Explorar → um exercício →
+"Histórico": o card Recorde diz "Máx. estimada", não "e1RM (Epley)".
+
+#### Correção da auditoria do Lote 6 — rodada 3 (21/09/2026)
+
+A terceira auditoria reprovou o lote por dois defeitos, os dois visíveis na
+tela que o dono elegeu como prioridade.
+
+1. **"BARRA FIXA" saía "BARRA F…"** (`components/ui/contador.tsx`,
+   `components/relatorio/tela-relatorio.tsx`). Pôr os Números dentro do
+   `<details>` custou ~9 px por coluna — o ladrilho da fileira de três caiu de
+   ~104 px (base publicada) para 95 px. Medido ao vivo a 360 px: a linha do
+   rótulo tinha 73 px, o ícone de 14 px mais o `gap-1` levavam 18, sobravam
+   **55 px para um texto de 62** — `scrollWidth 62 / clientWidth 55`, nos dois
+   temas e também numa conta nova. O texto inteiro seguia no DOM (o leitor de
+   tela lia "Barra fixa"), então o dano era só visual, e nenhum teste de texto
+   o pegava. Os pixels voltaram em três lugares, todos medidos: o ladrilho usa
+   `px-2` em vez de `px-2.5` (+4 px), o rótulo perdeu o `tracking-wide`
+   (−2 px de texto, porque o custo é por letra e o rótulo mais comprido é
+   quem mais paga) e o corpo de uma seção do Relatório usa `px-2` em vez de
+   `px-3` (+2,7 px por coluna). São **64 px de linha para 60 px de texto**,
+   4 px de folga onde faltavam 7. O grampo horizontal, o til de "SESSÕES" e
+   as três bases alinhadas ficam como estavam — o que mudou foi a largura
+   disponível, não a regra. Fecha um teste que MEDE: em `/relatorio`, com as
+   cinco seções abertas, nenhum `[data-rotulo]` de rótulo real pode ter
+   `scrollWidth > clientWidth` (o caso negativo, com um rótulo longo
+   injetado, continua exigindo o contrário).
+
+2. **A legenda da faixa explicava quatro glifos para cinco marcas, e um
+   desenho valia duas coisas** (`components/relatorio/historico.tsx`,
+   `components/ui/faixa-semana.tsx`, `lib/semana.ts`). Faltava "parcial" — que
+   `montarGrade` emite de verdade quando a sessão do dia começou e não foi
+   concluída — e, pior, o dia de HOJE ainda por fazer vinha como ponto
+   **cheio** na cor primária: o mesmo desenho que a legenda ensinava para
+   "faltou", no estado mais comum da tela (todo dia, até o treino sair).
+   Agora: (a) a legenda sai de `LEGENDA_DA_FAIXA`, montada de
+   `GLIFO_DA_MARCA` e `NOME_DA_MARCA`, ambos `Record<MarcaDoDia, …>` — uma
+   marca nova quebra a compilação e entra na legenda no mesmo movimento —, e
+   lê **"✓ feito · ◉ parcial · ○ a fazer · ● faltou · — descanso · hoje em
+   destaque"**; (b) hoje por fazer é o mesmo **anel** dos outros dias por
+   fazer, só que `border-primary`, e quem diz que o dia é hoje continua sendo
+   o realce do ladrilho inteiro. O ponto cheio passa a ser de "faltou" e de
+   mais ninguém. Cada marca leva `data-glifo` (no `<li>` o `data-marca` de
+   hoje vira "hoje" e esconde o estado), três testes de unidade prendem a
+   legenda ao conjunto `MarcaDoDia` e dois e2e medem o desenho — largura de
+   borda e preenchimento —, não o texto.
+
+**Como testar no celular** (360 px): Relatório → Resumo: "BARRA FIXA" aparece
+inteiro no terceiro ladrilho dos Números, nos dois temas. Relatório →
+"Histórico": a legenda embaixo da faixa cita seis coisas, "parcial" entre
+elas, e o dia de hoje sem treino feito é um **anel** laranja, não uma bolinha
+cheia — a bolinha cheia cinza é só dos dias que passaram em branco.
+
+**Deploy.** No ar em 21/09/2026 às 06:41 UTC, pelo PR #9 (main `3c9864a`).
+Produção saiu de `dpl_9Yp9Anq6C7YBMiLmCs6umXYmQRh5` para
+`dpl_6jSLT4atYUX13YzAq8vST7URPYJj`; `/versao` devolve
+`3c9864a73cd6ec405599b9f41f7a9c910b4e1faa` (construído às 06:40:23Z) e o CSS
+de `/login` foi de `220c01c1442d7833.css` para `99b3cfc2eb0aa8b3.css`.
+Fumaça verde 12/12 na primeira execução, item a item: `/login` 200 com
+"Treino do Terraço" e "Entrar", sem "Configure NEXT_PUBLIC_SUPABASE_URL" e
+sem "é secreta" — ok; `/` → 307 para `/login` — ok; `/versao` igual ao sha de
+main — ok; `/sw.js` 200 (54.120 bytes) com `/~offline`, `figuras/` e o mesmo
+CSS do `/login` — ok; `/manifest.webmanifest` 200 com "Treino do Terraço" —
+ok; `/~offline` 200 — ok; os 12 scripts `/_next/static` do `/login` → 200 —
+ok; marcador do lote: o `/sw.js` lista o chunk novo do Relatório
+(`app/(app)/relatorio/page-cba3d6e954f0a519.js`) — ok; esse chunk, baixado
+(200, 33.361 bytes), traz `Const\xe2ncia` e `carga m\xe1xima estimada` — ok
+(o bundle escapa os acentos, então os marcadores foram procurados sem
+acento); **"A conquistar"** e **"Conquistadas"** ficam no chunk compartilhado
+`583-409c4bd3f534ac2f.js` (200, 41.287 bytes), que o `/sw.js` também
+precacheia — ok; e **`e1RM` não aparece em nenhum** dos 74 chunks, nem no
+HTML do `/login` nem no CSS — ok, que é a forma mais forte do marcador. A
+sonda opcional de Playwright a 360 px contra a URL pública não rodou (o
+Chromium local não confia na CA do proxy de saída); a régua de 360 px já
+correu verde no portão local. Nenhuma migração de banco.
+**Rollback: não.**
+
 
 ### Rodada 4 — Lote 7 — aba Treino: hierarquia e controle (faixa A)
 
@@ -7181,6 +7691,439 @@ citavam os textos trocados foram atualizados sem afrouxar o que verificavam
    destaque vai para a faixa "Você tem um treino aberto de …", que é onde está
    o "Continuar" dessa sessão; o card do dia segue oferecendo "Começar treino".
 
-### Fila (o que não coube)
 
-(a preencher)
+### Fila (o que não coube) — lista para as próximas rodadas
+
+Nada abaixo está publicado. Ordem sugerida: A → B → C. Cada item traz a origem (rodada/lote/auditoria) e o motivo registrado pelo agente; a íntegra está em `ultraloop/fila.json` do scratchpad da sessão e nos vereditos de cada rodada.
+
+**A. Lote 7 — aba Treino (SPEC §22.7): a uma correção de entrar.** Branch `ultraloop/l7-aba-treino` (`b8ede08`, base `ultraloop/l5-player-gravar`), portões completos verdes (1.359 unitários / 378 e2e), 9 itens implementados: Ajustar no cabeçalho em vez do FAB, faixa fixa da sessão em andamento, folha Ajustar gravando sozinha, ladrilhos Fase/Peso alinhados, nome do exercício antes da carga, carrossel de desafios com posição, degradê nos chips, "Começar o Treino B", aviso ao voltar do player. Pendência única (importante): a faixa fixa usa `pointer-events-none` e deixa o toque atravessar para alvos escondidos. Correção indicada pelo auditor: envolver a faixa inteira no `Link` do "Continuar"/"Começar", tirar o `pointer-events-none`, reescrever a SPEC §22.7 item 2 e estender o e2e para varrer a largura da faixa exigindo `elementFromPoint` dentro dela. Antes de retomar: merge de `main` na branch (a base do lote é anterior ao L6/L8/L9).
+
+**B. Lotes planejados na análise e não executados (33 itens).** Os textos completos, com linhas e proposta, estão em `lotes-r5.json` e `lotes-r6.json` do scratchpad (o L12 precisa ser remontado: parte dele já entrou com L3/L4).
+
+- l9-explorar-catalogo · tela-explorar-fichas-15 · Filtros comem 54% da tela antes do primeiro resultado
+- l9-explorar-catalogo · tela-explorar-fichas-09 · Ficha técnica usada como subtítulo de vitrine
+- l9-explorar-catalogo · tela-explorar-fichas-03 · Coleção achada pela busca sem dizer por quê
+- l10-ficha-exercicio · imagens-01 · A caixa de altura fixa espreme a ilustração a 27%
+- l10-ficha-exercicio · tela-explorar-fichas-19 · A ficha em página não tem volta nem ação
+- l10-ficha-exercicio · tela-explorar-fichas-20 · Quatro cartões vazios quando não há histórico
+- l10-ficha-exercicio · tela-explorar-fichas-18 · Chip ativo do segmento Ilustração/Figura a 1,08:1
+- l10-ficha-exercicio · tela-explorar-fichas-21 · Aba Músculos repete a ilustração e a 'Área de foco'
+- l10-ficha-exercicio · tela-explorar-fichas-26 · A aba de tutorial não diz que sai do app
+- l10-ficha-exercicio · imagens-12 · As 163 fotos são 3:2 e a ficha as força em quadrado
+- l10-ficha-exercicio · imagens-13 · Crédito da mídia como faixa sublinhada inteira
+- l10-ficha-exercicio · performance-13 · Segundo quadro da ilustração baixado antes da primeira pintura
+- l10-ficha-exercicio · ux-heuristicas-21 · A ilustração inteira é o botão de pausa
+- l11-corpo-registro · a11y-01 · Os 6 gráficos entram na árvore como 'application' sem nome
+- l11-corpo-registro · tela-relatorio-corpo-calendario-11 · Campo de data cru nas três abas do Corpo
+- l11-corpo-registro · tela-relatorio-corpo-calendario-17 · A tabela de Registros vaza a 360 px
+- l11-corpo-registro · tela-relatorio-corpo-calendario-12 · Ordem da aba Peso
+- l11-corpo-registro · tela-relatorio-corpo-calendario-14 · Eixo do gráfico de peso sem domínio fixo
+- l11-corpo-registro · tela-relatorio-corpo-calendario-19 · A meta de peso não aparece no gráfico
+- l11-corpo-registro · tela-relatorio-corpo-calendario-13 · Marcador do IMC sem faixas rotuladas
+- l11-corpo-registro · tela-relatorio-corpo-calendario-18 · Aba Fotos pesada antes da primeira foto
+- l11-corpo-registro · tela-relatorio-corpo-calendario-16 · Formulário de medidas antes do que já foi medido
+- l11-corpo-registro · a11y-14 · Abas sem nome e títulos fora de ordem no Corpo
+- l12-superficies-sobra · visual-13 · Abrir um degrau real entre card e fundo
+- l12-superficies-sobra · imagens-02 · A placa de luz das ilustrações no tema escuro
+- l12-superficies-sobra · a11y-03 · Campo de formulário invisível no tema escuro
+- l12-superficies-sobra · imagens-03 · Gerar derivadas de imagem na cópia dos assets
+- l12-superficies-sobra · performance-03 · Prioridade e decodificação das imagens de entrada
+- l12-superficies-sobra · performance-05 · Cache-Control para os ~24 MB de mídia de public/
+- l12-superficies-sobra · imagens-08 · Enquadramento e texto alternativo da miniatura
+- l12-superficies-sobra · visual-05 · shadow-lg renderiza transparente nos dois temas
+- l12-superficies-sobra · a11y-11 · A região de avisos é a única coisa em inglês no app
+- l12-superficies-sobra · imagens-14 · /favicon.ico devolve 404 com 11 kB de HTML
+
+**C. Pendências menores apontadas pelas auditorias (63 itens, nenhuma bloqueante).** Agrupadas pela origem; o motivo é o resumo do auditor.
+
+- *R1/L2* (1):
+  - L2-10 — opcional; mexe no mesmo trecho de lib/calendario.ts que L2-5; merece lote com folga (Calendário e faixa da semana, R4)
+- *R2/L4* (3):
+  - L4-6 — loading.tsx no grupo (app) escrito, funcionou e foi revertido pelo construtor (efeito colateral registrado no PROGRESSO do lote); reavaliar com escopo por rota
+  - L4-7 — next/dynamic implementado e medido (First Load: explorar/[tipo] 377→346, treinar 374→358, / 403→386, player 412→397, relatorio 371→36x) e revertido junto; reaplicar com e2e cobrindo a folha/tutorial/blocos
+  - L4-3-theme-color — meta theme-color no cliente revertida: o Next reescreve o <head> a cada navegação; alternativa: viewport.themeColor com media queries só, ou atualizar via useEffect no layout do cliente após cada rota
+- *R2/integração* (1):
+  - flutuante-no-dialogo-da-foto — components/exercicios/foto-ampliada.tsx:135 — o diálogo 'Apagar esta foto?' usa shadow-lg; a SPEC §22.3 item 5 manda usar a classe .flutuante (sombra preta some sobre #0a0a0a). Uma classe. Entra no lote da ficha do exerc
+- *R3/L5 auditoria* (7):
+  - R3/L5 menor-1 · scripts/capturas.ts (o das revisões de marco, SPEC §13) — Não bloqueia e não coube: o script ficou com os rótulos antigos em seis pontos ("Concluir a série" nas linhas 232/256/269, "Pular" nas 200/264 — que agora casa por substring com DOIS botões e estoura no modo estrito — e 
+  - R3/L5 menor-2 · components/treinar/visao-geral.tsx (Esc fecha o alerta E a Visão geral — Não bloqueia (nada é descartado; o usuário só é jogado de volta ao player) e não coube no tempo restante. Conferido no diff 62eab79..HEAD: o efeito de keydown/popstate não foi tocado, continua sem checar se há camada por
+  - R3/L5 menor-3 · components/player/descanso.tsx (os dois botões de tempo dizem "20 s") — Não bloqueia (o nome acessível está certo; o que destoa é o texto visível contra o que a SPEC §22.5 item 7 promete) e não coube. Conferido no diff: descanso.tsx não foi tocado.
+  - R3/L5 menor-4 · components/treinar/serie.tsx:186 ("NA BARRA" x "CARGA NA BARRA") — Não bloqueia e não coube. Conferido no diff: serie.tsx não foi tocado, as duas grafias convivem na mesma sessão. A sugestão do auditor (extrair rotuloDoCampoDeCarga(implemento) em lib/formato.ts, que também resolve o "CA
+  - R3/L5 menor-5 · components/ui/alert-dialog.tsx (overlay fora da fundação visual) — Não bloqueia e não coube. Conferido no diff: continua bg-black/40 sem desfoque e bg-card+border, enquanto dialog.tsx/sheet.tsx usam bg-black/10 + supports-backdrop-filter:backdrop-blur-xs e bg-popover + ring-1 ring-foreg
+  - R3/L5 menor-6 · components/player/firme.tsx (o primário cheio é "Pular esta pergunta") — Não bloqueia e não coube. Conferido no diff: firme.tsx não foi tocado. Também é mudança visível (variant="outline" enquanto escolha === null, mais o mesmo em feedback.tsx), com capturas a regerar.
+  - R3/L5 menor-7 · components/player/exercicio.tsx (aria-valuetext em outra unidade da pr — Não bloqueia (efeito colateral do que o item a11y-06 pediu literalmente) e não coube. Conferido no diff: exercicio.tsx não foi tocado; o valuetext continua "exercício 1 de 6" enquanto a barra mede séries (valuenow=1, val
+- *R3/L6 corretor* (1):
+  - R3/L6 menor-contador-no-total-3-linhas — O detalhe "no total (força + cardio)" do primeiro contador continua quebrando a 360 px. Não é só trocar a string: o texto é asserido literalmente pelo e2e §22.6-4 (e2e/ultraloop-b-r3.spec.ts:285, toContainText("no total 
+- *R3/L6 auditoria-2* (6):
+  - R3/L6 A legenda nova não cobre todas as marcas da faixa. `lib/semana.ts:35` … — A legenda nova não cobre todas as marcas da faixa. `lib/semana.ts:35` define cinco `MarcaDoDia` — feito, parcial, faltou, aberto, descanso — e `components/ui/faixa-semana.tsx:147` desenha `parcial` como um anel com um po
+  - R3/L6 O `role="status"` foi posto numa `<section>` que só entra no DOM já co… — O `role="status"` foi posto numa `<section>` que só entra no DOM já com o conteúdo dentro: `if (!pronto || fechado || novas.length === 0) return null;`. Região viva inserida junto com o texto é o caso clássico em que vár
+  - R3/L6 `EsqueletoGrade3` virou código morto. Ele foi criado pela fundação vis… — `EsqueletoGrade3` virou código morto. Ele foi criado pela fundação visual do L3 (SPEC §22.3 item 10) exatamente para "Os três contadores do Relatório", e este lote trocou seu único uso (components/relatorio/tela-relatori
+  - R3/L6 Antes de `pronto` (hoje && perfil) os ladrilhos mostram "—" no número,… — Antes de `pronto` (hoje && perfil) os ladrilhos mostram "—" no número, mas as legendas continuam sendo frases calculadas a partir de zeros: "SEMANAS SEGUIDAS / — / com a meta de 0" (porque `meta = perfil ? metaSemanal(..
+  - R3/L6 Os cabeçalhos `sticky top-0` não têm `scroll-margin-top`, então qualqu… — Os cabeçalhos `sticky top-0` não têm `scroll-margin-top`, então qualquer rolagem programática para `block: "start"` deposita o alvo DEBAIXO do cabeçalho aberto (79 px). Isso já é visível na própria régua: a captura 12-re
+  - R3/L6 O detalhe "no total (força + cardio)" quebra em TRÊS linhas no ladrilh… — O detalhe "no total (força + cardio)" quebra em TRÊS linhas no ladrilho de 95 px ("no total" / "(força +" / "cardio)"), o que empurra a fileira de Totais para 120 px de altura e, como a legenda cola no rodapé, abre um vã
+- *R4/L7 auditoria* (7):
+  - R4/L7 O h1 da data quebrou em duas linhas a 360 px. Com o "Ajustar" (44 px) … — O h1 da data quebrou em duas linhas a 360 px. Com o "Ajustar" (44 px) ao lado do selo de sequência, sobram ~146 px para o `text-2xl`, e "Quarta, 16/09" virou "Quarta," / "16/09" (visível em 03-treino-topo nos dois temas;
+  - R4/L7 A faixa fixa do dia corta o texto no meio da palavra quando ainda não … — A faixa fixa do dia corta o texto no meio da palavra quando ainda não há sessão. Medido nos dois temas: `p.scrollWidth > p.clientWidth` e o que se lê é "Treino A · agachamento no…" (capturas olhos/faixa-light.png e faixa
+  - R4/L7 O teste do item 5 ("nenhum nome de exercício passa de duas linhas a 36… — O teste do item 5 ("nenhum nome de exercício passa de duas linhas a 360 px") não pode mais falhar: ele calcula `Math.round(altura / lineHeight)` de um elemento com `line-clamp-2`, e o line-clamp já limita a altura a duas
+  - R4/L7 Nomes de teste falam de um FAB que não existe mais depois do item 1: e… — Nomes de teste falam de um FAB que não existe mais depois do item 1: e2e/retomada.spec.ts:593 "o FAB Ajustar sai da tela enquanto a pausa não foi decidida (SPEC §18.3)" e e2e/v3.spec.ts:302 "o FAB Ajustar abre os mesmos 
+  - R4/L7 O rótulo do CTA dos desafios passou a existir em dois lugares com text… — O rótulo do CTA dos desafios passou a existir em dois lugares com textos diferentes. `acaoDoDesafio` (components/treino/desafios.tsx:81-94) escreve "Fazer a sessão de barra fixa" / "Fazer a corrida da semana N" / "Fazer 
+  - R4/L7 O gatilho do aviso é mais largo do que "voltar do player". A marca em … — O gatilho do aviso é mais largo do que "voltar do player". A marca em `sessionStorage` ("treino:saiu-para") só é apagada quando a aba Treino MONTA, então o caminho player → (barra de abas) Relatório → Treino também dispa
+  - R4/L7 O "Ajustar", agora no cabeçalho, fica embaixo dos avisos do sonner. O … — O "Ajustar", agora no cabeçalho, fica embaixo dos avisos do sonner. O Toaster é `position="top-center"` (app/providers.tsx:42) e a bolha ocupa quase a largura da tela no alto; enquanto um aviso está na tela o botão de 44
+- *R4/L6 auditoria* (7):
+  - R4/L6 A entrada do próprio lote ainda descreve a legenda da faixa com QUATRO… — A entrada do próprio lote ainda descreve a legenda da faixa com QUATRO glifos — "a faixa da semana ganhou '✓ feito · ○ a fazer · ● faltou · — descanso · hoje em destaque'" —, sem o "◉ parcial". Isso contradiz a SPEC §22.
+  - R4/L6 A 360 px a legenda quebra em duas linhas separando o separador do item… — A 360 px a legenda quebra em duas linhas separando o separador do item: medido no DOM, a linha 1 é "✓ feito · ◉ parcial · ○ a fazer · ● faltou " e a linha 2 começa com "· — descanso · hoje em destaque" — um "·" órfão abr
+  - R4/L6 O lote trocou o esqueleto do Relatório por `EsqueletoNumeros`/`Esquele… — O lote trocou o esqueleto do Relatório por `EsqueletoNumeros`/`EsqueletoLinhas` locais em tela-relatorio.tsx (justificado na §22.6 item 2: o genérico não tinha as medidas do conteúdo final). Só que `EsqueletoGrade3` era 
+  - R4/L6 Agora existem DOIS vocabulários de desenho para o mesmo `MarcaDoDia`: … — Agora existem DOIS vocabulários de desenho para o mesmo `MarcaDoDia`: `SIMBOLO` (✓ / ~ / ✕, consumido por components/calendario/grade.tsx, que pinta o símbolo dentro do dia) e `GLIFO_DA_MARCA` (✓ / ◉ / ○ / ● / —, que ali
+  - R4/L6 A legenda não tem `aria-hidden`, então o leitor de tela lê os glifos (… — A legenda não tem `aria-hidden`, então o leitor de tela lê os glifos ("✓", "◉", "●", "—") além dos nomes, enquanto cada dia da faixa já anuncia o estado por extenso no `aria-label` ("Quarta 16/09: Treino A, feito"). É ru
+  - R4/L6 O detalhe exigido pela §22.6 item 4 — "no total (força + cardio)" — qu… — O detalhe exigido pela §22.6 item 4 — "no total (força + cardio)" — quebra em TRÊS linhas no ladrilho de 98 px e, medido ao vivo a 360 px nos dois temas, leva a fileira inteira de Totais a 120 px de altura, contra uma li
+  - R4/L6 A linha de base de capturas em $U/base foi regerada do head publicado … — A linha de base de capturas em $U/base foi regerada do head publicado 28269724 (origin/main), que já contém o lote L5 (player). A faixa B saiu de ultraloop/l4-imagens-midia-entrega e NÃO contém o L5, então 28-player-exer
+- *R4/L6 corretor* (6):
+  - R4/L6 menor-2 (role="status" inserido junto com o conteúdo) — Não é uma linha: a <section role="status" > de components/relatorio/aviso-conquista.tsx só entra no DOM quando `pronto && !fechado && novas.length > 0`. Consertar de verdade é montar a região viva sempre e trocar só o mi
+  - R4/L6 menor-3 (EsqueletoGrade3 virou código morto) — Decidir entre apagar o componente e devolvê-lo ao esqueleto do Resumo muda a caixa reservada do §22.6 item 2 (CLS medido) e pede build + medição nova; não cabia no prazo depois do conserto dos dois importantes.
+  - R4/L6 menor-4 (legendas calculadas de zeros antes de `pronto`) — "SEMANAS SEGUIDAS / — / com a meta de 0" exige passar o estado `pronto` para dentro de cada `detalhe` (cinco chamadas) e decidir o texto de espera de cada um; mais de uma linha e com risco de mexer no texto que os e2e do
+  - R4/L6 menor-5 (sticky sem scroll-margin-top) — Uma classe resolveria, mas ela muda o enquadramento de TODA rolagem programática — inclusive a do capturador —, e as 48 PNGs da régua seriam comparadas contra uma base tirada sem ela. Trocar o recorte das capturas no mes
+  - R4/L6 menor-6 ("no total (força + cardio)" em três linhas) — O texto é contrato do §22.6 item 4 (foi ele que desfez o "no total" com dois números diferentes na mesma rolagem) e está travado por e2e; encurtá-lo reabriria o item. Observação: o ladrilho ficou ~5 px mais largo com o `
+  - R4/L6 observação nova (não pedida, não corrigida) — Com seis itens a legenda passou a ocupar DUAS linhas a 360 px e o `text-balance` deixa a segunda começando por "· — descanso · hoje em destaque" (ponto separador no início da linha). Visível na captura 14-relatorio-histo
+- *R4/L7 auditoria-3* (7):
+  - O aviso do item 9 sai no Toaster `position="top-center"` (app/provider… — O aviso do item 9 sai no Toaster `position="top-center"` (app/providers.tsx:42) e a caixa medida é 328×73 px em (16,16) — por 4 s ela cobre o botão 'Ajustar' do cabeçalho: `document.elementFromPoint` no centro do Ajustar
+  - O teste do item 5 ('nenhum nome de exercício passa de duas linhas a 36… — O teste do item 5 ('nenhum nome de exercício passa de duas linhas a 360 px') não pode falhar: ele mede `altura/lineHeight <= 2` num elemento com `line-clamp-2`, que por definição nunca passa de duas linhas. Medido na tel
+  - O texto da faixa fixa sai cortado: sem sessão aberta ela mostra o foco… — O texto da faixa fixa sai cortado: sem sessão aberta ela mostra o foco do treino ('Treino A · agachamento no centro') e o <p> tem scrollWidth > clientWidth a 360 px (medido tituloCortado:true), cortando a palavra no meio
+  - A SPEC passou a se contradizer e a documentação envelheceu junto: §14.… — A SPEC passou a se contradizer e a documentação envelheceu junto: §14.3 (linha 351) ainda descreve 'FAB Ajustar', §18.3 (linhas 781 e 800) e §13 (linha 1040) falam do FAB que some/abre os ajustes, e §22.3 item 5 (linha 1
+  - O gatilho do aviso é a marca `treino:saiu-para` gravada no unmount da … — O gatilho do aviso é a marca `treino:saiu-para` gravada no unmount da aba Treino e só apagada quando a aba volta a montar — então o caminho player → Relatório → Treino também dispara 'Treino guardado — toque em Continuar
+  - A mudança de `w-[min(19rem,85vw)]` para `w-[min(19rem,86vw)]` é inerte… — A mudança de `w-[min(19rem,85vw)]` para `w-[min(19rem,86vw)]` é inerte a 360 px: 86vw = 309,6 px > 19rem = 304 px, então o cartão continua com os mesmos 304 px de antes (medido: larguraCard 304, viewport 360). O 'reduzir
+  - `acaoDoDesafio` guarda os rótulos dos CTAs por id ('Fazer a sessão de … — `acaoDoDesafio` guarda os rótulos dos CTAs por id ('Fazer a sessão de barra fixa', 'Fazer a corrida da semana N', 'Fazer o treino da fase …') enquanto `desafio.acao` continua existindo como fallback — o mesmo rótulo pass
+- *R5/L8 auditoria-2* (5):
+  - R5/L8 A oferta "Passar para a Fase 2" segue a semana MOSTRADA, não o progres… — A oferta "Passar para a Fase 2" segue a semana MOSTRADA, não o progresso real do usuário. `ofereceFase2 = faseCumprida(perfil.fase_atual, semanaDaFase(ref, perfil.fase_desde))` usa `ref`, que é a semana na tela. Confirma
+  - R5/L8 A legenda NOVA do mês (`LEGENDA_DO_MES`, linhas ~113-119) é um array e… — A legenda NOVA do mês (`LEGENDA_DO_MES`, linhas ~113-119) é um array escrito à mão de `{ marca, tipo, texto }` — não está amarrada em tipo a nenhuma tabela exaustiva. O lote fez questão de preservar esse contrato na faix
+  - R5/L8 `marcarDia()` devolve "antes" para TODO dia anterior a `data_inicio`, … — `marcarDia()` devolve "antes" para TODO dia anterior a `data_inicio`, inclusive dias que ainda estão no futuro: `const antesDoComeco = inicioDoPrograma !== null && dia.data < inicioDoPrograma`, sem confronto com `hoje`. 
+  - R5/L8 Processo, não código: a verificação do passo 1 ("<hash de 40 caractere… — Processo, não código: a verificação do passo 1 ("<hash de 40 caracteres>.status == ok") nunca pode passar, porque portoes.sh escreve `$(git rev-parse --short HEAD).status` — 7 caracteres — e, pior, usa o HEAD do MOMENTO 
+  - R5/L8 Processo, não código: o `--esperadas calendario,treino-topo` pedido no… — Processo, não código: o `--esperadas calendario,treino-topo` pedido no enunciado não marca nada, porque a função de casamento (linha 163) é `o.esperadas.some((e) => nome.startsWith(e))` e os arquivos começam pelo número 
+- *R5/L8 construtor* (1):
+  - L8 a11y-09 parcial: nav-inferior + FAB da aba Treino a 200 % de zoom — em / sobram 26 px de rolagem horizontal a 200 % por causa de components/nav-inferior.tsx e do botão flutuante; fora dos arquivos do L8
+- *R4/L7 auditoria-4* (7):
+  - `scroll-padding-top: calc(env(safe-area-inset-top, 0px) + 56px)` foi p… — `scroll-padding-top: calc(env(safe-area-inset-top, 0px) + 56px)` foi posto no `html`, isto é, no app inteiro, por causa de uma faixa que só existe na aba Treino e só depois de rolar. Todo salto por âncora e todo scroll d
+  - O código põe `title={item.nome}` no nome do exercício, e o comentário … — O código põe `title={item.nome}` no nome do exercício, e o comentário imediatamente acima — junto com a SPEC §22.7 item 5 e o PROGRESSO.md — argumenta o contrário para justificar o `line-clamp-2`: "no celular não há `tit
+  - Sobrou uma contradição do "FAB Ajustar" que o relatório do construtor … — Sobrou uma contradição do "FAB Ajustar" que o relatório do construtor diz ter eliminado. A §22.3 item 5 (linha 1471) continua definindo a elevação pelo componente que deixou de existir: "O que flutua (o FAB \"Ajustar\", 
+  - O caso da §22.3 item 5 ("elevação do que flutua") era sobre sombra/ane… — O caso da §22.3 item 5 ("elevação do que flutua") era sobre sombra/anel nos dois temas e media `boxShadow` do FAB. Como o FAB virou botão de cabeçalho, o caso foi reescrito para medir contorno e 44 px — o que é razoável 
+  - A gravação por atraso de 700 ms grava número pela metade. Quem digita … — A gravação por atraso de 700 ms grava número pela metade. Quem digita "90" devagar no celular (pausa maior que 700 ms entre o 9 e o 0) grava 9 s, vê o aviso "Descanso padrão: 9 s." e só depois grava 90 — duas escritas na
+  - Em `useAvisoDeVoltaDoPlayer` a marca `treino:saiu-para` é escrita no d… — Em `useAvisoDeVoltaDoPlayer` a marca `treino:saiu-para` é escrita no desmonte da aba Treino e só é apagada quando a aba Treino monta de novo. Se o usuário sair do player para outra aba (Corpo, Mais) e só depois voltar pa
+  - Higiene de processo do construtor, não do código: o par da faixa A fic… — Higiene de processo do construtor, não do código: o par da faixa A ficou no ar depois dos portões (mock-supabase PID 14633/14644 na 54321 e next-server PID 14692 na 3100, 35 minutos de pé) e o arquivo de PIDs ficou VAZIO
+- *R5/L9 auditoria-2* (4):
+  - R5/L9 Hierarquia de títulos da vitrine: a seção do catálogo (<section aria-l… — Hierarquia de títulos da vitrine: a seção do catálogo (<section aria-label="Catálogo">) é IRMÃ de «Escolhas para você», mas o título dela virou <h3>Exercícios</h3>, o mesmo nível dos cinco títulos que de fato pertencem à
+  - R5/L9 O botão "Filtros" (recolhimento do item 5) declara aria-expanded={aber… — O botão "Filtros" (recolhimento do item 5) declara aria-expanded={abertos} mas não tem aria-controls apontando para o bloco que ele abre, e o bloco de filtros não tem id. Quem usa leitor de tela ouve que algo expandiu, s
+  - R5/L9 Ponto cego da régua visual (problema de método, não de código — para o… — Ponto cego da régua visual (problema de método, não de código — para o orquestrador, não para o corretor). A linha de base em $U/base foi regerada às 08:38 do head 9d2c001 (L8 Calendário, já em main), mas a branch do lot
+  - R5/L9 ANTERIOR AO LOTE (não bloqueia, registro para a fila): a tela da coleç… — ANTERIOR AO LOTE (não bloqueia, registro para a fila): a tela da coleção não tem <h1> nenhum — só <section aria-label={colecao.titulo}> na linha 41. A sonda navegou /explorar/grupo/Core, /core, /Bíceps e /biceps e nas qu
+
+### Rodada 5 — Lote 8 — Calendário e faixa da semana (faixa C)
+
+SPEC §22.8. Dez itens na faixa C (`/home/user/wt-c`, portas 3130/54351), em
+cima do L6 (a faixa da semana com "hoje por fazer" como anel e a legenda com
+"parcial" — nada disso foi desfeito).
+
+**1. "Fase 1 · semana 16 de 12" acabou** (`lib/semana.ts`,
+`components/calendario/tela-calendario.tsx`) — era: `rotuloDaFase()` somava a
+semana da fase sem olhar o total, e quem não passou para a Fase 2 na semana 12
+lia um numerador maior que o denominador. É: da semana 13 em diante o rótulo
+vira **"Fase 1 · 12 de 12 concluída"**, e `faseCumprida()` — a mesma regra,
+uma função só — avisa a tela, que mostra ao lado do chip o botão **"Passar
+para a Fase 2"** (leva a `/mais/perfil`, onde a troca acontece). Até a semana
+12 nada muda ("Fase 1 · semana 3 de 12"). Prova: dois casos novos em
+`lib/semana.test.ts` (um deles varre todo "N de M" do rótulo e cobra N ≤ M) e
+o e2e `§22.8-1`, que varre o `innerText` da tela inteira atrás de qualquer
+fração impossível.
+
+**2. O mês virou navegável de verdade** (`components/calendario/grade.tsx`,
+`tela-calendario.tsx`) — era: uma grade de `<span>`s que não respondia a
+toque, com um título que prometia um mês inteiro e nenhuma seta. É: cada dia é
+um `<button>` de 44 px de altura que abre o **mesmo `DialogoDia`** do cartão
+da semana (a `DiaDaGrade` do dia sai de `montarGrade()` na hora do toque —
+mesma fonte, sem segunda montagem) e leva a semana de cima para a semana
+daquele dia; ‹ › de mês ao lado do título. Prova: e2e `§22.8-2` (toca 18/09 no
+mês, confere o diálogo com o formulário de troca e vai e volta de agosto).
+
+**3. A faixa dos sete dias rola em vez de vazar** (`components/ui/faixa-semana.tsx`)
+— era: sete colunas `flex-1` com largura mínima de texto; a 200 % de zoom
+(180 px efetivos) a faixa media **264 px** contra 180 e empurrava a página
+inteira para o lado. É: a lista é um carrossel (`overflow-x-auto` + `snap-x`,
+o mesmo padrão dos desafios) com `min-w-9` por dia — a 360 px as sete casas
+continuam preenchendo a largura sem rolagem nenhuma; abaixo disso quem rola é
+a faixa. No Calendário, o cabeçalho e a linha de navegação ganharam
+`flex-wrap` pelo mesmo motivo. Prova: e2e `§22.8-3` mede `/` e `/calendario` a
+180 px (nenhum elemento do `main` passa da largura; em `/calendario` a rolagem
+da página também é 0), confere que a faixa rola sozinha ali e que a 360 px ela
+não rola. **Fica na fila**: a 180 px duas coisas `position: fixed` e de fora
+deste lote ainda passam da tela em `/` — a barra de 5 abas
+(`components/nav-inferior.tsx`, 26 px) e o botão flutuante da aba Treino.
+
+**4. Um marcador, uma caixa** (`components/ui/faixa-semana.tsx`) — era: "feito"
+e "parcial" pintavam 24 px, "faltou"/"a fazer" 10 px e "descanso" um traço de
+12 × 2 — sete marcadores, sete pesos. É: todos ocupam **20 × 20** e só o
+miolo muda (disco cheio com ✓ de 12 px; anel de 20 px com miolo de 8 px; anel
+de 10 px, na cor primária quando é hoje; disco de 10 px; traço de 10 × 2).
+Nenhum desenho trocou de significado. Prova: e2e `§22.8-4` mede os sete
+`[data-glifo]` (largura, altura e topo iguais).
+
+**5. "Hoje" também para quem não vê a cor** (`grade.tsx`) — era: o dia corrente
+do mês só existia como `bg-primary/15` (falha WCAG 1.4.1) e sumia no leitor de
+tela. É: `aria-current="date"` e a palavra "hoje" no nome acessível da casa.
+O `<span class="sr-only">` pedido no item foi trocado pelo nome acessível de
+propósito: texto `sr-only` entra no `getByText` da página como texto comum —
+é o motivo registrado na §22.3 item 11, e a faixa da semana já resolve assim.
+Prova: e2e `§22.8-5`.
+
+**6. Legenda do mês, e forma antes de cor** (`grade.tsx`) — era: a marcação do
+dia era um ponto de 6 px que mudava só de tom (primária, `foreground/40`,
+`destructive/60`) e não tinha legenda nenhuma. É: uma legenda de uma linha sob
+a grade, desenhada com o **mesmo** componente `GlifoDoMes` da grade (não um
+texto à mão que possa passar a mentir): ● feito · ◉ parcial · ○ força a fazer
+· ◇ cardio a fazer · ✕ perdido. Feito × planejado agora diferem por **forma**
+(disco cheio × anel), força × cardio por forma (círculo × losango) e o dia
+perdido é um ✕. Prova: e2e `§22.8-6` (a legenda inteira e o desenho medido:
+o feito tem preenchimento e borda 0, o planejado tem borda e fundo
+transparente).
+
+**7. "0 perdidos" não é notícia** (`tela-calendario.tsx`) — era: "1 feito ·
+3 a fazer · 0 perdidos" mesmo na semana perfeita. É: o trecho só aparece
+quando há algum, e os três números ganharam uma barra de três segmentos
+(feito / a fazer / perdido) logo abaixo da navegação. Prova: e2e `§22.8-7`
+(a semana que ainda não começou lê exatamente "0 feitos · 5 a fazer").
+
+**8. A semana mostrada entre as setas** (`tela-calendario.tsx`) — era: o
+intervalo era o subtítulo da tela, longe dos ‹ › que o mudam, e o "Hoje"
+ocupava a largura inteira mesmo já estando nela. É: "14/09 – 20/09" entre as
+setas e um "Hoje" pequeno que **só aparece quando a semana na tela não é a
+atual**. Prova: e2e `§22.8-8` (geometria: o intervalo está entre os dois
+botões; o "Hoje" some e volta).
+
+**9. "Não vou treinar hoje" presa ao dia** (`tela-calendario.tsx`) — era: a
+ação flutuava depois da grade, sem nada dizendo a que dia ela se aplica. É:
+logo abaixo da grade, separada por um divisor e pelo rótulo **"Se hoje
+(16/09) não rolar"**, com a data de hoje escrita. Prova: e2e `§22.8-9`.
+
+**10. Hierarquia do mês e cartões do mesmo tamanho** (`grade.tsx`) — era: o
+mês era um rótulo `text-xs uppercase` e os cartões da semana variavam de
+altura conforme o detalhe cabia em uma ou duas linhas. É: o mês é um título de
+seção (`text-base font-semibold`, sem versalete), a linha da semana mostrada
+ganha realce dentro da grade, e o rótulo e o detalhe do cartão têm
+`line-clamp-1` com `min-h-9` na coluna de texto — os sete ficam idênticos e o
+texto inteiro continua no `title` e no `DialogoDia`. Prova: e2e `§22.8-10`
+(as sete alturas são o mesmo número; o `h2` mede 16 px e `text-transform:
+none`).
+
+**11. Antes do começo do programa não existe falta** (`lib/semana.ts`,
+`grade.tsx`, `faixa-semana.tsx`, `tela-calendario.tsx`) — **correção da
+auditoria deste lote**. Era: `marcarDia()` não conhecia
+`profiles.data_inicio`, então todo dia planejado anterior ao começo do
+programa e sem sessão virava "faltou"; com o item 6 acima isso deixou de ser
+um ponto quase invisível e virou ✕ vermelho na grade do mês — dez deles em
+setembro para o perfil que começou em 14/09 (31/08, 01, 02, 04, 05, 07, 08,
+09, 11 e 12/09), com o nome acessível repetindo "faltou". É: a marca nova
+**"antes"**, devolvida por `marcarDia()` para todo dia anterior a
+`data_inicio` sem sessão gravada; ela não desenha nada (grade do mês, faixa
+da semana e coluna do símbolo), diz "antes do começo" no nome acessível e sai
+da contagem da semana — numa semana inteiramente anterior ao começo a linha
+"N feitos · N a fazer · N perdidos" some. `MarcaVisivel`
+(`Exclude<MarcaDoDia, "antes">`) segura o contrato da legenda (§22.6 item 9):
+"antes" é a única marca fora dela, e qualquer outra nova continua quebrando a
+compilação. Sessão gravada antes do começo continua "feito". Prova: e2e
+`§22.8-11` (o mês de setembro tem exatamente dois `[aria-label*="faltou"]`,
+14/09 e 15/09; 05/09 lê "05/09: antes do começo" e não desenha nada; a semana
+de 07/09 não tem marca nem contagem) e `lib/semana.test.ts` ("o começo do
+programa (SPEC §22.8 item 11)", quatro casos, incluindo o perfil sem
+`data_inicio`, em que a regra antiga continua valendo).
+
+**Como testar no celular** (360 px): Calendário → o topo lê "Calendário" e
+"Fase 1 · semana 1 de 12"; a linha seguinte é "‹ 14/09 – 20/09 ›" e o "Hoje"
+só aparece depois de tocar em ›. Abaixo, a barrinha de três segmentos com "0
+feitos · 3 a fazer · 2 perdidos" (na semana que vem, sem a palavra
+"perdidos"). Os sete cartões têm a mesma altura. Depois da grade, o divisor
+com "Se hoje (16/09) não rolar" e o botão. No mês, toque em qualquer dia —
+abre a mesma folha do cartão da semana —, as setas ‹ › trocam de mês, o dia de
+hoje está marcado e a legenda embaixo explica os cinco desenhos. Nenhum dia
+anterior ao começo do programa (o 14/09 do perfil) tem ✕: toque em 05/09 e o
+leitor de tela lê "05/09: antes do começo"; ‹ na semana volta para 07/09 –
+13/09, que fica sem marca nenhuma e sem a linha de contagem. Com o zoom do
+navegador em 200 %, o Calendário não rola mais para o lado e a faixa dos sete
+dias rola sozinha (na aba Treino ainda sobra a barra de abas do rodapé, que é
+de outro lote).
+
+**Deploy.** No ar em 21/09/2026 às 08:37 UTC, pelo PR #10 (main `9d2c001`).
+Produção saiu de `dpl_6jSLT4atYUX13YzAq8vST7URPYJj` para
+`dpl_Am2hPSTMigcpbZWkVgn1Fd3WEEXc`; `/versao` devolve
+`9d2c0013e7e07b5f9eb50c5f9f07e4f2e96a2d70` (construído às 08:36:01Z) e o CSS
+de `/login` foi de `99b3cfc2eb0aa8b3.css` para `8ffaaaf63ec77165.css`.
+Fumaça verde **18/18 na primeira execução**, item a item: `/login` 200 — ok;
+contém "Treino do Terraço" — ok; contém "Entrar" — ok; **não** contém
+"Configure NEXT_PUBLIC_SUPABASE_URL" — ok; **não** contém "é secreta" — ok;
+`/` → 307 para `/login` — ok; `/versao` igual ao sha do merge em main — ok;
+`/sw.js` 200 (54.192 bytes) — ok; com `/~offline` — ok; com `figuras/` — ok;
+com o **mesmo** CSS do HTML de `/login` (`8ffaaaf63ec77165.css`) — ok;
+`/manifest.webmanifest` 200 com "Treino do Terraço" — ok; `/~offline` 200 —
+ok; os 12 scripts `/_next/static` do `/login` → 200 — ok (12 conferidos, 0
+fora de 200). Marcadores do lote: o `/sw.js` lista o chunk novo do Calendário
+(`app/(app)/calendario/page-8e598b96822ac760.js`) — ok; esse chunk, baixado
+(200, 22.753 bytes), contém **"Passar para a Fase 2"** — ok — e **"cardio a
+fazer"** — ok (o bundle escapa os acentos, então os marcadores foram
+procurados sem acento). A sonda opcional de Playwright a 360 px contra a URL
+pública não rodou (o Chromium local não confia na CA do proxy de saída); a
+régua de 360 px correu verde no portão local (varredura 5 passed). Nenhuma
+migração de banco. **Rollback: não.**
+
+### Rodada 5 — Lote 9 — Explorar e catálogo: achar o exercício (faixa B)
+
+Branch `ultraloop/l9-explorar-catalogo`, a partir de `ultraloop/l6-relatorio-estrutura`.
+SPEC §22.9. Dez itens; a régua de cada um está no aceite do próprio item.
+
+1. **O catálogo saiu de dentro do Explorar** (`components/explorar/tela-explorar.tsx`,
+   `components/exercicios/lista-exercicios.tsx`). **Era:** a vitrine despejava
+   a `<ListaExercicios>` inteira abaixo das seções — os 81 exercícios, 81
+   `<img>`, 78% de uma página de 8.922 px (doze telas de celular). **É:** uma
+   **prévia de 12** (`PREVIA_DO_CATALOGO`) e o botão **"Ver os 81 exercícios"**
+   levando a `/exercicios`; a `ListaExercicios` ganhou a prop `limite`, que
+   corta a lista e esconde busca, filtros e contador — numa prévia eles não
+   têm o que controlar. A página fecha **abaixo de 4.000 px**, medido no e2e.
+2. **O catálogo monta 20 de cada vez** (`components/exercicios/lista-exercicios.tsx`).
+   **Era:** `/exercicios` montava os 81 cartões — e as 81 miniaturas — numa
+   tacada. **É:** `POR_PAGINA = 20` e um **"Ver mais 20 de 81"** que
+   acrescenta outros 20. A contagem da tela ("81 exercícios", "40 de 81
+   exercícios") continua dizendo o total **achado**, não o que está montado —
+   é ela que os testes de filtro leem. Trocar a busca ou um filtro volta
+   sozinho para os 20 primeiros, sem `useEffect`: o estado guarda a chave dos
+   filtros que valiam quando o "Ver mais" foi tocado.
+3. **A busca mostra o exercício primeiro** (`components/explorar/tela-explorar.tsx`).
+   **Era:** com "supino", nove linhas de coleção na frente e o exercício em
+   y=860 — fora do viewport de 740. **É:** **Exercícios primeiro, Coleções
+   depois**, cada bloco com a sua contagem no título, e — quando os dois
+   blocos existem (item 10) — um seletor de uma linha no topo ("Exercícios
+   (6) · Coleções (9)") que pula para o bloco. O e2e mede a caixa do primeiro
+   exercício a 360×740.
+4. **Um vazio só, citando o termo** (`tela-explorar.tsx`, `lista-exercicios.tsx`).
+   **Era:** busca sem resultado mostrava **dois** vazios empilhados, e o
+   segundo — "Nenhum exercício com esses filtros" — mentia: não havia filtro
+   nenhum. **É:** *Nada para «zzzz»* com **"Limpar busca"**, um só; a
+   mensagem de filtro do catálogo só aparece quando `temFiltro(filtros)` é
+   verdade ali dentro.
+5. **Chegar por uma busca mostra resultado, não controle** (`lista-exercicios.tsx`).
+   **Era:** o catálogo alimentado pela busca do Explorar abria com três
+   selects e o botão "No meu programa" na frente dos resultados. **É:** com
+   busca vinda de fora e não vazia, o bloco fica recolhido atrás do botão
+   **"Filtros"**, que mostra em um selo quantos filtros estão ativos.
+6. **`app/not-found.tsx`** (arquivo novo). **Era:** `/explorar/[tipo]/[valor]`
+   e `/exercicios/[id]` chamavam `notFound()` e não havia página para receber
+   — um atalho guardado na tela de início, ou um link velho depois de o PWA
+   se atualizar, caía na tela crua do Next, em inglês e sem saída. **É:**
+   *"Essa tela não existe mais."* em pt-BR, com **Voltar para Hoje**, **Ver o
+   Explorar** e **Ver os exercícios**; a resposta continua sendo 404.
+7. **Nenhuma capa repetida na mesma seção** (`lib/colecoes.ts`,
+   `components/colecoes/linha-colecao.tsx`). **Era:** `montar()` dá a cada
+   coleção a foto do primeiro exercício, e `supino-reto-com-barra-1.jpg` era a
+   capa de quatro linhas da mesma tela (2 repetições em "Treinos do programa",
+   4 em "Por aparelho"). **É:** cada seção da vitrine passa por
+   `semCapasRepetidas()`, que dá à coleção a primeira foto **ainda não usada
+   naquela seção**; sem nenhuma sobrando, a linha cai no **ícone do tipo**
+   (halteres, chave, cronômetro, calendário, batimento) sobre um dos quatro
+   tons do tema, escolhido por um hash do id. A coleção guardada não muda: a
+   tela da coleção continua abrindo com a foto do primeiro exercício.
+8. **Um degrau entre rótulo e seção** (`tela-explorar.tsx`). **Era:**
+   "Escolhas para você" em 16 px semibold, igual aos títulos de seção logo
+   abaixo, sem agrupar nada. **É:** overline de **11 px em caixa alta**, e os
+   títulos de seção sobem para **16 px semibold com régua acima**.
+9. **A rota da coleção é normalizada** (`lib/colecoes.ts`). **Era:**
+   `hrefDaColecao` escrevia o id cru no segmento ("/explorar/grupo/Bíceps",
+   com acento e maiúscula) e `colecaoDaRota` comparava texto cru: ida e volta
+   divergiam. **É:** os dois lados passam por `segmentoDaColecao()`
+   (minúscula, sem acento, espaço vira hífen) e a comparação é feita no
+   segmento normalizado — os links antigos continuam abrindo. Um teste percorre
+   **todas** as coleções: a URL que a vitrine gera volta na mesma coleção, e
+   duas coleções nunca caem na mesma URL.
+10. **O número do título é o da lista, e o seletor só aparece com dois blocos**
+    (`tela-explorar.tsx`, `lista-exercicios.tsx`) — correção da auditoria.
+    **Era:** (a) o `<p>` do seletor desenhava sempre os dois âncoras enquanto
+    cada bloco só é montado com contagem > 0; buscar "tatame" (0 exercícios,
+    2 coleções) deixava «Exercícios (0)» como link focável de 80×44 px para um
+    id que não existia no documento — tocar não fazia nada, e com um bloco só
+    o seletor não tinha escolha nenhuma a oferecer. (b) `quantosExercicios`
+    era contado com o termo apenas, enquanto a `<ListaExercicios>` aplicava
+    também o filtro recolhido atrás do botão "Filtros": buscar "supino" e
+    escolher Grupo = Costas deixava na tela «Exercícios (6)», "0 de 81
+    exercícios" e "Nenhum exercício com esses filtros" — e o 6 continuava
+    mentindo na busca seguinte, porque o filtro sobrevivia à troca do termo.
+    **É:** o seletor só é montado quando os **dois** blocos existem; os
+    filtros moram no `TelaExplorar` e a `<ListaExercicios>` os recebe por prop
+    (`filtros` + `aoMudarFiltros`, controlada só quando as duas vêm), então o
+    número do título e a lista saem do mesmo `filtrarExercicios`. Com filtro
+    ativo e zero achados o bloco fica de pé — é ele que carrega o "Limpar
+    filtros" — e o vazio da busca inteira não aparece por cima; o contador
+    "N de 81" some quando a busca vem do Explorar (o título logo acima já é o
+    contador, e é ele que ganha `aria-live="polite"`). Apagar a busca solta os
+    filtros — como já acontecia, porque a lista desmontava —, trocar só o
+    termo os mantém.
+
+**Fora dos arquivos do lote:** `lib/guia.ts` (uma linha — o caminho do guia
+dizia "Explorar → Todos os exercícios", rótulo que saiu da tela; agora é
+"Explorar → Exercícios") e `e2e/catalogo.spec.ts` (o teste do filtro "no meu
+programa" conta os cartões; com a paginação ele abre a lista inteira no
+"Ver mais 20" antes de contar — o que ele verifica não mudou).
+
+**Provas:** `lib/colecoes.test.ts` ganhou 7 casos (normalização e ida e volta
+de toda a vitrine, colisão de segmento, capas por seção);
+`e2e/ultraloop-b-r5.spec.ts` tem 11 testes (os dois do item 10 afirmam que
+todo `a[href^="#achados"]` visível tem destino no documento e que o número do
+título é o da lista, com filtro e sem).
+
+**Como testar no celular** (360 px):
+- **Explorar**: a página acaba logo depois de "Exercícios" + "Ver os 81
+  exercícios" — não tem mais catálogo dentro dela. Em "Por aparelho", nenhuma
+  linha repete a foto da linha de cima.
+- **Busca**: digite "supino" na barra do Explorar — os **exercícios** aparecem
+  primeiro, sem rolar; digite "zzzz" — **uma** mensagem só, citando o termo.
+  Digite "tatame": só coleções, e a linha "Exercícios (0) · Coleções (2)" não
+  aparece mais. Com "supino", toque em "Filtros" e escolha Grupo = Costas: o
+  título vira **Exercícios (0)** junto com o "Nenhum exercício com esses
+  filtros" — nunca mais um número em cima e outro embaixo.
+- **Catálogo**: em "Ver os 81 exercícios", role até o fim: há 20 cartões e um "Ver mais 20 de 81". Chegando pela busca, os filtros vêm recolhidos.
+- **404**: abra `/exercicios/remada-curvada-com-barra` — a tela responde em
+  português com as três saídas.
+
+**Deploy.** No ar em 21/09/2026 às 10:01 UTC, pelo PR #11 (main `8830fe5`) —
+**o último deploy da madrugada**. Produção saiu de
+`dpl_Am2hPSTMigcpbZWkVgn1Fd3WEEXc` para `dpl_4GtXTGgY9LcUMCHhbLriBu3uP6gg`;
+`/versao` devolve `8830fe53d170cf06d4b0c91116154d45a2b2270f` (construído às
+09:59:56Z) e o CSS de `/login` foi de `8ffaaaf63ec77165.css` para
+`28025654e892a608.css`. Fumaça verde **21/21, em duas execuções seguidas**,
+item a item: `/login` 200 — ok; contém "Treino do Terraço" — ok; contém
+"Entrar" — ok; **não** contém "Configure NEXT_PUBLIC_SUPABASE_URL" — ok;
+**não** contém "é secreta" — ok; `/` → 307 para `/login` — ok; `/versao` igual
+ao sha do merge em main — ok; `/sw.js` 200 (54.417 bytes) — ok; com
+`/~offline` — ok; com `figuras/` — ok; com o **mesmo** CSS do HTML de `/login`
+(`28025654e892a608.css`) — ok; `/manifest.webmanifest` 200 com "Treino do
+Terraço" — ok; `/~offline` 200 — ok; os 14 scripts `/_next/static` do `/login`
+→ 200 — ok (14 conferidos, 0 fora de 200). Marcadores do lote: o `/sw.js`
+lista o chunk do 404 (`app/not-found-e3866b2d3fe0af9e.js`, 200, 233 bytes) e a
+rota `/not-found` é **nova** — o `/sw.js` do deploy anterior não listava
+nenhum `app/not-found-*.js` — ok; o `/sw.js` lista o chunk novo do Explorar
+(`app/(app)/explorar/page-a203e7f3f86ed928.js`; o anterior era
+`page-6eefbe762a193f3c.js`) — ok; esse chunk, baixado (200, 14.843 bytes),
+contém **"Limpar busca"** — ok — e **"Exerc"** (o título "Exercícios (" tem o
+acento escapado no bundle) — ok.
+
+Um marcador da ficha do lote não pôde ser conferido como estava escrito: *"o
+chunk `app/not-found-*.js` contém 'Voltar para Hoje'"*. Ele é **impossível por
+construção**, não é falha de produção — `app/not-found.tsx` é Server
+Component, então esse texto só existe no bundle do servidor. Provas: os 78
+chunks do precache do `/sw.js` foram baixados e nenhum contém "Voltar para
+Hoje" nem "Essa tela n"; o build local do mesmo HEAD (o que passou nos
+portões) tem o mesmo chunk de 235 bytes, também sem o texto, que aparece só em
+`.next/server/`; e a própria tela de 404 não é pública — `/rota-inexistente`
+devolve 307 para `/login`, porque o middleware de autenticação vem antes. Foi
+substituído pela prova equivalente e verificável acima (a rota `/not-found` é
+nova em produção); quem cobre a redação do 404 é o e2e, com sessão. Nenhuma
+migração de banco. **Rollback: não.**
+
+**Linha de base regenerada.** `wt-base` avançou para `8830fe5` (o merge em
+main), `build:e2e` com `MOCK_SUPABASE_PORT=54341` ("Compiled successfully in
+13,3 s"), servidores de novo em 3120/54341, mock semeado com `max_contas: 50`
+e **60/60 capturas** novas em `base/` (a antiga virou `base-r5`). O CSS
+servido em `:3120/login` é `28025654e892a608.css` — o mesmo de produção. O
+`indice.json` confirma os números do lote no HEAD publicado: `/explorar` com
+**3.084 px** e `/exercicios` com **2.187 px** de altura.
