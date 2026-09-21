@@ -358,7 +358,7 @@ test.describe('"Começar treino" entra direto no player (SPEC §14.5.1)', () => 
 
     await page.getByRole("link", { name: /Treinar mesmo assim/ }).click();
     await expect(page).toHaveURL(/\/treinar$/);
-    await expect(page.getByRole("button", { name: /^Começar Treino / })).toHaveCount(2);
+    await expect(page.getByRole("button", { name: /^Começar o Treino / })).toHaveCount(2);
   });
 
   /*
@@ -378,7 +378,7 @@ test.describe('"Começar treino" entra direto no player (SPEC §14.5.1)', () => 
 
     for (let volta = 0; volta < 3; volta++) {
       await page.goto("/treinar");
-      await expect(page.getByRole("button", { name: /^Começar Treino / })).toHaveCount(
+      await expect(page.getByRole("button", { name: /^Começar o Treino / })).toHaveCount(
         2,
         { timeout: 15_000 },
       );
@@ -424,7 +424,7 @@ test.describe("o vigia da hidratação (lib/vigia.ts)", () => {
     // e o botão traz o app de volta, com o pacote liberado
     await page.unroute("**/_next/static/chunks/main-app-*.js");
     await botao.click();
-    await expect(page.getByRole("button", { name: /^Começar Treino / })).toHaveCount(2, {
+    await expect(page.getByRole("button", { name: /^Começar o Treino / })).toHaveCount(2, {
       timeout: 20_000,
     });
     await expect(page.locator("#vigia-hidratacao")).toHaveCount(0);

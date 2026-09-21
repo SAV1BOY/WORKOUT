@@ -7088,6 +7088,72 @@ SPEC §22.5. Dez itens, na ordem de prioridade do lote.
 
 (a preencher)
 
+### Rodada 4 — Lote 7 — aba Treino: hierarquia e controle (faixa A)
+
+Nove itens da auditoria da aba Treino (SPEC §22.7). Arquivos:
+`components/treino/{tela-treino,cabecalho,fab-ajustar,lista,desafios,parte-do-corpo,cards,personalizar,retomada}.tsx`,
+`components/mais/ajustes-do-treino.tsx`, `components/treinar/tela-treinar.tsx`,
+`e2e/ultraloop-a-r4.spec.ts` (novo) e os specs que citavam os textos antigos.
+
+**Era → é**
+
+1. **Ajustar** (`fab-ajustar.tsx`, `cabecalho.tsx`, `tela-treino.tsx`) — era um
+   FAB fixo que, com a lista rolada, ficava por cima do "Substituir" do 3º
+   exercício (`elementFromPoint` devolvia o svg do FAB); é um botão de 44 px no
+   **cabeçalho**, ao lado da data. A folha é a mesma. Com a retomada pendente
+   ele continua saindo da tela (§18.3). O `pb-24` da aba saiu.
+2. **Faixa fixa do dia** (`cabecalho.tsx`, `tela-treino.tsx`) — o caminho para o
+   treino de hoje existia só no topo de 2.555 px de rolagem; agora, quando o
+   card sai da tela, uma faixa fina no alto repete "Treino A · 0/17 séries ·
+   Continuar" (ou o foco do treino + "Começar"). `IntersectionObserver` numa
+   sentinela abaixo do card; as linhas da lista ganharam `scroll-mt-14`.
+3. **Folha Ajustar** (`ajustes-do-treino.tsx`, `fab-ajustar.tsx`) — tinha dois
+   botões "Salvar" convivendo com interruptores que gravam sozinhos; agora os
+   dois campos gravam no blur e 700 ms depois da última tecla, sem botão
+   nenhum. Placeholder "do exercí…" → "—"; "Nenhum. Eles aparecem…" → "Nenhum
+   por enquanto. Quando você marcar algum, ele passa a aparecer por último nas
+   listas."; a folha abre com foco no título (não no campo), sem teclado.
+4. **Ladrilhos Fase e Peso** (`cabecalho.tsx`) — "Fase 1 · semana 16" numa linha
+   e "72,5 kg há 4 dias" noutra, com alturas diferentes; agora os dois têm
+   rótulo / valor / legenda em linhas de altura fixa, ancorados ao topo.
+5. **Lista de hoje** (`lista.tsx`) — o olho batia em "Hoje:" (fonte de número)
+   antes do nome, que quebrava em duas linhas disputando a largura com os
+   raios; agora o nome é `font-semibold`, sozinho na linha e cortado com
+   reticências quando não cabe, os raios foram para o fim da prescrição e a
+   fonte de número ficou só no valor da carga.
+6. **Desafios** (`desafios.tsx`) — três cards com o mesmo CTA e nenhum sinal de
+   que eram três; agora o `<ul>` tem nome, há "1 de 3" e pontinhos, cada CTA diz
+   o destino e o botão tem `mt-auto` (não pula mais entre os cards).
+7. **Chips** (`parte-do-corpo.tsx`) — "Pernas", "Core" e "Cardio" ficavam fora da
+   tela sem sinal; as duas fileiras ganharam degradê na borda, só do lado em
+   que há conteúdo escondido.
+8. **Verbos** (`parte-do-corpo.tsx`, `personalizar.tsx`, `tela-treinar.tsx`) —
+   "Começar Peito" → "Começar o treino de peito"; "Começar Treino B" →
+   "Começar o Treino B"; "Começar (3)" → "Começar com 3 exercícios".
+9. **Voltar do player** (`retomada.tsx`, `cards.tsx`, `tela-treino.tsx`) — o
+   voltar do celular jogava para a aba Treino sem explicação; agora avisa
+   "Treino guardado — toque em Continuar para retomar." por 4 s e destaca o
+   card "em andamento".
+
+**Provas**: `e2e/ultraloop-a-r4.spec.ts` (11 testes, um por aceite: toque em
+cada "Substituir", faixa fixa com e sem sessão, aviso ao voltar do player,
+gravação sem "Salvar", ladrilhos na mesma base, nome numa linha só, posição do
+carrossel, degradê das duas fileiras, verbo com objeto). Os specs antigos que
+citavam os textos trocados foram atualizados sem afrouxar o que verificavam
+(`v3`, `treino`, `treinar`, `player`, `ultraloop-a-r2`).
+
+**Como testar no celular**
+
+1. Na aba Treino, o **Ajustar** está no alto, ao lado da data. Role até o fim:
+   surge a **faixa fina** com o treino do dia e um toque para continuar; toque
+   em qualquer **⇄ Substituir** da lista — abre a folha do próprio exercício,
+   sem nada por cima.
+2. Toque em **Ajustar**: a folha abre **sem o teclado subir**. Mude o
+   "Descanso padrão" e feche a folha sem procurar botão nenhum — reabra e o
+   número está lá.
+3. Comece o treino e aperte o **voltar** do aparelho: aparece "Treino guardado
+   — toque em Continuar para retomar." e o card do dia fica destacado.
+
 ### Fila (o que não coube)
 
 (a preencher)

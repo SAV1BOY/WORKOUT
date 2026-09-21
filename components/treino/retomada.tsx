@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -12,6 +13,67 @@ import {
 } from "@/components/ui/dialog";
 import type { EscolhaRetomada, OpcaoRetomada } from "@/lib/retomada";
 import { cn } from "@/lib/utils";
+
+/* ------------------------------------------- voltar do player (§22.7 item 9) */
+
+/** Onde fica anotada a rota para onde a aba Treino saiu da última vez. */
+const CHAVE_DA_SAIDA = "treino:saiu-para";
+
+/** `/treinar/<id>` é o player; `/treinar` é a escolha do treino (SPEC §14.1). */
+function ehRotaDoPlayer(caminho: string): boolean {
+  return caminho.startsWith("/treinar/") && caminho.length > "/treinar/".length;
+}
+
+/**
+ * SPEC §22.7 item 9: o "voltar" do celular no meio do treino não é bloqueado —
+ * o gesto do sistema continua saindo do player —, mas deixa de ser mudo. A aba
+ * Treino anota para onde saiu; ao voltar do player com a sessão ainda aberta,
+ * avisa que o treino ficou guardado e destaca o card "em andamento" por alguns
+ * segundos, que é onde está o "Continuar".
+ *
+ * Vale para qualquer volta ao "/" vinda do player — o gesto do celular, o
+ * Escape e o "Continuar depois" da Visão geral, que usam o mesmo caminho.
+ */
+export function useAvisoDeVoltaDoPlayer(temSessaoAberta: boolean): boolean {
+  const [voltou, setVoltou] = useState(false);
+  const [destacado, setDestacado] = useState(false);
+  const jaAvisou = useRef(false);
+
+  /* a marca é lida (e apagada) uma vez, na montagem da aba */
+  useEffect(() => {
+    let saida: string | null = null;
+    try {
+      saida = window.sessionStorage.getItem(CHAVE_DA_SAIDA);
+      window.sessionStorage.removeItem(CHAVE_DA_SAIDA);
+    } catch {
+      saida = null;
+    }
+    if (saida !== null && ehRotaDoPlayer(saida)) setVoltou(true);
+  }, []);
+
+  /* a sessão aberta chega do cache/rede um instante depois da montagem */
+  useEffect(() => {
+    if (!voltou || !temSessaoAberta || jaAvisou.current) return;
+    jaAvisou.current = true;
+    toast("Treino guardado — toque em Continuar para retomar.", { duration: 4000 });
+    setDestacado(true);
+    const relogio = window.setTimeout(() => setDestacado(false), 4000);
+    return () => window.clearTimeout(relogio);
+  }, [voltou, temSessaoAberta]);
+
+  /* ao sair da aba, anota para onde foi: é o que identifica a volta do player */
+  useEffect(() => {
+    return () => {
+      try {
+        window.sessionStorage.setItem(CHAVE_DA_SAIDA, window.location.pathname);
+      } catch {
+        /* aparelho sem sessionStorage: o aviso simplesmente não aparece */
+      }
+    };
+  }, []);
+
+  return destacado;
+}
 
 /** A frase do topo, conforme o tamanho da pausa (SPEC §18.2). */
 function explicacao(dias: number): string {

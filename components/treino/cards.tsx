@@ -131,6 +131,7 @@ export function CardForca({
   mostrarRaios,
   semanaDaFase,
   aberta,
+  destacado = false,
   aoComecar,
   criando,
 }: {
@@ -141,6 +142,12 @@ export function CardForca({
   semanaDaFase?: number;
   /** Sessão em andamento deste treino: o card vira "Continuar". */
   aberta: { id: string; progresso: string } | null;
+  /**
+   * SPEC §22.7 item 9: quem volta do player cai na aba Treino sem explicação
+   * nenhuma. Por alguns segundos o card "em andamento" fica destacado, junto
+   * com o aviso — é onde está o "Continuar".
+   */
+  destacado?: boolean;
   /** Cria a sessão e entra no player, sem tela intermediária (§14.5.1). */
   aoComecar: () => void;
   criando: boolean;
@@ -163,6 +170,7 @@ export function CardForca({
       foto={capaDoTreino(resumo.id)}
       raios={mostrarRaios ? raios : null}
       etiqueta={aberta ? "em andamento" : "hoje"}
+      className={destacado ? "ring-primary/60 ring-2" : undefined}
     >
       {aviso ? <Aviso texto={aviso} /> : null}
       {/*

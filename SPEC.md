@@ -1686,3 +1686,59 @@ a tela — afrouxar o limite não é uma opção.
 ### 22.6 Lote 6
 
 (a preencher pelo lote)
+
+### 22.7 Lote 7 — Aba Treino: hierarquia e controle
+
+A aba Treino tem 2.555 px de rolagem e concentrava tudo no topo. Este lote
+muda **o que fica ao alcance do polegar** e **quem manda no toque**.
+
+1. **O "Ajustar" saiu do meio da lista.** Era um botão flutuante fixo no canto
+   inferior direito: com a lista rolada, `elementFromPoint` sobre o
+   "Substituir" do 3º exercício devolvia o svg do FAB (sobreposições de
+   3 × 21 px e 15 × 21 px). Ele passa a morar no **cabeçalho da aba**, ao lado
+   da data, como botão de contorno de 44 px — a folha que abre é a mesma.
+   Continua valendo §18.3: com a retomada por decidir, o "Ajustar" sai da tela.
+   A folga de 96 px no fim da aba (`pb-24`), que só existia por causa do FAB,
+   saiu junto.
+2. **A sessão de hoje deixa de sumir ao rolar.** Quando o card do dia passa
+   para cima da tela, uma **faixa fixa fina** assume o mesmo caminho no alto
+   ("Treino A · 0/17 séries · Continuar", ou o foco do treino e "Começar"
+   quando ainda não há sessão). Vale nos dias de força, onde a aba é longa; a
+   sentinela que a liga fica logo abaixo do card. As linhas da lista ganharam
+   `scroll-mt-14` para a faixa não comer a linha recém-rolada.
+3. **A folha "Ajustar" grava sozinha.** "Preparação" e "Descanso padrão"
+   gravam no sair do campo (e 700 ms depois de parar de digitar), como os
+   interruptores ao lado; os dois botões "Salvar" sumiram — dois modelos de
+   gravação na mesma folha faziam duvidar se o interruptor tinha pegado. O
+   texto pela metade no campo do descanso ("do exercí…") virou "—", o vazio do
+   "não gosto" ganhou antecedente ("Nenhum por enquanto. Quando você marcar
+   algum…") e a folha abre com o foco no **título**, não no primeiro campo:
+   abrir ajustes não abre mais o teclado numérico.
+4. **Os ladrilhos Fase e Peso têm a mesma gramática.** Rótulo, valor e legenda,
+   cada um numa linha de altura fixa, ancorados ao topo: "Fase 1" com a legenda
+   "semana 16" (como PESO já fazia com "há 4 dias"), valor em linha só com
+   `text-nowrap`. Os dois ladrilhos têm a mesma altura e os valores caem na
+   mesma linha de base.
+5. **O nome do exercício vem antes da carga.** Na lista de hoje o nome está em
+   `font-semibold` e sozinho na linha; os raios de dificuldade desceram para o
+   fim da prescrição ("3 × 8-12 ⚡⚡") e o "Hoje:" perdeu a fonte de número (que
+   ficou só no valor). O nome que ainda não couber a 360 px é cortado com
+   reticências em vez de virar uma segunda linha — o nome inteiro segue no
+   rótulo do toque, no `title` e na ficha.
+6. **O carrossel de Desafios diz que tem três.** O `<ul>` ganhou nome
+   ("Desafios"), a posição aparece em texto ("1 de 3") e em três pontinhos, e
+   cada CTA diz o destino ("Fazer a sessão de barra fixa", "Fazer a corrida da
+   semana 2", "Fazer o treino da fase 1") em vez de três "Fazer a sessão da
+   semana" iguais. O botão ganhou `mt-auto`: não pula mais de altura de um card
+   para o outro quando o subtítulo tem duas linhas.
+7. **As fileiras de chips avisam que continuam.** As duas listas horizontais de
+   "Parte do corpo em foco" ganharam máscara de degradê na borda — só do lado
+   em que há conteúdo fora da tela, e nenhuma quando tudo cabe.
+8. **Verbo com objeto.** "Começar Peito" virou "Começar o treino de peito";
+   "Começar Treino B", "Começar o Treino B"; "Começar (3)", "Começar com 3
+   exercícios". O card do dia continua "Começar treino".
+9. **Voltar do player não é mais mudo.** O gesto do sistema não é bloqueado: ao
+   voltar do player com a sessão aberta, a aba Treino avisa ("Treino guardado —
+   toque em Continuar para retomar.", 4 s) e destaca o card "em andamento",
+   que é onde está o "Continuar". Vale também para o "Continuar depois" da
+   Visão geral, que sai pelo mesmo caminho.

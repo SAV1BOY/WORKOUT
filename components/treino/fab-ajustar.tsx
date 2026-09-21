@@ -15,14 +15,16 @@ import {
 import type { LinhaPerfil } from "@/lib/types";
 
 /**
- * O FAB "Ajustar" da aba Treino (SPEC §14.3): o mesmo bloco de ajustes do
- * player e de Mais → Preferências — são as mesmas chaves em `profiles.prefs`.
+ * O "Ajustar" da aba Treino (SPEC §14.3): o mesmo bloco de ajustes do player e
+ * de Mais → Preferências — são as mesmas chaves em `profiles.prefs`.
  *
- * Fica acima da barra de abas (56 px + respiro) para não cobrir a navegação —
- * mais a área segura do aparelho, que a barra também respeita (§22.1); a
- * seção da aba Treino tem `pb-24` para o fim da lista não ficar embaixo dele.
+ * SPEC §22.7 item 1: era um botão flutuante fixo no canto inferior direito.
+ * Com 2.555 px de rolagem ele acabava por cima da lista — `elementFromPoint`
+ * sobre o "Substituir" do 3º exercício devolvia o svg do FAB —, e ele abria
+ * exatamente a mesma folha da engrenagem do player. Agora mora no cabeçalho da
+ * aba, ao lado da data, onde sobrava espaço e nada mais disputa o toque.
  */
-export function FabAjustar({ perfil }: { perfil: LinhaPerfil | null }) {
+export function BotaoAjustar({ perfil }: { perfil: LinhaPerfil | null }) {
   const [aberto, setAberto] = useState(false);
 
   return (
@@ -31,15 +33,29 @@ export function FabAjustar({ perfil }: { perfil: LinhaPerfil | null }) {
         <button
           type="button"
           aria-label="Ajustar"
-          className="bg-primary text-primary-foreground alvo flutuante fixed right-4 z-40 flex size-14 items-center justify-center rounded-full"
-          style={{ bottom: "calc(6rem + env(safe-area-inset-bottom, 0px))" }}
+          className="border-border bg-card hover:bg-muted alvo text-foreground flex size-11 shrink-0 items-center justify-center rounded-full border"
         >
-          <Settings2 aria-hidden="true" className="size-6" />
+          <Settings2 aria-hidden="true" className="size-5" />
         </button>
       </SheetTrigger>
-      <SheetContent side="bottom" className="max-h-[88dvh] overflow-y-auto pb-8">
+      <SheetContent
+        side="bottom"
+        className="max-h-[88dvh] overflow-y-auto pb-8"
+        /*
+         * SPEC §22.7 item 3: sem isto o foco caía no primeiro campo (a
+         * "Preparação") e o teclado numérico subia junto com a folha, tapando
+         * metade dos ajustes. O foco começa no título, que é o que a folha diz.
+         */
+        onOpenAutoFocus={(evento) => {
+          evento.preventDefault();
+          const folha = evento.currentTarget as HTMLElement;
+          folha.querySelector<HTMLElement>("[data-titulo-da-folha]")?.focus();
+        }}
+      >
         <SheetHeader className="pb-0">
-          <SheetTitle>Ajustar</SheetTitle>
+          <SheetTitle data-titulo-da-folha tabIndex={-1} className="outline-none">
+            Ajustar
+          </SheetTitle>
           <SheetDescription>
             Vale para todos os treinos. Fica em Mais → Preferências.
           </SheetDescription>

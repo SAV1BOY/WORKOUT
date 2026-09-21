@@ -68,8 +68,13 @@ export function ListaDoDia({
 
   return (
     <ul aria-label={titulo} className="flex flex-col divide-y">
+      {/* `scroll-mt-14` na linha: a faixa fixa do dia (§22.7 item 2) não pode
+          comer a linha para onde a página acabou de rolar */}
       {itens.map((item) => (
-        <li key={item.originalId} className="flex items-center gap-1 py-2 first:pt-0">
+        <li
+          key={item.originalId}
+          className="flex scroll-mt-14 items-center gap-1 py-2 first:pt-0"
+        >
           {/* SPEC §14.2: tocar no exercício abre a ficha em folha, por cima */}
           <button
             type="button"
@@ -79,10 +84,21 @@ export function ListaDoDia({
           >
             <Miniatura exercicioId={item.exercicioId} />
             <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-              <span className="flex items-center gap-1.5">
-                <span className="min-w-0 flex-1 text-sm font-medium text-balance">
-                  {item.ordem}. {item.nome}
-                </span>
+              {/*
+                SPEC §22.7 item 5: o nome vem primeiro e sozinho na linha. Os
+                raios desceram para o fim da prescrição, o que devolveu a
+                largura inteira ao nome; o que ainda não couber a 360 px é
+                cortado com reticências em vez de virar uma segunda linha — o
+                nome inteiro continua no rótulo do toque e na ficha.
+              */}
+              <span
+                title={item.nome}
+                className="min-w-0 truncate text-sm font-semibold"
+              >
+                {item.ordem}. {item.nome}
+              </span>
+              <span className="text-muted-foreground flex items-center gap-1.5 text-xs">
+                <span className="numero">{item.alvoTexto}</span>
                 {mostrarRaios ? (
                   <Raios
                     nivel={dificuldadeDe(acharExercicio(item.exercicioId))}
@@ -91,11 +107,11 @@ export function ListaDoDia({
                   />
                 ) : null}
               </span>
-              <span className="numero text-muted-foreground text-xs">
-                {item.alvoTexto}
-              </span>
               <span className="text-muted-foreground text-xs">
-                <span className="text-foreground numero">Hoje: {item.cargaTexto}</span>
+                {/* o olho bate no número da carga, não na palavra "Hoje" */}
+                <span className="text-foreground">
+                  Hoje: <span className="numero">{item.cargaTexto}</span>
+                </span>
                 {item.historico ? ` (${item.historico})` : ""}
               </span>
               {item.substituido ? (
