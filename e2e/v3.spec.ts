@@ -40,8 +40,8 @@ test.beforeEach(async () => {
 
 /** ✓ na série atual e pula o descanso que vem logo depois. */
 async function concluirSerie(page: Page) {
-  await page.getByRole("button", { name: "Concluir a série" }).click();
-  const pular = page.getByRole("button", { name: "Pular" });
+  await page.getByRole("button", { name: "Concluir série" }).click();
+  const pular = page.getByRole("button", { name: "Pular descanso" });
   if (await pular.isVisible().catch(() => false)) await pular.click();
 }
 
@@ -49,14 +49,21 @@ async function concluirSerie(page: Page) {
 async function irAte(page: Page, alvo: ReturnType<Page["getByText"]>) {
   for (let i = 0; i < 40; i++) {
     if (await alvo.isVisible().catch(() => false)) return;
-    const pular = page.getByRole("button", { name: "Pular" });
+    const pular = page.getByRole("button", { name: "Pular descanso" });
     if (await pular.isVisible().catch(() => false)) {
       await pular.click();
       continue;
     }
-    const continuar = page.getByRole("button", { name: "Continuar" });
-    if (await continuar.isVisible().catch(() => false)) {
-      await continuar.click();
+    // o primário da pergunta "firme?" se chama "Pular esta pergunta"
+    // enquanto ninguém responde (SPEC §22.5 item 4)
+    const pergunta = page
+      .getByRole("region", { name: "Última repetição" })
+      .or(page.getByRole("region", { name: "Feedback do treino" }))
+      .getByRole("button", {
+        name: /^(Pular esta pergunta|Continuar|Concluir sem responder|Concluído)$/,
+      });
+    if (await pergunta.isVisible().catch(() => false)) {
+      await pergunta.click();
       continue;
     }
     const proximo = page.getByRole("button", { name: "Próximo passo" });
@@ -175,12 +182,12 @@ test.describe("aba Treino — Parte do corpo em foco (§14.3)", () => {
     await concluirSerie(page);
 
     // 2) o passo de TEMPO (a prancha): contagem regressiva, como na §14.1.2
-    await irAte(page, page.getByText("· exercício 5 de 6"));
+    await irAte(page, page.getByRole("heading", { level: 1, name: /exercício 5 de 6/ }));
     await expect(page.getByRole("heading", { name: "Prancha" })).toBeVisible();
     await expect(
       page.getByRole("timer", { name: "Contagem do exercício" }),
     ).toHaveText("1:00");
-    await page.getByRole("button", { name: "Concluir a série" }).click();
+    await page.getByRole("button", { name: "Concluir série" }).click();
 
     // 3) o mock tem a sessão livre com o plano e as séries
     const sessoes = await lerDoMock<{
@@ -286,9 +293,9 @@ test.describe("aba Treino — Personalizar e Editar (§14.3)", () => {
     expect(sessoes[0]?.workout_id).toBe("A1");
     expect(sessoes[0]?.plano?.itens[0]?.exercicio_id).not.toBe("agachamento-livre");
 
-    // de volta na aba Treino pelo "Sair do treino" da visão geral (§14.1)
+    // de volta na aba Treino pelo "Continuar depois" da visão geral (§14.1)
     await page.getByRole("button", { name: "Visão geral do treino" }).click();
-    await page.getByRole("link", { name: "Sair do treino" }).click();
+    await page.getByRole("link", { name: "Continuar depois" }).click();
     await esperarAbaTreino(page);
   });
 

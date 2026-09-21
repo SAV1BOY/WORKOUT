@@ -488,7 +488,7 @@ test.describe("o aviso de conquista nova", () => {
 
     await comecarOTreinoDoDia(page);
     await comecarNoPlayer(page);
-    await page.getByRole("button", { name: "Concluir a série" }).click();
+    await page.getByRole("button", { name: "Concluir série" }).click();
 
     /* as setas levam até o feedback e dele à conclusão (SPEC §14.1) */
     const sensacao = page.getByRole("radiogroup", { name: "Sensação" });
@@ -551,14 +551,21 @@ test.describe("o aviso de conquista nova", () => {
 async function irAte(page: Page, alvo: ReturnType<Page["getByRole"]>) {
   for (let i = 0; i < 60; i++) {
     if (await alvo.isVisible().catch(() => false)) return;
-    const pular = page.getByRole("button", { name: "Pular" });
+    const pular = page.getByRole("button", { name: "Pular descanso" });
     if (await pular.isVisible().catch(() => false)) {
       await pular.click();
       continue;
     }
-    const continuar = page.getByRole("button", { name: "Continuar" });
-    if (await continuar.isVisible().catch(() => false)) {
-      await continuar.click();
+    // o primário da pergunta "firme?" se chama "Pular esta pergunta"
+    // enquanto ninguém responde (SPEC §22.5 item 4)
+    const pergunta = page
+      .getByRole("region", { name: "Última repetição" })
+      .or(page.getByRole("region", { name: "Feedback do treino" }))
+      .getByRole("button", {
+        name: /^(Pular esta pergunta|Continuar|Concluir sem responder|Concluído)$/,
+      });
+    if (await pergunta.isVisible().catch(() => false)) {
+      await pergunta.click();
       continue;
     }
     const proximo = page.getByRole("button", { name: "Próximo passo" });

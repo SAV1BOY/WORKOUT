@@ -333,10 +333,21 @@ export function useSessaoDeTreino(sessaoId: string) {
     [sessao],
   );
 
+  /**
+   * Grava a sessão (motor, fila e saída do aparelho) e volta para a aba
+   * Treino.
+   *
+   * SPEC §22.5 item 2: com `navegar: false` ela grava **sem** sair da tela —
+   * é o que a conclusão do player usa para registrar o treino ao ENTRAR, em
+   * vez de ao chegar no botão do fim da página. Quem grava sem navegar fica
+   * responsável por não mexer mais na sessão: `mexer` a devolveria ao Dexie
+   * como sessão em andamento.
+   */
   const salvar = useCallback(
     async (
       fim: FimDaSessao,
       dados: { sensacao: number | null; peso: number | null },
+      opcoes?: { navegar?: boolean },
     ): Promise<boolean> => {
       if (!sessao) return false;
       setSalvando(true);
@@ -350,6 +361,10 @@ export function useSessaoDeTreino(sessaoId: string) {
         toast.success(
           fim === "concluida" ? "Treino salvo." : "Treino guardado como abandonado.",
         );
+        if (opcoes?.navegar === false) {
+          setSalvando(false);
+          return true;
+        }
         router.push("/");
         return true;
       } catch {
