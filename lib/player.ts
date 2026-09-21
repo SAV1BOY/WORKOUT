@@ -397,6 +397,27 @@ export function zerou(estado: EstadoPlayer, agora: number): boolean {
 }
 
 /**
+ * O que o leitor de tela ouve durante o descanso (SPEC §22.5 item 7).
+ *
+ * O texto só muda em MARCOS — 30 s, 10 s e o fim —, e é isso que o torna
+ * dizível: um `role="status"` que mudasse a cada segundo faria o leitor falar
+ * por cima de si mesmo, e um `role="timer"` sozinho (o que havia) tem
+ * `aria-live` desligado por padrão e nunca anuncia nada. Um marco só existe
+ * quando o descanso é mais longo que ele: num descanso de 20 s ninguém deve
+ * ouvir "faltam 30 segundos".
+ */
+export function avisoDoDescanso(
+  falta: number,
+  totalS: number,
+  acabou: boolean,
+): string {
+  if (acabou) return "Descanso terminado, próxima série.";
+  if (falta <= 10 && totalS > 10) return "Faltam 10 segundos de descanso.";
+  if (falta <= 30 && totalS > 30) return "Faltam 30 segundos de descanso.";
+  return "";
+}
+
+/**
  * "+20 s": soma ao que FALTA (empurra o fim), em vez de recomeçar — a 0:10 do
  * fim de um descanso de 2:30 a resposta é 0:30, não 2:50.
  */

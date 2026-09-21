@@ -344,7 +344,7 @@ export async function comecarOTreinoDoDia(page: Page): Promise<void> {
  */
 export async function comecarNoPlayer(page: Page): Promise<void> {
   const comecar = page.getByRole("button", { name: "Começar agora" });
-  const concluir = page.getByRole("button", { name: "Concluir a série" });
+  const concluir = page.getByRole("button", { name: "Concluir série" });
   // espera o player desenhar: a preparação ou já o primeiro exercício
   await comecar.or(concluir).first().waitFor();
   if (await comecar.isVisible().catch(() => false)) await comecar.click();
@@ -364,7 +364,7 @@ export async function abrirVisaoGeral(page: Page): Promise<void> {
   if (await comecar.isVisible().catch(() => false)) {
     await comecar.click();
     // só o passo do exercício tem o ícone de lista: espera ele desenhar
-    await page.getByRole("button", { name: "Concluir a série" }).waitFor();
+    await page.getByRole("button", { name: "Concluir série" }).waitFor();
   }
   await lista.click();
   await page.getByRole("heading", { level: 1 }).waitFor();

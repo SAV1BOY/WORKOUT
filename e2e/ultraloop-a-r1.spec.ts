@@ -71,7 +71,7 @@ test.describe("o player usa a tela inteira (SPEC §22.1)", () => {
       await comecarOTreinoDoDia(page);
       await comecarNoPlayer(page);
       await expect(
-        page.getByRole("button", { name: "Concluir a série" }),
+        page.getByRole("button", { name: "Concluir série" }),
       ).toBeVisible();
 
       /*
@@ -79,7 +79,7 @@ test.describe("o player usa a tela inteira (SPEC §22.1)", () => {
        * reservavam para ela eram faixa morta — e o ✓ ficava 56 px acima do
        * polegar, na tela onde isso mais custa.
        */
-      const controles = await rodapeDe(page, "Concluir a série");
+      const controles = await rodapeDe(page, "Concluir série");
       expect(controles, "não achei os controles do player").not.toBeNull();
       expect(controles?.sobraAbaixo, "faixa morta sob os controles").toBe(0);
       expect(controles?.alturaDoBotao ?? 0).toBeGreaterThanOrEqual(44);
@@ -110,10 +110,10 @@ test.describe("o player usa a tela inteira (SPEC §22.1)", () => {
     await entrarNoApp(page);
     await comecarOTreinoDoDia(page);
     await comecarNoPlayer(page);
-    await page.getByRole("button", { name: "Concluir a série" }).click();
+    await page.getByRole("button", { name: "Concluir série" }).click();
     await expect(page.getByRole("timer", { name: "Descanso" })).toBeVisible();
 
-    const pular = page.getByRole("button", { name: "Pular" });
+    const pular = page.getByRole("button", { name: "Pular descanso" });
     const caixa = await pular.boundingBox();
     expect(caixa?.height ?? 0).toBeGreaterThanOrEqual(44);
     /* a tela de descanso reserva 2rem + a área segura embaixo do último botão */

@@ -339,8 +339,8 @@ const TREINO: SecaoDoGuia = {
       id: "serie",
       nome: "Série a série",
       oQueFaz:
-        "Uma série por tela, com as repetições e a carga já preenchidas. “Concluir a série” registra na hora, mesmo sem internet.",
-      caminho: ["Player", "Concluir a série"],
+        "Uma série por tela, com as repetições e a carga já preenchidas. “Concluir série” registra na hora, mesmo sem internet.",
+      caminho: ["Player", "Concluir série"],
       grupo: PLAYER,
     },
     {
