@@ -498,7 +498,7 @@ test.describe("o aviso de conquista nova", () => {
     const sensacao = page.getByRole("radiogroup", { name: "Sensação" });
     await irAte(page, sensacao);
     await sensacao.getByRole("radio", { name: "Um pouco fácil" }).click();
-    await page.getByRole("button", { name: "Concluído" }).click();
+    await page.getByRole("button", { name: "Concluir", exact: true }).click();
 
     const fim = page.getByRole("region", { name: "Treino concluído" });
     await expect(fim.getByText("Excelente! Você concluiu o treino.")).toBeVisible();
@@ -567,7 +567,7 @@ async function irAte(page: Page, alvo: ReturnType<Page["getByRole"]>) {
       .getByRole("region", { name: "Última repetição" })
       .or(page.getByRole("region", { name: "Feedback do treino" }))
       .getByRole("button", {
-        name: /^(Pular esta pergunta|Continuar|Concluir sem responder|Concluído)$/,
+        name: /^(Pular esta pergunta|Continuar|Concluir sem responder|Concluir)$/,
       });
     if (await pergunta.isVisible().catch(() => false)) {
       await pergunta.click();

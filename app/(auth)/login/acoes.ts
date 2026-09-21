@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { avisoDeConfiguracao, supabaseConfigurado } from "@/lib/env";
 import { CADASTRO_FECHADO, traduzirErroAuth } from "@/lib/erros-auth";
 import { haVaga, vagasParaConta } from "@/lib/queries/contas";
+import { sairDesteAparelho } from "@/lib/sair";
 import { MINIMO_DA_SENHA } from "@/lib/senha";
 import { criarClienteServidor } from "@/lib/supabase/server";
 
@@ -99,7 +100,7 @@ export async function criarConta(
 
 export async function sair() {
   if (!supabaseConfigurado()) redirect("/login");
-  const supabase = await criarClienteServidor();
-  await supabase.auth.signOut();
+  // o escopo é "local" e mora em `lib/sair.ts`, onde o Vitest alcança (§22.11)
+  await sairDesteAparelho(await criarClienteServidor());
   redirect("/login");
 }

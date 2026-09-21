@@ -278,7 +278,7 @@ async function capturasDoPlayer(navegador: Awaited<ReturnType<typeof chromium.la
     await andar(page, page.getByText("O que você achou do treino de hoje?"));
     if (escuro) await tirar(page, "06-feedback.png");
     await page.getByRole("radio", { name: "Na medida certa" }).click();
-    await page.getByRole("button", { name: "Concluído" }).click();
+    await page.getByRole("button", { name: "Concluir", exact: true }).click();
     await page.getByRole("region", { name: "Treino concluído" }).waitFor();
     await page.waitForTimeout(600);
     await tirar(page, `07-conclusao${sufixo}.png`);

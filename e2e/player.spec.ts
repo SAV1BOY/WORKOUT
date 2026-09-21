@@ -82,7 +82,7 @@ async function irAte(page: Page, alvo: ReturnType<Page["getByText"]>) {
     // a pergunta "firme?" sai pelo primário dela, não pela seta — e ele se
     // chama "Pular esta pergunta" enquanto ninguém responde (§22.5 item 4)
     const pergunta = page.getByRole("button", {
-      name: /^(Pular esta pergunta|Continuar|Concluir sem responder|Concluído)$/,
+      name: /^(Pular esta pergunta|Continuar|Concluir sem responder|Concluir)$/,
     });
     if (await pergunta.first().isVisible().catch(() => false)) {
       await pergunta.first().click();
@@ -347,7 +347,7 @@ test.describe("o Treino A inteiro pelo player (SPEC §14.5.1 e §14.5.2)", () =>
     await expect(page.getByText("O que você achou do treino de hoje?")).toBeVisible();
     await sensacao.getByRole("radio", { name: "Um pouco fácil" }).click();
     await semRolagemHorizontal(page);
-    await page.getByRole("button", { name: "Concluído" }).click();
+    await page.getByRole("button", { name: "Concluir", exact: true }).click();
 
     // 5. conclusão: capa, contadores e o resumo do motor com a subida
     const fim = page.getByRole("region", { name: "Treino concluído" });
@@ -416,7 +416,7 @@ test.describe("o peso do dia na conclusão (SPEC §14.1.5)", () => {
     const sensacao = page.getByRole("radiogroup", { name: "Sensação" });
     await irAte(page, sensacao);
     await sensacao.getByRole("radio", { name: "Na medida certa" }).click();
-    await page.getByRole("button", { name: "Concluído" }).click();
+    await page.getByRole("button", { name: "Concluir", exact: true }).click();
   }
 
   /*
@@ -481,7 +481,7 @@ test.describe("o peso do dia na conclusão (SPEC §14.1.5)", () => {
     const sensacao = page.getByRole("radiogroup", { name: "Sensação" });
     await irAte(page, sensacao);
     await sensacao.getByRole("radio", { name: "Na medida certa" }).click();
-    await page.getByRole("button", { name: "Concluído" }).click();
+    await page.getByRole("button", { name: "Concluir", exact: true }).click();
 
     const fim = page.getByRole("region", { name: "Treino concluído" });
     await expect(fim.getByText("Excelente! Você concluiu o treino.")).toBeVisible();
@@ -781,5 +781,96 @@ test.describe("visão geral e gostei/não gosto (SPEC §14.1.2)", () => {
         { timeout: 10_000 },
       )
       .toEqual([]);
+  });
+});
+
+test.describe("o campo de carga é do dedo de quem digita (SPEC §22.11)", () => {
+  test("digitar '12,5' tecla a tecla nunca mostra duas vírgulas, e grava o valor certo", async ({
+    page,
+  }) => {
+    const sessao = await abrirPlayer(page);
+    const carga = page.getByRole("textbox", { name: "carga na barra" });
+    await expect(carga).toHaveValue("7,5");
+
+    // apagar o que está lá — `fill` também põe o foco no campo
+    await carga.fill("");
+    await expect(carga).toHaveValue("");
+
+    /*
+     * O defeito de 21/09: ao chegar em "12" o app ajustava para a anilha
+     * possível (11,5) e o efeito reescrevia o TEXTO do campo no meio da
+     * digitação — as teclas "," e "5" caíam no texto novo e a tela mostrava
+     * "11,5,5". Conferir tecla a tecla é a única forma de prender isso.
+     */
+    let esperado = "";
+    for (const tecla of ["1", "2", ",", "5"]) {
+      await page.keyboard.type(tecla, { delay: 0 });
+      esperado += tecla;
+      const naTela = await carga.inputValue();
+      expect(naTela.split(",").length - 1, `"${naTela}" tem mais de uma vírgula`).toBeLessThanOrEqual(1);
+      expect(naTela).toBe(esperado);
+    }
+
+    // sair do campo: aí sim o ajuste de anilha chega à tela (11,5 com o kit
+    // do dono, 12,5 se este kit montar 12,5)
+    await carga.press("Enter");
+    await expect(carga).toHaveValue(/^(11,5|12,5)$/);
+    const depois = await carga.inputValue();
+    const kg = Number(depois.replace(",", "."));
+
+    await page.getByRole("button", { name: "Concluir série" }).click();
+    await expect
+      .poll(
+        async () =>
+          (await lerDoMock<LinhaSerie>(sessao, "session_sets"))
+            .filter((s) => s.exercise_id === "agachamento-livre")
+            .map((s) => s.carga_kg),
+        { timeout: 10_000 },
+      )
+      .toContain(kg);
+  });
+});
+
+test.describe("a sessão que ainda está chegando (SPEC §22.11)", () => {
+  const ID = "cccccccc-3333-4333-8333-000000000001";
+
+  test("com a sessão só no banco e a resposta atrasada: esqueleto e depois o player, nunca 'Não achei'", async ({
+    page,
+  }) => {
+    const sessao = await usuarioComPerfil();
+    await inserirNoMock(sessao, "sessions", [
+      {
+        id: ID,
+        data: "2026-09-14",
+        workout_id: "A1",
+        fase: "fase1",
+        status: "em_andamento",
+      },
+    ]);
+    await fixarData(page, SEGUNDA);
+    await entrarNoApp(page);
+
+    /*
+     * A corrida de 21/09 (1 em 4 aberturas): a busca no aparelho termina sem
+     * sessão — IndexedDB vazio, login recém-feito — e a linha do servidor
+     * ainda está no ar. Dois segundos de atraso tornam a corrida certa.
+     */
+    await page.route(/\/rest\/v1\/sessions\?/, async (rota) => {
+      await new Promise((resolve) => setTimeout(resolve, 2_000));
+      await rota.continue();
+    });
+
+    await page.goto(`/treinar/${ID}`);
+
+    const naoAchei = page.getByText("Não achei este treino");
+    for (let i = 0; i < 6; i++) {
+      await expect(naoAchei).toHaveCount(0);
+      await page.waitForTimeout(250);
+    }
+
+    await expect(page.getByRole("heading", { name: "Agachamento livre" })).toBeVisible({
+      timeout: 20_000,
+    });
+    await expect(naoAchei).toHaveCount(0);
   });
 });

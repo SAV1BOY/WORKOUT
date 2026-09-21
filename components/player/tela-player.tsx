@@ -290,7 +290,22 @@ export function TelaPlayer({
 
   /* -------------------------------------------------- renderizar */
 
-  if (dados.carregando) return <EsqueletoCard linhas={6} />;
+  /*
+   * SPEC §22.11: "não achei" é uma afirmação, e só sai quando as duas buscas
+   * — o aparelho e o servidor — terminaram sem sessão. Enquanto qualquer uma
+   * corre, esqueleto; erro de rede é "tentar de novo", que agora refaz as
+   * consultas em vez de mandar o usuário para outra tela.
+   */
+  if (dados.tela === "erro") {
+    return (
+      <Erro
+        mensagem="Não consegui carregar este treino agora. Confira a conexão."
+        aoTentarDeNovo={dados.recarregar}
+      />
+    );
+  }
+
+  if (dados.tela === "carregando") return <EsqueletoCard linhas={6} />;
 
   if (!sessao) {
     return (

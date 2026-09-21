@@ -7846,7 +7846,10 @@ Nada abaixo está publicado. Ordem sugerida: B → C. Cada item traz a origem (r
 - l12-superficies-sobra · a11y-11 · A região de avisos é a única coisa em inglês no app
 - l12-superficies-sobra · imagens-14 · /favicon.ico devolve 404 com 11 kB de HTML
 
-**C. Pendências menores apontadas pelas auditorias (63 itens, nenhuma bloqueante).** Agrupadas pela origem; o motivo é o resumo do auditor.
+**C. Pendências menores apontadas pelas auditorias (64 itens, nenhuma bloqueante).** Agrupadas pela origem; o motivo é o resumo do auditor.
+
+- *R9/verificação em produção* (1):
+  - R9-C1 — **515 `GET /auth/v1/user` em 6 minutos para dois navegadores**: cada render de servidor valida a sessão no GoTrue (`lib/supabase/servidor.ts` + middleware), e navegar entre abas multiplica as idas. Não quebra nada e não vaza nada — é custo e latência. Proposta para uma rodada com folga: validar o JWT localmente onde a página só precisa do `user_id` (com `getClaims()`/chave pública), deixando o `getUser()` para o middleware e para as ações que escrevem. Medir antes e depois nos `edge_logs`.
 
 - *R1/L2* (1):
   - L2-10 — opcional; mexe no mesmo trecho de lib/calendario.ts que L2-5; merece lote com folga (Calendário e faixa da semana, R4)
@@ -8444,3 +8447,148 @@ com código `000`/502 e `content-type: text/plain`. Era o proxy desta sessão,
 não a produção: as mesmas URLs devolveram `200 application/javascript` em 12
 idas seguidas, os 14 scripts passaram com repetição, e as duas execuções
 seguintes da sonda em navegador não tiveram erro nenhum.
+
+### Rodada 9 — aparelho despejado, campo de carga, sessão que chega e Sair local
+
+A rodada 8 tirou a foto do dono do ar (o "Sair" não apaga mais o precache) e a
+verificação dela em produção, num navegador de verdade, achou cinco coisas —
+uma grave, três do dia a dia e um rótulo. SPEC §22.11.
+
+1. **O socorro passou a ser autossuficiente.** Apagando TODO o Cache Storage
+   (o que o navegador faz sozinho sob pressão de disco) e fazendo uma única
+   navegação com rede, o aparelho ficava assim: precache do Serwist de volta
+   com **zero** entradas — ele só enche no `install`, e o `sw.js` não muda de
+   bytes fora de um deploy —, cache `socorro` com o HTML da `/~offline` reposto
+   pela autocura, e os 14 pedaços de JS dessa página em cache nenhum. O degrau
+   (c) servia o HTML, a hidratação morria em "Loading chunk 9954 failed" e a
+   tela virava **"Application error: a client-side exception has occurred"**:
+   sem ícone, sem botões, pior do que o socorro embutido — e assim até o deploy
+   seguinte. Agora a regra é a mesma dos dois lados (`lib/sw-assets.ts`, pura e
+   testada): a autocura só guarda a `/~offline` junto com **todos** os assets
+   same-origin que o HTML dela referencia (`<script src>` e folha de estilo,
+   no máximo 30, com prazo — um que falte invalida a cópia inteira, porque meia
+   cópia é a tela quebrada), e o degrau (c) só serve a cópia quando todos eles
+   estão em algum cache; senão desce para o socorro embutido (d), que não
+   depende de nada. `jaTem()` passou a conferir a cópia inteira, então um asset
+   despejado depois faz a navegação seguinte refazer a cópia.
+2. **O campo de carga é do dedo de quem digita.** Digitando "12,5" depressa em
+   CARGA NA BARRA, ao chegar em "12" o app ajustava para a anilha possível
+   (11,5) e o efeito do `StepperNumerico` reescrevia o **texto** do campo no
+   meio da digitação: as teclas "," e "5" caíam no texto novo e a tela mostrava
+   "11,5,5". O valor gravado saía certo (o `onBlur` normaliza), mas o número
+   impossível ficava no campo mais importante do player. Agora, com o campo
+   focado, o efeito não reescreve nada — o ajuste chega no `blur` —, e a
+   digitação recusa um segundo separador decimal (`lib/digitar-numero.ts`,
+   `aceitarDigitacao`, com teste: ponto vira vírgula, vazio permitido, menos só
+   onde o campo aceita negativo).
+3. **"Não achei este treino" só quando é verdade.** Abrir a sessão em andamento
+   logo depois do login, num aparelho sem nada no IndexedDB, mostrava o erro
+   definitivo com a sessão existindo no banco (1 em 4 aberturas; "Tentar de
+   novo" resolvia). A tela decidia com um único `carregando` que virava `false`
+   antes de a linha chegar — ou antes de o motor ter o que precisa para refazer
+   a sessão. A decisão virou função pura (`lib/estado-do-player.ts`,
+   `decidirTela`): "não achei" só sai quando a busca no aparelho terminou sem
+   sessão **e** o servidor terminou sem nada para montar; enquanto uma das duas
+   corre, esqueleto. Erro de rede de verdade passou a ser o componente `Erro`,
+   e o "Tentar de novo" dele refaz as consultas em vez de mandar o usuário para
+   outra tela.
+4. **Sair é deste aparelho.** `supabase.auth.signOut()` usava o escopo padrão
+   `global` e revogava **todas** as sessões da conta (nos `edge_logs`: um
+   `POST /auth/v1/logout?scope=global` seguido de 5 × `GET /auth/v1/user` 403
+   nos outros contextos): o dono, com o celular e o navegador abertos, saía de
+   um e derrubava o outro. Agora é `signOut({ scope: 'local' })`; os dados
+   locais deste aparelho continuam sendo apagados (§8), e quem quiser derrubar
+   todo mundo troca a senha.
+5. **Rótulo.** O botão da última pergunta do feedback dizia "Concluído"
+   (particípio) depois de escolhida a sensação; agora diz **"Concluir"** — e
+   continua "Concluir sem responder" enquanto ninguém respondeu.
+
+**Provas.** Unidade: `lib/sw-assets.test.ts` (14 scripts todos em cache →
+serve; 1 faltando → não; sem scripts → serve; assets demais → não),
+`lib/sw-cura.test.ts` (guarda o HTML **com** os assets; um asset que não vem
+invalida a cópia; asset despejado depois não conta como "já tem"),
+`lib/digitar-numero.test.ts`, `lib/estado-do-player.test.ts`. Ponta a ponta,
+em `e2e/player.spec.ts`: digitar "12,5" tecla a tecla no campo de carga —
+conferindo o campo a cada tecla, que é a única forma de prender a reescrita —
+e a série gravada com o valor certo; e abrir `/treinar/<id>` com a sessão só no
+banco e a resposta atrasada 2 s, exigindo esqueleto e depois o player, nunca
+"Não achei".
+
+**Como testar no celular.** (a) *Carga*: no player, toque no número da carga,
+apague e digite **12,5** depressa — o campo nunca pode mostrar duas vírgulas; ao
+tocar fora ele mostra a carga que o seu kit monta (11,5 kg com as anilhas do
+terraço) e o ✓ grava esse valor. (b) *Sessão que chega*: comece um treino no
+celular, entre no app pelo navegador do computador e abra o mesmo treino — tem
+de aparecer o esqueleto e depois o player, nunca "Não achei este treino". (c)
+*Sair*: com o app aberto nos dois aparelhos, aperte **Sair** num deles; o outro
+tem de continuar logado. (d) *Sem conexão*: ligue o modo avião e abra uma tela
+que você nunca visitou — tem de vir "Sem conexão" **com os dois botões**, nunca
+"Application error".
+
+#### Correção da auditoria (rodada 9, segunda passada)
+
+A auditoria reproduziu o beco do aparelho despejado no HEAD anterior e mostrou
+por quê: a cópia estava inteira no cache `socorro` — os 14 pedaços e a folha —,
+a guarda passava, e mesmo assim o pedaço morria em `fetch`. **Faltava a outra
+ponta: ninguém servia daquele cache.** Quem atende
+`/_next/static/chunks/app/~offline/page-*.js` é a rota do **precache** do
+Serwist (a URL está no manifesto do build); com o precache despejado ela ia à
+rede e o erro subia direto para a hidratação.
+
+Agora o cache `socorro` é servido: a estratégia do precache e as 20 estratégias
+genéricas do `defaultCache` ganharam um último degrau que procura a URL ali
+antes de desistir (`lib/sw-servir-socorro.ts`). Duas lições ficaram no código:
+pendurar o degrau é por **forma** (a lista `plugins`) e não por `instanceof` —
+o `@serwist/next` traz a sua própria cópia do `serwist`, e a primeira tentativa
+não pendurou nada em lugar nenhum; e o caminho inteiro só aparece num navegador
+de verdade, então ele virou e2e (`e2e/sem-conexao.spec.ts`, "aparelho
+despejado": apagar todo o Cache Storage dentro do worker, uma navegação com
+rede, cortar o `self.fetch` e abrir uma rota nunca visitada).
+
+Outras duas da mesma auditoria: a autocura tira cada pedaço do precache e dos
+caches do aparelho **antes** de ir à rede (numa ativação sem conexão ela
+devolvia "sem-fonte" com os pedaços ali ao lado); e o − e o + soltam o campo de
+carga, que até aqui só se reconciliava quando o foco saía — no Safari do iPhone
+tocar num botão não move o foco, e o campo ficava mostrando o número velho.
+O e2e exercita esse caminho com `dispatchEvent("click")`, que não mexe no foco.
+
+#### Correção da auditoria 2 (rodada 9, terceira passada)
+
+A auditoria 2 aceitou os cinco defeitos como corrigidos e apontou o que estava
+**sem prova**: o Sair local. O código pedia `{ scope: "local" }` desde a
+segunda passada, mas nenhum teste afirmava isso — e um `signOut()` pelado (o
+padrão `global` do GoTrue) voltaria a derrubar o celular do dono quando ele
+saísse no navegador, sem nada ficar vermelho.
+
+A decisão saiu de `app/(auth)/login/acoes.ts` — arquivo `"use server"`, que o
+Vitest não carrega (`vitest.config.ts` só inclui `lib/**` e `scripts/**`) — e
+virou `lib/sair.ts`: uma função pura que recebe o cliente e chama
+`signOut({ scope: "local" })`. A ação do servidor ficou de três linhas. O teste
+(`lib/sair.test.ts`) afirma o escopo, que o argumento é **um só** e que ele tem
+**uma chave só** — nada de `signOut()` nem de escopo extra passando despercebido.
+
+Do lado do navegador, o mock passou a guardar cada logout com o `?scope=` que
+veio na URL e a mostrá-lo em `GET /__mock/estado`; é a única forma de um e2e
+dizer o que o app pediu, porque o escopo não aparece na tela nem na resposta.
+São dois testes em `e2e/login.spec.ts`: um toca em **Sair** pela interface e lê
+do mock que o escopo foi `local`; o outro abre duas sessões da mesma conta,
+sai numa com `scope=local` e prova que a outra continua de pé (o refresh dela
+ainda troca por um par novo, e o de quem saiu não troca mais). Para isso o mock
+ficou fiel ao GoTrue: `local` derruba só a sessão de quem pediu, `global`
+derruba todas da conta.
+
+Mais duas da mesma auditoria. (a) `servidorRespondeu` incluía `!isFetching`:
+qualquer refetch de fundo — voltar para a aba, reconectar — rebaixava um "não
+achei" já decidido de volta para esqueleto, e a tela piscava sozinha. A regra
+virou pura (`servidorTerminouDeBuscar`, em `lib/estado-do-player.ts`) e olha só
+`isPending`, com o caso "refetch de fundo não rebaixa" no teste. (b) O e2e do
+nome em duas linhas media a lista com um `page.evaluate` cru e já voltou `null`
+uma vez; agora espera `ul[aria-label="Exercícios de hoje"]` visível antes.
+
+**Como testar no celular** (o mesmo roteiro da passada anterior, mais o item
+do Sair): com o app aberto no celular e no navegador com a mesma conta, aperte
+**Sair** no navegador — o celular tem de continuar dentro, sem 403 e sem voltar
+para a tela de login na primeira leitura.
+
+**Fila (não feito de propósito):** `app/sw.ts`, `emQualquerCache()` relê o corpo
+da `/~offline` a cada navegação sem rede — desperdício, não defeito.
