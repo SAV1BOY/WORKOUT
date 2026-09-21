@@ -1,8 +1,9 @@
 "use client";
 
 import { Minus, Plus } from "lucide-react";
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { aceitarDigitacao } from "@/lib/digitar-numero";
 import { formatarNumero, lerNumero } from "@/lib/formato";
 import { cn } from "@/lib/utils";
 
@@ -44,9 +45,24 @@ export function StepperNumerico({
 }) {
   const id = useId();
   const [texto, setTexto] = useState(() => (valor === null ? "" : formatarNumero(valor)));
+  /**
+   * SPEC §22.11: enquanto o campo tem foco, o texto é do usuário.
+   *
+   * Numa `ref` e não num estado de propósito: o efeito abaixo precisa **ler**
+   * o foco sem voltar a rodar quando ele muda — quem manda nele é o `valor`.
+   */
+  const temFoco = useRef(false);
 
   // o valor pode mudar por fora (série anterior preenchendo a seguinte)
   useEffect(() => {
+    /*
+     * Campo focado não se reescreve (SPEC §22.11). Digitando "12,5" depressa
+     * em CARGA NA BARRA, ao chegar em "12" o app ajusta para a anilha possível
+     * (11,5) e este efeito reescrevia o texto no meio da digitação: as teclas
+     * "," e "5" caíam no texto novo e a tela mostrava "11,5,5". O ajuste
+     * chega ao campo no `onBlur`, que é quando ele deixa de ser do dedo.
+     */
+    if (temFoco.current) return;
     setTexto((atual) => {
       // o que está escrito já é este valor ("82," enquanto se digita "82,4"):
       // reescrever aqui apagaria a vírgula recém-digitada
@@ -75,8 +91,11 @@ export function StepperNumerico({
    * nos limites.
    */
   const digitar = (novoTexto: string) => {
-    setTexto(novoTexto);
-    const lido = lerNumero(novoTexto);
+    // a tecla que não faz um número em construção simplesmente não entra —
+    // a segunda vírgula, a letra, o menos onde não cabe (SPEC §22.11)
+    const aceito = aceitarDigitacao(texto, novoTexto, { negativo: minimo < 0 });
+    setTexto(aceito);
+    const lido = lerNumero(aceito);
     if (lido === null) return;
     const preso = Math.min(maximo ?? Number.POSITIVE_INFINITY, Math.max(minimo, lido));
     if (preso === lido && lido !== valor) aoMudar(lido);
@@ -116,7 +135,13 @@ export function StepperNumerico({
           id={id}
           value={texto}
           onChange={(e) => digitar(e.target.value)}
-          onBlur={confirmar}
+          onFocus={() => {
+            temFoco.current = true;
+          }}
+          onBlur={() => {
+            temFoco.current = false;
+            confirmar();
+          }}
           onKeyDown={(e) => {
             if (e.key === "Enter") (e.target as HTMLInputElement).blur();
           }}
