@@ -1807,3 +1807,51 @@ a tela — afrouxar o limite não é uma opção.
    grandes" o exercício sem registro encolhe para uma linha (nome + "sem
    registro"), em vez de um cartão de altura cheia com um vazio de gráfico
    dentro.
+
+### 22.9 Lote 9 — Explorar e catálogo: achar o exercício
+
+1. **O catálogo sai de dentro do Explorar.** `/explorar` media 8.922 px porque
+   despejava a `<ListaExercicios>` inteira — os 81 exercícios, 78% da página —
+   abaixo da vitrine. No lugar dela entra uma **prévia de 12** (os doze
+   primeiros do catálogo) com **"Ver os 81 exercícios"** levando a
+   `/exercicios`. A tela fecha abaixo de 4.000 px.
+2. **O catálogo monta 20 de cada vez.** `/exercicios` montava os 81 cartões —
+   e os 81 `<img>` — numa tacada. Agora mostra **20** e um **"Ver mais 20 de
+   81"** que acrescenta mais 20 (a mesma forma do "Ver mais" do Histórico do
+   Relatório); a contagem da tela ("81 exercícios",
+   "40 de 81 exercícios") continua dizendo o total achado, não o que está
+   montado. Trocar a busca ou um filtro volta para os 20 primeiros.
+3. **A busca mostra o exercício primeiro.** Buscar "supino" punha nove linhas
+   de coleção na frente e o exercício caía em y=860, fora da tela. O resultado
+   passa a ser **Exercícios primeiro, Coleções depois**, cada bloco com a sua
+   contagem no título; um seletor no topo ("Exercícios (6) · Coleções (9)")
+   pula direto para o bloco.
+4. **Um vazio só, citando o termo.** Busca sem nenhum resultado mostrava dois
+   vazios empilhados, e o segundo ("Nenhum exercício com esses filtros")
+   mentia — não havia filtro nenhum. Agora é **um** vazio: *Nada para
+   «zzzz»* com **"Limpar a busca"**. A mensagem de filtro do catálogo só
+   aparece quando há mesmo filtro (`temFiltro`).
+5. **Chegar por uma busca mostra resultado, não controle.** No catálogo com
+   busca vinda de fora e não vazia, o bloco de filtros fica recolhido atrás do
+   botão **"Filtros"** (com o número de filtros ativos); tocar abre.
+6. **`app/not-found.tsx`.** Duas rotas chamam `notFound()` e não havia página
+   para receber: um atalho guardado ou um link velho depois de uma atualização
+   do PWA caía na tela crua do Next, em inglês. Agora responde uma página em
+   pt-BR — *"Essa tela não existe mais."* — com três saídas: **Voltar para
+   Hoje**, **Ver o Explorar**, **Ver os exercícios**.
+7. **Nenhuma capa repetida na mesma seção.** `supino-reto-com-barra-1.jpg` era
+   a capa de quatro coleções da mesma tela. Cada seção da vitrine passa por
+   `semCapasRepetidas()`: a coleção pega a primeira foto **ainda não usada
+   naquela seção** e, se não sobrar nenhuma, fica com o ícone do seu tipo em
+   cima da cor do grupo — que a 56 px distingue melhor do que a quarta cópia
+   da mesma foto. A capa guardada em `montar()` não muda: a tela da coleção
+   continua com a foto do primeiro exercício.
+8. **Um degrau entre rótulo e seção.** "Escolhas para você" não agrupava nada
+   e competia com os títulos: vira **overline de 11 px em caixa alta**, e os
+   títulos de seção sobem para **16 px semibold com régua acima**.
+9. **A rota da coleção é normalizada.** `hrefDaColecao` escrevia o segmento
+   como o id ("/explorar/grupo/Core", com acento e maiúscula) e `colecaoDaRota`
+   comparava texto cru: ida e volta divergiam em acento e caixa. Os dois lados
+   passam por `segmentoDaColecao()` (minúscula, sem acento, espaço vira
+   hífen) — os links antigos continuam abrindo, porque a comparação normaliza
+   o que chega.
