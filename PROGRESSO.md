@@ -8499,3 +8499,44 @@ devolvia "sem-fonte" com os pedaços ali ao lado); e o − e o + soltam o campo 
 carga, que até aqui só se reconciliava quando o foco saía — no Safari do iPhone
 tocar num botão não move o foco, e o campo ficava mostrando o número velho.
 O e2e exercita esse caminho com `dispatchEvent("click")`, que não mexe no foco.
+
+#### Correção da auditoria 2 (rodada 9, terceira passada)
+
+A auditoria 2 aceitou os cinco defeitos como corrigidos e apontou o que estava
+**sem prova**: o Sair local. O código pedia `{ scope: "local" }` desde a
+segunda passada, mas nenhum teste afirmava isso — e um `signOut()` pelado (o
+padrão `global` do GoTrue) voltaria a derrubar o celular do dono quando ele
+saísse no navegador, sem nada ficar vermelho.
+
+A decisão saiu de `app/(auth)/login/acoes.ts` — arquivo `"use server"`, que o
+Vitest não carrega (`vitest.config.ts` só inclui `lib/**` e `scripts/**`) — e
+virou `lib/sair.ts`: uma função pura que recebe o cliente e chama
+`signOut({ scope: "local" })`. A ação do servidor ficou de três linhas. O teste
+(`lib/sair.test.ts`) afirma o escopo, que o argumento é **um só** e que ele tem
+**uma chave só** — nada de `signOut()` nem de escopo extra passando despercebido.
+
+Do lado do navegador, o mock passou a guardar cada logout com o `?scope=` que
+veio na URL e a mostrá-lo em `GET /__mock/estado`; é a única forma de um e2e
+dizer o que o app pediu, porque o escopo não aparece na tela nem na resposta.
+São dois testes em `e2e/login.spec.ts`: um toca em **Sair** pela interface e lê
+do mock que o escopo foi `local`; o outro abre duas sessões da mesma conta,
+sai numa com `scope=local` e prova que a outra continua de pé (o refresh dela
+ainda troca por um par novo, e o de quem saiu não troca mais). Para isso o mock
+ficou fiel ao GoTrue: `local` derruba só a sessão de quem pediu, `global`
+derruba todas da conta.
+
+Mais duas da mesma auditoria. (a) `servidorRespondeu` incluía `!isFetching`:
+qualquer refetch de fundo — voltar para a aba, reconectar — rebaixava um "não
+achei" já decidido de volta para esqueleto, e a tela piscava sozinha. A regra
+virou pura (`servidorTerminouDeBuscar`, em `lib/estado-do-player.ts`) e olha só
+`isPending`, com o caso "refetch de fundo não rebaixa" no teste. (b) O e2e do
+nome em duas linhas media a lista com um `page.evaluate` cru e já voltou `null`
+uma vez; agora espera `ul[aria-label="Exercícios de hoje"]` visível antes.
+
+**Como testar no celular** (o mesmo roteiro da passada anterior, mais o item
+do Sair): com o app aberto no celular e no navegador com a mesma conta, aperte
+**Sair** no navegador — o celular tem de continuar dentro, sem 403 e sem voltar
+para a tela de login na primeira leitura.
+
+**Fila (não feito de propósito):** `app/sw.ts`, `emQualquerCache()` relê o corpo
+da `/~offline` a cada navegação sem rede — desperdício, não defeito.
