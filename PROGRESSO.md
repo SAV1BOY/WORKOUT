@@ -6312,6 +6312,29 @@ no celular: abra o app, comece um treino, **feche e abra de novo** — a faixa
 player; depois **role a lista da aba Treino com a sessão iniciada** — o
 primeiro exercício não fica escondido embaixo da faixa.
 
+**Rodada 8 no ar (21/09, 17:35 UTC — 14:35 em Brasília).** É a correção do
+que você fotografou: no Brave, com WiFi ligado, o app abria numa tela preta
+escrita "Sem conexão", **sem ícone e sem botão nenhum** — nem dava para tentar
+de novo. Aquela não era a tela de "sem conexão" do app: era um texto de
+emergência que vive dentro do próprio app, o último recurso quando tudo mais
+sumiu do aparelho. **Por que ela aparecia:** quando você toca em **Sair**, o
+app limpava tudo o que estava guardado no celular — e junto ia o próprio app
+guardado para funcionar sem rede. Entre um "Sair" e a atualização seguinte, se
+a rede oscilasse um segundo, você caía nesse beco. **O que mudou:** o "Sair"
+continua apagando tudo que é seu (seus treinos, suas telas), mas **não apaga
+mais o app guardado** — então a tela "Sem conexão" de verdade, com ícone e com
+os botões **"Tentar de novo"** e **"Ir para o Treino"**, está sempre lá. Além
+disso o app agora **guarda uma cópia sua dessa tela** e a repõe sozinho se ela
+sumir, e **desiste mais rápido de uma rede ruim** (8 segundos) em vez de deixar
+você olhando para o nada. **Se o seu celular ainda estiver preso na tela
+antiga**, é o app velho ainda instalado: no Brave/Chrome faça ⋮ → Configurações
+→ Configurações do site → `treino-terraco.vercel.app` → **Limpar e redefinir**,
+e abra o app de novo — ele volta já com a correção. **O login foi conferido em
+produção** depois deste deploy: a tela `/login` carrega sem erro nenhum, e o
+"Entrar" chega ao banco e responde ("E-mail ou senha incorretos." quando a
+senha está errada) — se o seu login não estava pegando, era esse app velho
+preso no aparelho.
+
 **Encerramento (10:25 UTC de 21/09, 07:25 em Brasília).** A pedido do dono, o loop parou com tudo o que estava 100 % aprovado já publicado: produção serve `8830fe5`, igual à `main`, com oito lotes no ar (L1–L6, L8 e L9) em seis deploys, todos com fumaça verde na primeira execução e nenhum rollback. Nenhuma migração de banco foi aplicada nesta madrugada. Desde o ponto de partida (`c82b744`) foram 71 commits e 181 arquivos alterados (+14.006/−1.169 linhas); os portões do head publicado são 1.378 testes unitários, 403 de ponta a ponta e a varredura das 30 telas nos dois temas. A auditoria de fechamento (regressão total contra a base inicial) foi interrompida antes de terminar; cada lote publicado já havia sido comparado contra a base do deploy anterior na própria auditoria. O que não coube está na seção **Fila (o que não coube)** abaixo, em ordem de prioridade, pronto para as próximas rodadas. Atualização (rodada 7, 12:11 UTC): o lote 7 entrou em produção em `d696b33`, nove lotes no ar, sete deploys, nenhum rollback; o loop está encerrado e nada ficou agendado.
 
 ### Como funcionou
@@ -8392,3 +8415,32 @@ tela "Sem conexão" **com ícone e os dois botões** (é a `/~offline` do app, q
 agora sobrevive ao logout) — antes vinha a tela sem ícone e sem botões da foto
 de 21/09. Desligue o modo avião, entre de novo e confira que o treino de hoje
 aparece igual.
+
+**Deploy (rodada 8, 21/09 17:35 UTC).** Publicado. Deployment anterior
+`dpl_DrVQwHNgEP6Uj5JLiAFYUiYKpQce` → novo `dpl_Aq8mLNXTUzZCdZERZJgkNX1U4Xcd`;
+`main` passou de `739276d` para `1386cd07cf4cef4d7b5aa6f530acd5fb83821088`
+(PR #15) e `/versao` devolveu esse sha às 17:35:11, ~2 min depois do merge. O
+merge na integração entrou **sem conflito** (a branch nasceu de `739276d`) e a
+árvore ficou igual à de `8d539e3`, a que passou na cadeia completa de portões —
+lint e `tsc` reconferidos no tree de integração, e2e não repetido. Fumaça em
+produção **20 de 20**, item a item: `/login` 200 · com "Treino do Terraço" ·
+com "Entrar" · sem "Configure NEXT_PUBLIC_SUPABASE_URL" · sem "é secreta" ·
+`/` → 307 para `/login` · `/versao` == sha do merge · `/sw.js` 200 · com
+`/~offline` · com `figuras/` · com o mesmo CSS do HTML de `/login`
+(`301bf89aee08a5c8`) · `/manifest.webmanifest` 200 com "Treino do Terraço" ·
+`/~offline` 200 · os 14 scripts `/_next/static` de `/login` 200 · marcadores do
+lote: `/sw.js` contém "Tentar de novo" e "Ir para o Treino" (o socorro novo),
+contém o cache `socorro` e `networkTimeoutSeconds: 8`, e a `/~offline` servida
+contém "Tentar de novo". Sonda a 360×740 (Chromium, duas execuções seguidas):
+`/login` e `/~offline` sem erro de console e sem vazamento horizontal
+(scrollWidth 360 = clientWidth), alvos de 328×48 px; e o **"Entrar" exercitado
+com credencial falsa devolveu "E-mail ou senha incorretos."** — a ação de
+servidor chega ao Supabase em produção. Capturas: nenhuma tela mudou (60 de 60
+iguais à base, Δ 0,00 %), então a base não foi mexida. Nenhuma migração de
+banco. **Rollback: não.**
+
+*Nota de ambiente:* na primeira execução da fumaça três scripts e o `/` vieram
+com código `000`/502 e `content-type: text/plain`. Era o proxy desta sessão,
+não a produção: as mesmas URLs devolveram `200 application/javascript` em 12
+idas seguidas, os 14 scripts passaram com repetição, e as duas execuções
+seguintes da sonda em navegador não tiveram erro nenhum.
