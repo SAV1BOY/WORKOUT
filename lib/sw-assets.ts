@@ -70,7 +70,7 @@ function caminhoLocal(valor: string, origem: string): string | null {
 export function urlsDeAssets(html: string, origem: string): string[] {
   const urls: string[] = [];
   for (const achado of html.matchAll(TAGS)) {
-    const tag = achado[1].toLowerCase();
+    const tag = (achado[1] ?? "").toLowerCase();
     const atributos = achado[2] ?? "";
     let valor: string | null = null;
     if (tag === "script") {
