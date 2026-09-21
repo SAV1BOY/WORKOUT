@@ -8472,3 +8472,30 @@ de aparecer o esqueleto e depois o player, nunca "Não achei este treino". (c)
 tem de continuar logado. (d) *Sem conexão*: ligue o modo avião e abra uma tela
 que você nunca visitou — tem de vir "Sem conexão" **com os dois botões**, nunca
 "Application error".
+
+#### Correção da auditoria (rodada 9, segunda passada)
+
+A auditoria reproduziu o beco do aparelho despejado no HEAD anterior e mostrou
+por quê: a cópia estava inteira no cache `socorro` — os 14 pedaços e a folha —,
+a guarda passava, e mesmo assim o pedaço morria em `fetch`. **Faltava a outra
+ponta: ninguém servia daquele cache.** Quem atende
+`/_next/static/chunks/app/~offline/page-*.js` é a rota do **precache** do
+Serwist (a URL está no manifesto do build); com o precache despejado ela ia à
+rede e o erro subia direto para a hidratação.
+
+Agora o cache `socorro` é servido: a estratégia do precache e as 20 estratégias
+genéricas do `defaultCache` ganharam um último degrau que procura a URL ali
+antes de desistir (`lib/sw-servir-socorro.ts`). Duas lições ficaram no código:
+pendurar o degrau é por **forma** (a lista `plugins`) e não por `instanceof` —
+o `@serwist/next` traz a sua própria cópia do `serwist`, e a primeira tentativa
+não pendurou nada em lugar nenhum; e o caminho inteiro só aparece num navegador
+de verdade, então ele virou e2e (`e2e/sem-conexao.spec.ts`, "aparelho
+despejado": apagar todo o Cache Storage dentro do worker, uma navegação com
+rede, cortar o `self.fetch` e abrir uma rota nunca visitada).
+
+Outras duas da mesma auditoria: a autocura tira cada pedaço do precache e dos
+caches do aparelho **antes** de ir à rede (numa ativação sem conexão ela
+devolvia "sem-fonte" com os pedaços ali ao lado); e o − e o + soltam o campo de
+carga, que até aqui só se reconciliava quando o foco saía — no Safari do iPhone
+tocar num botão não move o foco, e o campo ficava mostrando o número velho.
+O e2e exercita esse caminho com `dispatchEvent("click")`, que não mexe no foco.
