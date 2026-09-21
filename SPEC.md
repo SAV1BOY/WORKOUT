@@ -1980,17 +1980,21 @@ muda **o que fica ao alcance do polegar** e **quem manda no toque**.
    quando ainda não há sessão). Vale nos dias de força, onde a aba é longa; a
    sentinela que a liga fica logo abaixo do card. As linhas da lista ganharam
    `scroll-mt-14` para a faixa não comer a linha recém-rolada.
-   A faixa **não recebe toque nenhum** a não ser no próprio botão
-   ("Continuar"/"Começar"): `pointer-events-none` no contêiner e
-   `pointer-events-auto` no botão. Num documento que rola inteiro, reservar a
-   altura no topo só muda onde o conteúdo começa — a partir do primeiro dedo as
-   linhas voltam a passar por baixo da faixa —, então quem para debaixo dela
-   continua sendo quem responde ao toque no próprio lugar, e o aceite do item 1
-   ("o toque em cada Substituir chega no próprio botão") vale em qualquer
-   posição de rolagem, fora do retângulo do próprio botão da faixa — esse é um
-   alvo visível e os pixels dele são dele, como em qualquer barra de
-   aplicativo. Para o salto por âncora e o foco pelo teclado a folga vem
-   do `scroll-padding-top` do documento.
+   A faixa **inteira é o controle**, como a barra do tocador de um app de
+   música: ela é um cartão opaco, com contorno e sombra, escrito "Treino A", e
+   por isso cada pixel dela faz a coisa que ela anuncia. Deixá-la inerte
+   (`pointer-events-none` no cartão, toque só no botão) foi tentado e
+   **descartado**: os pixels voltavam para a lista de baixo e tocar no nome do
+   treino abria a ficha de um exercício escondido debaixo da faixa.
+   Aceite: **em toda posição de rolagem com a faixa à vista,
+   `document.elementFromPoint` em qualquer ponto do retângulo dela devolve um
+   elemento DENTRO dela** — varrido de 24 em 24 px na largura, a cada 60 px de
+   rolagem, nos dois temas. Em troca, o que para debaixo da faixa fica coberto
+   enquanto está ali: nenhum controle fica permanentemente inalcançável —
+   **rolar um dedo revela qualquer linha que pare debaixo da faixa** —, e o
+   aceite do item 1 ("o toque em cada Substituir chega no próprio botão") vale
+   para toda linha fora do retângulo da faixa. Para o salto por âncora e o foco
+   pelo teclado a folga vem do `scroll-padding-top` do documento.
 3. **A folha "Ajustar" grava sozinha.** "Preparação" e "Descanso padrão"
    gravam no sair do campo (e 700 ms depois de parar de digitar), como os
    interruptores ao lado; os dois botões "Salvar" sumiram — dois modelos de

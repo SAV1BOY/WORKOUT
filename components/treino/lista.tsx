@@ -52,7 +52,11 @@ export function ListaDoDia({
 
   if (carregando) {
     return (
-      <ul className="flex flex-col gap-3" role="status" aria-label="Carregando a lista">
+      <ul
+        className="flex flex-col gap-3"
+        role="status"
+        aria-label="Carregando a lista"
+      >
         {[0, 1, 2].map((i) => (
           <li key={i} className="flex items-center gap-3">
             <Skeleton className="size-14 shrink-0 rounded-xl" />
@@ -93,10 +97,7 @@ export function ListaDoDia({
                 separa "Desenvolvimento com halteres" de "Desenvolvimento
                 militar em pé" — e no celular não há `title` para consultar.
               */}
-              <span
-                title={item.nome}
-                className="line-clamp-2 min-w-0 text-sm font-semibold"
-              >
+              <span className="line-clamp-2 min-w-0 text-sm font-semibold">
                 {item.ordem}. {item.nome}
               </span>
               <span className="text-muted-foreground flex items-center gap-1.5 text-xs">
@@ -176,7 +177,11 @@ function Substituir({
   aoDesfazer?: () => void;
 }) {
   const [aberto, setAberto] = useState(false);
-  const lista = evitadosPorUltimo(substitutosPara(exercicioId), (e) => e.id, prefs);
+  const lista = evitadosPorUltimo(
+    substitutosPara(exercicioId),
+    (e) => e.id,
+    prefs,
+  );
   if (lista.length === 0 && !aoDesfazer) return null;
 
   return (
@@ -191,7 +196,10 @@ function Substituir({
           <Repeat className="size-5" />
         </Button>
       </SheetTrigger>
-      <SheetContent side="bottom" className="max-h-[80dvh] overflow-y-auto pb-8">
+      <SheetContent
+        side="bottom"
+        className="max-h-[80dvh] overflow-y-auto pb-8"
+      >
         <SheetHeader className="pb-0">
           <SheetTitle>Substituir hoje</SheetTitle>
           <SheetDescription>

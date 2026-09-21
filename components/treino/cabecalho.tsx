@@ -3,12 +3,13 @@
 import { Flame } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { FaixaSemana } from "@/components/ui/faixa-semana";
 import { formatarData, formatarKg } from "@/lib/formato";
 import type { StatusDoPeso } from "@/lib/hoje";
 import type { ProgressoDaMeta } from "@/lib/metas";
 import type { DiaDaFaixa } from "@/lib/semana";
+import { cn } from "@/lib/utils";
 
 /**
  * O cabeçalho da aba Treino (SPEC §13.3): a saudação com o dia, a sequência de
@@ -39,7 +40,10 @@ export function CabecalhoDoTreino({
    */
   acoes?: ReactNode;
 }) {
-  const largura = Math.min(100, Math.round((meta.feitos / Math.max(meta.meta, 1)) * 100));
+  const largura = Math.min(
+    100,
+    Math.round((meta.feitos / Math.max(meta.meta, 1)) * 100),
+  );
 
   return (
     <section aria-label="Situação" className="flex flex-col gap-3">
@@ -156,16 +160,20 @@ function Caixa({
  * da tela — a aba tem 2.555 px —, o mesmo caminho volta como uma faixa fina no
  * alto, com o nome do treino, o progresso e um toque para continuar.
  *
- * A faixa flutua sobre a lista, e a lista continua rolando por baixo dela: num
- * documento que rola inteiro não há espaçador que resolva isso — reservar a
- * altura no topo só muda onde o conteúdo COMEÇA, e a partir do primeiro dedo
- * as linhas voltam a passar por baixo. Então a faixa não recebe toque nenhum:
- * `pointer-events-none` no contêiner (a propriedade é herdada, o cartão inteiro
- * fica transparente ao dedo) e `pointer-events-auto` só no "Continuar"/
- * "Começar". Assim um "Substituir" ou uma "Ficha" que pare debaixo dela
- * continua sendo quem responde ao toque no próprio lugar — e quem rola com o
- * dedo não perde o botão que está vendo. Para o salto por âncora e para o foco
- * pelo teclado, a folga vem do `scroll-padding-top` do documento (globals.css).
+ * A faixa INTEIRA é o controle, como a barra do tocador de um app de música:
+ * ela é um cartão opaco por cima da lista, então cada pixel dela tem de fazer
+ * a coisa que ela anuncia. A tentativa anterior — `pointer-events-none` no
+ * cartão, toque só no "Continuar" — devolvia esses pixels à lista de baixo e
+ * trocava um defeito por outro pior: tocar em "Treino A · agachamento no
+ * centro" abria a ficha de um exercício que nem estava à vista. Agora
+ * `document.elementFromPoint` em qualquer ponto do retângulo da faixa cai
+ * dentro dela.
+ *
+ * O contêiner segue com `pointer-events-none` só para não capturar o vazio dos
+ * lados no desktop (a faixa tem `max-w-lg`); quem recebe o toque é o `aside`.
+ * Nada fica inalcançável por causa dela: a linha que para debaixo da faixa
+ * volta com um dedo de rolagem, e para o salto por âncora e o foco pelo
+ * teclado a folga vem do `scroll-padding-top` do documento (globals.css).
  */
 export function FaixaFixaDoDia({
   titulo,
@@ -184,6 +192,34 @@ export function FaixaFixaDoDia({
   href?: string;
   aoTocar?: () => void;
 }) {
+  /* "Continuar — Treino A, 0/17 séries": o verbo primeiro, como o leitor de
+     tela anuncia o controle que a barra inteira virou. */
+  const nomeAcessivel = `${rotulo} — ${titulo}${detalhe ? `, ${detalhe}` : ""}`;
+
+  const classeDaBarra =
+    "group alvo flex w-full items-center gap-2 px-4 py-1 text-left outline-none focus-visible:ring-3 focus-visible:ring-ring focus-visible:ring-inset";
+
+  const conteudo = (
+    <>
+      <span className="min-w-0 flex-1 truncate text-sm">
+        <span className="font-semibold">{titulo}</span>
+        {detalhe ? (
+          <span className="text-muted-foreground numero">{` · ${detalhe}`}</span>
+        ) : null}
+      </span>
+      {/* só a aparência do botão: quem responde ao toque é a barra toda */}
+      <span
+        aria-hidden="true"
+        className={cn(
+          buttonVariants(),
+          "pointer-events-none shrink-0 group-hover:bg-primary/80",
+        )}
+      >
+        {rotulo}
+      </span>
+    </>
+  );
+
   return (
     <div
       data-faixa-do-dia
@@ -191,26 +227,25 @@ export function FaixaFixaDoDia({
     >
       <aside
         aria-label="Treino de hoje"
-        className="border-border bg-card flutuante flex w-full max-w-lg items-center gap-2 border-b px-4 py-1"
+        className="border-border bg-card flutuante pointer-events-auto w-full max-w-lg border-b"
       >
-        <p className="min-w-0 flex-1 truncate text-sm">
-          <span className="font-semibold">{titulo}</span>
-          {detalhe ? (
-            <span className="text-muted-foreground numero">{` · ${detalhe}`}</span>
-          ) : null}
-        </p>
         {href ? (
-          <Button asChild className="alvo pointer-events-auto h-11 shrink-0 px-4">
-            <Link href={href}>{rotulo}</Link>
-          </Button>
-        ) : (
-          <Button
-            type="button"
-            className="alvo pointer-events-auto h-11 shrink-0 px-4"
-            onClick={aoTocar}
+          <Link
+            href={href}
+            aria-label={nomeAcessivel}
+            className={classeDaBarra}
           >
-            {rotulo}
-          </Button>
+            {conteudo}
+          </Link>
+        ) : (
+          <button
+            type="button"
+            aria-label={nomeAcessivel}
+            onClick={aoTocar}
+            className={classeDaBarra}
+          >
+            {conteudo}
+          </button>
         )}
       </aside>
     </div>

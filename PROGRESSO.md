@@ -7678,10 +7678,11 @@ citavam os textos trocados foram atualizados sem afrouxar o que verificavam
 
 1. Na aba Treino, o **Ajustar** está no alto, ao lado da data. Role até o fim:
    surge a **faixa fina** com o treino do dia e um toque para continuar; toque
-   em qualquer **⇄ Substituir** da lista — abre a folha do próprio exercício,
-   sem nada por cima. Role devagar até uma linha parar **debaixo da faixa** e
-   toque nela: o toque chega no botão da linha, não na faixa (só o
-   "Continuar"/"Começar" da faixa responde por ela).
+   em qualquer **⇄ Substituir** da lista que esteja fora da faixa — abre a
+   folha do próprio exercício, sem nada por cima. Toque na faixa em qualquer
+   lugar, inclusive em cima do nome "Treino A": ela **inteira** é o botão e
+   sempre faz a mesma coisa que anuncia. A linha que ficar escondida debaixo
+   dela volta com um dedo de rolagem.
 2. Toque em **Ajustar**: a folha abre **sem o teclado subir**. Mude o
    "Descanso padrão" e feche a folha sem procurar botão nenhum — reabra e o
    número está lá.
@@ -7691,6 +7692,48 @@ citavam os textos trocados foram atualizados sem afrouxar o que verificavam
    destaque vai para a faixa "Você tem um treino aberto de …", que é onde está
    o "Continuar" dessa sessão; o card do dia segue oferecendo "Começar treino".
 
+
+#### Correção da auditoria do Lote 7 — rodada 4 (21/09/2026)
+
+A quinta auditoria reprovou a **faixa fixa do dia**. Ela tinha sido deixada
+inerte (`pointer-events-none` no contêiner, toque só no "Continuar"), e a sonda
+independente mediu o preço disso: varrendo a largura da faixa de 24 em 24 px a
+cada 60 px de rolagem, **341 pontos** (iguais nos dois temas) devolviam, em
+`document.elementFromPoint`, um elemento **fora** da faixa — 33 dos 40
+primeiros eram `Ficha: …` de exercícios escondidos embaixo. Quem tocasse em
+"Treino A · agachamento no centro" abria a ficha de um exercício que nem via, e
+o alvo escondido podia ser o "Começar o treino de <grupo>", que **cria** uma
+sessão.
+
+É: a faixa **inteira** virou o controle, como a barra do tocador de um app de
+música (`components/treino/cabecalho.tsx`). O `aside` recebe
+`pointer-events-auto` (o contêiner segue inerte só para não capturar o vazio
+dos lados no desktop) e dentro dele há **um único** `Link`/`button`, que ocupa
+a largura e a altura da faixa; o "Continuar"/"Começar" continua aparecendo,
+mas só como aparência (`aria-hidden`, `pointer-events-none`), e o nome
+acessível do controle é "Continuar — Treino A, 0/17 séries". Altura igual à de
+antes: 53 px.
+
+A **SPEC §22.7 item 2** foi reescrita com o aceite honesto: em toda posição de
+rolagem com a faixa à vista, `elementFromPoint` em qualquer ponto do retângulo
+dela devolve um elemento dentro dela; em troca, o que para debaixo da faixa
+fica coberto **enquanto está ali** — nenhum controle fica permanentemente
+inalcançável, um dedo de rolagem revela a linha.
+
+No `e2e/ultraloop-a-r4.spec.ts`: a varredura do item 1 foi **invertida** (ela
+exigia o contrário) e agora cobra o toque próprio de todo "Substituir"/"Ficha"
+**fora** do retângulo da faixa; entraram dois casos novos — a varredura da
+faixa nos moldes da sonda do auditor (24 px na largura, 60 px de rolagem, três
+alturas: mais de 200 pontos, nenhum fora) e um caso que fixa a faixa como
+controle único (um só `a`/`button`, largura inteira, ≥ 44 px, nome começando
+com o verbo, e o toque **no nome do treino** levando ao player).
+
+Junto, um menor da mesma auditoria: o `title={item.nome}` saiu do nome do
+exercício na lista (`components/treino/lista.tsx`) — ele contradizia o próprio
+comentário e a §22.7 item 5, que dizem que no celular não há `title` para
+consultar. Esta branch também recebeu a **main publicada** (L6, L8 e L9) por
+merge, resolvendo SPEC.md e PROGRESSO.md com os dois lados. Nenhuma migração de
+banco, nenhuma dependência nova.
 
 ### Fila (o que não coube) — lista para as próximas rodadas
 
