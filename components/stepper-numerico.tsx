@@ -75,6 +75,15 @@ export function StepperNumerico({
 
   const andar = (direcao: 1 | -1) => {
     if (desabilitado) return;
+    /*
+     * Apertar − ou + devolve o campo ao app: o texto deixa de ser do dedo e
+     * volta a se reconciliar com o `valor`. No Chromium tocar num `<button>`
+     * tira o foco do `<input>` e o `blur` já fazia isso — no Safari do iPhone
+     * não tira, e sem esta linha o campo ficaria mostrando o número velho
+     * enquanto o valor já andou. É o caminho de celular que o e2e exercita
+     * com `dispatchEvent`, que também não mexe no foco.
+     */
+    setFocado(false);
     if (aoAndar) {
       aoAndar(direcao);
       return;
@@ -96,6 +105,10 @@ export function StepperNumerico({
     // a tecla que não faz um número em construção simplesmente não entra —
     // a segunda vírgula, a letra, o menos onde não cabe (SPEC §22.11)
     const aceito = aceitarDigitacao(texto, novoTexto, { negativo: minimo < 0 });
+    // digitar é o que faz o texto ser do dedo — e não focar: no Safari o campo
+    // continua focado depois de um toque no + , e o `onFocus` não volta a
+    // disparar quando o usuário retoma a digitação
+    setFocado(true);
     setTexto(aceito);
     const lido = lerNumero(aceito);
     if (lido === null) return;
