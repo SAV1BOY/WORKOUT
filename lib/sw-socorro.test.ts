@@ -29,9 +29,18 @@ describe("o HTML de socorro do service worker (SPEC §22.10)", () => {
 
   it("os dois alvos têm 48 px de altura e largura cheia (SPEC §11)", () => {
     expect(html).toContain("min-height:48px");
-    const atos = html.match(/class="ato"/g) ?? [];
+    const atos = html.match(/class="ato /g) ?? [];
     expect(atos).toHaveLength(2);
     expect(html).toMatch(/\.ato\{[^}]*width:100%/);
+    /*
+     * Um é `<button>` e o outro é `<a>`: `:first-of-type` e `:last-of-type`
+     * casariam com os DOIS (cada um é o primeiro e o último do seu tipo) e o
+     * botão de ação perderia o preenchimento. Cada um leva a sua classe.
+     */
+    expect(html).toContain('class="ato primeiro"');
+    expect(html).toContain('class="ato segundo"');
+    expect(html).not.toMatch(/:(first|last)-of-type/);
+    expect(html).toMatch(/\.primeiro\{[^}]*background:var\(--destaque\)/);
   });
 
   it("tem os dois temas com os tokens de app/globals.css", () => {
