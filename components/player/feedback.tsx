@@ -68,7 +68,7 @@ export function TelaFeedback({
           className="alvo flex-1 rounded-2xl font-semibold"
           onClick={aoSeguir}
         >
-          {sensacao === null ? "Concluir sem responder" : "Concluído"}
+          {sensacao === null ? "Concluir sem responder" : "Concluir"}
         </Button>
       </div>
     </section>
