@@ -171,7 +171,7 @@ test.describe("preparação → exercício → descanso (SPEC §14.1.1–3)", ()
     await page.clock.install({ time: new Date(SEGUNDA) });
     await entrarNoApp(page);
     await page.goto("/treinar");
-    await page.getByRole("button", { name: "Começar Treino A" }).click();
+    await page.getByRole("button", { name: "Começar o Treino A" }).click();
     await expect(page).toHaveURL(/\/treinar\/[0-9a-f-]{36}$/);
 
     // preparacao_s = 0: sem tela de preparação, o player abre no exercício
@@ -535,7 +535,7 @@ test.describe("circuito de core: reps e tempo (SPEC §14.5.3)", () => {
     await fixarData(page, SEGUNDA);
     await entrarNoApp(page);
     await page.goto("/treinar");
-    await page.getByRole("button", { name: "Começar Inferior A" }).click();
+    await page.getByRole("button", { name: "Começar o Inferior A" }).click();
     await expect(page).toHaveURL(/\/treinar\/[0-9a-f-]{36}$/);
     await comecarNoPlayer(page);
 
@@ -747,6 +747,10 @@ test.describe("visão geral e gostei/não gosto (SPEC §14.1.2)", () => {
 
     // e o "gostei" desfaz — e passa a valer como voto próprio (§22.1)
     await page.goBack();
+    // espera o player rehidratar com o voto "evitado" antes de trocá-lo
+    await expect(
+      page.getByRole("button", { name: "Não gosto deste exercício" }),
+    ).toHaveAttribute("aria-pressed", "true");
     await page.getByRole("button", { name: "Gostei deste exercício" }).click();
     await expect
       .poll(

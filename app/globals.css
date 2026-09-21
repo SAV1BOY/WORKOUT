@@ -252,6 +252,16 @@
     @apply font-sans;
     -webkit-text-size-adjust: 100%;
   }
+  /*
+   * A faixa fixa do dia (SPEC §22.7 item 2) tem 53 px e flutua no alto. Ela
+   * não intercepta mais o toque, mas um salto por âncora ou o foco pelo
+   * teclado ainda poderiam parar um alvo bem debaixo dela: a folga de 56 px
+   * empurra esses saltos para baixo da faixa. Só vale enquanto a faixa está
+   * na tela (aba Treino): nas outras rotas não há nada fixo no alto.
+   */
+  :root:has([data-faixa-do-dia]) {
+    scroll-padding-top: calc(env(safe-area-inset-top, 0px) + 56px);
+  }
   body {
     @apply bg-background text-foreground;
     /* celular primeiro: nada de rolagem horizontal a 360 px */

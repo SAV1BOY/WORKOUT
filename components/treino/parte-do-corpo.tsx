@@ -2,7 +2,7 @@
 
 import { FilterX } from "lucide-react";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ListaDaColecao } from "@/components/colecoes/lista-da-colecao";
 import { useSessaoLivre } from "@/components/colecoes/usar-sessao-livre";
 import { BotaoLargo } from "@/components/ui/botao-largo";
@@ -22,6 +22,48 @@ import { evitadosPorUltimo } from "@/lib/preferencias";
 import type { Grupo } from "@/lib/schemas";
 import type { Prefs } from "@/lib/types";
 import { cn } from "@/lib/utils";
+
+/**
+ * SPEC §22.7 item 7: as duas fileiras de chips passam da tela a 360 px —
+ * "Pernas", "Core" e "Cardio" ficam fora — e nada dizia isso. O degradê aparece
+ * só do lado em que sobrou conteúdo, e some quando tudo já cabe.
+ */
+function useBordasDaRolagem(quantidade: number) {
+  const ref = useRef<HTMLUListElement>(null);
+  const [bordas, setBordas] = useState({ esquerda: false, direita: false });
+
+  const medir = useCallback(() => {
+    const lista = ref.current;
+    if (!lista) return;
+    const esquerda = lista.scrollLeft > 4;
+    const direita = lista.scrollLeft + lista.clientWidth < lista.scrollWidth - 4;
+    setBordas((atual) =>
+      atual.esquerda === esquerda && atual.direita === direita
+        ? atual
+        : { esquerda, direita },
+    );
+  }, []);
+
+  useEffect(() => {
+    medir();
+    window.addEventListener("resize", medir);
+    return () => window.removeEventListener("resize", medir);
+  }, [medir, quantidade]);
+
+  return { ref, bordas, medir };
+}
+
+/** A máscara da fileira: transparente só na borda que esconde alguma coisa. */
+function mascaraDaFileira(bordas: {
+  esquerda: boolean;
+  direita: boolean;
+}): React.CSSProperties | undefined {
+  if (!bordas.esquerda && !bordas.direita) return undefined;
+  const inicio = bordas.esquerda ? "transparent 0, #000 1.5rem" : "#000 0";
+  const fim = bordas.direita ? "#000 calc(100% - 1.5rem), transparent 100%" : "#000 100%";
+  const degrade = `linear-gradient(to right, ${inicio}, ${fim})`;
+  return { maskImage: degrade, WebkitMaskImage: degrade };
+}
 
 /**
  * "Parte do corpo em foco" (SPEC §14.3): os chips dos 8 grupos de
@@ -71,6 +113,9 @@ export function ParteDoCorpo({
 
   const { comecar, ocupado, pronto } = useSessaoLivre(colecao?.exercicios ?? []);
 
+  const rolagemDosGrupos = useBordasDaRolagem(visiveis.length);
+  const rolagemDosFiltros = useBordasDaRolagem(FILTROS.length);
+
   const alternar = (chave: ChaveDoFiltro) =>
     setFiltros((atuais) =>
       atuais.includes(chave) ? atuais.filter((c) => c !== chave) : [...atuais, chave],
@@ -80,7 +125,13 @@ export function ParteDoCorpo({
     <section aria-label="Parte do corpo em foco" className="flex flex-col gap-3">
       <h2 className="text-base font-semibold">Parte do corpo em foco</h2>
 
-      <ul className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1" aria-label="Grupos">
+      <ul
+        ref={rolagemDosGrupos.ref}
+        onScroll={rolagemDosGrupos.medir}
+        style={mascaraDaFileira(rolagemDosGrupos.bordas)}
+        className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1"
+        aria-label="Grupos"
+      >
         {visiveis.map((g) => (
           <li key={g}>
             <Chip
@@ -93,7 +144,13 @@ export function ParteDoCorpo({
         ))}
       </ul>
 
-      <ul className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1" aria-label="Filtros">
+      <ul
+        ref={rolagemDosFiltros.ref}
+        onScroll={rolagemDosFiltros.medir}
+        style={mascaraDaFileira(rolagemDosFiltros.bordas)}
+        className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1"
+        aria-label="Filtros"
+      >
         {FILTROS.map((f) => (
           <li key={f.chave}>
             <Chip
@@ -144,7 +201,10 @@ export function ParteDoCorpo({
               void comecar(escolhidos, { titulo: colecao.titulo, colecao: colecao.id })
             }
           >
-            {ocupado ? "Começando…" : `Começar ${colecao.titulo}`}
+            {/* SPEC §22.7 item 8: verbo + objeto, com preposição e artigo */}
+            {ocupado
+              ? "Começando…"
+              : `Começar o treino de ${colecao.titulo.toLowerCase()}`}
           </BotaoLargo>
         </>
       )}

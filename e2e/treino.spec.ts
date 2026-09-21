@@ -156,7 +156,10 @@ test.describe("Treino — situação e treino aberto (SPEC §3.1 e §13.3)", () 
     await usuarioComPerfil();
     await abrirTreino(page, SEGUNDA);
 
-    await expect(page.getByText("Fase 1 · semana 1")).toBeVisible();
+    // SPEC §22.7 item 4: o ladrilho tem valor ("Fase 1") e legenda ("semana 1")
+    const ladrilhoDaFase = page.locator('[data-ladrilho="Fase"]');
+    await expect(ladrilhoDaFase).toContainText("Fase 1");
+    await expect(ladrilhoDaFase).toContainText("semana 1");
     await expect(page.getByText("Ainda não tem peso registrado.")).toBeVisible();
     await expect(page.getByRole("link", { name: "Pesar" })).toHaveAttribute(
       "href",
@@ -225,7 +228,9 @@ test.describe("Treino — cache persistido (SPEC §8)", () => {
     await usuarioComPerfil();
     await fixarData(page, SEGUNDA);
     await entrarNoApp(page);
-    await expect(page.getByText(/^Fase 1 · semana/)).toBeVisible();
+    await expect(page.locator('[data-ladrilho="Fase"]')).toContainText(
+      /Fase 1\s*semana \d+/,
+    );
 
     const guardado = async () =>
       page.evaluate(
@@ -296,7 +301,9 @@ test.describe("Treino — auditoria do marco 2", () => {
       await page.reload();
       // o conteúdo vem do cache do IndexedDB, não da rede (SPEC §8)
       await esperarAbaTreino(page);
-      await expect(page.getByText(/^Fase 1 · semana/)).toBeVisible();
+      await expect(page.locator('[data-ladrilho="Fase"]')).toContainText(
+        /Fase 1\s*semana \d+/,
+      );
       await expect(page.getByText(/\d+ min · \d+ exercícios/)).toBeVisible();
       await expect(page.getByRole("list", { name: "Exercícios de hoje" })).toBeVisible();
       await semRolagemHorizontal(page);
@@ -358,7 +365,7 @@ test.describe('"Começar treino" entra direto no player (SPEC §14.5.1)', () => 
 
     await page.getByRole("link", { name: /Treinar mesmo assim/ }).click();
     await expect(page).toHaveURL(/\/treinar$/);
-    await expect(page.getByRole("button", { name: /^Começar Treino / })).toHaveCount(2);
+    await expect(page.getByRole("button", { name: /^Começar o Treino / })).toHaveCount(2);
   });
 
   /*
@@ -378,7 +385,7 @@ test.describe('"Começar treino" entra direto no player (SPEC §14.5.1)', () => 
 
     for (let volta = 0; volta < 3; volta++) {
       await page.goto("/treinar");
-      await expect(page.getByRole("button", { name: /^Começar Treino / })).toHaveCount(
+      await expect(page.getByRole("button", { name: /^Começar o Treino / })).toHaveCount(
         2,
         { timeout: 15_000 },
       );
@@ -424,7 +431,7 @@ test.describe("o vigia da hidratação (lib/vigia.ts)", () => {
     // e o botão traz o app de volta, com o pacote liberado
     await page.unroute("**/_next/static/chunks/main-app-*.js");
     await botao.click();
-    await expect(page.getByRole("button", { name: /^Começar Treino / })).toHaveCount(2, {
+    await expect(page.getByRole("button", { name: /^Começar o Treino / })).toHaveCount(2, {
       timeout: 20_000,
     });
     await expect(page.locator("#vigia-hidratacao")).toHaveCount(0);

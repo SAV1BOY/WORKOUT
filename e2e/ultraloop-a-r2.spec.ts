@@ -204,16 +204,31 @@ test("no tema escuro nenhuma caixa de ilustração passa de 60 % de luz", async 
 //  item 5 — elevação do que flutua
 // =====================================================================
 
-test("o FAB Ajustar tem contorno visível nos dois temas", async ({ page }) => {
+/*
+ * SPEC §22.7 item 1: o "Ajustar" deixou de ser um FAB fixo (que cobria o
+ * "Substituir" da lista) e virou um botão do cabeçalho. O que este teste
+ * cobrava — que ele se destaque do fundo nos dois temas — continua valendo:
+ * agora pelo contorno, que é o que separa um botão de superfície do cartão.
+ */
+test("o botão Ajustar se destaca do fundo nos dois temas", async ({ page }) => {
   for (const tema of TEMAS) {
     await abrir(page, "/", tema);
-    const fab = page.getByRole("button", { name: "Ajustar" });
-    await expect(fab).toBeVisible();
-    const sombra = await fab.evaluate((el) => getComputedStyle(el).boxShadow);
-    expect(sombra, `sombra do FAB (${tema})`).not.toBe("none");
-    expect(sombra.trim(), `sombra do FAB (${tema})`).not.toBe("");
-    // a sombra não pode ser só transparência
-    expect(sombra, `sombra do FAB (${tema})`).not.toMatch(/rgba\(0, 0, 0, 0\)/);
+    const ajustar = page.getByRole("button", { name: "Ajustar" });
+    await expect(ajustar).toBeVisible();
+    const caixa = await ajustar.boundingBox();
+    expect(caixa?.width ?? 0, `largura do Ajustar (${tema})`).toBeGreaterThanOrEqual(44);
+    expect(caixa?.height ?? 0, `altura do Ajustar (${tema})`).toBeGreaterThanOrEqual(44);
+    const contorno = await ajustar.evaluate((el) => {
+      const estilo = getComputedStyle(el);
+      return { largura: estilo.borderTopWidth, cor: estilo.borderTopColor };
+    });
+    expect(
+      parseFloat(contorno.largura),
+      `contorno do Ajustar (${tema})`,
+    ).toBeGreaterThan(0);
+    expect(contorno.cor, `contorno do Ajustar (${tema})`).not.toMatch(
+      /rgba\(0, 0, 0, 0\)/,
+    );
   }
 });
 

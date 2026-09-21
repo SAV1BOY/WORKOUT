@@ -101,8 +101,8 @@ test.describe("aba Treino — Desafios (§14.3)", () => {
     // o botão da semana leva ao plano de verdade
     await expect(
       desafios
-        .locator('[data-desafio="barra_fixa"]')
-        .getByRole("link", { name: "Fazer a sessão da semana" }),
+        /* SPEC §22.7 item 6: cada CTA diz o próprio destino */
+        .getByRole("link", { name: "Fazer a sessão de barra fixa" }),
     ).toHaveAttribute("href", "/barra-fixa");
 
     // carrossel **manual**: a lista rola para o lado sem a página rolar
@@ -136,7 +136,7 @@ test.describe("aba Treino — Parte do corpo em foco (§14.3)", () => {
     // `formatarMinutos`: "~44 min" ou "~1 h 19" quando passa de uma hora
     await expect(secao).toContainText(/~(\d+ min|\d+ h( \d+)?)/);
     await expect(
-      secao.getByRole("button", { name: /^Começar Core$/ }),
+      secao.getByRole("button", { name: /^Começar o treino de core$/ }),
     ).toBeVisible();
 
     // SPEC §22.9 item 9: o segmento da rota é normalizado (minúscula, sem acento)
@@ -171,7 +171,7 @@ test.describe("aba Treino — Parte do corpo em foco (§14.3)", () => {
       .getByRole("list", { name: "Grupos" })
       .getByRole("button", { name: "Parte do corpo: Core" })
       .click();
-    await secao.getByRole("button", { name: /^Começar Core$/ }).click();
+    await secao.getByRole("button", { name: /^Começar o treino de core$/ }).click();
 
     await page.waitForURL(/\/treinar\/[0-9a-f-]{36}$/);
     await comecarNoPlayer(page);
@@ -240,7 +240,7 @@ test.describe("aba Treino — Personalizar e Editar (§14.3)", () => {
       await catalogo.getByRole("button", { name: new RegExp(nome) }).first().click();
     }
 
-    await folha.getByRole("button", { name: "Começar (3)" }).click();
+    await folha.getByRole("button", { name: "Começar com 3 exercícios" }).click();
     await page.waitForURL(/\/treinar\/[0-9a-f-]+$/);
     await comecarNoPlayer(page);
 
@@ -618,8 +618,12 @@ test.describe("Corpo e Preferências (§14.4)", () => {
       "/mais/creditos",
     );
 
+    /*
+     * SPEC §22.7 item 3: os dois campos numéricos gravam sozinhos — não há
+     * mais botão "Salvar" nenhum na folha, só o sair do campo (ou o atraso).
+     */
     await page.getByLabel("Descanso padrão (s)").fill("75");
-    await page.getByRole("button", { name: "Salvar descanso padrão" }).click();
+    await page.getByLabel("Descanso padrão (s)").blur();
     await expect.poll(async () => {
       const perfis = await lerDoMock<{ prefs: Record<string, unknown> }>(
         sessao,
