@@ -1714,7 +1714,9 @@ muda **o que fica ao alcance do polegar** e **quem manda no toque**.
    linhas voltam a passar por baixo da faixa —, então quem para debaixo dela
    continua sendo quem responde ao toque no próprio lugar, e o aceite do item 1
    ("o toque em cada Substituir chega no próprio botão") vale em qualquer
-   posição de rolagem. Para o salto por âncora e o foco pelo teclado a folga vem
+   posição de rolagem, fora do retângulo do próprio botão da faixa — esse é um
+   alvo visível e os pixels dele são dele, como em qualquer barra de
+   aplicativo. Para o salto por âncora e o foco pelo teclado a folga vem
    do `scroll-padding-top` do documento.
 3. **A folha "Ajustar" grava sozinha.** "Preparação" e "Descanso padrão"
    gravam no sair do campo (e 700 ms depois de parar de digitar), como os

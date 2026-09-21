@@ -7150,7 +7150,8 @@ a faixa deixou de ser tocável fora do próprio botão: `pointer-events-none` no
 contêiner (a propriedade é herdada, o cartão inteiro fica transparente ao dedo)
 e `pointer-events-auto` só no "Continuar"/"Começar". Um "Substituir" ou uma
 "Ficha" que pare debaixo dela continua sendo quem responde ao toque no próprio
-lugar. Para o salto por âncora e para o foco pelo teclado, a folga vem do
+lugar — fora do retângulo do "Continuar"/"Começar" da faixa, que é um alvo
+visível e fica com os próprios pixels. Para o salto por âncora e para o foco pelo teclado, a folga vem do
 `scroll-padding-top` de 56 px do documento (`app/globals.css`).
 
 **Provas**: `e2e/ultraloop-a-r4.spec.ts` (12 testes, um por aceite: toque em

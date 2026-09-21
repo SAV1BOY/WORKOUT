@@ -115,6 +115,14 @@ test("o toque em cada 'Substituir' chega no próprio botão (SPEC §22.7 item 1)
       if (!faixa) continue;
       passosComFaixa += 1;
       const caixaDaFaixa = faixa.getBoundingClientRect();
+      /*
+       * O "Continuar"/"Começar" da própria faixa é um alvo VISÍVEL: os pixels
+       * dele são dele, como em qualquer barra de aplicativo. O que não pode
+       * acontecer é o cartão da faixa — que não é botão nenhum — engolir o
+       * toque. Então o retângulo do botão da faixa sai da medida; todo o resto
+       * dela entra.
+       */
+      const acao = faixa.querySelector("a, button")?.getBoundingClientRect();
       const alvos = document.querySelectorAll<HTMLElement>(
         'button[aria-label^="Substituir "], button[aria-label^="Ficha: "]',
       );
@@ -123,9 +131,19 @@ test("o toque em cada 'Substituir' chega no próprio botão (SPEC §22.7 item 1)
         if (r.width === 0 || r.height === 0) continue;
         /* só o que está inteiro na tela e para na altura da faixa */
         if (r.top < 0 || r.bottom > window.innerHeight) continue;
+        const cx = r.x + r.width / 2;
         const cy = r.y + r.height / 2;
         if (cy > caixaDaFaixa.bottom) continue;
-        const quem = document.elementFromPoint(r.x + r.width / 2, cy);
+        if (
+          acao &&
+          cx >= acao.left &&
+          cx <= acao.right &&
+          cy >= acao.top &&
+          cy <= acao.bottom
+        ) {
+          continue;
+        }
+        const quem = document.elementFromPoint(cx, cy);
         if (quem?.closest("button, a") === alvo) continue;
         perdidos.push({
           y,
