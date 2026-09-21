@@ -435,6 +435,13 @@ test("nenhum nome de exercício passa de duas linhas a 360 px (item 5)", async (
   page,
 }) => {
   await abrirAbaTreino(page);
+  /*
+   * Esperar a lista antes de medir: `abrirAbaTreino` volta com a aba na tela,
+   * mas os exercícios chegam depois do perfil, e o `evaluate` cru já voltou
+   * `null` uma vez (a asserção falhava sem defeito nenhum no app).
+   */
+  const listaDeHoje = page.locator('ul[aria-label="Exercícios de hoje"]');
+  await expect(listaDeHoje).toBeVisible();
   const linhas = await page.evaluate(() => {
     const lista = document.querySelector('ul[aria-label="Exercícios de hoje"]');
     if (!lista) return null;
