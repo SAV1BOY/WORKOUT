@@ -5,6 +5,10 @@ import {
   type PerfilCalendario,
 } from "@/lib/calendario";
 import {
+  GLIFO_DA_MARCA,
+  LEGENDA_DA_FAIXA,
+  NOME_DA_MARCA,
+  ORDEM_DA_LEGENDA,
   detalheDoDia,
   faixaDaSemana,
   intervaloDaSemana,
@@ -14,6 +18,7 @@ import {
   rotuloDaFase,
   rotuloDoDia,
   siglaDoDia,
+  type MarcaDoDia,
 } from "@/lib/semana";
 
 const PERFIL: PerfilCalendario = {
@@ -474,5 +479,39 @@ describe("treino feito num dia de descanso (SPEC §16.2 e §5.3)", () => {
     const grade = montarGrade({ data: SEMANA_1, perfil: PERFIL, hoje: "2026-09-20" });
     expect(grade[3]?.marca).toBe("descanso");
     expect(grade[3]?.sigla).toBe("Desc.");
+  });
+});
+
+/**
+ * SPEC §22.6 item 9: a legenda da faixa é contrato. A versão escrita à mão
+ * explicava quatro glifos para as cinco marcas de `MarcaDoDia` — "parcial",
+ * que `montarGrade` emite de verdade (a sessão começada e não concluída),
+ * ficava de fora. Estes testes comparam a legenda com o conjunto de marcas,
+ * para a próxima marca nova não passar despercebida.
+ */
+describe("a legenda da faixa da semana", () => {
+  const MARCAS: MarcaDoDia[] = ["feito", "parcial", "faltou", "aberto", "descanso"];
+
+  it("tem um glifo e um nome para cada marca possível", () => {
+    expect(Object.keys(GLIFO_DA_MARCA).sort()).toEqual([...MARCAS].sort());
+    expect([...ORDEM_DA_LEGENDA].sort()).toEqual([...MARCAS].sort());
+    expect(new Set(Object.values(GLIFO_DA_MARCA)).size).toBe(MARCAS.length);
+  });
+
+  it("cita todas as marcas, com o nome que o leitor de tela usa", () => {
+    for (const marca of MARCAS) {
+      expect(LEGENDA_DA_FAIXA, marca).toContain(
+        `${GLIFO_DA_MARCA[marca]} ${NOME_DA_MARCA[marca]}`,
+      );
+    }
+    expect(LEGENDA_DA_FAIXA).toBe(
+      "✓ feito · ◉ parcial · ○ a fazer · ● faltou · — descanso · hoje em destaque",
+    );
+  });
+
+  it("não promete um desenho que a faixa use para duas coisas", () => {
+    /* o ponto cheio é de "faltou" e de mais ninguém — hoje por fazer é anel */
+    expect(GLIFO_DA_MARCA.faltou).not.toBe(GLIFO_DA_MARCA.aberto);
+    expect(GLIFO_DA_MARCA.parcial).not.toBe(GLIFO_DA_MARCA.feito);
   });
 });

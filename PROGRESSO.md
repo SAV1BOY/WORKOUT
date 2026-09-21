@@ -7248,9 +7248,250 @@ rodou (o Chromium local não confia na CA do proxy de saída); a régua de 360 p
 44 px, contraste e foco já correu verde nas 30 telas no portão local.
 **Rollback: não.**
 
-### Rodada 3 — Lote 6
+### Rodada 3 — Lote 6 — Relatório: estrutura, números e conquistas (faixa B)
 
-(a preencher)
+SPEC §22.6. Dez itens, todos na faixa B (`/home/user/wt-b`, portas 3110/54331).
+
+**1. O Relatório em cinco seções dobráveis** (`components/relatorio/tela-relatorio.tsx`)
+— era: um `<Tela>` só empilhando Totais, aviso, Números, Conquistas, Histórico,
+sequências, Peso, IMC e a tela inteira de gráficos — **5.444 px** de rolagem, e
+quem quisesse o Histórico rolava às cegas. É: cinco `<details>` — **Resumo**,
+**Conquistas**, **Histórico**, **Corpo** e **Gráficos** —, cabeçalho `sticky`
+com alvo de 44 px, estado lembrado em `localStorage` (`relatorio:secoes`) e
+montagem preguiçosa (o conteúdo de uma seção fechada nunca é montado: a seção
+Gráficos não pede consulta nem desenha Recharts enquanto ninguém a abrir).
+Medido a 360 × 740: **1.211 px** de rolagem com a tela aberta como ela nasce
+(Resumo aberto), contra 5.444.
+
+**2. CLS 0,39/0,44 → 0,0016/0,0030** (`tela-relatorio.tsx`) — era: as ~10
+leituras resolviam depois da primeira pintura e o **aviso de conquista** nascia
+no alto da tela, empurrando 297 px de conteúdo já pintado para baixo (sozinho,
+0,3155 de CLS). É: o aviso mora ao lado do assunto dele (entre o Resumo e a
+seção Conquistas, fora da primeira dobra), cada seção reserva a própria caixa e
+o esqueleto dos Números tem a forma dos Números (cabeçalho, seletor de período,
+fileira de três, três linhas de detalhe, fileira de dois). Medido com
+`PerformanceObserver('layout-shift')`: **0,0016 no escuro e 0,0030 no claro**.
+
+**3 e 4. Conquistas em duas colunas, com progresso e separação**
+(`components/relatorio/conquistas.tsx`) — era: `grid-cols-3` a 360 px (cartão de
+~100 px, nome em três linhas, linhas de alturas diferentes) e um "7 de 26" solto
+no cabeçalho. É: `grid-cols-2 sm:grid-cols-3`, cartão em
+`grid-rows-[auto_1fr_auto]` com `line-clamp-2` no nome e `line-clamp-1` na
+legenda (texto inteiro no `title` e no nome acessível, §22.3 item 11), barra
+fina de progresso com `role="progressbar"` e dois grupos rotulados —
+**Conquistadas** e **A conquistar**, cada um com a contagem.
+
+**5. O aviso de conquista** (`components/relatorio/aviso-conquista.tsx`) — era:
+uma linha por conquista nova, com descrição, sem limite, com a data sempre
+visível (uma conquista de 1º de junho anunciada como novidade) e rotulada
+"Conquistas", igual ao título da seção da mesma tela. É: `novas.slice(0, 3)` com
+"e mais N conquistas · veja em Conquistas", **uma linha por conquista** (ícone,
+nome, data), data **escondida quando é a de hoje**, `role="status"` na `<section>`
+e o rótulo "Nova conquista" / "Novas conquistas".
+
+**6. Rótulos que se contradiziam** (`tela-relatorio.tsx`,
+`components/progresso/tela-progresso.tsx`) — era: "TREINOS / 51 / no total" no
+topo e "6 no mês · 46 no total" no card de treinos, na mesma rolagem. É:
+"SESSÕES / 51 / no total (força + cardio)" e "só força · 6 no mês · 46 de força
+no total".
+
+**7. Ladrilhos alinhados** (`components/relatorio/numeros.tsx`,
+`components/ui/contador.tsx`) — cada contador é `grid-rows-[auto_1fr_auto]`
+(rótulo, número, legenda colada no rodapé) e o ícone do rótulo subiu de 12 px
+para 14 px (`size-3.5 shrink-0`). E nada recorta mais o rótulo na vertical: o
+til de "SESSÕES" em versalete sobe acima da caixa de linha de 12 px, e o
+`overflow: hidden` a cortava ("SESSOES"). Tirar o `overflow-hidden` do span de
+FORA não resolveu — quem recortava era o `truncate` do span de DENTRO —, então
+o de dentro passou a recortar só na horizontal (`overflow-x-clip` +
+`overflow-y-visible` + `text-ellipsis`), mantendo o "…" de quem não cabe na
+largura.
+
+**8. Cabeçalho de seção com dois papéis separados** (`tela-relatorio.tsx`,
+`numeros.tsx`) — era: título e frase de explicação na mesma linha (a 360 px a
+frase comia metade da linha). É: contador curto ("7 de 26") na linha de base do
+título e a explicação como subtítulo de 12 px `muted` na linha de baixo — e só
+na seção **aberta**, para o cabeçalho recolhido ser uma linha de 56 px. O atalho
+"Catálogo de exercícios" saiu de cima dos totais e foi para o fim da tela: o
+Relatório começa pelos números.
+
+**9. Sem sigla nem notação matemática** (`tela-progresso.tsx`, `numeros.tsx`,
+`lib/formato.ts`) — "e1RM (Epley)" → "carga máxima estimada" (coluna
+"Máx. estimada"); "Σ reps × kg, últimas 12 semanas" → "Soma de repetições ×
+carga, nas últimas 12 semanas"; "Aderência (4 semanas)" → "Constância
+(4 semanas)"; "reps × kg nas séries de trabalho" → "repetições × carga nas
+séries de trabalho"; `${…} %` → `formatarPercentual()` ("78%", símbolo colado,
+um formato só no app, com unitário em `lib/formato.test.ts`); "Treino B 1" →
+"Treino B × 1" (e "Corrida × 1", na mesma lista); as linhas Força / Cardio /
+Barra fixa viraram `grid-cols-[5.5rem_1fr]`, com o valor sempre no mesmo x.
+
+**10. Legenda da faixa e cartão vazio de uma linha**
+(`components/relatorio/historico.tsx`, `tela-progresso.tsx`) — a faixa da semana
+ganhou "✓ feito · ○ a fazer · ● faltou · — descanso · hoje em destaque"; em
+"Carga dos grandes" o exercício sem registro virou **uma linha** (nome + "sem
+registro", 44 px) no lugar de um cartão de altura cheia com um vazio de gráfico
+dentro.
+
+**Provas.** Portões completos (lint, tsc, test, build, build:e2e, e2e,
+varredura) pelo `portoes.sh`, logs em
+`scratchpad/ultraloop/rodada-3/l6/logs`. Testes novos: `e2e/ultraloop-b-r3.spec.ts`
+(10 casos — rolagem < 1.500 px, memória da seção, CLS < 0,1 nos dois temas,
+duas colunas com linhas de mesma altura, o aviso de 3 linhas, rótulos que não se
+contradizem, linha de base dos números, nenhuma sigla, legenda e cartão de uma
+linha) e o bloco "porcentagem" em `lib/formato.test.ts`. Ajustados, sem
+afrouxar: `e2e/v3.spec.ts`, `e2e/conquistas.spec.ts`, `e2e/relatorio.spec.ts`,
+`e2e/retomada.spec.ts`, `e2e/auditoria-m5.spec.ts` (abrem a seção antes de
+medir) e `e2e/fixtures.ts` (o ajudante `abrirSecaoDoRelatorio`). Capturas nos
+dois temas em `scratchpad/ultraloop/rodada-3/l6/capturas/construtor`: mudaram só
+`11-relatorio-topo`, `12-relatorio-numeros`, `13-relatorio-conquistas`,
+`14-relatorio-historico` e `30-player-conclusao` — nenhuma tela fora da lista.
+
+**Como testar no celular.** Abra `/relatorio`: a tela começa pelos três
+acumulados ("SESSÕES · 51 · no total (força + cardio)") e pelos Números; os
+outros quatro blocos são cabeçalhos de um toque. Abra "Conquistas": a barra de
+progresso diz quantas faltam e os cartões vêm em duas colunas, separados entre
+"Conquistadas" e "A conquistar". Feche o Resumo, saia da tela e volte: a
+memória das seções é a sua. Abra "Histórico": a legenda da faixa está logo
+abaixo dela. Abra "Gráficos": nada de sigla — "Constância (4 semanas)", "78%",
+"carga máxima estimada" — e o exercício sem registro ocupa uma linha só.
+
+#### Correção da auditoria do Lote 6 (21/09/2026)
+
+Um auditor independente reprovou o lote por três defeitos — dois deles na
+própria **instrumentação**, que é o pior tipo de portão verde: o que mede fica
+cego e a rodada seguinte não vê a regressão.
+
+1. **O til de "SESSÕES" continuava cortado** (`components/ui/contador.tsx`). O
+   lote tirou o `overflow-hidden` do span de FORA (`[data-rotulo]`, 16 px de
+   altura), mas quem recortava era o span de DENTRO: `truncate` traz
+   `overflow: hidden` numa caixa de linha de 12 px (`text-micro`: 10 px ×
+   1,2), e o acento do Õ em versalete mora acima dela. O `innerText` diz
+   "SESSÕES" nos dois casos — por isso nenhum teste de texto pegava. Agora os
+   **dois** spans recortam só na horizontal (`min-w-0` + `overflow-x-clip` +
+   `overflow-y-visible`, com `text-ellipsis` no de dentro): o til pinta e o
+   "…" de quem não cabe na largura fica. Tirar o recorte do span de FORA não
+   era neutro, e essa foi a terceira passada do auditor: na fileira de
+   Totais o ladrilho é uma **grade** (`grid-rows-[auto_1fr_auto]`), o span é
+   um item de grade, e num item de grade o `min-width: auto` só vira 0
+   quando o `overflow` do item não é `visible` — com os dois eixos `visible`
+   o rótulo longo ia a 283 px dentro de um ladrilho de 95 px, sem "…", e o
+   `documentElement.scrollWidth` subia de 360 para 427. Medido num Chromium
+   isolado com o ladrilho em grade: `visible/visible` → 206 px e sem "…";
+   `min-w-0` + `clip/visible` → 77 px, `encurtado: true` e `overflow-y`
+   ainda `visible`.
+   O teste que fecha isto (`e2e/ultraloop-b-r3.spec.ts`, §22.6-7) não é de
+   texto e tem os dois lados: confere que nenhum `[data-rotulo]` — nem o
+   span de fora, nem o de dentro — tem `overflow-y` diferente de `visible`,
+   compara os PIXELS do rótulo com os do mesmo rótulo com o recorte forçado
+   a `visible` (se algo cortasse o desenho, as duas fotos seriam
+   diferentes) e, no caso NEGATIVO, injeta um rótulo longo em
+   `[data-contador="Minutos"]` exigindo `scrollWidth > clientWidth`, largura
+   dentro do ladrilho e `documentElement.scrollWidth === 360`.
+2. **A régua visual ficou cega justamente nas telas do lote**
+   (`scripts/capturas-ultraloop.ts`). Com a montagem preguiçosa, uma seção
+   fechada nem existe no DOM: `rolarAte(region "Conquistas")` não achava nada
+   e o `.catch(() => {})` engolia a falha, então `11-relatorio-topo`,
+   `12-relatorio-numeros` e `13-relatorio-conquistas` saíam BYTE-IDÊNTICAS e
+   `14-relatorio-historico` fotografava o rodapé. Agora cada tela do
+   Relatório abre a SUA seção (`abrirRelatorioEm`, que ainda limpa
+   `relatorio:secoes` para uma captura não vazar estado na seguinte),
+   `rolarAte` não tem mais `catch` (a falha vai para o `indice.json` como
+   `alcancada: false`) e o aviso do player é dispensado por
+   `getByRole("status", …)`, o papel que o lote deu a ele — com `region` o
+   "Ok" nunca era clicado.
+3. **A varredura media só o Resumo** (`e2e/ultraloop-varredura.spec.ts`). Os
+   cinco itens (rolagem lateral, alvo de 44 px, contraste AA, anel de foco,
+   reduced-motion) deixaram de ver ~4/5 de `/relatorio` pelo mesmo motivo.
+   `abrir()` agora chama `abrirTudo(page)`, genérico sobre
+   `details[data-secao]`: vale para qualquer tela futura com conteúdo montado
+   sob demanda.
+
+Numa segunda passada o mesmo auditor achou mais um portão cego, do mesmo
+feitio, e uma inconsistência de vocabulário:
+
+4. **O "Σ" sobreviveu na folha de detalhe de uma conquista**
+   (`lib/conquistas.ts`). A regra de volume dizia "Σ repetições × carga das
+   séries de trabalho concluídas chega a 50.000 kg" — a um toque da grade que
+   este lote refez. O teste §22.6-8 passava porque lia `body.textContent` com
+   as folhas FECHADAS: a folha é um `Sheet` e o texto dela não está no
+   documento enquanto ninguém a abre. A regra virou "**Soma de** repetições ×
+   carga…", e agora dois testes fecham o buraco: um de unidade
+   (`lib/conquistas.test.ts`) que varre `nome`, `descricao` e `regra` das **26**
+   conquistas atrás de notação solta — o único jeito barato de cobrir todas —,
+   e o e2e, que abre `[data-conquista="volume-50k"]`, espera o `role=dialog` e
+   repete a medida sobre o texto do diálogo. O "×" fica de propósito: na tela
+   ele lê "vezes", como em "4× por semana" e "Treino B × 1".
+5. **"e1RM" saiu do app inteiro** (`lib/sessao.ts`,
+   `components/exercicios/historico-exercicio.tsx`). O lote traduziu a sigla só
+   em `/relatorio`, e o app passou a falar duas línguas para a mesma coisa: o
+   gráfico dizia "carga máxima estimada" e "Máx. estimada", enquanto o card
+   Recorde do histórico de um exercício dizia "e1RM (Epley)" e o recorde do
+   resumo da sessão dizia "45 kg de e1RM". Agora são "Máx. estimada" e "45 kg
+   de carga máxima estimada"; o discriminante interno `tipo: "e1rm"` fica (não
+   é texto de tela) e `lib/sessao.test.ts` trava o texto do recorde.
+
+E a SPEC §22.6 descrevia quatro coisas que a tela não fazia — descrição
+errada é dívida igual a código errado, porque a próxima rodada audita contra
+ela. Foram corrigidos: o item 2 (não existe `min-height` por seção; quem
+reserva a altura é o esqueleto, que tem as medidas do conteúdo final), o
+item 7 (a grade `grid-rows-[auto_1fr_auto]` vem do chamador, na fileira de
+Totais; no `Contador` o que é fixo é a linha do rótulo, `h-4`), o item 8 (o
+alcance real da tradução, incluindo a folha de detalhe) e o item 9 (a
+legenda da faixa, que o texto descrevia por alto).
+
+**Como testar no celular** (360 px): Relatório → "Conquistas" → toque em
+qualquer cartão de volume ("10.000 kg" ou "50.000 kg"): a folha que sobe diz
+"Como fecha: Soma de repetições × carga…", sem "Σ". Explorar → um exercício →
+"Histórico": o card Recorde diz "Máx. estimada", não "e1RM (Epley)".
+
+#### Correção da auditoria do Lote 6 — rodada 3 (21/09/2026)
+
+A terceira auditoria reprovou o lote por dois defeitos, os dois visíveis na
+tela que o dono elegeu como prioridade.
+
+1. **"BARRA FIXA" saía "BARRA F…"** (`components/ui/contador.tsx`,
+   `components/relatorio/tela-relatorio.tsx`). Pôr os Números dentro do
+   `<details>` custou ~9 px por coluna — o ladrilho da fileira de três caiu de
+   ~104 px (base publicada) para 95 px. Medido ao vivo a 360 px: a linha do
+   rótulo tinha 73 px, o ícone de 14 px mais o `gap-1` levavam 18, sobravam
+   **55 px para um texto de 62** — `scrollWidth 62 / clientWidth 55`, nos dois
+   temas e também numa conta nova. O texto inteiro seguia no DOM (o leitor de
+   tela lia "Barra fixa"), então o dano era só visual, e nenhum teste de texto
+   o pegava. Os pixels voltaram em três lugares, todos medidos: o ladrilho usa
+   `px-2` em vez de `px-2.5` (+4 px), o rótulo perdeu o `tracking-wide`
+   (−2 px de texto, porque o custo é por letra e o rótulo mais comprido é
+   quem mais paga) e o corpo de uma seção do Relatório usa `px-2` em vez de
+   `px-3` (+2,7 px por coluna). São **64 px de linha para 60 px de texto**,
+   4 px de folga onde faltavam 7. O grampo horizontal, o til de "SESSÕES" e
+   as três bases alinhadas ficam como estavam — o que mudou foi a largura
+   disponível, não a regra. Fecha um teste que MEDE: em `/relatorio`, com as
+   cinco seções abertas, nenhum `[data-rotulo]` de rótulo real pode ter
+   `scrollWidth > clientWidth` (o caso negativo, com um rótulo longo
+   injetado, continua exigindo o contrário).
+
+2. **A legenda da faixa explicava quatro glifos para cinco marcas, e um
+   desenho valia duas coisas** (`components/relatorio/historico.tsx`,
+   `components/ui/faixa-semana.tsx`, `lib/semana.ts`). Faltava "parcial" — que
+   `montarGrade` emite de verdade quando a sessão do dia começou e não foi
+   concluída — e, pior, o dia de HOJE ainda por fazer vinha como ponto
+   **cheio** na cor primária: o mesmo desenho que a legenda ensinava para
+   "faltou", no estado mais comum da tela (todo dia, até o treino sair).
+   Agora: (a) a legenda sai de `LEGENDA_DA_FAIXA`, montada de
+   `GLIFO_DA_MARCA` e `NOME_DA_MARCA`, ambos `Record<MarcaDoDia, …>` — uma
+   marca nova quebra a compilação e entra na legenda no mesmo movimento —, e
+   lê **"✓ feito · ◉ parcial · ○ a fazer · ● faltou · — descanso · hoje em
+   destaque"**; (b) hoje por fazer é o mesmo **anel** dos outros dias por
+   fazer, só que `border-primary`, e quem diz que o dia é hoje continua sendo
+   o realce do ladrilho inteiro. O ponto cheio passa a ser de "faltou" e de
+   mais ninguém. Cada marca leva `data-glifo` (no `<li>` o `data-marca` de
+   hoje vira "hoje" e esconde o estado), três testes de unidade prendem a
+   legenda ao conjunto `MarcaDoDia` e dois e2e medem o desenho — largura de
+   borda e preenchimento —, não o texto.
+
+**Como testar no celular** (360 px): Relatório → Resumo: "BARRA FIXA" aparece
+inteiro no terceiro ladrilho dos Números, nos dois temas. Relatório →
+"Histórico": a legenda embaixo da faixa cita seis coisas, "parcial" entre
+elas, e o dia de hoje sem treino feito é um **anel** laranja, não uma bolinha
+cheia — a bolinha cheia cinza é só dos dias que passaram em branco.
 
 ### Fila (o que não coube)
 

@@ -100,6 +100,22 @@ describe("a lista de conquistas (SPEC §19.3)", () => {
     }
   });
 
+  /*
+   * SPEC §22.6 item 8: o texto que chega à tela fala português, sem sigla nem
+   * notação matemática solta — e a `regra` só aparece na folha de detalhe, a um
+   * toque da grade, então o e2e que lia o corpo da página não a via. Aqui as 26
+   * passam de uma vez. O "×" fica: na tela ele lê "vezes" (4× por semana,
+   * Treino A × 3).
+   */
+  it("nenhum nome, descrição ou regra usa sigla nem notação matemática", () => {
+    for (const c of CONQUISTAS) {
+      for (const texto of [c.nome, c.descricao, c.regra]) {
+        expect(texto, c.id).not.toMatch(/[Σ∑≥≤±√∞]/u);
+        expect(texto, c.id).not.toContain("1RM");
+      }
+    }
+  });
+
   it("os ids são exatamente os 26 da SPEC §19.3 (o e2e semeia esta lista)", () => {
     expect(CONQUISTAS.map((c) => c.id)).toEqual([
       "forca-1",
