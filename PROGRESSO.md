@@ -7541,6 +7541,7 @@ Chromium local não confia na CA do proxy de saída); a régua de 360 px já
 correu verde no portão local. Nenhuma migração de banco.
 **Rollback: não.**
 
+
 ### Fila (o que não coube)
 
 (a preencher)
@@ -7677,3 +7678,119 @@ leitor de tela lê "05/09: antes do começo"; ‹ na semana volta para 07/09 –
 navegador em 200 %, o Calendário não rola mais para o lado e a faixa dos sete
 dias rola sozinha (na aba Treino ainda sobra a barra de abas do rodapé, que é
 de outro lote).
+
+### Rodada 5 — Lote 9 — Explorar e catálogo: achar o exercício (faixa B)
+
+Branch `ultraloop/l9-explorar-catalogo`, a partir de `ultraloop/l6-relatorio-estrutura`.
+SPEC §22.9. Dez itens; a régua de cada um está no aceite do próprio item.
+
+1. **O catálogo saiu de dentro do Explorar** (`components/explorar/tela-explorar.tsx`,
+   `components/exercicios/lista-exercicios.tsx`). **Era:** a vitrine despejava
+   a `<ListaExercicios>` inteira abaixo das seções — os 81 exercícios, 81
+   `<img>`, 78% de uma página de 8.922 px (doze telas de celular). **É:** uma
+   **prévia de 12** (`PREVIA_DO_CATALOGO`) e o botão **"Ver os 81 exercícios"**
+   levando a `/exercicios`; a `ListaExercicios` ganhou a prop `limite`, que
+   corta a lista e esconde busca, filtros e contador — numa prévia eles não
+   têm o que controlar. A página fecha **abaixo de 4.000 px**, medido no e2e.
+2. **O catálogo monta 20 de cada vez** (`components/exercicios/lista-exercicios.tsx`).
+   **Era:** `/exercicios` montava os 81 cartões — e as 81 miniaturas — numa
+   tacada. **É:** `POR_PAGINA = 20` e um **"Ver mais 20 de 81"** que
+   acrescenta outros 20. A contagem da tela ("81 exercícios", "40 de 81
+   exercícios") continua dizendo o total **achado**, não o que está montado —
+   é ela que os testes de filtro leem. Trocar a busca ou um filtro volta
+   sozinho para os 20 primeiros, sem `useEffect`: o estado guarda a chave dos
+   filtros que valiam quando o "Ver mais" foi tocado.
+3. **A busca mostra o exercício primeiro** (`components/explorar/tela-explorar.tsx`).
+   **Era:** com "supino", nove linhas de coleção na frente e o exercício em
+   y=860 — fora do viewport de 740. **É:** **Exercícios primeiro, Coleções
+   depois**, cada bloco com a sua contagem no título, e — quando os dois
+   blocos existem (item 10) — um seletor de uma linha no topo ("Exercícios
+   (6) · Coleções (9)") que pula para o bloco. O e2e mede a caixa do primeiro
+   exercício a 360×740.
+4. **Um vazio só, citando o termo** (`tela-explorar.tsx`, `lista-exercicios.tsx`).
+   **Era:** busca sem resultado mostrava **dois** vazios empilhados, e o
+   segundo — "Nenhum exercício com esses filtros" — mentia: não havia filtro
+   nenhum. **É:** *Nada para «zzzz»* com **"Limpar busca"**, um só; a
+   mensagem de filtro do catálogo só aparece quando `temFiltro(filtros)` é
+   verdade ali dentro.
+5. **Chegar por uma busca mostra resultado, não controle** (`lista-exercicios.tsx`).
+   **Era:** o catálogo alimentado pela busca do Explorar abria com três
+   selects e o botão "No meu programa" na frente dos resultados. **É:** com
+   busca vinda de fora e não vazia, o bloco fica recolhido atrás do botão
+   **"Filtros"**, que mostra em um selo quantos filtros estão ativos.
+6. **`app/not-found.tsx`** (arquivo novo). **Era:** `/explorar/[tipo]/[valor]`
+   e `/exercicios/[id]` chamavam `notFound()` e não havia página para receber
+   — um atalho guardado na tela de início, ou um link velho depois de o PWA
+   se atualizar, caía na tela crua do Next, em inglês e sem saída. **É:**
+   *"Essa tela não existe mais."* em pt-BR, com **Voltar para Hoje**, **Ver o
+   Explorar** e **Ver os exercícios**; a resposta continua sendo 404.
+7. **Nenhuma capa repetida na mesma seção** (`lib/colecoes.ts`,
+   `components/colecoes/linha-colecao.tsx`). **Era:** `montar()` dá a cada
+   coleção a foto do primeiro exercício, e `supino-reto-com-barra-1.jpg` era a
+   capa de quatro linhas da mesma tela (2 repetições em "Treinos do programa",
+   4 em "Por aparelho"). **É:** cada seção da vitrine passa por
+   `semCapasRepetidas()`, que dá à coleção a primeira foto **ainda não usada
+   naquela seção**; sem nenhuma sobrando, a linha cai no **ícone do tipo**
+   (halteres, chave, cronômetro, calendário, batimento) sobre um dos quatro
+   tons do tema, escolhido por um hash do id. A coleção guardada não muda: a
+   tela da coleção continua abrindo com a foto do primeiro exercício.
+8. **Um degrau entre rótulo e seção** (`tela-explorar.tsx`). **Era:**
+   "Escolhas para você" em 16 px semibold, igual aos títulos de seção logo
+   abaixo, sem agrupar nada. **É:** overline de **11 px em caixa alta**, e os
+   títulos de seção sobem para **16 px semibold com régua acima**.
+9. **A rota da coleção é normalizada** (`lib/colecoes.ts`). **Era:**
+   `hrefDaColecao` escrevia o id cru no segmento ("/explorar/grupo/Bíceps",
+   com acento e maiúscula) e `colecaoDaRota` comparava texto cru: ida e volta
+   divergiam. **É:** os dois lados passam por `segmentoDaColecao()`
+   (minúscula, sem acento, espaço vira hífen) e a comparação é feita no
+   segmento normalizado — os links antigos continuam abrindo. Um teste percorre
+   **todas** as coleções: a URL que a vitrine gera volta na mesma coleção, e
+   duas coleções nunca caem na mesma URL.
+10. **O número do título é o da lista, e o seletor só aparece com dois blocos**
+    (`tela-explorar.tsx`, `lista-exercicios.tsx`) — correção da auditoria.
+    **Era:** (a) o `<p>` do seletor desenhava sempre os dois âncoras enquanto
+    cada bloco só é montado com contagem > 0; buscar "tatame" (0 exercícios,
+    2 coleções) deixava «Exercícios (0)» como link focável de 80×44 px para um
+    id que não existia no documento — tocar não fazia nada, e com um bloco só
+    o seletor não tinha escolha nenhuma a oferecer. (b) `quantosExercicios`
+    era contado com o termo apenas, enquanto a `<ListaExercicios>` aplicava
+    também o filtro recolhido atrás do botão "Filtros": buscar "supino" e
+    escolher Grupo = Costas deixava na tela «Exercícios (6)», "0 de 81
+    exercícios" e "Nenhum exercício com esses filtros" — e o 6 continuava
+    mentindo na busca seguinte, porque o filtro sobrevivia à troca do termo.
+    **É:** o seletor só é montado quando os **dois** blocos existem; os
+    filtros moram no `TelaExplorar` e a `<ListaExercicios>` os recebe por prop
+    (`filtros` + `aoMudarFiltros`, controlada só quando as duas vêm), então o
+    número do título e a lista saem do mesmo `filtrarExercicios`. Com filtro
+    ativo e zero achados o bloco fica de pé — é ele que carrega o "Limpar
+    filtros" — e o vazio da busca inteira não aparece por cima; o contador
+    "N de 81" some quando a busca vem do Explorar (o título logo acima já é o
+    contador, e é ele que ganha `aria-live="polite"`). Apagar a busca solta os
+    filtros — como já acontecia, porque a lista desmontava —, trocar só o
+    termo os mantém.
+
+**Fora dos arquivos do lote:** `lib/guia.ts` (uma linha — o caminho do guia
+dizia "Explorar → Todos os exercícios", rótulo que saiu da tela; agora é
+"Explorar → Exercícios") e `e2e/catalogo.spec.ts` (o teste do filtro "no meu
+programa" conta os cartões; com a paginação ele abre a lista inteira no
+"Ver mais 20" antes de contar — o que ele verifica não mudou).
+
+**Provas:** `lib/colecoes.test.ts` ganhou 7 casos (normalização e ida e volta
+de toda a vitrine, colisão de segmento, capas por seção);
+`e2e/ultraloop-b-r5.spec.ts` tem 11 testes (os dois do item 10 afirmam que
+todo `a[href^="#achados"]` visível tem destino no documento e que o número do
+título é o da lista, com filtro e sem).
+
+**Como testar no celular** (360 px):
+- **Explorar**: a página acaba logo depois de "Exercícios" + "Ver os 81
+  exercícios" — não tem mais catálogo dentro dela. Em "Por aparelho", nenhuma
+  linha repete a foto da linha de cima.
+- **Busca**: digite "supino" na barra do Explorar — os **exercícios** aparecem
+  primeiro, sem rolar; digite "zzzz" — **uma** mensagem só, citando o termo.
+  Digite "tatame": só coleções, e a linha "Exercícios (0) · Coleções (2)" não
+  aparece mais. Com "supino", toque em "Filtros" e escolha Grupo = Costas: o
+  título vira **Exercícios (0)** junto com o "Nenhum exercício com esses
+  filtros" — nunca mais um número em cima e outro embaixo.
+- **Catálogo**: em "Ver os 81 exercícios", role até o fim: há 20 cartões e um "Ver mais 20 de 81". Chegando pela busca, os filtros vêm recolhidos.
+- **404**: abra `/exercicios/remada-curvada-com-barra` — a tela responde em
+  português com as três saídas.

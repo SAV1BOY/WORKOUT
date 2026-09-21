@@ -300,6 +300,43 @@ export function acharColecao(id: string, lista = todasAsColecoes()): Colecao | n
   return lista.find((c) => c.id === id) ?? null;
 }
 
+/**
+ * As fotos que uma coleção pode usar de capa, na ordem: a que `montar()`
+ * escolheu (a do primeiro exercício) e depois as dos outros exercícios.
+ */
+function capasPossiveis(c: Colecao): string[] {
+  const fotos: string[] = [];
+  if (c.capa) fotos.push(c.capa);
+  for (const id of c.exercicios) {
+    const e = exercicioPorId.get(id);
+    const foto = e ? capaDoExercicio(e) : null;
+    if (foto && !fotos.includes(foto)) fotos.push(foto);
+  }
+  return fotos;
+}
+
+/**
+ * Nenhuma capa repetida dentro da MESMA seção da vitrine (SPEC §22.9 item 7).
+ *
+ * `montar()` dá a cada coleção a foto do primeiro exercício dela, e
+ * `supino-reto-com-barra-1.jpg` acabava sendo a capa de quatro coleções da
+ * mesma tela — a 56 px, quatro linhas idênticas. Aqui cada coleção pega a
+ * primeira foto **ainda não usada na seção**; quando não sobra nenhuma, a
+ * capa fica `null` e a linha cai no ícone do tipo, que distingue melhor do
+ * que a quarta cópia da mesma foto.
+ *
+ * É uma decisão de VITRINE: a coleção guardada em `montar()` não muda, então
+ * a tela da coleção continua abrindo com a foto do primeiro exercício.
+ */
+export function semCapasRepetidas(itens: readonly Colecao[]): Colecao[] {
+  const usadas = new Set<string>();
+  return itens.map((c) => {
+    const livre = capasPossiveis(c).find((f) => !usadas.has(f)) ?? null;
+    if (livre !== null) usadas.add(livre);
+    return livre === c.capa ? c : { ...c, capa: livre };
+  });
+}
+
 /* ---------------------------------------------- filtros derivados (§14.3) */
 
 export type ChaveDoFiltro =
@@ -576,13 +613,48 @@ export function desafios(e: EntradaDosDesafios): Desafio[] {
 
 /* ------------------------------------------------------------ rotas */
 
-/** "grupo:Core" → "/explorar/grupo/Core" (a tela da coleção, §14.4). */
-export function hrefDaColecao(c: Pick<Colecao, "id">): string {
-  const [tipo, ...resto] = c.id.split(":");
-  return `/explorar/${tipo}/${encodeURIComponent(resto.join(":"))}`;
+/**
+ * O segmento de URL de um valor de coleção (SPEC §22.9 item 9).
+ *
+ * O id da coleção é escrito para o humano ("grupo:Bíceps"), e a rota é
+ * escrita para o navegador: minúscula, sem acento, espaço vira hífen. Os dois
+ * lados da viagem passam por aqui — é isso que faz `/explorar/grupo/Bíceps`,
+ * `/explorar/grupo/biceps` e o link que a própria vitrine gera abrirem a
+ * MESMA coleção, em vez de divergirem em acento e caixa.
+ */
+export function segmentoDaColecao(valor: string): string {
+  return semAcento(valor).replace(/\s+/g, "-");
 }
 
-/** O caminho de volta: os dois segmentos da rota viram o id da coleção. */
+/** "grupo:Bíceps" → "/explorar/grupo/biceps" (a tela da coleção, §14.4). */
+export function hrefDaColecao(c: Pick<Colecao, "id">): string {
+  const [tipo = "", ...resto] = c.id.split(":");
+  return `/explorar/${segmentoDaColecao(tipo)}/${encodeURIComponent(
+    segmentoDaColecao(resto.join(":")),
+  )}`;
+}
+
+/**
+ * O caminho de volta: os dois segmentos da rota viram a coleção. A comparação
+ * é feita no segmento normalizado dos DOIS lados, então um link antigo (com
+ * acento, com maiúscula) continua abrindo o que sempre abriu.
+ */
 export function colecaoDaRota(tipo: string, valor: string): Colecao | null {
-  return acharColecao(`${tipo}:${decodeURIComponent(valor)}`);
+  let cru = valor;
+  try {
+    cru = decodeURIComponent(valor);
+  } catch {
+    // segmento mal codificado: vale o texto como veio
+  }
+  const alvoTipo = segmentoDaColecao(tipo);
+  const alvoValor = segmentoDaColecao(cru);
+  return (
+    todasAsColecoes().find((c) => {
+      const [t = "", ...resto] = c.id.split(":");
+      return (
+        segmentoDaColecao(t) === alvoTipo &&
+        segmentoDaColecao(resto.join(":")) === alvoValor
+      );
+    }) ?? null
+  );
 }

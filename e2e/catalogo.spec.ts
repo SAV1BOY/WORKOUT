@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import {
   entrarNoApp,
   fixarData,
@@ -24,6 +24,17 @@ function idsDoPrograma(): string[] {
 }
 
 const TOTAL = 81;
+
+/**
+ * SPEC §22.9 item 2: o catálogo monta 20 cartões de cada vez. Quem conta
+ * cartões abre a lista toda antes — o que o teste verifica (quais exercícios
+ * o filtro deixa passar) é o mesmo; só o que está montado mudou.
+ */
+async function verTudo(page: Page): Promise<void> {
+  const ver = page.getByRole("button", { name: /^Ver mais/ });
+  for (let i = 0; i < 10 && (await ver.isVisible()); i += 1) await ver.click();
+  await expect(ver).toBeHidden();
+}
 
 test.beforeEach(async () => {
   await resetarMock();
@@ -116,6 +127,7 @@ test.describe("Catálogo (SPEC §3.6)", () => {
     ).toBeVisible();
 
     // e os cartões são mesmo os do programa
+    await verTudo(page);
     const cartoes = page.getByRole("link", { name: /no programa/ });
     await expect(cartoes).toHaveCount(doPrograma.length);
 
