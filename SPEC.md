@@ -1993,8 +1993,9 @@ muda **o que fica ao alcance do polegar** e **quem manda no toque**.
    enquanto está ali: nenhum controle fica permanentemente inalcançável —
    **rolar um dedo revela qualquer linha que pare debaixo da faixa** —, e o
    aceite do item 1 ("o toque em cada Substituir chega no próprio botão") vale
-   para toda linha fora do retângulo da faixa. Para o salto por âncora e o foco
-   pelo teclado a folga vem do `scroll-padding-top` do documento.
+   para toda linha fora das duas barras fixas — esta, no alto, e a barra de
+   abas, embaixo (§14.1). Para o salto por âncora e o foco pelo teclado a folga
+   vem do `scroll-padding-top` do documento.
 3. **A folha "Ajustar" grava sozinha.** "Preparação" e "Descanso padrão"
    gravam no sair do campo (e 700 ms depois de parar de digitar), como os
    interruptores ao lado; os dois botões "Salvar" sumiram — dois modelos de

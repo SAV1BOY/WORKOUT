@@ -107,10 +107,13 @@ test("o toque em cada 'Substituir' chega no próprio botão (SPEC §22.7 item 1)
    * E também com a FAIXA FIXA DO DIA por cima (§22.7 item 2): centralizar o
    * botão antes de medir esconde o defeito, porque no meio da tela nada o
    * cobre. Aqui a aba desce de 40 em 40 px — como o dedo faz — e em toda
-   * parada todo "Substituir"/"Ficha" FORA do retângulo da faixa tem de
-   * receber o próprio toque. O que fica DEBAIXO da faixa é dela enquanto
-   * está ali (o aceite do item 2, fixado no caso da varredura da faixa):
-   * um dedo de rolagem devolve a linha.
+   * parada todo "Substituir"/"Ficha" FORA das duas barras fixas — a faixa do
+   * dia, no alto, e a barra de abas, embaixo (§14.1) — tem de receber o
+   * próprio toque. O que para DEBAIXO de uma delas é dela enquanto está ali
+   * (o aceite do item 2, fixado no caso da varredura da faixa): um dedo de
+   * rolagem devolve a linha. Era exatamente isso que o FAB "Ajustar" NÃO
+   * fazia — ele ficava no meio da tela, sobre a lista, e nenhuma rolagem
+   * devolvia o "Substituir" que ele cobria.
    */
   const varredura = await page.evaluate(async () => {
     const esperar = (ms: number) =>
@@ -126,6 +129,9 @@ test("o toque em cada 'Substituir' chega no próprio botão (SPEC §22.7 item 1)
       if (!faixa) continue;
       passosComFaixa += 1;
       const caixaDaFaixa = faixa.getBoundingClientRect();
+      const abas = document
+        .querySelector('nav[aria-label="Navegação principal"]')
+        ?.getBoundingClientRect();
       const alvos = document.querySelectorAll<HTMLElement>(
         'button[aria-label^="Substituir "], button[aria-label^="Ficha: "]',
       );
@@ -136,8 +142,9 @@ test("o toque em cada 'Substituir' chega no próprio botão (SPEC §22.7 item 1)
         if (r.top < 0 || r.bottom > window.innerHeight) continue;
         const cx = r.x + r.width / 2;
         const cy = r.y + r.height / 2;
-        /* debaixo da faixa os pixels são da faixa — e só enquanto ela está lá */
+        /* debaixo de uma barra fixa os pixels são dela — e só enquanto está lá */
         if (cy <= caixaDaFaixa.bottom) continue;
+        if (abas && cy >= abas.top) continue;
         const quem = document.elementFromPoint(cx, cy);
         if (quem?.closest("button, a") === alvo) continue;
         perdidos.push({
@@ -157,7 +164,7 @@ test("o toque em cada 'Substituir' chega no próprio botão (SPEC §22.7 item 1)
   ).toBeGreaterThan(5);
   expect(
     varredura.perdidos,
-    "alvos fora da faixa que perderam o toque",
+    "alvos fora das barras fixas que perderam o toque",
   ).toEqual([]);
 });
 
