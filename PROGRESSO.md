@@ -8313,3 +8313,15 @@ sem botões é justamente o sintoma): Brave ou Chrome → ⋮ → Configuraçõe
 Configurações do site → `treino-terraco.vercel.app` → **Limpar e redefinir**;
 depois feche a aba e abra o app de novo. Isso descarta o service worker velho e
 o precache junto, e a próxima abertura com rede instala tudo outra vez.
+
+**Portões (HEAD `0ab9cff`, 21/09 15:30–15:51 UTC):** lint ✓, tsc ✓, **1.386
+unitários** em 55 arquivos ✓, build ✓, build:e2e ✓, **418 e2e** em 14,8 min ✓,
+**5 de varredura** em 4,3 min ✓. O `public/sw.js` assado passou de 54 KB para
+56.945 bytes e contém "Tentar de novo", "Ir para o Treino",
+`rgb(224,224,221)`, `env(safe-area-inset-*)`, `location.reload`, o cache
+`socorro` e o `ignoreVary` do degrau (c). **Capturas: 60 de 60 iguais à base**
+(Δ 0,00 % em todas, limiar 0,5 %) — esta rodada mexe só no que o service
+worker serve quando não há rede, e nenhuma tela do app mudou, nem a
+`/~offline`, que não foi tocada. Motor e montagem intocados
+(`git diff origin/main -- lib/progressao.ts lib/montagem.ts` vazio); nenhuma
+migração de banco; nada de service role no cliente.
