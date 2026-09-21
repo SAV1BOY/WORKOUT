@@ -3,6 +3,7 @@
  * andamento e a fila de saída vivem aqui antes de irem para o Supabase.
  */
 import Dexie, { type EntityTable } from "dexie";
+import { ehCachePublico } from "@/lib/caches-do-worker";
 
 /** Sessão de força em andamento, salva a cada toque. */
 export interface SessaoAtiva {
@@ -118,12 +119,16 @@ export function bd(): BancoLocal {
   return instancia;
 }
 
-/**
- * O cache de mídia do service worker (`app/sw.ts`), o único que sobrevive ao
- * "Sair": são as figuras e fotos dos exercícios, conteúdo público do app, e
- * apagá-las deixaria o PWA sem nada para mostrar offline na próxima conta.
+/*
+ * Os nomes dos caches e a regra de quais o "Sair" poupa moram em
+ * `lib/caches-do-worker.ts`, o único módulo que a página e o service worker
+ * compartilham — o worker é um bundle à parte e não pode puxar o Dexie daqui.
  */
-export const CACHE_DE_MIDIA = "midia-do-treino";
+export {
+  CACHE_DE_MIDIA,
+  CACHE_DE_SOCORRO,
+  PREFIXO_DO_PRECACHE,
+} from "@/lib/caches-do-worker";
 
 /**
  * Apaga tudo que é do usuário neste aparelho (SPEC §8 com §9).
@@ -144,7 +149,7 @@ export async function limparDadosLocais(): Promise<void> {
   try {
     if (typeof caches !== "undefined") {
       for (const nome of await caches.keys()) {
-        if (nome !== CACHE_DE_MIDIA) await caches.delete(nome);
+        if (!ehCachePublico(nome)) await caches.delete(nome);
       }
     }
   } catch {
