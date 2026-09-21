@@ -11,7 +11,7 @@ import {
   prescricaoDaSemana,
 } from "@/lib/barra-fixa";
 import { acharTreino } from "@/lib/dados";
-import { decidirTela } from "@/lib/estado-do-player";
+import { decidirTela, servidorTerminouDeBuscar } from "@/lib/estado-do-player";
 import { itensDoPlano, tituloDoPlano } from "@/lib/livre";
 import {
   estadosPorExercicio,
@@ -425,20 +425,20 @@ export function useSessaoDeTreino(sessaoId: string) {
 
   /* ---------------------------------------- que tela mostrar (SPEC §22.11) */
 
-  /** As consultas que precisam terminar antes de se poder dizer "não achei". */
-  const servidorRespondeu =
-    !sessaoQ.isPending &&
-    !sessaoQ.isFetching &&
-    !seriesQ.isPending &&
-    !seriesQ.isFetching;
   /**
    * O servidor terminou **e** não há nada para montar: ou a linha não existe,
    * ou ela existe e a remontagem já foi tentada sem sucesso. Com a linha a
    * caminho — ou já em mãos e o motor ainda chegando — isto é `false`, e a
-   * tela continua em esqueleto.
+   * tela continua em esqueleto. A regra é pura (`lib/estado-do-player.ts`) e
+   * olha só `isPending`: com `isFetching` no meio, um refetch de fundo
+   * rebaixava um "não achei" já decidido de volta para esqueleto.
    */
-  const servidorTerminou =
-    servidorRespondeu && (sessaoQ.data == null || montagemFalhou);
+  const servidorTerminou = servidorTerminouDeBuscar({
+    sessaoPendente: sessaoQ.isPending,
+    seriesPendente: seriesQ.isPending,
+    linhaDoServidor: sessaoQ.data ?? null,
+    montagemFalhou,
+  });
   const erroDaBusca =
     sessaoQ.error ??
     seriesQ.error ??

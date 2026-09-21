@@ -43,3 +43,31 @@ export function decidirTela(entrada: EntradaDaTela): TelaDosDados {
   if (!entrada.servidorTerminou) return "carregando";
   return "nao-achei";
 }
+
+export type EntradaDoServidor = {
+  /**
+   * `isPending` da consulta da sessão: ela **nunca** respondeu desde que
+   * montou. Repare que não é `isFetching`: um refetch de fundo (voltar para a
+   * aba, reconectar, "Tentar de novo") deixa `isFetching` verdadeiro com o
+   * dado antigo em mãos, e usá-lo aqui rebaixava um "não achei" já decidido
+   * para esqueleto — a tela piscava sozinha.
+   */
+  sessaoPendente: boolean;
+  /** `isPending` da consulta das séries. */
+  seriesPendente: boolean;
+  /** A linha que o servidor devolveu para esta sessão — `null` se não há. */
+  linhaDoServidor: unknown;
+  /** A remontagem a partir da linha já foi tentada e não deu sessão. */
+  montagemFalhou: boolean;
+};
+
+/**
+ * O servidor terminou **e** não há nada para montar. É o `servidorTerminou`
+ * que `decidirTela` recebe: enquanto alguma das duas consultas nunca
+ * respondeu, ou enquanto a linha existe e a remontagem ainda pode acontecer,
+ * a resposta é `false` e a tela segue em esqueleto.
+ */
+export function servidorTerminouDeBuscar(entrada: EntradaDoServidor): boolean {
+  if (entrada.sessaoPendente || entrada.seriesPendente) return false;
+  return entrada.linhaDoServidor == null || entrada.montagemFalhou;
+}
