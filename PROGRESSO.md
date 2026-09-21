@@ -6335,6 +6335,27 @@ produção** depois deste deploy: a tela `/login` carrega sem erro nenhum, e o
 senha está errada) — se o seu login não estava pegando, era esse app velho
 preso no aparelho.
 
+**Rodada 9 no ar (21/09, 21:48 UTC — 18:48 em Brasília).** Cinco acertos em
+cima da rodada 8, achados olhando o app publicado num navegador de verdade:
+
+- **Aparelho sem cache não trava mais em "Application error".** Se o celular
+  apagar sozinho o que o app guardou (o navegador faz isso quando a memória
+  aperta), ele agora se recompõe na primeira vez que abre com rede, em vez de
+  mostrar a tela de erro branca.
+- **O campo de carga parou de grudar os números.** Digitar 11,5 não vira mais
+  "11,5,5".
+- **A tela que ainda está carregando não diz mais "Não achei".** Antes, voltar
+  para a aba ou reconectar fazia a sessão piscar entre "carregando" e "não
+  existe"; agora ela só responde quando de fato terminou de buscar.
+- **"Sair" só sai deste aparelho.** Sair no computador não derruba mais a sua
+  sessão no celular.
+- **O botão do player voltou a dizer "Concluir"** (estava "Concluído", como se
+  já tivesse acontecido).
+
+Nada de banco mudou e nenhuma tela mudou de aparência. Produção serve
+`040908a`, igual à `main`, com fumaça verde 22 de 22 em duas execuções e
+**sem rollback**.
+
 **Encerramento (10:25 UTC de 21/09, 07:25 em Brasília).** A pedido do dono, o loop parou com tudo o que estava 100 % aprovado já publicado: produção serve `8830fe5`, igual à `main`, com oito lotes no ar (L1–L6, L8 e L9) em seis deploys, todos com fumaça verde na primeira execução e nenhum rollback. Nenhuma migração de banco foi aplicada nesta madrugada. Desde o ponto de partida (`c82b744`) foram 71 commits e 181 arquivos alterados (+14.006/−1.169 linhas); os portões do head publicado são 1.378 testes unitários, 403 de ponta a ponta e a varredura das 30 telas nos dois temas. A auditoria de fechamento (regressão total contra a base inicial) foi interrompida antes de terminar; cada lote publicado já havia sido comparado contra a base do deploy anterior na própria auditoria. O que não coube está na seção **Fila (o que não coube)** abaixo, em ordem de prioridade, pronto para as próximas rodadas. Atualização (rodada 7, 12:11 UTC): o lote 7 entrou em produção em `d696b33`, nove lotes no ar, sete deploys, nenhum rollback; o loop está encerrado e nada ficou agendado.
 
 ### Como funcionou
@@ -7929,6 +7950,15 @@ Nada abaixo está publicado. Ordem sugerida: B → C. Cada item traz a origem (r
   - R5/L9 Ponto cego da régua visual (problema de método, não de código — para o… — Ponto cego da régua visual (problema de método, não de código — para o orquestrador, não para o corretor). A linha de base em $U/base foi regerada às 08:38 do head 9d2c001 (L8 Calendário, já em main), mas a branch do lot
   - R5/L9 ANTERIOR AO LOTE (não bloqueia, registro para a fila): a tela da coleç… — ANTERIOR AO LOTE (não bloqueia, registro para a fila): a tela da coleção não tem <h1> nenhum — só <section aria-label={colecao.titulo}> na linha 41. A sonda navegou /explorar/grupo/Core, /core, /Bíceps e /biceps e nas qu
 
+**D. Observações da verificação em produção (21/09, rodadas 8–9) — para as próximas rodadas**
+
+- Reabrir a URL de uma sessão **já concluída** devolve o player em "Preparado para começar", em vez da tela de conclusão ou do histórico. A sessão está salva e certa (o Relatório conta as duas); o link de uma sessão concluída convida a refazê-la.
+- Num aparelho zerado (IndexedDB vazio), abrir a sessão em andamento leva **~11 s** de esqueleto até o player (6 aberturas medidas entre 10,9 e 11,5 s). O critério da rodada 9 foi cumprido (esqueleto, depois o player, nunca "Não achei"), mas vale medir de onde vem o tempo.
+- Cada render de servidor valida a sessão no Supabase (`GET /auth/v1/user`): 515 chamadas em 6 minutos para dois navegadores. Não quebra nada, mas é latência em cada tela; medir antes de abrir mais contas (§21).
+- `app/sw.ts` — `emQualquerCache()` relê o corpo da `/~offline` e dispara um `caches.match` por asset a cada navegação sem rede; dá para memorizar por cópia.
+- `e2e/login.spec.ts` "sair num aparelho não derruba o outro (§21.4)" prova a fidelidade do mock por `fetch` direto, não pela interface; uma versão pela tela exigiria dois contextos logados no mesmo teste.
+- O campo Data de Corpo (peso, medidas, fotos) é `<input type="date">` nativo: a máscara segue o idioma do navegador, não o da página. Conferir num celular em português antes de tratar como defeito.
+
 ### Rodada 5 — Lote 8 — Calendário e faixa da semana (faixa C)
 
 SPEC §22.8. Dez itens na faixa C (`/home/user/wt-c`, portas 3130/54351), em
@@ -8592,3 +8622,33 @@ para a tela de login na primeira leitura.
 
 **Fila (não feito de propósito):** `app/sw.ts`, `emQualquerCache()` relê o corpo
 da `/~offline` a cada navegação sem rede — desperdício, não defeito.
+
+**Deploy (rodada 9, 21/09 21:48 UTC).** Publicado. Deployment anterior
+`dpl_Aq8mLNXTUzZCdZERZJgkNX1U4Xcd` → novo `dpl_4PC2euxoenjZHjbghrpWD9rGiy1K`;
+`main` passou de `1386cd0` para `040908aa07b50b72a1dbdfce05ac012aa4c4e464`
+(PR #16) e `/versao` devolveu esse sha às 21:48:55, ~2 min depois do merge
+(build de 21:47:28Z). O merge na integração conflitou **só em `PROGRESSO.md`**
+— a branch do lote nasceu de `1386cd0` e a integração já tinha o registro do
+deploy da rodada 8 —, resolvido mantendo os dois lados; nenhum conflito de
+código, e `git diff correcao/r9-socorro-player HEAD` mostra apenas
+`PROGRESSO.md`. Portão final na integração: `lint` e `tsc --noEmit` limpos,
+e2e não repetido (árvore de código idêntica à de `4bc7c7b`, que passou na
+cadeia completa: 1.449 unitários, 426 e2e, `Compiled successfully`).
+
+Fumaça em produção **22 de 22**, item a item: `/login` 200 · com "Treino do
+Terraço" · com "Entrar" · sem "Configure NEXT_PUBLIC_SUPABASE_URL" · sem
+"é secreta" · `/` → 307 para `/login` · `/versao` == sha do merge · `/sw.js`
+200 · com `/~offline` · com `figuras/` · com o mesmo CSS do HTML de `/login`
+(`301bf89aee08a5c8`) · `/manifest.webmanifest` 200 com "Treino do Terraço" ·
+`/~offline` 200 · os 14 scripts `/_next/static` de `/login` 200 · marcadores
+do lote: `/sw.js` contém "Tentar de novo", "Ir para o Treino", `/~offline` e
+`__regrasComSocorro` (o socorro autossuficiente) · o chunk do player
+`app/(app)/treinar/[sessionId]/page-02a58010c265ffeb.js` contém "Concluir sem
+responder", contém "Concluir" (10 ocorrências) e **não** contém "Concluído"
+nem a forma escapada `Conclu\xeddo` (a única grafia com "Conclu" restante é o
+identificador `sessaoConcluida`). A fumaça rodou **duas vezes**, com 40 s de
+intervalo, verde nas duas — sem a instabilidade de proxy da rodada 8. Sonda a
+360×740 (Chromium): `/login` e `/~offline` sem erro de console e sem vazamento
+horizontal (scrollWidth 360 = clientWidth). Capturas: nenhuma tela mudou de
+aparência nesta rodada (as correções são de comportamento e de rótulo), então
+a base não foi mexida. Nenhuma migração de banco. **Rollback: não.**
