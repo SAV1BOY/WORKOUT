@@ -8216,3 +8216,100 @@ e **60/60 capturas** novas em `base/` (a antiga virou `base-r5`). O CSS
 servido em `:3120/login` é `28025654e892a608.css` — o mesmo de produção. O
 `indice.json` confirma os números do lote no HEAD publicado: `/explorar` com
 **3.084 px** e `/exercicios` com **2.187 px** de altura.
+
+### Rodada 8 — Sem conexão: socorro e retentativa
+
+**O que o dono viu.** 21/09/2026, Brave no Android, WiFi ligado: fundo preto,
+"Sem conexão" e a frase "O treino continua: …" — **sem ícone e sem botão
+nenhum**. Não era a página `/~offline`: era o HTML de emergência embutido no
+service worker, o único texto do app que existia sem saída.
+
+**Por que ele aparece.** O socorro só é servido quando duas coisas acontecem
+juntas: a navegação falhou na rede **e** `matchPrecache("/~offline")` devolveu
+`undefined`. A segunda não é acidente raro — o próprio app a provoca: o "Sair"
+apaga todos os caches menos o de mídia (`lib/db.ts`), inclusive o precache do
+Serwist, que só é reposto na instalação seguinte. Entre um logout e a próxima
+atualização do app, qualquer perda de rede levava ao beco. O servidor estava
+sadio o tempo todo (`/login` 200, `/~offline` 200 com os dois botões, `/sw.js`
+54 KB listando `/~offline`, zero erro de runtime na Vercel em 24 h), e os
+`edge_logs` do Supabase não tinham nenhum `POST /auth/v1/token` no período —
+nenhuma tentativa de login chegou a sair do aparelho, que é o que se espera de
+um celular preso numa tela servida pelo worker.
+
+**Medido em produção**, com Chromium a 360 px contra
+`treino-terraco.vercel.app` (conta de teste criada pela própria tela "Criar
+conta", dentro da cota da §21), cortando a rede DENTRO do worker
+(`navigationPreload.disable()` + `self.fetch` rejeitando):
+
+| cenário | o que veio |
+| --- | --- |
+| precache intacto, `/mais/contas` nunca visitada | `/~offline` inteira — ícone e os dois botões |
+| precache intacto, cache `paginas` apagado, `/` e `/mais/creditos` | `/~offline` inteira |
+| troca de tela por clique (RSC) sem rede | dois 503 "sem rede", o roteador recarrega e a `/~offline` aparece |
+| **precache apagado** | **o socorro: `botoesELinks: 0`, `svgs: 0`** |
+| rede de volta | a aba Treino inteira, `h1` "segunda, 21/09" |
+
+Ou seja: **`matchPrecache` não tem defeito** — com o precache no lugar ele
+sempre achou a página. O beco sem saída que o dono fotografou é o estado
+"precache ausente", e a foto bate linha a linha com a última linha da tabela.
+Por isso esta rodada mexe em duas coisas: tornar esse estado mais raro (a
+escada e a autocura) e tornar a tela dele utilizável (os dois botões).
+
+**O que mudou** (SPEC §22.10):
+
+1. **O socorro virou tela.** O HTML saiu de dentro de `app/sw.ts` e virou
+   `lib/sw-socorro.ts`, função pura com teste de unidade
+   (`lib/sw-socorro.test.ts`, 8 casos). Mesmo título e mesma frase de antes,
+   mais os **dois mesmos atos da `/~offline`**: "Tentar de novo"
+   (`location.reload()`) e "Ir para o Treino" (`href="/"`), 48 px de altura e
+   largura cheia. Dois temas por `prefers-color-scheme` com os tokens de
+   `app/globals.css` (claro `rgb(224,224,221)` sobre `rgb(10,10,10)`, escuro o
+   inverso), `viewport-fit=cover` com `env(safe-area-inset-*)`, `lang="pt-BR"`,
+   ícone desenhado em SVG inline. **Nada vem de fora** — nem script, nem fonte,
+   nem folha de estilo: é o HTML que tem de abrir com o aparelho vazio. 2,2 KB.
+2. **Escada de fallback do documento**, em `semRede()`: (a) **mais uma ida à
+   rede** com um pedido novo (`cache: "no-store"`, `credentials: "include"`,
+   `redirect: "manual"`) — a queda de rede de um celular dura segundos, e a
+   `NetworkFirst` desistia na primeira recusa; (b) o precache; (c)
+   `caches.match("/~offline", { ignoreSearch, ignoreVary })` em **qualquer**
+   cache; (d) o socorro. Degrau que falha é degrau que não existe: cada um vai
+   num `try`, e o último sempre responde. Para o `fetch` de RSC continua o 503
+   da §22.1 — é ele que faz o roteador recarregar a URL e cair no ramo do
+   documento, mantendo o endereço que o usuário pediu.
+3. **Autocura do precache.** No `activate`, se o precache não tiver a
+   `/~offline`, o worker a busca (com prazo de 8 s, para não segurar a
+   ativação) e guarda uma cópia num cache próprio, `socorro`, que o degrau (c)
+   também consulta. Só guarda se a resposta for 200 e **não** redirecionada —
+   guardar a tela de login como "sem conexão" seria pior do que não guardar
+   nada. Idempotente e silencioso quando falha.
+4. **O "Sair" poupa o cache `socorro`.** Pelo mesmo motivo que já poupava o de
+   mídia: é página pública do app, sem nada do usuário — e apagá-la justamente
+   no logout, que já leva o precache junto, devolveria o aparelho ao beco.
+
+**Provas.** `e2e/sem-conexao.spec.ts` é o teste que faltava desde 20/09: ele
+entra no service worker pelo `worker.evaluate` do Playwright, desliga o
+navigation preload (que é o navegador quem dispara) e troca `self.fetch` por
+uma função que rejeita — **é assim que se corta a rede de quem serve**, já que
+`context.setOffline` e `context.route` só alcançam as requisições da página.
+Com isso preso: uma rota nunca visitada (`/mais/contas`) dá "Sem conexão" com
+os dois botões e vem mesmo do precache (a página do Next tem folha de estilo;
+o socorro não tem nenhuma); o clique em "Ir para o Treino" passa pelo 503 do
+RSC, recarrega e traz a aba Treino inteira do cache `paginas`; apagada **toda**
+cópia da `/~offline` do aparelho, outra rota (`/mais/senha`) cai no socorro
+embutido — e ele tem os dois botões, com 48 px de altura, sem rolagem lateral a
+360 px; devolvida a rede ao worker, "Tentar de novo" traz a tela "Trocar
+senha". O comentário de `e2e/auditoria-offline.spec.ts` que dizia que isso não
+era possível foi corrigido; aquele teste continua como a lente barata de fora.
+
+**Como testar no celular.** Com o app aberto, ligue o modo avião e toque numa
+tela que você ainda não abriu nesta sessão (Mais → Contas, por exemplo): tem de
+vir "Sem conexão" **com os dois botões**. "Ir para o Treino" volta para a aba
+Treino com o que está guardado; desligue o modo avião e "Tentar de novo" traz a
+tela pedida. O que você registrar sem rede continua indo para o IndexedDB e
+subindo sozinho depois (SPEC §8).
+
+**Se o celular ficar preso numa versão antiga do worker** (a tela de socorro
+sem botões é justamente o sintoma): Brave ou Chrome → ⋮ → Configurações →
+Configurações do site → `treino-terraco.vercel.app` → **Limpar e redefinir**;
+depois feche a aba e abra o app de novo. Isso descarta o service worker velho e
+o precache junto, e a próxima abertura com rede instala tudo outra vez.
