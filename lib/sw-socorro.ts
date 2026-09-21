@@ -22,6 +22,10 @@
  *    último do seu próprio tipo, e as duas regras casavam com os dois;
  *  - os dois temas saem dos tokens de `app/globals.css` — claro
  *    `rgb(224,224,221)` sobre `rgb(10,10,10)`, escuro o inverso;
+ *  - o contorno do alvo secundário tem 3:1 contra o fundo nos dois temas
+ *    (WCAG 1.4.11): com o `--linha` do app (`#c8c8c4` no claro) o botão "Ir
+ *    para o Treino" quase não tinha borda — e aqui ele é a única saída de
+ *    quem está sem rede, sem cache e sem o resto do app na tela;
  *  - `viewport-fit=cover` + `env(safe-area-inset-*)`: no celular com entalhe o
  *    texto não fica debaixo da barra do sistema.
  */
@@ -39,8 +43,8 @@ export const TENTAR = "Tentar de novo";
 /** A aba Treino funciona offline com o que está no aparelho (SPEC §8). */
 export const IR_PARA_O_TREINO = "Ir para o Treino";
 
-const ESTILO = `:root{color-scheme:light dark;--fundo:rgb(224,224,221);--texto:rgb(10,10,10);--fraco:#5c5c5a;--destaque:#a03608;--sobre:#fff;--linha:#c8c8c4}
-@media(prefers-color-scheme:dark){:root{--fundo:rgb(10,10,10);--texto:rgb(245,245,244);--fraco:#a1a1a0;--destaque:#fb923c;--sobre:rgb(10,10,10);--linha:#424242}}
+const ESTILO = `:root{color-scheme:light dark;--fundo:rgb(224,224,221);--texto:rgb(10,10,10);--fraco:#5c5c5a;--destaque:#a03608;--sobre:#fff;--linha:#767672}
+@media(prefers-color-scheme:dark){:root{--fundo:rgb(10,10,10);--texto:rgb(245,245,244);--fraco:#a1a1a0;--destaque:#fb923c;--sobre:rgb(10,10,10);--linha:#666664}}
 *{box-sizing:border-box}
 body{margin:0;min-height:100dvh;display:flex;align-items:center;justify-content:center;background:var(--fundo);color:var(--texto);font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:16px;line-height:1.5;padding:calc(24px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) calc(24px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left))}
 main{width:100%;max-width:26rem;text-align:center}

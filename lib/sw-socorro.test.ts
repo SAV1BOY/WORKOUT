@@ -9,6 +9,27 @@ import {
 
 const html = htmlDeSocorro();
 
+type Cor = [number, number, number];
+
+function deHex(hex: string): Cor {
+  return [0, 2, 4].map((i) => Number.parseInt(hex.slice(i, i + 2), 16)) as Cor;
+}
+
+/** Luminância relativa da WCAG 2.2. */
+function luz([r, g, b]: Cor): number {
+  const canal = (c: number) => {
+    const v = c / 255;
+    return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+  };
+  return 0.2126 * canal(r) + 0.7152 * canal(g) + 0.0722 * canal(b);
+}
+
+function razao(a: Cor, b: Cor): number {
+  const [maior, menor] = [luz(a), luz(b)].sort((x, y) => y - x);
+  return (maior! + 0.05) / (menor! + 0.05);
+}
+
+
 describe("o HTML de socorro do service worker (SPEC §22.10)", () => {
   it("diz a mesma coisa que a página /~offline", () => {
     expect(html).toContain(`<title>${TITULO} — Treino do Terraço</title>`);
@@ -49,6 +70,21 @@ describe("o HTML de socorro do service worker (SPEC §22.10)", () => {
     expect(html).toContain("@media(prefers-color-scheme:dark)");
     expect(html).toContain("--fundo:rgb(10,10,10)");
     expect(html).toContain("--texto:rgb(245,245,244)");
+  });
+
+  /*
+   * WCAG 1.4.11: o contorno é a única coisa que desenha o alvo secundário, e
+   * ele é a segunda saída de quem caiu aqui. Com o `--linha` do app o botão
+   * quase sumia no fundo (1,3:1 no claro).
+   */
+  it("o contorno do alvo secundário tem 3:1 contra o fundo nos dois temas", () => {
+    const linhas = [...html.matchAll(/--linha:#([0-9a-f]{6})/g)].map((m) => m[1]);
+    expect(linhas).toHaveLength(2);
+
+    const claro: Cor = [224, 224, 221];
+    const escuro: Cor = [10, 10, 10];
+    expect(razao(deHex(linhas[0]!), claro)).toBeGreaterThanOrEqual(3);
+    expect(razao(deHex(linhas[1]!), escuro)).toBeGreaterThanOrEqual(3);
   });
 
   it("respeita o entalhe do celular e declara o idioma", () => {
