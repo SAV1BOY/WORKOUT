@@ -18,6 +18,14 @@ class ArmazenamentoFalso {
   async keys(): Promise<string[]> {
     return [...this.abertos.keys()];
   }
+  /** `caches.match()`: procura em todos os caches, como no worker. */
+  async match(chave: RequestInfo | URL): Promise<Response | undefined> {
+    for (const cache of this.abertos.values()) {
+      const achado = await cache.match(chave);
+      if (achado) return achado;
+    }
+    return undefined;
+  }
   async open(nome: string): Promise<CacheFalso> {
     const existente = this.abertos.get(nome);
     if (existente) return existente;
@@ -35,12 +43,14 @@ function pagina(texto: string, extras: { redirected?: boolean; status?: number }
   return resposta;
 }
 
+const ORIGEM = "https://treino-terraco.vercel.app";
+
 let armazenamento: ArmazenamentoFalso;
 let relogio: number;
 
 function montar(opcoes: {
   precache?: Response | undefined;
-  rede?: () => Promise<Response>;
+  rede?: (url: string) => Promise<Response>;
 }) {
   const doPrecache = vi.fn(async () => opcoes.precache);
   const buscar = vi.fn(
@@ -54,6 +64,7 @@ function montar(opcoes: {
     armazenamento: armazenamento as unknown as CacheStorage,
     buscar: buscar as unknown as (url: string, init: RequestInit) => Promise<Response>,
     agora: () => relogio,
+    origem: ORIGEM,
   });
   return { garantir, doPrecache, buscar };
 }
@@ -170,6 +181,62 @@ describe("a autocura do socorro (SPEC §22.10)", () => {
     entrega = true;
     expect(await garantir()).toBe("baixou");
     expect(buscar).toHaveBeenCalledTimes(2);
+  });
+
+  /* ------------------------------------------- os assets (SPEC §22.11) */
+
+  /** A `/~offline` de verdade: HTML com os pedaços de JS que o Next carrega. */
+  const COM_ASSETS =
+    '<html><head><link rel="stylesheet" href="/_next/static/css/a.css"/></head>' +
+    '<body><script src="/_next/static/chunks/p1.js"></script>' +
+    '<script src="/_next/static/chunks/p2.js"></script></body></html>';
+
+  it("guarda a página COM os assets dela — HTML sozinho é 'Application error'", async () => {
+    const { garantir, buscar } = montar({
+      precache: pagina(COM_ASSETS),
+      rede: async () => pagina("conteúdo do asset"),
+    });
+
+    expect(await garantir({ renovar: true })).toBe("copiou-do-precache");
+    const cache = armazenamento.abertos.get(CACHE_DE_SOCORRO);
+    expect(await cache?.match("/_next/static/css/a.css")).toBeTruthy();
+    expect(await cache?.match("/_next/static/chunks/p1.js")).toBeTruthy();
+    expect(await cache?.match("/_next/static/chunks/p2.js")).toBeTruthy();
+    expect(buscar).toHaveBeenCalledTimes(3);
+  });
+
+  it("um asset que não vem invalida a cópia inteira: não guarda o HTML sozinho", async () => {
+    const { garantir } = montar({
+      precache: pagina(COM_ASSETS),
+      rede: async (url: string) =>
+        String(url) === OFFLINE
+          ? pagina(COM_ASSETS)
+          : String(url).endsWith("p2.js")
+            ? pagina("não encontrada", { status: 404 })
+            : pagina("conteúdo do asset"),
+    });
+
+    expect(await garantir({ renovar: true })).toBe("sem-fonte");
+    expect(await oQueEstaGuardado()).toBeNull();
+  });
+
+  it("cópia com asset despejado depois não conta como 'já tem': refaz", async () => {
+    const primeira = montar({
+      precache: pagina(COM_ASSETS),
+      rede: async () => pagina("conteúdo do asset"),
+    });
+    await primeira.garantir({ renovar: true });
+
+    // o navegador despeja um pedaço sozinho
+    const cache = armazenamento.abertos.get(CACHE_DE_SOCORRO);
+    cache?.itens.delete("/_next/static/chunks/p2.js");
+
+    const segunda = montar({
+      precache: pagina(COM_ASSETS),
+      rede: async () => pagina("conteúdo do asset"),
+    });
+    expect(await segunda.garantir()).toBe("copiou-do-precache");
+    expect(await cache?.match("/_next/static/chunks/p2.js")).toBeTruthy();
   });
 
   it("duas navegações ao mesmo tempo baixam a página uma vez só", async () => {

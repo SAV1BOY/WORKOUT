@@ -1,5 +1,6 @@
 import { defaultCache } from "@serwist/next/worker";
 import { CACHE_DE_MIDIA, OFFLINE } from "@/lib/caches-do-worker";
+import { copiaServe, urlsDeAssets } from "@/lib/sw-assets";
 import { criarCura } from "@/lib/sw-cura";
 import {
   ehNavegacao,
@@ -96,6 +97,7 @@ const garantirOSocorro = criarCura({
   armazenamento: caches,
   buscar: (url, init) => fetch(url, init),
   agora: () => Date.now(),
+  origem: self.location.origin,
 });
 
 /**
@@ -124,13 +126,32 @@ async function maisUmaTentativa(url: string): Promise<Response | undefined> {
 }
 
 /**
- * Degrau (c): qualquer cópia da `/~offline` em qualquer cache do aparelho. A
- * regra "paginas" guarda a página quando ela foi visitada, e a autocura guarda
- * a dela em `socorro`; `ignoreSearch` alcança a chave do precache, que carrega
- * o `__WB_REVISION__` pendurado.
+ * Degrau (c): qualquer cópia da `/~offline` em qualquer cache do aparelho, **se
+ * ela estiver inteira**. A regra "paginas" guarda a página quando ela foi
+ * visitada, e a autocura guarda a dela em `socorro`; `ignoreSearch` alcança a
+ * chave do precache, que carrega o `__WB_REVISION__` pendurado.
+ *
+ * A guarda é a lição do aparelho despejado (SPEC §22.11): com o Cache Storage
+ * apagado pelo navegador, o precache volta vazio e sobra um HTML cujos 14
+ * pedaços de JS não estão em lugar nenhum. Servi-lo dava "Application error"
+ * na hidratação — sem ícone e sem botões, pior do que o degrau (d). Então só
+ * serve a cópia quando todos os assets que ela referencia estão em algum
+ * cache; senão desce para o socorro embutido, que não depende de nada.
  */
 async function emQualquerCache(): Promise<Response | undefined> {
-  return caches.match(OFFLINE, { ignoreSearch: true, ignoreVary: true });
+  const guardada = await caches.match(OFFLINE, {
+    ignoreSearch: true,
+    ignoreVary: true,
+  });
+  if (!guardada) return undefined;
+  const urls = urlsDeAssets(await guardada.clone().text(), self.location.origin);
+  const presentes = new Set<string>();
+  await Promise.all(
+    urls.map(async (url) => {
+      if (await caches.match(url, { ignoreSearch: true })) presentes.add(url);
+    }),
+  );
+  return copiaServe(urls, presentes) ? guardada : undefined;
 }
 
 /**
