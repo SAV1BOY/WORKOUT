@@ -1045,7 +1045,7 @@ export function escritaDaSerie(
 
 export interface RecordeNovo {
   tipo: "carga" | "reps" | "e1rm";
-  /** "carga máxima", "repetições", "e1RM" */
+  /** "carga máxima", "repetições", "carga máxima estimada" */
   rotulo: string;
   valor: number;
   texto: string;
@@ -1179,9 +1179,9 @@ export function recordesDoBloco(bloco: BlocoLocal): RecordeNovo[] {
   if (e1rm > 0 && e1rm > (bloco.recordeE1rm ?? 0) + 1e-9) {
     novos.push({
       tipo: "e1rm",
-      rotulo: "e1RM",
+      rotulo: "carga máxima estimada",
       valor: e1rm,
-      texto: `${formatarKg(e1rm, 1)} de e1RM`,
+      texto: `${formatarKg(e1rm, 1)} de carga máxima estimada`,
     });
   }
   return novos;

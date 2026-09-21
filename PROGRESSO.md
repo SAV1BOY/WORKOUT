@@ -7105,6 +7105,44 @@ cego e a rodada seguinte não vê a regressão.
    `details[data-secao]`: vale para qualquer tela futura com conteúdo montado
    sob demanda.
 
+Numa segunda passada o mesmo auditor achou mais um portão cego, do mesmo
+feitio, e uma inconsistência de vocabulário:
+
+4. **O "Σ" sobreviveu na folha de detalhe de uma conquista**
+   (`lib/conquistas.ts`). A regra de volume dizia "Σ repetições × carga das
+   séries de trabalho concluídas chega a 50.000 kg" — a um toque da grade que
+   este lote refez. O teste §22.6-8 passava porque lia `body.textContent` com
+   as folhas FECHADAS: a folha é um `Sheet` e o texto dela não está no
+   documento enquanto ninguém a abre. A regra virou "**Soma de** repetições ×
+   carga…", e agora dois testes fecham o buraco: um de unidade
+   (`lib/conquistas.test.ts`) que varre `nome`, `descricao` e `regra` das **26**
+   conquistas atrás de notação solta — o único jeito barato de cobrir todas —,
+   e o e2e, que abre `[data-conquista="volume-50k"]`, espera o `role=dialog` e
+   repete a medida sobre o texto do diálogo. O "×" fica de propósito: na tela
+   ele lê "vezes", como em "4× por semana" e "Treino B × 1".
+5. **"e1RM" saiu do app inteiro** (`lib/sessao.ts`,
+   `components/exercicios/historico-exercicio.tsx`). O lote traduziu a sigla só
+   em `/relatorio`, e o app passou a falar duas línguas para a mesma coisa: o
+   gráfico dizia "carga máxima estimada" e "Máx. estimada", enquanto o card
+   Recorde do histórico de um exercício dizia "e1RM (Epley)" e o recorde do
+   resumo da sessão dizia "45 kg de e1RM". Agora são "Máx. estimada" e "45 kg
+   de carga máxima estimada"; o discriminante interno `tipo: "e1rm"` fica (não
+   é texto de tela) e `lib/sessao.test.ts` trava o texto do recorde.
+
+E a SPEC §22.6 descrevia quatro coisas que a tela não fazia — descrição
+errada é dívida igual a código errado, porque a próxima rodada audita contra
+ela. Foram corrigidos: o item 2 (não existe `min-height` por seção; quem
+reserva a altura é o esqueleto, que tem as medidas do conteúdo final), o
+item 7 (a grade `grid-rows-[auto_1fr_auto]` vem do chamador, na fileira de
+Totais; no `Contador` o que é fixo é a linha do rótulo, `h-4`), o item 8 (o
+alcance real da tradução, incluindo a folha de detalhe) e o item 9 (a legenda
+da faixa tem cinco marcas — "✓ feito · ○ a fazer · ● faltou · — descanso ·
+hoje em destaque" —, não as quatro que o texto citava).
+
+**Como testar no celular** (360 px): Relatório → "Conquistas" → toque em
+qualquer cartão de volume ("10.000 kg" ou "50.000 kg"): a folha que sobe diz
+"Como fecha: Soma de repetições × carga…", sem "Σ". Explorar → um exercício →
+"Histórico": o card Recorde diz "Máx. estimada", não "e1RM (Epley)".
 
 ### Fila (o que não coube)
 

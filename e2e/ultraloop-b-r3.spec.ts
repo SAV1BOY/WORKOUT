@@ -399,6 +399,22 @@ test("§22.6-8: nenhuma sigla nem notação matemática sem tradução", async (
   expect(texto).not.toMatch(/\d\s%/);
   /* a contagem separada do nome do treino */
   expect(texto).toMatch(/Treino [AB] × \d/);
+
+  /*
+   * A folha de detalhe de uma conquista está a um toque da grade, mas
+   * fechada não entra no `textContent` do corpo: medir só o corpo dava
+   * confiança falsa — a regra de volume ainda dizia "Σ repetições × carga".
+   * Abrir a folha antes de medir fecha o buraco.
+   */
+  await abrirSecao(page, "conquistas");
+  await page.locator('[data-conquista="volume-50k"]').click();
+  const folha = page.getByRole("dialog");
+  await expect(folha).toBeVisible();
+  await expect(folha).toContainText("Como fecha:");
+  const naFolha = (await folha.textContent()) ?? "";
+  expect(naFolha).toContain("Soma de repetições");
+  expect(naFolha).not.toContain("Σ");
+  expect(naFolha).not.toContain("e1RM");
 });
 
 /* ------------------------------------- item 9: legenda e cartão de uma linha */
