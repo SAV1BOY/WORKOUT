@@ -7075,17 +7075,27 @@ cego e a rodada seguinte não vê a regressão.
    altura), mas quem recortava era o span de DENTRO: `truncate` traz
    `overflow: hidden` numa caixa de linha de 12 px (`text-micro`: 10 px ×
    1,2), e o acento do Õ em versalete mora acima dela. O `innerText` diz
-   "SESSÕES" nos dois casos — por isso nenhum teste de texto pegava. Agora o
-   span de dentro recorta só na horizontal (`overflow-x-clip` +
-   `overflow-y-visible` + `text-ellipsis`): o til pinta e o "…" de quem não
-   cabe na largura fica. Medido antes de mexer no app, num Chromium isolado:
-   com `overflow: hidden` a linha sai "SESSOES", com o recorte só em x sai
-   "SESSÕES", e um rótulo longo ainda encurta em "VOLUME MUI…".
+   "SESSÕES" nos dois casos — por isso nenhum teste de texto pegava. Agora os
+   **dois** spans recortam só na horizontal (`min-w-0` + `overflow-x-clip` +
+   `overflow-y-visible`, com `text-ellipsis` no de dentro): o til pinta e o
+   "…" de quem não cabe na largura fica. Tirar o recorte do span de FORA não
+   era neutro, e essa foi a terceira passada do auditor: na fileira de
+   Totais o ladrilho é uma **grade** (`grid-rows-[auto_1fr_auto]`), o span é
+   um item de grade, e num item de grade o `min-width: auto` só vira 0
+   quando o `overflow` do item não é `visible` — com os dois eixos `visible`
+   o rótulo longo ia a 283 px dentro de um ladrilho de 95 px, sem "…", e o
+   `documentElement.scrollWidth` subia de 360 para 427. Medido num Chromium
+   isolado com o ladrilho em grade: `visible/visible` → 206 px e sem "…";
+   `min-w-0` + `clip/visible` → 77 px, `encurtado: true` e `overflow-y`
+   ainda `visible`.
    O teste que fecha isto (`e2e/ultraloop-b-r3.spec.ts`, §22.6-7) não é de
-   texto: confere que nenhum `[data-rotulo]` — nem o span de fora, nem o de
-   dentro — tem `overflow-y` diferente de `visible`, e compara os PIXELS do
-   rótulo com os do mesmo rótulo com o recorte forçado a `visible`; se algo
-   cortasse o desenho, as duas fotos seriam diferentes.
+   texto e tem os dois lados: confere que nenhum `[data-rotulo]` — nem o
+   span de fora, nem o de dentro — tem `overflow-y` diferente de `visible`,
+   compara os PIXELS do rótulo com os do mesmo rótulo com o recorte forçado
+   a `visible` (se algo cortasse o desenho, as duas fotos seriam
+   diferentes) e, no caso NEGATIVO, injeta um rótulo longo em
+   `[data-contador="Minutos"]` exigindo `scrollWidth > clientWidth`, largura
+   dentro do ladrilho e `documentElement.scrollWidth === 360`.
 2. **A régua visual ficou cega justamente nas telas do lote**
    (`scripts/capturas-ultraloop.ts`). Com a montagem preguiçosa, uma seção
    fechada nem existe no DOM: `rolarAte(region "Conquistas")` não achava nada

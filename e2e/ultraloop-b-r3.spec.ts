@@ -380,6 +380,45 @@ test("§22.6-7: nada recorta o rótulo na vertical e o til de SESSÕES pinta", a
     antes.equals(depois),
     'algo corta o desenho de "SESSÕES": sem o recorte o rótulo pinta diferente',
   ).toBe(true);
+
+  /*
+   * 3. caso NEGATIVO: o grampo horizontal. Só medir o til deixa passar o
+   * erro oposto — foi ele que voltou uma vez. Na fileira de Totais o
+   * ladrilho é uma GRADE, e num item de grade o `min-width: auto` só vira 0
+   * quando o `overflow` do item não é `visible`: com os dois eixos
+   * `visible`, um rótulo maior que o ladrilho de 95 px não encolhe nem
+   * encurta, estoura, e a página passa a rolar para o lado a 360 px. Um
+   * rótulo longo injetado tem de continuar encurtando e não pode alargar a
+   * página.
+   */
+  const ladrilho = page
+    .getByRole("region", { name: "Totais" })
+    .locator('[data-contador="Minutos"]');
+  const medida = await ladrilho.evaluate((el) => {
+    const fora = el.querySelector("[data-rotulo]") as HTMLElement;
+    const dentro = fora.querySelectorAll("span");
+    const texto = dentro[dentro.length - 1] as HTMLElement;
+    const antes = texto.textContent ?? "";
+    texto.textContent = "Volume muito comprido de propósito para estourar";
+    const m = {
+      fora: Math.round(fora.getBoundingClientRect().width),
+      conteudo: Math.round(el.getBoundingClientRect().width),
+      encurtado: texto.scrollWidth > texto.clientWidth,
+      recorteY: getComputedStyle(fora).overflowY,
+      pagina: document.documentElement.scrollWidth,
+    };
+    texto.textContent = antes;
+    return m;
+  });
+  expect(medida.encurtado, 'rótulo longo tem de encurtar com "…"').toBe(true);
+  expect(
+    medida.fora,
+    "o rótulo estourou para fora do ladrilho em vez de encurtar",
+  ).toBeLessThanOrEqual(medida.conteudo);
+  expect(medida.pagina, "um rótulo longo fez a página rolar para o lado").toBe(360);
+  /* e o grampo horizontal não pode ter voltado às custas do til */
+  expect(medida.recorteY).toBe("visible");
+  await semRolagemHorizontal(page);
 });
 
 test("§22.6-8: nenhuma sigla nem notação matemática sem tradução", async ({ page }) => {

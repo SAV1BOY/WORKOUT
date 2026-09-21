@@ -1663,13 +1663,20 @@ a tela — afrouxar o limite não é uma opção.
    24–30 px. E **nada recorta o rótulo na vertical**: o til de "SESSÕES" em
    versalete sobe acima da caixa de linha de 12 px (`text-micro`: 10 px ×
    1,2), e qualquer `overflow` que recorte em y come o acento — a linha saía
-   "SESSOES". Tirar o `overflow-hidden` do span de fora não bastou (quem
-   recortava era o `truncate` do span de dentro): o de dentro recorta só na
-   horizontal (`overflow-x-clip` + `overflow-y-visible`), e continua
-   encurtando com "…" o que não cabe na largura. Como o `innerText` diz
+   "SESSOES". Mas tirar o recorte dos dois eixos também não serve: nesta
+   fileira o ladrilho é uma **grade**, e num item de grade o `min-width:
+   auto` só vira 0 quando o `overflow` do item não é `visible` — com os dois
+   eixos `visible` um rótulo maior que o ladrilho de 95 px não encolhe nem
+   encurta, **estoura**, e a página passa a rolar para o lado a 360 px. Os
+   **dois** spans do rótulo (o de fora e o de dentro, que desenha o "…")
+   levam então `min-w-0` + `overflow-x-clip` + `overflow-y-visible`, a única
+   combinação que o CSS deixa conviver com `visible`: o til pinta e o que
+   não cabe na largura continua encurtando com "…". Como o `innerText` diz
    "SESSÕES" nos dois casos, o teste que fecha isto não é de texto: mede o
-   recorte computado de todo `[data-rotulo]` e compara os pixels do rótulo
-   com e sem o recorte forçado a `visible`.
+   recorte computado de todo `[data-rotulo]`, compara os pixels do rótulo
+   com e sem o recorte forçado a `visible` e — o caso negativo — injeta um
+   rótulo longo num ladrilho e exige que ele encurte, caiba no ladrilho e
+   não alargue a página além dos 360 px.
 8. **Sem sigla nem notação sem tradução.** "e1RM" sai do app **inteiro**,
    não só de `/relatorio`: o gráfico diz "carga máxima estimada" e "Máx.
    estimada", o card Recorde do histórico de um exercício diz "Máx.

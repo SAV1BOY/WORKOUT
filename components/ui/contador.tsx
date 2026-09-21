@@ -35,18 +35,29 @@ export function Contador({
       <span
         data-rotulo={rotulo}
         /*
-         * Nada corta o rótulo na VERTICAL (SPEC §22.6 item 7). O til de
-         * "SESSÕES" em versalete sobe acima da caixa de linha de 12 px
-         * (`text-micro`: 10 px × 1,2) e qualquer `overflow` que recorte em y
-         * come o acento — a linha saía "SESSOES". Tirar o `overflow-hidden`
-         * daqui não bastava: quem recortava era o `truncate` do span de
-         * dentro. O de dentro agora recorta SÓ na horizontal
-         * (`overflow-x-clip` + `overflow-y-visible`, a única combinação que o
-         * CSS deixa conviver com `visible`), continua encurtando com "…" o
-         * que não cabe na largura, e a altura fixa de 16 px — que alinha a
-         * base dos três números — fica.
+         * Duas regras ao mesmo tempo, e elas brigam se a gente for
+         * desatento (SPEC §22.6 item 7).
+         *
+         * 1. Nada corta o rótulo na VERTICAL: o til de "SESSÕES" em
+         *    versalete sobe acima da caixa de linha de 12 px
+         *    (`text-micro`: 10 px × 1,2) e qualquer `overflow` que recorte
+         *    em y come o acento — a linha saía "SESSOES".
+         * 2. Nada escapa na HORIZONTAL: na fileira de Totais o ladrilho é
+         *    uma GRADE (`grid-rows-[auto_1fr_auto]`, vinda do chamador),
+         *    então este span é um item de grade e o `min-width: auto` dele
+         *    só vira 0 quando o `overflow` do item NÃO é `visible`. Deixar
+         *    os dois eixos `visible` fazia um rótulo maior que o ladrilho
+         *    de 95 px estourar para 283 px, sem "…", e a página passava a
+         *    rolar para o lado a 360 px.
+         *
+         * `min-w-0` + `overflow-x-clip` + `overflow-y-visible` (a única
+         * combinação que o CSS deixa conviver com `visible`) atende as
+         * duas: o span volta a caber no ladrilho, o "…" pinta e o til
+         * também. O mesmo tratamento vale para o span de dentro, que é
+         * quem desenha o "…". A altura fixa de 16 px — que alinha a base
+         * dos três números — fica.
          */
-        className="text-muted-foreground flex h-4 items-center gap-1 text-micro tracking-wide whitespace-nowrap uppercase"
+        className="text-muted-foreground flex h-4 min-w-0 items-center gap-1 overflow-x-clip overflow-y-visible text-micro tracking-wide whitespace-nowrap uppercase"
       >
         {icone ? <span className="flex shrink-0 items-center">{icone}</span> : null}
         <span className="min-w-0 overflow-x-clip overflow-y-visible text-ellipsis whitespace-nowrap">
