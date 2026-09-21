@@ -348,7 +348,7 @@ Toda sessão (treino do programa, sessão livre, circuito, sessão de barra fixa
 Abre por cima de qualquer tela (Treino, player, Explorar) sem perder estado: título + **Substituir** (mesmo fluxo de substitutos); mídia com três abas **Vídeo · Músculos · Tutorial**: Vídeo = figura animada (ou vídeo local) com botão de pausa; Músculos = figura + mapa frente/costas com primários fortes e secundários claros; **Tutorial** = vídeo do YouTube de `data/tutoriais.json` (81 entradas: `exercicio_id`, `youtube_id`, `titulo`, `canal`, `idioma`, `url`, `nota`; validado em `lib/schemas.ts`, lido por `lib/dados.ts`), mostrado como miniatura `https://i.ytimg.com/vi/<id>/hqdefault.jpg` + play, e só ao tocar vira `<iframe src="https://www.youtube-nocookie.com/embed/<id>">` (sem rede a aba mostra "Precisa de internet" e o botão "Abrir no YouTube"); stepper **Duração / Repetições / Séries** que ajusta **só a prescrição desta sessão** (nunca `exercise_state`); **Instruções** (passos do JSON) e **Erro comum**; **Área de foco** em chips (primário = ponto forte, secundário = claro) a partir de `musculos_*_nome`; histórico e recorde abaixo (como hoje); navegação **anterior/próximo (n/N)** dentro do treino; **Fechar**. A rota `/exercicios/[id]` continua existindo e usa o mesmo componente em página inteira.
 
 ### 14.3 Aba Treino — acréscimos à §13.3
-Abaixo da lista do treino do dia: **Editar** (modo reordenar com alças e setas ↑↓; ordem só desta sessão, gravada em `sessions.plano` quando a sessão é criada; "voltar à ordem do programa"); FAB **Ajustar** (descanso padrão, preparação, avançar sozinho, voz, vibração, tela acesa, mostrar raios); **Desafios** (carrossel manual, sem rotação automática, com os planos reais: "Primeira barra fixa em 12 semanas", "Correr 5 km em 12 semanas", "Fase 1 — 12 semanas"; capa de `assets/`, semana atual e progresso, botão "Fazer a sessão da semana"); **Parte do corpo em foco** (chips dos 8 grupos → lista com miniatura, `N exercícios · ~M min`, raios, "Começar" = sessão livre com os 6 primeiros do grupo, compostos antes de isolamento); chips de filtro derivados (≤ 15 min · 15–30 min · com equipamento · sem equipamento · core · cardio); **Personalizar treino** ("Crie o seu próprio": escolher exercícios do catálogo e começar uma sessão livre). Sem busca na Treino (fica em Explorar).
+Abaixo da lista do treino do dia: **Editar** (modo reordenar com alças e setas ↑↓; ordem só desta sessão, gravada em `sessions.plano` quando a sessão é criada; "voltar à ordem do programa"); **Ajustar** no cabeçalho, ao lado da data (descanso padrão, preparação, avançar sozinho, voz, vibração, tela acesa, mostrar raios); **Desafios** (carrossel manual, sem rotação automática, com os planos reais: "Primeira barra fixa em 12 semanas", "Correr 5 km em 12 semanas", "Fase 1 — 12 semanas"; capa de `assets/`, semana atual e progresso, botão "Fazer a sessão da semana"); **Parte do corpo em foco** (chips dos 8 grupos → lista com miniatura, `N exercícios · ~M min`, raios, "Começar" = sessão livre com os 6 primeiros do grupo, compostos antes de isolamento); chips de filtro derivados (≤ 15 min · 15–30 min · com equipamento · sem equipamento · core · cardio); **Personalizar treino** ("Crie o seu próprio": escolher exercícios do catálogo e começar uma sessão livre). Sem busca na Treino (fica em Explorar).
 
 ### 14.4 Explorar, Relatório, Corpo, Mais — como na §13.4, §13.5 e §13.7, com estes ajustes
 - **Explorar**: cabeçalho "Explorar" com busca sempre visível; **um destaque** no topo (o treino de hoje ou a sessão da semana do plano); **"Escolhas para você"** = lista com capa, título, `N exercícios · ~M min · nível (raios)` das coleções derivadas (grupos, aparelhos, circuitos, planos, treinos do programa), com "Ver todos"; catálogo dos 81 abaixo com filtros; toque em coleção → tela da coleção (capa, lista, "Começar"); nada de texto de marketing; descrições só de campos do JSON (foco, subtítulo, regra, funções).
@@ -778,7 +778,7 @@ começo; o histórico fica) e só o **segundo** toque confirma.
 "Voltar mais leve" e "Recomeçar do zero" mexem em **todas** as cargas, então só
 ficam tocáveis depois de o app ler `exercise_state` inteiro; enquanto isso as
 duas aparecem desligadas com uma linha dizendo por quê. **"Continuar de onde
-parou" nunca desliga**: o card barra a aba Treino inteira (e some com o FAB),
+parou" nunca desliga**: o card barra a aba Treino inteira (e leva o "Ajustar" junto),
 e a primeira vez que ele é desenhado sem rede é justamente a primeira vez que a
 leitura das cargas não chega — se ela desligasse tudo, a pausa trancaria o app
 sem deixar nem decidir nem treinar.
@@ -797,9 +797,9 @@ caminhada leve"** do domingo e **"Treinar mesmo assim"**. Decidir vem antes de
 treinar, e vale para qualquer tipo de treino: no dia de cardio, começar sem
 decidir correria a semana errada do plano; no dia de descanso, o "+1" grava na
 hora e a própria atividade de hoje faria o card sumir (§18.1). Pelo mesmo
-motivo, o **FAB
-"Ajustar"** da aba Treino (§14.3) **não aparece** enquanto a pausa não foi decidida: ele é
-`fixed` e passava por cima do card, comendo o fim da frase de uma das opções e o
+motivo, o **"Ajustar"**
+da aba Treino (§14.3) **não aparece** enquanto a pausa não foi decidida: quando
+ainda era um FAB ele era `fixed` e passava por cima do card, comendo o fim da frase de uma das opções e o
 toque naquele canto.
 
 ### 18.4 Perguntar uma vez por pausa
@@ -1037,7 +1037,8 @@ mostrando o caminho e onde clicar para ir em cada função."* E, logo depois:
 alguem criar a conta no app e na aba mais ter o botão de mostrar o tutorial"*.
 
 O app tem cinco abas (§13.2) e muita coisa escondida atrás de um toque: a faixa
-da semana leva ao calendário, o ⇄ troca um exercício, o FAB abre os ajustes. O
+da semana leva ao calendário, o ⇄ troca um exercício, o "Ajustar" do cabeçalho
+abre as preferências. O
 guia é **uma tela que diz onde cada coisa está e leva até lá** — não é um passeio
 com balões por cima da interface, não é vídeo e não é conteúdo de treino.
 
@@ -1959,3 +1960,81 @@ a tela — afrouxar o limite não é uma opção.
     porque o título logo acima já é o contador, e é o título que ganha
     `aria-live`. Apagar a busca solta os filtros; trocar só o termo os mantém,
     com o selo do botão "Filtros" dizendo quantos são.
+
+### 22.7 Lote 7 — Aba Treino: hierarquia e controle
+
+A aba Treino tem 2.555 px de rolagem e concentrava tudo no topo. Este lote
+muda **o que fica ao alcance do polegar** e **quem manda no toque**.
+
+1. **O "Ajustar" saiu do meio da lista.** Era um botão flutuante fixo no canto
+   inferior direito: com a lista rolada, `elementFromPoint` sobre o
+   "Substituir" do 3º exercício devolvia o svg do FAB (sobreposições de
+   3 × 21 px e 15 × 21 px). Ele passa a morar no **cabeçalho da aba**, ao lado
+   da data, como botão de contorno de 44 px — a folha que abre é a mesma.
+   Continua valendo §18.3: com a retomada por decidir, o "Ajustar" sai da tela.
+   A folga de 96 px no fim da aba (`pb-24`), que só existia por causa do FAB,
+   saiu junto.
+2. **A sessão de hoje deixa de sumir ao rolar.** Quando o card do dia passa
+   para cima da tela, uma **faixa fixa fina** assume o mesmo caminho no alto
+   ("Treino A · 0/17 séries · Continuar", ou o foco do treino e "Começar"
+   quando ainda não há sessão). Vale nos dias de força, onde a aba é longa; a
+   sentinela que a liga fica logo abaixo do card. As linhas da lista ganharam
+   `scroll-mt-14` para a faixa não comer a linha recém-rolada.
+   A faixa **inteira é o controle**, como a barra do tocador de um app de
+   música: ela é um cartão opaco, com contorno e sombra, escrito "Treino A", e
+   por isso cada pixel dela faz a coisa que ela anuncia. Deixá-la inerte
+   (`pointer-events-none` no cartão, toque só no botão) foi tentado e
+   **descartado**: os pixels voltavam para a lista de baixo e tocar no nome do
+   treino abria a ficha de um exercício escondido debaixo da faixa.
+   Aceite: **em toda posição de rolagem com a faixa à vista,
+   `document.elementFromPoint` em qualquer ponto do retângulo dela devolve um
+   elemento DENTRO dela** — varrido de 24 em 24 px na largura, a cada 60 px de
+   rolagem, nos dois temas. Em troca, o que para debaixo da faixa fica coberto
+   enquanto está ali: nenhum controle fica permanentemente inalcançável —
+   **rolar um dedo revela qualquer linha que pare debaixo da faixa** —, e o
+   aceite do item 1 ("o toque em cada Substituir chega no próprio botão") vale
+   para toda linha fora das duas barras fixas — esta, no alto, e a barra de
+   abas, embaixo (§14.1). Para o salto por âncora e o foco pelo teclado a folga
+   vem do `scroll-padding-top` do documento.
+3. **A folha "Ajustar" grava sozinha.** "Preparação" e "Descanso padrão"
+   gravam no sair do campo (e 700 ms depois de parar de digitar), como os
+   interruptores ao lado; os dois botões "Salvar" sumiram — dois modelos de
+   gravação na mesma folha faziam duvidar se o interruptor tinha pegado. O
+   texto pela metade no campo do descanso ("do exercí…") virou "—", o vazio do
+   "não gosto" ganhou antecedente ("Nenhum por enquanto. Quando você marcar
+   algum…") e a folha abre com o foco no **título**, não no primeiro campo:
+   abrir ajustes não abre mais o teclado numérico.
+4. **Os ladrilhos Fase e Peso têm a mesma gramática.** Rótulo, valor e legenda,
+   cada um numa linha de altura fixa, ancorados ao topo: "Fase 1" com a legenda
+   "semana 16" (como PESO já fazia com "há 4 dias"), valor em linha só com
+   `text-nowrap`. Os dois ladrilhos têm a mesma altura e os valores caem na
+   mesma linha de base.
+5. **O nome do exercício vem antes da carga.** Na lista de hoje o nome está em
+   `font-semibold` e sozinho na linha; os raios de dificuldade desceram para o
+   fim da prescrição ("3 × 8-12 ⚡⚡") e o "Hoje:" perdeu a fonte de número (que
+   ficou só no valor). O nome continua podendo **quebrar em duas linhas**
+   (`line-clamp-2`): a 360 px cinco dos seis nomes do Treino A não cabem numa
+   linha, e cortar apagaria justamente o que separa "Desenvolvimento com
+   halteres" de "Desenvolvimento militar em pé" ou os dois "Supino inclinado
+   com …" — num celular não há `title` para consultar, e logo abaixo, em "Parte
+   do corpo em foco", os mesmos nomes aparecem inteiros.
+6. **O carrossel de Desafios diz que tem três.** O `<ul>` ganhou nome
+   ("Desafios"), a posição aparece em texto ("1 de 3") e em três pontinhos, e
+   cada CTA diz o destino ("Fazer a sessão de barra fixa", "Fazer a corrida da
+   semana 2", "Fazer o treino da fase 1") em vez de três "Fazer a sessão da
+   semana" iguais. O botão ganhou `mt-auto`: não pula mais de altura de um card
+   para o outro quando o subtítulo tem duas linhas.
+7. **As fileiras de chips avisam que continuam.** As duas listas horizontais de
+   "Parte do corpo em foco" ganharam máscara de degradê na borda — só do lado
+   em que há conteúdo fora da tela, e nenhuma quando tudo cabe.
+8. **Verbo com objeto.** "Começar Peito" virou "Começar o treino de peito";
+   "Começar Treino B", "Começar o Treino B"; "Começar (3)", "Começar com 3
+   exercícios". O card do dia continua "Começar treino".
+9. **Voltar do player não é mais mudo.** O gesto do sistema não é bloqueado: ao
+   voltar do player com a sessão aberta, a aba Treino avisa ("Treino guardado —
+   toque em Continuar para retomar.", 4 s) e destaca **o elemento que tem o
+   "Continuar" daquela sessão**: o card "em andamento" quando a sessão aberta é
+   a do dia, e o banner "Você tem um treino aberto de …" quando é outra — uma
+   sessão livre, a de ontem, ou um dia de cardio/descanso. Nunca o card que
+   começaria um treino novo. Vale também para o "Continuar depois" da Visão
+   geral, que sai pelo mesmo caminho.

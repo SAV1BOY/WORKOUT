@@ -596,7 +596,7 @@ async function comecarTreinoDaFase2(page: Page, nome: string): Promise<SessaoMoc
   });
   await entrarNoApp(page);
   await page.goto("/treinar");
-  await page.getByRole("button", { name: `Começar ${nome}` }).click();
+  await page.getByRole("button", { name: `Começar o ${nome}` }).click();
   await expect(page).toHaveURL(/\/treinar\/[0-9a-f-]{36}$/);
   await abrirVisaoGeral(page);
   return sessao;

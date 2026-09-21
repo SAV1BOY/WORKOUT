@@ -174,11 +174,14 @@ export function Personalizar({ prefs }: { prefs?: Prefs }) {
               void comecar(escolhidos, { titulo: "Treino personalizado" })
             }
           >
+            {/* SPEC §22.7 item 8: "Começar com 3 exercícios", não "Começar (3)" */}
             {ocupado
               ? "Começando…"
               : escolhidos.length === 0
                 ? "Escolha os exercícios"
-                : `Começar (${escolhidos.length})`}
+                : `Começar com ${escolhidos.length} ${
+                    escolhidos.length === 1 ? "exercício" : "exercícios"
+                  }`}
           </BotaoLargo>
         </div>
       </SheetContent>

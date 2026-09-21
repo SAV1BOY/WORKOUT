@@ -12,14 +12,14 @@ import {
   CardDescanso,
   CardForca,
 } from "@/components/treino/cards";
-import { CabecalhoDoTreino } from "@/components/treino/cabecalho";
+import { CabecalhoDoTreino, FaixaFixaDoDia } from "@/components/treino/cabecalho";
 import { Desafios } from "@/components/treino/desafios";
 import { ModoEditar } from "@/components/treino/editar";
-import { FabAjustar } from "@/components/treino/fab-ajustar";
+import { BotaoAjustar } from "@/components/treino/fab-ajustar";
 import { ListaDoDia } from "@/components/treino/lista";
 import { ParteDoCorpo } from "@/components/treino/parte-do-corpo";
 import { Personalizar } from "@/components/treino/personalizar";
-import { CardRetomada } from "@/components/treino/retomada";
+import { CardRetomada, useAvisoDeVoltaDoPlayer } from "@/components/treino/retomada";
 import { Button } from "@/components/ui/button";
 import {
   iso,
@@ -285,6 +285,33 @@ export function TelaTreino({ userId }: { userId: string }) {
   const aberta = sessaoAberta(abertasQ.data ?? []);
   const seriesDaAbertaQ = useSeriesDaSessao(aberta?.id ?? null);
 
+  /*
+   * SPEC §22.7 item 2: a aba tem 2.555 px e o caminho para o treino de hoje
+   * ficava só no topo. A sentinela mora logo abaixo do card do dia; quando ela
+   * passa para cima da tela, a faixa fixa assume o mesmo caminho.
+   */
+  const refSentinela = useRef<HTMLDivElement>(null);
+  const [passouDoCard, setPassouDoCard] = useState(false);
+  const desenhado = Boolean(hoje && perfil && dia && intervalo) && !desviando;
+  useEffect(() => {
+    const alvo = refSentinela.current;
+    if (!alvo || typeof IntersectionObserver === "undefined") return;
+    const observador = new IntersectionObserver(
+      ([entrada]) => {
+        if (!entrada) return;
+        setPassouDoCard(
+          !entrada.isIntersecting && entrada.boundingClientRect.top < 0,
+        );
+      },
+      { threshold: 0 },
+    );
+    observador.observe(alvo);
+    return () => observador.disconnect();
+  }, [desenhado]);
+
+  /* SPEC §22.7 item 9: voltar do player avisa e destaca quem tem o "Continuar" */
+  const destacarAberta = useAvisoDeVoltaDoPlayer(aberta !== null);
+
   if (perfilQ.isError) {
     return (
       <Tela>
@@ -425,6 +452,11 @@ export function TelaTreino({ userId }: { userId: string }) {
         fase={nomeCurtoDaFase(acharFase(perfil.fase_atual).nome)}
         semanaDaFase={semanaDaFase(hoje, perfil.fase_desde)}
         peso={peso}
+        /*
+         * SPEC §18.3: com a pausa por decidir, ajustar não vem antes de
+         * decidir — o "Ajustar" sai da tela, como saía quando era um FAB.
+         */
+        acoes={mostrarRetomada ? null : <BotaoAjustar perfil={perfil} />}
       />
 
       {aberta && !abertaDoDia ? (
@@ -432,6 +464,12 @@ export function TelaTreino({ userId }: { userId: string }) {
           texto={aberta.texto}
           href={`/treinar/${aberta.id}`}
           aoDescartar={() => void descartar(aberta.id)}
+          /*
+           * SPEC §22.7 item 9: o anel acompanha o "Continuar". Aqui dentro a
+           * sessão aberta nunca é a do dia (`!abertaDoDia`), então o card do
+           * dia não tem "Continuar" nenhum e o destaque é deste banner.
+           */
+          destacado={destacarAberta}
         />
       ) : null}
 
@@ -456,6 +494,8 @@ export function TelaTreino({ userId }: { userId: string }) {
             mostrarRaios={mostrarRaios}
             semanaDaFase={semanaDaFase(hoje, perfil.fase_desde)}
             aberta={abertaDoDia}
+            /* só quando é ESTE card que tem o "Continuar" (§22.7 item 9) */
+            destacado={destacarAberta && abertaDoDia !== null}
             criando={criando !== null}
             aoComecar={() => {
               /* SPEC §18.3: com a retomada pendente, decidir vem antes */
@@ -493,6 +533,7 @@ export function TelaTreino({ userId }: { userId: string }) {
           />
         ) : null}
       </section>
+      <div ref={refSentinela} aria-hidden="true" className="h-px" />
 
       {treinoId ? (
         editando ? (
@@ -539,19 +580,31 @@ export function TelaTreino({ userId }: { userId: string }) {
       <Personalizar prefs={perfil.prefs} />
 
       {/*
-        SPEC §18.3: o FAB é `fixed` e passa por cima do card da retomada, comendo
-        o fim da frase de uma das opções e o toque naquele canto. Com a pausa por
-        decidir ele sai da tela — decidir vem antes de ajustar.
+        SPEC §22.7 item 2: a faixa fixa do dia. Só nos dias de força — nos dias
+        de cardio e de descanso a aba cabe em pouco mais de uma tela e o card
+        do dia continua à vista.
       */}
-      {mostrarRetomada ? null : <FabAjustar perfil={perfil} />}
+      {passouDoCard && dia.tipo === "forca" && treinoId ? (
+        <FaixaFixaDoDia
+          titulo={resumoDoTreino(treinoId).nome}
+          detalhe={abertaDoDia ? abertaDoDia.progresso : resumoDoTreino(treinoId).foco}
+          rotulo={abertaDoDia ? "Continuar" : "Começar"}
+          href={abertaDoDia ? `/treinar/${abertaDoDia.id}` : undefined}
+          aoTocar={() => {
+            /* SPEC §18.3: com a retomada pendente, decidir vem antes */
+            if (pedirDecisao()) return;
+            void comecar({ userId, perfil, hoje, treinoId, trocas, ordem });
+          }}
+        />
+      ) : null}
     </Tela>
   );
 }
 
 function Tela({ children }: { children: React.ReactNode }) {
-  /* `pb-24`: o FAB "Ajustar" é fixo e cobria o fim da lista sem esta folga */
+  /* o "Ajustar" subiu para o cabeçalho (§22.7 item 1): a folga do FAB saiu */
   return (
-    <section aria-label="Treino" className="flex flex-col gap-4 pb-24">
+    <section aria-label="Treino" className="flex flex-col gap-4">
       {children}
     </section>
   );

@@ -196,7 +196,8 @@ export function TelaTreinar({ userId }: { userId: string }) {
                 })
               }
             >
-              {criando === treinoId ? "Começando…" : `Começar ${resumo.nome}`}
+              {/* SPEC §22.7 item 8: "Começar o Treino B", com artigo */}
+              {criando === treinoId ? "Começando…" : `Começar o ${resumo.nome}`}
             </BotaoLargo>
             {doDia ? (
               <ListaDoDia

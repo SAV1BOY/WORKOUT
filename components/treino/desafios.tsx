@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRef, useState } from "react";
 import { CapaPequena } from "@/components/colecoes/linha-colecao";
 import { BotaoLargo } from "@/components/ui/botao-largo";
 import {
@@ -15,29 +16,82 @@ import {
  * um com a semana de hoje, a barra de progresso e o botão da sessão da semana.
  */
 export function Desafios({ desafios }: { desafios: Desafio[] }) {
+  const refLista = useRef<HTMLUListElement>(null);
+  const [atual, setAtual] = useState(0);
+
   if (desafios.length === 0) return null;
+
+  /*
+   * SPEC §22.7 item 6: o carrossel não dizia que tinha três. A posição sai da
+   * própria rolagem — cada card ocupa uma fatia igual da lista.
+   */
+  const aoRolar = () => {
+    const lista = refLista.current;
+    if (!lista) return;
+    const fatia = lista.scrollWidth / desafios.length;
+    const indice = Math.round(lista.scrollLeft / Math.max(fatia, 1));
+    setAtual(Math.min(Math.max(indice, 0), desafios.length - 1));
+  };
 
   return (
     <section aria-label="Desafios" className="flex flex-col gap-2">
-      <h2 className="text-base font-semibold">Desafios</h2>
+      <div className="flex items-baseline justify-between gap-2">
+        <h2 className="text-base font-semibold">Desafios</h2>
+        <p className="numero text-muted-foreground text-xs" data-desafios-posicao>
+          {atual + 1} de {desafios.length}
+        </p>
+      </div>
       {/*
         Rolagem horizontal com parada em cada card (scroll-snap). A margem
         negativa deixa o card encostar na borda da tela a 360 px sem tirar o
         respiro do conteúdo ao redor.
       */}
-      <ul className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-1">
+      <ul
+        ref={refLista}
+        aria-label="Desafios"
+        onScroll={aoRolar}
+        className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-1"
+      >
         {desafios.map((d) => (
           <li
             key={d.id}
             data-desafio={d.id}
-            className="w-[min(19rem,85vw)] shrink-0 snap-start"
+            className="w-[min(19rem,86vw)] shrink-0 snap-start"
           >
             <CardDoDesafio desafio={d} />
           </li>
         ))}
       </ul>
+      <div aria-hidden="true" className="flex items-center justify-center gap-1.5">
+        {desafios.map((d, i) => (
+          <span
+            key={d.id}
+            data-ponto={i === atual ? "ativo" : "inativo"}
+            className={
+              i === atual
+                ? "bg-primary size-1.5 rounded-full"
+                : "bg-muted-foreground/40 size-1.5 rounded-full"
+            }
+          />
+        ))}
+      </div>
     </section>
   );
+}
+
+/**
+ * O CTA diz o destino (SPEC §22.7 item 6): três cards iguais dizendo "Fazer a
+ * sessão da semana" não distinguem para onde cada um leva. O texto sai dos
+ * dados do próprio desafio — nada escrito à mão sobre o conteúdo do treino.
+ */
+function acaoDoDesafio(desafio: Desafio): string {
+  if (desafio.id === "barra_fixa") return "Fazer a sessão de barra fixa";
+  if (desafio.id === "corrida") return `Fazer a corrida da semana ${desafio.semanaAtual}`;
+  if (desafio.id === "fase") {
+    const [curto] = desafio.titulo.split("—");
+    return `Fazer o treino da ${(curto ?? desafio.titulo).trim().toLowerCase()}`;
+  }
+  return desafio.acao;
 }
 
 function CardDoDesafio({ desafio }: { desafio: Desafio }) {
@@ -89,8 +143,10 @@ function CardDoDesafio({ desafio }: { desafio: Desafio }) {
         </div>
       </div>
 
-      <BotaoLargo asChild variant="outline" className="h-12 text-sm">
-        <Link href={desafio.href}>{desafio.acao}</Link>
+      {/* `mt-auto`: o subtítulo de duas linhas empurrava o CTA, que pulava de
+          altura de um card para o outro ao deslizar (SPEC §22.7 item 6) */}
+      <BotaoLargo asChild variant="outline" className="mt-auto h-12 text-sm">
+        <Link href={desafio.href}>{acaoDoDesafio(desafio)}</Link>
       </BotaoLargo>
     </article>
   );

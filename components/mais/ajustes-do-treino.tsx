@@ -1,7 +1,7 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -73,47 +73,86 @@ export function AjustesDoTreino({
 }) {
   const cliente = useQueryClient();
   const prefs = perfil.prefs;
-  const [preparacao, setPreparacao] = useState(String(preparacaoS(prefs)));
-  const descanso = descansoPadraoS(prefs);
+  const preparacaoGravada = preparacaoS(prefs);
+  const descansoGravado = descansoPadraoS(prefs);
+  const [preparacao, setPreparacao] = useState(String(preparacaoGravada));
   const [descansoTexto, setDescansoTexto] = useState(
-    descanso === null ? "" : String(descanso),
+    descansoGravado === null ? "" : String(descansoGravado),
   );
   const [salvando, setSalvando] = useState(false);
   const evitados = evitarExercicios(prefs);
 
-  const gravar = async (novas: Parameters<typeof salvarPrefs>[0]["prefs"]) => {
-    setSalvando(true);
-    try {
-      await salvarPrefs({ userId, prefs: novas, cliente });
-    } catch {
-      toast.error("Não consegui salvar agora.");
-    } finally {
-      setSalvando(false);
-    }
-  };
+  const gravar = useCallback(
+    async (novas: Parameters<typeof salvarPrefs>[0]["prefs"]) => {
+      setSalvando(true);
+      try {
+        await salvarPrefs({ userId, prefs: novas, cliente });
+      } catch {
+        toast.error("Não consegui salvar agora.");
+      } finally {
+        setSalvando(false);
+      }
+    },
+    [userId, cliente],
+  );
 
-  const salvarPreparacao = async () => {
-    const n = lerNumero(preparacao.trim());
-    if (n === null || n < 0) {
-      toast.error("Digite os segundos da preparação, por exemplo 10.");
-      return;
-    }
-    await gravar(comPreparacaoS(prefs, n));
-    toast.success(n === 0 ? "Sem tela de preparação." : `Preparação: ${n} s.`);
-  };
+  /*
+   * SPEC §22.7 item 3: os dois campos gravam sozinhos, como os interruptores
+   * ao lado — dois modelos de gravação na mesma folha faziam duvidar se o
+   * interruptor tinha pegado. Enquanto se digita a gravação é silenciosa (um
+   * texto pela metade não vira erro); ao sair do campo, o que não for número
+   * volta ao valor gravado e diz por quê.
+   */
+  const gravarPreparacao = useCallback(
+    async (texto: string, aoSair: boolean) => {
+      const n = lerNumero(texto.trim());
+      if (n === null || n < 0) {
+        if (aoSair) {
+          toast.error("Digite os segundos da preparação, por exemplo 10.");
+          setPreparacao(String(preparacaoGravada));
+        }
+        return;
+      }
+      if (n === preparacaoGravada) return;
+      await gravar(comPreparacaoS(prefs, n));
+      toast.success(n === 0 ? "Sem tela de preparação." : `Preparação: ${n} s.`);
+    },
+    [gravar, prefs, preparacaoGravada],
+  );
 
-  const salvarDescanso = async () => {
-    const limpo = descansoTexto.trim();
-    const n = limpo === "" ? null : lerNumero(limpo);
-    if (limpo !== "" && (n === null || n <= 0)) {
-      toast.error("Digite os segundos do descanso, por exemplo 90.");
-      return;
-    }
-    await gravar(comDescansoPadraoS(prefs, n));
-    toast.success(
-      n === null ? "Descanso: o do exercício." : `Descanso padrão: ${n} s.`,
-    );
-  };
+  const gravarDescanso = useCallback(
+    async (texto: string, aoSair: boolean) => {
+      const limpo = texto.trim();
+      const n = limpo === "" ? null : lerNumero(limpo);
+      if (limpo !== "" && (n === null || n <= 0)) {
+        if (aoSair) {
+          toast.error("Digite os segundos do descanso, por exemplo 90.");
+          setDescansoTexto(descansoGravado === null ? "" : String(descansoGravado));
+        }
+        return;
+      }
+      if (n === descansoGravado) return;
+      await gravar(comDescansoPadraoS(prefs, n));
+      toast.success(
+        n === null ? "Descanso: o do exercício." : `Descanso padrão: ${n} s.`,
+      );
+    },
+    [gravar, prefs, descansoGravado],
+  );
+
+  /* o mesmo atraso dos campos numéricos do player: grava quem parou de digitar */
+  useEffect(() => {
+    if (preparacao === String(preparacaoGravada)) return;
+    const relogio = window.setTimeout(() => void gravarPreparacao(preparacao, false), 700);
+    return () => window.clearTimeout(relogio);
+  }, [preparacao, preparacaoGravada, gravarPreparacao]);
+
+  useEffect(() => {
+    const gravadoTexto = descansoGravado === null ? "" : String(descansoGravado);
+    if (descansoTexto === gravadoTexto) return;
+    const relogio = window.setTimeout(() => void gravarDescanso(descansoTexto, false), 700);
+    return () => window.clearTimeout(relogio);
+  }, [descansoTexto, descansoGravado, gravarDescanso]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -131,17 +170,9 @@ export function AjustesDoTreino({
           inputMode="numeric"
           value={preparacao}
           onChange={(e) => setPreparacao(e.target.value)}
-          className="alvo numero h-12 w-20"
+          onBlur={() => void gravarPreparacao(preparacao, true)}
+          className="alvo numero h-12 w-24"
         />
-        <Button
-          variant="outline"
-          className="alvo h-12"
-          aria-label="Salvar preparação"
-          disabled={salvando}
-          onClick={() => void salvarPreparacao()}
-        >
-          Salvar
-        </Button>
       </div>
 
       <div className="flex items-end gap-2">
@@ -152,24 +183,18 @@ export function AjustesDoTreino({
             exercício, como está no guia.
           </p>
         </div>
+        {/* a frase acima já diz o que o vazio significa: aqui cabia só
+            "do exercí…", uma palavra pela metade (SPEC §22.7 item 3) */}
         <Input
           id="pref-descanso"
           type="text"
           inputMode="numeric"
-          placeholder="do exercício"
+          placeholder="—"
           value={descansoTexto}
           onChange={(e) => setDescansoTexto(e.target.value)}
-          className="alvo numero h-12 w-20"
+          onBlur={() => void gravarDescanso(descansoTexto, true)}
+          className="alvo numero h-12 w-24"
         />
-        <Button
-          variant="outline"
-          className="alvo h-12"
-          aria-label="Salvar descanso padrão"
-          disabled={salvando}
-          onClick={() => void salvarDescanso()}
-        >
-          Salvar
-        </Button>
       </div>
 
       {INTERRUPTORES.map(({ chave, titulo, descricao }) => (
@@ -195,7 +220,7 @@ export function AjustesDoTreino({
           <Label className="text-base">Exercícios marcados como “não gosto”</Label>
           <p className="text-muted-foreground text-xs">
             {evitados.length === 0
-              ? "Nenhum. Eles aparecem por último nas listas."
+              ? "Nenhum por enquanto. Quando você marcar algum, ele passa a aparecer por último nas listas."
               : `${evitados.length} marcado(s); aparecem por último nas listas.`}
           </p>
         </div>

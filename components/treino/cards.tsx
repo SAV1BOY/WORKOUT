@@ -13,6 +13,7 @@ import { acharExercicio, cardio as dadosCardio, exerciciosDoTreino } from "@/lib
 import { dificuldadeDaColecao } from "@/lib/dificuldade";
 import { formatarKm, formatarMinutos, formatarNumero } from "@/lib/formato";
 import { descricaoDoCardio, detalheDoTreino, type ResumoDoTreino } from "@/lib/hoje";
+import { cn } from "@/lib/utils";
 
 /* --------------------------------------------------------------- avisos */
 
@@ -35,16 +36,27 @@ export function BannerSessaoAberta({
   texto,
   href,
   aoDescartar,
+  destacado = false,
 }: {
   texto: string;
   href: string;
   aoDescartar: () => void;
+  /**
+   * SPEC §22.7 item 9: quando a sessão aberta não é a do dia — uma sessão
+   * livre, ou a de ontem —, o "Continuar" está aqui, e não no card do dia.
+   * Então é este banner que ganha o anel ao voltar do player, com o mesmo
+   * traço do `CardForca`.
+   */
+  destacado?: boolean;
 }) {
   return (
     <div
       role="region"
       aria-label="Treino aberto"
-      className="border-primary/50 bg-primary/5 cartao flex flex-col gap-2 border p-3"
+      className={cn(
+        "border-primary/50 bg-primary/5 cartao flex flex-col gap-2 border p-3",
+        destacado && "ring-primary/60 ring-2",
+      )}
     >
       <p className="flex items-center gap-2 text-sm font-medium">
         <CalendarClock className="text-primary size-4 shrink-0" />
@@ -131,6 +143,7 @@ export function CardForca({
   mostrarRaios,
   semanaDaFase,
   aberta,
+  destacado = false,
   aoComecar,
   criando,
 }: {
@@ -141,6 +154,12 @@ export function CardForca({
   semanaDaFase?: number;
   /** Sessão em andamento deste treino: o card vira "Continuar". */
   aberta: { id: string; progresso: string } | null;
+  /**
+   * SPEC §22.7 item 9: quem volta do player cai na aba Treino sem explicação
+   * nenhuma. Por alguns segundos o card "em andamento" fica destacado, junto
+   * com o aviso — é onde está o "Continuar".
+   */
+  destacado?: boolean;
   /** Cria a sessão e entra no player, sem tela intermediária (§14.5.1). */
   aoComecar: () => void;
   criando: boolean;
@@ -163,6 +182,7 @@ export function CardForca({
       foto={capaDoTreino(resumo.id)}
       raios={mostrarRaios ? raios : null}
       etiqueta={aberta ? "em andamento" : "hoje"}
+      className={destacado ? "ring-primary/60 ring-2" : undefined}
     >
       {aviso ? <Aviso texto={aviso} /> : null}
       {/*
