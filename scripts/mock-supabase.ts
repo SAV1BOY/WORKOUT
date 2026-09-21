@@ -743,6 +743,12 @@ async function rotaAuth(
     }
   }
 
+  /*
+   * O `?scope=local` da §22.11 chega na busca da URL, e `caminho` é só o
+   * `pathname`: o mock aceita os dois escopos pelo mesmo caminho. Ele guarda
+   * uma sessão por aparelho, então revogar o refresh de quem pediu é o que
+   * `local` faz de verdade.
+   */
   if (caminho === "/logout" && metodo === "POST") {
     const u = usuarioDaRequisicao(req);
     if (u) {

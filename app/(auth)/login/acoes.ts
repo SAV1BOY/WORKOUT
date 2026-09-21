@@ -100,6 +100,13 @@ export async function criarConta(
 export async function sair() {
   if (!supabaseConfigurado()) redirect("/login");
   const supabase = await criarClienteServidor();
-  await supabase.auth.signOut();
+  /*
+   * `scope: "local"` (SPEC §9, §21.4 e §22.11): sair é **deste** aparelho. O
+   * escopo padrão do GoTrue é `global` e revoga todas as sessões da conta — o
+   * dono, com o celular e o navegador abertos, apertava "Sair" num e o outro
+   * caía em 403 na primeira leitura. Quem quiser derrubar todo mundo troca a
+   * senha. Os dados locais deste aparelho continuam sendo apagados (§8).
+   */
+  await supabase.auth.signOut({ scope: "local" });
   redirect("/login");
 }
