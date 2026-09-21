@@ -3,7 +3,7 @@
  * controle" (SPEC §22.7). O que se MEDE aqui: o "Substituir" que ninguém mais
  * cobre, a faixa fixa do dia depois de rolar, a folha "Ajustar" que grava
  * sozinha e abre sem teclado, os dois ladrilhos com a mesma gramática, o nome
- * do exercício numa linha só, o carrossel que diz onde está, o degradê das
+ * do exercício em até duas linhas, o carrossel que diz onde está, o degradê das
  * fileiras de chips, os verbos com objeto e o aviso ao voltar do player.
  */
 import { expect, test, type Page } from "@playwright/test";
@@ -203,9 +203,9 @@ test("os ladrilhos Fase e Peso têm a mesma altura e a mesma base (item 4)", asy
   await expect(fase).toContainText("semana");
 });
 
-/* --------------------------------------- item 5: o nome não quebra em duas */
+/* ------------------------------------ item 5: o nome cabe em até duas linhas */
 
-test("nenhum nome de exercício quebra em duas linhas a 360 px (item 5)", async ({
+test("nenhum nome de exercício passa de duas linhas a 360 px (item 5)", async ({
   page,
 }) => {
   await abrirAbaTreino(page);
@@ -223,7 +223,9 @@ test("nenhum nome de exercício quebra em duas linhas a 360 px (item 5)", async 
   expect(linhas).not.toBeNull();
   expect(linhas!.length).toBeGreaterThan(2);
   for (const linha of linhas!) {
-    expect(linha.linhas, `"${linha.texto}" em duas linhas`).toBe(1);
+    expect(linha.linhas, `"${linha.texto}" passou de duas linhas`).toBeLessThanOrEqual(
+      2,
+    );
   }
 });
 

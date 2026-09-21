@@ -1722,9 +1722,12 @@ muda **o que fica ao alcance do polegar** e **quem manda no toque**.
 5. **O nome do exercício vem antes da carga.** Na lista de hoje o nome está em
    `font-semibold` e sozinho na linha; os raios de dificuldade desceram para o
    fim da prescrição ("3 × 8-12 ⚡⚡") e o "Hoje:" perdeu a fonte de número (que
-   ficou só no valor). O nome que ainda não couber a 360 px é cortado com
-   reticências em vez de virar uma segunda linha — o nome inteiro segue no
-   rótulo do toque, no `title` e na ficha.
+   ficou só no valor). O nome continua podendo **quebrar em duas linhas**
+   (`line-clamp-2`): a 360 px cinco dos seis nomes do Treino A não cabem numa
+   linha, e cortar apagaria justamente o que separa "Desenvolvimento com
+   halteres" de "Desenvolvimento militar em pé" ou os dois "Supino inclinado
+   com …" — num celular não há `title` para consultar, e logo abaixo, em "Parte
+   do corpo em foco", os mesmos nomes aparecem inteiros.
 6. **O carrossel de Desafios diz que tem três.** O `<ul>` ganhou nome
    ("Desafios"), a posição aparece em texto ("1 de 3") e em três pontinhos, e
    cada CTA diz o destino ("Fazer a sessão de barra fixa", "Fazer a corrida da

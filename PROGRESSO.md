@@ -7117,10 +7117,13 @@ Nove itens da auditoria da aba Treino (SPEC §22.7). Arquivos:
    e "72,5 kg há 4 dias" noutra, com alturas diferentes; agora os dois têm
    rótulo / valor / legenda em linhas de altura fixa, ancorados ao topo.
 5. **Lista de hoje** (`lista.tsx`) — o olho batia em "Hoje:" (fonte de número)
-   antes do nome, que quebrava em duas linhas disputando a largura com os
-   raios; agora o nome é `font-semibold`, sozinho na linha e cortado com
-   reticências quando não cabe, os raios foram para o fim da prescrição e a
-   fonte de número ficou só no valor da carga.
+   antes do nome, que disputava a largura com os raios; agora o nome é
+   `font-semibold` e sozinho na linha, os raios foram para o fim da prescrição
+   e a fonte de número ficou só no valor da carga. O nome segue quebrando em
+   até duas linhas (`line-clamp-2`): a 360 px cinco dos seis nomes do Treino A
+   passam da largura, e cortar apagaria o que distingue os três
+   "Desenvolvimento …" e os dois "Supino inclinado …" — no celular não há
+   `title` para consultar.
 6. **Desafios** (`desafios.tsx`) — três cards com o mesmo CTA e nenhum sinal de
    que eram três; agora o `<ul>` tem nome, há "1 de 3" e pontinhos, cada CTA diz
    o destino e o botão tem `mt-auto` (não pula mais entre os cards).
@@ -7137,7 +7140,7 @@ Nove itens da auditoria da aba Treino (SPEC §22.7). Arquivos:
 
 **Provas**: `e2e/ultraloop-a-r4.spec.ts` (11 testes, um por aceite: toque em
 cada "Substituir", faixa fixa com e sem sessão, aviso ao voltar do player,
-gravação sem "Salvar", ladrilhos na mesma base, nome numa linha só, posição do
+gravação sem "Salvar", ladrilhos na mesma base, nome em até duas linhas, posição do
 carrossel, degradê das duas fileiras, verbo com objeto). Os specs antigos que
 citavam os textos trocados foram atualizados sem afrouxar o que verificavam
 (`v3`, `treino`, `treinar`, `player`, `ultraloop-a-r2`).

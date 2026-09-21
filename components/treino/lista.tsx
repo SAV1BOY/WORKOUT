@@ -87,13 +87,15 @@ export function ListaDoDia({
               {/*
                 SPEC §22.7 item 5: o nome vem primeiro e sozinho na linha. Os
                 raios desceram para o fim da prescrição, o que devolveu a
-                largura inteira ao nome; o que ainda não couber a 360 px é
-                cortado com reticências em vez de virar uma segunda linha — o
-                nome inteiro continua no rótulo do toque e na ficha.
+                largura inteira ao nome. A quebra em até duas linhas
+                (`line-clamp-2`) continua: a 360 px quase nenhum nome do
+                programa cabe numa linha e o corte apagaria justamente o que
+                separa "Desenvolvimento com halteres" de "Desenvolvimento
+                militar em pé" — e no celular não há `title` para consultar.
               */}
               <span
                 title={item.nome}
-                className="min-w-0 truncate text-sm font-semibold"
+                className="line-clamp-2 min-w-0 text-sm font-semibold"
               >
                 {item.ordem}. {item.nome}
               </span>
