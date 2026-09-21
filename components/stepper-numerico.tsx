@@ -1,7 +1,7 @@
 "use client";
 
 import { Minus, Plus } from "lucide-react";
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { aceitarDigitacao } from "@/lib/digitar-numero";
 import { formatarNumero, lerNumero } from "@/lib/formato";
@@ -48,10 +48,12 @@ export function StepperNumerico({
   /**
    * SPEC §22.11: enquanto o campo tem foco, o texto é do usuário.
    *
-   * Numa `ref` e não num estado de propósito: o efeito abaixo precisa **ler**
-   * o foco sem voltar a rodar quando ele muda — quem manda nele é o `valor`.
+   * Estado, e não `ref`, porque a **saída** do foco também tem de acordar o
+   * efeito abaixo: quem digita "12,5" onde o kit só monta 11,5 acaba de
+   * confirmar um valor que o pai já tinha ajustado, e sem esta dependência o
+   * `valor` não mudaria — o campo ficaria mostrando "12,5" para sempre.
    */
-  const temFoco = useRef(false);
+  const [focado, setFocado] = useState(false);
 
   // o valor pode mudar por fora (série anterior preenchendo a seguinte)
   useEffect(() => {
@@ -62,14 +64,14 @@ export function StepperNumerico({
      * "," e "5" caíam no texto novo e a tela mostrava "11,5,5". O ajuste
      * chega ao campo no `onBlur`, que é quando ele deixa de ser do dedo.
      */
-    if (temFoco.current) return;
+    if (focado) return;
     setTexto((atual) => {
       // o que está escrito já é este valor ("82," enquanto se digita "82,4"):
       // reescrever aqui apagaria a vírgula recém-digitada
       if (lerNumero(atual) === valor) return atual;
       return valor === null ? "" : formatarNumero(valor);
     });
-  }, [valor]);
+  }, [valor, focado]);
 
   const andar = (direcao: 1 | -1) => {
     if (desabilitado) return;
@@ -135,11 +137,9 @@ export function StepperNumerico({
           id={id}
           value={texto}
           onChange={(e) => digitar(e.target.value)}
-          onFocus={() => {
-            temFoco.current = true;
-          }}
+          onFocus={() => setFocado(true)}
           onBlur={() => {
-            temFoco.current = false;
+            setFocado(false);
             confirmar();
           }}
           onKeyDown={(e) => {
