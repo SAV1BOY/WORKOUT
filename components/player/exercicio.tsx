@@ -42,6 +42,11 @@ import { cn } from "@/lib/utils";
  * A tela de exercício do player (SPEC §14.1.2): figura grande, barra fina de
  * progresso, nome com "?", o bloco central conforme o tipo, os controles
  * fixos (anterior · ✓ · próximo) e os ícones do topo.
+ *
+ * SPEC §22.5 item 10: gravar uma série era **completamente silencioso** para
+ * quem usa leitor de tela. Agora a rota tem `h1`, a barra de progresso diz
+ * onde se está em palavras e um `role="status"` só-leitor anuncia a série
+ * registrada e o descanso que começa.
  */
 export function TelaExercicio({
   passo,
@@ -54,6 +59,9 @@ export function TelaExercicio({
   voto,
   feitas,
   total,
+  nomeDoTreino,
+  aviso,
+  pedidoDeFoco = 0,
   aoMudar,
   aoConcluir,
   aoAnterior,
@@ -75,6 +83,15 @@ export function TelaExercicio({
   voto: VotoDoExercicio;
   feitas: number;
   total: number;
+  /** "Treino B" — entra no `h1` só-leitor da rota (SPEC §22.5 item 10). */
+  nomeDoTreino: string;
+  /** "Série 2 de 3 registrada: …" — o que o leitor de tela ouve ao gravar. */
+  aviso: string;
+  /**
+   * Muda quando a Visão geral fecha: o foco volta ao botão que a abriu
+   * (SPEC §22.5 item 3). Zero = ninguém pediu nada ainda.
+   */
+  pedidoDeFoco?: number;
   aoMudar: (campos: Partial<SerieLocal>) => void;
   aoConcluir: () => void;
   aoAnterior: () => void;
@@ -88,6 +105,13 @@ export function TelaExercicio({
   const implemento = exercicio.implemento as ImplementoMontagem;
   const incremento = bloco.alvo.incremento_kg;
   const anterior = serieAnteriorDe(anteriores, passo.numero);
+  /** "Aquecimento 2 de 2 · exercício 1 de 6" — a mesma grafia do descanso. */
+  const ondeEstou = `${rotuloDoPasso(passo)} · exercício ${passo.posicao} de ${passo.totalExercicios}`;
+
+  const botaoDaLista = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (pedidoDeFoco > 0) botaoDaLista.current?.focus();
+  }, [pedidoDeFoco]);
 
   /**
    * Carga digitada à mão (SPEC §6.4 e §10.5): o ± anda pela escala, mas o
@@ -120,9 +144,19 @@ export function TelaExercicio({
          de antes reservavam também a barra de abas, que o player não tem */
       className="flex flex-1 flex-col gap-3 pb-24"
     >
+      {/* SPEC §22.5 item 10: era a única rota do app sem `h1` */}
+      <h1 className="sr-only">
+        {nomeDoTreino} — exercício {passo.posicao} de {passo.totalExercicios}
+      </h1>
+      {/* o que acabou de ser gravado, para quem não vê a tela mudar */}
+      <p role="status" className="sr-only">
+        {aviso}
+      </p>
+
       {/* ícones do topo (SPEC §14.1.2) */}
       <div className="flex items-center justify-between gap-1 px-3 pt-1">
         <Button
+          ref={botaoDaLista}
           variant="ghost"
           size="icon"
           className="alvo"
@@ -176,6 +210,7 @@ export function TelaExercicio({
         aria-valuemin={0}
         aria-valuemax={total}
         aria-valuenow={feitas}
+        aria-valuetext={`exercício ${passo.posicao} de ${passo.totalExercicios}`}
         className="bg-muted mx-3 h-1 overflow-hidden rounded-full"
       >
         <span
@@ -210,7 +245,7 @@ export function TelaExercicio({
       </div>
 
       <p className="text-muted-foreground px-3 text-center text-sm">
-        {rotuloDoPasso(passo)} · exercício {passo.posicao} de {passo.totalExercicios}
+        {ondeEstou}
         {bloco.substituido
           ? ` · no lugar de ${acharExercicio(bloco.originalId).nome}`
           : ""}
@@ -357,7 +392,8 @@ function MioloDoPasso({
       ) : null}
 
       {entrada.comCarga ? (
-        <LinhaGrande rotulo={rotuloDaCarga(exercicio.implemento)}>
+        /* SPEC §22.5 item 10: "NA BARRA" sozinho não diz o que é o número */
+        <LinhaGrande rotulo={`carga ${rotuloDaCarga(exercicio.implemento)}`}>
           <StepperNumerico
             grande
             decimal
@@ -461,6 +497,11 @@ function Cronometro({
       >
         {formatarDuracao(rodando || feitos > 0 ? falta : alvo)}
       </span>
+      {/* SPEC §22.5 item 7: `role="timer"` tem `aria-live` desligado — sem
+          isto o fim da contagem só existia para quem ouve o bipe */}
+      <p role="status" className="sr-only">
+        {avisoDaContagem(rodando, falta, alvo)}
+      </p>
       <div className="flex items-center gap-2">
         <Button
           variant={rodando ? "default" : "outline"}
@@ -507,34 +548,49 @@ export function ControlesDoPlayer({
 }) {
   return (
     <div className="bg-card/95 border-border pb-segura fixed inset-x-0 bottom-0 z-30 border-t backdrop-blur">
-      <div className="mx-auto flex w-full max-w-lg items-center gap-2 px-3 py-2">
+      {/*
+        SPEC §22.5 item 6: eram 8 px (`gap-2`) entre gravar a série e pulá-la
+        sem gravar. Agora são 24 px (`gap-6`) de cada lado do primário, e as
+        setas descem para os 44 px padrão do projeto — o ✓ continua com 56 px
+        e é o único alvo grande da barra.
+      */}
+      <div className="mx-auto flex w-full max-w-lg items-center gap-6 px-3 py-2">
         <Button
           variant="outline"
           size="icon"
-          className="alvo size-14 shrink-0 rounded-2xl"
+          className="alvo shrink-0 rounded-2xl"
           aria-label="Passo anterior"
           onClick={aoAnterior}
         >
-          <ChevronLeft className="size-7" />
+          <ChevronLeft className="size-6" />
         </Button>
         <Button
-          className="alvo h-14 flex-1 rounded-2xl text-base font-semibold"
-          aria-label={concluida ? "Série registrada" : "Concluir a série"}
+          size="xl"
+          /* SPEC §22.5 item 10: o nome acessível é o texto que está escrito */
+          className="alvo min-w-0 flex-1 rounded-2xl px-3 font-semibold"
           onClick={aoConcluir}
         >
-          <Check className="size-7" strokeWidth={3} />
-          {concluida ? "Feita" : "Concluir série"}
+          <Check className="size-6" strokeWidth={3} />
+          {concluida ? "Série feita" : "Concluir série"}
         </Button>
         <Button
           variant="outline"
           size="icon"
-          className="alvo size-14 shrink-0 rounded-2xl"
+          className="alvo shrink-0 rounded-2xl"
           aria-label="Próximo passo"
           onClick={aoProximo}
         >
-          <ChevronRight className="size-7" />
+          <ChevronRight className="size-6" />
         </Button>
       </div>
     </div>
   );
+}
+
+/** O que o leitor de tela ouve na contagem de um exercício de tempo. */
+function avisoDaContagem(rodando: boolean, falta: number, alvo: number): string {
+  if (!rodando) return "";
+  if (falta <= 0) return "Tempo terminado.";
+  if (falta <= 10 && alvo > 10) return "Faltam 10 segundos.";
+  return "";
 }

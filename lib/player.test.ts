@@ -6,6 +6,7 @@
 import { describe, expect, it } from "vitest";
 import { acharExercicio } from "@/lib/dados";
 import {
+  avisoDoDescanso,
   DESCANSO_MAX_S,
   DESCANSO_MIN_S,
   EXTRA_DESCANSO_S,
@@ -450,5 +451,45 @@ describe("anterior: 9,5 kg × 5 (SPEC §14.1.2)", () => {
   it("sem a sessão de hoje excluída, a mais recente é a de hoje", () => {
     const mapa = anterioresPorExercicio(linhas);
     expect(mapa["agachamento-livre"]?.[0]?.session_id).toBe("de-hoje");
+  });
+});
+
+/*
+ * SPEC §22.5 item 7: quem usa leitor de tela só descobria o fim do descanso
+ * pelo bipe — e o bipe é um interruptor que ele pode ter desligado.
+ */
+describe("o aviso só-leitor do descanso (SPEC §22.5 item 7)", () => {
+  it("fica calado no meio do descanso", () => {
+    expect(avisoDoDescanso(120, 150, false)).toBe("");
+    expect(avisoDoDescanso(31, 150, false)).toBe("");
+  });
+
+  it("anuncia os 30 s, os 10 s e o fim", () => {
+    expect(avisoDoDescanso(30, 150, false)).toBe("Faltam 30 segundos de descanso.");
+    expect(avisoDoDescanso(11, 150, false)).toBe("Faltam 30 segundos de descanso.");
+    expect(avisoDoDescanso(10, 150, false)).toBe("Faltam 10 segundos de descanso.");
+    expect(avisoDoDescanso(1, 150, false)).toBe("Faltam 10 segundos de descanso.");
+    expect(avisoDoDescanso(0, 150, true)).toBe("Descanso terminado, próxima série.");
+  });
+
+  it("não promete um marco que não cabe no descanso", () => {
+    // um descanso de 20 s nunca ouve "faltam 30 segundos"
+    expect(avisoDoDescanso(20, 20, false)).toBe("");
+    expect(avisoDoDescanso(10, 20, false)).toBe("Faltam 10 segundos de descanso.");
+    // e um de 8 s só tem o fim
+    expect(avisoDoDescanso(8, 8, false)).toBe("");
+    expect(avisoDoDescanso(0, 8, true)).toBe("Descanso terminado, próxima série.");
+  });
+
+  it("o texto só muda nos marcos — é isso que o torna dizível", () => {
+    const falas = [150, 120, 90, 60, 31, 30, 20, 11, 10, 5, 1].map((s) =>
+      avisoDoDescanso(s, 150, false),
+    );
+    const distintas = falas.filter((f, i) => f !== falas[i - 1]);
+    expect(distintas).toEqual([
+      "",
+      "Faltam 30 segundos de descanso.",
+      "Faltam 10 segundos de descanso.",
+    ]);
   });
 });

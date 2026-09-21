@@ -6129,7 +6129,52 @@ depois: as três respondem `401 permission denied` ao anon; só
 
 ### Relatório para o dono (9h)
 
-(a preencher)
+Primeira rodada no ar desde as 15:07 UTC de 20/09 (main `b6e8135`), sem
+rollback. O que mudou no app que você abre no celular:
+
+- **Sem rede o app não quebra mais.** Abrir Mais → Contas no modo avião agora
+  leva a uma tela "Sem conexão" com "Tentar de novo" e "Ir para o Treino", em
+  vez da página de erro do navegador.
+- **O player ficou inteiro na tela.** Sumiu a faixa cinza embaixo do ✓, os dois
+  polegares começam apagados (antes um parecia já escolhido) e, ao terminar o
+  treino, se você já se pesou hoje ele mostra o peso em vez de perguntar de
+  novo.
+- **Quem liga "Reduzir movimento" no celular** agora tem as animações
+  desligadas no app inteiro, e a ilustração do exercício fica parada até você
+  tocar nela.
+- **Relatório, Corpo e Explorar pararam de pular** enquanto carregam, os
+  contadores do topo ficaram alinhados e dá para **apagar uma foto de
+  progresso** enviada por engano, com confirmação.
+- **Detalhes de conteúdo corrigidos**: "sáb" com acento, "Semana N de 12"
+  batendo com a barra, o selo Circuito nas coleções, o cardio do dia de
+  descanso com a sigla certa e o vídeo do exercício abrindo na ficha, fora do
+  treino em andamento.
+
+Portões antes de publicar: lint limpo, build ok, 1.318 testes unitários e 332
+de ponta a ponta, mais a varredura das 30 telas nos dois temas. Nada de banco
+mudou nesta rodada.
+
+**Segunda rodada no ar desde as 21:35 UTC de 20/09** (main `c7d947a`), também
+sem rollback. Esta foi a rodada da aparência e do peso das imagens:
+
+- **Nada mais é pequeno demais para o dedo.** Todo botão do app nasce com
+  44 px de altura (muitos tinham 32 px), e o texto miúdo passou a sair de um
+  tamanho só, em vez de cinco tamanhos parecidos espalhados pelas telas.
+- **Dá para usar o app pelo teclado sem se perder**: cards, listas, abas,
+  campos e a barra de baixo desenham o mesmo anel laranja de foco, e a aba
+  aberta agora tem um indicador, não só a cor do rótulo.
+- **As telas vazias e os carregamentos ficaram iguais entre si** — oito textos
+  soltos viraram um componente só, e o esqueleto imita a forma do que vem.
+- **As fotos ficaram leves e pararam de empurrar a tela.** As 162 fotos e os
+  itens de equipamento agora são WebP com versões menores (miniatura de 112 px
+  e capa de 720 px), toda imagem tem altura reservada antes de carregar, e as
+  imagens valem uma semana no cache do celular.
+- **Instalado no iPhone, o app abre melhor**: ícone e tela de abertura
+  próprios, e ao segurar o ícone aparecem os atalhos Treino, Relatório e Corpo.
+
+Portões desta rodada: lint limpo, build ok, 1.355 testes unitários e 358 de
+ponta a ponta, mais a varredura das 30 telas nos dois temas. Nada de banco
+mudou nesta rodada.
 
 ### Como funcionou
 
@@ -6255,6 +6300,19 @@ celular e abra uma ficha de exercício: a ilustração fica parada até você to
 nela. Por fim, ative o modo avião e abra Mais → Contas: em vez da tela de erro
 do navegador aparece "Sem conexão", com "Tentar de novo" e "Ir para o Treino".
 
+**Deploy.** No ar em 20/09/2026 às 15:07 UTC, junto com o lote 2, pelo PR #6
+(main `b6e8135`). Produção saiu de `dpl_3GkqME59j2QWFvtJqfbPSzADzzTE` para
+`dpl_4xNZ9sdTBX6PbdRjD8qrm12YSC57`; `GET /versao` passou a devolver
+`{"commit":"b6e8135c28ac5fe1ba375b1b180427846398b9bb","construidoEm":"2026-09-20T15:05:54.343Z"}`
+(antes a rota não existia e caía em 307) e o css de `/login` trocou de
+`053059c178efbf99` para `12175adeeb38d042`. Fumaça verde na primeira tentativa,
+item a item: `/login` 200 com "Treino do Terraço" e "Entrar" e sem aviso de
+configuração — ok; `/` → 307 para `/login` — ok; `/versao` igual ao sha de main
+— ok; `/sw.js` 200 com `/~offline`, `figuras/`, `_rsc` e o mesmo css do HTML de
+`/login` — ok; `/manifest.webmanifest` 200 com "Treino do Terraço" — ok;
+`/~offline` 200 com "Sem conexão", "Tentar de novo" e "Ir para o Treino" — ok;
+os 12 scripts `/_next/static` de `/login` em 200 — ok. **Rollback: não.**
+
 ### Rodada 1 — Lote 2
 
 **Relatório, Corpo, Calendário e Explorar** (branch
@@ -6366,6 +6424,23 @@ e os três problemas foram corrigidos:
    `/explorar/treino/B1` (levantamento terra), exigindo o
    `video[data-video="<id>"]` com o arquivo e a ilustração sem ele — mais a
    asserção de contraste do item 2, nos dois temas.
+
+**Deploy.** No ar em 20/09/2026 às 15:07 UTC, no mesmo merge do lote 1 (a faixa
+B já continha a A), pelo PR #6 (main `b6e8135`). Produção saiu de
+`dpl_3GkqME59j2QWFvtJqfbPSzADzzTE` para `dpl_4xNZ9sdTBX6PbdRjD8qrm12YSC57`;
+`/versao` devolve `b6e8135c28ac5fe1ba375b1b180427846398b9bb`. Além dos sete
+itens obrigatórios da fumaça (todos ok, descritos na subseção do lote 1), os
+marcadores deste lote nos pacotes publicados: o chunk de `app/(app)/corpo`
+contém "Apagar" — ok; o de `app/(app)/relatorio` contém "kg no total" (o
+contador de volume reescrito) — ok; o de `app/(app)/explorar` contém "Circuito"
+(o selo das coleções) — ok. O marcador previsto para
+`app/(app)/mais/creditos` ("Vers") não se aplica: a página é server component,
+então o texto não vai para o chunk do cliente — a prova equivalente é `/versao`
+devolvendo o mesmo `NEXT_PUBLIC_COMMIT` que alimenta o "Versão b6e8135" da
+tela. A sonda opcional de Playwright a 360 px contra a URL pública não rodou (o
+Chromium local não confia na CA do proxy de saída); a régua de 360 px, 44 px,
+contraste e foco já correra verde nas 30 telas no portão local.
+**Rollback: não.**
 
 ### Rodada 2 — Lote 3 — fundação visual (faixa A) ✅
 
@@ -6651,6 +6726,22 @@ quatro passos do campo de data com anel nos dois temas, e o nome acessível
 "Data" do campo. Em `lib/tema.test.ts` (28 casos): a borda do polegar com 3:1
 sobre o trilho ligado nos dois temas, a proibição da cor crua no `Switch` e o
 corpo do mapa muscular contra a página.
+
+**Deploy.** No ar em 20/09/2026 às 21:35 UTC, no mesmo merge do lote 4 (a
+faixa B já continha a A), pelo PR #7 (main `c7d947a`). Produção saiu de
+`dpl_4xNZ9sdTBX6PbdRjD8qrm12YSC57` para o deploy de `c7d947a`; `/versao`
+devolve `c7d947ab088e21b0728bda7b482eae24f45982fb` (construído 21:34:12Z) e o
+CSS de `/login` mudou de `12175adeeb38d042.css` para `57d136fb92e14898.css`.
+Fumaça verde na primeira tentativa, item a item: `/login` 200 com "Treino do
+Terraço" e "Entrar" e sem aviso de configuração — ok; `/` → 307 para `/login`
+— ok; `/versao` igual ao sha de main — ok; `/sw.js` 200 com `/~offline`,
+`figuras/` e o mesmo CSS do `/login` — ok; `/manifest.webmanifest` 200 com
+"Treino do Terraço" — ok; `/~offline` 200 — ok; os 12 scripts
+`/_next/static` do `/login` → 200 — ok. Marcadores deste lote: o CSS
+publicado `57d136fb92e14898.css` contém `.text-rotulo{font-size:11px}` e
+`.foco` — ok; e os chunks das telas mudadas trazem a classe nova (a home
+`app/(app)/page` e `app/(app)/treinar/[sessionId]` contêm `text-rotulo`) —
+ok. **Rollback: não.**
 
 ### Rodada 2 — Lote 4 — imagens, mídia e entrega (faixa B)
 
@@ -6954,9 +7045,154 @@ que `width`/`height` existiam, então passava com o dado errado.
    aparecem os atalhos Treino, Relatório e Corpo.
 
 
-### Rodada 3 — Lote 5
+**Deploy.** No ar em 20/09/2026 às 21:35 UTC, pelo PR #7 (main `c7d947a`),
+no mesmo merge do lote 3. Produção saiu de
+`dpl_4xNZ9sdTBX6PbdRjD8qrm12YSC57` para o deploy de `c7d947a`; `/versao`
+devolve `c7d947ab088e21b0728bda7b482eae24f45982fb`. Além dos sete itens
+obrigatórios da fumaça (todos ok, listados na subseção do lote 3), os
+marcadores deste lote nas rotas públicas: `/manifest.webmanifest` contém
+`shortcuts` e `maskable` — ok; `/favicon.ico` → 200 `image/x-icon` — ok; o
+HTML de `/login` contém `apple-touch-startup-image` — ok;
+`/fotos/agachamento-bulgaro-1.webp` → 200 `image/webp` — ok;
+`/fotos/agachamento-bulgaro-1-mini.webp` → 200 `image/webp` — ok; `/sw.js`
+**não** contém `id="bf"` (o sprite órfão saiu) e o `/login` não cita
+`mapa-muscular.tsx` — ok. No pacote publicado, o chunk compartilhado
+`1580-7dcad54a8a41be73.js` traz a função que deriva o sufixo `-mini` e as
+medidas padrão `{largura:132,altura:100}` — a prova das derivadas dentro do
+bundle. A sonda opcional de Playwright a 360 px contra a URL pública não
+rodou (o Chromium local não confia na CA do proxy de saída); a régua de
+360 px, 44 px, contraste e foco já correra verde nas 30 telas no portão
+local. **Rollback: não.**
 
-(a preencher)
+### Rodada 3 — Lote 5 — player: gravar sem perder o treino (faixa A)
+
+Branch `ultraloop/l5-player-gravar`, a partir de `ultraloop/l4-imagens-midia-entrega`.
+SPEC §22.5. Dez itens, na ordem de prioridade do lote.
+
+**Era → é, item a item**
+
+1. **Descartar (`ux-heuristicas-01`).** Era: "Abandonar" virava "Confirmar
+   abandono" no MESMO ponto (x 138,8–241,4 → x 71,6–241,4, mesma faixa de y) —
+   dois toques seguidos descartavam a sessão sem diálogo nenhum. É: um
+   `AlertDialog` ("Descartar este treino?" e, embaixo, o que já está salvo —
+   "Nenhuma série foi registrada ainda." antes da primeira série, "A 1 série já
+   registrada continua salva." ou "As N séries já registradas continuam
+   salvas." · Cancelar / Descartar este treino), com o Cancelar nascendo com o
+   foco e o clique fora sem efeito. O zero é o caso mais comum (abrir, mudar de
+   ideia e sair antes de gravar) e tem frase própria — nunca "As 0 séries". O
+   e2e do lote cobre os dois estados: um caso abre a Visão geral sem nada
+   registrado e exige que a pergunta não fale em "0 séries"; o outro marca uma
+   série na folha (o visto da própria Visão geral, que é o que move a contagem)
+   e exige o singular. Arquivos: `components/ui/alert-dialog.tsx`
+   (novo, sobre o pacote `radix-ui` que já estava nas dependências),
+   `components/treinar/visao-geral.tsx`.
+2. **Gravar ao entrar na conclusão (`tela-treino-player-01`).** Era: nada ia
+   para o banco antes do "Próximo", que ficava a 2.244 px do topo de uma
+   página de 2.464 px — e o topo já dizia "Excelente! Você concluiu o
+   treino."; quem lia e saía deixava "EM ANDAMENTO · Continuar · 17/17 séries"
+   na aba Treino. É: `finalizarSessao` roda ao ENTRAR no passo de conclusão
+   (`salvar(..., { navegar: false })`), um `role="status"` no alto diz "Treino
+   salvo. Já está no histórico, mesmo que você saia agora." e o "Próximo" está
+   numa barra fixa no rodapé, com o padrão de `ControlesDoPlayer`. Se a
+   gravação falhar, o rodapé vira "Tentar salvar de novo". Arquivos:
+   `components/player/tela-player.tsx`, `components/player/conclusao.tsx`,
+   `components/treinar/usar-sessao.ts` (a opção `navegar`).
+3. **A Visão geral é um diálogo (`ux-heuristicas-03`).** Era: 5.700 px sem
+   `role=dialog`, sem Esc, sem voltar do celular, com uma saída de 44 px no
+   topo e um rodapé que só oferecia as duas saídas que terminam a sessão. É:
+   `role="dialog"` + `aria-modal`, Escape e `popstate` fecham, o foco volta ao
+   botão que a abriu e "Voltar ao treino" está repetido no rodapé fixo.
+   Arquivos: `components/treinar/visao-geral.tsx`,
+   `components/player/tela-player.tsx`, `components/player/exercicio.tsx`.
+4. **A pergunta chega sem resposta (`ux-heuristicas-09/-10/-11`).** Era:
+   "Firme" com `aria-checked="true"` sem ninguém tocar, e o toque avançava
+   rápido demais para o marcado aparecer. É: escolha começa em `null`, o
+   palpite vira dica em texto ("Pelas repetições, parece que saiu firme."), o
+   primário se chama "Pular esta pergunta" enquanto ninguém responde e o
+   avanço espera 350 ms. O feedback ganhou "(opcional)", o que a resposta faz
+   e o primário "Concluir sem responder"; o peso da conclusão diz "(opcional)
+   Entra no gráfico de peso e no IMC da aba Corpo." Arquivos:
+   `components/player/firme.tsx`, `components/player/feedback.tsx`,
+   `components/player/conclusao.tsx`.
+5. **Opções com cor própria (`tela-treino-player-30`).** Era: `bg-background`
+   — no tema claro, exatamente a cor da página (1,00:1), com uma borda de
+   1,15:1 como única pista. É: `bg-card`, e o "Voltar" perdeu o tratamento
+   idêntico ao das opções. Arquivos: `components/player/firme.tsx`,
+   `components/player/feedback.tsx`.
+6. **24 px entre gravar e perder (`tela-treino-player-10`).** Era: 8 px
+   (`gap-2`) entre "Concluir série" e "Próximo passo", que pula sem gravar. É:
+   `gap-6` (24 px) dos dois lados, setas nos 44 px padrão, ✓ com 56 px.
+   Arquivo: `components/player/exercicio.tsx`.
+7. **O fim do descanso anunciado (`a11y-02`, `ux-heuristicas-05/-07`,
+   `tela-treino-player-05`).** Era: três `role="timer"` com `aria-live` off —
+   o fim só existia no bipe, e o bipe é um interruptor. É: o número continua
+   `role="timer"` e ao lado há um `role="status"` só-leitor que muda só em
+   marcos (30 s, 10 s, fim); os botões de tempo dizem "−20 s" e "+20 s" em
+   texto, com 56 px e nome acessível ("Tirar/Somar 20 segundos ao/do
+   descanso"), na cor `--descanso-destaque`. Arquivos:
+   `components/player/descanso.tsx`, `components/player/exercicio.tsx`.
+8. **Hierarquia do descanso (`tela-treino-player-02/-03`).** Era: "Pular" era
+   o botão mais forte da tela (branco cheio sobre o marrom) e o timer não
+   tinha anel. É: "Pular descanso" em contorno
+   (`border-descanso-foreground/40`) e o timer dentro do `AnelDeContagem`, com
+   `fracaoRestante`. O `AnelDeContagem` ganhou `classeTrilho`/`classeArco`
+   porque `--muted`/`--primary` não valem naquele fundo. Arquivos:
+   `components/player/descanso.tsx`, `components/player/anel.tsx`.
+9. **Três verbos (`ux-heuristicas-04`).** Era: um `LogOut` mudo, "Abandonar" e
+   um par de ícones no cabeçalho. É: "Continuar depois" (com texto),
+   "Descartar este treino", "Concluir" — e um botão só no cabeçalho,
+   "Fechar". Arquivo: `components/treinar/visao-geral.tsx`.
+10. **Gravar deixou de ser silencioso (`a11y-06`, `a11y-15`,
+    `ux-heuristicas-08`, `copy-22/-23`).** Era: nenhum aviso, `progressbar`
+    sem `aria-valuetext`, a única rota sem `h1`, nome acessível ("Concluir a
+    série") diferente do texto ("Concluir série"), "NA BARRA" sozinho e duas
+    grafias para a mesma posição ("Próximo 2/6" no descanso). É: um
+    `role="status"` só-leitor com "Série 2 de 3 registrada: 5 repetições com
+    7,5 kg na barra. Descanso de 2:30.", `aria-valuetext="exercício 2 de 6"`,
+    um `h1` só-leitor, nome acessível igual ao texto, **"CARGA NA BARRA"** e
+    "Aquecimento 2 de 2 · exercício 1 de 6" nas duas telas, com o caixa-alta
+    por CSS. Arquivos: `components/player/exercicio.tsx`,
+    `components/player/tela-player.tsx`, `components/player/descanso.tsx`.
+
+**Provas**
+
+- Portões verdes no HEAD do lote (lint · tsc · 1.359 testes de unidade ·
+  build de produção · build:e2e · e2e · varredura).
+- Capturas dos dois temas em
+  `scratchpad/ultraloop/rodada-3/l5/capturas/construtor` (60 de 60) e
+  comparador contra a base: **só** `28-player-exercicio`,
+  `29-player-descanso` e `30-player-conclusao` mudaram — "nenhuma tela mudou
+  fora do esperado".
+- `lib/player.test.ts`: `avisoDoDescanso` — cala no meio, fala nos marcos de
+  30 s e 10 s e no fim, e nunca promete um marco que não cabe no descanso
+  (num descanso de 20 s ninguém ouve "faltam 30 segundos").
+- `e2e/ultraloop-a-r3.spec.ts` (novo): o 2º toque no mesmo ponto não descarta;
+  a conclusão grava ao entrar e a aba Treino não oferece retomar; Esc e o
+  voltar fecham a Visão geral e devolvem o foco; nenhuma opção marcada antes
+  do toque, nas duas telas; ≥ 24 px entre o ✓ e o "Próximo passo"; o `h1`, o
+  `aria-valuetext` e o "CARGA NA BARRA"; o anel, os dois botões de 56 px e o
+  "Pular descanso" em contorno.
+- Testes antigos ajustados sem afrouxar: `e2e/treinar.spec.ts` (o descarte
+  passa pelo `alertdialog`), `e2e/player.spec.ts` (a conclusão não reabre —
+  voltar rodaria o motor duas vezes; a §22.1 continua cobrada), `e2e/v3.spec.ts`,
+  `e2e/conquistas.spec.ts`, `e2e/ultraloop-a-r1.spec.ts`, `e2e/fixtures.ts`
+  (nomes novos dos botões).
+
+**Como testar no celular**
+
+1. Comece o treino do dia. Na 1ª série, toque em **Concluir série** — o
+   descanso abre com **anel**, com **−20 s** e **+20 s** e com **Pular
+   descanso** em contorno. Com o VoiceOver/TalkBack ligado e o som do app
+   desligado, o fim do descanso é falado.
+2. Toque no ícone de lista (Visão geral). Aperte o **voltar** do aparelho: a
+   lista fecha e o treino continua. No rodapé há **Voltar ao treino**,
+   **Concluir**, **Continuar depois** e **Descartar este treino** — este
+   último abre uma pergunta; toque duas vezes no mesmo lugar e nada é
+   descartado.
+3. Vá até o fim do treino. Em "Última repetição saiu firme?" **nenhuma opção
+   está marcada** e o botão grande diz "Pular esta pergunta". Na conclusão, o
+   alto já diz **"Treino salvo"** e o **Próximo** está fixo no rodapé — feche
+   o app ali e volte: a aba Treino **não** oferece "Continuar".
 
 ### Rodada 3 — Lote 6 — Relatório: estrutura, números e conquistas (faixa B)
 

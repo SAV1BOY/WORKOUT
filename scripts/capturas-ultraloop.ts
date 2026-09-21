@@ -512,7 +512,15 @@ function falhou(tela: Tela, tema: Tema, erro: unknown): Registro {
 async function andar(page: Page, alvo: Locator, voltas = 60) {
   for (let i = 0; i < voltas; i++) {
     if (await alvo.isVisible().catch(() => false)) return;
-    for (const nome of ["Pular", "Concluir a série", "Continuar", "Próximo passo"]) {
+    // SPEC §22.5: "Pular descanso", "Concluir série" e o primário das
+    // perguntas, que se chama "Pular esta pergunta" enquanto ninguém responde
+    for (const nome of [
+      "Pular descanso",
+      "Concluir série",
+      "Pular esta pergunta",
+      "Continuar",
+      "Próximo passo",
+    ]) {
       const botao = page.getByRole("button", { name: nome });
       if (await botao.isVisible().catch(() => false)) {
         await botao.click().catch(() => {});
@@ -532,7 +540,7 @@ async function telasDoPlayer(page: Page, tema: Tema, indice: Registro[]) {
     await page.getByRole("button", { name: "Começar treino" }).click();
     await page.waitForURL(/\/treinar\/[0-9a-f-]{36}$/, { timeout: 20_000 });
     const comecar = page.getByRole("button", { name: "Começar agora" });
-    const concluir = page.getByRole("button", { name: "Concluir a série" });
+    const concluir = page.getByRole("button", { name: "Concluir série" });
     await comecar.or(concluir).first().waitFor({ timeout: 20_000 });
     if (await comecar.isVisible().catch(() => false)) {
       indice.push(await tirar(page, porNome("27-player-preparacao"), tema));
@@ -548,7 +556,7 @@ async function telasDoPlayer(page: Page, tema: Tema, indice: Registro[]) {
   }
 
   try {
-    await page.getByRole("button", { name: "Concluir a série" }).click();
+    await page.getByRole("button", { name: "Concluir série" }).click();
     await page.getByRole("timer", { name: "Descanso" }).waitFor({ timeout: 15_000 });
     indice.push(await tirar(page, porNome("29-player-descanso"), tema));
   } catch (e) {
@@ -559,8 +567,12 @@ async function telasDoPlayer(page: Page, tema: Tema, indice: Registro[]) {
     await andar(page, page.getByText("O que você achou do treino de hoje?"), 80);
     const medida = page.getByRole("radio", { name: "Na medida certa" });
     if (await medida.isVisible().catch(() => false)) await medida.click();
-    const concluido = page.getByRole("button", { name: "Concluído" });
-    if (await concluido.isVisible().catch(() => false)) await concluido.click();
+    const concluido = page.getByRole("button", {
+      name: /^(Concluído|Concluir sem responder)$/,
+    });
+    if (await concluido.first().isVisible().catch(() => false)) {
+      await concluido.first().click();
+    }
     await page
       .getByRole("region", { name: "Treino concluído" })
       .waitFor({ timeout: 20_000 });

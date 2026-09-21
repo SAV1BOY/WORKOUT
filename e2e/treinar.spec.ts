@@ -355,11 +355,19 @@ test.describe("concluir e o que o motor decide (SPEC §6.2, §6.6, §10.3 e §10
     const sessao = await comecarTreinoA(page);
     await marcar(page, "Agachamento livre", 1);
 
-    await page.getByRole("button", { name: "Abandonar" }).click();
-    await page.getByRole("button", { name: "Confirmar abandono" }).click();
-    // o resumo do abandono não pode dizer "Treino concluído"
-    await expect(page.getByRole("dialog")).toContainText("Treino abandonado");
-    await page.getByRole("dialog").getByRole("button", { name: "Salvar e voltar" }).click();
+    // SPEC §22.5 item 1: o descarte pede um AlertDialog, não um 2º toque
+    await page.getByRole("button", { name: "Descartar este treino" }).click();
+    const pergunta = page.getByRole("alertdialog");
+    await expect(pergunta).toContainText("Descartar este treino?");
+    await pergunta.getByRole("button", { name: "Descartar este treino" }).click();
+    /*
+     * O resumo do abandono não pode dizer "Treino concluído" — e agora é
+     * preciso nomear o diálogo: desde a §22.5 item 3 a própria Visão geral é
+     * um `role="dialog"`.
+     */
+    const resumo = page.getByRole("dialog", { name: "Treino abandonado" });
+    await expect(resumo).toContainText("Treino abandonado");
+    await resumo.getByRole("button", { name: "Salvar e voltar" }).click();
     await esperarAbaTreino(page);
 
     await expect
@@ -740,9 +748,9 @@ test.describe("timer, tela acesa e voltar sem rede (SPEC §3.2, §8 e §10.3)", 
 
     /*
      * Sair da sessão solta o Wake Lock. O player é tela cheia (§14.1): a saída
-     * é o "Sair do treino" da visão geral, não a barra de abas.
+     * é o "Continuar depois" da visão geral, não a barra de abas.
      */
-    await page.getByRole("link", { name: "Sair do treino" }).click();
+    await page.getByRole("link", { name: "Continuar depois" }).click();
     await esperarAbaTreino(page);
     await expect
       .poll(async () => page.evaluate(() => (window as never as { __tela: string[] }).__tela))
