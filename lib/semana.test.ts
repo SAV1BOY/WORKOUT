@@ -11,6 +11,7 @@ import {
   ORDEM_DA_LEGENDA,
   detalheDoDia,
   faixaDaSemana,
+  faseCumprida,
   intervaloDaSemana,
   montarGrade,
   montarMes,
@@ -361,6 +362,33 @@ describe("rótulos curtos e semana da fase (SPEC §16.3 e §16.4)", () => {
   it("o cabeçalho do calendário conta a fase e a semana da fase", () => {
     expect(rotuloDaFase("fase1", 3)).toBe("Fase 1 · semana 3 de 12");
     expect(rotuloDaFase("fase2", 5)).toBe("Fase 2 · semana 5");
+  });
+
+  /*
+   * SPEC §22.8 item 1: quem fica na Fase 1 depois da semana 12 lia
+   * "Fase 1 · semana 16 de 12" — numerador maior que o denominador.
+   */
+  it("passada a semana 12 a Fase 1 não inventa fração impossível", () => {
+    expect(rotuloDaFase("fase1", 12)).toBe("Fase 1 · semana 12 de 12");
+    expect(rotuloDaFase("fase1", 13)).toBe("Fase 1 · 12 de 12 concluída");
+    expect(rotuloDaFase("fase1", 16)).toBe("Fase 1 · 12 de 12 concluída");
+    for (const semana of [13, 16, 40]) {
+      const [numerador, denominador] = [
+        ...rotuloDaFase("fase1", semana).matchAll(/(\d+) de (\d+)/g),
+      ]
+        .flatMap((m) => [Number(m[1]), Number(m[2])])
+        .slice(0, 2);
+      expect(numerador ?? 0).toBeLessThanOrEqual(denominador ?? 0);
+    }
+    // a Fase 2 não tem total: ela continua contando para sempre
+    expect(rotuloDaFase("fase2", 30)).toBe("Fase 2 · semana 30");
+  });
+
+  it("faseCumprida avisa a tela quando a Fase 1 cobriu o plano", () => {
+    expect(faseCumprida("fase1", 11)).toBe(false);
+    expect(faseCumprida("fase1", 12)).toBe(true);
+    expect(faseCumprida("fase1", 16)).toBe(true);
+    expect(faseCumprida("fase2", 30)).toBe(false);
   });
 
   /*

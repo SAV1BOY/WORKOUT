@@ -31,10 +31,18 @@ export function FaixaSemana({
 }) {
   const navegavel = Boolean(aoVoltar || aoAvancar);
 
+  /*
+   * SPEC §22.8 item 3: eram sete colunas `flex-1` cuja largura mínima era a
+   * do texto ("Corr.", "Longa"), e a 200 % de zoom — 180 px efetivos — a
+   * faixa media 264 px e empurrava a PÁGINA para o lado. Agora ela é um
+   * carrossel, o mesmo padrão dos desafios: a 360 px as sete casas ainda
+   * preenchem a largura (7 × `min-w-9` = 252 px cabem de sobra) e nada rola;
+   * abaixo disso quem rola é a faixa.
+   */
   const grade = (
-    <ol className="flex items-stretch justify-between gap-1">
+    <ol className="flex snap-x snap-mandatory items-stretch gap-1 overflow-x-auto">
       {dias.map((dia) => (
-        <li key={dia.data} className="flex-1">
+        <li key={dia.data} className="min-w-9 flex-1 snap-start">
           {/*
             SPEC §22.3 item 11: sem `title` — tooltip não existe no celular, e
             o dia inteiro ("Quarta 16/09: Treino A, feito") já é o nome
@@ -150,15 +158,21 @@ export function FaixaSemana({
  *
  * `data-glifo` leva a marca de verdade: no `<li>` o `data-marca` de hoje vira
  * "hoje" e esconde qual era o estado.
+ *
+ * SPEC §22.8 item 4: a CAIXA é a mesma para os cinco — 20 × 20 —, e só o que
+ * há dentro muda (disco cheio com ✓ de 12 px, anel de 20 px com miolo de
+ * 8 px, anel de 10 px, disco de 10 px, traço de 10 × 2). Antes "feito" e
+ * "parcial" pintavam 24 px e o resto 8–10 px: sete marcadores, sete pesos
+ * diferentes, sem uma linha de base comum.
  */
 function Marca({ marca, ehHoje }: { marca: DiaDaFaixa["marca"]; ehHoje: boolean }) {
   if (marca === "feito") {
     return (
       <span
         data-glifo="feito"
-        className="bg-primary text-primary-foreground flex size-6 items-center justify-center rounded-full"
+        className="bg-primary text-primary-foreground flex size-5 items-center justify-center rounded-full"
       >
-        <Check aria-hidden="true" className="size-4" strokeWidth={3} />
+        <Check aria-hidden="true" className="size-3" strokeWidth={3} />
       </span>
     );
   }
@@ -166,7 +180,7 @@ function Marca({ marca, ehHoje }: { marca: DiaDaFaixa["marca"]; ehHoje: boolean 
     return (
       <span
         data-glifo="parcial"
-        className="border-primary flex size-6 items-center justify-center rounded-full border-2"
+        className="border-primary flex size-5 items-center justify-center rounded-full border-2"
       >
         <span aria-hidden="true" className="bg-primary size-2 rounded-full" />
       </span>
@@ -174,21 +188,21 @@ function Marca({ marca, ehHoje }: { marca: DiaDaFaixa["marca"]; ehHoje: boolean 
   }
   if (marca === "descanso") {
     return (
-      <span data-glifo="descanso" className="flex size-6 items-center justify-center">
-        <span aria-hidden="true" className="bg-border h-0.5 w-3 rounded-full" />
+      <span data-glifo="descanso" className="flex size-5 items-center justify-center">
+        <span aria-hidden="true" className="bg-border h-0.5 w-2.5 rounded-full" />
       </span>
     );
   }
   if (marca === "faltou") {
     return (
-      <span data-glifo="faltou" className="flex size-6 items-center justify-center">
+      <span data-glifo="faltou" className="flex size-5 items-center justify-center">
         <span aria-hidden="true" className="bg-muted-foreground/40 size-2.5 rounded-full" />
       </span>
     );
   }
   // aberto: anel, hoje ou não
   return (
-    <span data-glifo="aberto" className="flex size-6 items-center justify-center">
+    <span data-glifo="aberto" className="flex size-5 items-center justify-center">
       <span
         aria-hidden="true"
         className={cn(

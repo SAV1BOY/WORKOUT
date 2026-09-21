@@ -1,7 +1,7 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
-import { addDays, addWeeks, startOfMonth } from "date-fns";
+import { addDays, addMonths, addWeeks, startOfMonth } from "date-fns";
 import { CalendarCog, CalendarOff, ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
@@ -26,11 +26,13 @@ import { apagarOverride, gravarOverrides } from "@/lib/queries/acoes";
 import { useCardio, useOverrides, usePerfil, useSessoes } from "@/lib/queries/dados";
 import { useHoje } from "@/lib/relogio";
 import {
+  faseCumprida,
   montarGrade,
   montarMes,
   overridesDaSemanaCurta,
   rotuloDaFase,
   type DiaDaGrade,
+  type DiaDoMes,
 } from "@/lib/semana";
 
 /** A grade do mês cobre no máximo seis semanas — é o intervalo que se lê. */
@@ -123,7 +125,7 @@ export function TelaCalendario({ userId }: { userId: string }) {
 
   if (perfilQ.isError) {
     return (
-      <Tela titulo={null}>
+      <Tela>
         <Erro
           mensagem={(perfilQ.error as Error).message}
           aoTentarDeNovo={() => void perfilQ.refetch()}
@@ -134,7 +136,7 @@ export function TelaCalendario({ userId }: { userId: string }) {
 
   if (!hoje || !ref || !perfil || !intervalo) {
     return (
-      <Tela titulo={null}>
+      <Tela>
         <EsqueletoCard linhas={7} />
       </Tela>
     );
@@ -147,6 +149,28 @@ export function TelaCalendario({ userId }: { userId: string }) {
 
   const irPara = (semanas: number) =>
     setReferencia(iso(addWeeks(new Date(`${ref}T00:00:00`), semanas)));
+
+  const irParaMes = (meses: number) =>
+    setReferencia(iso(addMonths(new Date(`${ref}T00:00:00`), meses)));
+
+  /*
+   * SPEC §22.8 item 2: tocar num dia do mês abre o MESMO diálogo do cartão da
+   * semana. A `DiaDaGrade` daquele dia sai de `montarGrade()` na hora — a
+   * mesma fonte da grade de cima, sem uma segunda montagem para discordar
+   * dela —, e a semana mostrada acompanha o dia tocado.
+   */
+  const abrirDiaDoMes = (d: DiaDoMes) => {
+    const doDia = montarGrade({
+      data: d.data,
+      perfil,
+      overrides,
+      sessoes,
+      cardios,
+      hoje,
+    }).find((g) => g.data === d.data);
+    setReferencia(d.data);
+    if (doDia) setDiaTocado(doDia);
+  };
 
   const trocarDia = async (dia: DiaDaGrade, troca: TrocaDoDia) => {
     setDiaTocado(null);
@@ -199,12 +223,55 @@ export function TelaCalendario({ userId }: { userId: string }) {
     }
   };
 
+  const semanaDaFaseMostrada = semanaDaFase(ref, perfil.fase_desde);
+  const ofereceFase2 = faseCumprida(perfil.fase_atual, semanaDaFaseMostrada);
+
+  /*
+   * SPEC §22.8 item 7: "0 perdidos" não é notícia — a semana perfeita lê
+   * "3 feitos · 2 a fazer" —, e os três números viram também uma barra.
+   */
+  const contagem = falta
+    ? {
+        feitos: falta.feitos.length,
+        aFazer: falta.faltando.length,
+        perdidos: falta.perdidos.length,
+      }
+    : null;
+  const total = contagem
+    ? contagem.feitos + contagem.aFazer + contagem.perdidos
+    : 0;
+  const resumoDaSemana = contagem
+    ? [
+        `${contagem.feitos} ${contagem.feitos === 1 ? "feito" : "feitos"}`,
+        `${contagem.aFazer} a fazer`,
+        contagem.perdidos > 0
+          ? `${contagem.perdidos} ${contagem.perdidos === 1 ? "perdido" : "perdidos"}`
+          : null,
+      ]
+        .filter(Boolean)
+        .join(" · ")
+    : null;
+  const segmentos = contagem
+    ? ([
+        { chave: "feitos", cor: "bg-primary", quantos: contagem.feitos },
+        { chave: "aFazer", cor: "bg-muted-foreground/30", quantos: contagem.aFazer },
+        { chave: "perdidos", cor: "bg-destructive/50", quantos: contagem.perdidos },
+      ].filter((s) => s.quantos > 0))
+    : [];
+
   return (
     <Tela
-      titulo={`${formatarData(primeiro)} – ${formatarData(ultimo)}`}
-      fase={rotuloDaFase(perfil.fase_atual, semanaDaFase(ref, perfil.fase_desde))}
+      fase={rotuloDaFase(perfil.fase_atual, semanaDaFaseMostrada)}
+      ofereceFase2={ofereceFase2}
     >
-      <div className="flex items-center gap-2">
+      {/*
+        SPEC §22.8 item 8: o intervalo da semana fica ENTRE as setas — era o
+        subtítulo da tela, longe dos controles que o mudam — e o "Hoje", que
+        ocupava a largura inteira, só aparece quando a semana mostrada não é a
+        atual. `flex-wrap` porque a 200 % de zoom a linha não cabe (§22.8
+        item 3).
+      */}
+      <div className="flex flex-wrap items-center justify-center gap-1">
         <Button
           variant="outline"
           className="alvo p-0"
@@ -213,13 +280,9 @@ export function TelaCalendario({ userId }: { userId: string }) {
         >
           <ChevronLeft className="size-5" />
         </Button>
-        <Button
-          variant={temHoje ? "outline" : "default"}
-          className="alvo h-11 flex-1"
-          onClick={() => setReferencia(hoje)}
-        >
-          Hoje
-        </Button>
+        <p className="numero min-w-0 flex-1 text-center text-sm font-medium">
+          {formatarData(primeiro)} – {formatarData(ultimo)}
+        </p>
         <Button
           variant="outline"
           className="alvo p-0"
@@ -228,30 +291,68 @@ export function TelaCalendario({ userId }: { userId: string }) {
         >
           <ChevronRight className="size-5" />
         </Button>
+        {temHoje ? null : (
+          <Button
+            variant="secondary"
+            className="alvo px-3 text-sm"
+            onClick={() => setReferencia(hoje)}
+          >
+            Hoje
+          </Button>
+        )}
       </div>
 
-      {falta ? (
-        <p className="text-muted-foreground text-xs">
-          {falta.feitos.length} {falta.feitos.length === 1 ? "feito" : "feitos"} ·{" "}
-          {falta.faltando.length} a fazer · {falta.perdidos.length}{" "}
-          {falta.perdidos.length === 1 ? "perdido" : "perdidos"}
-        </p>
+      {contagem && resumoDaSemana ? (
+        <div className="flex flex-col gap-1">
+          {total > 0 ? (
+            <span
+              aria-hidden
+              className="bg-muted flex h-2 w-full overflow-hidden rounded-full"
+            >
+              {segmentos.map((s) => (
+                <span
+                  key={s.chave}
+                  className={s.cor}
+                  style={{ width: `${Math.round((s.quantos / total) * 100)}%` }}
+                />
+              ))}
+            </span>
+          ) : null}
+          <p className="text-muted-foreground text-xs">{resumoDaSemana}</p>
+        </div>
       ) : null}
 
       <GradeDaSemana dias={grade} aoTocar={setDiaTocado} />
 
+      {/*
+        SPEC §22.8 item 9: a ação flutuava no fim da tela, longe do dia que
+        ela altera. Agora vem logo abaixo da grade, separada por um divisor e
+        com a data de hoje no rótulo.
+      */}
       {temHoje ? (
-        <Button
-          variant="outline"
-          className="alvo h-12 w-full"
-          onClick={() => setSemanaCurtaAberta(true)}
-        >
-          <CalendarOff className="size-4" />
-          Não vou treinar hoje
-        </Button>
+        <div className="border-border flex flex-col gap-2 border-t pt-3">
+          <p className="text-muted-foreground text-xs">
+            Se hoje ({formatarData(hoje)}) não rolar
+          </p>
+          <Button
+            variant="outline"
+            className="alvo h-12 w-full"
+            onClick={() => setSemanaCurtaAberta(true)}
+          >
+            <CalendarOff className="size-4" />
+            Não vou treinar hoje
+          </Button>
+        </div>
       ) : null}
 
-      <MesEmMiniatura semanas={mes} titulo={formatarMesAno(ref)} />
+      <MesEmMiniatura
+        semanas={mes}
+        titulo={formatarMesAno(ref)}
+        aoTocarDia={abrirDiaDoMes}
+        aoVoltar={() => irParaMes(-1)}
+        aoAvancar={() => irParaMes(1)}
+        focoEm={ref}
+      />
 
       <DialogoDia
         dia={diaTocado}
@@ -273,22 +374,29 @@ export function TelaCalendario({ userId }: { userId: string }) {
 }
 
 function Tela({
-  titulo,
   fase,
+  ofereceFase2,
   children,
 }: {
-  titulo: string | null;
   /** "Fase 1 · semana 3 de 12" (SPEC §16.4). */
   fase?: string;
+  /** A Fase 1 cobriu as 12 semanas: a tela oferece a troca (SPEC §22.8). */
+  ofereceFase2?: boolean;
   children: React.ReactNode;
 }) {
   return (
     <section className="flex flex-col gap-4">
-      <header className="flex items-start justify-between gap-2">
-        <div className="flex min-w-0 flex-col gap-0.5">
+      {/* `flex-wrap`: a 200 % de zoom o título e "Meus dias" não cabem na
+          mesma linha, e a página inteira rolava para o lado (§22.8 item 3) */}
+      <header className="flex flex-wrap items-start justify-between gap-2">
+        <div className="flex min-w-0 flex-col items-start gap-1">
           <h1 className="text-2xl font-semibold tracking-tight">Calendário</h1>
-          <p className="text-muted-foreground numero text-sm">{titulo ?? " "}</p>
           {fase ? <p className="text-primary text-xs font-medium">{fase}</p> : null}
+          {ofereceFase2 ? (
+            <Button asChild variant="outline" className="alvo px-3 text-xs">
+              <Link href="/mais/perfil">Passar para a Fase 2</Link>
+            </Button>
+          ) : null}
         </div>
         {/* SPEC §17.1: o atalho para o card "Dias de treino" das Preferências */}
         <Button asChild variant="outline" className="alvo shrink-0 px-3">

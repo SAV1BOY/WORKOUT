@@ -171,17 +171,33 @@ export function rotuloLongoDoDia(dia: DiaDoPlano, semanaDaFaseDoDia: number): st
 }
 
 /**
+ * A Fase 1 já cobriu as `SEMANAS_PARA_FASE2` semanas do plano (SPEC §5.1): a
+ * tela pode oferecer a passagem para a Fase 2 em vez de continuar contando.
+ */
+export function faseCumprida(fase: FaseId, semana: number): boolean {
+  return fase === "fase1" && semana >= SEMANAS_PARA_FASE2;
+}
+
+/**
  * "Fase 1 · semana 3 de 12" — o cabeçalho do calendário (SPEC §16.4). O total
  * é o ponto em que o app sugere a Fase 2 (§5.1); na Fase 2 não há total.
+ *
+ * SPEC §22.8 item 1: quem não passa para a Fase 2 na semana 12 continua na
+ * Fase 1, e a conta virava "semana 16 de 12" — um numerador maior que o
+ * denominador, que não quer dizer nada. Da semana 13 em diante a fração para
+ * de crescer e vira "12 de 12 concluída"; `faseCumprida()` avisa a tela para
+ * oferecer a Fase 2 ao lado.
  */
 export function rotuloDaFase(fase: FaseId, semana: number): string {
   const [curto] = acharFase(fase).nome.split("—");
   const nome = (curto ?? fase).trim();
   // antes do começo da fase não há semana para contar: só o nome da fase
   if (semana < 1) return nome;
-  return fase === "fase1"
-    ? `${nome} · semana ${semana} de ${SEMANAS_PARA_FASE2}`
-    : `${nome} · semana ${semana}`;
+  if (fase !== "fase1") return `${nome} · semana ${semana}`;
+  if (semana > SEMANAS_PARA_FASE2) {
+    return `${nome} · ${SEMANAS_PARA_FASE2} de ${SEMANAS_PARA_FASE2} concluída`;
+  }
+  return `${nome} · semana ${semana} de ${SEMANAS_PARA_FASE2}`;
 }
 
 /** A segunda linha do dia: o que a sessão tem de concreto. */
