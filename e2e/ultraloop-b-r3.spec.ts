@@ -5,6 +5,12 @@
  */
 import { expect, test, type Page } from "@playwright/test";
 import {
+  GLIFO_DA_MARCA,
+  LEGENDA_DA_FAIXA,
+  NOME_DA_MARCA,
+  ORDEM_DA_LEGENDA,
+} from "../lib/semana";
+import {
   abrirSecaoDoRelatorio as abrirSecao,
   entrarNoApp,
   fixarData,
@@ -421,6 +427,43 @@ test("§22.6-7: nada recorta o rótulo na vertical e o til de SESSÕES pinta", a
   await semRolagemHorizontal(page);
 });
 
+/*
+ * O outro lado do §22.6 item 7: o grampo horizontal é a REDE, não o normal.
+ * Com os Números dentro do `<details>` a fileira de três perdeu ~9 px por
+ * coluna e "BARRA FIXA" passou a sair "BARRA F…" — o texto inteiro seguia no
+ * DOM, então nenhum teste de TEXTO pegava. Este mede: nenhum rótulo REAL da
+ * tela pode encurtar. (O caso do rótulo longo INJETADO, logo acima, continua
+ * exigindo o contrário.)
+ */
+test("§22.6-7: nenhum rótulo de verdade do Relatório sai cortado", async ({ page }) => {
+  const sessao = await usuarioComPerfil();
+  await semearForca(sessao);
+  await abrirRelatorio(page);
+  for (const id of SECOES) await abrirSecao(page, id);
+  await page.waitForTimeout(500);
+
+  const cortados = await page.locator("[data-rotulo]").evaluateAll((els) =>
+    els.flatMap((el) => {
+      const nos = [el, ...Array.from(el.querySelectorAll("span"))];
+      return nos
+        .map((n) => ({
+          rotulo: (el as HTMLElement).dataset.rotulo ?? "",
+          texto: (n.textContent ?? "").trim(),
+          clientWidth: n.clientWidth,
+          scrollWidth: n.scrollWidth,
+        }))
+        .filter((m) => m.texto.length > 0 && m.scrollWidth > m.clientWidth);
+    }),
+  );
+  expect(cortados, "rótulo real encurtado com “…”: falta largura na linha").toEqual([]);
+
+  /* e o mais comprido deles — "Barra fixa" — continua inteiro na tela */
+  const barra = page.locator('[data-rotulo="Barra fixa"]');
+  await expect(barra).toHaveCount(1);
+  await expect(barra).toHaveText("Barra fixa");
+  await semRolagemHorizontal(page);
+});
+
 test("§22.6-8: nenhuma sigla nem notação matemática sem tradução", async ({ page }) => {
   const sessao = await usuarioComPerfil();
   await semearForca(sessao);
@@ -458,6 +501,52 @@ test("§22.6-8: nenhuma sigla nem notação matemática sem tradução", async (
 
 /* ------------------------------------- item 9: legenda e cartão de uma linha */
 
+/*
+ * O dia de HOJE ainda por fazer é o estado mais comum da faixa — todo dia,
+ * até o treino sair — e vinha desenhado como ponto CHEIO na cor primária, o
+ * mesmo desenho que a legenda ensina para "faltou". Sem semeadura nenhuma a
+ * quarta 16/09 é justamente isso: um dia de treino por fazer. Medido no
+ * pixel, não lido no texto.
+ */
+test("§22.6-9: hoje por fazer é anel, não o ponto cheio de “faltou”", async ({
+  page,
+}) => {
+  await usuarioComPerfil();
+  await abrirRelatorio(page);
+  await abrirSecao(page, "historico");
+  const historico = page.getByRole("region", { name: "Histórico" });
+
+  const hoje = historico.locator('[data-marca="hoje"] [data-glifo]');
+  await expect(hoje).toHaveCount(1);
+  const desenho = await hoje.evaluate((el) => {
+    const ponto = el.firstElementChild as HTMLElement;
+    const cs = getComputedStyle(ponto);
+    return {
+      glifo: (el as HTMLElement).dataset.glifo ?? "",
+      borda: Math.round(parseFloat(cs.borderTopWidth)),
+      fundo: cs.backgroundColor,
+      corDaBorda: cs.borderTopColor,
+    };
+  });
+  expect(desenho.glifo, "a quarta 16/09 sem sessão é um dia por fazer").toBe("aberto");
+  expect(desenho.borda, "hoje por fazer tem de ser anel, não ponto cheio").toBe(2);
+  expect(
+    desenho.fundo,
+    "o anel de hoje não pode ter preenchimento — esse é o desenho de “faltou”",
+  ).toBe("rgba(0, 0, 0, 0)");
+
+  /* o ponto CHEIO continua existindo, e só para "faltou" */
+  const faltou = historico.locator('[data-glifo="faltou"]').first();
+  await expect(faltou).toHaveCount(1);
+  const cheio = await faltou.evaluate((el) => {
+    const cs = getComputedStyle(el.firstElementChild as HTMLElement);
+    return { borda: Math.round(parseFloat(cs.borderTopWidth)), fundo: cs.backgroundColor };
+  });
+  expect(cheio.borda).toBe(0);
+  expect(cheio.fundo).not.toBe("rgba(0, 0, 0, 0)");
+});
+
+
 test("§22.6-9: a faixa tem legenda e o exercício sem registro é uma linha", async ({
   page,
 }) => {
@@ -468,6 +557,41 @@ test("§22.6-9: a faixa tem legenda e o exercício sem registro é uma linha", a
   await abrirSecao(page, "historico");
   const historico = page.getByRole("region", { name: "Histórico" });
   await expect(historico.getByText("✓ feito", { exact: false })).toBeVisible();
+
+  /*
+   * A legenda explica TODAS as marcas que a faixa desenha, e nenhum desenho
+   * serve a duas delas. A primeira versão citava quatro glifos para as cinco
+   * de `MarcaDoDia` — "parcial" faltava —, e pior: ensinava que ● é "faltou"
+   * ao lado do dia de HOJE por fazer, que vinha como ponto cheio. Medido, não
+   * lido: hoje por fazer tem de ser ANEL (borda de 2 px, sem preenchimento),
+   * como todo dia por fazer.
+   */
+  await expect(historico.getByText(LEGENDA_DA_FAIXA)).toBeVisible();
+  for (const marca of ORDEM_DA_LEGENDA) {
+    expect(LEGENDA_DA_FAIXA, marca).toContain(
+      `${GLIFO_DA_MARCA[marca]} ${NOME_DA_MARCA[marca]}`,
+    );
+  }
+
+  /* nenhum dia "a fazer" — hoje ou não — é pintado como ponto cheio */
+  const anois = await historico
+    .locator('[data-glifo="aberto"]')
+    .evaluateAll((els) =>
+      els.map((el) => {
+        const ponto = el.firstElementChild as HTMLElement;
+        const cs = getComputedStyle(ponto);
+        return {
+          dia: (el.closest("[data-dia]") as HTMLElement | null)?.dataset.dia ?? "",
+          borda: Math.round(parseFloat(cs.borderTopWidth)),
+          fundo: cs.backgroundColor,
+        };
+      }),
+    );
+  expect(anois.length).toBeGreaterThan(0);
+  for (const a of anois) {
+    expect(a.borda, `o dia ${a.dia} por fazer virou ponto cheio`).toBe(2);
+    expect(a.fundo, `o dia ${a.dia} por fazer ganhou preenchimento`).toBe("rgba(0, 0, 0, 0)");
+  }
 
   await abrirSecao(page, "graficos");
   const vazio = page.locator('[data-grande="desenvolvimento-militar-em-pe"]');

@@ -7145,14 +7145,63 @@ ela. Foram corrigidos: o item 2 (não existe `min-height` por seção; quem
 reserva a altura é o esqueleto, que tem as medidas do conteúdo final), o
 item 7 (a grade `grid-rows-[auto_1fr_auto]` vem do chamador, na fileira de
 Totais; no `Contador` o que é fixo é a linha do rótulo, `h-4`), o item 8 (o
-alcance real da tradução, incluindo a folha de detalhe) e o item 9 (a legenda
-da faixa tem cinco marcas — "✓ feito · ○ a fazer · ● faltou · — descanso ·
-hoje em destaque" —, não as quatro que o texto citava).
+alcance real da tradução, incluindo a folha de detalhe) e o item 9 (a
+legenda da faixa, que o texto descrevia por alto).
 
 **Como testar no celular** (360 px): Relatório → "Conquistas" → toque em
 qualquer cartão de volume ("10.000 kg" ou "50.000 kg"): a folha que sobe diz
 "Como fecha: Soma de repetições × carga…", sem "Σ". Explorar → um exercício →
 "Histórico": o card Recorde diz "Máx. estimada", não "e1RM (Epley)".
+
+#### Correção da auditoria do Lote 6 — rodada 3 (21/09/2026)
+
+A terceira auditoria reprovou o lote por dois defeitos, os dois visíveis na
+tela que o dono elegeu como prioridade.
+
+1. **"BARRA FIXA" saía "BARRA F…"** (`components/ui/contador.tsx`,
+   `components/relatorio/tela-relatorio.tsx`). Pôr os Números dentro do
+   `<details>` custou ~9 px por coluna — o ladrilho da fileira de três caiu de
+   ~104 px (base publicada) para 95 px. Medido ao vivo a 360 px: a linha do
+   rótulo tinha 73 px, o ícone de 14 px mais o `gap-1` levavam 18, sobravam
+   **55 px para um texto de 62** — `scrollWidth 62 / clientWidth 55`, nos dois
+   temas e também numa conta nova. O texto inteiro seguia no DOM (o leitor de
+   tela lia "Barra fixa"), então o dano era só visual, e nenhum teste de texto
+   o pegava. Os pixels voltaram em três lugares, todos medidos: o ladrilho usa
+   `px-2` em vez de `px-2.5` (+4 px), o rótulo perdeu o `tracking-wide`
+   (−2 px de texto, porque o custo é por letra e o rótulo mais comprido é
+   quem mais paga) e o corpo de uma seção do Relatório usa `px-2` em vez de
+   `px-3` (+2,7 px por coluna). São **64 px de linha para 60 px de texto**,
+   4 px de folga onde faltavam 7. O grampo horizontal, o til de "SESSÕES" e
+   as três bases alinhadas ficam como estavam — o que mudou foi a largura
+   disponível, não a regra. Fecha um teste que MEDE: em `/relatorio`, com as
+   cinco seções abertas, nenhum `[data-rotulo]` de rótulo real pode ter
+   `scrollWidth > clientWidth` (o caso negativo, com um rótulo longo
+   injetado, continua exigindo o contrário).
+
+2. **A legenda da faixa explicava quatro glifos para cinco marcas, e um
+   desenho valia duas coisas** (`components/relatorio/historico.tsx`,
+   `components/ui/faixa-semana.tsx`, `lib/semana.ts`). Faltava "parcial" — que
+   `montarGrade` emite de verdade quando a sessão do dia começou e não foi
+   concluída — e, pior, o dia de HOJE ainda por fazer vinha como ponto
+   **cheio** na cor primária: o mesmo desenho que a legenda ensinava para
+   "faltou", no estado mais comum da tela (todo dia, até o treino sair).
+   Agora: (a) a legenda sai de `LEGENDA_DA_FAIXA`, montada de
+   `GLIFO_DA_MARCA` e `NOME_DA_MARCA`, ambos `Record<MarcaDoDia, …>` — uma
+   marca nova quebra a compilação e entra na legenda no mesmo movimento —, e
+   lê **"✓ feito · ◉ parcial · ○ a fazer · ● faltou · — descanso · hoje em
+   destaque"**; (b) hoje por fazer é o mesmo **anel** dos outros dias por
+   fazer, só que `border-primary`, e quem diz que o dia é hoje continua sendo
+   o realce do ladrilho inteiro. O ponto cheio passa a ser de "faltou" e de
+   mais ninguém. Cada marca leva `data-glifo` (no `<li>` o `data-marca` de
+   hoje vira "hoje" e esconde o estado), três testes de unidade prendem a
+   legenda ao conjunto `MarcaDoDia` e dois e2e medem o desenho — largura de
+   borda e preenchimento —, não o texto.
+
+**Como testar no celular** (360 px): Relatório → Resumo: "BARRA FIXA" aparece
+inteiro no terceiro ladrilho dos Números, nos dois temas. Relatório →
+"Histórico": a legenda embaixo da faixa cita seis coisas, "parcial" entre
+elas, e o dia de hoje sem treino feito é um **anel** laranja, não uma bolinha
+cheia — a bolinha cheia cinza é só dos dias que passaram em branco.
 
 ### Fila (o que não coube)
 

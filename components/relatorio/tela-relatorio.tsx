@@ -416,7 +416,13 @@ function Secao({
           className="text-muted-foreground mt-1 size-5 shrink-0 transition-transform group-open:rotate-180"
         />
       </summary>
-      <div className="flex flex-col gap-4 px-3 pt-3 pb-3">
+      {/*
+        `px-2` e não `px-3`: cada coluna de uma fileira de três ganha ~2,7 px,
+        e é parte do que devolve a linha do rótulo "BARRA FIXA" (SPEC §22.6
+        item 7). O cabeçalho continua com `px-3` — ele tem uma linha de texto
+        só e não divide largura com ninguém.
+      */}
+      <div className="flex flex-col gap-4 px-2 pt-3 pb-3">
         {montadas.includes(id) ? children : null}
       </div>
     </details>

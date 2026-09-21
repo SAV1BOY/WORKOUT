@@ -1676,7 +1676,19 @@ a tela — afrouxar o limite não é uma opção.
    recorte computado de todo `[data-rotulo]`, compara os pixels do rótulo
    com e sem o recorte forçado a `visible` e — o caso negativo — injeta um
    rótulo longo num ladrilho e exige que ele encurte, caiba no ladrilho e
-   não alargue a página além dos 360 px.
+   não alargue a página além dos 360 px. O encurtamento, porém, é a **rede**,
+   não o normal: **nenhum rótulo real do app pode chegar nela**. Dentro do
+   `<details>` a fileira de três perdeu ~9 px por coluna (o ladrilho caiu de
+   ~104 px para 95 px) e "BARRA FIXA" — 62 px de texto para 55 px de linha —
+   saía "BARRA F…", cortado nos dois temas e também numa conta nova. Os
+   pixels voltam em três lugares: o ladrilho do `Contador` usa `px-2` (8 px,
+   e não 10), o rótulo perde o `tracking-wide` (a 10 px ele custava 0,25 px
+   por letra, justo no rótulo mais comprido) e o corpo de uma seção do
+   Relatório usa `px-2` no lugar de `px-3`, o que devolve ~2,7 px a cada
+   coluna de três. São **64 px de linha para 60 px de texto** onde faltavam
+   7 px. O teste que fecha este lado também mede: em `/relatorio`, com as
+   cinco seções abertas, nenhum `[data-rotulo]` de rótulo REAL pode ter
+   `scrollWidth > clientWidth`.
 8. **Sem sigla nem notação sem tradução.** "e1RM" sai do app **inteiro**,
    não só de `/relatorio`: o gráfico diz "carga máxima estimada" e "Máx.
    estimada", o card Recorde do histórico de um exercício diz "Máx.
@@ -1696,7 +1708,24 @@ a tela — afrouxar o limite não é uma opção.
    Força / Cardio / Barra fixa viram uma grade `grid-cols-[5.5rem_1fr]`, com
    o valor sempre no mesmo x.
 9. **Legenda da faixa e cartão vazio de uma linha.** O histórico ganha uma
-   legenda de uma linha sob a faixa da semana ("✓ feito · ○ a fazer ·
-   ● faltou · — descanso · hoje em destaque"); em "Carga dos grandes" o exercício sem registro
-   encolhe para uma linha (nome + "sem registro"), em vez de um cartão de
-   altura cheia com um vazio de gráfico dentro.
+   legenda de uma linha sob a faixa da semana: **"✓ feito · ◉ parcial ·
+   ○ a fazer · ● faltou · — descanso · hoje em destaque"**. A legenda não é
+   escrita à mão — sai de `LEGENDA_DA_FAIXA` (`lib/semana.ts`), montada de
+   `GLIFO_DA_MARCA` e `NOME_DA_MARCA`, ambos `Record<MarcaDoDia, …>`: a
+   versão à mão explicava **quatro** glifos para as **cinco** marcas que a
+   faixa desenha e deixava "parcial" de fora (a sessão começada e não
+   concluída, que `montarGrade` emite de verdade). Com o `Record`, uma marca
+   nova quebra a compilação e entra na legenda no mesmo movimento, e os
+   nomes são os que o leitor de tela já lê no dia. **E nenhum desenho serve a
+   duas marcas**: o dia de HOJE ainda por fazer era um ponto **cheio** na cor
+   primária — o mesmo desenho que a legenda ensina para "faltou", e o estado
+   mais comum da tela, todo dia até o treino sair. Hoje por fazer passa a ser
+   o mesmo **anel** dos outros dias por fazer, só que `border-primary`; quem
+   diz que o dia é hoje é o realce do ladrilho inteiro (`bg-primary/15` +
+   `ring`), não a forma da marca. O ponto cheio fica sendo de "faltou" e de
+   mais ninguém. Cada marca leva `data-glifo` (no `<li>` o `data-marca` de
+   hoje vira "hoje" e esconde o estado), e o teste que fecha isto mede o
+   desenho — largura de borda e preenchimento —, não o texto. Em "Carga dos
+   grandes" o exercício sem registro encolhe para uma linha (nome + "sem
+   registro"), em vez de um cartão de altura cheia com um vazio de gráfico
+   dentro.
