@@ -63,7 +63,8 @@ test("o toque em cada 'Substituir' chega no próprio botão (SPEC §22.7 item 1)
   for (let i = 0; i < quantos; i++) {
     const botao = substituir.nth(i);
     const nome = await botao.getAttribute("aria-label");
-    await botao.scrollIntoViewIfNeeded();
+    /* no meio da tela: é ali que o FAB cobria o botão, e é o pior caso */
+    await botao.evaluate((el) => el.scrollIntoView({ block: "center" }));
     const caixa = await botao.boundingBox();
     expect(caixa, `caixa do ${nome}`).not.toBeNull();
     expect(await quemRecebeOToque(page, caixa!), `quem recebe o toque no ${nome}`).toBe(
