@@ -11,6 +11,7 @@ import {
   prescricaoDaSemana,
 } from "@/lib/barra-fixa";
 import { acharTreino } from "@/lib/dados";
+import { decidirTela } from "@/lib/estado-do-player";
 import { itensDoPlano, tituloDoPlano } from "@/lib/livre";
 import {
   estadosPorExercicio,
@@ -91,6 +92,13 @@ export function useSessaoDeTreino(sessaoId: string) {
     ultima.current = nova;
     setSessao(nova);
   }, []);
+  /**
+   * SPEC §22.11: a remontagem a partir do banco já foi tentada e não deu
+   * sessão. Sem isto a tela não tem como distinguir "ainda vem" de "não há" —
+   * e era afirmando "não achei" cedo demais que ela assustava quem tinha o
+   * treino gravado.
+   */
+  const [montagemFalhou, setMontagemFalhou] = useState(false);
   const [salvando, setSalvando] = useState(false);
   const [agora, setAgora] = useState(() => Date.now());
   const naFila = usePendentes();
@@ -199,7 +207,9 @@ export function useSessaoDeTreino(sessaoId: string) {
   useEffect(() => {
     let vivo = true;
     void carregarSessaoLocal(sessaoId).then((s) => {
-      if (vivo) adotar(s);
+      if (!vivo) return;
+      setMontagemFalhou(false);
+      adotar(s);
     });
     return () => {
       vivo = false;
@@ -210,7 +220,16 @@ export function useSessaoDeTreino(sessaoId: string) {
   useEffect(() => {
     if (sessao !== null) return;
     const linha = sessaoQ.data;
-    if (!linha || seriesQ.isPending || !dadosDoMotor) return;
+    if (!linha || seriesQ.isPending) return;
+    if (!dadosDoMotor) {
+      /*
+       * Sem `ids` as consultas do motor nem são feitas, e `dadosDoMotor` fica
+       * `null` para sempre: não há o que montar, e a tela pode dizer isso em
+       * vez de ficar num esqueleto eterno (SPEC §22.11).
+       */
+      if (ids.length === 0) setMontagemFalhou(true);
+      return;
+    }
     const refeita = reconstruirSessao(linha, seriesQ.data ?? [], {
       ...dadosDoMotor,
       itens: itensDaFixa,
@@ -220,8 +239,11 @@ export function useSessaoDeTreino(sessaoId: string) {
     if (refeita) {
       salvarSessaoLocal(refeita);
       adotar(refeita);
+    } else {
+      // tentamos e não deu: agora "não achei este treino" é verdade
+      setMontagemFalhou(true);
     }
-  }, [sessao, sessaoQ.data, seriesQ.data, seriesQ.isPending, dadosDoMotor, itensDaFixa, prefs, adotar]);
+  }, [sessao, sessaoQ.data, seriesQ.data, seriesQ.isPending, dadosDoMotor, ids, itensDaFixa, prefs, adotar]);
 
   /* --------------------------------------------- relógio e saída da aba */
 
@@ -401,11 +423,52 @@ export function useSessaoDeTreino(sessaoId: string) {
     [eventos],
   );
 
+  /* ---------------------------------------- que tela mostrar (SPEC §22.11) */
+
+  /** As consultas que precisam terminar antes de se poder dizer "não achei". */
+  const servidorRespondeu =
+    !sessaoQ.isPending &&
+    !sessaoQ.isFetching &&
+    !seriesQ.isPending &&
+    !seriesQ.isFetching;
+  /**
+   * O servidor terminou **e** não há nada para montar: ou a linha não existe,
+   * ou ela existe e a remontagem já foi tentada sem sucesso. Com a linha a
+   * caminho — ou já em mãos e o motor ainda chegando — isto é `false`, e a
+   * tela continua em esqueleto.
+   */
+  const servidorTerminou =
+    servidorRespondeu && (sessaoQ.data == null || montagemFalhou);
+  const erroDaBusca =
+    sessaoQ.error ??
+    seriesQ.error ??
+    estadosQ.error ??
+    recordesQ.error ??
+    anterioresQ.error ??
+    null;
+  const tela = decidirTela({
+    localTerminou: sessao !== undefined,
+    servidorTerminou,
+    sessao,
+    erro: erroDaBusca,
+  });
+
+  /** O "Tentar de novo" da tela de erro: refaz as consultas, sem sair daqui. */
+  const recarregar = useCallback(() => {
+    setMontagemFalhou(false);
+    void sessaoQ.refetch();
+    void seriesQ.refetch();
+    void estadosQ.refetch();
+    void recordesQ.refetch();
+    void anterioresQ.refetch();
+  }, [sessaoQ, seriesQ, estadosQ, recordesQ, anterioresQ]);
+
   return {
     sessao,
     perfil: perfilQ.data ?? null,
-    carregando:
-      sessao === undefined || (sessao === null && (sessaoQ.isPending || seriesQ.isPending)),
+    tela,
+    recarregar,
+    carregando: tela === "carregando",
     prefs,
     naFila,
     salvando,
