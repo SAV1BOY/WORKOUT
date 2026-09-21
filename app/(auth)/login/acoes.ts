@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { avisoDeConfiguracao, supabaseConfigurado } from "@/lib/env";
 import { CADASTRO_FECHADO, traduzirErroAuth } from "@/lib/erros-auth";
 import { haVaga, vagasParaConta } from "@/lib/queries/contas";
+import { sairDesteAparelho } from "@/lib/sair";
 import { MINIMO_DA_SENHA } from "@/lib/senha";
 import { criarClienteServidor } from "@/lib/supabase/server";
 
@@ -99,14 +100,7 @@ export async function criarConta(
 
 export async function sair() {
   if (!supabaseConfigurado()) redirect("/login");
-  const supabase = await criarClienteServidor();
-  /*
-   * `scope: "local"` (SPEC §9, §21.4 e §22.11): sair é **deste** aparelho. O
-   * escopo padrão do GoTrue é `global` e revoga todas as sessões da conta — o
-   * dono, com o celular e o navegador abertos, apertava "Sair" num e o outro
-   * caía em 403 na primeira leitura. Quem quiser derrubar todo mundo troca a
-   * senha. Os dados locais deste aparelho continuam sendo apagados (§8).
-   */
-  await supabase.auth.signOut({ scope: "local" });
+  // o escopo é "local" e mora em `lib/sair.ts`, onde o Vitest alcança (§22.11)
+  await sairDesteAparelho(await criarClienteServidor());
   redirect("/login");
 }
