@@ -7008,9 +7008,13 @@ no total".
 **7. Ladrilhos alinhados** (`components/relatorio/numeros.tsx`,
 `components/ui/contador.tsx`) — cada contador é `grid-rows-[auto_1fr_auto]`
 (rótulo, número, legenda colada no rodapé) e o ícone do rótulo subiu de 12 px
-para 14 px (`size-3.5 shrink-0`). O rótulo perdeu o `overflow-hidden`, que
-cortava o til de "SESSÕES" em versalete ("SESSOES"); quem corta o que não cabe
-na largura continua sendo o `truncate` de dentro.
+para 14 px (`size-3.5 shrink-0`). E nada recorta mais o rótulo na vertical: o
+til de "SESSÕES" em versalete sobe acima da caixa de linha de 12 px, e o
+`overflow: hidden` a cortava ("SESSOES"). Tirar o `overflow-hidden` do span de
+FORA não resolveu — quem recortava era o `truncate` do span de DENTRO —, então
+o de dentro passou a recortar só na horizontal (`overflow-x-clip` +
+`overflow-y-visible` + `text-ellipsis`), mantendo o "…" de quem não cabe na
+largura.
 
 **8. Cabeçalho de seção com dois papéis separados** (`tela-relatorio.tsx`,
 `numeros.tsx`) — era: título e frase de explicação na mesma linha (a 360 px a
@@ -7059,6 +7063,48 @@ progresso diz quantas faltam e os cartões vêm em duas colunas, separados entre
 memória das seções é a sua. Abra "Histórico": a legenda da faixa está logo
 abaixo dela. Abra "Gráficos": nada de sigla — "Constância (4 semanas)", "78%",
 "carga máxima estimada" — e o exercício sem registro ocupa uma linha só.
+
+#### Correção da auditoria do Lote 6 (21/09/2026)
+
+Um auditor independente reprovou o lote por três defeitos — dois deles na
+própria **instrumentação**, que é o pior tipo de portão verde: o que mede fica
+cego e a rodada seguinte não vê a regressão.
+
+1. **O til de "SESSÕES" continuava cortado** (`components/ui/contador.tsx`). O
+   lote tirou o `overflow-hidden` do span de FORA (`[data-rotulo]`, 16 px de
+   altura), mas quem recortava era o span de DENTRO: `truncate` traz
+   `overflow: hidden` numa caixa de linha de 12 px (`text-micro`: 10 px ×
+   1,2), e o acento do Õ em versalete mora acima dela. O `innerText` diz
+   "SESSÕES" nos dois casos — por isso nenhum teste de texto pegava. Agora o
+   span de dentro recorta só na horizontal (`overflow-x-clip` +
+   `overflow-y-visible` + `text-ellipsis`): o til pinta e o "…" de quem não
+   cabe na largura fica. Medido antes de mexer no app, num Chromium isolado:
+   com `overflow: hidden` a linha sai "SESSOES", com o recorte só em x sai
+   "SESSÕES", e um rótulo longo ainda encurta em "VOLUME MUI…".
+   O teste que fecha isto (`e2e/ultraloop-b-r3.spec.ts`, §22.6-7) não é de
+   texto: confere que nenhum `[data-rotulo]` — nem o span de fora, nem o de
+   dentro — tem `overflow-y` diferente de `visible`, e compara os PIXELS do
+   rótulo com os do mesmo rótulo com o recorte forçado a `visible`; se algo
+   cortasse o desenho, as duas fotos seriam diferentes.
+2. **A régua visual ficou cega justamente nas telas do lote**
+   (`scripts/capturas-ultraloop.ts`). Com a montagem preguiçosa, uma seção
+   fechada nem existe no DOM: `rolarAte(region "Conquistas")` não achava nada
+   e o `.catch(() => {})` engolia a falha, então `11-relatorio-topo`,
+   `12-relatorio-numeros` e `13-relatorio-conquistas` saíam BYTE-IDÊNTICAS e
+   `14-relatorio-historico` fotografava o rodapé. Agora cada tela do
+   Relatório abre a SUA seção (`abrirRelatorioEm`, que ainda limpa
+   `relatorio:secoes` para uma captura não vazar estado na seguinte),
+   `rolarAte` não tem mais `catch` (a falha vai para o `indice.json` como
+   `alcancada: false`) e o aviso do player é dispensado por
+   `getByRole("status", …)`, o papel que o lote deu a ele — com `region` o
+   "Ok" nunca era clicado.
+3. **A varredura media só o Resumo** (`e2e/ultraloop-varredura.spec.ts`). Os
+   cinco itens (rolagem lateral, alvo de 44 px, contraste AA, anel de foco,
+   reduced-motion) deixaram de ver ~4/5 de `/relatorio` pelo mesmo motivo.
+   `abrir()` agora chama `abrirTudo(page)`, genérico sobre
+   `details[data-secao]`: vale para qualquer tela futura com conteúdo montado
+   sob demanda.
+
 
 ### Fila (o que não coube)
 

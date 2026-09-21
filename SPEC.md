@@ -1653,9 +1653,16 @@ a tela — afrouxar o limite não é uma opção.
    os números de uma fileira caem na mesma linha de base mesmo quando um
    rótulo é mais longo. O ícone do rótulo sobe de 12 px para 14 px
    (`size-3.5`, `shrink-0`): a 12 px ele sumia ao lado de um número de
-   24–30 px. E o rótulo perdeu o `overflow-hidden`: a caixa de 16 px cortava
-   o til de "SESSÕES" em versalete ("SESSOES"); quem corta o que não cabe na
-   largura continua sendo o `truncate`.
+   24–30 px. E **nada recorta o rótulo na vertical**: o til de "SESSÕES" em
+   versalete sobe acima da caixa de linha de 12 px (`text-micro`: 10 px ×
+   1,2), e qualquer `overflow` que recorte em y come o acento — a linha saía
+   "SESSOES". Tirar o `overflow-hidden` do span de fora não bastou (quem
+   recortava era o `truncate` do span de dentro): o de dentro recorta só na
+   horizontal (`overflow-x-clip` + `overflow-y-visible`), e continua
+   encurtando com "…" o que não cabe na largura. Como o `innerText` diz
+   "SESSÕES" nos dois casos, o teste que fecha isto não é de texto: mede o
+   recorte computado de todo `[data-rotulo]` e compara os pixels do rótulo
+   com e sem o recorte forçado a `visible`.
 8. **Sem sigla nem notação sem tradução.** "e1RM (Epley)" vira "carga máxima
    estimada", "Σ reps × kg" vira "soma de repetições × carga, nas últimas 12
    semanas", "Aderência" vira "Constância (4 semanas)" e a contagem se separa

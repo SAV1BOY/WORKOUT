@@ -321,6 +321,67 @@ test("§22.6-7: os números de uma fileira caem na mesma linha de base", async (
   expect(Math.round(caixa?.width ?? 0)).toBe(14);
 });
 
+/*
+ * O til de "SESSÕES" já foi dado como consertado uma vez e continuava
+ * cortado: o `overflow-hidden` saiu do span de FORA, mas quem recortava era
+ * o `truncate` do span de DENTRO — `overflow: hidden` numa caixa de linha de
+ * 12 px (10 px × 1,2), que come o acento do Õ em versalete. Como o
+ * `innerText` diz "SESSÕES" de qualquer jeito, nenhum teste de TEXTO pega
+ * isto; este mede o recorte e os pixels.
+ */
+test("§22.6-7: nada recorta o rótulo na vertical e o til de SESSÕES pinta", async ({
+  page,
+}) => {
+  const sessao = await usuarioComPerfil();
+  await semearForca(sessao);
+  await abrirRelatorio(page);
+  await expect(page.locator('[data-contador="Sessões"] .numero-grande')).not.toHaveText(
+    "—",
+  );
+
+  /* 1. nenhum rótulo da tela — nem o span de fora, nem o de dentro — recorta em y */
+  const recortados = await page.locator("[data-rotulo]").evaluateAll((els) =>
+    els.flatMap((el) =>
+      [el, ...Array.from(el.querySelectorAll("span"))]
+        .filter((n) => (n.textContent ?? "").trim().length > 0)
+        .map((n) => ({
+          rotulo: (el as HTMLElement).dataset.rotulo ?? "",
+          classe: n.getAttribute("class") ?? "",
+          overflowY: getComputedStyle(n).overflowY,
+        }))
+        .filter((m) => m.overflowY !== "visible"),
+    ),
+  );
+  expect(recortados, "rótulo com recorte vertical: o acento some").toEqual([]);
+
+  /* 2. prova de pixel: tirar o recorte à força não muda NADA do que é pintado */
+  const alvo = page.locator('[data-rotulo="Sessões"] span').last();
+  await expect(alvo).toHaveText("Sessões");
+  const encurtado = await alvo.evaluate((n) => n.scrollWidth > n.clientWidth);
+  expect(encurtado, 'o rótulo "SESSÕES" cabe na coluna sem encurtar').toBe(false);
+
+  const caixa = await alvo.boundingBox();
+  expect(caixa).not.toBeNull();
+  const recorte = {
+    x: Math.floor(caixa!.x),
+    y: Math.floor(caixa!.y) - 4,
+    width: Math.ceil(caixa!.width) + 2,
+    height: Math.ceil(caixa!.height) + 8,
+  };
+  const antes = await page.screenshot({ clip: recorte, animations: "disabled" });
+  await page.locator('[data-rotulo="Sessões"]').evaluate((el) => {
+    (el as HTMLElement).style.overflow = "visible";
+    for (const s of Array.from(el.querySelectorAll("span"))) {
+      (s as HTMLElement).style.overflow = "visible";
+    }
+  });
+  const depois = await page.screenshot({ clip: recorte, animations: "disabled" });
+  expect(
+    antes.equals(depois),
+    'algo corta o desenho de "SESSÕES": sem o recorte o rótulo pinta diferente',
+  ).toBe(true);
+});
+
 test("§22.6-8: nenhuma sigla nem notação matemática sem tradução", async ({ page }) => {
   const sessao = await usuarioComPerfil();
   await semearForca(sessao);

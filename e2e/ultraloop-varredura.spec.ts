@@ -58,12 +58,32 @@ test.beforeEach(async ({ page }) => {
   await esperarAbaTreino(page);
 });
 
-/** Abre a rota no tema pedido e espera a tela assentar. */
+/**
+ * Abre TODA seção dobrável da tela (`details[data-secao]`).
+ *
+ * Sem isto a régua mede só o que está aberto: o conteúdo de uma seção
+ * fechada nem chega a ser montado (`montadas.includes(id) ? children :
+ * null`), e /relatorio — cinco seções, quatro fechadas — passou a ser medido
+ * só no Resumo. Uma varredura verde por estar cega é o pior tipo de portão
+ * verde, então o helper é genérico: vale para qualquer tela que venha a
+ * montar conteúdo sob demanda.
+ */
+async function abrirTudo(page: Page): Promise<void> {
+  for (const secao of await page.locator("details[data-secao]").all()) {
+    if (await secao.evaluate((d) => (d as HTMLDetailsElement).open)) continue;
+    await secao.locator("summary").click();
+    await expect(secao).toHaveAttribute("open", "");
+  }
+  await page.waitForTimeout(800);
+}
+
+/** Abre a rota no tema pedido, com tudo desdobrado, e espera a tela assentar. */
 async function abrir(page: Page, rota: string, tema: Tema): Promise<void> {
   await page.emulateMedia({ colorScheme: tema, reducedMotion: "reduce" });
   await page.goto(rota, { waitUntil: "domcontentloaded" });
   await page.locator("main").first().waitFor({ timeout: 20_000 });
   await page.waitForTimeout(700);
+  await abrirTudo(page);
 }
 
 // =====================================================================

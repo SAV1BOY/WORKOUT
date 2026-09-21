@@ -35,15 +35,23 @@ export function Contador({
       <span
         data-rotulo={rotulo}
         /*
-         * Sem `overflow-hidden` (SPEC §22.6 item 7): a caixa de 16 px cortava
-         * o til de "SESSÕES" em versalete — a linha aparecia como "SESSOES".
-         * Quem corta o que não cabe na largura continua sendo o `truncate` do
-         * span de dentro; a altura fixa, que alinha os três números, fica.
+         * Nada corta o rótulo na VERTICAL (SPEC §22.6 item 7). O til de
+         * "SESSÕES" em versalete sobe acima da caixa de linha de 12 px
+         * (`text-micro`: 10 px × 1,2) e qualquer `overflow` que recorte em y
+         * come o acento — a linha saía "SESSOES". Tirar o `overflow-hidden`
+         * daqui não bastava: quem recortava era o `truncate` do span de
+         * dentro. O de dentro agora recorta SÓ na horizontal
+         * (`overflow-x-clip` + `overflow-y-visible`, a única combinação que o
+         * CSS deixa conviver com `visible`), continua encurtando com "…" o
+         * que não cabe na largura, e a altura fixa de 16 px — que alinha a
+         * base dos três números — fica.
          */
         className="text-muted-foreground flex h-4 items-center gap-1 text-micro tracking-wide whitespace-nowrap uppercase"
       >
         {icone ? <span className="flex shrink-0 items-center">{icone}</span> : null}
-        <span className="min-w-0 truncate">{rotulo}</span>
+        <span className="min-w-0 overflow-x-clip overflow-y-visible text-ellipsis whitespace-nowrap">
+          {rotulo}
+        </span>
       </span>
       <span className="numero-grande text-2xl leading-tight">{valor}</span>
       {detalhe ? (
