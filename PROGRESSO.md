@@ -6231,6 +6231,30 @@ de fumaça na URL. Fumaça vermelha = rollback imediato para o deploy anterior.
 Nada entra em produção sem capturas comparadas contra a base e sem a lista de
 telas que era esperado mudar.
 
+**Quarta rodada no ar desde as 06:41 UTC de 21/09** (main `3c9864a`), também
+sem rollback. Esta foi a rodada do **Relatório**:
+
+- **O Relatório abre rápido e não é mais um rolo sem fim.** Virou cinco
+  seções que você abre e fecha, com o cabeçalho parado no topo; ele lembra o
+  que você deixou aberto. A rolagem da tela caiu de 5.444 px para cerca de
+  1.200 px e a tela parou de dançar enquanto carrega.
+- **As Conquistas ficaram legíveis**: duas colunas de altura fixa, uma barra
+  de progresso e os grupos "Conquistadas" e "A conquistar" — dá para ver de
+  relance o que falta.
+- **Sumiu o jargão.** Onde estava escrito "e1RM" agora está **"carga máxima
+  estimada"**, no app inteiro; o resumo virou duas colunas e a constância diz
+  "Constância (4 semanas)".
+- **Os números ficaram honestos**: "SESSÕES" com til, os rótulos não quebram
+  mais no meio e agora está escrito quando o número é "no total (força +
+  cardio)" e quando é "só força".
+- **A faixa da semana ganhou legenda** — "✓ feito · ◉ parcial · ○ a fazer ·
+  ● faltou" — e o dia de hoje que você ainda não treinou é um **anel**, não
+  uma bolinha cheia (bolinha cheia virou sinal de dia perdido).
+
+Portões antes de publicar: lint limpo, build ok, 1.365 testes unitários e 384
+de ponta a ponta. Nada de banco mudou nesta rodada. A aba Treino (lote 7) não
+entrou: reprovou na auditoria e segue em correção.
+
 ### Rodada 1 — Lote 1 — player, offline e rótulos (faixa A) ✅
 
 Branch `ultraloop/l1-player-offline`, oito itens. O que mudou, item a item:
@@ -7492,6 +7516,30 @@ inteiro no terceiro ladrilho dos Números, nos dois temas. Relatório →
 "Histórico": a legenda embaixo da faixa cita seis coisas, "parcial" entre
 elas, e o dia de hoje sem treino feito é um **anel** laranja, não uma bolinha
 cheia — a bolinha cheia cinza é só dos dias que passaram em branco.
+
+**Deploy.** No ar em 21/09/2026 às 06:41 UTC, pelo PR #9 (main `3c9864a`).
+Produção saiu de `dpl_9Yp9Anq6C7YBMiLmCs6umXYmQRh5` para
+`dpl_6jSLT4atYUX13YzAq8vST7URPYJj`; `/versao` devolve
+`3c9864a73cd6ec405599b9f41f7a9c910b4e1faa` (construído às 06:40:23Z) e o CSS
+de `/login` foi de `220c01c1442d7833.css` para `99b3cfc2eb0aa8b3.css`.
+Fumaça verde 12/12 na primeira execução, item a item: `/login` 200 com
+"Treino do Terraço" e "Entrar", sem "Configure NEXT_PUBLIC_SUPABASE_URL" e
+sem "é secreta" — ok; `/` → 307 para `/login` — ok; `/versao` igual ao sha de
+main — ok; `/sw.js` 200 (54.120 bytes) com `/~offline`, `figuras/` e o mesmo
+CSS do `/login` — ok; `/manifest.webmanifest` 200 com "Treino do Terraço" —
+ok; `/~offline` 200 — ok; os 12 scripts `/_next/static` do `/login` → 200 —
+ok; marcador do lote: o `/sw.js` lista o chunk novo do Relatório
+(`app/(app)/relatorio/page-cba3d6e954f0a519.js`) — ok; esse chunk, baixado
+(200, 33.361 bytes), traz `Const\xe2ncia` e `carga m\xe1xima estimada` — ok
+(o bundle escapa os acentos, então os marcadores foram procurados sem
+acento); **"A conquistar"** e **"Conquistadas"** ficam no chunk compartilhado
+`583-409c4bd3f534ac2f.js` (200, 41.287 bytes), que o `/sw.js` também
+precacheia — ok; e **`e1RM` não aparece em nenhum** dos 74 chunks, nem no
+HTML do `/login` nem no CSS — ok, que é a forma mais forte do marcador. A
+sonda opcional de Playwright a 360 px contra a URL pública não rodou (o
+Chromium local não confia na CA do proxy de saída); a régua de 360 px já
+correu verde no portão local. Nenhuma migração de banco.
+**Rollback: não.**
 
 ### Fila (o que não coube)
 
