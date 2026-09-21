@@ -309,7 +309,7 @@ export function TelaTreino({ userId }: { userId: string }) {
     return () => observador.disconnect();
   }, [desenhado]);
 
-  /* SPEC §22.7 item 9: voltar do player avisa e destaca o card do dia */
+  /* SPEC §22.7 item 9: voltar do player avisa e destaca quem tem o "Continuar" */
   const destacarAberta = useAvisoDeVoltaDoPlayer(aberta !== null);
 
   if (perfilQ.isError) {
@@ -464,6 +464,12 @@ export function TelaTreino({ userId }: { userId: string }) {
           texto={aberta.texto}
           href={`/treinar/${aberta.id}`}
           aoDescartar={() => void descartar(aberta.id)}
+          /*
+           * SPEC §22.7 item 9: o anel acompanha o "Continuar". Aqui dentro a
+           * sessão aberta nunca é a do dia (`!abertaDoDia`), então o card do
+           * dia não tem "Continuar" nenhum e o destaque é deste banner.
+           */
+          destacado={destacarAberta}
         />
       ) : null}
 
@@ -488,7 +494,8 @@ export function TelaTreino({ userId }: { userId: string }) {
             mostrarRaios={mostrarRaios}
             semanaDaFase={semanaDaFase(hoje, perfil.fase_desde)}
             aberta={abertaDoDia}
-            destacado={destacarAberta}
+            /* só quando é ESTE card que tem o "Continuar" (§22.7 item 9) */
+            destacado={destacarAberta && abertaDoDia !== null}
             criando={criando !== null}
             aoComecar={() => {
               /* SPEC §18.3: com a retomada pendente, decidir vem antes */

@@ -13,6 +13,7 @@ import { acharExercicio, cardio as dadosCardio, exerciciosDoTreino } from "@/lib
 import { dificuldadeDaColecao } from "@/lib/dificuldade";
 import { formatarKm, formatarMinutos, formatarNumero } from "@/lib/formato";
 import { descricaoDoCardio, detalheDoTreino, type ResumoDoTreino } from "@/lib/hoje";
+import { cn } from "@/lib/utils";
 
 /* --------------------------------------------------------------- avisos */
 
@@ -35,16 +36,27 @@ export function BannerSessaoAberta({
   texto,
   href,
   aoDescartar,
+  destacado = false,
 }: {
   texto: string;
   href: string;
   aoDescartar: () => void;
+  /**
+   * SPEC §22.7 item 9: quando a sessão aberta não é a do dia — uma sessão
+   * livre, ou a de ontem —, o "Continuar" está aqui, e não no card do dia.
+   * Então é este banner que ganha o anel ao voltar do player, com o mesmo
+   * traço do `CardForca`.
+   */
+  destacado?: boolean;
 }) {
   return (
     <div
       role="region"
       aria-label="Treino aberto"
-      className="border-primary/50 bg-primary/5 cartao flex flex-col gap-2 border p-3"
+      className={cn(
+        "border-primary/50 bg-primary/5 cartao flex flex-col gap-2 border p-3",
+        destacado && "ring-primary/60 ring-2",
+      )}
     >
       <p className="flex items-center gap-2 text-sm font-medium">
         <CalendarClock className="text-primary size-4 shrink-0" />

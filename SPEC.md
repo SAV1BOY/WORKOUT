@@ -1742,6 +1742,9 @@ muda **o que fica ao alcance do polegar** e **quem manda no toque**.
    exercícios". O card do dia continua "Começar treino".
 9. **Voltar do player não é mais mudo.** O gesto do sistema não é bloqueado: ao
    voltar do player com a sessão aberta, a aba Treino avisa ("Treino guardado —
-   toque em Continuar para retomar.", 4 s) e destaca o card "em andamento",
-   que é onde está o "Continuar". Vale também para o "Continuar depois" da
-   Visão geral, que sai pelo mesmo caminho.
+   toque em Continuar para retomar.", 4 s) e destaca **o elemento que tem o
+   "Continuar" daquela sessão**: o card "em andamento" quando a sessão aberta é
+   a do dia, e o banner "Você tem um treino aberto de …" quando é outra — uma
+   sessão livre, a de ontem, ou um dia de cardio/descanso. Nunca o card que
+   começaria um treino novo. Vale também para o "Continuar depois" da Visão
+   geral, que sai pelo mesmo caminho.

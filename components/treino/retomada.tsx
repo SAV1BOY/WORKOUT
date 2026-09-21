@@ -28,8 +28,10 @@ function ehRotaDoPlayer(caminho: string): boolean {
  * SPEC §22.7 item 9: o "voltar" do celular no meio do treino não é bloqueado —
  * o gesto do sistema continua saindo do player —, mas deixa de ser mudo. A aba
  * Treino anota para onde saiu; ao voltar do player com a sessão ainda aberta,
- * avisa que o treino ficou guardado e destaca o card "em andamento" por alguns
- * segundos, que é onde está o "Continuar".
+ * avisa que o treino ficou guardado e devolve `true` por alguns segundos. Quem
+ * usa o destaque decide ONDE ele cai: o anel acompanha o "Continuar" daquela
+ * sessão — o card "em andamento" quando ela é a do dia, senão o banner "Você
+ * tem um treino aberto de …" (uma sessão livre, a de ontem, um dia de cardio).
  *
  * Vale para qualquer volta ao "/" vinda do player — o gesto do celular, o
  * Escape e o "Continuar depois" da Visão geral, que usam o mesmo caminho.

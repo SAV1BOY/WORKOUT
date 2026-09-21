@@ -44,6 +44,29 @@ async function quemRecebeOToque(page: Page, caixa: { x: number; y: number; width
   );
 }
 
+/**
+ * Quem está com o anel de destaque (`ring-2`) e se esse alguém tem o botão
+ * "Continuar". A espera roda DENTRO da página porque o destaque dura 4 s: uma
+ * ida e volta por chamada de Playwright gastaria metade da janela.
+ */
+async function quemEstaComAnel(page: Page) {
+  return page.evaluate(async () => {
+    const ler = () =>
+      [...document.querySelectorAll(".ring-2")].map((el) => ({
+        rotulo:
+          el.getAttribute("aria-label") ?? el.getAttribute("data-capa") ?? el.tagName,
+        temContinuar: (el.textContent ?? "").includes("Continuar"),
+      }));
+    const limite = Date.now() + 5_000;
+    let anelados = ler();
+    while (anelados.length === 0 && Date.now() < limite) {
+      await new Promise((pronto) => setTimeout(pronto, 50));
+      anelados = ler();
+    }
+    return anelados;
+  });
+}
+
 /* ------------------------------------------------- item 1: o FAB saiu do meio */
 
 test("o toque em cada 'Substituir' chega no próprio botão (SPEC §22.7 item 1)", async ({
@@ -143,6 +166,42 @@ test("voltar do player avisa em pt-BR e destaca o card do dia (item 9)", async (
     page.getByText("Treino guardado — toque em Continuar para retomar."),
   ).toBeVisible();
   await expect(page.getByText("em andamento").first()).toBeVisible();
+
+  // a sessão aberta É a do dia: o anel fica no card "em andamento", que é
+  // quem tem o "Continuar" — e em mais ninguém
+  expect(await quemEstaComAnel(page)).toEqual([
+    { rotulo: "Treino A", temContinuar: true },
+  ]);
+});
+
+test("voltar de uma sessão livre destaca o banner, que é quem tem o 'Continuar' (item 9)", async ({
+  page,
+}) => {
+  await abrirAbaTreino(page);
+
+  /*
+   * A sessão da "Parte do corpo em foco" nasce com `workout_id = 'livre'`:
+   * NÃO é o treino do dia, então o "Continuar" dela está no banner "Você tem
+   * um treino aberto de …" e o card do dia continua sendo "Começar treino".
+   */
+  await page.getByRole("button", { name: /^Começar o treino de / }).click();
+  await page.waitForURL(/\/treinar\/[0-9a-f-]{36}$/);
+  await page.goBack();
+  await esperarAbaTreino(page);
+
+  await expect(
+    page.getByText("Treino guardado — toque em Continuar para retomar."),
+  ).toBeVisible();
+
+  const banner = page.getByRole("region", { name: "Treino aberto" });
+  await expect(banner.getByRole("link", { name: "Continuar" })).toBeVisible();
+  // o card do dia segue oferecendo um treino NOVO: não é ele que o aviso pede
+  await expect(page.getByRole("button", { name: "Começar treino" })).toBeVisible();
+
+  // e o anel cai no banner, nunca no card que começaria uma segunda sessão
+  expect(await quemEstaComAnel(page)).toEqual([
+    { rotulo: "Treino aberto", temContinuar: true },
+  ]);
 });
 
 /* --------------------------------------------- item 3: a folha grava sozinha */

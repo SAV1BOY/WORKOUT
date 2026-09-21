@@ -7135,11 +7135,16 @@ Nove itens da auditoria da aba Treino (SPEC §22.7). Arquivos:
    "Começar o Treino B"; "Começar (3)" → "Começar com 3 exercícios".
 9. **Voltar do player** (`retomada.tsx`, `cards.tsx`, `tela-treino.tsx`) — o
    voltar do celular jogava para a aba Treino sem explicação; agora avisa
-   "Treino guardado — toque em Continuar para retomar." por 4 s e destaca o
-   card "em andamento".
+   "Treino guardado — toque em Continuar para retomar." por 4 s e destaca
+   **quem tem o "Continuar" daquela sessão**: o card "em andamento" quando a
+   sessão aberta é a do dia, e o banner "Você tem um treino aberto de …"
+   quando é outra (sessão livre, a de ontem, dia de cardio ou descanso).
+   Nunca o card que começaria um treino novo — era o que a correção da
+   segunda auditoria arrumou.
 
-**Provas**: `e2e/ultraloop-a-r4.spec.ts` (11 testes, um por aceite: toque em
-cada "Substituir", faixa fixa com e sem sessão, aviso ao voltar do player,
+**Provas**: `e2e/ultraloop-a-r4.spec.ts` (12 testes, um por aceite: toque em
+cada "Substituir", faixa fixa com e sem sessão, aviso ao voltar do player nos
+dois caminhos — a sessão do dia e uma sessão livre —,
 gravação sem "Salvar", ladrilhos na mesma base, nome em até duas linhas, posição do
 carrossel, degradê das duas fileiras, verbo com objeto). Os specs antigos que
 citavam os textos trocados foram atualizados sem afrouxar o que verificavam
@@ -7155,7 +7160,10 @@ citavam os textos trocados foram atualizados sem afrouxar o que verificavam
    "Descanso padrão" e feche a folha sem procurar botão nenhum — reabra e o
    número está lá.
 3. Comece o treino e aperte o **voltar** do aparelho: aparece "Treino guardado
-   — toque em Continuar para retomar." e o card do dia fica destacado.
+   — toque em Continuar para retomar." e o card do dia fica destacado. Repita
+   começando pela **Parte do corpo em foco** ("Começar o treino de peito"): o
+   destaque vai para a faixa "Você tem um treino aberto de …", que é onde está
+   o "Continuar" dessa sessão; o card do dia segue oferecendo "Começar treino".
 
 ### Fila (o que não coube)
 
