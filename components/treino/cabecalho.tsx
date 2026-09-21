@@ -155,6 +155,17 @@ function Caixa({
  * A faixa fixa do dia (SPEC §22.7 item 2): quando o card do treino de hoje sai
  * da tela — a aba tem 2.555 px —, o mesmo caminho volta como uma faixa fina no
  * alto, com o nome do treino, o progresso e um toque para continuar.
+ *
+ * A faixa flutua sobre a lista, e a lista continua rolando por baixo dela: num
+ * documento que rola inteiro não há espaçador que resolva isso — reservar a
+ * altura no topo só muda onde o conteúdo COMEÇA, e a partir do primeiro dedo
+ * as linhas voltam a passar por baixo. Então a faixa não recebe toque nenhum:
+ * `pointer-events-none` no contêiner (a propriedade é herdada, o cartão inteiro
+ * fica transparente ao dedo) e `pointer-events-auto` só no "Continuar"/
+ * "Começar". Assim um "Substituir" ou uma "Ficha" que pare debaixo dela
+ * continua sendo quem responde ao toque no próprio lugar — e quem rola com o
+ * dedo não perde o botão que está vendo. Para o salto por âncora e para o foco
+ * pelo teclado, a folga vem do `scroll-padding-top` do documento (globals.css).
  */
 export function FaixaFixaDoDia({
   titulo,
@@ -176,7 +187,7 @@ export function FaixaFixaDoDia({
   return (
     <div
       data-faixa-do-dia
-      className="pt-segura fixed inset-x-0 top-0 z-40 flex justify-center"
+      className="pt-segura pointer-events-none fixed inset-x-0 top-0 z-40 flex justify-center"
     >
       <aside
         aria-label="Treino de hoje"
@@ -189,11 +200,15 @@ export function FaixaFixaDoDia({
           ) : null}
         </p>
         {href ? (
-          <Button asChild className="alvo h-11 shrink-0 px-4">
+          <Button asChild className="alvo pointer-events-auto h-11 shrink-0 px-4">
             <Link href={href}>{rotulo}</Link>
           </Button>
         ) : (
-          <Button type="button" className="alvo h-11 shrink-0 px-4" onClick={aoTocar}>
+          <Button
+            type="button"
+            className="alvo pointer-events-auto h-11 shrink-0 px-4"
+            onClick={aoTocar}
+          >
             {rotulo}
           </Button>
         )}

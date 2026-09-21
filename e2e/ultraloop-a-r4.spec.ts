@@ -94,6 +94,52 @@ test("o toque em cada 'Substituir' chega no próprio botão (SPEC §22.7 item 1)
       nome,
     );
   }
+
+  /*
+   * E também com a FAIXA FIXA DO DIA por cima (§22.7 item 2): centralizar o
+   * botão antes de medir esconde o defeito, porque no meio da tela nada o
+   * cobre. Aqui a aba desce de 40 em 40 px — como o dedo faz — e em toda
+   * parada nenhum "Substituir"/"Ficha" que fique debaixo da faixa pode perder
+   * o toque para ela.
+   */
+  const varredura = await page.evaluate(async () => {
+    const esperar = (ms: number) => new Promise((pronto) => setTimeout(pronto, ms));
+    const perdidos: { y: number; rotulo: string; porQuem: string }[] = [];
+    let passosComFaixa = 0;
+    const fim = document.documentElement.scrollHeight;
+    for (let y = 400; y <= fim; y += 40) {
+      window.scrollTo(0, y);
+      /* a sentinela decide a faixa por IntersectionObserver, entre os passos */
+      await esperar(80);
+      const faixa = document.querySelector("[data-faixa-do-dia] aside");
+      if (!faixa) continue;
+      passosComFaixa += 1;
+      const caixaDaFaixa = faixa.getBoundingClientRect();
+      const alvos = document.querySelectorAll<HTMLElement>(
+        'button[aria-label^="Substituir "], button[aria-label^="Ficha: "]',
+      );
+      for (const alvo of alvos) {
+        const r = alvo.getBoundingClientRect();
+        if (r.width === 0 || r.height === 0) continue;
+        /* só o que está inteiro na tela e para na altura da faixa */
+        if (r.top < 0 || r.bottom > window.innerHeight) continue;
+        const cy = r.y + r.height / 2;
+        if (cy > caixaDaFaixa.bottom) continue;
+        const quem = document.elementFromPoint(r.x + r.width / 2, cy);
+        if (quem?.closest("button, a") === alvo) continue;
+        perdidos.push({
+          y,
+          rotulo: alvo.getAttribute("aria-label") ?? "",
+          porQuem: quem?.tagName ?? "nulo",
+        });
+      }
+    }
+    window.scrollTo(0, 0);
+    return { passosComFaixa, perdidos };
+  });
+
+  expect(varredura.passosComFaixa, "paradas com a faixa fixa à vista").toBeGreaterThan(5);
+  expect(varredura.perdidos, "alvos que perderam o toque para a faixa fixa").toEqual([]);
 });
 
 test("a folha do 'Ajustar' abre com o foco no título, não no teclado (item 3)", async ({

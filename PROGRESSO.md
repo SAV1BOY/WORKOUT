@@ -7142,8 +7142,21 @@ Nove itens da auditoria da aba Treino (SPEC §22.7). Arquivos:
    Nunca o card que começaria um treino novo — era o que a correção da
    segunda auditoria arrumou.
 
+**A faixa fixa não rouba mais o toque** (terceira auditoria). Ela é `fixed` no
+alto e a lista rola por baixo: num documento que rola inteiro não existe
+espaçador que resolva isso — reservar a altura no topo só muda onde o conteúdo
+começa, e do primeiro dedo em diante as linhas voltam a passar por baixo. Então
+a faixa deixou de ser tocável fora do próprio botão: `pointer-events-none` no
+contêiner (a propriedade é herdada, o cartão inteiro fica transparente ao dedo)
+e `pointer-events-auto` só no "Continuar"/"Começar". Um "Substituir" ou uma
+"Ficha" que pare debaixo dela continua sendo quem responde ao toque no próprio
+lugar. Para o salto por âncora e para o foco pelo teclado, a folga vem do
+`scroll-padding-top` de 56 px do documento (`app/globals.css`).
+
 **Provas**: `e2e/ultraloop-a-r4.spec.ts` (12 testes, um por aceite: toque em
-cada "Substituir", faixa fixa com e sem sessão, aviso ao voltar do player nos
+cada "Substituir" — centralizado **e** varrendo a aba de 40 em 40 px com a
+faixa fixa à vista, exigindo `elementFromPoint` no próprio botão em toda
+parada —, faixa fixa com e sem sessão, aviso ao voltar do player nos
 dois caminhos — a sessão do dia e uma sessão livre —,
 gravação sem "Salvar", ladrilhos na mesma base, nome em até duas linhas, posição do
 carrossel, degradê das duas fileiras, verbo com objeto). Os specs antigos que
@@ -7155,7 +7168,9 @@ citavam os textos trocados foram atualizados sem afrouxar o que verificavam
 1. Na aba Treino, o **Ajustar** está no alto, ao lado da data. Role até o fim:
    surge a **faixa fina** com o treino do dia e um toque para continuar; toque
    em qualquer **⇄ Substituir** da lista — abre a folha do próprio exercício,
-   sem nada por cima.
+   sem nada por cima. Role devagar até uma linha parar **debaixo da faixa** e
+   toque nela: o toque chega no botão da linha, não na faixa (só o
+   "Continuar"/"Começar" da faixa responde por ela).
 2. Toque em **Ajustar**: a folha abre **sem o teclado subir**. Mude o
    "Descanso padrão" e feche a folha sem procurar botão nenhum — reabra e o
    número está lá.
