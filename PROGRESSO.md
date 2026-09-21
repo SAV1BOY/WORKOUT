@@ -6277,6 +6277,39 @@ de ponta a ponta, mais a varredura das telas nos dois temas. Nada de banco
 mudou nesta rodada. A aba Treino (lote 7) e o Explorar (lote 9) seguem em
 auditoria e entram numa segunda parte, se aprovados.
 
+**Sexta rodada no ar desde as 10:01 UTC de 21/09** (main `8830fe5`), também
+sem rollback — **este foi o último deploy da madrugada**. Esta foi a rodada do
+**Explorar e do catálogo**:
+
+- **O Explorar parou de despejar os 81 exercícios.** A página tinha doze telas
+  de celular de altura (8.915 px); agora tem três (3.084 px): uma prévia de 12
+  exercícios e o botão "Ver os 81 exercícios", que leva ao catálogo.
+- **O catálogo abre 20 de cada vez**, com "Ver mais 20 de 81" — de 7.197 px
+  para 2.187 px. Chegando pela busca, os filtros já vêm recolhidos.
+- **A busca mostra os exercícios primeiro.** A linha "Exercícios (N) ·
+  Coleções (N)" só aparece quando existem os dois blocos, e o número do título
+  é sempre o mesmo da lista embaixo, com filtro ou sem.
+- **Quem busca e não acha lê uma mensagem só**, citando o termo — antes vinham
+  duas, uma para cada bloco.
+- **Link velho não cai mais em tela inglesa.** Um atalho guardado no início,
+  ou um exercício que mudou de nome, agora abre "Essa tela não existe mais."
+  em português, com as saídas Hoje, Explorar e Exercícios.
+- **As capas das coleções não se repetem mais** dentro da mesma seção, e os
+  títulos ganharam régua ("Escolhas para você" virou um rótulo pequeno).
+
+Portões antes de publicar: lint limpo, build ok, 1.378 testes unitários e 403
+de ponta a ponta, mais a varredura das telas nos dois temas. Nada de banco
+mudou nesta rodada. Fumaça em produção verde 21 de 21, duas vezes seguidas.
+
+**O que ficou na fila.** A **aba Treino (lote 7)** foi construída e reprovada
+na auditoria: a faixa fixa de "Continuar" usa `pointer-events-none`, e o toque
+atravessa o corpo do cartão para alvos escondidos atrás dela (341 pontos
+medidos). A correção já está escrita — envolver a faixa inteira no `Link` do
+"Continuar" — mas não coube antes do fechamento. O trabalho está preservado na
+branch `ultraloop/l7-aba-treino` (`b8ede08`, portões verdes) — nada foi
+descartado, é só retomar a correção e mandar para a auditoria.
+
+
 ### Rodada 1 — Lote 1 — player, offline e rótulos (faixa A) ✅
 
 Branch `ultraloop/l1-player-offline`, oito itens. O que mudou, item a item:
@@ -7566,7 +7599,15 @@ correu verde no portão local. Nenhuma migração de banco.
 
 ### Fila (o que não coube)
 
-(a preencher)
+**Lote 7 — aba Treino (SPEC §22.7).** Construído e com portões verdes na
+branch `ultraloop/l7-aba-treino` (`b8ede08`), **reprovado na auditoria** e não
+publicado. O defeito é um só e está localizado: a faixa fixa de "Continuar"
+usa `pointer-events-none` para deixar o cartão clicável por baixo, e com isso
+o toque **atravessa** o corpo do cartão e acerta alvos escondidos atrás da
+faixa — 341 pontos medidos pela auditoria. A correção já está escrita na
+ficha: envolver a faixa inteira no `Link` do "Continuar", em vez de furar os
+eventos. Não coube outro ciclo de auditoria antes do fechamento da madrugada.
+Nada foi descartado: a branch está intacta e o resto do lote passou.
 
 ### Rodada 5 — Lote 8 — Calendário e faixa da semana (faixa C)
 
@@ -7838,3 +7879,46 @@ título é o da lista, com filtro e sem).
 - **Catálogo**: em "Ver os 81 exercícios", role até o fim: há 20 cartões e um "Ver mais 20 de 81". Chegando pela busca, os filtros vêm recolhidos.
 - **404**: abra `/exercicios/remada-curvada-com-barra` — a tela responde em
   português com as três saídas.
+
+**Deploy.** No ar em 21/09/2026 às 10:01 UTC, pelo PR #11 (main `8830fe5`) —
+**o último deploy da madrugada**. Produção saiu de
+`dpl_Am2hPSTMigcpbZWkVgn1Fd3WEEXc` para `dpl_4GtXTGgY9LcUMCHhbLriBu3uP6gg`;
+`/versao` devolve `8830fe53d170cf06d4b0c91116154d45a2b2270f` (construído às
+09:59:56Z) e o CSS de `/login` foi de `8ffaaaf63ec77165.css` para
+`28025654e892a608.css`. Fumaça verde **21/21, em duas execuções seguidas**,
+item a item: `/login` 200 — ok; contém "Treino do Terraço" — ok; contém
+"Entrar" — ok; **não** contém "Configure NEXT_PUBLIC_SUPABASE_URL" — ok;
+**não** contém "é secreta" — ok; `/` → 307 para `/login` — ok; `/versao` igual
+ao sha do merge em main — ok; `/sw.js` 200 (54.417 bytes) — ok; com
+`/~offline` — ok; com `figuras/` — ok; com o **mesmo** CSS do HTML de `/login`
+(`28025654e892a608.css`) — ok; `/manifest.webmanifest` 200 com "Treino do
+Terraço" — ok; `/~offline` 200 — ok; os 14 scripts `/_next/static` do `/login`
+→ 200 — ok (14 conferidos, 0 fora de 200). Marcadores do lote: o `/sw.js`
+lista o chunk do 404 (`app/not-found-e3866b2d3fe0af9e.js`, 200, 233 bytes) e a
+rota `/not-found` é **nova** — o `/sw.js` do deploy anterior não listava
+nenhum `app/not-found-*.js` — ok; o `/sw.js` lista o chunk novo do Explorar
+(`app/(app)/explorar/page-a203e7f3f86ed928.js`; o anterior era
+`page-6eefbe762a193f3c.js`) — ok; esse chunk, baixado (200, 14.843 bytes),
+contém **"Limpar busca"** — ok — e **"Exerc"** (o título "Exercícios (" tem o
+acento escapado no bundle) — ok.
+
+Um marcador da ficha do lote não pôde ser conferido como estava escrito: *"o
+chunk `app/not-found-*.js` contém 'Voltar para Hoje'"*. Ele é **impossível por
+construção**, não é falha de produção — `app/not-found.tsx` é Server
+Component, então esse texto só existe no bundle do servidor. Provas: os 78
+chunks do precache do `/sw.js` foram baixados e nenhum contém "Voltar para
+Hoje" nem "Essa tela n"; o build local do mesmo HEAD (o que passou nos
+portões) tem o mesmo chunk de 235 bytes, também sem o texto, que aparece só em
+`.next/server/`; e a própria tela de 404 não é pública — `/rota-inexistente`
+devolve 307 para `/login`, porque o middleware de autenticação vem antes. Foi
+substituído pela prova equivalente e verificável acima (a rota `/not-found` é
+nova em produção); quem cobre a redação do 404 é o e2e, com sessão. Nenhuma
+migração de banco. **Rollback: não.**
+
+**Linha de base regenerada.** `wt-base` avançou para `8830fe5` (o merge em
+main), `build:e2e` com `MOCK_SUPABASE_PORT=54341` ("Compiled successfully in
+13,3 s"), servidores de novo em 3120/54341, mock semeado com `max_contas: 50`
+e **60/60 capturas** novas em `base/` (a antiga virou `base-r5`). O CSS
+servido em `:3120/login` é `28025654e892a608.css` — o mesmo de produção. O
+`indice.json` confirma os números do lote no HEAD publicado: `/explorar` com
+**3.084 px** e `/exercicios` com **2.187 px** de altura.
