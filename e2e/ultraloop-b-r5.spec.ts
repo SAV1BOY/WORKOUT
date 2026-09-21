@@ -197,19 +197,27 @@ test.describe("Explorar e catálogo (SPEC §22.9)", () => {
     }
     expect(quebradas, "coleções da vitrine que não abrem").toEqual([]);
 
-    // e uma delas de verdade, com a tela montada
-    const primeira = hrefDaColecao(todasAsColecoes()[0]!);
-    await page.goto(primeira);
-    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    // e uma delas de verdade, com a tela montada (o título da coleção é h2)
+    const primeira = todasAsColecoes()[0]!;
+    await page.goto(hrefDaColecao(primeira));
+    await expect(
+      page.getByRole("heading", { name: primeira.titulo, level: 2 }),
+    ).toBeVisible();
   });
 
   test("item 9: o link antigo, com acento e maiúscula, continua abrindo", async ({
     page,
   }) => {
-    for (const velho of ["/explorar/grupo/Core", "/explorar/grupo/B%C3%ADceps"]) {
+    for (const [velho, titulo] of [
+      ["/explorar/grupo/Core", "Core"],
+      ["/explorar/grupo/B%C3%ADceps", "Bíceps"],
+    ] as const) {
       const resposta = await page.goto(velho);
       expect(resposta?.status(), velho).toBe(200);
-      await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+      await expect(
+        page.getByRole("heading", { name: titulo, level: 2 }),
+        velho,
+      ).toBeVisible();
     }
   });
 });
