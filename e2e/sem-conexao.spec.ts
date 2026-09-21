@@ -18,6 +18,12 @@
  *   (b) o precache            → passo 2
  *   (c) qualquer cache        → o passo 4 apaga TODA cópia, para chegar em (d)
  *   (d) o socorro embutido    → passo 4, agora com os dois botões
+ *
+ * Os outros dois casos do arquivo vieram da auditoria de 21/09, que mostrou
+ * que o teste acima chega no degrau (d) apagando a `/~offline` à mão — e nunca
+ * pelo gatilho de verdade, o "Sair". São eles que prendem a **causa** (o
+ * logout não pode levar o app junto) e a **autocura** (a cópia própria da
+ * página, que até então era código inalcançável).
  */
 import { expect, test, type BrowserContext, type Worker } from "@playwright/test";
 import {
@@ -25,6 +31,7 @@ import {
   esperarAbaTreino,
   esperarServiceWorker,
   fixarData,
+  irNaAba,
   resetarMock,
   usuarioComPerfil,
 } from "./fixtures";
@@ -107,6 +114,32 @@ async function apagarAOffline(worker: Worker): Promise<number> {
     }
     return apagadas;
   });
+}
+
+/** Quantas entradas cada cache do aparelho tem, por nome. */
+async function inventarioDeCaches(worker: Worker): Promise<Record<string, number>> {
+  return worker.evaluate(async () => {
+    const tudo: Record<string, number> = {};
+    for (const nome of await caches.keys()) {
+      const cache = await caches.open(nome);
+      tudo[nome] = (await cache.keys()).length;
+    }
+    return tudo;
+  });
+}
+
+/** Os caminhos guardados num cache. */
+async function caminhosDoCache(worker: Worker, nome: string): Promise<string[]> {
+  return worker.evaluate(async (qual) => {
+    if (!(await caches.keys()).includes(qual)) return [];
+    const cache = await caches.open(qual);
+    return (await cache.keys()).map((pedido) => new URL(pedido.url).pathname);
+  }, nome);
+}
+
+/** O nome completo do precache do Serwist neste aparelho, se existir. */
+function oPrecache(inventario: Record<string, number>): [string, number] | undefined {
+  return Object.entries(inventario).find(([nome]) => nome.startsWith("serwist-precache"));
 }
 
 test.describe("a rede do worker cai (SPEC §22.10)", () => {
@@ -210,5 +243,120 @@ test.describe("a rede do worker cai (SPEC §22.10)", () => {
       "com a rede de volta, o botão tem de trazer a tela pedida",
     ).toBeVisible({ timeout: 30_000 });
     expect(new URL(page.url()).pathname).toBe("/mais/senha");
+  });
+
+  /*
+   * A CAUSA, e não o sintoma. O "Sair" apagava todos os caches menos o de
+   * mídia — inclusive o precache, que é o app inteiro assado no build. Medido
+   * na auditoria de 21/09: 154 entradas viravam cache inexistente, e o
+   * aparelho ficava sem PWA até o deploy seguinte, porque o Serwist só repõe o
+   * precache numa instalação nova e o `sw.js` não muda de bytes sozinho.
+   * Quem saísse da conta não abria mais nada offline.
+   */
+  test("o 'Sair' leva o que é do usuário e deixa o app no aparelho", async ({
+    page,
+    context,
+  }) => {
+    test.setTimeout(180_000);
+    await usuarioComPerfil();
+    await fixarData(page, SEGUNDA);
+    await entrarNoApp(page);
+    await esperarAbaTreino(page);
+    await esperarServiceWorker(page);
+
+    // a aba Treino pedida como DOCUMENTO: é assim que "/" entra no cache "paginas"
+    await page.goto("/");
+    await esperarAbaTreino(page);
+
+    const worker = await workerDoApp(context);
+    const antes = await inventarioDeCaches(worker);
+    const precache = oPrecache(antes);
+    expect(precache, "o precache do Serwist tem de existir antes do logout").toBeDefined();
+    expect(precache![1]).toBeGreaterThan(0);
+    expect(await caminhosDoCache(worker, "paginas")).toContain("/");
+    // a cópia própria da /~offline nasce na ativação (a autocura alcança o aparelho)
+    await expect
+      .poll(async () => (await inventarioDeCaches(worker)).socorro ?? 0, { timeout: 20_000 })
+      .toBeGreaterThan(0);
+
+    // ---- o "Sair" de verdade, o gatilho documentado ------------------
+    await irNaAba(page, "Mais");
+    await page.getByRole("button", { name: "Sair" }).click();
+    await expect(page).toHaveURL(/\/login$/);
+
+    const depois = await inventarioDeCaches(worker);
+    expect(depois[precache![0]], "o precache é build estático: fica").toBe(precache![1]);
+    expect(depois.socorro ?? 0, "a cópia de socorro é pública: fica").toBeGreaterThan(0);
+    /*
+     * E o que é do usuário foi embora, que é o ponto da §8: a aba Treino que
+     * ele visitou não pode continuar legível offline num celular emprestado.
+     */
+    expect(await caminhosDoCache(worker, "paginas")).not.toContain("/");
+
+    // ---- e, sem rede, o aparelho ainda abre o app --------------------
+    await semRedeNoWorker(worker);
+    await page.goto("/mais/contas", { waitUntil: "domcontentloaded" });
+    await expect(
+      page.getByRole("heading", { name: "Sem conexão" }),
+      "depois de sair e sem rede, ainda tem de haver tela",
+    ).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByRole("button", { name: "Tentar de novo" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Ir para o Treino" })).toBeVisible();
+    /*
+     * A prova de que o precache sobreviveu: é a `/~offline` do Next, com folha
+     * de estilo e ícone — não o HTML embutido que o dono fotografou.
+     */
+    expect(
+      await page.locator('link[rel="stylesheet"]').count(),
+      "depois do 'Sair' a página tem de vir do precache, não do socorro embutido",
+    ).toBeGreaterThan(0);
+  });
+
+  /*
+   * A autocura (SPEC §22.10, `lib/sw-cura.ts`). Até a auditoria de 21/09 ela
+   * era código inalcançável: só rodava no `activate`, onde o precache acabou
+   * de ser preenchido, e saía sem guardar nada. Aqui o precache some DEPOIS da
+   * ativação — que é o caso para o qual ela existe — e uma navegação normal
+   * repõe a cópia própria.
+   */
+  test("o worker repõe a cópia da /~offline quando o precache some", async ({
+    page,
+    context,
+  }) => {
+    test.setTimeout(180_000);
+    await usuarioComPerfil();
+    await fixarData(page, SEGUNDA);
+    await entrarNoApp(page);
+    await esperarAbaTreino(page);
+    await esperarServiceWorker(page);
+
+    const worker = await workerDoApp(context);
+    await expect
+      .poll(async () => (await inventarioDeCaches(worker)).socorro ?? 0, { timeout: 20_000 })
+      .toBeGreaterThan(0);
+
+    // ---- o aparelho perde TODA cópia, inclusive a própria -------------
+    await worker.evaluate(() => caches.delete("socorro"));
+    expect(await apagarAOffline(worker)).toBeGreaterThan(0);
+    expect(await copiasDaOffline(worker)).toBe(0);
+
+    // ---- uma navegação que chega ao servidor: a cura repõe -----------
+    await page.goto("/mais", { waitUntil: "domcontentloaded" });
+    await expect
+      .poll(async () => (await inventarioDeCaches(worker)).socorro ?? 0, { timeout: 30_000 })
+      .toBeGreaterThan(0);
+
+    // ---- e é ela que segura a tela quando a rede cai -----------------
+    await semRedeNoWorker(worker);
+    await page.goto("/mais/senha", { waitUntil: "domcontentloaded" });
+    await expect(
+      page.getByRole("heading", { name: "Sem conexão" }),
+      "a cópia reposta tem de aparecer no degrau (c)",
+    ).toBeVisible({ timeout: 20_000 });
+    expect(
+      await page.locator('link[rel="stylesheet"]').count(),
+      "é a /~offline de verdade, vinda do cache socorro",
+    ).toBeGreaterThan(0);
+    await expect(page.getByRole("link", { name: "Ir para o Treino" })).toBeVisible();
   });
 });

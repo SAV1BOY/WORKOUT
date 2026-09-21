@@ -8303,9 +8303,11 @@ era possível foi corrigido; aquele teste continua como a lente barata de fora.
 
 **Como testar no celular.** Com o app aberto, ligue o modo avião e toque numa
 tela que você ainda não abriu nesta sessão (Mais → Contas, por exemplo): tem de
-vir "Sem conexão" **com os dois botões**. "Ir para o Treino" volta para a aba
-Treino com o que está guardado; desligue o modo avião e "Tentar de novo" traz a
-tela pedida. O que você registrar sem rede continua indo para o IndexedDB e
+vir "Sem conexão" **com os dois botões**. Com a sessão aberta, "Ir para o
+Treino" volta para a aba Treino com o que está guardado; se você tiver saído da
+conta, ele leva a "/" e vem "Sem conexão" de novo — entrar exige rede, e é por
+isso que o botão continua ali: assim que a rede voltar, ele abre o app.
+Desligue o modo avião e "Tentar de novo" traz a tela pedida. O que você registrar sem rede continua indo para o IndexedDB e
 subindo sozinho depois (SPEC §8).
 
 **Se o celular ficar preso numa versão antiga do worker** (a tela de socorro
@@ -8335,3 +8337,58 @@ prende as duas, o preenchimento do primeiro e a ausência dos dois seletores.
 Medido no Chromium a 360 px, nos dois temas: alvos de **48 × 328 px**, fundo
 `rgb(224,224,221)` no claro e `rgb(10,10,10)` no escuro, zero vazamento
 lateral, 2.370 bytes. A cadeia de portões foi repetida inteira no HEAD final.
+
+**Correção 2 — o que a auditoria das 16:22 UTC devolveu.** Três achados, todos
+atendidos, e o principal era duro: a rodada tinha consertado o **sintoma** (a
+tela do beco virou tela com saída) e descrito a **causa** sem removê-la.
+
+1. **O "Sair" não leva mais o app junto.** `limparDadosLocais()` poupava o
+   cache de mídia e o de socorro e apagava o precache do Serwist — 154 entradas
+   medidas no Chromium, que é o app inteiro: shell, pedaços de JS e a própria
+   `/~offline`. O Serwist só repõe o precache numa instalação nova, e o `sw.js`
+   não muda de bytes sozinho: quem saísse da conta ficava sem PWA nenhum até o
+   deploy seguinte. A regra passou a ser `ehCachePublico()`, em
+   `lib/caches-do-worker.ts` — o único módulo que a página e o worker
+   compartilham, porque o worker é um bundle à parte e não pode puxar o Dexie
+   de `lib/db.ts`. Ficam o precache (`serwist-precache-*`), `midia-do-treino` e
+   `socorro`, todos conteúdo público assado no build; vai embora tudo que é do
+   usuário, inclusive o cache `paginas` com as telas autenticadas, que é o
+   ponto da §8 (celular emprestado não pode mostrar o treino de ontem depois do
+   logout).
+2. **A autocura deixou de ser código inalcançável.** `curarOSocorro()` só
+   rodava no `activate`, e ali o precache acabou de ser preenchido pelo
+   `install`: a função saía no primeiro `if` sem guardar nada, e o cache
+   `socorro` **nunca nascia** — a auditoria mediu o inventário de caches e ele
+   não estava lá. Agora a decisão mora em `lib/sw-cura.ts` (ferramentas
+   injetadas, 9 casos de unidade) e o worker mantém uma cópia **sua** da
+   `/~offline`: na ativação ele a tira do precache recém-instalado, sem tocar
+   na rede e em milissegundos (`renovar`, para a cópia ser sempre a do build
+   novo), e depois de **cada navegação que chegou ao servidor** confere se ela
+   ainda está lá — no `handlerDidComplete`, que roda com a tela já entregue,
+   fora do caminho crítico. Se o precache sumiu (despejo do navegador,
+   instalação pela metade), a reposição vem da rede, com prazo e com espera de
+   60 s entre idas frustradas, para não insistir a cada toque.
+3. **O e2e agora aperta o botão de verdade.** `e2e/sem-conexao.spec.ts` ganhou
+   dois casos: um clica em **"Sair"** — o gatilho documentado, que o teste
+   anterior nunca tocava — e lê `caches.keys()` dos dois lados, provando que o
+   precache fica inteiro, que a cópia de socorro fica e que a aba Treino sai do
+   cache `paginas`; depois corta a rede do worker e exige a `/~offline` **de
+   verdade** (a do Next tem folha de estilo; o socorro embutido não tem
+   nenhuma). O outro apaga toda cópia da `/~offline` **depois** da ativação e
+   exige que a navegação seguinte reponha a cópia em `socorro` — é o caso que
+   prende a autocura, e é o que teria pegado o código morto.
+
+Junto foram os menores: a retentativa do degrau (a) ganhou prazo
+(`AbortSignal.timeout`, 6 s) e a `NetworkFirst` das navegações ganhou
+`networkTimeoutSeconds: 8`, para que rede que aceita a conexão e não responde
+não segure a tela quando já há cópia no aparelho; o contorno do alvo secundário
+do socorro subiu para 3,4:1 nos dois temas (WCAG 1.4.11 — era 1,3:1 no claro),
+com o teste de unidade calculando a razão de contraste; e o prazo da cura na
+ativação caiu de 8 s para 3 s, num caminho que no uso normal nem toca na rede.
+
+**Como testar no celular (correção 2).** Entre no app com rede, vá em Mais →
+**Sair**, ligue o modo avião e abra `treino-terraco.vercel.app`: tem de vir a
+tela "Sem conexão" **com ícone e os dois botões** (é a `/~offline` do app, que
+agora sobrevive ao logout) — antes vinha a tela sem ícone e sem botões da foto
+de 21/09. Desligue o modo avião, entre de novo e confira que o treino de hoje
+aparece igual.
