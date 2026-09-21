@@ -458,15 +458,21 @@ test.describe("uma rota de Mais aberta sem rede (SPEC §8 e §22.1)", () => {
    * virar navegação: `/mais/contas`, `/mais/senha` e `/mais/creditos` abriam a
    * página de erro do navegador, em branco.
    *
-   * O que este teste NÃO consegue fazer é cortar a rede DO WORKER: medido em
-   * 20/09/2026, nem `context.setOffline(true)` nem `context.route(...).abort()`
-   * alcançam as requisições que o service worker faz por conta própria — com a
-   * página "offline" o worker continuou trazendo `/mais/contas` do servidor,
-   * inteira. Então o que se prende aqui é o que dá para observar de fora: a
-   * `/~offline` guardada e pronta para ser servida, e o worker publicado com a
-   * regra das duas formas de navegar. A decisão em si — quem ganha a
-   * `/~offline` — está presa em `lib/sw-navegacao.test.ts`, e a página, em
-   * `e2e/ultraloop-a-r1.spec.ts`.
+   * Este teste olha de FORA: a `/~offline` guardada e pronta para ser servida,
+   * e o worker publicado com a regra das duas formas de navegar. Até 20/09/2026
+   * era só isso que dava — nem `context.setOffline(true)` nem
+   * `context.route(...).abort()` alcançam as requisições que o service worker
+   * faz por conta própria, e com a página "offline" o worker continuava
+   * trazendo `/mais/contas` do servidor, inteira.
+   *
+   * **Isso mudou em 21/09/2026**: `e2e/sem-conexao.spec.ts` entra no worker
+   * (`worker.evaluate`), desliga o navigation preload e troca `self.fetch` por
+   * uma função que rejeita — com a rede de quem SERVE cortada, o caminho
+   * inteiro da §22.10 fica preso de ponta a ponta, inclusive o socorro
+   * embutido. Este teste continua aqui como a lente de fora, barata e rápida.
+   * A decisão em si — quem ganha a `/~offline` — está presa em
+   * `lib/sw-navegacao.test.ts`, a redação do socorro em `lib/sw-socorro.test.ts`
+   * e a página em `e2e/ultraloop-a-r1.spec.ts`.
    */
   test("a /~offline fica guardada e o worker cobre documento e RSC", async ({
     page,
@@ -479,7 +485,7 @@ test.describe("uma rota de Mais aberta sem rede (SPEC §8 e §22.1)", () => {
     await esperarAbaTreino(page);
     await esperarServiceWorker(page);
 
-    // 1. sem a página no precache, o fallback cairia no HTML mínimo de socorro
+    // 1. sem a página no precache, o fallback desce para o socorro embutido
     await expect
       .poll(
         async () =>

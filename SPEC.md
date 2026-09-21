@@ -2038,3 +2038,66 @@ muda **o que fica ao alcance do polegar** e **quem manda no toque**.
    sessão livre, a de ontem, ou um dia de cardio/descanso. Nunca o card que
    começaria um treino novo. Vale também para o "Continuar depois" da Visão
    geral, que sai pelo mesmo caminho.
+
+### 22.10 Sem conexão: socorro e retentativa
+
+Um celular do dono mostrou, em 21/09/2026, uma tela preta com "Sem conexão" e
+a frase de sempre — **sem ícone e sem os dois botões**. Aquilo não era a
+página `/~offline`: era o HTML de emergência embutido no service worker, que
+só aparece quando a navegação falhou na rede **e** `matchPrecache("/~offline")`
+devolveu `undefined`. O precache some sozinho em pelo menos um caminho do
+próprio app — o "Sair" apaga todos os caches menos o de mídia
+(`lib/db.ts`) — e o Serwist só o repõe na instalação seguinte. Ou seja: o
+socorro não é um caso raro de instalação interrompida, é uma tela que o dono
+vai ver. Então ela tem de ser uma tela, não um beco.
+
+1. **O socorro tem os mesmos dois atos da página.** Mesmo título e mesma
+   frase, mais "Tentar de novo" (`location.reload()`) e "Ir para o Treino"
+   (`href="/"`), ambos com 48 px de altura e largura cheia; dois temas por
+   `prefers-color-scheme` com os tokens de `app/globals.css` (claro
+   `rgb(224,224,221)` sobre `rgb(10,10,10)`; escuro o inverso), `safe-area`,
+   `lang="pt-BR"` e nada vindo de fora — é o único HTML que precisa funcionar
+   quando não há mais nada no aparelho. Mora em `lib/sw-socorro.ts`, função
+   pura com teste de unidade.
+2. **Escada de fallback do documento**, em `semRede()`: (a) **uma retentativa
+   de rede** com um pedido novo (`cache: "no-store"`) e hora para acabar (6 s),
+   porque a falha de rede de um celular costuma durar segundos, não minutos —
+   e porque quem está olhando para a tela prefere a `/~offline` que já está no
+   aparelho a uma espera sem fim; (b) o precache; (c)
+   `caches.match("/~offline")` em **qualquer** cache, ignorando busca e vary —
+   a regra `paginas` guarda a página quando ela foi visitada, e a autocura
+   guarda a dela em `socorro`; (d) o socorro embutido. Para o `fetch` de RSC
+   continua o 503 da §22.1. A própria `NetworkFirst` das navegações tem
+   `networkTimeoutSeconds: 8`: rede que aceita a conexão e não responde deixa
+   de segurar a tela quando há cópia guardada.
+3. **O "Sair" não leva o app junto.** A causa de o socorro embutido aparecer
+   num celular com o PWA instalado era o logout: `limparDadosLocais()` apagava
+   **todos** os caches menos o de mídia, inclusive o precache — o app inteiro,
+   assado no build, sem um byte de ninguém —, e o Serwist só repõe o precache
+   numa instalação nova, que só acontece quando o `sw.js` muda de bytes. Quem
+   saísse ficava sem PWA até o deploy seguinte. A regra agora é
+   `ehCachePublico()` (`lib/caches-do-worker.ts`): ficam o precache
+   (`serwist-precache-*`), a mídia e a cópia de socorro; vai embora tudo que é
+   do usuário, inclusive o cache `paginas` com as telas autenticadas (§8).
+4. **Autocura da `/~offline`.** O worker mantém uma cópia **sua** da página no
+   cache `socorro`, que o logout poupa e que o degrau (c) encontra. Ela nasce
+   na ativação, tirada do precache que o `install` acabou de encher — sem rede,
+   em milissegundos — e é conferida depois de cada navegação que chegou ao
+   servidor (`handlerDidComplete`, fora do caminho crítico): se sumiu, o worker
+   a repõe do precache ou, se nem ele a tem, da rede, com prazo e sem insistir
+   a cada navegação. Só no `activate` não bastava: ali o precache está sempre
+   inteiro, e o caso em que a cura serve — despejo do navegador, instalação
+   pela metade — acontece muito depois da última ativação. A decisão mora em
+   `lib/sw-cura.ts`, com teste de unidade, porque o service worker roda num
+   mundo onde o Vitest não entra.
+
+Aceite: com o `fetch` do **worker** rejeitando (é assim que se corta a rede de
+quem serve, não com `context.setOffline`), abrir uma rota nunca visitada dá
+"Sem conexão" **com os dois botões**; apagar o precache e toda cópia da
+`/~offline` e abrir outra rota dá o socorro embutido, também com os dois
+botões; restaurar a rede faz o "Tentar de novo" trazer a tela inteira; depois
+do **"Sair"** o precache continua inteiro e a mesma rota sem rede dá a
+`/~offline` de verdade (com folha de estilo), enquanto a aba Treino que o
+usuário visitou sai do cache `paginas`; e apagar toda cópia da `/~offline`
+depois da ativação faz a navegação seguinte repor a cópia em `socorro`
+(`e2e/sem-conexao.spec.ts`, `lib/sw-cura.test.ts`, `lib/db.test.ts`).
