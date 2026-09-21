@@ -6255,6 +6255,28 @@ Portões antes de publicar: lint limpo, build ok, 1.365 testes unitários e 384
 de ponta a ponta. Nada de banco mudou nesta rodada. A aba Treino (lote 7) não
 entrou: reprovou na auditoria e segue em correção.
 
+**Quinta rodada no ar desde as 08:37 UTC de 21/09** (main `9d2c001`), também
+sem rollback. Esta foi a rodada do **Calendário**:
+
+- **"Fase 1 · semana 16 de 12" acabou.** Quem passa da semana 12 sem trocar de
+  fase agora lê **"Fase 1 · 12 de 12 concluída"**, com o botão **"Passar para
+  a Fase 2"** ao lado.
+- **Todo dia do mês virou botão.** Tocar em qualquer dia abre a mesma janela
+  do cartão da semana, e as setas ‹ › trocam de mês.
+- **Nada mais vaza com o zoom em 200 %**: a faixa dos sete dias rola sozinha
+  na horizontal em vez de empurrar a tela para o lado.
+- **A semana ficou mais fácil de ler**: barra de três segmentos (feitos · a
+  fazer · perdidos), "perdidos" só aparece quando existe algum, o intervalo da
+  semana fica entre as setas e o "Hoje" só surge quando você saiu da semana
+  atual. Embaixo da grade do mês, uma legenda de uma linha explica os desenhos.
+- **Dias antes de você começar o programa não contam como perdidos** — o
+  calendário parou de acusar falta em dia nenhum anterior à sua data de início.
+
+Portões antes de publicar: lint limpo, build ok, 1.371 testes unitários e 391
+de ponta a ponta, mais a varredura das telas nos dois temas. Nada de banco
+mudou nesta rodada. A aba Treino (lote 7) e o Explorar (lote 9) seguem em
+auditoria e entram numa segunda parte, se aprovados.
+
 ### Rodada 1 — Lote 1 — player, offline e rótulos (faixa A) ✅
 
 Branch `ultraloop/l1-player-offline`, oito itens. O que mudou, item a item:
@@ -7677,3 +7699,25 @@ leitor de tela lê "05/09: antes do começo"; ‹ na semana volta para 07/09 –
 navegador em 200 %, o Calendário não rola mais para o lado e a faixa dos sete
 dias rola sozinha (na aba Treino ainda sobra a barra de abas do rodapé, que é
 de outro lote).
+
+**Deploy.** No ar em 21/09/2026 às 08:37 UTC, pelo PR #10 (main `9d2c001`).
+Produção saiu de `dpl_6jSLT4atYUX13YzAq8vST7URPYJj` para
+`dpl_Am2hPSTMigcpbZWkVgn1Fd3WEEXc`; `/versao` devolve
+`9d2c0013e7e07b5f9eb50c5f9f07e4f2e96a2d70` (construído às 08:36:01Z) e o CSS
+de `/login` foi de `99b3cfc2eb0aa8b3.css` para `8ffaaaf63ec77165.css`.
+Fumaça verde **18/18 na primeira execução**, item a item: `/login` 200 — ok;
+contém "Treino do Terraço" — ok; contém "Entrar" — ok; **não** contém
+"Configure NEXT_PUBLIC_SUPABASE_URL" — ok; **não** contém "é secreta" — ok;
+`/` → 307 para `/login` — ok; `/versao` igual ao sha do merge em main — ok;
+`/sw.js` 200 (54.192 bytes) — ok; com `/~offline` — ok; com `figuras/` — ok;
+com o **mesmo** CSS do HTML de `/login` (`8ffaaaf63ec77165.css`) — ok;
+`/manifest.webmanifest` 200 com "Treino do Terraço" — ok; `/~offline` 200 —
+ok; os 12 scripts `/_next/static` do `/login` → 200 — ok (12 conferidos, 0
+fora de 200). Marcadores do lote: o `/sw.js` lista o chunk novo do Calendário
+(`app/(app)/calendario/page-8e598b96822ac760.js`) — ok; esse chunk, baixado
+(200, 22.753 bytes), contém **"Passar para a Fase 2"** — ok — e **"cardio a
+fazer"** — ok (o bundle escapa os acentos, então os marcadores foram
+procurados sem acento). A sonda opcional de Playwright a 360 px contra a URL
+pública não rodou (o Chromium local não confia na CA do proxy de saída); a
+régua de 360 px correu verde no portão local (varredura 5 passed). Nenhuma
+migração de banco. **Rollback: não.**
