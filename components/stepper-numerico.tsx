@@ -111,7 +111,14 @@ export function StepperNumerico({
       return;
     }
     const preso = Math.min(maximo ?? Number.POSITIVE_INFINITY, Math.max(minimo, lido));
-    aoMudar(preso);
+    /*
+     * Só sobe o que `digitar` ainda não subiu: o número que não precisa de
+     * aperto já foi mandado tecla a tecla, e repeti-lo aqui faria o pai avisar
+     * duas vezes ("26,5 kg não fecha com estas anilhas…" em dose dupla, SPEC
+     * §22.11). O texto, esse sim, é reconciliado sempre — pelo efeito lá em
+     * cima, agora que sair do foco também o acorda.
+     */
+    if (preso !== lido) aoMudar(preso);
     setTexto(formatarNumero(preso));
   };
 
