@@ -568,7 +568,7 @@ async function telasDoPlayer(page: Page, tema: Tema, indice: Registro[]) {
     const medida = page.getByRole("radio", { name: "Na medida certa" });
     if (await medida.isVisible().catch(() => false)) await medida.click();
     const concluido = page.getByRole("button", {
-      name: /^(Concluído|Concluir sem responder)$/,
+      name: /^(Concluir|Concluir sem responder)$/,
     });
     if (await concluido.first().isVisible().catch(() => false)) {
       await concluido.first().click();
