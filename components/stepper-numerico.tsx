@@ -3,6 +3,7 @@
 import { Minus, Plus } from "lucide-react";
 import { useEffect, useId, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { aceitarDigitacao } from "@/lib/digitar-numero";
 import { formatarNumero, lerNumero } from "@/lib/formato";
 import { cn } from "@/lib/utils";
 
@@ -44,19 +45,45 @@ export function StepperNumerico({
 }) {
   const id = useId();
   const [texto, setTexto] = useState(() => (valor === null ? "" : formatarNumero(valor)));
+  /**
+   * SPEC §22.11: enquanto o campo tem foco, o texto é do usuário.
+   *
+   * Estado, e não `ref`, porque a **saída** do foco também tem de acordar o
+   * efeito abaixo: quem digita "12,5" onde o kit só monta 11,5 acaba de
+   * confirmar um valor que o pai já tinha ajustado, e sem esta dependência o
+   * `valor` não mudaria — o campo ficaria mostrando "12,5" para sempre.
+   */
+  const [focado, setFocado] = useState(false);
 
   // o valor pode mudar por fora (série anterior preenchendo a seguinte)
   useEffect(() => {
+    /*
+     * Campo focado não se reescreve (SPEC §22.11). Digitando "12,5" depressa
+     * em CARGA NA BARRA, ao chegar em "12" o app ajusta para a anilha possível
+     * (11,5) e este efeito reescrevia o texto no meio da digitação: as teclas
+     * "," e "5" caíam no texto novo e a tela mostrava "11,5,5". O ajuste
+     * chega ao campo no `onBlur`, que é quando ele deixa de ser do dedo.
+     */
+    if (focado) return;
     setTexto((atual) => {
       // o que está escrito já é este valor ("82," enquanto se digita "82,4"):
       // reescrever aqui apagaria a vírgula recém-digitada
       if (lerNumero(atual) === valor) return atual;
       return valor === null ? "" : formatarNumero(valor);
     });
-  }, [valor]);
+  }, [valor, focado]);
 
   const andar = (direcao: 1 | -1) => {
     if (desabilitado) return;
+    /*
+     * Apertar − ou + devolve o campo ao app: o texto deixa de ser do dedo e
+     * volta a se reconciliar com o `valor`. No Chromium tocar num `<button>`
+     * tira o foco do `<input>` e o `blur` já fazia isso — no Safari do iPhone
+     * não tira, e sem esta linha o campo ficaria mostrando o número velho
+     * enquanto o valor já andou. É o caminho de celular que o e2e exercita
+     * com `dispatchEvent`, que também não mexe no foco.
+     */
+    setFocado(false);
     if (aoAndar) {
       aoAndar(direcao);
       return;
@@ -75,8 +102,15 @@ export function StepperNumerico({
    * nos limites.
    */
   const digitar = (novoTexto: string) => {
-    setTexto(novoTexto);
-    const lido = lerNumero(novoTexto);
+    // a tecla que não faz um número em construção simplesmente não entra —
+    // a segunda vírgula, a letra, o menos onde não cabe (SPEC §22.11)
+    const aceito = aceitarDigitacao(texto, novoTexto, { negativo: minimo < 0 });
+    // digitar é o que faz o texto ser do dedo — e não focar: no Safari o campo
+    // continua focado depois de um toque no + , e o `onFocus` não volta a
+    // disparar quando o usuário retoma a digitação
+    setFocado(true);
+    setTexto(aceito);
+    const lido = lerNumero(aceito);
     if (lido === null) return;
     const preso = Math.min(maximo ?? Number.POSITIVE_INFINITY, Math.max(minimo, lido));
     if (preso === lido && lido !== valor) aoMudar(lido);
@@ -90,7 +124,14 @@ export function StepperNumerico({
       return;
     }
     const preso = Math.min(maximo ?? Number.POSITIVE_INFINITY, Math.max(minimo, lido));
-    aoMudar(preso);
+    /*
+     * Só sobe o que `digitar` ainda não subiu: o número que não precisa de
+     * aperto já foi mandado tecla a tecla, e repeti-lo aqui faria o pai avisar
+     * duas vezes ("26,5 kg não fecha com estas anilhas…" em dose dupla, SPEC
+     * §22.11). O texto, esse sim, é reconciliado sempre — pelo efeito lá em
+     * cima, agora que sair do foco também o acorda.
+     */
+    if (preso !== lido) aoMudar(preso);
     setTexto(formatarNumero(preso));
   };
 
@@ -116,7 +157,11 @@ export function StepperNumerico({
           id={id}
           value={texto}
           onChange={(e) => digitar(e.target.value)}
-          onBlur={confirmar}
+          onFocus={() => setFocado(true)}
+          onBlur={() => {
+            setFocado(false);
+            confirmar();
+          }}
           onKeyDown={(e) => {
             if (e.key === "Enter") (e.target as HTMLInputElement).blur();
           }}

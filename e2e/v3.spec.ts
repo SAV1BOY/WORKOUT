@@ -61,7 +61,7 @@ async function irAte(page: Page, alvo: ReturnType<Page["getByText"]>) {
       .getByRole("region", { name: "Última repetição" })
       .or(page.getByRole("region", { name: "Feedback do treino" }))
       .getByRole("button", {
-        name: /^(Pular esta pergunta|Continuar|Concluir sem responder|Concluído)$/,
+        name: /^(Pular esta pergunta|Continuar|Concluir sem responder|Concluir)$/,
       });
     if (await pergunta.isVisible().catch(() => false)) {
       await pergunta.click();

@@ -142,6 +142,18 @@ function oPrecache(inventario: Record<string, number>): [string, number] | undef
   return Object.entries(inventario).find(([nome]) => nome.startsWith("serwist-precache"));
 }
 
+/**
+ * Apaga TODO o Cache Storage de dentro do worker — o que o navegador faz
+ * sozinho sob pressão de disco. Devolve quantos caches foram embora.
+ */
+async function apagarTodosOsCaches(worker: Worker): Promise<number> {
+  return worker.evaluate(async () => {
+    const nomes = await caches.keys();
+    for (const nome of nomes) await caches.delete(nome);
+    return nomes.length;
+  });
+}
+
 test.describe("a rede do worker cai (SPEC §22.10)", () => {
   test("a escada devolve tela com saída, e o socorro não é mais um beco", async ({
     page,
@@ -358,5 +370,83 @@ test.describe("a rede do worker cai (SPEC §22.10)", () => {
       "é a /~offline de verdade, vinda do cache socorro",
     ).toBeGreaterThan(0);
     await expect(page.getByRole("link", { name: "Ir para o Treino" })).toBeVisible();
+  });
+
+  /*
+   * O beco do aparelho despejado (SPEC §22.11), reproduzido em navegador: é a
+   * classe de defeito que três portões verdes e um teste de unidade não
+   * pegaram duas rodadas seguidas.
+   *
+   * A unidade prende "os pedaços entram na cópia". O que importa é outra
+   * coisa: "o pedido do pedaço vai ser respondido" — e isso só um worker de
+   * verdade mostra. Em 21/09 a cópia estava inteira no cache `socorro`, a
+   * guarda passava, e mesmo assim a tela virava "Application error": nenhuma
+   * rota do worker servia daquele cache. Este teste falha nesse mundo.
+   */
+  test("aparelho despejado: uma navegação com rede basta para a tela ter saída", async ({
+    page,
+    context,
+  }) => {
+    test.setTimeout(180_000);
+    await usuarioComPerfil();
+    await fixarData(page, SEGUNDA);
+    await entrarNoApp(page);
+    await esperarAbaTreino(page);
+    await esperarServiceWorker(page);
+
+    const worker = await workerDoApp(context);
+
+    // ---- 1. o navegador despeja o Cache Storage inteiro ---------------
+    expect(await apagarTodosOsCaches(worker)).toBeGreaterThan(0);
+
+    /*
+     * O precache volta VAZIO: o Serwist só o enche no `install`, e o `sw.js`
+     * não muda de bytes fora de um deploy. É esse o estado que quebrava.
+     */
+    const depoisDoDespejo = await inventarioDeCaches(worker);
+    const precache = oPrecache(depoisDoDespejo);
+    expect(precache?.[1] ?? 0, "o precache não se enche sozinho").toBe(0);
+
+    // ---- 2. UMA navegação com rede: a autocura repõe a cópia ----------
+    await page.goto("/calendario", { waitUntil: "domcontentloaded" });
+    /*
+     * O HTML é gravado por ÚLTIMO, depois dos pedaços (`lib/sw-cura.ts`): é o
+     * que garante que nunca exista HTML sem os pedaços dele. Então quem espera
+     * é o `/~offline`, e não o número de entradas.
+     */
+    await expect
+      .poll(async () => await caminhosDoCache(worker, "socorro"), {
+        timeout: 30_000,
+        message: "a autocura tem de repor a /~offline e os pedaços dela",
+      })
+      .toContain("/~offline");
+    const noSocorro = await caminhosDoCache(worker, "socorro");
+    expect(
+      noSocorro.filter((caminho) => caminho.startsWith("/_next/")).length,
+      "a cópia vale pelos pedaços que vêm junto",
+    ).toBeGreaterThan(1);
+
+    // ---- 3. a rede do worker cai, e uma rota NUNCA visitada -----------
+    const erros: string[] = [];
+    page.on("pageerror", (erro) => erros.push(erro.message));
+    await semRedeNoWorker(worker);
+    await page.goto("/relatorio", { waitUntil: "domcontentloaded" });
+
+    /*
+     * A tela tem de ter os dois atos. Antes do conserto vinha o HTML da
+     * `/~offline` sem os pedaços: "Loading chunk … failed" e a tela
+     * "Application error: a client-side exception has occurred", sem ícone e
+     * sem botão nenhum — pior do que o socorro embutido.
+     */
+    await expect(page.getByRole("heading", { name: "Sem conexão" })).toBeVisible({
+      timeout: 20_000,
+    });
+    await expect(page.getByRole("button", { name: "Tentar de novo" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Ir para o Treino" })).toBeVisible();
+    await expect(page.getByText("Application error")).toHaveCount(0);
+
+    // a hidratação tem de terminar: é ela que morria
+    await page.waitForTimeout(1_500);
+    expect(erros, "nenhum pedaço pode faltar na hidratação").toEqual([]);
   });
 });

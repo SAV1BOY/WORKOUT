@@ -1140,7 +1140,8 @@ Comparar, IMC com a altura); Calendário (semana em lista, resumo "N feitos · N
 fazer · N perdidos", mês em miniatura, tocar num dia, "Não vou treinar hoje",
 "Meus dias", setas e "Hoje"); Mais (Como usar o app, Perfil, Equipamento,
 Preferências — tema, dias de treino, meta semanal, treino/player, incrementos —,
-Créditos, Backup, sincronização, Trocar senha, Sair).
+Créditos, Backup, sincronização, Trocar senha, Sair — que sai **deste**
+aparelho, sem derrubar as outras sessões da conta, §22.11).
 
 **O mapa muscular não aparece na aba Corpo** — ele é a figura da ficha do
 exercício (§15) —, então o guia não o promete ali.
@@ -1299,6 +1300,11 @@ RLS das 11 tabelas e do storage; o backup exporta e importa só as tabelas de
 quem está logado; motor (§6), montagem (§6.5), conteúdo (§2), offline (§8),
 guia (§20). Nada de e-mail transacional novo, nada de "esqueci a senha"
 (quem esquecer fala com o dono, que redefine no painel do Supabase).
+
+**Sair é deste aparelho** (§9, §22.11): `signOut({ scope: 'local' })` apaga os
+cookies e os dados locais de quem apertou o botão; as outras sessões da mesma
+conta — o celular do dono enquanto ele usa o navegador — continuam abertas.
+Quem quiser derrubar todas troca a senha.
 
 ### 21.5 Critérios de aceite
 1. Com 1 conta (o dono) e limite 5, o login mostra "Criar conta"; criar conta
@@ -2101,3 +2107,84 @@ do **"Sair"** o precache continua inteiro e a mesma rota sem rede dá a
 usuário visitou sai do cache `paginas`; e apagar toda cópia da `/~offline`
 depois da ativação faz a navegação seguinte repor a cópia em `socorro`
 (`e2e/sem-conexao.spec.ts`, `lib/sw-cura.test.ts`, `lib/db.test.ts`).
+
+### 22.11 Rodada 9 — aparelho despejado, campo de carga, sessão que chega, Sair local
+
+A verificação da rodada 8 em produção, num navegador de verdade, achou cinco
+coisas. A primeira é a mesma tela do dono por outro caminho; as outras quatro
+são do dia a dia de quem treina.
+
+1. **O socorro não pode depender de pedaços que não estão no aparelho.** Com o
+   Cache Storage inteiro apagado (o navegador faz isso sozinho sob pressão de
+   disco) e uma única navegação com rede, o precache do Serwist volta **vazio**
+   — ele só é preenchido no `install`, e o `sw.js` não muda de bytes fora de um
+   deploy. A autocura repunha a `/~offline`, mas só o HTML: os 14 pedaços de JS
+   que essa página carrega não estavam em cache nenhum. O degrau (c) servia o
+   HTML, a hidratação morria em "Loading chunk … failed" e a tela virava
+   "Application error" — sem ícone e sem botões, pior do que o socorro
+   embutido, e assim até o deploy seguinte. Então: (i) ao guardar a `/~offline`
+   no cache `socorro`, o worker guarda junto **todos** os assets same-origin
+   que o HTML dela referencia (`<script src="/_next/…">` e
+   `<link rel="stylesheet" href="/_next/…">`, no máximo 30, com prazo); se um
+   só falhar, a cópia **não vale** e o HTML não é guardado sozinho — meia
+   cópia é a tela quebrada; (ii) o degrau (c) só serve uma cópia da `/~offline`
+   quando **todos** os assets que ela referencia estão em algum cache; senão
+   desce para o socorro embutido (d), que não depende de nada; e (iii) o cache
+   `socorro` é **servido**: toda estratégia genérica do `defaultCache` ganha um
+   último degrau que, antes de devolver erro, procura a URL ali
+   (`lib/sw-servir-socorro.ts`). Sem (iii) os outros dois não valiam nada — foi
+   o que a auditoria mostrou: a guarda perguntava "o pedaço está em algum
+   cache?" e a resposta era sim, mas quem atende `/_next/static/chunks/*.js` é
+   uma regra do Serwist que só olha o **próprio** cache
+   (`next-static-js-assets`), e nenhuma rota servia do `socorro`. A cópia
+   existia no aparelho e o pedido morria em `fetch` mesmo assim. As regras
+   puras — extrair os assets de um HTML, decidir se a cópia serve, procurar no
+   cache de socorro — moram em `lib/sw-assets.ts` e
+   `lib/sw-servir-socorro.ts`, com teste de unidade; e o caminho inteiro, que
+   só um worker de verdade mostra, fica preso no navegador
+   (`e2e/sem-conexao.spec.ts`, "aparelho despejado"). Na mesma lição, a
+   autocura tira cada asset do precache e dos caches do aparelho **antes** de
+   ir à rede: numa ativação sem conexão ela guardava "sem-fonte" com os
+   pedaços ali ao lado.
+2. **O campo de carga é do dedo de quem digita.** Digitando "12,5" depressa em
+   CARGA NA BARRA, o app ajustava "12" para a anilha possível (11,5) e o efeito
+   que sincroniza o texto com o valor reescrevia o campo **no meio da
+   digitação**: as teclas seguintes caíam no texto novo e a tela mostrava
+   "11,5,5". O valor gravado saía certo, mas o número impossível ficava no
+   campo mais importante do player. Duas regras: enquanto o campo tem foco o
+   texto é do usuário (o efeito só reescreve com o campo **sem** foco — botões
+   − e +, ajuste vindo de fora — ou no `blur`), e a digitação recusa um segundo
+   separador decimal (uma só vírgula; ponto vira vírgula na tela; o sinal de
+   menos só onde o campo aceita negativo). A regra pura é
+   `aceitarDigitacao()` em `lib/digitar-numero.ts`, com teste de unidade.
+3. **"Não achei este treino" só quando é verdade.** Abrir a sessão em andamento
+   logo depois do login, num aparelho sem nada no IndexedDB, mostrava o erro
+   definitivo com a sessão existindo no banco (1 em 4 aberturas): a tela
+   decidia com `carregando` já em `false` enquanto a linha do servidor ainda
+   vinha, ou enquanto o motor ainda não tinha o que precisa para refazer a
+   sessão. A decisão agora é uma função pura, `decidirTela()` em
+   `lib/estado-do-player.ts`: a tela só afirma "não achei" quando a busca no
+   aparelho terminou sem sessão **e** o servidor terminou sem nada para montar;
+   enquanto qualquer uma das duas corre, esqueleto; erro de rede de verdade é
+   o componente `Erro` com "Tentar de novo", que agora refaz as consultas em
+   vez de mandar o usuário para outra tela.
+4. **Sair é deste aparelho.** `supabase.auth.signOut()` usava o escopo padrão
+   `global` e derrubava **todas** as sessões da conta: o dono, com o celular e
+   o navegador abertos, saía de um e perdia o outro. Passa a ser
+   `signOut({ scope: 'local' })` (§9 e §21): sair apaga os cookies **deste**
+   aparelho e os dados locais (§8), e os outros continuam onde estavam. Trocar
+   a senha continua sendo o caminho de derrubar todo mundo.
+5. **O botão diz o que o toque faz.** A última pergunta do feedback terminava
+   em "Concluído" (particípio, como se já tivesse acontecido) depois de
+   escolhida a sensação; agora é "Concluir" — e continua "Concluir sem
+   responder" enquanto ninguém respondeu.
+
+Aceite: com o Cache Storage apagado e uma navegação com rede, cortar o `fetch`
+do worker e abrir uma rota nunca visitada dá uma tela **com os dois botões** —
+a `/~offline` inteira se os assets couberam no cache `socorro`, o socorro
+embutido se não —, nunca "Application error"; digitar "12,5" tecla a tecla no
+campo de carga nunca mostra duas vírgulas e grava o valor certo; abrir
+`/treinar/<id>` com a sessão só no banco e a resposta atrasada mostra esqueleto
+e depois o player, nunca "Não achei"; o "Sair" manda `?scope=local` e não
+derruba o outro aparelho (`lib/sw-assets.test.ts`, `lib/digitar-numero.test.ts`,
+`lib/estado-do-player.test.ts`, `e2e/player.spec.ts`, `e2e/sem-conexao.spec.ts`).

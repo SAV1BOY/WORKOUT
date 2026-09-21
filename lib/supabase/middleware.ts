@@ -28,7 +28,9 @@ export function ehPublica(caminho: string): boolean {
  * O `setAll` do `createServerClient` recria a `resposta` e grava nela: um
  * `NextResponse.redirect()` novo jogaria fora tanto o token renovado quanto os
  * cookies apagados pelo `signOut` — e o aparelho ficaria com os `sb-*` mortos
- * até expirarem. É o padrão recomendado pelo `@supabase/ssr`.
+ * até expirarem. É o padrão recomendado pelo `@supabase/ssr`, e continua valendo
+ * com o `signOut({ scope: "local" })` da §22.11: o escopo muda **quais sessões**
+ * o servidor revoga, não os cookies que este aparelho tem de largar aqui.
  */
 function irParaOLogin(
   request: NextRequest,

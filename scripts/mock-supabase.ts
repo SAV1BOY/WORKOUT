@@ -130,6 +130,19 @@ const refresh = new Map<string, string>(); // refresh_token -> user_id
 /** Quando cada refresh token foi trocado pela primeira vez (ms). */
 const refreshTrocadoEm = new Map<string, number>();
 /**
+ * `refresh_token -> session_id`. Existe para o `POST /logout?scope=local`
+ * poder derrubar **só** a sessão de quem pediu: sem isto o mock revogava
+ * todos os refresh da conta e o "sair local" ficava indistinguível do global
+ * (SPEC §9, §21.4 e §22.11).
+ */
+const sessaoDoRefresh = new Map<string, string>();
+/**
+ * Os logouts recebidos desde o último reset, com o escopo que veio na busca
+ * da URL. É o que prova, num e2e, que o app manda `?scope=local` — o corpo do
+ * `signOut` não passa por lugar nenhum onde o teste possa olhar.
+ */
+let logouts: { scope: string; em: string }[] = [];
+/**
  * Janela de reuso do refresh token, como no GoTrue de verdade
  * (`SECURITY_REFRESH_TOKEN_REUSE_INTERVAL`, 10 s por padrão). Sem ela, o
  * servidor e o navegador renovando a sessão quase ao mesmo tempo — o que o
@@ -442,6 +455,8 @@ function zerar(): void {
   usuarios.clear();
   refresh.clear();
   refreshTrocadoEm.clear();
+  sessaoDoRefresh.clear();
+  logouts = [];
   arquivos.clear();
   requisicoes = [];
   appConfig = { max_contas: LIMITE_PADRAO_DE_CONTAS, updated_at: agora() };
@@ -526,8 +541,10 @@ function usuarioPublico(u: Usuario): Linha {
   };
 }
 
-function sessaoDe(u: Usuario): Linha {
+function sessaoDe(u: Usuario, sessaoAnterior?: string): Linha {
   u.ultimo_acesso = agora();   // last_sign_in_at de auth.users
+  // trocar o refresh não abre outra sessão: o session_id atravessa a rotação
+  const sessaoId = sessaoAnterior ?? randomUUID();
   const iat = Math.floor(Date.now() / 1000);
   const exp = iat + VALIDADE_S;
   const access_token = criarJwt({
@@ -537,7 +554,7 @@ function sessaoDe(u: Usuario): Linha {
     role: "authenticated",
     email: u.email,
     phone: "",
-    session_id: randomUUID(),
+    session_id: sessaoId,
     is_anonymous: false,
     app_metadata: { provider: "email", providers: ["email"] },
     user_metadata: { email: u.email, email_verified: true },
@@ -546,6 +563,7 @@ function sessaoDe(u: Usuario): Linha {
   });
   const novoRefresh = `mock-refresh-${randomUUID()}`;
   refresh.set(novoRefresh, u.id);
+  sessaoDoRefresh.set(novoRefresh, sessaoId);
   return {
     access_token,
     token_type: "bearer",
@@ -702,7 +720,7 @@ async function rotaAuth(
           error_code: "refresh_token_already_used",
         });
       }
-      return { status: 200, corpo: sessaoDe(u) };
+      return { status: 200, corpo: sessaoDe(u, sessaoDoRefresh.get(antigo)) };
     }
     throw new ErroMock(400, `mock: recurso token?grant_type=${tipo} não implementado`);
   }
@@ -743,10 +761,30 @@ async function rotaAuth(
     }
   }
 
+  /*
+   * O `?scope=local` da §22.11 chega na busca da URL, e `caminho` é só o
+   * `pathname`. O escopo fica registrado em `logouts` (e aparece em
+   * `GET /__mock/estado`) porque é a única forma de um e2e provar o que o app
+   * pediu. E ele muda o que acontece, como no GoTrue de verdade: `local`
+   * derruba só a sessão de quem pediu — o outro aparelho do dono continua
+   * dentro —, `global` derruba todas as da conta.
+   */
   if (caminho === "/logout" && metodo === "POST") {
+    const escopo = url.searchParams.get("scope") ?? "global";
+    logouts.push({ scope: escopo, em: agora() });
     const u = usuarioDaRequisicao(req);
     if (u) {
-      for (const [t, id] of refresh) if (id === u.id) refresh.delete(t);
+      const carga = lerJwt(
+        (req.headers.authorization ?? "").replace(/^Bearer\s+/i, "").trim(),
+      );
+      const daSessao = typeof carga?.session_id === "string" ? carga.session_id : null;
+      for (const [t, id] of refresh) {
+        if (id !== u.id) continue;
+        if (escopo === "local" && sessaoDoRefresh.get(t) !== daSessao) continue;
+        refresh.delete(t);
+        refreshTrocadoEm.delete(t);
+        sessaoDoRefresh.delete(t);
+      }
     }
     return { status: 204, corpo: null };
   }
@@ -1539,6 +1577,8 @@ function rotaMock(req: IncomingMessage, url: URL, corpo: unknown): Resposta {
         ),
         arquivos: [...arquivos.keys()],
         requisicoes,
+        logouts,
+        ultimo_logout: logouts.length > 0 ? logouts[logouts.length - 1] : null,
       },
       cabecalhos: {},
     };

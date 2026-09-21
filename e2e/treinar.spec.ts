@@ -123,6 +123,45 @@ test.describe("começar o treino (SPEC §3.2)", () => {
 });
 
 test.describe("registrar série a série (SPEC §3.2 e §10.3)", () => {
+  /*
+   * O − e o + com o campo AINDA focado (SPEC §22.11). No Chromium tocar num
+   * `<button>` tira o foco do `<input>`, e o `blur` reconcilia o texto: por
+   * isso os outros testes daqui não alcançam este caminho. No Safari do
+   * iPhone tocar num botão **não** move o foco — e o campo ficava mostrando o
+   * número velho enquanto o valor já tinha andado.
+   *
+   * `dispatchEvent("click")` é o que reproduz isso num Chromium: dispara o
+   * clique sem entrada de verdade, então o foco não sai do campo.
+   */
+  test("o − e o + acertam o campo mesmo com o foco dentro dele", async ({ page }) => {
+    await comecarTreinoA(page);
+    const primeira = page.getByRole("group", { name: "Série 1 — Agachamento livre" });
+    const campo = primeira.getByRole("textbox", { name: "carga na barra" });
+
+    await campo.click();
+    await expect(campo).toBeFocused();
+
+    await primeira
+      .getByRole("button", { name: "Aumentar carga na barra" })
+      .dispatchEvent("click");
+
+    // o foco continua no campo: é o mundo do Safari
+    await expect(campo).toBeFocused();
+    await expect(campo).toHaveValue("11,5");
+
+    await primeira
+      .getByRole("button", { name: "Diminuir carga na barra" })
+      .dispatchEvent("click");
+    await expect(campo).toBeFocused();
+    await expect(campo).toHaveValue("7,5");
+
+    // e a digitação continua sendo do dedo depois do toque no botão: sem isto,
+    // o efeito voltaria a reescrever o campo no meio de "12,5"
+    await campo.fill("");
+    await campo.pressSequentially("12,5", { delay: 60 });
+    await expect(campo).toHaveValue("12,5");
+  });
+
   test("três séries pelos steppers, sem teclado, e o timer de descanso", async ({
     page,
   }) => {

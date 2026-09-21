@@ -9,6 +9,7 @@ import {
   resetarMock,
   semRolagemHorizontal,
   SENHA,
+  URL_MOCK,
   usuarioComPerfil,
 } from "./fixtures";
 
@@ -120,6 +121,67 @@ test.describe("login", () => {
     // rota protegida sem sessão volta para o login
     await page.goto("/progresso");
     await expect(page).toHaveURL(/\/login$/);
+  });
+
+  /*
+   * A §22.11 exige que "Sair" seja deste aparelho. O escopo não aparece na
+   * tela nem no corpo da resposta: quem sabe dizer o que o app pediu é o
+   * mock, que guarda cada logout com o `?scope=` que veio na URL.
+   */
+  test("sair pede o escopo local ao Supabase (§22.11)", async ({ page }) => {
+    await login(page);
+    await irNaAba(page, "Mais");
+    await page.getByRole("button", { name: "Sair" }).click();
+    await expect(page).toHaveURL(/\/login$/);
+
+    const estado = await estadoDoMock();
+    const logouts = estado.logouts as { scope: string }[];
+    expect(logouts.length, "o app não chamou /auth/v1/logout").toBeGreaterThan(0);
+    expect((estado.ultimo_logout as { scope: string }).scope).toBe("local");
+    // nenhum escopo além de "local" — um signOut() pelado mandaria "global"
+    expect(logouts.map((l) => l.scope)).toEqual(logouts.map(() => "local"));
+  });
+
+  /*
+   * E o que o escopo faz: o dono tem o celular e o navegador abertos com a
+   * mesma conta. Sair num deles derrubava o outro (403 na primeira leitura).
+   * Aqui as duas sessões nascem no mock, uma sai com `scope=local`, e a outra
+   * continua de pé — o refresh dela ainda troca por um par novo.
+   */
+  test("sair num aparelho não derruba o outro (§21.4)", async () => {
+    await usuarioComPerfil();
+    const entrar = async () => {
+      const r = await fetch(`${URL_MOCK}/auth/v1/token?grant_type=password`, {
+        method: "POST",
+        headers: { "content-type": "application/json", apikey: "mock-anon" },
+        body: JSON.stringify({ email: EMAIL_DONO, password: SENHA }),
+      });
+      expect(r.status, "o mock recusou a senha do dono").toBe(200);
+      return (await r.json()) as { access_token: string; refresh_token: string };
+    };
+    const celular = await entrar();
+    const navegador = await entrar();
+
+    const saida = await fetch(`${URL_MOCK}/auth/v1/logout?scope=local`, {
+      method: "POST",
+      headers: { apikey: "mock-anon", authorization: `Bearer ${celular.access_token}` },
+    });
+    expect(saida.status).toBe(204);
+    expect((await estadoDoMock()).ultimo_logout).toMatchObject({ scope: "local" });
+
+    const renovar = async (refresh_token: string) =>
+      (
+        await fetch(`${URL_MOCK}/auth/v1/token?grant_type=refresh_token`, {
+          method: "POST",
+          headers: { "content-type": "application/json", apikey: "mock-anon" },
+          body: JSON.stringify({ refresh_token }),
+        })
+      ).status;
+
+    // o aparelho que ficou continua dentro
+    expect(await renovar(navegador.refresh_token), "o outro aparelho caiu junto").toBe(200);
+    // e o que saiu, saiu mesmo
+    expect(await renovar(celular.refresh_token)).toBe(400);
   });
 
   test("entrar de novo com a conta que já existe", async ({ page }) => {
