@@ -8325,3 +8325,13 @@ worker serve quando não há rede, e nenhuma tela do app mudou, nem a
 `/~offline`, que não foi tocada. Motor e montagem intocados
 (`git diff origin/main -- lib/progressao.ts lib/montagem.ts` vazio); nenhuma
 migração de banco; nada de service role no cliente.
+
+**Uma correção depois dos portões.** Ao renderizar o socorro a 360 px nos dois
+temas, o "Tentar de novo" apareceu com contorno em vez de preenchido:
+`.ato:first-of-type` e `.ato:last-of-type` casavam com os **dois** alvos —
+um é `<button>` e o outro é `<a>`, e cada um é o primeiro *e* o último do seu
+próprio tipo. Cada alvo passou a levar a sua classe, e o teste de unidade
+prende as duas, o preenchimento do primeiro e a ausência dos dois seletores.
+Medido no Chromium a 360 px, nos dois temas: alvos de **48 × 328 px**, fundo
+`rgb(224,224,221)` no claro e `rgb(10,10,10)` no escuro, zero vazamento
+lateral, 2.370 bytes. A cadeia de portões foi repetida inteira no HEAD final.
