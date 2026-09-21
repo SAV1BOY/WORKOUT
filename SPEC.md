@@ -1807,3 +1807,86 @@ a tela — afrouxar o limite não é uma opção.
    grandes" o exercício sem registro encolhe para uma linha (nome + "sem
    registro"), em vez de um cartão de altura cheia com um vazio de gráfico
    dentro.
+
+### 22.8 Lote 8 — Calendário e faixa da semana
+
+1. **Nunca um numerador maior que o denominador.** Passadas as
+   `SEMANAS_PARA_FASE2` semanas, `rotuloDaFase()` (`lib/semana.ts`) parava de
+   contar junto: dizia "Fase 1 · semana 16 de 12". Agora, da semana 13 em
+   diante, ele devolve **"Fase 1 · 12 de 12 concluída"** — sem fração
+   impossível — e `faseCumprida()` (o mesmo módulo, mesma regra) diz à tela
+   que a Fase 1 já cobriu o plano. O Calendário usa as duas: o chip da fase
+   mostra o texto novo e, quando a fase está cumprida, aparece ao lado um
+   atalho **"Passar para a Fase 2"** para o card do perfil que faz a troca
+   (`/mais/perfil`) — a sugestão da §5.1 deixa de existir só no perfil. Até a semana 12 nada muda ("Fase 1 · semana 3 de 12").
+2. **O mês da miniatura fica navegável de verdade.** Cada dia da grade do mês
+   passa a ser um `<button>` que abre o **mesmo `DialogoDia`** do cartão da
+   semana (a `DiaDaGrade` do dia sai de `montarGrade()` na hora do toque, pela
+   mesma fonte), e o toque também leva a semana de cima para a semana daquele
+   dia. Ao lado do título entram as setas **‹ ›** de mês. Cada casa tem 44 px
+   de altura e ≥ 44 px de largura a 360 px.
+3. **A faixa dos sete dias rola em vez de vazar.** `components/ui/faixa-semana.tsx`
+   era sete colunas `flex-1` com largura mínima de texto: a 200 % de zoom
+   (180 px efetivos) ela media 264 px e empurrava a página inteira para o
+   lado. A lista vira um carrossel (`overflow-x-auto` + `snap-x`, o mesmo
+   padrão dos desafios), com `min-w-9` por dia: a 360 px as sete casas
+   continuam preenchendo a largura sem rolagem nenhuma; abaixo disso quem
+   rola é a faixa, não a página. No Calendário, o cabeçalho e a navegação da
+   semana passam a quebrar linha (`flex-wrap`) pelo mesmo motivo. A 180 px o
+   `/calendario` deixa de rolar para o lado; na aba Treino continuam passando
+   da largura duas coisas **presas na tela** (`position: fixed`) e de fora
+   deste lote — a barra de 5 abas (`components/nav-inferior.tsx`) e o botão
+   flutuante —, registradas na fila.
+4. **Um só desenho de marcador, uma só linha de base.** Os cinco estados da
+   faixa desenhavam caixas diferentes (disco de 24 px para "feito", anel de
+   24 px para "parcial", pontos de 8–10 px para o resto). Agora todos ocupam
+   a mesma caixa de **20 × 20** e mudam só o que há dentro: feito = disco
+   cheio com ✓ de 12 px; parcial = anel de 20 px com miolo de 8 px; a fazer
+   = anel de 10 px (na cor primária quando é hoje, §22.6 item 9); faltou =
+   disco de 10 px; descanso = traço de 10 × 2. Nenhum desenho muda de
+   significado — a legenda de `LEGENDA_DA_FAIXA` continua valendo.
+5. **"Hoje" também para quem não vê a cor.** O dia corrente da grade do mês
+   leva `aria-current="date"` e a palavra "hoje" no nome acessível da casa
+   (em vez de um `<span class="sr-only">`, que entraria no `getByText` da
+   página como texto — o mesmo motivo da §22.3 item 11), além do realce de
+   fundo que já existia.
+6. **Legenda da grade do mês, e forma antes de cor.** Sob a grade entra uma
+   legenda de uma linha, desenhada com os **mesmos** glifos da grade
+   (`GlifoDoMes`, não um texto à mão): ● feito · ◉ parcial · ○ força a fazer
+   · ◇ cardio a fazer · ✕ perdido. Feito e planejado passam a diferir por
+   **forma** (disco cheio × anel), força e cardio por forma (círculo ×
+   losango) e o dia perdido por um ✕ — nada depende mais do tom.
+7. **A contagem da semana vira barra, e "perdidos" some quando é zero.** A
+   linha "1 feito · 3 a fazer · 0 perdidos" ganha uma barra de três segmentos
+   (feito / a fazer / perdido) logo abaixo da navegação, e o trecho
+   "perdidos" só aparece quando há algum: a semana perfeita lê
+   "3 feitos · 2 a fazer".
+8. **A semana mostrada fica entre as setas.** O intervalo ("14/09 – 20/09")
+   sai do cabeçalho e entra entre ‹ e ›; o "Hoje", que ocupava a largura
+   inteira, vira um botão pequeno que **só aparece quando a semana na tela
+   não é a atual**.
+9. **"Não vou treinar hoje" presa ao dia.** A ação deixa de flutuar no fim da
+   tela: fica logo abaixo da grade, separada por um divisor e pelo rótulo
+   "Se hoje (16/09) não rolar", com a data de hoje no próprio rótulo.
+10. **Hierarquia do mês e cartões do dia da mesma altura.** O nome do mês
+    passa a ser um título de seção (`text-base font-semibold`, sem
+    versalete), a linha da semana mostrada acima ganha realce dentro da
+    grade, e os cartões da semana usam `line-clamp-1` no rótulo e no detalhe
+    com altura mínima fixa — os sete ficam do mesmo tamanho e o texto
+    inteiro continua no `DialogoDia`.
+11. **Antes do começo do programa não existe falta.** `marcarDia()`
+    (`lib/semana.ts`) não conhecia `profiles.data_inicio`: qualquer dia de
+    força ou cardio ANTERIOR ao começo do programa e sem sessão virava
+    "faltou" — com o item 6 acima, um ✕ vermelho na grade do mês (dez deles
+    em setembro, para quem começou no dia 14) e a palavra "faltou" no nome
+    acessível. Entra a marca **"antes"**: o dia anterior a `data_inicio` não
+    desenha nada, anuncia-se como **"antes do começo"** e fica de fora da
+    contagem da semana — a linha "N perdidos" some junto, e a semana inteira
+    anterior ao começo não escreve contagem nenhuma. "antes" é a ausência de
+    marca, então não entra na legenda: `MarcaVisivel`
+    (`Exclude<MarcaDoDia, "antes">`) guarda o contrato da §22.6 item 9 —
+    qualquer OUTRA marca nova continua quebrando a compilação de
+    `GLIFO_DA_MARCA`/`ORDEM_DA_LEGENDA`. Uma sessão gravada antes do começo
+    (quem mudou a data de início depois de já ter treinado) continua valendo
+    como feita. É a §11 na prática: o app não cobra dias em que o usuário
+    ainda não existia.
