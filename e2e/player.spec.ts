@@ -747,6 +747,10 @@ test.describe("visão geral e gostei/não gosto (SPEC §14.1.2)", () => {
 
     // e o "gostei" desfaz — e passa a valer como voto próprio (§22.1)
     await page.goBack();
+    // espera o player rehidratar com o voto "evitado" antes de trocá-lo
+    await expect(
+      page.getByRole("button", { name: "Não gosto deste exercício" }),
+    ).toHaveAttribute("aria-pressed", "true");
     await page.getByRole("button", { name: "Gostei deste exercício" }).click();
     await expect
       .poll(
