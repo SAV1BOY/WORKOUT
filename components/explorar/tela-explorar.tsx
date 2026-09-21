@@ -1,6 +1,6 @@
 "use client";
 
-import { Search, SearchX, X } from "lucide-react";
+import { ArrowRight, Search, SearchX, X } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { LinhaColecao } from "@/components/colecoes/linha-colecao";
@@ -20,20 +20,36 @@ import {
   colecoesPorAparelho,
   colecoesPorGrupo,
   desafios,
+  semCapasRepetidas,
   type Colecao,
 } from "@/lib/colecoes";
+import {
+  FILTROS_VAZIOS,
+  filtrarExercicios,
+  idsDoPrograma,
+  temFiltro,
+  type FiltrosCatalogo,
+} from "@/lib/catalogo";
 import { proximoTreinoDaFase, semanaDaFase } from "@/lib/calendario";
 import { detalheDoTreino, resumoDoTreino } from "@/lib/hoje";
 import { capaDoTreino } from "@/lib/capas";
 import { dificuldadeDaColecao } from "@/lib/dificuldade";
-import { exerciciosDoTreino } from "@/lib/dados";
+import { exercicios, exerciciosDoTreino } from "@/lib/dados";
 import { ligado } from "@/lib/preferencias";
 import { useOverrides, usePerfil } from "@/lib/queries/dados";
 import { useHoje } from "@/lib/relogio";
 import { intervaloDaSemana } from "@/lib/semana";
+import { cn } from "@/lib/utils";
 
 /** Quantas linhas uma seção mostra antes do "Ver todos". */
 const PREVIA = 3;
+
+/**
+ * Quantos exercícios a vitrine mostra de prévia (SPEC §22.9 item 1). O
+ * catálogo inteiro aqui dentro fazia `/explorar` medir 8.922 px — doze telas,
+ * 78% delas de catálogo. O catálogo tem tela própria: `/exercicios`.
+ */
+const PREVIA_DO_CATALOGO = 12;
 
 /**
  * `/explorar` (SPEC §13.4 e §14.4): busca sempre visível, um destaque, as
@@ -44,6 +60,20 @@ const PREVIA = 3;
 export function TelaExplorar() {
   const hoje = useHoje();
   const [busca, setBusca] = useState("");
+  /*
+   * SPEC §22.9 item 10: os filtros do catálogo moram AQUI, e não dentro da
+   * <ListaExercicios>. A contagem do título saía de uma conta feita só com o
+   * termo enquanto a lista já tinha aplicado o filtro recolhido atrás do botão
+   * "Filtros": buscar "supino" e escolher Grupo = Costas deixava «Exercícios
+   * (6)» em cima e "Nenhum exercício com esses filtros" embaixo. Com o estado
+   * aqui, o número e a lista saem do MESMO filtro.
+   */
+  const [filtros, setFiltros] = useState<FiltrosCatalogo>(FILTROS_VAZIOS);
+  /** Trocar o termo mantém os filtros; apagar a busca inteira os solta. */
+  const trocarBusca = (valor: string) => {
+    setBusca(valor);
+    if (valor.trim() === "") setFiltros(FILTROS_VAZIOS);
+  };
 
   const perfilQ = usePerfil();
   const perfil = perfilQ.data ?? null;
@@ -57,13 +87,17 @@ export function TelaExplorar() {
 
   const mostrarRaios = ligado(perfil?.prefs, "mostrar_raios");
 
+  /*
+   * SPEC §22.9 item 7: `semCapasRepetidas` é aplicado POR SEÇÃO — é dentro de
+   * uma seção que quatro linhas seguidas apareciam com a mesma foto.
+   */
   const secoes = useMemo(
     () => [
-      { titulo: "Treinos do programa", itens: colecoesDeTreino() },
-      { titulo: "Parte do corpo", itens: colecoesPorGrupo() },
-      { titulo: "Circuitos", itens: circuitos() },
-      { titulo: "Por aparelho", itens: colecoesPorAparelho() },
-      { titulo: "Planos", itens: colecoesDePlano() },
+      { titulo: "Treinos do programa", itens: semCapasRepetidas(colecoesDeTreino()) },
+      { titulo: "Parte do corpo", itens: semCapasRepetidas(colecoesPorGrupo()) },
+      { titulo: "Circuitos", itens: semCapasRepetidas(circuitos()) },
+      { titulo: "Por aparelho", itens: semCapasRepetidas(colecoesPorAparelho()) },
+      { titulo: "Planos", itens: semCapasRepetidas(colecoesDePlano()) },
     ],
     [],
   );
@@ -72,10 +106,29 @@ export function TelaExplorar() {
   const pronto = Boolean(hoje && perfil) && !overridesQ.isPending;
 
   const achadas = useMemo(
-    () => (busca.trim() === "" ? [] : buscarColecoes(busca)),
+    () => (busca.trim() === "" ? [] : semCapasRepetidas(buscarColecoes(busca))),
     [busca],
   );
+  const doPrograma = useMemo(() => idsDoPrograma(), []);
+  /* quantos exercícios a mesma busca acha — com os mesmos filtros da lista */
+  const quantosExercicios = useMemo(
+    () =>
+      busca.trim() === ""
+        ? 0
+        : filtrarExercicios(exercicios, { ...filtros, busca }, doPrograma).length,
+    [busca, filtros, doPrograma],
+  );
   const buscando = busca.trim() !== "";
+  /* `filtros.busca` fica sempre vazio: quem busca é a barra de cima. */
+  const comFiltro = temFiltro(filtros);
+  /*
+   * O bloco dos exercícios fica de pé mesmo com zero achados quando há filtro:
+   * é ele que carrega o botão "Filtros" e o "Limpar filtros". Sem ele, quem
+   * filtrou até o vazio ficaria sem como desfazer.
+   */
+  const blocoExercicios = buscando && (quantosExercicios > 0 || comFiltro);
+  const blocoColecoes = achadas.length > 0;
+  const nada = buscando && !blocoExercicios && !blocoColecoes;
 
   return (
     <section aria-label="Explorar" className="flex flex-col gap-4">
@@ -90,7 +143,7 @@ export function TelaExplorar() {
             type="search"
             inputMode="search"
             value={busca}
-            onChange={(e) => setBusca(e.target.value)}
+            onChange={(e) => trocarBusca(e.target.value)}
             placeholder="Buscar exercício ou coleção"
             aria-label="Buscar exercício ou coleção"
             className="alvo h-12 pl-9 text-base"
@@ -98,7 +151,7 @@ export function TelaExplorar() {
           {busca ? (
             <button
               type="button"
-              onClick={() => setBusca("")}
+              onClick={() => trocarBusca("")}
               aria-label="Limpar a busca"
               className="alvo text-muted-foreground absolute top-1/2 right-0 flex -translate-y-1/2 items-center justify-center"
             >
@@ -108,28 +161,79 @@ export function TelaExplorar() {
         </div>
       </header>
 
-      {buscando ? (
-        <section aria-label="Coleções encontradas" className="flex flex-col gap-1">
-          <h2 className="text-base font-semibold">
-            Coleções ({achadas.length})
-          </h2>
-          {achadas.length === 0 ? (
-            <Vazio
-              icone={SearchX}
-              titulo="Nenhuma coleção com esse nome"
-              frase="Tente uma palavra mais curta, ou desça para as seções do catálogo."
-              acao={{ rotulo: "Limpar busca", aoTocar: () => setBusca("") }}
-            />
-          ) : (
-            <ul className="flex flex-col divide-y">
-              {achadas.map((c) => (
-                <li key={c.id}>
-                  <LinhaColecao colecao={c} mostrarRaios={mostrarRaios} />
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
+      {/*
+        SPEC §22.9 itens 3 e 4: o resultado começa pelos EXERCÍCIOS — com
+        "supino" eles caíam em y=860, atrás de nove linhas de coleção, fora da
+        primeira tela. Sem nenhum resultado, UM vazio só, citando o termo.
+      */}
+      {nada ? (
+        <Vazio
+          icone={SearchX}
+          titulo={`Nada para «${busca.trim()}»`}
+          frase="Tente uma palavra mais curta, ou o nome do aparelho."
+          acao={{ rotulo: "Limpar busca", aoTocar: () => trocarBusca("") }}
+        />
+      ) : buscando ? (
+        <>
+          {/*
+            SPEC §22.9 item 10: o seletor só existe quando há DOIS blocos entre
+            os quais escolher. Desenhar sempre os dois âncoras deixava, numa
+            busca como "tatame" (0 exercícios, 2 coleções), um «Exercícios (0)»
+            focável de 80×44 px apontando para um id fora do documento — tocar
+            nele não fazia nada. Com um bloco só não há para onde pular.
+          */}
+          {blocoExercicios && blocoColecoes ? (
+            <p className="text-muted-foreground flex items-center gap-1 text-xs">
+              <a href="#achados-exercicios" className="alvo foco flex items-center rounded-md">
+                Exercícios ({quantosExercicios})
+              </a>
+              <span aria-hidden="true">·</span>
+              <a href="#achados-colecoes" className="alvo foco flex items-center rounded-md">
+                Coleções ({achadas.length})
+              </a>
+            </p>
+          ) : null}
+
+          {blocoExercicios ? (
+            <section
+              id="achados-exercicios"
+              aria-label="Exercícios encontrados"
+              className="flex scroll-mt-4 flex-col gap-1"
+            >
+              {/*
+                `aria-live` porque este título é o único contador da seção:
+                mexer num filtro muda o número sem mexer no foco.
+              */}
+              <h2 className="text-base font-semibold" aria-live="polite">
+                Exercícios ({quantosExercicios})
+              </h2>
+              <ListaExercicios
+                busca={busca}
+                filtros={filtros}
+                aoMudarFiltros={setFiltros}
+              />
+            </section>
+          ) : null}
+
+          {blocoColecoes ? (
+            <section
+              id="achados-colecoes"
+              aria-label="Coleções encontradas"
+              className="flex scroll-mt-4 flex-col gap-1"
+            >
+              <h2 className="text-base font-semibold">
+                Coleções ({achadas.length})
+              </h2>
+              <ul className="flex flex-col divide-y">
+                {achadas.map((c) => (
+                  <li key={c.id}>
+                    <LinhaColecao colecao={c} mostrarRaios={mostrarRaios} />
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
+        </>
       ) : (
         <>
           {/*
@@ -144,22 +248,40 @@ export function TelaExplorar() {
           ) : (
             <EsqueletoDoDestaque />
           )}
-          <h2 className="text-base font-semibold">Escolhas para você</h2>
-          {secoes.map((s) => (
+          {/*
+            SPEC §22.9 item 8: o rótulo não agrupava nada e competia com os
+            títulos de seção. Agora é overline de 11 px, e o degrau para o
+            título de 16 px com régua acima é visível de longe.
+          */}
+          <h2 className="text-muted-foreground text-rotulo tracking-wide uppercase">
+            Escolhas para você
+          </h2>
+          {secoes.map((s, i) => (
             <Secao
               key={s.titulo}
               titulo={s.titulo}
               itens={s.itens}
               mostrarRaios={mostrarRaios}
+              regua={i > 0}
             />
           ))}
+
+          {/*
+            SPEC §22.9 item 1: prévia do catálogo, não o catálogo. Os 81
+            exercícios têm tela própria.
+          */}
+          <section aria-label="Catálogo" className="flex flex-col gap-2 border-t pt-3">
+            <h3 className="text-base font-semibold">Exercícios</h3>
+            <ListaExercicios limite={PREVIA_DO_CATALOGO} />
+            <BotaoLargo asChild variant="outline">
+              <Link href="/exercicios">
+                Ver os {exercicios.length} exercícios
+                <ArrowRight aria-hidden="true" className="size-4" />
+              </Link>
+            </BotaoLargo>
+          </section>
         </>
       )}
-
-      <section aria-label="Catálogo" className="flex flex-col gap-3">
-        <h2 className="text-base font-semibold">Todos os exercícios</h2>
-        <ListaExercicios busca={busca} />
-      </section>
     </section>
   );
 }
@@ -258,19 +380,25 @@ function Secao({
   titulo,
   itens,
   mostrarRaios,
+  regua = false,
 }: {
   titulo: string;
   itens: Colecao[];
   mostrarRaios: boolean;
+  /** A régua que separa uma seção da anterior (SPEC §22.9 item 8). */
+  regua?: boolean;
 }) {
   const [tudo, setTudo] = useState(false);
   if (itens.length === 0) return null;
   const mostradas = tudo ? itens : itens.slice(0, PREVIA);
 
   return (
-    <section aria-label={titulo} className="flex flex-col gap-1">
+    <section
+      aria-label={titulo}
+      className={cn("flex flex-col gap-1", regua && "border-t pt-3")}
+    >
       <div className="flex items-baseline justify-between gap-2">
-        <h3 className="text-sm font-semibold">{titulo}</h3>
+        <h3 className="text-base font-semibold">{titulo}</h3>
         {itens.length > PREVIA ? (
           <Button
             variant="ghost"

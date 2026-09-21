@@ -497,7 +497,7 @@ const EXPLORAR: SecaoDoGuia = {
       nome: "Todos os exercícios",
       oQueFaz:
         "O catálogo inteiro, com filtro por grupo. A ficha de cada um traz passos, erro comum, músculos, Ilustração · Figura · Fotos e o seu histórico naquele exercício.",
-      caminho: ["Explorar", "Todos os exercícios"],
+      caminho: ["Explorar", "Exercícios"],
       href: "/exercicios",
     },
   ],

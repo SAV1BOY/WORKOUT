@@ -139,9 +139,10 @@ test.describe("aba Treino — Parte do corpo em foco (§14.3)", () => {
       secao.getByRole("button", { name: /^Começar Core$/ }),
     ).toBeVisible();
 
+    // SPEC §22.9 item 9: o segmento da rota é normalizado (minúscula, sem acento)
     await expect(secao.getByRole("link", { name: "Ver tudo" })).toHaveAttribute(
       "href",
-      "/explorar/grupo/Core",
+      "/explorar/grupo/core",
     );
 
     // o filtro derivado "sem equipamento" encolhe a lista e some com o Bíceps,
