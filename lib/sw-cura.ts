@@ -116,21 +116,55 @@ export function criarCura(ferramentas: FerramentasDaCura) {
    * saber o que procurar. Se um só asset não vier, a cópia não vale: meia
    * cópia é a tela quebrada, e o socorro embutido é melhor do que ela.
    */
+  /**
+   * Um asset da cópia, da fonte mais barata para a mais cara: o precache do
+   * build que acabou de instalar, depois qualquer cache do aparelho, e só
+   * então a rede.
+   *
+   * A ordem importa (auditoria de 21/09): buscar tudo na rede fazia a cura
+   * falhar inteira numa ativação sem conexão — o precache estava cheio, os 15
+   * pedaços estavam ali ao lado, e mesmo assim ela devolvia "sem-fonte" e não
+   * guardava nem o HTML. E no caminho normal gastava 15 idas à rede para
+   * copiar o que já estava no aparelho. Os endereços do Next carregam o hash
+   * do conteúdo, então cópia guardada com a mesma URL é o mesmo byte.
+   */
+  async function umAsset(
+    url: string,
+    prazoMs: number,
+  ): Promise<Response | null> {
+    try {
+      const doPrecache = await ferramentas.doPrecache(url);
+      if (doPrecache?.ok) return doPrecache;
+    } catch {
+      // precache despejado: tenta a próxima fonte
+    }
+    try {
+      const guardado = await ferramentas.armazenamento.match(url, {
+        ignoreSearch: true,
+      });
+      if (guardado?.ok) return guardado;
+    } catch {
+      // sem Cache Storage: tenta a rede
+    }
+    try {
+      const r = await ferramentas.buscar(url, {
+        cache: "no-store",
+        credentials: "same-origin",
+        signal: AbortSignal.timeout(prazoMs),
+      });
+      return r.ok && !r.redirected ? r : null;
+    } catch {
+      return null;
+    }
+  }
+
   async function guardar(resposta: Response, prazoMs: number): Promise<boolean> {
     const urls = urlsDeAssets(await resposta.clone().text(), ferramentas.origem);
     if (urls.length > MAXIMO_DE_ASSETS) return false;
     const baixados = await Promise.all(
       urls.map(async (url) => {
-        try {
-          const r = await ferramentas.buscar(url, {
-            cache: "no-store",
-            credentials: "same-origin",
-            signal: AbortSignal.timeout(prazoMs),
-          });
-          return r.ok && !r.redirected ? ([url, r] as const) : null;
-        } catch {
-          return null;
-        }
+        const r = await umAsset(url, prazoMs);
+        return r ? ([url, r] as const) : null;
       }),
     );
     if (baixados.some((par) => par === null)) return false;

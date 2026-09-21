@@ -50,9 +50,18 @@ let relogio: number;
 
 function montar(opcoes: {
   precache?: Response | undefined;
+  /**
+   * O precache de verdade tem a `/~offline` **e** os pedaços dela. Os testes
+   * que querem exercitar a ida à rede deixam isto de fora; o que prende a
+   * ativação sem conexão liga.
+   */
+  precacheDeAssets?: boolean;
   rede?: (url: string) => Promise<Response>;
 }) {
-  const doPrecache = vi.fn(async () => opcoes.precache);
+  const doPrecache = vi.fn(async (url: string) => {
+    if (url === OFFLINE) return opcoes.precache;
+    return opcoes.precacheDeAssets ? pagina(`${url} do precache`) : undefined;
+  });
   const buscar = vi.fn(
     opcoes.rede ??
       (async () => {
@@ -218,6 +227,43 @@ describe("a autocura do socorro (SPEC §22.10)", () => {
 
     expect(await garantir({ renovar: true })).toBe("sem-fonte");
     expect(await oQueEstaGuardado()).toBeNull();
+  });
+
+  /*
+   * A auditoria de 21/09: `guardar()` buscava TODO asset na rede, inclusive no
+   * ramo que copia do precache. Numa ativação de deploy novo sem conexão a
+   * cura devolvia "sem-fonte" e não guardava nem o HTML — e, com rede, gastava
+   * uma ida por pedaço para copiar o que já estava no aparelho.
+   */
+  it("na ativação sem conexão copia os assets do precache, sem rede nenhuma", async () => {
+    const { garantir, buscar } = montar({
+      precache: pagina(COM_ASSETS),
+      precacheDeAssets: true,
+      // sem `rede`: qualquer ida à rede rejeita
+    });
+
+    expect(await garantir({ renovar: true })).toBe("copiou-do-precache");
+    const cache = armazenamento.abertos.get(CACHE_DE_SOCORRO);
+    expect(await (await cache?.match("/_next/static/chunks/p1.js"))?.text()).toBe(
+      "/_next/static/chunks/p1.js do precache",
+    );
+    expect(await cache?.match("/_next/static/chunks/p2.js")).toBeTruthy();
+    expect(await cache?.match("/_next/static/css/a.css")).toBeTruthy();
+    expect(buscar).not.toHaveBeenCalled();
+  });
+
+  it("um asset que já está num cache do aparelho não volta a ser baixado", async () => {
+    const guardado = await armazenamento.open("socorro");
+    await guardado.put("/_next/static/chunks/p1.js", pagina("pedaço de ontem"));
+
+    const { garantir, buscar } = montar({
+      precache: pagina(COM_ASSETS),
+      rede: async () => pagina("conteúdo do asset"),
+    });
+
+    expect(await garantir({ renovar: true })).toBe("copiou-do-precache");
+    // dois assets pela rede; o terceiro veio do cache
+    expect(buscar).toHaveBeenCalledTimes(2);
   });
 
   it("cópia com asset despejado depois não conta como 'já tem': refaz", async () => {
