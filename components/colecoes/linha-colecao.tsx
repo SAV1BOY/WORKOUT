@@ -1,12 +1,50 @@
 "use client";
 
-import { ChevronRight, Dumbbell } from "lucide-react";
+import {
+  CalendarRange,
+  ChevronRight,
+  Dumbbell,
+  HeartPulse,
+  type LucideIcon,
+  Timer,
+  Wrench,
+} from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { Raios } from "@/components/ui/raios";
-import { hrefDaColecao, type Colecao } from "@/lib/colecoes";
+import { hrefDaColecao, type Colecao, type TipoColecao } from "@/lib/colecoes";
 import { urlMiniatura } from "@/lib/midia";
 import { cn } from "@/lib/utils";
+
+/**
+ * Sem foto, o que distingue a linha a 56 px é o ícone do tipo (SPEC §22.9
+ * item 7). Um ícone por tipo, nenhum inventado fora do que a coleção é.
+ */
+const ICONE_DO_TIPO: Record<TipoColecao, LucideIcon> = {
+  grupo: Dumbbell,
+  aparelho: Wrench,
+  circuito: Timer,
+  plano: CalendarRange,
+  treino: HeartPulse,
+};
+
+/**
+ * O tom da capa sem foto: quatro superfícies do tema (nenhuma cor nova, o
+ * app é sóbrio), escolhidas por um hash do id — então a mesma coleção tem
+ * sempre o mesmo tom, nos dois temas.
+ */
+const TONS = [
+  "bg-primary/10 text-primary",
+  "bg-muted text-muted-foreground",
+  "bg-secondary text-secondary-foreground",
+  "bg-accent text-accent-foreground",
+] as const;
+
+export function tomDaCapa(id: string): string {
+  let soma = 0;
+  for (let i = 0; i < id.length; i += 1) soma = (soma * 31 + id.charCodeAt(i)) % 997;
+  return TONS[soma % TONS.length] ?? TONS[1];
+}
 
 /**
  * Uma coleção na vitrine (SPEC §14.4): capa de `assets/`, título, `N
@@ -36,7 +74,11 @@ export function LinhaColecao({
         className,
       )}
     >
-      <CapaPequena foto={colecao.capa} />
+      <CapaPequena
+        foto={colecao.capa}
+        icone={ICONE_DO_TIPO[colecao.tipo]}
+        tom={tomDaCapa(colecao.id)}
+      />
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="flex items-center gap-1.5">
           <span className="min-w-0 flex-1 text-sm font-medium text-balance">
@@ -78,12 +120,27 @@ export function LinhaColecao({
  * SPEC §22.4 item 1: a caixa tem 56 px, então quem vem é a derivada de 112 —
  * 2,4 kB no lugar dos 70 kB do JPEG inteiro; o original fica de reserva.
  */
-export function CapaPequena({ foto }: { foto: string | null }) {
+export function CapaPequena({
+  foto,
+  icone: Icone = Dumbbell,
+  tom,
+}: {
+  foto: string | null;
+  /** O ícone da reserva, quando não há foto (SPEC §22.9 item 7). */
+  icone?: LucideIcon;
+  /** As classes de fundo e de traço da reserva. */
+  tom?: string;
+}) {
   const [quebrou, setQuebrou] = useState(false);
   const mostrar = foto !== null && !quebrou;
   const mini = urlMiniatura(foto);
   return (
-    <span className="bg-muted/60 relative block size-14 shrink-0 overflow-hidden rounded-xl">
+    <span
+      className={cn(
+        "relative block size-14 shrink-0 overflow-hidden rounded-xl",
+        mostrar ? "bg-muted/60" : (tom ?? "bg-muted/60"),
+      )}
+    >
       {mostrar ? (
         // eslint-disable-next-line @next/next/no-img-element -- foto local em /public, miniatura de tamanho fixo
         <img
@@ -109,8 +166,8 @@ export function CapaPequena({ foto }: { foto: string | null }) {
           }}
         />
       ) : (
-        <span className="text-muted-foreground flex size-full items-center justify-center">
-          <Dumbbell aria-hidden="true" className="size-5" />
+        <span className="flex size-full items-center justify-center">
+          <Icone aria-hidden="true" className="size-5" />
         </span>
       )}
     </span>
