@@ -119,11 +119,23 @@ export function bd(): BancoLocal {
 }
 
 /**
- * O cache de mídia do service worker (`app/sw.ts`), o único que sobrevive ao
- * "Sair": são as figuras e fotos dos exercícios, conteúdo público do app, e
- * apagá-las deixaria o PWA sem nada para mostrar offline na próxima conta.
+ * O cache de mídia do service worker (`app/sw.ts`), que sobrevive ao "Sair":
+ * são as figuras e fotos dos exercícios, conteúdo público do app, e apagá-las
+ * deixaria o PWA sem nada para mostrar offline na próxima conta.
  */
 export const CACHE_DE_MIDIA = "midia-do-treino";
+
+/**
+ * A cópia da `/~offline` que o service worker guarda quando o precache já não
+ * a tem (SPEC §22.10, `app/sw.ts`). Sobrevive ao "Sair" pelo mesmo motivo que
+ * a mídia: é uma página pública do app, sem nada do usuário — e apagá-la
+ * justamente no "Sair", que já leva o precache junto, devolveria o aparelho
+ * ao beco sem saída que o socorro embutido existe para cobrir.
+ */
+export const CACHE_DE_SOCORRO = "socorro";
+
+/** Os caches que o "Sair" poupa: só conteúdo público do app. */
+const CACHES_PUBLICOS = new Set([CACHE_DE_MIDIA, CACHE_DE_SOCORRO]);
 
 /**
  * Apaga tudo que é do usuário neste aparelho (SPEC §8 com §9).
@@ -144,7 +156,7 @@ export async function limparDadosLocais(): Promise<void> {
   try {
     if (typeof caches !== "undefined") {
       for (const nome of await caches.keys()) {
-        if (nome !== CACHE_DE_MIDIA) await caches.delete(nome);
+        if (!CACHES_PUBLICOS.has(nome)) await caches.delete(nome);
       }
     }
   } catch {

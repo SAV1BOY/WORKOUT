@@ -2038,3 +2038,42 @@ muda **o que fica ao alcance do polegar** e **quem manda no toque**.
    sessão livre, a de ontem, ou um dia de cardio/descanso. Nunca o card que
    começaria um treino novo. Vale também para o "Continuar depois" da Visão
    geral, que sai pelo mesmo caminho.
+
+### 22.10 Sem conexão: socorro e retentativa
+
+Um celular do dono mostrou, em 21/09/2026, uma tela preta com "Sem conexão" e
+a frase de sempre — **sem ícone e sem os dois botões**. Aquilo não era a
+página `/~offline`: era o HTML de emergência embutido no service worker, que
+só aparece quando a navegação falhou na rede **e** `matchPrecache("/~offline")`
+devolveu `undefined`. O precache some sozinho em pelo menos um caminho do
+próprio app — o "Sair" apaga todos os caches menos o de mídia
+(`lib/db.ts`) — e o Serwist só o repõe na instalação seguinte. Ou seja: o
+socorro não é um caso raro de instalação interrompida, é uma tela que o dono
+vai ver. Então ela tem de ser uma tela, não um beco.
+
+1. **O socorro tem os mesmos dois atos da página.** Mesmo título e mesma
+   frase, mais "Tentar de novo" (`location.reload()`) e "Ir para o Treino"
+   (`href="/"`), ambos com 48 px de altura e largura cheia; dois temas por
+   `prefers-color-scheme` com os tokens de `app/globals.css` (claro
+   `rgb(224,224,221)` sobre `rgb(10,10,10)`; escuro o inverso), `safe-area`,
+   `lang="pt-BR"` e nada vindo de fora — é o único HTML que precisa funcionar
+   quando não há mais nada no aparelho. Mora em `lib/sw-socorro.ts`, função
+   pura com teste de unidade.
+2. **Escada de fallback do documento**, em `semRede()`: (a) **uma retentativa
+   de rede** com um pedido novo (`cache: "no-store"`), porque a falha de rede
+   de um celular costuma durar segundos, não minutos; (b) o precache; (c)
+   `caches.match("/~offline")` em **qualquer** cache, ignorando busca e vary —
+   a regra `paginas` guarda a página quando ela foi visitada; (d) o socorro.
+   Para o `fetch` de RSC continua o 503 da §22.1.
+3. **Autocura do precache.** No `activate`, se o precache não tiver a
+   `/~offline`, o worker a busca da rede e a guarda num cache próprio
+   (`socorro`), que o degrau (c) também consulta. Idempotente e silencioso
+   quando falha: sem rede no `activate` não há o que fazer, e a próxima
+   ativação tenta de novo.
+
+Aceite: com o `fetch` do **worker** rejeitando (é assim que se corta a rede de
+quem serve, não com `context.setOffline`), abrir uma rota nunca visitada dá
+"Sem conexão" **com os dois botões**; apagar o precache e toda cópia da
+`/~offline` e abrir outra rota dá o socorro embutido, também com os dois
+botões; e restaurar a rede faz o "Tentar de novo" trazer a tela inteira
+(`e2e/sem-conexao.spec.ts`).

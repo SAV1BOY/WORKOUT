@@ -4,6 +4,7 @@ import {
   ehRsc,
   type PedidoDeNavegacao,
 } from "@/lib/sw-navegacao";
+import { htmlDeSocorro } from "@/lib/sw-socorro";
 import type { PrecacheEntry, SerwistGlobalConfig } from "serwist";
 import {
   CacheFirst,
@@ -58,17 +59,12 @@ function pedidoDe(request: Request): PedidoDeNavegacao {
 }
 
 /**
- * O HTML mínimo de socorro: só entra se o precache da `/~offline` tiver
- * falhado (instalação interrompida, cache limpo pelo sistema). Mesmo aí a
- * navegação nunca morre num erro do navegador — o texto é o mesmo da página.
+ * O cache próprio da autocura (SPEC §22.10): uma cópia da `/~offline` que o
+ * worker guarda quando descobre que o precache já não a tem. Fica fora dos
+ * caches do Serwist de propósito — quem o preenche é o `activate` daqui, e o
+ * degrau (c) da escada o consulta junto com todos os outros.
  */
-const SOCORRO = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Sem conexão — Treino do Terraço</title></head>
-<body style="font-family:system-ui;margin:0;display:grid;place-items:center;min-height:100vh;background:#0a0a0a;color:#fafafa">
-<main style="text-align:center;padding:1.5rem"><h1>Sem conexão</h1>
-<p>O treino continua: o que você registrar fica salvo no celular e sobe sozinho quando a rede voltar.</p>
-</main></body></html>`;
+const CACHE_DE_SOCORRO = "socorro";
 
 /**
  * Preenchido logo depois de o Serwist existir. O plugin abaixo só roda dentro
@@ -77,7 +73,44 @@ const SOCORRO = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
 let noPrecache: (url: string) => Promise<Response | undefined> = async () =>
   undefined;
 
-/** A resposta de "não há rede e não há cache" para uma navegação. */
+/**
+ * Degrau (a) da escada: mais uma ida à rede antes de desistir (SPEC §22.10).
+ * A queda de rede de um celular dura segundos — o elevador, o túnel, o WiFi
+ * trocando de ponto — e a `NetworkFirst` desistiu na primeira recusa. O pedido
+ * é novo porque o original já foi consumido pela estratégia: mesma URL, com os
+ * cookies da sessão (`credentials`), sem o cache do navegador no meio
+ * (`no-store`) e sem seguir desvio por conta própria (`manual`) — o 307 do
+ * middleware para `/login` tem de chegar ao navegador como desvio, e não
+ * virar um documento de login servido na URL que o usuário pediu.
+ */
+async function maisUmaTentativa(url: string): Promise<Response | undefined> {
+  // chegou resposta, qualquer resposta: a rede voltou, e ela é mais verdadeira
+  // do que qualquer cópia guardada
+  return fetch(
+    new Request(url, {
+      credentials: "include",
+      redirect: "manual",
+      cache: "no-store",
+    }),
+  );
+}
+
+/**
+ * Degrau (c): qualquer cópia da `/~offline` em qualquer cache do aparelho. A
+ * regra "paginas" guarda a página quando ela foi visitada, e a autocura abaixo
+ * guarda a dela em `socorro`; `ignoreSearch` alcança a chave do precache, que
+ * carrega o `__WB_REVISION__` pendurado.
+ */
+async function emQualquerCache(): Promise<Response | undefined> {
+  return caches.match(OFFLINE, { ignoreSearch: true, ignoreVary: true });
+}
+
+/**
+ * A resposta de "não há rede e não há cache" para uma navegação: a escada da
+ * SPEC §22.10, do mais verdadeiro ao mais garantido. Nenhum degrau derruba a
+ * navegação — degrau que falha é degrau que não existe, e o último sempre
+ * responde.
+ */
 async function semRede(request: Request): Promise<Response> {
   if (ehRsc(pedidoDe(request))) {
     /*
@@ -90,14 +123,64 @@ async function semRede(request: Request): Promise<Response> {
      */
     return new Response(null, { status: 503, statusText: "sem rede" });
   }
-  const guardada = await noPrecache(OFFLINE);
-  return (
-    guardada ??
-    new Response(SOCORRO, {
-      status: 200,
-      headers: { "Content-Type": "text/html; charset=utf-8" },
-    })
-  );
+
+  const escada = [
+    () => maisUmaTentativa(request.url),
+    () => noPrecache(OFFLINE),
+    () => emQualquerCache(),
+  ];
+  for (const degrau of escada) {
+    try {
+      const resposta = await degrau();
+      if (resposta) return resposta;
+    } catch {
+      // sem rede, cache limpo pelo sistema, precache que o "Sair" apagou:
+      // desce para o próximo degrau
+    }
+  }
+
+  /*
+   * Degrau (d): o socorro embutido (`lib/sw-socorro.ts`). Não é mais um beco —
+   * tem os dois mesmos atos da `/~offline` e não busca nada de fora, que é o
+   * que se exige de uma tela para o aparelho vazio.
+   */
+  return new Response(htmlDeSocorro(), {
+    status: 200,
+    headers: {
+      "Content-Type": "text/html; charset=utf-8",
+      "Cache-Control": "no-store",
+    },
+  });
+}
+
+/**
+ * Autocura do precache (SPEC §22.10). O "Sair" apaga todos os caches menos os
+ * públicos (`lib/db.ts`), e o Serwist só repõe o precache na instalação
+ * seguinte: dali até a próxima atualização do app, `matchPrecache("/~offline")`
+ * devolve `undefined` e toda navegação sem rede cairia no socorro embutido.
+ * Então, a cada ativação, o worker confere — e, se faltar, busca a página e
+ * guarda uma cópia sua. Idempotente (mesma chave, mesmo cache) e silencioso
+ * quando falha: sem rede no `activate` não há o que fazer, e a ativação
+ * seguinte tenta de novo.
+ */
+async function curarOSocorro(): Promise<void> {
+  try {
+    if (await noPrecache(OFFLINE)) return;
+    const resposta = await fetch(OFFLINE, {
+      cache: "no-store",
+      credentials: "include",
+      // o `activate` segura os `fetch` da página enquanto não termina: esta
+      // ida tem hora para acabar
+      signal: AbortSignal.timeout(8_000),
+    });
+    // `redirected`: sem sessão o middleware manda para `/login`, e guardar a
+    // tela de login como "sem conexão" seria pior do que não guardar nada
+    if (!resposta.ok || resposta.redirected) return;
+    const cache = await caches.open(CACHE_DE_SOCORRO);
+    await cache.put(OFFLINE, resposta);
+  } catch {
+    // sem rede, sem Cache Storage, resposta opaca: o socorro embutido cobre
+  }
 }
 
 const regras: RuntimeCaching[] = [
@@ -164,3 +247,12 @@ const serwist = new Serwist({
 noPrecache = (url) => serwist.matchPrecache(url);
 
 serwist.addEventListeners();
+
+/*
+ * Depois do `addEventListeners`: são dois ouvintes de `activate` no mesmo
+ * worker (o do Serwist e este), e cada um estende a ativação com o seu
+ * `waitUntil` — um não atrapalha o outro.
+ */
+self.addEventListener("activate", (evento) => {
+  evento.waitUntil(curarOSocorro());
+});
