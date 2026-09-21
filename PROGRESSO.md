@@ -7950,6 +7950,15 @@ Nada abaixo está publicado. Ordem sugerida: B → C. Cada item traz a origem (r
   - R5/L9 Ponto cego da régua visual (problema de método, não de código — para o… — Ponto cego da régua visual (problema de método, não de código — para o orquestrador, não para o corretor). A linha de base em $U/base foi regerada às 08:38 do head 9d2c001 (L8 Calendário, já em main), mas a branch do lot
   - R5/L9 ANTERIOR AO LOTE (não bloqueia, registro para a fila): a tela da coleç… — ANTERIOR AO LOTE (não bloqueia, registro para a fila): a tela da coleção não tem <h1> nenhum — só <section aria-label={colecao.titulo}> na linha 41. A sonda navegou /explorar/grupo/Core, /core, /Bíceps e /biceps e nas qu
 
+**D. Observações da verificação em produção (21/09, rodadas 8–9) — para as próximas rodadas**
+
+- Reabrir a URL de uma sessão **já concluída** devolve o player em "Preparado para começar", em vez da tela de conclusão ou do histórico. A sessão está salva e certa (o Relatório conta as duas); o link de uma sessão concluída convida a refazê-la.
+- Num aparelho zerado (IndexedDB vazio), abrir a sessão em andamento leva **~11 s** de esqueleto até o player (6 aberturas medidas entre 10,9 e 11,5 s). O critério da rodada 9 foi cumprido (esqueleto, depois o player, nunca "Não achei"), mas vale medir de onde vem o tempo.
+- Cada render de servidor valida a sessão no Supabase (`GET /auth/v1/user`): 515 chamadas em 6 minutos para dois navegadores. Não quebra nada, mas é latência em cada tela; medir antes de abrir mais contas (§21).
+- `app/sw.ts` — `emQualquerCache()` relê o corpo da `/~offline` e dispara um `caches.match` por asset a cada navegação sem rede; dá para memorizar por cópia.
+- `e2e/login.spec.ts` "sair num aparelho não derruba o outro (§21.4)" prova a fidelidade do mock por `fetch` direto, não pela interface; uma versão pela tela exigiria dois contextos logados no mesmo teste.
+- O campo Data de Corpo (peso, medidas, fotos) é `<input type="date">` nativo: a máscara segue o idioma do navegador, não o da página. Conferir num celular em português antes de tratar como defeito.
+
 ### Rodada 5 — Lote 8 — Calendário e faixa da semana (faixa C)
 
 SPEC §22.8. Dez itens na faixa C (`/home/user/wt-c`, portas 3130/54351), em
