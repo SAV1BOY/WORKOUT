@@ -6969,7 +6969,11 @@ SPEC §22.5. Dez itens, na ordem de prioridade do lote.
    registrada continua salva." ou "As N séries já registradas continuam
    salvas." · Cancelar / Descartar este treino), com o Cancelar nascendo com o
    foco e o clique fora sem efeito. O zero é o caso mais comum (abrir, mudar de
-   ideia e sair antes de gravar) e tem frase própria — nunca "As 0 séries". Arquivos: `components/ui/alert-dialog.tsx`
+   ideia e sair antes de gravar) e tem frase própria — nunca "As 0 séries". O
+   e2e do lote cobre os dois estados: um caso abre a Visão geral sem nada
+   registrado e exige que a pergunta não fale em "0 séries"; o outro marca uma
+   série na folha (o visto da própria Visão geral, que é o que move a contagem)
+   e exige o singular. Arquivos: `components/ui/alert-dialog.tsx`
    (novo, sobre o pacote `radix-ui` que já estava nas dependências),
    `components/treinar/visao-geral.tsx`.
 2. **Gravar ao entrar na conclusão (`tela-treino-player-01`).** Era: nada ia

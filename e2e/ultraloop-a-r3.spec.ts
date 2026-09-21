@@ -91,8 +91,16 @@ test.describe("§22.5 item 1 — dois toques no mesmo ponto não jogam o treino 
     page,
   }) => {
     await abrirPlayer(page);
-    await concluirSerie(page);
     await abrirVisaoGeral(page);
+
+    // uma série registrada na própria folha: é a contagem que o diálogo promete
+    const visto = page
+      .getByRole("group", { name: /^Série 1 —/ })
+      .first()
+      .getByRole("checkbox");
+    await visto.click();
+    await expect(visto).toHaveAttribute("aria-checked", "true");
+    await expect(page.getByText(/\b1\/\d+ séries\b/)).toBeVisible();
 
     const descartar = page.getByRole("button", { name: "Descartar este treino" });
     const caixa = await descartar.boundingBox();
@@ -102,7 +110,7 @@ test.describe("§22.5 item 1 — dois toques no mesmo ponto não jogam o treino 
     const pergunta = page.getByRole("alertdialog");
     await expect(pergunta).toBeVisible();
     await expect(pergunta).toContainText("Descartar este treino?");
-    await expect(pergunta).toContainText("já registrada");
+    await expect(pergunta).toContainText("A 1 série já registrada continua salva.");
 
     // o 2º toque cai no mesmo ponto: nada é descartado, a pergunta continua
     await page.mouse.click(
