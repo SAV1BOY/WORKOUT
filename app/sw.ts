@@ -1,5 +1,9 @@
 import { defaultCache } from "@serwist/next/worker";
-import { CACHE_DE_MIDIA, OFFLINE } from "@/lib/caches-do-worker";
+import {
+  CACHE_DE_MIDIA,
+  CACHE_DE_SOCORRO,
+  OFFLINE,
+} from "@/lib/caches-do-worker";
 import { copiaServe, urlsDeAssets } from "@/lib/sw-assets";
 import { criarCura } from "@/lib/sw-cura";
 import {
@@ -7,6 +11,7 @@ import {
   ehRsc,
   type PedidoDeNavegacao,
 } from "@/lib/sw-navegacao";
+import { criarServirDoSocorro } from "@/lib/sw-servir-socorro";
 import { htmlDeSocorro } from "@/lib/sw-socorro";
 import type { PrecacheEntry, SerwistGlobalConfig } from "serwist";
 import {
@@ -16,6 +21,7 @@ import {
   NetworkOnly,
   Serwist,
   type RuntimeCaching,
+  type SerwistPlugin,
 } from "serwist";
 
 declare global {
@@ -101,6 +107,66 @@ const garantirOSocorro = criarCura({
 });
 
 /**
+ * O último degrau de um **asset** (SPEC §22.11, `lib/sw-servir-socorro.ts`).
+ * A cópia que a autocura guardou no cache `socorro` só vale se alguma rota a
+ * servir: sem isto, os 14 pedaços de JS da `/~offline` estão no aparelho e
+ * mesmo assim o pedido morre em `fetch`, que é o que a auditoria de 21/09
+ * fotografou como "Application error".
+ */
+const servirDoSocorro = criarServirDoSocorro(caches);
+
+/**
+ * Pendurado em **todas** as estratégias genéricas do `defaultCache`: antes de
+ * devolver o erro, o worker olha a sua cópia de socorro. Só responde quando a
+ * URL é chave desse cache — o que só acontece com o HTML da `/~offline` e os
+ * assets dela —, então nenhum outro pedido muda de comportamento.
+ *
+ * O `fallbacks` do Serwist pendura o dele nas regras que ainda não têm
+ * `handlerDidError` (`Serwist.ts` l.241); pendurar o nosso primeiro o desloca,
+ * e isso é de propósito: quem responde a navegação sem rede é a regra
+ * "paginas", que vem antes do `defaultCache` e tem a escada inteira da §22.10.
+ * Nenhuma navegação chega às regras genéricas.
+ */
+const socorroDeAssets: SerwistPlugin = {
+  handlerDidError: ({ request }) => servirDoSocorro(request.url),
+};
+
+/**
+ * Pendurar é por **forma**, não por `instanceof`: o `defaultCache` vem de
+ * `@serwist/next`, que traz a sua própria cópia do `serwist`, e uma estratégia
+ * construída lá não é `instanceof` a classe importada aqui. Foi exatamente
+ * assim que o conserto nasceu sem efeito na primeira tentativa: o laço não
+ * pendurava nada e o pedaço continuava morrendo em `fetch`. O que interessa é
+ * a lista `plugins`, que é o contrato que o `Strategy.handle()` percorre.
+ */
+function aceitaPlugin(handler: unknown): handler is { plugins: SerwistPlugin[] } {
+  return (
+    typeof handler === "object" &&
+    handler !== null &&
+    Array.isArray((handler as { plugins?: unknown }).plugins)
+  );
+}
+
+let comSocorro = 0;
+for (const regra of defaultCache) {
+  if (aceitaPlugin(regra.handler)) {
+    regra.handler.plugins.push(socorroDeAssets);
+    comSocorro += 1;
+  }
+}
+
+/**
+ * Quantas estratégias ganharam o degrau. Zero quer dizer que o conserto não
+ * foi pendurado em lugar nenhum — o e2e do aparelho despejado confere isto
+ * antes de olhar a tela, para que a próxima troca de versão do Serwist não
+ * volte a tirar o socorro em silêncio.
+ */
+function anunciarOSocorro(quantas: number): void {
+  (self as unknown as { __regrasComSocorro?: number }).__regrasComSocorro =
+    quantas;
+}
+
+/**
  * Degrau (a) da escada: mais uma ida à rede antes de desistir (SPEC §22.10).
  * A queda de rede de um celular dura segundos — o elevador, o túnel, o WiFi
  * trocando de ponto — e a `NetworkFirst` desistiu na primeira recusa. O pedido
@@ -138,12 +204,7 @@ async function maisUmaTentativa(url: string): Promise<Response | undefined> {
  * serve a cópia quando todos os assets que ela referencia estão em algum
  * cache; senão desce para o socorro embutido, que não depende de nada.
  */
-async function emQualquerCache(): Promise<Response | undefined> {
-  const guardada = await caches.match(OFFLINE, {
-    ignoreSearch: true,
-    ignoreVary: true,
-  });
-  if (!guardada) return undefined;
+async function copiaInteira(guardada: Response): Promise<boolean> {
   const urls = urlsDeAssets(await guardada.clone().text(), self.location.origin);
   const presentes = new Set<string>();
   await Promise.all(
@@ -151,7 +212,32 @@ async function emQualquerCache(): Promise<Response | undefined> {
       if (await caches.match(url, { ignoreSearch: true })) presentes.add(url);
     }),
   );
-  return copiaServe(urls, presentes) ? guardada : undefined;
+  return copiaServe(urls, presentes);
+}
+
+async function emQualquerCache(): Promise<Response | undefined> {
+  const nomes = await caches.keys();
+  /*
+   * A cópia da autocura primeiro. `caches.match()` devolveria a primeira na
+   * ordem de criação dos caches — em geral a do precache, que num aparelho
+   * despejado é justamente a que perdeu os pedaços. Perguntar cache a cache
+   * deixa o worker servir a **melhor** cópia que tem, e não a primeira: a
+   * cópia inteira do `socorro` deixa de ser desperdiçada por causa de uma
+   * cópia quebrada guardada antes dela.
+   */
+  const ordem = [
+    ...nomes.filter((nome) => nome === CACHE_DE_SOCORRO),
+    ...nomes.filter((nome) => nome !== CACHE_DE_SOCORRO),
+  ];
+  for (const nome of ordem) {
+    const cache = await caches.open(nome);
+    const guardada = await cache.match(OFFLINE, {
+      ignoreSearch: true,
+      ignoreVary: true,
+    });
+    if (guardada && (await copiaInteira(guardada))) return guardada;
+  }
+  return undefined;
 }
 
 /**
@@ -276,6 +362,18 @@ const serwist = new Serwist({
 });
 
 noPrecache = (url) => serwist.matchPrecache(url);
+
+/*
+ * E na rota do **precache**, que é a primeira de todas. Sem isto o conserto
+ * não alcançava o pedaço que quebrava: `/_next/static/chunks/app/~offline/…`
+ * está no manifesto do build, então quem atende o pedido é a `PrecacheStrategy`
+ * — e nenhuma regra do `defaultCache` chega a ser consultada. Num aparelho
+ * despejado o cache do precache voltou vazio, a estratégia ia à rede, a rede
+ * não existia, e o erro subia direto para a hidratação. Agora ela também
+ * desce para a cópia do `socorro` antes de desistir.
+ */
+serwist.precacheStrategy.plugins.push(socorroDeAssets);
+anunciarOSocorro(comSocorro + 1);
 
 serwist.addEventListeners();
 

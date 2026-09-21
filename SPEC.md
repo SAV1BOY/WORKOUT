@@ -2129,9 +2129,23 @@ são do dia a dia de quem treina.
    só falhar, a cópia **não vale** e o HTML não é guardado sozinho — meia
    cópia é a tela quebrada; (ii) o degrau (c) só serve uma cópia da `/~offline`
    quando **todos** os assets que ela referencia estão em algum cache; senão
-   desce para o socorro embutido (d), que não depende de nada. A regra pura —
-   extrair os assets de um HTML e decidir se a cópia serve — mora em
-   `lib/sw-assets.ts`, com teste de unidade.
+   desce para o socorro embutido (d), que não depende de nada; e (iii) o cache
+   `socorro` é **servido**: toda estratégia genérica do `defaultCache` ganha um
+   último degrau que, antes de devolver erro, procura a URL ali
+   (`lib/sw-servir-socorro.ts`). Sem (iii) os outros dois não valiam nada — foi
+   o que a auditoria mostrou: a guarda perguntava "o pedaço está em algum
+   cache?" e a resposta era sim, mas quem atende `/_next/static/chunks/*.js` é
+   uma regra do Serwist que só olha o **próprio** cache
+   (`next-static-js-assets`), e nenhuma rota servia do `socorro`. A cópia
+   existia no aparelho e o pedido morria em `fetch` mesmo assim. As regras
+   puras — extrair os assets de um HTML, decidir se a cópia serve, procurar no
+   cache de socorro — moram em `lib/sw-assets.ts` e
+   `lib/sw-servir-socorro.ts`, com teste de unidade; e o caminho inteiro, que
+   só um worker de verdade mostra, fica preso no navegador
+   (`e2e/sem-conexao.spec.ts`, "aparelho despejado"). Na mesma lição, a
+   autocura tira cada asset do precache e dos caches do aparelho **antes** de
+   ir à rede: numa ativação sem conexão ela guardava "sem-fonte" com os
+   pedaços ali ao lado.
 2. **O campo de carga é do dedo de quem digita.** Digitando "12,5" depressa em
    CARGA NA BARRA, o app ajustava "12" para a anilha possível (11,5) e o efeito
    que sincroniza o texto com o valor reescrevia o campo **no meio da
