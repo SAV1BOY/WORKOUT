@@ -40,6 +40,8 @@ export const POR_PAGINA = 20;
 export function ListaExercicios({
   busca,
   limite,
+  filtros: filtrosDeFora,
+  aoMudarFiltros,
 }: {
   /**
    * Busca vinda de fora (a barra única do Explorar, SPEC §14.4). Quando vem,
@@ -51,8 +53,22 @@ export function ListaExercicios({
    * é assim que a vitrine do Explorar mostra o catálogo sem virar catálogo.
    */
   limite?: number;
+  /**
+   * Filtros controlados de fora (SPEC §22.9 item 10). Quem escreve a contagem
+   * num título acima desta lista — o Explorar — precisa filtrar com os MESMOS
+   * valores que ela; com o estado só aqui dentro, o título dizia 6 enquanto a
+   * lista mostrava 0. Vem sempre em par com `aoMudarFiltros`; sem os dois, o
+   * estado continua sendo local.
+   */
+  filtros?: FiltrosCatalogo;
+  aoMudarFiltros?: (filtros: FiltrosCatalogo) => void;
 } = {}) {
-  const [filtros, setFiltros] = useState<FiltrosCatalogo>(FILTROS_VAZIOS);
+  const [filtrosLocais, setFiltrosLocais] = useState<FiltrosCatalogo>(FILTROS_VAZIOS);
+  const filtros = filtrosDeFora ?? filtrosLocais;
+  const aplicar = (proximos: FiltrosCatalogo) => {
+    if (filtrosDeFora !== undefined) aoMudarFiltros?.(proximos);
+    else setFiltrosLocais(proximos);
+  };
   const deFora = busca !== undefined;
   const doPrograma = useMemo(() => idsDoPrograma(), []);
   const opcoes = useMemo(() => opcoesDoCatalogo(exercicios), []);
@@ -89,8 +105,7 @@ export function ListaExercicios({
     (filtros.equipamento !== "todos" ? 1 : 0) +
     (filtros.soPrograma ? 1 : 0);
 
-  const mudar = (parte: Partial<FiltrosCatalogo>) =>
-    setFiltros((atual) => ({ ...atual, ...parte }));
+  const mudar = (parte: Partial<FiltrosCatalogo>) => aplicar({ ...filtros, ...parte });
 
   return (
     <div className="flex flex-col gap-3">
@@ -179,7 +194,7 @@ export function ListaExercicios({
             type="button"
             variant="ghost"
             className="alvo"
-            onClick={() => setFiltros(FILTROS_VAZIOS)}
+            onClick={() => aplicar(FILTROS_VAZIOS)}
           >
             Limpar
           </Button>
@@ -188,7 +203,14 @@ export function ListaExercicios({
       </>
       ) : null}
 
-      {limite !== undefined ? null : (
+      {/*
+        SPEC §22.9 item 10: com a busca vinda do Explorar, o título da seção
+        logo acima («Exercícios (6)») já diz quantos são, contado deste mesmo
+        `achados` — repetir "6 de 81" três linhas abaixo era o terceiro número
+        da mesma tela. No catálogo (`/exercicios`), onde não há título com
+        contagem, o contador continua sendo quem avisa.
+      */}
+      {limite !== undefined || deFora ? null : (
       <p className="text-muted-foreground text-xs" aria-live="polite">
         {achados.length === exercicios.length
           ? `${exercicios.length} exercícios`
@@ -208,7 +230,7 @@ export function ListaExercicios({
             icone={FilterX}
             titulo="Nenhum exercício com esses filtros"
             frase="Solte um filtro de cada vez para ver o que volta."
-            acao={{ rotulo: "Limpar filtros", aoTocar: () => setFiltros(FILTROS_VAZIOS) }}
+            acao={{ rotulo: "Limpar filtros", aoTocar: () => aplicar(FILTROS_VAZIOS) }}
           />
         ) : null
       ) : (

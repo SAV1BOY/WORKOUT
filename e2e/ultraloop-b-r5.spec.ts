@@ -205,6 +205,71 @@ test.describe("Explorar e catálogo (SPEC §22.9)", () => {
     ).toBeVisible();
   });
 
+  test("item 10: todo salto do seletor tem destino no documento", async ({ page }) => {
+    await page.setViewportSize({ width: 360, height: 740 });
+    await page.goto("/explorar");
+    const busca = page.getByLabel("Buscar exercício ou coleção");
+    const saltos = page.locator('a[href^="#achados"]');
+
+    /* "tatame" acha 2 coleções e nenhum exercício: um bloco só, sem seletor */
+    await busca.fill("tatame");
+    await expect(page.getByRole("heading", { name: /^Coleções \(/ })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /^Exercícios \(/ })).toBeHidden();
+    await expect(saltos, "seletor com um bloco só").toHaveCount(0);
+
+    /* "supino" acha os dois: aí sim há para onde pular — e o destino existe */
+    await busca.fill("supino");
+    await expect(saltos).toHaveCount(2);
+    const quebrados = await saltos.evaluateAll((as) =>
+      as
+        .map((a) => a.getAttribute("href") ?? "")
+        .filter((href) => document.querySelector(href) === null),
+    );
+    expect(quebrados, "âncoras do seletor sem destino no documento").toEqual([]);
+
+    await saltos.nth(1).click();
+    await expect(page.locator("#achados-colecoes")).toBeInViewport();
+    await semRolagemHorizontal(page);
+  });
+
+  test("item 10: a contagem do título é a da lista, com filtro e sem", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 360, height: 740 });
+    await page.goto("/explorar");
+    const busca = page.getByLabel("Buscar exercício ou coleção");
+    await busca.fill("supino");
+
+    const bloco = page.locator("#achados-exercicios");
+    const cartoes = bloco.locator('a[href^="/exercicios/"]');
+    /** O número que o título do bloco anuncia. */
+    const anunciado = async (): Promise<number> => {
+      const texto = (await bloco.getByRole("heading", { level: 2 }).textContent()) ?? "";
+      const achado = /\((\d+)\)/.exec(texto);
+      expect(achado, `título sem número: «${texto}»`).not.toBeNull();
+      return Number(achado![1]);
+    };
+
+    const semFiltro = await cartoes.count();
+    expect(semFiltro, "a busca acha exercícios").toBeGreaterThan(0);
+    expect(await anunciado()).toBe(semFiltro);
+
+    /* o filtro recolhido atrás do botão "Filtros" entra na conta do título */
+    await page.getByRole("button", { name: /^Filtros/ }).click();
+    await page.getByLabel("Grupo").selectOption("Costas");
+    await expect(page.getByText("Nenhum exercício com esses filtros")).toBeVisible();
+    await expect(cartoes).toHaveCount(0);
+    expect(await anunciado(), "o título conta o que a lista mostra").toBe(0);
+
+    /* e apagar a busca solta o filtro: a busca seguinte não herda a conta */
+    await page.getByLabel("Limpar a busca").click();
+    await expect(page.getByRole("link", { name: /Ver os 81 exercícios/ })).toBeVisible();
+    await busca.fill("supino");
+    await expect(cartoes).toHaveCount(semFiltro);
+    expect(await anunciado()).toBe(semFiltro);
+    await expect(page.getByRole("button", { name: /^Filtros/ })).toHaveText("Filtros");
+  });
+
   test("item 9: o link antigo, com acento e maiúscula, continua abrindo", async ({
     page,
   }) => {

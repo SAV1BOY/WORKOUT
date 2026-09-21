@@ -23,7 +23,13 @@ import {
   semCapasRepetidas,
   type Colecao,
 } from "@/lib/colecoes";
-import { filtrarExercicios, idsDoPrograma } from "@/lib/catalogo";
+import {
+  FILTROS_VAZIOS,
+  filtrarExercicios,
+  idsDoPrograma,
+  temFiltro,
+  type FiltrosCatalogo,
+} from "@/lib/catalogo";
 import { proximoTreinoDaFase, semanaDaFase } from "@/lib/calendario";
 import { detalheDoTreino, resumoDoTreino } from "@/lib/hoje";
 import { capaDoTreino } from "@/lib/capas";
@@ -54,6 +60,20 @@ const PREVIA_DO_CATALOGO = 12;
 export function TelaExplorar() {
   const hoje = useHoje();
   const [busca, setBusca] = useState("");
+  /*
+   * SPEC §22.9 item 10: os filtros do catálogo moram AQUI, e não dentro da
+   * <ListaExercicios>. A contagem do título saía de uma conta feita só com o
+   * termo enquanto a lista já tinha aplicado o filtro recolhido atrás do botão
+   * "Filtros": buscar "supino" e escolher Grupo = Costas deixava «Exercícios
+   * (6)» em cima e "Nenhum exercício com esses filtros" embaixo. Com o estado
+   * aqui, o número e a lista saem do MESMO filtro.
+   */
+  const [filtros, setFiltros] = useState<FiltrosCatalogo>(FILTROS_VAZIOS);
+  /** Trocar o termo mantém os filtros; apagar a busca inteira os solta. */
+  const trocarBusca = (valor: string) => {
+    setBusca(valor);
+    if (valor.trim() === "") setFiltros(FILTROS_VAZIOS);
+  };
 
   const perfilQ = usePerfil();
   const perfil = perfilQ.data ?? null;
@@ -89,16 +109,26 @@ export function TelaExplorar() {
     () => (busca.trim() === "" ? [] : semCapasRepetidas(buscarColecoes(busca))),
     [busca],
   );
-  /* quantos exercícios a mesma busca acha — o bloco de cima do resultado */
+  const doPrograma = useMemo(() => idsDoPrograma(), []);
+  /* quantos exercícios a mesma busca acha — com os mesmos filtros da lista */
   const quantosExercicios = useMemo(
     () =>
       busca.trim() === ""
         ? 0
-        : filtrarExercicios(exercicios, { busca }, idsDoPrograma()).length,
-    [busca],
+        : filtrarExercicios(exercicios, { ...filtros, busca }, doPrograma).length,
+    [busca, filtros, doPrograma],
   );
   const buscando = busca.trim() !== "";
-  const nada = buscando && quantosExercicios === 0 && achadas.length === 0;
+  /* `filtros.busca` fica sempre vazio: quem busca é a barra de cima. */
+  const comFiltro = temFiltro(filtros);
+  /*
+   * O bloco dos exercícios fica de pé mesmo com zero achados quando há filtro:
+   * é ele que carrega o botão "Filtros" e o "Limpar filtros". Sem ele, quem
+   * filtrou até o vazio ficaria sem como desfazer.
+   */
+  const blocoExercicios = buscando && (quantosExercicios > 0 || comFiltro);
+  const blocoColecoes = achadas.length > 0;
+  const nada = buscando && !blocoExercicios && !blocoColecoes;
 
   return (
     <section aria-label="Explorar" className="flex flex-col gap-4">
@@ -113,7 +143,7 @@ export function TelaExplorar() {
             type="search"
             inputMode="search"
             value={busca}
-            onChange={(e) => setBusca(e.target.value)}
+            onChange={(e) => trocarBusca(e.target.value)}
             placeholder="Buscar exercício ou coleção"
             aria-label="Buscar exercício ou coleção"
             className="alvo h-12 pl-9 text-base"
@@ -121,7 +151,7 @@ export function TelaExplorar() {
           {busca ? (
             <button
               type="button"
-              onClick={() => setBusca("")}
+              onClick={() => trocarBusca("")}
               aria-label="Limpar a busca"
               className="alvo text-muted-foreground absolute top-1/2 right-0 flex -translate-y-1/2 items-center justify-center"
             >
@@ -141,34 +171,51 @@ export function TelaExplorar() {
           icone={SearchX}
           titulo={`Nada para «${busca.trim()}»`}
           frase="Tente uma palavra mais curta, ou o nome do aparelho."
-          acao={{ rotulo: "Limpar busca", aoTocar: () => setBusca("") }}
+          acao={{ rotulo: "Limpar busca", aoTocar: () => trocarBusca("") }}
         />
       ) : buscando ? (
         <>
-          <p className="text-muted-foreground flex items-center gap-1 text-xs">
-            <a href="#achados-exercicios" className="alvo foco flex items-center rounded-md">
-              Exercícios ({quantosExercicios})
-            </a>
-            <span aria-hidden="true">·</span>
-            <a href="#achados-colecoes" className="alvo foco flex items-center rounded-md">
-              Coleções ({achadas.length})
-            </a>
-          </p>
+          {/*
+            SPEC §22.9 item 10: o seletor só existe quando há DOIS blocos entre
+            os quais escolher. Desenhar sempre os dois âncoras deixava, numa
+            busca como "tatame" (0 exercícios, 2 coleções), um «Exercícios (0)»
+            focável de 80×44 px apontando para um id fora do documento — tocar
+            nele não fazia nada. Com um bloco só não há para onde pular.
+          */}
+          {blocoExercicios && blocoColecoes ? (
+            <p className="text-muted-foreground flex items-center gap-1 text-xs">
+              <a href="#achados-exercicios" className="alvo foco flex items-center rounded-md">
+                Exercícios ({quantosExercicios})
+              </a>
+              <span aria-hidden="true">·</span>
+              <a href="#achados-colecoes" className="alvo foco flex items-center rounded-md">
+                Coleções ({achadas.length})
+              </a>
+            </p>
+          ) : null}
 
-          {quantosExercicios > 0 ? (
+          {blocoExercicios ? (
             <section
               id="achados-exercicios"
               aria-label="Exercícios encontrados"
               className="flex scroll-mt-4 flex-col gap-1"
             >
-              <h2 className="text-base font-semibold">
+              {/*
+                `aria-live` porque este título é o único contador da seção:
+                mexer num filtro muda o número sem mexer no foco.
+              */}
+              <h2 className="text-base font-semibold" aria-live="polite">
                 Exercícios ({quantosExercicios})
               </h2>
-              <ListaExercicios busca={busca} />
+              <ListaExercicios
+                busca={busca}
+                filtros={filtros}
+                aoMudarFiltros={setFiltros}
+              />
             </section>
           ) : null}
 
-          {achadas.length > 0 ? (
+          {blocoColecoes ? (
             <section
               id="achados-colecoes"
               aria-label="Coleções encontradas"

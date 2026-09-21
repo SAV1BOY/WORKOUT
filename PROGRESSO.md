@@ -7442,7 +7442,7 @@ cheia — a bolinha cheia cinza é só dos dias que passaram em branco.
 ### Rodada 5 — Lote 9 — Explorar e catálogo: achar o exercício (faixa B)
 
 Branch `ultraloop/l9-explorar-catalogo`, a partir de `ultraloop/l6-relatorio-estrutura`.
-SPEC §22.9. Sete itens; a régua de cada um está no aceite do próprio item.
+SPEC §22.9. Dez itens; a régua de cada um está no aceite do próprio item.
 
 1. **O catálogo saiu de dentro do Explorar** (`components/explorar/tela-explorar.tsx`,
    `components/exercicios/lista-exercicios.tsx`). **Era:** a vitrine despejava
@@ -7463,9 +7463,10 @@ SPEC §22.9. Sete itens; a régua de cada um está no aceite do próprio item.
 3. **A busca mostra o exercício primeiro** (`components/explorar/tela-explorar.tsx`).
    **Era:** com "supino", nove linhas de coleção na frente e o exercício em
    y=860 — fora do viewport de 740. **É:** **Exercícios primeiro, Coleções
-   depois**, cada bloco com a sua contagem no título, e um seletor de uma
-   linha no topo ("Exercícios (6) · Coleções (9)") que pula para o bloco. O
-   e2e mede a caixa do primeiro exercício a 360×740.
+   depois**, cada bloco com a sua contagem no título, e — quando os dois
+   blocos existem (item 10) — um seletor de uma linha no topo ("Exercícios
+   (6) · Coleções (9)") que pula para o bloco. O e2e mede a caixa do primeiro
+   exercício a 360×740.
 4. **Um vazio só, citando o termo** (`tela-explorar.tsx`, `lista-exercicios.tsx`).
    **Era:** busca sem resultado mostrava **dois** vazios empilhados, e o
    segundo — "Nenhum exercício com esses filtros" — mentia: não havia filtro
@@ -7505,6 +7506,28 @@ SPEC §22.9. Sete itens; a régua de cada um está no aceite do próprio item.
    segmento normalizado — os links antigos continuam abrindo. Um teste percorre
    **todas** as coleções: a URL que a vitrine gera volta na mesma coleção, e
    duas coleções nunca caem na mesma URL.
+10. **O número do título é o da lista, e o seletor só aparece com dois blocos**
+    (`tela-explorar.tsx`, `lista-exercicios.tsx`) — correção da auditoria.
+    **Era:** (a) o `<p>` do seletor desenhava sempre os dois âncoras enquanto
+    cada bloco só é montado com contagem > 0; buscar "tatame" (0 exercícios,
+    2 coleções) deixava «Exercícios (0)» como link focável de 80×44 px para um
+    id que não existia no documento — tocar não fazia nada, e com um bloco só
+    o seletor não tinha escolha nenhuma a oferecer. (b) `quantosExercicios`
+    era contado com o termo apenas, enquanto a `<ListaExercicios>` aplicava
+    também o filtro recolhido atrás do botão "Filtros": buscar "supino" e
+    escolher Grupo = Costas deixava na tela «Exercícios (6)», "0 de 81
+    exercícios" e "Nenhum exercício com esses filtros" — e o 6 continuava
+    mentindo na busca seguinte, porque o filtro sobrevivia à troca do termo.
+    **É:** o seletor só é montado quando os **dois** blocos existem; os
+    filtros moram no `TelaExplorar` e a `<ListaExercicios>` os recebe por prop
+    (`filtros` + `aoMudarFiltros`, controlada só quando as duas vêm), então o
+    número do título e a lista saem do mesmo `filtrarExercicios`. Com filtro
+    ativo e zero achados o bloco fica de pé — é ele que carrega o "Limpar
+    filtros" — e o vazio da busca inteira não aparece por cima; o contador
+    "N de 81" some quando a busca vem do Explorar (o título logo acima já é o
+    contador, e é ele que ganha `aria-live="polite"`). Apagar a busca solta os
+    filtros — como já acontecia, porque a lista desmontava —, trocar só o
+    termo os mantém.
 
 **Fora dos arquivos do lote:** `lib/guia.ts` (uma linha — o caminho do guia
 dizia "Explorar → Todos os exercícios", rótulo que saiu da tela; agora é
@@ -7514,7 +7537,9 @@ programa" conta os cartões; com a paginação ele abre a lista inteira no
 
 **Provas:** `lib/colecoes.test.ts` ganhou 7 casos (normalização e ida e volta
 de toda a vitrine, colisão de segmento, capas por seção);
-`e2e/ultraloop-b-r5.spec.ts` tem 9 testes, um por item.
+`e2e/ultraloop-b-r5.spec.ts` tem 11 testes (os dois do item 10 afirmam que
+todo `a[href^="#achados"]` visível tem destino no documento e que o número do
+título é o da lista, com filtro e sem).
 
 **Como testar no celular** (360 px):
 - **Explorar**: a página acaba logo depois de "Exercícios" + "Ver os 81
@@ -7522,6 +7547,10 @@ de toda a vitrine, colisão de segmento, capas por seção);
   linha repete a foto da linha de cima.
 - **Busca**: digite "supino" na barra do Explorar — os **exercícios** aparecem
   primeiro, sem rolar; digite "zzzz" — **uma** mensagem só, citando o termo.
+  Digite "tatame": só coleções, e a linha "Exercícios (0) · Coleções (2)" não
+  aparece mais. Com "supino", toque em "Filtros" e escolha Grupo = Costas: o
+  título vira **Exercícios (0)** junto com o "Nenhum exercício com esses
+  filtros" — nunca mais um número em cima e outro embaixo.
 - **Catálogo**: em "Ver os 81 exercícios", role até o fim: há 20 cartões e um "Ver mais 20 de 81". Chegando pela busca, os filtros vêm recolhidos.
 - **404**: abra `/exercicios/remada-curvada-com-barra` — a tela responde em
   português com as três saídas.

@@ -1824,8 +1824,8 @@ a tela — afrouxar o limite não é uma opção.
 3. **A busca mostra o exercício primeiro.** Buscar "supino" punha nove linhas
    de coleção na frente e o exercício caía em y=860, fora da tela. O resultado
    passa a ser **Exercícios primeiro, Coleções depois**, cada bloco com a sua
-   contagem no título; um seletor no topo ("Exercícios (6) · Coleções (9)")
-   pula direto para o bloco.
+   contagem no título; quando os dois blocos existem, um seletor no topo
+   ("Exercícios (6) · Coleções (9)") pula direto para o bloco (item 10).
 4. **Um vazio só, citando o termo.** Busca sem nenhum resultado mostrava dois
    vazios empilhados, e o segundo ("Nenhum exercício com esses filtros")
    mentia — não havia filtro nenhum. Agora é **um** vazio: *Nada para
@@ -1855,3 +1855,24 @@ a tela — afrouxar o limite não é uma opção.
    passam por `segmentoDaColecao()` (minúscula, sem acento, espaço vira
    hífen) — os links antigos continuam abrindo, porque a comparação normaliza
    o que chega.
+10. **O número do título é o da lista, e o seletor só aparece com dois
+    blocos.** Duas afirmações falsas saíam do mesmo resultado de busca.
+    (a) O `<p>` do seletor desenhava **sempre** os dois âncoras, mas cada
+    bloco só é montado com contagem > 0: "tatame" acha 0 exercícios e 2
+    coleções, e «Exercícios (0)» ficava sendo um link focável de 80×44 px
+    para um id **fora do documento** — tocar nele não fazia nada. O seletor
+    passa a ser montado só quando os **dois** blocos existem; com um bloco só
+    não há escolha a oferecer, e a linha some.
+    (b) A contagem do título saía de uma conta com o **termo apenas**,
+    enquanto a lista embaixo aplicava também o filtro recolhido atrás do botão
+    "Filtros" (item 5): buscar "supino" e escolher Grupo = Costas deixava
+    «Exercícios (6)» em cima, "0 de 81 exercícios" no meio e "Nenhum exercício
+    com esses filtros" embaixo — três números, e o 6 falso. Os filtros passam
+    a morar no `TelaExplorar`, e a `<ListaExercicios>` os recebe por prop
+    (`filtros` + `aoMudarFiltros`): número e lista saem do **mesmo** filtro.
+    Com filtro ativo e zero achados o bloco dos exercícios continua montado —
+    é ele que carrega o "Limpar filtros" — e o vazio da busca inteira (item 4)
+    não aparece; o contador "N de 81" some quando a busca vem do Explorar,
+    porque o título logo acima já é o contador, e é o título que ganha
+    `aria-live`. Apagar a busca solta os filtros; trocar só o termo os mantém,
+    com o selo do botão "Filtros" dizendo quantos são.
