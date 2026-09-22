@@ -90,7 +90,7 @@ export function LinhaColecao({
       */}
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="flex items-center gap-1.5">
-          <span className="min-w-0 flex-1 text-sm font-medium text-balance">
+          <span className="min-w-0 flex-1 text-sm font-medium text-balance" data-linha="titulo">
             {colecao.titulo}
           </span>
           {mostrarRaios && colecao.raios ? (

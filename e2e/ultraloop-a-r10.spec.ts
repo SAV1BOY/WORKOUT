@@ -308,12 +308,13 @@ test.describe("D — planos: título curto e a posição do perfil (item 4)", ()
     await expect(fixa.locator('[data-linha="meta"]')).toHaveText("semana 3 de 12");
     // acima do total fica preso no total
     await expect(corrida.locator('[data-linha="meta"]')).toHaveText("semana 12 de 12");
-    await expect(corda.locator('[data-linha="meta"]')).toHaveText("12 semanas");
-    // títulos curtos, sem o prazo repetido
-    await expect(fixa).toContainText("Primeira barra fixa");
-    await expect(fixa).not.toContainText("Primeira barra fixa em");
-    await expect(corrida).toContainText("5 km sem parar");
-    await expect(corrida).not.toContainText("sem parar em 12 semanas");
+    // a corda: a duração do JSON (o selo "Circuito" vem na mesma linha)
+    await expect(corda.locator('[data-linha="meta"]')).toHaveText(/^12 semanas/);
+    await expect(corda.locator('[data-linha="meta"]')).not.toContainText("semana ");
+    // títulos curtos, sem o prazo repetido (o prazo fica no objetivo, o subtítulo)
+    await expect(fixa.locator('[data-linha="titulo"]')).toHaveText("Primeira barra fixa");
+    await expect(corrida.locator('[data-linha="titulo"]')).toHaveText("5 km sem parar");
+    await expect(corda.locator('[data-linha="titulo"]')).toHaveText("Corda: 5 estágios");
 
     // a tela do plano diz a mesma posição
     await fixa.click();
