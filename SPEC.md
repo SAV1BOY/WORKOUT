@@ -2217,8 +2217,11 @@ verificável no e2e (`e2e/ultraloop-a-r10.spec.ts`) ou no Vitest.
    o título tem peso; o resto é `muted` em peso normal. Coleções por aparelho
    e circuitos não usam `specs` como subtítulo; a do aparelho diz uma vez só
    **"N exercícios que dão para fazer com ele"** (singular "1 exercício que dá
-   para fazer com ele"), sem kg, cm nem "~N min". Aceite: nenhuma linha de
-   aparelho de `data/equipamentos.json` tem kg, cm, "~" ou a contagem
+   para fazer com ele"), sem kg, cm nem "~N min". O título é o `nome_curto`
+   do item em `data/equipamentos.json` ("Tatame EVA", não "Tatame EVA 20 mm";
+   "Banco supino regulável", sem a marca) — o nome completo continua em Mais →
+   Equipamento. Aceite: nenhuma linha de aparelho de `data/equipamentos.json`
+   tem kg, cm, mm, "~", número ou parêntese no título, ou a contagem
    repetida.
 3. **A busca diz por que a coleção apareceu.** `buscarColecoes` devolvia as
    coleções na ordem da vitrine, sem dizer se casou pelo título ou por um

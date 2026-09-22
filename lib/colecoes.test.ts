@@ -103,8 +103,13 @@ describe("coleções por aparelho (SPEC §13.4)", () => {
   it("o título sai do JSON e a ficha técnica não vira subtítulo (§22.12 item 2)", () => {
     const tatame = colecaoDoAparelho("tatame");
     const item = equipamentos.itens.find((i) => i.id === "tatame");
-    expect(tatame?.titulo).toBe(item?.nome);
+    expect(tatame?.titulo).toBe(item?.nome_curto ?? item?.nome);
+    expect(tatame?.titulo).toBe("Tatame EVA");
     expect(tatame?.subtitulo).toBeNull();
+    // nenhum título de aparelho carrega medida ou marca: sem número, sem parêntese
+    for (const c of colecoesPorAparelho()) {
+      expect(c.titulo, c.id).not.toMatch(/\d|\(|\bmm\b|\bkg\b|\bcm\b/);
+    }
     expect(tatame?.detalhe).toBe(
       `${exerciciosDoAparelho("tatame").length} exercícios que dão para fazer com ele`,
     );

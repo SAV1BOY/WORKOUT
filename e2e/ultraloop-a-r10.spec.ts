@@ -249,7 +249,10 @@ test.describe("B e C — linhas de coleção e o motivo da busca (itens 2 e 3)",
       const texto = (await linha.innerText()).replace(/\s+/g, " ");
       const specs = equipamentos.itens.find((it) => it.id === id)?.specs ?? "@@";
       expect(texto, id).not.toContain(specs);
-      expect(texto, id).not.toMatch(/\bkg\b|\bcm\b|~|\bmin\b/);
+      expect(texto, id).not.toMatch(/\bkg\b|\bcm\b|\bmm\b|~|\bmin\b/);
+      // o título é o nome curto: sem medida nem marca (sem número, sem parêntese)
+      const titulo = (await linha.locator('[data-linha="titulo"]').innerText()).trim();
+      expect(titulo, id).not.toMatch(/\d|\(/);
       expect(texto.match(/para fazer com ele/g) ?? [], id).toHaveLength(1);
       expect(texto, id).toMatch(/\d+ exercícios? que d[áã]o? para fazer com ele/);
       // a meta é a última linha e não tem peso; o título tem

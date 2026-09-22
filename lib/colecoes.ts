@@ -168,7 +168,8 @@ export function colecaoDoAparelho(id: string): Colecao | null {
   if (!item) return null;
   const lista = exerciciosDoAparelho(id);
   if (lista.length === 0) return null;
-  return montar(`aparelho:${id}`, "aparelho", item.nome, null, lista, {
+  // o nome da vitrine, sem marca nem medida; o completo fica em Mais → Equipamento
+  return montar(`aparelho:${id}`, "aparelho", item.nome_curto ?? item.nome, null, lista, {
     detalhe: metaDoAparelho(lista.length),
   });
 }
