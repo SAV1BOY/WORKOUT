@@ -171,6 +171,40 @@ test.describe("A — catálogo: filtros numa folha (SPEC §22.12 item 1)", () =>
     await semRolagemHorizontal(page);
   });
 
+  test("com a página rolada, 'Ver N exercícios' traz o primeiro resultado para a tela", async ({
+    page,
+  }) => {
+    await preparar(page);
+    await page.goto("/exercicios");
+    const contador = page.locator("[data-contador]");
+    await expect(contador).toHaveText(`${TOTAL} exercícios`);
+    const cartoes = page
+      .getByRole("list", { name: "Exercícios", exact: true })
+      .locator('a[href^="/exercicios/"]');
+    // o grupo com mais exercícios que ainda cabe no limite de 20 montados:
+    // lista comprida o bastante para o fim da página não mostrar o primeiro
+    const porGrupo = new Map<string, number>();
+    for (const e of CATALOGO) porGrupo.set(e.grupo, (porGrupo.get(e.grupo) ?? 0) + 1);
+    const [grupo, n] = [...porGrupo.entries()]
+      .filter(([, q]) => q <= 20)
+      .sort((a, b) => b[1] - a[1])[0]!;
+    expect(n).toBeGreaterThan(5);
+
+    // rola até o fim e abre a folha SEM o Playwright rolar de volta ao gatilho
+    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(740);
+    const gatilho = page.getByRole("button", { name: /^Filtros/, includeHidden: true });
+    await gatilho.evaluate((b) => (b as HTMLButtonElement).click());
+    const folha = page.getByRole("dialog", { name: "Filtros" });
+    await folha.getByLabel("Grupo").selectOption(grupo);
+    await folha.getByRole("button", { name: `Ver ${n} exercícios` }).click();
+    await expect(folha).toBeHidden();
+    await expect(contador).toHaveText(`${n} de ${TOTAL} exercícios`);
+    await expect(cartoes).toHaveCount(n);
+    await expect(cartoes.first()).toBeInViewport();
+    expect((await cartoes.first().getAttribute("title")) ?? "").toContain(grupo);
+  });
+
   test("na busca do Explorar, a mesma folha; o título conta o que a lista mostra", async ({
     page,
   }) => {
@@ -393,5 +427,36 @@ test.describe("F — desafios: uma fonte só para o CTA (item 7)", () => {
     const rotulos = await desafios.locator("li[data-desafio] a").allTextContents();
     expect(rotulos).toHaveLength(3);
     expect(new Set(rotulos.map((r) => r.trim())).size).toBe(3);
+  });
+
+  test("a página do plano mostra o mesmo CTA do desafio: rótulo e destino", async ({
+    page,
+  }) => {
+    await preparar(page, { semana_fixa: 3, semana_corrida: 5 });
+    await page.goto("/");
+    await esperarAbaTreino(page);
+    const desafios = page.getByRole("region", { name: "Desafios" });
+    for (const [id, plano] of [
+      ["barra_fixa", "/explorar/plano/barra_fixa"],
+      ["corrida", "/explorar/plano/corrida"],
+    ] as const) {
+      await page.goto("/");
+      await esperarAbaTreino(page);
+      const link = desafios.locator(`li[data-desafio="${id}"] a`);
+      await expect(link).toHaveCount(1);
+      const texto = ((await link.textContent()) ?? "").trim();
+      const href = (await link.getAttribute("href")) ?? "";
+      expect(texto, id).toMatch(/^Fazer a /);
+
+      await page.goto(plano);
+      const botao = page.locator("main").getByRole("link", { name: texto, exact: true });
+      await expect(botao, id).toHaveCount(1);
+      await expect(botao, id).toHaveAttribute("href", href);
+    }
+    // a corrida leva à semana do perfil, como no carrossel
+    await expect(
+      page.locator("main").getByRole("link", { name: "Fazer a corrida da semana 5" }),
+    ).toHaveAttribute("href", "/cardio/corrida?semana=5");
+    await expect(page.getByText("Fazer a sessão da semana")).toHaveCount(0);
   });
 });
