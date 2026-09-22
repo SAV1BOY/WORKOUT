@@ -348,7 +348,7 @@ Toda sessão (treino do programa, sessão livre, circuito, sessão de barra fixa
 Abre por cima de qualquer tela (Treino, player, Explorar) sem perder estado: título + **Substituir** (mesmo fluxo de substitutos); mídia com três abas **Vídeo · Músculos · Tutorial**: Vídeo = figura animada (ou vídeo local) com botão de pausa; Músculos = figura + mapa frente/costas com primários fortes e secundários claros; **Tutorial** = vídeo do YouTube de `data/tutoriais.json` (81 entradas: `exercicio_id`, `youtube_id`, `titulo`, `canal`, `idioma`, `url`, `nota`; validado em `lib/schemas.ts`, lido por `lib/dados.ts`), mostrado como miniatura `https://i.ytimg.com/vi/<id>/hqdefault.jpg` + play, e só ao tocar vira `<iframe src="https://www.youtube-nocookie.com/embed/<id>">` (sem rede a aba mostra "Precisa de internet" e o botão "Abrir no YouTube"); stepper **Duração / Repetições / Séries** que ajusta **só a prescrição desta sessão** (nunca `exercise_state`); **Instruções** (passos do JSON) e **Erro comum**; **Área de foco** em chips (primário = ponto forte, secundário = claro) a partir de `musculos_*_nome`; histórico e recorde abaixo (como hoje); navegação **anterior/próximo (n/N)** dentro do treino; **Fechar**. A rota `/exercicios/[id]` continua existindo e usa o mesmo componente em página inteira.
 
 ### 14.3 Aba Treino — acréscimos à §13.3
-Abaixo da lista do treino do dia: **Editar** (modo reordenar com alças e setas ↑↓; ordem só desta sessão, gravada em `sessions.plano` quando a sessão é criada; "voltar à ordem do programa"); **Ajustar** no cabeçalho, ao lado da data (descanso padrão, preparação, avançar sozinho, voz, vibração, tela acesa, mostrar raios); **Desafios** (carrossel manual, sem rotação automática, com os planos reais: "Primeira barra fixa em 12 semanas", "Correr 5 km em 12 semanas", "Fase 1 — 12 semanas"; capa de `assets/`, semana atual e progresso, botão "Fazer a sessão da semana"); **Parte do corpo em foco** (chips dos 8 grupos → lista com miniatura, `N exercícios · ~M min`, raios, "Começar" = sessão livre com os 6 primeiros do grupo, compostos antes de isolamento); chips de filtro derivados (≤ 15 min · 15–30 min · com equipamento · sem equipamento · core · cardio); **Personalizar treino** ("Crie o seu próprio": escolher exercícios do catálogo e começar uma sessão livre). Sem busca na Treino (fica em Explorar).
+Abaixo da lista do treino do dia: **Editar** (modo reordenar com alças e setas ↑↓; ordem só desta sessão, gravada em `sessions.plano` quando a sessão é criada; "voltar à ordem do programa"); **Ajustar** no cabeçalho, ao lado da data (descanso padrão, preparação, avançar sozinho, voz, vibração, tela acesa, mostrar raios); **Desafios** (carrossel manual, sem rotação automática, com os planos reais — títulos e botões como definidos em §22.7 item 6 e §22.12 itens 4 e 7; capa de `assets/`, semana atual e progresso); **Parte do corpo em foco** (chips dos 8 grupos → lista com miniatura, `N exercícios · ~M min`, raios, "Começar" = sessão livre com os 6 primeiros do grupo, compostos antes de isolamento); chips de filtro derivados (≤ 15 min · 15–30 min · com equipamento · sem equipamento · core · cardio); **Personalizar treino** ("Crie o seu próprio": escolher exercícios do catálogo e começar uma sessão livre). Sem busca na Treino (fica em Explorar).
 
 ### 14.4 Explorar, Relatório, Corpo, Mais — como na §13.4, §13.5 e §13.7, com estes ajustes
 - **Explorar**: cabeçalho "Explorar" com busca sempre visível; **um destaque** no topo (o treino de hoje ou a sessão da semana do plano); **"Escolhas para você"** = lista com capa, título, `N exercícios · ~M min · nível (raios)` das coleções derivadas (grupos, aparelhos, circuitos, planos, treinos do programa), com "Ver todos"; catálogo dos 81 abaixo com filtros; toque em coleção → tela da coleção (capa, lista, "Começar"); nada de texto de marketing; descrições só de campos do JSON (foco, subtítulo, regra, funções).
@@ -2226,8 +2226,15 @@ verificável no e2e (`e2e/ultraloop-a-r10.spec.ts`) ou no Vitest.
    o casamento veio de exercício, a linha diz **"contém <exercício>"**: vários
    termos em exercícios diferentes citam os nomes, sem repetir, na ordem dos
    termos; dois termos no mesmo exercício citam um nome só; acento e caixa não
-   contam. Aceite: toda coleção achada por conteúdo mostra o(s) exercício(s);
-   casamento por título ou subtítulo não mostra "contém".
+   contam. A escolha é termo a termo, na ordem dos termos: para cada termo
+   ainda descoberto, o exercício que o contém **e cobre mais termos ainda
+   descobertos** (empate: o primeiro da coleção); no fim, sai quem ficou com
+   todos os seus termos cobertos por outro citado. Com qualquer número de
+   termos, nenhum nome citado sobra ("flexao inclinada supino" em Peito cita
+   "Flexão inclinada e Supino reto com barra", não "Flexão declinada, …").
+   Aceite: toda coleção achada por conteúdo mostra o(s) exercício(s);
+   casamento por título ou subtítulo não mostra "contém"; com 3 termos, dois
+   no mesmo exercício, o nome dele aparece uma vez e nenhum outro sobra.
 4. **Planos: título curto e a posição.** "Primeira barra fixa em 12 semanas" e
    "5 km sem parar em 12 semanas" repetiam o prazo que já está no objetivo.
    Os títulos da vitrine ficam **"Primeira barra fixa"** e a meta da corrida
@@ -2236,7 +2243,9 @@ verificável no e2e (`e2e/ultraloop-a-r10.spec.ts`) ou no Vitest.
    "semana 99" vira "semana 12 de 12"); sem perfil, **"T semanas"**. A corda
    não tem posição no perfil e mostra a sua duração, que é a do JSON
    (`ultimaSemanaDeCorda()`, 12 — antes dizia "5 semanas", que eram os 5
-   estágios). Nenhum número escrito à mão.
+   estágios). Nenhum número escrito à mão. O card do desafio (carrossel da
+   Treino e destaque do Explorar) usa o **mesmo título** da linha do plano —
+   o prazo já está em "Semana N de T" logo abaixo.
 5. **Títulos em degraus.** No Explorar, "Exercícios" era `h3` irmão do `h2`
    "Escolhas para você": passa a `h2`, e os cinco títulos do grupo de escolhas
    continuam `h3`.
@@ -2249,7 +2258,14 @@ verificável no e2e (`e2e/ultraloop-a-r10.spec.ts`) ou no Vitest.
    `desafio.acao` ("Fazer a sessão da semana"): o mesmo desafio tinha dois
    CTAs. O rótulo passa a sair só de `desafios()` em `lib/colecoes.ts`
    ("Fazer a sessão de barra fixa", "Fazer a corrida da semana N", "Fazer o
-   treino da fase N"), e as duas telas mostram `desafio.acao`.
+   treino da fase N"), e as duas telas mostram `desafio.acao`. A página da
+   coleção de plano (`/explorar/plano/*`) também: o botão dela dizia "Fazer a
+   sessão da semana" e levava a corrida para `/cardio/corrida` sem a semana;
+   passa a usar o mesmo rótulo e o mesmo destino, vindos de
+   `ctaDoPlano()` — a função que `desafios()` também usa — e a corda, que não é
+   desafio, diz "Fazer a sessão de corda". Aceite: para barra fixa e corrida,
+   Treino, destaque do Explorar e página do plano mostram o mesmo texto e o
+   mesmo `href`; nenhum componente escreve o rótulo.
 8. **Processo: o comparador de capturas casa o nome curto.**
    `scripts/comparar-capturas.ts` casava `--esperadas` por `startsWith`, e
    "explorar" não casava "06-explorar-claro.png". Passa a aceitar também o
