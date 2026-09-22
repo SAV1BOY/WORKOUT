@@ -43,7 +43,7 @@ import {
   statusDoPeso,
   totalDeSoltas,
 } from "@/lib/hoje";
-import { desafios as montarDesafios } from "@/lib/colecoes";
+import { desafios as montarDesafios, nomeCurtoDaFase } from "@/lib/colecoes";
 import { metaSemanal, progressoDaMeta, sequenciaDeSemanas } from "@/lib/metas";
 import {
   aplicarOrdem,
@@ -107,12 +107,6 @@ let jaMandouParaOGuia = false;
 
 /** Quantas semanas para trás a sequência de semanas precisa ler. */
 const SEMANAS_LIDAS = 16;
-
-/** Nome curto da fase ("Fase 1"), tirado do nome que está no programa.json. */
-function nomeCurtoDaFase(nome: string): string {
-  const [curto] = nome.split("—");
-  return (curto ?? nome).trim();
-}
 
 /** A aba Treino (SPEC §13.3): o cabeçalho, os cards do dia e a lista do treino. */
 export function TelaTreino({ userId }: { userId: string }) {

@@ -20,6 +20,7 @@ import {
   colecoesPorAparelho,
   colecoesPorGrupo,
   desafios,
+  metaDoPlano,
   semCapasRepetidas,
   todasAsColecoes,
   type Colecao,
@@ -378,13 +379,18 @@ function Destaque({
     proximoTreino: proximoTreinoDaFase(perfil.fase_atual, perfil.ultimo_treino),
   });
   const plano = lista[dia?.tipo === "cardio" ? 1 : 0];
-  if (!plano) return null;
+  if (!plano || plano.id === "fase") return null;
+  /* SPEC §22.12 item 4: a meta sai da mesma função da vitrine, não da tela */
+  const meta = metaDoPlano(
+    { id: plano.id, semanas: plano.semanas, subtitulo: plano.subtitulo },
+    { semanaFixa: perfil.semana_fixa, semanaCorrida: perfil.semana_corrida },
+  );
 
   return (
     <CardCapa
       titulo={plano.titulo}
       subtitulo={plano.subtitulo}
-      detalhe={`semana ${plano.semanaAtual} de ${plano.semanas}`}
+      detalhe={meta}
       foto={plano.capa}
       etiqueta="hoje"
     >

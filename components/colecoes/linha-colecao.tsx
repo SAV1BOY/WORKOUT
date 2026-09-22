@@ -107,25 +107,31 @@ export function LinhaColecao({
             {colecao.motivoDaBusca}
           </span>
         ) : null}
-        <span
-          className="text-muted-foreground flex flex-wrap items-center gap-x-1.5 text-xs font-normal tabular-nums"
-          data-linha="meta"
-        >
-          {colecao.detalhe}
-          {/*
-            SPEC §13.6 e §22.2 item 9: a coleção em que TODO exercício serve
-            para circuito (`podeCircuito`) avisa aqui — o campo era calculado e
-            só os testes liam. Selo sem cor forte: é informação, não promoção.
-          */}
-          {colecao.circuito ? (
-            <span
-              data-selo="circuito"
-              className="border-border rounded-full border px-1.5 py-px text-micro tracking-wide uppercase"
-            >
-              Circuito
-            </span>
-          ) : null}
-        </span>
+        {/*
+          SPEC §22.12 item 4: o plano sem perfil cujo objetivo já diz o prazo
+          não tem meta — a linha acaba no subtítulo, sem um vão vazio.
+        */}
+        {colecao.detalhe || colecao.circuito ? (
+          <span
+            className="text-muted-foreground flex flex-wrap items-center gap-x-1.5 text-xs font-normal tabular-nums"
+            data-linha="meta"
+          >
+            {colecao.detalhe}
+            {/*
+              SPEC §13.6 e §22.2 item 9: a coleção em que TODO exercício serve
+              para circuito (`podeCircuito`) avisa aqui — o campo era calculado e
+              só os testes liam. Selo sem cor forte: é informação, não promoção.
+            */}
+            {colecao.circuito ? (
+              <span
+                data-selo="circuito"
+                className="border-border rounded-full border px-1.5 py-px text-micro tracking-wide uppercase"
+              >
+                Circuito
+              </span>
+            ) : null}
+          </span>
+        ) : null}
       </span>
       <ChevronRight aria-hidden="true" className="text-muted-foreground size-4 shrink-0" />
     </Link>
