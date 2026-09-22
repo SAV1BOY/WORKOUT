@@ -2188,3 +2188,71 @@ campo de carga nunca mostra duas vírgulas e grava o valor certo; abrir
 e depois o player, nunca "Não achei"; o "Sair" manda `?scope=local` e não
 derruba o outro aparelho (`lib/sw-assets.test.ts`, `lib/digitar-numero.test.ts`,
 `lib/estado-do-player.test.ts`, `e2e/player.spec.ts`, `e2e/sem-conexao.spec.ts`).
+
+### 22.12 Explorar e catálogo: leitura e filtros
+
+Medido em `main` (ef3ad97) a 360×740. Oito itens; o aceite de cada um é
+verificável no e2e (`e2e/ultraloop-a-r10.spec.ts`) ou no Vitest.
+
+1. **Os filtros do catálogo moram numa folha.** `/exercicios` gastava ~399 px
+   em cabeçalho, busca, três selects e o botão "No meu programa" de largura
+   inteira — 54% da tela antes do primeiro exercício. Agora a busca fica, e os
+   filtros vão para trás de um botão **"Filtros"** que abre uma folha inferior
+   (o `Sheet` do shadcn, Radix `Dialog`). O selo do botão diz **quantos filtros
+   estão ligados** (não quantos exercícios sobraram). O que está ligado vira
+   **chips removíveis** acima da lista ("Peito ×"); "No meu programa" é um chip
+   de alternância dentro da folha, não um botão de largura inteira. A folha
+   termina num CTA **"Ver N exercícios"** com o número real (singular "Ver 1
+   exercício"; zero, "Nenhum exercício"), que fecha a folha. O mesmo vale para
+   a busca do Explorar. Aceite: a 360×740 o primeiro cartão de `/exercicios`
+   está inteiro na primeira tela; o gatilho expõe `aria-expanded`,
+   `aria-controls` e `aria-haspopup` geridos pelo Radix e a folha é um
+   `dialog` com título; contador, CTA e cartões montados dizem o mesmo número
+   (≤ 20); tirar um chip atualiza selo, contador e lista; todo controle da
+   folha tem ≥ 44 px.
+2. **A linha da coleção lê de cima para baixo.** A meta ("8 exercícios · ~26
+   min") vinha antes do subtítulo, e a ficha técnica do aparelho ("7 posições
+   de encosto · 200 kg · 104 × 32 cm") era o subtítulo da vitrine. A ordem
+   passa a ser **título → subtítulo descritivo → motivo da busca → meta**, e só
+   o título tem peso; o resto é `muted` em peso normal. Coleções por aparelho
+   e circuitos não usam `specs` como subtítulo; a do aparelho diz uma vez só
+   **"N exercícios que dão para fazer com ele"** (singular "1 exercício que dá
+   para fazer com ele"), sem kg, cm nem "~N min". Aceite: nenhuma linha de
+   aparelho de `data/equipamentos.json` tem kg, cm, "~" ou a contagem
+   repetida.
+3. **A busca diz por que a coleção apareceu.** `buscarColecoes` devolvia as
+   coleções na ordem da vitrine, sem dizer se casou pelo título ou por um
+   exercício lá dentro. Agora ordena **título > subtítulo > conteúdo** e, quando
+   o casamento veio de exercício, a linha diz **"contém <exercício>"**: vários
+   termos em exercícios diferentes citam os nomes, sem repetir, na ordem dos
+   termos; dois termos no mesmo exercício citam um nome só; acento e caixa não
+   contam. Aceite: toda coleção achada por conteúdo mostra o(s) exercício(s);
+   casamento por título ou subtítulo não mostra "contém".
+4. **Planos: título curto e a posição.** "Primeira barra fixa em 12 semanas" e
+   "5 km sem parar em 12 semanas" repetiam o prazo que já está no objetivo.
+   Os títulos da vitrine ficam **"Primeira barra fixa"** e a meta da corrida
+   (**"5 km sem parar"**, de `cardio.json`); com o perfil na mão, a meta de
+   barra fixa e corrida é **"semana N de T"** (N do perfil, preso a T —
+   "semana 99" vira "semana 12 de 12"); sem perfil, **"T semanas"**. A corda
+   não tem posição no perfil e mostra a sua duração, que é a do JSON
+   (`ultimaSemanaDeCorda()`, 12 — antes dizia "5 semanas", que eram os 5
+   estágios). Nenhum número escrito à mão.
+5. **Títulos em degraus.** No Explorar, "Exercícios" era `h3` irmão do `h2`
+   "Escolhas para você": passa a `h2`, e os cinco títulos do grupo de escolhas
+   continuam `h3`.
+6. **A tela da coleção tem um `h1`.** O título da capa era `h2` e a página não
+   tinha `h1`. O `CardCapa` ganha `nivelTitulo` (`"h1" | "h2"`), e a tela da
+   coleção usa `h1`: exatamente um `h1` no `main`, também nas URLs antigas com
+   acento e caixa (`/explorar/grupo/Core`, `/explorar/grupo/Bíceps`).
+7. **Uma fonte só para o CTA dos desafios.** `components/treino/desafios.tsx`
+   reescrevia o rótulo por id (`acaoDoDesafio`) enquanto o Explorar usava
+   `desafio.acao` ("Fazer a sessão da semana"): o mesmo desafio tinha dois
+   CTAs. O rótulo passa a sair só de `desafios()` em `lib/colecoes.ts`
+   ("Fazer a sessão de barra fixa", "Fazer a corrida da semana N", "Fazer o
+   treino da fase N"), e as duas telas mostram `desafio.acao`.
+8. **Processo: o comparador de capturas casa o nome curto.**
+   `scripts/comparar-capturas.ts` casava `--esperadas` por `startsWith`, e
+   "explorar" não casava "06-explorar-claro.png". Passa a aceitar também o
+   nome sem o prefixo numérico ("explorar" → "06-explorar-*"), mantendo o
+   casamento antigo; a função é exportada e testada
+   (`scripts/comparar-capturas.test.ts`).
