@@ -70,7 +70,7 @@ export interface Colecao {
   detalhe: string;
   /** Roda no modo por tempo (SPEC §13.6)? */
   circuito: boolean;
-  /** Coleção de plano: para onde o "Fazer a sessão da semana" leva. */
+  /** Coleção de plano: o botão dela sai de `ctaDoPlano()` (SPEC §22.12 item 7). */
   plano?: PlanoId;
   /** Coleção de treino do programa. */
   treino?: TreinoId;
@@ -501,10 +501,12 @@ export function juntarNomes(nomes: readonly string[]): string {
 
 /**
  * Os exercícios responsáveis pelo casamento (SPEC §22.12 item 3). `termos`
- * são os que NÃO estavam no título nem no subtítulo. Um exercício que tem
- * todos eles basta — dois termos no mesmo exercício citam um nome só; senão,
- * termo a termo, na ordem dos termos, o primeiro exercício que o contém (um já
- * citado vale de novo, sem repetir o nome).
+ * são os que NÃO estavam no título nem no subtítulo. Termo a termo, na ordem
+ * dos termos: para cada termo ainda descoberto, o exercício que o contém E
+ * cobre mais termos ainda descobertos (empate: o primeiro da coleção). Assim
+ * dois termos no mesmo exercício citam um nome só, com qualquer número de
+ * termos. No fim sai quem teve todos os seus termos cobertos por outro citado
+ * — nenhum nome sobra, nenhum se repete.
  */
 export function exerciciosResponsaveis(
   termos: readonly string[],
@@ -512,15 +514,38 @@ export function exerciciosResponsaveis(
 ): string[] {
   if (termos.length === 0) return [];
   const normais = nomes.map((n) => semAcento(n));
-  const todos = normais.findIndex((n) => termos.every((t) => n.includes(t)));
-  if (todos >= 0) return [nomes[todos] ?? ""];
+  const cobre = (i: number, t: string) => normais[i]?.includes(t) ?? false;
+  const descobertos = new Set(termos);
   const citados: number[] = [];
   for (const t of termos) {
-    if (citados.some((i) => normais[i]?.includes(t))) continue;
-    const i = normais.findIndex((n) => n.includes(t));
-    if (i >= 0) citados.push(i);
+    if (!descobertos.has(t)) continue;
+    let melhor = -1;
+    let quantos = 0;
+    normais.forEach((_, i) => {
+      if (!cobre(i, t) || citados.includes(i)) return;
+      const n = [...descobertos].filter((d) => cobre(i, d)).length;
+      if (n > quantos) {
+        melhor = i;
+        quantos = n;
+      }
+    });
+    if (melhor < 0) continue;
+    citados.push(melhor);
+    for (const d of [...descobertos]) if (cobre(melhor, d)) descobertos.delete(d);
   }
-  return citados.map((i) => nomes[i] ?? "");
+  // quem ficou com todos os seus termos cobertos por outro citado não é
+  // responsável por nada: sai
+  // (um de cada vez, contra os que ainda ficaram — dois nunca saem juntos
+  // deixando um termo sem nome)
+  const finais = [...citados];
+  for (const i of citados) {
+    const outros = finais.filter((j) => j !== i);
+    const redundante = termos
+      .filter((t) => cobre(i, t))
+      .every((t) => outros.some((j) => cobre(j, t)));
+    if (redundante) finais.splice(finais.indexOf(i), 1);
+  }
+  return finais.map((i) => nomes[i] ?? "");
 }
 
 /**

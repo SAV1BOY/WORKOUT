@@ -477,14 +477,88 @@ describe("a busca diz por que achou (SPEC §22.12 item 3)", () => {
       "Rosca direta",
       "Prancha frontal",
     ]);
+    // "prancha" e "lateral" estão os dois na Prancha lateral: um nome só por
+    // eles, e a Prancha frontal (que só tem "prancha") não sobra na frase
     expect(exerciciosResponsaveis(["prancha", "lateral", "rosca"], nomes)).toEqual([
-      "Prancha frontal",
       "Prancha lateral",
       "Rosca direta",
     ]);
     expect(juntarNomes(["A"])).toBe("A");
     expect(juntarNomes(["A", "B"])).toBe("A e B");
     expect(juntarNomes(["A", "B", "C"])).toBe("A, B e C");
+  });
+
+  it("nenhum nome se repete, mesmo quando dois termos caem no mesmo exercício", () => {
+    const r = exerciciosResponsaveis(
+      ["prancha", "lateral", "frontal"],
+      ["Prancha frontal", "Prancha lateral"],
+    );
+    expect(r).toEqual(["Prancha frontal", "Prancha lateral"]);
+    expect(new Set(r).size).toBe(r.length);
+    // termo que nenhum exercício tem não inventa nome
+    expect(exerciciosResponsaveis(["zzz"], ["Prancha frontal"])).toEqual([]);
+  });
+
+  it("com 3 termos, dois no mesmo exercício, nenhum nome sobra (dados reais)", () => {
+    const motivo = (termo: string, id: string) =>
+      buscarColecoes(termo).find((c) => c.id === id)?.motivoDaBusca;
+    // era "contém Flexão declinada, Flexão inclinada e Supino reto com barra"
+    expect(motivo("flexao inclinada supino", "grupo:Peito")).toBe(
+      "contém Flexão inclinada e Supino reto com barra",
+    );
+    // era "contém Agachamento livre, Agachamento sumô e Stiff / terra romeno"
+    expect(motivo("agachamento sumo stiff", "aparelho:barra-macica")).toBe(
+      "contém Agachamento sumô e Stiff / terra romeno",
+    );
+    // era "contém Barra fixa pronada, Barra fixa com lastro e Remada curvada pronada"
+    expect(motivo("barra com remada", "grupo:Costas")).toBe(
+      "contém Barra fixa com lastro e Remada curvada pronada",
+    );
+  });
+
+  it("em toda coleção real, 2 palavras de um exercício + 1 de outro: cada nome citado responde por um termo só dele", () => {
+    const palavras = (n: string) =>
+      [...new Set(semAcentoT(n).split(/[^a-z0-9]+/).filter((p) => p.length >= 4))];
+    let consultas = 0;
+    for (const c of todasAsColecoes()) {
+      const nomes = c.exercicios.map(nomeDe);
+      const normais = nomes.map(semAcentoT);
+      nomes.forEach((a, ia) => {
+        const pa = palavras(a);
+        if (pa.length < 2) return;
+        nomes.forEach((b, ib) => {
+          if (ib === ia) return;
+          const pb = palavras(b).filter((p) => !pa.includes(p));
+          const extra = pb[0];
+          if (!extra) return;
+          for (const termos of [
+            [pa[0]!, pa[1]!, extra],
+            [extra, pa[0]!, pa[1]!],
+            [pa[0]!, extra, pa[1]!],
+          ]) {
+            consultas += 1;
+            const r = exerciciosResponsaveis(termos, nomes);
+            const ids = r.map((n) => nomes.indexOf(n));
+            expect(new Set(r).size, termos.join(" ")).toBe(r.length);
+            // todo termo tem quem responda por ele
+            for (const t of termos) {
+              expect(ids.some((i) => normais[i]!.includes(t)), `${c.id}: ${termos.join(" ")}`).toBe(true);
+            }
+            // e todo nome citado tem um termo que nenhum outro citado cobre
+            for (const i of ids) {
+              const proprio = termos.some(
+                (t) => normais[i]!.includes(t) && !ids.some((j) => j !== i && normais[j]!.includes(t)),
+              );
+              expect(proprio, `${c.id}: "${termos.join(" ")}" → ${r.join(", ")}`).toBe(true);
+            }
+            // os dois termos que estão juntos em um exercício nunca pedem mais
+            // de dois nomes no total
+            expect(r.length, `${c.id}: ${termos.join(" ")}`).toBeLessThanOrEqual(2);
+          }
+        });
+      });
+    }
+    expect(consultas).toBeGreaterThan(1000);
   });
 
   it("na coleção real, dois termos de exercícios diferentes aparecem os dois", () => {
