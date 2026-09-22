@@ -8913,3 +8913,163 @@ capturas (o título novo do card não entra nelas).
   diz "contém Flexão inclinada e Supino reto com barra", sem a declinada.
 - **Por aparelho**: os nomes vêm sem medida nem marca ("Tatame EVA", "Super
   Band", "Barra reta maciça"); em Mais → Equipamento o nome completo continua.
+
+#### Rodada 10 — auditoria 2 reprovou; lote devolvido à fila
+
+A segunda auditoria, em `06441e5`, aprovou a lente **tela** e reprovou a lente
+**regra** por dois importantes: (1) nenhum teste cobria a passada final de
+`exerciciosResponsaveis` (a que tira o nome redundante) — uma mutação que a
+anula passava em 80/80, porque a varredura só montava consultas de 3 termos e,
+com 3, a passada nunca age; com 4 ela é necessária ("sentado panturrilha barra
+declinado" no Banco citava "Desenvolvimento sentado com barra" sobrando); e (2)
+a SPEC se contradizia: a §13.8 item 2, critério de aceite, ainda pedia `specs`
+como subtítulo de aparelho e circuito, enquanto a §22.12 item 2 e o código
+dizem que não há subtítulo. Pela regra do dono (no máximo duas auditorias por
+rodada), o lote voltou à fila ao fim da rodada 10.
+
+#### Rodada 11 — retomada
+
+Mesma branch, a partir de `06441e5`. Logs em `r11/l12/logs/`.
+
+##### O que mudou
+
+1. **Passada final da busca coberta por teste, com 4 termos** (`lib/colecoes.test.ts`).
+   **Era:** só consultas de 3 termos; anular `if (redundante) finais.splice(…)`
+   não derrubava nenhum teste. **É:** os três casos reais de 4 termos
+   ("sentado panturrilha barra declinado" no Banco → "contém Elevação de
+   panturrilha sentado e Supino declinado com barra"; "puxada remada polia
+   com" e "puxada rosca com polia" no Cross over → "contém Puxada com
+   triângulo e Remada baixa na polia" / "… e Rosca na polia baixa", sem a
+   "Puxada alta na polia"), o sintético `[alfa, beta, gama, delta]` sobre
+   `["alfa beta", "alfa gama", "beta delta"]` → `["alfa gama", "beta delta"]`,
+   e a varredura de todas as coleções reais estendida a 4 termos (dois de cada
+   exercício, em três ordens) além das de 3.
+2. **A frase dos nomes na ordem dos termos** (`lib/colecoes.ts`
+   `exerciciosResponsaveis`; menor (a)). **Era:** os nomes saíam na ordem da
+   escolha gulosa — "barra direta supino" no Treino A dizia "Supino reto com
+   barra e Rosca direta com barra"; "flexao braco declinada" em Peito,
+   "Flexão declinada e Flexão de braço". **É:** cada nome vai para a posição
+   do primeiro termo que ele cobre; dois que começam no mesmo termo, pelo
+   primeiro termo que só ele cobre: "Rosca direta com barra e Supino reto com
+   barra", "Flexão de braço e Flexão declinada". O conjunto citado não muda,
+   só a ordem.
+3. **SPEC sem contradição** (`SPEC.md`; importante 2 e menor (d)). §13.8 item 2
+   diz que aparelho e circuito não têm subtítulo e remete à §22.12 item 2;
+   §13.4 traz os títulos curtos dos planos ("Primeira barra fixa", "5 km sem
+   parar") e a meta de aparelho; §14.4 diz que a meta de aparelho é "N
+   exercícios que dão para fazer com ele" e a de plano, posição ou duração;
+   §22.12 itens 2, 3 e 4 com a regra desta rodada e uma nota "Rodada 11 —
+   correção da auditoria 2".
+4. **Sem perfil, o plano não repete o prazo** (`lib/colecoes.ts` `metaDoPlano`,
+   `textoDizOPrazo`, `Colecao.detalhe: string | null`;
+   `components/colecoes/linha-colecao.tsx`; menor (e)). **Era:** sem perfil, a
+   barra fixa dizia "a primeira barra fixa sem elástico em 8–12 semanas" e
+   logo abaixo "12 semanas"; a corrida, "… em 12 semanas (≈35 min…)" e "12
+   semanas". **É:** sem posição, a meta é "T semanas" só se o subtítulo (o
+   objetivo do JSON) ainda não disser o prazo; se disser, a linha fica sem
+   meta (a linha não desenha um vão vazio). Com perfil nada muda ("semana N
+   de 12"); a corda continua "12 semanas".
+5. **Uma fonte para a meta e para o nome da fase** (menores (b) e (c)).
+   `components/treino/tela-treino.tsx` perdeu o `nomeCurtoDaFase` privado e
+   importa o de `lib/colecoes.ts`; o destaque do Explorar
+   (`components/explorar/tela-explorar.tsx`) tira a meta de `metaDoPlano()` em
+   vez de montar "semana N de T" na tela. O texto na tela é o mesmo.
+6. **"ele" nunca sozinho na linha de aparelho** (`metaDoAparelho`; menor (f)).
+   **Era:** a 360 px, "8 exercícios que dão para fazer com ele" quebrava e
+   deixava "ele" sozinho na segunda linha em 8 das 9 linhas. **É:** espaço
+   inseguível (U+00A0) em "com ele" — "com ele" desce junto.
+
+##### Correção da auditoria
+
+- **Importante 1 (passada final sem teste):** item 1 acima. Prova de que o
+  teste novo pega a mutação: com `if (redundante && false) …` no lugar da
+  passada, `lib/colecoes.test.ts` dá **3 falhas** (casos reais de 4 termos,
+  sintético e varredura 3+4 termos); sem ordenar a frase
+  (`return finais.map…`), **4 falhas**. As mutações foram feitas no worktree e
+  desfeitas antes do commit (nada delas foi comitado).
+- **Importante 2 (SPEC §13.8 item 2):** item 3 acima.
+- **Menores feitos:** (a) ordem da frase, item 2; (b) `nomeCurtoDaFase` único;
+  (c) meta do destaque por `metaDoPlano`; (d) §13.4 e §14.4 alinhadas; (e)
+  prazo sem perfil, item 4; (f) "com ele" inseguível, item 6.
+- **Menores que ficam de fora (anotados):** o conjunto citado nem sempre é o
+  menor possível (2 casos de "Puxada Remada polia com" em Costas citam 3
+  nomes quando 2 bastariam — efeito do guloso, sem violar aceite); o teste de
+  fonte única do CTA ainda lê o código-fonte por regex (o comportamento na
+  tela segue coberto pelos 2 e2e do item 7); o título "5 km sem parar" repete
+  o começo do subtítulo da corrida (regra de nada repetido do contrato B é de
+  aparelho); a parte "fase" do contrato F não tem par no Explorar (o destaque
+  só mostra barra fixa e corrida); o `scripts/validar-dados.test.ts` que
+  renomeia um SVG enquanto roda (anterior ao lote, fora dele).
+
+##### Provas
+
+- **Vitest (+4 casos, 1.472 → 1.476):** `lib/colecoes.test.ts` ganhou "com 4
+  termos, quem ficou redundante sai da frase (dados reais)", "a passada final
+  tira o nome que os outros citados cobrem (sintético)", "a frase segue a
+  ordem do primeiro termo que cada nome cobre" e "em toda coleção real, com 3
+  e 4 termos: sem repetir, sem sobrar e na ordem dos termos" (> 2.000
+  consultas, > 1.000 com 4 termos). Mudados: a meta do plano sem perfil
+  (`null` para barra fixa e corrida, "12 semanas" para a corda, casos
+  sintéticos de `textoDizOPrazo`), `metaDoAparelho` com U+00A0, e o caso
+  "prancha lateral frontal", que agora espera "Prancha lateral, Prancha
+  frontal" (ordem dos termos).
+- **e2e (`e2e/ultraloop-a-r10.spec.ts`, teste dos aparelhos):** a meta de cada
+  um dos 9 aparelhos contém "com ele", e a última linha da meta, lida
+  palavra a palavra pela posição na tela a 360 px, tem mais de uma palavra.
+
+##### Portões
+
+Cadeia inteira no HEAD de código `59f92ce` (`r11/l12/logs/59f92ce.log`, das
+23:01 às 23:23 UTC, **status ok**): `lint` limpo · `tsc --noEmit` limpo ·
+`npm test` **63 arquivos, 1.476 testes, todos verdes** (eram 1.472 em
+`06441e5`; +4 da busca) · `build` ("Compiled successfully in 18.7s") ·
+`build:e2e` ("Compiled successfully in 18.5s") · `e2e` **437 passaram, 5
+pulados, 0 falharam** (15,8 min; os 11 de `e2e/ultraloop-a-r10.spec.ts` ✓,
+inclusive o dos aparelhos com a checagem nova) · `varredura` **5 de 5** (4,2
+min). A cadeia roda de novo, inteira, no commit deste registro (muda só
+`PROGRESSO.md`, a indentação da nota da rodada 11 na SPEC e dois comentários
+em `tela-explorar.tsx` e `tela-colecao.tsx`), e o log fica em
+`r11/l12/logs/<hash>.log`.
+
+##### Capturas
+
+`capturas.sh` em `59f92ce`, depois da cadeia verde, contra a base real de
+`main` (`base-ef3ad97`), com `--esperadas explorar,colecao,catalogo`
+(`r11/l12/capturas-59f92ce.md`). 60 PNGs; **54 iguais** (Δ 0,00 %), nenhuma
+tela fora da lista mudou; 03 e 04 (aba Treino) iguais. As seis capturas que
+mudam são **byte a byte iguais** às de `7d3db49` (md5): as mudanças desta
+rodada não aparecem nas 60 telas da régua (nenhuma mostra as linhas de
+aparelho nem um plano sem perfil). Olhei os diffs de 06, 07 e 08: são os
+mesmos da rodada 10.
+
+| tela | Δ claro | Δ escuro | o que mudou (olhando o diff) |
+| --- | ---: | ---: | --- |
+| 08-catalogo | 30,21 % | 28,35 % | igual à rodada 10: os selects saem, "Filtros" e o contador na mesma linha, o primeiro cartão sobe para a primeira tela |
+| 07-colecao | 6,82 % | 3,97 % | igual à rodada 10: `/explorar/plano/corrida` com "5 km sem parar", "semana 2 de 12" e "Fazer a corrida da semana 2" |
+| 06-explorar | 1,74 % | 1,77 % | igual à rodada 10: nas linhas dos Treinos, subtítulo antes da meta, sem negrito |
+
+**Sonda das linhas de aparelho** (a régua não as mostra;
+`r11/l12/sonda-aparelhos/sonda.cjs`, Chromium 360×740, DSF 2, nos dois
+temas, com mock e app subidos por mim no `.next` de `59f92ce` e derrubados
+pela árvore de PIDs): "Por aparelho" → "Ver todos" = 9 linhas; nas 9, nos
+dois temas, a meta quebra em 2 linhas e a última é **"com ele"** (nunca
+"ele" sozinho), o texto tem U+00A0 e `scrollWidth` = 360. Olhei
+`aparelhos-1-light.png` e `aparelhos-2-dark.png`: "30 exercícios que dão
+para fazer / com ele", sem corte nem sobreposição. **Observação:** a 360 px o
+subtítulo do plano é cortado numa linha ("a primeira barra fixa sem elástico
+e…"), então, sem perfil, a linha da barra fixa e a da corrida ficam sem o
+prazo visível — ele continua no objetivo inteiro (no `title` da linha e na
+página do plano). Com perfil, o caso normal, a meta "semana N de 12" diz o
+prazo.
+
+##### Como testar no celular (360 px)
+
+- **Por aparelho** ("Ver todos"): em nenhuma linha "ele" fica sozinho na
+  segunda linha — quando a meta quebra, desce "com ele".
+- **Busca na ordem digitada**: "barra direta supino" — o Treino A diz
+  "contém Rosca direta com barra e Supino reto com barra"; "sentado
+  panturrilha barra declinado" — o Banco cita só "Elevação de panturrilha
+  sentado e Supino declinado com barra".
+- **Planos**: com o perfil carregado, nada muda ("semana N de 12"). Sem perfil
+  (logo ao abrir, antes de o perfil chegar), barra fixa e corrida mostram só
+  o objetivo, sem "12 semanas" repetido embaixo.
