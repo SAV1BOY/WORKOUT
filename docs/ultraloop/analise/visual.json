@@ -1,0 +1,300 @@
+{
+ "lente": "visual",
+ "resumo": "20 achados de design visual medidos a 360×740 (Pixel 5, dScale 2, pt-BR, clock fixo em 16/09/2026 08:30) nos dois temas, com usuário próprio 'critico-visual@exemplo.com' semeado no mock. Inventário de estilos computados em 12 rotas: 51 combinações tipográficas, 9 raios, 5 tamanhos de ícone (+2 deformados), 23 combinações de padding/gap em cards. Os três problemas estruturais: (1) a escala tipográfica não tem degraus — o H2 dentro de um card (20px) é maior que o H2 de seção (16px), e os H3 (14/600) são idênticos ao meta das linhas; (2) as superfícies quase não existem — card/fundo dá 1,07:1 no escuro e 1,04:1 no claro, a borda só 1,23–1,28:1, e o 'shadow-lg' do FAB renderiza transparente; (3) o laranja é o único acento e só aparece em texto de 10–12px, além de trocar de família entre os temas (#fb923c L=0,41 no escuro vs #b8400c L=0,14 no claro).",
+ "achados": [
+  {
+   "id": "visual-01",
+   "tela": "Treino (Hoje) — ladrilhos Fase/Peso",
+   "rota": "/",
+   "tema": "ambos",
+   "severidade": "media",
+   "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/visual/visual-01-ladrilhos-escuro.png e /tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/visual/visual-01-ladrilhos-claro.png — os dois ladrilhos medem 160×85, mas o valor da esquerda ocupa 48px (2 linhas, quebrando depois de \"Fase 1 ·\", com o separador órfão no fim da linha) e o da direita 24px; sobra abaixo do valor: 9px à esquerda contra 33px à direita, e as linhas de base divergem 24px.",
+   "proposta": "Dar aos dois ladrilhos a mesma gramática: rótulo em linha própria de altura fixa, valor numa única linha com text-nowrap e unidade/qualificador (\"há 4 dias\") numa terceira linha alinhada à esquerda, tudo ancorado ao topo (justify-start) em vez de centrado. Para \"Fase 1 · semana 16\" trocar o \"·\" por quebra semântica: valor = \"Fase 1\", legenda = \"semana 16\". components/treino/tela-treino.tsx (bloco dos ladrilhos, por volta da linha 111).",
+   "esforco": "P",
+   "prioridade_dono": "outra",
+   "arquivos": [
+    "components/treino/tela-treino.tsx"
+   ]
+  },
+  {
+   "id": "visual-02",
+   "tela": "Relatório → Números (fileira de 3)",
+   "rota": "/relatorio",
+   "tema": "ambos",
+   "severidade": "alta",
+   "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/visual/visual-04-numeros3-claro.png e /tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/visual/visual-04-numeros3-escuro.png — nos três ladrilhos de 104×107 o rótulo de \"FORÇA\" e \"CARDIO\" tem 17px de altura e o de \"BARRA FIXA\" tem 33px (quebra em duas linhas); com isso o número \"0\" começa em y=958 contra y=941 dos irmãos (17px abaixo) e a legenda \"repetições\" desce até y=990, encostando na borda inferior arredondada do card.",
+   "proposta": "Não é a quebra do texto em si (isso já está agendado para VOLUME (KG)), é o alinhamento da fileira: usar grid com três trilhas de linha — `grid-rows-[auto_1fr_auto]` com `items-start` e altura mínima do rótulo fixada em 2 linhas (min-h-[2lh]) — para que os números de todos os ladrilhos da fileira caiam sempre na mesma linha de base e a legenda fique colada ao rodapé do card. Vale para as fileiras de 3 e de 2 do componente de números do relatório.",
+   "esforco": "P",
+   "prioridade_dono": "relatorio-corpo-calendario",
+   "arquivos": [
+    "components/relatorio"
+   ]
+  },
+  {
+   "id": "visual-03",
+   "tela": "Relatório → Números (ícones dos ladrilhos)",
+   "rota": "/relatorio",
+   "tema": "ambos",
+   "severidade": "media",
+   "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/visual/visual-05-icones-ladrilho-escuro.png e /tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/visual/visual-04-numeros3-claro.png — medido no DOM: o ícone de FORÇA, CARDIO e MINUTOS renderiza 12,0×12,0 px, mas o de BARRA FIXA sai 11,0×12,0 e o de VOLUME (KG) sai 10,0×12,0 — o flex espreme a largura e o desenho perde 8% e 17% de proporção. O de BARRA FIXA vira um acento \"^\" e nem lê como ícone.",
+   "proposta": "Pôr `shrink-0` no svg do rótulo do ladrilho (o mesmo `[&_svg]:shrink-0` que o Button já usa) e fixar `size-3` em vez de deixar a largura ao flex. Enquanto isso, subir o ícone do rótulo para 14px: a 12px, ao lado de um número de 24–30px, ele some.",
+   "esforco": "P",
+   "prioridade_dono": "relatorio-corpo-calendario",
+   "arquivos": [
+    "components/relatorio"
+   ]
+  },
+  {
+   "id": "visual-04",
+   "tela": "Treino — faixa da semana",
+   "rota": "/",
+   "tema": "ambos",
+   "severidade": "media",
+   "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/visual/visual-03-faixa-escuro.png e /tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/visual/visual-03-faixa-claro.png — na mesma fileira de 7 células convivem quatro marcadores de pesos totalmente diferentes: círculo cheio de 24×24 com ✓ de 16×16 (concluído), ponto cheio de 10×10 (hoje), anel de 10×10 com borda de 2px (planejado) e um traço de 12×2 (descanso). Salto de 5,8× de área entre células vizinhas.",
+   "proposta": "Normalizar a caixa do marcador em 20×20 para todos os estados e diferenciar só por preenchimento/contorno dentro dela: concluído = disco cheio com ✓ de 12px; hoje = disco cheio de 10px com anel externo; planejado = anel de 10px; descanso = traço de 10×2 centrado. components/ui/faixa-semana.tsx:140–170 (hoje `size-6` no invólucro com miolos de `size-2`, `size-2.5` e `h-0.5 w-3`).",
+   "esforco": "P",
+   "prioridade_dono": "relatorio-corpo-calendario",
+   "arquivos": [
+    "components/ui/faixa-semana.tsx"
+   ]
+  },
+  {
+   "id": "visual-05",
+   "tela": "Treino — FAB \"Ajustar\"",
+   "rota": "/",
+   "tema": "ambos",
+   "severidade": "alta",
+   "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/visual/visual-02-fab-escuro.png e /tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/visual/visual-02-fab-claro.png — o botão declara shadow-lg em components/treino/fab-ajustar.tsx:33, mas o box-shadow computado volta \"rgba(0,0,0,0) 0px 0px 0px 0px, rgba(0,0,0,0) 0px 0px 0px 0px\" nos DOIS temas: a utilidade não gera sombra nenhuma. No tema claro fica a inversão: os cards parados têm sombra (0 1px 2px + 0 6px 20px) e o elemento que flutua sobre eles não tem. Medido: 56×56 em x=288,y=588, cobrindo 2 contêineres (no claro, um LI/BUTTON da lista).",
+   "proposta": "Investigar por que a utilidade shadow-lg sai vazia (provável conflito do @import \"shadcn/tailwind.css\" com as camadas --tw-shadow do Tailwind 4) e, de qualquer modo, dar ao FAB um token próprio de elevação — `--sombra-flutuante` definido nos dois temas (no escuro, um anel de 1px em primary/25 mais glow curto, já que a sombra não aparece sobre #0a0a0a). Mesmo defeito em components/exercicio/tutorial.tsx:105. Ao mesmo tempo subir o `bottom-24` para que o FAB não encoste na quina do card do treino.",
+   "esforco": "M",
+   "prioridade_dono": "treino-player",
+   "arquivos": [
+    "components/treino/fab-ajustar.tsx",
+    "components/exercicio/tutorial.tsx",
+    "app/globals.css"
+   ]
+  },
+  {
+   "id": "visual-06",
+   "tela": "Explorar / geral — hierarquia de títulos",
+   "rota": "/explorar",
+   "tema": "ambos",
+   "severidade": "alta",
+   "evidencia": "Medido no DOM em /explorar: H1 24px/600; H2 \"Treino B\" (dentro do card de capa) 20px/600; H2 \"Escolhas para você\" 16px/600; H2 \"Todos os exercícios\" 16px/600; H3 \"Treinos do programa\", \"Parte do corpo\", \"Circuitos\", \"Por aparelho\", \"Planos\" todos 14px/600. Ou seja: um H2 dentro de um card é 25% MAIOR que os H2 que organizam a página, e os H3 (14px/600) são idênticos ao texto de meta das linhas da lista (14px/600, \"6 exercícios · ~44 min\").",
+   "proposta": "Fixar três degraus de título com salto perceptível e usá-los só para títulos: página 24/700, seção 19/650, subseção 15/600 com cor `muted-foreground` + tracking positivo (para não competir por tamanho, e sim por cor). O título de dentro do card de capa deve cair para o degrau de subseção ou virar um `<p>` estilizado — ele não estrutura a página. Ao mesmo tempo tirar o peso 600 do meta das linhas (\"6 exercícios · ~44 min\" → 400/muted) para que só o título da linha carregue peso.",
+   "esforco": "M",
+   "prioridade_dono": "explorar-fichas",
+   "arquivos": [
+    "components/explorar",
+    "components/ui/card-capa.tsx"
+   ]
+  },
+  {
+   "id": "visual-07",
+   "tela": "App inteiro — escala tipográfica",
+   "rota": "/ , /explorar, /relatorio, /corpo, /mais (12 rotas)",
+   "tema": "ambos",
+   "severidade": "alta",
+   "evidencia": "Inventário de estilos computados em 12 rotas: 51 combinações distintas de tamanho|peso|entrelinha|tracking, com 11 tamanhos (9, 10, 11, 12, 14, 16, 18, 20, 24, 30, 60px). Pior que a quantidade é a incoerência de entrelinha: 14px aparece com line-height 20px, 17,5px e 14px; 11px com 11px, 13,75px, 15,71px e 16,5px; 10px com 12,5px, 14,29px e 15px. O mesmo tamanho respira de três jeitos na mesma tela.",
+   "proposta": "Criar em app/globals.css um conjunto fechado de papéis de texto (`--texto-titulo`, `--texto-secao`, `--texto-corpo`, `--texto-meta`, `--texto-rotulo`) que amarrem tamanho + peso + entrelinha juntos, e trocar as classes soltas `text-sm leading-tight`, `text-[11px] leading-none`, `text-xs` pelos papéis. Regra prática: no máximo 6 tamanhos, e cada tamanho com UMA entrelinha (corrido 1,45; apertado 1,25 só para títulos de 2+ linhas).",
+   "esforco": "G",
+   "prioridade_dono": "outra",
+   "arquivos": [
+    "app/globals.css",
+    "components"
+   ]
+  },
+  {
+   "id": "visual-08",
+   "tela": "Rótulos em caixa alta (Hoje × Mais × Calendário)",
+   "rota": "/ , /mais, /calendario",
+   "tema": "ambos",
+   "severidade": "baixa",
+   "evidencia": "Medido: o mesmo papel de \"eyebrow\" existe em duas versões — 11px/400 com tracking 0,275px e uppercase (\"FASE\", \"PESO\", 22 ocorrências) e 12px/500 com tracking 0,3px e uppercase (\"CONTA\" em /mais, \"SETEMBRO DE 2026\" em /calendario). Há ainda uma terceira, 11px/500 tracking 0,275 (\"CONQUISTAS\" no aviso do relatório).",
+   "proposta": "Um único papel `--texto-rotulo`: 11px/600, tracking 0,08em, uppercase, cor muted-foreground — aplicado em todos eles. Hoje as três versões estão espalhadas em components/treino/tela-treino.tsx, components/mais/*, components/calendario/* e components/relatorio/aviso-conquista.tsx.",
+   "esforco": "P",
+   "prioridade_dono": "outra",
+   "arquivos": [
+    "components/mais",
+    "components/calendario",
+    "components/relatorio/aviso-conquista.tsx"
+   ]
+  },
+  {
+   "id": "visual-09",
+   "tela": "Relatório — a palavra \"Conquistas\" com dois tipos na mesma tela",
+   "rota": "/relatorio",
+   "tema": "claro",
+   "severidade": "baixa",
+   "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/visual/visual-09-conquistas-duplo-claro.png — medido: \"Conquistas\" aparece em y=182 como rótulo 11px/500 uppercase (dentro do aviso laranja) e em y=1097 como título de seção 16px/600 caixa normal. Mesma palavra, mesma página, dois papéis tipográficos.",
+   "proposta": "O aviso de conquista não precisa repetir o nome da seção: trocar o rótulo do aviso por \"Nova conquista\" (ou pelo nome da conquista) e deixar \"Conquistas\" só no título de seção. components/relatorio/aviso-conquista.tsx.",
+   "esforco": "P",
+   "prioridade_dono": "relatorio-corpo-calendario",
+   "arquivos": [
+    "components/relatorio/aviso-conquista.tsx"
+   ]
+  },
+  {
+   "id": "visual-10",
+   "tela": "Relatório — cabeçalho de seção com slot direito ambíguo",
+   "rota": "/relatorio",
+   "tema": "ambos",
+   "severidade": "media",
+   "evidencia": "Medido: o cabeçalho \"Números\" (16px/600, 81px de largura) tem à direita a frase \"quantos de cada coisa no período\" com 203px a 12px — 2,5× a largura do próprio título, ocupando o resto da linha até a margem. Já \"Conquistas\" (100px) tem à direita só \"7 de 26\" (48px). O mesmo slot carrega ora uma explicação, ora um contador.",
+   "proposta": "Separar os dois papéis: contador curto (\"7 de 26\") fica à direita, alinhado à linha de base do título; explicação vira subtítulo numa segunda linha, sob o título, a 12px muted e alinhada à esquerda com ele. A 360px uma frase de 203px na mesma linha do título rouba a leitura do título.",
+   "esforco": "P",
+   "prioridade_dono": "relatorio-corpo-calendario",
+   "arquivos": [
+    "components/relatorio"
+   ]
+  },
+  {
+   "id": "visual-11",
+   "tela": "Explorar / Exercícios — marcas à direita da linha da lista",
+   "rota": "/explorar",
+   "tema": "ambos",
+   "severidade": "media",
+   "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/visual/visual-07-linha-lista-claro.png e /tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/visual/visual-07-linha-lista-escuro.png — medido na linha \"Treino A\" (328×73): os três raios de intensidade (12×12, laranja, cheios) têm centro vertical em 18px da borda superior, e o chevron (16×16, muted) em 36px. Duas marcas na mesma coluna direita com 18px de desalinhamento, e a mais pesada (laranja sólido) é a que está fora do centro.",
+   "proposta": "Fazer da coluna direita uma pilha única centrada verticalmente (`flex items-center gap-2`) com os raios e o chevron, ou tirar os raios do canto e levá-los para a linha de meta, junto de \"6 exercícios · ~44 min\", onde eles pertencem semanticamente. Além disso o mesmo medidor de intensidade aparece branco sobre a capa e laranja na lista sem diferença de significado — escolher uma cor só (muted-foreground com o nível ativo em primary).",
+   "esforco": "P",
+   "prioridade_dono": "explorar-fichas",
+   "arquivos": [
+    "components/explorar",
+    "components/ui/card-capa.tsx"
+   ]
+  },
+  {
+   "id": "visual-12",
+   "tela": "App inteiro — escala e traço dos ícones",
+   "rota": "/ , /explorar, /relatorio, /mais",
+   "tema": "ambos",
+   "severidade": "media",
+   "evidencia": "Inventário: cinco tamanhos de ícone em uso (12×12 com 95 ocorrências, 16×16 com 66, 24×24 com 61, 20×20 com 32) mais dois deformados (10×12 e 11×12). O 20×20 aparece uma única vez em /explorar (órfão) mas é o padrão de /mais. E o stroke-width varia: 2px em quase tudo, 3px nos ícones de 16×16 da faixa da semana — o mesmo traço Lucide fica visivelmente mais gordo ali.",
+   "proposta": "Fechar a escala em três tamanhos com papel definido — 16 (inline, ao lado de texto), 20 (linha de lista e navegação secundária), 24 (nav inferior e FAB) — e stroke-width 2 em tudo (1,75 se quiser aliviar). O 12px só sobrevive nos raios de intensidade, que são decorativos.",
+   "esforco": "M",
+   "prioridade_dono": "outra",
+   "arquivos": [
+    "components/ui/faixa-semana.tsx",
+    "components/mais",
+    "components/relatorio"
+   ]
+  },
+  {
+   "id": "visual-13",
+   "tela": "App inteiro — as superfícies quase não existem",
+   "rota": "/ , /relatorio, /corpo",
+   "tema": "ambos",
+   "severidade": "alta",
+   "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/visual/visual-13-superficies-escuro.png e /tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/visual/visual-13-superficies-claro.png — contraste calculado dos tokens: no escuro card #141414 sobre fundo #0a0a0a dá 1,07:1 e a borda #272727 sobre o card dá 1,23:1; no claro card #ffffff sobre #fafafa dá 1,04:1 e a borda #e3e3e1 dá 1,28:1. Os ladrilhos \"FASE\"/\"PESO\" da captura escura praticamente não se descolam do fundo.",
+   "proposta": "Abrir um degrau real de superfície: no escuro subir --card para ~#1a1a1a e --border para ~#333 (fica 1,35:1 e 1,6:1, ainda sóbrio); no claro manter o card branco mas escurecer --background para ~#f4f4f2 e a borda para ~#dcdcd9. É um ajuste de 4 linhas em app/globals.css (:root e .dark) e é o que faz a tela inteira ganhar estrutura de uma vez.",
+   "esforco": "P",
+   "prioridade_dono": "outra",
+   "arquivos": [
+    "app/globals.css"
+   ]
+  },
+  {
+   "id": "visual-14",
+   "tela": "App inteiro — o laranja não sustenta nada",
+   "rota": "/ , /explorar, /relatorio, /corpo, /mais",
+   "tema": "ambos",
+   "severidade": "media",
+   "evidencia": "Varredura de cor em 12 rotas: 26 variações de texto laranja, TODAS entre 10px e 12px (\"Ver todos (6)\" 12/500, \"Fase 1 · semana 16 de 12\" 12/500, datas de conquista 10/600, rótulos da nav 11/500) — a única exceção é um \"✓\" de 18px. O acento da marca nunca ancora um número, um título ou um dado grande.",
+   "proposta": "Levar o laranja para pelo menos um elemento de peso por tela: o número grande do ladrilho em foco no relatório, o valor da meta semanal (\"2/5\"), o dia de hoje na faixa. E, em contrapartida, tirar o laranja dos micro-links repetidos (\"Ver todos (6)\" × 4 na mesma tela) — eles podem ser muted-foreground com chevron. Acento escasso e grande vale mais que acento miúdo e espalhado.",
+   "esforco": "M",
+   "prioridade_dono": "outra",
+   "arquivos": [
+    "components/relatorio",
+    "components/explorar",
+    "components/treino/tela-treino.tsx"
+   ]
+  },
+  {
+   "id": "visual-15",
+   "tela": "Tokens — o acento troca de família entre os temas",
+   "rota": "/ (comparação claro × escuro)",
+   "tema": "ambos",
+   "severidade": "media",
+   "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/visual/visual-08-nav-escuro.png ao lado de /tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/visual/visual-08-nav-claro.png — --primary é #fb923c no escuro (HSL 25°, 95%, 61%; luminância relativa 0,414) e #b8400c no claro (HSL 20°, 88%, 38%; luminância 0,139): 3× de luminância e 5° de matiz de diferença. O botão primário dá 8,3:1 no escuro e 5,6:1 no claro. Lado a lado, parecem duas marcas: âmbar luminoso × tijolo queimado.",
+   "proposta": "Tratar o laranja como um par tonal do mesmo matiz: fixar o matiz (≈22°) e escolher dois tons com a mesma saturação percebida, por exemplo #e2600f no claro e #fb923c no escuro (ou manter #b8400c só como `--primary-forte` para texto sobre branco e usar #d95a10 nas superfícies). Editar as duas declarações de --primary/--ring/--chart-1 em app/globals.css (:root e .dark).",
+   "esforco": "P",
+   "prioridade_dono": "outra",
+   "arquivos": [
+    "app/globals.css"
+   ]
+  },
+  {
+   "id": "visual-16",
+   "tela": "Mais — ícone desalinhado do título e divisores sem recuo",
+   "rota": "/mais",
+   "tema": "ambos",
+   "severidade": "media",
+   "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/visual/visual-09-mais-escuro.png e /tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/visual/visual-09-mais-claro.png — medido na linha \"Como usar o app\" (80px de altura): o ícone de 20×20 tem centro em 40px (centro da linha inteira) enquanto o título tem centro em 24px — 16px de desvio, então o ícone aponta para a descrição, não para o título que ele rotula. Os divisores das 7 linhas vão de borda a borda do card, sem recuo para a coluna de texto (que começa 28px à direita).",
+   "proposta": "Alinhar o ícone ao topo com a altura-x do título (`items-start` + `mt-0.5`) em vez de `items-center` na linha inteira, e recuar o divisor para começar onde o texto começa (`ml-[2.75rem]` ou divisor no filho de texto). components/mais/* — todas as 7 linhas usam o mesmo componente (80px, padding 12px, ícone size-5).",
+   "esforco": "P",
+   "prioridade_dono": "outra",
+   "arquivos": [
+    "components/mais"
+   ]
+  },
+  {
+   "id": "visual-17",
+   "tela": "Explorar / Exercícios — densidade e comprimento do rolo",
+   "rota": "/explorar",
+   "tema": "escuro",
+   "severidade": "media",
+   "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/visual/visual-17-explorar-rolo-escuro.png — medido: /explorar tem 8.922px de rolagem (12 telas de 740px) e /exercicios 7.204px, com 162 cards de padding 8px e gap 12px repetidos em fileiras horizontais. O cabeçalho \"Escolhas para você\" (y=386) fica a 52px do primeiro subtítulo, sem nenhum conteúdo próprio: lê como seção vazia.",
+   "proposta": "Dar fim ao rolo infinito: manter em /explorar só as 3 primeiras fileiras de cada família com \"Ver todos\" e mover o catálogo completo para /exercicios; e dar a \"Escolhas para você\" ou um conteúdo próprio ou a demissão (as subseções já se explicam). Junto disso, subir o padding dos cards de fileira de 8px para 12px e reduzir o gap de 12 para 8 — hoje o card é mais apertado por dentro que por fora, o que empilha ruído.",
+   "esforco": "G",
+   "prioridade_dono": "explorar-fichas",
+   "arquivos": [
+    "components/explorar",
+    "app/(app)/explorar"
+   ]
+  },
+  {
+   "id": "visual-18",
+   "tela": "App inteiro — ritmo de espaçamento dos cards",
+   "rota": "/ , /explorar, /relatorio, /calendario, /corpo",
+   "tema": "ambos",
+   "severidade": "media",
+   "evidencia": "Inventário de cards em 12 rotas: 23 combinações distintas de padding/gap/raio. Entre elas p=8/8/8/8 (162 ocorrências), p=16/0/16/0, p=8/0/8/0, p=0/10/0/10, p=12/12/12/12, p=8/12/8/12, p=4/4/4/4, p=3/3/3/3, e duas assimetrias gritantes: p=24/12/24/12 (vertical o dobro do horizontal, nos ladrilhos do relatório e da ficha) e p=4/10/4/36 no campo de busca.",
+   "proposta": "Fechar o passo de espaçamento em 4/8/12/16/24 e dar a cada tipo de superfície UM padding: card de conteúdo 16, card de fileira 12, ladrilho de número 16/12 simétrico, linha de lista 12/16. As assimetrias 24/12 e 4/36 devem virar padding simétrico com o ícone posicionado em absolute, não empurrando o texto.",
+   "esforco": "M",
+   "prioridade_dono": "outra",
+   "arquivos": [
+    "components/ui/card.tsx",
+    "components/relatorio",
+    "components/explorar"
+   ]
+  },
+  {
+   "id": "visual-19",
+   "tela": "Mais — \"Tudo sincronizado\" imita uma linha navegável",
+   "rota": "/mais",
+   "tema": "ambos",
+   "severidade": "baixa",
+   "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/visual/visual-19-sincronizado-escuro.png e /tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/visual/visual-19-sincronizado-claro.png — medido: é um <section> de 66px com raio 12px, ícone à esquerda, título e descrição, exatamente a forma das 7 linhas navegáveis logo acima (80px) — mas sem chevron e sem ser clicável. A única diferença visual é a altura (66 × 80) e a falta do \">\".",
+   "proposta": "Diferenciar a forma do estado da forma da navegação: pôr o status numa faixa fina sem card (ícone 16 + texto 12 muted, alinhado à esquerda, sem borda), ou dar-lhe fundo `muted` em vez de `card`. Hoje o usuário toca e nada acontece.",
+   "esforco": "P",
+   "prioridade_dono": "outra",
+   "arquivos": [
+    "components/mais"
+   ]
+  },
+  {
+   "id": "visual-20",
+   "tela": "Relatório — resumo \"Força / Cardio / Barra fixa\" sem coluna",
+   "rota": "/relatorio",
+   "tema": "claro",
+   "severidade": "baixa",
+   "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/visual/visual-20-resumo-colunas-claro.png — as três linhas do resumo põem o rótulo muted e o valor em negrito na mesma linha corrida, então os valores começam em x diferentes: \"Força\" é curto e \"Treino B 1\" começa cedo; \"Barra fixa\" é o dobro de largo e \"nada ainda\" começa bem mais à direita. Três valores, três alinhamentos, num bloco que existe para ser comparado.",
+   "proposta": "Transformar em `<dl>` com grid de duas colunas (`grid-cols-[5.5rem_1fr]`): rótulo na coluna fixa, valor sempre começando no mesmo x. É o mesmo padrão que resolve as listas de medidas em /corpo.",
+   "esforco": "P",
+   "prioridade_dono": "relatorio-corpo-calendario",
+   "arquivos": [
+    "components/relatorio"
+   ]
+  }
+ ]
+}

@@ -1,0 +1,3844 @@
+{
+ "treino": {
+  "rota": "/",
+  "fcp": 60,
+  "lcp": 408,
+  "lcpEl": "img ",
+  "dcl": 63,
+  "load": 245,
+  "resp": 45,
+  "cls": 0,
+  "shifts": [],
+  "lt": [
+   {
+    "d": 60,
+    "t": 76
+   },
+   {
+    "d": 75,
+    "t": 160
+   }
+  ],
+  "imgs": [
+   {
+    "src": "http://127.0.0.1:3120/fotos/barra-fixa-assistida-1.jpg",
+    "w": 326,
+    "h": 113,
+    "top": 427,
+    "loading": null,
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "850x1275",
+    "acima": true
+   },
+   {
+    "src": "http://127.0.0.1:3120/fotos/barra-fixa-assistida-1.jpg",
+    "w": 56,
+    "h": 56,
+    "top": 912,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "850x1275",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/fotos/levantamento-terra-1.jpg",
+    "w": 56,
+    "h": 56,
+    "top": 912,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "850x567",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/supino-reto-com-barra-1.svg",
+    "w": 56,
+    "h": 56,
+    "top": 1334,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "276x287",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/supino-inclinado-com-barra-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 1407,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "640x751",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/supino-declinado-com-barra-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 1480,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "640x530",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/supino-reto-com-halteres-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 1553,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "640x893",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/supino-inclinado-com-halteres-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 1626,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "640x965",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/crucifixo-reto-1.svg",
+    "w": 56,
+    "h": 56,
+    "top": 1699,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "747x900",
+    "acima": false
+   }
+  ],
+  "docBytes": 50976,
+  "jsBytes": 418845,
+  "jsN": 32,
+  "cssBytes": 12494,
+  "cssN": 1,
+  "imgBytes": 418396,
+  "imgN": 9,
+  "totalBytes": 901712,
+  "totalN": 61,
+  "mockN": 12,
+  "mockUrls": [
+   "/rest/v1/sessions?select=…&order=data.desc&limit=60",
+   "/rest/v1/profiles?select=…",
+   "/rest/v1/sessions?select=…&status=eq.em_andamento&order=data.desc&limit=5",
+   "/rest/v1/body_weights?select=…&order=data.desc&limit=1",
+   "/rest/v1/schedule_overrides?select=…&data=gte.2026-09-14&data=lte.2026-09-20",
+   "/rest/v1/cardio_sessions?select=…&data=gte.2026-06-01&order=data.desc&limit=120",
+   "/rest/v1/cardio_sessions?select=…&data=gte.2026-09-14&data=lte.2026-09-20&order=data.desc",
+   "/rest/v1/pullup_singles?select=…&data=eq.2026-09-20",
+   "/rest/v1/pullup_singles?select=…&data=gte.2026-06-01&data=lte.2026-09-20&order=data.desc",
+   "/rest/v1/exercise_state?select=…&exercise_id=in.%28crossover-na-polia%2Ccrucifixo-inclinado%2Ccrucifixo-reto%2Cflexao-de-braco%2Cflexao-declinada%2Cfl",
+   "/rest/v1/session_sets?select=…&exercise_id=in.%28crossover-na-polia%2Ccrucifixo-inclinado%2Ccrucifixo-reto%2Cflexao-de-braco%2Cflexao-declinada%2Cflex",
+   "/rest/v1/v_records?select=…&exercise_id=in.%28crossover-na-polia%2Ccrucifixo-inclinado%2Ccrucifixo-reto%2Cflexao-de-braco%2Cflexao-declinada%2Cflexao-"
+  ],
+  "maioresJS": [
+   {
+    "n": "7067-cddbc4f7e6198f50.js",
+    "kb": 55,
+    "dur": 57
+   },
+   {
+    "n": "25185552-11314f557a28f0e6.js",
+    "kb": 53.1,
+    "dur": 30
+   },
+   {
+    "n": "6010-9aaa2eeb193a9bed.js",
+    "kb": 46.6,
+    "dur": 31
+   },
+   {
+    "n": "1970-b727ead8b0e93166.js",
+    "kb": 38.1,
+    "dur": 86
+   },
+   {
+    "n": "2636-1040413a3986a46b.js",
+    "kb": 30.2,
+    "dur": 30
+   },
+   {
+    "n": "3708-2a4277b3625bac7a.js",
+    "kb": 27.6,
+    "dur": 56
+   }
+  ],
+  "maioresImg": [
+   {
+    "n": "barra-fixa-assistida-1.jpg",
+    "kb": 93.1
+   },
+   {
+    "n": "levantamento-terra-1.jpg",
+    "kb": 68.2
+   },
+   {
+    "n": "supino-inclinado-com-halteres-1.webp",
+    "kb": 59.8
+   },
+   {
+    "n": "supino-reto-com-halteres-1.webp",
+    "kb": 54.9
+   },
+   {
+    "n": "supino-inclinado-com-barra-1.webp",
+    "kb": 44.7
+   },
+   {
+    "n": "supino-declinado-com-barra-1.webp",
+    "kb": 39
+   },
+   {
+    "n": "supino-reto-com-barra-1.svg",
+    "kb": 25.1
+   },
+   {
+    "n": "crucifixo-reto-1.svg",
+    "kb": 21.6
+   }
+  ],
+  "wall": 3262
+ },
+ "relatorio": {
+  "rota": "/relatorio",
+  "fcp": 100,
+  "lcp": 100,
+  "lcpEl": "p O que já foi feito e para onde a carga está indo.",
+  "dcl": 57,
+  "load": 256,
+  "resp": 34,
+  "cls": 0,
+  "shifts": [],
+  "lt": [
+   {
+    "d": 65,
+    "t": 79
+   },
+   {
+    "d": 83,
+    "t": 170
+   },
+   {
+    "d": 129,
+    "t": 713
+   }
+  ],
+  "imgs": [],
+  "docBytes": 51114,
+  "jsBytes": 513598,
+  "jsN": 32,
+  "cssBytes": 12494,
+  "cssN": 1,
+  "imgBytes": 2272,
+  "imgN": 1,
+  "totalBytes": 580164,
+  "totalN": 53,
+  "mockN": 14,
+  "mockUrls": [
+   "/rest/v1/profiles?select=…",
+   "/rest/v1/sessions?select=…&order=data.desc&limit=500",
+   "/rest/v1/session_sets?select=…&order=registrada_em.asc&limit=3000",
+   "/rest/v1/cardio_sessions?select=…&order=data.desc&limit=800",
+   "/rest/v1/pullup_singles?select=…&order=data.desc&limit=2000",
+   "/rest/v1/body_weights?select=…&order=data.asc",
+   "/rest/v1/pullup_singles?select=…&data=gte.2026-03-23&data=lte.2026-09-20&order=data.desc",
+   "/rest/v1/progression_events?select=…&data=gte.2026-03-23&limit=1000",
+   "/rest/v1/schedule_overrides?select=…&data=gte.2026-09-14&data=lte.2026-09-20",
+   "/rest/v1/v_records?select=…",
+   "/rest/v1/session_sets?select=…&registrada_em=gte.2026-06-29&order=registrada_em.asc&limit=3000",
+   "/rest/v1/cardio_sessions?select=…&data=gte.2026-06-29&data=lte.2026-09-20&order=data.desc",
+   "/rest/v1/pullup_singles?select=…&data=gte.2026-06-29&data=lte.2026-09-20&order=data.desc",
+   "/rest/v1/schedule_overrides?select=…&data=gte.2026-08-24&data=lte.2026-09-20"
+  ],
+  "maioresJS": [
+   {
+    "n": "3042.e5d1ee22d4d02f20.js",
+    "kb": 111.4,
+    "dur": 74
+   },
+   {
+    "n": "7067-cddbc4f7e6198f50.js",
+    "kb": 55,
+    "dur": 66
+   },
+   {
+    "n": "25185552-11314f557a28f0e6.js",
+    "kb": 53.1,
+    "dur": 24
+   },
+   {
+    "n": "6010-9aaa2eeb193a9bed.js",
+    "kb": 46.6,
+    "dur": 29
+   },
+   {
+    "n": "1970-b727ead8b0e93166.js",
+    "kb": 38.1,
+    "dur": 87
+   },
+   {
+    "n": "2636-1040413a3986a46b.js",
+    "kb": 30.2,
+    "dur": 36
+   }
+  ],
+  "maioresImg": [
+   {
+    "n": "icone-192.png",
+    "kb": 2.2
+   }
+  ],
+  "wall": 3270
+ },
+ "calendario": {
+  "rota": "/calendario",
+  "fcp": 72,
+  "lcp": 328,
+  "lcpEl": "span 7 × (1 min 30 / 2 min caminhada) · 34 min",
+  "dcl": 63,
+  "load": 230,
+  "resp": 45,
+  "cls": 0,
+  "shifts": [],
+  "lt": [
+   {
+    "d": 57,
+    "t": 78
+   },
+   {
+    "d": 69,
+    "t": 153
+   }
+  ],
+  "imgs": [],
+  "docBytes": 51478,
+  "jsBytes": 365546,
+  "jsN": 25,
+  "cssBytes": 12494,
+  "cssN": 1,
+  "imgBytes": 2272,
+  "imgN": 1,
+  "totalBytes": 432624,
+  "totalN": 37,
+  "mockN": 4,
+  "mockUrls": [
+   "/rest/v1/profiles?select=…",
+   "/rest/v1/sessions?select=…&order=data.desc&limit=60",
+   "/rest/v1/schedule_overrides?select=…&data=gte.2026-08-31&data=lte.2026-10-11",
+   "/rest/v1/cardio_sessions?select=…&data=gte.2026-08-31&data=lte.2026-10-11&order=data.desc"
+  ],
+  "maioresJS": [
+   {
+    "n": "7067-cddbc4f7e6198f50.js",
+    "kb": 55,
+    "dur": 66
+   },
+   {
+    "n": "25185552-11314f557a28f0e6.js",
+    "kb": 53.1,
+    "dur": 17
+   },
+   {
+    "n": "6010-9aaa2eeb193a9bed.js",
+    "kb": 46.6,
+    "dur": 42
+   },
+   {
+    "n": "1970-b727ead8b0e93166.js",
+    "kb": 38.1,
+    "dur": 85
+   },
+   {
+    "n": "2636-1040413a3986a46b.js",
+    "kb": 30.2,
+    "dur": 42
+   },
+   {
+    "n": "3708-2a4277b3625bac7a.js",
+    "kb": 27.6,
+    "dur": 66
+   }
+  ],
+  "maioresImg": [
+   {
+    "n": "icone-192.png",
+    "kb": 2.2
+   }
+  ],
+  "wall": 3241
+ },
+ "explorar": {
+  "rota": "/explorar",
+  "fcp": 152,
+  "lcp": 440,
+  "lcpEl": "img ",
+  "dcl": 158,
+  "load": 290,
+  "resp": 74,
+  "cls": 0,
+  "shifts": [],
+  "lt": [
+   {
+    "d": 68,
+    "t": 69
+   },
+   {
+    "d": 57,
+    "t": 219
+   }
+  ],
+  "imgs": [
+   {
+    "src": "http://127.0.0.1:3120/fotos/barra-fixa-assistida-1.jpg",
+    "w": 326,
+    "h": 178,
+    "top": 121,
+    "loading": null,
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "850x1275",
+    "acima": true
+   },
+   {
+    "src": "http://127.0.0.1:3120/fotos/agachamento-livre-1.jpg",
+    "w": 56,
+    "h": 56,
+    "top": 500,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "850x567",
+    "acima": true
+   },
+   {
+    "src": "http://127.0.0.1:3120/fotos/levantamento-terra-1.jpg",
+    "w": 56,
+    "h": 56,
+    "top": 573,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "850x567",
+    "acima": true
+   },
+   {
+    "src": "http://127.0.0.1:3120/fotos/supino-reto-com-barra-1.jpg",
+    "w": 56,
+    "h": 56,
+    "top": 646,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "850x567",
+    "acima": true
+   },
+   {
+    "src": "http://127.0.0.1:3120/fotos/supino-reto-com-barra-1.jpg",
+    "w": 56,
+    "h": 56,
+    "top": 782,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "850x567",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/fotos/barra-fixa-pronada-1.jpg",
+    "w": 56,
+    "h": 56,
+    "top": 855,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "850x567",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/fotos/desenvolvimento-militar-em-pe-1.jpg",
+    "w": 56,
+    "h": 56,
+    "top": 928,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "850x567",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/fotos/flexao-de-braco-1.jpg",
+    "w": 56,
+    "h": 56,
+    "top": 1040,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "850x567",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/fotos/salto-basico-1.jpg",
+    "w": 56,
+    "h": 56,
+    "top": 1113,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "850x569",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/fotos/barra-fixa-assistida-1.jpg",
+    "w": 56,
+    "h": 56,
+    "top": 1186,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "850x1275",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/fotos/supino-reto-com-barra-1.jpg",
+    "w": 56,
+    "h": 56,
+    "top": 1332,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "850x567",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/fotos/supino-reto-com-barra-1.jpg",
+    "w": 56,
+    "h": 56,
+    "top": 1425,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "850x567",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/fotos/barra-fixa-pronada-1.jpg",
+    "w": 56,
+    "h": 56,
+    "top": 1508,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "850x567",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/fotos/barra-fixa-assistida-1.jpg",
+    "w": 56,
+    "h": 56,
+    "top": 1630,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "850x1275",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/fotos/corrida-no-lugar-com-a-corda-1.jpg",
+    "w": 56,
+    "h": 56,
+    "top": 1786,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "850x567",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/supino-reto-com-barra-1.svg",
+    "w": 56,
+    "h": 56,
+    "top": 2145,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "276x287",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/supino-inclinado-com-barra-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 2228,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "640x751",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/supino-declinado-com-barra-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 2310,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/supino-reto-com-halteres-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 2392,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/supino-inclinado-com-halteres-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 2474,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/crucifixo-reto-1.svg",
+    "w": 56,
+    "h": 56,
+    "top": 2557,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/crucifixo-inclinado-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 2639,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/pullover-com-halter-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 2721,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/flexao-declinada-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 2803,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/flexao-inclinada-1.svg",
+    "w": 56,
+    "h": 56,
+    "top": 2885,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/crossover-na-polia-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 2968,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/barra-fixa-pronada-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 3051,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/barra-fixa-supinada-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 3134,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/barra-fixa-com-lastro-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 3216,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/levantamento-terra-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 3299,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/remada-curvada-pronada-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 3382,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/remada-curvada-supinada-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 3465,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/remada-unilateral-serrote-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 3548,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/stiff-terra-romeno-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 3631,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/encolhimento-de-ombros-1.svg",
+    "w": 56,
+    "h": 56,
+    "top": 3713,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/good-morning-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 3795,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/puxada-alta-na-polia-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 3885,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/puxada-com-triangulo-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 3976,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/remada-baixa-na-polia-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 4059,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/pullover-na-polia-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 4142,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/desenvolvimento-militar-em-pe-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 4224,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/desenvolvimento-sentado-com-barra-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 4315,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/desenvolvimento-com-halteres-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 4405,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/elevacao-lateral-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 4488,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/elevacao-frontal-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 4571,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/crucifixo-inverso-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 4654,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/remada-alta-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 4737,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/arnold-press-1.svg",
+    "w": 56,
+    "h": 56,
+    "top": 4819,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/face-pull-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 4901,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/rosca-direta-com-barra-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 4985,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/rosca-com-barra-w-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 5068,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/rosca-alternada-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 5150,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/rosca-martelo-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 5232,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/rosca-inclinada-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 5314,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/rosca-concentrada-1.svg",
+    "w": 56,
+    "h": 56,
+    "top": 5396,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/rosca-scott-improvisada-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 5478,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/rosca-inversa-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 5560,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/rosca-na-polia-baixa-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 5642,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/triceps-testa-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 5725,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/supino-fechado-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 5808,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/triceps-frances-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 5891,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/extensao-unilateral-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 5973,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/mergulho-no-banco-1.svg",
+    "w": 56,
+    "h": 56,
+    "top": 6055,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/triceps-coice-1.svg",
+    "w": 56,
+    "h": 56,
+    "top": 6137,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/triceps-na-corda-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 6219,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/agachamento-livre-1.svg",
+    "w": 56,
+    "h": 56,
+    "top": 6303,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/agachamento-frontal-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 6386,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/agachamento-goblet-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 6469,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/agachamento-bulgaro-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 6552,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/afundo-passada-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 6635,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/agachamento-sumo-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 6718,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/terra-romeno-com-halteres-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 6801,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/step-up-no-banco-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 6884,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/elevacao-de-panturrilha-em-pe-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 6966,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/elevacao-de-panturrilha-sentado-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 7050,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/flexora-e-gluteo-na-polia-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 7133,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/elevacao-de-pernas-na-barra-fixa-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 7217,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/abdominal-no-banco-declinado-1.svg",
+    "w": 56,
+    "h": 56,
+    "top": 7300,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/abdominal-com-anilha-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 7382,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/russian-twist-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 7464,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/prancha-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 7546,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/figuras/farmer-s-walk.svg",
+    "w": 56,
+    "h": 56,
+    "top": 7630,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/flexao-de-braco-1.svg",
+    "w": 56,
+    "h": 56,
+    "top": 7713,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/abdominal-supra-1.svg",
+    "w": 56,
+    "h": 56,
+    "top": 7795,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/abdominal-completo-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 7877,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/abdominal-cruzado-1.svg",
+    "w": 56,
+    "h": 56,
+    "top": 7959,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/abdominal-bicicleta-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 8041,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/fotos/escalador-1.jpg",
+    "w": 56,
+    "h": 56,
+    "top": 8123,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/superman-1.svg",
+    "w": 56,
+    "h": 56,
+    "top": 8205,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/prancha-lateral-1.svg",
+    "w": 56,
+    "h": 56,
+    "top": 8287,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/fotos/salto-basico-1.jpg",
+    "w": 56,
+    "h": 56,
+    "top": 8369,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "850x569",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/fotos/corrida-no-lugar-com-a-corda-1.jpg",
+    "w": 56,
+    "h": 56,
+    "top": 8451,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "850x567",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/salto-com-joelho-alto-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 8533,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/barra-fixa-assistida-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 8615,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/abertura-de-ombros-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 8697,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/good-morning-com-elastico-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 8779,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   }
+  ],
+  "docBytes": 57468,
+  "jsBytes": 356583,
+  "jsN": 24,
+  "cssBytes": 12494,
+  "cssN": 1,
+  "imgBytes": 666044,
+  "imgN": 12,
+  "totalBytes": 1094800,
+  "totalN": 53,
+  "mockN": 2,
+  "mockUrls": [
+   "/rest/v1/profiles?select=…",
+   "/rest/v1/schedule_overrides?select=…&data=gte.2026-09-14&data=lte.2026-09-20"
+  ],
+  "maioresJS": [
+   {
+    "n": "7067-cddbc4f7e6198f50.js",
+    "kb": 55,
+    "dur": 66
+   },
+   {
+    "n": "25185552-11314f557a28f0e6.js",
+    "kb": 53.1,
+    "dur": 29
+   },
+   {
+    "n": "6010-9aaa2eeb193a9bed.js",
+    "kb": 46.6,
+    "dur": 28
+   },
+   {
+    "n": "1970-b727ead8b0e93166.js",
+    "kb": 38.1,
+    "dur": 85
+   },
+   {
+    "n": "2636-1040413a3986a46b.js",
+    "kb": 30.2,
+    "dur": 44
+   },
+   {
+    "n": "3708-2a4277b3625bac7a.js",
+    "kb": 27.6,
+    "dur": 63
+   }
+  ],
+  "maioresImg": [
+   {
+    "n": "barra-fixa-assistida-1.jpg",
+    "kb": 93.1
+   },
+   {
+    "n": "salto-basico-1.jpg",
+    "kb": 74.7
+   },
+   {
+    "n": "supino-reto-com-barra-1.jpg",
+    "kb": 71.1
+   },
+   {
+    "n": "agachamento-livre-1.jpg",
+    "kb": 69.7
+   },
+   {
+    "n": "levantamento-terra-1.jpg",
+    "kb": 68.2
+   },
+   {
+    "n": "flexao-de-braco-1.jpg",
+    "kb": 65.2
+   },
+   {
+    "n": "desenvolvimento-militar-em-pe-1.jpg",
+    "kb": 55.4
+   },
+   {
+    "n": "supino-inclinado-com-barra-1.webp",
+    "kb": 44.7
+   }
+  ],
+  "wall": 3319
+ },
+ "catalogo": {
+  "rota": "/exercicios",
+  "fcp": 132,
+  "lcp": 132,
+  "lcpEl": "p Os 81 exercícios do guia, com figura, passos e his",
+  "dcl": 57,
+  "load": 251,
+  "resp": 43,
+  "cls": 0,
+  "shifts": [],
+  "lt": [
+   {
+    "d": 52,
+    "t": 56
+   },
+   {
+    "d": 57,
+    "t": 186
+   }
+  ],
+  "imgs": [
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/supino-reto-com-barra-1.svg",
+    "w": 56,
+    "h": 56,
+    "top": 409,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "276x287",
+    "acima": true
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/supino-inclinado-com-barra-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 492,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "640x751",
+    "acima": true
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/supino-declinado-com-barra-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 574,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "640x530",
+    "acima": true
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/supino-reto-com-halteres-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 656,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "640x893",
+    "acima": true
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/supino-inclinado-com-halteres-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 738,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "640x965",
+    "acima": true
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/crucifixo-reto-1.svg",
+    "w": 56,
+    "h": 56,
+    "top": 821,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "747x900",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/crucifixo-inclinado-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 903,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "640x816",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/pullover-com-halter-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 985,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "640x555",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/flexao-declinada-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 1067,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "640x447",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/flexao-inclinada-1.svg",
+    "w": 56,
+    "h": 56,
+    "top": 1149,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "225x123",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/crossover-na-polia-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 1232,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "640x746",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/barra-fixa-pronada-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 1315,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "640x968",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/barra-fixa-supinada-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 1398,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "640x1014",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/barra-fixa-com-lastro-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 1480,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "640x968",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/levantamento-terra-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 1563,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "640x937",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/remada-curvada-pronada-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 1646,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "640x676",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/remada-curvada-supinada-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 1729,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "640x679",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/remada-unilateral-serrote-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 1812,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "474x316",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/stiff-terra-romeno-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 1895,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "640x933",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/encolhimento-de-ombros-1.svg",
+    "w": 56,
+    "h": 56,
+    "top": 1977,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "612x896",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/good-morning-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 2059,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/puxada-alta-na-polia-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 2149,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/puxada-com-triangulo-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 2240,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/remada-baixa-na-polia-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 2323,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/pullover-na-polia-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 2406,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/desenvolvimento-militar-em-pe-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 2488,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/desenvolvimento-sentado-com-barra-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 2579,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/desenvolvimento-com-halteres-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 2669,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/elevacao-lateral-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 2752,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/elevacao-frontal-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 2835,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/crucifixo-inverso-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 2918,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/remada-alta-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 3001,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/arnold-press-1.svg",
+    "w": 56,
+    "h": 56,
+    "top": 3083,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/face-pull-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 3165,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/rosca-direta-com-barra-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 3249,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/rosca-com-barra-w-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 3332,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/rosca-alternada-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 3414,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/rosca-martelo-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 3496,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/rosca-inclinada-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 3578,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/rosca-concentrada-1.svg",
+    "w": 56,
+    "h": 56,
+    "top": 3660,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/rosca-scott-improvisada-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 3742,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/rosca-inversa-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 3824,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/rosca-na-polia-baixa-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 3906,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/triceps-testa-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 3989,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/supino-fechado-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 4072,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/triceps-frances-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 4155,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/extensao-unilateral-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 4237,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/mergulho-no-banco-1.svg",
+    "w": 56,
+    "h": 56,
+    "top": 4319,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/triceps-coice-1.svg",
+    "w": 56,
+    "h": 56,
+    "top": 4401,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/triceps-na-corda-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 4483,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/agachamento-livre-1.svg",
+    "w": 56,
+    "h": 56,
+    "top": 4567,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/agachamento-frontal-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 4650,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/agachamento-goblet-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 4733,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/agachamento-bulgaro-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 4816,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/afundo-passada-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 4899,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/agachamento-sumo-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 4982,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/terra-romeno-com-halteres-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 5065,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/step-up-no-banco-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 5148,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/elevacao-de-panturrilha-em-pe-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 5230,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/elevacao-de-panturrilha-sentado-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 5314,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/flexora-e-gluteo-na-polia-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 5397,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/elevacao-de-pernas-na-barra-fixa-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 5481,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/abdominal-no-banco-declinado-1.svg",
+    "w": 56,
+    "h": 56,
+    "top": 5564,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/abdominal-com-anilha-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 5646,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/russian-twist-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 5728,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/prancha-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 5810,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/figuras/farmer-s-walk.svg",
+    "w": 56,
+    "h": 56,
+    "top": 5894,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/flexao-de-braco-1.svg",
+    "w": 56,
+    "h": 56,
+    "top": 5977,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/abdominal-supra-1.svg",
+    "w": 56,
+    "h": 56,
+    "top": 6059,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/abdominal-completo-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 6141,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/abdominal-cruzado-1.svg",
+    "w": 56,
+    "h": 56,
+    "top": 6223,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/abdominal-bicicleta-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 6305,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/fotos/escalador-1.jpg",
+    "w": 56,
+    "h": 56,
+    "top": 6387,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/superman-1.svg",
+    "w": 56,
+    "h": 56,
+    "top": 6469,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/prancha-lateral-1.svg",
+    "w": 56,
+    "h": 56,
+    "top": 6551,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/fotos/salto-basico-1.jpg",
+    "w": 56,
+    "h": 56,
+    "top": 6633,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/fotos/corrida-no-lugar-com-a-corda-1.jpg",
+    "w": 56,
+    "h": 56,
+    "top": 6715,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/salto-com-joelho-alto-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 6797,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/barra-fixa-assistida-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 6879,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/abertura-de-ombros-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 6961,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/good-morning-com-elastico-1.webp",
+    "w": 56,
+    "h": 56,
+    "top": 7043,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   }
+  ],
+  "docBytes": 55185,
+  "jsBytes": 328401,
+  "jsN": 20,
+  "cssBytes": 12494,
+  "cssN": 1,
+  "imgBytes": 775427,
+  "imgN": 21,
+  "totalBytes": 1173383,
+  "totalN": 55,
+  "mockN": 1,
+  "mockUrls": [
+   "/rest/v1/profiles?select=…"
+  ],
+  "maioresJS": [
+   {
+    "n": "7067-cddbc4f7e6198f50.js",
+    "kb": 55,
+    "dur": 58
+   },
+   {
+    "n": "25185552-11314f557a28f0e6.js",
+    "kb": 53.1,
+    "dur": 23
+   },
+   {
+    "n": "6010-9aaa2eeb193a9bed.js",
+    "kb": 46.6,
+    "dur": 37
+   },
+   {
+    "n": "1970-b727ead8b0e93166.js",
+    "kb": 38.1,
+    "dur": 60
+   },
+   {
+    "n": "2636-1040413a3986a46b.js",
+    "kb": 30.2,
+    "dur": 39
+   },
+   {
+    "n": "3708-2a4277b3625bac7a.js",
+    "kb": 27.6,
+    "dur": 57
+   }
+  ],
+  "maioresImg": [
+   {
+    "n": "supino-inclinado-com-halteres-1.webp",
+    "kb": 59.8
+   },
+   {
+    "n": "supino-reto-com-halteres-1.webp",
+    "kb": 54.9
+   },
+   {
+    "n": "crucifixo-inclinado-1.webp",
+    "kb": 47.3
+   },
+   {
+    "n": "levantamento-terra-1.webp",
+    "kb": 45.9
+   },
+   {
+    "n": "stiff-terra-romeno-1.webp",
+    "kb": 45.7
+   },
+   {
+    "n": "supino-inclinado-com-barra-1.webp",
+    "kb": 44.7
+   },
+   {
+    "n": "barra-fixa-pronada-1.webp",
+    "kb": 44.1
+   },
+   {
+    "n": "barra-fixa-com-lastro-1.webp",
+    "kb": 44.1
+   }
+  ],
+  "wall": 3277
+ },
+ "ficha": {
+  "rota": "/exercicios/supino-reto-com-barra",
+  "fcp": 136,
+  "lcp": 148,
+  "lcpEl": "img Execução do Supino reto com barra",
+  "dcl": 122,
+  "load": 278,
+  "resp": 83,
+  "cls": 0,
+  "shifts": [],
+  "lt": [
+   {
+    "d": 56,
+    "t": 124
+   },
+   {
+    "d": 70,
+    "t": 200
+   }
+  ],
+  "imgs": [
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/supino-reto-com-barra-1.svg",
+    "w": 328,
+    "h": 208,
+    "top": 132,
+    "loading": null,
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "276x287",
+    "acima": true
+   },
+   {
+    "src": "http://127.0.0.1:3120/ilustracoes/supino-reto-com-barra-2.svg",
+    "w": 328,
+    "h": 208,
+    "top": 132,
+    "loading": null,
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "276x287",
+    "acima": true
+   },
+   {
+    "src": "http://127.0.0.1:3120/fotos/supino-reto-com-barra-1.jpg",
+    "w": 160,
+    "h": 160,
+    "top": 500,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "850x567",
+    "acima": true
+   },
+   {
+    "src": "http://127.0.0.1:3120/fotos/supino-reto-com-barra-2.jpg",
+    "w": 160,
+    "h": 160,
+    "top": 500,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "850x567",
+    "acima": true
+   }
+  ],
+  "docBytes": 53767,
+  "jsBytes": 383542,
+  "jsN": 28,
+  "cssBytes": 12494,
+  "cssN": 1,
+  "imgBytes": 198654,
+  "imgN": 5,
+  "totalBytes": 649142,
+  "totalN": 45,
+  "mockN": 6,
+  "mockUrls": [
+   "/rest/v1/profiles?select=…",
+   "/rest/v1/exercise_state?select=…&exercise_id=in.%28supino-reto-com-barra%29",
+   "/rest/v1/v_records?select=…&exercise_id=in.%28supino-reto-com-barra%29",
+   "/rest/v1/progression_events?select=…&exercise_id=in.%28supino-reto-com-barra%29&order=data.desc&limit=120",
+   "/rest/v1/session_sets?select=…&exercise_id=eq.supino-reto-com-barra&order=registrada_em.desc&limit=300",
+   "/rest/v1/sessions?select=…&order=data.desc&limit=500"
+  ],
+  "maioresJS": [
+   {
+    "n": "7067-cddbc4f7e6198f50.js",
+    "kb": 55,
+    "dur": 89
+   },
+   {
+    "n": "25185552-11314f557a28f0e6.js",
+    "kb": 53.1,
+    "dur": 48
+   },
+   {
+    "n": "6010-9aaa2eeb193a9bed.js",
+    "kb": 46.6,
+    "dur": 44
+   },
+   {
+    "n": "1970-b727ead8b0e93166.js",
+    "kb": 38.1,
+    "dur": 101
+   },
+   {
+    "n": "2636-1040413a3986a46b.js",
+    "kb": 30.2,
+    "dur": 62
+   },
+   {
+    "n": "3708-2a4277b3625bac7a.js",
+    "kb": 27.6,
+    "dur": 81
+   }
+  ],
+  "maioresImg": [
+   {
+    "n": "supino-reto-com-barra-1.jpg",
+    "kb": 71.1
+   },
+   {
+    "n": "supino-reto-com-barra-2.jpg",
+    "kb": 70.5
+   },
+   {
+    "n": "supino-reto-com-barra-1.svg",
+    "kb": 25.1
+   },
+   {
+    "n": "supino-reto-com-barra-2.svg",
+    "kb": 25
+   },
+   {
+    "n": "icone-192.png",
+    "kb": 2.2
+   }
+  ],
+  "wall": 3288
+ },
+ "corpo": {
+  "rota": "/corpo",
+  "fcp": 84,
+  "lcp": 324,
+  "lcpEl": "p O IMC não separa músculo de gordura: ganhar massa ",
+  "dcl": 49,
+  "load": 213,
+  "resp": 42,
+  "cls": 0,
+  "shifts": [],
+  "lt": [
+   {
+    "d": 53,
+    "t": 79
+   },
+   {
+    "d": 64,
+    "t": 141
+   },
+   {
+    "d": 54,
+    "t": 585
+   }
+  ],
+  "imgs": [],
+  "docBytes": 50842,
+  "jsBytes": 476528,
+  "jsN": 26,
+  "cssBytes": 12494,
+  "cssN": 1,
+  "imgBytes": 2272,
+  "imgN": 1,
+  "totalBytes": 542682,
+  "totalN": 36,
+  "mockN": 4,
+  "mockUrls": [
+   "/rest/v1/profiles?select=…",
+   "/rest/v1/body_weights?select=…&order=data.asc",
+   "/rest/v1/body_measurements?select=…&order=data.asc",
+   "/rest/v1/progress_photos?select=…&order=data.desc"
+  ],
+  "maioresJS": [
+   {
+    "n": "3042.e5d1ee22d4d02f20.js",
+    "kb": 111.4,
+    "dur": 19
+   },
+   {
+    "n": "7067-cddbc4f7e6198f50.js",
+    "kb": 55,
+    "dur": 55
+   },
+   {
+    "n": "25185552-11314f557a28f0e6.js",
+    "kb": 53.1,
+    "dur": 29
+   },
+   {
+    "n": "6010-9aaa2eeb193a9bed.js",
+    "kb": 46.6,
+    "dur": 29
+   },
+   {
+    "n": "1970-b727ead8b0e93166.js",
+    "kb": 38.1,
+    "dur": 70
+   },
+   {
+    "n": "2636-1040413a3986a46b.js",
+    "kb": 30.2,
+    "dur": 27
+   }
+  ],
+  "maioresImg": [
+   {
+    "n": "icone-192.png",
+    "kb": 2.2
+   }
+  ],
+  "wall": 3223
+ },
+ "treinar": {
+  "rota": "/treinar",
+  "fcp": 136,
+  "lcp": 432,
+  "lcpEl": "img ",
+  "dcl": 87,
+  "load": 303,
+  "resp": 69,
+  "cls": 0,
+  "shifts": [],
+  "lt": [
+   {
+    "d": 67,
+    "t": 121
+   },
+   {
+    "d": 75,
+    "t": 220
+   }
+  ],
+  "imgs": [
+   {
+    "src": "http://127.0.0.1:3120/fotos/agachamento-livre-1.jpg",
+    "w": 326,
+    "h": 112,
+    "top": 87,
+    "loading": null,
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "850x567",
+    "acima": true
+   },
+   {
+    "src": "http://127.0.0.1:3120/fotos/levantamento-terra-1.jpg",
+    "w": 326,
+    "h": 112,
+    "top": 305,
+    "loading": null,
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "850x567",
+    "acima": true
+   }
+  ],
+  "docBytes": 51004,
+  "jsBytes": 393247,
+  "jsN": 29,
+  "cssBytes": 12494,
+  "cssN": 1,
+  "imgBytes": 143547,
+  "imgN": 3,
+  "totalBytes": 600977,
+  "totalN": 45,
+  "mockN": 7,
+  "mockUrls": [
+   "/rest/v1/profiles?select=…",
+   "/rest/v1/sessions?select=…&status=eq.em_andamento&order=data.desc&limit=5",
+   "/rest/v1/schedule_overrides?select=…&data=gte.2026-09-14&data=lte.2026-09-20",
+   "/rest/v1/exercise_state?select=…&exercise_id=in.%28agachamento-livre%2Csupino-reto-com-barra%2Cremada-curvada-pronada%2Cdesenvolvimento-com-halteres%2",
+   "/rest/v1/progression_events?select=…&exercise_id=in.%28agachamento-livre%2Csupino-reto-com-barra%2Cremada-curvada-pronada%2Cdesenvolvimento-com-halter",
+   "/rest/v1/session_sets?select=…&exercise_id=in.%28agachamento-livre%2Csupino-reto-com-barra%2Cremada-curvada-pronada%2Cdesenvolvimento-com-halteres%2Cr",
+   "/rest/v1/v_records?select=…&exercise_id=in.%28agachamento-livre%2Csupino-reto-com-barra%2Cremada-curvada-pronada%2Cdesenvolvimento-com-halteres%2Crosc"
+  ],
+  "maioresJS": [
+   {
+    "n": "7067-cddbc4f7e6198f50.js",
+    "kb": 55,
+    "dur": 81
+   },
+   {
+    "n": "25185552-11314f557a28f0e6.js",
+    "kb": 53.1,
+    "dur": 29
+   },
+   {
+    "n": "6010-9aaa2eeb193a9bed.js",
+    "kb": 46.6,
+    "dur": 29
+   },
+   {
+    "n": "1970-b727ead8b0e93166.js",
+    "kb": 38.1,
+    "dur": 138
+   },
+   {
+    "n": "2636-1040413a3986a46b.js",
+    "kb": 30.2,
+    "dur": 56
+   },
+   {
+    "n": "3708-2a4277b3625bac7a.js",
+    "kb": 27.6,
+    "dur": 80
+   }
+  ],
+  "maioresImg": [
+   {
+    "n": "agachamento-livre-1.jpg",
+    "kb": 69.7
+   },
+   {
+    "n": "levantamento-terra-1.jpg",
+    "kb": 68.2
+   },
+   {
+    "n": "icone-192.png",
+    "kb": 2.2
+   }
+  ],
+  "wall": 3317
+ },
+ "mais": {
+  "rota": "/mais",
+  "fcp": 120,
+  "lcp": 120,
+  "lcpEl": "span Nome, altura, fase do programa e as semanas dos pl",
+  "dcl": 106,
+  "load": 278,
+  "resp": 55,
+  "cls": 0,
+  "shifts": [],
+  "lt": [
+   {
+    "d": 66,
+    "t": 113
+   },
+   {
+    "d": 70,
+    "t": 201
+   }
+  ],
+  "imgs": [],
+  "docBytes": 55308,
+  "jsBytes": 328750,
+  "jsN": 20,
+  "cssBytes": 12494,
+  "cssN": 1,
+  "imgBytes": 2272,
+  "imgN": 1,
+  "totalBytes": 400395,
+  "totalN": 34,
+  "mockN": 1,
+  "mockUrls": [
+   "/rest/v1/profiles?select=…"
+  ],
+  "maioresJS": [
+   {
+    "n": "7067-cddbc4f7e6198f50.js",
+    "kb": 55,
+    "dur": 89
+   },
+   {
+    "n": "25185552-11314f557a28f0e6.js",
+    "kb": 53.1,
+    "dur": 30
+   },
+   {
+    "n": "6010-9aaa2eeb193a9bed.js",
+    "kb": 46.6,
+    "dur": 33
+   },
+   {
+    "n": "1970-b727ead8b0e93166.js",
+    "kb": 38.1,
+    "dur": 87
+   },
+   {
+    "n": "2636-1040413a3986a46b.js",
+    "kb": 30.2,
+    "dur": 42
+   },
+   {
+    "n": "3708-2a4277b3625bac7a.js",
+    "kb": 27.6,
+    "dur": 86
+   }
+  ],
+  "maioresImg": [
+   {
+    "n": "icone-192.png",
+    "kb": 2.2
+   }
+  ],
+  "wall": 3297
+ },
+ "prefs": {
+  "rota": "/mais/preferencias",
+  "fcp": 116,
+  "lcp": 612,
+  "lcpEl": "div Em quais dias você vai treinar. O app distribui a ",
+  "dcl": 112,
+  "load": 425,
+  "resp": 53,
+  "cls": 0,
+  "shifts": [],
+  "lt": [
+   {
+    "d": 110,
+    "t": 306
+   }
+  ],
+  "imgs": [],
+  "docBytes": 51009,
+  "jsBytes": 362479,
+  "jsN": 25,
+  "cssBytes": 12494,
+  "cssN": 1,
+  "imgBytes": 2272,
+  "imgN": 1,
+  "totalBytes": 428932,
+  "totalN": 34,
+  "mockN": 2,
+  "mockUrls": [
+   "/rest/v1/profiles?select=…",
+   "/rest/v1/exercise_state?select=…&exercise_id=in.%28agachamento-livre%2Cdesenvolvimento-com-halteres%2Cdesenvolvimento-militar-em-pe%2Celevacao-de-pant"
+  ],
+  "maioresJS": [
+   {
+    "n": "7067-cddbc4f7e6198f50.js",
+    "kb": 55,
+    "dur": 161
+   },
+   {
+    "n": "25185552-11314f557a28f0e6.js",
+    "kb": 53.1,
+    "dur": 91
+   },
+   {
+    "n": "6010-9aaa2eeb193a9bed.js",
+    "kb": 46.6,
+    "dur": 89
+   },
+   {
+    "n": "1970-b727ead8b0e93166.js",
+    "kb": 38.1,
+    "dur": 241
+   },
+   {
+    "n": "2636-1040413a3986a46b.js",
+    "kb": 30.2,
+    "dur": 91
+   },
+   {
+    "n": "3708-2a4277b3625bac7a.js",
+    "kb": 27.6,
+    "dur": 161
+   }
+  ],
+  "maioresImg": [
+   {
+    "n": "icone-192.png",
+    "kb": 2.2
+   }
+  ],
+  "wall": 3436
+ },
+ "equip": {
+  "rota": "/mais/equipamento",
+  "fcp": 100,
+  "lcp": 344,
+  "lcpEl": "div A barra W e a reta oca ainda serão pesadas: até lá",
+  "dcl": 61,
+  "load": 237,
+  "resp": 42,
+  "cls": 0,
+  "shifts": [],
+  "lt": [
+   {
+    "d": 50,
+    "t": 94
+   },
+   {
+    "d": 68,
+    "t": 162
+   }
+  ],
+  "imgs": [
+   {
+    "src": "http://127.0.0.1:3120/itens/banco/banco_01.jpg",
+    "w": 64,
+    "h": 64,
+    "top": 1292,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "1000x961",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/itens/cavalete/cavalete_01.jpg",
+    "w": 64,
+    "h": 64,
+    "top": 1405,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "498x1000",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/itens/barra-fixa/barra-fixa_01.jpg",
+    "w": 64,
+    "h": 64,
+    "top": 1518,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "499x500",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/itens/cross-over/cross-over_01.jpg",
+    "w": 64,
+    "h": 64,
+    "top": 1611,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "463x1000",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/itens/puxadores/puxadores_01.jpg",
+    "w": 64,
+    "h": 64,
+    "top": 1740,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "1000x751",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/itens/tatame/tatame_01.jpg",
+    "w": 64,
+    "h": 64,
+    "top": 1833,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "1000x897",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/itens/corda/corda_01.jpg",
+    "w": 64,
+    "h": 64,
+    "top": 1922,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "1000x1000",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/itens/super-band/super-band_01.jpg",
+    "w": 64,
+    "h": 64,
+    "top": 2011,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/itens/kit-100kg/kit-100kg_01.jpg",
+    "w": 64,
+    "h": 64,
+    "top": 2100,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   },
+   {
+    "src": "http://127.0.0.1:3120/itens/barra-macica/barra-macica_01.jpg",
+    "w": 64,
+    "h": 64,
+    "top": 2189,
+    "loading": "lazy",
+    "fetchpriority": null,
+    "decoding": null,
+    "attrW": null,
+    "attrH": null,
+    "nat": "0x0",
+    "acima": false
+   }
+  ],
+  "docBytes": 50973,
+  "jsBytes": 350318,
+  "jsN": 23,
+  "cssBytes": 12494,
+  "cssN": 1,
+  "imgBytes": 363472,
+  "imgN": 8,
+  "totalBytes": 777935,
+  "totalN": 38,
+  "mockN": 1,
+  "mockUrls": [
+   "/rest/v1/profiles?select=…"
+  ],
+  "maioresJS": [
+   {
+    "n": "7067-cddbc4f7e6198f50.js",
+    "kb": 55,
+    "dur": 74
+   },
+   {
+    "n": "25185552-11314f557a28f0e6.js",
+    "kb": 53.1,
+    "dur": 35
+   },
+   {
+    "n": "6010-9aaa2eeb193a9bed.js",
+    "kb": 46.6,
+    "dur": 33
+   },
+   {
+    "n": "1970-b727ead8b0e93166.js",
+    "kb": 38.1,
+    "dur": 76
+   },
+   {
+    "n": "2636-1040413a3986a46b.js",
+    "kb": 30.2,
+    "dur": 33
+   },
+   {
+    "n": "3708-2a4277b3625bac7a.js",
+    "kb": 27.6,
+    "dur": 74
+   }
+  ],
+  "maioresImg": [
+   {
+    "n": "tatame_01.jpg",
+    "kb": 110.9
+   },
+   {
+    "n": "corda_01.jpg",
+    "kb": 69.3
+   },
+   {
+    "n": "banco_01.jpg",
+    "kb": 55.6
+   },
+   {
+    "n": "puxadores_01.jpg",
+    "kb": 44.9
+   },
+   {
+    "n": "cross-over_01.jpg",
+    "kb": 29.2
+   },
+   {
+    "n": "barra-fixa_01.jpg",
+    "kb": 25.6
+   },
+   {
+    "n": "cavalete_01.jpg",
+    "kb": 17.3
+   },
+   {
+    "n": "icone-192.png",
+    "kb": 2.2
+   }
+  ],
+  "wall": 3247
+ },
+ "guia": {
+  "rota": "/mais/guia",
+  "fcp": 140,
+  "lcp": 140,
+  "lcpEl": "p Escolha em que dias da semana você treina. O app d",
+  "dcl": 128,
+  "load": 240,
+  "resp": 46,
+  "cls": 0,
+  "shifts": [],
+  "lt": [
+   {
+    "d": 57,
+    "t": 65
+   },
+   {
+    "d": 62,
+    "t": 173
+   }
+  ],
+  "imgs": [],
+  "docBytes": 61169,
+  "jsBytes": 354141,
+  "jsN": 23,
+  "cssBytes": 12494,
+  "cssN": 1,
+  "imgBytes": 2272,
+  "imgN": 1,
+  "totalBytes": 431053,
+  "totalN": 33,
+  "mockN": 1,
+  "mockUrls": [
+   "/rest/v1/profiles?select=…"
+  ],
+  "maioresJS": [
+   {
+    "n": "7067-cddbc4f7e6198f50.js",
+    "kb": 55,
+    "dur": 56
+   },
+   {
+    "n": "25185552-11314f557a28f0e6.js",
+    "kb": 53.1,
+    "dur": 28
+   },
+   {
+    "n": "6010-9aaa2eeb193a9bed.js",
+    "kb": 46.6,
+    "dur": 33
+   },
+   {
+    "n": "1970-b727ead8b0e93166.js",
+    "kb": 38.1,
+    "dur": 67
+   },
+   {
+    "n": "2636-1040413a3986a46b.js",
+    "kb": 30.2,
+    "dur": 32
+   },
+   {
+    "n": "3708-2a4277b3625bac7a.js",
+    "kb": 27.6,
+    "dur": 54
+   }
+  ],
+  "maioresImg": [
+   {
+    "n": "icone-192.png",
+    "kb": 2.2
+   }
+  ],
+  "wall": 3250
+ },
+ "barra": {
+  "rota": "/barra-fixa",
+  "fcp": 84,
+  "lcp": 304,
+  "lcpEl": "div Toda vez que passar por baixo da barra num dia sem",
+  "dcl": 67,
+  "load": 204,
+  "resp": 29,
+  "cls": 0,
+  "shifts": [],
+  "lt": [
+   {
+    "d": 65,
+    "t": 131
+   }
+  ],
+  "imgs": [],
+  "docBytes": 50919,
+  "jsBytes": 360928,
+  "jsN": 25,
+  "cssBytes": 12494,
+  "cssN": 1,
+  "imgBytes": 2272,
+  "imgN": 1,
+  "totalBytes": 427298,
+  "totalN": 39,
+  "mockN": 7,
+  "mockUrls": [
+   "/rest/v1/profiles?select=…",
+   "/rest/v1/sessions?select=…&order=data.desc&limit=60",
+   "/rest/v1/exercise_state?select=…&exercise_id=in.%28barra-fixa-assistida%29",
+   "/rest/v1/session_sets?select=…&exercise_id=in.%28barra-fixa-assistida%29&tipo=eq.trabalho&order=registrada_em.desc&limit=200",
+   "/rest/v1/v_records?select=…&exercise_id=in.%28barra-fixa-assistida%29",
+   "/rest/v1/pullup_singles?select=…&data=gte.2026-09-07&data=lte.2026-09-20&order=data.desc",
+   "/rest/v1/pullup_singles?select=…&data=eq.2026-09-20"
+  ],
+  "maioresJS": [
+   {
+    "n": "7067-cddbc4f7e6198f50.js",
+    "kb": 55,
+    "dur": 43
+   },
+   {
+    "n": "25185552-11314f557a28f0e6.js",
+    "kb": 53.1,
+    "dur": 24
+   },
+   {
+    "n": "6010-9aaa2eeb193a9bed.js",
+    "kb": 46.6,
+    "dur": 27
+   },
+   {
+    "n": "1970-b727ead8b0e93166.js",
+    "kb": 38.1,
+    "dur": 47
+   },
+   {
+    "n": "2636-1040413a3986a46b.js",
+    "kb": 30.2,
+    "dur": 26
+   },
+   {
+    "n": "3708-2a4277b3625bac7a.js",
+    "kb": 27.6,
+    "dur": 44
+   }
+  ],
+  "maioresImg": [
+   {
+    "n": "icone-192.png",
+    "kb": 2.2
+   }
+  ],
+  "wall": 3213
+ },
+ "login": {
+  "rota": "/login",
+  "fcp": 64,
+  "lcp": 64,
+  "lcpEl": "h1 Treino do Terraço",
+  "dcl": 51,
+  "load": 107,
+  "resp": 15,
+  "cls": 0,
+  "shifts": [],
+  "lt": [],
+  "imgs": [],
+  "docBytes": 6293,
+  "jsBytes": 175305,
+  "jsN": 11,
+  "cssBytes": 12494,
+  "cssN": 1,
+  "imgBytes": 2272,
+  "imgN": 1,
+  "totalBytes": 196364,
+  "totalN": 13,
+  "mockN": 0,
+  "mockUrls": [],
+  "maioresJS": [
+   {
+    "n": "25185552-11314f557a28f0e6.js",
+    "kb": 53.1,
+    "dur": 19
+   },
+   {
+    "n": "6010-9aaa2eeb193a9bed.js",
+    "kb": 46.6,
+    "dur": 20
+   },
+   {
+    "n": "2636-1040413a3986a46b.js",
+    "kb": 30.2,
+    "dur": 20
+   },
+   {
+    "n": "4618-f456a1da7fcb86dc.js",
+    "kb": 10.1,
+    "dur": 28
+   },
+   {
+    "n": "6458-46ed6eb02ed66f75.js",
+    "kb": 9.3,
+    "dur": 19
+   },
+   {
+    "n": "6756-d5905090740f7127.js",
+    "kb": 7,
+    "dur": 23
+   }
+  ],
+  "maioresImg": [
+   {
+    "n": "icone-192.png",
+    "kb": 2.2
+   }
+  ],
+  "wall": 3116
+ }
+}

@@ -1,0 +1,247 @@
+{
+ "lente": "pwa-offline",
+ "resumo": "O esqueleto offline está de pé — com o service worker ativo, as 21 rotas testadas voltam inteiras depois de uma recarga sem rede (1,28–1,41 s), o player sobrevive a uma recarga no meio da sessão e a fila de saída guarda a escrita e sobe sozinha quando a rede volta. O que falta é tudo o que o usuário VÊ: em nenhum lugar o app diz que está sem rede (medido: zero [role=alert] e zero ocorrência de 'offline/sem conexão' na tela Hoje offline), tocar 'Entrar' sem rede derruba o app numa tela em inglês ('Application error: a client-side exception…', erro 'Failed to fetch', em 1,2 s), a primeira entrada baixa 5,67 MB em 132 respostas (3,97 MB de ilustrações e fotos puxados logo depois do login, sem aviso, sem progresso e sem escolha) e a instalação deixa 3,49 MB de precache que o 'Sair' apaga inteiro. Fora de Mais não existe nenhum sinal da fila, e uma gravação offline diz 'registrado' como se tivesse subido.",
+ "achados": [
+  {
+   "id": "pwa-offline-01",
+   "tela": "Hoje (e todas as abas) sem rede",
+   "rota": "/",
+   "tema": "ambos",
+   "severidade": "alta",
+   "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/pwa-offline/pwa-offline-01.png — recarga offline da tela Hoje: 0 elementos [role=alert]/[role=status], 0 ocorrência de 'offline|sem conexão|sem rede' no innerText; 'PESO 90,2 kg há 1 dia' exibido como se fosse fresco (_medidas-3.json → hojeOffline)",
+   "proposta": "Um sinal permanente e sóbrio de estado da rede: chip/faixa no cabeçalho fixo ('Sem rede · mostrando o que já estava no celular') ligado a navigator.onLine + eventos online/offline, e, quando offline, a hora da última sincronização lida do que persistencia-query já guarda (lib/persistencia-query.ts:53, campo salvoEm). Um componente só, usado pelo layout de (app), sem repetir por tela.",
+   "arquivos": [
+    "app/(app)/layout.tsx",
+    "lib/persistencia-query.ts:53",
+    "components/mais/linha-sincronizacao.tsx"
+   ],
+   "esforco": "M",
+   "prioridade_dono": "outra"
+  },
+  {
+   "id": "pwa-offline-02",
+   "tela": "Entrar",
+   "rota": "/login",
+   "tema": "ambos",
+   "severidade": "alta",
+   "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/pwa-offline/pwa-offline-12.png — com o SW ativo e context.setOffline(true), tocar 'Entrar' troca a página inteira por 'Application error: a client-side exception has occurred while loading 127.0.0.1' em 1,2 s (pageerror: 'Failed to fetch'); medido aos 1,2 / 3 / 6 / 10 s, sem toast e sem volta (_medidas-7.json)",
+   "proposta": "Envolver o submit em try/catch e transformar a falha de rede em mensagem no próprio formulário ('Sem rede: não dá para entrar agora. Tente de novo quando a conexão voltar.'), e criar app/error.tsx + app/(auth)/error.tsx em pt-BR com 'Tentar de novo' para que nenhuma exceção chegue à tela crua do Next.",
+   "arquivos": [
+    "app/(auth)/login/page.tsx",
+    "app/error.tsx (a criar)"
+   ],
+   "esforco": "P",
+   "prioridade_dono": "outra"
+  },
+  {
+   "id": "pwa-offline-03",
+   "tela": "Primeira entrada (login → Hoje)",
+   "rota": "/login → /",
+   "tema": "ambos",
+   "severidade": "alta",
+   "evidencia": "medição: 5.668.999 bytes em 132 respostas, 10,1 s até assentar — ilustrações 2.212.183 B, fotos 1.758.022 B, _next 1.559.883 B, figuras 105.230 B (_medidas-4.json → primeiraEntrada). Os 3,97 MB de mídia são puxados por lib/precache-do-programa.ts logo depois do login, com 4 downloads em paralelo, sem aviso, sem barra e sem opção de recusar.",
+   "proposta": "Adiar o aquecimento para depois da primeira tela (requestIdleCallback + 3–5 s), pular quando navigator.connection.saveData for true ou effectiveType for '2g'/'3g', e mover a decisão para Mais → 'Baixar o treino para usar sem rede (≈4 MB)' com progresso e estado ('baixado · 4,0 MB'). lib/precache-do-programa.ts:52-80.",
+   "arquivos": [
+    "lib/precache-do-programa.ts:52",
+    "app/(app)/mais/page.tsx"
+   ],
+   "esforco": "M",
+   "prioridade_dono": "outra"
+  },
+  {
+   "id": "pwa-offline-04",
+   "tela": "Instalação (service worker)",
+   "rota": "/sw.js",
+   "tema": "ambos",
+   "severidade": "media",
+   "evidencia": "medição: cache 'serwist-precache-v2' com 147 entradas e 3.486.628 bytes logo após o login (_medidas-3.json → bytesNosCaches); a lista traz 75 chunks _next, 67 figuras SVG (573 kB em disco), 4 ícones e /~offline (next.config.ts:19 PASTAS_NO_PRECACHE)",
+   "proposta": "Tirar as 67 figuras do precache obrigatório (next.config.ts:19) e deixá-las na regra CacheFirst de app/sw.ts:43, que já as pega sob demanda e é a mesma que o aquecimento usa: a instalação cai para ~2,9 MB e a figura chega quando o exercício aparece. Quem quiser tudo antes usa o botão do achado 03.",
+   "arquivos": [
+    "next.config.ts:19",
+    "app/sw.ts:43"
+   ],
+   "esforco": "P",
+   "prioridade_dono": "outra"
+  },
+  {
+   "id": "pwa-offline-05",
+   "tela": "Cache de mídia",
+   "rota": "app/sw.ts",
+   "tema": "ambos",
+   "severidade": "media",
+   "evidencia": "medição: 'midia-do-treino' com 47 entradas = 3.244.806 bytes (média 69 kB/arquivo) logo após o login e 68 entradas depois de passear pelas abas (_medidas-1.json / _medidas-3.json). O teto é maxEntries: 300 (app/sw.ts:48) — por bytes, ~20 MB no celular — e nada na interface mostra ou limpa esse espaço.",
+   "proposta": "Trocar o teto por um limite de bytes (maxEntries menor, ex. 160, é o remendo barato; o certo é somar o tamanho ao gravar e purgar acima de ~12 MB) e mostrar em Mais → Sincronização uma linha 'Mídia baixada: 3,2 MB' com 'Liberar espaço', que apaga só CACHE_DE_MIDIA (lib/db.ts:126).",
+   "arquivos": [
+    "app/sw.ts:44-54",
+    "lib/db.ts:126",
+    "components/mais/linha-sincronizacao.tsx"
+   ],
+   "esforco": "M",
+   "prioridade_dono": "outra"
+  },
+  {
+   "id": "pwa-offline-06",
+   "tela": "Rodapé / Hoje com item na fila",
+   "rota": "/",
+   "tema": "ambos",
+   "severidade": "media",
+   "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/pwa-offline/pwa-offline-17.png — com 1 item na fila (outbox.count()=1 medido no IndexedDB), o rodapé é exatamente 'Treino Explorar Relatório Corpo Mais', sem ponto, sem contador e sem qualquer marca; o único lugar que conta é Mais → Sincronização (_medidas-7.json → hojeComFila.temSinal=false)",
+   "proposta": "Ponto pequeno (6 px, cor de atenção) no ícone 'Mais' do rodapé enquanto pendentes() > 0, e o mesmo contador no cabeçalho da sessão de força. O estado já existe em lib/outbox.ts:278 (pendentes) — falta um hook compartilhado em vez do setInterval local de components/mais/linha-sincronizacao.tsx:32.",
+   "arquivos": [
+    "components/mais/linha-sincronizacao.tsx:32",
+    "lib/outbox.ts:278",
+    "app/(app)/layout.tsx"
+   ],
+   "esforco": "M",
+   "prioridade_dono": "outra"
+  },
+  {
+   "id": "pwa-offline-07",
+   "tela": "Corpo → Peso, gravando sem rede",
+   "rota": "/corpo",
+   "tema": "escuro",
+   "severidade": "media",
+   "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/pwa-offline/pwa-offline-06.png — offline, 'Registrar' devolve o toast 'Peso de 16/09 registrado.', idêntico ao online, enquanto o registro está só na fila (outbox.count()=1 conferido no IndexedDB logo depois) (_medidas-5.json / _medidas-7.json)",
+   "proposta": "Um par de mensagens para toda escrita que passa pela fila: online 'Peso de 16/09 registrado.', offline 'Peso de 16/09 salvo no celular — sobe quando a rede voltar.' Decidir uma vez em lib/outbox.ts (o enfileirar já sabe se saiu ou ficou) e devolver o texto, em vez de cada tela escolher o seu.",
+   "arquivos": [
+    "lib/outbox.ts:54",
+    "components/corpo/aba-peso.tsx",
+    "lib/queries/acoes.ts"
+   ],
+   "esforco": "M",
+   "prioridade_dono": "outra"
+  },
+  {
+   "id": "pwa-offline-08",
+   "tela": "Mais",
+   "rota": "/mais",
+   "tema": "ambos",
+   "severidade": "media",
+   "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/pwa-offline/pwa-offline-07.png — a lista do Mais é 'Como usar o app · Perfil · Equipamento · Preferências · Créditos · Backup' e mais nada; grep por 'beforeinstallprompt' e 'display-mode' em todo o código: 0 ocorrências fora de app/manifest.ts:13 ('standalone')",
+   "proposta": "Item 'Instalar o app' no Mais, que só aparece quando o beforeinstallprompt chega (guardar o evento e chamar prompt() no toque) e, no iOS/Safari — onde o evento não existe —, uma linha com o caminho 'Compartilhar → Adicionar à Tela de Início'. Esconder o item quando matchMedia('(display-mode: standalone)') já casar.",
+   "arquivos": [
+    "app/(app)/mais/page.tsx"
+   ],
+   "esforco": "M",
+   "prioridade_dono": "outra"
+  },
+  {
+   "id": "pwa-offline-09",
+   "tela": "Atualização do app (service worker)",
+   "rota": "app/sw.ts",
+   "tema": "ambos",
+   "severidade": "media",
+   "evidencia": "leitura + medição: app/sw.ts:61-62 tem skipWaiting: true e clientsClaim: true, e o registro é assumido em 6 ms (_medidas-1.json → sw.msAteControlar); não há em nenhum arquivo do app um listener de 'updatefound'/'waiting' (grep: 0 ocorrências) — a versão nova troca por baixo do usuário sem avisar, inclusive no meio de uma sessão",
+   "proposta": "Trocar o skipWaiting automático por um aviso: deixar o worker novo em waiting, ouvir 'updatefound' no cliente e mostrar um toast discreto 'Nova versão do app — tocar para atualizar' que manda SKIP_WAITING e recarrega. Enquanto houver sessão em andamento (lib/sessao.ts), adiar o aviso para o fim do treino.",
+   "arquivos": [
+    "app/sw.ts:61",
+    "app/providers.tsx:25"
+   ],
+   "esforco": "M",
+   "prioridade_dono": "treino-player"
+  },
+  {
+   "id": "pwa-offline-10",
+   "tela": "Rota inexistente / atalho velho",
+   "rota": "/exercicios/remada-curvada-com-barra",
+   "tema": "ambos",
+   "severidade": "media",
+   "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/pwa-offline/pwa-offline-02.png — offline (e online), uma URL fora do catálogo mostra '404: This page could not be found.' em inglês, dentro do layout do app (o rodapé continua lá); não existe app/not-found.tsx no projeto (ls: arquivo ausente), e o precache do SW carrega o chunk de app/_not-found",
+   "proposta": "Criar app/not-found.tsx em pt-BR no tom do app ('Essa tela não existe mais.' + 'Voltar para Hoje' + 'Ver o catálogo'), que também é o que um atalho guardado ou um link antigo encontra depois de uma atualização do PWA.",
+   "arquivos": [
+    "app/not-found.tsx (a criar)"
+   ],
+   "esforco": "P",
+   "prioridade_dono": "outra"
+  },
+  {
+   "id": "pwa-offline-11",
+   "tela": "Mais → Backup, sem rede",
+   "rota": "/mais/backup",
+   "tema": "ambos",
+   "severidade": "media",
+   "evidencia": "medição: offline, /mais/backup abre inteira e o botão 'Exportar backup' continua habilitado (_medidas-3.json → 'fria/mais/backup'.acoes). Ao contrário de components/mais/tela-contas.tsx:80 e tela-senha.tsx:60, que já barram a ação com navigator.onLine === false, tela-backup.tsx não tem essa guarda (grep: 0 ocorrências de onLine no arquivo).",
+   "proposta": "Repetir em components/mais/tela-backup.tsx:97 a guarda que contas e senha já usam: desabilitar 'Exportar backup' e 'Importar' sem rede, com a mesma frase curta debaixo do botão ('Precisa de rede: o backup lê as 11 tabelas no servidor.'). Melhor ainda, extrair essa guarda num hook único usado pelas três telas.",
+   "arquivos": [
+    "components/mais/tela-backup.tsx:97",
+    "components/mais/tela-contas.tsx:80",
+    "components/mais/tela-senha.tsx:60"
+   ],
+   "esforco": "P",
+   "prioridade_dono": "outra"
+  },
+  {
+   "id": "pwa-offline-12",
+   "tela": "Mais → Sincronização, a rede voltando",
+   "rota": "/mais",
+   "tema": "escuro",
+   "severidade": "baixa",
+   "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/pwa-offline/pwa-offline-13.png — com 1 item na fila, ao voltar a rede (setOffline(false)) a linha passa sozinha de '1 item esperando / Sobe assim que a rede voltar.' para 'Tudo sincronizado / Nada esperando a rede.' sem nenhum toast (_medidas-5.json → aposVoltarRede.toasts = [])",
+   "proposta": "O listener de 'online' de lib/outbox.ts:287 já sabe quantos subiram: avisar uma vez, curto ('3 registros subiram.'), como o app faz quando o usuário aperta 'Tentar agora'. É o fecho da promessa feita na hora de gravar (achado 07).",
+   "arquivos": [
+    "lib/outbox.ts:287",
+    "components/mais/linha-sincronizacao.tsx:44"
+   ],
+   "esforco": "P",
+   "prioridade_dono": "outra"
+  },
+  {
+   "id": "pwa-offline-13",
+   "tela": "Mais → Sincronização, 'Tentar agora' sem rede",
+   "rota": "/mais",
+   "tema": "escuro",
+   "severidade": "baixa",
+   "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/pwa-offline/pwa-offline-08.png — sem rede, o toque devolve o toast 'Ainda não deu. Tente de novo com rede.' em ~1,2 s, mas o rótulo do botão medido aos 500 ms ainda é 'Tentar agora' (nunca chega a 'Tentando…'), porque lib/outbox.ts:85 volta na hora quando navigator.onLine é false (_medidas-5.json → tentandoRotulo)",
+   "proposta": "Sem rede, nem oferecer a tentativa: trocar o botão por 'Sem rede' desabilitado (ou esconder) enquanto navigator.onLine for false — o usuário para de tocar num botão que não pode fazer nada. Quando houver rede, manter o 'Tentando…' de components/mais/linha-sincronizacao.tsx:74, que aí aparece de verdade.",
+   "arquivos": [
+    "components/mais/linha-sincronizacao.tsx:67-76",
+    "lib/outbox.ts:85"
+   ],
+   "esforco": "P",
+   "prioridade_dono": "outra"
+  },
+  {
+   "id": "pwa-offline-14",
+   "tela": "Sem conexão (fallback)",
+   "rota": "/~offline",
+   "tema": "ambos",
+   "severidade": "baixa",
+   "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/pwa-offline/pwa-offline-03.png (escuro) e /tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/pwa-offline/pwa-offline-11.png (claro) — medido a 360×740: o h1 começa a 312 px do topo, a página inteira tem 740 px de altura e o conteúdo é só um h1 e um parágrafo centrados verticalmente, sem imagem e sem rodapé (_medidas-3.json → paginaOffline)",
+   "proposta": "Dar forma à tela: ancorar o bloco mais alto (justify-start com pt de ~25vh em vez de justify-center), pôr o ícone do app (já precacheado em /icons/icone-192.png) acima do título e usar a escala tipográfica do app em vez do text-2xl solto. app/~offline/page.tsx:5.",
+   "arquivos": [
+    "app/~offline/page.tsx:5"
+   ],
+   "esforco": "P",
+   "prioridade_dono": "outra"
+  },
+  {
+   "id": "pwa-offline-15",
+   "tela": "Sair (logout)",
+   "rota": "/mais",
+   "tema": "ambos",
+   "severidade": "baixa",
+   "evidencia": "leitura + medição: lib/db.ts:145-148 apaga TODOS os caches menos 'midia-do-treino' — inclusive o precache de instalação, medido em 147 entradas / 3.486.628 bytes (_medidas-3.json). Sair e entrar de novo obriga o service worker a rebaixar tudo isso.",
+   "proposta": "Poupar também o precache do Serwist (o nome começa com 'serwist-precache-'): ele não guarda nada do usuário — são chunks, figuras e ícones. Apagar só o que tem dado pessoal ('others' e 'pages-rsc-prefetch', que guardam HTML e payload RSC das telas). lib/db.ts:147.",
+   "arquivos": [
+    "lib/db.ts:145"
+   ],
+   "esforco": "P",
+   "prioridade_dono": "outra"
+  },
+  {
+   "id": "pwa-offline-16",
+   "tela": "Catálogo de exercícios sem rede",
+   "rota": "/exercicios",
+   "tema": "ambos",
+   "severidade": "baixa",
+   "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/pwa-offline/pwa-offline-04.png — offline, as 81 imagens do catálogo têm alt vazio (medido: 81 de 81 sem alt, _medidas-3.json → catalogoOffline.semAlt); quando o arquivo não está no cache de mídia (teto de 300 entradas, achado 05) o card fica um retângulo vazio, sem nome e sem texto alternativo",
+   "proposta": "Dar um estado de falha às imagens do catálogo e da ficha: onError troca a foto pelo bloco neutro com a inicial/ícone do grupo muscular (o mesmo desenho do esqueleto de carregamento), e alt com o nome do exercício, para que offline o card continue legível.",
+   "arquivos": [
+    "components/exercicio/",
+    "app/(app)/exercicios/page.tsx"
+   ],
+   "esforco": "M",
+   "prioridade_dono": "explorar-fichas"
+  }
+ ]
+}

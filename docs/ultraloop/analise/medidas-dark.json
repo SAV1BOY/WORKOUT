@@ -1,0 +1,5077 @@
+{
+ "hoje": {
+  "rota": "/",
+  "url": "http://127.0.0.1:3120/",
+  "itens": [
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/fotos/levantamento-terra-1.jpg",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     850,
+     567
+    ],
+    "css": [
+     326,
+     160
+    ],
+    "loading": "auto",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "cover",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "absolute inset-0 size-full object-cover",
+    "dpr": 1.3,
+    "complete": true
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/levantamento-terra-1.webp",
+    "alt": "Levantamento terra",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     640,
+     937
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 5.71,
+    "complete": true
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/desenvolvimento-militar-em-pe-1.webp",
+    "alt": "Desenvolvimento militar em pé",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     640,
+     857
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 5.71,
+    "complete": true
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/puxada-alta-na-polia-1.webp",
+    "alt": "Puxada alta na polia",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     640,
+     969
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 5.71,
+    "complete": true
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/supino-inclinado-com-halteres-1.webp",
+    "alt": "Supino inclinado com halteres",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     640,
+     965
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 5.71,
+    "complete": true
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/triceps-na-corda-1.webp",
+    "alt": "Tríceps na corda",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     640,
+     1807
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 5.71,
+    "complete": true
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/elevacao-de-panturrilha-em-pe-1.webp",
+    "alt": "Elevação de panturrilha em pé",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     640,
+     543
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 5.71,
+    "complete": true
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/fotos/barra-fixa-assistida-1.jpg",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     850,
+     1275
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "cover",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-cover",
+    "dpr": 7.59,
+    "complete": true
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/fotos/levantamento-terra-1.jpg",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     850,
+     567
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "cover",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-cover",
+    "dpr": 7.59,
+    "complete": true
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/supino-reto-com-barra-1.svg",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     276,
+     287
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 2.46,
+    "complete": true
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/supino-inclinado-com-barra-1.webp",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     640,
+     751
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 5.71,
+    "complete": true
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/supino-declinado-com-barra-1.webp",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     640,
+     530
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 5.71,
+    "complete": true
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/supino-reto-com-halteres-1.webp",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     640,
+     893
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 5.71,
+    "complete": true
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/supino-inclinado-com-halteres-1.webp",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     640,
+     965
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 5.71,
+    "complete": true
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/crucifixo-reto-1.svg",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     747,
+     900
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 6.67,
+    "complete": false
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     16,
+     16
+    ],
+    "classe": "lucide lucide-flame size-4"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     16,
+     16
+    ],
+    "classe": "lucide lucide-check size-4"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     16,
+     16
+    ],
+    "classe": "lucide lucide-check size-4"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 fill-current opacity-100"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 fill-current opacity-100"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 fill-current opacity-100"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 fill-current opacity-100"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 fill-current opacity-100"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 fill-current opacity-100"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     16,
+     16
+    ],
+    "classe": "lucide lucide-chevron-right text-muted-foreground size-4 shrink-0"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     20,
+     20
+    ],
+    "classe": "lucide lucide-repeat size-5"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 fill-current opacity-100"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 fill-current opacity-100"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 fill-current opacity-100"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     16,
+     16
+    ],
+    "classe": "lucide lucide-chevron-right text-muted-foreground size-4 shrink-0"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     20,
+     20
+    ],
+    "classe": "lucide lucide-repeat size-5"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 fill-current opacity-100"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 fill-current opacity-100"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 opacity-25"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     16,
+     16
+    ],
+    "classe": "lucide lucide-chevron-right text-muted-foreground size-4 shrink-0"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     20,
+     20
+    ],
+    "classe": "lucide lucide-repeat size-5"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 fill-current opacity-100"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 fill-current opacity-100"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 opacity-25"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     16,
+     16
+    ],
+    "classe": "lucide lucide-chevron-right text-muted-foreground size-4 shrink-0"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     20,
+     20
+    ],
+    "classe": "lucide lucide-repeat size-5"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 fill-current opacity-100"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 opacity-25"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 opacity-25"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     16,
+     16
+    ],
+    "classe": "lucide lucide-chevron-right text-muted-foreground size-4 shrink-0"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     20,
+     20
+    ],
+    "classe": "lucide lucide-repeat size-5"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 fill-current opacity-100"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 opacity-25"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 opacity-25"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     16,
+     16
+    ],
+    "classe": "lucide lucide-chevron-right text-muted-foreground size-4 shrink-0"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     20,
+     20
+    ],
+    "classe": "lucide lucide-repeat size-5"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     16,
+     16
+    ],
+    "classe": "lucide lucide-pencil size-4"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     20,
+     20
+    ],
+    "classe": "lucide lucide-dumbbell size-5"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 fill-current opacity-100"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 fill-current opacity-100"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 fill-current opacity-100"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 fill-current opacity-100"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 fill-current opacity-100"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 fill-current opacity-100"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 fill-current opacity-100"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 fill-current opacity-100"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 opacity-25"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 fill-current opacity-100"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 fill-current opacity-100"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 opacity-25"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 fill-current opacity-100"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 fill-current opacity-100"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 opacity-25"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 fill-current opacity-100"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 fill-current opacity-100"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 opacity-25"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 fill-current opacity-100"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 opacity-25"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 opacity-25"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     20,
+     20
+    ],
+    "classe": "lucide lucide-plus size-5"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     24,
+     24
+    ],
+    "classe": "lucide lucide-settings-2 size-6"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     24,
+     24
+    ],
+    "classe": "lucide lucide-dumbbell size-6"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     24,
+     24
+    ],
+    "classe": "lucide lucide-compass size-6"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     24,
+     24
+    ],
+    "classe": "lucide lucide-chart-line lucide-line-chart size-6"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     24,
+     24
+    ],
+    "classe": "lucide lucide-person-standing size-6"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     24,
+     24
+    ],
+    "classe": "lucide lucide-ellipsis lucide-more-horizontal size-6"
+   }
+  ]
+ },
+ "explorar": {
+  "rota": "/explorar",
+  "url": "http://127.0.0.1:3120/explorar",
+  "itens": [
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/fotos/levantamento-terra-1.jpg",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     850,
+     567
+    ],
+    "css": [
+     326,
+     160
+    ],
+    "loading": "auto",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "cover",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "absolute inset-0 size-full object-cover",
+    "dpr": 1.3,
+    "complete": true
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/fotos/agachamento-livre-1.jpg",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     850,
+     567
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "cover",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-cover",
+    "dpr": 7.59,
+    "complete": true
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/fotos/levantamento-terra-1.jpg",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     850,
+     567
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "cover",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-cover",
+    "dpr": 7.59,
+    "complete": true
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/fotos/supino-reto-com-barra-1.jpg",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     850,
+     567
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "cover",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-cover",
+    "dpr": 7.59,
+    "complete": true
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/fotos/supino-reto-com-barra-1.jpg",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     850,
+     567
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "cover",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-cover",
+    "dpr": 7.59,
+    "complete": true
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/fotos/barra-fixa-pronada-1.jpg",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     850,
+     567
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "cover",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-cover",
+    "dpr": 7.59,
+    "complete": true
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/fotos/desenvolvimento-militar-em-pe-1.jpg",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     850,
+     567
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "cover",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-cover",
+    "dpr": 7.59,
+    "complete": true
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/fotos/flexao-de-braco-1.jpg",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     850,
+     567
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "cover",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-cover",
+    "dpr": 7.59,
+    "complete": true
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/fotos/salto-basico-1.jpg",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     850,
+     569
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "cover",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-cover",
+    "dpr": 7.59,
+    "complete": true
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/fotos/barra-fixa-assistida-1.jpg",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     850,
+     1275
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "cover",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-cover",
+    "dpr": 7.59,
+    "complete": true
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/fotos/supino-reto-com-barra-1.jpg",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     850,
+     567
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "cover",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-cover",
+    "dpr": 7.59,
+    "complete": true
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/fotos/supino-reto-com-barra-1.jpg",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     850,
+     567
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "cover",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-cover",
+    "dpr": 7.59,
+    "complete": true
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/fotos/barra-fixa-pronada-1.jpg",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     850,
+     567
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "cover",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-cover",
+    "dpr": 7.59,
+    "complete": true
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/fotos/barra-fixa-assistida-1.jpg",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     850,
+     1275
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "cover",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-cover",
+    "dpr": 7.59,
+    "complete": true
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/fotos/corrida-no-lugar-com-a-corda-1.jpg",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     850,
+     567
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "cover",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-cover",
+    "dpr": 7.59,
+    "complete": true
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/supino-reto-com-barra-1.svg",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     276,
+     287
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 2.46,
+    "complete": true
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/supino-inclinado-com-barra-1.webp",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     640,
+     751
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 5.71,
+    "complete": true
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/supino-declinado-com-barra-1.webp",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     640,
+     530
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 5.71,
+    "complete": false
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/supino-reto-com-halteres-1.webp",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     640,
+     893
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 5.71,
+    "complete": false
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/supino-inclinado-com-halteres-1.webp",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     640,
+     965
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 5.71,
+    "complete": false
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/crucifixo-reto-1.svg",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     747,
+     900
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 6.67,
+    "complete": false
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/crucifixo-inclinado-1.webp",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     0,
+     0
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 0,
+    "complete": false
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/pullover-com-halter-1.webp",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     0,
+     0
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 0,
+    "complete": false
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/flexao-declinada-1.webp",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     0,
+     0
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 0,
+    "complete": false
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/flexao-inclinada-1.svg",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     0,
+     0
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 0,
+    "complete": false
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/crossover-na-polia-1.webp",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     0,
+     0
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 0,
+    "complete": false
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/barra-fixa-pronada-1.webp",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     0,
+     0
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 0,
+    "complete": false
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/barra-fixa-supinada-1.webp",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     0,
+     0
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 0,
+    "complete": false
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/barra-fixa-com-lastro-1.webp",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     0,
+     0
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 0,
+    "complete": false
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/levantamento-terra-1.webp",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     640,
+     937
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 5.71,
+    "complete": false
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/remada-curvada-pronada-1.webp",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     0,
+     0
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 0,
+    "complete": false
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/remada-curvada-supinada-1.webp",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     0,
+     0
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 0,
+    "complete": false
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/remada-unilateral-serrote-1.webp",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     0,
+     0
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 0,
+    "complete": false
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/stiff-terra-romeno-1.webp",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     0,
+     0
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 0,
+    "complete": false
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/encolhimento-de-ombros-1.svg",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     0,
+     0
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 0,
+    "complete": false
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/good-morning-1.webp",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     0,
+     0
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 0,
+    "complete": false
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/puxada-alta-na-polia-1.webp",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     640,
+     969
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 5.71,
+    "complete": false
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/puxada-com-triangulo-1.webp",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     0,
+     0
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 0,
+    "complete": false
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/remada-baixa-na-polia-1.webp",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     0,
+     0
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 0,
+    "complete": false
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/pullover-na-polia-1.webp",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     0,
+     0
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 0,
+    "complete": false
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/desenvolvimento-militar-em-pe-1.webp",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     640,
+     857
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 5.71,
+    "complete": false
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/desenvolvimento-sentado-com-barra-1.webp",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     0,
+     0
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 0,
+    "complete": false
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/desenvolvimento-com-halteres-1.webp",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     0,
+     0
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 0,
+    "complete": false
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/elevacao-lateral-1.webp",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     0,
+     0
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 0,
+    "complete": false
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/elevacao-frontal-1.webp",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     0,
+     0
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 0,
+    "complete": false
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/crucifixo-inverso-1.webp",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     0,
+     0
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 0,
+    "complete": false
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/remada-alta-1.webp",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     0,
+     0
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 0,
+    "complete": false
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/arnold-press-1.svg",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     0,
+     0
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 0,
+    "complete": false
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/face-pull-1.webp",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     0,
+     0
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 0,
+    "complete": false
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/rosca-direta-com-barra-1.webp",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     0,
+     0
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 0,
+    "complete": false
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/rosca-com-barra-w-1.webp",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     0,
+     0
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 0,
+    "complete": false
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/rosca-alternada-1.webp",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     0,
+     0
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 0,
+    "complete": false
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/rosca-martelo-1.webp",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     0,
+     0
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 0,
+    "complete": false
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/rosca-inclinada-1.webp",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     0,
+     0
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 0,
+    "complete": false
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/rosca-concentrada-1.svg",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     0,
+     0
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 0,
+    "complete": false
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/rosca-scott-improvisada-1.webp",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     0,
+     0
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 0,
+    "complete": false
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/rosca-inversa-1.webp",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     0,
+     0
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 0,
+    "complete": false
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/rosca-na-polia-baixa-1.webp",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     0,
+     0
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 0,
+    "complete": false
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/triceps-testa-1.webp",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     0,
+     0
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 0,
+    "complete": false
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/supino-fechado-1.webp",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     0,
+     0
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 0,
+    "complete": false
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/triceps-frances-1.webp",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     0,
+     0
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 0,
+    "complete": false
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/extensao-unilateral-1.webp",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     0,
+     0
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 0,
+    "complete": false
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/mergulho-no-banco-1.svg",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     0,
+     0
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 0,
+    "complete": false
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/triceps-coice-1.svg",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     0,
+     0
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 0,
+    "complete": false
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/triceps-na-corda-1.webp",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     640,
+     1807
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 5.71,
+    "complete": false
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/agachamento-livre-1.svg",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     0,
+     0
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 0,
+    "complete": false
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/agachamento-frontal-1.webp",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     0,
+     0
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 0,
+    "complete": false
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/agachamento-goblet-1.webp",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     0,
+     0
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 0,
+    "complete": false
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/agachamento-bulgaro-1.webp",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     0,
+     0
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 0,
+    "complete": false
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/afundo-passada-1.webp",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     0,
+     0
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 0,
+    "complete": false
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/agachamento-sumo-1.webp",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     0,
+     0
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 0,
+    "complete": false
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/terra-romeno-com-halteres-1.webp",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     0,
+     0
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 0,
+    "complete": false
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/step-up-no-banco-1.webp",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     0,
+     0
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 0,
+    "complete": false
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/elevacao-de-panturrilha-em-pe-1.webp",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     640,
+     543
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 5.71,
+    "complete": true
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/elevacao-de-panturrilha-sentado-1.webp",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     640,
+     953
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 5.71,
+    "complete": true
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/flexora-e-gluteo-na-polia-1.webp",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     640,
+     965
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 5.71,
+    "complete": true
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/elevacao-de-pernas-na-barra-fixa-1.webp",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     640,
+     454
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 5.71,
+    "complete": true
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/abdominal-no-banco-declinado-1.svg",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     197,
+     179
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 1.76,
+    "complete": true
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/abdominal-com-anilha-1.webp",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     640,
+     360
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 5.71,
+    "complete": true
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/russian-twist-1.webp",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     640,
+     230
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 5.71,
+    "complete": true
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/prancha-1.webp",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     640,
+     233
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 5.71,
+    "complete": true
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/figuras/farmer-s-walk.svg",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     198,
+     150
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 1.77,
+    "complete": true
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/flexao-de-braco-1.svg",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     225,
+     123
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 2.01,
+    "complete": true
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/abdominal-supra-1.svg",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     626,
+     280
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 5.59,
+    "complete": true
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/abdominal-completo-1.webp",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     640,
+     512
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 5.71,
+    "complete": true
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/abdominal-cruzado-1.svg",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     220,
+     109
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 1.96,
+    "complete": true
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/abdominal-bicicleta-1.webp",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     640,
+     270
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 5.71,
+    "complete": true
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/fotos/escalador-1.jpg",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     850,
+     567
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "cover",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-cover",
+    "dpr": 7.59,
+    "complete": true
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/superman-1.svg",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     302,
+     66
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 2.7,
+    "complete": true
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/prancha-lateral-1.svg",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     901,
+     414
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 8.04,
+    "complete": true
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/fotos/salto-basico-1.jpg",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     850,
+     569
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "cover",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-cover",
+    "dpr": 7.59,
+    "complete": true
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/fotos/corrida-no-lugar-com-a-corda-1.jpg",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     850,
+     567
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "cover",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-cover",
+    "dpr": 7.59,
+    "complete": true
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/salto-com-joelho-alto-1.webp",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     530,
+     388
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 4.73,
+    "complete": true
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/barra-fixa-assistida-1.webp",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     640,
+     968
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 5.71,
+    "complete": true
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/abertura-de-ombros-1.webp",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     640,
+     810
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 5.71,
+    "complete": true
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/good-morning-com-elastico-1.webp",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     640,
+     763
+    ],
+    "css": [
+     56,
+     56
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "size-full object-contain p-1",
+    "dpr": 5.71,
+    "complete": true
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     16,
+     16
+    ],
+    "classe": "lucide lucide-search text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 fill-current opacity-100"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 fill-current opacity-100"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 fill-current opacity-100"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 fill-current opacity-100"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 fill-current opacity-100"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 fill-current opacity-100"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     16,
+     16
+    ],
+    "classe": "lucide lucide-chevron-right text-muted-foreground size-4 shrink-0"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 fill-current opacity-100"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 fill-current opacity-100"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 fill-current opacity-100"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     16,
+     16
+    ],
+    "classe": "lucide lucide-chevron-right text-muted-foreground size-4 shrink-0"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 fill-current opacity-100"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 fill-current opacity-100"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 fill-current opacity-100"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     16,
+     16
+    ],
+    "classe": "lucide lucide-chevron-right text-muted-foreground size-4 shrink-0"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 fill-current opacity-100"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 fill-current opacity-100"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 fill-current opacity-100"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     16,
+     16
+    ],
+    "classe": "lucide lucide-chevron-right text-muted-foreground size-4 shrink-0"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 fill-current opacity-100"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 fill-current opacity-100"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 fill-current opacity-100"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     16,
+     16
+    ],
+    "classe": "lucide lucide-chevron-right text-muted-foreground size-4 shrink-0"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 fill-current opacity-100"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 fill-current opacity-100"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 fill-current opacity-100"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     16,
+     16
+    ],
+    "classe": "lucide lucide-chevron-right text-muted-foreground size-4 shrink-0"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 fill-current opacity-100"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 fill-current opacity-100"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 opacity-25"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     16,
+     16
+    ],
+    "classe": "lucide lucide-chevron-right text-muted-foreground size-4 shrink-0"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 fill-current opacity-100"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 opacity-25"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 opacity-25"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     16,
+     16
+    ],
+    "classe": "lucide lucide-chevron-right text-muted-foreground size-4 shrink-0"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 fill-current opacity-100"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 fill-current opacity-100"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 opacity-25"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     16,
+     16
+    ],
+    "classe": "lucide lucide-chevron-right text-muted-foreground size-4 shrink-0"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 fill-current opacity-100"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 fill-current opacity-100"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 fill-current opacity-100"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     16,
+     16
+    ],
+    "classe": "lucide lucide-chevron-right text-muted-foreground size-4 shrink-0"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 fill-current opacity-100"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 fill-current opacity-100"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 fill-current opacity-100"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     16,
+     16
+    ],
+    "classe": "lucide lucide-chevron-right text-muted-foreground size-4 shrink-0"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 fill-current opacity-100"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 fill-current opacity-100"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 opacity-25"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     16,
+     16
+    ],
+    "classe": "lucide lucide-chevron-right text-muted-foreground size-4 shrink-0"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 fill-current opacity-100"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 fill-current opacity-100"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 opacity-25"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     16,
+     16
+    ],
+    "classe": "lucide lucide-chevron-right text-muted-foreground size-4 shrink-0"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     20,
+     20
+    ],
+    "classe": "lucide lucide-dumbbell size-5"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     16,
+     16
+    ],
+    "classe": "lucide lucide-chevron-right text-muted-foreground size-4 shrink-0"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 fill-current opacity-100"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 opacity-25"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     12,
+     12
+    ],
+    "classe": "lucide lucide-zap size-3 opacity-25"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     16,
+     16
+    ],
+    "classe": "lucide lucide-chevron-right text-muted-foreground size-4 shrink-0"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     24,
+     24
+    ],
+    "classe": "lucide lucide-dumbbell size-6"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     24,
+     24
+    ],
+    "classe": "lucide lucide-compass size-6"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     24,
+     24
+    ],
+    "classe": "lucide lucide-chart-line lucide-line-chart size-6"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     24,
+     24
+    ],
+    "classe": "lucide lucide-person-standing size-6"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     24,
+     24
+    ],
+    "classe": "lucide lucide-ellipsis lucide-more-horizontal size-6"
+   }
+  ]
+ },
+ "ficha": {
+  "rota": "/exercicios/agachamento-goblet",
+  "url": "http://127.0.0.1:3120/exercicios/agachamento-goblet",
+  "itens": [
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/agachamento-goblet-1.webp",
+    "alt": "Execução do Agachamento goblet",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     640,
+     1510
+    ],
+    "css": [
+     328,
+     208
+    ],
+    "loading": "auto",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "absolute inset-0 size-full object-contain p-2 transition-opacity duration-500 ease-in-out opacity-0",
+    "dpr": 0.98,
+    "complete": true
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/ilustracoes/agachamento-goblet-2.webp",
+    "alt": "",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     640,
+     1510
+    ],
+    "css": [
+     328,
+     208
+    ],
+    "loading": "auto",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "contain",
+    "objectPosition": "50% 50%",
+    "bg": "rgba(0, 0, 0, 0)",
+    "aspect": "auto",
+    "classe": "absolute inset-0 size-full object-contain p-2 transition-opacity duration-500 ease-in-out opacity-100",
+    "dpr": 0.98,
+    "complete": true
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/fotos/agachamento-goblet-1.jpg",
+    "alt": "Agachamento goblet — início do movimento",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     850,
+     569
+    ],
+    "css": [
+     160,
+     160
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "cover",
+    "objectPosition": "50% 50%",
+    "bg": "oklab(0.22644 0.0000103116 0.00000452995 / 0.4)",
+    "aspect": "1 / 1",
+    "classe": "bg-muted/40 aspect-square w-full rounded-lg object-cover",
+    "dpr": 2.66,
+    "complete": true
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/fotos/agachamento-goblet-2.jpg",
+    "alt": "Agachamento goblet — fim do movimento",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     850,
+     569
+    ],
+    "css": [
+     160,
+     160
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "cover",
+    "objectPosition": "50% 50%",
+    "bg": "oklab(0.22644 0.0000103116 0.00000452995 / 0.4)",
+    "aspect": "1 / 1",
+    "classe": "bg-muted/40 aspect-square w-full rounded-lg object-cover",
+    "dpr": 2.66,
+    "complete": true
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     24,
+     24
+    ],
+    "classe": "lucide lucide-dumbbell size-6"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     24,
+     24
+    ],
+    "classe": "lucide lucide-compass size-6"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     24,
+     24
+    ],
+    "classe": "lucide lucide-chart-line lucide-line-chart size-6"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     24,
+     24
+    ],
+    "classe": "lucide lucide-person-standing size-6"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     24,
+     24
+    ],
+    "classe": "lucide lucide-ellipsis lucide-more-horizontal size-6"
+   }
+  ]
+ },
+ "creditos": {
+  "rota": "/mais/creditos",
+  "url": "http://127.0.0.1:3120/mais/creditos",
+  "itens": [
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     16,
+     16
+    ],
+    "classe": "lucide lucide-chevron-left size-4"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     24,
+     24
+    ],
+    "classe": "lucide lucide-dumbbell size-6"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     24,
+     24
+    ],
+    "classe": "lucide lucide-compass size-6"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     24,
+     24
+    ],
+    "classe": "lucide lucide-chart-line lucide-line-chart size-6"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     24,
+     24
+    ],
+    "classe": "lucide lucide-person-standing size-6"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     24,
+     24
+    ],
+    "classe": "lucide lucide-ellipsis lucide-more-horizontal size-6"
+   }
+  ]
+ },
+ "equipamento": {
+  "rota": "/mais/equipamento",
+  "url": "http://127.0.0.1:3120/mais/equipamento",
+  "itens": [
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/itens/banco/banco_01.jpg",
+    "alt": "Banco supino regulável (Yangfit)",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     1000,
+     961
+    ],
+    "css": [
+     64,
+     64
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "cover",
+    "objectPosition": "50% 50%",
+    "bg": "rgb(28, 28, 28)",
+    "aspect": "auto",
+    "classe": "bg-muted size-16 shrink-0 rounded-md object-cover",
+    "dpr": 7.81,
+    "complete": true
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/itens/cavalete/cavalete_01.jpg",
+    "alt": "Suporte cavalete (Exercit, quadro H)",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     498,
+     1000
+    ],
+    "css": [
+     64,
+     64
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "cover",
+    "objectPosition": "50% 50%",
+    "bg": "rgb(28, 28, 28)",
+    "aspect": "auto",
+    "classe": "bg-muted size-16 shrink-0 rounded-md object-cover",
+    "dpr": 3.89,
+    "complete": true
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/itens/barra-fixa/barra-fixa_01.jpg",
+    "alt": "Barra fixa de parede",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     499,
+     500
+    ],
+    "css": [
+     64,
+     64
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "cover",
+    "objectPosition": "50% 50%",
+    "bg": "rgb(28, 28, 28)",
+    "aspect": "auto",
+    "classe": "bg-muted size-16 shrink-0 rounded-md object-cover",
+    "dpr": 3.9,
+    "complete": true
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/itens/cross-over/cross-over_01.jpg",
+    "alt": "Cross over de parede (EJ Oliver, mono)",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     463,
+     1000
+    ],
+    "css": [
+     64,
+     64
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "cover",
+    "objectPosition": "50% 50%",
+    "bg": "rgb(28, 28, 28)",
+    "aspect": "auto",
+    "classe": "bg-muted size-16 shrink-0 rounded-md object-cover",
+    "dpr": 3.62,
+    "complete": true
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/itens/puxadores/puxadores_01.jpg",
+    "alt": "Kit de puxadores (Lísia)",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     1000,
+     751
+    ],
+    "css": [
+     64,
+     64
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "cover",
+    "objectPosition": "50% 50%",
+    "bg": "rgb(28, 28, 28)",
+    "aspect": "auto",
+    "classe": "bg-muted size-16 shrink-0 rounded-md object-cover",
+    "dpr": 7.81,
+    "complete": true
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/itens/tatame/tatame_01.jpg",
+    "alt": "Tatame EVA 20 mm",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     1000,
+     897
+    ],
+    "css": [
+     64,
+     64
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "cover",
+    "objectPosition": "50% 50%",
+    "bg": "rgb(28, 28, 28)",
+    "aspect": "auto",
+    "classe": "bg-muted size-16 shrink-0 rounded-md object-cover",
+    "dpr": 7.81,
+    "complete": true
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/itens/corda/corda_01.jpg",
+    "alt": "Corda de pular com rolamento",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     1000,
+     1000
+    ],
+    "css": [
+     64,
+     64
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "cover",
+    "objectPosition": "50% 50%",
+    "bg": "rgb(28, 28, 28)",
+    "aspect": "auto",
+    "classe": "bg-muted size-16 shrink-0 rounded-md object-cover",
+    "dpr": 7.81,
+    "complete": true
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/itens/super-band/super-band_01.jpg",
+    "alt": "Super Band 45 mm (Yangfit)",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     1000,
+     578
+    ],
+    "css": [
+     64,
+     64
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "cover",
+    "objectPosition": "50% 50%",
+    "bg": "rgb(28, 28, 28)",
+    "aspect": "auto",
+    "classe": "bg-muted size-16 shrink-0 rounded-md object-cover",
+    "dpr": 7.81,
+    "complete": true
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/itens/kit-100kg/kit-100kg_01.jpg",
+    "alt": "Kit 100 kg: 24 anilhas + 4 barras ocas + 8 presilhas",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     1000,
+     988
+    ],
+    "css": [
+     64,
+     64
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "cover",
+    "objectPosition": "50% 50%",
+    "bg": "rgb(28, 28, 28)",
+    "aspect": "auto",
+    "classe": "bg-muted size-16 shrink-0 rounded-md object-cover",
+    "dpr": 7.81,
+    "complete": true
+   },
+   {
+    "tipo": "img",
+    "src": "http://127.0.0.1:3120/itens/barra-macica/barra-macica_01.jpg",
+    "alt": "Barra reta maciça 1,50 m",
+    "attrW": null,
+    "attrH": null,
+    "nat": [
+     1000,
+     243
+    ],
+    "css": [
+     64,
+     64
+    ],
+    "loading": "lazy",
+    "decoding": "auto",
+    "fetchPriority": "auto",
+    "sizes": null,
+    "srcset": null,
+    "objectFit": "cover",
+    "objectPosition": "50% 50%",
+    "bg": "rgb(28, 28, 28)",
+    "aspect": "auto",
+    "classe": "bg-muted size-16 shrink-0 rounded-md object-cover",
+    "dpr": 7.81,
+    "complete": true
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     16,
+     16
+    ],
+    "classe": "lucide lucide-chevron-left size-4"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     24,
+     24
+    ],
+    "classe": "lucide lucide-dumbbell size-6"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     24,
+     24
+    ],
+    "classe": "lucide lucide-compass size-6"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     24,
+     24
+    ],
+    "classe": "lucide lucide-chart-line lucide-line-chart size-6"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     24,
+     24
+    ],
+    "classe": "lucide lucide-person-standing size-6"
+   },
+   {
+    "tipo": "svg-inline",
+    "viewBox": "0 0 24 24",
+    "css": [
+     24,
+     24
+    ],
+    "classe": "lucide lucide-ellipsis lucide-more-horizontal size-6"
+   }
+  ]
+ },
+ "_rede": {
+  "/icons/icone-192.png": {
+   "status": 200,
+   "ct": "image/png",
+   "len": 2272,
+   "cache": "public, max-age=0"
+  },
+  "/fotos/levantamento-terra-1.jpg": {
+   "status": 304,
+   "len": null,
+   "cache": "public, max-age=0"
+  },
+  "/fotos/barra-fixa-assistida-1.jpg": {
+   "status": 304,
+   "len": null,
+   "cache": "public, max-age=0"
+  },
+  "/ilustracoes/supino-inclinado-com-barra-1.webp": {
+   "status": 304,
+   "len": null,
+   "cache": "public, max-age=0"
+  },
+  "/ilustracoes/supino-declinado-com-barra-1.webp": {
+   "status": 304,
+   "len": null,
+   "cache": "public, max-age=0"
+  },
+  "/ilustracoes/supino-reto-com-halteres-1.webp": {
+   "status": 304,
+   "len": null,
+   "cache": "public, max-age=0"
+  },
+  "/ilustracoes/supino-inclinado-com-halteres-1.webp": {
+   "status": 304,
+   "len": null,
+   "cache": "public, max-age=0"
+  },
+  "/ilustracoes/supino-reto-com-barra-1.svg": {
+   "status": 304,
+   "len": null,
+   "cache": "public, max-age=0"
+  },
+  "/ilustracoes/crucifixo-reto-1.svg": {
+   "status": 200,
+   "ct": "image/svg+xml",
+   "len": 47104,
+   "cache": "public, max-age=0"
+  },
+  "/ilustracoes/levantamento-terra-1.webp": {
+   "status": 304,
+   "len": null,
+   "cache": "public, max-age=0"
+  },
+  "/ilustracoes/desenvolvimento-militar-em-pe-1.webp": {
+   "status": 304,
+   "len": null,
+   "cache": "public, max-age=0"
+  },
+  "/ilustracoes/puxada-alta-na-polia-1.webp": {
+   "status": 304,
+   "len": null,
+   "cache": "public, max-age=0"
+  },
+  "/ilustracoes/triceps-na-corda-1.webp": {
+   "status": 304,
+   "len": null,
+   "cache": "public, max-age=0"
+  },
+  "/ilustracoes/elevacao-de-panturrilha-em-pe-1.webp": {
+   "status": 304,
+   "len": null,
+   "cache": "public, max-age=0"
+  },
+  "/fotos/barra-fixa-pronada-1.jpg": {
+   "status": 200,
+   "ct": "image/jpeg",
+   "len": 42281,
+   "cache": "public, max-age=0"
+  },
+  "/fotos/desenvolvimento-militar-em-pe-1.jpg": {
+   "status": 200,
+   "ct": "image/jpeg",
+   "len": 56692,
+   "cache": "public, max-age=0"
+  },
+  "/fotos/agachamento-livre-1.jpg": {
+   "status": 200,
+   "ct": "image/jpeg",
+   "len": 71421,
+   "cache": "public, max-age=0"
+  },
+  "/fotos/supino-reto-com-barra-1.jpg": {
+   "status": 200,
+   "ct": "image/jpeg",
+   "len": 72816,
+   "cache": "public, max-age=0"
+  },
+  "/fotos/flexao-de-braco-1.jpg": {
+   "status": 200,
+   "ct": "image/jpeg",
+   "len": 66786,
+   "cache": "public, max-age=0"
+  },
+  "/fotos/salto-basico-1.jpg": {
+   "status": 200,
+   "ct": "image/jpeg",
+   "len": 76449,
+   "cache": "public, max-age=0"
+  },
+  "/fotos/corrida-no-lugar-com-a-corda-1.jpg": {
+   "status": 200,
+   "ct": "image/jpeg",
+   "len": 40616,
+   "cache": "public, max-age=0"
+  },
+  "/ilustracoes/elevacao-de-panturrilha-sentado-1.webp": {
+   "status": 200,
+   "ct": "image/webp",
+   "len": 51646,
+   "cache": "public, max-age=0"
+  },
+  "/ilustracoes/flexora-e-gluteo-na-polia-1.webp": {
+   "status": 200,
+   "ct": "image/webp",
+   "len": 44316,
+   "cache": "public, max-age=0"
+  },
+  "/ilustracoes/elevacao-de-pernas-na-barra-fixa-1.webp": {
+   "status": 200,
+   "ct": "image/webp",
+   "len": 15910,
+   "cache": "public, max-age=0"
+  },
+  "/ilustracoes/abdominal-com-anilha-1.webp": {
+   "status": 200,
+   "ct": "image/webp",
+   "len": 14110,
+   "cache": "public, max-age=0"
+  },
+  "/ilustracoes/abdominal-no-banco-declinado-1.svg": {
+   "status": 200,
+   "ct": "image/svg+xml",
+   "len": 13030,
+   "cache": "public, max-age=0"
+  },
+  "/ilustracoes/russian-twist-1.webp": {
+   "status": 200,
+   "ct": "image/webp",
+   "len": 20448,
+   "cache": "public, max-age=0"
+  },
+  "/ilustracoes/barra-fixa-assistida-1.webp": {
+   "status": 200,
+   "ct": "image/webp",
+   "len": 45172,
+   "cache": "public, max-age=0"
+  },
+  "/ilustracoes/abertura-de-ombros-1.webp": {
+   "status": 200,
+   "ct": "image/webp",
+   "len": 33770,
+   "cache": "public, max-age=0"
+  },
+  "/ilustracoes/good-morning-com-elastico-1.webp": {
+   "status": 200,
+   "ct": "image/webp",
+   "len": 39866,
+   "cache": "public, max-age=0"
+  },
+  "/ilustracoes/superman-1.svg": {
+   "status": 200,
+   "ct": "image/svg+xml",
+   "len": 27603,
+   "cache": "public, max-age=0"
+  },
+  "/ilustracoes/prancha-lateral-1.svg": {
+   "status": 200,
+   "ct": "image/svg+xml",
+   "len": 39489,
+   "cache": "public, max-age=0"
+  },
+  "/figuras/farmer-s-walk.svg": {
+   "status": 200,
+   "ct": "image/svg+xml",
+   "len": 9007,
+   "cache": "public, max-age=0"
+  },
+  "/ilustracoes/salto-com-joelho-alto-1.webp": {
+   "status": 200,
+   "ct": "image/webp",
+   "len": 13858,
+   "cache": "public, max-age=0"
+  },
+  "/ilustracoes/prancha-1.webp": {
+   "status": 200,
+   "ct": "image/webp",
+   "len": 13382,
+   "cache": "public, max-age=0"
+  },
+  "/ilustracoes/abdominal-completo-1.webp": {
+   "status": 200,
+   "ct": "image/webp",
+   "len": 8420,
+   "cache": "public, max-age=0"
+  },
+  "/ilustracoes/abdominal-supra-1.svg": {
+   "status": 200,
+   "ct": "image/svg+xml",
+   "len": 16987,
+   "cache": "public, max-age=0"
+  },
+  "/ilustracoes/flexao-de-braco-1.svg": {
+   "status": 200,
+   "ct": "image/svg+xml",
+   "len": 36709,
+   "cache": "public, max-age=0"
+  },
+  "/ilustracoes/abdominal-bicicleta-1.webp": {
+   "status": 200,
+   "ct": "image/webp",
+   "len": 21660,
+   "cache": "public, max-age=0"
+  },
+  "/fotos/escalador-1.jpg": {
+   "status": 200,
+   "ct": "image/jpeg",
+   "len": 30166,
+   "cache": "public, max-age=0"
+  },
+  "/ilustracoes/abdominal-cruzado-1.svg": {
+   "status": 200,
+   "ct": "image/svg+xml",
+   "len": 12850,
+   "cache": "public, max-age=0"
+  },
+  "/ilustracoes/agachamento-goblet-1.webp": {
+   "status": 200,
+   "ct": "image/webp",
+   "len": 82850,
+   "cache": "public, max-age=0"
+  },
+  "/ilustracoes/agachamento-goblet-2.webp": {
+   "status": 200,
+   "ct": "image/webp",
+   "len": 69902,
+   "cache": "public, max-age=0"
+  },
+  "/fotos/agachamento-goblet-1.jpg": {
+   "status": 200,
+   "ct": "image/jpeg",
+   "len": 34299,
+   "cache": "public, max-age=0"
+  },
+  "/fotos/agachamento-goblet-2.jpg": {
+   "status": 200,
+   "ct": "image/jpeg",
+   "len": 34362,
+   "cache": "public, max-age=0"
+  },
+  "/itens/cavalete/cavalete_01.jpg": {
+   "status": 200,
+   "ct": "image/jpeg",
+   "len": 17744,
+   "cache": "public, max-age=0"
+  },
+  "/itens/barra-fixa/barra-fixa_01.jpg": {
+   "status": 200,
+   "ct": "image/jpeg",
+   "len": 26190,
+   "cache": "public, max-age=0"
+  },
+  "/itens/cross-over/cross-over_01.jpg": {
+   "status": 200,
+   "ct": "image/jpeg",
+   "len": 29868,
+   "cache": "public, max-age=0"
+  },
+  "/itens/banco/banco_01.jpg": {
+   "status": 200,
+   "ct": "image/jpeg",
+   "len": 56953,
+   "cache": "public, max-age=0"
+  },
+  "/itens/puxadores/puxadores_01.jpg": {
+   "status": 200,
+   "ct": "image/jpeg",
+   "len": 45934,
+   "cache": "public, max-age=0"
+  },
+  "/itens/tatame/tatame_01.jpg": {
+   "status": 200,
+   "ct": "image/jpeg",
+   "len": 113563,
+   "cache": "public, max-age=0"
+  },
+  "/itens/corda/corda_01.jpg": {
+   "status": 200,
+   "ct": "image/jpeg",
+   "len": 70948,
+   "cache": "public, max-age=0"
+  },
+  "/itens/barra-macica/barra-macica_01.jpg": {
+   "status": 200,
+   "ct": "image/jpeg",
+   "len": 14786,
+   "cache": "public, max-age=0"
+  },
+  "/itens/super-band/super-band_01.jpg": {
+   "status": 200,
+   "ct": "image/jpeg",
+   "len": 31381,
+   "cache": "public, max-age=0"
+  },
+  "/itens/kit-100kg/kit-100kg_01.jpg": {
+   "status": 200,
+   "ct": "image/jpeg",
+   "len": 164527,
+   "cache": "public, max-age=0"
+  }
+ }
+}

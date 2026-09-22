@@ -1,0 +1,275 @@
+{
+ "lente": "imagens",
+ "resumo": "18 achados medidos na base 3120 (Pixel 5, 360×740, deviceScaleFactor 2, pt-BR, America/Sao_Paulo, temas claro e escuro, usuário próprio critico-imagens@exemplo.com). Três problemas estruturais explicam quase tudo. (1) O app nunca gera derivada: miniaturas de 56 px recebem os originais (fotos 850×567 = 7,59× o necessário, ilustrações até 640×1807 = 5,71×, itens 1000×961 em 64 px = 7,81×) e cinco telas baixam 1 736 kB de imagem; a capa, ao contrário, está SUB-dimensionada a 1,30× e sai mole no retina. (2) O enquadramento é fixo onde a fonte é variável: a caixa da ficha é 328×208 enquanto as 115 webp vão de 0,35:1 a 2,78:1 — 78 delas preenchem menos de 60% da largura, e o goblet renderiza 88×208 num box de 328. (3) A entrega não está ajustada: toda a mídia de /public sai com Cache-Control: public, max-age=0 (12 revalidações 304 por navegação), o cache do service worker tem maxEntries 300 para 477 arquivos, o precache guarda as figuras (segunda escolha da §15.2) e não as ilustrações (primeira), e /favicon.ico devolve 404 com 11 kB de HTML. No tema escuro o fundo claro obrigatório das ilustrações (#e7e4e0) vira uma placa de luz de 328×208 na ficha e seis quadrados brancos na lista de hoje. O crédito da §15 está visível e correto em todas as telas conferidas.",
+ "achados": [
+  {
+   "id": "imagens-01",
+   "tela": "Ficha do exercício — mídia grande",
+   "rota": "/exercicios/agachamento-goblet",
+   "tema": "ambos",
+   "severidade": "alta",
+   "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/imagens/imagens-01.png — caixa medida 328×208 (h-40 + w-full). Fontes: agachamento-goblet-1.webp 640×1510 renderiza 88×208 (27% da largura); triceps-na-corda-1.webp 640×1807 → 74×208 (22%); prancha-1.webp 640×233 → 328×119 (100%). Varredura das 115 webp: proporções de 0,35:1 a 2,78:1; 78 de 115 preenchem menos de 60% da largura da caixa.",
+   "proposta": "A caixa da mídia grande não pode ser de altura fixa. data/ilustracoes.json já traz largura/altura por arquivo — usar esse par como aspect-ratio do contêiner (ou três faixas: alta ≤0,8 → 3:4, quadrada, larga ≥1,6 → 16:9) em components/exercicio/media-grande.tsx:38 (`const caixa = cn(\"bg-muted/40 h-40 w-full ...\")`) e no className h-40 passado a IlustracaoAlternada em media-grande.tsx:68. Com 3:4 o goblet passa de 88 px para 186 px de figura.",
+   "esforco": "M",
+   "prioridade_dono": "explorar-fichas",
+   "arquivos": [
+    "components/exercicio/media-grande.tsx:38",
+    "components/exercicio/media-grande.tsx:68",
+    "data/ilustracoes.json"
+   ]
+  },
+  {
+   "id": "imagens-02",
+   "tela": "Ficha do exercício — painel da ilustração",
+   "rota": "/exercicios/agachamento-goblet",
+   "tema": "ambos",
+   "severidade": "alta",
+   "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/imagens/imagens-02.png (escuro | claro lado a lado). Token medido em app/globals.css:97 `--ilustracao-fundo: #ffffff` (claro) e :141 `#e7e4e0` (escuro). No escuro o painel de 328×208 é uma placa quase branca sobre body #0a0a0a; como a figura ocupa 27% da largura (imagens-01), 73% da placa é luz pura. No claro o painel #ffffff fica mais claro que a página, e o cartão desaparece.",
+   "proposta": "O traço das ilustrações é preto puro sobre transparente, então o fundo claro é obrigatório — mas não precisa ser uma placa. Duas saídas, nesta ordem: (a) inverter o traço no tema escuro (`filter: invert(1)` sob `.dark [data-ilustracao]`, com o fundo transparente herdando o cartão) — some a placa inteira; (b) se a inversão distorcer as poucas ilustrações coloridas (prancha-1.webp tem camisa vermelha), manter a placa mas rebaixá-la para ~#cfccc7 no escuro e dar-lhe borda `border-border`, e no claro trocar #ffffff por `--card` para o painel não ser mais claro que a página. Editar app/globals.css:97 e :141.",
+   "esforco": "M",
+   "prioridade_dono": "explorar-fichas",
+   "arquivos": [
+    "app/globals.css:97",
+    "app/globals.css:141",
+    "components/exercicio/media-grande.tsx"
+   ]
+  },
+  {
+   "id": "imagens-03",
+   "tela": "Explorar / catálogo / lista de hoje — miniaturas",
+   "rota": "/explorar",
+   "tema": "ambos",
+   "severidade": "alta",
+   "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/imagens/imagens-03.png. Medido no DOM: toda miniatura é `size-14` = 56×56 CSS. Fontes servidas inteiras — /fotos/*.jpg 850×567 num box de 56 (dpr efetivo 7,59× para um alvo de 2×), /ilustracoes/*.webp 640×1807 (5,71×), /itens/*.jpg 1000×961 em 64×64 (7,81×). Rede da sessão: 55 imagens, 1 736 kB, para cinco telas de 360 px de largura.",
+   "proposta": "Gerar derivadas na cópia dos assets: em scripts/copiar-assets.ts produzir <nome>-mini.webp a 112×112 (2× de 56) para fotos, ilustrações e itens, e servir a derivada em components/ui/miniatura.tsx:40 e no cartão do equipamento. 112² contra 850×567 é ~1/40 dos pixels; a 1 736 kB medidos correspondem ~120 kB. Manter o original só onde a mídia é grande (ficha e player).",
+   "esforco": "G",
+   "prioridade_dono": "explorar-fichas",
+   "arquivos": [
+    "components/ui/miniatura.tsx:40",
+    "scripts/copiar-assets.ts"
+   ]
+  },
+  {
+   "id": "imagens-04",
+   "tela": "Toda a mídia de /public",
+   "rota": "/fotos/agachamento-goblet-1.jpg",
+   "tema": "ambos",
+   "severidade": "alta",
+   "evidencia": "curl -sI http://127.0.0.1:3120/fotos/agachamento-goblet-1.jpg → `Cache-Control: public, max-age=0`. O mesmo em /ilustracoes, /itens, /figuras e /icons. Na navegação medida, 12 das 55 imagens voltaram 304 — revalidação de ida e volta por arquivo, por navegação, no 4G do terraço.",
+   "proposta": "next.config.ts:113 já tem um `headers()` (só cabeçalhos de segurança, source `/:caminho*`). Acrescentar uma segunda regra para `/:pasta(fotos|ilustracoes|figuras|itens|icons|mapa-muscular)/:arquivo*` com `Cache-Control: public, max-age=31536000, immutable`. Os nomes dos arquivos vêm dos JSON e não mudam sem mudar de nome, então immutable é seguro.",
+   "esforco": "P",
+   "prioridade_dono": "outra",
+   "arquivos": [
+    "next.config.ts:113"
+   ]
+  },
+  {
+   "id": "imagens-05",
+   "tela": "Treino de hoje — capa do cartão",
+   "rota": "/",
+   "tema": "ambos",
+   "severidade": "media",
+   "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/imagens/imagens-05.png. Medido: /fotos/levantamento-terra-1.jpg natural 850×567, renderizado 326×160 com object-cover. Densidade efetiva 850/(326×2) = 1,30× num aparelho de deviceScaleFactor 2 — abaixo de 2×, e a capa é o maior elemento da primeira tela. A fonte é 3:2 e a caixa é 2,04:1, então ainda se corta 34% da altura.",
+   "proposta": "A capa precisa de uma derivada própria, não da foto de execução: gerar <id>-capa.webp a 720×360 (2× de 360×180, já no enquadramento da caixa) em scripts/copiar-assets.ts e apontar lib/capas.ts para ela. Serve também a /explorar, que usa a mesma foto na mesma caixa.",
+   "esforco": "M",
+   "prioridade_dono": "outra",
+   "arquivos": [
+    "components/ui/card-capa.tsx:64",
+    "lib/capas.ts",
+    "scripts/copiar-assets.ts"
+   ]
+  },
+  {
+   "id": "imagens-06",
+   "tela": "Treino de hoje / Explorar — capa (LCP)",
+   "rota": "/",
+   "tema": "ambos",
+   "severidade": "media",
+   "evidencia": "Medido no DOM: a capa é a única imagem não-lazy da tela (`loading: auto`), mas sai com `decoding: auto` e `fetchPriority: auto`. Todas as outras 14 imagens de / são lazy. Nenhuma imagem do app declara fetchpriority.",
+   "proposta": "Em components/ui/card-capa.tsx:64 acrescentar `fetchPriority=\"high\"` e `decoding=\"async\"` ao <img> da capa (é o LCP das duas telas de entrada), e `decoding=\"async\"` no <img> de components/ui/miniatura.tsx:40 para tirar a decodificação das miniaturas da thread principal durante a rolagem do catálogo.",
+   "esforco": "P",
+   "prioridade_dono": "outra",
+   "arquivos": [
+    "components/ui/card-capa.tsx:64",
+    "components/ui/miniatura.tsx:40"
+   ]
+  },
+  {
+   "id": "imagens-07",
+   "tela": "Lista de exercícios de hoje — miniaturas",
+   "rota": "/",
+   "tema": "escuro",
+   "severidade": "alta",
+   "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/imagens/imagens-07.png — seis quadrados claros (#e7e4e0) de 56×56 descendo a lista sobre fundo #0a0a0a; são o elemento mais luminoso da tela depois do botão laranja. Dentro de cada um a figura renderiza 24×56 (goblet) ou 20×56 (tríceps na corda) — cálculo com as dimensões naturais medidas.",
+   "proposta": "Mesmo remédio do imagens-02 aplicado à miniatura (components/ui/miniatura.tsx:34, `tipo === \"ilustracao\" ? \"bg-ilustracao\"`): no tema escuro inverter o traço e deixar o fundo transparente, para a lista voltar a ser uma coluna escura com desenhos claros em vez de seis placas de luz. Se a placa ficar, reduzir o raio e dar-lhe `border-border`.",
+   "esforco": "M",
+   "prioridade_dono": "relatorio-corpo-calendario",
+   "arquivos": [
+    "components/ui/miniatura.tsx:34",
+    "app/globals.css:141"
+   ]
+  },
+  {
+   "id": "imagens-08",
+   "tela": "Miniaturas de ilustração alta",
+   "rota": "/explorar",
+   "tema": "ambos",
+   "severidade": "alta",
+   "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/imagens/imagens-17.png. Com object-contain num quadrado de 56, uma fonte 640×1807 (triceps-na-corda) renderiza 20×56 e uma 640×1510 (goblet) renderiza 24×56: uma tira vertical de 20 px de largura onde deveria estar o exercício. 78 das 115 webp são mais altas que 1,6:1.",
+   "proposta": "Miniatura quadrada com fonte muito alta não pode ser contain. Em components/ui/miniatura.tsx:46 trocar por `object-cover object-top` quando a proporção do arquivo (já em data/ilustracoes.json) for menor que ~0,7 — o corpo aparece de fato, cortando pernas em vez de encolher tudo; ou gerar a derivada quadrada do imagens-03 já recortada no tronco.",
+   "esforco": "M",
+   "prioridade_dono": "explorar-fichas",
+   "arquivos": [
+    "components/ui/miniatura.tsx:46",
+    "data/ilustracoes.json"
+   ]
+  },
+  {
+   "id": "imagens-09",
+   "tela": "Service worker — cache de mídia",
+   "rota": "/sw.js",
+   "tema": "ambos",
+   "severidade": "alta",
+   "evidencia": "app/sw.ts:44-54: CacheFirst 'midia-do-treino' com ExpirationPlugin maxEntries: 300. Contagem no disco: figuras 67 + ilustrações 145 + fotos 163 + itens 95 + mapa-muscular 7 = 477 arquivos cobertos pelo regex MIDIA de app/sw.ts:35. O teto de 300 é 63% do acervo: ao navegar pelo catálogo o cache expulsa a mídia do treino da fase, e no terraço sem sinal a imagem some.",
+   "proposta": "Subir maxEntries para 520 (acima dos 477) ou, melhor, separar em dois caches com tetos próprios: 'midia-do-treino' (figuras + ilustrações, as duas primeiras escolhas da §15.2, ~210 entradas) sem risco de despejo, e 'midia-catalogo' (fotos + itens) com teto menor. app/sw.ts:47.",
+   "esforco": "P",
+   "prioridade_dono": "outra",
+   "arquivos": [
+    "app/sw.ts:35",
+    "app/sw.ts:47"
+   ]
+  },
+  {
+   "id": "imagens-10",
+   "tela": "Instalação do PWA — precache",
+   "rota": "/",
+   "tema": "ambos",
+   "severidade": "media",
+   "evidencia": "next.config.ts:22 `const PASTAS_NO_PRECACHE = [\"figuras\", \"icons\"]` — 712 kB de figuras + 36 kB de ícones. Mas a §15.2 põe a ilustração ANTES da figura, e a sonda confirma: em /, 12 das 15 imagens vêm de /ilustracoes e nenhuma de /figuras (só farmer-s-walk.svg apareceu no catálogo inteiro). O precache guarda a mídia de segunda escolha e deixa de fora a que a tela realmente mostra.",
+   "proposta": "Trocar o conteúdo do precache pela mídia efetivamente escolhida: as 145 ilustrações somam 4,95 MB (média 44 kB) — pesado demais inteiro, mas as ~40 dos exercícios do programa da fase 1 dão ~1,8 MB, comparável aos 712 kB atuais e muito mais útil. Montar a lista a partir de data/programa.json + lib/midia.ts em next.config.ts:24 (arquivosDoPublic) em vez de varrer a pasta figuras.",
+   "esforco": "M",
+   "prioridade_dono": "outra",
+   "arquivos": [
+    "next.config.ts:22",
+    "next.config.ts:24",
+    "lib/precache-do-programa.ts"
+   ]
+  },
+  {
+   "id": "imagens-11",
+   "tela": "Mais → Equipamento — fotos dos itens",
+   "rota": "/mais/equipamento",
+   "tema": "escuro",
+   "severidade": "media",
+   "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/imagens/imagens-10.png. As fotos de anúncio têm fundo branco recortado: em 64×64 com object-cover viram quadrados brancos berrantes sobre #0a0a0a (puxadores, Super Band, kit 100 kg, corda). O enquadramento também é desigual — barra-macica_01.jpg é 1000×243 (4,1:1) e corda_01.jpg é 1000×1000, então o cover fatia a barra e mostra a corda inteira. Pesos medidos: kit-100kg_01.jpg 161 kB e tatame_01.jpg 111 kB baixados inteiros para um quadrado de 64 px.",
+   "proposta": "Uniformizar a vitrine do inventário: `object-contain` num painel neutro `bg-muted` com padding (o fundo branco do anúncio deixa de vazar e a barra de 4,1:1 aparece inteira), e derivada de 128×128 (2× de 64) gerada em scripts/copiar-assets.ts — resolve os 272 kB de kit+tatame e os 6,2 MB de /itens.",
+   "esforco": "M",
+   "prioridade_dono": "outra",
+   "arquivos": [
+    "scripts/copiar-assets.ts",
+    "components/ui/miniatura.tsx"
+   ]
+  },
+  {
+   "id": "imagens-12",
+   "tela": "Ficha do exercício — as duas fotos de execução",
+   "rota": "/exercicios/agachamento-goblet",
+   "tema": "ambos",
+   "severidade": "media",
+   "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/imagens/imagens-12.png. Medido: /fotos/agachamento-goblet-1.jpg natural 850×569 (1,49:1) renderizado 160×160 com object-cover — o recorte quadrado joga fora 33% da largura da foto, e é exatamente onde está o halter. Densidade 850/(160×2) = 2,66× (sobra de pixel) enquanto o enquadramento é o que falha.",
+   "proposta": "As 163 fotos são todas 3:2 landscape; a ficha as força em quadrado. Trocar o par de fotos para duas caixas 16:10 lado a lado (160×100) ou empilhadas em 328×205 — cabe no mesmo espaço vertical, mantém o enquadramento original e ainda casa com a proporção da caixa proposta no imagens-01.",
+   "esforco": "P",
+   "prioridade_dono": "explorar-fichas",
+   "arquivos": [
+    "components/exercicio/ficha-folha.tsx",
+    "app/exercicios/[id]/page.tsx"
+   ]
+  },
+  {
+   "id": "imagens-13",
+   "tela": "Ficha do exercício — crédito sob a mídia",
+   "rota": "/exercicios/agachamento-goblet",
+   "tema": "ambos",
+   "severidade": "baixa",
+   "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/imagens/imagens-13.png. O crédito exigido pela §15.1.3 está lá e está visível — mas a frase inteira, inclusive o rótulo \"Ilustração:\", é um único link sublinhado de 11 px (`text-[11px]` em components/exercicio/media-grande.tsx:71), sem cor de link: lê-se como uma linha riscada sob a imagem.",
+   "proposta": "Manter o texto em 11 px (§13.8.1) mas sublinhar só o que é link: \"Ilustração: <a>Everkinetic</a> · CC BY-SA 3.0\", com a cor de link do tema e o alvo de 44 px que já existe na classe `alvo`. A licença pode virar um segundo link para o texto da licença, como pede a §15.1.4.",
+   "esforco": "P",
+   "prioridade_dono": "explorar-fichas",
+   "arquivos": [
+    "components/exercicio/media-grande.tsx:71"
+   ]
+  },
+  {
+   "id": "imagens-14",
+   "tela": "Ícone do site",
+   "rota": "/favicon.ico",
+   "tema": "ambos",
+   "severidade": "media",
+   "evidencia": "curl http://127.0.0.1:3120/favicon.ico → HTTP 404, devolvendo 11 694 bytes de HTML da página de erro. app/layout.tsx:21 declara só `/icons/icone-192.png` e `/icons/icone-512.png` como `icon`, e não há app/favicon.ico nem app/icon.png.",
+   "proposta": "Pôr um app/icon.png (ou app/favicon.ico) de 32×32 — o App Router serve /favicon.ico a partir dele. Custa um arquivo e tira um 404 de 11 kB de toda primeira visita e de todo atalho de navegador. Derivar do icone-512.png existente.",
+   "esforco": "P",
+   "prioridade_dono": "outra",
+   "arquivos": [
+    "app/layout.tsx:21",
+    "public/icons/icone-512.png"
+   ]
+  },
+  {
+   "id": "imagens-15",
+   "tela": "Explorar — catálogo inteiro",
+   "rota": "/explorar",
+   "tema": "ambos",
+   "severidade": "media",
+   "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/imagens/imagens-03.png; captura de página inteira com 17 844 px de altura (a 2×) = ~8 900 px de rolagem. Medidas no DOM depois de rolar até o fim: 97 <img> montadas de uma vez, todas `loading=lazy`, e a rede fechou em 1 736 kB de imagem. As miniaturas abaixo da dobra ficam com naturalWidth 0 até entrarem no viewport e então disparam em rajada.",
+   "proposta": "Além da derivada do imagens-03, dar às seções do catálogo `content-visibility: auto` com `contain-intrinsic-size` da altura do bloco: o navegador deixa de montar e decodificar o que está longe, e a rolagem de 8 900 px para de engasgar. É uma linha de CSS por seção, sem virtualização.",
+   "esforco": "P",
+   "prioridade_dono": "explorar-fichas",
+   "arquivos": [
+    "app/(app)/explorar/page.tsx",
+    "app/globals.css"
+   ]
+  },
+  {
+   "id": "imagens-16",
+   "tela": "Miniaturas — texto alternativo",
+   "rota": "/explorar",
+   "tema": "ambos",
+   "severidade": "media",
+   "evidencia": "Medido no DOM: em / as 6 primeiras miniaturas têm alt com o nome do exercício e as 9 seguintes têm alt=\"\" + aria-hidden; em /explorar as 97 miniaturas estão todas com alt=\"\". A chave é a prop `decorativa` de components/ui/miniatura.tsx:21. Em /explorar o nome está mesmo ao lado (decorativa é correto), mas nas 9 de / que vieram vazias o nome também está ao lado — ou seja, a mesma lista usa os dois critérios.",
+   "proposta": "Fixar a regra num só lugar: miniatura ao lado de um texto que já nomeia o exercício é sempre decorativa (alt=\"\"), miniatura sozinha (cartão de capa, grade) sempre leva o nome. Hoje o chamador decide caso a caso e a mesma tela sai dos dois jeitos — vale auditar os chamadores de <Miniatura> e deixar `decorativa` com default true, invertendo a exceção.",
+   "esforco": "P",
+   "prioridade_dono": "explorar-fichas",
+   "arquivos": [
+    "components/ui/miniatura.tsx:21"
+   ]
+  },
+  {
+   "id": "imagens-17",
+   "tela": "Mais → Créditos",
+   "rota": "/mais/creditos",
+   "tema": "ambos",
+   "severidade": "baixa",
+   "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/imagens/imagens-19.png — a página cumpre a §15.1 (fontes, licenças, links, bloco das fotos dos itens) mas mede 3 164 px de altura a 2× e não tem uma única imagem: é a página SOBRE as imagens do app, em texto corrido. Medido no DOM: 0 <img>.",
+   "proposta": "Pôr uma miniatura de amostra ao lado de cada bloco de fonte (uma ilustração Everkinetic, uma wger, o mapa muscular, uma foto de item): o dono passa a reconhecer de relance a que mídia cada licença se refere, e a página deixa de ser um muro de texto. Reaproveita a derivada do imagens-03, custo zero de banda.",
+   "esforco": "M",
+   "prioridade_dono": "outra",
+   "arquivos": [
+    "app/(app)/mais/creditos/page.tsx"
+   ]
+  },
+  {
+   "id": "imagens-18",
+   "tela": "Miniatura — object-fit misturado na mesma lista",
+   "rota": "/",
+   "tema": "ambos",
+   "severidade": "media",
+   "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/imagens/imagens-07.png. components/ui/miniatura.tsx:46: `tipo === \"foto\" ? \"object-cover\" : \"object-contain p-1\"`. Na lista de hoje convivem os dois — a miniatura de /fotos/barra-fixa-assistida-1.jpg sangra até a borda do quadrado, e a de /ilustracoes/levantamento-terra-1.webp flutua no meio com 1 px de respiro e fundo claro. Duas linguagens visuais na mesma coluna de 56 px.",
+   "proposta": "Escolher uma: com a derivada quadrada do imagens-03 (já recortada) toda miniatura pode ser `object-cover` sem padding, e a diferença entre foto e ilustração passa a ser só o fundo. Enquanto a derivada não existir, dar à foto o mesmo `p-1` e fundo do painel para pelo menos alinhar as bordas internas.",
+   "esforco": "P",
+   "prioridade_dono": "explorar-fichas",
+   "arquivos": [
+    "components/ui/miniatura.tsx:46"
+   ]
+  }
+ ]
+}

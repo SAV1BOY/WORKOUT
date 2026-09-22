@@ -1,0 +1,273 @@
+{
+  "lente": "performance",
+  "resumo": "18 achados medidos no servidor-base (http://127.0.0.1:3120) com Chromium/Pixel 5 a 360x740, dsf 2, pt-BR, America/Sao_Paulo, service worker bloqueado, contexto frio por rota, e uma segunda passagem com CPU 4x e 4G (150 ms / 1,6 Mbps) via CDP. Observação de método: page.clock.setFixedTime zera a timeline de performance do Chromium (getEntriesByType(\"resource\") volta vazio e não há evento de paint) — as medições foram feitas sem o relógio falso; ele ficou só para as capturas. O quadro: o app pinta rápido (FCP 620–764 ms em todas as rotas) e depois passa segundos se mexendo. Três problemas dominam. (1) Layout shift: /relatorio mede CLS 0,3895 no escuro e 0,4430 no claro, /explorar 0,2785 — as seções montam depois dos hooks e empurram tudo. (2) Imagem: as fotos originais (850x1275) são servidas em miniaturas de 56 px e em capas de 326 px, sem srcset, e a capa que é o elemento do LCP não tem prioridade — LCP 5,65 s em / e 5,73 s em /explorar; /exercicios monta 81 <img> de uma vez e fecha em 1146 kB. (3) Rede e cabeçalho: ~24 MB de mídia em public/ saem com Cache-Control: public, max-age=0 (next.config.ts:97-99 só põe cabeçalho de segurança), e /relatorio faz 14 idas ao Supabase com pullup_singles consultada 3x e session_sets 2x. O gesto mais caro do app é o que mais importa: o toque em \"Começar\" leva 9,2 s até estabilizar. Nada foi alterado no repositório.",
+  "achados": [
+    {
+      "id": "performance-01",
+      "tela": "Relatório",
+      "rota": "/relatorio",
+      "tema": "ambos",
+      "severidade": "alta",
+      "esforco": "M",
+      "prioridade_dono": "relatorio-corpo-calendario",
+      "arquivos": [
+        "components/relatorio/tela-relatorio.tsx",
+        "components/carregando.tsx"
+      ],
+      "evidencia": "CLS medido 0,3895 (escuro) e 0,4430 (claro) — \"ruim\" é >0,25. Pixel 5 360x740, CPU 4x, 4G (150 ms, 1,6 Mbps), service worker bloqueado. FCP 652 ms, mas o salto acontece em t=3718 ms, quando as seções \"Números\" e \"Conquistas\" montam de uma vez e empurram \"Histórico\" para baixo (fontes do layout-shift capturadas pelo PerformanceObserver: section \"Números…\" e section \"Conquistas 7 de 26…\"). Antes: /tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/performance/performance-01.png (2,8 s — um único esqueleto de cartão e ~55% da tela vazia). Depois: /tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/performance/performance-01b.png. Tema claro: /tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/performance/performance-01-claro.png e /tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/performance/performance-01-claro-b.png.",
+      "proposta": "Reservar a altura antes dos dados chegarem. Em components/relatorio/tela-relatorio.tsx as seções só existem depois que os ~10 hooks das linhas 58–65 (usePerfil, useSessoesTodas, useSeriesTodas, useCardioTodos, useSoltasTodas, useSoltas, useOverrides, usePesos, useEventosDesde, useConquistas) resolvem. Trocar o esqueleto único por um esqueleto por seção com a MESMA caixa da versão final (Números: grade 2x2 de cartões; Conquistas: cabeçalho + barra \"N de 26\"; Histórico: 3 linhas), ou dar min-height fixa a cada <section>. Alvo: CLS < 0,1."
+    },
+    {
+      "id": "performance-02",
+      "tela": "Explorar",
+      "rota": "/explorar",
+      "tema": "escuro",
+      "severidade": "alta",
+      "esforco": "M",
+      "prioridade_dono": "explorar-fichas",
+      "arquivos": [
+        "app/explorar/page.tsx",
+        "components/colecoes/linha-colecao.tsx"
+      ],
+      "evidencia": "CLS medido 0,2785 no mesmo cenário (CPU 4x, 4G). O salto acontece em t=3233 ms: \"Escolhas para você\" e a section \"Treinos do programa / Ver todos (6)\" entram depois da hidratação e empurram o resto. FCP 736 ms, load 5696 ms. Capturas: /tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/performance/performance-02.png e /tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/performance/performance-02b.png.",
+      "proposta": "Mesma cura do relatório: caixa reservada para cada faixa de coleções antes dos dados (altura fixa do trilho horizontal + esqueleto com o número certo de cartões). Alvo: CLS < 0,1."
+    },
+    {
+      "id": "performance-03",
+      "tela": "Treino (início)",
+      "rota": "/",
+      "tema": "escuro",
+      "severidade": "alta",
+      "esforco": "P",
+      "prioridade_dono": "treino-player",
+      "arquivos": [
+        "components/ui/card-capa.tsx",
+        "components/treino/cards.tsx"
+      ],
+      "evidencia": "LCP medido 5652 ms (CPU 4x, 4G). O elemento do LCP é a foto de capa do card do treino (img.absolute.inset-0.size-full.object-cover), /fotos/barra-fixa-assistida-1.jpg, 93,1 kB, renderizada a 326x113 px com top=427 (acima da dobra) e SEM fetchpriority, SEM preload. A 1,6 Mbps ela só começa a baixar depois de 32 chunks de JS. Antes: /tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/performance/performance-03.png (2,6 s — moldura sem foto). Depois: /tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/performance/performance-03b.png.",
+      "proposta": "Marcar a primeira capa como prioritária: fetchPriority=\"high\" + loading=\"eager\" + decoding=\"async\" no <img> de components/ui/card-capa.tsx quando a prop indicar \"primeira dobra\", e emitir <link rel=\"preload\" as=\"image\"> da capa do treino de hoje no server component de app/page.tsx. Alvo: LCP < 2,5 s."
+    },
+    {
+      "id": "performance-04",
+      "tela": "Explorar",
+      "rota": "/explorar",
+      "tema": "escuro",
+      "severidade": "alta",
+      "esforco": "P",
+      "prioridade_dono": "explorar-fichas",
+      "arquivos": [
+        "components/colecoes/linha-colecao.tsx",
+        "components/ui/card-capa.tsx"
+      ],
+      "evidencia": "LCP medido 5728 ms. O elemento é a capa do primeiro card (mesma /fotos/barra-fixa-assistida-1.jpg, 93,1 kB) em top=121 — o topo da tela — com loading=null, fetchpriority=null. /explorar baixa 650 kB de imagem em 12 arquivos e 1069 kB no total. Capturas: /tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/performance/performance-04.png, /tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/performance/performance-02.png.",
+      "proposta": "Mesma marcação de prioridade do achado performance-03 aplicada ao primeiro card de cada trilho visível, e loading=\"lazy\" explícito nos demais (hoje 3 das 4 imagens acima da dobra já são lazy, mas a maior — a do topo — não é priorizada)."
+    },
+    {
+      "id": "performance-05",
+      "tela": "Todas (mídia de public/)",
+      "rota": "*",
+      "tema": "ambos",
+      "severidade": "alta",
+      "esforco": "P",
+      "prioridade_dono": "outra",
+      "arquivos": [
+        "next.config.ts"
+      ],
+      "evidencia": "curl -I no servidor-base: /ilustracoes/supino-reto-com-barra-1.svg e /fotos/supino-reto-com-barra-1.jpg respondem \"Cache-Control: public, max-age=0\" (contra \"public, max-age=31536000, immutable\" dos chunks de /_next/static). São ~24 MB de mídia: public/fotos 11M, public/ilustracoes 6,7M, public/itens 6,2M, public/figuras 712K, public/mapa-muscular 92K. Com max-age=0 toda navegação revalida cada figura (ida e volta de ~150 ms de latência por arquivo no 4G), mesmo o arquivo não tendo mudado.",
+      "proposta": "next.config.ts:97-99 — a função headers() hoje devolve só CABECALHOS_DE_SEGURANCA para \"/:caminho*\". Acrescentar uma segunda regra: { source: \"/(fotos|ilustracoes|itens|figuras|mapa-muscular)/:caminho*\", headers: [{ key: \"Cache-Control\", value: \"public, max-age=31536000, immutable\" }] }. Como os nomes dos arquivos não têm hash, versionar pelo nome na troca de mídia (ou usar max-age=604800 + stale-while-revalidate=86400 se preferir poder trocar uma foto sem renomear)."
+    },
+    {
+      "id": "performance-06",
+      "tela": "Explorar, Catálogo, Ficha",
+      "rota": "/explorar, /exercicios, /exercicios/[id]",
+      "tema": "ambos",
+      "severidade": "alta",
+      "esforco": "G",
+      "prioridade_dono": "explorar-fichas",
+      "arquivos": [
+        "components/ui/miniatura.tsx",
+        "components/ui/card-capa.tsx",
+        "components/colecoes/linha-colecao.tsx",
+        "scripts/copiar-assets.ts"
+      ],
+      "evidencia": "As fotos e ilustrações são servidas no tamanho original para qualquer caixa. Medido em /explorar: /fotos/agachamento-livre-1.jpg, /fotos/levantamento-terra-1.jpg e /fotos/supino-reto-com-barra-1.jpg (naturalWidth 850x567, ~70 kB cada) desenhadas em miniaturas de 56x56 px — ~15x mais pixels do que a tela usa. Em /exercicios o mesmo: supino-inclinado-com-halteres-1.webp 59,8 kB em 56x56. Em / a capa é 850x1275 desenhada em 326x113. Nenhum <img> tem srcset nem sizes; next/image aparece só 3 vezes em todo app/ + components/, e as listas usam <img> cru (components/ui/miniatura.tsx, components/ui/card-capa.tsx, components/colecoes/linha-colecao.tsx). Capturas: /tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/performance/performance-06.png, /tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/performance/performance-06-miniaturas.png. (Distinto do item de formato já agendado: aqui o problema é DIMENSÃO, não WebP.)",
+      "proposta": "Gerar variantes por largura em scripts/copiar-assets.ts (112, 360 e 720 px para as fotos e ilustrações) e servir com srcset/sizes nos três componentes de lista: sizes=\"56px\" na miniatura, sizes=\"(max-width:400px) 328px, 360px\" na capa. Só isso corta ~85% dos bytes de imagem de /explorar e /exercicios."
+    },
+    {
+      "id": "performance-07",
+      "tela": "Catálogo de exercícios",
+      "rota": "/exercicios",
+      "tema": "escuro",
+      "severidade": "alta",
+      "esforco": "M",
+      "prioridade_dono": "explorar-fichas",
+      "arquivos": [
+        "app/exercicios/page.tsx"
+      ],
+      "evidencia": "A lista monta os 81 exercícios de uma vez: 81 elementos <img> no DOM, 86 <li>, scrollHeight 7204 px. Medido: 757 kB de imagem em 21 arquivos baixados, 1146 kB no total (a rota mais pesada em bytes de todas), load 6048 ms com CPU 4x e 4G. FCP é bom (764 ms) — o custo é o rabo de 5 s de figuras chegando. 5 miniaturas estão acima da dobra e todas as 5 estão com loading=\"lazy\", ou seja nem as visíveis são priorizadas. Captura: /tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/performance/performance-07.png.",
+      "proposta": "Não montar 81 cartões: paginar (ex. 20 + \"Ver mais\") ou aplicar content-visibility:auto com contain-intrinsic-size na altura do cartão, para o navegador pular o layout e a decodificação do que está fora da tela. Complemento barato: loading=\"eager\" + fetchPriority=\"high\" nas ~5 primeiras miniaturas e lazy no resto."
+    },
+    {
+      "id": "performance-08",
+      "tela": "Relatório",
+      "rota": "/relatorio",
+      "tema": "ambos",
+      "severidade": "alta",
+      "esforco": "M",
+      "prioridade_dono": "relatorio-corpo-calendario",
+      "arquivos": [
+        "lib/queries/dados.ts",
+        "components/relatorio/tela-relatorio.tsx"
+      ],
+      "evidencia": "14 requisições ao Supabase só para abrir a tela, com repetição da MESMA tabela: pullup_singles 3x (limit 2000; data>=2026-03-23; data>=2026-06-29), session_sets 2x (limit 3000 e depois registrada_em>=2026-06-29 limit 3000), cardio_sessions 2x (limit 800 e data>=2026-06-29), schedule_overrides 2x (janela de 7 e de 28 dias). Lista completa capturada por page.on(response) em .../analise/medidas-rotas.json (campo relatorio.mockUrls).",
+      "proposta": "Buscar uma vez a faixa mais ampla e derivar as janelas menores com useMemo, em vez de refazer a consulta por período. Os pontos: lib/queries/dados.ts:253, :272 e :295 (pullup_singles), :410 e :437 (session_sets), :189/:210 (cardio_sessions), :104 (schedule_overrides). Ganho direto: 14 -> ~7 idas ao servidor."
+    },
+    {
+      "id": "performance-09",
+      "tela": "Relatório",
+      "rota": "/relatorio",
+      "tema": "ambos",
+      "severidade": "media",
+      "esforco": "G",
+      "prioridade_dono": "relatorio-corpo-calendario",
+      "arquivos": [
+        "lib/queries/dados.ts",
+        "lib/numeros.ts",
+        "supabase/schema.sql"
+      ],
+      "evidencia": "Medido 1770 ms de long task em 9 blocos (PerformanceObserver type longtask) — a maior soma de todas as rotas; a segunda é /corpo com 1080 ms. A causa é o volume trazido para o telefone: session_sets limit 3000, pullup_singles limit 2000, cardio_sessions limit 800, sessions limit 500, progression_events limit 1000 — tudo somado no cliente. Com 46 sessões semeadas já dá 1,8 s de main thread travada; com um ano de treino o número cresce junto.",
+      "proposta": "Somar no Postgres, não no telefone: uma view/RPC de agregados por período (total de séries, volume, contagens por tipo) em supabase/schema.sql, e deixar lib/numeros.ts só formatando. Onde a soma tiver de ficar no cliente, tirar do main thread (Web Worker) ou memoizar por período."
+    },
+    {
+      "id": "performance-10",
+      "tela": "Treino (início)",
+      "rota": "/",
+      "tema": "escuro",
+      "severidade": "media",
+      "esforco": "P",
+      "prioridade_dono": "treino-player",
+      "arquivos": [
+        "lib/queries/dados.ts"
+      ],
+      "evidencia": "12 requisições ao Supabase para pintar a tela inicial, incluindo duas à mesma tabela sessions (select…order=data.desc&limit=60 e select…status=eq.em_andamento&order=data.desc&limit=5) e duas a pullup_singles (data=eq.2026-09-20 e data>=2026-06-01), além de cardio_sessions data>=2026-06-01&limit=120 — três meses de cardio para a tela de hoje. Lista completa em .../analise/medidas-rotas.json (treino.mockUrls).",
+      "proposta": "Fundir as duas consultas a sessions numa só (o limit 60 já contém a sessão em_andamento; filtrar em memória) — lib/queries/dados.ts:128 e :144. Idem pullup_singles (:253 e :272). Reduz 12 -> 10 e tira duas idas do caminho crítico da primeira tela."
+    },
+    {
+      "id": "performance-11",
+      "tela": "Barra fixa",
+      "rota": "/barra-fixa",
+      "tema": "escuro",
+      "severidade": "baixa",
+      "esforco": "P",
+      "prioridade_dono": "treino-player",
+      "arquivos": [
+        "lib/queries/dados.ts"
+      ],
+      "evidencia": "7 requisições, com pullup_singles consultada duas vezes: data>=2026-09-07&data<=2026-09-20 e data=eq.2026-09-20 — a segunda é subconjunto da primeira. Medido em .../analise/medidas-rotas.json (barra.mockUrls).",
+      "proposta": "Derivar o \"hoje\" da janela de 14 dias que já veio (lib/queries/dados.ts:253 e :272), em vez de uma segunda consulta."
+    },
+    {
+      "id": "performance-12",
+      "tela": "Mais → Equipamento",
+      "rota": "/mais/equipamento",
+      "tema": "escuro",
+      "severidade": "media",
+      "esforco": "P",
+      "prioridade_dono": "outra",
+      "arquivos": [
+        "app/mais/equipamento/page.tsx",
+        "components/ui/miniatura.tsx"
+      ],
+      "evidencia": "355 kB de fotos em 8 arquivos baixados no load, 760 kB no total, sendo nenhuma delas acima da dobra (imgs acima da dobra = 0 na medição). A maior é /itens/tatame_01.jpg com 110,9 kB; depois corda_01.jpg 69,3 kB e banco_01.jpg 55,6 kB. Captura: /tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/performance/performance-12.png.",
+      "proposta": "loading=\"lazy\" + decoding=\"async\" nas fotos dos itens (nenhuma aparece na primeira tela) e miniatura de 360 px gerada em scripts/copiar-assets.ts — tatame_01.jpg tem 110 kB para uma faixa de 326 px."
+    },
+    {
+      "id": "performance-13",
+      "tela": "Ficha de exercício",
+      "rota": "/exercicios/supino-reto-com-barra",
+      "tema": "escuro",
+      "severidade": "media",
+      "esforco": "M",
+      "prioridade_dono": "explorar-fichas",
+      "arquivos": [
+        "components/exercicio/ilustracao-alternada.tsx",
+        "components/exercicio/media-grande.tsx"
+      ],
+      "evidencia": "194 kB de imagem em 4 arquivos, todos baixados sempre: os DOIS quadros da ilustração animada (supino-reto-com-barra-1.svg 25,1 kB com opacity:0 e -2.svg 25,0 kB com opacity:1, ambos em top=132) e as DUAS fotos (supino-reto-com-barra-1.jpg 71,1 kB e -2.jpg 70,5 kB, lado a lado a 160x160 px, vindas de originais 850x567). Estado do DOM medido: [{s:\"…-1.svg\",op:\"0\"},{s:\"…-2.svg\",op:\"1\"},…]. Captura: /tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/performance/performance-13.png.",
+      "proposta": "O segundo quadro da ilustração só precisa chegar depois da primeira pintura: carregá-lo com loading=\"lazy\" (ou só quando a animação for começar) em components/exercicio/ilustracao-alternada.tsx. E as duas fotos a 160x160 devem vir da variante de 360 px (achado performance-06), não do original de 850 px — 141 kB viram ~20 kB."
+    },
+    {
+      "id": "performance-14",
+      "tela": "Player de treino",
+      "rota": "/treinar/[sessionId]",
+      "tema": "escuro",
+      "severidade": "media",
+      "esforco": "M",
+      "prioridade_dono": "treino-player",
+      "arquivos": [
+        ".next (log do build)",
+        "app/treinar/[sessionId]/page.tsx"
+      ],
+      "evidencia": "A rota mais pesada do app. Build (logs/base/a42397d.log:84): \"/treinar/[sessionId] 21.3 kB / 412 kB First Load JS\" — contra 104 kB do tronco comum. Medido no navegador: 425 kB de chunks em 34 arquivos, 584 kB no total. Captura: /tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/performance/performance-14.png.",
+      "proposta": "Separar do bundle inicial do player o que não é da primeira série: a folha do exercício, o tutorial e o resumo/conclusão por dynamic(). O player precisa abrir instantâneo — é a tela usada com o celular na mão, no meio do treino."
+    },
+    {
+      "id": "performance-15",
+      "tela": "Todas",
+      "rota": "*",
+      "tema": "ambos",
+      "severidade": "media",
+      "esforco": "G",
+      "prioridade_dono": "outra",
+      "arquivos": [
+        ".next (log do build)"
+      ],
+      "evidencia": "O build anuncia \"First Load JS shared by all: 104 kB\", mas a medição no navegador mostra que TODA rota autenticada baixa ~250 kB em 6 chunks fixos: 7067-*.js 55,0 kB, 25185552-*.js 53,1 kB, 6010-*.js 46,6 kB, 1970-*.js 38,1 kB, 2636-*.js 30,2 kB, 3708-*.js 27,6 kB. Por isso /mais — que é só uma lista de links — mede 321 kB de JS em 20 chunks e 391 kB no total, e /mais/guia (texto) mede 346 kB. Menor rota medida: /login com 171 kB em 11 chunks.",
+      "proposta": "Medir o conteúdo desses 6 chunks (npx @next/bundle-analyzer) e empurrar para fora do layout autenticado o que só algumas telas usam. O alvo prático: uma tela de texto como /mais/guia não deveria custar mais de ~150 kB de JS."
+    },
+    {
+      "id": "performance-16",
+      "tela": "Mais",
+      "rota": "/mais",
+      "tema": "escuro",
+      "severidade": "media",
+      "esforco": "P",
+      "prioridade_dono": "outra",
+      "arquivos": [
+        "app/mais/page.tsx"
+      ],
+      "evidencia": "Ao abrir /mais, o prefetch automático dos <Link> dispara 11 payloads RSC (medido: performance.getEntriesByType(\"resource\") com \"_rsc=\" => 11), um por item da lista. Como quase todas as rotas de /mais/* são dinâmicas (ƒ no build), cada prefetch é um render de servidor — 11 renders para uma tela que o usuário talvez só use para abrir um item.",
+      "proposta": "prefetch={false} nos itens da lista de app/mais/page.tsx (mantendo o prefetch da barra inferior, que é navegação frequente), ou prefetch só no onPointerDown/onTouchStart."
+    },
+    {
+      "id": "performance-17",
+      "tela": "Corpo",
+      "rota": "/corpo",
+      "tema": "escuro",
+      "severidade": "media",
+      "esforco": "M",
+      "prioridade_dono": "relatorio-corpo-calendario",
+      "arquivos": [
+        "app/corpo/page.tsx",
+        "components/graficos/grafico.tsx"
+      ],
+      "evidencia": "465 kB de JS em 26 chunks — o segundo maior peso de JS do app, atrás só de /relatorio (502 kB) — e 1080 ms de long task, para uma tela de três abas em que só uma aparece de início. LCP 3180 ms (CPU 4x, 4G). Medição em .../analise/medidas-rotas.json e .../analise/medidas-lento.json.",
+      "proposta": "Carregar o conteúdo de cada aba sob demanda (a aba Peso, a Medidas e a Fotos), não as três no bundle da rota. As abas fechadas não precisam nem do gráfico nem do redimensionador de fotos no primeiro load."
+    },
+    {
+      "id": "performance-18",
+      "tela": "Preparação → Player",
+      "rota": "/treinar → /treinar/[sessionId]",
+      "tema": "escuro",
+      "severidade": "alta",
+      "esforco": "M",
+      "prioridade_dono": "treino-player",
+      "arquivos": [
+        "app/treinar/page.tsx",
+        "app/treinar/[sessionId]/page.tsx"
+      ],
+      "evidencia": "Medido o gesto que mais importa: com a tela /treinar já aberta (384 kB de JS e 7 requisições ao Supabase gastos ali), o toque em \"Começar\" ainda traz 15 respostas novas — 7 ao Supabase e 5 chunks de JS — e leva 9,2 s até estabilizar com CPU 4x e 4G. O usuário está de pé, com o peso na mão.",
+      "proposta": "Pré-carregar o bundle e os dados do player enquanto a tela de preparação está aberta: router.prefetch da rota do player e queryClient.prefetchQuery das consultas de exercise_state / progression_events / session_sets (lib/queries/dados.ts:334, :373, :437) assim que /treinar monta — os exercícios do dia já são conhecidos ali. O clique passa a ser navegação, não download."
+    }
+  ]
+}
