@@ -11,10 +11,13 @@
  * cinza) e monta `comparacao.md`. Sai com 1 se alguma tela NÃO esperada passou
  * do limiar — é assim que o portão visual de um lote reprova sozinho.
  *
- * `--esperadas` casa por prefixo: `11-relatorio-topo` cobre os dois temas.
+ * `--esperadas` casa por prefixo: `11-relatorio-topo` cobre os dois temas, e
+ * o nome sem o número também vale (SPEC §22.12 item 8): `explorar` cobre
+ * `06-explorar-claro.png` e `06-explorar-escuro.png`.
  */
 import { existsSync, mkdirSync, readdirSync, writeFileSync } from "node:fs";
-import { basename, join } from "node:path";
+import { basename, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import sharp from "sharp";
 
 const LIMITE_CANAL = 16;
@@ -160,12 +163,34 @@ async function comparar(o: Opcoes): Promise<number> {
 }
 
 function esperada(o: Opcoes, nome: string): boolean {
-  return o.esperadas.some((e) => nome.startsWith(e));
+  return casaEsperada(o.esperadas, nome);
 }
 
-comparar(ler(process.argv.slice(2)))
-  .then((codigo) => process.exit(codigo))
-  .catch((e) => {
-    console.error(e);
-    process.exit(2);
+/**
+ * Um PNG é esperado quando o nome começa por alguma das `esperadas` — com o
+ * número ("06-explorar") ou sem ele ("explorar"). Sem o número, o nome tem de
+ * casar a partir do começo do nome da tela e parar numa fronteira ("-" ou
+ * ".png"): "colecao" casa "07-colecao-claro.png", mas "cao" não casa, nem
+ * "explo" casa "06-explorar".
+ */
+export function casaEsperada(esperadas: readonly string[], nome: string): boolean {
+  const semNumero = nome.replace(/^\d+-/, "");
+  return esperadas.some((e) => {
+    if (e === "") return false;
+    if (nome.startsWith(e)) return true;
+    if (!semNumero.startsWith(e)) return false;
+    const resto = semNumero.slice(e.length);
+    return resto === "" || resto.startsWith("-") || resto.startsWith(".");
   });
+}
+
+/* Só roda quando chamado pela linha de comando — o teste importa a função. */
+const principal = process.argv[1] ? resolve(process.argv[1]) : "";
+if (principal === fileURLToPath(import.meta.url)) {
+  comparar(ler(process.argv.slice(2)))
+    .then((codigo) => process.exit(codigo))
+    .catch((e) => {
+      console.error(e);
+      process.exit(2);
+    });
+}
