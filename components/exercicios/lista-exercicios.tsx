@@ -2,17 +2,32 @@
 
 import { FilterX, Search, SlidersHorizontal, X } from "lucide-react";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useId, useMemo, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import {
   FILTROS_VAZIOS,
   NOME_EQUIPAMENTO,
   NOME_IMPLEMENTO,
+  chipsDosFiltros,
   filtrarExercicios,
   idsDoPrograma,
   opcoesDoCatalogo,
+  quantosFiltrosLigados,
+  rotuloDoVerResultados,
+  semFiltrosDaFolha,
+  semOFiltro,
   temFiltro,
   type FiltrosCatalogo,
 } from "@/lib/catalogo";
@@ -95,15 +110,19 @@ export function ListaExercicios({
   const mostrados = achados.slice(0, quantos);
   const faltam = achados.length - mostrados.length;
 
-  /* SPEC §22.9 item 5: chegar aqui por uma busca mostra resultado, não controle. */
-  const recolher = deFora && (busca ?? "").trim() !== "";
-  const [abertos, setAbertos] = useState(false);
-  const mostrarFiltros = limite === undefined && (!recolher || abertos);
-  const quantosFiltros =
-    (filtros.grupo !== "todos" ? 1 : 0) +
-    (filtros.implemento !== "todos" ? 1 : 0) +
-    (filtros.equipamento !== "todos" ? 1 : 0) +
-    (filtros.soPrograma ? 1 : 0);
+  /*
+   * SPEC §22.12 item 1: os filtros moram numa folha inferior. Na tela ficam só
+   * a busca, o botão "Filtros" (com quantos estão ligados) e os chips do que
+   * está ligado — o primeiro exercício cabe na primeira tela a 360×740.
+   */
+  const [folhaAberta, setFolhaAberta] = useState(false);
+  const ligados = quantosFiltrosLigados(filtros);
+  const chips = chipsDosFiltros(filtros);
+  const comControles = limite === undefined;
+  /** O CTA "Ver N exercícios" fecha a folha e leva ao primeiro resultado. */
+  const irAoResultado = useRef(false);
+  const refPrimeiro = useRef<HTMLLIElement>(null);
+  const idDoContador = useId();
 
   const mudar = (parte: Partial<FiltrosCatalogo>) => aplicar({ ...filtros, ...parte });
 
@@ -137,86 +156,154 @@ export function ListaExercicios({
       </div>
       )}
 
-      {recolher && limite === undefined ? (
-        <Button
-          type="button"
-          variant="outline"
-          className="alvo self-start"
-          aria-expanded={abertos}
-          onClick={() => setAbertos((v) => !v)}
-        >
-          <SlidersHorizontal aria-hidden="true" className="size-4" />
-          Filtros
-          {quantosFiltros > 0 ? (
-            <Badge variant="secondary" className="px-1.5 py-0 text-micro">
-              {quantosFiltros}
-            </Badge>
+      {comControles ? (
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center justify-between gap-2">
+            <Sheet open={folhaAberta} onOpenChange={setFolhaAberta}>
+              {/*
+                O gatilho é do Radix: `aria-haspopup`, `aria-expanded` e
+                `aria-controls` saem geridos por ele (SPEC §22.12 item 1).
+              */}
+              <SheetTrigger asChild>
+                <Button type="button" variant="outline" className="alvo">
+                  <SlidersHorizontal aria-hidden="true" className="size-4" />
+                  Filtros
+                  {ligados > 0 ? (
+                    <Badge
+                      variant="secondary"
+                      className="px-1.5 py-0 text-micro"
+                      data-filtros-ligados={ligados}
+                    >
+                      {ligados}
+                    </Badge>
+                  ) : null}
+                </Button>
+              </SheetTrigger>
+              <SheetContent
+                side="bottom"
+                className="pb-segura max-h-[85dvh] gap-0 overflow-y-auto rounded-t-2xl"
+                onCloseAutoFocus={() => {
+                  if (!irAoResultado.current) return;
+                  irAoResultado.current = false;
+                  // o foco volta ao gatilho (Radix); a lista mostra o primeiro
+                  requestAnimationFrame(() =>
+                    refPrimeiro.current?.scrollIntoView({ block: "nearest" }),
+                  );
+                }}
+              >
+                <SheetHeader className="pr-16">
+                  <SheetTitle>Filtros</SheetTitle>
+                  <SheetDescription>
+                    Grupo, implemento, equipamento e o que está no seu programa.
+                  </SheetDescription>
+                </SheetHeader>
+                <div className="flex flex-col gap-3 px-4">
+                  <div className="grid grid-cols-2 gap-2">
+                    <Selecao
+                      rotulo="Grupo"
+                      valor={filtros.grupo}
+                      aoMudar={(v) => mudar({ grupo: v as Grupo | "todos" })}
+                      opcoes={opcoes.grupos.map((g) => ({ valor: g, nome: g }))}
+                    />
+                    <Selecao
+                      rotulo="Implemento"
+                      valor={filtros.implemento}
+                      aoMudar={(v) => mudar({ implemento: v as Implemento | "todos" })}
+                      opcoes={opcoes.implementos.map((i) => ({
+                        valor: i,
+                        nome: NOME_IMPLEMENTO[i],
+                      }))}
+                    />
+                    <Selecao
+                      rotulo="Equipamento"
+                      valor={filtros.equipamento}
+                      aoMudar={(v) => mudar({ equipamento: v as EquipamentoTag | "todos" })}
+                      opcoes={opcoes.equipamentos.map((e) => ({
+                        valor: e,
+                        nome: NOME_EQUIPAMENTO[e],
+                      }))}
+                      className="col-span-2"
+                    />
+                  </div>
+                  {/* chip de alternância, não botão de largura inteira */}
+                  <button
+                    type="button"
+                    aria-pressed={filtros.soPrograma}
+                    onClick={() => mudar({ soPrograma: !filtros.soPrograma })}
+                    className={cn(
+                      "alvo foco self-start rounded-full border px-4 text-sm font-medium transition-colors",
+                      filtros.soPrograma
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-border bg-background hover:bg-accent",
+                    )}
+                  >
+                    No meu programa
+                  </button>
+                </div>
+                <SheetFooter className="flex-row items-center gap-2">
+                  {ligados > 0 ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="alvo"
+                      onClick={() => aplicar(semFiltrosDaFolha(filtros))}
+                    >
+                      Limpar
+                    </Button>
+                  ) : null}
+                  <SheetClose asChild>
+                    <Button
+                      type="button"
+                      className="alvo h-12 flex-1 text-base"
+                      data-ver-resultados={achados.length}
+                      onClick={() => {
+                        irAoResultado.current = true;
+                      }}
+                    >
+                      {rotuloDoVerResultados(achados.length)}
+                    </Button>
+                  </SheetClose>
+                </SheetFooter>
+              </SheetContent>
+            </Sheet>
+            {/*
+              SPEC §22.9 item 10: com a busca vinda do Explorar, o título da
+              seção logo acima («Exercícios (6)») já é o contador. No catálogo
+              ele fica na mesma linha do "Filtros", para não gastar altura.
+            */}
+            {deFora ? null : (
+              <p
+                id={idDoContador}
+                className="text-muted-foreground text-xs"
+                aria-live="polite"
+                data-contador
+              >
+                {achados.length === exercicios.length
+                  ? `${exercicios.length} exercícios`
+                  : `${achados.length} de ${exercicios.length} exercícios`}
+              </p>
+            )}
+          </div>
+          {chips.length > 0 ? (
+            <ul aria-label="Filtros ligados" className="flex flex-wrap gap-2">
+              {chips.map((c) => (
+                <li key={c.chave}>
+                  <button
+                    type="button"
+                    onClick={() => aplicar(semOFiltro(filtros, c.chave))}
+                    aria-label={`Tirar o filtro ${c.rotulo}`}
+                    data-chip={c.chave}
+                    className="alvo foco border-border bg-secondary text-secondary-foreground hover:bg-accent flex items-center gap-1 rounded-full border pr-2 pl-3 text-sm"
+                  >
+                    {c.rotulo}
+                    <X aria-hidden="true" className="size-4" />
+                  </button>
+                </li>
+              ))}
+            </ul>
           ) : null}
-        </Button>
+        </div>
       ) : null}
-
-      {mostrarFiltros ? (
-      <>
-      <div className="grid grid-cols-2 gap-2">
-        <Selecao
-          rotulo="Grupo"
-          valor={filtros.grupo}
-          aoMudar={(v) => mudar({ grupo: v as Grupo | "todos" })}
-          opcoes={opcoes.grupos.map((g) => ({ valor: g, nome: g }))}
-        />
-        <Selecao
-          rotulo="Implemento"
-          valor={filtros.implemento}
-          aoMudar={(v) => mudar({ implemento: v as Implemento | "todos" })}
-          opcoes={opcoes.implementos.map((i) => ({ valor: i, nome: NOME_IMPLEMENTO[i] }))}
-        />
-        <Selecao
-          rotulo="Equipamento"
-          valor={filtros.equipamento}
-          aoMudar={(v) => mudar({ equipamento: v as EquipamentoTag | "todos" })}
-          opcoes={opcoes.equipamentos.map((e) => ({ valor: e, nome: NOME_EQUIPAMENTO[e] }))}
-          className="col-span-2"
-        />
-      </div>
-
-      <div className="flex items-center gap-2">
-        <Button
-          type="button"
-          variant={filtros.soPrograma ? "default" : "outline"}
-          className="alvo h-11 flex-1"
-          aria-pressed={filtros.soPrograma}
-          onClick={() => mudar({ soPrograma: !filtros.soPrograma })}
-        >
-          No meu programa
-        </Button>
-        {temFiltro(filtros) ? (
-          <Button
-            type="button"
-            variant="ghost"
-            className="alvo"
-            onClick={() => aplicar(FILTROS_VAZIOS)}
-          >
-            Limpar
-          </Button>
-        ) : null}
-      </div>
-      </>
-      ) : null}
-
-      {/*
-        SPEC §22.9 item 10: com a busca vinda do Explorar, o título da seção
-        logo acima («Exercícios (6)») já diz quantos são, contado deste mesmo
-        `achados` — repetir "6 de 81" três linhas abaixo era o terceiro número
-        da mesma tela. No catálogo (`/exercicios`), onde não há título com
-        contagem, o contador continua sendo quem avisa.
-      */}
-      {limite !== undefined || deFora ? null : (
-      <p className="text-muted-foreground text-xs" aria-live="polite">
-        {achados.length === exercicios.length
-          ? `${exercicios.length} exercícios`
-          : `${achados.length} de ${exercicios.length} exercícios`}
-      </p>
-      )}
 
       {achados.length === 0 ? (
         /*
@@ -235,9 +322,9 @@ export function ListaExercicios({
         ) : null
       ) : (
         <>
-          <ul className="flex flex-col gap-2">
-            {mostrados.map((e) => (
-              <li key={e.id}>
+          <ul className="flex flex-col gap-2" aria-label="Exercícios">
+            {mostrados.map((e, i) => (
+              <li key={e.id} ref={i === 0 ? refPrimeiro : undefined}>
                 <CardDoExercicio
                   exercicio={e}
                   noPrograma={doPrograma.has(e.id)}

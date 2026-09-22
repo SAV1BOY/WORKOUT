@@ -47,8 +47,9 @@ export function tomDaCapa(id: string): string {
 }
 
 /**
- * Uma coleção na vitrine (SPEC §14.4): capa de `assets/`, título, `N
- * exercícios · ~M min` e os raios. O toque abre a tela da coleção.
+ * Uma coleção na vitrine (SPEC §14.4 e §22.12 item 2): capa de `assets/`,
+ * título, subtítulo, motivo da busca, a meta e os raios. O toque abre a tela
+ * da coleção.
  */
 export function LinhaColecao({
   colecao,
@@ -68,7 +69,9 @@ export function LinhaColecao({
         inteiro fica no `title` do link, sem `aria-label` — ele apagaria o
         selo "Circuito" e o detalhe do nome acessível.
       */
-      title={[colecao.titulo, colecao.subtitulo].filter(Boolean).join(" · ")}
+      title={[colecao.titulo, colecao.subtitulo, colecao.motivoDaBusca]
+        .filter(Boolean)
+        .join(" · ")}
       className={cn(
         "hover:bg-muted/40 alvo flex items-center gap-3 rounded-xl py-2 text-left",
         className,
@@ -79,6 +82,12 @@ export function LinhaColecao({
         icone={ICONE_DO_TIPO[colecao.tipo]}
         tom={tomDaCapa(colecao.id)}
       />
+      {/*
+        SPEC §22.12 item 2: a linha lê de cima para baixo — título, subtítulo
+        descritivo, o motivo da busca (quando veio de um exercício) e a meta
+        por último. Só o título tem peso; o resto é `muted` em peso normal
+        (`tabular-nums` sem o `.numero`, que é negrito).
+      */}
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="flex items-center gap-1.5">
           <span className="min-w-0 flex-1 text-sm font-medium text-balance">
@@ -88,7 +97,20 @@ export function LinhaColecao({
             <Raios nivel={colecao.raios} tamanho="sm" className="text-primary shrink-0" />
           ) : null}
         </span>
-        <span className="numero text-muted-foreground flex flex-wrap items-center gap-x-1.5 text-xs">
+        {colecao.subtitulo ? (
+          <span className="text-muted-foreground line-clamp-1 text-xs" data-linha="subtitulo">
+            {colecao.subtitulo}
+          </span>
+        ) : null}
+        {colecao.motivoDaBusca ? (
+          <span className="text-muted-foreground line-clamp-2 text-xs" data-linha="motivo">
+            {colecao.motivoDaBusca}
+          </span>
+        ) : null}
+        <span
+          className="text-muted-foreground flex flex-wrap items-center gap-x-1.5 text-xs font-normal tabular-nums"
+          data-linha="meta"
+        >
           {colecao.detalhe}
           {/*
             SPEC §13.6 e §22.2 item 9: a coleção em que TODO exercício serve
@@ -104,11 +126,6 @@ export function LinhaColecao({
             </span>
           ) : null}
         </span>
-        {colecao.subtitulo ? (
-          <span className="text-muted-foreground line-clamp-1 text-xs">
-            {colecao.subtitulo}
-          </span>
-        ) : null}
       </span>
       <ChevronRight aria-hidden="true" className="text-muted-foreground size-4 shrink-0" />
     </Link>

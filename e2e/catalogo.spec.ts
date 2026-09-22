@@ -121,7 +121,11 @@ test.describe("Catálogo (SPEC §3.6)", () => {
     await page.goto("/exercicios");
 
     const doPrograma = idsDoPrograma();
+    // SPEC §22.12 item 1: "No meu programa" é um chip da folha de filtros
+    await page.getByRole("button", { name: /^Filtros/ }).click();
     await page.getByRole("button", { name: "No meu programa" }).click();
+    await page.getByRole("button", { name: `Ver ${doPrograma.length} exercícios` }).click();
+    await expect(page.getByRole("dialog")).toBeHidden();
     await expect(
       page.getByText(`${doPrograma.length} de ${TOTAL} exercícios`),
     ).toBeVisible();
@@ -132,12 +136,17 @@ test.describe("Catálogo (SPEC §3.6)", () => {
     await expect(cartoes).toHaveCount(doPrograma.length);
 
     // um filtro por cima do outro
+    await page.getByRole("button", { name: /^Filtros/ }).click();
     await page.getByLabel("Grupo").selectOption("Peito");
+    await page.getByRole("button", { name: /^Ver \d+ exercícios?$/ }).click();
+    await expect(page.getByRole("dialog")).toBeHidden();
     const n = await page.getByRole("link", { name: /no programa/ }).count();
     expect(n).toBeGreaterThan(0);
     expect(n).toBeLessThan(doPrograma.length);
 
-    await page.getByRole("button", { name: "Limpar" }).click();
+    await page.getByRole("button", { name: /^Filtros/ }).click();
+    await page.getByRole("button", { name: "Limpar", exact: true }).click();
+    await page.getByRole("button", { name: `Ver ${TOTAL} exercícios` }).click();
     await expect(page.getByText(`${TOTAL} exercícios`, { exact: true })).toBeVisible();
     await semRolagemHorizontal(page);
   });

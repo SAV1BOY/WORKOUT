@@ -368,8 +368,9 @@ test.describe("Explorar (§14.4)", () => {
 
     await achadas.locator('[data-colecao="grupo:Tríceps"]').click();
     await page.waitForURL(/\/explorar\/grupo\//);
+    // SPEC §22.12 item 6: o título da coleção é o h1 da página
     await expect(
-      page.getByRole("heading", { name: "Tríceps", level: 2 }),
+      page.getByRole("heading", { name: "Tríceps", level: 1 }),
     ).toBeVisible();
     await expect(page.getByRole("button", { name: "Começar" })).toBeVisible();
     await semRolagemHorizontal(page);
@@ -411,8 +412,9 @@ test.describe("Explorar (§14.4)", () => {
      * "0 exercícios · ~1 min" (auditoria do V3).
      */
     await page.goto("/explorar/plano/corrida");
-    // `exact`: o próprio objetivo do plano termina em "em 12 semanas (…)"
-    await expect(page.getByText("12 semanas", { exact: true })).toBeVisible();
+    // SPEC §22.12 item 4: com o perfil, o plano diz a posição ("semana N de
+    // 12"), presa ao tamanho do plano — nunca uma contagem de exercícios
+    await expect(page.getByText(/^semana \d+ de 12$/)).toBeVisible();
     await expect(page.getByText(/exercícios? · ~/)).toHaveCount(0);
   });
 });

@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
   FILTROS_VAZIOS,
+  chipsDosFiltros,
   filtrarExercicios,
+  quantosFiltrosLigados,
+  rotuloDoVerResultados,
+  semFiltrosDaFolha,
+  semOFiltro,
   idsDoPrograma,
   itemDoCatalogo,
   opcoesDoCatalogo,
@@ -121,5 +126,58 @@ describe("itemDoCatalogo", () => {
     expect(item.nome).toBe(supino?.nome);
     expect(item.prescricao).toBe(supino?.prescricao_padrao.texto);
     expect(item.noPrograma).toBe(true);
+  });
+});
+
+describe("a folha de filtros (SPEC §22.12 item 1)", () => {
+  const peitoHalteres = {
+    ...FILTROS_VAZIOS,
+    busca: "supino",
+    grupo: "Peito" as const,
+    implemento: "halteres" as const,
+  };
+
+  it("o selo conta filtros ligados, não resultados — e a busca não conta", () => {
+    expect(quantosFiltrosLigados(FILTROS_VAZIOS)).toBe(0);
+    expect(quantosFiltrosLigados({ ...FILTROS_VAZIOS, busca: "supino" })).toBe(0);
+    expect(quantosFiltrosLigados(peitoHalteres)).toBe(2);
+    expect(
+      quantosFiltrosLigados({ ...peitoHalteres, equipamento: "banco", soPrograma: true }),
+    ).toBe(4);
+    // dois filtros que não acham nada continuam sendo dois
+    const nada = { ...FILTROS_VAZIOS, grupo: "Costas" as const, busca: "supino" };
+    expect(filtrarExercicios(exercicios, nada, idsDoPrograma())).toHaveLength(0);
+    expect(quantosFiltrosLigados(nada)).toBe(1);
+  });
+
+  it("um chip por filtro ligado, com o nome das opções", () => {
+    expect(chipsDosFiltros(FILTROS_VAZIOS)).toEqual([]);
+    expect(chipsDosFiltros({ ...peitoHalteres, soPrograma: true })).toEqual([
+      { chave: "grupo", rotulo: "Peito" },
+      { chave: "implemento", rotulo: "Halteres" },
+      { chave: "soPrograma", rotulo: "No meu programa" },
+    ]);
+    const opcoes = opcoesDoCatalogo(exercicios);
+    for (const eq of opcoes.equipamentos) {
+      const chips = chipsDosFiltros({ ...FILTROS_VAZIOS, equipamento: eq });
+      expect(chips).toHaveLength(1);
+      expect(chips[0]?.rotulo.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("tirar um chip solta só aquele filtro e mantém a busca", () => {
+    const sem = semOFiltro(peitoHalteres, "grupo");
+    expect(sem).toEqual({ ...peitoHalteres, grupo: "todos" });
+    expect(quantosFiltrosLigados(sem)).toBe(1);
+    expect(semOFiltro({ ...peitoHalteres, soPrograma: true }, "soPrograma").soPrograma).toBe(false);
+    expect(semFiltrosDaFolha(peitoHalteres)).toEqual({ ...FILTROS_VAZIOS, busca: "supino" });
+  });
+
+  it("o CTA diz o número real, com singular", () => {
+    expect(rotuloDoVerResultados(0)).toBe("Nenhum exercício");
+    expect(rotuloDoVerResultados(1)).toBe("Ver 1 exercício");
+    expect(rotuloDoVerResultados(12)).toBe("Ver 12 exercícios");
+    const n = filtrarExercicios(exercicios, peitoHalteres, idsDoPrograma()).length;
+    expect(rotuloDoVerResultados(n)).toBe(n === 1 ? "Ver 1 exercício" : n === 0 ? "Nenhum exercício" : `Ver ${n} exercícios`);
   });
 });
