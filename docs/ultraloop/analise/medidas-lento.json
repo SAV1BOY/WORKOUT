@@ -1,0 +1,329 @@
+{
+ "treino": {
+  "rota": "/",
+  "fcp": 644,
+  "lcp": 5628,
+  "lcpEl": "img absolute inset-0 size-full object-cover ",
+  "dcl": 636,
+  "load": 3062,
+  "ttfb": 59,
+  "respEnd": 577,
+  "cls": 0.0005,
+  "shifts": [
+   {
+    "v": 0.0005,
+    "t": 3664,
+    "src": [
+     "span|text-[11px] leading-none font-medium text-muted-foreground/8|B",
+     "span|text-[11px] leading-none font-medium text-muted-foreground/8|A"
+    ]
+   }
+  ],
+  "lt": [
+   {
+    "d": 174,
+    "t": 1536
+   },
+   {
+    "d": 295,
+    "t": 2655
+   },
+   {
+    "d": 80,
+    "t": 2971
+   },
+   {
+    "d": 87,
+    "t": 3098
+   },
+   {
+    "d": 113,
+    "t": 3355
+   },
+   {
+    "d": 73,
+    "t": 3470
+   },
+   {
+    "d": 67,
+    "t": 3587
+   }
+  ],
+  "ltTotal": 889,
+  "wall": 9083
+ },
+ "relatorio": {
+  "rota": "/relatorio",
+  "fcp": 652,
+  "lcp": 652,
+  "lcpEl": "p text-muted-foreground text-sm text-balan O que já foi feito e para onde a carga está indo.",
+  "dcl": 655,
+  "load": 2925,
+  "ttfb": 22,
+  "respEnd": 576,
+  "cls": 0.3895,
+  "shifts": [
+   {
+    "v": 0.3895,
+    "t": 3718,
+    "src": [
+     "section|flex flex-col gap-3|Númerosquantos de cada coisa no períodoS",
+     "section|flex flex-col gap-3|Conquistas7 de 26Primeiro treino01/0610 "
+    ]
+   }
+  ],
+  "lt": [
+   {
+    "d": 224,
+    "t": 1563
+   },
+   {
+    "d": 305,
+    "t": 2585
+   },
+   {
+    "d": 141,
+    "t": 3000
+   },
+   {
+    "d": 159,
+    "t": 3297
+   },
+   {
+    "d": 71,
+    "t": 3457
+   },
+   {
+    "d": 92,
+    "t": 3593
+   },
+   {
+    "d": 83,
+    "t": 3749
+   },
+   {
+    "d": 130,
+    "t": 4415
+   },
+   {
+    "d": 565,
+    "t": 4576
+   }
+  ],
+  "ltTotal": 1770,
+  "wall": 8947
+ },
+ "catalogo": {
+  "rota": "/exercicios",
+  "fcp": 764,
+  "lcp": 764,
+  "lcpEl": "p text-muted-foreground text-sm text-balan Os 81 exercícios do guia, com figura, passos e histórico.",
+  "dcl": 773,
+  "load": 6048,
+  "ttfb": 21,
+  "respEnd": 578,
+  "cls": 0,
+  "shifts": [],
+  "lt": [
+   {
+    "d": 132,
+    "t": 635
+   },
+   {
+    "d": 258,
+    "t": 1523
+   },
+   {
+    "d": 317,
+    "t": 2475
+   },
+   {
+    "d": 155,
+    "t": 2972
+   },
+   {
+    "d": 54,
+    "t": 3235
+   },
+   {
+    "d": 66,
+    "t": 3333
+   }
+  ],
+  "ltTotal": 982,
+  "wall": 12068
+ },
+ "explorar": {
+  "rota": "/explorar",
+  "fcp": 736,
+  "lcp": 5732,
+  "lcpEl": "img absolute inset-0 size-full object-cover ",
+  "dcl": 776,
+  "load": 5696,
+  "ttfb": 45,
+  "respEnd": 748,
+  "cls": 0.2785,
+  "shifts": [
+   {
+    "v": 0.2785,
+    "t": 3233,
+    "src": [
+     "h2|text-base font-semibold|Escolhas para você",
+     "section|flex flex-col gap-1|Treinos do programaVer todos (6)Treino A"
+    ]
+   }
+  ],
+  "lt": [
+   {
+    "d": 137,
+    "t": 591
+   },
+   {
+    "d": 231,
+    "t": 1556
+   },
+   {
+    "d": 294,
+    "t": 2382
+   },
+   {
+    "d": 69,
+    "t": 2850
+   },
+   {
+    "d": 66,
+    "t": 2942
+   },
+   {
+    "d": 55,
+    "t": 3014
+   },
+   {
+    "d": 52,
+    "t": 3084
+   },
+   {
+    "d": 54,
+    "t": 3160
+   }
+  ],
+  "ltTotal": 958,
+  "wall": 11713
+ },
+ "corpo": {
+  "rota": "/corpo",
+  "fcp": 620,
+  "lcp": 3180,
+  "lcpEl": "p text-muted-foreground text-xs text-balan O IMC não separa músculo de gordura: ganhar massa sobe o núm",
+  "dcl": 645,
+  "load": 2693,
+  "ttfb": 19,
+  "respEnd": 633,
+  "cls": 0,
+  "shifts": [],
+  "lt": [
+   {
+    "d": 204,
+    "t": 1534
+   },
+   {
+    "d": 311,
+    "t": 2366
+   },
+   {
+    "d": 81,
+    "t": 2746
+   },
+   {
+    "d": 147,
+    "t": 2997
+   },
+   {
+    "d": 107,
+    "t": 3808
+   },
+   {
+    "d": 230,
+    "t": 3944
+   }
+  ],
+  "ltTotal": 1080,
+  "wall": 8711
+ },
+ "treinar": {
+  "rota": "/treinar",
+  "fcp": 620,
+  "lcp": 4032,
+  "lcpEl": "img absolute inset-0 size-full object-cover ",
+  "dcl": 668,
+  "load": 2846,
+  "ttfb": 19,
+  "respEnd": 656,
+  "cls": 0,
+  "shifts": [],
+  "lt": [
+   {
+    "d": 203,
+    "t": 1525
+   },
+   {
+    "d": 309,
+    "t": 2497
+   },
+   {
+    "d": 71,
+    "t": 2895
+   }
+  ],
+  "ltTotal": 583,
+  "wall": 8864
+ },
+ "calendario": {
+  "rota": "/calendario",
+  "fcp": 644,
+  "lcp": 3144,
+  "lcpEl": "span text-muted-foreground line-clamp-2 text- 7 × (1 min 30 / 2 min caminhada) · 34 min",
+  "dcl": 648,
+  "load": 2700,
+  "ttfb": 17,
+  "respEnd": 628,
+  "cls": 0.0013,
+  "shifts": [
+   {
+    "v": 0.0011,
+    "t": 3194,
+    "src": [
+     "?",
+     "span|flex min-w-0 flex-1 flex-col|Treino B · semana 166 exercícios · 45 mi"
+    ]
+   },
+   {
+    "v": 0.0001,
+    "t": 3220,
+    "src": [
+     "?"
+    ]
+   }
+  ],
+  "lt": [
+   {
+    "d": 195,
+    "t": 1524
+   },
+   {
+    "d": 286,
+    "t": 2401
+   },
+   {
+    "d": 65,
+    "t": 2784
+   },
+   {
+    "d": 56,
+    "t": 3025
+   }
+  ],
+  "ltTotal": 602,
+  "wall": 8721
+ }
+}

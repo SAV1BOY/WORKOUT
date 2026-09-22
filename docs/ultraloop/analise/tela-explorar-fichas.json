@@ -1,0 +1,398 @@
+{
+  "lente": "tela-explorar-fichas",
+  "resumo": "Explorar e as fichas estão corretos no conteúdo e falham na descoberta. Medido a 360x740: /explorar tem 8.922 px (12 telas) porque despeja os 81 exercícios do catálogo (96 imagens) abaixo da vitrine, e o catálogo sozinho ocupa 6.978 px (78% da página); /exercicios gasta 399 px (54% da tela) em cabeçalho e filtros antes do primeiro resultado. A busca é o pior ponto: com 'supino' os exercícios caem em y=860, fora do viewport de 740, atrás de 9 linhas de coleção que casam pelo exercício de dentro sem dizer por quê; sem resultado a tela mostra DOIS vazios empilhados e o segundo mente ('Nenhum exercício com esses filtros' sem filtro nenhum). A vitrine é visualmente monótona porque as capas se repetem — supino-reto-com-barra-1.jpg é a capa de 4 coleções na mesma tela, e 8 das 15 linhas usam 3 fotos. Na ficha, o segmento Ilustração/Figura marca o selecionado com 1,16:1 (escuro) e 1,08:1 (claro) contra o grupo, abaixo dos 3:1 da WCAG 1.4.11; a página inteira (2.601 px) não tem nenhuma ação — nem voltar, nem começar, nem substituir — e termina em quatro cartões vazios seguidos de 'Seu histórico'. Rotas erradas caem no 404 em inglês do Next.",
+  "achados": [
+    {
+      "id": "tela-explorar-fichas-01",
+      "tela": "Explorar (vitrine)",
+      "rota": "/explorar",
+      "tema": "ambos",
+      "severidade": "alta",
+      "esforco": "M",
+      "prioridade_dono": "explorar-fichas",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-explorar-fichas/tela-explorar-fichas-01.png + medida: document.scrollHeight = 8922 px a 360x740 (12 telas); section[aria-label=Catálogo] começa em y=1848 e tem 6978 px (78% da página); 81 links de exercício e 96 <img> na mesma rota.",
+      "proposta": "Tirar o catálogo inteiro do Explorar: mostrar uma prévia (os 12 primeiros ou os do programa) e um botão 'Ver os 81 exercícios' que leva a /exercicios, que já existe. components/explorar/tela-explorar.tsx:140-143 (<ListaExercicios busca={busca} /> dentro da seção 'Catálogo').",
+      "arquivos": [
+        "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-explorar-fichas/tela-explorar-fichas-01.png"
+      ]
+    },
+    {
+      "id": "tela-explorar-fichas-02",
+      "tela": "Explorar — busca",
+      "rota": "/explorar",
+      "tema": "ambos",
+      "severidade": "alta",
+      "esforco": "M",
+      "prioridade_dono": "explorar-fichas",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-explorar-fichas/tela-explorar-fichas-02.png + medida: busca='supino' → seção Catálogo em y=860 com viewport de 740 (visivelNoViewport=false); 'Coleções encontradas' ocupa 724 px antes; contador '6 de 81 exercícios' idem fora da tela.",
+      "proposta": "Quem digita o nome de um exercício quer o exercício. Ou pôr os exercícios primeiro, ou dar um segmento no topo do resultado — 'Exercícios (6) · Coleções (9)' — e abrir em Exercícios. components/explorar/tela-explorar.tsx:106-143.",
+      "arquivos": [
+        "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-explorar-fichas/tela-explorar-fichas-02.png"
+      ]
+    },
+    {
+      "id": "tela-explorar-fichas-03",
+      "tela": "Explorar — busca",
+      "rota": "/explorar",
+      "tema": "ambos",
+      "severidade": "media",
+      "esforco": "M",
+      "prioridade_dono": "explorar-fichas",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-explorar-fichas/tela-explorar-fichas-03.png: 'supino' devolve 'Coleções (9)' começando por Treino A, Treino B, Superior A, Superior B, Peito e Tríceps — nenhum tem 'supino' no título; casam pelo exercício de dentro, e a linha não diz isso.",
+      "proposta": "Na linha da coleção achada pela busca, uma terceira linha com o motivo: 'contém Supino reto com barra'. E ordenar por casamento no título antes de casamento no conteúdo. lib/colecoes.ts:404 (buscarColecoes) + components/colecoes/linha-colecao.tsx:42-47.",
+      "arquivos": [
+        "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-explorar-fichas/tela-explorar-fichas-03.png"
+      ]
+    },
+    {
+      "id": "tela-explorar-fichas-04",
+      "tela": "Explorar — busca sem resultado",
+      "rota": "/explorar",
+      "tema": "ambos",
+      "severidade": "alta",
+      "esforco": "P",
+      "prioridade_dono": "explorar-fichas",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-explorar-fichas/tela-explorar-fichas-04.png: busca='zzzz' mostra 'Nenhuma coleção com esse nome.' e, 400 px abaixo, 'Nenhum exercício com esses filtros.' — o usuário não pôs filtro nenhum, digitou uma busca.",
+      "proposta": "Um vazio só para a busca inteira, citando o termo e com a saída: 'Nada para «zzzz». [Limpar a busca]'. A mensagem de filtro fica só quando temFiltro(filtros) for verdade. components/exercicios/lista-exercicios.tsx:140-143 e components/explorar/tela-explorar.tsx:111-114.",
+      "arquivos": [
+        "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-explorar-fichas/tela-explorar-fichas-04.png"
+      ]
+    },
+    {
+      "id": "tela-explorar-fichas-05",
+      "tela": "Explorar — busca",
+      "rota": "/explorar",
+      "tema": "ambos",
+      "severidade": "media",
+      "esforco": "P",
+      "prioridade_dono": "explorar-fichas",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-explorar-fichas/tela-explorar-fichas-05.png: durante a busca os três <select> (grade de 137 px) e 'No meu programa' (44 px) continuam abertos entre os dois vazios; medida alturaFiltros=137.",
+      "proposta": "Quando a busca vem de fora e não está vazia (deFora && busca.trim()!==''), recolher o bloco de filtros atrás de um botão 'Filtros'. components/exercicios/lista-exercicios.tsx:90-132.",
+      "arquivos": [
+        "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-explorar-fichas/tela-explorar-fichas-05.png"
+      ]
+    },
+    {
+      "id": "tela-explorar-fichas-06",
+      "tela": "Explorar (vitrine)",
+      "rota": "/explorar",
+      "tema": "ambos",
+      "severidade": "alta",
+      "esforco": "M",
+      "prioridade_dono": "explorar-fichas",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-explorar-fichas/tela-explorar-fichas-06.png + medida capasRepetidas: supino-reto-com-barra-1.jpg é a capa de 4 coleções na mesma tela; barra-fixa-pronada-1.jpg e barra-fixa-assistida-1.jpg 2 cada — 8 das 15 linhas visíveis com 3 fotos, todas do mesmo estúdio de parede vermelha.",
+      "proposta": "A capa não pode ser sempre 'a foto do primeiro exercício' (lib/colecoes.ts:93,100 montar()). Pegar a foto do primeiro exercício AINDA NÃO usado na mesma seção; quando repetir, cair no ícone + cor do grupo, que também distingue melhor a 56 px. components/colecoes/linha-colecao.tsx:32,55-76.",
+      "arquivos": [
+        "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-explorar-fichas/tela-explorar-fichas-06.png"
+      ]
+    },
+    {
+      "id": "tela-explorar-fichas-07",
+      "tela": "Explorar (vitrine)",
+      "rota": "/explorar",
+      "tema": "ambos",
+      "severidade": "media",
+      "esforco": "P",
+      "prioridade_dono": "explorar-fichas",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-explorar-fichas/tela-explorar-fichas-07.png + medida: h2 'Escolhas para você' 16 px, h3 das cinco seções 14 px, 'Ver todos' 12 px — 2 px separam o rótulo do grupo do rótulo da seção, e o h2 fica solto com uma linha de nada embaixo.",
+      "proposta": "Matar o 'Escolhas para você' (não agrupa nada visualmente) ou torná-lo overline de 11 px em caixa alta, e subir os títulos de seção para 16 px semibold com régua acima. components/explorar/tela-explorar.tsx:128 e 232-245.",
+      "arquivos": [
+        "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-explorar-fichas/tela-explorar-fichas-07.png"
+      ]
+    },
+    {
+      "id": "tela-explorar-fichas-08",
+      "tela": "Explorar (vitrine)",
+      "rota": "/explorar",
+      "tema": "ambos",
+      "severidade": "baixa",
+      "esforco": "P",
+      "prioridade_dono": "explorar-fichas",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-explorar-fichas/tela-explorar-fichas-08.png + medida: as linhas de coleção têm 72 px quando não há subtítulo e 92 px quando há — as duas alturas se alternam dentro da mesma seção.",
+      "proposta": "Reservar a linha do subtítulo (min-h) ou não mostrar subtítulo na vitrine: a régua da lista é o que dá a sensação de catálogo. components/colecoes/linha-colecao.tsx:43-47.",
+      "arquivos": [
+        "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-explorar-fichas/tela-explorar-fichas-08.png"
+      ]
+    },
+    {
+      "id": "tela-explorar-fichas-09",
+      "tela": "Explorar (vitrine)",
+      "rota": "/explorar",
+      "tema": "ambos",
+      "severidade": "media",
+      "esforco": "P",
+      "prioridade_dono": "explorar-fichas",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-explorar-fichas/tela-explorar-fichas-09.png: em 'Treino A', o detalhe numérico '6 exercícios · ~44 min' sai com a classe .numero (tabular, mais denso) acima do subtítulo 'Empurrar e agachar', que fica em muted — o que descreve a coleção é o terceiro na ordem de leitura.",
+      "proposta": "Trocar a ordem: título, subtítulo descritivo, e os números como meta line menor embaixo. components/colecoes/linha-colecao.tsx:42-47.",
+      "arquivos": [
+        "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-explorar-fichas/tela-explorar-fichas-09.png"
+      ]
+    },
+    {
+      "id": "tela-explorar-fichas-10",
+      "tela": "Explorar — coleções por aparelho",
+      "rota": "/explorar",
+      "tema": "ambos",
+      "severidade": "media",
+      "esforco": "P",
+      "prioridade_dono": "explorar-fichas",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-explorar-fichas/tela-explorar-fichas-10.png: 'Banco supino regulável (Yangfit) · 30 exercícios · ~3 h 06' e 'Suporte cavalete (Exercit, quadro H) · 10 exercícios · ~1 h 08' — a coleção de um aparelho é anunciada como um treino de três horas, e o subtítulo ('7 posições de encosto · 4 de assent…') é a especificação do produto cortada no meio.",
+      "proposta": "Para tipo='aparelho', trocar o detalhe por 'N exercícios que dão para fazer com ele' e não estimar minutos; o specs do equipamento não serve de subtítulo de vitrine. lib/colecoes.ts (montar/detalhe) e :153-166.",
+      "arquivos": [
+        "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-explorar-fichas/tela-explorar-fichas-10.png"
+      ]
+    },
+    {
+      "id": "tela-explorar-fichas-11",
+      "tela": "Coleção de plano",
+      "rota": "/explorar/plano/corrida",
+      "tema": "ambos",
+      "severidade": "alta",
+      "esforco": "M",
+      "prioridade_dono": "explorar-fichas",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-explorar-fichas/tela-explorar-fichas-11.png + medida: scrollHeight=740 e o texto inteiro da tela é 'Explorar / 5 km sem parar em 12 semanas / de caminhada a 5 km… / 12 semanas / Fazer a sessão da semana'. Abaixo do cartão há ~700 px de nada, porque a lista é suprimida quando a coleção é de plano (tela-colecao.tsx:80).",
+      "proposta": "Dar conteúdo à coleção de plano: as 12 semanas em linhas (feita / atual / a fazer) ou pelo menos o que a sessão desta semana tem. Hoje a tela é um botão com uma capa. components/colecoes/tela-colecao.tsx:80-87.",
+      "arquivos": [
+        "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-explorar-fichas/tela-explorar-fichas-11.png"
+      ]
+    },
+    {
+      "id": "tela-explorar-fichas-12",
+      "tela": "Coleção de plano",
+      "rota": "/explorar/plano/corrida",
+      "tema": "ambos",
+      "severidade": "media",
+      "esforco": "P",
+      "prioridade_dono": "explorar-fichas",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-explorar-fichas/tela-explorar-fichas-12.png: título '5 km sem parar em 12 semanas', subtítulo 'de caminhada a 5 km sem parar em 12 semanas (≈35 min, 7 min/km)', detalhe '12 semanas' — '12 semanas' três vezes e '5 km sem parar' duas, num cartão de 4 linhas.",
+      "proposta": "Título curto ('Corrida — 5 km sem parar'), subtítulo com o objetivo sem repetir o prazo, e o detalhe virando a posição no plano ('semana 2 de 12'). lib/colecoes.ts:538-547 (titulo do plano) e lib/colecoes.ts planos().",
+      "arquivos": [
+        "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-explorar-fichas/tela-explorar-fichas-12.png"
+      ]
+    },
+    {
+      "id": "tela-explorar-fichas-13",
+      "tela": "Coleção de plano",
+      "rota": "/explorar/plano/corrida",
+      "tema": "escuro",
+      "severidade": "media",
+      "esforco": "P",
+      "prioridade_dono": "explorar-fichas",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-explorar-fichas/tela-explorar-fichas-13.png: no escuro a capa do plano de corrida é um retângulo praticamente preto, sem foto e sem o ícone que o componente promete ('Sem foto, a capa é um gradiente com o ícone da própria tela', components/ui/card-capa.tsx:13). A causa é lib/colecoes.ts:545 capa:null (não há foto de corrida em assets/).",
+      "proposta": "Ou desenhar o fallback de verdade (ícone grande, marca d'água, gradiente com a cor do plano), ou dar uma capa de corrida a assets/ e apontá-la no JSON. components/ui/card-capa.tsx:41-70.",
+      "arquivos": [
+        "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-explorar-fichas/tela-explorar-fichas-13.png"
+      ]
+    },
+    {
+      "id": "tela-explorar-fichas-14",
+      "tela": "Coleção / ficha inexistente",
+      "rota": "/explorar/grupo/inexistente",
+      "tema": "ambos",
+      "severidade": "alta",
+      "esforco": "P",
+      "prioridade_dono": "explorar-fichas",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-explorar-fichas/tela-explorar-fichas-14.png + medida: status 404 e o corpo é o 404 padrão do Next em inglês — '404 This page could not be found.' — com a nav inferior colada embaixo. O mesmo vale para /exercicios/<id-errado>.",
+      "proposta": "Criar app/not-found.tsx em pt-BR, dentro do layout do app, com 'Não achamos essa página' e dois caminhos ('Ver o Explorar', 'Ver os exercícios'). Hoje notFound() é chamado em app/(app)/explorar/[tipo]/[valor]/page.tsx:35 e app/(app)/exercicios/[id]/page.tsx:33 sem nenhuma página para receber.",
+      "arquivos": [
+        "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-explorar-fichas/tela-explorar-fichas-14.png"
+      ]
+    },
+    {
+      "id": "tela-explorar-fichas-15",
+      "tela": "Catálogo",
+      "rota": "/exercicios",
+      "tema": "ambos",
+      "severidade": "alta",
+      "esforco": "M",
+      "prioridade_dono": "explorar-fichas",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-explorar-fichas/tela-explorar-fichas-15.png + medida: o primeiro card de exercício começa em y=399 num viewport de 740 — 54% da tela é título, subtítulo de duas linhas, busca, três selects e 'No meu programa' antes de ver um exercício. A página toda tem 7.204 px com os 81 cards.",
+      "proposta": "Filtros atrás de um botão 'Filtros' (com contador) que abre folha, e chips do que está ligado acima da lista. O primeiro exercício tem de aparecer na primeira tela. components/exercicios/lista-exercicios.tsx:90-132.",
+      "arquivos": [
+        "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-explorar-fichas/tela-explorar-fichas-15.png"
+      ]
+    },
+    {
+      "id": "tela-explorar-fichas-16",
+      "tela": "Catálogo — filtros",
+      "rota": "/exercicios",
+      "tema": "ambos",
+      "severidade": "media",
+      "esforco": "M",
+      "prioridade_dono": "explorar-fichas",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-explorar-fichas/tela-explorar-fichas-16.png: com Grupo=Peito e Equipamento=Banco, o que está filtrado só se lê abrindo os selects; o único sinal é o contador '10 de 81 exercícios' em 12 px muted. O botão 'Limpar' aparece do nada e encolhe o 'No meu programa' ao lado. São os únicos <select> nativos do app (44 px, chevron do sistema), destoando do Input e do Button do resto.",
+      "proposta": "Trocar por chips removíveis ('Peito ×', 'Banco ×') acima da lista + folha de filtros; 'No meu programa' vira chip de alternância, não um botão de largura inteira que parece ação primária. components/exercicios/lista-exercicios.tsx:112-132 e 161-193.",
+      "arquivos": [
+        "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-explorar-fichas/tela-explorar-fichas-16.png"
+      ]
+    },
+    {
+      "id": "tela-explorar-fichas-17",
+      "tela": "Catálogo — miniatura",
+      "rota": "/exercicios",
+      "tema": "ambos",
+      "severidade": "alta",
+      "esforco": "M",
+      "prioridade_dono": "explorar-fichas",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-explorar-fichas/tela-explorar-fichas-17.png: a miniatura de 56 px com p-1 é traço preto sobre quadrado claro; 'Supino reto', 'Supino inclinado' e 'Supino declinado' ficam indistinguíveis a esse tamanho. No escuro a coluna vira uma fileira de quadrados brancos (bg-ilustracao acesa dentro de página #0A0A0A).",
+      "proposta": "No card do catálogo usar a foto de execução (existe: /fotos/<id>-1.jpg, já é a capa das coleções) e deixar a ilustração para a ficha; ou recortar a ilustração na região útil e subir para 64 px. components/ui/miniatura.tsx:30-50.",
+      "arquivos": [
+        "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-explorar-fichas/tela-explorar-fichas-17.png"
+      ]
+    },
+    {
+      "id": "tela-explorar-fichas-18",
+      "tela": "Ficha — segmento de mídia",
+      "rota": "/exercicios/supino-reto-com-barra",
+      "tema": "ambos",
+      "severidade": "alta",
+      "esforco": "P",
+      "prioridade_dono": "explorar-fichas",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-explorar-fichas/tela-explorar-fichas-18.png + medida: o chip selecionado ('Ilustração') contra o fundo do grupo dá 1,16:1 no escuro (rgb(10,10,10) sobre rgb(28,28,28)) e 1,08:1 no claro (250,250,250 sobre 241,241,240). O estado selecionado fica por conta do shadow-sm, que no escuro não existe. WCAG 1.4.11 pede 3:1 para o estado de um controle.",
+      "proposta": "Dar borda (border-border) e/ou fundo com 3:1 ao chip ativo, além do texto. components/exercicio/ficha-folha.tsx:321-327.",
+      "arquivos": [
+        "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-explorar-fichas/tela-explorar-fichas-18.png"
+      ]
+    },
+    {
+      "id": "tela-explorar-fichas-19",
+      "tela": "Ficha do exercício",
+      "rota": "/exercicios/supino-reto-com-barra",
+      "tema": "ambos",
+      "severidade": "alta",
+      "esforco": "M",
+      "prioridade_dono": "explorar-fichas",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-explorar-fichas/tela-explorar-fichas-19.png + medida: o inventário de botões e links da página é — 3 abas, o link do crédito, os 2 chips do segmento e as 5 abas da nav inferior. Não há voltar, não há 'Começar', não há 'Substituir' (só existe dentro de sessão, ficha-folha.tsx:86-92). 2.601 px de leitura sem uma ação.",
+      "proposta": "Barra de ação na ficha em página: 'Voltar' no topo (como tela-colecao.tsx:42-48 já faz) e, embaixo, 'Fazer agora' abrindo sessão livre de um exercício (useSessaoLivre já existe em components/colecoes/usar-sessao-livre.ts). app/(app)/exercicios/[id]/page.tsx:42-55.",
+      "arquivos": [
+        "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-explorar-fichas/tela-explorar-fichas-19.png"
+      ]
+    },
+    {
+      "id": "tela-explorar-fichas-20",
+      "tela": "Ficha — Seu histórico",
+      "rota": "/exercicios/supino-reto-com-barra",
+      "tema": "ambos",
+      "severidade": "alta",
+      "esforco": "M",
+      "prioridade_dono": "explorar-fichas",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-explorar-fichas/tela-explorar-fichas-20.png: com o exercício ainda sem série registrada, 'Seu histórico' abre quatro cartões vazios seguidos — 'Recorde: Sem recorde ainda…', 'Repetições por sessão: O gráfico aparece depois do primeiro treino…', 'Últimas sessões: Nenhuma série registrada até agora.', 'O que o motor decidiu: Cada subida… aparece aqui depois do treino.' — cerca de 900 px dizendo quatro vezes 'ainda não'.",
+      "proposta": "Quando não há nenhuma série do exercício, o bloco inteiro vira UM cartão ('Ainda sem histórico deste exercício — ele começa na primeira série registrada') e os quatro só aparecem quando há dado. components/exercicios/historico-exercicio.tsx:116-200.",
+      "arquivos": [
+        "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-explorar-fichas/tela-explorar-fichas-20.png"
+      ]
+    },
+    {
+      "id": "tela-explorar-fichas-21",
+      "tela": "Ficha — aba Músculos",
+      "rota": "/exercicios/supino-reto-com-barra",
+      "tema": "ambos",
+      "severidade": "media",
+      "esforco": "P",
+      "prioridade_dono": "explorar-fichas",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-explorar-fichas/tela-explorar-fichas-21.png + medida: a aba Músculos repete a MESMA ilustração da aba Vídeo (supino-reto-com-barra-1.svg, 312×112 contra 312×192) e sua legenda é 'Principais: Peitoral / Ajudam: Tríceps, Deltoide anterior e medial' — texto idêntico ao bloco 'Área de foco' que aparece mais abaixo na mesma página.",
+      "proposta": "Tirar a ilustração da aba Músculos (fica o mapa, que é o motivo da aba) e suprimir 'Área de foco' quando comoPagina, já que a aba dá a mesma informação. components/exercicio/ficha-folha.tsx:359-365 e 402-432.",
+      "arquivos": [
+        "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-explorar-fichas/tela-explorar-fichas-21.png"
+      ]
+    },
+    {
+      "id": "tela-explorar-fichas-22",
+      "tela": "Ficha do exercício",
+      "rota": "/exercicios/supino-reto-com-barra",
+      "tema": "ambos",
+      "severidade": "media",
+      "esforco": "P",
+      "prioridade_dono": "explorar-fichas",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-explorar-fichas/tela-explorar-fichas-22.png: o equipamento é dito três vezes — no subtítulo do cabeçalho 'Peito · Barra · Banco · Cavalete', na seção 'Equipamento: Barra · Banco · Cavalete' e nas badges logo abaixo 'Anilhas · Banco · Barra maciça · Cavalete' — duas delas em vocabulários diferentes (equipamento_texto contra as tags de NOME_EQUIPAMENTO).",
+      "proposta": "Uma só: manter o subtítulo do cabeçalho e trocar a seção 'Equipamento' pelas tags clicáveis que levam à coleção do aparelho. components/exercicio/ficha-folha.tsx:138-149 e app/(app)/exercicios/[id]/page.tsx:48-50.",
+      "arquivos": [
+        "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-explorar-fichas/tela-explorar-fichas-22.png"
+      ]
+    },
+    {
+      "id": "tela-explorar-fichas-23",
+      "tela": "Ficha do exercício",
+      "rota": "/exercicios/supino-reto-com-barra",
+      "tema": "ambos",
+      "severidade": "baixa",
+      "esforco": "P",
+      "prioridade_dono": "explorar-fichas",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-explorar-fichas/tela-explorar-fichas-23.png: entre o segmento de mídia e as fotos aparecem duas badges soltas, 'Treino A' e 'Superior A', sem rótulo que diga o que são e sem link.",
+      "proposta": "Escrever 'Aparece em:' antes e tornar cada badge um link para a coleção do treino (/explorar/treino/<id>). components/exercicio/ficha-folha.tsx:104-112.",
+      "arquivos": [
+        "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-explorar-fichas/tela-explorar-fichas-23.png"
+      ]
+    },
+    {
+      "id": "tela-explorar-fichas-24",
+      "tela": "Ficha — crédito da ilustração",
+      "rota": "/exercicios/supino-reto-com-barra",
+      "tema": "ambos",
+      "severidade": "baixa",
+      "esforco": "P",
+      "prioridade_dono": "explorar-fichas",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-explorar-fichas/tela-explorar-fichas-24.png + medida: 'Ilustração: Everkinetic (everkinetic.com), CC BY-SA 3.0' ocupa 301 px de largura, sublinhado, numa faixa de 44 px entre a imagem e o segmento — é o link mais largo acima da dobra e compete com o controle de mídia (11 px, contraste 7,66:1 escuro / 6,42:1 claro, então não é legibilidade: é peso visual).",
+      "proposta": "Manter o crédito exigido pela SPEC §15, mas sem a faixa: alinhar à direita sob a imagem em 10-11 px sem sublinhado permanente, ou recolher em 'Crédito' que abre o texto. components/exercicio/media-grande.tsx:70-82.",
+      "arquivos": [
+        "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-explorar-fichas/tela-explorar-fichas-24.png"
+      ]
+    },
+    {
+      "id": "tela-explorar-fichas-25",
+      "tela": "Ficha — fotos",
+      "rota": "/exercicios/supino-reto-com-barra",
+      "tema": "ambos",
+      "severidade": "baixa",
+      "esforco": "P",
+      "prioridade_dono": "explorar-fichas",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-explorar-fichas/tela-explorar-fichas-25.png + medida: as duas fotos são quadrados de 160×160 com object-cover, visualmente quase idênticas (início e fim do supino), e a distinção 'início do movimento' / 'fim do movimento' existe só no alt — nada na tela diz qual é qual.",
+      "proposta": "Legenda visível sob cada foto ('início' / 'fim') e proporção 4:3 em vez de quadrado recortado, que corta justamente o caminho da barra. components/exercicios/fotos-ampliaveis.tsx.",
+      "arquivos": [
+        "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-explorar-fichas/tela-explorar-fichas-25.png"
+      ]
+    },
+    {
+      "id": "tela-explorar-fichas-26",
+      "tela": "Ficha — aba Tutorial",
+      "rota": "/exercicios/supino-reto-com-barra",
+      "tema": "ambos",
+      "severidade": "media",
+      "esforco": "P",
+      "prioridade_dono": "explorar-fichas",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-explorar-fichas/tela-explorar-fichas-26.png + medida: com o YouTube inalcançável (i.ytimg.com), a terceira aba da ficha inteira vira 'Precisa de internet — O tutorial fica no YouTube… [Abrir no YouTube]'. Ou seja, das três abas de mídia, uma não tem vídeo (mostra ilustração), outra repete a ilustração e a terceira, quando funciona, tira o usuário do app.",
+      "proposta": "Nomear a aba pelo que ela é ('Tutorial no YouTube') com o ícone de link externo no próprio rótulo, e não oferecer a aba quando não houver tutorial no JSON para o exercício. components/exercicio/ficha-folha.tsx:222-226 e components/exercicio/tutorial.tsx:55-70.",
+      "arquivos": [
+        "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-explorar-fichas/tela-explorar-fichas-26.png"
+      ]
+    },
+    {
+      "id": "tela-explorar-fichas-27",
+      "tela": "Explorar — destaque",
+      "rota": "/explorar",
+      "tema": "ambos",
+      "severidade": "media",
+      "esforco": "M",
+      "prioridade_dono": "explorar-fichas",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-explorar-fichas/tela-explorar-fichas-27.png: o destaque do Explorar é o mesmo cartão da aba Treino — 'HOJE / Treino B / terra no centro / 45 min · 6 exercícios / Começar treino' — e ocupa 500 px do topo da aba de descoberta, empurrando a vitrine para baixo.",
+      "proposta": "A aba de descoberta deve abrir com o que a Home não mostra. Reduzir o destaque a uma faixa de uma linha ('Hoje: Treino B →') e dar o espaço à vitrine, ou destacar a coleção/plano em curso. components/explorar/tela-explorar.tsx:156-214.",
+      "arquivos": [
+        "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-explorar-fichas/tela-explorar-fichas-27.png"
+      ]
+    },
+    {
+      "id": "tela-explorar-fichas-28",
+      "tela": "Coleção — rota",
+      "rota": "/explorar/grupo/Peito",
+      "tema": "ambos",
+      "severidade": "baixa",
+      "esforco": "P",
+      "prioridade_dono": "explorar-fichas",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-explorar-fichas/tela-explorar-fichas-28.png + medida: hrefDaColecao monta a URL com o valor cru do id, então a coleção de peito mora em /explorar/grupo/Peito com maiúscula; /explorar/grupo/peito devolve 404 (status 404 medido).",
+      "proposta": "Normalizar o segmento (minúscula, sem acento) na ida e na volta, mantendo o mapa id↔slug. lib/colecoes.ts:565-573 (hrefDaColecao / colecaoDaRota).",
+      "arquivos": [
+        "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-explorar-fichas/tela-explorar-fichas-28.png"
+      ]
+    }
+  ]
+}

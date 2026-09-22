@@ -1,0 +1,446 @@
+{
+  "lente": "tela-treino-player",
+  "resumo": "Aba Treino e player a 360×740, Pixel 5, pt-BR, nos dois temas, com usuário próprio semeado no mock (histórico de 01/06 a 15/09). A aba Treino tem 2.555 px de rolagem e três CTAs primários laranja concorrendo, mais um FAB fixo que sobrepõe botões de card (3×21 px e 15×21 px medidos). O player está bem dimensionado (nenhum alvo abaixo de 44 px em nenhuma tela), mas a hierarquia trai o uso entre séries: \"Pular\" é o botão mais forte do descanso, \"Próximo passo\" (que pula a série sem gravar) fica a 8 px do \"Concluir série\", a preparação não tem saída nem visão geral, e o descanso perdeu o anel que a própria documentação de anel.tsx promete. O achado mais grave é a conclusão: 2.464 px de rolagem, \"Excelente! Você concluiu o treino.\" no topo e o \"Próximo\" — o único ponto que grava — no rodapé, a 2.244 px; a corrida no tema claro pegou o efeito disso, com a aba Treino mostrando \"EM ANDAMENTO · Continuar · 17/17 séries\". No tema claro, as opções de \"firme?\" e do feedback são pintadas com bg-background — a mesma cor da página (1,00:1) — e só se distinguem por uma borda de 1,15:1.",
+  "achados": [
+    {
+      "id": "tela-treino-player-01",
+      "tela": "Player — Conclusão",
+      "rota": "/treinar/[sessionId]",
+      "tema": "ambos",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-treino-player/tela-treino-player-01.png — p08-conclusao-escuro.png (scrollHeight 2464 px em tela de 740; botão \"Próximo\" medido em y=2244) + t01-topo-claro.png (a aba Treino do MESMO usuário mostra \"EM ANDAMENTO · Continuar · 17/17 séries\" depois de a corrida escura ter chegado à conclusão sem rolar até o fim)",
+      "severidade": "alta",
+      "proposta": "A conclusão diz \"Excelente! Você concluiu o treino.\" mas conclusao.tsx:22-25 deixa claro que nada é gravado antes do \"Próximo\" (conclusao.tsx:208), que fica 3 telas abaixo. Gravar a sessão ao ENTRAR na conclusão (tela-player.tsx:387) e pôr \"Próximo\" numa barra fixa no rodapé, com o mesmo padrão de ControlesDoPlayer (exercicio.tsx:492).",
+      "esforco": "M",
+      "prioridade_dono": "treino-player",
+      "arquivos": [
+        "components/player/conclusao.tsx:208",
+        "components/player/tela-player.tsx:387",
+        "components/player/exercicio.tsx:492"
+      ]
+    },
+    {
+      "id": "tela-treino-player-02",
+      "tela": "Player — Descanso",
+      "rota": "/treinar/[sessionId]",
+      "tema": "ambos",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-treino-player/tela-treino-player-02.png — p05-descanso-escuro.png — \"Pular\" usa bg-descanso-foreground/text-descanso (branco cheio), o maior contraste da tela; \"+ 20 s\" fica cinza secundário",
+      "severidade": "alta",
+      "proposta": "Inverter a hierarquia em descanso.tsx:194-200: \"Pular descanso\" vira contorno sobre o marrom (border-descanso-foreground/40) e o peso visual fica no timer/anel. Um app de treino não deve empurrar o usuário a cortar o descanso.",
+      "esforco": "P",
+      "prioridade_dono": "treino-player",
+      "arquivos": [
+        "components/player/descanso.tsx:186",
+        "components/player/descanso.tsx:194"
+      ]
+    },
+    {
+      "id": "tela-treino-player-03",
+      "tela": "Player — Descanso",
+      "rota": "/treinar/[sessionId]",
+      "tema": "ambos",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-treino-player/tela-treino-player-03.png — p05-descanso-escuro.png — só o número \"2:30\"; anel.tsx:3-8 documenta \"o anel de contagem da preparação E DO DESCANSO\", mas descanso.tsx:135-141 renderiza apenas o <span role=timer>",
+      "severidade": "media",
+      "proposta": "Envolver o timer no AnelDeContagem com fracaoRestante(estado, agora), igual a preparacao.tsx:38 — o descanso ganha a leitura periférica que a preparação já tem, e o código já existe.",
+      "esforco": "P",
+      "prioridade_dono": "treino-player",
+      "arquivos": [
+        "components/player/descanso.tsx:135",
+        "components/player/anel.tsx:5",
+        "components/player/preparacao.tsx:38"
+      ]
+    },
+    {
+      "id": "tela-treino-player-04",
+      "tela": "Player — Descanso",
+      "rota": "/treinar/[sessionId]",
+      "tema": "ambos",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-treino-player/tela-treino-player-04.png — p05-descanso-escuro.png — medido: ~125 px vazios entre \"5 × 7,5 kg na barra\" (fim em y≈205) e \"DESCANSO\" (y≈330) e ~120 px entre o fim do timer (y≈415) e \"Editar tempo de descanso\" (y=536); ~245 px de 740 (33%) em branco",
+      "severidade": "media",
+      "proposta": "Trocar justify-between por justify-center com gap fixo em descanso.tsx:108 e prender o bloco de três controles num rodapé (bottom-0 + pb-segura), para o conteúdo não boiar.",
+      "esforco": "P",
+      "prioridade_dono": "treino-player",
+      "arquivos": [
+        "components/player/descanso.tsx:108"
+      ]
+    },
+    {
+      "id": "tela-treino-player-05",
+      "tela": "Player — Descanso",
+      "rota": "/treinar/[sessionId]",
+      "tema": "ambos",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-treino-player/tela-treino-player-05.png — p05-descanso-escuro.png — existe \"+ 20 s\" e não existe \"− 20 s\"; o \"+ 20 s\" é Button variant=\"secondary\", que herda a paleta normal (cinza #262626) em cima do marrom --descanso-fundo #2a1206",
+      "severidade": "media",
+      "proposta": "Pôr \"−20 s\" ao lado de \"+20 s\" (dois alvos de 56 px lado a lado) e dar aos dois a cor da própria tela de descanso (borda/texto em --descanso-destaque) em vez do secondary do tema, como já foi feito para o stepper em descanso.tsx:152.",
+      "esforco": "P",
+      "prioridade_dono": "treino-player",
+      "arquivos": [
+        "components/player/descanso.tsx:186",
+        "app/globals.css:137"
+      ]
+    },
+    {
+      "id": "tela-treino-player-06",
+      "tela": "Player — Descanso",
+      "rota": "/treinar/[sessionId]",
+      "tema": "ambos",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-treino-player/tela-treino-player-06.png — p05-descanso-escuro.png — o topo diz \"AQUECIMENTO 2 DE 2\" + miniatura + \"5 × 7,5 kg na barra\", sem nenhuma palavra que diga que é o que vem A SEGUIR; descanso.tsx:112-117 só escreve \"Próximo n/N\" quando muda de exercício",
+      "severidade": "media",
+      "proposta": "Prefixar sempre com \"A SEGUIR\" (ou \"PRÓXIMA SÉRIE\") em descanso.tsx:111-117 e deixar o rótulo do passo como segunda linha — entre séries, de relance, o usuário lê o que acabou de fazer.",
+      "esforco": "P",
+      "prioridade_dono": "treino-player",
+      "arquivos": [
+        "components/player/descanso.tsx:112"
+      ]
+    },
+    {
+      "id": "tela-treino-player-07",
+      "tela": "Player — Descanso",
+      "rota": "/treinar/[sessionId]",
+      "tema": "ambos",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-treino-player/tela-treino-player-07.png — p05-descanso-escuro.png + tela-player.tsx:326-346: o ramo \"descanso\" é o ÚNICO que não renderiza {folha}; a miniatura do próximo exercício não é tocável e não há \"?\" — medidos só 3 alvos na tela (Editar tempo, 20 s, Pular)",
+      "severidade": "media",
+      "proposta": "Passar {folha} também no ramo do descanso (tela-player.tsx:326) e tornar a Miniatura de descanso.tsx:120 um botão que abre a ficha do próximo exercício. O descanso é exatamente o momento de rever a execução.",
+      "esforco": "P",
+      "prioridade_dono": "treino-player",
+      "arquivos": [
+        "components/player/tela-player.tsx:326",
+        "components/player/descanso.tsx:120"
+      ]
+    },
+    {
+      "id": "tela-treino-player-08",
+      "tela": "Player — Preparação",
+      "rota": "/treinar/[sessionId]",
+      "tema": "ambos",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-treino-player/tela-treino-player-08.png — p01-preparacao-escuro.png — medidos só 2 alvos na tela inteira: \"Como fazer: Levantamento terra\" (44×44) e \"Começar agora\" (296×56). Não há \"Visão geral do treino\" nem saída; tela-player.tsx:278-291 só passa aoAbrirFicha e aoPular",
+      "severidade": "alta",
+      "proposta": "Repetir na preparação a fileira de ícones do topo da tela de exercício (exercicio.tsx:120-161), pelo menos com \"Visão geral do treino\" (aoAbrirLista) e uma saída \"Sair do treino\". Hoje, quem começa por engano só sai pelo botão do sistema.",
+      "esforco": "P",
+      "prioridade_dono": "treino-player",
+      "arquivos": [
+        "components/player/preparacao.tsx:29",
+        "components/player/tela-player.tsx:278"
+      ]
+    },
+    {
+      "id": "tela-treino-player-09",
+      "tela": "Player — Preparação",
+      "rota": "/treinar/[sessionId]",
+      "tema": "ambos",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-treino-player/tela-treino-player-09.png — p01-preparacao-escuro.png — o conteúdo acaba em y≈460 e sobram ~280 px (38% da tela de 740) vazios abaixo do botão",
+      "severidade": "baixa",
+      "proposta": "Em preparacao.tsx:32 o justify-center não centraliza porque a seção é flex-1 dentro de um pai com rodapé reservado: ou centralizar de verdade (min-h-dvh + place-content-center), ou usar o espaço para a lista do que vem (os 6 exercícios do dia) — a preparação é a única tela sem informação nenhuma.",
+      "esforco": "P",
+      "prioridade_dono": "treino-player",
+      "arquivos": [
+        "components/player/preparacao.tsx:32"
+      ]
+    },
+    {
+      "id": "tela-treino-player-10",
+      "tela": "Player — Exercício",
+      "rota": "/treinar/[sessionId]",
+      "tema": "ambos",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-treino-player/tela-treino-player-10.png — p02-exercicio-escuro.png — medido: \"Concluir a série\" x=76..284 e \"Próximo passo\" x=292..348, ambos y=620..676: 8 px de folga entre o primário e o botão que PULA a série sem registrar, os dois na faixa do polegar",
+      "severidade": "alta",
+      "proposta": "Em exercicio.tsx:493 abrir o gap (gap-3/gap-4) e tirar o \"Próximo passo\" da mesma linha do primário — ou deixá-lo só como gesto/seta menor acima da barra. Entre séries, com uma mão suada, 8 px é a distância entre gravar e perder a série.",
+      "esforco": "P",
+      "prioridade_dono": "treino-player",
+      "arquivos": [
+        "components/player/exercicio.tsx:493",
+        "components/player/exercicio.tsx:511"
+      ]
+    },
+    {
+      "id": "tela-treino-player-11",
+      "tela": "Player — Exercício",
+      "rota": "/treinar/[sessionId]",
+      "tema": "ambos",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-treino-player/tela-treino-player-11.png — p02-exercicio-escuro.png — medido: \"Gostei\" x=196..240, \"Não gosto\" x=242..286, \"Ajustar\" x=288..332 — 2 px entre alvos de 44 px (exercicio.tsx:130 usa gap-0.5)",
+      "severidade": "media",
+      "proposta": "Subir para gap-2 (8 px) entre os três ícones do topo, e dar retorno ao \"Não gosto\" (que reordena as listas em toda parte) com um toast de desfazer — hoje o toque erra por 2 px e muda preferência sem aviso.",
+      "esforco": "P",
+      "prioridade_dono": "treino-player",
+      "arquivos": [
+        "components/player/exercicio.tsx:130"
+      ]
+    },
+    {
+      "id": "tela-treino-player-12",
+      "tela": "Player — Exercício",
+      "rota": "/treinar/[sessionId]",
+      "tema": "ambos",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-treino-player/tela-treino-player-12.png — p02-exercicio-escuro.png — o progresso da sessão é uma barra de 4 px sem rótulo (exercicio.tsx:170) e a linha \"Aquecimento 1 de 2 · exercício 1 de 6\" em 14 px muted (exercicio.tsx:203-208); não existe indicação de quantas séries de trabalho faltam NESTE exercício",
+      "severidade": "media",
+      "proposta": "Trocar a barra fina por pontinhos por série do bloco (cheio = feita, contorno = a fazer) logo abaixo do nome — é a informação que o usuário procura entre séries e hoje só existe em texto muted.",
+      "esforco": "M",
+      "prioridade_dono": "treino-player",
+      "arquivos": [
+        "components/player/exercicio.tsx:163",
+        "components/player/exercicio.tsx:203"
+      ]
+    },
+    {
+      "id": "tela-treino-player-13",
+      "tela": "Player — Exercício",
+      "rota": "/treinar/[sessionId]",
+      "tema": "escuro",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-treino-player/tela-treino-player-13.png — p02-exercicio-escuro.png — o painel da ilustração mede 328×160 px com --ilustracao-fundo #e7e4e0 (globals.css:141) sobre fundo #0a0a0a: razão de luminância ≈ 15,8:1, o maior e mais claro elemento da tela do player no escuro",
+      "severidade": "media",
+      "proposta": "Baixar --ilustracao-fundo do tema escuro para ~#cfcac4/#c9c4bd em globals.css:141 (o traço das figuras é quase preto e continua legível) — um retângulo branco de 52.480 px² é ofuscante num treino à noite.",
+      "esforco": "P",
+      "prioridade_dono": "treino-player",
+      "arquivos": [
+        "app/globals.css:141",
+        "components/exercicio/media-grande.tsx"
+      ]
+    },
+    {
+      "id": "tela-treino-player-14",
+      "tela": "Treino — FAB Ajustar",
+      "rota": "/",
+      "tema": "ambos",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-treino-player/tela-treino-player-14.png — t03-lista-escuro.png — medido: FAB fixo em x=288..344, y=588..644; sobrepõe \"Fazer a sessão da semana\" do 1º card de desafio em 3×21 px e o do 2º em 15×21 px; fica na mesma coluna da aba \"Mais\" (x=288..360, y=680), 36 px acima dela",
+      "severidade": "media",
+      "proposta": "O FAB abre exatamente a mesma folha do ícone de engrenagem do player e de Mais → Preferências (fab-ajustar.tsx:18-19). Ou some com ele e põe \"Ajustar\" como ação de texto no cabeçalho da aba, ou esconde ao rolar para baixo — hoje ele tapa conteúdo em 2.555 px de rolagem.",
+      "esforco": "M",
+      "prioridade_dono": "treino-player",
+      "arquivos": [
+        "components/treino/fab-ajustar.tsx:33"
+      ]
+    },
+    {
+      "id": "tela-treino-player-15",
+      "tela": "Treino — Parte do corpo",
+      "rota": "/",
+      "tema": "ambos",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-treino-player/tela-treino-player-15.png — t04-fundo-escuro.png — medidos 14 chips em duas fileiras: \"Parte do corpo: Core\" (x=546) e \"Parte do corpo: Cardio\" (x=620) na fileira \"Grupos\", e \"Filtro: Core\" (x=580) e \"Filtro: Cardio\" (x=655) na fileira \"Filtros\" logo abaixo",
+      "severidade": "media",
+      "proposta": "Tirar as chaves core e cardio de FILTROS (lib/colecoes.ts:318-319): elas repetem, com outro comportamento (escondem os outros 6 grupos), dois chips que já existem na fileira de cima. Ficam os 4 filtros que de fato cruzam com o grupo escolhido.",
+      "esforco": "P",
+      "prioridade_dono": "treino-player",
+      "arquivos": [
+        "lib/colecoes.ts:318",
+        "components/treino/parte-do-corpo.tsx:94"
+      ]
+    },
+    {
+      "id": "tela-treino-player-16",
+      "tela": "Treino — Parte do corpo",
+      "rota": "/",
+      "tema": "ambos",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-treino-player/tela-treino-player-16.png — t04-fundo-escuro.png — a fileira de grupos vai até x=699 e a de filtros até x=734, quase o dobro dos 360 px da tela, sem nenhuma pista de que rola (sem fade, sem seta, sem sombra de borda)",
+      "severidade": "media",
+      "proposta": "Pôr a máscara de degradê nas bordas das duas <ul> de parte-do-corpo.tsx:81 e :94 (mask-image linear-gradient) — \"Pernas\", \"Core\", \"Cardio\" e metade dos filtros estão fora da tela e nada indica isso.",
+      "esforco": "P",
+      "prioridade_dono": "treino-player",
+      "arquivos": [
+        "components/treino/parte-do-corpo.tsx:81",
+        "components/treino/parte-do-corpo.tsx:94"
+      ]
+    },
+    {
+      "id": "tela-treino-player-17",
+      "tela": "Treino — Desafios",
+      "rota": "/",
+      "tema": "ambos",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-treino-player/tela-treino-player-17.png — t03-lista-escuro.png — medido: \"Fazer a sessão da semana\" em y=561 nos cards 1 e 2 e em y=548 no card 3 — 13 px de desalinhamento entre cards do mesmo carrossel",
+      "severidade": "baixa",
+      "proposta": "Em desafios.tsx:79 dar mt-auto ao BotaoLargo (o article já é flex-col h-full): o subtítulo com line-clamp-2 tem 1 ou 2 linhas e hoje empurra o CTA, que pula ao deslizar.",
+      "esforco": "P",
+      "prioridade_dono": "treino-player",
+      "arquivos": [
+        "components/treino/desafios.tsx:79"
+      ]
+    },
+    {
+      "id": "tela-treino-player-18",
+      "tela": "Treino — Desafios",
+      "rota": "/",
+      "tema": "ambos",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-treino-player/tela-treino-player-18.png — t03-lista-escuro.png — 3 cards no carrossel (medidos em x=13, 329 e 645), o 2º aparecendo só 44 px e o 3º totalmente fora; não há pontos de página nem contador",
+      "severidade": "baixa",
+      "proposta": "Acrescentar uma fileira de pontos (1 por desafio, o ativo em --primary) abaixo da <ul> de desafios.tsx:24, ou um \"1 de 3\" ao lado do título — hoje nada diz que existem 3 desafios.",
+      "esforco": "P",
+      "prioridade_dono": "treino-player",
+      "arquivos": [
+        "components/treino/desafios.tsx:24"
+      ]
+    },
+    {
+      "id": "tela-treino-player-19",
+      "tela": "Treino — Lista do dia",
+      "rota": "/",
+      "tema": "ambos",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-treino-player/tela-treino-player-19.png — t03-lista-escuro.png — \"Hoje: 1,5 kg por halter\" usa .numero (font-weight 600, globals.css:162-166) e o nome do exercício usa font-medium (500): a linha de apoio pesa mais que o título",
+      "severidade": "media",
+      "proposta": "Tirar o .numero do \"Hoje:\" em lista.tsx:95 (ou aplicá-lo só ao número) e subir o nome para font-semibold — hoje o olho bate primeiro na carga e depois no exercício.",
+      "esforco": "P",
+      "prioridade_dono": "treino-player",
+      "arquivos": [
+        "components/treino/lista.tsx:80",
+        "components/treino/lista.tsx:95",
+        "app/globals.css:162"
+      ]
+    },
+    {
+      "id": "tela-treino-player-20",
+      "tela": "Treino — Lista do dia",
+      "rota": "/",
+      "tema": "ambos",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-treino-player/tela-treino-player-20.png — t03-lista-escuro.png — os 3 raios dividem a linha do título (lista.tsx:79-89): sobram ~160 px para o nome e \"4. Supino inclinado com halteres\" e \"6. Elevação de panturrilha em pé\" quebram em duas linhas, deixando as linhas do item desalinhadas entre si",
+      "severidade": "media",
+      "proposta": "Mover os <Raios> para o fim da linha da prescrição (\"3 × 8–12 ⚡⚡\"), liberando a largura toda para o nome em lista.tsx:80 — a mesma quebra some na aba inteira.",
+      "esforco": "P",
+      "prioridade_dono": "treino-player",
+      "arquivos": [
+        "components/treino/lista.tsx:79"
+      ]
+    },
+    {
+      "id": "tela-treino-player-21",
+      "tela": "Treino — Cabeçalho",
+      "rota": "/",
+      "tema": "ambos",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-treino-player/tela-treino-player-21.png — t01-topo-escuro.png — o chip do topo direito é um ícone Flame (chama) + \"2 semanas\" (cabecalho.tsx:50)",
+      "severidade": "media",
+      "proposta": "Trocar a chama por um sinal sóbrio (CalendarCheck, ou só o texto \"2 semanas na meta\"): chama de ofensiva é vocabulário de gamificação, que o CLAUDE.md proíbe e que destoa do resto da interface.",
+      "esforco": "P",
+      "prioridade_dono": "treino-player",
+      "arquivos": [
+        "components/treino/cabecalho.tsx:50"
+      ]
+    },
+    {
+      "id": "tela-treino-player-22",
+      "tela": "Treino — Cabeçalho",
+      "rota": "/",
+      "tema": "ambos",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-treino-player/tela-treino-player-22.png — t01-topo-escuro.png e t01-topo-claro.png — a caixa FASE quebra em \"Fase 1 ·\" / \"semana 16\", com o separador órfão no fim da 1ª linha; a caixa PESO ao lado cabe em uma",
+      "severidade": "baixa",
+      "proposta": "Em cabecalho.tsx:81-83 separar em valor (\"Fase 1\") e apoio (\"semana 16\" em text-xs muted, como já é feito em PESO), ou prender o \"·\" ao que vem depois com \\u00a0 — as duas caixas passam a ter a mesma altura.",
+      "esforco": "P",
+      "prioridade_dono": "treino-player",
+      "arquivos": [
+        "components/treino/cabecalho.tsx:81"
+      ]
+    },
+    {
+      "id": "tela-treino-player-23",
+      "tela": "Treino — Faixa da semana",
+      "rota": "/",
+      "tema": "ambos",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-treino-player/tela-treino-player-23.png — t01-topo-escuro.png — os 7 dias são desenhados como células tocáveis (círculo, número, sigla), mas a medição mostra um único alvo de 314×89 px (\"Abrir o calendário da semana\", cabecalho.tsx:57)",
+      "severidade": "media",
+      "proposta": "Fazer de cada dia um link para /calendario ancorado naquele dia (ou abrir a folha do dia). Hoje a forma promete 7 destinos e entrega 1, e o dia de hoje — o único com contorno — não faz nada diferente dos outros.",
+      "esforco": "M",
+      "prioridade_dono": "treino-player",
+      "arquivos": [
+        "components/treino/cabecalho.tsx:57",
+        "components/ui/faixa-semana.tsx"
+      ]
+    },
+    {
+      "id": "tela-treino-player-24",
+      "tela": "Treino — folha Ajustar",
+      "rota": "/",
+      "tema": "ambos",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-treino-player/tela-treino-player-24.png — t05-fab-escuro.png — o campo \"Descanso padrão (s)\" tem w-20 (80 px medidos: x=190..270) e o placeholder \"do exercício\" aparece cortado, lendo-se \"do exe\" no meio da caixa",
+      "severidade": "alta",
+      "proposta": "Trocar o placeholder de ajustes-do-treino.tsx:159 por \"—\" (a frase \"Vazio = o descanso do próprio exercício\" já está no texto de apoio logo acima) ou alargar o campo. Hoje o único texto visível do campo é uma palavra pela metade.",
+      "esforco": "P",
+      "prioridade_dono": "treino-player",
+      "arquivos": [
+        "components/mais/ajustes-do-treino.tsx:159"
+      ]
+    },
+    {
+      "id": "tela-treino-player-25",
+      "tela": "Treino — folha Ajustar",
+      "rota": "/",
+      "tema": "ambos",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-treino-player/tela-treino-player-25.png — t05-fab-escuro.png — ao abrir a folha pelo FAB o foco cai no campo \"Preparação (s)\" com o valor \"10\" selecionado (anel de foco e seleção visíveis na captura), o que sobe o teclado numérico por cima da folha",
+      "severidade": "media",
+      "proposta": "Dar foco inicial ao título da folha (SheetContent onOpenAutoFocus + tabIndex no SheetTitle) em fab-ajustar.tsx:38 e tela-player.tsx:260 — abrir ajustes não deveria abrir o teclado.",
+      "esforco": "P",
+      "prioridade_dono": "treino-player",
+      "arquivos": [
+        "components/treino/fab-ajustar.tsx:38",
+        "components/player/tela-player.tsx:260"
+      ]
+    },
+    {
+      "id": "tela-treino-player-26",
+      "tela": "Treino — folha Ajustar",
+      "rota": "/",
+      "tema": "ambos",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-treino-player/tela-treino-player-26.png — t05-fab-escuro.png e t06-fab-fundo-escuro.png — na mesma folha convivem dois campos com \"Salvar\" manual (Preparação e Descanso padrão) e seis interruptores que gravam no toque; medidos 2 botões \"Salvar\" e 6 switches",
+      "severidade": "media",
+      "proposta": "Gravar os dois campos no blur/debounce como os switches e tirar os \"Salvar\" (ajustes-do-treino.tsx:147-168) — dois modelos de gravação na mesma folha fazem o usuário duvidar se o interruptor pegou.",
+      "esforco": "M",
+      "prioridade_dono": "treino-player",
+      "arquivos": [
+        "components/mais/ajustes-do-treino.tsx:147"
+      ]
+    },
+    {
+      "id": "tela-treino-player-27",
+      "tela": "Player — Conclusão",
+      "rota": "/treinar/[sessionId]",
+      "tema": "ambos",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-treino-player/tela-treino-player-27.png — p08-conclusao-escuro.png — o bloco \"Recordes\" trouxe 18 linhas de 12 px (3 por exercício × 6 exercícios) numa primeira sessão; conclusao.tsx:157-165 mapeia tudo sem limite",
+      "severidade": "media",
+      "proposta": "Limitar a 5 recordes (os de maior salto) com \"ver todos\" abrindo o resto, em conclusao.tsx:157 — numa primeira sessão TODO recorde é recorde e o bloco vira parede de texto.",
+      "esforco": "P",
+      "prioridade_dono": "treino-player",
+      "arquivos": [
+        "components/player/conclusao.tsx:157"
+      ]
+    },
+    {
+      "id": "tela-treino-player-28",
+      "tela": "Player — Conclusão",
+      "rota": "/treinar/[sessionId]",
+      "tema": "ambos",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-treino-player/tela-treino-player-28.png — p08-conclusao-escuro.png — o aviso \"CONQUISTAS\" listou 7 de uma vez, com datas de 01/06, 22/06, 27/07, 01/09, 02/09, 04/09 e 12/09; aviso-conquista.tsx:36-56 renderiza novas.map() sem limite",
+      "severidade": "media",
+      "proposta": "Cortar em 3 + \"e mais N\" em aviso-conquista.tsx:36 e mostrar a data só quando não for a de hoje — anunciar como novidade, no fim do treino de hoje, uma conquista de 1º de junho tira a credibilidade do aviso.",
+      "esforco": "P",
+      "prioridade_dono": "treino-player",
+      "arquivos": [
+        "components/relatorio/aviso-conquista.tsx:36"
+      ]
+    },
+    {
+      "id": "tela-treino-player-29",
+      "tela": "Player — Firme?",
+      "rota": "/treinar/[sessionId]",
+      "tema": "ambos",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-treino-player/tela-treino-player-29.png — p06-firme-escuro.png — medido: o campo \"Nota curta (opcional)\" ocupa y=200..248, ACIMA de Fácil (y=268), Firme (y=332) e Falhei (y=396); e sobram ~270 px vazios abaixo de \"Continuar\" (y=472..528)",
+      "severidade": "media",
+      "proposta": "Descer o input de firme.tsx:67-72 para depois das três opções, atrás de um \"adicionar nota\" — a pergunta da tela é a nota do esforço, e hoje o primeiro elemento tocável abre o teclado antes de ela ser respondida.",
+      "esforco": "P",
+      "prioridade_dono": "treino-player",
+      "arquivos": [
+        "components/player/firme.tsx:67"
+      ]
+    },
+    {
+      "id": "tela-treino-player-30",
+      "tela": "Player — Feedback e Firme?",
+      "rota": "/treinar/[sessionId]",
+      "tema": "ambos",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-treino-player/tela-treino-player-30.png — medido no navegador: as cinco opções de sensação têm background rgb(250,250,250) sobre uma página cujo --background é o MESMO #fafafa (razão 1,00:1); o único limite é a borda --input #e3e3e1, que dá 1,15:1 contra o fundo — abaixo do mínimo de 3:1 para contorno de componente. No escuro é a mesma construção: #0a0a0a sobre #0a0a0a com borda #2e2e2e (≈1,9:1)",
+      "severidade": "alta",
+      "proposta": "Trocar bg-background por bg-card (branco #ffffff no claro, #141414 no escuro) nas opções de firme.tsx:124 e feedback.tsx:44 — a classe atual pinta o cartão com a cor da própria página, então a única pista de que são cinco alvos tocáveis é uma borda quase invisível. Ao mesmo tempo, Voltar fica com exatamente o mesmo tratamento das cinco opções e se lê como a sexta.",
+      "esforco": "P",
+      "prioridade_dono": "treino-player",
+      "arquivos": [
+        "components/player/firme.tsx:124",
+        "components/player/feedback.tsx:44",
+        "app/globals.css:63",
+        "app/globals.css:79"
+      ]
+    }
+  ]
+}

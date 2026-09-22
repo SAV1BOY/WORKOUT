@@ -1,0 +1,132 @@
+{
+ "lente": "tela-relatorio-corpo-calendario",
+ "gerado_em": "2026-09-20T12:50:00Z",
+ "base": { "app": "http://127.0.0.1:3120", "mock": "http://127.0.0.1:54341", "usuario": "critico-tela-relatorio-corpo-calendario@exemplo.com", "viewport": "360x740 @2x Pixel 5 pt-BR America/Sao_Paulo", "relogio": "2026-09-16T08:30:00-03:00" },
+ "capturas": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-relatorio-corpo-calendario/",
+ "medicoes_chave": {
+  "relatorio_scrollHeight_px": 6233,
+  "relatorio_telas_de_rolagem": 8.4,
+  "aviso_conquista_altura_px": 575,
+  "conquistas_cartoes": 26,
+  "conquistas_largura_cartao_px": 104,
+  "conquistas_alturas_de_linha_px": [84, 84, 84, 98, 111, 97, 97, 84, 84],
+  "medidas_tabela_colunas": 9,
+  "medidas_tabela_largura_px": 740,
+  "medidas_caixa_visivel_px": 296,
+  "fotos_seletor_px": "93 x 76",
+  "grade_do_mes_botoes": 0,
+  "grade_do_mes_estilos_de_ponto": 5,
+  "calendario_h2_mes": "12px uppercase",
+  "eixo_y_peso_corpo": [81, 83, 85, 87, 88],
+  "eixo_y_peso_relatorio": [81, 83, 85, 88]
+ },
+ "achados": [
+  {"id":"tela-relatorio-corpo-calendario-01","tela":"Relatório","rota":"/relatorio","tema":"ambos","severidade":"alta","esforco":"M","prioridade_dono":"relatorio-corpo-calendario",
+   "evidencia":"tela-relatorio-corpo-calendario-01-escuro.png · document.scrollHeight = 6233 px a 360×740 = 8,4 telas de rolagem; as regiões nomeadas param em IMC (y=3001) e ainda há ~3.000 px de gráficos e recordes sem landmark.",
+   "proposta":"Quebrar /relatorio em abas ou seções colapsáveis (Resumo · Conquistas · Histórico · Corpo · Gráficos) com uma barra de atalhos grudada no topo. components/relatorio/tela-relatorio.tsx:106 em diante empilha tudo num único <Tela>; envolver cada bloco num <details> ou num Tabs do shadcn e lembrar a aba aberta."},
+
+  {"id":"tela-relatorio-corpo-calendario-02","tela":"Relatório — aviso de conquista","rota":"/relatorio","tema":"ambos","severidade":"alta","esforco":"P","prioridade_dono":"relatorio-corpo-calendario",
+   "evidencia":"tela-relatorio-corpo-calendario-02-escuro.png · a região \"Conquista nova\" ocupa y=281..856 (575 px, 78 % da tela) com 8 conquistas listadas de uma vez, e o botão Ok só aparece depois de rolar; empurra \"Números\" para y=872.",
+   "proposta":"Limitar o aviso a 3 conquistas + \"e mais N\" e pôr o Ok no cabeçalho do card. components/relatorio/aviso-conquista.tsx:37 faz novas.map(...) sem corte — aplicar novas.slice(0,3) e um resumo para o resto."},
+
+  {"id":"tela-relatorio-corpo-calendario-03","tela":"Relatório — contadores × progresso","rota":"/relatorio","tema":"ambos","severidade":"alta","esforco":"P","prioridade_dono":"relatorio-corpo-calendario",
+   "evidencia":"tela-relatorio-corpo-calendario-03-escuro.png · na mesma tela: topo \"TREINOS 51 no total\" e, mais abaixo, \"TREINOS NA SEMANA 1 · só força · 6 no mês · 46 no total\". Dois totais diferentes com o mesmo rótulo.",
+   "proposta":"Renomear o contador do topo para \"Sessões\" (ou \"Treinos + cardio\") e dizer a composição no detalhe. components/progresso/tela-progresso.tsx:144-145 já documenta a diferença num comentário; levar a diferença para o rótulo em components/relatorio/tela-relatorio.tsx:107-112."},
+
+  {"id":"tela-relatorio-corpo-calendario-04","tela":"Relatório — Conquistas","rota":"/relatorio","tema":"ambos","severidade":"alta","esforco":"M","prioridade_dono":"relatorio-corpo-calendario",
+   "evidencia":"tela-relatorio-corpo-calendario-04-escuro.png · grid de 3 colunas a 360 px: 26 cartões de 104 px de largura; as 9 linhas medem 84, 84, 84, 98, 111, 97, 97, 84, 84 px e textos quebram em até 4 linhas (\"20 min correndo / faltam 20 / minutos\"). A última linha fica com 2 cartões e um buraco.",
+   "proposta":"Passar para 2 colunas a 360 px (grid-cols-2 sm:grid-cols-3) em components/relatorio/conquistas.tsx:77 e travar a altura do cartão com line-clamp no subtítulo, para as linhas ficarem iguais."},
+
+  {"id":"tela-relatorio-corpo-calendario-05","tela":"Relatório — Conquistas","rota":"/relatorio","tema":"ambos","severidade":"media","esforco":"P","prioridade_dono":"relatorio-corpo-calendario",
+   "evidencia":"tela-relatorio-corpo-calendario-05-escuro.png · \"8 de 26\" em cinza pequeno no canto, sem barra e sem separar o que já foi do que falta; conquistadas e bloqueadas aparecem embaralhadas na mesma grade.",
+   "proposta":"Pôr uma barra de progresso fina sob o título (8/26) e dois grupos: \"Conquistadas\" e \"A conquistar\" (ou um filtro de duas opções). components/relatorio/conquistas.tsx:69-77."},
+
+  {"id":"tela-relatorio-corpo-calendario-06","tela":"Relatório — Histórico","rota":"/relatorio","tema":"ambos","severidade":"media","esforco":"P","prioridade_dono":"relatorio-corpo-calendario",
+   "evidencia":"tela-relatorio-corpo-calendario-06-escuro.png · a faixa da semana usa ✓, ● cheio, ○ vazio e — sem nenhuma legenda, e abrevia o treino em \"B\", \"Corr.\", \"Desc.\", \"A\" a 11 px. Nada na tela explica o código.",
+   "proposta":"Legenda de uma linha abaixo da faixa (\"✓ feito · ● hoje · ○ a fazer · — descanso\") ou tocar num dia abrir o resumo. components/relatorio/historico.tsx."},
+
+  {"id":"tela-relatorio-corpo-calendario-07","tela":"Relatório — Histórico × Calendário","rota":"/relatorio e /calendario","tema":"ambos","severidade":"media","esforco":"P","prioridade_dono":"relatorio-corpo-calendario",
+   "evidencia":"tela-relatorio-corpo-calendario-07-escuro.png e tela-relatorio-corpo-calendario-20-escuro.png · duas navegações de semana com linguagens diferentes: no Relatório \"‹ 14/09 a 20/09 ›\" com marcas ✓/●/○; no Calendário \"14/09 – 20/09\" no cabeçalho, com \"‹ Hoje ›\" separado e cartões grandes. Até o separador muda (\"a\" × \"–\").",
+   "proposta":"Um único componente de faixa da semana usado nos dois lugares, com o mesmo separador (o de lib/formato) e as mesmas marcas. components/relatorio/historico.tsx e components/calendario/tela-calendario.tsx:202-229."},
+
+  {"id":"tela-relatorio-corpo-calendario-08","tela":"Relatório — Carga dos grandes","rota":"/relatorio","tema":"ambos","severidade":"media","esforco":"P","prioridade_dono":"relatorio-corpo-calendario",
+   "evidencia":"tela-relatorio-corpo-calendario-08-escuro.png · o cartão \"Desenvolvimento militar em pé\" mostra \"—\" e \"Sem sessão registrada ainda.\" ocupando a mesma altura de um gráfico cheio, no meio da sequência de gráficos.",
+   "proposta":"Encolher o cartão vazio para uma linha (nome + \"sem registro\") ou juntar os sem-dado num rodapé \"Ainda sem registro: X, Y\". components/progresso/tela-progresso.tsx (bloco Carga dos grandes)."},
+
+  {"id":"tela-relatorio-corpo-calendario-09","tela":"Relatório — Recordes por exercício","rota":"/relatorio","tema":"ambos","severidade":"baixa","esforco":"P","prioridade_dono":"relatorio-corpo-calendario",
+   "evidencia":"tela-relatorio-corpo-calendario-09-escuro.png · tabela de 4 colunas com a coluna \"e1RM\" e o subtítulo \"Melhor carga, melhor série e e1RM (Epley)\" — a sigla nunca é explicada na tela; e o texto \"Recordes por exercício\" aparece duas vezes (título da seção e legenda da tabela).",
+   "proposta":"Trocar o cabeçalho por \"1RM estimado\" com uma nota de rodapé de uma linha (\"estimativa de Epley a partir da melhor série\") e deixar a <caption> só no sr-only sem repetir o título."},
+
+  {"id":"tela-relatorio-corpo-calendario-10","tela":"Relatório — topo","rota":"/relatorio","tema":"ambos","severidade":"baixa","esforco":"P","prioridade_dono":"relatorio-corpo-calendario",
+   "evidencia":"tela-relatorio-corpo-calendario-10-escuro.png · o link \"Catálogo de exercícios →\" ocupa uma faixa de largura cheia entre o cabeçalho e os contadores (y≈200..280), acima de qualquer número do relatório.",
+   "proposta":"Mover o atalho para o fim da tela ou para dentro de Explorar; o topo do Relatório deve começar pelos números. components/relatorio/tela-relatorio.tsx (bloco antes de <section aria-label=\"Totais\">)."},
+
+  {"id":"tela-relatorio-corpo-calendario-11","tela":"Corpo — Peso / Medidas / Fotos","rota":"/corpo","tema":"ambos","severidade":"alta","esforco":"M","prioridade_dono":"relatorio-corpo-calendario",
+   "evidencia":"tela-relatorio-corpo-calendario-11-escuro.png e tela-relatorio-corpo-calendario-18-claro.png · o campo Data é um <input type=\"date\"> nativo de 144 × 48 px; com locale pt-BR o aparelho de teste renderizou \"09/16/2026\" (MM/DD/AAAA), contrariando \"datas dd/mm\" do CLAUDE.md. O formato depende do aparelho e o app não controla.",
+   "proposta":"Trocar por um botão que mostra a data já formatada em pt-BR (formatarData) e abre o seletor, com atalhos \"Hoje\" e \"Ontem\" — que é o que o dono usa em 99 % das vezes. components/corpo/aba-peso.tsx:129, aba-medidas.tsx e aba-fotos.tsx (mesmo padrão nos três)."},
+
+  {"id":"tela-relatorio-corpo-calendario-12","tela":"Corpo — Peso","rota":"/corpo","tema":"ambos","severidade":"media","esforco":"P","prioridade_dono":"relatorio-corpo-calendario",
+   "evidencia":"tela-relatorio-corpo-calendario-12-escuro.png · na aba Peso o primeiro cartão é o IMC (y≈190); o peso atual (\"82,4 kg em 12/09\") só aparece depois do formulário, a ~800 px do topo. Quem abre a aba Peso vê o IMC antes do peso.",
+   "proposta":"Ordem: peso atual + gráfico → registrar → IMC → variação → meta. components/corpo/aba-peso.tsx:112 (CardImc) desce para depois do bloco do gráfico."},
+
+  {"id":"tela-relatorio-corpo-calendario-13","tela":"Corpo — IMC","rota":"/corpo e /relatorio","tema":"ambos","severidade":"media","esforco":"M","prioridade_dono":"relatorio-corpo-calendario",
+   "evidencia":"tela-relatorio-corpo-calendario-13-escuro.png · a barra de IMC tem 6 faixas coloridas sem rótulo, só \"15\" e \"40\" nas pontas, e o marcador é um círculo branco de 16 px com borda (components/corpo/card-imc.tsx:124) sobre um trilho de 10 px — a cara exata de um slider arrastável, mas não é interativo.",
+   "proposta":"Trocar o círculo por um traço/triângulo fino apontando para a barra e rotular as faixas (abaixo · saudável · sobrepeso · obesidade) em 10 px sob a barra, ou marcar só a faixa atual. card-imc.tsx:110-124."},
+
+  {"id":"tela-relatorio-corpo-calendario-14","tela":"Corpo — gráfico de peso","rota":"/corpo e /relatorio","tema":"ambos","severidade":"media","esforco":"P","prioridade_dono":"relatorio-corpo-calendario",
+   "evidencia":"tela-relatorio-corpo-calendario-14-escuro.png · eixo Y do gráfico do Corpo: 81, 83, 85, 87, 88 (espaços 2, 2, 2, 1); o MESMO peso no Relatório sai com 81, 83, 85, 88. Ticks desiguais e inconsistentes entre as duas telas.",
+   "proposta":"Fixar o domínio e o passo do eixo (ex.: arredondar min/max para múltiplos de 2 e usar ticks de 2 em 2) num único helper em components/graficos/apoio.tsx, usado por components/relatorio/card-peso.tsx e components/corpo/aba-peso.tsx."},
+
+  {"id":"tela-relatorio-corpo-calendario-15","tela":"Corpo — gráfico de peso","rota":"/corpo","tema":"ambos","severidade":"baixa","esforco":"P","prioridade_dono":"relatorio-corpo-calendario",
+   "evidencia":"tela-relatorio-corpo-calendario-15-escuro.png · a legenda mostra \"● Peso  ● Média de 7 dias\", mas com 6 pesagens espalhadas em 3 meses a série da média não desenha nada; e o cabeçalho diz \"maior 86,4 kg · menor 82,4 kg\" sendo que \"menor\" repete o peso atual mostrado logo acima.",
+   "proposta":"Esconder a série (e a entrada da legenda) quando ela não tiver pontos suficientes, e trocar \"maior/menor\" por \"−4,0 kg desde 05/06\", que é a informação que o dono procura. components/relatorio/card-peso.tsx e components/corpo/aba-peso.tsx."},
+
+  {"id":"tela-relatorio-corpo-calendario-16","tela":"Corpo — Medidas","rota":"/corpo","tema":"ambos","severidade":"media","esforco":"M","prioridade_dono":"relatorio-corpo-calendario",
+   "evidencia":"tela-relatorio-corpo-calendario-16-escuro.png · a aba abre com o formulário \"Registrar medidas\": 8 campos, cada um com a dica sempre visível (\"na linha dos mamilos, braços soltos\"…), antes de qualquer dado; são ~700 px até o botão \"Salvar medidas\" e os dados só começam depois.",
+   "proposta":"Colocar a Evolução e os Registros primeiro e o formulário atrás de um botão \"Registrar medidas\" (sheet), ou colapsar as dicas num ícone de ajuda por campo. components/corpo/aba-medidas.tsx:87 em diante."},
+
+  {"id":"tela-relatorio-corpo-calendario-17","tela":"Corpo — Medidas / Registros","rota":"/corpo","tema":"ambos","severidade":"alta","esforco":"M","prioridade_dono":"relatorio-corpo-calendario",
+   "evidencia":"tela-relatorio-corpo-calendario-17-claro.png · tabela com 9 colunas e whitespace-nowrap: largura real 740 px dentro de uma caixa de 296 px (2,5×). Na captura ela corta em \"Braço d…\" / \"35,\" sem barra, sem sombra e sem qualquer sinal de que existem mais 5 colunas.",
+   "proposta":"A 360 px virar lista por data (um cartão por registro, medida: valor, variação) ou manter a tabela com as duas colunas escolhidas no seletor \"MEDIDA\" que já existe acima. Se ficar rolando na horizontal, pelo menos um gradiente na borda direita. components/corpo/aba-medidas.tsx:192-221."},
+
+  {"id":"tela-relatorio-corpo-calendario-18","tela":"Corpo — Fotos","rota":"/corpo","tema":"ambos","severidade":"media","esforco":"M","prioridade_dono":"relatorio-corpo-calendario",
+   "evidencia":"tela-relatorio-corpo-calendario-18-claro.png · os três seletores Frente/Lado/Costas ficam em grid-cols-3 e medem 93 × 76 px cada — a ação principal da aba em caixas de menos de 100 px; e a tela vazia empilha três blocos tracejados (3 seletores + \"Nenhuma foto ainda.\" + \"A comparação precisa de fotos de dois dias diferentes.\").",
+   "proposta":"Uma linha por ângulo (ícone + nome + botão de 44 px à direita) em components/corpo/aba-fotos.tsx:89, e esconder Galeria/Comparar enquanto não houver foto, deixando só um convite para a primeira."},
+
+  {"id":"tela-relatorio-corpo-calendario-19","tela":"Corpo — Peso / Meta","rota":"/corpo","tema":"ambos","severidade":"media","esforco":"M","prioridade_dono":"relatorio-corpo-calendario",
+   "evidencia":"tela-relatorio-corpo-calendario-19-escuro.png · o cartão do gráfico diz \"Defina uma meta embaixo, se quiser.\" e a meta fica no último cartão da aba (aba-peso.tsx:233), a ~1.250 px dali; mesmo com meta guardada ela não aparece como linha no gráfico nem no cabeçalho.",
+   "proposta":"Desenhar a meta como ReferenceLine tracejada no gráfico e mostrar \"faltam X kg\" ao lado do peso atual; trocar a frase \"embaixo\" por um link que rola até o cartão. components/corpo/aba-peso.tsx:233-250."},
+
+  {"id":"tela-relatorio-corpo-calendario-20","tela":"Calendário — cabeçalho","rota":"/calendario","tema":"ambos","severidade":"alta","esforco":"P","prioridade_dono":"relatorio-corpo-calendario",
+   "evidencia":"tela-relatorio-corpo-calendario-20-escuro.png · o cabeçalho mostra \"Fase 1 · semana 16 de 12\". lib/semana.ts:149 monta `semana ${semana} de ${SEMANAS_PARA_FASE2}` sem limite, e semanaDaFase cresce indefinidamente (lib/auditoria-bordas.test.ts:918 já cravou 16).",
+   "proposta":"Quando semana > SEMANAS_PARA_FASE2, escrever \"Fase 1 · 12 de 12 concluída\" ou \"Fase 1 · semana 16 (4 além do plano)\" e oferecer a passagem para a Fase 2. lib/semana.ts:143-151. (Distinto do item já agendado sobre a barra de \"Semana N de 12\": aqui o defeito é o N passar de 12.)"},
+
+  {"id":"tela-relatorio-corpo-calendario-21","tela":"Calendário — mês","rota":"/calendario","tema":"ambos","severidade":"alta","esforco":"M","prioridade_dono":"relatorio-corpo-calendario",
+   "evidencia":"tela-relatorio-corpo-calendario-21-escuro.png · a região \"Mês de setembro de 2026\" tem 0 botões e 0 links (medido): cada dia é um <span> (components/calendario/grade.tsx:98-113). Não dá para tocar num dia nem trocar de mês, enquanto a semana logo acima tem 7 cartões tocáveis e setas ‹ ›.",
+   "proposta":"Ou tornar cada dia um botão que abre o mesmo DialogoDia da semana e pôr ‹ › de mês ao lado do título, ou assumir que é só um resumo e reduzi-lo (então o título deixa de prometer navegação). grade.tsx:86-118."},
+
+  {"id":"tela-relatorio-corpo-calendario-22","tela":"Calendário — mês","rota":"/calendario","tema":"ambos","severidade":"alta","esforco":"P","prioridade_dono":"relatorio-corpo-calendario",
+   "evidencia":"tela-relatorio-corpo-calendario-22-escuro.png · os pontinhos de 6 px aparecem em 5 estilos medidos — bg-primary (11 dias), transparente (10), destructive/60 (1), primary/80 (8) e foreground/40 (5) — todos aria-hidden e sem legenda nenhuma na tela (grade.tsx:70-74 e 104-113). Dia feito e dia planejado ficam quase iguais.",
+   "proposta":"Legenda de uma linha sob a grade (\"● feito · ○ planejado · ● cardio · ● perdido\") e diferenciar feito × planejado por forma (cheio × contorno), não só por opacidade — assim funciona também para quem não distingue os tons. grade.tsx:86-118."},
+
+  {"id":"tela-relatorio-corpo-calendario-23","tela":"Calendário — hierarquia","rota":"/calendario","tema":"ambos","severidade":"media","esforco":"P","prioridade_dono":"relatorio-corpo-calendario",
+   "evidencia":"tela-relatorio-corpo-calendario-23-escuro.png · \"SETEMBRO DE 2026\" é um <h2> renderizado a 12 px uppercase em muted-foreground (grade.tsx:87-89) — menor que o corpo de texto (16 px) e igual a um rótulo. Na mesma tela convivem dois períodos: \"14/09 – 20/09\" grande no cabeçalho e o mês em letra miúda.",
+   "proposta":"Dar ao mês o mesmo peso de um título de seção (text-base font-semibold, sem uppercase) e deixar claro que a semana mostrada está dentro daquele mês (destacar a linha da semana atual na grade). grade.tsx:87-89."},
+
+  {"id":"tela-relatorio-corpo-calendario-24","tela":"Calendário — contagem da semana","rota":"/calendario","tema":"ambos","severidade":"media","esforco":"P","prioridade_dono":"relatorio-corpo-calendario",
+   "evidencia":"tela-relatorio-corpo-calendario-24-escuro.png · \"2 feitos · 3 a fazer · 0 perdidos\" sai como texto corrido de 12 px muted (tela-calendario.tsx:234-239), sem nenhuma forma; e o \"0 perdidos\" é mostrado mesmo quando não há nenhum.",
+   "proposta":"Omitir o trecho \"perdidos\" quando for 0 e transformar a linha numa barrinha de 3 segmentos (feito/a fazer/perdido) com os números, logo abaixo do \"Hoje\". tela-calendario.tsx:233-241."},
+
+  {"id":"tela-relatorio-corpo-calendario-25","tela":"Calendário — Não vou treinar hoje","rota":"/calendario","tema":"ambos","severidade":"media","esforco":"P","prioridade_dono":"relatorio-corpo-calendario",
+   "evidencia":"tela-relatorio-corpo-calendario-25-escuro.png · o botão \"Não vou treinar hoje\" (328 × 48 px, y=692) fica espremido entre o último cartão da semana e a grade do mês, com o mesmo variant=\"outline\" dos outros, e no scroll 0 nasce atrás da barra fixa de navegação.",
+   "proposta":"Ancorar a ação ao cartão do dia de hoje (dentro do cartão \"QUA 16\") ou movê-la para o diálogo do dia; se ficar solta, separá-la com um divisor e um rótulo (\"Se hoje não rolar\"). tela-calendario.tsx:244-253."},
+
+  {"id":"tela-relatorio-corpo-calendario-26","tela":"Calendário — cartões do dia","rota":"/calendario","tema":"ambos","severidade":"baixa","esforco":"P","prioridade_dono":"relatorio-corpo-calendario",
+   "evidencia":"tela-relatorio-corpo-calendario-26-escuro.png · as alturas alternam entre 58,5 px e 70 px conforme a segunda linha quebra (\"7 × (1 min 30 / 2 min caminhada) · 34 min\" e \"1 repetição solta de barra fixa (grease the groove)\" ocupam 2 linhas), deixando a coluna com ritmo irregular.",
+   "proposta":"line-clamp-1 na descrição com altura mínima fixa nos cartões da semana, e o texto completo no DialogoDia. components/calendario/grade.tsx:20-66."},
+
+  {"id":"tela-relatorio-corpo-calendario-27","tela":"Calendário — navegação da semana","rota":"/calendario","tema":"ambos","severidade":"media","esforco":"P","prioridade_dono":"relatorio-corpo-calendario",
+   "evidencia":"tela-relatorio-corpo-calendario-27-escuro.png · a linha de navegação é \"‹ (44×44) | Hoje (224×44) | › (44×44)\" (medido), mas o rótulo que muda ao navegar — \"14/09 – 20/09\" — está no cabeçalho, acima e fora dessa linha; e \"Hoje\" continua ocupando 62 % da largura mesmo quando já se está na semana atual.",
+   "proposta":"Pôr o intervalo da semana entre as setas e reduzir o \"Hoje\" a um botão pequeno que só aparece quando a semana mostrada não é a atual. components/calendario/tela-calendario.tsx:202-229."}
+ ]
+}

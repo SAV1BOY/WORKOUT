@@ -1,0 +1,458 @@
+{
+  "lente": "copy",
+  "resumo": "Base em 127.0.0.1:3120, usuário próprio 'critico-copy@exemplo.com' semeado pelo mock (sem reset), Pixel 5 360x740 @2x, pt-BR, America/Sao_Paulo, clock fixo em 16/09/2026 08:30, nos dois temas: 23 rotas + as 3 telas do player, com despejo de innerText, aria-label, placeholder, alt e medição de line-clamp. O texto é bom em tom (frases curtas, primeira pessoa do app, sem marketing), mas quebra em quatro frentes: (1) coisas em inglês/jargão vazando para a tela - a região de avisos do Sonner é literalmente 'Notifications alt+T' em TODAS as telas, e 'player', 'timer', 'bucket', 'JSON', 'as 11 tabelas', 'Supabase', 'painel do banco', 'upgrade' aparecem em texto de ajuda; (2) referências internas do projeto visíveis ('(SPEC §15)' em Preferências e '(SPEC §15.3)' em Créditos); (3) números que se contradizem na mesma tela ou entre telas - 'semana 16 de 12' no Calendário, 'semana 16' × '15 semanas' no Perfil, 'TREINOS 51 no total' × '46 no total' no Relatório, cardio '34 min' × '35 min', Corda 'Semana 1 de 12' × 'plano de 5 semanas'; (4) inconsistência de termo e de forma - quatro redações do botão de começar, três verbos para salvar, quatro grafias de 'cross over', maiúsculas/minúsculas diferentes para a mesma faixa de dias, estados vazios em quatro registros, '78 %' com espaço × '92%' sem. Além disso, os subtítulos de coleção e de aparelho no Explorar são fichas técnicas de 3 a 5 linhas dentro de um line-clamp de 1 linha (medido: 80 px de conteúdo em 16 px de caixa).",
+  "achados": [
+    {
+      "id": "copy-01",
+      "tela": "Todas (região de avisos do Sonner)",
+      "rota": "todas",
+      "tema": "ambos",
+      "severidade": "alta",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/copy/copy-01.png — o despejo de aria-label de TODAS as 23 rotas termina em `aria-label: Notifications alt+T`; componente sem containerAriaLabel",
+      "proposta": "components/ui/sonner.tsx:11 — passar `containerAriaLabel=\"Avisos\"` (e `hotkey={[\"altKey\",\"KeyT\"]}` só se for manter o atalho) no <Sonner>. Hoje o único landmark em português que falta é justamente o que anuncia toasts para leitor de tela; CLAUDE.md manda pt-BR em toda a interface.",
+      "esforco": "P",
+      "prioridade_dono": "outra",
+      "arquivos": [
+        "components/ui/sonner.tsx"
+      ]
+    },
+    {
+      "id": "copy-02",
+      "tela": "Mais → Preferências (rodapé) e Mais → Créditos",
+      "rota": "/mais/preferencias, /mais/creditos",
+      "tema": "ambos",
+      "severidade": "alta",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/copy/copy-02.png e /tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/copy/copy-08.png — texto na tela: “Autor, licença e link de cada ilustração e do mapa muscular (SPEC §15).” e “… só em Mais → Equipamento (SPEC §15.3).”",
+      "proposta": "Tirar a referência ao documento interno. components/mais/tela-preferencias.tsx:74 → “Autor, licença e link de cada ilustração e do mapa muscular.” O “(SPEC §15.3)” do card de Créditos vem de data/equipamentos.json (campo fotos.uso, renderizado em app/(app)/mais/creditos/page.tsx:136): corrigir no JSON para “registro particular do inventário do terraço, usado só em Mais → Equipamento”.",
+      "esforco": "P",
+      "prioridade_dono": "outra",
+      "arquivos": [
+        "components/mais/tela-preferencias.tsx",
+        "data/equipamentos.json",
+        "app/(app)/mais/creditos/page.tsx"
+      ]
+    },
+    {
+      "id": "copy-03",
+      "tela": "Calendário (cabeçalho da semana)",
+      "rota": "/calendario",
+      "tema": "ambos",
+      "severidade": "alta",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/copy/copy-03.png — “Fase 1 · semana 16 de 12”; a mesma informação na aba Treino aparece como “Fase 1 · semana 16” (sem o “de 12”)",
+      "proposta": "“semana 16 de 12” é impossível de ler. Em components/calendario/tela-calendario.tsx:281 (rotuloDaFase), quando a semana passa do total da fase, trocar a fórmula por “Fase 1 · semana 16” (sem denominador) ou “Fase 1 · 16ª semana (fase de 12)”. Regra única para as duas telas, no mesmo helper, para a aba Treino e o Calendário dizerem a mesma coisa.",
+      "esforco": "M",
+      "prioridade_dono": "relatorio-corpo-calendario",
+      "arquivos": [
+        "components/calendario/tela-calendario.tsx",
+        "lib/semana.ts"
+      ]
+    },
+    {
+      "id": "copy-04",
+      "tela": "Mais → Perfil (card da fase)",
+      "rota": "/mais/perfil",
+      "tema": "ambos",
+      "severidade": "alta",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/copy/copy-04.png — duas linhas coladas: “Desde 01/06 · semana 16 · 46 treinos concluídos” e logo abaixo “Você já tem 15 semanas de Fase 1 e 46 treinos concluídos.”",
+      "proposta": "16 e 15 na mesma tela para a mesma contagem. Escolher uma definição (semana corrente vs. semanas completas) e usar o mesmo valor nas duas frases em components/mais/tela-perfil.tsx; se as duas contagens forem mesmo diferentes, nomeá-las (“semana 16” × “15 semanas completas”).",
+      "esforco": "P",
+      "prioridade_dono": "outra",
+      "arquivos": [
+        "components/mais/tela-perfil.tsx"
+      ]
+    },
+    {
+      "id": "copy-05",
+      "tela": "Relatório (totais no topo × card “Treinos na semana”)",
+      "rota": "/relatorio",
+      "tema": "ambos",
+      "severidade": "alta",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/copy/copy-05.png — topo: “TREINOS / 51 / no total”; mais abaixo: “TREINOS NA SEMANA / 1 / só força · 6 no mês · 46 no total”",
+      "proposta": "O mesmo rótulo (“treinos … no total”) devolve 51 e 46 na mesma rolagem, porque um conta todas as sessões e o outro só a força. Renomear: topo “SESSÕES / 51 / no total (força + cardio)” e o card “só força · 6 no mês · 46 de força no total”. Arquivos: components/relatorio/* (totais) e components/progresso/tela-progresso.tsx.",
+      "esforco": "M",
+      "prioridade_dono": "relatorio-corpo-calendario",
+      "arquivos": [
+        "components/progresso/tela-progresso.tsx",
+        "components/relatorio"
+      ]
+    },
+    {
+      "id": "copy-06",
+      "tela": "Explorar (Circuitos, Por aparelho, Planos)",
+      "rota": "/explorar",
+      "tema": "ambos",
+      "severidade": "alta",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/copy/copy-06.png — medido no DOM: subtítulo do plano “Corda” com scrollHeight 80 px dentro de clientHeight 16 px (line-clamp:1); “Suporte cavalete”, “Barra fixa de parede” e “Banco supino” com 48/16. O usuário lê “aquecimento: 2 min antes de todo treino de força (~200 sal…”",
+      "proposta": "O problema é a redação, não o clamp: esses subtítulos são fichas técnicas (medidas, carga máxima, número de níveis) usadas como descrição de card. Em data/equipamentos.json e data/colecoes.json separar `resumo` (uma frase curta, ≤ 60 caracteres, que cabe numa linha) de `ficha` (o texto técnico, que fica só na tela de Equipamento / na coleção aberta). Ex.: Corda → resumo “5 estágios, do salto básico ao duplo”.",
+      "esforco": "M",
+      "prioridade_dono": "explorar-fichas",
+      "arquivos": [
+        "data/equipamentos.json",
+        "data/colecoes.json",
+        "components/explorar/tela-explorar.tsx"
+      ]
+    },
+    {
+      "id": "copy-07",
+      "tela": "Mais → Backup, Mais → Trocar senha, Corpo → Fotos",
+      "rota": "/mais/backup, /mais/senha, /corpo",
+      "tema": "ambos",
+      "severidade": "alta",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/copy/copy-07.png — “Baixa um JSON com as 11 tabelas do seu usuário.”, “(elas ficam no bucket privado)”, “A senha é do Supabase, não fica guardada neste aparelho. Se esquecer, troque de novo pelo painel do banco.”",
+      "proposta": "Jargão de infraestrutura na tela de um app de treino, e a última frase manda o usuário para um painel a que ele não tem acesso. components/mais/tela-backup.tsx:91 → “Baixa um arquivo com tudo que você registrou.”; :43 → “As fotos de progresso não entram no arquivo — elas ficam guardadas à parte, só suas.”; components/mais/tela-senha.tsx:175 → “A senha não fica guardada neste aparelho. Se esquecer, peça ao Miguel para reenviar uma senha nova.”; components/corpo/aba-fotos.tsx:73 → “Elas ficam guardadas só para você.”",
+      "esforco": "P",
+      "prioridade_dono": "outra",
+      "arquivos": [
+        "components/mais/tela-backup.tsx",
+        "components/mais/tela-senha.tsx",
+        "components/corpo/aba-fotos.tsx"
+      ]
+    },
+    {
+      "id": "copy-08",
+      "tela": "Mais → Créditos",
+      "rota": "/mais/creditos",
+      "tema": "ambos",
+      "severidade": "media",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/copy/copy-08.png — “Texto completo da licença MIT — anda junto do desenho, com a atribuição e o que foi feito com a geometria” e “Nenhum ponto do desenho foi alterado; os músculos foram reagrupados e as cores viraram variáveis CSS.”",
+      "proposta": "A tela mistura dois leitores: a atribuição legal (obrigatória, SPEC §15) e notas de implementação (“as cores viraram variáveis CSS”, “anda junto do desenho”). Deixar só o que a licença exige em linguagem de gente: “Nenhuma linha do desenho foi alterada; só reagrupamos os músculos e trocamos as cores.” Remover “variáveis CSS”.",
+      "esforco": "P",
+      "prioridade_dono": "outra",
+      "arquivos": [
+        "app/(app)/mais/creditos/page.tsx"
+      ]
+    },
+    {
+      "id": "copy-09",
+      "tela": "Mais, Preferências → Treino, Como usar o app, Cardio",
+      "rota": "/mais, /mais/preferencias, /mais/guia, /cardio/corrida",
+      "tema": "ambos",
+      "severidade": "alta",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/copy/copy-09.png — “Tema, som e vibração do timer, tela acesa, incrementos.”; “Como o player se comporta: preparação, descanso, avisos e tela.”; “Ao zerar o descanso, o player já vai para o próximo passo.”; “Um apito curto quando o timer zera.”; “O card do dia monta a sessão … e abre o player.”; aria-label “Timer de intervalos”",
+      "proposta": "“player”, “timer” e “card” são nomes internos de componente, não palavras do usuário. Trocar por “a tela do treino”, “a contagem” / “o cronômetro” e “o bloco de hoje”. app/(app)/mais/page.tsx:53; components/mais/tela-preferencias.tsx:242; components/mais/ajustes-do-treino.tsx:31,36,41; components/cardio/tela-cardio.tsx (aria “Cronômetro dos blocos”); components/mais/guia.tsx. Fazer junto com o dicionário de mensagens já agendado, como lista de termos proibidos.",
+      "esforco": "P",
+      "prioridade_dono": "treino-player",
+      "arquivos": [
+        "app/(app)/mais/page.tsx",
+        "components/mais/tela-preferencias.tsx",
+        "components/mais/ajustes-do-treino.tsx",
+        "components/cardio/tela-cardio.tsx"
+      ]
+    },
+    {
+      "id": "copy-10",
+      "tela": "Corpo → Peso (Registrar peso)",
+      "rota": "/corpo",
+      "tema": "ambos",
+      "severidade": "baixa",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/copy/copy-10.png — “Defina uma meta embaixo, se quiser.”",
+      "proposta": "“embaixo” é coloquial e, num app que rola, ambíguo. components/corpo/aba-peso.tsx:171 → “Se quiser, defina uma meta logo abaixo.” Mesma revisão vale para qualquer texto que oriente por posição na tela (preferir “no card Meta”).",
+      "esforco": "P",
+      "prioridade_dono": "relatorio-corpo-calendario",
+      "arquivos": [
+        "components/corpo/aba-peso.tsx"
+      ]
+    },
+    {
+      "id": "copy-11",
+      "tela": "Cardio (cabeçalho) × Calendário × Relatório",
+      "rota": "/cardio/corrida",
+      "tema": "ambos",
+      "severidade": "media",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/copy/copy-11.png — na tela da sessão: “7 × (1 min 30 / 2 min caminhada) · 35 min” e “faltam 35 min de sessão”; no Calendário e no Histórico do Relatório a MESMA sessão aparece como “· 34 min”",
+      "proposta": "Um minuto de diferença para a mesma sessão em três telas. Derivar a duração de um único helper (lib/cardio.ts) e usá-lo no card do calendário, no histórico e no cabeçalho do cardio; se a diferença for aquecimento/soltura, dizer qual é qual (“34 min de blocos · 44 min com aquecimento”).",
+      "esforco": "M",
+      "prioridade_dono": "relatorio-corpo-calendario",
+      "arquivos": [
+        "lib/cardio.ts",
+        "components/cardio/tela-cardio.tsx",
+        "components/calendario/grade.tsx"
+      ]
+    },
+    {
+      "id": "copy-12",
+      "tela": "Barra fixa (card da semana e tabela “As 12 semanas”)",
+      "rota": "/barra-fixa",
+      "tema": "ambos",
+      "severidade": "media",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/copy/copy-12.png — o card mostra, sem rótulo nenhum: “Semana 1–2 · 4 × 5” / “nenhuma — pendurado + negativas (suba no banco, chegue no topo e desça em 4 s)” / “pegada e a parte excêntrica”",
+      "proposta": "Três campos diferentes (assistência do elástico, o que treinar, foco da semana) saem colados como frases soltas — “nenhuma” sozinha não diz nenhuma o quê. Rotular: “Elástico: nenhum — pendurado + negativas…” e “Foco da semana: pegada e a fase excêntrica”. Trocar “a parte excêntrica” por “a descida (fase excêntrica)”. Arquivo: components/barra-fixa/tela-barra-fixa.tsx + rótulos em data/barra-fixa.json.",
+      "esforco": "M",
+      "prioridade_dono": "outra",
+      "arquivos": [
+        "components/barra-fixa/tela-barra-fixa.tsx",
+        "data/barra-fixa.json"
+      ]
+    },
+    {
+      "id": "copy-13",
+      "tela": "Ficha do exercício → “O que o motor decidiu”",
+      "rota": "/exercicios/supino-reto-com-barra",
+      "tema": "ambos",
+      "severidade": "media",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/copy/copy-13.png — “Cada subida, repetição ou volta de carga aparece aqui depois do treino.”",
+      "proposta": "“repetição” aqui quer dizer “repetir a carga”, mas na mesma ficha “repetições” são as reps da série (“3 × 5–8”, “Repetições por sessão”). Trocar o termo da decisão do motor para “manutenção”: “Cada subida, manutenção ou volta de carga aparece aqui depois do treino.” Conferir o mesmo termo em lib/progressao.ts (motivo) e no resumo da sessão, para a palavra ter um sentido só no app inteiro.",
+      "esforco": "P",
+      "prioridade_dono": "explorar-fichas",
+      "arquivos": [
+        "components/exercicio",
+        "lib/progressao.ts"
+      ]
+    },
+    {
+      "id": "copy-14",
+      "tela": "Preferências → Exercícios marcados como “não gosto”",
+      "rota": "/mais/preferencias",
+      "tema": "ambos",
+      "severidade": "baixa",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/copy/copy-14.png — estado vazio: “Nenhum. Eles aparecem por último nas listas.”",
+      "proposta": "Concordância quebrada: “Nenhum” e logo “Eles”, sem antecedente. Estado vazio → “Nenhum por enquanto. Quando você marcar algum, ele passa a aparecer por último nas listas.” Arquivo: components/mais/ajustes-do-treino.tsx (bloco “não gosto”).",
+      "esforco": "P",
+      "prioridade_dono": "outra",
+      "arquivos": [
+        "components/mais/ajustes-do-treino.tsx"
+      ]
+    },
+    {
+      "id": "copy-15",
+      "tela": "Treino, Treinar, Explorar, Personalizar",
+      "rota": "/, /treinar, /explorar",
+      "tema": "ambos",
+      "severidade": "media",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/copy/copy-15.png — quatro redações do mesmo botão: “Começar treino” (components/treino/cards.tsx:179), “Começar Treino B” / “Começar Treino A” (components/treinar/tela-treinar.tsx:199), “Começar Peito” (components/treino/parte-do-corpo.tsx:142) e “Começar (3)” (components/treino/personalizar.tsx:174)",
+      "proposta": "“Começar Peito” não é português. Padronizar o verbo + objeto: “Começar treino” no card do dia, “Começar o Treino B”, “Começar o treino de peito”, “Começar com 3 exercícios”. Interpolar sempre com artigo/preposição em vez de colar o nome no verbo.",
+      "esforco": "P",
+      "prioridade_dono": "treino-player",
+      "arquivos": [
+        "components/treino/cards.tsx",
+        "components/treinar/tela-treinar.tsx",
+        "components/treino/parte-do-corpo.tsx",
+        "components/treino/personalizar.tsx"
+      ]
+    },
+    {
+      "id": "copy-16",
+      "tela": "Mais → Equipamento",
+      "rota": "/mais/equipamento",
+      "tema": "ambos",
+      "severidade": "baixa",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/copy/copy-16.png — “gaiola com travas (único upgrade que mudaria o treino)” e “ver 'anilhas' e 'barras'” com aspas retas, enquanto o resto do app usa aspas curvas (“não gosto”, “corrida”, “Ir”)",
+      "proposta": "Trocar “upgrade” por “compra” / “acréscimo”, e as aspas retas por curvas: ver “anilhas” e “barras”. Os dois textos vêm de data/equipamentos.json — corrigir lá, não no componente (regra do CLAUDE.md).",
+      "esforco": "P",
+      "prioridade_dono": "outra",
+      "arquivos": [
+        "data/equipamentos.json"
+      ]
+    },
+    {
+      "id": "copy-17",
+      "tela": "Mais → Contas (usuário que não é o dono)",
+      "rota": "/mais/contas",
+      "tema": "ambos",
+      "severidade": "media",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/copy/copy-17.png — a tela inteira tem H1 “Contas” e uma linha: “Só o dono vê esta tela.” Nada mais, nenhum caminho de volta",
+      "proposta": "A recusa está escrita como subtítulo da tela que ela recusa. Trocar por um bloco com título e ação: “Esta tela é do dono do app — Só quem administra as contas vê o limite e quem está usando.” + botão “Voltar para Mais”. Arquivo: components/mais/tela-contas.tsx.",
+      "esforco": "P",
+      "prioridade_dono": "outra",
+      "arquivos": [
+        "components/mais/tela-contas.tsx"
+      ]
+    },
+    {
+      "id": "copy-18",
+      "tela": "Relatório → Recordes por exercício e Volume semanal",
+      "rota": "/relatorio",
+      "tema": "ambos",
+      "severidade": "media",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/copy/copy-18.png — subtítulos “Melhor carga, melhor série e e1RM (Epley)” e “Σ reps × kg, últimas 12 semanas”",
+      "proposta": "Sigla e notação matemática sem explicação numa tela de celular. “e1RM (Epley)” → “e a carga máxima estimada”, com a fórmula só na ficha/tooltip; “Σ reps × kg” → “soma de repetições × carga, nas últimas 12 semanas”. Arquivos: components/progresso/tela-progresso.tsx e components/graficos/*.",
+      "esforco": "P",
+      "prioridade_dono": "relatorio-corpo-calendario",
+      "arquivos": [
+        "components/progresso/tela-progresso.tsx",
+        "components/graficos"
+      ]
+    },
+    {
+      "id": "copy-19",
+      "tela": "Relatório (card de aderência) × cards de plano × Cardio",
+      "rota": "/relatorio, /, /cardio/corrida",
+      "tema": "ambos",
+      "severidade": "media",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/copy/copy-19.png — “ADERÊNCIA (4 SEMANAS) / 78 % / 14 de 18 dias”; na aba Treino os mesmos percentuais aparecem sem espaço (“0%”, “8%”, “92%”); no Cardio, “20–25 %” com espaço",
+      "proposta": "Dois problemas juntos: (a) “aderência” é jargão clínico — trocar por “Constância (4 semanas)”; (b) padronizar o símbolo de porcentagem. Escolher uma forma (recomendo “78%”, colado, como já está nos cards de plano) e centralizar num formatarPercentual em lib/formato.ts; hoje components/progresso/tela-progresso.tsx:149 escreve `${...} %` à mão.",
+      "esforco": "P",
+      "prioridade_dono": "relatorio-corpo-calendario",
+      "arquivos": [
+        "components/progresso/tela-progresso.tsx",
+        "lib/formato.ts"
+      ]
+    },
+    {
+      "id": "copy-20",
+      "tela": "Mais → item “Trocar senha”",
+      "rota": "/mais",
+      "tema": "ambos",
+      "severidade": "baixa",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/copy/copy-20.png — “Troque a senha temporária pela sua, sem sair do app.”",
+      "proposta": "A descrição afirma um estado (“a senha temporária”) que só vale para quem recebeu convite; quem criou a conta pela tela de login nunca teve senha temporária. Neutralizar: “Defina uma senha nova, sem sair do app.” Arquivo: app/(app)/mais/page.tsx (lista de itens).",
+      "esforco": "P",
+      "prioridade_dono": "outra",
+      "arquivos": [
+        "app/(app)/mais/page.tsx"
+      ]
+    },
+    {
+      "id": "copy-21",
+      "tela": "Player → Preparação",
+      "rota": "/treinar/<id>",
+      "tema": "escuro",
+      "severidade": "media",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/copy/copy-21.png — a tela inteira é “PREPARADO PARA COMEÇAR / 10 / segundos / Levantamento terra / Começar agora” — fonte: components/player/preparacao.tsx:35 (“Preparado para começar”, com o caixa-alta feito por CSS)",
+      "proposta": "“PREPARADO” concorda no masculino, e o app aceita outras contas dentro da cota do dono (SPEC §21) — a primeira tela do treino trata toda usuária no masculino. Trocar por forma neutra: “PREPARE-SE” (ou “COMEÇANDO EM”). Arquivo: components/player/preparacao.tsx. Vale varrer o resto por adjetivos com gênero dirigidos ao usuário.",
+      "esforco": "P",
+      "prioridade_dono": "treino-player",
+      "arquivos": [
+        "components/player/preparacao.tsx"
+      ]
+    },
+    {
+      "id": "copy-22",
+      "tela": "Player → Exercício",
+      "rota": "/treinar/<id>",
+      "tema": "escuro",
+      "severidade": "media",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/copy/copy-22.png — rótulos visíveis “REPETIÇÕES” e “NA BARRA” sobre os dois campos; os aria-label dos mesmos campos são “repetições” e “carga na barra”; abaixo, a palavra “montagem” sozinha, em minúscula",
+      "proposta": "O rótulo visível perde o substantivo que o aria-label tem: “NA BARRA” não nomeia nada. Usar “CARGA NA BARRA” (ou “PESO NA BARRA”) nos dois lugares, e transformar “montagem” em ação nomeada (“Ver a montagem”). Arquivos: components/player/exercicio.tsx, components/stepper-numerico.tsx.",
+      "esforco": "M",
+      "prioridade_dono": "treino-player",
+      "arquivos": [
+        "components/player/exercicio.tsx",
+        "components/stepper-numerico.tsx"
+      ]
+    },
+    {
+      "id": "copy-23",
+      "tela": "Player → Exercício e Descanso",
+      "rota": "/treinar/<id>",
+      "tema": "escuro",
+      "severidade": "media",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/copy/copy-23.png — na tela de exercício: “Aquecimento 1 de 2 · exercício 1 de 6” (uma palavra maiúscula, a outra minúscula na mesma linha); na tela de descanso o mesmo dado vira “AQUECIMENTO 2 DE 2”, em caixa alta; e o botão ao lado de “Pular” é só “20 s”",
+      "proposta": "Três grafias do mesmo rótulo em duas telas seguidas. Fixar uma: “Aquecimento 2 de 2 · exercício 1 de 6” nas duas, em caixa baixa com a primeira maiúscula (o caixa-alta vira estilo CSS, não texto). E “20 s” isolado não diz o que faz: “+20 s”. Arquivos: components/player/exercicio.tsx, components/treinar/timer-descanso.tsx.",
+      "esforco": "P",
+      "prioridade_dono": "treino-player",
+      "arquivos": [
+        "components/player/exercicio.tsx",
+        "components/treinar/timer-descanso.tsx"
+      ]
+    },
+    {
+      "id": "copy-24",
+      "tela": "Faixa da semana: aba Treino × Calendário × Relatório",
+      "rota": "/, /calendario, /relatorio",
+      "tema": "ambos",
+      "severidade": "baixa",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/copy/copy-24.png — a mesma faixa aparece como “seg ter qua qui sex sab dom” (minúscula) na aba Treino e no Relatório, e como “SEG TER QUA QUI SEX SÁB DOM” (caixa alta, com acento) no Calendário; os aria-label também divergem: “segunda 14/09: …” na aba Treino, “seg 14/09: …” no Calendário",
+      "proposta": "Independente do “sab” sem acento já agendado: unificar num só componente de dia da semana (components/ui/faixa-semana.tsx), com a abreviação acentuada em texto e o caixa-alta feito por CSS, e aria-label sempre com o nome por extenso (“segunda-feira, 14/09”). Hoje a mesma informação tem duas grafias e dois níveis de detalhe para leitor de tela.",
+      "esforco": "P",
+      "prioridade_dono": "relatorio-corpo-calendario",
+      "arquivos": [
+        "components/ui/faixa-semana.tsx",
+        "components/calendario/grade.tsx"
+      ]
+    },
+    {
+      "id": "copy-25",
+      "tela": "Explorar / Exercícios (filtros × meta dos cards)",
+      "rota": "/explorar, /exercicios",
+      "tema": "ambos",
+      "severidade": "media",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/copy/copy-25.png — o mesmo equipamento em quatro grafias: filtro “Cross-over”, meta do card “Cross over”, nome de exercício “Crossover na polia”, descrição “em frente ao cross over”; também “Super band” (filtro) × “Super Band” (card), “Peso do corpo” (filtro) × “Peso corporal” × “peso corporal” (cards), “Barra maciça” (filtro) × “Barra” (card)",
+      "proposta": "O usuário filtra por “Cross-over” e lê “Cross over” no resultado — parece coisa diferente. Fixar a grafia canônica de cada equipamento/implemento num só lugar (data/equipamentos.json) e fazer data/exercicios.json referenciar o id, não o texto; o filtro e o card passam a imprimir a mesma string. Conferir também “Halter” × “Halteres” quando é singular.",
+      "esforco": "M",
+      "prioridade_dono": "explorar-fichas",
+      "arquivos": [
+        "data/equipamentos.json",
+        "data/exercicios.json",
+        "components/exercicios"
+      ]
+    },
+    {
+      "id": "copy-26",
+      "tela": "Relatório → Números (detalhe do período)",
+      "rota": "/relatorio",
+      "tema": "ambos",
+      "severidade": "media",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/copy/copy-26.png — sob “Força” a linha é “Treino B 1”; sob “Cardio”, “Corrida 1 · 34 min · 3,6 km”",
+      "proposta": "A contagem cola no nome, e os treinos deste app se chamam A1/B1 — “Treino B 1” lê-se como “Treino B1”. Separar com “×” ou travessão: “Treino B × 1” / “Corrida × 1 · 34 min · 3,6 km”, ou “1 × Treino B”. Arquivo: components/progresso/tela-progresso.tsx (detalhe dos números).",
+      "esforco": "P",
+      "prioridade_dono": "relatorio-corpo-calendario",
+      "arquivos": [
+        "components/progresso/tela-progresso.tsx"
+      ]
+    },
+    {
+      "id": "copy-27",
+      "tela": "/progresso (rota antiga) × /relatorio",
+      "rota": "/progresso",
+      "tema": "ambos",
+      "severidade": "baixa",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/copy/copy-27.png — /progresso devolve innerText byte a byte igual ao de /relatorio, com o mesmo H1 “Relatório” e o mesmo <title> “Relatório — Treino do Terraço”",
+      "proposta": "A rota /progresso não existe mais como conceito na interface (a aba se chama Relatório) mas continua servindo a tela inteira, e o nome do arquivo ainda é components/progresso/tela-progresso.tsx. Redirecionar /progresso → /relatorio (redirect em next.config.ts) e renomear a pasta do componente, para o vocabulário do código acompanhar o da tela.",
+      "esforco": "M",
+      "prioridade_dono": "relatorio-corpo-calendario",
+      "arquivos": [
+        "app/(app)/progresso/page.tsx",
+        "next.config.ts",
+        "components/progresso/tela-progresso.tsx"
+      ]
+    },
+    {
+      "id": "copy-28",
+      "tela": "Corpo → Peso / Medidas · Preferências · Perfil · Contas",
+      "rota": "/corpo, /mais/preferencias, /mais/perfil",
+      "tema": "ambos",
+      "severidade": "media",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/copy/copy-28.png — botões de gravar com três verbos na mesma tela: “Registrar” (peso), “Guardar” (meta), “Salvar” (Preferências, Perfil, Equipamento); e os toasts seguem a mesma bagunça: “Altura de 190 cm guardada.” × “Perfil salvo.” × “Limite salvo.” × “Peso de 12/09 registrado.”",
+      "proposta": "Dois verbos bastam e cada um com um papel: “Registrar” para o que vira dado com data (peso, medidas, série), “Salvar” para configuração (meta, preferências, perfil, limite). Eliminar “Guardar”. components/corpo/aba-peso.tsx:94,103 (toasts) e o botão da Meta; alinhar com o dicionário de mensagens já agendado.",
+      "esforco": "P",
+      "prioridade_dono": "relatorio-corpo-calendario",
+      "arquivos": [
+        "components/corpo/aba-peso.tsx",
+        "components/mais/tela-preferencias.tsx",
+        "components/mais/tela-perfil.tsx"
+      ]
+    },
+    {
+      "id": "copy-29",
+      "tela": "Preferências (Meta semanal, Treino, Incrementos)",
+      "rota": "/mais/preferencias",
+      "tema": "ambos",
+      "severidade": "media",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/copy/copy-29.png — “Vazio = o padrão da fase (5).”, “0 = sem preparação (padrão 10).”, “Vazio = o descanso do próprio exercício, como está no guia.”, e os rótulos “Preparação (s)” e “Descanso padrão (s)”",
+      "proposta": "O sinal de igual é notação de configuração, não português, e “(s)” lê-se como marca de plural. Trocar por frase: “Deixe em branco para usar o padrão da fase (5 por semana).”, “Use 0 para pular a preparação (o padrão é 10 segundos).” e rótulos “Preparação (segundos)” / “Descanso padrão (segundos)”.",
+      "esforco": "P",
+      "prioridade_dono": "outra",
+      "arquivos": [
+        "components/mais/tela-preferencias.tsx",
+        "components/mais/ajustes-do-treino.tsx"
+      ]
+    },
+    {
+      "id": "copy-30",
+      "tela": "Mais → Perfil (Semanas dos planos) × Explorar (Planos)",
+      "rota": "/mais/perfil, /explorar",
+      "tema": "ambos",
+      "severidade": "media",
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/copy/copy-30.png — no Perfil: “Corda / Semana 1 de 12”; no Explorar o mesmo plano é “Corda: 5 estágios / 5 semanas”. Ainda no Perfil, o texto de ajuda diz “quando as 2 sessões da semana são concluídas”, número fixo que não vale para os três planos",
+      "proposta": "O denominador do Perfil está chumbado em 12 para os três planos. Ler a duração de cada plano de data/cardio.json / data/programa.json (cada plano já traz o seu total de semanas) (“Semana 1 de 5” para a corda) e trocar “as 2 sessões da semana” por “as sessões da semana”. Arquivo: components/mais/tela-perfil.tsx (bloco Semanas dos planos).",
+      "esforco": "P",
+      "prioridade_dono": "outra",
+      "arquivos": [
+        "components/mais/tela-perfil.tsx",
+        "data/cardio.json",
+        "data/programa.json"
+      ]
+    }
+  ]
+}

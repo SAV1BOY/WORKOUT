@@ -1,0 +1,493 @@
+{
+ "A · Lote 7 — aba Treino (pronto a uma correção)": [
+  {
+   "id": "L7-aba-treino (lote inteiro, branch ultraloop/l7-aba-treino @ b8ede08)",
+   "origem": "R4 — reprovado 4× (auditorias 1–4); portões completos verdes no HEAD (1359 unit / 378 e2e)",
+   "motivo": "9 itens implementados (Ajustar no cabeçalho em vez do FAB, faixa fixa da sessão, folha Ajustar gravando sozinha, ladrilhos Fase/Peso, nome do exercício primeiro, carrossel de desafios com posição, degradê nos chips, 'Começar o Treino B', aviso ao voltar do player). Pendência final (importante): a faixa fixa do dia deixa o toque atravessar o corpo do cartão (pointer-events-none) para alvos escondidos embaixo. Correção indicada pelo auditor: envolver a faixa INTEIRA no mesmo Link/botão do 'Continuar'/'Começar' (barra de app de música), tirar o pointer-events-none do contêiner e reescrever a SPEC §22.7 item 2; e2e: varrer a largura da faixa e exigir elementFromPoint dentro da faixa. Não coube antes do fechamento das 11:10. Base do lote: ultraloop/l5-player-gravar (221bd18) — rebase/merge de main necessário antes de retomar."
+  }
+ ],
+ "C · Pendências menores das auditorias (não bloqueantes)": [
+  {
+   "id": "L2-10",
+   "origem": "R1/L2",
+   "motivo": "opcional; mexe no mesmo trecho de lib/calendario.ts que L2-5; merece lote com folga (Calendário e faixa da semana, R4)"
+  },
+  {
+   "id": "L4-6",
+   "origem": "R2/L4",
+   "motivo": "loading.tsx no grupo (app) escrito, funcionou e foi revertido pelo construtor (efeito colateral registrado no PROGRESSO do lote); reavaliar com escopo por rota"
+  },
+  {
+   "id": "L4-7",
+   "origem": "R2/L4",
+   "motivo": "next/dynamic implementado e medido (First Load: explorar/[tipo] 377→346, treinar 374→358, / 403→386, player 412→397, relatorio 371→36x) e revertido junto; reaplicar com e2e cobrindo a folha/tutorial/blocos"
+  },
+  {
+   "id": "L4-3-theme-color",
+   "origem": "R2/L4",
+   "motivo": "meta theme-color no cliente revertida: o Next reescreve o <head> a cada navegação; alternativa: viewport.themeColor com media queries só, ou atualizar via useEffect no layout do cliente após cada rota"
+  },
+  {
+   "id": "flutuante-no-dialogo-da-foto",
+   "origem": "R2/integração",
+   "motivo": "components/exercicios/foto-ampliada.tsx:135 — o diálogo 'Apagar esta foto?' usa shadow-lg; a SPEC §22.3 item 5 manda usar a classe .flutuante (sombra preta some sobre #0a0a0a). Uma classe. Entra no lote da ficha do exercício (R5/l10)."
+  },
+  {
+   "id": "R3/L5 menor-1 · scripts/capturas.ts (o das revisões de marco, SPEC §13)",
+   "origem": "R3/L5 auditoria (menor)",
+   "motivo": "Não bloqueia e não coube: o script ficou com os rótulos antigos em seis pontos (\"Concluir a série\" nas linhas 232/256/269, \"Pular\" nas 200/264 — que agora casa por substring com DOIS botões e estoura no modo estrito — e um clique em \"Voltar ao treino\" na 252, que a conclusão não tem mais). Correção conhecida e barata, mas exige commit, e um commit exige a cadeia completa de portões (e2e 12,5 min +…"
+  },
+  {
+   "id": "R3/L5 menor-2 · components/treinar/visao-geral.tsx (Esc fecha o alerta E a Visão geral",
+   "origem": "R3/L5 auditoria (menor)",
+   "motivo": "Não bloqueia (nada é descartado; o usuário só é jogado de volta ao player) e não coube no tempo restante. Conferido no diff 62eab79..HEAD: o efeito de keydown/popstate não foi tocado, continua sem checar se há camada por cima."
+  },
+  {
+   "id": "R3/L5 menor-3 · components/player/descanso.tsx (os dois botões de tempo dizem \"20 s\")",
+   "origem": "R3/L5 auditoria (menor)",
+   "motivo": "Não bloqueia (o nome acessível está certo; o que destoa é o texto visível contra o que a SPEC §22.5 item 7 promete) e não coube. Conferido no diff: descanso.tsx não foi tocado."
+  },
+  {
+   "id": "R3/L5 menor-4 · components/treinar/serie.tsx:186 (\"NA BARRA\" x \"CARGA NA BARRA\")",
+   "origem": "R3/L5 auditoria (menor)",
+   "motivo": "Não bloqueia e não coube. Conferido no diff: serie.tsx não foi tocado, as duas grafias convivem na mesma sessão. A sugestão do auditor (extrair rotuloDoCampoDeCarga(implemento) em lib/formato.ts, que também resolve o \"CARGA PESO DO CORPO\") mexe em dois componentes e pedia portões."
+  },
+  {
+   "id": "R3/L5 menor-5 · components/ui/alert-dialog.tsx (overlay fora da fundação visual)",
+   "origem": "R3/L5 auditoria (menor)",
+   "motivo": "Não bloqueia e não coube. Conferido no diff: continua bg-black/40 sem desfoque e bg-card+border, enquanto dialog.tsx/sheet.tsx usam bg-black/10 + supports-backdrop-filter:backdrop-blur-xs e bg-popover + ring-1 ring-foreground/10. É mudança VISÍVEL, logo exigiria também regerar e comparar as capturas — inviável antes da hora limite."
+  },
+  {
+   "id": "R3/L5 menor-6 · components/player/firme.tsx (o primário cheio é \"Pular esta pergunta\")",
+   "origem": "R3/L5 auditoria (menor)",
+   "motivo": "Não bloqueia e não coube. Conferido no diff: firme.tsx não foi tocado. Também é mudança visível (variant=\"outline\" enquanto escolha === null, mais o mesmo em feedback.tsx), com capturas a regerar."
+  },
+  {
+   "id": "R3/L5 menor-7 · components/player/exercicio.tsx (aria-valuetext em outra unidade da pr",
+   "origem": "R3/L5 auditoria (menor)",
+   "motivo": "Não bloqueia (efeito colateral do que o item a11y-06 pediu literalmente) e não coube. Conferido no diff: exercicio.tsx não foi tocado; o valuetext continua \"exercício 1 de 6\" enquanto a barra mede séries (valuenow=1, valuemax=18). A correção mexe no componente e na asserção do e2e."
+  },
+  {
+   "id": "R3/L6 menor-contador-no-total-3-linhas",
+   "origem": "R3/L6 corretor (menor)",
+   "motivo": "O detalhe \"no total (força + cardio)\" do primeiro contador continua quebrando a 360 px. Não é só trocar a string: o texto é asserido literalmente pelo e2e §22.6-4 (e2e/ultraloop-b-r3.spec.ts:285, toContainText(\"no total (força + cardio)\")) e é citado palavra por palavra na SPEC §22.6 item 4 — ele existe justamente para o rótulo não contradizer o \"46 de força no total\" dos gráficos. Mexer nele é mu…"
+  },
+  {
+   "id": "R3/L6 menor: A legenda nova não cobre todas as marcas da faixa. `lib/semana.ts:35` …",
+   "origem": "R3/L6 auditoria-2 (menor)",
+   "motivo": "A legenda nova não cobre todas as marcas da faixa. `lib/semana.ts:35` define cinco `MarcaDoDia` — feito, parcial, faltou, aberto, descanso — e `components/ui/faixa-semana.tsx:147` desenha `parcial` como um anel com um ponto dentro, visualmente distinto tanto do \"○ a fazer\" (anel vazio) quanto do \"● faltou\" (ponto cinza cheio). A legenda \"✓ feito · ○ a fazer · ● faltou · — descanso · hoje em destaq…"
+  },
+  {
+   "id": "R3/L6 menor: O `role=\"status\"` foi posto numa `<section>` que só entra no DOM já co…",
+   "origem": "R3/L6 auditoria-2 (menor)",
+   "motivo": "O `role=\"status\"` foi posto numa `<section>` que só entra no DOM já com o conteúdo dentro: `if (!pronto || fechado || novas.length === 0) return null;`. Região viva inserida junto com o texto é o caso clássico em que vários leitores de tela ficam calados — a região precisa existir ANTES para a mudança ser anunciada. O papel e o nome acessível estão certos (e o e2e confirma `getByRole(\"status\", { n…"
+  },
+  {
+   "id": "R3/L6 menor: `EsqueletoGrade3` virou código morto. Ele foi criado pela fundação vis…",
+   "origem": "R3/L6 auditoria-2 (menor)",
+   "motivo": "`EsqueletoGrade3` virou código morto. Ele foi criado pela fundação visual do L3 (SPEC §22.3 item 10) exatamente para \"Os três contadores do Relatório\", e este lote trocou seu único uso (components/relatorio/tela-relatorio.tsx) por um `EsqueletoNumeros` local. Nenhum outro arquivo o importa — confirmado por grep em components/ e app/. A observação do lote pedia para usar os componentes que o L3/L4 …"
+  },
+  {
+   "id": "R3/L6 menor: Antes de `pronto` (hoje && perfil) os ladrilhos mostram \"—\" no número,…",
+   "origem": "R3/L6 auditoria-2 (menor)",
+   "motivo": "Antes de `pronto` (hoje && perfil) os ladrilhos mostram \"—\" no número, mas as legendas continuam sendo frases calculadas a partir de zeros: \"SEMANAS SEGUIDAS / — / com a meta de 0\" (porque `meta = perfil ? metaSemanal(...) : 0`) e \"DIAS SEGUIDOS / — / comece hoje\" (porque `dias === 0`). Não consegui reproduzir no navegador — o cache offline devolve o dado antes da primeira pintura, e é por isso qu…"
+  },
+  {
+   "id": "R3/L6 menor: Os cabeçalhos `sticky top-0` não têm `scroll-margin-top`, então qualqu…",
+   "origem": "R3/L6 auditoria-2 (menor)",
+   "motivo": "Os cabeçalhos `sticky top-0` não têm `scroll-margin-top`, então qualquer rolagem programática para `block: \"start\"` deposita o alvo DEBAIXO do cabeçalho aberto (79 px). Isso já é visível na própria régua: a captura 12-relatorio-numeros-claro/escuro mostra o título \"Números\", o subtítulo e metade da fileira Semana/Mês/Tudo escondidos atrás do cabeçalho \"Resumo\" — quem olhar a captura acha que a tel…"
+  },
+  {
+   "id": "R3/L6 menor: O detalhe \"no total (força + cardio)\" quebra em TRÊS linhas no ladrilh…",
+   "origem": "R3/L6 auditoria-2 (menor)",
+   "motivo": "O detalhe \"no total (força + cardio)\" quebra em TRÊS linhas no ladrilho de 95 px (\"no total\" / \"(força +\" / \"cardio)\"), o que empurra a fileira de Totais para 120 px de altura e, como a legenda cola no rodapé, abre um vão de ~34 px entre o número e a legenda dos outros dois ladrilhos (\"2.163\" … \"no total\"). O alinhamento pedido pelo item 7 está correto — os três números caem na mesma linha e as tr…"
+  },
+  {
+   "id": "R4/L7 menor: O h1 da data quebrou em duas linhas a 360 px. Com o \"Ajustar\" (44 px) …",
+   "origem": "R4/L7 auditoria (menor)",
+   "motivo": "O h1 da data quebrou em duas linhas a 360 px. Com o \"Ajustar\" (44 px) ao lado do selo de sequência, sobram ~146 px para o `text-2xl`, e \"Quarta, 16/09\" virou \"Quarta,\" / \"16/09\" (visível em 03-treino-topo nos dois temas; na base cabia numa linha). Somado às três linhas do ladrilho Fase/Peso, o \"Começar treino\" desceu ~50 px — num lote cuja premissa é justamente o que fica ao alcance do polegar. Nã…"
+  },
+  {
+   "id": "R4/L7 menor: A faixa fixa do dia corta o texto no meio da palavra quando ainda não …",
+   "origem": "R4/L7 auditoria (menor)",
+   "motivo": "A faixa fixa do dia corta o texto no meio da palavra quando ainda não há sessão. Medido nos dois temas: `p.scrollWidth > p.clientWidth` e o que se lê é \"Treino A · agachamento no…\" (capturas olhos/faixa-light.png e faixa-dark.png). O `foco` (\"agachamento no centro\") não cabe ao lado do botão de 97 px a 360 px. No estado com sessão aberta o texto é curto (\"Treino A · 0/17 séries\") e cabe — o corte …"
+  },
+  {
+   "id": "R4/L7 menor: O teste do item 5 (\"nenhum nome de exercício passa de duas linhas a 36…",
+   "origem": "R4/L7 auditoria (menor)",
+   "motivo": "O teste do item 5 (\"nenhum nome de exercício passa de duas linhas a 360 px\") não pode mais falhar: ele calcula `Math.round(altura / lineHeight)` de um elemento com `line-clamp-2`, e o line-clamp já limita a altura a duas linhas por construção. A asserção `toBeLessThanOrEqual(2)` é verdadeira mesmo para um nome que precisasse de três linhas — exatamente o caso que o item diz querer evitar (\"cortar …"
+  },
+  {
+   "id": "R4/L7 menor: Nomes de teste falam de um FAB que não existe mais depois do item 1: e…",
+   "origem": "R4/L7 auditoria (menor)",
+   "motivo": "Nomes de teste falam de um FAB que não existe mais depois do item 1: e2e/retomada.spec.ts:593 \"o FAB Ajustar sai da tela enquanto a pausa não foi decidida (SPEC §18.3)\" e e2e/v3.spec.ts:302 \"o FAB Ajustar abre os mesmos ajustes do player\". Os dois passam (o que eles medem continua correto), mas o relatório do e2e passou a descrever um elemento inexistente — o lote atualizou o nome do teste equival…"
+  },
+  {
+   "id": "R4/L7 menor: O rótulo do CTA dos desafios passou a existir em dois lugares com text…",
+   "origem": "R4/L7 auditoria (menor)",
+   "motivo": "O rótulo do CTA dos desafios passou a existir em dois lugares com textos diferentes. `acaoDoDesafio` (components/treino/desafios.tsx:81-94) escreve \"Fazer a sessão de barra fixa\" / \"Fazer a corrida da semana N\" / \"Fazer o treino da fase N\" a partir do id, enquanto `Desafio.acao` em lib/colecoes.ts continua \"Fazer a sessão da semana\" e é o que components/explorar/tela-explorar.tsx:249 mostra para o…"
+  },
+  {
+   "id": "R4/L7 menor: O gatilho do aviso é mais largo do que \"voltar do player\". A marca em …",
+   "origem": "R4/L7 auditoria (menor)",
+   "motivo": "O gatilho do aviso é mais largo do que \"voltar do player\". A marca em `sessionStorage` (\"treino:saiu-para\") só é apagada quando a aba Treino MONTA, então o caminho player → (barra de abas) Relatório → Treino também dispara o aviso, como se o usuário tivesse acabado de sair do player. A frase continua verdadeira enquanto a sessão está aberta, por isso é só ruído, não erro."
+  },
+  {
+   "id": "R4/L7 menor: O \"Ajustar\", agora no cabeçalho, fica embaixo dos avisos do sonner. O …",
+   "origem": "R4/L7 auditoria (menor)",
+   "motivo": "O \"Ajustar\", agora no cabeçalho, fica embaixo dos avisos do sonner. O Toaster é `position=\"top-center\"` (app/providers.tsx:42) e a bolha ocupa quase a largura da tela no alto; enquanto um aviso está na tela o botão de 44 px do cabeçalho não recebe toque (confirmei o bloqueio de ponteiro no Chromium; o aviso do próprio item 9, \"Treino guardado…\", cobre o cabeçalho por ~4 s — ver olhos/volta-do-play…"
+  },
+  {
+   "id": "R4/L6 menor: A entrada do próprio lote ainda descreve a legenda da faixa com QUATRO…",
+   "origem": "R4/L6 auditoria (menor)",
+   "motivo": "A entrada do próprio lote ainda descreve a legenda da faixa com QUATRO glifos — \"a faixa da semana ganhou '✓ feito · ○ a fazer · ● faltou · — descanso · hoje em destaque'\" —, sem o \"◉ parcial\". Isso contradiz a SPEC §22.6 item 9, `LEGENDA_DA_FAIXA` em lib/semana.ts e o que está na tela (conferido ao vivo: a legenda tem as cinco marcas). O relatório do construtor diz que a frase foi corrigida, mas …"
+  },
+  {
+   "id": "R4/L6 menor: A 360 px a legenda quebra em duas linhas separando o separador do item…",
+   "origem": "R4/L6 auditoria (menor)",
+   "motivo": "A 360 px a legenda quebra em duas linhas separando o separador do item: medido no DOM, a linha 1 é \"✓ feito · ◉ parcial · ○ a fazer · ● faltou \" e a linha 2 começa com \"· — descanso · hoje em destaque\" — um \"·\" órfão abrindo a segunda linha, nos dois temas. Some-se a isso que a legenda usa `text-micro` (10 px), o menor token do projeto, para a chave que o usuário precisa ler para decodificar a fai…"
+  },
+  {
+   "id": "R4/L6 menor: O lote trocou o esqueleto do Relatório por `EsqueletoNumeros`/`Esquele…",
+   "origem": "R4/L6 auditoria (menor)",
+   "motivo": "O lote trocou o esqueleto do Relatório por `EsqueletoNumeros`/`EsqueletoLinhas` locais em tela-relatorio.tsx (justificado na §22.6 item 2: o genérico não tinha as medidas do conteúdo final). Só que `EsqueletoGrade3` era usado EXCLUSIVAMENTE pelo Relatório (git show l4:components/relatorio/tela-relatorio.tsx) e virou código morto — nenhum arquivo do app o importa hoje —, com o comentário dizendo ai…"
+  },
+  {
+   "id": "R4/L6 menor: Agora existem DOIS vocabulários de desenho para o mesmo `MarcaDoDia`: …",
+   "origem": "R4/L6 auditoria (menor)",
+   "motivo": "Agora existem DOIS vocabulários de desenho para o mesmo `MarcaDoDia`: `SIMBOLO` (✓ / ~ / ✕, consumido por components/calendario/grade.tsx, que pinta o símbolo dentro do dia) e `GLIFO_DA_MARCA` (✓ / ◉ / ○ / ● / —, que alimenta a legenda da faixa). \"faltou\" é ✕ no Calendário e ● no Relatório; \"parcial\" é ~ num e ◉ no outro. O princípio que o lote defende (\"nenhum desenho serve a duas marcas\") vale d…"
+  },
+  {
+   "id": "R4/L6 menor: A legenda não tem `aria-hidden`, então o leitor de tela lê os glifos (…",
+   "origem": "R4/L6 auditoria (menor)",
+   "motivo": "A legenda não tem `aria-hidden`, então o leitor de tela lê os glifos (\"✓\", \"◉\", \"●\", \"—\") além dos nomes, enquanto cada dia da faixa já anuncia o estado por extenso no `aria-label` (\"Quarta 16/09: Treino A, feito\"). É ruído para quem não vê o desenho que a legenda explica."
+  },
+  {
+   "id": "R4/L6 menor: O detalhe exigido pela §22.6 item 4 — \"no total (força + cardio)\" — qu…",
+   "origem": "R4/L6 auditoria (menor)",
+   "motivo": "O detalhe exigido pela §22.6 item 4 — \"no total (força + cardio)\" — quebra em TRÊS linhas no ladrilho de 98 px e, medido ao vivo a 360 px nos dois temas, leva a fileira inteira de Totais a 120 px de altura, contra uma linha de detalhe em \"MINUTOS\" e \"VOLUME\". O alinhamento de base fica correto (a grade `grid-rows-[auto_1fr_auto]` resolve), mas o bloco ficou 58 % mais alto do que os 76 px que o esq…"
+  },
+  {
+   "id": "R4/L6 menor: A linha de base de capturas em $U/base foi regerada do head publicado …",
+   "origem": "R4/L6 auditoria (menor)",
+   "motivo": "A linha de base de capturas em $U/base foi regerada do head publicado 28269724 (origin/main), que já contém o lote L5 (player). A faixa B saiu de ultraloop/l4-imagens-midia-entrega e NÃO contém o L5, então 28-player-exercicio (1,8 %) e 29-player-descanso (21,5 %) diferem da base por falta do L5, não por regressão: nenhum arquivo do diff deste lote alcança essas duas telas (o diff não toca componen…"
+  },
+  {
+   "id": "R4/L6 menor-2 (role=\"status\" inserido junto com o conteúdo)",
+   "origem": "R4/L6 corretor (deixado)",
+   "motivo": "Não é uma linha: a <section role=\"status\" > de components/relatorio/aviso-conquista.tsx só entra no DOM quando `pronto && !fechado && novas.length > 0`. Consertar de verdade é montar a região viva sempre e trocar só o miolo, o que mexe no ciclo de montagem do aviso e pede teste próprio — fora do recorte \"faça SÓ o que o problema pede\"."
+  },
+  {
+   "id": "R4/L6 menor-3 (EsqueletoGrade3 virou código morto)",
+   "origem": "R4/L6 corretor (deixado)",
+   "motivo": "Decidir entre apagar o componente e devolvê-lo ao esqueleto do Resumo muda a caixa reservada do §22.6 item 2 (CLS medido) e pede build + medição nova; não cabia no prazo depois do conserto dos dois importantes."
+  },
+  {
+   "id": "R4/L6 menor-4 (legendas calculadas de zeros antes de `pronto`)",
+   "origem": "R4/L6 corretor (deixado)",
+   "motivo": "\"SEMANAS SEGUIDAS / — / com a meta de 0\" exige passar o estado `pronto` para dentro de cada `detalhe` (cinco chamadas) e decidir o texto de espera de cada um; mais de uma linha e com risco de mexer no texto que os e2e do §22.6 item 4 travam."
+  },
+  {
+   "id": "R4/L6 menor-5 (sticky sem scroll-margin-top)",
+   "origem": "R4/L6 corretor (deixado)",
+   "motivo": "Uma classe resolveria, mas ela muda o enquadramento de TODA rolagem programática — inclusive a do capturador —, e as 48 PNGs da régua seriam comparadas contra uma base tirada sem ela. Trocar o recorte das capturas no mesmo commit que conserta uma regressão visual atrapalharia a leitura do diff pelo auditor."
+  },
+  {
+   "id": "R4/L6 menor-6 (\"no total (força + cardio)\" em três linhas)",
+   "origem": "R4/L6 corretor (deixado)",
+   "motivo": "O texto é contrato do §22.6 item 4 (foi ele que desfez o \"no total\" com dois números diferentes na mesma rolagem) e está travado por e2e; encurtá-lo reabriria o item. Observação: o ladrilho ficou ~5 px mais largo com o `px-2` da seção, então a quebra melhorou sem que o texto mudasse."
+  },
+  {
+   "id": "R4/L6 observação nova (não pedida, não corrigida)",
+   "origem": "R4/L6 corretor (deixado)",
+   "motivo": "Com seis itens a legenda passou a ocupar DUAS linhas a 360 px e o `text-balance` deixa a segunda começando por \"· — descanso · hoje em destaque\" (ponto separador no início da linha). Visível na captura 14-relatorio-historico. Corrigir pede trocar os separadores por quebra controlada e refazer build + portões (~30 min), o que não cabia antes da hora limite."
+  },
+  {
+   "id": "R4/L7 auditoria-3 menor: O aviso do item 9 sai no Toaster `position=\"top-center\"` (app/provider…",
+   "origem": "R4/L7 auditoria-3 (menor)",
+   "motivo": "O aviso do item 9 sai no Toaster `position=\"top-center\"` (app/providers.tsx:42) e a caixa medida é 328×73 px em (16,16) — por 4 s ela cobre o botão 'Ajustar' do cabeçalho: `document.elementFromPoint` no centro do Ajustar devolve um DIV do toast, não o botão. É a mesma classe de sobreposição que o item 1 acabou de remover, só que transitória."
+  },
+  {
+   "id": "R4/L7 auditoria-3 menor: O teste do item 5 ('nenhum nome de exercício passa de duas linhas a 36…",
+   "origem": "R4/L7 auditoria-3 (menor)",
+   "motivo": "O teste do item 5 ('nenhum nome de exercício passa de duas linhas a 360 px') não pode falhar: ele mede `altura/lineHeight <= 2` num elemento com `line-clamp-2`, que por definição nunca passa de duas linhas. Medido na tela: 5 dos 6 nomes do Treino B ocupam 2 linhas e nenhum está truncado — o aceite original do item ('nenhum nome quebra em duas linhas') não foi cumprido, embora o desvio esteja hones…"
+  },
+  {
+   "id": "R4/L7 auditoria-3 menor: O texto da faixa fixa sai cortado: sem sessão aberta ela mostra o foco…",
+   "origem": "R4/L7 auditoria-3 (menor)",
+   "motivo": "O texto da faixa fixa sai cortado: sem sessão aberta ela mostra o foco do treino ('Treino A · agachamento no centro') e o <p> tem scrollWidth > clientWidth a 360 px (medido tituloCortado:true), cortando a palavra no meio — a SPEC §22.7 item 2 promete 'Treino A · 0/17 séries' ou 'o foco do treino'."
+  },
+  {
+   "id": "R4/L7 auditoria-3 menor: A SPEC passou a se contradizer e a documentação envelheceu junto: §14.…",
+   "origem": "R4/L7 auditoria-3 (menor)",
+   "motivo": "A SPEC passou a se contradizer e a documentação envelheceu junto: §14.3 (linha 351) ainda descreve 'FAB Ajustar', §18.3 (linhas 781 e 800) e §13 (linha 1040) falam do FAB que some/abre os ajustes, e §22.3 item 5 (linha 1470) lista o FAB como 'o que flutua' — tudo contra §22.7 item 1. Fora da SPEC: README.md linha 42, e2e/README.md linha 114, os nomes de teste 'o FAB Ajustar abre os mesmos ajustes …"
+  },
+  {
+   "id": "R4/L7 auditoria-3 menor: O gatilho do aviso é a marca `treino:saiu-para` gravada no unmount da …",
+   "origem": "R4/L7 auditoria-3 (menor)",
+   "motivo": "O gatilho do aviso é a marca `treino:saiu-para` gravada no unmount da aba Treino e só apagada quando a aba volta a montar — então o caminho player → Relatório → Treino também dispara 'Treino guardado — toque em Continuar para retomar.', sem que o usuário tenha acabado de sair do player. O texto continua verdadeiro (há sessão aberta e o Continuar retoma), mas o aviso aparece fora do momento que a S…"
+  },
+  {
+   "id": "R4/L7 auditoria-3 menor: A mudança de `w-[min(19rem,85vw)]` para `w-[min(19rem,86vw)]` é inerte…",
+   "origem": "R4/L7 auditoria-3 (menor)",
+   "motivo": "A mudança de `w-[min(19rem,85vw)]` para `w-[min(19rem,86vw)]` é inerte a 360 px: 86vw = 309,6 px > 19rem = 304 px, então o cartão continua com os mesmos 304 px de antes (medido: larguraCard 304, viewport 360). O 'reduzir o cartão para ~86 % da viewport' do item 6 não aconteceu — os outros dois aceites do item (CTAs na mesma altura e posição visível) foram cumpridos, e a SPEC §22.7 item 6 acertadam…"
+  },
+  {
+   "id": "R4/L7 auditoria-3 menor: `acaoDoDesafio` guarda os rótulos dos CTAs por id ('Fazer a sessão de …",
+   "origem": "R4/L7 auditoria-3 (menor)",
+   "motivo": "`acaoDoDesafio` guarda os rótulos dos CTAs por id ('Fazer a sessão de barra fixa', 'Fazer a corrida da semana N', 'Fazer o treino da fase …') enquanto `desafio.acao` continua existindo como fallback — o mesmo rótulo passa a ter duas fontes, e o id do desafio vira chave de texto espalhada no componente. Não há conteúdo de treino inventado (semana e título saem dos dados), então não fere o CLAUDE.md…"
+  },
+  {
+   "id": "R5/L8 menor: A oferta \"Passar para a Fase 2\" segue a semana MOSTRADA, não o progres…",
+   "origem": "R5/L8 auditoria-2 (menor)",
+   "motivo": "A oferta \"Passar para a Fase 2\" segue a semana MOSTRADA, não o progresso real do usuário. `ofereceFase2 = faseCumprida(perfil.fase_atual, semanaDaFase(ref, perfil.fase_desde))` usa `ref`, que é a semana na tela. Confirmado no navegador nos dois temas: com o perfil das capturas (fase_desde 01/06, semana 16, fase cumprida) a oferta aparece na semana atual e SOME depois de 8 toques em \"Semana anterio…"
+  },
+  {
+   "id": "R5/L8 menor: A legenda NOVA do mês (`LEGENDA_DO_MES`, linhas ~113-119) é um array e…",
+   "origem": "R5/L8 auditoria-2 (menor)",
+   "motivo": "A legenda NOVA do mês (`LEGENDA_DO_MES`, linhas ~113-119) é um array escrito à mão de `{ marca, tipo, texto }` — não está amarrada em tipo a nenhuma tabela exaustiva. O lote fez questão de preservar esse contrato na faixa (`GLIFO_DA_MARCA` e `ORDEM_DA_LEGENDA` passaram a ser `Record<MarcaVisivel, …>`, e o PROGRESSO.md/§22.8-11 prometem que \"qualquer OUTRA marca nova continua quebrando a compilação…"
+  },
+  {
+   "id": "R5/L8 menor: `marcarDia()` devolve \"antes\" para TODO dia anterior a `data_inicio`, …",
+   "origem": "R5/L8 auditoria-2 (menor)",
+   "motivo": "`marcarDia()` devolve \"antes\" para TODO dia anterior a `data_inicio`, inclusive dias que ainda estão no futuro: `const antesDoComeco = inicioDoPrograma !== null && dia.data < inicioDoPrograma`, sem confronto com `hoje`. `components/mais/tela-perfil.tsx` (linha ~186) mostra \"Comecei em\" num `<Input type=\"date\">` sem `max`, então o usuário pode marcar um começo no futuro — e aí os dias planejados en…"
+  },
+  {
+   "id": "R5/L8 menor: Processo, não código: a verificação do passo 1 (\"<hash de 40 caractere…",
+   "origem": "R5/L8 auditoria-2 (menor)",
+   "motivo": "Processo, não código: a verificação do passo 1 (\"<hash de 40 caracteres>.status == ok\") nunca pode passar, porque portoes.sh escreve `$(git rev-parse --short HEAD).status` — 7 caracteres — e, pior, usa o HEAD do MOMENTO EM QUE É DISPARADO. O construtor rodou a 2ª passada com a árvore já pronta mas o commit ainda não feito, então o log saiu como \"e857249\" (o pai) e descrevendo a árvore que virou 17…"
+  },
+  {
+   "id": "R5/L8 menor: Processo, não código: o `--esperadas calendario,treino-topo` pedido no…",
+   "origem": "R5/L8 auditoria-2 (menor)",
+   "motivo": "Processo, não código: o `--esperadas calendario,treino-topo` pedido no enunciado não marca nada, porque a função de casamento (linha 163) é `o.esperadas.some((e) => nome.startsWith(e))` e os arquivos começam pelo número de ordem (\"05-calendario-escuro\"). Rodando exatamente como pedido, o comparador acusa \"12 telas mudaram sem estar na lista de esperadas\" e um auditor apressado leria 12 regressões …"
+  },
+  {
+   "id": "L8 a11y-09 parcial: nav-inferior + FAB da aba Treino a 200 % de zoom",
+   "origem": "R5/L8 construtor",
+   "motivo": "em / sobram 26 px de rolagem horizontal a 200 % por causa de components/nav-inferior.tsx e do botão flutuante; fora dos arquivos do L8"
+  },
+  {
+   "id": "R4/L7 auditoria-4 menor: `scroll-padding-top: calc(env(safe-area-inset-top, 0px) + 56px)` foi p…",
+   "origem": "R4/L7 auditoria-4 (menor)",
+   "motivo": "`scroll-padding-top: calc(env(safe-area-inset-top, 0px) + 56px)` foi posto no `html`, isto é, no app inteiro, por causa de uma faixa que só existe na aba Treino e só depois de rolar. Todo salto por âncora e todo scroll de foco pelo teclado em Explorar, Relatório, Corpo, Mais e no player passam a parar 56 px abaixo do topo, sem nada ali que justifique a folga. Nas 60 capturas não houve regressão vi…"
+  },
+  {
+   "id": "R4/L7 auditoria-4 menor: O código põe `title={item.nome}` no nome do exercício, e o comentário …",
+   "origem": "R4/L7 auditoria-4 (menor)",
+   "motivo": "O código põe `title={item.nome}` no nome do exercício, e o comentário imediatamente acima — junto com a SPEC §22.7 item 5 e o PROGRESSO.md — argumenta o contrário para justificar o `line-clamp-2`: \"no celular não há `title` para consultar\". Código e justificativa se contradizem no mesmo trecho; quem for mexer depois não sabe qual das duas vale."
+  },
+  {
+   "id": "R4/L7 auditoria-4 menor: Sobrou uma contradição do \"FAB Ajustar\" que o relatório do construtor …",
+   "origem": "R4/L7 auditoria-4 (menor)",
+   "motivo": "Sobrou uma contradição do \"FAB Ajustar\" que o relatório do construtor diz ter eliminado. A §22.3 item 5 (linha 1471) continua definindo a elevação pelo componente que deixou de existir: \"O que flutua (o FAB \\\"Ajustar\\\", o play do tutorial) usa `--sombra-flutuante`/`.flutuante`\" — e `lib/tema.test.ts:181` repete a frase. Também ficaram rótulos velhos em `e2e/v3.spec.ts:302` (título do caso: \"o FAB …"
+  },
+  {
+   "id": "R4/L7 auditoria-4 menor: O caso da §22.3 item 5 (\"elevação do que flutua\") era sobre sombra/ane…",
+   "origem": "R4/L7 auditoria-4 (menor)",
+   "motivo": "O caso da §22.3 item 5 (\"elevação do que flutua\") era sobre sombra/anel nos dois temas e media `boxShadow` do FAB. Como o FAB virou botão de cabeçalho, o caso foi reescrito para medir contorno e 44 px — o que é razoável para o botão novo, mas deixou a §22.3 item 5 SEM assunto: o elemento que agora flutua na aba Treino, `FaixaFixaDoDia` com a classe `.flutuante`, não tem nenhum teste de elevação em…"
+  },
+  {
+   "id": "R4/L7 auditoria-4 menor: A gravação por atraso de 700 ms grava número pela metade. Quem digita …",
+   "origem": "R4/L7 auditoria-4 (menor)",
+   "motivo": "A gravação por atraso de 700 ms grava número pela metade. Quem digita \"90\" devagar no celular (pausa maior que 700 ms entre o 9 e o 0) grava 9 s, vê o aviso \"Descanso padrão: 9 s.\" e só depois grava 90 — duas escritas na fila e um valor errado no meio do caminho, com dois avisos seguidos se contradizendo. O mesmo vale para a \"Preparação\"."
+  },
+  {
+   "id": "R4/L7 auditoria-4 menor: Em `useAvisoDeVoltaDoPlayer` a marca `treino:saiu-para` é escrita no d…",
+   "origem": "R4/L7 auditoria-4 (menor)",
+   "motivo": "Em `useAvisoDeVoltaDoPlayer` a marca `treino:saiu-para` é escrita no desmonte da aba Treino e só é apagada quando a aba Treino monta de novo. Se o usuário sair do player para outra aba (Corpo, Mais) e só depois voltar para Treino, a marca ainda é `/treinar/<id>` e o aviso \"Treino guardado — toque em Continuar para retomar.\" dispara como se ele tivesse acabado de voltar do player, com o anel piscan…"
+  },
+  {
+   "id": "R4/L7 auditoria-4 menor: Higiene de processo do construtor, não do código: o par da faixa A fic…",
+   "origem": "R4/L7 auditoria-4 (menor)",
+   "motivo": "Higiene de processo do construtor, não do código: o par da faixa A ficou no ar depois dos portões (mock-supabase PID 14633/14644 na 54321 e next-server PID 14692 na 3100, 35 minutos de pé) e o arquivo de PIDs ficou VAZIO. O meu primeiro portão de e2e esperou 18 min pelo lock e morreu na hora com \"Error: http://127.0.0.1:54321/__mock/health is already used\". Tive de descobrir os PIDs com lsof/ps e …"
+  },
+  {
+   "id": "R5/L9 menor: Hierarquia de títulos da vitrine: a seção do catálogo (<section aria-l…",
+   "origem": "R5/L9 auditoria-2 (menor)",
+   "motivo": "Hierarquia de títulos da vitrine: a seção do catálogo (<section aria-label=\"Catálogo\">) é IRMÃ de «Escolhas para você», mas o título dela virou <h3>Exercícios</h3>, o mesmo nível dos cinco títulos que de fato pertencem àquele grupo. Para um leitor de tela a ordem lida é H1 Explorar · H2 Treino A · H2 Escolhas para você · H3 Treinos do programa · H3 Parte do corpo · H3 Circuitos · H3 Por aparelho ·…"
+  },
+  {
+   "id": "R5/L9 menor: O botão \"Filtros\" (recolhimento do item 5) declara aria-expanded={aber…",
+   "origem": "R5/L9 auditoria-2 (menor)",
+   "motivo": "O botão \"Filtros\" (recolhimento do item 5) declara aria-expanded={abertos} mas não tem aria-controls apontando para o bloco que ele abre, e o bloco de filtros não tem id. Quem usa leitor de tela ouve que algo expandiu, sem saber o quê nem conseguindo pular para lá; o painel aberto fica solto no fluxo logo abaixo, o que funciona por acaso da ordem do DOM, não por associação declarada."
+  },
+  {
+   "id": "R5/L9 menor: Ponto cego da régua visual (problema de método, não de código — para o…",
+   "origem": "R5/L9 auditoria-2 (menor)",
+   "motivo": "Ponto cego da régua visual (problema de método, não de código — para o orquestrador, não para o corretor). A linha de base em $U/base foi regerada às 08:38 do head 9d2c001 (L8 Calendário, já em main), mas a branch do lote sai de 77f2318 (L6) e não contém o L8. Resultado: 8 das 60 capturas acusam diferença (05-calendario 31,5 %/25,6 %, 03-treino-topo 14,0 %/13,7 %, 30-player-conclusao 8,8 %/8,6 %, …"
+  },
+  {
+   "id": "R5/L9 menor: ANTERIOR AO LOTE (não bloqueia, registro para a fila): a tela da coleç…",
+   "origem": "R5/L9 auditoria-2 (menor)",
+   "motivo": "ANTERIOR AO LOTE (não bloqueia, registro para a fila): a tela da coleção não tem <h1> nenhum — só <section aria-label={colecao.titulo}> na linha 41. A sonda navegou /explorar/grupo/Core, /core, /Bíceps e /biceps e nas quatro não achou main h1 (foi assim, aliás, que confirmei que o item 9 funciona: a página de 404 TEM um <h1> dentro de <main>, e ele não apareceu em nenhuma das quatro). Uma rota de …"
+  }
+ ],
+ "B · Lotes planejados e não executados (L9 restante, L10 ficha, L11 corpo, L12 superfícies)": [
+  {
+   "id": "l9-explorar-catalogo · tela-explorar-fichas-15 · Filtros comem 54% da tela antes do primeiro resultado",
+   "origem": "R5 planejada, não executada (lote reduzido / R6 não coube)",
+   "motivo": "Soma tela-explorar-fichas-15 e -16: /exercicios gasta 399 px em cabeçalho e filtros. Em components/exercicios/lista-exercicios.tsx:90-132 pôr os filtros atrás de um botão 'Filtros' com contador (abre folha) e mostrar chips removíveis do que está ligado acima da lista ('Peito ×', 'Banco ×'); em :112-…"
+  },
+  {
+   "id": "l9-explorar-catalogo · tela-explorar-fichas-09 · Ficha técnica usada como subtítulo de vitrine",
+   "origem": "R5 planejada, não executada (lote reduzido / R6 não coube)",
+   "motivo": "Soma tela-explorar-fichas-09, -10, -12 e a parte de lista do visual-06. Em components/colecoes/linha-colecao.tsx:42-47 inverter a ordem para título, subtítulo descritivo e números como meta line menor embaixo, tirando o peso 600 do meta ('6 exercícios · ~44 min' vira 400/muted) para só o título carr…"
+  },
+  {
+   "id": "l9-explorar-catalogo · tela-explorar-fichas-03 · Coleção achada pela busca sem dizer por quê",
+   "origem": "R5 planejada, não executada (lote reduzido / R6 não coube)",
+   "motivo": "A busca casa pelo exercício de dentro e a linha não explica nada. Em lib/colecoes.ts:404 (buscarColecoes) ordenar casamento no título antes de casamento no conteúdo e devolver o motivo; em components/colecoes/linha-colecao.tsx:42-47 mostrá-lo numa terceira linha ('contém Supino reto com barra'). Ace…"
+  },
+  {
+   "id": "l10-ficha-exercicio · imagens-01 · A caixa de altura fixa espreme a ilustração a 27%",
+   "origem": "R5 planejada, não executada (lote reduzido / R6 não coube)",
+   "motivo": "components/exercicio/media-grande.tsx:38 fixa a caixa em h-40 (328×208) enquanto as 115 ilustrações vão de 0,35:1 a 2,78:1 — 78 delas preenchem menos de 60% da largura e o agachamento goblet renderiza 88×208 num box de 328. Usar o par largura/altura que data/ilustracoes.json já traz como aspect-rati…"
+  },
+  {
+   "id": "l10-ficha-exercicio · tela-explorar-fichas-19 · A ficha em página não tem volta nem ação",
+   "origem": "R5 planejada, não executada (lote reduzido / R6 não coube)",
+   "motivo": "app/(app)/exercicios/[id]/page.tsx:42-55 abre a ficha sem 'Voltar' no topo (components/colecoes/tela-colecao.tsx:42-48 já faz isso) e sem nada a fazer com o exercício. Acrescentar o 'Voltar' no topo e, embaixo, 'Fazer agora' abrindo sessão livre de um exercício — o hook useSessaoLivre já existe em c…"
+  },
+  {
+   "id": "l10-ficha-exercicio · tela-explorar-fichas-20 · Quatro cartões vazios quando não há histórico",
+   "origem": "R5 planejada, não executada (lote reduzido / R6 não coube)",
+   "motivo": "components/exercicios/historico-exercicio.tsx:116-200 monta os quatro blocos mesmo sem nenhuma série do exercício. Quando não houver dado, colapsar tudo num cartão só ('Ainda sem histórico deste exercício — ele começa na primeira série registrada') e só abrir os quatro quando houver. Aceite: exercíc…"
+  },
+  {
+   "id": "l10-ficha-exercicio · tela-explorar-fichas-18 · Chip ativo do segmento Ilustração/Figura a 1,08:1",
+   "origem": "R5 planejada, não executada (lote reduzido / R6 não coube)",
+   "motivo": "components/exercicio/ficha-folha.tsx:321-327 marca o selecionado com 1,16:1 no escuro e 1,08:1 no claro — não se vê qual está ativo. Dar borda (border-border) e/ou fundo com ≥ 3:1 ao chip ativo, além da cor do texto. Aceite: o chip ativo do segmento mede ≥ 3:1 contra o inativo nos dois temas."
+  },
+  {
+   "id": "l10-ficha-exercicio · tela-explorar-fichas-21 · Aba Músculos repete a ilustração e a 'Área de foco'",
+   "origem": "R5 planejada, não executada (lote reduzido / R6 não coube)",
+   "motivo": "Soma tela-explorar-fichas-21, -22, -23 e a parte de ficha do a11y-12. Em components/exercicio/ficha-folha.tsx:359-365 e :402-432 tirar a ilustração da aba Músculos (fica o mapa, que é o motivo da aba) e suprimir 'Área de foco' quando comoPagina; em :138-149 trocar a seção 'Equipamento' por tags clic…"
+  },
+  {
+   "id": "l10-ficha-exercicio · tela-explorar-fichas-26 · A aba de tutorial não diz que sai do app",
+   "origem": "R5 planejada, não executada (lote reduzido / R6 não coube)",
+   "motivo": "components/exercicio/ficha-folha.tsx:222-226 e components/exercicio/tutorial.tsx:55-70 oferecem a aba mesmo sem tutorial no JSON e sem avisar que é link externo. Nomear a aba pelo que ela é ('Tutorial no YouTube') com o ícone de link externo no próprio rótulo, e não oferecer a aba quando o exercício…"
+  },
+  {
+   "id": "l10-ficha-exercicio · imagens-12 · As 163 fotos são 3:2 e a ficha as força em quadrado",
+   "origem": "R5 planejada, não executada (lote reduzido / R6 não coube)",
+   "motivo": "Soma imagens-12 e tela-explorar-fichas-25: o quadrado corta justamente o caminho da barra. Em components/exercicios/fotos-ampliaveis.tsx trocar o par de fotos por duas caixas 16:10 lado a lado (160×100) ou empilhadas em 328×205 — cabe no mesmo espaço vertical, mantém o enquadramento original e casa …"
+  },
+  {
+   "id": "l10-ficha-exercicio · imagens-13 · Crédito da mídia como faixa sublinhada inteira",
+   "origem": "R5 planejada, não executada (lote reduzido / R6 não coube)",
+   "motivo": "Soma imagens-13 e tela-explorar-fichas-24. Em components/exercicio/media-grande.tsx:70-82 manter o texto em 11 px (§13.8.1) e o crédito exigido pela §15.1.3, mas sublinhar só o que é link: 'Ilustração: <a>Everkinetic</a> · <a>CC BY-SA 3.0</a>' (a licença vira o segundo link, como pede a §15.1.4), co…"
+  },
+  {
+   "id": "l10-ficha-exercicio · performance-13 · Segundo quadro da ilustração baixado antes da primeira pintura",
+   "origem": "R5 planejada, não executada (lote reduzido / R6 não coube)",
+   "motivo": "Em components/exercicio/ilustracao-alternada.tsx carregar o segundo quadro com loading=\"lazy\" (ou só quando a animação for começar) — ele não precisa chegar antes do primeiro paint. Aceite: a ficha faz uma requisição de ilustração antes do LCP, não duas."
+  },
+  {
+   "id": "l10-ficha-exercicio · ux-heuristicas-21 · A ilustração inteira é o botão de pausa",
+   "origem": "R5 planejada, não executada (lote reduzido / R6 não coube)",
+   "motivo": "components/exercicio/ilustracao-alternada.tsx:60-75 mistura conteúdo e ação: quem toca na figura para a animação, quando o que tenta abrir é o 'Como fazer'. Separar: a figura com aria-label 'Levantamento terra, posição 1 de 2' e a pausa como botão próprio no canto da imagem (44×44, aria-label 'Parar…"
+  },
+  {
+   "id": "l11-corpo-registro · a11y-01 · Os 6 gráficos entram na árvore como 'application' sem nome",
+   "origem": "R6 planejada, não executada",
+   "motivo": "Medido com page.accessibility.snapshot(): os cinco gráficos do Relatório e o do Corpo têm role=\"application\", tabindex=0 e leem os rótulos dos eixos grudados ('29/0613/0727/0710/0824/0807/0902468'). No wrapper de components/graficos/grafico.tsx:133 (dentro do ResponsiveContainer) desligar a camada d…"
+  },
+  {
+   "id": "l11-corpo-registro · tela-relatorio-corpo-calendario-11 · Campo de data cru nas três abas do Corpo",
+   "origem": "R6 planejada, não executada",
+   "motivo": "components/corpo/aba-peso.tsx:129 e o mesmo padrão em aba-medidas.tsx e aba-fotos.tsx expõem um <input type=\"date\"> onde o dono quase sempre quer 'hoje'. Trocar por um botão que mostra a data já formatada em pt-BR (formatarData) e abre o seletor, com atalhos 'Hoje' e 'Ontem'. Aceite: registrar o pes…"
+  },
+  {
+   "id": "l11-corpo-registro · tela-relatorio-corpo-calendario-17 · A tabela de Registros vaza a 360 px",
+   "origem": "R6 planejada, não executada",
+   "motivo": "components/corpo/aba-medidas.tsx:192-221 rola na horizontal a 360 px. Virar lista por data (um cartão por registro: medida, valor, variação) ou manter a tabela com as duas colunas escolhidas no seletor 'MEDIDA' que já existe acima; se continuar rolando, pelo menos um gradiente na borda direita indic…"
+  },
+  {
+   "id": "l11-corpo-registro · tela-relatorio-corpo-calendario-12 · Ordem da aba Peso",
+   "origem": "R6 planejada, não executada",
+   "motivo": "Em components/corpo/aba-peso.tsx:112 o CardImc aparece antes do que o dono veio ver. Ordem: peso atual + gráfico → registrar → IMC → variação → meta. Aceite: o peso atual e o gráfico estão na primeira tela a 360×740."
+  },
+  {
+   "id": "l11-corpo-registro · tela-relatorio-corpo-calendario-14 · Eixo do gráfico de peso sem domínio fixo",
+   "origem": "R6 planejada, não executada",
+   "motivo": "Soma tela-relatorio-corpo-calendario-14 e -15. Fixar domínio e passo do eixo num único helper em components/graficos/apoio.tsx (arredondar min/max para múltiplos de 2, ticks de 2 em 2) e usá-lo em components/relatorio/card-peso.tsx e components/corpo/aba-peso.tsx; esconder a série e a entrada da leg…"
+  },
+  {
+   "id": "l11-corpo-registro · tela-relatorio-corpo-calendario-19 · A meta de peso não aparece no gráfico",
+   "origem": "R6 planejada, não executada",
+   "motivo": "Soma tela-relatorio-corpo-calendario-19 e copy-10. Em components/corpo/aba-peso.tsx:233-250 desenhar a meta como ReferenceLine tracejada no gráfico e mostrar 'faltam X kg' ao lado do peso atual; e trocar a frase que orienta por posição ('defina uma meta embaixo', aba-peso.tsx:171) por um link que ro…"
+  },
+  {
+   "id": "l11-corpo-registro · tela-relatorio-corpo-calendario-13 · Marcador do IMC sem faixas rotuladas",
+   "origem": "R6 planejada, não executada",
+   "motivo": "components/corpo/card-imc.tsx:110-124 marca o valor com um círculo sobre uma barra sem rótulo de faixa. Trocar por um traço/triângulo fino apontando para a barra e rotular as faixas (abaixo · saudável · sobrepeso · obesidade) em 10 px sob a barra, ou destacar só a faixa atual. Aceite: dá para ler em…"
+  },
+  {
+   "id": "l11-corpo-registro · tela-relatorio-corpo-calendario-18 · Aba Fotos pesada antes da primeira foto",
+   "origem": "R6 planejada, não executada",
+   "motivo": "Em components/corpo/aba-fotos.tsx:89 trocar a grade de ângulos por uma linha por ângulo (ícone + nome + botão de 44 px à direita) e esconder Galeria/Comparar enquanto não houver nenhuma foto, deixando só o convite para a primeira. Aceite: sem foto nenhuma, a aba mostra um convite e nada mais."
+  },
+  {
+   "id": "l11-corpo-registro · tela-relatorio-corpo-calendario-16 · Formulário de medidas antes do que já foi medido",
+   "origem": "R6 planejada, não executada",
+   "motivo": "components/corpo/aba-medidas.tsx:87 em diante abre com o formulário e as dicas por campo. Pôr Evolução e Registros primeiro e colapsar as dicas num ícone de ajuda por campo (ou levar o formulário para trás de um botão 'Registrar medidas'). Aceite: a aba Medidas abre mostrando as medidas já registrad…"
+  },
+  {
+   "id": "l11-corpo-registro · a11y-14 · Abas sem nome e títulos fora de ordem no Corpo",
+   "origem": "R6 planejada, não executada",
+   "motivo": "Soma a11y-14 e a parte de /corpo do a11y-12. Em components/corpo/tela-corpo.tsx:48 pôr aria-label=\"Seções do corpo\" na TabsList (sem nome o leitor anuncia só 'lista de abas, 3 itens') e normalizar a hierarquia: seção de topo em h2, subseções em h3. Aceite: a TabsList tem nome e nenhum h3 aparece ant…"
+  },
+  {
+   "id": "l12-superficies-sobra · visual-13 · Abrir um degrau real entre card e fundo",
+   "origem": "R6 planejada, não executada",
+   "motivo": "Medido: card/fundo dá 1,07:1 no escuro e 1,04:1 no claro, e a borda só 1,23-1,28:1 — as superfícies praticamente não existem. Em app/globals.css subir --card para ~#1a1a1a e --border para ~#333 no bloco .dark (fica 1,35:1 e 1,6:1, ainda sóbrio) e, no :root, manter o card branco escurecendo --backgro…"
+  },
+  {
+   "id": "l12-superficies-sobra · imagens-02 · A placa de luz das ilustrações no tema escuro",
+   "origem": "R6 planejada, não executada",
+   "motivo": "Soma imagens-02, imagens-07 e tela-treino-player-13: --ilustracao-fundo: #e7e4e0 (app/globals.css:141) vira uma placa de 328×208 na ficha e seis quadrados brancos na lista de hoje — 52.480 px² ofuscantes num treino à noite. Duas saídas: (a) inverter o traço no escuro (filter: invert(1) no .dark para…"
+  },
+  {
+   "id": "l12-superficies-sobra · a11y-03 · Campo de formulário invisível no tema escuro",
+   "origem": "R6 planejada, não executada",
+   "motivo": "app/globals.css:129 define --input: #2e2e2e, que dá 1,36-1,46:1 contra o fundo — abaixo dos 3:1 da SC 1.4.11. Subir para algo em torno de #5a5a58 (3,1:1 sobre #141414) mantendo --border como está para separadores. Aceite: a borda de todo <input> mede ≥ 3:1 contra a superfície que o cerca, nos dois t…"
+  },
+  {
+   "id": "l12-superficies-sobra · imagens-03 · Gerar derivadas de imagem na cópia dos assets",
+   "origem": "R6 planejada, não executada",
+   "motivo": "Soma imagens-03, imagens-05 e imagens-11 (sharp já é dependência do projeto). Em scripts/copiar-assets.ts produzir, além da cópia: <nome>-mini.webp a 112×112 (2× de 56) para fotos, ilustrações e itens, e <id>-capa.webp a 720×360 já no enquadramento da caixa da capa. Servir a mini em components/ui/mi…"
+  },
+  {
+   "id": "l12-superficies-sobra · performance-03 · Prioridade e decodificação das imagens de entrada",
+   "origem": "R6 planejada, não executada",
+   "motivo": "Soma performance-03, performance-04 e imagens-06: LCP medido 5,65 s em / e 5,73 s em /explorar porque a capa, que é o elemento do LCP, não tem prioridade. Em components/ui/card-capa.tsx:64 acrescentar fetchPriority=\"high\" + loading=\"eager\" + decoding=\"async\" quando uma prop indicar 'primeira dobra' …"
+  },
+  {
+   "id": "l12-superficies-sobra · performance-05 · Cache-Control para os ~24 MB de mídia de public/",
+   "origem": "R6 planejada, não executada",
+   "motivo": "Soma performance-05 e imagens-04: next.config.ts:97-99 devolve só CABECALHOS_DE_SEGURANCA para '/:caminho*', então toda a mídia sai com max-age=0 (12 revalidações 304 numa navegação). Acrescentar uma segunda regra { source: \"/:pasta(fotos|ilustracoes|itens|figuras|icons|mapa-muscular)/:arquivo*\", he…"
+  },
+  {
+   "id": "l12-superficies-sobra · imagens-08 · Enquadramento e texto alternativo da miniatura",
+   "origem": "R6 planejada, não executada",
+   "motivo": "Soma imagens-08, imagens-18 e imagens-16. Em components/ui/miniatura.tsx:46 usar object-cover object-top quando a proporção do arquivo (o par largura/altura já está em data/ilustracoes.json) for menor que ~0,7 — o corpo aparece de fato em vez de encolher tudo numa caixa quadrada; com a derivada quad…"
+  },
+  {
+   "id": "l12-superficies-sobra · visual-05 · shadow-lg renderiza transparente nos dois temas",
+   "origem": "R6 planejada, não executada",
+   "motivo": "A utilidade shadow-lg sai vazia (provável conflito do @import \"shadcn/tailwind.css\" com as camadas --tw-shadow do Tailwind 4), então o FAB e o tutorial flutuam sem elevação. Investigar a causa e, de qualquer modo, definir em app/globals.css um --sombra-flutuante próprio nos dois temas (no escuro, an…"
+  },
+  {
+   "id": "l12-superficies-sobra · a11y-11 · A região de avisos é a única coisa em inglês no app",
+   "origem": "R6 planejada, não executada",
+   "motivo": "Soma a11y-11 e copy-01: o despejo de aria-label das 23 rotas termina em 'Notifications alt+T'. Em components/ui/sonner.tsx passar containerAriaLabel=\"Avisos\" ao <Sonner> (e hotkey={[\"altKey\",\"KeyT\"]} só se for manter o atalho). CLAUDE.md manda pt-BR em toda a interface e este é um dos primeiros marc…"
+  },
+  {
+   "id": "l12-superficies-sobra · imagens-14 · /favicon.ico devolve 404 com 11 kB de HTML",
+   "origem": "R6 planejada, não executada",
+   "motivo": "Pôr um app/icon.png de 32×32 derivado do public/icons/icone-512.png que já existe — o App Router passa a servir /favicon.ico a partir dele (app/layout.tsx:21 hoje não declara ícone). Aceite: /favicon.ico responde 200 com uma imagem em toda primeira visita e em atalho de navegador."
+  }
+ ]
+}

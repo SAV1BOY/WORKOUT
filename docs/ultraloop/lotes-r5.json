@@ -1,0 +1,270 @@
+{
+  "rodada": 5,
+  "lotes": [
+    {
+      "faixa": "A",
+      "nome": "l9-explorar-catalogo",
+      "branch": "ultraloop/l9-explorar-catalogo",
+      "base_branch": "A_DEFINIR",
+      "caminho": "/home/user/wt-a",
+      "portas": {
+        "app": 3100,
+        "mock": 54321
+      },
+      "logs": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/rodada-5/l9/logs",
+      "capturas": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/rodada-5/l9/capturas",
+      "spec_secao": "### 22.9 Lote 9 — Explorar e catálogo: achar o exercício",
+      "progresso_secao": "Rodada 5 — Lote 9",
+      "specs_grep": "catalogo|v3|shell",
+      "fundacao": false,
+      "arquivos": [
+        "components/explorar/tela-explorar.tsx",
+        "components/exercicios/lista-exercicios.tsx",
+        "components/colecoes/linha-colecao.tsx",
+        "lib/colecoes.ts",
+        "app/(app)/exercicios/page.tsx",
+        "app/not-found.tsx",
+        "e2e/ultraloop-a-r5.spec.ts (novo)",
+        "e2e/ultraloop-varredura.spec.ts (tirar fixmes seus)",
+        "SPEC.md (§22.9)",
+        "PROGRESSO.md (subseção Rodada 5 — Lote 9)"
+      ],
+      "telas_esperadas_mudar": [
+        "explorar",
+        "catalogo",
+        "colecao"
+      ],
+      "itens": [
+        {
+          "id": "tela-explorar-fichas-01",
+          "titulo": "Tirar os 81 exercícios de dentro do Explorar",
+          "detalhe": "Soma tela-explorar-fichas-01, visual-17, performance-07 e imagens-15: /explorar mede 8.922 px (12 telas) porque components/explorar/tela-explorar.tsx:140-143 despeja <ListaExercicios> inteira abaixo da vitrine, e o catálogo sozinho ocupa 78% da página; /exercicios monta 81 <img> de uma vez e fecha em 1.146 kB. Na vitrine, mostrar só uma prévia (12 primeiros ou os do programa) com 'Ver os 81 exercícios' levando a /exercicios; em app/(app)/exercicios/page.tsx paginar (20 + 'Ver mais') ou aplicar content-visibility:auto com contain-intrinsic-size da altura do cartão. Aceite: /explorar fecha abaixo de 4.000 px e /exercicios monta no máximo 20 cartões de uma vez.",
+          "arquivos": [
+            "components/explorar/tela-explorar.tsx",
+            "app/(app)/exercicios/page.tsx",
+            "components/exercicios/lista-exercicios.tsx"
+          ],
+          "esforco": "M"
+        },
+        {
+          "id": "tela-explorar-fichas-02",
+          "titulo": "A busca põe as coleções na frente do exercício",
+          "detalhe": "Soma tela-explorar-fichas-02 e -04. Com 'supino' os exercícios caem em y=860, fora do viewport de 740, atrás de 9 linhas de coleção. Em components/explorar/tela-explorar.tsx:106-143 pôr os exercícios primeiro ou dar um segmento no topo do resultado ('Exercícios (6) · Coleções (9)') abrindo em Exercícios; e sem resultado mostrar UM vazio só, citando o termo e com a saída ('Nada para «zzzz». [Limpar a busca]'), deixando a mensagem de filtro (components/exercicios/lista-exercicios.tsx:140-143) só quando temFiltro(filtros) for verdade — hoje aparecem dois vazios empilhados e o segundo mente. Aceite: buscar o nome de um exercício mostra o exercício na primeira tela, e uma busca sem resultado mostra uma mensagem só.",
+          "arquivos": [
+            "components/explorar/tela-explorar.tsx",
+            "components/exercicios/lista-exercicios.tsx"
+          ],
+          "esforco": "M"
+        },
+        {
+          "id": "tela-explorar-fichas-15",
+          "titulo": "Filtros comem 54% da tela antes do primeiro resultado",
+          "detalhe": "Soma tela-explorar-fichas-15 e -16: /exercicios gasta 399 px em cabeçalho e filtros. Em components/exercicios/lista-exercicios.tsx:90-132 pôr os filtros atrás de um botão 'Filtros' com contador (abre folha) e mostrar chips removíveis do que está ligado acima da lista ('Peito ×', 'Banco ×'); em :112-132 e :161-193 transformar 'No meu programa' num chip de alternância em vez de um botão de largura inteira que parece ação primária. Aceite: o primeiro exercício aparece na primeira tela a 360×740.",
+          "arquivos": [
+            "components/exercicios/lista-exercicios.tsx"
+          ],
+          "esforco": "M"
+        },
+        {
+          "id": "tela-explorar-fichas-14",
+          "titulo": "notFound() é chamado e não há página para receber",
+          "detalhe": "Soma tela-explorar-fichas-14 e pwa-offline-10: app/(app)/explorar/[tipo]/[valor]/page.tsx:35 e app/(app)/exercicios/[id]/page.tsx:33 chamam notFound() sem nenhuma app/not-found.tsx — um atalho guardado ou um link antigo depois de uma atualização do PWA cai na tela crua do Next. Criar app/not-found.tsx em pt-BR no tom do app ('Essa tela não existe mais.') com três saídas: 'Voltar para Hoje', 'Ver o Explorar', 'Ver os exercícios'. Aceite: /exercicios/remada-curvada-com-barra devolve uma página em português com caminho de volta.",
+          "arquivos": [
+            "app/not-found.tsx"
+          ],
+          "esforco": "P"
+        },
+        {
+          "id": "tela-explorar-fichas-06",
+          "titulo": "A mesma capa em 4 coleções da mesma tela",
+          "detalhe": "supino-reto-com-barra-1.jpg é a capa de 4 coleções na mesma tela e 8 das 15 linhas usam 3 fotos, porque lib/colecoes.ts:93,100 (montar) pega sempre 'a foto do primeiro exercício'. Pegar a foto do primeiro exercício AINDA NÃO usado na mesma seção e, quando repetir mesmo assim, cair no ícone + cor do grupo, que distingue melhor a 56 px (components/colecoes/linha-colecao.tsx:32,55-76). Aceite: nenhuma capa se repete dentro de uma mesma seção do Explorar.",
+          "arquivos": [
+            "lib/colecoes.ts",
+            "components/colecoes/linha-colecao.tsx"
+          ],
+          "esforco": "P"
+        },
+        {
+          "id": "tela-explorar-fichas-09",
+          "titulo": "Ficha técnica usada como subtítulo de vitrine",
+          "detalhe": "Soma tela-explorar-fichas-09, -10, -12 e a parte de lista do visual-06. Em components/colecoes/linha-colecao.tsx:42-47 inverter a ordem para título, subtítulo descritivo e números como meta line menor embaixo, tirando o peso 600 do meta ('6 exercícios · ~44 min' vira 400/muted) para só o título carregar peso; em lib/colecoes.ts, para tipo='aparelho' trocar o detalhe por 'N exercícios que dão para fazer com ele' sem estimar minutos (:153-166), e para plano usar título curto ('Corrida — 5 km sem parar') com o detalhe virando a posição ('semana 2 de 12', :538-547). Aceite: nenhum subtítulo de vitrine traz medidas ou carga máxima do aparelho.",
+          "arquivos": [
+            "components/colecoes/linha-colecao.tsx",
+            "lib/colecoes.ts"
+          ],
+          "esforco": "P"
+        },
+        {
+          "id": "tela-explorar-fichas-03",
+          "titulo": "Coleção achada pela busca sem dizer por quê",
+          "detalhe": "A busca casa pelo exercício de dentro e a linha não explica nada. Em lib/colecoes.ts:404 (buscarColecoes) ordenar casamento no título antes de casamento no conteúdo e devolver o motivo; em components/colecoes/linha-colecao.tsx:42-47 mostrá-lo numa terceira linha ('contém Supino reto com barra'). Aceite: toda coleção que aparece por conteúdo mostra qual exercício a trouxe.",
+          "arquivos": [
+            "lib/colecoes.ts",
+            "components/colecoes/linha-colecao.tsx"
+          ],
+          "esforco": "P"
+        },
+        {
+          "id": "tela-explorar-fichas-07",
+          "titulo": "'Escolhas para você' não agrupa nada",
+          "detalhe": "Em components/explorar/tela-explorar.tsx:128 e :232-245 o rótulo 'Escolhas para você' não separa nada visualmente e compete com os títulos de seção. Demiti-lo (as subseções já se explicam) ou rebaixá-lo a overline de 11 px em caixa alta, e subir os títulos de seção para 16 px semibold com régua acima. Aceite: há um degrau claro entre título de seção e rótulo, e nenhum rótulo sem função.",
+          "arquivos": [
+            "components/explorar/tela-explorar.tsx"
+          ],
+          "esforco": "P"
+        },
+        {
+          "id": "tela-explorar-fichas-05",
+          "titulo": "Filtros abertos quando a busca já veio de fora",
+          "detalhe": "Em components/exercicios/lista-exercicios.tsx:90-132, quando a busca vem de fora e não está vazia (deFora && busca.trim() !== ''), recolher o bloco de filtros atrás do botão 'Filtros'. Aceite: chegar ao catálogo por uma busca mostra resultados, não controles.",
+          "arquivos": [
+            "components/exercicios/lista-exercicios.tsx"
+          ],
+          "esforco": "P"
+        },
+        {
+          "id": "tela-explorar-fichas-28",
+          "titulo": "Segmento da rota da coleção sem normalização",
+          "detalhe": "lib/colecoes.ts:565-573 (hrefDaColecao / colecaoDaRota) não normaliza o segmento, então ida e volta divergem em acento e caixa. Normalizar (minúscula, sem acento) nos dois sentidos, mantendo o mapa id↔slug. Aceite: toda coleção da vitrine abre pela URL que a própria vitrine gerou.",
+          "arquivos": [
+            "lib/colecoes.ts"
+          ],
+          "esforco": "P"
+        }
+      ],
+      "area": "explorar-fichas",
+      "estimativa_min": 110
+    },
+    {
+      "faixa": "B",
+      "nome": "l10-ficha-exercicio",
+      "branch": "ultraloop/l10-ficha-exercicio",
+      "base_branch": "A_DEFINIR",
+      "caminho": "/home/user/wt-b",
+      "portas": {
+        "app": 3110,
+        "mock": 54331
+      },
+      "logs": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/rodada-5/l10/logs",
+      "capturas": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/rodada-5/l10/capturas",
+      "spec_secao": "### 22.10 Lote 10 — Ficha do exercício: mídia e ações",
+      "progresso_secao": "Rodada 5 — Lote 10",
+      "specs_grep": "catalogo|midia",
+      "fundacao": false,
+      "arquivos": [
+        "components/exercicio/ficha-folha.tsx",
+        "components/exercicio/media-grande.tsx",
+        "components/exercicio/ilustracao-alternada.tsx",
+        "components/exercicio/tutorial.tsx",
+        "components/exercicios/historico-exercicio.tsx",
+        "components/exercicios/fotos-ampliaveis.tsx",
+        "app/(app)/exercicios/[id]/page.tsx",
+        "e2e/ultraloop-b-r5.spec.ts (novo)",
+        "e2e/ultraloop-varredura.spec.ts (tirar fixmes seus)",
+        "SPEC.md (§22.10)",
+        "PROGRESSO.md (subseção Rodada 5 — Lote 10)"
+      ],
+      "telas_esperadas_mudar": [
+        "ficha-exercicio",
+        "ficha-folha"
+      ],
+      "itens": [
+        {
+          "id": "imagens-01",
+          "titulo": "A caixa de altura fixa espreme a ilustração a 27%",
+          "detalhe": "components/exercicio/media-grande.tsx:38 fixa a caixa em h-40 (328×208) enquanto as 115 ilustrações vão de 0,35:1 a 2,78:1 — 78 delas preenchem menos de 60% da largura e o agachamento goblet renderiza 88×208 num box de 328. Usar o par largura/altura que data/ilustracoes.json já traz como aspect-ratio do contêiner (ou três faixas: alta ≤0,8 → 3:4, quadrada, larga ≥1,6 → 16:9), aqui e no className h-40 passado a IlustracaoAlternada em media-grande.tsx:68. Aceite: o goblet passa de 88 px para ≥ 180 px de figura e nenhuma ilustração ocupa menos de 60% da largura da caixa.",
+          "arquivos": [
+            "components/exercicio/media-grande.tsx"
+          ],
+          "esforco": "M"
+        },
+        {
+          "id": "tela-explorar-fichas-19",
+          "titulo": "A ficha em página não tem volta nem ação",
+          "detalhe": "app/(app)/exercicios/[id]/page.tsx:42-55 abre a ficha sem 'Voltar' no topo (components/colecoes/tela-colecao.tsx:42-48 já faz isso) e sem nada a fazer com o exercício. Acrescentar o 'Voltar' no topo e, embaixo, 'Fazer agora' abrindo sessão livre de um exercício — o hook useSessaoLivre já existe em components/colecoes/usar-sessao-livre.ts. Aceite: da ficha dá para voltar e dá para treinar o exercício sem passar pela aba Treino.",
+          "arquivos": [
+            "app/(app)/exercicios/[id]/page.tsx"
+          ],
+          "esforco": "M"
+        },
+        {
+          "id": "tela-explorar-fichas-20",
+          "titulo": "Quatro cartões vazios quando não há histórico",
+          "detalhe": "components/exercicios/historico-exercicio.tsx:116-200 monta os quatro blocos mesmo sem nenhuma série do exercício. Quando não houver dado, colapsar tudo num cartão só ('Ainda sem histórico deste exercício — ele começa na primeira série registrada') e só abrir os quatro quando houver. Aceite: exercício nunca treinado mostra um cartão, não quatro.",
+          "arquivos": [
+            "components/exercicios/historico-exercicio.tsx"
+          ],
+          "esforco": "M"
+        },
+        {
+          "id": "tela-explorar-fichas-18",
+          "titulo": "Chip ativo do segmento Ilustração/Figura a 1,08:1",
+          "detalhe": "components/exercicio/ficha-folha.tsx:321-327 marca o selecionado com 1,16:1 no escuro e 1,08:1 no claro — não se vê qual está ativo. Dar borda (border-border) e/ou fundo com ≥ 3:1 ao chip ativo, além da cor do texto. Aceite: o chip ativo do segmento mede ≥ 3:1 contra o inativo nos dois temas.",
+          "arquivos": [
+            "components/exercicio/ficha-folha.tsx"
+          ],
+          "esforco": "P"
+        },
+        {
+          "id": "tela-explorar-fichas-21",
+          "titulo": "Aba Músculos repete a ilustração e a 'Área de foco'",
+          "detalhe": "Soma tela-explorar-fichas-21, -22, -23 e a parte de ficha do a11y-12. Em components/exercicio/ficha-folha.tsx:359-365 e :402-432 tirar a ilustração da aba Músculos (fica o mapa, que é o motivo da aba) e suprimir 'Área de foco' quando comoPagina; em :138-149 trocar a seção 'Equipamento' por tags clicáveis que levam à coleção do aparelho, mantendo o subtítulo do cabeçalho; em :104-112 escrever 'Aparece em:' antes dos badges e torná-los links para /explorar/treino/<id>; e subir 'Instruções', 'Equipamento' e 'Como progredir' para h2. Aceite: nenhuma informação da ficha aparece duas vezes na mesma rolagem e a navegação por títulos percorre a ficha inteira.",
+          "arquivos": [
+            "components/exercicio/ficha-folha.tsx"
+          ],
+          "esforco": "P"
+        },
+        {
+          "id": "tela-explorar-fichas-26",
+          "titulo": "A aba de tutorial não diz que sai do app",
+          "detalhe": "components/exercicio/ficha-folha.tsx:222-226 e components/exercicio/tutorial.tsx:55-70 oferecem a aba mesmo sem tutorial no JSON e sem avisar que é link externo. Nomear a aba pelo que ela é ('Tutorial no YouTube') com o ícone de link externo no próprio rótulo, e não oferecer a aba quando o exercício não tiver tutorial. Aceite: nenhuma aba de tutorial vazia e o destino externo está dito no rótulo.",
+          "arquivos": [
+            "components/exercicio/ficha-folha.tsx",
+            "components/exercicio/tutorial.tsx"
+          ],
+          "esforco": "P"
+        },
+        {
+          "id": "imagens-12",
+          "titulo": "As 163 fotos são 3:2 e a ficha as força em quadrado",
+          "detalhe": "Soma imagens-12 e tela-explorar-fichas-25: o quadrado corta justamente o caminho da barra. Em components/exercicios/fotos-ampliaveis.tsx trocar o par de fotos por duas caixas 16:10 lado a lado (160×100) ou empilhadas em 328×205 — cabe no mesmo espaço vertical, mantém o enquadramento original e casa com a caixa proposta no item da mídia grande — e pôr legenda visível sob cada uma ('início' / 'fim'). Aceite: nenhuma foto de execução aparece recortada em quadrado na ficha.",
+          "arquivos": [
+            "components/exercicios/fotos-ampliaveis.tsx",
+            "components/exercicio/ficha-folha.tsx"
+          ],
+          "esforco": "P"
+        },
+        {
+          "id": "imagens-13",
+          "titulo": "Crédito da mídia como faixa sublinhada inteira",
+          "detalhe": "Soma imagens-13 e tela-explorar-fichas-24. Em components/exercicio/media-grande.tsx:70-82 manter o texto em 11 px (§13.8.1) e o crédito exigido pela §15.1.3, mas sublinhar só o que é link: 'Ilustração: <a>Everkinetic</a> · <a>CC BY-SA 3.0</a>' (a licença vira o segundo link, como pede a §15.1.4), com a cor de link do tema e o alvo de 44 px que a classe alvo já dá. Aceite: o crédito continua visível e só as duas palavras clicáveis aparecem sublinhadas.",
+          "arquivos": [
+            "components/exercicio/media-grande.tsx"
+          ],
+          "esforco": "P"
+        },
+        {
+          "id": "performance-13",
+          "titulo": "Segundo quadro da ilustração baixado antes da primeira pintura",
+          "detalhe": "Em components/exercicio/ilustracao-alternada.tsx carregar o segundo quadro com loading=\"lazy\" (ou só quando a animação for começar) — ele não precisa chegar antes do primeiro paint. Aceite: a ficha faz uma requisição de ilustração antes do LCP, não duas.",
+          "arquivos": [
+            "components/exercicio/ilustracao-alternada.tsx"
+          ],
+          "esforco": "P"
+        },
+        {
+          "id": "ux-heuristicas-21",
+          "titulo": "A ilustração inteira é o botão de pausa",
+          "detalhe": "components/exercicio/ilustracao-alternada.tsx:60-75 mistura conteúdo e ação: quem toca na figura para a animação, quando o que tenta abrir é o 'Como fazer'. Separar: a figura com aria-label 'Levantamento terra, posição 1 de 2' e a pausa como botão próprio no canto da imagem (44×44, aria-label 'Parar a animação' / 'Voltar a alternar'). Aceite: tocar no meio da ilustração abre o 'Como fazer' e só o botão do canto pausa.",
+          "arquivos": [
+            "components/exercicio/ilustracao-alternada.tsx"
+          ],
+          "esforco": "P"
+        }
+      ],
+      "area": "explorar-fichas",
+      "estimativa_min": 100
+    }
+  ],
+  "prazos": {}
+}

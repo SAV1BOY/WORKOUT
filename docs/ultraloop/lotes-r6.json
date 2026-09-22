@@ -1,0 +1,282 @@
+{
+  "rodada": 6,
+  "lotes": [
+    {
+      "faixa": "A",
+      "nome": "l11-corpo-registro",
+      "branch": "ultraloop/l11-corpo-registro",
+      "base_branch": "A_DEFINIR",
+      "caminho": "/home/user/wt-a",
+      "portas": {
+        "app": 3100,
+        "mock": 54321
+      },
+      "logs": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/rodada-6/l11/logs",
+      "capturas": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/rodada-6/l11/capturas",
+      "spec_secao": "### 22.11 Lote 11 — Corpo: registro, gráficos e medidas",
+      "progresso_secao": "Rodada 6 — Lote 11",
+      "specs_grep": "corpo|relatorio",
+      "fundacao": false,
+      "arquivos": [
+        "components/corpo/aba-peso.tsx",
+        "components/corpo/aba-medidas.tsx",
+        "components/corpo/aba-fotos.tsx",
+        "components/corpo/card-imc.tsx",
+        "components/corpo/tela-corpo.tsx",
+        "components/graficos/grafico.tsx",
+        "components/graficos/apoio.tsx",
+        "components/relatorio/card-peso.tsx",
+        "e2e/ultraloop-a-r6.spec.ts (novo)",
+        "e2e/ultraloop-varredura.spec.ts (tirar fixmes seus)",
+        "SPEC.md (§22.11)",
+        "PROGRESSO.md (subseção Rodada 6 — Lote 11)"
+      ],
+      "telas_esperadas_mudar": [
+        "corpo-peso",
+        "corpo-medidas",
+        "corpo-fotos",
+        "relatorio-topo"
+      ],
+      "itens": [
+        {
+          "id": "a11y-01",
+          "titulo": "Os 6 gráficos entram na árvore como 'application' sem nome",
+          "detalhe": "Medido com page.accessibility.snapshot(): os cinco gráficos do Relatório e o do Corpo têm role=\"application\", tabindex=0 e leem os rótulos dos eixos grudados ('29/0613/0727/0710/0824/0807/0902468'). No wrapper de components/graficos/grafico.tsx:133 (dentro do ResponsiveContainer) desligar a camada de acessibilidade do Recharts ou marcar a <svg> com aria-hidden=\"true\" e tabindex={-1}, e envolver o gráfico num <figure role=\"img\" aria-label=\"...\"> com a leitura em texto (ex.: 'Peso: 84,2 kg em 12/08, 83,1 kg em 26/08, 82,4 kg em 12/09 — queda de 1,8 kg'). Aceite: nenhum role=application na árvore e todo gráfico tem nome acessível com a leitura dos dados.",
+          "arquivos": [
+            "components/graficos/grafico.tsx"
+          ],
+          "esforco": "M"
+        },
+        {
+          "id": "tela-relatorio-corpo-calendario-11",
+          "titulo": "Campo de data cru nas três abas do Corpo",
+          "detalhe": "components/corpo/aba-peso.tsx:129 e o mesmo padrão em aba-medidas.tsx e aba-fotos.tsx expõem um <input type=\"date\"> onde o dono quase sempre quer 'hoje'. Trocar por um botão que mostra a data já formatada em pt-BR (formatarData) e abre o seletor, com atalhos 'Hoje' e 'Ontem'. Aceite: registrar o peso de hoje leva um toque no botão de data (ou nenhum) e a data aparece como dd/mm.",
+          "arquivos": [
+            "components/corpo/aba-peso.tsx",
+            "components/corpo/aba-medidas.tsx",
+            "components/corpo/aba-fotos.tsx"
+          ],
+          "esforco": "M"
+        },
+        {
+          "id": "tela-relatorio-corpo-calendario-17",
+          "titulo": "A tabela de Registros vaza a 360 px",
+          "detalhe": "components/corpo/aba-medidas.tsx:192-221 rola na horizontal a 360 px. Virar lista por data (um cartão por registro: medida, valor, variação) ou manter a tabela com as duas colunas escolhidas no seletor 'MEDIDA' que já existe acima; se continuar rolando, pelo menos um gradiente na borda direita indicando que há mais. Aceite: zero rolagem horizontal na aba Medidas a 360 px.",
+          "arquivos": [
+            "components/corpo/aba-medidas.tsx"
+          ],
+          "esforco": "M"
+        },
+        {
+          "id": "tela-relatorio-corpo-calendario-12",
+          "titulo": "Ordem da aba Peso",
+          "detalhe": "Em components/corpo/aba-peso.tsx:112 o CardImc aparece antes do que o dono veio ver. Ordem: peso atual + gráfico → registrar → IMC → variação → meta. Aceite: o peso atual e o gráfico estão na primeira tela a 360×740.",
+          "arquivos": [
+            "components/corpo/aba-peso.tsx"
+          ],
+          "esforco": "P"
+        },
+        {
+          "id": "tela-relatorio-corpo-calendario-14",
+          "titulo": "Eixo do gráfico de peso sem domínio fixo",
+          "detalhe": "Soma tela-relatorio-corpo-calendario-14 e -15. Fixar domínio e passo do eixo num único helper em components/graficos/apoio.tsx (arredondar min/max para múltiplos de 2, ticks de 2 em 2) e usá-lo em components/relatorio/card-peso.tsx e components/corpo/aba-peso.tsx; esconder a série e a entrada da legenda quando ela não tiver pontos suficientes; e trocar 'maior/menor' por '−4,0 kg desde 05/06', que é a informação procurada. Aceite: os dois gráficos de peso usam a mesma régua de eixo e nenhuma legenda cita série vazia.",
+          "arquivos": [
+            "components/graficos/apoio.tsx",
+            "components/relatorio/card-peso.tsx",
+            "components/corpo/aba-peso.tsx"
+          ],
+          "esforco": "P"
+        },
+        {
+          "id": "tela-relatorio-corpo-calendario-19",
+          "titulo": "A meta de peso não aparece no gráfico",
+          "detalhe": "Soma tela-relatorio-corpo-calendario-19 e copy-10. Em components/corpo/aba-peso.tsx:233-250 desenhar a meta como ReferenceLine tracejada no gráfico e mostrar 'faltam X kg' ao lado do peso atual; e trocar a frase que orienta por posição ('defina uma meta embaixo', aba-peso.tsx:171) por um link que rola até o cartão Meta. Aceite: a meta é visível no gráfico e nenhum texto do app orienta por 'embaixo'.",
+          "arquivos": [
+            "components/corpo/aba-peso.tsx"
+          ],
+          "esforco": "P"
+        },
+        {
+          "id": "tela-relatorio-corpo-calendario-13",
+          "titulo": "Marcador do IMC sem faixas rotuladas",
+          "detalhe": "components/corpo/card-imc.tsx:110-124 marca o valor com um círculo sobre uma barra sem rótulo de faixa. Trocar por um traço/triângulo fino apontando para a barra e rotular as faixas (abaixo · saudável · sobrepeso · obesidade) em 10 px sob a barra, ou destacar só a faixa atual. Aceite: dá para ler em que faixa o IMC caiu sem interpretar a cor.",
+          "arquivos": [
+            "components/corpo/card-imc.tsx"
+          ],
+          "esforco": "P"
+        },
+        {
+          "id": "tela-relatorio-corpo-calendario-18",
+          "titulo": "Aba Fotos pesada antes da primeira foto",
+          "detalhe": "Em components/corpo/aba-fotos.tsx:89 trocar a grade de ângulos por uma linha por ângulo (ícone + nome + botão de 44 px à direita) e esconder Galeria/Comparar enquanto não houver nenhuma foto, deixando só o convite para a primeira. Aceite: sem foto nenhuma, a aba mostra um convite e nada mais.",
+          "arquivos": [
+            "components/corpo/aba-fotos.tsx"
+          ],
+          "esforco": "P"
+        },
+        {
+          "id": "tela-relatorio-corpo-calendario-16",
+          "titulo": "Formulário de medidas antes do que já foi medido",
+          "detalhe": "components/corpo/aba-medidas.tsx:87 em diante abre com o formulário e as dicas por campo. Pôr Evolução e Registros primeiro e colapsar as dicas num ícone de ajuda por campo (ou levar o formulário para trás de um botão 'Registrar medidas'). Aceite: a aba Medidas abre mostrando as medidas já registradas.",
+          "arquivos": [
+            "components/corpo/aba-medidas.tsx"
+          ],
+          "esforco": "P"
+        },
+        {
+          "id": "a11y-14",
+          "titulo": "Abas sem nome e títulos fora de ordem no Corpo",
+          "detalhe": "Soma a11y-14 e a parte de /corpo do a11y-12. Em components/corpo/tela-corpo.tsx:48 pôr aria-label=\"Seções do corpo\" na TabsList (sem nome o leitor anuncia só 'lista de abas, 3 itens') e normalizar a hierarquia: seção de topo em h2, subseções em h3. Aceite: a TabsList tem nome e nenhum h3 aparece antes de um h2 em /corpo.",
+          "arquivos": [
+            "components/corpo/tela-corpo.tsx"
+          ],
+          "esforco": "P"
+        }
+      ],
+      "area": "relatorio-corpo-calendario",
+      "estimativa_min": 105
+    },
+    {
+      "faixa": "B",
+      "nome": "l12-superficies-sobra",
+      "branch": "ultraloop/l12-superficies-sobra",
+      "base_branch": "A_DEFINIR",
+      "caminho": "/home/user/wt-b",
+      "portas": {
+        "app": 3110,
+        "mock": 54331
+      },
+      "logs": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/rodada-6/l12/logs",
+      "capturas": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/rodada-6/l12/capturas",
+      "spec_secao": "### 22.12 Lote 12 — Superfícies, mídia e entrega",
+      "progresso_secao": "Rodada 6 — Lote 12",
+      "specs_grep": "midia|v3|shell",
+      "fundacao": false,
+      "arquivos": [
+        "app/globals.css",
+        "components/ui/miniatura.tsx",
+        "components/ui/card-capa.tsx",
+        "components/ui/sonner.tsx",
+        "scripts/copiar-assets.ts",
+        "next.config.ts",
+        "lib/capas.ts",
+        "app/layout.tsx",
+        "app/icon.png",
+        "e2e/ultraloop-b-r6.spec.ts (novo)",
+        "e2e/ultraloop-varredura.spec.ts (tirar fixmes seus)",
+        "SPEC.md (§22.12)",
+        "PROGRESSO.md (subseção Rodada 6 — Lote 12)"
+      ],
+      "telas_esperadas_mudar": [
+        "treino-topo",
+        "treino-lista",
+        "explorar",
+        "catalogo",
+        "ficha-exercicio",
+        "relatorio-topo",
+        "mais",
+        "equipamento"
+      ],
+      "itens": [
+        {
+          "id": "visual-13",
+          "titulo": "Abrir um degrau real entre card e fundo",
+          "detalhe": "Medido: card/fundo dá 1,07:1 no escuro e 1,04:1 no claro, e a borda só 1,23-1,28:1 — as superfícies praticamente não existem. Em app/globals.css subir --card para ~#1a1a1a e --border para ~#333 no bloco .dark (fica 1,35:1 e 1,6:1, ainda sóbrio) e, no :root, manter o card branco escurecendo --background para ~#f4f4f2 e --border para ~#dcdcd9. Aceite: card contra fundo ≥ 1,3:1 e borda contra card ≥ 1,5:1 nos dois temas.",
+          "arquivos": [
+            "app/globals.css"
+          ],
+          "esforco": "P"
+        },
+        {
+          "id": "imagens-02",
+          "titulo": "A placa de luz das ilustrações no tema escuro",
+          "detalhe": "Soma imagens-02, imagens-07 e tela-treino-player-13: --ilustracao-fundo: #e7e4e0 (app/globals.css:141) vira uma placa de 328×208 na ficha e seis quadrados brancos na lista de hoje — 52.480 px² ofuscantes num treino à noite. Duas saídas: (a) inverter o traço no escuro (filter: invert(1) no .dark para a classe bg-ilustracao / [data-ilustracao], fundo transparente herdando o cartão) — o traço é preto puro sobre transparente; (b) se a inversão estragar as poucas ilustrações coloridas (prancha-1.webp tem camisa vermelha), rebaixar a placa para ~#cfcac4 com border-border e, no claro (globals.css:97), trocar #ffffff por var(--card). Aceite: no tema escuro nenhuma caixa de ilustração passa de 60% de luminância.",
+          "arquivos": [
+            "app/globals.css"
+          ],
+          "esforco": "M"
+        },
+        {
+          "id": "a11y-03",
+          "titulo": "Campo de formulário invisível no tema escuro",
+          "detalhe": "app/globals.css:129 define --input: #2e2e2e, que dá 1,36-1,46:1 contra o fundo — abaixo dos 3:1 da SC 1.4.11. Subir para algo em torno de #5a5a58 (3,1:1 sobre #141414) mantendo --border como está para separadores. Aceite: a borda de todo <input> mede ≥ 3:1 contra a superfície que o cerca, nos dois temas.",
+          "arquivos": [
+            "app/globals.css"
+          ],
+          "esforco": "P"
+        },
+        {
+          "id": "imagens-03",
+          "titulo": "Gerar derivadas de imagem na cópia dos assets",
+          "detalhe": "Soma imagens-03, imagens-05 e imagens-11 (sharp já é dependência do projeto). Em scripts/copiar-assets.ts produzir, além da cópia: <nome>-mini.webp a 112×112 (2× de 56) para fotos, ilustrações e itens, e <id>-capa.webp a 720×360 já no enquadramento da caixa da capa. Servir a mini em components/ui/miniatura.tsx:40 e apontar lib/capas.ts para a derivada de capa. Hoje a miniatura de 56 px recebe uma foto de 850×567 (7,59× o necessário) e a capa de 326×160 recebe a mesma foto a 1,30× (mole no retina); cinco telas fecharam em 1.736 kB de imagem. Aceite: /explorar fecha abaixo de 200 kB de imagem e a capa do treino de hoje é servida a ≥ 2× da sua caixa.",
+          "arquivos": [
+            "scripts/copiar-assets.ts",
+            "components/ui/miniatura.tsx",
+            "lib/capas.ts"
+          ],
+          "esforco": "M"
+        },
+        {
+          "id": "performance-03",
+          "titulo": "Prioridade e decodificação das imagens de entrada",
+          "detalhe": "Soma performance-03, performance-04 e imagens-06: LCP medido 5,65 s em / e 5,73 s em /explorar porque a capa, que é o elemento do LCP, não tem prioridade. Em components/ui/card-capa.tsx:64 acrescentar fetchPriority=\"high\" + loading=\"eager\" + decoding=\"async\" quando uma prop indicar 'primeira dobra' (só o primeiro cartão de cada trilho visível) e loading=\"lazy\" explícito nos demais; decoding=\"async\" também no <img> de components/ui/miniatura.tsx:40, para tirar a decodificação da thread principal durante a rolagem do catálogo. Aceite: LCP de / e /explorar abaixo de 2,5 s no perfil 4G com CPU 4×.",
+          "arquivos": [
+            "components/ui/card-capa.tsx",
+            "components/ui/miniatura.tsx"
+          ],
+          "esforco": "P"
+        },
+        {
+          "id": "performance-05",
+          "titulo": "Cache-Control para os ~24 MB de mídia de public/",
+          "detalhe": "Soma performance-05 e imagens-04: next.config.ts:97-99 devolve só CABECALHOS_DE_SEGURANCA para '/:caminho*', então toda a mídia sai com max-age=0 (12 revalidações 304 numa navegação). Acrescentar uma segunda regra { source: \"/:pasta(fotos|ilustracoes|itens|figuras|icons|mapa-muscular)/:arquivo*\", headers: [{ key: \"Cache-Control\", value: \"public, max-age=31536000, immutable\" }] }. Os nomes vêm dos JSON e não mudam sem mudar de nome; se preferir poder trocar uma foto sem renomear, usar max-age=604800 + stale-while-revalidate=86400. Aceite: uma segunda navegação não revalida nenhum arquivo de /fotos ou /ilustracoes.",
+          "arquivos": [
+            "next.config.ts"
+          ],
+          "esforco": "P"
+        },
+        {
+          "id": "imagens-08",
+          "titulo": "Enquadramento e texto alternativo da miniatura",
+          "detalhe": "Soma imagens-08, imagens-18 e imagens-16. Em components/ui/miniatura.tsx:46 usar object-cover object-top quando a proporção do arquivo (o par largura/altura já está em data/ilustracoes.json) for menor que ~0,7 — o corpo aparece de fato em vez de encolher tudo numa caixa quadrada; com a derivada quadrada do item anterior, padronizar um object-fit só para foto e ilustração, deixando a diferença por conta do fundo; e em miniatura.tsx:21 inverter o padrão do alt (decorativo por padrão, alt=\"\" quando há texto ao lado que já nomeia o exercício; nome só quando a miniatura está sozinha). Aceite: nenhuma ilustração alta aparece com menos de 60% da largura da miniatura e a lista não mistura object-fit.",
+          "arquivos": [
+            "components/ui/miniatura.tsx"
+          ],
+          "esforco": "P"
+        },
+        {
+          "id": "visual-05",
+          "titulo": "shadow-lg renderiza transparente nos dois temas",
+          "detalhe": "A utilidade shadow-lg sai vazia (provável conflito do @import \"shadcn/tailwind.css\" com as camadas --tw-shadow do Tailwind 4), então o FAB e o tutorial flutuam sem elevação. Investigar a causa e, de qualquer modo, definir em app/globals.css um --sombra-flutuante próprio nos dois temas (no escuro, anel de 1 px em primary/25 mais glow curto, já que sombra preta não aparece sobre #0a0a0a) e expor um utilitário .flutuante; quem consome (components/treino/fab-ajustar.tsx, components/exercicio/tutorial.tsx) troca a classe no lote da própria área. Aceite: o elemento flutuante tem contorno visível contra card e contra fundo nos dois temas.",
+          "arquivos": [
+            "app/globals.css"
+          ],
+          "esforco": "M"
+        },
+        {
+          "id": "a11y-11",
+          "titulo": "A região de avisos é a única coisa em inglês no app",
+          "detalhe": "Soma a11y-11 e copy-01: o despejo de aria-label das 23 rotas termina em 'Notifications alt+T'. Em components/ui/sonner.tsx passar containerAriaLabel=\"Avisos\" ao <Sonner> (e hotkey={[\"altKey\",\"KeyT\"]} só se for manter o atalho). CLAUDE.md manda pt-BR em toda a interface e este é um dos primeiros marcos que um leitor de tela encontra. Aceite: nenhuma string em inglês nos aria-label de qualquer rota.",
+          "arquivos": [
+            "components/ui/sonner.tsx"
+          ],
+          "esforco": "P"
+        },
+        {
+          "id": "imagens-14",
+          "titulo": "/favicon.ico devolve 404 com 11 kB de HTML",
+          "detalhe": "Pôr um app/icon.png de 32×32 derivado do public/icons/icone-512.png que já existe — o App Router passa a servir /favicon.ico a partir dele (app/layout.tsx:21 hoje não declara ícone). Aceite: /favicon.ico responde 200 com uma imagem em toda primeira visita e em atalho de navegador.",
+          "arquivos": [
+            "app/icon.png",
+            "app/layout.tsx"
+          ],
+          "esforco": "P"
+        }
+      ],
+      "area": "outra",
+      "estimativa_min": 110
+    }
+  ],
+  "prazos": {},
+  "REMONTAR_L12": "l12-superficies-sobra está quase todo coberto por L3/L4 (visual-13, a11y-03, visual-05 → L3; imagens-03, performance-03, performance-05, a11y-11, imagens-14 → L4). Antes da R6, remontar com: fila (L4-6 loading.tsx por rota, L4-7 next/dynamic com e2e, L4-3-theme-color), imagens-02 (placa de luz das ilustrações no escuro), imagens-08 (conferir o que sobrou), e os descartados por teto: a11y-10 (nav a 200 % de zoom + a11y-05/a11y-16), pwa-offline-01 grupo (rede e fila), ux-heuristicas-17 grupo (cardio e barra fixa), tela-treino-player-12/27 (conclusão), ux-heuristicas-06/12/15 (player, se o L5 não cobrir)."
+}

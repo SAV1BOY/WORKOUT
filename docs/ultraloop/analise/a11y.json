@@ -1,0 +1,239 @@
+{
+  "lente": "a11y",
+  "resumo": "Sondagem com Playwright (Pixel 5, 360x740, dsf 2, pt-BR, America/Sao_Paulo, clock fixo 16/09/2026 08:30) em 16 rotas nos dois temas, com usuario proprio critico-a11y@exemplo.com semeado no mock. O basico esta em ordem: lang=pt-BR, <main> unico, nav com aria-label e aria-current=page, titulos de documento por rota, alvos >= 44 px (inclusive os 44x44 dos switches e os 56x56 do player), aria-pressed nos segmentados e nos dias da semana, aria-label nos switches e nos selects, role=alert no erro de login, nenhum texto abaixo de 4,5:1 em nenhum dos dois temas e nenhuma rolagem horizontal a 320 px. O que falha e mais fino e mais grave: os graficos Recharts entram na arvore como role=application SEM NOME; os timers do player (preparacao, descanso e contagem do exercicio) tem aria-live=off, entao quem usa leitor de tela nunca sabe que o descanso acabou; nada e anunciado ao concluir uma serie; a folha Substituir nao e modal para a tecnologia assistiva; o contraste NAO-textual falha nos dois temas (borda dos campos 1,36:1 e anel de foco 2,90:1 no escuro, 2,24:1 no claro, todos abaixo de 3:1 da SC 1.4.11); o hoje do calendario so existe como cor; e a 200% de zoom (180 px) a faixa da semana e a barra de navegacao inferior vazam para fora da tela. 15 achados, todos medidos.",
+  "achados": [
+    {
+      "id": "a11y-01",
+      "tela": "Relatório (gráficos) e Corpo (peso)",
+      "rota": "/relatorio",
+      "tema": "ambos",
+      "severidade": "alta",
+      "esforco": "M",
+      "prioridade_dono": "relatorio-corpo-calendario",
+      "arquivos": [
+        "components/graficos/grafico.tsx:133"
+      ],
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/a11y/a11y-01.png — page.accessibility.snapshot() devolve 5 nós {role:'application', name:'(SEM NOME)'} em /relatorio e 1 em /corpo; cada .recharts-surface tem tabindex=0, role=\"application\" e textContent \"29/0613/0727/0710/0824/0807/0902468\"",
+      "proposta": "No wrapper de components/graficos/grafico.tsx (linha 133, dentro do ResponsiveContainer) passar accessibilityLayer={false} ou marcar a <svg> gerada com aria-hidden=\"true\" e tabindex={-1}, e envolver o gráfico num <figure role=\"img\" aria-label=\"…\"> com a leitura em texto (ex.: \"Peso: 84,2 kg em 12/08, 83,1 kg em 26/08, 82,4 kg em 12/09 — queda de 1,8 kg\"). Hoje o leitor de tela entra em modo aplicação e lê os rótulos dos eixos grudados."
+    },
+    {
+      "id": "a11y-02",
+      "tela": "Player — descanso e preparação",
+      "rota": "/treinar/[id]",
+      "tema": "ambos",
+      "severidade": "alta",
+      "esforco": "M",
+      "prioridade_dono": "treino-player",
+      "arquivos": [
+        "components/player/descanso.tsx:136",
+        "components/player/exercicio.tsx:449",
+        "components/cardio/timer-intervalos.tsx:96",
+        "components/cardio/tela-cardio.tsx:374"
+      ],
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/a11y/a11y-02.png — os três contadores usam role=\"timer\" (aria-live implícito = off; em dois arquivos está escrito aria-live=\"off\"): medido {role:'timer', live:'(SEM)', label:'Descanso', txt:'2:30'} e {label:'Preparação', txt:'10'}; nenhuma região polite acompanha a contagem",
+      "proposta": "Manter role=\"timer\" no número (não faz sentido anunciar cada segundo) e acrescentar ao lado um <p role=\"status\" className=\"sr-only\"> que só muda em marcos: \"Descanso: faltam 10 segundos\" e \"Descanso terminado, próxima série\". Mesmo padrão em preparação e no timer do cardio. Sem isso quem usa leitor de tela só descobre o fim do descanso pelo som — e o som é um dos interruptores que ele pode ter desligado."
+    },
+    {
+      "id": "a11y-03",
+      "tela": "Todos os formulários (login, Corpo, Perfil, Preferências)",
+      "rota": "/login",
+      "tema": "escuro",
+      "severidade": "alta",
+      "esforco": "P",
+      "prioridade_dono": "outra",
+      "arquivos": [
+        "app/globals.css:129",
+        "components/ui/input.tsx:10"
+      ],
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/a11y/a11y-03.png — getComputedStyle da borda: #2e2e2e sobre a página #0a0a0a = 1,46:1 e sobre o cartão #141414 = 1,36:1 (SC 1.4.11 pede 3:1). Medido em /login, /corpo, /mais/perfil e /mais/preferencias (8 campos)",
+      "proposta": "Subir o token --input do tema escuro em app/globals.css:129 de #2e2e2e para algo em torno de #5a5a58 (3,1:1 sobre #141414) — ou usar --border só no repouso e uma borda mais clara nos campos. Hoje, no escuro, a caixa do campo praticamente não existe: quem tem baixa visão não vê onde digitar."
+    },
+    {
+      "id": "a11y-04",
+      "tela": "Anel de foco (todo o app)",
+      "rota": "/",
+      "tema": "ambos",
+      "severidade": "media",
+      "esforco": "P",
+      "prioridade_dono": "outra",
+      "arquivos": [
+        "app/globals.css:80",
+        "app/globals.css:130",
+        "components/ui/button.tsx:14"
+      ],
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/a11y/a11y-04.png — o anel existe e aparece (box-shadow medido: oklab(… / 0.5) 0 0 0 3px), mas a cor é ring-ring/50: #fb923c a 50% sobre #0a0a0a = 2,90:1 e #b8400c a 50% sobre #fff = 2,24:1; a SC 1.4.11 exige 3:1 para o indicador de foco",
+      "proposta": "Trocar ring-ring/50 por ring-ring (100%) nas variantes de foco, ou subir o alfa para ~70%. É só a opacidade: com #fb923c cheio sobre #0a0a0a o anel passa a 8,6:1. Não muda a regra do anel, só a cor."
+    },
+    {
+      "id": "a11y-05",
+      "tela": "Folha “Substituir hoje”",
+      "rota": "/",
+      "tema": "ambos",
+      "severidade": "media",
+      "esforco": "M",
+      "prioridade_dono": "treino-player",
+      "arquivos": [
+        "components/ui/sheet.tsx:61"
+      ],
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/a11y/a11y-05.png — com a folha aberta: {role:'dialog', aria-modal:'(SEM)'} e <main>, <header> e <nav> continuam sem aria-hidden e sem inert. O foco ao abrir cai no primeiro item da lista (\"Barra fixa assistida 4 × 5\"), não no título",
+      "proposta": "Em components/ui/sheet.tsx:61 garantir aria-modal=\"true\" no SheetPrimitive.Content e marcar o resto da árvore com inert enquanto a folha estiver aberta (o Radix faz isso quando o Portal é irmão de <body>; aqui não está). Dar tabIndex={-1} ao SheetTitle e focá-lo na abertura, para o leitor anunciar “Substituir hoje” antes da lista. Fecha bem: Esc devolve o foco ao botão que abriu (medido)."
+    },
+    {
+      "id": "a11y-06",
+      "tela": "Player — concluir a série",
+      "rota": "/treinar/[id]",
+      "tema": "ambos",
+      "severidade": "media",
+      "esforco": "P",
+      "prioridade_dono": "treino-player",
+      "arquivos": [
+        "components/player/exercicio.tsx:166"
+      ],
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/a11y/a11y-06.png — depois de “Concluir a série” não existe nenhum [role=status] ou [aria-live] com texto na tela (só o <section aria-label=\"Notifications\"> vazio do sonner); a barra role=\"progressbar\" aria-label=\"Progresso do treino\" não tem aria-valuenow nem aria-valuetext",
+      "proposta": "Depois de gravar a série, escrever num <p role=\"status\" className=\"sr-only\"> algo como “Série 2 de 3 registrada: 5 repetições com 7,5 kg. Descanso de 2 min 30.” e completar a progressbar de components/player/exercicio.tsx:166 com aria-valuenow/aria-valuemax e aria-valuetext=\"exercício 2 de 6\". É o momento em que o app grava um dado — e hoje ele é silencioso."
+    },
+    {
+      "id": "a11y-07",
+      "tela": "Login — erro de senha",
+      "rota": "/login",
+      "tema": "ambos",
+      "severidade": "media",
+      "esforco": "P",
+      "prioridade_dono": "outra",
+      "arquivos": [
+        "app/(auth)/login/formulario.tsx:86"
+      ],
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/a11y/a11y-07.png — o role=\"alert\" existe e anuncia “E-mail ou senha incorretos.” (bom), mas document.activeElement volta a ser BODY depois do envio e os dois campos ficam com aria-invalid vazio e sem aria-describedby apontando para a mensagem",
+      "proposta": "Em app/(auth)/login/formulario.tsx: dar id à mensagem de erro, pôr aria-describedby nesse id e aria-invalid=\"true\" nos dois campos quando o envio falha, e devolver o foco ao campo de e-mail (ref.focus()) em vez de deixá-lo no body — hoje, com teclado, é preciso tabular desde o começo do documento para tentar de novo."
+    },
+    {
+      "id": "a11y-08",
+      "tela": "Calendário — semana",
+      "rota": "/calendario",
+      "tema": "ambos",
+      "severidade": "media",
+      "esforco": "P",
+      "prioridade_dono": "relatorio-corpo-calendario",
+      "arquivos": [
+        "components/calendario/grade.tsx:25"
+      ],
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/a11y/a11y-08.png — o <li> de hoje (\"QUA 16 Treino B · semana 16\") tem aria-current=\"(SEM)\", nenhum .sr-only e nenhuma palavra “hoje”; a única diferença medida é border-color rgb(251,146,60)",
+      "proposta": "Em components/calendario/grade.tsx:25 marcar o dia corrente com aria-current=\"date\" e um <span className=\"sr-only\">hoje</span> (a faixa da tela Treino já faz isso com a etiqueta “hoje” visível). Hoje a informação está só na cor — falha 1.4.1 e some para quem usa leitor de tela."
+    },
+    {
+      "id": "a11y-09",
+      "tela": "Treino / Relatório a 200% de zoom",
+      "rota": "/",
+      "tema": "ambos",
+      "severidade": "media",
+      "esforco": "M",
+      "prioridade_dono": "relatorio-corpo-calendario",
+      "arquivos": [
+        "components/semana/faixa-da-semana.tsx"
+      ],
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/a11y/a11y-09.png — com a viewport a 180 px (200% de zoom sobre 360): document.scrollWidth = 264 contra clientWidth = 180; os elementos que vazam são os <li className=\"flex-1\"> da faixa da semana (right = 191) e o chip \"2 semanas\" (right = 236). A 320 px (o limite da SC 1.4.10) não há rolagem horizontal em nenhuma rota",
+      "proposta": "Deixar a faixa dos 7 dias rolar na horizontal (overflow-x-auto + snap) ou quebrar em duas linhas abaixo de ~220 px, em vez de sete colunas flex-1 com largura mínima fixa. O mesmo chip de fase precisa de text-wrap/truncate."
+    },
+    {
+      "id": "a11y-10",
+      "tela": "Barra de navegação inferior a 200% de zoom",
+      "rota": "/mais/preferencias",
+      "tema": "ambos",
+      "severidade": "alta",
+      "esforco": "M",
+      "prioridade_dono": "outra",
+      "arquivos": [
+        "components/nav-inferior.tsx:28"
+      ],
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/a11y/a11y-10.png — viewport de 180 px: os itens \"Corpo\" (right = 199) e \"Mais\" (right = 243) ficam fora da largura visível e scrollWidth continua 180, ou seja, não há como rolar até eles — a navegação some",
+      "proposta": "Em components/nav-inferior.tsx a barra é fixa com 5 colunas de largura mínima; abaixo de ~280 px encolher o rótulo (só ícone com aria-label) ou permitir rolagem horizontal dentro da barra. Perder duas abas de navegação a 200% de zoom trava o app para quem amplia."
+    },
+    {
+      "id": "a11y-11",
+      "tela": "Avisos (sonner) — todas as telas",
+      "rota": "/",
+      "tema": "ambos",
+      "severidade": "media",
+      "esforco": "P",
+      "prioridade_dono": "outra",
+      "arquivos": [
+        "app/providers.tsx:42",
+        "components/ui/sonner.tsx:7"
+      ],
+      "evidencia": "Medição: em TODAS as 16 rotas sondadas existe <section aria-label=\"Notifications alt+T\" aria-live=\"polite\"> — rótulo e atalho anunciados em inglês num app 100% pt-BR",
+      "proposta": "Passar as props de i18n do sonner no <Toaster /> de app/providers.tsx:42 (containerAriaLabel=\"Avisos\" e hotkey) ou fixá-las em components/ui/sonner.tsx. É a primeira coisa que um leitor de tela em português encontra ao navegar por marcos."
+    },
+    {
+      "id": "a11y-12",
+      "tela": "Corpo, ficha de exercício e Barra fixa",
+      "rota": "/corpo",
+      "tema": "ambos",
+      "severidade": "baixa",
+      "esforco": "P",
+      "prioridade_dono": "explorar-fichas",
+      "arquivos": [
+        "components/corpo/tela-corpo.tsx:48",
+        "app/(app)/barra-fixa/page.tsx"
+      ],
+      "evidencia": "Medição da árvore de títulos: /corpo = h1 “Corpo” → h3 “IMC” (pula o h2); /exercicios/supino-reto-com-barra = h1 → h3 ×10 (Instruções, Erro comum, Área de foco…); /barra-fixa = h1 “Barra fixa” → h3 “Últimos 14 dias” → h2 “As 12 semanas” (nível volta a subir)",
+      "proposta": "Normalizar: seção de topo em h2 e subseções em h3. Em /barra-fixa trocar o h3 “Últimos 14 dias” por h2 (ou pôr “As 12 semanas” em h3), e nas fichas subir “Instruções”, “Equipamento” etc. para h2. Navegar por títulos é como se lê uma ficha longa no celular com leitor de tela."
+    },
+    {
+      "id": "a11y-13",
+      "tela": "Relatório — aviso de conquista nova",
+      "rota": "/relatorio",
+      "tema": "ambos",
+      "severidade": "media",
+      "esforco": "P",
+      "prioridade_dono": "relatorio-corpo-calendario",
+      "arquivos": [
+        "components/relatorio/aviso-conquista.tsx:29"
+      ],
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/a11y/a11y-13.png — o aviso é <section aria-label=\"Conquista nova\"> sem role=\"status\" e sem aria-live; ele aparece depois do carregamento (é assíncrono) e nada é anunciado. De quebra, seu botão “Ok” vira a 2ª parada de Tab da página, à frente dos filtros",
+      "proposta": "Em components/relatorio/aviso-conquista.tsx:29 acrescentar role=\"status\" (aria-live=\"polite\") à <section>, para o leitor anunciar “Conquista: 25 treinos” quando o cartão surgir. Como ele entra depois, sem live region é invisível para quem não olha a tela."
+    },
+    {
+      "id": "a11y-14",
+      "tela": "Abas de Corpo e da ficha de exercício",
+      "rota": "/corpo",
+      "tema": "ambos",
+      "severidade": "baixa",
+      "esforco": "P",
+      "prioridade_dono": "explorar-fichas",
+      "arquivos": [
+        "components/corpo/tela-corpo.tsx:48"
+      ],
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/a11y/a11y-14.png — árvore de acessibilidade: {role:'tablist', name:'(SEM)', n:3} em /corpo (Peso/Medidas/Fotos) e em /exercicios/[id] (Vídeo/Músculos/Tutorial). O roving tabindex está correto (0 / -1 / -1) e os alvos têm 107×44",
+      "proposta": "Pôr aria-label na TabsList (ex.: aria-label=\"Seções do corpo\" e aria-label=\"Mídia do exercício\"). Sem nome, o leitor anuncia só “lista de abas, 3 itens”, e as duas telas têm abas com o mesmo formato."
+    },
+    {
+      "id": "a11y-15",
+      "tela": "Player — sessão de força",
+      "rota": "/treinar/[id]",
+      "tema": "ambos",
+      "severidade": "baixa",
+      "esforco": "P",
+      "prioridade_dono": "treino-player",
+      "arquivos": [
+        "components/player/exercicio.tsx",
+        "components/player/descanso.tsx"
+      ],
+      "evidencia": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/a11y/a11y-15.png — na tela onde o treino acontece não existe nenhum <h1>: a árvore de títulos é só [\"H2: Levantamento terra\"]; grep por <h1 em components/player/*.tsx e em app/(app)/treinar não devolve nada",
+      "proposta": "Dar um <h1 className=\"sr-only\">Treino B — exercício 2 de 6</h1> ao contêiner do player (ou promover o nome do exercício a h1), para o documento ter um nível 1 e o leitor situar quem entra na sessão por atalho de títulos."
+    },
+    {
+      "id": "a11y-16",
+      "tela": "Mais — bloco de sincronização",
+      "rota": "/mais",
+      "tema": "ambos",
+      "severidade": "baixa",
+      "esforco": "P",
+      "prioridade_dono": "outra",
+      "arquivos": [
+        "components/mais/tela-mais.tsx"
+      ],
+      "evidencia": "Medição: <section aria-label=\"Sincronização\"> com role=section, aria-live=(SEM) e texto \"Tudo sincronizado — Nada esperando a rede.\" O texto muda sozinho quando a fila offline sobe, e nada é anunciado",
+      "proposta": "Acrescentar role=\"status\" à seção de sincronização (ou a um <p className=\"sr-only\"> dentro dela) para anunciar \"3 séries esperando a rede\" → \"Tudo sincronizado\". É o único lugar do app que conta se o treino já subiu; hoje só quem olha a tela sabe."
+    }
+  ]
+}

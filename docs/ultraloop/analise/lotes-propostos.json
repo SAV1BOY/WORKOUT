@@ -1,0 +1,1088 @@
+{
+  "lotes": [
+    {
+      "nome": "Relatório: estrutura, números e conquistas",
+      "area": "relatorio-corpo-calendario",
+      "arquivos": [
+        "components/relatorio/tela-relatorio.tsx",
+        "components/relatorio/numeros.tsx",
+        "components/relatorio/conquistas.tsx",
+        "components/relatorio/aviso-conquista.tsx",
+        "components/relatorio/historico.tsx",
+        "components/progresso/tela-progresso.tsx",
+        "lib/formato.ts"
+      ],
+      "telas_esperadas_mudar": [
+        "11-relatorio-topo",
+        "12-relatorio-numeros",
+        "13-relatorio-conquistas",
+        "14-relatorio-historico"
+      ],
+      "specs_grep": "relatorio|conquistas",
+      "estimativa_min": 105,
+      "conflita_com": [],
+      "itens": [
+        {
+          "id": "tela-relatorio-corpo-calendario-01",
+          "titulo": "Quebrar os 5.444 px do Relatório em seções",
+          "detalhe": "components/relatorio/tela-relatorio.tsx:106 empilha tudo num <Tela> só. Envolver cada bloco (Resumo · Conquistas · Histórico · Corpo · Gráficos) num Tabs do shadcn ou num <details> com cabeçalho grudado no topo, lembrando a seção aberta em localStorage. Aceite: a 360×740 o Relatório abre com menos de 1.500 px de rolagem e todo bloco é alcançável por um toque no cabeçalho.",
+          "arquivos": [
+            "components/relatorio/tela-relatorio.tsx"
+          ],
+          "esforco": "M"
+        },
+        {
+          "id": "performance-01",
+          "titulo": "Reservar a caixa de cada seção antes dos dados (CLS 0,44 → < 0,1)",
+          "detalhe": "Os ~10 hooks de components/relatorio/tela-relatorio.tsx:58-65 resolvem depois da primeira pintura e empurram tudo: CLS medido 0,3895 no escuro e 0,4430 no claro. Trocar o esqueleto único por min-height fixa por <section>, com a MESMA caixa da versão final (Números: grade 2×2; Conquistas: cabeçalho + barra 'N de 26'; Histórico: 3 linhas). Aceite: CLS de /relatorio abaixo de 0,1 nos dois temas.",
+          "arquivos": [
+            "components/relatorio/tela-relatorio.tsx"
+          ],
+          "esforco": "M"
+        },
+        {
+          "id": "tela-relatorio-corpo-calendario-04",
+          "titulo": "Conquistas em 2 colunas a 360 px com altura travada",
+          "detalhe": "components/relatorio/conquistas.tsx:77 usa uma grade que a 360 px espreme os cartões; passar para grid-cols-2 sm:grid-cols-3 e travar a altura do cartão com line-clamp no subtítulo. Aceite: as linhas de conquistas têm todas a mesma altura a 360 px e nenhum título quebra em três linhas.",
+          "arquivos": [
+            "components/relatorio/conquistas.tsx"
+          ],
+          "esforco": "M"
+        },
+        {
+          "id": "tela-relatorio-corpo-calendario-05",
+          "titulo": "Progresso e separação entre conquistadas e a conquistar",
+          "detalhe": "Em components/relatorio/conquistas.tsx:69-77 pôr uma barra fina de progresso sob o título (7 de 26) e dois grupos rotulados ('Conquistadas' / 'A conquistar'), ou um filtro de duas opções. Aceite: dá para ver quantas faltam sem contar cartão por cartão.",
+          "arquivos": [
+            "components/relatorio/conquistas.tsx"
+          ],
+          "esforco": "P"
+        },
+        {
+          "id": "tela-relatorio-corpo-calendario-02",
+          "titulo": "Aviso de conquista: cortar em 3, datar só o que não é de hoje, anunciar",
+          "detalhe": "Soma tela-relatorio-corpo-calendario-02, tela-treino-player-28, a11y-13 e visual-09. Em components/relatorio/aviso-conquista.tsx:36-37 aplicar novas.slice(0,3) com 'e mais N', esconder a data quando for a de hoje (anunciar como novidade uma conquista de 1º de junho tira a credibilidade), acrescentar role=\"status\" à <section>:29 e trocar o rótulo 'Conquistas' por 'Nova conquista' (a tela já tem um título de seção com essa palavra). Aceite: o aviso nunca passa de 3 linhas e é anunciado pelo leitor de tela quando surge.",
+          "arquivos": [
+            "components/relatorio/aviso-conquista.tsx"
+          ],
+          "esforco": "P"
+        },
+        {
+          "id": "copy-05",
+          "titulo": "'51 no total' × '46 no total' na mesma rolagem",
+          "detalhe": "Soma copy-05 e tela-relatorio-corpo-calendario-03: o mesmo rótulo devolve 51 (todas as sessões) e 46 (só força). Renomear o contador do topo em components/relatorio/tela-relatorio.tsx:107-112 para 'SESSÕES / 51 / no total (força + cardio)' e o card para 'só força · 6 no mês · 46 de força no total'; components/progresso/tela-progresso.tsx:144-145 já documenta a diferença num comentário — levá-la para o rótulo. Aceite: nenhum par de números com o mesmo rótulo se contradiz em /relatorio.",
+          "arquivos": [
+            "components/relatorio/tela-relatorio.tsx",
+            "components/progresso/tela-progresso.tsx"
+          ],
+          "esforco": "P"
+        },
+        {
+          "id": "visual-02",
+          "titulo": "Alinhar a fileira de ladrilhos de números",
+          "detalhe": "Soma visual-02 e visual-03. Em components/relatorio/numeros.tsx dar a cada ladrilho grid-rows-[auto_1fr_auto] com items-start e min-h-[2lh] no rótulo, para os números da fileira caírem na mesma linha de base e a legenda colar no rodapé do card; pôr [&_svg]:shrink-0 no ícone do rótulo e fixá-lo em size-3.5 (a 12 px ele some ao lado de um número de 24-30 px). Vale para as fileiras de 3 e de 2. Aceite: os três números da fileira ficam na mesma linha de base mesmo quando um rótulo quebra em duas linhas.",
+          "arquivos": [
+            "components/relatorio/numeros.tsx"
+          ],
+          "esforco": "P"
+        },
+        {
+          "id": "visual-10",
+          "titulo": "Cabeçalho de seção: contador à direita, explicação como subtítulo",
+          "detalhe": "Soma visual-10 e tela-relatorio-corpo-calendario-10. Em components/relatorio/tela-relatorio.tsx separar os dois papéis do slot direito: contador curto ('7 de 26') alinhado à linha de base do título e a frase de explicação como subtítulo de 12 px muted na linha de baixo (a 360 px uma frase de 203 px na mesma linha rouba a leitura do título); e mover o bloco de atalho que hoje vem antes de <section aria-label=\"Totais\"> para o fim da tela. Aceite: o Relatório começa pelos números e nenhum título de seção divide a linha com uma frase.",
+          "arquivos": [
+            "components/relatorio/tela-relatorio.tsx"
+          ],
+          "esforco": "P"
+        },
+        {
+          "id": "visual-20",
+          "titulo": "Resumo Força/Cardio/Barra fixa em duas colunas e sem jargão",
+          "detalhe": "Soma visual-20, copy-18, copy-19 e copy-26. Em components/progresso/tela-progresso.tsx transformar o resumo em <dl> com grid-cols-[5.5rem_1fr] (valor sempre no mesmo x); trocar 'e1RM (Epley)' por 'carga máxima estimada' e 'Σ reps × kg' por 'soma de repetições × carga, nas últimas 12 semanas'; 'aderência' por 'Constância (4 semanas)'; centralizar o símbolo de porcentagem num formatarPercentual em lib/formato.ts ('78%' colado) em vez do `${...} %` escrito à mão em tela-progresso.tsx:149; e separar a contagem do nome ('Treino B × 1', não 'Treino B 1'). Aceite: nenhuma sigla ou notação matemática sem tradução em /relatorio e um só formato de porcentagem no app.",
+          "arquivos": [
+            "components/progresso/tela-progresso.tsx",
+            "lib/formato.ts"
+          ],
+          "esforco": "P"
+        },
+        {
+          "id": "tela-relatorio-corpo-calendario-06",
+          "titulo": "Legenda do histórico e cartão vazio de 'Carga dos grandes'",
+          "detalhe": "Soma tela-relatorio-corpo-calendario-06 e -08. Em components/relatorio/historico.tsx acrescentar uma legenda de uma linha abaixo da faixa ('✓ feito · ● hoje · ○ a fazer · — descanso'); em components/progresso/tela-progresso.tsx encolher o cartão do exercício sem registro para uma linha (nome + 'sem registro') ou juntá-los num rodapé 'Ainda sem registro: X, Y'. Aceite: as marcas da faixa têm legenda visível e nenhum cartão de altura cheia mostra só 'sem registro'.",
+          "arquivos": [
+            "components/relatorio/historico.tsx",
+            "components/progresso/tela-progresso.tsx"
+          ],
+          "esforco": "P"
+        }
+      ]
+    },
+    {
+      "nome": "Superfícies, mídia e entrega",
+      "area": "outra",
+      "arquivos": [
+        "app/globals.css",
+        "components/ui/miniatura.tsx",
+        "components/ui/card-capa.tsx",
+        "components/ui/sonner.tsx",
+        "scripts/copiar-assets.ts",
+        "next.config.ts",
+        "lib/capas.ts",
+        "app/layout.tsx",
+        "app/icon.png"
+      ],
+      "telas_esperadas_mudar": [
+        "03-treino-topo",
+        "04-treino-lista",
+        "06-explorar",
+        "08-catalogo",
+        "09-ficha-exercicio",
+        "11-relatorio-topo",
+        "18-mais",
+        "21-equipamento"
+      ],
+      "specs_grep": "midia|v3|shell",
+      "estimativa_min": 110,
+      "conflita_com": [],
+      "itens": [
+        {
+          "id": "visual-13",
+          "titulo": "Abrir um degrau real entre card e fundo",
+          "detalhe": "Medido: card/fundo dá 1,07:1 no escuro e 1,04:1 no claro, e a borda só 1,23-1,28:1 — as superfícies praticamente não existem. Em app/globals.css subir --card para ~#1a1a1a e --border para ~#333 no bloco .dark (fica 1,35:1 e 1,6:1, ainda sóbrio) e, no :root, manter o card branco escurecendo --background para ~#f4f4f2 e --border para ~#dcdcd9. Aceite: card contra fundo ≥ 1,3:1 e borda contra card ≥ 1,5:1 nos dois temas.",
+          "arquivos": [
+            "app/globals.css"
+          ],
+          "esforco": "P"
+        },
+        {
+          "id": "imagens-02",
+          "titulo": "A placa de luz das ilustrações no tema escuro",
+          "detalhe": "Soma imagens-02, imagens-07 e tela-treino-player-13: --ilustracao-fundo: #e7e4e0 (app/globals.css:141) vira uma placa de 328×208 na ficha e seis quadrados brancos na lista de hoje — 52.480 px² ofuscantes num treino à noite. Duas saídas: (a) inverter o traço no escuro (filter: invert(1) no .dark para a classe bg-ilustracao / [data-ilustracao], fundo transparente herdando o cartão) — o traço é preto puro sobre transparente; (b) se a inversão estragar as poucas ilustrações coloridas (prancha-1.webp tem camisa vermelha), rebaixar a placa para ~#cfcac4 com border-border e, no claro (globals.css:97), trocar #ffffff por var(--card). Aceite: no tema escuro nenhuma caixa de ilustração passa de 60% de luminância.",
+          "arquivos": [
+            "app/globals.css"
+          ],
+          "esforco": "M"
+        },
+        {
+          "id": "a11y-03",
+          "titulo": "Campo de formulário invisível no tema escuro",
+          "detalhe": "app/globals.css:129 define --input: #2e2e2e, que dá 1,36-1,46:1 contra o fundo — abaixo dos 3:1 da SC 1.4.11. Subir para algo em torno de #5a5a58 (3,1:1 sobre #141414) mantendo --border como está para separadores. Aceite: a borda de todo <input> mede ≥ 3:1 contra a superfície que o cerca, nos dois temas.",
+          "arquivos": [
+            "app/globals.css"
+          ],
+          "esforco": "P"
+        },
+        {
+          "id": "imagens-03",
+          "titulo": "Gerar derivadas de imagem na cópia dos assets",
+          "detalhe": "Soma imagens-03, imagens-05 e imagens-11 (sharp já é dependência do projeto). Em scripts/copiar-assets.ts produzir, além da cópia: <nome>-mini.webp a 112×112 (2× de 56) para fotos, ilustrações e itens, e <id>-capa.webp a 720×360 já no enquadramento da caixa da capa. Servir a mini em components/ui/miniatura.tsx:40 e apontar lib/capas.ts para a derivada de capa. Hoje a miniatura de 56 px recebe uma foto de 850×567 (7,59× o necessário) e a capa de 326×160 recebe a mesma foto a 1,30× (mole no retina); cinco telas fecharam em 1.736 kB de imagem. Aceite: /explorar fecha abaixo de 200 kB de imagem e a capa do treino de hoje é servida a ≥ 2× da sua caixa.",
+          "arquivos": [
+            "scripts/copiar-assets.ts",
+            "components/ui/miniatura.tsx",
+            "lib/capas.ts"
+          ],
+          "esforco": "M"
+        },
+        {
+          "id": "performance-03",
+          "titulo": "Prioridade e decodificação das imagens de entrada",
+          "detalhe": "Soma performance-03, performance-04 e imagens-06: LCP medido 5,65 s em / e 5,73 s em /explorar porque a capa, que é o elemento do LCP, não tem prioridade. Em components/ui/card-capa.tsx:64 acrescentar fetchPriority=\"high\" + loading=\"eager\" + decoding=\"async\" quando uma prop indicar 'primeira dobra' (só o primeiro cartão de cada trilho visível) e loading=\"lazy\" explícito nos demais; decoding=\"async\" também no <img> de components/ui/miniatura.tsx:40, para tirar a decodificação da thread principal durante a rolagem do catálogo. Aceite: LCP de / e /explorar abaixo de 2,5 s no perfil 4G com CPU 4×.",
+          "arquivos": [
+            "components/ui/card-capa.tsx",
+            "components/ui/miniatura.tsx"
+          ],
+          "esforco": "P"
+        },
+        {
+          "id": "performance-05",
+          "titulo": "Cache-Control para os ~24 MB de mídia de public/",
+          "detalhe": "Soma performance-05 e imagens-04: next.config.ts:97-99 devolve só CABECALHOS_DE_SEGURANCA para '/:caminho*', então toda a mídia sai com max-age=0 (12 revalidações 304 numa navegação). Acrescentar uma segunda regra { source: \"/:pasta(fotos|ilustracoes|itens|figuras|icons|mapa-muscular)/:arquivo*\", headers: [{ key: \"Cache-Control\", value: \"public, max-age=31536000, immutable\" }] }. Os nomes vêm dos JSON e não mudam sem mudar de nome; se preferir poder trocar uma foto sem renomear, usar max-age=604800 + stale-while-revalidate=86400. Aceite: uma segunda navegação não revalida nenhum arquivo de /fotos ou /ilustracoes.",
+          "arquivos": [
+            "next.config.ts"
+          ],
+          "esforco": "P"
+        },
+        {
+          "id": "imagens-08",
+          "titulo": "Enquadramento e texto alternativo da miniatura",
+          "detalhe": "Soma imagens-08, imagens-18 e imagens-16. Em components/ui/miniatura.tsx:46 usar object-cover object-top quando a proporção do arquivo (o par largura/altura já está em data/ilustracoes.json) for menor que ~0,7 — o corpo aparece de fato em vez de encolher tudo numa caixa quadrada; com a derivada quadrada do item anterior, padronizar um object-fit só para foto e ilustração, deixando a diferença por conta do fundo; e em miniatura.tsx:21 inverter o padrão do alt (decorativo por padrão, alt=\"\" quando há texto ao lado que já nomeia o exercício; nome só quando a miniatura está sozinha). Aceite: nenhuma ilustração alta aparece com menos de 60% da largura da miniatura e a lista não mistura object-fit.",
+          "arquivos": [
+            "components/ui/miniatura.tsx"
+          ],
+          "esforco": "P"
+        },
+        {
+          "id": "visual-05",
+          "titulo": "shadow-lg renderiza transparente nos dois temas",
+          "detalhe": "A utilidade shadow-lg sai vazia (provável conflito do @import \"shadcn/tailwind.css\" com as camadas --tw-shadow do Tailwind 4), então o FAB e o tutorial flutuam sem elevação. Investigar a causa e, de qualquer modo, definir em app/globals.css um --sombra-flutuante próprio nos dois temas (no escuro, anel de 1 px em primary/25 mais glow curto, já que sombra preta não aparece sobre #0a0a0a) e expor um utilitário .flutuante; quem consome (components/treino/fab-ajustar.tsx, components/exercicio/tutorial.tsx) troca a classe no lote da própria área. Aceite: o elemento flutuante tem contorno visível contra card e contra fundo nos dois temas.",
+          "arquivos": [
+            "app/globals.css"
+          ],
+          "esforco": "M"
+        },
+        {
+          "id": "a11y-11",
+          "titulo": "A região de avisos é a única coisa em inglês no app",
+          "detalhe": "Soma a11y-11 e copy-01: o despejo de aria-label das 23 rotas termina em 'Notifications alt+T'. Em components/ui/sonner.tsx passar containerAriaLabel=\"Avisos\" ao <Sonner> (e hotkey={[\"altKey\",\"KeyT\"]} só se for manter o atalho). CLAUDE.md manda pt-BR em toda a interface e este é um dos primeiros marcos que um leitor de tela encontra. Aceite: nenhuma string em inglês nos aria-label de qualquer rota.",
+          "arquivos": [
+            "components/ui/sonner.tsx"
+          ],
+          "esforco": "P"
+        },
+        {
+          "id": "imagens-14",
+          "titulo": "/favicon.ico devolve 404 com 11 kB de HTML",
+          "detalhe": "Pôr um app/icon.png de 32×32 derivado do public/icons/icone-512.png que já existe — o App Router passa a servir /favicon.ico a partir dele (app/layout.tsx:21 hoje não declara ícone). Aceite: /favicon.ico responde 200 com uma imagem em toda primeira visita e em atalho de navegador.",
+          "arquivos": [
+            "app/icon.png",
+            "app/layout.tsx"
+          ],
+          "esforco": "P"
+        }
+      ]
+    },
+    {
+      "nome": "Calendário e faixa da semana",
+      "area": "relatorio-corpo-calendario",
+      "arquivos": [
+        "components/calendario/tela-calendario.tsx",
+        "components/calendario/grade.tsx",
+        "components/calendario/dialogos.tsx",
+        "components/ui/faixa-semana.tsx",
+        "lib/semana.ts"
+      ],
+      "telas_esperadas_mudar": [
+        "05-calendario",
+        "03-treino-topo"
+      ],
+      "specs_grep": "calendario|semana|dias",
+      "estimativa_min": 100,
+      "conflita_com": [],
+      "itens": [
+        {
+          "id": "tela-relatorio-corpo-calendario-20",
+          "titulo": "'Fase 1 · semana 16 de 12' é impossível de ler",
+          "detalhe": "Soma tela-relatorio-corpo-calendario-20 e copy-03 (distinto do item 'Semana N de 12' já agendado no L2: aqui o defeito é o N passar do total da fase). Em lib/semana.ts:143-151, quando a semana passa de SEMANAS_PARA_FASE2, devolver 'Fase 1 · 12 de 12 concluída' ou 'Fase 1 · semana 16 (4 além do plano)' — sem denominador contraditório — e oferecer a passagem para a Fase 2; components/calendario/tela-calendario.tsx:281 (rotuloDaFase) passa a consumir o helper, para o Calendário e a aba Treino dizerem a mesma coisa. Aceite: nenhuma tela mostra um numerador maior que o denominador.",
+          "arquivos": [
+            "lib/semana.ts",
+            "components/calendario/tela-calendario.tsx"
+          ],
+          "esforco": "M"
+        },
+        {
+          "id": "tela-relatorio-corpo-calendario-21",
+          "titulo": "O mês parece navegável e não é",
+          "detalhe": "components/calendario/grade.tsx:86-118 desenha a grade do mês com dias que não respondem a toque e sem ‹ › de mês, embora o título prometa navegação. Tornar cada dia um botão que abre o mesmo DialogoDia já usado pela semana (components/calendario/dialogos.tsx) e pôr as setas de mês ao lado do título; se a decisão for mantê-lo como resumo, reduzi-lo e tirar a promessa do título. Aceite: tocar num dia do mês abre o mesmo diálogo que tocar no cartão da semana.",
+          "arquivos": [
+            "components/calendario/grade.tsx",
+            "components/calendario/dialogos.tsx"
+          ],
+          "esforco": "M"
+        },
+        {
+          "id": "a11y-09",
+          "titulo": "A faixa dos 7 dias vaza a 200% de zoom",
+          "detalhe": "A 200% (180 px de largura efetiva) a faixa mede scrollWidth 264 contra 180 porque são sete colunas flex-1 com largura mínima fixa. Em components/ui/faixa-semana.tsx deixar a faixa rolar na horizontal (overflow-x-auto + snap, como o carrossel de desafios já faz) ou quebrar em duas linhas abaixo de ~220 px, e dar text-wrap ao chip de fase. Aceite: zero rolagem horizontal da página a 200% de zoom em / e /calendario.",
+          "arquivos": [
+            "components/ui/faixa-semana.tsx"
+          ],
+          "esforco": "M"
+        },
+        {
+          "id": "visual-04",
+          "titulo": "Marcadores da faixa da semana com caixas diferentes",
+          "detalhe": "components/ui/faixa-semana.tsx:140-170 usa um invólucro size-6 com miolos de size-2, size-2.5 e h-0.5 w-3 — cada estado tem uma caixa. Normalizar a caixa em 20×20 para todos e diferenciar só por preenchimento dentro dela: concluído = disco cheio com ✓ de 12 px; hoje = disco cheio de 10 px com anel externo; planejado = anel de 10 px; descanso = traço de 10×2 centrado. Aceite: os sete marcadores têm a mesma caixa e a mesma linha de base.",
+          "arquivos": [
+            "components/ui/faixa-semana.tsx"
+          ],
+          "esforco": "P"
+        },
+        {
+          "id": "a11y-08",
+          "titulo": "O 'hoje' do calendário só existe como cor",
+          "detalhe": "components/calendario/grade.tsx:25 marca o dia corrente apenas por cor (falha 1.4.1) e some para quem usa leitor de tela. Acrescentar aria-current=\"date\" e um <span className=\"sr-only\">hoje</span>, como a faixa da tela Treino já faz com a etiqueta visível. Aceite: o leitor de tela anuncia 'hoje' no dia corrente do calendário.",
+          "arquivos": [
+            "components/calendario/grade.tsx"
+          ],
+          "esforco": "P"
+        },
+        {
+          "id": "tela-relatorio-corpo-calendario-22",
+          "titulo": "Legenda da grade e feito × planejado por forma",
+          "detalhe": "Em components/calendario/grade.tsx:86-118 acrescentar uma legenda de uma linha sob a grade ('● feito · ○ planejado · ● cardio · ● perdido') e diferenciar feito de planejado por forma (cheio × contorno), não só por opacidade — assim funciona também para quem não distingue os tons. Aceite: dá para dizer o estado de um dia sem depender de cor.",
+          "arquivos": [
+            "components/calendario/grade.tsx"
+          ],
+          "esforco": "P"
+        },
+        {
+          "id": "tela-relatorio-corpo-calendario-24",
+          "titulo": "Contagem da semana com 'perdidos' sempre visível",
+          "detalhe": "components/calendario/tela-calendario.tsx:233-241 escreve o trecho 'perdidos' mesmo quando o número é 0. Omiti-lo nesse caso e transformar a linha numa barrinha de 3 segmentos (feito / a fazer / perdido) com os números, logo abaixo do 'Hoje'. Aceite: a semana perfeita não mostra a palavra 'perdidos'.",
+          "arquivos": [
+            "components/calendario/tela-calendario.tsx"
+          ],
+          "esforco": "P"
+        },
+        {
+          "id": "tela-relatorio-corpo-calendario-27",
+          "titulo": "Navegação da semana sem âncora",
+          "detalhe": "Em components/calendario/tela-calendario.tsx:202-229 pôr o intervalo da semana entre as setas ‹ ›, e reduzir o 'Hoje' a um botão pequeno que só aparece quando a semana mostrada não é a atual. Aceite: dá para saber que semana está na tela sem contar os dias.",
+          "arquivos": [
+            "components/calendario/tela-calendario.tsx"
+          ],
+          "esforco": "P"
+        },
+        {
+          "id": "tela-relatorio-corpo-calendario-25",
+          "titulo": "'Não vou treinar hoje' solta no fim da tela",
+          "detalhe": "A ação aparece desancorada em components/calendario/tela-calendario.tsx:244-253. Levá-la para dentro do cartão do dia de hoje (ou para o diálogo do dia); se ficar solta, separá-la com um divisor e um rótulo ('Se hoje não rolar'). Aceite: a ação está visivelmente presa ao dia que ela altera.",
+          "arquivos": [
+            "components/calendario/tela-calendario.tsx"
+          ],
+          "esforco": "P"
+        },
+        {
+          "id": "tela-relatorio-corpo-calendario-23",
+          "titulo": "Hierarquia do mês e altura dos cartões do dia",
+          "detalhe": "Soma tela-relatorio-corpo-calendario-23 e -26. Em components/calendario/grade.tsx:87-89 dar ao mês o peso de um título de seção (text-base font-semibold, sem uppercase) e destacar a linha da semana atual dentro da grade; em grade.tsx:20-66 pôr line-clamp-1 na descrição dos cartões da semana com altura mínima fixa, deixando o texto completo para o DialogoDia. Aceite: os sete cartões da semana têm a mesma altura e o mês lê-se como título, não como rótulo.",
+          "arquivos": [
+            "components/calendario/grade.tsx"
+          ],
+          "esforco": "P"
+        }
+      ]
+    },
+    {
+      "nome": "Corpo: registro, gráficos e medidas",
+      "area": "relatorio-corpo-calendario",
+      "arquivos": [
+        "components/corpo/aba-peso.tsx",
+        "components/corpo/aba-medidas.tsx",
+        "components/corpo/aba-fotos.tsx",
+        "components/corpo/card-imc.tsx",
+        "components/corpo/tela-corpo.tsx",
+        "components/graficos/grafico.tsx",
+        "components/graficos/apoio.tsx",
+        "components/relatorio/card-peso.tsx"
+      ],
+      "telas_esperadas_mudar": [
+        "15-corpo-peso",
+        "16-corpo-medidas",
+        "17-corpo-fotos",
+        "11-relatorio-topo"
+      ],
+      "specs_grep": "corpo|relatorio",
+      "estimativa_min": 105,
+      "conflita_com": [],
+      "itens": [
+        {
+          "id": "a11y-01",
+          "titulo": "Os 6 gráficos entram na árvore como 'application' sem nome",
+          "detalhe": "Medido com page.accessibility.snapshot(): os cinco gráficos do Relatório e o do Corpo têm role=\"application\", tabindex=0 e leem os rótulos dos eixos grudados ('29/0613/0727/0710/0824/0807/0902468'). No wrapper de components/graficos/grafico.tsx:133 (dentro do ResponsiveContainer) desligar a camada de acessibilidade do Recharts ou marcar a <svg> com aria-hidden=\"true\" e tabindex={-1}, e envolver o gráfico num <figure role=\"img\" aria-label=\"...\"> com a leitura em texto (ex.: 'Peso: 84,2 kg em 12/08, 83,1 kg em 26/08, 82,4 kg em 12/09 — queda de 1,8 kg'). Aceite: nenhum role=application na árvore e todo gráfico tem nome acessível com a leitura dos dados.",
+          "arquivos": [
+            "components/graficos/grafico.tsx"
+          ],
+          "esforco": "M"
+        },
+        {
+          "id": "tela-relatorio-corpo-calendario-11",
+          "titulo": "Campo de data cru nas três abas do Corpo",
+          "detalhe": "components/corpo/aba-peso.tsx:129 e o mesmo padrão em aba-medidas.tsx e aba-fotos.tsx expõem um <input type=\"date\"> onde o dono quase sempre quer 'hoje'. Trocar por um botão que mostra a data já formatada em pt-BR (formatarData) e abre o seletor, com atalhos 'Hoje' e 'Ontem'. Aceite: registrar o peso de hoje leva um toque no botão de data (ou nenhum) e a data aparece como dd/mm.",
+          "arquivos": [
+            "components/corpo/aba-peso.tsx",
+            "components/corpo/aba-medidas.tsx",
+            "components/corpo/aba-fotos.tsx"
+          ],
+          "esforco": "M"
+        },
+        {
+          "id": "tela-relatorio-corpo-calendario-17",
+          "titulo": "A tabela de Registros vaza a 360 px",
+          "detalhe": "components/corpo/aba-medidas.tsx:192-221 rola na horizontal a 360 px. Virar lista por data (um cartão por registro: medida, valor, variação) ou manter a tabela com as duas colunas escolhidas no seletor 'MEDIDA' que já existe acima; se continuar rolando, pelo menos um gradiente na borda direita indicando que há mais. Aceite: zero rolagem horizontal na aba Medidas a 360 px.",
+          "arquivos": [
+            "components/corpo/aba-medidas.tsx"
+          ],
+          "esforco": "M"
+        },
+        {
+          "id": "tela-relatorio-corpo-calendario-12",
+          "titulo": "Ordem da aba Peso",
+          "detalhe": "Em components/corpo/aba-peso.tsx:112 o CardImc aparece antes do que o dono veio ver. Ordem: peso atual + gráfico → registrar → IMC → variação → meta. Aceite: o peso atual e o gráfico estão na primeira tela a 360×740.",
+          "arquivos": [
+            "components/corpo/aba-peso.tsx"
+          ],
+          "esforco": "P"
+        },
+        {
+          "id": "tela-relatorio-corpo-calendario-14",
+          "titulo": "Eixo do gráfico de peso sem domínio fixo",
+          "detalhe": "Soma tela-relatorio-corpo-calendario-14 e -15. Fixar domínio e passo do eixo num único helper em components/graficos/apoio.tsx (arredondar min/max para múltiplos de 2, ticks de 2 em 2) e usá-lo em components/relatorio/card-peso.tsx e components/corpo/aba-peso.tsx; esconder a série e a entrada da legenda quando ela não tiver pontos suficientes; e trocar 'maior/menor' por '−4,0 kg desde 05/06', que é a informação procurada. Aceite: os dois gráficos de peso usam a mesma régua de eixo e nenhuma legenda cita série vazia.",
+          "arquivos": [
+            "components/graficos/apoio.tsx",
+            "components/relatorio/card-peso.tsx",
+            "components/corpo/aba-peso.tsx"
+          ],
+          "esforco": "P"
+        },
+        {
+          "id": "tela-relatorio-corpo-calendario-19",
+          "titulo": "A meta de peso não aparece no gráfico",
+          "detalhe": "Soma tela-relatorio-corpo-calendario-19 e copy-10. Em components/corpo/aba-peso.tsx:233-250 desenhar a meta como ReferenceLine tracejada no gráfico e mostrar 'faltam X kg' ao lado do peso atual; e trocar a frase que orienta por posição ('defina uma meta embaixo', aba-peso.tsx:171) por um link que rola até o cartão Meta. Aceite: a meta é visível no gráfico e nenhum texto do app orienta por 'embaixo'.",
+          "arquivos": [
+            "components/corpo/aba-peso.tsx"
+          ],
+          "esforco": "P"
+        },
+        {
+          "id": "tela-relatorio-corpo-calendario-13",
+          "titulo": "Marcador do IMC sem faixas rotuladas",
+          "detalhe": "components/corpo/card-imc.tsx:110-124 marca o valor com um círculo sobre uma barra sem rótulo de faixa. Trocar por um traço/triângulo fino apontando para a barra e rotular as faixas (abaixo · saudável · sobrepeso · obesidade) em 10 px sob a barra, ou destacar só a faixa atual. Aceite: dá para ler em que faixa o IMC caiu sem interpretar a cor.",
+          "arquivos": [
+            "components/corpo/card-imc.tsx"
+          ],
+          "esforco": "P"
+        },
+        {
+          "id": "tela-relatorio-corpo-calendario-18",
+          "titulo": "Aba Fotos pesada antes da primeira foto",
+          "detalhe": "Em components/corpo/aba-fotos.tsx:89 trocar a grade de ângulos por uma linha por ângulo (ícone + nome + botão de 44 px à direita) e esconder Galeria/Comparar enquanto não houver nenhuma foto, deixando só o convite para a primeira. Aceite: sem foto nenhuma, a aba mostra um convite e nada mais.",
+          "arquivos": [
+            "components/corpo/aba-fotos.tsx"
+          ],
+          "esforco": "P"
+        },
+        {
+          "id": "tela-relatorio-corpo-calendario-16",
+          "titulo": "Formulário de medidas antes do que já foi medido",
+          "detalhe": "components/corpo/aba-medidas.tsx:87 em diante abre com o formulário e as dicas por campo. Pôr Evolução e Registros primeiro e colapsar as dicas num ícone de ajuda por campo (ou levar o formulário para trás de um botão 'Registrar medidas'). Aceite: a aba Medidas abre mostrando as medidas já registradas.",
+          "arquivos": [
+            "components/corpo/aba-medidas.tsx"
+          ],
+          "esforco": "P"
+        },
+        {
+          "id": "a11y-14",
+          "titulo": "Abas sem nome e títulos fora de ordem no Corpo",
+          "detalhe": "Soma a11y-14 e a parte de /corpo do a11y-12. Em components/corpo/tela-corpo.tsx:48 pôr aria-label=\"Seções do corpo\" na TabsList (sem nome o leitor anuncia só 'lista de abas, 3 itens') e normalizar a hierarquia: seção de topo em h2, subseções em h3. Aceite: a TabsList tem nome e nenhum h3 aparece antes de um h2 em /corpo.",
+          "arquivos": [
+            "components/corpo/tela-corpo.tsx"
+          ],
+          "esforco": "P"
+        }
+      ]
+    },
+    {
+      "nome": "Explorar e catálogo: achar o exercício",
+      "area": "explorar-fichas",
+      "arquivos": [
+        "components/explorar/tela-explorar.tsx",
+        "components/exercicios/lista-exercicios.tsx",
+        "components/colecoes/linha-colecao.tsx",
+        "lib/colecoes.ts",
+        "app/(app)/exercicios/page.tsx",
+        "app/not-found.tsx"
+      ],
+      "telas_esperadas_mudar": [
+        "06-explorar",
+        "08-catalogo",
+        "07-colecao"
+      ],
+      "specs_grep": "catalogo|v3|shell",
+      "estimativa_min": 110,
+      "conflita_com": [],
+      "itens": [
+        {
+          "id": "tela-explorar-fichas-01",
+          "titulo": "Tirar os 81 exercícios de dentro do Explorar",
+          "detalhe": "Soma tela-explorar-fichas-01, visual-17, performance-07 e imagens-15: /explorar mede 8.922 px (12 telas) porque components/explorar/tela-explorar.tsx:140-143 despeja <ListaExercicios> inteira abaixo da vitrine, e o catálogo sozinho ocupa 78% da página; /exercicios monta 81 <img> de uma vez e fecha em 1.146 kB. Na vitrine, mostrar só uma prévia (12 primeiros ou os do programa) com 'Ver os 81 exercícios' levando a /exercicios; em app/(app)/exercicios/page.tsx paginar (20 + 'Ver mais') ou aplicar content-visibility:auto com contain-intrinsic-size da altura do cartão. Aceite: /explorar fecha abaixo de 4.000 px e /exercicios monta no máximo 20 cartões de uma vez.",
+          "arquivos": [
+            "components/explorar/tela-explorar.tsx",
+            "app/(app)/exercicios/page.tsx",
+            "components/exercicios/lista-exercicios.tsx"
+          ],
+          "esforco": "M"
+        },
+        {
+          "id": "tela-explorar-fichas-02",
+          "titulo": "A busca põe as coleções na frente do exercício",
+          "detalhe": "Soma tela-explorar-fichas-02 e -04. Com 'supino' os exercícios caem em y=860, fora do viewport de 740, atrás de 9 linhas de coleção. Em components/explorar/tela-explorar.tsx:106-143 pôr os exercícios primeiro ou dar um segmento no topo do resultado ('Exercícios (6) · Coleções (9)') abrindo em Exercícios; e sem resultado mostrar UM vazio só, citando o termo e com a saída ('Nada para «zzzz». [Limpar a busca]'), deixando a mensagem de filtro (components/exercicios/lista-exercicios.tsx:140-143) só quando temFiltro(filtros) for verdade — hoje aparecem dois vazios empilhados e o segundo mente. Aceite: buscar o nome de um exercício mostra o exercício na primeira tela, e uma busca sem resultado mostra uma mensagem só.",
+          "arquivos": [
+            "components/explorar/tela-explorar.tsx",
+            "components/exercicios/lista-exercicios.tsx"
+          ],
+          "esforco": "M"
+        },
+        {
+          "id": "tela-explorar-fichas-15",
+          "titulo": "Filtros comem 54% da tela antes do primeiro resultado",
+          "detalhe": "Soma tela-explorar-fichas-15 e -16: /exercicios gasta 399 px em cabeçalho e filtros. Em components/exercicios/lista-exercicios.tsx:90-132 pôr os filtros atrás de um botão 'Filtros' com contador (abre folha) e mostrar chips removíveis do que está ligado acima da lista ('Peito ×', 'Banco ×'); em :112-132 e :161-193 transformar 'No meu programa' num chip de alternância em vez de um botão de largura inteira que parece ação primária. Aceite: o primeiro exercício aparece na primeira tela a 360×740.",
+          "arquivos": [
+            "components/exercicios/lista-exercicios.tsx"
+          ],
+          "esforco": "M"
+        },
+        {
+          "id": "tela-explorar-fichas-14",
+          "titulo": "notFound() é chamado e não há página para receber",
+          "detalhe": "Soma tela-explorar-fichas-14 e pwa-offline-10: app/(app)/explorar/[tipo]/[valor]/page.tsx:35 e app/(app)/exercicios/[id]/page.tsx:33 chamam notFound() sem nenhuma app/not-found.tsx — um atalho guardado ou um link antigo depois de uma atualização do PWA cai na tela crua do Next. Criar app/not-found.tsx em pt-BR no tom do app ('Essa tela não existe mais.') com três saídas: 'Voltar para Hoje', 'Ver o Explorar', 'Ver os exercícios'. Aceite: /exercicios/remada-curvada-com-barra devolve uma página em português com caminho de volta.",
+          "arquivos": [
+            "app/not-found.tsx"
+          ],
+          "esforco": "P"
+        },
+        {
+          "id": "tela-explorar-fichas-06",
+          "titulo": "A mesma capa em 4 coleções da mesma tela",
+          "detalhe": "supino-reto-com-barra-1.jpg é a capa de 4 coleções na mesma tela e 8 das 15 linhas usam 3 fotos, porque lib/colecoes.ts:93,100 (montar) pega sempre 'a foto do primeiro exercício'. Pegar a foto do primeiro exercício AINDA NÃO usado na mesma seção e, quando repetir mesmo assim, cair no ícone + cor do grupo, que distingue melhor a 56 px (components/colecoes/linha-colecao.tsx:32,55-76). Aceite: nenhuma capa se repete dentro de uma mesma seção do Explorar.",
+          "arquivos": [
+            "lib/colecoes.ts",
+            "components/colecoes/linha-colecao.tsx"
+          ],
+          "esforco": "P"
+        },
+        {
+          "id": "tela-explorar-fichas-09",
+          "titulo": "Ficha técnica usada como subtítulo de vitrine",
+          "detalhe": "Soma tela-explorar-fichas-09, -10, -12 e a parte de lista do visual-06. Em components/colecoes/linha-colecao.tsx:42-47 inverter a ordem para título, subtítulo descritivo e números como meta line menor embaixo, tirando o peso 600 do meta ('6 exercícios · ~44 min' vira 400/muted) para só o título carregar peso; em lib/colecoes.ts, para tipo='aparelho' trocar o detalhe por 'N exercícios que dão para fazer com ele' sem estimar minutos (:153-166), e para plano usar título curto ('Corrida — 5 km sem parar') com o detalhe virando a posição ('semana 2 de 12', :538-547). Aceite: nenhum subtítulo de vitrine traz medidas ou carga máxima do aparelho.",
+          "arquivos": [
+            "components/colecoes/linha-colecao.tsx",
+            "lib/colecoes.ts"
+          ],
+          "esforco": "P"
+        },
+        {
+          "id": "tela-explorar-fichas-03",
+          "titulo": "Coleção achada pela busca sem dizer por quê",
+          "detalhe": "A busca casa pelo exercício de dentro e a linha não explica nada. Em lib/colecoes.ts:404 (buscarColecoes) ordenar casamento no título antes de casamento no conteúdo e devolver o motivo; em components/colecoes/linha-colecao.tsx:42-47 mostrá-lo numa terceira linha ('contém Supino reto com barra'). Aceite: toda coleção que aparece por conteúdo mostra qual exercício a trouxe.",
+          "arquivos": [
+            "lib/colecoes.ts",
+            "components/colecoes/linha-colecao.tsx"
+          ],
+          "esforco": "P"
+        },
+        {
+          "id": "tela-explorar-fichas-07",
+          "titulo": "'Escolhas para você' não agrupa nada",
+          "detalhe": "Em components/explorar/tela-explorar.tsx:128 e :232-245 o rótulo 'Escolhas para você' não separa nada visualmente e compete com os títulos de seção. Demiti-lo (as subseções já se explicam) ou rebaixá-lo a overline de 11 px em caixa alta, e subir os títulos de seção para 16 px semibold com régua acima. Aceite: há um degrau claro entre título de seção e rótulo, e nenhum rótulo sem função.",
+          "arquivos": [
+            "components/explorar/tela-explorar.tsx"
+          ],
+          "esforco": "P"
+        },
+        {
+          "id": "tela-explorar-fichas-05",
+          "titulo": "Filtros abertos quando a busca já veio de fora",
+          "detalhe": "Em components/exercicios/lista-exercicios.tsx:90-132, quando a busca vem de fora e não está vazia (deFora && busca.trim() !== ''), recolher o bloco de filtros atrás do botão 'Filtros'. Aceite: chegar ao catálogo por uma busca mostra resultados, não controles.",
+          "arquivos": [
+            "components/exercicios/lista-exercicios.tsx"
+          ],
+          "esforco": "P"
+        },
+        {
+          "id": "tela-explorar-fichas-28",
+          "titulo": "Segmento da rota da coleção sem normalização",
+          "detalhe": "lib/colecoes.ts:565-573 (hrefDaColecao / colecaoDaRota) não normaliza o segmento, então ida e volta divergem em acento e caixa. Normalizar (minúscula, sem acento) nos dois sentidos, mantendo o mapa id↔slug. Aceite: toda coleção da vitrine abre pela URL que a própria vitrine gerou.",
+          "arquivos": [
+            "lib/colecoes.ts"
+          ],
+          "esforco": "P"
+        }
+      ]
+    },
+    {
+      "nome": "Ficha do exercício: mídia e ações",
+      "area": "explorar-fichas",
+      "arquivos": [
+        "components/exercicio/ficha-folha.tsx",
+        "components/exercicio/media-grande.tsx",
+        "components/exercicio/ilustracao-alternada.tsx",
+        "components/exercicio/tutorial.tsx",
+        "components/exercicios/historico-exercicio.tsx",
+        "components/exercicios/fotos-ampliaveis.tsx",
+        "app/(app)/exercicios/[id]/page.tsx"
+      ],
+      "telas_esperadas_mudar": [
+        "09-ficha-exercicio",
+        "10-ficha-folha"
+      ],
+      "specs_grep": "catalogo|midia",
+      "estimativa_min": 100,
+      "conflita_com": [],
+      "itens": [
+        {
+          "id": "imagens-01",
+          "titulo": "A caixa de altura fixa espreme a ilustração a 27%",
+          "detalhe": "components/exercicio/media-grande.tsx:38 fixa a caixa em h-40 (328×208) enquanto as 115 ilustrações vão de 0,35:1 a 2,78:1 — 78 delas preenchem menos de 60% da largura e o agachamento goblet renderiza 88×208 num box de 328. Usar o par largura/altura que data/ilustracoes.json já traz como aspect-ratio do contêiner (ou três faixas: alta ≤0,8 → 3:4, quadrada, larga ≥1,6 → 16:9), aqui e no className h-40 passado a IlustracaoAlternada em media-grande.tsx:68. Aceite: o goblet passa de 88 px para ≥ 180 px de figura e nenhuma ilustração ocupa menos de 60% da largura da caixa.",
+          "arquivos": [
+            "components/exercicio/media-grande.tsx"
+          ],
+          "esforco": "M"
+        },
+        {
+          "id": "tela-explorar-fichas-19",
+          "titulo": "A ficha em página não tem volta nem ação",
+          "detalhe": "app/(app)/exercicios/[id]/page.tsx:42-55 abre a ficha sem 'Voltar' no topo (components/colecoes/tela-colecao.tsx:42-48 já faz isso) e sem nada a fazer com o exercício. Acrescentar o 'Voltar' no topo e, embaixo, 'Fazer agora' abrindo sessão livre de um exercício — o hook useSessaoLivre já existe em components/colecoes/usar-sessao-livre.ts. Aceite: da ficha dá para voltar e dá para treinar o exercício sem passar pela aba Treino.",
+          "arquivos": [
+            "app/(app)/exercicios/[id]/page.tsx"
+          ],
+          "esforco": "M"
+        },
+        {
+          "id": "tela-explorar-fichas-20",
+          "titulo": "Quatro cartões vazios quando não há histórico",
+          "detalhe": "components/exercicios/historico-exercicio.tsx:116-200 monta os quatro blocos mesmo sem nenhuma série do exercício. Quando não houver dado, colapsar tudo num cartão só ('Ainda sem histórico deste exercício — ele começa na primeira série registrada') e só abrir os quatro quando houver. Aceite: exercício nunca treinado mostra um cartão, não quatro.",
+          "arquivos": [
+            "components/exercicios/historico-exercicio.tsx"
+          ],
+          "esforco": "M"
+        },
+        {
+          "id": "tela-explorar-fichas-18",
+          "titulo": "Chip ativo do segmento Ilustração/Figura a 1,08:1",
+          "detalhe": "components/exercicio/ficha-folha.tsx:321-327 marca o selecionado com 1,16:1 no escuro e 1,08:1 no claro — não se vê qual está ativo. Dar borda (border-border) e/ou fundo com ≥ 3:1 ao chip ativo, além da cor do texto. Aceite: o chip ativo do segmento mede ≥ 3:1 contra o inativo nos dois temas.",
+          "arquivos": [
+            "components/exercicio/ficha-folha.tsx"
+          ],
+          "esforco": "P"
+        },
+        {
+          "id": "tela-explorar-fichas-21",
+          "titulo": "Aba Músculos repete a ilustração e a 'Área de foco'",
+          "detalhe": "Soma tela-explorar-fichas-21, -22, -23 e a parte de ficha do a11y-12. Em components/exercicio/ficha-folha.tsx:359-365 e :402-432 tirar a ilustração da aba Músculos (fica o mapa, que é o motivo da aba) e suprimir 'Área de foco' quando comoPagina; em :138-149 trocar a seção 'Equipamento' por tags clicáveis que levam à coleção do aparelho, mantendo o subtítulo do cabeçalho; em :104-112 escrever 'Aparece em:' antes dos badges e torná-los links para /explorar/treino/<id>; e subir 'Instruções', 'Equipamento' e 'Como progredir' para h2. Aceite: nenhuma informação da ficha aparece duas vezes na mesma rolagem e a navegação por títulos percorre a ficha inteira.",
+          "arquivos": [
+            "components/exercicio/ficha-folha.tsx"
+          ],
+          "esforco": "P"
+        },
+        {
+          "id": "tela-explorar-fichas-26",
+          "titulo": "A aba de tutorial não diz que sai do app",
+          "detalhe": "components/exercicio/ficha-folha.tsx:222-226 e components/exercicio/tutorial.tsx:55-70 oferecem a aba mesmo sem tutorial no JSON e sem avisar que é link externo. Nomear a aba pelo que ela é ('Tutorial no YouTube') com o ícone de link externo no próprio rótulo, e não oferecer a aba quando o exercício não tiver tutorial. Aceite: nenhuma aba de tutorial vazia e o destino externo está dito no rótulo.",
+          "arquivos": [
+            "components/exercicio/ficha-folha.tsx",
+            "components/exercicio/tutorial.tsx"
+          ],
+          "esforco": "P"
+        },
+        {
+          "id": "imagens-12",
+          "titulo": "As 163 fotos são 3:2 e a ficha as força em quadrado",
+          "detalhe": "Soma imagens-12 e tela-explorar-fichas-25: o quadrado corta justamente o caminho da barra. Em components/exercicios/fotos-ampliaveis.tsx trocar o par de fotos por duas caixas 16:10 lado a lado (160×100) ou empilhadas em 328×205 — cabe no mesmo espaço vertical, mantém o enquadramento original e casa com a caixa proposta no item da mídia grande — e pôr legenda visível sob cada uma ('início' / 'fim'). Aceite: nenhuma foto de execução aparece recortada em quadrado na ficha.",
+          "arquivos": [
+            "components/exercicios/fotos-ampliaveis.tsx",
+            "components/exercicio/ficha-folha.tsx"
+          ],
+          "esforco": "P"
+        },
+        {
+          "id": "imagens-13",
+          "titulo": "Crédito da mídia como faixa sublinhada inteira",
+          "detalhe": "Soma imagens-13 e tela-explorar-fichas-24. Em components/exercicio/media-grande.tsx:70-82 manter o texto em 11 px (§13.8.1) e o crédito exigido pela §15.1.3, mas sublinhar só o que é link: 'Ilustração: <a>Everkinetic</a> · <a>CC BY-SA 3.0</a>' (a licença vira o segundo link, como pede a §15.1.4), com a cor de link do tema e o alvo de 44 px que a classe alvo já dá. Aceite: o crédito continua visível e só as duas palavras clicáveis aparecem sublinhadas.",
+          "arquivos": [
+            "components/exercicio/media-grande.tsx"
+          ],
+          "esforco": "P"
+        },
+        {
+          "id": "performance-13",
+          "titulo": "Segundo quadro da ilustração baixado antes da primeira pintura",
+          "detalhe": "Em components/exercicio/ilustracao-alternada.tsx carregar o segundo quadro com loading=\"lazy\" (ou só quando a animação for começar) — ele não precisa chegar antes do primeiro paint. Aceite: a ficha faz uma requisição de ilustração antes do LCP, não duas.",
+          "arquivos": [
+            "components/exercicio/ilustracao-alternada.tsx"
+          ],
+          "esforco": "P"
+        },
+        {
+          "id": "ux-heuristicas-21",
+          "titulo": "A ilustração inteira é o botão de pausa",
+          "detalhe": "components/exercicio/ilustracao-alternada.tsx:60-75 mistura conteúdo e ação: quem toca na figura para a animação, quando o que tenta abrir é o 'Como fazer'. Separar: a figura com aria-label 'Levantamento terra, posição 1 de 2' e a pausa como botão próprio no canto da imagem (44×44, aria-label 'Parar a animação' / 'Voltar a alternar'). Aceite: tocar no meio da ilustração abre o 'Como fazer' e só o botão do canto pausa.",
+          "arquivos": [
+            "components/exercicio/ilustracao-alternada.tsx"
+          ],
+          "esforco": "P"
+        }
+      ]
+    },
+    {
+      "nome": "Player: gravar sem perder o treino",
+      "area": "treino-player",
+      "arquivos": [
+        "components/treinar/visao-geral.tsx",
+        "components/player/tela-player.tsx",
+        "components/player/conclusao.tsx",
+        "components/player/exercicio.tsx",
+        "components/player/firme.tsx",
+        "components/player/feedback.tsx",
+        "components/player/descanso.tsx",
+        "components/player/anel.tsx"
+      ],
+      "telas_esperadas_mudar": [
+        "27-player-preparacao",
+        "28-player-exercicio",
+        "29-player-descanso",
+        "30-player-conclusao"
+      ],
+      "specs_grep": "player|treinar|treino-v2",
+      "estimativa_min": 110,
+      "conflita_com": [],
+      "itens": [
+        {
+          "id": "ux-heuristicas-01",
+          "titulo": "Dois toques no mesmo ponto jogam o treino fora",
+          "detalhe": "Medido: 'Abandonar' (x 138,8-241,4) vira 'Confirmar abandono' (x 71,6-241,4) NA MESMA faixa de y, então dois toques seguidos descartam a sessão sem nenhum diálogo. Em components/treinar/visao-geral.tsx:181-201 trocar a confirmação in-place por um AlertDialog do shadcn ('Abandonar o treino? As N séries já registradas continuam salvas.' · Cancelar / Abandonar); mantendo a confirmação em linha, renderizar o 'Confirmar abandono' em OUTRA linha, acima do rodapé, e deixar um 'Cancelar' onde o dedo acabou de tocar. O timeout de 5 s (linha 196) fica. Aceite: nenhum toque repetido no mesmo ponto descarta um treino.",
+          "arquivos": [
+            "components/treinar/visao-geral.tsx"
+          ],
+          "esforco": "P"
+        },
+        {
+          "id": "tela-treino-player-01",
+          "titulo": "A conclusão diz que gravou e só grava 2.244 px abaixo",
+          "detalhe": "components/player/conclusao.tsx:22-25 deixa claro que nada é gravado antes do 'Próximo' (conclusao.tsx:208), que fica a 2.244 px do topo numa tela de 2.464 px — e o topo já diz 'Excelente! Você concluiu o treino.'; a aba Treino chegou a mostrar 'EM ANDAMENTO · Continuar · 17/17 séries' por causa disso. Gravar a sessão ao ENTRAR na conclusão (components/player/tela-player.tsx:387) e pôr o 'Próximo' numa barra fixa no rodapé, com o mesmo padrão de ControlesDoPlayer (components/player/exercicio.tsx:492). Aceite: depois de ver a tela de conclusão, nenhuma sessão fica 'em andamento' na aba Treino.",
+          "arquivos": [
+            "components/player/tela-player.tsx",
+            "components/player/conclusao.tsx"
+          ],
+          "esforco": "M"
+        },
+        {
+          "id": "ux-heuristicas-03",
+          "titulo": "A Visão geral é uma página de 5.700 px sem contrato de diálogo",
+          "detalhe": "Não tem role=dialog, não fecha com Esc nem com o voltar do celular, e a única saída é um ícone de 44 px no topo; o rodapé (components/treinar/visao-geral.tsx:168-205) só tem 'Abandonar' e 'Concluir', as duas saídas que terminam a sessão. Dar-lhe role=\"dialog\" + aria-modal, fechar no Escape e no popstate (history.pushState ao abrir, para o voltar do celular fechar a lista em vez de sair do treino) e repetir 'Voltar ao treino' no rodapé fixo. Aceite: Esc e o voltar do celular fecham a Visão geral e devolvem o foco ao botão que a abriu, sem encerrar a sessão.",
+          "arquivos": [
+            "components/treinar/visao-geral.tsx"
+          ],
+          "esforco": "M"
+        },
+        {
+          "id": "ux-heuristicas-09",
+          "titulo": "A pergunta que decide a carga já vem respondida",
+          "detalhe": "Soma ux-heuristicas-09, -10 e -11: 'Última repetição saiu firme?' chega com 'Firme' em aria-checked=true sem o usuário responder, e o toque numa opção avança rápido demais para o estado marcado aparecer. Em components/player/firme.tsx:37 começar com escolha=null e mostrar o palpite como dica ('pelas repetições, parece que saiu firme'), com 'Continuar' desabilitado ou rotulado 'Pular esta pergunta' enquanto ninguém responder; em firme.tsx:41-44 atrasar o avanço (~350 ms) ou passar a confirmação para o 'Continuar' que já existe; e aplicar a mesma regra em components/player/conclusao.tsx ('(opcional)' no subtítulo e primário 'Concluir sem responder'), dizendo o que a resposta faz. Aceite: nenhuma opção aparece marcada antes de o usuário tocar, nas duas telas.",
+          "arquivos": [
+            "components/player/firme.tsx",
+            "components/player/conclusao.tsx"
+          ],
+          "esforco": "M"
+        },
+        {
+          "id": "tela-treino-player-30",
+          "titulo": "As opções de 'firme?' e do feedback são pintadas com a cor da página",
+          "detalhe": "components/player/firme.tsx:124 e components/player/feedback.tsx:44 usam bg-background — no tema claro é exatamente a cor da página (1,00:1) e a única pista de que são cinco alvos tocáveis é uma borda de 1,15:1. Trocar por bg-card (#ffffff no claro, #141414 no escuro) e tirar do 'Voltar' o tratamento idêntico ao das cinco opções, que o faz parecer a sexta. Aceite: cada opção se distingue do fundo da tela sem depender da borda.",
+          "arquivos": [
+            "components/player/firme.tsx",
+            "components/player/feedback.tsx"
+          ],
+          "esforco": "P"
+        },
+        {
+          "id": "tela-treino-player-10",
+          "titulo": "8 px entre gravar a série e perdê-la",
+          "detalhe": "'Próximo passo' (que pula a série sem gravar) fica a 8 px do 'Concluir série' em components/player/exercicio.tsx:493. Abrir o gap (gap-3/gap-4) e tirar o 'Próximo passo' da mesma linha do primário — ou deixá-lo como seta menor acima da barra. Aceite: pelo menos 24 px separam o primário de qualquer controle que descarte a série.",
+          "arquivos": [
+            "components/player/exercicio.tsx"
+          ],
+          "esforco": "P"
+        },
+        {
+          "id": "a11y-02",
+          "titulo": "O fim do descanso nunca é anunciado",
+          "detalhe": "Soma a11y-02, ux-heuristicas-05, ux-heuristicas-07 e tela-treino-player-05: os três timers usam role=\"timer\" com aria-live off, então quem usa leitor de tela só descobre o fim pelo som — e o som é um interruptor que ele pode ter desligado. Manter o role=timer no número de components/player/descanso.tsx:136 (e exercicio.tsx:449) e acrescentar ao lado um <p role=\"status\" className=\"sr-only\"> que só muda em marcos ('faltam 30 segundos', 'faltam 10 segundos', 'descanso terminado, próxima série'); em descanso.tsx:188-193 pôr aria-label=\"Somar 20 segundos ao descanso\" com texto visível '+20 s' e acrescentar um '−20 s' ao lado (dois alvos de 56 px), ambos com a cor da própria tela de descanso (--descanso-destaque). Aceite: o fim do descanso é anunciado sem som e os botões de tempo dizem o sinal em texto.",
+          "arquivos": [
+            "components/player/descanso.tsx",
+            "components/player/exercicio.tsx"
+          ],
+          "esforco": "P"
+        },
+        {
+          "id": "tela-treino-player-02",
+          "titulo": "'Pular descanso' é o botão mais forte da tela de descanso",
+          "detalhe": "Soma tela-treino-player-02 e -03. Em components/player/descanso.tsx:194-200 inverter a hierarquia: 'Pular descanso' vira contorno sobre o marrom (border-descanso-foreground/40) e o peso visual fica no timer; e envolver o timer de descanso.tsx:135 no AnelDeContagem com fracaoRestante(estado, agora), igual ao que components/player/preparacao.tsx:38 já faz com components/player/anel.tsx — o código existe e o descanso ganha a leitura periférica que a preparação tem. Aceite: um app de treino não empurra o usuário a cortar o descanso, e o descanso tem anel.",
+          "arquivos": [
+            "components/player/descanso.tsx",
+            "components/player/anel.tsx"
+          ],
+          "esforco": "P"
+        },
+        {
+          "id": "ux-heuristicas-04",
+          "titulo": "Três saídas do treino com nomes ambíguos",
+          "detalhe": "Em components/treinar/visao-geral.tsx: o ícone LogOut (:71) vira 'Continuar depois' com texto visível, 'Abandonar' vira 'Descartar este treino', e o par de ícones do cabeçalho vira um botão só, 'Fechar' — já que sair preservando passa a morar no rodapé junto do 'Concluir'. Aceite: três verbos distintos, nenhum deles adivinhável só pelo ícone.",
+          "arquivos": [
+            "components/treinar/visao-geral.tsx"
+          ],
+          "esforco": "P"
+        },
+        {
+          "id": "a11y-06",
+          "titulo": "Gravar a série é completamente silencioso",
+          "detalhe": "Soma a11y-06, a11y-15, ux-heuristicas-08, copy-22 e copy-23. Depois de gravar, escrever num <p role=\"status\" className=\"sr-only\"> algo como 'Série 2 de 3 registrada: 5 repetições com 7,5 kg. Descanso de 2 min 30.' e completar a progressbar de components/player/exercicio.tsx:166 com aria-valuenow/aria-valuemax e aria-valuetext='exercício 2 de 6'; dar ao contêiner um <h1 className=\"sr-only\">Treino B — exercício 2 de 6</h1> (é a única rota sem h1); alinhar nome acessível e texto visível em exercicio.tsx:505-509 ('Concluir série' nos dois); e fixar os rótulos visíveis — 'CARGA NA BARRA' em vez de 'NA BARRA', e uma só grafia de 'Aquecimento 2 de 2 · exercício 1 de 6' no exercício e no descanso, com o caixa-alta feito por CSS. Aceite: o leitor de tela anuncia a série gravada e o player tem h1.",
+          "arquivos": [
+            "components/player/exercicio.tsx"
+          ],
+          "esforco": "P"
+        }
+      ]
+    },
+    {
+      "nome": "Aba Treino: hierarquia e controle",
+      "area": "treino-player",
+      "arquivos": [
+        "components/treino/tela-treino.tsx",
+        "components/treino/cabecalho.tsx",
+        "components/treino/fab-ajustar.tsx",
+        "components/treino/lista.tsx",
+        "components/treino/desafios.tsx",
+        "components/treino/parte-do-corpo.tsx",
+        "components/treino/cards.tsx",
+        "components/treino/personalizar.tsx",
+        "components/treino/retomada.tsx",
+        "components/mais/ajustes-do-treino.tsx"
+      ],
+      "telas_esperadas_mudar": [
+        "03-treino-topo",
+        "04-treino-lista"
+      ],
+      "specs_grep": "treino|treino-v2|retomada",
+      "estimativa_min": 105,
+      "conflita_com": [],
+      "itens": [
+        {
+          "id": "ux-heuristicas-02",
+          "titulo": "O FAB 'Ajustar' cobre 81% do botão 'Substituir'",
+          "detalhe": "Soma ux-heuristicas-02 e tela-treino-player-14: com a lista rolada, elementFromPoint no 'Substituir' do 3º exercício devolve o svg do FAB (sobreposições de 3×21 px e 15×21 px medidas), e o FAB abre exatamente a mesma folha do ícone de engrenagem do player (components/treino/fab-ajustar.tsx:18-19). Mover o 'Ajustar' para o cabeçalho da aba (ao lado de 'Quarta, 16/09', que tem espaço) e tirar o FAB — é a saída mais barata e acaba com a sobreposição em 2.555 px de rolagem. Aceite: elementFromPoint sobre qualquer 'Substituir' devolve o próprio botão.",
+          "arquivos": [
+            "components/treino/fab-ajustar.tsx",
+            "components/treino/cabecalho.tsx",
+            "components/treino/tela-treino.tsx"
+          ],
+          "esforco": "M"
+        },
+        {
+          "id": "ux-heuristicas-23",
+          "titulo": "A sessão em andamento some depois de 740 px de rolagem",
+          "detalhe": "A aba Treino tem 2.555 px e o card da sessão fica só no topo. Fazer o card virar uma faixa fixa fina quando sai da tela ('Treino B · 0/17 séries · Continuar'), reaproveitando a faixa do dia de components/treino/cabecalho.tsx. Aceite: em qualquer ponto da rolagem há um caminho de um toque para continuar o treino de hoje.",
+          "arquivos": [
+            "components/treino/tela-treino.tsx",
+            "components/treino/cabecalho.tsx"
+          ],
+          "esforco": "M"
+        },
+        {
+          "id": "tela-treino-player-26",
+          "titulo": "Dois modelos de gravação na mesma folha 'Ajustar'",
+          "detalhe": "Soma tela-treino-player-26, -24, -25 e copy-14. Em components/mais/ajustes-do-treino.tsx:147-168 gravar os dois campos no blur/debounce como os switches e tirar os botões 'Salvar' (ter dois modelos faz o usuário duvidar se o interruptor pegou); trocar o placeholder de :159 por '—' (a frase de apoio acima já explica) ou alargar o campo, porque hoje o único texto visível é uma palavra pela metade; corrigir o vazio do bloco 'não gosto' ('Nenhum' seguido de 'Eles' sem antecedente) para 'Nenhum por enquanto. Quando você marcar algum, ele passa a aparecer por último nas listas.'; e dar foco inicial ao título da folha (SheetContent onOpenAutoFocus + tabIndex no SheetTitle) em components/treino/fab-ajustar.tsx:38, para abrir ajustes não abrir o teclado. Aceite: a folha grava sozinha, abre sem teclado e não mostra texto cortado.",
+          "arquivos": [
+            "components/mais/ajustes-do-treino.tsx",
+            "components/treino/fab-ajustar.tsx"
+          ],
+          "esforco": "M"
+        },
+        {
+          "id": "tela-treino-player-21",
+          "titulo": "Chama de ofensiva é gamificação, proibida pelo CLAUDE.md",
+          "detalhe": "components/treino/cabecalho.tsx:50 usa uma chama de streak, vocabulário que o CLAUDE.md proíbe e que destoa do resto da interface. Trocar por um sinal sóbrio (CalendarCheck, ou só o texto '2 semanas na meta'). Aceite: nenhum ícone de streak/chama na aba Treino.",
+          "arquivos": [
+            "components/treino/cabecalho.tsx"
+          ],
+          "esforco": "P"
+        },
+        {
+          "id": "visual-01",
+          "titulo": "Os ladrilhos Fase e Peso não têm a mesma gramática",
+          "detalhe": "Soma visual-01 e tela-treino-player-22. No bloco de ladrilhos de components/treino/tela-treino.tsx (por volta da linha 111) e em components/treino/cabecalho.tsx:81-83: rótulo em linha própria de altura fixa, valor numa linha só com text-nowrap e qualificador ('há 4 dias') numa terceira linha alinhada à esquerda, tudo ancorado ao topo (justify-start em vez de centrado); e 'Fase 1 · semana 16' vira valor 'Fase 1' + legenda 'semana 16' em text-xs muted, como PESO já faz. Aceite: os dois ladrilhos têm a mesma altura e os valores caem na mesma linha de base.",
+          "arquivos": [
+            "components/treino/tela-treino.tsx",
+            "components/treino/cabecalho.tsx"
+          ],
+          "esforco": "P"
+        },
+        {
+          "id": "tela-treino-player-19",
+          "titulo": "O olho bate na carga antes do nome do exercício",
+          "detalhe": "Soma tela-treino-player-19 e -20. Em components/treino/lista.tsx:95 tirar a classe .numero do 'Hoje:' (ou aplicá-la só ao número) e subir o nome do exercício para font-semibold em :80; e mover os <Raios> para o fim da linha da prescrição ('3 × 8-12 ⚡⚡') em :79, liberando a largura toda para o nome — a mesma quebra some na aba inteira. Aceite: nenhum nome de exercício quebra em duas linhas na lista de hoje a 360 px.",
+          "arquivos": [
+            "components/treino/lista.tsx"
+          ],
+          "esforco": "P"
+        },
+        {
+          "id": "ux-heuristicas-16",
+          "titulo": "O carrossel de Desafios não diz que tem três",
+          "detalhe": "Soma ux-heuristicas-16, tela-treino-player-18 e -17. Em components/treino/desafios.tsx:24 dar aria-label=\"Desafios\" ao <ul>, reduzir o cartão para ~86% da viewport (o próximo assoma de verdade) e acrescentar uma fileira de três pontinhos de posição (o ativo em --primary) ou um '1 de 3' ao lado do título; nomear cada CTA pelo destino ('Fazer a sessão de barra fixa', 'Fazer a corrida da semana 2', 'Fazer o treino da fase 1'); e dar mt-auto ao BotaoLargo de :79, já que o article é flex-col h-full e o subtítulo com line-clamp-2 empurra o CTA, que pula ao deslizar. Aceite: os CTAs ficam na mesma altura em todos os cartões e a posição no carrossel é visível.",
+          "arquivos": [
+            "components/treino/desafios.tsx"
+          ],
+          "esforco": "P"
+        },
+        {
+          "id": "tela-treino-player-16",
+          "titulo": "Metade dos chips está fora da tela sem nenhum sinal",
+          "detalhe": "'Pernas', 'Core', 'Cardio' e metade dos filtros ficam fora da viewport nas duas <ul> horizontais de components/treino/parte-do-corpo.tsx:81 e :94, e nada indica isso. Pôr a máscara de degradê nas bordas das duas listas (mask-image linear-gradient). Aceite: as duas fileiras mostram um degradê na borda quando há conteúdo fora da tela.",
+          "arquivos": [
+            "components/treino/parte-do-corpo.tsx"
+          ],
+          "esforco": "P"
+        },
+        {
+          "id": "copy-15",
+          "titulo": "'Começar Peito' não é português",
+          "detalhe": "Padronizar verbo + objeto interpolando sempre com artigo/preposição em vez de colar o nome no verbo: 'Começar treino' no card do dia, 'Começar o Treino B', 'Começar o treino de peito', 'Começar com 3 exercícios'. Arquivos: components/treino/cards.tsx, components/treino/parte-do-corpo.tsx, components/treino/personalizar.tsx. Aceite: nenhum botão de começar cola o nome do grupo no verbo.",
+          "arquivos": [
+            "components/treino/cards.tsx",
+            "components/treino/parte-do-corpo.tsx",
+            "components/treino/personalizar.tsx"
+          ],
+          "esforco": "P"
+        },
+        {
+          "id": "ux-heuristicas-24",
+          "titulo": "O voltar do celular no meio do treino não explica nada",
+          "detalhe": "Não bloquear o gesto: mostrar um toast de 4 s ao voltar ('treino guardado — toque em Continuar para retomar'), disparado em components/treino/retomada.tsx, e destacar o card 'EM ANDAMENTO' por alguns segundos ao chegar. Resolve junto com o contrato de popstate da Visão geral (lote do player), que usa o mesmo evento. Aceite: voltar do player mostra um aviso em pt-BR e o card de retomada destacado.",
+          "arquivos": [
+            "components/treino/retomada.tsx"
+          ],
+          "esforco": "P"
+        }
+      ]
+    }
+  ],
+  "descartados": [
+    {
+      "id": "ux-heuristicas-20",
+      "motivo": "O link 'Esqueci a senha' é recuperação de senha — decisão do dono (na SPEC §21 quem reenvia a senha é o dono). O resto do item (botão de olho no campo, foco no alerta de erro) e os irmãos a11y-07 e pwa-offline-02 ficam fora desta rodada porque nenhum lote deste round é dono de app/(auth)/login/formulario.tsx."
+    },
+    {
+      "id": "performance-09",
+      "motivo": "Agregados por período como view/RPC em supabase/schema.sql: muda o banco em produção e é esforço G — decisão do dono, não de um construtor de lote."
+    },
+    {
+      "id": "performance-15",
+      "motivo": "Medir os 6 chunks com @next/bundle-analyzer é diagnóstico, não mudança visível; o dynamic() que sairia daí já está agendado no L4."
+    },
+    {
+      "id": "performance-02",
+      "motivo": "Esqueleto do Explorar já agendado no L2."
+    },
+    {
+      "id": "performance-14",
+      "motivo": "dynamic() no bundle do player já agendado no L4."
+    },
+    {
+      "id": "a11y-04",
+      "motivo": "Anel de foco já agendado no L3."
+    },
+    {
+      "id": "pwa-offline-14",
+      "motivo": "A tela /~offline já está agendada no L1 ('/~offline com ação')."
+    },
+    {
+      "id": "visual-07",
+      "motivo": "Papéis de texto para o app inteiro é esforço G e toca 'components' inteiro: estoura o teto de 12 arquivos e cruza todos os lotes. Os degraus concretos já estão no L3 (tokens 11/10 px) e nos itens por tela (visual-02, visual-10, tela-explorar-fichas-07)."
+    },
+    {
+      "id": "visual-15",
+      "motivo": "Trocar o laranja de marca nos dois temas (#b8400c → #e2600f no claro) é decisão do dono e baixa o contraste do texto laranja sobre branco; fica para uma revisão de paleta com ele."
+    },
+    {
+      "id": "visual-18",
+      "motivo": "Ritmo de espaçamento app-wide toca components/relatorio, components/explorar e components/ui/card.tsx ao mesmo tempo — quebraria a disjunção entre os lotes 1, 2 e 5."
+    },
+    {
+      "id": "visual-12",
+      "motivo": "Escala de ícones app-wide toca components/ui/faixa-semana.tsx (lote 3), components/mais e components/relatorio (lote 1) juntos; adiado para uma rodada de tokens sem lotes por tela em paralelo."
+    },
+    {
+      "id": "copy-28",
+      "motivo": "Registrar × Salvar × Guardar cai no dicionário de mensagens já agendado no L5."
+    },
+    {
+      "id": "copy-24",
+      "motivo": "Unificar o componente de dia da semana: o 'sab' sem acento está no L1 e a geometria do marcador entra neste round (visual-04); o resto é refatoração que cruzaria os lotes 1, 3 e 8."
+    },
+    {
+      "id": "tela-explorar-fichas-08",
+      "motivo": "Reservar a linha do subtítulo é o line-clamp já agendado no L3."
+    },
+    {
+      "id": "tela-explorar-fichas-13",
+      "motivo": "A alternativa 'dar uma capa de corrida a assets/' traria imagem de terceiro fora da §15; o que sobra (fallback desenhado com ícone e cor do plano) já entra pelo tela-explorar-fichas-06 no lote 5."
+    },
+    {
+      "id": "tela-explorar-fichas-17",
+      "motivo": "Trocar a ilustração pela foto de execução na miniatura do catálogo colide com components/ui/miniatura.tsx, que é do lote 2 (derivadas e object-fit); rever depois que as derivadas existirem."
+    },
+    {
+      "id": "tela-explorar-fichas-11",
+      "motivo": "Dar conteúdo à coleção de plano precisa de components/colecoes/tela-colecao.tsx, que nenhum lote deste round possui; é 'alta' e deve abrir a próxima rodada de explorar-fichas."
+    },
+    {
+      "id": "tela-explorar-fichas-27",
+      "motivo": "Reduzir o destaque do Explorar a uma faixa de uma linha é 'M' e estouraria o teto de 3 'M' do lote 5."
+    },
+    {
+      "id": "tela-relatorio-corpo-calendario-07",
+      "motivo": "Um único componente de faixa da semana para Relatório e Calendário precisaria de components/relatorio/historico.tsx (lote 1) e components/calendario/tela-calendario.tsx (lote 3) na mesma mudança."
+    },
+    {
+      "id": "copy-27",
+      "motivo": "Renomear components/progresso/ e redirecionar /progresso → /relatorio é refatoração de pastas que conflita com os lotes 1 e 4 inteiros."
+    },
+    {
+      "id": "tela-treino-player-15",
+      "motivo": "Tirar core e cardio de FILTROS precisa de lib/colecoes.ts, que é do lote 5; adiado para não quebrar a disjunção com o lote 8."
+    },
+    {
+      "id": "tela-treino-player-23",
+      "motivo": "Fazer cada dia da faixa virar link precisa de components/treino/cabecalho.tsx (lote 8) e components/ui/faixa-semana.tsx (lote 3) ao mesmo tempo."
+    },
+    {
+      "id": "ux-heuristicas-12",
+      "motivo": "Saída e visão geral na tela de preparação (junto com tela-treino-player-08 e -09): estourou o teto de 10 itens do lote do player; a saída melhora de imediato pelo contrato de diálogo da Visão geral (ux-heuristicas-03)."
+    },
+    {
+      "id": "ux-heuristicas-15",
+      "motivo": "Refazer a linha de série da Visão geral (junto com ux-heuristicas-14 e -13, em components/treinar/serie.tsx e components/stepper-numerico.tsx): fora para o lote do player não passar de 10 itens; primeiro candidato da próxima rodada de treino-player."
+    },
+    {
+      "id": "ux-heuristicas-06",
+      "motivo": "'Corrigir a série' a partir do descanso é 'M' e estouraria o teto de 3 'M' do lote do player; depende do mesmo componente que o item a11y-02 já reescreve."
+    },
+    {
+      "id": "tela-treino-player-27",
+      "motivo": "Limitar os recordes da conclusão a 5 (com tela-treino-player-29, a nota do esforço, e copy-21, 'PREPARADO' → 'PREPARE-SE'): boas e baratas, mas fora do teto de 10 itens do lote do player."
+    },
+    {
+      "id": "tela-treino-player-12",
+      "motivo": "Pontinhos por série no lugar da barra fina: fora do teto de 10 itens do lote do player; vale na próxima rodada junto do tela-treino-player-11 (gap dos ícones do topo) e do ux-heuristicas-22."
+    },
+    {
+      "id": "pwa-offline-01",
+      "motivo": "Os itens de rede e fila (pwa-offline-01, 03, 04, 05, 06, 07, 08, 09, 11, 12, 13, 15 e imagens-09/10) são área 'outra' e formam um lote inteiro de PWA, com arquivos próprios (app/(app)/layout.tsx, lib/outbox.ts, app/sw.ts, lib/db.ts, components/mais/*): ficam para a próxima rodada, abaixo das três áreas de prioridade do dono e do lote de superfícies."
+    },
+    {
+      "id": "a11y-10",
+      "motivo": "Nav inferior a 200% de zoom (com a11y-05 na folha, a11y-16 no bloco de sincronização, visual-08/16/19 e copy-02/07/09/16/17/20/29/30 em Mais): área 'outra', formam o lote de Mais/casca que não coube nos 8 deste round — a11y-10 é 'alta' e deve abri-lo."
+    },
+    {
+      "id": "ux-heuristicas-17",
+      "motivo": "Cardio e barra fixa (ux-heuristicas-17, -18, -19, copy-11, copy-12): área 'outra' com arquivos próprios (components/cardio/*, components/barra-fixa/*, lib/cardio.ts); lote próprio na próxima rodada."
+    },
+    {
+      "id": "performance-08",
+      "motivo": "Fundir as consultas de lib/queries/dados.ts (com performance-10, -11, -12, -16, -17): é ganho de rede sem mudança visível na tela e concentra todos os lotes num arquivo só; melhor como lote de dados isolado, fora de um round paralelo."
+    },
+    {
+      "id": "copy-06",
+      "motivo": "Separar 'resumo' de 'ficha' em data/equipamentos.json e data/colecoes.json (com copy-25, a grafia canônica de 'cross over') mexe no conteúdo fonte e exige revisão do dono texto a texto — fila de conteúdo, não de construção."
+    },
+    {
+      "id": "copy-04",
+      "motivo": "'semana 16' × '15 semanas' no Perfil e copy-30 (denominador chumbado em 12) precisam de components/mais/tela-perfil.tsx, que é do lote de Mais; a regra única já entra por lib/semana.ts no lote 3."
+    },
+    {
+      "id": "copy-13",
+      "motivo": "Trocar 'repetição' por 'manutenção' no vocabulário do motor toca lib/progressao.ts — CLAUDE.md trata o motor como funções puras com testes; mudança de termo ali entra junto do dicionário de mensagens do L5, com os testes."
+    }
+  ]
+}
