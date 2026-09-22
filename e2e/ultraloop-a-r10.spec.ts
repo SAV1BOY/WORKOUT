@@ -255,6 +255,29 @@ test.describe("B e C — linhas de coleção e o motivo da busca (itens 2 e 3)",
       expect(titulo, id).not.toMatch(/\d|\(/);
       expect(texto.match(/para fazer com ele/g) ?? [], id).toHaveLength(1);
       expect(texto, id).toMatch(/\d+ exercícios? que d[áã]o? para fazer com ele/);
+      // rodada 11: "com ele" é inseguível, e "ele" nunca fica sozinho na
+      // última linha da meta a 360 px (lida palavra a palavra, pela posição)
+      const meta = linha.locator('[data-linha="meta"]');
+      expect(await meta.textContent(), id).toContain("com\u00a0ele");
+      const ultimaLinha = await meta.evaluate((el) => {
+        const no = [...el.childNodes].find((n) => n.nodeType === Node.TEXT_NODE);
+        const texto = no?.textContent ?? "";
+        const r = document.createRange();
+        const palavras: { p: string; topo: number }[] = [];
+        let i = 0;
+        for (const p of texto.split(" ")) {
+          r.setStart(no!, i);
+          r.setEnd(no!, i + p.length);
+          palavras.push({ p, topo: Math.round(r.getBoundingClientRect().top) });
+          i += p.length + 1;
+        }
+        const topo = Math.max(...palavras.map((x) => x.topo));
+        return palavras
+          .filter((x) => x.topo === topo)
+          .map((x) => x.p)
+          .join(" ");
+      });
+      expect(ultimaLinha.split(/\s+/).length, `${id}: "${ultimaLinha}"`).toBeGreaterThan(1);
       // a meta é a última linha e não tem peso; o título tem
       const pesos = await linha.evaluate((el) => {
         const meta = el.querySelector('[data-linha="meta"]');
