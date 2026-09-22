@@ -289,9 +289,9 @@ Depois de o app ficar pronto (marcos 1–6 e auditoria final), o dono pediu que 
 Vitrine de **coleções derivadas** dos JSON, cada uma com capa (foto de um exercício da coleção), título, `N exercícios · ~M min`, raios, e botão **"Começar"** que abre uma **sessão livre**:
 - **Treino de hoje** em destaque no topo (o mesmo card da aba Treino).
 - **Parte do corpo em foco**: chips dos 8 grupos (`grupo` de `exercicios.json`); cada um lista os exercícios do grupo e oferece "Começar" com os 6 primeiros do grupo que usam equipamento disponível (ordem: compostos primeiro, depois isolamento, como a tabela de faixas de `progressao.json`).
-- **Por aparelho**: os 10 itens de `equipamentos.json` com a foto de `assets/itens/<item>/` e os exercícios que ele permite.
+- **Por aparelho**: os itens de `equipamentos.json` que habilitam algum exercício, com o `nome_curto` do item e a meta "N exercícios que dão para fazer com ele" (§22.12 item 2; a foto de `assets/itens/<item>/` fica em Mais → Equipamento).
 - **Circuitos** (os 14 exercícios de `origem = "aparelho"`): "Core no tatame" (8), "Corda" (3), "Elástico" (3). Abrem no **modo circuito guiado** (13.6).
-- **Planos e desafios**: "Primeira barra fixa em 12 semanas" (`cardio.barra_fixa`), "Correr 5 km em 12 semanas" (`cardio.corrida`) e "Corda: 5 estágios" (`cardio.corda`), cada um com barra de progresso pela semana atual do perfil e o botão da sessão da semana. "Desafio" aqui é o plano real com progresso visível; não existe desafio inventado.
+- **Planos e desafios**: "Primeira barra fixa" (`cardio.barra_fixa`), "5 km sem parar" (a meta da última semana de `cardio.corrida`) e "Corda: 5 estágios" (`cardio.corda`) — títulos curtos, o prazo fica no objetivo e na meta (§22.12 item 4) —, cada um com a semana atual do perfil e o botão da sessão (§22.12 item 7). "Desafio" aqui é o plano real com progresso visível; não existe desafio inventado.
 - **Treinos do programa**: A1, B1, SA, IA, SB, IB com "Fazer hoje" (vale como próximo da alternância, §5.3).
 - **Busca** por nome de exercício e de coleção, sem acento.
 
@@ -315,7 +315,7 @@ Player por tempo para as coleções "Circuitos" e para qualquer sessão livre co
 
 ### 13.8 Critérios de aceite do adendo
 1. A 360 px, no escuro e no claro: Treino mostra a faixa da semana, a meta, todos os cards do dia e a lista com miniatura, prescrição e carga com o rótulo certo; nada corta, nada rola de lado, alvos ≥ 44 px.
-2. Explorar lista as coleções derivadas (8 grupos, **9** aparelhos — o `kit-100kg` não habilita exercício nenhum sozinho: os exercícios trazem `anilhas`, `halteres` e `barra-w`, que não são ids de `equipamentos.json`, e coleção vazia não vira card —, 3 circuitos, 3 planos, 6 treinos) com capas vindas de `assets/`; o subtítulo das coleções de aparelho e de circuito é o campo `specs` do item (campo do JSON, como a §14.4 pede); "Começar" abre uma sessão livre que registra e progride; a busca funciona sem acento.
+2. Explorar lista as coleções derivadas (8 grupos, **9** aparelhos — o `kit-100kg` não habilita exercício nenhum sozinho: os exercícios trazem `anilhas`, `halteres` e `barra-w`, que não são ids de `equipamentos.json`, e coleção vazia não vira card —, 3 circuitos, 3 planos, 6 treinos) com capas vindas de `assets/`; as coleções de aparelho e de circuito não têm subtítulo — a ficha técnica (`specs`) fica em Mais → Equipamento e a linha do aparelho diz para que ele serve, como define a §22.12 item 2 (que substitui a regra antiga do `specs` como subtítulo); "Começar" abre uma sessão livre que registra e progride; a busca funciona sem acento.
 3. O circuito guiado roda um circuito de core do início ao fim com voz/vibração (mocks) e grava a sessão; nunca aceita exercício de barra/halter/polia.
 4. Relatório mostra contadores, histórico com "todos os registros", sequências e IMC; `/progresso` redireciona.
 5. Vídeo opcional: com um `assets/videos/<id>.mp4` de teste presente, a ficha mostra o vídeo; sem ele, a figura.
@@ -351,7 +351,7 @@ Abre por cima de qualquer tela (Treino, player, Explorar) sem perder estado: tí
 Abaixo da lista do treino do dia: **Editar** (modo reordenar com alças e setas ↑↓; ordem só desta sessão, gravada em `sessions.plano` quando a sessão é criada; "voltar à ordem do programa"); **Ajustar** no cabeçalho, ao lado da data (descanso padrão, preparação, avançar sozinho, voz, vibração, tela acesa, mostrar raios); **Desafios** (carrossel manual, sem rotação automática, com os planos reais — títulos e botões como definidos em §22.7 item 6 e §22.12 itens 4 e 7; capa de `assets/`, semana atual e progresso); **Parte do corpo em foco** (chips dos 8 grupos → lista com miniatura, `N exercícios · ~M min`, raios, "Começar" = sessão livre com os 6 primeiros do grupo, compostos antes de isolamento); chips de filtro derivados (≤ 15 min · 15–30 min · com equipamento · sem equipamento · core · cardio); **Personalizar treino** ("Crie o seu próprio": escolher exercícios do catálogo e começar uma sessão livre). Sem busca na Treino (fica em Explorar).
 
 ### 14.4 Explorar, Relatório, Corpo, Mais — como na §13.4, §13.5 e §13.7, com estes ajustes
-- **Explorar**: cabeçalho "Explorar" com busca sempre visível; **um destaque** no topo (o treino de hoje ou a sessão da semana do plano); **"Escolhas para você"** = lista com capa, título, `N exercícios · ~M min · nível (raios)` das coleções derivadas (grupos, aparelhos, circuitos, planos, treinos do programa), com "Ver todos"; catálogo dos 81 abaixo com filtros; toque em coleção → tela da coleção (capa, lista, "Começar"); nada de texto de marketing; descrições só de campos do JSON (foco, subtítulo, regra, funções).
+- **Explorar**: cabeçalho "Explorar" com busca sempre visível; **um destaque** no topo (o treino de hoje ou a sessão da semana do plano); **"Escolhas para você"** = lista com capa, título, `N exercícios · ~M min · nível (raios)` das coleções derivadas (grupos, aparelhos, circuitos, planos, treinos do programa), com "Ver todos" — a meta de aparelho é "N exercícios que dão para fazer com ele" e a de plano é a posição ou a duração, como define a §22.12 itens 2 e 4; catálogo dos 81 abaixo com filtros; toque em coleção → tela da coleção (capa, lista, "Começar"); nada de texto de marketing; descrições só de campos do JSON (foco, subtítulo, regra, funções).
 - **Relatório**: contadores treinos · minutos · volume; histórico com faixa da semana, "Todos os registros" e sequências (dias e semanas). **Decisão de 15/09/2026**: os três contadores do topo são **totais acumulados** ("no total": todo o histórico, com as três fontes — sessões de força, cardio e séries — lendo a mesma janela, sem o corte de 26 semanas), e a semana fica no card "Esta semana" logo abaixo (onde vive o volume da semana da §13.5.1); o card da semana conta **só força**, e o diz. **cards Peso e IMC** como na referência (Registrar, atual, maior/menor, gráfico; IMC com barra e "Saudável"/faixa, altura editável); gráficos e recordes; `/progresso` redireciona.
 - **Corpo**: IMC na aba Peso; resto igual.
 - **Mais → Preferências**: meta semanal, preparação (s), descanso padrão (s, vazio = do exercício), avançar sozinho após o descanso, voz, vibração, tela acesa, mostrar raios, limpar "não gosto".
@@ -2217,12 +2217,14 @@ verificável no e2e (`e2e/ultraloop-a-r10.spec.ts`) ou no Vitest.
    o título tem peso; o resto é `muted` em peso normal. Coleções por aparelho
    e circuitos não usam `specs` como subtítulo; a do aparelho diz uma vez só
    **"N exercícios que dão para fazer com ele"** (singular "1 exercício que dá
-   para fazer com ele"), sem kg, cm nem "~N min". O título é o `nome_curto`
+   para fazer com ele"), sem kg, cm nem "~N min", com espaço inseguível em
+   "com ele" para "ele" nunca ficar sozinho na segunda linha a 360 px. O
+   título é o `nome_curto`
    do item em `data/equipamentos.json` ("Tatame EVA", não "Tatame EVA 20 mm";
    "Banco supino regulável", sem a marca) — o nome completo continua em Mais →
    Equipamento. Aceite: nenhuma linha de aparelho de `data/equipamentos.json`
    tem kg, cm, mm, "~", número ou parêntese no título, ou a contagem
-   repetida.
+   repetida; a meta termina em "com\u00a0ele" (espaço inseguível).
 3. **A busca diz por que a coleção apareceu.** `buscarColecoes` devolvia as
    coleções na ordem da vitrine, sem dizer se casou pelo título ou por um
    exercício lá dentro. Agora ordena **título > subtítulo > conteúdo** e, quando
@@ -2231,24 +2233,36 @@ verificável no e2e (`e2e/ultraloop-a-r10.spec.ts`) ou no Vitest.
    termos; dois termos no mesmo exercício citam um nome só; acento e caixa não
    contam. A escolha é termo a termo, na ordem dos termos: para cada termo
    ainda descoberto, o exercício que o contém **e cobre mais termos ainda
-   descobertos** (empate: o primeiro da coleção); no fim, sai quem ficou com
-   todos os seus termos cobertos por outro citado. Com qualquer número de
-   termos, nenhum nome citado sobra ("flexao inclinada supino" em Peito cita
-   "Flexão inclinada e Supino reto com barra", não "Flexão declinada, …").
-   Aceite: toda coleção achada por conteúdo mostra o(s) exercício(s);
-   casamento por título ou subtítulo não mostra "contém"; com 3 termos, dois
-   no mesmo exercício, o nome dele aparece uma vez e nenhum outro sobra.
+   descobertos** (empate: o primeiro da coleção); depois, um de cada vez, sai
+   quem ficou com todos os seus termos cobertos por outro citado. Com qualquer
+   número de termos, nenhum nome citado sobra ("flexao inclinada supino" em
+   Peito cita "Flexão inclinada e Supino reto com barra", não "Flexão
+   declinada, …"; "sentado panturrilha barra declinado" no Banco não cita
+   "Desenvolvimento sentado com barra"). **Ordem da frase**: os nomes saem na
+   ordem do primeiro termo digitado que cada um cobre; quando dois começam no
+   mesmo termo, vem antes o que responde sozinho pelo termo mais cedo ("barra
+   direta supino" no Treino A cita "Rosca direta com barra e Supino reto com
+   barra"). Aceite: toda coleção achada por conteúdo mostra o(s)
+   exercício(s); casamento por título ou subtítulo não mostra "contém"; com 3
+   ou 4 termos, dois no mesmo exercício, o nome dele aparece uma vez, nenhum
+   outro sobra e a frase segue a ordem acima (Vitest: casos reais de 4 termos
+   e varredura de 3 e 4 termos em todas as coleções).
 4. **Planos: título curto e a posição.** "Primeira barra fixa em 12 semanas" e
    "5 km sem parar em 12 semanas" repetiam o prazo que já está no objetivo.
    Os títulos da vitrine ficam **"Primeira barra fixa"** e a meta da corrida
    (**"5 km sem parar"**, de `cardio.json`); com o perfil na mão, a meta de
    barra fixa e corrida é **"semana N de T"** (N do perfil, preso a T —
-   "semana 99" vira "semana 12 de 12"); sem perfil, **"T semanas"**. A corda
+   "semana 99" vira "semana 12 de 12"); sem perfil, **"T semanas"** — a não ser
+   que o objetivo do JSON (o subtítulo) já diga o prazo ("… em 8–12 semanas",
+   "… em 12 semanas"): aí a linha fica **sem meta**, para o prazo não aparecer
+   duas vezes (hoje, barra fixa e corrida sem perfil). A corda
    não tem posição no perfil e mostra a sua duração, que é a do JSON
    (`ultimaSemanaDeCorda()`, 12 — antes dizia "5 semanas", que eram os 5
    estágios). Nenhum número escrito à mão. O card do desafio (carrossel da
    Treino e destaque do Explorar) usa o **mesmo título** da linha do plano —
-   o prazo já está em "Semana N de T" logo abaixo.
+   o prazo já está em "Semana N de T" logo abaixo —, e a meta do destaque do
+   Explorar sai da mesma `metaDoPlano()` da vitrine (nenhuma tela monta
+   "semana N de T" à mão).
 5. **Títulos em degraus.** No Explorar, "Exercícios" era `h3` irmão do `h2`
    "Escolhas para você": passa a `h2`, e os cinco títulos do grupo de escolhas
    continuam `h3`.
@@ -2275,3 +2289,12 @@ verificável no e2e (`e2e/ultraloop-a-r10.spec.ts`) ou no Vitest.
    nome sem o prefixo numérico ("explorar" → "06-explorar-*"), mantendo o
    casamento antigo; a função é exportada e testada
    (`scripts/comparar-capturas.test.ts`).
+
+   **Rodada 11 — correção da auditoria 2.** A auditoria da rodada 10 achou a
+   passada de redundância do item 3 sem teste (uma mutação que a anula passava
+   em tudo; com 4 termos ela é necessária), a §13.8 item 2 ainda pedindo
+   `specs` como subtítulo, e cinco menores: a ordem dos nomes citados, um
+   `nomeCurtoDaFase` duplicado na aba Treino, a meta do destaque montada na
+   tela, o prazo repetido sem perfil e o "ele" sozinho na linha de aparelho.
+   Os itens 2, 3 e 4 acima já trazem a regra corrigida, e a §13.4, a §13.8 e a
+   §14.4 remetem a eles.
