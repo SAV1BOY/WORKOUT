@@ -7,7 +7,13 @@ import { useSessaoLivre } from "@/components/colecoes/usar-sessao-livre";
 import { ListaDaColecao } from "@/components/colecoes/lista-da-colecao";
 import { BotaoLargo } from "@/components/ui/botao-largo";
 import { CardCapa } from "@/components/ui/card-capa";
-import { exerciciosParaSessao, metaDoPlano, planos, type Colecao } from "@/lib/colecoes";
+import {
+  ctaDoPlano,
+  exerciciosParaSessao,
+  metaDoPlano,
+  planos,
+  type Colecao,
+} from "@/lib/colecoes";
 import { evitadosPorUltimo, ligado } from "@/lib/preferencias";
 import { usePerfil } from "@/lib/queries/dados";
 
@@ -41,13 +47,16 @@ export function TelaColecao({ colecao }: { colecao: Colecao }) {
    * ("semana 3 de 12"), como na vitrine; sem perfil, a duração do build.
    */
   const perfil = perfilQ.data ?? null;
+  const posicao = perfil
+    ? { semanaFixa: perfil.semana_fixa, semanaCorrida: perfil.semana_corrida }
+    : null;
   const detalhe =
-    dadosDoPlano && perfil
-      ? metaDoPlano(dadosDoPlano, {
-          semanaFixa: perfil.semana_fixa,
-          semanaCorrida: perfil.semana_corrida,
-        })
-      : colecao.detalhe;
+    dadosDoPlano && posicao ? metaDoPlano(dadosDoPlano, posicao) : colecao.detalhe;
+  /*
+   * SPEC §22.12 item 7: o botão do plano é o MESMO do desafio (rótulo e
+   * destino), vindo de `ctaDoPlano()` — esta tela não escreve o rótulo.
+   */
+  const cta = dadosDoPlano ? ctaDoPlano(dadosDoPlano.id, posicao) : null;
 
   return (
     <section aria-label={colecao.titulo} className="flex flex-col gap-4">
@@ -71,9 +80,9 @@ export function TelaColecao({ colecao }: { colecao: Colecao }) {
         foto={colecao.capa}
         raios={mostrarRaios ? colecao.raios : null}
       >
-        {dadosDoPlano ? (
+        {cta ? (
           <BotaoLargo asChild>
-            <Link href={dadosDoPlano.href}>Fazer a sessão da semana</Link>
+            <Link href={cta.href}>{cta.acao}</Link>
           </BotaoLargo>
         ) : (
           <>

@@ -298,6 +298,33 @@ export function metaDoPlano(
   return `semana ${semanaPresa(semana, dados.semanas)} de ${dados.semanas}`;
 }
 
+/** O botão de um plano: o rótulo, que diz o destino, e a rota. */
+export interface CtaDoPlano {
+  acao: string;
+  href: string;
+}
+
+/**
+ * O CTA de um plano (SPEC §22.12 item 7) — a fonte ÚNICA: `desafios()` (o
+ * carrossel da Treino e o destaque do Explorar) e a página da coleção de plano
+ * usam esta função, e nenhuma tela escreve o rótulo. A corrida diz a semana
+ * do perfil, presa ao plano, e leva direto a ela; sem perfil, leva à tela da
+ * corrida, que abre a semana do perfil quando ele chegar.
+ */
+export function ctaDoPlano(
+  id: PlanoId,
+  posicao?: PosicaoNosPlanos | null,
+): CtaDoPlano {
+  const base = planos().find((p) => p.id === id)?.href ?? "/explorar";
+  if (id === "barra_fixa") return { acao: "Fazer a sessão de barra fixa", href: base };
+  if (id === "corda") return { acao: "Fazer a sessão de corda", href: base };
+  if (posicao == null || !Number.isFinite(posicao.semanaCorrida)) {
+    return { acao: "Fazer a corrida", href: base };
+  }
+  const semana = semanaPresa(posicao.semanaCorrida, ultimaSemanaDeCorrida());
+  return { acao: `Fazer a corrida da semana ${semana}`, href: `${base}?semana=${semana}` };
+}
+
 export function colecaoDoPlano(
   dados: DadosDoPlano,
   posicao?: PosicaoNosPlanos | null,
@@ -715,32 +742,31 @@ export function desafios(e: EntradaDosDesafios): Desafio[] {
   const fase = acharFase(e.fase);
   const semanasDaFixa = ultimaSemanaDeBarraFixa();
   const semanasDaCorrida = ultimaSemanaDeCorrida();
+  const titulo = (id: PlanoId) => planos().find((p) => p.id === id)?.titulo ?? "";
   return [
     {
       /*
-       * Título de card (SPEC §14.3): rótulo de UI curto com o número de
-       * semanas vindo do plano; o `objetivo` do JSON, que é uma frase inteira
-       * em caixa baixa, fica como subtítulo (§13.8.6).
+       * Título do card = o da linha do plano na vitrine (SPEC §22.12 item 4):
+       * o prazo já aparece logo abaixo, em "Semana N de T". O `objetivo` do
+       * JSON, uma frase inteira em caixa baixa, fica como subtítulo (§13.8.6).
        */
       id: "barra_fixa",
-      titulo: `Primeira barra fixa em ${semanasDaFixa} semanas`,
+      titulo: titulo("barra_fixa"),
       subtitulo: cardio.barra_fixa.objetivo,
       semanaAtual: semanaPresa(e.semanaFixa, semanasDaFixa),
       semanas: semanasDaFixa,
       capa: capaDoExercicio(acharExercicio("barra-fixa-assistida")),
-      href: "/barra-fixa",
-      acao: "Fazer a sessão de barra fixa",
+      ...ctaDoPlano("barra_fixa", e),
     },
     {
       id: "corrida",
-      titulo: `${metaDaCorrida()} em ${semanasDaCorrida} semanas`,
+      titulo: titulo("corrida"),
       subtitulo: cardio.corrida.objetivo,
       semanaAtual: semanaPresa(e.semanaCorrida, semanasDaCorrida),
       semanas: semanasDaCorrida,
       // não há foto de corrida em assets/; o card fica com o gradiente (§13.3)
       capa: null,
-      href: `/cardio/corrida?semana=${semanaPresa(e.semanaCorrida, semanasDaCorrida)}`,
-      acao: `Fazer a corrida da semana ${semanaPresa(e.semanaCorrida, semanasDaCorrida)}`,
+      ...ctaDoPlano("corrida", e),
     },
     {
       id: "fase",

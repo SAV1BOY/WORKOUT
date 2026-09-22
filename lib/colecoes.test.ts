@@ -33,6 +33,7 @@ import {
   todasAsColecoes,
   metaDoAparelho,
   metaDoPlano,
+  ctaDoPlano,
   exerciciosResponsaveis,
   juntarNomes,
   nomeCurtoDaFase,
@@ -599,8 +600,13 @@ describe("desafios da aba Treino (SPEC §14.3)", () => {
   it("são os dois planos de cardio.json e a fase do programa.json", () => {
     const lista = desafios(base);
     expect(lista.map((d) => d.id)).toEqual(["barra_fixa", "corrida", "fase"]);
-    expect(lista[0]?.titulo).toBe("Primeira barra fixa em 12 semanas");
-    expect(lista[1]?.titulo).toBe("5 km sem parar em 12 semanas");
+    // o mesmo título da linha do plano na vitrine (§22.12 item 4): um plano,
+    // um título, no carrossel, no destaque e em Planos
+    expect(lista[0]?.titulo).toBe("Primeira barra fixa");
+    expect(lista[1]?.titulo).toBe("5 km sem parar");
+    const vitrine = new Map(planos().map((p) => [p.id, p.titulo]));
+    expect(lista[0]?.titulo).toBe(vitrine.get("barra_fixa"));
+    expect(lista[1]?.titulo).toBe(vitrine.get("corrida"));
     expect(lista[0]?.subtitulo).toBe(cardio.barra_fixa.objetivo);
     expect(lista[1]?.subtitulo).toBe(cardio.corrida.objetivo);
     expect(lista[2]?.titulo).toBe("Fase 1 — corpo inteiro, 3× por semana");
@@ -643,13 +649,39 @@ describe("desafios da aba Treino (SPEC §14.3)", () => {
     expect(desafios({ ...base, semanaCorrida: 99 })[1]?.acao).toBe(
       "Fazer a corrida da semana 12",
     );
-    // nenhuma tela reescreve o rótulo por id: as duas mostram `desafio.acao`
-    for (const arquivo of ["components/treino/desafios.tsx", "components/explorar/tela-explorar.tsx"]) {
+    // nenhuma tela escreve o rótulo: Treino, destaque do Explorar e a página
+    // do plano mostram o que vem de `desafios()`/`ctaDoPlano()`
+    for (const arquivo of [
+      "components/treino/desafios.tsx",
+      "components/explorar/tela-explorar.tsx",
+      "components/colecoes/tela-colecao.tsx",
+    ]) {
       const fonte = readFileSync(arquivo, "utf8");
-      expect(fonte, arquivo).not.toMatch(/acaoDoDesafio|Fazer a corrida da semana|Fazer o treino da|Fazer a sessão de barra fixa/);
+      expect(fonte, arquivo).not.toMatch(/acaoDoDesafio|>\s*Fazer a|"Fazer a|`Fazer a/);
     }
     expect(readFileSync("components/treino/desafios.tsx", "utf8")).toContain("{desafio.acao}");
     expect(readFileSync("components/explorar/tela-explorar.tsx", "utf8")).toContain("{plano.acao}");
+  });
+
+  it("o desafio e a página do plano usam o mesmo CTA: rótulo e destino (§22.12 item 7)", () => {
+    const [fixa, corrida] = desafios(base);
+    expect(ctaDoPlano("barra_fixa", base)).toEqual({ acao: fixa?.acao, href: fixa?.href });
+    expect(ctaDoPlano("corrida", base)).toEqual({ acao: corrida?.acao, href: corrida?.href });
+    expect(ctaDoPlano("corrida", base)).toEqual({
+      acao: "Fazer a corrida da semana 4",
+      href: "/cardio/corrida?semana=4",
+    });
+    // presa ao plano, nos dois
+    const alem = { ...base, semanaCorrida: 99 };
+    expect(ctaDoPlano("corrida", alem).href).toBe("/cardio/corrida?semana=12");
+    expect(desafios(alem)[1]?.href).toBe("/cardio/corrida?semana=12");
+    // sem perfil a corrida leva à tela dela, sem inventar semana
+    expect(ctaDoPlano("corrida", null)).toEqual({ acao: "Fazer a corrida", href: "/cardio/corrida" });
+    expect(ctaDoPlano("barra_fixa", null)).toEqual(ctaDoPlano("barra_fixa", base));
+    // a corda, que não é desafio, também diz o destino
+    expect(ctaDoPlano("corda", base)).toEqual({ acao: "Fazer a sessão de corda", href: "/cardio/corda" });
+    // o destino é o da linha do plano (o JSON de rotas não é reescrito)
+    for (const p of planos()) expect(ctaDoPlano(p.id, null).href).toBe(p.href);
   });
 
   it("a capa sai sempre de assets/ (ou é nenhuma)", () => {

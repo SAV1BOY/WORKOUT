@@ -403,7 +403,8 @@ test.describe("Explorar (§14.4)", () => {
     await abrir(page);
     await page.goto("/explorar/plano/barra_fixa");
     await expect(
-      page.getByRole("link", { name: "Fazer a sessão da semana" }),
+      // SPEC §22.12 item 7: o mesmo CTA do desafio, que diz o destino
+      page.getByRole("link", { name: "Fazer a sessão de barra fixa" }),
     ).toHaveAttribute("href", "/barra-fixa");
 
     /*
