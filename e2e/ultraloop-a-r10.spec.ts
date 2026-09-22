@@ -310,7 +310,8 @@ test.describe("D — planos: título curto e a posição do perfil (item 4)", ()
     await expect(corrida.locator('[data-linha="meta"]')).toHaveText("semana 12 de 12");
     // a corda: a duração do JSON (o selo "Circuito" vem na mesma linha)
     await expect(corda.locator('[data-linha="meta"]')).toHaveText(/^12 semanas/);
-    await expect(corda.locator('[data-linha="meta"]')).not.toContainText("semana ");
+    // (regex: o Playwright apara o espaço de uma string e "semana " casaria "semanas")
+    await expect(corda.locator('[data-linha="meta"]')).not.toContainText(/semana \d/);
     // títulos curtos, sem o prazo repetido (o prazo fica no objetivo, o subtítulo)
     await expect(fixa.locator('[data-linha="titulo"]')).toHaveText("Primeira barra fixa");
     await expect(corrida.locator('[data-linha="titulo"]')).toHaveText("5 km sem parar");
