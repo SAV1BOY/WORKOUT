@@ -33,6 +33,7 @@ import {
   todasAsColecoes,
   metaDoAparelho,
   metaDoPlano,
+  textoDizOPrazo,
   ctaDoPlano,
   exerciciosResponsaveis,
   juntarNomes,
@@ -111,7 +112,7 @@ describe("coleções por aparelho (SPEC §13.4)", () => {
       expect(c.titulo, c.id).not.toMatch(/\d|\(|\bmm\b|\bkg\b|\bcm\b/);
     }
     expect(tatame?.detalhe).toBe(
-      `${exerciciosDoAparelho("tatame").length} exercícios que dão para fazer com ele`,
+      `${exerciciosDoAparelho("tatame").length} exercícios que dão para fazer com\u00a0ele`,
     );
   });
 
@@ -132,9 +133,11 @@ describe("coleções por aparelho (SPEC §13.4)", () => {
   });
 
   it("a meta do aparelho acerta o singular", () => {
-    expect(metaDoAparelho(1)).toBe("1 exercício que dá para fazer com ele");
-    expect(metaDoAparelho(2)).toBe("2 exercícios que dão para fazer com ele");
-    expect(metaDoAparelho(0)).toBe("0 exercícios que dão para fazer com ele");
+    // "com ele" com espaço inseguível: "ele" nunca fica sozinho na linha
+    expect(metaDoAparelho(1)).toBe("1 exercício que dá para fazer com\u00a0ele");
+    expect(metaDoAparelho(2)).toBe("2 exercícios que dão para fazer com\u00a0ele");
+    expect(metaDoAparelho(0)).toBe("0 exercícios que dão para fazer com\u00a0ele");
+    expect(metaDoAparelho(8).match(/ /g)).toHaveLength(6);
   });
 
   /*
@@ -206,12 +209,17 @@ describe("planos e treinos do programa", () => {
     const [fixa, corrida, corda] = colecoesDePlano();
     // a corrida não tem exercício em exercicios.json: "0 exercícios · ~1 min"
     // era o que aparecia na tela antes da auditoria do V3
-    expect(corrida?.detalhe).toBe("12 semanas");
-    expect(fixa?.detalhe).toBe("12 semanas");
-    // a corda dura o que o JSON diz ("9–12" → 12), não o número de estágios
+    // sem perfil, barra fixa e corrida não repetem o prazo que o objetivo
+    // (subtítulo, do JSON) já diz: a linha fica sem meta (§22.12 item 4)
+    expect(corrida?.subtitulo).toMatch(/12 semanas/);
+    expect(fixa?.subtitulo).toMatch(/8–12 semanas/);
+    expect(corrida?.detalhe).toBeNull();
+    expect(fixa?.detalhe).toBeNull();
+    // a corda dura o que o JSON diz ("9–12" → 12), não o número de estágios,
+    // e o subtítulo dela (as funções) não fala de prazo: a duração fica
     expect(corda?.detalhe).toBe(`${ultimaSemanaDoPlano(cardio.corda.semanas)} semanas`);
     for (const c of colecoesDePlano()) {
-      expect(c.detalhe).not.toMatch(/exerc[íi]cio/);
+      expect(c.detalhe ?? "").not.toMatch(/exerc[íi]cio/);
     }
   });
 
@@ -222,14 +230,23 @@ describe("planos e treinos do programa", () => {
     // a corda não tem posição no perfil: fica a duração
     expect(corda?.detalhe).toBe("12 semanas");
     // acima do total fica preso no total; abaixo de 1, na primeira
-    expect(metaDoPlano({ id: "corrida", semanas: 12 }, { semanaFixa: 1, semanaCorrida: 99 })).toBe(
-      "semana 12 de 12",
-    );
-    expect(metaDoPlano({ id: "barra_fixa", semanas: 12 }, { semanaFixa: 0, semanaCorrida: 1 })).toBe(
-      "semana 1 de 12",
-    );
-    // sem perfil, a duração
-    expect(metaDoPlano({ id: "barra_fixa", semanas: 12 }, null)).toBe("12 semanas");
+    const corridaX = { id: "corrida" as const, semanas: 12, subtitulo: null };
+    const fixaX = { id: "barra_fixa" as const, semanas: 12, subtitulo: null };
+    expect(metaDoPlano(corridaX, { semanaFixa: 1, semanaCorrida: 99 })).toBe("semana 12 de 12");
+    expect(metaDoPlano(fixaX, { semanaFixa: 0, semanaCorrida: 1 })).toBe("semana 1 de 12");
+    // com o perfil, a posição sai mesmo que o subtítulo diga o prazo
+    const comPrazo = { ...fixaX, subtitulo: "a primeira barra em 8–12 semanas" };
+    expect(metaDoPlano(comPrazo, { semanaFixa: 4, semanaCorrida: 1 })).toBe("semana 4 de 12");
+    // sem perfil, a duração — se o subtítulo ainda não disser o prazo
+    expect(metaDoPlano(fixaX, null)).toBe("12 semanas");
+    expect(metaDoPlano({ ...fixaX, subtitulo: "subir sem elástico" }, null)).toBe("12 semanas");
+    expect(metaDoPlano(comPrazo, null)).toBeNull();
+    expect(metaDoPlano({ ...corridaX, subtitulo: "5 km em 12 SEMANAS" }, undefined)).toBeNull();
+    // "112 semanas", ou o prazo de outro tamanho, não é o prazo deste plano
+    expect(metaDoPlano({ ...fixaX, subtitulo: "em 112 semanas" }, null)).toBe("12 semanas");
+    expect(metaDoPlano({ ...fixaX, semanas: 8, subtitulo: "em 12 semanas" }, null)).toBe("8 semanas");
+    expect(textoDizOPrazo("de caminhada a 5 km sem parar em 12 semanas (≈35 min)", 12)).toBe(true);
+    expect(textoDizOPrazo(null, 12)).toBe(false);
     // a posição chega à vitrine inteira (e à busca)
     const todas = todasAsColecoes({ semanaFixa: 3, semanaCorrida: 4 });
     expect(todas.find((c) => c.id === "plano:barra_fixa")?.detalhe).toBe("semana 3 de 12");
@@ -285,13 +302,15 @@ describe("estimativa de minutos (SPEC §14.3)", () => {
       if (c.tipo === "plano") {
         // um plano é a prescrição por semana de cardio.json, não uma lista
         expect(c.minutos).toBe(0);
-        expect(c.detalhe).toMatch(/^\d+ semanas$/);
+        // "T semanas", ou nada quando o objetivo já diz o prazo (§22.12 item 4)
+        if (c.detalhe === null) expect(c.subtitulo).toMatch(/\d+ semanas/);
+        else expect(c.detalhe).toMatch(/^\d+ semanas$/);
         continue;
       }
       expect(c.exercicios.length).toBeGreaterThan(0);
       expect(c.minutos).toBeGreaterThan(0);
       // o aparelho diz a serventia, sem minutos (§22.12 item 2)
-      if (c.tipo === "aparelho") expect(c.detalhe).toMatch(/para fazer com ele$/);
+      if (c.tipo === "aparelho") expect(c.detalhe).toMatch(/para fazer com\u00a0ele$/);
       else expect(c.detalhe).toMatch(/exerc[íi]cios? · ~/);
     }
   });
@@ -499,7 +518,8 @@ describe("a busca diz por que achou (SPEC §22.12 item 3)", () => {
       ["prancha", "lateral", "frontal"],
       ["Prancha frontal", "Prancha lateral"],
     );
-    expect(r).toEqual(["Prancha frontal", "Prancha lateral"]);
+    // os dois começam em "prancha"; "lateral" (2º termo) vem antes de "frontal"
+    expect(r).toEqual(["Prancha lateral", "Prancha frontal"]);
     expect(new Set(r).size).toBe(r.length);
     // termo que nenhum exercício tem não inventa nome
     expect(exerciciosResponsaveis(["zzz"], ["Prancha frontal"])).toEqual([]);
@@ -565,6 +585,109 @@ describe("a busca diz por que achou (SPEC §22.12 item 3)", () => {
       });
     }
     expect(consultas).toBeGreaterThan(1000);
+  });
+
+  it("com 4 termos, quem ficou redundante sai da frase (dados reais, §22.12 item 3)", () => {
+    const motivo = (termo: string, id: string) =>
+      buscarColecoes(termo).find((c) => c.id === id)?.motivoDaBusca;
+    // sem a passada final citava também "Desenvolvimento sentado com barra",
+    // cujos dois termos ("sentado" e "barra") os outros dois já cobrem
+    expect(motivo("sentado panturrilha barra declinado", "aparelho:banco")).toBe(
+      "contém Elevação de panturrilha sentado e Supino declinado com barra",
+    );
+    // sem a passada final citava também a "Puxada alta na polia"
+    expect(motivo("puxada remada polia com", "aparelho:cross-over")).toBe(
+      "contém Puxada com triângulo e Remada baixa na polia",
+    );
+    expect(motivo("puxada rosca com polia", "aparelho:cross-over")).toBe(
+      "contém Puxada com triângulo e Rosca na polia baixa",
+    );
+  });
+
+  it("a passada final tira o nome que os outros citados cobrem (sintético)", () => {
+    // "alfa" escolhe "alfa beta" (empate com "alfa gama", fica o primeiro);
+    // "gama" e "delta" trazem os outros dois, e "alfa beta" sobra
+    const termos = ["alfa", "beta", "gama", "delta"];
+    expect(exerciciosResponsaveis(termos, ["alfa beta", "alfa gama", "beta delta"])).toEqual([
+      "alfa gama",
+      "beta delta",
+    ]);
+  });
+
+  it("a frase segue a ordem do primeiro termo que cada nome cobre (§22.12 item 3)", () => {
+    const motivo = (termo: string, id: string) =>
+      buscarColecoes(termo).find((c) => c.id === id)?.motivoDaBusca;
+    // os dois cobrem "barra" (o 1º termo): vem antes quem responde sozinho
+    // pelo termo mais cedo — "direta" (2º) antes de "supino" (3º)
+    expect(motivo("barra direta supino", "treino:A1")).toBe(
+      "contém Rosca direta com barra e Supino reto com barra",
+    );
+    // "braço" (2º) antes de "declinada" (3º)
+    expect(motivo("flexao braco declinada", "grupo:Peito")).toBe(
+      "contém Flexão de braço e Flexão declinada",
+    );
+    // "puxada" foi digitado primeiro e sai primeiro
+    expect(motivo("puxada remada polia com", "aparelho:cross-over")).toMatch(/^contém Puxada/);
+    // sintético: a ordem é a dos termos, não a da coleção nem a da escolha
+    expect(exerciciosResponsaveis(["c", "a", "b"], ["a1", "b1", "c1"])).toEqual(["c1", "a1", "b1"]);
+    expect(exerciciosResponsaveis(["x", "q", "p"], ["x p", "x q"])).toEqual(["x q", "x p"]);
+  });
+
+  it("em toda coleção real, com 3 e 4 termos: sem repetir, sem sobrar e na ordem dos termos", () => {
+    const palavras = (n: string) => [
+      ...new Set(semAcentoT(n).split(/[^a-z0-9]+/).filter((p) => p.length >= 3)),
+    ];
+    let consultas = 0;
+    let comQuatro = 0;
+    for (const c of todasAsColecoes()) {
+      const nomes = c.exercicios.map(nomeDe);
+      const normais = nomes.map(semAcentoT);
+      const conferir = (termos: string[]) => {
+        consultas += 1;
+        if (termos.length === 4) comQuatro += 1;
+        const r = exerciciosResponsaveis(termos, nomes);
+        const ids = r.map((n) => nomes.indexOf(n));
+        const rotulo = `${c.id}: "${termos.join(" ")}" → ${r.join(", ")}`;
+        expect(new Set(r).size, rotulo).toBe(r.length);
+        for (const t of termos) {
+          expect(ids.some((i) => normais[i]!.includes(t)), rotulo).toBe(true);
+        }
+        const cobre = (i: number, t: string) => normais[i]!.includes(t);
+        const proprio = (i: number) =>
+          termos.findIndex((t) => cobre(i, t) && !ids.some((j) => j !== i && cobre(j, t)));
+        const primeiro = (i: number) => termos.findIndex((t) => cobre(i, t));
+        // nenhum nome sobra: todo citado responde sozinho por algum termo
+        for (const i of ids) expect(proprio(i), rotulo).toBeGreaterThanOrEqual(0);
+        // a ordem: pelo primeiro termo coberto; empate, pelo termo próprio
+        for (let k = 1; k < ids.length; k++) {
+          const a = ids[k - 1]!;
+          const b = ids[k]!;
+          const antes =
+            primeiro(a) < primeiro(b) || (primeiro(a) === primeiro(b) && proprio(a) < proprio(b));
+          expect(antes, rotulo).toBe(true);
+        }
+        // o primeiro termo digitado é coberto pelo primeiro nome da frase
+        expect(cobre(ids[0]!, termos[0]!), rotulo).toBe(true);
+      };
+      nomes.forEach((a, ia) => {
+        const pa = palavras(a);
+        if (pa.length < 2) return;
+        nomes.forEach((b, ib) => {
+          if (ib === ia) return;
+          const pb = palavras(b).filter((p) => !pa.includes(p));
+          if (pb.length === 0) return;
+          conferir([pa[0]!, pa[1]!, pb[0]!]);
+          conferir([pb[0]!, pa[0]!, pa[1]!]);
+          if (pb.length < 2) return;
+          // 4 termos, dois de cada exercício, em três ordens
+          conferir([pa[0]!, pa[1]!, pb[0]!, pb[1]!]);
+          conferir([pa[0]!, pb[0]!, pa[1]!, pb[1]!]);
+          conferir([pb[1]!, pa[1]!, pb[0]!, pa[0]!]);
+        });
+      });
+    }
+    expect(consultas).toBeGreaterThan(2000);
+    expect(comQuatro).toBeGreaterThan(1000);
   });
 
   it("na coleção real, dois termos de exercícios diferentes aparecem os dois", () => {

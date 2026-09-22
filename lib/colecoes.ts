@@ -66,8 +66,11 @@ export interface Colecao {
   capa: string | null;
   raios: Raios | null;
   minutos: number;
-  /** "8 exercícios · ~26 min". */
-  detalhe: string;
+  /**
+   * A meta: "8 exercícios · ~26 min". `null` só no plano sem perfil cujo
+   * objetivo já diz o prazo (SPEC §22.12 item 4) — a linha fica sem meta.
+   */
+  detalhe: string | null;
   /** Roda no modo por tempo (SPEC §13.6)? */
   circuito: boolean;
   /** Coleção de plano: o botão dela sai de `ctaDoPlano()` (SPEC §22.12 item 7). */
@@ -150,12 +153,14 @@ export function exerciciosDoAparelho(id: string): Exercicio[] {
 
 /**
  * A meta da coleção de um aparelho (SPEC §22.12 item 2): a contagem, uma vez
- * só e dita como serventia — "8 exercícios que dão para fazer com ele".
+ * só e dita como serventia — "8 exercícios que dão para fazer com ele". O
+ * espaço entre "com" e "ele" é inseguível (U+00A0): a 360 px a frase quebra
+ * em duas linhas, e "ele" sozinho na segunda era uma linha de uma palavra.
  */
 export function metaDoAparelho(quantos: number): string {
   return quantos === 1
-    ? "1 exercício que dá para fazer com ele"
-    : `${quantos} exercícios que dão para fazer com ele`;
+    ? "1 exercício que dá para fazer com\u00a0ele"
+    : `${quantos} exercícios que dão para fazer com\u00a0ele`;
 }
 
 /**
@@ -279,14 +284,25 @@ export interface PosicaoNosPlanos {
 }
 
 /**
+ * O texto já diz o prazo do plano? ("… em 8–12 semanas" diz 12 semanas.) Sem
+ * acento e sem caixa; o número tem de ser o total, não parte de outro número.
+ */
+export function textoDizOPrazo(texto: string | null | undefined, semanas: number): boolean {
+  if (!texto) return false;
+  return new RegExp(`(^|\\D)${semanas}\\s*semanas?\\b`).test(semAcento(texto));
+}
+
+/**
  * A meta de um plano na vitrine (SPEC §22.12 item 4). Com o perfil, barra fixa
  * e corrida dizem a posição — "semana 3 de 12", presa ao tamanho do plano; sem
- * perfil, e sempre na corda (que não tem posição no perfil), a duração.
+ * perfil, e sempre na corda (que não tem posição no perfil), a duração — a não
+ * ser que o objetivo do JSON (o subtítulo) já diga o prazo: aí não há meta
+ * (`null`), para o prazo não aparecer duas vezes na mesma linha.
  */
 export function metaDoPlano(
-  dados: Pick<DadosDoPlano, "id" | "semanas">,
+  dados: { id: PlanoId; semanas: number; subtitulo: string | null },
   posicao?: PosicaoNosPlanos | null,
-): string {
+): string | null {
   const semana =
     posicao == null
       ? null
@@ -295,7 +311,9 @@ export function metaDoPlano(
         : dados.id === "corrida"
           ? posicao.semanaCorrida
           : null;
-  if (semana === null || !Number.isFinite(semana)) return `${dados.semanas} semanas`;
+  if (semana === null || !Number.isFinite(semana)) {
+    return textoDizOPrazo(dados.subtitulo, dados.semanas) ? null : `${dados.semanas} semanas`;
+  }
   return `semana ${semanaPresa(semana, dados.semanas)} de ${dados.semanas}`;
 }
 
@@ -533,8 +551,9 @@ export function juntarNomes(nomes: readonly string[]): string {
  * dos termos: para cada termo ainda descoberto, o exercício que o contém E
  * cobre mais termos ainda descobertos (empate: o primeiro da coleção). Assim
  * dois termos no mesmo exercício citam um nome só, com qualquer número de
- * termos. No fim sai quem teve todos os seus termos cobertos por outro citado
- * — nenhum nome sobra, nenhum se repete.
+ * termos. Depois sai, um de cada vez, quem teve todos os seus termos cobertos
+ * por outro citado — nenhum nome sobra, nenhum se repete —, e a frase fica na
+ * ordem do primeiro termo que cada nome cobre.
  */
 export function exerciciosResponsaveis(
   termos: readonly string[],
@@ -573,7 +592,17 @@ export function exerciciosResponsaveis(
       .every((t) => outros.some((j) => cobre(j, t)));
     if (redundante) finais.splice(finais.indexOf(i), 1);
   }
-  return finais.map((i) => nomes[i] ?? "");
+  /*
+   * A frase segue a ordem dos termos digitados: cada nome vai para a posição
+   * do primeiro termo que ele cobre; dois que começam no mesmo termo, pelo
+   * primeiro termo que só ele cobre entre os citados (cada citado tem um, e
+   * esses não se repetem — é o que a passada acima garante).
+   */
+  const primeiro = (i: number) => termos.findIndex((t) => cobre(i, t));
+  const proprio = (i: number) =>
+    termos.findIndex((t) => cobre(i, t) && finais.every((j) => j === i || !cobre(j, t)));
+  const ordem = [...finais].sort((a, b) => primeiro(a) - primeiro(b) || proprio(a) - proprio(b));
+  return ordem.map((i) => nomes[i] ?? "");
 }
 
 /**
