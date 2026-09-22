@@ -2,7 +2,7 @@
 
 import { FilterX, Search, SlidersHorizontal, X } from "lucide-react";
 import Link from "next/link";
-import { useId, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -122,7 +122,6 @@ export function ListaExercicios({
   /** O CTA "Ver N exercícios" fecha a folha e leva ao primeiro resultado. */
   const irAoResultado = useRef(false);
   const refPrimeiro = useRef<HTMLLIElement>(null);
-  const idDoContador = useId();
 
   const mudar = (parte: Partial<FiltrosCatalogo>) => aplicar({ ...filtros, ...parte });
 
@@ -273,7 +272,6 @@ export function ListaExercicios({
             */}
             {deFora ? null : (
               <p
-                id={idDoContador}
                 className="text-muted-foreground text-xs"
                 aria-live="polite"
                 data-contador
