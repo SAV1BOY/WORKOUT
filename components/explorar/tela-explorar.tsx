@@ -95,7 +95,8 @@ export function TelaExplorar() {
    */
   /*
    * SPEC §22.12 item 4: com o perfil, os planos de barra fixa e corrida dizem
-   * a posição ("semana 3 de 12"); sem ele, a duração.
+   * a posição ("semana 3 de 12"); sem ele, a duração — ou nada, quando o
+   * objetivo do JSON já diz o prazo (`metaDoPlano`).
    */
   const semanaFixa = perfil?.semana_fixa;
   const semanaCorrida = perfil?.semana_corrida;

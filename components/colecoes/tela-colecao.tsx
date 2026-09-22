@@ -44,7 +44,8 @@ export function TelaColecao({ colecao }: { colecao: Colecao }) {
   const dadosDoPlano = planos().find((p) => p.id === colecao.plano) ?? null;
   /*
    * SPEC §22.12 item 4: com o perfil na mão, o plano diz onde o usuário está
-   * ("semana 3 de 12"), como na vitrine; sem perfil, a duração do build.
+   * ("semana 3 de 12"), como na vitrine; sem perfil, a da vitrine: a duração,
+   * ou nada quando o objetivo já diz o prazo.
    */
   const perfil = perfilQ.data ?? null;
   const posicao = perfil

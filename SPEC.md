@@ -2290,11 +2290,10 @@ verificável no e2e (`e2e/ultraloop-a-r10.spec.ts`) ou no Vitest.
    casamento antigo; a função é exportada e testada
    (`scripts/comparar-capturas.test.ts`).
 
-   **Rodada 11 — correção da auditoria 2.** A auditoria da rodada 10 achou a
-   passada de redundância do item 3 sem teste (uma mutação que a anula passava
-   em tudo; com 4 termos ela é necessária), a §13.8 item 2 ainda pedindo
-   `specs` como subtítulo, e cinco menores: a ordem dos nomes citados, um
-   `nomeCurtoDaFase` duplicado na aba Treino, a meta do destaque montada na
-   tela, o prazo repetido sem perfil e o "ele" sozinho na linha de aparelho.
-   Os itens 2, 3 e 4 acima já trazem a regra corrigida, e a §13.4, a §13.8 e a
-   §14.4 remetem a eles.
+**Rodada 11 — correção da auditoria 2.** A auditoria da rodada 10 achou a
+passada de redundância do item 3 sem teste (uma mutação que a anula passava em
+tudo; com 4 termos ela é necessária), a §13.8 item 2 ainda pedindo `specs` como
+subtítulo, e cinco menores: a ordem dos nomes citados, um `nomeCurtoDaFase`
+duplicado na aba Treino, a meta do destaque montada na tela, o prazo repetido
+sem perfil e o "ele" sozinho na linha de aparelho. Os itens 2, 3 e 4 acima já
+trazem a regra corrigida, e a §13.4, a §13.8 e a §14.4 remetem a eles.
