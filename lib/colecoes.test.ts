@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   buscarColecoes,
@@ -30,6 +31,11 @@ import {
   segmentoDaColecao,
   semCapasRepetidas,
   todasAsColecoes,
+  metaDoAparelho,
+  metaDoPlano,
+  exerciciosResponsaveis,
+  juntarNomes,
+  nomeCurtoDaFase,
   type Colecao,
 } from "@/lib/colecoes";
 import {
@@ -38,6 +44,7 @@ import {
   equipamentoDisponivel,
   equipamentos,
   exercicios,
+  ultimaSemanaDoPlano,
 } from "@/lib/dados";
 import { minutosDaColecao, podeCircuito, segundosDoExercicio } from "@/lib/livre";
 import type { EquipamentoTag } from "@/lib/schemas";
@@ -92,11 +99,36 @@ describe("coleções por aparelho (SPEC §13.4)", () => {
     }
   });
 
-  it("o título e o subtítulo saem do JSON", () => {
+  it("o título sai do JSON e a ficha técnica não vira subtítulo (§22.12 item 2)", () => {
     const tatame = colecaoDoAparelho("tatame");
     const item = equipamentos.itens.find((i) => i.id === "tatame");
     expect(tatame?.titulo).toBe(item?.nome);
-    expect(tatame?.subtitulo).toBe(item?.specs);
+    expect(tatame?.subtitulo).toBeNull();
+    expect(tatame?.detalhe).toBe(
+      `${exerciciosDoAparelho("tatame").length} exercícios que dão para fazer com ele`,
+    );
+  });
+
+  it("todo aparelho: sem specs, kg, cm nem minutos, e a contagem uma vez só", () => {
+    const lista = colecoesPorAparelho();
+    expect(lista.length).toBeGreaterThan(0);
+    for (const c of lista) {
+      const item = equipamentos.itens.find((i) => `aparelho:${i.id}` === c.id);
+      expect(item, c.id).toBeDefined();
+      const texto = [c.subtitulo ?? "", c.detalhe].join(" | ");
+      expect(texto, c.id).not.toContain(item?.specs ?? "@@");
+      expect(texto, c.id).not.toMatch(/\bkg\b|\bcm\b|~|\bmin\b|carga máxima/);
+      expect(c.detalhe, c.id).toBe(metaDoAparelho(c.exercicios.length));
+      // o número da contagem aparece uma vez só na linha
+      const n = String(c.exercicios.length);
+      expect(texto.split(/\D+/).filter((x) => x === n), c.id).toHaveLength(1);
+    }
+  });
+
+  it("a meta do aparelho acerta o singular", () => {
+    expect(metaDoAparelho(1)).toBe("1 exercício que dá para fazer com ele");
+    expect(metaDoAparelho(2)).toBe("2 exercícios que dão para fazer com ele");
+    expect(metaDoAparelho(0)).toBe("0 exercícios que dão para fazer com ele");
   });
 
   /*
@@ -133,6 +165,8 @@ describe("circuitos (SPEC §13.4: os 14 de origem aparelho)", () => {
     expect(colecaoDoCircuito("corda").titulo).toBe("Corda");
     expect(colecaoDoCircuito("band").titulo).toBe("Elástico");
     for (const e of exerciciosDoCircuito("corda")) expect(e.subgrupo).toBe("corda");
+    // a ficha técnica do item não é subtítulo de circuito (§22.12 item 2)
+    for (const c of circuitos()) expect(c.subtitulo).toBeNull();
   });
 
   it("tatame e corda rodam no modo por tempo; elástico não (barra fixa)", () => {
@@ -148,9 +182,12 @@ describe("planos e treinos do programa", () => {
   it("os três planos são os de cardio.json, com as semanas do próprio plano", () => {
     const lista = planos();
     expect(lista.map((p) => p.id)).toEqual(["barra_fixa", "corrida", "corda"]);
-    // SPEC §14.3: rótulo de UI com o número de semanas do próprio plano…
-    expect(lista[0]?.titulo).toBe("Primeira barra fixa em 12 semanas");
-    expect(lista[1]?.titulo).toBe("5 km sem parar em 12 semanas");
+    // SPEC §22.12 item 4: título curto — o prazo está no objetivo e na meta
+    expect(lista[0]?.titulo).toBe("Primeira barra fixa");
+    expect(lista[1]?.titulo).toBe(
+      cardio.corrida.semanas[cardio.corrida.semanas.length - 1]?.descricao,
+    );
+    for (const p of lista) expect(p.titulo).not.toMatch(/\d+ semanas/);
     // …e o objetivo do JSON continua na tela, como subtítulo
     expect(lista[0]?.subtitulo).toBe(cardio.barra_fixa.objetivo);
     expect(lista[1]?.subtitulo).toBe(cardio.corrida.objetivo);
@@ -165,10 +202,31 @@ describe("planos e treinos do programa", () => {
     // era o que aparecia na tela antes da auditoria do V3
     expect(corrida?.detalhe).toBe("12 semanas");
     expect(fixa?.detalhe).toBe("12 semanas");
-    expect(corda?.detalhe).toBe(`${cardio.corda.semanas.length} semanas`);
+    // a corda dura o que o JSON diz ("9–12" → 12), não o número de estágios
+    expect(corda?.detalhe).toBe(`${ultimaSemanaDoPlano(cardio.corda.semanas)} semanas`);
     for (const c of colecoesDePlano()) {
       expect(c.detalhe).not.toMatch(/exerc[íi]cio/);
     }
+  });
+
+  it("com o perfil, barra fixa e corrida dizem a posição (§22.12 item 4)", () => {
+    const [fixa, corrida, corda] = colecoesDePlano({ semanaFixa: 2, semanaCorrida: 5 });
+    expect(fixa?.detalhe).toBe("semana 2 de 12");
+    expect(corrida?.detalhe).toBe("semana 5 de 12");
+    // a corda não tem posição no perfil: fica a duração
+    expect(corda?.detalhe).toBe("12 semanas");
+    // acima do total fica preso no total; abaixo de 1, na primeira
+    expect(metaDoPlano({ id: "corrida", semanas: 12 }, { semanaFixa: 1, semanaCorrida: 99 })).toBe(
+      "semana 12 de 12",
+    );
+    expect(metaDoPlano({ id: "barra_fixa", semanas: 12 }, { semanaFixa: 0, semanaCorrida: 1 })).toBe(
+      "semana 1 de 12",
+    );
+    // sem perfil, a duração
+    expect(metaDoPlano({ id: "barra_fixa", semanas: 12 }, null)).toBe("12 semanas");
+    // a posição chega à vitrine inteira (e à busca)
+    const todas = todasAsColecoes({ semanaFixa: 3, semanaCorrida: 4 });
+    expect(todas.find((c) => c.id === "plano:barra_fixa")?.detalhe).toBe("semana 3 de 12");
   });
 
   it("os seis treinos vêm do programa.json, com nome, subtítulo e duração", () => {
@@ -226,7 +284,9 @@ describe("estimativa de minutos (SPEC §14.3)", () => {
       }
       expect(c.exercicios.length).toBeGreaterThan(0);
       expect(c.minutos).toBeGreaterThan(0);
-      expect(c.detalhe).toMatch(/exerc[íi]cios? · ~/);
+      // o aparelho diz a serventia, sem minutos (§22.12 item 2)
+      if (c.tipo === "aparelho") expect(c.detalhe).toMatch(/para fazer com ele$/);
+      else expect(c.detalhe).toMatch(/exerc[íi]cios? · ~/);
     }
   });
 });
@@ -358,6 +418,101 @@ describe("busca sem acento (SPEC §13.4)", () => {
   });
 });
 
+describe("a busca diz por que achou (SPEC §22.12 item 3)", () => {
+  const nomeDe = (id: string) => acharExercicio(id).nome;
+
+  it("título antes de subtítulo antes de conteúdo", () => {
+    const ondes = buscarColecoes("core").map((c) =>
+      semAcentoT(c.titulo).includes("core")
+        ? 0
+        : semAcentoT(c.subtitulo ?? "").includes("core")
+          ? 1
+          : 2,
+    );
+    expect(ondes.length).toBeGreaterThan(1);
+    expect([...ondes].sort((a, b) => a - b)).toEqual(ondes);
+    expect(buscarColecoes("core")[0]?.id).toBe("grupo:Core");
+  });
+
+  it("casamento por título ou subtítulo não diz 'contém'", () => {
+    const peito = buscarColecoes("peito").find((c) => c.id === "grupo:Peito");
+    expect(peito?.motivoDaBusca ?? null).toBeNull();
+    // "Empurrar e agachar" é o subtítulo do Treino A
+    const a1 = buscarColecoes("empurrar").find((c) => c.id === "treino:A1");
+    expect(a1?.motivoDaBusca ?? null).toBeNull();
+  });
+
+  it("toda coleção achada por conteúdo cita o exercício responsável", () => {
+    for (const termo of ["agachamento", "prancha", "rosca", "supino", "remada"]) {
+      for (const c of buscarColecoes(termo)) {
+        const cabeca = semAcentoT(`${c.titulo} ${c.subtitulo ?? ""}`);
+        if (cabeca.includes(termo)) {
+          expect(c.motivoDaBusca ?? null, `${termo} → ${c.id}`).toBeNull();
+          continue;
+        }
+        expect(c.motivoDaBusca, `${termo} → ${c.id}`).toMatch(/^contém /);
+        const citados = c.exercicios
+          .map(nomeDe)
+          .filter((n) => (c.motivoDaBusca ?? "").includes(n));
+        expect(citados.length, `${termo} → ${c.id}`).toBeGreaterThan(0);
+        for (const n of citados) expect(semAcentoT(n)).toContain(termo);
+      }
+    }
+  });
+
+  it("sem diferença de acento e caixa", () => {
+    const a = buscarColecoes("ROSCA BÍCEPS").map((c) => [c.id, c.motivoDaBusca ?? null]);
+    const b = buscarColecoes("rosca biceps").map((c) => [c.id, c.motivoDaBusca ?? null]);
+    expect(a).toEqual(b);
+  });
+
+  it("dois termos no mesmo exercício citam um nome só", () => {
+    const nomes = ["Supino inclinado com halteres", "Supino reto com barra", "Crucifixo"];
+    expect(exerciciosResponsaveis(["supino", "reto"], nomes)).toEqual(["Supino reto com barra"]);
+  });
+
+  it("termos em exercícios diferentes citam os nomes, únicos, na ordem dos termos", () => {
+    const nomes = ["Prancha frontal", "Rosca direta", "Prancha lateral"];
+    expect(exerciciosResponsaveis(["rosca", "prancha"], nomes)).toEqual([
+      "Rosca direta",
+      "Prancha frontal",
+    ]);
+    expect(exerciciosResponsaveis(["prancha", "lateral", "rosca"], nomes)).toEqual([
+      "Prancha frontal",
+      "Prancha lateral",
+      "Rosca direta",
+    ]);
+    expect(juntarNomes(["A"])).toBe("A");
+    expect(juntarNomes(["A", "B"])).toBe("A e B");
+    expect(juntarNomes(["A", "B", "C"])).toBe("A, B e C");
+  });
+
+  it("na coleção real, dois termos de exercícios diferentes aparecem os dois", () => {
+    // Treino A1 tem agachamento e supino em exercícios diferentes
+    const a1 = colecaoDoTreino("A1");
+    const nomes = a1.exercicios.map(nomeDe);
+    const comAgach = nomes.find((n) => semAcentoT(n).includes("agachamento"));
+    const comSupino = nomes.find((n) => semAcentoT(n).includes("supino"));
+    expect(comAgach).toBeDefined();
+    expect(comSupino).toBeDefined();
+    expect(comAgach).not.toBe(comSupino);
+    // a ordem é a dos termos, não a da lista do treino
+    expect(buscarColecoes("supino agachamento", [a1])[0]?.motivoDaBusca).toBe(
+      `contém ${comSupino} e ${comAgach}`,
+    );
+    expect(buscarColecoes("agachamento supino", [a1])[0]?.motivoDaBusca).toBe(
+      `contém ${comAgach} e ${comSupino}`,
+    );
+    // termo que casa no título não é citado como conteúdo
+    const banco = buscarColecoes("supino agachamento").find((c) => c.id === "aparelho:banco");
+    expect(banco?.motivoDaBusca ?? "").not.toMatch(/Supino/);
+  });
+});
+
+function semAcentoT(t: string): string {
+  return t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+}
+
 describe("desafios da aba Treino (SPEC §14.3)", () => {
   const base = {
     fase: "fase1" as const,
@@ -402,6 +557,25 @@ describe("desafios da aba Treino (SPEC §14.3)", () => {
     expect(semanasConcluidasDoDesafio({ semanaAtual: 30, semanas: 12 })).toBe(12);
     expect(semanasConcluidasDoDesafio({ semanaAtual: 0, semanas: 12 })).toBe(0);
     expect(semanasConcluidasDoDesafio({ semanaAtual: 3, semanas: 0 })).toBe(0);
+  });
+
+  it("o CTA de cada desafio sai daqui, e só daqui (§22.12 item 7)", () => {
+    const [fixa, corrida, fase] = desafios(base);
+    expect(fixa?.acao).toBe("Fazer a sessão de barra fixa");
+    expect(corrida?.acao).toBe("Fazer a corrida da semana 4");
+    expect(fase?.acao).toBe("Fazer o treino da fase 1");
+    expect(nomeCurtoDaFase("Fase 1 — corpo inteiro, 3× por semana")).toBe("Fase 1");
+    // a corrida presa ao plano diz a semana presa
+    expect(desafios({ ...base, semanaCorrida: 99 })[1]?.acao).toBe(
+      "Fazer a corrida da semana 12",
+    );
+    // nenhuma tela reescreve o rótulo por id: as duas mostram `desafio.acao`
+    for (const arquivo of ["components/treino/desafios.tsx", "components/explorar/tela-explorar.tsx"]) {
+      const fonte = readFileSync(arquivo, "utf8");
+      expect(fonte, arquivo).not.toMatch(/acaoDoDesafio|Fazer a corrida da semana|Fazer o treino da|Fazer a sessão de barra fixa/);
+    }
+    expect(readFileSync("components/treino/desafios.tsx", "utf8")).toContain("{desafio.acao}");
+    expect(readFileSync("components/explorar/tela-explorar.tsx", "utf8")).toContain("{plano.acao}");
   });
 
   it("a capa sai sempre de assets/ (ou é nenhuma)", () => {

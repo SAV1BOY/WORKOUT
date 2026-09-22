@@ -26,6 +26,7 @@ import {
   programa,
   semanaDeCorrida,
   ultimaSemanaDeBarraFixa,
+  ultimaSemanaDeCorda,
   ultimaSemanaDeCorrida,
 } from "@/lib/dados";
 import { dificuldadeDaColecao, type Raios } from "@/lib/dificuldade";
@@ -73,6 +74,11 @@ export interface Colecao {
   plano?: PlanoId;
   /** Coleção de treino do programa. */
   treino?: TreinoId;
+  /**
+   * Por que a coleção apareceu numa busca (SPEC §22.12 item 3): só quando o
+   * casamento veio de um exercício lá dentro — "contém Prancha frontal".
+   */
+  motivoDaBusca?: string | null;
 }
 
 /* ------------------------------------------------------------ apoio */
@@ -142,12 +148,29 @@ export function exerciciosDoAparelho(id: string): Exercicio[] {
   return exercicios.filter((e) => (e.equipamento as readonly string[]).includes(id));
 }
 
+/**
+ * A meta da coleção de um aparelho (SPEC §22.12 item 2): a contagem, uma vez
+ * só e dita como serventia — "8 exercícios que dão para fazer com ele".
+ */
+export function metaDoAparelho(quantos: number): string {
+  return quantos === 1
+    ? "1 exercício que dá para fazer com ele"
+    : `${quantos} exercícios que dão para fazer com ele`;
+}
+
+/**
+ * SPEC §22.12 item 2: a ficha técnica (`specs` — kg, cm, posições) é do
+ * registro das compras em Mais → Equipamento, não da vitrine. A coleção do
+ * aparelho não tem subtítulo e a meta diz para que ele serve, sem minutos.
+ */
 export function colecaoDoAparelho(id: string): Colecao | null {
   const item = equipamentos.itens.find((i) => i.id === id);
   if (!item) return null;
   const lista = exerciciosDoAparelho(id);
   if (lista.length === 0) return null;
-  return montar(`aparelho:${id}`, "aparelho", item.nome, item.specs, lista);
+  return montar(`aparelho:${id}`, "aparelho", item.nome, null, lista, {
+    detalhe: metaDoAparelho(lista.length),
+  });
 }
 
 export function colecoesPorAparelho(): Colecao[] {
@@ -171,18 +194,13 @@ export function exerciciosDoCircuito(subgrupo: Subgrupo): Exercicio[] {
   return exercicios.filter((e) => e.subgrupo === subgrupo);
 }
 
+/**
+ * SPEC §22.12 item 2: o circuito também não usa a ficha técnica do item
+ * como subtítulo — "2 placas de 1 × 1 m…" não diz nada sobre o circuito.
+ */
 export function colecaoDoCircuito(subgrupo: Subgrupo): Colecao {
   const lista = exerciciosDoCircuito(subgrupo);
-  const item = equipamentos.itens.find((i) =>
-    subgrupo === "band" ? i.id === "super-band" : i.id === subgrupo,
-  );
-  return montar(
-    `circuito:${subgrupo}`,
-    "circuito",
-    NOME_DO_CIRCUITO[subgrupo],
-    item?.specs ?? null,
-    lista,
-  );
+  return montar(`circuito:${subgrupo}`, "circuito", NOME_DO_CIRCUITO[subgrupo], null, lista);
 }
 
 export function circuitos(): Colecao[] {
@@ -194,8 +212,8 @@ export function circuitos(): Colecao[] {
 export interface DadosDoPlano {
   id: PlanoId;
   /**
-   * Rótulo de UI curto (SPEC §14.3 e §13.8.6) com o número de semanas que o
-   * próprio plano tem; o `objetivo` do JSON fica no subtítulo.
+   * Título curto da vitrine (SPEC §22.12 item 4): o prazo já está no
+   * objetivo (subtítulo) e na meta, então não se repete aqui.
    */
   titulo: string;
   subtitulo: string;
@@ -217,20 +235,21 @@ export function planos(): DadosDoPlano[] {
   return [
     {
       /*
-       * Título de card (SPEC §14.3): rótulo de UI curto com o número de
-       * semanas vindo do plano; o `objetivo` do JSON, que é uma frase inteira
-       * em caixa baixa, fica como subtítulo (§13.8.6).
+       * SPEC §22.12 item 4: título curto. "Primeira barra fixa em 12
+       * semanas" repetia o prazo que o objetivo (subtítulo, do JSON) e a meta
+       * já dizem.
        */
       id: "barra_fixa",
-      titulo: `Primeira barra fixa em ${ultimaSemanaDeBarraFixa()} semanas`,
+      titulo: "Primeira barra fixa",
       subtitulo: cardio.barra_fixa.objetivo,
       semanas: ultimaSemanaDeBarraFixa(),
       href: "/barra-fixa",
       exercicioDaCapa: "barra-fixa-assistida",
     },
     {
+      // a meta da última semana do plano, do JSON: "5 km sem parar"
       id: "corrida",
-      titulo: `${metaDaCorrida()} em ${ultimaSemanaDeCorrida()} semanas`,
+      titulo: metaDaCorrida(),
       subtitulo: cardio.corrida.objetivo,
       semanas: ultimaSemanaDeCorrida(),
       href: "/cardio/corrida",
@@ -241,14 +260,48 @@ export function planos(): DadosDoPlano[] {
       // rótulo de UI com o número de estágios que o próprio plano tem (§13.4)
       titulo: `Corda: ${cardio.corda.semanas.length} estágios`,
       subtitulo: cardio.corda.funcoes.join(" · "),
-      semanas: cardio.corda.semanas.length,
+      /*
+       * A duração é a do JSON: os estágios vão de "1–2" a "9–12", então o
+       * plano tem 12 semanas — contar os 5 estágios dizia "5 semanas".
+       */
+      semanas: ultimaSemanaDeCorda(),
       href: "/cardio/corda",
       exercicioDaCapa: "corrida-no-lugar-com-a-corda",
     },
   ];
 }
 
-export function colecaoDoPlano(dados: DadosDoPlano): Colecao {
+/** Onde o usuário está nos planos com posição (`profiles.semana_*`). */
+export interface PosicaoNosPlanos {
+  semanaFixa: number;
+  semanaCorrida: number;
+}
+
+/**
+ * A meta de um plano na vitrine (SPEC §22.12 item 4). Com o perfil, barra fixa
+ * e corrida dizem a posição — "semana 3 de 12", presa ao tamanho do plano; sem
+ * perfil, e sempre na corda (que não tem posição no perfil), a duração.
+ */
+export function metaDoPlano(
+  dados: Pick<DadosDoPlano, "id" | "semanas">,
+  posicao?: PosicaoNosPlanos | null,
+): string {
+  const semana =
+    posicao == null
+      ? null
+      : dados.id === "barra_fixa"
+        ? posicao.semanaFixa
+        : dados.id === "corrida"
+          ? posicao.semanaCorrida
+          : null;
+  if (semana === null || !Number.isFinite(semana)) return `${dados.semanas} semanas`;
+  return `semana ${semanaPresa(semana, dados.semanas)} de ${dados.semanas}`;
+}
+
+export function colecaoDoPlano(
+  dados: DadosDoPlano,
+  posicao?: PosicaoNosPlanos | null,
+): Colecao {
   const lista = dados.exercicioDaCapa ? fichas([dados.exercicioDaCapa]) : [];
   return montar(`plano:${dados.id}`, "plano", dados.titulo, dados.subtitulo, lista, {
     plano: dados.id,
@@ -259,12 +312,12 @@ export function colecaoDoPlano(dados: DadosDoPlano): Colecao {
      * na tela. O que descreve um plano é o tamanho dele, que é do JSON.
      */
     minutos: 0,
-    detalhe: `${dados.semanas} semanas`,
+    detalhe: metaDoPlano(dados, posicao),
   });
 }
 
-export function colecoesDePlano(): Colecao[] {
-  return planos().map(colecaoDoPlano);
+export function colecoesDePlano(posicao?: PosicaoNosPlanos | null): Colecao[] {
+  return planos().map((p) => colecaoDoPlano(p, posicao));
 }
 
 /* ------------------------------------------ treinos do programa (§13.4) */
@@ -286,13 +339,13 @@ export function colecoesDeTreino(): Colecao[] {
 /* -------------------------------------------------------- a vitrine */
 
 /** Todas as coleções derivadas, na ordem da vitrine (SPEC §14.4). */
-export function todasAsColecoes(): Colecao[] {
+export function todasAsColecoes(posicao?: PosicaoNosPlanos | null): Colecao[] {
   return [
     ...colecoesDeTreino(),
     ...colecoesPorGrupo(),
     ...circuitos(),
     ...colecoesPorAparelho(),
-    ...colecoesDePlano(),
+    ...colecoesDePlano(posicao),
   ];
 }
 
@@ -437,20 +490,76 @@ export function filtrarColecoes(
 
 /* ------------------------------------------------------------ busca */
 
-/** Busca sem acento, por título da coleção ou nome de exercício dentro dela. */
+/** Onde a busca casou: 0 = título, 1 = subtítulo, 2 = exercício lá dentro. */
+export type OndeCasou = 0 | 1 | 2;
+
+/** "A", "A e B", "A, B e C". */
+export function juntarNomes(nomes: readonly string[]): string {
+  if (nomes.length <= 1) return nomes[0] ?? "";
+  return `${nomes.slice(0, -1).join(", ")} e ${nomes[nomes.length - 1]}`;
+}
+
+/**
+ * Os exercícios responsáveis pelo casamento (SPEC §22.12 item 3). `termos`
+ * são os que NÃO estavam no título nem no subtítulo. Um exercício que tem
+ * todos eles basta — dois termos no mesmo exercício citam um nome só; senão,
+ * termo a termo, na ordem dos termos, o primeiro exercício que o contém (um já
+ * citado vale de novo, sem repetir o nome).
+ */
+export function exerciciosResponsaveis(
+  termos: readonly string[],
+  nomes: readonly string[],
+): string[] {
+  if (termos.length === 0) return [];
+  const normais = nomes.map((n) => semAcento(n));
+  const todos = normais.findIndex((n) => termos.every((t) => n.includes(t)));
+  if (todos >= 0) return [nomes[todos] ?? ""];
+  const citados: number[] = [];
+  for (const t of termos) {
+    if (citados.some((i) => normais[i]?.includes(t))) continue;
+    const i = normais.findIndex((n) => n.includes(t));
+    if (i >= 0) citados.push(i);
+  }
+  return citados.map((i) => nomes[i] ?? "");
+}
+
+/**
+ * Busca sem acento e sem caixa, por título, subtítulo ou nome de exercício
+ * dentro da coleção (SPEC §22.12 item 3). Todo termo tem de casar em algum
+ * lugar. A ordem é título > subtítulo > conteúdo (e, dentro de cada degrau, a
+ * da vitrine); quem casou por exercício leva `motivoDaBusca` — "contém
+ * <exercício>" —, e quem casou pelo título ou subtítulo não leva motivo.
+ */
 export function buscarColecoes(
   termo: string,
   lista: readonly Colecao[] = todasAsColecoes(),
 ): Colecao[] {
   const termos = semAcento(termo).split(/\s+/).filter(Boolean);
   if (termos.length === 0) return [...lista];
-  return lista.filter((c) => {
-    const alvo = semAcento(
-      [c.titulo, c.subtitulo ?? "", ...c.exercicios.map((id) => exercicioPorId.get(id)?.nome ?? "")]
-        .join(" "),
-    );
-    return termos.every((t) => alvo.includes(t));
+  const achadas: { c: Colecao; onde: OndeCasou; i: number }[] = [];
+  lista.forEach((c, i) => {
+    const titulo = semAcento(c.titulo);
+    const cabeca = `${titulo} ${semAcento(c.subtitulo ?? "")}`;
+    const nomes = c.exercicios.map((id) => exercicioPorId.get(id)?.nome ?? "");
+    const normais = nomes.map((n) => semAcento(n));
+    if (termos.every((t) => titulo.includes(t))) {
+      achadas.push({ c: { ...c, motivoDaBusca: null }, onde: 0, i });
+      return;
+    }
+    if (termos.every((t) => cabeca.includes(t))) {
+      achadas.push({ c: { ...c, motivoDaBusca: null }, onde: 1, i });
+      return;
+    }
+    const fora = termos.filter((t) => !cabeca.includes(t));
+    if (!fora.every((t) => normais.some((n) => n.includes(t)))) return;
+    const responsaveis = exerciciosResponsaveis(fora, nomes);
+    achadas.push({
+      c: { ...c, motivoDaBusca: `contém ${juntarNomes(responsaveis)}` },
+      onde: 2,
+      i,
+    });
   });
+  return achadas.sort((a, b) => a.onde - b.onde || a.i - b.i).map(({ c }) => c);
 }
 
 /* --------------------------------- a lista que vira sessão livre (§14.3) */
@@ -525,8 +634,18 @@ export interface Desafio {
   capa: string | null;
   /** Para onde o botão leva. */
   href: string;
-  /** Rótulo de UI do botão. */
+  /**
+   * Rótulo de UI do botão, que diz o destino (SPEC §22.7 item 6). É a ÚNICA
+   * fonte do CTA (SPEC §22.12 item 7): a aba Treino e o destaque do Explorar
+   * mostram este texto, e nenhuma tela reescreve o rótulo por id.
+   */
   acao: string;
+}
+
+/** "Fase 1 — corpo inteiro, 3× por semana" → "Fase 1" (o nome vem do JSON). */
+export function nomeCurtoDaFase(nome: string): string {
+  const [curto] = nome.split("—");
+  return (curto ?? nome).trim() || nome.trim();
 }
 
 export interface EntradaDosDesafios {
@@ -585,7 +704,7 @@ export function desafios(e: EntradaDosDesafios): Desafio[] {
       semanas: semanasDaFixa,
       capa: capaDoExercicio(acharExercicio("barra-fixa-assistida")),
       href: "/barra-fixa",
-      acao: "Fazer a sessão da semana",
+      acao: "Fazer a sessão de barra fixa",
     },
     {
       id: "corrida",
@@ -596,7 +715,7 @@ export function desafios(e: EntradaDosDesafios): Desafio[] {
       // não há foto de corrida em assets/; o card fica com o gradiente (§13.3)
       capa: null,
       href: `/cardio/corrida?semana=${semanaPresa(e.semanaCorrida, semanasDaCorrida)}`,
-      acao: "Fazer a sessão da semana",
+      acao: `Fazer a corrida da semana ${semanaPresa(e.semanaCorrida, semanasDaCorrida)}`,
     },
     {
       id: "fase",
@@ -606,7 +725,7 @@ export function desafios(e: EntradaDosDesafios): Desafio[] {
       semanas: SEMANAS_PARA_FASE2,
       capa: capaDoTreino(e.proximoTreino),
       href: "/treinar",
-      acao: "Fazer a sessão da semana",
+      acao: `Fazer o treino da ${nomeCurtoDaFase(fase.nome).toLowerCase()}`,
     },
   ];
 }
