@@ -8786,8 +8786,14 @@ miniatura ainda não tinha carregado (`naturalWidth` 0) sob a carga da cadeia.
 Rodado **sozinho duas vezes** no mesmo `.next`, passou nas duas (5,3 s e 5,2
 s; `r10/l12/parcial/instavel-1.log` e `instavel-2.log`) — anotado como
 instável, não bloqueia. Como a cadeia para no primeiro portão vermelho, a
-`varredura` não rodou nesse HEAD; a cadeia inteira roda de novo no HEAD final
-(este registro), sem nenhuma execução parcial por cima de log de HEAD.
+`varredura` não rodou nesse HEAD.
+
+A cadeia inteira rodou de novo em `843944e` (o commit deste registro; o código
+é o mesmo de `9a5c5f4`) — `r10/l12/logs/843944e.log`, das 20:43 às 21:05 UTC,
+**verde**: `lint` e `tsc` limpos · `npm test` **63 arquivos, 1.468 testes** ·
+`build` e `build:e2e` compilados · `e2e` **435 passaram, 5 pulados, 0
+falharam** (440, 16,0 min — o da foto do item passou) · `varredura` **5 de 5**
+(4,3 min).
 
 Antes da cadeia, uma execução parcial (build:e2e + 6 specs: o novo, catálogo,
 auditoria-m5, ultraloop-b-r5, v3 e ultraloop-a-r4) deu 65 de 66 — o teste D
@@ -8797,7 +8803,8 @@ ler o título e a meta pelos próprios elementos (`data-linha`).
 
 #### Capturas
 
-`capturas.sh` em `9a5c5f4` contra a base real de `main` (`base-ef3ad97`), com
+`capturas.sh` em `9a5c5f4` e de novo em `843944e`, depois da cadeia verde
+(mesmos números nas duas), contra a base real de `main` (`base-ef3ad97`), com
 `--esperadas explorar,colecao,catalogo` — os nomes curtos, sem número (item
 8): as três telas saíram como **esperada = sim**. 60 PNGs; **54 iguais**
 (Δ 0,00 %), nenhuma tela fora da lista mudou; 03 e 04 (aba Treino) iguais —
