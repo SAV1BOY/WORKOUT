@@ -1,7 +1,7 @@
 "use client";
 
 import { Pause, Play } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { ilustracaoAlternando } from "@/lib/preferencias";
 import { cn } from "@/lib/utils";
 
@@ -53,7 +53,8 @@ function useAbaEscondida(): boolean {
  *
  * SPEC §22.13 item 4: a segunda posição só entra no DOM (e só é pedida) depois
  * que a primeira carregou **e** a ilustração vai alternar — ela não disputa a
- * primeira pintura com a primeira posição.
+ * primeira pintura com a primeira posição. A troca de 1,2 s só começa depois
+ * que ela chegou (`onLoad`).
  *
  * Com `prefers-reduced-motion: reduce` ela **nasce parada**, e o botão do
  * canto continua valendo para quem quiser ver o movimento (SPEC §22.1).
@@ -94,6 +95,21 @@ export function IlustracaoAlternada({
   const [escolha, setEscolha] = useState<boolean | null>(null);
   /** A primeira posição já chegou (a segunda só é pedida depois). */
   const [primeiraPronta, setPrimeiraPronta] = useState(false);
+  /**
+   * Quantas das outras posições já chegaram. A troca só começa quando todas
+   * estão prontas (correção da auditoria 2): com rede lenta, ou parada por
+   * `prefers-reduced-motion` (quando o quadro 2 nem foi pedido), trocar antes
+   * fazia o fade até uma caixa vazia.
+   */
+  const [restoProntas, setRestoProntas] = useState(0);
+  const restoPronto = restoProntas >= urls.length - 1;
+  /**
+   * A posição que o leitor de tela ouve (correção da auditoria 2): enquanto a
+   * figura-botão tem o foco, ela fica congelada na posição de quando o foco
+   * chegou — a troca a cada 1,2 s não faz o leitor repetir o anúncio.
+   */
+  const [posicaoNoFoco, setPosicaoNoFoco] = useState<number | null>(null);
+  const idDaPosicao = useId();
   const primeira = useRef<HTMLImageElement>(null);
   const menosMovimento = usePrefereMenosMovimento();
   const escondido = useAbaEscondida();
@@ -120,13 +136,13 @@ export function IlustracaoAlternada({
   }, []);
 
   useEffect(() => {
-    if (!alternando || !pedirResto) return;
+    if (!alternando || !pedirResto || !restoPronto) return;
     const id = setInterval(
       () => setPosicao((v) => (v + 1) % urls.length),
       MS_POR_POSICAO,
     );
     return () => clearInterval(id);
-  }, [alternando, pedirResto, urls.length]);
+  }, [alternando, pedirResto, restoPronto, urls.length]);
 
   const imagens = urls.map((url, i) =>
     i > 0 && !pedirResto ? null : (
@@ -141,7 +157,11 @@ export function IlustracaoAlternada({
         height={altura ?? undefined}
         loading={i === 0 ? "lazy" : "eager"}
         decoding="async"
-        onLoad={i === 0 ? () => setPrimeiraPronta(true) : undefined}
+        onLoad={
+          i === 0
+            ? () => setPrimeiraPronta(true)
+            : () => setRestoProntas((n) => n + 1)
+        }
         className={cn(
           "absolute inset-0 size-full object-contain transition-opacity duration-500 ease-in-out",
           i === posicao ? "opacity-100" : "opacity-0",
@@ -153,6 +173,13 @@ export function IlustracaoAlternada({
   const nome = duasPosicoes
     ? `${alt}, posição ${posicao + 1} de ${urls.length}`
     : alt;
+  /*
+   * A figura-botão (player e Visão geral) é focável: o nome dela é estável —
+   * "<alt> — abre o Como fazer" — e a posição vai na descrição, congelada
+   * enquanto o foco está nela (correção da auditoria 2, SPEC §22.13 item 5).
+   */
+  const nomeDoBotao = rotuloDoAbrir ? `${alt} — ${rotuloDoAbrir}` : alt;
+  const posicaoDita = (posicaoNoFoco ?? posicao) + 1;
 
   const caixa = cn(
     "bg-ilustracao relative block w-full overflow-hidden rounded-xl",
@@ -173,15 +200,31 @@ export function IlustracaoAlternada({
     </span>
   );
   const figura = aoAbrir ? (
-    <button
-      type="button"
-      onClick={aoAbrir}
-      aria-label={rotuloDoAbrir ? `${nome} — ${rotuloDoAbrir}` : nome}
-      data-figura="abre"
-      className={area}
-    >
-      {miolo}
-    </button>
+    <>
+      <button
+        type="button"
+        onClick={aoAbrir}
+        onFocus={() => setPosicaoNoFoco(posicao)}
+        onBlur={() => setPosicaoNoFoco(null)}
+        aria-label={nomeDoBotao}
+        aria-describedby={duasPosicoes ? idDaPosicao : undefined}
+        data-figura="abre"
+        /*
+          SPEC §22.13 item 5 (correção da auditoria 2): a caixa corta o que
+          passa da borda (`overflow-hidden`), então o anel de foco deste botão
+          é interno — `[data-figura="abre"]` em `app/globals.css` — e segue o
+          arredondado da caixa.
+        */
+        className={cn(area, "rounded-[inherit]")}
+      >
+        {miolo}
+      </button>
+      {duasPosicoes ? (
+        <span id={idDaPosicao} hidden>
+          {`posição ${posicaoDita} de ${urls.length}`}
+        </span>
+      ) : null}
+    </>
   ) : (
     <span role="img" aria-label={nome} data-figura="parada" className={area}>
       {miolo}
@@ -215,8 +258,13 @@ export function IlustracaoAlternada({
           }
           setEscolha(false);
           setPedirResto(true);
-          // o toque sempre muda algo na tela: ao voltar a alternar, já troca
-          setPosicao((p) => (p + 1) % urls.length);
+          /*
+           * O toque sempre muda algo na tela (o ícone vira a pausa). A posição
+           * só troca já se a próxima imagem chegou; senão a troca começa
+           * quando ela carregar (correção da auditoria 2) — nunca um fade
+           * até uma caixa vazia.
+           */
+          if (restoPronto) setPosicao((p) => (p + 1) % urls.length);
         }}
         className="bg-background/85 text-foreground border-border absolute right-1 bottom-1 z-10 flex size-11 items-center justify-center rounded-full border shadow-sm"
       >
