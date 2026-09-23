@@ -29,6 +29,8 @@ type Permissao = "default" | "granted" | "denied";
 interface Mensagem {
   tipo: "status" | "alert";
   texto: string;
+  /** `role="status"` com a cor de erro: o teste não chegou a nenhum aparelho (§23.4). */
+  falha?: boolean;
 }
 
 function temSuporte(): boolean {
@@ -52,29 +54,40 @@ async function registroDoWorker(): Promise<ServiceWorkerRegistration | null> {
 /**
  * `pushManager.subscribe` com a chave pública do servidor. Uma inscrição
  * antiga feita com outra chave faz o navegador recusar (`InvalidStateError`):
- * ela é cancelada e o pedido refeito uma vez.
+ * ela é cancelada e o pedido refeito uma vez. Uma inscrição sem as duas
+ * chaves (`p256dh`, `auth`) não serve para cifrar o aviso: é cancelada e
+ * conta como falha do `subscribe` (§23.2).
  */
 async function inscrever(
   registro: ServiceWorkerRegistration,
   chavePublica: string,
 ): Promise<PushSubscription> {
   const opcoes = { userVisibleOnly: true, applicationServerKey: bytesDaChave(chavePublica) };
+  let inscricao: PushSubscription;
   try {
-    return await registro.pushManager.subscribe(opcoes);
+    inscricao = await registro.pushManager.subscribe(opcoes);
   } catch (e) {
     if ((e as Error).name !== "InvalidStateError") throw e;
     const antiga = await registro.pushManager.getSubscription();
     await antiga?.unsubscribe();
-    return registro.pushManager.subscribe(opcoes);
+    inscricao = await registro.pushManager.subscribe(opcoes);
   }
+  const chaves = inscricao.toJSON().keys;
+  if (!chaves?.p256dh || !chaves.auth) {
+    await inscricao.unsubscribe();
+    throw new Error("inscrição sem chaves");
+  }
+  return inscricao;
 }
 
-function linhaDaInscricao(inscricao: PushSubscription, aparelho: string) {
-  const json = inscricao.toJSON();
+/** A linha da tabela: o `user_id` é o da sessão (a coluna não tem default, §23.2). */
+function linhaDaInscricao(inscricao: PushSubscription, aparelho: string, userId: string) {
+  const chaves = inscricao.toJSON().keys ?? {};
   return {
+    user_id: userId,
     endpoint: inscricao.endpoint,
-    p256dh: json.keys?.p256dh ?? "",
-    auth: json.keys?.auth ?? "",
+    p256dh: chaves.p256dh ?? "",
+    auth: chaves.auth ?? "",
     aparelho,
   };
 }
@@ -84,7 +97,13 @@ function linhaDaInscricao(inscricao: PushSubscription, aparelho: string) {
  * dos aparelhos da conta e o lembrete de teste. As decisões (estado,
  * instruções, textos) são de `lib/lembretes.ts`.
  */
-export function TelaLembretes({ chavePublica }: { chavePublica: string | null }) {
+export function TelaLembretes({
+  userId,
+  chavePublica,
+}: {
+  userId: string;
+  chavePublica: string | null;
+}) {
   const [carregado, setCarregado] = useState(false);
   const [suportado, setSuportado] = useState(false);
   const [permissao, setPermissao] = useState<Permissao>("default");
@@ -156,11 +175,11 @@ export function TelaLembretes({ chavePublica }: { chavePublica: string | null })
     const aparelho = nomeDoAparelho(navigator.userAgent, sinais.brave);
     // a linha antiga deste mesmo endpoint, se for desta conta (a RLS limita)
     await supabase.from(TABELA).delete().eq("endpoint", inscricao.endpoint);
-    let { error } = await supabase.from(TABELA).insert(linhaDaInscricao(inscricao, aparelho));
+    let { error } = await supabase.from(TABELA).insert(linhaDaInscricao(inscricao, aparelho, userId));
     if (error?.code === "23505") {
       await inscricao.unsubscribe();
       const nova = await inscrever(registro, chave);
-      ({ error } = await supabase.from(TABELA).insert(linhaDaInscricao(nova, aparelho)));
+      ({ error } = await supabase.from(TABELA).insert(linhaDaInscricao(nova, aparelho, userId)));
     }
     if (error) throw new Error(error.message);
   }
@@ -243,7 +262,7 @@ export function TelaLembretes({ chavePublica }: { chavePublica: string | null })
         await (await registro?.pushManager.getSubscription())?.unsubscribe();
       }
       await carregar();
-      setMensagem({ tipo: "status", texto: `${alvo.aparelho} saiu da lista.` });
+      setMensagem({ tipo: "status", texto: `${alvo.aparelho || "Aparelho sem nome"} saiu da lista.` });
     } catch {
       setMensagem({ tipo: "alert", texto: "Não deu para remover agora. Confira a internet e tente de novo." });
     } finally {
@@ -260,9 +279,14 @@ export function TelaLembretes({ chavePublica }: { chavePublica: string | null })
     setOcupado("teste");
     try {
       const resposta = await fetch("/api/lembretes/teste", { method: "POST" });
-      const corpo = (await resposta.json().catch(() => ({}))) as { texto?: string; erro?: string };
+      const corpo = (await resposta.json().catch(() => ({}))) as {
+        texto?: string;
+        erro?: string;
+        resultados?: { destino?: string }[];
+      };
       if (resposta.ok && corpo.texto) {
-        setMensagem({ tipo: "status", texto: corpo.texto });
+        const chegou = (corpo.resultados ?? []).some((r) => r.destino === "enviado");
+        setMensagem({ tipo: "status", texto: corpo.texto, falha: !chegou });
         await carregar();
       } else {
         setMensagem({ tipo: "alert", texto: corpo.erro ?? "Não deu para enviar agora. Tente de novo." });
@@ -342,8 +366,9 @@ export function TelaLembretes({ chavePublica }: { chavePublica: string | null })
           {mensagem ? (
             <p
               role={mensagem.tipo}
+              data-falha={mensagem.falha ? "" : undefined}
               className={
-                mensagem.tipo === "status"
+                mensagem.tipo === "status" && !mensagem.falha
                   ? "border-primary/40 bg-primary/10 rounded-lg border px-3 py-2 text-sm font-medium text-balance"
                   : "border-destructive/40 text-destructive rounded-lg border px-3 py-2 text-sm text-balance"
               }
