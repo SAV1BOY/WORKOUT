@@ -9239,3 +9239,38 @@ Chromium 360×740, DSF 2, nos dois temas). Subi mock e app no `.next` de
   barra", sem reticências.
 - **Dia de cardio** (terça): o destaque do Explorar e o carrossel da Treino
   mostram o mesmo "Fazer a corrida da semana N".
+
+#### Auditoria
+
+- **Auditoria 1 em `ec07924`: reprovada** (bloqueantes 0, importantes 1,
+  menores 12). O importante (sem perfil, barra fixa e corrida sem prazo
+  visível a 360 px) e os menores tratados estão em "Correção da auditoria 1
+  (rodada 11)", acima.
+- **Auditoria 2 em `54b6853`: aprovada** (bloqueantes 0, importantes 0,
+  menores 7). Nada foi comitado pelas auditorias.
+
+Menores registrados (ficam na fila, nenhum quebra o aceite):
+
+- **[regra]** O teste "o nome curto da fase tem uma fonte só"
+  (`lib/colecoes.test.ts:815`) procura `.split("—")` só em 3 arquivos
+  (`lib/semana.ts`, `lib/colecoes.ts` e `components/treino/tela-treino.tsx`).
+  Um corte à mão novo em outro componente não seria pego. Hoje o grep em
+  `lib/`, `components/`, `app/` e `scripts/` acha o corte só em
+  `lib/dados.ts:165`, que é a fonte, então nada está quebrado.
+- **[regra]** Mutante N7 sobrevive: trocar `|| nome.trim()` por `|| nome` em
+  `nomeCurtoDaFase` (`lib/dados.ts`) não derruba teste. O caso "— sem nome
+  curto" não tem espaço nas pontas, mas a doc diz "(aparado)". Trivial; não
+  afeta os dados reais.
+- **[regra]** A regra "um de cada vez" da passada final (SPEC §22.12 item 3)
+  não é observável por teste. O mutante N2 (passada contra `citados`, não
+  contra `finais`) passa no Vitest, mas é equivalente: saída idêntica em
+  292.552 consultas reais e 203.259 sintéticas. Só registro.
+- **[regra]** `e2e/ultraloop-a-r10.spec.ts`, teste "a busca diz contém…": o
+  título é lido por `[data-linha="meta"]`.parentElement.firstElementChild;
+  numa linha sem meta daria título vazio. Aqui há perfil, então não falha,
+  mas `[data-linha="titulo"]` seria mais robusto.
+- **[tela]** O termo "com" conta como termo de busca: com "puxada remada polia
+  com", a coleção Costas cita "Barra fixa com lastro" só por causa do "com"
+  ("contém Puxada alta na polia, Remada curvada pronada e Barra fixa com
+  lastro"). (A mensagem com os menores chegou cortada neste ponto; os
+  demais menores da lente tela não foram transcritos.)
