@@ -17,6 +17,7 @@ import {
   type Page,
   type Worker,
 } from "@playwright/test";
+import sharp from "sharp";
 import { decifrarNoAparelho } from "../lib/web-push";
 import {
   URL_MOCK,
@@ -477,3 +478,53 @@ test("navegador sem PushManager: não suportado, com o que fazer", async ({ page
   await expect(page.getByRole("button", { name: /Ativar/ })).toHaveCount(0);
   await semRolagemHorizontal(page);
 });
+
+/* ------------------------------ a linha nova de Mais: anel de foco inteiro */
+
+/** A cor de um ponto da tela (a captura é 2×; o 1×1 CSS vira 2×2). */
+async function corEm(page: Page, x: number, y: number): Promise<[number, number, number]> {
+  const png = await page.screenshot({ clip: { x, y, width: 1, height: 1 } });
+  const { data } = await sharp(png).raw().toBuffer({ resolveWithObject: true });
+  return [data[0] ?? 0, data[1] ?? 0, data[2] ?? 0];
+}
+
+function luminancia([r, g, b]: [number, number, number]): number {
+  const canal = (c: number) => {
+    const v = c / 255;
+    return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+  };
+  return 0.2126 * canal(r) + 0.7152 * canal(g) + 0.0722 * canal(b);
+}
+
+function contraste(a: [number, number, number], b: [number, number, number]): number {
+  const [l1, l2] = [luminancia(a), luminancia(b)].sort((x, y) => y - x) as [number, number];
+  return (l1 + 0.05) / (l2 + 0.05);
+}
+
+for (const tema of TEMAS) {
+  test(`${tema}: o anel de foco da linha Lembretes fica dentro da lista (não é cortado)`, async ({ page }) => {
+    await preparar(page, tema, {});
+    await page.goto("/mais");
+    const linha = page.getByRole("link", { name: /Lembretes/ });
+    const caixa = await linha.boundingBox();
+    if (!caixa) throw new Error("sem caixa");
+    // 3 px para dentro da borda esquerda, no meio da altura: onde o anel interno passa
+    const x = caixa.x + 3;
+    const y = caixa.y + caixa.height / 2;
+    const antes = await corEm(page, x, y);
+
+    await linha.focus();
+    expect(await linha.evaluate((el) => el.matches(":focus-visible"))).toBe(true);
+    const estilo = await linha.evaluate((el) => {
+      const s = getComputedStyle(el);
+      return { estilo: s.outlineStyle, largura: parseFloat(s.outlineWidth), deslocamento: parseFloat(s.outlineOffset) };
+    });
+    expect(estilo.estilo).toBe("solid");
+    expect(estilo.largura).toBeGreaterThanOrEqual(2);
+    // o anel inteiro cabe dentro da caixa da linha (e a lista corta o que sai dela)
+    expect(estilo.deslocamento + estilo.largura).toBeLessThanOrEqual(0);
+
+    const depois = await corEm(page, x, y);
+    expect(contraste(antes, depois)).toBeGreaterThanOrEqual(3);
+  });
+}
