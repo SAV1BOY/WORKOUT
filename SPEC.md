@@ -2572,9 +2572,14 @@ não muda (§22.0.1 item 7). O aceite de cada item é verificável no Vitest
    direto na ficha, vai ao catálogo) e fecha com **"Fazer
    agora"**, que abre uma sessão livre só com este exercício pelo mesmo
    `useSessaoLivre` das coleções (§14.3): o player grava cada série no
-   IndexedDB na hora, como qualquer sessão (§8). Sem perfil o botão fica
-   desabilitado. Aceite: e2e — do catálogo, abrir a ficha e tocar "Voltar"
-   leva de volta a `/exercicios`; numa aba nova aberta direto na ficha
+   IndexedDB na hora, como qualquer sessão (§8). Enquanto o perfil e o dia
+   carregam, o botão fica desabilitado. A busca do catálogo é estado local da
+   lista e recomeça vazia na volta, como no voltar do navegador (anterior a
+   este item). Aceite: e2e — do catálogo, abrir a ficha e tocar "Voltar"
+   leva de volta a `/exercicios` com o índice da entrada do histórico
+   (`navigation.currentEntry.index`) de volta ao do catálogo — um back, não
+   um link que empilha; do Relatório ("Carga dos grandes"), "Voltar" leva
+   de volta a `/relatorio`, não ao `href` do link; numa aba nova aberta direto na ficha
    (`canGoBack` falso, embora o `history.length` seja 2 com o about:blank),
    "Voltar" leva a `/exercicios`; "Fazer agora"
    (≥ 44 px) leva a `/treinar/<id>` com o exercício, e, sem rede, a primeira
@@ -2587,16 +2592,35 @@ não muda (§22.0.1 item 7). O aceite de cada item é verificável no Vitest
    cartão**: "Ainda sem histórico deste exercício — ele começa na primeira
    série registrada." "Onde você está" continua em cima na folha (é a
    prescrição de hoje, não histórico). Na **página**, enquanto o motor não
-   avaliou o exercício (`primeira_vez`), "Onde você está" é a carga inicial e
-   a prescrição padrão que as seções "Carga inicial" e "Prescrição padrão"
-   mostram na mesma rolagem ("7,5 kg na barra" duas vezes, medido): ali ele
-   sai, a não ser que a primeira sessão traga o que as seções não dizem
-   (assistência do elástico ou semana leve) — `ondeVoceEstaRepete()`, pura.
-   Aceite: Vitest — `historicoVazio` é verdadeiro só com os quatro vazios e
-   `ondeVoceEstaRepete` só na página, na primeira vez, sem assistência nem
-   semana leve; e2e — a ficha em página de um exercício nunca treinado
-   mostra um cartão de histórico, não quatro (nem "Onde você está"); na
-   folha, "Onde você está" continua.
+   avaliou o exercício (`primeira_vez`), "Onde você está" repetia a carga
+   inicial e a prescrição padrão que as seções "Carga inicial" e "Prescrição
+   padrão" mostram na mesma rolagem ("7,5 kg na barra" duas vezes, medido).
+   Ali ele só diz o que as seções não dizem — `ondeVoceEsta()`, pura:
+   (i) a **carga do motor quando ela não é a do JSON** — com as barras
+   pesadas em Mais → Equipamento (§3.9) o motor sobe ou desce a carga
+   inicial ao que dá para montar, e a seção mostra o número cru do JSON;
+   então o cartão mostra a carga do motor e "Montada com o peso das suas
+   barras (Mais → Equipamento)."; (ii) o **elástico** e a **semana leve**,
+   na linha "Próxima sessão". Sem elástico nem semana leve, a "Próxima
+   sessão" seria a prescrição padrão e não aparece; a nota "Ainda sem
+   registro: …" também não (ela é a nota da seção "Carga inicial"). Sem
+   nada disso, o cartão sai. O elástico aparece por extenso ("pé inteiro",
+   `nomeDaAssistencia()`, não "pe inteiro").
+   **Correção da auditoria:** a primeira versão tirava o cartão sempre que
+   não havia elástico nem semana leve, e com a barra W pesada a 5 kg a
+   página de rosca com barra W mostrava só "2 kg na barra" (a seção), acima
+   do "Fazer agora" que usa 5 kg (medido: 3 fichas com a barra W a 5 kg, 21
+   com a barra maciça a 8 kg, 23 com os halteres a 2 kg).
+   Aceite: Vitest — `historicoVazio` é verdadeiro só com os quatro vazios;
+   `ondeVoceEsta` tira o cartão só na página, na primeira vez, com a carga do
+   motor igual à do JSON e sem elástico nem semana leve; com a barra W a
+   5 kg, a barra maciça a 8 kg e os halteres a 2 kg, nas 81 fichas a carga
+   que a página mostra é a do motor (`cargaDeHoje` com `opcoesDeMontagem`);
+   e2e — a ficha em página de um exercício nunca treinado mostra um cartão
+   de histórico, não quatro (nem "Onde você está"); com a barra W de 5 kg,
+   a rosca com barra W mostra "Onde você está" com "5 kg na barra"; com o
+   elástico, o cartão diz "elástico pé inteiro" sem repetir "peso do
+   corpo"; na folha, "Onde você está" continua.
 3. **Nada repetido na ficha e títulos em ordem** (tela-explorar-fichas-21,
    com a -22, a -23 e a parte da ficha do a11y-12). (a) A aba **Músculos**
    fica só com o mapa e a legenda: a ilustração já é a aba Vídeo. (b) Na
@@ -2611,13 +2635,29 @@ não muda (§22.0.1 item 7). O aceite de cada item é verificável no Vitest
    para `/explorar/treino/<id>`. (e) O **nível dos títulos é o do contexto**
    (`nivelDosTitulos()`): na página, o nome é o H1 e as seções da ficha são
    **H2**; na folha, o título da folha é o H2 e as seções são H3 — antes a
-   página pulava de H1 para H3. Aceite: Vitest — as tags com coleção levam
-   à rota da coleção do aparelho, as outras não têm link, para todos os 81
-   exercícios; e2e — na página, nenhum parágrafo ou item visível da ficha se
-   repete, a aba Músculos não tem imagem de execução, não há "Área de
-   foco", as tags e os treinos são links que abrem a coleção, e a lista de
-   headings do `<main>` não pula nível (H1 → H2); na folha, o título da folha
-   é H2 e as seções são H3.
+   página pulava de H1 para H3. (f) Com carga 0, a seção "Carga inicial"
+   diz "peso do corpo" e a nota **não repete** "peso corporal" embaixo:
+   fica só o complemento ("Anilha só quando passar de 15 limpas") ou nada
+   (`notaDaCargaInicial()`, pura) — era a mesma informação duas vezes na
+   seção (23 fichas) e, em 8 delas, a nota cabia inteira no subtítulo
+   ("Core · Tatame · peso corporal"). (g) O 3º passo do salto básico
+   repetia a prescrição ("… vai de 6 × 30 s a 5 × 3 min"); o dado foi
+   corrigido em `data/exercicios.json` ("Progrida pelo tempo de bloco, não
+   pela velocidade."). **Correção da auditoria:** (f) e (g) entraram depois
+   de a auditoria aplicar o critério do e2e às 81 fichas (9 falhavam; 12
+   com as 3 do elástico, que o item 2 corrigido resolve). Aceite: Vitest —
+   as tags com coleção levam à rota da coleção do aparelho, as outras não
+   têm link, para todos os 81 exercícios; o critério do e2e (nenhum texto de
+   12 caracteres ou mais repetido nem contido em outro) aplicado aos textos
+   da página das 81 fichas, com o histórico vazio, sem e com as barras
+   pesadas (barra W 5 kg, barra maciça 8 kg, halteres 2 kg), não acha nada;
+   e2e — na página do supino, nenhum parágrafo ou item visível da ficha se
+   repete (e o mesmo em abdominal supra, salto com joelho alto, salto
+   básico, barra fixa assistida e flexão de braço), a aba Músculos não tem
+   imagem de execução, não há "Área de foco", as tags e os treinos são
+   links que abrem a coleção (o H1 da coleção aparece depois do toque), e a
+   lista de headings do `<main>` não pula nível (H1 → H2); na folha, o
+   título da folha é H2 e as seções são H3.
 4. **A aba do tutorial diz para onde leva** (tela-explorar-fichas-26). A aba
    se chamava "Tutorial" e era oferecida mesmo sem tutorial no JSON. Agora
    ela se chama **"Tutorial no YouTube"**, com o ícone de link externo no
@@ -2666,7 +2706,11 @@ não muda (§22.0.1 item 7). O aceite de cada item é verificável no Vitest
    carga, não o implemento — e fica. Medido nos dados: dos 13 exercícios de
    implemento `peso_corporal`, 11 dizem "peso corporal" no texto e 2 não
    nomeiam o implemento (prancha → "Tatame", abdominal no banco declinado →
-   "Banco"); nenhum diz "peso do corpo". Aceite: Vitest — "Cross over" e
+   "Banco"); nenhum diz "peso do corpo". **Aceite ajustado** (o ledger
+   pedia "peso corporal" no texto de todo exercício de implemento
+   `peso_corporal`): os 2 que não nomeiam o implemento ficam como estão —
+   o texto diz o que a pessoa usa (tatame, banco), e acrescentar "peso
+   corporal" seria mudar o conteúdo por causa de um filtro. Aceite: Vitest — "Cross over" e
    "Super Band" estão no `equipamento_texto` de todo exercício com a tag, e
    todo texto de exercício de peso corporal que nomeia o implemento usa
    "peso corporal"; e2e — o filtro "Cross over" mostra só cards cuja meta
