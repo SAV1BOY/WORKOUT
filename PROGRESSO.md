@@ -9809,3 +9809,51 @@ inclusive a 03-treino-topo).
   ícone de calendário; embaixo, "Semanas do plano" com "Semana N de 12 · K
   concluídas", a barra e as 12 semanas, as anteriores "feita", a atual
   "agora" com "Abrir a sessão desta semana". Na corda, os 5 estágios.
+
+#### Auditoria
+
+- **Auditoria 1 em `73b9c23`: reprovada** (bloqueantes 0, importantes 1,
+  menores 7). O importante (a ilustração herdava o estado ao trocar de
+  exercício no lugar, na ficha do player) e três menores estão em "Correção
+  da auditoria 3", acima.
+- **Auditoria 2 em `b5d9db5`: aprovada** (bloqueantes 0, importantes 0,
+  menores 6). Nada foi comitado pelas auditorias.
+
+Menores registrados (ficam na fila, nenhum quebra o aceite):
+
+- **[regra]** A key da aba Músculos da folha
+  (`components/exercicio/ficha-folha.tsx:376-377`,
+  `key={ilustracao.urls.join('|')}`) não tem teste: se ela sair, nenhum
+  unitário nem e2e cai. A mutação do construtor (`logs-mutacao/a1d2675.log`)
+  tirou só a key da MediaGrande e o `onError`. O e2e novo cobre só a seta ›;
+  o caminho "Substituir", citado na SPEC §22.13 item 4, também não tem e2e.
+  O mecanismo é o mesmo nos dois (a key remonta a ilustração), então o risco
+  é baixo.
+- **[regra]** Anterior ao lote e fora dele: o estado `figuraQuebrou` da
+  MediaGrande (`components/exercicio/media-grande.tsx:59`) também passa de um
+  exercício para o outro na troca no lugar (‹ › e Substituir da ficha no
+  player), porque a MediaGrande não tem key. Se a figura do exercício A deu
+  erro, o B, na vista "Figura", cai direto na foto. É raro: as figuras do
+  programa estão no precache.
+- **[regra]** Seguem valendo os menores já registrados com motivo no
+  PROGRESSO: a ficha pula de H1 para H3 (igual em main); o aceite do item 4
+  fala em LCP e o e2e mede a ordem dos pedidos; o bloco de progresso das
+  semanas repete o do card de desafio; na busca por "corda", "Corda: 5
+  estágios" aparece com o ícone, pela regra de capa sem repetição (§22.9
+  item 7, anterior ao lote).
+- **[tela]** A ficha pula de H1 para H3. Medido em
+  `/exercicios/agachamento-goblet`: "H1: Agachamento goblet", depois "H3:
+  Instruções … H3: Seu histórico". Já era assim em main (`git grep` em
+  `763598a` mostra os mesmos `<h3>` em `components/exercicio/ficha-folha.tsx`
+  126/178/199/446). Não é regressão.
+- **[tela]** O alt "Execução do <nome>" erra o gênero nos nomes femininos
+  ("Execução do Prancha"; "do" também na Remada, na Rosca e na Elevação de
+  pernas). Vem de main (`lib/midia.ts:235`, `components/exercicio/midia.tsx:29`,
+  `ficha-folha.tsx:362`); o L13 passou a usar esse texto no nome da
+  figura-botão e da figura parada, então o leitor de tela o lê mais vezes.
+  Sugestão para a fila: "Execução: <nome>".
+- **[tela]** Na busca, a linha de coleção sem subtítulo mostra a linha
+  reservada vazia entre o título e "contém …" (busca "corda" no escuro:
+  "Tríceps", "Cross over de parede" e "Tatame EVA" com um vão de ~20 px). A
+  §22.13 item 7 pede a reserva em todas as linhas, mas na busca a altura já
+  varia de 72 a 122 px e a reserva só deixa o buraco. Cosmético.
