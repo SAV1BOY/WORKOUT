@@ -1937,7 +1937,9 @@ a tela — afrouxar o limite não é uma opção.
    naquela seção** e, se não sobrar nenhuma, fica com o ícone do seu tipo em
    cima da cor do grupo — que a 56 px distingue melhor do que a quarta cópia
    da mesma foto. A capa guardada em `montar()` não muda: a tela da coleção
-   continua com a foto do primeiro exercício.
+   continua com a foto do primeiro exercício. Na busca, que junta seções
+   numa lista só, a coleção parte da capa que tem na vitrine e a regra de
+   não repetir vale dentro da lista (§22.15 item 6).
 8. **Um degrau entre rótulo e seção.** "Escolhas para você" não agrupava nada
    e competia com os títulos: vira **overline de 11 px em caixa alta**, e os
    títulos de seção sobem para **16 px semibold com régua acima**.
@@ -2484,7 +2486,8 @@ de cada item é verificável no Vitest ou no e2e (`e2e/ultraloop-l13.spec.ts`).
    linhas mediam 72 ou 92 px conforme a coleção tinha subtítulo. Escolha: a
    linha **reserva a linha do subtítulo** (`text-xs`, uma linha) em toda
    linha de coleção, com ou sem texto — o subtítulo continua na vitrine. Na
-   busca a reserva do subtítulo também vale para todas as linhas, mas a
+   busca a reserva do subtítulo não vale (§22.15 item 5: ela deixava um vão
+   vazio acima do motivo), e a
    altura **não** é única (correção da auditoria: medido 72 a 122 px): a
    linha do motivo ("contém …", §22.12 item 3) só existe quando a coleção
    veio de um exercício e aparece inteira, e a meta de aparelho quebra em 2
@@ -2517,7 +2520,8 @@ de cada item é verificável no Vitest ou no e2e (`e2e/ultraloop-l13.spec.ts`).
    derivado de `perfil.semana_corrida`,
    `semana_corda` e `semana_fixa`; a atual tem `aria-current="step"` e o
    link da sessão da semana (o mesmo `href` de `ctaDoPlano()`). Sem perfil,
-   a lista aparece sem estado e sem barra. A conta é pura:
+   a lista aparece sem estado e sem barra. A posição fica só aqui: a capa da
+   tela do plano não repete "semana N de T" (§22.15 item 7). A conta é pura:
    `semanasDoPlano(plano, semanaAtual)` em `lib/colecoes.ts`. Aceite:
    Vitest — `semanasDoPlano('corrida', 3)` devolve 12 linhas, 2 feitas, a 3ª
    atual, com a descrição igual à do JSON; e2e em `/explorar/plano/corrida`
@@ -2779,7 +2783,7 @@ não muda (§22.0.1 item 7). O aceite de cada item é verificável no Vitest
 
    | Arquivo | Camada | Como abre | Regra da folha |
    |---|---|---|---|
-   | `components/exercicio/ficha-folha.tsx` | Ficha do exercício (folha) | estado: "Como fazer" e figura no player; "Como fazer" do bloco na Visão geral | sim (`sheet.tsx`) |
+   | `components/exercicio/ficha-folha.tsx` | Ficha do exercício (folha) | estado: "Como fazer" e figura no player (`tela-player.tsx`); "Como fazer" do bloco na Visão geral (`bloco.tsx`); toque no exercício da lista do dia (`treino/lista.tsx`); toque no exercício da lista de uma coleção do Explorar (`lista-da-colecao.tsx`) — §22.15 item 9 | sim (`sheet.tsx`) |
    | `components/treino/lista.tsx` | "Substituir hoje" da lista do dia | `SheetTrigger` | sim (`sheet.tsx`) |
    | `components/treinar/bloco.tsx` | "substituir hoje" do bloco (Visão geral) | `SheetTrigger` | sim (`sheet.tsx`) |
    | `components/exercicios/lista-exercicios.tsx` | Filtros do catálogo | `SheetTrigger` | sim (`sheet.tsx`) |
@@ -2879,6 +2883,141 @@ não muda (§22.0.1 item 7). O aceite de cada item é verificável no Vitest
     com e sem foco, o pixel 3 px por fora da borda (o anel) muda com
     contraste ≥ 3:1 contra o fundo que estava ali, e o pixel 1 px por fora
     (o vão) não muda.
+
+### 22.15 Sobras das auditorias: ficha e coleções do Explorar
+
+Medido em `main` (f813c41, com o L34 publicado) a 360×740. Dez sobras da
+seção C da fila, deixadas pelas auditorias e pela verificação em produção dos
+lotes 13 e 14: seis da ficha do exercício e quatro das coleções do Explorar,
+que entram por **exceção de área**, como no §22.13 (mesma prioridade (2) do
+dono, §22.0, e os mesmos arquivos). O motor não muda (§22.0.1 item 7). O
+aceite de cada item é verificável no Vitest (`lib/midia.test.ts`,
+`lib/colecoes.test.ts`) ou no e2e (`e2e/ultraloop-l32.spec.ts`).
+
+1. **A figura nasce de novo também no "Substituir"** (C-l13-key-musculos-sem-teste).
+   O ledger pedia teste para a `key` da ilustração da aba **Músculos** da
+   folha. Essa ilustração não existe mais: desde o §22.14 item 3(a) a aba
+   Músculos tem só o mapa e a legenda (grep de `urls.join` em
+   `ficha-folha.tsx`: nada). A `key` que sobra é a da ilustração da aba
+   Vídeo (`media-grande.tsx`, §22.13 item 4, correção da auditoria 3), que
+   o e2e do L13 cobre pela seta ›, mas não pelo **"Substituir"**. Agora há
+   e2e dos dois caminhos que trocam de exercício com a folha aberta no
+   player: com a figura do agachamento livre na posição 2, "Substituir" →
+   afundo: a figura começa na posição 1 e o pedido do quadro 2 do afundo
+   começa depois do fim do pedido do quadro 1; e, com a aba **Músculos**
+   aberta, › e "Substituir" deixam a aba aberta com a legenda do exercício
+   novo e sem imagem de execução. Aceite: e2e — os dois casos; mutação — sem
+   a `key` da ilustração em `media-grande.tsx`, o caso do "Substituir" cai.
+2. **A figura quebrada não passa para o próximo exercício**
+   (C-media-grande-figura-quebrou-herdada). A `MediaGrande` guardava
+   "a figura deu erro" num booleano; na troca no lugar (‹ › e "Substituir"
+   da ficha no player) ela não remonta, então, se a figura de A falhou, a de
+   B nem era tentada e a tela caía direto na foto de B. Agora ela guarda
+   **qual** figura falhou (o endereço) e só cai na foto quando é a figura
+   desenhada agora. Aceite: e2e — na ficha aberta no player, com a opção
+   "Figura" escolhida e o pedido da figura do agachamento livre abortado (a
+   foto aparece no lugar), › leva ao supino e "Substituir" ao afundo, e nos
+   dois a figura do exercício novo aparece (`<img>` da figura dele,
+   carregada); mutação — voltando ao booleano, o e2e cai.
+3. **"Execução: <nome>", sem artigo** (C-alt-execucao-genero). O texto
+   alternativo da demonstração era "Execução do <nome>" — "Execução do
+   Prancha", "do Remada", "do Rosca" — e desde o §22.13 item 5 ele também é
+   o nome da figura-botão, lido a cada foco. `data/exercicios.json` não diz o
+   gênero do nome, e inferir pela última letra erra ("Good morning", "Farmer's
+   walk", "Crucifixo"); o texto passa a **"Execução: <nome>"**, montado num
+   lugar só (`altDaExecucao()` em `lib/midia.ts`), que a ilustração, a figura
+   e o vídeo da `MediaGrande` e a figura da `FiguraExercicio` usam. Aceite:
+   Vitest — para os 81 exercícios, o `alt` de toda opção de mídia que o
+   exercício tem é "Execução: <nome>" e nenhum começa com "Execução do" ou
+   "Execução da"; nenhum outro arquivo de `components/` e `lib/` escreve
+   "Execução d"; e2e — na ficha da prancha e no player, os nomes começam por
+   "Execução: ".
+4. **O aceite da ordem dos quadros diz o que o teste mede**
+   (C-l13-aceite-lcp-vs-ordem). O ledger original dizia "uma requisição de
+   ilustração antes do LCP, não duas"; o §22.13 item 4 já trocou esse aceite
+   pela **ordem dos pedidos** (o pedido do quadro 2 começa depois do fim do
+   pedido do quadro 1), que é o mecanismo e é o que `e2e/ultraloop-l13.spec.ts`
+   mede. O LCP não entra: nas capturas a mídia é mascarada, e o LCP da
+   ficha a 360 px depende da rede de quem mede, não da regra. Nada muda no
+   código. Aceite: grep — "LCP" não aparece no §22.13 e o aceite do item 4
+   fala em ordem dos pedidos, a mesma que o teste mede.
+5. **Na busca, sem vão onde não há subtítulo** (C-busca-linha-reservada-vazia).
+   A reserva da linha do subtítulo (§22.13 item 7) serve à altura única por
+   seção da vitrine; na busca a altura já varia (o motivo "contém …" e a meta
+   de aparelho em 2 linhas), e a reserva vazia deixava um vão de ~16 px entre
+   o título e o motivo (busca "corda": Tríceps, Cross over de parede, Tatame
+   EVA). Agora a linha da busca **não reserva** a linha do subtítulo quando
+   ele não existe (`LinhaColecao` com `reservarSubtitulo={false}`); com o
+   selo "Circuito", a linha do subtítulo existe e leva o selo. A vitrine
+   continua reservando. Aceite: e2e — na busca "corda", nas linhas sem
+   subtítulo, a distância entre o fim do título e o começo da linha seguinte
+   é a do `gap` (≤ 4 px), sem nó de subtítulo vazio; na vitrine, a mesma
+   altura por seção (±1 px, o teste do §22.13 item 7 continua).
+6. **Na busca, a coleção leva a capa da vitrine** (C-busca-corda-capa-icone).
+   A busca passava a lista inteira por `semCapasRepetidas()` (§22.9 item 7),
+   e a capa de uma coleção dependia de quem vinha antes no resultado: na
+   busca "corda", "Corda: 5 estágios" mostrava o ícone do calendário e, na
+   seção Planos, a foto. Medido nos 122 termos de 4 letras ou mais dos
+   títulos e dos nomes dos exercícios: 144 de 484 linhas de resultado tinham
+   capa diferente da vitrine, 4 delas de plano. Agora a busca parte da capa
+   que a coleção tem **na vitrine** (`capasDaVitrine()`, das mesmas seções que
+   a tela desenha, `secoesDaVitrine()`), e a regra de não repetir continua
+   valendo **dentro da lista**: quem perde a capa da vitrine é só a coleção
+   cuja foto já está numa linha de cima do mesmo resultado — ela pega a
+   próxima foto livre, ou o ícone (`capasNaBusca()`). Coleção que na vitrine
+   tem o ícone continua com o ícone. Por que não a capa da vitrine sempre:
+   a busca junta seções numa lista só, e na busca "barra" 5 das 16 linhas
+   repetiriam a foto de uma linha de cima — o problema do §22.9 item 7.
+   Aceite: Vitest — "Corda: 5 estágios" tem na busca "corda" a mesma capa
+   da seção Planos; nos 122 termos, nenhuma foto se repete numa busca, e
+   toda coleção cuja capa da vitrine não está numa linha de cima tem a capa
+   da vitrine (o que muda cai de 144 para 66 linhas, e os planos de 4 para
+   2 — barra fixa nas buscas "elástico" e "assistida", onde a foto da barra
+   fixa assistida já é a capa da linha da Super Band); e2e — na busca
+   "corda", a linha "Corda: 5 estágios" tem a foto da seção Planos.
+7. **A posição no plano aparece uma vez** (C-plano-progresso-repete-desafio).
+   Na tela do plano com perfil, a capa dizia "semana 3 de 12" e o bloco
+   "Semanas do plano", logo abaixo, "Semana 3 de 12 · 2 concluídas" com a
+   barra. O ledger deixava ao dono tirar a capa ou o bloco; nenhum dos dois:
+   a capa fica (é o título da página, §22.12 item 6, e o botão da sessão) e
+   deixa de dizer a **posição** — mostra o que o plano é, a meta sem perfil
+   (a duração, ou nada quando o objetivo já diz o prazo, §22.12 item 4) —,
+   e a posição fica só no bloco, que tem a barra e a lista com "agora". A
+   vitrine e o destaque do Explorar, que não têm o bloco, continuam com
+   "semana N de T". Aceite: e2e — em `/explorar/plano/corrida` e
+   `/explorar/plano/barra_fixa` com perfil na semana 3, "semana 3 de 12"
+   aparece uma vez no texto do `<main>` (antes, duas), dentro do bloco.
+8. **A linha "agora" não cobre o canto do cartão** (C-plano-lista-canto-reto).
+   O fundo da linha atual da lista "Semanas do plano" tinha cantos retos e
+   cobria os cantos arredondados do cartão (visto em produção nos dois
+   temas). A lista passa a recortar o conteúdo pelo raio do cartão
+   (`overflow-hidden`); o link "Abrir a sessão desta semana" fica a 10 px
+   ou mais da borda, então o anel de foco dele (2 px a 2 px) não é cortado.
+   Aceite: e2e — nos dois temas, com a semana atual na **primeira** e na
+   **última** linha (corrida na semana 1 e na 12), o pixel do canto externo
+   do cartão (1 px para dentro da caixa, fora do raio) tem a cor do fundo da
+   página, não a da linha; o anel de foco do link cabe inteiro dentro da
+   lista.
+9. **O inventário diz os quatro jeitos de abrir a ficha em folha**
+   (C-l14-inventario-ficha-folha-como-abre). Na tabela do §22.14 item 6, a
+   linha de `ficha-folha.tsx` citava só o player e a Visão geral; a mesma
+   folha também abre pelo toque no exercício da lista do dia
+   (`components/treino/lista.tsx`) e pela lista de uma coleção do Explorar
+   (`components/colecoes/lista-da-colecao.tsx`). Aceite: grep de
+   `<FichaEmFolha` em `app/` e `components/` acha quatro arquivos
+   (`tela-player.tsx`, `bloco.tsx`, `lista.tsx`, `lista-da-colecao.tsx`), e a
+   linha da tabela cita os quatro.
+10. **A tag que abre a coleção parece link; a outra, texto**
+    (C-l14-tag-equipamento-sem-sinal-visual). Na seção "Equipamento" da
+    ficha em página (§22.14 item 3(c)), "Anilhas" (sem coleção) tinha a
+    mesma pílula das que são link ("Banco", "Barra maciça"). Agora a tag
+    com coleção é a pílula com contorno, **sublinhada sempre** e com a seta
+    (›) no fim; a tag sem coleção é **texto simples** — sem contorno, sem
+    fundo, sem sublinhado, em `text-muted-foreground`. Aceite: e2e na ficha
+    do supino reto com barra a 360×740, nos dois temas — a tag-link tem
+    `text-decoration-line: underline` sem hover, contorno visível e um `svg`;
+    a tag-texto não tem sublinhado, nem borda, nem fundo, nem `svg`; o texto
+    das duas mede ≥ 4,5:1 contra o fundo; nada vaza a largura.
 
 ---
 
