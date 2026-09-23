@@ -4,12 +4,14 @@
  * que o dedo faz, nos dois temas onde o aceite pede.
  */
 import { expect, test, type Locator, type Page } from "@playwright/test";
+import sharp from "sharp";
 import { treinosDoExercicio } from "../lib/catalogo";
 import { colecaoDoAparelho, colecaoDoTreino } from "../lib/colecoes";
 import { acharExercicio, exercicios } from "../lib/dados";
 import { linksDosTreinos, tagsDoEquipamento } from "../lib/ficha";
 import {
   abrirSecaoDoRelatorio,
+  abrirVisaoGeral,
   comecarNoPlayer,
   comecarOTreinoDoDia,
   entrarNoApp,
@@ -502,8 +504,9 @@ test.describe("§22.14 itens 1 e 3 — foco visível nos links e botões novos",
         if (vistos.has("fazer")) break;
       }
       /*
-       * O anel do "Fazer agora" é sombra com transição: logo após o Tab ela
-       * ainda é transparente. Espera o anel chegar (cor opaca, 2 px ou mais).
+       * O anel do "Fazer agora" entra com a transição do Button: logo após o
+       * Tab ele ainda é transparente. Espera o anel chegar — desde a rodada
+       * 15 (§22.14 item 11) é o contorno de 2 px na cor --ring, opaco.
        */
       await expect
         .poll(
@@ -511,12 +514,13 @@ test.describe("§22.14 itens 1 e 3 — foco visível nos links e botões novos",
             page.evaluate(() => {
               const el = document.activeElement as HTMLElement | null;
               if (!el?.matches("[data-fazer-agora]")) return false;
-              return [
-                ...getComputedStyle(el).boxShadow.matchAll(
-                  /rgba?\((\d+), (\d+), (\d+)(?:, ([\d.]+))?\) 0px 0px 0px (\d+(?:\.\d+)?)px/g,
-                ),
-              ].some(
-                (m) => (m[4] === undefined || parseFloat(m[4]) >= 0.99) && parseFloat(m[5]!) >= 2,
+              const e = getComputedStyle(el);
+              const m = e.outlineColor.match(/rgba?\((\d+), (\d+), (\d+)(?:, ([\d.]+))?\)/);
+              return (
+                e.outlineStyle === "solid" &&
+                parseFloat(e.outlineWidth) >= 2 &&
+                m !== null &&
+                (m[4] === undefined || parseFloat(m[4]) >= 0.99)
               );
             }),
           { timeout: 3000 },
@@ -602,7 +606,8 @@ test.describe("§22.14 itens 1, 2 e 3 — contraste do texto novo da ficha", () 
 async function conferirAbas(escopo: Locator, page: Page): Promise<void> {
   const aba = escopo.getByRole("tab", { name: "Tutorial no YouTube" });
   await expect(aba).toBeVisible();
-  await expect(aba.locator("svg[data-icone-externo]")).toHaveCount(1);
+  // com rede o vídeo toca aqui dentro: a aba não promete sair do app
+  await expect(aba.locator("svg[data-icone-externo]")).toHaveCount(0);
   const medidas = await escopo.getByRole("tablist").evaluate((lista) => ({
     lista: [lista.scrollWidth, lista.clientWidth],
     abas: [...lista.querySelectorAll('[role="tab"]')].map((t) => [
@@ -620,7 +625,45 @@ async function conferirAbas(escopo: Locator, page: Page): Promise<void> {
 }
 
 test.describe("§22.14 item 4 — a aba do tutorial diz para onde leva", () => {
-  test("página e folha: 'Tutorial no YouTube' com o ícone, sem cortar a 360 px", async ({
+  test("com rede o tutorial toca dentro do app, e a aba não tem ícone de saída", async ({
+    page,
+  }) => {
+    // nenhum teste sai para a internet: a miniatura vem daqui e o embed é barrado
+    await page.route(/i\.ytimg\.com/, (rota) =>
+      rota.fulfill({ contentType: "image/png", body: PNG_16 }),
+    );
+    await page.route(/youtube-nocookie\.com/, (rota) => rota.abort());
+    await preparar(page);
+    await abrirFicha(page, SUPINO);
+    const main = page.locator("main");
+    await main.getByRole("tab", { name: "Tutorial no YouTube" }).click();
+    await main.locator("[data-tutorial=miniatura]").click();
+    const embed = main.locator("[data-tutorial=embed]");
+    await expect(embed).toHaveCount(1);
+    await expect(embed).toHaveAttribute("src", /^https:\/\/www\.youtube-nocookie\.com\/embed\//);
+    // tocou aqui: a rota é a mesma e nada na aba diz que sai do app
+    await expect(page).toHaveURL(new RegExp(`/exercicios/${SUPINO}$`));
+    await expect(main.getByRole("tablist").locator("[data-icone-externo]")).toHaveCount(0);
+    await expect(main.locator("[data-sai-do-app]")).toHaveCount(0);
+  });
+
+  test("sem rede, o 'Abrir no YouTube' é o que sai do app, e é ele que tem o ícone", async ({
+    page,
+  }) => {
+    await page.route(/i\.ytimg\.com/, (rota) => rota.abort("connectionfailed"));
+    await preparar(page);
+    await abrirFicha(page, SUPINO);
+    const main = page.locator("main");
+    await main.getByRole("tab", { name: "Tutorial no YouTube" }).click();
+    await expect(main.locator("[data-tutorial=sem-rede]")).toBeVisible();
+    const sai = main.getByRole("link", { name: "Abrir no YouTube" });
+    await expect(sai).toHaveAttribute("target", "_blank");
+    await expect(sai.locator("svg[data-icone-externo]")).toHaveCount(1);
+    await expect(main.getByRole("tablist").locator("[data-icone-externo]")).toHaveCount(0);
+    await semRolagemHorizontal(page);
+  });
+
+  test("página e folha: 'Tutorial no YouTube' sem ícone de saída, sem cortar a 360 px", async ({
     page,
   }) => {
     await preparar(page);
@@ -750,6 +793,165 @@ test.describe("§22.14 item 6 — as folhas são modais de verdade", () => {
     await conferirFolhaModal(page);
     await conferirFechamento(page, gatilho);
   });
+});
+
+/*
+ * Rodada 15 (auditoria 2 do L14): dentro da Visão geral do treino — que é um
+ * diálogo próprio, com Esc no window — o Esc numa folha aberta por cima
+ * fechava a folha E a Visão geral. O Esc fecha só a camada de cima.
+ */
+const VISAO_GERAL = '[role="dialog"][aria-label="Visão geral do treino"]';
+
+async function escFechaSoAFolha(page: Page, gatilho: Locator): Promise<void> {
+  await gatilho.focus();
+  await page.keyboard.press("Enter");
+  const folha = page.locator('[data-slot="sheet-content"]');
+  await expect(folha).toBeVisible();
+  await expect(folha).toHaveAttribute("aria-modal", "true");
+  await expect
+    .poll(() =>
+      page.evaluate(() => document.activeElement?.getAttribute("data-slot") ?? null),
+    )
+    .toBe("sheet-title");
+  await page.keyboard.press("Escape");
+  await expect(folha).toHaveCount(0);
+  // a Visão geral continua aberta, com o foco de volta no gatilho
+  await expect(page.locator(VISAO_GERAL)).toBeVisible();
+  await expect(gatilho).toBeFocused();
+  expect(await page.evaluate(() => document.querySelectorAll("[inert]").length)).toBe(0);
+}
+
+test.describe("§22.14 item 6 — dentro da Visão geral, o Esc fecha só a folha de cima", () => {
+  for (const tema of TEMAS) {
+    test(`'substituir hoje' e 'Como fazer' do bloco; sem folha, o Esc fecha a Visão geral (${tema})`, async ({
+      page,
+    }) => {
+      await preparar(page, tema);
+      await esperarAbaTreino(page);
+      await comecarOTreinoDoDia(page);
+      await abrirVisaoGeral(page);
+      const geral = page.locator(VISAO_GERAL);
+      await expect(geral).toBeVisible();
+
+      await escFechaSoAFolha(
+        page,
+        geral.getByRole("button", { name: "substituir hoje" }).first(),
+      );
+      await escFechaSoAFolha(
+        page,
+        geral.getByRole("button", { name: /^Como fazer: / }).first(),
+      );
+
+      // sem folha por cima, o Esc continua fechando a Visão geral
+      await page.keyboard.press("Escape");
+      await expect(geral).toHaveCount(0);
+      await expect(page.getByRole("button", { name: "Visão geral do treino" })).toBeVisible();
+      await semRolagemHorizontal(page);
+    });
+  }
+
+  test("a foto ampliada segue a mesma regra: Esc já tratado por outra camada não a fecha", async ({
+    page,
+  }) => {
+    await preparar(page);
+    await abrirFicha(page, SUPINO);
+    await page.getByRole("button", { name: /Ampliar a foto do início/ }).click();
+    const foto = page.getByRole("dialog");
+    await expect(foto).toBeVisible();
+    // outra camada gasta este Esc antes (como o Radix faz na captura)
+    await page.evaluate(() =>
+      window.addEventListener("keydown", (e) => e.preventDefault(), {
+        capture: true,
+        once: true,
+      }),
+    );
+    await page.keyboard.press("Escape");
+    await expect(foto).toBeVisible();
+    // o Esc seguinte é dela: fecha
+    await page.keyboard.press("Escape");
+    await expect(foto).toHaveCount(0);
+  });
+});
+
+/* ----------------------- item 11: o anel do botão primário se destaca */
+
+/** Luminância relativa de um pixel (WCAG). */
+function luminancia(d: Buffer, i: number): number {
+  const canal = (v: number) => {
+    const c = v / 255;
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  };
+  return 0.2126 * canal(d[i]!) + 0.7152 * canal(d[i + 1]!) + 0.0722 * canal(d[i + 2]!);
+}
+
+test.describe("§22.14 item 11 — o anel do botão primário não tem a cor do botão", () => {
+  for (const tema of TEMAS) {
+    test(`'Fazer agora' pelo Tab: contorno a 2 px, fundo entre os dois, ≥ 3:1 (${tema})`, async ({
+      page,
+    }) => {
+      await preparar(page, tema);
+      // sem transição: a captura com e sem foco só difere pelo anel
+      await page.emulateMedia({ colorScheme: tema, reducedMotion: "reduce" });
+      await abrirFicha(page, SUPINO);
+      await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+      let chegou = false;
+      for (let i = 0; i < 90 && !chegou; i += 1) {
+        await page.keyboard.press("Tab");
+        chegou = await page.evaluate(
+          () => document.activeElement?.matches("[data-fazer-agora]") ?? false,
+        );
+      }
+      expect(chegou, "o Tab chega ao Fazer agora").toBe(true);
+      await page.waitForTimeout(400);
+      const estilo = await page.evaluate(() => {
+        const el = document.activeElement as HTMLElement;
+        const e = getComputedStyle(el);
+        const r = el.getBoundingClientRect();
+        return {
+          visivel: el.matches(":focus-visible"),
+          style: e.outlineStyle,
+          largura: parseFloat(e.outlineWidth),
+          offset: parseFloat(e.outlineOffset),
+          caixa: { x: r.x, y: r.y, width: r.width, height: r.height },
+        };
+      });
+      expect(estilo.visivel).toBe(true);
+      expect(estilo.style).toBe("solid");
+      expect(estilo.largura).toBeGreaterThanOrEqual(2);
+      expect(estilo.offset).toBeGreaterThanOrEqual(2);
+
+      const folga = 8;
+      const recorte = {
+        x: estilo.caixa.x - folga,
+        y: estilo.caixa.y - folga,
+        width: estilo.caixa.width + 2 * folga,
+        height: estilo.caixa.height + 2 * folga,
+      };
+      const com = await page.screenshot({ clip: recorte });
+      await page.evaluate(() => (document.activeElement as HTMLElement).blur());
+      await page.waitForTimeout(400);
+      const sem = await page.screenshot({ clip: recorte });
+      const a = await sharp(com).raw().toBuffer({ resolveWithObject: true });
+      const b = await sharp(sem).raw().toBuffer({ resolveWithObject: true });
+      const escala = a.info.width / recorte.width;
+      const indice = (xCss: number) =>
+        (Math.floor((recorte.height / 2) * escala) * a.info.width + Math.floor(xCss * escala)) *
+        a.info.channels;
+      const razao = (xCss: number) => {
+        const i = indice(xCss);
+        const la = luminancia(a.data, i);
+        const lb = luminancia(b.data, i);
+        return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+      };
+      // 3 px por fora da borda esquerda: o anel contra o fundo que estava ali
+      const anel = razao(folga - 3);
+      // 1 px por fora: o fundo continua entre o anel e o botão
+      const vao = razao(folga - 1);
+      console.log(`[anel-primario] ${tema}: anel ${anel.toFixed(2)}:1 · vão ${vao.toFixed(2)}:1`);
+      expect(anel, "anel contra o fundo").toBeGreaterThanOrEqual(3);
+      expect(vao, "o vão entre o anel e o botão é o fundo").toBeLessThan(1.1);
+    });
+  }
 });
 
 /* ------------------------------ itens 8 e 9: uma grafia por equipamento */
