@@ -17,7 +17,7 @@ import {
   formatarNumero,
   rotuloDaCarga,
 } from "@/lib/formato";
-import { SEM_HISTORICO, historicoVazio } from "@/lib/ficha";
+import { SEM_HISTORICO, historicoVazio, ondeVoceEstaRepete } from "@/lib/ficha";
 import { estadoDaLinha, textoDaCarga, textoDoAlvo, textoDoEvento } from "@/lib/hoje";
 import { cargaDeHoje, prescricaoPadrao } from "@/lib/progressao";
 import {
@@ -41,8 +41,8 @@ export function HistoricoExercicio({
 }: {
   exercicioId: string;
   /**
-   * Na página a seção "Carga inicial" já traz a nota da carga de partida; a
-   * nota não se repete em "Onde você está" (SPEC §22.14 item 2).
+   * Na página as seções "Prescrição padrão" e "Carga inicial" já dizem onde a
+   * primeira sessão começa; "Onde você está" não se repete (SPEC §22.14 item 2).
    */
   comoPagina?: boolean;
 }) {
@@ -115,9 +115,20 @@ export function HistoricoExercicio({
     sessoes: ultimas.length,
     eventos: eventos.length,
   });
+  /*
+   * SPEC §22.14 item 2: na página, sem avaliação do motor, "Onde você está"
+   * seria a carga inicial e a prescrição padrão das seções logo acima.
+   */
+  const semOnde = ondeVoceEstaRepete({
+    comoPagina,
+    primeiraVez: alvo.primeira_vez === true,
+    assistencia: Boolean(alvo.assistencia),
+    semanaLeve: Boolean(alvo.semana_leve),
+  });
 
   return (
     <div className="flex flex-col gap-4">
+      {semOnde ? null : (
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Onde você está</CardTitle>
@@ -129,13 +140,14 @@ export function HistoricoExercicio({
             {alvo.assistencia ? ` · elástico ${alvo.assistencia.replace("_", " ")}` : ""}
             {alvo.semana_leve ? " · semana leve (60 %)" : ""}
           </p>
-          {alvo.primeira_vez && !comoPagina ? (
+          {alvo.primeira_vez ? (
             <p className="text-muted-foreground text-xs text-balance">
               Ainda sem registro: {exercicio.carga_inicial.nota}.
             </p>
           ) : null}
         </CardContent>
       </Card>
+      )}
 
       {vazio ? (
         <Card data-historico-vazio>

@@ -7,12 +7,14 @@ import { useMemo } from "react";
 import { useSessaoLivre } from "@/components/colecoes/usar-sessao-livre";
 import { BotaoLargo } from "@/components/ui/botao-largo";
 import { acharExercicio } from "@/lib/dados";
+import { podeVoltarNoApp } from "@/lib/ficha";
 
 /**
  * "Voltar" no topo da ficha em página (SPEC §22.14 item 1). É um link para
  * `/exercicios` — funciona sem JavaScript e numa aba aberta direto na ficha —,
- * e, quando há uma página anterior no histórico, o toque volta a ela: quem
- * chegou do Progresso ou de uma coleção volta para lá, não para o catálogo.
+ * e, quando há uma página anterior do app no histórico (`podeVoltarNoApp`), o
+ * toque volta a ela: quem chegou do Progresso ou de uma coleção volta para lá,
+ * não para o catálogo.
  * O rótulo é o mesmo nos dois casos (nome acessível estável).
  */
 export function VoltarDaFicha() {
@@ -22,7 +24,8 @@ export function VoltarDaFicha() {
       href="/exercicios"
       data-voltar-da-ficha
       onClick={(evento) => {
-        if (typeof window === "undefined" || window.history.length <= 1) return;
+        const navegacao = (window as { navigation?: { canGoBack?: unknown } }).navigation;
+        if (!podeVoltarNoApp(navegacao, window.history.length)) return;
         evento.preventDefault();
         router.back();
       }}

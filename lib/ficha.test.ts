@@ -10,6 +10,8 @@ import {
   hrefDoEquipamento,
   linksDosTreinos,
   nivelDosTitulos,
+  ondeVoceEstaRepete,
+  podeVoltarNoApp,
   tagsDoEquipamento,
 } from "@/lib/ficha";
 
@@ -102,5 +104,34 @@ describe("histórico vazio vira um cartão (SPEC §22.14 item 2)", () => {
     expect(`${SEM_HISTORICO.titulo} — ${SEM_HISTORICO.frase}`).toBe(
       "Ainda sem histórico deste exercício — Ele começa na primeira série registrada.",
     );
+  });
+});
+
+describe("'Voltar' só volta dentro do app (SPEC §22.14 item 1)", () => {
+  it("com a Navigation API, vale o canGoBack (a origem só)", () => {
+    // aba nova aberta direto na ficha: o about:blank conta no history.length
+    expect(podeVoltarNoApp({ canGoBack: false }, 2)).toBe(false);
+    expect(podeVoltarNoApp({ canGoBack: true }, 2)).toBe(true);
+  });
+
+  it("sem ela, o tamanho do histórico", () => {
+    expect(podeVoltarNoApp(undefined, 1)).toBe(false);
+    expect(podeVoltarNoApp(undefined, 3)).toBe(true);
+    expect(podeVoltarNoApp({}, 1)).toBe(false);
+  });
+});
+
+describe("'Onde você está' não repete a página (SPEC §22.14 item 2)", () => {
+  const base = { comoPagina: true, primeiraVez: true, assistencia: false, semanaLeve: false };
+
+  it("na página, sem avaliação do motor, repete a carga inicial e sai", () => {
+    expect(ondeVoceEstaRepete(base)).toBe(true);
+  });
+
+  it("fica na folha, depois da primeira avaliação e quando diz algo a mais", () => {
+    expect(ondeVoceEstaRepete({ ...base, comoPagina: false })).toBe(false);
+    expect(ondeVoceEstaRepete({ ...base, primeiraVez: false })).toBe(false);
+    expect(ondeVoceEstaRepete({ ...base, assistencia: true })).toBe(false);
+    expect(ondeVoceEstaRepete({ ...base, semanaLeve: true })).toBe(false);
   });
 });

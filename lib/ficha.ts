@@ -98,3 +98,34 @@ export const SEM_HISTORICO = {
   titulo: "Ainda sem histórico deste exercício",
   frase: "Ele começa na primeira série registrada.",
 } as const;
+
+/**
+ * SPEC §22.14 item 1: o "Voltar" da ficha em página volta à página anterior
+ * só quando ela é do app. A Navigation API diz isso direto (`canGoBack` só
+ * conta as entradas desta origem: uma aba aberta direto na ficha, ou vinda de
+ * outro site, não tem para onde voltar); sem ela, vale o tamanho do histórico.
+ * Quando não dá para voltar, o link leva ao catálogo.
+ */
+export function podeVoltarNoApp(
+  navegacao: { canGoBack?: unknown } | undefined,
+  tamanhoDoHistorico: number,
+): boolean {
+  if (navegacao && typeof navegacao.canGoBack === "boolean") return navegacao.canGoBack;
+  return tamanhoDoHistorico > 1;
+}
+
+/**
+ * SPEC §22.14 item 2: na página, "Onde você está" de um exercício que o motor
+ * ainda não avaliou (`primeira_vez`) é a carga inicial e a prescrição padrão —
+ * que a página já mostra nas próprias seções, na mesma rolagem. Ali ele sai;
+ * fica se a primeira sessão traz algo que as seções não dizem (assistência do
+ * elástico ou semana leve). Na folha, que não tem essas seções, fica sempre.
+ */
+export function ondeVoceEstaRepete(c: {
+  comoPagina: boolean;
+  primeiraVez: boolean;
+  assistencia: boolean;
+  semanaLeve: boolean;
+}): boolean {
+  return c.comoPagina && c.primeiraVez && !c.assistencia && !c.semanaLeve;
+}

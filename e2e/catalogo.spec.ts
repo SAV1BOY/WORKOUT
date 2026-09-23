@@ -88,10 +88,10 @@ test.describe("Catálogo (SPEC §3.6)", () => {
     await expect(page.getByText("3 × 5–8").first()).toBeVisible();
     await expect(page.getByText("7,5 kg na barra").first()).toBeVisible();
 
-    // histórico vazio: a ficha já diz onde ele está hoje, e o resto é um
-    // cartão só (SPEC §22.14 item 2)
-    await expect(page.getByText("Onde você está")).toBeVisible();
+    // histórico vazio: um cartão só, e "Onde você está" não repete a carga
+    // inicial e a prescrição das seções acima (SPEC §22.14 item 2)
     await expect(page.getByText("Ainda sem histórico deste exercício")).toBeVisible();
+    await expect(page.getByText("Onde você está")).toHaveCount(0);
     await expect(page.getByText(/Sem recorde ainda/)).toHaveCount(0);
     await semRolagemHorizontal(page);
   });

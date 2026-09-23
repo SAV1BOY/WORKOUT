@@ -98,7 +98,12 @@ test.describe("§22.14 item 1 — a ficha em página tem volta e ação", () => 
     await nova.setViewportSize({ width: 360, height: 740 });
     await nova.goto(`/exercicios/${SUPINO}`);
     await expect(nova.getByRole("heading", { level: 1 })).toBeVisible();
-    expect(await nova.evaluate(() => window.history.length)).toBe(1);
+    // o about:blank da aba nova conta no history.length (2), mas não é do app
+    expect(
+      await nova.evaluate(
+        () => (window as unknown as { navigation?: { canGoBack: boolean } }).navigation?.canGoBack,
+      ),
+    ).toBe(false);
     await nova.getByRole("link", { name: "Voltar" }).click();
     await expect(nova).toHaveURL(/\/exercicios$/);
     await nova.close();
@@ -163,7 +168,6 @@ test.describe("§22.14 itens 2 e 7 — histórico da ficha", () => {
   test("exercício nunca treinado: um cartão de histórico, não quatro", async ({ page }) => {
     await preparar(page);
     await abrirFicha(page, SUPINO);
-    await expect(page.getByText("Onde você está")).toBeVisible();
     const vazio = page.locator("[data-historico-vazio]");
     await expect(vazio).toHaveCount(1);
     await expect(vazio).toContainText("Ainda sem histórico deste exercício");
@@ -177,8 +181,11 @@ test.describe("§22.14 itens 2 e 7 — histórico da ficha", () => {
     ]) {
       await expect(page.getByText(titulo, { exact: true }), titulo).toHaveCount(0);
     }
-    // os cartões do histórico: "Onde você está" + o único
-    await expect(page.locator('main [data-slot="card"]')).toHaveCount(2);
+    // na página, "Onde você está" sem avaliação do motor seria a carga inicial
+    // e a prescrição padrão das seções acima: sai, e fica o cartão único
+    await expect(page.getByText("Onde você está")).toHaveCount(0);
+    await expect(page.locator('main [data-slot="card"]')).toHaveCount(1);
+    await expect(page.getByRole("heading", { name: "Carga inicial" })).toBeVisible();
   });
 
   test("com séries e sem eventos do motor: 'manutenção', não 'repetição'", async ({ page }) => {
@@ -232,7 +239,7 @@ test.describe("§22.14 item 3 — nada repetido na ficha e títulos em ordem", (
     }) => {
       await preparar(page, tema);
       await abrirFicha(page, SUPINO);
-      await expect(page.getByText("Onde você está")).toBeVisible();
+      await expect(page.locator("[data-historico-vazio]")).toBeVisible();
 
       // (e) a navegação por títulos não pula nível
       const titulos = await titulosDoMain(page);
@@ -330,6 +337,8 @@ test.describe("§22.14 item 3 — nada repetido na ficha e títulos em ordem", (
     }
     await expect(folha.getByRole("heading", { level: 1 })).toHaveCount(0);
     await expect(folha.getByRole("list", { name: "Área de foco" })).toBeVisible();
+    // na folha (sem as seções da página), "Onde você está" continua
+    await expect(folha.getByText("Onde você está")).toBeVisible();
     await folha.getByRole("tab", { name: "Músculos" }).click();
     await expect(folha.getByRole("tabpanel").locator("img")).toHaveCount(0);
   });

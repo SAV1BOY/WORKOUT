@@ -2565,15 +2565,18 @@ não muda (§22.0.1 item 7). O aceite de cada item é verificável no Vitest
 1. **A ficha em página tem volta e ação** (tela-explorar-fichas-19). A página
    abria só com o título, sem "Voltar" e sem nada a fazer com o exercício.
    Agora ela abre com **"Voltar"** no topo (link para `/exercicios`; quando
-   a aba tem página anterior no histórico, o toque volta a ela — quem chegou
-   do catálogo, do Progresso ou de uma coleção volta para lá; numa aba aberta
+   a aba tem uma página anterior **do app** — `navigation.canGoBack`, que só
+   conta as entradas desta origem, ou, sem a Navigation API, o tamanho do
+   histórico: `podeVoltarNoApp()` —, o toque volta a ela: quem chegou do
+   catálogo, do Progresso ou de uma coleção volta para lá; numa aba aberta
    direto na ficha, vai ao catálogo) e fecha com **"Fazer
    agora"**, que abre uma sessão livre só com este exercício pelo mesmo
    `useSessaoLivre` das coleções (§14.3): o player grava cada série no
    IndexedDB na hora, como qualquer sessão (§8). Sem perfil o botão fica
    desabilitado. Aceite: e2e — do catálogo, abrir a ficha e tocar "Voltar"
    leva de volta a `/exercicios`; numa aba nova aberta direto na ficha
-   (histórico de 1 página), "Voltar" leva a `/exercicios`; "Fazer agora"
+   (`canGoBack` falso, embora o `history.length` seja 2 com o about:blank),
+   "Voltar" leva a `/exercicios`; "Fazer agora"
    (≥ 44 px) leva a `/treinar/<id>` com o exercício, e, sem rede, a primeira
    série concluída está na sessão ativa e na fila de saída do IndexedDB.
 2. **Um cartão só quando não há histórico** (tela-explorar-fichas-20). Sem
@@ -2582,12 +2585,18 @@ não muda (§22.0.1 item 7). O aceite de cada item é verificável no Vitest
    estão vazios (sem recorde, sem ponto no gráfico, sem sessão e sem evento
    do motor — `historicoVazio()` em `lib/ficha.ts`, pura), eles viram **um
    cartão**: "Ainda sem histórico deste exercício — ele começa na primeira
-   série registrada." "Onde você está" continua em cima (é a prescrição de
-   hoje, não histórico). Na página, a nota da carga inicial sai de "Onde
-   você está": ela já está na seção "Carga inicial" da mesma rolagem.
-   Aceite: Vitest — `historicoVazio` é verdadeiro só com os quatro vazios;
-   e2e — a ficha de um exercício nunca treinado mostra um cartão de
-   histórico, não quatro.
+   série registrada." "Onde você está" continua em cima na folha (é a
+   prescrição de hoje, não histórico). Na **página**, enquanto o motor não
+   avaliou o exercício (`primeira_vez`), "Onde você está" é a carga inicial e
+   a prescrição padrão que as seções "Carga inicial" e "Prescrição padrão"
+   mostram na mesma rolagem ("7,5 kg na barra" duas vezes, medido): ali ele
+   sai, a não ser que a primeira sessão traga o que as seções não dizem
+   (assistência do elástico ou semana leve) — `ondeVoceEstaRepete()`, pura.
+   Aceite: Vitest — `historicoVazio` é verdadeiro só com os quatro vazios e
+   `ondeVoceEstaRepete` só na página, na primeira vez, sem assistência nem
+   semana leve; e2e — a ficha em página de um exercício nunca treinado
+   mostra um cartão de histórico, não quatro (nem "Onde você está"); na
+   folha, "Onde você está" continua.
 3. **Nada repetido na ficha e títulos em ordem** (tela-explorar-fichas-21,
    com a -22, a -23 e a parte da ficha do a11y-12). (a) A aba **Músculos**
    fica só com o mapa e a legenda: a ilustração já é a aba Vídeo. (b) Na
@@ -2629,7 +2638,10 @@ não muda (§22.0.1 item 7). O aceite de cada item é verificável no Vitest
    página (`main`, `header`, `nav`) fica **`inert`** — fora do Tab e da
    árvore do leitor de tela — e volta ao normal quando ela fecha; o primeiro
    foco é o **título da folha** (`tabIndex=-1`), para o leitor anunciar o que
-   abriu antes da lista; Esc fecha e o foco volta ao botão que abriu (Radix).
+   abriu antes da lista; Esc fecha e o foco volta ao botão que abriu — o
+   Radix só devolvia ao `SheetTrigger`, e nas folhas abertas por estado (a
+   ficha no player, pelo "Como fazer") o foco caía no `<body>` (medido): a
+   folha guarda quem tinha o foco ao abrir e devolve a ele.
    A folha que já escolhia o próprio foco inicial (Ajustar, §22.7 item 3)
    continua escolhendo. Aceite: e2e a 360×740, com a folha da ficha e a
    "Substituir hoje" abertas — `aria-modal="true"`, `main`/`header`/`nav`
