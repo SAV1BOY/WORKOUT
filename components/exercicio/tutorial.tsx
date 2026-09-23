@@ -77,6 +77,8 @@ export function TutorialDoExercicio({ exercicioId }: { exercicioId: string }) {
           >
             <ExternalLink aria-hidden="true" data-icone-externo className="size-4" />
             Abrir no YouTube
+            {/* o ícone é só visual; o leitor de tela ouve que o link sai do app */}
+            <span className="sr-only"> (abre fora do app)</span>
           </a>
         </Button>
       </div>
