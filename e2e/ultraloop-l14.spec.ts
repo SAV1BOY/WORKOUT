@@ -974,6 +974,193 @@ test.describe("§22.14 item 6 — dentro da Visão geral, o voltar do celular fe
   }
 });
 
+/*
+ * Rodada 17 (auditoria 2 da rodada 15): a regra da folha valia só em
+ * `sheet.tsx`. O alerta "Descartar este treino?" e o resumo do fim, abertos
+ * por estado dentro da Visão geral, deixavam o foco no <body> e o fundo vivo;
+ * a foto ampliada e o "Apagar esta foto?" deixavam o Tab sair para a barra de
+ * baixo. Agora a regra mora em `components/ui/camada-modal.ts` e vale para
+ * toda camada do inventário da SPEC §22.14 item 6: um caso por tipo.
+ */
+const FOCAVEIS_FORA = `a[href], button, input, select, textarea, [tabindex]`;
+
+/**
+ * A camada aberta é modal de verdade: `aria-modal="true"`, nenhum focável fora
+ * dela sem `inert` (os avisos `aria-live` e as sentinelas do Radix ficam de
+ * fora) e o Tab — para frente e para trás — não sai dela.
+ */
+async function conferirCamadaModal(page: Page, seletor: string): Promise<void> {
+  const camada = page.locator(seletor);
+  await expect(camada).toBeVisible();
+  await expect(camada).toHaveAttribute("aria-modal", "true");
+  const soltos = await page.evaluate(
+    ([sel, focaveis]) => {
+      const no = document.querySelector(sel)!;
+      return [...document.querySelectorAll<HTMLElement>(focaveis)]
+        .filter(
+          (el) =>
+            !no.contains(el) &&
+            !el.contains(no) &&
+            !el.closest("[aria-live]") &&
+            !el.hasAttribute("data-radix-focus-guard") &&
+            el.getClientRects().length > 0 &&
+            el.closest("[inert]") === null,
+        )
+        .map((el) => el.getAttribute("aria-label") ?? el.textContent?.trim() ?? el.tagName);
+    },
+    [seletor, FOCAVEIS_FORA] as const,
+  );
+  expect(soltos, "focáveis fora da camada sem inert").toEqual([]);
+  const dentro = () =>
+    page.evaluate((sel) => {
+      const no = document.querySelector(sel);
+      return !!no && !!document.activeElement && no.contains(document.activeElement);
+    }, seletor);
+  await expect.poll(dentro).toBe(true);
+  for (let i = 0; i < 12; i += 1) {
+    await page.keyboard.press("Tab");
+    expect(await dentro(), `Tab ${i + 1}`).toBe(true);
+  }
+  for (let i = 0; i < 4; i += 1) {
+    await page.keyboard.press("Shift+Tab");
+    expect(await dentro(), `Shift+Tab ${i + 1}`).toBe(true);
+  }
+}
+
+async function contarInertes(page: Page): Promise<number> {
+  return page.evaluate(() => document.querySelectorAll("[inert]").length);
+}
+
+const ALERTA = '[role="alertdialog"]';
+const RESUMO = '[data-slot="dialog-content"]';
+
+test.describe("§22.14 item 6 — alerta e diálogo dentro da Visão geral seguem a regra da folha", () => {
+  for (const tema of TEMAS) {
+    test(`'Descartar este treino?' e o resumo do fim: Esc e o voltar fecham só a camada, o foco volta ao gatilho (${tema})`, async ({
+      page,
+    }) => {
+      await preparar(page, tema);
+      await esperarAbaTreino(page);
+      await comecarOTreinoDoDia(page);
+      await abrirVisaoGeral(page);
+      const geral = page.locator(VISAO_GERAL);
+      await expect(geral).toBeVisible();
+      const descartar = geral.getByRole("button", { name: "Descartar este treino", exact: true });
+      const concluir = geral.getByRole("button", { name: "Concluir", exact: true });
+
+      for (const [gatilho, seletor] of [
+        [descartar, ALERTA],
+        [concluir, RESUMO],
+      ] as const) {
+        for (const modo of ["Esc", "voltar"] as const) {
+          await gatilho.focus();
+          await page.keyboard.press("Enter");
+          await conferirCamadaModal(page, seletor);
+          const url = page.url();
+          const indice = await indiceDaNavegacao(page);
+          if (modo === "Esc") await page.keyboard.press("Escape");
+          else await page.evaluate(() => window.history.back());
+          await expect(page.locator(seletor), `${seletor} ${modo}`).toHaveCount(0);
+          // só a camada fechou: a Visão geral continua, com o foco no gatilho
+          await expect(geral).toBeVisible();
+          await expect(gatilho, `${seletor} ${modo}`).toBeFocused();
+          expect(await contarInertes(page)).toBe(0);
+          expect(page.url()).toBe(url);
+          await expect.poll(() => indiceDaNavegacao(page)).toBe(indice);
+        }
+      }
+      await semRolagemHorizontal(page);
+    });
+  }
+
+  test("camadas empilhadas: o alerta some com o resumo já aberto e o fundo continua inerte", async ({
+    page,
+  }) => {
+    await preparar(page);
+    await esperarAbaTreino(page);
+    await comecarOTreinoDoDia(page);
+    await abrirVisaoGeral(page);
+    const geral = page.locator(VISAO_GERAL);
+    const descartar = geral.getByRole("button", { name: "Descartar este treino", exact: true });
+    await descartar.focus();
+    await page.keyboard.press("Enter");
+    await expect(page.locator(ALERTA)).toBeVisible();
+    // "Descartar este treino" do alerta abre o resumo do fim (abandonado)
+    await page.locator(ALERTA).getByRole("button", { name: "Descartar este treino" }).click();
+    await expect(page.locator(ALERTA)).toHaveCount(0);
+    await expect(page.locator(RESUMO)).toBeVisible();
+    // o alerta fechou por baixo do resumo: o fundo não pode ter sido liberado
+    await conferirCamadaModal(page, RESUMO);
+    await page.keyboard.press("Escape");
+    await expect(page.locator(RESUMO)).toHaveCount(0);
+    // o botão do alerta sumiu: o foco volta a quem abriu o alerta
+    await expect(descartar).toBeFocused();
+    expect(await contarInertes(page)).toBe(0);
+  });
+});
+
+test.describe("§22.14 item 6 — a foto ampliada e o 'Apagar esta foto?' seguem a regra da folha", () => {
+  test("foto ampliada da ficha: aria-modal, fundo inerte, Tab preso, Esc devolve o foco", async ({
+    page,
+  }) => {
+    await preparar(page);
+    await abrirFicha(page, SUPINO);
+    const gatilho = page.getByRole("button", { name: /Ampliar a foto do início/ });
+    await gatilho.focus();
+    await page.keyboard.press("Enter");
+    await conferirCamadaModal(page, '[role="dialog"]');
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await expect(gatilho).toBeFocused();
+    expect(await contarInertes(page)).toBe(0);
+  });
+
+  for (const tema of TEMAS) {
+    test(`Corpo → Fotos: a foto e o cartão por cima, cada um fecha só a si (${tema})`, async ({
+      page,
+    }) => {
+      await preparar(page, tema, QUARTA);
+      await irNaAba(page, "Corpo");
+      await expect(page.getByRole("heading", { name: "Corpo", exact: true })).toBeVisible();
+      await page.getByRole("tab", { name: "Fotos" }).click();
+      await page.getByLabel("Foto de frente").setInputFiles({
+        name: "frente.png",
+        mimeType: "image/png",
+        buffer: PNG_16,
+      });
+      const gatilho = page.getByRole("button", { name: /Ver a foto: Frente/ });
+      await gatilho.focus();
+      await page.keyboard.press("Enter");
+      const FOTO = '[role="dialog"][aria-label="Frente em 16/09"]';
+      await conferirCamadaModal(page, FOTO);
+      const apagar = page.locator(FOTO).getByRole("button", { name: "Apagar", exact: true });
+
+      // o cartão por cima da foto: a foto fica inerte embaixo, o foco nasce no Cancelar
+      for (const fecha of ["Esc", "toque fora", "Cancelar"] as const) {
+        await apagar.focus();
+        await page.keyboard.press("Enter");
+        await expect(page.locator(ALERTA).getByRole("button", { name: "Cancelar" })).toBeFocused();
+        await conferirCamadaModal(page, ALERTA);
+        if (fecha === "Esc") await page.keyboard.press("Escape");
+        // entre a foto e o cartão, fora do aviso "Foto de frente guardada." do topo
+        else if (fecha === "toque fora") await page.mouse.click(180, 580);
+        else await page.locator(ALERTA).getByRole("button", { name: "Cancelar" }).click();
+        await expect(page.locator(ALERTA), fecha).toHaveCount(0);
+        // só o cartão fechou: a foto continua modal, e o foco volta ao "Apagar"
+        await expect(page.locator(FOTO)).toBeVisible();
+        await expect(apagar, fecha).toBeFocused();
+        await conferirCamadaModal(page, FOTO);
+      }
+
+      await page.keyboard.press("Escape");
+      await expect(page.locator(FOTO)).toHaveCount(0);
+      await expect(gatilho).toBeFocused();
+      expect(await contarInertes(page)).toBe(0);
+      await semRolagemHorizontal(page);
+    });
+  }
+});
+
 /* ----------------------- item 11: o anel do botão primário se destaca */
 
 /**
