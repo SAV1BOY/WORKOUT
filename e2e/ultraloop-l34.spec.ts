@@ -712,15 +712,15 @@ test("a troca da permissão avisada pelo navegador (permissions change) também 
   await expect(page.locator("[data-instrucao]")).toHaveCount(0);
 });
 
-/* Cada ouvinte da volta sozinho: `focus` e `pageshow` (o `visibilitychange` está acima, nos dois temas). */
+/* Cada ouvinte da volta sozinho: `focus` e `pageshow`, nos dois temas (§23.7 item 7; o `visibilitychange` está acima). */
 const OUTRAS_VOLTAS = {
   focus: () => window.dispatchEvent(new FocusEvent("focus")),
   pageshow: () => window.dispatchEvent(new PageTransitionEvent("pageshow", { persisted: true })),
 } as const;
 
-for (const evento of Object.keys(OUTRAS_VOLTAS) as (keyof typeof OUTRAS_VOLTAS)[]) {
-  test(`liberada nas configurações, a volta por ${evento} sozinho mostra o Ativar`, async ({ page, baseURL }) => {
-    await preparar(page, "light", { aparelho: aparelhoNovo(), semPermissionsApi: true }, false);
+for (const tema of TEMAS) for (const evento of Object.keys(OUTRAS_VOLTAS) as (keyof typeof OUTRAS_VOLTAS)[]) {
+  test(`${tema}: liberada nas configurações, a volta por ${evento} sozinho mostra o Ativar`, async ({ page, baseURL }) => {
+    await preparar(page, tema, { aparelho: aparelhoNovo(), semPermissionsApi: true }, false);
     const origem = new URL(baseURL ?? "").origin;
     await negarDeVerdade(page, origem);
     await esperarServiceWorker(page);
@@ -778,10 +778,11 @@ function leituras(page: Page): Promise<number> {
  */
 const TENTATIVAS_SEM_REDE = 4;
 
-test("a volta sem internet mantém a frase do aparelho (não troca pelo aviso da lista)", async ({ page }) => {
+for (const tema of TEMAS) {
+test(`${tema}: a volta sem internet mantém a frase do aparelho (não troca pelo aviso da lista)`, async ({ page }) => {
   await preparar(
     page,
-    "light",
+    tema,
     { aparelho: aparelhoNovo(), brave: true, negar: true, semPermissionsApi: true, leituraSemRede: true },
     false,
   );
@@ -801,8 +802,8 @@ test("a volta sem internet mantém a frase do aparelho (não troca pelo aviso da
   await expect(page.locator('[data-instrucao="brave"]')).toBeVisible();
 });
 
-test("sem frase do aparelho, o aviso da lista aparece sem internet e sai na volta com internet", async ({ page }) => {
-  await preparar(page, "light", { aparelho: aparelhoNovo(), semPermissionsApi: true, leituraSemRede: true });
+test(`${tema}: sem frase do aparelho, o aviso da lista aparece sem internet e sai na volta com internet`, async ({ page }) => {
+  await preparar(page, tema, { aparelho: aparelhoNovo(), semPermissionsApi: true, leituraSemRede: true });
   await esperarServiceWorker(page);
   await page.goto("/mais/lembretes");
   await expect(estado(page)).toHaveText("Desativado neste aparelho.");
@@ -819,6 +820,7 @@ test("sem frase do aparelho, o aviso da lista aparece sem internet e sai na volt
   await expect(aviso(page)).toHaveCount(0);
   await expect(estado(page)).toHaveText("Desativado neste aparelho.");
 });
+}
 
 /* ------------------------------ §23.7 item 5: a frase na primeira dobra */
 
@@ -873,6 +875,9 @@ for (const tema of TEMAS) {
     await expect(page.getByRole("button", { name: /Ativar|Enviar/ })).toHaveCount(0);
     await expect(page.locator("[data-instrucao]")).toHaveCount(0);
     await expect(aviso(page)).toHaveCount(0);
+    // §23.9: sem a tabela de inscrições, os horários e o calendário continuam
+    await expect(page.getByRole("switch", { name: "Lembrete do treino" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Adicionar ao meu calendário" })).toBeEnabled();
     await alvosDe44(page);
     await semRolagemHorizontal(page);
   });
@@ -950,8 +955,19 @@ test.describe("sem as variáveis VAPID (um segundo next start, do mesmo build)",
       );
       await expect(page.getByRole("button", { name: /Ativar|Enviar/ })).toHaveCount(0);
       await expect(page.locator("[data-instrucao]")).toHaveCount(0);
+      // §23.9: sem as variáveis VAPID, os horários gravam e o calendário baixa
+      const treino = page.getByRole("switch", { name: "Lembrete do treino" });
+      await treino.click();
+      await expect(treino).toHaveAttribute("aria-checked", "true");
+      await expect(page.locator("[data-recado-horarios]")).toHaveText("Horários salvos.");
+      const [baixado] = await Promise.all([
+        page.waitForEvent("download"),
+        page.getByRole("button", { name: "Adicionar ao meu calendário" }).click(),
+      ]);
+      expect(baixado.suggestedFilename()).toBe("treino-do-terraco.ics");
       await alvosDe44(page);
       await semRolagemHorizontal(page);
+      await page.screenshot({ path: `test-results/l35-sem-vapid-${tema}.png`, fullPage: true });
 
       const resposta = await page.request.post(`${urlSemVapid}/api/lembretes/teste`);
       expect(resposta.status()).toBe(503);
