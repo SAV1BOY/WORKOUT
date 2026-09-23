@@ -580,5 +580,56 @@
       "script de fumaca: marcador de /exercicios nao esta no chunk da pagina (esta nos chunks compartilhados 1203 e 9963); passou a seguir o grafo de modulos",
       "lista de menores da auditoria 2 chegou cortada do orquestrador; registrados os 5 recebidos"
     ]
+  },
+  {
+    "rodada": 13,
+    "data": "2026-09-23",
+    "hora_merge_utc": "07:23",
+    "hora_no_ar_utc": "07:25:34",
+    "duracao_min": 2,
+    "lotes": [
+      "L13-ficha-midia"
+    ],
+    "merges": [
+      "b27846a"
+    ],
+    "commit_auditoria": "18da577a1a7b5d558791855fc43b9cf58a9c17cd",
+    "pr": "https://github.com/SAV1BOY/WORKOUT/pull/21",
+    "main_sha": "a0bcfcf7bb6e0bf20f9c8894a9c28a9fc9afde4d",
+    "deployment_anterior": "dpl_J3FTSmxbXnhjUaGY5xbbg1tjiuYS",
+    "deployment_novo": "dpl_21Gkk1PeE5mQsknsdVCnbHHopfo2",
+    "versao_prod": "a0bcfcf7bb6e0bf20f9c8894a9c28a9fc9afde4d",
+    "versao_anterior": "763598ac86bddb1f12a1c107687ed3c3daef4863",
+    "css_login": "/_next/static/css/903fc57007f0a2ff.css -> /_next/static/css/9e6c9d2acce91a00.css",
+    "portoes": {
+      "lint": "limpo",
+      "tsc": "limpo",
+      "unitarios": 1506,
+      "e2e": 477,
+      "e2e_pulados": 5,
+      "varredura": "5/5",
+      "build": "Compiled successfully",
+      "e2e_repetido_na_integracao": false,
+      "integracao": "18da577: lint limpo, tsc limpo, 66 arquivos / 1506 testes"
+    },
+    "conflito_merge": "nenhum (integracao == origin/main 763598a; arvore unida == b5d9db5)",
+    "fumaca": {
+      "itens": 18,
+      "ok": 18,
+      "falhou": 0,
+      "execucoes": 3,
+      "execucoes_verdes_completas": 3,
+      "detalhe": "/login 200 + 'Treino do Terraco' + 'Entrar' + sem 'Configure NEXT_PUBLIC_SUPABASE_URL' + sem 'e secreta'; / -> 307 /login; /versao == sha; /sw.js 200 + /~offline + figuras/ + mesmo css; /manifest.webmanifest 200 + 'Treino do Terraco'; /~offline 200; 14 scripts 200; marcadores pelo grafo de modulos a partir do chunk da ficha app/(app)/exercicios/[id]/page-ff6df15d91c7fa46.js (33 chunks): chunk 2246-39655f92d5ce7921.js com 'Parar a anima' e 'data-figura'",
+      "falhas_do_script": "nenhuma"
+    },
+    "sonda_360": "OK — /login e /~offline sem erro de console, scrollWidth 360 = clientWidth",
+    "capturas": "06/07/09/10 claro e escuro de r13/l13/capturas-c58f69d copiados para base-ef3ad97; indice.json head=a0bcfcf; wt-base nao avancado",
+    "migracao_banco": "nenhuma",
+    "rollback": "nao",
+    "problemas": [
+      "sonda-360.cjs rodada do scratchpad nao acha o modulo playwright; rodada a partir de uma copia temporaria na raiz do repo (removida)",
+      "lista de menores e de itens feitos chegou cortada do orquestrador; menores transcritos dos veredito.json das auditorias 2 (6) e itens do L13 pelos ids do lote planejado em docs/ultraloop/fila.json",
+      "fila.json esta na versao 3 (o pedido falava em versao 2); atualizado no formato v3"
+    ]
   }
 ]

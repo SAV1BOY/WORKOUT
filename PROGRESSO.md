@@ -6380,6 +6380,29 @@ Exercícios, toque em "Filtros", escolha Peito e "No meu programa" e toque em
 "Ver N exercícios" (N é quantos sobraram). Nada de banco mudou. Produção serve `1b37092`, igual à
 `main`, com fumaça verde (18 de 18) e **sem rollback**.
 
+**Rodada 13 no ar (23/09, 07:25 UTC — 04:25 em Brasília).** É o lote 13: a
+ficha do exercício mostra a figura e as fotos do jeito certo, e as coleções
+do Explorar ficaram arrumadas.
+
+- **A figura do exercício aparece inteira e grande.** A caixa tem o formato
+  do desenho: o agachamento goblet, que era um boneco espremido, ocupa a
+  altura toda; a prancha ocupa a largura toda.
+- **As fotos aparecem inteiras**, na proporção da foto, com "Início" e "Fim"
+  embaixo. As fotos em pé (búlgaro, barras fixas) não são mais cortadas.
+- **Tocar na figura do player abre o "Como fazer"**; para parar a animação,
+  use o botãozinho redondo no canto. Ao passar para o próximo exercício com
+  a ficha aberta, a figura recomeça do início.
+- **Planos com as semanas.** Em Explorar → Planos, "5 km sem parar" e "Corda:
+  5 estágios" mostram a lista das semanas (feitas, a atual e as próximas) e a
+  barra do quanto já foi. As linhas do Explorar têm a mesma altura em cada
+  seção.
+
+Como ver no celular: abra Explorar → Exercícios → "goblet" e veja a figura
+alta e centrada, com o botão de pausa no canto; role até as fotos do supino
+reto, inteiras com "Início" e "Fim"; depois Explorar → Planos → "5 km sem
+parar" e veja as 12 semanas. Nada de banco mudou. Produção serve `a0bcfcf`,
+igual à `main`, com fumaça verde (18 de 18) e **sem rollback**.
+
 **Encerramento (10:25 UTC de 21/09, 07:25 em Brasília).** A pedido do dono, o loop parou com tudo o que estava 100 % aprovado já publicado: produção serve `8830fe5`, igual à `main`, com oito lotes no ar (L1–L6, L8 e L9) em seis deploys, todos com fumaça verde na primeira execução e nenhum rollback. Nenhuma migração de banco foi aplicada nesta madrugada. Desde o ponto de partida (`c82b744`) foram 71 commits e 181 arquivos alterados (+14.006/−1.169 linhas); os portões do head publicado são 1.378 testes unitários, 403 de ponta a ponta e a varredura das 30 telas nos dois temas. A auditoria de fechamento (regressão total contra a base inicial) foi interrompida antes de terminar; cada lote publicado já havia sido comparado contra a base do deploy anterior na própria auditoria. O que não coube está na seção **Fila (o que não coube)** abaixo, em ordem de prioridade, pronto para as próximas rodadas. Atualização (rodada 7, 12:11 UTC): o lote 7 entrou em produção em `d696b33`, nove lotes no ar, sete deploys, nenhum rollback; o loop está encerrado e nada ficou agendado.
 
 ### Como funcionou
@@ -7855,26 +7878,26 @@ Nenhuma migração de banco. **Rollback: não.**
 
 **O que a reconciliação corrigiu na lista antiga (texto de 21/09, abaixo substituído):** o L7 aparecia como pendente e está publicado (PR #13); C tinha 63 numa fonte e 64 noutra (o 64º é o R9-C1, que também estava em D — agora uma entrada só); os seis itens de D não estavam no JSON; `lotes_propostos_ordem` começava por lotes já publicados; os dez itens do antigo "L12 superfícies" já estavam publicados pelos lotes 3 e 4 (com prova); 46 achados da remontagem das superfícies e 27 achados da análise nunca tinham entrado na fila — entraram; o nome L12 passou a ser o lote de Explorar e catálogo.
 
-**Contagens em 2026-09-23T01:51Z (depois do L12):**
+**Contagens em 2026-09-23T09:25Z:**
 
 | seção | pendente | publicado | descartado |
 | --- | ---: | ---: | ---: |
-| B | 87 | 14 | 17 |
-| C | 39 | 8 | 0 |
+| B | 77 | 24 | 17 |
+| C | 47 | 8 | 0 |
 | D | 5 | 0 | 0 |
 | legado | 0 | 77 | 1 |
-| **total** | **131** | **99** | **18** |
+| **total** | **129** | **109** | **18** |
 
 Dos descartados, **7 dependem de decisão do dono** e voltam à fila se a resposta for sim (atualização do app com aviso, uso do laranja, Relatório somado no banco, destaque do Explorar, filtros Core/Cardio, faixa da semana com sete destinos, resumo curto dos planos) — perguntas em `docs/ultraloop/perguntas-ao-dono.md`.
 
-**A. (publicado)** O lote 7 — aba Treino entrou em produção na rodada 7 (`d696b33`). **L12 (publicado)** Explorar e catálogo, rodada 11 (`1b37092`, PR #19).
+**A. (publicado)** O lote 7 — aba Treino entrou em produção na rodada 7 (`d696b33`). **L12 (publicado)** Explorar e catálogo, rodada 11 (`1b37092`, PR #19). **L13 (publicado)** Ficha: mídia e interação; coleções do Explorar, rodada 13 (`a0bcfcf`, PR #21): os 10 itens foram para resolvidos; três observações não feitas entraram em C como pendentes (`C-l13-aceite-lcp-vs-ordem`, `C-plano-progresso-repete-desafio`, `C-busca-corda-capa-icone`) e o H1 → H3 da ficha ficou como nota no `tela-explorar-fichas-21` (L14), que já o cobre.
 
 **Plano dos lotes restantes** (ordem do dono: ficha, Corpo, casca/superfícies, C por área, D por último; regra de lote: 6–10 itens, até 3 médios, até 12 arquivos, uma área — exceção só com motivo escrito —, até 6 telas):
 
 | lote | título | itens | ids |
 | --- | --- | ---: | --- |
-| L13 | Ficha: mídia e interação; coleções do Explorar | 10 | imagens-01, imagens-12, imagens-13, performance-13, ux-heuristicas-21, tela-explorar-fichas-18, tela-explorar-fichas-08, tela-explorar-fichas-13, tela-explorar-fichas-11, visual-11 |
 | L14 | Ficha: conteúdo e ações; nomes do catálogo e créditos | 10 | tela-explorar-fichas-19, tela-explorar-fichas-20, tela-explorar-fichas-21, tela-explorar-fichas-26, flutuante-no-dialogo-da-foto, a11y-05, copy-13, copy-25, OBS-elastico-x-super-band, copy-08 |
+| L32 | Sobras das auditorias: ficha e coleções do Explorar | 8 | C-l13-key-musculos-sem-teste, C-media-grande-figura-quebrou-herdada, C-alt-execucao-genero, C-l13-aceite-lcp-vs-ordem, C-busca-linha-reservada-vazia, C-busca-corda-capa-icone, C-plano-progresso-repete-desafio, C-plano-lista-canto-reto |
 | L15 | Corpo: peso, gráficos e campo de data | 6 | a11y-01, tela-relatorio-corpo-calendario-12, tela-relatorio-corpo-calendario-14, tela-relatorio-corpo-calendario-19, tela-relatorio-corpo-calendario-13, tela-relatorio-corpo-calendario-11 |
 | L16 | Corpo: medidas, fotos, data no celular e um verbo só para salvar | 6 | tela-relatorio-corpo-calendario-17, tela-relatorio-corpo-calendario-18, tela-relatorio-corpo-calendario-16, a11y-14, D-input-date-pt-br, copy-28 |
 | L17 | Casca: carregamento, rotas pesadas, zoom e bloco de sincronização | 6 | C-loading-por-rota, C-next-dynamic-rotas-pesadas, C-nav-inferior-zoom-200, a11y-16, visual-19, copy-17 |
@@ -9857,3 +9880,30 @@ Menores registrados (ficam na fila, nenhum quebra o aceite):
   "Tríceps", "Cross over de parede" e "Tatame EVA" com um vão de ~20 px). A
   §22.13 item 7 pede a reserva em todas as linhas, mas na busca a altura já
   varia de 72 a 122 px e a reserva só deixa o buraco. Cosmético.
+
+**Deploy (rodada 13, 23/09 07:25 UTC).** Publicado. Deployment anterior
+`dpl_J3FTSmxbXnhjUaGY5xbbg1tjiuYS` → novo `dpl_21Gkk1PeE5mQsknsdVCnbHHopfo2`;
+`main` passou de `763598a` para `a0bcfcf7bb6e0bf20f9c8894a9c28a9fc9afde4d`
+(PR #21; merge do lote na integração `b27846a`, sem conflito, árvore idêntica
+a `b5d9db5`, mais o veredito da auditoria `18da577`) e `/versao` devolveu esse
+sha às 07:25:34, ~1,7 min depois do merge (build de 07:24:36Z). O CSS de
+`/login` mudou de `903fc57007f0a2ff` para `9e6c9d2acce91a00`. Portão final na
+integração: `lint` e `tsc --noEmit` limpos, 66 arquivos / 1.506 testes
+verdes; e2e não repetido (código idêntico a `b5d9db5`: 477 e2e, 5 pulados,
+varredura 5/5).
+
+Fumaça em produção **18 de 18** nas três execuções (07:25, 07:27 e 07:28 UTC,
+≥ 40 s entre elas), item a item: `/login` 200 · com "Treino do Terraço" · com
+"Entrar" · sem "Configure NEXT_PUBLIC_SUPABASE_URL" · sem "é secreta" · `/` →
+307 · para `/login` · `/versao` == sha do merge · `/sw.js` 200 · com
+`/~offline` · com `figuras/` · com o mesmo CSS do HTML de `/login` ·
+`/manifest.webmanifest` 200 · com "Treino do Terraço" · `/~offline` 200 · os
+14 scripts `/_next/static` de `/login` 200 · marcadores do lote pelo grafo de
+módulos a partir do chunk da ficha (`app/(app)/exercicios/[id]/page-ff6df15d91c7fa46.js`,
+33 chunks): o rótulo da pausa "Parar a anima…" e `data-figura` estão no
+chunk compartilhado `2246-39655f92d5ce7921.js`. Sonda a 360×740 (Chromium):
+`/login` e `/~offline` sem erro de console e sem vazamento horizontal
+(scrollWidth 360 = clientWidth). Capturas: 06/07/09/10 (claro e escuro) de
+`capturas-c58f69d` viraram a base visual (`base-ef3ad97`, `indice.json` com
+head `a0bcfcf`; wt-base não avançado). Nenhuma migração de banco.
+**Rollback: não.**
