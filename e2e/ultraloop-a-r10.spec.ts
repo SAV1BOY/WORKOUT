@@ -348,6 +348,23 @@ test.describe("B e C — linhas de coleção e o motivo da busca (itens 2 e 3)",
       achadas.locator('[data-colecao="treino:A1"] [data-linha="motivo"]'),
     ).toHaveText("contém Supino reto com barra");
 
+    // 4 termos em 3 exercícios: o motivo aparece inteiro, o 3º nome não some
+    // (auditoria 1 da rodada 11: o corte em 2 linhas escondia "Supino declinado")
+    await busca.fill("sentado panturrilha barra declinado");
+    const cavalete = achadas.locator('[data-colecao="aparelho:cavalete"] [data-linha="motivo"]');
+    await expect(cavalete).toHaveText(
+      "contém Desenvolvimento sentado com barra, Elevação de panturrilha em pé e Supino declinado com barra",
+    );
+    const escondidos = await achadas.locator('[data-linha="motivo"]').evaluateAll((els) =>
+      els.filter((el) => el.scrollHeight > el.clientHeight + 1).map((el) => el.textContent ?? ""),
+    );
+    expect(escondidos, "motivo com texto escondido a 360 px").toEqual([]);
+    const linhasDoMotivo = await cavalete.evaluate(
+      (el) => el.getBoundingClientRect().height / parseFloat(getComputedStyle(el).lineHeight),
+    );
+    // o que o corte escondia: a frase precisa de 3 linhas a 360 px
+    expect(Math.round(linhasDoMotivo)).toBeGreaterThanOrEqual(3);
+
     // busca sem nada: um vazio só
     await busca.fill("zzzz");
     await expect(page.locator('[data-slot="vazio"]')).toHaveCount(1);
@@ -382,6 +399,110 @@ test.describe("D — planos: título curto e a posição do perfil (item 4)", ()
     await page.waitForURL(/\/explorar\/plano\//);
     await expect(page.getByText("semana 3 de 12", { exact: true })).toBeVisible();
   });
+});
+
+/*
+ * Sem perfil (o perfil ainda não chegou): o objetivo do JSON já diz o prazo de
+ * barra fixa e corrida, a linha não tem meta e o subtítulo aparece inteiro —
+ * cortado numa linha, a 360 px, escondia justamente "8–12 semanas" e "12
+ * semanas" (auditoria 1 da rodada 11). Contexto novo, sem o IndexedDB em que o
+ * cache do TanStack guarda o perfil, com o pedido do perfil segurado e o
+ * service worker bloqueado (o que ele serve não passa por `route`).
+ */
+test.describe("D — planos sem perfil: o prazo aparece uma vez, inteiro (item 4)", () => {
+  for (const tema of ["light", "dark"] as const) {
+    test(`barra fixa e corrida sem meta e com o prazo visível no subtítulo — ${tema}`, async ({
+      page,
+      browser,
+      baseURL,
+    }) => {
+      await preparar(page);
+      const estado = await page.context().storageState();
+      const ctx = await browser.newContext({
+        baseURL,
+        storageState: estado,
+        serviceWorkers: "block",
+        viewport: { width: 360, height: 740 },
+        locale: "pt-BR",
+        timezoneId: "America/Sao_Paulo",
+        colorScheme: tema,
+      });
+      try {
+        let pedidos = 0;
+        // o perfil nunca chega: o pedido fica segurado
+        await ctx.route(/\/rest\/v1\/profiles/, () => {
+          pedidos += 1;
+        });
+        const semPerfil = await ctx.newPage();
+        await semPerfil.goto("/explorar");
+        const planos = semPerfil.getByRole("region", { name: "Planos" });
+        await expect(planos.locator('[data-colecao^="plano:"]')).toHaveCount(3);
+        await expect.poll(() => pedidos, { message: "o perfil foi pedido" }).toBeGreaterThan(0);
+
+        const linhas = await planos
+          .locator('[data-colecao="plano:barra_fixa"], [data-colecao="plano:corrida"]')
+          .evaluateAll((els) =>
+            els.map((el) => {
+              const sub = el.querySelector<HTMLElement>('[data-linha="subtitulo"]');
+              const texto = sub?.textContent ?? "";
+              const achado = /\d+(?:–\d+)?\s*semanas/.exec(texto);
+              let prazoVisivel = false;
+              const no = sub ? [...sub.childNodes].find((n) => n.nodeType === 3) : undefined;
+              if (sub && achado && no) {
+                const faixa = document.createRange();
+                faixa.setStart(no, achado.index);
+                faixa.setEnd(no, achado.index + achado[0].length);
+                const r = faixa.getBoundingClientRect();
+                const caixa = sub.getBoundingClientRect();
+                prazoVisivel =
+                  r.width > 0 &&
+                  r.top >= caixa.top - 0.5 &&
+                  r.bottom <= caixa.bottom + 0.5 &&
+                  r.right <= caixa.right + 0.5;
+              }
+              return {
+                id: el.getAttribute("data-colecao"),
+                meta: el.querySelector('[data-linha="meta"]') !== null,
+                prazo: achado?.[0] ?? null,
+                prazoVisivel,
+                inteiro: sub !== null && sub.scrollHeight <= sub.clientHeight + 1,
+                semanas: ((el as HTMLElement).innerText.match(/semanas/g) ?? []).length,
+              };
+            }),
+          );
+        expect(linhas).toEqual([
+          {
+            id: "plano:barra_fixa",
+            meta: false,
+            prazo: "8–12 semanas",
+            prazoVisivel: true,
+            inteiro: true,
+            semanas: 1,
+          },
+          {
+            id: "plano:corrida",
+            meta: false,
+            prazo: "12 semanas",
+            prazoVisivel: true,
+            inteiro: true,
+            semanas: 1,
+          },
+        ]);
+        // a corda continua com a duração do JSON na meta
+        await expect(
+          planos.locator('[data-colecao="plano:corda"] [data-linha="meta"]'),
+        ).toHaveText(/^12 semanas/);
+        // a linha sem meta não fica mais alta que a da corda, que tem meta
+        const alturas = await planos
+          .locator('[data-colecao^="plano:"]')
+          .evaluateAll((els) => els.map((el) => Math.round(el.getBoundingClientRect().height)));
+        expect(Math.max(...alturas) - Math.min(...alturas)).toBeLessThanOrEqual(1);
+        await semRolagemHorizontal(semPerfil);
+      } finally {
+        await ctx.close();
+      }
+    });
+  }
 });
 
 test.describe("E — títulos em degraus (itens 5 e 6)", () => {
@@ -429,31 +550,40 @@ test.describe("E — títulos em degraus (itens 5 e 6)", () => {
 });
 
 test.describe("F — desafios: uma fonte só para o CTA (item 7)", () => {
-  test("Treino e Explorar mostram o mesmo CTA para o mesmo desafio", async ({ page }) => {
-    // domingo, 20/09: sem treino de força — o destaque do Explorar é um plano
-    await preparar(page, {}, "2026-09-20T08:00:00-03:00");
-    await page.goto("/explorar");
-    const destaque = page
-      .getByRole("region", { name: "Explorar" })
-      .locator("article[data-capa]")
-      .first();
-    const link = destaque.getByRole("link");
-    await expect(link).toBeVisible();
-    const texto = ((await link.textContent()) ?? "").trim();
-    const href = (await link.getAttribute("href")) ?? "";
-    expect(texto).not.toBe("Fazer a sessão da semana");
+  for (const [dia, quando, rotulo] of [
+    // domingo, 20/09: sem treino de força — o destaque do Explorar é a barra fixa
+    ["domingo 20/09", "2026-09-20T08:00:00-03:00", /^Fazer a sessão de barra fixa$/],
+    // terça, 15/09, dia de cardio: o destaque é a corrida, com a semana do perfil
+    ["terça 15/09, cardio", "2026-09-15T08:00:00-03:00", /^Fazer a corrida da semana \d+$/],
+  ] as const) {
+    test(`Treino e Explorar mostram o mesmo CTA para o mesmo desafio — ${dia}`, async ({
+      page,
+    }) => {
+      await preparar(page, {}, quando);
+      await page.goto("/explorar");
+      const destaque = page
+        .getByRole("region", { name: "Explorar" })
+        .locator("article[data-capa]")
+        .first();
+      const link = destaque.getByRole("link");
+      await expect(link).toBeVisible();
+      const texto = ((await link.textContent()) ?? "").trim();
+      const href = (await link.getAttribute("href")) ?? "";
+      expect(texto).not.toBe("Fazer a sessão da semana");
+      expect(texto).toMatch(rotulo);
 
-    await page.goto("/");
-    await esperarAbaTreino(page);
-    const desafios = page.getByRole("region", { name: "Desafios" });
-    const mesmo = desafios.getByRole("link", { name: texto, exact: true });
-    await expect(mesmo).toHaveCount(1);
-    await expect(mesmo).toHaveAttribute("href", href);
-    // e os três CTAs do carrossel são distintos (cada um diz o destino)
-    const rotulos = await desafios.locator("li[data-desafio] a").allTextContents();
-    expect(rotulos).toHaveLength(3);
-    expect(new Set(rotulos.map((r) => r.trim())).size).toBe(3);
-  });
+      await page.goto("/");
+      await esperarAbaTreino(page);
+      const desafios = page.getByRole("region", { name: "Desafios" });
+      const mesmo = desafios.getByRole("link", { name: texto, exact: true });
+      await expect(mesmo).toHaveCount(1);
+      await expect(mesmo).toHaveAttribute("href", href);
+      // e os três CTAs do carrossel são distintos (cada um diz o destino)
+      const rotulos = await desafios.locator("li[data-desafio] a").allTextContents();
+      expect(rotulos).toHaveLength(3);
+      expect(new Set(rotulos.map((r) => r.trim())).size).toBe(3);
+    });
+  }
 
   test("a página do plano mostra o mesmo CTA do desafio: rótulo e destino", async ({
     page,
