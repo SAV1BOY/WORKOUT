@@ -2971,8 +2971,13 @@ testada no Vitest):
   resolvida pelo parser de URL contra uma origem fixa, continua nessa mesma
   origem — o parser apaga TAB, LF e CR, então `"/\t/outro.host"` vira
   `//outro.host` e cai fora. O que vale é devolvido como caminho + busca +
-  âncora; qualquer outra coisa vira `/`. Corpo que não é JSON vira o texto da
-  notificação.
+  âncora **e a saída é conferida de novo**: o parser também desfaz `.`, `..`
+  e `%2e`, então `"/.//outro.host"`, `"/a/..//outro.host"` e
+  `"/%2e//outro.host"` passam pela entrada mas saem `//outro.host` (outro
+  host) — um caminho devolvido que começa com `//` vira `/`. Assim a saída
+  sempre fica na origem e é idempotente (`urlInterna(urlInterna(x)) ===
+  urlInterna(x)`); qualquer outra coisa vira `/`. Corpo que não é JSON vira o
+  texto da notificação.
 - **`notificationclick`**: fecha a notificação, procura uma aba do app já
   aberta e a leva para `data.url` (e tenta dar foco); sem aba aberta, abre
   uma nova em `data.url`.
@@ -2997,8 +3002,9 @@ aparelho** (`estadoDoAparelho()`, pura), um de:
   chave pública) e grava a linha **com o `user_id` da sessão** (23.2).
   Permissão recusada ou dispensada, ou inscrição que falha, mostram a frase
   do que houve **e sempre ao menos uma instrução** (23.6) — nunca um erro
-  técnico e nunca a frase sozinha. A frase fica **logo abaixo do estado,
-  acima das instruções**, dentro do bloco "Este aparelho": mesmo com duas
+  técnico e nunca a frase sozinha. A frase fica **abaixo do estado (e do
+  botão Ativar/Desativar, quando há botão), acima das instruções**, dentro
+  do bloco "Este aparelho": mesmo com duas
   instruções (Brave com a permissão negada) ela aparece na primeira dobra a
   360×740, sem rolar.
 - **A volta das configurações**: quem libera a permissão fora do app (cadeado
@@ -3009,9 +3015,17 @@ aparelho** (`estadoDoAparelho()`, pura), um de:
   "notifications"})` avisa uma troca (`change`), se o navegador tiver essa
   API. Se a permissão mudou desde a última leitura, a frase e a falha
   antigas saem: de "Bloqueado pelo navegador" a tela passa a "Desativado
-  neste aparelho", com o botão Ativar e sem a instrução de liberar. Enquanto
+  neste aparelho", com o botão Ativar e sem a instrução de liberar. Se o
+  aparelho estava ativado, foi bloqueado e voltou a ser liberado, e o
+  navegador manteve a inscrição (e a linha continua na tabela), a tela volta
+  direto a "Ativado neste aparelho" — o Chrome costuma cancelar a inscrição ao
+  bloquear, e aí o caminho é o do Ativar. Enquanto
   um Ativar/Desativar/Remover/teste está em andamento, a volta não relê (o
   pedido de permissão do próprio navegador também tira e devolve o foco).
+  Se a volta não consegue ler a lista (sem internet), a frase do aparelho
+  fica como estava — só sem frase do aparelho aparece "Não deu para ler os
+  aparelhos agora.", na lista — e esse aviso sai na próxima leitura que der
+  certo.
 - **Desativar**: apaga a linha e cancela a inscrição do navegador.
 - **Aparelhos desta conta**: a lista das inscrições (nome do aparelho e
   "desde dd/mm"), com **"Remover"** em cada uma; remover a deste aparelho
@@ -3061,9 +3075,10 @@ aparece onde o que ela manda fazer **existe no aparelho**:
   os serviços do Google para mensagens push"**, fechar e abrir o Brave e tocar
   em Ativar de novo. Só com `navigator.brave`, **fora do iPhone** (a opção só
   existe no Brave do Android e do computador; no iPhone todo navegador é
-  WebKit e o push só chega pelo app instalado) e só quando a inscrição
-  **falhou** ou a permissão está **negada** — nunca em "sem suporte": ligar
-  essa opção não cria o `PushManager` que falta.
+  WebKit e o push só chega pelo app instalado) e só quando o Ativar
+  **falhou** — a inscrição falhou ou a pergunta da permissão foi dispensada
+  sem escolher — ou a permissão está **negada**; nunca em "sem suporte":
+  ligar essa opção não cria o `PushManager` que falta.
 - **`permissao`** — "O navegador está bloqueando as notificações deste app":
   cadeado (ou ⓘ) ao lado do endereço → Permissões → Notificações → Permitir;
   com o app instalado, Configurações do Android → Apps → Treino do Terraço →
@@ -3072,7 +3087,9 @@ aparece onde o que ela manda fazer **existe no aparelho**:
 - **`permissao-iphone`** — "O iPhone está bloqueando as notificações deste
   app": Ajustes do iPhone → Notificações → Treino do Terraço → ligar
   **"Permitir Notificações"** e voltar ao app. Permissão negada no iPhone (o
-  cadeado e as Configurações do Android não existem lá).
+  cadeado e as Configurações do Android não existem lá). Fora da tela
+  inicial ela vem **depois** da `iphone`: a entrada "Treino do Terraço" nos
+  Ajustes só existe com o app instalado, então instalar é o primeiro passo.
 - **`iphone`** — "No iPhone, os lembretes só chegam com o app instalado":
   Compartilhar → **Adicionar à Tela de Início** e ativar pelo ícone (iOS 16.4
   ou mais novo). iPhone/iPad fora da tela inicial (sem `display-mode:
@@ -3107,7 +3124,7 @@ sim e não; "—" é nenhuma instrução.
 | desativado | · | sim | sim | sim | `tentar` |
 | bloqueado | sim | não | · | · | `brave`, `permissao` |
 | bloqueado | não | não | · | · | `permissao` |
-| bloqueado | · | sim | não | · | `permissao-iphone`, `iphone` |
+| bloqueado | · | sim | não | · | `iphone`, `permissao-iphone` |
 | bloqueado | · | sim | sim | · | `permissao-iphone` |
 | nao-suportado | · | não | · | · | `suporte` |
 | nao-suportado | · | sim | não | · | `iphone` |
@@ -3135,7 +3152,12 @@ quadrado branco); um badge monocromático entra quando houver o desenho.
    traz o `user_id` da sessão, e o mock recusa (`42501`) o insert sem ele.
 2. **Service worker**: Vitest de `opcoesDaNotificacao()` (título, corpo,
    ícone, tag, `lang`, url interna/externa — inclusive `/` + TAB/LF/CR +
-   `/outro.host` —, corpo que não é JSON); e2e — com o
+   `/outro.host` e os segmentos de ponto antes da barra dupla
+   (`/.//outro.host`, `/..//outro.host`, `/a/..//outro.host`,
+   `/%2e//outro.host`, `/./\outro.host`) —, uma varredura de pedaços hostis
+   combinados três a três, com e sem sufixo, em que **toda** saída fica na
+   origem, não começa com `//` nem `/\` e é idempotente, e corpo que não é
+   JSON); e2e — com o
    worker real, um `push` simulado vira notificação com o título e o corpo do
    payload (`registration.getNotifications()`), e o `notificationclick` leva a
    aba aberta para a `url`.
@@ -3178,9 +3200,16 @@ quadrado branco); um badge monocromático entra quando houver o desenho.
    navegador", instrução de liberar, sem Ativar), concede a permissão pelo
    contexto do Playwright, dispara a volta (`visibilitychange`) e vê o
    botão Ativar aparecer e a instrução sumir — com a `navigator.permissions`
-   desligada, para provar o caminho do `visibilitychange` sozinho.
+   desligada, para provar o caminho do `visibilitychange` sozinho; o mesmo
+   com `focus` e com `pageshow`, cada um sozinho; um Ativar demorado com a
+   volta disparada no meio não lê a tabela antes de gravar; e a volta sem
+   internet mantém a frase do aparelho (e, sem frase, o aviso da lista sai
+   quando a internet volta).
 8. **Montagem sem configuração e sem tabela**: e2e que abre a tela num
    segundo `next start` **sem** as variáveis VAPID ("Lembretes ainda não
    configurados neste servidor.", sem botão, e a rota responde 503) e com o
    PostgREST respondendo `PGRST205` para a tabela ("… falta atualizar o
-   banco", sem botão), nos dois temas.
+   banco", sem botão), nos dois temas; e um Vitest da rota
+   (`lib/rota-lembretes-teste.test.ts`, com o cliente do Supabase trocado)
+   que dá 503 `SEM_CONFIGURACAO` sem as variáveis, 401 sem sessão, 503
+   `SEM_TABELA` com o `PGRST205`, 502 com outro erro e 409 sem aparelho.
