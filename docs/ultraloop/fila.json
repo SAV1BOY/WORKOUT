@@ -1,7 +1,7 @@
 {
  "versao": 3,
  "base": "0f730c9",
- "gerado_em": "2026-09-23T17:02Z",
+ "gerado_em": "2026-09-23T17:49Z",
  "estados": [
   "pendente",
   "candidato",
@@ -9,15 +9,15 @@
   "descartado"
  ],
  "contagens": {
-  "itens": 133,
-  "pendente": 133,
+  "itens": 145,
+  "pendente": 145,
   "candidato": 0,
   "resolvidos": 120,
   "descartados": 18,
-  "canonicos": 271,
+  "canonicos": 283,
   "por_secao": {
    "B": {
-    "pendente": 68,
+    "pendente": 80,
     "candidato": 0,
     "publicado": 33,
     "descartado": 17
@@ -41,7 +41,7 @@
     "descartado": 1
    }
   },
-  "lotes_planejados": 19,
+  "lotes_planejados": 21,
   "depende_do_dono": 7,
   "v2_para_v3": {
    "itens": [
@@ -134,7 +134,7 @@
     ]
    }
   },
-  "gerado_em": "2026-09-23T17:02Z"
+  "gerado_em": "2026-09-23T17:49Z"
  },
  "itens": [
   {
@@ -4745,6 +4745,234 @@
    ],
    "duplicatas": [],
    "lote_planejado": "L30"
+  },
+  {
+   "id": "LEM-banco-inscricoes",
+   "secao": "B",
+   "estado": "pendente",
+   "area": "lembretes",
+   "titulo": "Tabela de inscrições de push por aparelho",
+   "detalhe": "FAZER: public.lembretes_inscricoes (id uuid, user_id → auth.users on delete cascade, endpoint text unique, p256dh text, auth text, aparelho text (user agent resumido), criado_em, ultimo_envio_em, falhas int default 0) com RLS: o dono da linha lê, insere e apaga as suas; ninguém lê as de outro. Índice por user_id. ACEITE: teste de migração prova RLS (usuário A não vê nem apaga a inscrição de B), idempotência (rodar 2× não falha) e expand-only (nada de drop/rename); mock ciente.",
+   "arquivos": [],
+   "esforco": "M",
+   "origens": [
+    {
+     "fonte": "dono (conversa de 23/09)",
+     "id_original": "lembretes push no horário editado",
+     "origem": "feature nova aprovada pelo dono; SPEC §23"
+    }
+   ],
+   "duplicatas": [],
+   "lote_planejado": "L34"
+  },
+  {
+   "id": "LEM-sw-push",
+   "secao": "B",
+   "estado": "pendente",
+   "area": "lembretes",
+   "titulo": "Service worker mostra a notificação e abre o app no lugar certo",
+   "detalhe": "FAZER: em app/sw.ts, listeners \"push\" (payload JSON {titulo, corpo, url, tag}; showNotification com ícone do manifest, badge, tag para não empilhar, lang pt-BR) e \"notificationclick\" (foca uma aba do app já aberta e navega para url, ou abre uma nova). Regra pura testada para montar as opções da notificação a partir do payload (lib/). ACEITE: e2e com o worker real recebe um push simulado (worker.evaluate dispara o evento push ou self.registration.showNotification) e prova o título/corpo e o clique levando à url; unitário da regra.",
+   "arquivos": [],
+   "esforco": "P",
+   "origens": [
+    {
+     "fonte": "dono (conversa de 23/09)",
+     "id_original": "lembretes push no horário editado",
+     "origem": "feature nova aprovada pelo dono; SPEC §23"
+    }
+   ],
+   "duplicatas": [],
+   "lote_planejado": "L34"
+  },
+  {
+   "id": "LEM-pagina-lembretes",
+   "secao": "B",
+   "estado": "pendente",
+   "area": "lembretes",
+   "titulo": "Mais → Lembretes: ativar e desativar neste aparelho",
+   "detalhe": "FAZER: nova linha \"Lembretes\" em /mais levando a /mais/lembretes. A tela mostra o estado deste aparelho (ativado / desativado / bloqueado pelo navegador / não suportado / servidor sem configuração) e um botão \"Ativar lembretes neste aparelho\" (Notification.requestPermission + pushManager.subscribe com applicationServerKey = NEXT_PUBLIC_VAPID_PUBLIC_KEY; grava a inscrição na tabela) e \"Desativar neste aparelho\" (unsubscribe + apaga a linha). Lista os aparelhos da conta com \"Remover\". ACEITE: e2e no mock com permissão concedida pelo contexto do Playwright ativa, grava a linha, desativa e apaga; estados de bloqueado e não suportado cobertos; 360 px, dois temas, alvos ≥ 44 px, sem rolagem lateral.",
+   "arquivos": [],
+   "esforco": "M",
+   "origens": [
+    {
+     "fonte": "dono (conversa de 23/09)",
+     "id_original": "lembretes push no horário editado",
+     "origem": "feature nova aprovada pelo dono; SPEC §23"
+    }
+   ],
+   "duplicatas": [],
+   "lote_planejado": "L34"
+  },
+  {
+   "id": "LEM-rota-teste",
+   "secao": "B",
+   "estado": "pendente",
+   "area": "lembretes",
+   "titulo": "Botão \"Enviar um lembrete de teste\"",
+   "detalhe": "FAZER: rota POST /api/lembretes/teste (runtime nodejs) autenticada pela sessão do usuário (cliente de servidor do Supabase com o cookie, RLS lê só as inscrições dele), envia com web-push um payload de teste a cada aparelho dele, remove as inscrições com 404/410 e devolve o resultado por aparelho; a tela mostra \"Enviado para 1 aparelho\" ou o erro em pt-BR. Sem as variáveis VAPID, 503 com mensagem honesta. ACEITE: e2e com servidor de push falso no mock recebe a requisição assinada (confere cabeçalho Authorization vapid e o corpo cifrado não vazio) e a tela mostra o sucesso; inscrição expirada (410) é removida; usuário sem sessão recebe 401.",
+   "arquivos": [],
+   "esforco": "M",
+   "origens": [
+    {
+     "fonte": "dono (conversa de 23/09)",
+     "id_original": "lembretes push no horário editado",
+     "origem": "feature nova aprovada pelo dono; SPEC §23"
+    }
+   ],
+   "duplicatas": [],
+   "lote_planejado": "L34"
+  },
+  {
+   "id": "LEM-instrucoes-navegador",
+   "secao": "B",
+   "estado": "pendente",
+   "area": "lembretes",
+   "titulo": "Instruções quando o navegador bloqueia ou não suporta",
+   "detalhe": "FAZER: quando a inscrição falha ou a permissão está negada, a tela explica o que fazer, detectando o caso: Brave (navigator.brave) → ligar \"Usar os serviços do Google para mensagens push\" em Configurações → Privacidade e segurança e tentar de novo; permissão negada → como liberar nas configurações do site; iPhone fora da tela inicial → instalar o app (Compartilhar → Adicionar à Tela de Início). ACEITE: e2e cobre Brave simulado (navigator.brave) e permissão negada, com os textos em pt-BR.",
+   "arquivos": [],
+   "esforco": "P",
+   "origens": [
+    {
+     "fonte": "dono (conversa de 23/09)",
+     "id_original": "lembretes push no horário editado",
+     "origem": "feature nova aprovada pelo dono; SPEC §23"
+    }
+   ],
+   "duplicatas": [],
+   "lote_planejado": "L34"
+  },
+  {
+   "id": "LEM-spec-23",
+   "secao": "B",
+   "estado": "pendente",
+   "area": "lembretes",
+   "titulo": "SPEC §23 Lembretes no celular e guia",
+   "detalhe": "FAZER: SPEC §23 com o desenho completo (inscrição, teste, horários, disparo, calendário — as partes II entram no próximo lote, marcadas como tal), segurança (sem service role; segredos só no servidor) e aceite; lib/guia.ts (Como usar o app) ganha um passo curto sobre ativar lembretes, vindo dos dados/regra existentes. ACEITE: SPEC e guia descrevem exatamente o código publicado neste lote.",
+   "arquivos": [],
+   "esforco": "P",
+   "origens": [
+    {
+     "fonte": "dono (conversa de 23/09)",
+     "id_original": "lembretes push no horário editado",
+     "origem": "feature nova aprovada pelo dono; SPEC §23"
+    }
+   ],
+   "duplicatas": [],
+   "lote_planejado": "L34"
+  },
+  {
+   "id": "LEM-horarios",
+   "secao": "B",
+   "estado": "pendente",
+   "area": "lembretes",
+   "titulo": "Horário do lembrete do treino e da corrida",
+   "detalhe": "FAZER: em /mais/lembretes, \"Lembrete do treino\" (liga/desliga + hora, padrão 07:00) e \"Lembrete da corrida\" (liga/desliga + hora), gravados em profiles.prefs.lembretes validado por Zod (lib/schemas.ts), fuso America/Sao_Paulo; os dias são os dias de treino do perfil (§17). ACEITE: unitário do schema e e2e que muda a hora e vê gravado no mock.",
+   "arquivos": [],
+   "esforco": "P",
+   "origens": [
+    {
+     "fonte": "dono (conversa de 23/09)",
+     "id_original": "lembretes push no horário editado",
+     "origem": "feature nova aprovada pelo dono; SPEC §23"
+    }
+   ],
+   "duplicatas": [],
+   "lote_planejado": "L35"
+  },
+  {
+   "id": "LEM-regra-mensagem",
+   "secao": "B",
+   "estado": "pendente",
+   "area": "lembretes",
+   "titulo": "Regra pura: quem recebe o quê hoje",
+   "detalhe": "FAZER: lib/lembretes.ts decide, para um usuário e uma data/hora em America/Sao_Paulo, se o lembrete do treino e o da corrida são devidos agora (passou do horário escolhido, ainda não enviado hoje) e o texto: treino do dia com o nome e a duração estimada (mesma fonte que a aba Treino usa — lib/calendario/semana; nada escrito à mão), corrida da semana N; NADA em dia de descanso, em dia marcado como \"Não vou treinar hoje\" (schedule_overrides), nem se o treino do dia já foi concluído. ACEITE: unitários cobrindo dia de treino, descanso, pulado, já concluído, corrida, virada de dia, horário exato e atraso de até 30 min; mutação da checagem de dia pulado derruba teste.",
+   "arquivos": [],
+   "esforco": "M",
+   "origens": [
+    {
+     "fonte": "dono (conversa de 23/09)",
+     "id_original": "lembretes push no horário editado",
+     "origem": "feature nova aprovada pelo dono; SPEC §23"
+    }
+   ],
+   "duplicatas": [],
+   "lote_planejado": "L35"
+  },
+  {
+   "id": "LEM-disparo",
+   "secao": "B",
+   "estado": "pendente",
+   "area": "lembretes",
+   "titulo": "Disparo automático a cada 5 minutos",
+   "detalhe": "FAZER: migração 2026-09-23-lembretes-disparo: tabela public.lembretes_enviados (user_id, tipo, dia date, enviado_em, unique(user_id,tipo,dia), RLS só leitura do dono); extensões pg_cron e pg_net; função public.lembretes_tick() (security definer, executável só por postgres) que monta, para cada usuário com lembrete ligado e inscrição, o JSON mínimo que a regra precisa (perfil, prefs, overrides da semana, sessões recentes) e faz net.http_post para a URL guardada no Vault (lembretes_url) com o cabeçalho x-lembretes-segredo lido do Vault (lembretes_segredo); função public.lembretes_resultado(segredo text, enviados jsonb, expirados text[]) security definer que confere o segredo contra o Vault e grava enviados / apaga inscrições expiradas (revoke de public; grant execute só a anon/authenticated porque a rota chama com a chave anon — o segredo é a proteção, com comparação de tamanho fixo); o job pg_cron \"lembretes\" a cada 5 min criado de forma idempotente. Rota POST /api/lembretes/disparar (nodejs) confere o segredo (timingSafeEqual) contra LEMBRETES_SEGREDO, aplica lib/lembretes.ts, envia com web-push e chama lembretes_resultado. NÃO grave segredo em arquivo do repo: a migração cria as funções e o job; os valores do Vault o orquestrador cria. ACEITE: teste de migração (RLS, idempotência, revokes, tick sem segredo no Vault não quebra), e2e/unitário da rota com segredo errado 401, certo envia ao servidor de push falso e marca enviado (não reenvia no mesmo dia).",
+   "arquivos": [],
+   "esforco": "M",
+   "origens": [
+    {
+     "fonte": "dono (conversa de 23/09)",
+     "id_original": "lembretes push no horário editado",
+     "origem": "feature nova aprovada pelo dono; SPEC §23"
+    }
+   ],
+   "duplicatas": [],
+   "lote_planejado": "L35"
+  },
+  {
+   "id": "LEM-ics",
+   "secao": "B",
+   "estado": "pendente",
+   "area": "lembretes",
+   "titulo": "Botão \"Adicionar ao meu calendário\"",
+   "detalhe": "FAZER: lib/ics.ts gera um .ics (RFC 5545) com um evento semanal por dia de treino do perfil (RRULE:FREQ=WEEKLY;BYDAY=...) no horário do lembrete, duração estimada, alarme (VALARM) na hora, TZID America/Sao_Paulo, UID estável, texto pt-BR sem acento quebrado (UTF-8); botão em /mais/lembretes baixa o arquivo. ACEITE: unitários validando a estrutura (linhas dobradas a 75 octetos, CRLF, BYDAY certos para os dias do perfil) e e2e baixando o arquivo.",
+   "arquivos": [],
+   "esforco": "P",
+   "origens": [
+    {
+     "fonte": "dono (conversa de 23/09)",
+     "id_original": "lembretes push no horário editado",
+     "origem": "feature nova aprovada pelo dono; SPEC §23"
+    }
+   ],
+   "duplicatas": [],
+   "lote_planejado": "L35"
+  },
+  {
+   "id": "LEM-guia-spec-l34",
+   "secao": "B",
+   "estado": "pendente",
+   "area": "lembretes",
+   "titulo": "SPEC §23 parte II, guia e PROGRESSO",
+   "detalhe": "FAZER: completar a §23 com horários, disparo e calendário; guia com o passo do horário. ACEITE: SPEC igual ao código.",
+   "arquivos": [],
+   "esforco": "P",
+   "origens": [
+    {
+     "fonte": "dono (conversa de 23/09)",
+     "id_original": "lembretes push no horário editado",
+     "origem": "feature nova aprovada pelo dono; SPEC §23"
+    }
+   ],
+   "duplicatas": [],
+   "lote_planejado": "L35"
+  },
+  {
+   "id": "LEM-painel-estado",
+   "secao": "B",
+   "estado": "pendente",
+   "area": "lembretes",
+   "titulo": "Mostrar quando foi o último lembrete",
+   "detalhe": "FAZER: /mais/lembretes mostra \"Último lembrete: hoje às 07:00\" (de lembretes_enviados, RLS) e o próximo previsto pela regra pura. ACEITE: e2e com dado semeado no mock.",
+   "arquivos": [],
+   "esforco": "P",
+   "origens": [
+    {
+     "fonte": "dono (conversa de 23/09)",
+     "id_original": "lembretes push no horário editado",
+     "origem": "feature nova aprovada pelo dono; SPEC §23"
+    }
+   ],
+   "duplicatas": [],
+   "lote_planejado": "L35"
   }
  ],
  "resolvidos": [
@@ -9305,10 +9533,62 @@
  "lotes_em_construcao": [],
  "lotes_planejados": [
   {
+   "codigo": "L34",
+   "titulo": "Lembretes I: inscrição no aparelho e notificação de teste",
+   "area": "lembretes",
+   "ordem": 1,
+   "itens": [
+    "LEM-banco-inscricoes",
+    "LEM-sw-push",
+    "LEM-pagina-lembretes",
+    "LEM-rota-teste",
+    "LEM-instrucoes-navegador",
+    "LEM-spec-23"
+   ],
+   "arquivos": [],
+   "telas_esperadas": [
+    "18-mais"
+   ],
+   "medios": 3,
+   "observacoes": "Feature nova aprovada pelo dono em 23/09 (lembretes no celular por push, horário editável, calendário .ics). Migração expand-only aplicada pelo orquestrador antes do deploy.",
+   "excecao": null,
+   "excecao_de_ordem": [
+    {
+     "motivo": "o dono pediu os lembretes como próximo lote, logo depois do L14"
+    }
+   ]
+  },
+  {
+   "codigo": "L35",
+   "titulo": "Lembretes II: horário, disparo automático e calendário",
+   "area": "lembretes",
+   "ordem": 2,
+   "itens": [
+    "LEM-horarios",
+    "LEM-regra-mensagem",
+    "LEM-disparo",
+    "LEM-ics",
+    "LEM-guia-spec-l34",
+    "LEM-painel-estado"
+   ],
+   "arquivos": [],
+   "telas_esperadas": [
+    "18-mais"
+   ],
+   "medios": 2,
+   "observacoes": "Feature nova aprovada pelo dono em 23/09 (lembretes no celular por push, horário editável, calendário .ics). Migração expand-only aplicada pelo orquestrador antes do deploy.",
+   "excecao": null,
+   "excecao_de_ordem": [
+    {
+     "motivo": "o dono pediu os lembretes como próximo lote, logo depois do L14"
+    }
+   ]
+  },
+  {
    "codigo": "L32",
    "titulo": "Sobras das auditorias: ficha e coleções do Explorar",
    "area": "ficha",
-   "ordem": 1,
+   "ordem": 3,
    "itens": [
     "C-l13-key-musculos-sem-teste",
     "C-media-grande-figura-quebrou-herdada",
@@ -9359,7 +9639,7 @@
    "codigo": "L33",
    "titulo": "Sobras do L14: ficha, catálogo e camadas modais",
    "area": "ficha",
-   "ordem": 2,
+   "ordem": 4,
    "itens": [
     "C-l14-super-band-dois-filtros",
     "C-l14-criterio-repeticao-numeros",
@@ -9397,7 +9677,7 @@
    "codigo_anterior": "L15",
    "titulo": "Corpo: peso, gráficos e campo de data",
    "area": "corpo",
-   "ordem": 3,
+   "ordem": 5,
    "itens": [
     "a11y-01",
     "tela-relatorio-corpo-calendario-12",
@@ -9444,7 +9724,7 @@
    "codigo_anterior": "L16",
    "titulo": "Corpo: medidas, fotos, data no celular e um verbo só para salvar",
    "area": "corpo",
-   "ordem": 4,
+   "ordem": 6,
    "itens": [
     "tela-relatorio-corpo-calendario-17",
     "tela-relatorio-corpo-calendario-18",
@@ -9495,7 +9775,7 @@
    "codigo_anterior": "L17",
    "titulo": "Casca: carregamento, rotas pesadas, zoom e bloco de sincronização",
    "area": "casca",
-   "ordem": 5,
+   "ordem": 7,
    "itens": [
     "C-loading-por-rota",
     "C-next-dynamic-rotas-pesadas",
@@ -9560,7 +9840,7 @@
    "codigo_anterior": "L18",
    "titulo": "Cardio e barra fixa",
    "area": "cardio",
-   "ordem": 6,
+   "ordem": 8,
    "itens": [
     "ux-heuristicas-17",
     "ux-heuristicas-18",
@@ -9608,7 +9888,7 @@
    "codigo_anterior": "L19",
    "titulo": "Player: preparação e série; '%' colado nos textos",
    "area": "player",
-   "ordem": 7,
+   "ordem": 9,
    "itens": [
     "ux-heuristicas-12",
     "tela-treino-player-09",
@@ -9662,7 +9942,7 @@
    "codigo_anterior": "L19b (censo)",
    "titulo": "Player: descanso, preparação e o caminho até o player",
    "area": "player",
-   "ordem": 8,
+   "ordem": 10,
    "itens": [
     "tela-treino-player-06",
     "tela-treino-player-07",
@@ -9710,7 +9990,7 @@
    "codigo_anterior": "L20",
    "titulo": "Player: firme, conclusão e Visão geral",
    "area": "player",
-   "ordem": 9,
+   "ordem": 11,
    "itens": [
     "tela-treino-player-29",
     "tela-treino-player-27",
@@ -9768,7 +10048,7 @@
    "codigo_anterior": "L21",
    "titulo": "Sem rede: sinal, fila, mensagens e sincronização",
    "area": "pwa",
-   "ordem": 10,
+   "ordem": 12,
    "itens": [
     "pwa-offline-01",
     "pwa-offline-06",
@@ -9814,7 +10094,7 @@
    "codigo_anterior": "L22",
    "titulo": "Instalação, cache de mídia e cor da barra",
    "area": "pwa",
-   "ordem": 11,
+   "ordem": 13,
    "itens": [
     "pwa-offline-03",
     "pwa-offline-04",
@@ -9866,7 +10146,7 @@
    "codigo_anterior": "L23",
    "titulo": "Mais: textos, linhas e prefetch",
    "area": "mais",
-   "ordem": 12,
+   "ordem": 14,
    "itens": [
     "copy-02",
     "copy-09",
@@ -9916,7 +10196,7 @@
    "codigo_anterior": "L23b (triagem-26)",
    "titulo": "Copy e mensagens: dia da semana, intervalo, perfil, backup e login",
    "area": "copy",
-   "ordem": 13,
+   "ordem": 15,
    "itens": [
     "copy-07",
     "copy-24",
@@ -9966,7 +10246,7 @@
    "codigo_anterior": "L24",
    "titulo": "Relatório: números, aviso, esqueleto e leituras repetidas",
    "area": "relatorio",
-   "ordem": 14,
+   "ordem": 16,
    "itens": [
     "C-relatorio-no-total-3-linhas",
     "C-aviso-conquista-regiao-viva",
@@ -10014,7 +10294,7 @@
    "codigo_anterior": "L25",
    "titulo": "Calendário: faixa, legenda e semana navegada",
    "area": "calendario",
-   "ordem": 15,
+   "ordem": 17,
    "itens": [
     "C-dois-vocabularios-da-marca",
     "C-legenda-faixa-ponto-orfao",
@@ -10062,7 +10342,7 @@
    "codigo_anterior": "L26",
    "titulo": "Aba Treino: cabeçalho, faixa fixa e avisos",
    "area": "treino",
-   "ordem": 16,
+   "ordem": 18,
    "itens": [
     "C-treino-h1-data-duas-linhas",
     "C-faixa-fixa-texto-cortado",
@@ -10108,7 +10388,7 @@
    "codigo_anterior": "L27",
    "titulo": "Player: pendências das auditorias do L5",
    "area": "player",
-   "ordem": 17,
+   "ordem": 19,
    "itens": [
     "C-descanso-sinal-visivel",
     "C-rotulo-do-campo-de-carga",
@@ -10155,7 +10435,7 @@
    "codigo_anterior": "L28",
    "titulo": "Processo, testes e documentação",
    "area": "processo",
-   "ordem": 18,
+   "ordem": 20,
    "itens": [
     "C-capturas-rotulos-antigos",
     "C-fab-ajustar-nomes-e-docs",
@@ -10200,7 +10480,7 @@
    "codigo_anterior": "L29",
    "titulo": "D: medidas antes/depois, processo e scripts",
    "area": "D",
-   "ordem": 19,
+   "ordem": 21,
    "itens": [
     "R9-C1",
     "D-abertura-11s-aparelho-zerado",

@@ -7906,15 +7906,15 @@ Nenhuma migração de banco. **Rollback: não.**
 
 **O que a reconciliação corrigiu na lista antiga (texto de 21/09, abaixo substituído):** o L7 aparecia como pendente e está publicado (PR #13); C tinha 63 numa fonte e 64 noutra (o 64º é o R9-C1, que também estava em D — agora uma entrada só); os seis itens de D não estavam no JSON; `lotes_propostos_ordem` começava por lotes já publicados; os dez itens do antigo "L12 superfícies" já estavam publicados pelos lotes 3 e 4 (com prova); 46 achados da remontagem das superfícies e 27 achados da análise nunca tinham entrado na fila — entraram; o nome L12 passou a ser o lote de Explorar e catálogo.
 
-**Contagens em 2026-09-23T17:02Z:**
+**Contagens em 2026-09-23T17:49Z:**
 
 | seção | pendente | publicado | descartado |
 | --- | ---: | ---: | ---: |
-| B | 68 | 33 | 17 |
+| B | 80 | 33 | 17 |
 | C | 60 | 10 | 0 |
 | D | 5 | 0 | 0 |
 | legado | 0 | 77 | 1 |
-| **total** | **133** | **120** | **18** |
+| **total** | **145** | **120** | **18** |
 
 Dos descartados, **7 dependem de decisão do dono** e voltam à fila se a resposta for sim (atualização do app com aviso, uso do laranja, Relatório somado no banco, destaque do Explorar, filtros Core/Cardio, faixa da semana com sete destinos, resumo curto dos planos) — perguntas em `docs/ultraloop/perguntas-ao-dono.md`.
 
@@ -7924,6 +7924,8 @@ Dos descartados, **7 dependem de decisão do dono** e voltam à fila se a respos
 
 | lote | título | itens | ids |
 | --- | --- | ---: | --- |
+| L34 | Lembretes I: inscrição no aparelho e notificação de teste | 6 | LEM-banco-inscricoes, LEM-sw-push, LEM-pagina-lembretes, LEM-rota-teste, LEM-instrucoes-navegador, LEM-spec-23 |
+| L35 | Lembretes II: horário, disparo automático e calendário | 6 | LEM-horarios, LEM-regra-mensagem, LEM-disparo, LEM-ics, LEM-guia-spec-l34, LEM-painel-estado |
 | L32 | Sobras das auditorias: ficha e coleções do Explorar | 10 | C-l13-key-musculos-sem-teste, C-media-grande-figura-quebrou-herdada, C-alt-execucao-genero, C-l13-aceite-lcp-vs-ordem, C-busca-linha-reservada-vazia, C-busca-corda-capa-icone, C-plano-progresso-repete-desafio, C-plano-lista-canto-reto, C-l14-inventario-ficha-folha-como-abre, C-l14-tag-equipamento-sem-sinal-visual |
 | L33 | Sobras do L14: ficha, catálogo e camadas modais | 6 | C-l14-super-band-dois-filtros, C-l14-criterio-repeticao-numeros, C-l14-nada-repetido-espelho-dom, C-l14-historico-carregando-perfil, C-l14-veu-ramo-morto, a11y-voltar-fecha-camada |
 | L15 | Corpo: peso, gráficos e campo de data | 6 | a11y-01, tela-relatorio-corpo-calendario-12, tela-relatorio-corpo-calendario-14, tela-relatorio-corpo-calendario-19, tela-relatorio-corpo-calendario-13, tela-relatorio-corpo-calendario-11 |
