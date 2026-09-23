@@ -291,7 +291,7 @@ Vitrine de **coleções derivadas** dos JSON, cada uma com capa (foto de um exer
 - **Parte do corpo em foco**: chips dos 8 grupos (`grupo` de `exercicios.json`); cada um lista os exercícios do grupo e oferece "Começar" com os 6 primeiros do grupo que usam equipamento disponível (ordem: compostos primeiro, depois isolamento, como a tabela de faixas de `progressao.json`).
 - **Por aparelho**: os itens de `equipamentos.json` que habilitam algum exercício, com o `nome_curto` do item e a meta "N exercícios que dão para fazer com ele" (§22.12 item 2; a foto de `assets/itens/<item>/` fica em Mais → Equipamento).
 - **Circuitos** (os 14 exercícios de `origem = "aparelho"`): "Core no tatame" (8), "Corda" (3), "Elástico" (3). Abrem no **modo circuito guiado** (13.6).
-- **Planos e desafios**: "Primeira barra fixa" (`cardio.barra_fixa`), "5 km sem parar" (a meta da última semana de `cardio.corrida`) e "Corda: 5 estágios" (`cardio.corda`) — títulos curtos, o prazo fica no objetivo e na meta (§22.12 item 4; sem perfil e sem meta, o objetivo aparece inteiro) —, barra fixa e corrida com a semana atual do perfil, a corda com a sua duração (ela não tem posição no perfil), e cada um com o botão da sessão (§22.12 item 7). "Desafio" aqui é o plano real com progresso visível; não existe desafio inventado.
+- **Planos e desafios**: "Primeira barra fixa" (`cardio.barra_fixa`), "5 km sem parar" (a meta da última semana de `cardio.corrida`) e "Corda: 5 estágios" (`cardio.corda`) — títulos curtos, o prazo fica no objetivo e na meta (§22.12 item 4; sem perfil e sem meta, o objetivo aparece inteiro) —, barra fixa e corrida com a semana atual do perfil, a corda com a sua duração na meta da vitrine e da capa (a posição dela, `profiles.semana_corda`, aparece na lista das semanas da tela do plano, §22.13 item 9), e cada um com o botão da sessão (§22.12 item 7). "Desafio" aqui é o plano real com progresso visível; não existe desafio inventado.
 - **Treinos do programa**: A1, B1, SA, IA, SB, IB com "Fazer hoje" (vale como próximo da alternância, §5.3).
 - **Busca** por nome de exercício e de coleção, sem acento.
 
@@ -2340,12 +2340,30 @@ de cada item é verificável no Vitest ou no e2e (`e2e/ultraloop-l13.spec.ts`).
    `data/ilustracoes.json` como `aspect-ratio`, com teto de **432 px** de
    altura de figura: a figura larga ocupa a largura toda, a alta estreita a
    caixa e fica centrada. A conta é pura (`caixaDaIlustracao()` em
-   `lib/midia.ts`). O player e a capa do bloco na lista do treino continuam
-   com a faixa de altura fixa: o espaço vertical deles é fixo (§13.8.1).
-   Aceite: Vitest — para as 145 medidas do JSON, numa coluna de 328 px, a
-   figura ocupa ≥ 60 % da largura da caixa e o goblet tem ≥ 180 px de largura;
-   e2e — em `/exercicios/agachamento-goblet` a 360×740 a figura desenhada
-   mede ≥ 180 px de largura e ≥ 60 % da caixa, e nada vaza a largura.
+   `lib/midia.ts`). O player e a capa do bloco na Visão geral do treino
+   continuam com a faixa de altura fixa: o espaço vertical deles é fixo
+   (§13.8.1). Como a mídia agora muda de altura ao trocar de vista, o
+   segmento "Ilustração · Figura · Fotos" fica **acima** da mídia — embaixo
+   dela ele saltava até 369 px sob o dedo (correção da auditoria).
+   **Correção da auditoria — o que o aceite mede.** "≥ 60 % da largura da
+   caixa" era verdadeiro por construção (a caixa estreita até a figura). A
+   medida que discrimina é contra a **coluna** de 328 px, e contra ela o teto
+   de 432 px deixa as **seis ilustrações mais altas** abaixo de 60 %: tríceps
+   na corda (47 %), elevação frontal (49 %), extensão unilateral (49 %),
+   puxada com triângulo (52 %), pullover na polia (54 %) e agachamento goblet
+   (56 %) — 12 das 145 medidas. Para o tríceps na corda chegar a 60 % (197 px)
+   a figura teria 556 px de altura e não caberia na tela de 740 com o
+   segmento; essa metade do aceite é **inviável** para esses seis e fica
+   registrada assim: eles batem no teto de altura, não são espremidos.
+   Aceite: Vitest — para as 145 medidas do JSON, numa coluna de 328 px, só
+   as 12 medidas desses seis exercícios ficam abaixo de 60 % da coluna, e
+   todas com a figura no teto (432 px ± 2); toda figura ocupa a coluna
+   (menos a folga) ou bate no teto; o goblet tem ≥ 180 px de largura; e2e —
+   em `/exercicios/agachamento-goblet` a 360×740 a figura desenhada mede
+   ≥ 180 px de largura e bate no teto, a da prancha e a do supino ocupam
+   ≥ 60 % da coluna, nada vaza a largura, e trocar de vista (Figura, Fotos,
+   Ilustração) deixa o topo do segmento no mesmo lugar (±1 px), na página e
+   na folha.
 2. **As fotos na proporção do arquivo, com legenda** (imagens-12). As fotos
    de execução são 3:2 e a ficha as cortava em quadrado (`aspect-square` +
    `object-cover`), justamente onde passa a barra. As duas caixas, lado a
@@ -2379,12 +2397,13 @@ de cada item é verificável no Vitest ou no e2e (`e2e/ultraloop-l13.spec.ts`).
    parava a animação. Agora a pausa é um **botão próprio de 44×44 no canto**
    (aria-label "Parar a animação" / "Voltar a alternar"), e a figura tem
    aria-label com a posição ("…, posição 1 de 2"). Onde a tela tem um "Como
-   fazer" (player e lista do treino), **tocar na figura abre a ficha**, como
+   fazer" (player e Visão geral do treino), **tocar na figura abre a ficha**, como
    o "?" ao lado do nome; na própria ficha a figura não é botão (ela já é o
    "Como fazer"). `prefers-reduced-motion` continua fazendo a ilustração
    nascer parada (§22.1). Aceite: e2e — no player a 360×740, tocar no meio
    da ilustração abre a ficha e ela continua alternando; só o botão do canto
-   (≥ 44×44) pausa.
+   (≥ 44×44) pausa; na Visão geral do treino, tocar na figura do bloco abre
+   a ficha.
 6. **O chip ativo do segmento se vê** (tela-explorar-fichas-18). O ativo do
    segmento "Ilustração · Figura · Fotos" era `bg-background` sobre o trilho
    `bg-muted` (1,08:1 no claro, 1,16:1 no escuro). O ativo ganha **contorno
@@ -2398,7 +2417,12 @@ de cada item é verificável no Vitest ou no e2e (`e2e/ultraloop-l13.spec.ts`).
    linhas mediam 72 ou 92 px conforme a coleção tinha subtítulo. Escolha: a
    linha **reserva a linha do subtítulo** (`text-xs`, uma linha) em toda
    linha de coleção, com ou sem texto — o subtítulo continua na vitrine. Na
-   busca a regra vale para a lista inteira. A linha sem meta (§22.12 item 4)
+   busca a reserva do subtítulo também vale para todas as linhas, mas a
+   altura **não** é única (correção da auditoria: medido 72 a 122 px): a
+   linha do motivo ("contém …", §22.12 item 3) só existe quando a coleção
+   veio de um exercício e aparece inteira, e a meta de aparelho quebra em 2
+   linhas; cortá-las esconderia o motivo. A altura única vale por seção da
+   vitrine, que é o que o aceite mede. A linha sem meta (§22.12 item 4)
    continua mostrando o subtítulo inteiro. Aceite: e2e em `/explorar` a
    360×740 nos dois temas — dentro de cada seção de "Escolhas para você", as
    linhas `[data-colecao]` têm a mesma altura (±1 px).
@@ -2407,7 +2431,10 @@ de cada item é verificável no Vitest ou no e2e (`e2e/ultraloop-l13.spec.ts`).
    A tela da coleção passa ao `CardCapa` o ícone do tipo (o mesmo
    `ICONE_DO_TIPO` da linha: plano = calendário) em 48 px; o ícone fica no
    alto da capa, **fora do véu do texto**, em `text-foreground`. Vale para
-   toda coleção sem capa. Aceite: e2e em `/explorar/plano/corrida` nos dois
+   toda coleção sem capa — e **só** para a tela da coleção (`iconeNoAlto` no
+   `CardCapa`): os outros cartões sem foto, como o cardio do dia (corrida,
+   caminhada) na aba Treino, mantêm o ícone centrado por trás e a mesma
+   altura (correção da auditoria). Aceite: e2e em `/explorar/plano/corrida` nos dois
    temas — dentro de `[data-capa]` há um `svg` visível de ≥ 48 px, sem
    sobreposição com o bloco do título, com contraste ≥ 3:1 contra o fundo
    lido na captura (SC 1.4.11).
@@ -2419,7 +2446,8 @@ de cada item é verificável no Vitest ou no e2e (`e2e/ultraloop-l13.spec.ts`).
    saída de `data/cardio.json` (corrida: `semanas[].descricao`; corda:
    faixa, blocos, tempo do bloco, descanso e saltos; barra fixa: faixa,
    séries por sessão e assistência), cada linha com o estado **feita /
-   agora / a fazer** em texto, derivado de `perfil.semana_corrida`,
+   agora / a fazer** em texto ("feitas" na faixa de várias semanas),
+   derivado de `perfil.semana_corrida`,
    `semana_corda` e `semana_fixa`; a atual tem `aria-current="step"` e o
    link da sessão da semana (o mesmo `href` de `ctaDoPlano()`). Sem perfil,
    a lista aparece sem estado e sem barra. A conta é pura:
@@ -2432,14 +2460,20 @@ de cada item é verificável no Vitest ou no e2e (`e2e/ultraloop-l13.spec.ts`).
 10. **Uma marca só na coluna da direita** (visual-11). Na linha de coleção os
     raios ficavam ao lado do título (centro a 18 px do topo) e o chevron no
     meio da linha (36 px). Os raios passam para a **linha da meta**, no fluxo
-    do texto, logo depois de "N exercícios · ~M min" (na linha sem meta, ao
-    fim do subtítulo); a coluna da direita fica só com o chevron, centrado.
+    do texto, **abrindo a meta**, antes de "N exercícios" (na linha sem meta,
+    ao fim do subtítulo); a coluna da direita fica só com o chevron,
+    centrado. Correção da auditoria: no fim da meta, os raios caíam na 2ª
+    linha nas 9 linhas de "Por aparelho" ("N exercícios que dão para fazer
+    com ele" quebra em 2 linhas a 360 px); abrindo a meta, eles ficam na 1ª
+    linha, a de "exercícios".
     O selo "Circuito" (§13.6) sai da meta e passa a abrir a linha do
     subtítulo (a reservada do item 7, quando não há subtítulo): com os raios
     na meta, "3 exercícios · ~14 min", o selo e os raios não cabiam numa
     linha a 360 px e a meta quebrava (a linha crescia 12 px, contra o item
     7); ao lado do título, o selo empurrava o nome da corda para 2 linhas.
     Aceite: e2e em
-    `/explorar` (vitrine e busca) — nenhuma marca no canto superior direito
-    das linhas, |centro do chevron − centro da linha| ≤ 2 px, e os raios na
-    mesma linha do texto "exercícios".
+    `/explorar` (vitrine com todos os "Ver todos" abertos, e busca por
+    "supino" e "corda") — nenhuma marca no canto superior direito das
+    linhas, |centro do chevron − centro da linha| ≤ 2 px, e, em **toda**
+    linha com raios, |centro dos raios − centro da palavra "exercícios"|
+    ≤ 4 px (as de aparelho incluídas).
