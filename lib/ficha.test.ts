@@ -364,3 +364,30 @@ describe("nada repetido na ficha em página, nos 81 (SPEC §22.14 item 3)", () =
     expect(repetidos(["peso do corpo", "peso do corpo"])).toHaveLength(1);
   });
 });
+
+describe("o texto da ficha fala com a pessoa (SPEC §22.14, correção da auditoria 2)", () => {
+  /** Todo texto do JSON que a ficha mostra na tela. */
+  const textosVisiveis = (e: Exercicio): string[] => [
+    ...e.passos,
+    e.erro_comum,
+    e.montagem,
+    e.equipamento_texto,
+    e.carga_inicial.nota,
+    e.progressao.regra,
+  ];
+
+  it("nenhum dos 81 cita nome de arquivo (.json) na tela", () => {
+    const comArquivo = exercicios.filter((e) => textosVisiveis(e).some((t) => /\.json\b/.test(t)));
+    expect(comArquivo.map((e) => e.id)).toEqual([]);
+  });
+
+  it("o peso da barra se corrige em Mais → Equipamento, não 'no perfil'", () => {
+    const noPerfil = exercicios.filter((e) =>
+      textosVisiveis(e).some((t) => /corrija no perfil/i.test(t)),
+    );
+    expect(noPerfil.map((e) => e.id)).toEqual([]);
+    const barraW = exercicios.filter((e) => /pese na balança/.test(e.carga_inicial.nota));
+    expect(barraW.length).toBeGreaterThan(0);
+    for (const e of barraW) expect(e.carga_inicial.nota).toContain("Mais → Equipamento");
+  });
+});

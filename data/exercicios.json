@@ -2163,7 +2163,7 @@
     "categoria": "isolamento",
     "carga_inicial": {
       "kg": 2.0,
-      "nota": "barra W vazia (peso aproximado — pese na balança e corrija no perfil)"
+      "nota": "barra W vazia (peso aproximado — pese na balança e corrija em Mais → Equipamento)"
     },
     "progressao": {
       "tipo": "carga",
@@ -2438,7 +2438,7 @@
     "categoria": "isolamento",
     "carga_inicial": {
       "kg": 2.0,
-      "nota": "barra W vazia (peso aproximado — pese na balança e corrija no perfil)"
+      "nota": "barra W vazia (peso aproximado — pese na balança e corrija em Mais → Equipamento)"
     },
     "progressao": {
       "tipo": "carga",
@@ -2609,7 +2609,7 @@
     "categoria": "isolamento",
     "carga_inicial": {
       "kg": 2.0,
-      "nota": "barra W vazia (peso aproximado — pese na balança e corrija no perfil)"
+      "nota": "barra W vazia (peso aproximado — pese na balança e corrija em Mais → Equipamento)"
     },
     "progressao": {
       "tipo": "carga",
@@ -4493,7 +4493,7 @@
     },
     "progressao": {
       "tipo": "plano_corda",
-      "regra": "Segue a progressão de corda de cardio.json (6 × 30 s → 5 × 3 min em 12 semanas)."
+      "regra": "Segue a progressão do plano da corda (6 × 30 s → 5 × 3 min em 12 semanas)."
     },
     "figura": null,
     "fotos": [
