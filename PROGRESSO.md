@@ -11013,11 +11013,16 @@ testes geram o par na hora (`e2e/playwright.config.ts`, Vitest).
 
 #### Provas
 
-- **Vitest** (novos): `lib/web-push.test.ts` (7: vetor da RFC 8291 byte a
-  byte, decifragem, JWT ES256 conferido com a pública, cabeçalhos),
-  `lib/lembretes.test.ts` (29: notificação, estados, instruções, aparelho,
-  destino 404/410, textos, endpoints aceitos, configuração VAPID, fonte única
-  Mais/guia), `lib/migracao-lembretes.test.ts` (17: subconjunto do schema,
+- **Vitest** (novos; contagens do `vitest --reporter=json` do HEAD da rodada
+  18, `r19/l34/vitest-4192cd5.json`): `lib/web-push.test.ts` (7: vetor da
+  RFC 8291 byte a byte, decifragem, JWT ES256 conferido com a pública,
+  cabeçalhos), `lib/web-push-prova.test.ts` (5, rodada 18: a prova
+  independente pelo WebCrypto — JWT r‖s de 64 bytes em `subtle.verify`,
+  cabeçalhos, decifra pela RFC 8291 escrita no teste), `lib/lembretes.test.ts`
+  (36: notificação, estados, instruções — com a tabela da SPEC §23.6 como
+  oráculo das 80 combinações —, aparelho, destino 404/410, textos, endpoints
+  aceitos, configuração VAPID, fonte única Mais/guia; eram 29 em `ade3e6a` e
+  33 em `96c2b5e`), `lib/migracao-lembretes.test.ts` (17: subconjunto do schema,
   idempotência, expand-only, RLS), `lib/supabase/middleware.test.ts` (+2:
   `/api` sem sessão = 401 JSON; com sessão passa), `lib/auditoria-seguranca.test.ts`
   (+1: tabela por aparelho com RLS própria, fora do backup).
@@ -11033,8 +11038,10 @@ testes geram o par na hora (`e2e/playwright.config.ts`, Vitest).
   teste**. A da origem de teste passava na primeira rodada (o teste usava a
   porta 80, que o `URL` normaliza); o teste foi corrigido para a porta 8080 e
   a mutação passou a cair.
-- **e2e** `e2e/ultraloop-l34.spec.ts` (20 testes desde a correção da
-  auditoria — eram 12 em `ade3e6a`, com os 2 do anel de foco; Chromium no modo headless
+- **e2e** `e2e/ultraloop-l34.spec.ts` (31 testes desde a rodada 18 — +11:
+  a volta das configurações ×4, o `change` da permissão ×1, a frase na
+  primeira dobra ×2, sem tabela ×2, sem VAPID ×2; eram 20 desde a correção
+  da auditoria 1 e 12 em `ade3e6a`, com os 2 do anel de foco; Chromium no modo headless
   novo — `channel: "chromium"`: no headless shell padrão a permissão de
   notificação fica `denied` mesmo concedida e `showNotification` recusa,
   medido com um worker mínimo): ativar/desativar nos dois temas (a linha
@@ -11335,5 +11342,50 @@ Sobre `96c2b5e`, logs em `r19/l34/`. SPEC antes do código (`30ff9fc`).
   `r19/l34/mutacao/der.out`). A biblioteca `web-push` segue fora (SPEC
   §23.5).
 
-«PORTOES_R18»
+**Portões da rodada 18.** Cadeia inteira em `4192cd5` (todo o código da
+correção + o rascunho deste registro; `r19/l34/logs/4192cd5.log`, das
+21:05:22 às 21:33:40 UTC, **ok**): `lint` limpo · `tsc --noEmit` limpo ·
+`npm test` **72 arquivos, 1.621 testes, todos verdes** (eram 71 / 1.613 em
+`96c2b5e`: +1 arquivo `lib/web-push-prova.test.ts` com 5, +3 em
+`lib/lembretes.test.ts`; o `vitest --reporter=json` do mesmo HEAD dá os
+mesmos 1.621 — lembretes 36, web-push 7, web-push-prova 5,
+migracao-lembretes 17, middleware 9, auditoria-seguranca 32,
+`r19/l34/vitest-4192cd5.json`) · `build` ("Compiled successfully in
+18.7s") · `build:e2e` ("Compiled successfully in 19.3s") · `e2e` **552
+passaram, 5 pulados** (21,3 min; os 541 de `96c2b5e` + os 11 novos do spec
+do lote, que tem 31 testes, todos ✓; nenhum ✘, nenhum instável) ·
+`varredura` **5 passaram** (4,7 min, com `/mais/lembretes`). Antes da
+cadeia, rodada local do spec do lote em `51a099f`
+(`r19/l34/local/l34.log`): 28 de 31 — os 3 que negam a permissão falhavam
+porque a sessão CDP se desligava e o Chromium desfazia a negação; com a
+sessão aberta até o fim do teste (`134efd0`), **7 de 7** nos testes novos
+(`r19/l34/local/l34-b.log`). Este PROGRESSO.md é o único arquivo que muda
+depois de `4192cd5`.
+
+**Capturas da rodada 18.** `capturas.sh` com o `.next` do build:e2e da
+cadeia de `4192cd5`, contra a base real de `main` (`base-ef3ad97`), tela
+declarada `18-mais` (`r19/l34/capturas-4192cd5.md`): 60 PNGs, só `18-mais`
+mudou; as outras 58 com Δ 0,00 % ("Nenhuma tela mudou fora do esperado").
+Os 60 PNGs são **iguais byte a byte** aos de `capturas-96c2b5e` — a correção
+mexe só em `/mais/lembretes`, que não está nas 60. Diff aberto
+(`18-mais-escuro.diff.png`): a linha "Lembretes" entre Preferências e
+Créditos; Créditos, Backup e o cartão de sincronização descem uma linha;
+nada acima de Preferências muda. Servidores derrubados pelo script (3100 e
+54321 → 000).
+
+| tela | Δ claro | Δ escuro | o que mudou |
+| --- | ---: | ---: | --- |
+| 18-mais | 13,29 % | 13,27 % | a linha nova "Lembretes" (a mesma de `96c2b5e`); nada mais |
+
+**Como testar a correção no celular (360 px).** (a) Brave no Android: negue
+a permissão ao tocar em Ativar → a frase "O navegador recusou as
+notificações deste app." aparece logo abaixo do estado, **acima** das duas
+instruções (Brave e permissão), sem rolar. (b) Libere pelo cadeado ou pelas
+Configurações do Android → Apps → Treino do Terraço → Notificações e volte ao
+app **sem recarregar** → "Desativado neste aparelho.", o botão "Ativar
+lembretes neste aparelho" aparece e as instruções somem. (c) iPhone com o
+app instalado e a permissão negada → só "O iPhone está bloqueando as
+notificações deste app" (Ajustes → Notificações → Treino do Terraço), sem o
+conselho do Brave. (d) Com o leitor de tela, o Remover de um aparelho sem
+nome diz "Remover Aparelho sem nome (desde dd/mm)".
 
