@@ -60,13 +60,19 @@ export function LinhaColecao({
   mostrarRaios?: boolean;
   className?: string;
 }) {
+  /*
+    SPEC §22.12 item 4: a linha sem meta (o plano sem perfil cujo objetivo já
+    diz o prazo) acaba no subtítulo, e ele aparece inteiro — cortado numa
+    linha, escondia "8–12 semanas" e "12 semanas", o único prazo da linha.
+  */
+  const temMeta = Boolean(colecao.detalhe || colecao.circuito);
   return (
     <Link
       href={hrefDaColecao(colecao)}
       data-colecao={colecao.id}
       /*
-        SPEC §22.3 item 11: o subtítulo é cortado numa linha só; o texto
-        inteiro fica no `title` do link, sem `aria-label` — ele apagaria o
+        SPEC §22.3 item 11: o subtítulo é cortado numa linha só (menos na
+        linha sem meta, §22.12 item 4); o texto inteiro fica no `title` do link, sem `aria-label` — ele apagaria o
         selo "Circuito" e o detalhe do nome acessível.
       */
       title={[colecao.titulo, colecao.subtitulo, colecao.motivoDaBusca]
@@ -98,12 +104,19 @@ export function LinhaColecao({
           ) : null}
         </span>
         {colecao.subtitulo ? (
-          <span className="text-muted-foreground line-clamp-1 text-xs" data-linha="subtitulo">
+          <span
+            className={cn("text-muted-foreground text-xs", temMeta && "line-clamp-1")}
+            data-linha="subtitulo"
+          >
             {colecao.subtitulo}
           </span>
         ) : null}
+        {/*
+          SPEC §22.12 item 3: o motivo aparece inteiro — cita no máximo um nome
+          por termo, e com 4 termos o corte em 2 linhas escondia o 3º nome.
+        */}
         {colecao.motivoDaBusca ? (
-          <span className="text-muted-foreground line-clamp-2 text-xs" data-linha="motivo">
+          <span className="text-muted-foreground text-xs" data-linha="motivo">
             {colecao.motivoDaBusca}
           </span>
         ) : null}
@@ -111,7 +124,7 @@ export function LinhaColecao({
           SPEC §22.12 item 4: o plano sem perfil cujo objetivo já diz o prazo
           não tem meta — a linha acaba no subtítulo, sem um vão vazio.
         */}
-        {colecao.detalhe || colecao.circuito ? (
+        {temMeta ? (
           <span
             className="text-muted-foreground flex flex-wrap items-center gap-x-1.5 text-xs font-normal tabular-nums"
             data-linha="meta"
