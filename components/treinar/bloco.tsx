@@ -70,6 +70,9 @@ export function BlocoExercicio({
       <MediaGrande
         exercicioId={bloco.exercicioId}
         temVideo={temVideo}
+        /* SPEC §22.13 item 5: a figura abre o "Como fazer" deste bloco */
+        aoAbrir={() => setFicha(true)}
+        rotuloDoAbrir="abre o Como fazer"
         className="h-36 rounded-none"
       />
 

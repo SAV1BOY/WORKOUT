@@ -64,7 +64,9 @@ test.describe("ficha do exercício (aba Vídeo)", () => {
     await expect(ilustracao).toBeVisible();
     await expect(ilustracao).toHaveAttribute("data-ilustracao", "alternando");
 
-    // as duas imagens são as duas posições do arquivo, não um GIF novo
+    // as duas imagens são as duas posições do arquivo, não um GIF novo; a
+    // segunda só entra depois que a primeira carregou (SPEC §22.13 item 4)
+    await expect(ilustracao.locator("img")).toHaveCount(2);
     const fontes = await ilustracao.locator("img").evaluateAll((imgs) =>
       imgs.map((i) => (i as HTMLImageElement).getAttribute("src") ?? ""),
     );
@@ -77,8 +79,8 @@ test.describe("ficha do exercício (aba Vídeo)", () => {
       .poll(() => ilustracao.getAttribute("data-posicao"), { timeout: 10_000 })
       .toBe("2");
 
-    // um toque pausa; parada, ela não troca mais
-    await ilustracao.click();
+    // o botão do canto pausa (SPEC §22.13 item 5); parada, ela não troca mais
+    await ilustracao.getByRole("button", { name: "Parar a animação" }).click();
     await expect(ilustracao).toHaveAttribute("data-ilustracao", "pausada");
     const parada = await ilustracao.getAttribute("data-posicao");
     await page.waitForTimeout(2_000);
@@ -95,11 +97,18 @@ test.describe("ficha do exercício (aba Vídeo)", () => {
     await entrarNoApp(page);
     await page.goto(`/exercicios/${SUPINO}`);
 
-    const credito = page.getByRole("link", { name: /^Ilustração: / });
+    // SPEC §22.13 item 3: "Ilustração: <autor> · <licença>", dois links
+    const credito = page.locator("[data-credito]");
     await expect(credito).toBeVisible();
-    await expect(credito).toContainText("CC BY-SA");
-    const href = await credito.getAttribute("href");
+    await expect(credito).toContainText(/^Ilustração:/);
+    const links = credito.getByRole("link");
+    await expect(links).toHaveCount(2);
+    await expect(links.nth(1)).toContainText("CC BY-SA");
+    const href = await links.first().getAttribute("href");
     expect(href).toMatch(/^https:\/\/(commons\.wikimedia\.org|wger\.de)\//);
+    expect(await links.nth(1).getAttribute("href")).toMatch(
+      /^https:\/\/creativecommons\.org\/licenses\/by-sa\/\d\.\d\/$/,
+    );
   });
 
   test("o segmento troca a demonstração para a figura do kit", async ({ page }) => {
@@ -128,7 +137,7 @@ test.describe("ficha do exercício (aba Vídeo)", () => {
     await page.goto(`/exercicios/${SEM_ILUSTRACAO}`);
 
     await expect(page.locator("[data-ilustracao]")).toHaveCount(0);
-    await expect(page.getByRole("link", { name: /^Ilustração: / })).toHaveCount(0);
+    await expect(page.locator("[data-credito]")).toHaveCount(0);
     await expect(
       page.locator(`img[src="/figuras/${SEM_ILUSTRACAO}.svg"]`).first(),
     ).toBeVisible();

@@ -69,7 +69,8 @@ test.describe("Catálogo (SPEC §3.6)", () => {
       page.getByRole("heading", { name: "Supino reto com barra", level: 1 }),
     ).toBeVisible();
     await expect(
-      page.getByRole("img", { name: "Execução do Supino reto com barra" }),
+      // SPEC §22.13 item 5: a figura diz a posição
+      page.getByRole("img", { name: /^Execução do Supino reto com barra, posição \d de 2$/ }),
     ).toBeVisible();
     // as duas fotos e, na aba Músculos (SPEC §14.2), o mapa frente/costas
     await expect(page.getByRole("button", { name: /Ampliar a foto/ })).toHaveCount(2);

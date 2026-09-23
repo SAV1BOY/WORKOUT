@@ -4,13 +4,18 @@ import { useState } from "react";
 import { FotoAmpliada } from "@/components/exercicios/foto-ampliada";
 import { fonteComReserva, reservaDaImagem } from "@/components/ui/imagem";
 import { urlFotos } from "@/lib/dados";
-import { medidaDaFoto, urlWebp } from "@/lib/midia";
+import { medidaDaFoto, proporcaoDaFoto, urlWebp } from "@/lib/midia";
 import type { Exercicio } from "@/lib/schemas";
 
 const LEGENDA = ["início do movimento", "fim do movimento"];
+/** A legenda visível sob cada foto (SPEC §22.13 item 2). */
+const LEGENDA_CURTA = ["Início", "Fim"];
 
 /**
- * As duas fotos do exercício (SPEC §3.6 e §7): toque abre em tela cheia.
+ * As duas fotos do exercício (SPEC §3.6 e §7): toque abre em tela cheia. A
+ * caixa tem a proporção do arquivo (3:2 nas fotos do kit) — o quadrado
+ * cortava a barra — e a legenda "Início" / "Fim" fica visível (SPEC §22.13
+ * item 2).
  */
 export function FotosAmpliaveis({ exercicio }: { exercicio: Exercicio }) {
   const fotos = urlFotos(exercicio);
@@ -21,7 +26,7 @@ export function FotosAmpliaveis({ exercicio }: { exercicio: Exercicio }) {
 
   return (
     <>
-      <ul className="grid grid-cols-2 gap-2">
+      <ul className="grid grid-cols-2 items-start gap-2">
         {fotos.map((url, i) => {
           // a derivada WebP (SPEC §22.4 item 1): 44 kB no lugar de 70
           const fonte = fonteComReserva(url, urlWebp(url));
@@ -29,7 +34,7 @@ export function FotosAmpliaveis({ exercicio }: { exercicio: Exercicio }) {
           // (SPEC §22.4 item 3) — as fotos do kit não são uniformes
           const medida = medidaDaFoto(fonte.src);
           return (
-            <li key={url}>
+            <li key={url} className="flex flex-col gap-1">
               <button
                 type="button"
                 onClick={() => setAberta(i)}
@@ -46,9 +51,14 @@ export function FotosAmpliaveis({ exercicio }: { exercicio: Exercicio }) {
                   height={medida?.altura}
                   loading="lazy"
                   decoding="async"
-                  className="bg-muted/40 aspect-square w-full rounded-lg object-cover"
+                  data-foto-execucao
+                  style={{ aspectRatio: proporcaoDaFoto(fonte.src) }}
+                  className="bg-muted/40 h-auto w-full rounded-lg object-cover"
                 />
               </button>
+              <span className="text-muted-foreground text-xs" data-legenda-foto>
+                {LEGENDA_CURTA[i] ?? ""}
+              </span>
             </li>
           );
         })}

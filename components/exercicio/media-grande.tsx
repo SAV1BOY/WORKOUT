@@ -4,10 +4,12 @@ import { useState } from "react";
 import { IlustracaoAlternada } from "@/components/exercicio/ilustracao-alternada";
 import { fonteComReserva, reservaDaImagem } from "@/components/ui/imagem";
 import {
+  caixaDaIlustracao,
   MEDIDA_DA_FIGURA,
   medidaDaFoto,
   midiaGrande,
   notaDaIlustracao,
+  urlDaLicenca,
   urlWebp,
   type TipoDeMidia,
 } from "@/lib/midia";
@@ -25,6 +27,9 @@ export function MediaGrande({
   semFoto = false,
   tipo,
   semCredito = false,
+  proporcional = false,
+  aoAbrir,
+  rotuloDoAbrir,
   className,
 }: {
   exercicioId: string;
@@ -38,6 +43,16 @@ export function MediaGrande({
   tipo?: TipoDeMidia;
   /** No player o crédito fica na ficha (um toque no "?"), não na tela. */
   semCredito?: boolean;
+  /**
+   * SPEC §22.13 item 1: na ficha, a caixa da ilustração tem a proporção da
+   * ilustração (teto de altura em `lib/midia.ts`), não a altura do
+   * `className`. O player e a capa do bloco têm espaço vertical fixo e não
+   * usam.
+   */
+  proporcional?: boolean;
+  /** Tocar na ilustração abre o "Como fazer" (SPEC §22.13 item 5). */
+  aoAbrir?: () => void;
+  rotuloDoAbrir?: string;
   className?: string;
 }) {
   const midia = midiaGrande(exercicioId, { temVideo, tipo, semFoto });
@@ -75,6 +90,11 @@ export function MediaGrande({
      * escrito aqui — e vira a segunda linha da legenda.
      */
     const nota = notaDaIlustracao(exercicioId);
+    const medida =
+      proporcional && midia.largura && midia.altura
+        ? caixaDaIlustracao({ largura: midia.largura, altura: midia.altura })
+        : null;
+    const licenca = midia.credito ? urlDaLicenca(midia.credito.licenca) : null;
     return (
       <figure className="flex flex-col gap-1">
         <IlustracaoAlternada
@@ -82,20 +102,44 @@ export function MediaGrande({
           alt={midia.alt}
           largura={midia.largura}
           altura={midia.altura}
-          className={cn("h-40", className)}
+          proporcao={medida?.proporcao}
+          larguraMaxima={medida?.larguraMaxima}
+          aoAbrir={aoAbrir}
+          rotuloDoAbrir={rotuloDoAbrir}
+          className={medida ? undefined : cn("h-40", className)}
         />
         {!semCredito && (midia.credito || nota) ? (
           <figcaption className="text-muted-foreground flex flex-col px-1 text-rotulo leading-tight">
-            {/* o texto continua em 11 px; a caixa de toque é de 44 px (§13.8.1) */}
+            {/*
+              SPEC §22.13 item 3: "Ilustração: <autor> · <licença>" — só os
+              dois links são sublinhados; o texto continua em 11 px e cada
+              link tem caixa de toque de 44 px (§13.8.1).
+            */}
             {midia.credito ? (
-              <a
-                href={midia.credito.url_fonte}
-                target="_blank"
-                rel="noreferrer noopener"
-                className="alvo inline-flex items-center underline underline-offset-2"
-              >
-                {midia.credito.texto}
-              </a>
+              <span className="flex flex-wrap items-center gap-x-1" data-credito>
+                <span>Ilustração:</span>
+                <a
+                  href={midia.credito.url_fonte}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  className="alvo text-foreground inline-flex items-center underline underline-offset-2"
+                >
+                  {midia.credito.autor}
+                </a>
+                <span aria-hidden="true">·</span>
+                {licenca ? (
+                  <a
+                    href={licenca}
+                    target="_blank"
+                    rel="noreferrer noopener license"
+                    className="alvo text-foreground inline-flex items-center underline underline-offset-2"
+                  >
+                    {midia.credito.licenca}
+                  </a>
+                ) : (
+                  <span>{midia.credito.licenca}</span>
+                )}
+              </span>
             ) : null}
             {nota ? (
               <span data-nota-ilustracao={exercicioId} className="text-balance">

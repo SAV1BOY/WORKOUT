@@ -166,8 +166,9 @@ test.describe("menos movimento (SPEC §22.1)", () => {
     await page.waitForTimeout(2_000);
     expect(await ilustracao.getAttribute("data-posicao")).toBe(parada);
 
-    // quem quiser ver o movimento continua podendo pedir
-    await ilustracao.click();
+    // quem quiser ver o movimento continua podendo pedir (o botão do canto,
+    // SPEC §22.13 item 5)
+    await ilustracao.getByRole("button", { name: "Voltar a alternar" }).click();
     await expect(ilustracao).toHaveAttribute("data-ilustracao", "alternando");
     await expect
       .poll(async () => ilustracao.getAttribute("data-posicao"), { timeout: 5_000 })

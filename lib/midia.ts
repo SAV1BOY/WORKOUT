@@ -299,3 +299,87 @@ export function midiaDaMiniatura(id: string): MidiaDaMiniatura {
 export function urlsDaIlustracao(id: string): string[] {
   return ilustracaoDoExercicio(id)?.urls ?? [];
 }
+
+/* --------------------------------- a caixa da ilustração (SPEC §22.13) */
+
+/**
+ * Teto da altura da figura na ficha (SPEC §22.13 item 1): a 360×740 a figura
+ * mais alta (0,35:1) cabe inteira e o goblet (0,42:1) passa de 180 px de
+ * largura — o que a caixa de altura fixa espremia em 81 px.
+ */
+export const ALTURA_MAXIMA_DA_ILUSTRACAO = 432;
+
+/** O respiro entre a figura e a borda da caixa (o `p-2` de cada lado). */
+export const FOLGA_DA_ILUSTRACAO = 8;
+
+export interface CaixaDaIlustracao {
+  /** O `aspect-ratio` da área da figura: o par do próprio arquivo. */
+  proporcao: string;
+  /**
+   * A largura máxima da caixa, com a folga: a figura alta estreita a caixa
+   * (e ela fica centrada) em vez de ficar espremida numa caixa larga.
+   */
+  larguraMaxima: number;
+}
+
+/**
+ * A caixa da ilustração na ficha (SPEC §22.13 item 1): a proporção é a da
+ * ilustração (`data/ilustracoes.json`), e a altura da figura para no teto —
+ * a figura larga ocupa a largura toda, a alta estreita a caixa.
+ */
+export function caixaDaIlustracao(
+  medida: MedidaDaImagem,
+  alturaMaxima: number = ALTURA_MAXIMA_DA_ILUSTRACAO,
+): CaixaDaIlustracao {
+  const razao = medida.largura / medida.altura;
+  return {
+    proporcao: `${medida.largura} / ${medida.altura}`,
+    larguraMaxima: Math.round(alturaMaxima * razao) + 2 * FOLGA_DA_ILUSTRACAO,
+  };
+}
+
+/**
+ * O que a caixa desenha numa coluna de `larguraDaColuna` px: a largura da
+ * caixa, a da figura e a fração que a figura ocupa. É a mesma conta que o
+ * CSS faz (`width: min(100%, larguraMaxima)` e `aspect-ratio` na área da
+ * figura), para o teste medir o que a tela mostra.
+ */
+export function figuraNaCaixa(
+  medida: MedidaDaImagem,
+  larguraDaColuna: number,
+  alturaMaxima: number = ALTURA_MAXIMA_DA_ILUSTRACAO,
+): { caixa: number; figura: number; alturaDaFigura: number; fracao: number } {
+  const { larguraMaxima } = caixaDaIlustracao(medida, alturaMaxima);
+  const caixa = Math.min(larguraDaColuna, larguraMaxima);
+  const figura = caixa - 2 * FOLGA_DA_ILUSTRACAO;
+  return {
+    caixa,
+    figura,
+    alturaDaFigura: (figura * medida.altura) / medida.largura,
+    fracao: caixa > 0 ? figura / caixa : 0,
+  };
+}
+
+/**
+ * A página da licença na Creative Commons, derivada do código que o JSON
+ * guarda ("CC BY-SA 3.0" → `https://creativecommons.org/licenses/by-sa/3.0/`).
+ * É o segundo link do crédito (SPEC §22.13 item 3). Código que não é de
+ * licença CC devolve `null` e a licença fica como texto.
+ */
+export function urlDaLicenca(licenca: string): string | null {
+  const achado = /^CC\s+((?:BY|SA|NC|ND)(?:-(?:BY|SA|NC|ND))*)\s+(\d+\.\d+)$/i.exec(
+    licenca.trim(),
+  );
+  if (!achado) return null;
+  return `https://creativecommons.org/licenses/${achado[1]!.toLowerCase()}/${achado[2]}/`;
+}
+
+/**
+ * A proporção da caixa de uma foto de execução (SPEC §22.13 item 2): a do
+ * próprio arquivo (`data/medidas-de-foto.json`), para o `object-cover` não
+ * cortar nada; 3:2, a das fotos do kit, quando a medida não é conhecida.
+ */
+export function proporcaoDaFoto(url: string | null | undefined): string {
+  const medida = medidaDaFoto(url);
+  return medida ? `${medida.largura} / ${medida.altura}` : "3 / 2";
+}

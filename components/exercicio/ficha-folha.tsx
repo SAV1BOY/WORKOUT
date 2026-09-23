@@ -301,6 +301,7 @@ function AbaVideo({
             temVideo={temVideo}
             tipo={tipo}
             semFoto={comoPagina}
+            proporcional
             className={comoPagina ? "h-52" : "h-44"}
           />
         )}
@@ -318,10 +319,16 @@ function AbaVideo({
               type="button"
               aria-pressed={opcao === tipo}
               onClick={() => setEscolhido(opcao)}
+              /*
+                SPEC §22.13 item 6: o ativo era `bg-background` sobre o
+                trilho `bg-muted` (1,08:1 no claro) — não se via qual estava
+                escolhido. Invertido, ele passa de 3:1 contra o trilho nos
+                dois temas, e o texto dele de 4,5:1.
+              */
               className={cn(
                 "alvo h-9 rounded-md px-3 text-xs font-medium",
                 opcao === tipo
-                  ? "bg-background text-foreground shadow-sm"
+                  ? "bg-foreground text-background shadow-sm"
                   : "text-muted-foreground",
               )}
             >
