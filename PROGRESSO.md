@@ -9538,6 +9538,53 @@ as 3 falhas eram esse teste novo de retrato.
   em `main`, fora do lote); a 28-player-exercicio sai com Δ 0,00 % porque a
   captura mascara a mídia animada — o anel e a pausa são medidos no e2e.
 
+#### Correção da auditoria 3
+
+A auditoria 3 (`73b9c23`) aprovou na lente da tela e reprovou na da regra
+com um importante, sem bloqueantes. Atendidos o importante e três menores:
+
+- **Regra, importante — a troca de exercício no lugar herdava o estado da
+  ilustração** (item 4; `components/exercicio/media-grande.tsx`,
+  `components/exercicio/ficha-folha.tsx`). Era: a ficha aberta no player
+  troca de exercício sem fechar (‹ › e "Substituir"), e a
+  `IlustracaoAlternada` (sem `key`) guardava a posição, "quadro 1 pronto",
+  "quadro 2 pedido" e "quadro 2 chegou" do exercício anterior — o quadro 2
+  novo era pedido junto com o 1, a troca começava na hora e, com a posição
+  2 herdada, a caixa mostrava um quadro que ainda não tinha chegado (o
+  "fade até a caixa vazia" que a auditoria 2 dizia resolvido). É: a
+  ilustração tem `key` na lista de quadros (na aba Vídeo da ficha e na aba
+  Músculos da folha) e nasce de novo a cada exercício — posição 1, o quadro
+  2 esperando o 1 e a troca esperando o 2; a pausa volta a seguir a
+  preferência do sistema. SPEC §22.13 item 4 ganhou a nota e o aceite.
+- **Regra, menor — figura invisível ao passar para um exercício de um
+  quadro** (anterior ao lote; mesma causa): a posição 2 herdada deixava a
+  única `<img>` em `opacity-0`. Resolvido pela mesma `key`.
+- **Regra, menor — quadro 2 que não chega** (`ilustracao-alternada.tsx`).
+  Era: com o quadro 2 em erro (404, ou sem rede e fora do cache), a figura
+  ficava "alternando" para sempre, com o botão dizendo "Parar a animação".
+  É: `onError` no quadro 2 → a ilustração vira a imagem parada de um quadro,
+  sem o botão de pausa (o nome volta a ser só o `alt`).
+- **Regra, menor — a faixa do player e da Visão geral sem teste** (item 2).
+  Unitário novo `lib/midia-faixa-l13.test.ts`: nos 3 exercícios só com
+  foto, o `<img>` que a `MediaGrande` desenha (renderizado no servidor com
+  `renderToStaticMarkup`) na faixa do player (`h-40`) e na capa do bloco
+  (`h-36 rounded-none`) tem `object-contain` e não `object-cover`. Para o
+  Vitest transformar o JSX do componente, `vitest.config.mts` ganhou
+  `oxc: { jsx: { runtime: "automatic" } }` (o tsconfig é `"jsx":
+  "preserve"`, do Next); nada muda no build do app.
+- **Regra, menor — comentário velho** em `lib/midia.ts`
+  (`proporcaoDaFoto` falava em `object-cover`): corrigido.
+- **Não atendidos (registrados):** a ficha pula de H1 para H3 (já em `main`,
+  e a mesma seção serve a folha, onde H2 → H3 está certo; mudar o nível
+  pede um parâmetro em quatro componentes e mexe em seletores de e2e — fica
+  para um lote de acessibilidade); o aceite do item 4 fala em LCP e o e2e
+  mede a ordem dos pedidos (a ordem é o mecanismo; o LCP a 360 px com a
+  mídia mascarada não é medível pela captura); o bloco de progresso das
+  semanas repete o do card de desafio (é a mesma informação na tela do
+  plano, pedida no item 9); "Corda: 5 estágios" com o ícone no lugar da
+  foto na busca por "corda" (regra de capa sem repetição da §22.9 item 7,
+  anterior ao lote).
+
 #### Provas
 
 - **Vitest (+17 casos):** `lib/midia-l13.test.ts` (11 — as 145 medidas do
@@ -9592,6 +9639,25 @@ as 3 falhas eram esse teste novo de retrato.
   nos 3 exercícios (3); o selo na meta da "Corda: 5 estágios" em Planos e
   na busca (1). O e2e do item 5 no player passou a pedir o nome estável e a
   posição na descrição.
+- **Rodada 13, correção da auditoria 3: Vitest +9, e2e +3.** Vitest
+  (`lib/midia-faixa-l13.test.ts`, 9): os 3 exercícios só com foto, e cada
+  um com `object-contain` (e sem `object-cover`) na faixa do player e na
+  capa do bloco, com a altura de quem chama. e2e
+  (`e2e/ultraloop-l13.spec.ts`, 3, com o service worker bloqueado para o
+  `route` valer): na ficha aberta no player, com o agachamento livre na
+  posição 2, › leva ao supino com o quadro 2 atrasado 2,5 s — o pedido do
+  quadro 2 do supino começa depois do fim do pedido do quadro 1, e a
+  posição fica na 1 em todas as amostras enquanto ele não chegou, passando
+  à 2 depois; da posição 2 da rosca direta, › leva à elevação de pernas na
+  barra fixa (um quadro) com a imagem carregada e opacidade 1; na página do
+  supino com o pedido do quadro 2 abortado, a ilustração fica "parada", na
+  posição 1, visível e sem botão de pausa. **Sonda** `r13/l13/logs-parcial/09d3ba5.log`
+  (lint, tsc, build:e2e e os 3 novos): ok, 3 de 3. **Mutação**
+  (`r13/l13/logs-mutacao/a1d2675.log`: sem a `key` na `MediaGrande` e sem o
+  `onError` do quadro 2, não comitada, depois restaurada): os 3 caem —
+  posição "2" herdada no supino, opacidade "0" na elevação de pernas e
+  "alternando" com o quadro 2 abortado. O unitário novo, com a faixa em
+  `object-cover` (mutação à mão, restaurada): 6 de 9 caem.
 - **Sondas antes da cadeia** (`r12/l13/sonda/`): 1ª execução do spec novo
   derrubada pelo mock sem reset (signup 422) → `resetarMock()` no
   `beforeEach`, como os outros specs do ultraloop (config em série,
@@ -9676,6 +9742,12 @@ inclusive a 03-treino-topo).
 - **Player**: comece o treino do dia; no primeiro exercício, toque no meio
   da ilustração — abre a ficha ("Como fazer"), e a figura continua
   alternando. O botão do canto pausa.
+- **Trocar de exercício na ficha do player** (correção da auditoria 3):
+  com a ficha aberta, espere a figura alternar e toque em › — a figura do
+  próximo aparece na posição de início e só começa a alternar depois que
+  as duas posições carregaram; da rosca direta para a elevação de pernas na
+  barra fixa (uma posição só), a figura aparece parada, nunca uma caixa
+  vazia.
 - **Fotos**: na ficha do supino reto, role até as duas fotos — inteiras, na
   proporção da foto (a barra aparece), com "Início" e "Fim" embaixo. Na
   folha (o "?" do player), a opção "Fotos" do segmento mostra o mesmo. Na

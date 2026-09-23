@@ -2388,7 +2388,10 @@ de cada item é verificável no Vitest ou no e2e (`e2e/ultraloop-l13.spec.ts`).
    são retrato; e2e — nenhuma foto de execução da ficha tem a caixa com
    proporção diferente da do arquivo (|Δ| ≤ 0,02), e as legendas estão
    visíveis; nos três exercícios em retrato, na página do exercício, as duas
-   fotos têm caixa 2:3, `object-fit: contain` e altura ≥ 1,45 × a largura.
+   fotos têm caixa 2:3, `object-fit: contain` e altura ≥ 1,45 × a largura;
+   Vitest (correção da auditoria 3) — nos três exercícios que só têm foto, o
+   `<img>` que a mídia desenha na faixa do player (`h-40`) e na capa do bloco
+   da Visão geral (`h-36`) tem `object-contain` e não `object-cover`.
 3. **Só o que é link aparece sublinhado no crédito** (imagens-13). O crédito
    inteiro era um link sublinhado. Passa a **"Ilustração: <autor> ·
    <licença>"**, em 11 px (§13.8.1): o autor leva à obra de origem
