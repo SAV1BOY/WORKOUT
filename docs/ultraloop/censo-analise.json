@@ -1,0 +1,2985 @@
+{
+ "gerado_em": "2026-09-22T22:04:05Z",
+ "base": "ef3ad97 (lido em /home/user/wt-c, árvore limpa, só leitura)",
+ "fontes": {
+  "achados": "/home/user/wt-c/docs/ultraloop/analise/{a11y,copy,imagens,performance,pwa-offline,tela-explorar-fichas,tela-relatorio-corpo-calendario,tela-treino-player,ux-heuristicas,visual}.json",
+  "ledger": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/r10/ledger/fila-v2.json (itens, resolvidos, descartados: id, duplicatas e origens[].id_original)",
+  "triagem": "/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/r10/ledger/triagem-26.json",
+  "criterio_de_cobertura": "coberto = o id do achado aparece como id de entrada, em duplicatas[] ou em origens[].id_original de itens/resolvidos/descartados do fila-v2.json (casamento exato de id). Menção só em texto livre (detalhe/nota) NÃO conta — é o caso de a11y-06 (citado no C-progresso-do-player-valuetext), copy-08 (a captura citada no copy-02) e visual-09 (citado no visual-16), que ficaram em sem_destino e foram decididos um a um."
+ },
+ "total_achados": 227,
+ "cobertos": 109,
+ "triagem26": 26,
+ "sem_destino": 92,
+ "contagens": {
+  "cobertos_por_forma": {
+   "item": 64,
+   "resolvido": 18,
+   "origem": 1,
+   "duplicata": 25,
+   "descartado": 1
+  },
+  "triagem26_por_decisao": {
+   "publicado": 5,
+   "pendente": 10,
+   "descartado": 11
+  },
+  "sem_destino_por_decisao": {
+   "pendente_item_novo": 15,
+   "publicado": 69,
+   "pendente_consolidado_em_item_existente": 3,
+   "descartado": 4,
+   "depende de decisão do dono": 1
+  },
+  "sem_destino_publicados_por_lote": {
+   "L5": 16,
+   "L8": 10,
+   "L6": 19,
+   "L7": 16,
+   "L9": 5,
+   "L3+L4": 3
+  },
+  "sem_destino_por_origem": {
+   "item nominal de analise/lotes-propostos#lotes (lote publicado ou planejado)": 38,
+   "fora de qualquer lote": 19,
+   "absorvido ('Soma …') num item de lotes-propostos/lotes-r5": 35
+  },
+  "sem_destino_irmaos_da_triagem26": 8,
+  "itens_novos_para_o_ledger": 15,
+  "por_lente": {
+   "a11y": {
+    "coberto_no_ledger": 9,
+    "sem_destino": 6,
+    "triagem26": 1
+   },
+   "copy": {
+    "coberto_no_ledger": 13,
+    "sem_destino": 11,
+    "triagem26": 6
+   },
+   "imagens": {
+    "coberto_no_ledger": 16,
+    "sem_destino": 2
+   },
+   "performance": {
+    "sem_destino": 9,
+    "triagem26": 5,
+    "coberto_no_ledger": 4
+   },
+   "pwa-offline": {
+    "coberto_no_ledger": 12,
+    "sem_destino": 3,
+    "triagem26": 1
+   },
+   "tela-explorar-fichas": {
+    "coberto_no_ledger": 22,
+    "sem_destino": 1,
+    "triagem26": 5
+   },
+   "tela-relatorio-corpo-calendario": {
+    "sem_destino": 17,
+    "triagem26": 1,
+    "coberto_no_ledger": 9
+   },
+   "tela-treino-player": {
+    "sem_destino": 20,
+    "coberto_no_ledger": 8,
+    "triagem26": 2
+   },
+   "ux-heuristicas": {
+    "sem_destino": 13,
+    "coberto_no_ledger": 10,
+    "triagem26": 1
+   },
+   "visual": {
+    "sem_destino": 10,
+    "coberto_no_ledger": 6,
+    "triagem26": 4
+   }
+  },
+  "nota_sobre_os_52": "A triagem-26 contou ~52 'fora de tudo' (sem lote de lotes-propostos, sem descarte, sem ledger). Aqui 'sem destino' é tudo que não está no ledger por id nem na triagem: 92 = 38 itens NOMINAIS de analise/lotes-propostos#lotes (todos em lotes já publicados — L5, L6, L7, L8, L9 — mas o ledger só registrou em resolvidos os do L3/L4, L9 e alguns C) + 54 fora disso (46 + os 8 irmãos). Dos 54, 35 foram absorvidos por 'Soma …' num item de lotes-propostos/lotes-r5 (e publicados junto, menos os que sobraram) e 19 não estavam em lote nenhum (entre eles os 8 irmãos)."
+ },
+ "decisoes": [
+  {
+   "id": "a11y-01",
+   "lente": "a11y",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "a11y-01",
+   "como": "item",
+   "estado_no_ledger": "pendente",
+   "lote_no_ledger": "L15"
+  },
+  {
+   "id": "a11y-02",
+   "lente": "a11y",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": false,
+   "decisao": "pendente",
+   "prova_ou_motivo": "Publicado em parte no L5 (§22.5 item 7, SPEC.md:1661-1669): o descanso ganhou a região viva de marcos (components/player/descanso.tsx:173-175, avisoDoDescanso com unitário em lib/player.test.ts:463-478) e a contagem dos exercícios de tempo também (components/player/exercicio.tsx:494-503). Continua na PREPARAÇÃO: components/player/preparacao.tsx:39-45 só tem o <span role=\"timer\" aria-label=\"Preparação\">, sem região viva (grep role=\"status\" vazio no arquivo). O cardio fica fora do item: components/cardio/timer-intervalos.tsx:57-69 já fala cada troca de bloco por voz (ligada por padrão, components/cardio/tela-cardio.tsx:271 `prefs.cardio_voz !== false`) com vibração/apito, e tela-cardio.tsx:374 é cronômetro crescente, sem marco a anunciar.",
+   "grupo_de_origem": "lotes-propostos#lotes[6] 'Player: gravar sem perder o treino' (ordem-1 → L5) — item 'a11y-02' (Soma a11y-02, ux-heuristicas-05/-07, tela-treino-player-05)",
+   "lote_sugerido": "L19b (novo, 'Player: descanso, preparação e o caminho até o player')",
+   "item": {
+    "id": "a11y-02",
+    "secao": "B",
+    "estado": "pendente",
+    "area": "player",
+    "area_original": "a11y",
+    "titulo": "Preparação conta 10 s em role='timer' sem nenhum anúncio para o leitor de tela",
+    "detalhe": "PROBLEMA (Player — Preparação): EVIDÊNCIA (análise, /tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/a11y/a11y-02.png): os contadores do player eram role='timer' (aria-live implícito = off) sem região polite ao lado; medido {role:'timer', label:'Preparação', txt:'10'}. PROPOSTA DA ANÁLISE: manter o role='timer' no número e pôr ao lado um <p role='status' className='sr-only'> que só muda em marcos. JÁ PUBLICADO (L5, PR #8, §22.5 item 7): descanso (components/player/descanso.tsx:173-175) e exercício de tempo (components/player/exercicio.tsx:494-503). FORA DO ITEM: o cardio (timer-intervalos.tsx:57-69 fala a troca de bloco; tela-cardio.tsx:374 é cronômetro crescente). FAZER: em components/player/preparacao.tsx:39-45 acrescentar, ao lado do role='timer', um <p role='status' className='sr-only'> montado desde o primeiro render que só muda em marcos ('Começa em 3 segundos.'), com a regra pura em lib/player.ts (avisoDaPreparacao, no molde de avisoDoDescanso) e unitário em lib/player.test.ts. ACEITE: unitário: avisoDaPreparacao devolve '' acima de 3 s e 'Começa em 3 segundos.' de 3 s a 1 s; e2e no player com preparação de 10 s: o role='status' existe já no primeiro quadro da preparação e o texto muda uma vez só, no marco (nenhum anúncio por segundo). ESTADO EM ef3ad97: components/player/preparacao.tsx:39-45 role='timer' sem região viva.",
+    "arquivos": [
+     "components/player/preparacao.tsx",
+     "lib/player.ts",
+     "lib/player.test.ts"
+    ],
+    "esforco": "P",
+    "origens": [
+     {
+      "fonte": "analise/a11y",
+      "id_original": "a11y-02",
+      "origem": "R5 análise"
+     }
+    ],
+    "duplicatas": [],
+    "lote_planejado": "L19b (novo)"
+   }
+  },
+  {
+   "id": "a11y-03",
+   "lente": "a11y",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "a11y-03",
+   "como": "resolvido",
+   "estado_no_ledger": "publicado",
+   "lote_no_ledger": "L3"
+  },
+  {
+   "id": "a11y-04",
+   "lente": "a11y",
+   "situacao": "triagem26",
+   "decisao": "publicado",
+   "fonte": "triagem-26.json#triados",
+   "prova_ou_motivo": "Decidido na triagem-26 (ver triagem-26.json): components/ui/button.tsx:14 'focus-visible:ring-3 focus-visible:ring-ring' (cor cheia) e components/ui/input.tsx:23 idem, com focus-within; app/globals.css:247-248 'outline: 2px solid var(--ring)' em todo focável e :320-321 (.foco). grep de 'ring-ring/50' em components/ e app/ só acha o comentário d…"
+  },
+  {
+   "id": "a11y-05",
+   "lente": "a11y",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "a11y-05",
+   "como": "item",
+   "estado_no_ledger": "pendente",
+   "lote_no_ledger": "L14"
+  },
+  {
+   "id": "a11y-06",
+   "lente": "a11y",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": false,
+   "decisao": "publicado",
+   "prova_ou_motivo": "components/player/exercicio.tsx:152-154 (<p role=\"status\" className=\"sr-only\"> com a série registrada; o texto sai de components/player/tela-player.tsx:598-609) e :208-213 (progressbar com aria-valuemax/aria-valuenow/aria-valuetext); SPEC.md:1681-1686 (§22.5 item 10).",
+   "lote_publicado": "L5",
+   "pr": "#8",
+   "sha": "2826972",
+   "grupo_de_origem": "lotes-propostos#lotes[6] 'Player: gravar sem perder o treino' (ordem-1 → L5) — item 'a11y-06' (Soma a11y-06, a11y-15, ux-heuristicas-08, copy-22, copy-23)",
+   "sobra_no_ledger": [
+    "C-progresso-do-player-valuetext (L27): o valuetext fala 'exercício' e a barra mede séries — efeito colateral, o item C já cita o a11y-06; somar a11y-06 às origens dele"
+   ]
+  },
+  {
+   "id": "a11y-07",
+   "lente": "a11y",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": true,
+   "decisao": "pendente",
+   "prova_ou_motivo": "Irmão fora do ledger (triagem-26.json#irmaos_fora_do_ledger). Continua em ef3ad97: app/(auth)/login/formulario.tsx:84-91 '<p role=\"alert\" …>' sem id; nenhum aria-invalid, aria-describedby nem focus( no arquivo. Item pronto na triagem, reaproveitado aqui sem mudança de mérito.",
+   "grupo_de_origem": "fora de lote (citado no motivo do descarte do ux-heuristicas-20, lotes-propostos#descartados[0])",
+   "lote_sugerido": "L23b (novo na triagem-26, 'Copy e mensagens')",
+   "item_fonte": "triagem-26.json#irmaos_fora_do_ledger[a11y-07].item",
+   "item": {
+    "id": "a11y-07",
+    "secao": "B",
+    "estado": "pendente",
+    "area": "copy",
+    "area_original": "a11y",
+    "titulo": "Login: depois de 'E-mail ou senha incorretos.' o foco vai para o body e os campos não dizem que estão errados",
+    "detalhe": "PROBLEMA (Login — erro de senha): EVIDÊNCIA (análise, /tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/a11y/a11y-07.png): o role='alert' anuncia 'E-mail ou senha incorretos.', mas document.activeElement volta a BODY e os dois campos ficam sem aria-invalid e sem aria-describedby para a mensagem — com teclado é preciso tabular desde o começo do documento. PROPOSTA DA ANÁLISE: id na mensagem, aria-describedby e aria-invalid='true' nos dois campos quando o envio falha, e foco devolvido ao e-mail. FAZER: em app/(auth)/login/formulario.tsx:84-91 dar id ao alerta; com estado.erro, e-mail e senha com aria-invalid='true' e aria-describedby=<id do alerta>; levar o foco ao campo de e-mail (ref + efeito quando o erro muda). Cobre o 'foco depois do erro' do ux-heuristicas-20. ACEITE: e2e em /login (mock) com senha errada: document.activeElement é #email; os dois campos têm aria-invalid='true' e aria-describedby com o id do role='alert'; corrigir a senha e reenviar entra sem voltar ao topo com Tab; e2e/login.spec.ts:51/:108 verdes. ESTADO EM ef3ad97: formulario.tsx:84-91 '<p role=\"alert\" …>' sem id; grep de aria-invalid/aria-describedby/focus( vazio no arquivo.",
+    "arquivos": [
+     "app/(auth)/login/formulario.tsx"
+    ],
+    "esforco": "P",
+    "origens": [
+     {
+      "fonte": "analise/a11y",
+      "id_original": "a11y-07",
+      "origem": "R5 análise"
+     },
+     {
+      "fonte": "analise/lotes-propostos#descartados",
+      "id_original": "ux-heuristicas-20",
+      "origem": "R5 análise",
+      "nota": "irmão citado no motivo do descarte do ux-heuristicas-20 ('os irmãos a11y-07 e pwa-offline-02 ficam fora desta rodada'); não está nos 34 descartados nem no ledger"
+     }
+    ],
+    "duplicatas": [],
+    "subsecao": "descartados-R5-triados",
+    "importado_na_rodada": 3,
+    "lote_planejado": "L23b (novo)"
+   }
+  },
+  {
+   "id": "a11y-08",
+   "lente": "a11y",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": false,
+   "decisao": "pendente",
+   "prova_ou_motivo": "O L8 (§22.8 item 5, SPEC.md:1855-1859) marcou o 'hoje' só na GRADE DO MÊS (components/calendario/grade.tsx:204-211, aria-current='date' e ', hoje' no nome). O que a análise mediu foi o cartão da SEMANA ('o <li> de hoje (\"QUA 16 Treino B · semana 16\")'), que continua só com cor: grade.tsx:39 aria-label `${diaCurto} ${data}: ${rotulo}, ${marca}` sem 'hoje', :49 `d.ehHoje && \"border-primary\"`, nenhum aria-current em GradeDaSemana.",
+   "grupo_de_origem": "lotes-propostos#lotes[2] 'Calendário e faixa da semana' (ordem-4 → L8) — item 'a11y-08' (aplicado ao mês, não à semana)",
+   "lote_sugerido": "L23b (grade.tsx já está no lote pelo copy-24, que mexe no mesmo rótulo do cartão; 0 arquivo novo). Alternativa: L25 (grade.tsx também está lá)",
+   "item": {
+    "id": "a11y-08",
+    "secao": "B",
+    "estado": "pendente",
+    "area": "copy",
+    "area_original": "a11y",
+    "titulo": "Calendário: o cartão de hoje na lista da semana só é 'hoje' pela cor da borda",
+    "detalhe": "PROBLEMA (Calendário — semana): EVIDÊNCIA (análise, /tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/a11y/a11y-08.png): o cartão de hoje ('QUA 16 Treino B · semana 16') tem aria-current ausente, nenhum texto 'hoje'; a única diferença medida é border-color rgb(251,146,60) (falha 1.4.1). PROPOSTA DA ANÁLISE: aria-current='date' e a palavra 'hoje' para o leitor de tela. JÁ PUBLICADO (L8, §22.8 item 5): só a grade do mês (grade.tsx:204-211). FAZER: em components/calendario/grade.tsx:36-51 (GradeDaSemana) dar aria-current='date' ao botão do dia corrente e acrescentar ', hoje' ao aria-label (mesma regra da grade do mês; sem <span className='sr-only'>, pelo motivo da §22.3 item 11). A borda laranja continua. ACEITE: e2e em /calendario a 360×740 com o relógio em 16/09: o botão do cartão de hoje tem aria-current='date' e nome acessível contendo 'hoje'; nenhum outro cartão da semana tem aria-current; navegar para outra semana tira o aria-current da lista. ESTADO EM ef3ad97: grade.tsx:39 aria-label sem 'hoje'; :49 só border-primary.",
+    "arquivos": [
+     "components/calendario/grade.tsx"
+    ],
+    "esforco": "P",
+    "origens": [
+     {
+      "fonte": "analise/a11y",
+      "id_original": "a11y-08",
+      "origem": "R5 análise"
+     }
+    ],
+    "duplicatas": [],
+    "lote_planejado": "L23b (novo na triagem-26)"
+   }
+  },
+  {
+   "id": "a11y-09",
+   "lente": "a11y",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "C-nav-inferior-zoom-200",
+   "como": "origem",
+   "estado_no_ledger": "pendente",
+   "lote_no_ledger": "L17"
+  },
+  {
+   "id": "a11y-10",
+   "lente": "a11y",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "C-nav-inferior-zoom-200",
+   "como": "duplicata",
+   "estado_no_ledger": "pendente",
+   "lote_no_ledger": "L17",
+   "tambem_citado_em": [
+    "a11y-05",
+    "a11y-16",
+    "copy-02",
+    "copy-07",
+    "copy-09",
+    "copy-16",
+    "copy-17",
+    "copy-20",
+    "copy-29",
+    "copy-30",
+    "visual-08",
+    "visual-16",
+    "visual-19"
+   ],
+   "nota": "também citado como origem de GRUPO (expansão do REMONTAR_L12: grupos a11y-10, pwa-offline-01, ux-heuristicas-17) em outros itens; o canônico é o primeiro"
+  },
+  {
+   "id": "a11y-11",
+   "lente": "a11y",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "a11y-11",
+   "como": "resolvido",
+   "estado_no_ledger": "publicado",
+   "lote_no_ledger": "L4"
+  },
+  {
+   "id": "a11y-12",
+   "lente": "a11y",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "a11y-14",
+   "como": "duplicata",
+   "estado_no_ledger": "pendente",
+   "lote_no_ledger": "L16",
+   "tambem_citado_em": [
+    "tela-explorar-fichas-21"
+   ],
+   "nota": "achado dividido: cada canônico absorveu uma parte (duplicata nos dois)"
+  },
+  {
+   "id": "a11y-13",
+   "lente": "a11y",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": false,
+   "decisao": "pendente",
+   "canonico": "C-aviso-conquista-regiao-viva",
+   "prova_ou_motivo": "Mesmo defeito, mesmo trecho do item C do ledger: o L6 pôs role=\"status\" na <section> (components/relatorio/aviso-conquista.tsx:43, §22.6 item 6), mas a região só entra no DOM já com o texto (o C cita `if (!pronto || fechado || novas.length === 0) return null`) — o caso clássico em que o leitor fica calado, que é exatamente o 'nada é anunciado' do a11y-13. A outra parte (o 'Ok' como 2ª parada de Tab) caiu com a mudança de lugar do aviso no L6 (PROGRESSO.md:7418). Sem item novo: somar a11y-13 às origens/duplicatas do C-aviso-conquista-regiao-viva (L24).",
+   "grupo_de_origem": "lotes-propostos#lotes[0] 'Relatório: estrutura, números e conquistas' (ordem-2 → L6) — absorvido no item 'tela-relatorio-corpo-calendario-02' (Soma -02, tela-treino-player-28, a11y-13, visual-09)",
+   "lote_sugerido": "L24 (já planejado para o canônico)"
+  },
+  {
+   "id": "a11y-14",
+   "lente": "a11y",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "a11y-14",
+   "como": "item",
+   "estado_no_ledger": "pendente",
+   "lote_no_ledger": "L16"
+  },
+  {
+   "id": "a11y-15",
+   "lente": "a11y",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": false,
+   "decisao": "pendente",
+   "prova_ou_motivo": "Publicado em parte no L5 (§22.5 item 10, SPEC.md:1685-1686): components/player/exercicio.tsx:148-150 tem <h1 className=\"sr-only\">. Mas o h1 mora no componente da SÉRIE: grep '<h1' em components/player e components/treinar só acha exercicio.tsx:148 (além de tela-treinar.tsx:226 e visao-geral.tsx:112). Nos passos de preparação (preparacao.tsx:30-35), descanso (descanso.tsx:118-141, só h2), firme, feedback e conclusão a rota /treinar/[id] fica sem h1 — a proposta pedia o h1 no contêiner do player.",
+   "grupo_de_origem": "lotes-propostos#lotes[6] 'Player: gravar sem perder o treino' (ordem-1 → L5) — absorvido no item 'a11y-06'",
+   "lote_sugerido": "L19b (novo)",
+   "item": {
+    "id": "a11y-15",
+    "secao": "B",
+    "estado": "pendente",
+    "area": "player",
+    "area_original": "a11y",
+    "titulo": "Player sem h1 fora do passo de série (preparação, descanso, firme, feedback, conclusão)",
+    "detalhe": "PROBLEMA (Player — todos os passos): EVIDÊNCIA (análise, /tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/a11y/a11y-15.png): na tela onde o treino acontece não havia <h1>; a árvore de títulos era só 'H2: Levantamento terra'. PROPOSTA DA ANÁLISE: <h1 className='sr-only'>Treino B — exercício 2 de 6</h1> no contêiner do player. JÁ PUBLICADO (L5, §22.5 item 10): o h1 só-leitor no passo de série (components/player/exercicio.tsx:148-150). FAZER: mover o h1 para components/player/tela-player.tsx, montado em todo passo, com o texto do passo ('Treino A — preparação do exercício 1 de 6', 'Treino A — descanso antes do exercício 2 de 6', 'Treino A — conclusão'); a série continua dizendo o que diz hoje. ACEITE: e2e no player: em cada passo (preparação, série, descanso, firme, feedback, conclusão), com a Visão geral fechada, document.querySelectorAll('h1').length === 1 e o texto nomeia o treino e o passo. ESTADO EM ef3ad97: grep '<h1' em components/player só acha exercicio.tsx:148.",
+    "arquivos": [
+     "components/player/tela-player.tsx",
+     "components/player/exercicio.tsx"
+    ],
+    "esforco": "P",
+    "origens": [
+     {
+      "fonte": "analise/a11y",
+      "id_original": "a11y-15",
+      "origem": "R5 análise"
+     }
+    ],
+    "duplicatas": [],
+    "lote_planejado": "L19b (novo)"
+   }
+  },
+  {
+   "id": "a11y-16",
+   "lente": "a11y",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "a11y-16",
+   "como": "item",
+   "estado_no_ledger": "pendente",
+   "lote_no_ledger": "L17"
+  },
+  {
+   "id": "copy-01",
+   "lente": "copy",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "a11y-11",
+   "como": "duplicata",
+   "estado_no_ledger": "publicado",
+   "lote_no_ledger": "L4"
+  },
+  {
+   "id": "copy-02",
+   "lente": "copy",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "copy-02",
+   "como": "item",
+   "estado_no_ledger": "pendente",
+   "lote_no_ledger": "L23"
+  },
+  {
+   "id": "copy-03",
+   "lente": "copy",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": false,
+   "decisao": "publicado",
+   "prova_ou_motivo": "lib/semana.ts:212-222 (rotuloDaFase devolve 'Fase 1 · 12 de 12 concluída' da semana 13 em diante) e :201 faseCumprida; SPEC.md:1820-1828 (§22.8 item 1). A aba Treino diz 'Fase 1' com a legenda 'semana 16' (components/treino/cabecalho.tsx:95): sem denominador, não contradiz.",
+   "lote_publicado": "L8",
+   "pr": "#10",
+   "sha": "9d2c001",
+   "grupo_de_origem": "lotes-propostos#lotes[2] 'Calendário e faixa da semana' (ordem-4 → L8) — absorvido no item 'tela-relatorio-corpo-calendario-20' (Soma -20 e copy-03)",
+   "sobra_no_ledger": [
+    "C-calendario-fase2-semana-mostrada (L25): a oferta da Fase 2 segue a semana navegada"
+   ]
+  },
+  {
+   "id": "copy-04",
+   "lente": "copy",
+   "situacao": "triagem26",
+   "decisao": "pendente",
+   "fonte": "triagem-26.json#triados",
+   "prova_ou_motivo": "Decidido na triagem-26 (ver triagem-26.json): O defeito continua em ef3ad97: components/mais/tela-perfil.tsx:256 'semana {semanas}' com semanaDaFase (diferença + 1, a semana corrente — lib/calendario.ts:140-144) e, no mesmo card, :265 '{sugestao.semanas} semanas de Fase 1' e :289-291 '(você tem {sugestao.semanas} e {sessoes})' com sugerirFase2(…",
+   "lote_sugerido": "L23b (novo, 'Copy e mensagens'); alternativa: L18, que já edita tela-perfil.tsx pelo copy-30 (+ e2e/auditoria-m6.spec.ts → 12 arquivos), com exceção de área"
+  },
+  {
+   "id": "copy-05",
+   "lente": "copy",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": false,
+   "decisao": "publicado",
+   "prova_ou_motivo": "components/relatorio/tela-relatorio.tsx:211-213 (rótulo 'Sessões', detalhe 'no total (força + cardio)'); SPEC.md:1720-1724 (§22.6 item 4).",
+   "lote_publicado": "L6",
+   "pr": "#9",
+   "sha": "3c9864a",
+   "grupo_de_origem": "lotes-propostos#lotes[0] 'Relatório: estrutura, números e conquistas' (ordem-2 → L6) — item 'copy-05' (Soma copy-05 e tela-relatorio-corpo-calendario-03)",
+   "sobra_no_ledger": [
+    "C-relatorio-no-total-3-linhas (L24): o detalhe quebra em três linhas no ladrilho"
+   ]
+  },
+  {
+   "id": "copy-06",
+   "lente": "copy",
+   "situacao": "triagem26",
+   "decisao": "descartado",
+   "fonte": "triagem-26.json#triados",
+   "prova_ou_motivo": "Decidido na triagem-26 (ver triagem-26.json): Em ef3ad97 o subtítulo da coleção de aparelho é a ficha técnica (lib/colecoes.ts:150, item.specs) e o do plano Corda é a junção das funções (lib/colecoes.ts:243, cardio.corda.funcoes). A parte de aparelho é o mesmo defeito do tela-explorar-fichas-09 (candidato do L12; aceite 'nenhum subtítulo de vit…"
+  },
+  {
+   "id": "copy-07",
+   "lente": "copy",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "copy-07",
+   "como": "item",
+   "estado_no_ledger": "pendente",
+   "lote_no_ledger": "L16"
+  },
+  {
+   "id": "copy-08",
+   "lente": "copy",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": false,
+   "decisao": "pendente",
+   "prova_ou_motivo": "Continua em ef3ad97: app/(app)/mais/creditos/page.tsx:78 '… Nenhum ponto do desenho foi alterado; os músculos foram reagrupados e as cores viraram variáveis CSS.' e :102-107 'Texto completo da licença MIT — anda junto do desenho, com a atribuição e o que foi feito com a geometria'. Não é o copy-02 (que tira '(SPEC §15)' e '(SPEC §15.3)' de tela-preferencias.tsx:74 e data/equipamentos.json:144): outro trecho, outro arquivo — só a captura (copy-08.png) é a mesma.",
+   "grupo_de_origem": "fora de lote",
+   "lote_sugerido": "L14 com exceção de área (créditos da mídia: a lista completa do crédito que a ficha mostra, §15.1 item 3) — L23, dono da tela 24-creditos, está no teto de 12 arquivos",
+   "item": {
+    "id": "copy-08",
+    "secao": "B",
+    "estado": "pendente",
+    "area": "mais",
+    "area_original": "copy",
+    "titulo": "Créditos com nota de implementação ('as cores viraram variáveis CSS')",
+    "detalhe": "PROBLEMA (Mais → Créditos): EVIDÊNCIA (análise, /tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/copy/copy-08.png): 'Texto completo da licença MIT — anda junto do desenho, com a atribuição e o que foi feito com a geometria' e 'Nenhum ponto do desenho foi alterado; os músculos foram reagrupados e as cores viraram variáveis CSS.' PROPOSTA DA ANÁLISE: deixar só o que a licença exige, em linguagem de gente, sem 'variáveis CSS'. FAZER: app/(app)/mais/creditos/page.tsx:78 → '… pela conversão publicada em openGym. Nenhuma linha do desenho foi alterada; só reagrupamos os músculos e trocamos as cores.'; :102-107 → 'Texto completo da licença MIT, com a atribuição.' Autor, licença, link da fonte e link do texto da licença continuam (§15.1 itens 3 e 4). ACEITE: e2e em /mais/creditos: nenhum texto visível contém 'variáveis CSS' nem 'anda junto'; os links para a fonte e para /mapa-muscular/LICENCA-mapa-anatomico.md continuam presentes. ESTADO EM ef3ad97: creditos/page.tsx:78 e :102-107 com o texto antigo.",
+    "arquivos": [
+     "app/(app)/mais/creditos/page.tsx"
+    ],
+    "esforco": "P",
+    "origens": [
+     {
+      "fonte": "analise/copy",
+      "id_original": "copy-08",
+      "origem": "R5 análise"
+     }
+    ],
+    "duplicatas": [],
+    "lote_planejado": "L14 (exceção de área)"
+   }
+  },
+  {
+   "id": "copy-09",
+   "lente": "copy",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "copy-09",
+   "como": "item",
+   "estado_no_ledger": "pendente",
+   "lote_no_ledger": "L23"
+  },
+  {
+   "id": "copy-10",
+   "lente": "copy",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "tela-relatorio-corpo-calendario-19",
+   "como": "duplicata",
+   "estado_no_ledger": "pendente",
+   "lote_no_ledger": "L15"
+  },
+  {
+   "id": "copy-11",
+   "lente": "copy",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "copy-11",
+   "como": "item",
+   "estado_no_ledger": "pendente",
+   "lote_no_ledger": "L18"
+  },
+  {
+   "id": "copy-12",
+   "lente": "copy",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "copy-12",
+   "como": "item",
+   "estado_no_ledger": "pendente",
+   "lote_no_ledger": "L18"
+  },
+  {
+   "id": "copy-13",
+   "lente": "copy",
+   "situacao": "triagem26",
+   "decisao": "pendente",
+   "fonte": "triagem-26.json#triados",
+   "prova_ou_motivo": "Decidido na triagem-26 (ver triagem-26.json): O texto da tela continua: components/exercicios/historico-exercicio.tsx:202 'Cada subida, repetição ou volta de carga aparece aqui depois do treino.' — 'repetição' ali é 'repetir a carga', e a mesma ficha usa 'repetições' para as da série. A parte da proposta que mexe em lib/progressao.ts NÃO entra …",
+   "lote_sugerido": "L14 (edita components/exercicios/historico-exercicio.tsx pelo tela-explorar-fichas-20): 7 itens, 3 M, 9 arquivos, nenhum arquivo novo"
+  },
+  {
+   "id": "copy-14",
+   "lente": "copy",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": false,
+   "decisao": "publicado",
+   "prova_ou_motivo": "components/mais/ajustes-do-treino.tsx:223 ('Nenhum por enquanto. Quando você marcar algum, ele passa a aparecer por último nas listas.'); SPEC.md:2010-2011 (§22.7 item 3).",
+   "lote_publicado": "L7",
+   "pr": "#13",
+   "sha": "d696b33",
+   "grupo_de_origem": "lotes-propostos#lotes[7] 'Aba Treino: hierarquia e controle' (ordem-3 → L7) — absorvido no item 'tela-treino-player-26' (Soma -26, -24, -25 e copy-14)"
+  },
+  {
+   "id": "copy-15",
+   "lente": "copy",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": false,
+   "decisao": "publicado",
+   "prova_ou_motivo": "components/treino/parte-do-corpo.tsx:207 ('Começar o treino de …'), components/treino/personalizar.tsx:177-182 ('Começar com N exercícios'), components/treinar/tela-treinar.tsx:199-200 ('Começar o Treino B'); SPEC.md:2036-2038 (§22.7 item 8).",
+   "lote_publicado": "L7",
+   "pr": "#13",
+   "sha": "d696b33",
+   "grupo_de_origem": "lotes-propostos#lotes[7] 'Aba Treino: hierarquia e controle' (ordem-3 → L7) — item 'copy-15'"
+  },
+  {
+   "id": "copy-16",
+   "lente": "copy",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "copy-16",
+   "como": "item",
+   "estado_no_ledger": "pendente",
+   "lote_no_ledger": "L23"
+  },
+  {
+   "id": "copy-17",
+   "lente": "copy",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "copy-17",
+   "como": "item",
+   "estado_no_ledger": "pendente",
+   "lote_no_ledger": "L17"
+  },
+  {
+   "id": "copy-18",
+   "lente": "copy",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": false,
+   "decisao": "publicado",
+   "prova_ou_motivo": "components/progresso/tela-progresso.tsx:351 ('Melhor carga, melhor série e carga máxima estimada'), :373 (coluna 'Máx. estimada') e :271 ('Soma de repetições × carga, nas últimas N semanas'); grep 'e1RM'/'Σ' em components/ vazio (só comentários em lib/); SPEC.md:1777-1788 (§22.6 item 8).",
+   "lote_publicado": "L6",
+   "pr": "#9",
+   "sha": "3c9864a",
+   "grupo_de_origem": "lotes-propostos#lotes[0] 'Relatório: estrutura, números e conquistas' (ordem-2 → L6) — absorvido no item 'visual-20' (Soma visual-20, copy-18, copy-19, copy-26)"
+  },
+  {
+   "id": "copy-19",
+   "lente": "copy",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": false,
+   "decisao": "pendente",
+   "prova_ou_motivo": "Publicado quase todo no L6 (§22.6 item 8, SPEC.md:1789-1792): 'Constância (4 semanas)' e formatarPercentual (components/progresso/tela-progresso.tsx:155-157; components/relatorio/conquistas.tsx:94). Sobra a ocorrência que a análise mediu no Cardio: data/cardio.json:332 (corrida.regras[3]) '20–25 %' com espaço, contra a grafia única da SPEC ('com o símbolo colado'). As outras seis ocorrências de ' %' em texto fixo ficam em observacoes_novas (OBS-porcentagem-com-espaco), fora do item por capacidade.",
+   "grupo_de_origem": "lotes-propostos#lotes[0] 'Relatório: estrutura, números e conquistas' (ordem-2 → L6) — absorvido no item 'visual-20'",
+   "lote_sugerido": "L18 (Cardio e barra fixa: já edita data/cardio.json; 0 arquivo novo)",
+   "item": {
+    "id": "copy-19",
+    "secao": "B",
+    "estado": "pendente",
+    "area": "cardio",
+    "area_original": "copy",
+    "titulo": "Cardio escreve '20–25 %' com espaço; o resto do app escreve '78%'",
+    "detalhe": "PROBLEMA (Cardio — regras da corrida): EVIDÊNCIA (análise, /tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/copy/copy-19.png): 'ADERÊNCIA (4 SEMANAS) / 78 %' no Relatório, '0%', '8%', '92%' colados na aba Treino e '20–25 %' com espaço no Cardio. PROPOSTA DA ANÁLISE: uma forma só ('78%', colado) e 'Constância' no lugar de 'aderência'. JÁ PUBLICADO (L6, §22.6 item 8): formatarPercentual e 'Constância (4 semanas)' (components/progresso/tela-progresso.tsx:155-157). FAZER: data/cardio.json:332 '20–25 %' → '20–25%'. ACEITE: npm run validar verde; o e2e do L18 afirma que nenhum texto de data/cardio.json casa /\\d\\s%/ e que a regra aparece como '20–25%' na tela do cardio. FORA DO ITEM: as ocorrências de observacoes_novas[OBS-porcentagem-com-espaco]. ESTADO EM ef3ad97: data/cardio.json:332 'Da semana 9 em diante o volume sobe 20–25 % por semana, o teto seguro.'",
+    "arquivos": [
+     "data/cardio.json"
+    ],
+    "esforco": "P",
+    "origens": [
+     {
+      "fonte": "analise/copy",
+      "id_original": "copy-19",
+      "origem": "R5 análise"
+     }
+    ],
+    "duplicatas": [],
+    "lote_planejado": "L18"
+   }
+  },
+  {
+   "id": "copy-20",
+   "lente": "copy",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "copy-20",
+   "como": "item",
+   "estado_no_ledger": "pendente",
+   "lote_no_ledger": "L23"
+  },
+  {
+   "id": "copy-21",
+   "lente": "copy",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "copy-21",
+   "como": "item",
+   "estado_no_ledger": "pendente",
+   "lote_no_ledger": "L19"
+  },
+  {
+   "id": "copy-22",
+   "lente": "copy",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": false,
+   "decisao": "pendente",
+   "prova_ou_motivo": "Publicado em parte no L5 (§22.5 item 10, SPEC.md:1687-1688): o campo do player diz 'carga na barra' (components/player/exercicio.tsx:394-400). Sobram duas coisas: (1) a Visão geral ainda diz 'NA BARRA' — já está no ledger como C-rotulo-do-campo-de-carga (L27; somar copy-22 às origens); (2) o chip 'montagem' continua um substantivo solto em minúscula: components/treinar/montagem.tsx:118-122 (`<Layers …/> montagem`) — item novo abaixo.",
+   "grupo_de_origem": "lotes-propostos#lotes[6] 'Player: gravar sem perder o treino' (ordem-1 → L5) — absorvido no item 'a11y-06'",
+   "tambem_no_ledger": [
+    "C-rotulo-do-campo-de-carga"
+   ],
+   "lote_sugerido": "L19b (novo)",
+   "item": {
+    "id": "copy-22",
+    "secao": "B",
+    "estado": "pendente",
+    "area": "player",
+    "area_original": "copy",
+    "titulo": "Chip 'montagem' é um substantivo solto; a ação não diz o que faz",
+    "detalhe": "PROBLEMA (Player → Exercício e Visão geral): EVIDÊNCIA (análise, /tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/copy/copy-22.png): abaixo dos campos, a palavra 'montagem' sozinha, em minúscula. PROPOSTA DA ANÁLISE: transformar 'montagem' em ação nomeada ('Ver a montagem'). JÁ PUBLICADO: 'CARGA NA BARRA' no player (L5); a 'NA BARRA' da Visão geral é o C-rotulo-do-campo-de-carga (L27). FAZER: em components/treinar/montagem.tsx:118-122 o rótulo do botão vira 'Ver a montagem' (o título da folha continua 'Montagem'); vale no player e na Visão geral, que usam o mesmo BotaoMontagem. ACEITE: e2e no player com carga > 0: getByRole('button', { name: 'Ver a montagem' }) abre a folha 'Montagem'; o alvo continua ≥ 44 px; a 360 px o chip e o 'anterior: …' continuam na mesma linha sem vazar (exercicio.tsx:227 e :267 documentam a folga dessa linha). ESTADO EM ef3ad97: montagem.tsx:120-121 '<Layers className=\"size-4\" /> montagem'.",
+    "arquivos": [
+     "components/treinar/montagem.tsx"
+    ],
+    "esforco": "P",
+    "origens": [
+     {
+      "fonte": "analise/copy",
+      "id_original": "copy-22",
+      "origem": "R5 análise"
+     }
+    ],
+    "duplicatas": [],
+    "lote_planejado": "L19b (novo)"
+   }
+  },
+  {
+   "id": "copy-23",
+   "lente": "copy",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": false,
+   "decisao": "pendente",
+   "canonico": "C-descanso-sinal-visivel",
+   "prova_ou_motivo": "A grafia única foi publicada no L5 (components/player/descanso.tsx:127-137, 'Aquecimento 2 de 2 · exercício 1 de 6' nas duas telas, caixa-alta por CSS; SPEC.md:1688-1691). O resto do achado — '20 s' isolado → '+20 s' — é o mesmo defeito e o mesmo trecho do C-descanso-sinal-visivel (L27): descanso.tsx:232-233 e :241-242 renderizam ícone + '20 s', o sinal não está no texto. Sem item novo: somar copy-23 às origens do C.",
+   "grupo_de_origem": "lotes-propostos#lotes[6] 'Player: gravar sem perder o treino' (ordem-1 → L5) — absorvido no item 'a11y-06'",
+   "lote_sugerido": "L27 (já planejado para o canônico)"
+  },
+  {
+   "id": "copy-24",
+   "lente": "copy",
+   "situacao": "triagem26",
+   "decisao": "pendente",
+   "fonte": "triagem-26.json#triados",
+   "prova_ou_motivo": "Decidido na triagem-26 (ver triagem-26.json): O acento foi resolvido no L1 ('sáb' nos dois), mas a mesma informação segue com duas grafias e dois nomes acessíveis. Faixa (aba Treino e Relatório): lib/semana.ts:407 rótulo = formatarDiaCurto (lib/formato.ts:91-95, minúsculo) e :412 nome acessível 'quarta 16/09: …' (formatarDiaLongo, o formato da …",
+   "lote_sugerido": "L23b (novo, 'Copy e mensagens'); o L25 (dono de grade.tsx) está no teto de 12 arquivos e é só-C"
+  },
+  {
+   "id": "copy-25",
+   "lente": "copy",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": true,
+   "decisao": "pendente",
+   "prova_ou_motivo": "Irmão fora do ledger. Continua em ef3ad97: os filtros e a seção Equipamento da ficha usam lib/catalogo.ts:51 'Peso do corpo', :65 'Cross-over', :69 'Super band' (NOME_IMPLEMENTO/NOME_EQUIPAMENTO, consumidos em components/exercicios/lista-exercicios.tsx:171/:177 e components/exercicio/ficha-folha.tsx:144), enquanto o card imprime data/exercicios.json equipamento_texto — 'Cross over · Corda', 'Barra fixa · Super Band', 'Tatame · peso corporal' (lista-exercicios.tsx:329). O data/exercicios.json já referencia o equipamento por id (campo equipamento): o que diverge é só a grafia do rótulo.",
+   "grupo_de_origem": "fora de lote (citado no motivo do descarte do copy-06, lotes-propostos#descartados[31])",
+   "lote_sugerido": "L14 (o tela-explorar-fichas-21 do L14 transforma a seção Equipamento da ficha — ficha-folha.tsx:138-149 — em tags com esses mesmos nomes)",
+   "item": {
+    "id": "copy-25",
+    "secao": "B",
+    "estado": "pendente",
+    "area": "ficha",
+    "area_original": "copy",
+    "titulo": "O mesmo equipamento com duas grafias: filtro 'Cross-over' × card 'Cross over'",
+    "detalhe": "PROBLEMA (Exercícios — filtros × card × ficha): EVIDÊNCIA (análise, /tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/copy/copy-25.png): filtro 'Cross-over' × card 'Cross over'; 'Super band' (filtro) × 'Super Band' (card); 'Peso do corpo' (filtro) × 'peso corporal' (card); 'Barra maciça' (filtro) × 'Barra' (card). PROPOSTA DA ANÁLISE: uma grafia canônica por equipamento; filtro e card imprimem a mesma string. FAZER: em lib/catalogo.ts:51/:65/:69 alinhar os rótulos à grafia do conteúdo (data/exercicios.json equipamento_texto e data/equipamentos.json itens[].nome): 'Peso do corpo' → 'Peso corporal', 'Cross-over' → 'Cross over', 'Super band' → 'Super Band'. Ficam como estão: 'Halter' × 'Halteres' (um halter × dois é informação) e 'Barra maciça' no filtro ('Barra' sozinha seria ambígua ao lado de 'Barra W' e 'Barra fixa' no mesmo seletor) — sem reescrever equipamento_texto. ACEITE: unitário em lib/catalogo.test.ts: NOME_EQUIPAMENTO['cross-over'] e ['super-band'] e NOME_IMPLEMENTO.peso_corporal aparecem (ignorando a caixa da 1ª letra) no equipamento_texto de todo exercício com essa tag/implemento; e2e: escolher o filtro 'Cross over' mostra só cards cujo meta contém 'Cross over'. ESTADO EM ef3ad97: lib/catalogo.ts:51 'Peso do corpo', :65 'Cross-over', :69 'Super band'.",
+    "arquivos": [
+     "lib/catalogo.ts",
+     "lib/catalogo.test.ts"
+    ],
+    "esforco": "P",
+    "origens": [
+     {
+      "fonte": "analise/copy",
+      "id_original": "copy-25",
+      "origem": "R5 análise"
+     }
+    ],
+    "duplicatas": [],
+    "lote_planejado": "L14"
+   }
+  },
+  {
+   "id": "copy-26",
+   "lente": "copy",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": false,
+   "decisao": "publicado",
+   "prova_ou_motivo": "components/relatorio/numeros.tsx:152-168 ('Treino A × 8 · Treino B × 4', 'Corrida × N'); SPEC.md:1789-1790 (§22.6 item 8: 'Treino B × 1', não 'Treino B 1').",
+   "lote_publicado": "L6",
+   "pr": "#9",
+   "sha": "3c9864a",
+   "grupo_de_origem": "lotes-propostos#lotes[0] 'Relatório: estrutura, números e conquistas' (ordem-2 → L6) — absorvido no item 'visual-20'"
+  },
+  {
+   "id": "copy-27",
+   "lente": "copy",
+   "situacao": "triagem26",
+   "decisao": "publicado",
+   "fonte": "triagem-26.json#triados",
+   "prova_ou_motivo": "Decidido na triagem-26 (ver triagem-26.json): app/(app)/progresso/page.tsx:1-6 — 'permanentRedirect(\"/relatorio\")'; o build de ef3ad97 lista /progresso com 145 B, sem tela própria (/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/r10/base-build.log:82). O redirect existe desde fd820d7 (Marco V1), ANTERI…"
+  },
+  {
+   "id": "copy-28",
+   "lente": "copy",
+   "situacao": "triagem26",
+   "decisao": "pendente",
+   "fonte": "triagem-26.json#triados",
+   "prova_ou_motivo": "Decidido na triagem-26 (ver triagem-26.json): O defeito continua e o 'dicionário de mensagens do L5' a que o descarte o mandou nunca virou lote (fila-v2.json#mapa_lotes_propostos_ordem, ordem-8). Em ef3ad97: components/corpo/aba-peso.tsx:250 botão 'Guardar' (meta), :94 'Meta de … guardada.', :103 'Altura de … cm guardada.', :96/:105 'Não conseg…",
+   "lote_sugerido": "L16 no lugar do copy-07: o L16 já edita aba-peso/aba-medidas/aba-fotos; com a troca fica 7 itens, 2 M, 11 arquivos (saem tela-backup.tsx e tela-senha.tsx, entram e2e/corpo.spec.ts e e2e/auditoria-m5.spec.ts) e perde a exceção de área; o copy-07 vai para o L23b (a saída que o próprio L16 prevê: 'um lote de textos depois do L23'). Com o copy-07 E o copy-28 o L16 teria 13 arquivos."
+  },
+  {
+   "id": "copy-29",
+   "lente": "copy",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "copy-29",
+   "como": "item",
+   "estado_no_ledger": "pendente",
+   "lote_no_ledger": "L23"
+  },
+  {
+   "id": "copy-30",
+   "lente": "copy",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "copy-30",
+   "como": "item",
+   "estado_no_ledger": "pendente",
+   "lote_no_ledger": "L18"
+  },
+  {
+   "id": "imagens-01",
+   "lente": "imagens",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "imagens-01",
+   "como": "item",
+   "estado_no_ledger": "pendente",
+   "lote_no_ledger": "L13"
+  },
+  {
+   "id": "imagens-02",
+   "lente": "imagens",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "imagens-02",
+   "como": "resolvido",
+   "estado_no_ledger": "publicado",
+   "lote_no_ledger": "L3"
+  },
+  {
+   "id": "imagens-03",
+   "lente": "imagens",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "imagens-03",
+   "como": "resolvido",
+   "estado_no_ledger": "publicado",
+   "lote_no_ledger": "L4"
+  },
+  {
+   "id": "imagens-04",
+   "lente": "imagens",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "performance-05",
+   "como": "duplicata",
+   "estado_no_ledger": "publicado",
+   "lote_no_ledger": "L4"
+  },
+  {
+   "id": "imagens-05",
+   "lente": "imagens",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "imagens-03",
+   "como": "duplicata",
+   "estado_no_ledger": "publicado",
+   "lote_no_ledger": "L4"
+  },
+  {
+   "id": "imagens-06",
+   "lente": "imagens",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "performance-03",
+   "como": "duplicata",
+   "estado_no_ledger": "publicado",
+   "lote_no_ledger": "L4"
+  },
+  {
+   "id": "imagens-07",
+   "lente": "imagens",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "imagens-02",
+   "como": "duplicata",
+   "estado_no_ledger": "publicado",
+   "lote_no_ledger": "L3"
+  },
+  {
+   "id": "imagens-08",
+   "lente": "imagens",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "imagens-08",
+   "como": "resolvido",
+   "estado_no_ledger": "publicado",
+   "lote_no_ledger": "L4"
+  },
+  {
+   "id": "imagens-09",
+   "lente": "imagens",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "imagens-09",
+   "como": "item",
+   "estado_no_ledger": "pendente",
+   "lote_no_ledger": "L22"
+  },
+  {
+   "id": "imagens-10",
+   "lente": "imagens",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "pwa-offline-04",
+   "como": "duplicata",
+   "estado_no_ledger": "pendente",
+   "lote_no_ledger": "L22"
+  },
+  {
+   "id": "imagens-11",
+   "lente": "imagens",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "imagens-03",
+   "como": "duplicata",
+   "estado_no_ledger": "publicado",
+   "lote_no_ledger": "L4"
+  },
+  {
+   "id": "imagens-12",
+   "lente": "imagens",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "imagens-12",
+   "como": "item",
+   "estado_no_ledger": "pendente",
+   "lote_no_ledger": "L13"
+  },
+  {
+   "id": "imagens-13",
+   "lente": "imagens",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "imagens-13",
+   "como": "item",
+   "estado_no_ledger": "pendente",
+   "lote_no_ledger": "L13"
+  },
+  {
+   "id": "imagens-14",
+   "lente": "imagens",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "imagens-14",
+   "como": "resolvido",
+   "estado_no_ledger": "publicado",
+   "lote_no_ledger": "L4"
+  },
+  {
+   "id": "imagens-15",
+   "lente": "imagens",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": false,
+   "decisao": "publicado",
+   "prova_ou_motivo": "O catálogo inteiro saiu do /explorar: components/explorar/tela-explorar.tsx:270-278 (prévia de 12 e 'Ver os N exercícios' → /exercicios), components/exercicios/lista-exercicios.tsx:38 POR_PAGINA = 20; SPEC.md:1903-1913 (§22.9 itens 1 e 2: /explorar abaixo de 4.000 px, o catálogo monta 20 de cada vez). O content-visibility proposto deixou de ser necessário: não há mais 97 <img> numa rolagem só.",
+   "lote_publicado": "L9",
+   "pr": "#11",
+   "sha": "8830fe5",
+   "grupo_de_origem": "lotes-r5 L9 e lotes-propostos#lotes[4] 'Explorar e catálogo' (ordem-5 → L9) — absorvido no item 'tela-explorar-fichas-01' (Soma -01, visual-17, performance-07, imagens-15)",
+   "canonico": "tela-explorar-fichas-01"
+  },
+  {
+   "id": "imagens-16",
+   "lente": "imagens",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "imagens-08",
+   "como": "duplicata",
+   "estado_no_ledger": "publicado",
+   "lote_no_ledger": "L4"
+  },
+  {
+   "id": "imagens-17",
+   "lente": "imagens",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": false,
+   "decisao": "descartado",
+   "prova_ou_motivo": "Custo desproporcional, com medida. A própria análise registra que a página cumpre a §15.1 (fontes, licenças, links, bloco das fotos dos itens; SPEC.md:380-396) — o achado é de apresentação, severidade baixa, esforço M. Medido pela análise: 3.164 px a 2× = 1.582 px CSS, ≈ 2,1 telas a 360×740, numa tela fora das três prioridades do dono (§22.0, SPEC.md:1354-1355) e que se abre raramente. O ganho (reconhecer de relance a mídia de cada licença) pede quatro miniaturas novas, um layout novo por bloco de fonte e regerar a captura 24-creditos; nenhum uso quebrado a consertar.",
+   "grupo_de_origem": "fora de lote"
+  },
+  {
+   "id": "imagens-18",
+   "lente": "imagens",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "imagens-08",
+   "como": "duplicata",
+   "estado_no_ledger": "publicado",
+   "lote_no_ledger": "L4"
+  },
+  {
+   "id": "performance-01",
+   "lente": "performance",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": false,
+   "decisao": "publicado",
+   "prova_ou_motivo": "PROGRESSO.md:7415 ('CLS 0,39/0,44 → 0,0016/0,0030', tela-relatorio.tsx); esqueleto do Resumo com a caixa final em components/relatorio/tela-relatorio.tsx:447 e :457 (h-[4.75rem] por ladrilho); e2e/ultraloop-b-r3.spec.ts:164-194 exige CLS < 0,1 nos dois temas; SPEC.md:1704-1712 (§22.6 item 2).",
+   "lote_publicado": "L6",
+   "pr": "#9",
+   "sha": "3c9864a",
+   "grupo_de_origem": "lotes-propostos#lotes[0] 'Relatório: estrutura, números e conquistas' (ordem-2 → L6) — item 'performance-01'",
+   "sobra_no_ledger": [
+    "C-esqueleto-grade3-morto (L24)"
+   ]
+  },
+  {
+   "id": "performance-02",
+   "lente": "performance",
+   "situacao": "triagem26",
+   "decisao": "publicado",
+   "fonte": "triagem-26.json#triados",
+   "prova_ou_motivo": "Decidido na triagem-26 (ver triagem-26.json): components/explorar/tela-explorar.tsx:238-250 — as seções ('Escolhas para você', 'Treinos do programa'…) e o catálogo saem dos JSON e não esperam o servidor; só o destaque espera perfil + overrides (:106 'pronto') e, até lá, o lugar dele fica reservado pelo EsqueletoDoDestaque com a forma do CardCap…"
+  },
+  {
+   "id": "performance-03",
+   "lente": "performance",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "performance-03",
+   "como": "resolvido",
+   "estado_no_ledger": "publicado",
+   "lote_no_ledger": "L4"
+  },
+  {
+   "id": "performance-04",
+   "lente": "performance",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "performance-03",
+   "como": "duplicata",
+   "estado_no_ledger": "publicado",
+   "lote_no_ledger": "L4"
+  },
+  {
+   "id": "performance-05",
+   "lente": "performance",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "performance-05",
+   "como": "resolvido",
+   "estado_no_ledger": "publicado",
+   "lote_no_ledger": "L4"
+  },
+  {
+   "id": "performance-06",
+   "lente": "performance",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": false,
+   "decisao": "publicado",
+   "prova_ou_motivo": "O defeito era DIMENSÃO (JPEG de 850 px numa caixa de 56 px): components/ui/miniatura.tsx:10 (LADO_DA_DERIVADA = 112) e :47-50 (pede a derivada quadrada de 112 px, o original é reserva), components/colecoes/linha-colecao.tsx:136 (urlMiniatura), components/ui/card-capa.tsx:57 (urlCapa → -capa.webp de 720×360); SPEC.md:1557-1567 (§22.4 item 1). A solução foi derivada de tamanho fixo a 2×, não srcset — mesmo efeito para as caixas de tamanho fixo do app.",
+   "lote_publicado": "L3+L4",
+   "pr": "#7",
+   "sha": "c7d947a",
+   "grupo_de_origem": "fora de lote (mesmo defeito do imagens-03, publicado no L4)",
+   "canonico": "imagens-03",
+   "nota": "Somar performance-06 às origens do imagens-03 (resolvido) — mesmo defeito, mesma cura."
+  },
+  {
+   "id": "performance-07",
+   "lente": "performance",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": false,
+   "decisao": "publicado",
+   "prova_ou_motivo": "components/exercicios/lista-exercicios.tsx:38 POR_PAGINA = 20 ('Ver mais 20 de 81'); SPEC.md:1908-1913 (§22.9 item 2). O 'complemento barato' (eager/fetchPriority nas primeiras) foi a regra da primeira dobra do L4 (§22.4 item 3, SPEC.md:1579-1581; miniatura.tsx:71-72 lazy + derivada de 112 px).",
+   "lote_publicado": "L9",
+   "pr": "#11",
+   "sha": "8830fe5",
+   "grupo_de_origem": "lotes-r5 L9 e lotes-propostos#lotes[4] 'Explorar e catálogo' (ordem-5 → L9) — absorvido no item 'tela-explorar-fichas-01'",
+   "canonico": "tela-explorar-fichas-01"
+  },
+  {
+   "id": "performance-08",
+   "lente": "performance",
+   "situacao": "triagem26",
+   "decisao": "pendente",
+   "fonte": "triagem-26.json#triados",
+   "prova_ou_motivo": "Decidido na triagem-26 (ver triagem-26.json): Continua em parte. O L6 (PR #9) só monta a seção Gráficos quando ela é aberta (components/relatorio/tela-relatorio.tsx:77-86), o que tirou consultas da abertura, mas a duplicação persiste: na abertura, pullup_singles 2× — useSoltas(desde, hoje) em :146 é subconjunto de useSoltasTodas em :148 —; ao a…",
+   "lote_sugerido": "L24 (área relatorio, já edita tela-relatorio.tsx): 7 itens (1 B + 6 C), 3 M, 12 arquivos. O L24 passa a ser o último lote com B; como vem logo depois dos lotes B, nenhum C fica antes de um B."
+  },
+  {
+   "id": "performance-09",
+   "lente": "performance",
+   "situacao": "triagem26",
+   "decisao": "descartado",
+   "fonte": "triagem-26.json#triados",
+   "prova_ou_motivo": "Decidido na triagem-26 (ver triagem-26.json): (1) Esforço G na análise: não cabe em lote de ≤ 3 M. (2) A proposta pede view/RPC nova no banco de produção: a §22.0 permite banco só expand-only (SPEC.md:1348-1352) e o PROMPT-CONTINUACAO.md:38 manda o DONO aplicar a migração antes do deploy. (3) A medida (1.770 ms de long task) é da base da anális…"
+  },
+  {
+   "id": "performance-10",
+   "lente": "performance",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": true,
+   "decisao": "descartado",
+   "prova_ou_motivo": "Irmão fora do ledger. (1) Fundir as duas consultas a sessions contradiz a SPEC §3.1 (SPEC.md:56: banner 'Você tem um treino aberto de <data>' para QUALQUER sessão em andamento): useSessoes traz só as 60 mais recentes (lib/queries/dados.ts:26 SESSOES_RECENTES = 60, :122-135) e useSessoesAbertas existe justamente para achar a aberta 'venha de quando vier' (:137-151) — filtrar em memória perde a sessão aberta mais velha que as 60. (2) As duas leituras de pullup_singles: custo desproporcional ao ganho. Ganho medido pela análise: 12 → 11 requisições na tela inicial, todas disparadas no mesmo render pelo TanStack Query (em paralelo, HTTP/2) — nenhuma ida a menos no caminho crítico. Custo: a gravação otimista da repetição solta escreve na chave do DIA (lib/queries/acoes.ts:46-49, chaves.soltas(data)); a aba Treino chama registrarSolta sem intervalo (components/treino/tela-treino.tsx:425), então derivar 'hoje' da janela (tela-treino.tsx:144-146) faria a contagem deixar de subir na hora sem rede — risco à §8 'nunca perder um registro' (visível) por uma requisição paralela.",
+   "grupo_de_origem": "fora de lote (citado no motivo do descarte do performance-08, lotes-propostos#descartados[30])"
+  },
+  {
+   "id": "performance-11",
+   "lente": "performance",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": true,
+   "decisao": "descartado",
+   "prova_ou_motivo": "Irmão fora do ledger; mesmo padrão da parte de pullup_singles do performance-10 e mesmo motivo. Na barra fixa são 7 → 6 requisições paralelas (components/barra-fixa/tela-barra-fixa.tsx:69-70: useSoltas da janela e useSoltasDoDia(hoje)); a gravação otimista mantém as duas chaves de propósito (lib/queries/acoes.ts:46-55: chaves.soltas(data) e chaves.soltasNoPeriodo(intervalo)). Tirar a consulta do dia troca uma requisição paralela, sem efeito no caminho crítico, por mexer na gravação que sustenta 'a repetição aparece na hora, com ou sem rede'.",
+   "grupo_de_origem": "fora de lote (irmão do performance-08)"
+  },
+  {
+   "id": "performance-12",
+   "lente": "performance",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": true,
+   "decisao": "publicado",
+   "prova_ou_motivo": "components/mais/tela-equipamento.tsx:285-303 — a foto do item vem da derivada de 112 px (urlMiniatura, :291) com loading=\"lazy\" e decoding=\"async\" (:302-303), largura/altura declaradas; commit f136df5 'Lote 4: derivadas de imagem no prebuild, cache da mídia e atributos das <img>' (git log -S em ef3ad97); SPEC.md:1564-1567 (§22.4 item 1: 'O item de equipamento … só ganha a miniatura').",
+   "lote_publicado": "L3+L4",
+   "pr": "#7",
+   "sha": "c7d947a",
+   "grupo_de_origem": "fora de lote (irmão do performance-08)"
+  },
+  {
+   "id": "performance-13",
+   "lente": "performance",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "performance-13",
+   "como": "item",
+   "estado_no_ledger": "pendente",
+   "lote_no_ledger": "L13"
+  },
+  {
+   "id": "performance-14",
+   "lente": "performance",
+   "situacao": "triagem26",
+   "decisao": "descartado",
+   "fonte": "triagem-26.json#triados",
+   "prova_ou_motivo": "Decidido na triagem-26 (ver triagem-26.json): O defeito continua, mas já está no ledger: C-next-dynamic-rotas-pesadas (C, pendente, L17) é o mesmo defeito com a mesma cura (next/dynamic na folha e no tutorial do player; medido no L4 412→397 kB e revertido em 933e5e4). Estado em ef3ad97: /treinar/[sessionId] 29,3 kB / 428 kB de First Load (/tmp/…"
+  },
+  {
+   "id": "performance-15",
+   "lente": "performance",
+   "situacao": "triagem26",
+   "decisao": "descartado",
+   "fonte": "triagem-26.json#triados",
+   "prova_ou_motivo": "Decidido na triagem-26 (ver triagem-26.json): É diagnóstico (rodar @next/bundle-analyzer, esforço G) sem mudança visível, e o alvo da proposta ('uma tela de texto não deveria custar mais de ~150 kB') é critério de Lighthouse — 'Lighthouse ≥ 90' está fora de escopo por decisão do dono (docs/ultraloop/PROMPT-CONTINUACAO.md:41). Dado medido no bui…"
+  },
+  {
+   "id": "performance-16",
+   "lente": "performance",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": true,
+   "decisao": "pendente",
+   "prova_ou_motivo": "Irmão fora do ledger. Continua em ef3ad97: app/(app)/mais/page.tsx:127-141 monta cada linha com <Link href={href}> sem prefetch={false}, e as telas de /mais/* são todas `export const dynamic = \"force-dynamic\"` (app/(app)/mais/{perfil,preferencias,equipamento,backup,senha,contas}/page.tsx:6/8) — cada prefetch é um render de servidor com a validação de sessão que o R9-C1 mede (GET /auth/v1/user por render).",
+   "grupo_de_origem": "fora de lote (irmão do performance-08)",
+   "lote_sugerido": "L23 (já edita app/(app)/mais/page.tsx; 0 arquivo novo)",
+   "item": {
+    "id": "performance-16",
+    "secao": "B",
+    "estado": "pendente",
+    "area": "mais",
+    "area_original": "performance",
+    "titulo": "Abrir Mais dispara 11 renders de servidor por prefetch das linhas",
+    "detalhe": "PROBLEMA (Mais): EVIDÊNCIA (análise, medidas-rotas.json): ao abrir /mais o prefetch automático dos <Link> dispara 11 payloads RSC (performance.getEntriesByType('resource') com '_rsc=' → 11); as rotas de /mais/* são dinâmicas, então cada prefetch é um render de servidor. PROPOSTA DA ANÁLISE: prefetch={false} nos itens da lista (a barra de abas mantém o prefetch). FAZER: em app/(app)/mais/page.tsx:129-141 pôr prefetch={false} no <Link> de cada linha. Casa com o R9-C1 (L29), que mede as idas ao GoTrue por render. ACEITE: e2e em /mais: depois de 2 s parado, nenhuma entrada '_rsc=' para /mais/<tela>; tocar em cada linha continua abrindo a tela certa. ESTADO EM ef3ad97: app/(app)/mais/page.tsx:129-141 <Link href={href}> sem prefetch; /mais/* force-dynamic.",
+    "arquivos": [
+     "app/(app)/mais/page.tsx"
+    ],
+    "esforco": "P",
+    "origens": [
+     {
+      "fonte": "analise/performance",
+      "id_original": "performance-16",
+      "origem": "R5 análise"
+     }
+    ],
+    "duplicatas": [],
+    "lote_planejado": "L23"
+   }
+  },
+  {
+   "id": "performance-17",
+   "lente": "performance",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": true,
+   "decisao": "descartado",
+   "prova_ou_motivo": "Irmão fora do ledger. Custo desproporcional, com medida do build de ef3ad97 (/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/r10/base-build.log:57): /corpo tem 14 kB próprios e 355 kB de First Load — abaixo de /calendario (356 kB) e de /, /treinar, /treinar/[sessionId], /explorar/[tipo]/[valor] e /relatorio (418/390/428/388/381 kB); não é mais 'o segundo maior peso do app'. O que pesava de verdade, o Recharts, já é sob demanda (components/graficos/index.tsx:23-37, next/dynamic com ssr:false). Separar as três abas em import() economiza no máximo parte dos 14 kB da rota e pede esqueleto por aba e e2e das três — e o C-next-dynamic-rotas-pesadas (L17) já é o item de next/dynamic onde o ganho medido existe.",
+   "grupo_de_origem": "fora de lote (irmão do performance-08)"
+  },
+  {
+   "id": "performance-18",
+   "lente": "performance",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": false,
+   "decisao": "pendente",
+   "prova_ou_motivo": "Continua em ef3ad97. O /treinar já aquece parte dos dados (components/treinar/tela-treinar.tsx:98-102: useEstados/useEventos/useSeriesAnteriores/useRecordes com `ids` do treino + trocas, desde 15/09), mas o player pede com OUTRAS listas — components/treinar/usar-sessao.ts:166-181 (idsComSubstitutos, idsComparados, idsNaTela) —, então as chaves não casam e o toque refaz as leituras; e nada aquece o JS do player: grep 'prefetch' em app/, components/ e lib/ só acha comentários (components/treino/cabecalho.tsx:191, components/treino/cards.tsx:82). O salto de /treinar para /treinar/[id] é router.push depois de criar a sessão (lib/queries/comecar.ts:76-99). Não é o D-abertura-11s-aparelho-zerado (L29): aquele é o aparelho zerado abrindo uma sessão existente; este é o caminho quente do dia a dia.",
+   "grupo_de_origem": "fora de lote",
+   "lote_sugerido": "L19b (novo)",
+   "item": {
+    "id": "performance-18",
+    "secao": "B",
+    "estado": "pendente",
+    "area": "player",
+    "area_original": "performance",
+    "titulo": "O toque em 'Começar' baixa o player e refaz as leituras: 9,2 s até estabilizar",
+    "detalhe": "PROBLEMA (Preparação → Player): EVIDÊNCIA (análise, medidas-lento.json/medidas-rotas.json): com /treinar aberta, o toque em 'Começar' traz 15 respostas novas — 7 ao Supabase e 5 chunks de JS — e leva 9,2 s até estabilizar (CPU 4×, 4G). PROPOSTA DA ANÁLISE: pré-carregar o bundle e os dados do player enquanto /treinar está aberta (router.prefetch + prefetchQuery). FAZER: (a) em components/treinar/tela-treinar.tsx, com a tela montada, aquecer o JS do player (import() de components/player/tela-player, ou router.prefetch da rota assim que o id da sessão existir); (b) fazer as leituras que o /treinar aquece (tela-treinar.tsx:98-102) usarem as MESMAS chaves que o player pede (components/treinar/usar-sessao.ts:166-181) — normalizar a lista de ids num helper só —, para o cache servir no clique. ACEITE: medida antes/depois no PROGRESSO com o método da análise (CPU 4×, 4G, contexto frio só até /treinar): no toque em 'Começar', 0 chunk de JS novo e nenhuma leitura repetida de exercise_state, progression_events ou session_sets anteriores (servidas do cache); o tempo até o player estável cai e fica registrado; e2e do player verdes. ESTADO EM ef3ad97: tela-treinar.tsx:98-102 aquece com `ids`; usar-sessao.ts:166-181 pede com listas derivadas; nenhum prefetch do bundle do player.",
+    "arquivos": [
+     "components/treinar/tela-treinar.tsx",
+     "components/treinar/usar-sessao.ts"
+    ],
+    "esforco": "M",
+    "origens": [
+     {
+      "fonte": "analise/performance",
+      "id_original": "performance-18",
+      "origem": "R5 análise"
+     }
+    ],
+    "duplicatas": [],
+    "lote_planejado": "L19b (novo)"
+   }
+  },
+  {
+   "id": "pwa-offline-01",
+   "lente": "pwa-offline",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "pwa-offline-01",
+   "como": "item",
+   "estado_no_ledger": "pendente",
+   "lote_no_ledger": "L21",
+   "tambem_citado_em": [
+    "imagens-09",
+    "pwa-offline-03",
+    "pwa-offline-04",
+    "pwa-offline-05",
+    "pwa-offline-06",
+    "pwa-offline-07",
+    "pwa-offline-08",
+    "pwa-offline-09",
+    "pwa-offline-11",
+    "pwa-offline-12",
+    "pwa-offline-13"
+   ],
+   "nota": "também citado como origem de GRUPO (expansão do REMONTAR_L12: grupos a11y-10, pwa-offline-01, ux-heuristicas-17) em outros itens; o canônico é o primeiro"
+  },
+  {
+   "id": "pwa-offline-02",
+   "lente": "pwa-offline",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": true,
+   "decisao": "pendente",
+   "prova_ou_motivo": "Irmão fora do ledger. Não re-medido, mas o código do caminho medido não mudou: app/(auth)/login/formulario.tsx:25-26 passa entrar/criarConta direto ao useActionState, sem try/catch — a ação de servidor que falha no fetch sem rede sobe como exceção de render; e `find app -name error.tsx -o -name global-error.tsx` é vazio em ef3ad97, então ela chega à tela crua do Next ('Application error'). Não é primeira carga sem rede (fora de escopo): a página já está aberta, só o envio fica sem rede.",
+   "grupo_de_origem": "fora de lote (citado no motivo do descarte do ux-heuristicas-20, lotes-propostos#descartados[0])",
+   "lote_sugerido": "L23b (novo na triagem-26: já edita formulario.tsx para o ux-heuristicas-20 e o a11y-07, que cuidam do mesmo estado de erro; 0 arquivo novo)",
+   "item": {
+    "id": "pwa-offline-02",
+    "secao": "B",
+    "estado": "pendente",
+    "area": "copy",
+    "area_original": "pwa-offline",
+    "titulo": "'Entrar' sem rede troca a tela por 'Application error'",
+    "detalhe": "PROBLEMA (Entrar): EVIDÊNCIA (análise, /tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/pwa-offline/pwa-offline-12.png): com o SW ativo e context.setOffline(true), tocar 'Entrar' troca a página inteira por 'Application error: a client-side exception has occurred' em 1,2 s (pageerror 'Failed to fetch'), sem toast e sem volta. PROPOSTA DA ANÁLISE: try/catch no envio com mensagem no próprio formulário e um app/error.tsx em pt-BR. FAZER: em app/(auth)/login/formulario.tsx:25-26 envolver as duas ações do useActionState (entrar e criarConta) num wrapper do cliente: falha de rede (TypeError do fetch, ou navigator.onLine === false) devolve { erro: 'Sem rede: não dá para entrar agora. Tente de novo quando a conexão voltar.' }, que cai no <p role='alert'> de :84-91 (e, com o a11y-07, no mesmo foco e aria-invalid); erro de redirect do Next (isRedirectError / digest NEXT_REDIRECT) é relançado, senão o login que deu certo deixa de navegar. FORA DO ITEM: o app/error.tsx genérico (seria o 13º arquivo do L23b); depois deste item não resta caminho medido até a tela crua — se aparecer outro, vira item próprio. ACEITE: e2e em /login com a página carregada e depois context.setOffline(true): tocar 'Entrar' mostra o role='alert' com 'Sem rede' em < 2 s, os campos continuam preenchidos, nenhum pageerror nem 'Application error'; com a rede de volta, 'Entrar' entra e navega; e2e/login.spec.ts verde. ESTADO EM ef3ad97: formulario.tsx:25-26 sem try/catch; nenhum error.tsx/global-error.tsx em app/.",
+    "arquivos": [
+     "app/(auth)/login/formulario.tsx"
+    ],
+    "esforco": "P",
+    "origens": [
+     {
+      "fonte": "analise/pwa-offline",
+      "id_original": "pwa-offline-02",
+      "origem": "R5 análise"
+     }
+    ],
+    "duplicatas": [],
+    "lote_planejado": "L23b (novo na triagem-26)"
+   }
+  },
+  {
+   "id": "pwa-offline-03",
+   "lente": "pwa-offline",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "pwa-offline-03",
+   "como": "item",
+   "estado_no_ledger": "pendente",
+   "lote_no_ledger": "L22"
+  },
+  {
+   "id": "pwa-offline-04",
+   "lente": "pwa-offline",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "pwa-offline-04",
+   "como": "item",
+   "estado_no_ledger": "pendente",
+   "lote_no_ledger": "L22"
+  },
+  {
+   "id": "pwa-offline-05",
+   "lente": "pwa-offline",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "pwa-offline-05",
+   "como": "item",
+   "estado_no_ledger": "pendente",
+   "lote_no_ledger": "L22"
+  },
+  {
+   "id": "pwa-offline-06",
+   "lente": "pwa-offline",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "pwa-offline-06",
+   "como": "item",
+   "estado_no_ledger": "pendente",
+   "lote_no_ledger": "L21"
+  },
+  {
+   "id": "pwa-offline-07",
+   "lente": "pwa-offline",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "pwa-offline-07",
+   "como": "item",
+   "estado_no_ledger": "pendente",
+   "lote_no_ledger": "L16"
+  },
+  {
+   "id": "pwa-offline-08",
+   "lente": "pwa-offline",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "pwa-offline-08",
+   "como": "item",
+   "estado_no_ledger": "pendente",
+   "lote_no_ledger": "L21"
+  },
+  {
+   "id": "pwa-offline-09",
+   "lente": "pwa-offline",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "pwa-offline-09",
+   "como": "item",
+   "estado_no_ledger": "pendente",
+   "lote_no_ledger": "L22"
+  },
+  {
+   "id": "pwa-offline-10",
+   "lente": "pwa-offline",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": false,
+   "decisao": "publicado",
+   "prova_ou_motivo": "app/not-found.tsx:27 ('Essa tela não existe mais.'), :36-48 ('Voltar para Hoje', 'Ver o Explorar', 'Ver os exercícios'); SPEC.md:1927-1931 (§22.9 item 6).",
+   "lote_publicado": "L9",
+   "pr": "#11",
+   "sha": "8830fe5",
+   "grupo_de_origem": "lotes-r5 L9 e lotes-propostos#lotes[4] 'Explorar e catálogo' (ordem-5 → L9) — absorvido no item 'tela-explorar-fichas-14' (Soma -14 e pwa-offline-10)",
+   "canonico": "tela-explorar-fichas-14"
+  },
+  {
+   "id": "pwa-offline-11",
+   "lente": "pwa-offline",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "pwa-offline-11",
+   "como": "item",
+   "estado_no_ledger": "pendente",
+   "lote_no_ledger": "L21"
+  },
+  {
+   "id": "pwa-offline-12",
+   "lente": "pwa-offline",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "pwa-offline-12",
+   "como": "item",
+   "estado_no_ledger": "pendente",
+   "lote_no_ledger": "L21"
+  },
+  {
+   "id": "pwa-offline-13",
+   "lente": "pwa-offline",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "pwa-offline-13",
+   "como": "item",
+   "estado_no_ledger": "pendente",
+   "lote_no_ledger": "L21"
+  },
+  {
+   "id": "pwa-offline-14",
+   "lente": "pwa-offline",
+   "situacao": "triagem26",
+   "decisao": "publicado",
+   "fonte": "triagem-26.json#triados",
+   "prova_ou_motivo": "Decidido na triagem-26 (ver triagem-26.json): app/~offline/page.tsx:18-45 — ícone de rede cortada num disco de 64 px (WifiOff), h1 'Sem conexão', a frase do que acontece com o que foi registrado e as duas saídas de 48 px ('Tentar de novo', 'Ir para o Treino'), em max-w-lg com pb-segura. Captura de ef3ad97: /tmp/claude-0/-home-user-WORKOUT/19b8c…"
+  },
+  {
+   "id": "pwa-offline-15",
+   "lente": "pwa-offline",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "pwa-offline-15",
+   "como": "resolvido",
+   "estado_no_ledger": "publicado",
+   "lote_no_ledger": "R8"
+  },
+  {
+   "id": "pwa-offline-16",
+   "lente": "pwa-offline",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": false,
+   "decisao": "publicado",
+   "prova_ou_motivo": "O card do catálogo não fica mais retângulo vazio: components/ui/miniatura.tsx:47-50 e :80-85 descem derivada → original do kit → ícone (Dumbbell) a cada onError, e o catálogo usa essa Miniatura (components/exercicios/lista-exercicios.tsx:323) ao lado do nome escrito. O alt vazio é DECISÃO da SPEC, contrária à proposta: §22.4 item 4 (SPEC.md:1594-1596, 'vazio quando o nome do exercício já está escrito ao lado'). Na ficha a foto tem alt com o nome (components/exercicio/media-grande.tsx:145).",
+   "lote_publicado": "L3+L4",
+   "pr": "#7",
+   "sha": "c7d947a",
+   "grupo_de_origem": "fora de lote"
+  },
+  {
+   "id": "tela-explorar-fichas-01",
+   "lente": "tela-explorar-fichas",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "tela-explorar-fichas-01",
+   "como": "resolvido",
+   "estado_no_ledger": "publicado",
+   "lote_no_ledger": "L9"
+  },
+  {
+   "id": "tela-explorar-fichas-02",
+   "lente": "tela-explorar-fichas",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "tela-explorar-fichas-02",
+   "como": "resolvido",
+   "estado_no_ledger": "publicado",
+   "lote_no_ledger": "L9"
+  },
+  {
+   "id": "tela-explorar-fichas-03",
+   "lente": "tela-explorar-fichas",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "tela-explorar-fichas-03",
+   "como": "item",
+   "estado_no_ledger": "candidato",
+   "lote_no_ledger": "L12"
+  },
+  {
+   "id": "tela-explorar-fichas-04",
+   "lente": "tela-explorar-fichas",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": false,
+   "decisao": "publicado",
+   "prova_ou_motivo": "components/explorar/tela-explorar.tsx:172 (um vazio só, 'Nada para «…»' com 'Limpar busca') e :123 comFiltro = temFiltro(filtros) — a mensagem de filtro só com filtro; SPEC.md:1919-1923 (§22.9 item 4).",
+   "lote_publicado": "L9",
+   "pr": "#11",
+   "sha": "8830fe5",
+   "grupo_de_origem": "lotes-r5 L9 e lotes-propostos#lotes[4] 'Explorar e catálogo' (ordem-5 → L9) — absorvido no item 'tela-explorar-fichas-02' (Soma -02 e -04)",
+   "canonico": "tela-explorar-fichas-02"
+  },
+  {
+   "id": "tela-explorar-fichas-05",
+   "lente": "tela-explorar-fichas",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "tela-explorar-fichas-05",
+   "como": "resolvido",
+   "estado_no_ledger": "publicado",
+   "lote_no_ledger": "L9"
+  },
+  {
+   "id": "tela-explorar-fichas-06",
+   "lente": "tela-explorar-fichas",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "tela-explorar-fichas-06",
+   "como": "resolvido",
+   "estado_no_ledger": "publicado",
+   "lote_no_ledger": "L9"
+  },
+  {
+   "id": "tela-explorar-fichas-07",
+   "lente": "tela-explorar-fichas",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "tela-explorar-fichas-07",
+   "como": "resolvido",
+   "estado_no_ledger": "publicado",
+   "lote_no_ledger": "L9"
+  },
+  {
+   "id": "tela-explorar-fichas-08",
+   "lente": "tela-explorar-fichas",
+   "situacao": "triagem26",
+   "decisao": "pendente",
+   "fonte": "triagem-26.json#triados",
+   "prova_ou_motivo": "Decidido na triagem-26 (ver triagem-26.json): O line-clamp do L3 (a que o descarte o mandou) cuidou do texto cortado, não da altura: em ef3ad97 components/colecoes/linha-colecao.tsx:107-111 só monta o subtítulo quando ele existe ('colecao.subtitulo ? … : null'), sem altura reservada — as linhas da mesma seção seguem com duas alturas. O L12 em c…",
+   "lote_sugerido": "L13 com exceção de área (explorar ≠ ficha; mesma prioridade 2 do dono, SPEC §22.0 'Explorar e as fichas de exercício'): com -08, -13 e -11 o L13 fica 9 itens, 2 M, 11 arquivos, 6 telas. Alternativa: acrescentar ao L12 se ele ainda voltar à construção (os arquivos já estão no diff dele)."
+  },
+  {
+   "id": "tela-explorar-fichas-09",
+   "lente": "tela-explorar-fichas",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "tela-explorar-fichas-09",
+   "como": "item",
+   "estado_no_ledger": "candidato",
+   "lote_no_ledger": "L12"
+  },
+  {
+   "id": "tela-explorar-fichas-10",
+   "lente": "tela-explorar-fichas",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "tela-explorar-fichas-09",
+   "como": "duplicata",
+   "estado_no_ledger": "candidato",
+   "lote_no_ledger": "L12"
+  },
+  {
+   "id": "tela-explorar-fichas-11",
+   "lente": "tela-explorar-fichas",
+   "situacao": "triagem26",
+   "decisao": "pendente",
+   "fonte": "triagem-26.json#triados",
+   "prova_ou_motivo": "Decidido na triagem-26 (ver triagem-26.json): O defeito continua: components/colecoes/tela-colecao.tsx:80-87 só monta a lista quando 'dadosDoPlano === null' — a coleção de plano é um cartão e o resto da tela vazio (ef3ad97, /tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/base-ef3ad97/indice.json '07-co…",
+   "lote_sugerido": "L13 com exceção de área, junto do -08 e do -13 (o único M dos três)"
+  },
+  {
+   "id": "tela-explorar-fichas-12",
+   "lente": "tela-explorar-fichas",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "tela-explorar-fichas-09",
+   "como": "duplicata",
+   "estado_no_ledger": "candidato",
+   "lote_no_ledger": "L12"
+  },
+  {
+   "id": "tela-explorar-fichas-13",
+   "lente": "tela-explorar-fichas",
+   "situacao": "triagem26",
+   "decisao": "pendente",
+   "fonte": "triagem-26.json#triados",
+   "prova_ou_motivo": "Decidido na triagem-26 (ver triagem-26.json): O -06 do lote 5 (L9) deu ícone à capa PEQUENA da linha (components/colecoes/linha-colecao.tsx:19-29, ICONE_DO_TIPO), não à capa grande da tela da coleção. Em ef3ad97 components/colecoes/tela-colecao.tsx:50-56 chama o CardCapa sem a prop 'icone', e o CardCapa só desenha o ícone quando recebe um (comp…",
+   "lote_sugerido": "L13 com exceção de área, junto do -08 e do -11 (ou L12, se voltar à construção)"
+  },
+  {
+   "id": "tela-explorar-fichas-14",
+   "lente": "tela-explorar-fichas",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "tela-explorar-fichas-14",
+   "como": "resolvido",
+   "estado_no_ledger": "publicado",
+   "lote_no_ledger": "L9"
+  },
+  {
+   "id": "tela-explorar-fichas-15",
+   "lente": "tela-explorar-fichas",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "tela-explorar-fichas-15",
+   "como": "item",
+   "estado_no_ledger": "candidato",
+   "lote_no_ledger": "L12"
+  },
+  {
+   "id": "tela-explorar-fichas-16",
+   "lente": "tela-explorar-fichas",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "tela-explorar-fichas-15",
+   "como": "duplicata",
+   "estado_no_ledger": "candidato",
+   "lote_no_ledger": "L12"
+  },
+  {
+   "id": "tela-explorar-fichas-17",
+   "lente": "tela-explorar-fichas",
+   "situacao": "triagem26",
+   "decisao": "publicado",
+   "fonte": "triagem-26.json#triados",
+   "prova_ou_motivo": "Decidido na triagem-26 (ver triagem-26.json): components/ui/miniatura.tsx:10 (LADO_DA_DERIVADA = 112) e :55-76 — a miniatura pede a derivada quadrada de 112 px, já cortada pelo alto, com object-cover (o 'object-contain p-1' da análise só sobra na reserva sem derivada, :74-76): a figura enche a caixa em vez de encolher. No escuro a placa passou …"
+  },
+  {
+   "id": "tela-explorar-fichas-18",
+   "lente": "tela-explorar-fichas",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "tela-explorar-fichas-18",
+   "como": "item",
+   "estado_no_ledger": "pendente",
+   "lote_no_ledger": "L13"
+  },
+  {
+   "id": "tela-explorar-fichas-19",
+   "lente": "tela-explorar-fichas",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "tela-explorar-fichas-19",
+   "como": "item",
+   "estado_no_ledger": "pendente",
+   "lote_no_ledger": "L14"
+  },
+  {
+   "id": "tela-explorar-fichas-20",
+   "lente": "tela-explorar-fichas",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "tela-explorar-fichas-20",
+   "como": "item",
+   "estado_no_ledger": "pendente",
+   "lote_no_ledger": "L14"
+  },
+  {
+   "id": "tela-explorar-fichas-21",
+   "lente": "tela-explorar-fichas",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "tela-explorar-fichas-21",
+   "como": "item",
+   "estado_no_ledger": "pendente",
+   "lote_no_ledger": "L14"
+  },
+  {
+   "id": "tela-explorar-fichas-22",
+   "lente": "tela-explorar-fichas",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "tela-explorar-fichas-21",
+   "como": "duplicata",
+   "estado_no_ledger": "pendente",
+   "lote_no_ledger": "L14"
+  },
+  {
+   "id": "tela-explorar-fichas-23",
+   "lente": "tela-explorar-fichas",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "tela-explorar-fichas-21",
+   "como": "duplicata",
+   "estado_no_ledger": "pendente",
+   "lote_no_ledger": "L14"
+  },
+  {
+   "id": "tela-explorar-fichas-24",
+   "lente": "tela-explorar-fichas",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "imagens-13",
+   "como": "duplicata",
+   "estado_no_ledger": "pendente",
+   "lote_no_ledger": "L13"
+  },
+  {
+   "id": "tela-explorar-fichas-25",
+   "lente": "tela-explorar-fichas",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "imagens-12",
+   "como": "duplicata",
+   "estado_no_ledger": "pendente",
+   "lote_no_ledger": "L13"
+  },
+  {
+   "id": "tela-explorar-fichas-26",
+   "lente": "tela-explorar-fichas",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "tela-explorar-fichas-26",
+   "como": "item",
+   "estado_no_ledger": "pendente",
+   "lote_no_ledger": "L14"
+  },
+  {
+   "id": "tela-explorar-fichas-27",
+   "lente": "tela-explorar-fichas",
+   "situacao": "triagem26",
+   "decisao": "descartado",
+   "fonte": "triagem-26.json#triados",
+   "prova_ou_motivo": "Decidido na triagem-26 (ver triagem-26.json): Contradiz a SPEC §13.4 (SPEC.md:290, 'Treino de hoje em destaque no topo (o mesmo card da aba Treino)') e §14.4 (SPEC.md:354, 'um destaque no topo (o treino de hoje ou a sessão da semana do plano)'). Em ef3ad97 o destaque é o CardCapa que a SPEC pede (components/explorar/tela-explorar.tsx:246-250 e …"
+  },
+  {
+   "id": "tela-explorar-fichas-28",
+   "lente": "tela-explorar-fichas",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "tela-explorar-fichas-28",
+   "como": "resolvido",
+   "estado_no_ledger": "publicado",
+   "lote_no_ledger": "L9"
+  },
+  {
+   "id": "tela-relatorio-corpo-calendario-01",
+   "lente": "tela-relatorio-corpo-calendario",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": false,
+   "decisao": "publicado",
+   "prova_ou_motivo": "components/relatorio/tela-relatorio.tsx:50 (CHAVE 'relatorio:secoes') e :381 (<details> por seção, cabeçalho sticky); SPEC.md:1695-1703 (§22.6 item 1: < 1.500 px a 360×740).",
+   "lote_publicado": "L6",
+   "pr": "#9",
+   "sha": "3c9864a",
+   "grupo_de_origem": "lotes-propostos#lotes[0] 'Relatório: estrutura, números e conquistas' (ordem-2 → L6) — item '-01'",
+   "sobra_no_ledger": [
+    "C-relatorio-sticky-scroll-margin (L24)"
+   ]
+  },
+  {
+   "id": "tela-relatorio-corpo-calendario-02",
+   "lente": "tela-relatorio-corpo-calendario",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": false,
+   "decisao": "publicado",
+   "prova_ou_motivo": "components/relatorio/aviso-conquista.tsx:10 (LIMITE), :38 (novas.slice(0, LIMITE) com 'e mais N'), :43 (role=\"status\"), :53 ('Nova conquista'); SPEC.md:1732-1737 (§22.6 item 6).",
+   "lote_publicado": "L6",
+   "pr": "#9",
+   "sha": "3c9864a",
+   "grupo_de_origem": "lotes-propostos#lotes[0] 'Relatório: estrutura, números e conquistas' (ordem-2 → L6) — item '-02'",
+   "sobra_no_ledger": [
+    "C-aviso-conquista-regiao-viva (L24)"
+   ]
+  },
+  {
+   "id": "tela-relatorio-corpo-calendario-03",
+   "lente": "tela-relatorio-corpo-calendario",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": false,
+   "decisao": "publicado",
+   "prova_ou_motivo": "components/relatorio/tela-relatorio.tsx:211-213 ('Sessões' · 'no total (força + cardio)'); SPEC.md:1720-1724 (§22.6 item 4).",
+   "lote_publicado": "L6",
+   "pr": "#9",
+   "sha": "3c9864a",
+   "grupo_de_origem": "lotes-propostos#lotes[0] 'Relatório: estrutura, números e conquistas' (ordem-2 → L6) — absorvido no item 'copy-05'",
+   "sobra_no_ledger": [
+    "C-relatorio-no-total-3-linhas (L24)"
+   ]
+  },
+  {
+   "id": "tela-relatorio-corpo-calendario-04",
+   "lente": "tela-relatorio-corpo-calendario",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": false,
+   "decisao": "publicado",
+   "prova_ou_motivo": "components/relatorio/conquistas.tsx:172 ('grid grid-cols-2 gap-2 sm:grid-cols-3') e :205 (line-clamp-2 no subtítulo); SPEC.md:1725-1731 (§22.6 item 5).",
+   "lote_publicado": "L6",
+   "pr": "#9",
+   "sha": "3c9864a",
+   "grupo_de_origem": "lotes-propostos#lotes[0] 'Relatório: estrutura, números e conquistas' (ordem-2 → L6) — item '-04'"
+  },
+  {
+   "id": "tela-relatorio-corpo-calendario-05",
+   "lente": "tela-relatorio-corpo-calendario",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": false,
+   "decisao": "publicado",
+   "prova_ou_motivo": "components/relatorio/conquistas.tsx:98 (role=\"progressbar\" 'N de 26'), :124 ('Conquistadas') e :130 ('A conquistar'); SPEC.md:1728-1731 (§22.6 item 5).",
+   "lote_publicado": "L6",
+   "pr": "#9",
+   "sha": "3c9864a",
+   "grupo_de_origem": "lotes-propostos#lotes[0] 'Relatório: estrutura, números e conquistas' (ordem-2 → L6) — item '-05'"
+  },
+  {
+   "id": "tela-relatorio-corpo-calendario-06",
+   "lente": "tela-relatorio-corpo-calendario",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": false,
+   "decisao": "publicado",
+   "prova_ou_motivo": "components/relatorio/historico.tsx:121-130 (legenda de uma linha sob a faixa, saída de LEGENDA_DA_FAIXA em lib/semana.ts:103-109); SPEC.md:1795-1804 (§22.6 item 9).",
+   "lote_publicado": "L6",
+   "pr": "#9",
+   "sha": "3c9864a",
+   "grupo_de_origem": "lotes-propostos#lotes[0] 'Relatório: estrutura, números e conquistas' (ordem-2 → L6) — item '-06' (Soma -06 e -08)",
+   "sobra_no_ledger": [
+    "C-legenda-faixa-ponto-orfao (L25)",
+    "C-legenda-faixa-aria-hidden (L24)"
+   ]
+  },
+  {
+   "id": "tela-relatorio-corpo-calendario-07",
+   "lente": "tela-relatorio-corpo-calendario",
+   "situacao": "triagem26",
+   "decisao": "pendente",
+   "fonte": "triagem-26.json#triados",
+   "prova_ou_motivo": "Decidido na triagem-26 (ver triagem-26.json): Continua em parte. O separador diverge: components/relatorio/historico.tsx:106 '14/09 a 20/09' × components/calendario/tela-calendario.tsx:292 '14/09 – 20/09' (o da SPEC §22.8 item 8, SPEC.md:1871, afirmado em e2e/calendario.spec.ts:37 e e2e/semana.spec.ts:99). O 'componente único' da proposta não e…",
+   "lote_sugerido": "L23b (novo, 'Copy e mensagens'); alternativa sem arquivo novo: L24 (área relatorio, já edita historico.tsx)"
+  },
+  {
+   "id": "tela-relatorio-corpo-calendario-08",
+   "lente": "tela-relatorio-corpo-calendario",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": false,
+   "decisao": "publicado",
+   "prova_ou_motivo": "components/progresso/tela-progresso.tsx:222-247 (o exercício sem registro vira uma linha, 'sem registro'); SPEC.md:1813-1816 (§22.6 item 9).",
+   "lote_publicado": "L6",
+   "pr": "#9",
+   "sha": "3c9864a",
+   "grupo_de_origem": "lotes-propostos#lotes[0] 'Relatório: estrutura, números e conquistas' (ordem-2 → L6) — absorvido no item '-06'"
+  },
+  {
+   "id": "tela-relatorio-corpo-calendario-09",
+   "lente": "tela-relatorio-corpo-calendario",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": false,
+   "decisao": "publicado",
+   "prova_ou_motivo": "components/progresso/tela-progresso.tsx:351 ('carga máxima estimada' no subtítulo), :373 (coluna 'Máx. estimada', sem 'e1RM') e :360 (<caption className=\"sr-only\"> — o título deixou de aparecer duas vezes); SPEC.md:1777-1781 (§22.6 item 8: 'e1RM sai do app inteiro').",
+   "lote_publicado": "L6",
+   "pr": "#9",
+   "sha": "3c9864a",
+   "grupo_de_origem": "fora de lote (mesmo trecho do copy-18, publicado no L6)"
+  },
+  {
+   "id": "tela-relatorio-corpo-calendario-10",
+   "lente": "tela-relatorio-corpo-calendario",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": false,
+   "decisao": "publicado",
+   "prova_ou_motivo": "components/relatorio/tela-relatorio.tsx:339-350 (o atalho 'Catálogo de exercícios' é o último bloco da tela, depois de TelaProgresso); SPEC.md:1717-1719 (§22.6 item 3).",
+   "lote_publicado": "L6",
+   "pr": "#9",
+   "sha": "3c9864a",
+   "grupo_de_origem": "lotes-propostos#lotes[0] 'Relatório: estrutura, números e conquistas' (ordem-2 → L6) — absorvido no item 'visual-10'"
+  },
+  {
+   "id": "tela-relatorio-corpo-calendario-11",
+   "lente": "tela-relatorio-corpo-calendario",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "tela-relatorio-corpo-calendario-11",
+   "como": "item",
+   "estado_no_ledger": "pendente",
+   "lote_no_ledger": "L15"
+  },
+  {
+   "id": "tela-relatorio-corpo-calendario-12",
+   "lente": "tela-relatorio-corpo-calendario",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "tela-relatorio-corpo-calendario-12",
+   "como": "item",
+   "estado_no_ledger": "pendente",
+   "lote_no_ledger": "L15"
+  },
+  {
+   "id": "tela-relatorio-corpo-calendario-13",
+   "lente": "tela-relatorio-corpo-calendario",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "tela-relatorio-corpo-calendario-13",
+   "como": "item",
+   "estado_no_ledger": "pendente",
+   "lote_no_ledger": "L15"
+  },
+  {
+   "id": "tela-relatorio-corpo-calendario-14",
+   "lente": "tela-relatorio-corpo-calendario",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "tela-relatorio-corpo-calendario-14",
+   "como": "item",
+   "estado_no_ledger": "pendente",
+   "lote_no_ledger": "L15"
+  },
+  {
+   "id": "tela-relatorio-corpo-calendario-15",
+   "lente": "tela-relatorio-corpo-calendario",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "tela-relatorio-corpo-calendario-14",
+   "como": "duplicata",
+   "estado_no_ledger": "pendente",
+   "lote_no_ledger": "L15"
+  },
+  {
+   "id": "tela-relatorio-corpo-calendario-16",
+   "lente": "tela-relatorio-corpo-calendario",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "tela-relatorio-corpo-calendario-16",
+   "como": "item",
+   "estado_no_ledger": "pendente",
+   "lote_no_ledger": "L16"
+  },
+  {
+   "id": "tela-relatorio-corpo-calendario-17",
+   "lente": "tela-relatorio-corpo-calendario",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "tela-relatorio-corpo-calendario-17",
+   "como": "item",
+   "estado_no_ledger": "pendente",
+   "lote_no_ledger": "L16"
+  },
+  {
+   "id": "tela-relatorio-corpo-calendario-18",
+   "lente": "tela-relatorio-corpo-calendario",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "tela-relatorio-corpo-calendario-18",
+   "como": "item",
+   "estado_no_ledger": "pendente",
+   "lote_no_ledger": "L16"
+  },
+  {
+   "id": "tela-relatorio-corpo-calendario-19",
+   "lente": "tela-relatorio-corpo-calendario",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "tela-relatorio-corpo-calendario-19",
+   "como": "item",
+   "estado_no_ledger": "pendente",
+   "lote_no_ledger": "L15"
+  },
+  {
+   "id": "tela-relatorio-corpo-calendario-20",
+   "lente": "tela-relatorio-corpo-calendario",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": false,
+   "decisao": "publicado",
+   "prova_ou_motivo": "lib/semana.ts:212-222 ('Fase 1 · 12 de 12 concluída' da semana 13 em diante) e :201 (faseCumprida, que liga o atalho 'Passar para a Fase 2'); SPEC.md:1820-1828 (§22.8 item 1).",
+   "lote_publicado": "L8",
+   "pr": "#10",
+   "sha": "9d2c001",
+   "grupo_de_origem": "lotes-propostos#lotes[2] 'Calendário e faixa da semana' (ordem-4 → L8) — item '-20'",
+   "sobra_no_ledger": [
+    "C-calendario-fase2-semana-mostrada (L25)"
+   ]
+  },
+  {
+   "id": "tela-relatorio-corpo-calendario-21",
+   "lente": "tela-relatorio-corpo-calendario",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": false,
+   "decisao": "publicado",
+   "prova_ou_motivo": "components/calendario/grade.tsx:199 (cada dia do mês é <button> que abre o DialogoDia) e :160-168 (setas ‹ › de mês); SPEC.md:1829-1834 (§22.8 item 2).",
+   "lote_publicado": "L8",
+   "pr": "#10",
+   "sha": "9d2c001",
+   "grupo_de_origem": "lotes-propostos#lotes[2] 'Calendário e faixa da semana' (ordem-4 → L8) — item '-21'"
+  },
+  {
+   "id": "tela-relatorio-corpo-calendario-22",
+   "lente": "tela-relatorio-corpo-calendario",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": false,
+   "decisao": "publicado",
+   "prova_ou_motivo": "components/calendario/grade.tsx:101-122 (GlifoDoMes por forma e LEGENDA_DO_MES) e :231-233 (legenda sob a grade); SPEC.md:1860-1865 (§22.8 item 6).",
+   "lote_publicado": "L8",
+   "pr": "#10",
+   "sha": "9d2c001",
+   "grupo_de_origem": "lotes-propostos#lotes[2] 'Calendário e faixa da semana' (ordem-4 → L8) — item '-22'",
+   "sobra_no_ledger": [
+    "C-dois-vocabularios-da-marca (L25)",
+    "C-legenda-do-mes-sem-tipo-exaustivo (L25)"
+   ]
+  },
+  {
+   "id": "tela-relatorio-corpo-calendario-23",
+   "lente": "tela-relatorio-corpo-calendario",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": false,
+   "decisao": "publicado",
+   "prova_ou_motivo": "components/calendario/grade.tsx:157 (<h2 className=\"… text-base font-semibold … first-letter:uppercase\">, sem versalete) e o realce da semana mostrada na grade; SPEC.md:1878-1883 (§22.8 item 10).",
+   "lote_publicado": "L8",
+   "pr": "#10",
+   "sha": "9d2c001",
+   "grupo_de_origem": "lotes-propostos#lotes[2] 'Calendário e faixa da semana' (ordem-4 → L8) — item '-23' (Soma -23 e -26)"
+  },
+  {
+   "id": "tela-relatorio-corpo-calendario-24",
+   "lente": "tela-relatorio-corpo-calendario",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": false,
+   "decisao": "publicado",
+   "prova_ou_motivo": "components/calendario/tela-calendario.tsx:238-266 ('perdidos' só quando > 0 e barra de três segmentos); SPEC.md:1866-1870 (§22.8 item 7).",
+   "lote_publicado": "L8",
+   "pr": "#10",
+   "sha": "9d2c001",
+   "grupo_de_origem": "lotes-propostos#lotes[2] 'Calendário e faixa da semana' (ordem-4 → L8) — item '-24'"
+  },
+  {
+   "id": "tela-relatorio-corpo-calendario-25",
+   "lente": "tela-relatorio-corpo-calendario",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": false,
+   "decisao": "publicado",
+   "prova_ou_motivo": "components/calendario/tela-calendario.tsx:340-351 (divisor e rótulo 'Se hoje (dd/mm) não rolar' antes de 'Não vou treinar hoje'); SPEC.md:1875-1877 (§22.8 item 9).",
+   "lote_publicado": "L8",
+   "pr": "#10",
+   "sha": "9d2c001",
+   "grupo_de_origem": "lotes-propostos#lotes[2] 'Calendário e faixa da semana' (ordem-4 → L8) — item '-25'"
+  },
+  {
+   "id": "tela-relatorio-corpo-calendario-26",
+   "lente": "tela-relatorio-corpo-calendario",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": false,
+   "decisao": "publicado",
+   "prova_ou_motivo": "components/calendario/grade.tsx:60-70 (min-h-9 e line-clamp-1 no rótulo e no detalhe; texto inteiro no title e no DialogoDia); SPEC.md:1880-1883 (§22.8 item 10).",
+   "lote_publicado": "L8",
+   "pr": "#10",
+   "sha": "9d2c001",
+   "grupo_de_origem": "lotes-propostos#lotes[2] 'Calendário e faixa da semana' (ordem-4 → L8) — absorvido no item '-23'"
+  },
+  {
+   "id": "tela-relatorio-corpo-calendario-27",
+   "lente": "tela-relatorio-corpo-calendario",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": false,
+   "decisao": "publicado",
+   "prova_ou_motivo": "components/calendario/tela-calendario.tsx:277-308 (intervalo da semana entre ‹ e ›; 'Hoje' só quando temHoje é falso, :302); SPEC.md:1871-1874 (§22.8 item 8).",
+   "lote_publicado": "L8",
+   "pr": "#10",
+   "sha": "9d2c001",
+   "grupo_de_origem": "lotes-propostos#lotes[2] 'Calendário e faixa da semana' (ordem-4 → L8) — item '-27'"
+  },
+  {
+   "id": "tela-treino-player-01",
+   "lente": "tela-treino-player",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": false,
+   "decisao": "publicado",
+   "prova_ou_motivo": "components/player/tela-player.tsx:196-208 (grava a sessão ao ENTRAR na conclusão: salvar('concluida', …, { navegar: false })), components/player/conclusao.tsx:111-120 (role=\"status\" 'Treino salvo…') e :275-282 ('Próximo' numa barra fixa no rodapé); SPEC.md:1623-1634 (§22.5 item 2).",
+   "lote_publicado": "L5",
+   "pr": "#8",
+   "sha": "2826972",
+   "grupo_de_origem": "lotes-propostos#lotes[6] 'Player: gravar sem perder o treino' (ordem-1 → L5) — item 'tela-treino-player-01'"
+  },
+  {
+   "id": "tela-treino-player-02",
+   "lente": "tela-treino-player",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": false,
+   "decisao": "publicado",
+   "prova_ou_motivo": "components/player/descanso.tsx:246-257 ('Pular descanso' em contorno, border-descanso-foreground/40); SPEC.md:1670-1676 (§22.5 item 8).",
+   "lote_publicado": "L5",
+   "pr": "#8",
+   "sha": "2826972",
+   "grupo_de_origem": "lotes-propostos#lotes[6] 'Player: gravar sem perder o treino' (ordem-1 → L5) — item '-02' (Soma -02 e -03)"
+  },
+  {
+   "id": "tela-treino-player-03",
+   "lente": "tela-treino-player",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": false,
+   "decisao": "publicado",
+   "prova_ou_motivo": "components/player/descanso.tsx:156-172 (AnelDeContagem com fracaoRestante, classeTrilho/classeArco da tela de descanso); SPEC.md:1670-1674 (§22.5 item 8).",
+   "lote_publicado": "L5",
+   "pr": "#8",
+   "sha": "2826972",
+   "grupo_de_origem": "lotes-propostos#lotes[6] 'Player: gravar sem perder o treino' (ordem-1 → L5) — absorvido no item '-02'"
+  },
+  {
+   "id": "tela-treino-player-04",
+   "lente": "tela-treino-player",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": false,
+   "decisao": "publicado",
+   "prova_ou_motivo": "O vazio de ~245 px (33 %) foi ocupado pelo anel de 220 px do §22.5 item 8 (components/player/descanso.tsx:156-172). Medido na captura /tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/base-ef3ad97/29-player-descanso-escuro.png (ef3ad97, 360×740 a 2×): do fim de '5 × 7,5 kg na barra' (y≈228) ao anel (y≈274) sobram ~46 px e do anel (y≈494) a 'Editar tempo de descanso' (y≈550) ~56 px — antes eram ~125 e ~120. O justify-between continua (descanso.tsx:121), mas o conteúdo não boia mais.",
+   "lote_publicado": "L5",
+   "pr": "#8",
+   "sha": "2826972",
+   "grupo_de_origem": "fora de lote (resolvido pelo item 8 do L5)"
+  },
+  {
+   "id": "tela-treino-player-05",
+   "lente": "tela-treino-player",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": false,
+   "decisao": "publicado",
+   "prova_ou_motivo": "components/player/descanso.tsx:224-244 ('−20 s' ao lado de '+20 s', dois alvos h-14 na cor da tela, border/text-descanso-destaque); SPEC.md:1667-1669 (§22.5 item 7).",
+   "lote_publicado": "L5",
+   "pr": "#8",
+   "sha": "2826972",
+   "grupo_de_origem": "lotes-propostos#lotes[6] 'Player: gravar sem perder o treino' (ordem-1 → L5) — absorvido no item 'a11y-02'",
+   "sobra_no_ledger": [
+    "C-descanso-sinal-visivel (L27): o sinal está no ícone, não no texto"
+   ]
+  },
+  {
+   "id": "tela-treino-player-06",
+   "lente": "tela-treino-player",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": false,
+   "decisao": "pendente",
+   "prova_ou_motivo": "Continua — e o L5 tirou o único sinal que havia: components/player/descanso.tsx:133-137 escreve só `${rotuloDoPasso(proximo)} · exercício N de M` (o 'Próximo n/N' antigo saiu na grafia única da §22.5 item 10, SPEC.md:1688-1691); nada diz que é o que vem A SEGUIR. Na captura /tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/base-ef3ad97/29-player-descanso-escuro.png o rótulo ainda quebra deixando 'DE 6' sozinho na segunda linha.",
+   "grupo_de_origem": "fora de lote",
+   "lote_sugerido": "L19b (novo) — depois do L19, cujo ux-heuristicas-06 põe no topo do descanso 'registrado: …'",
+   "item": {
+    "id": "tela-treino-player-06",
+    "secao": "B",
+    "estado": "pendente",
+    "area": "player",
+    "titulo": "Descanso mostra o próximo passo sem dizer que é o próximo",
+    "detalhe": "PROBLEMA (Player — Descanso): EVIDÊNCIA (análise, /tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-treino-player/tela-treino-player-06.png): o topo diz 'AQUECIMENTO 2 DE 2' + miniatura + '5 × 7,5 kg na barra', sem palavra que diga que é o que vem a seguir; entre séries, de relance, lê-se o que acabou de fazer. PROPOSTA DA ANÁLISE: prefixar sempre com 'A SEGUIR' e deixar o rótulo do passo como segunda linha. FAZER: em components/player/descanso.tsx:133-137 uma sobrelinha 'A seguir' antes do rótulo (a grafia única da §22.5 item 10 continua no rótulo), e o rótulo não quebra deixando 'DE 6' sozinho (quebra no '·' ou text-balance). Se o L19 já tiver posto no topo o que foi gravado ('registrado: …', ux-heuristicas-06), o feito fica em cima e 'A seguir' embaixo. ACEITE: e2e no descanso: o bloco do próximo passo começa com o texto 'A seguir' (caixa-alta por CSS); a 360×740 o rótulo não tem linha com uma palavra só e a tela cabe sem rolagem com o anel. ESTADO EM ef3ad97: descanso.tsx:133-137 sem 'A seguir' (grep -i 'seguir' só acha comentário).",
+    "arquivos": [
+     "components/player/descanso.tsx"
+    ],
+    "esforco": "P",
+    "origens": [
+     {
+      "fonte": "analise/tela-treino-player",
+      "id_original": "tela-treino-player-06",
+      "origem": "R5 análise"
+     }
+    ],
+    "duplicatas": [],
+    "lote_planejado": "L19b (novo)"
+   }
+  },
+  {
+   "id": "tela-treino-player-07",
+   "lente": "tela-treino-player",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": false,
+   "decisao": "pendente",
+   "prova_ou_motivo": "Continua: no ramo 'descanso' (components/player/tela-player.tsx:464-485) o componente devolve <TelaDescanso> sem {folha} — é o único ramo sem ela (os outros a montam: :420, :459, :500) —, e a miniatura do próximo exercício (components/player/descanso.tsx:140) não é tocável. Não é o ux-heuristicas-06 (L19): aquele é voltar para corrigir a série gravada; este é rever a execução do próximo.",
+   "grupo_de_origem": "fora de lote",
+   "lote_sugerido": "L19b (novo)",
+   "item": {
+    "id": "tela-treino-player-07",
+    "secao": "B",
+    "estado": "pendente",
+    "area": "player",
+    "titulo": "No descanso não dá para abrir a ficha do próximo exercício",
+    "detalhe": "PROBLEMA (Player — Descanso): EVIDÊNCIA (análise, /tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-treino-player/tela-treino-player-07.png): o ramo 'descanso' é o único que não renderiza {folha}; a miniatura do próximo exercício não é tocável e não há '?' — só 3 alvos na tela. PROPOSTA DA ANÁLISE: passar {folha} também no descanso e tornar a miniatura um botão que abre a ficha do próximo exercício — o descanso é o momento de rever a execução. FAZER: (a) components/player/tela-player.tsx:464-485 monta {folha} no ramo do descanso; (b) components/player/descanso.tsx:138-141 — miniatura + nome do próximo exercício viram um botão 'Como fazer: <nome>' (≥ 44 px) que abre a ficha dele (setFicha), sem pausar nem zerar o descanso. ACEITE: e2e no descanso: tocar no próximo exercício abre a folha da ficha dele; depois de fechar, o descanso continua de onde estava (o número é menor que antes de abrir); o anúncio de marcos continua. ESTADO EM ef3ad97: tela-player.tsx:464-485 sem {folha}; descanso.tsx:140 <Miniatura> sem ação.",
+    "arquivos": [
+     "components/player/tela-player.tsx",
+     "components/player/descanso.tsx"
+    ],
+    "esforco": "P",
+    "origens": [
+     {
+      "fonte": "analise/tela-treino-player",
+      "id_original": "tela-treino-player-07",
+      "origem": "R5 análise"
+     }
+    ],
+    "duplicatas": [],
+    "lote_planejado": "L19b (novo)"
+   }
+  },
+  {
+   "id": "tela-treino-player-08",
+   "lente": "tela-treino-player",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "ux-heuristicas-12",
+   "como": "duplicata",
+   "estado_no_ledger": "pendente",
+   "lote_no_ledger": "L19"
+  },
+  {
+   "id": "tela-treino-player-09",
+   "lente": "tela-treino-player",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "tela-treino-player-09",
+   "como": "item",
+   "estado_no_ledger": "pendente",
+   "lote_no_ledger": "L19"
+  },
+  {
+   "id": "tela-treino-player-10",
+   "lente": "tela-treino-player",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": false,
+   "decisao": "publicado",
+   "prova_ou_motivo": "components/player/exercicio.tsx:557 (barra de controles com gap-6 = 24 px entre o primário e 'Próximo passo'); SPEC.md:1657-1660 (§22.5 item 6).",
+   "lote_publicado": "L5",
+   "pr": "#8",
+   "sha": "2826972",
+   "grupo_de_origem": "lotes-propostos#lotes[6] 'Player: gravar sem perder o treino' (ordem-1 → L5) — item 'tela-treino-player-10'"
+  },
+  {
+   "id": "tela-treino-player-11",
+   "lente": "tela-treino-player",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "ux-heuristicas-22",
+   "como": "duplicata",
+   "estado_no_ledger": "pendente",
+   "lote_no_ledger": "L19"
+  },
+  {
+   "id": "tela-treino-player-12",
+   "lente": "tela-treino-player",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "tela-treino-player-12",
+   "como": "item",
+   "estado_no_ledger": "pendente",
+   "lote_no_ledger": "L19"
+  },
+  {
+   "id": "tela-treino-player-13",
+   "lente": "tela-treino-player",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "imagens-02",
+   "como": "duplicata",
+   "estado_no_ledger": "publicado",
+   "lote_no_ledger": "L3"
+  },
+  {
+   "id": "tela-treino-player-14",
+   "lente": "tela-treino-player",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": false,
+   "decisao": "publicado",
+   "prova_ou_motivo": "components/treino/tela-treino.tsx:18 (BotaoAjustar no cabeçalho, components/treino/fab-ajustar.tsx:27) — não há mais botão fixo; SPEC.md:1975-1982 (§22.7 item 1).",
+   "lote_publicado": "L7",
+   "pr": "#13",
+   "sha": "d696b33",
+   "grupo_de_origem": "lotes-propostos#lotes[7] 'Aba Treino: hierarquia e controle' (ordem-3 → L7) — absorvido no item 'ux-heuristicas-02'"
+  },
+  {
+   "id": "tela-treino-player-15",
+   "lente": "tela-treino-player",
+   "situacao": "triagem26",
+   "decisao": "descartado",
+   "fonte": "triagem-26.json#triados",
+   "prova_ou_motivo": "Decidido na triagem-26 (ver triagem-26.json): A repetição existe em ef3ad97 — lib/colecoes.ts:355-356 (core e cardio em FILTROS) e components/treino/parte-do-corpo.tsx:141 ('Parte do corpo: Core/Cardio') + :154-160 ('Filtro: Core/Cardio') —, mas a SPEC §14.3 (SPEC.md:351) lista exatamente esses chips: 'chips de filtro derivados (≤ 15 min · 15–3…"
+  },
+  {
+   "id": "tela-treino-player-16",
+   "lente": "tela-treino-player",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": false,
+   "decisao": "publicado",
+   "prova_ou_motivo": "components/treino/parte-do-corpo.tsx:28 e :64-65 (maskImage em degradê só do lado com conteúdo fora da tela); SPEC.md:2033-2035 (§22.7 item 7).",
+   "lote_publicado": "L7",
+   "pr": "#13",
+   "sha": "d696b33",
+   "grupo_de_origem": "lotes-propostos#lotes[7] 'Aba Treino: hierarquia e controle' (ordem-3 → L7) — item 'tela-treino-player-16'"
+  },
+  {
+   "id": "tela-treino-player-17",
+   "lente": "tela-treino-player",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": false,
+   "decisao": "publicado",
+   "prova_ou_motivo": "components/treino/desafios.tsx:146-148 (mt-auto no BotaoLargo: o CTA não pula de altura); SPEC.md:2031-2032 (§22.7 item 6).",
+   "lote_publicado": "L7",
+   "pr": "#13",
+   "sha": "d696b33",
+   "grupo_de_origem": "lotes-propostos#lotes[7] 'Aba Treino: hierarquia e controle' (ordem-3 → L7) — absorvido no item 'ux-heuristicas-16'"
+  },
+  {
+   "id": "tela-treino-player-18",
+   "lente": "tela-treino-player",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": false,
+   "decisao": "publicado",
+   "prova_ou_motivo": "components/treino/desafios.tsx:37-41 ('N de 3' ao lado do título) e :65-73 (três pontinhos de posição, o ativo em bg-primary); SPEC.md:2027-2029 (§22.7 item 6).",
+   "lote_publicado": "L7",
+   "pr": "#13",
+   "sha": "d696b33",
+   "grupo_de_origem": "lotes-propostos#lotes[7] 'Aba Treino: hierarquia e controle' (ordem-3 → L7) — absorvido no item 'ux-heuristicas-16'"
+  },
+  {
+   "id": "tela-treino-player-19",
+   "lente": "tela-treino-player",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": false,
+   "decisao": "publicado",
+   "prova_ou_motivo": "components/treino/lista.tsx:100 (nome em font-semibold) e :116 ('Hoje:' sem .numero; a classe só no valor); SPEC.md:2018-2021 (§22.7 item 5).",
+   "lote_publicado": "L7",
+   "pr": "#13",
+   "sha": "d696b33",
+   "grupo_de_origem": "lotes-propostos#lotes[7] 'Aba Treino: hierarquia e controle' (ordem-3 → L7) — item '-19' (Soma -19 e -20)"
+  },
+  {
+   "id": "tela-treino-player-20",
+   "lente": "tela-treino-player",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": false,
+   "decisao": "publicado",
+   "prova_ou_motivo": "components/treino/lista.tsx:104-110 (os <Raios> na linha da prescrição, '3 × 8-12 ⚡⚡'); SPEC.md:2019-2021 (§22.7 item 5).",
+   "lote_publicado": "L7",
+   "pr": "#13",
+   "sha": "d696b33",
+   "grupo_de_origem": "lotes-propostos#lotes[7] 'Aba Treino: hierarquia e controle' (ordem-3 → L7) — absorvido no item '-19'"
+  },
+  {
+   "id": "tela-treino-player-21",
+   "lente": "tela-treino-player",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "tela-treino-player-21",
+   "como": "descartado",
+   "estado_no_ledger": "descartado",
+   "lote_no_ledger": null
+  },
+  {
+   "id": "tela-treino-player-22",
+   "lente": "tela-treino-player",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": false,
+   "decisao": "publicado",
+   "prova_ou_motivo": "components/treino/cabecalho.tsx:95 (Caixa 'Fase' com valor e legenda 'semana N') e :126-148 (rótulo, valor text-nowrap e legenda em linhas de altura fixa); SPEC.md:2013-2017 (§22.7 item 4).",
+   "lote_publicado": "L7",
+   "pr": "#13",
+   "sha": "d696b33",
+   "grupo_de_origem": "lotes-propostos#lotes[7] 'Aba Treino: hierarquia e controle' (ordem-3 → L7) — absorvido no item 'visual-01'"
+  },
+  {
+   "id": "tela-treino-player-23",
+   "lente": "tela-treino-player",
+   "situacao": "triagem26",
+   "decisao": "descartado",
+   "fonte": "triagem-26.json#triados",
+   "prova_ou_motivo": "Decidido na triagem-26 (ver triagem-26.json): Contradiz a SPEC §13.3 item 1 (SPEC.md:280, 'Tocar na faixa abre /calendario') e §16.3 (SPEC.md:512-513, 'tocar na faixa continua abrindo /calendario'): a faixa é um alvo só por especificação. Em ef3ad97 é um Link único 'Abrir o calendário da semana' (components/ui/faixa-semana.tsx:104), com o dia i…"
+  },
+  {
+   "id": "tela-treino-player-24",
+   "lente": "tela-treino-player",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": false,
+   "decisao": "publicado",
+   "prova_ou_motivo": "components/mais/ajustes-do-treino.tsx:192 (placeholder '—'); SPEC.md:2009-2010 (§22.7 item 3).",
+   "lote_publicado": "L7",
+   "pr": "#13",
+   "sha": "d696b33",
+   "grupo_de_origem": "lotes-propostos#lotes[7] 'Aba Treino: hierarquia e controle' (ordem-3 → L7) — absorvido no item 'tela-treino-player-26'"
+  },
+  {
+   "id": "tela-treino-player-25",
+   "lente": "tela-treino-player",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": false,
+   "decisao": "pendente",
+   "prova_ou_motivo": "Publicado só pela metade no L7 (§22.7 item 3, SPEC.md:2011-2012): a folha da aba Treino abre com o foco no título (components/treino/fab-ajustar.tsx:49-56, onOpenAutoFocus + SheetTitle tabIndex -1). O achado citava também a folha 'Ajustar' do PLAYER (tela-player.tsx:260 na época): em ef3ad97 ela é components/player/tela-player.tsx:390-393, um <SheetContent> sem onOpenAutoFocus com o mesmo AjustesDoTreino dentro — o primeiro campo ('Preparação') recebe o foco e o teclado numérico sobe.",
+   "grupo_de_origem": "lotes-propostos#lotes[7] 'Aba Treino: hierarquia e controle' (ordem-3 → L7) — absorvido no item 'tela-treino-player-26'",
+   "lote_sugerido": "L19b (novo)",
+   "item": {
+    "id": "tela-treino-player-25",
+    "secao": "B",
+    "estado": "pendente",
+    "area": "player",
+    "titulo": "'Ajustar' no player abre com o foco no campo e sobe o teclado numérico",
+    "detalhe": "PROBLEMA (Player — folha Ajustar): EVIDÊNCIA (análise, /tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-treino-player/tela-treino-player-25.png): ao abrir a folha o foco cai no campo 'Preparação (s)' com o valor selecionado, o que sobe o teclado numérico por cima da folha. PROPOSTA DA ANÁLISE: foco inicial no título da folha, na aba Treino e no player. JÁ PUBLICADO (L7): a folha da aba Treino (components/treino/fab-ajustar.tsx:49-56). FAZER: a folha 'Ajustar' do player (components/player/tela-player.tsx:390-393) com o mesmo onOpenAutoFocus (preventDefault + foco no SheetTitle com data-titulo-da-folha e tabIndex -1) — de preferência extraindo o conteúdo comum das duas folhas para um componente só. ACEITE: e2e no player: abrir 'Ajustar' deixa document.activeElement no título 'Ajustar' e nenhum <input> focado. ESTADO EM ef3ad97: tela-player.tsx:390-393 <SheetContent> sem onOpenAutoFocus.",
+    "arquivos": [
+     "components/player/tela-player.tsx"
+    ],
+    "esforco": "P",
+    "origens": [
+     {
+      "fonte": "analise/tela-treino-player",
+      "id_original": "tela-treino-player-25",
+      "origem": "R5 análise"
+     }
+    ],
+    "duplicatas": [],
+    "lote_planejado": "L19b (novo)"
+   }
+  },
+  {
+   "id": "tela-treino-player-26",
+   "lente": "tela-treino-player",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": false,
+   "decisao": "publicado",
+   "prova_ou_motivo": "components/mais/ajustes-do-treino.tsx:146 e :153 (Preparação e Descanso padrão gravam no blur e 700 ms depois de parar de digitar; os dois 'Salvar' saíram); SPEC.md:2005-2009 (§22.7 item 3).",
+   "lote_publicado": "L7",
+   "pr": "#13",
+   "sha": "d696b33",
+   "grupo_de_origem": "lotes-propostos#lotes[7] 'Aba Treino: hierarquia e controle' (ordem-3 → L7) — item 'tela-treino-player-26'",
+   "sobra_no_ledger": [
+    "C-ajustes-gravacao-700ms (L26)"
+   ]
+  },
+  {
+   "id": "tela-treino-player-27",
+   "lente": "tela-treino-player",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "tela-treino-player-27",
+   "como": "item",
+   "estado_no_ledger": "pendente",
+   "lote_no_ledger": "L20"
+  },
+  {
+   "id": "tela-treino-player-28",
+   "lente": "tela-treino-player",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": false,
+   "decisao": "publicado",
+   "prova_ou_motivo": "components/relatorio/aviso-conquista.tsx:38 (no máximo 3 e 'e mais N') e :57 em diante (a data só quando não é a de hoje); SPEC.md:1732-1735 (§22.6 item 6). É o mesmo AvisoConquista da conclusão.",
+   "lote_publicado": "L6",
+   "pr": "#9",
+   "sha": "3c9864a",
+   "grupo_de_origem": "lotes-propostos#lotes[0] 'Relatório: estrutura, números e conquistas' (ordem-2 → L6) — absorvido no item 'tela-relatorio-corpo-calendario-02'"
+  },
+  {
+   "id": "tela-treino-player-29",
+   "lente": "tela-treino-player",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "tela-treino-player-29",
+   "como": "item",
+   "estado_no_ledger": "pendente",
+   "lote_no_ledger": "L20"
+  },
+  {
+   "id": "tela-treino-player-30",
+   "lente": "tela-treino-player",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": false,
+   "decisao": "publicado",
+   "prova_ou_motivo": "components/player/firme.tsx:159-161 e components/player/feedback.tsx:50-54 (opções em bg-card, não bg-background); SPEC.md:1652-1656 (§22.5 item 5: o 'Voltar' perdeu o tratamento de opção).",
+   "lote_publicado": "L5",
+   "pr": "#8",
+   "sha": "2826972",
+   "grupo_de_origem": "lotes-propostos#lotes[6] 'Player: gravar sem perder o treino' (ordem-1 → L5) — item 'tela-treino-player-30'"
+  },
+  {
+   "id": "ux-heuristicas-01",
+   "lente": "ux-heuristicas",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": false,
+   "decisao": "publicado",
+   "prova_ou_motivo": "components/treinar/visao-geral.tsx:277-281 (AlertDialog 'Descartar este treino?') e :197-199 ('nunca de um segundo toque no mesmo lugar'); SPEC.md:1613-1622 (§22.5 item 1).",
+   "lote_publicado": "L5",
+   "pr": "#8",
+   "sha": "2826972",
+   "grupo_de_origem": "lotes-propostos#lotes[6] 'Player: gravar sem perder o treino' (ordem-1 → L5) — item 'ux-heuristicas-01'"
+  },
+  {
+   "id": "ux-heuristicas-02",
+   "lente": "ux-heuristicas",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": false,
+   "decisao": "publicado",
+   "prova_ou_motivo": "components/treino/tela-treino.tsx:18 e components/treino/fab-ajustar.tsx:27 (BotaoAjustar de contorno no cabeçalho, ao lado da data; nenhum botão fixo sobre a lista); SPEC.md:1975-1982 (§22.7 item 1).",
+   "lote_publicado": "L7",
+   "pr": "#13",
+   "sha": "d696b33",
+   "grupo_de_origem": "lotes-propostos#lotes[7] 'Aba Treino: hierarquia e controle' (ordem-3 → L7) — item 'ux-heuristicas-02' (Soma -02 e tela-treino-player-14)"
+  },
+  {
+   "id": "ux-heuristicas-03",
+   "lente": "ux-heuristicas",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": false,
+   "decisao": "publicado",
+   "prova_ou_motivo": "components/treinar/visao-geral.tsx:67-99 (pushState/popstate, Escape, role=\"dialog\" aria-modal=\"true\") e :244-246 ('Voltar ao treino' no rodapé); SPEC.md:1635-1641 (§22.5 item 3).",
+   "lote_publicado": "L5",
+   "pr": "#8",
+   "sha": "2826972",
+   "grupo_de_origem": "lotes-propostos#lotes[6] 'Player: gravar sem perder o treino' (ordem-1 → L5) — item 'ux-heuristicas-03'",
+   "sobra_no_ledger": [
+    "C-visao-geral-esc-camada (L27)"
+   ]
+  },
+  {
+   "id": "ux-heuristicas-04",
+   "lente": "ux-heuristicas",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": false,
+   "decisao": "publicado",
+   "prova_ou_motivo": "components/treinar/visao-geral.tsx:126-133 ('Fechar' com texto), :244-257 ('Voltar ao treino', 'Continuar depois') e :280 ('Descartar este treino?'); SPEC.md:1677-1680 (§22.5 item 9).",
+   "lote_publicado": "L5",
+   "pr": "#8",
+   "sha": "2826972",
+   "grupo_de_origem": "lotes-propostos#lotes[6] 'Player: gravar sem perder o treino' (ordem-1 → L5) — item 'ux-heuristicas-04'"
+  },
+  {
+   "id": "ux-heuristicas-05",
+   "lente": "ux-heuristicas",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": false,
+   "decisao": "publicado",
+   "prova_ou_motivo": "components/player/descanso.tsx:173-175 (<p role=\"status\" className=\"sr-only\"> com avisoDoDescanso: 'Faltam 30/10 segundos de descanso.', 'Descanso terminado, próxima série.'; unitário lib/player.test.ts:463-478); SPEC.md:1661-1667 (§22.5 item 7).",
+   "lote_publicado": "L5",
+   "pr": "#8",
+   "sha": "2826972",
+   "grupo_de_origem": "lotes-propostos#lotes[6] 'Player: gravar sem perder o treino' (ordem-1 → L5) — absorvido no item 'a11y-02'"
+  },
+  {
+   "id": "ux-heuristicas-06",
+   "lente": "ux-heuristicas",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "ux-heuristicas-06",
+   "como": "item",
+   "estado_no_ledger": "pendente",
+   "lote_no_ledger": "L19"
+  },
+  {
+   "id": "ux-heuristicas-07",
+   "lente": "ux-heuristicas",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": false,
+   "decisao": "pendente",
+   "canonico": "C-descanso-sinal-visivel",
+   "prova_ou_motivo": "O nome acessível foi publicado no L5 (components/player/descanso.tsx:227 'Tirar 20 segundos do descanso' e :237 'Somar 20 segundos ao descanso'; SPEC.md:1667-1669). O resto do achado — o sinal em TEXTO visível ('+20 s', não só no ícone <Plus>) — é o mesmo defeito e o mesmo trecho do C-descanso-sinal-visivel (L27): descanso.tsx:232-233/:241-242 ainda renderizam ícone + '20 s'. Sem item novo: somar ux-heuristicas-07 às origens do C.",
+   "grupo_de_origem": "lotes-propostos#lotes[6] 'Player: gravar sem perder o treino' (ordem-1 → L5) — absorvido no item 'a11y-02'",
+   "lote_sugerido": "L27 (já planejado para o canônico)"
+  },
+  {
+   "id": "ux-heuristicas-08",
+   "lente": "ux-heuristicas",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": false,
+   "decisao": "publicado",
+   "prova_ou_motivo": "components/player/exercicio.tsx:567-575 (o primário sem aria-label: o nome acessível é o texto escrito 'Concluir série'/'Série feita'); SPEC.md:1686-1687 (§22.5 item 10).",
+   "lote_publicado": "L5",
+   "pr": "#8",
+   "sha": "2826972",
+   "grupo_de_origem": "lotes-propostos#lotes[6] 'Player: gravar sem perder o treino' (ordem-1 → L5) — absorvido no item 'a11y-06'"
+  },
+  {
+   "id": "ux-heuristicas-09",
+   "lente": "ux-heuristicas",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": false,
+   "decisao": "publicado",
+   "prova_ou_motivo": "components/player/firme.tsx:47-49 (escolha começa em null), :83-84 (palpite como dica em texto) e :135 ('Pular esta pergunta' enquanto ninguém responde); SPEC.md:1642-1647 (§22.5 item 4).",
+   "lote_publicado": "L5",
+   "pr": "#8",
+   "sha": "2826972",
+   "grupo_de_origem": "lotes-propostos#lotes[6] 'Player: gravar sem perder o treino' (ordem-1 → L5) — item 'ux-heuristicas-09' (Soma -09, -10, -11)",
+   "sobra_no_ledger": [
+    "C-firme-primario-pular (L27)"
+   ]
+  },
+  {
+   "id": "ux-heuristicas-10",
+   "lente": "ux-heuristicas",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": false,
+   "decisao": "publicado",
+   "prova_ou_motivo": "components/player/firme.tsx:9 (ESPERA_DO_AVANCO_MS = 350) e :63-66 (o avanço espera 350 ms para o marcado aparecer); SPEC.md:1646-1648 (§22.5 item 4).",
+   "lote_publicado": "L5",
+   "pr": "#8",
+   "sha": "2826972",
+   "grupo_de_origem": "lotes-propostos#lotes[6] 'Player: gravar sem perder o treino' (ordem-1 → L5) — absorvido no item 'ux-heuristicas-09'"
+  },
+  {
+   "id": "ux-heuristicas-11",
+   "lente": "ux-heuristicas",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": false,
+   "decisao": "publicado",
+   "prova_ou_motivo": "components/player/feedback.tsx:36 ('(opcional) Fica no histórico do treino…'), :46 (nenhuma opção pré-marcada) e :71 ('Concluir sem responder' / 'Concluir' — o 'Concluir' é da R9, §22.11 item 5, SPEC.md:2177-2180); SPEC.md:1648-1651 (§22.5 item 4).",
+   "lote_publicado": "L5",
+   "pr": "#8",
+   "sha": "2826972",
+   "grupo_de_origem": "lotes-propostos#lotes[6] 'Player: gravar sem perder o treino' (ordem-1 → L5) — absorvido no item 'ux-heuristicas-09'"
+  },
+  {
+   "id": "ux-heuristicas-12",
+   "lente": "ux-heuristicas",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "ux-heuristicas-12",
+   "como": "item",
+   "estado_no_ledger": "pendente",
+   "lote_no_ledger": "L19"
+  },
+  {
+   "id": "ux-heuristicas-13",
+   "lente": "ux-heuristicas",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "ux-heuristicas-13",
+   "como": "item",
+   "estado_no_ledger": "pendente",
+   "lote_no_ledger": "L20"
+  },
+  {
+   "id": "ux-heuristicas-14",
+   "lente": "ux-heuristicas",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "ux-heuristicas-14",
+   "como": "item",
+   "estado_no_ledger": "pendente",
+   "lote_no_ledger": "L20"
+  },
+  {
+   "id": "ux-heuristicas-15",
+   "lente": "ux-heuristicas",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "ux-heuristicas-15",
+   "como": "item",
+   "estado_no_ledger": "pendente",
+   "lote_no_ledger": "L20"
+  },
+  {
+   "id": "ux-heuristicas-16",
+   "lente": "ux-heuristicas",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": false,
+   "decisao": "publicado",
+   "prova_ou_motivo": "components/treino/desafios.tsx:37 e :51 (aria-label 'Desafios'), :41 ('N de 3'), :87 (acaoDoDesafio: cada CTA diz o destino); SPEC.md:2027-2032 (§22.7 item 6).",
+   "lote_publicado": "L7",
+   "pr": "#13",
+   "sha": "d696b33",
+   "grupo_de_origem": "lotes-propostos#lotes[7] 'Aba Treino: hierarquia e controle' (ordem-3 → L7) — item 'ux-heuristicas-16' (Soma -16, tela-treino-player-18 e -17)",
+   "sobra_no_ledger": [
+    "C-desafios-largura-inerte (L26): a redução para 86vw é inerte a 360 px",
+    "C-cta-desafios-duas-fontes (L12, candidato)"
+   ]
+  },
+  {
+   "id": "ux-heuristicas-17",
+   "lente": "ux-heuristicas",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "ux-heuristicas-17",
+   "como": "item",
+   "estado_no_ledger": "pendente",
+   "lote_no_ledger": "L18",
+   "tambem_citado_em": [
+    "copy-11",
+    "copy-12",
+    "ux-heuristicas-18",
+    "ux-heuristicas-19"
+   ],
+   "nota": "também citado como origem de GRUPO (expansão do REMONTAR_L12: grupos a11y-10, pwa-offline-01, ux-heuristicas-17) em outros itens; o canônico é o primeiro"
+  },
+  {
+   "id": "ux-heuristicas-18",
+   "lente": "ux-heuristicas",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "ux-heuristicas-18",
+   "como": "item",
+   "estado_no_ledger": "pendente",
+   "lote_no_ledger": "L18"
+  },
+  {
+   "id": "ux-heuristicas-19",
+   "lente": "ux-heuristicas",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "ux-heuristicas-19",
+   "como": "item",
+   "estado_no_ledger": "pendente",
+   "lote_no_ledger": "L18"
+  },
+  {
+   "id": "ux-heuristicas-20",
+   "lente": "ux-heuristicas",
+   "situacao": "triagem26",
+   "decisao": "pendente",
+   "fonte": "triagem-26.json#triados",
+   "prova_ou_motivo": "Decidido na triagem-26 (ver triagem-26.json): O defeito continua em ef3ad97, menos a parte que a SPEC proíbe. app/(auth)/login/formulario.tsx:61-74 tem só o <Input type='password'> (nenhum botão de mostrar a senha); :84-91 é um <p role='alert'> sem id, e o arquivo não tem aria-invalid, aria-describedby nem focus() (grep vazio): depois do erro o…",
+   "lote_sugerido": "L23b (novo, 'Copy e mensagens') — nenhum lote de L13–L29 edita app/(auth)/login/formulario.tsx"
+  },
+  {
+   "id": "ux-heuristicas-21",
+   "lente": "ux-heuristicas",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "ux-heuristicas-21",
+   "como": "item",
+   "estado_no_ledger": "pendente",
+   "lote_no_ledger": "L13"
+  },
+  {
+   "id": "ux-heuristicas-22",
+   "lente": "ux-heuristicas",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "ux-heuristicas-22",
+   "como": "item",
+   "estado_no_ledger": "pendente",
+   "lote_no_ledger": "L19"
+  },
+  {
+   "id": "ux-heuristicas-23",
+   "lente": "ux-heuristicas",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": false,
+   "decisao": "publicado",
+   "prova_ou_motivo": "components/treino/cabecalho.tsx:178-240 (FaixaFixaDoDia, data-faixa-do-dia em :225) montada em components/treino/tela-treino.tsx:587-588; SPEC.md:1983-2004 (§22.7 item 2).",
+   "lote_publicado": "L7",
+   "pr": "#13",
+   "sha": "d696b33",
+   "grupo_de_origem": "lotes-propostos#lotes[7] 'Aba Treino: hierarquia e controle' (ordem-3 → L7) — item 'ux-heuristicas-23'",
+   "sobra_no_ledger": [
+    "C-faixa-fixa-texto-cortado (L26)"
+   ]
+  },
+  {
+   "id": "ux-heuristicas-24",
+   "lente": "ux-heuristicas",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": false,
+   "decisao": "publicado",
+   "prova_ou_motivo": "components/treino/retomada.tsx:41-77 (toast 'Treino guardado — toque em Continuar para retomar.' por 4 s e destaque do elemento com o Continuar); SPEC.md:2039-2046 (§22.7 item 9).",
+   "lote_publicado": "L7",
+   "pr": "#13",
+   "sha": "d696b33",
+   "grupo_de_origem": "lotes-propostos#lotes[7] 'Aba Treino: hierarquia e controle' (ordem-3 → L7) — item 'ux-heuristicas-24'",
+   "sobra_no_ledger": [
+    "C-aviso-volta-do-player-gatilho (L26)"
+   ]
+  },
+  {
+   "id": "visual-01",
+   "lente": "visual",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": false,
+   "decisao": "publicado",
+   "prova_ou_motivo": "components/treino/cabecalho.tsx:95 e :126-148 (ladrilhos Fase/Peso com a mesma gramática: rótulo, valor text-nowrap, legenda, ancorados ao topo); SPEC.md:2013-2017 (§22.7 item 4).",
+   "lote_publicado": "L7",
+   "pr": "#13",
+   "sha": "d696b33",
+   "grupo_de_origem": "lotes-propostos#lotes[7] 'Aba Treino: hierarquia e controle' (ordem-3 → L7) — item 'visual-01' (Soma visual-01 e tela-treino-player-22)"
+  },
+  {
+   "id": "visual-02",
+   "lente": "visual",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": false,
+   "decisao": "publicado",
+   "prova_ou_motivo": "components/relatorio/numeros.tsx:82-101 (os três ladrilhos Força/Cardio/Barra fixa com className 'grid grid-rows-[auto_1fr_auto]') e components/ui/contador.tsx:69 (rótulo numa linha só, h-4 whitespace-nowrap — 'BARRA FIXA' não quebra mais); SPEC.md:1738-1776 (§22.6 item 7).",
+   "lote_publicado": "L6",
+   "pr": "#9",
+   "sha": "3c9864a",
+   "grupo_de_origem": "lotes-propostos#lotes[0] 'Relatório: estrutura, números e conquistas' (ordem-2 → L6) — item 'visual-02' (Soma visual-02 e -03)"
+  },
+  {
+   "id": "visual-03",
+   "lente": "visual",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": false,
+   "decisao": "publicado",
+   "prova_ou_motivo": "components/relatorio/numeros.tsx:87, :94, :101 (ícones size-3.5 shrink-0) e components/ui/contador.tsx:71 (invólucro shrink-0); SPEC.md:1746-1748 (§22.6 item 7: o ícone sobe de 12 para 14 px).",
+   "lote_publicado": "L6",
+   "pr": "#9",
+   "sha": "3c9864a",
+   "grupo_de_origem": "lotes-propostos#lotes[0] 'Relatório: estrutura, números e conquistas' (ordem-2 → L6) — absorvido no item 'visual-02'"
+  },
+  {
+   "id": "visual-04",
+   "lente": "visual",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": false,
+   "decisao": "publicado",
+   "prova_ou_motivo": "components/ui/faixa-semana.tsx:162-183 (a mesma caixa de 20×20 para os cinco estados: size-5 com miolos diferentes); SPEC.md:1847-1854 (§22.8 item 4).",
+   "lote_publicado": "L8",
+   "pr": "#10",
+   "sha": "9d2c001",
+   "grupo_de_origem": "lotes-propostos#lotes[2] 'Calendário e faixa da semana' (ordem-4 → L8) — item 'visual-04'",
+   "sobra_no_ledger": [
+    "C-dois-vocabularios-da-marca (L25)"
+   ]
+  },
+  {
+   "id": "visual-05",
+   "lente": "visual",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "visual-05",
+   "como": "resolvido",
+   "estado_no_ledger": "publicado",
+   "lote_no_ledger": "L3"
+  },
+  {
+   "id": "visual-06",
+   "lente": "visual",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "tela-explorar-fichas-09",
+   "como": "duplicata",
+   "estado_no_ledger": "candidato",
+   "lote_no_ledger": "L12"
+  },
+  {
+   "id": "visual-07",
+   "lente": "visual",
+   "situacao": "triagem26",
+   "decisao": "descartado",
+   "fonte": "triagem-26.json#triados",
+   "prova_ou_motivo": "Decidido na triagem-26 (ver triagem-26.json): Dado medido em ef3ad97 (grep em components/ e app/): fechar papéis de texto no app inteiro toca 92 arquivos .tsx com classe de tamanho de texto — 552 ocorrências (text-sm 180, text-xs 165, text-base 103, text-rotulo 28, text-2xl 25, text-micro 22, text-lg 16, text-3xl 6, text-6xl 4, text-xl 2, text-…"
+  },
+  {
+   "id": "visual-08",
+   "lente": "visual",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "visual-08",
+   "como": "item",
+   "estado_no_ledger": "pendente",
+   "lote_no_ledger": "L20"
+  },
+  {
+   "id": "visual-09",
+   "lente": "visual",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": false,
+   "decisao": "publicado",
+   "prova_ou_motivo": "components/relatorio/aviso-conquista.tsx:49-53 ('Nova conquista'/'Novas conquistas' no aviso; 'Conquistas' só no título da seção); SPEC.md:1736-1737 (§22.6 item 6).",
+   "lote_publicado": "L6",
+   "pr": "#9",
+   "sha": "3c9864a",
+   "grupo_de_origem": "lotes-propostos#lotes[0] 'Relatório: estrutura, números e conquistas' (ordem-2 → L6) — absorvido no item 'tela-relatorio-corpo-calendario-02'"
+  },
+  {
+   "id": "visual-10",
+   "lente": "visual",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": false,
+   "decisao": "publicado",
+   "prova_ou_motivo": "components/relatorio/tela-relatorio.tsx:200 (subtitulo da seção, 12 px muted na linha de baixo) e :278 (contador curto 'N de 26' à direita); SPEC.md:1713-1719 (§22.6 item 3).",
+   "lote_publicado": "L6",
+   "pr": "#9",
+   "sha": "3c9864a",
+   "grupo_de_origem": "lotes-propostos#lotes[0] 'Relatório: estrutura, números e conquistas' (ordem-2 → L6) — item 'visual-10' (Soma visual-10 e -10)"
+  },
+  {
+   "id": "visual-11",
+   "lente": "visual",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": false,
+   "decisao": "pendente",
+   "prova_ou_motivo": "Continua em ef3ad97: components/colecoes/linha-colecao.tsx:84-90 põe os <Raios> na linha do TÍTULO (topo da linha) e o chevron (:115) fica centrado na linha inteira — as duas marcas da coluna direita desalinhadas, como se vê em /tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/base-ef3ad97/06-explorar-escuro.png (raios em y≈481, chevron em y≈499 na linha 'Treino A'). O L12 em construção (wt-a) reordena as linhas do texto mas não mexe nos raios nem no chevron.",
+   "grupo_de_origem": "fora de lote",
+   "lote_sugerido": "L13 com a exceção de área que a triagem-26 já abriu para o explorar (linha-colecao.tsx já entra no L13 pelo tela-explorar-fichas-13; 0 arquivo novo; 06-explorar e 07-colecao já estão nas telas)",
+   "item": {
+    "id": "visual-11",
+    "secao": "B",
+    "estado": "pendente",
+    "area": "explorar",
+    "area_original": "visual",
+    "titulo": "Linha de coleção com raios no canto de cima e chevron no meio: duas marcas desalinhadas",
+    "detalhe": "PROBLEMA (Explorar / coleções — linha da lista): EVIDÊNCIA (análise, /tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/visual/visual-07-linha-lista-claro.png e -escuro.png): na linha 'Treino A' (328×73) os três raios têm centro a 18 px do topo e o chevron a 36 px — 18 px de desalinhamento na mesma coluna, com a marca mais pesada (laranja) fora do centro. PROPOSTA DA ANÁLISE: uma pilha única centrada ou levar os raios para a linha de meta, junto de 'N exercícios · ~M min'. FAZER: em components/colecoes/linha-colecao.tsx:84-90 tirar os <Raios> da linha do título e pô-los na linha de meta (a que o L12 põe por último), deixando a coluna direita só com o chevron, centrado; cor dos raios na lista inalterada (sobre a capa eles são brancos por causa da foto — não é o mesmo contexto). Aplicar sobre o L12 publicado. ACEITE: e2e a 360×740 em /explorar (vitrine e resultado de busca — as duas únicas telas que montam LinhaColecao): nenhuma marca no canto superior direito das linhas; |centro vertical do chevron − centro da linha| ≤ 2 px; os raios ficam na mesma linha do texto 'exercícios'. ESTADO EM ef3ad97: linha-colecao.tsx:84-90 (raios ao lado do título) e :115 (chevron).",
+    "arquivos": [
+     "components/colecoes/linha-colecao.tsx"
+    ],
+    "esforco": "P",
+    "origens": [
+     {
+      "fonte": "analise/visual",
+      "id_original": "visual-11",
+      "origem": "R5 análise"
+     }
+    ],
+    "duplicatas": [],
+    "lote_planejado": "L13 (exceção de área, a mesma da triagem-26)"
+   }
+  },
+  {
+   "id": "visual-12",
+   "lente": "visual",
+   "situacao": "triagem26",
+   "decisao": "descartado",
+   "fonte": "triagem-26.json#triados",
+   "prova_ou_motivo": "Decidido na triagem-26 (ver triagem-26.json): O inventário convergiu. Em ef3ad97 (grep em components/ e app/): size-5 (20 px) 61, size-4 (16 px) 47, size-3.5 (14 px) 12, size-6 5, size-3 (12 px) 4 — a análise contava 95 ícones de 12 px. Os 12 px que sobram são os raios (components/ui/raios.tsx:18), que a própria proposta preserva, e o ✓ de 12 p…"
+  },
+  {
+   "id": "visual-13",
+   "lente": "visual",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "visual-13",
+   "como": "resolvido",
+   "estado_no_ledger": "publicado",
+   "lote_no_ledger": "L3"
+  },
+  {
+   "id": "visual-14",
+   "lente": "visual",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": false,
+   "decisao": "depende de decisão do dono",
+   "prova_ou_motivo": "Continua: o laranja segue só em texto pequeno — p.ex. 'Ver todos (N)' em 12 px (components/explorar/tela-explorar.tsx:405 'alvo text-primary -mr-2 text-xs', visível em /tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/base-ef3ad97/06-explorar-escuro.png), enquanto números e títulos grandes são neutros. Não é defeito de uso nem de contraste: é onde a marca aparece — decisão de identidade, do mesmo tipo da paleta que o planejamento já deixou para o dono (visual-15 em lotes-propostos#descartados). Feito no app inteiro passa de 6 telas: se o dono quiser, vira lote visual próprio, uma tela por vez.",
+   "grupo_de_origem": "fora de lote",
+   "pergunta_ao_dono": "O laranja deve sair dos links pequenos repetidos ('Ver todos (6)' vira cinza com chevron) e passar a marcar UM dado grande por tela — a meta da semana ('2/5') na aba Treino, o número em foco no Relatório, o dia de hoje na faixa? Muda a cara de Treino, Explorar, Relatório, Corpo e Mais. Sim = lote visual novo, tela a tela; não = fica como está."
+  },
+  {
+   "id": "visual-15",
+   "lente": "visual",
+   "situacao": "triagem26",
+   "decisao": "descartado",
+   "fonte": "triagem-26.json#triados",
+   "prova_ou_motivo": "Decidido na triagem-26 (ver triagem-26.json): Contradiz a SPEC §22.3 item 2 (SPEC.md:1469-1470: 'O laranja do tema claro escurece um degrau (#b8400c → #a03608) para o pill bg-primary/10 manter os 4,5:1') e a regra de contraste AA (§22.0.1 item 3, SPEC.md:1361). A proposta CLAREIA o laranja do claro: #e2600f dá 3,55:1 sobre #ffffff e 2,68:1 sobr…"
+  },
+  {
+   "id": "visual-16",
+   "lente": "visual",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "visual-16",
+   "como": "item",
+   "estado_no_ledger": "pendente",
+   "lote_no_ledger": "L23"
+  },
+  {
+   "id": "visual-17",
+   "lente": "visual",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": false,
+   "decisao": "publicado",
+   "prova_ou_motivo": "O rolo acabou: components/explorar/tela-explorar.tsx:270-278 (prévia de 12, catálogo em /exercicios com 20 por vez) — SPEC.md:1903-1907 (§22.9 item 1: /explorar abaixo de 4.000 px, era 8.922) — e 'Escolhas para você' rebaixado a sobrelinha de 11 px com títulos de 16 px e régua (§22.9 item 8, SPEC.md:1939-1941). A sugestão de padding 8→12 / gap 12→8 dos cards de fileira perdeu o objeto: a vitrine virou lista de linhas com divisor (captura /tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/base-ef3ad97/06-explorar-escuro.png).",
+   "lote_publicado": "L9",
+   "pr": "#11",
+   "sha": "8830fe5",
+   "grupo_de_origem": "lotes-r5 L9 e lotes-propostos#lotes[4] 'Explorar e catálogo' (ordem-5 → L9) — absorvido no item 'tela-explorar-fichas-01'",
+   "canonico": "tela-explorar-fichas-01"
+  },
+  {
+   "id": "visual-18",
+   "lente": "visual",
+   "situacao": "triagem26",
+   "decisao": "descartado",
+   "fonte": "triagem-26.json#triados",
+   "prova_ou_motivo": "Decidido na triagem-26 (ver triagem-26.json): As duas assimetrias concretas não são mais defeito e o resto é refatoração do app inteiro. (a) Os ladrilhos 24/12 do Relatório viraram px-2 py-2.5 no L6 (components/ui/contador.tsx:40, com a conta dos 64 px por coluna em :18-20; commit f245d23, PR #9). (b) O '4/10/4/36' do campo de busca é a raia do…"
+  },
+  {
+   "id": "visual-19",
+   "lente": "visual",
+   "situacao": "coberto_no_ledger",
+   "decisao": "coberto",
+   "canonico": "visual-19",
+   "como": "item",
+   "estado_no_ledger": "pendente",
+   "lote_no_ledger": "L17"
+  },
+  {
+   "id": "visual-20",
+   "lente": "visual",
+   "situacao": "sem_destino",
+   "irmao_da_triagem26": false,
+   "decisao": "publicado",
+   "prova_ou_motivo": "components/relatorio/numeros.tsx:141 (<dl> em grid-cols-[5.5rem_1fr], valor sempre no mesmo x); SPEC.md:1792-1794 (§22.6 item 8).",
+   "lote_publicado": "L6",
+   "pr": "#9",
+   "sha": "3c9864a",
+   "grupo_de_origem": "lotes-propostos#lotes[0] 'Relatório: estrutura, números e conquistas' (ordem-2 → L6) — item 'visual-20'"
+  }
+ ],
+ "lotes_novos_sugeridos": [
+  {
+   "codigo": "L19b",
+   "titulo": "Player: descanso, preparação e o caminho até o player",
+   "area": "player",
+   "ordem": "logo depois do L19 (mesmas telas; o ux-heuristicas-06 do L19 mexe no topo do descanso, que o tela-treino-player-06 completa) e antes do L20 — todo lote B continua antes dos só-C",
+   "itens": [
+    "tela-treino-player-06",
+    "tela-treino-player-07",
+    "tela-treino-player-25",
+    "a11y-02",
+    "a11y-15",
+    "copy-22",
+    "performance-18"
+   ],
+   "arquivos": [
+    "components/player/descanso.tsx",
+    "components/player/tela-player.tsx",
+    "components/player/preparacao.tsx",
+    "components/player/exercicio.tsx",
+    "components/treinar/montagem.tsx",
+    "components/treinar/tela-treinar.tsx",
+    "components/treinar/usar-sessao.ts",
+    "lib/player.ts",
+    "lib/player.test.ts",
+    "e2e/ultraloop-l19b.spec.ts (novo)",
+    "SPEC.md",
+    "PROGRESSO.md"
+   ],
+   "telas_esperadas": [
+    "27-player-preparacao",
+    "28-player-exercicio",
+    "29-player-descanso"
+   ],
+   "medios": 1,
+   "secoes": {
+    "B": 7,
+    "C": 0,
+    "D": 0
+   },
+   "excecao": null,
+   "regras": "7 itens, 1 M (performance-18), 12 arquivos (SPEC.md e PROGRESSO.md contados), 3 telas, uma área (player).",
+   "por_que_nao_no_L19": "O L19 tem 6 itens, 3 M e 9 arquivos; somar os sete daria 13 itens e 4 M. Os três que mais se prendem ao L19 (tela-treino-player-06/-07 no descanso, a11y-02 na preparação) ficam aqui juntos dos outros quatro para o lote novo fechar 6–10."
+  }
+ ],
+ "ajustes_no_plano": [
+  "L13: + visual-11 → 10 itens (com os 3 do explorar da triagem-26), 2 M, 11 arquivos (nenhum novo: linha-colecao.tsx já entra pelo tela-explorar-fichas-13), 6 telas. Usa a exceção de área (explorar) que a triagem-26 abriu; se aquela exceção cair, visual-11 vai com os três para o L12/L13b.",
+  "L14: + copy-25, + copy-08 (exceção de área: créditos da mídia, §15.1 item 3) → 9 itens (com o copy-13 da triagem), 3 M, 12 arquivos (+ lib/catalogo.ts, lib/catalogo.test.ts, app/(app)/mais/creditos/page.tsx), 6 telas (+ 08-catalogo, 24-creditos). Se o dono recusar a exceção, o copy-08 espera um lote de textos de Mais (o L23 está no teto de 12 arquivos).",
+  "L18: + copy-19 → 7 itens, 2 M, 11 arquivos (nenhum novo: data/cardio.json já está no lote).",
+  "L23: + performance-16 → 7 itens, 0 M, 12 arquivos (nenhum novo: app/(app)/mais/page.tsx já está no lote); nenhuma tela muda por ele.",
+  "L23b (novo da triagem-26): + a11y-08 (grade.tsx, já no lote pelo copy-24) e + pwa-offline-02 (formulario.tsx, já no lote pelo ux-heuristicas-20/a11y-07) → 8 itens com o a11y-07, 0 M, 12 arquivos, 5 telas; e deixa de depender da importação do a11y-07 para chegar a 6.",
+  "L19b (novo): tela-treino-player-06, -07, -25, a11y-02, a11y-15, copy-22, performance-18.",
+  "L24: somar a11y-13 às origens/duplicatas do C-aviso-conquista-regiao-viva (sem item novo).",
+  "L27: somar copy-23 e ux-heuristicas-07 às origens do C-descanso-sinal-visivel; somar copy-22 (parte 'NA BARRA' da Visão geral) às origens do C-rotulo-do-campo-de-carga (sem item novo; o resto do copy-22 vai no L19b).",
+  "resolvidos: registrar os 69 publicados deste censo como origens das rodadas que os fecharam (por lote em contagens.sem_destino_publicados_por_lote); 36 deles são itens nominais de analise/lotes-propostos#lotes (L5–L9) que o ledger nunca trouxe para resolvidos. Onde o censo aponta 'canonico' (imagens-03, tela-explorar-fichas-01/-02/-14), somar como origem do resolvido existente."
+ ],
+ "observacoes_novas": [
+  {
+   "id_sugerido": "OBS-porcentagem-com-espaco",
+   "texto": "Fora do copy-19 (que leva só a ocorrência medida, data/cardio.json:332): ainda escrevem ' %' com espaço, contra a grafia única da §22.6 item 8 (SPEC.md:1790-1792, 'com o símbolo colado'): data/progressao.json:48 ('volte 10 % …'), :52 ('60 % da carga'), :68; components/treino/tela-treino.tsx:95 ('Semana leve: 60 % da carga.'); components/exercicios/historico-exercicio.tsx:104 ('semana leve (60 %)'); lib/guia.ts:358 ('volta 10 % da carga'); lib/retomada.ts:136 ('60 % da carga'). Sete arquivos em quatro áreas — não coube em lote nenhum sem estourar 12 arquivos. Abrir como item de varredura (com unitário que recusa /\\d\\s%/ em data/*.json e nos textos de lib/) quando houver lote de textos."
+  },
+  {
+   "id_sugerido": "OBS-elastico-x-super-band",
+   "texto": "Visto ao conferir o copy-25: o catálogo tem dois filtros para a mesma faixa elástica com nomes diferentes — 'Elástico' (NOME_IMPLEMENTO.band, lib/catalogo.ts:54) e 'Super band' (NOME_EQUIPAMENTO['super-band'], :69). Não está na análise nem no ledger; o construtor do L14 decide se entra no copy-25 (mesmo arquivo)."
+  }
+ ]
+}
