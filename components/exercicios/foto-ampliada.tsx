@@ -65,10 +65,16 @@ export function FotoAmpliada({
     };
   }, []);
 
-  // o Esc fecha a confirmação primeiro, e só depois a foto
+  /*
+   * O Esc fecha a confirmação primeiro, e só depois a foto. Mesma regra da
+   * Visão geral (SPEC §22.14 item 6): um Esc que outra camada já tratou
+   * (`defaultPrevented`, como o Radix marca) não fecha a foto, e o que a foto
+   * trata ela marca, para ninguém embaixo fechar junto.
+   */
   useEffect(() => {
     const aoTeclar = (e: KeyboardEvent) => {
-      if (e.key !== "Escape") return;
+      if (e.key !== "Escape" || e.defaultPrevented) return;
+      e.preventDefault();
       if (confirmando) setConfirmando(false);
       else aoFechar();
     };

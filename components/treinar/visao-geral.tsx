@@ -72,8 +72,15 @@ export function VisaoGeralDaSessao({
     if (!aoFechar) return;
     window.history.pushState({ visaoGeralDoTreino: true }, "");
     const aoVoltarDoCelular = () => aoFechar();
+    /*
+     * SPEC §22.14 item 6: o Esc fecha só a camada de cima. Com uma folha
+     * aberta por cima da lista ("substituir hoje", o "Como fazer", a
+     * montagem) o Radix trata o Esc antes, na captura do document, e marca
+     * `defaultPrevented`; a foto ampliada faz o mesmo. Esse Esc já foi gasto:
+     * fecha a folha e a lista fica.
+     */
     const naTecla = (evento: KeyboardEvent) => {
-      if (evento.key !== "Escape") return;
+      if (evento.key !== "Escape" || evento.defaultPrevented) return;
       evento.preventDefault();
       aoFechar();
     };
