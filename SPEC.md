@@ -2997,12 +2997,27 @@ aparelho** (`estadoDoAparelho()`, pura), um de:
   chave pública) e grava a linha **com o `user_id` da sessão** (23.2).
   Permissão recusada ou dispensada, ou inscrição que falha, mostram a frase
   do que houve **e sempre ao menos uma instrução** (23.6) — nunca um erro
-  técnico e nunca a frase sozinha.
+  técnico e nunca a frase sozinha. A frase fica **logo abaixo do estado,
+  acima das instruções**, dentro do bloco "Este aparelho": mesmo com duas
+  instruções (Brave com a permissão negada) ela aparece na primeira dobra a
+  360×740, sem rolar.
+- **A volta das configurações**: quem libera a permissão fora do app (cadeado
+  do navegador, Configurações do Android, Ajustes do iPhone) volta sem
+  recarregar. A tela **confere de novo** a permissão e a inscrição quando a
+  página volta a ficar visível (`visibilitychange`), ganha foco (`focus`),
+  volta do cache (`pageshow`) e quando `navigator.permissions.query({name:
+  "notifications"})` avisa uma troca (`change`), se o navegador tiver essa
+  API. Se a permissão mudou desde a última leitura, a frase e a falha
+  antigas saem: de "Bloqueado pelo navegador" a tela passa a "Desativado
+  neste aparelho", com o botão Ativar e sem a instrução de liberar. Enquanto
+  um Ativar/Desativar/Remover/teste está em andamento, a volta não relê (o
+  pedido de permissão do próprio navegador também tira e devolve o foco).
 - **Desativar**: apaga a linha e cancela a inscrição do navegador.
 - **Aparelhos desta conta**: a lista das inscrições (nome do aparelho e
   "desde dd/mm"), com **"Remover"** em cada uma; remover a deste aparelho
-  também cancela a inscrição do navegador. O recado de "Remover" usa o nome
-  da lista ("Aparelho sem nome" quando a linha veio sem nome).
+  também cancela a inscrição do navegador. O recado de "Remover" e o nome
+  acessível do botão (`aria-label` "Remover <nome> (desde dd/mm)") usam o
+  nome da lista ("Aparelho sem nome" quando a linha veio sem nome).
 - **"Enviar um lembrete de teste"** (quando há ao menos um aparelho): chama a
   rota de 23.5 e diz o resultado numa linha `role="status"`: "Enviado para 1
   aparelho." / "Enviado para 2 aparelhos." / o erro em pt-BR. Quando nenhum
@@ -3038,32 +3053,70 @@ resultado.
 
 ### 23.6 Instruções quando o navegador bloqueia ou não suporta
 
-`instrucoesDoAparelho()` (pura) escolhe o que explicar, nesta ordem:
+`instrucoesDoAparelho()` (pura) escolhe o que explicar. Cada instrução só
+aparece onde o que ela manda fazer **existe no aparelho**:
 
-1. **Brave** (`navigator.brave` existe) e a inscrição falhou ou está
-   bloqueada: "No Brave, os avisos só chegam com os serviços do Google
-   ligados" — Configurações → Privacidade e segurança → ligar **"Usar os
-   serviços do Google para mensagens push"**, fechar e abrir o Brave e tocar
-   em Ativar de novo.
-2. **Permissão negada**: como liberar nas configurações do site (cadeado ao
-   lado do endereço → Permissões → Notificações → Permitir) ou, com o app
-   instalado, nas configurações do Android (Apps → Treino do Terraço →
-   Notificações).
-3. **iPhone fora da tela inicial** (iOS sem `display-mode: standalone`):
-   instalar o app — Compartilhar → **Adicionar à Tela de Início** — e ativar
-   por lá (iOS 16.4 ou mais novo).
-4. **Navegador sem suporte**, fora dos casos acima: usar o Chrome ou o Brave
-   no Android, ou o app instalado no iPhone.
-5. **Falhou sem nenhum caso acima** (Chrome ou outro navegador no Android, o
-   app instalado no iPhone, a permissão dispensada sem escolher): "Para tentar
-   de novo" — conferir a internet e tocar em Ativar de novo, escolher
-   **Permitir** quando o navegador perguntar e, se não ativar, ver nas
-   configurações do celular se as notificações do navegador (ou do app
-   instalado) estão ligadas.
+- **`brave`** — "No Brave, os avisos só chegam com os serviços do Google
+  ligados": Configurações do Brave → Privacidade e segurança → ligar **"Usar
+  os serviços do Google para mensagens push"**, fechar e abrir o Brave e tocar
+  em Ativar de novo. Só com `navigator.brave`, **fora do iPhone** (a opção só
+  existe no Brave do Android e do computador; no iPhone todo navegador é
+  WebKit e o push só chega pelo app instalado) e só quando a inscrição
+  **falhou** ou a permissão está **negada** — nunca em "sem suporte": ligar
+  essa opção não cria o `PushManager` que falta.
+- **`permissao`** — "O navegador está bloqueando as notificações deste app":
+  cadeado (ou ⓘ) ao lado do endereço → Permissões → Notificações → Permitir;
+  com o app instalado, Configurações do Android → Apps → Treino do Terraço →
+  Notificações; voltar ao app, que confere de novo sozinho (23.4) e mostra
+  "Ativar lembretes neste aparelho". Permissão negada fora do iPhone.
+- **`permissao-iphone`** — "O iPhone está bloqueando as notificações deste
+  app": Ajustes do iPhone → Notificações → Treino do Terraço → ligar
+  **"Permitir Notificações"** e voltar ao app. Permissão negada no iPhone (o
+  cadeado e as Configurações do Android não existem lá).
+- **`iphone`** — "No iPhone, os lembretes só chegam com o app instalado":
+  Compartilhar → **Adicionar à Tela de Início** e ativar pelo ícone (iOS 16.4
+  ou mais novo). iPhone/iPad fora da tela inicial (sem `display-mode:
+  standalone`).
+- **`suporte`** — "Este navegador não recebe notificações de sites": no
+  Android, o Chrome ou o Brave; no iPhone, o app instalado na tela de início
+  com o iOS 16.4 ou mais novo. Navegador sem suporte, fora do caso `iphone`
+  (inclusive o Brave sem suporte e o app instalado num iOS antigo).
+- **`tentar`** — "Para tentar de novo": conferir a internet e tocar em Ativar
+  de novo, escolher **Permitir** quando o navegador perguntar e, se não
+  ativar, ver nas configurações do celular se as notificações do navegador
+  (ou do app instalado) estão ligadas. Uma falha ao ativar sem nenhum caso
+  acima (Chrome ou outro navegador no Android, o app instalado no iPhone, a
+  permissão dispensada sem escolher).
 
-Regra: com a permissão negada, o navegador sem suporte ou uma falha ao
-ativar, a lista **nunca sai vazia** (o Vitest confere as 80 combinações de
-estado × Brave × iPhone × instalado × falhou).
+**A tabela das 80 combinações** (estado × Brave × iPhone × instalado ×
+falhou) é o contrato: `lib/lembretes.test.ts` lê esta tabela daqui, confere
+que cada combinação cai em **exatamente uma** linha e que
+`instrucoesDoAparelho()` devolve as instruções da linha, na ordem. "·" vale
+sim e não; "—" é nenhuma instrução.
+
+<!-- tabela-instrucoes:inicio -->
+| estado | Brave | iPhone | instalado | falhou | instruções |
+|---|---|---|---|---|---|
+| sem-configuracao | · | · | · | · | — |
+| ativado | · | · | · | · | — |
+| desativado | · | não | · | não | — |
+| desativado | sim | não | · | sim | `brave` |
+| desativado | não | não | · | sim | `tentar` |
+| desativado | · | sim | não | · | `iphone` |
+| desativado | · | sim | sim | não | — |
+| desativado | · | sim | sim | sim | `tentar` |
+| bloqueado | sim | não | · | · | `brave`, `permissao` |
+| bloqueado | não | não | · | · | `permissao` |
+| bloqueado | · | sim | não | · | `permissao-iphone`, `iphone` |
+| bloqueado | · | sim | sim | · | `permissao-iphone` |
+| nao-suportado | · | não | · | · | `suporte` |
+| nao-suportado | · | sim | não | · | `iphone` |
+| nao-suportado | · | sim | sim | · | `suporte` |
+<!-- tabela-instrucoes:fim -->
+
+Regra que a tabela cumpre: com a permissão negada, o navegador sem suporte ou
+uma falha ao ativar, a lista **nunca sai vazia**; ativado e sem configuração,
+sempre vazia.
 
 **Fica para o lote 35:** o "Sair" (§22.11) não mexe na inscrição do aparelho
 — hoje só chega o teste que a própria conta pede; quando houver disparo no
@@ -3096,14 +3149,38 @@ quadrado branco); um badge monocromático entra quando houver o desenho.
    anel de fora de toda linha): contorno sólido ≥ 2 px inteiro dentro da
    linha e contraste ≥ 3:1 ao focar, nos dois temas.
 4. **Rota de teste**: Vitest da cifragem contra a RFC 8291 (Apêndice A), do
-   JWT VAPID (assinatura confere com a chave pública) e das regras; e2e — o
+   JWT VAPID (assinatura confere com a chave pública) e das regras; e uma
+   **prova independente** (`lib/web-push-prova.test.ts`, só WebCrypto, sem
+   as funções de `lib/web-push.ts`): o JWT tem cabeçalho `alg: ES256`/`typ:
+   JWT`, `aud` = origem do endpoint, `exp` ≤ 24 h e `sub` = `VAPID_SUBJECT`;
+   a assinatura tem **64 bytes (r‖s, não DER)** e confere em
+   `crypto.subtle.verify` (ECDSA P-256/SHA-256) com a chave pública em
+   formato raw; o `Authorization` é `vapid t=…, k=…` com `k` = a pública;
+   `Content-Encoding: aes128gcm`, `TTL` e `Urgency`; e o corpo **decifra**
+   com a chave privada do assinante por uma implementação da RFC 8291 escrita
+   no próprio teste (que decifra também o exemplo do Apêndice A). Mutação:
+   assinar em DER derruba a prova; e2e — o
    servidor de push falso no mock recebe o pedido com `Authorization: vapid
    t=…, k=…` válido e corpo cifrado que decifra no payload; a tela mostra
    "Enviado para 1 aparelho."; a inscrição que responde 410 some da tabela;
    sem sessão, 401.
-5. **Instruções**: Vitest de `instrucoesDoAparelho()` para os cinco casos e
-   a regra "nunca vazia" nas 80 combinações; e2e com Brave simulado
-   (`navigator.brave`), com a permissão negada e com o `subscribe` falhando
-   no Chrome, textos em pt-BR.
+5. **Instruções**: Vitest de `instrucoesDoAparelho()` que lê a tabela de
+   23.6 do SPEC.md e varre as 80 combinações contra ela (cada uma em
+   exatamente uma linha, as mesmas instruções na mesma ordem); e2e com Brave
+   simulado (`navigator.brave`), com a permissão negada e com o `subscribe`
+   falhando no Chrome, textos em pt-BR; com Brave e a permissão negada ao
+   pedir (duas instruções), a frase fica acima das instruções e inteira na
+   primeira dobra a 360×740, nos dois temas.
 6. **Guia**: Mais → Como usar o app tem a linha "Lembretes" com o mesmo texto
    da tela Mais, apontando para `/mais/lembretes`.
+7. **A volta das configurações**: e2e nos dois temas que abre a tela com a
+   permissão **negada de verdade** no Chromium (estado "Bloqueado pelo
+   navegador", instrução de liberar, sem Ativar), concede a permissão pelo
+   contexto do Playwright, dispara a volta (`visibilitychange`) e vê o
+   botão Ativar aparecer e a instrução sumir — com a `navigator.permissions`
+   desligada, para provar o caminho do `visibilitychange` sozinho.
+8. **Montagem sem configuração e sem tabela**: e2e que abre a tela num
+   segundo `next start` **sem** as variáveis VAPID ("Lembretes ainda não
+   configurados neste servidor.", sem botão, e a rota responde 503) e com o
+   PostgREST respondendo `PGRST205` para a tabela ("… falta atualizar o
+   banco", sem botão), nos dois temas.
