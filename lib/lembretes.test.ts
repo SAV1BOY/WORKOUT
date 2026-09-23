@@ -1,6 +1,8 @@
 /**
  * `lib/lembretes.ts` (SPEC §23.3–§23.6): as decisões puras dos lembretes.
  */
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   configuracaoVapid,
@@ -91,6 +93,45 @@ describe("estadoDoAparelho (tabela da §23.4)", () => {
   });
 });
 
+/* A tabela de §23.6 do SPEC.md, entre os marcadores `tabela-instrucoes`. */
+interface LinhaDaTabela {
+  estado: string;
+  brave: boolean | null;
+  ios: boolean | null;
+  instalado: boolean | null;
+  falhou: boolean | null;
+  instrucoes: string[];
+}
+
+function tabelaDaSpec(): LinhaDaTabela[] {
+  const spec = readFileSync(resolve(__dirname, "..", "SPEC.md"), "utf8");
+  const inicio = spec.indexOf("<!-- tabela-instrucoes:inicio -->");
+  const fim = spec.indexOf("<!-- tabela-instrucoes:fim -->");
+  if (inicio < 0 || fim < inicio) throw new Error("SPEC.md sem a tabela de §23.6");
+  const sim = (c: string): boolean | null => (c === "·" ? null : c === "sim" ? true : c === "não" ? false : (() => { throw new Error(`célula inválida: ${c}`); })());
+  return spec
+    .slice(inicio, fim)
+    .split("\n")
+    .filter((l) => l.startsWith("| ") && !l.startsWith("| estado") && !l.startsWith("|---"))
+    .map((l) => {
+      const c = l.split("|").slice(1, -1).map((x) => x.trim());
+      if (c.length !== 6) throw new Error(`linha com ${c.length} colunas: ${l}`);
+      return {
+        estado: c[0] ?? "",
+        brave: sim(c[1] ?? ""),
+        ios: sim(c[2] ?? ""),
+        instalado: sim(c[3] ?? ""),
+        falhou: sim(c[4] ?? ""),
+        instrucoes: c[5] === "—" ? [] : (c[5] ?? "").split(",").map((x) => x.trim().replace(/`/g, "")),
+      };
+    });
+}
+
+function casa(l: LinhaDaTabela, s: SinaisDasInstrucoes): boolean {
+  const ok = (v: boolean | null, x: boolean) => v === null || v === x;
+  return l.estado === s.estado && ok(l.brave, s.brave) && ok(l.ios, s.ios) && ok(l.instalado, s.instalado) && ok(l.falhou, s.falhou);
+}
+
 describe("instrucoesDoAparelho (§23.6)", () => {
   const base: SinaisDasInstrucoes = {
     estado: "desativado",
@@ -115,6 +156,24 @@ describe("instrucoesDoAparelho (§23.6)", () => {
     expect(ids({ estado: "bloqueado", brave: true })).toEqual(["brave", "permissao"]);
     const [p] = instrucoesDoAparelho({ ...base, estado: "bloqueado" });
     expect(p?.passos.join(" ")).toMatch(/Notificações → Permitir/);
+    // a volta é conferida pela tela (§23.4): o passo não manda recarregar
+    expect(p?.passos.at(-1)).toBe("Volte aqui: a tela confere de novo e mostra “Ativar lembretes neste aparelho”.");
+  });
+  it("permissão negada no iPhone → os Ajustes do iPhone, nunca o cadeado nem o Android", () => {
+    expect(ids({ estado: "bloqueado", ios: true, instalado: true })).toEqual(["permissao-iphone"]);
+    expect(ids({ estado: "bloqueado", ios: true, instalado: true, brave: true })).toEqual(["permissao-iphone"]);
+    const [p] = instrucoesDoAparelho({ ...base, estado: "bloqueado", ios: true, instalado: true });
+    const texto = `${p?.titulo} ${p?.passos.join(" ")}`;
+    expect(texto).toContain("Ajustes do iPhone → Notificações → Treino do Terraço");
+    expect(texto).toContain("“Permitir Notificações”");
+    expect(texto).not.toMatch(/Android|cadeado|Brave/);
+  });
+  it("o ajuste do Brave nunca aparece no iPhone nem em navegador sem suporte", () => {
+    expect(ids({ brave: true, ios: true, falhou: true })).toEqual(["iphone"]);
+    expect(ids({ brave: true, ios: true, instalado: true, falhou: true })).toEqual(["tentar"]);
+    expect(ids({ brave: true, estado: "nao-suportado" })).toEqual(["suporte"]);
+    expect(ids({ brave: true, estado: "nao-suportado", falhou: true })).toEqual(["suporte"]);
+    expect(ids({ brave: true, ios: true, estado: "nao-suportado" })).toEqual(["iphone"]);
   });
   it("iPhone fora da tela inicial → instalar; instalado, não", () => {
     expect(ids({ ios: true, estado: "nao-suportado" })).toEqual(["iphone"]);
@@ -123,9 +182,11 @@ describe("instrucoesDoAparelho (§23.6)", () => {
     const [i] = instrucoesDoAparelho({ ...base, ios: true });
     expect(i?.passos.join(" ")).toContain("Adicionar à Tela de Início");
   });
-  it("sem suporte e sem caso especial → Chrome/Brave ou instalar", () => {
+  it("sem suporte e sem caso especial → Chrome/Brave ou instalar (iOS 16.4+)", () => {
     expect(ids({ estado: "nao-suportado" })).toEqual(["suporte"]);
-    expect(ids({ estado: "nao-suportado", brave: true })).toEqual(["brave"]);
+    expect(ids({ estado: "nao-suportado", ios: true, instalado: true })).toEqual(["suporte"]);
+    const [s] = instrucoesDoAparelho({ ...base, estado: "nao-suportado" });
+    expect(s?.passos.join(" ")).toContain("iOS 16.4 ou mais novo");
   });
   it("falha sem caso especial (Chrome, iPhone instalado, permissão dispensada) → tentar de novo", () => {
     expect(ids({ falhou: true })).toEqual(["tentar"]);
@@ -138,6 +199,35 @@ describe("instrucoesDoAparelho (§23.6)", () => {
     expect(ids({ falhou: true, ios: true })).toEqual(["iphone"]);
     // sem falha, nada a explicar
     expect(ids({})).toEqual([]);
+  });
+  it("as 80 combinações batem com a tabela da SPEC §23.6 (o oráculo)", () => {
+    const tabela = tabelaDaSpec();
+    const estados: SinaisDasInstrucoes["estado"][] = ["sem-configuracao", "nao-suportado", "bloqueado", "ativado", "desativado"];
+    const divergencias: string[] = [];
+    let conferidas = 0;
+    for (const estado of estados) {
+      for (const brave of [false, true]) {
+        for (const ios of [false, true]) {
+          for (const instalado of [false, true]) {
+            for (const falhou of [false, true]) {
+              conferidas += 1;
+              const sinais = { estado, brave, ios, instalado, falhou };
+              const linhas = tabela.filter((l) => casa(l, sinais));
+              // cada combinação cai em exatamente uma linha da tabela
+              expect(linhas.length, JSON.stringify(sinais)).toBe(1);
+              const esperado = linhas[0]?.instrucoes ?? [];
+              const obtido = ids(sinais);
+              if (JSON.stringify(obtido) !== JSON.stringify(esperado)) {
+                divergencias.push(`${JSON.stringify(sinais)}: código=${obtido.join(",")} SPEC=${esperado.join(",")}`);
+              }
+            }
+          }
+        }
+      }
+    }
+    expect(conferidas).toBe(80);
+    expect(tabela.length).toBeGreaterThanOrEqual(10);
+    expect(divergencias).toEqual([]);
   });
   it("com problema, a lista nunca sai vazia (as 80 combinações)", () => {
     const estados: SinaisDasInstrucoes["estado"][] = ["sem-configuracao", "nao-suportado", "bloqueado", "ativado", "desativado"];

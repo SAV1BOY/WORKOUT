@@ -163,7 +163,7 @@ export interface SinaisDasInstrucoes {
 }
 
 export interface Instrucao {
-  id: "brave" | "permissao" | "iphone" | "suporte" | "tentar";
+  id: "brave" | "permissao" | "permissao-iphone" | "iphone" | "suporte" | "tentar";
   titulo: string;
   passos: string[];
 }
@@ -184,7 +184,18 @@ const PERMISSAO: Instrucao = {
   passos: [
     "Toque no cadeado (ou no ⓘ) ao lado do endereço → Permissões → Notificações → Permitir.",
     "Com o app instalado: Configurações do Android → Apps → Treino do Terraço → Notificações → ligar.",
-    "Volte aqui e toque em “Ativar lembretes neste aparelho”.",
+    "Volte aqui: a tela confere de novo e mostra “Ativar lembretes neste aparelho”.",
+  ],
+};
+
+/** No iPhone não há cadeado nem Configurações do Android: é nos Ajustes. */
+const PERMISSAO_IPHONE: Instrucao = {
+  id: "permissao-iphone",
+  titulo: "O iPhone está bloqueando as notificações deste app",
+  passos: [
+    "Abra os Ajustes do iPhone → Notificações → Treino do Terraço.",
+    "Ligue “Permitir Notificações”.",
+    "Volte aqui: a tela confere de novo e mostra “Ativar lembretes neste aparelho”.",
   ],
 };
 
@@ -202,7 +213,7 @@ const SUPORTE: Instrucao = {
   titulo: "Este navegador não recebe notificações de sites",
   passos: [
     "No Android, abra o app no Chrome ou no Brave.",
-    "No iPhone, instale o app na tela de início (Compartilhar → Adicionar à Tela de Início).",
+    "No iPhone, instale o app na tela de início (Compartilhar → Adicionar à Tela de Início); precisa do iOS 16.4 ou mais novo.",
   ],
 };
 
@@ -218,18 +229,27 @@ const TENTAR: Instrucao = {
 };
 
 /**
- * O que explicar, na ordem da SPEC §23.6. Nada quando está tudo certo; com
- * um problema (bloqueado, sem suporte ou falha ao ativar), nunca vazia.
+ * O que explicar (SPEC §23.6 — a tabela das 80 combinações é o contrato, e o
+ * Vitest a lê do SPEC.md). Cada instrução só aparece onde o que ela manda
+ * fazer existe: o ajuste do Brave só no Brave do Android e do computador (no
+ * iPhone todo navegador é WebKit) e só quando a inscrição falhou ou a
+ * permissão está negada — ligar os serviços do Google não cria o
+ * `PushManager` que falta num navegador sem suporte. Nada quando está tudo
+ * certo; com um problema (bloqueado, sem suporte ou falha ao ativar), nunca
+ * vazia.
  */
 export function instrucoesDoAparelho(s: SinaisDasInstrucoes): Instrucao[] {
   if (s.estado === "sem-configuracao" || s.estado === "ativado") return [];
   const saida: Instrucao[] = [];
-  const problema = s.falhou || s.estado === "bloqueado" || s.estado === "nao-suportado";
-  if (s.brave && problema) saida.push(BRAVE);
-  if (s.estado === "bloqueado") saida.push(PERMISSAO);
+  const bloqueado = s.estado === "bloqueado";
+  const falhouAoAtivar = s.estado === "desativado" && s.falhou;
+  if (s.brave && !s.ios && (bloqueado || falhouAoAtivar)) saida.push(BRAVE);
+  if (bloqueado) saida.push(s.ios ? PERMISSAO_IPHONE : PERMISSAO);
   if (s.ios && !s.instalado) saida.push(IPHONE);
-  else if (s.estado === "nao-suportado" && !s.brave) saida.push(SUPORTE);
-  if (problema && saida.length === 0) saida.push(TENTAR);
+  else if (s.estado === "nao-suportado") saida.push(SUPORTE);
+  if ((bloqueado || falhouAoAtivar || s.estado === "nao-suportado") && saida.length === 0) {
+    saida.push(TENTAR);
+  }
   return saida;
 }
 
