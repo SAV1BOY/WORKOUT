@@ -683,5 +683,55 @@
       "fila.json esta na versao 3 (o pedido falava em versao 2); atualizado no formato v3",
       "C-visao-geral-esc-camada (L29) estava resolvido pelo L14 (visao-geral.tsx:110) e foi para resolvidos com o L14"
     ]
+  },
+  {
+    "rodada": 18,
+    "data": "2026-09-23",
+    "hora_merge_utc": "23:31",
+    "hora_no_ar_utc": "23:34:10",
+    "duracao_min": 3,
+    "lotes": [
+      "L34-lembretes-inscricao"
+    ],
+    "merges": [
+      "b275aa0"
+    ],
+    "commit_auditoria": "52168c3152bf1a9eac55d8dacf9283f4459dc161",
+    "pr": "https://github.com/SAV1BOY/WORKOUT/pull/25",
+    "main_sha": "905815d6a8a25ef546d256ad228f8e1982eeb15f",
+    "deployment_anterior": "dpl_HWcojHVZg4mN4AKYqv92Ha3q3kK9",
+    "deployment_novo": "dpl_5Mf1KbpBMicAu5TRhz4y6s9UopPJ",
+    "versao_prod": "905815d6a8a25ef546d256ad228f8e1982eeb15f",
+    "versao_anterior": "27eda743cd24af4cc0e998c4590c5f99c67566de",
+    "css_login": "/_next/static/css/e0156b4c4cac1bd9.css -> /_next/static/css/0d00d758a656b055.css",
+    "portoes": {
+      "lint": "limpo",
+      "tsc": "limpo",
+      "unitarios": 1632,
+      "e2e": 557,
+      "e2e_pulados": 5,
+      "varredura": "5/5",
+      "build": "Compiled successfully",
+      "e2e_repetido_na_integracao": false,
+      "integracao": "52168c3: lint limpo, tsc limpo, 73 arquivos / 1632 testes"
+    },
+    "conflito_merge": "nenhum (integracao == origin/main 27eda74; codigo unido == 96056ac)",
+    "fumaca": {
+      "itens": 21,
+      "ok": 21,
+      "falhou": 0,
+      "execucoes": 3,
+      "execucoes_verdes_completas": 3,
+      "detalhe": "/login 200 + 'Treino do Terraco' + 'Entrar' + sem 'Configure NEXT_PUBLIC_SUPABASE_URL' + sem 'e secreta'; / -> 307 /login; /versao == sha; /sw.js 200 + /~offline + figuras/ + mesmo css; /manifest.webmanifest 200 + 'Treino do Terraco'; /~offline 200; 14 scripts 200; /sw.js com 'notificationclick' e 'showNotification'; chunk app/(app)/mais/lembretes/page-a4782e08023821d6.js listado no sw.js e com 'Ativar lembretes' e 'Enviar um lembrete de teste'"
+    },
+    "sonda_360": "OK — /login e /~offline sem erro de console, scrollWidth 360 = clientWidth",
+    "capturas": "18-mais claro e escuro de r19/l34/capturas-e13a8ec copiados para base-ef3ad97; indice.json head=905815d; wt-base nao avancado",
+    "migracao_banco": "2026_09_23_lembretes_inscricoes aplicada pelo orquestrador as 23:25 UTC (ensaio desfeito OK, RLS ligada, 3 policies, anon sem grant, advisors sem achado novo)",
+    "rollback": "nao",
+    "problemas": [
+      "variaveis VAPID em producao nao conferidas daqui (tela exige login; conector Vercel 403 nas variaveis): sem elas /mais/lembretes diz 'Lembretes ainda nao configurados neste servidor.' e a rota devolve 503",
+      "list_aliases com domain='treino-terraco.vercel.app' voltou vazio; deploymentId lido da listagem do projeto sem filtro de dominio",
+      "lista de itens feitos chegou cortada do orquestrador; os 6 itens LEM do L34 foram para resolvidos pelos ids do lote planejado"
+    ]
   }
 ]
