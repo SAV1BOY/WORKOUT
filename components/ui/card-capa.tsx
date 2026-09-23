@@ -100,13 +100,23 @@ export function CardCapa({
             className="absolute inset-0 size-full object-cover"
             onError={() => setQueda((q) => q + 1)}
           />
-        ) : icone ? (
-          <span className="text-primary/70 absolute inset-0 flex items-center justify-center">
-            {icone}
-          </span>
         ) : null}
 
         <div className="capa-gradiente absolute inset-0" />
+        {/*
+          SPEC §22.13 item 8: sem foto, o ícone da tela fica no alto da capa,
+          FORA do véu do texto (antes ele ficava centrado, por baixo do véu e
+          da vinheta, e a capa era um retângulo escuro), em `text-foreground`
+          para passar de 3:1 contra o gradiente nos dois temas.
+        */}
+        {!comFoto && icone ? (
+          <span
+            data-capa-icone
+            className="text-foreground relative flex flex-1 items-center justify-center pt-5 pb-3"
+          >
+            {icone}
+          </span>
+        ) : null}
 
         {/*
           `z-10`: o véu do bloco de texto vem depois no DOM e, sem camada, era

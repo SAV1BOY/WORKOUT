@@ -31,6 +31,7 @@ import {
   ultimaSemanaDeCorrida,
 } from "@/lib/dados";
 import { dificuldadeDaColecao, type Raios } from "@/lib/dificuldade";
+import { formatarNumero } from "@/lib/formato";
 import {
   EXERCICIOS_DA_SESSAO_LIVRE,
   detalheDaColecao,
@@ -365,6 +366,102 @@ export function colecaoDoPlano(
 
 export function colecoesDePlano(posicao?: PosicaoNosPlanos | null): Colecao[] {
   return planos().map((p) => colecaoDoPlano(p, posicao));
+}
+
+/* ----------------------------------- as semanas de um plano (§22.13) */
+
+/** Onde a linha do plano está em relação à semana do perfil. */
+export type EstadoDaSemana = "feita" | "atual" | "a-fazer";
+
+/** Uma linha da lista de semanas (ou estágios) de um plano. */
+export interface SemanaDoPlano {
+  /** Primeira e última semana da linha — corda e barra fixa vão por faixas. */
+  de: number;
+  ate: number;
+  /** "Semana 3" ou "Semanas 1–2". */
+  rotulo: string;
+  /** O que a semana pede, saído de `data/cardio.json`. */
+  descricao: string;
+  /** `null` sem perfil: não há posição para comparar. */
+  estado: EstadoDaSemana | null;
+}
+
+/** "1–2" → [1, 2]; "9–12" → [9, 12]; "3" → [3, 3]. */
+function faixaDeSemanas(texto: string): [number, number] {
+  const partes = texto
+    .split(/[–-]/)
+    .map((n) => Number(n.trim()))
+    .filter((n) => Number.isFinite(n));
+  const de = partes[0] ?? 1;
+  return [de, partes[partes.length - 1] ?? de];
+}
+
+function rotuloDaFaixa(de: number, ate: number): string {
+  return de === ate ? `Semana ${de}` : `Semanas ${de}–${ate}`;
+}
+
+/**
+ * As semanas (ou estágios) de um plano, na ordem de `data/cardio.json`, cada
+ * uma com o estado em relação à semana do perfil (SPEC §22.13 item 9): antes
+ * dela, **feita**; a que contém, **atual**; depois, **a fazer**. A semana é
+ * presa ao tamanho do plano (a semana 14 de um plano de 12 é a 12). Nenhum
+ * texto de conteúdo é escrito aqui: a corrida usa a `descricao` da semana, a
+ * corda os números do estágio e a barra fixa as séries e a assistência.
+ */
+export function semanasDoPlano(
+  plano: PlanoId,
+  semanaAtual: number | null | undefined,
+): SemanaDoPlano[] {
+  const linhas: Omit<SemanaDoPlano, "estado">[] =
+    plano === "corrida"
+      ? cardio.corrida.semanas.map((s) => ({
+          de: s.semana,
+          ate: s.semana,
+          rotulo: rotuloDaFaixa(s.semana, s.semana),
+          descricao: s.descricao,
+        }))
+      : plano === "corda"
+        ? cardio.corda.semanas.map((s) => {
+            const [de, ate] = faixaDeSemanas(s.semanas);
+            return {
+              de,
+              ate,
+              rotulo: rotuloDaFaixa(de, ate),
+              descricao: `${s.blocos} blocos de ${s.bloco_s} s · ${s.descanso_s} s de descanso · ≈ ${formatarNumero(s.saltos_aprox)} saltos`,
+            };
+          })
+        : cardio.barra_fixa.semanas.map((s) => {
+            const [de, ate] = faixaDeSemanas(s.semanas);
+            return {
+              de,
+              ate,
+              rotulo: rotuloDaFaixa(de, ate),
+              descricao: `${s.por_sessao} por sessão · ${s.assistencia}`,
+            };
+          });
+  const total = linhas.reduce((maior, l) => Math.max(maior, l.ate), 1);
+  const atual =
+    semanaAtual == null || !Number.isFinite(semanaAtual)
+      ? null
+      : semanaPresa(semanaAtual, total);
+  return linhas.map((l) => ({
+    ...l,
+    estado:
+      atual === null ? null : l.ate < atual ? "feita" : l.de <= atual ? "atual" : "a-fazer",
+  }));
+}
+
+/** A semana do perfil em cada plano (`profiles.semana_*`). */
+export function semanaDoPerfilNoPlano(
+  plano: PlanoId,
+  perfil: { semana_corrida: number; semana_corda: number; semana_fixa: number } | null,
+): number | null {
+  if (!perfil) return null;
+  return plano === "corrida"
+    ? perfil.semana_corrida
+    : plano === "corda"
+      ? perfil.semana_corda
+      : perfil.semana_fixa;
 }
 
 /* ------------------------------------------ treinos do programa (§13.4) */
