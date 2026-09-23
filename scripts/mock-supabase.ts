@@ -174,6 +174,15 @@ interface EspecTabela {
   unicos: string[][];
   /** trigger set_updated_at */
   tocaUpdatedAt: boolean;
+  /**
+   * Colunas `not null` SEM default que o insert tem de trazer (o mock não
+   * inventa). `user_id` aqui = a policy `with check (user_id = auth.uid())`
+   * reprova o insert sem ele (42501), como no banco real; as outras dão 23502.
+   * Tabelas sem esta lista seguem com o `user_id` posto pelo mock.
+   */
+  obrigatorias?: string[];
+  /** Sem policy de update: o PATCH não altera nenhuma linha (RLS). */
+  semUpdate?: boolean;
 }
 
 const nulo: Padrao = () => null;
@@ -402,6 +411,9 @@ const ESQUEMA: Record<string, EspecTabela> = {
     chave: ["id"],
     unicos: [["endpoint"]],
     tocaUpdatedAt: false,
+    // §23.2: user_id sem default (o app manda o da sessão) e nada de update
+    obrigatorias: ["user_id", "endpoint", "p256dh", "auth"],
+    semUpdate: true,
   },
   schedule_overrides: {
     colunas: {
@@ -1295,6 +1307,21 @@ async function rotaRest(
     const gravadas: Linha[] = [];
 
     for (const entrada of entradas) {
+      for (const c of espec.obrigatorias ?? []) {
+        if (entrada[c] !== undefined && entrada[c] !== null) continue;
+        if (c === "user_id") {
+          throw new ErroMock(
+            403,
+            `new row violates row-level security policy for table "${recurso}"`,
+            { code: "42501" },
+          );
+        }
+        throw new ErroMock(
+          400,
+          `null value in column "${c}" of relation "${recurso}" violates not-null constraint`,
+          { code: "23502" },
+        );
+      }
       // RLS `with check (user_id = auth.uid())`
       if (entrada.user_id !== undefined && entrada.user_id !== usuario.id) {
         throw new ErroMock(403, "mock: RLS — user_id diferente do dono da sessão", {
@@ -1358,6 +1385,7 @@ async function rotaRest(
         );
       }
     }
+    if (espec.semUpdate) alvo.length = 0; // sem policy de update: nada muda
     for (const linha of alvo) {
       Object.assign(linha, mudancas);
       linha.user_id = usuario.id;
