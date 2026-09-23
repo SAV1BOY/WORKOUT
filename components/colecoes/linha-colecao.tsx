@@ -73,14 +73,26 @@ export function LinhaColecao({
     circuito (`podeCircuito`) avisa com um selo discreto — informação, não
     promoção. 16 px de altura, a mesma da linha em que ele entra.
   */
-  const selo = colecao.circuito ? (
-    <span
-      data-selo="circuito"
-      className="border-border text-muted-foreground mr-1.5 inline-block rounded-full border px-1.5 align-top text-micro leading-[14px] tracking-wide uppercase"
-    >
-      Circuito
-    </span>
-  ) : null;
+  /*
+    Onde o selo entra (SPEC §22.13 item 10, correção da auditoria 2): ele
+    abre a linha do subtítulo quando ela está vazia (reservada) ou inteira
+    (sem meta). Quando o subtítulo é cortado numa linha (há meta), o selo
+    fecha a meta: abrindo o subtítulo ele tomava ~64 px do texto cortado
+    ("Corda: 5 estágios" parava em "aquecimento: 2 min ant…").
+  */
+  const seloNaMeta = Boolean(colecao.subtitulo) && temMeta;
+  const selo = (lado: "abre" | "fecha") =>
+    colecao.circuito ? (
+      <span
+        data-selo="circuito"
+        className={cn(
+          "border-border text-muted-foreground inline-block rounded-full border px-1.5 align-top text-micro leading-[14px] tracking-wide uppercase",
+          lado === "abre" ? "mr-1.5" : "ml-1.5",
+        )}
+      >
+        Circuito
+      </span>
+    ) : null;
   return (
     <Link
       href={hrefDaColecao(colecao)}
@@ -132,7 +144,7 @@ export function LinhaColecao({
             className={cn("text-muted-foreground text-xs", temMeta && "line-clamp-1")}
             data-linha="subtitulo"
           >
-            {selo}
+            {seloNaMeta ? null : selo("abre")}
             {colecao.subtitulo}
             {/* sem meta (§22.12 item 4), os raios fecham o subtítulo */}
             {!temMeta && raios ? (
@@ -144,11 +156,11 @@ export function LinhaColecao({
           </span>
         ) : (
           <span
-            aria-hidden={selo ? undefined : true}
+            aria-hidden={colecao.circuito ? undefined : true}
             className="block h-4 text-xs"
             data-linha="subtitulo-vazio"
           >
-            {selo}
+            {selo("abre")}
           </span>
         )}
         {/*
@@ -182,6 +194,7 @@ export function LinhaColecao({
               />
             ) : null}
             {colecao.detalhe}
+            {seloNaMeta ? selo("fecha") : null}
           </span>
         ) : null}
       </span>
