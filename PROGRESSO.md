@@ -9579,6 +9579,19 @@ as 3 falhas eram esse teste novo de retrato.
   link `/cardio/corrida?semana=3`, `scrollHeight` > 740 e todo texto da
   lista ≥ 4,5:1; `/explorar/plano/corda` com `aria-valuenow` 4, 5 estágios e
   "Semanas 5–6" atual — nos dois temas.
+- **Rodada 13 (correção da auditoria 2): Vitest +3, e2e +10.** Vitest
+  (`lib/midia-l13.test.ts`): o teto entre 425 e 440 px; a folga presa ao
+  `p-2`; as 162 fotos do JSON (324 arquivos) contra o JPEG do kit lido pelo
+  `sharp`, 12 em retrato; e a conta da caixa de antes com os números exatos
+  (100 e 112, no lugar de "≥ 78"). e2e (`e2e/ultraloop-l13.spec.ts`): anel
+  da figura e da pausa por Tab no player e na Visão geral, nos dois temas (4
+  — no log da cadeia: a figura muda ~7.230 a 7.550 px com o foco, e o anel
+  mede **6,94:1** no claro e **4,26:1** no escuro; a pausa, 6,88:1 e
+  4,22:1); nome e descrição estáveis com o foco na figura (1); quadro 2
+  atrasado 2,5 s sem troca para o vazio (1); as fotos em retrato inteiras
+  nos 3 exercícios (3); o selo na meta da "Corda: 5 estágios" em Planos e
+  na busca (1). O e2e do item 5 no player passou a pedir o nome estável e a
+  posição na descrição.
 - **Sondas antes da cadeia** (`r12/l13/sonda/`): 1ª execução do spec novo
   derrubada pelo mock sem reset (signup 422) → `resetarMock()` no
   `beforeEach`, como os outros specs do ultraloop (config em série,
@@ -9598,7 +9611,18 @@ as 3 falhas eram esse teste novo de retrato.
 
 #### Portões
 
-Cadeia inteira no HEAD de código da correção, `0ce0ad0`
+**Rodada 13.** Cadeia inteira em `fcae02e` (o HEAD com todo o código e os
+testes da correção da auditoria 2; `r13/l13/logs/fcae02e.log`, das
+05:03:33 às 05:27:05 UTC, **status ok**): `lint` limpo · `tsc --noEmit`
+limpo · `npm test` **65 arquivos, 1.497 testes, todos verdes** (+3 sobre a
+rodada 12) · `build` ("Compiled successfully in 17.9s") · `build:e2e`
+("Compiled successfully in 18.7s") · `e2e` **474 passaram, 5 pulados, 0
+falharam** (17,4 min; +10 da correção; os 5 pulados são os da varredura,
+que roda à parte) · `varredura` **5 de 5** (4,3 min). A cadeia roda de
+novo, inteira, no commit deste registro (só `PROGRESSO.md` muda), e o log
+dele fica em `r13/l13/logs/<hash>.log`.
+
+**Rodada 12.** Cadeia inteira no HEAD de código da correção, `0ce0ad0`
 (`r12/l13/logs/0ce0ad0.log`, das 03:44:55 às 04:07:04 UTC, **status ok**):
 `lint` limpo · `tsc --noEmit` limpo · `npm test` **65 arquivos, 1.494
 testes, todos verdes** (eram 63 / 1.477 em `763598a`; +2 arquivos, +17
@@ -9611,7 +9635,22 @@ Antes da auditoria, `32826d5` e `f423151` tinham dado 1.493 unit e e2e
 
 #### Capturas
 
-`capturas.sh` em `0ce0ad0`, depois da cadeia verde, contra a base real de
+**Rodada 13.** `capturas.sh` em `fcae02e`, depois da cadeia verde, contra
+a mesma base real de `main` (`base-ef3ad97`), com as seis telas declaradas
+(`r13/l13/capturas-fcae02e.md`): 60 PNGs; **nenhuma tela fora da lista
+mudou** (52 com Δ 0,00 %, inclusive a 03-treino-topo), e as que mudaram
+dão os mesmos Δ da rodada 12:
+
+| tela | Δ claro | Δ escuro | o que mudou na rodada 13 (olhando o diff e a captura de `0ce0ad0`) |
+| --- | ---: | ---: | --- |
+| 09-ficha-exercicio | 48,88 % | 46,83 % | o mesmo da rodada 12 (abaixo). Contra a captura de `0ce0ad0`, 154 px (claro) e 206 px (escuro) diferem em no máximo 2 e 4 níveis de canal, todos na tira de fotos no pé (y 632–740 CSS px): a reamostragem de `object-contain` no lugar de `object-cover` numa caixa que já tinha a proporção do arquivo — invisível |
+| 07-colecao | 25,89 % | 36,36 % | idêntica à de `0ce0ad0` (mesmo md5) |
+| 10-ficha-folha | 5,00 % | 5,00 % | o mesmo da rodada 12; contra `0ce0ad0`, 146 e 205 px na tira de fotos, até 2 e 4 níveis (a mesma reamostragem) |
+| 06-explorar | 1,17 % | 1,18 % | idêntica à de `0ce0ad0` (mesmo md5): a seção Planos, onde o selo da corda passou para a meta, fica abaixo da dobra; o selo é medido no e2e |
+| 28-player-exercicio | 0,00 % | 0,00 % | a mídia animada sai mascarada; o anel interno da figura e o da pausa só aparecem com foco por teclado e são medidos no e2e (pixels e contraste) |
+| 04-treino-lista | 0,00 % | 0,00 % | não monta a `MediaGrande` |
+
+**Rodada 12.** `capturas.sh` em `0ce0ad0`, depois da cadeia verde, contra a base real de
 `main` (`base-ef3ad97`, com 06/07/08 já do L12), com as seis telas
 declaradas como esperadas (`r12/l13/capturas-0ce0ad0.md`). 60 PNGs;
 **nenhuma tela mudou fora da lista** (as 48 fora dela deram Δ 0,00 %,
