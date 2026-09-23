@@ -9967,7 +9967,8 @@ itens 3 e 4; o lote dono da tela 24 está no teto de 12 arquivos) e
    auditoria, abaixo.
 4. **A aba do tutorial diz para onde leva** (tela-explorar-fichas-26;
    `ficha-folha.tsx`, `lib/ficha.ts`). **Era:** "Tutorial", oferecida sempre.
-   **É:** "Tutorial no YouTube" com o ícone de link externo no rótulo, só
+   **É:** "Tutorial no YouTube" (o ícone de link externo que entrou aqui
+   saiu na rodada 15: com rede o vídeo toca dentro do app — abaixo), só
    quando `data/tutoriais.json` tem o vídeo (`abasDaFicha()`; hoje os 81
    têm), e as abas dividem a largura pelo rótulo (`flex-auto`) — em terços,
    o rótulo novo não cabia. `components/exercicio/tutorial.tsx` não precisou
@@ -10042,7 +10043,9 @@ asserção `naturalWidth > 0` de cada imagem é a mesma).
 - **Mutação** (cópia em `r14/l14/mut`): 9 de 9 mutantes derrubam teste —
   aba do tutorial sempre, nível fixo, `href` nulo, vazio ignorando eventos,
   "Cross-over", "Elástico", "Peso do corpo", "Super band", rótulo "Tutorial".
-- **e2e** (`e2e/ultraloop-l14.spec.ts`, 19 testes, 360×740 contra o mock):
+- **e2e** (`e2e/ultraloop-l14.spec.ts`, 19 testes na primeira cadeia, 27
+  depois da correção da auditoria e **34** depois da rodada 15; 360×740
+  contra o mock):
   Voltar do catálogo e numa aba nova; Fazer agora (≥ 44 px) → player, e, sem
   rede, a série concluída está na `sessaoAtiva` e na `outbox` do IndexedDB;
   cartão único sem histórico (1 cartão na página, nenhum dos 4 títulos);
@@ -10220,7 +10223,9 @@ foto e o histórico com séries semeadas.
    tags; "Banco" abre a coleção do banco no Explorar; "Aparece em:" leva ao
    treino.
 3. Aba Músculos: só o mapa e a legenda. A terceira aba se chama "Tutorial no
-   YouTube", com a setinha de link externo.
+   YouTube", sem setinha de link externo (desde a rodada 15): com rede, o
+   vídeo toca ali mesmo. No modo avião, a aba mostra "Abrir no YouTube" com a
+   setinha — esse sim sai do app.
 4. No player, toque no "?" (Como fazer): com leitor de tela, o primeiro
    anúncio é o nome do exercício; o fundo não é alcançável; ao fechar, o foco
    volta ao "?". O mesmo em "Substituir" na lista do dia e em "Filtros".
@@ -10238,3 +10243,187 @@ foto e o histórico com séries semeadas.
    "peso do corpo", sem "peso corporal" embaixo. Barra fixa assistida:
    "Onde você está" diz "Próxima sessão: … · elástico pé inteiro", com
    acento e sem repetir "peso do corpo".
+
+#### Rodada 14 — auditoria 2 reprovou; lote devolvido à fila
+
+A auditoria 2, em `e3c1f22` (cadeia `r14/l14/logs/e3c1f22.log` ok: 1.538
+unitários, e2e 504 + 5 pulados, varredura 5/5), **aprovou a lente regra**
+(8 menores) e **reprovou a lente tela** por **1 importante**: a SPEC §22.14
+item 6 diz que o contrato vale para toda folha, mas **dentro da Visão geral
+do treino** o Esc na folha "substituir hoje" do bloco e na ficha aberta pelo
+"Como fazer" fechava a folha **e** a Visão geral (medido a 360×740: antes do
+Esc, dois diálogos; depois de um Esc, nenhum, e o gatilho fora do DOM). A
+causa: `components/treinar/visao-geral.tsx` escuta o `keydown` no `window` e
+fechava em qualquer Escape, sem olhar `defaultPrevented` — o Radix já tinha
+tratado o Esc na captura do `document`. Preexistente (fora do diff do lote),
+mas a SPEC nova afirmava a cobertura e nenhum e2e a exercitava. Pela regra do
+dono, o lote foi **devolvido à fila** ao fim da rodada 14. Vereditos:
+`r14/l14/vereditos-auditoria-2.json`.
+
+#### Rodada 15 — retomada
+
+Ciclo novo sobre `e3c1f22` da mesma branch, com a pasta de logs nova
+`r15/l14/`. Commits: `6a3496f` (SPEC §22.14 primeiro: itens 4 e 6 e o item
+11 novo), `ee20cde` (o Esc na Visão geral e na foto ampliada), `1e31955` (o
+anel do botão primário), `f23b3a2` (a aba do tutorial sem o ícone de saída),
+`48b7603` (dois textos do JSON da ficha), `32ab031` (e2e). Sonda antes da
+cadeia (`r15/l14/parcial/`, build:e2e + grep dos itens 4, 6, 11 e do foco):
+13 de 13.
+
+#### Correção da auditoria 2
+
+- **Tela, importante: o Esc na folha fechava a Visão geral junto** (item 6;
+  `components/treinar/visao-geral.tsx`). **Era:** `if (evento.key !==
+  "Escape") return;` — qualquer Esc fechava a lista, inclusive o que o Radix
+  já tinha usado para fechar a folha de cima. **É:** `if (evento.key !==
+  "Escape" || evento.defaultPrevented) return;`: o Esc fecha só a camada de
+  cima. Vale para toda folha e diálogo do Radix aberto sobre a Visão geral:
+  "substituir hoje", a ficha do "Como fazer", a montagem, e também o
+  "Descartar este treino?" e o resumo do fim, que são do Radix. Sem folha, o
+  Esc continua fechando a Visão geral.
+- **Os outros Esc globais do app** (`grep Escape` em `app/`, `components/`,
+  `lib/`): só há mais um, o da foto ampliada
+  (`components/exercicios/foto-ampliada.tsx`). **Era:** fechava em qualquer
+  Esc. **É:** a mesma regra — ignora o Esc já tratado e marca
+  (`preventDefault`) o que trata, para ninguém embaixo fechar junto. Hoje não
+  há folha por cima nem por baixo dela (as fotos ampliáveis só existem na
+  ficha em página, `comoPagina`, e no Corpo, que é página), então o
+  comportamento visível não muda; o e2e prova a regra com um Esc que outra
+  camada gasta antes.
+- **Menor: o anel do Button primário tinha a cor do botão** (item 11 novo;
+  `components/ui/button.tsx`). **Era:** `ring-3 ring-ring` colado no botão,
+  `--ring` igual a `--primary` — 1:1 contra ele; o foco só parecia o botão
+  3 px maior (no "Fazer agora" e em todo `BotaoLargo`). **É:** no tom
+  primário, o anel do app (§22.3 item 7): contorno sólido de 2 px na cor
+  `--ring` com `outline-offset` de 2 px — o fundo aparece entre o anel e o
+  botão. Medido pelo e2e (captura com e sem foco, 3 px por fora da borda):
+  **5,25:1** no claro e **8,75:1** no escuro contra o fundo, e o vão de 1 px
+  sem mudança (1,00:1). Os outros tons do Button já tinham anel de cor
+  diferente da deles e ficam.
+- **Menor: o ícone de link externo numa aba que toca o vídeo embutido**
+  (item 4; `components/exercicio/ficha-folha.tsx`,
+  `components/exercicio/tutorial.tsx`). **Era:** a aba "Tutorial no YouTube
+  ↗", mas com rede a miniatura vira o `<iframe>` do `youtube-nocookie`
+  dentro da ficha — o ícone prometia uma saída que não acontece. **É:** a aba
+  "Tutorial no YouTube", sem ícone (o rótulo diz de onde vem o vídeo); o
+  ícone fica no "Abrir no YouTube" da aba sem rede (`target="_blank"`), o
+  único ponto da ficha que sai do app. O aceite do ledger ("o destino
+  externo dito no rótulo") ficou assim na SPEC §22.14 item 4: o destino só é
+  externo sem rede, e ali rótulo e ícone dizem isso.
+- **Menor: dois destinos para o mesmo ajuste** (`data/exercicios.json`, 3
+  fichas de barra W). **Era:** a nota da carga inicial dizia "pese na balança
+  e corrija no perfil", e o cartão "Onde você está" logo abaixo diz "(Mais →
+  Equipamento)", que é onde o peso das barras se ajusta. **É:** "… pese na
+  balança e corrija em Mais → Equipamento".
+- **Menor: nome de arquivo na tela** (`data/exercicios.json`, salto básico).
+  **Era:** "Segue a progressão de corda de cardio.json (…)" em "Como
+  progredir". **É:** "Segue a progressão do plano da corda (6 × 30 s → 5 × 3
+  min em 12 semanas)." O Vitest novo varre os 81: nenhum texto visível com
+  ".json" nem "corrija no perfil".
+- **Menor: o total de testes do spec nas Provas** dizia 19; corrigido acima
+  (34 agora).
+- **Menores só registrados, com motivo:** (1) o critério "texto de 12
+  caracteres ou mais contido em outro" dá falso positivo com números ("7,5 kg
+  na barra" ⊂ "17,5 kg na barra"); nenhum dos 4 perfis dos testes cai nisso e
+  mudar o critério agora afrouxaria o teste que pegou as repetições reais —
+  fica para quando um perfil novo precisar. (2) O "nada repetido nos 81" do
+  Vitest roda sobre o espelho `textosDaPagina()`, não sobre o DOM; o DOM é
+  provado em 7 fichas no e2e — renderizar as 81 no e2e custaria minutos na
+  cadeia. (3) `historico-exercicio.tsx`: `carregando` não espera o perfil, e
+  com barras pesadas o cartão "Onde você está" nasce escondido e aparece
+  quando o perfil chega; a carga já era calculada assim antes do lote, sem
+  dado errado na tela, só a ordem de chegada. (4) Depois da primeira
+  avaliação com manutenção, a carga inicial e a atual aparecem iguais em
+  seções diferentes: são informações diferentes, e a SPEC limita o "nada
+  repetido" ao histórico vazio. (5) O e2e do item 6 mede o contrato em 3
+  folhas + as 2 da Visão geral; as outras (conquistas, montagem, personalizar,
+  player) usam o mesmo `SheetContent` e passam nos e2e que já existiam. (6)
+  `sheet.tsx`: um `ref` passado por quem usa a folha desligaria o `inert`;
+  nenhum uso passa (grep), e o componente é interno. (7) A folha "Montagem"
+  não foi medida pela auditoria (o gatilho não aparece com a semente usada);
+  é o mesmo `SheetContent`.
+
+
+#### Provas (rodada 15)
+
+- **Vitest** (`lib/ficha.test.ts`, +2): nenhum dos 81 exercícios tem ".json"
+  em texto visível (passos, erro comum, montagem, equipamento, nota da carga
+  inicial, regra de progressão); nenhum manda corrigir "no perfil", e as 3
+  notas da barra W dizem "Mais → Equipamento".
+- **e2e** (`e2e/ultraloop-l14.spec.ts`, +7, 34 no total): dentro da Visão
+  geral, nos dois temas, abrir pelo teclado a "substituir hoje" e a ficha do
+  "Como fazer" do bloco → `aria-modal`, foco no título → **um** Esc fecha só
+  a folha: a Visão geral continua visível, o foco volta ao gatilho e nenhum
+  `inert` sobra; sem folha, o Esc seguinte fecha a Visão geral e o botão
+  "Visão geral do treino" do player volta. Foto ampliada: um Esc que outra
+  camada gasta antes (listener na captura do `window` com `preventDefault`)
+  não a fecha; o seguinte fecha. Aba do tutorial: sem
+  `[data-icone-externo]` na lista de abas (página e folha); com rede (a
+  miniatura servida pela rota do teste), tocar a miniatura põe o `<iframe>`
+  do `youtube-nocookie` dentro do `<main>`, na mesma rota; sem rede, o link
+  "Abrir no YouTube" tem `target="_blank"` e o ícone. Anel do primário, nos
+  dois temas: "Fazer agora" pelo Tab com contorno `solid` ≥ 2 px e
+  `outline-offset` ≥ 2 px; captura com e sem foco — o anel 3 px por fora
+  da borda muda **5,25:1** (claro) e **8,75:1** (escuro) contra o fundo, e o
+  vão 1 px por fora não muda (1,00:1). O teste "Tab chega a … Fazer agora
+  com anel inteiro" passou a esperar o contorno (o anel antigo era sombra).
+- **Mutação** (`r15/l14/mut/`): com o `defaultPrevented` tirado da Visão
+  geral, o e2e novo falha nos dois temas ("Visão geral do treino" não
+  encontrada depois do Esc) — 2 falhas; a correção voltou.
+- `git diff 0d54e5f -- lib/progressao.ts lib/montagem.ts`: vazio.
+
+#### Portões (rodada 15)
+
+Cadeia inteira em `32ab031` (todo o código e os testes da rodada 15;
+`r15/l14/logs/32ab031.log`, das 12:42:12 às 13:07:33 UTC, **status ok**):
+`lint` limpo · `tsc --noEmit` limpo · `npm test` **67 arquivos, 1.540
+testes, todos verdes** (+2 em `lib/ficha.test.ts`; eram 1.538 em `e3c1f22`)
+· `build` ("Compiled successfully in 18.9s") · `build:e2e` ("Compiled
+successfully in 18.2s") · `e2e` **511 passaram, 5 pulados, 0 falharam**
+(19,1 min; eram 504 + 5: +7 do spec do L14) · `varredura` **5 de 5**
+(4,3 min). O log traz as medidas do anel do primário ("[anel-primario]
+light: anel 5.25:1 · vão 1.00:1", "dark: anel 8.75:1 · vão 1.00:1"). O
+commit deste registro só acrescenta estes números e a tabela abaixo ao
+PROGRESSO; a cadeia roda de novo, inteira, nele (`r15/l14/logs/<hash>.log`).
+
+#### Capturas (rodada 15)
+
+`capturas.sh` em `32ab031`, depois da cadeia verde, contra a base real de
+`main` (`base-ef3ad97`), com as seis telas declaradas
+(`r15/l14/capturas-32ab031.md`): 60 PNGs, **"Nenhuma tela mudou fora do
+esperado"** — as 48 fora da lista com Δ 0,00 %. Diffs abertos: 09 claro
+(contra a base) e as capturas 09 claro e 10 escuro.
+
+| tela | Δ claro | Δ escuro | o que mudou |
+| --- | ---: | ---: | --- |
+| 10-ficha-folha (página na aba Músculos) | 41,03 % | 42,15 % | o mesmo da rodada 14 ("Voltar", Músculos só com o mapa, "Aparece em:"), e a terceira aba agora é "Tutorial no YouTube" sem a setinha |
+| 09-ficha-exercicio | 27,01 % | 31,66 % | o mesmo da rodada 14 ("Voltar", abas pelo rótulo), e a aba "Tutorial no YouTube" sem a setinha |
+| 24-creditos | 2,70 % | 2,64 % | só o parágrafo do mapa muscular (PNG byte a byte igual ao de `d85d0fa`) |
+| 04-treino-lista | 0,00 % | 0,00 % | nada: a folha "Substituir hoje" não está aberta na captura |
+| 08-catalogo | 0,00 % | 0,00 % | nada: a folha de filtros está fechada na captura |
+| 17-corpo-fotos | 0,00 % | 0,00 % | nada: o cartão "Apagar esta foto?" não está aberto na captura |
+
+Contra as capturas de `d85d0fa` (rodada 14), 09 e 10 mudam só na faixa das
+abas (px 284–374 da captura 2×, nos dois temas): sem o ícone, as três abas
+`flex-auto` redistribuem a largura e os rótulos andam alguns pixels. O anel
+do primário não aparece nas capturas (nenhum foco por teclado nelas); ele é
+medido pelo e2e do item 11. A Visão geral com a folha aberta e o Esc são
+medidos pelo e2e (nenhuma captura abre a Visão geral).
+
+#### Como testar no celular (rodada 15)
+
+1. Treino → Começar → no player, o ícone de lista (Visão geral) → num bloco,
+   "substituir hoje" → feche a folha com o voltar/Esc (teclado Bluetooth ou
+   leitor de tela): a folha fecha e a Visão geral continua aberta, com o
+   foco no "substituir hoje". O mesmo com o "?" (Como fazer) do bloco. Sem
+   folha aberta, o Esc (ou o voltar do celular) fecha a Visão geral.
+2. Ficha do supino → aba "Tutorial no YouTube" (sem setinha): toque na
+   miniatura e o vídeo toca ali mesmo. No modo avião, a aba mostra "Precisa
+   de internet" e "Abrir no YouTube" com a setinha — esse abre o YouTube.
+3. Com teclado (ou leitor de tela navegando por foco), chegue ao "Fazer
+   agora": o anel laranja fica separado do botão por um vão da cor do fundo,
+   nos dois temas.
+4. Rosca com barra W (ou Rosca Scott improvisada, Tríceps testa): a nota da carga
+   inicial diz "corrija em Mais → Equipamento". Salto básico → "Como
+   progredir": "Segue a progressão do plano da corda (…)", sem nome de
+   arquivo.
