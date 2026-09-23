@@ -10910,3 +10910,216 @@ vazamento horizontal (scrollWidth 360 = clientWidth). Capturas: 09, 10 e 24
 (claro e escuro) de `r17/l14/capturas-a68ea7f` viraram a base visual
 (`base-ef3ad97`, `indice.json` com head `0f730c9`; wt-base não avançado).
 Nenhuma migração de banco. **Rollback: não.**
+
+### Rodada 17 — Lote 34 — Lembretes I: inscrição no aparelho e notificação de teste
+
+Branch `polimento/l34-lembretes-inscricao`, a partir de `main` `27eda74`.
+SPEC §23 (escrita antes do código, commit `2153ea0`). Feature nova aprovada
+pelo dono em 23/09: o app passa a avisar no celular por Web Push. Este lote
+é a **parte I** — o aparelho se inscreve, o service worker mostra o aviso e
+abre o app no lugar certo, e um botão manda um lembrete de teste. Horários e
+disparo automático são o L35 (§23, "Lembretes II"): nada disso existe aqui.
+`lib/progressao.ts` e `lib/montagem.ts`: `git diff 27eda74` vazio.
+
+#### O que mudou
+
+1. **Banco: `public.lembretes_inscricoes`** (LEM-banco-inscricoes;
+   `supabase/schema.sql`, `supabase/migracoes/2026-09-23-lembretes-inscricoes.sql`
+   (novo), `lib/migracao-lembretes.test.ts` (novo), `lib/sql.ts` (novo — o
+   leitor de comandos SQL que estava dentro de `lib/migracao-contas.test.ts`,
+   agora usado pelos dois testes), `lib/auditoria-seguranca.test.ts`,
+   `scripts/mock-supabase.ts`, `lib/schemas.ts`). **Era:** nenhuma tabela de
+   inscrição. **É:** uma linha por aparelho (`endpoint` único, `p256dh`,
+   `auth`, `aparelho`, `criado_em`; `ultimo_envio_em` e `falhas` ficam para o
+   L35), índice por `user_id`, RLS com três policies por `auth.uid()` (ler,
+   inserir, apagar as suas; sem update) e `revoke all … from anon`. O mesmo SQL
+   nos dois arquivos, idempotente e só de acréscimo. A tabela é **por
+   aparelho**: fica fora do laço de RLS "for all" e fora do backup (a
+   inscrição só vale no navegador que a criou) — a auditoria de segurança
+   ganhou essa categoria com teste próprio. **Não aplicada no projeto real**
+   (o orquestrador aplica antes do deploy).
+2. **Service worker** (LEM-sw-push; `app/sw.ts`, `lib/lembretes.ts` (novo)).
+   **Era:** sem `push` nem `notificationclick`. **É:** `push` monta a
+   notificação por `opcoesDaNotificacao()` (título, corpo, ícone e badge
+   `/icons/icone-192.png`, `tag` que substitui a anterior, `lang: "pt-BR"`,
+   `data.url` só se for caminho do app); `notificationclick` fecha, leva uma
+   aba do app já aberta à `url` (tenta o foco) ou abre uma nova.
+3. **Mais → Lembretes** (LEM-pagina-lembretes; `app/(app)/mais/page.tsx`,
+   `app/(app)/mais/lembretes/page.tsx` (novo),
+   `components/mais/tela-lembretes.tsx` (novo)). **Era:** nada. **É:** a linha
+   "Lembretes — Receber avisos no celular; ative em cada aparelho." em Mais
+   (entre Preferências e Créditos) e a tela com o estado deste aparelho
+   (`estadoDoAparelho()`: sem configuração · não suportado · bloqueado ·
+   ativado · desativado), "Ativar lembretes neste aparelho"
+   (`requestPermission` + `pushManager.subscribe` com a chave pública + a
+   linha na tabela; se o `endpoint` já era de outra conta, cancela e pede uma
+   inscrição nova), "Desativar neste aparelho", a lista "Aparelhos desta
+   conta" com "Remover" e "Enviar um lembrete de teste". O servidor entrega
+   ao navegador só a chave pública, lida do ambiente em tempo de execução.
+4. **Lembrete de teste** (LEM-rota-teste; `app/api/lembretes/teste/route.ts`
+   (novo), `lib/web-push.ts` (novo), `lib/supabase/middleware.ts`).
+   **Era:** nenhuma rota de API. **É:** `POST /api/lembretes/teste` (runtime
+   `nodejs`) lê as inscrições **com a sessão de quem pediu** (a RLS limita) e
+   manda a cada uma o payload de teste cifrado `aes128gcm` (RFC 8291) com
+   `Authorization: vapid t=<JWT ES256>, k=<pública>` (RFC 8292), `TTL`,
+   `Urgency` e `Topic`; 404/410 apaga a inscrição; devolve o texto da tela
+   ("Enviado para 1 aparelho."). Sem as variáveis VAPID, 503 "Lembretes ainda
+   não configurados neste servidor."; tabela ausente, 503 com o aviso do
+   banco. Só chama `endpoint` `https` de serviço de push conhecido (FCM,
+   Mozilla, Apple, Windows) — a inscrição é dado do usuário, e sem isso a rota
+   faria POST para qualquer endereço; o servidor falso dos testes entra só por
+   `LEMBRETES_PUSH_DE_TESTE`, e só em 127.0.0.1/localhost. O middleware passou
+   a responder **401 em JSON** às rotas `/api/*` sem sessão (antes seria o 307
+   para `/login`).
+5. **Instruções** (LEM-instrucoes-navegador; `lib/lembretes.ts`,
+   `tela-lembretes.tsx`). `instrucoesDoAparelho()`: Brave (`navigator.brave`)
+   com a inscrição falhando ou bloqueada → ligar "Usar os serviços do Google
+   para mensagens push" em Configurações → Privacidade e segurança; permissão
+   negada → cadeado → Permissões → Notificações → Permitir (ou Configurações
+   do Android → Apps → Treino do Terraço → Notificações); iPhone fora da tela
+   inicial → Compartilhar → Adicionar à Tela de Início (iOS 16.4+); sem
+   suporte → Chrome ou Brave no Android.
+6. **SPEC §23 e guia** (LEM-spec-23; `SPEC.md`, `lib/guia.ts`). §23 com o
+   desenho inteiro (I neste lote, II marcada para o L35), segurança e aceite;
+   §11 anotada ("notificações push" revogado pela §23) e §20.5 cita
+   Lembretes. O guia (Mais → Como usar o app → Mais) ganhou "Lembretes", com
+   título, descrição e rota de `LINHA_LEMBRETES` — a mesma fonte da linha de
+   Mais.
+
+**A dependência `web-push` não entrou** (o contrato a permitia): o
+`node_modules` desta máquina é um só para todas as faixas (symlink para
+`/home/user/WORKOUT/node_modules`) e o `npm install web-push @types/web-push
+--dry-run` listou 133 pacotes a acrescentar e dezenas de "change" em pacotes
+existentes do diretório compartilhado. As duas RFCs cabem em
+`lib/web-push.ts` (~250 linhas, só `node:crypto`), e o teste reproduz **byte
+a byte o exemplo do Apêndice A da RFC 8291** (cabeçalho de 86 bytes e cifra).
+`package.json` e `package-lock.json` não mudaram.
+
+**Variáveis novas** (documentadas em `.env.local.example`, sem valor — é o
+arquivo de exemplo que o projeto já tem; nenhum `.env.example` paralelo):
+`NEXT_PUBLIC_VAPID_PUBLIC_KEY` (65 bytes, base64url), `VAPID_PRIVATE_KEY`
+(32 bytes, base64url, **segredo**: só no servidor, Sensitive na Vercel),
+`VAPID_SUBJECT` (`mailto:` ou `https:`). O servidor confere se a pública é a
+do par (`publicaDaPrivada`); se não for, trata como não configurado. Os
+testes geram o par na hora (`e2e/playwright.config.ts`, Vitest).
+
+#### Provas
+
+- **Vitest** (novos): `lib/web-push.test.ts` (7: vetor da RFC 8291 byte a
+  byte, decifragem, JWT ES256 conferido com a pública, cabeçalhos),
+  `lib/lembretes.test.ts` (29: notificação, estados, instruções, aparelho,
+  destino 404/410, textos, endpoints aceitos, configuração VAPID, fonte única
+  Mais/guia), `lib/migracao-lembretes.test.ts` (17: subconjunto do schema,
+  idempotência, expand-only, RLS), `lib/supabase/middleware.test.ts` (+2:
+  `/api` sem sessão = 401 JSON; com sessão passa), `lib/auditoria-seguranca.test.ts`
+  (+1: tabela por aparelho com RLS própria, fora do backup).
+- **Mutação** (cópia no scratchpad, `mut/mutar.py`): 21 mutações nas linhas
+  que decidem — cifragem sem o `\0` do info, sem o delimitador `0x02`,
+  assinatura DER, `//` aceito como url interna, `lang` "en", sem o estado
+  bloqueado, sem a instrução do Brave, iPhone instalado recebendo instrução,
+  `http` aceito, origem de teste fora do loopback, 404 sem vencer, plural
+  sempre, par VAPID não conferido, migração sem `drop policy if exists`,
+  índice sem `if not exists`, select com `using (true)`, `drop column`,
+  policy de delete trocada por update no schema, `/api` indo para o login,
+  guia com outro nome, Mais redigitando a linha — **as 21 derrubam algum
+  teste**. A da origem de teste passava na primeira rodada (o teste usava a
+  porta 80, que o `URL` normaliza); o teste foi corrigido para a porta 8080 e
+  a mutação passou a cair.
+- **e2e** `e2e/ultraloop-l34.spec.ts` (10 testes, Chromium no modo headless
+  novo — `channel: "chromium"`: no headless shell padrão a permissão de
+  notificação fica `denied` mesmo concedida e `showNotification` recusa,
+  medido com um worker mínimo): ativar/desativar nos dois temas (a linha
+  gravada com `user_id`, `endpoint`, chaves e "Chrome · Android"; o
+  `subscribe` recebeu a chave pública do servidor com `userVisibleOnly`;
+  recarregar mantém; desativar apaga a linha e a inscrição; alvos ≥ 44 px;
+  sem rolagem lateral); o teste de envio (o mock recebe o POST com
+  `Authorization: vapid` cujo JWT confere com a pública, `aud` = origem do
+  endpoint, `aes128gcm`, corpo que **decifra** no payload; a tela diz
+  "Enviado para 1 aparelho. 1 aparelho tinha a inscrição vencida e saiu da
+  lista."; a de 410 some da tabela); 401 sem sessão; RLS no mock (B não vê,
+  não apaga e não reaproveita o endpoint de A); aparelho que era de outra
+  conta ganha inscrição nova; o worker real transforma um `PushEvent` em
+  notificação (título, corpo, tag, ícone, `pt-BR`, `data.url`) e o
+  `notificationclick` leva a aba a `/relatorio` e fecha a notificação;
+  permissão negada (simulada: o Playwright só concede) → bloqueado com o
+  caminho; Brave simulado (`navigator.brave` + `subscribe` com AbortError) →
+  instrução do Brave; sem `PushManager` → não suportado.
+- **Anel de foco da linha nova** (`app/(app)/mais/page.tsx`): a lista de Mais
+  tem `overflow-hidden` (os cantos) e o anel de fora (+2 px) saía cortado dos
+  lados em toda linha — medido na linha Lembretes pelo e2e novo
+  (`deslocamento + largura = 4 > 0`, 2 de 2 falhando contra o build sem a
+  correção, `r18/l34/local/mutacao-foco-sem-correcao.log`). As linhas passam
+  ao anel **interno** (`focus-visible:-outline-offset-4`); o e2e confere, nos
+  dois temas, contorno sólido ≥ 2 px inteiro dentro da caixa e o pixel 3 px
+  para dentro da borda mudando com contraste ≥ 3:1 ao focar.
+- **Ao vivo, fora das capturas** (`r18/l34/ao-vivo/`, mock + `next start`
+  sem as variáveis VAPID, 360×740, claro e escuro): `/mais/lembretes` diz
+  "Lembretes ainda não configurados neste servidor.", nenhum botão, "Mais"
+  (voltar) 74×44, sem rolagem lateral (`scrollWidth − clientWidth = 0`), e
+  `POST /api/lembretes/teste` com sessão responde **503** com o mesmo texto.
+  O estado "tabela ausente" (migração não aplicada) só tem prova de unidade
+  (`tabelaAusente()` com `PGRST205`/`42P01`): o mock não sabe esconder uma
+  tabela.
+
+#### Portões
+
+Cadeia inteira em `9df421b` (todo o código do lote;
+`r18/l34/logs/9df421b.log`, das 18:10:55 às 18:33:11 UTC, **falhou:e2e**):
+`lint` limpo · `tsc --noEmit` limpo · `npm test` **71 arquivos, 1.609
+testes, todos verdes** (eram 68 / 1.553 em `27eda74`: +3 arquivos, +56
+testes) · `build` ("Compiled successfully in 19.8s") · `build:e2e`
+("Compiled successfully in 17.7s") · `e2e` **530 passaram, 1 falhou, 5
+pulados** (20,2 min). A falha: `e2e/guia.spec.ts` "a tabela de destinos
+cobre todos os hrefs de lib/guia.ts" — o guia ganhou `/mais/lembretes` e a
+tabela de títulos do próprio teste não tinha a rota. Corrigido em `d1cf096`
+(a rota entra na tabela com o título "Lembretes"; o teste "Ir para
+/mais/lembretes" abre a tela e acha o `<h1>`). Com o anel interno
+(`bec0df8`), build:e2e local e os e2e afetados (`r18/l34/local/com-correcao.log`:
+o spec do lote, o guia e Mais) — **27 de 27**. A cadeia inteira roda de novo
+no commit deste registro (`r18/l34/logs/<hash do HEAD>.log`), que só
+acrescenta este texto ao PROGRESSO.
+
+#### Capturas
+
+`capturas.sh` com o `.next` do build:e2e de `bec0df8` (o mesmo código de app
+do HEAD deste registro), contra a base real de `main` (`base-ef3ad97`), com a
+tela declarada `18-mais` (`r18/l34/capturas-bec0df8.md`): 60 PNGs,
+**"Nenhuma tela mudou fora do esperado"** — as 58 fora da lista com Δ
+0,00 %. Diffs abertos: 18 claro; PNG do 18 escuro olhado inteiro.
+
+| tela | Δ claro | Δ escuro | o que mudou |
+| --- | ---: | ---: | --- |
+| 18-mais | 13,29 % | 13,27 % | a linha nova "Lembretes — Receber avisos no celular; ative em cada aparelho." (sino) entre Preferências e Créditos; Créditos, Backup e o cartão de sincronização descem uma linha (~81 px). Nada acima de Preferências muda. |
+
+`/mais/lembretes` não está nas 60 capturas: medida pelos e2e do lote
+(ativado, desativado, bloqueado, Brave, sem suporte; claro e escuro) e ao
+vivo sem configuração (acima).
+
+#### Como testar no celular (360 px)
+
+Antes: o orquestrador aplica `supabase/migracoes/2026-09-23-lembretes-inscricoes.sql`
+no projeto e cria na Vercel (production) `NEXT_PUBLIC_VAPID_PUBLIC_KEY`,
+`VAPID_PRIVATE_KEY` (Sensitive) e `VAPID_SUBJECT`. Um par se gera, por
+exemplo, com `node -e "const c=require('crypto').createECDH('prime256v1');c.generateKeys();console.log(c.getPublicKey('base64url'),c.getPrivateKey('base64url'))"`.
+
+1. Mais → **Lembretes** (entre Preferências e Créditos). Sem as variáveis, a
+   tela diz "Lembretes ainda não configurados neste servidor." e mais nada.
+2. **Brave no Android** (o aparelho do dono): toque em "Ativar lembretes
+   neste aparelho" → Permitir. Se o Brave estiver com o push desligado, a
+   tela mostra "No Brave, os avisos só chegam com os serviços do Google
+   ligados": Configurações do Brave → Privacidade e segurança → ligar "Usar
+   os serviços do Google para mensagens push" → fechar e abrir o Brave →
+   Ativar de novo. Deu certo: "Ativado neste aparelho." e o aparelho aparece
+   em "Aparelhos desta conta" como "Brave · Android (este)".
+3. "Enviar um lembrete de teste" → "Enviado para 1 aparelho." e, no celular,
+   a notificação "Lembrete de teste — Se você está vendo isto, os lembretes
+   chegam neste aparelho." Toque nela: o app abre em Mais → Lembretes.
+   Mandar de novo não empilha (a mesma tag troca a anterior).
+4. Negou a permissão sem querer: a tela diz "Bloqueado pelo navegador." com
+   o caminho (cadeado → Permissões → Notificações → Permitir; ou
+   Configurações do Android → Apps → Treino do Terraço → Notificações).
+5. iPhone: no Safari a tela explica que é preciso instalar (Compartilhar →
+   Adicionar à Tela de Início) e ativar pelo ícone (iOS 16.4+).
+6. "Desativar neste aparelho" some com o aparelho da lista; "Remover" tira
+   outro aparelho da conta. Os horários dos lembretes são o próximo lote
+   (L35).
