@@ -6431,6 +6431,29 @@ Fotos, abra uma foto e toque em "Apagar": o cartão abre no "Cancelar", e
 tocar fora fecha só o cartão. Nada de banco mudou. Produção serve `0f730c9`,
 igual à `main`, com fumaça verde (18 de 18) e **sem rollback**.
 
+**Rodada 18 no ar (23/09, 23:34 UTC — 20:34 em Brasília).** É o lote 34, a
+primeira parte dos lembretes no celular: cada aparelho pode se inscrever
+para receber avisos do app, e dá para mandar um lembrete de teste.
+
+- **Mais → Lembretes.** Uma linha nova em Mais abre a tela dos lembretes. Nela
+  você ativa ou desativa os lembretes neste aparelho, vê os aparelhos da sua
+  conta (com "Remover") e toca em "Enviar um lembrete de teste".
+- **Instruções quando o navegador trava.** Se o navegador recusar (Brave com
+  o push desligado, permissão negada, iPhone fora da tela inicial), a tela
+  diz o que fazer naquele aparelho. Ao voltar das configurações, a tela relê
+  a permissão sozinha.
+- **Tocar na notificação abre o app** na tela certa, e só dentro do app.
+- **Banco:** uma tabela nova só com as inscrições dos aparelhos. Cada pessoa
+  só vê e apaga as suas. Foi aplicada antes do deploy.
+
+Como ver no celular: abra Mais → Lembretes. Toque em "Ativar lembretes neste
+aparelho" e depois em Permitir. Em seguida toque em "Enviar um lembrete de
+teste": a notificação chega e, ao tocar nela, o app abre. Se a tela disser
+"Lembretes ainda não configurados neste servidor.", faltam as três variáveis
+VAPID na Vercel (produção). Elas estão descritas na subseção do lote 34. Os
+lembretes no horário escolhido chegam no lote 35. Produção serve `905815d`,
+igual à `main`, com fumaça verde (21 de 21, três vezes) e **sem rollback**.
+
 **Encerramento (10:25 UTC de 21/09, 07:25 em Brasília).** A pedido do dono, o loop parou com tudo o que estava 100 % aprovado já publicado: produção serve `8830fe5`, igual à `main`, com oito lotes no ar (L1–L6, L8 e L9) em seis deploys, todos com fumaça verde na primeira execução e nenhum rollback. Nenhuma migração de banco foi aplicada nesta madrugada. Desde o ponto de partida (`c82b744`) foram 71 commits e 181 arquivos alterados (+14.006/−1.169 linhas); os portões do head publicado são 1.378 testes unitários, 403 de ponta a ponta e a varredura das 30 telas nos dois temas. A auditoria de fechamento (regressão total contra a base inicial) foi interrompida antes de terminar; cada lote publicado já havia sido comparado contra a base do deploy anterior na própria auditoria. O que não coube está na seção **Fila (o que não coube)** abaixo, em ordem de prioridade, pronto para as próximas rodadas. Atualização (rodada 7, 12:11 UTC): o lote 7 entrou em produção em `d696b33`, nove lotes no ar, sete deploys, nenhum rollback; o loop está encerrado e nada ficou agendado.
 
 ### Como funcionou
@@ -7906,15 +7929,15 @@ Nenhuma migração de banco. **Rollback: não.**
 
 **O que a reconciliação corrigiu na lista antiga (texto de 21/09, abaixo substituído):** o L7 aparecia como pendente e está publicado (PR #13); C tinha 63 numa fonte e 64 noutra (o 64º é o R9-C1, que também estava em D — agora uma entrada só); os seis itens de D não estavam no JSON; `lotes_propostos_ordem` começava por lotes já publicados; os dez itens do antigo "L12 superfícies" já estavam publicados pelos lotes 3 e 4 (com prova); 46 achados da remontagem das superfícies e 27 achados da análise nunca tinham entrado na fila — entraram; o nome L12 passou a ser o lote de Explorar e catálogo.
 
-**Contagens em 2026-09-23T17:49Z:**
+**Contagens em 2026-09-23T23:41Z:**
 
 | seção | pendente | publicado | descartado |
 | --- | ---: | ---: | ---: |
-| B | 80 | 33 | 17 |
-| C | 60 | 10 | 0 |
+| B | 74 | 39 | 17 |
+| C | 71 | 10 | 0 |
 | D | 5 | 0 | 0 |
 | legado | 0 | 77 | 1 |
-| **total** | **145** | **120** | **18** |
+| **total** | **150** | **126** | **18** |
 
 Dos descartados, **7 dependem de decisão do dono** e voltam à fila se a resposta for sim (atualização do app com aviso, uso do laranja, Relatório somado no banco, destaque do Explorar, filtros Core/Cardio, faixa da semana com sete destinos, resumo curto dos planos) — perguntas em `docs/ultraloop/perguntas-ao-dono.md`.
 
@@ -7924,8 +7947,8 @@ Dos descartados, **7 dependem de decisão do dono** e voltam à fila se a respos
 
 | lote | título | itens | ids |
 | --- | --- | ---: | --- |
-| L34 | Lembretes I: inscrição no aparelho e notificação de teste | 6 | LEM-banco-inscricoes, LEM-sw-push, LEM-pagina-lembretes, LEM-rota-teste, LEM-instrucoes-navegador, LEM-spec-23 |
-| L35 | Lembretes II: horário, disparo automático e calendário | 6 | LEM-horarios, LEM-regra-mensagem, LEM-disparo, LEM-ics, LEM-guia-spec-l34, LEM-painel-estado |
+| L35 | Lembretes II: horário, disparo automático e calendário | 10 | LEM-horarios, LEM-regra-mensagem, LEM-disparo, LEM-ics, LEM-guia-spec-l34, LEM-painel-estado, C-l34-badge-monocromatico, C-l34-passo3-instrucoes-reverso, C-l34-sair-e-inscricao, C-l34-ativar-releitura-falha |
+| L36 | Sobras do L34: lembretes (provas, textos e bordas) | 7 | C-l34-notificationclick-sem-aba, C-l34-rls-postgres-real, C-l34-e2e-volta-dois-temas, C-l34-spec-volta-permissao-e-sem-internet, C-l34-aviso-lista-internet-volta, C-l34-comentario-rota-teste, C-l34-progresso-frase-mutacao |
 | L32 | Sobras das auditorias: ficha e coleções do Explorar | 10 | C-l13-key-musculos-sem-teste, C-media-grande-figura-quebrou-herdada, C-alt-execucao-genero, C-l13-aceite-lcp-vs-ordem, C-busca-linha-reservada-vazia, C-busca-corda-capa-icone, C-plano-progresso-repete-desafio, C-plano-lista-canto-reto, C-l14-inventario-ficha-folha-como-abre, C-l14-tag-equipamento-sem-sinal-visual |
 | L33 | Sobras do L14: ficha, catálogo e camadas modais | 6 | C-l14-super-band-dois-filtros, C-l14-criterio-repeticao-numeros, C-l14-nada-repetido-espelho-dom, C-l14-historico-carregando-perfil, C-l14-veu-ramo-morto, a11y-voltar-fecha-camada |
 | L15 | Corpo: peso, gráficos e campo de data | 6 | a11y-01, tela-relatorio-corpo-calendario-12, tela-relatorio-corpo-calendario-14, tela-relatorio-corpo-calendario-19, tela-relatorio-corpo-calendario-13, tela-relatorio-corpo-calendario-11 |
@@ -11569,3 +11592,54 @@ Menores registrados (ficam na fila, nenhum quebra o aceite):
 - **[tela]** notificationclick sem nenhuma aba: medida parcial com
   `about:blank` — o worker real chamou `clients.openWindow` com a URL
   interna.
+
+**Deploy (rodada 18, 23/09 23:34 UTC).** Publicado. O deployment passou de
+`dpl_HWcojHVZg4mN4AKYqv92Ha3q3kK9` para `dpl_5Mf1KbpBMicAu5TRhz4y6s9UopPJ`, e
+`main` passou de `27eda74` para `905815d6a8a25ef546d256ad228f8e1982eeb15f`
+(PR #25). O merge do lote na integração é `b275aa0`, sem conflito (a
+integração estava igual a `origin/main` `27eda74`), e o código ficou idêntico
+a `96056ac`. O veredito da auditoria está em `52168c3`. `/versao` devolveu esse sha
+às 23:34:10, ~3 min depois do merge (build de 23:32:47Z). O CSS de `/login`
+mudou de `e0156b4c4cac1bd9` para `0d00d758a656b055`. Portão final na
+integração: `lint` e `tsc --noEmit` limpos, 73 arquivos e 1.632 testes
+verdes. O e2e não foi repetido (557 e2e, 5 pulados, varredura 5/5 em
+`96056ac`). Migração `2026_09_23_lembretes_inscricoes` aplicada pelo
+orquestrador às 23:25 UTC, antes do merge: RLS ligada, 3 policies, anon sem
+grant e advisors sem achado novo.
+
+Fumaça em produção, item a item: `/login` 200 · com "Treino do Terraço" ·
+com "Entrar" · sem "Configure NEXT_PUBLIC_SUPABASE_URL" · sem "é secreta" ·
+`/` → 307 · para `/login` · `/versao` == sha do merge · `/sw.js` 200 · com
+`/~offline` · com `figuras/` · com o mesmo CSS do HTML de `/login` ·
+`/manifest.webmanifest` 200 · com "Treino do Terraço" · `/~offline` 200 ·
+os 14 scripts `/_next/static` de `/login` 200 · `/sw.js` com
+"notificationclick" · com "showNotification" · o chunk
+`app/(app)/mais/lembretes/page-a4782e08023821d6.js` listado no `/sw.js` · com
+"Ativar lembretes" · com "Enviar um lembrete de teste". Três execuções
+(23:35, 23:36 e 23:37 UTC, ≥ 40 s entre elas), **21 de 21** em cada uma.
+Sonda a 360×740 (Chromium): `/login` e `/~offline` sem erro de console e sem
+vazamento horizontal (scrollWidth 360 = clientWidth). Capturas: 18-mais
+(claro e escuro) de `r19/l34/capturas-e13a8ec` viraram a base visual
+(`base-ef3ad97`, `indice.json` com head `905815d`; wt-base não avançado).
+Não conferido daqui: se as variáveis VAPID existem na Vercel (produção). A
+tela exige login, e o conector da Vercel recebeu 403 nas variáveis. Sem elas,
+a tela diz "Lembretes ainda não configurados neste servidor." e a rota
+devolve 503. **Rollback: não.**
+
+**Verificação logada em produção (23/09, 23:44–23:58 UTC).** Conta de teste
+`teste-l34-20260924@example.com` criada pela tela "Criar conta", navegador
+real a 360×740 nos dois temas, `/versao` = `905815d`. Mais mostra "Lembretes"
+(sino) entre Preferências e Créditos; o toque abre `/mais/lembretes` com h1
+"Lembretes" e "‹ Mais" (73,8×44 px). As variáveis VAPID ainda não existem
+na Vercel, então a tela mostra só "Lembretes ainda não configurados neste
+servidor.", sem botão e sem consultar o banco. SELECT real em
+`lembretes_inscricoes` com o token da sessão: 200 com `[]` (a tabela existe e
+a RLS responde); só com a chave anon: 401 `42501 permission denied` (o anon
+não tem grant). `POST /api/lembretes/teste` sem sessão: 401 JSON "Entre de
+novo para continuar.", sem 500. `/sw.js` com `notificationclick` e
+`showNotification`. Passe pelas abas Treino, Calendário, Explorar, Relatório,
+Corpo e Mais: 0 rolagem lateral, 0 alvo < 44 px, 0 erro de console, 0
+resposta ≥ 400, nos dois temas. Uma primeira tentativa do tema claro foi
+descartada por falha do script de medida (o guia da primeira entrada abriu
+depois da espera) e refeita inteira. **Conta de teste apagada** às 00:00 UTC
+(ficam só as 3 contas reais).

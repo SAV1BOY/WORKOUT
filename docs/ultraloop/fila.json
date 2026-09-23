@@ -1,7 +1,7 @@
 {
  "versao": 3,
- "base": "0f730c9",
- "gerado_em": "2026-09-23T17:49Z",
+ "base": "905815d",
+ "gerado_em": "2026-09-23T23:41Z",
  "estados": [
   "pendente",
   "candidato",
@@ -9,21 +9,21 @@
   "descartado"
  ],
  "contagens": {
-  "itens": 145,
-  "pendente": 145,
+  "itens": 150,
+  "pendente": 150,
   "candidato": 0,
-  "resolvidos": 120,
+  "resolvidos": 126,
   "descartados": 18,
-  "canonicos": 283,
+  "canonicos": 294,
   "por_secao": {
    "B": {
-    "pendente": 80,
+    "pendente": 74,
     "candidato": 0,
-    "publicado": 33,
+    "publicado": 39,
     "descartado": 17
    },
    "C": {
-    "pendente": 60,
+    "pendente": 71,
     "candidato": 0,
     "publicado": 10,
     "descartado": 0
@@ -134,7 +134,7 @@
     ]
    }
   },
-  "gerado_em": "2026-09-23T17:49Z"
+  "gerado_em": "2026-09-23T23:41Z"
  },
  "itens": [
   {
@@ -4747,120 +4747,6 @@
    "lote_planejado": "L30"
   },
   {
-   "id": "LEM-banco-inscricoes",
-   "secao": "B",
-   "estado": "pendente",
-   "area": "lembretes",
-   "titulo": "Tabela de inscrições de push por aparelho",
-   "detalhe": "FAZER: public.lembretes_inscricoes (id uuid, user_id → auth.users on delete cascade, endpoint text unique, p256dh text, auth text, aparelho text (user agent resumido), criado_em, ultimo_envio_em, falhas int default 0) com RLS: o dono da linha lê, insere e apaga as suas; ninguém lê as de outro. Índice por user_id. ACEITE: teste de migração prova RLS (usuário A não vê nem apaga a inscrição de B), idempotência (rodar 2× não falha) e expand-only (nada de drop/rename); mock ciente.",
-   "arquivos": [],
-   "esforco": "M",
-   "origens": [
-    {
-     "fonte": "dono (conversa de 23/09)",
-     "id_original": "lembretes push no horário editado",
-     "origem": "feature nova aprovada pelo dono; SPEC §23"
-    }
-   ],
-   "duplicatas": [],
-   "lote_planejado": "L34"
-  },
-  {
-   "id": "LEM-sw-push",
-   "secao": "B",
-   "estado": "pendente",
-   "area": "lembretes",
-   "titulo": "Service worker mostra a notificação e abre o app no lugar certo",
-   "detalhe": "FAZER: em app/sw.ts, listeners \"push\" (payload JSON {titulo, corpo, url, tag}; showNotification com ícone do manifest, badge, tag para não empilhar, lang pt-BR) e \"notificationclick\" (foca uma aba do app já aberta e navega para url, ou abre uma nova). Regra pura testada para montar as opções da notificação a partir do payload (lib/). ACEITE: e2e com o worker real recebe um push simulado (worker.evaluate dispara o evento push ou self.registration.showNotification) e prova o título/corpo e o clique levando à url; unitário da regra.",
-   "arquivos": [],
-   "esforco": "P",
-   "origens": [
-    {
-     "fonte": "dono (conversa de 23/09)",
-     "id_original": "lembretes push no horário editado",
-     "origem": "feature nova aprovada pelo dono; SPEC §23"
-    }
-   ],
-   "duplicatas": [],
-   "lote_planejado": "L34"
-  },
-  {
-   "id": "LEM-pagina-lembretes",
-   "secao": "B",
-   "estado": "pendente",
-   "area": "lembretes",
-   "titulo": "Mais → Lembretes: ativar e desativar neste aparelho",
-   "detalhe": "FAZER: nova linha \"Lembretes\" em /mais levando a /mais/lembretes. A tela mostra o estado deste aparelho (ativado / desativado / bloqueado pelo navegador / não suportado / servidor sem configuração) e um botão \"Ativar lembretes neste aparelho\" (Notification.requestPermission + pushManager.subscribe com applicationServerKey = NEXT_PUBLIC_VAPID_PUBLIC_KEY; grava a inscrição na tabela) e \"Desativar neste aparelho\" (unsubscribe + apaga a linha). Lista os aparelhos da conta com \"Remover\". ACEITE: e2e no mock com permissão concedida pelo contexto do Playwright ativa, grava a linha, desativa e apaga; estados de bloqueado e não suportado cobertos; 360 px, dois temas, alvos ≥ 44 px, sem rolagem lateral.",
-   "arquivos": [],
-   "esforco": "M",
-   "origens": [
-    {
-     "fonte": "dono (conversa de 23/09)",
-     "id_original": "lembretes push no horário editado",
-     "origem": "feature nova aprovada pelo dono; SPEC §23"
-    }
-   ],
-   "duplicatas": [],
-   "lote_planejado": "L34"
-  },
-  {
-   "id": "LEM-rota-teste",
-   "secao": "B",
-   "estado": "pendente",
-   "area": "lembretes",
-   "titulo": "Botão \"Enviar um lembrete de teste\"",
-   "detalhe": "FAZER: rota POST /api/lembretes/teste (runtime nodejs) autenticada pela sessão do usuário (cliente de servidor do Supabase com o cookie, RLS lê só as inscrições dele), envia com web-push um payload de teste a cada aparelho dele, remove as inscrições com 404/410 e devolve o resultado por aparelho; a tela mostra \"Enviado para 1 aparelho\" ou o erro em pt-BR. Sem as variáveis VAPID, 503 com mensagem honesta. ACEITE: e2e com servidor de push falso no mock recebe a requisição assinada (confere cabeçalho Authorization vapid e o corpo cifrado não vazio) e a tela mostra o sucesso; inscrição expirada (410) é removida; usuário sem sessão recebe 401.",
-   "arquivos": [],
-   "esforco": "M",
-   "origens": [
-    {
-     "fonte": "dono (conversa de 23/09)",
-     "id_original": "lembretes push no horário editado",
-     "origem": "feature nova aprovada pelo dono; SPEC §23"
-    }
-   ],
-   "duplicatas": [],
-   "lote_planejado": "L34"
-  },
-  {
-   "id": "LEM-instrucoes-navegador",
-   "secao": "B",
-   "estado": "pendente",
-   "area": "lembretes",
-   "titulo": "Instruções quando o navegador bloqueia ou não suporta",
-   "detalhe": "FAZER: quando a inscrição falha ou a permissão está negada, a tela explica o que fazer, detectando o caso: Brave (navigator.brave) → ligar \"Usar os serviços do Google para mensagens push\" em Configurações → Privacidade e segurança e tentar de novo; permissão negada → como liberar nas configurações do site; iPhone fora da tela inicial → instalar o app (Compartilhar → Adicionar à Tela de Início). ACEITE: e2e cobre Brave simulado (navigator.brave) e permissão negada, com os textos em pt-BR.",
-   "arquivos": [],
-   "esforco": "P",
-   "origens": [
-    {
-     "fonte": "dono (conversa de 23/09)",
-     "id_original": "lembretes push no horário editado",
-     "origem": "feature nova aprovada pelo dono; SPEC §23"
-    }
-   ],
-   "duplicatas": [],
-   "lote_planejado": "L34"
-  },
-  {
-   "id": "LEM-spec-23",
-   "secao": "B",
-   "estado": "pendente",
-   "area": "lembretes",
-   "titulo": "SPEC §23 Lembretes no celular e guia",
-   "detalhe": "FAZER: SPEC §23 com o desenho completo (inscrição, teste, horários, disparo, calendário — as partes II entram no próximo lote, marcadas como tal), segurança (sem service role; segredos só no servidor) e aceite; lib/guia.ts (Como usar o app) ganha um passo curto sobre ativar lembretes, vindo dos dados/regra existentes. ACEITE: SPEC e guia descrevem exatamente o código publicado neste lote.",
-   "arquivos": [],
-   "esforco": "P",
-   "origens": [
-    {
-     "fonte": "dono (conversa de 23/09)",
-     "id_original": "lembretes push no horário editado",
-     "origem": "feature nova aprovada pelo dono; SPEC §23"
-    }
-   ],
-   "duplicatas": [],
-   "lote_planejado": "L34"
-  },
-  {
    "id": "LEM-horarios",
    "secao": "B",
    "estado": "pendente",
@@ -4973,6 +4859,252 @@
    ],
    "duplicatas": [],
    "lote_planejado": "L35"
+  },
+  {
+   "id": "C-l34-badge-monocromatico",
+   "secao": "C",
+   "estado": "pendente",
+   "area": "lembretes",
+   "titulo": "Badge monocromático da notificação",
+   "detalhe": "PROBLEMA: A notificação usa como badge o ícone colorido do manifest (icone-192); no Android o badge vira um quadrado branco. SPEC §23.6 marca o badge monocromático para o L35. FAZER: Desenhar um badge monocromático (silhueta com transparência, 96×96) em assets/ e usá-lo em opcoesDaNotificacao(). ACEITE: Vitest confere o caminho do badge; o arquivo existe no precache do sw.js; no Android o badge mostra a silhueta. ESTADO EM 905815d: pendente: o kit não tem o desenho; construtor registrou como não feito.",
+   "arquivos": [
+    "lib/lembretes.ts",
+    "app/sw.ts",
+    "assets/"
+   ],
+   "esforco": "P",
+   "origens": [
+    {
+     "fonte": "PROGRESSO (L34, rodada 18)",
+     "id_original": "badge monocromático (L35)",
+     "origem": "construtor L34 (itens não feitos) e SPEC §23.6"
+    }
+   ],
+   "duplicatas": [],
+   "lote_planejado": "L35",
+   "nota": "não feito no L34: fica para o L35, como diz a SPEC §23.6."
+  },
+  {
+   "id": "C-l34-passo3-instrucoes-reverso",
+   "secao": "C",
+   "estado": "pendente",
+   "area": "lembretes",
+   "titulo": "Passo 3 das instruções promete o Ativar que o caminho reverso não mostra",
+   "detalhe": "PROBLEMA: Caminho ativado → bloqueado → liberado volta direto a 'Ativado neste aparelho.' quando o navegador manteve a inscrição, mas o passo 3 das instruções de permissão promete 'mostra “Ativar lembretes neste aparelho”'. FAZER: Ajustar o texto do passo 3 para cobrir os dois caminhos (volta ao Ativar ou já ativado). ACEITE: A frase do passo 3 descreve os dois caminhos da SPEC §23.4; e2e do caminho reverso confere o texto. ESTADO EM 905815d: pendente: resultado melhor que o prometido; o auditor deixou para o L35, que mexe na tela.",
+   "arquivos": [
+    "lib/lembretes.ts",
+    "SPEC.md"
+   ],
+   "esforco": "P",
+   "origens": [
+    {
+     "fonte": "PROGRESSO (L34, rodada 18)",
+     "id_original": "passo 3 × caminho reverso",
+     "origem": "menor da auditoria 2 em 96056ac (lente tela) e construtor (itens não feitos)"
+    }
+   ],
+   "duplicatas": [],
+   "lote_planejado": "L35",
+   "nota": "não feito no L34: o texto do passo não mudou (fica para o L35)."
+  },
+  {
+   "id": "C-l34-sair-e-inscricao",
+   "secao": "C",
+   "estado": "pendente",
+   "area": "lembretes",
+   "titulo": "Sair da conta não mexe na inscrição deste aparelho",
+   "detalhe": "PROBLEMA: Hoje o Sair não apaga a linha de lembretes_inscricoes deste aparelho nem cancela a inscrição do navegador; com os lembretes automáticos (L35) outra pessoa no mesmo aparelho receberia os lembretes da conta anterior. FAZER: Decidir e implementar o que o Sair faz com a inscrição do aparelho (apagar a linha e unsubscribe) e escrever na SPEC §23. ACEITE: e2e: depois do Sair, a linha do aparelho sumiu no mock e pushManager.getSubscription() é null; SPEC igual ao código. ESTADO EM 905815d: pendente: a SPEC §23 anota que o lote 35 decide.",
+   "arquivos": [
+    "components/mais/tela-lembretes.tsx",
+    "lib/supabase/",
+    "SPEC.md"
+   ],
+   "esforco": "P",
+   "origens": [
+    {
+     "fonte": "PROGRESSO (L34, rodada 18)",
+     "id_original": "Sair e a inscrição",
+     "origem": "construtor L34 (SPEC §23, rodada 17)"
+    }
+   ],
+   "duplicatas": [],
+   "lote_planejado": "L35"
+  },
+  {
+   "id": "C-l34-ativar-releitura-falha",
+   "secao": "C",
+   "estado": "pendente",
+   "area": "lembretes",
+   "titulo": "Ativar gravado mas a releitura falha: a lista não atualiza",
+   "detalhe": "PROBLEMA: Em components/mais/tela-lembretes.tsx, no ativar(), se a gravação dá certo e a releitura (carregar(), linha 318) falha, a lista de aparelhos não é atualizada e não aparece aviso. FAZER: Na falha da releitura, pôr a linha gravada na lista localmente ou mostrar o aviso de leitura. ACEITE: e2e com o GET da tabela falhando depois do POST: a lista mostra o aparelho ou o aviso 'Não deu para ler os aparelhos agora.'. ESTADO EM 905815d: pendente (borda antiga).",
+   "arquivos": [
+    "components/mais/tela-lembretes.tsx",
+    "e2e/ultraloop-l34.spec.ts"
+   ],
+   "esforco": "P",
+   "origens": [
+    {
+     "fonte": "PROGRESSO (L34, rodada 18)",
+     "id_original": "ativar() com releitura falha",
+     "origem": "menor da auditoria 2 em 96056ac (r19/l34/auditoria-2-regra/veredito.json)"
+    }
+   ],
+   "duplicatas": [],
+   "lote_planejado": "L35"
+  },
+  {
+   "id": "C-l34-notificationclick-sem-aba",
+   "secao": "C",
+   "estado": "pendente",
+   "area": "lembretes",
+   "titulo": "notificationclick sem nenhuma aba aberta sem medida completa",
+   "detalhe": "PROBLEMA: O caminho clients.openWindow (nenhuma aba do app aberta) não é medido: o Chromium nega openWindow a um evento sintético sem gesto; a auditoria 2 mediu parcialmente com about:blank (o worker real chamou clients.openWindow com a URL interna). FAZER: Medir o caminho sem aba com um push real no Chromium (servidor de push falso + clique na notificação via CDP) ou registrar na SPEC §23.7 o limite da prova. ACEITE: Um teste (ou medida registrada) mostra a janela nova aberta na url interna com nenhuma aba do app antes. ESTADO EM 905815d: pendente: pendência antiga do lote.",
+   "arquivos": [
+    "app/sw.ts",
+    "e2e/ultraloop-l34.spec.ts",
+    "SPEC.md"
+   ],
+   "esforco": "M",
+   "origens": [
+    {
+     "fonte": "PROGRESSO (L34, rodada 18)",
+     "id_original": "notificationclick sem aba",
+     "origem": "construtor L34 (itens não feitos) e menores das auditorias 2 em 96056ac (regra e tela)"
+    }
+   ],
+   "duplicatas": [],
+   "lote_planejado": "L36"
+  },
+  {
+   "id": "C-l34-rls-postgres-real",
+   "secao": "C",
+   "estado": "pendente",
+   "area": "lembretes",
+   "titulo": "RLS de lembretes_inscricoes só com prova estática",
+   "detalhe": "PROBLEMA: A RLS de lembretes_inscricoes é provada por teste estático do SQL e no mock; o Postgres --single local não liga RLS. A migração foi aplicada no projeto real (3 policies conferidas), mas nenhum teste roda dois usuários contra o Postgres real. FAZER: Provar com dois usuários num Postgres com RLS (branch do Supabase ou container) que A não lê nem apaga a inscrição de B. ACEITE: Teste ou medida registrada: select/delete de A sobre a linha de B devolve 0 linhas; insert com user_id de B é recusado. ESTADO EM 905815d: pendente: migração aplicada em 23/09 23:25 UTC com RLS ligada e 3 policies; falta a prova com dois usuários.",
+   "arquivos": [
+    "lib/migracao-lembretes.test.ts",
+    "supabase/migracoes/2026-09-23-lembretes-inscricoes.sql"
+   ],
+   "esforco": "M",
+   "origens": [
+    {
+     "fonte": "PROGRESSO (L34, rodada 18)",
+     "id_original": "RLS no Postgres real",
+     "origem": "construtor L34 (itens não feitos) e menor da auditoria 2 em 96056ac (regra)"
+    }
+   ],
+   "duplicatas": [],
+   "lote_planejado": "L36"
+  },
+  {
+   "id": "C-l34-e2e-volta-dois-temas",
+   "secao": "C",
+   "estado": "pendente",
+   "area": "lembretes",
+   "titulo": "e2e da volta (focus, pageshow, sem internet) rodam só no tema claro",
+   "detalhe": "PROBLEMA: O aceite 7 (SPEC §23.7) fala em e2e 'nos dois temas', mas os testes de e2e/ultraloop-l34.spec.ts :722, :781 e :804 rodam só no claro; o item 7 é ambíguo sobre isso. FAZER: Rodar esses testes também no escuro, ou escrever na §23.7 item 7 que a volta é independente do tema e basta um. ACEITE: SPEC e testes dizem a mesma coisa sobre os temas. ESTADO EM 905815d: pendente.",
+   "arquivos": [
+    "e2e/ultraloop-l34.spec.ts",
+    "SPEC.md"
+   ],
+   "esforco": "P",
+   "origens": [
+    {
+     "fonte": "PROGRESSO (L34, rodada 18)",
+     "id_original": "e2e da volta num tema só",
+     "origem": "menores das auditorias 2 em 96056ac (regra: §23.7 item 7 ambíguo; tela: aceite 7)"
+    }
+   ],
+   "duplicatas": [],
+   "lote_planejado": "L36"
+  },
+  {
+   "id": "C-l34-spec-volta-permissao-e-sem-internet",
+   "secao": "C",
+   "estado": "pendente",
+   "area": "lembretes",
+   "titulo": "SPEC não diz o que a volta faz com permissão mudada e sem internet ao mesmo tempo",
+   "detalhe": "PROBLEMA: SPEC §23.4 descreve a volta com a permissão mudada e a volta sem internet, mas não o caso das duas coisas juntas. FAZER: Escrever na §23.4 o resultado da combinação (qual frase fica, qual aviso) e cobrir com e2e. ACEITE: SPEC diz o comportamento e um e2e confere. ESTADO EM 905815d: pendente.",
+   "arquivos": [
+    "SPEC.md",
+    "e2e/ultraloop-l34.spec.ts"
+   ],
+   "esforco": "P",
+   "origens": [
+    {
+     "fonte": "PROGRESSO (L34, rodada 18)",
+     "id_original": "volta com permissão mudada e sem internet",
+     "origem": "menor da auditoria 2 em 96056ac (r19/l34/auditoria-2-regra/veredito.json)"
+    }
+   ],
+   "duplicatas": [],
+   "lote_planejado": "L36"
+  },
+  {
+   "id": "C-l34-aviso-lista-internet-volta",
+   "secao": "C",
+   "estado": "pendente",
+   "area": "lembretes",
+   "titulo": "Aviso da lista só sai na próxima leitura, não quando a internet volta",
+   "detalhe": "PROBLEMA: Sem frase do aparelho, o aviso 'Não deu para ler os aparelhos agora.' só sai na próxima leitura disparada por evento (visibilitychange/focus/pageshow), não sozinho quando a internet volta (§23.7 item 7). FAZER: Reler a lista no evento online (com a mesma guarda do Ativar) ou escrever na SPEC que o aviso sai na próxima volta. ACEITE: e2e: com a tela aberta, a internet volta e o aviso some sem sair do app (ou SPEC diz o contrário). ESTADO EM 905815d: pendente.",
+   "arquivos": [
+    "components/mais/tela-lembretes.tsx",
+    "SPEC.md",
+    "e2e/ultraloop-l34.spec.ts"
+   ],
+   "esforco": "P",
+   "origens": [
+    {
+     "fonte": "PROGRESSO (L34, rodada 18)",
+     "id_original": "aviso só na próxima leitura",
+     "origem": "menor da auditoria 2 em 96056ac (r19/l34/auditoria-2-tela/veredito.json)"
+    }
+   ],
+   "duplicatas": [],
+   "lote_planejado": "L36"
+  },
+  {
+   "id": "C-l34-comentario-rota-teste",
+   "secao": "C",
+   "estado": "pendente",
+   "area": "lembretes",
+   "titulo": "Comentário de lib/rota-lembretes-teste.test.ts:41 diz 'um par qualquer'",
+   "detalhe": "PROBLEMA: lib/rota-lembretes-teste.test.ts:41: o comentário diz 'um par qualquer', mas PRIVADA é a chave de exemplo da RFC 8291. FAZER: Corrigir o comentário. ACEITE: O comentário diz de onde vem a chave. ESTADO EM 905815d: pendente (só texto).",
+   "arquivos": [
+    "lib/rota-lembretes-teste.test.ts"
+   ],
+   "esforco": "P",
+   "origens": [
+    {
+     "fonte": "PROGRESSO (L34, rodada 18)",
+     "id_original": "comentário da chave",
+     "origem": "menor da auditoria 2 em 96056ac (r19/l34/auditoria-2-regra/veredito.json)"
+    }
+   ],
+   "duplicatas": [],
+   "lote_planejado": "L36"
+  },
+  {
+   "id": "C-l34-progresso-frase-mutacao",
+   "secao": "C",
+   "estado": "pendente",
+   "area": "lembretes",
+   "titulo": "PROGRESSO rodada 19 diz 'um build:e2e por mutação'",
+   "detalhe": "PROBLEMA: O PROGRESSO da rodada 19 do L34 diz 'um build:e2e por mutação'; o mut-a.log mostra outra organização (as mutações A juntas num build). FAZER: Conferir a frase contra os logs e corrigir. ACEITE: A frase do PROGRESSO diz como as mutações rodaram. ESTADO EM 905815d: pendente (só documentação).",
+   "arquivos": [
+    "PROGRESSO.md"
+   ],
+   "esforco": "P",
+   "origens": [
+    {
+     "fonte": "PROGRESSO (L34, rodada 18)",
+     "id_original": "frase da mutação",
+     "origem": "menor da auditoria 2 em 96056ac (r19/l34/auditoria-2-regra/veredito.json)"
+    }
+   ],
+   "duplicatas": [],
+   "lote_planejado": "L36"
   }
  ],
  "resolvidos": [
@@ -8915,6 +9047,114 @@
     }
    ],
    "nota": "resolvido pelo L14 (rodada 15, importante da auditoria 2 da rodada 14), fora da lista planejada do lote; estava no L29."
+  },
+  {
+   "id": "LEM-banco-inscricoes",
+   "secao": "B",
+   "estado": "publicado",
+   "sha": "905815d",
+   "pr": "#25",
+   "lote": "L34",
+   "rodada": 18,
+   "titulo": "Tabela de inscrições de push por aparelho",
+   "prova": "SPEC.md:2928 (§23.2); supabase/migracoes/2026-09-23-lembretes-inscricoes.sql e supabase/schema.sql (RLS select/insert/delete to authenticated com user_id = auth.uid(), anon sem grant); lib/migracao-lembretes.test.ts (RLS, idempotência, expand-only); scripts/mock-supabase.ts; aplicada no projeto real pelo orquestrador em 23/09 23:25 UTC (3 policies, advisors sem achado novo)",
+   "origens": [
+    {
+     "fonte": "dono (conversa de 23/09)",
+     "id_original": "lembretes push no horário editado",
+     "origem": "feature nova aprovada pelo dono; SPEC §23"
+    }
+   ]
+  },
+  {
+   "id": "LEM-sw-push",
+   "secao": "B",
+   "estado": "publicado",
+   "sha": "905815d",
+   "pr": "#25",
+   "lote": "L34",
+   "rodada": 18,
+   "titulo": "Service worker mostra a notificação e abre o app no lugar certo",
+   "prova": "SPEC.md:2960 (§23.3); app/sw.ts:416 (push) e :447 (notificationclick); lib/lembretes.ts (opcoesDaNotificacao, urlInterna confere entrada e saída, idempotente — ef9c163); lib/lembretes.test.ts (39 testes, varredura 30³×2); e2e/ultraloop-l34.spec.ts (worker real); fumaça: /sw.js em produção com 'notificationclick' e 'showNotification'",
+   "origens": [
+    {
+     "fonte": "dono (conversa de 23/09)",
+     "id_original": "lembretes push no horário editado",
+     "origem": "feature nova aprovada pelo dono; SPEC §23"
+    }
+   ]
+  },
+  {
+   "id": "LEM-pagina-lembretes",
+   "secao": "B",
+   "estado": "publicado",
+   "sha": "905815d",
+   "pr": "#25",
+   "lote": "L34",
+   "rodada": 18,
+   "titulo": "Mais → Lembretes: ativar e desativar neste aparelho",
+   "prova": "SPEC.md:2985 (§23.4); app/(app)/mais/lembretes/page.tsx, components/mais/tela-lembretes.tsx e app/(app)/mais/page.tsx (linha Lembretes); e2e/ultraloop-l34.spec.ts (36 testes: estados nos dois temas, volta por visibilitychange/focus/pageshow, guarda do Ativar, volta sem internet); fumaça: chunk mais/lembretes/page-a4782e08023821d6.js com 'Ativar lembretes'",
+   "origens": [
+    {
+     "fonte": "dono (conversa de 23/09)",
+     "id_original": "lembretes push no horário editado",
+     "origem": "feature nova aprovada pelo dono; SPEC §23"
+    }
+   ]
+  },
+  {
+   "id": "LEM-rota-teste",
+   "secao": "B",
+   "estado": "publicado",
+   "sha": "905815d",
+   "pr": "#25",
+   "lote": "L34",
+   "rodada": 18,
+   "titulo": "Botão \"Enviar um lembrete de teste\"",
+   "prova": "SPEC.md:3041 (§23.5); app/api/lembretes/teste/route.ts e lib/web-push.ts (RFC 8291 aes128gcm + VAPID ES256 com node:crypto); lib/rota-lembretes-teste.test.ts (8 testes: 503 SEM_TABELA, 401, 503 sem VAPID, 502, 409); lib/web-push-prova.test.ts (prova independente pelo WebCrypto); fumaça: 'Enviar um lembrete de teste' no chunk da página",
+   "origens": [
+    {
+     "fonte": "dono (conversa de 23/09)",
+     "id_original": "lembretes push no horário editado",
+     "origem": "feature nova aprovada pelo dono; SPEC §23"
+    }
+   ]
+  },
+  {
+   "id": "LEM-instrucoes-navegador",
+   "secao": "B",
+   "estado": "publicado",
+   "sha": "905815d",
+   "pr": "#25",
+   "lote": "L34",
+   "rodada": 18,
+   "titulo": "Instruções quando o navegador bloqueia ou não suporta",
+   "prova": "SPEC.md:3068 (§23.6, tabela das 80 combinações); lib/lembretes.ts (instrucoesDoAparelho) e lib/lembretes.test.ts (oráculo 80/80, 0 divergências); e2e/ultraloop-l34.spec.ts (Brave, negada, iPhone, sem suporte, nos dois temas)",
+   "origens": [
+    {
+     "fonte": "dono (conversa de 23/09)",
+     "id_original": "lembretes push no horário editado",
+     "origem": "feature nova aprovada pelo dono; SPEC §23"
+    }
+   ]
+  },
+  {
+   "id": "LEM-spec-23",
+   "secao": "B",
+   "estado": "publicado",
+   "sha": "905815d",
+   "pr": "#25",
+   "lote": "L34",
+   "rodada": 18,
+   "titulo": "SPEC §23 Lembretes no celular e guia",
+   "prova": "SPEC.md:2885 (§23, com §23.7 aceite do lote 34 e parte II marcada para o L35); lib/guia.ts (passo Lembretes com o texto da linha de Mais); e2e/guia.spec.ts",
+   "origens": [
+    {
+     "fonte": "dono (conversa de 23/09)",
+     "id_original": "lembretes push no horário editado",
+     "origem": "feature nova aprovada pelo dono; SPEC §23"
+    }
+   ]
   }
  ],
  "descartados": [
@@ -9519,6 +9759,16 @@
    "deployment": "dpl_HwhvXX4W8TJQ9ECiQKCgq7L7RwC7",
    "no_ar": "2026-09-23T16:50Z",
    "nota": "rodada 14 construiu (auditoria 2 reprovou a lente tela), rodada 15 retomou (auditoria 2 reprovou: a regra da folha só na folha), rodada 16 retomou com a regra num lugar só; auditoria 1 em a68ea7f aprovada (0/0/9)"
+  },
+  {
+   "rodada": 18,
+   "lote": "L34",
+   "titulo": "Lembretes I: inscrição no aparelho e notificação de teste",
+   "pr": "#25",
+   "sha": "905815d",
+   "deployment": "dpl_5Mf1KbpBMicAu5TRhz4y6s9UopPJ",
+   "no_ar": "2026-09-23T23:34Z",
+   "nota": "rodada 17 construiu (auditoria 2 reprovou), rodada 18 retomou (auditoria 1 em 8b54cf1 reprovou: saída de urlInterna), rodada 19 corrigiu; auditoria 2 em 96056ac aprovada (0/0/10); migração 2026_09_23_lembretes_inscricoes aplicada pelo orquestrador às 23:25 UTC"
   }
  ],
  "marcos_anteriores_ao_ultraloop": [
@@ -9533,24 +9783,28 @@
  "lotes_em_construcao": [],
  "lotes_planejados": [
   {
-   "codigo": "L34",
-   "titulo": "Lembretes I: inscrição no aparelho e notificação de teste",
+   "codigo": "L35",
+   "titulo": "Lembretes II: horário, disparo automático e calendário",
    "area": "lembretes",
    "ordem": 1,
    "itens": [
-    "LEM-banco-inscricoes",
-    "LEM-sw-push",
-    "LEM-pagina-lembretes",
-    "LEM-rota-teste",
-    "LEM-instrucoes-navegador",
-    "LEM-spec-23"
+    "LEM-horarios",
+    "LEM-regra-mensagem",
+    "LEM-disparo",
+    "LEM-ics",
+    "LEM-guia-spec-l34",
+    "LEM-painel-estado",
+    "C-l34-badge-monocromatico",
+    "C-l34-passo3-instrucoes-reverso",
+    "C-l34-sair-e-inscricao",
+    "C-l34-ativar-releitura-falha"
    ],
    "arquivos": [],
    "telas_esperadas": [
     "18-mais"
    ],
-   "medios": 3,
-   "observacoes": "Feature nova aprovada pelo dono em 23/09 (lembretes no celular por push, horário editável, calendário .ics). Migração expand-only aplicada pelo orquestrador antes do deploy.",
+   "medios": 2,
+   "observacoes": "Feature nova aprovada pelo dono em 23/09 (lembretes no celular por push, horário editável, calendário .ics). Migração expand-only aplicada pelo orquestrador antes do deploy. Rodada 18: + 4 sobras do L34 (badge monocromático, passo 3 das instruções, Sair e a inscrição, ativar com releitura falha), fica com 10.",
    "excecao": null,
    "excecao_de_ordem": [
     {
@@ -9559,30 +9813,35 @@
    ]
   },
   {
-   "codigo": "L35",
-   "titulo": "Lembretes II: horário, disparo automático e calendário",
+   "codigo": "L36",
+   "titulo": "Sobras do L34: lembretes (provas, textos e bordas)",
    "area": "lembretes",
    "ordem": 2,
    "itens": [
-    "LEM-horarios",
-    "LEM-regra-mensagem",
-    "LEM-disparo",
-    "LEM-ics",
-    "LEM-guia-spec-l34",
-    "LEM-painel-estado"
+    "C-l34-notificationclick-sem-aba",
+    "C-l34-rls-postgres-real",
+    "C-l34-e2e-volta-dois-temas",
+    "C-l34-spec-volta-permissao-e-sem-internet",
+    "C-l34-aviso-lista-internet-volta",
+    "C-l34-comentario-rota-teste",
+    "C-l34-progresso-frase-mutacao"
    ],
-   "arquivos": [],
+   "arquivos": [
+    "app/sw.ts",
+    "components/mais/tela-lembretes.tsx",
+    "lib/migracao-lembretes.test.ts",
+    "lib/rota-lembretes-teste.test.ts",
+    "e2e/ultraloop-l34.spec.ts",
+    "SPEC.md",
+    "PROGRESSO.md"
+   ],
    "telas_esperadas": [
     "18-mais"
    ],
    "medios": 2,
-   "observacoes": "Feature nova aprovada pelo dono em 23/09 (lembretes no celular por push, horário editável, calendário .ics). Migração expand-only aplicada pelo orquestrador antes do deploy.",
+   "observacoes": "Criado na rodada 18 (registro do deploy do L34) com o que o L34 deixou registrado sem fazer: menores da auditoria 2 em 96056ac e as pendências antigas do construtor (notificationclick sem aba, RLS no Postgres real). Roda logo depois do L35, o próximo lote da área, que ficou com 10 itens.",
    "excecao": null,
-   "excecao_de_ordem": [
-    {
-     "motivo": "o dono pediu os lembretes como próximo lote, logo depois do L14"
-    }
-   ]
+   "excecao_de_ordem": []
   },
   {
    "codigo": "L32",
@@ -13429,6 +13688,7 @@
   "Contagem de arquivos por lote: arquivos dos itens + e2e novo + e2e que afirmam texto trocado + SPEC.md + PROGRESSO.md, a convenção da v2. Unitários em arquivo de teste já existente que o ACEITE pede mas o item não lista (ex.: lib/outbox.test.ts do pwa-offline-07, lib/precache-do-programa.test.ts do pwa-offline-03, lib/usar-rede.test.ts do pwa-offline-01) não entram — como na v2; o construtor confere no começo do lote e, se estourar 12, o item volta como parcial (PROMPT-CONTINUACAO §5.1).",
   "23/09: L12 publicado (PR #19, 1b37092): os 7 candidatos e o processo do comparador foram para resolvidos.",
   "23/09: L13 publicado (PR #21, a0bcfcf, rodada 13): os 10 itens foram para resolvidos; 3 observações não feitas entraram como C pendentes (C-l13-aceite-lcp-vs-ordem, C-plano-progresso-repete-desafio, C-busca-corda-capa-icone) e o H1 → H3 da ficha ficou como nota no tela-explorar-fichas-21 (L14), que já o cobre.",
-  "23/09: L14 publicado (PR #23, 0f730c9, rodada 16): os 10 itens foram para resolvidos (copy-25 e tela-explorar-fichas-26 com o aceite ajustado na SPEC §22.14, com nota). 15 itens C novos, todos com lote: os 9 menores da auditoria 1 em a68ea7f (um deles igual ao menor do construtor sobre as tags), 4 menores só registrados pelo construtor (Super Band, critério com números, espelho × DOM, carregando sem o perfil) e os 2 itens novos declarados na SPEC (a11y-voltar-fecha-camada, a11y-visao-geral-foco-ao-abrir). Vão para L32 (2, fica com 10), L33 novo logo depois do L32 (6), L29 (3), L16 (1), L28 (1) e L30 (2). Além disso, C-visao-geral-esc-camada (L29) foi para resolvidos: o L14 o resolveu na rodada 15 (visao-geral.tsx:110, e2e/ultraloop-l14.spec.ts:1039)."
+  "23/09: L14 publicado (PR #23, 0f730c9, rodada 16): os 10 itens foram para resolvidos (copy-25 e tela-explorar-fichas-26 com o aceite ajustado na SPEC §22.14, com nota). 15 itens C novos, todos com lote: os 9 menores da auditoria 1 em a68ea7f (um deles igual ao menor do construtor sobre as tags), 4 menores só registrados pelo construtor (Super Band, critério com números, espelho × DOM, carregando sem o perfil) e os 2 itens novos declarados na SPEC (a11y-voltar-fecha-camada, a11y-visao-geral-foco-ao-abrir). Vão para L32 (2, fica com 10), L33 novo logo depois do L32 (6), L29 (3), L16 (1), L28 (1) e L30 (2). Além disso, C-visao-geral-esc-camada (L29) foi para resolvidos: o L14 o resolveu na rodada 15 (visao-geral.tsx:110, e2e/ultraloop-l14.spec.ts:1039).",
+  "23/09: L34 publicado (PR #25, 905815d, rodada 18): os 6 itens LEM do lote foram para resolvidos. 11 itens C novos, todos com lote: os 10 menores da auditoria 2 em 96056ac deduplicados com os 4 itens não feitos do construtor (notificationclick sem aba, RLS no Postgres real, badge monocromático, passo 3) e o Sair × inscrição anotado na SPEC §23 para o L35. Vão para L35 (4, fica com 10) e L36 novo logo depois do L35 (7)."
  ]
 }
