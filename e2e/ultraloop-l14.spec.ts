@@ -647,20 +647,33 @@ test.describe("§22.14 item 4 — a aba do tutorial diz para onde leva", () => {
     await expect(main.locator("[data-sai-do-app]")).toHaveCount(0);
   });
 
-  test("sem rede, o 'Abrir no YouTube' é o que sai do app, e é ele que tem o ícone", async ({
-    page,
-  }) => {
-    await page.route(/i\.ytimg\.com/, (rota) => rota.abort("connectionfailed"));
-    await preparar(page);
-    await abrirFicha(page, SUPINO);
-    const main = page.locator("main");
-    await main.getByRole("tab", { name: "Tutorial no YouTube" }).click();
-    await expect(main.locator("[data-tutorial=sem-rede]")).toBeVisible();
-    const sai = main.getByRole("link", { name: "Abrir no YouTube" });
-    await expect(sai).toHaveAttribute("target", "_blank");
-    await expect(sai.locator("svg[data-icone-externo]")).toHaveCount(1);
-    await expect(main.getByRole("tablist").locator("[data-icone-externo]")).toHaveCount(0);
-    await semRolagemHorizontal(page);
+  test.describe("sem rede", () => {
+    /*
+     * Rodada 16: o service worker (NetworkFirst para outra origem) busca a
+     * miniatura ele mesmo, e o que ele busca não passa pelo `page.route` —
+     * quando ele já controlava a página, a miniatura chegava da rede de
+     * verdade e o "sem rede" não aparecia (falhou 1 vez na sonda da rodada
+     * 16). Bloqueado aqui, como em `ultraloop-b-r2.spec.ts`.
+     */
+    test.use({ serviceWorkers: "block" });
+
+    test("sem rede, o 'Abrir no YouTube' é o que sai do app, e é ele que tem o ícone", async ({
+      page,
+    }) => {
+      await page.route(/i\.ytimg\.com/, (rota) => rota.abort("connectionfailed"));
+      await preparar(page);
+      await abrirFicha(page, SUPINO);
+      const main = page.locator("main");
+      await main.getByRole("tab", { name: "Tutorial no YouTube" }).click();
+      await expect(main.locator("[data-tutorial=sem-rede]")).toBeVisible();
+      const sai = main.getByRole("link", { name: "Abrir no YouTube" });
+      await expect(sai).toHaveAttribute("target", "_blank");
+      await expect(sai.locator("svg[data-icone-externo]")).toHaveCount(1);
+      // o leitor de tela não vê o ícone: o nome do link diz que sai do app
+      await expect(sai).toHaveAccessibleName("Abrir no YouTube (abre fora do app)");
+      await expect(main.getByRole("tablist").locator("[data-icone-externo]")).toHaveCount(0);
+      await semRolagemHorizontal(page);
+    });
   });
 
   test("página e folha: 'Tutorial no YouTube' sem ícone de saída, sem cortar a 360 px", async ({
@@ -871,9 +884,115 @@ test.describe("§22.14 item 6 — dentro da Visão geral, o Esc fecha só a folh
     await page.keyboard.press("Escape");
     await expect(foto).toHaveCount(0);
   });
+
+  test("a foto ampliada marca o Esc que trata, e o foco volta a quem a abriu", async ({
+    page,
+  }) => {
+    await preparar(page);
+    await abrirFicha(page, SUPINO);
+    const gatilho = page.getByRole("button", { name: /Ampliar a foto do início/ });
+    await gatilho.focus();
+    await page.keyboard.press("Enter");
+    const foto = page.getByRole("dialog");
+    await expect(foto).toBeVisible();
+    await expect(page.getByRole("button", { name: "Fechar a foto" })).toBeFocused();
+    // quem escuta embaixo (a Visão geral escuta no window, em bolha) vê o Esc gasto
+    await page.evaluate(() => {
+      const w = window as unknown as { escGasto?: boolean };
+      window.addEventListener("keydown", (e) => (w.escGasto = e.defaultPrevented), {
+        once: true,
+      });
+    });
+    await page.keyboard.press("Escape");
+    await expect(foto).toHaveCount(0);
+    expect(
+      await page.evaluate(() => (window as unknown as { escGasto?: boolean }).escGasto),
+    ).toBe(true);
+    await expect(gatilho).toBeFocused();
+
+    // pelo X, o mesmo: o foco volta ao gatilho, não ao <body>
+    await page.keyboard.press("Enter");
+    await expect(foto).toBeVisible();
+    await page.getByRole("button", { name: "Fechar a foto" }).click();
+    await expect(foto).toHaveCount(0);
+    await expect(gatilho).toBeFocused();
+  });
+});
+
+/*
+ * Rodada 16 (auditoria 1 da rodada 15): o voltar do celular — e o gesto de
+ * voltar do leitor de tela — com uma folha aberta sobre a Visão geral fechava
+ * as duas. Agora ele segue a regra do Esc: fecha só a camada de cima.
+ */
+async function voltarFechaSoAFolha(page: Page, gatilho: Locator): Promise<void> {
+  await gatilho.focus();
+  await page.keyboard.press("Enter");
+  const folha = page.locator('[data-slot="sheet-content"]');
+  await expect(folha).toBeVisible();
+  const url = page.url();
+  const indice = await indiceDaNavegacao(page);
+  // o voltar do Android (e do TalkBack) é um history.back() na aba
+  await page.evaluate(() => window.history.back());
+  await expect(folha).toHaveCount(0);
+  await expect(page.locator(VISAO_GERAL)).toBeVisible();
+  await expect(gatilho).toBeFocused();
+  expect(page.url()).toBe(url);
+  // a entrada da Visão geral voltou ao histórico: o próximo voltar é dela
+  await expect.poll(() => indiceDaNavegacao(page)).toBe(indice);
+  expect(await page.evaluate(() => document.querySelectorAll("[inert]").length)).toBe(0);
+}
+
+test.describe("§22.14 item 6 — dentro da Visão geral, o voltar do celular fecha só a folha de cima", () => {
+  for (const tema of TEMAS) {
+    test(`'substituir hoje' e 'Como fazer' do bloco; sem folha, o voltar fecha a Visão geral (${tema})`, async ({
+      page,
+    }) => {
+      await preparar(page, tema);
+      await esperarAbaTreino(page);
+      await comecarOTreinoDoDia(page);
+      const player = page.url();
+      await abrirVisaoGeral(page);
+      const geral = page.locator(VISAO_GERAL);
+      await expect(geral).toBeVisible();
+
+      await voltarFechaSoAFolha(
+        page,
+        geral.getByRole("button", { name: "substituir hoje" }).first(),
+      );
+      await voltarFechaSoAFolha(
+        page,
+        geral.getByRole("button", { name: /^Como fazer: / }).first(),
+      );
+
+      // sem folha por cima, o voltar fecha a Visão geral e fica no treino
+      await page.evaluate(() => window.history.back());
+      await expect(geral).toHaveCount(0);
+      await expect(page.getByRole("button", { name: "Visão geral do treino" })).toBeVisible();
+      expect(page.url()).toBe(player);
+      await semRolagemHorizontal(page);
+    });
+  }
 });
 
 /* ----------------------- item 11: o anel do botão primário se destaca */
+
+/**
+ * Espera o fim da transição do "Fazer agora" (o anel entra e sai com
+ * `transition`), no lugar de uma espera cega de 400 ms.
+ */
+async function semAnimacaoRodando(page: Page): Promise<void> {
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          document
+            .querySelector("[data-fazer-agora]")
+            ?.getAnimations()
+            .filter((a) => a.playState === "running").length ?? -1,
+      ),
+    )
+    .toBe(0);
+}
 
 /** Luminância relativa de um pixel (WCAG). */
 function luminancia(d: Buffer, i: number): number {
@@ -884,7 +1003,7 @@ function luminancia(d: Buffer, i: number): number {
   return 0.2126 * canal(d[i]!) + 0.7152 * canal(d[i + 1]!) + 0.0722 * canal(d[i + 2]!);
 }
 
-test.describe("§22.14 item 11 — o anel do botão primário não tem a cor do botão", () => {
+test.describe("§22.14 item 11 — o anel do botão primário fica a 2 px do botão", () => {
   for (const tema of TEMAS) {
     test(`'Fazer agora' pelo Tab: contorno a 2 px, fundo entre os dois, ≥ 3:1 (${tema})`, async ({
       page,
@@ -902,7 +1021,7 @@ test.describe("§22.14 item 11 — o anel do botão primário não tem a cor do 
         );
       }
       expect(chegou, "o Tab chega ao Fazer agora").toBe(true);
-      await page.waitForTimeout(400);
+      await semAnimacaoRodando(page);
       const estilo = await page.evaluate(() => {
         const el = document.activeElement as HTMLElement;
         const e = getComputedStyle(el);
@@ -929,7 +1048,12 @@ test.describe("§22.14 item 11 — o anel do botão primário não tem a cor do 
       };
       const com = await page.screenshot({ clip: recorte });
       await page.evaluate(() => (document.activeElement as HTMLElement).blur());
-      await page.waitForTimeout(400);
+      await expect
+        .poll(() =>
+          page.evaluate(() => document.querySelector("[data-fazer-agora]")?.matches(":focus")),
+        )
+        .toBe(false);
+      await semAnimacaoRodando(page);
       const sem = await page.screenshot({ clip: recorte });
       const a = await sharp(com).raw().toBuffer({ resolveWithObject: true });
       const b = await sharp(sem).raw().toBuffer({ resolveWithObject: true });
