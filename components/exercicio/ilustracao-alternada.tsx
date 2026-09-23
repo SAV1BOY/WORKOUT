@@ -59,7 +59,8 @@ function useAbaEscondida(): boolean {
  * Com `prefers-reduced-motion: reduce` ela **nasce parada**, e o botão do
  * canto continua valendo para quem quiser ver o movimento (SPEC §22.1).
  *
- * Com uma posição só não há animação nem botão de pausa: é uma imagem parada.
+ * Com uma posição só — ou quando a segunda não chega — não há animação nem
+ * botão de pausa: é uma imagem parada.
  */
 export function IlustracaoAlternada({
   urls,
@@ -104,6 +105,13 @@ export function IlustracaoAlternada({
   const [restoProntas, setRestoProntas] = useState(0);
   const restoPronto = restoProntas >= urls.length - 1;
   /**
+   * Correção da auditoria 3 (SPEC §22.13 item 4): o quadro 2 não chegou (erro,
+   * ou sem rede e fora do cache). A figura nunca vai alternar, então ela vira a
+   * imagem parada de um quadro — sem o "Parar a animação" de uma animação que
+   * não começa.
+   */
+  const [restoFalhou, setRestoFalhou] = useState(false);
+  /**
    * A posição que o leitor de tela ouve (correção da auditoria 2): enquanto a
    * figura-botão tem o foco, ela fica congelada na posição de quando o foco
    * chegou — a troca a cada 1,2 s não faz o leitor repetir o anúncio.
@@ -113,7 +121,7 @@ export function IlustracaoAlternada({
   const primeira = useRef<HTMLImageElement>(null);
   const menosMovimento = usePrefereMenosMovimento();
   const escondido = useAbaEscondida();
-  const duasPosicoes = urls.length > 1;
+  const duasPosicoes = urls.length > 1 && !restoFalhou;
   const alternando = ilustracaoAlternando({
     duasPosicoes,
     escolha,
@@ -162,6 +170,7 @@ export function IlustracaoAlternada({
             ? () => setPrimeiraPronta(true)
             : () => setRestoProntas((n) => n + 1)
         }
+        onError={i === 0 ? undefined : () => setRestoFalhou(true)}
         className={cn(
           "absolute inset-0 size-full object-contain transition-opacity duration-500 ease-in-out",
           i === posicao ? "opacity-100" : "opacity-0",
