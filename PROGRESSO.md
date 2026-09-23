@@ -8715,7 +8715,10 @@ Branch `polimento/l12-explorar-catalogo`, a partir de `main` `ef3ad97`. SPEC
    semanas" (eram 5 estágios de 12 semanas). **É:** "Primeira barra fixa",
    "5 km sem parar" (a meta da última semana de `cardio.json`) e "Corda: 5
    estágios"; com perfil, a meta é "semana N de 12" (`semana_fixa` /
-   `semana_corrida`, presa ao total — 99 vira 12); sem perfil, "12 semanas";
+   `semana_corrida`, presa ao total — 99 vira 12); sem perfil, "12 semanas"
+   (mudou na rodada 11: ver "Rodada 11 — retomada", item 4, e a "Correção da
+   auditoria 1 (rodada 11)" — sem perfil, barra fixa e corrida ficam sem meta
+   e mostram o objetivo inteiro, com o prazo);
    a corda mostra a duração do JSON (`ultimaSemanaDeCorda()` = 12). A tela da
    coleção do plano diz a mesma posição. **Correção da auditoria:** o card do
    desafio (carrossel da Treino e destaque do Explorar) ainda dizia "Primeira
@@ -8968,7 +8971,10 @@ Mesma branch, a partir de `06441e5`. Logs em `r11/l12/logs/`.
    semanas". **É:** sem posição, a meta é "T semanas" só se o subtítulo (o
    objetivo do JSON) ainda não disser o prazo; se disser, a linha fica sem
    meta (a linha não desenha um vão vazio). Com perfil nada muda ("semana N
-   de 12"); a corda continua "12 semanas".
+   de 12"); a corda continua "12 semanas". (A auditoria 1 da rodada 11 mediu
+   que, cortado numa linha, o subtítulo escondia o prazo: a linha sem meta
+   passou a mostrar o subtítulo inteiro — ver "Correção da auditoria 1
+   (rodada 11)".)
 5. **Uma fonte para a meta e para o nome da fase** (menores (b) e (c)).
    `components/treino/tela-treino.tsx` perdeu o `nomeCurtoDaFase` privado e
    importa o de `lib/colecoes.ts`; o destaque do Explorar
@@ -9060,7 +9066,8 @@ subtítulo do plano é cortado numa linha ("a primeira barra fixa sem elástico
 e…"), então, sem perfil, a linha da barra fixa e a da corrida ficam sem o
 prazo visível — ele continua no objetivo inteiro (no `title` da linha e na
 página do plano). Com perfil, o caso normal, a meta "semana N de 12" diz o
-prazo.
+prazo. (Corrigido na "Correção da auditoria 1 (rodada 11)", abaixo: a linha
+sem meta mostra o subtítulo inteiro.)
 
 ##### Como testar no celular (360 px)
 
@@ -9072,4 +9079,163 @@ prazo.
   sentado e Supino declinado com barra".
 - **Planos**: com o perfil carregado, nada muda ("semana N de 12"). Sem perfil
   (logo ao abrir, antes de o perfil chegar), barra fixa e corrida mostram só
-  o objetivo, sem "12 semanas" repetido embaixo.
+  o objetivo, sem "12 semanas" repetido embaixo — inteiro, com o prazo,
+  desde a correção da auditoria 1 (abaixo).
+
+##### Correção da auditoria 1 (rodada 11)
+
+A auditoria 1 da rodada 11, em `ec07924`, **aprovou a lente regra** (só
+menores) e **reprovou a lente tela** por um importante: sem perfil, a 360×740
+e nos dois temas, as linhas "Primeira barra fixa" e "5 km sem parar" de
+Planos não mostravam prazo nenhum. A meta tinha saído (item 4 acima, para
+não repetir o prazo) e o subtítulo, cortado numa linha (`line-clamp-1`,
+`scrollHeight` 32 contra `clientHeight` 16), parava antes de "8–12 semanas"
+e de "12 semanas". Correção a partir de `ec07924`: `be81dee` (SPEC),
+`dbdd44e` (lib), `ab7fdbc` (linha da coleção), `17ba741` (e2e) e o commit
+deste registro.
+
+###### O que mudou
+
+1. **Sem perfil, o prazo volta a aparecer, uma vez só** (importante;
+   `components/colecoes/linha-colecao.tsx`). **Era:** sem perfil, barra fixa
+   e corrida ficavam sem meta, e na tela sobrava "a primeira barra fixa sem
+   elástico e…" e "de caminhada a 5 km sem parar em…". **É:** a linha sem
+   meta mostra o subtítulo **inteiro** (o corte de uma linha só vale quando
+   há meta embaixo): "a primeira barra fixa sem elástico em 8–12 semanas" e
+   "de caminhada a 5 km sem parar em 12 semanas (≈35 min, 7 min/km)", em 2
+   linhas cada, no lugar das 2 linhas de subtítulo + meta. A linha não fica
+   mais alta que a da corda. Continua valendo o contrato D: a duração total
+   aparece, e não repetida. Com perfil nada muda ("semana N de 12" na meta,
+   subtítulo numa linha).
+2. **O motivo da busca aparece inteiro** (menor da tela; mesmo arquivo).
+   **Era:** `line-clamp-2`, e "sentado panturrilha barra declinado" cortava o
+   3º nome do Cavalete ("contém Desenvolvimento sentado com barra, Elevação
+   de panturrilha em pé e Supino declinado com barra" precisa de 3 linhas a
+   360 px). **É:** sem corte. O motivo cita no máximo um nome por termo, e
+   por isso não cresce sem limite.
+3. **O nome curto da fase numa função só** (menor da regra; `lib/dados.ts`
+   `nomeCurtoDaFase`, `lib/semana.ts` `rotuloDaFase`; `lib/colecoes.ts`
+   reexporta). **Era:** `rotuloDaFase` cortava o nome à mão
+   (`acharFase(fase).nome.split("—")`), uma terceira cópia da regra. **É:** a
+   função mora ao lado de `acharFase` e as três telas usam ela (CTA do
+   desafio, aba Treino e cabeçalho do calendário). O texto na tela é o mesmo
+   ("Fase 1 · semana 3 de 12").
+4. **SPEC sem as lacunas de redação** (menores da regra; `SPEC.md`). §22.12
+   item 3: o motivo inteiro, com aceite (`scrollHeight` ≤ `clientHeight` com
+   4 termos). Item 4: a linha sem meta mostra o subtítulo inteiro, com
+   aceite. Item 7: sem perfil, o botão da corrida é "Fazer a corrida" e leva
+   a `/cardio/corrida`. Mais a nota "Rodada 11 — correção da auditoria 1".
+   §13.4: barra fixa e corrida com a semana do perfil, a corda com a sua
+   duração (ela não tem posição no perfil), e o objetivo inteiro quando não
+   há meta. §14.4: o caso sem meta.
+5. **PROGRESSO**: a rodada 10 (item 4, "sem perfil, '12 semanas'") e a
+   rodada 11 (item 4 e a "Observação" das Capturas) apontam para esta
+   correção.
+
+###### Provas
+
+- **e2e novos** (`e2e/ultraloop-a-r10.spec.ts`, 11 → 14 testes):
+  - "D — planos sem perfil", em claro e escuro. Contexto novo sem o IndexedDB
+    do cache, pedido de `/rest/v1/profiles` segurado e service worker
+    bloqueado. Barra fixa e corrida sem `[data-linha="meta"]`, o prazo
+    ("8–12 semanas" e "12 semanas") dentro da caixa visível do subtítulo
+    (medido por `Range`), subtítulo sem texto escondido e "semanas" uma vez
+    só no texto da linha. A corda com "12 semanas", as três linhas com a
+    mesma altura (±1 px) e nenhuma rolagem lateral.
+  - Busca com 4 termos: o motivo do Cavalete com os três nomes, nenhum
+    motivo com texto escondido, e a frase em ≥ 3 linhas.
+  - F no dia de cardio (terça 15/09): o destaque do Explorar é "Fazer a
+    corrida da semana N", com o mesmo texto e `href` do carrossel da Treino.
+    É o menor da regra, que só tinha o domingo.
+- **Sonda** (`r11/l12/sonda-aud1/17ba741.log`): `build:e2e` e
+  `e2e-grep:ultraloop-a-r10`, **14 passaram**.
+- **Mutação** (`r11/l12/sonda-aud1-mutacao/17ba741.log`):
+  `linha-colecao.tsx` de `ec07924` com os e2e novos dá **3 falhas** (busca
+  de 4 termos: "motivo com texto escondido a 360 px"; sem perfil claro e
+  escuro: `toEqual` das linhas). Arquivo restaurado e árvore limpa antes da
+  cadeia.
+- **Vitest (+1 caso, 1.476 → 1.477)**: "o nome curto da fase tem uma fonte
+  só". Cobre a reserva pelo nome inteiro ("— sem nome curto", "  Fase 3  ")
+  e que nenhum arquivo além de `lib/dados.ts` corta o nome com
+  `split("—")`. Esse caso mata o mutante M22 da auditoria de regra (tirar o
+  `|| nome.trim()`).
+- **Menores que ficam de fora (anotados)**:
+  - O conjunto citado nem sempre é o mínimo (258 de 845.780 consultas no
+    oráculo da auditoria), sem violar o aceite.
+  - O teste de fonte única do CTA lê o código-fonte por regex. O
+    comportamento na tela está nos e2e de F, que agora cobrem os dois
+    planos no destaque.
+  - M6 e M20 são equivalentes, segundo a própria auditoria.
+  - A mensagem da lente tela chegou cortada depois do primeiro menor (o
+    motivo de 4 termos). Não vi os outros menores dela e por isso não os
+    tratei.
+
+###### Portões
+
+Cadeia inteira no HEAD de código `17ba741` (`r11/l12/logs/17ba741.log`, das
+00:11:49 às 00:33:30 UTC, **status ok**):
+
+- `lint` limpo.
+- `tsc --noEmit` limpo.
+- `npm test`: **63 arquivos, 1.477 testes, todos verdes** (+1: o nome curto
+  da fase).
+- `build`: "Compiled successfully in 16.9s".
+- `build:e2e`: "Compiled successfully in 16.9s".
+- `e2e`: **440 passaram, 5 pulados, 0 falharam** (15,7 min). São +3 testes;
+  os 14 de `e2e/ultraloop-a-r10.spec.ts` passaram.
+- `varredura`: **5 de 5** (4,3 min).
+
+A cadeia roda de novo, inteira, no commit deste registro, que muda só o
+`PROGRESSO.md`. O log fica em `r11/l12/logs/<hash>.log`.
+
+###### Capturas
+
+`capturas.sh` em `17ba741`, depois da cadeia verde, contra a base real de
+`main` (`base-ef3ad97`), com `--esperadas explorar,colecao,catalogo`
+(`r11/l12/capturas-17ba741.md`):
+
+- 60 PNGs, **54 iguais** (Δ 0,00 %). Nenhuma tela fora da lista mudou, e 03
+  e 04 (aba Treino) ficaram iguais.
+- As seis que mudam são **byte a byte iguais** às de `ec07924` e `59f92ce`
+  (md5). As 60 telas da régua têm perfil e nenhuma busca, então não mostram
+  a linha sem meta nem o motivo. Olhei os diffs de 06, 07 e 08: são os
+  mesmos da rodada 10.
+
+| tela | Δ claro | Δ escuro | o que mudou (olhando o diff) |
+| --- | ---: | ---: | --- |
+| 08-catalogo | 30,21 % | 28,35 % | igual à rodada 10: os selects saem, "Filtros" e o contador ficam na mesma linha, e o primeiro cartão sobe para a primeira tela |
+| 07-colecao | 6,82 % | 3,97 % | igual à rodada 10: `/explorar/plano/corrida` com "5 km sem parar", "semana 2 de 12" e "Fazer a corrida da semana 2" |
+| 06-explorar | 1,74 % | 1,77 % | igual à rodada 10: nas linhas dos Treinos, o subtítulo vem antes da meta, sem negrito |
+
+**Sonda da tela da correção** (`r11/l12/sonda-aud1-tela/sonda.cjs`,
+Chromium 360×740, DSF 2, nos dois temas). Subi mock e app no `.next` de
+`17ba741` e derrubei os dois pela árvore de PIDs.
+
+- **Sem perfil** (contexto novo, pedido do perfil segurado, service worker
+  bloqueado, 1 pedido): as três linhas de Planos têm **72 px**.
+  - "Primeira barra fixa | a primeira barra fixa sem elástico em 8–12
+    semanas".
+  - "5 km sem parar | de caminhada a 5 km sem parar em 12 semanas (≈35 min,
+    7 min/km)".
+  - "Corda: 5 estágios | … | 12 semanas | CIRCUITO".
+  - `scrollWidth` 360.
+- **Busca de 4 termos**: o motivo do Cavalete tem `scrollHeight` 48 =
+  `clientHeight` 48 (3 linhas, nada escondido).
+- Olhei `planos-sem-perfil-light.png` e `busca-4-termos-dark.png`. Os dois
+  prazos aparecem na segunda linha do objetivo, sem reticências e sem "12
+  semanas" repetido. No Cavalete, os três nomes vão até "Supino declinado
+  com barra", e a meta "10 exercícios que dão para fazer / com ele" fica
+  embaixo.
+
+###### Como testar no celular (360 px)
+
+- **Planos sem perfil** (logo ao abrir o Explorar, antes de o perfil chegar,
+  ou com a rede lenta): "Primeira barra fixa" mostra o objetivo inteiro, até
+  "em 8–12 semanas", e "5 km sem parar" até "em 12 semanas (≈35 min, 7
+  min/km)". Nenhuma das duas tem "12 semanas" repetido embaixo. Quando o
+  perfil chega, a linha volta a "semana N de 12".
+- **Busca com 4 termos**: "sentado panturrilha barra declinado" no Explorar.
+  O Cavalete diz os três exercícios inteiros, até "Supino declinado com
+  barra", sem reticências.
+- **Dia de cardio** (terça): o destaque do Explorar e o carrossel da Treino
+  mostram o mesmo "Fazer a corrida da semana N".
