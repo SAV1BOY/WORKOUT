@@ -1,7 +1,7 @@
 {
  "versao": 3,
- "base": "1b37092",
- "gerado_em": "2026-09-23T01:51Z",
+ "base": "a0bcfcf",
+ "gerado_em": "2026-09-23T07:35Z",
  "estados": [
   "pendente",
   "candidato",
@@ -9,21 +9,21 @@
   "descartado"
  ],
  "contagens": {
-  "itens": 131,
-  "pendente": 131,
+  "itens": 124,
+  "pendente": 124,
   "candidato": 0,
-  "resolvidos": 99,
+  "resolvidos": 109,
   "descartados": 18,
-  "canonicos": 248,
+  "canonicos": 251,
   "por_secao": {
    "B": {
-    "pendente": 87,
+    "pendente": 77,
     "candidato": 0,
-    "publicado": 14,
+    "publicado": 24,
     "descartado": 17
    },
    "C": {
-    "pendente": 39,
+    "pendente": 42,
     "candidato": 0,
     "publicado": 8,
     "descartado": 0
@@ -41,7 +41,7 @@
     "descartado": 1
    }
   },
-  "lotes_planejados": 19,
+  "lotes_planejados": 18,
   "depende_do_dono": 7,
   "v2_para_v3": {
    "itens": [
@@ -134,51 +134,9 @@
     ]
    }
   },
-  "gerado_em": "2026-09-23T01:51Z"
+  "gerado_em": "2026-09-23T07:35Z"
  },
  "itens": [
-  {
-   "id": "imagens-01",
-   "secao": "B",
-   "estado": "pendente",
-   "area": "ficha",
-   "titulo": "A caixa de altura fixa espreme a ilustração a 27%",
-   "detalhe": "components/exercicio/media-grande.tsx:38 fixa a caixa em h-40 (328×208) enquanto as 115 ilustrações vão de 0,35:1 a 2,78:1 — 78 delas preenchem menos de 60% da largura e o agachamento goblet renderiza 88×208 num box de 328. Usar o par largura/altura que data/ilustracoes.json já traz como aspect-ratio do contêiner (ou três faixas: alta ≤0,8 → 3:4, quadrada, larga ≥1,6 → 16:9), aqui e no className h-40 passado a IlustracaoAlternada em media-grande.tsx:68. Aceite: o goblet passa de 88 px para ≥ 180 px de figura e nenhuma ilustração ocupa menos de 60% da largura da caixa. ESTADO EM ef3ad97: components/exercicio/media-grande.tsx:46 `bg-muted/40 h-40 w-full rounded-xl object-contain` e :85 `h-40` passado à IlustracaoAlternada.",
-   "arquivos": [
-    "components/exercicio/media-grande.tsx"
-   ],
-   "esforco": "M",
-   "origens": [
-    {
-     "fonte": "fila.json",
-     "id_original": "l10-ficha-exercicio · imagens-01 · A caixa de altura fixa espreme a ilustração a 27%",
-     "origem": "R5 planejada, não executada (lote reduzido / R6 não coube)"
-    },
-    {
-     "fonte": "fila-agrupada",
-     "id_original": "l10-ficha-exercicio · imagens-01 · A caixa de altura fixa espreme a ilustração a 27%",
-     "origem": "R5 planejada, não executada (lote reduzido / R6 não coube)"
-    },
-    {
-     "fonte": "PROGRESSO B",
-     "id_original": "imagens-01",
-     "origem": "l10-ficha-exercicio",
-     "linha": 7839
-    },
-    {
-     "fonte": "lotes-r5",
-     "id_original": "imagens-01",
-     "origem": "l10-ficha-exercicio"
-    },
-    {
-     "fonte": "analise/imagens",
-     "id_original": "imagens-01",
-     "origem": "análise de 20/09 (lente imagens, severidade alta)"
-    }
-   ],
-   "duplicatas": [],
-   "lote_planejado": "L13"
-  },
   {
    "id": "tela-explorar-fichas-19",
    "secao": "B",
@@ -264,48 +222,6 @@
    "lote_planejado": "L14"
   },
   {
-   "id": "tela-explorar-fichas-18",
-   "secao": "B",
-   "estado": "pendente",
-   "area": "ficha",
-   "titulo": "Chip ativo do segmento Ilustração/Figura a 1,08:1",
-   "detalhe": "components/exercicio/ficha-folha.tsx:321-327 marca o selecionado com 1,16:1 no escuro e 1,08:1 no claro — não se vê qual está ativo. Dar borda (border-border) e/ou fundo com ≥ 3:1 ao chip ativo, além da cor do texto. Aceite: o chip ativo do segmento mede ≥ 3:1 contra o inativo nos dois temas. ESTADO EM ef3ad97: components/exercicio/ficha-folha.tsx:319-325 ativo `bg-background text-foreground shadow-sm` sobre trilho `bg-muted` (sem borda nem 3:1).",
-   "arquivos": [
-    "components/exercicio/ficha-folha.tsx"
-   ],
-   "esforco": "P",
-   "origens": [
-    {
-     "fonte": "fila.json",
-     "id_original": "l10-ficha-exercicio · tela-explorar-fichas-18 · Chip ativo do segmento Ilustração/Figura a 1,08:1",
-     "origem": "R5 planejada, não executada (lote reduzido / R6 não coube)"
-    },
-    {
-     "fonte": "fila-agrupada",
-     "id_original": "l10-ficha-exercicio · tela-explorar-fichas-18 · Chip ativo do segmento Ilustração/Figura a 1,08:1",
-     "origem": "R5 planejada, não executada (lote reduzido / R6 não coube)"
-    },
-    {
-     "fonte": "PROGRESSO B",
-     "id_original": "tela-explorar-fichas-18",
-     "origem": "l10-ficha-exercicio",
-     "linha": 7842
-    },
-    {
-     "fonte": "lotes-r5",
-     "id_original": "tela-explorar-fichas-18",
-     "origem": "l10-ficha-exercicio"
-    },
-    {
-     "fonte": "analise/tela-explorar-fichas",
-     "id_original": "tela-explorar-fichas-18",
-     "origem": "análise de 20/09 (lente tela-explorar-fichas, severidade alta)"
-    }
-   ],
-   "duplicatas": [],
-   "lote_planejado": "L13"
-  },
-  {
    "id": "tela-explorar-fichas-21",
    "secao": "B",
    "estado": "pendente",
@@ -367,7 +283,8 @@
     "tela-explorar-fichas-23",
     "a11y-12 (parte da ficha)"
    ],
-   "lote_planejado": "L14"
+   "lote_planejado": "L14",
+   "nota": "23/09 (L13, rodada 13): a ficha pula de H1 para H3 (medido em /exercicios/agachamento-goblet; igual em main 763598a, ficha-folha.tsx 126/178/199/446). Não feito no L13: a mesma seção serve a folha, onde H2 → H3 está certo; corrigir exige um parâmetro de nível em quatro componentes e mexe em seletores de e2e. Fica aqui, no L14."
   },
   {
    "id": "tela-explorar-fichas-26",
@@ -411,191 +328,6 @@
    ],
    "duplicatas": [],
    "lote_planejado": "L14"
-  },
-  {
-   "id": "imagens-12",
-   "secao": "B",
-   "estado": "pendente",
-   "area": "ficha",
-   "titulo": "As 163 fotos são 3:2 e a ficha as força em quadrado",
-   "detalhe": "Soma imagens-12 e tela-explorar-fichas-25: o quadrado corta justamente o caminho da barra. Em components/exercicios/fotos-ampliaveis.tsx trocar o par de fotos por duas caixas 16:10 lado a lado (160×100) ou empilhadas em 328×205 — cabe no mesmo espaço vertical, mantém o enquadramento original e casa com a caixa proposta no item da mídia grande — e pôr legenda visível sob cada uma ('início' / 'fim'). Aceite: nenhuma foto de execução aparece recortada em quadrado na ficha. ESTADO EM ef3ad97: components/exercicios/fotos-ampliaveis.tsx:49 `aspect-square w-full rounded-lg object-cover`.",
-   "arquivos": [
-    "components/exercicios/fotos-ampliaveis.tsx",
-    "components/exercicio/ficha-folha.tsx"
-   ],
-   "esforco": "P",
-   "origens": [
-    {
-     "fonte": "fila.json",
-     "id_original": "l10-ficha-exercicio · imagens-12 · As 163 fotos são 3:2 e a ficha as força em quadrado",
-     "origem": "R5 planejada, não executada (lote reduzido / R6 não coube)"
-    },
-    {
-     "fonte": "fila-agrupada",
-     "id_original": "l10-ficha-exercicio · imagens-12 · As 163 fotos são 3:2 e a ficha as força em quadrado",
-     "origem": "R5 planejada, não executada (lote reduzido / R6 não coube)"
-    },
-    {
-     "fonte": "PROGRESSO B",
-     "id_original": "imagens-12",
-     "origem": "l10-ficha-exercicio",
-     "linha": 7845
-    },
-    {
-     "fonte": "lotes-r5",
-     "id_original": "imagens-12",
-     "origem": "l10-ficha-exercicio"
-    },
-    {
-     "fonte": "analise/imagens",
-     "id_original": "imagens-12",
-     "origem": "análise de 20/09 (lente imagens, severidade media)"
-    },
-    {
-     "fonte": "analise/tela-explorar-fichas",
-     "id_original": "tela-explorar-fichas-25",
-     "origem": "análise de 20/09 (lente tela-explorar-fichas, severidade baixa)",
-     "nota": "absorvido pelo lote planejado ('Soma …')"
-    }
-   ],
-   "duplicatas": [
-    "tela-explorar-fichas-25"
-   ],
-   "lote_planejado": "L13"
-  },
-  {
-   "id": "imagens-13",
-   "secao": "B",
-   "estado": "pendente",
-   "area": "ficha",
-   "titulo": "Crédito da mídia como faixa sublinhada inteira",
-   "detalhe": "Soma imagens-13 e tela-explorar-fichas-24. Em components/exercicio/media-grande.tsx:70-82 manter o texto em 11 px (§13.8.1) e o crédito exigido pela §15.1.3, mas sublinhar só o que é link: 'Ilustração: <a>Everkinetic</a> · <a>CC BY-SA 3.0</a>' (a licença vira o segundo link, como pede a §15.1.4), com a cor de link do tema e o alvo de 44 px que a classe alvo já dá. Aceite: o crédito continua visível e só as duas palavras clicáveis aparecem sublinhadas. ESTADO EM ef3ad97: components/exercicio/media-grande.tsx:95 `alvo inline-flex items-center underline underline-offset-2` no crédito inteiro.",
-   "arquivos": [
-    "components/exercicio/media-grande.tsx"
-   ],
-   "esforco": "P",
-   "origens": [
-    {
-     "fonte": "fila.json",
-     "id_original": "l10-ficha-exercicio · imagens-13 · Crédito da mídia como faixa sublinhada inteira",
-     "origem": "R5 planejada, não executada (lote reduzido / R6 não coube)"
-    },
-    {
-     "fonte": "fila-agrupada",
-     "id_original": "l10-ficha-exercicio · imagens-13 · Crédito da mídia como faixa sublinhada inteira",
-     "origem": "R5 planejada, não executada (lote reduzido / R6 não coube)"
-    },
-    {
-     "fonte": "PROGRESSO B",
-     "id_original": "imagens-13",
-     "origem": "l10-ficha-exercicio",
-     "linha": 7846
-    },
-    {
-     "fonte": "lotes-r5",
-     "id_original": "imagens-13",
-     "origem": "l10-ficha-exercicio"
-    },
-    {
-     "fonte": "analise/imagens",
-     "id_original": "imagens-13",
-     "origem": "análise de 20/09 (lente imagens, severidade baixa)"
-    },
-    {
-     "fonte": "analise/tela-explorar-fichas",
-     "id_original": "tela-explorar-fichas-24",
-     "origem": "análise de 20/09 (lente tela-explorar-fichas, severidade baixa)",
-     "nota": "absorvido pelo lote planejado ('Soma …')"
-    }
-   ],
-   "duplicatas": [
-    "tela-explorar-fichas-24"
-   ],
-   "lote_planejado": "L13"
-  },
-  {
-   "id": "performance-13",
-   "secao": "B",
-   "estado": "pendente",
-   "area": "ficha",
-   "titulo": "Segundo quadro da ilustração baixado antes da primeira pintura",
-   "detalhe": "Em components/exercicio/ilustracao-alternada.tsx carregar o segundo quadro com loading=\"lazy\" (ou só quando a animação for começar) — ele não precisa chegar antes do primeiro paint. Aceite: a ficha faz uma requisição de ilustração antes do LCP, não duas. ESTADO EM ef3ad97: components/exercicio/ilustracao-alternada.tsx:90-104 — as duas posições são <img> absolutas na mesma caixa, ambas loading='lazy' (L4); como as duas estão no viewport, a segunda baixa junto com a primeira. Aceite ainda não cumprido.",
-   "arquivos": [
-    "components/exercicio/ilustracao-alternada.tsx"
-   ],
-   "esforco": "P",
-   "origens": [
-    {
-     "fonte": "fila.json",
-     "id_original": "l10-ficha-exercicio · performance-13 · Segundo quadro da ilustração baixado antes da primeira pintura",
-     "origem": "R5 planejada, não executada (lote reduzido / R6 não coube)"
-    },
-    {
-     "fonte": "fila-agrupada",
-     "id_original": "l10-ficha-exercicio · performance-13 · Segundo quadro da ilustração baixado antes da primeira pintura",
-     "origem": "R5 planejada, não executada (lote reduzido / R6 não coube)"
-    },
-    {
-     "fonte": "PROGRESSO B",
-     "id_original": "performance-13",
-     "origem": "l10-ficha-exercicio",
-     "linha": 7847
-    },
-    {
-     "fonte": "lotes-r5",
-     "id_original": "performance-13",
-     "origem": "l10-ficha-exercicio"
-    },
-    {
-     "fonte": "analise/performance",
-     "id_original": "performance-13",
-     "origem": "análise de 20/09 (lente performance, severidade media)"
-    }
-   ],
-   "duplicatas": [],
-   "lote_planejado": "L13"
-  },
-  {
-   "id": "ux-heuristicas-21",
-   "secao": "B",
-   "estado": "pendente",
-   "area": "ficha",
-   "titulo": "A ilustração inteira é o botão de pausa",
-   "detalhe": "components/exercicio/ilustracao-alternada.tsx:60-75 mistura conteúdo e ação: quem toca na figura para a animação, quando o que tenta abrir é o 'Como fazer'. Separar: a figura com aria-label 'Levantamento terra, posição 1 de 2' e a pausa como botão próprio no canto da imagem (44×44, aria-label 'Parar a animação' / 'Voltar a alternar'). Aceite: tocar no meio da ilustração abre o 'Como fazer' e só o botão do canto pausa. ESTADO EM ef3ad97: components/exercicio/ilustracao-alternada.tsx:121-138 — a figura inteira é o <button> de pausa (aria-label 'Parar em uma posição').",
-   "arquivos": [
-    "components/exercicio/ilustracao-alternada.tsx"
-   ],
-   "esforco": "P",
-   "origens": [
-    {
-     "fonte": "fila.json",
-     "id_original": "l10-ficha-exercicio · ux-heuristicas-21 · A ilustração inteira é o botão de pausa",
-     "origem": "R5 planejada, não executada (lote reduzido / R6 não coube)"
-    },
-    {
-     "fonte": "fila-agrupada",
-     "id_original": "l10-ficha-exercicio · ux-heuristicas-21 · A ilustração inteira é o botão de pausa",
-     "origem": "R5 planejada, não executada (lote reduzido / R6 não coube)"
-    },
-    {
-     "fonte": "PROGRESSO B",
-     "id_original": "ux-heuristicas-21",
-     "origem": "l10-ficha-exercicio",
-     "linha": 7848
-    },
-    {
-     "fonte": "lotes-r5",
-     "id_original": "ux-heuristicas-21",
-     "origem": "l10-ficha-exercicio"
-    },
-    {
-     "fonte": "analise/ux-heuristicas",
-     "id_original": "ux-heuristicas-21",
-     "origem": "análise de 20/09 (lente ux-heuristicas, severidade baixa)"
-    }
-   ],
-   "duplicatas": [],
-   "lote_planejado": "L13"
   },
   {
    "id": "a11y-01",
@@ -4283,114 +4015,6 @@
    "lote_planejado": "L25"
   },
   {
-   "id": "tela-explorar-fichas-08",
-   "secao": "B",
-   "estado": "pendente",
-   "area": "explorar",
-   "area_original": "tela-explorar-fichas",
-   "titulo": "Linhas da vitrine alternam duas alturas (72 × 92 px) conforme a coleção tem subtítulo",
-   "detalhe": "PROBLEMA (Explorar — vitrine): EVIDÊNCIA (análise, /tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-explorar-fichas/tela-explorar-fichas-08.png): as linhas de coleção medem 72 px sem subtítulo e 92 px com, alternando dentro da mesma seção. PROPOSTA DA ANÁLISE: reservar a linha do subtítulo (min-h) ou não mostrar subtítulo na vitrine. FAZER: em components/colecoes/linha-colecao.tsx:107-111 reservar a altura de uma linha de subtítulo (text-xs, line-clamp-1) em toda linha da vitrine, com ou sem texto — ou tirar o subtítulo da vitrine (fica na tela da coleção e na busca); escolher uma e registrar na SPEC. Na busca, onde o L12 acrescenta a linha do motivo ('contém …'), a regra vale para a lista inteira. ACEITE: e2e em /explorar a 360×740 nos dois temas: dentro de cada seção de 'Escolhas para você' todas as linhas [data-colecao] têm a mesma altura (±1 px, getBoundingClientRect). ESTADO EM ef3ad97: components/colecoes/linha-colecao.tsx:107-111 subtítulo condicional sem altura reservada.",
-   "arquivos": [
-    "components/colecoes/linha-colecao.tsx"
-   ],
-   "esforco": "P",
-   "origens": [
-    {
-     "fonte": "analise/lotes-propostos#descartados",
-     "id_original": "tela-explorar-fichas-08",
-     "origem": "R5 análise",
-     "nota": "motivo do descarte no planejamento: Reservar a linha do subtítulo é o line-clamp já agendado no L3."
-    },
-    {
-     "fonte": "analise/tela-explorar-fichas",
-     "id_original": "tela-explorar-fichas-08",
-     "origem": "análise de 20/09 (lente tela-explorar-fichas, severidade baixa)"
-    },
-    {
-     "fonte": "triagem-26",
-     "id_original": "tela-explorar-fichas-08",
-     "origem": "triagem R10 (22/09): pendente — O line-clamp do L3 (a que o descarte o mandou) cuidou do texto cortado, não da altura: em ef3ad97 components/colecoes/linha-colecao.tsx:107-111 só monta o subtítulo quando ele existe ('colecao.subtitulo ? … : null'), sem altura reservada — as linhas da mesma s…"
-    }
-   ],
-   "duplicatas": [],
-   "subsecao": "descartados-R5-triados",
-   "importado_na_rodada": 3,
-   "lote_planejado": "L13"
-  },
-  {
-   "id": "tela-explorar-fichas-13",
-   "secao": "B",
-   "estado": "pendente",
-   "area": "explorar",
-   "area_original": "tela-explorar-fichas",
-   "titulo": "Capa do plano sem foto é um retângulo escuro, sem o ícone que o CardCapa promete",
-   "detalhe": "PROBLEMA (Coleção de plano, /explorar/plano/corrida): EVIDÊNCIA (análise, /tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-explorar-fichas/tela-explorar-fichas-13.png): no escuro a capa do plano de corrida é um retângulo quase preto, sem foto e sem o ícone que o componente promete ('Sem foto, a capa é um gradiente com o ícone da própria tela', components/ui/card-capa.tsx:14). PROPOSTA DA ANÁLISE: desenhar o fallback de verdade (ícone grande, gradiente com a cor do plano) — a outra saída, uma foto de corrida em assets/, contraria a §15. FAZER: em components/colecoes/tela-colecao.tsx:50-56 passar ao CardCapa o ícone do tipo da coleção (exportar ICONE_DO_TIPO de components/colecoes/linha-colecao.tsx:23-29 — plano = CalendarRange) em tamanho de capa (≥ 48 px); o gradiente (card-capa.tsx:79) já existe. Vale para toda coleção sem capa. ACEITE: e2e em /explorar/plano/corrida a 360×740 nos dois temas: dentro de [data-capa] há um svg visível de ≥ 48 px com contraste ≥ 3:1 contra o fundo do gradiente (SC 1.4.11, lido pelo canvas como a varredura); a captura 07-colecao muda só na capa. ESTADO EM ef3ad97: tela-colecao.tsx:50-56 sem 'icone'; lib/colecoes.ts:597 capa null; captura base-ef3ad97/07-colecao-escuro.png sem ícone.",
-   "arquivos": [
-    "components/colecoes/tela-colecao.tsx",
-    "components/colecoes/linha-colecao.tsx"
-   ],
-   "esforco": "P",
-   "origens": [
-    {
-     "fonte": "analise/lotes-propostos#descartados",
-     "id_original": "tela-explorar-fichas-13",
-     "origem": "R5 análise",
-     "nota": "motivo do descarte no planejamento: A alternativa 'dar uma capa de corrida a assets/' traria imagem de terceiro fora da §15; o que sobra (fallback desenhado com ícone e cor do plano) já entra pelo tela-explorar-fichas-06 no lote 5."
-    },
-    {
-     "fonte": "analise/tela-explorar-fichas",
-     "id_original": "tela-explorar-fichas-13",
-     "origem": "análise de 20/09 (lente tela-explorar-fichas, severidade media)"
-    },
-    {
-     "fonte": "triagem-26",
-     "id_original": "tela-explorar-fichas-13",
-     "origem": "triagem R10 (22/09): pendente — O -06 do lote 5 (L9) deu ícone à capa PEQUENA da linha (components/colecoes/linha-colecao.tsx:19-29, ICONE_DO_TIPO), não à capa grande da tela da coleção. Em ef3ad97 components/colecoes/tela-colecao.tsx:50-56 chama o CardCapa sem a prop 'icone', e o CardCapa s…"
-    }
-   ],
-   "duplicatas": [],
-   "subsecao": "descartados-R5-triados",
-   "importado_na_rodada": 3,
-   "lote_planejado": "L13"
-  },
-  {
-   "id": "tela-explorar-fichas-11",
-   "secao": "B",
-   "estado": "pendente",
-   "area": "explorar",
-   "area_original": "tela-explorar-fichas",
-   "titulo": "Coleção de plano é só um cartão: sem as semanas do plano nem a barra de progresso",
-   "detalhe": "PROBLEMA (Coleção de plano, /explorar/plano/corrida): EVIDÊNCIA (análise, /tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-explorar-fichas/tela-explorar-fichas-11.png): scrollHeight = 740 e o texto inteiro da tela é o cartão ('5 km sem parar em 12 semanas … Fazer a sessão da semana'); ~700 px vazios porque a lista é suprimida para plano (tela-colecao.tsx:80). PROPOSTA DA ANÁLISE: as 12 semanas em linhas (feita / atual / a fazer) ou pelo menos o que a sessão desta semana tem. FAZER: abaixo do cartão, para coleção de plano: (1) a posição 'Semana X de N' com a barra das semanas CONCLUÍDAS (a mesma leitura do card de desafio, §22.2 item 8), como pede a §13.4; (2) a lista das semanas/estágios do plano saída de data/cardio.json — corrida.semanas[].descricao, corda.semanas[] (faixa de semanas, blocos, saltos), barra_fixa.semanas[] (assistência, por_sessao) —, cada linha com o estado feita/atual/a fazer derivado de perfil.semana_corrida/semana_corda/semana_fixa, a atual com aria-current='step' e o link da sessão da semana (o href com ?semana= que já existe, lib/colecoes.ts:599). Função pura nova em lib/colecoes.ts (ex.: semanasDoPlano(plano, semanaAtual)) com unitário; nenhum texto de conteúdo fora do JSON. ACEITE: unitário: semanasDoPlano('corrida', 3) devolve 12 linhas, 2 feitas, a 3ª atual, com a descrição igual à de data/cardio.json; e2e a 360×740 em /explorar/plano/corrida e /explorar/plano/corda nos dois temas: progressbar com aria-valuenow = semanas concluídas, uma linha por semana/estágio, a atual com aria-current, scrollHeight > 740 e nada vaza a largura. ESTADO EM ef3ad97: components/colecoes/tela-colecao.tsx:80-87 'dadosDoPlano === null && ids.length > 0 ? <ListaDaColecao…/> : null'; a capa diz só '12 semanas'.",
-   "arquivos": [
-    "components/colecoes/tela-colecao.tsx",
-    "lib/colecoes.ts",
-    "lib/colecoes.test.ts"
-   ],
-   "esforco": "M",
-   "origens": [
-    {
-     "fonte": "analise/lotes-propostos#descartados",
-     "id_original": "tela-explorar-fichas-11",
-     "origem": "R5 análise",
-     "nota": "motivo do descarte no planejamento: Dar conteúdo à coleção de plano precisa de components/colecoes/tela-colecao.tsx, que nenhum lote deste round possui; é 'alta' e deve abrir a próxima rodada de explorar-fichas."
-    },
-    {
-     "fonte": "analise/tela-explorar-fichas",
-     "id_original": "tela-explorar-fichas-11",
-     "origem": "análise de 20/09 (lente tela-explorar-fichas, severidade alta)"
-    },
-    {
-     "fonte": "triagem-26",
-     "id_original": "tela-explorar-fichas-11",
-     "origem": "triagem R10 (22/09): pendente — O defeito continua: components/colecoes/tela-colecao.tsx:80-87 só monta a lista quando 'dadosDoPlano === null' — a coleção de plano é um cartão e o resto da tela vazio (ef3ad97, /tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/u…"
-    }
-   ],
-   "duplicatas": [],
-   "subsecao": "descartados-R5-triados",
-   "importado_na_rodada": 3,
-   "lote_planejado": "L13"
-  },
-  {
    "id": "tela-relatorio-corpo-calendario-07",
    "secao": "B",
    "estado": "pendente",
@@ -4970,36 +4594,6 @@
    "importado_na_rodada": 3
   },
   {
-   "id": "visual-11",
-   "secao": "B",
-   "estado": "pendente",
-   "area": "explorar",
-   "area_original": "visual",
-   "titulo": "Linha de coleção com raios no canto de cima e chevron no meio: duas marcas desalinhadas",
-   "detalhe": "PROBLEMA (Explorar / coleções — linha da lista): EVIDÊNCIA (análise, /tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/visual/visual-07-linha-lista-claro.png e -escuro.png): na linha 'Treino A' (328×73) os três raios têm centro a 18 px do topo e o chevron a 36 px — 18 px de desalinhamento na mesma coluna, com a marca mais pesada (laranja) fora do centro. PROPOSTA DA ANÁLISE: uma pilha única centrada ou levar os raios para a linha de meta, junto de 'N exercícios · ~M min'. FAZER: em components/colecoes/linha-colecao.tsx:84-90 tirar os <Raios> da linha do título e pô-los na linha de meta (a que o L12 põe por último), deixando a coluna direita só com o chevron, centrado; cor dos raios na lista inalterada (sobre a capa eles são brancos por causa da foto — não é o mesmo contexto). Aplicar sobre o L12 publicado. ACEITE: e2e a 360×740 em /explorar (vitrine e resultado de busca — as duas únicas telas que montam LinhaColecao): nenhuma marca no canto superior direito das linhas; |centro vertical do chevron − centro da linha| ≤ 2 px; os raios ficam na mesma linha do texto 'exercícios'. ESTADO EM ef3ad97: linha-colecao.tsx:84-90 (raios ao lado do título) e :115 (chevron).",
-   "arquivos": [
-    "components/colecoes/linha-colecao.tsx"
-   ],
-   "esforco": "P",
-   "origens": [
-    {
-     "fonte": "analise/visual",
-     "id_original": "visual-11",
-     "origem": "análise de 20/09 (lente visual, severidade media)"
-    },
-    {
-     "fonte": "censo-analise",
-     "id_original": "visual-11",
-     "origem": "censo R10 (22/09): sem destino no ledger v2 → pendente, item novo",
-     "nota": "grupo de origem: fora de lote"
-    }
-   ],
-   "duplicatas": [],
-   "lote_planejado": "L13",
-   "subsecao": "censo-R10",
-   "importado_na_rodada": 3
-  },
-  {
    "id": "OBS-porcentagem-com-espaco",
    "secao": "B",
    "estado": "pendente",
@@ -5057,6 +4651,71 @@
    "subsecao": "censo-R10-observacoes",
    "importado_na_rodada": 3,
    "lote_planejado": "L14"
+  },
+  {
+   "id": "C-l13-aceite-lcp-vs-ordem",
+   "secao": "C",
+   "estado": "pendente",
+   "area": "ficha",
+   "titulo": "Aceite do item 4 do L13 fala em LCP; o e2e mede a ordem dos pedidos",
+   "detalhe": "PROBLEMA: SPEC §22.13 item 4 diz que o quadro 2 é pedido depois do LCP; o e2e (e2e/ultraloop-l13.spec.ts:348) mede que o pedido do quadro 2 começa depois do fim do pedido do quadro 1. FAZER: medir o LCP de verdade (PerformanceObserver largest-contentful-paint) na página da ficha sem a mídia mascarada, ou reescrever o aceite como ordem dos pedidos. ACEITE: aceite e teste dizem a mesma coisa. ESTADO EM a0bcfcf: não feito — mantido de propósito: a ordem é o mecanismo, e o LCP com a mídia mascarada não se mede pela captura.",
+   "arquivos": [
+    "SPEC.md",
+    "e2e/ultraloop-l13.spec.ts"
+   ],
+   "esforco": "P",
+   "origens": [
+    {
+     "fonte": "PROGRESSO (L13, rodada 13)",
+     "id_original": "aceite do item 4 fala em LCP",
+     "origem": "menor registrado pelo construtor e pelas auditorias do L13 (r13/l13/auditoria-2-*/veredito.json)"
+    }
+   ],
+   "duplicatas": [],
+   "nota": "L13 (rodada 13): não feito, motivo registrado no PROGRESSO."
+  },
+  {
+   "id": "C-plano-progresso-repete-desafio",
+   "secao": "C",
+   "estado": "pendente",
+   "area": "explorar",
+   "titulo": "Bloco de progresso das semanas do plano repete o do card de desafio",
+   "detalhe": "PROBLEMA: na tela do plano (Explorar → Planos → corrida/corda/barra fixa), o bloco 'Semanas do plano' (Semana N de 12 · K concluídas + barra) repete a informação do card de desafio logo acima. FAZER: decidir com o dono se o card de desafio some da tela do plano ou se o bloco fica só com a lista das semanas. ACEITE: a mesma informação aparece uma vez na rolagem. ESTADO EM a0bcfcf: não feito — é a informação pedida no item 9 da tela do plano (SPEC §22.13 item 9).",
+   "arquivos": [
+    "components/colecoes/tela-colecao.tsx"
+   ],
+   "esforco": "P",
+   "origens": [
+    {
+     "fonte": "PROGRESSO (L13, rodada 13)",
+     "id_original": "bloco de progresso das semanas repete o do card de desafio",
+     "origem": "menor registrado pelo construtor e pelas auditorias do L13 (r13/l13/auditoria-2-*/veredito.json)"
+    }
+   ],
+   "duplicatas": [],
+   "nota": "L13 (rodada 13): não feito, registrado no PROGRESSO."
+  },
+  {
+   "id": "C-busca-corda-capa-icone",
+   "secao": "C",
+   "estado": "pendente",
+   "area": "explorar",
+   "titulo": "Na busca por 'corda', 'Corda: 5 estágios' aparece com o ícone no lugar da foto",
+   "detalhe": "PROBLEMA: na busca 'corda' do Explorar, a linha 'Corda: 5 estágios' mostra o ícone de calendário, enquanto a vitrine (seção Planos) mostra a foto; as linhas 'Corda' e 'Corda de pular com rolamento' já usam essa foto na seção 'Coleções encontradas'. FAZER: decidir se a regra de capa sem repetição (§22.9 item 7, lib/colecoes.ts:518-535) vale entre seções da busca. ACEITE: o mesmo plano tem a mesma capa na vitrine e na busca, ou a SPEC diz por que não. ESTADO EM a0bcfcf: não feito — comportamento anterior ao L13, só anotado.",
+   "arquivos": [
+    "lib/colecoes.ts",
+    "lib/colecoes.test.ts"
+   ],
+   "esforco": "P",
+   "origens": [
+    {
+     "fonte": "PROGRESSO (L13, rodada 13)",
+     "id_original": "busca por 'corda' com o ícone",
+     "origem": "menor registrado pelo construtor e pelas auditorias do L13 (r13/l13/auditoria-2-*/veredito.json)"
+    }
+   ],
+   "duplicatas": [],
+   "nota": "L13 (rodada 13): anterior ao lote, só anotado."
   }
  ],
  "resolvidos": [
@@ -8275,6 +7934,369 @@
      "origem": "observação antiga do processo"
     }
    ]
+  },
+  {
+   "id": "imagens-01",
+   "secao": "B",
+   "estado": "publicado",
+   "sha": "a0bcfcf",
+   "pr": "#21",
+   "lote": "L13",
+   "rodada": 13,
+   "titulo": "A caixa de altura fixa espreme a ilustração a 27%",
+   "prova": "SPEC.md:2335 (§22.13 item 1); components/exercicio/media-grande.tsx e lib/midia.ts (caixa na proporção do arquivo, teto na coluna); lib/midia-l13.test.ts; e2e/ultraloop-l13.spec.ts:165 ('o goblet passa de 180 px de figura; ≥ 60 % da coluna ou no teto') e :185 (folha)",
+   "origens": [
+    {
+     "fonte": "fila.json",
+     "id_original": "l10-ficha-exercicio · imagens-01 · A caixa de altura fixa espreme a ilustração a 27%",
+     "origem": "R5 planejada, não executada (lote reduzido / R6 não coube)"
+    },
+    {
+     "fonte": "fila-agrupada",
+     "id_original": "l10-ficha-exercicio · imagens-01 · A caixa de altura fixa espreme a ilustração a 27%",
+     "origem": "R5 planejada, não executada (lote reduzido / R6 não coube)"
+    },
+    {
+     "fonte": "PROGRESSO B",
+     "id_original": "imagens-01",
+     "origem": "l10-ficha-exercicio",
+     "linha": 7839
+    },
+    {
+     "fonte": "lotes-r5",
+     "id_original": "imagens-01",
+     "origem": "l10-ficha-exercicio"
+    },
+    {
+     "fonte": "analise/imagens",
+     "id_original": "imagens-01",
+     "origem": "análise de 20/09 (lente imagens, severidade alta)"
+    }
+   ]
+  },
+  {
+   "id": "tela-explorar-fichas-18",
+   "secao": "B",
+   "estado": "publicado",
+   "sha": "a0bcfcf",
+   "pr": "#21",
+   "lote": "L13",
+   "rodada": 13,
+   "titulo": "Chip ativo do segmento Ilustração/Figura a 1,08:1",
+   "prova": "SPEC.md:2472 (§22.13 item 6); chip ativo com contorno de 2 px; e2e/ultraloop-l13.spec.ts:477 (≥ 3:1 contra o inativo e texto ≥ 4,5:1, dois temas)",
+   "origens": [
+    {
+     "fonte": "fila.json",
+     "id_original": "l10-ficha-exercicio · tela-explorar-fichas-18 · Chip ativo do segmento Ilustração/Figura a 1,08:1",
+     "origem": "R5 planejada, não executada (lote reduzido / R6 não coube)"
+    },
+    {
+     "fonte": "fila-agrupada",
+     "id_original": "l10-ficha-exercicio · tela-explorar-fichas-18 · Chip ativo do segmento Ilustração/Figura a 1,08:1",
+     "origem": "R5 planejada, não executada (lote reduzido / R6 não coube)"
+    },
+    {
+     "fonte": "PROGRESSO B",
+     "id_original": "tela-explorar-fichas-18",
+     "origem": "l10-ficha-exercicio",
+     "linha": 7842
+    },
+    {
+     "fonte": "lotes-r5",
+     "id_original": "tela-explorar-fichas-18",
+     "origem": "l10-ficha-exercicio"
+    },
+    {
+     "fonte": "analise/tela-explorar-fichas",
+     "id_original": "tela-explorar-fichas-18",
+     "origem": "análise de 20/09 (lente tela-explorar-fichas, severidade alta)"
+    }
+   ]
+  },
+  {
+   "id": "imagens-12",
+   "secao": "B",
+   "estado": "publicado",
+   "sha": "a0bcfcf",
+   "pr": "#21",
+   "lote": "L13",
+   "rodada": 13,
+   "titulo": "As 163 fotos são 3:2 e a ficha as força em quadrado",
+   "prova": "SPEC.md:2372 (§22.13 item 2); components/exercicios/fotos-ampliaveis.tsx (fotos em object-contain, legenda Início/Fim); lib/midia-faixa-l13.test.ts (faixa do player e capa em object-contain); e2e/ultraloop-l13.spec.ts:284, :291 e :1086 (as 12 fotos 2:3 inteiras)",
+   "origens": [
+    {
+     "fonte": "fila.json",
+     "id_original": "l10-ficha-exercicio · imagens-12 · As 163 fotos são 3:2 e a ficha as força em quadrado",
+     "origem": "R5 planejada, não executada (lote reduzido / R6 não coube)"
+    },
+    {
+     "fonte": "fila-agrupada",
+     "id_original": "l10-ficha-exercicio · imagens-12 · As 163 fotos são 3:2 e a ficha as força em quadrado",
+     "origem": "R5 planejada, não executada (lote reduzido / R6 não coube)"
+    },
+    {
+     "fonte": "PROGRESSO B",
+     "id_original": "imagens-12",
+     "origem": "l10-ficha-exercicio",
+     "linha": 7845
+    },
+    {
+     "fonte": "lotes-r5",
+     "id_original": "imagens-12",
+     "origem": "l10-ficha-exercicio"
+    },
+    {
+     "fonte": "analise/imagens",
+     "id_original": "imagens-12",
+     "origem": "análise de 20/09 (lente imagens, severidade media)"
+    },
+    {
+     "fonte": "analise/tela-explorar-fichas",
+     "id_original": "tela-explorar-fichas-25",
+     "origem": "análise de 20/09 (lente tela-explorar-fichas, severidade baixa)",
+     "nota": "absorvido pelo lote planejado ('Soma …')"
+    }
+   ],
+   "duplicatas": [
+    "tela-explorar-fichas-25"
+   ]
+  },
+  {
+   "id": "imagens-13",
+   "secao": "B",
+   "estado": "publicado",
+   "sha": "a0bcfcf",
+   "pr": "#21",
+   "lote": "L13",
+   "rodada": 13,
+   "titulo": "Crédito da mídia como faixa sublinhada inteira",
+   "prova": "SPEC.md:2395 (§22.13 item 3); crédito com só autor e licença sublinhados; e2e/ultraloop-l13.spec.ts:305 ('Ilustração: <autor> · <licença>')",
+   "origens": [
+    {
+     "fonte": "fila.json",
+     "id_original": "l10-ficha-exercicio · imagens-13 · Crédito da mídia como faixa sublinhada inteira",
+     "origem": "R5 planejada, não executada (lote reduzido / R6 não coube)"
+    },
+    {
+     "fonte": "fila-agrupada",
+     "id_original": "l10-ficha-exercicio · imagens-13 · Crédito da mídia como faixa sublinhada inteira",
+     "origem": "R5 planejada, não executada (lote reduzido / R6 não coube)"
+    },
+    {
+     "fonte": "PROGRESSO B",
+     "id_original": "imagens-13",
+     "origem": "l10-ficha-exercicio",
+     "linha": 7846
+    },
+    {
+     "fonte": "lotes-r5",
+     "id_original": "imagens-13",
+     "origem": "l10-ficha-exercicio"
+    },
+    {
+     "fonte": "analise/imagens",
+     "id_original": "imagens-13",
+     "origem": "análise de 20/09 (lente imagens, severidade baixa)"
+    },
+    {
+     "fonte": "analise/tela-explorar-fichas",
+     "id_original": "tela-explorar-fichas-24",
+     "origem": "análise de 20/09 (lente tela-explorar-fichas, severidade baixa)",
+     "nota": "absorvido pelo lote planejado ('Soma …')"
+    }
+   ],
+   "duplicatas": [
+    "tela-explorar-fichas-24"
+   ]
+  },
+  {
+   "id": "performance-13",
+   "secao": "B",
+   "estado": "publicado",
+   "sha": "a0bcfcf",
+   "pr": "#21",
+   "lote": "L13",
+   "rodada": 13,
+   "titulo": "Segundo quadro da ilustração baixado antes da primeira pintura",
+   "prova": "SPEC.md:2406 (§22.13 item 4); components/exercicio/ilustracao-alternada.tsx (quadro 2 pedido depois do quadro 1; troca só com o quadro 2 carregado; onError vira imagem parada) e key nos quadros em components/exercicio/media-grande.tsx e ficha-folha.tsx; e2e/ultraloop-l13.spec.ts:348, :369, :907, :982, :1034 e :1058",
+   "origens": [
+    {
+     "fonte": "fila.json",
+     "id_original": "l10-ficha-exercicio · performance-13 · Segundo quadro da ilustração baixado antes da primeira pintura",
+     "origem": "R5 planejada, não executada (lote reduzido / R6 não coube)"
+    },
+    {
+     "fonte": "fila-agrupada",
+     "id_original": "l10-ficha-exercicio · performance-13 · Segundo quadro da ilustração baixado antes da primeira pintura",
+     "origem": "R5 planejada, não executada (lote reduzido / R6 não coube)"
+    },
+    {
+     "fonte": "PROGRESSO B",
+     "id_original": "performance-13",
+     "origem": "l10-ficha-exercicio",
+     "linha": 7847
+    },
+    {
+     "fonte": "lotes-r5",
+     "id_original": "performance-13",
+     "origem": "l10-ficha-exercicio"
+    },
+    {
+     "fonte": "analise/performance",
+     "id_original": "performance-13",
+     "origem": "análise de 20/09 (lente performance, severidade media)"
+    }
+   ]
+  },
+  {
+   "id": "ux-heuristicas-21",
+   "secao": "B",
+   "estado": "publicado",
+   "sha": "a0bcfcf",
+   "pr": "#21",
+   "lote": "L13",
+   "rodada": 13,
+   "titulo": "A ilustração inteira é o botão de pausa",
+   "prova": "SPEC.md:2441 (§22.13 item 5); components/exercicio/ilustracao-alternada.tsx:262 (botão de pausa 44×44 no canto) e :220 (data-figura='abre', anel interno em app/globals.css); e2e/ultraloop-l13.spec.ts:398, :437, :460, :829, :844 e :864",
+   "origens": [
+    {
+     "fonte": "fila.json",
+     "id_original": "l10-ficha-exercicio · ux-heuristicas-21 · A ilustração inteira é o botão de pausa",
+     "origem": "R5 planejada, não executada (lote reduzido / R6 não coube)"
+    },
+    {
+     "fonte": "fila-agrupada",
+     "id_original": "l10-ficha-exercicio · ux-heuristicas-21 · A ilustração inteira é o botão de pausa",
+     "origem": "R5 planejada, não executada (lote reduzido / R6 não coube)"
+    },
+    {
+     "fonte": "PROGRESSO B",
+     "id_original": "ux-heuristicas-21",
+     "origem": "l10-ficha-exercicio",
+     "linha": 7848
+    },
+    {
+     "fonte": "lotes-r5",
+     "id_original": "ux-heuristicas-21",
+     "origem": "l10-ficha-exercicio"
+    },
+    {
+     "fonte": "analise/ux-heuristicas",
+     "id_original": "ux-heuristicas-21",
+     "origem": "análise de 20/09 (lente ux-heuristicas, severidade baixa)"
+    }
+   ]
+  },
+  {
+   "id": "tela-explorar-fichas-08",
+   "secao": "B",
+   "estado": "publicado",
+   "sha": "a0bcfcf",
+   "pr": "#21",
+   "lote": "L13",
+   "rodada": 13,
+   "titulo": "Linhas da vitrine alternam duas alturas (72 × 92 px) conforme a coleção tem subtítulo",
+   "prova": "SPEC.md:2481 (§22.13 item 7); components/colecoes/linha-colecao.tsx (reserva do subtítulo); lib/colecoes-l13.test.ts; e2e/ultraloop-l13.spec.ts:517 (todas as linhas de cada seção, dois temas)",
+   "origens": [
+    {
+     "fonte": "analise/lotes-propostos#descartados",
+     "id_original": "tela-explorar-fichas-08",
+     "origem": "R5 análise",
+     "nota": "motivo do descarte no planejamento: Reservar a linha do subtítulo é o line-clamp já agendado no L3."
+    },
+    {
+     "fonte": "analise/tela-explorar-fichas",
+     "id_original": "tela-explorar-fichas-08",
+     "origem": "análise de 20/09 (lente tela-explorar-fichas, severidade baixa)"
+    },
+    {
+     "fonte": "triagem-26",
+     "id_original": "tela-explorar-fichas-08",
+     "origem": "triagem R10 (22/09): pendente — O line-clamp do L3 (a que o descarte o mandou) cuidou do texto cortado, não da altura: em ef3ad97 components/colecoes/linha-colecao.tsx:107-111 só monta o subtítulo quando ele existe ('colecao.subtitulo ? … : null'), sem altura reservada — as linhas da mesma s…"
+    }
+   ]
+  },
+  {
+   "id": "tela-explorar-fichas-13",
+   "secao": "B",
+   "estado": "publicado",
+   "sha": "a0bcfcf",
+   "pr": "#21",
+   "lote": "L13",
+   "rodada": 13,
+   "titulo": "Capa do plano sem foto é um retângulo escuro, sem o ícone que o CardCapa promete",
+   "prova": "SPEC.md:2494 (§22.13 item 8); CardCapa com iconeNoAlto só na tela da coleção; e2e/ultraloop-l13.spec.ts:634 (corrida: ícone na capa)",
+   "origens": [
+    {
+     "fonte": "analise/lotes-propostos#descartados",
+     "id_original": "tela-explorar-fichas-13",
+     "origem": "R5 análise",
+     "nota": "motivo do descarte no planejamento: A alternativa 'dar uma capa de corrida a assets/' traria imagem de terceiro fora da §15; o que sobra (fallback desenhado com ícone e cor do plano) já entra pelo tela-explorar-fichas-06 no lote 5."
+    },
+    {
+     "fonte": "analise/tela-explorar-fichas",
+     "id_original": "tela-explorar-fichas-13",
+     "origem": "análise de 20/09 (lente tela-explorar-fichas, severidade media)"
+    },
+    {
+     "fonte": "triagem-26",
+     "id_original": "tela-explorar-fichas-13",
+     "origem": "triagem R10 (22/09): pendente — O -06 do lote 5 (L9) deu ícone à capa PEQUENA da linha (components/colecoes/linha-colecao.tsx:19-29, ICONE_DO_TIPO), não à capa grande da tela da coleção. Em ef3ad97 components/colecoes/tela-colecao.tsx:50-56 chama o CardCapa sem a prop 'icone', e o CardCapa s…"
+    }
+   ]
+  },
+  {
+   "id": "tela-explorar-fichas-11",
+   "secao": "B",
+   "estado": "publicado",
+   "sha": "a0bcfcf",
+   "pr": "#21",
+   "lote": "L13",
+   "rodada": 13,
+   "titulo": "Coleção de plano é só um cartão: sem as semanas do plano nem a barra de progresso",
+   "prova": "SPEC.md:2506 (§22.13 item 9); components/colecoes/tela-colecao.tsx (Semanas do plano) e lib/colecoes.ts (semanasDoPlano); lib/colecoes-l13.test.ts; e2e/ultraloop-l13.spec.ts:634 e :696 (corrida e corda)",
+   "origens": [
+    {
+     "fonte": "analise/lotes-propostos#descartados",
+     "id_original": "tela-explorar-fichas-11",
+     "origem": "R5 análise",
+     "nota": "motivo do descarte no planejamento: Dar conteúdo à coleção de plano precisa de components/colecoes/tela-colecao.tsx, que nenhum lote deste round possui; é 'alta' e deve abrir a próxima rodada de explorar-fichas."
+    },
+    {
+     "fonte": "analise/tela-explorar-fichas",
+     "id_original": "tela-explorar-fichas-11",
+     "origem": "análise de 20/09 (lente tela-explorar-fichas, severidade alta)"
+    },
+    {
+     "fonte": "triagem-26",
+     "id_original": "tela-explorar-fichas-11",
+     "origem": "triagem R10 (22/09): pendente — O defeito continua: components/colecoes/tela-colecao.tsx:80-87 só monta a lista quando 'dadosDoPlano === null' — a coleção de plano é um cartão e o resto da tela vazio (ef3ad97, /tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/u…"
+    }
+   ]
+  },
+  {
+   "id": "visual-11",
+   "secao": "B",
+   "estado": "publicado",
+   "sha": "a0bcfcf",
+   "pr": "#21",
+   "lote": "L13",
+   "rodada": 13,
+   "titulo": "Linha de coleção com raios no canto de cima e chevron no meio: duas marcas desalinhadas",
+   "prova": "SPEC.md:2525 (§22.13 item 10); components/colecoes/linha-colecao.tsx (raios abrindo a meta, só o chevron à direita); e2e/ultraloop-l13.spec.ts:597 e :620 (vitrine e busca)",
+   "origens": [
+    {
+     "fonte": "analise/visual",
+     "id_original": "visual-11",
+     "origem": "análise de 20/09 (lente visual, severidade media)"
+    },
+    {
+     "fonte": "censo-analise",
+     "id_original": "visual-11",
+     "origem": "censo R10 (22/09): sem destino no ledger v2 → pendente, item novo",
+     "nota": "grupo de origem: fora de lote"
+    }
+   ]
   }
  ],
  "descartados": [
@@ -8859,6 +8881,16 @@
    "deployment": "dpl_2HZ9YHKSNDm7NBizr4dFWeNE6Joy",
    "no_ar": "2026-09-23T01:18Z",
    "nota": "rodada 10 construiu e foi devolvida à fila após 2 auditorias; rodada 11 retomou, 2 auditorias aprovadas"
+  },
+  {
+   "rodada": 13,
+   "lote": "L13",
+   "titulo": "Ficha: mídia e interação; coleções do Explorar",
+   "pr": "#21",
+   "sha": "a0bcfcf",
+   "deployment": "dpl_21Gkk1PeE5mQsknsdVCnbHHopfo2",
+   "no_ar": "2026-09-23T07:25Z",
+   "nota": "rodada 12 construiu e foi devolvida à fila após 2 auditorias; rodada 13 retomou, auditoria 1 reprovada (1 importante), auditoria 2 aprovada"
   }
  ],
  "marcos_anteriores_ao_ultraloop": [
@@ -8872,70 +8904,6 @@
  ],
  "lotes_em_construcao": [],
  "lotes_planejados": [
-  {
-   "codigo": "L13",
-   "codigo_anterior": "L13",
-   "titulo": "Ficha: mídia e interação; coleções do Explorar",
-   "area": "ficha",
-   "ordem": 1,
-   "itens": [
-    "imagens-01",
-    "imagens-12",
-    "imagens-13",
-    "performance-13",
-    "ux-heuristicas-21",
-    "tela-explorar-fichas-18",
-    "tela-explorar-fichas-08",
-    "tela-explorar-fichas-13",
-    "tela-explorar-fichas-11",
-    "visual-11"
-   ],
-   "arquivos": [
-    "components/exercicio/media-grande.tsx",
-    "components/exercicio/ilustracao-alternada.tsx",
-    "components/exercicios/fotos-ampliaveis.tsx",
-    "components/exercicio/ficha-folha.tsx",
-    "components/colecoes/linha-colecao.tsx",
-    "components/colecoes/tela-colecao.tsx",
-    "lib/colecoes.ts",
-    "lib/colecoes.test.ts",
-    "e2e/ultraloop-l13.spec.ts (novo)",
-    "SPEC.md (§22.13)",
-    "PROGRESSO.md"
-   ],
-   "telas_esperadas": [
-    "09-ficha-exercicio",
-    "10-ficha-folha",
-    "28-player-exercicio",
-    "04-treino-lista",
-    "06-explorar",
-    "07-colecao"
-   ],
-   "medios": 2,
-   "observacoes": "Ordem 1 do dono, completa. media-grande/ilustracao-alternada também aparecem no player e na Visão geral: conferir 28-player-exercicio. performance-13 está só parcialmente atendido pelo L4 (as duas posições têm loading=lazy, mas ambas estão no viewport). v3: + tela-explorar-fichas-08, -13, -11 (triagem-26) e visual-11 (censo), todos de Explorar/coleções (components/colecoes/*, lib/colecoes.ts): cabem nas regras com a exceção de área abaixo (10 itens, 2 M, 11 arquivos, 6 telas), então não se abriu lote próprio de Explorar. Aplicar sobre o L12 publicado: o L12 em construção (wt-a) reordena a linha da coleção e põe 'semana X de 12' no detalhe da capa; se o L12 voltar à construção, os quatro podem ir para ele (os arquivos já estão no diff dele).",
-   "excecao": {
-    "tipo": "área",
-    "itens": [
-     "tela-explorar-fichas-08",
-     "tela-explorar-fichas-13",
-     "tela-explorar-fichas-11",
-     "visual-11"
-    ],
-    "motivo": "Explorar e as fichas são a mesma prioridade (2) do dono (SPEC.md:1354-1355, §22.0) e os quatro itens de coleções não fecham lote sozinhos (4 < 6). No L13 somam 4 arquivos (linha-colecao.tsx, tela-colecao.tsx, lib/colecoes.ts e o teste) e 2 telas (06-explorar, 07-colecao), e o lote fica em 10 itens, 2 M, 11 arquivos e 6 telas.",
-    "aceite_do_dono": "pendente — perguntar antes de montar o L13 (perguntas-ao-dono.md, seção 2)",
-    "alternativa": "lote próprio de Explorar/catálogo logo depois do L14: visual-11, tela-explorar-fichas-08, -13, -11, copy-25 e OBS-elastico-x-super-band (6 itens, 1 M, 9 arquivos: linha-colecao.tsx, tela-colecao.tsx, lib/colecoes.ts, lib/colecoes.test.ts, lib/catalogo.ts, lib/catalogo.test.ts, e2e novo, SPEC.md, PROGRESSO.md; telas 06/07/08); o L13 volta a 6 itens e o L14 a 8, os dois sem exceção de Explorar."
-   },
-   "excecao_de_ordem": [],
-   "secoes": {
-    "B": 10,
-    "C": 0,
-    "D": 0
-   },
-   "areas_dos_itens": {
-    "ficha": 6,
-    "explorar": 4
-   }
-  },
   {
    "codigo": "L14",
    "codigo_anterior": "L14",
@@ -12754,6 +12722,7 @@
   "Descartados com depende_do_dono = true voltam se o dono responder sim (pergunta_ao_dono, se_sim, se_nao; lista em perguntas-ao-dono.md). pwa-offline-09 guarda o item completo em item_suspenso.",
   "Códigos de lote citados em 'detalhe' e 'nota' dos itens, no 'motivo' dos descartados novos e nas observações dos lotes estão na numeração v3 (mapa em lotes_renumerados); em 'prova', 'origens' e nos resolvidos ficam os códigos da fonte.",
   "Contagem de arquivos por lote: arquivos dos itens + e2e novo + e2e que afirmam texto trocado + SPEC.md + PROGRESSO.md, a convenção da v2. Unitários em arquivo de teste já existente que o ACEITE pede mas o item não lista (ex.: lib/outbox.test.ts do pwa-offline-07, lib/precache-do-programa.test.ts do pwa-offline-03, lib/usar-rede.test.ts do pwa-offline-01) não entram — como na v2; o construtor confere no começo do lote e, se estourar 12, o item volta como parcial (PROMPT-CONTINUACAO §5.1).",
-  "23/09: L12 publicado (PR #19, 1b37092): os 7 candidatos e o processo do comparador foram para resolvidos."
+  "23/09: L12 publicado (PR #19, 1b37092): os 7 candidatos e o processo do comparador foram para resolvidos.",
+  "23/09: L13 publicado (PR #21, a0bcfcf, rodada 13): os 10 itens foram para resolvidos; 3 observações não feitas entraram como C pendentes (C-l13-aceite-lcp-vs-ordem, C-plano-progresso-repete-desafio, C-busca-corda-capa-icone) e o H1 → H3 da ficha ficou como nota no tela-explorar-fichas-21 (L14), que já o cobre."
  ]
 }
