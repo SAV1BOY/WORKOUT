@@ -7,7 +7,13 @@ import { useSessaoLivre } from "@/components/colecoes/usar-sessao-livre";
 import { ListaDaColecao } from "@/components/colecoes/lista-da-colecao";
 import { BotaoLargo } from "@/components/ui/botao-largo";
 import { CardCapa } from "@/components/ui/card-capa";
-import { exerciciosParaSessao, planos, type Colecao } from "@/lib/colecoes";
+import {
+  ctaDoPlano,
+  exerciciosParaSessao,
+  metaDoPlano,
+  planos,
+  type Colecao,
+} from "@/lib/colecoes";
 import { evitadosPorUltimo, ligado } from "@/lib/preferencias";
 import { usePerfil } from "@/lib/queries/dados";
 
@@ -36,6 +42,22 @@ export function TelaColecao({ colecao }: { colecao: Colecao }) {
 
   /* Plano não abre sessão livre: leva para a tela do plano (§3.3 e §3.4). */
   const dadosDoPlano = planos().find((p) => p.id === colecao.plano) ?? null;
+  /*
+   * SPEC §22.12 item 4: com o perfil na mão, o plano diz onde o usuário está
+   * ("semana 3 de 12"), como na vitrine; sem perfil, a da vitrine: a duração,
+   * ou nada quando o objetivo já diz o prazo.
+   */
+  const perfil = perfilQ.data ?? null;
+  const posicao = perfil
+    ? { semanaFixa: perfil.semana_fixa, semanaCorrida: perfil.semana_corrida }
+    : null;
+  const detalhe =
+    dadosDoPlano && posicao ? metaDoPlano(dadosDoPlano, posicao) : colecao.detalhe;
+  /*
+   * SPEC §22.12 item 7: o botão do plano é o MESMO do desafio (rótulo e
+   * destino), vindo de `ctaDoPlano()` — esta tela não escreve o rótulo.
+   */
+  const cta = dadosDoPlano ? ctaDoPlano(dadosDoPlano.id, posicao) : null;
 
   return (
     <section aria-label={colecao.titulo} className="flex flex-col gap-4">
@@ -47,16 +69,21 @@ export function TelaColecao({ colecao }: { colecao: Colecao }) {
         Explorar
       </Link>
 
+      {/*
+        SPEC §22.12 item 6: a capa é o título da página — o único h1 do main,
+        também quando se chega por uma URL antiga com acento ou maiúscula.
+      */}
       <CardCapa
+        nivelTitulo="h1"
         titulo={colecao.titulo}
         subtitulo={colecao.subtitulo}
-        detalhe={colecao.detalhe}
+        detalhe={detalhe}
         foto={colecao.capa}
         raios={mostrarRaios ? colecao.raios : null}
       >
-        {dadosDoPlano ? (
+        {cta ? (
           <BotaoLargo asChild>
-            <Link href={dadosDoPlano.href}>Fazer a sessão da semana</Link>
+            <Link href={cta.href}>{cta.acao}</Link>
           </BotaoLargo>
         ) : (
           <>

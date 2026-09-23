@@ -72,12 +72,14 @@
     {
       "id": "banco",
       "nome": "Banco supino regulável (Yangfit)",
+      "nome_curto": "Banco supino regulável",
       "specs": "7 posições de encosto · 4 de assento · dobrável · 200 kg · 104 × 32 cm · assento 42–55 cm",
       "fotos": "assets/itens/banco/"
     },
     {
       "id": "cavalete",
       "nome": "Suporte cavalete (Exercit, quadro H)",
+      "nome_curto": "Suporte cavalete",
       "specs": "berços de 87 a 147 cm em 13 níveis · 70 × 40 cm · 150 kg (vale o menor) · sem trava de segurança",
       "fotos": "assets/itens/cavalete/"
     },
@@ -90,18 +92,21 @@
     {
       "id": "cross-over",
       "nome": "Cross over de parede (EJ Oliver, mono)",
+      "nome_curto": "Cross over de parede",
       "specs": "polia alta (braço 56 cm, roldana a 2,02 m) + roldana baixa (eixo a 0,20 m), pino de anilhas, cabos 2,20 e 3,70 m · 100 kg · no pilar",
       "fotos": "assets/itens/cross-over/"
     },
     {
       "id": "puxadores",
       "nome": "Kit de puxadores (Lísia)",
+      "nome_curto": "Kit de puxadores",
       "specs": "barra de puxada 1,20 m, corda, triângulo, estribo, par de tornozeleiras",
       "fotos": "assets/itens/puxadores/"
     },
     {
       "id": "tatame",
       "nome": "Tatame EVA 20 mm",
+      "nome_curto": "Tatame EVA",
       "specs": "2 placas de 1 × 1 m encaixadas em frente ao cross over",
       "fotos": "assets/itens/tatame/"
     },
@@ -114,6 +119,7 @@
     {
       "id": "super-band",
       "nome": "Super Band 45 mm (Yangfit)",
+      "nome_curto": "Super Band",
       "specs": "208 × 4,5 × 0,5 cm · 23–57 kg de assistência",
       "fotos": "assets/itens/super-band/"
     },
@@ -126,6 +132,7 @@
     {
       "id": "barra-macica",
       "nome": "Barra reta maciça 1,50 m",
+      "nome_curto": "Barra reta maciça",
       "specs": "28 mm · 7,5 kg · 400 kg",
       "fotos": "assets/itens/barra-macica/"
     }

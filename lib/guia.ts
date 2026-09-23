@@ -315,7 +315,7 @@ const TREINO: SecaoDoGuia = {
       id: "desafios",
       nome: "Desafios",
       oQueFaz:
-        "Os três cards do carrossel — primeira barra fixa, corrida e a fase do programa — com a semana em que você está e o botão “Fazer a sessão da semana”.",
+        "Os três cards do carrossel — primeira barra fixa, corrida e a fase do programa — com a semana em que você está e o botão que leva à sessão de cada um, com o mesmo rótulo do destaque do Explorar.",
       caminho: ["Treino", "Desafios"],
       grupo: TELA,
     },

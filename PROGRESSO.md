@@ -8652,3 +8652,590 @@ intervalo, verde nas duas — sem a instabilidade de proxy da rodada 8. Sonda a
 horizontal (scrollWidth 360 = clientWidth). Capturas: nenhuma tela mudou de
 aparência nesta rodada (as correções são de comportamento e de rótulo), então
 a base não foi mexida. Nenhuma migração de banco. **Rollback: não.**
+
+### Rodada 10 — Lote 12 — Explorar e catálogo: leitura e filtros
+
+Branch `polimento/l12-explorar-catalogo`, a partir de `main` `ef3ad97`. SPEC
+§22.12. Oito itens; o aceite de cada um está no próprio item da SPEC.
+
+#### O que mudou
+
+1. **Os filtros do catálogo moram numa folha** (`components/exercicios/lista-exercicios.tsx`,
+   `lib/catalogo.ts`). **Era:** `/exercicios` gastava ~399 px em cabeçalho,
+   busca, três selects e o botão "No meu programa" de largura inteira — 54% da
+   tela de 740 antes do primeiro exercício; na busca do Explorar o mesmo bloco
+   abria e fechava inline atrás de um botão com `aria-expanded` e sem
+   `aria-controls`. **É:** na tela ficam a busca, o botão **"Filtros"** (selo =
+   quantos filtros estão ligados, `quantosFiltrosLigados`) com o contador na
+   mesma linha, e os **chips removíveis** do que está ligado ("Peito ×",
+   `chipsDosFiltros` / `semOFiltro`). Os selects e o chip de alternância "No
+   meu programa" vão para uma folha inferior (`Sheet` do shadcn = `Dialog` do
+   Radix), com título e descrição, "Limpar" (solta os filtros e mantém a busca)
+   e o CTA **"Ver N exercícios"** (`rotuloDoVerResultados`: "Ver 1 exercício",
+   "Nenhum exercício"), que fecha a folha e leva ao primeiro resultado. O
+   gatilho é o `SheetTrigger`: `aria-haspopup="dialog"`, `aria-expanded` e
+   `aria-controls` saem do Radix. Vale para `/exercicios` e para a busca do
+   Explorar.
+2. **A linha da coleção lê de cima para baixo** (`components/colecoes/linha-colecao.tsx`,
+   `lib/colecoes.ts`). **Era:** título → meta em negrito (`.numero`, 600) →
+   subtítulo; o subtítulo de aparelho e circuito era a ficha técnica
+   (`specs`: "7 posições de encosto · 4 de assento · dobrável · 200 kg · 104 ×
+   32 cm…") e a meta repetia "30 exercícios · ~2 h". **É:** título (o único com
+   peso) → subtítulo → motivo da busca → meta em peso normal (`tabular-nums`
+   sem `.numero`). Aparelho e circuito sem `specs`; a coleção do aparelho diz
+   **"N exercícios que dão para fazer com ele"** (`metaDoAparelho`, singular
+   "1 exercício que dá…"), sem minutos, kg ou cm — conferido nos 9 aparelhos
+   de `data/equipamentos.json` que têm exercício. **Correção da auditoria:**
+   o título do aparelho era o `nome` do JSON, com medida e marca ("Tatame EVA
+   20 mm", "Super Band 45 mm (Yangfit)", "Barra reta maciça 1,50 m"); agora é
+   o `nome_curto` novo do item ("Tatame EVA", "Super Band", "Barra reta
+   maciça"; opcional no Zod, `lib/schemas.ts`), e o nome completo fica em
+   Mais → Equipamento.
+3. **A busca diz por que achou** (`lib/colecoes.ts` `buscarColecoes`,
+   `exerciciosResponsaveis`, `juntarNomes`). **Era:** as coleções saíam na
+   ordem da vitrine e "supino" mostrava "Treino A" sem dizer que era pelo
+   supino lá dentro. **É:** título > subtítulo > conteúdo; o casamento por
+   exercício leva `motivoDaBusca` — "contém Supino reto com barra";
+   "supino agachamento" → "contém Supino reto com barra e Agachamento livre"
+   (na ordem dos termos); "supino reto" → um nome só; título e subtítulo não
+   mostram "contém". **Correção da auditoria (bloqueante):** com 3 termos ou
+   mais, o primeiro termo podia ir para outro exercício e sobrava um nome —
+   "flexao inclinada supino" em Peito dizia "contém Flexão declinada, Flexão
+   inclinada e Supino reto com barra". Agora, termo a termo, vence o
+   exercício que contém o termo **e cobre mais termos ainda descobertos**
+   (empate: o primeiro da coleção), e no fim sai quem ficou redundante: Peito
+   diz "contém Flexão inclinada e Supino reto com barra"; "agachamento sumo
+   stiff" na barra maciça, "contém Agachamento sumô e Stiff / terra romeno";
+   "barra com remada" em Costas, "contém Barra fixa com lastro e Remada
+   curvada pronada".
+4. **Planos: título curto e a posição** (`lib/colecoes.ts` `planos`,
+   `metaDoPlano`, `colecoesDePlano(posicao)`; `tela-explorar.tsx`,
+   `tela-colecao.tsx`). **Era:** "Primeira barra fixa em 12 semanas", "5 km sem
+   parar em 12 semanas" (o prazo repetido no objetivo) e a corda com "5
+   semanas" (eram 5 estágios de 12 semanas). **É:** "Primeira barra fixa",
+   "5 km sem parar" (a meta da última semana de `cardio.json`) e "Corda: 5
+   estágios"; com perfil, a meta é "semana N de 12" (`semana_fixa` /
+   `semana_corrida`, presa ao total — 99 vira 12); sem perfil, "12 semanas"
+   (mudou na rodada 11: ver "Rodada 11 — retomada", item 4, e a "Correção da
+   auditoria 1 (rodada 11)" — sem perfil, barra fixa e corrida ficam sem meta
+   e mostram o objetivo inteiro, com o prazo);
+   a corda mostra a duração do JSON (`ultimaSemanaDeCorda()` = 12). A tela da
+   coleção do plano diz a mesma posição. **Correção da auditoria:** o card do
+   desafio (carrossel da Treino e destaque do Explorar) ainda dizia "Primeira
+   barra fixa em 12 semanas" enquanto a linha do mesmo plano dizia "Primeira
+   barra fixa"; `desafios()` passa a usar o título de `planos()` — o prazo
+   continua no card, em "Semana N de 12".
+5. **Títulos em degraus** (`tela-explorar.tsx`). **Era:** "Exercícios" era `h3`
+   irmão do `h2` "Escolhas para você". **É:** `h2`; os cinco do grupo de
+   escolhas continuam `h3`.
+6. **A tela da coleção tem `h1`** (`components/ui/card-capa.tsx` `nivelTitulo`,
+   `components/colecoes/tela-colecao.tsx`). **Era:** a página não tinha `h1` — o
+   título da capa era `h2`. **É:** exatamente um `h1` no `main`, também em
+   `/explorar/grupo/Core` e `/explorar/grupo/B%C3%ADceps`.
+7. **Uma fonte só para o CTA dos desafios** (`lib/colecoes.ts` `desafios`,
+   `nomeCurtoDaFase`; `components/treino/desafios.tsx`). **Era:** a aba Treino
+   reescrevia o rótulo por id (`acaoDoDesafio`: "Fazer a sessão de barra
+   fixa") e o destaque do Explorar mostrava `desafio.acao` ("Fazer a sessão
+   da semana") — o mesmo desafio com dois CTAs. **É:** o rótulo sai só de
+   `desafios()` ("Fazer a sessão de barra fixa", "Fazer a corrida da semana
+   N", "Fazer o treino da fase 1"); as duas telas mostram `desafio.acao`, e
+   `acaoDoDesafio` não existe mais. **Correção da auditoria (importante):** a
+   página da coleção de plano (`components/colecoes/tela-colecao.tsx`) ainda
+   escrevia "Fazer a sessão da semana" e levava a corrida a `/cardio/corrida`
+   sem a semana. O rótulo e o destino de barra fixa, corrida e corda saem de
+   `ctaDoPlano()` (`lib/colecoes.ts`), que o próprio `desafios()` usa: em
+   `/explorar/plano/barra_fixa`, "Fazer a sessão de barra fixa" →
+   `/barra-fixa`; em `/explorar/plano/corrida`, "Fazer a corrida da semana N"
+   → `/cardio/corrida?semana=N`, os mesmos do carrossel; a corda, que não é
+   desafio, "Fazer a sessão de corda". Sem perfil, a corrida diz "Fazer a
+   corrida" e leva à tela dela, sem inventar semana.
+8. **Processo: o comparador casa o nome curto** (`scripts/comparar-capturas.ts`).
+   **Era:** `--esperadas explorar` não casava `06-explorar-claro.png`
+   (`startsWith`). **É:** `casaEsperada()` exportada: casa com o número
+   ("06-explorar") ou sem ("explorar"), parando numa fronteira ("explo" não
+   casa); o script só roda quando chamado pela linha de comando.
+
+**Fora dos arquivos do lote:** `e2e/auditoria-m5.spec.ts`, `e2e/catalogo.spec.ts`,
+`e2e/ultraloop-b-r5.spec.ts` e `e2e/v3.spec.ts` — os filtros agora abrem pela
+folha, a coleção tem `h1` e o plano diz "semana N de 12"; o que cada teste
+verifica não mudou. `lib/guia.ts` (uma frase): o guia prometia o botão
+"Fazer a sessão da semana" no carrossel, rótulo que o carrossel não mostra
+desde o lote 7; agora diz que o botão leva à sessão de cada desafio, com o
+mesmo rótulo do destaque do Explorar.
+
+#### Provas
+
+- **Vitest (+23 casos; +19 na primeira entrega e +4 na correção da auditoria):** `lib/colecoes.test.ts` (+11 — todo aparelho sem
+  specs/kg/cm/min e com a contagem uma vez; singular da meta; circuito sem
+  ficha; títulos curtos dos planos; "semana N de T" com o perfil, preso no
+  total, e a duração sem perfil; corda com 12 semanas; busca título >
+  subtítulo > conteúdo; "contém" só por conteúdo; toda coleção achada por
+  conteúdo cita o exercício; acento e caixa; dois termos no mesmo exercício →
+  um nome; termos em exercícios diferentes → nomes na ordem dos termos; o CTA
+  dos desafios sai de `desafios()` e nenhuma tela reescreve o rótulo),
+  `lib/catalogo.test.ts` (+4 — selo conta filtros e não resultados, chips,
+  tirar um chip, "Ver N exercícios" com singular) e
+  `scripts/comparar-capturas.test.ts` (4 — casamento antigo mantido, nome sem
+  número nos dois temas, a lista `explorar,colecao,catalogo` casa só as três
+  telas, nada de meio de palavra).
+- **e2e novo, `e2e/ultraloop-a-r10.spec.ts` (11 testes — 9 na primeira entrega e 2 na correção —, 360×740):** o primeiro
+  cartão de `/exercicios` inteiro na primeira tela e os selects fora dela; o
+  gatilho com `aria-haspopup="dialog"`, `aria-expanded` falso→verdadeiro e
+  `aria-controls` igual ao `id` do `dialog` "Filtros" (com descrição); todo
+  controle da folha e dos chips ≥ 44 px; Peito + Halteres → selo 2, CTA "Ver 5
+  exercícios", contador "5 de 81", 5 cartões e o primeiro na tela; tirar
+  "Peito" → selo 1, contador e cartões juntos; um par grupo+implemento com um
+  exercício só → "Ver 1 exercício"; a mesma folha na busca do Explorar com o
+  título «Exercícios (N)» igual aos cartões; os 9 aparelhos sem specs, kg, cm,
+  "~" ou "min", com a contagem uma vez, a meta como última linha em peso 400 e
+  o título ≥ 500; "supino" → banco sem motivo e primeiro, Treino A "contém
+  Supino reto com barra", nenhuma coleção achada por conteúdo sem motivo;
+  "supino agachamento" e "AGACHAMENTO SUPÍNO" com os dois nomes na ordem dos
+  termos; "supino reto" com um nome; "zzzz" com um vazio só; planos com
+  "semana 3 de 12", "semana 12 de 12" (perfil em 99) e a corda "12 semanas";
+  Explorar com um `h1`, dois `h2` e os cinco `h3`; coleção com exatamente um
+  `h1` no `main` em `/explorar/grupo/core`, `/Core`, `/B%C3%ADceps` e
+  `/plano/corrida`, e o voltar; num domingo sem força, o CTA do destaque do
+  Explorar é o mesmo texto e o mesmo `href` de um card do carrossel da aba
+  Treino, e os três CTAs do carrossel são distintos.
+- **O teste falharia sem a mudança:** o do desafio lê "Fazer a sessão da
+  semana" no Explorar de `main` e não acha esse texto no carrossel; o do `h1`
+  conta zero `h1` na coleção de `main`; o dos aparelhos acha "200 kg" no
+  banco; o dos planos acha "12 semanas" onde espera "semana 3 de 12".
+
+#### Correção da auditoria
+
+Auditoria de regra em `bce5429` (reprovado: 1 bloqueante, 2 importantes, 7
+menores). O que foi feito, commit a commit:
+
+- **Bloqueante — busca com 3 termos citava um nome a mais** (`a6e6038`,
+  `lib/colecoes.ts` `exerciciosResponsaveis`). Era: o atalho "um exercício
+  com todos os termos" e, senão, o primeiro exercício de cada termo — o
+  primeiro termo podia cair em outro exercício ("Flexão declinada" em
+  "flexao inclinada supino"). É: termo a termo, o exercício que contém o
+  termo e cobre mais termos ainda descobertos, e uma passada final que tira
+  o redundante (item 3 acima; SPEC §22.12 item 3 reescrito em `f37c04b`).
+  Os três casos reais da auditoria viraram teste, e o teste velho que
+  esperava "Prancha frontal, Prancha lateral e Rosca direta" para
+  "prancha lateral rosca" (o mesmo defeito) passou a esperar "Prancha
+  lateral e Rosca direta".
+- **Importante — teste de nomes únicos que não falharia.** Novos casos em
+  `lib/colecoes.test.ts`: `["prancha","lateral","frontal"]` sobre "Prancha
+  frontal"/"Prancha lateral" cita os dois uma vez só; e uma varredura sobre
+  **todas** as coleções reais com consultas de 3 termos (2 palavras de um
+  exercício + 1 de outro, em três ordens; mais de 1.000 consultas): nomes
+  únicos, todo termo com quem responda por ele, todo nome citado com um termo
+  só dele e no máximo dois nomes. Rodei esses testes contra o
+  `lib/colecoes.ts` de `bce5429`: **3 falharam** (o velho, os casos reais e a
+  varredura). Na regra nova, a guarda que a mutação M19 apagava deixou de
+  existir como linha solta: um exercício já citado não cobre termo
+  descoberto e por isso nunca é escolhido de novo.
+- **Importante — o CTA do plano escrito à mão** (`0d03a21`). Item 7 acima:
+  `ctaDoPlano()` é a fonte de `desafios()` e de
+  `components/colecoes/tela-colecao.tsx`; a corrida leva a
+  `/cardio/corrida?semana=N`. O teste de fonte única passou a cobrir também
+  `tela-colecao.tsx`, e o e2e novo "a página do plano mostra o mesmo CTA do
+  desafio" compara texto e `href` do carrossel com a página do plano, para
+  barra fixa e corrida. `e2e/v3.spec.ts` agora espera "Fazer a sessão de
+  barra fixa".
+- **Menores feitos:** o título do aparelho sem medida nem marca
+  (`nome_curto`, `7d3db49`); o título do desafio igual ao da linha do plano
+  (`0d03a21`); o e2e novo "com a página rolada, 'Ver N exercícios' traz o
+  primeiro resultado para a tela" (`f8c7df4`) rola até o fim antes de abrir a
+  folha; o comentário de `lib/colecoes.ts` e a SPEC §14.3 não falam mais em
+  "Fazer a sessão da semana"; esta seção cita o log do HEAD certo.
+- **Sobre o e2e rolado:** tirei o `scrollIntoView` de `onCloseAutoFocus`
+  numa cópia de trabalho (não comitada), refiz o `build:e2e` e rodei o teste:
+  **continuou verde**. O Radix devolve o foco ao gatilho "Filtros", que fica
+  no alto da lista, e o navegador rola até ele — o primeiro cartão já volta à
+  tela por aí. O teste prova o comportamento pedido (página rolada → CTA →
+  primeiro resultado na tela), não o `scrollIntoView` em si, que fica como
+  reforço.
+- **Menores não feitos:** sem perfil, a linha da corrida repete o prazo do
+  objetivo na meta ("12 semanas") — com perfil, o caso normal, a meta é
+  "semana N de 12"; e o teste de fonte única continua lendo o código-fonte
+  (agora ao lado do e2e que compara os CTAs na tela).
+
+#### Portões
+
+Cadeia inteira no HEAD de código `7d3db49` (`r10/l12/logs/7d3db49.log`, das
+21:52 às 22:14 UTC, **status ok**): `lint` limpo · `tsc --noEmit` limpo ·
+`npm test` **63 arquivos, 1.472 testes, todos verdes** (eram 1.468 em
+`bce5429`; +4: três da busca e um do CTA do plano) · `build` ("Compiled
+successfully in 17.5s") · `build:e2e` ("Compiled successfully in 17.0s") ·
+`e2e` **437 passaram, 5 pulados, 0 falharam** (442, 16,0 min; +2 do lote) ·
+`varredura` **5 de 5** (4,3 min). A cadeia roda de novo, inteira, no commit
+deste registro (só `PROGRESSO.md` muda), e o log dele fica em
+`r10/l12/logs/<hash>.log`.
+
+Antes da cadeia, uma execução parcial (`r10/l12/sonda-logs/f8c7df4.log`:
+`build:e2e` + os 8 testes do lote e o do plano em `v3.spec.ts`) deu 8 de 8.
+
+Histórico: `9a5c5f4.log` (falhou:e2e — 1 instável fora do lote, passou
+sozinho 2×), `843944e.log` e `bce5429.log` (verdes, 1.468 testes, e2e 435 + 5
+pulados).
+
+#### Capturas
+
+`capturas.sh` em `7d3db49`, depois da cadeia verde, contra a base real de
+`main` (`base-ef3ad97`), com `--esperadas explorar,colecao,catalogo` — os
+nomes curtos, sem número (item 8): as três telas saíram como **esperada =
+sim**. 60 PNGs; **54 iguais** (Δ 0,00 %), nenhuma tela fora da lista mudou;
+03 e 04 (aba Treino) iguais — o carrossel de desafios não aparece nessas
+capturas (o título novo do card não entra nelas).
+
+| tela | Δ claro | Δ escuro | o que mudou (olhando o diff) |
+| --- | ---: | ---: | --- |
+| 08-catalogo | 30,21 % | 28,35 % | os três selects e o "No meu programa" saíram; ficou "Filtros" com "81 exercícios" na mesma linha, e o primeiro cartão subiu de y≈392 para y≈222 (CSS px) — cinco cartões e meio na primeira tela, eram três e meio |
+| 07-colecao | 6,82 % | 3,97 % | `/explorar/plano/corrida`: o título "5 km sem parar em 12 semanas" (duas linhas) virou "5 km sem parar" (uma), a meta "12 semanas" virou "semana 2 de 12" do perfil, e o botão "Fazer a sessão da semana" virou **"Fazer a corrida da semana 2"** (o mesmo do carrossel; era 6,13 % em `bce5429`, sem a troca do botão) |
+| 06-explorar | 1,74 % | 1,77 % | nas linhas de "Treinos do programa" o subtítulo ("Empurrar e agachar") subiu para logo abaixo do título e a meta ("6 exercícios · ~44 min") desceu para a última linha, sem negrito |
+
+#### Como testar no celular (360 px)
+
+- **Catálogo** (Explorar → "Ver os 81 exercícios"): o primeiro exercício
+  aparece sem rolar. Toque em **Filtros**: sobe uma folha com Grupo,
+  Implemento, Equipamento e o chip "No meu programa". Escolha Peito e
+  Halteres — o selo do botão vira **2** e o botão de baixo diz **"Ver 5
+  exercícios"**; toque nele: a folha fecha, a lista mostra os 5 e, acima dela,
+  os chips **Peito ×** e **Halteres ×**. Toque em "Peito ×": o selo vira 1 e a
+  contagem sobe junto.
+- **Busca no Explorar**: "supino" — o banco supino vem primeiro nas Coleções,
+  sem "contém"; o Treino A diz **"contém Supino reto com barra"**. "supino
+  agachamento" — o Treino A cita os dois exercícios, na ordem digitada.
+- **Por aparelho** ("Ver todos"): nenhuma linha fala de kg, cm ou minutos;
+  cada uma diz "N exercícios que dão para fazer com ele" uma vez só.
+- **Planos**: "Primeira barra fixa" e "5 km sem parar", com "semana N de 12"
+  embaixo; a corda diz "12 semanas". Toque na corrida: a tela do plano diz a
+  mesma semana.
+- **Desafios**: o botão da barra fixa no carrossel da aba Treino e o do
+  destaque do Explorar (num dia sem treino de força) dizem a mesma coisa.
+- **Página do plano** (Explorar → Planos → "5 km sem parar"): o botão diz
+  "Fazer a corrida da semana N" — o mesmo do carrossel — e abre a corrida
+  daquela semana; em "Primeira barra fixa", "Fazer a sessão de barra fixa".
+- **Busca com três palavras**: "flexao inclinada supino" — a linha de Peito
+  diz "contém Flexão inclinada e Supino reto com barra", sem a declinada.
+- **Por aparelho**: os nomes vêm sem medida nem marca ("Tatame EVA", "Super
+  Band", "Barra reta maciça"); em Mais → Equipamento o nome completo continua.
+
+#### Rodada 10 — auditoria 2 reprovou; lote devolvido à fila
+
+A segunda auditoria, em `06441e5`, aprovou a lente **tela** e reprovou a lente
+**regra** por dois importantes: (1) nenhum teste cobria a passada final de
+`exerciciosResponsaveis` (a que tira o nome redundante) — uma mutação que a
+anula passava em 80/80, porque a varredura só montava consultas de 3 termos e,
+com 3, a passada nunca age; com 4 ela é necessária ("sentado panturrilha barra
+declinado" no Banco citava "Desenvolvimento sentado com barra" sobrando); e (2)
+a SPEC se contradizia: a §13.8 item 2, critério de aceite, ainda pedia `specs`
+como subtítulo de aparelho e circuito, enquanto a §22.12 item 2 e o código
+dizem que não há subtítulo. Pela regra do dono (no máximo duas auditorias por
+rodada), o lote voltou à fila ao fim da rodada 10.
+
+#### Rodada 11 — retomada
+
+Mesma branch, a partir de `06441e5`. Logs em `r11/l12/logs/`.
+
+##### O que mudou
+
+1. **Passada final da busca coberta por teste, com 4 termos** (`lib/colecoes.test.ts`).
+   **Era:** só consultas de 3 termos; anular `if (redundante) finais.splice(…)`
+   não derrubava nenhum teste. **É:** os três casos reais de 4 termos
+   ("sentado panturrilha barra declinado" no Banco → "contém Elevação de
+   panturrilha sentado e Supino declinado com barra"; "puxada remada polia
+   com" e "puxada rosca com polia" no Cross over → "contém Puxada com
+   triângulo e Remada baixa na polia" / "… e Rosca na polia baixa", sem a
+   "Puxada alta na polia"), o sintético `[alfa, beta, gama, delta]` sobre
+   `["alfa beta", "alfa gama", "beta delta"]` → `["alfa gama", "beta delta"]`,
+   e a varredura de todas as coleções reais estendida a 4 termos (dois de cada
+   exercício, em três ordens) além das de 3.
+2. **A frase dos nomes na ordem dos termos** (`lib/colecoes.ts`
+   `exerciciosResponsaveis`; menor (a)). **Era:** os nomes saíam na ordem da
+   escolha gulosa — "barra direta supino" no Treino A dizia "Supino reto com
+   barra e Rosca direta com barra"; "flexao braco declinada" em Peito,
+   "Flexão declinada e Flexão de braço". **É:** cada nome vai para a posição
+   do primeiro termo que ele cobre; dois que começam no mesmo termo, pelo
+   primeiro termo que só ele cobre: "Rosca direta com barra e Supino reto com
+   barra", "Flexão de braço e Flexão declinada". O conjunto citado não muda,
+   só a ordem.
+3. **SPEC sem contradição** (`SPEC.md`; importante 2 e menor (d)). §13.8 item 2
+   diz que aparelho e circuito não têm subtítulo e remete à §22.12 item 2;
+   §13.4 traz os títulos curtos dos planos ("Primeira barra fixa", "5 km sem
+   parar") e a meta de aparelho; §14.4 diz que a meta de aparelho é "N
+   exercícios que dão para fazer com ele" e a de plano, posição ou duração;
+   §22.12 itens 2, 3 e 4 com a regra desta rodada e uma nota "Rodada 11 —
+   correção da auditoria 2".
+4. **Sem perfil, o plano não repete o prazo** (`lib/colecoes.ts` `metaDoPlano`,
+   `textoDizOPrazo`, `Colecao.detalhe: string | null`;
+   `components/colecoes/linha-colecao.tsx`; menor (e)). **Era:** sem perfil, a
+   barra fixa dizia "a primeira barra fixa sem elástico em 8–12 semanas" e
+   logo abaixo "12 semanas"; a corrida, "… em 12 semanas (≈35 min…)" e "12
+   semanas". **É:** sem posição, a meta é "T semanas" só se o subtítulo (o
+   objetivo do JSON) ainda não disser o prazo; se disser, a linha fica sem
+   meta (a linha não desenha um vão vazio). Com perfil nada muda ("semana N
+   de 12"); a corda continua "12 semanas". (A auditoria 1 da rodada 11 mediu
+   que, cortado numa linha, o subtítulo escondia o prazo: a linha sem meta
+   passou a mostrar o subtítulo inteiro — ver "Correção da auditoria 1
+   (rodada 11)".)
+5. **Uma fonte para a meta e para o nome da fase** (menores (b) e (c)).
+   `components/treino/tela-treino.tsx` perdeu o `nomeCurtoDaFase` privado e
+   importa o de `lib/colecoes.ts`; o destaque do Explorar
+   (`components/explorar/tela-explorar.tsx`) tira a meta de `metaDoPlano()` em
+   vez de montar "semana N de T" na tela. O texto na tela é o mesmo.
+6. **"ele" nunca sozinho na linha de aparelho** (`metaDoAparelho`; menor (f)).
+   **Era:** a 360 px, "8 exercícios que dão para fazer com ele" quebrava e
+   deixava "ele" sozinho na segunda linha em 8 das 9 linhas. **É:** espaço
+   inseguível (U+00A0) em "com ele" — "com ele" desce junto.
+
+##### Correção da auditoria
+
+- **Importante 1 (passada final sem teste):** item 1 acima. Prova de que o
+  teste novo pega a mutação: com `if (redundante && false) …` no lugar da
+  passada, `lib/colecoes.test.ts` dá **3 falhas** (casos reais de 4 termos,
+  sintético e varredura 3+4 termos); sem ordenar a frase
+  (`return finais.map…`), **4 falhas**. As mutações foram feitas no worktree e
+  desfeitas antes do commit (nada delas foi comitado).
+- **Importante 2 (SPEC §13.8 item 2):** item 3 acima.
+- **Menores feitos:** (a) ordem da frase, item 2; (b) `nomeCurtoDaFase` único;
+  (c) meta do destaque por `metaDoPlano`; (d) §13.4 e §14.4 alinhadas; (e)
+  prazo sem perfil, item 4; (f) "com ele" inseguível, item 6.
+- **Menores que ficam de fora (anotados):** o conjunto citado nem sempre é o
+  menor possível (2 casos de "Puxada Remada polia com" em Costas citam 3
+  nomes quando 2 bastariam — efeito do guloso, sem violar aceite); o teste de
+  fonte única do CTA ainda lê o código-fonte por regex (o comportamento na
+  tela segue coberto pelos 2 e2e do item 7); o título "5 km sem parar" repete
+  o começo do subtítulo da corrida (regra de nada repetido do contrato B é de
+  aparelho); a parte "fase" do contrato F não tem par no Explorar (o destaque
+  só mostra barra fixa e corrida); o `scripts/validar-dados.test.ts` que
+  renomeia um SVG enquanto roda (anterior ao lote, fora dele).
+
+##### Provas
+
+- **Vitest (+4 casos, 1.472 → 1.476):** `lib/colecoes.test.ts` ganhou "com 4
+  termos, quem ficou redundante sai da frase (dados reais)", "a passada final
+  tira o nome que os outros citados cobrem (sintético)", "a frase segue a
+  ordem do primeiro termo que cada nome cobre" e "em toda coleção real, com 3
+  e 4 termos: sem repetir, sem sobrar e na ordem dos termos" (> 2.000
+  consultas, > 1.000 com 4 termos). Mudados: a meta do plano sem perfil
+  (`null` para barra fixa e corrida, "12 semanas" para a corda, casos
+  sintéticos de `textoDizOPrazo`), `metaDoAparelho` com U+00A0, e o caso
+  "prancha lateral frontal", que agora espera "Prancha lateral, Prancha
+  frontal" (ordem dos termos).
+- **e2e (`e2e/ultraloop-a-r10.spec.ts`, teste dos aparelhos):** a meta de cada
+  um dos 9 aparelhos contém "com ele", e a última linha da meta, lida
+  palavra a palavra pela posição na tela a 360 px, tem mais de uma palavra.
+
+##### Portões
+
+Cadeia inteira no HEAD de código `59f92ce` (`r11/l12/logs/59f92ce.log`, das
+23:01 às 23:23 UTC, **status ok**): `lint` limpo · `tsc --noEmit` limpo ·
+`npm test` **63 arquivos, 1.476 testes, todos verdes** (eram 1.472 em
+`06441e5`; +4 da busca) · `build` ("Compiled successfully in 18.7s") ·
+`build:e2e` ("Compiled successfully in 18.5s") · `e2e` **437 passaram, 5
+pulados, 0 falharam** (15,8 min; os 11 de `e2e/ultraloop-a-r10.spec.ts` ✓,
+inclusive o dos aparelhos com a checagem nova) · `varredura` **5 de 5** (4,2
+min). A cadeia roda de novo, inteira, no commit deste registro (muda só
+`PROGRESSO.md`, a indentação da nota da rodada 11 na SPEC e dois comentários
+em `tela-explorar.tsx` e `tela-colecao.tsx`), e o log fica em
+`r11/l12/logs/<hash>.log`.
+
+##### Capturas
+
+`capturas.sh` em `59f92ce`, depois da cadeia verde, contra a base real de
+`main` (`base-ef3ad97`), com `--esperadas explorar,colecao,catalogo`
+(`r11/l12/capturas-59f92ce.md`). 60 PNGs; **54 iguais** (Δ 0,00 %), nenhuma
+tela fora da lista mudou; 03 e 04 (aba Treino) iguais. As seis capturas que
+mudam são **byte a byte iguais** às de `7d3db49` (md5): as mudanças desta
+rodada não aparecem nas 60 telas da régua (nenhuma mostra as linhas de
+aparelho nem um plano sem perfil). Olhei os diffs de 06, 07 e 08: são os
+mesmos da rodada 10.
+
+| tela | Δ claro | Δ escuro | o que mudou (olhando o diff) |
+| --- | ---: | ---: | --- |
+| 08-catalogo | 30,21 % | 28,35 % | igual à rodada 10: os selects saem, "Filtros" e o contador na mesma linha, o primeiro cartão sobe para a primeira tela |
+| 07-colecao | 6,82 % | 3,97 % | igual à rodada 10: `/explorar/plano/corrida` com "5 km sem parar", "semana 2 de 12" e "Fazer a corrida da semana 2" |
+| 06-explorar | 1,74 % | 1,77 % | igual à rodada 10: nas linhas dos Treinos, subtítulo antes da meta, sem negrito |
+
+**Sonda das linhas de aparelho** (a régua não as mostra;
+`r11/l12/sonda-aparelhos/sonda.cjs`, Chromium 360×740, DSF 2, nos dois
+temas, com mock e app subidos por mim no `.next` de `59f92ce` e derrubados
+pela árvore de PIDs): "Por aparelho" → "Ver todos" = 9 linhas; nas 9, nos
+dois temas, a meta quebra em 2 linhas e a última é **"com ele"** (nunca
+"ele" sozinho), o texto tem U+00A0 e `scrollWidth` = 360. Olhei
+`aparelhos-1-light.png` e `aparelhos-2-dark.png`: "30 exercícios que dão
+para fazer / com ele", sem corte nem sobreposição. **Observação:** a 360 px o
+subtítulo do plano é cortado numa linha ("a primeira barra fixa sem elástico
+e…"), então, sem perfil, a linha da barra fixa e a da corrida ficam sem o
+prazo visível — ele continua no objetivo inteiro (no `title` da linha e na
+página do plano). Com perfil, o caso normal, a meta "semana N de 12" diz o
+prazo. (Corrigido na "Correção da auditoria 1 (rodada 11)", abaixo: a linha
+sem meta mostra o subtítulo inteiro.)
+
+##### Como testar no celular (360 px)
+
+- **Por aparelho** ("Ver todos"): em nenhuma linha "ele" fica sozinho na
+  segunda linha — quando a meta quebra, desce "com ele".
+- **Busca na ordem digitada**: "barra direta supino" — o Treino A diz
+  "contém Rosca direta com barra e Supino reto com barra"; "sentado
+  panturrilha barra declinado" — o Banco cita só "Elevação de panturrilha
+  sentado e Supino declinado com barra".
+- **Planos**: com o perfil carregado, nada muda ("semana N de 12"). Sem perfil
+  (logo ao abrir, antes de o perfil chegar), barra fixa e corrida mostram só
+  o objetivo, sem "12 semanas" repetido embaixo — inteiro, com o prazo,
+  desde a correção da auditoria 1 (abaixo).
+
+##### Correção da auditoria 1 (rodada 11)
+
+A auditoria 1 da rodada 11, em `ec07924`, **aprovou a lente regra** (só
+menores) e **reprovou a lente tela** por um importante: sem perfil, a 360×740
+e nos dois temas, as linhas "Primeira barra fixa" e "5 km sem parar" de
+Planos não mostravam prazo nenhum. A meta tinha saído (item 4 acima, para
+não repetir o prazo) e o subtítulo, cortado numa linha (`line-clamp-1`,
+`scrollHeight` 32 contra `clientHeight` 16), parava antes de "8–12 semanas"
+e de "12 semanas". Correção a partir de `ec07924`: `be81dee` (SPEC),
+`dbdd44e` (lib), `ab7fdbc` (linha da coleção), `17ba741` (e2e) e o commit
+deste registro.
+
+###### O que mudou
+
+1. **Sem perfil, o prazo volta a aparecer, uma vez só** (importante;
+   `components/colecoes/linha-colecao.tsx`). **Era:** sem perfil, barra fixa
+   e corrida ficavam sem meta, e na tela sobrava "a primeira barra fixa sem
+   elástico e…" e "de caminhada a 5 km sem parar em…". **É:** a linha sem
+   meta mostra o subtítulo **inteiro** (o corte de uma linha só vale quando
+   há meta embaixo): "a primeira barra fixa sem elástico em 8–12 semanas" e
+   "de caminhada a 5 km sem parar em 12 semanas (≈35 min, 7 min/km)", em 2
+   linhas cada, no lugar das 2 linhas de subtítulo + meta. A linha não fica
+   mais alta que a da corda. Continua valendo o contrato D: a duração total
+   aparece, e não repetida. Com perfil nada muda ("semana N de 12" na meta,
+   subtítulo numa linha).
+2. **O motivo da busca aparece inteiro** (menor da tela; mesmo arquivo).
+   **Era:** `line-clamp-2`, e "sentado panturrilha barra declinado" cortava o
+   3º nome do Cavalete ("contém Desenvolvimento sentado com barra, Elevação
+   de panturrilha em pé e Supino declinado com barra" precisa de 3 linhas a
+   360 px). **É:** sem corte. O motivo cita no máximo um nome por termo, e
+   por isso não cresce sem limite.
+3. **O nome curto da fase numa função só** (menor da regra; `lib/dados.ts`
+   `nomeCurtoDaFase`, `lib/semana.ts` `rotuloDaFase`; `lib/colecoes.ts`
+   reexporta). **Era:** `rotuloDaFase` cortava o nome à mão
+   (`acharFase(fase).nome.split("—")`), uma terceira cópia da regra. **É:** a
+   função mora ao lado de `acharFase` e as três telas usam ela (CTA do
+   desafio, aba Treino e cabeçalho do calendário). O texto na tela é o mesmo
+   ("Fase 1 · semana 3 de 12").
+4. **SPEC sem as lacunas de redação** (menores da regra; `SPEC.md`). §22.12
+   item 3: o motivo inteiro, com aceite (`scrollHeight` ≤ `clientHeight` com
+   4 termos). Item 4: a linha sem meta mostra o subtítulo inteiro, com
+   aceite. Item 7: sem perfil, o botão da corrida é "Fazer a corrida" e leva
+   a `/cardio/corrida`. Mais a nota "Rodada 11 — correção da auditoria 1".
+   §13.4: barra fixa e corrida com a semana do perfil, a corda com a sua
+   duração (ela não tem posição no perfil), e o objetivo inteiro quando não
+   há meta. §14.4: o caso sem meta.
+5. **PROGRESSO**: a rodada 10 (item 4, "sem perfil, '12 semanas'") e a
+   rodada 11 (item 4 e a "Observação" das Capturas) apontam para esta
+   correção.
+
+###### Provas
+
+- **e2e novos** (`e2e/ultraloop-a-r10.spec.ts`, 11 → 14 testes):
+  - "D — planos sem perfil", em claro e escuro. Contexto novo sem o IndexedDB
+    do cache, pedido de `/rest/v1/profiles` segurado e service worker
+    bloqueado. Barra fixa e corrida sem `[data-linha="meta"]`, o prazo
+    ("8–12 semanas" e "12 semanas") dentro da caixa visível do subtítulo
+    (medido por `Range`), subtítulo sem texto escondido e "semanas" uma vez
+    só no texto da linha. A corda com "12 semanas", as três linhas com a
+    mesma altura (±1 px) e nenhuma rolagem lateral.
+  - Busca com 4 termos: o motivo do Cavalete com os três nomes, nenhum
+    motivo com texto escondido, e a frase em ≥ 3 linhas.
+  - F no dia de cardio (terça 15/09): o destaque do Explorar é "Fazer a
+    corrida da semana N", com o mesmo texto e `href` do carrossel da Treino.
+    É o menor da regra, que só tinha o domingo.
+- **Sonda** (`r11/l12/sonda-aud1/17ba741.log`): `build:e2e` e
+  `e2e-grep:ultraloop-a-r10`, **14 passaram**.
+- **Mutação** (`r11/l12/sonda-aud1-mutacao/17ba741.log`):
+  `linha-colecao.tsx` de `ec07924` com os e2e novos dá **3 falhas** (busca
+  de 4 termos: "motivo com texto escondido a 360 px"; sem perfil claro e
+  escuro: `toEqual` das linhas). Arquivo restaurado e árvore limpa antes da
+  cadeia.
+- **Vitest (+1 caso, 1.476 → 1.477)**: "o nome curto da fase tem uma fonte
+  só". Cobre a reserva pelo nome inteiro ("— sem nome curto", "  Fase 3  ")
+  e que nenhum arquivo além de `lib/dados.ts` corta o nome com
+  `split("—")`. Esse caso mata o mutante M22 da auditoria de regra (tirar o
+  `|| nome.trim()`).
+- **Menores que ficam de fora (anotados)**:
+  - O conjunto citado nem sempre é o mínimo (258 de 845.780 consultas no
+    oráculo da auditoria), sem violar o aceite.
+  - O teste de fonte única do CTA lê o código-fonte por regex. O
+    comportamento na tela está nos e2e de F, que agora cobrem os dois
+    planos no destaque.
+  - M6 e M20 são equivalentes, segundo a própria auditoria.
+  - A mensagem da lente tela chegou cortada depois do primeiro menor (o
+    motivo de 4 termos). Não vi os outros menores dela e por isso não os
+    tratei.
+
+###### Portões
+
+Cadeia inteira no HEAD de código `17ba741` (`r11/l12/logs/17ba741.log`, das
+00:11:49 às 00:33:30 UTC, **status ok**):
+
+- `lint` limpo.
+- `tsc --noEmit` limpo.
+- `npm test`: **63 arquivos, 1.477 testes, todos verdes** (+1: o nome curto
+  da fase).
+- `build`: "Compiled successfully in 16.9s".
+- `build:e2e`: "Compiled successfully in 16.9s".
+- `e2e`: **440 passaram, 5 pulados, 0 falharam** (15,7 min). São +3 testes;
+  os 14 de `e2e/ultraloop-a-r10.spec.ts` passaram.
+- `varredura`: **5 de 5** (4,3 min).
+
+A cadeia roda de novo, inteira, no commit deste registro, que muda só o
+`PROGRESSO.md`. O log fica em `r11/l12/logs/<hash>.log`.
+
+###### Capturas
+
+`capturas.sh` em `17ba741`, depois da cadeia verde, contra a base real de
+`main` (`base-ef3ad97`), com `--esperadas explorar,colecao,catalogo`
+(`r11/l12/capturas-17ba741.md`):
+
+- 60 PNGs, **54 iguais** (Δ 0,00 %). Nenhuma tela fora da lista mudou, e 03
+  e 04 (aba Treino) ficaram iguais.
+- As seis que mudam são **byte a byte iguais** às de `ec07924` e `59f92ce`
+  (md5). As 60 telas da régua têm perfil e nenhuma busca, então não mostram
+  a linha sem meta nem o motivo. Olhei os diffs de 06, 07 e 08: são os
+  mesmos da rodada 10.
+
+| tela | Δ claro | Δ escuro | o que mudou (olhando o diff) |
+| --- | ---: | ---: | --- |
+| 08-catalogo | 30,21 % | 28,35 % | igual à rodada 10: os selects saem, "Filtros" e o contador ficam na mesma linha, e o primeiro cartão sobe para a primeira tela |
+| 07-colecao | 6,82 % | 3,97 % | igual à rodada 10: `/explorar/plano/corrida` com "5 km sem parar", "semana 2 de 12" e "Fazer a corrida da semana 2" |
+| 06-explorar | 1,74 % | 1,77 % | igual à rodada 10: nas linhas dos Treinos, o subtítulo vem antes da meta, sem negrito |
+
+**Sonda da tela da correção** (`r11/l12/sonda-aud1-tela/sonda.cjs`,
+Chromium 360×740, DSF 2, nos dois temas). Subi mock e app no `.next` de
+`17ba741` e derrubei os dois pela árvore de PIDs.
+
+- **Sem perfil** (contexto novo, pedido do perfil segurado, service worker
+  bloqueado, 1 pedido): as três linhas de Planos têm **72 px**.
+  - "Primeira barra fixa | a primeira barra fixa sem elástico em 8–12
+    semanas".
+  - "5 km sem parar | de caminhada a 5 km sem parar em 12 semanas (≈35 min,
+    7 min/km)".
+  - "Corda: 5 estágios | … | 12 semanas | CIRCUITO".
+  - `scrollWidth` 360.
+- **Busca de 4 termos**: o motivo do Cavalete tem `scrollHeight` 48 =
+  `clientHeight` 48 (3 linhas, nada escondido).
+- Olhei `planos-sem-perfil-light.png` e `busca-4-termos-dark.png`. Os dois
+  prazos aparecem na segunda linha do objetivo, sem reticências e sem "12
+  semanas" repetido. No Cavalete, os três nomes vão até "Supino declinado
+  com barra", e a meta "10 exercícios que dão para fazer / com ele" fica
+  embaixo.
+
+###### Como testar no celular (360 px)
+
+- **Planos sem perfil** (logo ao abrir o Explorar, antes de o perfil chegar,
+  ou com a rede lenta): "Primeira barra fixa" mostra o objetivo inteiro, até
+  "em 8–12 semanas", e "5 km sem parar" até "em 12 semanas (≈35 min, 7
+  min/km)". Nenhuma das duas tem "12 semanas" repetido embaixo. Quando o
+  perfil chega, a linha volta a "semana N de 12".
+- **Busca com 4 termos**: "sentado panturrilha barra declinado" no Explorar.
+  O Cavalete diz os três exercícios inteiros, até "Supino declinado com
+  barra", sem reticências.
+- **Dia de cardio** (terça): o destaque do Explorar e o carrossel da Treino
+  mostram o mesmo "Fazer a corrida da semana N".

@@ -79,21 +79,6 @@ export function Desafios({ desafios }: { desafios: Desafio[] }) {
   );
 }
 
-/**
- * O CTA diz o destino (SPEC §22.7 item 6): três cards iguais dizendo "Fazer a
- * sessão da semana" não distinguem para onde cada um leva. O texto sai dos
- * dados do próprio desafio — nada escrito à mão sobre o conteúdo do treino.
- */
-function acaoDoDesafio(desafio: Desafio): string {
-  if (desafio.id === "barra_fixa") return "Fazer a sessão de barra fixa";
-  if (desafio.id === "corrida") return `Fazer a corrida da semana ${desafio.semanaAtual}`;
-  if (desafio.id === "fase") {
-    const [curto] = desafio.titulo.split("—");
-    return `Fazer o treino da ${(curto ?? desafio.titulo).trim().toLowerCase()}`;
-  }
-  return desafio.acao;
-}
-
 function CardDoDesafio({ desafio }: { desafio: Desafio }) {
   const fracao = progressoDoDesafio(desafio);
   const porcento = Math.round(fracao * 100);
@@ -146,7 +131,8 @@ function CardDoDesafio({ desafio }: { desafio: Desafio }) {
       {/* `mt-auto`: o subtítulo de duas linhas empurrava o CTA, que pulava de
           altura de um card para o outro ao deslizar (SPEC §22.7 item 6) */}
       <BotaoLargo asChild variant="outline" className="mt-auto h-12 text-sm">
-        <Link href={desafio.href}>{acaoDoDesafio(desafio)}</Link>
+        {/* SPEC §22.12 item 7: o rótulo é o do próprio desafio, a fonte única */}
+        <Link href={desafio.href}>{desafio.acao}</Link>
       </BotaoLargo>
     </article>
   );

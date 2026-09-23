@@ -115,12 +115,12 @@ test.describe("Explorar e catálogo (SPEC §22.9)", () => {
     await page.goto("/explorar");
     await page.getByLabel("Buscar exercício ou coleção").fill("supino");
 
-    // os selects ficam atrás do botão "Filtros"
+    // os selects ficam atrás do botão "Filtros" (a folha do §22.12 item 1)
     await expect(page.getByLabel("Grupo")).toBeHidden();
     const filtros = page.getByRole("button", { name: /^Filtros/ });
     await expect(filtros).toBeVisible();
     await filtros.click();
-    await expect(page.getByLabel("Grupo")).toBeVisible();
+    await expect(page.getByRole("dialog").getByLabel("Grupo")).toBeVisible();
   });
 
   test("item 6: o 404 responde em português, com caminho de volta", async ({ page }) => {
@@ -197,11 +197,12 @@ test.describe("Explorar e catálogo (SPEC §22.9)", () => {
     }
     expect(quebradas, "coleções da vitrine que não abrem").toEqual([]);
 
-    // e uma delas de verdade, com a tela montada (o título da coleção é h2)
+    // e uma delas de verdade, com a tela montada (o título da coleção é o
+    // h1 da página — SPEC §22.12 item 6)
     const primeira = todasAsColecoes()[0]!;
     await page.goto(hrefDaColecao(primeira));
     await expect(
-      page.getByRole("heading", { name: primeira.titulo, level: 2 }),
+      page.getByRole("heading", { name: primeira.titulo, level: 1 }),
     ).toBeVisible();
   });
 
@@ -257,6 +258,9 @@ test.describe("Explorar e catálogo (SPEC §22.9)", () => {
     /* o filtro recolhido atrás do botão "Filtros" entra na conta do título */
     await page.getByRole("button", { name: /^Filtros/ }).click();
     await page.getByLabel("Grupo").selectOption("Costas");
+    // o CTA da folha já diz que não sobrou nada, e fecha a folha
+    await page.getByRole("button", { name: "Nenhum exercício" }).click();
+    await expect(page.getByRole("dialog")).toBeHidden();
     await expect(page.getByText("Nenhum exercício com esses filtros")).toBeVisible();
     await expect(cartoes).toHaveCount(0);
     expect(await anunciado(), "o título conta o que a lista mostra").toBe(0);
@@ -279,8 +283,9 @@ test.describe("Explorar e catálogo (SPEC §22.9)", () => {
     ] as const) {
       const resposta = await page.goto(velho);
       expect(resposta?.status(), velho).toBe(200);
+      // SPEC §22.12 item 6: a capa da coleção é o h1 da página
       await expect(
-        page.getByRole("heading", { name: titulo, level: 2 }),
+        page.getByRole("heading", { name: titulo, level: 1 }),
         velho,
       ).toBeVisible();
     }

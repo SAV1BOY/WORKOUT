@@ -168,3 +168,65 @@ export function itemDoCatalogo(
     noPrograma: doPrograma.has(e.id),
   };
 }
+
+/* ------------------------------------ a folha de filtros (SPEC §22.12 item 1) */
+
+/** Os filtros que moram na folha (a busca fica fora dela, sempre à vista). */
+export type ChaveDaFolha = "grupo" | "implemento" | "equipamento" | "soPrograma";
+
+/**
+ * Quantos filtros da folha estão ligados — é o selo do botão "Filtros". Conta
+ * filtros, não exercícios: com Peito + halteres o selo diz 2, seja qual for o
+ * número de resultados.
+ */
+export function quantosFiltrosLigados(f: FiltrosCatalogo): number {
+  return (
+    (f.grupo !== "todos" ? 1 : 0) +
+    (f.implemento !== "todos" ? 1 : 0) +
+    (f.equipamento !== "todos" ? 1 : 0) +
+    (f.soPrograma ? 1 : 0)
+  );
+}
+
+export interface ChipDoFiltro {
+  chave: ChaveDaFolha;
+  /** O que o chip mostra: "Peito", "Halteres", "No meu programa". */
+  rotulo: string;
+}
+
+/**
+ * Os chips removíveis acima da lista, um por filtro ligado, na ordem da folha.
+ * Os nomes são os mesmos das opções dos selects.
+ */
+export function chipsDosFiltros(f: FiltrosCatalogo): ChipDoFiltro[] {
+  const chips: ChipDoFiltro[] = [];
+  if (f.grupo !== "todos") chips.push({ chave: "grupo", rotulo: f.grupo });
+  if (f.implemento !== "todos") {
+    chips.push({ chave: "implemento", rotulo: NOME_IMPLEMENTO[f.implemento] });
+  }
+  if (f.equipamento !== "todos") {
+    chips.push({ chave: "equipamento", rotulo: NOME_EQUIPAMENTO[f.equipamento] });
+  }
+  if (f.soPrograma) chips.push({ chave: "soPrograma", rotulo: "No meu programa" });
+  return chips;
+}
+
+/** Os filtros sem aquele chip — a busca e os outros ficam como estavam. */
+export function semOFiltro(f: FiltrosCatalogo, chave: ChaveDaFolha): FiltrosCatalogo {
+  if (chave === "soPrograma") return { ...f, soPrograma: false };
+  return { ...f, [chave]: "todos" };
+}
+
+/** Solta os filtros da folha e mantém a busca (o "Limpar" de dentro da folha). */
+export function semFiltrosDaFolha(f: FiltrosCatalogo): FiltrosCatalogo {
+  return { ...FILTROS_VAZIOS, busca: f.busca };
+}
+
+/**
+ * O CTA que fecha a folha diz quantos exercícios a lista vai mostrar: "Ver 12
+ * exercícios", "Ver 1 exercício" e, sem nenhum, "Nenhum exercício".
+ */
+export function rotuloDoVerResultados(quantos: number): string {
+  if (quantos <= 0) return "Nenhum exercício";
+  return quantos === 1 ? "Ver 1 exercício" : `Ver ${quantos} exercícios`;
+}
