@@ -9259,8 +9259,10 @@ está no próprio item da SPEC.
    `components/exercicio/ilustracao-alternada.tsx`,
    `components/exercicio/ficha-folha.tsx`). **Era:** caixa de altura fixa
    (`h-52` na página, `h-44` na folha) e largura inteira; o goblet (0,42:1)
-   desenhava 81 px de figura numa caixa de 328, e a conta de antes deixa 78+
-   das 145 medidas abaixo de 60 % da largura. **É:** na aba Vídeo da ficha a
+   desenhava 81 px de figura numa caixa de 328, e a conta de antes deixa
+   **100 das 145 medidas** (`h-52`, 208 px, na página) e **112** (`h-44`,
+   176 px, na folha) abaixo de 60 % da coluna (correção da auditoria 2: o
+   registro dizia "78+"). **É:** na aba Vídeo da ficha a
    área da figura usa o par largura/altura de `data/ilustracoes.json` como
    `aspect-ratio`, com teto de 432 px de altura de figura
    (`caixaDaIlustracao()`/`figuraNaCaixa()`, puras); a figura larga ocupa a
@@ -9274,10 +9276,18 @@ está no próprio item da SPEC.
 2. **Fotos na proporção do arquivo, com legenda** (imagens-12;
    `components/exercicios/fotos-ampliaveis.tsx`,
    `components/exercicio/midia.tsx`). **Era:** `aspect-square` +
-   `object-cover` cortava as fotos 3:2 (justamente a barra). **É:** a caixa
-   de cada foto tem a proporção do arquivo (`proporcaoDaFoto()`, de
-   `data/medidas-de-foto.json`; 3:2 na falta) e ganha a legenda visível
-   "Início" / "Fim" — na página e na opção Fotos da folha.
+   `object-cover` cortava as fotos em quadrado (justamente a barra). As
+   fotos não são uniformes (correção da auditoria 2 — o registro dizia "3:2"):
+   dos 324 arquivos, 304 são 850×567, 8 são 850×569 e **12 são retrato 2:3**
+   (agachamento búlgaro, barra fixa assistida e barra fixa com lastro:
+   850×1275 no kit, 800×1200 na derivada). **É:** a caixa de cada foto tem a
+   proporção do arquivo (`proporcaoDaFoto()`, de `data/medidas-de-foto.json`;
+   3:2 na falta), a foto é `object-contain` (rodada 13: nem uma medida errada
+   a cortaria) e ganha a legenda visível "Início" / "Fim" — na página e na
+   opção Fotos da folha. Rodada 13: a faixa do player e da Visão geral, que
+   mostra a foto dos 3 exercícios que só têm foto (escalador, salto básico,
+   corrida no lugar com a corda), também passou de `object-cover` (cortava a
+   foto 3:2 na faixa 2:1) para `object-contain` (`media-grande.tsx`).
 3. **Só os links do crédito sublinhados** (imagens-13;
    `media-grande.tsx`). **Era:** o crédito inteiro ("Ilustração: Everkinetic
    (everkinetic.com), CC BY-SA 3.0") era um link sublinhado. **É:**
@@ -9289,7 +9299,10 @@ está no próprio item da SPEC.
    loading="lazy">` na mesma caixa visível e baixavam juntas. **É:** a
    segunda posição só entra no DOM depois que a primeira carregou e a
    ilustração vai alternar; parada (`prefers-reduced-motion`), só no toque
-   em "Voltar a alternar". O aquecimento de mídia da fase (§8,
+   em "Voltar a alternar". Rodada 13 (auditoria 2): a troca de 1,2 s só
+   começa depois do `onLoad` do quadro 2, e "Voltar a alternar" só troca de
+   posição na hora se ele já chegou — antes, com rede lenta ou parada, a
+   caixa fazia o fade até ficar vazia. O aquecimento de mídia da fase (§8,
    `lib/precache-do-programa.ts`, por `fetch`, depois que o service worker
    assume) continua e fica fora do aceite.
 5. **A figura não é o botão de pausa** (ux-heuristicas-21;
@@ -9298,9 +9311,16 @@ está no próprio item da SPEC.
    **Era:** a ilustração inteira era o `<button>` "Parar em uma posição".
    **É:** a pausa é um botão redondo de 44×44 no canto de baixo à direita
    ("Parar a animação" / "Voltar a alternar", ícone Pause/Play); a figura
-   diz a posição ("Execução do …, posição 1 de 2"). No player e na Visão
+   diz a posição. No player e na Visão
    geral do treino, tocar na figura abre a ficha (o "Como fazer", como o "?"); na
-   própria ficha a figura é `role="img"` e o toque não faz nada.
+   própria ficha a figura é `role="img"` ("Execução do …, posição 1 de 2") e
+   o toque não faz nada. Rodada 13 (auditoria 2, `app/globals.css`): a
+   figura-botão tem **anel de foco interno** (2 px, `outline-offset: -4px`,
+   `--ring-placa` = `#a03608` nos dois temas) — o anel de fora saía cortado
+   pelo `overflow-hidden` da caixa —, a pausa usa a mesma cor sobre a placa,
+   e o **nome** da figura-botão é estável ("Execução do … — abre o Como
+   fazer"), com a posição na **descrição**, congelada enquanto o foco está
+   nela.
 6. **O chip ativo do segmento se vê** (tela-explorar-fichas-18;
    `ficha-folha.tsx`). **Era:** `bg-background` sobre o trilho `bg-muted`
    (1,08:1 no claro). **É:** o ativo tem contorno de 2 px na cor do texto
@@ -9331,25 +9351,31 @@ está no próprio item da SPEC.
    (texto e ícone), a atual com `aria-current="step"` e o link "Abrir a
    sessão desta semana" (o `href` de `ctaDoPlano()`). Regra pura
    `semanasDoPlano()` + `semanaDoPerfilNoPlano()` (corda pela
-   `semana_corda`).
+   `semana_corda`). Na faixa de semanas, "feitas" no plural (menor da
+   auditoria 1).
 10. **Uma marca só na coluna da direita** (visual-11; `linha-colecao.tsx`).
     **Era:** raios ao lado do título (centro a 18 px do topo) e chevron no
     meio (36 px). **É:** os raios vão no fluxo da linha da meta, **abrindo
     a meta**, antes de "N exercícios" (sem meta, ao fim do subtítulo); a
     coluna da direita tem só o chevron. Correção da auditoria: no fim da
     meta, eles caíam na 2ª linha nas 9 linhas de "Por aparelho" ("N
-    exercícios que dão para fazer com ele" quebra em 2 a 360 px). Na faixa
-    de semanas do plano, "feitas" no plural (menor da auditoria). O selo "Circuito" passou a abrir a linha do
+    exercícios que dão para fazer com ele" quebra em 2 a 360 px). O selo
+    "Circuito" passou a abrir a linha do
     subtítulo: na meta, com os raios, ela quebrava (Cardio 84 px contra 72)
     e, ao lado do título, empurrava o nome da corda para 2 linhas (108
-    contra 88) — os dois vistos na sonda.
+    contra 88) — os dois vistos na sonda. Rodada 13 (auditoria 2): quando o
+    subtítulo é cortado numa linha (a linha tem meta — só "Corda: 5
+    estágios" entre as de circuito), o selo **fecha a meta** ("12 semanas
+    CIRCUITO"): abrindo o subtítulo, ele tomava ~64 px do texto cortado.
 
 Testes que mudaram por causa do comportamento novo (não afrouxados):
 `e2e/midia.spec.ts` (a pausa é o botão do canto; o crédito são dois links
 com os dois `href` conferidos; o 2º quadro é esperado com `toHaveCount(2)`),
 `e2e/ultraloop-a-r1.spec.ts` (reduced motion: "Voltar a alternar" no botão
 do canto), `e2e/catalogo.spec.ts` e `e2e/player.spec.ts` (o nome da figura
-passa a ter ", posição N de 2").
+da ficha passa a ter ", posição N de 2"). Rodada 13: `lib/midia.test.ts` (o
+crédito não tem mais o campo `texto`) e o e2e do item 5 no player (nome
+"… — abre o Como fazer" e a posição na descrição).
 
 #### Correção da auditoria
 
@@ -9412,11 +9438,105 @@ apontou como bloqueante ou importante foi atendido ou registrado:
   foi renomeado ("aberta pelo Como fazer do player") e mede contra a
   coluna; SPEC e PROGRESSO dizem "Visão geral do treino" em vez de "lista
   do treino". **Menores não atendidos** (sem risco de regressão, ficam
-  anotados): o nome acessível da figura muda a cada 1,2 s (mudar quebraria
-  o contrato "posição N de 2" do item 5, que o ledger pede); o bloco de
+  anotados): o nome acessível da figura muda a cada 1,2 s (atendido na
+  rodada 13, ver "Correção da auditoria 2"); o bloco de
   progresso das semanas repete o do card de desafio (refatoração fora do
   lote); o aceite do item 4 fala em LCP e o e2e mede a ordem dos pedidos;
   `data-ilustracao="alternando"` antes da primeira posição carregar.
+
+#### Rodada 12 — auditoria 2 reprovou; lote devolvido à fila
+
+A auditoria 2, em `8d2fa10` (cadeia `r12/l13/logs/8d2fa10.log` ok: 1.494
+unit, e2e 464 + 5 pulados, varredura 5/5), **aprovou a lente regra** (6
+menores) e **reprovou a lente tela** por **1 bloqueante**: regressão de
+acessibilidade (WCAG 2.4.7) trazida pelo item 5 — a figura virou um
+`<button data-figura="abre">` que ocupa a caixa inteira, a caixa tem
+`overflow-hidden`, e o anel global de foco (outline de 2 px com offset de
+2 px, para fora) saía **inteiro cortado**: 0 px mudavam com o foco por Tab
+no player e na Visão geral (em `main` a própria caixa era o botão e o anel
+aparecia). Mais 4 menores de tela. Pela regra do dono, o lote foi
+**devolvido à fila** ao fim da rodada 12. Vereditos:
+`r12/l13/vereditos-auditoria-2.json`.
+
+#### Rodada 13 — retomada
+
+Ciclo novo sobre o HEAD `8d2fa10` da mesma branch, com a pasta de logs
+nova `r13/l13/`. Commits: `5f8e8ee` (SPEC §22.13 primeiro), `bd630ab`
+(figura-botão: anel interno, nome estável, troca depois do quadro 2),
+`26f8b55` (fotos em `object-contain`), `8183b5f` (crédito sem o campo morto),
+`1642ff2` (selo na meta), `f5dfbcc` (testes), `704ca40` (o teste de retrato
+mede a página — o segmento da página não tem "Fotos", a 1ª sonda caiu nos 3
+— e a medida do anel vai para o log). Sonda antes da cadeia
+(`r13/l13/logs-parcial/f5dfbcc.log`): build:e2e + o spec do L13, 31 de 34 —
+as 3 falhas eram esse teste novo de retrato.
+
+#### Correção da auditoria 2
+
+- **Tela, bloqueante — o anel de foco da figura-botão sumia** (item 5;
+  `app/globals.css`, `ilustracao-alternada.tsx`). O anel de
+  `[data-figura="abre"]` passou a ser **interno**: 2 px com
+  `outline-offset: -4px`, dentro do respiro de 8 px (não cobre a figura), com
+  o arredondado da caixa (`rounded-[inherit]`). A cor é um token novo,
+  `--ring-placa` = `#a03608` nos dois temas: a placa da ilustração é clara
+  nos dois (`#fff` / `#cfcac4`) e o `--ring` do escuro (`#fb923c`) mede 1,4:1
+  contra `#cfcac4`; `#a03608` dá 6,9:1 contra o branco e 4,3:1 contra
+  `#cfcac4`. O botão de pausa, por fora na mesma placa, passou à mesma cor
+  (no escuro ele também dava 1,4:1). e2e novo, no player e na Visão geral,
+  nos dois temas, com reduced motion (a figura parada): Tab até a figura,
+  captura com e sem foco (`blur()`, sem mexer na rolagem) — mais de 500 px
+  têm de mudar, e o pixel do anel (a 3 px da borda), lido na captura, mede
+  ≥ 3:1 contra o mesmo pixel sem foco; o mesmo na pausa (mais de 100 px e
+  ≥ 3:1 a 3 px por fora dela). **Mutação** (`r13/l13/logs-mutacao/`, a regra
+  do anel interno trocada por um seletor que não casa, não comitada, depois
+  restaurada): os 4 casos caem com **0 px** mudando na figura — o mesmo 0 px
+  que a auditoria mediu —, e os 3 de retrato passam no mesmo build.
+- **Tela, menor — nome acessível mudando a cada 1,2 s num focável.** A
+  figura-botão tem nome **estável** ("Execução do … — abre o Como fazer") e a
+  posição ("posição N de 2") vai na **descrição** (`aria-describedby`),
+  congelada enquanto o foco está nela — o leitor de tela ouve a posição ao
+  chegar e não repete o anúncio. Na ficha a figura não é focável e segue
+  `role="img"` com a posição no nome. e2e novo: com o foco na figura, a
+  posição troca e nome e descrição continuam iguais; sem o foco, a descrição
+  volta a acompanhar a posição. SPEC §22.13 item 5 registra o motivo.
+- **Tela, menor — o selo "Circuito" cortava o subtítulo da corda** (item
+  10; `linha-colecao.tsx`). Com o subtítulo cortado numa linha (há meta), o
+  selo fecha a meta; nos outros casos continua abrindo a linha do
+  subtítulo. e2e novo em Planos e na busca "corda": o selo está na meta, o
+  subtítulo começa na coluna do título (±1 px) e a meta fica numa linha.
+- **Regra, menor — o quadro 2 e o intervalo** (item 4). A troca de 1,2 s
+  só começa depois do `onLoad` do quadro 2, e "Voltar a alternar" só troca
+  de posição na hora se ele já chegou. e2e novo (service worker bloqueado,
+  quadro 2 atrasado 2,5 s pelo `route`): parada, depois do toque a posição
+  fica na 1 enquanto o quadro 2 não chegou (mais de 3 amostras vistas) e
+  passa à 2 depois.
+- **Regra, menor — "as fotos são 3:2"** (item 2). Os dados têm 304 fotos
+  850×567, 8 em 850×569 e 12 em retrato 2:3. As fotos passaram a
+  `object-contain` (a caixa já tinha a proporção do arquivo: nenhuma era
+  cortada, e agora nem uma medida errada cortaria), e a faixa do player e
+  da Visão geral, que mostrava a foto de 3:2 em `object-cover` numa faixa
+  2:1 nos 3 exercícios que só têm foto, também. Vitest novo: as 162 fotos de
+  `data/exercicios.json` (324 arquivos, JPEG e WebP) com a proporção da
+  caixa igual à do JPEG do kit lido do disco pelo `sharp` (±0,005), e 12
+  em retrato — as dos três exercícios. e2e novo nos três em retrato: na
+  página do exercício, as 2 fotos com caixa 2:3, `object-fit: contain` e
+  altura ≥ 1,45 × a largura (na página o segmento não tem "Fotos"; a opção
+  Fotos da folha usa a mesma conta e segue medida no supino). SPEC e este
+  registro corrigidos.
+- **Regra, menor — `credito().texto` morto.** Saiu de `lib/midia.ts` (e do
+  tipo `CreditoDaMidia`); o rótulo "Ilustração:" existe só na legenda.
+- **Regra, menor — a nota do plural no item errado.** Foi do item 10 para o
+  item 9, onde estão as semanas do plano.
+- **Regra, menor — "78+".** O registro, a SPEC e o teste dizem agora os
+  números da conta: 100 de 145 com `h-52` (página) e 112 de 145 com `h-44`
+  (folha); o teste exige os dois números exatos.
+- **Regra, menor — o teste do teto não pegava teto errado.** Ele passava
+  com 100, 500 ou 1000 px. Teste novo: o teto fica entre o mínimo que leva o
+  goblet a 180 px (425) e o máximo que cabe na página a 360×740 com o
+  segmento, o crédito e a barra de baixo (440); e um que prende a folga ao
+  `p-2` do componente (com FOLGA 0 nenhum unitário caía).
+- **Tela, menores não atendidos:** a ficha pula de H1 para H3 (pré-existente
+  em `main`, fora do lote); a 28-player-exercicio sai com Δ 0,00 % porque a
+  captura mascara a mídia animada — o anel e a pausa são medidos no e2e.
 
 #### Provas
 
@@ -9424,7 +9544,8 @@ apontou como bloqueante ou importante foi atendido ou registrado:
   JSON contra a coluna de 328 px: só as 12 medidas dos seis exercícios mais
   altos ficam abaixo de 60 %, pelo id, e todas com a figura no teto
   (432 ± 2 px); toda figura ocupa a coluna ou bate no teto; a conta da caixa
-  fixa de antes deixava ≥ 78 abaixo de 60 % da coluna; goblet ≥ 180 px; larga ocupa a coluna e alta para no teto; a
+  fixa de antes deixava abaixo de 60 % da coluna 100 das 145 (h-52) e 112
+  (h-44) — "≥ 78" até a rodada 12; goblet ≥ 180 px; larga ocupa a coluna e alta para no teto; a
   proporção é o par do arquivo; toda foto de execução (JPEG e WebP) tem
   proporção de arquivo, não quadrada; 3:2 sem medida; toda licença do JSON
   vira `creativecommons.org/licenses/by-sa/N.0/`; código que não é CC fica
@@ -9518,7 +9639,14 @@ inclusive a 03-treino-topo).
   alternando. O botão do canto pausa.
 - **Fotos**: na ficha do supino reto, role até as duas fotos — inteiras, na
   proporção da foto (a barra aparece), com "Início" e "Fim" embaixo. Na
-  folha (o "?" do player), a opção "Fotos" do segmento mostra o mesmo.
+  folha (o "?" do player), a opção "Fotos" do segmento mostra o mesmo. Na
+  ficha do agachamento búlgaro (e das duas barras fixas) as fotos são em pé
+  (2:3): inteiras, mais altas que largas, sem corte.
+- **Foco por teclado** (teclado Bluetooth no celular, ou no computador): no
+  player, Tab até a ilustração — aparece um anel laranja-escuro por dentro
+  da borda da caixa, nos dois temas; mais um Tab, o anel em volta do botão
+  de pausa. O leitor de tela diz "Execução do … — abre o Como fazer" e a
+  posição uma vez, sem repetir enquanto a figura alterna.
 - **Crédito**: sob a ilustração, "Ilustração: Everkinetic (everkinetic.com)
   · CC BY-SA 3.0" — só o autor e a licença sublinhados; cada um abre a sua
   página.
@@ -9531,8 +9659,10 @@ inclusive a 03-treino-topo).
 - **Explorar**: em cada seção de "Escolhas para você", as linhas têm a mesma
   altura; os raios abrem a última linha, antes de "N exercícios" — em
   "Por aparelho" também, na primeira das duas linhas da meta; à direita só
-  o chevron. Cardio, os circuitos e a corda mostram o selo "Circuito" no
-  começo da segunda linha.
+  o chevron. Cardio e os circuitos mostram o selo "Circuito" no começo da
+  segunda linha; no plano "Corda: 5 estágios" (subtítulo cortado numa
+  linha) o selo fecha a última, depois de "12 semanas", e o subtítulo começa
+  na coluna do título.
 - **Plano de corrida** (Explorar → Planos → "5 km sem parar"): a capa tem o
   ícone de calendário; embaixo, "Semanas do plano" com "Semana N de 12 · K
   concluídas", a barra e as 12 semanas, as anteriores "feita", a atual
