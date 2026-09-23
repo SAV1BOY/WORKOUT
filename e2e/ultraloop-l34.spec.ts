@@ -91,6 +91,15 @@ interface Simulacao {
   semPush?: boolean;
   /** `navigator.permissions.query` recusa: sobra só a volta pela visibilidade */
   semPermissionsApi?: boolean;
+  /** o `subscribe` demora este tanto (um Ativar em andamento) */
+  subscribeAtrasoMs?: number;
+  /**
+   * A leitura da tabela falha como sem internet enquanto `window.__semRede`
+   * for verdade (e `window.__leituras` conta as leituras). É no `fetch` da
+   * página porque a página é do service worker: nem `context.setOffline` nem
+   * `page.route` alcançam o que passa por ele (ver auditoria-offline.spec).
+   */
+  leituraSemRede?: boolean;
 }
 
 /** Troca o PushManager, o `navigator.brave` e a permissão, antes do app. */
@@ -105,6 +114,20 @@ async function simular(context: BrowserContext, sim: Simulacao): Promise<void> {
     }
     if (cfg.semPermissionsApi) {
       Permissions.prototype.query = () => Promise.reject(new TypeError("desligada neste teste"));
+    }
+    if (cfg.leituraSemRede) {
+      const original = window.fetch.bind(window);
+      w.__leituras = 0;
+      w.__semRede = false;
+      window.fetch = (entrada: RequestInfo | URL, opcoes?: RequestInit) => {
+        const url = typeof entrada === "string" ? entrada : entrada instanceof URL ? entrada.href : entrada.url;
+        const metodo = (opcoes?.method ?? (entrada instanceof Request ? entrada.method : "GET")).toUpperCase();
+        if (metodo === "GET" && /\/rest\/v1\/lembretes_inscricoes/.test(url)) {
+          w.__leituras = Number(w.__leituras) + 1;
+          if (w.__semRede) return Promise.reject(new TypeError("Failed to fetch"));
+        }
+        return original(entrada, opcoes);
+      };
     }
     if (cfg.semPush) {
       delete w.PushManager;
@@ -149,6 +172,7 @@ async function simular(context: BrowserContext, sim: Simulacao): Promise<void> {
       if (cfg.subscribeFalha) {
         throw new DOMException("Registration failed - push service error", "AbortError");
       }
+      if (cfg.subscribeAtrasoMs > 0) await new Promise((ok) => setTimeout(ok, cfg.subscribeAtrasoMs));
       const bytes = new Uint8Array(opcoes?.applicationServerKey as ArrayBuffer);
       const chave = btoa(String.fromCharCode(...bytes))
         .replace(/\+/g, "-")
@@ -169,6 +193,8 @@ async function simular(context: BrowserContext, sim: Simulacao): Promise<void> {
     negar: sim.negar ?? false,
     semPush: sim.semPush ?? false,
     semPermissionsApi: sim.semPermissionsApi ?? false,
+    subscribeAtrasoMs: sim.subscribeAtrasoMs ?? 0,
+    leituraSemRede: sim.leituraSemRede ?? false,
   });
 }
 
@@ -684,6 +710,114 @@ test("a troca da permissão avisada pelo navegador (permissions change) também 
   await expect(estado(page)).toHaveText("Desativado neste aparelho.");
   await expect(page.getByRole("button", { name: "Ativar lembretes neste aparelho" })).toBeVisible();
   await expect(page.locator("[data-instrucao]")).toHaveCount(0);
+});
+
+/* Cada ouvinte da volta sozinho: `focus` e `pageshow` (o `visibilitychange` está acima, nos dois temas). */
+const OUTRAS_VOLTAS = {
+  focus: () => window.dispatchEvent(new FocusEvent("focus")),
+  pageshow: () => window.dispatchEvent(new PageTransitionEvent("pageshow", { persisted: true })),
+} as const;
+
+for (const evento of Object.keys(OUTRAS_VOLTAS) as (keyof typeof OUTRAS_VOLTAS)[]) {
+  test(`liberada nas configurações, a volta por ${evento} sozinho mostra o Ativar`, async ({ page, baseURL }) => {
+    await preparar(page, "light", { aparelho: aparelhoNovo(), semPermissionsApi: true }, false);
+    const origem = new URL(baseURL ?? "").origin;
+    await negarDeVerdade(page, origem);
+    await esperarServiceWorker(page);
+    await page.goto("/mais/lembretes");
+    await expect(estado(page)).toHaveText("Bloqueado pelo navegador.");
+    await page.context().grantPermissions(["notifications"], { origin: origem });
+    await page.waitForTimeout(400);
+    await expect(estado(page)).toHaveText("Bloqueado pelo navegador.");
+
+    await page.evaluate(OUTRAS_VOLTAS[evento]);
+    await expect(estado(page)).toHaveText("Desativado neste aparelho.");
+    await expect(page.getByRole("button", { name: "Ativar lembretes neste aparelho" })).toBeVisible();
+    await expect(page.locator("[data-instrucao]")).toHaveCount(0);
+  });
+}
+
+test("um Ativar em andamento: a volta no meio não lê a tabela antes de gravar", async ({ page }) => {
+  const sessao = await preparar(page, "light", { aparelho: aparelhoNovo(), semPermissionsApi: true, subscribeAtrasoMs: 2000 });
+  await esperarServiceWorker(page);
+  await page.goto("/mais/lembretes");
+  await expect(estado(page)).toHaveText("Desativado neste aparelho.");
+
+  const pedidos: string[] = [];
+  page.on("request", (pedido) => {
+    if (/\/rest\/v1\/lembretes_inscricoes/.test(pedido.url())) pedidos.push(pedido.method());
+  });
+  await page.getByRole("button", { name: "Ativar lembretes neste aparelho" }).click();
+  await expect(page.getByRole("button", { name: "Ativando…" })).toBeVisible();
+  // o pedido de permissão do navegador tira e devolve o foco; a pessoa também pode sair e voltar
+  await voltarDasConfiguracoes(page);
+  await page.evaluate(() => {
+    window.dispatchEvent(new FocusEvent("focus"));
+    window.dispatchEvent(new PageTransitionEvent("pageshow", { persisted: true }));
+  });
+  await expect(estado(page)).toHaveText("Ativado neste aparelho.");
+  expect(await lerDoMock(sessao, TABELA)).toHaveLength(1);
+  // gravar é apagar a linha antiga do endpoint e inserir; nenhuma leitura antes disso
+  const primeiraGravacao = pedidos.findIndex((m) => m === "DELETE" || m === "POST");
+  expect(primeiraGravacao, pedidos.join(" ")).toBeGreaterThanOrEqual(0);
+  expect(pedidos.slice(0, primeiraGravacao), pedidos.join(" ")).toEqual([]);
+});
+
+/** Liga ou desliga a "internet" da leitura da tabela (ver `leituraSemRede`). */
+async function semRede(page: Page, sem: boolean): Promise<void> {
+  await page.evaluate((v) => {
+    (window as unknown as { __semRede: boolean }).__semRede = v;
+  }, sem);
+}
+function leituras(page: Page): Promise<number> {
+  return page.evaluate(() => (window as unknown as { __leituras: number }).__leituras);
+}
+/**
+ * Sem rede, o postgrest-js tenta a leitura mais 3 vezes (1 s, 2 s e 4 s) antes
+ * de devolver o erro: 4 pedidos, ~7 s. Só depois disso a tela decide a frase.
+ */
+const TENTATIVAS_SEM_REDE = 4;
+
+test("a volta sem internet mantém a frase do aparelho (não troca pelo aviso da lista)", async ({ page }) => {
+  await preparar(
+    page,
+    "light",
+    { aparelho: aparelhoNovo(), brave: true, negar: true, semPermissionsApi: true, leituraSemRede: true },
+    false,
+  );
+  await esperarServiceWorker(page);
+  await page.goto("/mais/lembretes");
+  await expect(estado(page)).toHaveText("Desativado neste aparelho.");
+  await page.getByRole("button", { name: "Ativar lembretes neste aparelho" }).click();
+  await expect(aviso(page)).toHaveText("O navegador recusou as notificações deste app.");
+
+  await semRede(page, true);
+  const antes = await leituras(page);
+  await page.evaluate(() => window.dispatchEvent(new FocusEvent("focus")));
+  await expect.poll(() => leituras(page), { timeout: 15_000 }).toBe(antes + TENTATIVAS_SEM_REDE);
+  await page.waitForTimeout(500);
+  await expect(aviso(page)).toHaveText("O navegador recusou as notificações deste app.");
+  await expect(page.getByText("Não deu para ler os aparelhos agora.")).toHaveCount(0);
+  await expect(page.locator('[data-instrucao="brave"]')).toBeVisible();
+});
+
+test("sem frase do aparelho, o aviso da lista aparece sem internet e sai na volta com internet", async ({ page }) => {
+  await preparar(page, "light", { aparelho: aparelhoNovo(), semPermissionsApi: true, leituraSemRede: true });
+  await esperarServiceWorker(page);
+  await page.goto("/mais/lembretes");
+  await expect(estado(page)).toHaveText("Desativado neste aparelho.");
+  await expect(aviso(page)).toHaveCount(0);
+
+  await semRede(page, true);
+  await page.evaluate(() => window.dispatchEvent(new FocusEvent("focus")));
+  await expect(aviso(page)).toHaveText("Não deu para ler os aparelhos agora.", { timeout: 15_000 });
+
+  await semRede(page, false);
+  const antes = await leituras(page);
+  await page.evaluate(() => window.dispatchEvent(new FocusEvent("focus")));
+  await expect.poll(() => leituras(page)).toBeGreaterThan(antes);
+  await expect(aviso(page)).toHaveCount(0);
+  await expect(estado(page)).toHaveText("Desativado neste aparelho.");
 });
 
 /* ------------------------------ §23.7 item 5: a frase na primeira dobra */
