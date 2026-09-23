@@ -51,6 +51,12 @@ const ORIGEM_FIXA = "https://app.invalid";
  * O parser apaga TAB, LF e CR de qualquer ponto, então `"/\t/outro.host"`
  * vira `//outro.host` — o teste de prefixo sozinho deixava passar. Devolve o
  * caminho, a busca e a âncora como o parser os leu; o resto vira `/`.
+ *
+ * A **saída** também é conferida: o parser desfaz `.`, `..` e `%2e`, então
+ * `"/.//outro.host"` passa pela entrada e sai `//outro.host`, que resolvido em
+ * qualquer página é outro host. O caminho normalizado não tem TAB, LF, CR nem
+ * `\` (o parser os tira ou troca por `/`): basta recusar o `//` do começo, e
+ * a função fica idempotente.
  */
 export function urlInterna(url: unknown): string {
   if (typeof url !== "string") return "/";
@@ -65,7 +71,8 @@ export function urlInterna(url: unknown): string {
     return "/";
   }
   if (lida.origin !== ORIGEM_FIXA) return "/";
-  return `${lida.pathname}${lida.search}${lida.hash}`;
+  const caminho = `${lida.pathname}${lida.search}${lida.hash}`;
+  return caminho.startsWith("//") ? "/" : caminho;
 }
 
 export interface NotificacaoMontada {
@@ -243,10 +250,13 @@ export function instrucoesDoAparelho(s: SinaisDasInstrucoes): Instrucao[] {
   const saida: Instrucao[] = [];
   const bloqueado = s.estado === "bloqueado";
   const falhouAoAtivar = s.estado === "desativado" && s.falhou;
+  const instalar = s.ios && !s.instalado;
   if (s.brave && !s.ios && (bloqueado || falhouAoAtivar)) saida.push(BRAVE);
+  // no iPhone fora da tela inicial, instalar vem antes: a entrada do app nos
+  // Ajustes só existe depois de instalado
+  if (instalar) saida.push(IPHONE);
   if (bloqueado) saida.push(s.ios ? PERMISSAO_IPHONE : PERMISSAO);
-  if (s.ios && !s.instalado) saida.push(IPHONE);
-  else if (s.estado === "nao-suportado") saida.push(SUPORTE);
+  if (!instalar && s.estado === "nao-suportado") saida.push(SUPORTE);
   if ((bloqueado || falhouAoAtivar || s.estado === "nao-suportado") && saida.length === 0) {
     saida.push(TENTAR);
   }

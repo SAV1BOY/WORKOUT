@@ -76,6 +76,73 @@ describe("opcoesDaNotificacao (o push vira notificação)", () => {
     expect(urlInterna("/rel\tatorio")).toBe("/relatorio");
     expect(urlInterna("/a/../mais")).toBe("/mais");
   });
+
+  it("pontos antes da barra dupla não abrem outro host (a saída também é conferida)", () => {
+    // o parser desfaz `.`, `..` e `%2e` DEPOIS da conferência da entrada
+    for (const fora of [
+      "/.//mal.example/x",
+      "/..//mal.example",
+      "/a/..//mal.example",
+      "/%2e//mal.example",
+      "/.%2e//mal.example",
+      "/%2E%2E//mal.example",
+      "/./\\mal.example",
+      "/..\\/mal.example/x",
+      "\t/.//mal.example",
+      "/.\t//mal.example",
+      "/.//",
+    ]) {
+      expect(urlInterna(fora), JSON.stringify(fora)).toBe("/");
+      expect(opcoesDaNotificacao(JSON.stringify({ url: fora })).opcoes.data.url, JSON.stringify(fora)).toBe("/");
+    }
+    // um ponto que não deixa `//` no começo continua sendo caminho do app
+    expect(urlInterna("/./mais/lembretes")).toBe("/mais/lembretes");
+    expect(urlInterna("/a/./b/../c?x=1#y")).toBe("/a/c?x=1#y");
+  });
+
+  it("varredura: pedaços hostis 3 a 3 — toda saída fica na origem, sem // nem /\\, e é idempotente", () => {
+    const origem = "https://treino.example";
+    const pedacos = [
+      "/", "//", "\\", "/\\", "\\/", "%2f", "%5c", "\t", "\n", "\r", " ", "\u0000", "\u000b", "\u000c",
+      " ", " ", "﻿", "mal.example", "@mal.example", ":", "..", "#", "?",
+      "javascript:alert(1)", "https://mal.example", "/./", "/../", ".", "%2e", "%2E%2e",
+    ];
+    let entradas = 0;
+    const ruins: string[] = [];
+    for (const a of pedacos)
+      for (const b of pedacos)
+        for (const c of pedacos)
+          for (const fim of ["", "mal.example/x"]) {
+            const entrada = a + b + c + fim;
+            entradas++;
+            const saida = urlInterna(entrada);
+            let final: URL | null = null;
+            try {
+              final = new URL(saida, origem);
+            } catch {
+              final = null;
+            }
+            if (
+              !saida.startsWith("/") ||
+              saida.startsWith("//") ||
+              saida.startsWith("/\\") ||
+              final?.origin !== origem ||
+              urlInterna(saida) !== saida
+            ) {
+              ruins.push(`${JSON.stringify(entrada)} → ${JSON.stringify(saida)}`);
+            }
+          }
+    expect(entradas).toBe(pedacos.length ** 3 * 2);
+    expect(ruins.slice(0, 10)).toEqual([]);
+  });
+
+  it("idempotente nos caminhos que valem", () => {
+    for (const x of ["/mais/lembretes", "/relatorio?aba=numeros#x", "/a/../mais", "/rel\tatorio", "/%2e/x", "/a b?c d#e f"]) {
+      const uma = urlInterna(x);
+      expect(uma.startsWith("/") && !uma.startsWith("//"), JSON.stringify(x)).toBe(true);
+      expect(urlInterna(uma), JSON.stringify(x)).toBe(uma);
+    }
+  });
 });
 
 describe("estadoDoAparelho (tabela da §23.4)", () => {
@@ -162,6 +229,8 @@ describe("instrucoesDoAparelho (§23.6)", () => {
   it("permissão negada no iPhone → os Ajustes do iPhone, nunca o cadeado nem o Android", () => {
     expect(ids({ estado: "bloqueado", ios: true, instalado: true })).toEqual(["permissao-iphone"]);
     expect(ids({ estado: "bloqueado", ios: true, instalado: true, brave: true })).toEqual(["permissao-iphone"]);
+    // fora da tela inicial, instalar primeiro: a entrada nos Ajustes só existe com o app instalado
+    expect(ids({ estado: "bloqueado", ios: true, instalado: false })).toEqual(["iphone", "permissao-iphone"]);
     const [p] = instrucoesDoAparelho({ ...base, estado: "bloqueado", ios: true, instalado: true });
     const texto = `${p?.titulo} ${p?.passos.join(" ")}`;
     expect(texto).toContain("Ajustes do iPhone → Notificações → Treino do Terraço");
