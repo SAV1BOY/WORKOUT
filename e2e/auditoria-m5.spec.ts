@@ -109,13 +109,25 @@ test.describe("§10.8 — as 81 fichas", () => {
           (i as HTMLImageElement).loading = "eager";
         }
       });
+      /*
+       * SPEC §22.13 item 4: o quadro 2 da ilustração só entra no DOM depois que
+       * o 1 carregou — esperar "todas as img completas" podia passar ANTES de
+       * ele existir e medir em seguida um quadro 2 recém-montado (visto no
+       * L14: "3 de 4 imagens" no abdominal declinado, e passa sozinho). A
+       * espera agora conta as imagens que a ficha deve ter; a asserção
+       * (`naturalWidth > 0` de cada uma) não muda.
+       */
       await page
         .waitForFunction(
-          () =>
-            [...document.querySelectorAll("main img")].every(
-              (i) => (i as HTMLImageElement).complete,
-            ),
-          null,
+          (esperadas) => {
+            const imagens = [...document.querySelectorAll("main img")];
+            for (const i of imagens) (i as HTMLImageElement).loading = "eager";
+            return (
+              imagens.length >= esperadas &&
+              imagens.every((i) => (i as HTMLImageElement).complete)
+            );
+          },
+          exercicio.fotos.length + imagensDaDemonstracao(exercicio),
           { timeout: 10_000 },
         )
         .catch(() => {});

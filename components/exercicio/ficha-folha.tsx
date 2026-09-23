@@ -1,10 +1,17 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, Pause, Play, Repeat } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Pause,
+  Play,
+  Repeat,
+} from "lucide-react";
+import Link from "next/link";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
+import { FazerAgora } from "@/components/exercicio/acoes-da-ficha";
 import { FotosAmpliaveis } from "@/components/exercicios/fotos-ampliaveis";
 import { HistoricoExercicio } from "@/components/exercicios/historico-exercicio";
-import { IlustracaoAlternada } from "@/components/exercicio/ilustracao-alternada";
 import { MediaGrande } from "@/components/exercicio/media-grande";
 import { FotosExercicio } from "@/components/exercicio/midia";
 import { TutorialDoExercicio } from "@/components/exercicio/tutorial";
@@ -20,15 +27,21 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { NOME_EQUIPAMENTO, treinosDoExercicio } from "@/lib/catalogo";
-import { acharExercicio, acharTreino } from "@/lib/dados";
-import { formatarDescanso, formatarKg, rotuloDaCarga } from "@/lib/formato";
-import type { PrescricaoTipo } from "@/lib/schemas";
+import { treinosDoExercicio } from "@/lib/catalogo";
+import { acharExercicio, tutorialPorExercicio } from "@/lib/dados";
 import {
-  ilustracaoDoExercicio,
-  opcoesDeMidia,
-  type TipoDeMidia,
-} from "@/lib/midia";
+  ROTULO_DA_ABA,
+  abasDaFicha,
+  linhaDaCargaInicial,
+  linksDosTreinos,
+  nivelDosTitulos,
+  notaDaCargaInicial,
+  tagsDoEquipamento,
+  type NivelDeTitulo,
+} from "@/lib/ficha";
+import { formatarDescanso } from "@/lib/formato";
+import type { PrescricaoTipo } from "@/lib/schemas";
+import { opcoesDeMidia, type TipoDeMidia } from "@/lib/midia";
 import { substitutosPara } from "@/lib/sessao";
 import type { Prefs } from "@/lib/types";
 import { evitado, evitadosPorUltimo } from "@/lib/preferencias";
@@ -52,6 +65,26 @@ export interface ContextoDaFicha {
 
 const MIN_SERIES = 1;
 const MAX_SERIES = 10;
+
+/**
+ * SPEC §22.14 item 3(e): o nível dos títulos das seções vem do contexto — H2
+ * na página (o nome do exercício é o H1), H3 na folha (o título da folha é o
+ * H2). Um contexto em vez de um parâmetro por componente: as seções, o "Erro
+ * comum", o "Seu histórico" e o "Só nesta sessão" leem daqui.
+ */
+const NivelDaFicha = createContext<NivelDeTitulo>(3);
+
+function Titulo({
+  children,
+  className = "text-sm font-semibold",
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  const nivel = useContext(NivelDaFicha);
+  const Tag = nivel === 2 ? "h2" : "h3";
+  return <Tag className={className}>{children}</Tag>;
+}
 
 /**
  * A ficha do exercício (SPEC §14.2): título, Substituir, as abas
@@ -78,10 +111,12 @@ export function ConteudoDaFicha({
   aoFechar?: () => void;
 }) {
   const exercicio = acharExercicio(exercicioId);
-  const treinos = treinosDoExercicio(exercicio.id);
+  const treinos = linksDosTreinos(treinosDoExercicio(exercicio.id));
   const p = exercicio.prescricao_padrao;
+  const notaDaCarga = notaDaCargaInicial(exercicio.carga_inicial);
 
   return (
+    <NivelDaFicha.Provider value={nivelDosTitulos(comoPagina)}>
     <div className="flex flex-col gap-4">
       {contexto?.aoSubstituir ? (
         <Substituir
@@ -101,14 +136,32 @@ export function ConteudoDaFicha({
 
       {comoPagina ? (
         <>
+          {/*
+            SPEC §22.14 item 3(d): os treinos em que o exercício aparece vêm
+            depois de "Aparece em:" e cada um abre a coleção do treino no
+            Explorar. O alvo de 44 px é a linha inteira do link.
+          */}
           {treinos.length > 0 ? (
-            <p className="flex flex-wrap items-center gap-1">
-              {treinos.map((t) => (
-                <Badge key={t} variant="secondary" className="text-micro">
-                  {acharTreino(t).nome}
-                </Badge>
-              ))}
-            </p>
+            <div data-aparece-em className="flex flex-wrap items-center gap-x-1">
+              <span className="text-muted-foreground text-sm">Aparece em:</span>
+              <ul className="flex flex-wrap items-center gap-x-1">
+                {treinos.map((t) => (
+                  <li key={t.id}>
+                    <Link
+                      href={t.href}
+                      className="alvo inline-flex items-center rounded-md"
+                    >
+                      <Badge
+                        variant="secondary"
+                        className="text-micro underline-offset-2 hover:underline"
+                      >
+                        {t.nome}
+                      </Badge>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
           ) : null}
           <FotosAmpliaveis exercicio={exercicio} />
         </>
@@ -123,11 +176,16 @@ export function ConteudoDaFicha({
       </Secao>
 
       <section className="border-destructive/40 bg-destructive/5 flex flex-col gap-1 rounded-lg border p-3">
-        <h3 className="text-sm font-semibold">Erro comum</h3>
+        <Titulo>Erro comum</Titulo>
         <p className="text-sm text-balance">{exercicio.erro_comum}</p>
       </section>
 
-      <AreaDeFoco exercicioId={exercicioId} />
+      {/*
+        SPEC §22.14 item 3(b): na página os músculos ficam só na aba Músculos
+        (a página não repete o que a aba diz); na folha, consultada no meio da
+        série sem trocar de aba, a "Área de foco" continua (§14.2).
+      */}
+      {comoPagina ? null : <AreaDeFoco exercicioId={exercicioId} />}
 
       <Secao titulo="Montagem">
         <p className="text-muted-foreground text-sm text-balance">{exercicio.montagem}</p>
@@ -135,14 +193,34 @@ export function ConteudoDaFicha({
 
       {comoPagina ? (
         <>
+          {/*
+            SPEC §22.14 item 3(c): o `equipamento_texto` já é o subtítulo do
+            cabeçalho; aqui ficam as tags, e cada uma com coleção no Explorar
+            leva ao aparelho. Anilhas, halteres e barra W não têm coleção.
+          */}
           <Secao titulo="Equipamento">
-            <p className="text-muted-foreground text-sm">{exercicio.equipamento_texto}</p>
-            <ul className="flex flex-wrap gap-1 pt-1">
-              {exercicio.equipamento.map((tag) => (
-                <li key={tag}>
-                  <Badge variant="outline" className="text-micro">
-                    {NOME_EQUIPAMENTO[tag]}
-                  </Badge>
+            <ul data-tags-equipamento className="flex flex-wrap gap-x-1">
+              {tagsDoEquipamento(exercicio.equipamento).map((t) => (
+                <li key={t.tag}>
+                  {t.href ? (
+                    <Link
+                      href={t.href}
+                      className="alvo inline-flex items-center rounded-md"
+                    >
+                      <Badge
+                        variant="outline"
+                        className="text-micro underline-offset-2 hover:underline"
+                      >
+                        {t.rotulo}
+                      </Badge>
+                    </Link>
+                  ) : (
+                    <span className="inline-flex min-h-11 items-center">
+                      <Badge variant="outline" className="text-micro">
+                        {t.rotulo}
+                      </Badge>
+                    </span>
+                  )}
                 </li>
               ))}
             </ul>
@@ -156,15 +234,15 @@ export function ConteudoDaFicha({
             </p>
           </Secao>
 
+          {/*
+            SPEC §22.14 item 3 (correção da auditoria): com carga 0 a nota não
+            repete "peso corporal" embaixo de "peso do corpo".
+          */}
           <Secao titulo="Carga inicial">
-            <p className="numero text-lg">
-              {exercicio.carga_inicial.kg > 0
-                ? `${formatarKg(exercicio.carga_inicial.kg)} ${rotuloDaCarga(exercicio.implemento)}`
-                : "peso do corpo"}
-            </p>
-            <p className="text-muted-foreground text-sm text-balance">
-              {exercicio.carga_inicial.nota}
-            </p>
+            <p className="numero text-lg">{linhaDaCargaInicial(exercicio)}</p>
+            {notaDaCarga ? (
+              <p className="text-muted-foreground text-sm text-balance">{notaDaCarga}</p>
+            ) : null}
           </Secao>
         </>
       ) : null}
@@ -175,14 +253,17 @@ export function ConteudoDaFicha({
         </p>
       </Secao>
 
-      <h3 className={comoPagina ? "pt-2 text-lg font-semibold" : "text-sm font-semibold"}>
+      <Titulo className={comoPagina ? "pt-2 text-lg font-semibold" : "text-sm font-semibold"}>
         Seu histórico
-      </h3>
-      <HistoricoExercicio exercicioId={exercicioId} />
+      </Titulo>
+      <HistoricoExercicio exercicioId={exercicioId} comoPagina={comoPagina} />
 
       {contexto && contexto.total > 1 ? (
         <Navegacao contexto={contexto} />
       ) : null}
+
+      {/* SPEC §22.14 item 1: da página dá para treinar o exercício agora */}
+      {comoPagina ? <FazerAgora exercicioId={exercicioId} /> : null}
 
       {!comoPagina && aoFechar ? (
         <Button variant="outline" className="alvo h-12" onClick={aoFechar}>
@@ -190,19 +271,28 @@ export function ConteudoDaFicha({
         </Button>
       ) : null}
     </div>
+    </NivelDaFicha.Provider>
   );
 }
 
 function Secao({ titulo, children }: { titulo: string; children: React.ReactNode }) {
   return (
     <section className="flex flex-col gap-1">
-      <h3 className="text-sm font-semibold">{titulo}</h3>
+      <Titulo>{titulo}</Titulo>
       {children}
     </section>
   );
 }
 
-/** Vídeo · Músculos · Tutorial (SPEC §14.2). */
+/**
+ * Vídeo · Músculos · Tutorial no YouTube (SPEC §14.2 e §22.14 item 4): a aba
+ * do tutorial só existe quando o JSON tem o vídeo, e o rótulo diz de onde ele
+ * vem. Sem ícone de link externo: com rede o vídeo toca aqui dentro
+ * (`youtube-nocookie`), e o ícone prometia uma saída do app que não acontece;
+ * ele fica só no "Abrir no YouTube" da aba sem rede, que sai de verdade. As
+ * abas dividem a largura pelo tamanho do rótulo (`flex-auto`): em partes
+ * iguais, "Tutorial no YouTube" não cabia no terço de 328 px.
+ */
 function AbasDaMidia({
   exercicioId,
   temVideo,
@@ -212,18 +302,15 @@ function AbasDaMidia({
   temVideo: boolean;
   comoPagina: boolean;
 }) {
+  const abas = abasDaFicha(tutorialPorExercicio(exercicioId) !== null);
   return (
     <Tabs defaultValue="video" className="gap-3">
       <TabsList className="w-full">
-        <TabsTrigger value="video" className="alvo flex-1">
-          Vídeo
-        </TabsTrigger>
-        <TabsTrigger value="musculos" className="alvo flex-1">
-          Músculos
-        </TabsTrigger>
-        <TabsTrigger value="tutorial" className="alvo flex-1">
-          Tutorial
-        </TabsTrigger>
+        {abas.map((aba) => (
+          <TabsTrigger key={aba} value={aba} className="alvo flex-auto">
+            {ROTULO_DA_ABA[aba]}
+          </TabsTrigger>
+        ))}
       </TabsList>
 
       <TabsContent value="video">
@@ -238,9 +325,11 @@ function AbasDaMidia({
         <AbaMusculos exercicioId={exercicioId} />
       </TabsContent>
 
-      <TabsContent value="tutorial">
-        <TutorialDoExercicio exercicioId={exercicioId} />
-      </TabsContent>
+      {abas.includes("tutorial") ? (
+        <TabsContent value="tutorial">
+          <TutorialDoExercicio exercicioId={exercicioId} />
+        </TabsContent>
+      ) : null}
     </Tabs>
   );
 }
@@ -361,26 +450,15 @@ function AbaVideo({
 }
 
 /**
- * A aba Músculos (SPEC §14.2 e marco Mídia): a ilustração em cima e o mapa
- * anatômico frente/costas embaixo, com a legenda em texto — a cor sozinha
- * nunca é a única pista.
+ * A aba Músculos (SPEC §14.2 e §22.14 item 3a): o mapa anatômico
+ * frente/costas com a legenda em texto — a cor sozinha nunca é a única pista.
+ * A ilustração não se repete aqui: ela é a aba Vídeo.
  */
 function AbaMusculos({ exercicioId }: { exercicioId: string }) {
   const exercicio = acharExercicio(exercicioId);
-  const ilustracao = ilustracaoDoExercicio(exercicioId);
 
   return (
     <div className="flex flex-col gap-3">
-      {ilustracao ? (
-        <IlustracaoAlternada
-          // a folha troca de exercício no lugar: a ilustração nova nasce de novo (§22.13 item 4)
-          key={ilustracao.urls.join("|")}
-          urls={ilustracao.urls}
-          alt={`Execução do ${exercicio.nome}`}
-          className="h-32"
-        />
-      ) : null}
-
       <MapaAnatomico
         primarios={exercicio.musculos_primarios}
         secundarios={exercicio.musculos_secundarios}
@@ -460,7 +538,7 @@ function StepperDaSessao({ contexto }: { contexto: ContextoDaFicha }) {
 
   return (
     <section className="border-border bg-card cartao flex flex-col gap-2 border p-3">
-      <h3 className="text-sm font-semibold">Só nesta sessão</h3>
+      <Titulo>Só nesta sessão</Titulo>
       {mostraAlvo ? (
         <div className="flex items-center justify-between gap-2">
           <span className="text-muted-foreground text-xs uppercase">{rotuloAlvo}</span>
