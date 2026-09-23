@@ -132,7 +132,13 @@ export function FotoAmpliada({
           aria-modal="true"
           aria-label="Apagar esta foto?"
           onClick={(e) => e.stopPropagation()}
-          className="bg-background absolute inset-x-3 bottom-3 flex flex-col gap-3 rounded-xl p-4 shadow-lg"
+          data-confirmar-apagar
+          /*
+            SPEC §22.14 item 5 (§22.3 item 5): `.flutuante`, e não
+            `shadow-lg` — a sombra preta sumia sobre o fundo #0a0a0a; no
+            escuro a elevação é o anel de 1 px da `--sombra-flutuante`.
+          */
+          className="bg-background flutuante absolute inset-x-3 bottom-3 flex flex-col gap-3 rounded-xl p-4"
         >
           <p className="text-sm">Apagar esta foto? Não dá para desfazer.</p>
           <div className="flex gap-2">
