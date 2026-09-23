@@ -7,7 +7,8 @@
 import { NOME_EQUIPAMENTO } from "@/lib/catalogo";
 import { colecaoDoAparelho, colecaoDoTreino, hrefDaColecao } from "@/lib/colecoes";
 import { acharTreino } from "@/lib/dados";
-import type { EquipamentoTag, TreinoId } from "@/lib/schemas";
+import { formatarKg, rotuloDaCarga } from "@/lib/formato";
+import type { EquipamentoTag, Implemento, TreinoId } from "@/lib/schemas";
 
 /** As abas da mídia da ficha (SPEC §14.2 e §22.14 item 4). */
 export type AbaDaFicha = "video" | "musculos" | "tutorial";
@@ -115,17 +116,89 @@ export function podeVoltarNoApp(
 }
 
 /**
- * SPEC §22.14 item 2: na página, "Onde você está" de um exercício que o motor
- * ainda não avaliou (`primeira_vez`) é a carga inicial e a prescrição padrão —
- * que a página já mostra nas próprias seções, na mesma rolagem. Ali ele sai;
- * fica se a primeira sessão traz algo que as seções não dizem (assistência do
- * elástico ou semana leve). Na folha, que não tem essas seções, fica sempre.
+ * SPEC §22.14 item 3: a linha grande da seção "Carga inicial" da página — o
+ * número de `carga_inicial.kg`, ou "peso do corpo" quando ele é 0.
  */
-export function ondeVoceEstaRepete(c: {
+export function linhaDaCargaInicial(e: {
+  carga_inicial: { kg: number };
+  implemento: Implemento;
+}): string {
+  return e.carga_inicial.kg > 0
+    ? `${formatarKg(e.carga_inicial.kg)} ${rotuloDaCarga(e.implemento)}`
+    : "peso do corpo";
+}
+
+/**
+ * SPEC §22.14 item 3 (correção da auditoria): com carga 0 a linha de cima já
+ * diz "peso do corpo"; a nota não repete "peso corporal" logo abaixo — fica
+ * só o complemento ("Anilha só quando passar de 15 limpas"), ou nada.
+ */
+export function notaDaCargaInicial(ci: { kg: number; nota: string }): string | null {
+  if (ci.kg > 0) return ci.nota;
+  const resto = ci.nota.replace(/^peso corporal\s*(?:[;,:·—–-]\s*)?/iu, "").trim();
+  if (resto === "") return null;
+  return resto.charAt(0).toLocaleUpperCase("pt-BR") + resto.slice(1);
+}
+
+/** O que o cartão "Onde você está" mostra (SPEC §22.14 item 2). */
+export interface OndeVoceEstaNaFicha {
+  /** O cartão aparece. */
+  mostrar: boolean;
+  /** A carga grande (a do motor). */
+  carga: boolean;
+  /** "Próxima sessão: séries × alvo", com o elástico e a semana leve. */
+  proxima: boolean;
+  /** "Ainda sem registro: <nota da carga inicial>." */
+  nota: boolean;
+  /** "Montada com o peso das suas barras" — a carga do motor não é a do JSON. */
+  ajustePelasBarras: boolean;
+}
+
+/** Duas cargas iguais na tela (ao 0,01 kg; a vírgula mostra no máximo duas casas). */
+function mesmaCarga(a: number, b: number): boolean {
+  return Math.abs(a - b) < 0.005;
+}
+
+/**
+ * SPEC §22.14 item 2 (correção da auditoria): na página, um exercício que o
+ * motor ainda não avaliou (`primeira_vez`) já tem a "Carga inicial" e a
+ * "Prescrição padrão" nas seções, na mesma rolagem. "Onde você está" só diz
+ * o que elas não dizem:
+ * - a carga que o motor vai usar quando ela não é a do JSON — com as barras
+ *   pesadas na balança (SPEC §3.9) o motor sobe ou desce ao que dá para
+ *   montar, e a página não pode esconder a carga real;
+ * - a assistência do elástico e a semana leve, na linha "Próxima sessão".
+ * Sem elástico nem semana leve, essa linha seria a prescrição padrão da seção
+ * e não aparece; a nota da carga inicial também não (ela está na seção). Sem
+ * nada a dizer, o cartão sai. Na folha, que não tem essas seções, e depois da
+ * primeira avaliação, o cartão é o de sempre.
+ */
+export function ondeVoceEsta(c: {
   comoPagina: boolean;
   primeiraVez: boolean;
   assistencia: boolean;
   semanaLeve: boolean;
-}): boolean {
-  return c.comoPagina && c.primeiraVez && !c.assistencia && !c.semanaLeve;
+  /** `cargaDeHoje(...).carga_kg`, com as opções de montagem do perfil. */
+  cargaDoMotor: number | null;
+  /** `carga_inicial.kg` do JSON — o que a seção "Carga inicial" mostra. */
+  cargaInicial: number;
+}): OndeVoceEstaNaFicha {
+  if (!c.comoPagina || !c.primeiraVez) {
+    return {
+      mostrar: true,
+      carga: true,
+      proxima: true,
+      nota: c.primeiraVez,
+      ajustePelasBarras: false,
+    };
+  }
+  const outraCarga = !mesmaCarga(c.cargaDoMotor ?? 0, c.cargaInicial);
+  const proxima = c.assistencia || c.semanaLeve;
+  return {
+    mostrar: outraCarga || proxima,
+    carga: outraCarga,
+    proxima,
+    nota: false,
+    ajustePelasBarras: outraCarga && !c.semanaLeve,
+  };
 }

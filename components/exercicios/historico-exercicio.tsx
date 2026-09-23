@@ -17,8 +17,9 @@ import {
   formatarNumero,
   rotuloDaCarga,
 } from "@/lib/formato";
-import { SEM_HISTORICO, historicoVazio, ondeVoceEstaRepete } from "@/lib/ficha";
+import { SEM_HISTORICO, historicoVazio, ondeVoceEsta } from "@/lib/ficha";
 import { estadoDaLinha, textoDaCarga, textoDoAlvo, textoDoEvento } from "@/lib/hoje";
+import { nomeDaAssistencia } from "@/lib/sessao";
 import { cargaDeHoje, prescricaoPadrao } from "@/lib/progressao";
 import {
   cargaPorSessao,
@@ -117,37 +118,49 @@ export function HistoricoExercicio({
   });
   /*
    * SPEC §22.14 item 2: na página, sem avaliação do motor, "Onde você está"
-   * seria a carga inicial e a prescrição padrão das seções logo acima.
+   * só diz o que as seções logo acima não dizem — a carga real quando as
+   * barras pesadas a mudam (§3.9), o elástico e a semana leve.
    */
-  const semOnde = ondeVoceEstaRepete({
+  const onde = ondeVoceEsta({
     comoPagina,
     primeiraVez: alvo.primeira_vez === true,
     assistencia: Boolean(alvo.assistencia),
     semanaLeve: Boolean(alvo.semana_leve),
+    cargaDoMotor: alvo.carga_kg,
+    cargaInicial: exercicio.carga_inicial.kg,
   });
 
   return (
     <div className="flex flex-col gap-4">
-      {semOnde ? null : (
-      <Card>
+      {onde.mostrar ? (
+      <Card data-onde-voce-esta>
         <CardHeader>
           <CardTitle className="text-base">Onde você está</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-2">
-          <p className="numero text-2xl">{textoDaCarga(exercicio.implemento, alvo.carga_kg)}</p>
-          <p className="text-muted-foreground text-sm">
-            Próxima sessão: {textoDoAlvo(series_, alvo)}
-            {alvo.assistencia ? ` · elástico ${alvo.assistencia.replace("_", " ")}` : ""}
-            {alvo.semana_leve ? " · semana leve (60 %)" : ""}
-          </p>
-          {alvo.primeira_vez ? (
+          {onde.carga ? (
+            <p className="numero text-2xl">{textoDaCarga(exercicio.implemento, alvo.carga_kg)}</p>
+          ) : null}
+          {onde.proxima ? (
+            <p className="text-muted-foreground text-sm">
+              Próxima sessão: {textoDoAlvo(series_, alvo)}
+              {alvo.assistencia ? ` · elástico ${nomeDaAssistencia(alvo.assistencia)}` : ""}
+              {alvo.semana_leve ? " · semana leve (60 %)" : ""}
+            </p>
+          ) : null}
+          {onde.ajustePelasBarras ? (
+            <p className="text-muted-foreground text-xs text-balance">
+              Montada com o peso das suas barras (Mais → Equipamento).
+            </p>
+          ) : null}
+          {onde.nota ? (
             <p className="text-muted-foreground text-xs text-balance">
               Ainda sem registro: {exercicio.carga_inicial.nota}.
             </p>
           ) : null}
         </CardContent>
       </Card>
-      )}
+      ) : null}
 
       {vazio ? (
         <Card data-historico-vazio>

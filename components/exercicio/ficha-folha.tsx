@@ -33,12 +33,14 @@ import { acharExercicio, tutorialPorExercicio } from "@/lib/dados";
 import {
   ROTULO_DA_ABA,
   abasDaFicha,
+  linhaDaCargaInicial,
   linksDosTreinos,
   nivelDosTitulos,
+  notaDaCargaInicial,
   tagsDoEquipamento,
   type NivelDeTitulo,
 } from "@/lib/ficha";
-import { formatarDescanso, formatarKg, rotuloDaCarga } from "@/lib/formato";
+import { formatarDescanso } from "@/lib/formato";
 import type { PrescricaoTipo } from "@/lib/schemas";
 import { opcoesDeMidia, type TipoDeMidia } from "@/lib/midia";
 import { substitutosPara } from "@/lib/sessao";
@@ -112,6 +114,7 @@ export function ConteudoDaFicha({
   const exercicio = acharExercicio(exercicioId);
   const treinos = linksDosTreinos(treinosDoExercicio(exercicio.id));
   const p = exercicio.prescricao_padrao;
+  const notaDaCarga = notaDaCargaInicial(exercicio.carga_inicial);
 
   return (
     <NivelDaFicha.Provider value={nivelDosTitulos(comoPagina)}>
@@ -232,15 +235,15 @@ export function ConteudoDaFicha({
             </p>
           </Secao>
 
+          {/*
+            SPEC §22.14 item 3 (correção da auditoria): com carga 0 a nota não
+            repete "peso corporal" embaixo de "peso do corpo".
+          */}
           <Secao titulo="Carga inicial">
-            <p className="numero text-lg">
-              {exercicio.carga_inicial.kg > 0
-                ? `${formatarKg(exercicio.carga_inicial.kg)} ${rotuloDaCarga(exercicio.implemento)}`
-                : "peso do corpo"}
-            </p>
-            <p className="text-muted-foreground text-sm text-balance">
-              {exercicio.carga_inicial.nota}
-            </p>
+            <p className="numero text-lg">{linhaDaCargaInicial(exercicio)}</p>
+            {notaDaCarga ? (
+              <p className="text-muted-foreground text-sm text-balance">{notaDaCarga}</p>
+            ) : null}
           </Secao>
         </>
       ) : null}

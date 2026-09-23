@@ -40,8 +40,8 @@ export function VoltarDaFicha() {
 /**
  * "Fazer agora" no fim da ficha em página (SPEC §22.14 item 1): uma sessão
  * livre só com este exercício, pelo mesmo `useSessaoLivre` das coleções
- * (§14.3) — o player grava cada série no IndexedDB na hora (§8). Sem perfil
- * (ou antes de o dia estar resolvido) o botão fica desabilitado. O rótulo
+ * (§14.3) — o player grava cada série no IndexedDB na hora (§8). Enquanto o
+ * perfil e o dia carregam, o botão fica desabilitado. O rótulo
  * não muda enquanto a sessão nasce: o foco não ouve outro nome.
  */
 export function FazerAgora({ exercicioId }: { exercicioId: string }) {
