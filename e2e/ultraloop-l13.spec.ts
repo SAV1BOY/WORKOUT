@@ -406,7 +406,9 @@ test.describe("L13 — a figura não é o botão de pausa (item 5)", () => {
     const ilustracao = page.locator("[data-ilustracao]").first();
     await expect(ilustracao).toHaveAttribute("data-ilustracao", "alternando");
     const figura = ilustracao.locator('[data-figura="abre"]');
-    await expect(figura).toHaveAccessibleName(/, posição [12] de 2 — abre o Como fazer$/);
+    // correção da auditoria 2: nome estável, a posição vai na descrição
+    await expect(figura).toHaveAccessibleName(/^Execução do .+ — abre o Como fazer$/);
+    await expect(figura).toHaveAccessibleDescription(/^posição [12] de 2$/);
 
     // o toque no meio da figura abre a ficha, e ela continua alternando
     const caixa = await ilustracao.boundingBox();
@@ -705,4 +707,317 @@ test.describe("L13 — coleção de plano: capa com ícone e as semanas (itens 8
       await semRolagemHorizontal(page);
     });
   }
+});
+
+// =====================================================================
+//  Rodada 13 — correção da auditoria 2 do L13
+// =====================================================================
+
+/** Pixels que mudam entre duas capturas do mesmo recorte (canal > 24). */
+async function pixelsQueMudam(a: Buffer, b: Buffer): Promise<number> {
+  const x = await sharp(a).raw().toBuffer({ resolveWithObject: true });
+  const y = await sharp(b).raw().toBuffer({ resolveWithObject: true });
+  expect(x.info.width).toBe(y.info.width);
+  expect(x.info.height).toBe(y.info.height);
+  let mudam = 0;
+  for (let i = 0; i < x.data.length; i += x.info.channels) {
+    const d = Math.max(
+      Math.abs(x.data[i]! - y.data[i]!),
+      Math.abs(x.data[i + 1]! - y.data[i + 1]!),
+      Math.abs(x.data[i + 2]! - y.data[i + 2]!),
+    );
+    if (d > 24) mudam += 1;
+  }
+  return mudam;
+}
+
+/** Contraste entre o mesmo ponto (em px de CSS) de duas capturas. */
+async function contrasteNoPonto(a: Buffer, b: Buffer, xCss: number, yCss: number, larguraCss: number) {
+  const x = await sharp(a).raw().toBuffer({ resolveWithObject: true });
+  const y = await sharp(b).raw().toBuffer({ resolveWithObject: true });
+  const escala = x.info.width / larguraCss;
+  const i = (Math.floor(yCss * escala) * x.info.width + Math.floor(xCss * escala)) * x.info.channels;
+  const canal = (v: number) => {
+    const c = v / 255;
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  };
+  const lum = (d: Buffer) => 0.2126 * canal(d[i]!) + 0.7152 * canal(d[i + 1]!) + 0.0722 * canal(d[i + 2]!);
+  const la = lum(x.data);
+  const lb = lum(y.data);
+  return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+}
+
+/** Tab até o foco cair no primeiro elemento que casa com `seletor`. */
+async function tabAte(page: Page, seletor: string, maximo = 60): Promise<void> {
+  for (let i = 0; i < maximo; i += 1) {
+    await page.keyboard.press("Tab");
+    const chegou = await page.evaluate(
+      (s) => document.activeElement?.matches(s) ?? false,
+      seletor,
+    );
+    if (chegou) return;
+  }
+  throw new Error(`o Tab não chegou em ${seletor}`);
+}
+
+/**
+ * Captura com e sem foco (o foco sai por `blur()`, sem mexer na rolagem) do
+ * elemento focado agora, com `folga` px em volta.
+ */
+async function comESemFoco(page: Page, folga = 0) {
+  const caixa = await page.evaluate(() => {
+    const r = document.activeElement!.getBoundingClientRect();
+    return { x: r.x, y: r.y, width: r.width, height: r.height };
+  });
+  const recorte = {
+    x: caixa.x - folga,
+    y: caixa.y - folga,
+    width: caixa.width + 2 * folga,
+    height: caixa.height + 2 * folga,
+  };
+  expect(
+    await page.evaluate(() => document.activeElement!.matches(":focus-visible")),
+    ":focus-visible pelo Tab",
+  ).toBe(true);
+  const com = await page.screenshot({ clip: recorte });
+  await page.evaluate(() => (document.activeElement as HTMLElement).blur());
+  const sem = await page.screenshot({ clip: recorte });
+  return { com, sem, caixa, recorte };
+}
+
+/**
+ * O anel da figura-botão (interno, 2 px a 4 px da borda) e o da pausa (por
+ * fora, 2 px a 4 px): mudam pixels com o foco e medem ≥ 3:1 contra a placa.
+ */
+async function conferirAneis(page: Page, raiz: string, onde: string) {
+  await tabAte(page, `${raiz} [data-figura="abre"]`);
+  const figura = await comESemFoco(page);
+  const mudamNaFigura = await pixelsQueMudam(figura.com, figura.sem);
+  expect(mudamNaFigura, `${onde}: pixels que mudam com o foco na figura`).toBeGreaterThan(500);
+  // o anel interno a 3 px da borda esquerda, no meio da altura
+  const anel = await contrasteNoPonto(
+    figura.com,
+    figura.sem,
+    3,
+    figura.caixa.height / 2,
+    figura.recorte.width,
+  );
+  expect(anel, `${onde}: anel da figura contra a placa`).toBeGreaterThanOrEqual(3);
+
+  // a pausa, no canto da mesma placa
+  await tabAte(page, `${raiz} [data-pausa]`, 3);
+  const pausa = await comESemFoco(page, 6);
+  expect(await pixelsQueMudam(pausa.com, pausa.sem), `${onde}: pixels da pausa`).toBeGreaterThan(100);
+  // o anel da pausa a 3 px por fora da borda esquerda dela
+  const anelDaPausa = await contrasteNoPonto(
+    pausa.com,
+    pausa.sem,
+    6 - 3,
+    6 + pausa.caixa.height / 2,
+    pausa.recorte.width,
+  );
+  expect(anelDaPausa, `${onde}: anel da pausa contra a placa`).toBeGreaterThanOrEqual(3);
+  return { mudamNaFigura, anel, anelDaPausa };
+}
+
+test.describe("L13 — foco visível na figura-botão (correção da auditoria 2, item 5)", () => {
+  for (const tema of TEMAS) {
+    test(`no player: o anel da figura e o da pausa aparecem por Tab — ${tema}`, async ({ page }) => {
+      await preparar(page, tema);
+      // parada: a captura com e sem foco só difere pelo anel
+      await page.emulateMedia({ colorScheme: tema, reducedMotion: "reduce" });
+      await esperarAbaTreino(page);
+      await comecarOTreinoDoDia(page);
+      await comecarNoPlayer(page);
+      const ilustracao = page.locator("[data-ilustracao]").first();
+      await expect(ilustracao).toHaveAttribute("data-ilustracao", "pausada");
+      await expect
+        .poll(() => ilustracao.locator("img").first().evaluate((i) => (i as HTMLImageElement).naturalWidth))
+        .toBeGreaterThan(0);
+      await conferirAneis(page, "body", `player ${tema}`);
+    });
+
+    test(`na Visão geral: o anel da figura do bloco e o da pausa aparecem por Tab — ${tema}`, async ({
+      page,
+    }) => {
+      await preparar(page, tema);
+      await page.emulateMedia({ colorScheme: tema, reducedMotion: "reduce" });
+      await esperarAbaTreino(page);
+      await comecarOTreinoDoDia(page);
+      await abrirVisaoGeral(page);
+      const raiz = '[role="dialog"][aria-label="Visão geral do treino"]';
+      const ilustracao = page.locator(`${raiz} [data-ilustracao]`).first();
+      await expect(ilustracao).toHaveAttribute("data-ilustracao", "pausada");
+      await expect
+        .poll(() => ilustracao.locator("img").first().evaluate((i) => (i as HTMLImageElement).naturalWidth))
+        .toBeGreaterThan(0);
+      await conferirAneis(page, raiz, `Visão geral ${tema}`);
+    });
+  }
+});
+
+test.describe("L13 — nome estável da figura-botão (correção da auditoria 2, item 5)", () => {
+  test("com o foco na figura, nome e posição dita não mudam enquanto ela alterna", async ({ page }) => {
+    await preparar(page);
+    await esperarAbaTreino(page);
+    await comecarOTreinoDoDia(page);
+    await comecarNoPlayer(page);
+    const ilustracao = page.locator("[data-ilustracao]").first();
+    await expect(ilustracao).toHaveAttribute("data-ilustracao", "alternando");
+    const figura = ilustracao.locator('[data-figura="abre"]');
+    await tabAte(page, '[data-figura="abre"]');
+    const ler = () =>
+      figura.evaluate((el) => {
+        const id = el.getAttribute("aria-describedby");
+        return {
+          nome: el.getAttribute("aria-label"),
+          descricao: id ? document.getElementById(id)?.textContent : null,
+        };
+      });
+    const antes = await ler();
+    expect(antes.nome).toMatch(/^Execução do .+ — abre o Como fazer$/);
+    expect(antes.descricao).toMatch(/^posição [12] de 2$/);
+    // a figura troca de posição com o foco nela…
+    const posicao = await ilustracao.getAttribute("data-posicao");
+    await expect
+      .poll(() => ilustracao.getAttribute("data-posicao"), { timeout: 5_000 })
+      .not.toBe(posicao);
+    // …e o que o leitor de tela ouve continua o mesmo
+    expect(await ler()).toEqual(antes);
+    await expect(figura).toBeFocused();
+    // sem o foco, a posição dita volta a acompanhar a figura
+    await page.evaluate(() => (document.activeElement as HTMLElement).blur());
+    await expect
+      .poll(async () => {
+        const [p, d] = await Promise.all([ilustracao.getAttribute("data-posicao"), ler()]);
+        return d.descricao === `posição ${p} de 2`;
+      })
+      .toBe(true);
+  });
+});
+
+test.describe("L13 — o quadro 2 carrega antes de a troca começar (correção da auditoria 2, item 4)", () => {
+  // o service worker serviria o quadro 2 do cache dele, fora do `route`
+  test.use({ serviceWorkers: "block" });
+
+  test("parada, Voltar a alternar não troca para um quadro que ainda não chegou", async ({ page }) => {
+    await preparar(page);
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    // o quadro 2 demora 2,5 s para chegar
+    await page.route(new RegExp(`/ilustracoes/${SUPINO}-2\\.`), async (rota) => {
+      await new Promise((r) => setTimeout(r, 2_500));
+      await rota.continue();
+    });
+    await page.goto(`/exercicios/${SUPINO}`);
+    const ilustracao = page.locator("[data-ilustracao]").first();
+    await expect(ilustracao).toHaveAttribute("data-ilustracao", "pausada");
+    await expect
+      .poll(() => ilustracao.locator("img").first().evaluate((i) => (i as HTMLImageElement).naturalWidth))
+      .toBeGreaterThan(0);
+
+    await ilustracao.getByRole("button", { name: "Voltar a alternar" }).click();
+    await expect(ilustracao).toHaveAttribute("data-ilustracao", "alternando");
+    const segundo = ilustracao.locator("img").nth(1);
+    await expect(segundo).toHaveCount(1);
+    // enquanto o quadro 2 não chegou, a posição fica na 1 (nada de fade até o vazio)
+    let amostrasSemOQuadro2 = 0;
+    for (let i = 0; i < 10; i += 1) {
+      const { chegou, posicao } = await ilustracao.evaluate((el) => {
+        const img = el.querySelectorAll("img")[1] as HTMLImageElement | undefined;
+        return {
+          chegou: Boolean(img?.complete && img.naturalWidth > 0),
+          posicao: el.getAttribute("data-posicao"),
+        };
+      });
+      if (chegou) break;
+      amostrasSemOQuadro2 += 1;
+      expect(posicao, "sem o quadro 2, a posição fica na 1").toBe("1");
+      await page.waitForTimeout(150);
+    }
+    expect(amostrasSemOQuadro2, "o atraso do quadro 2 foi visto").toBeGreaterThan(3);
+    // chegou: a troca começa
+    await expect
+      .poll(() => segundo.evaluate((i) => (i as HTMLImageElement).naturalWidth), { timeout: 6_000 })
+      .toBeGreaterThan(0);
+    await expect(ilustracao).toHaveAttribute("data-posicao", "2", { timeout: 4_000 });
+  });
+});
+
+test.describe("L13 — fotos em retrato inteiras (correção da auditoria 2, item 2)", () => {
+  const RETRATO = ["agachamento-bulgaro", "barra-fixa-assistida", "barra-fixa-com-lastro"];
+  for (const id of RETRATO) {
+    test(`${id}: as fotos 2:3 aparecem inteiras, na página e na opção Fotos`, async ({ page }) => {
+      await preparar(page);
+      await page.goto(`/exercicios/${id}`);
+      const segmento = page.getByRole("group", { name: "Como ver o exercício" });
+      await segmento.getByRole("button", { name: "Fotos" }).click();
+      const fotos = page.locator("main img[data-foto-execucao]");
+      // as 2 da opção Fotos do segmento e as 2 ampliáveis de baixo
+      await expect(fotos).toHaveCount(4);
+      for (const foto of await fotos.all()) {
+        await foto.scrollIntoViewIfNeeded();
+        await expect
+          .poll(() => foto.evaluate((i) => (i as HTMLImageElement).naturalWidth))
+          .toBeGreaterThan(0);
+        const m = await foto.evaluate((i) => {
+          const img = i as HTMLImageElement;
+          const r = img.getBoundingClientRect();
+          return {
+            largura: r.width,
+            altura: r.height,
+            arquivo: img.naturalWidth / img.naturalHeight,
+            ajuste: getComputedStyle(img).objectFit,
+          };
+        });
+        expect(m.arquivo, `${id}: o arquivo é retrato`).toBeLessThan(1);
+        expect(Math.abs(m.largura / m.altura - m.arquivo), `${id}: caixa na proporção do arquivo`).toBeLessThanOrEqual(0.02);
+        // e nem uma medida errada cortaria: a foto cabe inteira na caixa
+        expect(m.ajuste).toBe("contain");
+        expect(m.altura, `${id}: a foto de 2:3 tem a altura dela`).toBeGreaterThanOrEqual(m.largura * 1.45);
+      }
+      await semRolagemHorizontal(page);
+    });
+  }
+});
+
+test.describe("L13 — o selo Circuito não corta o subtítulo (correção da auditoria 2, item 10)", () => {
+  async function conferirCorda(linha: Locator, onde: string) {
+    await expect(linha).toBeVisible();
+    const m = await linha.evaluate((el) => {
+      const sub = el.querySelector('[data-linha="subtitulo"]')!;
+      const meta = el.querySelector('[data-linha="meta"]')!;
+      const titulo = el.querySelector('[data-linha="titulo"]')!.getBoundingClientRect();
+      const selo = el.querySelector('[data-selo="circuito"]');
+      // onde começa o texto do subtítulo (o 1º caractere)
+      const faixa = document.createRange();
+      const texto = [...sub.childNodes].find((n) => n.nodeType === Node.TEXT_NODE)!;
+      faixa.setStart(texto, 0);
+      faixa.setEnd(texto, 1);
+      const inicio = faixa.getClientRects()[0]!;
+      return {
+        seloNaMeta: selo ? meta.contains(selo) : null,
+        seloNoSubtitulo: selo ? sub.contains(selo) : null,
+        inicioDoSubtitulo: inicio.left - titulo.left,
+        alturaDaMeta: meta.getBoundingClientRect().height,
+      };
+    });
+    expect(m.seloNaMeta, `${onde}: o selo fecha a meta`).toBe(true);
+    expect(m.seloNoSubtitulo, `${onde}: o selo não abre o subtítulo cortado`).toBe(false);
+    expect(Math.abs(m.inicioDoSubtitulo), `${onde}: o subtítulo começa na coluna`).toBeLessThanOrEqual(1);
+    // a meta com os raios e o selo continua numa linha só
+    expect(m.alturaDaMeta, `${onde}: meta numa linha`).toBeLessThanOrEqual(18);
+  }
+
+  test("Corda: 5 estágios, na seção Planos e na busca por corda", async ({ page }) => {
+    await preparar(page);
+    await page.goto("/explorar");
+    const planos = page.getByRole("region", { name: "Planos" });
+    await conferirCorda(planos.locator('[data-colecao="plano:corda"]'), "Planos");
+    await page.locator('main input[type="search"]').first().fill("corda");
+    await conferirCorda(page.locator('[data-colecao="plano:corda"]').first(), 'busca "corda"');
+    // sem subtítulo, o selo continua abrindo a linha reservada (o circuito da corda)
+    const circuito = page.locator('[data-colecao="circuito:corda"]').first();
+    await expect(circuito.locator('[data-linha="subtitulo-vazio"] [data-selo="circuito"]')).toBeVisible();
+    await semRolagemHorizontal(page);
+  });
 });

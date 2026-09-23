@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import sharp from "sharp";
 import { describe, expect, it } from "vitest";
 import { ilustracoes, medidasDeFoto, urlFotos, exercicios } from "@/lib/dados";
 import {
@@ -60,14 +63,46 @@ describe("caixaDaIlustracao (SPEC §22.13 item 1)", () => {
     }
   });
 
-  it("com a caixa de altura fixa de antes (328 × 208), 78+ ficavam abaixo de 60 % da coluna", () => {
-    const antes = medidas.filter((m) => {
-      const areaL = COLUNA_360 - 2 * FOLGA_DA_ILUSTRACAO;
-      const areaA = 208 - 2 * FOLGA_DA_ILUSTRACAO;
-      const figura = Math.min(areaL, areaA * (m.largura / m.altura));
-      return figura / COLUNA_360 < 0.6;
-    });
-    expect(antes.length).toBeGreaterThanOrEqual(78);
+  /*
+   * Correção da auditoria 2: o teste acima só pega incoerência entre
+   * `larguraMaxima` e a folga — ele passa com o teto em 100, 500 ou 1000 px.
+   * Quem prende o teto é esta conta: ele é o menor que leva o goblet a 180 px
+   * de figura, e a caixa mais alta ainda cabe na tela da página a 360×740.
+   */
+  it("o teto fica entre o mínimo do goblet (180 px) e o que cabe na tela de 740", () => {
+    const goblet = medidas.find((m) => m.id === "agachamento-goblet")!;
+    const minimo = Math.ceil(180 / (goblet.largura / goblet.altura)); // 425
+    // a página a 360×740 (medido no e2e): topo do segmento em 132 px, o
+    // segmento (44) e o vão (8) acima da caixa; embaixo dela o crédito (alvo
+    // de 44) e a barra de baixo (56)
+    const acimaDaCaixa = 132 + 44 + 8;
+    const abaixoDaCaixa = 44 + 56;
+    const maximo = 740 - acimaDaCaixa - abaixoDaCaixa - 2 * FOLGA_DA_ILUSTRACAO; // 440
+    expect(ALTURA_MAXIMA_DA_ILUSTRACAO).toBeGreaterThanOrEqual(minimo);
+    expect(ALTURA_MAXIMA_DA_ILUSTRACAO).toBeLessThanOrEqual(maximo);
+  });
+
+  it("a folga é o p-2 da área da figura (8 px de cada lado)", () => {
+    // a conta pura e o CSS têm de dizer a mesma folga: com FOLGA 0 nenhum
+    // outro unitário caía, e a caixa passava a figura 16 px mais estreita
+    const componente = readFileSync(
+      join(process.cwd(), "components/exercicio/ilustracao-alternada.tsx"),
+      "utf8",
+    );
+    expect(componente).toContain('cn("block p-2"');
+    expect(FOLGA_DA_ILUSTRACAO).toBe(8);
+  });
+
+  it("com a caixa de altura fixa de antes, 100 de 145 (h-52, página) e 112 (h-44, folha) ficavam abaixo de 60 % da coluna", () => {
+    const abaixo = (altura: number) =>
+      medidas.filter((m) => {
+        const areaL = COLUNA_360 - 2 * FOLGA_DA_ILUSTRACAO;
+        const areaA = altura - 2 * FOLGA_DA_ILUSTRACAO;
+        const figura = Math.min(areaL, areaA * (m.largura / m.altura));
+        return figura / COLUNA_360 < 0.6;
+      }).length;
+    expect(abaixo(208)).toBe(100);
+    expect(abaixo(176)).toBe(112);
   });
 
   it("o agachamento goblet passa de 180 px de figura", () => {
@@ -109,6 +144,36 @@ describe("proporcaoDaFoto (SPEC §22.13 item 2)", () => {
     }
     expect(vistas).toBeGreaterThan(100);
     expect(Object.keys(medidasDeFoto).length).toBeGreaterThan(0);
+  });
+
+  /*
+   * Correção da auditoria 2: as fotos NÃO são todas 3:2 — 304 arquivos em
+   * 850×567, 8 em 850×569 e 12 em retrato 2:3 (agachamento búlgaro e as duas
+   * barras fixas: 850×1275 no kit, 800×1200 na derivada). Aqui cada foto de
+   * `data/exercicios.json` é lida do próprio arquivo do kit.
+   */
+  it("toda foto do JSON: a proporção da caixa é a do arquivo do kit, e 12 são retrato", async () => {
+    const retrato: string[] = [];
+    let vistas = 0;
+    for (const e of exercicios) {
+      for (const url of urlFotos(e)) {
+        const nome = url.split("/").pop()!;
+        const arquivo = await sharp(join(process.cwd(), "assets", "fotos", nome)).metadata();
+        const real = arquivo.width! / arquivo.height!;
+        for (const pedida of [url, urlWebp(url)]) {
+          if (!pedida) continue;
+          const [l, a] = proporcaoDaFoto(pedida).split(" / ").map(Number);
+          expect(Math.abs(l! / a! - real), pedida).toBeLessThanOrEqual(0.005);
+          if (l! < a!) retrato.push(pedida);
+          vistas += 1;
+        }
+      }
+    }
+    expect(vistas).toBe(324);
+    expect(retrato).toHaveLength(12);
+    expect(new Set(retrato.map((u) => u.replace(/-[12]\.(jpg|webp)$/, "")))).toEqual(
+      new Set(["/fotos/agachamento-bulgaro", "/fotos/barra-fixa-assistida", "/fotos/barra-fixa-com-lastro"]),
+    );
   });
 
   it("sem medida conhecida, 3:2 (a das fotos do kit)", () => {
