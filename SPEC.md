@@ -2942,6 +2942,15 @@ tabela. O mesmo SQL está em `supabase/schema.sql` e em
 `drop table`/`drop column`/`rename`. O mock (`scripts/mock-supabase.ts`)
 conhece a tabela, a unicidade do `endpoint` e a RLS por dono.
 
+**O `user_id` vai no insert.** A coluna é `not null` **sem default** (como em
+todas as tabelas do app): quem grava manda o `user_id` da sessão — a página
+recebe o id do servidor (`idDoUsuario()`) e a tela o põe na linha. Sem ele, o
+banco real recusa (a policy `with check (user_id = auth.uid())` falha antes do
+`not null`). O mock imita isso nesta tabela: insert sem `user_id` responde
+`42501`, sem `endpoint`/`p256dh`/`auth` responde `23502`, e `PATCH` não altera
+nada (não há policy de update). Uma inscrição cujo navegador não devolve as
+duas chaves não é gravada: conta como falha do `subscribe` (23.4).
+
 **Um aparelho, uma conta.** O `endpoint` é único na tabela inteira. Se o
 aparelho já estava inscrito por **outra** conta (celular compartilhado), a
 inserção esbarra na unicidade; o app então cancela a inscrição do navegador e
@@ -2958,8 +2967,12 @@ testada no Vitest):
   Terraço" se vier vazio), `body`, ícone e badge do manifest
   (`/icons/icone-192.png`), `tag` (a mesma tag substitui a notificação anterior
   em vez de empilhar), `lang: "pt-BR"` e `data.url`. A `url` só vale se for um
-  caminho do próprio app (começa com `/` e não com `//`); qualquer outra coisa
-  vira `/`. Corpo que não é JSON vira o texto da notificação.
+  caminho do próprio app: começa com `/` (e não com `//` nem `/\`) **e**,
+  resolvida pelo parser de URL contra uma origem fixa, continua nessa mesma
+  origem — o parser apaga TAB, LF e CR, então `"/\t/outro.host"` vira
+  `//outro.host` e cai fora. O que vale é devolvido como caminho + busca +
+  âncora; qualquer outra coisa vira `/`. Corpo que não é JSON vira o texto da
+  notificação.
 - **`notificationclick`**: fecha a notificação, procura uma aba do app já
   aberta e a leva para `data.url` (e tenta dar foco); sem aba aberta, abre
   uma nova em `data.url`.
@@ -2981,15 +2994,20 @@ aparelho** (`estadoDoAparelho()`, pura), um de:
 
 - **Ativar**: pede a permissão (`Notification.requestPermission`), inscreve
   (`pushManager.subscribe` com `userVisibleOnly` e `applicationServerKey` = a
-  chave pública) e grava a linha. Permissão recusada ou inscrição que falha
-  mostram as instruções (23.6) em vez de um erro técnico.
+  chave pública) e grava a linha **com o `user_id` da sessão** (23.2).
+  Permissão recusada ou dispensada, ou inscrição que falha, mostram a frase
+  do que houve **e sempre ao menos uma instrução** (23.6) — nunca um erro
+  técnico e nunca a frase sozinha.
 - **Desativar**: apaga a linha e cancela a inscrição do navegador.
 - **Aparelhos desta conta**: a lista das inscrições (nome do aparelho e
   "desde dd/mm"), com **"Remover"** em cada uma; remover a deste aparelho
-  também cancela a inscrição do navegador.
+  também cancela a inscrição do navegador. O recado de "Remover" usa o nome
+  da lista ("Aparelho sem nome" quando a linha veio sem nome).
 - **"Enviar um lembrete de teste"** (quando há ao menos um aparelho): chama a
   rota de 23.5 e diz o resultado numa linha `role="status"`: "Enviado para 1
-  aparelho." / "Enviado para 2 aparelhos." / o erro em pt-BR.
+  aparelho." / "Enviado para 2 aparelhos." / o erro em pt-BR. Quando nenhum
+  aparelho recebeu ("Não deu para enviar agora."), a linha continua
+  `role="status"` mas com a cor de erro, não a de sucesso.
 
 ### 23.5 A rota de teste: `POST /api/lembretes/teste`
 
@@ -3036,6 +3054,22 @@ resultado.
    por lá (iOS 16.4 ou mais novo).
 4. **Navegador sem suporte**, fora dos casos acima: usar o Chrome ou o Brave
    no Android, ou o app instalado no iPhone.
+5. **Falhou sem nenhum caso acima** (Chrome ou outro navegador no Android, o
+   app instalado no iPhone, a permissão dispensada sem escolher): "Para tentar
+   de novo" — conferir a internet e tocar em Ativar de novo, escolher
+   **Permitir** quando o navegador perguntar e, se não ativar, ver nas
+   configurações do celular se as notificações do navegador (ou do app
+   instalado) estão ligadas.
+
+Regra: com a permissão negada, o navegador sem suporte ou uma falha ao
+ativar, a lista **nunca sai vazia** (o Vitest confere as 80 combinações de
+estado × Brave × iPhone × instalado × falhou).
+
+**Fica para o lote 35:** o "Sair" (§22.11) não mexe na inscrição do aparelho
+— hoje só chega o teste que a própria conta pede; quando houver disparo no
+horário, o lote 35 decide se sair apaga a linha deste aparelho. O badge da
+notificação é o `icone-192` colorido (o Android costuma mostrá-lo como um
+quadrado branco); um badge monocromático entra quando houver o desenho.
 
 ### 23.7 Critérios de aceite (lote 34)
 
@@ -3044,15 +3078,19 @@ resultado.
    `rename`, `alter … type`), com RLS ligada, três policies por `auth.uid()`
    (select/insert/delete), nenhuma de update, nenhuma com `true`, e o `anon`
    sem permissão; e2e — no mock, a conta B não vê nem apaga a inscrição da
-   conta A.
+   conta A; o corpo do `POST /rest/v1/lembretes_inscricoes` que a tela manda
+   traz o `user_id` da sessão, e o mock recusa (`42501`) o insert sem ele.
 2. **Service worker**: Vitest de `opcoesDaNotificacao()` (título, corpo,
-   ícone, tag, `lang`, url interna/externa, corpo que não é JSON); e2e — com o
+   ícone, tag, `lang`, url interna/externa — inclusive `/` + TAB/LF/CR +
+   `/outro.host` —, corpo que não é JSON); e2e — com o
    worker real, um `push` simulado vira notificação com o título e o corpo do
    payload (`registration.getNotifications()`), e o `notificationclick` leva a
    aba aberta para a `url`.
 3. **Tela**: e2e a 360×740 nos dois temas, com a permissão concedida pelo
    contexto do Playwright — ativar grava a linha (com a chave pública certa
-   no `subscribe`), desativar apaga; estados "bloqueado" e "não suportado";
+   no `subscribe`), desativar apaga; estados "bloqueado", "não suportado",
+   Brave e a falha genérica, cada um nos dois temas; `/mais/lembretes` na
+   varredura (§22: contraste AA e anel de foco);
    alvos ≥ 44 px; sem rolagem lateral; a linha "Lembretes" em Mais, com o
    anel de foco **interno** (a lista tem `overflow-hidden`, que cortava o
    anel de fora de toda linha): contorno sólido ≥ 2 px inteiro dentro da
@@ -3063,8 +3101,9 @@ resultado.
    t=…, k=…` válido e corpo cifrado que decifra no payload; a tela mostra
    "Enviado para 1 aparelho."; a inscrição que responde 410 some da tabela;
    sem sessão, 401.
-5. **Instruções**: Vitest de `instrucoesDoAparelho()` para os quatro casos;
-   e2e com Brave simulado (`navigator.brave`) e com a permissão negada, textos
-   em pt-BR.
+5. **Instruções**: Vitest de `instrucoesDoAparelho()` para os cinco casos e
+   a regra "nunca vazia" nas 80 combinações; e2e com Brave simulado
+   (`navigator.brave`), com a permissão negada e com o `subscribe` falhando
+   no Chrome, textos em pt-BR.
 6. **Guia**: Mais → Como usar o app tem a linha "Lembretes" com o mesmo texto
    da tela Mais, apontando para `/mais/lembretes`.
