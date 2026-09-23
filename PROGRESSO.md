@@ -9907,3 +9907,215 @@ chunk compartilhado `2246-39655f92d5ce7921.js`. Sonda a 360×740 (Chromium):
 `capturas-c58f69d` viraram a base visual (`base-ef3ad97`, `indice.json` com
 head `a0bcfcf`; wt-base não avançado). Nenhuma migração de banco.
 **Rollback: não.**
+
+### Rodada 14 — Lote 14 — Ficha: conteúdo e ações; nomes do catálogo e créditos
+
+Branch `polimento/l14-ficha-conteudo`, a partir de `main` `0d54e5f` (com o
+L12 e o L13 publicados; construído sobre eles: segmento acima da mídia,
+figura que abre o Como fazer, pausa própria, fotos na proporção do arquivo e
+`key` por exercício continuam). SPEC §22.14. Dez itens: oito da ficha do
+exercício e dois por **exceção de área** decidida pelo orquestrador —
+`copy-08` (Mais → Créditos: é o crédito da mídia que a ficha mostra, §15.1
+itens 3 e 4; o lote dono da tela 24 está no teto de 12 arquivos) e
+`OBS-elastico-x-super-band` (catálogo: mesma troca de rótulo, no mesmo
+`lib/catalogo.ts`, que o `copy-25` e as tags de equipamento da ficha usam).
+`lib/progressao.ts` e `lib/montagem.ts`: `git diff 0d54e5f` vazio.
+
+#### O que mudou
+
+1. **A ficha em página tem volta e ação** (tela-explorar-fichas-19;
+   `app/(app)/exercicios/[id]/page.tsx`, `components/exercicio/acoes-da-ficha.tsx`
+   (novo), `lib/ficha.ts`). **Era:** só o `<h1>`, o subtítulo e a ficha — sem
+   "Voltar" e sem nada a fazer com o exercício. **É:** "Voltar" no topo (link
+   para `/exercicios`; o toque volta à página anterior quando ela é do app —
+   `podeVoltarNoApp()`: `navigation.canGoBack`, que só conta entradas desta
+   origem, ou o tamanho do histórico sem a Navigation API) e "Fazer agora"
+   (56 px) no fim, que abre a sessão livre só com o exercício pelo
+   `useSessaoLivre` das coleções; o player grava cada série no IndexedDB na
+   hora. O rótulo não muda enquanto a sessão nasce (`aria-busy`).
+2. **Um cartão só quando não há histórico** (tela-explorar-fichas-20;
+   `components/exercicios/historico-exercicio.tsx`, `lib/ficha.ts`). **Era:**
+   Recorde, Carga por sessão, Últimas sessões e O que o motor decidiu como
+   quatro cartões vazios. **É:** com os quatro vazios (`historicoVazio()`), um
+   cartão "Ainda sem histórico deste exercício — Ele começa na primeira série
+   registrada."; a decisão espera os eventos do motor lidos. Na página, "Onde
+   você está" de um exercício que o motor ainda não avaliou repetia a carga
+   inicial e a prescrição padrão das seções acima ("7,5 kg na barra" duas
+   vezes, pego pelo e2e na parcial) — ali ele sai (`ondeVoceEstaRepete()`),
+   menos quando a primeira sessão traz assistência ou semana leve; na folha
+   ele continua.
+3. **Nada repetido na ficha e títulos em ordem** (tela-explorar-fichas-21,
+   com -22, -23 e a parte da ficha do a11y-12;
+   `components/exercicio/ficha-folha.tsx`, `lib/ficha.ts`). **Era:** a aba
+   Músculos repetia a ilustração; a página tinha "Área de foco" (o que a aba
+   Músculos diz) e a seção "Equipamento" repetia o `equipamento_texto` do
+   subtítulo; os treinos eram badges soltos; as seções eram H3 sob o H1.
+   **É:** Músculos = mapa + legenda; sem "Área de foco" na página (na folha
+   fica); "Equipamento" = as tags, cada uma link para a coleção do aparelho
+   quando existe (`tagsDoEquipamento()`/`hrefDoEquipamento()`; anilhas,
+   halteres e barra W ficam texto), com alvo de 44 px; "Aparece em:" antes
+   dos treinos, cada um link para `/explorar/treino/<id>`
+   (`linksDosTreinos()`); o nível dos títulos vem de um contexto
+   (`nivelDosTitulos()`): H2 na página, H3 na folha (onde o título da folha é
+   o H2) — seções, "Erro comum", "Seu histórico" e "Só nesta sessão".
+4. **A aba do tutorial diz para onde leva** (tela-explorar-fichas-26;
+   `ficha-folha.tsx`, `lib/ficha.ts`). **Era:** "Tutorial", oferecida sempre.
+   **É:** "Tutorial no YouTube" com o ícone de link externo no rótulo, só
+   quando `data/tutoriais.json` tem o vídeo (`abasDaFicha()`; hoje os 81
+   têm), e as abas dividem a largura pelo rótulo (`flex-auto`) — em terços,
+   o rótulo novo não cabia. `components/exercicio/tutorial.tsx` não precisou
+   mudar (o conteúdo da aba é o mesmo).
+5. **"Apagar esta foto?" com `.flutuante`** (flutuante-no-dialogo-da-foto;
+   `components/exercicios/foto-ampliada.tsx`). **Era:** `shadow-lg`, que some
+   sobre `#0a0a0a`. **É:** `.flutuante` (§22.3 item 5; no escuro, o anel de
+   1 px).
+6. **As folhas são modais de verdade** (a11y-05; `components/ui/sheet.tsx`,
+   vale para todas). **Era:** sem `aria-modal`; `main`/`header`/`nav` só
+   escondidos por `aria-hidden` num ancestral e alcançáveis; o primeiro foco
+   no primeiro item da lista; nas folhas abertas por estado (a ficha no
+   player) o foco caía no `<body>` ao fechar (medido na parcial). **É:**
+   `aria-modal="true"`; enquanto aberta, os irmãos da folha até o `<body>`
+   ficam `inert` (`inertizarForaDe()`, com os avisos `aria-live` e o véu de
+   fora; ao fechar desmarca só o que marcou); o primeiro foco é o título
+   (`tabIndex=-1`); ao fechar, o foco volta a quem o tinha ao abrir — o
+   `onOpenAutoFocus`/`onCloseAutoFocus` de quem passa o próprio (o Ajustar, o
+   catálogo) continua mandando.
+7. **"Manutenção", não "repetição"** (copy-13; `historico-exercicio.tsx`).
+   **Era:** "Cada subida, repetição ou volta de carga…". **É:** "Cada subida,
+   manutenção ou volta de carga aparece aqui depois do treino." O motor e
+   "repetiu a carga no treino de dd/mm" (`lib/hoje.ts`) não mudam.
+8. **Uma grafia por equipamento** (copy-25; `lib/catalogo.ts`). **Era:**
+   filtro "Cross-over", "Super band", "Peso do corpo". **É:** "Cross over",
+   "Super Band", "Peso corporal" — a grafia de `equipamento_texto` e de
+   `equipamentos.json`. Ficam "Halter"/"Halteres" e "Barra maciça"; "peso do
+   corpo" como **carga** no player e no histórico é outra coisa e fica.
+9. **Um nome só para a faixa elástica** (OBS-elastico-x-super-band;
+   `lib/catalogo.ts`). **Era:** Implemento "Elástico" e Equipamento "Super
+   band" para o mesmo objeto. **É:** os dois "Super Band"; o circuito
+   "Elástico" do Explorar fica.
+10. **Créditos em linguagem de gente** (copy-08;
+    `app/(app)/mais/creditos/page.tsx`). **Era:** "…as cores viraram
+    variáveis CSS" e "— anda junto do desenho, com a atribuição e o que foi
+    feito com a geometria". **É:** "Nenhuma linha do desenho foi alterada; só
+    reagrupamos os músculos e trocamos as cores." e "Texto completo da
+    licença MIT, com a atribuição." Autor, licença, fonte e o link do texto
+    da licença continuam.
+
+Testes que mudaram por causa do comportamento novo (não afrouxados):
+`e2e/catalogo.spec.ts` (na página, "Área de foco" ausente e os músculos na
+aba Músculos; o histórico vazio é o cartão único, sem "Onde você está") e
+`e2e/auditoria-m5.spec.ts` "as 81 fichas" (a espera conta as imagens que a
+ficha deve ter: o quadro 2 da ilustração só entra no DOM depois do 1, §22.13
+item 4, e a espera antiga podia passar antes de ele existir — falhou uma vez
+na parcial com "3 de 4 imagens" no abdominal declinado e passou sozinho; a
+asserção `naturalWidth > 0` de cada imagem é a mesma).
+
+#### Provas
+
+- **Vitest** (`lib/ficha.test.ts`, novo, 13 testes; `lib/catalogo.test.ts`,
+  +4): abas sem tutorial = Vídeo e Músculos, e os **81** exercícios têm
+  tutorial; nível H2/H3; em **todos os 81** exercícios, cada tag com coleção
+  de aparelho leva a `/explorar/aparelho/<tag>` e a coleção contém o
+  exercício, e anilhas/halteres/barra W não têm link; todo treino de todo
+  exercício leva a `/explorar/treino/<id>` com o exercício dentro;
+  `historicoVazio` só com os quatro vazios; `podeVoltarNoApp` (aba nova:
+  `canGoBack` falso com `history.length` 2); `ondeVoceEstaRepete` só na
+  página, primeira vez, sem assistência nem semana leve. Catálogo, nos dados
+  inteiros: "Cross over" nos **9** exercícios com a tag, "Super Band" nos
+  **5** com a tag (e nos 2 de implemento `band`, que também têm a tag), os
+  nomes batem com `equipamentos.json`; dos **13** de peso corporal, **11**
+  dizem "peso corporal" e 2 não nomeiam o implemento (prancha → "Tatame",
+  abdominal no banco declinado → "Banco"), nenhum "peso do corpo" — a
+  metade "aparece no texto de todo exercício" do aceite do copy-25 é
+  inviável para esses 2 sem reescrever `equipamento_texto`, o que o item
+  proíbe; `NOME_IMPLEMENTO.band === NOME_EQUIPAMENTO['super-band']` e
+  nenhum rótulo "Elástico".
+- **Mutação** (cópia em `r14/l14/mut`): 9 de 9 mutantes derrubam teste —
+  aba do tutorial sempre, nível fixo, `href` nulo, vazio ignorando eventos,
+  "Cross-over", "Elástico", "Peso do corpo", "Super band", rótulo "Tutorial".
+- **e2e** (`e2e/ultraloop-l14.spec.ts`, 19 testes, 360×740 contra o mock):
+  Voltar do catálogo e numa aba nova; Fazer agora (≥ 44 px) → player, e, sem
+  rede, a série concluída está na `sessaoAtiva` e na `outbox` do IndexedDB;
+  cartão único sem histórico (1 cartão na página, nenhum dos 4 títulos);
+  com séries semeadas e sem eventos, a frase nova sem "repetição"; página
+  nos dois temas — títulos do `<main>` sem pular nível (H1 → H2), nenhum
+  parágrafo/item visível repetido nem contido em outro, `equipamento_texto`
+  uma vez, tags e treinos como links (44 px) que abrem a coleção, Músculos
+  sem `<img>`; folha — título H2, seções H3, "Área de foco" e "Onde você
+  está" presentes; foco por Tab em Voltar, tags, treinos e Fazer agora com
+  anel e sem corte, nos dois temas; "Tutorial no YouTube" com o ícone, nada
+  cortado (abas ≥ 44 px) na página e na folha; o cartão "Apagar esta foto?"
+  com a mesma sombra de `.flutuante` nos dois temas (no escuro, o anel de
+  1 px); folha da ficha no player, "Substituir hoje" e filtros do catálogo —
+  `aria-modal`, `main`/`header`/`nav` inertes, foco no título, 30 Tabs sem
+  sair, Esc fecha, o foco volta ao gatilho e nenhum `inert` sobra; filtro
+  "Cross over" → só os 9 cards com "Cross over", opções sem "Elástico";
+  Créditos sem "variáveis CSS"/"anda junto", com os dois links; contraste
+  ≥ 4,5:1 nos dois temas de "Voltar", "Aparece em:", das tags, dos treinos,
+  de "Fazer agora" e do cartão vazio (a ficha em página não está nas doze
+  rotas da varredura: medida aqui, junto com o anel de foco acima).
+- **Parciais antes da cadeia** (`r14/l14/parcial*`): em `35459b1`, 4 falhas
+  que eram defeito do código e viraram correção — a aba nova tem
+  `history.length` 2 (o "Voltar" voltaria ao about:blank), "7,5 kg na barra"
+  duas vezes na página, e o foco não voltava ao "Como fazer" ao fechar a
+  folha no player; em `cb05219`, 136 de 137 com o grep ampliado (a falha era
+  a espera das 81 fichas, acima); `0117248` isolado: 4 de 4.
+
+#### Portões
+
+Cadeia inteira em `0117248` (o HEAD com todo o código do lote;
+`r14/l14/logs/0117248.log`, das 09:54:47 às 10:19:31 UTC, **status ok**):
+`lint` limpo · `tsc --noEmit` limpo · `npm test` **67 arquivos, 1.523
+testes, todos verdes** (eram 66 / 1.506 em `0d54e5f`: +1 arquivo, +17
+testes) · `build` ("Compiled successfully in 21.4s") · `build:e2e`
+("Compiled successfully in 17.7s") · `e2e` **494 passaram, 5 pulados, 0
+falharam** (18,5 min; eram 477 + 5 em `0d54e5f`: +17 do lote; os 5 pulados
+são os da varredura, que roda à parte) · `varredura` **5 de 5** (4,3 min).
+Depois da cadeia entrou o e2e de contraste (2 testes, verdes sozinhos em
+`r14/l14/parcial-contraste`, contra o mesmo build); a cadeia roda de novo,
+inteira, no commit deste registro, e o log dele fica em
+`r14/l14/logs/<hash>.log`.
+
+#### Capturas
+
+`capturas.sh` em `0117248`, depois da cadeia verde, contra a base real de
+`main` (`base-ef3ad97`), com as seis telas declaradas
+(`r14/l14/capturas-0117248.md`): 60 PNGs, **"Nenhuma tela mudou fora do
+esperado"** — as 48 fora da lista com Δ 0,00 %. (A primeira comparação
+recebeu a lista separada por espaço e o comparador só casou a primeira tela;
+refeita com vírgulas, que é o formato dele.) Diffs abertos: 09 claro, 10
+escuro, 24 claro.
+
+| tela | Δ claro | Δ escuro | o que mudou |
+| --- | ---: | ---: | --- |
+| 10-ficha-folha (página na aba Músculos) | 41,03 % | 42,15 % | "Voltar" no topo empurra tudo 120 px; a aba Músculos sem a ilustração (só o mapa e a legenda); a terceira aba "Tutorial no YouTube ↗"; "Aparece em:" antes dos treinos |
+| 09-ficha-exercicio | 26,94 % | 31,64 % | "Voltar" no topo e o deslocamento; as abas pelo tamanho do rótulo, "Tutorial no YouTube ↗" numa linha |
+| 24-creditos | 2,70 % | 2,64 % | só o parágrafo do mapa muscular ("Nenhuma linha do desenho foi alterada; só reagrupamos os músculos e trocamos as cores.") |
+| 04-treino-lista | 0,00 % | 0,00 % | nada: a folha "Substituir hoje" não está aberta na captura |
+| 08-catalogo | 0,00 % | 0,00 % | nada: os rótulos novos estão na folha de filtros, fechada na captura |
+| 17-corpo-fotos | 0,00 % | 0,00 % | nada: o cartão "Apagar esta foto?" não está aberto na captura |
+
+Fora das capturas, medido ao vivo pelos e2e: a folha da ficha no player
+(`/treinar`), o "Substituir hoje", os filtros abertos, o cartão de apagar a
+foto e o histórico com séries semeadas.
+
+#### Como testar no celular (360 px)
+
+1. Exercícios → busque "supino reto" → abra a ficha: "Voltar" no topo volta
+   à busca. Role até o fim: "Fazer agora" abre o player só com o supino;
+   conclua uma série no modo avião — ela fica no aparelho e sobe depois.
+2. Na mesma ficha, sem treino ainda: embaixo de "Seu histórico" há um cartão
+   só ("Ainda sem histórico deste exercício"). A seção "Equipamento" mostra as
+   tags; "Banco" abre a coleção do banco no Explorar; "Aparece em:" leva ao
+   treino.
+3. Aba Músculos: só o mapa e a legenda. A terceira aba se chama "Tutorial no
+   YouTube", com a setinha de link externo.
+4. No player, toque no "?" (Como fazer): com leitor de tela, o primeiro
+   anúncio é o nome do exercício; o fundo não é alcançável; ao fechar, o foco
+   volta ao "?". O mesmo em "Substituir" na lista do dia e em "Filtros".
+5. Exercícios → Filtros: Implemento e Equipamento dizem "Super Band" (nada de
+   "Elástico"), "Cross over" e "Peso corporal".
+6. Corpo → Fotos → abra uma foto → Apagar: no tema escuro, o cartão tem o
+   contorno laranja fino.
+7. Mais → Créditos → Mapa muscular: "Nenhuma linha do desenho foi alterada;
+   só reagrupamos os músculos e trocamos as cores."
