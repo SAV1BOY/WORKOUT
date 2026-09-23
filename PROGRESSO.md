@@ -11480,9 +11480,39 @@ menores. Sobre `8b54cf1`, logs em `r19/l34/`. SPEC antes do código
     no Vitest).
   - `clients.openWindow` sem aba aberta: pendência antiga, sem medida.
 
-**Portões da rodada 19.** (rascunho: a cadeia inteira roda no HEAD com todo o código da correção; os números entram no commit seguinte, que só muda este arquivo.)
+**Portões da rodada 19.** Cadeia inteira em `e13a8ec` (todo o código da
+correção + o rascunho deste registro; `r19/l34/logs/e13a8ec.log`, das
+22:02:46 às 22:30:14 UTC, **ok**): `lint` limpo · `tsc --noEmit` limpo ·
+`npm test` **73 arquivos, 1.632 testes, todos verdes** (eram 72 / 1.621 em
+`4192cd5`: +1 arquivo `lib/rota-lembretes-teste.test.ts` com 8, +3 em
+`lib/lembretes.test.ts`, que passa a 39) · `build` ("Compiled successfully
+in 18.8s") · `build:e2e` ("Compiled successfully in 18.7s") · `e2e` **557
+passaram, 5 pulados** (20,9 min; os 552 de `4192cd5` + os 5 novos; o spec
+do lote tem 36 testes, todos ✓; nenhum ✘, nenhum instável, nenhuma nova
+tentativa) · `varredura` **5 passaram** (4,6 min). Antes da cadeia, rodadas
+locais do spec do lote (`r19/l34/local/`): `r19-a` 34 de 36 — os 2 da volta
+sem internet usavam `page.route`, que não alcança o que passa pelo service
+worker; reescritos no `fetch` da página, `r19-b` mostrou as 4 tentativas do
+postgrest-js (~7 s) e `r19-c` deu **2 de 2**. `diff 27eda74 --
+lib/progressao.ts lib/montagem.ts` vazio. Este PROGRESSO.md é o único
+arquivo que muda depois de `e13a8ec`.
 
-**Capturas da rodada 19.** (depois da cadeia verde.)
+**Capturas da rodada 19.** `capturas.sh` com o `.next` do build:e2e da
+cadeia de `e13a8ec`, contra a base real de `main` (`base-ef3ad97`), tela
+declarada `18-mais` (`r19/l34/capturas-e13a8ec.md`): 60 PNGs, só `18-mais`
+mudou; as outras 58 com Δ 0,00 % ("Nenhuma tela mudou fora do esperado").
+Os 60 PNGs são **iguais byte a byte** aos de `capturas-4192cd5` (`cmp`, 0
+diferentes): a correção mexe só em `/mais/lembretes` (que não está nas 60 e
+é coberta pelo e2e) e na lib. Diff aberto (`18-mais-claro.diff.png`): de
+"Como usar o app" a "Preferências" igual; em vermelho, a 5ª linha passa a
+ser "Lembretes" (sino) e Créditos, Backup e o cartão "CONTA / Tudo
+sincronizado" descem uma linha; a barra de abas não muda. Aberta também
+`18-mais-escuro.png`: "Lembretes" entre Preferências e Créditos. Servidores
+derrubados pelo script (3100 e 54321 → 000).
+
+| tela | Δ claro | Δ escuro | o que mudou |
+| --- | ---: | ---: | --- |
+| 18-mais | 13,29 % | 13,27 % | a linha nova "Lembretes" (a mesma de `4192cd5`); nada mais |
 
 **Como testar a correção no celular (360 px).** (a) Brave no Android:
 toque em Ativar e negue → "O navegador recusou…" logo abaixo do estado;
