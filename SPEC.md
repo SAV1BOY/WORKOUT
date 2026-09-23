@@ -2323,3 +2323,112 @@ cortado no 3º nome: o item 3 passa a mostrar o motivo inteiro. O item 7
 registra o CTA da corrida sem perfil, e o "nome curto da fase" passa a ter uma
 função só (`nomeCurtoDaFase`, em `lib/dados.ts`), que o cabeçalho do
 calendário (`rotuloDaFase`) também usa.
+
+### 22.13 Ficha: mídia e interação; coleções do Explorar
+
+Medido em `main` (763598a, com o L12 publicado) a 360×740. Dez itens: seis da
+ficha do exercício e quatro das coleções do Explorar, que entram por
+**exceção de área** — Explorar e as fichas são a mesma prioridade (2) do dono
+(§22.0), e os quatro itens de coleções não fecham um lote sozinhos. O aceite
+de cada item é verificável no Vitest ou no e2e (`e2e/ultraloop-l13.spec.ts`).
+
+1. **A caixa da ilustração tem a proporção da ilustração** (imagens-01). A
+   caixa tinha altura fixa (`h-52` na página, `h-44` na folha) e largura
+   inteira; as ilustrações vão de 0,35:1 a 4,6:1, e o agachamento goblet
+   (0,42:1) desenhava 81 px de figura numa caixa de 328. Agora, na aba Vídeo
+   da ficha (folha e página), a caixa usa o par largura/altura de
+   `data/ilustracoes.json` como `aspect-ratio`, com teto de **432 px** de
+   altura de figura: a figura larga ocupa a largura toda, a alta estreita a
+   caixa e fica centrada. A conta é pura (`caixaDaIlustracao()` em
+   `lib/midia.ts`). O player e a capa do bloco na lista do treino continuam
+   com a faixa de altura fixa: o espaço vertical deles é fixo (§13.8.1).
+   Aceite: Vitest — para as 145 medidas do JSON, numa coluna de 328 px, a
+   figura ocupa ≥ 60 % da largura da caixa e o goblet tem ≥ 180 px de largura;
+   e2e — em `/exercicios/agachamento-goblet` a 360×740 a figura desenhada
+   mede ≥ 180 px de largura e ≥ 60 % da caixa, e nada vaza a largura.
+2. **As fotos na proporção do arquivo, com legenda** (imagens-12). As fotos
+   de execução são 3:2 e a ficha as cortava em quadrado (`aspect-square` +
+   `object-cover`), justamente onde passa a barra. As duas caixas, lado a
+   lado, passam a ter a proporção do próprio arquivo
+   (`data/medidas-de-foto.json`, 3:2 na falta) e ganham legenda visível
+   **"Início" / "Fim"** sob cada uma — na página e na opção Fotos da folha.
+   Aceite: e2e — nenhuma foto de execução da ficha tem a caixa com proporção
+   diferente da do arquivo (|Δ| ≤ 0,02), e as legendas estão visíveis.
+3. **Só o que é link aparece sublinhado no crédito** (imagens-13). O crédito
+   inteiro era um link sublinhado. Passa a **"Ilustração: <autor> ·
+   <licença>"**, em 11 px (§13.8.1): o autor leva à obra de origem
+   (`url_fonte`) e a licença à página dela na Creative Commons (endereço
+   derivado do código da licença do JSON por `urlDaLicenca()`, puro e
+   testado); "Ilustração:" e o "·" são texto. Os dois links têm alvo de
+   44 px. Aceite: e2e — o crédito continua visível, os dois links têm
+   `text-decoration-line: underline` e caixa ≥ 44 px, e o texto fora deles
+   não é sublinhado.
+4. **O segundo quadro só é pedido quando a animação vai começar**
+   (performance-13). As duas posições eram `<img loading="lazy">` na mesma
+   caixa visível, então a segunda baixava junto com a primeira. Agora a
+   segunda posição só entra no DOM depois que a primeira carregou **e** a
+   ilustração vai alternar; parada (`prefers-reduced-motion`), só quando a
+   pessoa pede para voltar a alternar. Aceite: e2e — na ficha, a requisição
+   do quadro 2 começa depois do fim da do quadro 1 (Resource Timing); com
+   `reducedMotion: reduce` não sai requisição do quadro 2 até o toque em
+   "Voltar a alternar".
+5. **A figura não é o botão de pausa** (ux-heuristicas-21). A ilustração
+   inteira era o `<button>` de pausa: quem tocava para abrir o "Como fazer"
+   parava a animação. Agora a pausa é um **botão próprio de 44×44 no canto**
+   (aria-label "Parar a animação" / "Voltar a alternar"), e a figura tem
+   aria-label com a posição ("…, posição 1 de 2"). Onde a tela tem um "Como
+   fazer" (player e lista do treino), **tocar na figura abre a ficha**, como
+   o "?" ao lado do nome; na própria ficha a figura não é botão (ela já é o
+   "Como fazer"). `prefers-reduced-motion` continua fazendo a ilustração
+   nascer parada (§22.1). Aceite: e2e — no player a 360×740, tocar no meio
+   da ilustração abre a ficha e ela continua alternando; só o botão do canto
+   (≥ 44×44) pausa.
+6. **O chip ativo do segmento se vê** (tela-explorar-fichas-18). O ativo do
+   segmento "Ilustração · Figura · Fotos" era `bg-background` sobre o trilho
+   `bg-muted` (1,08:1 no claro, 1,16:1 no escuro). Passa a
+   `bg-foreground text-background`. Aceite: e2e — nos dois temas, o fundo do
+   chip ativo mede ≥ 3:1 contra o do inativo (o trilho), e o texto do ativo
+   ≥ 4,5:1.
+7. **Linhas da vitrine com a mesma altura** (tela-explorar-fichas-08). As
+   linhas mediam 72 ou 92 px conforme a coleção tinha subtítulo. Escolha: a
+   linha **reserva a linha do subtítulo** (`text-xs`, uma linha) em toda
+   linha de coleção, com ou sem texto — o subtítulo continua na vitrine. Na
+   busca a regra vale para a lista inteira. A linha sem meta (§22.12 item 4)
+   continua mostrando o subtítulo inteiro. Aceite: e2e em `/explorar` a
+   360×740 nos dois temas — dentro de cada seção de "Escolhas para você", as
+   linhas `[data-colecao]` têm a mesma altura (±1 px).
+8. **A capa sem foto tem o ícone** (tela-explorar-fichas-13). A capa do plano
+   de corrida era um retângulo escuro, sem o ícone que o `CardCapa` promete.
+   A tela da coleção passa ao `CardCapa` o ícone do tipo (o mesmo
+   `ICONE_DO_TIPO` da linha: plano = calendário) em 48 px; o ícone fica no
+   alto da capa, **fora do véu do texto**, em `text-foreground`. Vale para
+   toda coleção sem capa. Aceite: e2e em `/explorar/plano/corrida` nos dois
+   temas — dentro de `[data-capa]` há um `svg` visível de ≥ 48 px, sem
+   sobreposição com o bloco do título, com contraste ≥ 3:1 contra o fundo
+   lido na captura (SC 1.4.11).
+9. **A coleção de plano mostra as semanas** (tela-explorar-fichas-11). A tela
+   do plano era só o cartão, com ~700 px vazios. Abaixo do cartão entram:
+   (a) **"Semana X de N"** com a barra das semanas **concluídas** — a mesma
+   leitura do card de desafio (§22.2 item 8), `role="progressbar"` com
+   `aria-valuenow` = concluídas; (b) a lista das semanas ou estágios do plano,
+   saída de `data/cardio.json` (corrida: `semanas[].descricao`; corda:
+   faixa, blocos, tempo do bloco, descanso e saltos; barra fixa: faixa,
+   séries por sessão e assistência), cada linha com o estado **feita /
+   agora / a fazer** em texto, derivado de `perfil.semana_corrida`,
+   `semana_corda` e `semana_fixa`; a atual tem `aria-current="step"` e o
+   link da sessão da semana (o mesmo `href` de `ctaDoPlano()`). Sem perfil,
+   a lista aparece sem estado e sem barra. A conta é pura:
+   `semanasDoPlano(plano, semanaAtual)` em `lib/colecoes.ts`. Aceite:
+   Vitest — `semanasDoPlano('corrida', 3)` devolve 12 linhas, 2 feitas, a 3ª
+   atual, com a descrição igual à do JSON; e2e em `/explorar/plano/corrida`
+   e `/explorar/plano/corda` a 360×740 nos dois temas — `progressbar` com
+   `aria-valuenow` = semanas concluídas, uma linha por semana/estágio, a atual
+   com `aria-current`, `scrollHeight` > 740 e nada vaza a largura.
+10. **Uma marca só na coluna da direita** (visual-11). Na linha de coleção os
+    raios ficavam ao lado do título (centro a 18 px do topo) e o chevron no
+    meio da linha (36 px). Os raios passam para a **linha da meta**, junto de
+    "N exercícios · ~M min" (na linha sem meta, ao fim do subtítulo); a
+    coluna da direita fica só com o chevron, centrado. Aceite: e2e em
+    `/explorar` (vitrine e busca) — nenhuma marca no canto superior direito
+    das linhas, |centro do chevron − centro da linha| ≤ 2 px, e os raios na
+    mesma linha do texto "exercícios".
