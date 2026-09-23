@@ -10781,3 +10781,71 @@ muscular).
 | 04-treino-lista | 0,00 % | 0,00 % | nada: a folha "Substituir hoje" não está aberta na captura |
 | 08-catalogo | 0,00 % | 0,00 % | nada: a folha de filtros está fechada na captura |
 | 17-corpo-fotos | 0,00 % | 0,00 % | nada: a foto e o cartão "Apagar esta foto?" não estão abertos na captura |
+
+#### Auditoria
+
+- **Auditoria 1 em `a68ea7f`: aprovada** (bloqueantes 0, importantes 0,
+  menores 9: 6 da lente de regra e 3 da lente de tela). Pré-condições
+  conferidas nas duas lentes (`a68ea7f.status` ok, 1.553 unitários, 520 e2e
+  + 5 pulados, varredura 5/5, motor sem diff, árvore limpa). A lente de
+  regra matou 5 de 5 mutantes de `lib/camada-modal.ts` e conferiu o
+  inventário contra o grep (19 linhas, nenhuma camada modal fora). A lente
+  de tela mediu as 17 camadas nos dois temas a 360×740 (aria-modal, 0
+  focáveis soltos, 0 fugas de Tab, Esc, foco no gatilho, 0 `inert` depois),
+  mais as empilhadas na Visão geral e no Corpo → Fotos. Nada foi comitado
+  pelas auditorias (vereditos em `r17/l14/auditoria-1-regra/` e
+  `r17/l14/auditoria-1-tela/`). As reprovações anteriores (auditoria 2 da
+  rodada 14 e da rodada 15) estão acima, com as correções.
+
+Menores registrados (ficam na fila, nenhum quebra o aceite):
+
+- **[regra]** SPEC §22.14 item 6, inventário, linha de
+  `components/exercicio/ficha-folha.tsx`: a coluna "Como abre" cita só o
+  player e o "Como fazer" do bloco, mas a mesma folha também abre por
+  estado em `components/treino/lista.tsx:148` (toque no exercício da lista
+  do dia) e em `components/colecoes/lista-da-colecao.tsx:73` (lista de uma
+  coleção do Explorar). A camada está na tabela e a regra vale para ela
+  (`sheet.tsx`); só falta completar a descrição.
+- **[regra]** `components/treinar/visao-geral.tsx`, comentário do
+  `aoVoltarDoCelular`: ainda diz "Com uma folha, um alerta ou a foto
+  ampliada aberta por cima da lista". A SPEC e o PROGRESSO já tiraram a
+  foto dessa lista (ela não abre dentro da Visão geral). O comentário
+  ficou velho.
+- **[regra]** SPEC §22.14 item 6 diz que, com o resumo do fim gravando, "o
+  voltar, que vira Esc, espera o fim dela". No código (`resumo.tsx` +
+  `visao-geral.tsx`) o popstate repõe a entrada e o Esc é ignorado porque
+  `aoFechar` não faz nada com `salvando`: o voltar é descartado, não fica
+  pendente. Nenhum e2e cobre o caso. Melhor dizer "o voltar não faz nada
+  enquanto grava".
+- **[regra]** `components/ui/camada-modal.ts:54`: o ramo `data-veu` não é
+  usado por ninguém (grep vazio em `app/` e `components/`). O teste
+  `slot.endsWith('-overlay')` tira do `inert` o véu de qualquer camada
+  irmã, não só "o véu da própria camada" que a SPEC descreve. Não faz mal
+  (o véu não é focável e fica coberto pelo de cima), mas a SPEC diz menos
+  do que o código faz.
+- **[regra]** Nomes das rodadas: a SPEC chama esta correção de "rodada 17"
+  (item 6) e o PROGRESSO a registra como "Rodada 16 — retomada (segunda
+  correção, logs em `r17/l14`)", ao lado de outra "Rodada 16 — correção da
+  auditoria 1 da rodada 15"; uma "Rodada 15 — auditoria 2 reprovou…"
+  aparece depois de uma "Rodada 16". Quem lê não acha a mesma rodada pelo
+  nome nos dois arquivos.
+- **[regra]** Ordem dos commits na correção: a SPEC com o inventário
+  (`febfbcd`) entrou depois do código (`9cd961e`, `cb9845d`); a regra pede
+  a §22.14 antes do código. Atenuante: o item 6 já prometia a regra para
+  toda camada desde a rodada 15; só o inventário veio depois.
+- **[tela]** Anterior ao lote (mesma classe `absolute top-3 right-3` em
+  `0d54e5f`): no Corpo → Fotos, logo depois de guardar a foto, o aviso
+  "Foto de frente guardada." (sonner, top-center, fora do `inert` por ser
+  `aria-live`) cobre o X "Fechar a foto" (304,12 44×44); um toque ali não
+  fecha a foto e, com o ponteiro parado, o aviso não some (o sonner pausa
+  no hover). Sugestão: o aviso não sobrepor o X da camada.
+- **[tela]** Ficha em página, seção "Equipamento": a pílula sem coleção
+  ("Anilhas", 54×20) tem cor, borda, fundo e sublinhado iguais às que são
+  link ("Banco", "Barra maciça", "Cavalete", 44 px): nada diz qual abre a
+  coleção. A SPEC §22.14 item 3(c) manda o texto sem link e o aceite passa;
+  só falta a diferença visual.
+- **[tela]** Anterior ao lote: o "Recomeçar do zero?" da Retomada
+  (`dialog.tsx`) nasce com o foco em "Entendi, quero recomeçar" (primeiro
+  botão, padrão do Radix), não em "Agora não". Não apaga nada na hora (há
+  uma 2ª etapa), mas a §22.14 item 6 mudou o "Apagar esta foto?" para
+  nascer na resposta que não destrói nada; fica para a fila, por coerência.
