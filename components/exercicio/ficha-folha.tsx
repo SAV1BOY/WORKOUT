@@ -3,7 +3,6 @@
 import {
   ChevronLeft,
   ChevronRight,
-  ExternalLink,
   Pause,
   Play,
   Repeat,
@@ -287,10 +286,12 @@ function Secao({ titulo, children }: { titulo: string; children: React.ReactNode
 
 /**
  * Vídeo · Músculos · Tutorial no YouTube (SPEC §14.2 e §22.14 item 4): a aba
- * do tutorial só existe quando o JSON tem o vídeo, e o rótulo diz que ele é
- * do YouTube, com o ícone de link externo. As abas dividem a largura pelo
- * tamanho do rótulo (`flex-auto`): em partes iguais, "Tutorial no YouTube"
- * não cabia no terço de 328 px.
+ * do tutorial só existe quando o JSON tem o vídeo, e o rótulo diz de onde ele
+ * vem. Sem ícone de link externo: com rede o vídeo toca aqui dentro
+ * (`youtube-nocookie`), e o ícone prometia uma saída do app que não acontece;
+ * ele fica só no "Abrir no YouTube" da aba sem rede, que sai de verdade. As
+ * abas dividem a largura pelo tamanho do rótulo (`flex-auto`): em partes
+ * iguais, "Tutorial no YouTube" não cabia no terço de 328 px.
  */
 function AbasDaMidia({
   exercicioId,
@@ -308,9 +309,6 @@ function AbasDaMidia({
         {abas.map((aba) => (
           <TabsTrigger key={aba} value={aba} className="alvo flex-auto">
             {ROTULO_DA_ABA[aba]}
-            {aba === "tutorial" ? (
-              <ExternalLink aria-hidden="true" data-icone-externo className="size-3.5" />
-            ) : null}
           </TabsTrigger>
         ))}
       </TabsList>
