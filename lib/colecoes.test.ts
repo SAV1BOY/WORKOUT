@@ -812,6 +812,21 @@ describe("desafios da aba Treino (SPEC §14.3)", () => {
     for (const p of planos()) expect(ctaDoPlano(p.id, null).href).toBe(p.href);
   });
 
+  it("o nome curto da fase tem uma fonte só (lib/dados.ts), com o nome inteiro de reserva", () => {
+    expect(nomeCurtoDaFase("Fase 2 — hipertrofia")).toBe("Fase 2");
+    // sem travessão, ou sem nada antes dele, fica o nome inteiro (aparado)
+    expect(nomeCurtoDaFase("  Fase 3  ")).toBe("Fase 3");
+    expect(nomeCurtoDaFase("— sem nome curto")).toBe("— sem nome curto");
+    // nenhum outro arquivo corta o nome da fase à mão
+    const cortes = ["lib/semana.ts", "lib/colecoes.ts", "components/treino/tela-treino.tsx"].filter(
+      (arquivo) => /\.split\(\s*"—"\s*\)/.test(readFileSync(arquivo, "utf8")),
+    );
+    expect(cortes).toEqual([]);
+    expect(readFileSync("lib/semana.ts", "utf8")).toContain(
+      "nomeCurtoDaFase(acharFase(fase).nome)",
+    );
+  });
+
   it("a capa sai sempre de assets/ (ou é nenhuma)", () => {
     for (const d of desafios(base)) {
       if (d.capa !== null) expect(d.capa).toMatch(/^\/(fotos|figuras|itens)\//);

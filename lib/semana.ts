@@ -20,7 +20,7 @@ import {
   type PerfilCalendario,
   type SessaoDeForca,
 } from "@/lib/calendario";
-import { acharFase, acharTreino } from "@/lib/dados";
+import { acharFase, acharTreino, nomeCurtoDaFase } from "@/lib/dados";
 import {
   formatarData,
   formatarDiaCurto,
@@ -213,8 +213,7 @@ export function faseCumprida(fase: FaseId, semana: number): boolean {
  * oferecer a Fase 2 ao lado.
  */
 export function rotuloDaFase(fase: FaseId, semana: number): string {
-  const [curto] = acharFase(fase).nome.split("—");
-  const nome = (curto ?? fase).trim();
+  const nome = nomeCurtoDaFase(acharFase(fase).nome);
   // antes do começo da fase não há semana para contar: só o nome da fase
   if (semana < 1) return nome;
   if (fase !== "fase1") return `${nome} · semana ${semana}`;

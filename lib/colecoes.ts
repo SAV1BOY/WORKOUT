@@ -23,6 +23,7 @@ import {
   exercicioPorId,
   exercicios,
   exerciciosDoTreino,
+  nomeCurtoDaFase,
   programa,
   semanaDeCorrida,
   ultimaSemanaDeBarraFixa,
@@ -724,11 +725,8 @@ export interface Desafio {
   acao: string;
 }
 
-/** "Fase 1 — corpo inteiro, 3× por semana" → "Fase 1" (o nome vem do JSON). */
-export function nomeCurtoDaFase(nome: string): string {
-  const [curto] = nome.split("—");
-  return (curto ?? nome).trim() || nome.trim();
-}
+/* o nome curto da fase mora em lib/dados.ts (fonte única, SPEC §22.12) */
+export { nomeCurtoDaFase };
 
 export interface EntradaDosDesafios {
   fase: FaseId;

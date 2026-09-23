@@ -155,6 +155,17 @@ export function acharFase(id: FaseId): Fase {
   return f;
 }
 
+/**
+ * "Fase 1 — corpo inteiro, 3× por semana" → "Fase 1" (o nome vem do JSON). A
+ * fonte única do nome curto da fase: o CTA do desafio (`lib/colecoes.ts`), a
+ * aba Treino e o cabeçalho do calendário (`rotuloDaFase`) usam esta função.
+ * Sem o travessão, ou com nada antes dele, fica o nome inteiro.
+ */
+export function nomeCurtoDaFase(nome: string): string {
+  const [curto] = nome.split("—");
+  return (curto ?? nome).trim() || nome.trim();
+}
+
 /** "assets/figuras/x.svg" → "/figuras/x.svg" (o que npm run assets copiou). */
 export function caminhoPublico(caminhoAsset: string): string {
   return `/${caminhoAsset.replace(/^assets\//, "")}`;
