@@ -164,24 +164,25 @@ export function LinhaColecao({
           SPEC §22.12 item 4: o plano sem perfil cujo objetivo já diz o prazo
           não tem meta — a linha acaba no subtítulo, sem um vão vazio.
           SPEC §22.13 item 10: os raios moram aqui, no fluxo do texto (não
-          num flex que quebra), logo depois de "N exercícios · ~M min".
+          num flex que quebra), ABRINDO a meta, antes de "N exercícios": a
+          meta de aparelho ("N exercícios que dão para fazer com ele") quebra
+          em 2 linhas a 360 px, e no fim dela os raios caíam na 2ª linha.
         */}
         {temMeta ? (
           <span
             className="text-muted-foreground text-xs font-normal tabular-nums"
             data-linha="meta"
           >
-            {colecao.detalhe}
             {raios ? (
               <>
-                {" "}
                 <Raios
                   nivel={raios}
                   tamanho="sm"
-                  className="text-primary ml-0.5 inline-flex align-middle"
-                />
+                  className="text-primary inline-flex align-middle"
+                />{" "}
               </>
             ) : null}
+            {colecao.detalhe}
           </span>
         ) : null}
       </span>
