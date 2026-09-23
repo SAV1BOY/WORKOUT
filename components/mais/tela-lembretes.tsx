@@ -26,14 +26,16 @@ const PRAZO_DO_WORKER_MS = 10_000;
 
 type Permissao = "default" | "granted" | "denied";
 
+const LER_FALHOU = "Não deu para ler os aparelhos agora.";
+
 interface Mensagem {
   tipo: "status" | "alert";
   texto: string;
   /**
    * Onde a frase aparece: a de ativar/desativar fica no bloco "Este
-   * aparelho", logo abaixo do estado e **acima** das instruções (na primeira
-   * dobra mesmo com duas instruções, §23.4); a da lista e do teste, entre os
-   * dois blocos.
+   * aparelho", abaixo do estado (e do botão, quando há) e **acima** das
+   * instruções (na primeira dobra mesmo com duas instruções, §23.4); a da
+   * lista e do teste, entre os dois blocos.
    */
   onde: "aparelho" | "lista";
   /** `role="status"` com a cor de erro: o teste não chegou a nenhum aparelho (§23.4). */
@@ -179,12 +181,20 @@ export function TelaLembretes({
       .select("id, endpoint, p256dh, auth, aparelho, criado_em")
       .order("criado_em", { ascending: true });
     if (error) {
-      setSemTabela(tabelaAusente(error));
-      if (!tabelaAusente(error)) {
-        setMensagem({ tipo: "alert", texto: "Não deu para ler os aparelhos agora.", onde: "lista" });
+      const ausente = tabelaAusente(error);
+      setSemTabela(ausente);
+      // A frase do aparelho ("recusou", "não conseguiu ativar") fica: ela fala
+      // do que a pessoa fez, e uma volta sem internet não muda isso (§23.4).
+      // O aviso da lista só entra onde não há frase do aparelho.
+      if (!ausente) {
+        setMensagem((atual) =>
+          atual?.onde === "aparelho" ? atual : { tipo: "alert", texto: LER_FALHOU, onde: "lista" },
+        );
       }
     } else {
       setSemTabela(false);
+      // a leitura deu certo: o aviso de que não deu para ler sai
+      setMensagem((atual) => (atual?.onde === "lista" && atual.texto === LER_FALHOU ? null : atual));
       setAparelhos(
         (data ?? []).flatMap((linha: unknown) => {
           const lida = inscricaoLembreteSchema.safeParse(linha);
