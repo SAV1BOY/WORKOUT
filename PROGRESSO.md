@@ -11077,9 +11077,11 @@ testes geram o par na hora (`e2e/playwright.config.ts`, Vitest).
   "Lembretes ainda não configurados neste servidor.", nenhum botão, "Mais"
   (voltar) 74×44, sem rolagem lateral (`scrollWidth − clientWidth = 0`), e
   `POST /api/lembretes/teste` com sessão responde **503** com o mesmo texto.
-  O estado "tabela ausente" (migração não aplicada) só tem prova de unidade
-  (`tabelaAusente()` com `PGRST205`/`42P01`): o mock não sabe esconder uma
-  tabela.
+  O estado "tabela ausente" (migração não aplicada) tinha, nesta rodada, só
+  prova de unidade (`tabelaAusente()` com `PGRST205`/`42P01`). Desde a
+  rodada 18 a tela tem e2e com o `PGRST205` por `page.route`, nos dois
+  temas; desde a rodada 19 a rota tem Vitest do 503 `SEM_TABELA`
+  (`lib/rota-lembretes-teste.test.ts`).
 
 #### Correção da auditoria (1ª auditoria em `ade3e6a`: regra reprovada, tela aprovada)
 
@@ -11316,7 +11318,8 @@ Sobre `96c2b5e`, logs em `r19/l34/`. SPEC antes do código (`30ff9fc`).
   Mutação: sem o ouvinte de `visibilitychange`, **3 de 3** testes da volta
   caem (`r19/l34/mutacao/volta.out`).
 - **Menores atendidos.** A frase de ativar/desativar fica **no bloco "Este
-  aparelho", logo abaixo do estado e acima das instruções**; e2e com Brave +
+  aparelho", abaixo do estado (e do botão Ativar/Desativar, quando há
+  botão) e acima das instruções** — texto corrigido na rodada 19; e2e com Brave +
   recusa (duas instruções, `brave` e `permissao`) nos dois temas: a frase
   acima da primeira instrução, inteira acima da barra de abas, `scrollY` 0.
   O `aria-label` do Remover usa o nome da lista ("Remover Aparelho sem nome
@@ -11389,3 +11392,105 @@ notificações deste app" (Ajustes → Notificações → Treino do Terraço), s
 conselho do Brave. (d) Com o leitor de tela, o Remover de um aparelho sem
 nome diz "Remover Aparelho sem nome (desde dd/mm)".
 
+#### Rodada 19 — Correção da auditoria (1ª auditoria da rodada 18 em `8b54cf1`: regra reprovada, tela aprovada)
+
+Vereditos em `r19/l34/auditoria-1-{regra,tela}/veredito.json`: regra
+reprovada por **1 importante** (nenhum bloqueante), tela aprovada; 5 + 3
+menores. Sobre `8b54cf1`, logs em `r19/l34/`. SPEC antes do código
+(`6d4e759`).
+
+- **Importante (regra) — `urlInterna()` devolvia `//outro.host`.** Era: a
+  conferência rodava só sobre a **entrada** (prefixo `/`, sem `//` nem `/\`,
+  e a URL resolvida contra `https://app.invalid` na mesma origem); o parser
+  desfaz `.`, `..` e `%2e` depois, e a função devolvia o `pathname`
+  normalizado sem conferir: `"/.//mal.example/x"` → `"//mal.example/x"`,
+  `"/..//mal.example"`, `"/a/..//mal.example"`, `"/%2e//mal.example"`,
+  `"/./\mal.example"` e `"\t/.//mal.example"` → `"//mal.example"`, e não era
+  idempotente (1.014 saídas ruins em 43.904 entradas na varredura da
+  auditoria). O `notificationclick` reaplicava a função e caía em `/`, então
+  não havia exploração, mas o contrato da SPEC §23.3 falhava. É: a **saída**
+  também é conferida — um caminho devolvido que começa com `//` vira `/`
+  (`lib/lembretes.ts`, `ef9c163`); o caminho normalizado não tem TAB, LF, CR
+  nem `\`, então basta isso. Vitest novo em `lib/lembretes.test.ts`: 11
+  entradas com pontos antes da barra dupla (inclusive `%2E%2E`, `/..\/` e TAB
+  no meio) → `/`, também em `opcoesDaNotificacao().opcoes.data.url`; uma
+  **varredura** de 30 pedaços hostis combinados 3 a 3, com e sem sufixo
+  (54.000 entradas), em que toda saída começa com `/`, não com `//` nem
+  `/\`, fica na origem ao ser resolvida e é **idempotente**; e a
+  idempotência dos caminhos que valem. Mutação: sem a conferência da saída,
+  2 dos testes novos caem. A varredura da própria auditoria (`url2.ts`)
+  contra o código novo: **43.904 entradas, 0 ruins**; `url-prova.ts`: as 6
+  entradas → `/`, idempotente (`r19/l34/local/url2-ef9c163.out`,
+  `url-prova-ef9c163.out`).
+- **Menores (regra), todos atendidos.**
+  - SPEC §23.4 e este PROGRESSO diziam "logo abaixo do estado"; com botão, a
+    ordem é estado → botão → frase → instruções. Texto corrigido para
+    "abaixo do estado (e do botão, quando há botão), acima das instruções"
+    (SPEC, comentário do componente e rodada 18 acima). O aceite medido (a
+    frase acima das instruções, na primeira dobra) não muda.
+  - A frase velha "o mock não sabe esconder uma tabela" (rodada 17) foi
+    atualizada; o 503 `SEM_TABELA` da **rota** ganhou prova:
+    `lib/rota-lembretes-teste.test.ts` (8 testes, `d0910ea`), com o cliente
+    do Supabase do servidor trocado — 503 `SEM_CONFIGURACAO` sem as
+    variáveis e com o par errado (sem abrir o banco), 401 sem sessão (sem
+    ler a tabela), 503 `SEM_TABELA` com `PGRST205` e com `42P01` (sem
+    nenhum `fetch`), 502 com outro erro, 409 sem aparelho, e um endpoint
+    fora dos serviços de push não é chamado e conta como não enviado.
+    Mutação: sem o ramo `SEM_TABELA` na rota, os 2 testes do 503 caem.
+  - SPEC §23.4 sem teste para `focus`, `pageshow`, a guarda do
+    `emAndamento` e a volta sem internet. e2e novos (`398dc23`): a volta
+    por `focus` e por `pageshow`, **cada um sozinho** (a permissão negada de
+    verdade, concedida, 400 ms sem mudar, o evento → Desativado com Ativar e
+    sem instruções); um **Ativar demorado** (`subscribe` de 2 s) com
+    `visibilitychange`, `focus` e `pageshow` disparados no meio: nenhuma
+    leitura da tabela antes do `DELETE`/`POST` da gravação; e a **volta sem
+    internet**. Esta última mostrou um defeito, corrigido (`2e5f6c2`): era,
+    uma volta com a leitura da lista falhando trocava a frase do aparelho
+    ("O navegador recusou…") por "Não deu para ler os aparelhos agora.", e
+    esse aviso ficava mesmo depois de uma leitura boa; é, a frase do
+    aparelho fica (o aviso da lista só entra onde não há frase) e o aviso
+    sai na próxima leitura que der certo. O "sem internet" é no `fetch` da
+    página (a página é do service worker: nem `context.setOffline` nem
+    `page.route` alcançam o que passa por ele), e o teste espera as **4
+    tentativas** do postgrest-js (1 s, 2 s e 4 s de espera) antes de olhar a
+    tela. Mutações (build:e2e de cada uma, `r19/l34/local/mut-a.log` e
+    `mut-b.log`): sem manter a frase, sem limpar o aviso, sem o ouvinte de
+    `pageshow` e sem a guarda → **4 de 4** caem (a guarda:
+    "GET GET DELETE POST GET"); sem o ouvinte de `focus` → o teste do `focus` cai (1 de 1).
+  - A prosa do `brave` (§23.6) falava em "a inscrição falhou ou a permissão
+    está negada", e o Brave com a pergunta dispensada cai em `brave` sem
+    nenhuma das duas. A prosa agora diz "o Ativar falhou — a inscrição
+    falhou ou a pergunta da permissão foi dispensada sem escolher — ou a
+    permissão está negada"; a tabela e o código já concordavam.
+  - Pendências antigas, sem mudança: o `notificationclick` sem aba aberta
+    (`clients.openWindow`), a RLS no Postgres real (prova estática e no
+    mock) e o badge monocromático (L35).
+- **Menores (tela).**
+  - **Bloqueado → liberado com o aparelho ativado** volta direto a
+    "Ativado neste aparelho" quando o navegador manteve a inscrição, e o
+    passo 3 promete o Ativar. É melhor que o prometido e o Chrome costuma
+    cancelar a inscrição ao bloquear; a SPEC §23.4 agora descreve os dois
+    caminhos. O texto do passo não mudou (fica para o L35, que mexe na tela).
+  - **iPhone fora da tela inicial com a permissão negada** dava
+    `[permissao-iphone, iphone]`, mandando abrir os Ajustes antes de
+    instalar. É `[iphone, permissao-iphone]`: instalar primeiro, porque a
+    entrada "Treino do Terraço" nos Ajustes só existe com o app instalado
+    (tabela da §23.6, prosa e `instrucoesDoAparelho()`, `ef9c163`; o
+    oráculo das 80 combinações continua 0 divergências, e um caso explícito
+    no Vitest).
+  - `clients.openWindow` sem aba aberta: pendência antiga, sem medida.
+
+**Portões da rodada 19.** (rascunho: a cadeia inteira roda no HEAD com todo o código da correção; os números entram no commit seguinte, que só muda este arquivo.)
+
+**Capturas da rodada 19.** (depois da cadeia verde.)
+
+**Como testar a correção no celular (360 px).** (a) Brave no Android:
+toque em Ativar e negue → "O navegador recusou…" logo abaixo do estado;
+ligue o modo avião, saia do app e volte → a frase continua (não vira "Não
+deu para ler os aparelhos agora."). (b) Sem frase na tela, modo avião,
+saia e volte → depois de uns 7 s aparece "Não deu para ler os aparelhos
+agora."; desligue o modo avião, saia e volte → o aviso some. (c) Toque em
+Ativar e, enquanto o navegador pergunta, troque de app e volte → a tela
+termina em "Ativado neste aparelho." com uma linha só na lista. (d) iPhone
+fora da tela inicial com as notificações negadas: a primeira instrução é
+instalar (Adicionar à Tela de Início), a segunda os Ajustes.
