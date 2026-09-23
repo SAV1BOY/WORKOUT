@@ -344,6 +344,73 @@ test.describe("§22.14 item 3 — nada repetido na ficha e títulos em ordem", (
   });
 });
 
+test.describe("§22.14 itens 1 e 3 — foco visível nos links e botões novos", () => {
+  for (const tema of TEMAS) {
+    test(`Tab chega a Voltar, tags, treinos e Fazer agora com anel inteiro (${tema})`, async ({
+      page,
+    }) => {
+      await preparar(page, tema);
+      await abrirFicha(page, SUPINO);
+      await expect(page.locator("[data-historico-vazio]")).toBeVisible();
+      await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+
+      const vistos = new Map<string, { anel: boolean; inteiro: boolean }>();
+      for (let i = 0; i < 90; i += 1) {
+        await page.keyboard.press("Tab");
+        const r = await page.evaluate(() => {
+          const el = document.activeElement as HTMLElement | null;
+          if (!el) return null;
+          const qual = el.matches("[data-voltar-da-ficha]")
+            ? "voltar"
+            : el.closest("[data-tags-equipamento]")
+              ? `tag:${el.textContent?.trim()}`
+              : el.closest("[data-aparece-em]")
+                ? `treino:${el.textContent?.trim()}`
+                : el.matches("[data-fazer-agora]")
+                  ? "fazer"
+                  : null;
+          if (!qual) return null;
+          const e = getComputedStyle(el);
+          const contorno = e.outlineStyle !== "none" && parseFloat(e.outlineWidth) >= 2;
+          const sombra = e.boxShadow !== "none" && e.boxShadow !== "";
+          // o anel de fora (2 px + 2 px de offset) não é cortado por ancestral
+          const folga = contorno ? parseFloat(e.outlineWidth) + parseFloat(e.outlineOffset) : 0;
+          const caixa = el.getBoundingClientRect();
+          let inteiro = true;
+          for (let a = el.parentElement; a && a !== document.body; a = a.parentElement) {
+            const o = getComputedStyle(a);
+            if (/(hidden|clip|auto|scroll)/.test(o.overflowX + o.overflowY)) {
+              const c = a.getBoundingClientRect();
+              if (
+                caixa.left - folga < c.left - 0.5 ||
+                caixa.right + folga > c.right + 0.5
+              )
+                inteiro = false;
+            }
+          }
+          return { qual, anel: contorno || sombra, inteiro };
+        });
+        if (r) vistos.set(r.qual, { anel: r.anel, inteiro: r.inteiro });
+        if (vistos.has("fazer")) break;
+      }
+      const esperados = [
+        "voltar",
+        "fazer",
+        ...tagsDoEquipamento(acharExercicio(SUPINO).equipamento)
+          .filter((t) => t.href)
+          .map((t) => `tag:${t.rotulo}`),
+        ...linksDosTreinos(treinosDoExercicio(SUPINO)).map((t) => `treino:${t.nome}`),
+      ];
+      for (const q of esperados) {
+        expect(vistos.get(q), `${q} ${JSON.stringify([...vistos])}`).toEqual({
+          anel: true,
+          inteiro: true,
+        });
+      }
+    });
+  }
+});
+
 /* ------------------------------------------- item 4: a aba do tutorial */
 
 async function conferirAbas(escopo: Locator, page: Page): Promise<void> {
