@@ -2549,3 +2549,129 @@ de cada item é verificável no Vitest ou no e2e (`e2e/ultraloop-l13.spec.ts`).
     ≤ 4 px (as de aparelho incluídas); na seção Planos e na busca por
     "corda", na linha "Corda: 5 estágios" o selo está na meta, o subtítulo
     começa na coluna do título (±1 px) e a meta fica numa linha (≤ 18 px).
+
+### 22.14 Ficha: conteúdo e ações; nomes do catálogo e créditos
+
+Medido em `main` (0d54e5f, com o L12 e o L13 publicados) a 360×740. Dez
+itens: oito da ficha do exercício (página `/exercicios/[id]` e folha), e dois
+que entram por **exceção de área**: o texto dos Créditos (copy-08, Mais) é o
+crédito da mídia que a ficha mostra (§15.1 itens 3 e 4), e o nome da faixa
+elástica no catálogo (OBS-elastico-x-super-band) é a mesma troca de rótulo,
+no mesmo `lib/catalogo.ts`, que as tags de equipamento da ficha usam. O motor
+não muda (§22.0.1 item 7). O aceite de cada item é verificável no Vitest
+(`lib/ficha.test.ts`, `lib/catalogo.test.ts`) ou no e2e
+(`e2e/ultraloop-l14.spec.ts`).
+
+1. **A ficha em página tem volta e ação** (tela-explorar-fichas-19). A página
+   abria só com o título, sem "Voltar" e sem nada a fazer com o exercício.
+   Agora ela abre com **"Voltar"** no topo (link para `/exercicios`; quando
+   há página anterior no histórico do app, o toque volta a ela — quem chegou
+   do Progresso ou de uma coleção volta para lá) e fecha com **"Fazer
+   agora"**, que abre uma sessão livre só com este exercício pelo mesmo
+   `useSessaoLivre` das coleções (§14.3): o player grava cada série no
+   IndexedDB na hora, como qualquer sessão (§8). Sem perfil o botão fica
+   desabilitado. Aceite: e2e — do catálogo, abrir a ficha e tocar "Voltar"
+   leva de volta a `/exercicios`; aberta direto pela URL, "Voltar" leva a
+   `/exercicios`; "Fazer agora" (≥ 44 px) leva a `/treinar/<id>` com o
+   exercício, e a primeira série registrada está na sessão ativa do
+   IndexedDB antes de qualquer envio.
+2. **Um cartão só quando não há histórico** (tela-explorar-fichas-20). Sem
+   nenhuma série, "Recorde", "Carga por sessão", "Últimas sessões" e "O que o
+   motor decidiu" apareciam como quatro cartões vazios. Quando os quatro
+   estão vazios (sem recorde, sem ponto no gráfico, sem sessão e sem evento
+   do motor — `historicoVazio()` em `lib/ficha.ts`, pura), eles viram **um
+   cartão**: "Ainda sem histórico deste exercício — ele começa na primeira
+   série registrada." "Onde você está" continua em cima (é a prescrição de
+   hoje, não histórico). Na página, a nota da carga inicial sai de "Onde
+   você está": ela já está na seção "Carga inicial" da mesma rolagem.
+   Aceite: Vitest — `historicoVazio` é verdadeiro só com os quatro vazios;
+   e2e — a ficha de um exercício nunca treinado mostra um cartão de
+   histórico, não quatro.
+3. **Nada repetido na ficha e títulos em ordem** (tela-explorar-fichas-21,
+   com a -22, a -23 e a parte da ficha do a11y-12). (a) A aba **Músculos**
+   fica só com o mapa e a legenda: a ilustração já é a aba Vídeo. (b) Na
+   página, a seção "Área de foco" sai: os músculos estão na aba Músculos, e
+   a página não repete o que a aba diz. Na folha ela continua (§14.2), porque
+   a folha é consultada no meio da série, sem trocar de aba. (c) Na página,
+   a seção **"Equipamento"** não repete o `equipamento_texto` (ele é o
+   subtítulo do cabeçalho) e vira as **tags**, cada uma link para a coleção
+   do aparelho no Explorar quando ela existe (`hrefDoEquipamento()`; anilhas,
+   halteres e barra W não têm coleção e ficam como texto). (d) Os treinos em
+   que o exercício aparece vêm depois de **"Aparece em:"** e cada um é link
+   para `/explorar/treino/<id>`. (e) O **nível dos títulos é o do contexto**
+   (`nivelDosTitulos()`): na página, o nome é o H1 e as seções da ficha são
+   **H2**; na folha, o título da folha é o H2 e as seções são H3 — antes a
+   página pulava de H1 para H3. Aceite: Vitest — as tags com coleção levam
+   à rota da coleção do aparelho, as outras não têm link, para todos os 81
+   exercícios; e2e — na página, nenhum parágrafo ou item visível da ficha se
+   repete, a aba Músculos não tem imagem de execução, não há "Área de
+   foco", as tags e os treinos são links que abrem a coleção, e a lista de
+   headings do `<main>` não pula nível (H1 → H2); na folha, o título da folha
+   é H2 e as seções são H3.
+4. **A aba do tutorial diz para onde leva** (tela-explorar-fichas-26). A aba
+   se chamava "Tutorial" e era oferecida mesmo sem tutorial no JSON. Agora
+   ela se chama **"Tutorial no YouTube"**, com o ícone de link externo no
+   rótulo, e só existe quando `data/tutoriais.json` tem o vídeo do exercício
+   (`abasDaFicha()`; hoje os 81 têm). As três abas dividem a largura pelo
+   tamanho do rótulo, sem cortar nada a 360 px. Aceite: Vitest — sem
+   tutorial, as abas são só Vídeo e Músculos; e2e — o rótulo da aba diz
+   "YouTube", tem o ícone e nada vaza a largura na página e na folha.
+5. **O cartão "Apagar esta foto?" flutua como os outros**
+   (flutuante-no-dialogo-da-foto). Ele usava `shadow-lg`, que some sobre o
+   fundo `#0a0a0a`; passa à classe `.flutuante` (§22.3 item 5), que no escuro
+   desenha o anel de 1 px. Aceite: e2e — nos dois temas, a sombra do cartão é
+   a `--sombra-flutuante` do tema (no escuro, com o anel de 1 px).
+6. **As folhas são modais de verdade** (a11y-05). Vale para toda folha
+   (`components/ui/sheet.tsx`: ficha, "Substituir hoje", filtros do
+   catálogo, conquistas, montagem, bloco, personalizar, player). O conteúdo
+   da folha tem `aria-modal="true"`; enquanto ela está aberta, o resto da
+   página (`main`, `header`, `nav`) fica **`inert`** — fora do Tab e da
+   árvore do leitor de tela — e volta ao normal quando ela fecha; o primeiro
+   foco é o **título da folha** (`tabIndex=-1`), para o leitor anunciar o que
+   abriu antes da lista; Esc fecha e o foco volta ao botão que abriu (Radix).
+   A folha que já escolhia o próprio foco inicial (Ajustar, §22.7 item 3)
+   continua escolhendo. Aceite: e2e a 360×740, com a folha da ficha e a
+   "Substituir hoje" abertas — `aria-modal="true"`, `main`/`header`/`nav`
+   inertes, o foco no título, Tab não sai da folha, Esc fecha, o foco volta
+   ao gatilho e nada fica inerte depois; os filtros do catálogo abrem e
+   fecham com o foco de volta ao gatilho.
+7. **"Manutenção", não "repetição", no motor da ficha** (copy-13). O vazio do
+   cartão "O que o motor decidiu" dizia "Cada subida, repetição ou volta de
+   carga…", e "repetições" na mesma ficha são as da série. Passa a "Cada
+   subida, manutenção ou volta de carga aparece aqui depois do treino." Só a
+   frase da tela: o motivo `repetiu` do motor e "repetiu a carga no treino de
+   dd/mm" (`lib/hoje.ts`) ficam. Aceite: e2e — na ficha de um exercício com
+   séries e sem eventos do motor, o cartão mostra a frase nova e não contém
+   "repetição"; `git diff` de `lib/progressao.ts` e `lib/montagem.ts` vazio.
+8. **Uma grafia por equipamento** (copy-25). O filtro dizia "Cross-over",
+   "Super band" e "Peso do corpo"; o conteúdo (`equipamento_texto` e
+   `equipamentos.json`) diz "Cross over", "Super Band" e "peso corporal".
+   Os rótulos de `lib/catalogo.ts` passam à grafia do conteúdo. Ficam
+   "Halter" × "Halteres" e "Barra maciça" (ao lado de "Barra W" e "Barra
+   fixa", "Barra" sozinha seria ambígua). "peso do corpo" como **carga** no
+   player e no histórico ("peso do corpo" em vez de kg) é outra coisa — a
+   carga, não o implemento — e fica. Medido nos dados: dos 13 exercícios de
+   implemento `peso_corporal`, 11 dizem "peso corporal" no texto e 2 não
+   nomeiam o implemento (prancha → "Tatame", abdominal no banco declinado →
+   "Banco"); nenhum diz "peso do corpo". Aceite: Vitest — "Cross over" e
+   "Super Band" estão no `equipamento_texto` de todo exercício com a tag, e
+   todo texto de exercício de peso corporal que nomeia o implemento usa
+   "peso corporal"; e2e — o filtro "Cross over" mostra só cards cuja meta
+   contém "Cross over".
+9. **Um nome só para a faixa elástica** (OBS-elastico-x-super-band). O filtro
+   de Implemento dizia "Elástico" e o de Equipamento "Super band" para o
+   mesmo objeto (os 2 exercícios de implemento `band` também têm a tag
+   `super-band`). `NOME_IMPLEMENTO.band` passa a ser o nome do equipamento,
+   "Super Band". O circuito "Elástico" do Explorar é outra coisa (a vitrine,
+   §13.4) e fica. Aceite: Vitest — `NOME_IMPLEMENTO.band` é igual a
+   `NOME_EQUIPAMENTO['super-band']` e está no texto de todo exercício com o
+   implemento ou a tag; e2e — nas opções dos filtros, nenhuma "Elástico".
+10. **Créditos em linguagem de gente** (copy-08). O mapa muscular dizia "as
+    cores viraram variáveis CSS" e o link da licença "anda junto do desenho,
+    com a atribuição e o que foi feito com a geometria". Passa a "Nenhuma
+    linha do desenho foi alterada; só reagrupamos os músculos e trocamos as
+    cores." e "Texto completo da licença MIT, com a atribuição." Autor,
+    licença, fonte e o texto da licença continuam (§15.1 itens 3 e 4).
+    Aceite: e2e em `/mais/creditos` — nenhum texto visível contém "variáveis
+    CSS" nem "anda junto"; os links para a fonte e para
+    `/mapa-muscular/LICENCA-mapa-anatomico.md` continuam.
