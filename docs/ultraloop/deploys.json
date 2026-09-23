@@ -528,5 +528,57 @@
       "uma chamada Bash composta contendo git push foi negada pelo classificador (Production Deploy); o push foi feito em chamada separada e passou"
     ],
     "commit_registro": "d68c9c1"
+  },
+  {
+    "rodada": 11,
+    "data": "2026-09-23",
+    "hora_merge_utc": "01:17",
+    "hora_no_ar_utc": "01:20:02",
+    "duracao_min": 3,
+    "lotes": [
+      "L12-explorar-catalogo"
+    ],
+    "merges": [
+      "2471456"
+    ],
+    "commit_auditoria": "fc6d7c4902ee4f18d9e52cbfe1914da8a3f97445",
+    "pr": "https://github.com/SAV1BOY/WORKOUT/pull/19",
+    "main_sha": "1b37092b015f0064ce6fa724d0d5df211bed8761",
+    "deployment_anterior": "dpl_55ubNHyLQbnRKa8SQaQSCc54EuHC",
+    "deployment_novo": "dpl_2HZ9YHKSNDm7NBizr4dFWeNE6Joy",
+    "versao_prod": "1b37092b015f0064ce6fa724d0d5df211bed8761",
+    "versao_anterior": "ef3ad974ba201fa00e271f48b83019325f0ad007",
+    "css_login": "/_next/static/css/737ab7267490ea30.css -> /_next/static/css/00c50b48cf624ca6.css",
+    "portoes": {
+      "lint": "limpo",
+      "tsc": "limpo",
+      "unitarios": 1477,
+      "e2e": 440,
+      "e2e_pulados": 5,
+      "varredura": "5/5",
+      "build": "Compiled successfully",
+      "e2e_repetido_na_integracao": false,
+      "integracao": "fc6d7c4: lint limpo, tsc limpo, 63 arquivos / 1477 testes"
+    },
+    "conflito_merge": "nenhum (integracao == origin/main ef3ad97; arvore unida == 54b6853)",
+    "fumaca": {
+      "itens": 18,
+      "ok": 18,
+      "falhou": 0,
+      "execucoes": 6,
+      "execucoes_verdes_completas": 3,
+      "detalhe": "/login 200 + 'Treino do Terraco' + 'Entrar' + sem 'Configure NEXT_PUBLIC_SUPABASE_URL' + sem 'e secreta'; / -> 307 /login; /versao == sha; /sw.js 200 + /~offline + figuras/ + mesmo css; /manifest.webmanifest 200 + 'Treino do Terraco'; /~offline 200; 14 scripts 200; marcadores pelo grafo de modulos a partir do chunk da pagina: /exercicios -> chunk 1203 com '\"Ver \".concat(' e 'Ver 1 exerc\\xedcio', chunk 9963 com 'Filtros'; /explorar -> chunk 3014 com 'que d\\xe3o para fazer com\\xa0ele'",
+      "falhas_do_script": "01:20 marcador procurado so no chunk da pagina (a lista mora em chunk compartilhado); 01:25 e 01:26 escape errado no marcador de /explorar; base 16/16 em todas as 6 execucoes"
+    },
+    "sonda_360": "OK — /login e /~offline sem erro de console, scrollWidth 360 = clientWidth",
+    "capturas": "06/07/08 claro e escuro de r11/l12/capturas-54b6853 copiados para base-ef3ad97; indice.json head=1b37092; wt-base nao avancado",
+    "migracao_banco": "nenhuma",
+    "rollback": "nao",
+    "problemas": [
+      "list_aliases com domain devolveu lista vazia; usado list_aliases so com projectId",
+      "chamada Bash composta com git fetch + merge --ff-only foi negada pelo classificador (Production Deploy) depois do merge do PR; refeito em chamadas separadas e passou",
+      "script de fumaca: marcador de /exercicios nao esta no chunk da pagina (esta nos chunks compartilhados 1203 e 9963); passou a seguir o grafo de modulos",
+      "lista de menores da auditoria 2 chegou cortada do orquestrador; registrados os 5 recebidos"
+    ]
   }
 ]

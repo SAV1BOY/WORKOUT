@@ -6356,6 +6356,30 @@ Nada de banco mudou e nenhuma tela mudou de aparência. Produção serve
 `040908a`, igual à `main`, com fumaça verde 22 de 22 em duas execuções e
 **sem rollback**.
 
+**Rodada 11 no ar (23/09, 01:20 UTC — 22:20 de 22/09 em Brasília).** É o
+lote 12: Explorar e o catálogo de exercícios ficaram mais fáceis de ler e de
+filtrar.
+
+- **Os filtros do catálogo foram para uma folha.** Na aba de exercícios, o
+  botão "Filtros" abre uma folha com grupo, implemento, equipamento e "No meu
+  programa". O botão de baixo diz quantos sobram ("Ver 12 exercícios") e leva
+  direto ao primeiro. Com a folha fechada, o primeiro exercício já aparece na
+  primeira tela.
+- **A busca do Explorar explica o que achou.** Cada coleção diz "contém …"
+  com os nomes na ordem em que você digitou, sem nome sobrando e sem cortar a
+  frase no meio.
+- **Os planos mostram o prazo mesmo antes de o perfil carregar.** "Primeira
+  barra fixa" e "5 km sem parar" mostram o objetivo inteiro ("… em 8–12
+  semanas"), e quando o perfil chega aparece "semana N de 12".
+- **Por aparelho**, cada linha usa o nome curto do item ("Tatame EVA", "Super
+  Band"), e "com ele" nunca fica sozinho na linha de baixo.
+
+Como ver no celular: abra Explorar, digite "sentado panturrilha barra
+declinado" na busca e veja o Cavalete citar os três exercícios inteiros; em
+Exercícios, toque em "Filtros", escolha Peito e "No meu programa" e toque em
+"Ver N exercícios" (N é quantos sobraram). Nada de banco mudou. Produção serve `1b37092`, igual à
+`main`, com fumaça verde (18 de 18) e **sem rollback**.
+
 **Encerramento (10:25 UTC de 21/09, 07:25 em Brasília).** A pedido do dono, o loop parou com tudo o que estava 100 % aprovado já publicado: produção serve `8830fe5`, igual à `main`, com oito lotes no ar (L1–L6, L8 e L9) em seis deploys, todos com fumaça verde na primeira execução e nenhum rollback. Nenhuma migração de banco foi aplicada nesta madrugada. Desde o ponto de partida (`c82b744`) foram 71 commits e 181 arquivos alterados (+14.006/−1.169 linhas); os portões do head publicado são 1.378 testes unitários, 403 de ponta a ponta e a varredura das 30 telas nos dois temas. A auditoria de fechamento (regressão total contra a base inicial) foi interrompida antes de terminar; cada lote publicado já havia sido comparado contra a base do deploy anterior na própria auditoria. O que não coube está na seção **Fila (o que não coube)** abaixo, em ordem de prioridade, pronto para as próximas rodadas. Atualização (rodada 7, 12:11 UTC): o lote 7 entrou em produção em `d696b33`, nove lotes no ar, sete deploys, nenhum rollback; o loop está encerrado e nada ficou agendado.
 
 ### Como funcionou
@@ -9274,3 +9298,36 @@ Menores registrados (ficam na fila, nenhum quebra o aceite):
   ("contém Puxada alta na polia, Remada curvada pronada e Barra fixa com
   lastro"). (A mensagem com os menores chegou cortada neste ponto; os
   demais menores da lente tela não foram transcritos.)
+
+**Deploy (rodada 11, 23/09 01:20 UTC).** Publicado. Deployment anterior
+`dpl_55ubNHyLQbnRKa8SQaQSCc54EuHC` → novo `dpl_2HZ9YHKSNDm7NBizr4dFWeNE6Joy`;
+`main` passou de `ef3ad97` para `1b37092b015f0064ce6fa724d0d5df211bed8761`
+(PR #19; merge do lote na integração `2471456`, sem conflito, mais o veredito
+da auditoria `fc6d7c4`) e `/versao` devolveu esse sha às 01:20:02, ~2,5 min
+depois do merge (build de 01:18:36Z). O CSS de `/login` mudou de
+`737ab7267490ea30` para `00c50b48cf624ca6`. Portão final na integração:
+`lint` e `tsc --noEmit` limpos, 63 arquivos / 1.477 testes verdes; e2e não
+repetido (código idêntico a `54b6853`: 440 e2e, 5 pulados, varredura 5/5).
+
+Fumaça em produção **18 de 18**, item a item: `/login` 200 · com "Treino do
+Terraço" · com "Entrar" · sem "Configure NEXT_PUBLIC_SUPABASE_URL" · sem
+"é secreta" · `/` → 307 · para `/login` · `/versao` == sha do merge ·
+`/sw.js` 200 · com `/~offline` · com `figuras/` · com o mesmo CSS do HTML de
+`/login` · `/manifest.webmanifest` 200 · com "Treino do Terraço" ·
+`/~offline` 200 · os 14 scripts `/_next/static` de `/login` 200 · marcadores
+do lote pelo grafo de módulos a partir do chunk da página (o chunk de
+`app/(app)/exercicios/page-*.js` só carrega a lista, que mora em chunks
+compartilhados): o grafo de `/exercicios` contém `"Ver ".concat(`,
+"Ver 1 exerc\xedcio" (chunk `1203`) e "Filtros" (chunk `9963`, módulo que a
+página carrega) · o grafo de `/explorar` contém "que d\xe3o para fazer
+com\xa0ele" (chunk `3014`, com o espaço inseguível). Foram seis execuções
+(01:20, 01:23, 01:25, 01:26, 01:27 e 01:28 UTC, ≥ 40 s entre elas) e as 16
+checagens de base passaram em todas. As falhas foram do meu script, não de
+produção: na de 01:20 a checagem de marcador procurava só no chunk da página;
+nas de 01:25 e 01:26 um escape errado (`\\xe3`) no marcador de `/explorar`.
+Com o script corrigido, a fumaça completa deu 18 de 18 às 01:23, 01:27 e
+01:28. Sonda a 360×740 (Chromium):
+`/login` e `/~offline` sem erro de console e sem vazamento horizontal
+(scrollWidth 360 = clientWidth). Capturas: 06/07/08 (claro e escuro) de
+`capturas-54b6853` viraram a base visual (`base-ef3ad97`, `indice.json` com
+head `1b37092`). Nenhuma migração de banco. **Rollback: não.**
