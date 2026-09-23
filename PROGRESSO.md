@@ -10156,9 +10156,23 @@ testes) · `build` ("Compiled successfully in 21.4s") · `build:e2e`
 falharam** (18,5 min; eram 477 + 5 em `0d54e5f`: +17 do lote; os 5 pulados
 são os da varredura, que roda à parte) · `varredura` **5 de 5** (4,3 min).
 Depois da cadeia entrou o e2e de contraste (2 testes, verdes sozinhos em
-`r14/l14/parcial-contraste`, contra o mesmo build); a cadeia roda de novo,
-inteira, no commit deste registro, e o log dele fica em
-`r14/l14/logs/<hash>.log`.
+`r14/l14/parcial-contraste`, contra o mesmo build). A cadeia inteira rodou
+de novo em `5258988` (`r14/l14/logs/5258988.log`, 10:23:22–10:48:19, **ok**:
+1.523 unitários, e2e **496 + 5 pulados**, varredura 5 de 5) — o HEAD que as
+auditorias leram.
+
+**Depois da correção da auditoria**, cadeia inteira em `d85d0fa` (todo o
+código, os testes e este texto da correção; `r14/l14/logs/d85d0fa.log`, das
+11:20:59 às 11:46:05 UTC, **status ok**): `lint` limpo · `tsc --noEmit`
+limpo · `npm test` **67 arquivos, 1.538 testes, todos verdes** (+15 em
+`lib/ficha.test.ts`) · `build` ("Compiled successfully in 17.5s") ·
+`build:e2e` ("Compiled successfully in 17.7s") · `e2e` **504 passaram, 5
+pulados, 0 falharam** (18,9 min; +8 do e2e do L14: Relatório → Voltar, 5
+fichas da auditoria, elástico, barra W pesada) · `varredura` **5 de 5**
+(4,3 min). Antes dela, a parcial `r14/l14/parcial-corr` (build:e2e + grep
+"22.14" em `8196ede`): 27 de 27. O commit deste registro só acrescenta estes
+números e a tabela abaixo ao PROGRESSO; a cadeia roda de novo, inteira, nele
+(`r14/l14/logs/<hash>.log`).
 
 #### Capturas
 
@@ -10178,6 +10192,17 @@ escuro, 24 claro.
 | 04-treino-lista | 0,00 % | 0,00 % | nada: a folha "Substituir hoje" não está aberta na captura |
 | 08-catalogo | 0,00 % | 0,00 % | nada: os rótulos novos estão na folha de filtros, fechada na captura |
 | 17-corpo-fotos | 0,00 % | 0,00 % | nada: o cartão "Apagar esta foto?" não está aberto na captura |
+
+**Capturas depois da correção**: `capturas.sh` em `d85d0fa`, depois da
+cadeia verde, contra `base-ef3ad97` com as mesmas seis telas
+(`r14/l14/capturas-d85d0fa.md`): 60 PNGs, **"Nenhuma tela mudou fora do
+esperado"**, os mesmos Δ da tabela acima (09 26,94/31,64 %, 10
+41,03/42,15 %, 24 2,70/2,64 %; 04, 08 e 17 0,00 %; 48 fora da lista
+0,00 %), e os PNGs de 09, 10 e 24 são byte a byte iguais aos de `5258988`
+(`cmp`): a correção mexe no fim da ficha ("Carga inicial" e "Onde você
+está"), fora do quadro capturado, e o supino da captura tem carga no JSON e
+nenhuma barra pesada. Diff aberto: 09 claro (o "Voltar" desloca o topo, as
+abas novas, "Aparece em:").
 
 Fora das capturas, medido ao vivo pelos e2e: a folha da ficha no player
 (`/treinar`), o "Substituir hoje", os filtros abertos, o cartão de apagar a
