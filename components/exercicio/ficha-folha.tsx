@@ -292,21 +292,12 @@ function AbaVideo({
 
   return (
     <div className="flex flex-col gap-2">
-      <div ref={video}>
-        {tipo === "foto" ? (
-          <FotosExercicio exercicio={exercicio} />
-        ) : (
-          <MediaGrande
-            exercicioId={exercicioId}
-            temVideo={temVideo}
-            tipo={tipo}
-            semFoto={comoPagina}
-            proporcional
-            className={comoPagina ? "h-52" : "h-44"}
-          />
-        )}
-      </div>
-
+      {/*
+        SPEC §22.13 item 1 (correção da auditoria): o segmento fica ACIMA da
+        mídia. Com a caixa na proporção da ilustração, a mídia muda de altura
+        ao trocar de vista (de 130 a 448 px), e o segmento, embaixo dela,
+        saltava até 369 px sob o dedo; em cima, ele não sai do lugar.
+      */}
       {opcoes.length > 1 ? (
         <div
           role="group"
@@ -340,6 +331,20 @@ function AbaVideo({
           ))}
         </div>
       ) : null}
+      <div ref={video}>
+        {tipo === "foto" ? (
+          <FotosExercicio exercicio={exercicio} />
+        ) : (
+          <MediaGrande
+            exercicioId={exercicioId}
+            temVideo={temVideo}
+            tipo={tipo}
+            semFoto={comoPagina}
+            proporcional
+            className={comoPagina ? "h-52" : "h-44"}
+          />
+        )}
+      </div>
 
       {tipo === "video" ? (
         <Button
