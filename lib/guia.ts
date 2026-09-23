@@ -682,7 +682,7 @@ const MAIS: SecaoDoGuia = {
     {
       id: "lembretes",
       nome: LINHA_LEMBRETES.titulo,
-      oQueFaz: `${LINHA_LEMBRETES.descricao} O botão “Enviar um lembrete de teste” confere se o aviso chega.`,
+      oQueFaz: `${LINHA_LEMBRETES.descricao} Em “Horários”, ligue o lembrete do treino e o da corrida e escolha a hora; “Adicionar ao meu calendário” põe os dias de treino no calendário do celular (funciona mesmo sem notificação). O botão “Enviar um lembrete de teste” confere se o aviso chega.`,
       caminho: ["Mais", LINHA_LEMBRETES.titulo],
       href: LINHA_LEMBRETES.href,
     },
