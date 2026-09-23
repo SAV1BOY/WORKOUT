@@ -242,6 +242,8 @@ Design: sóbrio, alto contraste, tipografia grande nos números (é lido a um br
 
 Vários usuários, social, IA de sugestão de treino, nutrição, integração com relógio/GPS, notificações push. Não implementar nem deixar preparado — manter o app pequeno.
 
+> Revogado em parte: "vários usuários" pela §21 (contas com cota) e "notificações push" pela §23 (lembretes no celular, decisão do dono de 23/09/2026). O resto continua fora.
+
 ---
 
 ## 12. Ordem sugerida de construção (marcos)
@@ -2877,3 +2879,185 @@ não muda (§22.0.1 item 7). O aceite de cada item é verificável no Vitest
     com e sem foco, o pixel 3 px por fora da borda (o anel) muda com
     contraste ≥ 3:1 contra o fundo que estava ali, e o pixel 1 px por fora
     (o vão) não muda.
+
+---
+
+## 23. Lembretes no celular — decisão de 23/09/2026 (adendo)
+
+O pedido do dono (23/09): o app passa a ter **lembretes no celular por
+notificação push**, no horário que o usuário escolhe. É feature nova, fora da
+§11 por decisão explícita do dono (a §11 foi anotada). Entra em duas partes:
+
+- **Lembretes I (lote 34, esta seção 23.1–23.7):** o aparelho se inscreve, o
+  service worker mostra a notificação e abre o app no lugar certo, e um botão
+  manda **um lembrete de teste** para os aparelhos da conta.
+- **Lembretes II (lote 35, ainda não feito):** os horários que o usuário edita,
+  o disparo automático no horário e a relação com o calendário (§16/§17). Nada
+  disso existe no código deste lote: a tela não mostra horário nenhum. A tabela
+  (23.2) e a rota de envio (23.5) já nascem prontas para ele.
+
+**Problema medido** em `main` (27eda74): não há `push` nem `notificationclick`
+em `app/sw.ts`, nenhuma tabela de inscrição em `supabase/schema.sql`, nenhuma
+rota `/api/*` e nenhuma linha "Lembretes" em Mais — o app não tem como avisar
+ninguém fora da tela aberta.
+
+### 23.1 Regras que não mudam
+
+- **Stack fechada.** Web Push pelo service worker do Serwist que já existe
+  (`app/sw.ts`), Supabase com RLS e um route handler do Next.js (runtime
+  `nodejs`) na Vercel. A cifragem do corpo (RFC 8291, `aes128gcm`) e a
+  assinatura VAPID (RFC 8292, ES256) moram em `lib/web-push.ts`, com
+  `node:crypto` e nada mais — ver 23.5 sobre a dependência `web-push`.
+- **Segurança.** Nunca a service role — nem no cliente, nem no servidor: a
+  rota fala com o banco **com a sessão de quem pediu** (cookie), e a RLS só
+  deixa ela ler as inscrições dessa pessoa. A chave privada VAPID só existe em
+  variável de ambiente do servidor (`VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`); a
+  pública é `NEXT_PUBLIC_VAPID_PUBLIC_KEY`. Nenhum desses valores fica no
+  repositório (`.env.local.example` só documenta os nomes).
+- **Sem as variáveis, nada quebra.** Faltando qualquer uma das três (ou a
+  pública não sendo a par da privada), a tela diz **"Lembretes ainda não
+  configurados neste servidor."**, sem botão de ativar, e a rota de teste
+  responde 503 com o mesmo texto.
+- **Sem a tabela, nada quebra.** Se a migração ainda não foi aplicada no
+  projeto (o PostgREST responde `PGRST205`/`42P01`), a tela diz "Os lembretes
+  ainda não estão disponíveis neste servidor (falta atualizar o banco)." e a
+  rota de teste responde 503.
+- pt-BR, 360 px, alvos ≥ 44 px, dois temas, sem rolagem lateral (§22.0.1).
+- Sem gamificação: a notificação é texto simples, sem sequência nem contagem.
+
+### 23.2 O banco: `public.lembretes_inscricoes` (expand-only)
+
+Uma linha por **aparelho inscrito**: `id uuid`, `user_id` (→ `auth.users`,
+`on delete cascade`), `endpoint text unique`, `p256dh text`, `auth text`,
+`aparelho text` (nome curto do navegador e do sistema, para a lista),
+`criado_em`, `ultimo_envio_em` e `falhas int default 0` (as duas últimas são do
+lote 35 e ficam nulas/zero aqui). Índice por `user_id`.
+
+RLS com três policies, todas por `user_id = auth.uid()` e só para
+`authenticated`: **ler**, **inserir** e **apagar** as suas. Não há policy de
+`update` (este lote não altera linha) e o `anon` não tem permissão nenhuma na
+tabela. O mesmo SQL está em `supabase/schema.sql` e em
+`supabase/migracoes/2026-09-23-lembretes-inscricoes.sql`, idempotente
+(`if not exists`, `drop policy if exists` antes de cada `create policy`) e sem
+`drop table`/`drop column`/`rename`. O mock (`scripts/mock-supabase.ts`)
+conhece a tabela, a unicidade do `endpoint` e a RLS por dono.
+
+**Um aparelho, uma conta.** O `endpoint` é único na tabela inteira. Se o
+aparelho já estava inscrito por **outra** conta (celular compartilhado), a
+inserção esbarra na unicidade; o app então cancela a inscrição do navegador e
+pede uma nova (endpoint novo) e grava essa. A linha antiga, da outra conta,
+morre sozinha no próximo envio (410, 23.5).
+
+### 23.3 O service worker
+
+`app/sw.ts` ganha dois ouvintes, com a decisão em `lib/lembretes.ts` (pura,
+testada no Vitest):
+
+- **`push`**: o corpo é JSON `{titulo, corpo, url, tag}`.
+  `opcoesDaNotificacao()` monta o `showNotification`: título (ou "Treino do
+  Terraço" se vier vazio), `body`, ícone e badge do manifest
+  (`/icons/icon-192.png`), `tag` (a mesma tag substitui a notificação anterior
+  em vez de empilhar), `lang: "pt-BR"` e `data.url`. A `url` só vale se for um
+  caminho do próprio app (começa com `/` e não com `//`); qualquer outra coisa
+  vira `/`. Corpo que não é JSON vira o texto da notificação.
+- **`notificationclick`**: fecha a notificação, procura uma aba do app já
+  aberta e a leva para `data.url` (e tenta dar foco); sem aba aberta, abre
+  uma nova em `data.url`.
+
+### 23.4 A tela: Mais → Lembretes (`/mais/lembretes`)
+
+Mais ganha a linha **"Lembretes"** ("Receber avisos no celular; ative em cada
+aparelho."), com o mesmo título e descrição que o guia de uso usa (fonte única:
+`LINHA_LEMBRETES` em `lib/lembretes.ts`). A tela mostra o **estado deste
+aparelho** (`estadoDoAparelho()`, pura), um de:
+
+| estado | quando | o que a tela oferece |
+|---|---|---|
+| Lembretes ainda não configurados neste servidor | faltam as variáveis VAPID | nada a fazer |
+| Este navegador não recebe notificações | sem `serviceWorker`, `PushManager` ou `Notification` | instruções |
+| Bloqueado pelo navegador | `Notification.permission === "denied"` | instruções |
+| Ativado neste aparelho | há inscrição do navegador **e** a linha dela na tabela | "Desativar neste aparelho" |
+| Desativado neste aparelho | o resto | "Ativar lembretes neste aparelho" |
+
+- **Ativar**: pede a permissão (`Notification.requestPermission`), inscreve
+  (`pushManager.subscribe` com `userVisibleOnly` e `applicationServerKey` = a
+  chave pública) e grava a linha. Permissão recusada ou inscrição que falha
+  mostram as instruções (23.6) em vez de um erro técnico.
+- **Desativar**: apaga a linha e cancela a inscrição do navegador.
+- **Aparelhos desta conta**: a lista das inscrições (nome do aparelho e
+  "desde dd/mm"), com **"Remover"** em cada uma; remover a deste aparelho
+  também cancela a inscrição do navegador.
+- **"Enviar um lembrete de teste"** (quando há ao menos um aparelho): chama a
+  rota de 23.5 e diz o resultado numa linha `role="status"`: "Enviado para 1
+  aparelho." / "Enviado para 2 aparelhos." / o erro em pt-BR.
+
+### 23.5 A rota de teste: `POST /api/lembretes/teste`
+
+Runtime `nodejs`. Sem sessão, **401** (o middleware responde JSON às rotas
+`/api/*` em vez de mandar para `/login`). Sem as variáveis VAPID, **503** com
+"Lembretes ainda não configurados neste servidor.". Com sessão, lê as
+inscrições **da pessoa** (cliente do servidor com o cookie; a RLS faz o resto),
+e para cada uma monta o pedido (`montarPedidoPush()`): corpo cifrado
+`aes128gcm` com a `p256dh` e o `auth` do aparelho, `Authorization: vapid
+t=<JWT ES256 com aud = origem do endpoint, exp ≤ 12 h, sub = VAPID_SUBJECT>,
+k=<chave pública>`, `TTL`, `Urgency` e `Topic`. O `endpoint` só é chamado se
+for de um serviço de push conhecido (FCM, Mozilla, Apple, Windows — em
+`https`); a origem do servidor de push falso dos testes só entra pela variável
+`LEMBRETES_PUSH_DE_TESTE`, que existe só no `e2e/playwright.config.ts`.
+Resposta **404/410** do serviço = inscrição expirada: a linha é apagada.
+Devolve o resultado por aparelho e o texto da tela.
+
+**A dependência `web-push`** estava permitida pelo contrato, mas não entrou:
+o `node_modules` deste repositório é compartilhado entre as faixas de trabalho
+e o `npm install` reescreveria dezenas de pacotes dele. As duas RFCs cabem em
+`lib/web-push.ts` com `node:crypto`, e o teste confere a cifragem **byte a byte
+contra o exemplo do Apêndice A da RFC 8291** — mesma chave, mesmo salt, mesmo
+resultado.
+
+### 23.6 Instruções quando o navegador bloqueia ou não suporta
+
+`instrucoesDoAparelho()` (pura) escolhe o que explicar, nesta ordem:
+
+1. **Brave** (`navigator.brave` existe) e a inscrição falhou ou está
+   bloqueada: "No Brave, os avisos só chegam com os serviços do Google
+   ligados" — Configurações → Privacidade e segurança → ligar **"Usar os
+   serviços do Google para mensagens push"**, fechar e abrir o Brave e tocar
+   em Ativar de novo.
+2. **Permissão negada**: como liberar nas configurações do site (cadeado ao
+   lado do endereço → Permissões → Notificações → Permitir) ou, com o app
+   instalado, nas configurações do Android (Apps → Treino do Terraço →
+   Notificações).
+3. **iPhone fora da tela inicial** (iOS sem `display-mode: standalone`):
+   instalar o app — Compartilhar → **Adicionar à Tela de Início** — e ativar
+   por lá (iOS 16.4 ou mais novo).
+4. **Navegador sem suporte**, fora dos casos acima: usar o Chrome ou o Brave
+   no Android, ou o app instalado no iPhone.
+
+### 23.7 Critérios de aceite (lote 34)
+
+1. **Banco**: `lib/migracao-lembretes.test.ts` — a migração é um pedaço do
+   `schema.sql`, idempotente, expand-only (sem `drop table`, `drop column`,
+   `rename`, `alter … type`), com RLS ligada, três policies por `auth.uid()`
+   (select/insert/delete), nenhuma de update, nenhuma com `true`, e o `anon`
+   sem permissão; e2e — no mock, a conta B não vê nem apaga a inscrição da
+   conta A.
+2. **Service worker**: Vitest de `opcoesDaNotificacao()` (título, corpo,
+   ícone, tag, `lang`, url interna/externa, corpo que não é JSON); e2e — com o
+   worker real, um `push` simulado vira notificação com o título e o corpo do
+   payload (`registration.getNotifications()`), e o `notificationclick` leva a
+   aba aberta para a `url`.
+3. **Tela**: e2e a 360×740 nos dois temas, com a permissão concedida pelo
+   contexto do Playwright — ativar grava a linha (com a chave pública certa
+   no `subscribe`), desativar apaga; estados "bloqueado" e "não suportado";
+   alvos ≥ 44 px; sem rolagem lateral; a linha "Lembretes" em Mais.
+4. **Rota de teste**: Vitest da cifragem contra a RFC 8291 (Apêndice A), do
+   JWT VAPID (assinatura confere com a chave pública) e das regras; e2e — o
+   servidor de push falso no mock recebe o pedido com `Authorization: vapid
+   t=…, k=…` válido e corpo cifrado que decifra no payload; a tela mostra
+   "Enviado para 1 aparelho."; a inscrição que responde 410 some da tabela;
+   sem sessão, 401.
+5. **Instruções**: Vitest de `instrucoesDoAparelho()` para os quatro casos;
+   e2e com Brave simulado (`navigator.brave`) e com a permissão negada, textos
+   em pt-BR.
+6. **Guia**: Mais → Como usar o app tem a linha "Lembretes" com o mesmo texto
+   da tela Mais, apontando para `/mais/lembretes`.
