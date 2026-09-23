@@ -2413,7 +2413,26 @@ de cada item é verificável no Vitest ou no e2e (`e2e/ultraloop-l13.spec.ts`).
    imagem do quadro 2 começa depois do fim do pedido do quadro 1; com
    `reducedMotion: reduce` não sai pedido de imagem do quadro 2 até o toque em
    "Voltar a alternar"; parada e com o quadro 2 atrasado 2,5 s, depois do
-   toque a posição fica na 1 enquanto ele não chegou, e passa à 2 depois. Fica fora deste aceite o aquecimento de mídia da fase
+   toque a posição fica na 1 enquanto ele não chegou, e passa à 2 depois.
+   **Correção da auditoria 3 — troca de exercício no lugar.** A ficha aberta
+   no player troca de exercício sem fechar (as setas ‹ › e o "Substituir",
+   que troca também o do player); o estado da ilustração (posição, "quadro 1
+   pronto", "quadro 2 pedido", "quadro 2 chegou") ficava do exercício
+   anterior, e o quadro 2 novo era pedido junto com o 1, a troca começava na
+   hora e, herdando a posição 2, a caixa mostrava o quadro 2 que ainda não
+   tinha chegado; com um exercício de um quadro só, a única imagem ficava
+   invisível. Agora a ilustração de cada exercício (a lista de quadros) nasce
+   de novo: posição 1, o quadro 2 esperando o 1 e a troca esperando o 2, e a
+   pausa volta a seguir a preferência do sistema. E se o quadro 2 **não
+   chega** (erro, ou sem rede e fora do cache), a ilustração vira a imagem
+   parada de um quadro: sem o botão "Parar a animação" de uma animação que
+   nunca começa. Aceite: e2e — na ficha aberta no player, com a figura do
+   agachamento livre na posição 2, tocar em › (supino, quadro 2 atrasado
+   2,5 s): o pedido do quadro 2 do supino começa depois do fim do pedido do
+   quadro 1, e a posição fica na 1 enquanto o quadro 2 não chegou; da posição
+   2 da rosca direta, › leva à elevação de pernas na barra fixa (um quadro)
+   com a imagem visível (opacidade 1); com o pedido do quadro 2 abortado, a
+   ilustração fica "parada" e sem o botão de pausa. Fica fora deste aceite o aquecimento de mídia da fase
    (§8, `lib/precache-do-programa.ts`): ele busca por `fetch`, uma vez, depois
    que o service worker assume, para o treino funcionar sem rede.
 5. **A figura não é o botão de pausa** (ux-heuristicas-21). A ilustração
