@@ -42,16 +42,22 @@ export function treinosDoExercicio(id: string): TreinoId[] {
   return saida;
 }
 
+/*
+ * SPEC §22.14 itens 8 e 9: os rótulos dos filtros têm a grafia do conteúdo
+ * (`equipamento_texto` e `equipamentos.json`) — "Cross over", "Super Band",
+ * "Peso corporal" —, e a faixa elástica tem um nome só nos dois seletores:
+ * o implemento `band` É a Super Band do equipamento.
+ */
 export const NOME_IMPLEMENTO: Record<Implemento, string> = {
   barra_macica: "Barra maciça",
   halteres: "Halteres",
   barra_w: "Barra W",
   polia: "Polia",
   barra_fixa: "Barra fixa",
-  peso_corporal: "Peso do corpo",
+  peso_corporal: "Peso corporal",
   anilha: "Anilha",
   corda: "Corda",
-  band: "Elástico",
+  band: "Super Band",
 };
 
 export const NOME_EQUIPAMENTO: Record<EquipamentoTag, string> = {
@@ -62,11 +68,11 @@ export const NOME_EQUIPAMENTO: Record<EquipamentoTag, string> = {
   halteres: "Halteres",
   cavalete: "Cavalete",
   "barra-fixa": "Barra fixa",
-  "cross-over": "Cross-over",
+  "cross-over": "Cross over",
   puxadores: "Puxadores",
   tatame: "Tatame",
   corda: "Corda",
-  "super-band": "Super band",
+  "super-band": "Super Band",
 };
 
 export interface FiltrosCatalogo {

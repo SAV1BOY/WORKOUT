@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   FILTROS_VAZIOS,
+  NOME_EQUIPAMENTO,
+  NOME_IMPLEMENTO,
   chipsDosFiltros,
   filtrarExercicios,
   quantosFiltrosLigados,
@@ -14,7 +16,7 @@ import {
   temFiltro,
   treinosDoExercicio,
 } from "@/lib/catalogo";
-import { exercicios, programa } from "@/lib/dados";
+import { equipamentos, exercicios, programa } from "@/lib/dados";
 
 describe("semAcento", () => {
   it("tira acento e caixa", () => {
@@ -179,5 +181,63 @@ describe("a folha de filtros (SPEC §22.12 item 1)", () => {
     expect(rotuloDoVerResultados(12)).toBe("Ver 12 exercícios");
     const n = filtrarExercicios(exercicios, peitoHalteres, idsDoPrograma()).length;
     expect(rotuloDoVerResultados(n)).toBe(n === 1 ? "Ver 1 exercício" : n === 0 ? "Nenhum exercício" : `Ver ${n} exercícios`);
+  });
+});
+
+describe("uma grafia por equipamento (SPEC §22.14 itens 8 e 9)", () => {
+  const minusculo = (t: string) => t.toLowerCase();
+
+  it("'Cross over' e 'Super Band' estão no texto de todo exercício com a tag", () => {
+    for (const tag of ["cross-over", "super-band"] as const) {
+      const comATag = exercicios.filter((e) => e.equipamento.includes(tag));
+      expect(comATag.length).toBeGreaterThan(0);
+      for (const e of comATag) {
+        expect(e.equipamento_texto, e.id).toContain(NOME_EQUIPAMENTO[tag]);
+      }
+    }
+    expect(NOME_EQUIPAMENTO["cross-over"]).toBe("Cross over");
+    expect(NOME_EQUIPAMENTO["super-band"]).toBe("Super Band");
+  });
+
+  it("o nome do equipamento é o de equipamentos.json (sem marca nem medida)", () => {
+    for (const tag of ["cross-over", "super-band"] as const) {
+      const item = equipamentos.itens.find((i) => i.id === tag);
+      expect(item?.nome, tag).toContain(NOME_EQUIPAMENTO[tag]);
+    }
+  });
+
+  it("peso corporal: todo texto que nomeia o implemento usa 'peso corporal'", () => {
+    const doImplemento = exercicios.filter((e) => e.implemento === "peso_corporal");
+    expect(doImplemento).toHaveLength(13);
+    const nomeia = doImplemento.filter((e) => /peso (corporal|do corpo)/i.test(e.equipamento_texto));
+    // 11 nomeiam; a prancha ("Tatame") e o abdominal declinado ("Banco") não
+    expect(nomeia).toHaveLength(11);
+    expect(
+      doImplemento.filter((e) => !nomeia.includes(e)).map((e) => e.id).sort(),
+    ).toEqual(["abdominal-no-banco-declinado", "prancha"]);
+    for (const e of nomeia) {
+      expect(minusculo(e.equipamento_texto), e.id).toContain(
+        minusculo(NOME_IMPLEMENTO.peso_corporal),
+      );
+    }
+    expect(exercicios.some((e) => /peso do corpo/i.test(e.equipamento_texto))).toBe(false);
+  });
+
+  it("a faixa elástica tem um nome só nos dois seletores", () => {
+    expect(NOME_IMPLEMENTO.band).toBe(NOME_EQUIPAMENTO["super-band"]);
+    const daFaixa = exercicios.filter(
+      (e) => e.implemento === "band" || e.equipamento.includes("super-band"),
+    );
+    // 2 de implemento band + 3 de barra fixa assistida/pronada/supinada
+    expect(daFaixa).toHaveLength(5);
+    for (const e of daFaixa) {
+      expect(minusculo(e.equipamento_texto), e.id).toContain(minusculo(NOME_IMPLEMENTO.band));
+    }
+    // todo exercício de implemento band também tem a tag super-band
+    for (const e of exercicios.filter((x) => x.implemento === "band")) {
+      expect(e.equipamento, e.id).toContain("super-band");
+    }
+    const rotulos = [...Object.values(NOME_IMPLEMENTO), ...Object.values(NOME_EQUIPAMENTO)];
+    expect(rotulos).not.toContain("Elástico");
   });
 });
