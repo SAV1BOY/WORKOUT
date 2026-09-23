@@ -56,12 +56,20 @@ export function FotoAmpliada({
   const [confirmando, setConfirmando] = useState(false);
 
   useEffect(() => {
+    /*
+     * SPEC §22.14 item 6 (rodada 16): ao fechar — Esc, X ou toque fora — o
+     * foco volta a quem abriu a foto, como nas folhas; antes caía no <body>.
+     * Se quem abriu sumiu (a foto apagada no Corpo), o foco fica onde o
+     * navegador puser.
+     */
+    const gatilho = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     fechar.current?.focus();
     // sem isto a tela rola atrás da foto ampliada
     const antes = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
       document.body.style.overflow = antes;
+      if (gatilho?.isConnected) gatilho.focus({ preventScroll: true });
     };
   }, []);
 
