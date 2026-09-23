@@ -11076,8 +11076,12 @@ tabela de títulos do próprio teste não tinha a rota. Corrigido em `d1cf096`
 /mais/lembretes" abre a tela e acha o `<h1>`). Com o anel interno
 (`bec0df8`), build:e2e local e os e2e afetados (`r18/l34/local/com-correcao.log`:
 o spec do lote, o guia e Mais) — **27 de 27**. A cadeia inteira roda de novo
-no commit deste registro (`r18/l34/logs/<hash do HEAD>.log`), que só
-acrescenta este texto ao PROGRESSO.
+no HEAD final (`r18/l34/logs/<hash do HEAD>.log`), que depois de `bec0df8`
+só acrescenta texto: este registro e o alinhamento da §23 ao código (a
+tabela da §23.4 cita a permissão concedida no "ativado"; a §23.5, o 409 sem
+inscrição e o endpoint recusado; a §23.7, o anel interno). Uma cadeia
+começada em `857b888` foi interrompida por mim no `npm test` para entrar o
+ajuste da SPEC antes do HEAD final (`857b888.log` diz isso no fim).
 
 #### Capturas
 
