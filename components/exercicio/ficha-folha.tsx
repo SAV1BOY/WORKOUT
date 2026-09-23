@@ -322,14 +322,17 @@ function AbaVideo({
               /*
                 SPEC §22.13 item 6: o ativo era `bg-background` sobre o
                 trilho `bg-muted` (1,08:1 no claro) — não se via qual estava
-                escolhido. Invertido, ele passa de 3:1 contra o trilho nos
-                dois temas, e o texto dele de 4,5:1.
+                escolhido. Ele ganha contorno de 2 px na cor do texto, que
+                passa de 3:1 contra o trilho nos dois temas. O fundo não
+                inverte: `bg-foreground` virava uma placa de 91 % de luz no
+                escuro (§22.3 item 4). O inativo tem o mesmo contorno,
+                transparente, para o texto não pular ao trocar.
               */
               className={cn(
-                "alvo h-9 rounded-md px-3 text-xs font-medium",
+                "alvo h-9 rounded-md border-2 px-3 text-xs font-medium",
                 opcao === tipo
-                  ? "bg-foreground text-background shadow-sm"
-                  : "text-muted-foreground",
+                  ? "bg-background text-foreground border-foreground shadow-sm"
+                  : "text-muted-foreground border-transparent",
               )}
             >
               {ROTULO_DA_MIDIA[opcao]}
