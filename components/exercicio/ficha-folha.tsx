@@ -292,20 +292,12 @@ function AbaVideo({
 
   return (
     <div className="flex flex-col gap-2">
-      <div ref={video}>
-        {tipo === "foto" ? (
-          <FotosExercicio exercicio={exercicio} />
-        ) : (
-          <MediaGrande
-            exercicioId={exercicioId}
-            temVideo={temVideo}
-            tipo={tipo}
-            semFoto={comoPagina}
-            className={comoPagina ? "h-52" : "h-44"}
-          />
-        )}
-      </div>
-
+      {/*
+        SPEC §22.13 item 1 (correção da auditoria): o segmento fica ACIMA da
+        mídia. Com a caixa na proporção da ilustração, a mídia muda de altura
+        ao trocar de vista (de 130 a 448 px), e o segmento, embaixo dela,
+        saltava até 369 px sob o dedo; em cima, ele não sai do lugar.
+      */}
       {opcoes.length > 1 ? (
         <div
           role="group"
@@ -318,11 +310,20 @@ function AbaVideo({
               type="button"
               aria-pressed={opcao === tipo}
               onClick={() => setEscolhido(opcao)}
+              /*
+                SPEC §22.13 item 6: o ativo era `bg-background` sobre o
+                trilho `bg-muted` (1,08:1 no claro) — não se via qual estava
+                escolhido. Ele ganha contorno de 2 px na cor do texto, que
+                passa de 3:1 contra o trilho nos dois temas. O fundo não
+                inverte: `bg-foreground` virava uma placa de 91 % de luz no
+                escuro (§22.3 item 4). O inativo tem o mesmo contorno,
+                transparente, para o texto não pular ao trocar.
+              */
               className={cn(
-                "alvo h-9 rounded-md px-3 text-xs font-medium",
+                "alvo h-9 rounded-md border-2 px-3 text-xs font-medium",
                 opcao === tipo
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground",
+                  ? "bg-background text-foreground border-foreground shadow-sm"
+                  : "text-muted-foreground border-transparent",
               )}
             >
               {ROTULO_DA_MIDIA[opcao]}
@@ -330,6 +331,20 @@ function AbaVideo({
           ))}
         </div>
       ) : null}
+      <div ref={video}>
+        {tipo === "foto" ? (
+          <FotosExercicio exercicio={exercicio} />
+        ) : (
+          <MediaGrande
+            exercicioId={exercicioId}
+            temVideo={temVideo}
+            tipo={tipo}
+            semFoto={comoPagina}
+            proporcional
+            className={comoPagina ? "h-52" : "h-44"}
+          />
+        )}
+      </div>
 
       {tipo === "video" ? (
         <Button
@@ -358,6 +373,8 @@ function AbaMusculos({ exercicioId }: { exercicioId: string }) {
     <div className="flex flex-col gap-3">
       {ilustracao ? (
         <IlustracaoAlternada
+          // a folha troca de exercício no lugar: a ilustração nova nasce de novo (§22.13 item 4)
+          key={ilustracao.urls.join("|")}
           urls={ilustracao.urls}
           alt={`Execução do ${exercicio.nome}`}
           className="h-32"

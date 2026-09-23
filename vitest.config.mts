@@ -7,6 +7,12 @@ export default defineConfig({
       "@": fileURLToPath(new URL(".", import.meta.url)),
     },
   },
+  /*
+   * O tsconfig tem `"jsx": "preserve"` (quem compila o JSX é o Next). Os testes
+   * que desenham um componente no servidor (`renderToStaticMarkup`) precisam do
+   * JSX transformado: runtime automático do React, só aqui.
+   */
+  oxc: { jsx: { runtime: "automatic" } },
   test: {
     environment: "node",
     include: ["lib/**/*.test.ts", "scripts/**/*.test.ts"],
