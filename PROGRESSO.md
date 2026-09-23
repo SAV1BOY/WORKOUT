@@ -9241,3 +9241,204 @@ Com o script corrigido, a fumaça completa deu 18 de 18 às 01:23, 01:27 e
 (scrollWidth 360 = clientWidth). Capturas: 06/07/08 (claro e escuro) de
 `capturas-54b6853` viraram a base visual (`base-ef3ad97`, `indice.json` com
 head `1b37092`). Nenhuma migração de banco. **Rollback: não.**
+
+### Rodada 12 — Lote 13 — Ficha: mídia e interação; coleções do Explorar
+
+Branch `polimento/l13-ficha-midia`, a partir de `main` `763598a` (com o L12
+publicado). SPEC §22.13. Dez itens: seis da ficha do exercício e quatro das
+coleções do Explorar, que entram por **exceção de área** decidida pelo
+orquestrador — Explorar e as fichas são a mesma prioridade (2) do dono
+(§22.0), e os quatro itens de coleções (`tela-explorar-fichas-08`, `-13`,
+`-11` e `visual-11`) não fecham lote sozinhos (4 < 6). O aceite de cada item
+está no próprio item da SPEC.
+
+#### O que mudou
+
+1. **A caixa da ilustração tem a proporção da ilustração** (imagens-01;
+   `lib/midia.ts`, `components/exercicio/media-grande.tsx`,
+   `components/exercicio/ilustracao-alternada.tsx`,
+   `components/exercicio/ficha-folha.tsx`). **Era:** caixa de altura fixa
+   (`h-52` na página, `h-44` na folha) e largura inteira; o goblet (0,42:1)
+   desenhava 81 px de figura numa caixa de 328, e a conta de antes deixa 78+
+   das 145 medidas abaixo de 60 % da largura. **É:** na aba Vídeo da ficha a
+   área da figura usa o par largura/altura de `data/ilustracoes.json` como
+   `aspect-ratio`, com teto de 432 px de altura de figura
+   (`caixaDaIlustracao()`/`figuraNaCaixa()`, puras); a figura larga ocupa a
+   coluna, a alta estreita a caixa e fica centrada. Player e capa do bloco
+   na lista do treino continuam com faixa de altura fixa (espaço vertical
+   fixo, §13.8.1).
+2. **Fotos na proporção do arquivo, com legenda** (imagens-12;
+   `components/exercicios/fotos-ampliaveis.tsx`,
+   `components/exercicio/midia.tsx`). **Era:** `aspect-square` +
+   `object-cover` cortava as fotos 3:2 (justamente a barra). **É:** a caixa
+   de cada foto tem a proporção do arquivo (`proporcaoDaFoto()`, de
+   `data/medidas-de-foto.json`; 3:2 na falta) e ganha a legenda visível
+   "Início" / "Fim" — na página e na opção Fotos da folha.
+3. **Só os links do crédito sublinhados** (imagens-13;
+   `media-grande.tsx`). **Era:** o crédito inteiro ("Ilustração: Everkinetic
+   (everkinetic.com), CC BY-SA 3.0") era um link sublinhado. **É:**
+   "Ilustração: <autor> · <licença>" — o autor leva a `url_fonte`, a
+   licença à página dela na Creative Commons (`urlDaLicenca()`, derivada do
+   código do JSON); os dois com alvo de 44 px, o resto é texto, em 11 px.
+4. **O segundo quadro espera o primeiro** (performance-13;
+   `ilustracao-alternada.tsx`). **Era:** as duas posições eram `<img
+   loading="lazy">` na mesma caixa visível e baixavam juntas. **É:** a
+   segunda posição só entra no DOM depois que a primeira carregou e a
+   ilustração vai alternar; parada (`prefers-reduced-motion`), só no toque
+   em "Voltar a alternar". O aquecimento de mídia da fase (§8,
+   `lib/precache-do-programa.ts`, por `fetch`, depois que o service worker
+   assume) continua e fica fora do aceite.
+5. **A figura não é o botão de pausa** (ux-heuristicas-21;
+   `ilustracao-alternada.tsx`, `media-grande.tsx`,
+   `components/player/exercicio.tsx`, `components/treinar/bloco.tsx`).
+   **Era:** a ilustração inteira era o `<button>` "Parar em uma posição".
+   **É:** a pausa é um botão redondo de 44×44 no canto de baixo à direita
+   ("Parar a animação" / "Voltar a alternar", ícone Pause/Play); a figura
+   diz a posição ("Execução do …, posição 1 de 2"). No player e na lista do
+   treino, tocar na figura abre a ficha (o "Como fazer", como o "?"); na
+   própria ficha a figura é `role="img"` e o toque não faz nada.
+6. **O chip ativo do segmento se vê** (tela-explorar-fichas-18;
+   `ficha-folha.tsx`). **Era:** `bg-background` sobre o trilho `bg-muted`
+   (1,08:1 no claro). **É:** o ativo tem contorno de 2 px na cor do texto
+   (`border-foreground`); o inativo tem o mesmo contorno transparente. O
+   fundo não foi invertido: `bg-foreground` virava uma placa de 91 % de luz
+   no escuro e reprovava o teste do §22.3 item 4 (visto na sonda).
+7. **Linhas da vitrine com a mesma altura** (tela-explorar-fichas-08;
+   `components/colecoes/linha-colecao.tsx`). **Era:** 72 ou 92 px conforme
+   a coleção tinha subtítulo. **É:** a linha do subtítulo é reservada em
+   toda linha (`h-4`), com ou sem texto; o subtítulo continua na vitrine.
+   Com todas as seções abertas ("Ver todos"), as linhas de cada seção têm a
+   mesma altura nos dois temas (e2e).
+8. **A capa sem foto tem o ícone** (tela-explorar-fichas-13;
+   `components/colecoes/tela-colecao.tsx`, `components/ui/card-capa.tsx`,
+   `linha-colecao.tsx` exporta `ICONE_DO_TIPO`). **Era:** a capa do plano de
+   corrida era um retângulo escuro; o ícone, quando havia, ficava centrado
+   por baixo do véu. **É:** a tela da coleção passa o ícone do tipo (plano =
+   calendário) em 48 px, que o `CardCapa` desenha no alto da capa, fora do
+   véu, em `text-foreground`.
+9. **A coleção de plano mostra as semanas** (tela-explorar-fichas-11;
+   `lib/colecoes.ts`, `tela-colecao.tsx`). **Era:** só o cartão, ~700 px
+   vazios. **É:** "Semanas do plano" com "Semana X de N · K concluídas" e a
+   barra das concluídas (`progressbar`, a mesma leitura do card de
+   desafio) e a lista de `data/cardio.json` — corrida semana a semana, corda
+   e barra fixa por faixa —, cada linha com "feita" / "agora" / "a fazer"
+   (texto e ícone), a atual com `aria-current="step"` e o link "Abrir a
+   sessão desta semana" (o `href` de `ctaDoPlano()`). Regra pura
+   `semanasDoPlano()` + `semanaDoPerfilNoPlano()` (corda pela
+   `semana_corda`).
+10. **Uma marca só na coluna da direita** (visual-11; `linha-colecao.tsx`).
+    **Era:** raios ao lado do título (centro a 18 px do topo) e chevron no
+    meio (36 px). **É:** os raios vão no fluxo da linha da meta, depois de
+    "N exercícios · ~M min" (sem meta, ao fim do subtítulo); a coluna da
+    direita tem só o chevron. O selo "Circuito" passou a abrir a linha do
+    subtítulo: na meta, com os raios, ela quebrava (Cardio 84 px contra 72)
+    e, ao lado do título, empurrava o nome da corda para 2 linhas (108
+    contra 88) — os dois vistos na sonda.
+
+Testes que mudaram por causa do comportamento novo (não afrouxados):
+`e2e/midia.spec.ts` (a pausa é o botão do canto; o crédito são dois links
+com os dois `href` conferidos; o 2º quadro é esperado com `toHaveCount(2)`),
+`e2e/ultraloop-a-r1.spec.ts` (reduced motion: "Voltar a alternar" no botão
+do canto), `e2e/catalogo.spec.ts` e `e2e/player.spec.ts` (o nome da figura
+passa a ter ", posição N de 2").
+
+#### Provas
+
+- **Vitest (+16 casos):** `lib/midia-l13.test.ts` (10 — as 145 medidas do
+  JSON: nenhuma figura abaixo de 60 % da caixa numa coluna de 328 px; a
+  conta da caixa fixa de antes deixava ≥ 78 abaixo, para o teste não ser
+  tautológico; goblet ≥ 180 px; larga ocupa a coluna e alta para no teto; a
+  proporção é o par do arquivo; toda foto de execução (JPEG e WebP) tem
+  proporção de arquivo, não quadrada; 3:2 sem medida; toda licença do JSON
+  vira `creativecommons.org/licenses/by-sa/N.0/`; código que não é CC fica
+  sem link) e `lib/colecoes-l13.test.ts` (6 — `semanasDoPlano('corrida', 3)`
+  com 12 linhas, 2 feitas, a 3ª atual e a descrição igual à do JSON; corda na
+  semana 5 no estágio 5–6; barra fixa com séries e assistência do JSON; uma
+  linha atual só, em todo plano e toda semana de −1 a total+3, faixas de 1
+  ao total; sem perfil, sem estado; a semana do perfil por plano).
+- **e2e (+21 casos, `e2e/ultraloop-l13.spec.ts`)**, a 360×740, contra o
+  mock: goblet ≥ 180 px de figura e figura ≥ 60 % da caixa para goblet,
+  tríceps na corda (0,35:1), prancha (2,7:1) e supino, nos dois temas, e na
+  folha; fotos com |proporção da caixa − do arquivo| ≤ 0,02 e legendas
+  "Início"/"Fim" visíveis, na página e na opção Fotos da folha; crédito com
+  dois links sublinhados de ≥ 44×44, texto de fora sem sublinhado e 11 px,
+  nos dois temas; o pedido de imagem do quadro 2 começa depois do fim do
+  quadro 1, e com reduced motion nenhum pedido do quadro 2 até "Voltar a
+  alternar"; no player o toque no meio da figura abre a ficha e ela segue
+  alternando, o botão do canto (≥ 44×44, no canto de baixo à direita) pausa;
+  na ficha o toque no meio não pausa; o contorno do chip ativo ≥ 3:1 contra o
+  trilho e o texto ≥ 4,5:1, nos dois temas; em cada uma das cinco seções de
+  "Escolhas para você", com "Ver todos" aberto, todas as linhas com a mesma
+  altura (±1 px), nos dois temas; vitrine e busca sem marca no canto de
+  cima, chevron a ≤ 2 px do centro e raios dentro da meta, na mesma linha
+  visual de "exercícios"; `/explorar/plano/corrida` com o ícone ≥ 48 px
+  acima do título e ≥ 3:1 lido na captura (sharp), `progressbar` com
+  `aria-valuenow` 2 de 12, 12 linhas, 2 feitas, a 3ª com `aria-current` e o
+  link `/cardio/corrida?semana=3`, `scrollHeight` > 740 e todo texto da
+  lista ≥ 4,5:1; `/explorar/plano/corda` com `aria-valuenow` 4, 5 estágios e
+  "Semanas 5–6" atual — nos dois temas.
+- **Sondas antes da cadeia** (`r12/l13/sonda/`): 1ª execução do spec novo
+  derrubada pelo mock sem reset (signup 422) → `resetarMock()` no
+  `beforeEach`, como os outros specs do ultraloop (config em série,
+  `workers: 1`); 2ª: 114 de 116 nos specs tocados (L13, r10, midia, r1,
+  catalogo, b-r1, player, treinar, auditoria-m5) — as 2 falhas eram a linha
+  da corda/Cardio mais alta com o selo, corrigida no item 10; 3ª: 76 de 77
+  (L13, r10, b-r1, treino-v2, a-r2) — a falha era o fundo invertido do chip
+  (91 % de luz no escuro), corrigido no item 6; 4ª: 46 de 46 (L13, a-r2,
+  midia).
+
+#### Portões
+
+Cadeia inteira no HEAD de código `32826d5` (`r12/l13/logs/32826d5.log`, das
+02:28:22 às 02:50:29 UTC, **status ok**): `lint` limpo · `tsc --noEmit` limpo ·
+`npm test` **65 arquivos, 1.493 testes, todos verdes** (eram 63 / 1.477 em
+`763598a`; +2 arquivos, +16 testes) · `build` ("Compiled successfully in
+16.4s") · `build:e2e` ("Compiled successfully in 16.3s") · `e2e` **461
+passaram, 5 pulados, 0 falharam** (466, 16,2 min; +21 do lote) ·
+`varredura` **5 de 5** (4,2 min). A cadeia roda de novo, inteira, no commit
+deste registro (só `PROGRESSO.md` muda), e o log dele fica em
+`r12/l13/logs/<hash>.log`.
+
+#### Capturas
+
+`capturas.sh` em `32826d5`, depois da cadeia verde, contra a base real de
+`main` (`base-ef3ad97`, com 06/07/08 já do L12), com as seis telas
+declaradas como esperadas. 60 PNGs; **nenhuma tela mudou fora da lista**
+(as 54 fora dela deram Δ 0,00 %).
+
+| tela | Δ claro | Δ escuro | o que mudou (olhando a captura e o diff) |
+| --- | ---: | ---: | --- |
+| 09-ficha-exercicio | 38,23 % | 36,61 % | supino: a caixa da ilustração (mascarada em magenta pela captura, por ser animada) passou de 328×208 para 328×340 CSS px — a proporção do arquivo, 276:287; o crédito virou "Ilustração: Everkinetic (everkinetic.com) · CC BY-SA 3.0" com só os dois links sublinhados; o chip "Ilustração" ganhou o contorno escuro de 2 px; o resto da página desceu |
+| 07-colecao | 25,89 % | 36,36 % | `/explorar/plano/corrida`: a capa ganhou o ícone de calendário no alto, fora do véu (claro: preto sobre o rosado; escuro: branco sobre o marrom), e ficou mais alta; abaixo do cartão, "Semanas do plano" com "Semana 2 de 12 · 1 concluída", a barra (8 %) e a lista — Semana 1 "feita" com ✓, Semana 2 "agora" com fundo e "Abrir a sessão desta semana", Semana 3 "a fazer" |
+| 10-ficha-folha | 5,00 % | 5,00 % | a tira das duas fotos no pé da tela: caixas 3:2 no lugar do quadrado (a barra aparece inteira) |
+| 06-explorar | 0,40 % | 0,40 % | abaixo do limiar (0,5 %), mas visível no diff: nas linhas de "Treinos do programa" os raios saíram do canto de cima à direita e foram para depois de "6 exercícios · ~44 min"; a altura das linhas não mudou (72 px) |
+| 28-player-exercicio | 0,00 % | 0,00 % | a caixa da ilustração é mascarada pela captura (animação), então o botão de pausa no canto não aparece nela; ele é medido no e2e do item 5 (≥ 44×44, canto de baixo à direita) |
+| 04-treino-lista | 0,00 % | 0,00 % | idem: a capa do bloco é a mídia mascarada; o toque na figura abrindo a ficha é do e2e |
+
+#### Como testar no celular (360 px)
+
+- **Ficha do agachamento goblet** (Explorar → Exercícios → "goblet"): a
+  figura aparece grande, numa caixa estreita e alta, centrada — não mais
+  espremida numa faixa larga. A prancha ocupa a largura toda, baixa.
+- **Pausa no canto**: na mesma ficha, o botão redondo no canto de baixo à
+  direita da ilustração para a animação ("Parar a animação") e volta a
+  alternar. Tocar no meio da figura não pausa.
+- **Player**: comece o treino do dia; no primeiro exercício, toque no meio
+  da ilustração — abre a ficha ("Como fazer"), e a figura continua
+  alternando. O botão do canto pausa.
+- **Fotos**: na ficha do supino reto, role até as duas fotos — inteiras, na
+  proporção da foto (a barra aparece), com "Início" e "Fim" embaixo. Na
+  folha (o "?" do player), a opção "Fotos" do segmento mostra o mesmo.
+- **Crédito**: sob a ilustração, "Ilustração: Everkinetic (everkinetic.com)
+  · CC BY-SA 3.0" — só o autor e a licença sublinhados; cada um abre a sua
+  página.
+- **Segmento Ilustração · Figura · Fotos** (folha): o escolhido tem
+  contorno escuro no claro e claro no escuro.
+- **Explorar**: em cada seção de "Escolhas para você", as linhas têm a mesma
+  altura; os raios ficam depois de "N exercícios · ~M min"; à direita só o
+  chevron. Cardio, os circuitos e a corda mostram o selo "Circuito" no
+  começo da segunda linha.
+- **Plano de corrida** (Explorar → Planos → "5 km sem parar"): a capa tem o
+  ícone de calendário; embaixo, "Semanas do plano" com "Semana N de 12 · K
+  concluídas", a barra e as 12 semanas, as anteriores "feita", a atual
+  "agora" com "Abrir a sessão desta semana". Na corda, os 5 estágios.
