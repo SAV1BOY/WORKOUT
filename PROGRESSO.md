@@ -9265,8 +9265,12 @@ está no próprio item da SPEC.
    `aspect-ratio`, com teto de 432 px de altura de figura
    (`caixaDaIlustracao()`/`figuraNaCaixa()`, puras); a figura larga ocupa a
    coluna, a alta estreita a caixa e fica centrada. Player e capa do bloco
-   na lista do treino continuam com faixa de altura fixa (espaço vertical
-   fixo, §13.8.1).
+   na Visão geral do treino continuam com faixa de altura fixa (espaço
+   vertical fixo, §13.8.1). Correção da auditoria: o segmento "Ilustração ·
+   Figura · Fotos" passou para **acima** da mídia (embaixo, ele saltava até
+   369 px ao trocar de vista), e o aceite dos 60 % é medido contra a
+   **coluna** — os seis exercícios mais altos ficam abaixo, no teto (ver
+   "Correção da auditoria").
 2. **Fotos na proporção do arquivo, com legenda** (imagens-12;
    `components/exercicios/fotos-ampliaveis.tsx`,
    `components/exercicio/midia.tsx`). **Era:** `aspect-square` +
@@ -9294,8 +9298,8 @@ está no próprio item da SPEC.
    **Era:** a ilustração inteira era o `<button>` "Parar em uma posição".
    **É:** a pausa é um botão redondo de 44×44 no canto de baixo à direita
    ("Parar a animação" / "Voltar a alternar", ícone Pause/Play); a figura
-   diz a posição ("Execução do …, posição 1 de 2"). No player e na lista do
-   treino, tocar na figura abre a ficha (o "Como fazer", como o "?"); na
+   diz a posição ("Execução do …, posição 1 de 2"). No player e na Visão
+   geral do treino, tocar na figura abre a ficha (o "Como fazer", como o "?"); na
    própria ficha a figura é `role="img"` e o toque não faz nada.
 6. **O chip ativo do segmento se vê** (tela-explorar-fichas-18;
    `ficha-folha.tsx`). **Era:** `bg-background` sobre o trilho `bg-muted`
@@ -9315,7 +9319,9 @@ está no próprio item da SPEC.
    corrida era um retângulo escuro; o ícone, quando havia, ficava centrado
    por baixo do véu. **É:** a tela da coleção passa o ícone do tipo (plano =
    calendário) em 48 px, que o `CardCapa` desenha no alto da capa, fora do
-   véu, em `text-foreground`.
+   véu, em `text-foreground` — só quando a tela pede (`iconeNoAlto`, correção
+   da auditoria): os outros cartões sem foto, como o cardio do dia na aba
+   Treino, seguem com o ícone centrado por trás e a mesma altura.
 9. **A coleção de plano mostra as semanas** (tela-explorar-fichas-11;
    `lib/colecoes.ts`, `tela-colecao.tsx`). **Era:** só o cartão, ~700 px
    vazios. **É:** "Semanas do plano" com "Semana X de N · K concluídas" e a
@@ -9328,9 +9334,12 @@ está no próprio item da SPEC.
    `semana_corda`).
 10. **Uma marca só na coluna da direita** (visual-11; `linha-colecao.tsx`).
     **Era:** raios ao lado do título (centro a 18 px do topo) e chevron no
-    meio (36 px). **É:** os raios vão no fluxo da linha da meta, depois de
-    "N exercícios · ~M min" (sem meta, ao fim do subtítulo); a coluna da
-    direita tem só o chevron. O selo "Circuito" passou a abrir a linha do
+    meio (36 px). **É:** os raios vão no fluxo da linha da meta, **abrindo
+    a meta**, antes de "N exercícios" (sem meta, ao fim do subtítulo); a
+    coluna da direita tem só o chevron. Correção da auditoria: no fim da
+    meta, eles caíam na 2ª linha nas 9 linhas de "Por aparelho" ("N
+    exercícios que dão para fazer com ele" quebra em 2 a 360 px). Na faixa
+    de semanas do plano, "feitas" no plural (menor da auditoria). O selo "Circuito" passou a abrir a linha do
     subtítulo: na meta, com os raios, ela quebrava (Cardio 84 px contra 72)
     e, ao lado do título, empurrava o nome da corda para 2 linhas (108
     contra 88) — os dois vistos na sonda.
@@ -9342,12 +9351,80 @@ com os dois `href` conferidos; o 2º quadro é esperado com `toHaveCount(2)`),
 do canto), `e2e/catalogo.spec.ts` e `e2e/player.spec.ts` (o nome da figura
 passa a ter ", posição N de 2").
 
+#### Correção da auditoria
+
+Auditoria 1 em `f423151` (lentes regra e tela) reprovou; tudo o que ela
+apontou como bloqueante ou importante foi atendido ou registrado:
+
+- **Tela, bloqueante — raios na 2ª linha em "Por aparelho"** (visual-11).
+  A meta "N exercícios que dão para fazer com ele" quebra em 2 linhas a
+  360 px, e os raios, no fim dela, caíam na 2ª, longe de "exercícios". Os
+  raios agora **abrem** a meta (`linha-colecao.tsx`), com o respiro em
+  margem (a meta segue um texto só, que o e2e do L12 lê palavra a palavra).
+  O e2e mede **toda** linha com raios — vitrine com todos os "Ver todos"
+  abertos (as 9 de aparelho entram) e busca por "supino" e "corda": |centro
+  dos raios − centro da palavra "exercícios"| ≤ 4 px.
+- **Tela, importante — a busca não tem altura única** (tela-explorar-fichas-08).
+  Medido 72 a 122 px. Não se cortou nada: a linha do motivo ("contém …")
+  aparece inteira por decisão do §22.12 item 3, e a meta de aparelho
+  quebra. A SPEC §22.13 item 7 foi corrigida: a reserva do subtítulo vale
+  para toda linha, e a altura única, por seção da vitrine (o que o aceite
+  mede).
+- **Tela, importante — o segmento saltava ao trocar de vista** (efeito do
+  item 1). Com a caixa na proporção da ilustração, a mídia muda de 130 a
+  448 px de altura ao trocar Ilustração/Figura/Fotos, e o segmento, embaixo
+  dela, saltava 180–369 px sob o dedo. O segmento passou para **acima** da
+  mídia (`ficha-folha.tsx`). e2e novos: na página do goblet e na folha
+  (Fotos → Figura → Ilustração), o topo do segmento fica a ≤ 1 px de onde
+  estava.
+- **Regra, importante — "≥ 60 % da caixa" era tautológico** (imagens-01).
+  A caixa estreita até a figura, então a fração contra a caixa só falharia
+  com caixa < 40 px. O Vitest e o e2e medem agora contra a **coluna** de
+  328 px, e contra ela o teto de 432 px deixa **seis exercícios** abaixo de
+  60 %: tríceps na corda 47 %, elevação frontal 49 %, extensão unilateral
+  49 %, puxada com triângulo 52 %, pullover na polia 54 % e goblet 56 %
+  (12 das 145 medidas). Para o tríceps chegar a 60 % (197 px de figura) ela
+  teria 556 px de altura e não caberia na tela de 740 com o segmento: essa
+  metade do aceite fica **registrada como inviável** para esses seis (SPEC
+  §22.13 item 1). O teste lista os seis pelo id e exige que cada um esteja
+  no teto (432 ± 2 px), e que toda figura ocupe a coluna ou bata no teto.
+  Mutação (teto 100 px, revertida): 3 testes caem, entre eles o novo dos
+  60 % contra a coluna — antes, o dos 60 % passava com teto 100. O goblet
+  com 183 px (≥ 180) segue provado.
+- **Regra, importante — o ícone da capa mudava o cardio do dia na aba
+  Treino** (tela-explorar-fichas-13). A mudança no `CardCapa` valia para
+  todo cartão sem foto, e o de corrida/caminhada crescia de 160 para ≈ 189
+  px (estimativa da auditoria, pela conta do CSS). O ícone no alto passou a ser opção (`iconeNoAlto`), que só a tela da
+  coleção liga; os outros cartões voltaram ao ícone centrado por trás, como
+  em `main`.
+- **Regra, importante — o toque na figura da Visão geral sem e2e, e a linha
+  04 da tabela de capturas errada** (ux-heuristicas-21). e2e novo: na Visão
+  geral do treino, tocar na figura do bloco abre a ficha (a aba "Vídeo") e
+  não pausa. A tabela de capturas abaixo não diz mais que a 04 mostra a
+  mídia: a 04 é a lista do treino (`components/treino/lista.tsx`), que não
+  monta a `MediaGrande`.
+- **Regra, importante — a SPEC se contradizia sobre a corda.** O §13.4 e o
+  comentário de `metaDoPlano()` diziam que a corda "não tem posição no
+  perfil"; ela tem (`profiles.semana_corda`), e a lista das semanas usa. Os
+  dois textos agora dizem o que o código faz: a meta da vitrine e da capa é
+  a duração; a posição aparece na lista das semanas.
+- **Menores atendidos:** "Semanas 1–2 … feitas" no plural; o teste da folha
+  foi renomeado ("aberta pelo Como fazer do player") e mede contra a
+  coluna; SPEC e PROGRESSO dizem "Visão geral do treino" em vez de "lista
+  do treino". **Menores não atendidos** (sem risco de regressão, ficam
+  anotados): o nome acessível da figura muda a cada 1,2 s (mudar quebraria
+  o contrato "posição N de 2" do item 5, que o ledger pede); o bloco de
+  progresso das semanas repete o do card de desafio (refatoração fora do
+  lote); o aceite do item 4 fala em LCP e o e2e mede a ordem dos pedidos;
+  `data-ilustracao="alternando"` antes da primeira posição carregar.
+
 #### Provas
 
-- **Vitest (+16 casos):** `lib/midia-l13.test.ts` (10 — as 145 medidas do
-  JSON: nenhuma figura abaixo de 60 % da caixa numa coluna de 328 px; a
-  conta da caixa fixa de antes deixava ≥ 78 abaixo, para o teste não ser
-  tautológico; goblet ≥ 180 px; larga ocupa a coluna e alta para no teto; a
+- **Vitest (+17 casos):** `lib/midia-l13.test.ts` (11 — as 145 medidas do
+  JSON contra a coluna de 328 px: só as 12 medidas dos seis exercícios mais
+  altos ficam abaixo de 60 %, pelo id, e todas com a figura no teto
+  (432 ± 2 px); toda figura ocupa a coluna ou bate no teto; a conta da caixa
+  fixa de antes deixava ≥ 78 abaixo de 60 % da coluna; goblet ≥ 180 px; larga ocupa a coluna e alta para no teto; a
   proporção é o par do arquivo; toda foto de execução (JPEG e WebP) tem
   proporção de arquivo, não quadrada; 3:2 sem medida; toda licença do JSON
   vira `creativecommons.org/licenses/by-sa/N.0/`; código que não é CC fica
@@ -9356,22 +9433,26 @@ passa a ter ", posição N de 2").
   semana 5 no estágio 5–6; barra fixa com séries e assistência do JSON; uma
   linha atual só, em todo plano e toda semana de −1 a total+3, faixas de 1
   ao total; sem perfil, sem estado; a semana do perfil por plano).
-- **e2e (+21 casos, `e2e/ultraloop-l13.spec.ts`)**, a 360×740, contra o
-  mock: goblet ≥ 180 px de figura e figura ≥ 60 % da caixa para goblet,
-  tríceps na corda (0,35:1), prancha (2,7:1) e supino, nos dois temas, e na
-  folha; fotos com |proporção da caixa − do arquivo| ≤ 0,02 e legendas
+- **e2e (+24 casos, `e2e/ultraloop-l13.spec.ts`)**, a 360×740, contra o
+  mock: goblet ≥ 180 px de figura e no teto, tríceps na corda (0,35:1) no
+  teto, prancha (2,7:1) e supino ≥ 60 % da coluna, nos dois temas; na folha
+  aberta pelo "Como fazer" do player, ≥ 60 % da coluna ou no teto; o topo
+  do segmento parado (≤ 1 px) ao trocar de vista, na página do goblet e na
+  folha (Fotos, Figura, Ilustração); fotos com |proporção da caixa − do arquivo| ≤ 0,02 e legendas
   "Início"/"Fim" visíveis, na página e na opção Fotos da folha; crédito com
   dois links sublinhados de ≥ 44×44, texto de fora sem sublinhado e 11 px,
   nos dois temas; o pedido de imagem do quadro 2 começa depois do fim do
   quadro 1, e com reduced motion nenhum pedido do quadro 2 até "Voltar a
   alternar"; no player o toque no meio da figura abre a ficha e ela segue
   alternando, o botão do canto (≥ 44×44, no canto de baixo à direita) pausa;
-  na ficha o toque no meio não pausa; o contorno do chip ativo ≥ 3:1 contra o
+  na Visão geral do treino, o toque na figura do bloco abre a ficha e não
+  pausa; na ficha o toque no meio não pausa; o contorno do chip ativo ≥ 3:1 contra o
   trilho e o texto ≥ 4,5:1, nos dois temas; em cada uma das cinco seções de
   "Escolhas para você", com "Ver todos" aberto, todas as linhas com a mesma
-  altura (±1 px), nos dois temas; vitrine e busca sem marca no canto de
-  cima, chevron a ≤ 2 px do centro e raios dentro da meta, na mesma linha
-  visual de "exercícios"; `/explorar/plano/corrida` com o ícone ≥ 48 px
+  altura (±1 px), nos dois temas; vitrine (todos os "Ver todos" abertos) e
+  busca ("supino" e "corda") sem marca no canto de cima, chevron a ≤ 2 px
+  do centro, raios dentro da meta e, em toda linha com raios (as 9 de
+  aparelho incluídas), a ≤ 4 px do centro da palavra "exercícios"; `/explorar/plano/corrida` com o ícone ≥ 48 px
   acima do título e ≥ 3:1 lido na captura (sharp), `progressbar` com
   `aria-valuenow` 2 de 12, 12 linhas, 2 feitas, a 3ª com `aria-current` e o
   link `/cardio/corrida?semana=3`, `scrollHeight` > 740 e todo texto da
@@ -9386,34 +9467,43 @@ passa a ter ", posição N de 2").
   (L13, r10, b-r1, treino-v2, a-r2) — a falha era o fundo invertido do chip
   (91 % de luz no escuro), corrigido no item 6; 4ª: 46 de 46 (L13, a-r2,
   midia).
+- **Sondas da correção** (`r12/l13/sonda-aud/`): `9a6aec0` — lint e tsc
+  limpos, build:e2e, 72 de 74 nos specs tocados (L13, r10, midia, catalogo,
+  player, a-r1); as 2 falhas eram do spec novo — a folha ainda deslizava na
+  1ª leitura do segmento (2,76 px; a leitura passou a esperar 3 medidas
+  iguais) e, com a ficha por cima, a Visão geral sai da árvore de
+  acessibilidade (o teste passou a achá-la por CSS); `0ce0ad0` — L13 24 de
+  24. Mutação do teto (100 px, revertida): 3 testes do `midia-l13` caem.
 
 #### Portões
 
-Cadeia inteira no HEAD de código `32826d5` (`r12/l13/logs/32826d5.log`, das
-02:28:22 às 02:50:29 UTC, **status ok**): `lint` limpo · `tsc --noEmit` limpo ·
-`npm test` **65 arquivos, 1.493 testes, todos verdes** (eram 63 / 1.477 em
-`763598a`; +2 arquivos, +16 testes) · `build` ("Compiled successfully in
-16.4s") · `build:e2e` ("Compiled successfully in 16.3s") · `e2e` **461
-passaram, 5 pulados, 0 falharam** (466, 16,2 min; +21 do lote) ·
-`varredura` **5 de 5** (4,2 min). A cadeia roda de novo, inteira, no commit
-deste registro (só `PROGRESSO.md` muda), e o log dele fica em
-`r12/l13/logs/<hash>.log`.
+Cadeia inteira no HEAD de código da correção, `0ce0ad0`
+(`r12/l13/logs/0ce0ad0.log`, das 03:44:55 às 04:07:04 UTC, **status ok**):
+`lint` limpo · `tsc --noEmit` limpo · `npm test` **65 arquivos, 1.494
+testes, todos verdes** (eram 63 / 1.477 em `763598a`; +2 arquivos, +17
+testes) · `build` ("Compiled successfully in 16.5s") · `build:e2e`
+("Compiled successfully in 15.9s") · `e2e` **464 passaram, 5 pulados, 0
+falharam** (469, 16,2 min; +24 do lote) · `varredura` **5 de 5** (4,2 min).
+Antes da auditoria, `32826d5` e `f423151` tinham dado 1.493 unit e e2e
+461 + 5 pulados. A cadeia roda de novo, inteira, no commit deste registro
+(só `PROGRESSO.md` muda), e o log dele fica em `r12/l13/logs/<hash>.log`.
 
 #### Capturas
 
-`capturas.sh` em `32826d5`, depois da cadeia verde, contra a base real de
+`capturas.sh` em `0ce0ad0`, depois da cadeia verde, contra a base real de
 `main` (`base-ef3ad97`, com 06/07/08 já do L12), com as seis telas
-declaradas como esperadas. 60 PNGs; **nenhuma tela mudou fora da lista**
-(as 54 fora dela deram Δ 0,00 %).
+declaradas como esperadas (`r12/l13/capturas-0ce0ad0.md`). 60 PNGs;
+**nenhuma tela mudou fora da lista** (as 48 fora dela deram Δ 0,00 %,
+inclusive a 03-treino-topo).
 
 | tela | Δ claro | Δ escuro | o que mudou (olhando a captura e o diff) |
 | --- | ---: | ---: | --- |
-| 09-ficha-exercicio | 38,23 % | 36,61 % | supino: a caixa da ilustração (mascarada em magenta pela captura, por ser animada) passou de 328×208 para 328×340 CSS px — a proporção do arquivo, 276:287; o crédito virou "Ilustração: Everkinetic (everkinetic.com) · CC BY-SA 3.0" com só os dois links sublinhados; o chip "Ilustração" ganhou o contorno escuro de 2 px; o resto da página desceu |
-| 07-colecao | 25,89 % | 36,36 % | `/explorar/plano/corrida`: a capa ganhou o ícone de calendário no alto, fora do véu (claro: preto sobre o rosado; escuro: branco sobre o marrom), e ficou mais alta; abaixo do cartão, "Semanas do plano" com "Semana 2 de 12 · 1 concluída", a barra (8 %) e a lista — Semana 1 "feita" com ✓, Semana 2 "agora" com fundo e "Abrir a sessão desta semana", Semana 3 "a fazer" |
-| 10-ficha-folha | 5,00 % | 5,00 % | a tira das duas fotos no pé da tela: caixas 3:2 no lugar do quadrado (a barra aparece inteira) |
-| 06-explorar | 0,40 % | 0,40 % | abaixo do limiar (0,5 %), mas visível no diff: nas linhas de "Treinos do programa" os raios saíram do canto de cima à direita e foram para depois de "6 exercícios · ~44 min"; a altura das linhas não mudou (72 px) |
+| 09-ficha-exercicio | 48,88 % | 46,83 % | supino: o segmento "Ilustração · Figura" (o ativo com contorno de 2 px) subiu para logo abaixo das abas, **acima** da ilustração (correção da auditoria); a caixa da ilustração (mascarada em magenta pela captura, por ser animada) passou de 328×208 para 328×340 CSS px — a proporção do arquivo, 276:287; embaixo dela o crédito "Ilustração: Everkinetic (everkinetic.com) · CC BY-SA 3.0" com só os dois links sublinhados; o resto da página desceu (as fotos 3:2 começam no pé da tela) |
+| 07-colecao | 25,89 % | 36,36 % | igual à captura de antes da auditoria (mesmo md5): `/explorar/plano/corrida` com o ícone de calendário no alto da capa, fora do véu, e abaixo "Semanas do plano" com "Semana 2 de 12 · 1 concluída", a barra e a lista (Semana 1 "feita", Semana 2 "agora" com "Abrir a sessão desta semana", Semana 3 "a fazer") |
+| 10-ficha-folha | 5,00 % | 5,00 % | igual à de antes da auditoria (mesmo md5; a captura é a aba Músculos, sem o segmento): a tira das duas fotos no pé da tela em caixas 3:2 no lugar do quadrado |
+| 06-explorar | 1,17 % | 1,18 % | nas linhas de "Treinos do programa" os raios saíram do canto de cima à direita e agora **abrem** a última linha, antes de "6 exercícios · ~44 min" (correção da auditoria: antes vinham depois); à direita só o chevron; a altura das linhas não mudou (72 px) |
 | 28-player-exercicio | 0,00 % | 0,00 % | a caixa da ilustração é mascarada pela captura (animação), então o botão de pausa no canto não aparece nela; ele é medido no e2e do item 5 (≥ 44×44, canto de baixo à direita) |
-| 04-treino-lista | 0,00 % | 0,00 % | idem: a capa do bloco é a mídia mascarada; o toque na figura abrindo a ficha é do e2e |
+| 04-treino-lista | 0,00 % | 0,00 % | a 04 é a lista do treino na aba Treino (`components/treino/lista.tsx`), que não monta a `MediaGrande`: nada deste lote aparece nela. O toque na figura da **Visão geral do treino** (`components/treinar/bloco.tsx`) abrindo a ficha é do e2e novo do item 5 |
 
 #### Como testar no celular (360 px)
 
@@ -9433,10 +9523,15 @@ declaradas como esperadas. 60 PNGs; **nenhuma tela mudou fora da lista**
   · CC BY-SA 3.0" — só o autor e a licença sublinhados; cada um abre a sua
   página.
 - **Segmento Ilustração · Figura · Fotos** (folha): o escolhido tem
-  contorno escuro no claro e claro no escuro.
+  contorno escuro no claro e claro no escuro. Ele fica acima da mídia: na
+  ficha do goblet, toque "Figura" e depois "Ilustração" — o segmento não sai
+  de baixo do dedo.
+- **Visão geral do treino** (o ícone de lista no player): toque no meio da
+  figura de um bloco — abre o "Como fazer" daquele exercício.
 - **Explorar**: em cada seção de "Escolhas para você", as linhas têm a mesma
-  altura; os raios ficam depois de "N exercícios · ~M min"; à direita só o
-  chevron. Cardio, os circuitos e a corda mostram o selo "Circuito" no
+  altura; os raios abrem a última linha, antes de "N exercícios" — em
+  "Por aparelho" também, na primeira das duas linhas da meta; à direita só
+  o chevron. Cardio, os circuitos e a corda mostram o selo "Circuito" no
   começo da segunda linha.
 - **Plano de corrida** (Explorar → Planos → "5 km sem parar"): a capa tem o
   ícone de calendário; embaixo, "Semanas do plano" com "Semana N de 12 · K
