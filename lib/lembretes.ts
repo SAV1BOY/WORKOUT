@@ -41,9 +41,16 @@ export const PAYLOAD_DE_TESTE: PayloadDoLembrete = {
   tag: "lembrete-teste",
 };
 
+/** Uma origem que não existe (`.invalid`, RFC 2606): só serve de base ao parser. */
+const ORIGEM_FIXA = "https://app.invalid";
+
 /**
- * Só um caminho do próprio app: começa com `/` e não com `//` (que seria
- * outro host) nem com `/\` (que alguns navegadores leem como `//`).
+ * Só um caminho do próprio app (SPEC §23.3): começa com `/` e não com `//`
+ * (que seria outro host) nem com `/\` (que o parser lê como `//`) **e**,
+ * resolvido pelo próprio parser de URL contra uma origem fixa, continua nela.
+ * O parser apaga TAB, LF e CR de qualquer ponto, então `"/\t/outro.host"`
+ * vira `//outro.host` — o teste de prefixo sozinho deixava passar. Devolve o
+ * caminho, a busca e a âncora como o parser os leu; o resto vira `/`.
  */
 export function urlInterna(url: unknown): string {
   if (typeof url !== "string") return "/";
@@ -51,7 +58,14 @@ export function urlInterna(url: unknown): string {
   if (!limpa.startsWith("/") || limpa.startsWith("//") || limpa.startsWith("/\\")) {
     return "/";
   }
-  return limpa;
+  let lida: URL;
+  try {
+    lida = new URL(limpa, ORIGEM_FIXA);
+  } catch {
+    return "/";
+  }
+  if (lida.origin !== ORIGEM_FIXA) return "/";
+  return `${lida.pathname}${lida.search}${lida.hash}`;
 }
 
 export interface NotificacaoMontada {
@@ -149,7 +163,7 @@ export interface SinaisDasInstrucoes {
 }
 
 export interface Instrucao {
-  id: "brave" | "permissao" | "iphone" | "suporte";
+  id: "brave" | "permissao" | "iphone" | "suporte" | "tentar";
   titulo: string;
   passos: string[];
 }
@@ -192,7 +206,21 @@ const SUPORTE: Instrucao = {
   ],
 };
 
-/** O que explicar, na ordem da SPEC §23.6. Nada quando está tudo certo. */
+/** A falha sem caso especial (Chrome, app instalado no iPhone, permissão dispensada). */
+const TENTAR: Instrucao = {
+  id: "tentar",
+  titulo: "Para tentar de novo",
+  passos: [
+    "Confira a internet e toque de novo em “Ativar lembretes neste aparelho”.",
+    "Quando o navegador perguntar, escolha Permitir.",
+    "Se ainda não ativar, veja nas configurações do celular se as notificações do navegador (ou do app instalado) estão ligadas.",
+  ],
+};
+
+/**
+ * O que explicar, na ordem da SPEC §23.6. Nada quando está tudo certo; com
+ * um problema (bloqueado, sem suporte ou falha ao ativar), nunca vazia.
+ */
 export function instrucoesDoAparelho(s: SinaisDasInstrucoes): Instrucao[] {
   if (s.estado === "sem-configuracao" || s.estado === "ativado") return [];
   const saida: Instrucao[] = [];
@@ -201,6 +229,7 @@ export function instrucoesDoAparelho(s: SinaisDasInstrucoes): Instrucao[] {
   if (s.estado === "bloqueado") saida.push(PERMISSAO);
   if (s.ios && !s.instalado) saida.push(IPHONE);
   else if (s.estado === "nao-suportado" && !s.brave) saida.push(SUPORTE);
+  if (problema && saida.length === 0) saida.push(TENTAR);
   return saida;
 }
 

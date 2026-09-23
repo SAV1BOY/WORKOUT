@@ -58,6 +58,22 @@ describe("opcoesDaNotificacao (o push vira notificação)", () => {
     expect(urlInterna("/relatorio?aba=numeros#x")).toBe("/relatorio?aba=numeros#x");
     expect(opcoesDaNotificacao(JSON.stringify({ url: "https://mal.example" })).opcoes.data.url).toBe("/");
   });
+
+  it("TAB, LF ou CR não abrem outro host (o parser os apaga e sobra //host)", () => {
+    for (const fora of ["/\t/mal.example", "/\n/mal.example", "/\r/mal.example", "/\t\\mal.example", "/\t/\t/mal.example/x?y#z"]) {
+      expect(urlInterna(fora), JSON.stringify(fora)).toBe("/");
+      // e o que o service worker faria com ela fica no app
+      expect(new URL(urlInterna(fora), "https://treino.example").origin).toBe("https://treino.example");
+    }
+    expect(opcoesDaNotificacao(JSON.stringify({ url: "/\n/mal.example" })).opcoes.data.url).toBe("/");
+  });
+
+  it("caminho interno volta como o parser leu (caminho, busca e âncora)", () => {
+    expect(urlInterna("/mais/lembretes")).toBe("/mais/lembretes");
+    expect(urlInterna("  /relatorio  ")).toBe("/relatorio");
+    expect(urlInterna("/rel\tatorio")).toBe("/relatorio");
+    expect(urlInterna("/a/../mais")).toBe("/mais");
+  });
 });
 
 describe("estadoDoAparelho (tabela da §23.4)", () => {
@@ -110,6 +126,39 @@ describe("instrucoesDoAparelho (§23.6)", () => {
   it("sem suporte e sem caso especial → Chrome/Brave ou instalar", () => {
     expect(ids({ estado: "nao-suportado" })).toEqual(["suporte"]);
     expect(ids({ estado: "nao-suportado", brave: true })).toEqual(["brave"]);
+  });
+  it("falha sem caso especial (Chrome, iPhone instalado, permissão dispensada) → tentar de novo", () => {
+    expect(ids({ falhou: true })).toEqual(["tentar"]);
+    expect(ids({ falhou: true, ios: true, instalado: true })).toEqual(["tentar"]);
+    const [t] = instrucoesDoAparelho({ ...base, falhou: true });
+    expect(t?.titulo).toBe("Para tentar de novo");
+    expect(t?.passos.join(" ")).toContain("escolha Permitir");
+    // o caso especial continua sozinho: não empilha a genérica
+    expect(ids({ falhou: true, brave: true })).toEqual(["brave"]);
+    expect(ids({ falhou: true, ios: true })).toEqual(["iphone"]);
+    // sem falha, nada a explicar
+    expect(ids({})).toEqual([]);
+  });
+  it("com problema, a lista nunca sai vazia (as 80 combinações)", () => {
+    const estados: SinaisDasInstrucoes["estado"][] = ["sem-configuracao", "nao-suportado", "bloqueado", "ativado", "desativado"];
+    let conferidas = 0;
+    for (const estado of estados) {
+      for (const brave of [false, true]) {
+        for (const ios of [false, true]) {
+          for (const instalado of [false, true]) {
+            for (const falhou of [false, true]) {
+              conferidas += 1;
+              const lista = ids({ estado, brave, ios, instalado, falhou });
+              const problema = falhou || estado === "bloqueado" || estado === "nao-suportado";
+              const mudo = estado === "sem-configuracao" || estado === "ativado";
+              if (problema && !mudo) expect(lista.length, JSON.stringify({ estado, brave, ios, instalado, falhou })).toBeGreaterThan(0);
+              if (mudo) expect(lista).toEqual([]);
+            }
+          }
+        }
+      }
+    }
+    expect(conferidas).toBe(80);
   });
   it("ativado ou sem configuração: nenhuma instrução", () => {
     expect(ids({ estado: "ativado", ios: true, brave: true, falhou: true })).toEqual([]);
