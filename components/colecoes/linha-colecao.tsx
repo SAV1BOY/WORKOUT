@@ -173,14 +173,13 @@ export function LinhaColecao({
             className="text-muted-foreground text-xs font-normal tabular-nums"
             data-linha="meta"
           >
+            {/* o respiro é margem, não um nó de texto: a meta segue sendo um texto só */}
             {raios ? (
-              <>
-                <Raios
-                  nivel={raios}
-                  tamanho="sm"
-                  className="text-primary inline-flex align-middle"
-                />{" "}
-              </>
+              <Raios
+                nivel={raios}
+                tamanho="sm"
+                className="text-primary mr-1 inline-flex align-middle"
+              />
             ) : null}
             {colecao.detalhe}
           </span>
