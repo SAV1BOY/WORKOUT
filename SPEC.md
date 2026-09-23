@@ -2644,7 +2644,13 @@ não muda (§22.0.1 item 7). O aceite de cada item é verificável no Vitest
    ("Core · Tatame · peso corporal"). (g) O 3º passo do salto básico
    repetia a prescrição ("… vai de 6 × 30 s a 5 × 3 min"); o dado foi
    corrigido em `data/exercicios.json` ("Progrida pelo tempo de bloco, não
-   pela velocidade."). **Correção da auditoria:** (f) e (g) entraram depois
+   pela velocidade."). (h) Correção da auditoria 2 (rodada 15), só no
+   dado: a nota da barra W das 3 fichas que a usam dizia "corrija no
+   perfil" e passa a "corrija em Mais → Equipamento" (é lá que o peso das
+   barras se ajusta), e a regra do salto básico citava um arquivo
+   ("progressão de corda de cardio.json") e passa a "progressão do plano
+   da corda" — Vitest: nenhum texto do JSON que a ficha mostra cita nome de
+   arquivo nem manda ao "perfil" (`lib/ficha.test.ts`). **Correção da auditoria:** (f) e (g) entraram depois
    de a auditoria aplicar o critério do e2e às 81 fichas (9 falhavam; 12
    com as 3 do elástico, que o item 2 corrigido resolve). Aceite: Vitest —
    as tags com coleção levam à rota da coleção do aparelho, as outras não
@@ -2686,7 +2692,8 @@ não muda (§22.0.1 item 7). O aceite de cada item é verificável no Vitest
    a `--sombra-flutuante` do tema (no escuro, com o anel de 1 px).
 6. **As folhas são modais de verdade** (a11y-05). Vale para toda folha
    (`components/ui/sheet.tsx`: ficha, "Substituir hoje", filtros do
-   catálogo, conquistas, montagem, bloco, personalizar, player). O conteúdo
+   catálogo, conquistas, montagem, bloco, personalizar, player) e, desde a
+   rodada 17, para toda camada modal do inventário no fim deste item. O conteúdo
    da folha tem `aria-modal="true"`; enquanto ela está aberta, o resto da
    página (`main`, `header`, `nav`) fica **`inert`** — fora do Tab e da
    árvore do leitor de tela — e volta ao normal quando ela fecha; o primeiro
@@ -2720,10 +2727,13 @@ não muda (§22.0.1 item 7). O aceite de cada item é verificável no Vitest
    fechava a lista e desmontava a folha junto (medido: "substituir hoje" e
    "Como fazer" abertos sobre a Visão geral → voltar → zero folhas e zero
    Visão geral, na mesma rota). Agora, se há uma camada aberta por cima da
-   lista (folha, alerta, diálogo ou a foto ampliada), o `popstate` devolve a
+   lista (folha, o alerta "Descartar este treino?" ou o resumo do fim — a
+   foto ampliada não abre dentro da Visão geral), o `popstate` devolve a
    entrada da lista ao histórico e entrega um Esc à camada de cima, que
-   fecha do jeito dela (e o foco volta a quem a abriu); sem nada por cima,
-   fecha a lista, como antes. A foto ampliada passa a devolver o foco a quem
+   fecha do jeito dela (e o foco volta a quem a abriu — nos diálogos, desde
+   a rodada 17); sem nada por cima, fecha a lista, como antes. Com o resumo
+   do fim **gravando** (`salvando`), ele ignora o Esc para não cortar a
+   gravação, e o voltar, que vira Esc, espera o fim dela. A foto ampliada passa a devolver o foco a quem
    a abriu (Esc, X ou toque fora) e marca (`preventDefault`) o Esc que trata.
    Aceite: e2e a 360×740, nos dois temas, dentro da Visão geral — o voltar
    (`history.back()`) com a "substituir hoje" e com a ficha do "Como fazer"
@@ -2733,6 +2743,82 @@ não muda (§22.0.1 item 7). O aceite de cada item é verificável no Vitest
    geral e fica no player. Na ficha, a foto ampliada aberta pelo teclado:
    o Esc que ela trata chega ao `window` com `defaultPrevented`, e o foco
    volta ao "Ampliar a foto" depois do Esc e depois do X.
+   **A regra da folha vale para toda camada modal do app** (correção da
+   auditoria 2, rodada 17). Medido em 1d41620: o alerta "Descartar este
+   treino?" e o resumo do fim, abertos por estado dentro da Visão geral,
+   fechavam (Esc ou voltar) com o foco no `<body>` e abriam sem
+   `aria-modal` e com o fundo vivo — `dialog.tsx` e `alert-dialog.tsx` não
+   guardavam quem abriu, e o Radix devolve o foco só ao `Trigger`, que eles
+   não têm; na foto ampliada, 6 de 6 Tabs saíam da camada (no Corpo, para a
+   barra de baixo), e no "Apagar esta foto?" também, até o aviso por cima
+   do véu. A regra agora mora num lugar só: `lib/camada-modal.ts` decide
+   (quais irmãos ficam inertes, as marcas contadas entre camadas
+   empilhadas, quem recebe o foco na volta, para onde o Tab preso vai) com
+   Vitest, e `components/ui/camada-modal.ts` aplica no DOM —
+   `useCamadaModal` nos três primitivos do Radix (`sheet.tsx`,
+   `dialog.tsx`, `alert-dialog.tsx`) e `useCamadaPropria` na foto
+   ampliada e no cartão (que não usam o Radix, para não levar ~200 kB à
+   ficha). Toda camada abaixo marcada "sim": `aria-modal="true"`; ao
+   abrir, guarda quem tinha o foco (e, se ele estava dentro de outra
+   camada, também quem abriu aquela) e, ao fechar sem `Trigger` — ou com
+   ele —, devolve o foco ao primeiro desses que ainda existe e não está
+   inerte; enquanto aberta, os irmãos dela e dos ancestrais até o `<body>`
+   ficam `inert` (menos os avisos `aria-live` e o véu da própria camada);
+   cada camada conta a própria marca, então fechar uma — a de cima ou a de
+   baixo, em qualquer ordem — não libera o que a outra ainda precisa
+   inerte; o Tab e o Shift+Tab não saem dela (o `FocusScope` do Radix nos
+   primitivos; na foto e no cartão, o próprio hook). O cartão "Apagar esta
+   foto?" nasce com o foco no **Cancelar** (a resposta que não destrói
+   nada, como o `AlertDialog`; antes era o "Apagar") e, ao fechar — Esc,
+   Cancelar ou toque fora —, devolve o foco ao "Apagar" da foto, que
+   continua aberta. **Inventário** (grep em `app/` e `components/` por
+   `Sheet`, `Dialog`, `AlertDialog`, `role="dialog"`,
+   `role="alertdialog"`, `aria-modal` e `fixed inset-0`):
+
+   | Arquivo | Camada | Como abre | Regra da folha |
+   |---|---|---|---|
+   | `components/exercicio/ficha-folha.tsx` | Ficha do exercício (folha) | estado: "Como fazer" e figura no player; "Como fazer" do bloco na Visão geral | sim (`sheet.tsx`) |
+   | `components/treino/lista.tsx` | "Substituir hoje" da lista do dia | `SheetTrigger` | sim (`sheet.tsx`) |
+   | `components/treinar/bloco.tsx` | "substituir hoje" do bloco (Visão geral) | `SheetTrigger` | sim (`sheet.tsx`) |
+   | `components/exercicios/lista-exercicios.tsx` | Filtros do catálogo | `SheetTrigger` | sim (`sheet.tsx`) |
+   | `components/relatorio/conquistas.tsx` | Detalhe da conquista | estado (toque no card) | sim (`sheet.tsx`) |
+   | `components/treinar/montagem.tsx` | Montagem das barras | `SheetTrigger` | sim (`sheet.tsx`) |
+   | `components/treino/personalizar.tsx` | Personalizar o treino | `SheetTrigger` | sim (`sheet.tsx`) |
+   | `components/treino/fab-ajustar.tsx` | Ajustar (aba Treino) | `SheetTrigger` | sim (`sheet.tsx`) |
+   | `components/player/tela-player.tsx` | Ajustar (player) | estado | sim (`sheet.tsx`) |
+   | `components/treinar/resumo.tsx` | Resumo do fim | estado: "Concluir", ou "Descartar este treino" do alerta | sim (`dialog.tsx`) |
+   | `components/cardio/fim-cardio.tsx` | Fim do cardio | estado | sim (`dialog.tsx`) |
+   | `components/calendario/dialogos.tsx` | Dia do calendário (`DialogoDia`) | estado (toque no dia) | sim (`dialog.tsx`) |
+   | `components/calendario/dialogos.tsx` | Semana curta (`DialogoSemanaCurta`) | estado | sim (`dialog.tsx`) |
+   | `components/treino/retomada.tsx` | Retomada (dias sem treinar) | estado | sim (`dialog.tsx`) |
+   | `components/treinar/visao-geral.tsx` | "Descartar este treino?" | estado (botão do rodapé) | sim (`alert-dialog.tsx`) |
+   | `components/exercicios/foto-ampliada.tsx` | Foto ampliada (ficha e Corpo → Fotos) | estado (`fotos-ampliaveis.tsx`, `aba-fotos.tsx`) | sim (`useCamadaPropria`) |
+   | `components/exercicios/foto-ampliada.tsx` | "Apagar esta foto?" | estado ("Apagar" da foto) | sim (`useCamadaPropria`) |
+   | `components/treinar/visao-geral.tsx` | Visão geral do treino | estado (ícone de lista do player) | em parte: `aria-modal`, Esc e voltar fecham e o foco volta ao "Visão geral do treino" (§22.5 item 3); fundo inerte não se aplica — ela **substitui** o player (`tela-player.tsx` devolve só ela, sem cabeçalho nem barra), não há fundo; **fora:** o foco ao abrir fica no `<body>` (medido na auditoria 2 da rodada 15) → fila `a11y-visao-geral-foco-ao-abrir` |
+   | `components/player/descanso.tsx` | Tela de descanso | passo do player | não é camada: é um passo que substitui o player (`fixed inset-0`, `section`, sem `role="dialog"`), nada fica embaixo |
+
+   **O voltar do celular** fecha só a camada de cima **dentro da Visão
+   geral**, que é a única camada com entrada no histórico. Fora dela,
+   nenhuma camada da tabela tem entrada no histórico: com a folha, o
+   diálogo ou a foto aberta numa página, o voltar navega para a página
+   anterior (e a camada some com a página) — fica **fora** deste lote e vai
+   à fila como `a11y-voltar-fecha-camada` (voltar fecha só a camada de
+   cima também nas páginas). Aceite: Vitest (`lib/camada-modal.test.ts`) —
+   irmãos inertes e os que ficam de fora; marcas empilhadas liberadas em
+   qualquer ordem; candidatos ao foco da volta; Tab preso nas bordas. e2e a
+   360×740 (`e2e/ultraloop-l14.spec.ts`), um caso por tipo de camada, com
+   `aria-modal="true"`, nenhum focável fora da camada sem `inert`, 12 Tabs
+   e 4 Shift+Tabs dentro dela, e o foco de volta no gatilho com nada
+   inerte depois: a folha (os três casos acima); dentro da Visão geral,
+   nos dois temas, o alerta "Descartar este treino?" e o resumo do fim,
+   cada um fechado pelo Esc e pelo voltar — a Visão geral continua, a rota
+   e o índice do histórico são os de antes; o alerta que some por baixo do
+   resumo já aberto não libera o fundo, e o Esc no resumo devolve o foco
+   ao "Descartar este treino" do rodapé; a foto ampliada da ficha; no
+   Corpo → Fotos, nos dois temas, a foto e o cartão "Apagar esta foto?"
+   por cima — o cartão nasce no Cancelar, fecha pelo Esc, pelo toque fora
+   e pelo Cancelar, e cada vez a foto continua modal com o foco no
+   "Apagar"; o Esc seguinte fecha a foto e o foco volta ao "Ver a foto".
 7. **"Manutenção", não "repetição", no motor da ficha** (copy-13). O vazio do
    cartão "O que o motor decidiu" dizia "Cada subida, repetição ou volta de
    carga…", e "repetições" na mesma ficha são as da série. Passa a "Cada
