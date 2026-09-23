@@ -291,7 +291,7 @@ Vitrine de **coleções derivadas** dos JSON, cada uma com capa (foto de um exer
 - **Parte do corpo em foco**: chips dos 8 grupos (`grupo` de `exercicios.json`); cada um lista os exercícios do grupo e oferece "Começar" com os 6 primeiros do grupo que usam equipamento disponível (ordem: compostos primeiro, depois isolamento, como a tabela de faixas de `progressao.json`).
 - **Por aparelho**: os itens de `equipamentos.json` que habilitam algum exercício, com o `nome_curto` do item e a meta "N exercícios que dão para fazer com ele" (§22.12 item 2; a foto de `assets/itens/<item>/` fica em Mais → Equipamento).
 - **Circuitos** (os 14 exercícios de `origem = "aparelho"`): "Core no tatame" (8), "Corda" (3), "Elástico" (3). Abrem no **modo circuito guiado** (13.6).
-- **Planos e desafios**: "Primeira barra fixa" (`cardio.barra_fixa`), "5 km sem parar" (a meta da última semana de `cardio.corrida`) e "Corda: 5 estágios" (`cardio.corda`) — títulos curtos, o prazo fica no objetivo e na meta (§22.12 item 4) —, cada um com a semana atual do perfil e o botão da sessão (§22.12 item 7). "Desafio" aqui é o plano real com progresso visível; não existe desafio inventado.
+- **Planos e desafios**: "Primeira barra fixa" (`cardio.barra_fixa`), "5 km sem parar" (a meta da última semana de `cardio.corrida`) e "Corda: 5 estágios" (`cardio.corda`) — títulos curtos, o prazo fica no objetivo e na meta (§22.12 item 4; sem perfil e sem meta, o objetivo aparece inteiro) —, barra fixa e corrida com a semana atual do perfil, a corda com a sua duração (ela não tem posição no perfil), e cada um com o botão da sessão (§22.12 item 7). "Desafio" aqui é o plano real com progresso visível; não existe desafio inventado.
 - **Treinos do programa**: A1, B1, SA, IA, SB, IB com "Fazer hoje" (vale como próximo da alternância, §5.3).
 - **Busca** por nome de exercício e de coleção, sem acento.
 
@@ -351,7 +351,7 @@ Abre por cima de qualquer tela (Treino, player, Explorar) sem perder estado: tí
 Abaixo da lista do treino do dia: **Editar** (modo reordenar com alças e setas ↑↓; ordem só desta sessão, gravada em `sessions.plano` quando a sessão é criada; "voltar à ordem do programa"); **Ajustar** no cabeçalho, ao lado da data (descanso padrão, preparação, avançar sozinho, voz, vibração, tela acesa, mostrar raios); **Desafios** (carrossel manual, sem rotação automática, com os planos reais — títulos e botões como definidos em §22.7 item 6 e §22.12 itens 4 e 7; capa de `assets/`, semana atual e progresso); **Parte do corpo em foco** (chips dos 8 grupos → lista com miniatura, `N exercícios · ~M min`, raios, "Começar" = sessão livre com os 6 primeiros do grupo, compostos antes de isolamento); chips de filtro derivados (≤ 15 min · 15–30 min · com equipamento · sem equipamento · core · cardio); **Personalizar treino** ("Crie o seu próprio": escolher exercícios do catálogo e começar uma sessão livre). Sem busca na Treino (fica em Explorar).
 
 ### 14.4 Explorar, Relatório, Corpo, Mais — como na §13.4, §13.5 e §13.7, com estes ajustes
-- **Explorar**: cabeçalho "Explorar" com busca sempre visível; **um destaque** no topo (o treino de hoje ou a sessão da semana do plano); **"Escolhas para você"** = lista com capa, título, `N exercícios · ~M min · nível (raios)` das coleções derivadas (grupos, aparelhos, circuitos, planos, treinos do programa), com "Ver todos" — a meta de aparelho é "N exercícios que dão para fazer com ele" e a de plano é a posição ou a duração, como define a §22.12 itens 2 e 4; catálogo dos 81 abaixo com filtros; toque em coleção → tela da coleção (capa, lista, "Começar"); nada de texto de marketing; descrições só de campos do JSON (foco, subtítulo, regra, funções).
+- **Explorar**: cabeçalho "Explorar" com busca sempre visível; **um destaque** no topo (o treino de hoje ou a sessão da semana do plano); **"Escolhas para você"** = lista com capa, título, `N exercícios · ~M min · nível (raios)` das coleções derivadas (grupos, aparelhos, circuitos, planos, treinos do programa), com "Ver todos" — a meta de aparelho é "N exercícios que dão para fazer com ele" e a de plano é a posição ou a duração — ou nenhuma, sem perfil, quando o objetivo já diz o prazo, e aí o objetivo aparece inteiro —, como define a §22.12 itens 2 e 4; catálogo dos 81 abaixo com filtros; toque em coleção → tela da coleção (capa, lista, "Começar"); nada de texto de marketing; descrições só de campos do JSON (foco, subtítulo, regra, funções).
 - **Relatório**: contadores treinos · minutos · volume; histórico com faixa da semana, "Todos os registros" e sequências (dias e semanas). **Decisão de 15/09/2026**: os três contadores do topo são **totais acumulados** ("no total": todo o histórico, com as três fontes — sessões de força, cardio e séries — lendo a mesma janela, sem o corte de 26 semanas), e a semana fica no card "Esta semana" logo abaixo (onde vive o volume da semana da §13.5.1); o card da semana conta **só força**, e o diz. **cards Peso e IMC** como na referência (Registrar, atual, maior/menor, gráfico; IMC com barra e "Saudável"/faixa, altura editável); gráficos e recordes; `/progresso` redireciona.
 - **Corpo**: IMC na aba Peso; resto igual.
 - **Mais → Preferências**: meta semanal, preparação (s), descanso padrão (s, vazio = do exercício), avançar sozinho após o descanso, voz, vibração, tela acesa, mostrar raios, limpar "não gosto".
@@ -2246,7 +2246,12 @@ verificável no e2e (`e2e/ultraloop-a-r10.spec.ts`) ou no Vitest.
    exercício(s); casamento por título ou subtítulo não mostra "contém"; com 3
    ou 4 termos, dois no mesmo exercício, o nome dele aparece uma vez, nenhum
    outro sobra e a frase segue a ordem acima (Vitest: casos reais de 4 termos
-   e varredura de 3 e 4 termos em todas as coleções).
+   e varredura de 3 e 4 termos em todas as coleções). O motivo aparece
+   **inteiro**, sem corte de linhas: ele cita no máximo um nome por termo, e
+   o `line-clamp-2` de antes escondia o 3º nome ("sentado panturrilha barra
+   declinado" no Cavalete cita três exercícios, que a 360 px ocupam 3 linhas).
+   Aceite: a 360×740 a caixa do motivo não esconde texto (`scrollHeight` ≤
+   `clientHeight`) com 4 termos.
 4. **Planos: título curto e a posição.** "Primeira barra fixa em 12 semanas" e
    "5 km sem parar em 12 semanas" repetiam o prazo que já está no objetivo.
    Os títulos da vitrine ficam **"Primeira barra fixa"** e a meta da corrida
@@ -2255,7 +2260,15 @@ verificável no e2e (`e2e/ultraloop-a-r10.spec.ts`) ou no Vitest.
    "semana 99" vira "semana 12 de 12"); sem perfil, **"T semanas"** — a não ser
    que o objetivo do JSON (o subtítulo) já diga o prazo ("… em 8–12 semanas",
    "… em 12 semanas"): aí a linha fica **sem meta**, para o prazo não aparecer
-   duas vezes (hoje, barra fixa e corrida sem perfil). A corda
+   duas vezes (hoje, barra fixa e corrida sem perfil), e o subtítulo, que
+   passa a ser a última linha, aparece **inteiro** — sem o corte de uma linha
+   da vitrine, que a 360 px escondia justamente "8–12 semanas" e "12 semanas".
+   A regra vale para toda linha sem meta: o subtítulo ocupa o lugar dela, e a
+   linha não fica mais alta que uma com meta nesses dois planos (2 linhas de
+   subtítulo no lugar de 1 de subtítulo e 1 de meta). Aceite: a 360×740 sem
+   perfil, nos dois temas, o prazo de barra fixa e corrida fica dentro da
+   caixa visível do subtítulo e "semanas" aparece uma vez só no texto visível
+   da linha (e2e). A corda
    não tem posição no perfil e mostra a sua duração, que é a do JSON
    (`ultimaSemanaDeCorda()`, 12 — antes dizia "5 semanas", que eram os 5
    estágios). Nenhum número escrito à mão. O card do desafio (carrossel da
@@ -2280,7 +2293,10 @@ verificável no e2e (`e2e/ultraloop-a-r10.spec.ts`) ou no Vitest.
    sessão da semana" e levava a corrida para `/cardio/corrida` sem a semana;
    passa a usar o mesmo rótulo e o mesmo destino, vindos de
    `ctaDoPlano()` — a função que `desafios()` também usa — e a corda, que não é
-   desafio, diz "Fazer a sessão de corda". Aceite: para barra fixa e corrida,
+   desafio, diz "Fazer a sessão de corda". Sem perfil (a página do plano
+   aberta antes de o perfil chegar), a corrida não tem semana para dizer: o
+   botão é "Fazer a corrida" e leva a `/cardio/corrida`, que abre a semana do
+   perfil quando ele chega. Aceite: para barra fixa e corrida,
    Treino, destaque do Explorar e página do plano mostram o mesmo texto e o
    mesmo `href`; nenhum componente escreve o rótulo.
 8. **Processo: o comparador de capturas casa o nome curto.**
@@ -2297,3 +2313,13 @@ subtítulo, e cinco menores: a ordem dos nomes citados, um `nomeCurtoDaFase`
 duplicado na aba Treino, a meta do destaque montada na tela, o prazo repetido
 sem perfil e o "ele" sozinho na linha de aparelho. Os itens 2, 3 e 4 acima já
 trazem a regra corrigida, e a §13.4, a §13.8 e a §14.4 remetem a eles.
+
+**Rodada 11 — correção da auditoria 1.** A auditoria de tela mediu, sem perfil
+a 360 px, as linhas de barra fixa e corrida sem prazo visível: a meta tinha
+saído (para não repetir o prazo) e o subtítulo, cortado numa linha, parava
+antes de "8–12 semanas" e "12 semanas". O item 4 passa a mostrar o subtítulo
+inteiro na linha sem meta. A mesma auditoria achou o motivo de 4 termos
+cortado no 3º nome: o item 3 passa a mostrar o motivo inteiro. O item 7
+registra o CTA da corrida sem perfil, e o "nome curto da fase" passa a ter uma
+função só (`nomeCurtoDaFase`, em `lib/dados.ts`), que o cabeçalho do
+calendário (`rotuloDaFase`) também usa.
