@@ -25,10 +25,12 @@ import { urlDoVideo } from "@/lib/videos.cliente";
 
 export type TipoDeMidia = "video" | "ilustracao" | "figura" | "foto";
 
-/** O crédito que fica sob a mídia — a CC BY-SA exige atribuição. */
+/**
+ * O crédito que fica sob a mídia — a CC BY-SA exige atribuição. Só os dados:
+ * o texto ("Ilustração: <autor> · <licença>", com os dois links) é montado
+ * num lugar só, `components/exercicio/media-grande.tsx` (SPEC §22.13 item 3).
+ */
 export interface CreditoDaMidia {
-  /** "Ilustração: Everkinetic (everkinetic.com), CC BY-SA 3.0" */
-  texto: string;
   autor: string;
   licenca: string;
   url_fonte: string;
@@ -159,7 +161,6 @@ export function medidaDaFoto(url: string | null | undefined): MedidaDaImagem | n
 
 function credito(i: Ilustracao): CreditoDaMidia {
   return {
-    texto: `Ilustração: ${i.autor}, ${i.licenca}`,
     autor: i.autor,
     licenca: i.licenca,
     url_fonte: i.url_fonte,
