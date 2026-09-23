@@ -5,7 +5,9 @@
  */
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import sharp from "sharp";
+import { ALTURA_MAXIMA_DA_ILUSTRACAO } from "../lib/midia";
 import {
+  abrirVisaoGeral,
   comecarNoPlayer,
   comecarOTreinoDoDia,
   entrarNoApp,
@@ -120,16 +122,38 @@ async function contrasteNaCaptura(
   return { razao: maior, pixelsFortes: fortes };
 }
 
-/** A figura desenhada pela `<img>` com `object-contain` dentro da área dela. */
+/**
+ * A figura desenhada pela `<img>` com `object-contain` dentro da área dela, e a
+ * largura da COLUNA onde a mídia mora (o pai do `<figure>`). Correção da
+ * auditoria: a fração contra a caixa era verdadeira por construção (a caixa
+ * estreita até a figura); a que discrimina é contra a coluna.
+ */
 async function figuraDesenhada(ilustracao: Locator) {
   return ilustracao.evaluate((el) => {
     const img = el.querySelector("img") as HTMLImageElement;
     const area = img.getBoundingClientRect();
-    const caixa = el.getBoundingClientRect();
+    const coluna = el.closest("figure")!.parentElement!.getBoundingClientRect();
     const r = img.naturalWidth / img.naturalHeight;
     const largura = Math.min(area.width, area.height * r);
-    return { largura, caixa: caixa.width, altura: Math.min(area.height, area.width / r) };
+    return { largura, coluna: coluna.width, altura: Math.min(area.height, area.width / r) };
   });
+}
+
+/**
+ * As seis ilustrações mais altas (0,35:1 a 0,42:1): com o teto de 432 px de
+ * altura, elas ficam abaixo de 60 % da coluna — e batem no teto (SPEC §22.13
+ * item 1; a lista inteira é conferida no Vitest).
+ */
+const ALTAS_DEMAIS = new Set([GOBLET, "triceps-na-corda"]);
+
+function conferirFigura(id: string, m: { largura: number; coluna: number; altura: number }) {
+  if (ALTAS_DEMAIS.has(id)) {
+    expect(m.altura, `${id}: altura da figura no teto`).toBeGreaterThanOrEqual(
+      ALTURA_MAXIMA_DA_ILUSTRACAO - 2,
+    );
+  } else {
+    expect(m.largura / m.coluna, `${id}: figura/coluna`).toBeGreaterThanOrEqual(0.6);
+  }
 }
 
 // =====================================================================
@@ -138,7 +162,7 @@ async function figuraDesenhada(ilustracao: Locator) {
 
 test.describe("L13 — ficha: a caixa da ilustração (item 1)", () => {
   for (const tema of TEMAS) {
-    test(`o goblet passa de 180 px de figura e ocupa ≥ 60 % da caixa — ${tema}`, async ({
+    test(`o goblet passa de 180 px de figura; ≥ 60 % da coluna ou no teto — ${tema}`, async ({
       page,
     }) => {
       await preparar(page, tema);
@@ -151,13 +175,14 @@ test.describe("L13 — ficha: a caixa da ilustração (item 1)", () => {
           .toBeGreaterThan(0);
         const m = await figuraDesenhada(ilustracao);
         if (id === GOBLET) expect(m.largura, "goblet: largura da figura").toBeGreaterThanOrEqual(180);
-        expect(m.largura / m.caixa, `${id}: figura/caixa`).toBeGreaterThanOrEqual(0.6);
+        expect(m.coluna, `${id}: coluna de 328 px`).toBeGreaterThanOrEqual(320);
+        conferirFigura(id, m);
         await semRolagemHorizontal(page);
       }
     });
   }
 
-  test("na folha (aberta da lista do treino) a caixa também segue a figura", async ({
+  test("na folha (aberta pelo Como fazer do player) a caixa também segue a figura", async ({
     page,
   }) => {
     await preparar(page);
@@ -169,7 +194,52 @@ test.describe("L13 — ficha: a caixa da ilustração (item 1)", () => {
       .poll(() => ilustracao.locator("img").first().evaluate((i) => (i as HTMLImageElement).naturalWidth))
       .toBeGreaterThan(0);
     const m = await figuraDesenhada(ilustracao);
-    expect(m.largura / m.caixa).toBeGreaterThanOrEqual(0.6);
+    // a figura ocupa ≥ 60 % da coluna da folha ou bate no teto de altura
+    expect(
+      m.largura / m.coluna >= 0.6 || m.altura >= ALTURA_MAXIMA_DA_ILUSTRACAO - 2,
+      `figura ${m.largura.toFixed(0)}×${m.altura.toFixed(0)} numa coluna de ${m.coluna.toFixed(0)}`,
+    ).toBe(true);
+  });
+
+  /*
+   * Correção da auditoria: com a caixa na proporção da ilustração, a mídia
+   * muda de altura ao trocar de vista — e o segmento, que ficava embaixo
+   * dela, saltava até 369 px sob o dedo. Agora ele fica acima da mídia.
+   */
+  async function topoDoSegmento(grupo: Locator): Promise<number> {
+    return grupo.evaluate((g) => g.getBoundingClientRect().top);
+  }
+
+  test("trocar de vista não tira o segmento do lugar (página do goblet)", async ({ page }) => {
+    await preparar(page);
+    await page.goto(`/exercicios/${GOBLET}`);
+    const grupo = page.getByRole("group", { name: "Como ver o exercício" });
+    await expect(page.locator("[data-ilustracao]").first()).toBeVisible();
+    await grupo.evaluate((g) => g.scrollIntoView({ block: "center" }));
+    const antes = await topoDoSegmento(grupo);
+    await grupo.getByRole("button", { name: "Figura" }).click();
+    await expect(grupo.getByRole("button", { name: "Figura" })).toHaveAttribute("aria-pressed", "true");
+    expect(Math.abs((await topoDoSegmento(grupo)) - antes), "Figura").toBeLessThanOrEqual(1);
+    await grupo.getByRole("button", { name: "Ilustração" }).click();
+    await expect(page.locator("[data-ilustracao]").first()).toBeVisible();
+    expect(Math.abs((await topoDoSegmento(grupo)) - antes), "Ilustração").toBeLessThanOrEqual(1);
+    await semRolagemHorizontal(page);
+  });
+
+  test("trocar de vista não tira o segmento do lugar (folha, com Fotos)", async ({ page }) => {
+    await preparar(page);
+    await abrirFichaNoPlayer(page);
+    const ficha = page.getByRole("dialog");
+    const grupo = ficha.getByRole("group", { name: "Como ver o exercício" });
+    await expect(ficha.locator("[data-ilustracao]").first()).toBeVisible();
+    const antes = await topoDoSegmento(grupo);
+    for (const vista of ["Fotos", "Figura", "Ilustração"]) {
+      const botao = grupo.getByRole("button", { name: vista });
+      if ((await botao.count()) === 0) continue;
+      await botao.click();
+      await expect(botao).toHaveAttribute("aria-pressed", "true");
+      expect(Math.abs((await topoDoSegmento(grupo)) - antes), vista).toBeLessThanOrEqual(1);
+    }
   });
 });
 
@@ -346,6 +416,28 @@ test.describe("L13 — a figura não é o botão de pausa (item 5)", () => {
     await semRolagemHorizontal(page);
   });
 
+  test("na Visão geral do treino, tocar na figura do bloco abre o Como fazer", async ({
+    page,
+  }) => {
+    await preparar(page);
+    await esperarAbaTreino(page);
+    await comecarOTreinoDoDia(page);
+    await abrirVisaoGeral(page);
+    const geral = page.getByRole("dialog", { name: "Visão geral do treino" });
+    const figura = geral.locator('[data-figura="abre"]').first();
+    await expect(figura).toHaveAccessibleName(/ — abre o Como fazer$/);
+    await figura.click();
+    const ficha = page
+      .getByRole("dialog")
+      .filter({ has: page.getByRole("tab", { name: "Vídeo" }) });
+    await expect(ficha).toBeVisible();
+    // o toque abriu a ficha, não pausou a figura do bloco
+    await expect(geral.locator("[data-ilustracao]").first()).not.toHaveAttribute(
+      "data-ilustracao",
+      "pausada",
+    );
+  });
+
   test("na ficha a figura não é botão: tocar no meio não pausa", async ({ page }) => {
     await preparar(page);
     await page.goto(`/exercicios/${SUPINO}`);
@@ -447,6 +539,22 @@ test.describe("L13 — Explorar: raios na linha da meta, chevron centrado (item 
           marcasNoAlto,
           raiosNaMeta: raios ? (meta ? meta.contains(raios) : null) : true,
           metaTemExercicios: meta ? /exerc[ií]cio/.test(meta.textContent ?? "") : null,
+          // |centro dos raios − centro da palavra "exercícios"| (null sem raios)
+          distanciaDosRaios: (() => {
+            if (!raios || !meta) return null;
+            const andar = document.createTreeWalker(meta, NodeFilter.SHOW_TEXT);
+            for (let n = andar.nextNode(); n; n = andar.nextNode()) {
+              const i = (n.textContent ?? "").search(/exerc[ií]cio/);
+              if (i < 0) continue;
+              const trecho = document.createRange();
+              trecho.setStart(n, i);
+              trecho.setEnd(n, i + "exercício".length);
+              const b = trecho.getClientRects()[0]!;
+              const a = raios.getBoundingClientRect();
+              return Math.abs(a.top + a.height / 2 - (b.top + b.height / 2));
+            }
+            return null;
+          })(),
         };
       }),
     );
@@ -456,10 +564,15 @@ test.describe("L13 — Explorar: raios na linha da meta, chevron centrado (item 
       expect(m.marcasNoAlto, `${onde} ${m.id}: marca no canto de cima`).toBe(0);
       expect(m.raiosNaMeta, `${onde} ${m.id}: raios na linha da meta`).not.toBe(false);
     }
-    // os raios ficam na mesma linha do texto "exercícios"
-    const comRaios = medidas.filter((m) => m.metaTemExercicios);
-    expect(comRaios.length, `${onde}: linhas com "exercícios" na meta`).toBeGreaterThan(0);
+    // os raios ficam na mesma linha visual do texto "exercícios" — em TODA
+    // linha com raios e "exercícios" na meta (as de aparelho quebram em 2)
+    const comRaios = medidas.filter((m) => m.metaTemExercicios && m.distanciaDosRaios !== null);
+    expect(comRaios.length, `${onde}: linhas com raios e "exercícios" na meta`).toBeGreaterThan(0);
+    for (const m of comRaios) {
+      expect(m.distanciaDosRaios!, `${onde} ${m.id}: raios na linha de "exercícios"`).toBeLessThanOrEqual(4);
+    }
     await semRolagemHorizontal(page);
+    return medidas;
   }
 
   test("na vitrine", async ({ page }) => {
@@ -467,30 +580,33 @@ test.describe("L13 — Explorar: raios na linha da meta, chevron centrado (item 
     await page.goto("/explorar");
     const linhas = page.locator("[data-colecao]");
     await expect(linhas.first()).toBeVisible();
-    await conferirLinhas(page, linhas, "vitrine");
-    // numa linha com raios, eles estão na mesma linha visual de "exercícios"
-    const treinoA = page.locator('[data-colecao^="treino:"]').first();
-    const mesmaLinha = await treinoA.evaluate((el) => {
-      const meta = el.querySelector('[data-linha="meta"]')!;
-      const raios = meta.querySelector("[data-raios]");
-      if (!raios) return null;
-      const a = raios.getBoundingClientRect();
-      const texto = document.createRange();
-      texto.selectNodeContents(meta.firstChild!);
-      const b = texto.getBoundingClientRect();
-      return Math.abs(a.top + a.height / 2 - (b.top + b.height / 2));
-    });
-    expect(mesmaLinha, "o treino A tem raios").not.toBeNull();
-    expect(mesmaLinha!).toBeLessThanOrEqual(4);
+    // todas as linhas de cada seção, com os "Ver todos" abertos
+    for (const nome of SECOES) {
+      const verTodos = page
+        .getByRole("region", { name: nome, exact: true })
+        .getByRole("button", { name: /^Ver todos/ });
+      if ((await verTodos.count()) > 0) await verTodos.click();
+    }
+    const medidas = await conferirLinhas(page, linhas, "vitrine");
+    // as 9 linhas de "Por aparelho" (meta em 2 linhas) estão na conta
+    expect(
+      medidas.filter((m) => m.id?.startsWith("aparelho:") && m.distanciaDosRaios !== null).length,
+      "linhas de aparelho com raios",
+    ).toBeGreaterThan(0);
+    // o treino A (meta numa linha) também está na conta
+    const treinoA = medidas.find((m) => m.id?.startsWith("treino:"));
+    expect(treinoA?.distanciaDosRaios, "o treino A tem raios").not.toBeNull();
   });
 
   test("no resultado da busca", async ({ page }) => {
     await preparar(page);
     await page.goto("/explorar");
-    await page.locator('main input[type="search"]').first().fill("supino");
-    const linhas = page.locator("[data-colecao]");
-    await expect(linhas.first()).toBeVisible();
-    await conferirLinhas(page, linhas, "busca");
+    for (const termo of ["supino", "corda"]) {
+      await page.locator('main input[type="search"]').first().fill(termo);
+      const linhas = page.locator("[data-colecao]");
+      await expect(linhas.first()).toBeVisible();
+      await conferirLinhas(page, linhas, `busca "${termo}"`);
+    }
   });
 });
 

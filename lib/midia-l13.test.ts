@@ -22,13 +22,45 @@ describe("caixaDaIlustracao (SPEC §22.13 item 1)", () => {
     expect(medidas.length).toBe(145);
   });
 
-  it("nenhuma ilustração ocupa menos de 60 % da largura da caixa a 360 px", () => {
-    const abaixo = medidas.filter((m) => figuraNaCaixa(m, COLUNA_360).fracao < 0.6);
-    expect(abaixo).toEqual([]);
+  /*
+   * Correção da auditoria: "≥ 60 % da largura da CAIXA" era verdadeiro por
+   * construção (a caixa estreita até a figura). A medida que discrimina é a
+   * da COLUNA de 328 px — e contra ela o teto de 432 px de altura deixa as
+   * seis ilustrações mais altas (0,35:1 a 0,42:1) abaixo de 60 %: para o
+   * tríceps na corda chegar a 197 px de figura, ela teria 556 px de altura e
+   * não caberia na tela de 740 com o segmento. SPEC §22.13 item 1 registra.
+   */
+  const ALTAS_DEMAIS = [
+    "agachamento-goblet",
+    "elevacao-frontal",
+    "extensao-unilateral",
+    "pullover-na-polia",
+    "puxada-com-triangulo",
+    "triceps-na-corda",
+  ];
+
+  it("contra a coluna de 328 px, só as 6 ilustrações mais altas ficam abaixo de 60 %", () => {
+    const abaixo = medidas.filter((m) => figuraNaCaixa(m, COLUNA_360).figura / COLUNA_360 < 0.6);
+    expect([...new Set(abaixo.map((m) => m.id))].sort()).toEqual(ALTAS_DEMAIS);
+    expect(abaixo).toHaveLength(12);
+    // e cada uma delas está no teto: a altura manda, a figura não foi espremida
+    for (const m of abaixo) {
+      const r = figuraNaCaixa(m, COLUNA_360);
+      expect(r.alturaDaFigura, m.id).toBeGreaterThanOrEqual(ALTURA_MAXIMA_DA_ILUSTRACAO - 2);
+      expect(r.alturaDaFigura, m.id).toBeLessThanOrEqual(ALTURA_MAXIMA_DA_ILUSTRACAO + 1);
+    }
   });
 
-  it("com a caixa de altura fixa de antes (328 × 208), 78+ ficavam abaixo de 60 %", () => {
-    // a conta de antes, para o teste não ser tautológico: caixa larga e fixa
+  it("toda figura ocupa a coluna (menos a folga) ou bate no teto de altura", () => {
+    for (const m of medidas) {
+      const r = figuraNaCaixa(m, COLUNA_360);
+      const ocupaAColuna = r.figura >= COLUNA_360 - 2 * FOLGA_DA_ILUSTRACAO;
+      const bateNoTeto = r.alturaDaFigura >= ALTURA_MAXIMA_DA_ILUSTRACAO - 2;
+      expect(ocupaAColuna || bateNoTeto, `${m.id} ${m.largura}×${m.altura}`).toBe(true);
+    }
+  });
+
+  it("com a caixa de altura fixa de antes (328 × 208), 78+ ficavam abaixo de 60 % da coluna", () => {
     const antes = medidas.filter((m) => {
       const areaL = COLUNA_360 - 2 * FOLGA_DA_ILUSTRACAO;
       const areaA = 208 - 2 * FOLGA_DA_ILUSTRACAO;
