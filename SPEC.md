@@ -1142,7 +1142,7 @@ Comparar, IMC com a altura); Calendário (semana em lista, resumo "N feitos · N
 fazer · N perdidos", mês em miniatura, tocar num dia, "Não vou treinar hoje",
 "Meus dias", setas e "Hoje"); Mais (Como usar o app, Perfil, Equipamento,
 Preferências — tema, dias de treino, meta semanal, treino/player, incrementos —,
-Créditos, Backup, sincronização, Trocar senha, Sair — que sai **deste**
+Lembretes (§23.4, desde o lote 34), Créditos, Backup, sincronização, Trocar senha, Sair — que sai **deste**
 aparelho, sem derrubar as outras sessões da conta, §22.11).
 
 **O mapa muscular não aparece na aba Corpo** — ele é a figura da ficha do
@@ -2956,7 +2956,7 @@ testada no Vitest):
 - **`push`**: o corpo é JSON `{titulo, corpo, url, tag}`.
   `opcoesDaNotificacao()` monta o `showNotification`: título (ou "Treino do
   Terraço" se vier vazio), `body`, ícone e badge do manifest
-  (`/icons/icon-192.png`), `tag` (a mesma tag substitui a notificação anterior
+  (`/icons/icone-192.png`), `tag` (a mesma tag substitui a notificação anterior
   em vez de empilhar), `lang: "pt-BR"` e `data.url`. A `url` só vale se for um
   caminho do próprio app (começa com `/` e não com `//`); qualquer outra coisa
   vira `/`. Corpo que não é JSON vira o texto da notificação.
