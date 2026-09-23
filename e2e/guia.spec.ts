@@ -56,6 +56,8 @@ const TITULO_DA_ROTA: Record<string, string> = {
   "/mais/perfil": "Perfil",
   "/mais/equipamento": "Equipamento",
   "/mais/preferencias": "Preferências",
+  // SPEC §23.4: Mais → Lembretes (lote 34)
+  "/mais/lembretes": "Lembretes",
   "/mais/creditos": "Créditos",
   "/mais/backup": "Backup",
   "/mais/senha": "Trocar senha",

@@ -1,4 +1,5 @@
 import {
+  Bell,
   ChevronRight,
   CircleHelp,
   Copyright,
@@ -14,6 +15,7 @@ import Link from "next/link";
 import { BotaoSair } from "@/components/botao-sair";
 import { LinhaSincronizacao } from "@/components/mais/linha-sincronizacao";
 import { ehDono } from "@/lib/env";
+import { LINHA_LEMBRETES } from "@/lib/lembretes";
 import { emailDoUsuario } from "@/lib/supabase/server";
 
 export const metadata = { title: "Mais — Treino do Terraço" };
@@ -53,6 +55,8 @@ const SECOES: Secao[] = [
     descricao: "Tema, som e vibração do timer, tela acesa, incrementos.",
     Icone: SlidersHorizontal,
   },
+  /* SPEC §23.4: título e descrição da mesma fonte que o guia de uso. */
+  { ...LINHA_LEMBRETES, Icone: Bell },
   {
     href: "/mais/creditos",
     titulo: "Créditos",
@@ -126,9 +130,14 @@ function Lista({ secoes }: { secoes: Secao[] }) {
     <ul className="border-border divide-border bg-card divide-y overflow-hidden rounded-lg border">
       {secoes.map(({ href, titulo, descricao, Icone }) => (
         <li key={href}>
+          {/*
+            O anel de foco é INTERNO (−4 px): a lista tem `overflow-hidden`
+            (os cantos arredondados), e o anel de fora, a +2 px, saía cortado
+            dos lados de toda linha — medido na linha Lembretes (SPEC §23.4).
+          */}
           <Link
             href={href}
-            className="alvo hover:bg-muted/50 flex min-h-16 items-center gap-3 px-3 py-3"
+            className="alvo hover:bg-muted/50 flex min-h-16 items-center gap-3 px-3 py-3 focus-visible:-outline-offset-4"
           >
             <Icone className="text-muted-foreground size-5 shrink-0" />
             <span className="flex min-w-0 flex-col">

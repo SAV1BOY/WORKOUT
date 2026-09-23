@@ -46,6 +46,25 @@ function irParaOLogin(
 }
 
 /**
+ * As rotas de API (`/api/*`, SPEC §23.5) são chamadas por `fetch`, não
+ * navegadas: sem sessão elas respondem **401** em JSON, e não o desvio para
+ * `/login` — um 307 para uma página HTML viraria, no `fetch`, um 200 com a
+ * tela de login no corpo.
+ */
+export function ehApi(caminho: string): boolean {
+  return caminho === "/api" || caminho.startsWith("/api/");
+}
+
+function semSessaoNaApi(resposta: NextResponse): NextResponse {
+  const saida = NextResponse.json(
+    { erro: "Entre de novo para continuar." },
+    { status: 401 },
+  );
+  for (const cookie of resposta.cookies.getAll()) saida.cookies.set(cookie);
+  return saida;
+}
+
+/**
  * Renova a sessão nos cookies e faz o controle de acesso: sem sessão → /login.
  *
  * É só isso desde o marco Contas (SPEC §21): o app deixou de ser de um usuário
@@ -61,6 +80,7 @@ export async function updateSession(request: NextRequest) {
 
   if (!supabaseConfigurado()) {
     // sem variáveis não há como checar sessão: a tela de login explica o que falta
+    if (ehApi(caminho)) return semSessaoNaApi(resposta);
     return irParaOLogin(request, resposta);
   }
 
@@ -85,7 +105,9 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) return irParaOLogin(request, resposta);
+  if (!user) {
+    return ehApi(caminho) ? semSessaoNaApi(resposta) : irParaOLogin(request, resposta);
+  }
 
   return resposta;
 }

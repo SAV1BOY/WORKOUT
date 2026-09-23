@@ -10910,3 +10910,617 @@ vazamento horizontal (scrollWidth 360 = clientWidth). Capturas: 09, 10 e 24
 (claro e escuro) de `r17/l14/capturas-a68ea7f` viraram a base visual
 (`base-ef3ad97`, `indice.json` com head `0f730c9`; wt-base não avançado).
 Nenhuma migração de banco. **Rollback: não.**
+
+### Rodada 17 — Lote 34 — Lembretes I: inscrição no aparelho e notificação de teste
+
+Branch `polimento/l34-lembretes-inscricao`, a partir de `main` `27eda74`.
+SPEC §23 (escrita antes do código, commit `2153ea0`). Feature nova aprovada
+pelo dono em 23/09: o app passa a avisar no celular por Web Push. Este lote
+é a **parte I** — o aparelho se inscreve, o service worker mostra o aviso e
+abre o app no lugar certo, e um botão manda um lembrete de teste. Horários e
+disparo automático são o L35 (§23, "Lembretes II"): nada disso existe aqui.
+`lib/progressao.ts` e `lib/montagem.ts`: `git diff 27eda74` vazio.
+
+#### O que mudou
+
+1. **Banco: `public.lembretes_inscricoes`** (LEM-banco-inscricoes;
+   `supabase/schema.sql`, `supabase/migracoes/2026-09-23-lembretes-inscricoes.sql`
+   (novo), `lib/migracao-lembretes.test.ts` (novo), `lib/sql.ts` (novo — o
+   leitor de comandos SQL que estava dentro de `lib/migracao-contas.test.ts`,
+   agora usado pelos dois testes), `lib/auditoria-seguranca.test.ts`,
+   `scripts/mock-supabase.ts`, `lib/schemas.ts`). **Era:** nenhuma tabela de
+   inscrição. **É:** uma linha por aparelho (`endpoint` único, `p256dh`,
+   `auth`, `aparelho`, `criado_em`; `ultimo_envio_em` e `falhas` ficam para o
+   L35), índice por `user_id`, RLS com três policies por `auth.uid()` (ler,
+   inserir, apagar as suas; sem update) e `revoke all … from anon`. O mesmo SQL
+   nos dois arquivos, idempotente e só de acréscimo. A tabela é **por
+   aparelho**: fica fora do laço de RLS "for all" e fora do backup (a
+   inscrição só vale no navegador que a criou) — a auditoria de segurança
+   ganhou essa categoria com teste próprio. **Não aplicada no projeto real**
+   (o orquestrador aplica antes do deploy).
+2. **Service worker** (LEM-sw-push; `app/sw.ts`, `lib/lembretes.ts` (novo)).
+   **Era:** sem `push` nem `notificationclick`. **É:** `push` monta a
+   notificação por `opcoesDaNotificacao()` (título, corpo, ícone e badge
+   `/icons/icone-192.png`, `tag` que substitui a anterior, `lang: "pt-BR"`,
+   `data.url` só se for caminho do app); `notificationclick` fecha, leva uma
+   aba do app já aberta à `url` (tenta o foco) ou abre uma nova.
+3. **Mais → Lembretes** (LEM-pagina-lembretes; `app/(app)/mais/page.tsx`,
+   `app/(app)/mais/lembretes/page.tsx` (novo),
+   `components/mais/tela-lembretes.tsx` (novo)). **Era:** nada. **É:** a linha
+   "Lembretes — Receber avisos no celular; ative em cada aparelho." em Mais
+   (entre Preferências e Créditos) e a tela com o estado deste aparelho
+   (`estadoDoAparelho()`: sem configuração · não suportado · bloqueado ·
+   ativado · desativado), "Ativar lembretes neste aparelho"
+   (`requestPermission` + `pushManager.subscribe` com a chave pública + a
+   linha na tabela **com o `user_id` da sessão**, que a página recebe do
+   servidor; se o `endpoint` já era de outra conta, cancela e pede uma
+   inscrição nova), "Desativar neste aparelho", a lista "Aparelhos desta
+   conta" com "Remover" e "Enviar um lembrete de teste". O servidor entrega
+   ao navegador só a chave pública, lida do ambiente em tempo de execução.
+4. **Lembrete de teste** (LEM-rota-teste; `app/api/lembretes/teste/route.ts`
+   (novo), `lib/web-push.ts` (novo), `lib/supabase/middleware.ts`).
+   **Era:** nenhuma rota de API. **É:** `POST /api/lembretes/teste` (runtime
+   `nodejs`) lê as inscrições **com a sessão de quem pediu** (a RLS limita) e
+   manda a cada uma o payload de teste cifrado `aes128gcm` (RFC 8291) com
+   `Authorization: vapid t=<JWT ES256>, k=<pública>` (RFC 8292), `TTL`,
+   `Urgency` e `Topic`; 404/410 apaga a inscrição; devolve o texto da tela
+   ("Enviado para 1 aparelho."). Sem as variáveis VAPID, 503 "Lembretes ainda
+   não configurados neste servidor."; tabela ausente, 503 com o aviso do
+   banco. Só chama `endpoint` `https` de serviço de push conhecido (FCM,
+   Mozilla, Apple, Windows) — a inscrição é dado do usuário, e sem isso a rota
+   faria POST para qualquer endereço; o servidor falso dos testes entra só por
+   `LEMBRETES_PUSH_DE_TESTE`, e só em 127.0.0.1/localhost. O middleware passou
+   a responder **401 em JSON** às rotas `/api/*` sem sessão (antes seria o 307
+   para `/login`).
+5. **Instruções** (LEM-instrucoes-navegador; `lib/lembretes.ts`,
+   `tela-lembretes.tsx`). `instrucoesDoAparelho()` segue a **tabela das 80
+   combinações da SPEC §23.6** (desde a rodada 18; o Vitest lê a tabela do
+   SPEC.md): Brave (`navigator.brave`) **fora do iPhone**, com a inscrição
+   falhando ou a permissão negada → ligar "Usar os serviços do Google para
+   mensagens push" em Configurações → Privacidade e segurança (nunca em "sem
+   suporte" nem no iPhone, onde essa opção não existe); permissão negada →
+   cadeado → Permissões → Notificações → Permitir (ou Configurações do
+   Android → Apps → Treino do Terraço → Notificações) e, no iPhone, Ajustes
+   → Notificações → Treino do Terraço → "Permitir Notificações"; iPhone fora
+   da tela inicial → Compartilhar → Adicionar à Tela de Início (iOS 16.4+);
+   sem suporte → Chrome ou Brave no Android, app instalado com iOS 16.4+ no
+   iPhone; qualquer outra falha ao ativar (Chrome, app instalado no iPhone,
+   permissão dispensada) → "Para tentar de novo" (a falha nunca fica só com
+   a frase). Ao voltar das configurações, a tela confere de novo sozinha.
+6. **SPEC §23 e guia** (LEM-spec-23; `SPEC.md`, `lib/guia.ts`). §23 com o
+   desenho inteiro (I neste lote, II marcada para o L35), segurança e aceite;
+   §11 anotada ("notificações push" revogado pela §23) e §20.5 cita
+   Lembretes. O guia (Mais → Como usar o app → Mais) ganhou "Lembretes", com
+   título, descrição e rota de `LINHA_LEMBRETES` — a mesma fonte da linha de
+   Mais.
+
+**A dependência `web-push` não entrou** (o contrato a permitia): o
+`node_modules` desta máquina é um só para todas as faixas (symlink para
+`/home/user/WORKOUT/node_modules`) e o `npm install web-push @types/web-push
+--dry-run` listou 133 pacotes a acrescentar e dezenas de "change" em pacotes
+existentes do diretório compartilhado. As duas RFCs cabem em
+`lib/web-push.ts` (~250 linhas, só `node:crypto`), e o teste reproduz **byte
+a byte o exemplo do Apêndice A da RFC 8291** (cabeçalho de 86 bytes e cifra).
+`package.json` e `package-lock.json` não mudaram.
+
+**Variáveis novas** (documentadas em `.env.local.example`, sem valor — é o
+arquivo de exemplo que o projeto já tem; nenhum `.env.example` paralelo):
+`NEXT_PUBLIC_VAPID_PUBLIC_KEY` (65 bytes, base64url), `VAPID_PRIVATE_KEY`
+(32 bytes, base64url, **segredo**: só no servidor, Sensitive na Vercel),
+`VAPID_SUBJECT` (`mailto:` ou `https:`). O servidor confere se a pública é a
+do par (`publicaDaPrivada`); se não for, trata como não configurado. Os
+testes geram o par na hora (`e2e/playwright.config.ts`, Vitest).
+
+#### Provas
+
+- **Vitest** (novos; contagens do `vitest --reporter=json` do HEAD da rodada
+  18, `r19/l34/vitest-4192cd5.json`): `lib/web-push.test.ts` (7: vetor da
+  RFC 8291 byte a byte, decifragem, JWT ES256 conferido com a pública,
+  cabeçalhos), `lib/web-push-prova.test.ts` (5, rodada 18: a prova
+  independente pelo WebCrypto — JWT r‖s de 64 bytes em `subtle.verify`,
+  cabeçalhos, decifra pela RFC 8291 escrita no teste), `lib/lembretes.test.ts`
+  (36: notificação, estados, instruções — com a tabela da SPEC §23.6 como
+  oráculo das 80 combinações —, aparelho, destino 404/410, textos, endpoints
+  aceitos, configuração VAPID, fonte única Mais/guia; eram 29 em `ade3e6a` e
+  33 em `96c2b5e`), `lib/migracao-lembretes.test.ts` (17: subconjunto do schema,
+  idempotência, expand-only, RLS), `lib/supabase/middleware.test.ts` (+2:
+  `/api` sem sessão = 401 JSON; com sessão passa), `lib/auditoria-seguranca.test.ts`
+  (+1: tabela por aparelho com RLS própria, fora do backup).
+- **Mutação** (cópia no scratchpad, `mut/mutar.py`): 21 mutações nas linhas
+  que decidem — cifragem sem o `\0` do info, sem o delimitador `0x02`,
+  assinatura DER, `//` aceito como url interna, `lang` "en", sem o estado
+  bloqueado, sem a instrução do Brave, iPhone instalado recebendo instrução,
+  `http` aceito, origem de teste fora do loopback, 404 sem vencer, plural
+  sempre, par VAPID não conferido, migração sem `drop policy if exists`,
+  índice sem `if not exists`, select com `using (true)`, `drop column`,
+  policy de delete trocada por update no schema, `/api` indo para o login,
+  guia com outro nome, Mais redigitando a linha — **as 21 derrubam algum
+  teste**. A da origem de teste passava na primeira rodada (o teste usava a
+  porta 80, que o `URL` normaliza); o teste foi corrigido para a porta 8080 e
+  a mutação passou a cair.
+- **e2e** `e2e/ultraloop-l34.spec.ts` (31 testes desde a rodada 18 — +11:
+  a volta das configurações ×4, o `change` da permissão ×1, a frase na
+  primeira dobra ×2, sem tabela ×2, sem VAPID ×2; eram 20 desde a correção
+  da auditoria 1 e 12 em `ade3e6a`, com os 2 do anel de foco; Chromium no modo headless
+  novo — `channel: "chromium"`: no headless shell padrão a permissão de
+  notificação fica `denied` mesmo concedida e `showNotification` recusa,
+  medido com um worker mínimo): ativar/desativar nos dois temas (a linha
+  gravada com `user_id`, `endpoint`, chaves e "Chrome · Android"; o
+  `subscribe` recebeu a chave pública do servidor com `userVisibleOnly`;
+  recarregar mantém; desativar apaga a linha e a inscrição; alvos ≥ 44 px;
+  sem rolagem lateral); o teste de envio (o mock recebe o POST com
+  `Authorization: vapid` cujo JWT confere com a pública, `aud` = origem do
+  endpoint, `aes128gcm`, corpo que **decifra** no payload; a tela diz
+  "Enviado para 1 aparelho. 1 aparelho tinha a inscrição vencida e saiu da
+  lista."; a de 410 some da tabela); 401 sem sessão; RLS no mock (B não vê,
+  não apaga e não reaproveita o endpoint de A); aparelho que era de outra
+  conta ganha inscrição nova; o worker real transforma um `PushEvent` em
+  notificação (título, corpo, tag, ícone, `pt-BR`, `data.url`) e o
+  `notificationclick` leva a aba a `/relatorio` e fecha a notificação;
+  permissão negada (simulada: o Playwright só concede) → bloqueado com o
+  caminho; Brave simulado (`navigator.brave` + `subscribe` com AbortError) →
+  instrução do Brave; sem `PushManager` → não suportado. Em `ade3e6a` esses
+  três estados rodavam num tema só (bloqueado e sem suporte no escuro, Brave
+  no claro) e sem `alvosDe44` no Brave e no sem suporte; desde a correção,
+  cada um roda **nos dois temas**, com alvos e rolagem, mais a falha
+  genérica do Chrome e o teste sem entrega (500).
+- **Anel de foco da linha nova** (`app/(app)/mais/page.tsx`): a lista de Mais
+  tem `overflow-hidden` (os cantos) e o anel de fora (+2 px) saía cortado dos
+  lados em toda linha — medido na linha Lembretes pelo e2e novo
+  (`deslocamento + largura = 4 > 0`, 2 de 2 falhando contra o build sem a
+  correção, `r18/l34/local/mutacao-foco-sem-correcao.log`). As linhas passam
+  ao anel **interno** (`focus-visible:-outline-offset-4`); o e2e confere, nos
+  dois temas, contorno sólido ≥ 2 px inteiro dentro da caixa e o pixel 3 px
+  para dentro da borda mudando com contraste ≥ 3:1 ao focar.
+- **Ao vivo, fora das capturas** (`r18/l34/ao-vivo/`, mock + `next start`
+  sem as variáveis VAPID, 360×740, claro e escuro): `/mais/lembretes` diz
+  "Lembretes ainda não configurados neste servidor.", nenhum botão, "Mais"
+  (voltar) 74×44, sem rolagem lateral (`scrollWidth − clientWidth = 0`), e
+  `POST /api/lembretes/teste` com sessão responde **503** com o mesmo texto.
+  O estado "tabela ausente" (migração não aplicada) tinha, nesta rodada, só
+  prova de unidade (`tabelaAusente()` com `PGRST205`/`42P01`). Desde a
+  rodada 18 a tela tem e2e com o `PGRST205` por `page.route`, nos dois
+  temas; desde a rodada 19 a rota tem Vitest do 503 `SEM_TABELA`
+  (`lib/rota-lembretes-teste.test.ts`).
+
+#### Correção da auditoria (1ª auditoria em `ade3e6a`: regra reprovada, tela aprovada)
+
+Vereditos em `r18/l34/auditoria-1-{regra,tela}/veredito.json`. Todos os
+bloqueantes e importantes atendidos; os menores, os que cabiam sem risco.
+
+- **Bloqueante — ativar nunca gravava no banco real.** Era: o insert da tela
+  mandava `endpoint`, `p256dh`, `auth` e `aparelho`, sem `user_id`; a coluna é
+  `not null` sem default e a policy é `with check (user_id = auth.uid())`, e
+  a auditoria provou no Postgres 16 o `null value in column "user_id"`. O e2e
+  passava porque o mock punha o dono em toda inserção. É: a página
+  (`app/(app)/mais/lembretes/page.tsx`) pega o id no servidor
+  (`idDoUsuario()`, como Corpo/Treinar) e a tela
+  (`components/mais/tela-lembretes.tsx`, `linhaDaInscricao`) manda `user_id`
+  no insert, como todo insert do app. O mock (`scripts/mock-supabase.ts`)
+  deixou de mascarar: nesta tabela, insert sem `user_id` → 403 `42501` (a
+  policy reprova antes do `not null`), sem `endpoint`/`p256dh`/`auth` → 400
+  `23502`, e `PATCH` não altera nada (sem policy de update). O e2e confere o
+  **corpo do POST** que a tela manda (`page.waitForRequest`) e ganhou o teste
+  "como no banco" (42501, 23502, PATCH inerte). Uma inscrição sem as duas
+  chaves passou a ser falha do `subscribe` (não grava `''`).
+- **Importante — url de outro host pelo `notificationclick`.** Era:
+  `urlInterna()` testava só os prefixos `//` e `/\`, e `"/\t/evil"`,
+  `"/\n/evil"`, `"/\r/evil"` passavam (o parser apaga TAB/LF/CR e sobra
+  `//evil`). É: resolve com `new URL(limpa, "https://app.invalid")`, exige a
+  mesma origem e devolve caminho + busca + âncora (`lib/lembretes.ts`);
+  Vitest com `\t`, `\n`, `\r` e `\t\`; a sonda da auditoria
+  (`auditoria-1-regra/url.ts`) contra o código novo dá `/` nos três
+  (`r18/l34/url-correcao.out`).
+- **Importante — a falha ao ativar ficava só com a frase.** Era: com
+  `falhou` e o estado "desativado", 3 das 80 combinações não davam instrução
+  — justamente Chrome/Android (e o iPhone instalado, e a permissão
+  dispensada). É: a instrução "Para tentar de novo" (conferir a internet e
+  tocar em Ativar, escolher Permitir, ver as notificações do navegador nas
+  configurações do celular) entra quando há problema e nenhum caso especial;
+  Vitest varre as 80 combinações ("com problema, nunca vazia"); e2e da falha
+  do Chrome nos dois temas. SPEC §23.4 e §23.6 dizem isso.
+- **Importante — PROGRESSO sem cadeia verde com números.** Os Portões abaixo
+  trazem os números reais de `ade3e6a` e os da cadeia do HEAD da correção.
+- **Menores atendidos:** o recado de "Remover" usa "Aparelho sem nome"
+  quando a linha veio sem nome; o teste que não chegou a nenhum aparelho
+  (500) continua `role="status"` mas com a cor de erro (`data-falha`); os
+  estados bloqueado, Brave e sem suporte rodam **nos dois temas** com
+  `alvosDe44` (eram um tema só cada); `/mais/lembretes` entrou nas ROTAS da
+  varredura (contraste AA e anel de foco com guarda permanente); a contagem
+  do spec e as capturas citadas no PROGRESSO corrigidas; a SPEC §23.6 anota
+  para o L35 o "Sair" (hoje não mexe na inscrição do aparelho) e o badge
+  colorido.
+- **Menores não atendidos, com motivo:** a biblioteca `web-push` segue fora
+  (o contrato permitia, não obrigava; o `node_modules` é compartilhado e esta
+  faixa não roda `npm install`; a cifragem é conferida byte a byte contra a
+  RFC 8291) · os trailers colados ao assunto em `9df421b` ficam como estão
+  (não se reescreve histórico: sem amend/rebase) · o badge monocromático
+  precisa de um desenho que o kit não tem · o `notificationclick` sem aba
+  aberta não é medível aqui (o Chromium nega `openWindow` a um evento
+  sintético sem gesto) · a RLS no Postgres real segue com prova estática (o
+  Postgres `--single` não liga RLS).
+- **Mutação da correção** (cópia em `r18/l34/mut-correcao`, Vitest): sem o
+  teste de origem, devolvendo a url crua, sem a instrução genérica e com a
+  genérica sempre — **4 de 4 derrubadas**.
+
+#### Portões
+
+Cadeia inteira em `9df421b` (todo o código do lote;
+`r18/l34/logs/9df421b.log`, das 18:10:55 às 18:33:11 UTC, **falhou:e2e**):
+`lint` limpo · `tsc --noEmit` limpo · `npm test` **71 arquivos, 1.609
+testes, todos verdes** (eram 68 / 1.553 em `27eda74`: +3 arquivos, +56
+testes) · `build` ("Compiled successfully in 19.8s") · `build:e2e`
+("Compiled successfully in 17.7s") · `e2e` **530 passaram, 1 falhou, 5
+pulados** (20,2 min). A falha: `e2e/guia.spec.ts` "a tabela de destinos
+cobre todos os hrefs de lib/guia.ts" — o guia ganhou `/mais/lembretes` e a
+tabela de títulos do próprio teste não tinha a rota. Corrigido em `d1cf096`
+(a rota entra na tabela com o título "Lembretes"; o teste "Ir para
+/mais/lembretes" abre a tela e acha o `<h1>`). Com o anel interno
+(`bec0df8`), build:e2e local e os e2e afetados (`r18/l34/local/com-correcao.log`:
+o spec do lote, o guia e Mais) — **27 de 27**.
+
+Cadeia inteira em `ade3e6a` (o HEAD que foi à auditoria;
+`r18/l34/logs/ade3e6a.log`, das 18:39:51 às 19:06:42 UTC, **ok**): `lint`
+limpo · `tsc --noEmit` limpo · `npm test` **71 arquivos, 1.609 testes** ·
+`build` ("Compiled successfully in 18.3s") · `build:e2e` ("Compiled
+successfully in 18.1s") · `e2e` **533 passaram, 5 pulados** (20,6 min; os 5
+pulados são a varredura, que roda à parte) · `varredura` **5 passaram**
+(4,3 min). Uma cadeia começada em `857b888` foi interrompida por mim no `npm
+test` para entrar o ajuste da SPEC antes (`857b888.log` diz isso no fim).
+
+**Correção da auditoria.** Rodada local em `5ca73a7` (todo o código da
+correção; `r18/l34/local2/5ca73a7.log`, 19:29–19:35 UTC, **ok**):
+`build:e2e` ("Compiled successfully in 9.5s") · e2e do lote
+(`ultraloop-l34`) **20 passaram** (42,8 s) · `varredura` **5 passaram**
+(4,6 min, já com `/mais/lembretes` nas rotas) · `npm test` **71 arquivos,
+1.613 testes** (+4 em `lib/lembretes.test.ts`).
+
+Cadeia inteira em `65804cf` (todo o código da correção + o rascunho deste
+registro; `r18/l34/logs/65804cf.log`, das 19:35:49 às 20:00:10 UTC,
+**falhou:e2e** por um teste instável fora do lote): `lint` limpo · `tsc
+--noEmit` limpo · `npm test` **71 arquivos, 1.613 testes** · `build`
+("Compiled successfully in 18.3s") · `build:e2e` ("Compiled successfully in
+18.5s") · `e2e` **540 passaram, 1 falhou, 5 pulados** (22,4 min; 541 executados = os 533 de
+`ade3e6a` + 8 do spec do lote, que foi de 12 a 20 testes). A falha: `e2e/player.spec.ts:164` ("ao zerar, 'avançar sozinho'
+passa ao próximo passo…"), que não toca em lembretes — o trace mostra
+"Loading chunk 2636 failed" com `net::ERR_ABORTED` no **terceiro** pedido do
+mesmo chunk ao navegar para `/mais/preferencias` com o relógio instalado
+(`clock.install`); os dois pedidos anteriores do chunk deram 200. Sozinho,
+**2 de 2 verdes** (4,2 s e 4,3 s; `r18/l34/player-sozinho-{a,b}/65804cf.log`):
+instável sob carga, anotado, não bloqueia. A `varredura` não rodou nessa
+cadeia (ela para no primeiro portão que falha); rodou verde na local acima e
+roda na cadeia do HEAD final, `r18/l34/logs/<HEAD>.log`, que difere de
+`65804cf` só neste PROGRESSO.md.
+
+#### Capturas
+
+`capturas.sh` com o `.next` do build:e2e da cadeia de `65804cf` (o código de
+app da correção), contra a base real de `main` (`base-ef3ad97`), com a tela
+declarada `18-mais` (`r18/l34/capturas-65804cf.md`): 60 PNGs, só `18-mais`
+mudou; as outras 58 com Δ 0,00 %. Os 60 PNGs são **iguais byte a byte** aos
+de `capturas-ade3e6a` (a correção não muda nenhuma das 60 telas). Diff
+aberto: `18-mais-claro.diff.png`.
+
+| tela | Δ claro | Δ escuro | o que mudou |
+| --- | ---: | ---: | --- |
+| 18-mais | 13,29 % | 13,27 % | a linha nova "Lembretes — Receber avisos no celular; ative em cada aparelho." (sino) entre Preferências e Créditos; Créditos, Backup e o cartão de sincronização descem uma linha (~81 px). Nada acima de Preferências muda. |
+
+`/mais/lembretes` não está nas 60 capturas: medida pelos e2e do lote (todos
+os estados nos dois temas desde a correção) e **ao vivo** no HEAD da
+correção (`r18/l34/correcao-ao-vivo/`: mock novo + `next start` do `.next`
+de `65804cf`, par VAPID gerado na hora, Chromium a 360×740, os dois temas,
+pelo caminho Mais → Lembretes; script da auditoria de tela com o `user_id`
+no insert semeado): **73 medidas, 0 falhas** — ativar grava a linha no mock
+que agora recusa insert sem `user_id` ("Chrome · Linux", chaves do
+aparelho), recarregar mantém, teste "Enviado para 1 aparelho.", desativar e
+Remover zeram a tabela; bloqueado → instrução de permissão; Brave → só a do
+Brave; sem suporte e iPhone → as deles; **o Chromium real sem serviço de
+push (o caso que a auditoria viu só com a frase) mostra "Para tentar de
+novo" nos dois temas**; o worker real mostra o push e leva a aba a
+`/mais/lembretes`; url `//evil.example/a` → `/`; `scrollWidth` 360/360 em
+todas, nenhum alvo < 44 px, contraste mínimo 4,58:1 (claro) e 5,85:1
+(escuro); `POST /api/lembretes/teste` sem sessão → 401 JSON. Servidores
+derrubados pelos PIDs (portas 3100 e 54321 → 000).
+
+#### Como testar no celular (360 px)
+
+Antes: o orquestrador aplica `supabase/migracoes/2026-09-23-lembretes-inscricoes.sql`
+no projeto e cria na Vercel (production) `NEXT_PUBLIC_VAPID_PUBLIC_KEY`,
+`VAPID_PRIVATE_KEY` (Sensitive) e `VAPID_SUBJECT`. Um par se gera, por
+exemplo, com `node -e "const c=require('crypto').createECDH('prime256v1');c.generateKeys();console.log(c.getPublicKey('base64url'),c.getPrivateKey('base64url'))"`.
+
+1. Mais → **Lembretes** (entre Preferências e Créditos). Sem as variáveis, a
+   tela diz "Lembretes ainda não configurados neste servidor." e mais nada.
+2. **Brave no Android** (o aparelho do dono): toque em "Ativar lembretes
+   neste aparelho" → Permitir. Se o Brave estiver com o push desligado, a
+   tela mostra "No Brave, os avisos só chegam com os serviços do Google
+   ligados": Configurações do Brave → Privacidade e segurança → ligar "Usar
+   os serviços do Google para mensagens push" → fechar e abrir o Brave →
+   Ativar de novo. Deu certo: "Ativado neste aparelho." e o aparelho aparece
+   em "Aparelhos desta conta" como "Brave · Android (este)".
+3. "Enviar um lembrete de teste" → "Enviado para 1 aparelho." e, no celular,
+   a notificação "Lembrete de teste — Se você está vendo isto, os lembretes
+   chegam neste aparelho." Toque nela: o app abre em Mais → Lembretes.
+   Mandar de novo não empilha (a mesma tag troca a anterior).
+4. Se o navegador não conseguir ativar (Chrome, ou a pergunta da permissão
+   fechada sem escolher), a tela diz o que houve e mostra "Para tentar de
+   novo" — nunca só a frase.
+5. Negou a permissão sem querer: a tela diz "Bloqueado pelo navegador." com
+   o caminho (cadeado → Permissões → Notificações → Permitir; ou
+   Configurações do Android → Apps → Treino do Terraço → Notificações).
+   Libere por lá e **volte ao app sem recarregar**: a tela confere de novo
+   sozinha e passa a "Desativado neste aparelho." com o botão "Ativar
+   lembretes neste aparelho"; a frase "O navegador recusou…" e a instrução
+   somem.
+6. iPhone: no Safari a tela explica que é preciso instalar (Compartilhar →
+   Adicionar à Tela de Início) e ativar pelo ícone (iOS 16.4+). Com o app
+   instalado e a permissão negada, o caminho é o do iPhone (Ajustes →
+   Notificações → Treino do Terraço → "Permitir Notificações"), sem o
+   cadeado nem o Android e sem o conselho do Brave.
+7. "Desativar neste aparelho" some com o aparelho da lista; "Remover" tira
+   outro aparelho da conta. Os horários dos lembretes são o próximo lote
+   (L35).
+
+#### Rodada 17 — auditoria 2 reprovou; lote devolvido à fila
+
+A 2ª auditoria, em `96c2b5e` (cadeia verde: 1.613 unitários, 541 e2e + 5
+pulados, varredura 5/5; capturas: só `18-mais`), reprovou com **1
+importante em cada lente** e nenhum bloqueante
+(`r18/l34/vereditos-auditoria-2.json`):
+
+- **regra** — `instrucoesDoAparelho()` e a SPEC §23.6 divergiam em 4 das 80
+  combinações (Brave + navegador sem suporte); no iPhone, a tela mandava
+  ligar uma opção do Brave que só existe no Android e no computador;
+- **tela** — a tela não relia a permissão ao voltar das configurações: ficava
+  em "Bloqueado pelo navegador.", sem o botão Ativar, com a instrução
+  mandando tocar nele (medido nos dois temas, com e sem Brave).
+
+Menores: a frase da recusa abaixo da dobra com Brave + recusa (duas
+instruções); o `aria-label` do Remover sem o nome da lista; "sem
+configuração" e "sem tabela" sem e2e na montagem; o PROGRESSO citava 29
+testes em `lib/lembretes.test.ts` (eram 33). **Lote devolvido à fila.**
+
+#### Rodada 18 — retomada (correção da auditoria 2)
+
+Sobre `96c2b5e`, logs em `r19/l34/`. SPEC antes do código (`30ff9fc`).
+
+- **Importante (regra) — a tabela é o oráculo.** Era: o Brave entrava em
+  "sem suporte" e no iPhone; a SPEC dizia outra coisa em 4 combinações. É:
+  a SPEC §23.6 tem a **tabela das 80 combinações** (estado × Brave × iPhone
+  × instalado × falhou, 15 linhas com "·" = qualquer) e decide pelo que
+  existe no aparelho — o ajuste do Brave só **fora do iPhone** e só com
+  falha ao ativar ou permissão negada (ligar os serviços do Google não cria
+  o `PushManager` que falta); no iPhone com a permissão negada entra a
+  instrução nova `permissao-iphone` (Ajustes → Notificações → Treino do
+  Terraço → "Permitir Notificações"), porque o cadeado e as Configurações do
+  Android não existem lá; "sem suporte" no iPhone instalado (iOS antigo)
+  cita o iOS 16.4. `lib/lembretes.test.ts` **lê a tabela do SPEC.md**,
+  confere que cada combinação cai em exatamente uma linha e que o código
+  devolve as mesmas instruções na mesma ordem (`b2aa2b6`). Mutação: com a
+  regra antiga do Brave, o oráculo acusa **14 divergências** e cai.
+- **Importante (tela) — a volta das configurações.** Era: `carregar()` só
+  no mount. É: a tela relê permissão e inscrição em `visibilitychange`
+  (visível), `focus`, `pageshow` e no `change` de
+  `navigator.permissions.query({name: "notifications"})` quando existe; se
+  a permissão mudou desde a última leitura, a frase e a falha antigas saem;
+  não relê no meio de um Ativar/Desativar/Remover/teste (o pedido de
+  permissão também tira e devolve o foco) — `d14f3e0`. O passo final das
+  instruções de permissão diz "Volte aqui: a tela confere de novo e mostra
+  “Ativar lembretes neste aparelho”". e2e (`51a099f`, `134efd0`), nos dois
+  temas: a permissão **negada de verdade** no Chromium (CDP
+  `Browser.setPermission`; o Playwright só sabe conceder) → "Bloqueado",
+  instrução, sem Ativar → o contexto do Playwright concede → 400 ms sem
+  mudar (não há leitura periódica) → `visibilitychange` (hidden → visible) →
+  "Desativado", o Ativar aparece, as instruções somem, e o Ativar grava a
+  linha; com a `navigator.permissions` desligada, para provar o caminho do
+  `visibilitychange` sozinho. Mais: a recusa ao pedir some na volta (dois
+  temas) e o `change` da permissão relê sem nenhuma volta (1 teste).
+  Mutação: sem o ouvinte de `visibilitychange`, **3 de 3** testes da volta
+  caem (`r19/l34/mutacao/volta.out`).
+- **Menores atendidos.** A frase de ativar/desativar fica **no bloco "Este
+  aparelho", abaixo do estado (e do botão Ativar/Desativar, quando há
+  botão) e acima das instruções** — texto corrigido na rodada 19; e2e com Brave +
+  recusa (duas instruções, `brave` e `permissao`) nos dois temas: a frase
+  acima da primeira instrução, inteira acima da barra de abas, `scrollY` 0.
+  O `aria-label` do Remover usa o nome da lista ("Remover Aparelho sem nome
+  (desde dd/mm)"), conferido no e2e. "Sem tabela" na montagem: e2e com o
+  PostgREST respondendo `PGRST205` (`page.route`), nos dois temas. "Sem
+  configuração" na montagem: e2e com um **segundo `next start`** do mesmo
+  build, sem as variáveis VAPID, numa porta livre, subido e derrubado pelo
+  próprio spec (grupo do processo) — a tela diz "Lembretes ainda não
+  configurados neste servidor.", sem botão, e `POST /api/lembretes/teste`
+  responde **503** com o mesmo texto, nos dois temas. Os números de testes
+  deste registro saem do `vitest --reporter=json` do HEAD (abaixo).
+- **Prova da assinatura VAPID** (`lib/web-push-prova.test.ts`, `3cff8dc`,
+  só WebCrypto): o JWT tem `alg: ES256`/`typ: JWT`, `aud` = origem do
+  endpoint, `exp` ≤ 24 h e `sub` = `VAPID_SUBJECT`; a assinatura tem **64
+  bytes (r‖s)** e confere em `crypto.subtle.verify` (ECDSA P-256/SHA-256)
+  com a pública importada em formato raw; `Authorization: vapid t=…, k=…`
+  com `k` = a pública (65 bytes, `0x04`); `Content-Encoding: aes128gcm`,
+  `TTL`, `Urgency` e `Topic`; e o corpo **decifra** com a chave privada do
+  assinante por uma implementação da RFC 8291 escrita no teste (HKDF, ECDH e
+  AES-GCM do WebCrypto), a mesma que decifra o exemplo do Apêndice A; outra
+  chave não decifra. Mutação: `dsaEncoding: "der"` em `lib/web-push.ts` →
+  a prova cai ("expected … to have a length of 64 but got 71",
+  `r19/l34/mutacao/der.out`). A biblioteca `web-push` segue fora (SPEC
+  §23.5).
+
+**Portões da rodada 18.** Cadeia inteira em `4192cd5` (todo o código da
+correção + o rascunho deste registro; `r19/l34/logs/4192cd5.log`, das
+21:05:22 às 21:33:40 UTC, **ok**): `lint` limpo · `tsc --noEmit` limpo ·
+`npm test` **72 arquivos, 1.621 testes, todos verdes** (eram 71 / 1.613 em
+`96c2b5e`: +1 arquivo `lib/web-push-prova.test.ts` com 5, +3 em
+`lib/lembretes.test.ts`; o `vitest --reporter=json` do mesmo HEAD dá os
+mesmos 1.621 — lembretes 36, web-push 7, web-push-prova 5,
+migracao-lembretes 17, middleware 9, auditoria-seguranca 32,
+`r19/l34/vitest-4192cd5.json`) · `build` ("Compiled successfully in
+18.7s") · `build:e2e` ("Compiled successfully in 19.3s") · `e2e` **552
+passaram, 5 pulados** (21,3 min; os 541 de `96c2b5e` + os 11 novos do spec
+do lote, que tem 31 testes, todos ✓; nenhum ✘, nenhum instável) ·
+`varredura` **5 passaram** (4,7 min, com `/mais/lembretes`). Antes da
+cadeia, rodada local do spec do lote em `51a099f`
+(`r19/l34/local/l34.log`): 28 de 31 — os 3 que negam a permissão falhavam
+porque a sessão CDP se desligava e o Chromium desfazia a negação; com a
+sessão aberta até o fim do teste (`134efd0`), **7 de 7** nos testes novos
+(`r19/l34/local/l34-b.log`). Este PROGRESSO.md é o único arquivo que muda
+depois de `4192cd5`.
+
+**Capturas da rodada 18.** `capturas.sh` com o `.next` do build:e2e da
+cadeia de `4192cd5`, contra a base real de `main` (`base-ef3ad97`), tela
+declarada `18-mais` (`r19/l34/capturas-4192cd5.md`): 60 PNGs, só `18-mais`
+mudou; as outras 58 com Δ 0,00 % ("Nenhuma tela mudou fora do esperado").
+Os 60 PNGs são **iguais byte a byte** aos de `capturas-96c2b5e` — a correção
+mexe só em `/mais/lembretes`, que não está nas 60. Diff aberto
+(`18-mais-escuro.diff.png`): a linha "Lembretes" entre Preferências e
+Créditos; Créditos, Backup e o cartão de sincronização descem uma linha;
+nada acima de Preferências muda. Servidores derrubados pelo script (3100 e
+54321 → 000).
+
+| tela | Δ claro | Δ escuro | o que mudou |
+| --- | ---: | ---: | --- |
+| 18-mais | 13,29 % | 13,27 % | a linha nova "Lembretes" (a mesma de `96c2b5e`); nada mais |
+
+**Como testar a correção no celular (360 px).** (a) Brave no Android: negue
+a permissão ao tocar em Ativar → a frase "O navegador recusou as
+notificações deste app." aparece logo abaixo do estado, **acima** das duas
+instruções (Brave e permissão), sem rolar. (b) Libere pelo cadeado ou pelas
+Configurações do Android → Apps → Treino do Terraço → Notificações e volte ao
+app **sem recarregar** → "Desativado neste aparelho.", o botão "Ativar
+lembretes neste aparelho" aparece e as instruções somem. (c) iPhone com o
+app instalado e a permissão negada → só "O iPhone está bloqueando as
+notificações deste app" (Ajustes → Notificações → Treino do Terraço), sem o
+conselho do Brave. (d) Com o leitor de tela, o Remover de um aparelho sem
+nome diz "Remover Aparelho sem nome (desde dd/mm)".
+
+#### Rodada 19 — Correção da auditoria (1ª auditoria da rodada 18 em `8b54cf1`: regra reprovada, tela aprovada)
+
+Vereditos em `r19/l34/auditoria-1-{regra,tela}/veredito.json`: regra
+reprovada por **1 importante** (nenhum bloqueante), tela aprovada; 5 + 3
+menores. Sobre `8b54cf1`, logs em `r19/l34/`. SPEC antes do código
+(`6d4e759`).
+
+- **Importante (regra) — `urlInterna()` devolvia `//outro.host`.** Era: a
+  conferência rodava só sobre a **entrada** (prefixo `/`, sem `//` nem `/\`,
+  e a URL resolvida contra `https://app.invalid` na mesma origem); o parser
+  desfaz `.`, `..` e `%2e` depois, e a função devolvia o `pathname`
+  normalizado sem conferir: `"/.//mal.example/x"` → `"//mal.example/x"`,
+  `"/..//mal.example"`, `"/a/..//mal.example"`, `"/%2e//mal.example"`,
+  `"/./\mal.example"` e `"\t/.//mal.example"` → `"//mal.example"`, e não era
+  idempotente (1.014 saídas ruins em 43.904 entradas na varredura da
+  auditoria). O `notificationclick` reaplicava a função e caía em `/`, então
+  não havia exploração, mas o contrato da SPEC §23.3 falhava. É: a **saída**
+  também é conferida — um caminho devolvido que começa com `//` vira `/`
+  (`lib/lembretes.ts`, `ef9c163`); o caminho normalizado não tem TAB, LF, CR
+  nem `\`, então basta isso. Vitest novo em `lib/lembretes.test.ts`: 11
+  entradas com pontos antes da barra dupla (inclusive `%2E%2E`, `/..\/` e TAB
+  no meio) → `/`, também em `opcoesDaNotificacao().opcoes.data.url`; uma
+  **varredura** de 30 pedaços hostis combinados 3 a 3, com e sem sufixo
+  (54.000 entradas), em que toda saída começa com `/`, não com `//` nem
+  `/\`, fica na origem ao ser resolvida e é **idempotente**; e a
+  idempotência dos caminhos que valem. Mutação: sem a conferência da saída,
+  2 dos testes novos caem. A varredura da própria auditoria (`url2.ts`)
+  contra o código novo: **43.904 entradas, 0 ruins**; `url-prova.ts`: as 6
+  entradas → `/`, idempotente (`r19/l34/local/url2-ef9c163.out`,
+  `url-prova-ef9c163.out`).
+- **Menores (regra), todos atendidos.**
+  - SPEC §23.4 e este PROGRESSO diziam "logo abaixo do estado"; com botão, a
+    ordem é estado → botão → frase → instruções. Texto corrigido para
+    "abaixo do estado (e do botão, quando há botão), acima das instruções"
+    (SPEC, comentário do componente e rodada 18 acima). O aceite medido (a
+    frase acima das instruções, na primeira dobra) não muda.
+  - A frase velha "o mock não sabe esconder uma tabela" (rodada 17) foi
+    atualizada; o 503 `SEM_TABELA` da **rota** ganhou prova:
+    `lib/rota-lembretes-teste.test.ts` (8 testes, `d0910ea`), com o cliente
+    do Supabase do servidor trocado — 503 `SEM_CONFIGURACAO` sem as
+    variáveis e com o par errado (sem abrir o banco), 401 sem sessão (sem
+    ler a tabela), 503 `SEM_TABELA` com `PGRST205` e com `42P01` (sem
+    nenhum `fetch`), 502 com outro erro, 409 sem aparelho, e um endpoint
+    fora dos serviços de push não é chamado e conta como não enviado.
+    Mutação: sem o ramo `SEM_TABELA` na rota, os 2 testes do 503 caem.
+  - SPEC §23.4 sem teste para `focus`, `pageshow`, a guarda do
+    `emAndamento` e a volta sem internet. e2e novos (`398dc23`): a volta
+    por `focus` e por `pageshow`, **cada um sozinho** (a permissão negada de
+    verdade, concedida, 400 ms sem mudar, o evento → Desativado com Ativar e
+    sem instruções); um **Ativar demorado** (`subscribe` de 2 s) com
+    `visibilitychange`, `focus` e `pageshow` disparados no meio: nenhuma
+    leitura da tabela antes do `DELETE`/`POST` da gravação; e a **volta sem
+    internet**. Esta última mostrou um defeito, corrigido (`2e5f6c2`): era,
+    uma volta com a leitura da lista falhando trocava a frase do aparelho
+    ("O navegador recusou…") por "Não deu para ler os aparelhos agora.", e
+    esse aviso ficava mesmo depois de uma leitura boa; é, a frase do
+    aparelho fica (o aviso da lista só entra onde não há frase) e o aviso
+    sai na próxima leitura que der certo. O "sem internet" é no `fetch` da
+    página (a página é do service worker: nem `context.setOffline` nem
+    `page.route` alcançam o que passa por ele), e o teste espera as **4
+    tentativas** do postgrest-js (1 s, 2 s e 4 s de espera) antes de olhar a
+    tela. Mutações (build:e2e de cada uma, `r19/l34/local/mut-a.log` e
+    `mut-b.log`): sem manter a frase, sem limpar o aviso, sem o ouvinte de
+    `pageshow` e sem a guarda → **4 de 4** caem (a guarda:
+    "GET GET DELETE POST GET"); sem o ouvinte de `focus` → o teste do `focus` cai (1 de 1).
+  - A prosa do `brave` (§23.6) falava em "a inscrição falhou ou a permissão
+    está negada", e o Brave com a pergunta dispensada cai em `brave` sem
+    nenhuma das duas. A prosa agora diz "o Ativar falhou — a inscrição
+    falhou ou a pergunta da permissão foi dispensada sem escolher — ou a
+    permissão está negada"; a tabela e o código já concordavam.
+  - Pendências antigas, sem mudança: o `notificationclick` sem aba aberta
+    (`clients.openWindow`), a RLS no Postgres real (prova estática e no
+    mock) e o badge monocromático (L35).
+- **Menores (tela).**
+  - **Bloqueado → liberado com o aparelho ativado** volta direto a
+    "Ativado neste aparelho" quando o navegador manteve a inscrição, e o
+    passo 3 promete o Ativar. É melhor que o prometido e o Chrome costuma
+    cancelar a inscrição ao bloquear; a SPEC §23.4 agora descreve os dois
+    caminhos. O texto do passo não mudou (fica para o L35, que mexe na tela).
+  - **iPhone fora da tela inicial com a permissão negada** dava
+    `[permissao-iphone, iphone]`, mandando abrir os Ajustes antes de
+    instalar. É `[iphone, permissao-iphone]`: instalar primeiro, porque a
+    entrada "Treino do Terraço" nos Ajustes só existe com o app instalado
+    (tabela da §23.6, prosa e `instrucoesDoAparelho()`, `ef9c163`; o
+    oráculo das 80 combinações continua 0 divergências, e um caso explícito
+    no Vitest).
+  - `clients.openWindow` sem aba aberta: pendência antiga, sem medida.
+
+**Portões da rodada 19.** Cadeia inteira em `e13a8ec` (todo o código da
+correção + o rascunho deste registro; `r19/l34/logs/e13a8ec.log`, das
+22:02:46 às 22:30:14 UTC, **ok**): `lint` limpo · `tsc --noEmit` limpo ·
+`npm test` **73 arquivos, 1.632 testes, todos verdes** (eram 72 / 1.621 em
+`4192cd5`: +1 arquivo `lib/rota-lembretes-teste.test.ts` com 8, +3 em
+`lib/lembretes.test.ts`, que passa a 39) · `build` ("Compiled successfully
+in 18.8s") · `build:e2e` ("Compiled successfully in 18.7s") · `e2e` **557
+passaram, 5 pulados** (20,9 min; os 552 de `4192cd5` + os 5 novos; o spec
+do lote tem 36 testes, todos ✓; nenhum ✘, nenhum instável, nenhuma nova
+tentativa) · `varredura` **5 passaram** (4,6 min). Antes da cadeia, rodadas
+locais do spec do lote (`r19/l34/local/`): `r19-a` 34 de 36 — os 2 da volta
+sem internet usavam `page.route`, que não alcança o que passa pelo service
+worker; reescritos no `fetch` da página, `r19-b` mostrou as 4 tentativas do
+postgrest-js (~7 s) e `r19-c` deu **2 de 2**. `diff 27eda74 --
+lib/progressao.ts lib/montagem.ts` vazio. Este PROGRESSO.md é o único
+arquivo que muda depois de `e13a8ec`.
+
+**Capturas da rodada 19.** `capturas.sh` com o `.next` do build:e2e da
+cadeia de `e13a8ec`, contra a base real de `main` (`base-ef3ad97`), tela
+declarada `18-mais` (`r19/l34/capturas-e13a8ec.md`): 60 PNGs, só `18-mais`
+mudou; as outras 58 com Δ 0,00 % ("Nenhuma tela mudou fora do esperado").
+Os 60 PNGs são **iguais byte a byte** aos de `capturas-4192cd5` (`cmp`, 0
+diferentes): a correção mexe só em `/mais/lembretes` (que não está nas 60 e
+é coberta pelo e2e) e na lib. Diff aberto (`18-mais-claro.diff.png`): de
+"Como usar o app" a "Preferências" igual; em vermelho, a 5ª linha passa a
+ser "Lembretes" (sino) e Créditos, Backup e o cartão "CONTA / Tudo
+sincronizado" descem uma linha; a barra de abas não muda. Aberta também
+`18-mais-escuro.png`: "Lembretes" entre Preferências e Créditos. Servidores
+derrubados pelo script (3100 e 54321 → 000).
+
+| tela | Δ claro | Δ escuro | o que mudou |
+| --- | ---: | ---: | --- |
+| 18-mais | 13,29 % | 13,27 % | a linha nova "Lembretes" (a mesma de `4192cd5`); nada mais |
+
+**Como testar a correção no celular (360 px).** (a) Brave no Android:
+toque em Ativar e negue → "O navegador recusou…" logo abaixo do estado;
+ligue o modo avião, saia do app e volte → a frase continua (não vira "Não
+deu para ler os aparelhos agora."). (b) Sem frase na tela, modo avião,
+saia e volte → depois de uns 7 s aparece "Não deu para ler os aparelhos
+agora."; desligue o modo avião, saia e volte → o aviso some. (c) Toque em
+Ativar e, enquanto o navegador pergunta, troque de app e volte → a tela
+termina em "Ativado neste aparelho." com uma linha só na lista. (d) iPhone
+fora da tela inicial com as notificações negadas: a primeira instrução é
+instalar (Adicionar à Tela de Início), a segunda os Ajustes.
