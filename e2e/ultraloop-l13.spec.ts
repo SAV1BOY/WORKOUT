@@ -207,7 +207,23 @@ test.describe("L13 — ficha: a caixa da ilustração (item 1)", () => {
    * dela, saltava até 369 px sob o dedo. Agora ele fica acima da mídia.
    */
   async function topoDoSegmento(grupo: Locator): Promise<number> {
-    return grupo.evaluate((g) => g.getBoundingClientRect().top);
+    // lido depois que a folha para de deslizar: duas leituras iguais seguidas
+    return grupo.evaluate(
+      (g) =>
+        new Promise<number>((resolve) => {
+          let anterior = g.getBoundingClientRect().top;
+          let iguais = 0;
+          const id = setInterval(() => {
+            const agora = g.getBoundingClientRect().top;
+            iguais = Math.abs(agora - anterior) < 0.1 ? iguais + 1 : 0;
+            anterior = agora;
+            if (iguais >= 3) {
+              clearInterval(id);
+              resolve(agora);
+            }
+          }, 100);
+        }),
+    );
   }
 
   test("trocar de vista não tira o segmento do lugar (página do goblet)", async ({ page }) => {
@@ -425,6 +441,10 @@ test.describe("L13 — a figura não é o botão de pausa (item 5)", () => {
     await abrirVisaoGeral(page);
     const geral = page.getByRole("dialog", { name: "Visão geral do treino" });
     const figura = geral.locator('[data-figura="abre"]').first();
+    // por CSS: com a ficha aberta por cima, a Visão geral sai da árvore de acessibilidade
+    const ilustracaoDoBloco = page
+      .locator('[role="dialog"][aria-label="Visão geral do treino"] [data-ilustracao]')
+      .first();
     await expect(figura).toHaveAccessibleName(/ — abre o Como fazer$/);
     await figura.click();
     const ficha = page
@@ -432,10 +452,7 @@ test.describe("L13 — a figura não é o botão de pausa (item 5)", () => {
       .filter({ has: page.getByRole("tab", { name: "Vídeo" }) });
     await expect(ficha).toBeVisible();
     // o toque abriu a ficha, não pausou a figura do bloco
-    await expect(geral.locator("[data-ilustracao]").first()).not.toHaveAttribute(
-      "data-ilustracao",
-      "pausada",
-    );
+    await expect(ilustracaoDoBloco).not.toHaveAttribute("data-ilustracao", "pausada");
   });
 
   test("na ficha a figura não é botão: tocar no meio não pausa", async ({ page }) => {
