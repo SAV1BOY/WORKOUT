@@ -11166,9 +11166,8 @@ registro; `r18/l34/logs/65804cf.log`, das 19:35:49 às 20:00:10 UTC,
 **falhou:e2e** por um teste instável fora do lote): `lint` limpo · `tsc
 --noEmit` limpo · `npm test` **71 arquivos, 1.613 testes** · `build`
 ("Compiled successfully in 18.3s") · `build:e2e` ("Compiled successfully in
-18.5s") · `e2e` **540 passaram, 1 falhou, 5 pulados** (22,4 min; eram 533 em
-`ade3e6a`: +8 do spec do lote, que foi a 20, e −1 de nada — o 541º é o que
-falhou). A falha: `e2e/player.spec.ts:164` ("ao zerar, 'avançar sozinho'
+18.5s") · `e2e` **540 passaram, 1 falhou, 5 pulados** (22,4 min; 541 executados = os 533 de
+`ade3e6a` + 8 do spec do lote, que foi de 12 a 20 testes). A falha: `e2e/player.spec.ts:164` ("ao zerar, 'avançar sozinho'
 passa ao próximo passo…"), que não toca em lembretes — o trace mostra
 "Loading chunk 2636 failed" com `net::ERR_ABORTED` no **terceiro** pedido do
 mesmo chunk ao navegar para `/mais/preferencias` com o relógio instalado
