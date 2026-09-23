@@ -17,6 +17,7 @@ import {
   formatarNumero,
   rotuloDaCarga,
 } from "@/lib/formato";
+import { SEM_HISTORICO, historicoVazio } from "@/lib/ficha";
 import { estadoDaLinha, textoDaCarga, textoDoAlvo, textoDoEvento } from "@/lib/hoje";
 import { cargaDeHoje, prescricaoPadrao } from "@/lib/progressao";
 import {
@@ -34,7 +35,17 @@ import { useSeriesDoExercicio, useSessoesTodas } from "@/lib/queries/progresso";
  * gráfico carga × data, as últimas 10 sessões e a linha do tempo do motor —
  * "por que hoje é 26,5 kg".
  */
-export function HistoricoExercicio({ exercicioId }: { exercicioId: string }) {
+export function HistoricoExercicio({
+  exercicioId,
+  comoPagina = false,
+}: {
+  exercicioId: string;
+  /**
+   * Na página a seção "Carga inicial" já traz a nota da carga de partida; a
+   * nota não se repete em "Onde você está" (SPEC §22.14 item 2).
+   */
+  comoPagina?: boolean;
+}) {
   const ids = useMemo(() => [exercicioId], [exercicioId]);
   const exercicio = acharExercicio(exercicioId);
 
@@ -60,7 +71,12 @@ export function HistoricoExercicio({ exercicioId }: { exercicioId: string }) {
   );
 
   const carregando =
-    estadosQ.isPending || seriesQ.isPending || recordesQ.isPending || sessoesQ.isPending;
+    estadosQ.isPending ||
+    seriesQ.isPending ||
+    recordesQ.isPending ||
+    sessoesQ.isPending ||
+    // o cartão único só vale com os eventos do motor lidos (§22.14 item 2)
+    eventosQ.isPending;
   const erro = estadosQ.error ?? seriesQ.error ?? recordesQ.error ?? sessoesQ.error;
 
   if (erro) {
@@ -89,6 +105,16 @@ export function HistoricoExercicio({ exercicioId }: { exercicioId: string }) {
   const eventos = eventosQ.data ?? [];
   const temCarga = pontos.some((p) => p.carga > 0);
   const series_ = prescricao.series ?? exercicio.prescricao_padrao.series ?? 3;
+  /*
+   * SPEC §22.14 item 2: sem recorde, sem gráfico, sem sessão e sem evento do
+   * motor, os quatro cartões vazios viram um só.
+   */
+  const vazio = historicoVazio({
+    temRecorde: recorde !== null,
+    pontos: pontos.length,
+    sessoes: ultimas.length,
+    eventos: eventos.length,
+  });
 
   return (
     <div className="flex flex-col gap-4">
@@ -103,7 +129,7 @@ export function HistoricoExercicio({ exercicioId }: { exercicioId: string }) {
             {alvo.assistencia ? ` · elástico ${alvo.assistencia.replace("_", " ")}` : ""}
             {alvo.semana_leve ? " · semana leve (60 %)" : ""}
           </p>
-          {alvo.primeira_vez ? (
+          {alvo.primeira_vez && !comoPagina ? (
             <p className="text-muted-foreground text-xs text-balance">
               Ainda sem registro: {exercicio.carga_inicial.nota}.
             </p>
@@ -111,6 +137,14 @@ export function HistoricoExercicio({ exercicioId }: { exercicioId: string }) {
         </CardContent>
       </Card>
 
+      {vazio ? (
+        <Card data-historico-vazio>
+          <CardContent>
+            <SemDados titulo={SEM_HISTORICO.titulo}>{SEM_HISTORICO.frase}</SemDados>
+          </CardContent>
+        </Card>
+      ) : (
+      <>
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Recorde</CardTitle>
@@ -199,7 +233,7 @@ export function HistoricoExercicio({ exercicioId }: { exercicioId: string }) {
         <CardContent>
           {eventos.length === 0 ? (
             <SemDados>
-              Cada subida, repetição ou volta de carga aparece aqui depois do treino.
+              Cada subida, manutenção ou volta de carga aparece aqui depois do treino.
             </SemDados>
           ) : (
             <ol className="flex flex-col gap-2">
@@ -215,6 +249,8 @@ export function HistoricoExercicio({ exercicioId }: { exercicioId: string }) {
           )}
         </CardContent>
       </Card>
+      </>
+      )}
     </div>
   );
 }
