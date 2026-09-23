@@ -11625,3 +11625,21 @@ Não conferido daqui: se as variáveis VAPID existem na Vercel (produção). A
 tela exige login, e o conector da Vercel recebeu 403 nas variáveis. Sem elas,
 a tela diz "Lembretes ainda não configurados neste servidor." e a rota
 devolve 503. **Rollback: não.**
+
+**Verificação logada em produção (23/09, 23:44–23:58 UTC).** Conta de teste
+`teste-l34-20260924@example.com` criada pela tela "Criar conta", navegador
+real a 360×740 nos dois temas, `/versao` = `905815d`. Mais mostra "Lembretes"
+(sino) entre Preferências e Créditos; o toque abre `/mais/lembretes` com h1
+"Lembretes" e "‹ Mais" (73,8×44 px). As variáveis VAPID ainda não existem
+na Vercel, então a tela mostra só "Lembretes ainda não configurados neste
+servidor.", sem botão e sem consultar o banco. SELECT real em
+`lembretes_inscricoes` com o token da sessão: 200 com `[]` (a tabela existe e
+a RLS responde); só com a chave anon: 401 `42501 permission denied` (o anon
+não tem grant). `POST /api/lembretes/teste` sem sessão: 401 JSON "Entre de
+novo para continuar.", sem 500. `/sw.js` com `notificationclick` e
+`showNotification`. Passe pelas abas Treino, Calendário, Explorar, Relatório,
+Corpo e Mais: 0 rolagem lateral, 0 alvo < 44 px, 0 erro de console, 0
+resposta ≥ 400, nos dois temas. Uma primeira tentativa do tema claro foi
+descartada por falha do script de medida (o guia da primeira entrada abriu
+depois da espera) e refeita inteira. **Conta de teste apagada** às 00:00 UTC
+(ficam só as 3 contas reais).

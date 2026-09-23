@@ -732,6 +732,17 @@
       "variaveis VAPID em producao nao conferidas daqui (tela exige login; conector Vercel 403 nas variaveis): sem elas /mais/lembretes diz 'Lembretes ainda nao configurados neste servidor.' e a rota devolve 503",
       "list_aliases com domain='treino-terraco.vercel.app' voltou vazio; deploymentId lido da listagem do projeto sem filtro de dominio",
       "lista de itens feitos chegou cortada do orquestrador; os 6 itens LEM do L34 foram para resolvidos pelos ids do lote planejado"
-    ]
+    ],
+    "verificacao_logada": {
+      "hora_utc": "23:44–23:58",
+      "conta_teste": "teste-l34-20260924@example.com",
+      "temas": [
+        "claro",
+        "escuro"
+      ],
+      "resultado": "ok — Mais→Lembretes, estado sem configuração (VAPID ausente na Vercel), SELECT real 200 [] com sessão e 401 42501 só com anon, POST /api/lembretes/teste sem sessão 401, sw.js com notificationclick/showNotification, 6 abas sem rolagem lateral/alvo<44/erro de console",
+      "conta_apagada_utc": "00:00",
+      "contas_restantes": 3
+    }
   }
 ]
