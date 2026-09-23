@@ -345,7 +345,7 @@ Toda sessão (treino do programa, sessão livre, circuito, sessão de barra fixa
 - Regras: fechar e reabrir volta ao mesmo passo (estado no Dexie); sem rede tudo funciona; Wake Lock ligado durante o player; nada muda no que é gravado (session_sets, exercise_state, progression_events, profiles.ultimo_treino).
 
 ### 14.2 Ficha em folha (bottom sheet) — `components/exercicio/ficha-folha.tsx`
-Abre por cima de qualquer tela (Treino, player, Explorar) sem perder estado: título + **Substituir** (mesmo fluxo de substitutos); mídia com três abas **Vídeo · Músculos · Tutorial**: Vídeo = figura animada (ou vídeo local) com botão de pausa; Músculos = figura + mapa frente/costas com primários fortes e secundários claros; **Tutorial** = vídeo do YouTube de `data/tutoriais.json` (81 entradas: `exercicio_id`, `youtube_id`, `titulo`, `canal`, `idioma`, `url`, `nota`; validado em `lib/schemas.ts`, lido por `lib/dados.ts`), mostrado como miniatura `https://i.ytimg.com/vi/<id>/hqdefault.jpg` + play, e só ao tocar vira `<iframe src="https://www.youtube-nocookie.com/embed/<id>">` (sem rede a aba mostra "Precisa de internet" e o botão "Abrir no YouTube"); stepper **Duração / Repetições / Séries** que ajusta **só a prescrição desta sessão** (nunca `exercise_state`); **Instruções** (passos do JSON) e **Erro comum**; **Área de foco** em chips (primário = ponto forte, secundário = claro) a partir de `musculos_*_nome`; histórico e recorde abaixo (como hoje); navegação **anterior/próximo (n/N)** dentro do treino; **Fechar**. A rota `/exercicios/[id]` continua existindo e usa o mesmo componente em página inteira.
+Abre por cima de qualquer tela (Treino, player, Explorar) sem perder estado: título + **Substituir** (mesmo fluxo de substitutos); mídia com três abas **Vídeo · Músculos · Tutorial no YouTube** (§22.14 item 4: o rótulo diz o destino, com o ícone de link externo, e a aba só existe quando o JSON tem o tutorial): Vídeo = figura animada (ou vídeo local) com botão de pausa; Músculos = mapa frente/costas com primários fortes e secundários claros (§22.14 item 3: a figura já é a aba Vídeo e não se repete); **Tutorial** = vídeo do YouTube de `data/tutoriais.json` (81 entradas: `exercicio_id`, `youtube_id`, `titulo`, `canal`, `idioma`, `url`, `nota`; validado em `lib/schemas.ts`, lido por `lib/dados.ts`), mostrado como miniatura `https://i.ytimg.com/vi/<id>/hqdefault.jpg` + play, e só ao tocar vira `<iframe src="https://www.youtube-nocookie.com/embed/<id>">` (sem rede a aba mostra "Precisa de internet" e o botão "Abrir no YouTube"); stepper **Duração / Repetições / Séries** que ajusta **só a prescrição desta sessão** (nunca `exercise_state`); **Instruções** (passos do JSON) e **Erro comum**; **Área de foco** em chips (primário = ponto forte, secundário = claro) a partir de `musculos_*_nome` — na folha; na página ela não se repete (§22.14 item 3); histórico e recorde abaixo (sem nenhum dado, um cartão só — §22.14 item 2); navegação **anterior/próximo (n/N)** dentro do treino; **Fechar**. A rota `/exercicios/[id]` continua existindo e usa o mesmo componente em página inteira, com "Voltar" no topo e "Fazer agora" no fim (§22.14 item 1).
 
 ### 14.3 Aba Treino — acréscimos à §13.3
 Abaixo da lista do treino do dia: **Editar** (modo reordenar com alças e setas ↑↓; ordem só desta sessão, gravada em `sessions.plano` quando a sessão é criada; "voltar à ordem do programa"); **Ajustar** no cabeçalho, ao lado da data (descanso padrão, preparação, avançar sozinho, voz, vibração, tela acesa, mostrar raios); **Desafios** (carrossel manual, sem rotação automática, com os planos reais — títulos e botões como definidos em §22.7 item 6 e §22.12 itens 4 e 7; capa de `assets/`, semana atual e progresso); **Parte do corpo em foco** (chips dos 8 grupos → lista com miniatura, `N exercícios · ~M min`, raios, "Começar" = sessão livre com os 6 primeiros do grupo, compostos antes de isolamento); chips de filtro derivados (≤ 15 min · 15–30 min · com equipamento · sem equipamento · core · cardio); **Personalizar treino** ("Crie o seu próprio": escolher exercícios do catálogo e começar uma sessão livre). Sem busca na Treino (fica em Explorar).
@@ -2565,16 +2565,17 @@ não muda (§22.0.1 item 7). O aceite de cada item é verificável no Vitest
 1. **A ficha em página tem volta e ação** (tela-explorar-fichas-19). A página
    abria só com o título, sem "Voltar" e sem nada a fazer com o exercício.
    Agora ela abre com **"Voltar"** no topo (link para `/exercicios`; quando
-   há página anterior no histórico do app, o toque volta a ela — quem chegou
-   do Progresso ou de uma coleção volta para lá) e fecha com **"Fazer
+   a aba tem página anterior no histórico, o toque volta a ela — quem chegou
+   do catálogo, do Progresso ou de uma coleção volta para lá; numa aba aberta
+   direto na ficha, vai ao catálogo) e fecha com **"Fazer
    agora"**, que abre uma sessão livre só com este exercício pelo mesmo
    `useSessaoLivre` das coleções (§14.3): o player grava cada série no
    IndexedDB na hora, como qualquer sessão (§8). Sem perfil o botão fica
    desabilitado. Aceite: e2e — do catálogo, abrir a ficha e tocar "Voltar"
-   leva de volta a `/exercicios`; aberta direto pela URL, "Voltar" leva a
-   `/exercicios`; "Fazer agora" (≥ 44 px) leva a `/treinar/<id>` com o
-   exercício, e a primeira série registrada está na sessão ativa do
-   IndexedDB antes de qualquer envio.
+   leva de volta a `/exercicios`; numa aba nova aberta direto na ficha
+   (histórico de 1 página), "Voltar" leva a `/exercicios`; "Fazer agora"
+   (≥ 44 px) leva a `/treinar/<id>` com o exercício, e, sem rede, a primeira
+   série concluída está na sessão ativa e na fila de saída do IndexedDB.
 2. **Um cartão só quando não há histórico** (tela-explorar-fichas-20). Sem
    nenhuma série, "Recorde", "Carga por sessão", "Últimas sessões" e "O que o
    motor decidiu" apareciam como quatro cartões vazios. Quando os quatro
