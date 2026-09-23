@@ -5,9 +5,11 @@
  */
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { treinosDoExercicio } from "../lib/catalogo";
+import { colecaoDoAparelho, colecaoDoTreino } from "../lib/colecoes";
 import { acharExercicio, exercicios } from "../lib/dados";
 import { linksDosTreinos, tagsDoEquipamento } from "../lib/ficha";
 import {
+  abrirSecaoDoRelatorio,
   comecarNoPlayer,
   comecarOTreinoDoDia,
   entrarNoApp,
@@ -61,6 +63,36 @@ async function abrirFicha(page: Page, id: string): Promise<void> {
   ).toBeVisible();
 }
 
+/** A posição da entrada atual no histórico da aba (Navigation API). */
+async function indiceDaNavegacao(page: Page): Promise<number> {
+  return page.evaluate(
+    () =>
+      (window as unknown as { navigation: { currentEntry: { index: number } } }).navigation
+        .currentEntry.index,
+  );
+}
+
+/**
+ * SPEC §22.14 item 3: nenhum parágrafo ou item visível do <main> (12
+ * caracteres ou mais) se repete nem cabe inteiro dentro de outro.
+ */
+async function repetidosNaPagina(page: Page): Promise<string[]> {
+  return page.evaluate(() => {
+    const textos = [...document.querySelectorAll("main p, main li")]
+      .filter((el) => (el as HTMLElement).offsetParent !== null)
+      .filter((el) => !el.querySelector("p, li"))
+      .map((el) => (el.textContent ?? "").replace(/\s+/g, " ").trim())
+      .filter((t) => t.length >= 12);
+    const achados: string[] = [];
+    textos.forEach((a, i) =>
+      textos.forEach((b, j) => {
+        if (i !== j && (a === b ? i < j : b.includes(a))) achados.push(`${a} ⊂ ${b}`);
+      }),
+    );
+    return achados;
+  });
+}
+
 /** A caixa de um alvo de toque (SPEC §22.0.1 item 2). */
 async function caixa(alvo: Locator): Promise<{ width: number; height: number }> {
   const c = await alvo.boundingBox();
@@ -77,8 +109,10 @@ test.describe("§22.14 item 1 — a ficha em página tem volta e ação", () => 
     await preparar(page);
     await page.goto("/exercicios");
     await page.getByLabel("Buscar exercício pelo nome").fill("supino reto");
+    const noCatalogo = await indiceDaNavegacao(page);
     await page.getByRole("link", { name: /Supino reto com barra/ }).first().click();
     await expect(page.getByRole("heading", { name: "Supino reto com barra", level: 1 })).toBeVisible();
+    expect(await indiceDaNavegacao(page)).toBe(noCatalogo + 1);
 
     const voltar = page.getByRole("link", { name: "Voltar" });
     await expect(voltar).toBeVisible();
@@ -90,8 +124,13 @@ test.describe("§22.14 item 1 — a ficha em página tem volta e ação", () => 
     expect(topoDoVoltar).toBeLessThan(topoDoTitulo);
     await voltar.click();
     await expect(page).toHaveURL(/\/exercicios$/);
-    // a busca continua lá: voltou à mesma página, não abriu outra
-    await expect(page.getByRole("link", { name: /Supino reto com barra/ }).first()).toBeVisible();
+    /*
+     * É um "voltar" de verdade (router.back), não o link: o índice da entrada
+     * do histórico cai para o do catálogo — um link empilharia (+1). A busca
+     * é estado local do catálogo e recomeça vazia, como no voltar do
+     * navegador (anterior ao §22.14).
+     */
+    await expect.poll(() => indiceDaNavegacao(page)).toBe(noCatalogo);
 
     // numa aba aberta direto na ficha não há página anterior: vai ao catálogo
     const nova = await page.context().newPage();
@@ -107,6 +146,23 @@ test.describe("§22.14 item 1 — a ficha em página tem volta e ação", () => 
     await nova.getByRole("link", { name: "Voltar" }).click();
     await expect(nova).toHaveURL(/\/exercicios$/);
     await nova.close();
+  });
+
+  test("do Relatório, 'Voltar' volta ao Relatório, não ao catálogo", async ({ page }) => {
+    await preparar(page, "light", QUARTA);
+    await page.goto("/relatorio");
+    await abrirSecaoDoRelatorio(page, "graficos");
+    const link = page.locator('[data-grande] a[href^="/exercicios/"]').first();
+    await expect(link).toBeVisible();
+    const destino = (await link.getAttribute("href"))!;
+    const noRelatorio = await indiceDaNavegacao(page);
+    await link.click();
+    await expect(page).toHaveURL(new RegExp(`${destino}$`));
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    await page.getByRole("link", { name: "Voltar" }).click();
+    // o href do "Voltar" é /exercicios: só o router.back() traz ao Relatório
+    await expect(page).toHaveURL(/\/relatorio$/);
+    await expect.poll(() => indiceDaNavegacao(page)).toBe(noRelatorio);
   });
 
   test("'Fazer agora' abre a sessão livre do exercício e a série vai ao IndexedDB na hora", async ({
@@ -255,21 +311,7 @@ test.describe("§22.14 item 3 — nada repetido na ficha e títulos em ordem", (
       await expect(page.getByRole("list", { name: "Área de foco" })).toHaveCount(0);
 
       // nenhum parágrafo ou item visível se repete, nem inteiro dentro de outro
-      const repetidos = await page.evaluate(() => {
-        const textos = [...document.querySelectorAll("main p, main li")]
-          .filter((el) => (el as HTMLElement).offsetParent !== null)
-          .filter((el) => !el.querySelector("p, li"))
-          .map((el) => (el.textContent ?? "").replace(/\s+/g, " ").trim())
-          .filter((t) => t.length >= 12);
-        const achados: string[] = [];
-        textos.forEach((a, i) =>
-          textos.forEach((b, j) => {
-            if (i !== j && (a === b ? i < j : b.includes(a))) achados.push(`${a} ⊂ ${b}`);
-          }),
-        );
-        return achados;
-      });
-      expect(repetidos).toEqual([]);
+      expect(await repetidosNaPagina(page)).toEqual([]);
       // o subtítulo do cabeçalho é o único lugar do equipamento_texto
       await expect(
         page.getByText(acharExercicio(SUPINO).equipamento_texto, { exact: false }),
@@ -314,12 +356,69 @@ test.describe("§22.14 item 3 — nada repetido na ficha e títulos em ordem", (
       const primeira = esperadas.find((t) => t.href)!;
       await page.locator("[data-tags-equipamento]").getByRole("link", { name: primeira.rotulo }).click();
       await expect(page).toHaveURL(new RegExp(`${primeira.href}$`));
+      // a coleção abriu de fato (uma rota 404 teria a mesma URL)
+      await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+        colecaoDoAparelho(primeira.tag)!.titulo,
+      );
       await page.goBack();
       await expect(page.getByRole("heading", { level: 1 })).toHaveText("Supino reto com barra");
       await aparece.getByRole("link", { name: treinos[0]!.nome }).click();
       await expect(page).toHaveURL(new RegExp(`${treinos[0]!.href}$`));
+      await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+        colecaoDoTreino(treinos[0]!.id).titulo,
+      );
     });
   }
+
+  /*
+   * Correção da auditoria: as fichas em que a página repetia texto —
+   * "peso corporal" no subtítulo e na nota da carga inicial (abdominais,
+   * escalador, superman, prancha lateral, salto com joelho alto), "peso do
+   * corpo" duas vezes com o elástico, a prescrição dentro das instruções do
+   * salto básico. O Vitest cobre os 81; aqui, o DOM de verdade.
+   */
+  for (const id of [
+    "abdominal-supra",
+    "salto-com-joelho-alto",
+    "salto-basico",
+    "barra-fixa-assistida",
+    "flexao-de-braco",
+  ]) {
+    test(`página de ${id}: nada repetido`, async ({ page }) => {
+      await preparar(page);
+      await abrirFicha(page, id);
+      await expect(page.locator("[data-historico-vazio]")).toBeVisible();
+      expect(await repetidosNaPagina(page)).toEqual([]);
+    });
+  }
+
+  test("com o elástico, 'Onde você está' diz só o elástico, em português", async ({ page }) => {
+    await preparar(page);
+    await abrirFicha(page, "barra-fixa-assistida");
+    const onde = page.locator("[data-onde-voce-esta]");
+    await expect(onde).toContainText("elástico pé inteiro");
+    await expect(onde).not.toContainText("peso do corpo");
+    await expect(onde).not.toContainText("Ainda sem registro");
+    await expect(page.getByText("peso do corpo", { exact: true })).toHaveCount(1);
+  });
+
+  test("com a barra W pesada (5 kg), a página mostra a carga que o motor usa", async ({
+    page,
+  }) => {
+    await usuarioComPerfil({ prefs: { pesos_barras: { "barra-w": 5 } } });
+    await page.setViewportSize({ width: 360, height: 740 });
+    await fixarData(page, SEGUNDA);
+    await entrarNoApp(page);
+    await abrirFicha(page, "rosca-com-barra-w");
+    await expect(page.locator("[data-historico-vazio]")).toBeVisible();
+    const onde = page.locator("[data-onde-voce-esta]");
+    await expect(onde).toBeVisible();
+    await expect(onde).toContainText("5 kg na barra");
+    await expect(onde).toContainText("Montada com o peso das suas barras");
+    // a seção continua com o número do JSON; nada se repete
+    await expect(page.getByText("2 kg na barra", { exact: true })).toBeVisible();
+    expect(await repetidosNaPagina(page)).toEqual([]);
+  });
 
   test("folha: o título da folha é H2 e as seções H3; a Área de foco continua", async ({
     page,
@@ -372,7 +471,16 @@ test.describe("§22.14 itens 1 e 3 — foco visível nos links e botões novos",
           if (!qual) return null;
           const e = getComputedStyle(el);
           const contorno = e.outlineStyle !== "none" && parseFloat(e.outlineWidth) >= 2;
-          const sombra = e.boxShadow !== "none" && e.boxShadow !== "";
+          /*
+           * Um anel de sombra de verdade: cor com alfa > 0 e espalhamento de
+           * 2 px ou mais. O Button do Tailwind 4 tem sempre cinco sombras
+           * rgba(0, 0, 0, 0) — "boxShadow !== none" passava sem anel.
+           */
+          const sombra = [
+            ...e.boxShadow.matchAll(
+              /rgba?\((\d+), (\d+), (\d+)(?:, ([\d.]+))?\) 0px 0px 0px (\d+(?:\.\d+)?)px/g,
+            ),
+          ].some((m) => (m[4] === undefined || parseFloat(m[4]) > 0) && parseFloat(m[5]!) >= 2);
           // o anel de fora (2 px + 2 px de offset) não é cortado por ancestral
           const folga = contorno ? parseFloat(e.outlineWidth) + parseFloat(e.outlineOffset) : 0;
           const caixa = el.getBoundingClientRect();
@@ -393,6 +501,29 @@ test.describe("§22.14 itens 1 e 3 — foco visível nos links e botões novos",
         if (r) vistos.set(r.qual, { anel: r.anel, inteiro: r.inteiro });
         if (vistos.has("fazer")) break;
       }
+      /*
+       * O anel do "Fazer agora" é sombra com transição: logo após o Tab ela
+       * ainda é transparente. Espera o anel chegar (cor opaca, 2 px ou mais).
+       */
+      await expect
+        .poll(
+          () =>
+            page.evaluate(() => {
+              const el = document.activeElement as HTMLElement | null;
+              if (!el?.matches("[data-fazer-agora]")) return false;
+              return [
+                ...getComputedStyle(el).boxShadow.matchAll(
+                  /rgba?\((\d+), (\d+), (\d+)(?:, ([\d.]+))?\) 0px 0px 0px (\d+(?:\.\d+)?)px/g,
+                ),
+              ].some(
+                (m) => (m[4] === undefined || parseFloat(m[4]) >= 0.99) && parseFloat(m[5]!) >= 2,
+              );
+            }),
+          { timeout: 3000 },
+        )
+        .toBe(true);
+      const fazer = vistos.get("fazer");
+      if (fazer) vistos.set("fazer", { ...fazer, anel: true });
       const esperados = [
         "voltar",
         "fazer",
