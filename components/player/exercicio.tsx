@@ -224,6 +224,10 @@ export function TelaExercicio({
         exercicioId={bloco.exercicioId}
         temVideo={temVideo}
         semCredito
+        /* SPEC §22.13 item 5: tocar na figura abre o "Como fazer", como o
+           "?" ao lado do nome; a pausa é o botão do canto */
+        aoAbrir={aoAbrirFicha}
+        rotuloDoAbrir="abre o Como fazer"
         /* h-40: com h-44 o chip "montagem" ficava 1,6 px sob a barra de
            controles numa série com histórico, a 360 × 740 (§13.8.1) */
         className="h-40"

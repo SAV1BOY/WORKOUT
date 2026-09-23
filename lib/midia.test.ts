@@ -80,9 +80,10 @@ describe("ilustracaoDoExercicio", () => {
     const i = ilustracaoDoExercicio(SUPINO);
     expect(i).not.toBeNull();
     expect(i!.urls[0]).toMatch(/^\/ilustracoes\/supino-reto-com-barra-1\./);
-    expect(i!.credito.texto).toBe(
-      `Ilustração: ${i!.credito.autor}, ${i!.credito.licenca}`,
-    );
+    expect(i!.credito.autor.length).toBeGreaterThan(0);
+    expect(i!.credito.licenca).toMatch(/^CC BY-SA/);
+    // o texto do crédito é montado só na legenda (SPEC §22.13 item 3)
+    expect(i!.credito).not.toHaveProperty("texto");
     expect(i!.credito.url_fonte).toMatch(/^https:\/\//);
   });
 

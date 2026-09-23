@@ -124,6 +124,8 @@
    * no escuro ele é rebaixado (SPEC §22.3 item 4).
    */
   --ilustracao-fundo: var(--card);
+  /* o anel de foco sobre a placa: 6,9:1 contra #fff (SPEC §22.13 item 5) */
+  --ring-placa: #a03608;
 
   /*
    * A borda de 1 px do polegar do interruptor (SPEC §22.3 item 13). O polegar
@@ -205,6 +207,11 @@
    * descartado: algumas ilustrações têm cor (a camisa vermelha da prancha).
    */
   --ilustracao-fundo: #cfcac4;
+  /*
+   * O anel de foco sobre a placa (SPEC §22.13 item 5): o `--ring` do escuro
+   * (#fb923c) mede 1,4:1 contra #cfcac4; o laranja escuro do claro, 4,3:1.
+   */
+  --ring-placa: #a03608;
 
   /* um fio mais forte que o do claro: o trilho ligado aqui é o laranja claro
      (`#fb923c`) e a borda precisa de 3:1 contra o polegar — dá 3,5:1 */
@@ -247,6 +254,22 @@
   ):focus-visible {
     outline: 2px solid var(--ring);
     outline-offset: 2px;
+  }
+  /*
+   * A figura que abre o "Como fazer" (player e Visão geral, SPEC §22.13 item
+   * 5 — correção da auditoria 2). Ela ocupa a caixa inteira e a caixa tem
+   * `overflow-hidden`: o anel de cima, para fora, saía inteiro cortado (0 px
+   * mudavam com o foco). Aqui o anel é INTERNO (−4 px, dentro do respiro de
+   * 8 px, sem cobrir a figura) e usa `--ring-placa`: a placa da ilustração é
+   * clara nos dois temas, e o laranja claro do escuro dava 1,4:1 contra ela.
+   * O botão de pausa, no canto da mesma placa, usa a mesma cor.
+   */
+  [data-figura="abre"]:focus-visible {
+    outline: 2px solid var(--ring-placa);
+    outline-offset: -4px;
+  }
+  [data-pausa]:focus-visible {
+    outline-color: var(--ring-placa);
   }
   html {
     @apply font-sans;

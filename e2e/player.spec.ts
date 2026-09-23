@@ -617,7 +617,8 @@ test.describe("ficha em folha (SPEC §14.2 e §14.5.4)", () => {
     const ficha = page.getByRole("dialog");
     await expect(ficha.getByRole("tab", { name: "Vídeo" })).toBeVisible();
     await expect(
-      ficha.getByRole("img", { name: "Execução do Agachamento livre" }),
+      // SPEC §22.13 item 5: a figura diz a posição
+      ficha.getByRole("img", { name: /^Execução do Agachamento livre, posição \d de 2$/ }),
     ).toBeVisible();
 
     // Músculos: o mapa frente/costas e a área de foco em chips
