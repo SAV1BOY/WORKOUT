@@ -10088,7 +10088,7 @@ escuro, 24 claro.
 
 | tela | Δ claro | Δ escuro | o que mudou |
 | --- | ---: | ---: | --- |
-| 10-ficha-folha (página na aba Músculos) | 41,03 % | 42,15 % | "Voltar" no topo empurra tudo 120 px; a aba Músculos sem a ilustração (só o mapa e a legenda); a terceira aba "Tutorial no YouTube ↗"; "Aparece em:" antes dos treinos |
+| 10-ficha-folha (página na aba Músculos) | 41,03 % | 42,15 % | "Voltar" no topo empurra tudo ~60 px (120 px na captura 2×); a aba Músculos sem a ilustração (só o mapa e a legenda); a terceira aba "Tutorial no YouTube ↗"; "Aparece em:" antes dos treinos |
 | 09-ficha-exercicio | 26,94 % | 31,64 % | "Voltar" no topo e o deslocamento; as abas pelo tamanho do rótulo, "Tutorial no YouTube ↗" numa linha |
 | 24-creditos | 2,70 % | 2,64 % | só o parágrafo do mapa muscular ("Nenhuma linha do desenho foi alterada; só reagrupamos os músculos e trocamos as cores.") |
 | 04-treino-lista | 0,00 % | 0,00 % | nada: a folha "Substituir hoje" não está aberta na captura |
