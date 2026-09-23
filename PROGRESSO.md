@@ -9971,8 +9971,10 @@ itens 3 e 4; o lote dono da tela 24 está no teto de 12 arquivos) e
    saiu na rodada 15: com rede o vídeo toca dentro do app — abaixo), só
    quando `data/tutoriais.json` tem o vídeo (`abasDaFicha()`; hoje os 81
    têm), e as abas dividem a largura pelo rótulo (`flex-auto`) — em terços,
-   o rótulo novo não cabia. `components/exercicio/tutorial.tsx` não precisou
-   mudar (o conteúdo da aba é o mesmo).
+   o rótulo novo não cabia. Na rodada 14 `components/exercicio/tutorial.tsx`
+   não mudou; na 15 o "Abrir no YouTube" da aba sem rede ganhou o ícone de
+   saída (`data-icone-externo`, `data-sai-do-app`) e, na 16, o "(abre fora do
+   app)" para o leitor de tela — abaixo.
 5. **"Apagar esta foto?" com `.flutuante`** (flutuante-no-dialogo-da-foto;
    `components/exercicios/foto-ampliada.tsx`). **Era:** `shadow-lg`, que some
    sobre `#0a0a0a`. **É:** `.flutuante` (§22.3 item 5; no escuro, o anel de
@@ -10055,7 +10057,8 @@ asserção `naturalWidth > 0` de cada imagem é a mesma).
   uma vez, tags e treinos como links (44 px) que abrem a coleção, Músculos
   sem `<img>`; folha — título H2, seções H3, "Área de foco" e "Onde você
   está" presentes; foco por Tab em Voltar, tags, treinos e Fazer agora com
-  anel e sem corte, nos dois temas; "Tutorial no YouTube" com o ícone, nada
+  anel e sem corte, nos dois temas; "Tutorial no YouTube" sem o ícone de
+  saída (desde a rodada 15; o ícone fica no "Abrir no YouTube" sem rede), nada
   cortado (abas ≥ 44 px) na página e na folha; o cartão "Apagar esta foto?"
   com a mesma sombra de `.flutuante` nos dois temas (no escuro, o anel de
   1 px); folha da ficha no player, "Substituir hoje" e filtros do catálogo —
@@ -10413,10 +10416,12 @@ medidos pelo e2e (nenhuma captura abre a Visão geral).
 #### Como testar no celular (rodada 15)
 
 1. Treino → Começar → no player, o ícone de lista (Visão geral) → num bloco,
-   "substituir hoje" → feche a folha com o voltar/Esc (teclado Bluetooth ou
-   leitor de tela): a folha fecha e a Visão geral continua aberta, com o
-   foco no "substituir hoje". O mesmo com o "?" (Como fazer) do bloco. Sem
-   folha aberta, o Esc (ou o voltar do celular) fecha a Visão geral.
+   "substituir hoje" → feche a folha com o Esc (teclado Bluetooth): a folha
+   fecha e a Visão geral continua aberta, com o foco no "substituir hoje". O
+   mesmo com o "?" (Como fazer) do bloco. Sem folha aberta, o Esc fecha a
+   Visão geral. (Em `4f55487` o **voltar do celular** com a folha aberta
+   ainda fechava as duas — a auditoria 1 da rodada 15 mediu; corrigido na
+   rodada 16, abaixo.)
 2. Ficha do supino → aba "Tutorial no YouTube" (sem setinha): toque na
    miniatura e o vídeo toca ali mesmo. No modo avião, a aba mostra "Precisa
    de internet" e "Abrir no YouTube" com a setinha — esse abre o YouTube.
@@ -10427,3 +10432,158 @@ medidos pelo e2e (nenhuma captura abre a Visão geral).
    inicial diz "corrija em Mais → Equipamento". Salto básico → "Como
    progredir": "Segue a progressão do plano da corda (…)", sem nome de
    arquivo.
+
+#### Rodada 16 — correção da auditoria 1 da rodada 15
+
+As duas lentes da auditoria 1 sobre `4f55487` devolveram o lote com o
+mesmo importante (0 bloqueantes): o **voltar do celular** com uma folha
+aberta sobre a Visão geral fechava as duas camadas, e o "Como testar
+(rodada 15)" item 1 mandava testar justamente assim. A lente de tela mediu
+(360×740, dois temas, `page.goBack()`): "substituir hoje" ou "Como fazer"
+abertos sobre a Visão geral → voltar → 0 folhas e 0 Visão geral, na mesma
+rota. A causa: a folha não tem entrada no histórico, e o `popstate` da
+Visão geral (§22.5 item 3) fechava a lista sem olhar se havia algo por
+cima. Em vez de só corrigir o texto, o código passou a cumprir o que ele
+prometia (SPEC §22.14 item 6, parágrafo novo). Commits: `c5c4171` (SPEC
+primeiro), `8fb8569` (Visão geral), `f058c95` (foto ampliada), `25e55e9`
+(tutorial), `bd88cbd` (e2e).
+
+##### Correção da auditoria
+
+- **Importante (as duas lentes): o voltar com folha sobre a Visão geral**
+  (`components/treinar/visao-geral.tsx`). **Era:** `popstate` →
+  `aoFechar()`, sempre. **É:** se há uma camada aberta por cima da lista
+  (`[role=dialog]`/`[role=alertdialog]` que não é a própria lista nem a
+  contém, e não está fechando — folha, alerta, o resumo do fim ou a foto
+  ampliada), o `popstate` devolve a entrada da lista ao histórico
+  (`pushState`) e entrega um Esc à camada de cima, que fecha do jeito dela:
+  o Radix fecha a folha e devolve o foco ao gatilho, e a lista ignora esse
+  Esc porque ele já vem com `defaultPrevented` (rodada 15). Sem nada por
+  cima, o voltar fecha a lista, como antes. Vale para o voltar do Android,
+  o gesto de voltar do TalkBack/VoiceOver e o Alt+←, que são todos um
+  `history.back()`.
+- **Menor (regra): a metade "marca o Esc que trata" da foto ampliada não
+  tinha teste.** e2e novo: um listener no `window`, em bolha (onde a Visão
+  geral escuta), vê o Esc da foto com `defaultPrevented = true`.
+- **Menor (tela): a foto ampliada não devolvia o foco**
+  (`components/exercicios/foto-ampliada.tsx`). **Era:** fechar pelo Esc ou
+  pelo X deixava o foco no `<body>`. **É:** a foto guarda quem tinha o foco
+  ao abrir e devolve a ele ao fechar (Esc, X ou toque fora); se quem abriu
+  sumiu (foto apagada no Corpo), não força nada.
+- **Menor (tela): o "Abrir no YouTube" não dizia ao leitor de tela que sai
+  do app** (`components/exercicio/tutorial.tsx`). **Era:** só o ícone
+  (`aria-hidden`) dizia. **É:** `<span class="sr-only"> (abre fora do
+  app)</span>` — o nome acessível é "Abrir no YouTube (abre fora do app)";
+  nada muda na tela.
+- **Menor (tela): o título do item 11 prometia outra cor.** SPEC e e2e:
+  "O anel do botão primário fica a 2 px do botão" (a cor continua a
+  `--ring`; o que mudou foi o vão de fundo entre o anel e o botão).
+- **Menor (regra): espera cega no e2e do anel.** Os dois
+  `waitForTimeout(400)` viraram um `expect.poll` até o "Fazer agora" não
+  ter animação rodando (`getAnimations()`), e o segundo espera antes o
+  botão perder o `:focus`.
+- **Menor (regra): frases velhas no PROGRESSO.** "O que mudou" item 4 dizia
+  que `tutorial.tsx` "não precisou mudar" e as Provas da rodada 14 diziam
+  "'Tutorial no YouTube' com o ícone"; as duas foram alinhadas ao HEAD, e o
+  item 1 do "Como testar (rodada 15)" diz só Esc, com a nota da rodada 16.
+- **Achado na sonda desta rodada (e2e instável do item 4):** o teste "sem
+  rede, o 'Abrir no YouTube' …" falhou 1 vez na sonda (`r16/l14/parcial/`):
+  o service worker (Serwist, `NetworkFirst` para outra origem) busca a
+  miniatura ele mesmo, e o que ele busca não passa pelo `page.route` — com
+  o SW já no controle da página, a miniatura chegava de verdade e o "sem
+  rede" não aparecia. O teste passa a bloquear o SW
+  (`test.use({ serviceWorkers: "block" })`, como `ultraloop-b-r2.spec.ts`
+  já faz pelo mesmo motivo) e ganhou a checagem do nome acessível. Nenhuma
+  asserção afrouxou.
+- **Menores só registrados, com motivo:** (1) as tags de equipamento com e
+  sem link têm o mesmo visual (sublinhado só no hover) — a SPEC §22.14
+  item 3(c) aceita a tag sem coleção como texto e o aceite está cumprido;
+  dar sinal visual aos links é affordance, vai para o ledger. (2) O
+  critério "12 caracteres contido em outro" com números ("7,5 kg na barra"
+  ⊂ "17,5 kg na barra") — a auditoria confirmou 0 repetição real nos 345
+  perfis. (3) tela-explorar-fichas-26: o FAZER do ledger ("ícone de link
+  externo no próprio rótulo") foi revertido na rodada 15 com motivo (SPEC
+  §22.14 item 4); o retorno do lote lista o item como aceite ajustado,
+  junto do copy-25.
+
+##### Provas (rodada 16)
+
+- **e2e** (`e2e/ultraloop-l14.spec.ts`, +3, **37** no total): (1) dentro da
+  Visão geral, nos dois temas, abrir pelo teclado a "substituir hoje" e a
+  ficha do "Como fazer" do bloco → `history.back()` (o voltar do Android e
+  do TalkBack) → a folha some, a Visão geral continua visível, o foco volta
+  ao gatilho, a URL é a mesma, o índice do histórico
+  (`navigation.currentEntry.index`) volta ao de antes do voltar e nenhum
+  `inert` sobra; sem folha, o voltar seguinte fecha a Visão geral e o
+  player (mesma URL) volta com o botão "Visão geral do treino". (2) Na
+  ficha do supino, a foto ampliada aberta pelo teclado: foco no "Fechar a
+  foto"; o Esc que ela trata chega ao `window` (em bolha, onde a Visão
+  geral escuta) com `defaultPrevented = true`; o foco volta ao "Ampliar a
+  foto do início" depois do Esc e depois do X. (3) O teste "sem rede" do
+  item 4 ganhou `toHaveAccessibleName("Abrir no YouTube (abre fora do
+  app)")` e o SW bloqueado. O e2e do anel (item 11) espera o fim da
+  transição por `getAnimations()`, sem `waitForTimeout`.
+- **Sondas** (não contam como cadeia): `r16/l14/parcial/` — build:e2e +
+  grep dos itens 4, 6 e 11 = 13 de 14 (o "sem rede" do tutorial falhou
+  pelo SW, acima); `r16/l14/parcial2/`, com o SW bloqueado no teste =
+  **14 de 14**.
+- **Mutação** (`r16/l14/mut/`, no worktree, sem commit, código restaurado
+  depois): o `popstate` da Visão geral sem olhar a camada de cima, a foto
+  sem devolver o foco e o link sem o `sr-only` → **4 falhas em 4** (o voltar
+  claro e escuro: "element(s) not found" na Visão geral; o foco da foto:
+  `toBeFocused`; o nome do link: `toHaveAccessibleName`). O teste antigo do
+  §22.5 item 3 (`ultraloop-a-r3`, o voltar sem folha fecha a lista) passou
+  com e sem o mutante — o caminho sem camada não mudou.
+- `git diff 0d54e5f -- lib/progressao.ts lib/montagem.ts`: vazio.
+
+##### Portões (rodada 16)
+
+Cadeia inteira em `bd88cbd` (todo o código e os testes da rodada 16;
+`r16/l14/logs/bd88cbd.log`, das 14:00:37 às 14:27:31 UTC, **status ok**):
+`lint` limpo · `tsc --noEmit` limpo · `npm test` **67 arquivos, 1.540
+testes, todos verdes** (a rodada 16 não mexeu em função pura) · `build`
+("Compiled successfully in 21.2s") · `build:e2e` ("Compiled successfully
+in 19.4s") · `e2e` **514 passaram, 5 pulados, 0 falharam** (20,4 min; eram
+511 + 5 em `4f55487`: +3 do spec do L14, que tem 37 linhas ✓ no log) ·
+`varredura` **5 de 5** (4,4 min). O log traz as medidas do anel do
+primário ("[anel-primario] light: anel 5.25:1 · vão 1.00:1", "dark: anel
+8.75:1 · vão 1.00:1"). O commit deste registro só acrescenta estes números
+ao PROGRESSO; a cadeia roda de novo, inteira, nele
+(`r16/l14/logs/<hash>.log`).
+
+##### Capturas (rodada 16)
+
+`capturas.sh` em `bd88cbd`, depois da cadeia verde, contra a base real de
+`main` (`base-ef3ad97`), com as seis telas declaradas
+(`r16/l14/capturas-bd88cbd.md`): 60 de 60 PNGs, **"Nenhuma tela mudou fora
+do esperado"**. Os 60 PNGs são **byte a byte iguais** aos de `4f55487`
+(`cmp`, 0 diferentes): a rodada 16 não muda nada que as capturas mostrem
+(a Visão geral com folha, a foto ampliada e o "sem rede" não estão nelas;
+o "(abre fora do app)" é `sr-only`). Diff aberto: 10 escuro contra a base
+— "Voltar" no topo, o mapa sem a ilustração na aba Músculos e "Aparece
+em:" com os dois chips, como na rodada 15.
+
+| tela | Δ claro | Δ escuro | o que mudou (contra a base de `main`) |
+| --- | ---: | ---: | --- |
+| 10-ficha-folha (página na aba Músculos) | 41,03 % | 42,15 % | o mesmo da rodada 15 ("Voltar", Músculos só com o mapa, "Aparece em:", aba "Tutorial no YouTube" sem setinha) |
+| 09-ficha-exercicio | 27,01 % | 31,66 % | o mesmo da rodada 15 ("Voltar", abas pelo rótulo) |
+| 24-creditos | 2,70 % | 2,64 % | só o parágrafo do mapa muscular |
+| 04-treino-lista | 0,00 % | 0,00 % | nada: a folha "Substituir hoje" não está aberta na captura |
+| 08-catalogo | 0,00 % | 0,00 % | nada: a folha de filtros está fechada na captura |
+| 17-corpo-fotos | 0,00 % | 0,00 % | nada: o cartão "Apagar esta foto?" não está aberto na captura |
+
+##### Como testar no celular (rodada 16)
+
+1. Treino → Começar → no player, o ícone de lista (Visão geral) → num bloco,
+   "substituir hoje" → **voltar do celular** (botão ou gesto): só a folha
+   fecha; a Visão geral continua aberta, no mesmo lugar. O mesmo com o "?"
+   (Como fazer) do bloco. Sem folha aberta, o voltar fecha a Visão geral e
+   você fica no player (não sai do treino). Com teclado Bluetooth, o Esc faz
+   o mesmo que o voltar.
+2. Com TalkBack/VoiceOver: na mesma folha, o gesto de voltar fecha só a
+   folha e o foco volta ao "substituir hoje".
+3. Ficha do supino (Explorar → Exercícios) → "Ampliar a foto do início" →
+   feche pelo X (ou Esc): o foco volta ao botão da foto, não ao topo da
+   página.
+4. No modo avião, ficha → "Tutorial no YouTube": com o leitor de tela, o
+   link lê "Abrir no YouTube (abre fora do app)"; na tela, nada mudou.
