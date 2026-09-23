@@ -1,3 +1,4 @@
+import { generateKeyPairSync } from "node:crypto";
 import { resolve } from "node:path";
 import { defineConfig, devices } from "@playwright/test";
 
@@ -16,11 +17,37 @@ const PORTA_MOCK = Number(process.env.MOCK_SUPABASE_PORT ?? 54321);
 const URL_APP = `http://127.0.0.1:${PORTA_APP}`;
 const URL_MOCK = `http://127.0.0.1:${PORTA_MOCK}`;
 
-/** As três variáveis que o app precisa, apontando para o mock. */
+/**
+ * Um par VAPID gerado AQUI, a cada execução (SPEC §23.5): nenhuma chave de
+ * lembrete fica no repositório. O config é avaliado no processo principal e
+ * de novo em cada worker do Playwright; o par vai para o `process.env` na
+ * primeira vez e os workers (filhos) herdam o mesmo — é assim que o teste
+ * confere a chave pública que o servidor usou.
+ */
+function garantirParVapid(): void {
+  if (process.env.E2E_VAPID_PRIVADA && process.env.E2E_VAPID_PUBLICA) return;
+  const { privateKey, publicKey } = generateKeyPairSync("ec", { namedCurve: "prime256v1" });
+  const privada = privateKey.export({ format: "jwk" });
+  const publica = publicKey.export({ format: "jwk" });
+  process.env.E2E_VAPID_PRIVADA = String(privada.d);
+  process.env.E2E_VAPID_PUBLICA = Buffer.concat([
+    Buffer.from([4]),
+    Buffer.from(String(publica.x), "base64url"),
+    Buffer.from(String(publica.y), "base64url"),
+  ]).toString("base64url");
+}
+garantirParVapid();
+
+/** As variáveis que o app precisa, apontando para o mock. */
 const ambiente = {
   NEXT_PUBLIC_SUPABASE_URL: URL_MOCK,
   NEXT_PUBLIC_SUPABASE_ANON_KEY: "mock-anon",
   ALLOWED_EMAIL: "miguelgsaviotti29@gmail.com",
+  // lembretes (SPEC §23): o par desta execução e o servidor de push falso do mock
+  NEXT_PUBLIC_VAPID_PUBLIC_KEY: process.env.E2E_VAPID_PUBLICA ?? "",
+  VAPID_PRIVATE_KEY: process.env.E2E_VAPID_PRIVADA ?? "",
+  VAPID_SUBJECT: "mailto:e2e@example.com",
+  LEMBRETES_PUSH_DE_TESTE: URL_MOCK,
 };
 
 export default defineConfig({

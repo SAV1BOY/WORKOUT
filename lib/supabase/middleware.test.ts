@@ -63,6 +63,23 @@ describe("controle de acesso", () => {
     expect(resposta.headers.get("location")).toBe("https://treino.app/login");
   });
 
+  /* SPEC §23.5: a rota de API é chamada por fetch — 401 em JSON, não o login. */
+  it("sem sessão, /api/* responde 401 em JSON (e não o desvio para o login)", async () => {
+    const resposta = await rodar("/api/lembretes/teste");
+    expect(resposta.status).toBe(401);
+    expect(resposta.headers.get("location")).toBeNull();
+    expect(await resposta.json()).toEqual({ erro: "Entre de novo para continuar." });
+    // o que não é /api continua indo para o login
+    expect((await rodar("/apis")).status).toBe(307);
+  });
+
+  it("com sessão, /api/* passa", async () => {
+    emailDoUsuario = "outra.pessoa@exemplo.com";
+    const resposta = await rodar("/api/lembretes/teste");
+    expect(resposta.status).toBe(200);
+    expect(resposta.headers.get("location")).toBeNull();
+  });
+
   it("o dono passa", async () => {
     emailDoUsuario = DONO;
     const resposta = await rodar("/corpo");

@@ -11,6 +11,7 @@ import {
   ehRsc,
   type PedidoDeNavegacao,
 } from "@/lib/sw-navegacao";
+import { opcoesDaNotificacao, urlInterna } from "@/lib/lembretes";
 import { criarServirDoSocorro } from "@/lib/sw-servir-socorro";
 import { htmlDeSocorro } from "@/lib/sw-socorro";
 import type { PrecacheEntry, SerwistGlobalConfig } from "serwist";
@@ -392,4 +393,59 @@ self.addEventListener("activate", (evento) => {
       prazoMs: PRAZO_DA_CURA_NA_ATIVACAO_MS,
     }),
   );
+});
+
+/*
+ * Lembretes (SPEC §23.3). A decisão — título, corpo, ícone, tag, url — mora em
+ * `lib/lembretes.ts`, com teste de unidade; aqui só se liga o mundo.
+ *
+ * `esperar` e não `evento.waitUntil` direto: num evento sintético (o e2e
+ * dispara `new PushEvent("push")` dentro do worker) o `waitUntil` lança
+ * `InvalidStateError` porque `isTrusted` é falso — e o aviso tem de aparecer
+ * do mesmo jeito. Num push de verdade o `waitUntil` segura o worker vivo até a
+ * notificação estar na tela.
+ */
+function esperar(evento: ExtendableEvent, trabalho: Promise<unknown>): void {
+  try {
+    evento.waitUntil(trabalho);
+  } catch {
+    void trabalho;
+  }
+}
+
+self.addEventListener("push", (evento) => {
+  const { titulo, opcoes } = opcoesDaNotificacao(evento.data?.text() ?? "");
+  esperar(evento, self.registration.showNotification(titulo, opcoes));
+});
+
+/**
+ * O toque na notificação: uma aba do app já aberta vai para a `url` (e ganha
+ * foco quando o navegador deixa); sem aba aberta, abre uma nova.
+ */
+async function abrirNoLugarCerto(url: string): Promise<void> {
+  const destino = new URL(urlInterna(url), self.location.origin).href;
+  const abas = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+  const aba = abas.find((c) => new URL(c.url).origin === self.location.origin);
+  if (aba) {
+    try {
+      await aba.focus();
+    } catch {
+      // foco sem gesto do usuário é recusado (evento sintético); navegar basta
+    }
+    if ("navigate" in aba) {
+      try {
+        await aba.navigate(destino);
+        return;
+      } catch {
+        // aba que o worker não controla: cai para uma aba nova
+      }
+    }
+  }
+  await self.clients.openWindow(destino);
+}
+
+self.addEventListener("notificationclick", (evento) => {
+  evento.notification.close();
+  const dados = evento.notification.data as { url?: unknown } | null;
+  esperar(evento, abrirNoLugarCerto(urlInterna(dados?.url)));
 });

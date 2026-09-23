@@ -13,6 +13,7 @@
  * baixo desenha —, nunca redigitados.
  */
 import { ABAS, type Aba } from "@/lib/abas";
+import { LINHA_LEMBRETES } from "@/lib/lembretes";
 
 /** Uma função do app dentro de uma seção do guia. */
 export interface FuncaoDoGuia {
@@ -677,6 +678,13 @@ const MAIS: SecaoDoGuia = {
         "Quanto a carga sobe quando o treino fecha no topo da faixa. Vazio = o valor do programa.",
       caminho: ["Mais", "Preferências", "Incremento por exercício"],
       href: "/mais/preferencias#incrementos",
+    },
+    {
+      id: "lembretes",
+      nome: LINHA_LEMBRETES.titulo,
+      oQueFaz: `${LINHA_LEMBRETES.descricao} O botão “Enviar um lembrete de teste” confere se o aviso chega.`,
+      caminho: ["Mais", LINHA_LEMBRETES.titulo],
+      href: LINHA_LEMBRETES.href,
     },
     {
       id: "creditos",

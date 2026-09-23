@@ -1,7 +1,7 @@
 /**
  * Varredura do ultraloop (20/09/2026) — a régua de qualidade que vale para
  * TODA tela, em vez de para uma de cada vez. Roda só com `VARREDURA=1`
- * (`npm run e2e -- --grep varredura`), porque ela visita doze rotas nos dois
+ * (`npm run e2e -- --grep varredura`), porque ela visita treze rotas nos dois
  * temas e é cara demais para a bateria normal.
  *
  * Os cinco itens (SPEC §22):
@@ -41,6 +41,7 @@ const ROTAS = [
   "/mais/preferencias",
   "/mais/guia",
   "/mais/contas",
+  "/mais/lembretes",
   "/login",
   "/~offline",
 ] as const;

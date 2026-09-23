@@ -242,6 +242,8 @@ Design: sóbrio, alto contraste, tipografia grande nos números (é lido a um br
 
 Vários usuários, social, IA de sugestão de treino, nutrição, integração com relógio/GPS, notificações push. Não implementar nem deixar preparado — manter o app pequeno.
 
+> Revogado em parte: "vários usuários" pela §21 (contas com cota) e "notificações push" pela §23 (lembretes no celular, decisão do dono de 23/09/2026). O resto continua fora.
+
 ---
 
 ## 12. Ordem sugerida de construção (marcos)
@@ -1140,7 +1142,7 @@ Comparar, IMC com a altura); Calendário (semana em lista, resumo "N feitos · N
 fazer · N perdidos", mês em miniatura, tocar num dia, "Não vou treinar hoje",
 "Meus dias", setas e "Hoje"); Mais (Como usar o app, Perfil, Equipamento,
 Preferências — tema, dias de treino, meta semanal, treino/player, incrementos —,
-Créditos, Backup, sincronização, Trocar senha, Sair — que sai **deste**
+Lembretes (§23.4, desde o lote 34), Créditos, Backup, sincronização, Trocar senha, Sair — que sai **deste**
 aparelho, sem derrubar as outras sessões da conta, §22.11).
 
 **O mapa muscular não aparece na aba Corpo** — ele é a figura da ficha do
@@ -2877,3 +2879,337 @@ não muda (§22.0.1 item 7). O aceite de cada item é verificável no Vitest
     com e sem foco, o pixel 3 px por fora da borda (o anel) muda com
     contraste ≥ 3:1 contra o fundo que estava ali, e o pixel 1 px por fora
     (o vão) não muda.
+
+---
+
+## 23. Lembretes no celular — decisão de 23/09/2026 (adendo)
+
+O pedido do dono (23/09): o app passa a ter **lembretes no celular por
+notificação push**, no horário que o usuário escolhe. É feature nova, fora da
+§11 por decisão explícita do dono (a §11 foi anotada). Entra em duas partes:
+
+- **Lembretes I (lote 34, esta seção 23.1–23.7):** o aparelho se inscreve, o
+  service worker mostra a notificação e abre o app no lugar certo, e um botão
+  manda **um lembrete de teste** para os aparelhos da conta.
+- **Lembretes II (lote 35, ainda não feito):** os horários que o usuário edita,
+  o disparo automático no horário e a relação com o calendário (§16/§17). Nada
+  disso existe no código deste lote: a tela não mostra horário nenhum. A tabela
+  (23.2) e a rota de envio (23.5) já nascem prontas para ele.
+
+**Problema medido** em `main` (27eda74): não há `push` nem `notificationclick`
+em `app/sw.ts`, nenhuma tabela de inscrição em `supabase/schema.sql`, nenhuma
+rota `/api/*` e nenhuma linha "Lembretes" em Mais — o app não tem como avisar
+ninguém fora da tela aberta.
+
+### 23.1 Regras que não mudam
+
+- **Stack fechada.** Web Push pelo service worker do Serwist que já existe
+  (`app/sw.ts`), Supabase com RLS e um route handler do Next.js (runtime
+  `nodejs`) na Vercel. A cifragem do corpo (RFC 8291, `aes128gcm`) e a
+  assinatura VAPID (RFC 8292, ES256) moram em `lib/web-push.ts`, com
+  `node:crypto` e nada mais — ver 23.5 sobre a dependência `web-push`.
+- **Segurança.** Nunca a service role — nem no cliente, nem no servidor: a
+  rota fala com o banco **com a sessão de quem pediu** (cookie), e a RLS só
+  deixa ela ler as inscrições dessa pessoa. A chave privada VAPID só existe em
+  variável de ambiente do servidor (`VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`); a
+  pública é `NEXT_PUBLIC_VAPID_PUBLIC_KEY`. Nenhum desses valores fica no
+  repositório (`.env.local.example` só documenta os nomes).
+- **Sem as variáveis, nada quebra.** Faltando qualquer uma das três (ou a
+  pública não sendo a par da privada), a tela diz **"Lembretes ainda não
+  configurados neste servidor."**, sem botão de ativar, e a rota de teste
+  responde 503 com o mesmo texto.
+- **Sem a tabela, nada quebra.** Se a migração ainda não foi aplicada no
+  projeto (o PostgREST responde `PGRST205`/`42P01`), a tela diz "Os lembretes
+  ainda não estão disponíveis neste servidor (falta atualizar o banco)." e a
+  rota de teste responde 503.
+- pt-BR, 360 px, alvos ≥ 44 px, dois temas, sem rolagem lateral (§22.0.1).
+- Sem gamificação: a notificação é texto simples, sem sequência nem contagem.
+
+### 23.2 O banco: `public.lembretes_inscricoes` (expand-only)
+
+Uma linha por **aparelho inscrito**: `id uuid`, `user_id` (→ `auth.users`,
+`on delete cascade`), `endpoint text unique`, `p256dh text`, `auth text`,
+`aparelho text` (nome curto do navegador e do sistema, para a lista),
+`criado_em`, `ultimo_envio_em` e `falhas int default 0` (as duas últimas são do
+lote 35 e ficam nulas/zero aqui). Índice por `user_id`.
+
+RLS com três policies, todas por `user_id = auth.uid()` e só para
+`authenticated`: **ler**, **inserir** e **apagar** as suas. Não há policy de
+`update` (este lote não altera linha) e o `anon` não tem permissão nenhuma na
+tabela. O mesmo SQL está em `supabase/schema.sql` e em
+`supabase/migracoes/2026-09-23-lembretes-inscricoes.sql`, idempotente
+(`if not exists`, `drop policy if exists` antes de cada `create policy`) e sem
+`drop table`/`drop column`/`rename`. O mock (`scripts/mock-supabase.ts`)
+conhece a tabela, a unicidade do `endpoint` e a RLS por dono.
+
+**O `user_id` vai no insert.** A coluna é `not null` **sem default** (como em
+todas as tabelas do app): quem grava manda o `user_id` da sessão — a página
+recebe o id do servidor (`idDoUsuario()`) e a tela o põe na linha. Sem ele, o
+banco real recusa (a policy `with check (user_id = auth.uid())` falha antes do
+`not null`). O mock imita isso nesta tabela: insert sem `user_id` responde
+`42501`, sem `endpoint`/`p256dh`/`auth` responde `23502`, e `PATCH` não altera
+nada (não há policy de update). Uma inscrição cujo navegador não devolve as
+duas chaves não é gravada: conta como falha do `subscribe` (23.4).
+
+**Um aparelho, uma conta.** O `endpoint` é único na tabela inteira. Se o
+aparelho já estava inscrito por **outra** conta (celular compartilhado), a
+inserção esbarra na unicidade; o app então cancela a inscrição do navegador e
+pede uma nova (endpoint novo) e grava essa. A linha antiga, da outra conta,
+morre sozinha no próximo envio (410, 23.5).
+
+### 23.3 O service worker
+
+`app/sw.ts` ganha dois ouvintes, com a decisão em `lib/lembretes.ts` (pura,
+testada no Vitest):
+
+- **`push`**: o corpo é JSON `{titulo, corpo, url, tag}`.
+  `opcoesDaNotificacao()` monta o `showNotification`: título (ou "Treino do
+  Terraço" se vier vazio), `body`, ícone e badge do manifest
+  (`/icons/icone-192.png`), `tag` (a mesma tag substitui a notificação anterior
+  em vez de empilhar), `lang: "pt-BR"` e `data.url`. A `url` só vale se for um
+  caminho do próprio app: começa com `/` (e não com `//` nem `/\`) **e**,
+  resolvida pelo parser de URL contra uma origem fixa, continua nessa mesma
+  origem — o parser apaga TAB, LF e CR, então `"/\t/outro.host"` vira
+  `//outro.host` e cai fora. O que vale é devolvido como caminho + busca +
+  âncora **e a saída é conferida de novo**: o parser também desfaz `.`, `..`
+  e `%2e`, então `"/.//outro.host"`, `"/a/..//outro.host"` e
+  `"/%2e//outro.host"` passam pela entrada mas saem `//outro.host` (outro
+  host) — um caminho devolvido que começa com `//` vira `/`. Assim a saída
+  sempre fica na origem e é idempotente (`urlInterna(urlInterna(x)) ===
+  urlInterna(x)`); qualquer outra coisa vira `/`. Corpo que não é JSON vira o
+  texto da notificação.
+- **`notificationclick`**: fecha a notificação, procura uma aba do app já
+  aberta e a leva para `data.url` (e tenta dar foco); sem aba aberta, abre
+  uma nova em `data.url`.
+
+### 23.4 A tela: Mais → Lembretes (`/mais/lembretes`)
+
+Mais ganha a linha **"Lembretes"** ("Receber avisos no celular; ative em cada
+aparelho."), com o mesmo título e descrição que o guia de uso usa (fonte única:
+`LINHA_LEMBRETES` em `lib/lembretes.ts`). A tela mostra o **estado deste
+aparelho** (`estadoDoAparelho()`, pura), um de:
+
+| estado | quando | o que a tela oferece |
+|---|---|---|
+| Lembretes ainda não configurados neste servidor | faltam as variáveis VAPID | nada a fazer |
+| Este navegador não recebe notificações | sem `serviceWorker`, `PushManager` ou `Notification` | instruções |
+| Bloqueado pelo navegador | `Notification.permission === "denied"` | instruções |
+| Ativado neste aparelho | permissão concedida, inscrição do navegador **e** a linha dela na tabela | "Desativar neste aparelho" |
+| Desativado neste aparelho | o resto | "Ativar lembretes neste aparelho" |
+
+- **Ativar**: pede a permissão (`Notification.requestPermission`), inscreve
+  (`pushManager.subscribe` com `userVisibleOnly` e `applicationServerKey` = a
+  chave pública) e grava a linha **com o `user_id` da sessão** (23.2).
+  Permissão recusada ou dispensada, ou inscrição que falha, mostram a frase
+  do que houve **e sempre ao menos uma instrução** (23.6) — nunca um erro
+  técnico e nunca a frase sozinha. A frase fica **abaixo do estado (e do
+  botão Ativar/Desativar, quando há botão), acima das instruções**, dentro
+  do bloco "Este aparelho": mesmo com duas
+  instruções (Brave com a permissão negada) ela aparece na primeira dobra a
+  360×740, sem rolar.
+- **A volta das configurações**: quem libera a permissão fora do app (cadeado
+  do navegador, Configurações do Android, Ajustes do iPhone) volta sem
+  recarregar. A tela **confere de novo** a permissão e a inscrição quando a
+  página volta a ficar visível (`visibilitychange`), ganha foco (`focus`),
+  volta do cache (`pageshow`) e quando `navigator.permissions.query({name:
+  "notifications"})` avisa uma troca (`change`), se o navegador tiver essa
+  API. Se a permissão mudou desde a última leitura, a frase e a falha
+  antigas saem: de "Bloqueado pelo navegador" a tela passa a "Desativado
+  neste aparelho", com o botão Ativar e sem a instrução de liberar. Se o
+  aparelho estava ativado, foi bloqueado e voltou a ser liberado, e o
+  navegador manteve a inscrição (e a linha continua na tabela), a tela volta
+  direto a "Ativado neste aparelho" — o Chrome costuma cancelar a inscrição ao
+  bloquear, e aí o caminho é o do Ativar. Enquanto
+  um Ativar/Desativar/Remover/teste está em andamento, a volta não relê (o
+  pedido de permissão do próprio navegador também tira e devolve o foco).
+  Se a volta não consegue ler a lista (sem internet), a frase do aparelho
+  fica como estava — só sem frase do aparelho aparece "Não deu para ler os
+  aparelhos agora.", na lista — e esse aviso sai na próxima leitura que der
+  certo.
+- **Desativar**: apaga a linha e cancela a inscrição do navegador.
+- **Aparelhos desta conta**: a lista das inscrições (nome do aparelho e
+  "desde dd/mm"), com **"Remover"** em cada uma; remover a deste aparelho
+  também cancela a inscrição do navegador. O recado de "Remover" e o nome
+  acessível do botão (`aria-label` "Remover <nome> (desde dd/mm)") usam o
+  nome da lista ("Aparelho sem nome" quando a linha veio sem nome).
+- **"Enviar um lembrete de teste"** (quando há ao menos um aparelho): chama a
+  rota de 23.5 e diz o resultado numa linha `role="status"`: "Enviado para 1
+  aparelho." / "Enviado para 2 aparelhos." / o erro em pt-BR. Quando nenhum
+  aparelho recebeu ("Não deu para enviar agora."), a linha continua
+  `role="status"` mas com a cor de erro, não a de sucesso.
+
+### 23.5 A rota de teste: `POST /api/lembretes/teste`
+
+Runtime `nodejs`. Sem sessão, **401** (o middleware responde JSON às rotas
+`/api/*` em vez de mandar para `/login`). Sem as variáveis VAPID, **503** com
+"Lembretes ainda não configurados neste servidor.". Com sessão, lê as
+inscrições **da pessoa** (cliente do servidor com o cookie; a RLS faz o resto),
+e para cada uma monta o pedido (`montarPedidoPush()`): corpo cifrado
+`aes128gcm` com a `p256dh` e o `auth` do aparelho, `Authorization: vapid
+t=<JWT ES256 com aud = origem do endpoint, exp ≤ 12 h, sub = VAPID_SUBJECT>,
+k=<chave pública>`, `TTL`, `Urgency` e `Topic`. O `endpoint` só é chamado se
+for de um serviço de push conhecido (FCM, Mozilla, Apple, Windows — em
+`https`); a origem do servidor de push falso dos testes só entra pela variável
+`LEMBRETES_PUSH_DE_TESTE`, que existe só no `e2e/playwright.config.ts`.
+Resposta **404/410** do serviço = inscrição expirada: a linha é apagada.
+Um `endpoint` fora da lista não é chamado e conta como não enviado. Sem
+nenhuma inscrição, **409** "Nenhum aparelho desta conta está com os lembretes
+ativados.". Devolve o resultado por aparelho e o texto da tela ("Enviado para
+N aparelho(s).", mais "1 aparelho tinha a inscrição vencida e saiu da lista."
+quando houve 404/410, ou "Não deu para enviar agora." se nenhum chegou).
+
+**A dependência `web-push`** estava permitida pelo contrato, mas não entrou:
+o `node_modules` deste repositório é compartilhado entre as faixas de trabalho
+e o `npm install` reescreveria dezenas de pacotes dele. As duas RFCs cabem em
+`lib/web-push.ts` com `node:crypto`, e o teste confere a cifragem **byte a byte
+contra o exemplo do Apêndice A da RFC 8291** — mesma chave, mesmo salt, mesmo
+resultado.
+
+### 23.6 Instruções quando o navegador bloqueia ou não suporta
+
+`instrucoesDoAparelho()` (pura) escolhe o que explicar. Cada instrução só
+aparece onde o que ela manda fazer **existe no aparelho**:
+
+- **`brave`** — "No Brave, os avisos só chegam com os serviços do Google
+  ligados": Configurações do Brave → Privacidade e segurança → ligar **"Usar
+  os serviços do Google para mensagens push"**, fechar e abrir o Brave e tocar
+  em Ativar de novo. Só com `navigator.brave`, **fora do iPhone** (a opção só
+  existe no Brave do Android e do computador; no iPhone todo navegador é
+  WebKit e o push só chega pelo app instalado) e só quando o Ativar
+  **falhou** — a inscrição falhou ou a pergunta da permissão foi dispensada
+  sem escolher — ou a permissão está **negada**; nunca em "sem suporte":
+  ligar essa opção não cria o `PushManager` que falta.
+- **`permissao`** — "O navegador está bloqueando as notificações deste app":
+  cadeado (ou ⓘ) ao lado do endereço → Permissões → Notificações → Permitir;
+  com o app instalado, Configurações do Android → Apps → Treino do Terraço →
+  Notificações; voltar ao app, que confere de novo sozinho (23.4) e mostra
+  "Ativar lembretes neste aparelho". Permissão negada fora do iPhone.
+- **`permissao-iphone`** — "O iPhone está bloqueando as notificações deste
+  app": Ajustes do iPhone → Notificações → Treino do Terraço → ligar
+  **"Permitir Notificações"** e voltar ao app. Permissão negada no iPhone (o
+  cadeado e as Configurações do Android não existem lá). Fora da tela
+  inicial ela vem **depois** da `iphone`: a entrada "Treino do Terraço" nos
+  Ajustes só existe com o app instalado, então instalar é o primeiro passo.
+- **`iphone`** — "No iPhone, os lembretes só chegam com o app instalado":
+  Compartilhar → **Adicionar à Tela de Início** e ativar pelo ícone (iOS 16.4
+  ou mais novo). iPhone/iPad fora da tela inicial (sem `display-mode:
+  standalone`).
+- **`suporte`** — "Este navegador não recebe notificações de sites": no
+  Android, o Chrome ou o Brave; no iPhone, o app instalado na tela de início
+  com o iOS 16.4 ou mais novo. Navegador sem suporte, fora do caso `iphone`
+  (inclusive o Brave sem suporte e o app instalado num iOS antigo).
+- **`tentar`** — "Para tentar de novo": conferir a internet e tocar em Ativar
+  de novo, escolher **Permitir** quando o navegador perguntar e, se não
+  ativar, ver nas configurações do celular se as notificações do navegador
+  (ou do app instalado) estão ligadas. Uma falha ao ativar sem nenhum caso
+  acima (Chrome ou outro navegador no Android, o app instalado no iPhone, a
+  permissão dispensada sem escolher).
+
+**A tabela das 80 combinações** (estado × Brave × iPhone × instalado ×
+falhou) é o contrato: `lib/lembretes.test.ts` lê esta tabela daqui, confere
+que cada combinação cai em **exatamente uma** linha e que
+`instrucoesDoAparelho()` devolve as instruções da linha, na ordem. "·" vale
+sim e não; "—" é nenhuma instrução.
+
+<!-- tabela-instrucoes:inicio -->
+| estado | Brave | iPhone | instalado | falhou | instruções |
+|---|---|---|---|---|---|
+| sem-configuracao | · | · | · | · | — |
+| ativado | · | · | · | · | — |
+| desativado | · | não | · | não | — |
+| desativado | sim | não | · | sim | `brave` |
+| desativado | não | não | · | sim | `tentar` |
+| desativado | · | sim | não | · | `iphone` |
+| desativado | · | sim | sim | não | — |
+| desativado | · | sim | sim | sim | `tentar` |
+| bloqueado | sim | não | · | · | `brave`, `permissao` |
+| bloqueado | não | não | · | · | `permissao` |
+| bloqueado | · | sim | não | · | `iphone`, `permissao-iphone` |
+| bloqueado | · | sim | sim | · | `permissao-iphone` |
+| nao-suportado | · | não | · | · | `suporte` |
+| nao-suportado | · | sim | não | · | `iphone` |
+| nao-suportado | · | sim | sim | · | `suporte` |
+<!-- tabela-instrucoes:fim -->
+
+Regra que a tabela cumpre: com a permissão negada, o navegador sem suporte ou
+uma falha ao ativar, a lista **nunca sai vazia**; ativado e sem configuração,
+sempre vazia.
+
+**Fica para o lote 35:** o "Sair" (§22.11) não mexe na inscrição do aparelho
+— hoje só chega o teste que a própria conta pede; quando houver disparo no
+horário, o lote 35 decide se sair apaga a linha deste aparelho. O badge da
+notificação é o `icone-192` colorido (o Android costuma mostrá-lo como um
+quadrado branco); um badge monocromático entra quando houver o desenho.
+
+### 23.7 Critérios de aceite (lote 34)
+
+1. **Banco**: `lib/migracao-lembretes.test.ts` — a migração é um pedaço do
+   `schema.sql`, idempotente, expand-only (sem `drop table`, `drop column`,
+   `rename`, `alter … type`), com RLS ligada, três policies por `auth.uid()`
+   (select/insert/delete), nenhuma de update, nenhuma com `true`, e o `anon`
+   sem permissão; e2e — no mock, a conta B não vê nem apaga a inscrição da
+   conta A; o corpo do `POST /rest/v1/lembretes_inscricoes` que a tela manda
+   traz o `user_id` da sessão, e o mock recusa (`42501`) o insert sem ele.
+2. **Service worker**: Vitest de `opcoesDaNotificacao()` (título, corpo,
+   ícone, tag, `lang`, url interna/externa — inclusive `/` + TAB/LF/CR +
+   `/outro.host` e os segmentos de ponto antes da barra dupla
+   (`/.//outro.host`, `/..//outro.host`, `/a/..//outro.host`,
+   `/%2e//outro.host`, `/./\outro.host`) —, uma varredura de pedaços hostis
+   combinados três a três, com e sem sufixo, em que **toda** saída fica na
+   origem, não começa com `//` nem `/\` e é idempotente, e corpo que não é
+   JSON); e2e — com o
+   worker real, um `push` simulado vira notificação com o título e o corpo do
+   payload (`registration.getNotifications()`), e o `notificationclick` leva a
+   aba aberta para a `url`.
+3. **Tela**: e2e a 360×740 nos dois temas, com a permissão concedida pelo
+   contexto do Playwright — ativar grava a linha (com a chave pública certa
+   no `subscribe`), desativar apaga; estados "bloqueado", "não suportado",
+   Brave e a falha genérica, cada um nos dois temas; `/mais/lembretes` na
+   varredura (§22: contraste AA e anel de foco);
+   alvos ≥ 44 px; sem rolagem lateral; a linha "Lembretes" em Mais, com o
+   anel de foco **interno** (a lista tem `overflow-hidden`, que cortava o
+   anel de fora de toda linha): contorno sólido ≥ 2 px inteiro dentro da
+   linha e contraste ≥ 3:1 ao focar, nos dois temas.
+4. **Rota de teste**: Vitest da cifragem contra a RFC 8291 (Apêndice A), do
+   JWT VAPID (assinatura confere com a chave pública) e das regras; e uma
+   **prova independente** (`lib/web-push-prova.test.ts`, só WebCrypto, sem
+   as funções de `lib/web-push.ts`): o JWT tem cabeçalho `alg: ES256`/`typ:
+   JWT`, `aud` = origem do endpoint, `exp` ≤ 24 h e `sub` = `VAPID_SUBJECT`;
+   a assinatura tem **64 bytes (r‖s, não DER)** e confere em
+   `crypto.subtle.verify` (ECDSA P-256/SHA-256) com a chave pública em
+   formato raw; o `Authorization` é `vapid t=…, k=…` com `k` = a pública;
+   `Content-Encoding: aes128gcm`, `TTL` e `Urgency`; e o corpo **decifra**
+   com a chave privada do assinante por uma implementação da RFC 8291 escrita
+   no próprio teste (que decifra também o exemplo do Apêndice A). Mutação:
+   assinar em DER derruba a prova; e2e — o
+   servidor de push falso no mock recebe o pedido com `Authorization: vapid
+   t=…, k=…` válido e corpo cifrado que decifra no payload; a tela mostra
+   "Enviado para 1 aparelho."; a inscrição que responde 410 some da tabela;
+   sem sessão, 401.
+5. **Instruções**: Vitest de `instrucoesDoAparelho()` que lê a tabela de
+   23.6 do SPEC.md e varre as 80 combinações contra ela (cada uma em
+   exatamente uma linha, as mesmas instruções na mesma ordem); e2e com Brave
+   simulado (`navigator.brave`), com a permissão negada e com o `subscribe`
+   falhando no Chrome, textos em pt-BR; com Brave e a permissão negada ao
+   pedir (duas instruções), a frase fica acima das instruções e inteira na
+   primeira dobra a 360×740, nos dois temas.
+6. **Guia**: Mais → Como usar o app tem a linha "Lembretes" com o mesmo texto
+   da tela Mais, apontando para `/mais/lembretes`.
+7. **A volta das configurações**: e2e nos dois temas que abre a tela com a
+   permissão **negada de verdade** no Chromium (estado "Bloqueado pelo
+   navegador", instrução de liberar, sem Ativar), concede a permissão pelo
+   contexto do Playwright, dispara a volta (`visibilitychange`) e vê o
+   botão Ativar aparecer e a instrução sumir — com a `navigator.permissions`
+   desligada, para provar o caminho do `visibilitychange` sozinho; o mesmo
+   com `focus` e com `pageshow`, cada um sozinho; um Ativar demorado com a
+   volta disparada no meio não lê a tabela antes de gravar; e a volta sem
+   internet mantém a frase do aparelho (e, sem frase, o aviso da lista sai
+   quando a internet volta).
+8. **Montagem sem configuração e sem tabela**: e2e que abre a tela num
+   segundo `next start` **sem** as variáveis VAPID ("Lembretes ainda não
+   configurados neste servidor.", sem botão, e a rota responde 503) e com o
+   PostgREST respondendo `PGRST205` para a tabela ("… falta atualizar o
+   banco", sem botão), nos dois temas; e um Vitest da rota
+   (`lib/rota-lembretes-teste.test.ts`, com o cliente do Supabase trocado)
+   que dá 503 `SEM_CONFIGURACAO` sem as variáveis, 401 sem sessão, 503
+   `SEM_TABELA` com o `PGRST205`, 502 com outro erro e 409 sem aparelho.
