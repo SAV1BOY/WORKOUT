@@ -10454,8 +10454,9 @@ primeiro), `8fb8569` (Visão geral), `f058c95` (foto ampliada), `25e55e9`
   (`components/treinar/visao-geral.tsx`). **Era:** `popstate` →
   `aoFechar()`, sempre. **É:** se há uma camada aberta por cima da lista
   (`[role=dialog]`/`[role=alertdialog]` que não é a própria lista nem a
-  contém, e não está fechando — folha, alerta, o resumo do fim ou a foto
-  ampliada), o `popstate` devolve a entrada da lista ao histórico
+  contém, e não está fechando — folha, alerta ou o resumo do fim; a foto
+  ampliada não abre dentro da Visão geral, correção da rodada 17), o
+  `popstate` devolve a entrada da lista ao histórico
   (`pushState`) e entrega um Esc à camada de cima, que fecha do jeito dela:
   o Radix fecha a folha e devolve o foco ao gatilho, e a lista ignora esse
   Esc porque ele já vem com `defaultPrevented` (rodada 15). Sem nada por
@@ -10584,6 +10585,95 @@ em:" com os dois chips, como na rodada 15.
    folha e o foco volta ao "substituir hoje".
 3. Ficha do supino (Explorar → Exercícios) → "Ampliar a foto do início" →
    feche pelo X (ou Esc): o foco volta ao botão da foto, não ao topo da
-   página.
+   página. (Rodada 17: isso se vê com teclado Bluetooth ou leitor de tela,
+   que põem o foco no botão ao abrir; o toque com o dedo no Safari do
+   iPhone não foca o botão, então não há foco para voltar.)
 4. No modo avião, ficha → "Tutorial no YouTube": com o leitor de tela, o
    link lê "Abrir no YouTube (abre fora do app)"; na tela, nada mudou.
+
+#### Rodada 15 — auditoria 2 reprovou por a regra da folha valer só na folha; lote devolvido à fila
+
+A auditoria 2 sobre `1d41620` (cadeia verde: 1.540 unitários, 514 e2e + 5
+pulados, varredura 5/5; capturas só 09, 10 e 24) reprovou nas **duas
+lentes** pelo mesmo motivo de fundo, 0 bloqueantes: o contrato do lote e a
+SPEC §22.14 item 6 prometiam a regra da folha (a11y-05: foco guardado e
+devolvido a quem abriu, `aria-modal`, fundo inerte, Esc e voltar fecham só
+a camada de cima) para **toda** camada modal, mas só `components/ui/sheet.tsx`
+a cumpria. Medido: o alerta "Descartar este treino?" e o resumo do fim,
+abertos por estado dentro da Visão geral, fechavam com o foco no `<body>`
+e abriam sem `aria-modal` e com o fundo vivo; na foto ampliada, 6 de 6
+Tabs saíam da camada (no Corpo, para a barra de baixo), e no "Apagar esta
+foto?" também, até o aviso "Foto de frente guardada." por cima do véu.
+Lote devolvido à fila. Vereditos: `r15/l14/vereditos-auditoria-2.json`.
+
+#### Rodada 16 — retomada (segunda correção, logs em `r17/l14`)
+
+Retomada sobre `1d41620`, na mesma branch; logs em `r17/l14/`. Commits:
+`9cd961e` (a regra num lugar só e os três primitivos), `cb9845d` (foto
+ampliada e cartão), o e2e e a SPEC (§22.14 item 6: inventário e regra).
+
+##### O que mudou (era → é)
+
+- **A regra da folha num lugar só** (`lib/camada-modal.ts` +
+  `lib/camada-modal.test.ts`, `components/ui/camada-modal.ts`). **Era:** a
+  regra morava dentro de `sheet.tsx` (`inertizarForaDe` e o `anterior`), e
+  `dialog.tsx`/`alert-dialog.tsx` não tinham nada: o Radix devolve o foco
+  só ao `Trigger`, e sem ele o foco caía no `<body>`. **É:** a parte que se
+  decide sem DOM está em `lib/` (quais irmãos ficam inertes; marcas
+  contadas por nó, para que fechar uma camada — a de cima ou a de baixo,
+  em qualquer ordem — não libere o que outra ainda precisa inerte; quem
+  recebe o foco na volta, com a cadeia de quem abriu a camada de baixo; o
+  Tab preso nas bordas) e `components/ui/camada-modal.ts` aplica no DOM:
+  `useCamadaModal` para os primitivos do Radix e `useCamadaPropria` para a
+  camada própria da foto.
+- **Folha, diálogo e alerta** (`components/ui/sheet.tsx`, `dialog.tsx`,
+  `alert-dialog.tsx`). **Era:** só a folha era modal de verdade. **É:** os
+  três usam o mesmo `useCamadaModal`: `aria-modal="true"`, fundo `inert`
+  enquanto abertos e o foco de volta a quem abriu. Ganham com isso o
+  "Descartar este treino?" e o resumo do fim da Visão geral, o fim do
+  cardio, os dois diálogos do calendário e a retomada.
+- **Foto ampliada e "Apagar esta foto?"**
+  (`components/exercicios/foto-ampliada.tsx`). **Era:** foco no X e Esc
+  próprios, mas o Tab saía da camada e o fundo não ficava inerte; o cartão
+  nascia com o foco no "Apagar" (destrutivo) e, ao fechar, o foco caía no
+  `<body>`. **É:** `useCamadaPropria` na foto e no cartão (agora um
+  componente, `ConfirmarApagar`): fundo inerte (sob o cartão, a própria
+  foto), Tab e Shift+Tab presos, foco de volta — o cartão ao "Apagar" da
+  foto, a foto ao "Ver a foto"/"Ampliar a foto". O cartão nasce no
+  **Cancelar**.
+- **SPEC §22.14 item 6** ganhou o **inventário** de toda camada modal do
+  app (19 linhas: 17 com a regra, a Visão geral em parte e a tela de
+  descanso, que não é camada) e diz só o que o código faz. Fora, com
+  motivo, e para a fila: o foco ao abrir a Visão geral
+  (`a11y-visao-geral-foco-ao-abrir`) e o voltar fechando só a camada de
+  cima fora da Visão geral (`a11y-voltar-fecha-camada`: nenhuma camada de
+  página tem entrada no histórico). Também: o parágrafo da rodada 16 não
+  põe mais a foto ampliada sobre a Visão geral (ela não abre lá) e diz que
+  o voltar espera a gravação do resumo; o item 3 registra as duas
+  correções de dado da rodada 15 (`48b7603`).
+
+##### Correção da auditoria
+
+- **Importante (tela): "Descartar este treino?" não devolvia o foco** →
+  `alert-dialog.tsx` com `useCamadaModal`; e2e nos dois temas com Esc e
+  com `history.back()`: foco no "Descartar este treino" do rodapé, Visão
+  geral aberta, rota e índice do histórico os de antes, 0 `inert`.
+- **Importante (tela): foto ampliada e "Apagar esta foto?" soltavam o Tab e
+  o fundo** → `useCamadaPropria`; e2e: 12 Tabs e 4 Shift+Tabs dentro,
+  nenhum focável fora sem `inert`, nos dois temas no Corpo e na ficha.
+- **Importante (regra): a SPEC prometia foco devolvido no alerta e no
+  diálogo** → os dois primitivos guardam quem abriu, têm `aria-modal` e
+  fundo inerte, e há e2e do Esc e do voltar para o alerta e o resumo do
+  fim, mais o caso empilhado (o alerta que some por baixo do resumo não
+  libera o fundo).
+- **Menores feitos:** o cartão nasce no Cancelar (tela); a foto sai da
+  lista de camadas sobre a Visão geral na SPEC e no PROGRESSO (tela); o
+  item 3 da SPEC registra as correções de dado da rodada 15 (regra); o
+  "Como testar (rodada 16)" passo 3 diz que o foco de volta se vê pelo
+  teclado ou leitor de tela (regra); a SPEC diz que o voltar com o resumo
+  gravando espera a gravação (regra).
+- **Menores registrados:** a Visão geral aberta pelo teclado deixa o foco
+  no `<body>` (já existia, §22.5) → fila `a11y-visao-geral-foco-ao-abrir`;
+  "Super Band" nomeia dois filtros com resultados diferentes (Implemento
+  2, Equipamento 5) — é o FAZER literal do OBS-elastico e está no aceite.
+
