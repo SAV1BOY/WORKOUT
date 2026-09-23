@@ -446,13 +446,15 @@ export function TelaLembretes({
       />
 
       {chavePublica === null || semTabela ? (
-        <p data-estado="sem-configuracao" className={`${bloco} text-sm text-balance`}>
-          {chavePublica === null ? SEM_CONFIGURACAO : SEM_TABELA}
+        <div className={bloco}>
+          <p data-estado="sem-configuracao" className="text-sm text-balance">
+            {chavePublica === null ? SEM_CONFIGURACAO : SEM_TABELA}
+          </p>
           {/* §23.9: sem push, os horários e o calendário continuam */}
-          <span className="text-muted-foreground mt-1 block">
+          <p className="text-muted-foreground text-sm text-balance">
             Os horários e o calendário abaixo funcionam mesmo assim.
-          </span>
-        </p>
+          </p>
+        </div>
       ) : !carregado ? (
         <p className="text-muted-foreground text-sm">Conferindo este aparelho…</p>
       ) : (
@@ -594,18 +596,27 @@ function BlocoHorarios({ userId }: { userId: string }) {
   const sessoesQ = useSessoes();
   const cardioQ = useCardio(de, hoje);
   const [enviados, setEnviados] = useState<EnvioLembrete[]>([]);
-  const [lembretes, setLembretes] = useState<PrefsLembretes | null>(null);
+  /*
+   * Os lembretes saem SEMPRE do perfil do cache (gravar já o atualiza na hora,
+   * `salvarPrefs` → `setQueryData`): o cache persistido pode abrir com um valor
+   * velho e a leitura do servidor corrigir logo depois — um estado local lido
+   * uma vez só ficaria com o velho.
+   */
+  const lembretes = useMemo(() => (perfil ? lembretesDasPrefs(perfil.prefs) : null), [perfil]);
   const [horas, setHoras] = useState<Record<TipoDeLembrete, string>>({ treino: "", corrida: "" });
   const [recado, setRecado] = useState<{ texto: string; erro: boolean } | null>(null);
-  const espera = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  const espera = useRef<Partial<Record<TipoDeLembrete, ReturnType<typeof setTimeout>>>>({});
+  const perfilAtual = useRef(perfil);
+  perfilAtual.current = perfil;
 
-  // o que está gravado vira o estado da tela (uma vez, quando o perfil chega)
+  // o campo mostra o gravado, menos enquanto a pessoa ainda está digitando nele
   useEffect(() => {
-    if (!perfil || lembretes) return;
-    const lidos = lembretesDasPrefs(perfil.prefs);
-    setLembretes(lidos);
-    setHoras({ treino: lidos.treino.hora, corrida: lidos.corrida.hora });
-  }, [perfil, lembretes]);
+    if (!lembretes) return;
+    setHoras((h) => ({
+      treino: espera.current.treino ? h.treino : lembretes.treino.hora,
+      corrida: espera.current.corrida ? h.corrida : lembretes.corrida.hora,
+    }));
+  }, [lembretes]);
 
   // "Último lembrete" (RLS: só os desta conta). Sem a tabela, não aparece.
   useEffect(() => {
@@ -643,13 +654,15 @@ function BlocoHorarios({ userId }: { userId: string }) {
   const proximo = conta && agora ? proximoLembrete(conta, agora) : null;
   const ultimo = agora ? textoDoUltimo(enviados, agora) : null;
 
-  async function gravar(novos: PrefsLembretes) {
-    if (!perfil) return;
-    const validos = prefsLembretesSchema.safeParse(novos);
+  /** Muda um tipo sobre o que está gravado AGORA (não sobre o de quando o toque começou). */
+  async function gravar(tipo: TipoDeLembrete, mudanca: Partial<PrefsLembretes[TipoDeLembrete]>) {
+    const atual = perfilAtual.current;
+    if (!atual) return;
+    const lidos = lembretesDasPrefs(atual.prefs);
+    const validos = prefsLembretesSchema.safeParse({ ...lidos, [tipo]: { ...lidos[tipo], ...mudanca } });
     if (!validos.success) return;
-    setLembretes(validos.data);
     try {
-      await salvarPrefs({ userId, prefs: comLembretes(perfil.prefs, validos.data), cliente });
+      await salvarPrefs({ userId, prefs: comLembretes(atual.prefs, validos.data), cliente });
       setRecado({ texto: "Horários salvos.", erro: false });
     } catch {
       setRecado({ texto: "Não deu para salvar agora. Confira a internet e tente de novo.", erro: true });
@@ -657,19 +670,22 @@ function BlocoHorarios({ userId }: { userId: string }) {
   }
 
   function ligar(tipo: TipoDeLembrete, ligado: boolean) {
-    if (!lembretes) return;
-    void gravar({ ...lembretes, [tipo]: { ...lembretes[tipo], ligado } });
+    void gravar(tipo, { ligado });
   }
 
   function mudarHora(tipo: TipoDeLembrete, valor: string) {
     setHoras((h) => ({ ...h, [tipo]: valor }));
     clearTimeout(espera.current[tipo]);
     const hora = noPasso(valor);
-    if (!hora || !lembretes) return;
+    if (!hora) {
+      espera.current[tipo] = undefined;
+      return;
+    }
     // o campo de hora do computador muda a cada dígito: grava quando parar
     espera.current[tipo] = setTimeout(() => {
+      espera.current[tipo] = undefined;
       setHoras((h) => ({ ...h, [tipo]: hora }));
-      if (hora !== lembretes[tipo].hora) void gravar({ ...lembretes, [tipo]: { ...lembretes[tipo], hora } });
+      void gravar(tipo, { hora });
     }, 600);
   }
 
