@@ -32,6 +32,15 @@ const schema = readFileSync(join(RAIZ, "supabase", "schema.sql"), "utf8");
  */
 const TABELAS_DE_CONFIGURACAO = ["app_config"];
 
+/**
+ * `public.lembretes_inscricoes` (SPEC §23.2) tem `user_id`, mas é do
+ * **aparelho**, não do treino: a inscrição de push só vale no navegador que a
+ * criou, então não entra no backup (importar num celular novo não faria o
+ * aviso chegar lá). E a RLS é mais estreita que a do laço: select, insert e
+ * delete das suas, sem update. Testes próprios logo abaixo.
+ */
+const TABELAS_POR_APARELHO = ["lembretes_inscricoes"];
+
 /** As tabelas criadas no schema. */
 function tabelasCriadas(): string[] {
   return [...schema.matchAll(/create table if not exists public\.(\w+)/g)].map(
@@ -41,7 +50,9 @@ function tabelasCriadas(): string[] {
 
 /** As tabelas de dados do usuário (todas menos as de configuração). */
 function tabelasDoUsuario(): string[] {
-  return tabelasCriadas().filter((t) => !TABELAS_DE_CONFIGURACAO.includes(t));
+  return tabelasCriadas().filter(
+    (t) => !TABELAS_DE_CONFIGURACAO.includes(t) && !TABELAS_POR_APARELHO.includes(t),
+  );
 }
 
 /** Os nomes listados no laço que liga a RLS e cria a policy do dono. */
@@ -65,6 +76,25 @@ describe("schema.sql: RLS", () => {
     for (const tabela of TABELAS_DE_CONFIGURACAO) {
       expect(tabelasCriadas(), `${tabela} não existe no schema`).toContain(tabela);
       expect(tabelasComRls()).not.toContain(tabela);
+    }
+  });
+
+  it("as tabelas por aparelho têm RLS e só select/insert/delete por auth.uid()", () => {
+    for (const tabela of TABELAS_POR_APARELHO) {
+      expect(tabelasCriadas(), `${tabela} não existe no schema`).toContain(tabela);
+      expect(tabelasComRls()).not.toContain(tabela);
+      expect([...TABELAS_BACKUP]).not.toContain(tabela);
+      expect(schema).toContain(`alter table public.${tabela} enable row level security`);
+      const policies = [
+        ...schema.matchAll(
+          new RegExp(`create policy "(\\w+)" on public\\.${tabela} for (\\w+) to (\\w+)\\s+([^;]*);`, "g"),
+        ),
+      ];
+      expect(policies.map((p) => p[2]).sort()).toEqual(["delete", "insert", "select"]);
+      for (const [, nome, , papel, corpo] of policies) {
+        expect(papel, `policy ${nome}`).toBe("authenticated");
+        expect(corpo, `policy ${nome}`).toMatch(/\(user_id = auth\.uid\(\)\)$/);
+      }
     }
   });
 

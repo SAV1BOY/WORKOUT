@@ -593,3 +593,20 @@ export interface RefDeTexto<C extends string = ChaveDeSugestao | ChaveDeAviso> {
   chave: C;
   dados?: Readonly<Record<string, number | string>>;
 }
+
+/* ------------------------------------------------ lembretes (SPEC §23.2) */
+
+/**
+ * Uma linha de `public.lembretes_inscricoes` como o app a lê e grava (o
+ * `user_id` quem põe é a sessão; a RLS confere). A mesma forma que o mock
+ * (`scripts/mock-supabase.ts`) conhece.
+ */
+export const inscricaoLembreteSchema = z.object({
+  id: z.string().min(1),
+  endpoint: z.string().regex(/^https?:\/\/\S+$/),
+  p256dh: z.string().min(1),
+  auth: z.string().min(1),
+  aparelho: z.string(),
+  criado_em: z.string(),
+});
+export type InscricaoLembrete = z.infer<typeof inscricaoLembreteSchema>;
