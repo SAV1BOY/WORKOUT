@@ -15,7 +15,14 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/80",
+        /*
+         * O anel do primário (SPEC §22.14 item 11): o `ring-ring` do shadcn tem
+         * a cor do próprio botão — o foco só engordava o botão 3 px, 1:1 contra
+         * ele. Aqui vale o anel do app (§22.3 item 7): contorno de 2 px na cor
+         * `--ring`, a 2 px de distância, com o fundo aparecendo entre os dois.
+         */
+        default:
+          "bg-primary text-primary-foreground hover:bg-primary/80 focus-visible:ring-0 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
         outline:
           "border-border bg-background hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
         secondary:
