@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { VoltarDaFicha } from "@/components/exercicio/acoes-da-ficha";
 import { ConteudoDaFicha } from "@/components/exercicio/ficha-folha";
 import { exercicioPorId, exercicios } from "@/lib/dados";
 import { idsComVideo } from "@/lib/videos";
@@ -21,7 +22,8 @@ export async function generateMetadata({
 /**
  * `/exercicios/[id]` (SPEC §3.6 e §14.2): a mesma ficha da folha, em página
  * inteira. Tudo que está escrito aqui vem de `data/exercicios.json` e de
- * `data/tutoriais.json`; o histórico (embaixo) é do banco.
+ * `data/tutoriais.json`; o histórico (embaixo) é do banco. "Voltar" no topo e
+ * "Fazer agora" no fim (SPEC §22.14 item 1).
  */
 export default async function FichaExercicio({
   params,
@@ -41,6 +43,7 @@ export default async function FichaExercicio({
 
   return (
     <article className="flex flex-col gap-4">
+      <VoltarDaFicha />
       <header className="flex flex-col gap-1">
         <h1 className="text-2xl font-semibold tracking-tight text-balance">
           {exercicio.nome}
