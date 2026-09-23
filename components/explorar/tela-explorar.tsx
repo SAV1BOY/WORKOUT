@@ -20,7 +20,9 @@ import {
   colecoesPorAparelho,
   colecoesPorGrupo,
   desafios,
+  metaDoPlano,
   semCapasRepetidas,
+  todasAsColecoes,
   type Colecao,
 } from "@/lib/colecoes";
 import {
@@ -91,23 +93,40 @@ export function TelaExplorar() {
    * SPEC §22.9 item 7: `semCapasRepetidas` é aplicado POR SEÇÃO — é dentro de
    * uma seção que quatro linhas seguidas apareciam com a mesma foto.
    */
+  /*
+   * SPEC §22.12 item 4: com o perfil, os planos de barra fixa e corrida dizem
+   * a posição ("semana 3 de 12"); sem ele, a duração — ou nada, quando o
+   * objetivo do JSON já diz o prazo (`metaDoPlano`).
+   */
+  const semanaFixa = perfil?.semana_fixa;
+  const semanaCorrida = perfil?.semana_corrida;
+  const posicao = useMemo(
+    () =>
+      semanaFixa === undefined || semanaCorrida === undefined
+        ? null
+        : { semanaFixa, semanaCorrida },
+    [semanaFixa, semanaCorrida],
+  );
   const secoes = useMemo(
     () => [
       { titulo: "Treinos do programa", itens: semCapasRepetidas(colecoesDeTreino()) },
       { titulo: "Parte do corpo", itens: semCapasRepetidas(colecoesPorGrupo()) },
       { titulo: "Circuitos", itens: semCapasRepetidas(circuitos()) },
       { titulo: "Por aparelho", itens: semCapasRepetidas(colecoesPorAparelho()) },
-      { titulo: "Planos", itens: semCapasRepetidas(colecoesDePlano()) },
+      { titulo: "Planos", itens: semCapasRepetidas(colecoesDePlano(posicao)) },
     ],
-    [],
+    [posicao],
   );
 
   /** O destaque só aparece com perfil e overrides na mão (§22.2 item 2). */
   const pronto = Boolean(hoje && perfil) && !overridesQ.isPending;
 
   const achadas = useMemo(
-    () => (busca.trim() === "" ? [] : semCapasRepetidas(buscarColecoes(busca))),
-    [busca],
+    () =>
+      busca.trim() === ""
+        ? []
+        : semCapasRepetidas(buscarColecoes(busca, todasAsColecoes(posicao))),
+    [busca, posicao],
   );
   const doPrograma = useMemo(() => idsDoPrograma(), []);
   /* quantos exercícios a mesma busca acha — com os mesmos filtros da lista */
@@ -270,8 +289,12 @@ export function TelaExplorar() {
             SPEC §22.9 item 1: prévia do catálogo, não o catálogo. Os 81
             exercícios têm tela própria.
           */}
+          {/*
+            SPEC §22.12 item 5: "Exercícios" é irmão de "Escolhas para você"
+            (h2), e os cinco títulos do grupo de escolhas ficam h3.
+          */}
           <section aria-label="Catálogo" className="flex flex-col gap-2 border-t pt-3">
-            <h3 className="text-base font-semibold">Exercícios</h3>
+            <h2 className="text-base font-semibold">Exercícios</h2>
             <ListaExercicios limite={PREVIA_DO_CATALOGO} />
             <BotaoLargo asChild variant="outline">
               <Link href="/exercicios">
@@ -357,13 +380,18 @@ function Destaque({
     proximoTreino: proximoTreinoDaFase(perfil.fase_atual, perfil.ultimo_treino),
   });
   const plano = lista[dia?.tipo === "cardio" ? 1 : 0];
-  if (!plano) return null;
+  if (!plano || plano.id === "fase") return null;
+  /* SPEC §22.12 item 4: a meta sai da mesma função da vitrine, não da tela */
+  const meta = metaDoPlano(
+    { id: plano.id, semanas: plano.semanas, subtitulo: plano.subtitulo },
+    { semanaFixa: perfil.semana_fixa, semanaCorrida: perfil.semana_corrida },
+  );
 
   return (
     <CardCapa
       titulo={plano.titulo}
       subtitulo={plano.subtitulo}
-      detalhe={`semana ${plano.semanaAtual} de ${plano.semanas}`}
+      detalhe={meta}
       foto={plano.capa}
       etiqueta="hoje"
     >

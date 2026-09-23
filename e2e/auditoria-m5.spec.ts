@@ -484,7 +484,8 @@ test.describe("§3.6 — busca sem acento e filtros", () => {
     await entrarNoApp(page);
     await page.goto("/exercicios");
 
-    const contagem = page.getByText(/exercícios$/);
+    // o contador da lista (a folha de filtros tem o seu CTA "Ver N exercícios")
+    const contagem = page.locator("[data-contador]");
     await expect(contagem).toHaveText("81 exercícios");
 
     const busca = page.getByLabel("Buscar exercício pelo nome");
@@ -512,9 +513,11 @@ test.describe("§3.6 — busca sem acento e filtros", () => {
     await expect(contagem).toHaveText(`${supinoReto} de 81 exercícios`);
     await expect(page.getByRole("link", { name: /Supino reto com barra/ })).toBeVisible();
 
-    // filtro somado: grupo Peito + a busca vazia
-    await page.getByRole("button", { name: "Limpar", exact: true }).click();
+    // filtro somado: grupo Peito + a busca vazia (SPEC §22.12 item 1: os
+    // filtros moram na folha que o botão "Filtros" abre)
+    await busca.fill("");
     await expect(contagem).toHaveText("81 exercícios");
+    await page.getByRole("button", { name: /^Filtros/ }).click();
     await page.getByLabel("Grupo").selectOption("Peito");
     const doPeito = CATALOGO.filter((e) => e.grupo === "Peito").length;
     await expect(contagem).toHaveText(`${doPeito} de 81 exercícios`);
@@ -525,6 +528,8 @@ test.describe("§3.6 — busca sem acento e filtros", () => {
       (e) => e.grupo === "Peito" && e.implemento === "halteres",
     ).length;
     await expect(contagem).toHaveText(`${peitoHalteres} de 81 exercícios`);
+    await page.getByRole("button", { name: `Ver ${peitoHalteres} exercícios` }).click();
+    await expect(page.getByRole("dialog")).toBeHidden();
 
     // nada casa: a tela diz isso, não some em silêncio — e oferece a saída
     // (SPEC §22.3 item 9: o `<p>` tracejado virou o componente `Vazio`)

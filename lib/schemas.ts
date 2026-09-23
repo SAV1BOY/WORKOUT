@@ -375,6 +375,11 @@ export const equipamentosSchema = z.object({
     z.object({
       id: z.string(),
       nome: z.string(),
+      /*
+       * O nome da vitrine do Explorar (SPEC §22.12 item 2): sem marca nem
+       * medida ("Tatame EVA", não "Tatame EVA 20 mm"). Sem ele, vale `nome`.
+       */
+      nome_curto: z.string().min(1).optional(),
       specs: z.string(),
       fotos: z.string(),
     }),

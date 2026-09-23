@@ -31,6 +31,7 @@ export function CardCapa({
   etiqueta,
   prioridade,
   altura = "media",
+  nivelTitulo = "h2",
   children,
   className,
 }: {
@@ -49,6 +50,11 @@ export function CardCapa({
    */
   prioridade?: boolean;
   altura?: "baixa" | "media";
+  /**
+   * O nível do título (SPEC §22.12 item 6): `h1` quando a capa é o título da
+   * página — a tela da coleção —, `h2` quando é um cartão dentro de outra.
+   */
+  nivelTitulo?: "h1" | "h2";
   children?: ReactNode;
   className?: string;
 }) {
@@ -58,6 +64,7 @@ export function CardCapa({
   const fonte = queda === 0 ? (derivada ?? foto) : queda === 1 ? foto : null;
   const comFoto = Boolean(fonte);
   const naPrimeiraDobra = prioridade ?? Boolean(etiqueta);
+  const Titulo = nivelTitulo;
 
   return (
     <article
@@ -138,9 +145,9 @@ export function CardCapa({
             etiqueta && "pt-12",
           )}
         >
-          <h2 className="text-xl leading-tight font-semibold text-balance">
+          <Titulo className="text-xl leading-tight font-semibold text-balance">
             {titulo}
-          </h2>
+          </Titulo>
           {subtitulo ? (
             <p className="text-sm text-white/80 text-balance">{subtitulo}</p>
           ) : null}

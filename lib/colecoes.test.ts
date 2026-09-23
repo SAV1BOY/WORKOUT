@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   buscarColecoes,
@@ -30,6 +31,13 @@ import {
   segmentoDaColecao,
   semCapasRepetidas,
   todasAsColecoes,
+  metaDoAparelho,
+  metaDoPlano,
+  textoDizOPrazo,
+  ctaDoPlano,
+  exerciciosResponsaveis,
+  juntarNomes,
+  nomeCurtoDaFase,
   type Colecao,
 } from "@/lib/colecoes";
 import {
@@ -38,6 +46,7 @@ import {
   equipamentoDisponivel,
   equipamentos,
   exercicios,
+  ultimaSemanaDoPlano,
 } from "@/lib/dados";
 import { minutosDaColecao, podeCircuito, segundosDoExercicio } from "@/lib/livre";
 import type { EquipamentoTag } from "@/lib/schemas";
@@ -92,11 +101,43 @@ describe("coleções por aparelho (SPEC §13.4)", () => {
     }
   });
 
-  it("o título e o subtítulo saem do JSON", () => {
+  it("o título sai do JSON e a ficha técnica não vira subtítulo (§22.12 item 2)", () => {
     const tatame = colecaoDoAparelho("tatame");
     const item = equipamentos.itens.find((i) => i.id === "tatame");
-    expect(tatame?.titulo).toBe(item?.nome);
-    expect(tatame?.subtitulo).toBe(item?.specs);
+    expect(tatame?.titulo).toBe(item?.nome_curto ?? item?.nome);
+    expect(tatame?.titulo).toBe("Tatame EVA");
+    expect(tatame?.subtitulo).toBeNull();
+    // nenhum título de aparelho carrega medida ou marca: sem número, sem parêntese
+    for (const c of colecoesPorAparelho()) {
+      expect(c.titulo, c.id).not.toMatch(/\d|\(|\bmm\b|\bkg\b|\bcm\b/);
+    }
+    expect(tatame?.detalhe).toBe(
+      `${exerciciosDoAparelho("tatame").length} exercícios que dão para fazer com\u00a0ele`,
+    );
+  });
+
+  it("todo aparelho: sem specs, kg, cm nem minutos, e a contagem uma vez só", () => {
+    const lista = colecoesPorAparelho();
+    expect(lista.length).toBeGreaterThan(0);
+    for (const c of lista) {
+      const item = equipamentos.itens.find((i) => `aparelho:${i.id}` === c.id);
+      expect(item, c.id).toBeDefined();
+      const texto = [c.subtitulo ?? "", c.detalhe].join(" | ");
+      expect(texto, c.id).not.toContain(item?.specs ?? "@@");
+      expect(texto, c.id).not.toMatch(/\bkg\b|\bcm\b|~|\bmin\b|carga máxima/);
+      expect(c.detalhe, c.id).toBe(metaDoAparelho(c.exercicios.length));
+      // o número da contagem aparece uma vez só na linha
+      const n = String(c.exercicios.length);
+      expect(texto.split(/\D+/).filter((x) => x === n), c.id).toHaveLength(1);
+    }
+  });
+
+  it("a meta do aparelho acerta o singular", () => {
+    // "com ele" com espaço inseguível: "ele" nunca fica sozinho na linha
+    expect(metaDoAparelho(1)).toBe("1 exercício que dá para fazer com\u00a0ele");
+    expect(metaDoAparelho(2)).toBe("2 exercícios que dão para fazer com\u00a0ele");
+    expect(metaDoAparelho(0)).toBe("0 exercícios que dão para fazer com\u00a0ele");
+    expect(metaDoAparelho(8).match(/ /g)).toHaveLength(6);
   });
 
   /*
@@ -133,6 +174,8 @@ describe("circuitos (SPEC §13.4: os 14 de origem aparelho)", () => {
     expect(colecaoDoCircuito("corda").titulo).toBe("Corda");
     expect(colecaoDoCircuito("band").titulo).toBe("Elástico");
     for (const e of exerciciosDoCircuito("corda")) expect(e.subgrupo).toBe("corda");
+    // a ficha técnica do item não é subtítulo de circuito (§22.12 item 2)
+    for (const c of circuitos()) expect(c.subtitulo).toBeNull();
   });
 
   it("tatame e corda rodam no modo por tempo; elástico não (barra fixa)", () => {
@@ -148,9 +191,12 @@ describe("planos e treinos do programa", () => {
   it("os três planos são os de cardio.json, com as semanas do próprio plano", () => {
     const lista = planos();
     expect(lista.map((p) => p.id)).toEqual(["barra_fixa", "corrida", "corda"]);
-    // SPEC §14.3: rótulo de UI com o número de semanas do próprio plano…
-    expect(lista[0]?.titulo).toBe("Primeira barra fixa em 12 semanas");
-    expect(lista[1]?.titulo).toBe("5 km sem parar em 12 semanas");
+    // SPEC §22.12 item 4: título curto — o prazo está no objetivo e na meta
+    expect(lista[0]?.titulo).toBe("Primeira barra fixa");
+    expect(lista[1]?.titulo).toBe(
+      cardio.corrida.semanas[cardio.corrida.semanas.length - 1]?.descricao,
+    );
+    for (const p of lista) expect(p.titulo).not.toMatch(/\d+ semanas/);
     // …e o objetivo do JSON continua na tela, como subtítulo
     expect(lista[0]?.subtitulo).toBe(cardio.barra_fixa.objetivo);
     expect(lista[1]?.subtitulo).toBe(cardio.corrida.objetivo);
@@ -163,12 +209,47 @@ describe("planos e treinos do programa", () => {
     const [fixa, corrida, corda] = colecoesDePlano();
     // a corrida não tem exercício em exercicios.json: "0 exercícios · ~1 min"
     // era o que aparecia na tela antes da auditoria do V3
-    expect(corrida?.detalhe).toBe("12 semanas");
-    expect(fixa?.detalhe).toBe("12 semanas");
-    expect(corda?.detalhe).toBe(`${cardio.corda.semanas.length} semanas`);
+    // sem perfil, barra fixa e corrida não repetem o prazo que o objetivo
+    // (subtítulo, do JSON) já diz: a linha fica sem meta (§22.12 item 4)
+    expect(corrida?.subtitulo).toMatch(/12 semanas/);
+    expect(fixa?.subtitulo).toMatch(/8–12 semanas/);
+    expect(corrida?.detalhe).toBeNull();
+    expect(fixa?.detalhe).toBeNull();
+    // a corda dura o que o JSON diz ("9–12" → 12), não o número de estágios,
+    // e o subtítulo dela (as funções) não fala de prazo: a duração fica
+    expect(corda?.detalhe).toBe(`${ultimaSemanaDoPlano(cardio.corda.semanas)} semanas`);
     for (const c of colecoesDePlano()) {
-      expect(c.detalhe).not.toMatch(/exerc[íi]cio/);
+      expect(c.detalhe ?? "").not.toMatch(/exerc[íi]cio/);
     }
+  });
+
+  it("com o perfil, barra fixa e corrida dizem a posição (§22.12 item 4)", () => {
+    const [fixa, corrida, corda] = colecoesDePlano({ semanaFixa: 2, semanaCorrida: 5 });
+    expect(fixa?.detalhe).toBe("semana 2 de 12");
+    expect(corrida?.detalhe).toBe("semana 5 de 12");
+    // a corda não tem posição no perfil: fica a duração
+    expect(corda?.detalhe).toBe("12 semanas");
+    // acima do total fica preso no total; abaixo de 1, na primeira
+    const corridaX = { id: "corrida" as const, semanas: 12, subtitulo: null };
+    const fixaX = { id: "barra_fixa" as const, semanas: 12, subtitulo: null };
+    expect(metaDoPlano(corridaX, { semanaFixa: 1, semanaCorrida: 99 })).toBe("semana 12 de 12");
+    expect(metaDoPlano(fixaX, { semanaFixa: 0, semanaCorrida: 1 })).toBe("semana 1 de 12");
+    // com o perfil, a posição sai mesmo que o subtítulo diga o prazo
+    const comPrazo = { ...fixaX, subtitulo: "a primeira barra em 8–12 semanas" };
+    expect(metaDoPlano(comPrazo, { semanaFixa: 4, semanaCorrida: 1 })).toBe("semana 4 de 12");
+    // sem perfil, a duração — se o subtítulo ainda não disser o prazo
+    expect(metaDoPlano(fixaX, null)).toBe("12 semanas");
+    expect(metaDoPlano({ ...fixaX, subtitulo: "subir sem elástico" }, null)).toBe("12 semanas");
+    expect(metaDoPlano(comPrazo, null)).toBeNull();
+    expect(metaDoPlano({ ...corridaX, subtitulo: "5 km em 12 SEMANAS" }, undefined)).toBeNull();
+    // "112 semanas", ou o prazo de outro tamanho, não é o prazo deste plano
+    expect(metaDoPlano({ ...fixaX, subtitulo: "em 112 semanas" }, null)).toBe("12 semanas");
+    expect(metaDoPlano({ ...fixaX, semanas: 8, subtitulo: "em 12 semanas" }, null)).toBe("8 semanas");
+    expect(textoDizOPrazo("de caminhada a 5 km sem parar em 12 semanas (≈35 min)", 12)).toBe(true);
+    expect(textoDizOPrazo(null, 12)).toBe(false);
+    // a posição chega à vitrine inteira (e à busca)
+    const todas = todasAsColecoes({ semanaFixa: 3, semanaCorrida: 4 });
+    expect(todas.find((c) => c.id === "plano:barra_fixa")?.detalhe).toBe("semana 3 de 12");
   });
 
   it("os seis treinos vêm do programa.json, com nome, subtítulo e duração", () => {
@@ -221,12 +302,16 @@ describe("estimativa de minutos (SPEC §14.3)", () => {
       if (c.tipo === "plano") {
         // um plano é a prescrição por semana de cardio.json, não uma lista
         expect(c.minutos).toBe(0);
-        expect(c.detalhe).toMatch(/^\d+ semanas$/);
+        // "T semanas", ou nada quando o objetivo já diz o prazo (§22.12 item 4)
+        if (c.detalhe === null) expect(c.subtitulo).toMatch(/\d+ semanas/);
+        else expect(c.detalhe).toMatch(/^\d+ semanas$/);
         continue;
       }
       expect(c.exercicios.length).toBeGreaterThan(0);
       expect(c.minutos).toBeGreaterThan(0);
-      expect(c.detalhe).toMatch(/exerc[íi]cios? · ~/);
+      // o aparelho diz a serventia, sem minutos (§22.12 item 2)
+      if (c.tipo === "aparelho") expect(c.detalhe).toMatch(/para fazer com\u00a0ele$/);
+      else expect(c.detalhe).toMatch(/exerc[íi]cios? · ~/);
     }
   });
 });
@@ -358,6 +443,279 @@ describe("busca sem acento (SPEC §13.4)", () => {
   });
 });
 
+describe("a busca diz por que achou (SPEC §22.12 item 3)", () => {
+  const nomeDe = (id: string) => acharExercicio(id).nome;
+
+  it("título antes de subtítulo antes de conteúdo", () => {
+    const ondes = buscarColecoes("core").map((c) =>
+      semAcentoT(c.titulo).includes("core")
+        ? 0
+        : semAcentoT(c.subtitulo ?? "").includes("core")
+          ? 1
+          : 2,
+    );
+    expect(ondes.length).toBeGreaterThan(1);
+    expect([...ondes].sort((a, b) => a - b)).toEqual(ondes);
+    expect(buscarColecoes("core")[0]?.id).toBe("grupo:Core");
+  });
+
+  it("casamento por título ou subtítulo não diz 'contém'", () => {
+    const peito = buscarColecoes("peito").find((c) => c.id === "grupo:Peito");
+    expect(peito?.motivoDaBusca ?? null).toBeNull();
+    // "Empurrar e agachar" é o subtítulo do Treino A
+    const a1 = buscarColecoes("empurrar").find((c) => c.id === "treino:A1");
+    expect(a1?.motivoDaBusca ?? null).toBeNull();
+  });
+
+  it("toda coleção achada por conteúdo cita o exercício responsável", () => {
+    for (const termo of ["agachamento", "prancha", "rosca", "supino", "remada"]) {
+      for (const c of buscarColecoes(termo)) {
+        const cabeca = semAcentoT(`${c.titulo} ${c.subtitulo ?? ""}`);
+        if (cabeca.includes(termo)) {
+          expect(c.motivoDaBusca ?? null, `${termo} → ${c.id}`).toBeNull();
+          continue;
+        }
+        expect(c.motivoDaBusca, `${termo} → ${c.id}`).toMatch(/^contém /);
+        const citados = c.exercicios
+          .map(nomeDe)
+          .filter((n) => (c.motivoDaBusca ?? "").includes(n));
+        expect(citados.length, `${termo} → ${c.id}`).toBeGreaterThan(0);
+        for (const n of citados) expect(semAcentoT(n)).toContain(termo);
+      }
+    }
+  });
+
+  it("sem diferença de acento e caixa", () => {
+    const a = buscarColecoes("ROSCA BÍCEPS").map((c) => [c.id, c.motivoDaBusca ?? null]);
+    const b = buscarColecoes("rosca biceps").map((c) => [c.id, c.motivoDaBusca ?? null]);
+    expect(a).toEqual(b);
+  });
+
+  it("dois termos no mesmo exercício citam um nome só", () => {
+    const nomes = ["Supino inclinado com halteres", "Supino reto com barra", "Crucifixo"];
+    expect(exerciciosResponsaveis(["supino", "reto"], nomes)).toEqual(["Supino reto com barra"]);
+  });
+
+  it("termos em exercícios diferentes citam os nomes, únicos, na ordem dos termos", () => {
+    const nomes = ["Prancha frontal", "Rosca direta", "Prancha lateral"];
+    expect(exerciciosResponsaveis(["rosca", "prancha"], nomes)).toEqual([
+      "Rosca direta",
+      "Prancha frontal",
+    ]);
+    // "prancha" e "lateral" estão os dois na Prancha lateral: um nome só por
+    // eles, e a Prancha frontal (que só tem "prancha") não sobra na frase
+    expect(exerciciosResponsaveis(["prancha", "lateral", "rosca"], nomes)).toEqual([
+      "Prancha lateral",
+      "Rosca direta",
+    ]);
+    expect(juntarNomes(["A"])).toBe("A");
+    expect(juntarNomes(["A", "B"])).toBe("A e B");
+    expect(juntarNomes(["A", "B", "C"])).toBe("A, B e C");
+  });
+
+  it("nenhum nome se repete, mesmo quando dois termos caem no mesmo exercício", () => {
+    const r = exerciciosResponsaveis(
+      ["prancha", "lateral", "frontal"],
+      ["Prancha frontal", "Prancha lateral"],
+    );
+    // os dois começam em "prancha"; "lateral" (2º termo) vem antes de "frontal"
+    expect(r).toEqual(["Prancha lateral", "Prancha frontal"]);
+    expect(new Set(r).size).toBe(r.length);
+    // termo que nenhum exercício tem não inventa nome
+    expect(exerciciosResponsaveis(["zzz"], ["Prancha frontal"])).toEqual([]);
+  });
+
+  it("com 3 termos, dois no mesmo exercício, nenhum nome sobra (dados reais)", () => {
+    const motivo = (termo: string, id: string) =>
+      buscarColecoes(termo).find((c) => c.id === id)?.motivoDaBusca;
+    // era "contém Flexão declinada, Flexão inclinada e Supino reto com barra"
+    expect(motivo("flexao inclinada supino", "grupo:Peito")).toBe(
+      "contém Flexão inclinada e Supino reto com barra",
+    );
+    // era "contém Agachamento livre, Agachamento sumô e Stiff / terra romeno"
+    expect(motivo("agachamento sumo stiff", "aparelho:barra-macica")).toBe(
+      "contém Agachamento sumô e Stiff / terra romeno",
+    );
+    // era "contém Barra fixa pronada, Barra fixa com lastro e Remada curvada pronada"
+    expect(motivo("barra com remada", "grupo:Costas")).toBe(
+      "contém Barra fixa com lastro e Remada curvada pronada",
+    );
+  });
+
+  it("em toda coleção real, 2 palavras de um exercício + 1 de outro: cada nome citado responde por um termo só dele", () => {
+    const palavras = (n: string) =>
+      [...new Set(semAcentoT(n).split(/[^a-z0-9]+/).filter((p) => p.length >= 4))];
+    let consultas = 0;
+    for (const c of todasAsColecoes()) {
+      const nomes = c.exercicios.map(nomeDe);
+      const normais = nomes.map(semAcentoT);
+      nomes.forEach((a, ia) => {
+        const pa = palavras(a);
+        if (pa.length < 2) return;
+        nomes.forEach((b, ib) => {
+          if (ib === ia) return;
+          const pb = palavras(b).filter((p) => !pa.includes(p));
+          const extra = pb[0];
+          if (!extra) return;
+          for (const termos of [
+            [pa[0]!, pa[1]!, extra],
+            [extra, pa[0]!, pa[1]!],
+            [pa[0]!, extra, pa[1]!],
+          ]) {
+            consultas += 1;
+            const r = exerciciosResponsaveis(termos, nomes);
+            const ids = r.map((n) => nomes.indexOf(n));
+            expect(new Set(r).size, termos.join(" ")).toBe(r.length);
+            // todo termo tem quem responda por ele
+            for (const t of termos) {
+              expect(ids.some((i) => normais[i]!.includes(t)), `${c.id}: ${termos.join(" ")}`).toBe(true);
+            }
+            // e todo nome citado tem um termo que nenhum outro citado cobre
+            for (const i of ids) {
+              const proprio = termos.some(
+                (t) => normais[i]!.includes(t) && !ids.some((j) => j !== i && normais[j]!.includes(t)),
+              );
+              expect(proprio, `${c.id}: "${termos.join(" ")}" → ${r.join(", ")}`).toBe(true);
+            }
+            // os dois termos que estão juntos em um exercício nunca pedem mais
+            // de dois nomes no total
+            expect(r.length, `${c.id}: ${termos.join(" ")}`).toBeLessThanOrEqual(2);
+          }
+        });
+      });
+    }
+    expect(consultas).toBeGreaterThan(1000);
+  });
+
+  it("com 4 termos, quem ficou redundante sai da frase (dados reais, §22.12 item 3)", () => {
+    const motivo = (termo: string, id: string) =>
+      buscarColecoes(termo).find((c) => c.id === id)?.motivoDaBusca;
+    // sem a passada final citava também "Desenvolvimento sentado com barra",
+    // cujos dois termos ("sentado" e "barra") os outros dois já cobrem
+    expect(motivo("sentado panturrilha barra declinado", "aparelho:banco")).toBe(
+      "contém Elevação de panturrilha sentado e Supino declinado com barra",
+    );
+    // sem a passada final citava também a "Puxada alta na polia"
+    expect(motivo("puxada remada polia com", "aparelho:cross-over")).toBe(
+      "contém Puxada com triângulo e Remada baixa na polia",
+    );
+    expect(motivo("puxada rosca com polia", "aparelho:cross-over")).toBe(
+      "contém Puxada com triângulo e Rosca na polia baixa",
+    );
+  });
+
+  it("a passada final tira o nome que os outros citados cobrem (sintético)", () => {
+    // "alfa" escolhe "alfa beta" (empate com "alfa gama", fica o primeiro);
+    // "gama" e "delta" trazem os outros dois, e "alfa beta" sobra
+    const termos = ["alfa", "beta", "gama", "delta"];
+    expect(exerciciosResponsaveis(termos, ["alfa beta", "alfa gama", "beta delta"])).toEqual([
+      "alfa gama",
+      "beta delta",
+    ]);
+  });
+
+  it("a frase segue a ordem do primeiro termo que cada nome cobre (§22.12 item 3)", () => {
+    const motivo = (termo: string, id: string) =>
+      buscarColecoes(termo).find((c) => c.id === id)?.motivoDaBusca;
+    // os dois cobrem "barra" (o 1º termo): vem antes quem responde sozinho
+    // pelo termo mais cedo — "direta" (2º) antes de "supino" (3º)
+    expect(motivo("barra direta supino", "treino:A1")).toBe(
+      "contém Rosca direta com barra e Supino reto com barra",
+    );
+    // "braço" (2º) antes de "declinada" (3º)
+    expect(motivo("flexao braco declinada", "grupo:Peito")).toBe(
+      "contém Flexão de braço e Flexão declinada",
+    );
+    // "puxada" foi digitado primeiro e sai primeiro
+    expect(motivo("puxada remada polia com", "aparelho:cross-over")).toMatch(/^contém Puxada/);
+    // sintético: a ordem é a dos termos, não a da coleção nem a da escolha
+    expect(exerciciosResponsaveis(["c", "a", "b"], ["a1", "b1", "c1"])).toEqual(["c1", "a1", "b1"]);
+    expect(exerciciosResponsaveis(["x", "q", "p"], ["x p", "x q"])).toEqual(["x q", "x p"]);
+  });
+
+  it("em toda coleção real, com 3 e 4 termos: sem repetir, sem sobrar e na ordem dos termos", () => {
+    const palavras = (n: string) => [
+      ...new Set(semAcentoT(n).split(/[^a-z0-9]+/).filter((p) => p.length >= 3)),
+    ];
+    let consultas = 0;
+    let comQuatro = 0;
+    for (const c of todasAsColecoes()) {
+      const nomes = c.exercicios.map(nomeDe);
+      const normais = nomes.map(semAcentoT);
+      const conferir = (termos: string[]) => {
+        consultas += 1;
+        if (termos.length === 4) comQuatro += 1;
+        const r = exerciciosResponsaveis(termos, nomes);
+        const ids = r.map((n) => nomes.indexOf(n));
+        const rotulo = `${c.id}: "${termos.join(" ")}" → ${r.join(", ")}`;
+        expect(new Set(r).size, rotulo).toBe(r.length);
+        for (const t of termos) {
+          expect(ids.some((i) => normais[i]!.includes(t)), rotulo).toBe(true);
+        }
+        const cobre = (i: number, t: string) => normais[i]!.includes(t);
+        const proprio = (i: number) =>
+          termos.findIndex((t) => cobre(i, t) && !ids.some((j) => j !== i && cobre(j, t)));
+        const primeiro = (i: number) => termos.findIndex((t) => cobre(i, t));
+        // nenhum nome sobra: todo citado responde sozinho por algum termo
+        for (const i of ids) expect(proprio(i), rotulo).toBeGreaterThanOrEqual(0);
+        // a ordem: pelo primeiro termo coberto; empate, pelo termo próprio
+        for (let k = 1; k < ids.length; k++) {
+          const a = ids[k - 1]!;
+          const b = ids[k]!;
+          const antes =
+            primeiro(a) < primeiro(b) || (primeiro(a) === primeiro(b) && proprio(a) < proprio(b));
+          expect(antes, rotulo).toBe(true);
+        }
+        // o primeiro termo digitado é coberto pelo primeiro nome da frase
+        expect(cobre(ids[0]!, termos[0]!), rotulo).toBe(true);
+      };
+      nomes.forEach((a, ia) => {
+        const pa = palavras(a);
+        if (pa.length < 2) return;
+        nomes.forEach((b, ib) => {
+          if (ib === ia) return;
+          const pb = palavras(b).filter((p) => !pa.includes(p));
+          if (pb.length === 0) return;
+          conferir([pa[0]!, pa[1]!, pb[0]!]);
+          conferir([pb[0]!, pa[0]!, pa[1]!]);
+          if (pb.length < 2) return;
+          // 4 termos, dois de cada exercício, em três ordens
+          conferir([pa[0]!, pa[1]!, pb[0]!, pb[1]!]);
+          conferir([pa[0]!, pb[0]!, pa[1]!, pb[1]!]);
+          conferir([pb[1]!, pa[1]!, pb[0]!, pa[0]!]);
+        });
+      });
+    }
+    expect(consultas).toBeGreaterThan(2000);
+    expect(comQuatro).toBeGreaterThan(1000);
+  });
+
+  it("na coleção real, dois termos de exercícios diferentes aparecem os dois", () => {
+    // Treino A1 tem agachamento e supino em exercícios diferentes
+    const a1 = colecaoDoTreino("A1");
+    const nomes = a1.exercicios.map(nomeDe);
+    const comAgach = nomes.find((n) => semAcentoT(n).includes("agachamento"));
+    const comSupino = nomes.find((n) => semAcentoT(n).includes("supino"));
+    expect(comAgach).toBeDefined();
+    expect(comSupino).toBeDefined();
+    expect(comAgach).not.toBe(comSupino);
+    // a ordem é a dos termos, não a da lista do treino
+    expect(buscarColecoes("supino agachamento", [a1])[0]?.motivoDaBusca).toBe(
+      `contém ${comSupino} e ${comAgach}`,
+    );
+    expect(buscarColecoes("agachamento supino", [a1])[0]?.motivoDaBusca).toBe(
+      `contém ${comAgach} e ${comSupino}`,
+    );
+    // termo que casa no título não é citado como conteúdo
+    const banco = buscarColecoes("supino agachamento").find((c) => c.id === "aparelho:banco");
+    expect(banco?.motivoDaBusca ?? "").not.toMatch(/Supino/);
+  });
+});
+
+function semAcentoT(t: string): string {
+  return t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+}
+
 describe("desafios da aba Treino (SPEC §14.3)", () => {
   const base = {
     fase: "fase1" as const,
@@ -370,8 +728,13 @@ describe("desafios da aba Treino (SPEC §14.3)", () => {
   it("são os dois planos de cardio.json e a fase do programa.json", () => {
     const lista = desafios(base);
     expect(lista.map((d) => d.id)).toEqual(["barra_fixa", "corrida", "fase"]);
-    expect(lista[0]?.titulo).toBe("Primeira barra fixa em 12 semanas");
-    expect(lista[1]?.titulo).toBe("5 km sem parar em 12 semanas");
+    // o mesmo título da linha do plano na vitrine (§22.12 item 4): um plano,
+    // um título, no carrossel, no destaque e em Planos
+    expect(lista[0]?.titulo).toBe("Primeira barra fixa");
+    expect(lista[1]?.titulo).toBe("5 km sem parar");
+    const vitrine = new Map(planos().map((p) => [p.id, p.titulo]));
+    expect(lista[0]?.titulo).toBe(vitrine.get("barra_fixa"));
+    expect(lista[1]?.titulo).toBe(vitrine.get("corrida"));
     expect(lista[0]?.subtitulo).toBe(cardio.barra_fixa.objetivo);
     expect(lista[1]?.subtitulo).toBe(cardio.corrida.objetivo);
     expect(lista[2]?.titulo).toBe("Fase 1 — corpo inteiro, 3× por semana");
@@ -402,6 +765,66 @@ describe("desafios da aba Treino (SPEC §14.3)", () => {
     expect(semanasConcluidasDoDesafio({ semanaAtual: 30, semanas: 12 })).toBe(12);
     expect(semanasConcluidasDoDesafio({ semanaAtual: 0, semanas: 12 })).toBe(0);
     expect(semanasConcluidasDoDesafio({ semanaAtual: 3, semanas: 0 })).toBe(0);
+  });
+
+  it("o CTA de cada desafio sai daqui, e só daqui (§22.12 item 7)", () => {
+    const [fixa, corrida, fase] = desafios(base);
+    expect(fixa?.acao).toBe("Fazer a sessão de barra fixa");
+    expect(corrida?.acao).toBe("Fazer a corrida da semana 4");
+    expect(fase?.acao).toBe("Fazer o treino da fase 1");
+    expect(nomeCurtoDaFase("Fase 1 — corpo inteiro, 3× por semana")).toBe("Fase 1");
+    // a corrida presa ao plano diz a semana presa
+    expect(desafios({ ...base, semanaCorrida: 99 })[1]?.acao).toBe(
+      "Fazer a corrida da semana 12",
+    );
+    // nenhuma tela escreve o rótulo: Treino, destaque do Explorar e a página
+    // do plano mostram o que vem de `desafios()`/`ctaDoPlano()`
+    for (const arquivo of [
+      "components/treino/desafios.tsx",
+      "components/explorar/tela-explorar.tsx",
+      "components/colecoes/tela-colecao.tsx",
+    ]) {
+      const fonte = readFileSync(arquivo, "utf8");
+      expect(fonte, arquivo).not.toMatch(/acaoDoDesafio|>\s*Fazer a|"Fazer a|`Fazer a/);
+    }
+    expect(readFileSync("components/treino/desafios.tsx", "utf8")).toContain("{desafio.acao}");
+    expect(readFileSync("components/explorar/tela-explorar.tsx", "utf8")).toContain("{plano.acao}");
+  });
+
+  it("o desafio e a página do plano usam o mesmo CTA: rótulo e destino (§22.12 item 7)", () => {
+    const [fixa, corrida] = desafios(base);
+    expect(ctaDoPlano("barra_fixa", base)).toEqual({ acao: fixa?.acao, href: fixa?.href });
+    expect(ctaDoPlano("corrida", base)).toEqual({ acao: corrida?.acao, href: corrida?.href });
+    expect(ctaDoPlano("corrida", base)).toEqual({
+      acao: "Fazer a corrida da semana 4",
+      href: "/cardio/corrida?semana=4",
+    });
+    // presa ao plano, nos dois
+    const alem = { ...base, semanaCorrida: 99 };
+    expect(ctaDoPlano("corrida", alem).href).toBe("/cardio/corrida?semana=12");
+    expect(desafios(alem)[1]?.href).toBe("/cardio/corrida?semana=12");
+    // sem perfil a corrida leva à tela dela, sem inventar semana
+    expect(ctaDoPlano("corrida", null)).toEqual({ acao: "Fazer a corrida", href: "/cardio/corrida" });
+    expect(ctaDoPlano("barra_fixa", null)).toEqual(ctaDoPlano("barra_fixa", base));
+    // a corda, que não é desafio, também diz o destino
+    expect(ctaDoPlano("corda", base)).toEqual({ acao: "Fazer a sessão de corda", href: "/cardio/corda" });
+    // o destino é o da linha do plano (o JSON de rotas não é reescrito)
+    for (const p of planos()) expect(ctaDoPlano(p.id, null).href).toBe(p.href);
+  });
+
+  it("o nome curto da fase tem uma fonte só (lib/dados.ts), com o nome inteiro de reserva", () => {
+    expect(nomeCurtoDaFase("Fase 2 — hipertrofia")).toBe("Fase 2");
+    // sem travessão, ou sem nada antes dele, fica o nome inteiro (aparado)
+    expect(nomeCurtoDaFase("  Fase 3  ")).toBe("Fase 3");
+    expect(nomeCurtoDaFase("— sem nome curto")).toBe("— sem nome curto");
+    // nenhum outro arquivo corta o nome da fase à mão
+    const cortes = ["lib/semana.ts", "lib/colecoes.ts", "components/treino/tela-treino.tsx"].filter(
+      (arquivo) => /\.split\(\s*"—"\s*\)/.test(readFileSync(arquivo, "utf8")),
+    );
+    expect(cortes).toEqual([]);
+    expect(readFileSync("lib/semana.ts", "utf8")).toContain(
+      "nomeCurtoDaFase(acharFase(fase).nome)",
+    );
   });
 
   it("a capa sai sempre de assets/ (ou é nenhuma)", () => {
