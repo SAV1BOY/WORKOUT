@@ -11524,3 +11524,48 @@ Ativar e, enquanto o navegador pergunta, troque de app e volte → a tela
 termina em "Ativado neste aparelho." com uma linha só na lista. (d) iPhone
 fora da tela inicial com as notificações negadas: a primeira instrução é
 instalar (Adicionar à Tela de Início), a segunda os Ajustes.
+
+#### Auditoria
+
+- **Auditoria 1 em `8b54cf19053d1b3cb7cf0084dc54e50f69bd7901`: reprovada**
+  (bloqueantes 0, importantes 1, menores 8). O importante (lente de regra):
+  `urlInterna()` devolvia `//host` quando a entrada tinha segmentos de ponto
+  antes da barra dupla (`/.//mal.example` → `//mal.example`); o service
+  worker reaplicava a função e neutralizava, mas a saída não era conferida.
+  Corrigido na rodada 19 (acima): a saída é conferida e a função é
+  idempotente (`ef9c163`), com Vitest dos pontos e varredura.
+- **Auditoria 2 em `96056ac0a30c7a865ce0e909241ca42b09ebefb9`: aprovada**
+  (bloqueantes 0, importantes 0, menores 10). Pré-condições conferidas nas
+  duas lentes (`96056ac.status` ok, 1.632 unitários, 557 e2e + 5 pulados,
+  varredura 5/5, motor sem diff, árvore limpa). A lente de regra varreu
+  924.776 entradas de url (0 ruins), conferiu a tabela 80/80 e os estados
+  24/24 e matou 10 de 10 mutantes; a lente de tela mediu fluxo, estados,
+  sem internet, caminho reverso, volta, guia, sem tabela e sem VAPID nos
+  dois temas e rodou o e2e do lote (36 passed). Vereditos em
+  `r19/l34/auditoria-2-regra/` e `r19/l34/auditoria-2-tela/`.
+
+Menores registrados (ficam na fila, nenhum quebra o aceite):
+
+- **[regra]** SPEC §23.7 item 7 é ambíguo sobre os temas: os e2e da volta
+  por focus/pageshow e da volta sem internet rodam só num tema.
+- **[regra]** PROGRESSO rodada 19 diz "um build:e2e por mutação"; o
+  `mut-a.log` mostra outra organização (conferir a frase).
+- **[regra]** SPEC §23.4 não diz o que acontece quando a volta encontra a
+  permissão mudada E a leitura sem internet ao mesmo tempo.
+- **[regra]** Borda antiga: no `ativar()`, se a gravação dá certo e a
+  releitura (`carregar()`, linha 318) falha, a lista não é atualizada.
+- **[regra]** `lib/rota-lembretes-teste.test.ts:41`: o comentário diz "um par
+  qualquer", mas PRIVADA é a chave de exemplo da RFC 8291 (texto do
+  comentário).
+- **[regra]** Pendências antigas: notificationclick sem aba aberta sem
+  medida; RLS no Postgres real só com prova estática.
+- **[tela]** §23.7 item 7: sem frase do aparelho, o aviso da lista só sai na
+  próxima leitura (evento), não sozinho quando a internet volta.
+- **[tela]** Aceite 7 fala em e2e "nos dois temas"; os testes `:722`, `:781`
+  e `:804` rodam só no claro.
+- **[tela]** Caminho ativado → bloqueado → liberado volta direto a "Ativado
+  neste aparelho."; o passo 3 das instruções promete "Ativar lembretes neste
+  aparelho" (L35).
+- **[tela]** notificationclick sem nenhuma aba: medida parcial com
+  `about:blank` — o worker real chamou `clients.openWindow` com a URL
+  interna.
