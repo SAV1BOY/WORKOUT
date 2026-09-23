@@ -179,6 +179,12 @@ export function MediaGrande({
   const fonte = fonteComReserva(foto.urls[0]!, urlWebp(foto.urls[0]));
   // a medida do arquivo pedido, foto a foto (SPEC §22.4 item 3)
   const medida = medidaDaFoto(fonte.src);
+  /*
+   * SPEC §22.13 item 2 (correção da auditoria 2): três exercícios só têm foto
+   * (escalador, salto básico e corrida no lugar com a corda) e ela vem na
+   * faixa do player e da Visão geral (328 × 160, 2:1). `object-cover` cortava
+   * a foto de 3:2; `object-contain` mostra a foto inteira na faixa.
+   */
 
   return (
     // eslint-disable-next-line @next/next/no-img-element -- foto local em /public
@@ -191,7 +197,7 @@ export function MediaGrande({
       height={medida?.altura}
       loading="lazy"
       decoding="async"
-      className={cn(caixa, "object-cover")}
+      className={caixa}
     />
   );
 }

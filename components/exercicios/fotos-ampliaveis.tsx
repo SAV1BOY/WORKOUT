@@ -13,9 +13,10 @@ const LEGENDA_CURTA = ["Início", "Fim"];
 
 /**
  * As duas fotos do exercício (SPEC §3.6 e §7): toque abre em tela cheia. A
- * caixa tem a proporção do arquivo (3:2 nas fotos do kit) — o quadrado
- * cortava a barra — e a legenda "Início" / "Fim" fica visível (SPEC §22.13
- * item 2).
+ * caixa tem a proporção do arquivo — 3:2 em quase todas, 2:3 (retrato) no
+ * agachamento búlgaro e nas duas barras fixas — e a foto é `object-contain`:
+ * nenhuma é cortada, nem se a medida faltar. O quadrado cortava a barra. A
+ * legenda "Início" / "Fim" fica visível (SPEC §22.13 item 2).
  */
 export function FotosAmpliaveis({ exercicio }: { exercicio: Exercicio }) {
   const fotos = urlFotos(exercicio);
@@ -53,7 +54,7 @@ export function FotosAmpliaveis({ exercicio }: { exercicio: Exercicio }) {
                   decoding="async"
                   data-foto-execucao
                   style={{ aspectRatio: proporcaoDaFoto(fonte.src) }}
-                  className="bg-muted/40 h-auto w-full rounded-lg object-cover"
+                  className="bg-muted/40 h-auto w-full rounded-lg object-contain"
                 />
               </button>
               <span className="text-muted-foreground text-xs" data-legenda-foto>

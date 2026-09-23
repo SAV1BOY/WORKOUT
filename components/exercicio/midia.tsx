@@ -39,8 +39,9 @@ export function FiguraExercicio({
 
 /**
  * As duas fotos: início (-1) e fim (-2) do movimento (SPEC §7). A caixa tem a
- * proporção do próprio arquivo — o quadrado cortava justamente a barra — e
- * cada foto leva a legenda visível (SPEC §22.13 item 2).
+ * proporção do próprio arquivo (3:2 ou, em 3 exercícios, 2:3) e a foto é
+ * `object-contain` — o quadrado cortava justamente a barra, e nenhuma foto é
+ * cortada — e cada foto leva a legenda visível (SPEC §22.13 item 2).
  */
 export function FotosExercicio({
   exercicio,
@@ -72,7 +73,7 @@ export function FotosExercicio({
               width={medida?.largura}
               height={medida?.altura}
               style={{ aspectRatio: proporcaoDaFoto(fonte.src) }}
-              className="bg-muted/40 h-auto w-full rounded-lg object-cover"
+              className="bg-muted/40 h-auto w-full rounded-lg object-contain"
               loading="lazy"
               decoding="async"
             />
