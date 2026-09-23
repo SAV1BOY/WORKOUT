@@ -98,6 +98,13 @@ export function MediaGrande({
     return (
       <figure className="flex flex-col gap-1">
         <IlustracaoAlternada
+          /*
+            Correção da auditoria 3 (SPEC §22.13 item 4): a ficha no player
+            troca de exercício no lugar (‹ ›, "Substituir"). Com a chave nos
+            quadros, a ilustração nova nasce de novo — posição 1, o quadro 2
+            esperando o 1 — em vez de herdar o estado da anterior.
+          */
+          key={midia.urls.join("|")}
           urls={midia.urls}
           alt={midia.alt}
           largura={midia.largura}

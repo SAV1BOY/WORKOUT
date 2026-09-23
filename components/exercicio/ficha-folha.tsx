@@ -373,6 +373,8 @@ function AbaMusculos({ exercicioId }: { exercicioId: string }) {
     <div className="flex flex-col gap-3">
       {ilustracao ? (
         <IlustracaoAlternada
+          // a folha troca de exercício no lugar: a ilustração nova nasce de novo (§22.13 item 4)
+          key={ilustracao.urls.join("|")}
           urls={ilustracao.urls}
           alt={`Execução do ${exercicio.nome}`}
           className="h-32"
