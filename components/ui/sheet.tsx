@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils"
 import { Dialog as SheetPrimitive } from "radix-ui"
 
 import { Button } from "@/components/ui/button"
+import { useCamadaModal } from "@/components/ui/camada-modal"
 import { XIcon } from "lucide-react"
 
 function Sheet({ ...props }: React.ComponentProps<typeof SheetPrimitive.Root>) {
@@ -45,35 +46,6 @@ function SheetOverlay({
   )
 }
 
-/**
- * SPEC §22.14 item 6 (a11y-05): enquanto a folha está aberta, tudo o que não
- * é ela fica `inert` — fora do Tab e da árvore do leitor de tela. O Radix já
- * põe `aria-hidden` nos irmãos, mas o `<main>`, o `<header>` e o `<nav>` só
- * ficavam escondidos pelo ancestral e continuavam alcançáveis. Sobe da folha
- * até o `<body>` marcando os irmãos de cada nível; regiões `aria-live` (os
- * avisos) e o véu da folha (o toque fora fecha) ficam de fora. Ao fechar, só desmarca o que ela marcou — uma folha
- * aberta por cima de outra devolve a de baixo como estava.
- */
-export function inertizarForaDe(elemento: HTMLElement): () => void {
-  const marcados: Element[] = []
-  let atual: HTMLElement | null = elemento
-  while (atual && atual !== document.body && atual.parentElement) {
-    for (const irmao of Array.from(atual.parentElement.children)) {
-      if (irmao === atual || irmao.hasAttribute("inert")) continue
-      if (/^(SCRIPT|STYLE|LINK|TEMPLATE|META|NOSCRIPT)$/.test(irmao.tagName)) continue
-      // os avisos (sonner, anunciador de rota) e o véu da própria folha ficam
-      if (irmao.hasAttribute("aria-live") || irmao.tagName === "NEXT-ROUTE-ANNOUNCER") continue
-      if (irmao.getAttribute("data-slot") === "sheet-overlay") continue
-      irmao.setAttribute("inert", "")
-      marcados.push(irmao)
-    }
-    atual = atual.parentElement
-  }
-  return () => {
-    for (const m of marcados) m.removeAttribute("inert")
-  }
-}
-
 function SheetContent({
   className,
   children,
@@ -87,31 +59,18 @@ function SheetContent({
   showCloseButton?: boolean
 }) {
   /*
-   * Ref com limpeza (React 19): marca ao montar o conteúdo e desmarca ao
-   * desmontar — depois da animação de saída, antes de o Radix devolver o foco
-   * ao gatilho (ele faz isso num setTimeout), então o gatilho já não é inerte.
+   * A regra da folha (§22.14 item 6), agora num lugar só
+   * (`components/ui/camada-modal.ts`, a mesma do diálogo, do alerta e da
+   * foto ampliada): fundo `inert` enquanto aberta, e o foco volta a quem
+   * abriu — também nas folhas controladas por estado (a ficha no player,
+   * aberta pelo "Como fazer" ou pela figura), que não têm `SheetTrigger`.
    */
-  /*
-   * O foco volta a quem abriu (§22.14 item 6). O Radix devolve ao
-   * `SheetTrigger`, mas as folhas controladas por estado (a ficha no player,
-   * aberta pelo "Como fazer" ou pela figura) não têm trigger, e o foco caía no
-   * `<body>`. Ao montar, o foco ainda está no gatilho: é ele que se guarda.
-   */
-  const anterior = React.useRef<HTMLElement | null>(null)
-  const marcarFora = React.useCallback((no: HTMLDivElement | null) => {
-    if (!no) return
-    const ativo = document.activeElement
-    anterior.current =
-      ativo instanceof HTMLElement && ativo !== document.body && !no.contains(ativo)
-        ? ativo
-        : null
-    return inertizarForaDe(no)
-  }, [])
+  const camada = useCamadaModal()
   return (
     <SheetPortal>
       <SheetOverlay />
       <SheetPrimitive.Content
-        ref={marcarFora}
+        ref={camada.ref}
         data-slot="sheet-content"
         data-side={side}
         aria-modal="true"
@@ -133,12 +92,7 @@ function SheetContent({
         }}
         onCloseAutoFocus={(evento) => {
           onCloseAutoFocus?.(evento)
-          if (evento.defaultPrevented) return
-          const gatilho = anterior.current
-          anterior.current = null
-          if (!gatilho || !gatilho.isConnected) return
-          evento.preventDefault()
-          gatilho.focus()
+          camada.devolverFoco(evento)
         }}
         className={cn(
           "fixed z-50 flex flex-col gap-4 bg-popover bg-clip-padding text-sm text-popover-foreground shadow-lg transition duration-200 ease-in-out data-[side=bottom]:inset-x-0 data-[side=bottom]:bottom-0 data-[side=bottom]:h-auto data-[side=bottom]:border-t data-[side=left]:inset-y-0 data-[side=left]:left-0 data-[side=left]:h-full data-[side=left]:w-3/4 data-[side=left]:border-r data-[side=right]:inset-y-0 data-[side=right]:right-0 data-[side=right]:h-full data-[side=right]:w-3/4 data-[side=right]:border-l data-[side=top]:inset-x-0 data-[side=top]:top-0 data-[side=top]:h-auto data-[side=top]:border-b data-[side=left]:sm:max-w-sm data-[side=right]:sm:max-w-sm data-open:animate-in data-open:fade-in-0 data-[side=bottom]:data-open:slide-in-from-bottom-10 data-[side=left]:data-open:slide-in-from-left-10 data-[side=right]:data-open:slide-in-from-right-10 data-[side=top]:data-open:slide-in-from-top-10 data-closed:animate-out data-closed:fade-out-0 data-[side=bottom]:data-closed:slide-out-to-bottom-10 data-[side=left]:data-closed:slide-out-to-left-10 data-[side=right]:data-closed:slide-out-to-right-10 data-[side=top]:data-closed:slide-out-to-top-10",

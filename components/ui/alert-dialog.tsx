@@ -4,6 +4,7 @@ import type { VariantProps } from "class-variance-authority";
 import { AlertDialog as AlertDialogPrimitive } from "radix-ui";
 import type * as React from "react";
 import { buttonVariants } from "@/components/ui/button";
+import { useCamadaModal } from "@/components/ui/camada-modal";
 import { cn } from "@/lib/utils";
 
 /**
@@ -11,7 +12,7 @@ import { cn } from "@/lib/utils";
  * (SPEC §22.5 item 1): nenhuma dependência nova.
  *
  * Diferente do `Dialog`, ele é `role="alertdialog"`, não fecha por clique fora
- * nem por Esc sem resposta e nasce com o foco no **Cancelar** — é o contrato
+ * (o Esc vale como Cancelar) e nasce com o foco no **Cancelar** — é o contrato
  * de uma pergunta cuja resposta errada joga o treino fora.
  */
 function AlertDialog(props: React.ComponentProps<typeof AlertDialogPrimitive.Root>) {
@@ -42,13 +43,27 @@ function AlertDialogOverlay({
 
 function AlertDialogContent({
   className,
+  onCloseAutoFocus,
   ...props
 }: React.ComponentProps<typeof AlertDialogPrimitive.Content>) {
+  /*
+   * A regra da folha (SPEC §22.14 item 6, `components/ui/camada-modal.ts`):
+   * `aria-modal`, fundo `inert` enquanto aberto e o foco de volta a quem
+   * abriu — o "Descartar este treino?" abre por estado, sem Trigger, e o
+   * Radix deixava o foco no `<body>` ao fechar (Esc, Cancelar ou o voltar).
+   */
+  const camada = useCamadaModal();
   return (
     <AlertDialogPrimitive.Portal>
       <AlertDialogOverlay />
       <AlertDialogPrimitive.Content
+        ref={camada.ref}
         data-slot="alert-dialog-content"
+        aria-modal="true"
+        onCloseAutoFocus={(evento) => {
+          onCloseAutoFocus?.(evento);
+          camada.devolverFoco(evento);
+        }}
         className={cn(
           "bg-card text-card-foreground border-border fixed top-1/2 left-1/2 z-50 flex w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 flex-col gap-4 rounded-xl border p-4 duration-100 outline-none sm:max-w-sm data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
           className,
