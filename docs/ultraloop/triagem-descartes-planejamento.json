@@ -1,0 +1,648 @@
+{
+ "gerado_em": "2026-09-22T21:33:46Z",
+ "base": "ef3ad97",
+ "fonte": "analise/lotes-propostos.json#descartados (26 sem triagem, lista nominal de reconciliacao.md:192)",
+ "triados": [
+  {
+   "id": "ux-heuristicas-20",
+   "decisao": "pendente",
+   "prova_ou_motivo": "O defeito continua em ef3ad97, menos a parte que a SPEC proíbe. app/(auth)/login/formulario.tsx:61-74 tem só o <Input type='password'> (nenhum botão de mostrar a senha); :84-91 é um <p role='alert'> sem id, e o arquivo não tem aria-invalid, aria-describedby nem focus() (grep vazio): depois do erro o foco fica no body. FICA FORA do item o link 'Esqueci a senha': contradiz a SPEC §21.4 (SPEC.md:1301-1302, \"nada de 'esqueci a senha' (quem esquecer fala com o dono, que redefine no painel do Supabase)\") e é recuperação de senha, fora de escopo por decisão do dono (docs/ultraloop/PROMPT-CONTINUACAO.md:41). O motivo original do descarte era de capacidade (nenhum lote dono do arquivo), não de mérito.",
+   "lote_sugerido": "L23b (novo, 'Copy e mensagens') — nenhum lote de L13–L29 edita app/(auth)/login/formulario.tsx",
+   "item": {
+    "id": "ux-heuristicas-20",
+    "secao": "B",
+    "estado": "pendente",
+    "area": "copy",
+    "area_original": "ux-heuristicas",
+    "titulo": "Login sem 'mostrar senha': quem erra a senha no celular não vê o que digitou",
+    "detalhe": "PROBLEMA (Login): EVIDÊNCIA (análise): a tela tem quatro alvos — e-mail, senha, 'Entrar', 'Criar conta' —, nenhum botão de mostrar a senha e nenhum caminho depois de 'E-mail ou senha incorretos.' (capturas /tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/ux-heuristicas/ux-heuristicas-20.png e login-erro-escuro.png). PROPOSTA DA ANÁLISE: (a) botão de olho 44×44 com aria-pressed; (b) link 'Esqueci a senha'; (c) foco no alerta depois do erro. FORA DO ITEM: (b) contradiz a SPEC §21.4 (SPEC.md:1301-1302) e é recuperação de senha, fora de escopo por decisão do dono (docs/ultraloop/PROMPT-CONTINUACAO.md:41); (c) é o mesmo trecho do irmão a11y-07 (fora do ledger; ver irmaos_fora_do_ledger), que leva o foco ao e-mail com aria-invalid/aria-describedby — se o a11y-07 não for importado, este item leva também o foco. FAZER: Em app/(auth)/login/formulario.tsx:61-74, dentro do campo de senha, um botão type='button' de 44×44 (ícone Eye/EyeOff) que alterna o input entre type='password' e type='text' sem perder o valor (o campo já é controlado, :41), com aria-pressed e aria-controls='senha'; autoComplete='current-password' continua. O nome acessível do botão NÃO pode conter 'senha' ('Mostrar'/'Ocultar'): oito arquivos de e2e/scripts acham o campo com getByLabel('Senha') sem exact (e2e/fixtures.ts:133 e :325 — o login de quase todos os testes —, e2e/login.spec.ts:48/:77/:106/:194/:206/:212, e2e/auditoria.spec.ts:49/:70/:195, e2e/mais.spec.ts:553) e passariam a achar dois elementos. ACEITE: e2e a 360×740 em /login (mock), nos dois temas: o botão mede ≥ 44×44, alterna o input entre password e text e o aria-pressed entre 'false' e 'true', e a senha digitada continua no campo; getByLabel('Senha') acha um elemento só; nenhum link 'Esqueci' na tela; e2e/login.spec.ts inteiro verde. ESTADO EM ef3ad97: app/(auth)/login/formulario.tsx:61-74 só o input de senha; :84-91 alerta sem id; grep de aria-invalid/aria-describedby/focus( vazio no arquivo.",
+    "arquivos": [
+     "app/(auth)/login/formulario.tsx"
+    ],
+    "esforco": "P",
+    "origens": [
+     {
+      "fonte": "analise/lotes-propostos#descartados",
+      "id_original": "ux-heuristicas-20",
+      "origem": "R5 análise",
+      "nota": "motivo do descarte no planejamento: O link 'Esqueci a senha' é recuperação de senha — decisão do dono (na SPEC §21 quem reenvia a senha é o dono). O resto do item (botão de olho no campo, foco no alerta de erro) e os irmãos a11y-07 e pwa-offline-02 ficam fora desta rodada porque nenhum lote deste round é dono de app/(auth)/login/formulario.tsx."
+     },
+     {
+      "fonte": "analise/ux-heuristicas",
+      "id_original": "ux-heuristicas-20",
+      "origem": "análise de 20/09 (lente ux-heuristicas, severidade media)"
+     }
+    ],
+    "duplicatas": [],
+    "subsecao": "descartados-R5-triados",
+    "importado_na_rodada": 3,
+    "lote_planejado": "L23b (novo)"
+   }
+  },
+  {
+   "id": "performance-09",
+   "decisao": "descartado",
+   "tipo_descarte": "custo desproporcional + depende do dono",
+   "prova_ou_motivo": "(1) Esforço G na análise: não cabe em lote de ≤ 3 M. (2) A proposta pede view/RPC nova no banco de produção: a §22.0 permite banco só expand-only (SPEC.md:1348-1352) e o PROMPT-CONTINUACAO.md:38 manda o DONO aplicar a migração antes do deploy. (3) A medida (1.770 ms de long task) é da base da análise (c82b744), antes do L6 (PR #9, 3c9864a): em ef3ad97 a seção Gráficos nem monta enquanto está fechada — sem Recharts e sem as consultas dela (components/relatorio/tela-relatorio.tsx:77-86 useSecoes/montadas e :331-337) — e as somas que ficaram na abertura são memoizadas (:160-176). Não foi re-medido (build, servidor e e2e proibidos nesta triagem). A parte barata e mensurável (as consultas repetidas) fica pendente no performance-08.",
+   "pergunta_ao_dono": "Quer que o Relatório passe a somar no Supabase (uma view ou função nova, só acrescentando, que você mesmo aplica no painel) se uma medição nova no celular, com um ano de treinos semeado, mostrar o Relatório travando mais de 200 ms ao abrir? Sem esse sim, fica como está."
+  },
+  {
+   "id": "performance-15",
+   "decisao": "descartado",
+   "tipo_descarte": "custo desproporcional + fora de escopo (Lighthouse ≥ 90)",
+   "prova_ou_motivo": "É diagnóstico (rodar @next/bundle-analyzer, esforço G) sem mudança visível, e o alvo da proposta ('uma tela de texto não deveria custar mais de ~150 kB') é critério de Lighthouse — 'Lighthouse ≥ 90' está fora de escopo por decisão do dono (docs/ultraloop/PROMPT-CONTINUACAO.md:41). Dado medido no build de ef3ad97 (/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/r10/base-build.log:49-91): 'First Load JS shared by all 104 kB'; /mais caiu para 171 kB (a análise mediu 321 kB) e /mais/creditos 109 kB; o que segue pesado são rotas de conteúdo (/mais/guia 346 kB, /mais/perfil 338 kB). No PWA instalado os chunks do shell entram no precache do Serwist (next.config.ts:9-10, 'o shell (o próprio Next cuida)'): o custo de rede é de uma vez. A parte com efeito na tela (next/dynamic nas rotas pesadas) já está no ledger como C-next-dynamic-rotas-pesadas (L17)."
+  },
+  {
+   "id": "performance-02",
+   "decisao": "publicado",
+   "prova_ou_motivo": "components/explorar/tela-explorar.tsx:238-250 — as seções ('Escolhas para você', 'Treinos do programa'…) e o catálogo saem dos JSON e não esperam o servidor; só o destaque espera perfil + overrides (:106 'pronto') e, até lá, o lugar dele fica reservado pelo EsqueletoDoDestaque com a forma do CardCapa (:291-309, min-h-40 + botão). Era exatamente o que empurrava a tela (as seções entrando depois da hidratação). SPEC.md:1417-1420 (§22.2 item 2). e2e/ultraloop-b-r1.spec.ts:188 cobra o esqueleto ('Carregando o destaque'). Ressalva: não há e2e de CLS < 0,1 para /explorar (só para /relatorio, e2e/ultraloop-b-r3.spec.ts:164-194) e o CLS não foi re-medido aqui.",
+   "lote_que_fechou": "L2 (rodada 1)",
+   "pr": "#6",
+   "sha": "b6e8135",
+   "commit": "14c9dd9 (ancestral de b6e8135, git merge-base --is-ancestor)"
+  },
+  {
+   "id": "performance-14",
+   "decisao": "descartado",
+   "tipo_descarte": "duplicata de item pendente",
+   "absorver_em": "C-next-dynamic-rotas-pesadas",
+   "prova_ou_motivo": "O defeito continua, mas já está no ledger: C-next-dynamic-rotas-pesadas (C, pendente, L17) é o mesmo defeito com a mesma cura (next/dynamic na folha e no tutorial do player; medido no L4 412→397 kB e revertido em 933e5e4). Estado em ef3ad97: /treinar/[sessionId] 29,3 kB / 428 kB de First Load (/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/r10/base-build.log:86 — subiu desde os 412 da análise) e components/player/tela-player.tsx:7-16 importa estático FichaEmFolha, AjustesDoTreino, TelaConclusao, TelaFeedback, TelaFirme e VisaoGeralDaSessao. Não abrir item novo.",
+   "acao_no_ledger": "Somar performance-14 às origens de C-next-dynamic-rotas-pesadas; ampliar o FAZER com a conclusão, o feedback e o firme do player (tela-player.tsx:9-13, o que a análise pedia além da folha e do tutorial) e o ACEITE com a linha de base de ef3ad97: /treinar/[sessionId] abaixo de 428 kB de First Load no build.log."
+  },
+  {
+   "id": "a11y-04",
+   "decisao": "publicado",
+   "prova_ou_motivo": "components/ui/button.tsx:14 'focus-visible:ring-3 focus-visible:ring-ring' (cor cheia) e components/ui/input.tsx:23 idem, com focus-within; app/globals.css:247-248 'outline: 2px solid var(--ring)' em todo focável e :320-321 (.foco). grep de 'ring-ring/50' em components/ e app/ só acha o comentário de app/globals.css:224. --ring #fb923c no escuro (app/globals.css:181; 8,6:1 sobre #0a0a0a) e #a03608 no claro (:105; 5,25:1 sobre #e0e0dd). SPEC.md:1488-1511 (§22.3 item 7: 'o anel dos botões e campos deixa de ser meio transparente (ring-ring/50) para ser a cor cheia … Fechado: a varredura do foco passa nas doze rotas nos dois temas, sem fixme').",
+   "lote_que_fechou": "L3 (rodada 2)",
+   "pr": "#7",
+   "sha": "c7d947a",
+   "commit": "af7ff67 e dde109d (ancestrais de c7d947a)"
+  },
+  {
+   "id": "pwa-offline-14",
+   "decisao": "publicado",
+   "prova_ou_motivo": "app/~offline/page.tsx:18-45 — ícone de rede cortada num disco de 64 px (WifiOff), h1 'Sem conexão', a frase do que acontece com o que foi registrado e as duas saídas de 48 px ('Tentar de novo', 'Ir para o Treino'), em max-w-lg com pb-segura. Captura de ef3ad97: /tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/base-ef3ad97/02-offline-escuro.png. SPEC.md:1388-1390 (§22.1 item 2). O que sobra da proposta (ancorar a ~25vh em vez de centralizar, ícone do app no lugar do WifiOff) é gosto, não defeito: não vira item.",
+   "lote_que_fechou": "L1 (rodada 1)",
+   "pr": "#6",
+   "sha": "b6e8135",
+   "commit": "6cbce14 (ancestral de b6e8135)"
+  },
+  {
+   "id": "visual-07",
+   "decisao": "descartado",
+   "tipo_descarte": "custo desproporcional",
+   "prova_ou_motivo": "Dado medido em ef3ad97 (grep em components/ e app/): fechar papéis de texto no app inteiro toca 92 arquivos .tsx com classe de tamanho de texto — 552 ocorrências (text-sm 180, text-xs 165, text-base 103, text-rotulo 28, text-2xl 25, text-micro 22, text-lg 16, text-3xl 6, text-6xl 4, text-xl 2, text-5xl 1) — e 27 'leading-*' soltos. Esforço G, estoura 12 arquivos por lote e cruza todas as áreas. A parte concreta já entrou: text-rotulo (11 px) e text-micro (10 px) no lugar dos 43 tamanhos soltos, declarados ao mesclador (SPEC.md:1481-1487, §22.3 item 6; L3, PR #7). O que ainda destoa por tela vai em itens de tela (visual-08, L20)."
+  },
+  {
+   "id": "visual-15",
+   "decisao": "descartado",
+   "tipo_descarte": "contradiz a SPEC",
+   "prova_ou_motivo": "Contradiz a SPEC §22.3 item 2 (SPEC.md:1469-1470: 'O laranja do tema claro escurece um degrau (#b8400c → #a03608) para o pill bg-primary/10 manter os 4,5:1') e a regra de contraste AA (§22.0.1 item 3, SPEC.md:1361). A proposta CLAREIA o laranja do claro: #e2600f dá 3,55:1 sobre #ffffff e 2,68:1 sobre o --background #e0e0dd; a variante #d95a10 dá 3,87:1 e 2,93:1 (fórmula WCAG) — as duas reprovam texto laranja. Em ef3ad97: app/globals.css:94/:105/:106 (--primary/--ring/--chart-1 = #a03608 no claro) e :169/:181/:182 (#fb923c no escuro). A paleta é decisão de marca e já foi tomada no sentido oposto."
+  },
+  {
+   "id": "visual-18",
+   "decisao": "descartado",
+   "tipo_descarte": "custo desproporcional",
+   "prova_ou_motivo": "As duas assimetrias concretas não são mais defeito e o resto é refatoração do app inteiro. (a) Os ladrilhos 24/12 do Relatório viraram px-2 py-2.5 no L6 (components/ui/contador.tsx:40, com a conta dos 64 px por coluna em :18-20; commit f245d23, PR #9). (b) O '4/10/4/36' do campo de busca é a raia do ícone em absolute: sem o pl-9 o texto passa por baixo da lupa (components/explorar/tela-explorar.tsx:149, components/exercicios/lista-exercicios.tsx:125) — o padding simétrico proposto criaria o defeito. Fechar o passo de espaçamento no app inteiro toca 86 arquivos .tsx com classes p-/px-/py- (grep em ef3ad97), sem defeito de uso apontado."
+  },
+  {
+   "id": "visual-12",
+   "decisao": "descartado",
+   "tipo_descarte": "custo desproporcional (o que sobra é desenho decidido)",
+   "prova_ou_motivo": "O inventário convergiu. Em ef3ad97 (grep em components/ e app/): size-5 (20 px) 61, size-4 (16 px) 47, size-3.5 (14 px) 12, size-6 5, size-3 (12 px) 4 — a análise contava 95 ícones de 12 px. Os 12 px que sobram são os raios (components/ui/raios.tsx:18), que a própria proposta preserva, e o ✓ de 12 px dentro do disco de 20 px da faixa, com traço 3 (components/ui/faixa-semana.tsx:175) — desenho da SPEC §22.8 item 4 (SPEC.md:1847-1854, 'feito = disco cheio com ✓ de 12 px'). O traço 3 só aparece em glifos de ✓ (faixa-semana.tsx:175, treino/personalizar.tsx:151, player/exercicio.tsx:573), nunca em ícone de navegação. Os 14 px são os ícones dos rótulos text-micro dos ladrilhos do Relatório (relatorio/tela-relatorio.tsx:214-262, relatorio/numeros.tsx:87-124), na linha de 16 px do Contador (L6). Fechar a escala mexeria em 58 arquivos que importam lucide-react para trocar 12 ícones de 14 para 16 px."
+  },
+  {
+   "id": "copy-28",
+   "decisao": "pendente",
+   "prova_ou_motivo": "O defeito continua e o 'dicionário de mensagens do L5' a que o descarte o mandou nunca virou lote (fila-v2.json#mapa_lotes_propostos_ordem, ordem-8). Em ef3ad97: components/corpo/aba-peso.tsx:250 botão 'Guardar' (meta), :94 'Meta de … guardada.', :103 'Altura de … cm guardada.', :96/:105 'Não consegui guardar …', :234 'Fica guardada no seu perfil.'; components/corpo/aba-medidas.tsx:135 botão 'Salvar medidas' no card cujo título (:88) é 'Registrar medidas' e cujo toast (:76) diz 'registradas'; components/corpo/aba-fotos.tsx:63 'Foto de … guardada.' e :65. Preferências, Perfil e Contas já dizem 'Salvar' (tela-perfil.tsx:200, tela-contas.tsx:187).",
+   "lote_sugerido": "L16 no lugar do copy-07: o L16 já edita aba-peso/aba-medidas/aba-fotos; com a troca fica 7 itens, 2 M, 11 arquivos (saem tela-backup.tsx e tela-senha.tsx, entram e2e/corpo.spec.ts e e2e/auditoria-m5.spec.ts) e perde a exceção de área; o copy-07 vai para o L23b (a saída que o próprio L16 prevê: 'um lote de textos depois do L23'). Com o copy-07 E o copy-28 o L16 teria 13 arquivos.",
+   "item": {
+    "id": "copy-28",
+    "secao": "B",
+    "estado": "pendente",
+    "area": "corpo",
+    "area_original": "copy",
+    "titulo": "Corpo grava com três verbos: 'Registrar' (peso), 'Salvar medidas' e 'Guardar' (meta)",
+    "detalhe": "PROBLEMA (Corpo → Peso / Medidas / Fotos): EVIDÊNCIA (análise, /tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/copy/copy-28.png): botões de gravar com três verbos na mesma tela — 'Registrar' (peso), 'Guardar' (meta), 'Salvar' (medidas, Preferências, Perfil) — e os toasts na mesma bagunça ('Altura de 190 cm guardada.' × 'Perfil salvo.' × 'Peso de 12/09 registrado.'). PROPOSTA DA ANÁLISE: dois verbos, cada um com um papel — 'Registrar' para o que vira dado com data (peso, medidas, fotos), 'Salvar' para configuração (meta, altura, preferências, perfil, limite); sem 'Guardar'. FAZER: components/corpo/aba-peso.tsx:250 'Guardar' → 'Salvar'; :94 'Meta de X guardada.' → 'Meta de X salva.'; :96 'Não consegui guardar a meta agora.' → '… salvar a meta …'; :103 'Altura de N cm guardada.' → '… salva.'; :105 idem; :234 'Fica guardada no seu perfil.' → 'Fica salva no seu perfil.'; components/corpo/aba-medidas.tsx:135 'Salvar medidas'/'Salvando…' → 'Registrar medidas'/'Registrando…' (o título :88 e o toast :76 já dizem registrar); components/corpo/aba-fotos.tsx:63 'Foto de X guardada.' → 'Foto de X registrada.' e :65 '… guardar essa foto.' → '… registrar essa foto.'. Não mudam: 'Está tudo guardado no aparelho' (fila offline) e 'guardado como abandonado' — não são o verbo do botão de gravar. Atualizar os e2e que afirmam o texto antigo: e2e/corpo.spec.ts:96 ('Guardar') e :121 ('Salvar medidas'); e2e/auditoria-m5.spec.ts:304 ('Foto de frente guardada.'), :457 e :461 ('Guardar'). ACEITE: e2e a 360×740 em /corpo, nas três abas e nos dois temas: nenhum botão nem toast com 'Guardar'/'guardad'; peso, medidas e fotos dizem 'Registrar'/'registrado(a)(s)'; meta e altura dizem 'Salvar'/'salva'; os e2e antigos passam com os rótulos novos. ESTADO EM ef3ad97: as linhas acima com o texto antigo (grep 'guardad\\|Guardar' em components/corpo/ devolve aba-peso.tsx:94/:96/:103/:105/:234/:250 e aba-fotos.tsx:63/:65).",
+    "arquivos": [
+     "components/corpo/aba-peso.tsx",
+     "components/corpo/aba-medidas.tsx",
+     "components/corpo/aba-fotos.tsx",
+     "e2e/corpo.spec.ts",
+     "e2e/auditoria-m5.spec.ts"
+    ],
+    "esforco": "P",
+    "origens": [
+     {
+      "fonte": "analise/lotes-propostos#descartados",
+      "id_original": "copy-28",
+      "origem": "R5 análise",
+      "nota": "motivo do descarte no planejamento: Registrar × Salvar × Guardar cai no dicionário de mensagens já agendado no L5."
+     },
+     {
+      "fonte": "analise/copy",
+      "id_original": "copy-28",
+      "origem": "análise de 20/09 (lente copy, severidade media)"
+     }
+    ],
+    "duplicatas": [],
+    "subsecao": "descartados-R5-triados",
+    "importado_na_rodada": 3,
+    "lote_planejado": "L16"
+   }
+  },
+  {
+   "id": "copy-24",
+   "decisao": "pendente",
+   "prova_ou_motivo": "O acento foi resolvido no L1 ('sáb' nos dois), mas a mesma informação segue com duas grafias e dois nomes acessíveis. Faixa (aba Treino e Relatório): lib/semana.ts:407 rótulo = formatarDiaCurto (lib/formato.ts:91-95, minúsculo) e :412 nome acessível 'quarta 16/09: …' (formatarDiaLongo, o formato da SPEC §16.3, SPEC.md:513-514). Calendário: components/calendario/grade.tsx:39 aria-label com diaCurto de lib/hoje.ts:512-522 ('qua 16/09: …') e :54-55 o mesmo diaCurto em 'text-rotulo uppercase' ('QUA', 'SÁB'). Duas funções para a mesma abreviação (lib/formato.ts:93 e lib/hoje.ts:512).",
+   "lote_sugerido": "L23b (novo, 'Copy e mensagens'); o L25 (dono de grade.tsx) está no teto de 12 arquivos e é só-C",
+   "item": {
+    "id": "copy-24",
+    "secao": "B",
+    "estado": "pendente",
+    "area": "copy",
+    "area_original": "copy",
+    "titulo": "Dia da semana com duas grafias e dois nomes acessíveis: 'qua'/'quarta 16/09' na faixa, 'QUA'/'qua 16/09' no Calendário",
+    "detalhe": "PROBLEMA (Faixa da semana × Calendário): EVIDÊNCIA (análise, /tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/copy/copy-24.png): a faixa escreve 'seg ter qua…' em minúscula e o Calendário 'SEG TER QUA… SÁB' em caixa alta; os nomes acessíveis divergem ('segunda 14/09: …' × 'seg 14/09: …'). PROPOSTA DA ANÁLISE: uma função só para o dia, abreviação acentuada no texto, caixa por CSS e nome acessível por extenso. FAZER: em components/calendario/grade.tsx usar as funções de lib/formato.ts — formatarDiaCurto no texto (:55) e formatarDiaLongo no aria-label (:39), o mesmo par que a faixa usa (lib/semana.ts:407/:412, formato da §16.3 'quarta 30/09: Treino B, hoje') — e a mesma caixa da faixa (tirar o 'uppercase' de :54; a faixa é minúscula). O diaCurto de lib/hoje.ts:512 deixa de ser usado por componentes (fica como conferência em lib/formato.test.ts:120-124). Atualizar os regex que acham o dia pelo nome curto: e2e/calendario.spec.ts (10 ocorrências de /^seg 14\\/09…/ etc.) e e2e/semana.spec.ts (5) → /^segunda 14\\/09…/. ACEITE: e2e a 360×740 nos dois temas: em / e em /calendario o mesmo dia tem o mesmo texto visível (textContent e text-transform iguais) e o nome acessível começa pela mesma forma ('quarta 16/09: …'); grep 'diaCurto(' em components/ vazio; e2e/calendario.spec.ts e e2e/semana.spec.ts verdes com os regex novos. ESTADO EM ef3ad97: components/calendario/grade.tsx:39 (aria 'qua 16/09: …'), :54-55 ('uppercase' + diaCurto); lib/semana.ts:407/:412 (faixa: 'qua' / 'quarta 16/09: …').",
+    "arquivos": [
+     "components/calendario/grade.tsx",
+     "e2e/calendario.spec.ts",
+     "e2e/semana.spec.ts"
+    ],
+    "esforco": "P",
+    "origens": [
+     {
+      "fonte": "analise/lotes-propostos#descartados",
+      "id_original": "copy-24",
+      "origem": "R5 análise",
+      "nota": "motivo do descarte no planejamento: Unificar o componente de dia da semana: o 'sab' sem acento está no L1 e a geometria do marcador entra neste round (visual-04); o resto é refatoração que cruzaria os lotes 1, 3 e 8."
+     },
+     {
+      "fonte": "analise/copy",
+      "id_original": "copy-24",
+      "origem": "análise de 20/09 (lente copy, severidade baixa)"
+     }
+    ],
+    "duplicatas": [],
+    "subsecao": "descartados-R5-triados",
+    "importado_na_rodada": 3,
+    "lote_planejado": "L23b (novo)"
+   }
+  },
+  {
+   "id": "tela-explorar-fichas-08",
+   "decisao": "pendente",
+   "prova_ou_motivo": "O line-clamp do L3 (a que o descarte o mandou) cuidou do texto cortado, não da altura: em ef3ad97 components/colecoes/linha-colecao.tsx:107-111 só monta o subtítulo quando ele existe ('colecao.subtitulo ? … : null'), sem altura reservada — as linhas da mesma seção seguem com duas alturas. O L12 em construção (/home/user/wt-a, bce5429, NÃO publicado) reordena a linha (título → subtítulo → motivo → meta) e também não reserva a linha.",
+   "lote_sugerido": "L13 com exceção de área (explorar ≠ ficha; mesma prioridade 2 do dono, SPEC §22.0 'Explorar e as fichas de exercício'): com -08, -13 e -11 o L13 fica 9 itens, 2 M, 11 arquivos, 6 telas. Alternativa: acrescentar ao L12 se ele ainda voltar à construção (os arquivos já estão no diff dele).",
+   "item": {
+    "id": "tela-explorar-fichas-08",
+    "secao": "B",
+    "estado": "pendente",
+    "area": "explorar",
+    "area_original": "tela-explorar-fichas",
+    "titulo": "Linhas da vitrine alternam duas alturas (72 × 92 px) conforme a coleção tem subtítulo",
+    "detalhe": "PROBLEMA (Explorar — vitrine): EVIDÊNCIA (análise, /tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-explorar-fichas/tela-explorar-fichas-08.png): as linhas de coleção medem 72 px sem subtítulo e 92 px com, alternando dentro da mesma seção. PROPOSTA DA ANÁLISE: reservar a linha do subtítulo (min-h) ou não mostrar subtítulo na vitrine. FAZER: em components/colecoes/linha-colecao.tsx:107-111 reservar a altura de uma linha de subtítulo (text-xs, line-clamp-1) em toda linha da vitrine, com ou sem texto — ou tirar o subtítulo da vitrine (fica na tela da coleção e na busca); escolher uma e registrar na SPEC. Na busca, onde o L12 acrescenta a linha do motivo ('contém …'), a regra vale para a lista inteira. ACEITE: e2e em /explorar a 360×740 nos dois temas: dentro de cada seção de 'Escolhas para você' todas as linhas [data-colecao] têm a mesma altura (±1 px, getBoundingClientRect). ESTADO EM ef3ad97: components/colecoes/linha-colecao.tsx:107-111 subtítulo condicional sem altura reservada.",
+    "arquivos": [
+     "components/colecoes/linha-colecao.tsx"
+    ],
+    "esforco": "P",
+    "origens": [
+     {
+      "fonte": "analise/lotes-propostos#descartados",
+      "id_original": "tela-explorar-fichas-08",
+      "origem": "R5 análise",
+      "nota": "motivo do descarte no planejamento: Reservar a linha do subtítulo é o line-clamp já agendado no L3."
+     },
+     {
+      "fonte": "analise/tela-explorar-fichas",
+      "id_original": "tela-explorar-fichas-08",
+      "origem": "análise de 20/09 (lente tela-explorar-fichas, severidade baixa)"
+     }
+    ],
+    "duplicatas": [],
+    "subsecao": "descartados-R5-triados",
+    "importado_na_rodada": 3,
+    "lote_planejado": "L13 (exceção de área) ou L12"
+   }
+  },
+  {
+   "id": "tela-explorar-fichas-13",
+   "decisao": "pendente",
+   "prova_ou_motivo": "O -06 do lote 5 (L9) deu ícone à capa PEQUENA da linha (components/colecoes/linha-colecao.tsx:19-29, ICONE_DO_TIPO), não à capa grande da tela da coleção. Em ef3ad97 components/colecoes/tela-colecao.tsx:50-56 chama o CardCapa sem a prop 'icone', e o CardCapa só desenha o ícone quando recebe um (components/ui/card-capa.tsx:96-100); o plano de corrida não tem foto (lib/colecoes.ts:597 'capa: null'). Captura de ef3ad97: /tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/base-ef3ad97/07-colecao-escuro.png — capa escura, sem foto e sem ícone. A alternativa de trazer uma foto de corrida continua recusada (imagem de terceiro fora da §15).",
+   "lote_sugerido": "L13 com exceção de área, junto do -08 e do -11 (ou L12, se voltar à construção)",
+   "item": {
+    "id": "tela-explorar-fichas-13",
+    "secao": "B",
+    "estado": "pendente",
+    "area": "explorar",
+    "area_original": "tela-explorar-fichas",
+    "titulo": "Capa do plano sem foto é um retângulo escuro, sem o ícone que o CardCapa promete",
+    "detalhe": "PROBLEMA (Coleção de plano, /explorar/plano/corrida): EVIDÊNCIA (análise, /tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-explorar-fichas/tela-explorar-fichas-13.png): no escuro a capa do plano de corrida é um retângulo quase preto, sem foto e sem o ícone que o componente promete ('Sem foto, a capa é um gradiente com o ícone da própria tela', components/ui/card-capa.tsx:14). PROPOSTA DA ANÁLISE: desenhar o fallback de verdade (ícone grande, gradiente com a cor do plano) — a outra saída, uma foto de corrida em assets/, contraria a §15. FAZER: em components/colecoes/tela-colecao.tsx:50-56 passar ao CardCapa o ícone do tipo da coleção (exportar ICONE_DO_TIPO de components/colecoes/linha-colecao.tsx:23-29 — plano = CalendarRange) em tamanho de capa (≥ 48 px); o gradiente (card-capa.tsx:79) já existe. Vale para toda coleção sem capa. ACEITE: e2e em /explorar/plano/corrida a 360×740 nos dois temas: dentro de [data-capa] há um svg visível de ≥ 48 px com contraste ≥ 3:1 contra o fundo do gradiente (SC 1.4.11, lido pelo canvas como a varredura); a captura 07-colecao muda só na capa. ESTADO EM ef3ad97: tela-colecao.tsx:50-56 sem 'icone'; lib/colecoes.ts:597 capa null; captura base-ef3ad97/07-colecao-escuro.png sem ícone.",
+    "arquivos": [
+     "components/colecoes/tela-colecao.tsx",
+     "components/colecoes/linha-colecao.tsx"
+    ],
+    "esforco": "P",
+    "origens": [
+     {
+      "fonte": "analise/lotes-propostos#descartados",
+      "id_original": "tela-explorar-fichas-13",
+      "origem": "R5 análise",
+      "nota": "motivo do descarte no planejamento: A alternativa 'dar uma capa de corrida a assets/' traria imagem de terceiro fora da §15; o que sobra (fallback desenhado com ícone e cor do plano) já entra pelo tela-explorar-fichas-06 no lote 5."
+     },
+     {
+      "fonte": "analise/tela-explorar-fichas",
+      "id_original": "tela-explorar-fichas-13",
+      "origem": "análise de 20/09 (lente tela-explorar-fichas, severidade media)"
+     }
+    ],
+    "duplicatas": [],
+    "subsecao": "descartados-R5-triados",
+    "importado_na_rodada": 3,
+    "lote_planejado": "L13 (exceção de área) ou L12"
+   }
+  },
+  {
+   "id": "tela-explorar-fichas-17",
+   "decisao": "publicado",
+   "prova_ou_motivo": "components/ui/miniatura.tsx:10 (LADO_DA_DERIVADA = 112) e :55-76 — a miniatura pede a derivada quadrada de 112 px, já cortada pelo alto, com object-cover (o 'object-contain p-1' da análise só sobra na reserva sem derivada, :74-76): a figura enche a caixa em vez de encolher. No escuro a placa passou de #e7e4e0 para #cfcac4 (app/globals.css:199-207, ≤ 60 % de luminância; manter a placa clara é decisão da §22.3 item 4, SPEC.md:1474-1476, porque inverter o traço estraga as pranchas coloridas). Captura de ef3ad97: /tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/base-ef3ad97/08-catalogo-escuro.png — supino reto, inclinado e declinado distinguíveis pelo ângulo do banco. SPEC.md:1592-1596 (§22.4 item 4). Trocar a ilustração pela foto na miniatura (a outra saída da análise) deixou de ser necessário.",
+   "lote_que_fechou": "L3 + L4 (rodada 2)",
+   "pr": "#7",
+   "sha": "c7d947a",
+   "commit": "f136df5 (derivadas) e af7ff67 (placa), ancestrais de c7d947a"
+  },
+  {
+   "id": "tela-explorar-fichas-11",
+   "decisao": "pendente",
+   "prova_ou_motivo": "O defeito continua: components/colecoes/tela-colecao.tsx:80-87 só monta a lista quando 'dadosDoPlano === null' — a coleção de plano é um cartão e o resto da tela vazio (ef3ad97, /tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/base-ef3ad97/indice.json '07-colecao' scrollHeight 740 = a janela; captura 07-colecao-escuro.png). Não é produto novo: a SPEC diz que a tela da coleção tem 'capa, lista, \"Começar\"' (§14.4, SPEC.md:354) e que o plano tem 'barra de progresso pela semana atual do perfil' (§13.4, SPEC.md:294). O L12 em construção (/home/user/wt-a, bce5429, não publicado) põe 'semana X de 12' no detalhe da capa (metaDoPlano) — a posição; a lista continua faltando.",
+   "lote_sugerido": "L13 com exceção de área, junto do -08 e do -13 (o único M dos três)",
+   "item": {
+    "id": "tela-explorar-fichas-11",
+    "secao": "B",
+    "estado": "pendente",
+    "area": "explorar",
+    "area_original": "tela-explorar-fichas",
+    "titulo": "Coleção de plano é só um cartão: sem as semanas do plano nem a barra de progresso",
+    "detalhe": "PROBLEMA (Coleção de plano, /explorar/plano/corrida): EVIDÊNCIA (análise, /tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-explorar-fichas/tela-explorar-fichas-11.png): scrollHeight = 740 e o texto inteiro da tela é o cartão ('5 km sem parar em 12 semanas … Fazer a sessão da semana'); ~700 px vazios porque a lista é suprimida para plano (tela-colecao.tsx:80). PROPOSTA DA ANÁLISE: as 12 semanas em linhas (feita / atual / a fazer) ou pelo menos o que a sessão desta semana tem. FAZER: abaixo do cartão, para coleção de plano: (1) a posição 'Semana X de N' com a barra das semanas CONCLUÍDAS (a mesma leitura do card de desafio, §22.2 item 8), como pede a §13.4; (2) a lista das semanas/estágios do plano saída de data/cardio.json — corrida.semanas[].descricao, corda.semanas[] (faixa de semanas, blocos, saltos), barra_fixa.semanas[] (assistência, por_sessao) —, cada linha com o estado feita/atual/a fazer derivado de perfil.semana_corrida/semana_corda/semana_fixa, a atual com aria-current='step' e o link da sessão da semana (o href com ?semana= que já existe, lib/colecoes.ts:599). Função pura nova em lib/colecoes.ts (ex.: semanasDoPlano(plano, semanaAtual)) com unitário; nenhum texto de conteúdo fora do JSON. ACEITE: unitário: semanasDoPlano('corrida', 3) devolve 12 linhas, 2 feitas, a 3ª atual, com a descrição igual à de data/cardio.json; e2e a 360×740 em /explorar/plano/corrida e /explorar/plano/corda nos dois temas: progressbar com aria-valuenow = semanas concluídas, uma linha por semana/estágio, a atual com aria-current, scrollHeight > 740 e nada vaza a largura. ESTADO EM ef3ad97: components/colecoes/tela-colecao.tsx:80-87 'dadosDoPlano === null && ids.length > 0 ? <ListaDaColecao…/> : null'; a capa diz só '12 semanas'.",
+    "arquivos": [
+     "components/colecoes/tela-colecao.tsx",
+     "lib/colecoes.ts",
+     "lib/colecoes.test.ts"
+    ],
+    "esforco": "M",
+    "origens": [
+     {
+      "fonte": "analise/lotes-propostos#descartados",
+      "id_original": "tela-explorar-fichas-11",
+      "origem": "R5 análise",
+      "nota": "motivo do descarte no planejamento: Dar conteúdo à coleção de plano precisa de components/colecoes/tela-colecao.tsx, que nenhum lote deste round possui; é 'alta' e deve abrir a próxima rodada de explorar-fichas."
+     },
+     {
+      "fonte": "analise/tela-explorar-fichas",
+      "id_original": "tela-explorar-fichas-11",
+      "origem": "análise de 20/09 (lente tela-explorar-fichas, severidade alta)"
+     }
+    ],
+    "duplicatas": [],
+    "subsecao": "descartados-R5-triados",
+    "importado_na_rodada": 3,
+    "lote_planejado": "L13 (exceção de área) ou L12"
+   }
+  },
+  {
+   "id": "tela-explorar-fichas-27",
+   "decisao": "descartado",
+   "tipo_descarte": "contradiz a SPEC (decisão do dono)",
+   "prova_ou_motivo": "Contradiz a SPEC §13.4 (SPEC.md:290, 'Treino de hoje em destaque no topo (o mesmo card da aba Treino)') e §14.4 (SPEC.md:354, 'um destaque no topo (o treino de hoje ou a sessão da semana do plano)'). Em ef3ad97 o destaque é o CardCapa que a SPEC pede (components/explorar/tela-explorar.tsx:246-250 e function Destaque em :317). Reduzi-lo a uma faixa de uma linha muda o produto: só com o sim do dono.",
+   "pergunta_ao_dono": "No Explorar, o destaque do topo pode virar uma faixa de uma linha ('Hoje: Treino B →') em vez do mesmo cartão grande da aba Treino, para a vitrine subir uns 400 px? Isso muda as seções 13.4 e 14.4 da SPEC."
+  },
+  {
+   "id": "tela-relatorio-corpo-calendario-07",
+   "decisao": "pendente",
+   "prova_ou_motivo": "Continua em parte. O separador diverge: components/relatorio/historico.tsx:106 '14/09 a 20/09' × components/calendario/tela-calendario.tsx:292 '14/09 – 20/09' (o da SPEC §22.8 item 8, SPEC.md:1871, afirmado em e2e/calendario.spec.ts:37 e e2e/semana.spec.ts:99). O 'componente único' da proposta não entra: por decisão da §22.8 a semana do Calendário é uma lista de cartões por dia com o intervalo entre as setas (SPEC.md:1871-1876), e a divergência das marcas (✓/◉/○ × ✓/~/✕) já é o C-dois-vocabularios-da-marca (L25). O item fica reduzido ao separador.",
+   "lote_sugerido": "L23b (novo, 'Copy e mensagens'); alternativa sem arquivo novo: L24 (área relatorio, já edita historico.tsx)",
+   "item": {
+    "id": "tela-relatorio-corpo-calendario-07",
+    "secao": "B",
+    "estado": "pendente",
+    "area": "copy",
+    "area_original": "tela-relatorio-corpo-calendario",
+    "titulo": "A mesma semana escrita '14/09 a 20/09' no Relatório e '14/09 – 20/09' no Calendário",
+    "detalhe": "PROBLEMA (Relatório → Histórico × Calendário): EVIDÊNCIA (análise, tela-relatorio-corpo-calendario-07-escuro.png e -20-escuro.png): duas navegações de semana com linguagens diferentes; até o separador muda ('a' × '–'). PROPOSTA DA ANÁLISE: um componente de faixa só nos dois lugares, com o mesmo separador e as mesmas marcas. FAZER: components/relatorio/historico.tsx:106 passa a '${formatarData(inicio)} – ${formatarData(fim)}', o separador da §22.8 item 8 (SPEC.md:1871) que o Calendário usa (tela-calendario.tsx:292). Não entra o componente único (a semana do Calendário é lista de cartões por decisão da §22.8) nem as marcas (C-dois-vocabularios-da-marca, L25). ACEITE: e2e em /relatorio com o Histórico aberto, nos dois temas: o rótulo da semana é '14/09 – 20/09', o mesmo texto de /calendario na mesma semana; nenhum ' a ' entre as duas datas; navegar ‹ › mantém o formato. ESTADO EM ef3ad97: components/relatorio/historico.tsx:106 com ' a '; components/calendario/tela-calendario.tsx:292 com ' – '.",
+    "arquivos": [
+     "components/relatorio/historico.tsx"
+    ],
+    "esforco": "P",
+    "origens": [
+     {
+      "fonte": "analise/lotes-propostos#descartados",
+      "id_original": "tela-relatorio-corpo-calendario-07",
+      "origem": "R5 análise",
+      "nota": "motivo do descarte no planejamento: Um único componente de faixa da semana para Relatório e Calendário precisaria de components/relatorio/historico.tsx (lote 1) e components/calendario/tela-calendario.tsx (lote 3) na mesma mudança."
+     },
+     {
+      "fonte": "analise/tela-relatorio-corpo-calendario",
+      "id_original": "tela-relatorio-corpo-calendario-07",
+      "origem": "análise de 20/09 (lente tela-relatorio-corpo-calendario, severidade media)"
+     }
+    ],
+    "duplicatas": [],
+    "subsecao": "descartados-R5-triados",
+    "importado_na_rodada": 3,
+    "lote_planejado": "L23b (novo)"
+   }
+  },
+  {
+   "id": "copy-27",
+   "decisao": "publicado",
+   "prova_ou_motivo": "app/(app)/progresso/page.tsx:1-6 — 'permanentRedirect(\"/relatorio\")'; o build de ef3ad97 lista /progresso com 145 B, sem tela própria (/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/r10/base-build.log:82). O redirect existe desde fd820d7 (Marco V1), ANTERIOR à análise: o 'innerText byte a byte igual ao de /relatorio' do achado é o que o navegador mostra depois de seguir o redirect (falso positivo). SPEC §14.4 (SPEC.md:355, '/progresso redireciona'). Renomear components/progresso/ é refatoração interna sem efeito na tela (TelaProgresso só é usada dentro do Relatório, components/relatorio/tela-relatorio.tsx:15 e :336): não vira item.",
+   "lote_que_fechou": "Marco V1 (antes do ultraloop)",
+   "pr": "#2",
+   "sha": "7526f38",
+   "commit": "fd820d7 (ancestral de 7526f38)"
+  },
+  {
+   "id": "tela-treino-player-15",
+   "decisao": "descartado",
+   "tipo_descarte": "contradiz a SPEC (decisão do dono)",
+   "prova_ou_motivo": "A repetição existe em ef3ad97 — lib/colecoes.ts:355-356 (core e cardio em FILTROS) e components/treino/parte-do-corpo.tsx:141 ('Parte do corpo: Core/Cardio') + :154-160 ('Filtro: Core/Cardio') —, mas a SPEC §14.3 (SPEC.md:351) lista exatamente esses chips: 'chips de filtro derivados (≤ 15 min · 15–30 min · com equipamento · sem equipamento · core · cardio)'. Tirar dois deles muda o que a SPEC manda ter; lib/colecoes.test.ts:308-310 e :335 cobram o filtro 'core'.",
+   "pergunta_ao_dono": "Na aba Treino → Parte do corpo, os filtros 'Core' e 'Cardio' repetem os chips de grupo Core e Cardio da fileira de cima (e, ligados, escondem os outros grupos). Posso tirar os dois da fileira de filtros, ficando só tempo e equipamento? Isso muda a lista de filtros da §14.3 da SPEC."
+  },
+  {
+   "id": "tela-treino-player-23",
+   "decisao": "descartado",
+   "tipo_descarte": "contradiz a SPEC (decisão do dono)",
+   "prova_ou_motivo": "Contradiz a SPEC §13.3 item 1 (SPEC.md:280, 'Tocar na faixa abre /calendario') e §16.3 (SPEC.md:512-513, 'tocar na faixa continua abrindo /calendario'): a faixa é um alvo só por especificação. Em ef3ad97 é um Link único 'Abrir o calendário da semana' (components/ui/faixa-semana.tsx:104), com o dia inteiro no nome acessível de cada casa (:52-55).",
+   "pergunta_ao_dono": "Na aba Treino, cada dia da faixa da semana deve abrir o Calendário já naquele dia (sete destinos), em vez de a faixa inteira abrir a semana? Isso muda as seções 13.3 e 16.3 da SPEC."
+  },
+  {
+   "id": "performance-08",
+   "decisao": "pendente",
+   "prova_ou_motivo": "Continua em parte. O L6 (PR #9) só monta a seção Gráficos quando ela é aberta (components/relatorio/tela-relatorio.tsx:77-86), o que tirou consultas da abertura, mas a duplicação persiste: na abertura, pullup_singles 2× — useSoltas(desde, hoje) em :146 é subconjunto de useSoltasTodas em :148 —; ao abrir Gráficos, TelaProgresso relê session_sets (useSeriesDesde(janela)), cardio_sessions (useCardio(janela)), pullup_singles (useSoltas(janela)) e schedule_overrides (useOverrides(janelaAderencia)) (components/progresso/tela-progresso.tsx:81-84), que o Relatório já tem inteiros (:143-150). O motivo do descarte (lib/queries/dados.ts concentraria os lotes) não vale mais: a correção mora nas duas telas.",
+   "lote_sugerido": "L24 (área relatorio, já edita tela-relatorio.tsx): 7 itens (1 B + 6 C), 3 M, 12 arquivos. O L24 passa a ser o último lote com B; como vem logo depois dos lotes B, nenhum C fica antes de um B.",
+   "item": {
+    "id": "performance-08",
+    "secao": "B",
+    "estado": "pendente",
+    "area": "relatorio",
+    "area_original": "performance",
+    "titulo": "Relatório pede a mesma tabela duas ou três vezes (pullup_singles, session_sets, cardio_sessions, schedule_overrides)",
+    "detalhe": "PROBLEMA (Relatório): EVIDÊNCIA (análise): 14 requisições ao Supabase para abrir a tela, com a mesma tabela repetida — pullup_singles 3×, session_sets 2×, cardio_sessions 2×, schedule_overrides 2× (/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/medidas-rotas.json, relatorio.mockUrls). PROPOSTA DA ANÁLISE: buscar uma vez a faixa mais ampla e derivar as janelas menores com useMemo. O QUE O L6 JÁ MUDOU: Gráficos só monta ao abrir (tela-relatorio.tsx:77-86); a duplicação continua (ver ESTADO). FAZER: uma leitura por tabela, janelas recortadas em memória. (1) Sai o useSoltas(desde, hoje) de components/relatorio/tela-relatorio.tsx:146; o Histórico recebe as soltas da janela recortadas de soltasTodas com useMemo (como seriesDaJanela, :165-168). (2) components/progresso/tela-progresso.tsx:81-84 passa a usar as mesmas chaves do Relatório (useSeriesTodas, useCardioTodos, useSoltasTodas — o TanStack Query não repete a ida) e recorta a janela de 12 semanas com useMemo. (3) schedule_overrides: uma leitura da janela de aderência (que contém a semana corrente) e a semana recortada dela. (4) useSeriesTodas (lib/queries/progresso.ts:74-86) passa a pedir as 3000 MAIS RECENTES (order descendente) e ordena em memória para os consumidores: hoje é ascendente com limit 3000, e recortar dela a janela recente — ou somar o acumulado — deixa de ver as séries novas quando o total passar de 3000 (ver observacao_nova em triagem-26.json). ACEITE: e2e a 360×740 contra o mock contando page.on('request') em /rest/v1/<tabela>: ao abrir /relatorio, no máximo um GET por tabela (hoje pullup_singles tem dois); ao abrir 'Gráficos', nenhum GET novo a session_sets, cardio_sessions, pullup_singles nem schedule_overrides; a consulta de session_sets sai com order=registrada_em.desc; números, histórico e gráficos iguais aos de antes (e2e/ultraloop-b-r3.spec.ts verde). ESTADO EM ef3ad97: components/relatorio/tela-relatorio.tsx:146 useSoltas(desde, hoje) e :148 useSoltasTodas(); components/progresso/tela-progresso.tsx:81-84 useSeriesDesde/useCardio/useSoltas/useOverrides próprios; lib/queries/progresso.ts:80-83 session_sets ascendente com limit 3000.",
+    "arquivos": [
+     "components/relatorio/tela-relatorio.tsx",
+     "components/progresso/tela-progresso.tsx",
+     "lib/queries/progresso.ts"
+    ],
+    "esforco": "M",
+    "origens": [
+     {
+      "fonte": "analise/lotes-propostos#descartados",
+      "id_original": "performance-08",
+      "origem": "R5 análise",
+      "nota": "motivo do descarte no planejamento: Fundir as consultas de lib/queries/dados.ts (com performance-10, -11, -12, -16, -17): é ganho de rede sem mudança visível na tela e concentra todos os lotes num arquivo só; melhor como lote de dados isolado, fora de um round paralelo."
+     },
+     {
+      "fonte": "analise/performance",
+      "id_original": "performance-08",
+      "origem": "análise de 20/09 (lente performance, severidade alta)"
+     }
+    ],
+    "duplicatas": [],
+    "subsecao": "descartados-R5-triados",
+    "importado_na_rodada": 3,
+    "lote_planejado": "L24"
+   }
+  },
+  {
+   "id": "copy-06",
+   "decisao": "descartado",
+   "tipo_descarte": "depende de decisão do dono (+ parte já coberta por item pendente)",
+   "prova_ou_motivo": "Em ef3ad97 o subtítulo da coleção de aparelho é a ficha técnica (lib/colecoes.ts:150, item.specs) e o do plano Corda é a junção das funções (lib/colecoes.ts:243, cardio.corda.funcoes). A parte de aparelho é o mesmo defeito do tela-explorar-fichas-09 (candidato do L12; aceite 'nenhum subtítulo de vitrine traz medidas ou carga máxima do aparelho'; o L12 em construção em /home/user/wt-a, bce5429, tira os specs do subtítulo — não publicado). O que a proposta acrescenta — campos novos resumo/ficha em data/equipamentos.json e nos planos, com frases novas ('5 estágios, do salto básico ao duplo') — é conteúdo escrito, e o app não inventa conteúdo (CLAUDE.md, 'Conteúdo vem dos JSON'; SPEC.md:354, 'descrições só de campos do JSON'): precisa do texto ou do sim do dono, item a item.",
+   "absorver_em": "tela-explorar-fichas-09 (parte de aparelho)",
+   "pergunta_ao_dono": "Quer um resumo curto (até ~60 caracteres) para cada plano — corrida, corda e barra fixa — em data/cardio.json, para a vitrine do Explorar mostrar no lugar das funções da corda ('aquecimento: 2 min antes de todo treino de força…')? Se sim, você escreve ou aprova os que eu propuser?"
+  },
+  {
+   "id": "copy-04",
+   "decisao": "pendente",
+   "prova_ou_motivo": "O defeito continua em ef3ad97: components/mais/tela-perfil.tsx:256 'semana {semanas}' com semanaDaFase (diferença + 1, a semana corrente — lib/calendario.ts:140-144) e, no mesmo card, :265 '{sugestao.semanas} semanas de Fase 1' e :289-291 '(você tem {sugestao.semanas} e {sessoes})' com sugerirFase2().semanas (semanas COMPLETAS, sem o +1 — lib/calendario.ts:663-666): 16 e 15 para a mesma contagem. O lote de Mais a que o descarte o mandou não o levou (não está no ledger).",
+   "lote_sugerido": "L23b (novo, 'Copy e mensagens'); alternativa: L18, que já edita tela-perfil.tsx pelo copy-30 (+ e2e/auditoria-m6.spec.ts → 12 arquivos), com exceção de área",
+   "item": {
+    "id": "copy-04",
+    "secao": "B",
+    "estado": "pendente",
+    "area": "copy",
+    "area_original": "copy",
+    "titulo": "Perfil diz 'semana 16' e, logo abaixo, '15 semanas de Fase 1' para a mesma contagem",
+    "detalhe": "PROBLEMA (Mais → Perfil, card da fase): EVIDÊNCIA (análise, /tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/copy/copy-04.png): 'Desde 01/06 · semana 16 · 46 treinos concluídos' e logo abaixo 'Você já tem 15 semanas de Fase 1 e 46 treinos concluídos.' PROPOSTA DA ANÁLISE: uma definição só, ou nomear as duas ('semana 16' × '15 semanas completas'). FAZER: em components/mais/tela-perfil.tsx nomear as duas contagens sem mudar nenhuma regra: :256 continua 'semana 16' (semana corrente); :265 → 'Você já tem 15 semanas completas de Fase 1 e 46 treinos concluídos.'; :289-291 → '(você tem 11 semanas completas e 30 treinos)'. O limiar da Fase 2 (semanas completas ≥ SEMANAS_PARA_FASE2, lib/calendario.ts:674-678) não muda. Atualizar e2e/auditoria-m6.spec.ts:166 (/você tem 11 e 30/) e :176 (/12 semanas de Fase 1 e 30 treinos/). ACEITE: e2e em /mais/perfil a 360×740 com fase_desde 01/06 e hoje 16/09 (o cenário de e2e/ultraloop-c-r5.spec.ts:43): o cabeçalho diz 'semana 16' e a sugestão diz '15 semanas completas'; com 11 semanas o texto diz '11 semanas completas' e não oferece a Fase 2; e2e/auditoria-m6.spec.ts verde com os textos novos. ESTADO EM ef3ad97: components/mais/tela-perfil.tsx:256, :265 e :289-291 como descrito.",
+    "arquivos": [
+     "components/mais/tela-perfil.tsx",
+     "e2e/auditoria-m6.spec.ts"
+    ],
+    "esforco": "P",
+    "origens": [
+     {
+      "fonte": "analise/lotes-propostos#descartados",
+      "id_original": "copy-04",
+      "origem": "R5 análise",
+      "nota": "motivo do descarte no planejamento: 'semana 16' × '15 semanas' no Perfil e copy-30 (denominador chumbado em 12) precisam de components/mais/tela-perfil.tsx, que é do lote de Mais; a regra única já entra por lib/semana.ts no lote 3."
+     },
+     {
+      "fonte": "analise/copy",
+      "id_original": "copy-04",
+      "origem": "análise de 20/09 (lente copy, severidade alta)"
+     }
+    ],
+    "duplicatas": [],
+    "subsecao": "descartados-R5-triados",
+    "importado_na_rodada": 3,
+    "lote_planejado": "L23b (novo)"
+   }
+  },
+  {
+   "id": "copy-13",
+   "decisao": "pendente",
+   "prova_ou_motivo": "O texto da tela continua: components/exercicios/historico-exercicio.tsx:202 'Cada subida, repetição ou volta de carga aparece aqui depois do treino.' — 'repetição' ali é 'repetir a carga', e a mesma ficha usa 'repetições' para as da série. A parte da proposta que mexe em lib/progressao.ts NÃO entra (SPEC §22.0.1 item 7, SPEC.md:1369; PROMPT-CONTINUACAO.md:33 'Motor intocado') e não é necessária: o motivo 'repetiu' é interno e o texto que a tela mostra para ele, 'repetiu a carga no treino de dd/mm' (lib/hoje.ts:257), já é inequívoco. O 'dicionário de mensagens do L5' nunca virou lote (ordem-8).",
+   "lote_sugerido": "L14 (edita components/exercicios/historico-exercicio.tsx pelo tela-explorar-fichas-20): 7 itens, 3 M, 9 arquivos, nenhum arquivo novo",
+   "item": {
+    "id": "copy-13",
+    "secao": "B",
+    "estado": "pendente",
+    "area": "ficha",
+    "area_original": "copy",
+    "titulo": "'Cada subida, repetição ou volta de carga': 'repetição' com dois sentidos na mesma ficha",
+    "detalhe": "PROBLEMA (Ficha do exercício → 'O que o motor decidiu'): EVIDÊNCIA (análise, /tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/copy/copy-13.png): o vazio do cartão diz 'Cada subida, repetição ou volta de carga aparece aqui depois do treino.' — 'repetição' quer dizer 'repetir a carga', mas na mesma ficha 'repetições' são as da série ('3 × 5–8', 'Repetições por sessão'). PROPOSTA DA ANÁLISE: 'manutenção' no lugar e o mesmo termo no motor e no resumo da sessão. FAZER: só a frase da tela: components/exercicios/historico-exercicio.tsx:202 → 'Cada subida, manutenção ou volta de carga aparece aqui depois do treino.' O motor não muda (SPEC §22.0.1 item 7): o motivo 'repetiu' de lib/progressao.ts não aparece na tela e 'repetiu a carga no treino de dd/mm' (lib/hoje.ts:257, lib/hoje.test.ts:185) fica como está. Combinar com o tela-explorar-fichas-20 do mesmo lote, que junta os quatro cartões vazios num só quando não há histórico. ACEITE: e2e na ficha de um exercício com séries e sem progression_events: o cartão 'O que o motor decidiu' mostra a frase nova e não contém 'repetição'; grep 'repetição ou volta' vazio; git diff de lib/progressao.ts e lib/montagem.ts vazio. ESTADO EM ef3ad97: components/exercicios/historico-exercicio.tsx:202 com a frase antiga; nenhum e2e a afirma (grep).",
+    "arquivos": [
+     "components/exercicios/historico-exercicio.tsx"
+    ],
+    "esforco": "P",
+    "origens": [
+     {
+      "fonte": "analise/lotes-propostos#descartados",
+      "id_original": "copy-13",
+      "origem": "R5 análise",
+      "nota": "motivo do descarte no planejamento: Trocar 'repetição' por 'manutenção' no vocabulário do motor toca lib/progressao.ts — CLAUDE.md trata o motor como funções puras com testes; mudança de termo ali entra junto do dicionário de mensagens do L5, com os testes."
+     },
+     {
+      "fonte": "analise/copy",
+      "id_original": "copy-13",
+      "origem": "análise de 20/09 (lente copy, severidade media)"
+     }
+    ],
+    "duplicatas": [],
+    "subsecao": "descartados-R5-triados",
+    "importado_na_rodada": 3,
+    "lote_planejado": "L14"
+   }
+  }
+ ],
+ "contagens": {
+  "publicado": 5,
+  "descartado": 11,
+  "pendente": 10
+ },
+ "lote_novo_sugerido": {
+  "codigo": "L23b",
+  "titulo": "Copy e mensagens: dia da semana, intervalo, perfil, backup e login",
+  "area": "copy",
+  "ordem": "entre L23 e L24 — último lote só-B antes dos lotes com C",
+  "justificativa": "É a ordem-8 do dono em fila.json#lotes_propostos_ordem ('L5 copy e mensagens'), que nunca virou lote (fila-v2.json#mapa_lotes_propostos_ordem); o escopo declarado dela era 'dicionário de mensagens, reps/backup/login, aviso de IndexedDB' (/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/wf-analise.js:116). Também é a saída que o próprio L16 escreve para o copy-07 ('se o dono recusar, o copy-07 vai para um lote de textos depois do L23', lotes-plano.json L16.excecao.aceite_do_dono).",
+  "itens": [
+   "copy-07 (sai do L16)",
+   "copy-24",
+   "tela-relatorio-corpo-calendario-07",
+   "copy-04",
+   "ux-heuristicas-20",
+   "a11y-07 (irmão fora do ledger — importar; item pronto em irmaos_fora_do_ledger)"
+  ],
+  "arquivos": [
+   "components/mais/tela-backup.tsx",
+   "components/mais/tela-senha.tsx",
+   "components/corpo/aba-fotos.tsx",
+   "components/calendario/grade.tsx",
+   "e2e/calendario.spec.ts",
+   "e2e/semana.spec.ts",
+   "components/relatorio/historico.tsx",
+   "components/mais/tela-perfil.tsx",
+   "e2e/auditoria-m6.spec.ts",
+   "app/(auth)/login/formulario.tsx",
+   "SPEC.md",
+   "PROGRESSO.md"
+  ],
+  "telas_esperadas": [
+   "01-login",
+   "05-calendario",
+   "14-relatorio-historico",
+   "17-corpo-fotos",
+   "20-perfil"
+  ],
+  "medios": 0,
+  "secoes": {
+   "B": 6,
+   "C": 0,
+   "D": 0
+  },
+  "excecao": null,
+  "regras": "6 itens, 0 M, 12 arquivos (SPEC.md e PROGRESSO.md contados), 5 telas, uma área (copy). Sem e2e novo: os casos do lote entram nos e2e que ele já edita (e2e/semana.spec.ts, e2e/calendario.spec.ts, e2e/auditoria-m6.spec.ts), como o L23 faz com o e2e/v3.spec.ts. /mais/backup e /mais/senha não estão nas 30 capturas: medir no e2e.",
+  "condicao": "Fecha 6 itens só com o a11y-07 importado. Sem ele ficam 5 (abaixo do mínimo): nesse caso não criar o L23b — tela-relatorio-corpo-calendario-07 vai para o L24 (0 arquivo novo), copy-04 para o L18 (exceção de área) e copy-07 volta ao L16 pela exceção (e o copy-28 fica sem lote até juntar outros textos).",
+  "cuidado": "O botão de mostrar a senha (ux-heuristicas-20) não pode ter 'senha' no nome acessível: e2e/fixtures.ts:133/:325 e mais seis arquivos acham o campo com getByLabel('Senha') sem exact."
+ },
+ "ajustes_no_plano": [
+  "L14: + copy-13 → 7 itens, 3 M, 9 arquivos (nenhum novo).",
+  "L16: − copy-07 (→ L23b), + copy-28 → 7 itens, 2 M, 11 arquivos (saem tela-backup.tsx e tela-senha.tsx; entram e2e/corpo.spec.ts e e2e/auditoria-m5.spec.ts); a exceção de área do L16 deixa de existir.",
+  "L13: + tela-explorar-fichas-08, -13, -11 com exceção de área (explorar; prioridade 2 do dono, SPEC §22.0) → 9 itens, 2 M, 11 arquivos (+ linha-colecao.tsx, tela-colecao.tsx, lib/colecoes.ts, lib/colecoes.test.ts), 6 telas (+ 06-explorar, 07-colecao). Alternativa: L12, se ainda voltar à construção.",
+  "L23b (novo): copy-07, copy-24, tela-relatorio-corpo-calendario-07, copy-04, ux-heuristicas-20, a11y-07.",
+  "L24: + performance-08 → 7 itens (1 B + 6 C), 3 M, 12 arquivos (+ components/progresso/tela-progresso.tsx, lib/queries/progresso.ts).",
+  "C-next-dynamic-rotas-pesadas (L17): somar performance-14 às origens e ampliar FAZER/ACEITE (ver triados[performance-14].acao_no_ledger).",
+  "tela-explorar-fichas-09 (L12): somar copy-06 às origens (parte de aparelho)."
+ ],
+ "irmaos_fora_do_ledger": [
+  {
+   "id": "a11y-07",
+   "situacao": "fora do ledger e fora dos 34 descartados; citado no motivo do ux-heuristicas-20",
+   "estado_em_ef3ad97": "continua — app/(auth)/login/formulario.tsx:84-91 alerta sem id; nenhum aria-invalid/aria-describedby/focus( no arquivo",
+   "sugestao": "importar como item próprio (pronto abaixo) — é o 6º item do L23b",
+   "item": {
+    "id": "a11y-07",
+    "secao": "B",
+    "estado": "pendente",
+    "area": "copy",
+    "area_original": "a11y",
+    "titulo": "Login: depois de 'E-mail ou senha incorretos.' o foco vai para o body e os campos não dizem que estão errados",
+    "detalhe": "PROBLEMA (Login — erro de senha): EVIDÊNCIA (análise, /tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/a11y/a11y-07.png): o role='alert' anuncia 'E-mail ou senha incorretos.', mas document.activeElement volta a BODY e os dois campos ficam sem aria-invalid e sem aria-describedby para a mensagem — com teclado é preciso tabular desde o começo do documento. PROPOSTA DA ANÁLISE: id na mensagem, aria-describedby e aria-invalid='true' nos dois campos quando o envio falha, e foco devolvido ao e-mail. FAZER: em app/(auth)/login/formulario.tsx:84-91 dar id ao alerta; com estado.erro, e-mail e senha com aria-invalid='true' e aria-describedby=<id do alerta>; levar o foco ao campo de e-mail (ref + efeito quando o erro muda). Cobre o 'foco depois do erro' do ux-heuristicas-20. ACEITE: e2e em /login (mock) com senha errada: document.activeElement é #email; os dois campos têm aria-invalid='true' e aria-describedby com o id do role='alert'; corrigir a senha e reenviar entra sem voltar ao topo com Tab; e2e/login.spec.ts:51/:108 verdes. ESTADO EM ef3ad97: formulario.tsx:84-91 '<p role=\"alert\" …>' sem id; grep de aria-invalid/aria-describedby/focus( vazio no arquivo.",
+    "arquivos": [
+     "app/(auth)/login/formulario.tsx"
+    ],
+    "esforco": "P",
+    "origens": [
+     {
+      "fonte": "analise/a11y",
+      "id_original": "a11y-07",
+      "origem": "análise de 20/09 (lente a11y, severidade media)"
+     },
+     {
+      "fonte": "analise/lotes-propostos#descartados",
+      "id_original": "ux-heuristicas-20",
+      "origem": "R5 análise",
+      "nota": "irmão citado no motivo do descarte do ux-heuristicas-20 ('os irmãos a11y-07 e pwa-offline-02 ficam fora desta rodada'); não está nos 34 descartados nem no ledger"
+     }
+    ],
+    "duplicatas": [],
+    "subsecao": "descartados-R5-triados",
+    "importado_na_rodada": 3,
+    "lote_planejado": "L23b (novo)"
+   }
+  },
+  {
+   "id": "pwa-offline-02",
+   "situacao": "fora do ledger; citado no motivo do ux-heuristicas-20; severidade alta na análise ('Entrar' sem rede troca a página por 'Application error')",
+   "estado_em_ef3ad97": "não re-medido; no código não há app/error.tsx, app/global-error.tsx nem app/(auth)/error.tsx e formulario.tsx não trata falha de rede",
+   "sugestao": "triar e, confirmado, levar ao L21 'Sem rede' (área pwa; + app/error.tsx novo)"
+  },
+  {
+   "id": "performance-10",
+   "situacao": "fora do ledger; citado no motivo do performance-08",
+   "estado_em_ef3ad97": "não conferido (Treino: sessions 2× e pullup_singles 2×, o mesmo padrão do performance-08)",
+   "sugestao": "triar junto do performance-08"
+  },
+  {
+   "id": "performance-11",
+   "situacao": "fora do ledger; citado no motivo do performance-08",
+   "estado_em_ef3ad97": "não conferido (Barra fixa: pullup_singles 2×)",
+   "sugestao": "triar"
+  },
+  {
+   "id": "performance-12",
+   "situacao": "fora do ledger; citado no motivo do performance-08",
+   "estado_em_ef3ad97": "não conferido (fotos do Equipamento no load; talvez fechado pelo loading=lazy do L4)",
+   "sugestao": "triar"
+  },
+  {
+   "id": "performance-16",
+   "situacao": "fora do ledger; citado no motivo do performance-08",
+   "estado_em_ef3ad97": "não conferido (prefetch de 11 RSC ao abrir /mais)",
+   "sugestao": "triar"
+  },
+  {
+   "id": "performance-17",
+   "situacao": "fora do ledger; citado no motivo do performance-08",
+   "estado_em_ef3ad97": "não conferido (/corpo com as três abas no bundle)",
+   "sugestao": "triar"
+  },
+  {
+   "id": "copy-25",
+   "situacao": "fora do ledger; citado no motivo do copy-06",
+   "estado_em_ef3ad97": "não conferido (grafias 'Cross-over'/'Cross over', 'Super band'/'Super Band', 'Peso do corpo'/'Peso corporal')",
+   "sugestao": "triar; mexe em data/*.json (conteúdo)"
+  }
+ ],
+ "observacao_nova": {
+  "id_sugerido": "C-series-todas-ascendente-3000",
+  "fora_dos_26": true,
+  "texto": "lib/queries/progresso.ts:74-86 — useSeriesTodas lê session_sets em ordem ASCENDENTE com limit(LIMITE_SERIES = 3000) (:19, :80-83). Passadas 3000 séries (≈ 17 por sessão × 4 por semana ≈ 44 semanas), a lista devolve as 3000 MAIS ANTIGAS: o volume acumulado do Relatório (tela-relatorio.tsx:144/:160-163), os Números e as conquistas (components/relatorio/usar-conquistas.ts:46) param de ver as séries novas. As outras leituras 'todas' são descendentes (useCardioTodos, lib/queries/dados.ts:212; useSoltasTodas, :297; useSessoesTodas, lib/queries/progresso.ts:44). Não está no ledger nem na análise. A correção (order descendente + ordenar em memória) está incluída no FAZER do performance-08; se ele não for feito, abrir item próprio."
+ },
+ "observacoes": [
+  "Os 26 da reconciliação conferem com analise/lotes-propostos.json#descartados menos os 8 que o REMONTAR_L12 cita (ux-heuristicas-12/-15/-06/-17, tela-treino-player-27/-12, pwa-offline-01, a11y-10). copy-13 e copy-28 estão entre os 26.",
+  "Contagem por id: 52 achados da análise não aparecem em nenhum lote de lotes-propostos, nem nos descartados, nem no ledger. Vários foram feitos por lotes publicados com outro id (ex.: copy-03 ≈ §22.8 item 1 'Fase 1 · 12 de 12 concluída'; copy-22 ≈ §22.5 item 10 'CARGA NA BARRA'; ux-heuristicas-05/-07/-08/-10/-11 ≈ §22.5; a11y-13 ≈ C-aviso-conquista-regiao-viva; pwa-offline-10 ≈ app/not-found.tsx do L9). Não triados aqui; os irmãos citados nos motivos dos 26 estão em irmaos_fora_do_ledger.",
+  "Referência: /home/user/wt-c em ef3ad97, árvore limpa, só leitura. Medidas de bundle tiradas do build de ef3ad97 já existente em /tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/r10/base-build.log; capturas de /tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/base-ef3ad97/ (nada foi construído nem servido nesta triagem). O L12 em construção foi lido em /home/user/wt-a (bce5429) só para contexto; nenhuma decisão depende dele."
+ ]
+}

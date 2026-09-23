@@ -7851,137 +7851,47 @@ Nenhuma migração de banco. **Rollback: não.**
 
 ### Fila (o que não coube) — lista para as próximas rodadas
 
-Nada abaixo está publicado. Ordem sugerida: B → C. Cada item traz a origem (rodada/lote/auditoria) e o motivo registrado pelo agente; a íntegra está em `ultraloop/fila.json` do scratchpad da sessão e nos vereditos de cada rodada.
+**Fonte única desde 23/09: `docs/ultraloop/fila.json` (ledger versão 3).** Cada item tem id estável, seção (B, C, D), estado, área, detalhe com PROBLEMA / FAZER / ACEITE / ESTADO medido no código, arquivos, esforço e **todas as origens** (fila antiga, fila-agrupada, lotes-r5/r6, PROGRESSO, análise). Publicado exige prova (arquivo:linha ou teste) e sha do merge; descartado exige motivo individual. A reconciliação que chegou aqui está em `docs/ultraloop/reconciliacao-fila.md`; o censo dos 227 achados da análise, em `docs/ultraloop/censo-analise.json`; a triagem dos descartes de planejamento, em `docs/ultraloop/triagem-descartes-planejamento.json`; as decisões que só o dono pode tomar, em `docs/ultraloop/perguntas-ao-dono.md`.
 
-**A. (publicado)** O lote 7 — aba Treino entrou em produção na rodada 7 (`d696b33`); nada pendente aqui. Ordem sugerida: B → C.
+**O que a reconciliação corrigiu na lista antiga (texto de 21/09, abaixo substituído):** o L7 aparecia como pendente e está publicado (PR #13); C tinha 63 numa fonte e 64 noutra (o 64º é o R9-C1, que também estava em D — agora uma entrada só); os seis itens de D não estavam no JSON; `lotes_propostos_ordem` começava por lotes já publicados; os dez itens do antigo "L12 superfícies" já estavam publicados pelos lotes 3 e 4 (com prova); 46 achados da remontagem das superfícies e 27 achados da análise nunca tinham entrado na fila — entraram; o nome L12 passou a ser o lote de Explorar e catálogo.
 
-**B. Lotes planejados na análise e não executados (33 itens).** Os textos completos, com linhas e proposta, estão em `lotes-r5.json` e `lotes-r6.json` do scratchpad (o L12 precisa ser remontado: parte dele já entrou com L3/L4).
+**Contagens em 2026-09-23T01:51Z (depois do L12):**
 
-- l9-explorar-catalogo · tela-explorar-fichas-15 · Filtros comem 54% da tela antes do primeiro resultado
-- l9-explorar-catalogo · tela-explorar-fichas-09 · Ficha técnica usada como subtítulo de vitrine
-- l9-explorar-catalogo · tela-explorar-fichas-03 · Coleção achada pela busca sem dizer por quê
-- l10-ficha-exercicio · imagens-01 · A caixa de altura fixa espreme a ilustração a 27%
-- l10-ficha-exercicio · tela-explorar-fichas-19 · A ficha em página não tem volta nem ação
-- l10-ficha-exercicio · tela-explorar-fichas-20 · Quatro cartões vazios quando não há histórico
-- l10-ficha-exercicio · tela-explorar-fichas-18 · Chip ativo do segmento Ilustração/Figura a 1,08:1
-- l10-ficha-exercicio · tela-explorar-fichas-21 · Aba Músculos repete a ilustração e a 'Área de foco'
-- l10-ficha-exercicio · tela-explorar-fichas-26 · A aba de tutorial não diz que sai do app
-- l10-ficha-exercicio · imagens-12 · As 163 fotos são 3:2 e a ficha as força em quadrado
-- l10-ficha-exercicio · imagens-13 · Crédito da mídia como faixa sublinhada inteira
-- l10-ficha-exercicio · performance-13 · Segundo quadro da ilustração baixado antes da primeira pintura
-- l10-ficha-exercicio · ux-heuristicas-21 · A ilustração inteira é o botão de pausa
-- l11-corpo-registro · a11y-01 · Os 6 gráficos entram na árvore como 'application' sem nome
-- l11-corpo-registro · tela-relatorio-corpo-calendario-11 · Campo de data cru nas três abas do Corpo
-- l11-corpo-registro · tela-relatorio-corpo-calendario-17 · A tabela de Registros vaza a 360 px
-- l11-corpo-registro · tela-relatorio-corpo-calendario-12 · Ordem da aba Peso
-- l11-corpo-registro · tela-relatorio-corpo-calendario-14 · Eixo do gráfico de peso sem domínio fixo
-- l11-corpo-registro · tela-relatorio-corpo-calendario-19 · A meta de peso não aparece no gráfico
-- l11-corpo-registro · tela-relatorio-corpo-calendario-13 · Marcador do IMC sem faixas rotuladas
-- l11-corpo-registro · tela-relatorio-corpo-calendario-18 · Aba Fotos pesada antes da primeira foto
-- l11-corpo-registro · tela-relatorio-corpo-calendario-16 · Formulário de medidas antes do que já foi medido
-- l11-corpo-registro · a11y-14 · Abas sem nome e títulos fora de ordem no Corpo
-- l12-superficies-sobra · visual-13 · Abrir um degrau real entre card e fundo
-- l12-superficies-sobra · imagens-02 · A placa de luz das ilustrações no tema escuro
-- l12-superficies-sobra · a11y-03 · Campo de formulário invisível no tema escuro
-- l12-superficies-sobra · imagens-03 · Gerar derivadas de imagem na cópia dos assets
-- l12-superficies-sobra · performance-03 · Prioridade e decodificação das imagens de entrada
-- l12-superficies-sobra · performance-05 · Cache-Control para os ~24 MB de mídia de public/
-- l12-superficies-sobra · imagens-08 · Enquadramento e texto alternativo da miniatura
-- l12-superficies-sobra · visual-05 · shadow-lg renderiza transparente nos dois temas
-- l12-superficies-sobra · a11y-11 · A região de avisos é a única coisa em inglês no app
-- l12-superficies-sobra · imagens-14 · /favicon.ico devolve 404 com 11 kB de HTML
+| seção | pendente | publicado | descartado |
+| --- | ---: | ---: | ---: |
+| B | 87 | 14 | 17 |
+| C | 39 | 8 | 0 |
+| D | 5 | 0 | 0 |
+| legado | 0 | 77 | 1 |
+| **total** | **131** | **99** | **18** |
 
-**C. Pendências menores apontadas pelas auditorias (64 itens, nenhuma bloqueante).** Agrupadas pela origem; o motivo é o resumo do auditor.
+Dos descartados, **7 dependem de decisão do dono** e voltam à fila se a resposta for sim (atualização do app com aviso, uso do laranja, Relatório somado no banco, destaque do Explorar, filtros Core/Cardio, faixa da semana com sete destinos, resumo curto dos planos) — perguntas em `docs/ultraloop/perguntas-ao-dono.md`.
 
-- *R9/verificação em produção* (1):
-  - R9-C1 — **515 `GET /auth/v1/user` em 6 minutos para dois navegadores**: cada render de servidor valida a sessão no GoTrue (`lib/supabase/servidor.ts` + middleware), e navegar entre abas multiplica as idas. Não quebra nada e não vaza nada — é custo e latência. Proposta para uma rodada com folga: validar o JWT localmente onde a página só precisa do `user_id` (com `getClaims()`/chave pública), deixando o `getUser()` para o middleware e para as ações que escrevem. Medir antes e depois nos `edge_logs`.
+**A. (publicado)** O lote 7 — aba Treino entrou em produção na rodada 7 (`d696b33`). **L12 (publicado)** Explorar e catálogo, rodada 11 (`1b37092`, PR #19).
 
-- *R1/L2* (1):
-  - L2-10 — opcional; mexe no mesmo trecho de lib/calendario.ts que L2-5; merece lote com folga (Calendário e faixa da semana, R4)
-- *R2/L4* (3):
-  - L4-6 — loading.tsx no grupo (app) escrito, funcionou e foi revertido pelo construtor (efeito colateral registrado no PROGRESSO do lote); reavaliar com escopo por rota
-  - L4-7 — next/dynamic implementado e medido (First Load: explorar/[tipo] 377→346, treinar 374→358, / 403→386, player 412→397, relatorio 371→36x) e revertido junto; reaplicar com e2e cobrindo a folha/tutorial/blocos
-  - L4-3-theme-color — meta theme-color no cliente revertida: o Next reescreve o <head> a cada navegação; alternativa: viewport.themeColor com media queries só, ou atualizar via useEffect no layout do cliente após cada rota
-- *R2/integração* (1):
-  - flutuante-no-dialogo-da-foto — components/exercicios/foto-ampliada.tsx:135 — o diálogo 'Apagar esta foto?' usa shadow-lg; a SPEC §22.3 item 5 manda usar a classe .flutuante (sombra preta some sobre #0a0a0a). Uma classe. Entra no lote da ficha do exerc
-- *R3/L5 auditoria* (7):
-  - R3/L5 menor-1 · scripts/capturas.ts (o das revisões de marco, SPEC §13) — Não bloqueia e não coube: o script ficou com os rótulos antigos em seis pontos ("Concluir a série" nas linhas 232/256/269, "Pular" nas 200/264 — que agora casa por substring com DOIS botões e estoura no modo estrito — e 
-  - R3/L5 menor-2 · components/treinar/visao-geral.tsx (Esc fecha o alerta E a Visão geral — Não bloqueia (nada é descartado; o usuário só é jogado de volta ao player) e não coube no tempo restante. Conferido no diff 62eab79..HEAD: o efeito de keydown/popstate não foi tocado, continua sem checar se há camada por
-  - R3/L5 menor-3 · components/player/descanso.tsx (os dois botões de tempo dizem "20 s") — Não bloqueia (o nome acessível está certo; o que destoa é o texto visível contra o que a SPEC §22.5 item 7 promete) e não coube. Conferido no diff: descanso.tsx não foi tocado.
-  - R3/L5 menor-4 · components/treinar/serie.tsx:186 ("NA BARRA" x "CARGA NA BARRA") — Não bloqueia e não coube. Conferido no diff: serie.tsx não foi tocado, as duas grafias convivem na mesma sessão. A sugestão do auditor (extrair rotuloDoCampoDeCarga(implemento) em lib/formato.ts, que também resolve o "CA
-  - R3/L5 menor-5 · components/ui/alert-dialog.tsx (overlay fora da fundação visual) — Não bloqueia e não coube. Conferido no diff: continua bg-black/40 sem desfoque e bg-card+border, enquanto dialog.tsx/sheet.tsx usam bg-black/10 + supports-backdrop-filter:backdrop-blur-xs e bg-popover + ring-1 ring-foreg
-  - R3/L5 menor-6 · components/player/firme.tsx (o primário cheio é "Pular esta pergunta") — Não bloqueia e não coube. Conferido no diff: firme.tsx não foi tocado. Também é mudança visível (variant="outline" enquanto escolha === null, mais o mesmo em feedback.tsx), com capturas a regerar.
-  - R3/L5 menor-7 · components/player/exercicio.tsx (aria-valuetext em outra unidade da pr — Não bloqueia (efeito colateral do que o item a11y-06 pediu literalmente) e não coube. Conferido no diff: exercicio.tsx não foi tocado; o valuetext continua "exercício 1 de 6" enquanto a barra mede séries (valuenow=1, val
-- *R3/L6 corretor* (1):
-  - R3/L6 menor-contador-no-total-3-linhas — O detalhe "no total (força + cardio)" do primeiro contador continua quebrando a 360 px. Não é só trocar a string: o texto é asserido literalmente pelo e2e §22.6-4 (e2e/ultraloop-b-r3.spec.ts:285, toContainText("no total 
-- *R3/L6 auditoria-2* (6):
-  - R3/L6 A legenda nova não cobre todas as marcas da faixa. `lib/semana.ts:35` … — A legenda nova não cobre todas as marcas da faixa. `lib/semana.ts:35` define cinco `MarcaDoDia` — feito, parcial, faltou, aberto, descanso — e `components/ui/faixa-semana.tsx:147` desenha `parcial` como um anel com um po
-  - R3/L6 O `role="status"` foi posto numa `<section>` que só entra no DOM já co… — O `role="status"` foi posto numa `<section>` que só entra no DOM já com o conteúdo dentro: `if (!pronto || fechado || novas.length === 0) return null;`. Região viva inserida junto com o texto é o caso clássico em que vár
-  - R3/L6 `EsqueletoGrade3` virou código morto. Ele foi criado pela fundação vis… — `EsqueletoGrade3` virou código morto. Ele foi criado pela fundação visual do L3 (SPEC §22.3 item 10) exatamente para "Os três contadores do Relatório", e este lote trocou seu único uso (components/relatorio/tela-relatori
-  - R3/L6 Antes de `pronto` (hoje && perfil) os ladrilhos mostram "—" no número,… — Antes de `pronto` (hoje && perfil) os ladrilhos mostram "—" no número, mas as legendas continuam sendo frases calculadas a partir de zeros: "SEMANAS SEGUIDAS / — / com a meta de 0" (porque `meta = perfil ? metaSemanal(..
-  - R3/L6 Os cabeçalhos `sticky top-0` não têm `scroll-margin-top`, então qualqu… — Os cabeçalhos `sticky top-0` não têm `scroll-margin-top`, então qualquer rolagem programática para `block: "start"` deposita o alvo DEBAIXO do cabeçalho aberto (79 px). Isso já é visível na própria régua: a captura 12-re
-  - R3/L6 O detalhe "no total (força + cardio)" quebra em TRÊS linhas no ladrilh… — O detalhe "no total (força + cardio)" quebra em TRÊS linhas no ladrilho de 95 px ("no total" / "(força +" / "cardio)"), o que empurra a fileira de Totais para 120 px de altura e, como a legenda cola no rodapé, abre um vã
-- *R4/L7 auditoria* (7):
-  - R4/L7 O h1 da data quebrou em duas linhas a 360 px. Com o "Ajustar" (44 px) … — O h1 da data quebrou em duas linhas a 360 px. Com o "Ajustar" (44 px) ao lado do selo de sequência, sobram ~146 px para o `text-2xl`, e "Quarta, 16/09" virou "Quarta," / "16/09" (visível em 03-treino-topo nos dois temas;
-  - R4/L7 A faixa fixa do dia corta o texto no meio da palavra quando ainda não … — A faixa fixa do dia corta o texto no meio da palavra quando ainda não há sessão. Medido nos dois temas: `p.scrollWidth > p.clientWidth` e o que se lê é "Treino A · agachamento no…" (capturas olhos/faixa-light.png e faixa
-  - R4/L7 O teste do item 5 ("nenhum nome de exercício passa de duas linhas a 36… — O teste do item 5 ("nenhum nome de exercício passa de duas linhas a 360 px") não pode mais falhar: ele calcula `Math.round(altura / lineHeight)` de um elemento com `line-clamp-2`, e o line-clamp já limita a altura a duas
-  - R4/L7 Nomes de teste falam de um FAB que não existe mais depois do item 1: e… — Nomes de teste falam de um FAB que não existe mais depois do item 1: e2e/retomada.spec.ts:593 "o FAB Ajustar sai da tela enquanto a pausa não foi decidida (SPEC §18.3)" e e2e/v3.spec.ts:302 "o FAB Ajustar abre os mesmos 
-  - R4/L7 O rótulo do CTA dos desafios passou a existir em dois lugares com text… — O rótulo do CTA dos desafios passou a existir em dois lugares com textos diferentes. `acaoDoDesafio` (components/treino/desafios.tsx:81-94) escreve "Fazer a sessão de barra fixa" / "Fazer a corrida da semana N" / "Fazer 
-  - R4/L7 O gatilho do aviso é mais largo do que "voltar do player". A marca em … — O gatilho do aviso é mais largo do que "voltar do player". A marca em `sessionStorage` ("treino:saiu-para") só é apagada quando a aba Treino MONTA, então o caminho player → (barra de abas) Relatório → Treino também dispa
-  - R4/L7 O "Ajustar", agora no cabeçalho, fica embaixo dos avisos do sonner. O … — O "Ajustar", agora no cabeçalho, fica embaixo dos avisos do sonner. O Toaster é `position="top-center"` (app/providers.tsx:42) e a bolha ocupa quase a largura da tela no alto; enquanto um aviso está na tela o botão de 44
-- *R4/L6 auditoria* (7):
-  - R4/L6 A entrada do próprio lote ainda descreve a legenda da faixa com QUATRO… — A entrada do próprio lote ainda descreve a legenda da faixa com QUATRO glifos — "a faixa da semana ganhou '✓ feito · ○ a fazer · ● faltou · — descanso · hoje em destaque'" —, sem o "◉ parcial". Isso contradiz a SPEC §22.
-  - R4/L6 A 360 px a legenda quebra em duas linhas separando o separador do item… — A 360 px a legenda quebra em duas linhas separando o separador do item: medido no DOM, a linha 1 é "✓ feito · ◉ parcial · ○ a fazer · ● faltou " e a linha 2 começa com "· — descanso · hoje em destaque" — um "·" órfão abr
-  - R4/L6 O lote trocou o esqueleto do Relatório por `EsqueletoNumeros`/`Esquele… — O lote trocou o esqueleto do Relatório por `EsqueletoNumeros`/`EsqueletoLinhas` locais em tela-relatorio.tsx (justificado na §22.6 item 2: o genérico não tinha as medidas do conteúdo final). Só que `EsqueletoGrade3` era 
-  - R4/L6 Agora existem DOIS vocabulários de desenho para o mesmo `MarcaDoDia`: … — Agora existem DOIS vocabulários de desenho para o mesmo `MarcaDoDia`: `SIMBOLO` (✓ / ~ / ✕, consumido por components/calendario/grade.tsx, que pinta o símbolo dentro do dia) e `GLIFO_DA_MARCA` (✓ / ◉ / ○ / ● / —, que ali
-  - R4/L6 A legenda não tem `aria-hidden`, então o leitor de tela lê os glifos (… — A legenda não tem `aria-hidden`, então o leitor de tela lê os glifos ("✓", "◉", "●", "—") além dos nomes, enquanto cada dia da faixa já anuncia o estado por extenso no `aria-label` ("Quarta 16/09: Treino A, feito"). É ru
-  - R4/L6 O detalhe exigido pela §22.6 item 4 — "no total (força + cardio)" — qu… — O detalhe exigido pela §22.6 item 4 — "no total (força + cardio)" — quebra em TRÊS linhas no ladrilho de 98 px e, medido ao vivo a 360 px nos dois temas, leva a fileira inteira de Totais a 120 px de altura, contra uma li
-  - R4/L6 A linha de base de capturas em $U/base foi regerada do head publicado … — A linha de base de capturas em $U/base foi regerada do head publicado 28269724 (origin/main), que já contém o lote L5 (player). A faixa B saiu de ultraloop/l4-imagens-midia-entrega e NÃO contém o L5, então 28-player-exer
-- *R4/L6 corretor* (6):
-  - R4/L6 menor-2 (role="status" inserido junto com o conteúdo) — Não é uma linha: a <section role="status" > de components/relatorio/aviso-conquista.tsx só entra no DOM quando `pronto && !fechado && novas.length > 0`. Consertar de verdade é montar a região viva sempre e trocar só o mi
-  - R4/L6 menor-3 (EsqueletoGrade3 virou código morto) — Decidir entre apagar o componente e devolvê-lo ao esqueleto do Resumo muda a caixa reservada do §22.6 item 2 (CLS medido) e pede build + medição nova; não cabia no prazo depois do conserto dos dois importantes.
-  - R4/L6 menor-4 (legendas calculadas de zeros antes de `pronto`) — "SEMANAS SEGUIDAS / — / com a meta de 0" exige passar o estado `pronto` para dentro de cada `detalhe` (cinco chamadas) e decidir o texto de espera de cada um; mais de uma linha e com risco de mexer no texto que os e2e do
-  - R4/L6 menor-5 (sticky sem scroll-margin-top) — Uma classe resolveria, mas ela muda o enquadramento de TODA rolagem programática — inclusive a do capturador —, e as 48 PNGs da régua seriam comparadas contra uma base tirada sem ela. Trocar o recorte das capturas no mes
-  - R4/L6 menor-6 ("no total (força + cardio)" em três linhas) — O texto é contrato do §22.6 item 4 (foi ele que desfez o "no total" com dois números diferentes na mesma rolagem) e está travado por e2e; encurtá-lo reabriria o item. Observação: o ladrilho ficou ~5 px mais largo com o `
-  - R4/L6 observação nova (não pedida, não corrigida) — Com seis itens a legenda passou a ocupar DUAS linhas a 360 px e o `text-balance` deixa a segunda começando por "· — descanso · hoje em destaque" (ponto separador no início da linha). Visível na captura 14-relatorio-histo
-- *R4/L7 auditoria-3* (7):
-  - O aviso do item 9 sai no Toaster `position="top-center"` (app/provider… — O aviso do item 9 sai no Toaster `position="top-center"` (app/providers.tsx:42) e a caixa medida é 328×73 px em (16,16) — por 4 s ela cobre o botão 'Ajustar' do cabeçalho: `document.elementFromPoint` no centro do Ajustar
-  - O teste do item 5 ('nenhum nome de exercício passa de duas linhas a 36… — O teste do item 5 ('nenhum nome de exercício passa de duas linhas a 360 px') não pode falhar: ele mede `altura/lineHeight <= 2` num elemento com `line-clamp-2`, que por definição nunca passa de duas linhas. Medido na tel
-  - O texto da faixa fixa sai cortado: sem sessão aberta ela mostra o foco… — O texto da faixa fixa sai cortado: sem sessão aberta ela mostra o foco do treino ('Treino A · agachamento no centro') e o <p> tem scrollWidth > clientWidth a 360 px (medido tituloCortado:true), cortando a palavra no meio
-  - A SPEC passou a se contradizer e a documentação envelheceu junto: §14.… — A SPEC passou a se contradizer e a documentação envelheceu junto: §14.3 (linha 351) ainda descreve 'FAB Ajustar', §18.3 (linhas 781 e 800) e §13 (linha 1040) falam do FAB que some/abre os ajustes, e §22.3 item 5 (linha 1
-  - O gatilho do aviso é a marca `treino:saiu-para` gravada no unmount da … — O gatilho do aviso é a marca `treino:saiu-para` gravada no unmount da aba Treino e só apagada quando a aba volta a montar — então o caminho player → Relatório → Treino também dispara 'Treino guardado — toque em Continuar
-  - A mudança de `w-[min(19rem,85vw)]` para `w-[min(19rem,86vw)]` é inerte… — A mudança de `w-[min(19rem,85vw)]` para `w-[min(19rem,86vw)]` é inerte a 360 px: 86vw = 309,6 px > 19rem = 304 px, então o cartão continua com os mesmos 304 px de antes (medido: larguraCard 304, viewport 360). O 'reduzir
-  - `acaoDoDesafio` guarda os rótulos dos CTAs por id ('Fazer a sessão de … — `acaoDoDesafio` guarda os rótulos dos CTAs por id ('Fazer a sessão de barra fixa', 'Fazer a corrida da semana N', 'Fazer o treino da fase …') enquanto `desafio.acao` continua existindo como fallback — o mesmo rótulo pass
-- *R5/L8 auditoria-2* (5):
-  - R5/L8 A oferta "Passar para a Fase 2" segue a semana MOSTRADA, não o progres… — A oferta "Passar para a Fase 2" segue a semana MOSTRADA, não o progresso real do usuário. `ofereceFase2 = faseCumprida(perfil.fase_atual, semanaDaFase(ref, perfil.fase_desde))` usa `ref`, que é a semana na tela. Confirma
-  - R5/L8 A legenda NOVA do mês (`LEGENDA_DO_MES`, linhas ~113-119) é um array e… — A legenda NOVA do mês (`LEGENDA_DO_MES`, linhas ~113-119) é um array escrito à mão de `{ marca, tipo, texto }` — não está amarrada em tipo a nenhuma tabela exaustiva. O lote fez questão de preservar esse contrato na faix
-  - R5/L8 `marcarDia()` devolve "antes" para TODO dia anterior a `data_inicio`, … — `marcarDia()` devolve "antes" para TODO dia anterior a `data_inicio`, inclusive dias que ainda estão no futuro: `const antesDoComeco = inicioDoPrograma !== null && dia.data < inicioDoPrograma`, sem confronto com `hoje`. 
-  - R5/L8 Processo, não código: a verificação do passo 1 ("<hash de 40 caractere… — Processo, não código: a verificação do passo 1 ("<hash de 40 caracteres>.status == ok") nunca pode passar, porque portoes.sh escreve `$(git rev-parse --short HEAD).status` — 7 caracteres — e, pior, usa o HEAD do MOMENTO 
-  - R5/L8 Processo, não código: o `--esperadas calendario,treino-topo` pedido no… — Processo, não código: o `--esperadas calendario,treino-topo` pedido no enunciado não marca nada, porque a função de casamento (linha 163) é `o.esperadas.some((e) => nome.startsWith(e))` e os arquivos começam pelo número 
-- *R5/L8 construtor* (1):
-  - L8 a11y-09 parcial: nav-inferior + FAB da aba Treino a 200 % de zoom — em / sobram 26 px de rolagem horizontal a 200 % por causa de components/nav-inferior.tsx e do botão flutuante; fora dos arquivos do L8
-- *R4/L7 auditoria-4* (7):
-  - `scroll-padding-top: calc(env(safe-area-inset-top, 0px) + 56px)` foi p… — `scroll-padding-top: calc(env(safe-area-inset-top, 0px) + 56px)` foi posto no `html`, isto é, no app inteiro, por causa de uma faixa que só existe na aba Treino e só depois de rolar. Todo salto por âncora e todo scroll d
-  - O código põe `title={item.nome}` no nome do exercício, e o comentário … — O código põe `title={item.nome}` no nome do exercício, e o comentário imediatamente acima — junto com a SPEC §22.7 item 5 e o PROGRESSO.md — argumenta o contrário para justificar o `line-clamp-2`: "no celular não há `tit
-  - Sobrou uma contradição do "FAB Ajustar" que o relatório do construtor … — Sobrou uma contradição do "FAB Ajustar" que o relatório do construtor diz ter eliminado. A §22.3 item 5 (linha 1471) continua definindo a elevação pelo componente que deixou de existir: "O que flutua (o FAB \"Ajustar\", 
-  - O caso da §22.3 item 5 ("elevação do que flutua") era sobre sombra/ane… — O caso da §22.3 item 5 ("elevação do que flutua") era sobre sombra/anel nos dois temas e media `boxShadow` do FAB. Como o FAB virou botão de cabeçalho, o caso foi reescrito para medir contorno e 44 px — o que é razoável 
-  - A gravação por atraso de 700 ms grava número pela metade. Quem digita … — A gravação por atraso de 700 ms grava número pela metade. Quem digita "90" devagar no celular (pausa maior que 700 ms entre o 9 e o 0) grava 9 s, vê o aviso "Descanso padrão: 9 s." e só depois grava 90 — duas escritas na
-  - Em `useAvisoDeVoltaDoPlayer` a marca `treino:saiu-para` é escrita no d… — Em `useAvisoDeVoltaDoPlayer` a marca `treino:saiu-para` é escrita no desmonte da aba Treino e só é apagada quando a aba Treino monta de novo. Se o usuário sair do player para outra aba (Corpo, Mais) e só depois voltar pa
-  - Higiene de processo do construtor, não do código: o par da faixa A fic… — Higiene de processo do construtor, não do código: o par da faixa A ficou no ar depois dos portões (mock-supabase PID 14633/14644 na 54321 e next-server PID 14692 na 3100, 35 minutos de pé) e o arquivo de PIDs ficou VAZIO
-- *R5/L9 auditoria-2* (4):
-  - R5/L9 Hierarquia de títulos da vitrine: a seção do catálogo (<section aria-l… — Hierarquia de títulos da vitrine: a seção do catálogo (<section aria-label="Catálogo">) é IRMÃ de «Escolhas para você», mas o título dela virou <h3>Exercícios</h3>, o mesmo nível dos cinco títulos que de fato pertencem à
-  - R5/L9 O botão "Filtros" (recolhimento do item 5) declara aria-expanded={aber… — O botão "Filtros" (recolhimento do item 5) declara aria-expanded={abertos} mas não tem aria-controls apontando para o bloco que ele abre, e o bloco de filtros não tem id. Quem usa leitor de tela ouve que algo expandiu, s
-  - R5/L9 Ponto cego da régua visual (problema de método, não de código — para o… — Ponto cego da régua visual (problema de método, não de código — para o orquestrador, não para o corretor). A linha de base em $U/base foi regerada às 08:38 do head 9d2c001 (L8 Calendário, já em main), mas a branch do lot
-  - R5/L9 ANTERIOR AO LOTE (não bloqueia, registro para a fila): a tela da coleç… — ANTERIOR AO LOTE (não bloqueia, registro para a fila): a tela da coleção não tem <h1> nenhum — só <section aria-label={colecao.titulo}> na linha 41. A sonda navegou /explorar/grupo/Core, /core, /Bíceps e /biceps e nas qu
+**Plano dos lotes restantes** (ordem do dono: ficha, Corpo, casca/superfícies, C por área, D por último; regra de lote: 6–10 itens, até 3 médios, até 12 arquivos, uma área — exceção só com motivo escrito —, até 6 telas):
 
-**D. Observações da verificação em produção (21/09, rodadas 8–9) — para as próximas rodadas**
-
-- Reabrir a URL de uma sessão **já concluída** devolve o player em "Preparado para começar", em vez da tela de conclusão ou do histórico. A sessão está salva e certa (o Relatório conta as duas); o link de uma sessão concluída convida a refazê-la.
-- Num aparelho zerado (IndexedDB vazio), abrir a sessão em andamento leva **~11 s** de esqueleto até o player (6 aberturas medidas entre 10,9 e 11,5 s). O critério da rodada 9 foi cumprido (esqueleto, depois o player, nunca "Não achei"), mas vale medir de onde vem o tempo.
-- Cada render de servidor valida a sessão no Supabase (`GET /auth/v1/user`): 515 chamadas em 6 minutos para dois navegadores. Não quebra nada, mas é latência em cada tela; medir antes de abrir mais contas (§21).
-- `app/sw.ts` — `emQualquerCache()` relê o corpo da `/~offline` e dispara um `caches.match` por asset a cada navegação sem rede; dá para memorizar por cópia.
-- `e2e/login.spec.ts` "sair num aparelho não derruba o outro (§21.4)" prova a fidelidade do mock por `fetch` direto, não pela interface; uma versão pela tela exigiria dois contextos logados no mesmo teste.
-- O campo Data de Corpo (peso, medidas, fotos) é `<input type="date">` nativo: a máscara segue o idioma do navegador, não o da página. Conferir num celular em português antes de tratar como defeito.
+| lote | título | itens | ids |
+| --- | --- | ---: | --- |
+| L13 | Ficha: mídia e interação; coleções do Explorar | 10 | imagens-01, imagens-12, imagens-13, performance-13, ux-heuristicas-21, tela-explorar-fichas-18, tela-explorar-fichas-08, tela-explorar-fichas-13, tela-explorar-fichas-11, visual-11 |
+| L14 | Ficha: conteúdo e ações; nomes do catálogo e créditos | 10 | tela-explorar-fichas-19, tela-explorar-fichas-20, tela-explorar-fichas-21, tela-explorar-fichas-26, flutuante-no-dialogo-da-foto, a11y-05, copy-13, copy-25, OBS-elastico-x-super-band, copy-08 |
+| L15 | Corpo: peso, gráficos e campo de data | 6 | a11y-01, tela-relatorio-corpo-calendario-12, tela-relatorio-corpo-calendario-14, tela-relatorio-corpo-calendario-19, tela-relatorio-corpo-calendario-13, tela-relatorio-corpo-calendario-11 |
+| L16 | Corpo: medidas, fotos, data no celular e um verbo só para salvar | 6 | tela-relatorio-corpo-calendario-17, tela-relatorio-corpo-calendario-18, tela-relatorio-corpo-calendario-16, a11y-14, D-input-date-pt-br, copy-28 |
+| L17 | Casca: carregamento, rotas pesadas, zoom e bloco de sincronização | 6 | C-loading-por-rota, C-next-dynamic-rotas-pesadas, C-nav-inferior-zoom-200, a11y-16, visual-19, copy-17 |
+| L18 | Cardio e barra fixa | 7 | ux-heuristicas-17, ux-heuristicas-18, ux-heuristicas-19, copy-11, copy-12, copy-30, copy-19 |
+| L19 | Player: preparação e série; '%' colado nos textos | 6 | ux-heuristicas-12, tela-treino-player-09, copy-21, tela-treino-player-12, ux-heuristicas-22, OBS-porcentagem-com-espaco |
+| L20 | Player: descanso, preparação e o caminho até o player | 8 | tela-treino-player-06, tela-treino-player-07, tela-treino-player-25, a11y-02, a11y-15, copy-22, performance-18, ux-heuristicas-06 |
+| L21 | Player: firme, conclusão e Visão geral | 6 | tela-treino-player-29, tela-treino-player-27, ux-heuristicas-15, ux-heuristicas-14, ux-heuristicas-13, visual-08 |
+| L22 | Sem rede: sinal, fila, mensagens e sincronização | 6 | pwa-offline-01, pwa-offline-06, pwa-offline-07, pwa-offline-11, pwa-offline-12, pwa-offline-13 |
+| L23 | Instalação, cache de mídia e cor da barra | 6 | pwa-offline-03, pwa-offline-04, pwa-offline-05, imagens-09, pwa-offline-08, C-theme-color-do-tema-escolhido |
+| L24 | Mais: textos, linhas e prefetch | 7 | copy-02, copy-09, copy-16, copy-20, copy-29, visual-16, performance-16 |
+| L25 | Copy e mensagens: dia da semana, intervalo, perfil, backup e login | 8 | copy-07, copy-24, tela-relatorio-corpo-calendario-07, copy-04, ux-heuristicas-20, a11y-07, a11y-08, pwa-offline-02 |
+| L26 | Relatório: números, aviso, esqueleto e leituras repetidas | 7 | C-relatorio-no-total-3-linhas, C-aviso-conquista-regiao-viva, C-esqueleto-grade3-morto, C-relatorio-legendas-antes-de-pronto, C-relatorio-sticky-scroll-margin, C-legenda-faixa-aria-hidden, performance-08 |
+| L27 | Calendário: faixa, legenda e semana navegada | 7 | C-dois-vocabularios-da-marca, C-legenda-faixa-ponto-orfao, C-legenda-do-mes-sem-tipo-exaustivo, C-calendario-fase2-semana-mostrada, C-marcar-dia-antes-no-futuro, C-progresso-legenda-quatro-glifos, C-cardio-semana-navegada |
+| L28 | Aba Treino: cabeçalho, faixa fixa e avisos | 6 | C-treino-h1-data-duas-linhas, C-faixa-fixa-texto-cortado, C-aviso-volta-do-player-gatilho, C-ajustar-sob-toast, C-desafios-largura-inerte, C-ajustes-gravacao-700ms |
+| L29 | Player: pendências das auditorias do L5 | 6 | C-visao-geral-esc-camada, C-descanso-sinal-visivel, C-rotulo-do-campo-de-carga, C-alert-dialog-fundacao, C-firme-primario-pular, C-progresso-do-player-valuetext |
+| L30 | Processo, testes e documentação | 7 | C-capturas-rotulos-antigos, C-fab-ajustar-nomes-e-docs, C-teste-item5-nunca-falha, C-elevacao-sem-teste-da-faixa, C-regua-base-de-head-diferente, C-higiene-pids-construtor, C-portoes-hash-curto |
+| L31 | D: medidas antes/depois, processo e scripts | 6 | R9-C1, D-abertura-11s-aparelho-zerado, D-sessao-concluida-reabre-player, D-e2e-sair-pela-tela, D-sw-em-qualquer-cache, C-comparar-capturas-esperadas |
 
 ### Rodada 5 — Lote 8 — Calendário e faixa da semana (faixa C)
 
