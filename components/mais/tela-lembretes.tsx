@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { CabecalhoMais } from "@/components/mais/cabecalho";
 import { Button } from "@/components/ui/button";
 import { formatarData } from "@/lib/formato";
@@ -29,6 +29,13 @@ type Permissao = "default" | "granted" | "denied";
 interface Mensagem {
   tipo: "status" | "alert";
   texto: string;
+  /**
+   * Onde a frase aparece: a de ativar/desativar fica no bloco "Este
+   * aparelho", logo abaixo do estado e **acima** das instruções (na primeira
+   * dobra mesmo com duas instruções, §23.4); a da lista e do teste, entre os
+   * dois blocos.
+   */
+  onde: "aparelho" | "lista";
   /** `role="status"` com a cor de erro: o teste não chegou a nenhum aparelho (§23.4). */
   falha?: boolean;
 }
@@ -80,6 +87,11 @@ async function inscrever(
   return inscricao;
 }
 
+/** O nome que a lista mostra — o mesmo no recado e no `aria-label` do Remover. */
+function nomeNaLista(a: InscricaoLembrete): string {
+  return a.aparelho || "Aparelho sem nome";
+}
+
 /** A linha da tabela: o `user_id` é o da sessão (a coluna não tem default, §23.2). */
 function linhaDaInscricao(inscricao: PushSubscription, aparelho: string, userId: string) {
   const chaves = inscricao.toJSON().keys ?? {};
@@ -114,8 +126,27 @@ export function TelaLembretes({
   const [ocupado, setOcupado] = useState<string | null>(null);
   const [mensagem, setMensagem] = useState<Mensagem | null>(null);
   const [sinais, setSinais] = useState({ brave: false, ios: false, instalado: false });
+  /** A permissão da última leitura: a volta das configurações compara com ela. */
+  const permissaoLida = useRef<Permissao>("default");
+  /** Um Ativar/Desativar/Remover/teste em andamento: a volta não relê no meio. */
+  const emAndamento = useRef(false);
 
-  const carregar = useCallback(async () => {
+  function comecar(qual: string) {
+    emAndamento.current = true;
+    setOcupado(qual);
+  }
+  function terminar() {
+    emAndamento.current = false;
+    setOcupado(null);
+  }
+
+  /**
+   * Lê permissão, inscrição do navegador e linhas da tabela. Na `volta`
+   * (a página voltou a ficar visível, §23.4), se a permissão mudou desde a
+   * última leitura, a frase e a falha antigas saem: elas falavam de outro
+   * estado ("recusou", "bloqueado").
+   */
+  const carregar = useCallback(async ({ volta = false }: { volta?: boolean } = {}) => {
     const pode = temSuporte();
     setSuportado(pode);
     setSinais({
@@ -125,7 +156,15 @@ export function TelaLembretes({
         window.matchMedia("(display-mode: standalone)").matches ||
         (navigator as Navigator & { standalone?: boolean }).standalone === true,
     });
-    if (pode) setPermissao(Notification.permission);
+    if (pode) {
+      const atual = Notification.permission;
+      if (volta && atual !== permissaoLida.current) {
+        setFalhou(false);
+        setMensagem(null);
+      }
+      permissaoLida.current = atual;
+      setPermissao(atual);
+    }
     if (chavePublica === null) {
       setCarregado(true);
       return;
@@ -142,7 +181,7 @@ export function TelaLembretes({
     if (error) {
       setSemTabela(tabelaAusente(error));
       if (!tabelaAusente(error)) {
-        setMensagem({ tipo: "alert", texto: "Não deu para ler os aparelhos agora." });
+        setMensagem({ tipo: "alert", texto: "Não deu para ler os aparelhos agora.", onde: "lista" });
       }
     } else {
       setSemTabela(false);
@@ -158,6 +197,48 @@ export function TelaLembretes({
 
   useEffect(() => {
     void carregar();
+  }, [carregar]);
+
+  /*
+   * A volta das configurações (§23.4): quem liberou a permissão pelo cadeado,
+   * pelas Configurações do Android ou pelos Ajustes do iPhone volta sem
+   * recarregar — a tela confere de novo ao ficar visível, ao ganhar foco, ao
+   * voltar do cache e quando o navegador avisa a troca da permissão.
+   */
+  useEffect(() => {
+    let viva = true;
+    let lendo = false;
+    const reler = () => {
+      if (!viva || lendo || emAndamento.current) return;
+      if (document.visibilityState !== "visible") return;
+      lendo = true;
+      void carregar({ volta: true })
+        .catch(() => undefined)
+        .finally(() => {
+          lendo = false;
+        });
+    };
+    document.addEventListener("visibilitychange", reler);
+    window.addEventListener("focus", reler);
+    window.addEventListener("pageshow", reler);
+    let status: PermissionStatus | null = null;
+    if (typeof navigator.permissions?.query === "function") {
+      navigator.permissions
+        .query({ name: "notifications" as PermissionName })
+        .then((s) => {
+          if (!viva) return;
+          status = s;
+          s.addEventListener("change", reler);
+        })
+        .catch(() => undefined);
+    }
+    return () => {
+      viva = false;
+      document.removeEventListener("visibilitychange", reler);
+      window.removeEventListener("focus", reler);
+      window.removeEventListener("pageshow", reler);
+      status?.removeEventListener("change", reler);
+    };
   }, [carregar]);
 
   const inscrito = endpointAtual !== null && aparelhos.some((a) => a.endpoint === endpointAtual);
@@ -186,16 +267,18 @@ export function TelaLembretes({
 
   async function ativar() {
     if (chavePublica === null) return;
-    setOcupado("ativar");
+    comecar("ativar");
     setMensagem(null);
     setFalhou(false);
     try {
       const resposta = await Notification.requestPermission();
+      permissaoLida.current = resposta;
       setPermissao(resposta);
       if (resposta !== "granted") {
         setFalhou(true);
         setMensagem({
           tipo: "alert",
+          onde: "aparelho",
           texto:
             resposta === "denied"
               ? "O navegador recusou as notificações deste app."
@@ -208,6 +291,7 @@ export function TelaLembretes({
         setFalhou(true);
         setMensagem({
           tipo: "alert",
+          onde: "aparelho",
           texto: "O app ainda está terminando de instalar neste aparelho. Recarregue a página e tente de novo.",
         });
         return;
@@ -217,22 +301,22 @@ export function TelaLembretes({
         inscricao = await inscrever(registro, chavePublica);
       } catch {
         setFalhou(true);
-        setMensagem({ tipo: "alert", texto: "O navegador não conseguiu ativar os avisos neste aparelho." });
+        setMensagem({ tipo: "alert", onde: "aparelho", texto: "O navegador não conseguiu ativar os avisos neste aparelho." });
         return;
       }
       await gravar(registro, chavePublica, inscricao);
       await carregar();
-      setMensagem({ tipo: "status", texto: "Lembretes ativados neste aparelho." });
+      setMensagem({ tipo: "status", onde: "aparelho", texto: "Lembretes ativados neste aparelho." });
     } catch {
       setFalhou(true);
-      setMensagem({ tipo: "alert", texto: "Não deu para ativar agora. Confira a internet e tente de novo." });
+      setMensagem({ tipo: "alert", onde: "aparelho", texto: "Não deu para ativar agora. Confira a internet e tente de novo." });
     } finally {
-      setOcupado(null);
+      terminar();
     }
   }
 
   async function desativar() {
-    setOcupado("desativar");
+    comecar("desativar");
     setMensagem(null);
     try {
       const registro = await registroDoWorker();
@@ -243,16 +327,16 @@ export function TelaLembretes({
         await inscricao.unsubscribe();
       }
       await carregar();
-      setMensagem({ tipo: "status", texto: "Lembretes desativados neste aparelho." });
+      setMensagem({ tipo: "status", onde: "aparelho", texto: "Lembretes desativados neste aparelho." });
     } catch {
-      setMensagem({ tipo: "alert", texto: "Não deu para desativar agora. Confira a internet e tente de novo." });
+      setMensagem({ tipo: "alert", onde: "aparelho", texto: "Não deu para desativar agora. Confira a internet e tente de novo." });
     } finally {
-      setOcupado(null);
+      terminar();
     }
   }
 
   async function remover(alvo: InscricaoLembrete) {
-    setOcupado(alvo.id);
+    comecar(alvo.id);
     setMensagem(null);
     try {
       const { error } = await clienteNavegador().from(TABELA).delete().eq("id", alvo.id);
@@ -262,21 +346,21 @@ export function TelaLembretes({
         await (await registro?.pushManager.getSubscription())?.unsubscribe();
       }
       await carregar();
-      setMensagem({ tipo: "status", texto: `${alvo.aparelho || "Aparelho sem nome"} saiu da lista.` });
+      setMensagem({ tipo: "status", onde: "lista", texto: `${nomeNaLista(alvo)} saiu da lista.` });
     } catch {
-      setMensagem({ tipo: "alert", texto: "Não deu para remover agora. Confira a internet e tente de novo." });
+      setMensagem({ tipo: "alert", onde: "lista", texto: "Não deu para remover agora. Confira a internet e tente de novo." });
     } finally {
-      setOcupado(null);
+      terminar();
     }
   }
 
   async function enviarTeste() {
     setMensagem(null);
     if (navigator.onLine === false) {
-      setMensagem({ tipo: "alert", texto: "Precisa de internet para enviar o teste." });
+      setMensagem({ tipo: "alert", onde: "lista", texto: "Precisa de internet para enviar o teste." });
       return;
     }
-    setOcupado("teste");
+    comecar("teste");
     try {
       const resposta = await fetch("/api/lembretes/teste", { method: "POST" });
       const corpo = (await resposta.json().catch(() => ({}))) as {
@@ -286,19 +370,34 @@ export function TelaLembretes({
       };
       if (resposta.ok && corpo.texto) {
         const chegou = (corpo.resultados ?? []).some((r) => r.destino === "enviado");
-        setMensagem({ tipo: "status", texto: corpo.texto, falha: !chegou });
+        setMensagem({ tipo: "status", onde: "lista", texto: corpo.texto, falha: !chegou });
         await carregar();
       } else {
-        setMensagem({ tipo: "alert", texto: corpo.erro ?? "Não deu para enviar agora. Tente de novo." });
+        setMensagem({ tipo: "alert", onde: "lista", texto: corpo.erro ?? "Não deu para enviar agora. Tente de novo." });
       }
     } catch {
-      setMensagem({ tipo: "alert", texto: "Não deu para enviar agora. Confira a internet e tente de novo." });
+      setMensagem({ tipo: "alert", onde: "lista", texto: "Não deu para enviar agora. Confira a internet e tente de novo." });
     } finally {
-      setOcupado(null);
+      terminar();
     }
   }
 
   const bloco = "bg-card border-border flex flex-col gap-3 rounded-xl border p-4";
+
+  const recado = (onde: Mensagem["onde"]) =>
+    mensagem?.onde === onde ? (
+      <p
+        role={mensagem.tipo}
+        data-falha={mensagem.falha ? "" : undefined}
+        className={
+          mensagem.tipo === "status" && !mensagem.falha
+            ? "border-primary/40 bg-primary/10 rounded-lg border px-3 py-2 text-sm font-medium text-balance"
+            : "border-destructive/40 text-destructive rounded-lg border px-3 py-2 text-sm text-balance"
+        }
+      >
+        {mensagem.texto}
+      </p>
+    ) : null;
 
   return (
     <section className="flex flex-col gap-4">
@@ -344,6 +443,8 @@ export function TelaLembretes({
               </Button>
             ) : null}
 
+            {recado("aparelho")}
+
             {instrucoes.map((instrucao) => (
               <section
                 key={instrucao.id}
@@ -363,19 +464,7 @@ export function TelaLembretes({
             ))}
           </section>
 
-          {mensagem ? (
-            <p
-              role={mensagem.tipo}
-              data-falha={mensagem.falha ? "" : undefined}
-              className={
-                mensagem.tipo === "status" && !mensagem.falha
-                  ? "border-primary/40 bg-primary/10 rounded-lg border px-3 py-2 text-sm font-medium text-balance"
-                  : "border-destructive/40 text-destructive rounded-lg border px-3 py-2 text-sm text-balance"
-              }
-            >
-              {mensagem.texto}
-            </p>
-          ) : null}
+          {recado("lista")}
 
           <section aria-labelledby="titulo-aparelhos" className={bloco}>
             <h2 id="titulo-aparelhos" className="text-base font-semibold">
@@ -389,7 +478,7 @@ export function TelaLembretes({
                   <li key={a.id} data-aparelho={a.id} className="flex items-center gap-3 py-2">
                     <span className="flex min-w-0 flex-col">
                       <span className="truncate text-sm font-medium">
-                        {a.aparelho || "Aparelho sem nome"}
+                        {nomeNaLista(a)}
                         {a.endpoint === endpointAtual ? " (este)" : ""}
                       </span>
                       <span className="text-muted-foreground text-xs">desde {formatarData(a.criado_em)}</span>
@@ -398,7 +487,7 @@ export function TelaLembretes({
                       type="button"
                       variant="ghost"
                       className="alvo ml-auto shrink-0"
-                      aria-label={`Remover ${a.aparelho || "aparelho"} (desde ${formatarData(a.criado_em)})`}
+                      aria-label={`Remover ${nomeNaLista(a)} (desde ${formatarData(a.criado_em)})`}
                       disabled={ocupado !== null}
                       onClick={() => void remover(a)}
                     >
