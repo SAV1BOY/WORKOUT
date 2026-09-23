@@ -185,7 +185,7 @@ describe("envio", () => {
     expect(endpointAceito("http://127.0.0.1:54321/__push/201/x", "http://127.0.0.1:54321")).toBe(true);
     expect(endpointAceito("http://127.0.0.1:9/x", "http://127.0.0.1:54321")).toBe(false);
     // a origem de teste só vale na própria máquina
-    expect(endpointAceito("http://10.0.0.5:80/x", "http://10.0.0.5:80")).toBe(false);
+    expect(endpointAceito("http://10.0.0.5:8080/x", "http://10.0.0.5:8080")).toBe(false);
   });
 
   it("tabela ausente pelo código do PostgREST/Postgres", () => {
@@ -234,5 +234,24 @@ describe("configuracaoVapid", () => {
     const bytes = bytesDaChave(publica);
     expect(bytes.length).toBe(65);
     expect(bytes[0]).toBe(4);
+  });
+});
+
+describe("fonte única: Mais e o guia de uso (§23.4)", () => {
+  it("o guia tem a linha Lembretes com o título, a descrição e a rota de LINHA_LEMBRETES", async () => {
+    const { LINHA_LEMBRETES } = await import("@/lib/lembretes");
+    const { secaoDoGuia } = await import("@/lib/guia");
+    const funcao = secaoDoGuia("mais")?.funcoes.find((f) => f.id === "lembretes");
+    expect(funcao?.nome).toBe(LINHA_LEMBRETES.titulo);
+    expect(funcao?.href).toBe("/mais/lembretes");
+    expect(funcao?.oQueFaz.startsWith(LINHA_LEMBRETES.descricao)).toBe(true);
+    expect(funcao?.caminho).toEqual(["Mais", "Lembretes"]);
+  });
+
+  it("a tela Mais monta a linha a partir de LINHA_LEMBRETES (sem redigitar)", async () => {
+    const { readFileSync } = await import("node:fs");
+    const fonte = readFileSync(new URL("../app/(app)/mais/page.tsx", import.meta.url), "utf8");
+    expect(fonte).toContain("...LINHA_LEMBRETES");
+    expect(fonte).not.toContain("Receber avisos no celular");
   });
 });
