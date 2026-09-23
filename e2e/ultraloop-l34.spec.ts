@@ -1,0 +1,479 @@
+/**
+ * Lote 34 — Lembretes I: inscrição no aparelho e notificação de teste
+ * (SPEC §23.7). Tudo a 360×740, contra o mock, pelo caminho real.
+ *
+ * O aparelho de mentira: o Chromium dos testes não fala com o FCM, então o
+ * `PushManager` da página é trocado (init script) por um que devolve uma
+ * inscrição cujo `endpoint` é o servidor de push falso do mock
+ * (`/__push/<status>/<id>`) e cujas chaves (`p256dh`, `auth`) são de um par
+ * que o TESTE gerou — por isso o teste consegue decifrar o que a rota mandou.
+ * O service worker é o de verdade (build de produção).
+ */
+import { createECDH, createPublicKey, randomBytes, verify } from "node:crypto";
+import {
+  expect,
+  test,
+  type BrowserContext,
+  type Page,
+  type Worker,
+} from "@playwright/test";
+import { decifrarNoAparelho } from "../lib/web-push";
+import {
+  URL_MOCK,
+  entrarNoApp,
+  esperarServiceWorker,
+  estadoDoMock,
+  inserirNoMock,
+  lerDoMock,
+  resetarMock,
+  semRolagemHorizontal,
+  sessaoNoMock,
+  usuarioComPerfil,
+  type SessaoMock,
+} from "./fixtures";
+
+const TEMAS = ["light", "dark"] as const;
+type Tema = (typeof TEMAS)[number];
+const TABELA = "lembretes_inscricoes";
+const PUBLICA = process.env.E2E_VAPID_PUBLICA ?? "";
+
+/*
+ * O Chromium "de verdade" em modo headless novo, e não o headless shell
+ * padrão: no shell a permissão de notificação fica `denied` mesmo concedida
+ * pelo contexto, e `showNotification` recusa (medido em 23/09 com um worker
+ * mínimo: shell → denied/0 notificações; chromium → granted/1). O binário é o
+ * mesmo `chromium-1194` que já está em PLAYWRIGHT_BROWSERS_PATH.
+ */
+test.use({ channel: "chromium" });
+
+test.beforeEach(async () => {
+  await resetarMock();
+});
+
+/** O recado da tela (o `role="alert"` do Next, o anunciador de rota, fica fora do <main>). */
+function aviso(page: Page) {
+  return page.locator('main [role="alert"]');
+}
+function recado(page: Page) {
+  return page.locator('main [role="status"]');
+}
+
+interface Aparelho {
+  p256dh: string;
+  auth: string;
+  privada: string;
+}
+
+/** As chaves do "navegador": geradas aqui, no teste. */
+function aparelhoNovo(): Aparelho {
+  const ecdh = createECDH("prime256v1");
+  ecdh.generateKeys();
+  return {
+    p256dh: ecdh.getPublicKey().toString("base64url"),
+    privada: ecdh.getPrivateKey().toString("base64url"),
+    auth: randomBytes(16).toString("base64url"),
+  };
+}
+
+interface Simulacao {
+  /** endpoint base; cada `subscribe` ganha `-<n>` */
+  base?: string;
+  aparelho?: Aparelho;
+  brave?: boolean;
+  /** `subscribe` falha como no Brave sem os serviços do Google */
+  subscribeFalha?: boolean;
+  /** a permissão começa assim e `requestPermission` devolve `negar ? "denied"` */
+  negar?: boolean;
+  semPush?: boolean;
+}
+
+/** Troca o PushManager, o `navigator.brave` e a permissão, antes do app. */
+async function simular(context: BrowserContext, sim: Simulacao): Promise<void> {
+  await context.addInitScript((cfg) => {
+    const w = window as unknown as Record<string, unknown>;
+    if (cfg.brave) {
+      Object.defineProperty(Navigator.prototype, "brave", {
+        value: { isBrave: async () => true },
+        configurable: true,
+      });
+    }
+    if (cfg.semPush) {
+      delete w.PushManager;
+      return;
+    }
+    if (cfg.negar) {
+      let permissao = "default";
+      Object.defineProperty(Notification, "permission", { get: () => permissao, configurable: true });
+      Notification.requestPermission = async () => {
+        permissao = "denied";
+        return "denied";
+      };
+    }
+    const CHAVE = "__push_falso";
+    const ler = (): { endpoint: string; chave: string } | null => {
+      try {
+        return JSON.parse(localStorage.getItem(CHAVE) ?? "null");
+      } catch {
+        return null;
+      }
+    };
+    const comoInscricao = (d: { endpoint: string } | null) =>
+      d && {
+        endpoint: d.endpoint,
+        expirationTime: null,
+        options: { userVisibleOnly: true },
+        getKey: () => null,
+        toJSON: () => ({
+          endpoint: d.endpoint,
+          expirationTime: null,
+          keys: { p256dh: cfg.p256dh, auth: cfg.auth },
+        }),
+        unsubscribe: async () => {
+          localStorage.setItem(CHAVE, "null");
+          return true;
+        },
+      };
+    PushManager.prototype.getSubscription = async function () {
+      return comoInscricao(ler()) as unknown as PushSubscription | null;
+    };
+    PushManager.prototype.subscribe = async function (opcoes?: PushSubscriptionOptionsInit) {
+      if (cfg.subscribeFalha) {
+        throw new DOMException("Registration failed - push service error", "AbortError");
+      }
+      const bytes = new Uint8Array(opcoes?.applicationServerKey as ArrayBuffer);
+      const chave = btoa(String.fromCharCode(...bytes))
+        .replace(/\+/g, "-")
+        .replace(/\//g, "_")
+        .replace(/=+$/, "");
+      const n = Number(localStorage.getItem("__push_seq") ?? "0") + 1;
+      localStorage.setItem("__push_seq", String(n));
+      const d = { endpoint: `${cfg.base}-${n}`, chave, visivel: opcoes?.userVisibleOnly === true };
+      localStorage.setItem(CHAVE, JSON.stringify(d));
+      return comoInscricao(d) as unknown as PushSubscription;
+    };
+  }, {
+    base: sim.base ?? `${URL_MOCK}/__push/201/aparelho`,
+    p256dh: sim.aparelho?.p256dh ?? "",
+    auth: sim.aparelho?.auth ?? "",
+    brave: sim.brave ?? false,
+    subscribeFalha: sim.subscribeFalha ?? false,
+    negar: sim.negar ?? false,
+    semPush: sim.semPush ?? false,
+  });
+}
+
+async function preparar(
+  page: Page,
+  tema: Tema,
+  sim: Simulacao,
+  conceder = true,
+): Promise<SessaoMock> {
+  const sessao = await usuarioComPerfil();
+  if (conceder) await page.context().grantPermissions(["notifications"]);
+  await simular(page.context(), sim);
+  await page.setViewportSize({ width: 360, height: 740 });
+  await page.emulateMedia({ colorScheme: tema });
+  await entrarNoApp(page);
+  return sessao;
+}
+
+async function abrirLembretesPeloMais(page: Page): Promise<void> {
+  await page.goto("/mais");
+  const linha = page.getByRole("link", { name: /Lembretes/ });
+  await expect(linha).toContainText("Receber avisos no celular; ative em cada aparelho.");
+  expect((await linha.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
+  await linha.click();
+  await expect(page).toHaveURL(/\/mais\/lembretes$/);
+  await expect(page.getByRole("heading", { name: "Lembretes", level: 1 })).toBeVisible();
+}
+
+/** Todo botão e link visível do <main> com pelo menos 44 × 44 px. */
+async function alvosDe44(page: Page): Promise<void> {
+  const pequenos = await page.evaluate(() =>
+    [...document.querySelectorAll("main a, main button")]
+      .filter((el) => (el as HTMLElement).offsetParent !== null)
+      .map((el) => ({ nome: el.textContent?.trim() ?? "", r: el.getBoundingClientRect() }))
+      .filter(({ r }) => r.height < 44 || r.width < 44)
+      .map(({ nome, r }) => `${nome} ${Math.round(r.width)}×${Math.round(r.height)}`),
+  );
+  expect(pequenos).toEqual([]);
+}
+
+function estado(page: Page) {
+  return page.locator("[data-estado]");
+}
+
+/* -------------------------------------------- §23.7 item 3: ativar e desativar */
+
+for (const tema of TEMAS) {
+  test(`${tema}: ativar grava a inscrição com a chave do servidor; desativar apaga`, async ({ page }) => {
+    const aparelho = aparelhoNovo();
+    const sessao = await preparar(page, tema, { aparelho });
+    await esperarServiceWorker(page);
+    await abrirLembretesPeloMais(page);
+
+    await expect(estado(page)).toHaveText("Desativado neste aparelho.");
+    await expect(page.getByText("Nenhum aparelho com lembretes ainda.")).toBeVisible();
+    await alvosDe44(page);
+    await semRolagemHorizontal(page);
+
+    await page.getByRole("button", { name: "Ativar lembretes neste aparelho" }).click();
+    await expect(recado(page)).toHaveText("Lembretes ativados neste aparelho.");
+    await expect(estado(page)).toHaveText("Ativado neste aparelho.");
+
+    const linhas = await lerDoMock<Record<string, unknown>>(sessao, TABELA);
+    expect(linhas).toHaveLength(1);
+    expect(linhas[0]).toMatchObject({
+      user_id: sessao.userId,
+      endpoint: `${URL_MOCK}/__push/201/aparelho-1`,
+      p256dh: aparelho.p256dh,
+      auth: aparelho.auth,
+      aparelho: "Chrome · Android",
+    });
+    // o subscribe recebeu a chave pública do servidor e userVisibleOnly
+    const feita = await page.evaluate(() => JSON.parse(localStorage.getItem("__push_falso") ?? "null"));
+    expect(PUBLICA).toHaveLength(87);
+    expect(feita).toMatchObject({ chave: PUBLICA, visivel: true });
+
+    const item = page.locator("[data-aparelho]");
+    await expect(item).toHaveCount(1);
+    await expect(item).toContainText("Chrome · Android (este)");
+    await expect(item).toContainText(/desde \d{2}\/\d{2}/);
+    await alvosDe44(page);
+    await semRolagemHorizontal(page);
+    await page.screenshot({ path: `test-results/l34-lembretes-ativado-${tema}.png` });
+
+    // recarregar mantém o estado (a inscrição do navegador + a linha)
+    await page.reload();
+    await expect(estado(page)).toHaveText("Ativado neste aparelho.");
+
+    await page.getByRole("button", { name: "Desativar neste aparelho" }).click();
+    await expect(recado(page)).toHaveText("Lembretes desativados neste aparelho.");
+    await expect(estado(page)).toHaveText("Desativado neste aparelho.");
+    expect(await lerDoMock(sessao, TABELA)).toHaveLength(0);
+    expect(await page.evaluate(() => localStorage.getItem("__push_falso"))).toBe("null");
+  });
+}
+
+/* ---------------------------------------- §23.7 item 4: a rota de teste */
+
+test("o lembrete de teste chega assinado e cifrado; a inscrição vencida (410) sai", async ({ page }) => {
+  const aparelho = aparelhoNovo();
+  const sessao = await preparar(page, "dark", { aparelho });
+  await esperarServiceWorker(page);
+  await page.goto("/mais/lembretes");
+  await page.getByRole("button", { name: "Ativar lembretes neste aparelho" }).click();
+  await expect(estado(page)).toHaveText("Ativado neste aparelho.");
+
+  // um segundo aparelho da conta, cujo serviço de push diz 410 (vencida)
+  await inserirNoMock(sessao, TABELA, [
+    {
+      endpoint: `${URL_MOCK}/__push/410/vencida`,
+      p256dh: aparelho.p256dh,
+      auth: aparelho.auth,
+      aparelho: "Firefox · Linux",
+    },
+  ]);
+  await page.reload();
+  await expect(page.locator("[data-aparelho]")).toHaveCount(2);
+
+  const botao = page.getByRole("button", { name: "Enviar um lembrete de teste" });
+  expect((await botao.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
+  await botao.click();
+  await expect(recado(page)).toHaveText(
+    "Enviado para 1 aparelho. 1 aparelho tinha a inscrição vencida e saiu da lista.",
+  );
+
+  const { pushes } = (await estadoDoMock()) as {
+    pushes: { caminho: string; authorization: string; encoding: string; ttl: string; topic: string; corpo_b64: string }[];
+  };
+  expect(pushes.map((p) => p.caminho).sort()).toEqual(["/__push/201/aparelho-1", "/__push/410/vencida"]);
+  const entregue = pushes.find((p) => p.caminho === "/__push/201/aparelho-1");
+  if (!entregue) throw new Error("o push não chegou");
+  expect(entregue.encoding).toBe("aes128gcm");
+  expect(Number(entregue.ttl)).toBeGreaterThan(0);
+  expect(entregue.topic).toBe("lembrete-teste");
+
+  // Authorization: vapid t=<JWT ES256>, k=<a chave pública desta execução>
+  const m = /^vapid t=([^,]+), k=(\S+)$/.exec(entregue.authorization);
+  expect(m?.[2]).toBe(PUBLICA);
+  const [cab, carga, assinatura] = (m?.[1] ?? "").split(".") as [string, string, string];
+  const pub = Buffer.from(PUBLICA, "base64url");
+  const chave = createPublicKey({
+    key: {
+      kty: "EC",
+      crv: "P-256",
+      x: pub.subarray(1, 33).toString("base64url"),
+      y: pub.subarray(33).toString("base64url"),
+    },
+    format: "jwk",
+  });
+  expect(
+    verify("sha256", Buffer.from(`${cab}.${carga}`), { key: chave, dsaEncoding: "ieee-p1363" }, Buffer.from(assinatura, "base64url")),
+  ).toBe(true);
+  const claims = JSON.parse(Buffer.from(carga, "base64url").toString()) as { aud: string; sub: string; exp: number };
+  expect(claims.aud).toBe(URL_MOCK);
+  expect(claims.sub).toBe("mailto:e2e@example.com");
+  expect(claims.exp * 1000).toBeGreaterThan(Date.now());
+
+  // o corpo cifrado não é vazio e o "aparelho" decifra o payload
+  const corpo = Buffer.from(entregue.corpo_b64, "base64");
+  expect(corpo.length).toBeGreaterThan(86);
+  const payload = JSON.parse(decifrarNoAparelho(corpo, aparelho.privada, aparelho.auth)) as Record<string, string>;
+  expect(payload).toMatchObject({ titulo: "Lembrete de teste", url: "/mais/lembretes", tag: "lembrete-teste" });
+
+  // a vencida saiu da tabela e da tela
+  const linhas = await lerDoMock<{ endpoint: string }>(sessao, TABELA);
+  expect(linhas.map((l) => l.endpoint)).toEqual([`${URL_MOCK}/__push/201/aparelho-1`]);
+  await expect(page.locator("[data-aparelho]")).toHaveCount(1);
+});
+
+test("sem sessão, POST /api/lembretes/teste responde 401", async ({ playwright, baseURL }) => {
+  const anonimo = await playwright.request.newContext({ baseURL });
+  const resposta = await anonimo.post("/api/lembretes/teste", { maxRedirects: 0 });
+  expect(resposta.status()).toBe(401);
+  expect(await resposta.json()).toEqual({ erro: "Entre de novo para continuar." });
+  await anonimo.dispose();
+});
+
+/* ---------------------------------------------- §23.7 item 1: RLS no mock */
+
+test("a conta B não vê, não apaga e não reaproveita a inscrição da conta A", async () => {
+  const a = await sessaoNoMock();
+  const b = await sessaoNoMock("outra.pessoa@example.com");
+  const aparelho = aparelhoNovo();
+  const endpoint = `${URL_MOCK}/__push/201/de-a`;
+  await inserirNoMock(a, TABELA, [{ endpoint, p256dh: aparelho.p256dh, auth: aparelho.auth, aparelho: "A" }]);
+  const [daA] = await lerDoMock<{ id: string }>(a, TABELA);
+
+  expect(await lerDoMock(b, TABELA)).toEqual([]);
+  expect(await lerDoMock(b, TABELA, `select=*&id=eq.${daA?.id}`)).toEqual([]);
+  const apagar = await fetch(`${URL_MOCK}/rest/v1/${TABELA}?id=eq.${daA?.id}`, {
+    method: "DELETE",
+    headers: { apikey: "mock-anon", authorization: `Bearer ${b.token}` },
+  });
+  expect(apagar.ok).toBe(true);
+  expect(await lerDoMock(a, TABELA)).toHaveLength(1);
+  // o mesmo endpoint não entra para outra conta (endpoint único, §23.2)
+  await expect(
+    inserirNoMock(b, TABELA, [{ endpoint, p256dh: aparelho.p256dh, auth: aparelho.auth, aparelho: "B" }]),
+  ).rejects.toThrow(/409/);
+});
+
+test("o aparelho que era de outra conta ganha uma inscrição nova ao ativar", async ({ page }) => {
+  const outra = await sessaoNoMock("outra.pessoa@example.com");
+  const aparelho = aparelhoNovo();
+  // a outra conta já tinha este aparelho (o primeiro endpoint que ele vai gerar)
+  await inserirNoMock(outra, TABELA, [
+    { endpoint: `${URL_MOCK}/__push/201/compartilhado-1`, p256dh: aparelho.p256dh, auth: aparelho.auth, aparelho: "outra" },
+  ]);
+  const sessao = await preparar(page, "light", { aparelho, base: `${URL_MOCK}/__push/201/compartilhado` });
+  await esperarServiceWorker(page);
+  await page.goto("/mais/lembretes");
+  await page.getByRole("button", { name: "Ativar lembretes neste aparelho" }).click();
+  await expect(estado(page)).toHaveText("Ativado neste aparelho.");
+  const minhas = await lerDoMock<{ endpoint: string }>(sessao, TABELA);
+  expect(minhas.map((l) => l.endpoint)).toEqual([`${URL_MOCK}/__push/201/compartilhado-2`]);
+});
+
+/* ------------------------------------------- §23.7 item 2: service worker */
+
+async function workerDoApp(context: BrowserContext): Promise<Worker> {
+  const [jaRegistrado] = context.serviceWorkers();
+  if (jaRegistrado) return jaRegistrado;
+  return context.waitForEvent("serviceworker", { timeout: 30_000 });
+}
+
+test("o worker real mostra o push como notificação e o toque leva à url", async ({ page, context }) => {
+  await preparar(page, "light", {});
+  await esperarServiceWorker(page);
+  const worker = await workerDoApp(context);
+
+  await worker.evaluate(async (payload) => {
+    const escopo = globalThis as unknown as {
+      dispatchEvent: (e: Event) => boolean;
+      PushEvent: new (tipo: string, init: { data: string }) => Event;
+    };
+    escopo.dispatchEvent(new escopo.PushEvent("push", { data: JSON.stringify(payload) }));
+  }, { titulo: "Hora do treino", corpo: "Treino A hoje, 3 exercícios.", url: "/relatorio", tag: "e2e-push" });
+
+  const lerNotificacoes = () =>
+    worker.evaluate(async () => {
+      const escopo = globalThis as unknown as { registration: ServiceWorkerRegistration };
+      const lista = await escopo.registration.getNotifications();
+      return lista.map((n) => ({ title: n.title, body: n.body, tag: n.tag, icon: n.icon, lang: n.lang, data: n.data as unknown }));
+    });
+  await expect.poll(async () => (await lerNotificacoes()).length).toBe(1);
+  expect((await lerNotificacoes())[0]).toEqual({
+    title: "Hora do treino",
+    body: "Treino A hoje, 3 exercícios.",
+    tag: "e2e-push",
+    icon: expect.stringMatching(/\/icons\/icone-192\.png$/) as unknown as string,
+    lang: "pt-BR",
+    data: { url: "/relatorio" },
+  });
+
+  await worker.evaluate(async () => {
+    const escopo = globalThis as unknown as {
+      registration: ServiceWorkerRegistration;
+      dispatchEvent: (e: Event) => boolean;
+      NotificationEvent: new (tipo: string, init: { notification: Notification }) => Event;
+    };
+    const [n] = await escopo.registration.getNotifications({ tag: "e2e-push" });
+    if (!n) throw new Error("sem notificação");
+    escopo.dispatchEvent(new escopo.NotificationEvent("notificationclick", { notification: n }));
+  });
+  await expect(page).toHaveURL(/\/relatorio$/);
+  await expect.poll(async () => (await lerNotificacoes()).length).toBe(0);
+});
+
+/* ------------------------------ §23.7 itens 3 e 5: bloqueado, Brave, sem suporte */
+
+test("permissão negada: bloqueado, com o caminho para liberar nas configurações", async ({ page }) => {
+  await preparar(page, "dark", { aparelho: aparelhoNovo(), negar: true }, false);
+  await esperarServiceWorker(page);
+  await page.goto("/mais/lembretes");
+  await expect(estado(page)).toHaveText("Desativado neste aparelho.");
+  await page.getByRole("button", { name: "Ativar lembretes neste aparelho" }).click();
+
+  await expect(aviso(page)).toHaveText("O navegador recusou as notificações deste app.");
+  await expect(estado(page)).toHaveText("Bloqueado pelo navegador.");
+  const instrucao = page.locator('[data-instrucao="permissao"]');
+  await expect(instrucao.getByRole("heading", { level: 3 })).toHaveText(
+    "O navegador está bloqueando as notificações deste app",
+  );
+  await expect(instrucao).toContainText("Permissões → Notificações → Permitir");
+  await expect(page.getByRole("button", { name: /Ativar/ })).toHaveCount(0);
+  await alvosDe44(page);
+  await semRolagemHorizontal(page);
+});
+
+test("Brave com o push desligado: ligar os serviços do Google", async ({ page }) => {
+  const sessao = await preparar(page, "light", { aparelho: aparelhoNovo(), brave: true, subscribeFalha: true });
+  await esperarServiceWorker(page);
+  await page.goto("/mais/lembretes");
+  // sem falha ainda, nada a explicar
+  await expect(page.locator("[data-instrucao]")).toHaveCount(0);
+  await page.getByRole("button", { name: "Ativar lembretes neste aparelho" }).click();
+
+  await expect(aviso(page)).toHaveText("O navegador não conseguiu ativar os avisos neste aparelho.");
+  const instrucao = page.locator('[data-instrucao="brave"]');
+  await expect(instrucao.getByRole("heading", { level: 3 })).toHaveText(
+    "No Brave, os avisos só chegam com os serviços do Google ligados",
+  );
+  await expect(instrucao).toContainText("Configurações do Brave → Privacidade e segurança");
+  await expect(instrucao).toContainText("“Usar os serviços do Google para mensagens push”");
+  expect(await lerDoMock(sessao, TABELA)).toHaveLength(0);
+  await semRolagemHorizontal(page);
+  await page.screenshot({ path: "test-results/l34-lembretes-brave-light.png" });
+});
+
+test("navegador sem PushManager: não suportado, com o que fazer", async ({ page }) => {
+  await preparar(page, "dark", { semPush: true });
+  await page.goto("/mais/lembretes");
+  await expect(estado(page)).toHaveText("Este navegador não recebe notificações.");
+  const instrucao = page.locator('[data-instrucao="suporte"]');
+  await expect(instrucao).toContainText("No Android, abra o app no Chrome ou no Brave.");
+  await expect(page.getByRole("button", { name: /Ativar/ })).toHaveCount(0);
+  await semRolagemHorizontal(page);
+});
