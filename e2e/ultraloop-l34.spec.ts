@@ -585,7 +585,11 @@ for (const tema of TEMAS) {
 
 /* ------------------------------ §23.7 item 7: a volta das configurações */
 
-/** Nega a notificação de verdade no Chromium (o Playwright só sabe conceder). */
+/**
+ * Nega a notificação de verdade no Chromium (o Playwright só sabe conceder).
+ * A sessão CDP fica aberta até o fim do teste: ao se desligar, o Chromium
+ * desfaz as permissões que ela mudou.
+ */
 async function negarDeVerdade(page: Page, origem: string): Promise<void> {
   const cdp = await page.context().newCDPSession(page);
   const { targetInfo } = (await cdp.send("Target.getTargetInfo")) as {
@@ -597,7 +601,6 @@ async function negarDeVerdade(page: Page, origem: string): Promise<void> {
     setting: "denied",
     browserContextId: targetInfo.browserContextId,
   });
-  await cdp.detach();
 }
 
 /** A pessoa sai para as configurações e volta: hidden → visible. */
