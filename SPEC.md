@@ -345,7 +345,7 @@ Toda sessão (treino do programa, sessão livre, circuito, sessão de barra fixa
 - Regras: fechar e reabrir volta ao mesmo passo (estado no Dexie); sem rede tudo funciona; Wake Lock ligado durante o player; nada muda no que é gravado (session_sets, exercise_state, progression_events, profiles.ultimo_treino).
 
 ### 14.2 Ficha em folha (bottom sheet) — `components/exercicio/ficha-folha.tsx`
-Abre por cima de qualquer tela (Treino, player, Explorar) sem perder estado: título + **Substituir** (mesmo fluxo de substitutos); mídia com três abas **Vídeo · Músculos · Tutorial no YouTube** (§22.14 item 4: o rótulo diz o destino, com o ícone de link externo, e a aba só existe quando o JSON tem o tutorial): Vídeo = figura animada (ou vídeo local) com botão de pausa; Músculos = mapa frente/costas com primários fortes e secundários claros (§22.14 item 3: a figura já é a aba Vídeo e não se repete); **Tutorial** = vídeo do YouTube de `data/tutoriais.json` (81 entradas: `exercicio_id`, `youtube_id`, `titulo`, `canal`, `idioma`, `url`, `nota`; validado em `lib/schemas.ts`, lido por `lib/dados.ts`), mostrado como miniatura `https://i.ytimg.com/vi/<id>/hqdefault.jpg` + play, e só ao tocar vira `<iframe src="https://www.youtube-nocookie.com/embed/<id>">` (sem rede a aba mostra "Precisa de internet" e o botão "Abrir no YouTube"); stepper **Duração / Repetições / Séries** que ajusta **só a prescrição desta sessão** (nunca `exercise_state`); **Instruções** (passos do JSON) e **Erro comum**; **Área de foco** em chips (primário = ponto forte, secundário = claro) a partir de `musculos_*_nome` — na folha; na página ela não se repete (§22.14 item 3); histórico e recorde abaixo (sem nenhum dado, um cartão só — §22.14 item 2); navegação **anterior/próximo (n/N)** dentro do treino; **Fechar**. A rota `/exercicios/[id]` continua existindo e usa o mesmo componente em página inteira, com "Voltar" no topo e "Fazer agora" no fim (§22.14 item 1).
+Abre por cima de qualquer tela (Treino, player, Explorar) sem perder estado: título + **Substituir** (mesmo fluxo de substitutos); mídia com três abas **Vídeo · Músculos · Tutorial no YouTube** (§22.14 item 4: o rótulo diz de onde vem o vídeo, sem ícone de link externo — com rede ele toca dentro do app —, e a aba só existe quando o JSON tem o tutorial): Vídeo = figura animada (ou vídeo local) com botão de pausa; Músculos = mapa frente/costas com primários fortes e secundários claros (§22.14 item 3: a figura já é a aba Vídeo e não se repete); **Tutorial** = vídeo do YouTube de `data/tutoriais.json` (81 entradas: `exercicio_id`, `youtube_id`, `titulo`, `canal`, `idioma`, `url`, `nota`; validado em `lib/schemas.ts`, lido por `lib/dados.ts`), mostrado como miniatura `https://i.ytimg.com/vi/<id>/hqdefault.jpg` + play, e só ao tocar vira `<iframe src="https://www.youtube-nocookie.com/embed/<id>">` (sem rede a aba mostra "Precisa de internet" e o botão "Abrir no YouTube"); stepper **Duração / Repetições / Séries** que ajusta **só a prescrição desta sessão** (nunca `exercise_state`); **Instruções** (passos do JSON) e **Erro comum**; **Área de foco** em chips (primário = ponto forte, secundário = claro) a partir de `musculos_*_nome` — na folha; na página ela não se repete (§22.14 item 3); histórico e recorde abaixo (sem nenhum dado, um cartão só — §22.14 item 2); navegação **anterior/próximo (n/N)** dentro do treino; **Fechar**. A rota `/exercicios/[id]` continua existindo e usa o mesmo componente em página inteira, com "Voltar" no topo e "Fazer agora" no fim (§22.14 item 1).
 
 ### 14.3 Aba Treino — acréscimos à §13.3
 Abaixo da lista do treino do dia: **Editar** (modo reordenar com alças e setas ↑↓; ordem só desta sessão, gravada em `sessions.plano` quando a sessão é criada; "voltar à ordem do programa"); **Ajustar** no cabeçalho, ao lado da data (descanso padrão, preparação, avançar sozinho, voz, vibração, tela acesa, mostrar raios); **Desafios** (carrossel manual, sem rotação automática, com os planos reais — títulos e botões como definidos em §22.7 item 6 e §22.12 itens 4 e 7; capa de `assets/`, semana atual e progresso); **Parte do corpo em foco** (chips dos 8 grupos → lista com miniatura, `N exercícios · ~M min`, raios, "Começar" = sessão livre com os 6 primeiros do grupo, compostos antes de isolamento); chips de filtro derivados (≤ 15 min · 15–30 min · com equipamento · sem equipamento · core · cardio); **Personalizar treino** ("Crie o seu próprio": escolher exercícios do catálogo e começar uma sessão livre). Sem busca na Treino (fica em Explorar).
@@ -2553,7 +2553,8 @@ de cada item é verificável no Vitest ou no e2e (`e2e/ultraloop-l13.spec.ts`).
 ### 22.14 Ficha: conteúdo e ações; nomes do catálogo e créditos
 
 Medido em `main` (0d54e5f, com o L12 e o L13 publicados) a 360×740. Dez
-itens: oito da ficha do exercício (página `/exercicios/[id]` e folha), e dois
+itens do ledger e um (item 11) da auditoria 2 do lote (rodada 15): oito da
+ficha do exercício (página `/exercicios/[id]` e folha), e dois
 que entram por **exceção de área**: o texto dos Créditos (copy-08, Mais) é o
 crédito da mídia que a ficha mostra (§15.1 itens 3 e 4), e o nome da faixa
 elástica no catálogo (OBS-elastico-x-super-band) é a mesma troca de rótulo,
@@ -2660,12 +2661,22 @@ não muda (§22.0.1 item 7). O aceite de cada item é verificável no Vitest
    título da folha é H2 e as seções são H3.
 4. **A aba do tutorial diz para onde leva** (tela-explorar-fichas-26). A aba
    se chamava "Tutorial" e era oferecida mesmo sem tutorial no JSON. Agora
-   ela se chama **"Tutorial no YouTube"**, com o ícone de link externo no
-   rótulo, e só existe quando `data/tutoriais.json` tem o vídeo do exercício
-   (`abasDaFicha()`; hoje os 81 têm). As três abas dividem a largura pelo
-   tamanho do rótulo, sem cortar nada a 360 px. Aceite: Vitest — sem
+   ela se chama **"Tutorial no YouTube"** e só existe quando
+   `data/tutoriais.json` tem o vídeo do exercício (`abasDaFicha()`; hoje os
+   81 têm). As três abas dividem a largura pelo tamanho do rótulo, sem cortar
+   nada a 360 px. **Correção da auditoria 2 (rodada 15):** a primeira versão
+   punha o ícone de link externo na aba, mas com rede o vídeo toca **dentro
+   do app** (miniatura → `youtube-nocookie` embutido, §14.2): o ícone
+   prometia uma saída que não acontece. A aba diz de onde vem o vídeo
+   ("no YouTube") e não leva o ícone; o ícone fica no único ponto que sai do
+   app, o **"Abrir no YouTube"** da aba sem rede (`target="_blank"`). O
+   ledger pedia "o destino externo dito no rótulo"; o destino só é externo
+   sem rede, e ali o rótulo e o ícone dizem isso. Aceite: Vitest — sem
    tutorial, as abas são só Vídeo e Músculos; e2e — o rótulo da aba diz
-   "YouTube", tem o ícone e nada vaza a largura na página e na folha.
+   "YouTube", sem ícone de saída, e nada vaza a largura na página e na
+   folha; com rede, tocar a miniatura põe o `<iframe>` do
+   `youtube-nocookie` na própria ficha, na mesma rota; sem rede, o link
+   "Abrir no YouTube" abre em outra aba e é ele que tem o ícone.
 5. **O cartão "Apagar esta foto?" flutua como os outros**
    (flutuante-no-dialogo-da-foto). Ele usava `shadow-lg`, que some sobre o
    fundo `#0a0a0a`; passa à classe `.flutuante` (§22.3 item 5), que no escuro
@@ -2683,11 +2694,23 @@ não muda (§22.0.1 item 7). O aceite de cada item é verificável no Vitest
    ficha no player, pelo "Como fazer") o foco caía no `<body>` (medido): a
    folha guarda quem tinha o foco ao abrir e devolve a ele.
    A folha que já escolhia o próprio foco inicial (Ajustar, §22.7 item 3)
-   continua escolhendo. Aceite: e2e a 360×740, com a folha da ficha e a
+   continua escolhendo. **O Esc fecha só a camada de cima** (correção da
+   auditoria 2, rodada 15): a Visão geral do treino é um diálogo próprio,
+   com o Esc escutado no `window` (§22.5 item 3), e fechava junto com a
+   folha aberta por cima dela ("substituir hoje" e o "Como fazer" do
+   bloco — medido: um Esc, zero diálogos, o gatilho fora do DOM). O Radix
+   trata o Esc antes, na captura do `document`, e marca `defaultPrevented`;
+   a Visão geral passa a ignorar o Esc já tratado. A foto ampliada da ficha
+   (o outro Esc global do app) segue a mesma regra: ignora o Esc já tratado
+   e marca o que trata. Aceite: e2e a 360×740, com a folha da ficha e a
    "Substituir hoje" abertas — `aria-modal="true"`, `main`/`header`/`nav`
    inertes, o foco no título, Tab não sai da folha, Esc fecha, o foco volta
    ao gatilho e nada fica inerte depois; os filtros do catálogo abrem e
-   fecham com o foco de volta ao gatilho.
+   fecham com o foco de volta ao gatilho; dentro da Visão geral, nos dois
+   temas, o Esc na "substituir hoje" e na ficha do "Como fazer" do bloco
+   fecha só a folha — a Visão geral continua aberta, o foco volta ao
+   gatilho, nada fica inerte — e, sem folha, o Esc fecha a Visão geral; na
+   foto ampliada, um Esc que outra camada já tratou não a fecha.
 7. **"Manutenção", não "repetição", no motor da ficha** (copy-13). O vazio do
    cartão "O que o motor decidiu" dizia "Cada subida, repetição ou volta de
    carga…", e "repetições" na mesma ficha são as da série. Passa a "Cada
@@ -2732,3 +2755,17 @@ não muda (§22.0.1 item 7). O aceite de cada item é verificável no Vitest
     Aceite: e2e em `/mais/creditos` — nenhum texto visível contém "variáveis
     CSS" nem "anda junto"; os links para a fonte e para
     `/mapa-muscular/LICENCA-mapa-anatomico.md` continuam.
+11. **O anel do botão primário não tem a cor do botão** (auditorias 1 e 2 do
+    lote, menor; rodada 15). O `Button` primário do shadcn desenhava o foco
+    com `ring-3 ring-ring`, e `--ring` é a cor de `--primary`: o anel colava
+    no botão com a mesma cor (1:1 contra ele) e o foco só parecia o botão
+    3 px maior — no "Fazer agora" (item 1) e em todo `BotaoLargo`. O
+    primário passa ao anel do app (§22.3 item 7): contorno sólido de 2 px na
+    cor `--ring`, a **2 px de distância**, com o fundo aparecendo entre o
+    anel e o botão. Os outros tons do `Button` (contorno, fantasma,
+    secundário) já tinham anel de outra cor que a deles e ficam. Aceite: e2e
+    a 360×740, nos dois temas, com o "Fazer agora" focado pelo Tab: contorno
+    `solid` de 2 px ou mais com `outline-offset` de 2 px ou mais; na captura
+    com e sem foco, o pixel 3 px por fora da borda (o anel) muda com
+    contraste ≥ 3:1 contra o fundo que estava ali, e o pixel 1 px por fora
+    (o vão) não muda.
