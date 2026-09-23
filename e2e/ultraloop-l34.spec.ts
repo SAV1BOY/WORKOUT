@@ -218,7 +218,20 @@ for (const tema of TEMAS) {
     await alvosDe44(page);
     await semRolagemHorizontal(page);
 
+    // o insert que a TELA manda (não o que o mock guardou) traz o user_id da
+    // sessão: no banco real a coluna não tem default (§23.2)
+    const insert = page.waitForRequest(
+      (r) => r.method() === "POST" && new URL(r.url()).pathname === `/rest/v1/${TABELA}`,
+    );
     await page.getByRole("button", { name: "Ativar lembretes neste aparelho" }).click();
+    const corpoDoInsert = JSON.parse((await insert).postData() ?? "null") as unknown;
+    const enviada = (Array.isArray(corpoDoInsert) ? corpoDoInsert[0] : corpoDoInsert) as Record<string, unknown>;
+    expect(enviada).toMatchObject({
+      user_id: sessao.userId,
+      endpoint: `${URL_MOCK}/__push/201/aparelho-1`,
+      p256dh: aparelho.p256dh,
+      auth: aparelho.auth,
+    });
     await expect(recado(page)).toHaveText("Lembretes ativados neste aparelho.");
     await expect(estado(page)).toHaveText("Ativado neste aparelho.");
 
@@ -269,6 +282,7 @@ test("o lembrete de teste chega assinado e cifrado; a inscrição vencida (410) 
   // um segundo aparelho da conta, cujo serviço de push diz 410 (vencida)
   await inserirNoMock(sessao, TABELA, [
     {
+      user_id: sessao.userId,
       endpoint: `${URL_MOCK}/__push/410/vencida`,
       p256dh: aparelho.p256dh,
       auth: aparelho.auth,
@@ -344,7 +358,7 @@ test("a conta B não vê, não apaga e não reaproveita a inscrição da conta A
   const b = await sessaoNoMock("outra.pessoa@example.com");
   const aparelho = aparelhoNovo();
   const endpoint = `${URL_MOCK}/__push/201/de-a`;
-  await inserirNoMock(a, TABELA, [{ endpoint, p256dh: aparelho.p256dh, auth: aparelho.auth, aparelho: "A" }]);
+  await inserirNoMock(a, TABELA, [{ user_id: a.userId, endpoint, p256dh: aparelho.p256dh, auth: aparelho.auth, aparelho: "A" }]);
   const [daA] = await lerDoMock<{ id: string }>(a, TABELA);
 
   expect(await lerDoMock(b, TABELA)).toEqual([]);
@@ -357,8 +371,37 @@ test("a conta B não vê, não apaga e não reaproveita a inscrição da conta A
   expect(await lerDoMock(a, TABELA)).toHaveLength(1);
   // o mesmo endpoint não entra para outra conta (endpoint único, §23.2)
   await expect(
-    inserirNoMock(b, TABELA, [{ endpoint, p256dh: aparelho.p256dh, auth: aparelho.auth, aparelho: "B" }]),
+    inserirNoMock(b, TABELA, [{ user_id: b.userId, endpoint, p256dh: aparelho.p256dh, auth: aparelho.auth, aparelho: "B" }]),
   ).rejects.toThrow(/409/);
+});
+
+test("como no banco: insert sem user_id é recusado (42501), sem chave dá 23502, PATCH não altera", async () => {
+  const a = await sessaoNoMock();
+  const aparelho = aparelhoNovo();
+  const inserir = (linha: Record<string, unknown>) =>
+    fetch(`${URL_MOCK}/rest/v1/${TABELA}`, {
+      method: "POST",
+      headers: { apikey: "mock-anon", authorization: `Bearer ${a.token}`, "content-type": "application/json" },
+      body: JSON.stringify(linha),
+    });
+  const semDono = await inserir({ endpoint: `${URL_MOCK}/__push/201/x`, p256dh: aparelho.p256dh, auth: aparelho.auth });
+  expect(semDono.status).toBe(403);
+  expect(await semDono.json()).toMatchObject({ code: "42501" });
+  const semChave = await inserir({ user_id: a.userId, endpoint: `${URL_MOCK}/__push/201/x`, auth: aparelho.auth });
+  expect(semChave.status).toBe(400);
+  expect(await semChave.json()).toMatchObject({ code: "23502" });
+  expect(await lerDoMock(a, TABELA)).toEqual([]);
+
+  await inserirNoMock(a, TABELA, [
+    { user_id: a.userId, endpoint: `${URL_MOCK}/__push/201/x`, p256dh: aparelho.p256dh, auth: aparelho.auth, aparelho: "A" },
+  ]);
+  const mudar = await fetch(`${URL_MOCK}/rest/v1/${TABELA}?aparelho=eq.A`, {
+    method: "PATCH",
+    headers: { apikey: "mock-anon", authorization: `Bearer ${a.token}`, "content-type": "application/json" },
+    body: JSON.stringify({ aparelho: "trocado" }),
+  });
+  expect(mudar.ok).toBe(true);
+  expect((await lerDoMock<{ aparelho: string }>(a, TABELA)).map((l) => l.aparelho)).toEqual(["A"]);
 });
 
 test("o aparelho que era de outra conta ganha uma inscrição nova ao ativar", async ({ page }) => {
@@ -366,7 +409,7 @@ test("o aparelho que era de outra conta ganha uma inscrição nova ao ativar", a
   const aparelho = aparelhoNovo();
   // a outra conta já tinha este aparelho (o primeiro endpoint que ele vai gerar)
   await inserirNoMock(outra, TABELA, [
-    { endpoint: `${URL_MOCK}/__push/201/compartilhado-1`, p256dh: aparelho.p256dh, auth: aparelho.auth, aparelho: "outra" },
+    { user_id: outra.userId, endpoint: `${URL_MOCK}/__push/201/compartilhado-1`, p256dh: aparelho.p256dh, auth: aparelho.auth, aparelho: "outra" },
   ]);
   const sessao = await preparar(page, "light", { aparelho, base: `${URL_MOCK}/__push/201/compartilhado` });
   await esperarServiceWorker(page);
@@ -430,54 +473,103 @@ test("o worker real mostra o push como notificação e o toque leva à url", asy
 
 /* ------------------------------ §23.7 itens 3 e 5: bloqueado, Brave, sem suporte */
 
-test("permissão negada: bloqueado, com o caminho para liberar nas configurações", async ({ page }) => {
-  await preparar(page, "dark", { aparelho: aparelhoNovo(), negar: true }, false);
-  await esperarServiceWorker(page);
-  await page.goto("/mais/lembretes");
-  await expect(estado(page)).toHaveText("Desativado neste aparelho.");
-  await page.getByRole("button", { name: "Ativar lembretes neste aparelho" }).click();
+for (const tema of TEMAS) {
+  test(`${tema}: permissão negada: bloqueado, com o caminho para liberar nas configurações`, async ({ page }) => {
+    await preparar(page, tema, { aparelho: aparelhoNovo(), negar: true }, false);
+    await esperarServiceWorker(page);
+    await page.goto("/mais/lembretes");
+    await expect(estado(page)).toHaveText("Desativado neste aparelho.");
+    await page.getByRole("button", { name: "Ativar lembretes neste aparelho" }).click();
 
-  await expect(aviso(page)).toHaveText("O navegador recusou as notificações deste app.");
-  await expect(estado(page)).toHaveText("Bloqueado pelo navegador.");
-  const instrucao = page.locator('[data-instrucao="permissao"]');
-  await expect(instrucao.getByRole("heading", { level: 3 })).toHaveText(
-    "O navegador está bloqueando as notificações deste app",
-  );
-  await expect(instrucao).toContainText("Permissões → Notificações → Permitir");
-  await expect(page.getByRole("button", { name: /Ativar/ })).toHaveCount(0);
-  await alvosDe44(page);
-  await semRolagemHorizontal(page);
-});
+    await expect(aviso(page)).toHaveText("O navegador recusou as notificações deste app.");
+    await expect(estado(page)).toHaveText("Bloqueado pelo navegador.");
+    const instrucao = page.locator('[data-instrucao="permissao"]');
+    await expect(instrucao.getByRole("heading", { level: 3 })).toHaveText(
+      "O navegador está bloqueando as notificações deste app",
+    );
+    await expect(instrucao).toContainText("Permissões → Notificações → Permitir");
+    await expect(page.getByRole("button", { name: /Ativar/ })).toHaveCount(0);
+    await alvosDe44(page);
+    await semRolagemHorizontal(page);
+  });
 
-test("Brave com o push desligado: ligar os serviços do Google", async ({ page }) => {
-  const sessao = await preparar(page, "light", { aparelho: aparelhoNovo(), brave: true, subscribeFalha: true });
-  await esperarServiceWorker(page);
-  await page.goto("/mais/lembretes");
-  // sem falha ainda, nada a explicar
-  await expect(page.locator("[data-instrucao]")).toHaveCount(0);
-  await page.getByRole("button", { name: "Ativar lembretes neste aparelho" }).click();
+  test(`${tema}: Brave com o push desligado: ligar os serviços do Google`, async ({ page }) => {
+    const sessao = await preparar(page, tema, { aparelho: aparelhoNovo(), brave: true, subscribeFalha: true });
+    await esperarServiceWorker(page);
+    await page.goto("/mais/lembretes");
+    // sem falha ainda, nada a explicar
+    await expect(page.locator("[data-instrucao]")).toHaveCount(0);
+    await page.getByRole("button", { name: "Ativar lembretes neste aparelho" }).click();
 
-  await expect(aviso(page)).toHaveText("O navegador não conseguiu ativar os avisos neste aparelho.");
-  const instrucao = page.locator('[data-instrucao="brave"]');
-  await expect(instrucao.getByRole("heading", { level: 3 })).toHaveText(
-    "No Brave, os avisos só chegam com os serviços do Google ligados",
-  );
-  await expect(instrucao).toContainText("Configurações do Brave → Privacidade e segurança");
-  await expect(instrucao).toContainText("“Usar os serviços do Google para mensagens push”");
-  expect(await lerDoMock(sessao, TABELA)).toHaveLength(0);
-  await semRolagemHorizontal(page);
-  await page.screenshot({ path: "test-results/l34-lembretes-brave-light.png" });
-});
+    await expect(aviso(page)).toHaveText("O navegador não conseguiu ativar os avisos neste aparelho.");
+    const instrucao = page.locator('[data-instrucao="brave"]');
+    await expect(instrucao.getByRole("heading", { level: 3 })).toHaveText(
+      "No Brave, os avisos só chegam com os serviços do Google ligados",
+    );
+    await expect(instrucao).toContainText("Configurações do Brave → Privacidade e segurança");
+    await expect(instrucao).toContainText("“Usar os serviços do Google para mensagens push”");
+    // o caso especial basta: a instrução genérica não se empilha
+    await expect(page.locator("[data-instrucao]")).toHaveCount(1);
+    expect(await lerDoMock(sessao, TABELA)).toHaveLength(0);
+    await alvosDe44(page);
+    await semRolagemHorizontal(page);
+    await page.screenshot({ path: `test-results/l34-lembretes-brave-${tema}.png` });
+  });
 
-test("navegador sem PushManager: não suportado, com o que fazer", async ({ page }) => {
-  await preparar(page, "dark", { semPush: true });
-  await page.goto("/mais/lembretes");
-  await expect(estado(page)).toHaveText("Este navegador não recebe notificações.");
-  const instrucao = page.locator('[data-instrucao="suporte"]');
-  await expect(instrucao).toContainText("No Android, abra o app no Chrome ou no Brave.");
-  await expect(page.getByRole("button", { name: /Ativar/ })).toHaveCount(0);
-  await semRolagemHorizontal(page);
-});
+  test(`${tema}: Chrome com o subscribe falhando: a frase e o que fazer (nunca só a frase)`, async ({ page }) => {
+    const sessao = await preparar(page, tema, { aparelho: aparelhoNovo(), subscribeFalha: true });
+    await esperarServiceWorker(page);
+    await page.goto("/mais/lembretes");
+    await expect(page.locator("[data-instrucao]")).toHaveCount(0);
+    await page.getByRole("button", { name: "Ativar lembretes neste aparelho" }).click();
+
+    await expect(aviso(page)).toHaveText("O navegador não conseguiu ativar os avisos neste aparelho.");
+    const instrucao = page.locator('[data-instrucao="tentar"]');
+    await expect(instrucao.getByRole("heading", { level: 3 })).toHaveText("Para tentar de novo");
+    await expect(instrucao).toContainText("Quando o navegador perguntar, escolha Permitir.");
+    await expect(instrucao).toContainText("notificações do navegador (ou do app instalado) estão ligadas");
+    await expect(estado(page)).toHaveText("Desativado neste aparelho.");
+    expect(await lerDoMock(sessao, TABELA)).toHaveLength(0);
+    await alvosDe44(page);
+    await semRolagemHorizontal(page);
+  });
+
+  test(`${tema}: navegador sem PushManager: não suportado, com o que fazer`, async ({ page }) => {
+    await preparar(page, tema, { semPush: true });
+    await page.goto("/mais/lembretes");
+    await expect(estado(page)).toHaveText("Este navegador não recebe notificações.");
+    const instrucao = page.locator('[data-instrucao="suporte"]');
+    await expect(instrucao).toContainText("No Android, abra o app no Chrome ou no Brave.");
+    await expect(page.getByRole("button", { name: /Ativar/ })).toHaveCount(0);
+    await alvosDe44(page);
+    await semRolagemHorizontal(page);
+  });
+
+  test(`${tema}: nenhum aparelho recebe (500): status com a cor de erro; sem nome, "Aparelho sem nome"`, async ({ page }) => {
+    const aparelho = aparelhoNovo();
+    const sessao = await preparar(page, tema, { aparelho });
+    await inserirNoMock(sessao, TABELA, [
+      { user_id: sessao.userId, endpoint: `${URL_MOCK}/__push/500/quebrado`, p256dh: aparelho.p256dh, auth: aparelho.auth, aparelho: "" },
+    ]);
+    await esperarServiceWorker(page);
+    await page.goto("/mais/lembretes");
+    const item = page.locator("[data-aparelho]");
+    await expect(item).toContainText("Aparelho sem nome");
+
+    await page.getByRole("button", { name: "Enviar um lembrete de teste" }).click();
+    await expect(recado(page)).toHaveText("Não deu para enviar agora.");
+    await expect(recado(page)).toHaveAttribute("data-falha", "");
+    await expect(recado(page)).toHaveClass(/text-destructive/);
+    await expect(recado(page)).not.toHaveClass(/bg-primary/);
+
+    await item.getByRole("button", { name: /Remover/ }).click();
+    await expect(recado(page)).toHaveText("Aparelho sem nome saiu da lista.");
+    await expect(recado(page)).not.toHaveAttribute("data-falha", "");
+    expect(await lerDoMock(sessao, TABELA)).toHaveLength(0);
+    await alvosDe44(page);
+    await semRolagemHorizontal(page);
+  });
+}
 
 /* ------------------------------ a linha nova de Mais: anel de foco inteiro */
 
