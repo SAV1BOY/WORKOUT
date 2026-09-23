@@ -817,6 +817,10 @@ async function conferirAneis(page: Page, raiz: string, onde: string) {
     pausa.recorte.width,
   );
   expect(anelDaPausa, `${onde}: anel da pausa contra a placa`).toBeGreaterThanOrEqual(3);
+  // a medida vai para o log da cadeia (o PROGRESSO cita os números)
+  console.log(
+    `[anel] ${onde}: figura ${mudamNaFigura} px, ${anel.toFixed(2)}:1 · pausa ${anelDaPausa.toFixed(2)}:1`,
+  );
   return { mudamNaFigura, anel, anelDaPausa };
 }
 
@@ -946,14 +950,12 @@ test.describe("L13 — o quadro 2 carrega antes de a troca começar (correção 
 test.describe("L13 — fotos em retrato inteiras (correção da auditoria 2, item 2)", () => {
   const RETRATO = ["agachamento-bulgaro", "barra-fixa-assistida", "barra-fixa-com-lastro"];
   for (const id of RETRATO) {
-    test(`${id}: as fotos 2:3 aparecem inteiras, na página e na opção Fotos`, async ({ page }) => {
+    test(`${id}: as fotos 2:3 aparecem inteiras na página do exercício`, async ({ page }) => {
       await preparar(page);
       await page.goto(`/exercicios/${id}`);
-      const segmento = page.getByRole("group", { name: "Como ver o exercício" });
-      await segmento.getByRole("button", { name: "Fotos" }).click();
+      // na página o segmento não tem "Fotos": as duas ampliáveis ficam embaixo
       const fotos = page.locator("main img[data-foto-execucao]");
-      // as 2 da opção Fotos do segmento e as 2 ampliáveis de baixo
-      await expect(fotos).toHaveCount(4);
+      await expect(fotos).toHaveCount(2);
       for (const foto of await fotos.all()) {
         await foto.scrollIntoViewIfNeeded();
         await expect

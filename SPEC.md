@@ -2387,9 +2387,8 @@ de cada item é verificável no Vitest ou no e2e (`e2e/ultraloop-l13.spec.ts`).
    a proporção da caixa é a do arquivo do kit lido do disco (±0,005), e 12
    são retrato; e2e — nenhuma foto de execução da ficha tem a caixa com
    proporção diferente da do arquivo (|Δ| ≤ 0,02), e as legendas estão
-   visíveis; nos três exercícios em retrato, na página e na opção Fotos, as
-   quatro fotos têm caixa 2:3, `object-fit: contain` e altura ≥ 1,45 × a
-   largura.
+   visíveis; nos três exercícios em retrato, na página do exercício, as duas
+   fotos têm caixa 2:3, `object-fit: contain` e altura ≥ 1,45 × a largura.
 3. **Só o que é link aparece sublinhado no crédito** (imagens-13). O crédito
    inteiro era um link sublinhado. Passa a **"Ilustração: <autor> ·
    <licença>"**, em 11 px (§13.8.1): o autor leva à obra de origem
