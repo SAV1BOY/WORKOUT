@@ -65,9 +65,20 @@ export function TutorialDoExercicio({ exercicioId }: { exercicioId: string }) {
           sem rede.
         </p>
         <Button asChild variant="outline" className="alvo h-11">
-          <a href={tutorial.url} target="_blank" rel="noreferrer noopener">
-            <ExternalLink className="size-4" />
+          {/*
+            O único ponto da ficha que sai do app (SPEC §22.14 item 4): por
+            isso o ícone de link externo mora aqui, e não na aba.
+          */}
+          <a
+            href={tutorial.url}
+            target="_blank"
+            rel="noreferrer noopener"
+            data-sai-do-app
+          >
+            <ExternalLink aria-hidden="true" data-icone-externo className="size-4" />
             Abrir no YouTube
+            {/* o ícone é só visual; o leitor de tela ouve que o link sai do app */}
+            <span className="sr-only"> (abre fora do app)</span>
           </a>
         </Button>
       </div>

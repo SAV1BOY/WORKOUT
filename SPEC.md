@@ -345,7 +345,7 @@ Toda sessão (treino do programa, sessão livre, circuito, sessão de barra fixa
 - Regras: fechar e reabrir volta ao mesmo passo (estado no Dexie); sem rede tudo funciona; Wake Lock ligado durante o player; nada muda no que é gravado (session_sets, exercise_state, progression_events, profiles.ultimo_treino).
 
 ### 14.2 Ficha em folha (bottom sheet) — `components/exercicio/ficha-folha.tsx`
-Abre por cima de qualquer tela (Treino, player, Explorar) sem perder estado: título + **Substituir** (mesmo fluxo de substitutos); mídia com três abas **Vídeo · Músculos · Tutorial**: Vídeo = figura animada (ou vídeo local) com botão de pausa; Músculos = figura + mapa frente/costas com primários fortes e secundários claros; **Tutorial** = vídeo do YouTube de `data/tutoriais.json` (81 entradas: `exercicio_id`, `youtube_id`, `titulo`, `canal`, `idioma`, `url`, `nota`; validado em `lib/schemas.ts`, lido por `lib/dados.ts`), mostrado como miniatura `https://i.ytimg.com/vi/<id>/hqdefault.jpg` + play, e só ao tocar vira `<iframe src="https://www.youtube-nocookie.com/embed/<id>">` (sem rede a aba mostra "Precisa de internet" e o botão "Abrir no YouTube"); stepper **Duração / Repetições / Séries** que ajusta **só a prescrição desta sessão** (nunca `exercise_state`); **Instruções** (passos do JSON) e **Erro comum**; **Área de foco** em chips (primário = ponto forte, secundário = claro) a partir de `musculos_*_nome`; histórico e recorde abaixo (como hoje); navegação **anterior/próximo (n/N)** dentro do treino; **Fechar**. A rota `/exercicios/[id]` continua existindo e usa o mesmo componente em página inteira.
+Abre por cima de qualquer tela (Treino, player, Explorar) sem perder estado: título + **Substituir** (mesmo fluxo de substitutos); mídia com três abas **Vídeo · Músculos · Tutorial no YouTube** (§22.14 item 4: o rótulo diz de onde vem o vídeo, sem ícone de link externo — com rede ele toca dentro do app —, e a aba só existe quando o JSON tem o tutorial): Vídeo = figura animada (ou vídeo local) com botão de pausa; Músculos = mapa frente/costas com primários fortes e secundários claros (§22.14 item 3: a figura já é a aba Vídeo e não se repete); **Tutorial** = vídeo do YouTube de `data/tutoriais.json` (81 entradas: `exercicio_id`, `youtube_id`, `titulo`, `canal`, `idioma`, `url`, `nota`; validado em `lib/schemas.ts`, lido por `lib/dados.ts`), mostrado como miniatura `https://i.ytimg.com/vi/<id>/hqdefault.jpg` + play, e só ao tocar vira `<iframe src="https://www.youtube-nocookie.com/embed/<id>">` (sem rede a aba mostra "Precisa de internet" e o botão "Abrir no YouTube"); stepper **Duração / Repetições / Séries** que ajusta **só a prescrição desta sessão** (nunca `exercise_state`); **Instruções** (passos do JSON) e **Erro comum**; **Área de foco** em chips (primário = ponto forte, secundário = claro) a partir de `musculos_*_nome` — na folha; na página ela não se repete (§22.14 item 3); histórico e recorde abaixo (sem nenhum dado, um cartão só — §22.14 item 2); navegação **anterior/próximo (n/N)** dentro do treino; **Fechar**. A rota `/exercicios/[id]` continua existindo e usa o mesmo componente em página inteira, com "Voltar" no topo e "Fazer agora" no fim (§22.14 item 1).
 
 ### 14.3 Aba Treino — acréscimos à §13.3
 Abaixo da lista do treino do dia: **Editar** (modo reordenar com alças e setas ↑↓; ordem só desta sessão, gravada em `sessions.plano` quando a sessão é criada; "voltar à ordem do programa"); **Ajustar** no cabeçalho, ao lado da data (descanso padrão, preparação, avançar sozinho, voz, vibração, tela acesa, mostrar raios); **Desafios** (carrossel manual, sem rotação automática, com os planos reais — títulos e botões como definidos em §22.7 item 6 e §22.12 itens 4 e 7; capa de `assets/`, semana atual e progresso); **Parte do corpo em foco** (chips dos 8 grupos → lista com miniatura, `N exercícios · ~M min`, raios, "Começar" = sessão livre com os 6 primeiros do grupo, compostos antes de isolamento); chips de filtro derivados (≤ 15 min · 15–30 min · com equipamento · sem equipamento · core · cardio); **Personalizar treino** ("Crie o seu próprio": escolher exercícios do catálogo e começar uma sessão livre). Sem busca na Treino (fica em Explorar).
@@ -2549,3 +2549,331 @@ de cada item é verificável no Vitest ou no e2e (`e2e/ultraloop-l13.spec.ts`).
     ≤ 4 px (as de aparelho incluídas); na seção Planos e na busca por
     "corda", na linha "Corda: 5 estágios" o selo está na meta, o subtítulo
     começa na coluna do título (±1 px) e a meta fica numa linha (≤ 18 px).
+
+### 22.14 Ficha: conteúdo e ações; nomes do catálogo e créditos
+
+Medido em `main` (0d54e5f, com o L12 e o L13 publicados) a 360×740. Dez
+itens do ledger e um (item 11) da auditoria 2 do lote (rodada 15): oito da
+ficha do exercício (página `/exercicios/[id]` e folha), e dois
+que entram por **exceção de área**: o texto dos Créditos (copy-08, Mais) é o
+crédito da mídia que a ficha mostra (§15.1 itens 3 e 4), e o nome da faixa
+elástica no catálogo (OBS-elastico-x-super-band) é a mesma troca de rótulo,
+no mesmo `lib/catalogo.ts`, que as tags de equipamento da ficha usam. O motor
+não muda (§22.0.1 item 7). O aceite de cada item é verificável no Vitest
+(`lib/ficha.test.ts`, `lib/catalogo.test.ts`) ou no e2e
+(`e2e/ultraloop-l14.spec.ts`).
+
+1. **A ficha em página tem volta e ação** (tela-explorar-fichas-19). A página
+   abria só com o título, sem "Voltar" e sem nada a fazer com o exercício.
+   Agora ela abre com **"Voltar"** no topo (link para `/exercicios`; quando
+   a aba tem uma página anterior **do app** — `navigation.canGoBack`, que só
+   conta as entradas desta origem, ou, sem a Navigation API, o tamanho do
+   histórico: `podeVoltarNoApp()` —, o toque volta a ela: quem chegou do
+   catálogo, do Progresso ou de uma coleção volta para lá; numa aba aberta
+   direto na ficha, vai ao catálogo) e fecha com **"Fazer
+   agora"**, que abre uma sessão livre só com este exercício pelo mesmo
+   `useSessaoLivre` das coleções (§14.3): o player grava cada série no
+   IndexedDB na hora, como qualquer sessão (§8). Enquanto o perfil e o dia
+   carregam, o botão fica desabilitado. A busca do catálogo é estado local da
+   lista e recomeça vazia na volta, como no voltar do navegador (anterior a
+   este item). Aceite: e2e — do catálogo, abrir a ficha e tocar "Voltar"
+   leva de volta a `/exercicios` com o índice da entrada do histórico
+   (`navigation.currentEntry.index`) de volta ao do catálogo — um back, não
+   um link que empilha; do Relatório ("Carga dos grandes"), "Voltar" leva
+   de volta a `/relatorio`, não ao `href` do link; numa aba nova aberta direto na ficha
+   (`canGoBack` falso, embora o `history.length` seja 2 com o about:blank),
+   "Voltar" leva a `/exercicios`; "Fazer agora"
+   (≥ 44 px) leva a `/treinar/<id>` com o exercício, e, sem rede, a primeira
+   série concluída está na sessão ativa e na fila de saída do IndexedDB.
+2. **Um cartão só quando não há histórico** (tela-explorar-fichas-20). Sem
+   nenhuma série, "Recorde", "Carga por sessão", "Últimas sessões" e "O que o
+   motor decidiu" apareciam como quatro cartões vazios. Quando os quatro
+   estão vazios (sem recorde, sem ponto no gráfico, sem sessão e sem evento
+   do motor — `historicoVazio()` em `lib/ficha.ts`, pura), eles viram **um
+   cartão**: "Ainda sem histórico deste exercício — ele começa na primeira
+   série registrada." "Onde você está" continua em cima na folha (é a
+   prescrição de hoje, não histórico). Na **página**, enquanto o motor não
+   avaliou o exercício (`primeira_vez`), "Onde você está" repetia a carga
+   inicial e a prescrição padrão que as seções "Carga inicial" e "Prescrição
+   padrão" mostram na mesma rolagem ("7,5 kg na barra" duas vezes, medido).
+   Ali ele só diz o que as seções não dizem — `ondeVoceEsta()`, pura:
+   (i) a **carga do motor quando ela não é a do JSON** — com as barras
+   pesadas em Mais → Equipamento (§3.9) o motor sobe ou desce a carga
+   inicial ao que dá para montar, e a seção mostra o número cru do JSON;
+   então o cartão mostra a carga do motor e "Montada com o peso das suas
+   barras (Mais → Equipamento)."; (ii) o **elástico** e a **semana leve**,
+   na linha "Próxima sessão". Sem elástico nem semana leve, a "Próxima
+   sessão" seria a prescrição padrão e não aparece; a nota "Ainda sem
+   registro: …" também não (ela é a nota da seção "Carga inicial"). Sem
+   nada disso, o cartão sai. O elástico aparece por extenso ("pé inteiro",
+   `nomeDaAssistencia()`, não "pe inteiro").
+   **Correção da auditoria:** a primeira versão tirava o cartão sempre que
+   não havia elástico nem semana leve, e com a barra W pesada a 5 kg a
+   página de rosca com barra W mostrava só "2 kg na barra" (a seção), acima
+   do "Fazer agora" que usa 5 kg (medido: 3 fichas com a barra W a 5 kg, 21
+   com a barra maciça a 8 kg, 23 com os halteres a 2 kg).
+   Aceite: Vitest — `historicoVazio` é verdadeiro só com os quatro vazios;
+   `ondeVoceEsta` tira o cartão só na página, na primeira vez, com a carga do
+   motor igual à do JSON e sem elástico nem semana leve; com a barra W a
+   5 kg, a barra maciça a 8 kg e os halteres a 2 kg, nas 81 fichas a carga
+   que a página mostra é a do motor (`cargaDeHoje` com `opcoesDeMontagem`);
+   e2e — a ficha em página de um exercício nunca treinado mostra um cartão
+   de histórico, não quatro (nem "Onde você está"); com a barra W de 5 kg,
+   a rosca com barra W mostra "Onde você está" com "5 kg na barra"; com o
+   elástico, o cartão diz "elástico pé inteiro" sem repetir "peso do
+   corpo"; na folha, "Onde você está" continua.
+3. **Nada repetido na ficha e títulos em ordem** (tela-explorar-fichas-21,
+   com a -22, a -23 e a parte da ficha do a11y-12). (a) A aba **Músculos**
+   fica só com o mapa e a legenda: a ilustração já é a aba Vídeo. (b) Na
+   página, a seção "Área de foco" sai: os músculos estão na aba Músculos, e
+   a página não repete o que a aba diz. Na folha ela continua (§14.2), porque
+   a folha é consultada no meio da série, sem trocar de aba. (c) Na página,
+   a seção **"Equipamento"** não repete o `equipamento_texto` (ele é o
+   subtítulo do cabeçalho) e vira as **tags**, cada uma link para a coleção
+   do aparelho no Explorar quando ela existe (`hrefDoEquipamento()`; anilhas,
+   halteres e barra W não têm coleção e ficam como texto). (d) Os treinos em
+   que o exercício aparece vêm depois de **"Aparece em:"** e cada um é link
+   para `/explorar/treino/<id>`. (e) O **nível dos títulos é o do contexto**
+   (`nivelDosTitulos()`): na página, o nome é o H1 e as seções da ficha são
+   **H2**; na folha, o título da folha é o H2 e as seções são H3 — antes a
+   página pulava de H1 para H3. (f) Com carga 0, a seção "Carga inicial"
+   diz "peso do corpo" e a nota **não repete** "peso corporal" embaixo:
+   fica só o complemento ("Anilha só quando passar de 15 limpas") ou nada
+   (`notaDaCargaInicial()`, pura) — era a mesma informação duas vezes na
+   seção (23 fichas) e, em 8 delas, a nota cabia inteira no subtítulo
+   ("Core · Tatame · peso corporal"). (g) O 3º passo do salto básico
+   repetia a prescrição ("… vai de 6 × 30 s a 5 × 3 min"); o dado foi
+   corrigido em `data/exercicios.json` ("Progrida pelo tempo de bloco, não
+   pela velocidade."). (h) Correção da auditoria 2 (rodada 15), só no
+   dado: a nota da barra W das 3 fichas que a usam dizia "corrija no
+   perfil" e passa a "corrija em Mais → Equipamento" (é lá que o peso das
+   barras se ajusta), e a regra do salto básico citava um arquivo
+   ("progressão de corda de cardio.json") e passa a "progressão do plano
+   da corda" — Vitest: nenhum texto do JSON que a ficha mostra cita nome de
+   arquivo nem manda ao "perfil" (`lib/ficha.test.ts`). **Correção da auditoria:** (f) e (g) entraram depois
+   de a auditoria aplicar o critério do e2e às 81 fichas (9 falhavam; 12
+   com as 3 do elástico, que o item 2 corrigido resolve). Aceite: Vitest —
+   as tags com coleção levam à rota da coleção do aparelho, as outras não
+   têm link, para todos os 81 exercícios; o critério do e2e (nenhum texto de
+   12 caracteres ou mais repetido nem contido em outro) aplicado aos textos
+   da página das 81 fichas, com o histórico vazio, sem e com as barras
+   pesadas (barra W 5 kg, barra maciça 8 kg, halteres 2 kg), não acha nada;
+   e2e — na página do supino, nenhum parágrafo ou item visível da ficha se
+   repete (e o mesmo em abdominal supra, salto com joelho alto, salto
+   básico, barra fixa assistida e flexão de braço), a aba Músculos não tem
+   imagem de execução, não há "Área de foco", as tags e os treinos são
+   links que abrem a coleção (o H1 da coleção aparece depois do toque), e a
+   lista de headings do `<main>` não pula nível (H1 → H2); na folha, o
+   título da folha é H2 e as seções são H3.
+4. **A aba do tutorial diz para onde leva** (tela-explorar-fichas-26). A aba
+   se chamava "Tutorial" e era oferecida mesmo sem tutorial no JSON. Agora
+   ela se chama **"Tutorial no YouTube"** e só existe quando
+   `data/tutoriais.json` tem o vídeo do exercício (`abasDaFicha()`; hoje os
+   81 têm). As três abas dividem a largura pelo tamanho do rótulo, sem cortar
+   nada a 360 px. **Correção da auditoria 2 (rodada 15):** a primeira versão
+   punha o ícone de link externo na aba, mas com rede o vídeo toca **dentro
+   do app** (miniatura → `youtube-nocookie` embutido, §14.2): o ícone
+   prometia uma saída que não acontece. A aba diz de onde vem o vídeo
+   ("no YouTube") e não leva o ícone; o ícone fica no único ponto que sai do
+   app, o **"Abrir no YouTube"** da aba sem rede (`target="_blank"`). O
+   ledger pedia "o destino externo dito no rótulo"; o destino só é externo
+   sem rede, e ali o rótulo e o ícone dizem isso. Aceite: Vitest — sem
+   tutorial, as abas são só Vídeo e Músculos; e2e — o rótulo da aba diz
+   "YouTube", sem ícone de saída, e nada vaza a largura na página e na
+   folha; com rede, tocar a miniatura põe o `<iframe>` do
+   `youtube-nocookie` na própria ficha, na mesma rota; sem rede, o link
+   "Abrir no YouTube" abre em outra aba e é ele que tem o ícone (e, para o
+   leitor de tela, que não vê o ícone, o nome do link termina em "(abre
+   fora do app)" — rodada 16).
+5. **O cartão "Apagar esta foto?" flutua como os outros**
+   (flutuante-no-dialogo-da-foto). Ele usava `shadow-lg`, que some sobre o
+   fundo `#0a0a0a`; passa à classe `.flutuante` (§22.3 item 5), que no escuro
+   desenha o anel de 1 px. Aceite: e2e — nos dois temas, a sombra do cartão é
+   a `--sombra-flutuante` do tema (no escuro, com o anel de 1 px).
+6. **As folhas são modais de verdade** (a11y-05). Vale para toda folha
+   (`components/ui/sheet.tsx`: ficha, "Substituir hoje", filtros do
+   catálogo, conquistas, montagem, bloco, personalizar, player) e, desde a
+   rodada 17, para toda camada modal do inventário no fim deste item. O conteúdo
+   da folha tem `aria-modal="true"`; enquanto ela está aberta, o resto da
+   página (`main`, `header`, `nav`) fica **`inert`** — fora do Tab e da
+   árvore do leitor de tela — e volta ao normal quando ela fecha; o primeiro
+   foco é o **título da folha** (`tabIndex=-1`), para o leitor anunciar o que
+   abriu antes da lista; Esc fecha e o foco volta ao botão que abriu — o
+   Radix só devolvia ao `SheetTrigger`, e nas folhas abertas por estado (a
+   ficha no player, pelo "Como fazer") o foco caía no `<body>` (medido): a
+   folha guarda quem tinha o foco ao abrir e devolve a ele.
+   A folha que já escolhia o próprio foco inicial (Ajustar, §22.7 item 3)
+   continua escolhendo. **O Esc fecha só a camada de cima** (correção da
+   auditoria 2, rodada 15): a Visão geral do treino é um diálogo próprio,
+   com o Esc escutado no `window` (§22.5 item 3), e fechava junto com a
+   folha aberta por cima dela ("substituir hoje" e o "Como fazer" do
+   bloco — medido: um Esc, zero diálogos, o gatilho fora do DOM). O Radix
+   trata o Esc antes, na captura do `document`, e marca `defaultPrevented`;
+   a Visão geral passa a ignorar o Esc já tratado. A foto ampliada da ficha
+   (o outro Esc global do app) segue a mesma regra: ignora o Esc já tratado
+   e marca o que trata. Aceite: e2e a 360×740, com a folha da ficha e a
+   "Substituir hoje" abertas — `aria-modal="true"`, `main`/`header`/`nav`
+   inertes, o foco no título, Tab não sai da folha, Esc fecha, o foco volta
+   ao gatilho e nada fica inerte depois; os filtros do catálogo abrem e
+   fecham com o foco de volta ao gatilho; dentro da Visão geral, nos dois
+   temas, o Esc na "substituir hoje" e na ficha do "Como fazer" do bloco
+   fecha só a folha — a Visão geral continua aberta, o foco volta ao
+   gatilho, nada fica inerte — e, sem folha, o Esc fecha a Visão geral; na
+   foto ampliada, um Esc que outra camada já tratou não a fecha.
+   **O voltar do celular também fecha só a camada de cima** (correção da
+   auditoria 1, rodada 16). O voltar do Android — e o gesto de voltar do
+   TalkBack/VoiceOver, e o Alt+← — é um `history.back()`: a folha não tem
+   entrada no histórico, então o `popstate` da Visão geral (§22.5 item 3)
+   fechava a lista e desmontava a folha junto (medido: "substituir hoje" e
+   "Como fazer" abertos sobre a Visão geral → voltar → zero folhas e zero
+   Visão geral, na mesma rota). Agora, se há uma camada aberta por cima da
+   lista (folha, o alerta "Descartar este treino?" ou o resumo do fim — a
+   foto ampliada não abre dentro da Visão geral), o `popstate` devolve a
+   entrada da lista ao histórico e entrega um Esc à camada de cima, que
+   fecha do jeito dela (e o foco volta a quem a abriu — nos diálogos, desde
+   a rodada 17); sem nada por cima, fecha a lista, como antes. Com o resumo
+   do fim **gravando** (`salvando`), ele ignora o Esc para não cortar a
+   gravação, e o voltar, que vira Esc, espera o fim dela. A foto ampliada passa a devolver o foco a quem
+   a abriu (Esc, X ou toque fora) e marca (`preventDefault`) o Esc que trata.
+   Aceite: e2e a 360×740, nos dois temas, dentro da Visão geral — o voltar
+   (`history.back()`) com a "substituir hoje" e com a ficha do "Como fazer"
+   do bloco abertas fecha só a folha: a Visão geral continua aberta, o foco
+   volta ao gatilho, a rota é a mesma, o índice do histórico volta ao de
+   antes do voltar e nada fica inerte; sem folha, o voltar fecha a Visão
+   geral e fica no player. Na ficha, a foto ampliada aberta pelo teclado:
+   o Esc que ela trata chega ao `window` com `defaultPrevented`, e o foco
+   volta ao "Ampliar a foto" depois do Esc e depois do X.
+   **A regra da folha vale para toda camada modal do app** (correção da
+   auditoria 2, rodada 17). Medido em 1d41620: o alerta "Descartar este
+   treino?" e o resumo do fim, abertos por estado dentro da Visão geral,
+   fechavam (Esc ou voltar) com o foco no `<body>` e abriam sem
+   `aria-modal` e com o fundo vivo — `dialog.tsx` e `alert-dialog.tsx` não
+   guardavam quem abriu, e o Radix devolve o foco só ao `Trigger`, que eles
+   não têm; na foto ampliada, 6 de 6 Tabs saíam da camada (no Corpo, para a
+   barra de baixo), e no "Apagar esta foto?" também, até o aviso por cima
+   do véu. A regra agora mora num lugar só: `lib/camada-modal.ts` decide
+   (quais irmãos ficam inertes, as marcas contadas entre camadas
+   empilhadas, quem recebe o foco na volta, para onde o Tab preso vai) com
+   Vitest, e `components/ui/camada-modal.ts` aplica no DOM —
+   `useCamadaModal` nos três primitivos do Radix (`sheet.tsx`,
+   `dialog.tsx`, `alert-dialog.tsx`) e `useCamadaPropria` na foto
+   ampliada e no cartão (que não usam o Radix, para não levar ~200 kB à
+   ficha). Toda camada abaixo marcada "sim": `aria-modal="true"`; ao
+   abrir, guarda quem tinha o foco (e, se ele estava dentro de outra
+   camada, também quem abriu aquela) e, ao fechar sem `Trigger` — ou com
+   ele —, devolve o foco ao primeiro desses que ainda existe e não está
+   inerte; enquanto aberta, os irmãos dela e dos ancestrais até o `<body>`
+   ficam `inert` (menos os avisos `aria-live` e o véu da própria camada);
+   cada camada conta a própria marca, então fechar uma — a de cima ou a de
+   baixo, em qualquer ordem — não libera o que a outra ainda precisa
+   inerte; o Tab e o Shift+Tab não saem dela (o `FocusScope` do Radix nos
+   primitivos; na foto e no cartão, o próprio hook). O cartão "Apagar esta
+   foto?" nasce com o foco no **Cancelar** (a resposta que não destrói
+   nada, como o `AlertDialog`; antes era o "Apagar") e, ao fechar — Esc,
+   Cancelar ou toque fora —, devolve o foco ao "Apagar" da foto, que
+   continua aberta. **Inventário** (grep em `app/` e `components/` por
+   `Sheet`, `Dialog`, `AlertDialog`, `role="dialog"`,
+   `role="alertdialog"`, `aria-modal` e `fixed inset-0`):
+
+   | Arquivo | Camada | Como abre | Regra da folha |
+   |---|---|---|---|
+   | `components/exercicio/ficha-folha.tsx` | Ficha do exercício (folha) | estado: "Como fazer" e figura no player; "Como fazer" do bloco na Visão geral | sim (`sheet.tsx`) |
+   | `components/treino/lista.tsx` | "Substituir hoje" da lista do dia | `SheetTrigger` | sim (`sheet.tsx`) |
+   | `components/treinar/bloco.tsx` | "substituir hoje" do bloco (Visão geral) | `SheetTrigger` | sim (`sheet.tsx`) |
+   | `components/exercicios/lista-exercicios.tsx` | Filtros do catálogo | `SheetTrigger` | sim (`sheet.tsx`) |
+   | `components/relatorio/conquistas.tsx` | Detalhe da conquista | estado (toque no card) | sim (`sheet.tsx`) |
+   | `components/treinar/montagem.tsx` | Montagem das barras | `SheetTrigger` | sim (`sheet.tsx`) |
+   | `components/treino/personalizar.tsx` | Personalizar o treino | `SheetTrigger` | sim (`sheet.tsx`) |
+   | `components/treino/fab-ajustar.tsx` | Ajustar (aba Treino) | `SheetTrigger` | sim (`sheet.tsx`) |
+   | `components/player/tela-player.tsx` | Ajustar (player) | estado | sim (`sheet.tsx`) |
+   | `components/treinar/resumo.tsx` | Resumo do fim | estado: "Concluir", ou "Descartar este treino" do alerta | sim (`dialog.tsx`) |
+   | `components/cardio/fim-cardio.tsx` | Fim do cardio | estado | sim (`dialog.tsx`) |
+   | `components/calendario/dialogos.tsx` | Dia do calendário (`DialogoDia`) | estado (toque no dia) | sim (`dialog.tsx`) |
+   | `components/calendario/dialogos.tsx` | Semana curta (`DialogoSemanaCurta`) | estado | sim (`dialog.tsx`) |
+   | `components/treino/retomada.tsx` | Retomada (dias sem treinar) | estado | sim (`dialog.tsx`) |
+   | `components/treinar/visao-geral.tsx` | "Descartar este treino?" | estado (botão do rodapé) | sim (`alert-dialog.tsx`) |
+   | `components/exercicios/foto-ampliada.tsx` | Foto ampliada (ficha e Corpo → Fotos) | estado (`fotos-ampliaveis.tsx`, `aba-fotos.tsx`) | sim (`useCamadaPropria`) |
+   | `components/exercicios/foto-ampliada.tsx` | "Apagar esta foto?" | estado ("Apagar" da foto) | sim (`useCamadaPropria`) |
+   | `components/treinar/visao-geral.tsx` | Visão geral do treino | estado (ícone de lista do player) | em parte: `aria-modal`, Esc e voltar fecham e o foco volta ao "Visão geral do treino" (§22.5 item 3); fundo inerte não se aplica — ela **substitui** o player (`tela-player.tsx` devolve só ela, sem cabeçalho nem barra), não há fundo; **fora:** o foco ao abrir fica no `<body>` (medido na auditoria 2 da rodada 15) → fila `a11y-visao-geral-foco-ao-abrir` |
+   | `components/player/descanso.tsx` | Tela de descanso | passo do player | não é camada: é um passo que substitui o player (`fixed inset-0`, `section`, sem `role="dialog"`), nada fica embaixo |
+
+   **O voltar do celular** fecha só a camada de cima **dentro da Visão
+   geral**, que é a única camada com entrada no histórico. Fora dela,
+   nenhuma camada da tabela tem entrada no histórico: com a folha, o
+   diálogo ou a foto aberta numa página, o voltar navega para a página
+   anterior (e a camada some com a página) — fica **fora** deste lote e vai
+   à fila como `a11y-voltar-fecha-camada` (voltar fecha só a camada de
+   cima também nas páginas). Aceite: Vitest (`lib/camada-modal.test.ts`) —
+   irmãos inertes e os que ficam de fora; marcas empilhadas liberadas em
+   qualquer ordem; candidatos ao foco da volta; Tab preso nas bordas. e2e a
+   360×740 (`e2e/ultraloop-l14.spec.ts`), um caso por tipo de camada, com
+   `aria-modal="true"`, nenhum focável fora da camada sem `inert`, 12 Tabs
+   e 4 Shift+Tabs dentro dela, e o foco de volta no gatilho com nada
+   inerte depois: a folha (os três casos acima); dentro da Visão geral,
+   nos dois temas, o alerta "Descartar este treino?" e o resumo do fim,
+   cada um fechado pelo Esc e pelo voltar — a Visão geral continua, a rota
+   e o índice do histórico são os de antes; o alerta que some por baixo do
+   resumo já aberto não libera o fundo, e o Esc no resumo devolve o foco
+   ao "Descartar este treino" do rodapé; a foto ampliada da ficha; no
+   Corpo → Fotos, nos dois temas, a foto e o cartão "Apagar esta foto?"
+   por cima — o cartão nasce no Cancelar, fecha pelo Esc, pelo toque fora
+   e pelo Cancelar, e cada vez a foto continua modal com o foco no
+   "Apagar"; o Esc seguinte fecha a foto e o foco volta ao "Ver a foto".
+7. **"Manutenção", não "repetição", no motor da ficha** (copy-13). O vazio do
+   cartão "O que o motor decidiu" dizia "Cada subida, repetição ou volta de
+   carga…", e "repetições" na mesma ficha são as da série. Passa a "Cada
+   subida, manutenção ou volta de carga aparece aqui depois do treino." Só a
+   frase da tela: o motivo `repetiu` do motor e "repetiu a carga no treino de
+   dd/mm" (`lib/hoje.ts`) ficam. Aceite: e2e — na ficha de um exercício com
+   séries e sem eventos do motor, o cartão mostra a frase nova e não contém
+   "repetição"; `git diff` de `lib/progressao.ts` e `lib/montagem.ts` vazio.
+8. **Uma grafia por equipamento** (copy-25). O filtro dizia "Cross-over",
+   "Super band" e "Peso do corpo"; o conteúdo (`equipamento_texto` e
+   `equipamentos.json`) diz "Cross over", "Super Band" e "peso corporal".
+   Os rótulos de `lib/catalogo.ts` passam à grafia do conteúdo. Ficam
+   "Halter" × "Halteres" e "Barra maciça" (ao lado de "Barra W" e "Barra
+   fixa", "Barra" sozinha seria ambígua). "peso do corpo" como **carga** no
+   player e no histórico ("peso do corpo" em vez de kg) é outra coisa — a
+   carga, não o implemento — e fica. Medido nos dados: dos 13 exercícios de
+   implemento `peso_corporal`, 11 dizem "peso corporal" no texto e 2 não
+   nomeiam o implemento (prancha → "Tatame", abdominal no banco declinado →
+   "Banco"); nenhum diz "peso do corpo". **Aceite ajustado** (o ledger
+   pedia "peso corporal" no texto de todo exercício de implemento
+   `peso_corporal`): os 2 que não nomeiam o implemento ficam como estão —
+   o texto diz o que a pessoa usa (tatame, banco), e acrescentar "peso
+   corporal" seria mudar o conteúdo por causa de um filtro. Aceite: Vitest — "Cross over" e
+   "Super Band" estão no `equipamento_texto` de todo exercício com a tag, e
+   todo texto de exercício de peso corporal que nomeia o implemento usa
+   "peso corporal"; e2e — o filtro "Cross over" mostra só cards cuja meta
+   contém "Cross over".
+9. **Um nome só para a faixa elástica** (OBS-elastico-x-super-band). O filtro
+   de Implemento dizia "Elástico" e o de Equipamento "Super band" para o
+   mesmo objeto (os 2 exercícios de implemento `band` também têm a tag
+   `super-band`). `NOME_IMPLEMENTO.band` passa a ser o nome do equipamento,
+   "Super Band". O circuito "Elástico" do Explorar é outra coisa (a vitrine,
+   §13.4) e fica. Aceite: Vitest — `NOME_IMPLEMENTO.band` é igual a
+   `NOME_EQUIPAMENTO['super-band']` e está no texto de todo exercício com o
+   implemento ou a tag; e2e — nas opções dos filtros, nenhuma "Elástico".
+10. **Créditos em linguagem de gente** (copy-08). O mapa muscular dizia "as
+    cores viraram variáveis CSS" e o link da licença "anda junto do desenho,
+    com a atribuição e o que foi feito com a geometria". Passa a "Nenhuma
+    linha do desenho foi alterada; só reagrupamos os músculos e trocamos as
+    cores." e "Texto completo da licença MIT, com a atribuição." Autor,
+    licença, fonte e o texto da licença continuam (§15.1 itens 3 e 4).
+    Aceite: e2e em `/mais/creditos` — nenhum texto visível contém "variáveis
+    CSS" nem "anda junto"; os links para a fonte e para
+    `/mapa-muscular/LICENCA-mapa-anatomico.md` continuam.
+11. **O anel do botão primário fica a 2 px do botão** (auditorias 1 e 2 do
+    lote, menor; rodada 15). O `Button` primário do shadcn desenhava o foco
+    com `ring-3 ring-ring`, e `--ring` é a cor de `--primary`: o anel colava
+    no botão com a mesma cor (1:1 contra ele) e o foco só parecia o botão
+    3 px maior — no "Fazer agora" (item 1) e em todo `BotaoLargo`. O
+    primário passa ao anel do app (§22.3 item 7): contorno sólido de 2 px na
+    cor `--ring`, a **2 px de distância**, com o fundo aparecendo entre o
+    anel e o botão. Os outros tons do `Button` (contorno, fantasma,
+    secundário) já tinham anel de outra cor que a deles e ficam. Aceite: e2e
+    a 360×740, nos dois temas, com o "Fazer agora" focado pelo Tab: contorno
+    `solid` de 2 px ou mais com `outline-offset` de 2 px ou mais; na captura
+    com e sem foco, o pixel 3 px por fora da borda (o anel) muda com
+    contraste ≥ 3:1 contra o fundo que estava ali, e o pixel 1 px por fora
+    (o vão) não muda.

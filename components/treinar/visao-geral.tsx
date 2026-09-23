@@ -2,7 +2,7 @@
 
 import { ChevronDown, LogOut, Trash2 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { BlocoExercicio } from "@/components/treinar/bloco";
 import { ResumoDoFim } from "@/components/treinar/resumo";
 import { TimerDescanso, type DescansoAtivo } from "@/components/treinar/timer-descanso";
@@ -68,12 +68,46 @@ export function VisaoGeralDaSessao({
    * voltar fecham a lista, e só ela: `pushState` põe uma entrada de história
    * para o `popstate` consumir, e quem fecha pelo botão desfaz essa entrada.
    */
+  const raiz = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     if (!aoFechar) return;
     window.history.pushState({ visaoGeralDoTreino: true }, "");
-    const aoVoltarDoCelular = () => aoFechar();
+    /*
+     * SPEC §22.14 item 6 (rodada 16): o voltar do celular — e o gesto de
+     * voltar do TalkBack/VoiceOver, e o Alt+← — segue a regra do Esc: fecha
+     * só a camada de cima. Com uma folha, um alerta ou a foto ampliada aberta
+     * por cima da lista, o `popstate` devolve a entrada da lista ao histórico
+     * e entrega um Esc à camada de cima, que fecha do jeito dela (o Radix
+     * devolve o foco a quem a abriu). Sem nada por cima, fecha a lista.
+     */
+    const aoVoltarDoCelular = () => {
+      const camadaPorCima = [
+        ...document.querySelectorAll<HTMLElement>('[role="dialog"], [role="alertdialog"]'),
+      ].some(
+        (el) =>
+          el !== raiz.current &&
+          !el.contains(raiz.current) &&
+          el.getAttribute("data-state") !== "closed",
+      );
+      if (!camadaPorCima) {
+        aoFechar();
+        return;
+      }
+      window.history.pushState({ visaoGeralDoTreino: true }, "");
+      (document.activeElement ?? document.body).dispatchEvent(
+        new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }),
+      );
+    };
+    /*
+     * SPEC §22.14 item 6: o Esc fecha só a camada de cima. Com uma folha
+     * aberta por cima da lista ("substituir hoje", o "Como fazer", a
+     * montagem) o Radix trata o Esc antes, na captura do document, e marca
+     * `defaultPrevented`; a foto ampliada faz o mesmo. Esse Esc já foi gasto:
+     * fecha a folha e a lista fica.
+     */
     const naTecla = (evento: KeyboardEvent) => {
-      if (evento.key !== "Escape") return;
+      if (evento.key !== "Escape" || evento.defaultPrevented) return;
       evento.preventDefault();
       aoFechar();
     };
@@ -95,6 +129,7 @@ export function VisaoGeralDaSessao({
 
   return (
     <div
+      ref={raiz}
       role="dialog"
       aria-modal="true"
       aria-label="Visão geral do treino"

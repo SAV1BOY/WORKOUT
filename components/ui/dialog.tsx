@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils"
 import { Dialog as DialogPrimitive } from "radix-ui"
 
 import { Button } from "@/components/ui/button"
+import { useCamadaModal } from "@/components/ui/camada-modal"
 import { XIcon } from "lucide-react"
 
 function Dialog({
@@ -51,15 +52,29 @@ function DialogContent({
   className,
   children,
   showCloseButton = true,
+  onCloseAutoFocus,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean
 }) {
+  /*
+   * A regra da folha (SPEC §22.14 item 6, `components/ui/camada-modal.ts`):
+   * `aria-modal`, fundo `inert` enquanto aberto e o foco de volta a quem
+   * abriu — o resumo do fim e o calendário abrem por estado, sem
+   * `DialogTrigger`, e o Radix deixava o foco no `<body>`.
+   */
+  const camada = useCamadaModal()
   return (
     <DialogPortal>
       <DialogOverlay />
       <DialogPrimitive.Content
+        ref={camada.ref}
         data-slot="dialog-content"
+        aria-modal="true"
+        onCloseAutoFocus={(evento) => {
+          onCloseAutoFocus?.(evento)
+          camada.devolverFoco(evento)
+        }}
         className={cn(
           "fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl bg-popover p-4 text-sm text-popover-foreground ring-1 ring-foreground/10 duration-100 outline-none sm:max-w-sm data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
           className

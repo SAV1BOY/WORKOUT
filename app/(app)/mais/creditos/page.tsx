@@ -75,7 +75,7 @@ export default function Creditos() {
 
       <Bloco
         titulo="Mapa muscular"
-        resumo="Geometria derivada de MuscleMap, de Melih Colpan (licença MIT), pela conversão publicada em openGym. Nenhum ponto do desenho foi alterado; os músculos foram reagrupados e as cores viraram variáveis CSS."
+        resumo="Geometria derivada de MuscleMap, de Melih Colpan (licença MIT), pela conversão publicada em openGym. Nenhuma linha do desenho foi alterada; só reagrupamos os músculos e trocamos as cores."
       >
         <Fonte
           nome="MuscleMap (Melih Colpan)"
@@ -101,11 +101,8 @@ export default function Creditos() {
           >
             Texto completo da licença MIT
           </a>
-          <span className="text-muted-foreground">
-            {" "}
-            — anda junto do desenho, com a atribuição e o que foi feito com a
-            geometria
-          </span>
+          {/* SPEC §22.14 item 10: o que a licença exige, sem nota de implementação */}
+          <span className="text-muted-foreground">, com a atribuição.</span>
         </p>
       </Bloco>
 

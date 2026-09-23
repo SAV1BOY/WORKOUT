@@ -74,12 +74,12 @@ test.describe("Catálogo (SPEC §3.6)", () => {
     ).toBeVisible();
     // as duas fotos e, na aba Músculos (SPEC §14.2), o mapa frente/costas
     await expect(page.getByRole("button", { name: /Ampliar a foto/ })).toHaveCount(2);
-    await expect(page.getByRole("list", { name: "Área de foco" })).toContainText(
-      "Peitoral",
-    );
+    // SPEC §22.14 item 3(b): na página os músculos ficam só na aba Músculos
+    await expect(page.getByRole("list", { name: "Área de foco" })).toHaveCount(0);
     await page.getByRole("tab", { name: "Músculos" }).click();
     await expect(page.getByRole("img", { name: "Frente" })).toBeVisible();
     await expect(page.getByRole("img", { name: "Costas" })).toBeVisible();
+    await expect(page.getByRole("tabpanel")).toContainText("Peitoral");
 
     // conteúdo do JSON: instruções, erro comum, prescrição, carga inicial e regra
     await expect(page.getByRole("heading", { name: "Instruções" })).toBeVisible();
@@ -88,9 +88,11 @@ test.describe("Catálogo (SPEC §3.6)", () => {
     await expect(page.getByText("3 × 5–8").first()).toBeVisible();
     await expect(page.getByText("7,5 kg na barra").first()).toBeVisible();
 
-    // histórico vazio: a ficha já diz onde ele está hoje
-    await expect(page.getByText("Onde você está")).toBeVisible();
-    await expect(page.getByText(/Sem recorde ainda/)).toBeVisible();
+    // histórico vazio: um cartão só, e "Onde você está" não repete a carga
+    // inicial e a prescrição das seções acima (SPEC §22.14 item 2)
+    await expect(page.getByText("Ainda sem histórico deste exercício")).toBeVisible();
+    await expect(page.getByText("Onde você está")).toHaveCount(0);
+    await expect(page.getByText(/Sem recorde ainda/)).toHaveCount(0);
     await semRolagemHorizontal(page);
   });
 

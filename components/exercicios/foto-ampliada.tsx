@@ -2,6 +2,7 @@
 
 import { Trash2, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { useCamadaPropria } from "@/components/ui/camada-modal";
 import { fonteComReserva, reservaDaImagem } from "@/components/ui/imagem";
 import { medidaDaFoto, urlWebp } from "@/lib/midia";
 
@@ -13,11 +14,16 @@ import { medidaDaFoto, urlWebp } from "@/lib/midia";
  * bundle de ~200 kB só desta rota: a ficha do exercício fechava em 353 kB de
  * first load, acima do teto de 350 kB, por causa de um overlay com uma imagem
  * dentro. Uma camada própria faz o mesmo: `role="dialog"`, `aria-modal`, foco
- * no botão de fechar, Esc e toque fora fecham.
+ * no botão de fechar, Esc e toque fora fecham — e a regra da folha (SPEC
+ * §22.14 item 6) vem de `components/ui/camada-modal.ts`, o mesmo lugar das
+ * folhas e diálogos do Radix, sem o Radix: fundo `inert`, Tab preso e o foco
+ * de volta a quem abriu.
  *
  * Com `aoApagar` (Corpo → Fotos, SPEC §22.2 item 3) a camada ganha o botão
- * **Apagar** e a confirmação — um segundo diálogo, `role="alertdialog"`, que
- * pega o foco, fecha no Esc e não deixa apagar por toque acidental.
+ * **Apagar** e a confirmação — um segundo diálogo, `role="alertdialog"`, com
+ * a mesma regra por cima da foto: pega o foco (no **Cancelar**, a resposta
+ * que não destrói nada), prende o Tab, deixa a foto inerte embaixo, fecha no
+ * Esc e devolve o foco ao "Apagar" da foto.
  */
 export function FotoAmpliada({
   url,
@@ -51,12 +57,19 @@ export function FotoAmpliada({
    * continua sendo a do CSS.
    */
   const medida = medidaDaFoto(fonte.src);
+  const camada = useRef<HTMLDivElement>(null);
   const fechar = useRef<HTMLButtonElement>(null);
-  const confirmar = useRef<HTMLButtonElement>(null);
   const [confirmando, setConfirmando] = useState(false);
 
+  /*
+   * SPEC §22.14 item 6: a regra da folha. Ao abrir, o foco vai ao "Fechar a
+   * foto" e o resto da página fica `inert`; o Tab não sai da camada; ao fechar
+   * — Esc, X ou toque fora — o foco volta a quem abriu a foto. Se quem abriu
+   * sumiu (a foto apagada no Corpo), o foco fica onde o navegador puser.
+   */
+  useCamadaPropria(camada, fechar);
+
   useEffect(() => {
-    fechar.current?.focus();
     // sem isto a tela rola atrás da foto ampliada
     const antes = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -65,10 +78,16 @@ export function FotoAmpliada({
     };
   }, []);
 
-  // o Esc fecha a confirmação primeiro, e só depois a foto
+  /*
+   * O Esc fecha a confirmação primeiro, e só depois a foto. Mesma regra da
+   * Visão geral (SPEC §22.14 item 6): um Esc que outra camada já tratou
+   * (`defaultPrevented`, como o Radix marca) não fecha a foto, e o que a foto
+   * trata ela marca, para ninguém embaixo fechar junto.
+   */
   useEffect(() => {
     const aoTeclar = (e: KeyboardEvent) => {
-      if (e.key !== "Escape") return;
+      if (e.key !== "Escape" || e.defaultPrevented) return;
+      e.preventDefault();
       if (confirmando) setConfirmando(false);
       else aoFechar();
     };
@@ -76,12 +95,9 @@ export function FotoAmpliada({
     return () => document.removeEventListener("keydown", aoTeclar);
   }, [aoFechar, confirmando]);
 
-  useEffect(() => {
-    if (confirmando) confirmar.current?.focus();
-  }, [confirmando]);
-
   return (
     <div
+      ref={camada}
       role="dialog"
       aria-modal="true"
       aria-label={titulo}
@@ -127,46 +143,81 @@ export function FotoAmpliada({
       ) : null}
 
       {confirmando && aoApagar ? (
-        <div
-          role="alertdialog"
-          aria-modal="true"
-          aria-label="Apagar esta foto?"
-          onClick={(e) => e.stopPropagation()}
-          className="bg-background absolute inset-x-3 bottom-3 flex flex-col gap-3 rounded-xl p-4 shadow-lg"
-        >
-          <p className="text-sm">Apagar esta foto? Não dá para desfazer.</p>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              data-confirmacao="cancelar"
-              onClick={() => setConfirmando(false)}
-              className="alvo border-input h-12 flex-1 rounded-md border text-sm font-medium"
-            >
-              Cancelar
-            </button>
-            {/*
-              `text-background`, e não `text-white`: no tema escuro o
-              `--destructive` é claro (#f87171) e o branco em cima dele dava
-              2,77:1 — reprovado no AA, e logo no botão que apaga uma foto de
-              progresso para sempre. Com a cor do fundo do tema o rótulo fecha
-              6,5:1 no claro e 7,2:1 no escuro (auditoria do lote 2).
-            */}
-            <button
-              ref={confirmar}
-              type="button"
-              data-confirmacao="apagar"
-              disabled={apagando}
-              onClick={() => {
-                setConfirmando(false);
-                aoApagar();
-              }}
-              className="alvo bg-destructive text-background h-12 flex-1 rounded-md text-sm font-medium disabled:opacity-60"
-            >
-              {apagando ? "Apagando…" : "Apagar"}
-            </button>
-          </div>
-        </div>
+        <ConfirmarApagar
+          apagando={apagando}
+          aoCancelar={() => setConfirmando(false)}
+          aoApagar={() => {
+            setConfirmando(false);
+            aoApagar();
+          }}
+        />
       ) : null}
+    </div>
+  );
+}
+
+/**
+ * O "Apagar esta foto?" por cima da foto (SPEC §22.2 item 3): uma segunda
+ * camada com a regra da folha (§22.14 item 6). Monta e desmonta com a
+ * pergunta, então o `useCamadaPropria` guarda o "Apagar" da foto ao abrir e
+ * devolve o foco a ele ao fechar.
+ */
+function ConfirmarApagar({
+  apagando,
+  aoCancelar,
+  aoApagar,
+}: {
+  apagando: boolean;
+  aoCancelar: () => void;
+  aoApagar: () => void;
+}) {
+  const cartao = useRef<HTMLDivElement>(null);
+  const cancelar = useRef<HTMLButtonElement>(null);
+  useCamadaPropria(cartao, cancelar);
+
+  return (
+    <div
+      ref={cartao}
+      role="alertdialog"
+      aria-modal="true"
+      aria-label="Apagar esta foto?"
+      onClick={(e) => e.stopPropagation()}
+      data-confirmar-apagar
+      /*
+        SPEC §22.14 item 5 (§22.3 item 5): `.flutuante`, e não
+        `shadow-lg` — a sombra preta sumia sobre o fundo #0a0a0a; no
+        escuro a elevação é o anel de 1 px da `--sombra-flutuante`.
+      */
+      className="bg-background flutuante absolute inset-x-3 bottom-3 flex flex-col gap-3 rounded-xl p-4"
+    >
+      <p className="text-sm">Apagar esta foto? Não dá para desfazer.</p>
+      <div className="flex gap-2">
+        <button
+          ref={cancelar}
+          type="button"
+          data-confirmacao="cancelar"
+          onClick={aoCancelar}
+          className="alvo border-input h-12 flex-1 rounded-md border text-sm font-medium"
+        >
+          Cancelar
+        </button>
+        {/*
+          `text-background`, e não `text-white`: no tema escuro o
+          `--destructive` é claro (#f87171) e o branco em cima dele dava
+          2,77:1 — reprovado no AA, e logo no botão que apaga uma foto de
+          progresso para sempre. Com a cor do fundo do tema o rótulo fecha
+          6,5:1 no claro e 7,2:1 no escuro (auditoria do lote 2).
+        */}
+        <button
+          type="button"
+          data-confirmacao="apagar"
+          disabled={apagando}
+          onClick={aoApagar}
+          className="alvo bg-destructive text-background h-12 flex-1 rounded-md text-sm font-medium disabled:opacity-60"
+        >
+          {apagando ? "Apagando…" : "Apagar"}
+        </button>
+      </div>
     </div>
   );
 }
