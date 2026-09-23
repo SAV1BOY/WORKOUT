@@ -3243,7 +3243,10 @@ Os dias são **os dias de treino do perfil** (§17): nada a escolher aqui além 
 hora. Gravado em `profiles.prefs.lembretes = {treino: {ligado, hora},
 corrida: {ligado, hora}}`, validado por `prefsLembretesSchema` (Zod, em
 `lib/schemas.ts`: hora `HH:MM` de `00:00` a `23:55`, múltiplo de 5 min, o
-passo do disparo). Sem a chave, os dois vêm **desligados às 07:00** — ninguém
+passo do disparo; uma hora fora do passo, digitada no computador, é
+arredondada para baixo: 06:47 → 06:45). O campo tem largura para o formato de
+12 h (“06:45 AM”) do navegador em inglês sem cortar. Sem a chave, os dois vêm
+**desligados às 07:00** — ninguém
 passa a receber aviso sem pedir. A gravação é a mesma de Preferências
 (`salvarPrefs`, a fila offline cobre) e nunca apaga outras chaves de `prefs`.
 O fuso é sempre **America/Sao_Paulo**.
@@ -3302,8 +3305,9 @@ em `schema.sql`, idempotente e expand-only):
   **sem os dois, ou sem o `pg_net`, não faz nada** (retorna sem erro e sem
   chamar a rede). Com eles, monta o JSON mínimo de quem tem ao menos um
   lembrete ligado **e** ao menos uma inscrição — perfil (fase, último treino,
-  semanas dos planos, `prefs`), overrides e sessões/cardios dos últimos 8
-  dias, os envios de hoje e as inscrições — e faz `net.http_post` para a URL
+  semanas dos planos, `prefs`), os overrides de 8 dias antes a 7 depois de
+  hoje, as sessões e os cardios dos últimos 8 dias, os envios de hoje e as
+  inscrições — e faz `net.http_post` para a URL
   com o cabeçalho `x-lembretes-segredo`. Sem ninguém a avisar, não chama.
 - `public.lembretes_resultado(segredo text, enviados jsonb, expirados text[])`
   — `security definer`, `search_path` fixo, revogado de `public`, `execute`
@@ -3328,7 +3332,8 @@ role**, nem no servidor.
 2. `x-lembretes-segredo` ausente ou diferente (`timingSafeEqual` sobre os
    `sha256`) → **401**, sem ler o corpo;
 3. sem as variáveis VAPID → **503** `SEM_CONFIGURACAO`;
-4. corpo fora do `disparoSchema` (Zod) → **400**;
+4. corpo que não é JSON ou fora do `disparoSchema` (Zod) → **400**; maior
+   que 512 KiB → **413**;
 5. para cada conta, `lembretesDevidos()`; cada aviso devido vai para cada
    inscrição da conta com `lib/web-push.ts` (a mesma cifragem e o mesmo VAPID
    do teste, só para `endpointAceito()`);
@@ -3361,7 +3366,7 @@ push nenhum.
 - **Passo 3 das instruções de permissão** diz a verdade nos dois caminhos:
   "Volte aqui: a tela confere de novo sozinha — mostra “Ativar lembretes neste
   aparelho” ou, se a inscrição continuou valendo, “Ativado neste aparelho”."
-- **"Último lembrete: hoje às 07:00"** (ou "dd/mm às HH:MM"), lido de
+- **"Último lembrete: hoje às 07:00"** (ou "ontem às …", "dd/mm às …"), lido de
   `lembretes_enviados` pela RLS, e **"Próximo: …"** pela regra de 23.10.
 - **Sair** continua sem apagar a inscrição do aparelho: a linha é da conta
   que ativou; outra conta que ativar no mesmo aparelho toma o endpoint

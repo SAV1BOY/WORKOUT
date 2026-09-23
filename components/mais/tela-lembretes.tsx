@@ -747,7 +747,7 @@ function BlocoHorarios({ userId }: { userId: string }) {
                   step={PASSO_MIN * 60}
                   value={horas[tipo]}
                   onChange={(e) => mudarHora(tipo, e.target.value)}
-                  className="alvo numero h-12 w-32"
+                  className="alvo numero h-12 w-40"
                 />
               </div>
             </div>
