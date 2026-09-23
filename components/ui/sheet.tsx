@@ -80,6 +80,7 @@ function SheetContent({
   side = "right",
   showCloseButton = true,
   onOpenAutoFocus,
+  onCloseAutoFocus,
   ...props
 }: React.ComponentProps<typeof SheetPrimitive.Content> & {
   side?: "top" | "right" | "bottom" | "left"
@@ -90,8 +91,20 @@ function SheetContent({
    * desmontar — depois da animação de saída, antes de o Radix devolver o foco
    * ao gatilho (ele faz isso num setTimeout), então o gatilho já não é inerte.
    */
+  /*
+   * O foco volta a quem abriu (§22.14 item 6). O Radix devolve ao
+   * `SheetTrigger`, mas as folhas controladas por estado (a ficha no player,
+   * aberta pelo "Como fazer" ou pela figura) não têm trigger, e o foco caía no
+   * `<body>`. Ao montar, o foco ainda está no gatilho: é ele que se guarda.
+   */
+  const anterior = React.useRef<HTMLElement | null>(null)
   const marcarFora = React.useCallback((no: HTMLDivElement | null) => {
     if (!no) return
+    const ativo = document.activeElement
+    anterior.current =
+      ativo instanceof HTMLElement && ativo !== document.body && !no.contains(ativo)
+        ? ativo
+        : null
     return inertizarForaDe(no)
   }, [])
   return (
@@ -117,6 +130,15 @@ function SheetContent({
           if (!titulo) return
           evento.preventDefault()
           titulo.focus()
+        }}
+        onCloseAutoFocus={(evento) => {
+          onCloseAutoFocus?.(evento)
+          if (evento.defaultPrevented) return
+          const gatilho = anterior.current
+          anterior.current = null
+          if (!gatilho || !gatilho.isConnected) return
+          evento.preventDefault()
+          gatilho.focus()
         }}
         className={cn(
           "fixed z-50 flex flex-col gap-4 bg-popover bg-clip-padding text-sm text-popover-foreground shadow-lg transition duration-200 ease-in-out data-[side=bottom]:inset-x-0 data-[side=bottom]:bottom-0 data-[side=bottom]:h-auto data-[side=bottom]:border-t data-[side=left]:inset-y-0 data-[side=left]:left-0 data-[side=left]:h-full data-[side=left]:w-3/4 data-[side=left]:border-r data-[side=right]:inset-y-0 data-[side=right]:right-0 data-[side=right]:h-full data-[side=right]:w-3/4 data-[side=right]:border-l data-[side=top]:inset-x-0 data-[side=top]:top-0 data-[side=top]:h-auto data-[side=top]:border-b data-[side=left]:sm:max-w-sm data-[side=right]:sm:max-w-sm data-open:animate-in data-open:fade-in-0 data-[side=bottom]:data-open:slide-in-from-bottom-10 data-[side=left]:data-open:slide-in-from-left-10 data-[side=right]:data-open:slide-in-from-right-10 data-[side=top]:data-open:slide-in-from-top-10 data-closed:animate-out data-closed:fade-out-0 data-[side=bottom]:data-closed:slide-out-to-bottom-10 data-[side=left]:data-closed:slide-out-to-left-10 data-[side=right]:data-closed:slide-out-to-right-10 data-[side=top]:data-closed:slide-out-to-top-10",
