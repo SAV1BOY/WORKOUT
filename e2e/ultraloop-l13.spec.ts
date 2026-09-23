@@ -947,6 +947,139 @@ test.describe("L13 — o quadro 2 carrega antes de a troca começar (correção 
   });
 });
 
+/*
+ * Correção da auditoria 3 (SPEC §22.13 item 4): a ficha aberta no player
+ * troca de exercício no lugar (‹ ›). A ilustração do exercício novo não pode
+ * herdar a posição nem o "quadro 2 pedido / chegou" do anterior.
+ */
+test.describe("L13 — a ilustração nasce de novo ao trocar de exercício na ficha (correção da auditoria 3, item 4)", () => {
+  // o service worker serviria os quadros do cache dele, fora do `route`
+  test.use({ serviceWorkers: "block" });
+
+  /** Os quadros e o estado da figura da aba Vídeo da ficha em folha. */
+  async function lerFigura(figura: Locator) {
+    return figura.evaluate((el) => {
+      const imgs = [...el.querySelectorAll("img")] as HTMLImageElement[];
+      return {
+        srcs: imgs.map((i) => i.getAttribute("src") ?? ""),
+        chegou2: Boolean(imgs[1]?.complete && imgs[1].naturalWidth > 0),
+        posicao: el.getAttribute("data-posicao"),
+        estado: el.getAttribute("data-ilustracao"),
+      };
+    });
+  }
+
+  async function irAoProximo(page: Page, id: string): Promise<Locator> {
+    const ficha = page.getByRole("dialog");
+    await ficha.getByRole("button", { name: "Próximo exercício" }).click();
+    const figura = ficha.locator("[data-ilustracao]").first();
+    await expect
+      .poll(async () => (await lerFigura(figura)).srcs[0] ?? "")
+      .toContain(`/ilustracoes/${id}-1.`);
+    return figura;
+  }
+
+  test("› do agachamento (na posição 2) ao supino: o quadro 2 espera o 1 e a troca espera o 2", async ({
+    page,
+  }) => {
+    await preparar(page);
+    const QUADRO_2 = new RegExp(`/ilustracoes/${SUPINO}-2\\.`);
+    const tempos: { fim1: number | null; inicio2: number | null } = { fim1: null, inicio2: null };
+    page.on("request", (r) => {
+      if (r.resourceType() === "image" && QUADRO_2.test(r.url())) tempos.inicio2 ??= Date.now();
+    });
+    page.on("requestfinished", (r) => {
+      if (r.resourceType() === "image" && r.url().includes(`/ilustracoes/${SUPINO}-1.`)) {
+        tempos.fim1 ??= Date.now();
+      }
+    });
+    // o quadro 2 do supino demora 2,5 s para chegar
+    await page.route(QUADRO_2, async (rota) => {
+      await new Promise((r) => setTimeout(r, 2_500));
+      await rota.continue();
+    });
+
+    await abrirFichaNoPlayer(page);
+    const ficha = page.getByRole("dialog");
+    const figura = ficha.locator("[data-ilustracao]").first();
+    await expect
+      .poll(async () => (await lerFigura(figura)).srcs[0] ?? "")
+      .toContain("/ilustracoes/agachamento-livre-1.");
+    // o agachamento alternando e na posição 2 (é o estado que não pode passar adiante)
+    await expect(figura).toHaveAttribute("data-posicao", "2", { timeout: 6_000 });
+
+    await irAoProximo(page, SUPINO);
+    // enquanto o quadro 2 do supino não chegou, a posição fica na 1
+    let amostrasSemOQuadro2 = 0;
+    for (let i = 0; i < 12; i += 1) {
+      const f = await lerFigura(figura);
+      if (f.chegou2) break;
+      amostrasSemOQuadro2 += 1;
+      expect(f.posicao, "sem o quadro 2 do supino, a posição fica na 1").toBe("1");
+      await page.waitForTimeout(150);
+    }
+    expect(amostrasSemOQuadro2, "o atraso do quadro 2 foi visto").toBeGreaterThan(3);
+    await expect.poll(() => tempos.inicio2).not.toBeNull();
+    expect(tempos.fim1, "o quadro 1 do supino foi pedido e chegou").not.toBeNull();
+    expect(tempos.inicio2!, "o quadro 2 do supino só é pedido depois do 1").toBeGreaterThanOrEqual(
+      tempos.fim1!,
+    );
+    // chegou: a troca começa
+    await expect
+      .poll(async () => (await lerFigura(figura)).chegou2, { timeout: 6_000 })
+      .toBe(true);
+    await expect(figura).toHaveAttribute("data-posicao", "2", { timeout: 4_000 });
+  });
+
+  test("› da rosca direta (na posição 2) à elevação de pernas (um quadro): a imagem aparece", async ({
+    page,
+  }) => {
+    await preparar(page);
+    await abrirFichaNoPlayer(page);
+    // A1, segunda 14/09: agachamento, supino, remada, desenvolvimento, rosca, elevação de pernas
+    for (const id of [SUPINO, "remada-curvada-pronada", "desenvolvimento-com-halteres"]) {
+      await irAoProximo(page, id);
+    }
+    const figura = await irAoProximo(page, "rosca-direta-com-barra");
+    await expect(figura).toHaveAttribute("data-posicao", "2", { timeout: 6_000 });
+
+    await irAoProximo(page, "elevacao-de-pernas-na-barra-fixa");
+    await expect(figura).toHaveAttribute("data-ilustracao", "parada");
+    const unica = figura.locator("img");
+    await expect(unica).toHaveCount(1);
+    await expect
+      .poll(() => unica.evaluate((i) => (i as HTMLImageElement).naturalWidth))
+      .toBeGreaterThan(0);
+    await expect
+      .poll(() => unica.evaluate((i) => getComputedStyle(i).opacity), { timeout: 2_000 })
+      .toBe("1");
+  });
+
+  test("o quadro 2 não chega (pedido abortado): a figura fica parada e sem o botão de pausa", async ({
+    page,
+  }) => {
+    await preparar(page);
+    let abortados = 0;
+    await page.route(new RegExp(`/ilustracoes/${SUPINO}-2\\.`), async (rota) => {
+      abortados += 1;
+      await rota.abort("failed");
+    });
+    await page.goto(`/exercicios/${SUPINO}`);
+    const ilustracao = page.locator("[data-ilustracao]").first();
+    await expect.poll(() => abortados).toBeGreaterThan(0);
+    await expect(ilustracao).toHaveAttribute("data-ilustracao", "parada");
+    await expect(ilustracao.locator("[data-pausa]")).toHaveCount(0);
+    await expect(ilustracao.getByRole("button", { name: /Parar a animação|Voltar a alternar/ })).toHaveCount(0);
+    // a figura continua lá, no quadro 1
+    await expect(ilustracao).toHaveAttribute("data-posicao", "1");
+    const primeiro = ilustracao.locator("img").first();
+    await expect
+      .poll(() => primeiro.evaluate((i) => getComputedStyle(i).opacity))
+      .toBe("1");
+    await expect(page.getByRole("img", { name: /^Execução do / }).first()).toBeVisible();
+  });
+});
+
 test.describe("L13 — fotos em retrato inteiras (correção da auditoria 2, item 2)", () => {
   const RETRATO = ["agachamento-bulgaro", "barra-fixa-assistida", "barra-fixa-com-lastro"];
   for (const id of RETRATO) {
