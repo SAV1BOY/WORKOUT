@@ -11159,24 +11159,55 @@ correção; `r18/l34/local2/5ca73a7.log`, 19:29–19:35 UTC, **ok**):
 `build:e2e` ("Compiled successfully in 9.5s") · e2e do lote
 (`ultraloop-l34`) **20 passaram** (42,8 s) · `varredura` **5 passaram**
 (4,6 min, já com `/mais/lembretes` nas rotas) · `npm test` **71 arquivos,
-1.613 testes** (+4 em `lib/lembretes.test.ts`). A cadeia inteira do HEAD da
-correção fica no registro logo abaixo.
+1.613 testes** (+4 em `lib/lembretes.test.ts`).
+
+Cadeia inteira em `65804cf` (todo o código da correção + o rascunho deste
+registro; `r18/l34/logs/65804cf.log`, das 19:35:49 às 20:00:10 UTC,
+**falhou:e2e** por um teste instável fora do lote): `lint` limpo · `tsc
+--noEmit` limpo · `npm test` **71 arquivos, 1.613 testes** · `build`
+("Compiled successfully in 18.3s") · `build:e2e` ("Compiled successfully in
+18.5s") · `e2e` **540 passaram, 1 falhou, 5 pulados** (22,4 min; eram 533 em
+`ade3e6a`: +8 do spec do lote, que foi a 20, e −1 de nada — o 541º é o que
+falhou). A falha: `e2e/player.spec.ts:164` ("ao zerar, 'avançar sozinho'
+passa ao próximo passo…"), que não toca em lembretes — o trace mostra
+"Loading chunk 2636 failed" com `net::ERR_ABORTED` no **terceiro** pedido do
+mesmo chunk ao navegar para `/mais/preferencias` com o relógio instalado
+(`clock.install`); os dois pedidos anteriores do chunk deram 200. Sozinho,
+**2 de 2 verdes** (4,2 s e 4,3 s; `r18/l34/player-sozinho-{a,b}/65804cf.log`):
+instável sob carga, anotado, não bloqueia. A `varredura` não rodou nessa
+cadeia (ela para no primeiro portão que falha); rodou verde na local acima e
+roda na cadeia do HEAD final, `r18/l34/logs/<HEAD>.log`, que difere de
+`65804cf` só neste PROGRESSO.md.
 
 #### Capturas
 
-`capturas.sh` com o `.next` do build:e2e de `bec0df8` (o mesmo código de app
-do HEAD deste registro), contra a base real de `main` (`base-ef3ad97`), com a
-tela declarada `18-mais` (`r18/l34/capturas-bec0df8.md`): 60 PNGs,
-**"Nenhuma tela mudou fora do esperado"** — as 58 fora da lista com Δ
-0,00 %. Diffs abertos: 18 claro; PNG do 18 escuro olhado inteiro.
+`capturas.sh` com o `.next` do build:e2e da cadeia de `65804cf` (o código de
+app da correção), contra a base real de `main` (`base-ef3ad97`), com a tela
+declarada `18-mais` (`r18/l34/capturas-65804cf.md`): 60 PNGs, só `18-mais`
+mudou; as outras 58 com Δ 0,00 %. Os 60 PNGs são **iguais byte a byte** aos
+de `capturas-ade3e6a` (a correção não muda nenhuma das 60 telas). Diff
+aberto: `18-mais-claro.diff.png`.
 
 | tela | Δ claro | Δ escuro | o que mudou |
 | --- | ---: | ---: | --- |
 | 18-mais | 13,29 % | 13,27 % | a linha nova "Lembretes — Receber avisos no celular; ative em cada aparelho." (sino) entre Preferências e Créditos; Créditos, Backup e o cartão de sincronização descem uma linha (~81 px). Nada acima de Preferências muda. |
 
-`/mais/lembretes` não está nas 60 capturas: medida pelos e2e do lote e ao
-vivo sem configuração (acima). Em `ade3e6a` só ativado/desativado rodavam
-nos dois temas; desde a correção da auditoria, todos os estados.
+`/mais/lembretes` não está nas 60 capturas: medida pelos e2e do lote (todos
+os estados nos dois temas desde a correção) e **ao vivo** no HEAD da
+correção (`r18/l34/correcao-ao-vivo/`: mock novo + `next start` do `.next`
+de `65804cf`, par VAPID gerado na hora, Chromium a 360×740, os dois temas,
+pelo caminho Mais → Lembretes; script da auditoria de tela com o `user_id`
+no insert semeado): **73 medidas, 0 falhas** — ativar grava a linha no mock
+que agora recusa insert sem `user_id` ("Chrome · Linux", chaves do
+aparelho), recarregar mantém, teste "Enviado para 1 aparelho.", desativar e
+Remover zeram a tabela; bloqueado → instrução de permissão; Brave → só a do
+Brave; sem suporte e iPhone → as deles; **o Chromium real sem serviço de
+push (o caso que a auditoria viu só com a frase) mostra "Para tentar de
+novo" nos dois temas**; o worker real mostra o push e leva a aba a
+`/mais/lembretes`; url `//evil.example/a` → `/`; `scrollWidth` 360/360 em
+todas, nenhum alvo < 44 px, contraste mínimo 4,58:1 (claro) e 5,85:1
+(escuro); `POST /api/lembretes/teste` sem sessão → 401 JSON. Servidores
+derrubados pelos PIDs (portas 3100 e 54321 → 000).
 
 #### Como testar no celular (360 px)
 
