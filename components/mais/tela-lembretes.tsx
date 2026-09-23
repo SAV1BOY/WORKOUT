@@ -1,0 +1,402 @@
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
+import { CabecalhoMais } from "@/components/mais/cabecalho";
+import { Button } from "@/components/ui/button";
+import { formatarData } from "@/lib/formato";
+import {
+  bytesDaChave,
+  ehIos,
+  estadoDoAparelho,
+  instrucoesDoAparelho,
+  LINHA_LEMBRETES,
+  nomeDoAparelho,
+  ROTULO_DO_ESTADO,
+  SEM_CONFIGURACAO,
+  SEM_TABELA,
+  tabelaAusente,
+} from "@/lib/lembretes";
+import { inscricaoLembreteSchema, type InscricaoLembrete } from "@/lib/schemas";
+import { clienteNavegador } from "@/lib/supabase/client";
+
+const TABELA = "lembretes_inscricoes";
+
+/** Quanto esperar o service worker ficar pronto antes de desistir. */
+const PRAZO_DO_WORKER_MS = 10_000;
+
+type Permissao = "default" | "granted" | "denied";
+
+interface Mensagem {
+  tipo: "status" | "alert";
+  texto: string;
+}
+
+function temSuporte(): boolean {
+  return (
+    typeof window !== "undefined" &&
+    "serviceWorker" in navigator &&
+    "PushManager" in window &&
+    "Notification" in window
+  );
+}
+
+/** O registro do service worker, ou `null` se ele não ficar pronto a tempo. */
+async function registroDoWorker(): Promise<ServiceWorkerRegistration | null> {
+  if (!("serviceWorker" in navigator)) return null;
+  return Promise.race([
+    navigator.serviceWorker.ready,
+    new Promise<null>((resolve) => setTimeout(() => resolve(null), PRAZO_DO_WORKER_MS)),
+  ]);
+}
+
+/**
+ * `pushManager.subscribe` com a chave pública do servidor. Uma inscrição
+ * antiga feita com outra chave faz o navegador recusar (`InvalidStateError`):
+ * ela é cancelada e o pedido refeito uma vez.
+ */
+async function inscrever(
+  registro: ServiceWorkerRegistration,
+  chavePublica: string,
+): Promise<PushSubscription> {
+  const opcoes = { userVisibleOnly: true, applicationServerKey: bytesDaChave(chavePublica) };
+  try {
+    return await registro.pushManager.subscribe(opcoes);
+  } catch (e) {
+    if ((e as Error).name !== "InvalidStateError") throw e;
+    const antiga = await registro.pushManager.getSubscription();
+    await antiga?.unsubscribe();
+    return registro.pushManager.subscribe(opcoes);
+  }
+}
+
+function linhaDaInscricao(inscricao: PushSubscription, aparelho: string) {
+  const json = inscricao.toJSON();
+  return {
+    endpoint: inscricao.endpoint,
+    p256dh: json.keys?.p256dh ?? "",
+    auth: json.keys?.auth ?? "",
+    aparelho,
+  };
+}
+
+/**
+ * Mais → Lembretes (SPEC §23.4): ativar e desativar neste aparelho, a lista
+ * dos aparelhos da conta e o lembrete de teste. As decisões (estado,
+ * instruções, textos) são de `lib/lembretes.ts`.
+ */
+export function TelaLembretes({ chavePublica }: { chavePublica: string | null }) {
+  const [carregado, setCarregado] = useState(false);
+  const [suportado, setSuportado] = useState(false);
+  const [permissao, setPermissao] = useState<Permissao>("default");
+  const [endpointAtual, setEndpointAtual] = useState<string | null>(null);
+  const [aparelhos, setAparelhos] = useState<InscricaoLembrete[]>([]);
+  const [semTabela, setSemTabela] = useState(false);
+  const [falhou, setFalhou] = useState(false);
+  const [ocupado, setOcupado] = useState<string | null>(null);
+  const [mensagem, setMensagem] = useState<Mensagem | null>(null);
+  const [sinais, setSinais] = useState({ brave: false, ios: false, instalado: false });
+
+  const carregar = useCallback(async () => {
+    const pode = temSuporte();
+    setSuportado(pode);
+    setSinais({
+      brave: "brave" in navigator,
+      ios: ehIos(navigator.userAgent, navigator.maxTouchPoints),
+      instalado:
+        window.matchMedia("(display-mode: standalone)").matches ||
+        (navigator as Navigator & { standalone?: boolean }).standalone === true,
+    });
+    if (pode) setPermissao(Notification.permission);
+    if (chavePublica === null) {
+      setCarregado(true);
+      return;
+    }
+    if (pode) {
+      const registro = await registroDoWorker();
+      const inscricao = await registro?.pushManager.getSubscription();
+      setEndpointAtual(inscricao?.endpoint ?? null);
+    }
+    const { data, error } = await clienteNavegador()
+      .from(TABELA)
+      .select("id, endpoint, p256dh, auth, aparelho, criado_em")
+      .order("criado_em", { ascending: true });
+    if (error) {
+      setSemTabela(tabelaAusente(error));
+      if (!tabelaAusente(error)) {
+        setMensagem({ tipo: "alert", texto: "Não deu para ler os aparelhos agora." });
+      }
+    } else {
+      setSemTabela(false);
+      setAparelhos(
+        (data ?? []).flatMap((linha: unknown) => {
+          const lida = inscricaoLembreteSchema.safeParse(linha);
+          return lida.success ? [lida.data] : [];
+        }),
+      );
+    }
+    setCarregado(true);
+  }, [chavePublica]);
+
+  useEffect(() => {
+    void carregar();
+  }, [carregar]);
+
+  const inscrito = endpointAtual !== null && aparelhos.some((a) => a.endpoint === endpointAtual);
+  const estado = estadoDoAparelho({
+    configurado: chavePublica !== null,
+    suportado,
+    permissao,
+    inscrito,
+  });
+  const instrucoes = instrucoesDoAparelho({ estado, falhou, ...sinais });
+
+  /** Grava a inscrição; se o aparelho era de outra conta, pede uma nova (§23.2). */
+  async function gravar(registro: ServiceWorkerRegistration, chave: string, inscricao: PushSubscription) {
+    const supabase = clienteNavegador();
+    const aparelho = nomeDoAparelho(navigator.userAgent, sinais.brave);
+    // a linha antiga deste mesmo endpoint, se for desta conta (a RLS limita)
+    await supabase.from(TABELA).delete().eq("endpoint", inscricao.endpoint);
+    let { error } = await supabase.from(TABELA).insert(linhaDaInscricao(inscricao, aparelho));
+    if (error?.code === "23505") {
+      await inscricao.unsubscribe();
+      const nova = await inscrever(registro, chave);
+      ({ error } = await supabase.from(TABELA).insert(linhaDaInscricao(nova, aparelho)));
+    }
+    if (error) throw new Error(error.message);
+  }
+
+  async function ativar() {
+    if (chavePublica === null) return;
+    setOcupado("ativar");
+    setMensagem(null);
+    setFalhou(false);
+    try {
+      const resposta = await Notification.requestPermission();
+      setPermissao(resposta);
+      if (resposta !== "granted") {
+        setFalhou(true);
+        setMensagem({
+          tipo: "alert",
+          texto:
+            resposta === "denied"
+              ? "O navegador recusou as notificações deste app."
+              : "Sem a permissão o aviso não chega. Toque em Ativar de novo e escolha Permitir.",
+        });
+        return;
+      }
+      const registro = await registroDoWorker();
+      if (!registro) {
+        setFalhou(true);
+        setMensagem({
+          tipo: "alert",
+          texto: "O app ainda está terminando de instalar neste aparelho. Recarregue a página e tente de novo.",
+        });
+        return;
+      }
+      let inscricao: PushSubscription;
+      try {
+        inscricao = await inscrever(registro, chavePublica);
+      } catch {
+        setFalhou(true);
+        setMensagem({ tipo: "alert", texto: "O navegador não conseguiu ativar os avisos neste aparelho." });
+        return;
+      }
+      await gravar(registro, chavePublica, inscricao);
+      await carregar();
+      setMensagem({ tipo: "status", texto: "Lembretes ativados neste aparelho." });
+    } catch {
+      setFalhou(true);
+      setMensagem({ tipo: "alert", texto: "Não deu para ativar agora. Confira a internet e tente de novo." });
+    } finally {
+      setOcupado(null);
+    }
+  }
+
+  async function desativar() {
+    setOcupado("desativar");
+    setMensagem(null);
+    try {
+      const registro = await registroDoWorker();
+      const inscricao = await registro?.pushManager.getSubscription();
+      if (inscricao) {
+        const { error } = await clienteNavegador().from(TABELA).delete().eq("endpoint", inscricao.endpoint);
+        if (error) throw new Error(error.message);
+        await inscricao.unsubscribe();
+      }
+      await carregar();
+      setMensagem({ tipo: "status", texto: "Lembretes desativados neste aparelho." });
+    } catch {
+      setMensagem({ tipo: "alert", texto: "Não deu para desativar agora. Confira a internet e tente de novo." });
+    } finally {
+      setOcupado(null);
+    }
+  }
+
+  async function remover(alvo: InscricaoLembrete) {
+    setOcupado(alvo.id);
+    setMensagem(null);
+    try {
+      const { error } = await clienteNavegador().from(TABELA).delete().eq("id", alvo.id);
+      if (error) throw new Error(error.message);
+      if (alvo.endpoint === endpointAtual) {
+        const registro = await registroDoWorker();
+        await (await registro?.pushManager.getSubscription())?.unsubscribe();
+      }
+      await carregar();
+      setMensagem({ tipo: "status", texto: `${alvo.aparelho} saiu da lista.` });
+    } catch {
+      setMensagem({ tipo: "alert", texto: "Não deu para remover agora. Confira a internet e tente de novo." });
+    } finally {
+      setOcupado(null);
+    }
+  }
+
+  async function enviarTeste() {
+    setMensagem(null);
+    if (navigator.onLine === false) {
+      setMensagem({ tipo: "alert", texto: "Precisa de internet para enviar o teste." });
+      return;
+    }
+    setOcupado("teste");
+    try {
+      const resposta = await fetch("/api/lembretes/teste", { method: "POST" });
+      const corpo = (await resposta.json().catch(() => ({}))) as { texto?: string; erro?: string };
+      if (resposta.ok && corpo.texto) {
+        setMensagem({ tipo: "status", texto: corpo.texto });
+        await carregar();
+      } else {
+        setMensagem({ tipo: "alert", texto: corpo.erro ?? "Não deu para enviar agora. Tente de novo." });
+      }
+    } catch {
+      setMensagem({ tipo: "alert", texto: "Não deu para enviar agora. Confira a internet e tente de novo." });
+    } finally {
+      setOcupado(null);
+    }
+  }
+
+  const bloco = "bg-card border-border flex flex-col gap-3 rounded-xl border p-4";
+
+  return (
+    <section className="flex flex-col gap-4">
+      <CabecalhoMais
+        titulo={LINHA_LEMBRETES.titulo}
+        descricao="Avisos no celular, mesmo com o app fechado. Ative em cada aparelho em que quiser receber."
+      />
+
+      {chavePublica === null || semTabela ? (
+        <p data-estado="sem-configuracao" className={`${bloco} text-sm text-balance`}>
+          {chavePublica === null ? SEM_CONFIGURACAO : SEM_TABELA}
+        </p>
+      ) : !carregado ? (
+        <p className="text-muted-foreground text-sm">Conferindo este aparelho…</p>
+      ) : (
+        <>
+          <section aria-labelledby="titulo-este-aparelho" className={bloco}>
+            <h2 id="titulo-este-aparelho" className="text-base font-semibold">
+              Este aparelho
+            </h2>
+            <p data-estado={estado} className="text-sm font-medium">
+              {ROTULO_DO_ESTADO[estado]}
+            </p>
+            {estado === "desativado" ? (
+              <Button
+                type="button"
+                className="alvo h-12 w-full"
+                disabled={ocupado !== null}
+                onClick={() => void ativar()}
+              >
+                {ocupado === "ativar" ? "Ativando…" : "Ativar lembretes neste aparelho"}
+              </Button>
+            ) : null}
+            {estado === "ativado" ? (
+              <Button
+                type="button"
+                variant="outline"
+                className="alvo h-12 w-full"
+                disabled={ocupado !== null}
+                onClick={() => void desativar()}
+              >
+                {ocupado === "desativar" ? "Desativando…" : "Desativar neste aparelho"}
+              </Button>
+            ) : null}
+
+            {instrucoes.map((instrucao) => (
+              <section
+                key={instrucao.id}
+                data-instrucao={instrucao.id}
+                aria-labelledby={`instrucao-${instrucao.id}`}
+                className="border-border flex flex-col gap-2 rounded-lg border p-3"
+              >
+                <h3 id={`instrucao-${instrucao.id}`} className="text-sm font-semibold text-balance">
+                  {instrucao.titulo}
+                </h3>
+                <ol className="text-muted-foreground flex list-decimal flex-col gap-1 pl-5 text-sm">
+                  {instrucao.passos.map((passo) => (
+                    <li key={passo}>{passo}</li>
+                  ))}
+                </ol>
+              </section>
+            ))}
+          </section>
+
+          {mensagem ? (
+            <p
+              role={mensagem.tipo}
+              className={
+                mensagem.tipo === "status"
+                  ? "border-primary/40 bg-primary/10 rounded-lg border px-3 py-2 text-sm font-medium text-balance"
+                  : "border-destructive/40 text-destructive rounded-lg border px-3 py-2 text-sm text-balance"
+              }
+            >
+              {mensagem.texto}
+            </p>
+          ) : null}
+
+          <section aria-labelledby="titulo-aparelhos" className={bloco}>
+            <h2 id="titulo-aparelhos" className="text-base font-semibold">
+              Aparelhos desta conta
+            </h2>
+            {aparelhos.length === 0 ? (
+              <p className="text-muted-foreground text-sm">Nenhum aparelho com lembretes ainda.</p>
+            ) : (
+              <ul className="divide-border flex flex-col divide-y">
+                {aparelhos.map((a) => (
+                  <li key={a.id} data-aparelho={a.id} className="flex items-center gap-3 py-2">
+                    <span className="flex min-w-0 flex-col">
+                      <span className="truncate text-sm font-medium">
+                        {a.aparelho || "Aparelho sem nome"}
+                        {a.endpoint === endpointAtual ? " (este)" : ""}
+                      </span>
+                      <span className="text-muted-foreground text-xs">desde {formatarData(a.criado_em)}</span>
+                    </span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="alvo ml-auto shrink-0"
+                      aria-label={`Remover ${a.aparelho || "aparelho"} (desde ${formatarData(a.criado_em)})`}
+                      disabled={ocupado !== null}
+                      onClick={() => void remover(a)}
+                    >
+                      Remover
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {aparelhos.length > 0 ? (
+              <Button
+                type="button"
+                variant="outline"
+                className="alvo h-12 w-full"
+                disabled={ocupado !== null}
+                onClick={() => void enviarTeste()}
+              >
+                {ocupado === "teste" ? "Enviando…" : "Enviar um lembrete de teste"}
+              </Button>
+            ) : null}
+          </section>
+        </>
+      )}
+    </section>
+  );
+}

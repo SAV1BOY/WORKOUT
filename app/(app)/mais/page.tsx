@@ -1,4 +1,5 @@
 import {
+  Bell,
   ChevronRight,
   CircleHelp,
   Copyright,
@@ -14,6 +15,7 @@ import Link from "next/link";
 import { BotaoSair } from "@/components/botao-sair";
 import { LinhaSincronizacao } from "@/components/mais/linha-sincronizacao";
 import { ehDono } from "@/lib/env";
+import { LINHA_LEMBRETES } from "@/lib/lembretes";
 import { emailDoUsuario } from "@/lib/supabase/server";
 
 export const metadata = { title: "Mais — Treino do Terraço" };
@@ -53,6 +55,8 @@ const SECOES: Secao[] = [
     descricao: "Tema, som e vibração do timer, tela acesa, incrementos.",
     Icone: SlidersHorizontal,
   },
+  /* SPEC §23.4: título e descrição da mesma fonte que o guia de uso. */
+  { ...LINHA_LEMBRETES, Icone: Bell },
   {
     href: "/mais/creditos",
     titulo: "Créditos",

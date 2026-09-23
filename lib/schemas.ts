@@ -598,8 +598,8 @@ export interface RefDeTexto<C extends string = ChaveDeSugestao | ChaveDeAviso> {
 
 /**
  * Uma linha de `public.lembretes_inscricoes` como o app a lê e grava (o
- * `user_id` quem põe é a sessão; a RLS confere). A mesma forma que o mock
- * (`scripts/mock-supabase.ts`) conhece.
+ * `user_id` quem põe é a sessão; a RLS confere). O mock dos testes conhece
+ * as mesmas colunas.
  */
 export const inscricaoLembreteSchema = z.object({
   id: z.string().min(1),
