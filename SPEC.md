@@ -2368,10 +2368,12 @@ de cada item é verificável no Vitest ou no e2e (`e2e/ultraloop-l13.spec.ts`).
    caixa visível, então a segunda baixava junto com a primeira. Agora a
    segunda posição só entra no DOM depois que a primeira carregou **e** a
    ilustração vai alternar; parada (`prefers-reduced-motion`), só quando a
-   pessoa pede para voltar a alternar. Aceite: e2e — na ficha, a requisição
-   do quadro 2 começa depois do fim da do quadro 1 (Resource Timing); com
-   `reducedMotion: reduce` não sai requisição do quadro 2 até o toque em
-   "Voltar a alternar".
+   pessoa pede para voltar a alternar. Aceite: e2e — na ficha, o pedido de
+   imagem do quadro 2 começa depois do fim do pedido do quadro 1; com
+   `reducedMotion: reduce` não sai pedido de imagem do quadro 2 até o toque em
+   "Voltar a alternar". Fica fora deste aceite o aquecimento de mídia da fase
+   (§8, `lib/precache-do-programa.ts`): ele busca por `fetch`, uma vez, depois
+   que o service worker assume, para o treino funcionar sem rede.
 5. **A figura não é o botão de pausa** (ux-heuristicas-21). A ilustração
    inteira era o `<button>` de pausa: quem tocava para abrir o "Como fazer"
    parava a animação. Agora a pausa é um **botão próprio de 44×44 no canto**
@@ -2385,10 +2387,13 @@ de cada item é verificável no Vitest ou no e2e (`e2e/ultraloop-l13.spec.ts`).
    (≥ 44×44) pausa.
 6. **O chip ativo do segmento se vê** (tela-explorar-fichas-18). O ativo do
    segmento "Ilustração · Figura · Fotos" era `bg-background` sobre o trilho
-   `bg-muted` (1,08:1 no claro, 1,16:1 no escuro). Passa a
-   `bg-foreground text-background`. Aceite: e2e — nos dois temas, o fundo do
-   chip ativo mede ≥ 3:1 contra o do inativo (o trilho), e o texto do ativo
-   ≥ 4,5:1.
+   `bg-muted` (1,08:1 no claro, 1,16:1 no escuro). O ativo ganha **contorno
+   de 2 px na cor do texto** (`border-foreground`); o fundo continua
+   `bg-background` — invertido (`bg-foreground`), virava uma placa de 91 % de
+   luz no escuro, que o §22.3 item 4 proíbe. Aceite: e2e — nos dois temas, o
+   contorno do chip ativo mede ≥ 3:1 contra o inativo (o trilho), e o texto
+   do ativo ≥ 4,5:1; nenhuma superfície da ficha passa de 60 % de luz no
+   escuro.
 7. **Linhas da vitrine com a mesma altura** (tela-explorar-fichas-08). As
    linhas mediam 72 ou 92 px conforme a coleção tinha subtítulo. Escolha: a
    linha **reserva a linha do subtítulo** (`text-xs`, uma linha) em toda
@@ -2426,9 +2431,15 @@ de cada item é verificável no Vitest ou no e2e (`e2e/ultraloop-l13.spec.ts`).
    com `aria-current`, `scrollHeight` > 740 e nada vaza a largura.
 10. **Uma marca só na coluna da direita** (visual-11). Na linha de coleção os
     raios ficavam ao lado do título (centro a 18 px do topo) e o chevron no
-    meio da linha (36 px). Os raios passam para a **linha da meta**, junto de
-    "N exercícios · ~M min" (na linha sem meta, ao fim do subtítulo); a
-    coluna da direita fica só com o chevron, centrado. Aceite: e2e em
+    meio da linha (36 px). Os raios passam para a **linha da meta**, no fluxo
+    do texto, logo depois de "N exercícios · ~M min" (na linha sem meta, ao
+    fim do subtítulo); a coluna da direita fica só com o chevron, centrado.
+    O selo "Circuito" (§13.6) sai da meta e passa a abrir a linha do
+    subtítulo (a reservada do item 7, quando não há subtítulo): com os raios
+    na meta, "3 exercícios · ~14 min", o selo e os raios não cabiam numa
+    linha a 360 px e a meta quebrava (a linha crescia 12 px, contra o item
+    7); ao lado do título, o selo empurrava o nome da corda para 2 linhas.
+    Aceite: e2e em
     `/explorar` (vitrine e busca) — nenhuma marca no canto superior direito
     das linhas, |centro do chevron − centro da linha| ≤ 2 px, e os raios na
     mesma linha do texto "exercícios".
