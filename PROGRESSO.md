@@ -10973,15 +10973,20 @@ disparo automático são o L35 (§23, "Lembretes II"): nada disso existe aqui.
    a responder **401 em JSON** às rotas `/api/*` sem sessão (antes seria o 307
    para `/login`).
 5. **Instruções** (LEM-instrucoes-navegador; `lib/lembretes.ts`,
-   `tela-lembretes.tsx`). `instrucoesDoAparelho()`: Brave (`navigator.brave`)
-   com a inscrição falhando ou bloqueada → ligar "Usar os serviços do Google
-   para mensagens push" em Configurações → Privacidade e segurança; permissão
-   negada → cadeado → Permissões → Notificações → Permitir (ou Configurações
-   do Android → Apps → Treino do Terraço → Notificações); iPhone fora da tela
-   inicial → Compartilhar → Adicionar à Tela de Início (iOS 16.4+); sem
-   suporte → Chrome ou Brave no Android; qualquer outra falha ao ativar
-   (Chrome, app instalado no iPhone, permissão dispensada) → "Para tentar de
-   novo" (desde a correção da auditoria: a falha nunca fica só com a frase).
+   `tela-lembretes.tsx`). `instrucoesDoAparelho()` segue a **tabela das 80
+   combinações da SPEC §23.6** (desde a rodada 18; o Vitest lê a tabela do
+   SPEC.md): Brave (`navigator.brave`) **fora do iPhone**, com a inscrição
+   falhando ou a permissão negada → ligar "Usar os serviços do Google para
+   mensagens push" em Configurações → Privacidade e segurança (nunca em "sem
+   suporte" nem no iPhone, onde essa opção não existe); permissão negada →
+   cadeado → Permissões → Notificações → Permitir (ou Configurações do
+   Android → Apps → Treino do Terraço → Notificações) e, no iPhone, Ajustes
+   → Notificações → Treino do Terraço → "Permitir Notificações"; iPhone fora
+   da tela inicial → Compartilhar → Adicionar à Tela de Início (iOS 16.4+);
+   sem suporte → Chrome ou Brave no Android, app instalado com iOS 16.4+ no
+   iPhone; qualquer outra falha ao ativar (Chrome, app instalado no iPhone,
+   permissão dispensada) → "Para tentar de novo" (a falha nunca fica só com
+   a frase). Ao voltar das configurações, a tela confere de novo sozinha.
 6. **SPEC §23 e guia** (LEM-spec-23; `SPEC.md`, `lib/guia.ts`). §23 com o
    desenho inteiro (I neste lote, II marcada para o L35), segurança e aceite;
    §11 anotada ("notificações push" revogado pela §23) e §20.5 cita
@@ -11234,8 +11239,101 @@ exemplo, com `node -e "const c=require('crypto').createECDH('prime256v1');c.gene
 5. Negou a permissão sem querer: a tela diz "Bloqueado pelo navegador." com
    o caminho (cadeado → Permissões → Notificações → Permitir; ou
    Configurações do Android → Apps → Treino do Terraço → Notificações).
+   Libere por lá e **volte ao app sem recarregar**: a tela confere de novo
+   sozinha e passa a "Desativado neste aparelho." com o botão "Ativar
+   lembretes neste aparelho"; a frase "O navegador recusou…" e a instrução
+   somem.
 6. iPhone: no Safari a tela explica que é preciso instalar (Compartilhar →
-   Adicionar à Tela de Início) e ativar pelo ícone (iOS 16.4+).
+   Adicionar à Tela de Início) e ativar pelo ícone (iOS 16.4+). Com o app
+   instalado e a permissão negada, o caminho é o do iPhone (Ajustes →
+   Notificações → Treino do Terraço → "Permitir Notificações"), sem o
+   cadeado nem o Android e sem o conselho do Brave.
 7. "Desativar neste aparelho" some com o aparelho da lista; "Remover" tira
    outro aparelho da conta. Os horários dos lembretes são o próximo lote
    (L35).
+
+#### Rodada 17 — auditoria 2 reprovou; lote devolvido à fila
+
+A 2ª auditoria, em `96c2b5e` (cadeia verde: 1.613 unitários, 541 e2e + 5
+pulados, varredura 5/5; capturas: só `18-mais`), reprovou com **1
+importante em cada lente** e nenhum bloqueante
+(`r18/l34/vereditos-auditoria-2.json`):
+
+- **regra** — `instrucoesDoAparelho()` e a SPEC §23.6 divergiam em 4 das 80
+  combinações (Brave + navegador sem suporte); no iPhone, a tela mandava
+  ligar uma opção do Brave que só existe no Android e no computador;
+- **tela** — a tela não relia a permissão ao voltar das configurações: ficava
+  em "Bloqueado pelo navegador.", sem o botão Ativar, com a instrução
+  mandando tocar nele (medido nos dois temas, com e sem Brave).
+
+Menores: a frase da recusa abaixo da dobra com Brave + recusa (duas
+instruções); o `aria-label` do Remover sem o nome da lista; "sem
+configuração" e "sem tabela" sem e2e na montagem; o PROGRESSO citava 29
+testes em `lib/lembretes.test.ts` (eram 33). **Lote devolvido à fila.**
+
+#### Rodada 18 — retomada (correção da auditoria 2)
+
+Sobre `96c2b5e`, logs em `r19/l34/`. SPEC antes do código (`30ff9fc`).
+
+- **Importante (regra) — a tabela é o oráculo.** Era: o Brave entrava em
+  "sem suporte" e no iPhone; a SPEC dizia outra coisa em 4 combinações. É:
+  a SPEC §23.6 tem a **tabela das 80 combinações** (estado × Brave × iPhone
+  × instalado × falhou, 15 linhas com "·" = qualquer) e decide pelo que
+  existe no aparelho — o ajuste do Brave só **fora do iPhone** e só com
+  falha ao ativar ou permissão negada (ligar os serviços do Google não cria
+  o `PushManager` que falta); no iPhone com a permissão negada entra a
+  instrução nova `permissao-iphone` (Ajustes → Notificações → Treino do
+  Terraço → "Permitir Notificações"), porque o cadeado e as Configurações do
+  Android não existem lá; "sem suporte" no iPhone instalado (iOS antigo)
+  cita o iOS 16.4. `lib/lembretes.test.ts` **lê a tabela do SPEC.md**,
+  confere que cada combinação cai em exatamente uma linha e que o código
+  devolve as mesmas instruções na mesma ordem (`b2aa2b6`). Mutação: com a
+  regra antiga do Brave, o oráculo acusa **14 divergências** e cai.
+- **Importante (tela) — a volta das configurações.** Era: `carregar()` só
+  no mount. É: a tela relê permissão e inscrição em `visibilitychange`
+  (visível), `focus`, `pageshow` e no `change` de
+  `navigator.permissions.query({name: "notifications"})` quando existe; se
+  a permissão mudou desde a última leitura, a frase e a falha antigas saem;
+  não relê no meio de um Ativar/Desativar/Remover/teste (o pedido de
+  permissão também tira e devolve o foco) — `d14f3e0`. O passo final das
+  instruções de permissão diz "Volte aqui: a tela confere de novo e mostra
+  “Ativar lembretes neste aparelho”". e2e (`51a099f`, `134efd0`), nos dois
+  temas: a permissão **negada de verdade** no Chromium (CDP
+  `Browser.setPermission`; o Playwright só sabe conceder) → "Bloqueado",
+  instrução, sem Ativar → o contexto do Playwright concede → 400 ms sem
+  mudar (não há leitura periódica) → `visibilitychange` (hidden → visible) →
+  "Desativado", o Ativar aparece, as instruções somem, e o Ativar grava a
+  linha; com a `navigator.permissions` desligada, para provar o caminho do
+  `visibilitychange` sozinho. Mais: a recusa ao pedir some na volta (dois
+  temas) e o `change` da permissão relê sem nenhuma volta (1 teste).
+  Mutação: sem o ouvinte de `visibilitychange`, **3 de 3** testes da volta
+  caem (`r19/l34/mutacao/volta.out`).
+- **Menores atendidos.** A frase de ativar/desativar fica **no bloco "Este
+  aparelho", logo abaixo do estado e acima das instruções**; e2e com Brave +
+  recusa (duas instruções, `brave` e `permissao`) nos dois temas: a frase
+  acima da primeira instrução, inteira acima da barra de abas, `scrollY` 0.
+  O `aria-label` do Remover usa o nome da lista ("Remover Aparelho sem nome
+  (desde dd/mm)"), conferido no e2e. "Sem tabela" na montagem: e2e com o
+  PostgREST respondendo `PGRST205` (`page.route`), nos dois temas. "Sem
+  configuração" na montagem: e2e com um **segundo `next start`** do mesmo
+  build, sem as variáveis VAPID, numa porta livre, subido e derrubado pelo
+  próprio spec (grupo do processo) — a tela diz "Lembretes ainda não
+  configurados neste servidor.", sem botão, e `POST /api/lembretes/teste`
+  responde **503** com o mesmo texto, nos dois temas. Os números de testes
+  deste registro saem do `vitest --reporter=json` do HEAD (abaixo).
+- **Prova da assinatura VAPID** (`lib/web-push-prova.test.ts`, `3cff8dc`,
+  só WebCrypto): o JWT tem `alg: ES256`/`typ: JWT`, `aud` = origem do
+  endpoint, `exp` ≤ 24 h e `sub` = `VAPID_SUBJECT`; a assinatura tem **64
+  bytes (r‖s)** e confere em `crypto.subtle.verify` (ECDSA P-256/SHA-256)
+  com a pública importada em formato raw; `Authorization: vapid t=…, k=…`
+  com `k` = a pública (65 bytes, `0x04`); `Content-Encoding: aes128gcm`,
+  `TTL`, `Urgency` e `Topic`; e o corpo **decifra** com a chave privada do
+  assinante por uma implementação da RFC 8291 escrita no teste (HKDF, ECDH e
+  AES-GCM do WebCrypto), a mesma que decifra o exemplo do Apêndice A; outra
+  chave não decifra. Mutação: `dsaEncoding: "der"` em `lib/web-push.ts` →
+  a prova cai ("expected … to have a length of 64 but got 71",
+  `r19/l34/mutacao/der.out`). A biblioteca `web-push` segue fora (SPEC
+  §23.5).
+
+«PORTOES_R18»
+
