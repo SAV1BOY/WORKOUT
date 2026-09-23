@@ -9677,6 +9677,18 @@ com um importante, sem bloqueantes. Atendidos o importante e três menores:
 
 #### Portões
 
+**Rodada 13, correção da auditoria 3.** Cadeia inteira em `c58f69d` (o
+HEAD com o código, os testes e a SPEC da correção;
+`r13/l13/logs/c58f69d.log`, das 06:11:17 às 06:35:13 UTC, **status ok**):
+`lint` limpo · `tsc --noEmit` limpo · `npm test` **66 arquivos, 1.506
+testes, todos verdes** (+1 arquivo e +9 testes sobre `fcae02e`) · `build`
+("Compiled successfully in 17.5s") · `build:e2e` ("Compiled successfully in
+17.8s") · `e2e` **477 passaram, 5 pulados, 0 falharam** (17,8 min; +3 da
+correção; os 5 pulados são os da varredura, que roda à parte) ·
+`varredura` **5 de 5** (4,3 min). A cadeia roda de novo, inteira, no commit
+deste registro (só `PROGRESSO.md` muda), e o log dele fica em
+`r13/l13/logs/<hash>.log`.
+
 **Rodada 13.** Cadeia inteira em `fcae02e` (o HEAD com todo o código e os
 testes da correção da auditoria 2; `r13/l13/logs/fcae02e.log`, das
 05:03:33 às 05:27:05 UTC, **status ok**): `lint` limpo · `tsc --noEmit`
@@ -9700,6 +9712,25 @@ Antes da auditoria, `32826d5` e `f423151` tinham dado 1.493 unit e e2e
 (só `PROGRESSO.md` muda), e o log dele fica em `r12/l13/logs/<hash>.log`.
 
 #### Capturas
+
+**Rodada 13, correção da auditoria 3.** `capturas.sh` em `c58f69d`, depois
+da cadeia verde, contra a mesma base real de `main` (`base-ef3ad97`), com
+as seis telas declaradas (`r13/l13/capturas-c58f69d.md`): 60 PNGs,
+"Nenhuma tela mudou fora do esperado" — 48 fora da lista com Δ 0,00 %. As
+60 capturas são **idênticas byte a byte** às de `fcae02e` (`cmp`, 60 de
+60): a correção só muda o que acontece ao trocar de exercício no lugar e
+com o quadro 2 em erro, e nenhuma das duas coisas aparece numa captura
+parada. Diffs abertos (09 claro, 10 escuro, 06 escuro, 07 claro): os
+mesmos da rodada 13, descritos abaixo.
+
+| tela | Δ claro | Δ escuro | o que mudou na correção da auditoria 3 |
+| --- | ---: | ---: | --- |
+| 09-ficha-exercicio | 48,88 % | 46,83 % | nada (mesmo arquivo de `fcae02e`) |
+| 07-colecao | 25,89 % | 36,36 % | nada (mesmo arquivo) |
+| 10-ficha-folha | 5,00 % | 5,00 % | nada (mesmo arquivo; a aba Músculos ganhou a `key`, e a mídia dela sai mascarada) |
+| 06-explorar | 1,17 % | 1,18 % | nada (mesmo arquivo) |
+| 28-player-exercicio | 0,00 % | 0,00 % | nada: a mídia animada sai mascarada |
+| 04-treino-lista | 0,00 % | 0,00 % | nada: não monta a `MediaGrande` |
 
 **Rodada 13.** `capturas.sh` em `fcae02e`, depois da cadeia verde, contra
 a mesma base real de `main` (`base-ef3ad97`), com as seis telas declaradas
