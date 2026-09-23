@@ -10677,3 +10677,107 @@ ampliada e cartão), o e2e e a SPEC (§22.14 item 6: inventário e regra).
   "Super Band" nomeia dois filtros com resultados diferentes (Implemento
   2, Equipamento 5) — é o FAZER literal do OBS-elastico e está no aceite.
 
+
+##### Provas (rodada 16 — retomada)
+
+- **Vitest** (`lib/camada-modal.test.ts`, novo, **13 testes**): o que fica
+  inerte (main, header, nav, o portal de outra camada) e o que fica de fora
+  (nós sem conteúdo, avisos `aria-live`, anunciador de rota, véu); marcas
+  empilhadas — fechar a de cima não libera a de baixo, e a de baixo
+  fechando antes (o alerta que some por baixo do resumo) não libera o fundo
+  da de cima; os candidatos ao foco da volta (com a cadeia de quem abriu a
+  camada de baixo) e o primeiro que ainda recebe foco; o Tab preso nas
+  bordas, com foco fora da camada e com um focável só.
+- **e2e** (`e2e/ultraloop-l14.spec.ts`, +6, **43** no total), cada um
+  medindo `aria-modal="true"`, **nenhum focável fora da camada sem
+  `inert`** (fora os avisos `aria-live` e as sentinelas do Radix), 12 Tabs
+  e 4 Shift+Tabs dentro dela e o foco de volta no gatilho com 0 `inert`
+  depois: (1) dentro da Visão geral, nos dois temas, o alerta "Descartar
+  este treino?" e o resumo do fim, cada um fechado pelo Esc e pelo
+  `history.back()` — a Visão geral continua, a URL e o índice do histórico
+  são os de antes; (2) camadas empilhadas: "Descartar este treino" do
+  alerta abre o resumo, o alerta some por baixo e o resumo continua modal
+  com o fundo inerte; o Esc devolve o foco ao "Descartar este treino" do
+  rodapé; (3) a foto ampliada da ficha do supino; (4) Corpo → Fotos, nos
+  dois temas: a foto modal; o cartão "Apagar esta foto?" nasce no
+  Cancelar, é modal com a foto inerte embaixo, e fecha pelo Esc, pelo
+  toque fora e pelo Cancelar — cada vez a foto continua modal, com o foco
+  no "Apagar"; o Esc seguinte fecha a foto e o foco volta ao "Ver a foto".
+  A folha continua coberta pelos três casos da rodada 14.
+- **Sondas** (não contam como cadeia; `r17/l14/parcial/`): `build:e2e` em
+  `cb9845d` ok; grep "item 6" = 19 de 21 — os 2 do Corpo falharam no
+  "toque fora" em (180, 60), que caía no aviso "Foto de frente guardada."
+  (ele fica por cima do véu, fora da camada, de propósito: é `aria-live`);
+  o toque passou a (180, 580), entre a foto e o cartão; grep "Apagar esta
+  foto|Fotos" = **18 de 18** (inclui os specs antigos do Corpo e do item 5).
+- **Mutação** (`r17/l14/mut/`, no worktree, sem commit, código restaurado
+  com `git checkout` depois de cada uma): **m1** — `devolverFoco` sem efeito,
+  Tab preso desligado na camada própria e as marcas sem contagem (cada
+  camada solta tudo o que tocou) → **7 falhas em 7 esperadas**: folha da
+  ficha no player, alerta/resumo claro e escuro (`toBeFocused`), empilhadas
+  ("focáveis fora da camada sem inert", 176), foto da ficha ("Tab 1") e
+  Corpo claro e escuro ("Tab 2"); as duas folhas com `SheetTrigger`
+  passaram (o Radix devolve o foco ao Trigger sozinho — esperado). **m2** —
+  sem `aria-modal` no diálogo e no alerta, e nada fica inerte → **9 falhas
+  em 9**: as três folhas (`main` inerte), alerta/resumo claro e escuro e
+  empilhadas (`aria-modal`), foto da ficha e Corpo claro e escuro
+  ("focáveis fora da camada sem inert", 26 e 16).
+- `git diff 0d54e5f -- lib/progressao.ts lib/montagem.ts`: vazio;
+  `package.json`, `package-lock.json` e `supabase/` sem mudança; nenhum
+  segredo no diff.
+
+##### Como testar no celular (rodada 16 — retomada)
+
+1. Treino → Começar → no player, o ícone de lista (Visão geral) → no
+   rodapé, "Descartar este treino" → o alerta abre com o foco no
+   "Cancelar". Feche pelo **voltar do celular**: só o alerta fecha, a
+   Visão geral continua. Com teclado Bluetooth, o Esc faz o mesmo e o foco
+   volta ao "Descartar este treino"; o Tab não sai do alerta.
+2. Na mesma Visão geral, "Concluir" → o resumo do fim → voltar (ou Esc):
+   só o resumo fecha, o foco volta ao "Concluir". Com TalkBack/VoiceOver,
+   deslizar dentro do alerta ou do resumo não chega à lista de trás.
+3. Corpo → Fotos → toque numa foto → "Apagar": o cartão abre com o foco no
+   "Cancelar". Toque na parte escura acima do cartão: só o cartão fecha, a
+   foto continua. Com teclado, o Tab fica entre "Cancelar" e "Apagar" no
+   cartão, e entre o X e o "Apagar" na foto — nunca na barra de baixo.
+4. Explorar → Exercícios → supino → "Ampliar a foto do início" → com
+   teclado, o Tab fica no X; Esc fecha e o foco volta ao botão da foto.
+   (O foco de volta se vê pelo teclado ou pelo leitor de tela: o toque do
+   dedo no Safari não foca o botão.)
+
+##### Portões (rodada 16 — retomada)
+
+Cadeia inteira em `e1b7feb` (todo o código, os testes, a SPEC e o rascunho
+deste registro; `r17/l14/logs/e1b7feb.log`, das 15:35:58 às 16:02:17 UTC,
+**status ok**): `lint` limpo · `tsc --noEmit` limpo · `npm test` **68
+arquivos, 1.553 testes, todos verdes** (eram 67 e 1.540: +1 arquivo e +13
+testes, `lib/camada-modal.test.ts`) · `build` ("Compiled successfully in
+19.0s"; `/exercicios/[id]` 389 kB de first load, era 388 — o hook não traz
+o Radix para a ficha) · `build:e2e` ("Compiled successfully in 18.2s") ·
+`e2e` **520 passaram, 5 pulados, 0 falharam** (20,0 min; eram 514 + 5: +6
+do spec do L14, que tem **43** linhas ✓ no log, nenhuma ✘ nem flaky) ·
+`varredura` **5 de 5** (4,3 min). Medidas do anel do primário no log:
+"light: anel 5.25:1 · vão 1.00:1", "dark: anel 8.75:1 · vão 1.00:1". O
+commit deste registro só acrescenta estes números ao PROGRESSO; a cadeia
+roda de novo, inteira, nele (`r17/l14/logs/<hash>.log`).
+
+##### Capturas (rodada 16 — retomada)
+
+`capturas.sh` em `e1b7feb`, depois da cadeia verde, contra a base real de
+`main` (`base-ef3ad97`), com as seis telas declaradas
+(`r17/l14/capturas-e1b7feb.md`): 60 de 60 PNGs, **"Nenhuma tela mudou fora
+do esperado"**, e os 60 são **byte a byte iguais** aos de `1d41620` (`cmp`,
+0 diferentes): nenhuma captura tem camada aberta (folha, alerta, resumo,
+foto ou cartão), e a regra muda atributos (`aria-modal`, `inert`) e foco,
+não pixels. Diffs abertos contra a base: 09 escuro ("Voltar" no topo e as
+abas pelo rótulo, como na rodada 15) e 24 claro (só o parágrafo do mapa
+muscular).
+
+| tela | Δ claro | Δ escuro | o que mudou (contra a base de `main`) |
+| --- | ---: | ---: | --- |
+| 10-ficha-folha (página na aba Músculos) | 41,03 % | 42,15 % | o mesmo da rodada 15 ("Voltar", Músculos só com o mapa, "Aparece em:", aba "Tutorial no YouTube" sem setinha) |
+| 09-ficha-exercicio | 27,01 % | 31,66 % | o mesmo da rodada 15 ("Voltar", abas pelo rótulo) |
+| 24-creditos | 2,70 % | 2,64 % | só o parágrafo do mapa muscular |
+| 04-treino-lista | 0,00 % | 0,00 % | nada: a folha "Substituir hoje" não está aberta na captura |
+| 08-catalogo | 0,00 % | 0,00 % | nada: a folha de filtros está fechada na captura |
+| 17-corpo-fotos | 0,00 % | 0,00 % | nada: a foto e o cartão "Apagar esta foto?" não estão abertos na captura |
