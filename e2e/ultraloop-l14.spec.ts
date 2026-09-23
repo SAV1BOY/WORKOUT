@@ -411,6 +411,61 @@ test.describe("§22.14 itens 1 e 3 — foco visível nos links e botões novos",
   }
 });
 
+/** Contraste AA (SPEC §22.0.1 item 3) do texto contra o fundo efetivo. */
+const CONTRASTE = `
+  const canal = (v) => { const c = v / 255; return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; };
+  const lum = ([r, g, b]) => 0.2126 * canal(r) + 0.7152 * canal(g) + 0.0722 * canal(b);
+  const razao = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+  const pintar = (cor, fundo) => {
+    const tela = document.createElement('canvas');
+    tela.width = 1; tela.height = 1;
+    const ctx = tela.getContext('2d');
+    ctx.fillStyle = 'rgb(' + fundo.map(Math.round).join(',') + ')';
+    ctx.fillRect(0, 0, 1, 1);
+    ctx.fillStyle = cor;
+    ctx.fillRect(0, 0, 1, 1);
+    const d = ctx.getImageData(0, 0, 1, 1).data;
+    return [d[0], d[1], d[2]];
+  };
+  const fundoDe = (el) => {
+    const pilha = [];
+    for (let atual = el; atual; atual = atual.parentElement) {
+      const cor = getComputedStyle(atual).backgroundColor;
+      if (cor && cor !== 'rgba(0, 0, 0, 0)' && cor !== 'transparent') pilha.push(cor);
+    }
+    let fundo = [255, 255, 255];
+    for (let i = pilha.length - 1; i >= 0; i--) fundo = pintar(pilha[i], fundo);
+    return fundo;
+  };
+`;
+
+test.describe("§22.14 itens 1, 2 e 3 — contraste do texto novo da ficha", () => {
+  for (const tema of TEMAS) {
+    test(`Voltar, Aparece em, tags, treinos, Fazer agora e o cartão vazio ≥ 4,5:1 (${tema})`, async ({
+      page,
+    }) => {
+      await preparar(page, tema);
+      await abrirFicha(page, SUPINO);
+      await expect(page.locator("[data-historico-vazio]")).toBeVisible();
+      const medidas = await page.evaluate((codigo) => {
+        const f = new Function(`${codigo}; return { razao, pintar, fundoDe };`)();
+        const alvos = [
+          ...document.querySelectorAll(
+            "[data-voltar-da-ficha], [data-aparece-em] > span, [data-aparece-em] [data-slot=badge], [data-tags-equipamento] [data-slot=badge], [data-fazer-agora], [data-historico-vazio] p",
+          ),
+        ] as HTMLElement[];
+        return alvos.map((el) => {
+          const fundo = f.fundoDe(el);
+          const texto = f.pintar(getComputedStyle(el).color, fundo);
+          return { texto: (el.textContent ?? "").trim().slice(0, 40), razao: f.razao(texto, fundo) };
+        });
+      }, CONTRASTE);
+      expect(medidas.length).toBeGreaterThanOrEqual(7);
+      for (const m of medidas) expect(m.razao, m.texto).toBeGreaterThanOrEqual(4.5);
+    });
+  }
+});
+
 /* ------------------------------------------- item 4: a aba do tutorial */
 
 async function conferirAbas(escopo: Locator, page: Page): Promise<void> {
