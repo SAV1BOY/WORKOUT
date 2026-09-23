@@ -2676,7 +2676,9 @@ não muda (§22.0.1 item 7). O aceite de cada item é verificável no Vitest
    "YouTube", sem ícone de saída, e nada vaza a largura na página e na
    folha; com rede, tocar a miniatura põe o `<iframe>` do
    `youtube-nocookie` na própria ficha, na mesma rota; sem rede, o link
-   "Abrir no YouTube" abre em outra aba e é ele que tem o ícone.
+   "Abrir no YouTube" abre em outra aba e é ele que tem o ícone (e, para o
+   leitor de tela, que não vê o ícone, o nome do link termina em "(abre
+   fora do app)" — rodada 16).
 5. **O cartão "Apagar esta foto?" flutua como os outros**
    (flutuante-no-dialogo-da-foto). Ele usava `shadow-lg`, que some sobre o
    fundo `#0a0a0a`; passa à classe `.flutuante` (§22.3 item 5), que no escuro
@@ -2711,6 +2713,26 @@ não muda (§22.0.1 item 7). O aceite de cada item é verificável no Vitest
    fecha só a folha — a Visão geral continua aberta, o foco volta ao
    gatilho, nada fica inerte — e, sem folha, o Esc fecha a Visão geral; na
    foto ampliada, um Esc que outra camada já tratou não a fecha.
+   **O voltar do celular também fecha só a camada de cima** (correção da
+   auditoria 1, rodada 16). O voltar do Android — e o gesto de voltar do
+   TalkBack/VoiceOver, e o Alt+← — é um `history.back()`: a folha não tem
+   entrada no histórico, então o `popstate` da Visão geral (§22.5 item 3)
+   fechava a lista e desmontava a folha junto (medido: "substituir hoje" e
+   "Como fazer" abertos sobre a Visão geral → voltar → zero folhas e zero
+   Visão geral, na mesma rota). Agora, se há uma camada aberta por cima da
+   lista (folha, alerta, diálogo ou a foto ampliada), o `popstate` devolve a
+   entrada da lista ao histórico e entrega um Esc à camada de cima, que
+   fecha do jeito dela (e o foco volta a quem a abriu); sem nada por cima,
+   fecha a lista, como antes. A foto ampliada passa a devolver o foco a quem
+   a abriu (Esc, X ou toque fora) e marca (`preventDefault`) o Esc que trata.
+   Aceite: e2e a 360×740, nos dois temas, dentro da Visão geral — o voltar
+   (`history.back()`) com a "substituir hoje" e com a ficha do "Como fazer"
+   do bloco abertas fecha só a folha: a Visão geral continua aberta, o foco
+   volta ao gatilho, a rota é a mesma, o índice do histórico volta ao de
+   antes do voltar e nada fica inerte; sem folha, o voltar fecha a Visão
+   geral e fica no player. Na ficha, a foto ampliada aberta pelo teclado:
+   o Esc que ela trata chega ao `window` com `defaultPrevented`, e o foco
+   volta ao "Ampliar a foto" depois do Esc e depois do X.
 7. **"Manutenção", não "repetição", no motor da ficha** (copy-13). O vazio do
    cartão "O que o motor decidiu" dizia "Cada subida, repetição ou volta de
    carga…", e "repetições" na mesma ficha são as da série. Passa a "Cada
@@ -2755,7 +2777,7 @@ não muda (§22.0.1 item 7). O aceite de cada item é verificável no Vitest
     Aceite: e2e em `/mais/creditos` — nenhum texto visível contém "variáveis
     CSS" nem "anda junto"; os links para a fonte e para
     `/mapa-muscular/LICENCA-mapa-anatomico.md` continuam.
-11. **O anel do botão primário não tem a cor do botão** (auditorias 1 e 2 do
+11. **O anel do botão primário fica a 2 px do botão** (auditorias 1 e 2 do
     lote, menor; rodada 15). O `Button` primário do shadcn desenhava o foco
     com `ring-3 ring-ring`, e `--ring` é a cor de `--primary`: o anel colava
     no botão com a mesma cor (1:1 contra ele) e o foco só parecia o botão
