@@ -27,6 +27,7 @@ export function CardCapa({
   detalhe,
   foto,
   icone,
+  iconeNoAlto = false,
   raios,
   etiqueta,
   prioridade,
@@ -40,6 +41,13 @@ export function CardCapa({
   detalhe?: ReactNode;
   foto?: string | null;
   icone?: ReactNode;
+  /**
+   * SPEC §22.13 item 8: na tela da coleção, sem foto, o ícone vai para o alto
+   * da capa, no fluxo e fora do véu do texto. Os outros cartões (o cardio do
+   * dia na aba Treino, por exemplo) mantêm o ícone centrado por trás, sem
+   * mudar de altura.
+   */
+  iconeNoAlto?: boolean;
   raios?: NivelDeRaios | null;
   /** Selo no alto da capa ("hoje", "em andamento"). */
   etiqueta?: string | null;
@@ -100,16 +108,21 @@ export function CardCapa({
             className="absolute inset-0 size-full object-cover"
             onError={() => setQueda((q) => q + 1)}
           />
+        ) : icone && !iconeNoAlto ? (
+          <span className="text-primary/70 absolute inset-0 flex items-center justify-center">
+            {icone}
+          </span>
         ) : null}
 
         <div className="capa-gradiente absolute inset-0" />
         {/*
-          SPEC §22.13 item 8: sem foto, o ícone da tela fica no alto da capa,
-          FORA do véu do texto (antes ele ficava centrado, por baixo do véu e
-          da vinheta, e a capa era um retângulo escuro), em `text-foreground`
-          para passar de 3:1 contra o gradiente nos dois temas.
+          SPEC §22.13 item 8: na tela da coleção (`iconeNoAlto`), sem foto, o
+          ícone fica no alto da capa, FORA do véu do texto (antes ele ficava
+          centrado, por baixo do véu e da vinheta, e a capa era um retângulo
+          escuro), em `text-foreground` para passar de 3:1 contra o gradiente
+          nos dois temas.
         */}
-        {!comFoto && icone ? (
+        {!comFoto && icone && iconeNoAlto ? (
           <span
             data-capa-icone
             className="text-foreground relative flex flex-1 items-center justify-center pt-5 pb-3"

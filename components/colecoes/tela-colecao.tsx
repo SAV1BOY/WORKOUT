@@ -91,6 +91,7 @@ export function TelaColecao({ colecao }: { colecao: Colecao }) {
         detalhe={detalhe}
         foto={colecao.capa}
         icone={<Icone aria-hidden="true" className="size-12" />}
+        iconeNoAlto
         raios={mostrarRaios ? colecao.raios : null}
       >
         {cta ? (
@@ -141,6 +142,11 @@ const ROTULO_DO_ESTADO: Readonly<Record<EstadoDaSemana, string>> = {
   atual: "agora",
   "a-fazer": "a fazer",
 };
+
+/** "Semanas 1–2 … feitas": a faixa de várias semanas concorda no plural. */
+function rotuloDoEstado(l: { estado: EstadoDaSemana; de: number; ate: number }): string {
+  return l.estado === "feita" && l.de !== l.ate ? "feitas" : ROTULO_DO_ESTADO[l.estado];
+}
 
 const ICONE_DO_ESTADO = { feita: Check, atual: CircleDot, "a-fazer": Circle } as const;
 
@@ -225,7 +231,7 @@ function SemanasDoPlano({
                   <span className="text-sm font-medium">{l.rotulo}</span>
                   {l.estado ? (
                     <span className="text-muted-foreground text-xs">
-                      {ROTULO_DO_ESTADO[l.estado]}
+                      {rotuloDoEstado({ estado: l.estado, de: l.de, ate: l.ate })}
                     </span>
                   ) : null}
                 </span>
