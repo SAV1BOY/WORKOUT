@@ -43,7 +43,8 @@ export function HistoricoExercicio({
   exercicioId: string;
   /**
    * Na página as seções "Prescrição padrão" e "Carga inicial" já dizem onde a
-   * primeira sessão começa; "Onde você está" não se repete (SPEC §22.14 item 2).
+   * primeira sessão começa; "Onde você está" só diz o que elas não dizem
+   * (SPEC §22.14 item 2, `ondeVoceEsta`).
    */
   comoPagina?: boolean;
 }) {
