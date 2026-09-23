@@ -1,7 +1,7 @@
 {
  "versao": 3,
  "base": "a0bcfcf",
- "gerado_em": "2026-09-23T07:35Z",
+ "gerado_em": "2026-09-23T09:25Z",
  "estados": [
   "pendente",
   "candidato",
@@ -9,12 +9,12 @@
   "descartado"
  ],
  "contagens": {
-  "itens": 124,
-  "pendente": 124,
+  "itens": 129,
+  "pendente": 129,
   "candidato": 0,
   "resolvidos": 109,
   "descartados": 18,
-  "canonicos": 251,
+  "canonicos": 256,
   "por_secao": {
    "B": {
     "pendente": 77,
@@ -23,7 +23,7 @@
     "descartado": 17
    },
    "C": {
-    "pendente": 42,
+    "pendente": 47,
     "candidato": 0,
     "publicado": 8,
     "descartado": 0
@@ -41,7 +41,7 @@
     "descartado": 1
    }
   },
-  "lotes_planejados": 18,
+  "lotes_planejados": 19,
   "depende_do_dono": 7,
   "v2_para_v3": {
    "itens": [
@@ -134,7 +134,7 @@
     ]
    }
   },
-  "gerado_em": "2026-09-23T07:35Z"
+  "gerado_em": "2026-09-23T09:25Z"
  },
  "itens": [
   {
@@ -4672,7 +4672,8 @@
     }
    ],
    "duplicatas": [],
-   "nota": "L13 (rodada 13): não feito, motivo registrado no PROGRESSO."
+   "nota": "L13 (rodada 13): não feito, motivo registrado no PROGRESSO.",
+   "lote_planejado": "L32"
   },
   {
    "id": "C-plano-progresso-repete-desafio",
@@ -4693,7 +4694,8 @@
     }
    ],
    "duplicatas": [],
-   "nota": "L13 (rodada 13): não feito, registrado no PROGRESSO."
+   "nota": "L13 (rodada 13): não feito, registrado no PROGRESSO.",
+   "lote_planejado": "L32"
   },
   {
    "id": "C-busca-corda-capa-icone",
@@ -4715,7 +4717,118 @@
     }
    ],
    "duplicatas": [],
-   "nota": "L13 (rodada 13): anterior ao lote, só anotado."
+   "nota": "L13 (rodada 13): anterior ao lote, só anotado.",
+   "lote_planejado": "L32"
+  },
+  {
+   "id": "C-l13-key-musculos-sem-teste",
+   "area": "ficha",
+   "titulo": "A key da aba Músculos da folha não tem teste",
+   "esforco": "P",
+   "arquivos": [
+    "components/exercicio/ficha-folha.tsx",
+    "e2e (novo caso)"
+   ],
+   "detalhe": "PROBLEMA: components/exercicio/ficha-folha.tsx (~:376-377, key={ilustracao.urls.join(\"|\")}) remonta a ilustração da aba Músculos ao trocar de exercício, mas nenhum unitário nem e2e cai se a key sair; o caminho \"Substituir\" da SPEC §22.13 item 4 também não tem e2e. FAZER: e2e que troca de exercício no lugar (seta › e Substituir) com a aba Músculos aberta e prova que a figura começa na posição 1 e não herda estado; provar por mutação (sem a key o teste cai). ACEITE: mutação sem a key derruba o e2e novo. ESTADO EM a0bcfcf: key presente, sem teste.",
+   "secao": "C",
+   "estado": "pendente",
+   "origens": [
+    {
+     "fonte": "PROGRESSO (Rodada 12/13 — Lote 13, menores da auditoria 2 ou verificação em produção)",
+     "id_original": "A key da aba Músculos da folha não tem teste",
+     "origem": "R13/L13"
+    }
+   ],
+   "duplicatas": [],
+   "lote_planejado": "L32"
+  },
+  {
+   "id": "C-media-grande-figura-quebrou-herdada",
+   "area": "ficha",
+   "titulo": "figuraQuebrou da MediaGrande passa de um exercício para o outro",
+   "esforco": "P",
+   "arquivos": [
+    "components/exercicio/media-grande.tsx",
+    "e2e (novo caso)"
+   ],
+   "detalhe": "PROBLEMA: components/exercicio/media-grande.tsx:59 guarda figuraQuebrou em estado; na troca no lugar (‹ › e Substituir da ficha no player) a MediaGrande não remonta, então se a figura do exercício A deu erro, o B cai direto na foto. FAZER: zerar o estado ao trocar de exercício (key pela identidade do exercício ou efeito), com e2e que aborta a figura de A e confere que B mostra a figura. ACEITE: e2e prova que B mostra a própria figura depois de A ter falhado. ESTADO EM a0bcfcf: sem key, estado herdado.",
+   "secao": "C",
+   "estado": "pendente",
+   "origens": [
+    {
+     "fonte": "PROGRESSO (Rodada 12/13 — Lote 13, menores da auditoria 2 ou verificação em produção)",
+     "id_original": "figuraQuebrou da MediaGrande passa de um exercício para o outro",
+     "origem": "R13/L13"
+    }
+   ],
+   "duplicatas": [],
+   "lote_planejado": "L32"
+  },
+  {
+   "id": "C-alt-execucao-genero",
+   "area": "ficha",
+   "titulo": "O alt \"Execução do <nome>\" erra o gênero nos nomes femininos",
+   "esforco": "P",
+   "arquivos": [
+    "lib/midia.ts",
+    "components/exercicio/midia.tsx",
+    "components/exercicio/ficha-folha.tsx",
+    "components/exercicio/ilustracao-alternada.tsx"
+   ],
+   "detalhe": "PROBLEMA: \"Execução do Prancha\", \"do Remada\", \"do Rosca\", \"do Elevação de pernas\" (lib/midia.ts:235, components/exercicio/midia.tsx:29, ficha-folha.tsx:362); desde o L13 o texto também é o nome da figura-botão, lido mais vezes. FAZER: uma fonte só para o texto, sem artigo (\"Execução: <nome>\") ou com o gênero vindo dos dados; teste percorrendo os 81 exercícios. ACEITE: nenhum alt/nome acessível com \"do\"/\"da\" errado em todos os exercícios de data/exercicios.json. ESTADO EM a0bcfcf: \"Execução do <nome>\" em três lugares.",
+   "secao": "C",
+   "estado": "pendente",
+   "origens": [
+    {
+     "fonte": "PROGRESSO (Rodada 12/13 — Lote 13, menores da auditoria 2 ou verificação em produção)",
+     "id_original": "O alt \"Execução do <nome>\" erra o gênero nos nomes femininos",
+     "origem": "R13/L13"
+    }
+   ],
+   "duplicatas": [],
+   "lote_planejado": "L32"
+  },
+  {
+   "id": "C-busca-linha-reservada-vazia",
+   "area": "explorar",
+   "titulo": "Na busca, linha de coleção sem subtítulo deixa um vão vazio",
+   "esforco": "P",
+   "arquivos": [
+    "components/colecoes/linha-colecao.tsx"
+   ],
+   "detalhe": "PROBLEMA: na busca, a linha sem subtítulo mostra a linha reservada vazia entre o título e \"contém …\" (busca \"corda\": Tríceps, Cross over de parede, Tatame EVA com um vão de ~20 px). A reserva da §22.13 item 7 serve à altura por seção da vitrine, mas na busca a altura já varia. FAZER: na lista da busca, não reservar a linha do subtítulo quando ele não existe; manter a reserva na vitrine; ajustar a SPEC §22.13 item 7. ACEITE: busca \"corda\" sem vão vazio nas linhas sem subtítulo, vitrine com a mesma altura por seção. ESTADO EM a0bcfcf: vão de ~20 px.",
+   "secao": "C",
+   "estado": "pendente",
+   "origens": [
+    {
+     "fonte": "PROGRESSO (Rodada 12/13 — Lote 13, menores da auditoria 2 ou verificação em produção)",
+     "id_original": "Na busca, linha de coleção sem subtítulo deixa um vão vazio",
+     "origem": "R13/L13"
+    }
+   ],
+   "duplicatas": [],
+   "lote_planejado": "L32"
+  },
+  {
+   "id": "C-plano-lista-canto-reto",
+   "area": "explorar",
+   "titulo": "Linha atual da lista \"Semanas do plano\" cobre os cantos arredondados do cartão",
+   "esforco": "P",
+   "arquivos": [
+    "components/colecoes/tela-colecao.tsx"
+   ],
+   "detalhe": "PROBLEMA: em /explorar/plano/<id>, a linha \"agora\" da lista \"Semanas do plano\" tem fundo de cantos retos que cobre os cantos arredondados de cima do cartão (visto em produção nos dois temas, r13/l13/producao/zoom-*-lista-topo.png). FAZER: recortar o fundo pelo raio do cartão (overflow-hidden no cartão ou raio na primeira/última linha). ACEITE: captura ampliada sem corte nos cantos nos dois temas. ESTADO EM a0bcfcf: corte visível.",
+   "secao": "C",
+   "estado": "pendente",
+   "origens": [
+    {
+     "fonte": "PROGRESSO (Rodada 12/13 — Lote 13, menores da auditoria 2 ou verificação em produção)",
+     "id_original": "Linha atual da lista \"Semanas do plano\" cobre os cantos arredondados do cartão",
+     "origem": "R13/L13"
+    }
+   ],
+   "duplicatas": [],
+   "lote_planejado": "L32"
   }
  ],
  "resolvidos": [
@@ -8909,7 +9022,7 @@
    "codigo_anterior": "L14",
    "titulo": "Ficha: conteúdo e ações; nomes do catálogo e créditos",
    "area": "ficha",
-   "ordem": 2,
+   "ordem": 1,
    "itens": [
     "tela-explorar-fichas-19",
     "tela-explorar-fichas-20",
@@ -8973,6 +9086,55 @@
     "explorar": 1,
     "mais": 1
    }
+  },
+  {
+   "codigo": "L32",
+   "titulo": "Sobras das auditorias: ficha e coleções do Explorar",
+   "area": "ficha",
+   "ordem": 2,
+   "itens": [
+    "C-l13-key-musculos-sem-teste",
+    "C-media-grande-figura-quebrou-herdada",
+    "C-alt-execucao-genero",
+    "C-l13-aceite-lcp-vs-ordem",
+    "C-busca-linha-reservada-vazia",
+    "C-busca-corda-capa-icone",
+    "C-plano-progresso-repete-desafio",
+    "C-plano-lista-canto-reto"
+   ],
+   "arquivos": [
+    "components/exercicio/ficha-folha.tsx",
+    "components/exercicio/media-grande.tsx",
+    "components/exercicio/midia.tsx",
+    "components/exercicio/ilustracao-alternada.tsx",
+    "lib/midia.ts",
+    "components/colecoes/linha-colecao.tsx",
+    "components/colecoes/tela-colecao.tsx",
+    "lib/colecoes.ts",
+    "e2e/ultraloop-l32.spec.ts (novo)",
+    "SPEC.md",
+    "PROGRESSO.md"
+   ],
+   "telas_esperadas": [
+    "09-ficha-exercicio",
+    "10-ficha-folha",
+    "06-explorar",
+    "07-colecao",
+    "28-player-exercicio"
+   ],
+   "medios": 0,
+   "observacoes": "Criado em 23/09 pelo orquestrador com os menores que as auditorias e a verificação em produção do L13 deixaram (nada fora da fila). Roda logo depois do L14, que também edita a ficha.",
+   "excecao": {
+    "tipo": "área",
+    "itens": [
+     "C-busca-linha-reservada-vazia",
+     "C-busca-corda-capa-icone",
+     "C-plano-progresso-repete-desafio",
+     "C-plano-lista-canto-reto"
+    ],
+    "motivo": "Sobras do L13, que já juntava ficha e coleções do Explorar com exceção de área; os arquivos são os mesmos do L13."
+   },
+   "excecao_de_ordem": []
   },
   {
    "codigo": "L15",

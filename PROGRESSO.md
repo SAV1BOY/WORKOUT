@@ -7878,15 +7878,15 @@ Nenhuma migração de banco. **Rollback: não.**
 
 **O que a reconciliação corrigiu na lista antiga (texto de 21/09, abaixo substituído):** o L7 aparecia como pendente e está publicado (PR #13); C tinha 63 numa fonte e 64 noutra (o 64º é o R9-C1, que também estava em D — agora uma entrada só); os seis itens de D não estavam no JSON; `lotes_propostos_ordem` começava por lotes já publicados; os dez itens do antigo "L12 superfícies" já estavam publicados pelos lotes 3 e 4 (com prova); 46 achados da remontagem das superfícies e 27 achados da análise nunca tinham entrado na fila — entraram; o nome L12 passou a ser o lote de Explorar e catálogo.
 
-**Contagens em 2026-09-23T07:35Z (depois do L13):**
+**Contagens em 2026-09-23T09:25Z:**
 
 | seção | pendente | publicado | descartado |
 | --- | ---: | ---: | ---: |
 | B | 77 | 24 | 17 |
-| C | 42 | 8 | 0 |
+| C | 47 | 8 | 0 |
 | D | 5 | 0 | 0 |
 | legado | 0 | 77 | 1 |
-| **total** | **124** | **109** | **18** |
+| **total** | **129** | **109** | **18** |
 
 Dos descartados, **7 dependem de decisão do dono** e voltam à fila se a resposta for sim (atualização do app com aviso, uso do laranja, Relatório somado no banco, destaque do Explorar, filtros Core/Cardio, faixa da semana com sete destinos, resumo curto dos planos) — perguntas em `docs/ultraloop/perguntas-ao-dono.md`.
 
@@ -7897,6 +7897,7 @@ Dos descartados, **7 dependem de decisão do dono** e voltam à fila se a respos
 | lote | título | itens | ids |
 | --- | --- | ---: | --- |
 | L14 | Ficha: conteúdo e ações; nomes do catálogo e créditos | 10 | tela-explorar-fichas-19, tela-explorar-fichas-20, tela-explorar-fichas-21, tela-explorar-fichas-26, flutuante-no-dialogo-da-foto, a11y-05, copy-13, copy-25, OBS-elastico-x-super-band, copy-08 |
+| L32 | Sobras das auditorias: ficha e coleções do Explorar | 8 | C-l13-key-musculos-sem-teste, C-media-grande-figura-quebrou-herdada, C-alt-execucao-genero, C-l13-aceite-lcp-vs-ordem, C-busca-linha-reservada-vazia, C-busca-corda-capa-icone, C-plano-progresso-repete-desafio, C-plano-lista-canto-reto |
 | L15 | Corpo: peso, gráficos e campo de data | 6 | a11y-01, tela-relatorio-corpo-calendario-12, tela-relatorio-corpo-calendario-14, tela-relatorio-corpo-calendario-19, tela-relatorio-corpo-calendario-13, tela-relatorio-corpo-calendario-11 |
 | L16 | Corpo: medidas, fotos, data no celular e um verbo só para salvar | 6 | tela-relatorio-corpo-calendario-17, tela-relatorio-corpo-calendario-18, tela-relatorio-corpo-calendario-16, a11y-14, D-input-date-pt-br, copy-28 |
 | L17 | Casca: carregamento, rotas pesadas, zoom e bloco de sincronização | 6 | C-loading-por-rota, C-next-dynamic-rotas-pesadas, C-nav-inferior-zoom-200, a11y-16, visual-19, copy-17 |
