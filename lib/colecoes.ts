@@ -297,9 +297,11 @@ export function textoDizOPrazo(texto: string | null | undefined, semanas: number
 /**
  * A meta de um plano na vitrine (SPEC §22.12 item 4). Com o perfil, barra fixa
  * e corrida dizem a posição — "semana 3 de 12", presa ao tamanho do plano; sem
- * perfil, e sempre na corda (que não tem posição no perfil), a duração — a não
- * ser que o objetivo do JSON (o subtítulo) já diga o prazo: aí não há meta
- * (`null`), para o prazo não aparecer duas vezes na mesma linha.
+ * perfil, e sempre na corda, a duração — a não ser que o objetivo do JSON (o
+ * subtítulo) já diga o prazo: aí não há meta (`null`), para o prazo não
+ * aparecer duas vezes na mesma linha. A corda também tem posição no perfil
+ * (`profiles.semana_corda`), mas ela não entra nesta meta: aparece na lista
+ * das semanas da tela do plano (SPEC §13.4 e §22.13 item 9).
  */
 export function metaDoPlano(
   dados: { id: PlanoId; semanas: number; subtitulo: string | null },
