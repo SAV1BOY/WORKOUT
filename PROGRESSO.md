@@ -9941,9 +9941,12 @@ itens 3 e 4; o lote dono da tela 24 está no teto de 12 arquivos) e
    registrada."; a decisão espera os eventos do motor lidos. Na página, "Onde
    você está" de um exercício que o motor ainda não avaliou repetia a carga
    inicial e a prescrição padrão das seções acima ("7,5 kg na barra" duas
-   vezes, pego pelo e2e na parcial) — ali ele sai (`ondeVoceEstaRepete()`),
-   menos quando a primeira sessão traz assistência ou semana leve; na folha
-   ele continua.
+   vezes, pego pelo e2e na parcial) — ali ele só diz o que as seções não
+   dizem (`ondeVoceEsta()`, depois da correção da auditoria, abaixo): a
+   carga do motor quando ela não é a do JSON (barras pesadas, §3.9), com
+   "Montada com o peso das suas barras (Mais → Equipamento).", e o elástico
+   ou a semana leve na linha "Próxima sessão"; sem nada disso, sai. Na folha
+   ele continua inteiro.
 3. **Nada repetido na ficha e títulos em ordem** (tela-explorar-fichas-21,
    com -22, -23 e a parte da ficha do a11y-12;
    `components/exercicio/ficha-folha.tsx`, `lib/ficha.ts`). **Era:** a aba
@@ -9957,7 +9960,11 @@ itens 3 e 4; o lote dono da tela 24 está no teto de 12 arquivos) e
    dos treinos, cada um link para `/explorar/treino/<id>`
    (`linksDosTreinos()`); o nível dos títulos vem de um contexto
    (`nivelDosTitulos()`): H2 na página, H3 na folha (onde o título da folha é
-   o H2) — seções, "Erro comum", "Seu histórico" e "Só nesta sessão".
+   o H2) — seções, "Erro comum", "Seu histórico" e "Só nesta sessão". Com
+   carga 0, a nota da "Carga inicial" não repete "peso corporal" embaixo de
+   "peso do corpo" (`notaDaCargaInicial()`), e o 3º passo do salto básico
+   não repete a prescrição (`data/exercicios.json`) — ambos da correção da
+   auditoria, abaixo.
 4. **A aba do tutorial diz para onde leva** (tela-explorar-fichas-26;
    `ficha-folha.tsx`, `lib/ficha.ts`). **Era:** "Tutorial", oferecida sempre.
    **É:** "Tutorial no YouTube" com o ícone de link externo no rótulo, só
@@ -10019,8 +10026,9 @@ asserção `naturalWidth > 0` de cada imagem é a mesma).
   exercício, e anilhas/halteres/barra W não têm link; todo treino de todo
   exercício leva a `/explorar/treino/<id>` com o exercício dentro;
   `historicoVazio` só com os quatro vazios; `podeVoltarNoApp` (aba nova:
-  `canGoBack` falso com `history.length` 2); `ondeVoceEstaRepete` só na
-  página, primeira vez, sem assistência nem semana leve. Catálogo, nos dados
+  `canGoBack` falso com `history.length` 2); `ondeVoceEsta` e
+  `notaDaCargaInicial` e o critério de repetição nos 81 (ver a correção da
+  auditoria). Catálogo, nos dados
   inteiros: "Cross over" nos **9** exercícios com a tag, "Super Band" nos
   **5** com a tag (e nos 2 de implemento `band`, que também têm a tag), os
   nomes batem com `equipamentos.json`; dos **13** de peso corporal, **11**
@@ -10028,7 +10036,8 @@ asserção `naturalWidth > 0` de cada imagem é a mesma).
   abdominal no banco declinado → "Banco"), nenhum "peso do corpo" — a
   metade "aparece no texto de todo exercício" do aceite do copy-25 é
   inviável para esses 2 sem reescrever `equipamento_texto`, o que o item
-  proíbe; `NOME_IMPLEMENTO.band === NOME_EQUIPAMENTO['super-band']` e
+  proíbe (aceite ajustado na SPEC §22.14 item 8 e devolvido como não feito
+  no retorno do lote); `NOME_IMPLEMENTO.band === NOME_EQUIPAMENTO['super-band']` e
   nenhum rótulo "Elástico".
 - **Mutação** (cópia em `r14/l14/mut`): 9 de 9 mutantes derrubam teste —
   aba do tutorial sempre, nível fixo, `href` nulo, vazio ignorando eventos,
@@ -10060,6 +10069,81 @@ asserção `naturalWidth > 0` de cada imagem é a mesma).
   duas vezes na página, e o foco não voltava ao "Como fazer" ao fechar a
   folha no player; em `cb05219`, 136 de 137 com o grep ampliado (a falha era
   a espera das 81 fichas, acima); `0117248` isolado: 4 de 4.
+
+#### Correção da auditoria
+
+Duas lentes auditaram `5258988` (regra e tela; vereditos em
+`r14/l14/auditoria-1-*/veredito.json`): 2 bloqueantes e 5 importantes, todos
+atendidos abaixo; dos menores, os que cabiam sem risco.
+
+- **Bloqueante — a página escondia a carga real** (item 2). A regra
+  `ondeVoceEstaRepete()` tirava "Onde você está" da página em toda primeira
+  vez sem elástico nem semana leve, mas com as barras pesadas em Mais →
+  Equipamento (§3.9) o motor sobe ou desce a carga inicial ao que dá para
+  montar, e a seção "Carga inicial" mostra o número cru do JSON (a auditoria
+  mediu 3 fichas com a barra W a 5 kg, 21 com a barra maciça a 8 kg e 23 com
+  os halteres a 2 kg; ex.: rosca com barra W, seção "2 kg na barra", motor e
+  player "5 kg na barra"). **Agora** `ondeVoceEsta()` (pura, `lib/ficha.ts`)
+  só tira o cartão quando a carga do motor é a do JSON; quando não é, o
+  cartão mostra a carga do motor e "Montada com o peso das suas barras (Mais
+  → Equipamento)."; o elástico e a semana leve ficam na linha "Próxima
+  sessão" sem repetir a carga; a "Próxima sessão" sem elástico nem semana
+  leve (que seria a prescrição padrão) e a nota "Ainda sem registro" (que é
+  a nota da seção) não aparecem na página. Na folha o cartão é o de sempre.
+  O elástico sai por extenso ("pé inteiro", `nomeDaAssistencia()`; era "pe
+  inteiro", menor da tela).
+- **Bloqueante — "nada repetido" só valia no supino** (item 3). O critério
+  do e2e aplicado às 81 fichas falhava em 9 (12 com as 3 do elástico):
+  "peso corporal" da nota da carga inicial dentro do subtítulo "Core ·
+  Tatame · peso corporal" (8 fichas), "peso do corpo" e "peso corporal" na
+  mesma seção (23 fichas de carga 0), e a prescrição "6 × 30 s a 5 × 3 min"
+  dentro do 3º passo do salto básico. **Agora**: `notaDaCargaInicial()` (com
+  carga 0, só o complemento — "Anilha só quando passar de 15 limpas" — ou
+  nada); o passo do salto básico corrigido no JSON ("Progrida pelo tempo de
+  bloco, não pela velocidade."); e o Vitest aplica o mesmo critério aos
+  textos da página das **81** fichas em 4 perfis (sem barras pesadas, barra
+  W 5 kg, barra maciça 8 kg, halteres 2 kg) — ele mesmo pegou mais um caso
+  que a auditoria não listou (farmer's walk com halteres de 2 kg: "3 × 30–40
+  passos" dentro de "Próxima sessão: 3 × 30–40 passos"), resolvido pela
+  regra da "Próxima sessão" acima.
+- **Importante — o e2e não provava o `router.back()`** (item 1). A asserção
+  "a busca continua lá" passava igual com um link simples, e a busca do
+  catálogo é estado local que recomeça vazia (o texto do "Como testar"
+  dizia o contrário). **Agora** o e2e confere o índice da entrada do
+  histórico (`navigation.currentEntry.index`): do catálogo, a ficha empilha
+  +1 e o "Voltar" devolve ao índice do catálogo; e um e2e novo abre a ficha
+  pelo Relatório ("Carga dos grandes") e o "Voltar" — cujo `href` é
+  `/exercicios` — leva a `/relatorio`, no índice de antes. O "Como testar"
+  e a SPEC dizem que a busca recomeça vazia.
+- **Importante — o clique na tag e no treino só conferia a URL** (item 3).
+  Agora confere o H1 da coleção (`colecaoDoAparelho(tag).titulo`,
+  `colecaoDoTreino(id).titulo`): uma rota 404 teria a mesma URL.
+- **Importante — o anel do "Fazer agora" não era medido de verdade.**
+  `boxShadow !== "none"` é sempre verdadeiro no Button do Tailwind 4 (cinco
+  sombras transparentes). Agora o e2e exige uma sombra com cor de alfa > 0 e
+  espalhamento ≥ 2 px e, no "Fazer agora", espera a transição terminar até o
+  anel opaco aparecer (3 s no máximo), nos dois temas.
+- **Importante — as 12 fichas repetidas da lente de tela**: as mesmas dos
+  dois bloqueantes; e2e novos em abdominal supra, salto com joelho alto,
+  salto básico, barra fixa assistida e flexão de braço (nada repetido no DOM
+  real), no elástico ("elástico pé inteiro", "peso do corpo" uma vez só) e
+  na rosca com barra W com a barra W de 5 kg no perfil ("5 kg na barra" em
+  "Onde você está", "2 kg na barra" na seção, nada repetido).
+- **Menores.** "Sem perfil o botão fica desabilitado" virou "enquanto o
+  perfil e o dia carregam" (SPEC e comentário do `FazerAgora`: com perfil
+  `null` o hook devolve pronto, e o layout cria o perfil antes). copy-25:
+  o aceite ajustado ("todo texto que nomeia o implemento"; 11 de 13, os 2
+  que não nomeiam ficam) está na SPEC §22.14 item 8 e vai como não feito no
+  retorno. Os chips iguais "Super Band" (Implemento e Equipamento ligados
+  juntos) seguem o padrão que já existia em "Barra fixa", "Halteres" e
+  "Corda": só registro. Fora do diff do lote, só registro: o Esc da folha
+  "substituir hoje" aberta de dentro da Visão geral fecha as duas
+  (`visao-geral.tsx`); o ícone de link externo numa aba que, com rede,
+  toca o vídeo embutido; o anel do Button primário na cor do próprio botão.
+- **Provas da correção**: `lib/ficha.test.ts` passa de 13 para 28 testes;
+  mutantes na cópia local, cada um derrubando teste — o JSON antigo do
+  salto básico (4 falhas), a nota crua com carga 0 (7 falhas), a carga do
+  motor ignorada em `ondeVoceEsta` (5 falhas).
 
 #### Portões
 
@@ -10102,8 +10186,10 @@ foto e o histórico com séries semeadas.
 #### Como testar no celular (360 px)
 
 1. Exercícios → busque "supino reto" → abra a ficha: "Voltar" no topo volta
-   à busca. Role até o fim: "Fazer agora" abre o player só com o supino;
-   conclua uma série no modo avião — ela fica no aparelho e sobe depois.
+   ao catálogo (a busca recomeça vazia, como no voltar do celular). Abra a
+   ficha pelo Relatório ("Carga dos grandes"): "Voltar" volta ao Relatório.
+   Role até o fim: "Fazer agora" abre o player só com o supino; conclua uma
+   série no modo avião — ela fica no aparelho e sobe depois.
 2. Na mesma ficha, sem treino ainda: embaixo de "Seu histórico" há um cartão
    só ("Ainda sem histórico deste exercício"). A seção "Equipamento" mostra as
    tags; "Banco" abre a coleção do banco no Explorar; "Aparece em:" leva ao
@@ -10119,3 +10205,11 @@ foto e o histórico com séries semeadas.
    contorno laranja fino.
 7. Mais → Créditos → Mapa muscular: "Nenhuma linha do desenho foi alterada;
    só reagrupamos os músculos e trocamos as cores."
+8. Mais → Equipamento → pese a barra W (ex.: 5 kg) → abra Rosca com barra W,
+   sem treino: a seção "Carga inicial" diz o número do guia (2 kg) e "Onde
+   você está" mostra 5 kg na barra, "Montada com o peso das suas barras".
+   Sem barra pesada, esse cartão não aparece na página.
+9. Abdominal supra (ou qualquer um de peso corporal): "Carga inicial" diz
+   "peso do corpo", sem "peso corporal" embaixo. Barra fixa assistida:
+   "Onde você está" diz "Próxima sessão: … · elástico pé inteiro", com
+   acento e sem repetir "peso do corpo".
