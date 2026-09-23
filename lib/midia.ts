@@ -377,8 +377,9 @@ export function urlDaLicenca(licenca: string): string | null {
 
 /**
  * A proporção da caixa de uma foto de execução (SPEC §22.13 item 2): a do
- * próprio arquivo (`data/medidas-de-foto.json`), para o `object-cover` não
- * cortar nada; 3:2, a das fotos do kit, quando a medida não é conhecida.
+ * próprio arquivo (`data/medidas-de-foto.json`), para a foto (em
+ * `object-contain`) encher a caixa sem faixa vazia; 3:2, a das fotos do kit,
+ * quando a medida não é conhecida.
  */
 export function proporcaoDaFoto(url: string | null | undefined): string {
   const medida = medidaDaFoto(url);
