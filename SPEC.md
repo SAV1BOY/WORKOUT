@@ -2976,7 +2976,7 @@ aparelho** (`estadoDoAparelho()`, pura), um de:
 | Lembretes ainda não configurados neste servidor | faltam as variáveis VAPID | nada a fazer |
 | Este navegador não recebe notificações | sem `serviceWorker`, `PushManager` ou `Notification` | instruções |
 | Bloqueado pelo navegador | `Notification.permission === "denied"` | instruções |
-| Ativado neste aparelho | há inscrição do navegador **e** a linha dela na tabela | "Desativar neste aparelho" |
+| Ativado neste aparelho | permissão concedida, inscrição do navegador **e** a linha dela na tabela | "Desativar neste aparelho" |
 | Desativado neste aparelho | o resto | "Ativar lembretes neste aparelho" |
 
 - **Ativar**: pede a permissão (`Notification.requestPermission`), inscreve
@@ -3005,7 +3005,11 @@ for de um serviço de push conhecido (FCM, Mozilla, Apple, Windows — em
 `https`); a origem do servidor de push falso dos testes só entra pela variável
 `LEMBRETES_PUSH_DE_TESTE`, que existe só no `e2e/playwright.config.ts`.
 Resposta **404/410** do serviço = inscrição expirada: a linha é apagada.
-Devolve o resultado por aparelho e o texto da tela.
+Um `endpoint` fora da lista não é chamado e conta como não enviado. Sem
+nenhuma inscrição, **409** "Nenhum aparelho desta conta está com os lembretes
+ativados.". Devolve o resultado por aparelho e o texto da tela ("Enviado para
+N aparelho(s).", mais "1 aparelho tinha a inscrição vencida e saiu da lista."
+quando houve 404/410, ou "Não deu para enviar agora." se nenhum chegou).
 
 **A dependência `web-push`** estava permitida pelo contrato, mas não entrou:
 o `node_modules` deste repositório é compartilhado entre as faixas de trabalho
@@ -3049,7 +3053,10 @@ resultado.
 3. **Tela**: e2e a 360×740 nos dois temas, com a permissão concedida pelo
    contexto do Playwright — ativar grava a linha (com a chave pública certa
    no `subscribe`), desativar apaga; estados "bloqueado" e "não suportado";
-   alvos ≥ 44 px; sem rolagem lateral; a linha "Lembretes" em Mais.
+   alvos ≥ 44 px; sem rolagem lateral; a linha "Lembretes" em Mais, com o
+   anel de foco **interno** (a lista tem `overflow-hidden`, que cortava o
+   anel de fora de toda linha): contorno sólido ≥ 2 px inteiro dentro da
+   linha e contraste ≥ 3:1 ao focar, nos dois temas.
 4. **Rota de teste**: Vitest da cifragem contra a RFC 8291 (Apêndice A), do
    JWT VAPID (assinatura confere com a chave pública) e das regras; e2e — o
    servidor de push falso no mock recebe o pedido com `Authorization: vapid
