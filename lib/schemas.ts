@@ -610,3 +610,92 @@ export const inscricaoLembreteSchema = z.object({
   criado_em: z.string(),
 });
 export type InscricaoLembrete = z.infer<typeof inscricaoLembreteSchema>;
+
+/* --------------------------------------- lembretes II (SPEC §23.9–23.11) */
+
+/** `HH:MM`, de 00:00 a 23:55, no passo de 5 min do disparo (SPEC §23.9). */
+export const horaDoLembreteSchema = z
+  .string()
+  .regex(/^([01]\d|2[0-3]):[0-5][05]$/, "hora HH:MM no passo de 5 minutos");
+
+export const lembreteDoTipoSchema = z.object({
+  ligado: z.boolean(),
+  hora: horaDoLembreteSchema,
+});
+
+/** `profiles.prefs.lembretes`. Sem a chave: os dois desligados às 07:00. */
+export const prefsLembretesSchema = z.object({
+  treino: lembreteDoTipoSchema,
+  corrida: lembreteDoTipoSchema,
+});
+export type PrefsLembretes = z.infer<typeof prefsLembretesSchema>;
+export type TipoDeLembrete = keyof PrefsLembretes;
+
+/** Uma linha de `public.lembretes_enviados` (só leitura pela RLS). */
+export const envioLembreteSchema = z.object({
+  tipo: z.enum(["treino", "corrida"]),
+  dia: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  enviado_em: z.string(),
+});
+export type EnvioLembrete = z.infer<typeof envioLembreteSchema>;
+
+const dataIso = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+
+/**
+ * O JSON que `public.lembretes_tick()` manda para `POST /api/lembretes/disparar`
+ * (SPEC §23.11): o mínimo que a regra de §23.10 precisa, por conta.
+ */
+export const disparoSchema = z.object({
+  agora: z.iso.datetime({ offset: true }),
+  usuarios: z
+    .array(
+      z.object({
+        user_id: z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i),
+        perfil: z.object({
+          data_inicio: dataIso.nullable().optional(),
+          fase_atual: faseIdSchema,
+          fase_desde: dataIso.nullable().optional(),
+          ultimo_treino: treinoIdSchema.nullable(),
+          semana_corrida: z.number().int().nullable().optional(),
+          semana_corda: z.number().int().nullable().optional(),
+          semana_fixa: z.number().int().nullable().optional(),
+          prefs: z.record(z.string(), z.unknown()).nullable(),
+        }),
+        overrides: z
+          .array(
+            z.object({
+              data: dataIso,
+              tipo: z.enum(["forca", "cardio", "descanso"]),
+              workout_id: treinoIdSchema.nullable().optional(),
+              sessao: z.string().nullable().optional(),
+            }),
+          )
+          .default([]),
+        sessoes: z
+          .array(
+            z.object({ id: z.string(), data: dataIso, status: z.string(), workout_id: z.string() }),
+          )
+          .default([]),
+        cardios: z
+          .array(
+            z.object({ id: z.string(), data: dataIso, tipo: z.string(), concluida: z.boolean() }),
+          )
+          .default([]),
+        enviados: z
+          .array(z.object({ tipo: z.enum(["treino", "corrida"]), dia: dataIso }))
+          .default([]),
+        inscricoes: z
+          .array(
+            z.object({
+              endpoint: z.string().regex(/^https?:\/\/\S+$/),
+              p256dh: z.string().min(1),
+              auth: z.string().min(1),
+            }),
+          )
+          .default([]),
+      }),
+    )
+    .max(500),
+});
+export type Disparo = z.infer<typeof disparoSchema>;
+export type UsuarioDoDisparo = Disparo["usuarios"][number];
