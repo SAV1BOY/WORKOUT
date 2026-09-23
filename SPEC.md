@@ -2358,27 +2358,47 @@ de cada item é verificável no Vitest ou no e2e (`e2e/ultraloop-l13.spec.ts`).
    Aceite: Vitest — para as 145 medidas do JSON, numa coluna de 328 px, só
    as 12 medidas desses seis exercícios ficam abaixo de 60 % da coluna, e
    todas com a figura no teto (432 px ± 2); toda figura ocupa a coluna
-   (menos a folga) ou bate no teto; o goblet tem ≥ 180 px de largura; e2e —
+   (menos a folga) ou bate no teto; o teto fica entre o mínimo que leva o
+   goblet a 180 px (425) e o máximo que cabe na página a 360×740 (440) — o
+   teste de antes passava com o teto em 100, 500 ou 1000 px (correção da
+   auditoria 2); a folga é o `p-2` da área da figura; com a caixa de antes,
+   100 das 145 medidas (`h-52`, página) e 112 (`h-44`, folha) ficavam abaixo
+   de 60 % da coluna; o goblet tem ≥ 180 px de largura; e2e —
    em `/exercicios/agachamento-goblet` a 360×740 a figura desenhada mede
    ≥ 180 px de largura e bate no teto, a da prancha e a do supino ocupam
    ≥ 60 % da coluna, nada vaza a largura, e trocar de vista (Figura, Fotos,
    Ilustração) deixa o topo do segmento no mesmo lugar (±1 px), na página e
    na folha.
-2. **As fotos na proporção do arquivo, com legenda** (imagens-12). As fotos
-   de execução são 3:2 e a ficha as cortava em quadrado (`aspect-square` +
-   `object-cover`), justamente onde passa a barra. As duas caixas, lado a
+2. **As fotos na proporção do arquivo, com legenda** (imagens-12). A ficha
+   cortava as fotos de execução em quadrado (`aspect-square` +
+   `object-cover`), justamente onde passa a barra. As fotos **não** são
+   uniformes (correção da auditoria 2): dos 324 arquivos (162 fotos, no JPEG
+   do kit e na derivada WebP), 304 são 850×567, 8 são 850×569 e **12 são
+   retrato 2:3** — agachamento búlgaro, barra fixa assistida e barra fixa com
+   lastro (850×1275 no kit, 800×1200 na derivada). As duas caixas, lado a
    lado, passam a ter a proporção do próprio arquivo
-   (`data/medidas-de-foto.json`, 3:2 na falta) e ganham legenda visível
-   **"Início" / "Fim"** sob cada uma — na página e na opção Fotos da folha.
-   Aceite: e2e — nenhuma foto de execução da ficha tem a caixa com proporção
-   diferente da do arquivo (|Δ| ≤ 0,02), e as legendas estão visíveis.
+   (`data/medidas-de-foto.json`; 3:2 na falta), a foto é `object-contain`
+   (nem uma medida errada a cortaria) e ganham legenda visível **"Início" /
+   "Fim"** sob cada uma — na página e na opção Fotos da folha. A faixa do
+   player e da Visão geral, que mostra a foto dos três exercícios que só têm
+   foto (escalador, salto básico e corrida no lugar com a corda), também
+   passa a `object-contain`: a faixa é 2:1 e cortava a foto de 3:2.
+   Aceite: Vitest — para toda foto de `data/exercicios.json` (324 arquivos),
+   a proporção da caixa é a do arquivo do kit lido do disco (±0,005), e 12
+   são retrato; e2e — nenhuma foto de execução da ficha tem a caixa com
+   proporção diferente da do arquivo (|Δ| ≤ 0,02), e as legendas estão
+   visíveis; nos três exercícios em retrato, na página e na opção Fotos, as
+   quatro fotos têm caixa 2:3, `object-fit: contain` e altura ≥ 1,45 × a
+   largura.
 3. **Só o que é link aparece sublinhado no crédito** (imagens-13). O crédito
    inteiro era um link sublinhado. Passa a **"Ilustração: <autor> ·
    <licença>"**, em 11 px (§13.8.1): o autor leva à obra de origem
    (`url_fonte`) e a licença à página dela na Creative Commons (endereço
    derivado do código da licença do JSON por `urlDaLicenca()`, puro e
    testado); "Ilustração:" e o "·" são texto. Os dois links têm alvo de
-   44 px. Aceite: e2e — o crédito continua visível, os dois links têm
+   44 px. O texto do crédito é montado num lugar só, a legenda
+   (`media-grande.tsx`); `lib/midia.ts` guarda só os dados (correção da
+   auditoria 2: o campo `texto`, com o rótulo repetido, ficou morto). Aceite: e2e — o crédito continua visível, os dois links têm
    `text-decoration-line: underline` e caixa ≥ 44 px, e o texto fora deles
    não é sublinhado.
 4. **O segundo quadro só é pedido quando a animação vai começar**
@@ -2386,24 +2406,48 @@ de cada item é verificável no Vitest ou no e2e (`e2e/ultraloop-l13.spec.ts`).
    caixa visível, então a segunda baixava junto com a primeira. Agora a
    segunda posição só entra no DOM depois que a primeira carregou **e** a
    ilustração vai alternar; parada (`prefers-reduced-motion`), só quando a
-   pessoa pede para voltar a alternar. Aceite: e2e — na ficha, o pedido de
+   pessoa pede para voltar a alternar. A troca de 1,2 s só começa **depois
+   que o quadro 2 chegou** (`onLoad`), e "Voltar a alternar" só troca de
+   posição na hora se ele já está carregado — com rede lenta, ou parada (o
+   quadro 2 nem tinha sido pedido), a caixa fazia o fade até ficar vazia
+   (correção da auditoria 2). Aceite: e2e — na ficha, o pedido de
    imagem do quadro 2 começa depois do fim do pedido do quadro 1; com
    `reducedMotion: reduce` não sai pedido de imagem do quadro 2 até o toque em
-   "Voltar a alternar". Fica fora deste aceite o aquecimento de mídia da fase
+   "Voltar a alternar"; parada e com o quadro 2 atrasado 2,5 s, depois do
+   toque a posição fica na 1 enquanto ele não chegou, e passa à 2 depois. Fica fora deste aceite o aquecimento de mídia da fase
    (§8, `lib/precache-do-programa.ts`): ele busca por `fetch`, uma vez, depois
    que o service worker assume, para o treino funcionar sem rede.
 5. **A figura não é o botão de pausa** (ux-heuristicas-21). A ilustração
    inteira era o `<button>` de pausa: quem tocava para abrir o "Como fazer"
    parava a animação. Agora a pausa é um **botão próprio de 44×44 no canto**
-   (aria-label "Parar a animação" / "Voltar a alternar"), e a figura tem
-   aria-label com a posição ("…, posição 1 de 2"). Onde a tela tem um "Como
+   (aria-label "Parar a animação" / "Voltar a alternar"), e a figura diz a
+   posição ("posição 1 de 2"). Onde a tela tem um "Como
    fazer" (player e Visão geral do treino), **tocar na figura abre a ficha**, como
    o "?" ao lado do nome; na própria ficha a figura não é botão (ela já é o
-   "Como fazer"). `prefers-reduced-motion` continua fazendo a ilustração
-   nascer parada (§22.1). Aceite: e2e — no player a 360×740, tocar no meio
+   "Como fazer") e é uma imagem com a posição no nome ("…, posição 1 de 2").
+   `prefers-reduced-motion` continua fazendo a ilustração
+   nascer parada (§22.1).
+   **Correção da auditoria 2 — foco e nome da figura-botão.** (a) A
+   figura-botão ocupa a caixa, e a caixa corta o que passa da borda
+   (`overflow-hidden`): o anel global, desenhado por fora, saía inteiro
+   cortado — 0 px mudavam com o foco por Tab (WCAG 2.4.7). O anel dela é
+   **interno** (2 px com `outline-offset: -4px`, dentro do respiro de 8 px,
+   sem cobrir a figura) na cor `--ring-placa`, `#a03608` nos dois temas: a
+   placa é clara nos dois, e o `--ring` do escuro (`#fb923c`) media 1,4:1
+   contra ela; `#a03608` dá 6,9:1 contra o branco e 4,3:1 contra `#cfcac4`.
+   O botão de pausa, na mesma placa, usa a mesma cor. (b) O nome da
+   figura-botão é **estável** — "<alt> — abre o Como fazer" — e a posição
+   ("posição N de 2") vai na **descrição** (`aria-describedby`), congelada
+   enquanto o foco está nela: um nome que muda a cada 1,2 s num elemento
+   focado faz o leitor de tela repetir o anúncio. Aceite: e2e — no player a
+   360×740, tocar no meio
    da ilustração abre a ficha e ela continua alternando; só o botão do canto
    (≥ 44×44) pausa; na Visão geral do treino, tocar na figura do bloco abre
-   a ficha.
+   a ficha; no player e na Visão geral, nos dois temas, chegando por Tab à
+   figura, a captura com foco difere da sem foco em mais de 500 px e o anel,
+   lido na captura, mede ≥ 3:1 contra a placa — e o mesmo na pausa (mais de
+   100 px, ≥ 3:1); com o foco na figura, o nome e a descrição não mudam
+   enquanto a posição troca.
 6. **O chip ativo do segmento se vê** (tela-explorar-fichas-18). O ativo do
    segmento "Ilustração · Figura · Fotos" era `bg-background` sobre o trilho
    `bg-muted` (1,08:1 no claro, 1,16:1 no escuro). O ativo ganha **contorno
@@ -2471,9 +2515,16 @@ de cada item é verificável no Vitest ou no e2e (`e2e/ultraloop-l13.spec.ts`).
     na meta, "3 exercícios · ~14 min", o selo e os raios não cabiam numa
     linha a 360 px e a meta quebrava (a linha crescia 12 px, contra o item
     7); ao lado do título, o selo empurrava o nome da corda para 2 linhas.
+    Correção da auditoria 2: quando o subtítulo é cortado numa linha (a
+    linha tem meta), o selo **fecha a meta** em vez de abrir o subtítulo —
+    abrindo, ele tomava ~64 px do texto cortado ("Corda: 5 estágios" parava
+    em "aquecimento: 2 min ant…"); sem subtítulo, ou sem meta (subtítulo
+    inteiro), ele continua abrindo a linha do subtítulo.
     Aceite: e2e em
     `/explorar` (vitrine com todos os "Ver todos" abertos, e busca por
     "supino" e "corda") — nenhuma marca no canto superior direito das
     linhas, |centro do chevron − centro da linha| ≤ 2 px, e, em **toda**
     linha com raios, |centro dos raios − centro da palavra "exercícios"|
-    ≤ 4 px (as de aparelho incluídas).
+    ≤ 4 px (as de aparelho incluídas); na seção Planos e na busca por
+    "corda", na linha "Corda: 5 estágios" o selo está na meta, o subtítulo
+    começa na coluna do título (±1 px) e a meta fica numa linha (≤ 18 px).
