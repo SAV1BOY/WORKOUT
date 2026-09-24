@@ -12,11 +12,7 @@ export type IrmaoDaCamada = {
   tag: string;
   /** Tem `aria-live` (os avisos: sonner, o anunciador de rota). */
   avisos: boolean;
-  /**
-   * Um véu do Radix (`data-slot` terminado em `-overlay`): o da própria
-   * camada, cujo toque fora fecha, ou o de uma camada de baixo que seja irmã
-   * desta — não é focável e fica coberto pelo véu de cima (SPEC §22.17 item 5).
-   */
+  /** O véu da própria camada (`data-slot="…-overlay"` ou `data-veu`): o toque fora fecha. */
   veu: boolean;
 };
 
@@ -112,69 +108,4 @@ export function proximoDoTab(total: number, atual: number, voltando: boolean): n
   if (voltando && atual === 0) return total - 1;
   if (!voltando && atual === total - 1) return 0;
   return null;
-}
-
-/* ------------------------------------------------------------------------ */
-/*  O voltar do celular (SPEC §22.17 item 6, a11y-voltar-fecha-camada)       */
-/* ------------------------------------------------------------------------ */
-
-/** A chave do estado do histórico que marca a entrada de uma camada. */
-export const CHAVE_DA_ENTRADA = "camadaModal";
-
-/**
- * O número da entrada de camada no estado do histórico (`history.state`), ou
- * 0 quando a entrada não é de camada (a da página, a da Visão geral).
- */
-export function entradaDoEstado(estado: unknown): number {
-  if (typeof estado !== "object" || estado === null) return 0;
-  const valor = (estado as Record<string, unknown>)[CHAVE_DA_ENTRADA];
-  return typeof valor === "number" && Number.isInteger(valor) && valor > 0 ? valor : 0;
-}
-
-/**
- * A camada que abre põe uma entrada no histórico? Sim, menos quando a
- * entrada do topo é a da Visão geral do treino (§22.14 item 6): ela já
- * devolve a própria entrada e entrega um Esc à camada de cima no `popstate`,
- * e uma segunda entrada faria o voltar gastar dois toques.
- */
-export function empilhaEntrada(estadoDoTopo: unknown): boolean {
-  if (typeof estadoDoTopo === "object" && estadoDoTopo !== null) {
-    if ((estadoDoTopo as Record<string, unknown>).visaoGeralDoTreino === true) return false;
-  }
-  return true;
-}
-
-/**
- * O que o `popstate` faz. `abertas` são as entradas das camadas abertas que
- * empilharam uma (de baixo para cima); `atual`, a entrada em que o histórico
- * chegou (0 quando não é de camada).
- *
- * - `fechar`: as entradas das camadas que o voltar tirou — as acima da atual —,
- *   de cima para baixo. Cada uma recebe o Esc da vez.
- * - `morta`: a entrada atual é de uma camada que já fechou sem desfazê-la (um
- *   link dentro dela levou a outra rota no mesmo documento): o app anda mais
- *   um passo na mesma direção, para ninguém gastar um voltar numa entrada
- *   vazia. Quem decide é o ouvinte do `popstate`, que só existe depois de a
- *   primeira camada abrir no documento: recarregar com a camada aberta, ou
- *   chegar a uma entrada morta de outro documento pelo avançar, ainda gasta
- *   um toque (SPEC §22.17 item 6).
- */
-export function aoAndarNoHistorico(
-  abertas: readonly number[],
-  atual: number,
-): { fechar: number[]; morta: boolean } {
-  const fechar = abertas.filter((e) => e > atual).sort((a, b) => b - a);
-  const ficam = abertas.filter((e) => e <= atual);
-  const morta = atual > 0 && !ficam.includes(atual);
-  return { fechar, morta };
-}
-
-/**
- * Ao fechar por outro caminho (Esc, X, toque fora, "Ver resultados"), a
- * camada desfaz a própria entrada (`history.back()`) só se ela ainda é a do
- * topo: se o voltar já a tirou, ou se outra rota empilhou por cima, um
- * `back()` cego tiraria outra coisa.
- */
-export function desfazAoFechar(estadoDoTopo: unknown, entrada: number | null): boolean {
-  return entrada !== null && entrada > 0 && entradaDoEstado(estadoDoTopo) === entrada;
 }

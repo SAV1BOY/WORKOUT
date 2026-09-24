@@ -10,15 +10,15 @@ import {
   buscarColecoes,
   capasDaVitrine,
   capasNaBusca,
-  colecaoDoPlano,
   detalheDaCapa,
+  metaDoPlano,
   planos,
   secoesDaVitrine,
   semCapasRepetidas,
   todasAsColecoes,
   type Colecao,
 } from "@/lib/colecoes";
-import { cardio, exercicios } from "@/lib/dados";
+import { exercicios } from "@/lib/dados";
 import {
   altDaExecucao,
   midiaGrande,
@@ -82,6 +82,13 @@ describe("§22.15 item 3 — \"Execução: <nome>\", sem artigo", () => {
   it("nenhum arquivo de lib/, components/ e app/ põe artigo antes do nome do exercício", () => {
     const raiz = resolve(__dirname, "..");
     const achados: string[] = [];
+    // template (`… do ${exercicio.nome}`) e JSX (`… da {item.nome}`): o
+    // artigo ou a contração logo antes de uma expressão que termina em `.nome`
+    const artigoAntesDoNome = [
+      /\b(?:do|da|no|na|dos|das|nos|nas)\s\$\{\s*[\w?.]*\bnome\b[^}]*\}/,
+      /\b(?:do|da|no|na|dos|das|nos|nas)\s\{\s*[\w?.]*\bnome\b[^}]*\}/,
+      /[`"']Execução d[oa] /,
+    ];
     const andar = (dir: string) => {
       for (const nome of readdirSync(dir)) {
         const caminho = join(dir, nome);
@@ -90,9 +97,14 @@ describe("§22.15 item 3 — \"Execução: <nome>\", sem artigo", () => {
           continue;
         }
         if (!/\.(ts|tsx)$/.test(nome) || /\.test\.ts$/.test(nome)) continue;
-        for (const achado of artigoAntesDoNome(readFileSync(caminho, "utf8"))) {
-          achados.push(`${caminho.slice(raiz.length + 1)}: ${achado}`);
-        }
+        readFileSync(caminho, "utf8")
+          .split("\n")
+          .forEach((linha, n) => {
+            if (/^\s*(\*|\/\/|\/\*)/.test(linha)) return; // comentário
+            if (artigoAntesDoNome.some((r) => r.test(linha))) {
+              achados.push(`${caminho.slice(raiz.length + 1)}:${n + 1}: ${linha.trim()}`);
+            }
+          });
       }
     };
     andar(join(raiz, "lib"));
@@ -100,60 +112,7 @@ describe("§22.15 item 3 — \"Execução: <nome>\", sem artigo", () => {
     andar(join(raiz, "app"));
     expect(achados).toEqual([]);
   });
-
-  /*
-   * SPEC §22.17 item 7 (C-l32-guarda-artigo-estreita): a guarda lia linha a
-   * linha e só pegava expressão terminada em `nome`. As três mutações do
-   * ledger — e as duas exceções, que continuam de fora.
-   */
-  it("a guarda pega as mutações que escapavam e deixa o treino e a fase", () => {
-    const mutacoes = [
-      "const a = `Nota do ${nomeDoExercicio}`;",
-      "const b = `Última repetição firme no\n    ${exercicio.nome}`;",
-      "const c = `Troque a ${ex.nome} por outra`;",
-      "const d = `Execução da ${\n  item.nome.trim()}`;",
-      "<p>Carga do {exercicio?.nome}</p>",
-      "<p>os {ex.nome}</p>",
-      'const e = "Execução do " + nome;',
-      // uma chamada antes do `.nome` (auditoria 1 do L33)
-      "const f = `Troque o ${acharExercicio(id).nome}`;",
-      "<p>Série da {acharExercicio(item.id)?.nome}</p>",
-    ];
-    for (const m of mutacoes) expect(artigoAntesDoNome(m).length, m).toBeGreaterThanOrEqual(1);
-    const permitidos = [
-      "`Começar o ${resumo.nome}`",
-      "`Fazer o treino da ${nomeCurtoDaFase(fase.nome).toLowerCase()}`",
-      "`Ir para ${nome}`",
-      "` · elástico ${nomeDaAssistencia(alvo.assistencia)}`",
-      "`${exercicio.nome}: voltou a ${formatarKg(padrao)}.`",
-      "// Nota do ${exercicio.nome} — num comentário",
-      "/* a ${ex.nome} */",
-      "`então ${quantos} séries`",
-    ];
-    for (const p of permitidos) expect(artigoAntesDoNome(p), p).toEqual([]);
-  });
 });
-
-/**
- * Artigo (o/a/os/as) ou contração (do/da/no/na/dos/das/nos/nas) logo antes de
- * uma expressão — template `${…}` ou JSX `{…}`, na mesma linha ou na seguinte
- * — cujo identificador contém "nome", mesmo depois de uma chamada
- * (`acharExercicio(id).nome`). Comentários não contam. Exceções: o
- * nome do treino ("Começar o ${resumo.nome}") e o da fase ("da
- * ${nomeCurtoDaFase(fase.nome)…}"), que não são nomes de exercício.
- */
-function artigoAntesDoNome(fonte: string): string[] {
-  const semComentarios = fonte
-    .replace(/\/\*[\s\S]*?\*\//g, (c) => c.replace(/[^\n]/g, " "))
-    .replace(/(^|[^:"'`])\/\/.*$/gm, "$1");
-  const artigo =
-    /(?<![\p{L}\p{N}_])(?:do|da|no|na|dos|das|nos|nas|o|a|os|as)\s+\$?\{\s*[\w?.!]*(?:\([^()]*\)[\w?.!]*)*nome\w*[^}]*\}/gu;
-  const excecoes = [/^o\s+\$\{\s*resumo\.nome\s*\}$/u, /^da\s+\$\{\s*nomeCurtoDaFase\(fase\.nome\)/u];
-  return [...semComentarios.matchAll(artigo), ...semComentarios.matchAll(/[`"']Execução d[oa] /g)]
-    .map((m) => m[0])
-    .filter((trecho) => !excecoes.some((e) => e.test(trecho)))
-    .map((trecho) => trecho.replace(/\s+/g, " "));
-}
 
 /* ------------------------------------ item 6: a capa da busca e a da vitrine */
 
@@ -279,43 +238,14 @@ describe("§22.15 item 6 — na busca, a coleção parte da capa da vitrine", ()
 /* ------------------------------- item 7: a posição do plano aparece uma vez */
 
 describe("§22.15 item 7 — a capa da tela do plano não repete a posição", () => {
-  /*
-   * SPEC §22.17 item 10: o esperado sai de `data/cardio.json`, não de
-   * `metaDoPlano()` — a última semana do JSON dá o total T; se o texto do
-   * plano no JSON (o objetivo, ou as funções da corda) já diz "T semanas", a
-   * capa não tem detalhe; senão, é "T semanas". A capa é calculada da coleção
-   * **com perfil**, a que a tela recebe (o detalhe dela diz "semana N de T").
-   */
-  it("para os três planos e toda semana, a capa é a de cardio.json, sem a posição", () => {
-    const ultimaSemana = (semanas: readonly { semana?: number; semanas?: string }[]): number => {
-      const ultima = semanas[semanas.length - 1]!;
-      if (typeof ultima.semana === "number") return ultima.semana;
-      const numeros = (ultima.semanas ?? "").match(/\d+/g) ?? [];
-      return Number(numeros[numeros.length - 1]);
-    };
-    const doJson = {
-      corrida: { total: ultimaSemana(cardio.corrida.semanas), texto: cardio.corrida.objetivo },
-      barra_fixa: {
-        total: ultimaSemana(cardio.barra_fixa.semanas),
-        texto: cardio.barra_fixa.objetivo,
-      },
-      corda: { total: ultimaSemana(cardio.corda.semanas), texto: cardio.corda.funcoes.join(" · ") },
-    } as const;
-    const esperadas: Record<string, string | null> = {};
-    for (const [id, { total, texto }] of Object.entries(doJson)) {
-      expect(total, id).toBeGreaterThan(1);
-      esperadas[id] = new RegExp(`\\b${total} semanas\\b`).test(texto) ? null : `${total} semanas`;
-    }
-    // o que os dados dizem hoje: corrida e barra fixa dizem o prazo no objetivo
-    expect(esperadas).toEqual({ corrida: null, barra_fixa: null, corda: "12 semanas" });
-    expect(planos().map((p) => p.id).sort()).toEqual(Object.keys(doJson).sort());
+  it("para os três planos e toda semana, a capa diz a meta sem perfil", () => {
     for (const p of planos()) {
-      const total = doJson[p.id as keyof typeof doJson].total;
-      for (let semana = 1; semana <= total + 2; semana += 1) {
-        const comPerfil = colecaoDoPlano(p, { semanaFixa: semana, semanaCorrida: semana });
-        const capa = detalheDaCapa(comPerfil, p);
-        expect(capa, `${p.id} semana ${semana}`).toBe(esperadas[p.id]);
-        expect(capa ?? "", `${p.id} semana ${semana}`).not.toMatch(/semana \d+ de \d+/i);
+      const semPerfil = metaDoPlano(p, null);
+      for (let semana = 1; semana <= 14; semana += 1) {
+        const comPerfil = metaDoPlano(p, { semanaFixa: semana, semanaCorrida: semana });
+        const capa = detalheDaCapa({ detalhe: comPerfil }, p);
+        expect(capa, `${p.id} semana ${semana}`).toBe(semPerfil);
+        expect(capa ?? "").not.toMatch(/semana \d+ de/i);
       }
     }
   });

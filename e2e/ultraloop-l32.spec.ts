@@ -237,10 +237,7 @@ test.describe("§22.15 item 3 — \"Execução: <nome>\", sem artigo", () => {
   test("na ficha da prancha e no player", async ({ page }) => {
     await preparar(page);
     await page.goto("/exercicios/prancha");
-    const prancha = acharExercicio("prancha").nome;
-    const figura = page.getByRole("img", {
-      name: new RegExp(`^Execução: ${prancha}(, posição \\d de \\d)?$`),
-    });
+    const figura = page.getByRole("img", { name: /^Execução: Prancha(, posição \d de \d)?$/ });
     await expect(figura.first()).toBeVisible();
     await expect(page.getByRole("img", { name: /Execução d[oa] / })).toHaveCount(0);
 
@@ -255,7 +252,7 @@ test.describe("§22.15 item 3 — \"Execução: <nome>\", sem artigo", () => {
 });
 
 test.describe("§22.15 item 3 — nenhum nome acessível põe artigo antes do nome", () => {
-  test(`${acharExercicio("remada-curvada-pronada").nome}: "Nota: …" no player; "Nota: …" e "Última repetição firme: …" na Visão geral`, async ({
+  test("Remada curvada pronada: \"Nota: …\" no player; \"Nota: …\" e \"Última repetição firme: …\" na Visão geral", async ({
     page,
   }) => {
     test.setTimeout(120_000);
@@ -308,8 +305,8 @@ test.describe("§22.15 item 3 — nenhum nome acessível põe artigo antes do no
       .locator("[aria-label]")
       .evaluateAll((els) => els.map((el) => el.getAttribute("aria-label") ?? ""));
     const doTreino = [
-      acharExercicio(AGACHAMENTO).nome,
-      acharExercicio(SUPINO).nome,
+      "Agachamento livre",
+      "Supino reto com barra",
       remada,
       acharExercicio("rosca-direta-com-barra").nome,
     ];
