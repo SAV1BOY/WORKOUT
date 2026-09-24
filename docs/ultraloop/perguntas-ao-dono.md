@@ -150,3 +150,25 @@ corrida da semana N". Você aprova assim?
 _Origem: o ledger pedia "decidir com o dono" (C-plano-progresso-repete-desafio).
 A decisão foi tomada sem você e ficou registrada no item
 C-l32-plano-capa-sem-o-dono (L33)._
+
+## 5. Descoberta no L19 (24/09): o Substituir da ficha apaga séries já feitas
+
+### L19 → L21 — Substituir pela ficha apaga as séries já feitas do exercício trocado
+
+**Pergunta:** no player, você pode trocar um exercício pela ficha ("?" →
+Substituir). Hoje isso apaga, do celular e do banco, as séries que você já
+tinha feito nele, e não avisa antes. A folha "Substituir hoje" da Visão geral
+avisa ("As séries já registradas deste bloco serão trocadas pelas do
+substituto"); a ficha não. Isso já acontecia antes do L19. O que você prefere?
+
+- **(a) Avisar antes:** a ficha mostra o mesmo aviso da Visão geral e só troca
+  depois que você confirmar. As séries feitas continuam saindo.
+- **(b) Manter as séries feitas:** o que você já fez do exercício original
+  fica registrado e conta como feito; o substituto começa do zero. Isso muda
+  a regra §3.2 e o aviso da Visão geral.
+- **(c) Deixar como está.**
+
+_Se não houver resposta quando o L21 começar, faço a (a), que só acrescenta o
+aviso e não muda a regra. Item: B-substituir-apaga-series-feitas (L21). O
+CLAUDE.md diz "Nunca perder um registro"; a §3.2 diz só "o registro fica com o
+exercício substituto; a progressão do original não muda"._

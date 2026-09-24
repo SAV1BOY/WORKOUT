@@ -7955,11 +7955,11 @@ Nenhuma migração de banco. **Rollback: não.**
 
 | seção | pendente | publicado | descartado |
 | --- | ---: | ---: | ---: |
-| B | 75 | 39 | 17 |
-| C | 67 | 20 | 0 |
+| B | 76 | 39 | 17 |
+| C | 68 | 20 | 0 |
 | D | 5 | 0 | 0 |
 | legado | 0 | 77 | 1 |
-| **total** | **147** | **136** | **18** |
+| **total** | **149** | **136** | **18** |
 
 Dos descartados, **7 dependem de decisão do dono** e voltam à fila se a resposta for sim (atualização do app com aviso, uso do laranja, Relatório somado no banco, destaque do Explorar, filtros Core/Cardio, faixa da semana com sete destinos, resumo curto dos planos) — perguntas em `docs/ultraloop/perguntas-ao-dono.md`.
 
@@ -7975,10 +7975,10 @@ Dos descartados, **7 dependem de decisão do dono** e voltam à fila se a respos
 | L33 | Sobras do L14: ficha, catálogo e camadas modais | 10 | C-l14-super-band-dois-filtros, C-l14-criterio-repeticao-numeros, C-l14-nada-repetido-espelho-dom, C-l14-historico-carregando-perfil, C-l14-veu-ramo-morto, a11y-voltar-fecha-camada, C-l32-guarda-artigo-estreita, C-l32-e2e-nomes-a-mao, C-l32-texto-aba-progresso, C-l32-plano-capa-sem-o-dono |
 | L15 | Corpo: peso, gráficos e campo de data | 6 | a11y-01, tela-relatorio-corpo-calendario-12, tela-relatorio-corpo-calendario-14, tela-relatorio-corpo-calendario-19, tela-relatorio-corpo-calendario-13, tela-relatorio-corpo-calendario-11 |
 | L16 | Corpo: medidas, fotos, data no celular e um verbo só para salvar | 7 | tela-relatorio-corpo-calendario-17, tela-relatorio-corpo-calendario-18, tela-relatorio-corpo-calendario-16, a11y-14, D-input-date-pt-br, copy-28, C-l14-aviso-cobre-x-da-foto |
-| L17 | Casca: carregamento, rotas pesadas, zoom e bloco de sincronização | 6 | C-loading-por-rota, C-next-dynamic-rotas-pesadas, C-nav-inferior-zoom-200, a11y-16, visual-19, copy-17 |
+| L17 | Casca: carregamento, rotas pesadas, zoom e bloco de sincronização | 7 | C-loading-por-rota, C-next-dynamic-rotas-pesadas, C-nav-inferior-zoom-200, a11y-16, visual-19, copy-17, C-hidratacao-react-418 |
 | L18 | Cardio e barra fixa | 7 | ux-heuristicas-17, ux-heuristicas-18, ux-heuristicas-19, copy-11, copy-12, copy-30, copy-19 |
 | L20 | Player: descanso, preparação e o caminho até o player | 8 | tela-treino-player-06, tela-treino-player-07, tela-treino-player-25, a11y-02, a11y-15, copy-22, performance-18, ux-heuristicas-06 |
-| L21 | Player: firme, conclusão e Visão geral | 6 | tela-treino-player-29, tela-treino-player-27, ux-heuristicas-15, ux-heuristicas-14, ux-heuristicas-13, visual-08 |
+| L21 | Player: firme, conclusão e Visão geral | 7 | tela-treino-player-29, tela-treino-player-27, ux-heuristicas-15, ux-heuristicas-14, ux-heuristicas-13, visual-08, B-substituir-apaga-series-feitas |
 | L22 | Sem rede: sinal, fila, mensagens e sincronização | 6 | pwa-offline-01, pwa-offline-06, pwa-offline-07, pwa-offline-11, pwa-offline-12, pwa-offline-13 |
 | L23 | Instalação, cache de mídia e cor da barra | 6 | pwa-offline-03, pwa-offline-04, pwa-offline-05, imagens-09, pwa-offline-08, C-theme-color-do-tema-escolhido |
 | L24 | Mais: textos, linhas e prefetch | 8 | copy-02, copy-09, copy-16, copy-20, copy-29, visual-16, performance-16, C-guia-reaparece-com-gravacao-na-fila |

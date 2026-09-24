@@ -9,21 +9,21 @@
   "descartado"
  ],
  "contagens": {
-  "itens": 147,
-  "pendente": 147,
+  "itens": 149,
+  "pendente": 149,
   "candidato": 0,
   "resolvidos": 136,
   "descartados": 18,
-  "canonicos": 301,
+  "canonicos": 303,
   "por_secao": {
    "B": {
-    "pendente": 75,
+    "pendente": 76,
     "candidato": 0,
     "publicado": 39,
     "descartado": 17
    },
    "C": {
-    "pendente": 67,
+    "pendente": 68,
     "candidato": 0,
     "publicado": 20,
     "descartado": 0
@@ -5046,6 +5046,55 @@
     }
    ],
    "lote_planejado": "L24"
+  },
+  {
+   "id": "B-substituir-apaga-series-feitas",
+   "secao": "B",
+   "estado": "pendente",
+   "titulo": "Substituir pela ficha apaga sem aviso as séries já feitas do exercício trocado",
+   "detalhe": "PROBLEMA: no player, '?' → ficha → 'Substituir' (components/exercicio/ficha-folha.tsx:601-648) troca o exercício e as séries JÁ CONCLUÍDAS do original saem do Dexie e de session_sets (components/treinar/usar-sessao.ts:320-345 → descartarSeriesDoBloco, lib/queries/sessao.ts:267; lib/sessao.ts substituirExercicio recria as séries). A ficha anda pelos exercícios da sessão ('Exercício anterior'/'Próximo exercício'), então um toque apaga um exercício inteiro já feito. A folha 'substituir hoje' da Visão geral avisa antes (components/treinar/bloco.tsx:224: 'As séries já registradas deste bloco serão trocadas pelas do substituto'); a ficha não. Já acontecia em main c689f69 (não é regressão do L19). A §3.2 diz só 'registro fica com o exercício substituto; a progressão do original não muda'; o CLAUDE.md diz 'Nunca perder um registro'. PROVA: auditoria 1 tela do L19 (r23/l19/auditoria-1-tela/medidas-a.json → troca.mock/trocaVisao.mock; medidas-anterior-*.json: mockAntes 6 linhas → mockDepois 1) e auditoria 1 regra (r23/l19/auditoria-1-regra/veredito.json). FAZER (depende da resposta do dono): (a) a ficha avisa/pede confirmação como a Visão geral quando o exercício tem série feita; ou (b) as séries feitas do original ficam registradas (mexe em lib/sessao.ts, usar-sessao.ts, no texto de components/treinar/bloco.tsx e na §3.2). ACEITE: e2e — com séries feitas, '?' → Substituir mostra o aviso antes (a) ou as séries do original continuam no Dexie e em session_sets (b); sem série feita, a troca é direta.",
+   "arquivos": [
+    "components/exercicio/ficha-folha.tsx",
+    "components/treinar/usar-sessao.ts",
+    "lib/sessao.ts",
+    "components/treinar/bloco.tsx",
+    "SPEC.md §3.2"
+   ],
+   "esforco": "M",
+   "origens": [
+    {
+     "fonte": "auditoria 1 regra do L19 (rodada 23)",
+     "id_original": "importante 1"
+    },
+    {
+     "fonte": "auditoria 1 tela do L19 (rodada 23)",
+     "id_original": "importante 2"
+    }
+   ],
+   "area": "player",
+   "lote_planejado": "L21",
+   "nota": "Depende do dono (docs/ultraloop/perguntas-ao-dono.md, §5): (a) avisar antes, (b) manter as séries feitas, (c) deixar. Se não houver resposta quando o L21 começar, fazer (a): só acrescenta na ficha o aviso que a Visão geral já tem e não muda a §3.2."
+  },
+  {
+   "id": "C-hidratacao-react-418",
+   "secao": "C",
+   "estado": "pendente",
+   "area": "casca",
+   "titulo": "Erro de hidratação React #418 na primeira abertura do tema claro",
+   "detalhe": "PROBLEMA: a auditoria 2 tela do L35 (rodada 24) viu 2× um pageerror 'Minified React error #418 (HTML)' — texto do HTML do servidor diferente do primeiro render do cliente — sempre na primeira rodada do tema claro (aud-semvapid). Fora do código do L35. Candidatos: texto que depende de data/hora ou do tema no primeiro render (ex.: saudação/dia, relógio, prefs lidas do IndexedDB). FAZER: reproduzir com build de produção + console (sem minificar o erro: next build com --debug ou react-dom de desenvolvimento), achar o componente e mover o valor dependente do cliente para depois da montagem (useEffect/useSyncExternalStore) ou suppressHydrationWarning só onde for texto de hora. ACEITE: e2e que abre as abas principais em contexto novo, nos dois temas, com 0 pageerror; o erro não aparece na varredura. ESTADO EM 17075d7: visto 2× na auditoria (r24/l35/auditoria-2-tela).",
+   "arquivos": [
+    "app/(app)/layout.tsx",
+    "components/treino/tela-treino.tsx",
+    "app/providers.tsx"
+   ],
+   "esforco": "P",
+   "origens": [
+    {
+     "fonte": "auditoria 2 tela do L35 (rodada 24)",
+     "id_original": "menor: hidratação fora do lote"
+    }
+   ],
+   "lote_planejado": "L17"
   }
  ],
  "resolvidos": [
@@ -10193,7 +10242,8 @@
     "C-nav-inferior-zoom-200",
     "a11y-16",
     "visual-19",
-    "copy-17"
+    "copy-17",
+    "C-hidratacao-react-418"
    ],
    "arquivos": [
     "app/(app)/explorar/loading.tsx (novo)",
@@ -10354,7 +10404,8 @@
     "ux-heuristicas-15",
     "ux-heuristicas-14",
     "ux-heuristicas-13",
-    "visual-08"
+    "visual-08",
+    "B-substituir-apaga-series-feitas"
    ],
    "arquivos": [
     "components/player/firme.tsx",
@@ -11018,6 +11069,9 @@
    "L14",
    "L19",
    "L21"
+  ],
+  "itens_com_decisao_pendente": [
+   "B-substituir-apaga-series-feitas"
   ]
  },
  "censo": {
