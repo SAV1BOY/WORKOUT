@@ -12231,3 +12231,20 @@ voltou 000 (o curl ficou sem resposta); logo depois deu 200 três vezes, e a
 = clientWidth). Capturas: 07-colecao (claro e escuro) de
 `r22/l32/capturas-e6f42b2` viraram a base visual (`base-ef3ad97`,
 `indice.json` com head `b66e06c`; wt-base não avançado). **Rollback: não.**
+
+**Verificação logada em produção (24/09, 11:34–12:00 UTC).** Conta de teste
+`teste-l32-20260924@example.com` criada pela tela "Criar conta", navegador
+real a 360×740 nos dois temas, `/versao` = `b66e06c`.
+- Item 1: no player, Substituir no 2º exercício leva ao crossover. A figura
+  nasce na posição 1 e o quadro 2 só é pedido depois do fim do quadro 1. A aba
+  Músculos continua selecionada no ‹, no › e no Substituir.
+- Item 2: com a figura abortada de propósito, a foto entra no lugar. O
+  exercício seguinte (› e Substituir) volta a mostrar a figura dele.
+- Item 3: 0 nome acessível com artigo antes do nome, varrido contra os 81
+  nomes. Aparecem "Execução: …", "Nota: …" e "Última repetição firme: …".
+- Item 4: nos dois temas o quadro 2 é pedido depois do fim do quadro 1.
+- Busca, plano e tags: 0 rolagem lateral, 0 alvo < 44 px, 0 erro de console.
+- O defeito do Substituir no passo atual não foi testado e não é dado como
+  resolvido: ele é o 1º item do L19.
+
+**Conta de teste apagada** às 12:00 UTC. Ficam só as 3 contas reais.

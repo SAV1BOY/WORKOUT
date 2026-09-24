@@ -797,6 +797,17 @@
       "pre-condicao literal nao cumprida: r22/l32/logs/e6f42b2.status = falhou:e2e (2 instaveis de a-r4, 2x verdes sozinhos; varredura 5/5 a parte em f36db69); lote publicado porque o orquestrador o aprovou com a nota da auditoria (instavel sob carga nao bloqueia); virou C-a-r4-faixa-fixa-instavel-sob-carga no L28",
       "list_aliases com domain='treino-terraco.vercel.app' voltou vazio; deploymentId lido da listagem do projeto sem filtro de dominio",
       "fumaca: 1 script voltou 000 numa das 4 execucoes (transitorio de rede do lado do curl)"
-    ]
+    ],
+    "verificacao_logada": {
+      "hora_utc": "11:34–12:00",
+      "conta_teste": "teste-l32-20260924@example.com",
+      "temas": [
+        "claro",
+        "escuro"
+      ],
+      "resultado": "ok — itens 1–4, busca, plano e tags; 0 rolagem lateral, 0 alvo<44, 0 erro de console",
+      "conta_apagada_utc": "12:00",
+      "contas_restantes": 3
+    }
   }
 ]
