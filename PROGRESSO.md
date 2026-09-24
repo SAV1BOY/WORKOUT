@@ -11721,3 +11721,126 @@ esqueleto até recarregar. `lib/progressao.ts` e `lib/montagem.ts`:
    também mudou — um caractere; a tela do cardio continua com o L18. O grep
    `[0-9][[:space:]]%` em `data/ lib/ components/ app/` agora só devolve
    comentários (e nomes de teste).
+
+#### Provas
+
+- **Defeito reproduzido em `main` antes de valer a correção**
+  (`r23/l19/main-vermelho/main-c689f69.log` e `r23/l19/pre/so-l19.log`):
+  o e2e novo do item 1, copiado para um checkout de `c689f69` com o
+  `.next` do build:e2e de lá, **cai nos 3 casos** (claro, escuro e pela
+  Visão geral) — depois de "Substituir", a folha fecha e o player fica no
+  esqueleto (`test-failed-1.png`: só as barras cinzas, sem "Concluir
+  série"). É também a mutação "volta à chave antiga" no componente: em
+  `c689f69` a tela lê `indiceDaChave`.
+- **Vitest** `lib/l19.test.ts` (13 casos): `indiceDoEstado` — trocar o
+  exercício do passo atual sem série feita, com 3 séries feitas nele e
+  parado no descanso entre as séries dele (série 1 do exercício novo);
+  trocar um posterior e um anterior com séries feitas (a chave fica e as
+  séries continuam feitas); tirar a série do passo pela ficha com as
+  outras feitas (o "firme?"); estado de versão anterior sem `ordem`
+  (retomada, nunca -1); `pontosDoBloco` (5 pontos, ordem, feitos, atual e
+  o nome "Série 2 de 3 · 3 de 5 séries feitas"); `avisoDoVoto` (três
+  votos, sem "não vamos mais montar"); o `%` em todas as strings de
+  `data/*.json`, nas descrições da retomada e no Guia.
+  `lib/player.test.ts` ganhou a `ordem` no descanso de exemplo;
+  `lib/ficha.test.ts` e `lib/midia-faixa-l13.test.ts` acompanham o texto
+  "(60%)" e a faixa `h-36`.
+- **Mutação** (cópia do HEAD no scratchpad, `r23/l19/mutacoes.log`): 9
+  mutações — `indiceDoEstado` volta a devolver -1 quando a chave some;
+  sem o ramo do mesmo exercício; o estado sem `ordem`; a primeira que
+  falta ignorando `concluida`; o descanso sem `ordem`; os pontos nunca
+  feitos; o aviso do "não gosto" prometendo "não vai mais ser montado";
+  "60 %" de volta na retomada; "10 %" de volta em `data/progressao.json`
+  — **as 9 derrubam algum teste** (de 1 a 5 casos cada).
+- **e2e** `e2e/ultraloop-l19.spec.ts` (9 casos, 360×740): item 1 nos dois
+  temas — "?" → Substituir no passo atual → a folha mostra o exercício
+  novo; fechada, "Concluir série", o `h2` do exercício novo e "Série 1 de N
+  · exercício 1 de 6 · no lugar de Agachamento livre", nenhum
+  `aria-busy`, a marca na `window` intacta (não recarregou); a série 1
+  concluída está no Dexie (`sessaoAtiva.dados.blocos`) e em
+  `session_sets` no mock; os registros do agachamento saíram (§3.2);
+  trocar o 2º exercício pela folha ("Próximo exercício") deixa o player
+  em "Série 2 de N" do exercício novo, com a série 1 ainda no Dexie e no
+  mock. Item 1 pela Visão geral ("substituir hoje" → Fechar). Itens 2–4
+  nos dois temas — "Prepare-se", nada de "Preparad…", `h1`; "Sair do
+  treino" e "Visão geral do treino" ≥ 44×44; o bloco com |acima − abaixo|
+  ≤ 24 px e ≥ 8 px abaixo do topo; a Visão geral abre, "Fechar" devolve o
+  foco ao ícone; "Sair do treino" leva à aba Treino, "Continuar" aponta
+  para o mesmo `/treinar/<id>` e volta à preparação. Item 5 nos dois
+  temas — 5 pontos, os nomes "Aquecimento 1 de 2 · 0 de 5 séries feitas" →
+  "Aquecimento 2 de 2 · 1 de 5…" → "Série 1 de 3 · 2 de 5…", um ponto
+  enche a cada "Concluir série", o aquecimento menor, a barra "Progresso
+  do treino" continua e cada contorno ≥ 3:1 contra o fundo. Item 6 nos
+  dois temas — o topo tem só "Visão geral do treino" e "Ajustar", os
+  polegares na linha do "?", **todos** os pares de alvos de 44–60 px da
+  tela a ≥ 8 px, "Não gosto" com `aria-pressed="true"`, o aviso e
+  `evitar_exercicios = ["agachamento-livre"]` no mock; "Desfazer" tira o
+  `aria-pressed` e zera a lista. Item 7 em `e2e/treino.spec.ts` —
+  nenhuma string de `data/*.json`, da retomada e do Guia casa `/\d\s%/`;
+  20 dias parado, a opção "Voltar mais leve" diz "Uma semana a 60% da
+  carga…" e, escolhida, o aviso "Semana leve: 60% da carga. O app devolve
+  a carga depois.".
+- **Grep** `grep -rnE '[0-9][[:space:]]%' data/ lib/ components/ app/`
+  fora dos `*.test.ts`: só comentários. `npm run validar`: verde (81
+  exercícios, 67/67 figuras, 162/162 fotos). `git diff c689f69 --
+  lib/progressao.ts lib/montagem.ts`: vazio.
+
+#### Portões
+
+Pré-rodada (não é a cadeia; `r23/l19/pre/`): build:e2e do código do lote e
+os specs `ultraloop-l19`, `player`, `treino` e `ultraloop-a-r1` — 47
+passaram, 3 falharam, todos no próprio spec novo (o leitor do Dexie lia
+`blocos` fora de `dados`, o `getByRole("dialog")` achava a Visão geral, e
+as séries do mock ficam em `session_sets`); o player com o exercício novo
+já passava. Corrigido o spec (`4117e5e`, `d44d2ef`); os 7 outros casos do
+spec novo passaram de novo contra o mesmo build.
+
+Cadeia inteira em `d44d2ef` (todo o código do lote;
+`r23/l19/logs/d44d2ef.log`, das 10:26:57 às 11:19:57 UTC, **ok**): `lint`
+limpo · `tsc --noEmit` limpo · `npm test` **74 arquivos, 1.645 testes,
+todos verdes** · `build` ("Compiled successfully in 19.9s") · `build:e2e`
+("Compiled successfully in 17.2s") · `e2e` **567 passaram, 5 pulados**
+(22,5 min; os 5 pulados são a varredura, que roda à parte) · `varredura`
+**5 passaram** (4,6 min). Depois de `d44d2ef` só este PROGRESSO.md mudou.
+
+#### Capturas
+
+`capturas.sh` com o `.next` do build:e2e da cadeia de `d44d2ef`, contra a
+base real de `main` (`base-ef3ad97`), telas declaradas `27-player-preparacao`
+e `28-player-exercicio` (`r23/l19/capturas-d44d2ef.md`): 60 PNGs, **só as
+duas declaradas mudaram**; as outras 56 com Δ 0,00 % ("Nenhuma tela mudou
+fora do esperado"). Diffs abertos: `27-player-preparacao-claro.diff.png` e
+`28-player-exercicio-escuro.diff.png`.
+
+| tela | Δ claro | Δ escuro | o que mudou |
+| --- | ---: | ---: | --- |
+| 27-player-preparacao | 21,58 % | 21,18 % | o bloco (Prepare-se, anel, nome, "Começar agora") desceu ~116 px para o meio da tela — antes começava logo abaixo do topo e sobrava a metade de baixo vazia; "PREPARADO PARA COMEÇAR" virou "PREPARE-SE"; no topo, "✕ Sair do treino" à esquerda e o ícone de lista à direita |
+| 28-player-exercicio | 6,57 % | 7,67 % | os polegares saíram do topo (ficam lista e engrenagem) e foram para a linha do nome, ao lado do "?"; a fileira de 5 pontos (o atual com contorno na cor de destaque, os aquecimentos menores) entrou abaixo do nome; a figura ficou 16 px mais baixa; "Levantamento terra" quebra em duas linhas (a coluna do nome tem ~180 px ao lado dos três alvos) e o miolo desce ~8 px — o "montagem" termina em y≈570, acima da barra de controles |
+
+A tela de série com o exercício trocado, a preparação depois de "Sair do
+treino"/"Continuar" e o aviso dos polegares não estão nas 60 capturas:
+medidos pelos e2e do lote, nos dois temas, a 360×740 (alvos, rolagem
+lateral, contraste dos pontos, foco de volta ao ícone da lista).
+
+#### Como testar no celular (360 px)
+
+1. Aba Treino → "Começar treino". A preparação diz **"PREPARE-SE"**, com
+   o anel no meio da tela; no topo, **"Sair do treino"** (esquerda) e o
+   ícone de lista **"Visão geral do treino"** (direita).
+2. Toque "Sair do treino": volta à aba Treino com o aviso "Treino
+   guardado — toque em Continuar para retomar" e o card em "Continuar".
+   "Continuar" abre o mesmo treino.
+3. "Começar agora". Abaixo do nome do agachamento, **5 pontos** (2
+   pequenos de aquecimento, 3 maiores de série). Conclua uma série: um
+   ponto enche. No topo só a lista (esquerda) e a engrenagem (direita); os
+   polegares estão ao lado do "?", na linha do nome.
+4. Toque o polegar para baixo: aparece em cima "Agachamento livre vai para
+   o fim das listas de substitutos e do Explorar." com **"Desfazer"**;
+   "Desfazer" apaga o voto.
+5. O defeito: toque o "?" do exercício atual → **Substituir** → escolha
+   outro. A folha mostra o exercício novo; feche-a (arrastar para baixo ou
+   tocar fora) e o player já mostra o exercício novo em "Série 1 de 3 ·
+   exercício 1 de 6 · no lugar de Agachamento livre", com "Concluir série"
+   — sem recarregar. O mesmo pela lista → "substituir hoje" → Fechar.
+6. Mais → Como usar o app → Treino → "Quando a série falha": "o app volta
+   10% da carga sozinho" (o `%` colado).
