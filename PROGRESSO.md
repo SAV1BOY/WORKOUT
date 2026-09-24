@@ -11689,6 +11689,19 @@ entrou), o service worker e a tela. **Nunca a service role**, nem no servidor.
   no mesmo `.next` (`r20/l35/instavel/sozinho-1.log` e `sozinho-2.log`: 1
   passed cada, 2,3 s). O commit não toca no worker nem no push (só
   `aria-label` e a região viva da tela). Anotado; não bloqueia.
+- **`288ea59`** (= `815f2e9` + só este PROGRESSO.md): a cadeia inteira
+  começou às 01:20 (`r20/l35/logs/288ea59.log`): `lint` limpo · `tsc` limpo
+  · `npm test` **1.702 verdes** · `build` ok; **interrompida por mim** no
+  `build:e2e` às 01:30 (esperava o lock atrás do e2e de outra faixa; e2e +
+  varredura não caberiam no prazo de 02:15 — ver
+  `288ea59.interrompida.txt`; o `.status` ficou "rodando" porque o script foi
+  morto). À parte (`r20/l35/varredura-final/288ea59.log`): `build:e2e`
+  ("Compiled successfully in 17.9s") e **`varredura` 5 passaram** (4,6 min,
+  fim 01:53:34). O `e2e` do código final é o de `815f2e9` (568 ✓ + 1 instável
+  que passa sozinho 2×); uma cadeia inteira verde de ponta a ponta no HEAD
+  final **não** foi obtida nesta rodada.
+- `git diff 96056ac -- lib/progressao.ts lib/montagem.ts` vazio. Nenhum
+  segredo no repositório; nenhuma service role.
 
 #### Antes do deploy (orquestrador)
 
