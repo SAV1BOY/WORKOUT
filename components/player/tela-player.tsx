@@ -428,7 +428,10 @@ export function TelaPlayer({
           exercicioId={passo.exercicioId}
           estado={estado}
           agora={agora}
+          nomeDoTreino={nomeDaSessao(dados)}
+          pedidoDeFoco={pedidoDeFoco}
           aoAbrirFicha={() => setFicha(passo.exercicioId)}
+          aoAbrirLista={() => setVisaoGeral(true)}
           aoPular={() => ir(indice + 1)}
         />
         {folha}

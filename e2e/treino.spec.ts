@@ -346,7 +346,7 @@ test.describe('"Começar treino" entra direto no player (SPEC §14.5.1)', () => 
     await page.getByRole("button", { name: "Começar treino" }).click();
     await page.waitForURL(/\/treinar\/[0-9a-f-]{36}$/);
     // a preparação do player, não a tela "Escolha o treino e registre série a série"
-    await expect(page.getByText("Preparado para começar")).toBeVisible();
+    await expect(page.getByText("Prepare-se", { exact: true })).toBeVisible();
     expect(visitadas).not.toContain("/treinar");
 
     // e a sessão nasceu de verdade
