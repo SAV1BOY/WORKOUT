@@ -11672,8 +11672,10 @@ esqueleto até recarregar. `lib/progressao.ts` e `lib/montagem.ts`:
    hora (efeito em `tela-player.tsx`). Trocar um exercício anterior ou
    posterior deixa o player onde estava. `lib/sessao.ts` não mudou. As
    séries **já feitas do exercício trocado** continuam saindo do aparelho e
-   do banco na troca, como em `c689f69` — isso **não** é aceite do lote: é
-   pergunta aberta ao dono (ver "Correção da auditoria 1" abaixo).
+   do banco na troca, como em `c689f69`. Isso **não** é aceite deste lote.
+   O dono já decidiu pela opção (b), manter as séries feitas do original, e
+   o conserto é o item `B-substituir-apaga-series-feitas` do **L21** (SPEC
+   §22.16 item 1; ver "Rodada 27 — retomada" abaixo).
 2. **Preparação com saída e "Visão geral"** (ux-heuristicas-12, absorve o
    tela-treino-player-08; `components/player/preparacao.tsx`,
    `tela-player.tsx`). **Era:** dois controles ("Como fazer" e "Começar
@@ -11733,7 +11735,9 @@ esqueleto até recarregar. `lib/progressao.ts` e `lib/montagem.ts`:
   esqueleto (`test-failed-1.png`: só as barras cinzas, sem "Concluir
   série"). É também a mutação "volta à chave antiga" no componente: em
   `c689f69` a tela lê `indiceDaChave`.
-- **Vitest** `lib/l19.test.ts` (13 casos): `indiceDoEstado` — trocar o
+- **Vitest** `lib/l19.test.ts` (14 casos no HEAD; eram 13 em `d44d2ef`, e o
+  14º, o guarda do `%` no código-fonte, veio na correção da auditoria 1,
+  abaixo): `indiceDoEstado` — trocar o
   exercício do passo atual sem série feita, com 3 séries feitas nele e
   parado no descanso entre as séries dele (série 1 do exercício novo);
   trocar um posterior e um anterior com séries feitas (a chave fica e as
@@ -11753,7 +11757,9 @@ esqueleto até recarregar. `lib/progressao.ts` e `lib/montagem.ts`:
   feitos; o aviso do "não gosto" prometendo "não vai mais ser montado";
   "60 %" de volta na retomada; "10 %" de volta em `data/progressao.json`
   — **as 9 derrubam algum teste** (de 1 a 5 casos cada).
-- **e2e** `e2e/ultraloop-l19.spec.ts` (9 casos, 360×740): item 1 nos dois
+- **e2e** `e2e/ultraloop-l19.spec.ts` (10 casos no HEAD, 360×740; eram 9 em
+  `d44d2ef`, e o 10º, a contagem parada na Visão geral, veio na correção da
+  auditoria 1, abaixo): item 1 nos dois
   temas — "?" → Substituir no passo atual → a folha mostra o exercício
   novo; fechada, "Concluir série", o `h2` do exercício novo e "Série 1 de N
   · exercício 1 de 6 · no lugar de Agachamento livre", nenhum
@@ -11808,7 +11814,20 @@ limpo · `tsc --noEmit` limpo · `npm test` **74 arquivos, 1.645 testes,
 todos verdes** · `build` ("Compiled successfully in 19.9s") · `build:e2e`
 ("Compiled successfully in 17.2s") · `e2e` **567 passaram, 5 pulados**
 (22,5 min; os 5 pulados são a varredura, que roda à parte) · `varredura`
-**5 passaram** (4,6 min). Depois de `d44d2ef` só este PROGRESSO.md mudou.
+**5 passaram** (4,6 min). Depois de `d44d2ef` veio a correção da auditoria 1
+(ver abaixo).
+
+**Cadeia inteira no código final, `426bcde`** (rodada pelo orquestrador;
+`r23/l19/logs/426bcde.log`, das 13:51:12 às 14:27:02 UTC, `.status` **ok**):
+`lint` limpo · `tsc --noEmit` limpo · `npm test` **74 arquivos, 1.646
+testes, todos verdes** · `build` ("Compiled successfully in 18.9s") ·
+`build:e2e` ("Compiled successfully in 18.7s") · `e2e` **568 passaram, 5
+pulados, 0 falhas** (25,0 min; os 5 pulados são a varredura, que roda à
+parte; os 10 casos de `e2e/ultraloop-l19.spec.ts`, ✓ 510–519, e o guarda do
+`%` em `e2e/treino.spec.ts:458`, ✓ 305) · `varredura` **5 passaram**
+(4,8 min). O HEAD final é `426bcde` com só PROGRESSO.md e SPEC.md mudados
+depois dele (`git diff --stat 426bcde HEAD` só lista esses dois), então essa
+cadeia vale para o código.
 
 #### Capturas
 
@@ -11864,7 +11883,8 @@ do código, `1b10847`):
   ficha não). Já era assim em `c689f69`. O lote tinha transformado isso em
   aceite (SPEC §22.16 item 1 atribuía à §3.2 o que ela não diz; o e2e
   exigia `seriesNoMock('agachamento-livre') = 0`). **Agora:** a §22.16 item
-  1 diz que é pergunta aberta ao dono, com a prova; o e2e não afirma nem a
+  1 dizia que era pergunta aberta ao dono, com a prova. Na rodada 27 isso
+  virou a decisão (b) do dono, com o apontamento para o L21. O e2e não afirma nem a
   perda nem o contrário (a asserção saiu, o título também); este PROGRESSO
   não chama mais isso de §3.2. **Não consertado aqui**: a saída (aviso ou
   confirmação na ficha, ou manter as séries do original) é decisão do dono
@@ -11911,7 +11931,10 @@ contagem correndo atrás da Visão geral, E3 sem o efeito que anota o passo no
 Dexie — **5 dos 10 casos do spec caem**: item 6 claro e escuro ("Desfazer"
 com 24 px de altura), a contagem (a Visão geral fechada já não mostra
 "Prepare-se") e item 1 claro e escuro (a tela já mostra o exercício novo; cai
-no passo anotado no Dexie). Os outros 5 passam.
+no passo anotado no Dexie). Os outros 5 passam. As três mutações foram
+aplicadas **juntas, num build só**. Cada queda aponta para uma mutação pela
+área que falha, mas elas não foram isoladas uma a uma. As mutações
+unitárias da auditoria 2 foram isoladas.
 
 **Pré-rodada** (não é a cadeia; `r23/l19/pre-correcao/623c073.log`):
 build:e2e + `--grep §22.16` → 11 passaram (os 10 do spec do lote + o guarda
@@ -11951,7 +11974,7 @@ esta branch sai de `c689f69`, sem o L32 — a `07-colecao` daqui é a mesma
 de `d44d2ef`, que dava Δ 0,00 % contra a base de antes. Diffs abertos:
 `27-player-preparacao-escuro`, `28-player-exercicio-claro` e
 `07-colecao-claro` (o card do plano "5 km sem parar" e a lista das
-semanas deslocados ~40 px pelo botão novo do L32).
+semanas deslocados cerca de 20 px, ou 40 px no PNG a 2×, pelo botão novo do L32).
 
 | tela | Δ claro | Δ escuro | o que mudou |
 | --- | ---: | ---: | --- |
@@ -11970,9 +11993,11 @@ passos de cima):
    ("Visão geral do treino"), espere mais de 10 s e toque "Fechar": você
    volta para o **"PREPARE-SE"** com a contagem cheia de novo (antes, o
    treino tinha começado sozinho por trás da lista).
-9. A pergunta aberta: com uma série do agachamento feita, "?" → Substituir
-   troca o exercício e **a série feita some** (no aparelho e no banco),
-   sem aviso — igual antes deste lote. Fica para a resposta do dono.
+9. O que ainda não muda neste lote: com uma série do agachamento feita,
+   "?" → Substituir troca o exercício e **a série feita some** (no aparelho
+   e no banco), sem aviso, como antes deste lote. O dono já decidiu que
+   ela deve ficar (opção b), e o conserto vem no L21
+   (`B-substituir-apaga-series-feitas`).
 
 **Portões da correção — o que rodou até o prazo (13:30 UTC):**
 
@@ -11985,9 +12010,10 @@ passos de cima):
   `build` ("Compiled successfully in 17.8s") · `build:e2e` ("Compiled
   successfully in 21.5s") — e o `e2e` ficou na fila do lock pesado desde
   13:01:39, atrás do e2e do L33 (wt-a); não terminaria antes do prazo e foi
-  **interrompido** às 13:11 (`.status` = `interrompida:e2e`). **Não há
-  cadeia inteira com status ok no HEAD final**: fica para o orquestrador
-  rodar de novo.
+  **interrompido** às 13:11 (`.status` = `interrompida:e2e`). Até o prazo
+  da rodada 23 não havia cadeia inteira com status ok no HEAD final. Depois
+  o orquestrador rodou a cadeia inteira em `426bcde`, com `.status` ok (ver
+  "Portões" acima e "Rodada 27 — retomada" abaixo).
 - Varredura sozinha no HEAD (`r23/l19/varredura-bf9afa9/`, com o `.next`
   do build:e2e de `1f18eb9`, o mesmo código): também ficou na fila do lock
   desde 13:11:58 atrás do mesmo e2e e foi **interrompida** às 13:27 sem
@@ -11995,3 +12021,101 @@ passos de cima):
   a correção não mexe em nenhuma das telas dela (as 60 capturas de
   `6ae5c09` são idênticas byte a byte às de `d44d2ef`), mas isso **não**
   substitui rodá-la.
+
+#### Rodada 23 — auditoria 2 reprovou por processo (varredura sem rodar no código final; PROGRESSO contraditório); lote devolvido à fila
+
+As duas lentes auditaram `426bcde`. O resultado está em
+`r23/l19/auditoria-2-regra/veredito.json` e em
+`r23/l19/auditoria-2-tela/veredito.json`.
+
+- **Lente tela: aprovou**, com 0 bloqueantes, 0 importantes e 6 menores.
+  Ela mediu ao vivo, nos dois temas, os 7 itens e a contagem parada. Na
+  mesma lente rodou a `varredura`, com 5 passaram, e o `e2e-grep:22.16`,
+  com 11 passaram, em `426bcde` (`r23/l19/auditoria-2-tela/portoes/426bcde.log`).
+- **Lente regra: reprovou só por processo.** O bloqueante: nenhuma cadeia
+  inteira tinha `.status` ok no código final, e a varredura não tinha rodado
+  depois de `d44d2ef`. Só que o código mudou depois de `d44d2ef`, em
+  `app/globals.css`, `components/player/exercicio.tsx` e `tela-player.tsx`.
+  O importante: este PROGRESSO se contradizia. Ele dizia "Depois de
+  `d44d2ef` só este PROGRESSO.md mudou", contava 13 casos no
+  `lib/l19.test.ts` (são 14) e 9 no `e2e/ultraloop-l19.spec.ts` (são 10).
+  O código passou nos testes dela: Vitest 74/1.646, `tsc` limpo, 8 mutações
+  unitárias isoladas (todas derrubam algum teste) e o catálogo inteiro de
+  trocas, com 84.938 trocas e 0 erros.
+- O lote voltou para a fila, e nenhum código foi mexido.
+
+#### Rodada 27 — retomada
+
+Retomada curta **só de registro**, sobre `426bcde`. Nenhum arquivo de
+código mudou: `git diff --stat 426bcde HEAD` lista só `PROGRESSO.md` e
+`SPEC.md`.
+
+**O que mudou (era → é):**
+
+- **Portão:** a cadeia inteira no código final não existia. **Agora existe**:
+  o orquestrador a rodou em `426bcde`, de 13:51:12 a 14:27:02 UTC, e o
+  `.status` é **ok** (`r23/l19/logs/426bcde.log`). Os números: `lint` e
+  `tsc` limpos · **74 arquivos, 1.646 testes** · `build` 18,9 s ·
+  `build:e2e` 18,7 s · `e2e` **568 passaram, 5 pulados, 0 falhas** (25,0
+  min) · `varredura` **5 passaram** (4,8 min). A linha fica em "Portões",
+  acima.
+- **SPEC §22.16 item 1** (`bfb28bd`): antes era "pergunta aberta ao dono".
+  **Agora** traz a decisão (b), manter as séries feitas do original, e o
+  apontamento para o item `B-substituir-apaga-series-feitas` do **L21**.
+  Esse lote reescreve a §3.2 e o aviso da Visão geral antes do código.
+- **PROGRESSO, subseção do L19:**
+  - A frase falsa "Depois de `d44d2ef` só este PROGRESSO.md mudou" virou
+    "Depois de `d44d2ef` veio a correção da auditoria 1 (ver abaixo)".
+  - A contagem do Vitest passou de 13 → 14 casos, e a do e2e, de 9 → 10,
+    cada uma dizendo de onde veio o caso a mais.
+  - Entrou a linha real de `426bcde.log`.
+  - A "pergunta aberta" do item 1, da correção e do passo 9 do "Como
+    testar" virou a decisão (b), com o apontamento para o L21.
+  - As mutações e2e E1–E3 aparecem como aplicadas juntas.
+  - O deslocamento da `07-colecao` está em px de tela (cerca de 20 px, ou
+    40 px no PNG a 2×).
+
+**Menores da auditoria 2:**
+
+- **Atendidos (só texto):**
+  - O risco do "firme?" que sobrevive à troca foi para a SPEC §22.16 item
+    1 (regra, menor 3).
+  - O "montagem" fica cerca de 3 px sob a barra com "Afundo / passada".
+    Isso foi para a SPEC §22.16 item 5 (tela, menor 3).
+  - As mutações e2e feitas juntas estão registradas acima (regra, menor
+    5).
+  - A decisão (b) está registrada (regra, menor 1, e tela, menor 2).
+  - O processo dos portões está resolvido pela cadeia de `426bcde` (tela,
+    menor 1).
+- **Registrados, sem mudança:**
+  - O guarda do `%` só pega número literal (regra, menor 4). Um grep por
+    `} %` e `${…} %` em `lib/ components/ app/`, fora dos testes, foi
+    refeito no HEAD. Só devolve um comentário, em `lib/formato.ts:40`, e
+    hoje não há defeito.
+  - O aceite ajustado do ux-heuristicas-22 (regra, menor 2), a linha do
+    copy-19 em `data/cardio.json` (regra, menor 6) e o aceite do dono
+    "pendente" da exceção de área do OBS-porcentagem-com-espaco (regra,
+    menor 7) são anotações do ledger, que é do orquestrador.
+  - Os avisos do Sonner por cima da fileira do topo (tela, menor 4) já
+    estavam registrados na correção da auditoria 1.
+  - O contraste abaixo de AA fora do lote (tela, menor 5) fica para o
+    ledger. No claro, o aviso de sucesso "Semana leve…" tem 4,26:1 a
+    13 px. No escuro, as descrições das opções da retomada têm 4,04:1 a
+    12 px. As cores não são deste lote.
+  - O `pageerror` do SW bloqueado no script da auditoria (tela, menor 6)
+    não vem do app.
+
+**Conferência da mudança da SPEC:** quatro arquivos do Vitest leem o
+`SPEC.md`: `lib/auditoria-bordas.test.ts`, `auditoria-spec.test.ts`,
+`auditoria-casos.test.ts` e `lembretes.test.ts`. Rodados sozinhos depois da
+mudança, deram **319 passaram**. Isso não é a cadeia; a cadeia continua
+sendo a de `426bcde`.
+
+**Capturas:** não foram refeitas. As de `6ae5c09` valem
+(`r23/l19/capturas-6ae5c09.md`), porque o código de `426bcde` é o de
+`6ae5c09` (`git diff --stat 6ae5c09 426bcde` lista só `PROGRESSO.md`). As
+60 são idênticas às de `d44d2ef`. Mudaram as duas telas declaradas,
+`27-player-preparacao` e `28-player-exercicio`. A `07-colecao` também
+mudou, mas pela base do L32, e isso está explicado acima.
+
+**Como testar no celular:** nada novo. Valem os passos 1–9 acima.
