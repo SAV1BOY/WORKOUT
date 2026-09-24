@@ -131,3 +131,22 @@ O L31 (os itens D por último, de várias áreas) não precisa de pergunta: é a
 
 - **Sim** → o plano fica como está (é o que a v2 e a v3 assumem).
 - **Não** → esses itens vão para descartados com esse motivo e os lotes que os levam são refeitos (L17, L18, L19, L21, L22, L23 e L24 são quase só deles).
+
+## 4. Decisão tomada sem o dono no L32 (24/09)
+
+### L32 → L33 — A capa do plano deixou de dizer "semana N de 12"
+
+**Pergunta:** Na tela de um plano do Explorar (por exemplo, Corrida em
+/explorar/plano/corrida), a capa dizia "semana 2 de 12" e o bloco logo abaixo
+dizia de novo "Semana 2 de 12 · 1 concluída". O L32 tirou a posição da capa:
+agora ela aparece só no bloco. A capa continua com o título e o botão "Fazer a
+corrida da semana N". Você aprova assim?
+
+- **Sim** → fica como está (publicado em `b66e06c`). O L33 só troca o teste de
+  unidade por um que confere com `data/cardio.json`.
+- **Não** → a posição volta para a capa e sai do bloco, ou fica nos dois
+  lugares, como você preferir. Isso vira um item B num lote do Explorar.
+
+_Origem: o ledger pedia "decidir com o dono" (C-plano-progresso-repete-desafio).
+A decisão foi tomada sem você e ficou registrada no item
+C-l32-plano-capa-sem-o-dono (L33)._
