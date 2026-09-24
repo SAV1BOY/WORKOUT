@@ -14,14 +14,11 @@ import { Input } from "@/components/ui/input";
 import { treinoDeHoje } from "@/lib/calendario";
 import {
   buscarColecoes,
-  circuitos,
-  colecoesDePlano,
-  colecoesDeTreino,
-  colecoesPorAparelho,
-  colecoesPorGrupo,
+  capasDaVitrine,
+  capasNaBusca,
   desafios,
   metaDoPlano,
-  semCapasRepetidas,
+  secoesDaVitrine,
   todasAsColecoes,
   type Colecao,
 } from "@/lib/colecoes";
@@ -107,16 +104,7 @@ export function TelaExplorar() {
         : { semanaFixa, semanaCorrida },
     [semanaFixa, semanaCorrida],
   );
-  const secoes = useMemo(
-    () => [
-      { titulo: "Treinos do programa", itens: semCapasRepetidas(colecoesDeTreino()) },
-      { titulo: "Parte do corpo", itens: semCapasRepetidas(colecoesPorGrupo()) },
-      { titulo: "Circuitos", itens: semCapasRepetidas(circuitos()) },
-      { titulo: "Por aparelho", itens: semCapasRepetidas(colecoesPorAparelho()) },
-      { titulo: "Planos", itens: semCapasRepetidas(colecoesDePlano(posicao)) },
-    ],
-    [posicao],
-  );
+  const secoes = useMemo(() => secoesDaVitrine(posicao), [posicao]);
 
   /** O destaque só aparece com perfil e overrides na mão (§22.2 item 2). */
   const pronto = Boolean(hoje && perfil) && !overridesQ.isPending;
@@ -125,8 +113,9 @@ export function TelaExplorar() {
     () =>
       busca.trim() === ""
         ? []
-        : semCapasRepetidas(buscarColecoes(busca, todasAsColecoes(posicao))),
-    [busca, posicao],
+        : /* SPEC §22.15 item 6: a capa da busca parte da capa da vitrine */
+          capasNaBusca(buscarColecoes(busca, todasAsColecoes(posicao)), capasDaVitrine(secoes)),
+    [busca, posicao, secoes],
   );
   const doPrograma = useMemo(() => idsDoPrograma(), []);
   /* quantos exercícios a mesma busca acha — com os mesmos filtros da lista */
@@ -246,7 +235,12 @@ export function TelaExplorar() {
               <ul className="flex flex-col divide-y">
                 {achadas.map((c) => (
                   <li key={c.id}>
-                    <LinhaColecao colecao={c} mostrarRaios={mostrarRaios} />
+                    {/* SPEC §22.15 item 5: na busca, sem o vão do subtítulo que não existe */}
+                    <LinhaColecao
+                      colecao={c}
+                      mostrarRaios={mostrarRaios}
+                      reservarSubtitulo={false}
+                    />
                   </li>
                 ))}
               </ul>

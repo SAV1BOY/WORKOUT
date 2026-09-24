@@ -11643,3 +11643,485 @@ resposta ≥ 400, nos dois temas. Uma primeira tentativa do tema claro foi
 descartada por falha do script de medida (o guia da primeira entrada abriu
 depois da espera) e refeita inteira. **Conta de teste apagada** às 00:00 UTC
 (ficam só as 3 contas reais).
+
+### Rodada 21 — Lote 32 — Sobras das auditorias: ficha e coleções do Explorar
+
+Faixa A, worktree `wt-a`, branch `polimento/l32-ficha-sobras` a partir de
+`main` f813c41 (L34 publicado). SPEC §22.15 escrita e commitada antes do
+código (`320ad47`). Dez sobras da seção C da fila, das auditorias e da
+verificação em produção do L13 e do L14; os quatro itens de coleções do
+Explorar entram pela exceção de área do plano (os mesmos arquivos do L13).
+`git diff f813c41 -- lib/progressao.ts lib/montagem.ts` vazio.
+
+#### O que mudou
+
+1. **A figura nasce de novo também no "Substituir"**
+   (C-l13-key-musculos-sem-teste). Era: o ledger pedia teste para a `key` da
+   ilustração da aba Músculos, que **não existe mais** — o §22.14 item 3(a)
+   tirou a ilustração dessa aba (grep de `urls.join` em `ficha-folha.tsx`:
+   nada); a `key` que sobra, a da aba Vídeo em `media-grande.tsx`, só tinha
+   e2e pela seta ›. É: e2e do "Substituir" — na ficha aberta no player, ›
+   até o supino (o 2º exercício), a ilustração dele na posição 2 e
+   "Substituir" → crossover na polia: o crossover começa na posição 1 e o
+   quadro 2 dele espera o 1 — e da aba Músculos aberta atravessando › e
+   "Substituir". A troca é feita no 2º exercício, e não no do passo atual,
+   porque substituir o exercício do passo atual trava o player no esqueleto
+   (defeito anterior ao lote, em "Achado fora do lote" abaixo). Arquivos:
+   `e2e/ultraloop-l32.spec.ts`. Código de app: nenhum.
+2. **A figura quebrada não passa para o próximo exercício**
+   (C-media-grande-figura-quebrou-herdada). Era: `figuraQuebrou` booleano na
+   `MediaGrande`; com a figura de A abortada, › ou "Substituir" levavam à
+   foto de B sem tentar a figura dele. É: a mídia guarda **qual** figura
+   falhou (o endereço) e só cai na foto quando é a figura desenhada agora.
+   Arquivo: `components/exercicio/media-grande.tsx`.
+3. **"Execução: <nome>", sem artigo** (C-alt-execucao-genero). Era:
+   "Execução do Prancha", "do Remada", "do Rosca", em dois lugares escritos à
+   mão. É: `altDaExecucao()` em `lib/midia.ts`, usada por `midiaGrande()`
+   (ilustração, figura, vídeo) e pela `FiguraExercicio`; a figura-botão do
+   player vira "Execução: Agachamento livre — abre o Como fazer". Arquivos:
+   `lib/midia.ts`, `components/exercicio/midia.tsx`; os e2e que liam o texto
+   velho (`catalogo`, `player`, `treinar`, `ultraloop-l13`) passam ao novo.
+4. **O aceite da ordem dos quadros** (C-l13-aceite-lcp-vs-ordem). Já
+   cumprido antes do lote: o §22.13 item 4 mede a ordem dos pedidos, o mesmo
+   que `e2e/ultraloop-l13.spec.ts` mede, e "LCP" não aparece no §22.13 (grep).
+   O "LCP" era do texto original da fila. É: o §22.15 item 4 registra isso;
+   nenhum código.
+5. **Na busca, sem vão onde não há subtítulo** (C-busca-linha-reservada-vazia).
+   Era: a linha reservada de 16 px (20 px de vão com os `gap`) entre o título e o motivo nas linhas sem
+   subtítulo (busca "corda"). É: `LinhaColecao` com `reservarSubtitulo`
+   (padrão `true`, a vitrine); a lista da busca passa `false`; o circuito
+   sem subtítulo continua com a linha do selo. Arquivos:
+   `components/colecoes/linha-colecao.tsx`, `components/explorar/tela-explorar.tsx`.
+6. **Na busca, a coleção leva a capa da vitrine** (C-busca-corda-capa-icone).
+   Era: a busca passava a lista inteira por `semCapasRepetidas()`, e "Corda:
+   5 estágios" tinha o ícone na busca "corda" e a foto na seção Planos (144
+   de 484 linhas de resultado com capa diferente da vitrine, nos 122 termos
+   de 4 letras ou mais). É: `secoesDaVitrine()` (a tela desenha estas),
+   `capasDaVitrine()` e `capasNaBusca()` em `lib/colecoes.ts`: cada coleção
+   parte da capa da vitrine e só a perde se uma linha de cima do mesmo
+   resultado já a mostra (66 de 484; planos de 4 para 2). Arquivos:
+   `lib/colecoes.ts`, `components/explorar/tela-explorar.tsx`.
+7. **A posição no plano aparece uma vez** (C-plano-progresso-repete-desafio).
+   Era: com perfil, a capa dizia "semana 3 de 12" e o bloco logo abaixo
+   "Semana 3 de 12 · 2 concluídas". É: a capa diz o que o plano é (a meta sem
+   perfil, `detalheDaCapa()` em `lib/colecoes.ts`); a posição fica no bloco,
+   com a barra e o "agora". Decisão tomada sem o dono (o ledger oferecia
+   tirar a capa ou o bloco; nenhum dos dois: a capa é o `h1` e o botão).
+   Arquivos: `lib/colecoes.ts`, `components/colecoes/tela-colecao.tsx`,
+   `e2e/v3.spec.ts` e `e2e/ultraloop-a-r10.spec.ts` (os testes da §22.12
+   item 4 passam a ler a posição no
+   bloco), SPEC §22.13 item 9.
+8. **A linha "agora" não cobre o canto do cartão** (C-plano-lista-canto-reto).
+   Era: fundo de cantos retos sobre o cartão arredondado. É: a lista
+   `overflow-hidden` recorta pelo raio (16,8 px); o link da semana fica a
+   10 px ou mais da borda e o anel dele não é cortado. Arquivo:
+   `components/colecoes/tela-colecao.tsx`.
+9. **Inventário da ficha em folha** (C-l14-inventario-ficha-folha-como-abre).
+   Era: a linha de `ficha-folha.tsx` na tabela do §22.14 item 6 citava só o
+   player e a Visão geral. É: os quatro gatilhos (`tela-player.tsx`,
+   `bloco.tsx`, `treino/lista.tsx`, `lista-da-colecao.tsx`), conferidos por um
+   Vitest que faz o grep de `<FichaEmFolha`. Arquivo: `SPEC.md`.
+10. **Tag de equipamento: link × texto** (C-l14-tag-equipamento-sem-sinal-visual).
+    Era: "Anilhas" (sem coleção) com a mesma pílula de "Banco", "Barra
+    maciça" e "Cavalete" (links). É: a tag-link é pílula com contorno,
+    sublinhada sempre e com a seta (›); a tag-texto é texto simples em
+    `text-muted-foreground`, sem pílula. Arquivo:
+    `components/exercicio/ficha-folha.tsx`.
+
+#### Provas
+
+- **Vitest** `lib/l32.test.ts` (9 testes): os 81 exercícios com
+  "Execução: <nome>" em toda opção de mídia (e a foto com "— início"); os
+  nomes que davam "Execução do" (Prancha, Remada, Rosca, Elevação…); nenhum
+  `.ts`/`.tsx` de `lib/` e `components/` monta "Execução do/da" em código;
+  as cinco seções da vitrine sem capa repetida; "Corda: 5 estágios" com a
+  capa da seção Planos na busca "corda" (e o ícone com a regra de antes);
+  nos 122 termos, nenhuma foto repetida e toda coleção cuja capa da vitrine
+  está livre fica com ela (484 linhas, 144 → 66 diferentes, planos 4 → 2);
+  a capa do plano sem a posição para os três planos e as semanas 1 a 14; o
+  grep de `<FichaEmFolha` (4 arquivos) contra a linha da tabela da SPEC.
+- **Mutação Vitest** (cópia no scratchpad `l32-mut/`): capa da vitrine
+  ignorada → 2 testes caem; `detalheDaCapa` com a posição → 1; alt de volta
+  a "Execução do" → 3; `FiguraExercicio` com o texto à mão → 1; sem mutação,
+  9 de 9.
+- **e2e** `e2e/ultraloop-l32.spec.ts` (17 testes, 360×740, contra o mock):
+  item 1 — "Substituir" do supino na posição 2 → crossover na polia começa
+  na posição 1 enquanto o quadro 2 (atrasado 2,5 s) não chega, e o pedido
+  do quadro 2 começa depois do fim do 1; aba Músculos aberta atravessando ›
+  e "Substituir" com a legenda do novo e sem imagem de execução; item 2 —
+  "Figura" com a figura de A abortada (a foto aparece), › e "Substituir"
+  mostram a figura carregada de B; item 3 — "Execução: Prancha…" na página
+  e "Execução: Agachamento livre — abre o Como fazer" no player; item 5 —
+  busca "corda" nos dois temas: linhas sem subtítulo sem nó vazio e com o
+  título a ≤ 4 px da linha seguinte, o circuito com o selo; vitrine com a
+  mesma altura por seção; item 6 — a foto de "Corda: 5 estágios" é a mesma
+  na seção Planos e na busca, sem foto repetida no resultado; item 7 —
+  corrida e barra fixa na semana 3: "semana 3 de" uma vez no `<main>`, no
+  bloco; item 8 — corrida nas semanas 1 e 12, nos dois temas: os dois
+  cantos externos do cartão na linha atual têm a cor da página (captura em
+  2×) e o anel do link por Tab cabe na lista; item 10 — supino nos dois
+  temas: tag-link sublinhada sem hover, com contorno e seta; "Anilhas" sem
+  sublinhado, borda, fundo e seta; as duas ≥ 4,5:1. Sozinho, no `.next` de
+  `320c6bf` (código de app igual ao do HEAD): **17 de 17** (43,6 s,
+  `l32-verif2.log`).
+- **Mutação e2e** (cópia `l32-mut-e2e/` com build:e2e próprio e oito
+  mutações juntas: sem a `key` da ilustração, `figuraQuebrou` booleano, alt
+  "Execução do", busca reservando o subtítulo, busca sem a capa da vitrine,
+  posição de volta na capa, lista sem `overflow-hidden`, "Anilhas" de volta
+  à pílula): **todo teste ligado a uma regra cai, pelo motivo certo** —
+  item 1 "Substituir" ("sem o quadro 2 do crossover, a posição fica na 1"),
+  item 2 › e "Substituir" (a figura de B não aparece), item 3 (o nome
+  "Execução: Prancha" não existe), item 5 nos dois temas ("grupo:Tríceps: sem
+  nó de subtítulo vazio"), item 6 (a linha da busca sem `img`), item 7 nos
+  dois planos ("a posição uma vez só na rolagem"), item 8 nos 4 casos
+  ("canto (17, 317): fundo da página"), item 10 nos dois temas ("Anilhas: sem
+  borda"). Passam com as mutações só os dois testes que não guardam regra
+  nova: a aba Músculos atravessando a troca (não há estado para herdar) e a
+  vitrine com a mesma altura por seção (a guarda do §22.13 item 7).
+- **Achado fora do lote (defeito anterior, em `main`):** substituir, pela
+  ficha do player, o exercício do **passo atual** deixa o player no
+  esqueleto de carregamento até recarregar a página: a chave do passo é
+  `serie:<id>` (`lib/player.ts`) e `substituirExercicio` recria as séries
+  com ids novos, então `indiceDaChave` dá -1 e `tela-player.tsx` fica em
+  `if (!estado || !passo) return <EsqueletoCard/>`. Medido na primeira
+  versão do e2e do item 1 (5 falhas em `r21/l32/pre-logs/320c6bf.log`, todas
+  pelo mesmo esqueleto). Nenhuma série se perde (o Dexie tem a sessão; ao
+  recarregar, o player retoma). Não corrigido aqui (fora da SPEC do lote);
+  os e2e dos itens 1 e 2 trocam o 2º exercício. Ainda não está na fila
+  (`docs/ultraloop/fila.json` não tem a entrada); o orquestrador registrou
+  no diário (01:59) que cria o item depois do deploy do L32.
+
+#### Portões
+
+Pré-execução em `320c6bf` (todo o código do lote; `r21/l32/pre-logs/320c6bf.log`,
+00:17–00:27 UTC): `build:e2e` ("Compiled successfully in 9.9s") e os e2e
+do lote, do L13, da §22.14 itens 1–3, do plano no v3, do catálogo e da ficha
+— **109 passaram, 5 falharam**: 3 pelo defeito do player ao substituir o
+exercício do passo atual (acima, em Provas) e 2 pela leitura do pixel em 1×
+numa captura em 2×. Corrigido o teste em `31db3dc`; sozinho, no mesmo
+`.next`, o spec do lote deu **17 de 17**.
+
+Cadeia inteira em `8df4f68` (`r21/l32/logs/8df4f68.log`, das 00:30:42 às
+01:17:39 UTC — 23 min esperando o lock da faixa B —, **falhou:e2e**): `lint`
+limpo · `tsc --noEmit` limpo · `npm test` **74 arquivos, 1.641 testes, todos
+verdes** · `build` ("Compiled successfully in 17.6s") · `build:e2e`
+("Compiled successfully in 18.2s") · `e2e` **573 passaram, 1 falhou, 5
+pulados** (21,5 min). A falha: `e2e/ultraloop-a-r10.spec.ts` "D — planos…"
+lia "semana 3 de 12" na **capa** da tela do plano — a regra antiga que o
+item 7 muda (a mesma que `e2e/v3.spec.ts` já tinha sido alinhado). O teste
+passa a ler "Semana 3 de 12 · 2 concluídas" no bloco e confere que a capa
+não repete (`f63aee3`).
+
+Cadeia inteira em `f63aee3` (todo o código do lote + o rascunho deste
+registro; `r21/l32/logs/f63aee3.log`, das 01:17:51 às 01:48:56 UTC, **ok**):
+`lint` limpo · `tsc --noEmit` limpo · `npm test` **74 arquivos, 1.641
+testes** · `build` ("Compiled successfully in 20.1s") · `build:e2e`
+("Compiled successfully in 17.9s") · `e2e` **574 passaram, 5 pulados**
+(21,3 min; os 5 pulados são a varredura, que roda à parte) · `varredura`
+**5 passaram** (4,6 min).
+
+Cadeia inteira em `50adb21` (correção da auditoria, só texto em SPEC e
+PROGRESSO; `r21/l32/logs/50adb21.log`, das 02:23:26 às 03:18:43 UTC, com
+~25 min esperando o lock da faixa B — e2e e varredura do L35 —, **ok**): `lint` limpo · `tsc
+--noEmit` limpo · `npm test` **74 arquivos, 1.641 testes, todos verdes** ·
+`build` ("Compiled successfully in 28.0s") · `build:e2e` ("Compiled
+successfully in 18.0s") · `e2e` **574 passaram, 5 pulados** (21,2 min; os
+17 de `ultraloop-l32` com ✓; os 5 pulados são a varredura) · `varredura`
+**5 passaram** (4,6 min). O HEAD final difere de `50adb21` só neste PROGRESSO.md.
+
+#### Capturas
+
+`capturas.sh` com o `.next` do build:e2e da cadeia de `f63aee3`, contra a
+base real de `main` (`base-ef3ad97`), telas declaradas 09, 10, 06, 07 e 28
+(`r21/l32/capturas-f63aee3.md`): 60 PNGs, **só `07-colecao` mudou**; as
+outras 58 com Δ 0,00 %. Diff aberto: `07-colecao-claro.diff.png`.
+
+| tela | Δ claro | Δ escuro | o que mudou |
+| --- | ---: | ---: | --- |
+| 07-colecao (`/explorar/plano/corrida`) | 16,30 % | 22,07 % | a capa perde a linha "semana 2 de 12" (item 7: a posição fica só no bloco "Semana 2 de 12 · 1 concluída"); a capa fica ~20 px de CSS mais baixa (~40 px na imagem em 2×) e o botão, o bloco e a lista sobem junto. O canto da linha "agora" (item 8) não aparece nesta captura (a atual é a 2ª linha). |
+| 06, 09, 10, 28 | 0,00 % | 0,00 % | nada visível na primeira tela: a busca (itens 5 e 6) não está nas capturas; as tags (item 10) ficam abaixo da dobra da ficha; o alt (item 3) não se vê; a troca no lugar (itens 1 e 2) é interação. Medidos pelos e2e acima. |
+
+Servidores derrubados pelo `capturas.sh` (3100 e 54321 → 000).
+
+#### Como testar no celular (360 px)
+
+1. Treino → Começar → no player, "?" (Como fazer) → toque na seta › para
+   ir ao **2º exercício** (supino) antes de trocar: não use "Substituir" no
+   exercício do passo atual, que deixa o player no esqueleto até recarregar
+   a página (defeito anterior ao lote, em Provas; nenhuma série se perde).
+   No supino, espere a ilustração passar à posição 2, toque em
+   "Substituir" e escolha "Crossover na polia": a ilustração do novo
+   recomeça na posição 1. Escolha "Figura" no segmento e repita › e
+   "Substituir" no exercício seguinte: a figura do novo aparece.
+2. Na mesma folha, ainda fora do passo atual, a aba Músculos aberta
+   continua aberta ao trocar de exercício pela seta › e pelo
+   "Substituir", com os músculos do novo.
+3. Com o leitor de tela, a figura diz "Execução: Prancha" (nunca "do
+   Prancha").
+4. Explorar → buscar "corda": nenhuma linha com vão entre o título e o
+   "contém …"; "Corda: 5 estágios" com a mesma foto que tem na seção Planos.
+5. Explorar → Planos → "5 km sem parar": "semana N de 12" uma vez só (no
+   bloco "Semanas do plano"); a linha "agora" sem canto reto sobre o cartão,
+   nos dois temas.
+6. Exercícios → Supino reto com barra → Equipamento: "Banco", "Barra
+   maciça" e "Cavalete" sublinhados com a seta; "Anilhas" como texto.
+
+#### Correção da auditoria
+
+Auditoria 1 em `4c30eea`: lente de tela **aprovada** (0 bloqueantes, 0
+importantes, 3 menores); lente de regra **reprovada** por 3 importantes,
+todos de texto (PROGRESSO e SPEC divergindo do que foi feito), e 5 menores.
+Corrigido em `50adb21`, só em `SPEC.md` e neste registro — código de app e
+testes não mudaram:
+
+- **"O que mudou", item 1**: descrevia o e2e antigo (agachamento livre na
+  posição 2 → afundo), abandonado em `31db3dc`. Agora descreve o e2e
+  comitado (`e2e/ultraloop-l32.spec.ts`, "Substituir com o supino na
+  posição 2"): › até o supino, "Substituir" → crossover na polia, e diz por
+  que a troca não é no exercício do passo atual.
+- **"Como testar no celular", passos 1 e 2**: mandavam usar "Substituir" no
+  exercício do passo atual, o caminho que trava o player no esqueleto.
+  Agora vão com › ao 2º exercício antes de trocar e avisam do defeito.
+- **SPEC §22.15, abertura**: apontava `lib/midia.test.ts` e
+  `lib/colecoes.test.ts`; os testes do lote estão em `lib/l32.test.ts`.
+- Menores atendidos: a tabela de Capturas diz a unidade (~20 px de CSS, ~40
+  px na imagem em 2×); "Vai à fila" virou o estado real (o item do defeito
+  do passo atual ainda não está em `docs/ultraloop/fila.json`; o
+  orquestrador o cria).
+- Menores só registrados, sem mudança: `components/explorar/tela-explorar.tsx`
+  mudou fora dos `arquivos_previstos` (é a lista da busca dos itens 5 e 6);
+  o Vitest de `detalheDaCapa` é quase tautológico, e a guarda do item 7 é o
+  e2e "semana 3 de" uma vez só; na busca "corda", o aparelho "Corda de pular
+  com rolamento" fica com o ícone (efeito previsto no §22.15 item 6); o
+  botão "Fazer a corrida da semana 3" é o rótulo de ação do §22.12 item 7,
+  não uma repetição da posição.
+- O defeito do "Substituir" no passo atual continua fora do lote; não foi
+  corrigido aqui.
+
+Capturas de novo em `50adb21` (`capturas.sh` com o `.next` do build:e2e
+dessa cadeia, contra `base-ef3ad97`, telas declaradas 09, 10, 06, 07 e 28;
+`r21/l32/capturas-50adb21.md`, 03:18–03:20 UTC): 60 de 60 PNGs; o
+comparador diz "Nenhuma tela mudou fora do esperado".
+
+| tela | Δ claro | Δ escuro | o que mudou |
+| --- | ---: | ---: | --- |
+| 07-colecao | 16,30 % | 22,07 % | o mesmo de `f63aee3` (diff `07-colecao-claro.diff.png` aberto): a linha "semana 2 de 12" sai da capa; o botão "Fazer a corrida da semana 2", "Semanas do plano", o bloco "Semana 2 de 12 · 1 concluída" e a lista sobem ~20 px de CSS (~40 px na imagem em 2×). |
+| as outras 29 telas (06, 09, 10, 28 e as 25 não declaradas) | 0,00 % | 0,00 % | nada. |
+
+Servidores derrubados pelo `capturas.sh` (3100 e 54321 → 000).
+
+#### Rodada 21 — auditoria 2 reprovou por 1 bloqueante e 1 importante; lote devolvido à fila
+
+Auditoria 2 em `9b860d6`: lente de tela **aprovada** (0 bloqueantes, 0
+importantes, 3 menores); lente de regra **reprovada**:
+
+- **Bloqueante (item 3):** o aceite do ledger pede "nenhum nome acessível
+  com do/da errado em todos os exercícios", e três ainda montavam artigo
+  masculino com o nome: `components/player/firme.tsx:98` "Nota do
+  ${nome}", `components/treinar/bloco.tsx:187` "Nota do ${nome}" e
+  `bloco.tsx:164` "Última repetição firme no ${nome}" ("Nota do Remada
+  curvada pronada", "firme no Rosca…"); 32 dos 81 nomes são femininos. A
+  SPEC tinha estreitado o aceite para "Execução d" sem registrar.
+- **Importante (SPEC §22.15 item 6):** o parágrafo do aceite descrevia
+  errado por que o aparelho "Corda de pular com rolamento" fica com o ícone
+  na busca "corda" ("as outras fotos já estão em cima": a outra foto é a
+  capa do plano, na linha de **baixo**), e dizia que o Vitest verificava o
+  ícone e os 4 planos de antes, o que ele não fazia.
+- **Menores:** a SPEC item 3 sem a exceção da foto; comentário velho em
+  `linha-colecao.tsx`; a mutação da `key` do item 1 medida junto com outras
+  sete; a 2ª tabela de Capturas misturando telas e PNGs; o nó
+  `data-linha="subtitulo-vazio"` com o selo dentro; o contorno da tag-link
+  a 1,27:1 (claro) e 1,97:1 (escuro).
+
+#### Rodada 22 — retomada (correção da auditoria 2)
+
+Sobre `9b860d6`, na mesma branch. `git diff f813c41 -- lib/progressao.ts
+lib/montagem.ts` continua vazio. O defeito do "Substituir" no exercício do
+passo atual (player no esqueleto) **não** é deste lote e não foi mexido.
+
+##### O que mudou (era → é)
+
+1. **Nomes acessíveis sem artigo (bloqueante, item 3).** Era: "Nota do
+   <nome>" (player e Visão geral), "Última repetição firme no <nome>"
+   (Visão geral) e "Carga do <nome> por sessão" (gráfico de cada grande no
+   Progresso/Relatório — achado pelo grep, mesmo erro). É: todo nome
+   acessível que cita o exercício sai de **`nomeAcessivel(rótulo, nome)`**
+   em `lib/midia.ts` ("<rótulo>: <nome>"; rótulos "Execução", "Como
+   fazer", "Ficha", "Nota", "Última repetição firme", "Carga por sessão"),
+   e `altDaExecucao()` passa a usá-la. "Como fazer: …" e "Ficha: …", que já
+   estavam certos, foram ligados à mesma função. Arquivos:
+   `lib/midia.ts`, `components/player/firme.tsx`,
+   `components/player/exercicio.tsx`, `components/player/preparacao.tsx`,
+   `components/treinar/bloco.tsx`, `components/treino/lista.tsx`,
+   `components/colecoes/lista-da-colecao.tsx`,
+   `components/progresso/tela-progresso.tsx`; e2e alinhados:
+   `e2e/treinar.spec.ts` ("Última repetição firme: Agachamento livre") e
+   `e2e/relatorio.spec.ts` ("Carga por sessão: …"). Grep do repositório
+   (aria-label/alt/title/título de gráfico com o nome do exercício): os
+   outros ("Substituir <nome>", "Subir/Descer <nome>", "Tirar <nome>",
+   "Série N — <nome>", "<passo> — <nome>", "<nome> — início") não têm
+   artigo; "Começar o ${resumo.nome}" é o nome do treino ("Treino A",
+   "Superior A"), não de exercício.
+2. **SPEC §22.15 item 6 (importante)** reescrito com o mecanismo real das
+   duas passadas de `capasNaBusca()` e a busca "corda" medida linha a linha
+   (abaixo, em Provas); o Vitest passa a verificar o que o texto diz.
+3. **Menores:** SPEC item 3 com a exceção da foto ("<nome> — início");
+   comentário de `components/colecoes/linha-colecao.tsx` e a frase do
+   §22.13 item 7 dizem que a reserva do subtítulo é da vitrine;
+   `data-linha="subtitulo-vazio"` → `data-linha="sem-subtitulo"` (é a
+   reserva vazia da vitrine **ou** a linha só com o selo; nome interno, só
+   os e2e do L13 e do L32 o leem, alinhados); contorno da tag-link de
+   `border` (1,27:1 claro, 1,97:1 escuro) para `muted-foreground`
+   (`components/exercicio/ficha-folha.tsx`), e o e2e do item 10 mede ≥ 3:1;
+   a 2ª tabela de Capturas da rodada 21 numa unidade só (telas).
+
+##### Provas
+
+- **Vitest** `lib/l32.test.ts` (11 testes, antes 9): os 81 nomes × os 6
+  rótulos dão "<rótulo>: <nome>" sem artigo antes do nome (≥ 12 nomes
+  femininos no conjunto); grep de `lib/`, `components/` e `app/` (fora
+  comentários) sem "do/da/no/na/dos/das/nos/nas" antes de `${…nome}` ou
+  `{…nome}` e sem "Execução do/da"; busca "corda": ordem circuito:corda,
+  aparelho:corda, plano:corda, a capa reservada por linha, o aparelho com o
+  ícone (antes, com a foto da corrida no lugar); nos 122 termos, planos
+  com capa diferente da vitrine **antes = 4** (agora asserido) e depois 2.
+- **`capasNaBusca(buscarColecoes("corda"))` rodada no catálogo**
+  (`npx tsx`, saída em `scratchpad/l32r22/corda.saida.txt`), as 3 primeiras
+  das 9 linhas:
+
+  ```
+  1. circuito:corda «Corda» exercicios=[salto-basico, corrida-no-lugar-com-a-corda, salto-com-joelho-alto]
+     vitrine=/fotos/salto-basico-1.jpg | busca(antes, semCapasRepetidas)=/fotos/salto-basico-1.jpg | busca(capasNaBusca)=/fotos/salto-basico-1.jpg
+  2. aparelho:corda «Corda de pular com rolamento» exercicios=[salto-basico, corrida-no-lugar-com-a-corda]
+     vitrine=/fotos/salto-basico-1.jpg | busca(antes, semCapasRepetidas)=/fotos/corrida-no-lugar-com-a-corda-1.jpg | busca(capasNaBusca)=ícone
+  3. plano:corda «Corda: 5 estágios» exercicios=[corrida-no-lugar-com-a-corda]
+     vitrine=/fotos/corrida-no-lugar-com-a-corda-1.jpg | busca(antes, semCapasRepetidas)=ícone | busca(capasNaBusca)=/fotos/corrida-no-lugar-com-a-corda-1.jpg
+  ```
+
+  1ª passada (de cima para baixo): o circuito reserva `salto-basico-1`; o
+  aparelho tem a mesma capa de vitrine, já reservada acima, e não reserva;
+  o plano reserva `corrida-no-lugar-com-a-corda-1`. 2ª passada: o
+  aparelho procura, entre as fotos dos exercícios dele, uma que **ninguém**
+  reservou — `salto-basico-1` é do circuito (acima) e
+  `corrida-no-lugar-com-a-corda-1` é do plano (abaixo) —, então fica com o
+  ícone. É isso que garante ao plano a capa da vitrine.
+- **Mutação Vitest** (`r22/l32/logs/l32-r22-mut-artigo.log`): A — `firme.tsx`
+  de volta a "Nota do ${exercicio.nome}" → o grep cai
+  (`components/player/firme.tsx:99`), 1 de 11; B — `nomeAcessivel()`
+  montando "${rotulo} do ${nome}" → 4 de 11 caem (as três varreduras do
+  item 3 e o grep); sem mutação, 11 de 11.
+- **e2e** `e2e/ultraloop-l32.spec.ts`, teste novo do item 3: no player, a
+  seta anda até a pergunta "firme?" da remada curvada pronada (3º
+  exercício do Treino A) e a nota se chama "Nota: Remada curvada pronada",
+  sem nenhuma "Nota do/da/no/na"; na Visão geral, o bloco da remada tem
+  "Última repetição firme: …", "Nota: …" e "Como fazer: …", e nenhum
+  `aria-label` do diálogo tem "do/da/no/na" antes de um nome do treino.
+  Item 10: `razaoContorno` ≥ 3 nos dois temas.
+- **Pré-execução** (`r22/l32/pre-logs/bca8913.log`, 09:37–09:38 UTC):
+  `build:e2e` ("Compiled successfully in 35.0s") e o `e2e-grep` do spec do
+  lote, do "sem a última firme" de `treinar.spec.ts`, dos gráficos de
+  `relatorio.spec.ts` e do "Corda: 5 estágios" do L13 (que lê o nó
+  renomeado): **21 de 21**.
+- **Mutação só da `key` do item 1** (menor da auditoria 2; diff em
+  `r22/l32/mut-key.diff`, log próprio `r22/l32/mut-key/7286a6e.log`,
+  09:39–09:40 UTC): sem a linha `key={midia.urls.join("|")}` de
+  `components/exercicio/media-grande.tsx`, `build:e2e` ("Compiled
+  successfully in 12.6s") e o e2e "Substituir com o supino na posição 2"
+  sozinho **cai**: "sem o quadro 2 do crossover, a posição fica na 1 —
+  Expected "1", Received "2"" (a ilustração herdou a posição 2 do supino).
+  A mutação foi desfeita (`git checkout -- media-grande.tsx`) antes da
+  cadeia.
+
+##### Portões
+
+Cadeia inteira em `e6f42b2` (todo o código da rodada 22 + o registro até
+aqui; `r22/l32/logs/e6f42b2.log`, das 09:40:26 às 10:06:01 UTC,
+**falhou:e2e**): `lint` limpo · `tsc --noEmit` limpo · `npm test` **74
+arquivos, 1.643 testes, todos verdes** (eram 1.641; +2 do `lib/l32.test.ts`)
+· `build` ("Compiled successfully in 21.6s") · `build:e2e` ("Compiled
+successfully in 20.6s") · `e2e` **573 passaram, 2 falharam, 5 pulados**
+(23,4 min; os 18 de `ultraloop-l32` com ✓; os 5 pulados são a varredura).
+A `varredura` não rodou (a cadeia para no primeiro portão que falha).
+
+As 2 falhas são de `e2e/ultraloop-a-r4.spec.ts`, "nenhum toque na faixa
+fixa atravessa para a lista de baixo" (paradas com a faixa à vista: 1,
+esperado > 5) e "a faixa fixa inteira é o controle anunciado" (a faixa não
+apareceu depois de rolar até o fim): a aba Treino mediu a altura da página
+antes de a lista desenhar, com a máquina carregada (load ~4; outra faixa
+com `next start -p 3130` e Playwright fora do lock). Nenhum arquivo da aba
+Treino que a faixa usa mudou (`components/treino/lista.tsx` só trocou o
+template "Ficha: ${item.nome}" pela mesma string vinda de
+`nomeAcessivel("Ficha", …)`; o snapshot da falha mostra "Ficha: Agachamento
+livre"). **Sozinhos, no mesmo `.next`, passaram 2×**: `r22/l32/instavel-1`
+(10:07–10:08 UTC, 4 de 4) e `r22/l32/instavel-2` (10:12–10:13 UTC, esperou
+o lock da faixa B; 4 de 4). Pela regra do lote, instável sob carga,
+anotado, não bloqueia. Uma cadeia inteira de novo não coube no prazo: às
+10:13 o lock estava na fila da cadeia de auditoria do L35 (build:e2e, e2e
+de ~23 min e varredura). A `varredura` que a cadeia não chegou a rodar foi
+rodada sozinha em `f36db69` (só PROGRESSO a mais que `e6f42b2`, mesmo
+`.next`; `r22/l32/varredura-sozinha/f36db69.log`, lock obtido às 10:39,
+fim 10:43:48 UTC, **ok**): **5 passaram** (4,6 min).
+
+##### Capturas
+
+`capturas.sh` com o `.next` do `build:e2e` da cadeia de `e6f42b2`, contra a
+base real de `main` (`base-ef3ad97`), telas declaradas 09, 10, 06, 07 e 28
+(`r22/l32/capturas-e6f42b2.md`, 10:13–10:16 UTC): 60 de 60 PNGs (30 telas ×
+2 temas); o comparador diz "Nenhuma tela mudou fora do esperado". Unidade
+da tabela: telas (cada uma nos dois temas).
+
+| tela | Δ claro | Δ escuro | o que mudou |
+| --- | ---: | ---: | --- |
+| 07-colecao | 16,30 % | 22,07 % | o mesmo da rodada 21 (diff `07-colecao-escuro.diff.png` aberto): a linha "semana 2 de 12" sai da capa (item 7); o botão "Fazer a corrida da semana 2", "Semanas do plano", o bloco "Semana 2 de 12 · 1 concluída" e a lista sobem ~20 px de CSS. |
+| 09-ficha-exercicio | 0,00 % | 0,00 % | nada: as tags de equipamento, com o contorno novo (item 10), ficam abaixo da dobra; o contraste é medido pelo e2e. |
+| as outras 28 telas (06, 10, 28 e as 25 não declaradas) | 0,00 % | 0,00 % | nada: a rodada 22 muda nomes acessíveis (não aparecem) e o contorno da tag abaixo da dobra. |
+
+Servidores derrubados pelo `capturas.sh` (3100 e 54321 → 000).
+
+##### Correção da auditoria
+
+Rodada 22, sobre a auditoria 2 da rodada 21 (vereditos em
+`r22/l32/vereditos-auditoria-2-r21.json`):
+
+- **Bloqueante (item 3)** — corrigido: `nomeAcessivel()` em `lib/midia.ts`;
+  "Nota: <nome>", "Última repetição firme: <nome>", "Carga por sessão:
+  <nome>"; Vitest dos 81 nomes × 6 rótulos, grep de `lib/`, `components/` e
+  `app/`, mutações A e B, e2e da remada no player e na Visão geral.
+  `e2e/treinar.spec.ts:363` e `e2e/relatorio.spec.ts:146-149` alinhados.
+- **Importante (SPEC item 6)** — corrigido: o parágrafo diz as duas
+  passadas e a busca "corda" medida (saída em Provas); o Vitest agora
+  verifica a ordem, o ícone do aparelho e os 4 planos de antes.
+- **Menores** — SPEC item 3 com a exceção da foto: feito. Comentário de
+  `linha-colecao.tsx` (e a frase do §22.13 item 7): feito. Mutação só da
+  `key` com log próprio: feito (`r22/l32/mut-key/7286a6e.log`, cai). Tabela
+  de capturas numa unidade só: feito (a da rodada 21 e esta). O nó
+  `subtitulo-vazio` → `sem-subtitulo`: feito. Contorno da tag-link ≥ 3:1:
+  feito (`muted-foreground`; o e2e mede nos dois temas).
+- Fora dos `arquivos_previstos` do lote, por causa do bloqueante:
+  `components/player/firme.tsx`, `components/player/exercicio.tsx`,
+  `components/player/preparacao.tsx`, `components/treinar/bloco.tsx`,
+  `components/treino/lista.tsx`, `components/colecoes/lista-da-colecao.tsx`,
+  `components/progresso/tela-progresso.tsx`, `e2e/treinar.spec.ts`,
+  `e2e/relatorio.spec.ts`, `e2e/ultraloop-l13.spec.ts` (o nó renomeado) e
+  `lib/l32.test.ts`. Só nomes acessíveis e testes; nenhuma tela muda.
+- **Não afirmado como resolvido:** o "Substituir" no exercício do passo
+  atual do player (esqueleto) continua fora deste lote.
+
+##### Como testar no celular (360 px)
+
+1. Treino → Começar → no player, avance pela seta até a pergunta "Última
+   repetição saiu firme?" da **Remada curvada pronada**: com o leitor de
+   tela (TalkBack/VoiceOver), o campo da nota diz "Nota: Remada curvada
+   pronada" (antes, "Nota do Remada…").
+2. No ícone de lista (Visão geral), no bloco da remada: o interruptor diz
+   "Última repetição firme: Remada curvada pronada" e o campo, "Nota:
+   Remada curvada pronada". O mesmo na rosca direta ("Nota: Rosca direta
+   com barra").
+3. Progresso → gráficos dos grandes: o leitor de tela diz "Carga por
+   sessão: Agachamento livre".
+4. Exercícios → Supino reto com barra → Equipamento: a pílula de "Banco",
+   "Barra maciça" e "Cavalete" tem o contorno bem visível nos dois temas;
+   "Anilhas" continua texto.
+5. O resto do lote (itens 1, 2, 5–8) segue os passos da rodada 21, acima;
+   não use "Substituir" no exercício do passo atual do player (defeito
+   anterior ao lote, fora dele).

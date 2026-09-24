@@ -18,6 +18,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { acharExercicio } from "@/lib/dados";
+import { nomeAcessivel } from "@/lib/midia";
 import { textoDoAlvo } from "@/lib/hoje";
 import type { OpcoesMontagem } from "@/lib/montagem";
 import { evitado, evitadosPorUltimo } from "@/lib/preferencias";
@@ -91,7 +92,7 @@ export function BlocoExercicio({
             variant="ghost"
             size="icon"
             className="alvo shrink-0"
-            aria-label={`Como fazer: ${exercicio.nome}`}
+            aria-label={nomeAcessivel("Como fazer", exercicio.nome)}
             onClick={() => setFicha(true)}
           >
             <CircleHelp className="size-5" />
@@ -161,7 +162,7 @@ export function BlocoExercicio({
           type="button"
           role="switch"
           aria-checked={firme}
-          aria-label={`Última repetição firme no ${exercicio.nome}`}
+          aria-label={nomeAcessivel("Última repetição firme", exercicio.nome)}
           onClick={() => aoMudarFirme(!firme)}
           className={cn(
             "alvo flex h-12 items-center justify-between gap-3 rounded-lg border px-3 text-sm",
@@ -184,7 +185,7 @@ export function BlocoExercicio({
           value={bloco.nota ?? ""}
           onChange={(e) => aoMudarNota(e.target.value)}
           placeholder="Nota curta (opcional)"
-          aria-label={`Nota do ${exercicio.nome}`}
+          aria-label={nomeAcessivel("Nota", exercicio.nome)}
           className="border-input bg-background focus-visible:border-ring focus-visible:ring-ring h-11 w-full rounded-lg border px-3 text-sm outline-none focus-visible:ring-3"
         />
       </CardContent>

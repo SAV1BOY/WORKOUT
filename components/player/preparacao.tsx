@@ -4,6 +4,7 @@ import { CircleHelp, SkipForward } from "lucide-react";
 import { AnelDeContagem } from "@/components/player/anel";
 import { Button } from "@/components/ui/button";
 import { acharExercicio } from "@/lib/dados";
+import { nomeAcessivel } from "@/lib/midia";
 import { fracaoRestante, restanteS, type EstadoPlayer } from "@/lib/player";
 
 /**
@@ -52,7 +53,7 @@ export function TelaPreparacao({
           variant="ghost"
           size="icon"
           className="alvo shrink-0"
-          aria-label={`Como fazer: ${exercicio.nome}`}
+          aria-label={nomeAcessivel("Como fazer", exercicio.nome)}
           onClick={aoAbrirFicha}
         >
           <CircleHelp className="size-5" />

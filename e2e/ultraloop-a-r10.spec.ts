@@ -394,10 +394,12 @@ test.describe("D — planos: título curto e a posição do perfil (item 4)", ()
     await expect(corrida.locator('[data-linha="titulo"]')).toHaveText("5 km sem parar");
     await expect(corda.locator('[data-linha="titulo"]')).toHaveText("Corda: 5 estágios");
 
-    // a tela do plano diz a mesma posição
+    // a tela do plano diz a mesma posição — no bloco "Semanas do plano", não
+    // na capa (SPEC §22.15 item 7: antes ela aparecia duas vezes)
     await fixa.click();
     await page.waitForURL(/\/explorar\/plano\//);
-    await expect(page.getByText("semana 3 de 12", { exact: true })).toBeVisible();
+    await expect(page.getByText("Semana 3 de 12 · 2 concluídas", { exact: true })).toBeVisible();
+    await expect(page.getByText("semana 3 de 12", { exact: true })).toHaveCount(0);
   });
 });
 

@@ -321,6 +321,20 @@ export function metaDoPlano(
   return `semana ${semanaPresa(semana, dados.semanas)} de ${dados.semanas}`;
 }
 
+/**
+ * O detalhe da capa da tela de uma coleção (SPEC §22.15 item 7). Na tela do
+ * plano, a posição ("semana N de T") mora no bloco "Semanas do plano", com a
+ * barra e o "agora"; repetida na capa, aparecia duas vezes na mesma rolagem.
+ * A capa diz o que o plano é: a meta sem perfil — a duração, ou nada quando o
+ * objetivo já diz o prazo. As outras coleções ficam com o detalhe delas.
+ */
+export function detalheDaCapa(
+  colecao: Pick<Colecao, "detalhe">,
+  plano: { id: PlanoId; semanas: number; subtitulo: string | null } | null,
+): string | null {
+  return plano ? metaDoPlano(plano, null) : colecao.detalhe;
+}
+
 /** O botão de um plano: o rótulo, que diz o destino, e a rota. */
 export interface CtaDoPlano {
   acao: string;
@@ -533,6 +547,66 @@ export function semCapasRepetidas(itens: readonly Colecao[]): Colecao[] {
     const livre = capasPossiveis(c).find((f) => !usadas.has(f)) ?? null;
     if (livre !== null) usadas.add(livre);
     return livre === c.capa ? c : { ...c, capa: livre };
+  });
+}
+
+/** Uma seção de "Escolhas para você" (SPEC §14.4). */
+export interface SecaoDaVitrine {
+  titulo: string;
+  itens: Colecao[];
+}
+
+/**
+ * As cinco seções da vitrine, na ordem da tela, cada uma já sem capa
+ * repetida (SPEC §22.9 item 7). A tela desenha estas seções e a busca lê as
+ * capas delas (§22.15 item 6): uma fonte só para a capa de cada coleção.
+ */
+export function secoesDaVitrine(posicao?: PosicaoNosPlanos | null): SecaoDaVitrine[] {
+  return [
+    { titulo: "Treinos do programa", itens: semCapasRepetidas(colecoesDeTreino()) },
+    { titulo: "Parte do corpo", itens: semCapasRepetidas(colecoesPorGrupo()) },
+    { titulo: "Circuitos", itens: semCapasRepetidas(circuitos()) },
+    { titulo: "Por aparelho", itens: semCapasRepetidas(colecoesPorAparelho()) },
+    { titulo: "Planos", itens: semCapasRepetidas(colecoesDePlano(posicao)) },
+  ];
+}
+
+/** A capa que cada coleção tem na vitrine (`null` = o ícone do tipo). */
+export function capasDaVitrine(
+  secoes: readonly SecaoDaVitrine[] = secoesDaVitrine(),
+): Map<string, string | null> {
+  return new Map(secoes.flatMap((s) => s.itens.map((c) => [c.id, c.capa] as const)));
+}
+
+/**
+ * As capas do resultado da busca (SPEC §22.15 item 6). Passar a lista inteira
+ * por `semCapasRepetidas()` fazia a capa depender de quem vinha antes no
+ * resultado — "Corda: 5 estágios" tinha foto na vitrine e o ícone na busca
+ * "corda". Agora cada coleção parte da capa que tem **na vitrine**; a regra de
+ * não repetir continua valendo dentro da lista, então só perde a capa da
+ * vitrine quem a vê já usada numa linha de cima: essa pega a próxima foto
+ * livre, ou o ícone. Quem tem o ícone na vitrine fica com o ícone.
+ */
+export function capasNaBusca(
+  achadas: readonly Colecao[],
+  vitrine: ReadonlyMap<string, string | null> = capasDaVitrine(),
+): Colecao[] {
+  const usadas = new Set<string>();
+  const daVitrine = achadas.map((c) => {
+    if (!vitrine.has(c.id)) return undefined;
+    const capa = vitrine.get(c.id) ?? null;
+    if (capa === null) return null;
+    if (usadas.has(capa)) return undefined;
+    usadas.add(capa);
+    return capa;
+  });
+  return achadas.map((c, i) => {
+    let capa = daVitrine[i];
+    if (capa === undefined) {
+      capa = capasPossiveis(c).find((f) => !usadas.has(f)) ?? null;
+      if (capa !== null) usadas.add(capa);
+    }
+    return capa === c.capa ? c : { ...c, capa };
   });
 }
 
