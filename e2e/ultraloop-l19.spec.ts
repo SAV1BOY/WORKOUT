@@ -94,8 +94,15 @@ interface LinhaSerie {
   concluida: boolean;
 }
 
-async function seriesNoMock(sessao: SessaoMock, exercicioId: string): Promise<LinhaSerie[]> {
-  return lerDoMock<LinhaSerie>(sessao, "sets", `select=*&exercise_id=eq.${exercicioId}`);
+async function seriesNoMock(
+  sessao: SessaoMock,
+  exercicioId: string,
+): Promise<LinhaSerie[]> {
+  return lerDoMock<LinhaSerie>(
+    sessao,
+    "sets",
+    `select=*&exercise_id=eq.${exercicioId}`,
+  );
 }
 
 /** Escolhe o primeiro substituto na folha aberta e devolve o nome dele. */
@@ -120,17 +127,24 @@ test.describe("§22.16 item 1 — Substituir no exercício do passo atual", () =
 
       // o aquecimento 1 do agachamento fica registrado (e sai com a troca, §3.2)
       await concluirSerie(page);
-      await expect(page.getByText("Aquecimento 2 de 2 · exercício 1 de 6")).toBeVisible();
+      await expect(
+        page.getByText("Aquecimento 2 de 2 · exercício 1 de 6"),
+      ).toBeVisible();
 
       // marca na janela: se a página recarregar, a marca some
       await page.evaluate(() => {
-        (window as unknown as { __semRecarregar?: number }).__semRecarregar = 19;
+        (window as unknown as { __semRecarregar?: number }).__semRecarregar =
+          19;
       });
 
       // "?" → folha do exercício do passo atual → Substituir → o primeiro
-      await page.getByRole("button", { name: "Como fazer: Agachamento livre" }).click();
+      await page
+        .getByRole("button", { name: "Como fazer: Agachamento livre" })
+        .click();
       const ficha = page.getByRole("dialog");
-      await expect(ficha.getByRole("heading", { name: "Agachamento livre" })).toBeVisible();
+      await expect(
+        ficha.getByRole("heading", { name: "Agachamento livre" }),
+      ).toBeVisible();
       const novo = await substituirNaFolha(ficha);
       const idNovo = idDoNome(novo);
       await expect(ficha.getByRole("heading", { name: novo })).toBeVisible();
@@ -138,58 +152,96 @@ test.describe("§22.16 item 1 — Substituir no exercício do passo atual", () =
       await expect(ficha).toHaveCount(0);
 
       // o player mostra o exercício novo pronto para a série — sem esqueleto
-      await expect(page.getByRole("button", { name: "Concluir série" })).toBeVisible();
-      await expect(page.getByRole("heading", { level: 2, name: novo })).toBeVisible();
       await expect(
-        page.getByText(/^Série 1 de \d+ · exercício 1 de 6 · no lugar de Agachamento livre$/),
+        page.getByRole("button", { name: "Concluir série" }),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("heading", { level: 2, name: novo }),
+      ).toBeVisible();
+      await expect(
+        page.getByText(
+          /^Série 1 de \d+ · exercício 1 de 6 · no lugar de Agachamento livre$/,
+        ),
       ).toBeVisible();
       await expect(page.locator('[aria-busy="true"]')).toHaveCount(0);
       expect(
         await page.evaluate(
-          () => (window as unknown as { __semRecarregar?: number }).__semRecarregar,
+          () =>
+            (window as unknown as { __semRecarregar?: number }).__semRecarregar,
         ),
       ).toBe(19);
       await semRolagemHorizontal(page);
 
       // a série 1 do exercício novo: no aparelho e no mock
       await concluirSerie(page);
-      await expect(page.getByText(/^Série 2 de \d+ · exercício 1 de 6/)).toBeVisible();
+      await expect(
+        page.getByText(/^Série 2 de \d+ · exercício 1 de 6/),
+      ).toBeVisible();
       await expect
         .poll(async () => {
-          const bloco = (await blocosNoAparelho(page)).find((b) => b.ordem === 1);
-          return bloco ? [bloco.exercicioId, bloco.series.filter((s) => s.concluida).length] : null;
+          const bloco = (await blocosNoAparelho(page)).find(
+            (b) => b.ordem === 1,
+          );
+          return bloco
+            ? [
+                bloco.exercicioId,
+                bloco.series.filter((s) => s.concluida).length,
+              ]
+            : null;
         })
         .toEqual([idNovo, 1]);
       await expect
-        .poll(async () => (await seriesNoMock(sessao, idNovo)).filter((s) => s.concluida).length, {
-          timeout: 15_000,
-        })
+        .poll(
+          async () =>
+            (await seriesNoMock(sessao, idNovo)).filter((s) => s.concluida)
+              .length,
+          {
+            timeout: 15_000,
+          },
+        )
         .toBe(1);
       // o registro do dia é do substituto (§3.2): o aquecimento do original saiu
       await expect
-        .poll(async () => (await seriesNoMock(sessao, "agachamento-livre")).length, {
-          timeout: 15_000,
-        })
+        .poll(
+          async () => (await seriesNoMock(sessao, "agachamento-livre")).length,
+          {
+            timeout: 15_000,
+          },
+        )
         .toBe(0);
 
       // trocar um exercício POSTERIOR (o 2º, pela folha) não mexe no passo
       await page.getByRole("button", { name: `Como fazer: ${novo}` }).click();
       await expect(ficha.getByRole("heading", { name: novo })).toBeVisible();
       await ficha.getByRole("button", { name: "Próximo exercício" }).click();
-      const segundoAntes = (await ficha.getByRole("heading").first().innerText()).trim();
+      const segundoAntes = (
+        await ficha.getByRole("heading").first().innerText()
+      ).trim();
       const segundoNovo = await substituirNaFolha(ficha);
       expect(segundoNovo).not.toBe(segundoAntes);
-      await expect(ficha.getByRole("heading", { name: segundoNovo })).toBeVisible();
+      await expect(
+        ficha.getByRole("heading", { name: segundoNovo }),
+      ).toBeVisible();
       await page.keyboard.press("Escape");
       await expect(ficha).toHaveCount(0);
-      await expect(page.getByRole("heading", { level: 2, name: novo })).toBeVisible();
-      await expect(page.getByText(/^Série 2 de \d+ · exercício 1 de 6/)).toBeVisible();
+      await expect(
+        page.getByRole("heading", { level: 2, name: novo }),
+      ).toBeVisible();
+      await expect(
+        page.getByText(/^Série 2 de \d+ · exercício 1 de 6/),
+      ).toBeVisible();
 
       // e a série registrada continua lá, no aparelho e no mock
       const blocos = await blocosNoAparelho(page);
-      expect(blocos.find((b) => b.ordem === 1)?.series.filter((s) => s.concluida)).toHaveLength(1);
-      expect(blocos.find((b) => b.ordem === 2)?.exercicioId).toBe(idDoNome(segundoNovo));
-      expect((await seriesNoMock(sessao, idNovo)).filter((s) => s.concluida)).toHaveLength(1);
+      expect(
+        blocos.find((b) => b.ordem === 1)?.series.filter((s) => s.concluida),
+      ).toHaveLength(1);
+      expect(blocos.find((b) => b.ordem === 2)?.exercicioId).toBe(
+        idDoNome(segundoNovo),
+      );
+      expect(
+        (await seriesNoMock(sessao, idNovo)).filter((s) => s.concluida),
+      ).toHaveLength(1);
     });
   }
 });
@@ -208,7 +260,9 @@ test.describe("§22.16 itens 2–4 — a preparação", () => {
       // item 4: a forma neutra
       await expect(page.getByText("Prepare-se", { exact: true })).toBeVisible();
       await expect(page.getByText(/Preparad[oa]/)).toHaveCount(0);
-      await expect(page.getByRole("heading", { level: 1 })).toHaveText(/Treino A/);
+      await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+        /Treino A/,
+      );
 
       // item 2: os dois controles do topo, ≥ 44 × 44
       const sair = page.getByRole("link", { name: "Sair do treino" });
@@ -231,7 +285,9 @@ test.describe("§22.16 itens 2–4 — a preparação", () => {
 
       // "Visão geral do treino" abre a visão geral; "Fechar" volta à preparação
       await lista.click();
-      await expect(page.getByRole("heading", { level: 1, name: "Treino A" })).toBeVisible();
+      await expect(
+        page.getByRole("heading", { level: 1, name: "Treino A" }),
+      ).toBeVisible();
       await page.getByRole("button", { name: "Fechar" }).click();
       await expect(page.getByText("Prepare-se", { exact: true })).toBeVisible();
       await expect(lista).toBeFocused();
@@ -240,7 +296,10 @@ test.describe("§22.16 itens 2–4 — a preparação", () => {
       await sair.click();
       await esperarAbaTreino(page);
       const continuar = page.getByRole("link", { name: "Continuar" });
-      await expect(continuar).toHaveAttribute("href", new URL(endereco).pathname);
+      await expect(continuar).toHaveAttribute(
+        "href",
+        new URL(endereco).pathname,
+      );
       await continuar.click();
       await expect(page).toHaveURL(endereco);
       await expect(page.getByText("Prepare-se", { exact: true })).toBeVisible();
@@ -250,58 +309,99 @@ test.describe("§22.16 itens 2–4 — a preparação", () => {
 
 /* -------------------------------------- item 5: pontos por série */
 
+/** Razão de contraste WCAG entre duas cores `rgb(…)` do `getComputedStyle`. */
+function contraste(a: string, b: string): number {
+  const lum = (cor: string) => {
+    const [r, g, bl] = (cor.match(/[\d.]+/g) ?? ["0", "0", "0"])
+      .slice(0, 3)
+      .map((v) => {
+        const c = Number(v) / 255;
+        return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+      });
+    return 0.2126 * (r ?? 0) + 0.7152 * (g ?? 0) + 0.0722 * (bl ?? 0);
+  };
+  const [x, y] = [lum(a), lum(b)].sort((m, n) => n - m);
+  return ((x ?? 0) + 0.05) / ((y ?? 0) + 0.05);
+}
+
 test.describe("§22.16 item 5 — um ponto por série do exercício", () => {
-  test("2 aquecimentos + 3 séries = 5 pontos; cada 'Concluir série' enche um", async ({
-    page,
-  }) => {
-    await preparar(page);
-    await comecarOTreinoDoDia(page);
-    await comecarNoPlayer(page);
+  for (const tema of TEMAS) {
+    test(`2 aquecimentos + 3 séries = 5 pontos; cada 'Concluir série' enche um — ${tema}`, async ({
+      page,
+    }) => {
+      await preparar(page, tema);
+      await comecarOTreinoDoDia(page);
+      await comecarNoPlayer(page);
 
-    const pontos = page.locator("[data-pontos-do-bloco]");
-    await expect(pontos).toHaveAttribute("role", "img");
-    await expect(pontos).toHaveAttribute(
-      "aria-label",
-      "Aquecimento 1 de 2 · 0 de 5 séries feitas",
-    );
-    await expect(pontos.locator("[data-ponto]")).toHaveCount(5);
-    await expect(pontos.locator('[data-ponto="feita"]')).toHaveCount(0);
-    // a barra da sessão continua, com nome
-    await expect(page.getByRole("progressbar", { name: "Progresso do treino" })).toBeVisible();
+      const pontos = page.locator("[data-pontos-do-bloco]");
+      await expect(pontos).toHaveAttribute("role", "img");
+      await expect(pontos).toHaveAttribute(
+        "aria-label",
+        "Aquecimento 1 de 2 · 0 de 5 séries feitas",
+      );
+      await expect(pontos.locator("[data-ponto]")).toHaveCount(5);
+      await expect(pontos.locator('[data-ponto="feita"]')).toHaveCount(0);
+      // a barra da sessão continua, com nome
+      await expect(
+        page.getByRole("progressbar", { name: "Progresso do treino" }),
+      ).toBeVisible();
 
-    // o aquecimento é menor que a série de trabalho
-    const tamanhos = await pontos
-      .locator("[data-ponto]")
-      .evaluateAll((els) => els.map((e) => e.getBoundingClientRect().width));
-    expect(tamanhos[0]).toBeLessThan(tamanhos[4] ?? 0);
+      // o aquecimento é menor que a série de trabalho
+      const tamanhos = await pontos
+        .locator("[data-ponto]")
+        .evaluateAll((els) => els.map((e) => e.getBoundingClientRect().width));
+      expect(tamanhos[0]).toBeLessThan(tamanhos[4] ?? 0);
 
-    await concluirSerie(page);
-    await expect(pontos).toHaveAttribute(
-      "aria-label",
-      "Aquecimento 2 de 2 · 1 de 5 séries feitas",
-    );
-    await expect(pontos.locator('[data-ponto="feita"]')).toHaveCount(1);
+      await concluirSerie(page);
+      await expect(pontos).toHaveAttribute(
+        "aria-label",
+        "Aquecimento 2 de 2 · 1 de 5 séries feitas",
+      );
+      await expect(pontos.locator('[data-ponto="feita"]')).toHaveCount(1);
 
-    await concluirSerie(page);
-    await expect(pontos).toHaveAttribute("aria-label", "Série 1 de 3 · 2 de 5 séries feitas");
-    await expect(pontos.locator('[data-ponto="feita"]')).toHaveCount(2);
-    await semRolagemHorizontal(page);
-  });
+      await concluirSerie(page);
+      await expect(pontos).toHaveAttribute(
+        "aria-label",
+        "Série 1 de 3 · 2 de 5 séries feitas",
+      );
+      await expect(pontos.locator('[data-ponto="feita"]')).toHaveCount(2);
+      await semRolagemHorizontal(page);
+
+      // feito, atual e a fazer: cada contorno ≥ 3:1 contra o fundo da tela
+      const cores = await pontos.locator("[data-ponto]").evaluateAll((els) => {
+        const fundo = getComputedStyle(document.body).backgroundColor;
+        return els.map((e) => ({
+          borda: getComputedStyle(e).borderTopColor,
+          fundo,
+        }));
+      });
+      expect(cores).toHaveLength(5);
+      for (const { borda, fundo } of cores) {
+        expect(
+          contraste(borda, fundo),
+          `ponto ${borda} sobre ${fundo}`,
+        ).toBeGreaterThanOrEqual(3);
+      }
+    });
+  }
 });
 
 /* ---------------------- item 6: topo com dois ícones; polegares com aviso */
 
 /** Caixas dos alvos de 44 px visíveis na tela (botões e links de 44 a 60 px). */
 async function alvosDe44(page: Page) {
-  return page.locator("main button:visible, main a:visible").evaluateAll((els) =>
-    els
-      .map((e) => {
-        const r = e.getBoundingClientRect();
-        const nome = e.getAttribute("aria-label") ?? (e.textContent ?? "").trim();
-        return { nome, x: r.x, y: r.y, w: r.width, h: r.height };
-      })
-      .filter((c) => c.w >= 43.5 && c.h >= 43.5 && c.w <= 60 && c.h <= 60),
-  );
+  return page
+    .locator("main button:visible, main a:visible")
+    .evaluateAll((els) =>
+      els
+        .map((e) => {
+          const r = e.getBoundingClientRect();
+          const nome =
+            e.getAttribute("aria-label") ?? (e.textContent ?? "").trim();
+          return { nome, x: r.x, y: r.y, w: r.width, h: r.height };
+        })
+        .filter((c) => c.w >= 43.5 && c.h >= 43.5 && c.w <= 60 && c.h <= 60),
+    );
 }
 
 test.describe("§22.16 item 6 — topo da série e polegares", () => {
@@ -322,15 +422,26 @@ test.describe("§22.16 item 6 — topo da série e polegares", () => {
       const doTopo = (await alvosDe44(page)).filter(
         (c) => Math.abs(c.y - topoLista.y) < 4,
       );
-      expect(doTopo.map((c) => c.nome).sort()).toEqual(["Ajustar", "Visão geral do treino"]);
+      expect(doTopo.map((c) => c.nome).sort()).toEqual([
+        "Ajustar",
+        "Visão geral do treino",
+      ]);
 
       // os polegares estão na linha do nome, ao lado do "?"
-      const gostei = page.getByRole("button", { name: "Gostei deste exercício" });
-      const naoGosto = page.getByRole("button", { name: "Não gosto deste exercício" });
-      const ajuda = page.getByRole("button", { name: "Como fazer: Agachamento livre" });
+      const gostei = page.getByRole("button", {
+        name: "Gostei deste exercício",
+      });
+      const naoGosto = page.getByRole("button", {
+        name: "Não gosto deste exercício",
+      });
+      const ajuda = page.getByRole("button", {
+        name: "Como fazer: Agachamento livre",
+      });
       const caixaAjuda = await ajuda.boundingBox();
       const caixaGostei = await gostei.boundingBox();
-      expect(Math.abs((caixaGostei?.y ?? 0) - (caixaAjuda?.y ?? 99))).toBeLessThan(4);
+      expect(
+        Math.abs((caixaGostei?.y ?? 0) - (caixaAjuda?.y ?? 99)),
+      ).toBeLessThan(4);
 
       // entre quaisquer dois alvos de 44 px, ≥ 8 px
       const alvos = await alvosDe44(page);
@@ -360,8 +471,12 @@ test.describe("§22.16 item 6 — topo da série e polegares", () => {
       await expect
         .poll(
           async () =>
-            (await lerDoMock<{ prefs: { evitar_exercicios?: string[] } }>(sessao, "profiles"))[0]
-              ?.prefs.evitar_exercicios,
+            (
+              await lerDoMock<{ prefs: { evitar_exercicios?: string[] } }>(
+                sessao,
+                "profiles",
+              )
+            )[0]?.prefs.evitar_exercicios,
           { timeout: 10_000 },
         )
         .toEqual(["agachamento-livre"]);
@@ -373,8 +488,12 @@ test.describe("§22.16 item 6 — topo da série e polegares", () => {
       await expect
         .poll(
           async () =>
-            (await lerDoMock<{ prefs: { evitar_exercicios?: string[] } }>(sessao, "profiles"))[0]
-              ?.prefs.evitar_exercicios,
+            (
+              await lerDoMock<{ prefs: { evitar_exercicios?: string[] } }>(
+                sessao,
+                "profiles",
+              )
+            )[0]?.prefs.evitar_exercicios,
           { timeout: 10_000 },
         )
         .toEqual([]);
