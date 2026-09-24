@@ -11787,11 +11787,47 @@ Explorar entram pela exceção de área do plano (os mesmos arquivos do L13).
 
 #### Portões
 
-⟨preencher⟩
+Pré-execução em `320c6bf` (todo o código do lote; `r21/l32/pre-logs/320c6bf.log`,
+00:17–00:27 UTC): `build:e2e` ("Compiled successfully in 9.9s") e os e2e
+do lote, do L13, da §22.14 itens 1–3, do plano no v3, do catálogo e da ficha
+— **109 passaram, 5 falharam**: 3 pelo defeito do player ao substituir o
+exercício do passo atual (acima, em Provas) e 2 pela leitura do pixel em 1×
+numa captura em 2×. Corrigido o teste em `31db3dc`; sozinho, no mesmo
+`.next`, o spec do lote deu **17 de 17**.
+
+Cadeia inteira em `8df4f68` (`r21/l32/logs/8df4f68.log`, das 00:30:42 às
+01:17:39 UTC — 23 min esperando o lock da faixa B —, **falhou:e2e**): `lint`
+limpo · `tsc --noEmit` limpo · `npm test` **74 arquivos, 1.641 testes, todos
+verdes** · `build` ("Compiled successfully in 17.6s") · `build:e2e`
+("Compiled successfully in 18.2s") · `e2e` **573 passaram, 1 falhou, 5
+pulados** (21,5 min). A falha: `e2e/ultraloop-a-r10.spec.ts` "D — planos…"
+lia "semana 3 de 12" na **capa** da tela do plano — a regra antiga que o
+item 7 muda (a mesma que `e2e/v3.spec.ts` já tinha sido alinhado). O teste
+passa a ler "Semana 3 de 12 · 2 concluídas" no bloco e confere que a capa
+não repete (`f63aee3`).
+
+Cadeia inteira em `f63aee3` (todo o código do lote + o rascunho deste
+registro; `r21/l32/logs/f63aee3.log`, das 01:17:51 às 01:48:56 UTC, **ok**):
+`lint` limpo · `tsc --noEmit` limpo · `npm test` **74 arquivos, 1.641
+testes** · `build` ("Compiled successfully in 20.1s") · `build:e2e`
+("Compiled successfully in 17.9s") · `e2e` **574 passaram, 5 pulados**
+(21,3 min; os 5 pulados são a varredura, que roda à parte) · `varredura`
+**5 passaram** (4,6 min). O HEAD final difere de `f63aee3` só neste
+PROGRESSO.md.
 
 #### Capturas
 
-⟨preencher⟩
+`capturas.sh` com o `.next` do build:e2e da cadeia de `f63aee3`, contra a
+base real de `main` (`base-ef3ad97`), telas declaradas 09, 10, 06, 07 e 28
+(`r21/l32/capturas-f63aee3.md`): 60 PNGs, **só `07-colecao` mudou**; as
+outras 58 com Δ 0,00 %. Diff aberto: `07-colecao-claro.diff.png`.
+
+| tela | Δ claro | Δ escuro | o que mudou |
+| --- | ---: | ---: | --- |
+| 07-colecao (`/explorar/plano/corrida`) | 16,30 % | 22,07 % | a capa perde a linha "semana 2 de 12" (item 7: a posição fica só no bloco "Semana 2 de 12 · 1 concluída"); a capa fica ~40 px mais baixa e o botão, o bloco e a lista sobem junto. O canto da linha "agora" (item 8) não aparece nesta captura (a atual é a 2ª linha). |
+| 06, 09, 10, 28 | 0,00 % | 0,00 % | nada visível na primeira tela: a busca (itens 5 e 6) não está nas capturas; as tags (item 10) ficam abaixo da dobra da ficha; o alt (item 3) não se vê; a troca no lugar (itens 1 e 2) é interação. Medidos pelos e2e acima. |
+
+Servidores derrubados pelo `capturas.sh` (3100 e 54321 → 000).
 
 #### Como testar no celular (360 px)
 
