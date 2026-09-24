@@ -133,7 +133,7 @@ const LEVE: OpcaoRetomada = {
   escolha: "leve",
   rotulo: "Voltar mais leve",
   descricao:
-    "Uma semana a 60 % da carga em todos os exercícios; depois o app devolve a carga.",
+    "Uma semana a 60% da carga em todos os exercícios; depois o app devolve a carga.",
 };
 
 const ZERO: OpcaoRetomada = {

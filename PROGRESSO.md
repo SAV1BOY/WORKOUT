@@ -11665,6 +11665,675 @@ descartada por falha do script de medida (o guia da primeira entrada abriu
 depois da espera) e refeita inteira. **Conta de teste apagada** às 00:00 UTC
 (ficam só as 3 contas reais).
 
+### Rodada 23 — Lote 19 — Player: Substituir no passo atual, preparação e série
+
+Branch `polimento/l19-player`, a partir de `main` `c689f69` (faixa D,
+worktree `/home/user/wt-d`, portas 3130/54351). SPEC §22.16 escrita antes do
+código (commit `b499ff1`). Seis itens da seção B do ledger (o player) e um
+por exceção de área (o `%` colado). O primeiro é um **defeito do fluxo
+principal**: "Substituir" o exercício do passo atual deixava o player no
+esqueleto até recarregar. `lib/progressao.ts` e `lib/montagem.ts`:
+`git diff c689f69` vazio.
+
+#### O que mudou
+
+1. **"Substituir" no passo atual não trava mais o player**
+   (B-player-substituir-passo-atual; `lib/player.ts`,
+   `components/player/tela-player.tsx`). **Era:** a chave do passo é
+   `serie:<id>`; `substituirExercicio` (`lib/sessao.ts`) recria as séries com
+   ids novos, `indiceDaChave` dava -1 e a tela caía no `EsqueletoCard` (só
+   barras cinzas, sem "Concluir série") até recarregar — pela ficha ("?" →
+   Substituir) e pela Visão geral ("substituir hoje"). **É:** o estado do
+   player anota o exercício do passo (`EstadoPlayer.ordem`; o descanso anota
+   o do passo antes dele) e a posição sai de `indiceDoEstado()` (pura): a
+   chave salva enquanto existir; senão, no mesmo exercício, a primeira série
+   que falta (a série 1 do exercício novo), o "firme?" dele quando não falta
+   nenhuma, e a retomada para o estado salvo por uma versão anterior. Com a
+   sequência não vazia nunca devolve -1. O passo achado vai para o Dexie na
+   hora (efeito em `tela-player.tsx`). Trocar um exercício anterior ou
+   posterior deixa o player onde estava. `lib/sessao.ts` não mudou. As
+   séries **já feitas do exercício trocado** continuam saindo do aparelho e
+   do banco na troca, como em `c689f69`. Isso **não** é aceite deste lote.
+   O dono já decidiu pela opção (b), manter as séries feitas do original, e
+   o conserto é o item `B-substituir-apaga-series-feitas` do **L21** (SPEC
+   §22.16 item 1; ver "Rodada 27 — retomada" abaixo).
+2. **Preparação com saída e "Visão geral"** (ux-heuristicas-12, absorve o
+   tela-treino-player-08; `components/player/preparacao.tsx`,
+   `tela-player.tsx`). **Era:** dois controles ("Como fazer" e "Começar
+   agora"); só se saía pelo voltar do sistema. **É:** no topo, "Sair do
+   treino" (link para a aba Treino, como o "Continuar depois" da Visão
+   geral; a sessão fica aberta e a aba diz "Continuar") à esquerda e "Visão
+   geral do treino" à direita; fechar a Visão geral devolve o foco ao ícone.
+   A tela ganhou o `h1` só-leitor ("Treino A — preparação").
+3. **Preparação centrada** (tela-treino-player-09; `preparacao.tsx`).
+   **Era:** `flex-1 justify-center` num `main` que não é flex — o conteúdo
+   acabava em y≈460 e sobravam ~280 px embaixo. **É:** a preparação ocupa a
+   tela inteira (`fixed inset-0`, como a Visão geral) e o bloco fica no meio
+   dela, com `py-20` dos dois lados para nunca encostar no topo.
+4. **"Prepare-se"** (copy-21; `preparacao.tsx`, `e2e/player.spec.ts:108`,
+   `e2e/treino.spec.ts:349`). **Era:** "Preparado para começar" (masculino
+   para qualquer conta, §21). **É:** "Prepare-se". Os textos do player
+   dirigidos ao usuário foram varridos: nenhum outro adjetivo com gênero.
+5. **Um ponto por série do exercício** (tela-treino-player-12;
+   `lib/player.ts`, `components/player/exercicio.tsx`). **Era:** só a barra
+   de 4 px da sessão e a linha miúda "Aquecimento 1 de 2 · exercício 1 de 6".
+   **É:** abaixo do nome, os pontos de `pontosDoBloco()` — cheio = feita,
+   contorno = a fazer, a atual com contorno na cor de destaque, aquecimento
+   menor (10 px) que a série de trabalho (14 px) —, com o nome acessível
+   "Aquecimento 1 de 2 · 0 de 5 séries feitas" (`role="img"`). A barra da
+   sessão fica ("Progresso do treino"). A figura desceu de `h-40` para
+   `h-36` (160 → 144 px) para o passo caber na mesma altura
+   (`lib/midia-faixa-l13.test.ts` e a SPEC §22.13 acompanham).
+6. **Topo da série com dois ícones; polegares junto do nome, com aviso e
+   "Desfazer"** (ux-heuristicas-22, absorve o tela-treino-player-11;
+   `exercicio.tsx`, `lib/player.ts`). **Era:** quatro ícones sem texto no
+   topo, três deles a 2 px um do outro (`gap-0.5`), e os votos mudando as
+   listas em silêncio. **É:** topo com "Visão geral do treino" e "Ajustar";
+   "Gostei"/"Não gosto" na linha do nome, ao lado do "?", com 8 px entre os
+   alvos; cada toque mostra `avisoDoVoto()` com "Desfazer" (o voto de antes
+   volta). O "não gosto" diz o que faz de verdade ("… vai para o fim das
+   listas de substitutos e do Explorar.") — a proposta da análise ("não
+   vamos mais montar este exercício") prometia o que o app não faz.
+   **Aceite ajustado:** o desfazer volta a *nenhum voto*, então o
+   `aria-pressed` some (§22.1 item 5), em vez de ir a `false`.
+7. **O `%` colado** (OBS-porcentagem-com-espaco, exceção de área;
+   `data/progressao.json` ×3, `components/treino/tela-treino.tsx`,
+   `components/exercicios/historico-exercicio.tsx`, `lib/guia.ts`,
+   `lib/retomada.ts`, `lib/ficha.test.ts`). **Era:** "60 %"/"10 %" em sete
+   textos. **É:** "60%"/"10%". O aceite pede `data/*.json` inteiro, então a
+   linha do copy-19 (`data/cardio.json`, "20–25 %" → "20–25%", do L18)
+   também mudou — um caractere; a tela do cardio continua com o L18. O grep
+   `[0-9][[:space:]]%` em `data/ lib/ components/ app/` agora só devolve
+   comentários (e nomes de teste).
+
+#### Provas
+
+- **Defeito reproduzido em `main` antes de valer a correção**
+  (`r23/l19/main-vermelho/main-c689f69.log` e `r23/l19/pre/so-l19.log`):
+  o e2e novo do item 1, copiado para um checkout de `c689f69` com o
+  `.next` do build:e2e de lá, **cai nos 3 casos** (claro, escuro e pela
+  Visão geral) — depois de "Substituir", a folha fecha e o player fica no
+  esqueleto (`test-failed-1.png`: só as barras cinzas, sem "Concluir
+  série"). É também a mutação "volta à chave antiga" no componente: em
+  `c689f69` a tela lê `indiceDaChave`.
+- **Vitest** `lib/l19.test.ts` (16 casos no HEAD; eram 13 em `d44d2ef`; o
+  14º, o guarda do `%` no código-fonte, veio na correção da auditoria 1, e
+  o 15º e o 16º — o ramo "primeiro passo do exercício" e `avisoDoPolegar`
+  — na correção da auditoria da rodada 27, as duas abaixo):
+  `indiceDoEstado` — trocar o
+  exercício do passo atual sem série feita, com 3 séries feitas nele e
+  parado no descanso entre as séries dele (série 1 do exercício novo);
+  trocar um posterior e um anterior com séries feitas (a chave fica e as
+  séries continuam feitas); tirar a série do passo pela ficha com as
+  outras feitas (o "firme?"); estado de versão anterior sem `ordem`
+  (retomada, nunca -1); `pontosDoBloco` (5 pontos, ordem, feitos, atual e
+  o nome "Série 2 de 3 · 3 de 5 séries feitas"); `avisoDoVoto` (três
+  votos, sem "não vamos mais montar"); o `%` em todas as strings de
+  `data/*.json`, nas descrições da retomada e no Guia.
+  `lib/player.test.ts` ganhou a `ordem` no descanso de exemplo;
+  `lib/ficha.test.ts` e `lib/midia-faixa-l13.test.ts` acompanham o texto
+  "(60%)" e a faixa `h-36`.
+- **Mutação** (cópia do HEAD no scratchpad, `r23/l19/mutacoes.log`): 9
+  mutações — `indiceDoEstado` volta a devolver -1 quando a chave some;
+  sem o ramo do mesmo exercício; o estado sem `ordem`; a primeira que
+  falta ignorando `concluida`; o descanso sem `ordem`; os pontos nunca
+  feitos; o aviso do "não gosto" prometendo "não vai mais ser montado";
+  "60 %" de volta na retomada; "10 %" de volta em `data/progressao.json`
+  — **as 9 derrubam algum teste** (de 1 a 5 casos cada).
+- **e2e** `e2e/ultraloop-l19.spec.ts` (11 casos no HEAD, 360×740; eram 9 em
+  `d44d2ef`; o 10º, a contagem parada na Visão geral, veio na correção da
+  auditoria 1, e o 11º, o polegar sem perfil, na correção da auditoria da
+  rodada 27, as duas abaixo): item 1 nos dois
+  temas — "?" → Substituir no passo atual → a folha mostra o exercício
+  novo; fechada, "Concluir série", o `h2` do exercício novo e "Série 1 de N
+  · exercício 1 de 6 · no lugar de Agachamento livre", nenhum
+  esqueleto (`role="status"` "Carregando"), a marca na `window` intacta (não recarregou); a série 1
+  concluída está no Dexie (`sessaoAtiva.dados.blocos`) e em
+  `session_sets` no mock; trocar o 2º exercício pela folha ("Próximo exercício") deixa o player
+  em "Série 2 de N" do exercício novo, com a série 1 ainda no Dexie e no
+  mock. Item 1 pela Visão geral ("substituir hoje" → Fechar). Itens 2–4
+  nos dois temas — "Prepare-se", nada de "Preparad…", `h1`; "Sair do
+  treino" e "Visão geral do treino" ≥ 44×44; o bloco com |acima − abaixo|
+  ≤ 24 px e ≥ 8 px abaixo do topo; a Visão geral abre, "Fechar" devolve o
+  foco ao ícone; "Sair do treino" leva à aba Treino, "Continuar" aponta
+  para o mesmo `/treinar/<id>` e volta à preparação — no e2e, porque
+  `fixarData` congela o relógio (`page.clock.setFixedTime`); no aparelho,
+  passados mais de 10 s, a volta vai direto ao "Aquecimento 1", como pede
+  a §14.1.1 ("ao retomar … não reaparece"). Item 5 nos dois
+  temas — 5 pontos, os nomes "Aquecimento 1 de 2 · 0 de 5 séries feitas" →
+  "Aquecimento 2 de 2 · 1 de 5…" → "Série 1 de 3 · 2 de 5…", um ponto
+  enche a cada "Concluir série", o aquecimento menor, a barra "Progresso
+  do treino" continua e cada contorno ≥ 3:1 contra o fundo. Item 6 nos
+  dois temas — o topo tem só "Visão geral do treino" e "Ajustar", os
+  polegares na linha do "?", **todos** os pares de alvos de 44–60 px da
+  tela a ≥ 8 px, "Não gosto" com `aria-pressed="true"`, o aviso e
+  `evitar_exercicios = ["agachamento-livre"]` no mock; "Desfazer" tira o
+  `aria-pressed` e zera a lista. Item 7 em `e2e/treino.spec.ts` —
+  nenhuma string de `data/*.json`, da retomada e do Guia casa `/\d\s%/`;
+  20 dias parado, a opção "Voltar mais leve" diz "Uma semana a 60% da
+  carga…" e, escolhida, o aviso "Semana leve: 60% da carga. O app devolve
+  a carga depois.".
+- **Ao vivo, o foco dos controles novos** (`r23/l19/ao-vivo/foco.json`:
+  mock + `next start` do `.next` da cadeia de `d44d2ef`, 360×740, os dois
+  temas, Tab até cada um): "Sair do treino" e "Visão geral do treino" na
+  preparação casam `:focus-visible` e ganham o anel de 3 px na cor de
+  destaque (`#a03608` no claro, 5,25:1 contra o fundo; `#fb923c` no escuro,
+  8,75:1), a 12 px das bordas e 16 px do topo da seção — nada corta o anel.
+  Servidores derrubados pelos PIDs (3130 e 54351 → 000).
+- **Grep** `grep -rnE '[0-9][[:space:]]%' data/ lib/ components/ app/`
+  fora dos `*.test.ts`: só comentários. `npm run validar`: verde (81
+  exercícios, 67/67 figuras, 162/162 fotos). `git diff c689f69 --
+  lib/progressao.ts lib/montagem.ts`: vazio.
+
+#### Portões
+
+Pré-rodada (não é a cadeia; `r23/l19/pre/`): build:e2e do código do lote e
+os specs `ultraloop-l19`, `player`, `treino` e `ultraloop-a-r1` — 47
+passaram, 3 falharam, todos no próprio spec novo (o leitor do Dexie lia
+`blocos` fora de `dados`, o `getByRole("dialog")` achava a Visão geral, e
+as séries do mock ficam em `session_sets`); o player com o exercício novo
+já passava. Corrigido o spec (`4117e5e`, `d44d2ef`); os 7 outros casos do
+spec novo passaram de novo contra o mesmo build.
+
+Cadeia inteira em `d44d2ef` (todo o código do lote;
+`r23/l19/logs/d44d2ef.log`, das 10:26:57 às 11:19:57 UTC, **ok**): `lint`
+limpo · `tsc --noEmit` limpo · `npm test` **74 arquivos, 1.645 testes,
+todos verdes** · `build` ("Compiled successfully in 19.9s") · `build:e2e`
+("Compiled successfully in 17.2s") · `e2e` **567 passaram, 5 pulados**
+(22,5 min; os 5 pulados são a varredura, que roda à parte) · `varredura`
+**5 passaram** (4,6 min). Depois de `d44d2ef` veio a correção da auditoria 1
+(ver abaixo).
+
+**Cadeia inteira no código final, `426bcde`** (rodada pelo orquestrador;
+`r23/l19/logs/426bcde.log`, das 13:51:12 às 14:27:02 UTC, `.status` **ok**):
+`lint` limpo · `tsc --noEmit` limpo · `npm test` **74 arquivos, 1.646
+testes, todos verdes** · `build` ("Compiled successfully in 18.9s") ·
+`build:e2e` ("Compiled successfully in 18.7s") · `e2e` **568 passaram, 5
+pulados, 0 falhas** (25,0 min; os 5 pulados são a varredura, que roda à
+parte; os 10 casos de `e2e/ultraloop-l19.spec.ts`, ✓ 510–519, e o guarda do
+`%` em `e2e/treino.spec.ts:458`, ✓ 305) · `varredura` **5 passaram**
+(4,8 min). Essa cadeia valeu para o código até a auditoria da rodada 27;
+a correção dela mudou código, e a cadeia que vale agora é a de baixo.
+
+**Cadeia inteira no código final da correção da auditoria da rodada 27,
+`910b8c8`** (`r27/l19/logs/910b8c8.log`, das 15:30:59 às 16:13:47 UTC,
+`.status` **ok**): `lint` limpo · `tsc --noEmit` limpo · `npm test` **74
+arquivos, 1.648 testes, todos verdes** (os 2 a mais são os casos novos de
+`lib/l19.test.ts`, agora com 16) · `build` ("Compiled successfully in
+20.8s") · `build:e2e` ("Compiled successfully in 20.1s") · `e2e` **569
+passaram, 5 pulados, 0 falhas** (24,0 min; os 5 pulados são a varredura,
+que roda à parte; os 11 casos de `e2e/ultraloop-l19.spec.ts`, ✓ 510–520, e
+o guarda do `%` em `e2e/treino.spec.ts:458`, ✓ 305) · `varredura` **5
+passaram** (4,7 min). Depois de `910b8c8` só este PROGRESSO.md muda.
+
+#### Capturas
+
+`capturas.sh` com o `.next` do build:e2e da cadeia de `d44d2ef`, contra a
+base real de `main` (`base-ef3ad97`), telas declaradas `27-player-preparacao`
+e `28-player-exercicio` (`r23/l19/capturas-d44d2ef.md`): 60 PNGs, **só as
+duas declaradas mudaram**; as outras 56 com Δ 0,00 % ("Nenhuma tela mudou
+fora do esperado"). Diffs abertos: `27-player-preparacao-claro.diff.png` e
+`28-player-exercicio-escuro.diff.png`.
+
+| tela | Δ claro | Δ escuro | o que mudou |
+| --- | ---: | ---: | --- |
+| 27-player-preparacao | 21,58 % | 21,18 % | o bloco (Prepare-se, anel, nome, "Começar agora") desceu ~116 px para o meio da tela — antes começava logo abaixo do topo e sobrava a metade de baixo vazia; "PREPARADO PARA COMEÇAR" virou "PREPARE-SE"; no topo, "✕ Sair do treino" à esquerda e o ícone de lista à direita |
+| 28-player-exercicio | 6,57 % | 7,67 % | os polegares saíram do topo (ficam lista e engrenagem) e foram para a linha do nome, ao lado do "?"; a fileira de 5 pontos (o atual com contorno na cor de destaque, os aquecimentos menores) entrou abaixo do nome; a figura ficou 16 px mais baixa; "Levantamento terra" quebra em duas linhas (a coluna do nome tem ~180 px ao lado dos três alvos) e o miolo desce ~8 px — o "montagem" termina em y≈570, acima da barra de controles |
+
+A tela de série com o exercício trocado, a preparação depois de "Sair do
+treino"/"Continuar" e o aviso dos polegares não estão nas 60 capturas:
+medidos pelos e2e do lote, nos dois temas, a 360×740 (alvos, rolagem
+lateral, contraste dos pontos, foco de volta ao ícone da lista).
+
+#### Como testar no celular (360 px)
+
+1. Aba Treino → "Começar treino". A preparação diz **"PREPARE-SE"**, com
+   o anel no meio da tela; no topo, **"Sair do treino"** (esquerda) e o
+   ícone de lista **"Visão geral do treino"** (direita).
+2. Toque "Sair do treino": volta à aba Treino com o aviso "Treino
+   guardado — toque em Continuar para retomar" e o card em "Continuar".
+   "Continuar" abre o mesmo treino.
+3. "Começar agora". Abaixo do nome do agachamento, **5 pontos** (2
+   pequenos de aquecimento, 3 maiores de série). Conclua uma série: um
+   ponto enche. No topo só a lista (esquerda) e a engrenagem (direita); os
+   polegares estão ao lado do "?", na linha do nome.
+4. Toque o polegar para baixo: aparece em cima "Agachamento livre vai para
+   o fim das listas de substitutos e do Explorar." com **"Desfazer"**;
+   "Desfazer" apaga o voto.
+5. O defeito: toque o "?" do exercício atual → **Substituir** → escolha
+   outro. A folha mostra o exercício novo; feche-a (arrastar para baixo ou
+   tocar fora) e o player já mostra o exercício novo em "Série 1 de 3 ·
+   exercício 1 de 6 · no lugar de Agachamento livre", com "Concluir série"
+   — sem recarregar. O mesmo pela lista → "substituir hoje" → Fechar.
+6. Mais → Como usar o app → Treino → "Quando a série falha": "o app volta
+   10% da carga sozinho" (o `%` colado).
+
+#### Correção da auditoria 1
+
+As duas lentes (regra e tela, em `aa4d1aa`) reprovaram com 0 bloqueantes e
+2 importantes cada. O que foi feito, item a item (SPEC §22.16 ajustada antes
+do código, `1b10847`):
+
+- **Regra, importante 1 — "nunca perder série" × a troca.** A troca pela
+  ficha ("?" → Substituir) apaga do aparelho e do banco as séries **já
+  feitas** do exercício trocado, sem aviso (a folha da Visão geral avisa; a
+  ficha não). Já era assim em `c689f69`. O lote tinha transformado isso em
+  aceite (SPEC §22.16 item 1 atribuía à §3.2 o que ela não diz; o e2e
+  exigia `seriesNoMock('agachamento-livre') = 0`). **Agora:** a §22.16 item
+  1 dizia que era pergunta aberta ao dono, com a prova. Na rodada 27 isso
+  virou a decisão (b) do dono, com o apontamento para o L21. O e2e não afirma nem a
+  perda nem o contrário (a asserção saiu, o título também); este PROGRESSO
+  não chama mais isso de §3.2. **Não consertado aqui**: a saída (aviso ou
+  confirmação na ficha, ou manter as séries do original) é decisão do dono
+  e mexe em `components/exercicio/` (faixa A). Item novo proposto para o
+  ledger e pergunta ao dono em `r23/l19/item-novo-ledger.json` e
+  `r23/l19/pergunta-ao-dono.md` (o ledger é do orquestrador).
+- **Regra, importante 2 — SPEC × código.** §22.16: o Vitest do lote é
+  `lib/l19.test.ts` (era `lib/player.test.ts`) e a tabela do mock é
+  `session_sets` (era `sets`).
+- **Tela, importante 1 — "Desfazer" de 69×24 px.** O botão de ação do
+  Sonner ganha a classe `aviso-desfazer` (`components/player/exercicio.tsx`)
+  e a regra em `app/globals.css` (fora de `@layer`, uma classe acima do
+  seletor do Sonner): **≥ 44 × 44 px** e, no foco pelo teclado, o anel
+  sólido de 2 px na cor `--ring` no lugar da sombra preta a 40 % (menor da
+  tela: invisível no escuro). e2e nos dois temas: caixa ≥ 44 × 44, e focado
+  pelo teclado `:focus-visible`, `outline` sólido ≥ 2 px com contraste
+  ≥ 3:1 contra o fundo do aviso.
+- **Tela, importante 2** — o mesmo da regra 1 (acima).
+- **Menores atendidos:** o guarda do esqueleto nos e2e virou
+  `getByRole("status", { name: "Carregando" })` (o `aria-busy` não existe
+  no `EsqueletoCard`); a contagem da preparação **para** com a Visão geral
+  aberta e **recomeça** ao "Fechar" (`tela-player.tsx`, um efeito só —
+  dois efeitos liam o mesmo estado velho no mesmo ciclo), com e2e que anda
+  o relógio 20 s com a lista aberta e mais 12 s depois; o passo achado no
+  Dexie agora é conferido no e2e (`sessaoAtiva.dados.player.chave` =
+  `serie:<id da série 1 do exercício novo>`, `ordem` 1); o `%` da ficha
+  ganhou guarda de verdade — o Vitest lê o código-fonte de `lib/`,
+  `components/` e `app/` sem comentários e sem testes e falha em qualquer
+  `\d %` (mutação "(60 %)" em `historico-exercicio.tsx` → 1 falha); a SPEC
+  §22.16 item 5 diz que o "sem rolagem" vale para os 6 exercícios do
+  Treino A e registra o pior caso medido pela auditoria (nome longo +
+  unilateral + substituto: "montagem" 32 px abaixo da barra) como risco.
+- **Menores não atendidos (registrados):** os avisos do Sonner por cima
+  da fileira do topo por ~4 s (transitório; o mesmo aviso já existia no
+  "Continuar depois"); a coluna do nome mais estreita com nomes de 29–32
+  caracteres (risco, sem defeito provado); a linha do copy-19 em
+  `data/cardio.json` colada no L19 (anotação para o ledger em
+  `r23/l19/item-novo-ledger.json`); o aceite do dono da exceção de área do
+  OBS-porcentagem-com-espaco segue "pendente" no `lote.json`.
+
+**Mutações e2e** (cópia de `6ae5c09` no scratchpad, build:e2e próprio,
+`r23/l19/mut-e2e.log`, já apagada): E1 sem a classe `aviso-desfazer`, E2 a
+contagem correndo atrás da Visão geral, E3 sem o efeito que anota o passo no
+Dexie — **5 dos 10 casos do spec caem**: item 6 claro e escuro ("Desfazer"
+com 24 px de altura), a contagem (a Visão geral fechada já não mostra
+"Prepare-se") e item 1 claro e escuro (a tela já mostra o exercício novo; cai
+no passo anotado no Dexie). Os outros 5 passam. As três mutações foram
+aplicadas **juntas, num build só**. Cada queda aponta para uma mutação pela
+área que falha, mas elas não foram isoladas uma a uma. As mutações
+unitárias da auditoria 2 foram isoladas.
+
+**Pré-rodada** (não é a cadeia; `r23/l19/pre-correcao/623c073.log`):
+build:e2e + `--grep §22.16` → 11 passaram (os 10 do spec do lote + o guarda
+do `%` em `e2e/treino.spec.ts`).
+
+**Ao vivo, o "Desfazer"** (`r23/l19/ao-vivo-correcao/desfazer.json` e
+`02-foco-desfazer-*.png`: mock + `next start` do `.next` do build:e2e de
+`6ae5c09`, 360×740, os dois temas, pelo caminho real — login → "Começar
+treino" → "Começar agora" → "Não gosto"): o "Desfazer" mede **85,9 × 44
+px** (era 69,1 × 24) com texto de 14 px; focado pelo teclado casa
+`:focus-visible` com `outline: solid 2px` `#a03608` sobre o aviso branco
+(6,94:1) e `#fb923c` sobre o aviso `#262626` (6,69:1), `box-shadow: none`;
+`scrollWidth` 360 = `clientWidth`. Servidores derrubados pela árvore de
+PIDs (3130 e 54351 → 000). O aviso continua cobrindo a fileira do topo por
+alguns segundos (menor registrado acima).
+
+**Cadeia inteira em `6ae5c09`** (`r23/l19/logs/6ae5c09.log`, 11:58–12:23
+UTC, **falhou:e2e**): `lint` e `tsc` limpos · `npm test` **74 arquivos,
+1.646 testes** · `build` e `build:e2e` ("Compiled successfully in 17.6s")
+· `e2e` **566 passaram, 2 falharam, 5 pulados** (23,6 min, carga ~7) — os
+dois fora do lote: `e2e/calendario.spec.ts:173` (o link "Abrir o cardio"
+não apareceu em 7,5 s) e `e2e/ultraloop-b-r2.spec.ts:281` (a foto do item
+com `naturalWidth` 0, ainda carregando). **Sozinhos, 2 × 2 verdes**
+(`r23/l19/instaveis-6ae5c09-1` e `-2`, 11,1 s e 10,1 s): instáveis sob
+carga, anotados; não bloqueiam. A varredura não rodou nessa execução (a
+cadeia para no primeiro portão que falha) — por isso a cadeia rodou
+inteira de novo (abaixo).
+
+**Capturas** (`r23/l19/capturas-6ae5c09.md`, `.next` do build:e2e de
+`6ae5c09`, base `base-ef3ad97`, esperadas `27-player-preparacao,28-player-exercicio`):
+60 PNGs, **os 60 idênticos byte a byte aos de `d44d2ef`** (a correção não
+muda nenhuma das 60 telas: o "Desfazer" e a contagem só aparecem depois de
+um toque). Mudaram as duas esperadas, com os mesmos Δ de antes, e a
+`07-colecao`, que **não é deste lote**: a base `base-ef3ad97` recebeu às
+11:31 as `07-colecao` do L32 (deploy da rodada 22, `main` `b66e06c`), e
+esta branch sai de `c689f69`, sem o L32 — a `07-colecao` daqui é a mesma
+de `d44d2ef`, que dava Δ 0,00 % contra a base de antes. Diffs abertos:
+`27-player-preparacao-escuro`, `28-player-exercicio-claro` e
+`07-colecao-claro` (o card do plano "5 km sem parar" e a lista das
+semanas deslocados cerca de 20 px, ou 40 px no PNG a 2×, pelo botão novo do L32).
+
+| tela | Δ claro | Δ escuro | o que mudou |
+| --- | ---: | ---: | --- |
+| 27-player-preparacao | 21,58 % | 21,18 % | o mesmo de `d44d2ef` (item 2–4): bloco no meio da tela, "PREPARE-SE", "Sair do treino" e a lista no topo |
+| 28-player-exercicio | 6,57 % | 7,67 % | o mesmo de `d44d2ef` (itens 5–6): polegares na linha do nome, 5 pontos, figura 16 px mais baixa |
+| 07-colecao | 16,30 % | 22,07 % | base trocada pelo L32 às 11:31 (não é deste lote; PNG idêntico ao de `d44d2ef`) |
+| as outras 54 | 0,00 % | 0,00 % | — |
+
+**Como testar no celular — o que a correção acrescenta** (depois dos 6
+passos de cima):
+
+7. No player, toque o polegar para baixo: o aviso tem **"Desfazer"** do
+   tamanho de um botão de verdade (44 px de altura) — um toque de polegar
+   acerta sem mirar.
+8. Aba Treino → "Começar treino" → na preparação toque o ícone de lista
+   ("Visão geral do treino"), espere mais de 10 s e toque "Fechar": você
+   volta para o **"PREPARE-SE"** com a contagem cheia de novo (antes, o
+   treino tinha começado sozinho por trás da lista).
+9. O que ainda não muda neste lote: com uma série do agachamento feita,
+   "?" → Substituir troca o exercício e **a série feita some** (no aparelho
+   e no banco), sem aviso, como antes deste lote. O dono já decidiu que
+   ela deve ficar (opção b), e o conserto vem no L21
+   (`B-substituir-apaga-series-feitas`).
+
+**Portões da correção — o que rodou até o prazo (13:30 UTC):**
+
+- `6ae5c09` (todo o código da correção; `r23/l19/logs/6ae5c09.log`):
+  **falhou:e2e** só pelos 2 instáveis de fora do lote descritos acima
+  (566 passaram, 5 pulados; os 2, sozinhos, verdes 2 × 2). Varredura não
+  rodou nessa execução.
+- `1f18eb9` (= `6ae5c09` + só este PROGRESSO; `r23/l19/logs/1f18eb9.log`):
+  `lint` e `tsc` limpos · `npm test` **74 arquivos, 1.646 testes** ·
+  `build` ("Compiled successfully in 17.8s") · `build:e2e` ("Compiled
+  successfully in 21.5s") — e o `e2e` ficou na fila do lock pesado desde
+  13:01:39, atrás do e2e do L33 (wt-a); não terminaria antes do prazo e foi
+  **interrompido** às 13:11 (`.status` = `interrompida:e2e`). Até o prazo
+  da rodada 23 não havia cadeia inteira com status ok no HEAD final. Depois
+  o orquestrador rodou a cadeia inteira em `426bcde`, com `.status` ok (ver
+  "Portões" acima e "Rodada 27 — retomada" abaixo).
+- Varredura sozinha no HEAD (`r23/l19/varredura-bf9afa9/`, com o `.next`
+  do build:e2e de `1f18eb9`, o mesmo código): também ficou na fila do lock
+  desde 13:11:58 atrás do mesmo e2e e foi **interrompida** às 13:27 sem
+  rodar. A última varredura verde do lote é a de `d44d2ef` (5 passaram);
+  a correção não mexe em nenhuma das telas dela (as 60 capturas de
+  `6ae5c09` são idênticas byte a byte às de `d44d2ef`), mas isso **não**
+  substitui rodá-la.
+
+#### Rodada 23 — auditoria 2 reprovou por processo (varredura sem rodar no código final; PROGRESSO contraditório); lote devolvido à fila
+
+As duas lentes auditaram `426bcde`. O resultado está em
+`r23/l19/auditoria-2-regra/veredito.json` e em
+`r23/l19/auditoria-2-tela/veredito.json`.
+
+- **Lente tela: aprovou**, com 0 bloqueantes, 0 importantes e 6 menores.
+  Ela mediu ao vivo, nos dois temas, os 7 itens e a contagem parada. Na
+  mesma lente rodou a `varredura`, com 5 passaram, e o `e2e-grep:22.16`,
+  com 11 passaram, em `426bcde` (`r23/l19/auditoria-2-tela/portoes/426bcde.log`).
+- **Lente regra: reprovou só por processo.** O bloqueante: nenhuma cadeia
+  inteira tinha `.status` ok no código final, e a varredura não tinha rodado
+  depois de `d44d2ef`. Só que o código mudou depois de `d44d2ef`, em
+  `app/globals.css`, `components/player/exercicio.tsx` e `tela-player.tsx`.
+  O importante: este PROGRESSO se contradizia. Ele dizia "Depois de
+  `d44d2ef` só este PROGRESSO.md mudou", contava 13 casos no
+  `lib/l19.test.ts` (são 14) e 9 no `e2e/ultraloop-l19.spec.ts` (são 10).
+  O código passou nos testes dela: Vitest 74/1.646, `tsc` limpo, 8 mutações
+  unitárias isoladas (todas derrubam algum teste) e o catálogo inteiro de
+  trocas, com 84.938 trocas e 0 erros.
+- O lote voltou para a fila, e nenhum código foi mexido.
+
+#### Rodada 27 — retomada
+
+Retomada curta **só de registro**, sobre `426bcde`. Nenhum arquivo de
+código mudou: `git diff --stat 426bcde HEAD` lista só `PROGRESSO.md` e
+`SPEC.md`.
+
+**O que mudou (era → é):**
+
+- **Portão:** a cadeia inteira no código final não existia. **Agora existe**:
+  o orquestrador a rodou em `426bcde`, de 13:51:12 a 14:27:02 UTC, e o
+  `.status` é **ok** (`r23/l19/logs/426bcde.log`). Os números: `lint` e
+  `tsc` limpos · **74 arquivos, 1.646 testes** · `build` 18,9 s ·
+  `build:e2e` 18,7 s · `e2e` **568 passaram, 5 pulados, 0 falhas** (25,0
+  min) · `varredura` **5 passaram** (4,8 min). A linha fica em "Portões",
+  acima.
+- **SPEC §22.16 item 1** (`bfb28bd`): antes era "pergunta aberta ao dono".
+  **Agora** traz a decisão (b), manter as séries feitas do original, e o
+  apontamento para o item `B-substituir-apaga-series-feitas` do **L21**.
+  Esse lote reescreve a §3.2 e o aviso da Visão geral antes do código.
+- **PROGRESSO, subseção do L19:**
+  - A frase falsa "Depois de `d44d2ef` só este PROGRESSO.md mudou" virou
+    "Depois de `d44d2ef` veio a correção da auditoria 1 (ver abaixo)".
+  - A contagem do Vitest passou de 13 → 14 casos, e a do e2e, de 9 → 10,
+    cada uma dizendo de onde veio o caso a mais.
+  - Entrou a linha real de `426bcde.log`.
+  - A "pergunta aberta" do item 1, da correção e do passo 9 do "Como
+    testar" virou a decisão (b), com o apontamento para o L21.
+  - As mutações e2e E1–E3 aparecem como aplicadas juntas.
+  - O deslocamento da `07-colecao` está em px de tela (cerca de 20 px, ou
+    40 px no PNG a 2×).
+
+**Menores da auditoria 2:**
+
+- **Atendidos (só texto):**
+  - O risco do "firme?" que sobrevive à troca foi para a SPEC §22.16 item
+    1 (regra, menor 3).
+  - O "montagem" fica sob a barra com "Afundo / passada". Isso foi para a
+    SPEC §22.16 item 5 (tela, menor 3). O número daqui ("cerca de 3 px")
+    estava subestimado: a auditoria da rodada 27 mediu cerca de 10 px, e a
+    correção abaixo acertou a SPEC.
+  - As mutações e2e feitas juntas estão registradas acima (regra, menor
+    5).
+  - A decisão (b) está registrada (regra, menor 1, e tela, menor 2).
+  - O processo dos portões está resolvido pela cadeia de `426bcde` (tela,
+    menor 1).
+- **Registrados, sem mudança:**
+  - O guarda do `%` só pega número literal (regra, menor 4). Um grep por
+    `} %` e `${…} %` em `lib/ components/ app/`, fora dos testes, foi
+    refeito no HEAD. Só devolve um comentário, em `lib/formato.ts:40`, e
+    hoje não há defeito.
+  - O aceite ajustado do ux-heuristicas-22 (regra, menor 2), a linha do
+    copy-19 em `data/cardio.json` (regra, menor 6) e o aceite do dono
+    "pendente" da exceção de área do OBS-porcentagem-com-espaco (regra,
+    menor 7) são anotações do ledger, que é do orquestrador.
+  - Os avisos do Sonner por cima da fileira do topo (tela, menor 4) já
+    estavam registrados na correção da auditoria 1.
+  - O contraste abaixo de AA fora do lote (tela, menor 5) fica para o
+    ledger. No claro, o aviso de sucesso "Semana leve…" tem 4,26:1 a
+    13 px. No escuro, as descrições das opções da retomada têm 4,04:1 a
+    12 px. As cores não são deste lote.
+  - O `pageerror` do SW bloqueado no script da auditoria (tela, menor 6)
+    não vem do app.
+
+**Conferência da mudança da SPEC:** quatro arquivos do Vitest leem o
+`SPEC.md`: `lib/auditoria-bordas.test.ts`, `auditoria-spec.test.ts`,
+`auditoria-casos.test.ts` e `lembretes.test.ts`. Rodados sozinhos depois da
+mudança, deram **319 passaram**. Isso não é a cadeia; a cadeia continua
+sendo a de `426bcde`.
+
+**Capturas:** não foram refeitas. As de `6ae5c09` valem
+(`r23/l19/capturas-6ae5c09.md`), porque o código de `426bcde` é o de
+`6ae5c09` (`git diff --stat 6ae5c09 426bcde` lista só `PROGRESSO.md`). As
+60 são idênticas às de `d44d2ef`. Mudaram as duas telas declaradas,
+`27-player-preparacao` e `28-player-exercicio`. A `07-colecao` também
+mudou, mas pela base do L32, e isso está explicado acima.
+
+**Como testar no celular:** nada novo. Valem os passos 1–9 acima.
+
+#### Rodada 27 — Correção da auditoria (auditoria 1 da rodada 27 em `6ecd777`: regra reprovada, tela aprovada)
+
+As duas lentes auditaram `6ecd777` (`r27/l19/auditoria-1-regra/veredito.json`
+e `r27/l19/auditoria-1-tela/veredito.json`). A **tela aprovou** (0
+bloqueantes, 0 importantes, 5 menores). A **regra reprovou por 1
+importante**: o aviso dos polegares confirmava um voto que não tinha sido
+gravado. Esta correção muda código do lote (só arquivos que ele já
+editava) e começa pela SPEC (`4bd32b0`). `lib/progressao.ts` e
+`lib/montagem.ts`: `git diff c689f69` vazio.
+
+**O que mudou (era → é):**
+
+1. **O aviso dos polegares só confirma voto gravado** (importante da
+   regra; `lib/player.ts`, `components/player/exercicio.tsx`,
+   `components/player/tela-player.tsx`; `190bcc3`). **Era:** o `votar`
+   chamava `aoAvaliar` e mostrava o aviso com "Desfazer" sem condição, e o
+   `avaliarExercicio` saía calado com `if (!perfil) return;`. O player abre
+   de propósito só com a sessão do Dexie, então sem o perfil (cache vazio
+   ou de mais de 7 dias sem rede, erro do `profiles`) o "Não gosto"
+   anunciava "Agachamento livre vai para o fim das listas…" com
+   "Desfazer" e nada ia para `prefs` nem para a fila. **É:**
+   `avaliarExercicio` devolve se gravou; o texto e a presença do
+   "Desfazer" saem de `avisoDoPolegar(nome, voto, gravou)` (puro, em
+   `lib/player.ts`). Sem gravação, o toque diz "Voto não anotado: o
+   perfil ainda não carregou.", sem "Desfazer" e sem `aria-pressed`.
+2. **O "Desfazer" grava sobre as preferências de agora** (menor 1 da
+   regra; mesmo commit). **Era:** o `onClick` do aviso guardava o
+   `avaliarExercicio` do render do voto e, com ele, o retrato de `prefs`
+   daquele render; `salvarPrefs` grava o jsonb inteiro, então qualquer
+   outra mudança de `prefs` feita com o aviso na tela (um ajuste, um voto
+   em outro exercício) era desfeita junto. **É:** `avaliarExercicio` lê o
+   perfil do cache na hora (`cliente.getQueryData(chaves.perfil())`) e
+   aplica `comVoto` sobre ele; o `perfil` do render fica só de reserva.
+3. **O ramo "primeiro passo do exercício" do `indiceDoEstado` tem teste**
+   (menor 2 da regra; `lib/l19.test.ts`, comentário em `lib/player.ts`;
+   `c77518f`). **Era:** a mutação M7, que tira o ramo, deixava tudo verde.
+   **É:** um caso monta um exercício só com aquecimentos, todos feitos
+   (sem série que falta e sem "firme?"), e confere que o player fica no
+   primeiro passo dele e não na retomada (que levaria de volta ao 1º
+   exercício). A M7 agora derruba esse caso. O ramo continua sem uso no
+   catálogo (todo bloco tem série de trabalho) e a SPEC §22.16 item 1 diz
+   isso.
+4. **O relógio de 250 ms para com a Visão geral aberta** (menor 5 da
+   regra; `components/player/tela-player.tsx`; `f39d5c3`). **Era:** com a
+   Visão geral aberta a partir da preparação, a contagem não valia, mas o
+   relógio seguia e redesenhava a Visão geral inteira 4 vezes por segundo.
+   **É:** o relógio liga só com `contando && !visaoGeral`; ao "Fechar",
+   ele volta, marca a hora e a contagem recomeça do início, como antes.
+5. **O comentário velho do e2e** (menor 3 da regra;
+   `e2e/ultraloop-l19.spec.ts`; `5b28788`): "pergunta aberta ao dono"
+   virou a decisão (b), que é do L21 (B-substituir-apaga-series-feitas).
+   O teste continua sem afirmar nem a perda nem o contrário.
+6. **Textos** (menor 4 da regra e menor 1 da tela; `SPEC.md` `4bd32b0`,
+   `PROGRESSO.md` `910b8c8`): as Provas dos itens 2–4 dizem agora que o
+   "Continuar" volta à preparação no e2e porque `fixarData` congela o
+   relógio — no aparelho, passados mais de 10 s, a volta vai direto ao
+   "Aquecimento 1" (§14.1.1). O número do "montagem" com "Afundo /
+   passada" passou de "cerca de 3 px" para "cerca de 10 px abaixo da
+   borda da barra (0,6 px sobre o 'Concluir série'), a página rola 33 px".
+
+**Provas:**
+
+- **Vitest** (`lib/l19.test.ts`, 16 casos): o novo caso do item 1 monta o
+  2º exercício só com um aquecimento feito, confere que a sequência não
+  tem "firme?" dele e que `indiceDoEstado` com a chave sumida e `ordem` 2
+  devolve o primeiro passo dele (a retomada, sem `ordem`, levaria à série
+  do 1º exercício). O novo caso do item 6 confere `avisoDoPolegar` nos
+  três votos: com gravação, o texto de `avisoDoVoto` e "Desfazer"; sem
+  gravação, "Voto não anotado: o perfil ainda não carregou.", sem
+  "Desfazer" e sem o nome nem o texto de voto gravado.
+- **Mutação M7** (tirar o ramo `qualquer` de `indiceDoEstado`, aplicada no
+  worktree e revertida na hora, nada comitado): **1 falha**, o caso novo.
+  Antes da correção a M7 deixava tudo verde.
+- **e2e novo** (`e2e/ultraloop-l19.spec.ts`, "§22.16 item 6 — sem perfil",
+  360×740, claro; `serviceWorkers: "block"` só nele, porque o worker leva
+  todo `/rest/v1/` pela rede e o que passa por ele fica fora do
+  `page.route`): com a série no Dexie, o `profiles` passa a responder 503
+  e um script de início esvazia a tabela `cache` antes de o app lê-la; ao
+  recarregar, o player abre em "Aquecimento 1 de 2 · exercício 1 de 6"
+  com "Concluir série"; "Não gosto" mostra "Voto não anotado: o perfil
+  ainda não carregou.", não mostra "Agachamento livre vai para o fim das
+  listas…" nem "Desfazer", o polegar fica sem `aria-pressed`, nada de
+  perfil na fila (`outbox`) e o `prefs.evitar_exercicios` do mock segue
+  vazio; sem rolagem lateral.
+- **Pré-rodada sob um lock só** (`r27/l19/pre-logs/pre-e-mutacao.log`,
+  15:28–15:30 UTC): `build:e2e` de `5b28788` e `e2e --grep "22.16 item
+  6"` → **3 passaram** (o novo e os dois temas do item 6). Depois a
+  **mutação "aviso sem condição"** em `exercicio.tsx` (o `votar` passa
+  `gravou = true` sempre), com `build:e2e` próprio: o e2e novo **cai** —
+  "Voto não anotado…" não aparece, e o trace
+  (`r27/l19/pre-logs/mutante/`) guarda o aviso falso "Agachamento livre
+  vai para o fim das listas de substitutos e do Explorar." na tela.
+  Revertida pelo `git checkout` do próprio script (`git status` limpo).
+- **Ao vivo** (`r27/l19/ao-vivo/desfazer.cjs` → `desfazer.json`, mock +
+  `next start` do `.next` da cadeia de `910b8c8`, 360×740, os dois temas,
+  servidores derrubados pelos PIDs depois, 3130 e 54351 → 000):
+  - **"Desfazer" sobre as prefs de agora:** "Não gosto" → com o aviso na
+    tela, "Ajustar" pelo teclado (o aviso cobre o topo) → "Vibração"
+    desligada → Esc → "Desfazer", em 826–915 ms. No mock, o final é
+    `evitar_exercicios: []` **e `descanso_vibra: false`**: o voto saiu e o
+    ajuste ficou. Com o código de antes, o "Desfazer" gravaria o retrato
+    do render do voto (`{ guia_visto: true }` sem a vibração) e a
+    Vibração voltaria sozinha — isso é leitura do código de `6ecd777`,
+    não uma execução dele.
+  - **Sem perfil:** o aviso "Voto não anotado: o perfil ainda não
+    carregou." tem 13 px e contraste de 19,8:1 no claro e 13,87:1 no
+    escuro, 0 botões dentro dele, nenhum "vai para o fim das listas",
+    nenhum `aria-pressed`, `prefs` do mock igual antes e depois, e a tela
+    com 360 px de largura (`02-sem-perfil-*.png`). Os erros da página são
+    os 503 de propósito e o `reading 'waiting'` do worker bloqueado no
+    script, que a auditoria já tinha explicado.
+- `git diff c689f69 -- lib/progressao.ts lib/montagem.ts`: vazio.
+  `package.json`, `package-lock.json`, `supabase/` e `scripts/` fora do
+  diff. Grep de segredos no diff (`service_role`, `eyJ`, `sk_live`,
+  `SUPABASE_SERVICE`): vazio.
+
+**Portões:** cadeia inteira em `910b8c8`, o código final
+(`r27/l19/logs/910b8c8.log`, 15:30:59 → 16:13:47 UTC, `.status` **ok**):
+`lint` limpo · `tsc` limpo · **74 arquivos, 1.648 testes** · `build` 20,8
+s · `build:e2e` 20,1 s · `e2e` **569 passaram, 5 pulados, 0 falhas**
+(24,0 min; os 11 do `ultraloop-l19` ✓ 510–520) · `varredura` **5
+passaram** (4,7 min). Nenhum teste instável nesta cadeia.
+
+**Capturas** (`capturas.sh` com o `.next` do build:e2e da cadeia de
+`910b8c8`, contra `base-ef3ad97`; `r27/l19/capturas-910b8c8.md`): 60 PNGs,
+**todos idênticos byte a byte aos de `6ae5c09`** (`cmp`, 0 de 60
+diferentes) — a correção não muda nenhuma das 60 telas (o aviso sem perfil
+não está nelas). Diffs abertos de novo:
+
+| tela | Δ claro | Δ escuro | o que mudou |
+| --- | ---: | ---: | --- |
+| 27-player-preparacao | 21,58 % | 21,18 % | o mesmo da rodada 23: "PREPARADO PARA COMEÇAR" → "PREPARE-SE", o bloco (anel, nome, "Começar agora") desce para o meio da tela, e entram "✕ Sair do treino" e o ícone de lista no topo |
+| 28-player-exercicio | 6,57 % | 7,67 % | o mesmo da rodada 23: os polegares saem do topo para a linha do nome, entra a fileira de 5 pontos, a figura fica 16 px mais baixa e o miolo desce alguns px |
+| 07-colecao (fora da lista) | 16,30 % | 22,07 % | o cartão do plano e a lista de semanas deslocados ~20 px: é a base com o L32, não o lote — o PNG é o mesmo md5 (`e2984f3ac9`/`fd081ed0b8`) das rodadas anteriores, que a auditoria de tela da rodada 27 casou com as branches sem o L32 |
+
+As outras 54 têm Δ 0,00 %.
+
+**Menores registrados, sem mudança de código:**
+
+- Regra, menor 6 (processo): o e2e do lote é `e2e/ultraloop-l19.spec.ts`
+  e não `e2e/player.spec.ts`, como as `observacoes_do_plano` previam. A
+  SPEC §22.16 dá esse nome; fica para o orquestrador anotar o desvio.
+- Regra, menor 7: as anotações do ledger (aceite ajustado do
+  ux-heuristicas-22, a linha do copy-19 em `data/cardio.json`, o aceite
+  do dono "pendente" da exceção de área, o guarda do `%` que só pega
+  número literal, o risco do "firme?") são do orquestrador; a SPEC já
+  registra o risco do "firme?".
+- Tela, menor 2: os avisos do Sonner cobrem a fileira do topo por ~4 s,
+  como já registrado; o "Desfazer" continua alcançável e o "Ajustar"
+  continua alcançável pelo teclado (medido acima).
+- Tela, menor 3: o contraste abaixo de AA fora do lote (aviso "Semana
+  leve…" 4,26:1 no claro; descrições da retomada 4,04:1 no escuro) fica
+  para o ledger; as cores não são deste lote.
+- Tela, menor 4: a perda das séries feitas do exercício trocado é do L21
+  (B-substituir-apaga-series-feitas, decisão (b) do dono).
+- Tela, menor 5: o `pageerror` "reading 'waiting'" vem de o script rodar
+  com `serviceWorkers: "block"`; apareceu também no script ao vivo desta
+  correção, pelo mesmo motivo.
+
+**Como testar no celular (360 px):** valem os passos 1–9 acima. O que esta
+correção acrescenta:
+
+1. No player, toque o polegar para baixo: o aviso "… vai para o fim das
+   listas de substitutos e do Explorar." com "Desfazer" continua igual; o
+   "Desfazer" tira o voto.
+2. O aviso sem perfil não aparece no uso normal (o perfil chega com o
+   app). Para vê-lo, no computador: DevTools → bloquear
+   `*/rest/v1/profiles*`, apagar a tabela `cache` do IndexedDB
+   `treino-terraco` e recarregar o player; o polegar para baixo diz "Voto
+   não anotado: o perfil ainda não carregou.", sem "Desfazer", e o polegar
+   não acende.
+3. O "Desfazer" sobre as preferências de agora não dá para provocar com o
+   dedo (o aviso cobre a engrenagem durante os ~4 s); foi medido ao vivo
+   pelo teclado, acima.
+
 ### Rodada 21 — Lote 32 — Sobras das auditorias: ficha e coleções do Explorar
 
 Faixa A, worktree `wt-a`, branch `polimento/l32-ficha-sobras` a partir de

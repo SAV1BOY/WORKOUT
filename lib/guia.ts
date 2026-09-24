@@ -356,7 +356,7 @@ const TREINO: SecaoDoGuia = {
       id: "falha",
       nome: "Quando a série falha",
       oQueFaz:
-        "Não precisa de botão: digite as repetições que saíram de verdade. Abaixo do mínimo duas vezes seguidas, o app volta 10 % da carga sozinho.",
+        "Não precisa de botão: digite as repetições que saíram de verdade. Abaixo do mínimo duas vezes seguidas, o app volta 10% da carga sozinho.",
       caminho: ["Player", "repetições"],
       grupo: PLAYER,
     },

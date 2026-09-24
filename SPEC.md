@@ -333,14 +333,14 @@ O dono enviou 16 telas do app *Home Workout / Treino em Casa* (Leap Fitness) e p
 
 ### 14.1 Player unificado (substitui a tela de sessão com rolagem como caminho principal)
 Toda sessão (treino do programa, sessão livre, circuito, sessão de barra fixa) roda no player, em `/treinar/[sessionId]`, com estas telas em sequência:
-1. **Preparação**: "PREPARADO PARA COMEÇAR", nome do 1º exercício com "?" (abre a ficha por cima), anel de contagem (padrão 10 s, `prefs.preparacao_s`), botão pular. Aparece **ao começar**. **Decisão de 15/09/2026**: ao *retomar* uma sessão aberta ela **não** reaparece — vale a regra do fim desta seção ("fechar e reabrir volta ao mesmo passo"), que é o que não faz perder um descanso em andamento nem repetir uma contagem no meio do treino.
+1. **Preparação**: "PREPARE-SE" (§22.16 item 4; era "PREPARADO PARA COMEÇAR"), nome do 1º exercício com "?" (abre a ficha por cima), anel de contagem (padrão 10 s, `prefs.preparacao_s`), botão pular, e no topo "Sair do treino" e "Visão geral do treino" (§22.16 item 2). Aparece **ao começar**. **Decisão de 15/09/2026**: ao *retomar* uma sessão aberta ela **não** reaparece — vale a regra do fim desta seção ("fechar e reabrir volta ao mesmo passo"), que é o que não faz perder um descanso em andamento nem repetir uma contagem no meio do treino.
 2. **Exercício** — a mesma tela para todos, com o passo dependendo do tipo (`implemento` e `prescricao.tipo`):
    - **Carga** (barra_macica · halteres · barra_w · polia · barra_fixa com lastro): figura animada grande (ou vídeo local), barra fina de progresso do treino, nome + "?", `Série 1 de 3`, **carga de hoje com o rótulo do implemento** e **reps** em números grandes (≥ 28 px, tabulares), steppers − / + para carga (passo = incremento do exercício, sempre alcançável via `lib/montagem.ts`) e reps (±1), toque no número abre teclado numérico, "montagem" mostra as anilhas, linha "anterior: 9,5 kg × 5" quando houver; o **✓ conclui a série** (grava no IndexedDB antes de qualquer animação) e abre o **Descanso**. As duas séries de aquecimento do 1º exercício pesado aparecem como passos "Aquecimento 1 de 2". Após a última série de trabalho: **"Última repetição saiu firme?"** com três botões (Fácil · Firme · Falhei → `ultima_firme` true/true/false; "Falhei" também marca a série como abaixo do piso se as reps ficaram abaixo) e nota curta opcional; depois o próximo exercício. Unilateral: dois números (D · E).
    - **Peso corporal / anilha por reps**: `×12` grande com − / +, ✓ conclui a série; séries e descanso iguais.
    - **Tempo** (tempo_s): contagem regressiva grande com pausar; ✓ aparece ao zerar (ou antes, para encerrar); "Repetições ⇄ Tempo" só quando a prescrição do exercício permite os dois (não inventar).
    - **Máximo**: reps feitas com − / + e ✓.
    - **Assistida**: reps + seletor do degrau do elástico.
-   - Controles fixos no rodapé: **anterior · ✓ · próximo** (alvos ≥ 56 px); ícones no topo: lista da sessão (visão geral com todas as séries, editável — a tela atual de rolagem vira essa visão geral), ficha "?", **Ajustar** (engrenagem), gostei/não gostei (marca `prefs.evitar_exercicios[]`; "não gosto" joga o exercício para o fim das listas de substitutos e do Explorar).
+   - Controles fixos no rodapé: **anterior · ✓ · próximo** (alvos ≥ 56 px); ícones no topo: lista da sessão (visão geral com todas as séries, editável — a tela atual de rolagem vira essa visão geral) e **Ajustar** (engrenagem); junto do nome, ficha "?" e gostei/não gostei (marca `prefs.evitar_exercicios[]`; "não gosto" joga o exercício para o fim das listas de substitutos e do Explorar; cada toque avisa com "Desfazer" — §22.16 item 6); abaixo do nome, um ponto por série do exercício (§22.16 item 5).
 3. **Descanso** em tela cheia na cor de destaque escurecida: figura do próximo passo, "PRÓXIMO 2/11" (ou "Série 2 de 3"), nome × prescrição, "DESCANSO 00:18" (≥ 72 px, tabular), "Editar tempo de descanso", "+20 s", "Pular". Duração de `descanso_s` do exercício (ou `prefs.descanso_padrao_s` quando definido). Ao zerar: som curto (WebAudio, sempre) + vibração onde existir + a tela avança sozinha para o próximo passo depois de 1 s (configurável: avançar sozinho / esperar toque).
 4. **Feedback**: "O que você achou do treino de hoje?" com Muito fácil · Um pouco fácil · Na medida certa · Um pouco difícil · Muito difícil → `sessions.sensacao` 1–5 (5 = muito fácil? **Não**: 1 = muito difícil … 5 = muito fácil, documentar em PROGRESSO.md), botão "Concluído".
 5. **Conclusão**: capa (foto -1 do 1º exercício) com "Excelente! Você concluiu o treino." e subtítulo (nome do treino · semana da fase); contadores **Exercícios · Minutos · Volume (kg)**; **resumo do motor** (↑ subiu · = repetiu · ↓ voltou por exercício, recordes, avisos/sugestões) — é o nosso diferencial e fica visível sem rolar muito; card **"Semana N · feitos/meta"** com os 7 círculos seg–dom (✓ nos feitos, hoje preenchido) e um troféu discreto quando a meta fecha; **Peso do dia** (kg, opcional) com o card **IMC** (barra colorida 15–40, faixa em pt-BR, altura editável); botão "Próximo" volta para Treino. Sem confete (§7), sem kcal, sem kg/lb, sem lembrete, sem compartilhar.
@@ -2394,7 +2394,7 @@ de cada item é verificável no Vitest ou no e2e (`e2e/ultraloop-l13.spec.ts`).
    visíveis; nos três exercícios em retrato, na página do exercício, as duas
    fotos têm caixa 2:3, `object-fit: contain` e altura ≥ 1,45 × a largura;
    Vitest (correção da auditoria 3) — nos três exercícios que só têm foto, o
-   `<img>` que a mídia desenha na faixa do player (`h-40`) e na capa do bloco
+   `<img>` que a mídia desenha na faixa do player (`h-40`; `h-36` desde a §22.16) e na capa do bloco
    da Visão geral (`h-36`) tem `object-contain` e não `object-cover`.
 3. **Só o que é link aparece sublinhado no crédito** (imagens-13). O crédito
    inteiro era um link sublinhado. Passa a **"Ilustração: <autor> ·
@@ -3066,6 +3066,211 @@ e2e (`e2e/ultraloop-l32.spec.ts`).
     das duas mede ≥ 4,5:1 contra o fundo; nada vaza a largura.
 
 ---
+
+### 22.16 Player: Substituir no passo atual, preparação e série; '%' colado nos textos
+
+Medido em `main` (c689f69) a 360×740. Seis itens do ledger na seção B (o
+player) e um que entra por **exceção de área** (OBS-porcentagem-com-espaco:
+sete textos com o `%` separado do número, varredura de grafia sem dono de
+área). O motor não muda (§22.0.1 item 7): `lib/progressao.ts` e
+`lib/montagem.ts` ficam intocados. O aceite de cada item é verificável no
+Vitest (`lib/l19.test.ts`) ou no e2e (`e2e/ultraloop-l19.spec.ts`).
+
+1. **"Substituir" no exercício do passo atual não trava mais o player**
+   (B-player-substituir-passo-atual). Medido: no player, "?" → ficha do
+   exercício do passo atual → "Substituir" → outro exercício, a folha fechava
+   e o player ficava no esqueleto de carregamento (só barras cinzas, sem
+   "Concluir série") até recarregar a página; o mesmo acontecia trocando o
+   exercício atual pela Visão geral. A causa: a chave do passo é
+   `serie:<id da série>` e a troca (§3.2) recria as séries do bloco com ids
+   novos — a chave salva não achava mais passo nenhum. Agora o estado do
+   player guarda também **o exercício do passo** (`EstadoPlayer.ordem`) e a
+   posição é lida por `indiceDoEstado()` (`lib/player.ts`, pura): a chave
+   salva, quando ela ainda existe; senão, **no mesmo exercício**, a primeira
+   série que falta (a troca recria as séries, então é a série 1 do exercício
+   novo; tirar séries pela ficha cai na primeira que falta), a pergunta
+   "firme?" dele quando não falta nenhuma, o primeiro passo dele quando não
+   há nem série que falta nem "firme?" (um exercício sem série de trabalho:
+   o tipo permite, o catálogo não tem), e, sem exercício anotado (estado
+   salvo por uma versão anterior), o passo de retomada (`indiceDeRetomada`).
+   Com a sequência não vazia, a posição nunca é "nenhuma" — o esqueleto não
+   tem mais como aparecer no meio do treino. O passo achado é anotado de
+   volta no aparelho (Dexie) na hora. Trocar um exercício que **não** é o do
+   passo atual (anterior ou posterior, pela ficha ou pela Visão geral) deixa
+   o player exatamente onde estava. Nenhuma série de outro exercício se
+   perde, e a série feita depois da troca fica no aparelho e no banco.
+   Risco registrado (auditoria 2): parado no "firme?" de um exercício, a
+   chave `firme:<ordem>` sobrevive à troca dele, e o player perguntaria
+   "firme?" de um exercício sem série feita. Hoje a UI não chega lá, porque
+   o "firme?" e o descanso não têm ficha nem Visão geral. Quem der esses
+   acessos a essas telas precisa tratar esse caso.
+   **Fora deste lote, já decidido pelo dono (24/09, opção b), vai para o
+   L21:** hoje as séries **já feitas do exercício trocado** saem do aparelho
+   e do banco na troca. O app já fazia isso antes deste lote (c689f69:
+   `descartarSeriesDoBloco`, chamado pelo `substituir` de
+   `components/treinar/usar-sessao.ts`). A §3.2 diz só que "o registro fica
+   com o exercício substituto; a progressão do original não muda"; ela não
+   diz que as séries feitas do original somem. A folha "substituir hoje" da
+   Visão geral avisa antes ("As séries já registradas deste bloco serão
+   trocadas pelas do substituto"); a lista "Substituir" da ficha (o "?" do
+   player, que também anda pelos outros exercícios da sessão) troca sem
+   aviso. Isso choca com "nunca perder um registro" (CLAUDE.md). O dono
+   escolheu a opção (b): **manter as séries feitas do original**. Elas
+   continuam no Dexie e em `session_sets` com o exercício original e contam
+   como feitas dele. Só as séries que faltam passam para o substituto, que
+   começa do zero. Isso vale pela ficha e pela Visão geral. É o item
+   **B-substituir-apaga-series-feitas** do ledger, planejado no **L21**:
+   ele reescreve a §3.2 e o aviso da Visão geral antes do código e mexe na
+   ficha (`components/exercicio/`), que é de outra faixa. Os testes deste
+   lote não afirmam nem a perda nem o contrário, e o L21 traz os dele.
+   Aceite: Vitest — trocar o
+   exercício do passo atual (com e sem séries feitas nele, e parado no
+   descanso entre séries dele) leva à série 1 do exercício novo; trocar um
+   anterior ou um posterior mantém a chave; com as séries do exercício
+   todas feitas, cai no "firme?"; num exercício só com aquecimentos, todos
+   feitos, cai no primeiro passo dele e não na retomada (correção da
+   auditoria da rodada 27: a mutação que tirava esse ramo passava); estado
+   sem `ordem` e chave sumida cai na retomada; a mutação que volta a ler só
+   a chave derruba os testes; e2e,
+   nos dois temas — no player, "?" → Substituir no exercício do passo atual
+   → a folha mostra o exercício novo e, fechada, o player mostra o
+   exercício novo com "Concluir série", "Série 1 de N · exercício 1 de 6" e
+   "no lugar de Agachamento livre", sem recarregar; o passo achado fica anotado no
+   IndexedDB (`sessaoAtiva.dados.player`, a chave da série 1 do exercício
+   novo); a série concluída depois está no IndexedDB (`sessaoAtiva`) e no
+   mock (`session_sets`); trocar em seguida
+   o exercício 2 pela ficha deixa o player na série 2 do exercício novo, e
+   a série 1 continua concluída no aparelho e no mock.
+2. **A preparação tem saída e "Visão geral"** (ux-heuristicas-12, absorve o
+   tela-treino-player-08). Medido: a tela tinha dois controles ("Como fazer"
+   e "Começar agora"); quem tocou "Começar treino" sem querer só saía pelo
+   voltar do sistema. Agora o topo da preparação tem **"Sair do treino"** à
+   esquerda (ícone e texto; leva à aba Treino pelo mesmo caminho do
+   "Continuar depois" da Visão geral — a sessão fica aberta, e a aba avisa
+   "Treino guardado — toque em Continuar para retomar") e o ícone **"Visão
+   geral do treino"** à direita, o mesmo da tela de série. Aceite: e2e — na
+   preparação existem "Sair do treino" e "Visão geral do treino", ambos
+   ≥ 44 × 44 px; "Visão geral do treino" abre a visão geral da sessão;
+   "Sair do treino" volta para a aba Treino, onde o card do dia diz
+   "Continuar", e o "Continuar" leva de volta ao mesmo `/treinar/<id>`.
+   A contagem da preparação **não corre atrás da Visão geral**: aberta a
+   Visão geral a partir da preparação, o treino não começa sozinho, e ao
+   "Fechar" a contagem recomeça do início (quem abriu a lista para conferir
+   o treino não volta direto na série 1). Enquanto a Visão geral está
+   aberta, o relógio de 250 ms do player também para — ele só servia à
+   contagem, e redesenhava a Visão geral inteira 4 vezes por segundo à toa
+   (correção da auditoria da rodada 27); ao "Fechar", ele volta com a
+   contagem nova. Aceite: e2e — com a Visão geral
+   aberta, passados 20 s, "Fechar" volta à preparação ("Prepare-se"); mais
+   uma contagem inteira depois, o treino começa sozinho.
+3. **A preparação fica centrada de verdade** (tela-treino-player-09).
+   Medido: o `justify-center` não centralizava (o `main` não é flex); o
+   conteúdo acabava em y≈460 e sobravam ~280 px vazios embaixo. Agora a
+   preparação ocupa a tela inteira (como a Visão geral, sem barra de abas)
+   e o bloco — do "Prepare-se" ao "Começar agora" — fica no meio dela, com a
+   fileira do topo por cima. Aceite: e2e a 360×740, nos dois temas — a
+   diferença entre o espaço acima do bloco (até o topo da tela) e o espaço
+   abaixo dele (até o fim da tela) é ≤ 24 px, e o bloco não encosta na
+   fileira do topo.
+4. **"Prepare-se" no lugar de "Preparado para começar"** (copy-21). O
+   adjetivo concordava no masculino com qualquer conta (o app aceita outras
+   contas, §21). A preparação diz **"Prepare-se"** (a caixa-alta continua
+   feita pelo CSS). Varridos os textos do player dirigidos ao usuário
+   (`components/player/`): nenhum outro adjetivo com gênero. Aceite: e2e —
+   a preparação mostra "Prepare-se"; grep por "Preparado" em
+   `components/player/` vazio.
+5. **Pontos por série do exercício** (tela-treino-player-12). Medido: o
+   progresso era só a barra de 4 px da sessão e a linha "Aquecimento 1 de 2
+   · exercício 1 de 6" em texto miúdo; nada dizia quantas séries faltavam
+   neste exercício. Agora, logo abaixo do nome, uma fileira de **pontos, um
+   por série do bloco**, na ordem do player (aquecimentos, depois
+   trabalho): cheio = feita, contorno = a fazer, a atual com contorno na cor
+   de destaque, e o aquecimento menor que a série de trabalho. Os pontos
+   saem de `pontosDoBloco()` (`lib/player.ts`, pura), que também dá o nome
+   acessível do grupo — "Aquecimento 1 de 2 · 0 de 5 séries feitas". A
+   barra da sessão continua, como `progressbar` com nome ("Progresso do
+   treino"). Para caber na mesma altura, a figura desce de 160 para 144 px —
+   nos seis exercícios do Treino A a série cabe sem rolar a 360×740; com
+   nome longo, exercício unilateral e substituto ao mesmo tempo (medido na
+   auditoria: "Remada unilateral (serrote)" no lugar do 3º), o "montagem"
+   fica 32 px abaixo da barra fixa na primeira vista (em c689f69 eram
+   6 px) e é alcançado rolando — registrado como risco para a lente de
+   tela, não como aceite deste item. A auditoria 2 mediu o mesmo com
+   "Afundo / passada" no lugar do agachamento, e a da rodada 27 refez a
+   medida pelo caminho real ("?" → Substituir → "Afundo / passada"), nos
+   dois temas: o "montagem" termina cerca de 10 px abaixo da borda de cima
+   da barra fixa (0,6 px por cima do "Concluir série"), e a página rola
+   33 px.
+   Aceite: Vitest — `pontosDoBloco` com 2 aquecimentos e 3 séries dá 5
+   pontos na ordem, os feitos marcados e o nome certo; e2e — no Treino A
+   (agachamento com 2 aquecimentos e 3 séries) aparecem 5 pontos, o grupo
+   se chama "Aquecimento 1 de 2 · 0 de 5 séries feitas" e a cada "Concluir
+   série" um ponto enche.
+6. **Topo da série com dois ícones; os polegares junto do nome, com aviso e
+   "Desfazer"** (ux-heuristicas-22, absorve o tela-treino-player-11).
+   Medido: quatro ícones sem texto no topo, os três da direita a 2 px um do
+   outro (`gap-0.5`), e "Gostei"/"Não gosto" mudando as listas sem retorno
+   nenhum. Agora o topo tem **"Visão geral do treino"** à esquerda e
+   **"Ajustar"** à direita; "Gostei deste exercício" e "Não gosto deste
+   exercício" vão para a linha do nome, ao lado do "?", com 8 px entre os
+   alvos. Cada toque mostra um aviso curto do que aconteceu, com
+   **"Desfazer"** — o texto sai de `avisoDoVoto()` (`lib/player.ts`, puro):
+   "Não gosto" diz que o exercício vai para o fim das listas de substitutos
+   e do Explorar (§14.1.2); "Gostei" e tirar o voto dizem só o que ficou
+   anotado. "Desfazer" devolve o voto anterior, aplicado sobre as
+   preferências **de agora** (o cache do perfil), não sobre um retrato do
+   momento do voto: outra mudança de `prefs` feita enquanto o aviso está na
+   tela (um voto em outro exercício, um ajuste) fica. **O aviso só confirma
+   o que foi gravado** (correção da auditoria da rodada 27): o player abre
+   só com a sessão do aparelho, e o perfil pode ainda não ter chegado
+   (cache vazio ou velho sem rede, erro do `profiles`). Sem perfil, o voto
+   não tem onde ser gravado — nada vai para `prefs` nem para a fila —, e o
+   toque diz isso: "Voto não anotado: o perfil ainda não carregou.", sem
+   "Desfazer" e sem `aria-pressed`. O texto e a presença do "Desfazer" saem
+   de `avisoDoPolegar()` (`lib/player.ts`, puro). **Aceite ajustado:** o
+   ledger pedia que o desfazer voltasse o `aria-pressed` a `false`; sem voto
+   nenhum, a §22.1 item 5 manda não afirmar estado (`aria-pressed` ausente),
+   e é isso que o desfazer devolve. Aceite: Vitest — `avisoDoVoto` para os
+   três votos; e2e a 360×740 — o topo da série tem 2 botões; entre
+   quaisquer dois alvos de 44 px da tela de série a distância é ≥ 8 px;
+   "Não gosto" deixa `aria-pressed="true"` e mostra o aviso com
+   "Desfazer", e o "Desfazer" tira o `aria-pressed` (volta a nenhum voto) e
+   o `prefs.evitar_exercicios` do mock fica sem o exercício. O "Desfazer" é
+   um alvo de toque como os outros: **≥ 44 × 44 px** (o botão de ação do
+   Sonner vem com 24 px de altura; a classe `aviso-desfazer` o leva a 44)
+   e, no foco pelo teclado, o anel sólido na cor de destaque (`--ring`) —
+   o padrão do Sonner era uma sombra preta a 40 %, quase invisível sobre o
+   aviso escuro. Aceite: e2e nos dois temas — o "Desfazer" mede ≥ 44 × 44
+   e, focado pelo teclado, tem contorno sólido com contraste ≥ 3:1 contra
+   o fundo do aviso. Aceite do perfil ausente: Vitest — `avisoDoPolegar`
+   sem gravação dá "Voto não anotado…" e nenhum "Desfazer", e com gravação
+   dá o texto de `avisoDoVoto` com "Desfazer"; e2e a 360×740 — com o
+   `profiles` respondendo erro e o cache do aparelho vazio, o player abre
+   na série do Dexie, "Não gosto" mostra "Voto não anotado: o perfil ainda
+   não carregou.", não mostra o aviso de voto gravado nem "Desfazer", o
+   polegar fica sem `aria-pressed` e o `prefs` do mock não muda; a mutação
+   que volta a avisar sem condição derruba esse e2e.
+7. **O `%` colado ao número em todo texto** (OBS-porcentagem-com-espaco,
+   por exceção de área). A §22.6 item 8 fixou um formato só ("78%"), mas
+   sete textos em cinco arquivos ainda separavam o símbolo: três ações de
+   `falhas[]` em `data/progressao.json`, o aviso da retomada "Semana leve:
+   60 % da carga" (`components/treino/tela-treino.tsx`), a próxima sessão
+   da ficha " · semana leve (60 %)"
+   (`components/exercicios/historico-exercicio.tsx`), "o app volta 10 % da
+   carga sozinho" do Guia (`lib/guia.ts`) e a descrição de "Voltar mais
+   leve" (`lib/retomada.ts`). Os sete passam a "60%"/"10%"; os comentários
+   de código ficam. O aceite pede `data/*.json` inteiro, então a oitava
+   ocorrência — "20–25 %" das regras da corrida em `data/cardio.json`, que o
+   ledger deixou no copy-19 (L18) — também fica colada ("20–25%"); a tela do
+   cardio continua sendo do L18. Aceite: grep `[0-9][[:space:]]%` em `data/`, `lib/`,
+   `components/` e `app/` só devolve comentários e nomes de teste — e o
+   Vitest (`lib/l19.test.ts`) faz esse grep sozinho, lendo o código-fonte
+   sem os comentários, para que um texto novo com o `%` separado derrube a
+   suíte; e2e em
+   `e2e/treino.spec.ts` — nenhum texto de `data/*.json` nem das descrições
+   da retomada e do Guia casa `/\d\s%/`, e, com a última sessão 20 dias
+   atrás, o diálogo de retomada mostra "Uma semana a 60% da carga…" e,
+   escolhido "Voltar mais leve", o aviso diz "Semana leve: 60% da carga.".
 
 ## 23. Lembretes no celular — decisão de 23/09/2026 (adendo)
 

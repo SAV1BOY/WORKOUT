@@ -1,4 +1,8 @@
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { expect, test, type Page } from "@playwright/test";
+import { SECOES } from "../lib/guia";
+import { faixaDaRetomada } from "../lib/retomada";
 import {
   esperarAbaTreino,
   fixarData,
@@ -346,7 +350,7 @@ test.describe('"Começar treino" entra direto no player (SPEC §14.5.1)', () => 
     await page.getByRole("button", { name: "Começar treino" }).click();
     await page.waitForURL(/\/treinar\/[0-9a-f-]{36}$/);
     // a preparação do player, não a tela "Escolha o treino e registre série a série"
-    await expect(page.getByText("Preparado para começar")).toBeVisible();
+    await expect(page.getByText("Prepare-se", { exact: true })).toBeVisible();
     expect(visitadas).not.toContain("/treinar");
 
     // e a sessão nasceu de verdade
@@ -435,5 +439,63 @@ test.describe("o vigia da hidratação (lib/vigia.ts)", () => {
       timeout: 20_000,
     });
     await expect(page.locator("#vigia-hidratacao")).toHaveCount(0);
+  });
+});
+
+/* ------------------------- SPEC §22.16 item 7: o '%' colado ao número */
+
+/** Todas as strings de um JSON (o conteúdo vem de data/*.json, CLAUDE.md). */
+function textosDoJson(valor: unknown, saida: string[] = []): string[] {
+  if (typeof valor === "string") saida.push(valor);
+  else if (Array.isArray(valor)) valor.forEach((v) => textosDoJson(v, saida));
+  else if (valor && typeof valor === "object") {
+    Object.values(valor).forEach((v) => textosDoJson(v, saida));
+  }
+  return saida;
+}
+
+test.describe("o '%' colado ao número (SPEC §22.6 item 8 e §22.16 item 7)", () => {
+  test("nenhum texto dos dados, da retomada e do Guia separa o '%'; a retomada diz '60%'", async ({
+    page,
+  }) => {
+    // 1. os textos: data/*.json inteiro, as descrições da retomada e o Guia
+    const pasta = join(__dirname, "..", "data");
+    const dados = readdirSync(pasta)
+      .filter((f) => f.endsWith(".json"))
+      .flatMap((f) => textosDoJson(JSON.parse(readFileSync(join(pasta, f), "utf8"))));
+    expect(dados.length).toBeGreaterThan(100);
+    const retomada = [10, 20, 40].flatMap((d) =>
+      faixaDaRetomada(d).opcoes.flatMap((o) => [o.rotulo, o.descricao]),
+    );
+    const guia = textosDoJson(JSON.parse(JSON.stringify(SECOES)));
+    for (const texto of [...dados, ...retomada, ...guia]) {
+      expect(texto, `'%' separado do número: ${texto}`).not.toMatch(/\d\s%/);
+    }
+
+    // 2. na tela: a última sessão 20 dias atrás abre a retomada com "60%"
+    const sessao = await usuarioComPerfil({ ultimo_treino: "B1" });
+    await inserirNoMock(sessao, "sessions", [
+      {
+        data: "2026-10-06",
+        workout_id: "B1",
+        fase: "fase1",
+        status: "concluida",
+        concluida_em: "2026-10-06T11:00:00-03:00",
+      },
+    ]);
+    await fixarData(page, "2026-10-26T08:00:00-03:00");
+    await entrarNoApp(page);
+    await esperarAbaTreino(page);
+    const card = page.locator("[data-retomada]");
+    await expect(card).toContainText("Você ficou 20 dias sem treinar");
+    const leve = page.locator('[data-retomada-opcao="leve"]');
+    await expect(leve).toContainText(
+      "Uma semana a 60% da carga em todos os exercícios; depois o app devolve a carga.",
+    );
+    await expect(card).not.toContainText(/\d\s%/);
+    await semRolagemHorizontal(page);
+
+    await leve.click();
+    await expect(page.getByText("Semana leve: 60% da carga. O app devolve a carga depois.")).toBeVisible();
   });
 });

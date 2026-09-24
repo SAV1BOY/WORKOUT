@@ -92,7 +92,7 @@ import { Pencil } from "lucide-react";
 const AVISO_DA_ESCOLHA: Record<EscolhaRetomada, string> = {
   continuar: "Seguindo de onde você parou.",
   semana: "Corrida, corda e barra fixa voltaram uma semana.",
-  leve: "Semana leve: 60 % da carga. O app devolve a carga depois.",
+  leve: "Semana leve: 60% da carga. O app devolve a carga depois.",
   zero: "Programa recomeçado. O histórico continua aí.",
 };
 
