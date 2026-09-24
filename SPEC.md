@@ -2769,7 +2769,10 @@ não muda (§22.0.1 item 7). O aceite de cada item é verificável no Vitest
    camada, também quem abriu aquela) e, ao fechar sem `Trigger` — ou com
    ele —, devolve o foco ao primeiro desses que ainda existe e não está
    inerte; enquanto aberta, os irmãos dela e dos ancestrais até o `<body>`
-   ficam `inert` (menos os avisos `aria-live` e o véu da própria camada);
+   ficam `inert` (menos os avisos `aria-live` e os véus das camadas do
+   Radix, `data-slot` terminado em `-overlay` — o da própria camada e o de
+   uma camada de baixo que seja irmã dela, coberto pelo de cima; §22.17
+   item 5);
    cada camada conta a própria marca, então fechar uma — a de cima ou a de
    baixo, em qualquer ordem — não libera o que a outra ainda precisa
    inerte; o Tab e o Shift+Tab não saem dela (o `FocusScope` do Radix nos
@@ -2809,7 +2812,9 @@ não muda (§22.0.1 item 7). O aceite de cada item é verificável no Vitest
    diálogo ou a foto aberta numa página, o voltar navega para a página
    anterior (e a camada some com a página) — fica **fora** deste lote e vai
    à fila como `a11y-voltar-fecha-camada` (voltar fecha só a camada de
-   cima também nas páginas). Aceite: Vitest (`lib/camada-modal.test.ts`) —
+   cima também nas páginas). **Resolvido no §22.17 item 6:** toda camada
+   da tabela tem, desde então, entrada no histórico fora da Visão geral, e
+   o voltar fecha só a de cima em qualquer página. Aceite: Vitest (`lib/camada-modal.test.ts`) —
    irmãos inertes e os que ficam de fora; marcas empilhadas liberadas em
    qualquer ordem; candidatos ao foco da volta; Tab preso nas bordas. e2e a
    360×740 (`e2e/ultraloop-l14.spec.ts`), um caso por tipo de camada, com
@@ -2934,7 +2939,7 @@ e2e (`e2e/ultraloop-l32.spec.ts`).
    do player, `components/player/firme.tsx`, e a do bloco da Visão geral,
    `components/treinar/bloco.tsx`), "Última repetição firme no <nome>" (o
    interruptor do bloco) e "Carga do <nome> por sessão" (o gráfico de cada
-   grande no Progresso e no Relatório). `data/exercicios.json` não diz o
+   grande na seção Gráficos do Relatório — §22.17 item 9). `data/exercicios.json` não diz o
    gênero do nome (32 dos 81 são femininos: Remada, Rosca, Elevação, Flexão,
    Barra fixa, Puxada, Prancha…), e inferir pela última letra erra ("Good
    morning", "Farmer's walk", "Crucifixo"). Todo nome acessível que cita o
@@ -3064,6 +3069,144 @@ e2e (`e2e/ultraloop-l32.spec.ts`).
     outline media 1,27:1 no claro e 1,97:1 no escuro) e um `svg`;
     a tag-texto não tem sublinhado, nem borda, nem fundo, nem `svg`; o texto
     das duas mede ≥ 4,5:1 contra o fundo; nada vaza a largura.
+
+### 22.17 Sobras do L14 e do L32: ficha, catálogo e camadas modais
+
+Medido em `main` (17075d7, com o L32 publicado em b66e06c) a 360×740. Dez
+sobras da fila (seção C): seis deixadas pelo L14 (§22.14) e quatro pelo L32
+(§22.15). A última (capa do plano) é das coleções do Explorar e entra pela
+mesma **exceção de área** do §22.15. O motor não muda (§22.0.1 item 7). O
+aceite de cada item é verificável no Vitest (`lib/l33.test.ts` e os testes
+vizinhos citados) ou no e2e (`e2e/ultraloop-l33.spec.ts`).
+
+1. **Um rótulo por filtro: o implemento que repete o nome de um
+   equipamento diz "(principal)"** (C-l14-super-band-dois-filtros). A folha
+   de filtros do catálogo tem dois seletores de aparelho: **Implemento** (o
+   aparelho principal do exercício, um por exercício) e **Equipamento**
+   (tudo o que o exercício usa, várias tags). Seis nomes aparecem nos dois.
+   Medido nos 81: "Barra fixa" (5 e 5), "Barra W" (3 e 3) e "Corda" (2 e 2)
+   dão o mesmo resultado nos dois seletores, mas "Barra maciça" (21 × 23),
+   "Halteres" (23 × 28) e "Super Band" (2 × 5) não — e o chip do filtro
+   ligado dizia o mesmo nome para duas listas diferentes. Agora o rótulo do
+   implemento sai de `rotuloDoImplemento()` (`lib/catalogo.ts`): quando o
+   nome é igual ao de um equipamento **e** os resultados diferem, ele ganha
+   "(principal)" — "Barra maciça (principal)", "Halteres (principal)",
+   "Super Band (principal)" —; os outros ficam como estão. A decisão vem
+   dos dados (se um dia "Corda" passar a dar resultados diferentes, ganha o
+   sufixo sozinha). O seletor e o chip usam a mesma função. Com o sufixo, o
+   seletor de Implemento não cabe na meia largura a 360 px: os três
+   seletores passam a ocupar a largura inteira, um por linha. O nome do
+   objeto continua um só (§22.14 item 9: `NOME_IMPLEMENTO.band` é
+   `NOME_EQUIPAMENTO['super-band']`). Aceite: Vitest — para todo par
+   implemento × equipamento dos 81, rótulos iguais só com resultados iguais;
+   os três que mudam e os três que ficam; mutação — sem o sufixo, o teste
+   cai. e2e — na folha, as opções de Implemento têm "Super Band (principal)"
+   e as de Equipamento "Super Band"; com os dois ligados, os dois chips têm
+   textos diferentes; nada vaza a largura.
+2. **O critério "nada repetido" compara palavras inteiras**
+   (C-l14-criterio-repeticao-numeros). O critério do §22.14 item 3 (texto de
+   12 caracteres ou mais igual a outro ou contido nele) acusava "7,5 kg na
+   barra" dentro de "17,5 kg na barra". Agora "contido" quer dizer contido
+   **em palavras inteiras**: antes e depois do trecho, no texto maior, há
+   começo/fim ou um caractere que não é letra nem algarismo (nem a vírgula
+   de um número). O critério mora num lugar só, `textoRepetido()` em
+   `lib/ficha.ts`, e o e2e usa a mesma função. Aceite: Vitest — "7,5 kg na
+   barra" × "17,5 kg na barra" não acusa; "peso corporal" dentro de "Core ·
+   Tatame · peso corporal" e o par igual "peso do corpo" continuam acusados;
+   mutação — voltando ao `includes`, o caso dos números cai.
+3. **O espelho dos textos da ficha é conferido contra o DOM nos 81**
+   (C-l14-nada-repetido-espelho-dom). O Vitest aplica o critério aos 81 pelo
+   espelho `textosDaPagina()`, que só existia no teste; o DOM real era
+   provado em 7 fichas. Agora o espelho mora em `lib/ficha.ts` e um e2e abre
+   as 81 fichas em página (histórico vazio, 360×740) e compara, ficha a
+   ficha, os parágrafos e itens visíveis do `<main>` (12 caracteres ou mais)
+   com o espelho: o que o DOM mostra e o espelho não tem, e o contrário,
+   reprova. Aceite: e2e — as 81 fichas, DOM igual ao espelho; mutação — um
+   texto a mais no espelho (ou a menos) derruba o e2e.
+4. **"Onde você está" espera o perfil** (C-l14-historico-carregando-perfil).
+   O histórico da ficha saía do esqueleto sem esperar o perfil; com barras
+   pesadas em Mais → Equipamento, o cartão "Onde você está" nascia escondido
+   (a carga calculada sem as barras) e aparecia quando o perfil chegava,
+   empurrando a página. Agora o esqueleto fica até o perfil **e** as
+   consultas do histórico chegarem (`historicoCarregando()` em
+   `lib/ficha.ts`). Aceite: Vitest — com o perfil pendente, carregando;
+   mutação — sem o perfil na regra, cai. e2e — com a barra W de 5 kg e o
+   pedido do perfil atrasado, na rosca com barra W, desde o primeiro quadro
+   em que o histórico sai do esqueleto o cartão "Onde você está" já está lá
+   e a altura da página não muda depois.
+5. **O véu: sem ramo morto, e a SPEC diz o que o código faz**
+   (C-l14-veu-ramo-morto). `components/ui/camada-modal.ts` aceitava
+   `data-veu` como véu, e ninguém usa (grep em `app/` e `components/`:
+   nada); e o §22.14 item 6 dizia "o véu da própria camada", mas o código
+   tira do `inert` o véu de **qualquer** camada do Radix (`data-slot` que
+   termina em `-overlay`): o véu de uma camada de baixo, irmão da de cima,
+   também fica fora do `inert` — o que não faz mal (ele não é focável e fica
+   coberto pelo véu de cima). O ramo `data-veu` sai, e o §22.14 item 6 passa
+   a dizer "os véus das camadas do Radix". Aceite: grep de `data-veu` em
+   `app/`, `components/` e `lib/`: nada; `lib/camada-modal.test.ts` verde.
+6. **O voltar do celular fecha a camada de cima em qualquer página**
+   (a11y-voltar-fecha-camada). Fora da Visão geral, nenhuma camada tinha
+   entrada no histórico: com os filtros do catálogo, a foto ampliada ou um
+   diálogo abertos, o voltar do Android (e o gesto de voltar do leitor de
+   tela) navegava para a página anterior. Agora toda camada da tabela do
+   §22.14 item 6 (`useCamadaModal` e `useCamadaPropria`) põe, ao abrir, uma
+   entrada no histórico (`pushState`, mesma rota) e, no `popstate` que a
+   tira, entrega um Esc à camada de cima — o voltar segue a regra do Esc,
+   como na Visão geral, e o foco volta ao gatilho do jeito de cada camada.
+   Fechada de outro jeito (Esc, X, toque fora, "Ver resultados"), a camada
+   desfaz a própria entrada (`history.back()`) se ela ainda é a do topo;
+   nada fica sobrando. As decisões são puras, em `lib/camada-modal.ts`:
+   empilhar ou não (dentro da Visão geral, que já entrega o voltar à camada
+   de cima, a camada **não** empilha: uma entrada por voltar), quais
+   camadas o `popstate` fecha (as de entrada acima da atual) e a entrada
+   **morta** — a de uma camada que já fechou sem desfazê-la, porque um link
+   ou botão dentro dela levou a outra rota: ao chegar nela pelo voltar, o
+   app anda mais um passo na mesma direção, e ninguém gasta um voltar numa
+   entrada vazia. Enquanto a entrada da camada existe, a rolagem da página
+   de baixo não é restaurada pelo navegador na volta
+   (`history.scrollRestoration = "manual"`, devolvido ao valor de antes
+   quando a camada sai): fechar uma camada não mexe na rolagem (o "Ver
+   resultados" continua levando ao primeiro resultado). Aceite: Vitest —
+   empilhar, fechar e entrada morta; e2e a 360×740 — com os filtros do
+   catálogo, a foto ampliada da ficha e o diálogo "Não vou treinar hoje" do
+   Calendário, cada um aberto pelo teclado: `history.back()` fecha só a
+   camada, a rota e o índice do histórico (Navigation API) voltam aos de
+   antes de abrir e o foco volta ao gatilho; fechar pelo Esc volta o índice
+   ao de antes (nenhuma entrada sobrando); dentro da Visão geral, o índice
+   não sobe ao abrir a folha (os e2e do §22.14 item 6 continuam).
+7. **A guarda do artigo antes do nome pega o que escapava**
+   (C-l32-guarda-artigo-estreita). O grep de `lib/l32.test.ts` (§22.15 item
+   3) só pegava template numa linha e expressão terminada em `nome`.
+   Agora ele lê o arquivo inteiro (o template pode quebrar linha), aceita
+   qualquer identificador que **contenha** "nome" (`nomeDoExercicio`,
+   `ex.nome`, `item.nome.trim()`) e os artigos o/a/os/as além das
+   contrações, com duas exceções listadas no teste: o nome do treino
+   ("Começar o ${resumo.nome}") e o da fase. Aceite: Vitest — mutações que
+   escrevem "Nota do ${nomeDoExercicio}", um template quebrado em duas
+   linhas e "a ${ex.nome}" num arquivo de `components/` derrubam o teste;
+   sem mutação, verde.
+8. **O e2e do L32 lê os nomes dos dados** (C-l32-e2e-nomes-a-mao). A lista
+   `doTreino` de `e2e/ultraloop-l32.spec.ts` tinha "Agachamento livre" e
+   "Supino reto com barra" escritos à mão. Agora os quatro vêm de
+   `acharExercicio()`. Aceite: nenhum dos 81 nomes aparece como texto
+   literal no spec (Vitest em `lib/l33.test.ts`); o spec continua verde.
+9. **A SPEC e o PROGRESSO apontam a tela que existe**
+   (C-l32-texto-aba-progresso). O §22.15 item 3 e o passo 3 do "Como testar
+   no celular" da rodada 22 falavam de um "Progresso" que não existe mais
+   (`/progresso` redireciona para `/relatorio`; os gráficos dos grandes
+   estão na seção **Gráficos** do Relatório). Aceite: grep de "no
+   Progresso" e "Progresso →" no §22.15 e no passo: nada.
+10. **A capa do plano é conferida contra `cardio.json`**
+    (C-l32-plano-capa-sem-o-dono). O Vitest de `detalheDaCapa()` comparava
+    com `metaDoPlano(p, null)`, a mesma conta da função. Agora o esperado
+    sai de `data/cardio.json`: para cada plano, a última semana do JSON dá o
+    total T; se o objetivo (ou as funções, na corda) já diz "T semanas", a
+    capa não tem detalhe; senão, é "T semanas" — e a capa é calculada a
+    partir da coleção **com perfil** (semana 1 a T+2), a que a tela recebe.
+    Aceite: Vitest — os três planos; mutação — a capa voltando a usar o
+    detalhe da coleção ("semana N de T") derruba o teste. A decisão de
+    manter a capa (§22.15 item 7) foi tomada sem o dono; a pergunta está em
+    `docs/ultraloop/perguntas-ao-dono.md` e a resposta não é deste lote.
 
 ---
 
