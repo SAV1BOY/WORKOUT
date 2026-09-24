@@ -11780,6 +11780,13 @@ esqueleto até recarregar. `lib/progressao.ts` e `lib/montagem.ts`:
   20 dias parado, a opção "Voltar mais leve" diz "Uma semana a 60% da
   carga…" e, escolhida, o aviso "Semana leve: 60% da carga. O app devolve
   a carga depois.".
+- **Ao vivo, o foco dos controles novos** (`r23/l19/ao-vivo/foco.json`:
+  mock + `next start` do `.next` da cadeia de `d44d2ef`, 360×740, os dois
+  temas, Tab até cada um): "Sair do treino" e "Visão geral do treino" na
+  preparação casam `:focus-visible` e ganham o anel de 3 px na cor de
+  destaque (`#a03608` no claro, 5,25:1 contra o fundo; `#fb923c` no escuro,
+  8,75:1), a 12 px das bordas e 16 px do topo da seção — nada corta o anel.
+  Servidores derrubados pelos PIDs (3130 e 54351 → 000).
 - **Grep** `grep -rnE '[0-9][[:space:]]%' data/ lib/ components/ app/`
   fora dos `*.test.ts`: só comentários. `npm run validar`: verde (81
   exercícios, 67/67 figuras, 162/162 fotos). `git diff c689f69 --
