@@ -123,6 +123,8 @@ export function TelaExercicio({
     aoAvaliar(novo);
     toast(avisoDoVoto(exercicio.nome, novo), {
       action: { label: "Desfazer", onClick: () => aoAvaliar(antes) },
+      // ≥ 44 px e anel de destaque no foco (app/globals.css, §22.16 item 6)
+      classNames: { actionButton: "aviso-desfazer" },
     });
   };
 
