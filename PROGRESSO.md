@@ -6454,6 +6454,28 @@ VAPID na Vercel (produção). Elas estão descritas na subseção do lote 34. Os
 lembretes no horário escolhido chegam no lote 35. Produção serve `905815d`,
 igual à `main`, com fumaça verde (21 de 21, três vezes) e **sem rollback**.
 
+**Rodada 22 no ar (24/09, 11:23 UTC — 08:23 em Brasília).** É o lote 32,
+sobras das auditorias da ficha do exercício e das coleções do Explorar.
+Nada muda no jeito de treinar; são acertos de acabamento.
+
+- **O leitor de tela fala o nome do exercício sem erro de gênero.** Antes
+  dizia "Nota do Remada" ou "Execução do Prancha"; agora diz "Nota: Remada
+  curvada pronada", "Última repetição firme: …", "Carga por sessão: …".
+- **Tela do plano (Explorar → Planos → Corrida):** a posição "semana N de
+  12" aparece uma vez só, no bloco das semanas, e a linha "agora" não cobre
+  mais o canto arredondado do cartão.
+- **Busca do Explorar:** sem o vão vazio nas linhas sem subtítulo, e cada
+  coleção mostra a mesma capa da vitrine.
+- **Ficha do exercício → Equipamento:** o que abre uma coleção tem cara de
+  link (contorno, sublinhado e ›); o que não abre é texto simples. E se a
+  figura de um exercício falhar, o próximo não herda a falha.
+
+Como ver no celular: abra Explorar → Planos → "5 km sem parar" e veja que a
+capa mostra só a meta, com a semana no bloco logo abaixo. Depois abra
+Exercícios → Supino reto com barra → Equipamento: "Banco" tem contorno e ›,
+"Anilhas" é texto. Produção serve `b66e06c`, igual à `main`, com fumaça
+verde e **sem rollback**.
+
 **Encerramento (10:25 UTC de 21/09, 07:25 em Brasília).** A pedido do dono, o loop parou com tudo o que estava 100 % aprovado já publicado: produção serve `8830fe5`, igual à `main`, com oito lotes no ar (L1–L6, L8 e L9) em seis deploys, todos com fumaça verde na primeira execução e nenhum rollback. Nenhuma migração de banco foi aplicada nesta madrugada. Desde o ponto de partida (`c82b744`) foram 71 commits e 181 arquivos alterados (+14.006/−1.169 linhas); os portões do head publicado são 1.378 testes unitários, 403 de ponta a ponta e a varredura das 30 telas nos dois temas. A auditoria de fechamento (regressão total contra a base inicial) foi interrompida antes de terminar; cada lote publicado já havia sido comparado contra a base do deploy anterior na própria auditoria. O que não coube está na seção **Fila (o que não coube)** abaixo, em ordem de prioridade, pronto para as próximas rodadas. Atualização (rodada 7, 12:11 UTC): o lote 7 entrou em produção em `d696b33`, nove lotes no ar, sete deploys, nenhum rollback; o loop está encerrado e nada ficou agendado.
 
 ### Como funcionou
@@ -7929,15 +7951,15 @@ Nenhuma migração de banco. **Rollback: não.**
 
 **O que a reconciliação corrigiu na lista antiga (texto de 21/09, abaixo substituído):** o L7 aparecia como pendente e está publicado (PR #13); C tinha 63 numa fonte e 64 noutra (o 64º é o R9-C1, que também estava em D — agora uma entrada só); os seis itens de D não estavam no JSON; `lotes_propostos_ordem` começava por lotes já publicados; os dez itens do antigo "L12 superfícies" já estavam publicados pelos lotes 3 e 4 (com prova); 46 achados da remontagem das superfícies e 27 achados da análise nunca tinham entrado na fila — entraram; o nome L12 passou a ser o lote de Explorar e catálogo.
 
-**Contagens em 2026-09-23T23:41Z:**
+**Contagens em 2026-09-24T11:32Z:**
 
 | seção | pendente | publicado | descartado |
 | --- | ---: | ---: | ---: |
 | B | 75 | 39 | 17 |
-| C | 71 | 10 | 0 |
+| C | 67 | 20 | 0 |
 | D | 5 | 0 | 0 |
 | legado | 0 | 77 | 1 |
-| **total** | **151** | **126** | **18** |
+| **total** | **147** | **136** | **18** |
 
 Dos descartados, **7 dependem de decisão do dono** e voltam à fila se a resposta for sim (atualização do app com aviso, uso do laranja, Relatório somado no banco, destaque do Explorar, filtros Core/Cardio, faixa da semana com sete destinos, resumo curto dos planos) — perguntas em `docs/ultraloop/perguntas-ao-dono.md`.
 
@@ -7948,10 +7970,9 @@ Dos descartados, **7 dependem de decisão do dono** e voltam à fila se a respos
 | lote | título | itens | ids |
 | --- | --- | ---: | --- |
 | L35 | Lembretes II: horário, disparo automático e calendário | 10 | LEM-horarios, LEM-regra-mensagem, LEM-disparo, LEM-ics, LEM-guia-spec-l34, LEM-painel-estado, C-l34-badge-monocromatico, C-l34-passo3-instrucoes-reverso, C-l34-sair-e-inscricao, C-l34-ativar-releitura-falha |
-| L32 | Sobras das auditorias: ficha e coleções do Explorar | 10 | C-l13-key-musculos-sem-teste, C-media-grande-figura-quebrou-herdada, C-alt-execucao-genero, C-l13-aceite-lcp-vs-ordem, C-busca-linha-reservada-vazia, C-busca-corda-capa-icone, C-plano-progresso-repete-desafio, C-plano-lista-canto-reto, C-l14-inventario-ficha-folha-como-abre, C-l14-tag-equipamento-sem-sinal-visual |
 | L19 | Player: preparação e série; '%' colado nos textos | 7 | B-player-substituir-passo-atual, ux-heuristicas-12, tela-treino-player-09, copy-21, tela-treino-player-12, ux-heuristicas-22, OBS-porcentagem-com-espaco |
 | L36 | Sobras do L34: lembretes (provas, textos e bordas) | 7 | C-l34-notificationclick-sem-aba, C-l34-rls-postgres-real, C-l34-e2e-volta-dois-temas, C-l34-spec-volta-permissao-e-sem-internet, C-l34-aviso-lista-internet-volta, C-l34-comentario-rota-teste, C-l34-progresso-frase-mutacao |
-| L33 | Sobras do L14: ficha, catálogo e camadas modais | 6 | C-l14-super-band-dois-filtros, C-l14-criterio-repeticao-numeros, C-l14-nada-repetido-espelho-dom, C-l14-historico-carregando-perfil, C-l14-veu-ramo-morto, a11y-voltar-fecha-camada |
+| L33 | Sobras do L14: ficha, catálogo e camadas modais | 10 | C-l14-super-band-dois-filtros, C-l14-criterio-repeticao-numeros, C-l14-nada-repetido-espelho-dom, C-l14-historico-carregando-perfil, C-l14-veu-ramo-morto, a11y-voltar-fecha-camada, C-l32-guarda-artigo-estreita, C-l32-e2e-nomes-a-mao, C-l32-texto-aba-progresso, C-l32-plano-capa-sem-o-dono |
 | L15 | Corpo: peso, gráficos e campo de data | 6 | a11y-01, tela-relatorio-corpo-calendario-12, tela-relatorio-corpo-calendario-14, tela-relatorio-corpo-calendario-19, tela-relatorio-corpo-calendario-13, tela-relatorio-corpo-calendario-11 |
 | L16 | Corpo: medidas, fotos, data no celular e um verbo só para salvar | 7 | tela-relatorio-corpo-calendario-17, tela-relatorio-corpo-calendario-18, tela-relatorio-corpo-calendario-16, a11y-14, D-input-date-pt-br, copy-28, C-l14-aviso-cobre-x-da-foto |
 | L17 | Casca: carregamento, rotas pesadas, zoom e bloco de sincronização | 6 | C-loading-por-rota, C-next-dynamic-rotas-pesadas, C-nav-inferior-zoom-200, a11y-16, visual-19, copy-17 |
@@ -7960,11 +7981,11 @@ Dos descartados, **7 dependem de decisão do dono** e voltam à fila se a respos
 | L21 | Player: firme, conclusão e Visão geral | 6 | tela-treino-player-29, tela-treino-player-27, ux-heuristicas-15, ux-heuristicas-14, ux-heuristicas-13, visual-08 |
 | L22 | Sem rede: sinal, fila, mensagens e sincronização | 6 | pwa-offline-01, pwa-offline-06, pwa-offline-07, pwa-offline-11, pwa-offline-12, pwa-offline-13 |
 | L23 | Instalação, cache de mídia e cor da barra | 6 | pwa-offline-03, pwa-offline-04, pwa-offline-05, imagens-09, pwa-offline-08, C-theme-color-do-tema-escolhido |
-| L24 | Mais: textos, linhas e prefetch | 7 | copy-02, copy-09, copy-16, copy-20, copy-29, visual-16, performance-16 |
+| L24 | Mais: textos, linhas e prefetch | 8 | copy-02, copy-09, copy-16, copy-20, copy-29, visual-16, performance-16, C-guia-reaparece-com-gravacao-na-fila |
 | L25 | Copy e mensagens: dia da semana, intervalo, perfil, backup e login | 8 | copy-07, copy-24, tela-relatorio-corpo-calendario-07, copy-04, ux-heuristicas-20, a11y-07, a11y-08, pwa-offline-02 |
 | L26 | Relatório: números, aviso, esqueleto e leituras repetidas | 7 | C-relatorio-no-total-3-linhas, C-aviso-conquista-regiao-viva, C-esqueleto-grade3-morto, C-relatorio-legendas-antes-de-pronto, C-relatorio-sticky-scroll-margin, C-legenda-faixa-aria-hidden, performance-08 |
 | L27 | Calendário: faixa, legenda e semana navegada | 7 | C-dois-vocabularios-da-marca, C-legenda-faixa-ponto-orfao, C-legenda-do-mes-sem-tipo-exaustivo, C-calendario-fase2-semana-mostrada, C-marcar-dia-antes-no-futuro, C-progresso-legenda-quatro-glifos, C-cardio-semana-navegada |
-| L28 | Aba Treino: cabeçalho, faixa fixa e avisos | 7 | C-treino-h1-data-duas-linhas, C-faixa-fixa-texto-cortado, C-aviso-volta-do-player-gatilho, C-ajustar-sob-toast, C-desafios-largura-inerte, C-ajustes-gravacao-700ms, C-l14-recomecar-do-zero-foco-inicial |
+| L28 | Aba Treino: cabeçalho, faixa fixa e avisos | 8 | C-treino-h1-data-duas-linhas, C-faixa-fixa-texto-cortado, C-aviso-volta-do-player-gatilho, C-ajustar-sob-toast, C-desafios-largura-inerte, C-ajustes-gravacao-700ms, C-l14-recomecar-do-zero-foco-inicial, C-a-r4-faixa-fixa-instavel-sob-carga |
 | L29 | Player: pendências das auditorias do L5 | 8 | C-descanso-sinal-visivel, C-rotulo-do-campo-de-carga, C-alert-dialog-fundacao, C-firme-primario-pular, C-progresso-do-player-valuetext, C-l14-comentario-voltar-visao-geral, C-l14-spec-voltar-resumo-gravando, a11y-visao-geral-foco-ao-abrir |
 | L30 | Processo, testes e documentação | 9 | C-capturas-rotulos-antigos, C-fab-ajustar-nomes-e-docs, C-teste-item5-nunca-falha, C-elevacao-sem-teste-da-faixa, C-regua-base-de-head-diferente, C-higiene-pids-construtor, C-portoes-hash-curto, C-l14-nomes-das-rodadas, C-l14-ordem-commits-spec-antes |
 | L31 | D: medidas antes/depois, processo e scripts | 6 | R9-C1, D-abertura-11s-aparelho-zerado, D-sessao-concluida-reabre-player, D-e2e-sair-pela-tela, D-sw-em-qualquer-cache, C-comparar-capturas-esperadas |
@@ -12178,3 +12199,52 @@ Menores registrados (ficam na fila, nenhum quebra o aceite):
 - **[tela]** Observação sem defeito: na busca "corda", o aparelho "Corda de
   pular com rolamento" mostra o ícone no lugar da foto e fica diferente da
   vitrine "Por aparelho" — é a troca que a SPEC §22.15 item 6 descreve.
+
+**Deploy (rodada 22, 24/09 11:23 UTC).** Publicado. O deployment passou de
+`dpl_7NnouXJ8g8pJuN8uL6TMb9pEpMJy` para `dpl_8vLMG3r1hamomsdzPK5CMi4Q28Ly`, e
+`main` passou de `c689f69` para `b66e06c0b29ed38015fb8a4bc4832303b0d59135`
+(PR #28). O merge do lote na integração é `183f6d4`, sem conflito (a
+integração estava igual a `origin/main` `c689f69`). O veredito da auditoria
+está em `6304ebb`. A revisão do Codex terminou em `6304ebb` sem sugestões.
+`/versao` devolveu esse sha às 11:23:07, ~2 min depois do merge (11:20:54;
+build de 11:21:18Z). O CSS de `/login` mudou de `0d00d758a656b055` para
+`720080b174380029`. Portão final na integração: `lint` e `tsc --noEmit`
+limpos, 74 arquivos e 1.643 testes verdes. O e2e não foi repetido (573 e2e,
+2 instáveis de a-r4 verdes 2× sozinhos, 5 pulados; varredura 5/5 em
+`f36db69`). A pré-condição literal (`e6f42b2.status` ok) não foi cumprida;
+o lote foi publicado com a nota da auditoria. Nenhuma migração de banco.
+
+Fumaça em produção, item a item: `/login` 200 · com "Treino do Terraço" ·
+com "Entrar" · sem "Configure NEXT_PUBLIC_SUPABASE_URL" · sem "é secreta" ·
+`/` → 307 · para `/login` · `/versao` == sha do merge · `/sw.js` 200 · com
+`/~offline` · com `figuras/` · com o mesmo CSS do HTML de `/login` ·
+`/manifest.webmanifest` 200 · com "Treino do Terraço" · `/~offline` 200 ·
+os 14 scripts `/_next/static` de `/login` 200 · o chunk
+`app/(app)/exercicios/[id]/page-532eadbe73c9150f.js` listado no `/sw.js` ·
+com `data-tag-equipamento` no grafo dele (chunk `2246`) · o chunk
+`app/(app)/explorar/page-3404600d65825d84.js` listado · com `sem-subtitulo`.
+Execuções às 11:24, 11:25, 11:27 e 11:30 UTC (≥ 40 s entre elas): 21 de
+21, 21 de 21, 20 de 21 e 21 de 21. Na 3ª, `main-app-d79e3bdb088a7b26.js`
+voltou 000 (o curl ficou sem resposta); logo depois deu 200 três vezes, e a
+4ª execução deu 21 de 21. Sonda a 360×740 (Chromium): `/login` e
+`/~offline` sem erro de console e sem vazamento horizontal (scrollWidth 360
+= clientWidth). Capturas: 07-colecao (claro e escuro) de
+`r22/l32/capturas-e6f42b2` viraram a base visual (`base-ef3ad97`,
+`indice.json` com head `b66e06c`; wt-base não avançado). **Rollback: não.**
+
+**Verificação logada em produção (24/09, 11:34–12:00 UTC).** Conta de teste
+`teste-l32-20260924@example.com` criada pela tela "Criar conta", navegador
+real a 360×740 nos dois temas, `/versao` = `b66e06c`.
+- Item 1: no player, Substituir no 2º exercício leva ao crossover. A figura
+  nasce na posição 1 e o quadro 2 só é pedido depois do fim do quadro 1. A aba
+  Músculos continua selecionada no ‹, no › e no Substituir.
+- Item 2: com a figura abortada de propósito, a foto entra no lugar. O
+  exercício seguinte (› e Substituir) volta a mostrar a figura dele.
+- Item 3: 0 nome acessível com artigo antes do nome, varrido contra os 81
+  nomes. Aparecem "Execução: …", "Nota: …" e "Última repetição firme: …".
+- Item 4: nos dois temas o quadro 2 é pedido depois do fim do quadro 1.
+- Busca, plano e tags: 0 rolagem lateral, 0 alvo < 44 px, 0 erro de console.
+- O defeito do Substituir no passo atual não foi testado e não é dado como
+  resolvido: ele é o 1º item do L19.
+
+**Conta de teste apagada** às 12:00 UTC. Ficam só as 3 contas reais.
