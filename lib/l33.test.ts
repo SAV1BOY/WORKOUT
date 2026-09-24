@@ -14,6 +14,7 @@ import {
   empilhaEntrada,
   entradaDoEstado,
   passoNoHistorico,
+  proximaEntrada,
   reguaAoSair,
   type Regua,
 } from "@/lib/camada-modal";
@@ -275,6 +276,28 @@ describe("§22.17 item 6 — a direção do passo pela régua, sem a Navigation 
     expect(passoNoHistorico(null, 3, morta)).toEqual({ passo: 0, regua: 3 });
     // e aprende com a primeira entrada viva que vê
     expect(passoNoHistorico(null, 3, nada)).toEqual({ passo: 0, regua: 3 });
+  });
+
+  it("recarregado: o número da próxima entrada continua acima do guardado na sessão", () => {
+    // antes de recarregar, as entradas iam até a 5 (mortas embaixo da página)
+    expect(proximaEntrada(0, "5", null)).toBe(6);
+    expect(proximaEntrada(0, "5", { __NA: true })).toBe(6);
+    // na mesma página, o maior dos três
+    expect(proximaEntrada(7, "5", { [CHAVE_DA_ENTRADA]: 3 })).toBe(8);
+    expect(proximaEntrada(2, null, { [CHAVE_DA_ENTRADA]: 4 })).toBe(5);
+    // sessão vazia ou estranha: conta do que a página sabe
+    expect(proximaEntrada(0, null, null)).toBe(1);
+    expect(proximaEntrada(1, "abc", null)).toBe(2);
+    expect(proximaEntrada(1, "-3", null)).toBe(2);
+    expect(proximaEntrada(1, "2.5", null)).toBe(2);
+    // e a régua, recarregada, acerta a direção com os números da sessão:
+    // a camada nova (6) fecha pelo voltar → a régua fica abaixo dela, mas
+    // acima da morta 5 — o voltar seguinte, que chega na 5, continua voltando
+    const nova = proximaEntrada(0, "5", null);
+    const depois = passoNoHistorico(nova, 0, { morta: false, fechar: [nova], semSaida: false });
+    expect(passoNoHistorico(depois.regua, 5, { morta: true, fechar: [], semSaida: false }).passo).toBe(
+      -1,
+    );
   });
 
   it("sem saída (desfeita pelo Esc ou fechada pelo voltar): o avançar volta", () => {

@@ -131,6 +131,27 @@ export function entradaDoEstado(estado: unknown): number {
   return typeof valor === "number" && Number.isInteger(valor) && valor > 0 ? valor : 0;
 }
 
+/** A chave da sessão da aba (`sessionStorage`) com o último número de entrada. */
+export const CHAVE_DA_SESSAO = "camadaModal:ultimaEntrada";
+
+/**
+ * O número da próxima entrada de camada: acima do último desta página
+ * (`ultima`), do guardado na sessão da aba (`guardada`, o texto do
+ * `sessionStorage`, ou `null`) e do da entrada atual do histórico. A sessão
+ * vive junto com o histórico da aba: depois de recarregar, os números
+ * continuam crescendo, e as entradas novas ficam acima das mortas de antes
+ * — a régua não confunde umas com as outras.
+ */
+export function proximaEntrada(
+  ultima: number,
+  guardada: string | null,
+  estadoDoTopo: unknown,
+): number {
+  const g = Number(guardada);
+  const daSessao = guardada !== null && Number.isInteger(g) && g > 0 ? g : 0;
+  return Math.max(ultima, daSessao, entradaDoEstado(estadoDoTopo)) + 1;
+}
+
 /**
  * A camada que abre põe uma entrada no histórico? Sim, menos quando a
  * entrada do topo é a da Visão geral do treino (§22.14 item 6): ela já
