@@ -12770,3 +12770,32 @@ do plano", as linhas das semanas) em dobro, deslocado ~20 px por ela — é a
 base do L32 (explicada acima), não o lote. Os 60 PNGs de `0424f78` são
 **iguais byte a byte** aos de `48be98c` (`cmp`, 60 de 60): os commits desta
 rodada não mudaram nenhuma tela.
+
+
+#### Auditoria
+
+- **Auditoria 1 em `3f8e7d94d71d7227a291a4d506b444309c021a4f`: reprovada**
+  (bloqueantes 0, importantes 2, menores 8). Corrigida na rodada 24
+  (acima: "Correção da auditoria de `3f8e7d9`").
+- **Auditoria 2 em `40bae111ef75aaf0745818d11ed474f78ca311c6`: aprovada**
+  (bloqueantes 0, importantes 0, menores 9). Cadeia ok em `0424f78`
+  (1.708 unitários, 569 e2e, varredura 5/5).
+
+Menores registrados (ficam na fila, nenhum quebra o aceite):
+
+- **[regra]** `lib/lembretes-regra.ts`, `proximoLembrete()`: 4 ramos sem
+  teste que os derrube (código certo: oráculo exaustivo 0 falhas em 107.560
+  consultas).
+- **[regra]** Comentário da migração/schema linha 55 ainda diz "O tick: só o
+  postgres executa" (a SPEC já foi corrigida).
+- **[regra]** PROGRESSO: "concluído às 06:30" deveria ser "concluído às
+  06:00" (06:30 é a hora da consulta).
+- **[tela]** Hidratação, fora do lote: pageerror "Minified React error #418
+  (HTML)" 2× na primeira rodada do tema claro.
+- **[tela]** Sem rede com o aparelho ativado, a seção "Este aparelho" some
+  inteira (L34).
+- **[tela]** Anel de foco do switch (`components/ui/switch.tsx`) 3,66:1 no
+  claro — perto do limite.
+- **[tela]** Plano de 3 dias: "Lembrete da corrida" liga e grava, mas o
+  "Próximo" e o .ics só têm força (BYDAY FR/MO/WE).
+- **[tela]** 07-colecao difere da base até o merge com o L32 (explicado).
