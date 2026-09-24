@@ -29,8 +29,9 @@ import {
   apos,
   definirDuracao,
   entradaDoPasso,
-  indiceDaChave,
+  estadoDoPasso,
   indiceDeRetomada,
+  indiceDoEstado,
   irPara,
   posicaoNaSequencia,
   rotuloDoPasso,
@@ -53,7 +54,7 @@ import {
 import { enfileirarEscrita } from "@/lib/outbox-supabase";
 import { registrarPeso } from "@/lib/queries/corpo";
 import { salvarPerfil, salvarPrefs } from "@/lib/queries/mais";
-import { useUltimoPeso } from "@/lib/queries/dados";
+import { chaves, useUltimoPeso } from "@/lib/queries/dados";
 import { useHoje } from "@/lib/relogio";
 import {
   ajustarPrescricaoDaSessao,
@@ -63,6 +64,7 @@ import {
   type SerieLocal,
   type SessaoLocal,
 } from "@/lib/sessao";
+import type { LinhaPerfil } from "@/lib/types";
 
 /**
  * O player (SPEC §14.1): preparação → exercício → descanso → "firme?" →
@@ -123,14 +125,16 @@ export function TelaPlayer({
   useEffect(() => {
     if (!sessao || estado !== null || seq.length === 0) return;
     const salvo = sessao.player ?? null;
-    if (salvo && indiceDaChave(seq, salvo.chave) >= 0) {
+    // a chave salva pode ter sumido (troca de exercício): `indiceDoEstado`
+    // acha o passo no mesmo exercício, e o efeito abaixo o anota (§22.16)
+    if (salvo) {
       setEstado(salvo);
       return;
     }
     setEstado(irPara(seq, indiceDeRetomada(seq, sessao), Date.now()));
   }, [sessao, seq, estado]);
 
-  const indice = estado ? indiceDaChave(seq, estado.chave) : -1;
+  const indice = estado && sessao ? indiceDoEstado(seq, sessao, estado) : -1;
   const passo = indice >= 0 ? seq[indice] : null;
 
   /** Anota o passo na sessão (Dexie) antes de qualquer animação (§8). */
@@ -147,6 +151,17 @@ export function TelaPlayer({
     [guardar, seq],
   );
 
+  /*
+   * SPEC §22.16 item 1: "Substituir" no exercício do passo atual recria as
+   * séries com ids novos e a chave salva some. `indiceDoEstado` já achou o
+   * passo no mesmo exercício; aqui ele é anotado no aparelho (Dexie), com o
+   * relógio dele — antes, a tela ficava no esqueleto até recarregar.
+   */
+  useEffect(() => {
+    if (!estado || !passo || passo.chave === estado.chave) return;
+    guardar(estadoDoPasso(passo, Date.now()));
+  }, [estado, passo, guardar]);
+
   /* estável de propósito: é dependência do efeito de história da Visão geral */
   const fecharVisaoGeral = useCallback(() => {
     setVisaoGeral(false);
@@ -156,8 +171,14 @@ export function TelaPlayer({
   /* ------------------------------------------------------ relógio */
 
   const contando = estado?.fimEm !== null && estado?.fimEm !== undefined;
+  /*
+   * Com a Visão geral aberta a contagem da preparação não vale (§22.16 item
+   * 2), e o relógio só redesenharia a Visão geral 4 vezes por segundo à toa.
+   * Ao "Fechar", ele volta e marca a hora na mesma passada.
+   */
+  const relogioLigado = contando && !visaoGeral;
   useEffect(() => {
-    if (!contando) return;
+    if (!relogioLigado) return;
     const tique = () => setAgora(Date.now());
     tique();
     const relogio = setInterval(tique, 250);
@@ -170,14 +191,30 @@ export function TelaPlayer({
       clearInterval(relogio);
       document.removeEventListener("visibilitychange", aoVoltar);
     };
-  }, [contando, estado?.chave]);
+  }, [relogioLigado, estado?.chave]);
 
-  // a preparação é uma contagem: ao zerar, o treino começa sozinho (§14.1.1)
+  /*
+   * A preparação é uma contagem: ao zerar, o treino começa sozinho (§14.1.1).
+   * SPEC §22.16 item 2 (correção da auditoria 1): com a Visão geral aberta a
+   * partir da preparação a contagem não vale — quem abriu a lista para
+   * conferir o treino não pode voltar direto na série 1 — e, ao "Fechar",
+   * ela recomeça do início. Num efeito só: dois efeitos leriam o mesmo
+   * estado velho (já zerado) no mesmo ciclo, e o segundo desfaria o primeiro.
+   */
   const tipoDoPasso = passo?.tipo;
+  const recontar = useRef(false);
   useEffect(() => {
+    if (visaoGeral) return;
+    if (recontar.current) {
+      recontar.current = false;
+      if (passo?.tipo === "preparacao") {
+        guardar(estadoDoPasso(passo, Date.now()));
+        return;
+      }
+    }
     if (tipoDoPasso !== "preparacao" || !estado || !zerou(estado, agora)) return;
     ir(indice + 1);
-  }, [tipoDoPasso, estado, agora, indice, ir]);
+  }, [visaoGeral, passo, tipoDoPasso, estado, agora, indice, ir, guardar]);
 
   /* ------------------------------------------- gravar ao chegar no fim */
 
@@ -264,16 +301,26 @@ export function TelaPlayer({
 
   /* ------------------------------------------------------ ações */
 
+  /**
+   * O voto dos polegares (SPEC §22.16 item 6). Devolve se gravou: sem perfil
+   * (o player abre só com a sessão do aparelho) não há onde gravar, e a tela
+   * não pode confirmar o voto. As preferências são as de AGORA, lidas do
+   * cache na hora: o "Desfazer" chega segundos depois, e gravar por cima um
+   * retrato do render do voto apagaria qualquer outra mudança feita no meio.
+   */
   const avaliarExercicio = useCallback(
-    (exercicioId: string, voto: VotoDoExercicio) => {
-      if (!perfil) return;
+    (exercicioId: string, voto: VotoDoExercicio): boolean => {
+      const atual =
+        cliente.getQueryData<LinhaPerfil | null>(chaves.perfil()) ?? perfil;
+      if (!atual) return false;
       void salvarPrefs({
-        userId: perfil.user_id,
-        prefs: comVoto(prefs, exercicioId, voto),
+        userId: atual.user_id,
+        prefs: comVoto(atual.prefs, exercicioId, voto),
         cliente,
       });
+      return true;
     },
-    [perfil, prefs, cliente],
+    [perfil, cliente],
   );
 
   const mudarAltura = useCallback(
@@ -414,7 +461,13 @@ export function TelaPlayer({
           exercicioId={passo.exercicioId}
           estado={estado}
           agora={agora}
+          nomeDoTreino={nomeDaSessao(dados)}
+          pedidoDeFoco={pedidoDeFoco}
           aoAbrirFicha={() => setFicha(passo.exercicioId)}
+          aoAbrirLista={() => {
+            recontar.current = true;
+            setVisaoGeral(true);
+          }}
           aoPular={() => ir(indice + 1)}
         />
         {folha}

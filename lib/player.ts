@@ -65,6 +65,8 @@ export interface PassoDescanso {
   segundos: number;
   /** Descanso entre exercícios (em vez de entre séries do mesmo). */
   entreExercicios: boolean;
+  /** O exercício do passo que vem ANTES do descanso (SPEC §22.16 item 1). */
+  ordem: number;
   /** Índice do passo que vem depois — é para lá que "Pular" leva. */
   indiceProximo: number;
 }
@@ -122,6 +124,7 @@ function descansoDepoisDe(
     chave: `descanso:${anterior ? anterior.chave : passos.length}`,
     segundos,
     entreExercicios,
+    ordem: anterior && "ordem" in anterior ? anterior.ordem : 0,
     // o descanso ainda vai ser empilhado: o próximo passo é o índice seguinte
     indiceProximo: passos.length + 1,
   };
@@ -222,6 +225,75 @@ export function rotuloDoPasso(passo: PassoSerie): string {
   return `${nome} ${passo.numero} de ${passo.total}`;
 }
 
+/**
+ * Um ponto por série do exercício, na ordem do player (aquecimentos, depois
+ * trabalho), logo abaixo do nome (SPEC §22.16 item 5): cheio = feita,
+ * contorno = a fazer; `atual` é a série do passo. O `rotulo` é o nome
+ * acessível do grupo — "Aquecimento 1 de 2 · 0 de 5 séries feitas".
+ */
+export interface PontoDaSerie {
+  aquecimento: boolean;
+  feita: boolean;
+  atual: boolean;
+}
+
+export function pontosDoBloco(
+  bloco: BlocoLocal,
+  passo: PassoSerie,
+): { pontos: PontoDaSerie[]; rotulo: string } {
+  const aquecimentos = bloco.series.filter((s) => s.tipo === "aquecimento");
+  const trabalho = bloco.series.filter((s) => s.tipo !== "aquecimento");
+  const pontos = [...aquecimentos, ...trabalho].map((s) => ({
+    aquecimento: s.tipo === "aquecimento",
+    feita: s.concluida,
+    atual: s.id === passo.serieId,
+  }));
+  const feitas = pontos.filter((p) => p.feita).length;
+  const series = pontos.length === 1 ? "série feita" : "séries feitas";
+  return {
+    pontos,
+    rotulo: `${rotuloDoPasso(passo)} · ${feitas} de ${pontos.length} ${series}`,
+  };
+}
+
+/**
+ * O aviso de cada toque nos polegares (SPEC §22.16 item 6), com "Desfazer"
+ * na tela. Diz só o que o voto faz de verdade: o "não gosto" manda o
+ * exercício para o fim das listas de substitutos e do Explorar (§14.1.2); o
+ * "gostei" e o voto tirado só ficam anotados.
+ */
+export function avisoDoVoto(
+  nome: string,
+  voto: "preferido" | "evitado" | null,
+): string {
+  if (voto === "evitado") {
+    return `${nome} vai para o fim das listas de substitutos e do Explorar.`;
+  }
+  if (voto === "preferido") return `Anotado: você gosta de ${nome}.`;
+  return `Voto tirado: ${nome} sem avaliação.`;
+}
+
+/**
+ * O que a tela diz depois de um toque nos polegares (SPEC §22.16 item 6).
+ * O aviso só confirma o que foi gravado: o player abre só com a sessão do
+ * aparelho, e sem o perfil o voto não tem onde ir — então a tela diz isso,
+ * sem "Desfazer" (não há o que desfazer), em vez de anunciar uma mudança que
+ * não aconteceu.
+ */
+export function avisoDoPolegar(
+  nome: string,
+  voto: "preferido" | "evitado" | null,
+  gravou: boolean,
+): { texto: string; desfazer: boolean } {
+  if (!gravou) {
+    return {
+      texto: "Voto não anotado: o perfil ainda não carregou.",
+      desfazer: false,
+    };
+  }
+  return { texto: avisoDoVoto(nome, voto), desfazer: true };
+}
+
 /* ------------------------------------------------ o que a tela do meio é */
 
 /**
@@ -303,6 +375,45 @@ export function indiceDeRetomada(
   return feedback >= 0 ? feedback : Math.max(0, seq.length - 1);
 }
 
+/**
+ * Onde o player está, mesmo depois de a sequência mudar por baixo dele
+ * (SPEC §22.16 item 1). A chave salva vale enquanto existir. Quando ela some
+ * — "Substituir" recria as séries do exercício com ids novos; tirar séries
+ * pela ficha apaga a do passo —, o player fica **no mesmo exercício**: na
+ * primeira série que falta dele, na pergunta "firme?" quando não falta
+ * nenhuma, ou no primeiro passo dele quando não há nem uma nem outra (um
+ * exercício sem série de trabalho: o tipo permite, o catálogo não tem).
+ * Sem o exercício anotado (estado de uma versão anterior), vale a
+ * retomada. Com a sequência não vazia, nunca devolve -1: era o -1 que deixava
+ * a tela no esqueleto até recarregar.
+ */
+export function indiceDoEstado(
+  seq: readonly Passo[],
+  sessao: SessaoLocal,
+  estado: Pick<EstadoPlayer, "chave" | "ordem">,
+): number {
+  if (seq.length === 0) return -1;
+  const salvo = indiceDaChave(seq, estado.chave);
+  if (salvo >= 0) return salvo;
+  const ordem = estado.ordem;
+  if (typeof ordem === "number") {
+    const falta = seq.findIndex(
+      (p) =>
+        p.tipo === "serie" &&
+        p.ordem === ordem &&
+        serieDoPasso(sessao, p)?.concluida !== true,
+    );
+    if (falta >= 0) return falta;
+    const firme = seq.findIndex((p) => p.tipo === "firme" && p.ordem === ordem);
+    if (firme >= 0) return firme;
+    const qualquer = seq.findIndex(
+      (p) => (p.tipo === "serie" || p.tipo === "preparacao") && p.ordem === ordem,
+    );
+    if (qualquer >= 0) return qualquer;
+  }
+  return indiceDeRetomada(seq, sessao);
+}
+
 /** O passo logo depois do ✓ (normalmente o descanso). */
 export function apos(seq: readonly Passo[], indice: number): number {
   return Math.min(indice + 1, Math.max(0, seq.length - 1));
@@ -350,6 +461,12 @@ export interface EstadoPlayer {
   fimEm: number | null;
   /** Segundos totais da contagem atual, já com os "+20 s". */
   totalS: number | null;
+  /**
+   * O exercício (`bloco.ordem`) do passo — o que sobrevive quando a chave
+   * some (a troca de exercício recria as séries com ids novos, SPEC §22.16
+   * item 1). Ausente no estado salvo por versões anteriores.
+   */
+  ordem?: number | null;
 }
 
 function contaTempo(passo: Passo): number | null {
@@ -364,6 +481,7 @@ export function estadoDoPasso(passo: Passo, agora: number): EstadoPlayer {
     chave: passo.chave,
     fimEm: segundos === null ? null : agora + segundos * 1000,
     totalS: segundos,
+    ordem: "ordem" in passo ? passo.ordem : null,
   };
 }
 

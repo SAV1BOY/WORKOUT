@@ -319,7 +319,7 @@ function textosDaPagina(e: Exercicio, opcoes: ReturnType<typeof opcoesDeMontagem
       textos.push(
         `Próxima sessão: ${textoDoAlvo(series, alvo)}` +
           (alvo.assistencia ? ` · elástico ${nomeDaAssistencia(alvo.assistencia)}` : "") +
-          (alvo.semana_leve ? " · semana leve (60 %)" : ""),
+          (alvo.semana_leve ? " · semana leve (60%)" : ""),
       );
     }
     if (onde.ajustePelasBarras) textos.push("Montada com o peso das suas barras (Mais → Equipamento).");

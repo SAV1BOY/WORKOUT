@@ -1,7 +1,7 @@
 /**
  * SPEC §22.13 item 2 (correção da auditoria 3): os três exercícios que só têm
  * foto (escalador, salto básico e corrida no lugar com a corda) aparecem com a
- * foto na faixa do player (`h-40`) e na capa do bloco da Visão geral
+ * foto na faixa do player (`h-36` desde a §22.16) e na capa do bloco da Visão geral
  * (`h-36 rounded-none`) — e nas duas ela vai em `object-contain`, inteira, não
  * cortada. O e2e de object-fit cobre só a ficha e as miniaturas; aqui é o
  * `<img>` que o componente desenha, renderizado no servidor.
@@ -14,7 +14,7 @@ import { midiaGrande } from "@/lib/midia";
 
 const SO_FOTO = ["escalador", "salto-basico", "corrida-no-lugar-com-a-corda"] as const;
 const FAIXAS = [
-  { onde: "faixa do player", className: "h-40" },
+  { onde: "faixa do player", className: "h-36" },
   { onde: "capa do bloco na Visão geral", className: "h-36 rounded-none" },
 ] as const;
 

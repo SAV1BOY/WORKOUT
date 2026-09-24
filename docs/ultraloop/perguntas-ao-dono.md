@@ -131,3 +131,46 @@ O L31 (os itens D por último, de várias áreas) não precisa de pergunta: é a
 
 - **Sim** → o plano fica como está (é o que a v2 e a v3 assumem).
 - **Não** → esses itens vão para descartados com esse motivo e os lotes que os levam são refeitos (L17, L18, L19, L21, L22, L23 e L24 são quase só deles).
+
+## 4. Decisão tomada sem o dono no L32 (24/09)
+
+### L32 → L33 — A capa do plano deixou de dizer "semana N de 12"
+
+**Pergunta:** Na tela de um plano do Explorar (por exemplo, Corrida em
+/explorar/plano/corrida), a capa dizia "semana 2 de 12" e o bloco logo abaixo
+dizia de novo "Semana 2 de 12 · 1 concluída". O L32 tirou a posição da capa:
+agora ela aparece só no bloco. A capa continua com o título e o botão "Fazer a
+corrida da semana N". Você aprova assim?
+
+- **Sim** → fica como está (publicado em `b66e06c`). O L33 só troca o teste de
+  unidade por um que confere com `data/cardio.json`.
+- **Não** → a posição volta para a capa e sai do bloco, ou fica nos dois
+  lugares, como você preferir. Isso vira um item B num lote do Explorar.
+
+_Origem: o ledger pedia "decidir com o dono" (C-plano-progresso-repete-desafio).
+A decisão foi tomada sem você e ficou registrada no item
+C-l32-plano-capa-sem-o-dono (L33)._
+
+## 5. Descoberta no L19 (24/09): o Substituir da ficha apaga séries já feitas
+
+### L19 → L21 — Substituir pela ficha apaga as séries já feitas do exercício trocado
+
+**Pergunta:** no player, você pode trocar um exercício pela ficha ("?" →
+Substituir). Hoje isso apaga, do celular e do banco, as séries que você já
+tinha feito nele, e não avisa antes. A folha "Substituir hoje" da Visão geral
+avisa ("As séries já registradas deste bloco serão trocadas pelas do
+substituto"); a ficha não. Isso já acontecia antes do L19. O que você prefere?
+
+- **(a) Avisar antes:** a ficha mostra o mesmo aviso da Visão geral e só troca
+  depois que você confirmar. As séries feitas continuam saindo.
+- **(b) Manter as séries feitas:** o que você já fez do exercício original
+  fica registrado e conta como feito; o substituto começa do zero. Isso muda
+  a regra §3.2 e o aviso da Visão geral.
+- **(c) Deixar como está.**
+
+**Resposta do dono (24/09, ~14:00 UTC):** (b) — manter as séries feitas do exercício original; o substituto começa do zero. O L21 sobe para logo depois do L19 e reescreve a §3.2 antes do código.
+
+_Se não houver resposta quando o L21 começar, faço a (a), que só acrescenta o
+aviso e não muda a regra. Item: B-substituir-apaga-series-feitas (L21). O
+CLAUDE.md diz "Nunca perder um registro"; a §3.2 diz só "o registro fica com o
+exercício substituto; a progressão do original não muda"._

@@ -414,3 +414,25 @@
     scroll-behavior: auto !important;
   }
 }
+
+/*
+ * O "Desfazer" do aviso dos polegares (SPEC §22.16 item 6 — correção da
+ * auditoria 1). O botão de ação do Sonner vem com 24 px de altura e, no foco,
+ * uma sombra preta a 40 % que some sobre o aviso escuro. Aqui ele vira alvo de
+ * toque (≥ 44 × 44) e ganha o anel sólido de todo focável (§22.3 item 7).
+ * Fora de `@layer` e com uma classe a mais que o seletor do Sonner, porque o
+ * CSS dele entra sem camada.
+ */
+[data-sonner-toast][data-styled="true"] [data-button].aviso-desfazer {
+  height: 44px;
+  min-height: 44px;
+  min-width: 44px;
+  padding-left: 12px;
+  padding-right: 12px;
+  font-size: 14px;
+}
+[data-sonner-toast][data-styled="true"] [data-button].aviso-desfazer:focus-visible {
+  box-shadow: none;
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}

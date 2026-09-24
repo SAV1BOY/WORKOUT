@@ -105,7 +105,7 @@ test.describe("preparação → exercício → descanso (SPEC §14.1.1–3)", ()
     await comecarOTreinoDoDia(page);
 
     // 1. preparação: contagem de 10 s (prefs.preparacao_s) e o nome do 1º
-    await expect(page.getByText("Preparado para começar")).toBeVisible();
+    await expect(page.getByText("Prepare-se", { exact: true })).toBeVisible();
     await expect(page.getByRole("timer", { name: "Preparação" })).toHaveText("10");
     await expect(
       page.getByRole("heading", { name: "Agachamento livre" }),
