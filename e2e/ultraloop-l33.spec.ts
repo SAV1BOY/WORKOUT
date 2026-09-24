@@ -50,13 +50,72 @@ async function preparar(
   await entrarNoApp(page);
 }
 
-/** A posição da entrada atual no histórico da aba (Navigation API). */
+type ComIndice = {
+  navigation?: { currentEntry: { index: number } };
+  __indiceDoTeste?: () => number;
+};
+
+/**
+ * A posição da entrada atual no histórico da aba (Navigation API). Sem ela
+ * (`semNavigationApi`), pela referência que o teste guardou antes de apagá-la
+ * — o app não a vê.
+ */
 async function indice(page: Page): Promise<number> {
-  return page.evaluate(
-    () =>
-      (window as unknown as { navigation: { currentEntry: { index: number } } }).navigation
-        .currentEntry.index,
+  return page.evaluate(() => {
+    const w = window as unknown as ComIndice;
+    return w.__indiceDoTeste ? w.__indiceDoTeste() : w.navigation!.currentEntry.index;
+  });
+}
+
+/**
+ * Simula o Safari do iPhone (e Firefox antigo): `window.navigation` não
+ * existe quando o app carrega. Tem de vir antes da primeira navegação.
+ */
+async function semNavigationApi(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    const w = window as unknown as ComIndice & Record<string, unknown>;
+    const real = w.navigation;
+    if (!real) return;
+    Object.defineProperty(window, "__indiceDoTeste", {
+      value: () => real.currentEntry.index,
+    });
+    delete w.navigation;
+  });
+}
+
+const MODOS = ["com a Navigation API", "sem a Navigation API"] as const;
+type Modo = (typeof MODOS)[number];
+
+/** O modo pedido está valendo na página (a simulação não falhou em silêncio). */
+async function conferirModo(page: Page, modo: Modo): Promise<void> {
+  expect(await page.evaluate(() => "navigation" in window)).toBe(
+    modo === "com a Navigation API",
   );
+}
+
+/**
+ * Um passo no histórico da aba (o voltar ou o avançar do aparelho) e espera
+ * o app assentar: devolve quantos `popstate` houve — o do toque e, se o app
+ * pulou uma entrada, o do passo a mais.
+ */
+async function andarNoHistorico(page: Page, para: "back" | "forward"): Promise<number> {
+  return page.evaluate(async (para) => {
+    let n = 0;
+    const contar = () => {
+      n += 1;
+    };
+    window.addEventListener("popstate", contar);
+    if (para === "back") window.history.back();
+    else window.history.forward();
+    // assentou: 400 ms sem popstate novo
+    let visto = -1;
+    while (visto !== n) {
+      visto = n;
+      await new Promise((r) => setTimeout(r, 400));
+    }
+    window.removeEventListener("popstate", contar);
+    return n;
+  }, para);
 }
 
 async function abrirFicha(page: Page, id: string): Promise<void> {
@@ -272,6 +331,12 @@ async function voltarFechaACamada(
   await expect(gatilho).toBeFocused();
   await expect.poll(() => indice(page)).toBe(antes);
   expect(page.url()).toBe(url);
+
+  // o avançar logo depois do Esc não para na entrada desfeita: o app volta
+  expect(await andarNoHistorico(page, "forward")).toBe(2);
+  expect(await indice(page)).toBe(antes);
+  await expect(camada).toHaveCount(0);
+  expect(page.url()).toBe(url);
   await semRolagemHorizontal(page);
 }
 
@@ -302,26 +367,35 @@ test.describe("§22.17 item 6 — o voltar do celular fecha só a camada de cima
       await voltarFechaACamada(page, gatilho, page.getByRole("dialog"));
     });
 
-    test(`diálogo "Não vou treinar hoje" do Calendário (${tema})`, async ({ page }) => {
-      await preparar(page, tema, QUARTA);
-      await page.goto("/calendario");
-      await expect(page.getByRole("heading", { name: "Calendário" })).toBeVisible();
-      const gatilho = page.getByRole("button", { name: "Não vou treinar hoje" });
-      await expect(gatilho).toBeVisible();
-      await voltarFechaACamada(page, gatilho, page.getByRole("dialog"));
-    });
+    for (const modo of MODOS) {
+      test(`diálogo "Não vou treinar hoje" do Calendário, ${modo} (${tema})`, async ({
+        page,
+      }) => {
+        if (modo === "sem a Navigation API") await semNavigationApi(page);
+        await preparar(page, tema, QUARTA);
+        await page.goto("/calendario");
+        await conferirModo(page, modo);
+        await expect(page.getByRole("heading", { name: "Calendário" })).toBeVisible();
+        const gatilho = page.getByRole("button", { name: "Não vou treinar hoje" });
+        await expect(gatilho).toBeVisible();
+        await voltarFechaACamada(page, gatilho, page.getByRole("dialog"));
+      });
+    }
   }
 
   /*
    * A entrada morta pelo caminho real: o diálogo de um dia passado do
    * Calendário tem o link "Abrir o treino". A camada sai porque a rota mudou,
    * a entrada dela fica embaixo de /treinar/<id>, e o voltar (e o avançar)
-   * passa por cima dela — um passo do dedo, um passo de tela.
+   * passa por cima dela — um passo do dedo, um passo de tela. Nos dois temas,
+   * com e sem a Navigation API (o Safari do iPhone não a tem: até a rodada 28
+   * o avançar sem ela virava voltar — revisão do Codex no PR #31).
    */
-  for (const tema of TEMAS) {
-    test(`link dentro da camada: o voltar e o avançar pulam a entrada morta (${tema})`, async ({
+  for (const tema of TEMAS) for (const modo of MODOS) {
+    test(`link dentro da camada: o voltar e o avançar pulam a entrada morta, ${modo} (${tema})`, async ({
       page,
     }) => {
+      if (modo === "sem a Navigation API") await semNavigationApi(page);
       const sessao = await usuarioComPerfil();
       const id = "33333333-3333-4333-8333-333333333333";
       await inserirNoMock(sessao, "sessions", [
@@ -341,6 +415,7 @@ test.describe("§22.17 item 6 — o voltar do celular fecha só a camada de cima
       await fixarData(page, QUARTA);
       await entrarNoApp(page);
       await page.goto("/calendario");
+      await conferirModo(page, modo);
       await expect(page.getByRole("heading", { name: "Calendário" })).toBeVisible();
       const antes = await indice(page);
 
@@ -357,19 +432,25 @@ test.describe("§22.17 item 6 — o voltar do celular fecha só a camada de cima
       await expect.poll(() => indice(page)).toBe(antes + 2);
 
       // um voltar: de /treinar direto ao Calendário, sem diálogo e sem parar na morta
-      await page.evaluate(() => window.history.back());
+      // (dois popstate: o do toque, na morta, e o do passo a mais)
+      expect(await andarNoHistorico(page, "back")).toBe(2);
       await page.waitForURL(/\/calendario$/);
-      await expect.poll(() => indice(page)).toBe(antes);
+      expect(await indice(page)).toBe(antes);
       await expect(page.getByRole("heading", { name: "Calendário" })).toBeVisible();
       await expect(page.getByRole("dialog")).toHaveCount(0);
       expect(await page.evaluate(() => document.querySelectorAll("[inert]").length)).toBe(0);
       await semRolagemHorizontal(page);
 
       // um avançar: do Calendário direto a /treinar, pulando a morta na outra direção
-      await page.evaluate(() => window.history.forward());
+      expect(await andarNoHistorico(page, "forward")).toBe(2);
       await page.waitForURL(new RegExp(`/treinar/${id}$`));
-      await expect.poll(() => indice(page)).toBe(antes + 2);
+      expect(await indice(page)).toBe(antes + 2);
       await expect(page.getByRole("dialog")).toHaveCount(0);
+
+      // e o voltar de novo continua voltando
+      expect(await andarNoHistorico(page, "back")).toBe(2);
+      await page.waitForURL(/\/calendario$/);
+      expect(await indice(page)).toBe(antes);
     });
   }
 
