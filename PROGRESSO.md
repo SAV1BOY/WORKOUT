@@ -12406,6 +12406,22 @@ escuro), de `r27/l19/capturas-910b8c8`, viraram a base visual
 (`base-ef3ad97`, `indice.json` com head `a7b7d1b`; wt-base não avançado).
 **Rollback: não.**
 
+**Verificação logada em produção (24/09, 18:20–18:40 UTC).** Conta de teste
+`teste-l19-20260924@example.com` criada pela tela "Criar conta". Navegador
+real a 360×740, nos dois temas; `/versao` = `a7b7d1b`.
+- **Preparação:** "PREPARE-SE" com a contagem (10 → 9); "Sair do treino"
+  146×44; "Visão geral do treino" e "Como fazer: Agachamento livre" 44×44;
+  bloco centrado; 0 rolagem lateral; 0 alvo < 44 px.
+- **Visão geral:** aberta na preparação, segura a contagem por 12 s; "Fechar"
+  recomeça em 10.
+- **Sair do treino:** volta à aba Treino, e "Continuar" retoma a mesma sessão.
+- **Substituir no passo atual:** "?" → Substituir → "Afundo / passada".
+  "Concluir série" aparece em 6 ms, sem esqueleto em 60 amostras de 100 ms e
+  sem recarregar. O Dexie aponta para a série 1 do exercício novo.
+- 0 erro de console fora de um 502 do proxy.
+
+**Conta de teste apagada** às 18:45 UTC. Ficam só as 3 contas reais.
+
 ### Rodada 21 — Lote 32 — Sobras das auditorias: ficha e coleções do Explorar
 
 Faixa A, worktree `wt-a`, branch `polimento/l32-ficha-sobras` a partir de

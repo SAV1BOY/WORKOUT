@@ -860,6 +860,17 @@
     "rollback": "nao",
     "problemas": [
       "list_aliases com domain='treino-terraco.vercel.app' voltou vazio; deploymentId lido da listagem do projeto sem filtro de dominio"
-    ]
+    ],
+    "verificacao_logada": {
+      "hora_utc": "18:20–18:40",
+      "conta_teste": "teste-l19-20260924@example.com",
+      "temas": [
+        "claro",
+        "escuro"
+      ],
+      "resultado": "ok — preparação, Visão geral segura a contagem, Sair/Continuar, Substituir no passo atual sem esqueleto (60 amostras), 0 rolagem lateral, 0 alvo<44",
+      "conta_apagada_utc": "18:45",
+      "contas_restantes": 3
+    }
   }
 ]
