@@ -11660,9 +11660,13 @@ Explorar entram pela exceção de área do plano (os mesmos arquivos do L13).
    ilustração da aba Músculos, que **não existe mais** — o §22.14 item 3(a)
    tirou a ilustração dessa aba (grep de `urls.join` em `ficha-folha.tsx`:
    nada); a `key` que sobra, a da aba Vídeo em `media-grande.tsx`, só tinha
-   e2e pela seta ›. É: e2e do "Substituir" com a figura do agachamento livre
-   na posição 2 (o afundo começa na 1, o quadro 2 dele espera o 1) e da aba
-   Músculos aberta atravessando › e "Substituir". Arquivos:
+   e2e pela seta ›. É: e2e do "Substituir" — na ficha aberta no player, ›
+   até o supino (o 2º exercício), a ilustração dele na posição 2 e
+   "Substituir" → crossover na polia: o crossover começa na posição 1 e o
+   quadro 2 dele espera o 1 — e da aba Músculos aberta atravessando › e
+   "Substituir". A troca é feita no 2º exercício, e não no do passo atual,
+   porque substituir o exercício do passo atual trava o player no esqueleto
+   (defeito anterior ao lote, em "Achado fora do lote" abaixo). Arquivos:
    `e2e/ultraloop-l32.spec.ts`. Código de app: nenhum.
 2. **A figura quebrada não passa para o próximo exercício**
    (C-media-grande-figura-quebrou-herdada). Era: `figuraQuebrou` booleano na
@@ -11783,7 +11787,9 @@ Explorar entram pela exceção de área do plano (os mesmos arquivos do L13).
   versão do e2e do item 1 (5 falhas em `r21/l32/pre-logs/320c6bf.log`, todas
   pelo mesmo esqueleto). Nenhuma série se perde (o Dexie tem a sessão; ao
   recarregar, o player retoma). Não corrigido aqui (fora da SPEC do lote);
-  os e2e dos itens 1 e 2 trocam o 2º exercício. Vai à fila.
+  os e2e dos itens 1 e 2 trocam o 2º exercício. Ainda não está na fila
+  (`docs/ultraloop/fila.json` não tem a entrada); o orquestrador registrou
+  no diário (01:59) que cria o item depois do deploy do L32.
 
 #### Portões
 
@@ -11824,18 +11830,24 @@ outras 58 com Δ 0,00 %. Diff aberto: `07-colecao-claro.diff.png`.
 
 | tela | Δ claro | Δ escuro | o que mudou |
 | --- | ---: | ---: | --- |
-| 07-colecao (`/explorar/plano/corrida`) | 16,30 % | 22,07 % | a capa perde a linha "semana 2 de 12" (item 7: a posição fica só no bloco "Semana 2 de 12 · 1 concluída"); a capa fica ~40 px mais baixa e o botão, o bloco e a lista sobem junto. O canto da linha "agora" (item 8) não aparece nesta captura (a atual é a 2ª linha). |
+| 07-colecao (`/explorar/plano/corrida`) | 16,30 % | 22,07 % | a capa perde a linha "semana 2 de 12" (item 7: a posição fica só no bloco "Semana 2 de 12 · 1 concluída"); a capa fica ~20 px de CSS mais baixa (~40 px na imagem em 2×) e o botão, o bloco e a lista sobem junto. O canto da linha "agora" (item 8) não aparece nesta captura (a atual é a 2ª linha). |
 | 06, 09, 10, 28 | 0,00 % | 0,00 % | nada visível na primeira tela: a busca (itens 5 e 6) não está nas capturas; as tags (item 10) ficam abaixo da dobra da ficha; o alt (item 3) não se vê; a troca no lugar (itens 1 e 2) é interação. Medidos pelos e2e acima. |
 
 Servidores derrubados pelo `capturas.sh` (3100 e 54321 → 000).
 
 #### Como testar no celular (360 px)
 
-1. Treino → Começar → no player, "?" (Como fazer): escolha "Figura" no
-   segmento, toque em "Substituir" e escolha outro exercício — a figura do
-   novo aparece; com a Ilustração, ela recomeça na posição 1.
-2. Na mesma folha, a aba Músculos aberta continua aberta ao trocar de
-   exercício pela seta › e pelo "Substituir", com os músculos do novo.
+1. Treino → Começar → no player, "?" (Como fazer) → toque na seta › para
+   ir ao **2º exercício** (supino) antes de trocar: não use "Substituir" no
+   exercício do passo atual, que deixa o player no esqueleto até recarregar
+   a página (defeito anterior ao lote, em Provas; nenhuma série se perde).
+   No supino, espere a ilustração passar à posição 2, toque em
+   "Substituir" e escolha "Crossover na polia": a ilustração do novo
+   recomeça na posição 1. Escolha "Figura" no segmento e repita › e
+   "Substituir" no exercício seguinte: a figura do novo aparece.
+2. Na mesma folha, ainda fora do passo atual, a aba Músculos aberta
+   continua aberta ao trocar de exercício pela seta › e pelo
+   "Substituir", com os músculos do novo.
 3. Com o leitor de tela, a figura diz "Execução: Prancha" (nunca "do
    Prancha").
 4. Explorar → buscar "corda": nenhuma linha com vão entre o título e o

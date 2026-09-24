@@ -2891,8 +2891,8 @@ seção C da fila, deixadas pelas auditorias e pela verificação em produção 
 lotes 13 e 14: seis da ficha do exercício e quatro das coleções do Explorar,
 que entram por **exceção de área**, como no §22.13 (mesma prioridade (2) do
 dono, §22.0, e os mesmos arquivos). O motor não muda (§22.0.1 item 7). O
-aceite de cada item é verificável no Vitest (`lib/midia.test.ts`,
-`lib/colecoes.test.ts`) ou no e2e (`e2e/ultraloop-l32.spec.ts`).
+aceite de cada item é verificável no Vitest (`lib/l32.test.ts`) ou no
+e2e (`e2e/ultraloop-l32.spec.ts`).
 
 1. **A figura nasce de novo também no "Substituir"** (C-l13-key-musculos-sem-teste).
    O ledger pedia teste para a `key` da ilustração da aba **Músculos** da
