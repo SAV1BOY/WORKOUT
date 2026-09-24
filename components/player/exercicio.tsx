@@ -27,6 +27,7 @@ import {
   type ImplementoMontagem,
   type OpcoesMontagem,
 } from "@/lib/montagem";
+import { nomeAcessivel } from "@/lib/midia";
 import {
   avisoDoPolegar,
   pontosDoBloco,
@@ -245,7 +246,7 @@ export function TelaExercicio({
             variant="ghost"
             size="icon"
             className="alvo shrink-0"
-            aria-label={`Como fazer: ${exercicio.nome}`}
+            aria-label={nomeAcessivel("Como fazer", exercicio.nome)}
             onClick={aoAbrirFicha}
           >
             <CircleHelp className="size-5" />

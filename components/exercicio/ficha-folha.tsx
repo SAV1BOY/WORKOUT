@@ -202,6 +202,14 @@ export function ConteudoDaFicha({
             <ul data-tags-equipamento className="flex flex-wrap gap-x-1">
               {tagsDoEquipamento(exercicio.equipamento).map((t) => (
                 <li key={t.tag}>
+                  {/*
+                    SPEC §22.15 item 10: a tag que abre a coleção parece link
+                    sem hover — pílula com contorno, sublinhada sempre e com a
+                    seta no fim —, e a sem coleção é texto simples, sem
+                    pílula: antes as duas tinham o mesmo visual. O contorno é
+                    `muted-foreground` (≥ 3:1 contra o fundo nos dois temas;
+                    o `border` do outline dava 1,27:1 no claro).
+                  */}
                   {t.href ? (
                     <Link
                       href={t.href}
@@ -209,16 +217,19 @@ export function ConteudoDaFicha({
                     >
                       <Badge
                         variant="outline"
-                        className="text-micro underline-offset-2 hover:underline"
+                        data-tag-equipamento="link"
+                        className="border-muted-foreground text-micro underline underline-offset-2"
                       >
                         {t.rotulo}
+                        <ChevronRight aria-hidden="true" data-icon="inline-end" />
                       </Badge>
                     </Link>
                   ) : (
-                    <span className="inline-flex min-h-11 items-center">
-                      <Badge variant="outline" className="text-micro">
-                        {t.rotulo}
-                      </Badge>
+                    <span
+                      data-tag-equipamento="texto"
+                      className="text-muted-foreground inline-flex min-h-11 items-center px-1 text-micro"
+                    >
+                      {t.rotulo}
                     </span>
                   )}
                 </li>

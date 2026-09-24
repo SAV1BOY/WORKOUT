@@ -143,10 +143,10 @@ test.describe("Relatório (SPEC §3.7 e §13.5)", () => {
     await abrirSecaoDoRelatorio(page, "graficos");
 
     // um gráfico por grande, mesmo com um ponto só
-    await expect(page.getByLabel("Carga do Agachamento livre por sessão")).toBeVisible();
-    await expect(page.getByLabel("Carga do Supino reto com barra por sessão")).toBeVisible();
+    await expect(page.getByLabel("Carga por sessão: Agachamento livre")).toBeVisible();
+    await expect(page.getByLabel("Carga por sessão: Supino reto com barra")).toBeVisible();
     await expect(
-      page.getByLabel("Carga do Desenvolvimento militar em pé por sessão"),
+      page.getByLabel("Carga por sessão: Desenvolvimento militar em pé"),
     ).toBeHidden();
     /* SPEC §22.6 item 9: sem registro, o grande vira UMA linha */
     await expect(

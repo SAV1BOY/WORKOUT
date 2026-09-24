@@ -407,7 +407,7 @@ test.describe("L13 — a figura não é o botão de pausa (item 5)", () => {
     await expect(ilustracao).toHaveAttribute("data-ilustracao", "alternando");
     const figura = ilustracao.locator('[data-figura="abre"]');
     // correção da auditoria 2: nome estável, a posição vai na descrição
-    await expect(figura).toHaveAccessibleName(/^Execução do .+ — abre o Como fazer$/);
+    await expect(figura).toHaveAccessibleName(/^Execução: .+ — abre o Como fazer$/);
     await expect(figura).toHaveAccessibleDescription(/^posição [12] de 2$/);
 
     // o toque no meio da figura abre a ficha, e ela continua alternando
@@ -463,7 +463,7 @@ test.describe("L13 — a figura não é o botão de pausa (item 5)", () => {
     const ilustracao = page.locator("[data-ilustracao]").first();
     await expect(ilustracao).toHaveAttribute("data-ilustracao", "alternando");
     await expect(ilustracao.getByRole("img")).toHaveAccessibleName(
-      /^Execução do Supino reto com barra, posição [12] de 2$/,
+      /^Execução: Supino reto com barra, posição [12] de 2$/,
     );
     const caixa = await ilustracao.boundingBox();
     await page.mouse.click(caixa!.x + caixa!.width / 2, caixa!.y + caixa!.height / 2);
@@ -879,7 +879,7 @@ test.describe("L13 — nome estável da figura-botão (correção da auditoria 2
         };
       });
     const antes = await ler();
-    expect(antes.nome).toMatch(/^Execução do .+ — abre o Como fazer$/);
+    expect(antes.nome).toMatch(/^Execução: .+ — abre o Como fazer$/);
     expect(antes.descricao).toMatch(/^posição [12] de 2$/);
     // a figura troca de posição com o foco nela…
     const posicao = await ilustracao.getAttribute("data-posicao");
@@ -1076,7 +1076,7 @@ test.describe("L13 — a ilustração nasce de novo ao trocar de exercício na f
     await expect
       .poll(() => primeiro.evaluate((i) => getComputedStyle(i).opacity))
       .toBe("1");
-    await expect(page.getByRole("img", { name: /^Execução do / }).first()).toBeVisible();
+    await expect(page.getByRole("img", { name: /^Execução: / }).first()).toBeVisible();
   });
 });
 
@@ -1152,7 +1152,7 @@ test.describe("L13 — o selo Circuito não corta o subtítulo (correção da au
     await conferirCorda(page.locator('[data-colecao="plano:corda"]').first(), 'busca "corda"');
     // sem subtítulo, o selo continua abrindo a linha reservada (o circuito da corda)
     const circuito = page.locator('[data-colecao="circuito:corda"]').first();
-    await expect(circuito.locator('[data-linha="subtitulo-vazio"] [data-selo="circuito"]')).toBeVisible();
+    await expect(circuito.locator('[data-linha="sem-subtitulo"] [data-selo="circuito"]')).toBeVisible();
     await semRolagemHorizontal(page);
   });
 });

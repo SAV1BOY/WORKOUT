@@ -3,7 +3,13 @@
 import { useState } from "react";
 import { fonteComReserva, reservaDaImagem } from "@/components/ui/imagem";
 import { urlFigura, urlFotos } from "@/lib/dados";
-import { MEDIDA_DA_FIGURA, medidaDaFoto, proporcaoDaFoto, urlWebp } from "@/lib/midia";
+import {
+  altDaExecucao,
+  MEDIDA_DA_FIGURA,
+  medidaDaFoto,
+  proporcaoDaFoto,
+  urlWebp,
+} from "@/lib/midia";
 import type { Exercicio } from "@/lib/schemas";
 import { cn } from "@/lib/utils";
 
@@ -26,7 +32,7 @@ export function FiguraExercicio({
     // eslint-disable-next-line @next/next/no-img-element -- SVG animado servido de /public; o next/image rasteriza e mata a animação
     <img
       src={url}
-      alt={`Execução do ${exercicio.nome}`}
+      alt={altDaExecucao(exercicio.nome)}
       width={MEDIDA_DA_FIGURA.largura}
       height={MEDIDA_DA_FIGURA.altura}
       className={cn("bg-muted/40 h-44 w-full rounded-lg object-contain p-2", className)}

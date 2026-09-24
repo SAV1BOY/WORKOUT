@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { acharExercicio } from "@/lib/dados";
+import { nomeAcessivel } from "@/lib/midia";
 import { cn } from "@/lib/utils";
 
 /** O tempo que o marcador fica aceso antes de a tela virar (SPEC §22.5). */
@@ -95,7 +96,7 @@ export function TelaFirme({
         value={nota ?? ""}
         onChange={(e) => aoMudarNota(e.target.value)}
         placeholder="Nota curta (opcional)"
-        aria-label={`Nota do ${exercicio.nome}`}
+        aria-label={nomeAcessivel("Nota", exercicio.nome)}
         className="border-input bg-card focus-visible:border-ring focus-visible:ring-ring h-12 w-full rounded-xl border px-3 text-sm outline-none focus-visible:ring-3"
       />
 
