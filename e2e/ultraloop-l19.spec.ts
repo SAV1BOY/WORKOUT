@@ -123,6 +123,103 @@ async function substituirNaFolha(ficha: Locator): Promise<string> {
   return nome;
 }
 
+/** Quantos itens do perfil estão na fila de saída do aparelho (Dexie → `outbox`). */
+async function perfilNaFila(page: Page): Promise<number> {
+  return page.evaluate(
+    () =>
+      new Promise<number>((resolver) => {
+        const pedido = indexedDB.open("treino-terraco");
+        pedido.onerror = () => resolver(-1);
+        pedido.onsuccess = () => {
+          const banco = pedido.result;
+          const tx = banco.transaction(["outbox"], "readonly");
+          const todas = tx.objectStore("outbox").getAll();
+          tx.oncomplete = () => {
+            const itens = todas.result as { tipo?: string }[];
+            resolver(itens.filter((i) => i.tipo === "perfil").length);
+            banco.close();
+          };
+        };
+      }),
+  );
+}
+
+test.describe("§22.16 item 6 — sem perfil, o polegar não confirma voto que não gravou", () => {
+  /*
+   * O worker leva todo `/rest/v1/` pela rede (NetworkOnly, app/sw.ts), e o
+   * que passa por ele fica fora do alcance do `page.route`: aqui ele fica de
+   * fora, para o `profiles` falhar de verdade.
+   */
+  test.use({ serviceWorkers: "block" });
+
+  test("o player abre com a sessão do aparelho; 'Não gosto' diz que não anotou, sem 'Desfazer' e sem gravar", async ({
+    page,
+  }) => {
+    const sessao = await preparar(page);
+    await comecarOTreinoDoDia(page);
+    await comecarNoPlayer(page);
+    await expect(
+      page.getByText("Aquecimento 1 de 2 · exercício 1 de 6"),
+    ).toBeVisible();
+
+    /*
+     * O perfil deixa de chegar: o `profiles` responde erro e o cache de
+     * leitura do aparelho (lib/persistencia-query.ts, tabela `cache`) é
+     * esvaziado antes de o app lê-lo — o mesmo que um cache de mais de 7
+     * dias sem rede. A sessão em andamento continua no Dexie.
+     */
+    await page.route("**/rest/v1/profiles**", (rota) =>
+      rota.fulfill({
+        status: 503,
+        contentType: "application/json",
+        body: JSON.stringify({ message: "indisponível" }),
+      }),
+    );
+    await page.addInitScript(() => {
+      const pedido = indexedDB.open("treino-terraco");
+      pedido.onsuccess = () => {
+        const banco = pedido.result;
+        if (banco.objectStoreNames.contains("cache")) {
+          banco.transaction(["cache"], "readwrite").objectStore("cache").clear();
+        }
+        banco.close();
+      };
+    });
+    await page.reload();
+
+    const naoGosto = page.getByRole("button", {
+      name: "Não gosto deste exercício",
+    });
+    await expect(page.getByRole("button", { name: "Concluir série" })).toBeVisible({
+      timeout: 15_000,
+    });
+    await expect(
+      page.getByText("Aquecimento 1 de 2 · exercício 1 de 6"),
+    ).toBeVisible();
+    await naoGosto.click();
+
+    await expect(
+      page.getByText("Voto não anotado: o perfil ainda não carregou."),
+    ).toBeVisible();
+    await expect(
+      page.getByText(
+        "Agachamento livre vai para o fim das listas de substitutos e do Explorar.",
+      ),
+    ).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Desfazer" })).toHaveCount(0);
+    await expect(naoGosto).not.toHaveAttribute("aria-pressed", /.*/);
+    await semRolagemHorizontal(page);
+
+    // nada foi para a fila do aparelho nem para o banco
+    expect(await perfilNaFila(page)).toBe(0);
+    const perfis = await lerDoMock<{ prefs: { evitar_exercicios?: string[] } }>(
+      sessao,
+      "profiles",
+    );
+    expect(perfis[0]?.prefs.evitar_exercicios ?? []).toEqual([]);
+  });
+});
+
 /* -------------------------------- item 1: Substituir no passo atual */
 
 test.describe("§22.16 item 1 — Substituir no exercício do passo atual", () => {
@@ -136,8 +233,10 @@ test.describe("§22.16 item 1 — Substituir no exercício do passo atual", () =
 
       /*
        * Com o aquecimento 1 do agachamento feito. O que acontece com ELE na
-       * troca (hoje sai do aparelho e do banco, como já saía em c689f69) é
-       * pergunta aberta ao dono (SPEC §22.16 item 1): este teste não afirma
+       * troca (hoje sai do aparelho e do banco, como já saía em c689f69) já
+       * foi decidido pelo dono — opção (b), manter as séries feitas do
+       * original — e é o L21 (B-substituir-apaga-series-feitas, SPEC §22.16
+       * item 1) que traz o conserto e os testes dele: este teste não afirma
        * nem a perda nem o contrário.
        */
       await concluirSerie(page);
