@@ -12032,6 +12032,78 @@ passo atual (player no esqueleto) **não** é deste lote e não foi mexido.
   A mutação foi desfeita (`git checkout -- media-grande.tsx`) antes da
   cadeia.
 
+##### Portões
+
+Cadeia inteira em `e6f42b2` (todo o código da rodada 22 + o registro até
+aqui; `r22/l32/logs/e6f42b2.log`, das 09:40:26 às 10:06:01 UTC,
+**falhou:e2e**): `lint` limpo · `tsc --noEmit` limpo · `npm test` **74
+arquivos, 1.643 testes, todos verdes** (eram 1.641; +2 do `lib/l32.test.ts`)
+· `build` ("Compiled successfully in 21.6s") · `build:e2e` ("Compiled
+successfully in 20.6s") · `e2e` **573 passaram, 2 falharam, 5 pulados**
+(23,4 min; os 18 de `ultraloop-l32` com ✓; os 5 pulados são a varredura).
+A `varredura` não rodou (a cadeia para no primeiro portão que falha).
+
+As 2 falhas são de `e2e/ultraloop-a-r4.spec.ts`, "nenhum toque na faixa
+fixa atravessa para a lista de baixo" (paradas com a faixa à vista: 1,
+esperado > 5) e "a faixa fixa inteira é o controle anunciado" (a faixa não
+apareceu depois de rolar até o fim): a aba Treino mediu a altura da página
+antes de a lista desenhar, com a máquina carregada (load ~4; outra faixa
+com `next start -p 3130` e Playwright fora do lock). Nenhum arquivo da aba
+Treino que a faixa usa mudou (`components/treino/lista.tsx` só trocou o
+template "Ficha: ${item.nome}" pela mesma string vinda de
+`nomeAcessivel("Ficha", …)`; o snapshot da falha mostra "Ficha: Agachamento
+livre"). **Sozinhos, no mesmo `.next`, passaram 2×**: `r22/l32/instavel-1`
+(10:07–10:08 UTC, 4 de 4) e `r22/l32/instavel-2` (10:12–10:13 UTC, esperou
+o lock da faixa B; 4 de 4). Pela regra do lote, instável sob carga,
+anotado, não bloqueia. Uma cadeia inteira de novo não coube no prazo: às
+10:13 o lock estava na fila da cadeia de auditoria do L35 (build:e2e, e2e
+de ~23 min e varredura).
+
+##### Capturas
+
+`capturas.sh` com o `.next` do `build:e2e` da cadeia de `e6f42b2`, contra a
+base real de `main` (`base-ef3ad97`), telas declaradas 09, 10, 06, 07 e 28
+(`r22/l32/capturas-e6f42b2.md`, 10:13–10:16 UTC): 60 de 60 PNGs (30 telas ×
+2 temas); o comparador diz "Nenhuma tela mudou fora do esperado". Unidade
+da tabela: telas (cada uma nos dois temas).
+
+| tela | Δ claro | Δ escuro | o que mudou |
+| --- | ---: | ---: | --- |
+| 07-colecao | 16,30 % | 22,07 % | o mesmo da rodada 21 (diff `07-colecao-escuro.diff.png` aberto): a linha "semana 2 de 12" sai da capa (item 7); o botão "Fazer a corrida da semana 2", "Semanas do plano", o bloco "Semana 2 de 12 · 1 concluída" e a lista sobem ~20 px de CSS. |
+| 09-ficha-exercicio | 0,00 % | 0,00 % | nada: as tags de equipamento, com o contorno novo (item 10), ficam abaixo da dobra; o contraste é medido pelo e2e. |
+| as outras 28 telas (06, 10, 28 e as 25 não declaradas) | 0,00 % | 0,00 % | nada: a rodada 22 muda nomes acessíveis (não aparecem) e o contorno da tag abaixo da dobra. |
+
+Servidores derrubados pelo `capturas.sh` (3100 e 54321 → 000).
+
+##### Correção da auditoria
+
+Rodada 22, sobre a auditoria 2 da rodada 21 (vereditos em
+`r22/l32/vereditos-auditoria-2-r21.json`):
+
+- **Bloqueante (item 3)** — corrigido: `nomeAcessivel()` em `lib/midia.ts`;
+  "Nota: <nome>", "Última repetição firme: <nome>", "Carga por sessão:
+  <nome>"; Vitest dos 81 nomes × 6 rótulos, grep de `lib/`, `components/` e
+  `app/`, mutações A e B, e2e da remada no player e na Visão geral.
+  `e2e/treinar.spec.ts:363` e `e2e/relatorio.spec.ts:146-149` alinhados.
+- **Importante (SPEC item 6)** — corrigido: o parágrafo diz as duas
+  passadas e a busca "corda" medida (saída em Provas); o Vitest agora
+  verifica a ordem, o ícone do aparelho e os 4 planos de antes.
+- **Menores** — SPEC item 3 com a exceção da foto: feito. Comentário de
+  `linha-colecao.tsx` (e a frase do §22.13 item 7): feito. Mutação só da
+  `key` com log próprio: feito (`r22/l32/mut-key/7286a6e.log`, cai). Tabela
+  de capturas numa unidade só: feito (a da rodada 21 e esta). O nó
+  `subtitulo-vazio` → `sem-subtitulo`: feito. Contorno da tag-link ≥ 3:1:
+  feito (`muted-foreground`; o e2e mede nos dois temas).
+- Fora dos `arquivos_previstos` do lote, por causa do bloqueante:
+  `components/player/firme.tsx`, `components/player/exercicio.tsx`,
+  `components/player/preparacao.tsx`, `components/treinar/bloco.tsx`,
+  `components/treino/lista.tsx`, `components/colecoes/lista-da-colecao.tsx`,
+  `components/progresso/tela-progresso.tsx`, `e2e/treinar.spec.ts`,
+  `e2e/relatorio.spec.ts`, `e2e/ultraloop-l13.spec.ts` (o nó renomeado) e
+  `lib/l32.test.ts`. Só nomes acessíveis e testes; nenhuma tela muda.
+- **Não afirmado como resolvido:** o "Substituir" no exercício do passo
+  atual do player (esqueleto) continua fora deste lote.
+
 ##### Como testar no celular (360 px)
 
 1. Treino → Começar → no player, avance pela seta até a pergunta "Última
