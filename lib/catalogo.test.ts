@@ -156,8 +156,7 @@ describe("a folha de filtros (SPEC §22.12 item 1)", () => {
     expect(chipsDosFiltros(FILTROS_VAZIOS)).toEqual([]);
     expect(chipsDosFiltros({ ...peitoHalteres, soPrograma: true })).toEqual([
       { chave: "grupo", rotulo: "Peito" },
-      // SPEC §22.17 item 1: "Halteres" é também equipamento, com outra lista
-      { chave: "implemento", rotulo: "Halteres (principal)" },
+      { chave: "implemento", rotulo: "Halteres" },
       { chave: "soPrograma", rotulo: "No meu programa" },
     ]);
     const opcoes = opcoesDoCatalogo(exercicios);

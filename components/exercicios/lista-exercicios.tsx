@@ -19,7 +19,7 @@ import {
 import {
   FILTROS_VAZIOS,
   NOME_EQUIPAMENTO,
-  rotuloDoImplemento,
+  NOME_IMPLEMENTO,
   chipsDosFiltros,
   filtrarExercicios,
   idsDoPrograma,
@@ -197,11 +197,7 @@ export function ListaExercicios({
                   </SheetDescription>
                 </SheetHeader>
                 <div className="flex flex-col gap-3 px-4">
-                  {/*
-                    SPEC §22.17 item 1: "Barra maciça (principal)" não cabe na
-                    meia largura a 360 px — um seletor por linha.
-                  */}
-                  <div className="grid grid-cols-1 gap-2">
+                  <div className="grid grid-cols-2 gap-2">
                     <Selecao
                       rotulo="Grupo"
                       valor={filtros.grupo}
@@ -214,7 +210,7 @@ export function ListaExercicios({
                       aoMudar={(v) => mudar({ implemento: v as Implemento | "todos" })}
                       opcoes={opcoes.implementos.map((i) => ({
                         valor: i,
-                        nome: rotuloDoImplemento(i),
+                        nome: NOME_IMPLEMENTO[i],
                       }))}
                     />
                     <Selecao
@@ -225,6 +221,7 @@ export function ListaExercicios({
                         valor: e,
                         nome: NOME_EQUIPAMENTO[e],
                       }))}
+                      className="col-span-2"
                     />
                   </div>
                   {/* chip de alternância, não botão de largura inteira */}

@@ -15,13 +15,13 @@ import {
   ondeVoceEsta,
   podeVoltarNoApp,
   tagsDoEquipamento,
-  textoRepetido,
 } from "@/lib/ficha";
-import { textosDaPagina } from "@/lib/ficha-espelho";
-import { textoDaCarga } from "@/lib/hoje";
+import { formatarDescanso } from "@/lib/formato";
+import { textoDaCarga, textoDoAlvo } from "@/lib/hoje";
 import { comPesoDaBarra, opcoesDeMontagem } from "@/lib/preferencias";
 import { cargaDeHoje, prescricaoPadrao } from "@/lib/progressao";
 import type { Exercicio } from "@/lib/schemas";
+import { nomeDaAssistencia } from "@/lib/sessao";
 import type { BarraId } from "@/lib/montagem";
 
 describe("as abas da ficha (SPEC §22.14 item 4)", () => {
@@ -284,8 +284,62 @@ describe("a nota da carga inicial não repete 'peso do corpo' (SPEC §22.14 item
  * 81 exercícios, com o histórico vazio (o estado do e2e), sem e com as barras
  * pesadas. Os textos vêm dos mesmos dados e das mesmas regras do componente.
  */
-/** O critério mora em `lib/ficha.ts` (SPEC §22.17 item 2); o e2e usa o mesmo. */
-const repetidos = textoRepetido;
+function textosDaPagina(e: Exercicio, opcoes: ReturnType<typeof opcoesDeMontagem>): string[] {
+  const p = e.prescricao_padrao;
+  const prescricao = prescricaoPadrao(e);
+  const alvo = cargaDeHoje(e, null, prescricao, opcoes);
+  const onde = ondeVoceEsta({
+    comoPagina: true,
+    primeiraVez: alvo.primeira_vez === true,
+    assistencia: Boolean(alvo.assistencia),
+    semanaLeve: Boolean(alvo.semana_leve),
+    cargaDoMotor: alvo.carga_kg,
+    cargaInicial: e.carga_inicial.kg,
+  });
+  const series = prescricao.series ?? p.series ?? 3;
+  const textos = [
+    `${e.grupo} · ${e.equipamento_texto}`,
+    ...linksDosTreinos(treinosDoExercicio(e.id)).map((t) => t.nome),
+    ...e.passos,
+    e.erro_comum,
+    e.montagem,
+    ...tagsDoEquipamento(e.equipamento).map((t) => t.rotulo),
+    p.texto,
+    `Descanso de ${formatarDescanso(p.descanso_s)}${p.unilateral ? " · um lado de cada vez" : ""}`,
+    linhaDaCargaInicial(e),
+    notaDaCargaInicial(e.carga_inicial),
+    e.progressao.regra,
+    SEM_HISTORICO.titulo,
+    SEM_HISTORICO.frase,
+    "Sessão livre só com este exercício, com a carga que o motor indica.",
+  ];
+  if (onde.mostrar) {
+    if (onde.carga) textos.push(textoDaCarga(e.implemento, alvo.carga_kg));
+    if (onde.proxima) {
+      textos.push(
+        `Próxima sessão: ${textoDoAlvo(series, alvo)}` +
+          (alvo.assistencia ? ` · elástico ${nomeDaAssistencia(alvo.assistencia)}` : "") +
+          (alvo.semana_leve ? " · semana leve (60%)" : ""),
+      );
+    }
+    if (onde.ajustePelasBarras) textos.push("Montada com o peso das suas barras (Mais → Equipamento).");
+    if (onde.nota) textos.push(`Ainda sem registro: ${e.carga_inicial.nota}.`);
+  }
+  return textos
+    .filter((t): t is string => t !== null)
+    .map((t) => t.replace(/\s+/g, " ").trim())
+    .filter((t) => t.length >= 12);
+}
+
+function repetidos(textos: string[]): string[] {
+  const achados: string[] = [];
+  textos.forEach((a, i) =>
+    textos.forEach((b, j) => {
+      if (i !== j && (a === b ? i < j : b.includes(a))) achados.push(`«${a}» ⊂ «${b}»`);
+    }),
+  );
+  return achados;
+}
 
 describe("nada repetido na ficha em página, nos 81 (SPEC §22.14 item 3)", () => {
   const perfis: [string, ReturnType<typeof opcoesDeMontagem>][] = [

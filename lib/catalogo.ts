@@ -75,41 +75,6 @@ export const NOME_EQUIPAMENTO: Record<EquipamentoTag, string> = {
   "super-band": "Super Band",
 };
 
-/**
- * O rótulo do implemento nos filtros (SPEC §22.17 item 1). "Implemento" é o
- * aparelho principal do exercício (um por exercício); "Equipamento", tudo o
- * que ele usa. Seis nomes aparecem nos dois seletores; quando o nome do
- * implemento é igual ao de um equipamento **e** os dois filtros dão listas
- * diferentes ("Halteres": 23 × 28), o do implemento diz "(principal)" — no
- * seletor e no chip. Com a mesma lista ("Barra W", 3 × 3), fica o nome. A
- * decisão vem dos dados, calculada uma vez.
- */
-export function rotuloDoImplemento(
-  implemento: Implemento,
-  lista: readonly Exercicio[] = exercicios,
-): string {
-  const nome = NOME_IMPLEMENTO[implemento];
-  const cache = lista === exercicios ? rotulosDoCatalogo : null;
-  const pronto = cache?.get(implemento);
-  if (pronto !== undefined) return pronto;
-  const doImplemento = lista.filter((e) => e.implemento === implemento).map((e) => e.id);
-  const ambiguo = (Object.keys(NOME_EQUIPAMENTO) as EquipamentoTag[]).some((tag) => {
-    if (NOME_EQUIPAMENTO[tag].toLocaleLowerCase("pt-BR") !== nome.toLocaleLowerCase("pt-BR")) {
-      return false;
-    }
-    const doEquipamento = lista.filter((e) => e.equipamento.includes(tag)).map((e) => e.id);
-    return (
-      doEquipamento.length !== doImplemento.length ||
-      doEquipamento.some((id) => !doImplemento.includes(id))
-    );
-  });
-  const rotulo = ambiguo ? `${nome} (principal)` : nome;
-  cache?.set(implemento, rotulo);
-  return rotulo;
-}
-
-const rotulosDoCatalogo = new Map<Implemento, string>();
-
 export interface FiltrosCatalogo {
   busca: string;
   grupo: Grupo | "todos";
@@ -243,7 +208,7 @@ export function chipsDosFiltros(f: FiltrosCatalogo): ChipDoFiltro[] {
   const chips: ChipDoFiltro[] = [];
   if (f.grupo !== "todos") chips.push({ chave: "grupo", rotulo: f.grupo });
   if (f.implemento !== "todos") {
-    chips.push({ chave: "implemento", rotulo: rotuloDoImplemento(f.implemento) });
+    chips.push({ chave: "implemento", rotulo: NOME_IMPLEMENTO[f.implemento] });
   }
   if (f.equipamento !== "todos") {
     chips.push({ chave: "equipamento", rotulo: NOME_EQUIPAMENTO[f.equipamento] });
