@@ -101,11 +101,8 @@ async function seriesNoMock(
   sessao: SessaoMock,
   exercicioId: string,
 ): Promise<LinhaSerie[]> {
-  return lerDoMock<LinhaSerie>(
-    sessao,
-    "sets",
-    `select=*&exercise_id=eq.${exercicioId}`,
-  );
+  const todas = await lerDoMock<LinhaSerie>(sessao, "session_sets");
+  return todas.filter((s) => s.exercise_id === exercicioId);
 }
 
 /** Escolhe o primeiro substituto na folha aberta e devolve o nome dele. */
