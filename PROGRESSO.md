@@ -11906,6 +11906,147 @@ comparador diz "Nenhuma tela mudou fora do esperado".
 | tela | Δ claro | Δ escuro | o que mudou |
 | --- | ---: | ---: | --- |
 | 07-colecao | 16,30 % | 22,07 % | o mesmo de `f63aee3` (diff `07-colecao-claro.diff.png` aberto): a linha "semana 2 de 12" sai da capa; o botão "Fazer a corrida da semana 2", "Semanas do plano", o bloco "Semana 2 de 12 · 1 concluída" e a lista sobem ~20 px de CSS (~40 px na imagem em 2×). |
-| 06, 09, 10, 28 e as outras 50 | 0,00 % | 0,00 % | nada. |
+| as outras 29 telas (06, 09, 10, 28 e as 25 não declaradas) | 0,00 % | 0,00 % | nada. |
 
 Servidores derrubados pelo `capturas.sh` (3100 e 54321 → 000).
+
+#### Rodada 21 — auditoria 2 reprovou por 1 bloqueante e 1 importante; lote devolvido à fila
+
+Auditoria 2 em `9b860d6`: lente de tela **aprovada** (0 bloqueantes, 0
+importantes, 3 menores); lente de regra **reprovada**:
+
+- **Bloqueante (item 3):** o aceite do ledger pede "nenhum nome acessível
+  com do/da errado em todos os exercícios", e três ainda montavam artigo
+  masculino com o nome: `components/player/firme.tsx:98` "Nota do
+  ${nome}", `components/treinar/bloco.tsx:187` "Nota do ${nome}" e
+  `bloco.tsx:164` "Última repetição firme no ${nome}" ("Nota do Remada
+  curvada pronada", "firme no Rosca…"); 32 dos 81 nomes são femininos. A
+  SPEC tinha estreitado o aceite para "Execução d" sem registrar.
+- **Importante (SPEC §22.15 item 6):** o parágrafo do aceite descrevia
+  errado por que o aparelho "Corda de pular com rolamento" fica com o ícone
+  na busca "corda" ("as outras fotos já estão em cima": a outra foto é a
+  capa do plano, na linha de **baixo**), e dizia que o Vitest verificava o
+  ícone e os 4 planos de antes, o que ele não fazia.
+- **Menores:** a SPEC item 3 sem a exceção da foto; comentário velho em
+  `linha-colecao.tsx`; a mutação da `key` do item 1 medida junto com outras
+  sete; a 2ª tabela de Capturas misturando telas e PNGs; o nó
+  `data-linha="subtitulo-vazio"` com o selo dentro; o contorno da tag-link
+  a 1,27:1 (claro) e 1,97:1 (escuro).
+
+#### Rodada 22 — retomada (correção da auditoria 2)
+
+Sobre `9b860d6`, na mesma branch. `git diff f813c41 -- lib/progressao.ts
+lib/montagem.ts` continua vazio. O defeito do "Substituir" no exercício do
+passo atual (player no esqueleto) **não** é deste lote e não foi mexido.
+
+##### O que mudou (era → é)
+
+1. **Nomes acessíveis sem artigo (bloqueante, item 3).** Era: "Nota do
+   <nome>" (player e Visão geral), "Última repetição firme no <nome>"
+   (Visão geral) e "Carga do <nome> por sessão" (gráfico de cada grande no
+   Progresso/Relatório — achado pelo grep, mesmo erro). É: todo nome
+   acessível que cita o exercício sai de **`nomeAcessivel(rótulo, nome)`**
+   em `lib/midia.ts` ("<rótulo>: <nome>"; rótulos "Execução", "Como
+   fazer", "Ficha", "Nota", "Última repetição firme", "Carga por sessão"),
+   e `altDaExecucao()` passa a usá-la. "Como fazer: …" e "Ficha: …", que já
+   estavam certos, foram ligados à mesma função. Arquivos:
+   `lib/midia.ts`, `components/player/firme.tsx`,
+   `components/player/exercicio.tsx`, `components/player/preparacao.tsx`,
+   `components/treinar/bloco.tsx`, `components/treino/lista.tsx`,
+   `components/colecoes/lista-da-colecao.tsx`,
+   `components/progresso/tela-progresso.tsx`; e2e alinhados:
+   `e2e/treinar.spec.ts` ("Última repetição firme: Agachamento livre") e
+   `e2e/relatorio.spec.ts` ("Carga por sessão: …"). Grep do repositório
+   (aria-label/alt/title/título de gráfico com o nome do exercício): os
+   outros ("Substituir <nome>", "Subir/Descer <nome>", "Tirar <nome>",
+   "Série N — <nome>", "<passo> — <nome>", "<nome> — início") não têm
+   artigo; "Começar o ${resumo.nome}" é o nome do treino ("Treino A",
+   "Superior A"), não de exercício.
+2. **SPEC §22.15 item 6 (importante)** reescrito com o mecanismo real das
+   duas passadas de `capasNaBusca()` e a busca "corda" medida linha a linha
+   (abaixo, em Provas); o Vitest passa a verificar o que o texto diz.
+3. **Menores:** SPEC item 3 com a exceção da foto ("<nome> — início");
+   comentário de `components/colecoes/linha-colecao.tsx` e a frase do
+   §22.13 item 7 dizem que a reserva do subtítulo é da vitrine;
+   `data-linha="subtitulo-vazio"` → `data-linha="sem-subtitulo"` (é a
+   reserva vazia da vitrine **ou** a linha só com o selo; nome interno, só
+   os e2e do L13 e do L32 o leem, alinhados); contorno da tag-link de
+   `border` (1,27:1 claro, 1,97:1 escuro) para `muted-foreground`
+   (`components/exercicio/ficha-folha.tsx`), e o e2e do item 10 mede ≥ 3:1;
+   a 2ª tabela de Capturas da rodada 21 numa unidade só (telas).
+
+##### Provas
+
+- **Vitest** `lib/l32.test.ts` (11 testes, antes 9): os 81 nomes × os 6
+  rótulos dão "<rótulo>: <nome>" sem artigo antes do nome (≥ 12 nomes
+  femininos no conjunto); grep de `lib/`, `components/` e `app/` (fora
+  comentários) sem "do/da/no/na/dos/das/nos/nas" antes de `${…nome}` ou
+  `{…nome}` e sem "Execução do/da"; busca "corda": ordem circuito:corda,
+  aparelho:corda, plano:corda, a capa reservada por linha, o aparelho com o
+  ícone (antes, com a foto da corrida no lugar); nos 122 termos, planos
+  com capa diferente da vitrine **antes = 4** (agora asserido) e depois 2.
+- **`capasNaBusca(buscarColecoes("corda"))` rodada no catálogo**
+  (`npx tsx`, saída em `scratchpad/l32r22/corda.saida.txt`), as 3 primeiras
+  das 9 linhas:
+
+  ```
+  1. circuito:corda «Corda» exercicios=[salto-basico, corrida-no-lugar-com-a-corda, salto-com-joelho-alto]
+     vitrine=/fotos/salto-basico-1.jpg | busca(antes, semCapasRepetidas)=/fotos/salto-basico-1.jpg | busca(capasNaBusca)=/fotos/salto-basico-1.jpg
+  2. aparelho:corda «Corda de pular com rolamento» exercicios=[salto-basico, corrida-no-lugar-com-a-corda]
+     vitrine=/fotos/salto-basico-1.jpg | busca(antes, semCapasRepetidas)=/fotos/corrida-no-lugar-com-a-corda-1.jpg | busca(capasNaBusca)=ícone
+  3. plano:corda «Corda: 5 estágios» exercicios=[corrida-no-lugar-com-a-corda]
+     vitrine=/fotos/corrida-no-lugar-com-a-corda-1.jpg | busca(antes, semCapasRepetidas)=ícone | busca(capasNaBusca)=/fotos/corrida-no-lugar-com-a-corda-1.jpg
+  ```
+
+  1ª passada (de cima para baixo): o circuito reserva `salto-basico-1`; o
+  aparelho tem a mesma capa de vitrine, já reservada acima, e não reserva;
+  o plano reserva `corrida-no-lugar-com-a-corda-1`. 2ª passada: o
+  aparelho procura, entre as fotos dos exercícios dele, uma que **ninguém**
+  reservou — `salto-basico-1` é do circuito (acima) e
+  `corrida-no-lugar-com-a-corda-1` é do plano (abaixo) —, então fica com o
+  ícone. É isso que garante ao plano a capa da vitrine.
+- **Mutação Vitest** (`r22/l32/logs/l32-r22-mut-artigo.log`): A — `firme.tsx`
+  de volta a "Nota do ${exercicio.nome}" → o grep cai
+  (`components/player/firme.tsx:99`), 1 de 11; B — `nomeAcessivel()`
+  montando "${rotulo} do ${nome}" → 4 de 11 caem (as três varreduras do
+  item 3 e o grep); sem mutação, 11 de 11.
+- **e2e** `e2e/ultraloop-l32.spec.ts`, teste novo do item 3: no player, a
+  seta anda até a pergunta "firme?" da remada curvada pronada (3º
+  exercício do Treino A) e a nota se chama "Nota: Remada curvada pronada",
+  sem nenhuma "Nota do/da/no/na"; na Visão geral, o bloco da remada tem
+  "Última repetição firme: …", "Nota: …" e "Como fazer: …", e nenhum
+  `aria-label` do diálogo tem "do/da/no/na" antes de um nome do treino.
+  Item 10: `razaoContorno` ≥ 3 nos dois temas.
+- **Pré-execução** (`r22/l32/pre-logs/bca8913.log`, 09:37–09:38 UTC):
+  `build:e2e` ("Compiled successfully in 35.0s") e o `e2e-grep` do spec do
+  lote, do "sem a última firme" de `treinar.spec.ts`, dos gráficos de
+  `relatorio.spec.ts` e do "Corda: 5 estágios" do L13 (que lê o nó
+  renomeado): **21 de 21**.
+- **Mutação só da `key` do item 1** (menor da auditoria 2; diff em
+  `r22/l32/mut-key.diff`, log próprio `r22/l32/mut-key/7286a6e.log`,
+  09:39–09:40 UTC): sem a linha `key={midia.urls.join("|")}` de
+  `components/exercicio/media-grande.tsx`, `build:e2e` ("Compiled
+  successfully in 12.6s") e o e2e "Substituir com o supino na posição 2"
+  sozinho **cai**: "sem o quadro 2 do crossover, a posição fica na 1 —
+  Expected "1", Received "2"" (a ilustração herdou a posição 2 do supino).
+  A mutação foi desfeita (`git checkout -- media-grande.tsx`) antes da
+  cadeia.
+
+##### Como testar no celular (360 px)
+
+1. Treino → Começar → no player, avance pela seta até a pergunta "Última
+   repetição saiu firme?" da **Remada curvada pronada**: com o leitor de
+   tela (TalkBack/VoiceOver), o campo da nota diz "Nota: Remada curvada
+   pronada" (antes, "Nota do Remada…").
+2. No ícone de lista (Visão geral), no bloco da remada: o interruptor diz
+   "Última repetição firme: Remada curvada pronada" e o campo, "Nota:
+   Remada curvada pronada". O mesmo na rosca direta ("Nota: Rosca direta
+   com barra").
+3. Progresso → gráficos dos grandes: o leitor de tela diz "Carga por
+   sessão: Agachamento livre".
+4. Exercícios → Supino reto com barra → Equipamento: a pílula de "Banco",
+   "Barra maciça" e "Cavalete" tem o contorno bem visível nos dois temas;
+   "Anilhas" continua texto.
+5. O resto do lote (itens 1, 2, 5–8) segue os passos da rodada 21, acima;
+   não use "Substituir" no exercício do passo atual do player (defeito
+   anterior ao lote, fora dele).
