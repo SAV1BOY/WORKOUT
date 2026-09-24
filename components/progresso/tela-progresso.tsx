@@ -45,6 +45,7 @@ import {
   useTodosOsRecordes,
 } from "@/lib/queries/progresso";
 import { useHoje } from "@/lib/relogio";
+import { nomeAcessivel } from "@/lib/midia";
 import { cn } from "@/lib/utils";
 
 /** Os três grandes + o desenvolvimento militar (SPEC §3.7). */
@@ -250,7 +251,7 @@ export function TelaProgresso({
                 </div>
                 {semRegistro ? null : (
                   <GraficoLinha
-                    titulo={`Carga do ${exercicio?.nome ?? id} por sessão`}
+                    titulo={nomeAcessivel("Carga por sessão", exercicio?.nome ?? id)}
                     dados={pontos}
                     x="rotulo"
                     sufixo=" kg"

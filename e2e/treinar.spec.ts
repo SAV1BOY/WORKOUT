@@ -360,7 +360,7 @@ test.describe("concluir e o que o motor decide (SPEC §6.2, §6.6, §10.3 e §10
     for (const n of [1, 2, 3]) await marcar(page, "Agachamento livre", n);
 
     await page
-      .getByRole("switch", { name: "Última repetição firme no Agachamento livre" })
+      .getByRole("switch", { name: "Última repetição firme: Agachamento livre" })
       .click();
 
     await page.getByRole("button", { name: "Concluir" }).click();
@@ -489,7 +489,7 @@ test.describe("ajuda, montagem e substituição (SPEC §3.2, §6.5 e §7)", () =
     // SPEC §14.2: a ficha em folha traz instruções, erro comum e as três abas
     await expect(ficha.getByRole("heading", { name: "Instruções" })).toBeVisible();
     await expect(ficha.getByRole("heading", { name: "Erro comum" })).toBeVisible();
-    await expect(ficha.getByRole("img", { name: /Execução do Agachamento livre/ })).toBeVisible();
+    await expect(ficha.getByRole("img", { name: /Execução: Agachamento livre/ })).toBeVisible();
     await ficha.getByRole("tab", { name: "Músculos" }).click();
     await expect(ficha.getByRole("img", { name: "Frente" })).toBeVisible();
     await semRolagemHorizontal(page);

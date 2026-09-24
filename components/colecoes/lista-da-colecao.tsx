@@ -6,6 +6,7 @@ import { useTemVideo } from "@/components/videos-do-app";
 import { Miniatura } from "@/components/ui/miniatura";
 import { Raios } from "@/components/ui/raios";
 import { acharExercicio } from "@/lib/dados";
+import { nomeAcessivel } from "@/lib/midia";
 import { dificuldadeDe } from "@/lib/dificuldade";
 import { evitado } from "@/lib/preferencias";
 import type { Prefs } from "@/lib/types";
@@ -38,7 +39,7 @@ export function ListaDaColecao({
             <li key={id}>
               <button
                 type="button"
-                aria-label={`Ficha: ${e.nome}`}
+                aria-label={nomeAcessivel("Ficha", e.nome)}
                 onClick={() => setFicha(id)}
                 className="hover:bg-muted/40 alvo -mx-1 flex w-[calc(100%+0.5rem)] items-center gap-3 rounded-xl px-1 py-2 text-left"
               >

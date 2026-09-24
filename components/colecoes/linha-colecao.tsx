@@ -55,10 +55,17 @@ export function tomDaCapa(id: string): string {
 export function LinhaColecao({
   colecao,
   mostrarRaios = true,
+  reservarSubtitulo = true,
   className,
 }: {
   colecao: Colecao;
   mostrarRaios?: boolean;
+  /**
+   * SPEC §22.15 item 5: a reserva da linha do subtítulo (§22.13 item 7) é da
+   * vitrine, onde as linhas de uma seção têm a mesma altura. Na busca a
+   * altura já varia, e a reserva vazia era um vão acima do motivo.
+   */
+  reservarSubtitulo?: boolean;
   className?: string;
 }) {
   /*
@@ -133,11 +140,15 @@ export function LinhaColecao({
           </span>
         </span>
         {/*
-          SPEC §22.13 item 7: a linha do subtítulo é reservada em toda linha,
+          SPEC §22.13 item 7: na vitrine, a linha do subtítulo é reservada
           com ou sem texto — as linhas da mesma seção mediam 72 ou 92 px
-          conforme a coleção tinha subtítulo. O selo "Circuito" abre esta
-          linha (§22.13 item 10): na meta, com os raios, ela quebrava a 360 px,
-          e ao lado do título ele empurrava o nome do aparelho para 2 linhas.
+          conforme a coleção tinha subtítulo. Na busca não (§22.15 item 5,
+          `reservarSubtitulo={false}`): sem subtítulo e sem selo, a linha não
+          existe. O selo "Circuito" abre esta linha (§22.13 item 10): na meta,
+          com os raios, ela quebrava a 360 px, e ao lado do título ele
+          empurrava o nome do aparelho para 2 linhas. Sem subtítulo, o nó
+          `data-linha="sem-subtitulo"` é a reserva vazia (vitrine) ou a linha
+          só com o selo (circuito).
         */}
         {colecao.subtitulo ? (
           <span
@@ -154,15 +165,15 @@ export function LinhaColecao({
               </>
             ) : null}
           </span>
-        ) : (
+        ) : reservarSubtitulo || colecao.circuito ? (
           <span
             aria-hidden={colecao.circuito ? undefined : true}
             className="block h-4 text-xs"
-            data-linha="subtitulo-vazio"
+            data-linha="sem-subtitulo"
           >
             {selo("abre")}
           </span>
-        )}
+        ) : null}
         {/*
           SPEC §22.12 item 3: o motivo aparece inteiro — cita no máximo um nome
           por termo, e com 4 termos o corte em 2 linhas escondia o 3º nome.

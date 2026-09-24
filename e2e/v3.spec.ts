@@ -413,9 +413,12 @@ test.describe("Explorar (§14.4)", () => {
      * "0 exercícios · ~1 min" (auditoria do V3).
      */
     await page.goto("/explorar/plano/corrida");
-    // SPEC §22.12 item 4: com o perfil, o plano diz a posição ("semana N de
-    // 12"), presa ao tamanho do plano — nunca uma contagem de exercícios
-    await expect(page.getByText(/^semana \d+ de 12$/)).toBeVisible();
+    // SPEC §22.12 item 4: com o perfil, o plano diz a posição ("Semana N de
+    // 12"), presa ao tamanho do plano — nunca uma contagem de exercícios.
+    // SPEC §22.15 item 7: a posição mora no bloco "Semanas do plano", não
+    // na capa (antes aparecia duas vezes na mesma rolagem).
+    await expect(page.getByText(/^Semana \d+ de 12 · \d+ concluídas?$/)).toBeVisible();
+    await expect(page.getByText(/^semana \d+ de 12$/)).toHaveCount(0);
     await expect(page.getByText(/exercícios? · ~/)).toHaveCount(0);
   });
 });
