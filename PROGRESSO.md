@@ -11898,4 +11898,14 @@ testes não mudaram:
 - O defeito do "Substituir" no passo atual continua fora do lote; não foi
   corrigido aqui.
 
-Capturas de novo em `50adb21`: em andamento (`r21/l32/capturas-50adb21.md`).
+Capturas de novo em `50adb21` (`capturas.sh` com o `.next` do build:e2e
+dessa cadeia, contra `base-ef3ad97`, telas declaradas 09, 10, 06, 07 e 28;
+`r21/l32/capturas-50adb21.md`, 03:18–03:20 UTC): 60 de 60 PNGs; o
+comparador diz "Nenhuma tela mudou fora do esperado".
+
+| tela | Δ claro | Δ escuro | o que mudou |
+| --- | ---: | ---: | --- |
+| 07-colecao | 16,30 % | 22,07 % | o mesmo de `f63aee3` (diff `07-colecao-claro.diff.png` aberto): a linha "semana 2 de 12" sai da capa; o botão "Fazer a corrida da semana 2", "Semanas do plano", o bloco "Semana 2 de 12 · 1 concluída" e a lista sobem ~20 px de CSS (~40 px na imagem em 2×). |
+| 06, 09, 10, 28 e as outras 50 | 0,00 % | 0,00 % | nada. |
+
+Servidores derrubados pelo `capturas.sh` (3100 e 54321 → 000).
