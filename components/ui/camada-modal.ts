@@ -5,6 +5,7 @@ import {
   aoAndarNoHistorico,
   candidatosAoAbrir,
   CHAVE_DA_ENTRADA,
+  CHAVE_DA_SESSAO,
   desfazAoFechar,
   desmarcar,
   empilhaEntrada,
@@ -13,6 +14,7 @@ import {
   focoAoFechar,
   marcar,
   passoNoHistorico,
+  proximaEntrada,
   proximoDoTab,
   reguaAoSair,
   type Regua,
@@ -89,10 +91,30 @@ function empilharEntrada(camada: Camada): void {
    * restaura na volta (o "Ver resultados" leva ao primeiro resultado e fica lá).
    */
   window.history.scrollRestoration = "manual";
-  ultimaEntrada = Math.max(ultimaEntrada, entradaDoEstado(window.history.state)) + 1;
-  camada.entrada = ultimaEntrada;
-  regua = ultimaEntrada;
-  window.history.pushState({ [CHAVE_DA_ENTRADA]: ultimaEntrada }, "");
+  const numero = numerarEntrada();
+  camada.entrada = numero;
+  regua = numero;
+  window.history.pushState({ [CHAVE_DA_ENTRADA]: numero }, "");
+}
+
+/**
+ * O número da próxima entrada, guardado na sessão da aba: depois de
+ * recarregar, as entradas novas continuam acima das de antes (a régua).
+ */
+function numerarEntrada(): number {
+  let guardada: string | null = null;
+  try {
+    guardada = window.sessionStorage.getItem(CHAVE_DA_SESSAO);
+  } catch {
+    /* sem sessionStorage: conta desta página em diante */
+  }
+  ultimaEntrada = proximaEntrada(ultimaEntrada, guardada, window.history.state);
+  try {
+    window.sessionStorage.setItem(CHAVE_DA_SESSAO, String(ultimaEntrada));
+  } catch {
+    /* idem */
+  }
+  return ultimaEntrada;
 }
 
 /** Sem camada com entrada, a rolagem volta a ser a do navegador. */
