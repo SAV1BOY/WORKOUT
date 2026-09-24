@@ -9,15 +9,15 @@
   "descartado"
  ],
  "contagens": {
-  "itens": 150,
-  "pendente": 150,
+  "itens": 151,
+  "pendente": 151,
   "candidato": 0,
   "resolvidos": 126,
   "descartados": 18,
-  "canonicos": 294,
+  "canonicos": 295,
   "por_secao": {
    "B": {
-    "pendente": 74,
+    "pendente": 75,
     "candidato": 0,
     "publicado": 39,
     "descartado": 17
@@ -137,6 +137,35 @@
   "gerado_em": "2026-09-23T23:41Z"
  },
  "itens": [
+  {
+   "id": "B-player-substituir-passo-atual",
+   "secao": "B",
+   "estado": "pendente",
+   "area": "player",
+   "titulo": "'Substituir' no exercício do passo atual trava o player no esqueleto",
+   "detalhe": "PROBLEMA: no player, '?' → folha do exercício do PASSO ATUAL → 'Substituir' → outro exercício: a folha fecha e o player fica no esqueleto de carregamento (só barras cinzas, sem 'Concluir série') até recarregar a página. Nenhuma série se perde (o Dexie guarda a troca; ao recarregar o player volta em 'Preparado para começar' com o exercício novo). Causa lida no código: a chave do passo é serie:<id> (lib/player.ts:164); substituirExercicio (lib/sessao.ts:690) recria as séries com ids novos; indiceDaChave dá -1 e components/player/tela-player.tsx:336 fica em `if (!estado || !passo) return <EsqueletoCard/>`. Trocar um exercício que NÃO é o do passo atual funciona. FAZER: depois da troca, o player continua no mesmo lugar da sessão (mesma posição de exercício e de série, agora do exercício novo) — a chave do passo sobrevive à troca (ex.: remapear pela posição/ordem do exercício, ou a troca devolve o novo id da série do passo atual) — regra pura em lib/ com Vitest (trocar o exercício do passo atual, de um passo anterior e de um posterior; com séries já feitas no exercício trocado) e e2e: no player, '?' → Substituir no exercício do passo atual → o player mostra o exercício novo pronto para a série, sem recarregar, nos dois temas; nenhum registro perdido. ACEITE: e2e acima verde; mutação que volta a chave antiga derruba o teste. ESTADO EM f813c41: defeito presente (reproduzido pelo construtor do L32 em r21/l32/pre-logs/320c6bf.log e pelo auditor tela da rodada 21 em r21/l32/auditoria-2-tela/passo-atual.cjs com captura passo-atual-player-depois.png).",
+   "arquivos": [
+    "lib/player.ts",
+    "lib/sessao.ts",
+    "components/player/tela-player.tsx",
+    "components/exercicio/ficha-folha.tsx"
+   ],
+   "esforco": "M",
+   "origens": [
+    {
+     "fonte": "construtor L32 rodada 21 (commit 31db3dc)",
+     "id_original": "defeito-substituir-passo-atual",
+     "origem": "e2e do L32 caiu no esqueleto ao substituir o exercício do passo atual"
+    },
+    {
+     "fonte": "auditoria 2 tela do L32 (rodada 21)",
+     "id_original": "menor: defeito anterior ao lote",
+     "origem": "reproduzido no player real do mock (passo-atual.cjs)"
+    }
+   ],
+   "lote_planejado": "L19",
+   "nota": "Prioridade: defeito no fluxo principal do player; L19 sobe para a próxima vaga livre."
+  },
   {
    "id": "a11y-01",
    "secao": "B",
@@ -9813,41 +9842,10 @@
    ]
   },
   {
-   "codigo": "L36",
-   "titulo": "Sobras do L34: lembretes (provas, textos e bordas)",
-   "area": "lembretes",
-   "ordem": 2,
-   "itens": [
-    "C-l34-notificationclick-sem-aba",
-    "C-l34-rls-postgres-real",
-    "C-l34-e2e-volta-dois-temas",
-    "C-l34-spec-volta-permissao-e-sem-internet",
-    "C-l34-aviso-lista-internet-volta",
-    "C-l34-comentario-rota-teste",
-    "C-l34-progresso-frase-mutacao"
-   ],
-   "arquivos": [
-    "app/sw.ts",
-    "components/mais/tela-lembretes.tsx",
-    "lib/migracao-lembretes.test.ts",
-    "lib/rota-lembretes-teste.test.ts",
-    "e2e/ultraloop-l34.spec.ts",
-    "SPEC.md",
-    "PROGRESSO.md"
-   ],
-   "telas_esperadas": [
-    "18-mais"
-   ],
-   "medios": 2,
-   "observacoes": "Criado na rodada 18 (registro do deploy do L34) com o que o L34 deixou registrado sem fazer: menores da auditoria 2 em 96056ac e as pendências antigas do construtor (notificationclick sem aba, RLS no Postgres real). Roda logo depois do L35, o próximo lote da área, que ficou com 10 itens.",
-   "excecao": null,
-   "excecao_de_ordem": []
-  },
-  {
    "codigo": "L32",
    "titulo": "Sobras das auditorias: ficha e coleções do Explorar",
    "area": "ficha",
-   "ordem": 3,
+   "ordem": 2,
    "itens": [
     "C-l13-key-musculos-sem-teste",
     "C-media-grande-figura-quebrou-herdada",
@@ -9895,10 +9893,98 @@
    "excecao_de_ordem": []
   },
   {
+   "codigo": "L19",
+   "codigo_anterior": "L19",
+   "titulo": "Player: preparação e série; '%' colado nos textos",
+   "area": "player",
+   "ordem": 3,
+   "itens": [
+    "B-player-substituir-passo-atual",
+    "ux-heuristicas-12",
+    "tela-treino-player-09",
+    "copy-21",
+    "tela-treino-player-12",
+    "ux-heuristicas-22",
+    "OBS-porcentagem-com-espaco"
+   ],
+   "arquivos": [
+    "PROGRESSO.md",
+    "SPEC.md",
+    "components/exercicios/historico-exercicio.tsx",
+    "components/player/exercicio.tsx",
+    "components/player/preparacao.tsx",
+    "components/player/tela-player.tsx",
+    "components/treino/tela-treino.tsx",
+    "data/progressao.json",
+    "e2e/player.spec.ts ('Preparado para começar' :108 + casos do lote)",
+    "e2e/treino.spec.ts ('Preparado para começar' :349 + caso do '%')",
+    "lib/guia.ts",
+    "lib/player.ts",
+    "lib/retomada.ts",
+    "lib/sessao.ts"
+   ],
+   "telas_esperadas": [
+    "27-player-preparacao",
+    "28-player-exercicio"
+   ],
+   "medios": 3,
+   "observacoes": "Grupos tela-treino-player-12 e ux-heuristicas-12 do REMONTAR_L12, só B. Os C do player (C-progresso-do-player-valuetext, C-descanso-sinal-visivel) estão no L29: o C-progresso-do-player-valuetext mexe na barra que o tela-treino-player-12 refaz — por isso vem depois. v3: − ux-heuristicas-06 (→ L20, junto do tela-treino-player-06, que completa o mesmo topo do descanso), + OBS-porcentagem-com-espaco (observação do censo) pela exceção abaixo. Sem e2e novo: os casos do lote entram em e2e/player.spec.ts e o guarda do '%' em e2e/treino.spec.ts, que o lote já edita pelo copy-21. A tela 29-player-descanso saiu das esperadas com o ux-heuristicas-06; o '%' não muda nenhuma das 30 capturas (medir no e2e). 6 itens, 2 M, 12 arquivos, 2 telas. | 24/09: + B-player-substituir-passo-atual (defeito do fluxo principal achado no L32), na frente; o lote sobe na ordem.",
+   "excecao": {
+    "tipo": "área",
+    "itens": [
+     "OBS-porcentagem-com-espaco"
+    ],
+    "motivo": "Varredura de grafia sem dono de área: 7 linhas em 5 arquivos de quatro telas (retomada da aba Treino, ficha, Guia e conteúdo da progressão), um caractere por linha. Nenhum lote a recebe sem passar de 12 arquivos — os lotes de textos (L24 e L25) e os que já editam algum dos cinco (L14, L17, L28) estão em 11–12 — e ela sozinha não fecha lote (1 < 6). O L19 é o único lote B com folga para os cinco depois que o ux-heuristicas-06 foi para o L20 (descanso.tsx saiu) e os casos do lote passaram para e2e/player.spec.ts; o guarda vai em e2e/treino.spec.ts, que o copy-21 já edita. Nenhuma tela esperada a mais.",
+    "aceite_do_dono": "pendente — perguntar antes de montar o L19 (perguntas-ao-dono.md, seção 2)",
+    "alternativa": "sem a exceção o OBS-porcentagem-com-espaco fica pendente sem lote até um lote de textos com folga de 5 arquivos (ou entra no L25 'Copy e mensagens' com exceção de arquivos: 17)."
+   },
+   "excecao_de_ordem": [],
+   "secoes": {
+    "B": 6,
+    "C": 0,
+    "D": 0
+   },
+   "areas_dos_itens": {
+    "player": 5,
+    "copy": 1
+   }
+  },
+  {
+   "codigo": "L36",
+   "titulo": "Sobras do L34: lembretes (provas, textos e bordas)",
+   "area": "lembretes",
+   "ordem": 4,
+   "itens": [
+    "C-l34-notificationclick-sem-aba",
+    "C-l34-rls-postgres-real",
+    "C-l34-e2e-volta-dois-temas",
+    "C-l34-spec-volta-permissao-e-sem-internet",
+    "C-l34-aviso-lista-internet-volta",
+    "C-l34-comentario-rota-teste",
+    "C-l34-progresso-frase-mutacao"
+   ],
+   "arquivos": [
+    "app/sw.ts",
+    "components/mais/tela-lembretes.tsx",
+    "lib/migracao-lembretes.test.ts",
+    "lib/rota-lembretes-teste.test.ts",
+    "e2e/ultraloop-l34.spec.ts",
+    "SPEC.md",
+    "PROGRESSO.md"
+   ],
+   "telas_esperadas": [
+    "18-mais"
+   ],
+   "medios": 2,
+   "observacoes": "Criado na rodada 18 (registro do deploy do L34) com o que o L34 deixou registrado sem fazer: menores da auditoria 2 em 96056ac e as pendências antigas do construtor (notificationclick sem aba, RLS no Postgres real). Roda logo depois do L35, o próximo lote da área, que ficou com 10 itens.",
+   "excecao": null,
+   "excecao_de_ordem": []
+  },
+  {
    "codigo": "L33",
    "titulo": "Sobras do L14: ficha, catálogo e camadas modais",
    "area": "ficha",
-   "ordem": 4,
+   "ordem": 5,
    "itens": [
     "C-l14-super-band-dois-filtros",
     "C-l14-criterio-repeticao-numeros",
@@ -9936,7 +10022,7 @@
    "codigo_anterior": "L15",
    "titulo": "Corpo: peso, gráficos e campo de data",
    "area": "corpo",
-   "ordem": 5,
+   "ordem": 6,
    "itens": [
     "a11y-01",
     "tela-relatorio-corpo-calendario-12",
@@ -9983,7 +10069,7 @@
    "codigo_anterior": "L16",
    "titulo": "Corpo: medidas, fotos, data no celular e um verbo só para salvar",
    "area": "corpo",
-   "ordem": 6,
+   "ordem": 7,
    "itens": [
     "tela-relatorio-corpo-calendario-17",
     "tela-relatorio-corpo-calendario-18",
@@ -10034,7 +10120,7 @@
    "codigo_anterior": "L17",
    "titulo": "Casca: carregamento, rotas pesadas, zoom e bloco de sincronização",
    "area": "casca",
-   "ordem": 7,
+   "ordem": 8,
    "itens": [
     "C-loading-por-rota",
     "C-next-dynamic-rotas-pesadas",
@@ -10099,7 +10185,7 @@
    "codigo_anterior": "L18",
    "titulo": "Cardio e barra fixa",
    "area": "cardio",
-   "ordem": 8,
+   "ordem": 9,
    "itens": [
     "ux-heuristicas-17",
     "ux-heuristicas-18",
@@ -10140,60 +10226,6 @@
    },
    "areas_dos_itens": {
     "cardio": 7
-   }
-  },
-  {
-   "codigo": "L19",
-   "codigo_anterior": "L19",
-   "titulo": "Player: preparação e série; '%' colado nos textos",
-   "area": "player",
-   "ordem": 9,
-   "itens": [
-    "ux-heuristicas-12",
-    "tela-treino-player-09",
-    "copy-21",
-    "tela-treino-player-12",
-    "ux-heuristicas-22",
-    "OBS-porcentagem-com-espaco"
-   ],
-   "arquivos": [
-    "components/player/preparacao.tsx",
-    "components/player/exercicio.tsx",
-    "components/player/tela-player.tsx",
-    "e2e/treino.spec.ts ('Preparado para começar' :349 + caso do '%')",
-    "e2e/player.spec.ts ('Preparado para começar' :108 + casos do lote)",
-    "data/progressao.json",
-    "components/treino/tela-treino.tsx",
-    "components/exercicios/historico-exercicio.tsx",
-    "lib/guia.ts",
-    "lib/retomada.ts",
-    "SPEC.md",
-    "PROGRESSO.md"
-   ],
-   "telas_esperadas": [
-    "27-player-preparacao",
-    "28-player-exercicio"
-   ],
-   "medios": 2,
-   "observacoes": "Grupos tela-treino-player-12 e ux-heuristicas-12 do REMONTAR_L12, só B. Os C do player (C-progresso-do-player-valuetext, C-descanso-sinal-visivel) estão no L29: o C-progresso-do-player-valuetext mexe na barra que o tela-treino-player-12 refaz — por isso vem depois. v3: − ux-heuristicas-06 (→ L20, junto do tela-treino-player-06, que completa o mesmo topo do descanso), + OBS-porcentagem-com-espaco (observação do censo) pela exceção abaixo. Sem e2e novo: os casos do lote entram em e2e/player.spec.ts e o guarda do '%' em e2e/treino.spec.ts, que o lote já edita pelo copy-21. A tela 29-player-descanso saiu das esperadas com o ux-heuristicas-06; o '%' não muda nenhuma das 30 capturas (medir no e2e). 6 itens, 2 M, 12 arquivos, 2 telas.",
-   "excecao": {
-    "tipo": "área",
-    "itens": [
-     "OBS-porcentagem-com-espaco"
-    ],
-    "motivo": "Varredura de grafia sem dono de área: 7 linhas em 5 arquivos de quatro telas (retomada da aba Treino, ficha, Guia e conteúdo da progressão), um caractere por linha. Nenhum lote a recebe sem passar de 12 arquivos — os lotes de textos (L24 e L25) e os que já editam algum dos cinco (L14, L17, L28) estão em 11–12 — e ela sozinha não fecha lote (1 < 6). O L19 é o único lote B com folga para os cinco depois que o ux-heuristicas-06 foi para o L20 (descanso.tsx saiu) e os casos do lote passaram para e2e/player.spec.ts; o guarda vai em e2e/treino.spec.ts, que o copy-21 já edita. Nenhuma tela esperada a mais.",
-    "aceite_do_dono": "pendente — perguntar antes de montar o L19 (perguntas-ao-dono.md, seção 2)",
-    "alternativa": "sem a exceção o OBS-porcentagem-com-espaco fica pendente sem lote até um lote de textos com folga de 5 arquivos (ou entra no L25 'Copy e mensagens' com exceção de arquivos: 17)."
-   },
-   "excecao_de_ordem": [],
-   "secoes": {
-    "B": 6,
-    "C": 0,
-    "D": 0
-   },
-   "areas_dos_itens": {
-    "player": 5,
-    "copy": 1
    }
   },
   {
@@ -13689,6 +13721,7 @@
   "23/09: L12 publicado (PR #19, 1b37092): os 7 candidatos e o processo do comparador foram para resolvidos.",
   "23/09: L13 publicado (PR #21, a0bcfcf, rodada 13): os 10 itens foram para resolvidos; 3 observações não feitas entraram como C pendentes (C-l13-aceite-lcp-vs-ordem, C-plano-progresso-repete-desafio, C-busca-corda-capa-icone) e o H1 → H3 da ficha ficou como nota no tela-explorar-fichas-21 (L14), que já o cobre.",
   "23/09: L14 publicado (PR #23, 0f730c9, rodada 16): os 10 itens foram para resolvidos (copy-25 e tela-explorar-fichas-26 com o aceite ajustado na SPEC §22.14, com nota). 15 itens C novos, todos com lote: os 9 menores da auditoria 1 em a68ea7f (um deles igual ao menor do construtor sobre as tags), 4 menores só registrados pelo construtor (Super Band, critério com números, espelho × DOM, carregando sem o perfil) e os 2 itens novos declarados na SPEC (a11y-voltar-fecha-camada, a11y-visao-geral-foco-ao-abrir). Vão para L32 (2, fica com 10), L33 novo logo depois do L32 (6), L29 (3), L16 (1), L28 (1) e L30 (2). Além disso, C-visao-geral-esc-camada (L29) foi para resolvidos: o L14 o resolveu na rodada 15 (visao-geral.tsx:110, e2e/ultraloop-l14.spec.ts:1039).",
-  "23/09: L34 publicado (PR #25, 905815d, rodada 18): os 6 itens LEM do lote foram para resolvidos. 11 itens C novos, todos com lote: os 10 menores da auditoria 2 em 96056ac deduplicados com os 4 itens não feitos do construtor (notificationclick sem aba, RLS no Postgres real, badge monocromático, passo 3) e o Sair × inscrição anotado na SPEC §23 para o L35. Vão para L35 (4, fica com 10) e L36 novo logo depois do L35 (7)."
+  "23/09: L34 publicado (PR #25, 905815d, rodada 18): os 6 itens LEM do lote foram para resolvidos. 11 itens C novos, todos com lote: os 10 menores da auditoria 2 em 96056ac deduplicados com os 4 itens não feitos do construtor (notificationclick sem aba, RLS no Postgres real, badge monocromático, passo 3) e o Sair × inscrição anotado na SPEC §23 para o L35. Vão para L35 (4, fica com 10) e L36 novo logo depois do L35 (7).",
+  "24/09 09:40 UTC (orquestrador): + B-player-substituir-passo-atual no L19; L19 sobe para 3º na ordem (depois de L35 e L32)."
  ]
 }
