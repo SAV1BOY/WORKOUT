@@ -206,7 +206,9 @@ export function ConteudoDaFicha({
                     SPEC §22.15 item 10: a tag que abre a coleção parece link
                     sem hover — pílula com contorno, sublinhada sempre e com a
                     seta no fim —, e a sem coleção é texto simples, sem
-                    pílula: antes as duas tinham o mesmo visual.
+                    pílula: antes as duas tinham o mesmo visual. O contorno é
+                    `muted-foreground` (≥ 3:1 contra o fundo nos dois temas;
+                    o `border` do outline dava 1,27:1 no claro).
                   */}
                   {t.href ? (
                     <Link
@@ -216,7 +218,7 @@ export function ConteudoDaFicha({
                       <Badge
                         variant="outline"
                         data-tag-equipamento="link"
-                        className="text-micro underline underline-offset-2"
+                        className="border-muted-foreground text-micro underline underline-offset-2"
                       >
                         {t.rotulo}
                         <ChevronRight aria-hidden="true" data-icon="inline-end" />

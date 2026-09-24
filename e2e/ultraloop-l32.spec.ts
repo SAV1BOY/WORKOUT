@@ -8,6 +8,7 @@ import sharp from "sharp";
 import { acharExercicio } from "../lib/dados";
 import { tagsDoEquipamento } from "../lib/ficha";
 import {
+  abrirVisaoGeral,
   comecarNoPlayer,
   comecarOTreinoDoDia,
   entrarNoApp,
@@ -250,6 +251,73 @@ test.describe("§22.15 item 3 — \"Execução: <nome>\", sem artigo", () => {
   });
 });
 
+test.describe("§22.15 item 3 — nenhum nome acessível põe artigo antes do nome", () => {
+  test("Remada curvada pronada: \"Nota: …\" no player; \"Nota: …\" e \"Última repetição firme: …\" na Visão geral", async ({
+    page,
+  }) => {
+    test.setTimeout(120_000);
+    const remada = acharExercicio("remada-curvada-pronada").nome;
+    await preparar(page);
+    await esperarAbaTreino(page);
+    await comecarOTreinoDoDia(page);
+    await comecarNoPlayer(page);
+
+    // o player anda pela seta até a pergunta "firme?" da remada (3º exercício)
+    const notaDaRemada = page.getByRole("textbox", { name: `Nota: ${remada}`, exact: true });
+    for (let i = 0; i < 60; i++) {
+      if (await notaDaRemada.isVisible().catch(() => false)) break;
+      const pular = page.getByRole("button", { name: "Pular descanso" });
+      if (await pular.isVisible().catch(() => false)) {
+        await pular.click();
+        continue;
+      }
+      const pergunta = page.getByRole("button", { name: "Pular esta pergunta" });
+      if (await pergunta.isVisible().catch(() => false)) {
+        await pergunta.click();
+        continue;
+      }
+      const seta = page.getByRole("button", { name: "Próximo passo" });
+      if (await seta.isVisible().catch(() => false)) {
+        await seta.click();
+        continue;
+      }
+      await page.waitForTimeout(200);
+    }
+    await expect(notaDaRemada).toBeVisible();
+    await expect(page.getByRole("textbox", { name: /^Nota (d|n)[oa] / })).toHaveCount(0);
+
+    // a pergunta sai; a Visão geral tem o bloco da remada
+    await page.getByRole("button", { name: "Pular esta pergunta" }).click();
+    const pularDescanso = page.getByRole("button", { name: "Pular descanso" });
+    await pularDescanso.or(page.getByRole("button", { name: "Concluir série" })).first().waitFor();
+    if (await pularDescanso.isVisible().catch(() => false)) await pularDescanso.click();
+    await abrirVisaoGeral(page);
+    const visao = page.getByRole("dialog", { name: "Visão geral do treino" });
+    await expect(
+      visao.getByRole("switch", { name: `Última repetição firme: ${remada}`, exact: true }),
+    ).toBeAttached();
+    await expect(visao.getByRole("textbox", { name: `Nota: ${remada}`, exact: true })).toBeAttached();
+    await expect(
+      visao.getByRole("button", { name: `Como fazer: ${remada}`, exact: true }),
+    ).toBeAttached();
+    // nenhum nome da Visão geral com "do/da/no/na" antes de um nome do treino
+    const nomes = await visao
+      .locator("[aria-label]")
+      .evaluateAll((els) => els.map((el) => el.getAttribute("aria-label") ?? ""));
+    const doTreino = [
+      "Agachamento livre",
+      "Supino reto com barra",
+      remada,
+      acharExercicio("rosca-direta-com-barra").nome,
+    ];
+    const comArtigo = nomes.filter((n) =>
+      doTreino.some((e) => new RegExp(`\\b(do|da|no|na) ${e}`).test(n)),
+    );
+    expect(comArtigo).toEqual([]);
+    expect(nomes.filter((n) => n.endsWith(`: ${remada}`)).length).toBeGreaterThanOrEqual(3);
+  });
+});
+
 /* ======================================================= itens 5 e 6 */
 
 async function buscar(page: Page, termo: string): Promise<Locator> {
@@ -268,7 +336,7 @@ test.describe("§22.15 item 5 — na busca, sem vão onde não há subtítulo", 
       const medidas = await achadas.locator("[data-colecao]").evaluateAll((linhas) =>
         linhas.map((l) => {
           const titulo = l.querySelector('[data-linha="titulo"]')!.getBoundingClientRect();
-          const vazio = l.querySelector('[data-linha="subtitulo-vazio"]');
+          const vazio = l.querySelector('[data-linha="sem-subtitulo"]');
           const sub = l.querySelector('[data-linha="subtitulo"]');
           const depois = titulo.bottom;
           const coluna = l.querySelector('[data-linha="titulo"]')!.parentElement!.parentElement!;
@@ -278,7 +346,7 @@ test.describe("§22.15 item 5 — na busca, sem vão onde não há subtítulo", 
           const seguinte =
             filhos
               .slice(i + 1)
-              .find((f) => f.getAttribute("data-linha") !== "subtitulo-vazio")
+              .find((f) => f.getAttribute("data-linha") !== "sem-subtitulo")
               ?.getBoundingClientRect() ?? null;
           return {
             id: l.getAttribute("data-colecao"),
@@ -299,7 +367,7 @@ test.describe("§22.15 item 5 — na busca, sem vão onde não há subtítulo", 
       }
       // o circuito sem subtítulo continua com a linha do selo
       const circuito = achadas.locator('[data-colecao="circuito:corda"]');
-      await expect(circuito.locator('[data-linha="subtitulo-vazio"] [data-selo="circuito"]')).toBeVisible();
+      await expect(circuito.locator('[data-linha="sem-subtitulo"] [data-selo="circuito"]')).toBeVisible();
       await semRolagemHorizontal(page);
     });
   }
@@ -316,7 +384,7 @@ test.describe("§22.15 item 5 — na busca, sem vão onde não há subtítulo", 
         .evaluateAll((ls) => ls.map((l) => l.getBoundingClientRect().height));
       expect(alturas.length).toBeGreaterThan(3);
       expect(Math.max(...alturas) - Math.min(...alturas), nome).toBeLessThanOrEqual(1);
-      await expect(secao.locator('[data-linha="subtitulo-vazio"]').first()).toBeAttached();
+      await expect(secao.locator('[data-linha="sem-subtitulo"]').first()).toBeAttached();
     }
   });
 });
@@ -496,6 +564,11 @@ test.describe("§22.15 item 10 — a tag que abre a coleção parece link; a out
               fundo: e.backgroundColor,
               svg: el.querySelectorAll("svg").length,
               razao: f.razao(f.pintar(e.color, fundo), fundo),
+              // o contorno contra o fundo de fora da pílula (o da seção)
+              razaoContorno: f.razao(
+                f.pintar(e.borderTopColor, f.fundoDe(el.parentElement!)),
+                f.fundoDe(el.parentElement!),
+              ),
             };
           });
         },
@@ -506,6 +579,7 @@ test.describe("§22.15 item 10 — a tag que abre a coleção parece link; a out
         if (s.tipo === "link") {
           expect(s.sublinhado, `${s.texto}: sublinhado sem hover`).toBe(true);
           expect(s.borda, `${s.texto}: contorno`).toBe(true);
+          expect(s.razaoContorno, `${s.texto}: contorno ≥ 3:1`).toBeGreaterThanOrEqual(3);
           expect(s.svg, `${s.texto}: a seta`).toBe(1);
         } else {
           expect(s.sublinhado, `${s.texto}: sem sublinhado`).toBe(false);

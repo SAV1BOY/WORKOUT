@@ -1152,7 +1152,7 @@ test.describe("L13 — o selo Circuito não corta o subtítulo (correção da au
     await conferirCorda(page.locator('[data-colecao="plano:corda"]').first(), 'busca "corda"');
     // sem subtítulo, o selo continua abrindo a linha reservada (o circuito da corda)
     const circuito = page.locator('[data-colecao="circuito:corda"]').first();
-    await expect(circuito.locator('[data-linha="subtitulo-vazio"] [data-selo="circuito"]')).toBeVisible();
+    await expect(circuito.locator('[data-linha="sem-subtitulo"] [data-selo="circuito"]')).toBeVisible();
     await semRolagemHorizontal(page);
   });
 });
