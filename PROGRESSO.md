@@ -12334,6 +12334,27 @@ correção acrescenta:
    dedo (o aviso cobre a engrenagem durante os ~4 s); foi medido ao vivo
    pelo teclado, acima.
 
+#### Auditoria
+
+- **Auditoria 1 em `6ecd777`: reprovada** (bloqueantes 0, importantes 1,
+  menores 12). Corrigida na rodada 27 (acima).
+- **Auditoria 2 em `13c7014`: aprovada** (bloqueantes 0, importantes 0,
+  menores 16). Vereditos em `r27/l19/auditoria-2-regra/` e
+  `r27/l19/auditoria-2-tela/`. O código unido com `main` (L32) é `8a5837a`
+  (cadeia inteira ok: 1.659 unitários, 587 e2e, varredura 5/5).
+
+Menores registrados (ficam na fila, nenhum quebra o aceite):
+
+- **[regra]** 'Desfazer' sobre as prefs atuais e relógio parado com a Visão geral sem teste que falhe.
+- **[regra]** avaliarExercicio devolve true antes de salvarPrefs resolver (void).
+- **[regra]** guarda do '%' pega só espaço comum e NBSP.
+- **[regra]** Desfazer com dois avisos seguidos do mesmo exercício usa o voto do render de cada toque.
+- **[tela]** nome do exercício quebra em 2 linhas a 360 px com os polegares na linha do nome.
+- **[tela]** ícone 'Visão geral do treino' muda de lado entre preparação (direita) e série (esquerda).
+- **[tela]** avisos do Sonner cobrem a fileira do topo ~4 s.
+- **[tela]** os pontos repetem para o leitor de tela o que a linha visível diz.
+- **[tela]** contraste abaixo de AA fora do lote (aviso 'Semana leve…').
+
 ### Rodada 21 — Lote 32 — Sobras das auditorias: ficha e coleções do Explorar
 
 Faixa A, worktree `wt-a`, branch `polimento/l32-ficha-sobras` a partir de
