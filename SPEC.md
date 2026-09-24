@@ -2902,7 +2902,9 @@ Vitest (`lib/l19.test.ts`) ou no e2e (`e2e/ultraloop-l19.spec.ts`).
    salva, quando ela ainda existe; senão, **no mesmo exercício**, a primeira
    série que falta (a troca recria as séries, então é a série 1 do exercício
    novo; tirar séries pela ficha cai na primeira que falta), a pergunta
-   "firme?" dele quando não falta nenhuma, e, sem exercício anotado (estado
+   "firme?" dele quando não falta nenhuma, o primeiro passo dele quando não
+   há nem série que falta nem "firme?" (um exercício sem série de trabalho:
+   o tipo permite, o catálogo não tem), e, sem exercício anotado (estado
    salvo por uma versão anterior), o passo de retomada (`indiceDeRetomada`).
    Com a sequência não vazia, a posição nunca é "nenhuma" — o esqueleto não
    tem mais como aparecer no meio do treino. O passo achado é anotado de
@@ -2938,8 +2940,11 @@ Vitest (`lib/l19.test.ts`) ou no e2e (`e2e/ultraloop-l19.spec.ts`).
    exercício do passo atual (com e sem séries feitas nele, e parado no
    descanso entre séries dele) leva à série 1 do exercício novo; trocar um
    anterior ou um posterior mantém a chave; com as séries do exercício
-   todas feitas, cai no "firme?"; estado sem `ordem` e chave sumida cai na
-   retomada; a mutação que volta a ler só a chave derruba os testes; e2e,
+   todas feitas, cai no "firme?"; num exercício só com aquecimentos, todos
+   feitos, cai no primeiro passo dele e não na retomada (correção da
+   auditoria da rodada 27: a mutação que tirava esse ramo passava); estado
+   sem `ordem` e chave sumida cai na retomada; a mutação que volta a ler só
+   a chave derruba os testes; e2e,
    nos dois temas — no player, "?" → Substituir no exercício do passo atual
    → a folha mostra o exercício novo e, fechada, o player mostra o
    exercício novo com "Concluir série", "Série 1 de N · exercício 1 de 6" e
@@ -2964,7 +2969,11 @@ Vitest (`lib/l19.test.ts`) ou no e2e (`e2e/ultraloop-l19.spec.ts`).
    A contagem da preparação **não corre atrás da Visão geral**: aberta a
    Visão geral a partir da preparação, o treino não começa sozinho, e ao
    "Fechar" a contagem recomeça do início (quem abriu a lista para conferir
-   o treino não volta direto na série 1). Aceite: e2e — com a Visão geral
+   o treino não volta direto na série 1). Enquanto a Visão geral está
+   aberta, o relógio de 250 ms do player também para — ele só servia à
+   contagem, e redesenhava a Visão geral inteira 4 vezes por segundo à toa
+   (correção da auditoria da rodada 27); ao "Fechar", ele volta com a
+   contagem nova. Aceite: e2e — com a Visão geral
    aberta, passados 20 s, "Fechar" volta à preparação ("Prepare-se"); mais
    uma contagem inteira depois, o treino começa sozinho.
 3. **A preparação fica centrada de verdade** (tela-treino-player-09).
@@ -3000,8 +3009,11 @@ Vitest (`lib/l19.test.ts`) ou no e2e (`e2e/ultraloop-l19.spec.ts`).
    fica 32 px abaixo da barra fixa na primeira vista (em c689f69 eram
    6 px) e é alcançado rolando — registrado como risco para a lente de
    tela, não como aceite deste item. A auditoria 2 mediu o mesmo com
-   "Afundo / passada" no lugar do agachamento: o "montagem" fica cerca de
-   3 px sob a barra.
+   "Afundo / passada" no lugar do agachamento, e a da rodada 27 refez a
+   medida pelo caminho real ("?" → Substituir → "Afundo / passada"), nos
+   dois temas: o "montagem" termina cerca de 10 px abaixo da borda de cima
+   da barra fixa (0,6 px por cima do "Concluir série"), e a página rola
+   33 px.
    Aceite: Vitest — `pontosDoBloco` com 2 aquecimentos e 3 séries dá 5
    pontos na ordem, os feitos marcados e o nome certo; e2e — no Treino A
    (agachamento com 2 aquecimentos e 3 séries) aparecem 5 pontos, o grupo
@@ -3018,7 +3030,17 @@ Vitest (`lib/l19.test.ts`) ou no e2e (`e2e/ultraloop-l19.spec.ts`).
    **"Desfazer"** — o texto sai de `avisoDoVoto()` (`lib/player.ts`, puro):
    "Não gosto" diz que o exercício vai para o fim das listas de substitutos
    e do Explorar (§14.1.2); "Gostei" e tirar o voto dizem só o que ficou
-   anotado. "Desfazer" devolve o voto anterior. **Aceite ajustado:** o
+   anotado. "Desfazer" devolve o voto anterior, aplicado sobre as
+   preferências **de agora** (o cache do perfil), não sobre um retrato do
+   momento do voto: outra mudança de `prefs` feita enquanto o aviso está na
+   tela (um voto em outro exercício, um ajuste) fica. **O aviso só confirma
+   o que foi gravado** (correção da auditoria da rodada 27): o player abre
+   só com a sessão do aparelho, e o perfil pode ainda não ter chegado
+   (cache vazio ou velho sem rede, erro do `profiles`). Sem perfil, o voto
+   não tem onde ser gravado — nada vai para `prefs` nem para a fila —, e o
+   toque diz isso: "Voto não anotado: o perfil ainda não carregou.", sem
+   "Desfazer" e sem `aria-pressed`. O texto e a presença do "Desfazer" saem
+   de `avisoDoPolegar()` (`lib/player.ts`, puro). **Aceite ajustado:** o
    ledger pedia que o desfazer voltasse o `aria-pressed` a `false`; sem voto
    nenhum, a §22.1 item 5 manda não afirmar estado (`aria-pressed` ausente),
    e é isso que o desfazer devolve. Aceite: Vitest — `avisoDoVoto` para os
@@ -3033,7 +3055,14 @@ Vitest (`lib/l19.test.ts`) ou no e2e (`e2e/ultraloop-l19.spec.ts`).
    o padrão do Sonner era uma sombra preta a 40 %, quase invisível sobre o
    aviso escuro. Aceite: e2e nos dois temas — o "Desfazer" mede ≥ 44 × 44
    e, focado pelo teclado, tem contorno sólido com contraste ≥ 3:1 contra
-   o fundo do aviso.
+   o fundo do aviso. Aceite do perfil ausente: Vitest — `avisoDoPolegar`
+   sem gravação dá "Voto não anotado…" e nenhum "Desfazer", e com gravação
+   dá o texto de `avisoDoVoto` com "Desfazer"; e2e a 360×740 — com o
+   `profiles` respondendo erro e o cache do aparelho vazio, o player abre
+   na série do Dexie, "Não gosto" mostra "Voto não anotado: o perfil ainda
+   não carregou.", não mostra o aviso de voto gravado nem "Desfazer", o
+   polegar fica sem `aria-pressed` e o `prefs` do mock não muda; a mutação
+   que volta a avisar sem condição derruba esse e2e.
 7. **O `%` colado ao número em todo texto** (OBS-porcentagem-com-espaco,
    por exceção de área). A §22.6 item 8 fixou um formato só ("78%"), mas
    sete textos em cinco arquivos ainda separavam o símbolo: três ações de
