@@ -13607,6 +13607,28 @@ o lock, ocupado pelo e2e da faixa D, das 17:27 às ~17:47.
 - A pergunta ao dono sobre a capa do plano entra em
   `docs/ultraloop/perguntas-ao-dono.md` pelo orquestrador, antes do merge.
 
+##### Auditoria (rodada 28)
+
+- **Auditoria 1 em `9acda76`: aprovada** (bloqueantes 0, importantes 0,
+  menores 10). Lentes regra e tela; vereditos em `r28/l33/auditoria-1-regra/`
+  e `r28/l33/auditoria-1-tela/`. A reintegração (`371e2bc`, a correção sobre
+  o revert de `da8e07b`, já com `main` `a7b7d1b`) passou na cadeia inteira:
+  76 arquivos / 1.688 unitários, 606 e2e, varredura 5/5.
+
+Menores registrados (ficam na fila, nenhum quebra o aceite):
+
+- **[regra]** Fiação do componente sem teste que caia (a SPEC pede só o
+  Vitest das regras).
+- **[regra]** O PROGRESSO diz "o app não usa mais `window.navigation`";
+  `components/exercicio/a…` ainda usa em outro lugar (verificar a frase).
+- **[regra]** Contagem do `l33.test.ts` no PROGRESSO (27 × 28).
+- **[tela]** Os seletores em largura inteira e "Super Band (principal)" não
+  aparecem nas 60 capturas (sem camada aberta).
+- **[tela]** O título do diálogo do dia passado do Calendário quebra a linha
+  e encosta no "Fechar" (fora do lote).
+- **[tela]** Com a folha de filtros aberta, o aria-live da contagem de
+  exercícios também fala (comportamento do §22.14).
+
 ##### Como testar no celular (360 px)
 
 Os passos 1 a 7 acima continuam valendo. O passo 8 agora vale também no
