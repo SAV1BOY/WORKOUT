@@ -380,8 +380,10 @@ export function indiceDeRetomada(
  * (SPEC §22.16 item 1). A chave salva vale enquanto existir. Quando ela some
  * — "Substituir" recria as séries do exercício com ids novos; tirar séries
  * pela ficha apaga a do passo —, o player fica **no mesmo exercício**: na
- * primeira série que falta dele, ou na pergunta "firme?" quando não falta
- * nenhuma. Sem o exercício anotado (estado de uma versão anterior), vale a
+ * primeira série que falta dele, na pergunta "firme?" quando não falta
+ * nenhuma, ou no primeiro passo dele quando não há nem uma nem outra (um
+ * exercício sem série de trabalho: o tipo permite, o catálogo não tem).
+ * Sem o exercício anotado (estado de uma versão anterior), vale a
  * retomada. Com a sequência não vazia, nunca devolve -1: era o -1 que deixava
  * a tela no esqueleto até recarregar.
  */

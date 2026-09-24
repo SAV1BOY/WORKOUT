@@ -204,6 +204,40 @@ describe("§22.16 item 1 — indiceDoEstado: a troca de exercício não perde o 
     expect(seqDepois[i]).toMatchObject({ tipo: "serie", ordem: PRIMEIRO, numero: 1 });
     expect(indiceDoEstado([], depois, { chave: atual.chave })).toBe(-1);
   });
+
+  it("exercício sem série de trabalho, com tudo feito e sem 'firme?': fica no primeiro passo dele, não na retomada", () => {
+    // o tipo permite um bloco só de aquecimentos (o catálogo não tem): sem
+    // série que falta nem "firme?", o player continua no mesmo exercício
+    const base = sessaoA();
+    const sessao: SessaoLocal = {
+      ...base,
+      blocos: base.blocos.map((b) =>
+        b.ordem !== SEGUNDO
+          ? b
+          : {
+              ...b,
+              series: b.series.slice(0, 1).map((x) => ({
+                ...x,
+                tipo: "aquecimento" as const,
+                concluida: true,
+              })),
+            },
+      ),
+    };
+    const seq = sequenciaDoPlayer(sessao);
+    expect(seq.some((p) => p.tipo === "firme" && p.ordem === SEGUNDO)).toBe(false);
+    const primeiroDoSegundo = seq.findIndex(
+      (p) => p.tipo === "serie" && p.ordem === SEGUNDO,
+    );
+    expect(primeiroDoSegundo).toBeGreaterThan(0);
+
+    const i = indiceDoEstado(seq, sessao, { chave: "serie:sumiu", ordem: SEGUNDO });
+    expect(i).toBe(primeiroDoSegundo);
+    expect(seq[i]).toMatchObject({ tipo: "serie", ordem: SEGUNDO, aquecimento: true });
+    // a retomada levaria de volta ao 1º exercício, que ainda tem série a fazer
+    const retomada = seq[indiceDoEstado(seq, sessao, { chave: "serie:sumiu" })];
+    expect(retomada).toMatchObject({ tipo: "serie", ordem: PRIMEIRO });
+  });
 });
 
 describe("§22.16 item 5 — pontosDoBloco", () => {
