@@ -809,5 +809,68 @@
       "conta_apagada_utc": "12:00",
       "contas_restantes": 3
     }
+  },
+  {
+    "rodada": 29,
+    "data": "2026-09-24",
+    "hora_merge_utc": "18:12:39",
+    "hora_no_ar_utc": "18:14:57",
+    "duracao_min": 2,
+    "lotes": [
+      "L19-player"
+    ],
+    "merges": [
+      "e8f9e75"
+    ],
+    "commit_auditoria": "49ed9dce582dd614af6632979bf61af6b16935de",
+    "pr": "https://github.com/SAV1BOY/WORKOUT/pull/32",
+    "main_sha": "a7b7d1bc5983db967437a430587419f3386fe0ae",
+    "deployment_anterior": "dpl_BnU3iAfwWoQj65THcFQXtkfLbqTf",
+    "deployment_novo": "dpl_Zyf24MAvTv4JYdYVqosMUu6XqxwN",
+    "versao_prod": "a7b7d1bc5983db967437a430587419f3386fe0ae",
+    "versao_anterior": "17075d79533b2736c367362f5ce52cbeb220f762",
+    "css_login": "/_next/static/css/720080b174380029.css -> /_next/static/css/8a0d7c32df1e05ef.css",
+    "revisao_codex": "Codex Review Summary Completed em 49ed9dc (18:10:57Z), 0 threads, 0 sugestoes",
+    "portoes": {
+      "lint": "limpo",
+      "tsc": "limpo",
+      "unitarios": 1659,
+      "e2e": 587,
+      "e2e_instaveis": 0,
+      "e2e_pulados": 5,
+      "varredura": "5/5",
+      "build": "Compiled successfully",
+      "status_cadeia": "ok (r29/l19/logs/8a5837a.log)",
+      "e2e_repetido_na_integracao": false,
+      "integracao": "49ed9dc: lint limpo, tsc limpo, 75 arquivos / 1659 testes"
+    },
+    "conflito_merge": "nenhum (a branch ja continha main 17075d7 desde 8a5837a; integracao a frente de origin/main so em docs)",
+    "fumaca": {
+      "itens": 21,
+      "ok": 21,
+      "falhou": 0,
+      "execucoes": 1,
+      "execucoes_verdes_completas": 1,
+      "detalhe": "/login 200 + 'Treino do Terraco' + 'Entrar' + sem 'Configure NEXT_PUBLIC_SUPABASE_URL' + sem 'e secreta'; / -> 307 /login; /versao == sha; /sw.js 200 + /~offline + figuras/ + mesmo css; /manifest.webmanifest 200 + 'Treino do Terraco'; /~offline 200; 14 scripts 200; chunk app/(app)/treinar/[sessionId]/page-5d00f34630b0e4bf.js listado no sw.js com 'Prepare-se' e 'Sair do treino'",
+      "controle_negativo": "o mesmo script em producao antiga (17075d7) deu FALHOU nos 2 marcadores"
+    },
+    "sonda_360": "OK — /login e /~offline sem erro de console, scrollWidth 360 = clientWidth",
+    "capturas": "27-player-preparacao e 28-player-exercicio (claro e escuro) de r27/l19/capturas-910b8c8 copiados para base-ef3ad97; indice.json head=a7b7d1b; wt-base nao avancado",
+    "migracao_banco": "nenhuma",
+    "rollback": "nao",
+    "problemas": [
+      "list_aliases com domain='treino-terraco.vercel.app' voltou vazio; deploymentId lido da listagem do projeto sem filtro de dominio"
+    ],
+    "verificacao_logada": {
+      "hora_utc": "18:20–18:40",
+      "conta_teste": "teste-l19-20260924@example.com",
+      "temas": [
+        "claro",
+        "escuro"
+      ],
+      "resultado": "ok — preparação, Visão geral segura a contagem, Sair/Continuar, Substituir no passo atual sem esqueleto (60 amostras), 0 rolagem lateral, 0 alvo<44",
+      "conta_apagada_utc": "18:45",
+      "contas_restantes": 3
+    }
   }
 ]

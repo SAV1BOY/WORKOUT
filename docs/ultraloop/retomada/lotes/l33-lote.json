@@ -1,0 +1,264 @@
+{
+ "codigo": "L33",
+ "titulo": "Sobras do L14: ficha, catálogo e camadas modais",
+ "area": "ficha",
+ "arquivos_previstos": [
+  "lib/catalogo.ts",
+  "lib/catalogo.test.ts",
+  "lib/ficha.ts",
+  "lib/ficha.test.ts",
+  "components/exercicios/historico-exercicio.tsx",
+  "components/ui/camada-modal.ts",
+  "lib/camada-modal.ts",
+  "lib/camada-modal.test.ts",
+  "e2e/ultraloop-l14.spec.ts",
+  "e2e/ultraloop-l33.spec.ts (novo)",
+  "lib/l32.test.ts",
+  "e2e/ultraloop-l32.spec.ts",
+  "lib/colecoes.ts",
+  "components/colecoes/tela-colecao.tsx",
+  "SPEC.md",
+  "PROGRESSO.md"
+ ],
+ "telas_esperadas": [
+  "08-catalogo",
+  "09-ficha-exercicio",
+  "10-ficha-folha",
+  "07-colecao"
+ ],
+ "observacoes_do_plano": "Criado na rodada 16 (registro do deploy do L14) com o que o L14 deixou registrado sem fazer: menores do construtor e das auditorias, e o item novo a11y-voltar-fecha-camada (área ficha, como o a11y-05 que o originou). Roda logo depois do L32, o próximo lote da área, que ficou com 10 itens. Rodada 22: + 4 sobras do L32 (guarda do artigo, nomes à mão no e2e, aba Progresso no texto, capa do plano sem o dono), fica com 10.",
+ "excecao": {
+  "tipo": "área",
+  "itens": [
+   "C-l32-plano-capa-sem-o-dono"
+  ],
+  "motivo": "Sobra do L32, que já juntava ficha e coleções do Explorar com exceção de área; os arquivos são os mesmos do L32."
+ },
+ "excecao_de_ordem": [],
+ "itens": [
+  {
+   "id": "C-l14-super-band-dois-filtros",
+   "secao": "C",
+   "estado": "pendente",
+   "area": "ficha",
+   "titulo": "'Super Band' nomeia dois filtros do catálogo com resultados diferentes",
+   "detalhe": "PROBLEMA: No catálogo, 'Super Band' aparece como filtro de Implemento (2 resultados) e de Equipamento (5 resultados); os chips iguais são ligados juntos, seguindo o padrão que já existia em 'Barra fixa', 'Halteres' e 'Corda'. FAZER: Decidir um filtro só por aparelho, ou dizer no rótulo a diferença entre os dois grupos (o que se segura × o que se monta), para todos os nomes repetidos. ACEITE: Nenhum rótulo igual em dois grupos de filtro com resultados diferentes; teste em lib/catalogo.test.ts. ESTADO EM 0f730c9: pendente: registrado sem mudança; é o FAZER literal do OBS-elastico-x-super-band e está no aceite do L14.",
+   "arquivos": [
+    "lib/catalogo.ts",
+    "lib/catalogo.test.ts"
+   ],
+   "esforco": "P",
+   "origens": [
+    {
+     "fonte": "PROGRESSO (L14, rodada 16)",
+     "id_original": "'Super Band' em dois filtros",
+     "origem": "menor da auditoria 2 da rodada 15 (regra) e do construtor (rodadas 15 e 16)"
+    }
+   ],
+   "duplicatas": [],
+   "lote_planejado": "L33"
+  },
+  {
+   "id": "C-l14-criterio-repeticao-numeros",
+   "secao": "C",
+   "estado": "pendente",
+   "area": "ficha",
+   "titulo": "O critério 'nada repetido' dá falso positivo com números",
+   "detalhe": "PROBLEMA: O critério 'texto de 12 caracteres ou mais contido em outro' (lib/ficha.test.ts) acusa '7,5 kg na barra' dentro de '17,5 kg na barra'; nenhum dos 4 perfis dos testes cai nisso (a auditoria confirmou 0 repetição real nos 345 perfis). FAZER: Comparar por palavras inteiras (limite de palavra antes do número) sem afrouxar o teste que pegou as repetições reais. ACEITE: Um teste com '7,5 kg na barra' e '17,5 kg na barra' não acusa repetição; os casos reais continuam acusados (mutação). ESTADO EM 0f730c9: pendente: registrado com motivo na rodada 15 (mudar o critério agora afrouxaria o teste).",
+   "arquivos": [
+    "lib/ficha.ts",
+    "lib/ficha.test.ts"
+   ],
+   "esforco": "P",
+   "origens": [
+    {
+     "fonte": "PROGRESSO (L14, rodada 16)",
+     "id_original": "critério de 12 caracteres com números",
+     "origem": "construtor, rodadas 15 e 16 (menor só registrado)"
+    }
+   ],
+   "duplicatas": [],
+   "lote_planejado": "L33"
+  },
+  {
+   "id": "C-l14-nada-repetido-espelho-dom",
+   "secao": "C",
+   "estado": "pendente",
+   "area": "ficha",
+   "titulo": "O 'nada repetido nos 81' roda sobre o espelho dos textos, não sobre o DOM",
+   "detalhe": "PROBLEMA: O Vitest aplica o critério aos textos da página das 81 fichas por textosDaPagina(), um espelho do que a página mostra; o DOM real só é provado em 7 fichas no e2e. FAZER: Ligar o espelho ao componente (um teste que renderiza a página e compara com textosDaPagina) ou medir as 81 no DOM na varredura. ACEITE: Se o componente mostrar um texto que o espelho não tem (ou o contrário), um teste cai. ESTADO EM 0f730c9: pendente: registrado com motivo na rodada 15 (renderizar as 81 no e2e custaria minutos na cadeia).",
+   "arquivos": [
+    "lib/ficha.ts",
+    "lib/ficha.test.ts",
+    "e2e/ultraloop-l14.spec.ts"
+   ],
+   "esforco": "M",
+   "origens": [
+    {
+     "fonte": "PROGRESSO (L14, rodada 16)",
+     "id_original": "espelho textosDaPagina × DOM",
+     "origem": "construtor, rodada 15 (menor só registrado)"
+    }
+   ],
+   "duplicatas": [],
+   "lote_planejado": "L33"
+  },
+  {
+   "id": "C-l14-historico-carregando-perfil",
+   "secao": "C",
+   "estado": "pendente",
+   "area": "ficha",
+   "titulo": "'Onde você está' nasce escondido com barras pesadas e aparece quando o perfil chega",
+   "detalhe": "PROBLEMA: Em components/exercicios/historico-exercicio.tsx, 'carregando' não espera o perfil; com barras pesadas em Mais → Equipamento o cartão 'Onde você está' nasce escondido e aparece depois. FAZER: Incluir o perfil no estado de carregamento do histórico (esqueleto até perfil e eventos chegarem). ACEITE: Com barras pesadas, a página não muda de altura depois do primeiro desenho do histórico (e2e com o perfil atrasado). ESTADO EM 0f730c9: pendente: sem dado errado na tela, só a ordem de chegada; a carga já era calculada assim antes do L14.",
+   "arquivos": [
+    "components/exercicios/historico-exercicio.tsx"
+   ],
+   "esforco": "P",
+   "origens": [
+    {
+     "fonte": "PROGRESSO (L14, rodada 16)",
+     "id_original": "carregando não espera o perfil",
+     "origem": "construtor, rodada 15 (menor só registrado)"
+    }
+   ],
+   "duplicatas": [],
+   "lote_planejado": "L33"
+  },
+  {
+   "id": "C-l14-veu-ramo-morto",
+   "secao": "C",
+   "estado": "pendente",
+   "area": "ficha",
+   "titulo": "camada-modal: ramo data-veu sem uso e véu de qualquer camada fora do inert",
+   "detalhe": "PROBLEMA: components/ui/camada-modal.ts:54: o ramo data-veu não é usado por ninguém (grep vazio em app/ e components/), e o teste slot.endsWith('-overlay') tira do inert o véu de qualquer camada irmã, não só 'o véu da própria camada' que a SPEC descreve. FAZER: Tirar o ramo data-veu (ou usá-lo) e escrever na SPEC §22.14 item 6 o que o código faz com os véus. ACEITE: Grep de data-veu devolve uso ou nada; a frase da SPEC diz o que o código faz; lib/camada-modal.test.ts continua verde. ESTADO EM 0f730c9: pendente: não faz mal (o véu não é focável e fica coberto pelo de cima).",
+   "arquivos": [
+    "components/ui/camada-modal.ts",
+    "SPEC.md"
+   ],
+   "esforco": "P",
+   "origens": [
+    {
+     "fonte": "PROGRESSO (L14, rodada 16)",
+     "id_original": "ramo data-veu sem uso",
+     "origem": "menor da auditoria 1 em a68ea7f (r17/l14/auditoria-1-regra/veredito.json)"
+    }
+   ],
+   "duplicatas": [],
+   "lote_planejado": "L33"
+  },
+  {
+   "id": "a11y-voltar-fecha-camada",
+   "secao": "C",
+   "estado": "pendente",
+   "area": "ficha",
+   "titulo": "Fora da Visão geral, o voltar do celular não fecha só a camada de cima",
+   "detalhe": "PROBLEMA: As folhas, diálogos e a foto ampliada abertos numa página não têm entrada no histórico: o voltar do Android (ou o gesto de voltar do leitor de tela) navega para a página anterior em vez de fechar a camada. Só a Visão geral tem pushState, e nela o voltar fecha só a camada de cima, com e2e. FAZER: Dar à camada modal (useCamadaModal/useCamadaPropria) uma entrada no histórico ao abrir e fechar no popstate, como a Visão geral faz, sem empilhar entradas ao fechar pelo Esc ou pelo X. ACEITE: e2e a 360×740: com os filtros do catálogo, a foto ampliada e um diálogo abertos, history.back() fecha só a camada, a rota e o índice do histórico voltam aos de antes e o foco volta ao gatilho; fechar pelo Esc não deixa entrada sobrando. ESTADO EM 0f730c9: pendente: está na tabela da SPEC §22.14 item 6 com esse motivo (item novo da rodada 16).",
+   "arquivos": [
+    "components/ui/camada-modal.ts",
+    "lib/camada-modal.ts",
+    "SPEC.md",
+    "e2e/ultraloop-l33.spec.ts (novo)"
+   ],
+   "esforco": "M",
+   "origens": [
+    {
+     "fonte": "PROGRESSO (L14, rodada 16)",
+     "id_original": "a11y-voltar-fecha-camada (NOVO ITEM PARA A FILA)",
+     "origem": "construtor, rodada 16 (lacuna declarada na SPEC §22.14 item 6)"
+    }
+   ],
+   "duplicatas": [],
+   "lote_planejado": "L33"
+  },
+  {
+   "id": "C-l32-guarda-artigo-estreita",
+   "secao": "C",
+   "estado": "pendente",
+   "area": "ficha",
+   "titulo": "O grep de lib/l32.test.ts que barra artigo antes do nome é mais estreito que o aceite",
+   "detalhe": "PROBLEMA: lib/l32.test.ts (item 3): o regex só pega template numa linha só e expressão cujo último segmento é 'nome' (\\bnome\\b). Escapariam `${nomeDoExercicio}`, um template quebrado em duas linhas e 'o/a ${…nome}'. FAZER: Alargar a guarda: qualquer identificador que contenha 'nome' (não só o último segmento), templates em várias linhas e os artigos o/a/os/as, com as exceções do nome do treino ('Começar o ${resumo.nome}') e da fase listadas no teste. ACEITE: Mutações que escrevem 'Nota do ${nomeDoExercicio}', um template quebrado em duas linhas e 'a ${ex.nome}' derrubam o Vitest; sem mutação, verde. ESTADO EM b66e06c: pendente: greps mais largos da auditoria não acharam caso novo; não há defeito hoje.",
+   "arquivos": [
+    "lib/l32.test.ts"
+   ],
+   "esforco": "P",
+   "origens": [
+    {
+     "fonte": "PROGRESSO (L32, rodada 22)",
+     "id_original": "grep do item 3 estreito",
+     "origem": "menor da auditoria 1 em bb5adca (r22/l32/auditoria-1-regra/veredito.json)"
+    }
+   ],
+   "duplicatas": [],
+   "lote_planejado": "L33"
+  },
+  {
+   "id": "C-l32-e2e-nomes-a-mao",
+   "secao": "C",
+   "estado": "pendente",
+   "area": "ficha",
+   "titulo": "e2e do L32 com dois nomes de exercício escritos à mão",
+   "detalhe": "PROBLEMA: e2e/ultraloop-l32.spec.ts:307-310: a lista doTreino tem 'Agachamento livre' e 'Supino reto com barra' escritos à mão, ao lado da remada e da rosca que vêm de acharExercicio(). FAZER: Ler os quatro nomes dos dados (acharExercicio / data/exercicios.json), como o resto do spec. ACEITE: grep de string de nome de exercício literal no spec: nada; o teste continua verde. ESTADO EM b66e06c: pendente (inofensivo).",
+   "arquivos": [
+    "e2e/ultraloop-l32.spec.ts"
+   ],
+   "esforco": "P",
+   "origens": [
+    {
+     "fonte": "PROGRESSO (L32, rodada 22)",
+     "id_original": "nomes à mão no e2e",
+     "origem": "menor da auditoria 1 em bb5adca (r22/l32/auditoria-1-regra/veredito.json)"
+    }
+   ],
+   "duplicatas": [],
+   "lote_planejado": "L33"
+  },
+  {
+   "id": "C-l32-texto-aba-progresso",
+   "secao": "C",
+   "estado": "pendente",
+   "area": "ficha",
+   "titulo": "SPEC e PROGRESSO falam de uma aba Progresso que não existe",
+   "detalhe": "PROBLEMA: PROGRESSO (L32, rodada 22, 'Como testar no celular', passo 3) diz 'Progresso → gráficos dos grandes', e a SPEC §22.15 item 3 diz 'o gráfico de cada grande no Progresso e no Relatório'; app/(app)/progresso/page.tsx redireciona para /relatorio e TelaProgresso só existe dentro de tela-relatorio.tsx. FAZER: Trocar para 'Relatório → Gráficos' na SPEC §22.15 item 3 e no passo 3 do PROGRESSO. ACEITE: grep de 'no Progresso' e 'Progresso →' na §22.15 e no passo: nada; o texto aponta a tela real. ESTADO EM b66e06c: pendente (só texto).",
+   "arquivos": [
+    "SPEC.md",
+    "PROGRESSO.md"
+   ],
+   "esforco": "P",
+   "origens": [
+    {
+     "fonte": "PROGRESSO (L32, rodada 22)",
+     "id_original": "aba Progresso inexistente no texto",
+     "origem": "menor da auditoria 1 em bb5adca (r22/l32/auditoria-1-tela/veredito.json)"
+    }
+   ],
+   "duplicatas": [],
+   "lote_planejado": "L33"
+  },
+  {
+   "id": "C-l32-plano-capa-sem-o-dono",
+   "secao": "C",
+   "estado": "pendente",
+   "area": "explorar",
+   "titulo": "Capa do plano: decisão tomada sem o dono e guarda fraca",
+   "detalhe": "PROBLEMA: Item 7 do L32 (C-plano-progresso-repete-desafio): o ledger pedia 'decidir com o dono'; a decisão foi tomada sem ele (a capa fica e mostra a meta sem perfil). O botão 'Fazer a corrida da semana 3' ainda cita o número da semana sem o total, e o Vitest de detalheDaCapa (lib/l32.test.ts:240) é quase tautológico (a guarda real é o e2e). FAZER: Mostrar ao dono a capa e o bloco como estão (07-colecao) e registrar a resposta; trocar o Vitest de detalheDaCapa por um que compare com os dados de cardio.json (meta da última semana) em vez de repetir a função. ACEITE: Resposta do dono registrada no PROGRESSO; mutação que põe 'semana N de T' de volta na capa derruba o Vitest (não só o e2e). ESTADO EM b66e06c: pendente: aceite do item 7 cumprido e medido; falta a palavra do dono e a guarda de unidade.",
+   "arquivos": [
+    "lib/colecoes.ts",
+    "lib/l32.test.ts",
+    "components/colecoes/tela-colecao.tsx"
+   ],
+   "esforco": "P",
+   "origens": [
+    {
+     "fonte": "PROGRESSO (L32, rodada 22)",
+     "id_original": "item 7 sem o dono",
+     "origem": "menor da auditoria 1 em bb5adca (r22/l32/auditoria-1-regra/veredito.json) e menor do construtor (PROGRESSO, correção da auditoria)"
+    }
+   ],
+   "duplicatas": [],
+   "lote_planejado": "L33",
+   "nota": "área explorar no L33 (ficha) pela mesma exceção de área do L32: os arquivos de coleções do Explorar andam com a ficha."
+  }
+ ],
+ "checklist_regra": "Para cada item: o ACEITE do detalhe conferido no código e nos dados reais (todos os casos), regra pura com teste que falharia sem a mudança, e2e pelo caminho real, SPEC e PROGRESSO iguais ao código.",
+ "checklist_tela": "Para cada item: o ACEITE medido a 360×740 nos dois temas pelo caminho real (alvos ≥ 44 px, scrollWidth == clientWidth, contraste AA do texto e ≥ 3:1 de elementos, headings e aria no DOM), e os diffs das telas declaradas inspecionados."
+}
