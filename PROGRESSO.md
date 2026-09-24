@@ -12138,8 +12138,8 @@ Rodada 22, sobre a auditoria 2 da rodada 21 (vereditos em
    "Última repetição firme: Remada curvada pronada" e o campo, "Nota:
    Remada curvada pronada". O mesmo na rosca direta ("Nota: Rosca direta
    com barra").
-3. Progresso → gráficos dos grandes: o leitor de tela diz "Carga por
-   sessão: Agachamento livre".
+3. Relatório → Gráficos (os gráficos dos grandes): o leitor de tela diz
+   "Carga por sessão: Agachamento livre".
 4. Exercícios → Supino reto com barra → Equipamento: a pílula de "Banco",
    "Barra maciça" e "Cavalete" tem o contorno bem visível nos dois temas;
    "Anilhas" continua texto.
