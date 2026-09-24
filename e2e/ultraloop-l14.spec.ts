@@ -8,7 +8,7 @@ import sharp from "sharp";
 import { treinosDoExercicio } from "../lib/catalogo";
 import { colecaoDoAparelho, colecaoDoTreino } from "../lib/colecoes";
 import { acharExercicio, exercicios } from "../lib/dados";
-import { linksDosTreinos, tagsDoEquipamento } from "../lib/ficha";
+import { linksDosTreinos, tagsDoEquipamento, textoRepetido } from "../lib/ficha";
 import {
   abrirSecaoDoRelatorio,
   abrirVisaoGeral,
@@ -76,23 +76,19 @@ async function indiceDaNavegacao(page: Page): Promise<number> {
 
 /**
  * SPEC §22.14 item 3: nenhum parágrafo ou item visível do <main> (12
- * caracteres ou mais) se repete nem cabe inteiro dentro de outro.
+ * caracteres ou mais) se repete nem cabe inteiro dentro de outro — em
+ * palavras inteiras, pelo mesmo critério do Vitest (`textoRepetido`, §22.17
+ * item 2).
  */
 async function repetidosNaPagina(page: Page): Promise<string[]> {
-  return page.evaluate(() => {
-    const textos = [...document.querySelectorAll("main p, main li")]
+  const textos = await page.evaluate(() =>
+    [...document.querySelectorAll("main p, main li")]
       .filter((el) => (el as HTMLElement).offsetParent !== null)
       .filter((el) => !el.querySelector("p, li"))
       .map((el) => (el.textContent ?? "").replace(/\s+/g, " ").trim())
-      .filter((t) => t.length >= 12);
-    const achados: string[] = [];
-    textos.forEach((a, i) =>
-      textos.forEach((b, j) => {
-        if (i !== j && (a === b ? i < j : b.includes(a))) achados.push(`${a} ⊂ ${b}`);
-      }),
-    );
-    return achados;
-  });
+      .filter((t) => t.length >= 12),
+  );
+  return textoRepetido(textos);
 }
 
 /** A caixa de um alvo de toque (SPEC §22.0.1 item 2). */
@@ -1282,7 +1278,8 @@ test.describe("§22.14 itens 8 e 9 — nomes do catálogo", () => {
     const doImplemento = await opcoes(implemento);
     const doEquipamento = await opcoes(equipamento);
     expect([...doImplemento, ...doEquipamento]).not.toContain("Elástico");
-    expect(doImplemento).toContain("Super Band");
+    // SPEC §22.17 item 1: no implemento, a Super Band é a principal (2 × 5)
+    expect(doImplemento).toContain("Super Band (principal)");
     expect(doEquipamento).toContain("Super Band");
     expect(doImplemento).toContain("Peso corporal");
     expect(doEquipamento).toContain("Cross over");
