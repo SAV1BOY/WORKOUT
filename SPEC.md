@@ -2485,8 +2485,8 @@ de cada item é verificável no Vitest ou no e2e (`e2e/ultraloop-l13.spec.ts`).
 7. **Linhas da vitrine com a mesma altura** (tela-explorar-fichas-08). As
    linhas mediam 72 ou 92 px conforme a coleção tinha subtítulo. Escolha: a
    linha **reserva a linha do subtítulo** (`text-xs`, uma linha) em toda
-   linha de coleção, com ou sem texto — o subtítulo continua na vitrine. Na
-   busca a reserva do subtítulo não vale (§22.15 item 5: ela deixava um vão
+   linha de coleção **da vitrine**, com ou sem texto — o subtítulo continua
+   na vitrine. Na busca a reserva do subtítulo não vale (§22.15 item 5: ela deixava um vão
    vazio acima do motivo), e a
    altura **não** é única (correção da auditoria: medido 72 a 122 px): a
    linha do motivo ("contém …", §22.12 item 3) só existe quando a coleção
@@ -2925,19 +2925,36 @@ e2e (`e2e/ultraloop-l32.spec.ts`).
    leva ao crossover na polia; nos dois a figura do exercício novo aparece
    (`<img>` da figura dele, carregada); mutação — voltando ao booleano, o
    e2e cai.
-3. **"Execução: <nome>", sem artigo** (C-alt-execucao-genero). O texto
-   alternativo da demonstração era "Execução do <nome>" — "Execução do
-   Prancha", "do Remada", "do Rosca" — e desde o §22.13 item 5 ele também é
-   o nome da figura-botão, lido a cada foco. `data/exercicios.json` não diz o
-   gênero do nome, e inferir pela última letra erra ("Good morning", "Farmer's
-   walk", "Crucifixo"); o texto passa a **"Execução: <nome>"**, montado num
-   lugar só (`altDaExecucao()` em `lib/midia.ts`), que a ilustração, a figura
-   e o vídeo da `MediaGrande` e a figura da `FiguraExercicio` usam. Aceite:
-   Vitest — para os 81 exercícios, o `alt` de toda opção de mídia que o
-   exercício tem é "Execução: <nome>" e nenhum começa com "Execução do" ou
-   "Execução da"; nenhum outro arquivo de `components/` e `lib/` escreve
-   "Execução d"; e2e — na ficha da prancha e no player, os nomes começam por
-   "Execução: ".
+3. **"Execução: <nome>", sem artigo — e todo nome acessível que cita o
+   exercício** (C-alt-execucao-genero). O texto alternativo da demonstração
+   era "Execução do <nome>" — "Execução do Prancha", "do Remada", "do
+   Rosca" — e desde o §22.13 item 5 ele também é o nome da figura-botão,
+   lido a cada foco. O mesmo erro estava em outros três nomes acessíveis
+   (auditoria 2 da rodada 21): "Nota do <nome>" (a nota da pergunta "firme?"
+   do player, `components/player/firme.tsx`, e a do bloco da Visão geral,
+   `components/treinar/bloco.tsx`), "Última repetição firme no <nome>" (o
+   interruptor do bloco) e "Carga do <nome> por sessão" (o gráfico de cada
+   grande no Progresso e no Relatório). `data/exercicios.json` não diz o
+   gênero do nome (32 dos 81 são femininos: Remada, Rosca, Elevação, Flexão,
+   Barra fixa, Puxada, Prancha…), e inferir pela última letra erra ("Good
+   morning", "Farmer's walk", "Crucifixo"). Todo nome acessível que cita o
+   exercício passa a ser **"<rótulo>: <nome>"**, montado num lugar só
+   (`nomeAcessivel()` em `lib/midia.ts`, com os rótulos "Execução", "Como
+   fazer", "Ficha", "Nota", "Última repetição firme" e "Carga por sessão";
+   `altDaExecucao()` é o de "Execução"). A foto da `MediaGrande` é a
+   exceção de propósito: ela diz qual quadro é ("<nome> — início"), sem
+   artigo e sem "Execução". Aceite: Vitest — para os 81 exercícios, o `alt`
+   de toda opção de mídia que não é a foto é "Execução: <nome>" e o da foto
+   é "<nome> — início"; os 81 nomes × os 6 rótulos dão "<rótulo>: <nome>"
+   sem artigo antes do nome; um grep de `lib/`, `components/` e `app/` (fora
+   comentários) não acha "do/da/no/na/dos/das/nos/nas" antes de
+   `${…nome}` nem de `{…nome}`, nem "Execução do/da"; mutação — voltar
+   `firme.tsx` a "Nota do ${exercicio.nome}" derruba o grep; e2e — na ficha
+   da prancha e no player, os nomes começam por "Execução: "; no player, na
+   pergunta "firme?" da remada curvada pronada, a nota se chama "Nota:
+   Remada curvada pronada", e na Visão geral o bloco dela tem "Nota: …",
+   "Última repetição firme: …" e "Como fazer: …", sem nenhum `aria-label`
+   com "do/da/no/na" antes de um nome do treino.
 4. **O aceite da ordem dos quadros diz o que o teste mede**
    (C-l13-aceite-lcp-vs-ordem). O ledger original dizia "uma requisição de
    ilustração antes do LCP, não duas"; o §22.13 item 4 já trocou esse aceite
@@ -2957,8 +2974,11 @@ e2e (`e2e/ultraloop-l32.spec.ts`).
    selo "Circuito", a linha do subtítulo existe e leva o selo. A vitrine
    continua reservando. Aceite: e2e — na busca "corda", nas linhas sem
    subtítulo, a distância entre o fim do título e o começo da linha seguinte
-   é a do `gap` (≤ 4 px), sem nó de subtítulo vazio; na vitrine, a mesma
-   altura por seção (±1 px, o teste do §22.13 item 7 continua).
+   é a do `gap` (≤ 4 px), sem o nó `data-linha="sem-subtitulo"` (a reserva
+   vazia da vitrine ou a linha só com o selo "Circuito"; até a rodada 21 ele
+   se chamava `subtitulo-vazio`, nome errado quando leva o selo); na
+   vitrine, a mesma altura por seção (±1 px, o teste do §22.13 item 7
+   continua).
 6. **Na busca, a coleção leva a capa da vitrine** (C-busca-corda-capa-icone).
    A busca passava a lista inteira por `semCapasRepetidas()` (§22.9 item 7),
    e a capa de uma coleção dependia de quem vinha antes no resultado: na
@@ -2974,17 +2994,31 @@ e2e (`e2e/ultraloop-l32.spec.ts`).
    tem o ícone continua com o ícone. Por que não a capa da vitrine sempre:
    a busca junta seções numa lista só, e na busca "barra" 5 das 16 linhas
    repetiriam a foto de uma linha de cima — o problema do §22.9 item 7.
+   O mecanismo de `capasNaBusca()` tem duas passadas. Na 1ª, de cima para
+   baixo, cada linha **reserva** a capa que tem na vitrine, se nenhuma linha
+   de cima já a reservou; coleção com ícone na vitrine fica com o ícone.
+   Na 2ª, quem não reservou (a capa da vitrine já era de uma linha de
+   cima) pega a primeira foto dos seus exercícios que **nenhuma** linha
+   reservou — acima ou abaixo —, ou o ícone. Medido no catálogo, a busca
+   "corda" dá, nesta ordem: 1. circuito "Corda" (vitrine
+   `salto-basico-1.jpg`, reserva e fica com ela); 2. aparelho "Corda de
+   pular com rolamento" (vitrine `salto-basico-1.jpg`, a mesma do circuito,
+   logo acima: não reserva; na 2ª passada as fotos dos exercícios dele são
+   `salto-basico-1.jpg`, do circuito, e `corrida-no-lugar-com-a-corda-1.jpg`,
+   que o plano da linha de **baixo** reservou na 1ª passada — fica com o
+   ícone); 3. plano "Corda: 5 estágios" (vitrine
+   `corrida-no-lugar-com-a-corda-1.jpg`, reserva e fica com ela). Antes, o
+   aparelho levava a foto da corrida no lugar e o plano, o ícone.
    Aceite: Vitest — "Corda: 5 estágios" tem na busca "corda" a mesma capa
-   da seção Planos; nos 122 termos, nenhuma foto se repete numa busca, e
-   toda coleção cuja capa da vitrine não está numa linha de cima tem a capa
-   da vitrine (o que muda cai de 144 para 66 linhas, e os planos de 4 para
-   2 — "Primeira barra fixa" nas buscas "elástico" e "assistida", onde a
-   foto da barra fixa assistida é a capa do circuito "Elástico", numa linha
-   de cima); na busca "corda", quem fica com o ícone passa a ser o aparelho
-   "Corda de pular com rolamento": a foto dele na vitrine (salto básico) é
-   a do circuito "Corda", logo acima, e as outras fotos dos exercícios dele
-   já estão em cima; e2e — na busca "corda", a linha "Corda: 5 estágios"
-   tem a foto da seção Planos.
+   da seção Planos; a busca "corda" começa por circuito:corda,
+   aparelho:corda, plano:corda, e o aparelho fica com o ícone (antes, com
+   a foto da corrida no lugar); nos 122 termos, nenhuma foto se repete numa
+   busca, e toda coleção cuja capa da vitrine não está numa linha de cima
+   tem a capa da vitrine (o que muda cai de 144 para 66 linhas, e os planos
+   de 4 para 2 — "Primeira barra fixa" nas buscas "elástico" e
+   "assistida", onde a foto da barra fixa assistida é a capa do circuito
+   "Elástico", numa linha de cima); e2e — na busca "corda", a linha "Corda:
+   5 estágios" tem a foto da seção Planos.
 7. **A posição no plano aparece uma vez** (C-plano-progresso-repete-desafio).
    Na tela do plano com perfil, a capa dizia "semana 3 de 12" e o bloco
    "Semanas do plano", logo abaixo, "Semana 3 de 12 · 2 concluídas" com a
@@ -3025,7 +3059,9 @@ e2e (`e2e/ultraloop-l32.spec.ts`).
     (›) no fim; a tag sem coleção é **texto simples** — sem contorno, sem
     fundo, sem sublinhado, em `text-muted-foreground`. Aceite: e2e na ficha
     do supino reto com barra a 360×740, nos dois temas — a tag-link tem
-    `text-decoration-line: underline` sem hover, contorno visível e um `svg`;
+    `text-decoration-line: underline` sem hover, contorno visível (cor
+    `muted-foreground`, ≥ 3:1 contra o fundo em volta — o `border` do
+    outline media 1,27:1 no claro e 1,97:1 no escuro) e um `svg`;
     a tag-texto não tem sublinhado, nem borda, nem fundo, nem `svg`; o texto
     das duas mede ≥ 4,5:1 contra o fundo; nada vaza a largura.
 
