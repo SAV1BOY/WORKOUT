@@ -28,7 +28,7 @@ import {
   type OpcoesMontagem,
 } from "@/lib/montagem";
 import {
-  avisoDoVoto,
+  avisoDoPolegar,
   pontosDoBloco,
   rotuloDoPasso,
   serieAnteriorDe,
@@ -101,7 +101,8 @@ export function TelaExercicio({
   aoAbrirFicha: () => void;
   aoAbrirLista: () => void;
   aoAjustar: () => void;
-  aoAvaliar: (voto: VotoDoExercicio) => void;
+  /** Grava o voto; devolve se gravou (sem perfil não há onde gravar). */
+  aoAvaliar: (voto: VotoDoExercicio) => boolean;
 }) {
   const exercicio = acharExercicio(bloco.exercicioId);
   const implemento = exercicio.implemento as ImplementoMontagem;
@@ -117,11 +118,20 @@ export function TelaExercicio({
 
   const pontos = pontosDoBloco(bloco, passo);
 
-  /** O voto, com o aviso do que ele faz e o "Desfazer" (SPEC §22.16 item 6). */
+  /**
+   * O voto, com o aviso do que ele faz e o "Desfazer" (SPEC §22.16 item 6).
+   * O aviso só confirma o que foi gravado: sem perfil, ele diz que o voto
+   * não foi anotado, e não há "Desfazer". O "Desfazer" grava o voto de antes
+   * sobre as preferências de agora (`aoAvaliar` lê o cache na hora).
+   */
   const votar = (novo: VotoDoExercicio) => {
     const antes = voto;
-    aoAvaliar(novo);
-    toast(avisoDoVoto(exercicio.nome, novo), {
+    const aviso = avisoDoPolegar(exercicio.nome, novo, aoAvaliar(novo));
+    if (!aviso.desfazer) {
+      toast(aviso.texto);
+      return;
+    }
+    toast(aviso.texto, {
       action: { label: "Desfazer", onClick: () => aoAvaliar(antes) },
       // ≥ 44 px e anel de destaque no foco (app/globals.css, §22.16 item 6)
       classNames: { actionButton: "aviso-desfazer" },

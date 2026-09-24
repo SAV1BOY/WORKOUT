@@ -54,7 +54,7 @@ import {
 import { enfileirarEscrita } from "@/lib/outbox-supabase";
 import { registrarPeso } from "@/lib/queries/corpo";
 import { salvarPerfil, salvarPrefs } from "@/lib/queries/mais";
-import { useUltimoPeso } from "@/lib/queries/dados";
+import { chaves, useUltimoPeso } from "@/lib/queries/dados";
 import { useHoje } from "@/lib/relogio";
 import {
   ajustarPrescricaoDaSessao,
@@ -64,6 +64,7 @@ import {
   type SerieLocal,
   type SessaoLocal,
 } from "@/lib/sessao";
+import type { LinhaPerfil } from "@/lib/types";
 
 /**
  * O player (SPEC §14.1): preparação → exercício → descanso → "firme?" →
@@ -294,16 +295,26 @@ export function TelaPlayer({
 
   /* ------------------------------------------------------ ações */
 
+  /**
+   * O voto dos polegares (SPEC §22.16 item 6). Devolve se gravou: sem perfil
+   * (o player abre só com a sessão do aparelho) não há onde gravar, e a tela
+   * não pode confirmar o voto. As preferências são as de AGORA, lidas do
+   * cache na hora: o "Desfazer" chega segundos depois, e gravar por cima um
+   * retrato do render do voto apagaria qualquer outra mudança feita no meio.
+   */
   const avaliarExercicio = useCallback(
-    (exercicioId: string, voto: VotoDoExercicio) => {
-      if (!perfil) return;
+    (exercicioId: string, voto: VotoDoExercicio): boolean => {
+      const atual =
+        cliente.getQueryData<LinhaPerfil | null>(chaves.perfil()) ?? perfil;
+      if (!atual) return false;
       void salvarPrefs({
-        userId: perfil.user_id,
-        prefs: comVoto(prefs, exercicioId, voto),
+        userId: atual.user_id,
+        prefs: comVoto(atual.prefs, exercicioId, voto),
         cliente,
       });
+      return true;
     },
-    [perfil, prefs, cliente],
+    [perfil, cliente],
   );
 
   const mudarAltura = useCallback(

@@ -9,6 +9,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { SECOES } from "@/lib/guia";
 import {
+  avisoDoPolegar,
   avisoDoVoto,
   estadoDoPasso,
   indiceDaChave,
@@ -239,6 +240,23 @@ describe("§22.16 item 6 — avisoDoVoto", () => {
     expect(avisoDoVoto("Supino", null)).toBe("Voto tirado: Supino sem avaliação.");
     for (const voto of ["evitado", "preferido", null] as const) {
       expect(avisoDoVoto("X", voto)).not.toMatch(/não vamos mais montar/i);
+    }
+  });
+
+  it("avisoDoPolegar: só confirma o voto gravado; sem gravação, diz que não anotou e não oferece 'Desfazer'", () => {
+    for (const voto of ["evitado", "preferido", null] as const) {
+      expect(avisoDoPolegar("Supino", voto, true)).toEqual({
+        texto: avisoDoVoto("Supino", voto),
+        desfazer: true,
+      });
+      const semGravar = avisoDoPolegar("Supino", voto, false);
+      expect(semGravar).toEqual({
+        texto: "Voto não anotado: o perfil ainda não carregou.",
+        desfazer: false,
+      });
+      // nada do texto de voto gravado quando não gravou
+      expect(semGravar.texto).not.toBe(avisoDoVoto("Supino", voto));
+      expect(semGravar.texto).not.toMatch(/Supino|Anotado:|fim das listas/);
     }
   });
 });

@@ -273,6 +273,27 @@ export function avisoDoVoto(
   return `Voto tirado: ${nome} sem avaliação.`;
 }
 
+/**
+ * O que a tela diz depois de um toque nos polegares (SPEC §22.16 item 6).
+ * O aviso só confirma o que foi gravado: o player abre só com a sessão do
+ * aparelho, e sem o perfil o voto não tem onde ir — então a tela diz isso,
+ * sem "Desfazer" (não há o que desfazer), em vez de anunciar uma mudança que
+ * não aconteceu.
+ */
+export function avisoDoPolegar(
+  nome: string,
+  voto: "preferido" | "evitado" | null,
+  gravou: boolean,
+): { texto: string; desfazer: boolean } {
+  if (!gravou) {
+    return {
+      texto: "Voto não anotado: o perfil ainda não carregou.",
+      desfazer: false,
+    };
+  }
+  return { texto: avisoDoVoto(nome, voto), desfazer: true };
+}
+
 /* ------------------------------------------------ o que a tela do meio é */
 
 /**
