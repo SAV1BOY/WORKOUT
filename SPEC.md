@@ -2807,8 +2807,8 @@ não muda (§22.0.1 item 7). O aceite de cada item é verificável no Vitest
    | `components/player/descanso.tsx` | Tela de descanso | passo do player | não é camada: é um passo que substitui o player (`fixed inset-0`, `section`, sem `role="dialog"`), nada fica embaixo |
 
    **O voltar do celular** fecha só a camada de cima **dentro da Visão
-   geral**, que é a única camada com entrada no histórico. Fora dela,
-   nenhuma camada da tabela tem entrada no histórico: com a folha, o
+   geral**, que era (até o §22.17) a única camada com entrada no histórico.
+   Fora dela, nenhuma camada da tabela tinha entrada no histórico: com a folha, o
    diálogo ou a foto aberta numa página, o voltar navega para a página
    anterior (e a camada some com a página) — fica **fora** deste lote e vai
    à fila como `a11y-voltar-fecha-camada` (voltar fecha só a camada de
@@ -2865,6 +2865,9 @@ não muda (§22.0.1 item 7). O aceite de cada item é verificável no Vitest
    §13.4) e fica. Aceite: Vitest — `NOME_IMPLEMENTO.band` é igual a
    `NOME_EQUIPAMENTO['super-band']` e está no texto de todo exercício com o
    implemento ou a tag; e2e — nas opções dos filtros, nenhuma "Elástico".
+   Desde o §22.17 item 1, o seletor de Implemento e o chip mostram "Super
+   Band (principal)" (o implemento dá 2 exercícios, a tag, 5); o nome do
+   objeto continua um só.
 10. **Créditos em linguagem de gente** (copy-08). O mapa muscular dizia "as
     cores viraram variáveis CSS" e o link da licença "anda junto do desenho,
     com a atribuição e o que foi feito com a geometria". Passa a "Nenhuma
@@ -3134,7 +3137,8 @@ vizinhos citados) ou no e2e (`e2e/ultraloop-l33.spec.ts`).
    mutação — sem o perfil na regra, cai. e2e — com a barra W de 5 kg e o
    pedido do perfil atrasado, na rosca com barra W, desde o primeiro quadro
    em que o histórico sai do esqueleto o cartão "Onde você está" já está lá
-   e a altura da página não muda depois.
+   e a altura do histórico não muda depois (±1 px), com o cache do aparelho
+   vazio (o perfil só da rede).
 5. **O véu: sem ramo morto, e a SPEC diz o que o código faz**
    (C-l14-veu-ramo-morto). `components/ui/camada-modal.ts` aceitava
    `data-veu` como véu, e ninguém usa (grep em `app/` e `components/`:
@@ -3176,9 +3180,9 @@ vizinhos citados) ou no e2e (`e2e/ultraloop-l33.spec.ts`).
    ao de antes (nenhuma entrada sobrando); o "Ver resultados" dos filtros
    também volta o índice e deixa o primeiro resultado à vista; dentro da
    Visão geral, o índice não sobe ao abrir a folha (os e2e do §22.14 item 6
-   continuam); na coleção do Treino A, a ficha em folha aberta e o link de
-   uma tag dela seguido, **um** voltar leva de volta à coleção, com o índice
-   de antes de abrir a folha (a entrada morta foi pulada).
+   continuam). A entrada morta fica no Vitest: a ficha em folha não tem
+   link para outra rota (as tags e o "Aparece em" só existem na página), e
+   o e2e que a seguia não achou o link.
 7. **A guarda do artigo antes do nome pega o que escapava**
    (C-l32-guarda-artigo-estreita). O grep de `lib/l32.test.ts` (§22.15 item
    3) só pegava template numa linha e expressão terminada em `nome`.

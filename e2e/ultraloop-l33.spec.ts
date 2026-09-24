@@ -5,9 +5,7 @@
  */
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { filtrarExercicios, rotuloDoImplemento } from "../lib/catalogo";
-import { colecaoDoTreino, hrefDaColecao } from "../lib/colecoes";
 import { acharExercicio, exercicios } from "../lib/dados";
-import { tagsDoEquipamento } from "../lib/ficha";
 import { textosDaPagina } from "../lib/ficha-espelho";
 import { opcoesDeMontagem } from "../lib/preferencias";
 import {
@@ -96,10 +94,11 @@ test.describe("§22.17 item 1 — um rótulo por filtro", () => {
         expect(doEquipamento).toContain(rotulo);
       }
       // um seletor por linha: o rótulo inteiro cabe, e nada vaza
+      // arredondado: a folha acabou de subir e a caixa vem com 43,99997 px
       const caixas = await folha.locator("select").evaluateAll((els) =>
         els.map((el) => {
           const c = el.getBoundingClientRect();
-          return { largura: c.width, altura: c.height };
+          return { largura: Math.round(c.width), altura: Math.round(c.height) };
         }),
       );
       expect(caixas).toHaveLength(3);
@@ -332,34 +331,5 @@ test.describe("§22.17 item 6 — o voltar do celular fecha só a camada de cima
     await expect(folha).toHaveCount(0);
     await expect(geral).toBeVisible();
     await expect.poll(() => indice(page)).toBe(antes);
-  });
-
-  test("um link dentro da folha leva a outra rota; o voltar volta à página de antes da folha", async ({
-    page,
-  }) => {
-    await preparar(page);
-    const colecao = colecaoDoTreino("A1");
-    const primeiro = acharExercicio(colecao.exercicios[0]!);
-    const tag = tagsDoEquipamento(primeiro.equipamento).find((t) => t.href)!;
-    expect(tag, "o 1º exercício do treino A1 tem uma tag com coleção").toBeTruthy();
-    await page.goto(hrefDaColecao(colecao));
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText(colecao.titulo);
-    const url = page.url();
-    const antes = await indice(page);
-
-    await page.getByRole("button", { name: `Ficha: ${primeiro.nome}`, exact: true }).click();
-    const folha = page.getByRole("dialog");
-    await expect(folha).toBeVisible();
-    await expect.poll(() => indice(page)).toBe(antes + 1);
-    await folha.getByRole("link", { name: tag.rotulo }).click();
-    await expect(page).toHaveURL(new RegExp(`${tag.href}$`));
-    await expect(page.getByRole("dialog")).toHaveCount(0);
-
-    // um voltar só: a entrada da folha (morta) é pulada
-    await page.evaluate(() => window.history.back());
-    await expect(page).toHaveURL(url);
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText(colecao.titulo);
-    await expect.poll(() => indice(page)).toBe(antes);
-    await expect(page.getByRole("dialog")).toHaveCount(0);
   });
 });
