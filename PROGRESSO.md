@@ -11627,11 +11627,14 @@ entrou), o service worker e a tela. **Nunca a service role**, nem no servidor.
 
 #### Provas
 
-- **Vitest novos:** `lib/lembretes-regra.test.ts` (19), `lib/ics.test.ts`
+- **Vitest novos:** `lib/lembretes-regra.test.ts` (21; eram 19 até
+  `3f8e7d9`, +2 da correção da rodada 24), `lib/ics.test.ts`
   (12; eram 11 até `9f7bf14`, +1 da descrição do .ics na correção),
   `lib/migracao-lembretes-disparo.test.ts` (26),
-  `lib/rota-lembretes-disparar.test.ts` (12; eram 11, +1 do 413 em bytes);
-  total do `npm test` em `10d4ae0`: **77 arquivos, 1.704 testes**; a mais em
+  `lib/rota-lembretes-disparar.test.ts` (14; eram 11, +1 do 413 em bytes,
+  +2 do limite na rodada 24);
+  total do `npm test` em `10d4ae0`: **77 arquivos, 1.704 testes**; em
+  `0424f78` (rodada 24): **77 arquivos, 1.708 testes**; a mais em
   `lib/lembretes.test.ts` (badge), `lib/auditoria-seguranca.test.ts` (tabela
   só de leitura), `lib/supabase/middleware.test.ts` (a rota do disparo é a
   única `/api` sem sessão).
@@ -11740,6 +11743,13 @@ entrou), o service worker e a tela. **Nunca a service role**, nem no servidor.
   pulados, nenhum ✘** (23,6 min; o `auditoria.spec.ts:86` passou) ·
   `varredura` **5 passaram** (4,7 min). É a cadeia verde de ponta a ponta do
   código corrigido.
+- **`0424f78`** (rodada 24, correção da auditoria de `3f8e7d9`: +4 testes em
+  `1bc470f` e a frase da SPEC §23.11 em `0424f78`; cadeia inteira rodada por
+  mim, `r24/l35/logs/0424f78.log`, das 12:14:19 às 12:56:55 UTC, `.status`
+  **ok**): `lint` limpo · `tsc` limpo · `npm test` **77 arquivos, 1.708
+  testes, todos verdes** · `build` ("Compiled successfully in 21.4s") ·
+  `build:e2e` ("Compiled successfully in 24.5s") · `e2e` **569 passaram, 5
+  pulados, nenhum ✘** (23,0 min) · `varredura` **5 passaram** (4,7 min).
 - `git diff 96056ac -- lib/progressao.ts lib/montagem.ts` vazio. Nenhum
   segredo no repositório; nenhuma service role.
 
@@ -11760,6 +11770,13 @@ entrou), o service worker e a tela. **Nunca a service role**, nem no servidor.
    dia, um substituindo o outro em silêncio pela tag `lembrete-treino`):
    conferir o primeiro tick e igualar os segredos na hora. Sem os passos 2–3
    o tick não faz nada e nada quebra.
+5. **Integração com `main`** (o L32, `b66e06c`, entrou em `main` depois que
+   esta branch saiu de `96056ac`): `git merge-tree --write-tree HEAD b66e06c`
+   conflita **só em `PROGRESSO.md`** (SPEC.md e o código juntam sem
+   conflito; o lote não toca `components/colecoes`, `lib/colecoes.ts`,
+   `lib/midia.ts` nem os e2e do L32). Depois do merge, rodar a cadeia inteira
+   de novo sobre o resultado; a `07-colecao` passa a vir do L32 e volta a
+   0,00 % contra a base atual.
 
 #### Como testar no celular (360 px)
 
@@ -11806,7 +11823,8 @@ VAPID e o `comparar-capturas.ts` contra `base-ef3ad97`, limiar 0,5 %,
 esperada `18-mais`): `r20/l35/auditoria-2-tela/capturas-10d4ae0.md` e
 `capturas-10d4ae0-diff/` — **60 PNGs, Δ 0,00 % em todas**, "Nenhuma tela
 mudou fora do esperado", e os 60 **iguais byte a byte** aos da base (`cmp`,
-0 diferentes). `18-mais-claro.diff.png` e `18-mais-escuro.diff.png` abertos:
+0 diferentes) — a base **como estava até as 11:31 de 24/09**; desde então 2
+PNGs da base diferem destes, os da `07-colecao` (ver "Rodada 24" abaixo). `18-mais-claro.diff.png` e `18-mais-escuro.diff.png` abertos:
 tudo em cinza esmaecido, nenhum pixel vermelho. `/mais/lembretes` (fora das
 60) foi medida por ela a 360×740 nos dois temas, com e sem VAPID: 360 =
 360 em todos os estados, nenhum alvo < 44 px, contraste mínimo 5,07 (claro)
@@ -11817,23 +11835,31 @@ e 5,85 (escuro).
 | 18-mais (`815f2e9`) | 0,00 % | 0,00 % | nada (a linha "Lembretes" já está na base) |
 | 18-mais (`10d4ae0`) | 0,00 % | 0,00 % | nada; as outras 58 também 0,00 % |
 | 18-mais (`48be98c`) | 0,00 % | 0,00 % | nada |
-| 07-colecao (`48be98c`) | 16,30 % | 22,07 % | **inesperada** — ver abaixo |
+| 07-colecao (`48be98c`) | 16,30 % | 22,07 % | a **base** mudou (L32), não o lote: a branch ainda mostra "semana 2 de 12" na capa — ver abaixo |
+| 18-mais (`0424f78`) | 0,00 % | 0,00 % | nada; 58 de 60 iguais byte a byte à base |
+| 07-colecao (`0424f78`) | 16,30 % | 22,07 % | a mesma da linha de `48be98c` (PNG idêntico): base do L32, não o lote |
 
 **Rodada 24 — capturas de `48be98c`** (`capturas.sh` com o `.next` do
 `build:e2e` da cadeia verde de `48be98c`, contra `base-ef3ad97`, esperada
 `18-mais`; `r24/l35/capturas-48be98c.md`, 11:52–11:59 UTC, servidores
-derrubados pelo script, 3110/54331 → 000): 60 PNGs, 58 com Δ 0,00 %; o
-comparador acusou **`07-colecao` fora do esperado** (16,30 % claro, 22,07 %
-escuro). Aberto o `07-colecao-claro.diff.png`: o mesmo conteúdo ("5 km sem
-parar", "Fazer a corrida da semana 2", "Semanas do plano", "Semana 2 de 12 ·
-1 concluída 8%", as linhas das semanas) aparece **deslocado uns 20 px para
-baixo** a partir do botão do card — nenhum texto novo nem faltando. O
-código de `48be98c` é **idêntico** ao de `10d4ae0` (`git diff 10d4ae0
-48be98c` só toca este PROGRESSO.md), e as capturas de `10d4ae0` deram
-`07-colecao` 0,00 % e byte a byte igual à base; o lote não toca a coleção.
-Tratado como captura não determinística (altura do card no momento da
-foto), **não confirmado**: recapturar antes do deploy; sem recaptura
-limpa, o orquestrador decide.
+derrubados pelo script, 3110/54331 → 000): 60 PNGs, 58 com Δ 0,00 % e iguais
+byte a byte à base; o comparador acusou **`07-colecao`** (16,30 % claro,
+22,07 % escuro). **Causa (corrigida na rodada 24, ver "Correção da auditoria
+de `3f8e7d9`"):** a base-ef3ad97 recebeu às 11:31 de 24/09 a `07-colecao` do
+L32 (passo 9 do DEPLOY-R22 no diário: os PNGs de `r22/l32/capturas-e6f42b2`
+copiados para a base; md5 `3be4c0a3…` claro e `1005d129…` escuro, iguais nas
+duas pastas). O L32 (`b66e06c`, já em `main`) tira da capa da coleção a linha
+"semana 2 de 12". A branch do L35 nasceu de `96056ac`, **anterior ao L32**, e
+ainda mostra essa linha abaixo de "12 semanas (≈35 min, 7 min/km)" — é ela
+que empurra o resto uns 20 px para baixo (há, portanto, **um texto a mais**
+na captura da branch, não "o mesmo conteúdo"). A captura é determinística:
+`capturas-48be98c/07-colecao-{claro,escuro}.png` é igual byte a byte à de
+`10d4ae0` (md5 `e2984f3a…` / `fd081ed0…`); as de `10d4ae0` deram 0,00 % só
+porque foram feitas às 11:14, antes da troca da base. Não é regressão do lote:
+nenhum arquivo do L35 toca `components/colecoes`, `lib/colecoes.ts` ou
+`lib/midia.ts` (`git diff 96056ac HEAD --stat` nesses caminhos: vazio).
+Depois do merge com `main`, a coleção vem do L32. Recapturar na branch não
+muda nada (daria o mesmo PNG), por isso não há recaptura pendente.
 
 #### Correção da auditoria (24/09)
 
@@ -11918,6 +11944,7 @@ nas duas lentes; esta rodada não muda código):
   teste, nem o limite exato (`>` trocado por `>=` sobrevive à mutação); o
   413 em bytes — o aceite — está coberto (4 mutações morrem). Para provar:
   um teste com `content-length: 600000` e um corpo que falha se for lido.
+  **Feito na correção da auditoria de `3f8e7d9`** (abaixo).
 - **Regra:** o `disparoSchema` continua tudo ou nada (ver "Não feito" (1));
   os casos que dariam 400 no tick inteiro: um `ultimo_treino` legado, um
   `workout_id` de override fora do enum (o restore do backup não valida o
@@ -11948,3 +11975,74 @@ nas duas lentes; esta rodada não muda código):
   fica anotado; a causa provável (corrida do `guia_visto` com o `reload`)
   é de um lote de testes, fora deste.
 
+#### Correção da auditoria de `3f8e7d9` (rodada 24)
+
+As duas lentes (regra e tela, HEAD `3f8e7d9`) **reprovaram só por registro**:
+nenhum bloqueante e nenhum importante de código. Corrigido em commits
+pequenos sobre `3f8e7d9`:
+
+- **Importante (as duas lentes) — a explicação da `07-colecao` nas
+  Capturas.** **Era:** "o mesmo conteúdo … deslocado uns 20 px, nenhum texto
+  novo nem faltando", "captura não determinística" e "recapturar antes do
+  deploy". **É:** a base-ef3ad97 recebeu às 11:31 a `07-colecao` do L32
+  (`b66e06c`, capa sem "semana 2 de 12"); a branch do L35 é anterior ao L32 e
+  ainda mostra essa linha (o texto a mais que desloca o resto);
+  `48be98c` == `10d4ae0` byte a byte; depois do merge com `main` a coleção
+  vem do L32, porque o lote não a toca. A recaptura saiu dos pendentes (daria
+  o mesmo PNG), e a frase "iguais byte a byte à base" das capturas de
+  `10d4ae0` agora diz que vale para a base de antes das 11:31. Texto só no
+  PROGRESSO (seção Capturas e "Antes do deploy", passo 5).
+- **Menores de regra — os 4 mutantes que sobreviviam agora morrem**
+  (`1bc470f`, só testes, nenhum código de produção mudou):
+  `lib/lembretes-regra.test.ts` +2 — "próximo: o treino de hoje já concluído
+  antes da hora não promete 'hoje'" (concluído às 06:30 → "Próximo: amanhã
+  às 18:30 — Corrida"; em andamento ainda promete "hoje às 07:00") e "o
+  enviado de hoje só bloqueia o mesmo tipo" (terça de corrida trocada por
+  treino num override depois do aviso da corrida: o do treino ainda sai; um
+  enviado do próprio tipo bloqueia); `lib/rota-lembretes-disparar.test.ts`
+  +2 — "o limite é inclusivo" (corpo de 524.288 bytes exatos é lido e
+  recusado só pelo formato, 400; 524.289 → 413) e "content-length declarado
+  acima do limite: 413 antes de ler o corpo" (corpo pequeno e válido com
+  `content-length: 524289` → 413 sem push nem RPC; declarar exatamente
+  524.288 → 200). **Mutação** (no próprio `wt-b`, cada arquivo restaurado
+  depois, `r24/l35/correcao-mutacoes/saida.txt`): `if (!doDia) continue;` no
+  `proximoLembrete` → 1 falhou; já enviado sem o tipo → 1 falhou; sem o ramo
+  do `content-length` → 1 falhou; `total >= limite` → 1 falhou;
+  `declarado >= limite` → 1 falhou. 5 de 5 morrem.
+- **Menor de regra — SPEC §23.11** (`0424f78`): **era** "`execute` só do
+  `postgres`"; **é** "não executável por `anon` nem `authenticated`
+  (revogado de `public`, `anon` e `authenticated`; o dono `postgres` executa
+  e o `service_role` mantém o padrão do projeto Supabase, que o app nunca
+  usa)". A migração não mudou.
+- **Menores de integração (as duas lentes)** — o merge com `main` conflita
+  só no PROGRESSO.md: registrado para o orquestrador em "Antes do deploy",
+  passo 5 (com a cadeia de novo depois do merge).
+- **Menores de tela, só anotados:** a primeira abertura sem rede com o
+  aparelho ativado continua sem a seção "Este aparelho" (já nos não feitos
+  da rodada 24; `carregar()` é do L34); o anel de foco do switch
+  (`components/ui/switch.tsx`, anterior ao lote) tem pouco contraste no
+  claro — componente fora do lote, fica para um lote de acessibilidade.
+
+**Portões de `0424f78`:** `r24/l35/logs/0424f78.log`, das 12:14:19 às 12:56:55 UTC,
+`.status` **ok** (o `test` esperou o lock atrás do e2e de outra faixa até
+12:24): `lint` limpo · `tsc` limpo · `npm test` **77 arquivos, 1.708 testes,
+todos verdes** (1.704 + os 4 novos) · `build` ("Compiled successfully in
+21.4s") · `build:e2e` ("Compiled successfully in 24.5s") · `e2e` **569
+passaram, 5 pulados, nenhum ✘** (23,0 min; os 8 do L35 e os 40 do L34 ✓; o
+`auditoria.spec.ts:86` ✓) · `varredura` **5 passaram** (4,7 min). O HEAD
+final desta rodada é `0424f78` + só este PROGRESSO.md.
+
+**Capturas de `0424f78`:** `capturas.sh` com o `.next` do `build:e2e` da cadeia
+de `0424f78`, contra `base-ef3ad97`, esperada `18-mais`
+(`r24/l35/capturas-0424f78.md` e `capturas-0424f78-diff/`, 12:57–13:00
+UTC; servidores derrubados pelo script, 3110/54331 → 000 antes e depois):
+60 PNGs; **58 com Δ 0,00 % e iguais byte a byte à base** (`cmp`), inclusive a
+`18-mais` (aberto o `18-mais-claro.diff.png`: tudo em cinza, nenhum pixel
+vermelho); a `07-colecao` deu 16,30 % (claro) e 22,07 % (escuro), marcada
+"mudou" pelo comparador. Aberto o `07-colecao-claro.diff.png`: em vermelho a
+linha **"semana 2 de 12"** na capa, logo abaixo de "12 semanas (≈35 min, 7
+min/km)", e o resto da tela (botão "Fazer a corrida da semana 2", "Semanas
+do plano", as linhas das semanas) em dobro, deslocado ~20 px por ela — é a
+base do L32 (explicada acima), não o lote. Os 60 PNGs de `0424f78` são
+**iguais byte a byte** aos de `48be98c` (`cmp`, 60 de 60): os commits desta
+rodada não mudaram nenhuma tela.
