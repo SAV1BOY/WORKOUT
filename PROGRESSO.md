@@ -11643,3 +11643,127 @@ resposta ≥ 400, nos dois temas. Uma primeira tentativa do tema claro foi
 descartada por falha do script de medida (o guia da primeira entrada abriu
 depois da espera) e refeita inteira. **Conta de teste apagada** às 00:00 UTC
 (ficam só as 3 contas reais).
+
+### Rodada 21 — Lote 32 — Sobras das auditorias: ficha e coleções do Explorar
+
+Faixa A, worktree `wt-a`, branch `polimento/l32-ficha-sobras` a partir de
+`main` f813c41 (L34 publicado). SPEC §22.15 escrita e commitada antes do
+código (`320ad47`). Dez sobras da seção C da fila, das auditorias e da
+verificação em produção do L13 e do L14; os quatro itens de coleções do
+Explorar entram pela exceção de área do plano (os mesmos arquivos do L13).
+`git diff f813c41 -- lib/progressao.ts lib/montagem.ts` vazio.
+
+#### O que mudou
+
+1. **A figura nasce de novo também no "Substituir"**
+   (C-l13-key-musculos-sem-teste). Era: o ledger pedia teste para a `key` da
+   ilustração da aba Músculos, que **não existe mais** — o §22.14 item 3(a)
+   tirou a ilustração dessa aba (grep de `urls.join` em `ficha-folha.tsx`:
+   nada); a `key` que sobra, a da aba Vídeo em `media-grande.tsx`, só tinha
+   e2e pela seta ›. É: e2e do "Substituir" com a figura do agachamento livre
+   na posição 2 (o afundo começa na 1, o quadro 2 dele espera o 1) e da aba
+   Músculos aberta atravessando › e "Substituir". Arquivos:
+   `e2e/ultraloop-l32.spec.ts`. Código de app: nenhum.
+2. **A figura quebrada não passa para o próximo exercício**
+   (C-media-grande-figura-quebrou-herdada). Era: `figuraQuebrou` booleano na
+   `MediaGrande`; com a figura de A abortada, › ou "Substituir" levavam à
+   foto de B sem tentar a figura dele. É: a mídia guarda **qual** figura
+   falhou (o endereço) e só cai na foto quando é a figura desenhada agora.
+   Arquivo: `components/exercicio/media-grande.tsx`.
+3. **"Execução: <nome>", sem artigo** (C-alt-execucao-genero). Era:
+   "Execução do Prancha", "do Remada", "do Rosca", em dois lugares escritos à
+   mão. É: `altDaExecucao()` em `lib/midia.ts`, usada por `midiaGrande()`
+   (ilustração, figura, vídeo) e pela `FiguraExercicio`; a figura-botão do
+   player vira "Execução: Agachamento livre — abre o Como fazer". Arquivos:
+   `lib/midia.ts`, `components/exercicio/midia.tsx`; os e2e que liam o texto
+   velho (`catalogo`, `player`, `treinar`, `ultraloop-l13`) passam ao novo.
+4. **O aceite da ordem dos quadros** (C-l13-aceite-lcp-vs-ordem). Já
+   cumprido antes do lote: o §22.13 item 4 mede a ordem dos pedidos, o mesmo
+   que `e2e/ultraloop-l13.spec.ts` mede, e "LCP" não aparece no §22.13 (grep).
+   O "LCP" era do texto original da fila. É: o §22.15 item 4 registra isso;
+   nenhum código.
+5. **Na busca, sem vão onde não há subtítulo** (C-busca-linha-reservada-vazia).
+   Era: a linha reservada de 16 px entre o título e o motivo nas linhas sem
+   subtítulo (busca "corda"). É: `LinhaColecao` com `reservarSubtitulo`
+   (padrão `true`, a vitrine); a lista da busca passa `false`; o circuito
+   sem subtítulo continua com a linha do selo. Arquivos:
+   `components/colecoes/linha-colecao.tsx`, `components/explorar/tela-explorar.tsx`.
+6. **Na busca, a coleção leva a capa da vitrine** (C-busca-corda-capa-icone).
+   Era: a busca passava a lista inteira por `semCapasRepetidas()`, e "Corda:
+   5 estágios" tinha o ícone na busca "corda" e a foto na seção Planos (144
+   de 484 linhas de resultado com capa diferente da vitrine, nos 122 termos
+   de 4 letras ou mais). É: `secoesDaVitrine()` (a tela desenha estas),
+   `capasDaVitrine()` e `capasNaBusca()` em `lib/colecoes.ts`: cada coleção
+   parte da capa da vitrine e só a perde se uma linha de cima do mesmo
+   resultado já a mostra (66 de 484; planos de 4 para 2). Arquivos:
+   `lib/colecoes.ts`, `components/explorar/tela-explorar.tsx`.
+7. **A posição no plano aparece uma vez** (C-plano-progresso-repete-desafio).
+   Era: com perfil, a capa dizia "semana 3 de 12" e o bloco logo abaixo
+   "Semana 3 de 12 · 2 concluídas". É: a capa diz o que o plano é (a meta sem
+   perfil, `detalheDaCapa()` em `lib/colecoes.ts`); a posição fica no bloco,
+   com a barra e o "agora". Decisão tomada sem o dono (o ledger oferecia
+   tirar a capa ou o bloco; nenhum dos dois: a capa é o `h1` e o botão).
+   Arquivos: `lib/colecoes.ts`, `components/colecoes/tela-colecao.tsx`,
+   `e2e/v3.spec.ts` (o teste da §22.12 item 4 passa a ler a posição no
+   bloco), SPEC §22.13 item 9.
+8. **A linha "agora" não cobre o canto do cartão** (C-plano-lista-canto-reto).
+   Era: fundo de cantos retos sobre o cartão arredondado. É: a lista
+   `overflow-hidden` recorta pelo raio (16,8 px); o link da semana fica a
+   10 px ou mais da borda e o anel dele não é cortado. Arquivo:
+   `components/colecoes/tela-colecao.tsx`.
+9. **Inventário da ficha em folha** (C-l14-inventario-ficha-folha-como-abre).
+   Era: a linha de `ficha-folha.tsx` na tabela do §22.14 item 6 citava só o
+   player e a Visão geral. É: os quatro gatilhos (`tela-player.tsx`,
+   `bloco.tsx`, `treino/lista.tsx`, `lista-da-colecao.tsx`), conferidos por um
+   Vitest que faz o grep de `<FichaEmFolha`. Arquivo: `SPEC.md`.
+10. **Tag de equipamento: link × texto** (C-l14-tag-equipamento-sem-sinal-visual).
+    Era: "Anilhas" (sem coleção) com a mesma pílula de "Banco", "Barra
+    maciça" e "Cavalete" (links). É: a tag-link é pílula com contorno,
+    sublinhada sempre e com a seta (›); a tag-texto é texto simples em
+    `text-muted-foreground`, sem pílula. Arquivo:
+    `components/exercicio/ficha-folha.tsx`.
+
+#### Provas
+
+- **Vitest** `lib/l32.test.ts` (9 testes): os 81 exercícios com
+  "Execução: <nome>" em toda opção de mídia (e a foto com "— início"); os
+  nomes que davam "Execução do" (Prancha, Remada, Rosca, Elevação…); nenhum
+  `.ts`/`.tsx` de `lib/` e `components/` monta "Execução do/da" em código;
+  as cinco seções da vitrine sem capa repetida; "Corda: 5 estágios" com a
+  capa da seção Planos na busca "corda" (e o ícone com a regra de antes);
+  nos 122 termos, nenhuma foto repetida e toda coleção cuja capa da vitrine
+  está livre fica com ela (484 linhas, 144 → 66 diferentes, planos 4 → 2);
+  a capa do plano sem a posição para os três planos e as semanas 1 a 14; o
+  grep de `<FichaEmFolha` (4 arquivos) contra a linha da tabela da SPEC.
+- **Mutação Vitest** (cópia no scratchpad `l32-mut/`): capa da vitrine
+  ignorada → 2 testes caem; `detalheDaCapa` com a posição → 1; alt de volta
+  a "Execução do" → 3; `FiguraExercicio` com o texto à mão → 1; sem mutação,
+  9 de 9.
+- **e2e** `e2e/ultraloop-l32.spec.ts` (⟨N⟩ testes, 360×740): ⟨preencher⟩.
+- **Mutação e2e** (cópia `l32-mut-e2e/`, build:e2e próprio, as oito
+  mutações juntas): ⟨preencher⟩.
+
+#### Portões
+
+⟨preencher⟩
+
+#### Capturas
+
+⟨preencher⟩
+
+#### Como testar no celular (360 px)
+
+1. Treino → Começar → no player, "?" (Como fazer): escolha "Figura" no
+   segmento, toque em "Substituir" e escolha outro exercício — a figura do
+   novo aparece; com a Ilustração, ela recomeça na posição 1.
+2. Na mesma folha, a aba Músculos aberta continua aberta ao trocar de
+   exercício pela seta › e pelo "Substituir", com os músculos do novo.
+3. Com o leitor de tela, a figura diz "Execução: Prancha" (nunca "do
+   Prancha").
+4. Explorar → buscar "corda": nenhuma linha com vão entre o título e o
+   "contém …"; "Corda: 5 estágios" com a mesma foto que tem na seção Planos.
+5. Explorar → Planos → "5 km sem parar": "semana N de 12" uma vez só (no
+   bloco "Semanas do plano"); a linha "agora" sem canto reto sobre o cartão,
+   nos dois temas.
+6. Exercícios → Supino reto com barra → Equipamento: "Banco", "Barra
+   maciça" e "Cavalete" sublinhados com a seta; "Anilhas" como texto.
