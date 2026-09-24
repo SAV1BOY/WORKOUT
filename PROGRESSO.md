@@ -12138,8 +12138,8 @@ Rodada 22, sobre a auditoria 2 da rodada 21 (vereditos em
    "Última repetição firme: Remada curvada pronada" e o campo, "Nota:
    Remada curvada pronada". O mesmo na rosca direta ("Nota: Rosca direta
    com barra").
-3. Progresso → gráficos dos grandes: o leitor de tela diz "Carga por
-   sessão: Agachamento livre".
+3. Relatório → Gráficos (os gráficos dos grandes): o leitor de tela diz
+   "Carga por sessão: Agachamento livre".
 4. Exercícios → Supino reto com barra → Equipamento: a pílula de "Banco",
    "Barra maciça" e "Cavalete" tem o contorno bem visível nos dois temas;
    "Anilhas" continua texto.
@@ -12248,3 +12248,339 @@ real a 360×740 nos dois temas, `/versao` = `b66e06c`.
   resolvido: ele é o 1º item do L19.
 
 **Conta de teste apagada** às 12:00 UTC. Ficam só as 3 contas reais.
+
+### Rodada 25 — Lote 33 — Sobras do L14 e do L32: ficha, catálogo e camadas modais
+
+Faixa A, worktree `wt-a`, branch `polimento/l33-ficha-catalogo` a partir de
+`main` 17075d7 (L32 publicado em b66e06c). SPEC §22.17 escrita e commitada
+antes do código (`cf50d87`). Dez sobras da seção C da fila: seis do L14
+(§22.14) e quatro do L32 (§22.15); a capa do plano (Explorar) entra pela
+exceção de área do L32. `git diff 17075d7 -- lib/progressao.ts
+lib/montagem.ts` vazio. Nenhuma mudança de banco.
+
+#### O que mudou (era → é)
+
+1. **Um rótulo por filtro** (C-l14-super-band-dois-filtros). Era: "Barra
+   maciça", "Halteres" e "Super Band" com o mesmo nome no seletor de
+   Implemento e no de Equipamento, e listas diferentes (21 × 23, 23 × 28,
+   2 × 5 — medido nos 81); o chip do filtro ligado dizia o mesmo nome para
+   as duas. É: `rotuloDoImplemento()` em `lib/catalogo.ts` põe
+   "(principal)" no implemento quando o nome é igual ao de um equipamento e
+   as listas diferem — "Barra maciça (principal)", "Halteres (principal)",
+   "Super Band (principal)"; "Barra fixa", "Barra W" e "Corda" (listas
+   iguais: 5 × 5, 3 × 3, 2 × 2) ficam. O seletor e o chip usam a função;
+   os três seletores da folha passam a ocupar a largura inteira (o rótulo
+   com o sufixo não cabia na meia largura a 360 px). Arquivos:
+   `lib/catalogo.ts`, `components/exercicios/lista-exercicios.tsx`,
+   `lib/catalogo.test.ts` (o chip "Halteres" do teste antigo vira
+   "Halteres (principal)"), `e2e/ultraloop-l14.spec.ts` (a opção "Super
+   Band" do implemento vira "Super Band (principal)").
+2. **"Nada repetido" em palavras inteiras** (C-l14-criterio-repeticao-numeros).
+   Era: `b.includes(a)` — "7,5 kg na barra" acusado dentro de "17,5 kg na
+   barra". É: `contidoEmPalavras()` e `textoRepetido()` em `lib/ficha.ts`
+   (limite de palavra nas duas pontas; a vírgula ou o ponto colado num
+   algarismo conta como dentro do número); o Vitest e o e2e do L14
+   (`repetidosNaPagina`) usam a mesma função.
+3. **O espelho dos textos da ficha é conferido contra o DOM nos 81**
+   (C-l14-nada-repetido-espelho-dom). Era: `textosDaPagina()` só no Vitest,
+   e o DOM provado em 7 fichas. É: o espelho mora em
+   `lib/ficha-espelho.ts` (o Vitest e o e2e importam o mesmo), e
+   `e2e/ultraloop-l33.spec.ts` abre as 81 fichas em página (3 testes de 27,
+   ~15 s cada) e compara ficha a ficha os parágrafos e itens visíveis do
+   `<main>` com o espelho, nos dois sentidos.
+4. **"Onde você está" espera o perfil** (C-l14-historico-carregando-perfil).
+   Era: o histórico saía do esqueleto sem o perfil; com a barra W de 5 kg,
+   o cartão nascia escondido e aparecia depois, empurrando a página. É:
+   `historicoCarregando()` em `lib/ficha.ts` inclui o perfil, e
+   `components/exercicios/historico-exercicio.tsx` usa a regra.
+5. **O véu** (C-l14-veu-ramo-morto). Era: o ramo `data-veu` em
+   `components/ui/camada-modal.ts` sem uso, e a SPEC dizendo "o véu da
+   própria camada" quando o código tira do `inert` o véu de qualquer camada
+   do Radix. É: o ramo saiu (grep de `data-veu` em `app/`, `components/` e
+   `lib/`: nada) e o §22.14 item 6 diz "os véus das camadas do Radix" (o da
+   própria e o de uma camada de baixo irmã dela).
+6. **O voltar do celular fecha a camada de cima em qualquer página**
+   (a11y-voltar-fecha-camada). Era: só a Visão geral tinha entrada no
+   histórico; com os filtros do catálogo, a foto ampliada ou um diálogo
+   abertos, o voltar saía da página. É: `useCamadaModal` e
+   `useCamadaPropria` põem, ao abrir, uma entrada no histórico (mesma rota;
+   dentro da Visão geral não, porque ela já entrega o voltar à camada de
+   cima); o `popstate` que a tira entrega um Esc à camada de cima; fechar
+   pelo Esc, X, toque fora ou "Ver resultados" desfaz a entrada se ainda é a
+   do topo (decidido depois do commit, para não brigar com uma rota nova);
+   a entrada **morta** (a camada fechou porque um link dentro dela levou a
+   outra rota) é pulada no mesmo sentido do passo (Navigation API; sem ela,
+   para trás); enquanto há entrada de camada, `history.scrollRestoration` é
+   `manual` (fechar não mexe na rolagem). As decisões puras em
+   `lib/camada-modal.ts` (`entradaDoEstado`, `empilhaEntrada`,
+   `aoAndarNoHistorico`, `desfazAoFechar`); o DOM em
+   `components/ui/camada-modal.ts`. `sheet.tsx`, `dialog.tsx` e
+   `alert-dialog.tsx` não mudaram.
+7. **A guarda do artigo pega o que escapava** (C-l32-guarda-artigo-estreita).
+   Era: grep linha a linha, só expressão terminada em `nome`, só
+   contrações. É: `artigoAntesDoNome()` em `lib/l32.test.ts` lê o arquivo
+   inteiro (sem comentários), aceita qualquer identificador que contenha
+   "nome" e os artigos o/a/os/as, com as exceções do treino ("Começar o
+   ${resumo.nome}") e da fase ("da ${nomeCurtoDaFase(fase.nome)…}"); o
+   "Execução do/da" continua.
+8. **O e2e do L32 lê os nomes dos dados** (C-l32-e2e-nomes-a-mao). Era:
+   "Agachamento livre" e "Supino reto com barra" escritos à mão em
+   `doTreino`, "Prancha" numa regex e "Remada curvada pronada" num título.
+   É: os quatro saem de `acharExercicio()` em `e2e/ultraloop-l32.spec.ts`.
+9. **SPEC e PROGRESSO apontam a tela que existe** (C-l32-texto-aba-progresso).
+   Era: "no Progresso e no Relatório" (§22.15 item 3) e "Progresso →
+   gráficos dos grandes" (passo 3 da rodada 22). É: "na seção Gráficos do
+   Relatório" e "Relatório → Gráficos".
+10. **A capa do plano conferida contra `cardio.json`**
+    (C-l32-plano-capa-sem-o-dono, parte técnica). Era: o Vitest comparava
+    `detalheDaCapa()` com `metaDoPlano(p, null)`, a mesma conta. É: o
+    esperado sai do JSON (última semana → T; "T semanas" no objetivo ou nas
+    funções → sem detalhe; senão "T semanas") e a capa é calculada da
+    coleção **com perfil** (`colecaoDoPlano(p, posição)`, semanas 1 a T+2).
+    **A palavra do dono não é deste lote:** a pergunta (manter a capa com a
+    meta e a posição só no bloco, ou outra coisa) está em
+    `docs/ultraloop/perguntas-ao-dono.md`, colocada pelo orquestrador.
+
+#### Provas
+
+- Vitest novo: `lib/l33.test.ts` (15 testes: itens 1, 2, 4, 6 e 8) e os
+  vizinhos alterados — `lib/l32.test.ts` (item 7: a guarda e as mutações
+  sintéticas; item 10: a capa contra `cardio.json`), `lib/ficha.test.ts`
+  (o critério e o espelho vindos de `lib/`), `lib/catalogo.test.ts`.
+- Mutações unitárias (`r25/l33/mutacoes/*.log`), cada uma numa cópia
+  desfeita depois: sem o sufixo "(principal)" → 4 testes caem; `includes`
+  no lugar de `contidoEmPalavras` → 1 cai; `historicoCarregando` sem o
+  perfil → 1 cai; entrada morta sempre falsa → 1 cai; empilhar por cima da
+  Visão geral → 1 cai; desfazer sem conferir o topo → 1 cai; `detalheDaCapa`
+  devolvendo o detalhe da coleção ("semana 1 de 12") → 1 cai (item 10). A
+  guarda do item 7 com um arquivo real em `components/` escrevendo "Nota do
+  ${nomeDoExercicio}", um template quebrado em duas linhas e "Troque a
+  ${ex.nome}" → o teste cai nas três (a guarda antiga não pegava nenhuma:
+  `\bnome\b` não casa em `nomeDoExercicio`, a leitura era linha a linha e
+  "a" não estava na lista).
+- e2e do lote contra o `.next` antigo (o build:e2e de 09:42 UTC que estava
+  em `wt-a`, de antes do lote — sem nenhuma das mudanças; é a mutação de
+  tela, `r25/l33/mutacoes/l33-no-build-antigo.log`): **10
+  falharam, 1 passou** — item 1 (as opções sem "(principal)"), item 4 ("o
+  histórico desenhou sem 'Onde você está'": o defeito reproduzido com o
+  perfil atrasado e o cache do aparelho vazio), item 6 nos três tipos de
+  camada e nos dois temas (o índice não sobe ao abrir) e o da entrada
+  morta (tirado do spec depois: a ficha em folha não tem link para outra
+  rota — as tags só existem na página —, e na cadeia de `e0d7f27` ele não
+  achou o link; na correção da auditoria a entrada morta voltou ao e2e pelo
+  caminho real, o diálogo do dia passado no Calendário — ver "Correção da
+  auditoria" abaixo); passou só o da
+  Visão geral, que é guarda de não-regressão (lá o índice já não subia).
+- Item 3: as 81 fichas, DOM igual ao espelho (3 de 3 no `.next` antigo,
+  `r25/l33/sonda/item3.log`, e na cadeia); mutação — o espelho trocando o
+  erro comum por um texto que a página não tem → cai, com "só no DOM" e
+  "só no espelho" nas 27 fichas (`mutacoes/item3-e2e.log`).
+- Telas fora das capturas, medidas ao vivo com o `.next` de `e0d7f27`
+  (`r25/l33/sonda/player-ao-vivo.log`, spec temporário, apagado depois): no
+  player, nos dois temas, a figura (abre o "Como fazer") e o "Ajustar",
+  abertos pelo teclado — o voltar fecha a folha, o índice do histórico vai
+  2 → 3 → 2, a rota fica a mesma, o foco volta ao gatilho, e o Esc também
+  volta o índice a 2; o player continua no mesmo passo. A Visão geral tem o
+  e2e do L33 (o índice não sobe ao abrir a folha) e os do §22.14 item 6.
+
+#### Portões
+
+Cadeia inteira em `e0d7f27` (`r25/l33/logs/e0d7f27.log`, das 12:27:32 às
+13:28:59 UTC, ~24 min esperando o lock das faixas B e D, **falhou:e2e**):
+`lint` limpo · `tsc --noEmit` limpo · `npm test` **75 arquivos, 1.659
+testes, todos verdes** · `build` ("Compiled successfully in 20.7s") ·
+`build:e2e` ("Compiled successfully in 19.9s") · `e2e` **587 passaram, 2
+falharam, 5 pulados** (27,3 min). As duas falhas eram do spec novo:
+o item 1 no tema claro media o seletor com 43,99997 px (a folha ainda
+subindo; no escuro passou) — a caixa passa a ser arredondada —, e o caso da
+entrada morta procurava na ficha em folha um link de tag que só existe na
+página — o caso saiu do spec (fica no Vitest). Todos os outros e2e —
+player, Visão geral, lembretes, L14, L32, catálogo, calendário — passaram
+com o voltar novo. Corrigido em `4f6dc6e` (só `e2e/ultraloop-l33.spec.ts`
+e SPEC).
+
+Cadeia inteira em `4f6dc6e` (`r25/l33/logs/4f6dc6e.log`, das 13:31:59
+UTC, **interrompida no e2e** às 13:42 — status `interrompida:e2e`):
+`lint` limpo · `tsc --noEmit` limpo · `npm test` **75 arquivos, 1.659
+testes, todos verdes** · `build` ("Compiled successfully in 23.0s") ·
+`build:e2e` ("Compiled successfully in 27.3s") · `e2e` começou às 13:35:06
+e andou a meia velocidade (77 ✓ em 7 min, contra ~20 por minuto na cadeia
+de `e0d7f27`), com 2 ✘ que já tinham passado em `e0d7f27` com o mesmo
+código de app: `auditoria-offline.spec.ts:369` (a miniatura da aba Treino
+sem rede com `naturalWidth` 0 depois do reload — antes de qualquer camada
+abrir) e `auditoria.spec.ts:86` ("recarregar mantém a sessão"). No ritmo
+dela, o e2e acabaria depois do prazo (14:20), e com 2 ✘ a cadeia não
+chegaria à varredura: foi interrompida (PIDs em `pids/A.txt`).
+Na primeira entrega (`a23856b`) não havia cadeia inteira verde no HEAD
+final — foi o bloqueante das duas auditorias; a cadeia inteira de
+`eb68f08` está em "Correção da auditoria" abaixo.
+
+Execuções à parte, no `.next` do build:e2e de `4f6dc6e`
+(`r25/l33/parciais/4f6dc6e.log`, das 13:42:53, esperando o lock da faixa
+D até 13:47): `e2e-grep:ultraloop-l33` **13 passaram** (1,0 min) · os dois
+instáveis sozinhos, **2 de 2 e 2 de 2** (12,6 s cada) — anotados como
+instáveis sob carga, não bloqueiam · `varredura` **5 passaram** (4,7
+min; fim 13:54:19, status `ok`). Faltou, no HEAD final, o e2e inteiro
+numa cadeia só: o que existe é o e2e inteiro de `e0d7f27` (mesmo código
+de app; 587 ✓, 5 pulados, 2 ✘ do spec novo, corrigidos em `4f6dc6e` e
+verdes acima).
+
+#### Capturas
+
+`capturas.sh` com o `.next` do build:e2e da cadeia de `e0d7f27` — o código
+de app é o mesmo de `4f6dc6e` (`git diff e0d7f27 4f6dc6e` só mexe em
+`e2e/ultraloop-l33.spec.ts` e `SPEC.md`) —, contra a base real de `main`
+(`base-ef3ad97`), telas declaradas 08, 09, 10 e 07
+(`r25/l33/capturas-e0d7f27.md`): 60 PNGs, **nenhuma tela mudou**, as 60
+com Δ 0,00 %. Diffs abertos: `08-catalogo-claro.diff.png` e
+`09-ficha-exercicio-escuro.diff.png` (sem nenhum pixel marcado).
+
+| tela | Δ claro | Δ escuro | o que mudou |
+| --- | ---: | ---: | --- |
+| 08-catalogo (`/exercicios`) | 0,00 % | 0,00 % | nada na primeira tela: a folha de filtros (item 1, seletores um por linha e "(principal)") só aparece aberta, e o voltar (item 6) é interação — medidos pelos e2e. |
+| 09-ficha-exercicio (`/exercicios/supino-reto-com-barra`) | 0,00 % | 0,00 % | nada: a espera do perfil (item 4) muda a ordem de chegada, não o desenho final; a foto ampliada (item 6) é interação. |
+| 10-ficha-folha | 0,00 % | 0,00 % | nada: a folha ganha uma entrada no histórico, invisível. |
+| 07-colecao (`/explorar/plano/corrida`) | 0,00 % | 0,00 % | nada: o item 10 é só o Vitest da capa. |
+| as outras 26 telas | 0,00 % | 0,00 % | nada. |
+
+Servidores derrubados pelo `capturas.sh` (3100 e 54321 → 000).
+
+#### Correção da auditoria (auditoria 1: regra e tela, HEAD `a23856b`)
+
+As duas lentes reprovaram pelo mesmo bloqueante — nenhuma cadeia inteira
+verde no HEAD — e pelo mesmo importante: o pulo da entrada morta (§22.17
+item 6) sem e2e pelo caminho real, que existe no Calendário. Três commits
+pequenos em cima de `a23856b`, sem mudar código de app (só um comentário em
+`lib/camada-modal.ts`):
+
+- `78a9246` **SPEC §22.17**: item 6 — o aceite da entrada morta passa a ser
+  o e2e do Calendário (voltar e avançar), e o que fica de fora (recarregar
+  com a camada aberta; avançar para uma entrada morta de outro documento)
+  fica dito; item 1 — a lista sintética do mesmo tamanho; item 5 — o grep
+  de `data-veu` vira Vitest; item 7 — a chamada antes do `.nome`.
+- `4727efb` **e2e** (`e2e/ultraloop-l33.spec.ts`). Era: nenhum e2e passava
+  pelo ramo `morta` de `aoAndar()`. É: "link dentro da camada: o voltar e o
+  avançar pulam a entrada morta", nos dois temas — sessão semeada em 14/09,
+  data fixa em 16/09, Calendário → "seg 14/09" (índice +1) → "Abrir o
+  treino" → `/treinar/<id>` (índice +2) → `history.back()`: `/calendario`,
+  sem diálogo, sem `[inert]`, índice de antes, sem rolagem lateral →
+  `history.forward()`: `/treinar/<id>`, índice +2. E o item 1 mede o
+  seletor sem arredondar (`≥ 43,99 px`, tolerância explícita), no lugar do
+  `Math.round`, que aceitava a partir de 43,5 px.
+- `eb68f08` **Vitest**. `lib/l33.test.ts`: item 1 — lista sintética com
+  implemento "band" e equipamento "super-band" 1 × 1 e exercícios
+  diferentes → "Super Band (principal)"; item 5 — nenhum `data-veu`/`dataVeu`
+  em `app/`, `components/` e `lib/` (o grep do aceite, agora teste).
+  `lib/l32.test.ts`: a guarda do artigo aceita uma chamada antes do
+  `.nome` ("Troque o ${acharExercicio(id).nome}", "Série da
+  {acharExercicio(item.id)?.nome}"). `lib/camada-modal.ts`: o comentário de
+  `aoAndarNoHistorico` dizia que a entrada morta cobria "a página
+  recarregou" — não cobre; agora diz o que fica de fora.
+
+**Provas da correção** (`r25/l33/sonda/` e `r25/l33/mutacoes/`):
+
+- Sonda no `.next` do build:e2e de `4f6dc6e` (o código de app é o mesmo de
+  `eb68f08`), antes da cadeia: item 1 (2 temas) e entrada morta (2 temas),
+  **4 de 4** (`sonda/correcao-eb68f08.log`).
+- Mutação do e2e em tempo de execução (um init script que faz o
+  `history.back()`/`forward()` chamado de dentro do `popstate` não fazer
+  nada — é tirar o bloco `if (morta)`): **2 de 2 caem** ("Expected 2,
+  Received 3": o voltar parou na entrada morta;
+  `mutacoes/correcao-morta-e2e.log`). Mutação da direção (o pulo sempre
+  para trás, como sem a Navigation API): **2 de 2 caem** (o avançar não
+  chega a `/treinar`; `mutacoes/correcao-direcao-e2e.log`). Os specs
+  temporários foram apagados (cópias em `mutacoes/zz-*.spec.ts`).
+- Mutações do Vitest (desfeitas): `rotuloDoImplemento` comparando só o
+  tamanho das listas → 1 cai (o caso sintético;
+  `mutacoes/corr-i1-tamanho.log`); o ramo `data-veu` de volta em
+  `components/ui/camada-modal.ts` → 1 cai (`mutacoes/corr-i5-dataveu.log`);
+  a regex antiga da guarda → 1 cai, na chamada antes do `.nome`
+  (`mutacoes/corr-i7-chamada.log`).
+
+**Portões — cadeia inteira em `eb68f08`**
+(`r25/l33/logs/eb68f08.log`, das 14:17:59 às 15:01:16 UTC, **status
+`ok`**; ~4 min esperando o lock no `test` e no `build`): `lint` limpo ·
+`tsc --noEmit` limpo · `npm test` **75 arquivos, 1.661 testes, todos
+verdes** (eram 1.659: +2 em `lib/l33.test.ts`) · `build` ("Compiled
+successfully in 22.0s") · `build:e2e` ("Compiled successfully in 21.3s") ·
+`e2e` **590 passaram, 0 falharam, 5 pulados** (25,1 min; os 5 pulados são
+os da varredura, que roda à parte) — os 15 do `ultraloop-l33` (13 + os 2
+da entrada morta), e os do player, da Visão geral, dos lembretes, do L14,
+do L32, do catálogo e do calendário, todos com o voltar novo · `varredura`
+**5 passaram** (4,7 min). Os dois instáveis da cadeia de `4f6dc6e`
+(`auditoria-offline.spec.ts:369` e `auditoria.spec.ts:86`) passaram nesta.
+`git diff 17075d7 -- lib/progressao.ts lib/montagem.ts`: vazio.
+
+**Capturas em `eb68f08`**
+(`r25/l33/capturas-eb68f08.md`, com o `.next` do build:e2e desta cadeia,
+contra a base real de `main`, `base-ef3ad97`; telas declaradas 08, 09, 10 e
+07): 60 PNGs, **nenhuma tela mudou**, as 60 com Δ 0,00 % — como na primeira
+entrega, porque o código de app não mudou nesta correção. Diffs abertos:
+`08-catalogo-claro.diff.png` e `10-ficha-folha-escuro.diff.png`, só a base
+esmaecida, sem nenhum pixel marcado. Servidores derrubados pelo
+`capturas.sh` (3100 e 54321 → 000).
+
+| tela | Δ claro | Δ escuro | o que mudou |
+| --- | ---: | ---: | --- |
+| 08-catalogo (`/exercicios`) | 0,00 % | 0,00 % | nada na primeira tela (a folha de filtros só aparece aberta; medida pelos e2e e pela auditoria de tela). |
+| 09-ficha-exercicio | 0,00 % | 0,00 % | nada. |
+| 10-ficha-folha | 0,00 % | 0,00 % | nada. |
+| 07-colecao | 0,00 % | 0,00 % | nada. |
+| as outras 26 telas | 0,00 % | 0,00 % | nada. |
+
+**Menores das auditorias que ficam registrados, sem mudança** (nenhum é
+bloqueante nem importante):
+
+- "Anilha" (implemento, 3 exercícios) × "Anilhas" (equipamento, 51): quase
+  o mesmo rótulo, listas bem diferentes — o aceite do item 1 ("rótulo
+  igual") é cumprido; fica para a fila.
+- Item 6, bordas: sem a Navigation API a direção é sempre para trás (o
+  avançar para uma entrada morta volta); depois de fechar pelo Esc, a
+  entrada desfeita fica como entrada de avançar e o avançar cai nela; e,
+  como agora diz a SPEC, recarregar com a camada aberta ou avançar para uma
+  entrada morta de outro documento gasta um toque. Nenhum afeta o voltar do
+  Android no uso normal; mexer exigiria mudar o código de app de novo.
+- A guarda do artigo ainda não pega chaves aninhadas dentro da expressão
+  (nenhum caso real; o aceite do ledger e a chamada antes do `.nome` estão
+  cobertos).
+- A captura da folha de filtros aberta (item 1) não está no conjunto das
+  60 (`scripts/capturas-ultraloop.ts` é comum às faixas); a auditoria de
+  tela mediu a folha aberta nos dois temas (328 × 44 cada seletor, sem
+  vazar). Fica para um lote que mexa nas capturas.
+- Fora do lote (já em `main`): "Não vou treinar hoje" põe o foco no campo
+  "Motivo (opcional)", e no celular o teclado sobe por cima de "Aplicar à
+  semana". Para a fila.
+- Item 10: a pergunta ao dono sobre a capa do plano é colocada pelo
+  orquestrador em `docs/ultraloop/perguntas-ao-dono.md` antes do merge; a
+  resposta não é deste lote.
+
+#### Como testar no celular (360 px)
+
+1. Exercícios → **Filtros**: os três seletores ocupam a linha inteira. Em
+   Implemento aparecem "Barra maciça (principal)", "Halteres (principal)" e
+   "Super Band (principal)"; em Equipamento, "Barra maciça", "Halteres" e
+   "Super Band". Escolha "Super Band (principal)" e "Super Band" → Ver 2
+   exercícios: os dois chips dizem coisas diferentes.
+2. Ainda em Filtros, com a folha aberta, use o **voltar** do Android (ou o
+   gesto de voltar): a folha fecha e você continua no catálogo; um segundo
+   voltar sai do catálogo. Abra de novo, feche no X e toque em voltar: sai
+   do catálogo de primeira (nenhuma entrada sobrando).
+3. Exercícios → Supino reto com barra → toque na foto do início (abre
+   ampliada) → voltar: a foto fecha, a ficha fica.
+4. Calendário → "Não vou treinar hoje" → voltar: o diálogo fecha, o
+   Calendário fica.
+5. Explorar → Treino A → toque em "Agachamento livre" (abre a ficha em
+   folha) → voltar: a folha fecha e o Treino A fica.
+6. No treino (Começar → player), a figura do exercício (abre o Como
+   fazer) e o Ajustar: o
+   voltar fecha a folha e o player fica no mesmo passo. Na Visão geral
+   (ícone de lista), a folha "substituir hoje" fecha no voltar e a Visão
+   geral continua, como antes.
+7. Mais → Equipamento → barra W com 5 kg; depois Exercícios → Rosca com
+   barra W: o histórico aparece já com "Onde você está · 5 kg na barra",
+   sem o cartão surgir depois empurrando a página (mais visível com a
+   conexão lenta).
+8. Calendário → toque num dia passado em que você treinou → "Abrir o
+   treino" → voltar: você cai direto no Calendário, sem o diálogo e sem um
+   voltar "vazio" no meio; o avançar (menu do Chrome) leva de volta ao
+   treino num toque só.
