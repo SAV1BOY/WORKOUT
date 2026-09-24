@@ -17,7 +17,12 @@ import {
   formatarNumero,
   rotuloDaCarga,
 } from "@/lib/formato";
-import { SEM_HISTORICO, historicoVazio, ondeVoceEsta } from "@/lib/ficha";
+import {
+  SEM_HISTORICO,
+  historicoCarregando,
+  historicoVazio,
+  ondeVoceEsta,
+} from "@/lib/ficha";
 import { estadoDaLinha, textoDaCarga, textoDoAlvo, textoDoEvento } from "@/lib/hoje";
 import { nomeDaAssistencia } from "@/lib/sessao";
 import { cargaDeHoje, prescricaoPadrao } from "@/lib/progressao";
@@ -72,13 +77,15 @@ export function HistoricoExercicio({
     [series, porSessao, exercicioId],
   );
 
-  const carregando =
-    estadosQ.isPending ||
-    seriesQ.isPending ||
-    recordesQ.isPending ||
-    sessoesQ.isPending ||
-    // o cartão único só vale com os eventos do motor lidos (§22.14 item 2)
-    eventosQ.isPending;
+  // SPEC §22.17 item 4: o perfil também — as barras pesadas mudam a carga
+  const carregando = historicoCarregando({
+    perfil: perfilQ.isPending,
+    estados: estadosQ.isPending,
+    series: seriesQ.isPending,
+    recordes: recordesQ.isPending,
+    sessoes: sessoesQ.isPending,
+    eventos: eventosQ.isPending,
+  });
   const erro = estadosQ.error ?? seriesQ.error ?? recordesQ.error ?? sessoesQ.error;
 
   if (erro) {
