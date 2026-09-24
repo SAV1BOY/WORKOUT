@@ -11818,8 +11818,16 @@ registro; `r21/l32/logs/f63aee3.log`, das 01:17:51 às 01:48:56 UTC, **ok**):
 testes** · `build` ("Compiled successfully in 20.1s") · `build:e2e`
 ("Compiled successfully in 17.9s") · `e2e` **574 passaram, 5 pulados**
 (21,3 min; os 5 pulados são a varredura, que roda à parte) · `varredura`
-**5 passaram** (4,6 min). O HEAD final difere de `f63aee3` só neste
-PROGRESSO.md.
+**5 passaram** (4,6 min).
+
+Cadeia inteira em `50adb21` (correção da auditoria, só texto em SPEC e
+PROGRESSO; `r21/l32/logs/50adb21.log`, das 02:23:26 às 03:18:43 UTC, com
+~25 min esperando o lock da faixa B — e2e e varredura do L35 —, **ok**): `lint` limpo · `tsc
+--noEmit` limpo · `npm test` **74 arquivos, 1.641 testes, todos verdes** ·
+`build` ("Compiled successfully in 28.0s") · `build:e2e` ("Compiled
+successfully in 18.0s") · `e2e` **574 passaram, 5 pulados** (21,2 min; os
+17 de `ultraloop-l32` com ✓; os 5 pulados são a varredura) · `varredura`
+**5 passaram** (4,6 min). O HEAD final difere de `50adb21` só neste PROGRESSO.md.
 
 #### Capturas
 
@@ -11857,3 +11865,37 @@ Servidores derrubados pelo `capturas.sh` (3100 e 54321 → 000).
    nos dois temas.
 6. Exercícios → Supino reto com barra → Equipamento: "Banco", "Barra
    maciça" e "Cavalete" sublinhados com a seta; "Anilhas" como texto.
+
+#### Correção da auditoria
+
+Auditoria 1 em `4c30eea`: lente de tela **aprovada** (0 bloqueantes, 0
+importantes, 3 menores); lente de regra **reprovada** por 3 importantes,
+todos de texto (PROGRESSO e SPEC divergindo do que foi feito), e 5 menores.
+Corrigido em `50adb21`, só em `SPEC.md` e neste registro — código de app e
+testes não mudaram:
+
+- **"O que mudou", item 1**: descrevia o e2e antigo (agachamento livre na
+  posição 2 → afundo), abandonado em `31db3dc`. Agora descreve o e2e
+  comitado (`e2e/ultraloop-l32.spec.ts`, "Substituir com o supino na
+  posição 2"): › até o supino, "Substituir" → crossover na polia, e diz por
+  que a troca não é no exercício do passo atual.
+- **"Como testar no celular", passos 1 e 2**: mandavam usar "Substituir" no
+  exercício do passo atual, o caminho que trava o player no esqueleto.
+  Agora vão com › ao 2º exercício antes de trocar e avisam do defeito.
+- **SPEC §22.15, abertura**: apontava `lib/midia.test.ts` e
+  `lib/colecoes.test.ts`; os testes do lote estão em `lib/l32.test.ts`.
+- Menores atendidos: a tabela de Capturas diz a unidade (~20 px de CSS, ~40
+  px na imagem em 2×); "Vai à fila" virou o estado real (o item do defeito
+  do passo atual ainda não está em `docs/ultraloop/fila.json`; o
+  orquestrador o cria).
+- Menores só registrados, sem mudança: `components/explorar/tela-explorar.tsx`
+  mudou fora dos `arquivos_previstos` (é a lista da busca dos itens 5 e 6);
+  o Vitest de `detalheDaCapa` é quase tautológico, e a guarda do item 7 é o
+  e2e "semana 3 de" uma vez só; na busca "corda", o aparelho "Corda de pular
+  com rolamento" fica com o ícone (efeito previsto no §22.15 item 6); o
+  botão "Fazer a corrida da semana 3" é o rótulo de ação do §22.12 item 7,
+  não uma repetição da posição.
+- O defeito do "Substituir" no passo atual continua fora do lote; não foi
+  corrigido aqui.
+
+Capturas de novo em `50adb21`: em andamento (`r21/l32/capturas-50adb21.md`).
