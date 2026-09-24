@@ -11524,3 +11524,217 @@ Ativar e, enquanto o navegador pergunta, troque de app e volte → a tela
 termina em "Ativado neste aparelho." com uma linha só na lista. (d) iPhone
 fora da tela inicial com as notificações negadas: a primeira instrução é
 instalar (Adicionar à Tela de Início), a segunda os Ajustes.
+
+### Rodada 20 — Lote 35 — Lembretes II: horário, disparo automático e calendário
+
+Branch `polimento/l35-lembretes-disparo`, a partir de `main` `96056ac` (o L34
+aprovado). SPEC §23 parte II (§23.8–23.14) escrita **antes** do código
+(`080d066`) e alinhada com ele no fim (`3d61087`). Decisão do dono (23/09):
+lembrete no celular no horário que o usuário escolhe. Reusa o que o L34 deixou
+— `lembretes_inscricoes`, `lib/lembretes.ts`, `lib/web-push.ts` (a cifragem
+RFC 8291 e o VAPID feitos à mão; **nenhuma dependência nova**, `web-push` não
+entrou), o service worker e a tela. **Nunca a service role**, nem no servidor.
+`lib/progressao.ts` e `lib/montagem.ts`: `git diff 96056ac` vazio.
+
+#### O que mudou
+
+1. **Horários** (LEM-horarios; `lib/schemas.ts`, `lib/lembretes-regra.ts`
+   (novo), `components/mais/tela-lembretes.tsx`). **Era:** a tela não tinha
+   horário nenhum. **É:** o bloco "Horários" em Mais → Lembretes com
+   "Lembrete do treino" e "Lembrete da corrida", cada um com liga/desliga
+   (`role="switch"`, 44 px) e `<input type="time">` (passo de 5 min; fora do
+   passo arredonda para baixo), gravados em `profiles.prefs.lembretes`
+   (`prefsLembretesSchema`, Zod) pela mesma `salvarPrefs` de Preferências
+   (fila offline), sem perder as outras chaves. Sem a chave: os dois
+   **desligados às 07:00** (ninguém recebe sem pedir). Os dias são os do
+   perfil (§17). O bloco e o calendário aparecem **mesmo sem VAPID, sem a
+   tabela e sem suporte a push** (o aviso de sem configuração ganhou "Os
+   horários e o calendário abaixo funcionam mesmo assim."). Os valores saem
+   sempre do perfil do cache — um estado lido uma vez só ficava com o valor
+   velho do cache persistido depois de recarregar (achado no e2e de rascunho,
+   corrigido em `509339f`). Os dois campos têm nome próprio ("Hora do
+   lembrete do treino" / "… da corrida", o rótulo visível "Hora" se repete) e
+   o "Horários salvos." sai numa região `aria-live` que existe desde o começo
+   (`815f2e9`).
+2. **Regra pura de quem recebe** (LEM-regra-mensagem; `lib/lembretes-regra.ts`).
+   `lembretesDevidos(conta, agora)`: relógio de **America/Sao_Paulo** pelo
+   `Intl` (independe do fuso do servidor); o dia sai de `montarGrade()` →
+   `semanaCoerente()` — a mesma fonte da aba Treino e do calendário; nada em
+   descanso, em "Não vou treinar hoje" (o override de descanso da §5.4), em
+   dia já feito; força → treino, cardio → corrida; devido de `hora` a
+   `hora + 30 min` (depois pula o dia; não atravessa a meia-noite); nunca o
+   mesmo `(tipo, dia)` duas vezes. Texto: "Hora do treino" + `resumoDoTreino()`
+   ("Treino A · 6 exercícios · 44 min") e "Hora da corrida" +
+   `textoDoCardio()` ("Corrida · semana 3 · … · 34 min"); o toque abre `/`.
+3. **Disparo a cada 5 min** (LEM-disparo; `supabase/schema.sql`,
+   `supabase/migracoes/2026-09-23-lembretes-disparo.sql` (novo),
+   `app/api/lembretes/disparar/route.ts` (novo), `lib/supabase/middleware.ts`,
+   `scripts/mock-supabase.ts`, `e2e/playwright.config.ts`). **Era:** nada saía
+   sozinho. **É:** `pg_cron` "lembretes" `*/5 * * * *` → `public.lembretes_tick()`
+   (security definer, `search_path` fixo, execute só do postgres) → lê
+   `lembretes_url`/`lembretes_segredo` do **Vault** (sem eles, ou sem pg_net:
+   retorna sem chamar nada) → `net.http_post` com `x-lembretes-segredo` e o
+   JSON mínimo das contas com lembrete ligado **e** inscrição → a rota
+   (`nodejs`, pública no middleware só ela) confere o segredo com
+   `timingSafeEqual` sobre os sha256 (sem `LEMBRETES_SEGREDO` → 503
+   `SEM_CONFIGURACAO`; errado/ausente → 401; sem VAPID → 503; corpo fora do
+   `disparoSchema` → 400), aplica a regra, envia com `lib/web-push.ts` e
+   chama a RPC `public.lembretes_resultado(segredo, enviados, expirados)` com
+   a chave anon (security definer; confere o segredo contra o Vault pelos
+   sha256; `28000` se errado; grava `lembretes_enviados` com `on conflict do
+   nothing` e apaga as inscrições 404/410). Só marca o que chegou a algum
+   aparelho. Tabela nova `public.lembretes_enviados` (`unique(user_id, tipo,
+   dia)`), RLS com **uma** policy (o dono lê), `revoke` de escrita do
+   authenticated e de tudo do anon; fora do backup (a auditoria de segurança
+   ganhou a categoria "só leitura"). Extensões `pg_cron`/`pg_net` com `if not
+   exists`; o job é desagendado pelo nome e agendado de novo. **Nenhum valor
+   de segredo no repo** (`.env.local.example` só documenta o nome
+   `LEMBRETES_SEGREDO`). O mock conhece a tabela (só leitura, `42501` na
+   escrita) e a RPC (o "Vault" é `MOCK_LEMBRETES_SEGREDO`, gerado a cada
+   execução pelo `playwright.config.ts`, junto com o `LEMBRETES_SEGREDO` do app).
+4. **"Adicionar ao meu calendário"** (LEM-ics; `lib/ics.ts` (novo)). Baixa
+   `treino-do-terraco.ics`: RFC 5545, UTF-8, CRLF, dobra a 75 **octetos**
+   sem partir acento, um `VEVENT` semanal por dia de treino do perfil
+   (`RRULE:FREQ=WEEKLY;BYDAY=…`), `DTSTART;TZID=America/Sao_Paulo` na hora do
+   lembrete do tipo, `DURATION` estimada do plano, `VALARM` na hora,
+   `VTIMEZONE` de São Paulo (UTC−3) e UID estável por conta/tipo/dia (baixar
+   de novo substitui). Funciona sem push, inclusive no iPhone sem instalar.
+5. **Último e próximo lembrete** (LEM-painel-estado). "Último lembrete: hoje
+   às 07:00" (ou "ontem"/"dd/mm"), de `lembretes_enviados` pela RLS; sem a
+   tabela, some sem erro. "Próximo: amanhã às 18:30 — Corrida · semana 3 · …"
+   pela mesma regra do disparo (7 dias à frente).
+6. **Agregados do L34.** (a) **badge monocromático próprio**
+   `public/icons/badge-96.png` (barra com anilhas branca em fundo
+   transparente, gerada por `npm run icones`, 556 bytes) usado por
+   `opcoesDaNotificacao()`; (b) o passo 3 das instruções de permissão
+   (`VOLTE_AQUI`, nas duas: Android e iPhone) diz os dois caminhos: “Ativar
+   lembretes neste aparelho” ou, se a inscrição continuou valendo, “Ativado
+   neste aparelho”; (c) os e2e da volta por `focus`, `pageshow` e sem
+   internet (os dois) rodam **nos dois temas** (§23.7 item 7); (d) o
+   comentário de `lib/rota-lembretes-teste.test.ts` diz que a privada é a
+   chave de exemplo da RFC 8291.
+7. **SPEC e guia** (LEM-guia-spec-l34; `SPEC.md`, `lib/guia.ts`). §23.8–23.14
+   (problema medido, horários, regra, disparo, calendário, agregados e
+   aceite); a introdução da §23 e a nota "Fica para o lote 35" viraram o que
+   foi decidido (Sair continua sem mexer na inscrição; badge próprio). O guia
+   (linha "Lembretes") ensina o passo do horário e o calendário.
+
+**Arquivos de código:** 10 de app/lib/scripts (`route.ts`, `tela-lembretes.tsx`,
+`lembretes-regra.ts`, `ics.ts`, `lembretes.ts`, `schemas.ts`, `guia.ts`,
+`middleware.ts`, `gerar-icones.ts`, `mock-supabase.ts`) + 2 de banco
+(`schema.sql`, migração) = 12; mais `e2e/playwright.config.ts` e
+`.env.local.example` (configuração) e o PNG do badge.
+
+#### Provas
+
+- **Vitest novos:** `lib/lembretes-regra.test.ts` (19), `lib/ics.test.ts`
+  (11), `lib/migracao-lembretes-disparo.test.ts` (26),
+  `lib/rota-lembretes-disparar.test.ts` (11); a mais em
+  `lib/lembretes.test.ts` (badge), `lib/auditoria-seguranca.test.ts` (tabela
+  só de leitura), `lib/supabase/middleware.test.ts` (a rota do disparo é a
+  única `/api` sem sessão).
+- **Mutação (pré-auditoria, cópia em `scratchpad/l35-mutacao`): 17 de 17
+  derrubam teste** — regra: tirar os overrides (dia pulado), a tolerância de
+  30 min, o "já enviado", o "feito", o "ligado", e o fuso trocado por UTC;
+  rota: segredo sempre certo, marcar sem entrega, 410 não expirado, sem
+  `endpointAceito`; ics: limite 80, contar caractere em vez de octeto, LF em
+  vez de CRLF; middleware sem a rota pública; badge colorido de volta; SQL
+  sem a guarda do Vault; hora fora do passo aceita.
+- **e2e novo `e2e/ultraloop-l35.spec.ts` (8):** horários nos dois temas
+  (os dois campos pelo nome próprio, a região viva vazia antes do salvo; liga, muda para 18:30, `prefs.lembretes` no mock sem perder `guia_visto`
+  e `manter_tela`, "Próximo … às 18:30", 06:47 → 06:45, recarregar mostra o
+  gravado, alvos ≥ 44 px, sem rolagem lateral); .ics baixado (BYDAY
+  TU/TH/SA dos dias escolhidos, 06:30, 3 VALARM, ≤ 75 octetos, UTF-8
+  estrito); último lembrete semeado nos dois temas; RLS de
+  `lembretes_enviados` (POST → 42501); o disparo (segredo errado e ausente
+  → 401; certo → o push falso recebe `vapid t=…, k=…` e o corpo decifra em
+  "Hora do treino" / "Treino A · … min"; `lembretes_enviados` com
+  `(treino, 2026-09-21)`; o próximo tick com o enviado não reenvia); a RPC
+  como anon com segredo errado → 28000 e nada muda. **No
+  `e2e/ultraloop-l34.spec.ts`:** a volta por `focus`/`pageshow` e as duas
+  sem internet agora nos dois temas (+4, 40 no spec); "sem VAPID" (segundo `next start`)
+  liga o lembrete, vê "Horários salvos." e baixa o .ics, nos dois temas;
+  "sem a tabela" (PGRST205) vê o liga/desliga e o botão do calendário.
+- Rascunho local antes da cadeia (`r20/l35/rascunho/`): `l35-1` 6 de 8 — o
+  horário voltava a 18:30 depois de recarregar (o estado lido uma vez do
+  cache persistido; corrigido) e o filtro `DTSTART` do teste pegava o do
+  `VTIMEZONE` (corrigido no teste); `l35-2` (l34 + l35) **48 de 48**.
+- Visto a 360 px (PNGs do e2e `test-results/l35-horarios-{light,dark}.png` e
+  `l35-sem-vapid-dark.png`): o bloco "Horários" e "No calendário do celular"
+  abaixo de "Aparelhos desta conta", nos dois temas; sem VAPID, o aviso de
+  sem configuração e logo abaixo os horários e o botão do calendário. O campo
+  de hora do Chromium de teste mostra "06:45 AM" (formato de 12 h do
+  navegador) e cortava o "M" em 128 px: passou a 160 px (`3d61087`).
+
+#### Portões
+
+- **`3d61087`** (todo o código do lote antes do ajuste de acessibilidade;
+  `r20/l35/logs/3d61087.log`, das 23:52:37 às 00:21:01 UTC, **ok**): `lint`
+  limpo · `tsc --noEmit` limpo · `npm test` **77 arquivos, 1.702 testes,
+  todos verdes** (eram 73 / 1.632 em `96056ac`: +4 arquivos novos com 67
+  testes — `lembretes-regra` 19, `ics` 11, `migracao-lembretes-disparo` 26,
+  `rota-lembretes-disparar` 11 — e +3 em `lembretes`, `auditoria-seguranca`
+  e `middleware`) · `build` ("Compiled successfully in 17.2s") ·
+  `build:e2e` ("Compiled successfully in 16.9s") · `e2e` **569 passaram, 5
+  pulados** (21,5 min; os 557 de `96056ac` + 8 do spec novo + 4 variantes de
+  tema no spec do L34; nenhum ✘) · `varredura` **5 passaram** (4,6 min).
+- **`815f2e9`** (+ os nomes próprios dos campos de hora e a região viva;
+  `r20/l35/logs/815f2e9.log`, das 00:21:51 às 00:54:32 UTC, **falhou:e2e**):
+  `lint`, `tsc`, `npm test` 1.702 verdes, `build`, `build:e2e` ok · `e2e`
+  **568 passaram, 1 falhou, 5 pulados** — o ✘ é
+  `ultraloop-l34.spec.ts:466` "o worker real mostra o push como notificação
+  e o toque leva à url" (0 notificações em 7,5 s), com a carga da máquina em
+  4,7 (outra faixa rodando e2e ao mesmo tempo). **Instável sob carga, não
+  regressão:** passou nas duas rodadas anteriores deste lote e **sozinho 2×**
+  no mesmo `.next` (`r20/l35/instavel/sozinho-1.log` e `sozinho-2.log`: 1
+  passed cada, 2,3 s). O commit não toca no worker nem no push (só
+  `aria-label` e a região viva da tela). Anotado; não bloqueia.
+
+#### Antes do deploy (orquestrador)
+
+1. Aplicar `supabase/migracoes/2026-09-23-lembretes-disparo.sql` (ensaio,
+   `apply_migration`, advisors). Ela cria as extensões `pg_cron` e `pg_net`
+   se faltarem, a tabela, as duas funções e o job "lembretes".
+2. Criar no Vault `lembretes_segredo` (aleatório, ≥ 32 caracteres) e
+   `lembretes_url` = `https://treino-terraco.vercel.app/api/lembretes/disparar`.
+3. Criar na Vercel `LEMBRETES_SEGREDO` (Sensitive) com o **mesmo** valor.
+4. Conferir `select jobname, schedule from cron.job` (um "lembretes",
+   `*/5 * * * *`) e, depois da primeira execução, `net._http_response`
+   (200 com `{"contas":…}`; 503 = falta a variável na Vercel; 401 = os
+   segredos diferem). Sem os passos 2–3 o tick não faz nada e nada quebra.
+
+#### Como testar no celular (360 px)
+
+(a) **Horário:** Mais → Lembretes → "Horários": ligue "Lembrete do treino",
+escolha a hora (o teclado de hora do celular) — "Horários salvos." e
+"Próximo: … às HH:MM — Treino A · 6 exercícios · 44 min". Recarregue: a hora
+continua. (b) **Aviso no horário** (depois do passo "Antes do deploy"): com
+"Este aparelho" ativado (Brave no Android com os serviços do Google ligados),
+num dia de treino ainda não feito, marque a hora para daqui a 5–10 min e
+espere: chega "Hora do treino — Treino … · … min"; tocar abre a aba Treino;
+voltar a Mais → Lembretes mostra "Último lembrete: hoje às HH:MM". No mesmo
+dia não chega de novo. (c) **Dia pulado:** Calendário → "Não vou treinar
+hoje" antes da hora → nada chega. (d) **Calendário:** "Adicionar ao meu
+calendário" baixa `treino-do-terraco.ics`; abrir o arquivo no Google Agenda
+(Android) ou no Calendário (iPhone, mesmo sem instalar o app) cria um evento
+semanal em cada dia de treino, na hora escolhida, com alarme. (e) **Sem push:**
+num navegador sem suporte, os horários e o calendário aparecem e funcionam
+igual. (f) **Badge:** o aviso mostra na barra de status a barra com anilhas
+branca, não um quadrado.
+
+#### Capturas
+
+`capturas.sh` com o `.next` do `build:e2e` da cadeia de `815f2e9`, contra a
+base real de `main` (`base-ef3ad97`, recapturada às 23:38 de 23/09 — já com a
+linha "Lembretes" do L34), tela declarada `18-mais`
+(`r20/l35/capturas-815f2e9.md`): **60 PNGs, Δ 0,00 % em todas** ("Nenhuma
+tela mudou fora do esperado"); os 60 são **iguais byte a byte** aos de
+`r19/l34/capturas-e13a8ec` (`cmp`, 0 diferentes). Esperado: o lote mexe em
+`/mais/lembretes` (que não está nas 60) e não em `/mais`. Aberto o
+`18-mais-claro.diff.png`: tudo em cinza, nenhum pixel vermelho. A tela
+nova foi medida pelo e2e a 360×740 nos dois temas (acima) e vista nos PNGs do
+e2e. Servidores derrubados pelo script (3110 e 54331 → 000).
+
+| tela | Δ claro | Δ escuro | o que mudou |
+| --- | ---: | ---: | --- |
+| 18-mais | 0,00 % | 0,00 % | nada (a linha "Lembretes" já está na base) |
