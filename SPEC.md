@@ -2910,20 +2910,30 @@ Vitest (`lib/l19.test.ts`) ou no e2e (`e2e/ultraloop-l19.spec.ts`).
    passo atual (anterior ou posterior, pela ficha ou pela Visão geral) deixa
    o player exatamente onde estava. Nenhuma série de outro exercício se
    perde, e a série feita depois da troca fica no aparelho e no banco.
-   **Fora deste lote, pergunta aberta ao dono:** as séries **já feitas do
-   exercício trocado** saem do aparelho e do banco na troca — é o que o app
-   já fazia antes deste lote (c689f69: `descartarSeriesDoBloco`, chamado
-   pelo `substituir` de `components/treinar/usar-sessao.ts`). A §3.2 diz só
-   que "o registro fica com o exercício substituto; a progressão do original
-   não muda"; ela não diz que as séries feitas do original somem. A folha
-   "substituir hoje" da Visão geral avisa antes ("As séries já registradas
-   deste bloco serão trocadas pelas do substituto"); a lista "Substituir"
-   da ficha (o "?" do player, que também anda pelos outros exercícios da
-   sessão) troca sem aviso. Isso choca com "nunca perder um registro"
-   (CLAUDE.md). A saída — avisar ou confirmar na ficha como na Visão geral,
-   ou manter as séries feitas do original — é decisão do dono e mexe na
-   ficha (`components/exercicio/`), de outra faixa; fica como item novo do
-   ledger, e os testes deste lote não afirmam nem a perda nem o contrário.
+   Risco registrado (auditoria 2): parado no "firme?" de um exercício, a
+   chave `firme:<ordem>` sobrevive à troca dele, e o player perguntaria
+   "firme?" de um exercício sem série feita. Hoje a UI não chega lá, porque
+   o "firme?" e o descanso não têm ficha nem Visão geral. Quem der esses
+   acessos a essas telas precisa tratar esse caso.
+   **Fora deste lote, já decidido pelo dono (24/09, opção b), vai para o
+   L21:** hoje as séries **já feitas do exercício trocado** saem do aparelho
+   e do banco na troca. O app já fazia isso antes deste lote (c689f69:
+   `descartarSeriesDoBloco`, chamado pelo `substituir` de
+   `components/treinar/usar-sessao.ts`). A §3.2 diz só que "o registro fica
+   com o exercício substituto; a progressão do original não muda"; ela não
+   diz que as séries feitas do original somem. A folha "substituir hoje" da
+   Visão geral avisa antes ("As séries já registradas deste bloco serão
+   trocadas pelas do substituto"); a lista "Substituir" da ficha (o "?" do
+   player, que também anda pelos outros exercícios da sessão) troca sem
+   aviso. Isso choca com "nunca perder um registro" (CLAUDE.md). O dono
+   escolheu a opção (b): **manter as séries feitas do original**. Elas
+   continuam no Dexie e em `session_sets` com o exercício original e contam
+   como feitas dele. Só as séries que faltam passam para o substituto, que
+   começa do zero. Isso vale pela ficha e pela Visão geral. É o item
+   **B-substituir-apaga-series-feitas** do ledger, planejado no **L21**:
+   ele reescreve a §3.2 e o aviso da Visão geral antes do código e mexe na
+   ficha (`components/exercicio/`), que é de outra faixa. Os testes deste
+   lote não afirmam nem a perda nem o contrário, e o L21 traz os dele.
    Aceite: Vitest — trocar o
    exercício do passo atual (com e sem séries feitas nele, e parado no
    descanso entre séries dele) leva à série 1 do exercício novo; trocar um
@@ -2989,7 +2999,9 @@ Vitest (`lib/l19.test.ts`) ou no e2e (`e2e/ultraloop-l19.spec.ts`).
    auditoria: "Remada unilateral (serrote)" no lugar do 3º), o "montagem"
    fica 32 px abaixo da barra fixa na primeira vista (em c689f69 eram
    6 px) e é alcançado rolando — registrado como risco para a lente de
-   tela, não como aceite deste item.
+   tela, não como aceite deste item. A auditoria 2 mediu o mesmo com
+   "Afundo / passada" no lugar do agachamento: o "montagem" fica cerca de
+   3 px sob a barra.
    Aceite: Vitest — `pontosDoBloco` com 2 aquecimentos e 3 séries dá 5
    pontos na ordem, os feitos marcados e o nome certo; e2e — no Treino A
    (agachamento com 2 aquecimentos e 3 séries) aparecem 5 pontos, o grupo
