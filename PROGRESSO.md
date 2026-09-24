@@ -11628,8 +11628,10 @@ entrou), o service worker e a tela. **Nunca a service role**, nem no servidor.
 #### Provas
 
 - **Vitest novos:** `lib/lembretes-regra.test.ts` (19), `lib/ics.test.ts`
-  (11), `lib/migracao-lembretes-disparo.test.ts` (26),
-  `lib/rota-lembretes-disparar.test.ts` (11); a mais em
+  (12; eram 11 até `9f7bf14`, +1 da descrição do .ics na correção),
+  `lib/migracao-lembretes-disparo.test.ts` (26),
+  `lib/rota-lembretes-disparar.test.ts` (12; eram 11, +1 do 413 em bytes);
+  total do `npm test` em `10d4ae0`: **77 arquivos, 1.704 testes**; a mais em
   `lib/lembretes.test.ts` (badge), `lib/auditoria-seguranca.test.ts` (tabela
   só de leitura), `lib/supabase/middleware.test.ts` (a rota do disparo é a
   única `/api` sem sessão).
@@ -11705,8 +11707,29 @@ entrou), o service worker e a tela. **Nunca a service role**, nem no servidor.
   ("Compiled successfully in 33.3s") · `build:e2e` ("Compiled successfully
   in 16.3s") · `e2e` **569 passaram, 5 pulados** (21,5 min; nenhum ✘) ·
   `varredura` **5 passaram** (4,6 min). É a cadeia verde de ponta a ponta do
-  código entregue antes da auditoria (a da correção está em "Correção da
-  auditoria", abaixo).
+  código entregue antes da auditoria 1.
+- **`10d4ae0`** (o código corrigido da auditoria 1: `d24af34`, `ceca4d7`,
+  `5b777a1` + este PROGRESSO; cadeia inteira rodada pelo orquestrador,
+  `r20/l35/logs/10d4ae0.log`, das 09:50:18 às 10:39:08 UTC, `.status`
+  **falhou:e2e**): `lint` limpo · `tsc` limpo · `npm test` **77 arquivos,
+  1.704 testes, todos verdes** (1.702 + os 2 novos da correção) · `build`
+  ("Compiled successfully in 32.1s") · `build:e2e` ("Compiled successfully
+  in 18.9s") · `e2e` **568 passaram, 1 falhou, 5 pulados** (22,4 min) ·
+  `varredura` não rodou na cadeia (ela para no ✘). O ✘ é
+  `e2e/auditoria.spec.ts:86` "porta de entrada › recarregar mantém a
+  sessão" (**fora do lote**): depois do `reload` a página foi para
+  `/mais/guia?inicio=1` em vez de `/`, com a carga da máquina em 6,6 em 4
+  CPUs. Parece uma corrida entre o `guia_visto` gravado pela fila offline e
+  o `reload` do teste; nenhum arquivo do lote toca o guia da primeira entrada
+  nem a sessão, e o mesmo spec já tinha caído sob carga em
+  `rodada-1/l2`. **Sozinho passou 2× no mesmo `.next`**
+  (`r20/l35/auditoria-2-tela/e2e-grep/10d4ae0.log`, com o lock: 1 passed em
+  2,8 s / 7,4 s no total e 1 passed em 3,2 s / 7,9 s) e, no mesmo diretório,
+  a **`varredura` à parte deu 5 passaram** (4,7 min, `.status` ok). Pela
+  regra do instável: anotado como **instável sob carga**, sem mudar o
+  teste; não bloqueia. Os 8 e2e do L35, os 40 do L34 (inclusive os que
+  mudaram na correção: frase do "Próximo", sem VAPID com 18:30 no mock) e o
+  worker real passaram nessa cadeia.
 - `git diff 96056ac -- lib/progressao.ts lib/montagem.ts` vazio. Nenhum
   segredo no repositório; nenhuma service role.
 
@@ -11765,9 +11788,24 @@ fica abaixo da dobra; a auditoria de tela mediu o item aberto (texto novo
 correto, 360 px sem rolagem lateral, contraste mínimo 5,07 no claro e 5,1 no
 escuro, nenhum alvo < 44 — `r20/l35/auditoria-1-tela/guia-lembretes-*.png`).
 
+**Capturas do código corrigido (`10d4ae0`)**, feitas pela auditoria 2 de
+tela com o `.next` do `build:e2e` da cadeia de `10d4ae0` (o `capturas.sh`
+completo parou no timeout dela esperando o lock, sem deixar processo; ela
+rodou o `capturas-ultraloop.ts` com o lock contra o próprio mock/app sem
+VAPID e o `comparar-capturas.ts` contra `base-ef3ad97`, limiar 0,5 %,
+esperada `18-mais`): `r20/l35/auditoria-2-tela/capturas-10d4ae0.md` e
+`capturas-10d4ae0-diff/` — **60 PNGs, Δ 0,00 % em todas**, "Nenhuma tela
+mudou fora do esperado", e os 60 **iguais byte a byte** aos da base (`cmp`,
+0 diferentes). `18-mais-claro.diff.png` e `18-mais-escuro.diff.png` abertos:
+tudo em cinza esmaecido, nenhum pixel vermelho. `/mais/lembretes` (fora das
+60) foi medida por ela a 360×740 nos dois temas, com e sem VAPID: 360 =
+360 em todos os estados, nenhum alvo < 44 px, contraste mínimo 5,07 (claro)
+e 5,85 (escuro).
+
 | tela | Δ claro | Δ escuro | o que mudou |
 | --- | ---: | ---: | --- |
-| 18-mais | 0,00 % | 0,00 % | nada (a linha "Lembretes" já está na base) |
+| 18-mais (`815f2e9`) | 0,00 % | 0,00 % | nada (a linha "Lembretes" já está na base) |
+| 18-mais (`10d4ae0`) | 0,00 % | 0,00 % | nada; as outras 58 também 0,00 % |
 
 #### Correção da auditoria (24/09)
 
@@ -11829,4 +11867,56 @@ de `lib/ics.ts` diz isso; se o horário de verão voltar, o `.ics` fica uma
 hora errado e o disparo (Intl/tzdata) continua certo — só registro. (4)
 "Próximo: hoje às 06:30" às 06:38 é coerente com a tolerância de 30 min; com
 o tick rodando dura no máximo 5 min — sem mudança.
+
+**Rodada 20 — auditoria 2 (HEAD `10d4ae0`) reprovou por registro;
+lote devolvido à fila.** As duas lentes aprovaram o **código** (nenhum
+bloqueante nem importante de código; regra: 33 de 35 mutações morrem,
+.ics exaustivo em 13.824 perfis e regra exaustiva em 5.376 dias com 0
+falhas; tela: sem VAPID, com VAPID e o lembrete de teste até o worker real,
+nos dois temas) e reprovaram pelo mesmo importante: o PROGRESSO não tinha
+os portões nem as capturas de `10d4ae0` (a linha de `9f7bf14` apontava
+para esta seção, que não tinha cadeia nenhuma).
+
+**Rodada 24 — retomada (24/09), só registro.** Nenhum arquivo de código
+mudou. (1) Portões de `10d4ae0` com os números reais e o ✘ instável
+explicado (acima, em "Portões"); (2) capturas de `10d4ae0` citadas (acima,
+em "Capturas"); (3) contagens do `ics.test.ts` e do
+`rota-lembretes-disparar.test.ts` corrigidas em "Provas" (12 e 12, total
+1.704); (4) a cadeia inteira de novo no HEAD desta rodada (em "Portões").
+Menores da auditoria 2 **registrados, não feitos** (o código foi aprovado
+nas duas lentes; esta rodada não muda código):
+
+- **Regra:** o ramo do `content-length` declarado de `lerAte()` não tem
+  teste, nem o limite exato (`>` trocado por `>=` sobrevive à mutação); o
+  413 em bytes — o aceite — está coberto (4 mutações morrem). Para provar:
+  um teste com `content-length: 600000` e um corpo que falha se for lido.
+- **Regra:** o `disparoSchema` continua tudo ou nada (ver "Não feito" (1));
+  os casos que dariam 400 no tick inteiro: um `ultimo_treino` legado, um
+  `workout_id` de override fora do enum (o restore do backup não valida o
+  valor) ou mais de 500 contas.
+- **Regra:** VAPID configurado mas sem `LEMBRETES_SEGREDO` na Vercel ou sem
+  os segredos no Vault: o aparelho aparece "Ativado" e o "Próximo" promete
+  um aviso que o disparo não manda; o cliente não tem como saber. Os passos
+  2 e 3 do "Antes do deploy" configuram tudo junto — risco baixo.
+- **Regra:** a parte "nada é apagado" do e2e da RPC com segredo errado é
+  tautológica (nenhuma inscrição semeada) — é o "Não feito" (2).
+- **Tela:** primeira abertura de Mais → Lembretes **sem rede**, com o
+  aparelho ativado: a leitura dos aparelhos falha, a tela mostra
+  "Desativado neste aparelho." (comportamento do L34, `carregar()` não é
+  deste lote) e a frase nova do "Próximo" aparece, falsa nesse estado.
+  Sugestão da auditoria: com `LER_FALHOU`, `avisoAqui = null`. Só acontece
+  sem rede e se corrige na próxima abertura com rede.
+- **Tela:** com 3 dias de treino (seg/qua/sex ou ter/qui/sab) o plano não
+  tem dia de corrida, e o "Lembrete da corrida" liga e grava mesmo assim
+  ("Nos dias de cardio do seu plano."); o .ics só tem a força e o "Próximo"
+  nunca fala da corrida. Coerente com a §23.9 (os dias do plano), mas a
+  tela não diz que nesse plano esse lembrete não sai.
+- **Tela:** um `pageerror` "Minified React error #418" (hidratação) uma
+  vez só, na primeira execução com VAPID no claro; não se repetiu em 3
+  execuções do mesmo fluxo nem em 18 navegações e recargas de `/`, `/mais`
+  e `/mais/lembretes` (`sonda-418.json`). O bloco do lote não renderiza
+  nada que dependa da hora no servidor — não atribuído ao lote.
+- **Tela/regra:** o `e2e/auditoria.spec.ts:86` instável sob carga (acima)
+  fica anotado; a causa provável (corrida do `guia_visto` com o `reload`)
+  é de um lote de testes, fora deste.
 
