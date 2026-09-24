@@ -360,7 +360,7 @@ test.describe("concluir e o que o motor decide (SPEC §6.2, §6.6, §10.3 e §10
     for (const n of [1, 2, 3]) await marcar(page, "Agachamento livre", n);
 
     await page
-      .getByRole("switch", { name: "Última repetição firme no Agachamento livre" })
+      .getByRole("switch", { name: "Última repetição firme: Agachamento livre" })
       .click();
 
     await page.getByRole("button", { name: "Concluir" }).click();

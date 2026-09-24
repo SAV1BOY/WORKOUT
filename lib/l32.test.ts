@@ -19,7 +19,13 @@ import {
   type Colecao,
 } from "@/lib/colecoes";
 import { exercicios } from "@/lib/dados";
-import { altDaExecucao, midiaGrande, opcoesDeMidia } from "@/lib/midia";
+import {
+  altDaExecucao,
+  midiaGrande,
+  nomeAcessivel,
+  opcoesDeMidia,
+  ROTULOS_DO_EXERCICIO,
+} from "@/lib/midia";
 
 /* ------------------------------------------------ item 3: o alt sem artigo */
 
@@ -55,9 +61,34 @@ describe("§22.15 item 3 — \"Execução: <nome>\", sem artigo", () => {
     }
   });
 
-  it("nenhum arquivo de lib/ e components/ monta \"Execução do/da <nome>\"", () => {
+  it("os 81 nomes × todo rótulo: \"<rótulo>: <nome>\", sem artigo antes do nome", () => {
+    expect(exercicios).toHaveLength(81);
+    const femininos = exercicios.filter((e) =>
+      /^(Remada|Rosca|Prancha|Elevação|Flexão|Barra fixa|Puxada)/.test(e.nome),
+    );
+    expect(femininos.length).toBeGreaterThanOrEqual(12);
+    for (const e of exercicios) {
+      for (const rotulo of ROTULOS_DO_EXERCICIO) {
+        const texto = nomeAcessivel(rotulo, e.nome);
+        expect(texto, `${rotulo}/${e.id}`).toBe(`${rotulo}: ${e.nome}`);
+        // o que vem antes do nome não termina em artigo nem em contração
+        const antes = texto.slice(0, texto.length - e.nome.length);
+        expect(antes, `${rotulo}/${e.id}`).not.toMatch(/\b(d|n)?[oa]s?\s*$/i);
+      }
+    }
+    expect(altDaExecucao("Remada curvada pronada")).toBe("Execução: Remada curvada pronada");
+  });
+
+  it("nenhum arquivo de lib/, components/ e app/ põe artigo antes do nome do exercício", () => {
     const raiz = resolve(__dirname, "..");
     const achados: string[] = [];
+    // template (`… do ${exercicio.nome}`) e JSX (`… da {item.nome}`): o
+    // artigo ou a contração logo antes de uma expressão que termina em `.nome`
+    const artigoAntesDoNome = [
+      /\b(?:do|da|no|na|dos|das|nos|nas)\s\$\{\s*[\w?.]*\bnome\b[^}]*\}/,
+      /\b(?:do|da|no|na|dos|das|nos|nas)\s\{\s*[\w?.]*\bnome\b[^}]*\}/,
+      /[`"']Execução d[oa] /,
+    ];
     const andar = (dir: string) => {
       for (const nome of readdirSync(dir)) {
         const caminho = join(dir, nome);
@@ -66,13 +97,19 @@ describe("§22.15 item 3 — \"Execução: <nome>\", sem artigo", () => {
           continue;
         }
         if (!/\.(ts|tsx)$/.test(nome) || /\.test\.ts$/.test(nome)) continue;
-        const texto = readFileSync(caminho, "utf8");
-        // um texto de código (template ou string), não um comentário
-        if (/[`"']Execução d[oa] /.test(texto)) achados.push(caminho.slice(raiz.length + 1));
+        readFileSync(caminho, "utf8")
+          .split("\n")
+          .forEach((linha, n) => {
+            if (/^\s*(\*|\/\/|\/\*)/.test(linha)) return; // comentário
+            if (artigoAntesDoNome.some((r) => r.test(linha))) {
+              achados.push(`${caminho.slice(raiz.length + 1)}:${n + 1}: ${linha.trim()}`);
+            }
+          });
       }
     };
     andar(join(raiz, "lib"));
     andar(join(raiz, "components"));
+    andar(join(raiz, "app"));
     expect(achados).toEqual([]);
   });
 });
@@ -120,12 +157,42 @@ describe("§22.15 item 6 — na busca, a coleção parte da capa da vitrine", ()
     expect(antes.find((c) => c.id === "plano:corda")!.capa).toBeNull();
   });
 
+  it("busca \"corda\": a ordem, a capa reservada por linha e quem fica com o ícone", () => {
+    const achadas = buscarColecoes("corda", todasAsColecoes(null));
+    expect(achadas.slice(0, 3).map((c) => c.id)).toEqual([
+      "circuito:corda",
+      "aparelho:corda",
+      "plano:corda",
+    ]);
+    const depois = capasNaBusca(achadas, vitrine);
+    const capa = (id: string) => depois.find((c) => c.id === id)!.capa;
+    // 1ª passada: cada linha reserva a capa da vitrine, se ninguém acima a reservou
+    expect(vitrine.get("circuito:corda")).toBe("/fotos/salto-basico-1.jpg");
+    expect(vitrine.get("aparelho:corda")).toBe("/fotos/salto-basico-1.jpg");
+    expect(vitrine.get("plano:corda")).toBe("/fotos/corrida-no-lugar-com-a-corda-1.jpg");
+    expect(capa("circuito:corda")).toBe("/fotos/salto-basico-1.jpg");
+    expect(capa("plano:corda")).toBe("/fotos/corrida-no-lugar-com-a-corda-1.jpg");
+    // 2ª passada: o aparelho perdeu a da vitrine para o circuito (acima) e a
+    // outra foto dele é a capa que o plano (abaixo) reservou → ícone
+    expect(achadas.find((c) => c.id === "aparelho:corda")!.exercicios).toEqual([
+      "salto-basico",
+      "corrida-no-lugar-com-a-corda",
+    ]);
+    expect(capa("aparelho:corda")).toBeNull();
+    // antes, o aparelho ficava com a foto que agora é do plano
+    const antes = semCapasRepetidas(achadas);
+    expect(antes.find((c) => c.id === "aparelho:corda")!.capa).toBe(
+      "/fotos/corrida-no-lugar-com-a-corda-1.jpg",
+    );
+  });
+
   it("em todos os termos: nenhuma foto repetida, e quem tem a capa da vitrine livre fica com ela", () => {
     const lista = termos();
     expect(lista.length).toBeGreaterThan(100);
     let linhas = 0;
     let diferentes = 0;
     let diferentesAntes = 0;
+    let planosAntes = 0;
     const planosDiferentes: string[] = [];
     for (const t of lista) {
       const achadas = buscarColecoes(t, todasAsColecoes(null));
@@ -138,7 +205,10 @@ describe("§22.15 item 6 — na busca, a coleção parte da capa da vitrine", ()
       depois.forEach((c: Colecao, i) => {
         linhas += 1;
         const daVitrine = vitrine.get(c.id) ?? null;
-        if (antes[i]!.capa !== daVitrine) diferentesAntes += 1;
+        if (antes[i]!.capa !== daVitrine) {
+          diferentesAntes += 1;
+          if (c.id.startsWith("plano:")) planosAntes += 1;
+        }
         if (daVitrine === null) {
           expect(c.capa, `${t}: ${c.id} tem o ícone na vitrine`).toBeNull();
         } else if (!acima.has(daVitrine)) {
@@ -156,6 +226,7 @@ describe("§22.15 item 6 — na busca, a coleção parte da capa da vitrine", ()
     expect(lista).toHaveLength(122);
     expect(linhas).toBe(484);
     expect(diferentesAntes).toBe(144);
+    expect(planosAntes).toBe(4);
     expect(diferentes).toBe(66);
     expect(planosDiferentes.sort()).toEqual([
       "assistida:plano:barra_fixa",

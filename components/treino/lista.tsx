@@ -21,6 +21,7 @@ import { acharExercicio } from "@/lib/dados";
 import { dificuldadeDe } from "@/lib/dificuldade";
 import type { ItemPrevia } from "@/lib/hoje";
 import { evitado, evitadosPorUltimo } from "@/lib/preferencias";
+import { nomeAcessivel } from "@/lib/midia";
 import { substitutosPara } from "@/lib/sessao";
 import type { Prefs } from "@/lib/types";
 
@@ -82,7 +83,7 @@ export function ListaDoDia({
           {/* SPEC §14.2: tocar no exercício abre a ficha em folha, por cima */}
           <button
             type="button"
-            aria-label={`Ficha: ${item.nome}`}
+            aria-label={nomeAcessivel("Ficha", item.nome)}
             onClick={() => setFicha(item.exercicioId)}
             className="hover:bg-muted/40 alvo -mx-1 flex min-w-0 flex-1 items-center gap-3 rounded-xl px-1 py-1 text-left"
           >

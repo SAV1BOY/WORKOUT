@@ -220,13 +220,38 @@ export function opcoesDeMidia(
 }
 
 /**
- * O texto alternativo da demonstração do exercício (SPEC §22.15 item 3):
- * "Execução: <nome>", sem artigo. Era «Execução do <nome>» — «do Prancha»,
- * «do Remada» — e o JSON não diz o gênero do nome. Uma fonte só: a
- * ilustração, a figura e o vídeo da `MediaGrande` e a `FiguraExercicio`.
+ * Os rótulos que acompanham o nome de um exercício num nome acessível
+ * (`aria-label`, `alt`, título de gráfico) — SPEC §22.15 item 3.
+ */
+export const ROTULOS_DO_EXERCICIO = [
+  "Execução",
+  "Como fazer",
+  "Ficha",
+  "Nota",
+  "Última repetição firme",
+  "Carga por sessão",
+] as const;
+export type RotuloDoExercicio = (typeof ROTULOS_DO_EXERCICIO)[number];
+
+/**
+ * O nome acessível que cita um exercício: "<rótulo>: <nome>", sem artigo
+ * (SPEC §22.15 item 3). `data/exercicios.json` não diz o gênero do nome, e
+ * «Nota do Remada», «Execução do Prancha», «firme no Rosca» erravam em 32 dos
+ * 81 nomes. Toda tela que põe o nome do exercício num `aria-label`, `alt` ou
+ * título de gráfico monta o texto aqui; o Vitest de `lib/l32.test.ts` barra
+ * a volta de um template com "do/da/no/na ${…nome}".
+ */
+export function nomeAcessivel(rotulo: RotuloDoExercicio, nome: string): string {
+  return `${rotulo}: ${nome}`;
+}
+
+/**
+ * O texto alternativo da demonstração do exercício: "Execução: <nome>". Uma
+ * fonte só: a ilustração, a figura e o vídeo da `MediaGrande` e a
+ * `FiguraExercicio`. A foto da `MediaGrande` diz qual é ("<nome> — início").
  */
 export function altDaExecucao(nome: string): string {
-  return `Execução: ${nome}`;
+  return nomeAcessivel("Execução", nome);
 }
 
 /**
