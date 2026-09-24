@@ -2887,7 +2887,7 @@ player) e um que entra por **exceção de área** (OBS-porcentagem-com-espaco:
 sete textos com o `%` separado do número, varredura de grafia sem dono de
 área). O motor não muda (§22.0.1 item 7): `lib/progressao.ts` e
 `lib/montagem.ts` ficam intocados. O aceite de cada item é verificável no
-Vitest (`lib/player.test.ts`) ou no e2e (`e2e/ultraloop-l19.spec.ts`).
+Vitest (`lib/l19.test.ts`) ou no e2e (`e2e/ultraloop-l19.spec.ts`).
 
 1. **"Substituir" no exercício do passo atual não trava mais o player**
    (B-player-substituir-passo-atual). Medido: no player, "?" → ficha do
@@ -2909,8 +2909,22 @@ Vitest (`lib/player.test.ts`) ou no e2e (`e2e/ultraloop-l19.spec.ts`).
    volta no aparelho (Dexie) na hora. Trocar um exercício que **não** é o do
    passo atual (anterior ou posterior, pela ficha ou pela Visão geral) deixa
    o player exatamente onde estava. Nenhuma série de outro exercício se
-   perde; as do exercício trocado saem, como a §3.2 sempre disse ("o
-   registro fica com o exercício substituto"). Aceite: Vitest — trocar o
+   perde, e a série feita depois da troca fica no aparelho e no banco.
+   **Fora deste lote, pergunta aberta ao dono:** as séries **já feitas do
+   exercício trocado** saem do aparelho e do banco na troca — é o que o app
+   já fazia antes deste lote (c689f69: `descartarSeriesDoBloco`, chamado
+   pelo `substituir` de `components/treinar/usar-sessao.ts`). A §3.2 diz só
+   que "o registro fica com o exercício substituto; a progressão do original
+   não muda"; ela não diz que as séries feitas do original somem. A folha
+   "substituir hoje" da Visão geral avisa antes ("As séries já registradas
+   deste bloco serão trocadas pelas do substituto"); a lista "Substituir"
+   da ficha (o "?" do player, que também anda pelos outros exercícios da
+   sessão) troca sem aviso. Isso choca com "nunca perder um registro"
+   (CLAUDE.md). A saída — avisar ou confirmar na ficha como na Visão geral,
+   ou manter as séries feitas do original — é decisão do dono e mexe na
+   ficha (`components/exercicio/`), de outra faixa; fica como item novo do
+   ledger, e os testes deste lote não afirmam nem a perda nem o contrário.
+   Aceite: Vitest — trocar o
    exercício do passo atual (com e sem séries feitas nele, e parado no
    descanso entre séries dele) leva à série 1 do exercício novo; trocar um
    anterior ou um posterior mantém a chave; com as séries do exercício
@@ -2919,8 +2933,10 @@ Vitest (`lib/player.test.ts`) ou no e2e (`e2e/ultraloop-l19.spec.ts`).
    nos dois temas — no player, "?" → Substituir no exercício do passo atual
    → a folha mostra o exercício novo e, fechada, o player mostra o
    exercício novo com "Concluir série", "Série 1 de N · exercício 1 de 6" e
-   "no lugar de Agachamento livre", sem recarregar; a série concluída depois
-   está no IndexedDB (`sessaoAtiva`) e no mock (`sets`); trocar em seguida
+   "no lugar de Agachamento livre", sem recarregar; o passo achado fica anotado no
+   IndexedDB (`sessaoAtiva.dados.player`, a chave da série 1 do exercício
+   novo); a série concluída depois está no IndexedDB (`sessaoAtiva`) e no
+   mock (`session_sets`); trocar em seguida
    o exercício 2 pela ficha deixa o player na série 2 do exercício novo, e
    a série 1 continua concluída no aparelho e no mock.
 2. **A preparação tem saída e "Visão geral"** (ux-heuristicas-12, absorve o
@@ -2935,6 +2951,12 @@ Vitest (`lib/player.test.ts`) ou no e2e (`e2e/ultraloop-l19.spec.ts`).
    ≥ 44 × 44 px; "Visão geral do treino" abre a visão geral da sessão;
    "Sair do treino" volta para a aba Treino, onde o card do dia diz
    "Continuar", e o "Continuar" leva de volta ao mesmo `/treinar/<id>`.
+   A contagem da preparação **não corre atrás da Visão geral**: aberta a
+   Visão geral a partir da preparação, o treino não começa sozinho, e ao
+   "Fechar" a contagem recomeça do início (quem abriu a lista para conferir
+   o treino não volta direto na série 1). Aceite: e2e — com a Visão geral
+   aberta, passados 20 s, "Fechar" volta à preparação ("Prepare-se"); mais
+   uma contagem inteira depois, o treino começa sozinho.
 3. **A preparação fica centrada de verdade** (tela-treino-player-09).
    Medido: o `justify-center` não centralizava (o `main` não é flex); o
    conteúdo acabava em y≈460 e sobravam ~280 px vazios embaixo. Agora a
@@ -2961,7 +2983,13 @@ Vitest (`lib/player.test.ts`) ou no e2e (`e2e/ultraloop-l19.spec.ts`).
    saem de `pontosDoBloco()` (`lib/player.ts`, pura), que também dá o nome
    acessível do grupo — "Aquecimento 1 de 2 · 0 de 5 séries feitas". A
    barra da sessão continua, como `progressbar` com nome ("Progresso do
-   treino"). Para caber na mesma altura, a figura desce de 160 para 144 px.
+   treino"). Para caber na mesma altura, a figura desce de 160 para 144 px —
+   nos seis exercícios do Treino A a série cabe sem rolar a 360×740; com
+   nome longo, exercício unilateral e substituto ao mesmo tempo (medido na
+   auditoria: "Remada unilateral (serrote)" no lugar do 3º), o "montagem"
+   fica 32 px abaixo da barra fixa na primeira vista (em c689f69 eram
+   6 px) e é alcançado rolando — registrado como risco para a lente de
+   tela, não como aceite deste item.
    Aceite: Vitest — `pontosDoBloco` com 2 aquecimentos e 3 séries dá 5
    pontos na ordem, os feitos marcados e o nome certo; e2e — no Treino A
    (agachamento com 2 aquecimentos e 3 séries) aparecem 5 pontos, o grupo
@@ -2986,7 +3014,14 @@ Vitest (`lib/player.test.ts`) ou no e2e (`e2e/ultraloop-l19.spec.ts`).
    quaisquer dois alvos de 44 px da tela de série a distância é ≥ 8 px;
    "Não gosto" deixa `aria-pressed="true"` e mostra o aviso com
    "Desfazer", e o "Desfazer" tira o `aria-pressed` (volta a nenhum voto) e
-   o `prefs.evitar_exercicios` do mock fica sem o exercício.
+   o `prefs.evitar_exercicios` do mock fica sem o exercício. O "Desfazer" é
+   um alvo de toque como os outros: **≥ 44 × 44 px** (o botão de ação do
+   Sonner vem com 24 px de altura; a classe `aviso-desfazer` o leva a 44)
+   e, no foco pelo teclado, o anel sólido na cor de destaque (`--ring`) —
+   o padrão do Sonner era uma sombra preta a 40 %, quase invisível sobre o
+   aviso escuro. Aceite: e2e nos dois temas — o "Desfazer" mede ≥ 44 × 44
+   e, focado pelo teclado, tem contorno sólido com contraste ≥ 3:1 contra
+   o fundo do aviso.
 7. **O `%` colado ao número em todo texto** (OBS-porcentagem-com-espaco,
    por exceção de área). A §22.6 item 8 fixou um formato só ("78%"), mas
    sete textos em cinco arquivos ainda separavam o símbolo: três ações de
@@ -3000,7 +3035,10 @@ Vitest (`lib/player.test.ts`) ou no e2e (`e2e/ultraloop-l19.spec.ts`).
    ocorrência — "20–25 %" das regras da corrida em `data/cardio.json`, que o
    ledger deixou no copy-19 (L18) — também fica colada ("20–25%"); a tela do
    cardio continua sendo do L18. Aceite: grep `[0-9][[:space:]]%` em `data/`, `lib/`,
-   `components/` e `app/` só devolve comentários e nomes de teste; e2e em
+   `components/` e `app/` só devolve comentários e nomes de teste — e o
+   Vitest (`lib/l19.test.ts`) faz esse grep sozinho, lendo o código-fonte
+   sem os comentários, para que um texto novo com o `%` separado derrube a
+   suíte; e2e em
    `e2e/treino.spec.ts` — nenhum texto de `data/*.json` nem das descrições
    da retomada e do Guia casa `/\d\s%/`, e, com a última sessão 20 dias
    atrás, o diálogo de retomada mostra "Uma semana a 60% da carga…" e,
