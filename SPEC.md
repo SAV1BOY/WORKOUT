@@ -3247,9 +3247,13 @@ vizinhos citados) ou no e2e (`e2e/ultraloop-l33.spec.ts`).
    `doTreino` de `e2e/ultraloop-l32.spec.ts` tinha "Agachamento livre" e
    "Supino reto com barra" escritos à mão. Agora os quatro vêm de
    `acharExercicio()`, e também o nome da prancha (numa regex) e o da
-   remada (no título de um teste). Aceite: nenhum dos 81 nomes aparece
-   escrito no spec — string, regex ou título (Vitest em
-   `lib/l33.test.ts`); o spec continua verde.
+   remada (no título de um teste). Aceite: nenhum dos 81 nomes, na grafia
+   do catálogo (a comparação diferencia maiúsculas), aparece escrito no
+   spec — string, regex ou título (Vitest em `lib/l33.test.ts`); o spec
+   continua verde. Dois títulos de teste ainda citam nomes em minúsculas
+   no meio da frase ("supino reto com barra: tag-link × …" e "na ficha da
+   prancha e no player"): não são dado lido pelo teste e ficam para a fila
+   (auditoria 2 da rodada 25).
 9. **A SPEC e o PROGRESSO apontam a tela que existe**
    (C-l32-texto-aba-progresso). O §22.15 item 3 e o passo 3 do "Como testar
    no celular" da rodada 22 falavam de um "Progresso" que não existe mais

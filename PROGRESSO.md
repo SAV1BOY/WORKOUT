@@ -12309,8 +12309,10 @@ lib/montagem.ts` vazio. Nenhuma mudança de banco.
    pelo Esc, X, toque fora ou "Ver resultados" desfaz a entrada se ainda é a
    do topo (decidido depois do commit, para não brigar com uma rota nova);
    a entrada **morta** (a camada fechou porque um link dentro dela levou a
-   outra rota) é pulada no mesmo sentido do passo (Navigation API; sem ela,
-   para trás); enquanto há entrada de camada, `history.scrollRestoration` é
+   outra rota) é pulada no mesmo sentido do passo (na rodada 25, pela
+   Navigation API e, sem ela, sempre para trás — o defeito que a revisão do
+   Codex achou; desde a rodada 28, por uma régua própria, ver "Rodada 28"
+   abaixo); enquanto há entrada de camada, `history.scrollRestoration` é
    `manual` (fechar não mexe na rolagem). As decisões puras em
    `lib/camada-modal.ts` (`entradaDoEstado`, `empilhaEntrada`,
    `aoAndarNoHistorico`, `desfazAoFechar`); o DOM em
@@ -12343,7 +12345,9 @@ lib/montagem.ts` vazio. Nenhuma mudança de banco.
 
 #### Provas
 
-- Vitest novo: `lib/l33.test.ts` (15 testes: itens 1, 2, 4, 6 e 8) e os
+- Vitest novo: `lib/l33.test.ts` (15 testes na primeira entrega, itens 1,
+  2, 4, 6 e 8; 17 depois da correção da auditoria, com o item 5; 27 na
+  rodada 28, com a régua do item 6) e os
   vizinhos alterados — `lib/l32.test.ts` (item 7: a guarda e as mutações
   sintéticas; item 10: a capa contra `cardio.json`), `lib/ficha.test.ts`
   (o critério e o espelho vindos de `lib/`), `lib/catalogo.test.ts`.
@@ -12536,7 +12540,9 @@ bloqueante nem importante):
   igual") é cumprido; fica para a fila.
 - Item 6, bordas: sem a Navigation API a direção é sempre para trás (o
   avançar para uma entrada morta volta); depois de fechar pelo Esc, a
-  entrada desfeita fica como entrada de avançar e o avançar cai nela; e,
+  entrada desfeita fica como entrada de avançar e o avançar cai nela
+  (**as duas resolvidas na rodada 28**: a primeira era o defeito real que a
+  revisão do Codex achou no PR #31); e,
   como agora diz a SPEC, recarregar com a camada aberta ou avançar para uma
   entrada morta de outro documento gasta um toque. Nenhum afeta o voltar do
   Android no uso normal; mexer exigiria mudar o código de app de novo.
