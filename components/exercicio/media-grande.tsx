@@ -56,7 +56,15 @@ export function MediaGrande({
   className?: string;
 }) {
   const midia = midiaGrande(exercicioId, { temVideo, tipo, semFoto });
-  const [figuraQuebrou, setFiguraQuebrou] = useState(false);
+  /*
+   * SPEC §22.15 item 2: guarda QUAL figura falhou, não "uma figura falhou".
+   * A ficha no player troca de exercício no lugar (‹ ›, "Substituir") sem
+   * remontar esta mídia; com um booleano, a figura de A quebrada fazia a de B
+   * nem ser tentada, e a tela caía direto na foto de B.
+   */
+  const [figuraQuebrada, setFiguraQuebrada] = useState<string | null>(null);
+  const figuraQuebrou =
+    midia?.tipo === "figura" && figuraQuebrada !== null && figuraQuebrada === midia.urls[0];
 
   const caixa = cn("bg-muted/40 h-40 w-full rounded-xl object-contain", className);
 
@@ -170,7 +178,7 @@ export function MediaGrande({
         loading="lazy"
         decoding="async"
         className={cn(caixa, "p-2")}
-        onError={() => setFiguraQuebrou(true)}
+        onError={() => setFiguraQuebrada(midia.urls[0] ?? null)}
       />
     );
   }
