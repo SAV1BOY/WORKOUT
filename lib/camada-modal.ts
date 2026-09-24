@@ -151,9 +151,10 @@ export function empilhaEntrada(estadoDoTopo: unknown): boolean {
  *
  * - `fechar`: as entradas das camadas que o voltar tirou — as acima da atual —,
  *   de cima para baixo. Cada uma recebe o Esc da vez.
- * - `morta`: a entrada atual é de uma camada que já fechou sem desfazê-la (um
- *   link dentro dela levou a outra rota no mesmo documento): o app anda mais
- *   um passo na mesma direção, para ninguém gastar um voltar numa entrada
+ * - `morta`: a entrada atual é de uma camada que já fechou (um link dentro
+ *   dela levou a outra rota no mesmo documento, ou ela saiu pelo Esc ou pelo
+ *   voltar e o avançar chegou nela): o app anda mais um passo — para onde,
+ *   quem diz é `passoNoHistorico` —, e ninguém gasta um toque numa entrada
  *   vazia. Quem decide é o ouvinte do `popstate`, que só existe depois de a
  *   primeira camada abrir no documento: recarregar com a camada aberta, ou
  *   chegar a uma entrada morta de outro documento pelo avançar, ainda gasta
@@ -177,4 +178,75 @@ export function aoAndarNoHistorico(
  */
 export function desfazAoFechar(estadoDoTopo: unknown, entrada: number | null): boolean {
   return entrada !== null && entrada > 0 && entradaDoEstado(estadoDoTopo) === entrada;
+}
+
+/* ------------------------------------------------------------------------ */
+/*  A direção do passo, sem a Navigation API (SPEC §22.17 item 6)            */
+/* ------------------------------------------------------------------------ */
+
+/**
+ * A régua: onde o histórico está, contado nos números das entradas de
+ * camada (crescentes na ordem do histórico, porque um `pushState` apaga o
+ * que estava à frente). Numa entrada de camada, o número dela; numa entrada
+ * de página, que não tem número, meio passo acima ou abaixo da entrada de
+ * camada vizinha que o app conhece. `null`: o documento ainda não viu
+ * nenhuma (acabou de carregar, ou recarregou).
+ *
+ * É só o que o app grava no próprio histórico: vale no Safari do iPhone e em
+ * qualquer navegador sem `window.navigation`.
+ */
+export type Regua = number | null;
+
+/** Para onde o passo foi: +1 avançou, −1 voltou, 0 não se sabe. */
+export type Direcao = -1 | 0 | 1;
+
+/**
+ * A direção do passo que chegou à entrada `agora` vindo da régua `antes`:
+ * número maior, avançou; menor, voltou. Não se sabe (0) quando a régua não
+ * sabe (`null`), quando a entrada é de página (`agora` 0) ou quando é a
+ * mesma — e o que não se sabe **não** vira voltar.
+ */
+export function direcaoDoPasso(antes: Regua, agora: number): Direcao {
+  if (antes === null || agora <= 0 || agora === antes) return 0;
+  return agora > antes ? 1 : -1;
+}
+
+/**
+ * O `popstate`, na régua. `atual` é a entrada em que o histórico chegou (0
+ * quando é de página); `morta` e `fechar` vêm de `aoAndarNoHistorico`;
+ * `semSaida` diz se `atual` é a entrada de uma camada desfeita pelo Esc
+ * (ou X, toque fora, "Ver resultados") ou fechada pelo voltar — acima dela
+ * só há entradas de camadas fechadas.
+ *
+ * - `passo`: numa entrada morta, o passo a mais que o app dá — na direção
+ *   do passo que chegou, ou nenhum (0) se ela não se sabe; numa sem saída,
+ *   sempre um voltar (o avançar que chega nela volta para onde estava).
+ * - `regua`: onde a régua fica. Numa entrada de camada, o número dela (meio
+ *   passo além, se o app vai andar mais um); numa de página, meio passo
+ *   abaixo da mais baixa das camadas que o voltar fechou, ou onde estava.
+ */
+export function passoNoHistorico(
+  antes: Regua,
+  atual: number,
+  { morta, fechar, semSaida }: { morta: boolean; fechar: readonly number[]; semSaida: boolean },
+): { passo: Direcao; regua: Regua } {
+  if (atual <= 0) {
+    const regua = fechar.length > 0 ? Math.min(...fechar) - 0.5 : antes;
+    return { passo: 0, regua };
+  }
+  if (!morta) return { passo: 0, regua: atual };
+  const passo: Direcao = semSaida ? -1 : direcaoDoPasso(antes, atual);
+  return { passo, regua: atual + passo / 2 };
+}
+
+/**
+ * A régua quando a camada da entrada `entrada` sai por outro caminho que
+ * não o voltar. `desfez`: ela desfez a própria entrada (`history.back()`), e
+ * o histórico vai para meio passo abaixo dela. Senão, uma rota (ou outra
+ * camada) foi por cima: a régua fica pelo menos meio passo acima da entrada,
+ * agora morta.
+ */
+export function reguaAoSair(antes: Regua, entrada: number, desfez: boolean): number {
+  if (desfez) return entrada - 0.5;
+  return Math.max(antes ?? 0, entrada + 0.5);
 }
