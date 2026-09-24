@@ -2996,7 +2996,10 @@ Vitest (`lib/player.test.ts`) ou no e2e (`e2e/ultraloop-l19.spec.ts`).
    (`components/exercicios/historico-exercicio.tsx`), "o app volta 10 % da
    carga sozinho" do Guia (`lib/guia.ts`) e a descrição de "Voltar mais
    leve" (`lib/retomada.ts`). Os sete passam a "60%"/"10%"; os comentários
-   de código ficam. Aceite: grep `[0-9][[:space:]]%` em `data/`, `lib/`,
+   de código ficam. O aceite pede `data/*.json` inteiro, então a oitava
+   ocorrência — "20–25 %" das regras da corrida em `data/cardio.json`, que o
+   ledger deixou no copy-19 (L18) — também fica colada ("20–25%"); a tela do
+   cardio continua sendo do L18. Aceite: grep `[0-9][[:space:]]%` em `data/`, `lib/`,
    `components/` e `app/` só devolve comentários e nomes de teste; e2e em
    `e2e/treino.spec.ts` — nenhum texto de `data/*.json` nem das descrições
    da retomada e do Guia casa `/\d\s%/`, e, com a última sessão 20 dias
