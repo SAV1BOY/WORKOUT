@@ -11959,3 +11959,17 @@ semanas deslocados ~40 px pelo botão novo do L32).
 | 28-player-exercicio | 6,57 % | 7,67 % | o mesmo de `d44d2ef` (itens 5–6): polegares na linha do nome, 5 pontos, figura 16 px mais baixa |
 | 07-colecao | 16,30 % | 22,07 % | base trocada pelo L32 às 11:31 (não é deste lote; PNG idêntico ao de `d44d2ef`) |
 | as outras 54 | 0,00 % | 0,00 % | — |
+
+**Como testar no celular — o que a correção acrescenta** (depois dos 6
+passos de cima):
+
+7. No player, toque o polegar para baixo: o aviso tem **"Desfazer"** do
+   tamanho de um botão de verdade (44 px de altura) — um toque de polegar
+   acerta sem mirar.
+8. Aba Treino → "Começar treino" → na preparação toque o ícone de lista
+   ("Visão geral do treino"), espere mais de 10 s e toque "Fechar": você
+   volta para o **"PREPARE-SE"** com a contagem cheia de novo (antes, o
+   treino tinha começado sozinho por trás da lista).
+9. A pergunta aberta: com uma série do agachamento feita, "?" → Substituir
+   troca o exercício e **a série feita some** (no aparelho e no banco),
+   sem aviso — igual antes deste lote. Fica para a resposta do dono.
