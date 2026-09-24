@@ -220,6 +220,16 @@ export function opcoesDeMidia(
 }
 
 /**
+ * O texto alternativo da demonstração do exercício (SPEC §22.15 item 3):
+ * "Execução: <nome>", sem artigo. Era «Execução do <nome>» — «do Prancha»,
+ * «do Remada» — e o JSON não diz o gênero do nome. Uma fonte só: a
+ * ilustração, a figura e o vídeo da `MediaGrande` e a `FiguraExercicio`.
+ */
+export function altDaExecucao(nome: string): string {
+  return `Execução: ${nome}`;
+}
+
+/**
  * A mídia grande da ficha, do player e da sessão. `tipo` força uma opção (o
  * segmento da ficha); sem ele vale a ordem de preferência. `semFoto` é para a
  * página inteira da ficha, onde as duas fotos já aparecem logo abaixo.
@@ -233,7 +243,7 @@ export function midiaGrande(
   }: { temVideo?: boolean; tipo?: TipoDeMidia; semFoto?: boolean } = {},
 ): MidiaGrande | null {
   const exercicio = acharExercicio(id);
-  const alt = `Execução do ${exercicio.nome}`;
+  const alt = altDaExecucao(exercicio.nome);
   const disponiveis = opcoesDeMidia(id, { temVideo }).filter(
     (o) => !(semFoto && o === "foto"),
   );
