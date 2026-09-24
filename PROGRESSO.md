@@ -11697,9 +11697,16 @@ entrou), o service worker e a tela. **Nunca a service role**, nem no servidor.
   `288ea59.interrompida.txt`; o `.status` ficou "rodando" porque o script foi
   morto). À parte (`r20/l35/varredura-final/288ea59.log`): `build:e2e`
   ("Compiled successfully in 17.9s") e **`varredura` 5 passaram** (4,6 min,
-  fim 01:53:34). O `e2e` do código final é o de `815f2e9` (568 ✓ + 1 instável
-  que passa sozinho 2×); uma cadeia inteira verde de ponta a ponta no HEAD
-  final **não** foi obtida nesta rodada.
+  fim 01:53:34).
+- **`9f7bf14`** (= `288ea59` + só este PROGRESSO.md; a cadeia inteira rodada
+  pelo orquestrador depois do prazo do construtor, `r20/l35/logs/9f7bf14.log`,
+  das 02:22:35 às 02:52:52 UTC, **ok**): `lint` limpo · `tsc` limpo ·
+  `npm test` **77 arquivos, 1.702 testes, todos verdes** · `build`
+  ("Compiled successfully in 33.3s") · `build:e2e` ("Compiled successfully
+  in 16.3s") · `e2e` **569 passaram, 5 pulados** (21,5 min; nenhum ✘) ·
+  `varredura` **5 passaram** (4,6 min). É a cadeia verde de ponta a ponta do
+  código entregue antes da auditoria (a da correção está em "Correção da
+  auditoria", abaixo).
 - `git diff 96056ac -- lib/progressao.ts lib/montagem.ts` vazio. Nenhum
   segredo no repositório; nenhuma service role.
 
@@ -11714,7 +11721,12 @@ entrou), o service worker e a tela. **Nunca a service role**, nem no servidor.
 4. Conferir `select jobname, schedule from cron.job` (um "lembretes",
    `*/5 * * * *`) e, depois da primeira execução, `net._http_response`
    (200 com `{"contas":…}`; 503 = falta a variável na Vercel; 401 = os
-   segredos diferem). Sem os passos 2–3 o tick não faz nada e nada quebra.
+   segredos diferem; 502 = a rota enviou, mas `lembretes_resultado` recusou
+   o segredo — o do Vault e o da Vercel são diferentes). Com 502 nada é
+   marcado e **cada tick da janela de 30 min reenvia** (até 7 avisos no mesmo
+   dia, um substituindo o outro em silêncio pela tag `lembrete-treino`):
+   conferir o primeiro tick e igualar os segredos na hora. Sem os passos 2–3
+   o tick não faz nada e nada quebra.
 
 #### Como testar no celular (360 px)
 
@@ -11746,8 +11758,75 @@ tela mudou fora do esperado"); os 60 são **iguais byte a byte** aos de
 `/mais/lembretes` (que não está nas 60) e não em `/mais`. Aberto o
 `18-mais-claro.diff.png`: tudo em cinza, nenhum pixel vermelho. A tela
 nova foi medida pelo e2e a 360×740 nos dois temas (acima) e vista nos PNGs do
-e2e. Servidores derrubados pelo script (3110 e 54331 → 000).
+e2e. Servidores derrubados pelo script (3110 e 54331 → 000). Fora de
+`/mais/lembretes`, o lote também mudou o texto do item "Lembretes" do guia
+(`lib/guia.ts`, `/mais/guia`): a `22-guia` deu Δ 0,00 % só porque o item
+fica abaixo da dobra; a auditoria de tela mediu o item aberto (texto novo
+correto, 360 px sem rolagem lateral, contraste mínimo 5,07 no claro e 5,1 no
+escuro, nenhum alvo < 44 — `r20/l35/auditoria-1-tela/guia-lembretes-*.png`).
 
 | tela | Δ claro | Δ escuro | o que mudou |
 | --- | ---: | ---: | --- |
 | 18-mais | 0,00 % | 0,00 % | nada (a linha "Lembretes" já está na base) |
+
+#### Correção da auditoria (24/09)
+
+As duas lentes (regra e tela, HEAD `9f7bf14`) reprovaram por itens
+**importantes**, sem bloqueante. Corrigido em commits pequenos sobre
+`9f7bf14`:
+
+- **Portões do PROGRESSO** (as duas lentes): a seção dizia que nenhuma
+  cadeia inteira tinha ficado verde no HEAD final. **Era** isso; **é** a
+  linha de `9f7bf14.log` com os números reais (acima) e sem a frase falsa.
+- **.ics — a descrição do evento semanal da corrida congelava a semana do
+  plano** (regra; tela como menor). **Era** `DESCRIPTION:Treino do Terraço:
+  Corrida · semana 3 · 6 × (2 min corrida / 2 min caminhada) · 34 min.` em
+  toda terça e sábado para sempre (o plano avança; na semana 5 já é outro
+  protocolo). **É** `Treino do Terraço: abra o app para ver a corrida da
+  semana (cerca de 34 min).`, igual em espírito ao da força
+  (`lib/lembretes-regra.ts`, `eventosDoCalendario`). Teste novo em
+  `lib/ics.test.ts`: para as semanas de corrida 1, 3, 5 e 12 e três conjuntos
+  de dias, todo evento é `RRULE:FREQ=WEEKLY` e nenhum `DESCRIPTION` tem
+  "semana N" nem "N ×". **Mutação:** com o código antigo, o teste falha
+  (`expected 'DESCRIPTION:Treino do Terraço: Corrid…'`). SPEC §23.12 e
+  §23.14 item 4 dizem isso.
+- **413 em bytes** (regra, menor): **era** `texto.length` (unidades UTF-16)
+  depois de ler o corpo inteiro; **é** `lerAte()` em
+  `app/api/lembretes/disparar/route.ts` — o `content-length` declarado maior
+  que 512 KiB já recusa, e a leitura do corpo para no primeiro pedaço que
+  passa do limite. Teste novo em `lib/rota-lembretes-disparar.test.ts`: 300
+  mil "ç" (300 mil caracteres, 600 mil bytes) → 413 sem enviar nem chamar a
+  RPC; 500 mil "a" → lido (400 pelo formato). **Mutação:** voltar para
+  `texto.length` derruba o teste. SPEC §23.11 item 4.
+- **"Próximo" sem push** (as duas lentes, menor): **era** "Próximo: amanhã
+  às 07:00 — Treino A…" mesmo quando o aviso não pode chegar (produção hoje,
+  sem VAPID). **É** a mesma linha + logo abaixo, em cinza, "Este aparelho não
+  está recebendo avisos; o calendário abaixo tem alarme na mesma hora."
+  sempre que este aparelho não está ativado (sem VAPID, sem a tabela, sem
+  suporte, bloqueado ou desativado); some com o aparelho ativado
+  (`components/mais/tela-lembretes.tsx`, texto em `lib/lembretes.ts`). SPEC
+  §23.13. e2e: sem VAPID (dois temas) e no L35 a frase aparece; no L34, com
+  o aparelho ativado e o lembrete do treino ligado, ela não existe, e volta
+  depois de "Desativar neste aparelho".
+- **Aceite §23.14 item 1 "sem VAPID" inteiro** (regra, menor): o e2e sem
+  VAPID (`e2e/ultraloop-l34.spec.ts`, dois temas) agora liga o treino,
+  **muda a hora para 18:30** e espera `prefs.lembretes = {treino: {ligado:
+  true, hora: "18:30"}, corrida: {ligado: false, hora: "07:00"}}` no mock,
+  com `guia_visto` preservado.
+- **Antes do deploy, passo 4** (regra, menor): o que um 502 quer dizer e o
+  custo dele (reenvio a cada tick da janela).
+- **Capturas** (tela, menor): o texto do guia também mudou (acima).
+
+**Não feito, com o motivo:** (1) validar o `disparoSchema` por conta em vez
+de tudo ou nada — hoje nenhum escritor grava dado fora do formato e a cota é
+pequena; mexer na fronteira da rota sem prazo para outra rodada de e2e era
+mais risco que ganho. (2) e2e que semeia uma inscrição, dispara contra
+`/__push/410` e vê a linha sumir do mock — a remoção está no SQL
+(`lembretes_resultado`, conferido por texto e mutação) e a rota manda os
+expirados (teste unitário); fica para um lote de testes. (3) O `VTIMEZONE`
+fixo em −03:00 é o de hoje (sem horário de verão desde 2019) e o comentário
+de `lib/ics.ts` diz isso; se o horário de verão voltar, o `.ics` fica uma
+hora errado e o disparo (Intl/tzdata) continua certo — só registro. (4)
+"Próximo: hoje às 06:30" às 06:38 é coerente com a tolerância de 30 min; com
+o tick rodando dura no máximo 5 min — sem mudança.
+
