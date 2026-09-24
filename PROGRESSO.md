@@ -12057,7 +12057,10 @@ livre"). **Sozinhos, no mesmo `.next`, passaram 2×**: `r22/l32/instavel-1`
 o lock da faixa B; 4 de 4). Pela regra do lote, instável sob carga,
 anotado, não bloqueia. Uma cadeia inteira de novo não coube no prazo: às
 10:13 o lock estava na fila da cadeia de auditoria do L35 (build:e2e, e2e
-de ~23 min e varredura).
+de ~23 min e varredura). A `varredura` que a cadeia não chegou a rodar foi
+rodada sozinha em `f36db69` (só PROGRESSO a mais que `e6f42b2`, mesmo
+`.next`; `r22/l32/varredura-sozinha/f36db69.log`, lock obtido às 10:39,
+fim 10:43:48 UTC, **ok**): **5 passaram** (4,6 min).
 
 ##### Capturas
 
