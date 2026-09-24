@@ -7956,10 +7956,10 @@ Nenhuma migração de banco. **Rollback: não.**
 | seção | pendente | publicado | descartado |
 | --- | ---: | ---: | ---: |
 | B | 75 | 39 | 17 |
-| C | 66 | 20 | 0 |
+| C | 67 | 20 | 0 |
 | D | 5 | 0 | 0 |
 | legado | 0 | 77 | 1 |
-| **total** | **146** | **136** | **18** |
+| **total** | **147** | **136** | **18** |
 
 Dos descartados, **7 dependem de decisão do dono** e voltam à fila se a resposta for sim (atualização do app com aviso, uso do laranja, Relatório somado no banco, destaque do Explorar, filtros Core/Cardio, faixa da semana com sete destinos, resumo curto dos planos) — perguntas em `docs/ultraloop/perguntas-ao-dono.md`.
 
@@ -7981,7 +7981,7 @@ Dos descartados, **7 dependem de decisão do dono** e voltam à fila se a respos
 | L21 | Player: firme, conclusão e Visão geral | 6 | tela-treino-player-29, tela-treino-player-27, ux-heuristicas-15, ux-heuristicas-14, ux-heuristicas-13, visual-08 |
 | L22 | Sem rede: sinal, fila, mensagens e sincronização | 6 | pwa-offline-01, pwa-offline-06, pwa-offline-07, pwa-offline-11, pwa-offline-12, pwa-offline-13 |
 | L23 | Instalação, cache de mídia e cor da barra | 6 | pwa-offline-03, pwa-offline-04, pwa-offline-05, imagens-09, pwa-offline-08, C-theme-color-do-tema-escolhido |
-| L24 | Mais: textos, linhas e prefetch | 7 | copy-02, copy-09, copy-16, copy-20, copy-29, visual-16, performance-16 |
+| L24 | Mais: textos, linhas e prefetch | 8 | copy-02, copy-09, copy-16, copy-20, copy-29, visual-16, performance-16, C-guia-reaparece-com-gravacao-na-fila |
 | L25 | Copy e mensagens: dia da semana, intervalo, perfil, backup e login | 8 | copy-07, copy-24, tela-relatorio-corpo-calendario-07, copy-04, ux-heuristicas-20, a11y-07, a11y-08, pwa-offline-02 |
 | L26 | Relatório: números, aviso, esqueleto e leituras repetidas | 7 | C-relatorio-no-total-3-linhas, C-aviso-conquista-regiao-viva, C-esqueleto-grade3-morto, C-relatorio-legendas-antes-de-pronto, C-relatorio-sticky-scroll-margin, C-legenda-faixa-aria-hidden, performance-08 |
 | L27 | Calendário: faixa, legenda e semana navegada | 7 | C-dois-vocabularios-da-marca, C-legenda-faixa-ponto-orfao, C-legenda-do-mes-sem-tipo-exaustivo, C-calendario-fase2-semana-mostrada, C-marcar-dia-antes-no-futuro, C-progresso-legenda-quatro-glifos, C-cardio-semana-navegada |

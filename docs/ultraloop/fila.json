@@ -9,12 +9,12 @@
   "descartado"
  ],
  "contagens": {
-  "itens": 146,
-  "pendente": 146,
+  "itens": 147,
+  "pendente": 147,
   "candidato": 0,
   "resolvidos": 136,
   "descartados": 18,
-  "canonicos": 300,
+  "canonicos": 301,
   "por_secao": {
    "B": {
     "pendente": 75,
@@ -23,7 +23,7 @@
     "descartado": 17
    },
    "C": {
-    "pendente": 66,
+    "pendente": 67,
     "candidato": 0,
     "publicado": 20,
     "descartado": 0
@@ -5023,6 +5023,29 @@
    ],
    "duplicatas": [],
    "lote_planejado": "L28"
+  },
+  {
+   "id": "C-guia-reaparece-com-gravacao-na-fila",
+   "secao": "C",
+   "estado": "pendente",
+   "area": "mais",
+   "titulo": "O guia reaparece se a página recarrega antes de 'Pular por agora' chegar ao servidor",
+   "detalhe": "PROBLEMA: 'Pular por agora' (e 'Entendi') grava prefs.guia_visto pela fila de saída (§8, assíncrona). Se a página recarrega antes de a gravação chegar ao servidor, o perfil volta do banco sem guia_visto e components/treino/tela-treino.tsx:144-158 manda de novo para /mais/guia?inicio=1, embora a pessoa já tenha reconhecido o guia. O comentário de tela-treino.tsx:99-105 só cobre 'quem fecha o app SEM reconhecer'. Visto como teste instável: e2e/auditoria.spec.ts:86 'recarregar mantém a sessão' cai em /mais/guia?inicio=1 sob carga (L35 rodada 20, cadeia 10d4ae0; passa sozinho 2×). FAZER: a decisão de desviar para o guia considera também a gravação pendente de prefs na fila local (Dexie/outbox) ou uma marca local por conta gravada junto com o 'Pular'/'Entendi' — regra pura com Vitest (perfil sem guia_visto + pendência com guia_visto → não desvia; sem pendência → desvia). e2e: pular o guia com a gravação do perfil retida no mock (page.route segurando o PATCH), recarregar e continuar na aba Treino; soltar a gravação e ela chega. ACEITE: e2e acima verde nos dois temas; e2e/auditoria.spec.ts:86 deixa de depender da velocidade da fila. ESTADO EM b66e06c: comportamento presente.",
+   "arquivos": [
+    "components/treino/tela-treino.tsx",
+    "components/mais/guia.tsx",
+    "lib/preferencias.ts",
+    "e2e/auditoria.spec.ts"
+   ],
+   "esforco": "P",
+   "origens": [
+    {
+     "fonte": "cadeia do L35 (10d4ae0) e auditoria 2 tela da rodada 20",
+     "id_original": "auditoria.spec.ts:86 instável",
+     "origem": "investigado pelo orquestrador em 24/09: corrida real entre a fila de saída e o recarregar"
+    }
+   ],
+   "lote_planejado": "L24"
   }
  ],
  "resolvidos": [
@@ -10488,7 +10511,8 @@
     "copy-20",
     "copy-29",
     "visual-16",
-    "performance-16"
+    "performance-16",
+    "C-guia-reaparece-com-gravacao-na-fila"
    ],
    "arquivos": [
     "app/(app)/mais/page.tsx",
