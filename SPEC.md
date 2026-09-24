@@ -3117,7 +3117,8 @@ vizinhos citados) ou no e2e (`e2e/ultraloop-l33.spec.ts`).
 3. **O espelho dos textos da ficha é conferido contra o DOM nos 81**
    (C-l14-nada-repetido-espelho-dom). O Vitest aplica o critério aos 81 pelo
    espelho `textosDaPagina()`, que só existia no teste; o DOM real era
-   provado em 7 fichas. Agora o espelho mora em `lib/ficha.ts` e um e2e abre
+   provado em 7 fichas. Agora o espelho mora em `lib/ficha-espelho.ts` (o
+   Vitest e o e2e importam o mesmo) e um e2e abre
    as 81 fichas em página (histórico vazio, 360×740) e compara, ficha a
    ficha, os parágrafos e itens visíveis do `<main>` (12 caracteres ou mais)
    com o espelho: o que o DOM mostra e o espelho não tem, e o contrário,
@@ -3172,8 +3173,12 @@ vizinhos citados) ou no e2e (`e2e/ultraloop-l33.spec.ts`).
    Calendário, cada um aberto pelo teclado: `history.back()` fecha só a
    camada, a rota e o índice do histórico (Navigation API) voltam aos de
    antes de abrir e o foco volta ao gatilho; fechar pelo Esc volta o índice
-   ao de antes (nenhuma entrada sobrando); dentro da Visão geral, o índice
-   não sobe ao abrir a folha (os e2e do §22.14 item 6 continuam).
+   ao de antes (nenhuma entrada sobrando); o "Ver resultados" dos filtros
+   também volta o índice e deixa o primeiro resultado à vista; dentro da
+   Visão geral, o índice não sobe ao abrir a folha (os e2e do §22.14 item 6
+   continuam); na coleção do Treino A, a ficha em folha aberta e o link de
+   uma tag dela seguido, **um** voltar leva de volta à coleção, com o índice
+   de antes de abrir a folha (a entrada morta foi pulada).
 7. **A guarda do artigo antes do nome pega o que escapava**
    (C-l32-guarda-artigo-estreita). O grep de `lib/l32.test.ts` (§22.15 item
    3) só pegava template numa linha e expressão terminada em `nome`.
@@ -3188,8 +3193,10 @@ vizinhos citados) ou no e2e (`e2e/ultraloop-l33.spec.ts`).
 8. **O e2e do L32 lê os nomes dos dados** (C-l32-e2e-nomes-a-mao). A lista
    `doTreino` de `e2e/ultraloop-l32.spec.ts` tinha "Agachamento livre" e
    "Supino reto com barra" escritos à mão. Agora os quatro vêm de
-   `acharExercicio()`. Aceite: nenhum dos 81 nomes aparece como texto
-   literal no spec (Vitest em `lib/l33.test.ts`); o spec continua verde.
+   `acharExercicio()`, e também o nome da prancha (numa regex) e o da
+   remada (no título de um teste). Aceite: nenhum dos 81 nomes aparece
+   escrito no spec — string, regex ou título (Vitest em
+   `lib/l33.test.ts`); o spec continua verde.
 9. **A SPEC e o PROGRESSO apontam a tela que existe**
    (C-l32-texto-aba-progresso). O §22.15 item 3 e o passo 3 do "Como testar
    no celular" da rodada 22 falavam de um "Progresso" que não existe mais
