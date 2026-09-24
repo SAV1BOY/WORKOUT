@@ -11973,3 +11973,25 @@ passos de cima):
 9. A pergunta aberta: com uma série do agachamento feita, "?" → Substituir
    troca o exercício e **a série feita some** (no aparelho e no banco),
    sem aviso — igual antes deste lote. Fica para a resposta do dono.
+
+**Portões da correção — o que rodou até o prazo (13:30 UTC):**
+
+- `6ae5c09` (todo o código da correção; `r23/l19/logs/6ae5c09.log`):
+  **falhou:e2e** só pelos 2 instáveis de fora do lote descritos acima
+  (566 passaram, 5 pulados; os 2, sozinhos, verdes 2 × 2). Varredura não
+  rodou nessa execução.
+- `1f18eb9` (= `6ae5c09` + só este PROGRESSO; `r23/l19/logs/1f18eb9.log`):
+  `lint` e `tsc` limpos · `npm test` **74 arquivos, 1.646 testes** ·
+  `build` ("Compiled successfully in 17.8s") · `build:e2e` ("Compiled
+  successfully in 21.5s") — e o `e2e` ficou na fila do lock pesado desde
+  13:01:39, atrás do e2e do L33 (wt-a); não terminaria antes do prazo e foi
+  **interrompido** às 13:11 (`.status` = `interrompida:e2e`). **Não há
+  cadeia inteira com status ok no HEAD final**: fica para o orquestrador
+  rodar de novo.
+- Varredura sozinha no HEAD (`r23/l19/varredura-bf9afa9/`, com o `.next`
+  do build:e2e de `1f18eb9`, o mesmo código): também ficou na fila do lock
+  desde 13:11:58 atrás do mesmo e2e e foi **interrompida** às 13:27 sem
+  rodar. A última varredura verde do lote é a de `d44d2ef` (5 passaram);
+  a correção não mexe em nenhuma das telas dela (as 60 capturas de
+  `6ae5c09` são idênticas byte a byte às de `d44d2ef`), mas isso **não**
+  substitui rodá-la.
