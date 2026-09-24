@@ -3375,6 +3375,11 @@ desligado (usa a hora escolhida) e sem push nenhum.
   aparelho” ou, se a inscrição continuou valendo, “Ativado neste aparelho”."
 - **"Último lembrete: hoje às 07:00"** (ou "ontem às …", "dd/mm às …"), lido de
   `lembretes_enviados` pela RLS, e **"Próximo: …"** pela regra de 23.10.
+  Quando o push **não** chega neste aparelho (servidor sem VAPID, sem a
+  tabela, navegador sem suporte, bloqueado ou não ativado), logo abaixo do
+  "Próximo" vem "Este aparelho não está recebendo avisos; o calendário abaixo
+  tem alarme na mesma hora." — a tela não promete um aviso que não vai
+  chegar. Com o aparelho ativado, a frase some.
 - **Sair** continua sem apagar a inscrição do aparelho: a linha é da conta
   que ativou; outra conta que ativar no mesmo aparelho toma o endpoint
   (23.2), e "Desativar" ou "Remover" encerram.

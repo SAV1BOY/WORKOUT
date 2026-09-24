@@ -89,6 +89,10 @@ for (const tema of TEMAS) {
     expect(prefs.manter_tela).toBe(false);
     // o próximo previsto sai da mesma regra do disparo
     await expect(page.locator("[data-proximo]")).toContainText(/^Próximo: .+ às 18:30 — /);
+    // este aparelho não foi ativado: o "Próximo" não promete o aviso aqui (§23.13)
+    await expect(page.locator("[data-proximo-sem-aviso]")).toHaveText(
+      "Este aparelho não está recebendo avisos; o calendário abaixo tem alarme na mesma hora.",
+    );
 
     // fora do passo de 5 min vira o múltiplo de baixo
     await page.locator("#hora-treino").fill("06:47");

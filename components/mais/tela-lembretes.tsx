@@ -32,6 +32,7 @@ import {
   instrucoesDoAparelho,
   LINHA_LEMBRETES,
   nomeDoAparelho,
+  PROXIMO_SEM_AVISO,
   ROTULO_DO_ESTADO,
   SEM_CONFIGURACAO,
   SEM_TABELA,
@@ -557,7 +558,10 @@ export function TelaLembretes({
         </>
       )}
 
-      <BlocoHorarios userId={userId} />
+      <BlocoHorarios
+        userId={userId}
+        avisoAqui={chavePublica === null || semTabela ? false : !carregado ? null : estado === "ativado"}
+      />
     </section>
   );
 }
@@ -578,12 +582,20 @@ function noPasso(hora: string): string | null {
 
 const TIPOS: readonly TipoDeLembrete[] = ["treino", "corrida"];
 
+
 /**
  * Os horários (SPEC §23.9), o "Próximo"/"Último lembrete" (§23.13) e o
  * calendário (§23.12). Não dependem do push: aparecem e funcionam sem as
  * variáveis VAPID, sem a tabela de inscrições e em aparelho sem suporte.
  */
-function BlocoHorarios({ userId }: { userId: string }) {
+function BlocoHorarios({
+  userId,
+  avisoAqui,
+}: {
+  userId: string;
+  /** O push chega neste aparelho (ativado)? `null` enquanto confere. */
+  avisoAqui: boolean | null;
+}) {
   const cliente = useQueryClient();
   const perfilQ = usePerfil();
   const perfil = perfilQ.data ?? null;
@@ -766,6 +778,12 @@ function BlocoHorarios({ userId }: { userId: string }) {
         {proximo ? (
           <p data-proximo className="text-sm text-balance">
             {proximo}
+          </p>
+        ) : null}
+        {/* sem push aqui, o "Próximo" não pode prometer um aviso que não chega */}
+        {proximo && avisoAqui === false ? (
+          <p data-proximo-sem-aviso className="text-muted-foreground text-sm text-balance">
+            {PROXIMO_SEM_AVISO}
           </p>
         ) : null}
         {ultimo ? (

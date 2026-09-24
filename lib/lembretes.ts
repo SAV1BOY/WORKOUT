@@ -27,6 +27,9 @@ export const ICONE_DA_NOTIFICACAO = "/icons/icone-192.png";
 export const BADGE_DA_NOTIFICACAO = "/icons/badge-96.png";
 
 export const SEM_CONFIGURACAO = "Lembretes ainda não configurados neste servidor.";
+/** Embaixo do "Próximo" quando o push não chega neste aparelho (§23.13). */
+export const PROXIMO_SEM_AVISO =
+  "Este aparelho não está recebendo avisos; o calendário abaixo tem alarme na mesma hora.";
 export const SEM_TABELA =
   "Os lembretes ainda não estão disponíveis neste servidor (falta atualizar o banco).";
 
