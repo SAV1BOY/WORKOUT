@@ -11772,7 +11772,10 @@ esqueleto até recarregar. `lib/progressao.ts` e `lib/montagem.ts`:
   treino" e "Visão geral do treino" ≥ 44×44; o bloco com |acima − abaixo|
   ≤ 24 px e ≥ 8 px abaixo do topo; a Visão geral abre, "Fechar" devolve o
   foco ao ícone; "Sair do treino" leva à aba Treino, "Continuar" aponta
-  para o mesmo `/treinar/<id>` e volta à preparação. Item 5 nos dois
+  para o mesmo `/treinar/<id>` e volta à preparação — no e2e, porque
+  `fixarData` congela o relógio (`page.clock.setFixedTime`); no aparelho,
+  passados mais de 10 s, a volta vai direto ao "Aquecimento 1", como pede
+  a §14.1.1 ("ao retomar … não reaparece"). Item 5 nos dois
   temas — 5 pontos, os nomes "Aquecimento 1 de 2 · 0 de 5 séries feitas" →
   "Aquecimento 2 de 2 · 1 de 5…" → "Série 1 de 3 · 2 de 5…", um ponto
   enche a cada "Concluir série", o aquecimento menor, a barra "Progresso
@@ -12080,8 +12083,10 @@ código mudou: `git diff --stat 426bcde HEAD` lista só `PROGRESSO.md` e
 - **Atendidos (só texto):**
   - O risco do "firme?" que sobrevive à troca foi para a SPEC §22.16 item
     1 (regra, menor 3).
-  - O "montagem" fica cerca de 3 px sob a barra com "Afundo / passada".
-    Isso foi para a SPEC §22.16 item 5 (tela, menor 3).
+  - O "montagem" fica sob a barra com "Afundo / passada". Isso foi para a
+    SPEC §22.16 item 5 (tela, menor 3). O número daqui ("cerca de 3 px")
+    estava subestimado: a auditoria da rodada 27 mediu cerca de 10 px, e a
+    correção abaixo acertou a SPEC.
   - As mutações e2e feitas juntas estão registradas acima (regra, menor
     5).
   - A decisão (b) está registrada (regra, menor 1, e tela, menor 2).
