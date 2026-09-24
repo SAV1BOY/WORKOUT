@@ -11816,6 +11816,24 @@ e 5,85 (escuro).
 | --- | ---: | ---: | --- |
 | 18-mais (`815f2e9`) | 0,00 % | 0,00 % | nada (a linha "Lembretes" já está na base) |
 | 18-mais (`10d4ae0`) | 0,00 % | 0,00 % | nada; as outras 58 também 0,00 % |
+| 18-mais (`48be98c`) | 0,00 % | 0,00 % | nada |
+| 07-colecao (`48be98c`) | 16,30 % | 22,07 % | **inesperada** — ver abaixo |
+
+**Rodada 24 — capturas de `48be98c`** (`capturas.sh` com o `.next` do
+`build:e2e` da cadeia verde de `48be98c`, contra `base-ef3ad97`, esperada
+`18-mais`; `r24/l35/capturas-48be98c.md`, 11:52–11:59 UTC, servidores
+derrubados pelo script, 3110/54331 → 000): 60 PNGs, 58 com Δ 0,00 %; o
+comparador acusou **`07-colecao` fora do esperado** (16,30 % claro, 22,07 %
+escuro). Aberto o `07-colecao-claro.diff.png`: o mesmo conteúdo ("5 km sem
+parar", "Fazer a corrida da semana 2", "Semanas do plano", "Semana 2 de 12 ·
+1 concluída 8%", as linhas das semanas) aparece **deslocado uns 20 px para
+baixo** a partir do botão do card — nenhum texto novo nem faltando. O
+código de `48be98c` é **idêntico** ao de `10d4ae0` (`git diff 10d4ae0
+48be98c` só toca este PROGRESSO.md), e as capturas de `10d4ae0` deram
+`07-colecao` 0,00 % e byte a byte igual à base; o lote não toca a coleção.
+Tratado como captura não determinística (altura do card no momento da
+foto), **não confirmado**: recapturar antes do deploy; sem recaptura
+limpa, o orquestrador decide.
 
 #### Correção da auditoria (24/09)
 
