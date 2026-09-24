@@ -186,12 +186,28 @@ export function TelaPlayer({
     };
   }, [contando, estado?.chave]);
 
-  // a preparação é uma contagem: ao zerar, o treino começa sozinho (§14.1.1)
+  /*
+   * A preparação é uma contagem: ao zerar, o treino começa sozinho (§14.1.1).
+   * SPEC §22.16 item 2 (correção da auditoria 1): com a Visão geral aberta a
+   * partir da preparação a contagem não vale — quem abriu a lista para
+   * conferir o treino não pode voltar direto na série 1 — e, ao "Fechar",
+   * ela recomeça do início. Num efeito só: dois efeitos leriam o mesmo
+   * estado velho (já zerado) no mesmo ciclo, e o segundo desfaria o primeiro.
+   */
   const tipoDoPasso = passo?.tipo;
+  const recontar = useRef(false);
   useEffect(() => {
+    if (visaoGeral) return;
+    if (recontar.current) {
+      recontar.current = false;
+      if (passo?.tipo === "preparacao") {
+        guardar(estadoDoPasso(passo, Date.now()));
+        return;
+      }
+    }
     if (tipoDoPasso !== "preparacao" || !estado || !zerou(estado, agora)) return;
     ir(indice + 1);
-  }, [tipoDoPasso, estado, agora, indice, ir]);
+  }, [visaoGeral, passo, tipoDoPasso, estado, agora, indice, ir, guardar]);
 
   /* ------------------------------------------- gravar ao chegar no fim */
 
@@ -431,7 +447,10 @@ export function TelaPlayer({
           nomeDoTreino={nomeDaSessao(dados)}
           pedidoDeFoco={pedidoDeFoco}
           aoAbrirFicha={() => setFicha(passo.exercicioId)}
-          aoAbrirLista={() => setVisaoGeral(true)}
+          aoAbrirLista={() => {
+            recontar.current = true;
+            setVisaoGeral(true);
+          }}
           aoPular={() => ir(indice + 1)}
         />
         {folha}
