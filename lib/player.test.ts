@@ -324,6 +324,7 @@ describe("relógio do descanso (ancorado em Date.now)", () => {
     chave: "descanso:serie:1",
     segundos: 150,
     entreExercicios: false,
+    ordem: 1,
     indiceProximo: 3,
   };
 

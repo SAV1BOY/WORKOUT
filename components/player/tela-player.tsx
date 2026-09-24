@@ -29,8 +29,9 @@ import {
   apos,
   definirDuracao,
   entradaDoPasso,
-  indiceDaChave,
+  estadoDoPasso,
   indiceDeRetomada,
+  indiceDoEstado,
   irPara,
   posicaoNaSequencia,
   rotuloDoPasso,
@@ -123,14 +124,16 @@ export function TelaPlayer({
   useEffect(() => {
     if (!sessao || estado !== null || seq.length === 0) return;
     const salvo = sessao.player ?? null;
-    if (salvo && indiceDaChave(seq, salvo.chave) >= 0) {
+    // a chave salva pode ter sumido (troca de exercício): `indiceDoEstado`
+    // acha o passo no mesmo exercício, e o efeito abaixo o anota (§22.16)
+    if (salvo) {
       setEstado(salvo);
       return;
     }
     setEstado(irPara(seq, indiceDeRetomada(seq, sessao), Date.now()));
   }, [sessao, seq, estado]);
 
-  const indice = estado ? indiceDaChave(seq, estado.chave) : -1;
+  const indice = estado && sessao ? indiceDoEstado(seq, sessao, estado) : -1;
   const passo = indice >= 0 ? seq[indice] : null;
 
   /** Anota o passo na sessão (Dexie) antes de qualquer animação (§8). */
@@ -146,6 +149,17 @@ export function TelaPlayer({
     (destino: number) => guardar(irPara(seq, destino, Date.now())),
     [guardar, seq],
   );
+
+  /*
+   * SPEC §22.16 item 1: "Substituir" no exercício do passo atual recria as
+   * séries com ids novos e a chave salva some. `indiceDoEstado` já achou o
+   * passo no mesmo exercício; aqui ele é anotado no aparelho (Dexie), com o
+   * relógio dele — antes, a tela ficava no esqueleto até recarregar.
+   */
+  useEffect(() => {
+    if (!estado || !passo || passo.chave === estado.chave) return;
+    guardar(estadoDoPasso(passo, Date.now()));
+  }, [estado, passo, guardar]);
 
   /* estável de propósito: é dependência do efeito de história da Visão geral */
   const fecharVisaoGeral = useCallback(() => {
