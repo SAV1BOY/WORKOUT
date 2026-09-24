@@ -12584,3 +12584,63 @@ bloqueante nem importante):
    treino" → voltar: você cai direto no Calendário, sem o diálogo e sem um
    voltar "vazio" no meio; o avançar (menu do Chrome) leva de volta ao
    treino num toque só.
+
+
+#### Auditoria
+
+- **Auditoria 1 em `a23856b533ee627181082b8c1a38b60d198836b5`: reprovada** (bloqueantes 2, importantes 2,
+  menores 12). As lentes regra e tela pediram a cadeia inteira verde num
+  HEAD de código e o e2e da entrada morta pelo caminho real. Corrigida na
+  rodada 25 (acima: "Correção da auditoria").
+- **Auditoria 2 em `e3bd441db20cad0f36934aaa05836cd13d58e965`: aprovada** (bloqueantes 0, importantes 0,
+  menores 12). Cadeia ok em `eb68f08` (1.661 unitários, e2e 590 / 0 falhas
+  / 5 pulados, varredura 5/5).
+
+Menores registrados (ficam na fila, nenhum quebra o aceite):
+
+- **[regra]** Item 7 (C-l32-guarda-artigo-estreita): a guarda
+  `artigoAntesDoNome` (lib/l32.test.ts) ainda deixa passar duas formas reais
+  de escrever o nome: (a) JSX com o espaçador do Prettier na quebra de linha
+  (`Carga do{" "}` e, na linha seguinte, `{exercicio.nome}`, o padrão de
+  components/mais/tela-perfil.tsx:266); (b) concatenação
+  (`"Carga do " + exercicio.nome`). As duas mutações numa cópia deixam
+  lib/l32.test.ts 12/12 verde. Hoje não há caso real.
+- **[regra]** Item 8 (C-l32-e2e-nomes-a-mao): o Vitest de lib/l33.test.ts
+  diferencia maiúsculas; dois títulos de e2e/ultraloop-l32.spec.ts (linhas
+  542 e 237) ainda escrevem nomes do catálogo em minúsculas. A frase da SPEC
+  §22.17 item 8 ("nenhum dos 81 nomes aparece escrito no spec") não vale sem
+  diferenciar caixa. São só títulos.
+- **[regra]** Item 1: 'Anilha' (implemento, 3 exercícios) × 'Anilhas'
+  (equipamento, 51) são quase o mesmo rótulo, com listas diferentes; fora do
+  aceite literal. Com Barra fixa, Barra W ou Corda ligadas nos dois seletores
+  aparecem dois chips com o mesmo texto (listas iguais; só redundância).
+- **[regra]** Item 10: no HEAD do lote, docs/ultraloop/perguntas-ao-dono.md
+  não tinha a pergunta do L33, embora a SPEC e o PROGRESSO digam que ela está
+  lá. Na integração ela já está (seção 4, "A capa do plano deixou de dizer
+  'semana N de 12'").
+- **[regra]** PROGRESSO, "Provas" da primeira entrega: diz "lib/l33.test.ts
+  (15 testes: itens 1, 2, 4, 6 e 8)"; no HEAD são 17 testes e cobrem também o
+  item 5. A frase antiga não foi datada.
+- **[regra]** `rotuloDoImplemento(implemento, lista = exercicios)` passada
+  direto a um `.map` recebe o índice como `lista` e lança
+  "lista.filter is not a function". Os chamadores de hoje usam função-seta;
+  é armadilha para o próximo.
+- **[tela]** Item 1, medido na tela: 'Anilha' → "Ver 3 exercícios" ×
+  'Anilhas' → "Ver 51 exercícios" (os 3 estão dentro dos 51). Aceite
+  cumprido; não é regressão.
+- **[tela]** Item 6: as bordas fora do aceite (recarregar com a camada
+  aberta; avançar até entrada morta de outro documento) não foram medidas de
+  novo; a medição vem da auditoria 1. Custo máximo de um toque.
+- **[tela]** Depois do voltar de /treinar/<id> para /calendario, o foco fica
+  no body e não volta ao dia "seg 14/09". Observação de a11y; o aceite não
+  pede.
+- **[tela]** Fora do lote: no diálogo do dia passado do Calendário, o título
+  "Segunda-feira, 14 de setembro de 2026" quebra em duas linhas e a caixa do
+  título invade a área de toque de "Fechar" (44×44). Visto na imagem, não
+  medido.
+- **[tela]** O e2e-grep dos specs do lote não rodou de novo na auditoria (o
+  pesado.lock estava com a cadeia do L19); a prova é o eb68f08.log (15 testes
+  de e2e/ultraloop-l33.spec.ts passaram).
+- **[tela]** Nas 60 capturas a folha de filtros aparece fechada: o Δ 0,00 %
+  de 08-catalogo não diz nada sobre o seletor de largura inteira. As capturas
+  da auditoria cobrem a folha aberta nos dois temas.
