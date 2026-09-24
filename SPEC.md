@@ -3358,8 +3358,11 @@ America/Sao_Paulo` no próximo dia daquele tipo, `DURATION` = a duração
 estimada do plano naquele dia (a mesma de 23.10), `UID` estável por conta,
 tipo e dia da semana (baixar de novo substitui em vez de duplicar),
 `VALARM` na hora do evento e o `VTIMEZONE` de São Paulo (UTC−3, sem horário
-de verão). Funciona com o lembrete desligado (usa a hora escolhida) e sem
-push nenhum.
+de verão). O `DESCRIPTION` é genérico nos dois tipos ("Treino do Terraço: abra
+o app para ver o treino do dia / a corrida da semana (cerca de N min)."): o
+evento repete toda semana e o plano avança, então nada da semana atual (número
+da semana, protocolo da corrida) entra no texto. Funciona com o lembrete
+desligado (usa a hora escolhida) e sem push nenhum.
 
 ### 23.13 O que mais fecha no lote 35
 
@@ -3395,7 +3398,8 @@ push nenhum.
    treino) e marca `lembretes_enviados`; a segunda chamada no mesmo dia não
    reenvia.
 4. **Calendário**: Vitest do .ics (CRLF, dobra a 75 octetos com acento,
-   BYDAY dos dias do perfil, TZID, VALARM, UID estável) e e2e que baixa o
+   BYDAY dos dias do perfil, TZID, VALARM, UID estável, `DESCRIPTION` de
+   evento recorrente sem "semana N" nem protocolo) e e2e que baixa o
    arquivo.
 5. **Último lembrete**: e2e com envio semeado no mock.
 6. **Agregados**: Vitest do badge (PNG 96×96 só branco/transparente); o

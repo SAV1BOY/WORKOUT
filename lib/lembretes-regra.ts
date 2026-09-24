@@ -282,9 +282,8 @@ export function eventosDoCalendario(
       hora: prefs[doDia.tipo].hora,
       duracaoMin: doDia.duracaoMin ?? DURACAO_SEM_PLANO_MIN,
       resumo: forca ? "Treino de força" : doDia.payload.corpo.split(" · ")[0] ?? "Corrida",
-      descricao: forca
-        ? `Treino do Terraço: abra o app para ver o treino do dia (cerca de ${formatarMinutos(doDia.duracaoMin ?? DURACAO_SEM_PLANO_MIN)}).`
-        : `Treino do Terraço: ${doDia.payload.corpo}.`,
+      // o evento repete toda semana: nada da semana do plano (que avança) na descrição
+      descricao: `Treino do Terraço: abra o app para ver ${forca ? "o treino do dia" : "a corrida da semana"} (cerca de ${formatarMinutos(doDia.duracaoMin ?? DURACAO_SEM_PLANO_MIN)}).`,
     });
   }
   return eventos.sort((a, b) => a.inicio.localeCompare(b.inicio));

@@ -102,6 +102,33 @@ describe("gerarIcs", () => {
     ]);
   });
 
+  it("evento que repete toda semana não congela a semana do plano na descrição (auditoria L35)", () => {
+    // o plano avança; o evento recorrente não pode ficar falso na semana seguinte
+    const conjuntos: (string[] | undefined)[] = [undefined, ["ter", "qui", "sab"], ["seg", "ter", "qua", "qui", "sex", "sab", "dom"]];
+    for (const semana_corrida of [1, 3, 5, 12]) {
+      for (const dias_de_treino of conjuntos) {
+        const texto = gerarIcs(
+          eventosDoCalendario({ ...perfil, semana_corrida, prefs: { ...perfil.prefs, dias_de_treino } }, AGORA),
+          ID,
+          AGORA,
+        );
+        const lidos = eventos(texto);
+        expect(lidos.length).toBeGreaterThan(0);
+        for (const e of lidos) {
+          expect(e.some((l) => l.startsWith("RRULE:FREQ=WEEKLY"))).toBe(true);
+          const descricao = e.find((l) => l.startsWith("DESCRIPTION:")) ?? "";
+          expect(descricao).toMatch(/^DESCRIPTION:Treino do Terraço: abra o app para ver /);
+          expect(descricao).not.toMatch(/semana \d/i);
+          expect(descricao).not.toMatch(/\d+ ?×/);
+        }
+      }
+    }
+    const cardio = eventos(ics).find((e) => e.some((l) => l.startsWith("UID:corrida-")));
+    expect(cardio?.find((l) => l.startsWith("DESCRIPTION:"))).toMatch(
+      /^DESCRIPTION:Treino do Terraço: abra o app para ver a corrida da semana \(cerca de \d+ min\)\.$/,
+    );
+  });
+
   it("UID estável: baixar de novo substitui em vez de duplicar", () => {
     const depois = gerarIcs(eventosDoCalendario(perfil, new Date("2026-09-22T12:00:00Z")), ID, new Date("2026-09-22T12:00:00Z"));
     const uids = (texto: string) =>
