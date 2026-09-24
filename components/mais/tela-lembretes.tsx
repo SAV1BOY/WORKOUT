@@ -743,6 +743,8 @@ function BlocoHorarios({ userId }: { userId: string }) {
                 </Label>
                 <Input
                   id={`hora-${tipo}`}
+                  // o rótulo visível "Hora" se repete nas duas linhas: o nome diz de qual
+                  aria-label={`Hora do ${ROTULO_DO_LEMBRETE[tipo].toLowerCase()}`}
                   type="time"
                   step={PASSO_MIN * 60}
                   value={horas[tipo]}
@@ -753,15 +755,14 @@ function BlocoHorarios({ userId }: { userId: string }) {
             </div>
           ))
         )}
-        {recado ? (
-          <p
-            aria-live="polite"
-            data-recado-horarios
-            className={recado.erro ? "text-destructive text-sm" : "text-sm font-medium"}
-          >
-            {recado.texto}
-          </p>
-        ) : null}
+        {/* a região viva existe desde o começo: um aria-live que nasce junto com o texto não é lido */}
+        <p
+          aria-live="polite"
+          data-recado-horarios
+          className={!recado ? "sr-only" : recado.erro ? "text-destructive text-sm" : "text-sm font-medium"}
+        >
+          {recado?.texto ?? ""}
+        </p>
         {proximo ? (
           <p data-proximo className="text-sm text-balance">
             {proximo}

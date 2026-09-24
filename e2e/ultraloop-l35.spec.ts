@@ -70,8 +70,12 @@ for (const tema of TEMAS) {
     // sem a chave em prefs: os dois desligados às 07:00
     await expect(treino).toHaveAttribute("aria-checked", "false");
     await expect(corrida).toHaveAttribute("aria-checked", "false");
-    await expect(page.getByLabel("Hora").first()).toHaveValue("07:00");
+    // cada campo de hora diz de qual lembrete é (o rótulo visível "Hora" se repete)
+    await expect(page.getByLabel("Hora do lembrete do treino", { exact: true })).toHaveValue("07:00");
+    await expect(page.getByLabel("Hora do lembrete da corrida", { exact: true })).toHaveValue("07:00");
     await expect(page.locator("[data-proximo]")).toHaveCount(0);
+    // a região viva já existe (vazia) antes do primeiro "salvo"
+    await expect(page.locator('[data-recado-horarios][aria-live="polite"]')).toHaveText("");
 
     await treino.click();
     await expect(treino).toHaveAttribute("aria-checked", "true");

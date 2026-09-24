@@ -3233,7 +3233,10 @@ no tema claro, embora a 23.7 item 7 diga "nos dois temas".
 
 `/mais/lembretes` ganha o bloco **"Horários"** com duas linhas, cada uma com um
 liga/desliga (`role="switch"`, ≥ 44 px) e a hora (`<input type="time">`,
-teclado do sistema, passo de 5 min):
+teclado do sistema, passo de 5 min; o nome acessível diz de qual lembrete é —
+"Hora do lembrete do treino" / "Hora do lembrete da corrida" — porque o rótulo
+visível "Hora" se repete). "Horários salvos." sai numa região `aria-live`
+que já existe antes do primeiro salvo:
 
 - **"Lembrete do treino"** — nos dias de força;
 - **"Lembrete da corrida"** — nos dias de cardio (corrida, ou corda/caminhada
