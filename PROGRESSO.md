@@ -6127,6 +6127,17 @@ depois: as três respondem `401 permission denied` ao anon; só
 
 ## Ultraloop 20/09/2026 — polimento contínuo (madrugada)
 
+### Pausa pedida pelo dono — 24/09/2026, 22:40 UTC
+
+O desenvolvimento está parado até o dono dizer "OK, podemos voltar".
+Produção segue em `main` `a7b7d1b` (L19), sem nada pela metade no ar.
+Quatro lotes ficaram em andamento: L33 (correção do Codex do PR #33), L35
+(lembretes II), L21 (Substituir sem apagar séries) e L15 (Corpo). O código
+deles está salvo como bundles em `docs/ultraloop/retomada/branches/`. O estado
+de cada um, o próximo passo, as pendências do dono (4 variáveis da Vercel e a
+capa do plano) e o roteiro para religar estão em
+`docs/ultraloop/retomada/RETOMADA.md`.
+
 ### Relatório para o dono (9h)
 
 Primeira rodada no ar desde as 15:07 UTC de 20/09 (main `b6e8135`), sem

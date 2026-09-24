@@ -1,0 +1,304 @@
+{
+ "codigo": "L15",
+ "titulo": "Corpo: peso, gráficos e campo de data",
+ "area": "corpo",
+ "arquivos_previstos": [
+  "components/graficos/grafico.tsx",
+  "components/graficos/apoio.tsx",
+  "components/relatorio/card-peso.tsx",
+  "components/corpo/aba-peso.tsx",
+  "components/corpo/card-imc.tsx",
+  "components/corpo/aba-medidas.tsx",
+  "components/corpo/aba-fotos.tsx",
+  "components/ui/campo-data.tsx (novo)",
+  "e2e/ultraloop-l15.spec.ts (novo)",
+  "SPEC.md",
+  "PROGRESSO.md"
+ ],
+ "telas_esperadas": [
+  "15-corpo-peso",
+  "16-corpo-medidas",
+  "17-corpo-fotos",
+  "11-relatorio-topo",
+  "12-relatorio-numeros"
+ ],
+ "observacoes_do_plano": "Ordem 3 do dono. O 'campo de data consolidado' é o tela-relatorio-corpo-calendario-11 (campo cru nas três abas). a11y-01 mexe nos cinco gráficos do Relatório: conferir 11/12. v3: sem mudança.",
+ "excecao": null,
+ "excecao_de_ordem": [],
+ "itens": [
+  {
+   "id": "a11y-01",
+   "secao": "B",
+   "estado": "pendente",
+   "area": "corpo",
+   "titulo": "Os 6 gráficos entram na árvore como 'application' sem nome",
+   "detalhe": "Medido com page.accessibility.snapshot(): os cinco gráficos do Relatório e o do Corpo têm role=\"application\", tabindex=0 e leem os rótulos dos eixos grudados ('29/0613/0727/0710/0824/0807/0902468'). No wrapper de components/graficos/grafico.tsx:133 (dentro do ResponsiveContainer) desligar a camada de acessibilidade do Recharts ou marcar a <svg> com aria-hidden=\"true\" e tabindex={-1}, e envolver o gráfico num <figure role=\"img\" aria-label=\"...\"> com a leitura em texto (ex.: 'Peso: 84,2 kg em 12/08, 83,1 kg em 26/08, 82,4 kg em 12/09 — queda de 1,8 kg'). Aceite: nenhum role=application na árvore e todo gráfico tem nome acessível com a leitura dos dados. ESTADO EM ef3ad97: components/graficos/grafico.tsx:131 `<figure className=\"w-full\" aria-label={titulo}>` (parcial: nome sem leitura dos dados); sem role='img', sem aria-hidden na <svg> e sem desligar a camada de acessibilidade do Recharts.",
+   "arquivos": [
+    "components/graficos/grafico.tsx"
+   ],
+   "esforco": "M",
+   "origens": [
+    {
+     "fonte": "fila.json",
+     "id_original": "l11-corpo-registro · a11y-01 · Os 6 gráficos entram na árvore como 'application' sem nome",
+     "origem": "R6 planejada, não executada"
+    },
+    {
+     "fonte": "fila-agrupada",
+     "id_original": "l11-corpo-registro · a11y-01 · Os 6 gráficos entram na árvore como 'application' sem nome",
+     "origem": "R6 planejada, não executada"
+    },
+    {
+     "fonte": "PROGRESSO B",
+     "id_original": "a11y-01",
+     "origem": "l11-corpo-registro",
+     "linha": 7849
+    },
+    {
+     "fonte": "lotes-r6",
+     "id_original": "a11y-01",
+     "origem": "l11-corpo-registro"
+    },
+    {
+     "fonte": "analise/a11y",
+     "id_original": "a11y-01",
+     "origem": "análise de 20/09 (lente a11y, severidade alta)"
+    }
+   ],
+   "duplicatas": [],
+   "lote_planejado": "L15"
+  },
+  {
+   "id": "tela-relatorio-corpo-calendario-12",
+   "secao": "B",
+   "estado": "pendente",
+   "area": "corpo",
+   "titulo": "Ordem da aba Peso",
+   "detalhe": "Em components/corpo/aba-peso.tsx:112 o CardImc aparece antes do que o dono veio ver. Ordem: peso atual + gráfico → registrar → IMC → variação → meta. Aceite: o peso atual e o gráfico estão na primeira tela a 360×740. ESTADO EM ef3ad97: components/corpo/aba-peso.tsx:112 <CardImc …> antes do gráfico.",
+   "arquivos": [
+    "components/corpo/aba-peso.tsx"
+   ],
+   "esforco": "P",
+   "origens": [
+    {
+     "fonte": "fila.json",
+     "id_original": "l11-corpo-registro · tela-relatorio-corpo-calendario-12 · Ordem da aba Peso",
+     "origem": "R6 planejada, não executada"
+    },
+    {
+     "fonte": "fila-agrupada",
+     "id_original": "l11-corpo-registro · tela-relatorio-corpo-calendario-12 · Ordem da aba Peso",
+     "origem": "R6 planejada, não executada"
+    },
+    {
+     "fonte": "PROGRESSO B",
+     "id_original": "tela-relatorio-corpo-calendario-12",
+     "origem": "l11-corpo-registro",
+     "linha": 7852
+    },
+    {
+     "fonte": "lotes-r6",
+     "id_original": "tela-relatorio-corpo-calendario-12",
+     "origem": "l11-corpo-registro"
+    },
+    {
+     "fonte": "analise/tela-relatorio-corpo-calendario",
+     "id_original": "tela-relatorio-corpo-calendario-12",
+     "origem": "análise de 20/09 (lente tela-relatorio-corpo-calendario, severidade media)"
+    }
+   ],
+   "duplicatas": [],
+   "lote_planejado": "L15"
+  },
+  {
+   "id": "tela-relatorio-corpo-calendario-14",
+   "secao": "B",
+   "estado": "pendente",
+   "area": "corpo",
+   "titulo": "Eixo do gráfico de peso sem domínio fixo",
+   "detalhe": "Soma tela-relatorio-corpo-calendario-14 e -15. Fixar domínio e passo do eixo num único helper em components/graficos/apoio.tsx (arredondar min/max para múltiplos de 2, ticks de 2 em 2) e usá-lo em components/relatorio/card-peso.tsx e components/corpo/aba-peso.tsx; esconder a série e a entrada da legenda quando ela não tiver pontos suficientes; e trocar 'maior/menor' por '−4,0 kg desde 05/06', que é a informação procurada. Aceite: os dois gráficos de peso usam a mesma régua de eixo e nenhuma legenda cita série vazia. ESTADO EM ef3ad97: nenhum helper de domínio/ticks em components/graficos/apoio.tsx, components/relatorio/card-peso.tsx ou components/corpo/aba-peso.tsx (grep 'domain|ticks' vazio).",
+   "arquivos": [
+    "components/graficos/apoio.tsx",
+    "components/relatorio/card-peso.tsx",
+    "components/corpo/aba-peso.tsx"
+   ],
+   "esforco": "P",
+   "origens": [
+    {
+     "fonte": "fila.json",
+     "id_original": "l11-corpo-registro · tela-relatorio-corpo-calendario-14 · Eixo do gráfico de peso sem domínio fixo",
+     "origem": "R6 planejada, não executada"
+    },
+    {
+     "fonte": "fila-agrupada",
+     "id_original": "l11-corpo-registro · tela-relatorio-corpo-calendario-14 · Eixo do gráfico de peso sem domínio fixo",
+     "origem": "R6 planejada, não executada"
+    },
+    {
+     "fonte": "PROGRESSO B",
+     "id_original": "tela-relatorio-corpo-calendario-14",
+     "origem": "l11-corpo-registro",
+     "linha": 7853
+    },
+    {
+     "fonte": "lotes-r6",
+     "id_original": "tela-relatorio-corpo-calendario-14",
+     "origem": "l11-corpo-registro"
+    },
+    {
+     "fonte": "analise/tela-relatorio-corpo-calendario",
+     "id_original": "tela-relatorio-corpo-calendario-14",
+     "origem": "análise de 20/09 (lente tela-relatorio-corpo-calendario, severidade media)"
+    },
+    {
+     "fonte": "analise/tela-relatorio-corpo-calendario",
+     "id_original": "tela-relatorio-corpo-calendario-15",
+     "origem": "análise de 20/09 (lente tela-relatorio-corpo-calendario, severidade baixa)",
+     "nota": "absorvido pelo lote planejado ('Soma …')"
+    }
+   ],
+   "duplicatas": [
+    "tela-relatorio-corpo-calendario-15"
+   ],
+   "lote_planejado": "L15"
+  },
+  {
+   "id": "tela-relatorio-corpo-calendario-19",
+   "secao": "B",
+   "estado": "pendente",
+   "area": "corpo",
+   "titulo": "A meta de peso não aparece no gráfico",
+   "detalhe": "Soma tela-relatorio-corpo-calendario-19 e copy-10. Em components/corpo/aba-peso.tsx:233-250 desenhar a meta como ReferenceLine tracejada no gráfico e mostrar 'faltam X kg' ao lado do peso atual; e trocar a frase que orienta por posição ('defina uma meta embaixo', aba-peso.tsx:171) por um link que rola até o cartão Meta. Aceite: a meta é visível no gráfico e nenhum texto do app orienta por 'embaixo'. ESTADO EM ef3ad97: components/corpo/aba-peso.tsx:171 'Defina uma meta embaixo, se quiser.'; nenhuma ReferenceLine da meta.",
+   "arquivos": [
+    "components/corpo/aba-peso.tsx"
+   ],
+   "esforco": "P",
+   "origens": [
+    {
+     "fonte": "fila.json",
+     "id_original": "l11-corpo-registro · tela-relatorio-corpo-calendario-19 · A meta de peso não aparece no gráfico",
+     "origem": "R6 planejada, não executada"
+    },
+    {
+     "fonte": "fila-agrupada",
+     "id_original": "l11-corpo-registro · tela-relatorio-corpo-calendario-19 · A meta de peso não aparece no gráfico",
+     "origem": "R6 planejada, não executada"
+    },
+    {
+     "fonte": "PROGRESSO B",
+     "id_original": "tela-relatorio-corpo-calendario-19",
+     "origem": "l11-corpo-registro",
+     "linha": 7854
+    },
+    {
+     "fonte": "lotes-r6",
+     "id_original": "tela-relatorio-corpo-calendario-19",
+     "origem": "l11-corpo-registro"
+    },
+    {
+     "fonte": "analise/tela-relatorio-corpo-calendario",
+     "id_original": "tela-relatorio-corpo-calendario-19",
+     "origem": "análise de 20/09 (lente tela-relatorio-corpo-calendario, severidade media)"
+    },
+    {
+     "fonte": "analise/copy",
+     "id_original": "copy-10",
+     "origem": "análise de 20/09 (lente copy, severidade baixa)",
+     "nota": "absorvido pelo lote planejado ('Soma …')"
+    }
+   ],
+   "duplicatas": [
+    "copy-10"
+   ],
+   "lote_planejado": "L15"
+  },
+  {
+   "id": "tela-relatorio-corpo-calendario-13",
+   "secao": "B",
+   "estado": "pendente",
+   "area": "corpo",
+   "titulo": "Marcador do IMC sem faixas rotuladas",
+   "detalhe": "components/corpo/card-imc.tsx:110-124 marca o valor com um círculo sobre uma barra sem rótulo de faixa. Trocar por um traço/triângulo fino apontando para a barra e rotular as faixas (abaixo · saudável · sobrepeso · obesidade) em 10 px sob a barra, ou destacar só a faixa atual. Aceite: dá para ler em que faixa o IMC caiu sem interpretar a cor. ESTADO EM ef3ad97: components/corpo/card-imc.tsx:23-25 só cores por faixa (bg-primary/60…/25); nenhum rótulo 'saudável/sobrepeso/obesidade' visível.",
+   "arquivos": [
+    "components/corpo/card-imc.tsx"
+   ],
+   "esforco": "P",
+   "origens": [
+    {
+     "fonte": "fila.json",
+     "id_original": "l11-corpo-registro · tela-relatorio-corpo-calendario-13 · Marcador do IMC sem faixas rotuladas",
+     "origem": "R6 planejada, não executada"
+    },
+    {
+     "fonte": "fila-agrupada",
+     "id_original": "l11-corpo-registro · tela-relatorio-corpo-calendario-13 · Marcador do IMC sem faixas rotuladas",
+     "origem": "R6 planejada, não executada"
+    },
+    {
+     "fonte": "PROGRESSO B",
+     "id_original": "tela-relatorio-corpo-calendario-13",
+     "origem": "l11-corpo-registro",
+     "linha": 7855
+    },
+    {
+     "fonte": "lotes-r6",
+     "id_original": "tela-relatorio-corpo-calendario-13",
+     "origem": "l11-corpo-registro"
+    },
+    {
+     "fonte": "analise/tela-relatorio-corpo-calendario",
+     "id_original": "tela-relatorio-corpo-calendario-13",
+     "origem": "análise de 20/09 (lente tela-relatorio-corpo-calendario, severidade media)"
+    }
+   ],
+   "duplicatas": [],
+   "lote_planejado": "L15"
+  },
+  {
+   "id": "tela-relatorio-corpo-calendario-11",
+   "secao": "B",
+   "estado": "pendente",
+   "area": "corpo",
+   "titulo": "Campo de data cru nas três abas do Corpo",
+   "detalhe": "components/corpo/aba-peso.tsx:129 e o mesmo padrão em aba-medidas.tsx e aba-fotos.tsx expõem um <input type=\"date\"> onde o dono quase sempre quer 'hoje'. Trocar por um botão que mostra a data já formatada em pt-BR (formatarData) e abre o seletor, com atalhos 'Hoje' e 'Ontem'. Aceite: registrar o peso de hoje leva um toque no botão de data (ou nenhum) e a data aparece como dd/mm. ESTADO EM ef3ad97: components/corpo/aba-peso.tsx:129, aba-medidas.tsx:98 e aba-fotos.tsx:99 continuam `type=\"date\"` cru.",
+   "arquivos": [
+    "components/corpo/aba-peso.tsx",
+    "components/corpo/aba-medidas.tsx",
+    "components/corpo/aba-fotos.tsx"
+   ],
+   "esforco": "M",
+   "origens": [
+    {
+     "fonte": "fila.json",
+     "id_original": "l11-corpo-registro · tela-relatorio-corpo-calendario-11 · Campo de data cru nas três abas do Corpo",
+     "origem": "R6 planejada, não executada"
+    },
+    {
+     "fonte": "fila-agrupada",
+     "id_original": "l11-corpo-registro · tela-relatorio-corpo-calendario-11 · Campo de data cru nas três abas do Corpo",
+     "origem": "R6 planejada, não executada"
+    },
+    {
+     "fonte": "PROGRESSO B",
+     "id_original": "tela-relatorio-corpo-calendario-11",
+     "origem": "l11-corpo-registro",
+     "linha": 7850
+    },
+    {
+     "fonte": "lotes-r6",
+     "id_original": "tela-relatorio-corpo-calendario-11",
+     "origem": "l11-corpo-registro"
+    },
+    {
+     "fonte": "analise/tela-relatorio-corpo-calendario",
+     "id_original": "tela-relatorio-corpo-calendario-11",
+     "origem": "análise de 20/09 (lente tela-relatorio-corpo-calendario, severidade alta)"
+    }
+   ],
+   "duplicatas": [],
+   "lote_planejado": "L15"
+  }
+ ],
+ "checklist_regra": "Para cada item: o ACEITE do detalhe conferido no código e nos dados reais (todos os casos), regra pura com teste que falharia sem a mudança, e2e pelo caminho real, SPEC e PROGRESSO iguais ao código.",
+ "checklist_tela": "Para cada item: o ACEITE medido a 360×740 nos dois temas pelo caminho real (alvos ≥ 44 px, scrollWidth == clientWidth, contraste AA do texto e ≥ 3:1 de elementos, headings e aria no DOM), e os diffs das telas declaradas inspecionados."
+}
