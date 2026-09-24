@@ -3176,7 +3176,10 @@ vizinhos citados) ou no e2e (`e2e/ultraloop-l33.spec.ts`).
    nem em Firefox antigo; até a rodada 28 o avançar sem ela virava voltar —
    revisão do Codex no PR #31). O app guarda uma **régua** própria, só com
    o que ele mesmo grava no histórico: o número da entrada de cada camada
-   (`history.state`, crescente) e, numa entrada de página (que não tem
+   (`history.state`, crescente — e crescente também depois de recarregar:
+   o último número fica guardado na sessão da aba, `sessionStorage`, que
+   vive junto com o histórico dela; sem `sessionStorage`, recomeça do
+   maior entre o da memória e o da entrada atual) e, numa entrada de página (que não tem
    número), meio passo acima ou abaixo da entrada de camada vizinha que ele
    conhece (o link que leva a outra rota põe a régua meio passo acima da
    entrada morta; o voltar que fecha camadas, meio passo abaixo da mais
@@ -3198,8 +3201,9 @@ vizinhos citados) ou no e2e (`e2e/ultraloop-l33.spec.ts`).
    `passoNoHistorico`, `reguaAoSair` em `lib/camada-modal.ts`): avançar
    (maior → +1), voltar (menor → −1), desconhecido (régua igual ou entrada
    de página → 0, nunca −1), recarregado (régua `null` → a morta fica, sem
-   passo), sem saída (sempre −1) e a régua meio passo além depois de cada
-   caso; mutação — a direção desconhecida valendo −1 derruba o Vitest; e2e a 360×740 — com os filtros do
+   passo; o número da próxima entrada, `proximaEntrada`, continua acima do
+   guardado na sessão), sem saída (sempre −1) e a régua meio passo além
+   depois de cada caso; mutação — a direção desconhecida valendo −1 derruba o Vitest; e2e a 360×740 — com os filtros do
    catálogo, a foto ampliada da ficha e o diálogo "Não vou treinar hoje" do
    Calendário, cada um aberto pelo teclado: `history.back()` fecha só a
    camada, a rota e o índice do histórico (Navigation API) voltam aos de
