@@ -83,8 +83,11 @@ interface BlocoDoAparelho {
 
 async function blocosNoAparelho(page: Page): Promise<BlocoDoAparelho[]> {
   const bruto = await sessaoNoAparelho(page);
-  const linhas = JSON.parse(bruto || "[]") as { blocos?: BlocoDoAparelho[] }[];
-  return linhas[0]?.blocos ?? [];
+  // `sessaoAtiva` guarda { id, dados: SessaoLocal, atualizadoEm } (lib/db.ts)
+  const linhas = JSON.parse(bruto || "[]") as {
+    dados?: { blocos?: BlocoDoAparelho[] };
+  }[];
+  return linhas.find((l) => l.dados?.blocos)?.dados?.blocos ?? [];
 }
 
 interface LinhaSerie {
@@ -266,7 +269,7 @@ test.describe("§22.16 item 1 — pela Visão geral", () => {
       page.getByRole("heading", { level: 1, name: "Treino A" }),
     ).toBeVisible();
     await page.getByRole("button", { name: "substituir hoje" }).first().click();
-    const folha = page.getByRole("dialog");
+    const folha = page.getByRole("dialog", { name: "Substituir hoje" });
     await expect(
       folha.getByRole("heading", { name: "Substituir hoje" }),
     ).toBeVisible();
