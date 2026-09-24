@@ -11683,7 +11683,7 @@ Explorar entram pela exceção de área do plano (os mesmos arquivos do L13).
    O "LCP" era do texto original da fila. É: o §22.15 item 4 registra isso;
    nenhum código.
 5. **Na busca, sem vão onde não há subtítulo** (C-busca-linha-reservada-vazia).
-   Era: a linha reservada de 16 px entre o título e o motivo nas linhas sem
+   Era: a linha reservada de 16 px (20 px de vão com os `gap`) entre o título e o motivo nas linhas sem
    subtítulo (busca "corda"). É: `LinhaColecao` com `reservarSubtitulo`
    (padrão `true`, a vitrine); a lista da busca passa `false`; o circuito
    sem subtítulo continua com a linha do selo. Arquivos:
@@ -11704,7 +11704,8 @@ Explorar entram pela exceção de área do plano (os mesmos arquivos do L13).
    com a barra e o "agora". Decisão tomada sem o dono (o ledger oferecia
    tirar a capa ou o bloco; nenhum dos dois: a capa é o `h1` e o botão).
    Arquivos: `lib/colecoes.ts`, `components/colecoes/tela-colecao.tsx`,
-   `e2e/v3.spec.ts` (o teste da §22.12 item 4 passa a ler a posição no
+   `e2e/v3.spec.ts` e `e2e/ultraloop-a-r10.spec.ts` (os testes da §22.12
+   item 4 passam a ler a posição no
    bloco), SPEC §22.13 item 9.
 8. **A linha "agora" não cobre o canto do cartão** (C-plano-lista-canto-reto).
    Era: fundo de cantos retos sobre o cartão arredondado. É: a lista
@@ -11739,9 +11740,50 @@ Explorar entram pela exceção de área do plano (os mesmos arquivos do L13).
   ignorada → 2 testes caem; `detalheDaCapa` com a posição → 1; alt de volta
   a "Execução do" → 3; `FiguraExercicio` com o texto à mão → 1; sem mutação,
   9 de 9.
-- **e2e** `e2e/ultraloop-l32.spec.ts` (⟨N⟩ testes, 360×740): ⟨preencher⟩.
-- **Mutação e2e** (cópia `l32-mut-e2e/`, build:e2e próprio, as oito
-  mutações juntas): ⟨preencher⟩.
+- **e2e** `e2e/ultraloop-l32.spec.ts` (17 testes, 360×740, contra o mock):
+  item 1 — "Substituir" do supino na posição 2 → crossover na polia começa
+  na posição 1 enquanto o quadro 2 (atrasado 2,5 s) não chega, e o pedido
+  do quadro 2 começa depois do fim do 1; aba Músculos aberta atravessando ›
+  e "Substituir" com a legenda do novo e sem imagem de execução; item 2 —
+  "Figura" com a figura de A abortada (a foto aparece), › e "Substituir"
+  mostram a figura carregada de B; item 3 — "Execução: Prancha…" na página
+  e "Execução: Agachamento livre — abre o Como fazer" no player; item 5 —
+  busca "corda" nos dois temas: linhas sem subtítulo sem nó vazio e com o
+  título a ≤ 4 px da linha seguinte, o circuito com o selo; vitrine com a
+  mesma altura por seção; item 6 — a foto de "Corda: 5 estágios" é a mesma
+  na seção Planos e na busca, sem foto repetida no resultado; item 7 —
+  corrida e barra fixa na semana 3: "semana 3 de" uma vez no `<main>`, no
+  bloco; item 8 — corrida nas semanas 1 e 12, nos dois temas: os dois
+  cantos externos do cartão na linha atual têm a cor da página (captura em
+  2×) e o anel do link por Tab cabe na lista; item 10 — supino nos dois
+  temas: tag-link sublinhada sem hover, com contorno e seta; "Anilhas" sem
+  sublinhado, borda, fundo e seta; as duas ≥ 4,5:1. Sozinho, no `.next` de
+  `320c6bf` (código de app igual ao do HEAD): **17 de 17** (43,6 s,
+  `l32-verif2.log`).
+- **Mutação e2e** (cópia `l32-mut-e2e/` com build:e2e próprio e oito
+  mutações juntas: sem a `key` da ilustração, `figuraQuebrou` booleano, alt
+  "Execução do", busca reservando o subtítulo, busca sem a capa da vitrine,
+  posição de volta na capa, lista sem `overflow-hidden`, "Anilhas" de volta
+  à pílula): **todo teste ligado a uma regra cai, pelo motivo certo** —
+  item 1 "Substituir" ("sem o quadro 2 do crossover, a posição fica na 1"),
+  item 2 › e "Substituir" (a figura de B não aparece), item 3 (o nome
+  "Execução: Prancha" não existe), item 5 nos dois temas ("grupo:Tríceps: sem
+  nó de subtítulo vazio"), item 6 (a linha da busca sem `img`), item 7 nos
+  dois planos ("a posição uma vez só na rolagem"), item 8 nos 4 casos
+  ("canto (17, 317): fundo da página"), item 10 nos dois temas ("Anilhas: sem
+  borda"). Passam com as mutações só os dois testes que não guardam regra
+  nova: a aba Músculos atravessando a troca (não há estado para herdar) e a
+  vitrine com a mesma altura por seção (a guarda do §22.13 item 7).
+- **Achado fora do lote (defeito anterior, em `main`):** substituir, pela
+  ficha do player, o exercício do **passo atual** deixa o player no
+  esqueleto de carregamento até recarregar a página: a chave do passo é
+  `serie:<id>` (`lib/player.ts`) e `substituirExercicio` recria as séries
+  com ids novos, então `indiceDaChave` dá -1 e `tela-player.tsx` fica em
+  `if (!estado || !passo) return <EsqueletoCard/>`. Medido na primeira
+  versão do e2e do item 1 (5 falhas em `r21/l32/pre-logs/320c6bf.log`, todas
+  pelo mesmo esqueleto). Nenhuma série se perde (o Dexie tem a sessão; ao
+  recarregar, o player retoma). Não corrigido aqui (fora da SPEC do lote);
+  os e2e dos itens 1 e 2 trocam o 2º exercício. Vai à fila.
 
 #### Portões
 

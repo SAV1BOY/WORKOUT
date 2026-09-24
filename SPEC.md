@@ -2950,8 +2950,8 @@ aceite de cada item é verificável no Vitest (`lib/midia.test.ts`,
 5. **Na busca, sem vão onde não há subtítulo** (C-busca-linha-reservada-vazia).
    A reserva da linha do subtítulo (§22.13 item 7) serve à altura única por
    seção da vitrine; na busca a altura já varia (o motivo "contém …" e a meta
-   de aparelho em 2 linhas), e a reserva vazia deixava um vão de ~16 px entre
-   o título e o motivo (busca "corda": Tríceps, Cross over de parede, Tatame
+   de aparelho em 2 linhas), e a reserva vazia deixava um vão de 20 px (a
+   linha de 16 px e dois `gap` de 2 px) entre o título e o motivo (busca "corda": Tríceps, Cross over de parede, Tatame
    EVA). Agora a linha da busca **não reserva** a linha do subtítulo quando
    ele não existe (`LinhaColecao` com `reservarSubtitulo={false}`); com o
    selo "Circuito", a linha do subtítulo existe e leva o selo. A vitrine
