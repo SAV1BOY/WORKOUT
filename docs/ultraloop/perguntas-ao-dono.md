@@ -168,6 +168,8 @@ substituto"); a ficha não. Isso já acontecia antes do L19. O que você prefere
   a regra §3.2 e o aviso da Visão geral.
 - **(c) Deixar como está.**
 
+**Resposta do dono (24/09, ~14:00 UTC):** (b) — manter as séries feitas do exercício original; o substituto começa do zero. O L21 sobe para logo depois do L19 e reescreve a §3.2 antes do código.
+
 _Se não houver resposta quando o L21 começar, faço a (a), que só acrescenta o
 aviso e não muda a regra. Item: B-substituir-apaga-series-feitas (L21). O
 CLAUDE.md diz "Nunca perder um registro"; a §3.2 diz só "o registro fica com o

@@ -7971,6 +7971,7 @@ Dos descartados, **7 dependem de decisão do dono** e voltam à fila se a respos
 | --- | --- | ---: | --- |
 | L35 | Lembretes II: horário, disparo automático e calendário | 10 | LEM-horarios, LEM-regra-mensagem, LEM-disparo, LEM-ics, LEM-guia-spec-l34, LEM-painel-estado, C-l34-badge-monocromatico, C-l34-passo3-instrucoes-reverso, C-l34-sair-e-inscricao, C-l34-ativar-releitura-falha |
 | L19 | Player: preparação e série; '%' colado nos textos | 7 | B-player-substituir-passo-atual, ux-heuristicas-12, tela-treino-player-09, copy-21, tela-treino-player-12, ux-heuristicas-22, OBS-porcentagem-com-espaco |
+| L21 | Player: firme, conclusão e Visão geral | 7 | B-substituir-apaga-series-feitas, tela-treino-player-29, tela-treino-player-27, ux-heuristicas-15, ux-heuristicas-14, ux-heuristicas-13, visual-08 |
 | L36 | Sobras do L34: lembretes (provas, textos e bordas) | 7 | C-l34-notificationclick-sem-aba, C-l34-rls-postgres-real, C-l34-e2e-volta-dois-temas, C-l34-spec-volta-permissao-e-sem-internet, C-l34-aviso-lista-internet-volta, C-l34-comentario-rota-teste, C-l34-progresso-frase-mutacao |
 | L33 | Sobras do L14: ficha, catálogo e camadas modais | 10 | C-l14-super-band-dois-filtros, C-l14-criterio-repeticao-numeros, C-l14-nada-repetido-espelho-dom, C-l14-historico-carregando-perfil, C-l14-veu-ramo-morto, a11y-voltar-fecha-camada, C-l32-guarda-artigo-estreita, C-l32-e2e-nomes-a-mao, C-l32-texto-aba-progresso, C-l32-plano-capa-sem-o-dono |
 | L15 | Corpo: peso, gráficos e campo de data | 6 | a11y-01, tela-relatorio-corpo-calendario-12, tela-relatorio-corpo-calendario-14, tela-relatorio-corpo-calendario-19, tela-relatorio-corpo-calendario-13, tela-relatorio-corpo-calendario-11 |
@@ -7978,7 +7979,6 @@ Dos descartados, **7 dependem de decisão do dono** e voltam à fila se a respos
 | L17 | Casca: carregamento, rotas pesadas, zoom e bloco de sincronização | 7 | C-loading-por-rota, C-next-dynamic-rotas-pesadas, C-nav-inferior-zoom-200, a11y-16, visual-19, copy-17, C-hidratacao-react-418 |
 | L18 | Cardio e barra fixa | 7 | ux-heuristicas-17, ux-heuristicas-18, ux-heuristicas-19, copy-11, copy-12, copy-30, copy-19 |
 | L20 | Player: descanso, preparação e o caminho até o player | 8 | tela-treino-player-06, tela-treino-player-07, tela-treino-player-25, a11y-02, a11y-15, copy-22, performance-18, ux-heuristicas-06 |
-| L21 | Player: firme, conclusão e Visão geral | 7 | tela-treino-player-29, tela-treino-player-27, ux-heuristicas-15, ux-heuristicas-14, ux-heuristicas-13, visual-08, B-substituir-apaga-series-feitas |
 | L22 | Sem rede: sinal, fila, mensagens e sincronização | 6 | pwa-offline-01, pwa-offline-06, pwa-offline-07, pwa-offline-11, pwa-offline-12, pwa-offline-13 |
 | L23 | Instalação, cache de mídia e cor da barra | 6 | pwa-offline-03, pwa-offline-04, pwa-offline-05, imagens-09, pwa-offline-08, C-theme-color-do-tema-escolhido |
 | L24 | Mais: textos, linhas e prefetch | 8 | copy-02, copy-09, copy-16, copy-20, copy-29, visual-16, performance-16, C-guia-reaparece-com-gravacao-na-fila |

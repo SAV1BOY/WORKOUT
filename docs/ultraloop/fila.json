@@ -5052,7 +5052,7 @@
    "secao": "B",
    "estado": "pendente",
    "titulo": "Substituir pela ficha apaga sem aviso as séries já feitas do exercício trocado",
-   "detalhe": "PROBLEMA: no player, '?' → ficha → 'Substituir' (components/exercicio/ficha-folha.tsx:601-648) troca o exercício e as séries JÁ CONCLUÍDAS do original saem do Dexie e de session_sets (components/treinar/usar-sessao.ts:320-345 → descartarSeriesDoBloco, lib/queries/sessao.ts:267; lib/sessao.ts substituirExercicio recria as séries). A ficha anda pelos exercícios da sessão ('Exercício anterior'/'Próximo exercício'), então um toque apaga um exercício inteiro já feito. A folha 'substituir hoje' da Visão geral avisa antes (components/treinar/bloco.tsx:224: 'As séries já registradas deste bloco serão trocadas pelas do substituto'); a ficha não. Já acontecia em main c689f69 (não é regressão do L19). A §3.2 diz só 'registro fica com o exercício substituto; a progressão do original não muda'; o CLAUDE.md diz 'Nunca perder um registro'. PROVA: auditoria 1 tela do L19 (r23/l19/auditoria-1-tela/medidas-a.json → troca.mock/trocaVisao.mock; medidas-anterior-*.json: mockAntes 6 linhas → mockDepois 1) e auditoria 1 regra (r23/l19/auditoria-1-regra/veredito.json). FAZER (depende da resposta do dono): (a) a ficha avisa/pede confirmação como a Visão geral quando o exercício tem série feita; ou (b) as séries feitas do original ficam registradas (mexe em lib/sessao.ts, usar-sessao.ts, no texto de components/treinar/bloco.tsx e na §3.2). ACEITE: e2e — com séries feitas, '?' → Substituir mostra o aviso antes (a) ou as séries do original continuam no Dexie e em session_sets (b); sem série feita, a troca é direta.",
+   "detalhe": "PROBLEMA: no player, '?' → ficha → 'Substituir' (components/exercicio/ficha-folha.tsx:601-648) troca o exercício e as séries JÁ CONCLUÍDAS do original saem do Dexie e de session_sets (components/treinar/usar-sessao.ts:320-345 → descartarSeriesDoBloco, lib/queries/sessao.ts:267; lib/sessao.ts substituirExercicio recria as séries). A ficha anda pelos exercícios da sessão ('Exercício anterior'/'Próximo exercício'), então um toque apaga um exercício inteiro já feito. A folha 'substituir hoje' da Visão geral avisa antes (components/treinar/bloco.tsx:224: 'As séries já registradas deste bloco serão trocadas pelas do substituto'); a ficha não. Já acontecia em main c689f69 (não é regressão do L19). A §3.2 diz só 'registro fica com o exercício substituto; a progressão do original não muda'; o CLAUDE.md diz 'Nunca perder um registro'. PROVA: auditoria 1 tela do L19 (r23/l19/auditoria-1-tela/medidas-a.json → troca.mock/trocaVisao.mock; medidas-anterior-*.json: mockAntes 6 linhas → mockDepois 1) e auditoria 1 regra (r23/l19/auditoria-1-regra/veredito.json). FAZER (decisão do dono = b): substituir um exercício — pela ficha ou pela folha 'Substituir hoje' da Visão geral — NUNCA apaga séries concluídas: as séries feitas do original continuam registradas (Dexie e session_sets) com o exercício original e contam como feitas dele; só as séries ainda não feitas passam para o substituto, que começa do zero. A SPEC §3.2 é reescrita antes do código; o aviso da Visão geral muda para dizer isso. ACEITE: regra pura com Vitest (troca com 0, 1 e todas as séries feitas; troca do passo atual; troca de um exercício anterior) e e2e nos dois temas pelos dois caminhos (ficha e Visão geral): depois da troca, as séries feitas do original continuam no Dexie e no mock (session_sets) e aparecem no histórico/relatório como dele; o substituto começa na série 1; nenhum registro some; o player continua no passo certo.",
    "arquivos": [
     "components/exercicio/ficha-folha.tsx",
     "components/treinar/usar-sessao.ts",
@@ -5073,7 +5073,7 @@
    ],
    "area": "player",
    "lote_planejado": "L21",
-   "nota": "Depende do dono (docs/ultraloop/perguntas-ao-dono.md, §5): (a) avisar antes, (b) manter as séries feitas, (c) deixar. Se não houver resposta quando o L21 começar, fazer (a): só acrescenta na ficha o aviso que a Visão geral já tem e não muda a §3.2."
+   "nota": "DECISÃO DO DONO (24/09, ~14:00 UTC): opção (b) — as séries já feitas do exercício original ficam registradas (Dexie e session_sets) e contam como feitas; o substituto começa do zero. Muda a SPEC §3.2 e o aviso da folha 'Substituir hoje' da Visão geral (components/treinar/bloco.tsx). Prioridade: integridade de dados ('Nunca perder um registro')."
   },
   {
    "id": "C-hidratacao-react-418",
@@ -10050,10 +10050,73 @@
    }
   },
   {
+   "codigo": "L21",
+   "codigo_anterior": "L20",
+   "titulo": "Player: firme, conclusão e Visão geral",
+   "area": "player",
+   "ordem": 3,
+   "itens": [
+    "B-substituir-apaga-series-feitas",
+    "tela-treino-player-29",
+    "tela-treino-player-27",
+    "ux-heuristicas-15",
+    "ux-heuristicas-14",
+    "ux-heuristicas-13",
+    "visual-08"
+   ],
+   "arquivos": [
+    "PROGRESSO.md",
+    "SPEC.md",
+    "app/(app)/mais/page.tsx",
+    "components/calendario/dialogos.tsx",
+    "components/exercicio/ficha-folha.tsx",
+    "components/mais/guia.tsx",
+    "components/player/conclusao.tsx",
+    "components/player/firme.tsx",
+    "components/relatorio/aviso-conquista.tsx",
+    "components/relatorio/conquistas.tsx",
+    "components/stepper-numerico.tsx",
+    "components/treinar/bloco.tsx",
+    "components/treinar/serie.tsx",
+    "components/treinar/usar-sessao.ts",
+    "e2e/ultraloop-l21.spec.ts (novo)",
+    "lib/sessao.ts"
+   ],
+   "telas_esperadas": [
+    "28-player-exercicio",
+    "30-player-conclusao",
+    "13-relatorio-conquistas",
+    "18-mais",
+    "22-guia"
+   ],
+   "medios": 1,
+   "observacoes": "Resto dos grupos do player do REMONTAR_L12 (só B): 11 itens B do player não fecham dois lotes de 6. A Visão geral não tem captura própria na lista das 30: medir no e2e. O visual-08 entra pela exceção abaixo. v3: sem mudança de itens; a alternativa da exceção foi refeita (a da v2 deixava um lote com 5 itens). | 24/09: + B-substituir-apaga-series-feitas na frente (decisão do dono = b; integridade de dados); o L21 sobe para logo depois do L19 na faixa do player. Exceção de arquivos (16 > 12) aceita pelo orquestrador por prioridade de integridade; item que não couber vai para itens_nao_feitos.",
+   "excecao": {
+    "tipo": "área",
+    "itens": [
+     "visual-08"
+    ],
+    "motivo": "os 15 itens de Mais/casca (3 C da remontagem, a11y-16 e os 11 do grupo a11y-10) pedem ~25 arquivos de código; com 6–10 itens e ≤ 12 arquivos por lote (SPEC.md e PROGRESSO.md contam) eles cabem em dois lotes só se dois itens forem para lotes que já editam um dos seus arquivos. O visual-08 (três versões do rótulo em caixa alta) completa o L21 porque também troca os rótulos da Visão geral do player (components/treinar/serie.tsx:223/:326), arquivo que o L21 já edita, e o L17 e o L24 estão no teto de 12 arquivos.",
+    "aceite_do_dono": "pendente — perguntar antes de montar o L21",
+    "alternativa": "sem o visual-08, o tela-treino-player-25 (foco da folha 'Ajustar' do player, P) vem do L20 para o L21: o L21 fica com 6 itens, 1 M e 8 arquivos (saem os cinco do visual-08, entra components/player/tela-player.tsx) e o L20 com 7; o visual-08 espera um lote de textos com folga (L24 e L25 estão no teto). As duas saídas da v2 deixavam um lote com 5 itens.",
+    "alternativa_v2": "sem o visual-08 o L21 fica com 5 itens; a outra saída é trazer para cá um C do player (C-visao-geral-esc-camada), o que deixa o L29 com 5"
+   },
+   "excecao_de_ordem": [],
+   "secoes": {
+    "B": 6,
+    "C": 0,
+    "D": 0
+   },
+   "areas_dos_itens": {
+    "player": 5,
+    "visual": 1
+   }
+  },
+  {
    "codigo": "L36",
    "titulo": "Sobras do L34: lembretes (provas, textos e bordas)",
    "area": "lembretes",
-   "ordem": 3,
+   "ordem": 4,
    "itens": [
     "C-l34-notificationclick-sem-aba",
     "C-l34-rls-postgres-real",
@@ -10084,7 +10147,7 @@
    "codigo": "L33",
    "titulo": "Sobras do L14: ficha, catálogo e camadas modais",
    "area": "ficha",
-   "ordem": 4,
+   "ordem": 5,
    "itens": [
     "C-l14-super-band-dois-filtros",
     "C-l14-criterio-repeticao-numeros",
@@ -10137,7 +10200,7 @@
    "codigo_anterior": "L15",
    "titulo": "Corpo: peso, gráficos e campo de data",
    "area": "corpo",
-   "ordem": 5,
+   "ordem": 6,
    "itens": [
     "a11y-01",
     "tela-relatorio-corpo-calendario-12",
@@ -10184,7 +10247,7 @@
    "codigo_anterior": "L16",
    "titulo": "Corpo: medidas, fotos, data no celular e um verbo só para salvar",
    "area": "corpo",
-   "ordem": 6,
+   "ordem": 7,
    "itens": [
     "tela-relatorio-corpo-calendario-17",
     "tela-relatorio-corpo-calendario-18",
@@ -10235,7 +10298,7 @@
    "codigo_anterior": "L17",
    "titulo": "Casca: carregamento, rotas pesadas, zoom e bloco de sincronização",
    "area": "casca",
-   "ordem": 7,
+   "ordem": 8,
    "itens": [
     "C-loading-por-rota",
     "C-next-dynamic-rotas-pesadas",
@@ -10301,7 +10364,7 @@
    "codigo_anterior": "L18",
    "titulo": "Cardio e barra fixa",
    "area": "cardio",
-   "ordem": 8,
+   "ordem": 9,
    "itens": [
     "ux-heuristicas-17",
     "ux-heuristicas-18",
@@ -10349,7 +10412,7 @@
    "codigo_anterior": "L19b (censo)",
    "titulo": "Player: descanso, preparação e o caminho até o player",
    "area": "player",
-   "ordem": 9,
+   "ordem": 10,
    "itens": [
     "tela-treino-player-06",
     "tela-treino-player-07",
@@ -10390,65 +10453,6 @@
    },
    "areas_dos_itens": {
     "player": 8
-   }
-  },
-  {
-   "codigo": "L21",
-   "codigo_anterior": "L20",
-   "titulo": "Player: firme, conclusão e Visão geral",
-   "area": "player",
-   "ordem": 10,
-   "itens": [
-    "tela-treino-player-29",
-    "tela-treino-player-27",
-    "ux-heuristicas-15",
-    "ux-heuristicas-14",
-    "ux-heuristicas-13",
-    "visual-08",
-    "B-substituir-apaga-series-feitas"
-   ],
-   "arquivos": [
-    "components/player/firme.tsx",
-    "components/player/conclusao.tsx",
-    "components/treinar/serie.tsx",
-    "components/stepper-numerico.tsx",
-    "app/(app)/mais/page.tsx",
-    "components/relatorio/aviso-conquista.tsx",
-    "components/relatorio/conquistas.tsx",
-    "components/mais/guia.tsx",
-    "components/calendario/dialogos.tsx",
-    "e2e/ultraloop-l21.spec.ts (novo)",
-    "SPEC.md",
-    "PROGRESSO.md"
-   ],
-   "telas_esperadas": [
-    "28-player-exercicio",
-    "30-player-conclusao",
-    "13-relatorio-conquistas",
-    "18-mais",
-    "22-guia"
-   ],
-   "medios": 1,
-   "observacoes": "Resto dos grupos do player do REMONTAR_L12 (só B): 11 itens B do player não fecham dois lotes de 6. A Visão geral não tem captura própria na lista das 30: medir no e2e. O visual-08 entra pela exceção abaixo. v3: sem mudança de itens; a alternativa da exceção foi refeita (a da v2 deixava um lote com 5 itens).",
-   "excecao": {
-    "tipo": "área",
-    "itens": [
-     "visual-08"
-    ],
-    "motivo": "os 15 itens de Mais/casca (3 C da remontagem, a11y-16 e os 11 do grupo a11y-10) pedem ~25 arquivos de código; com 6–10 itens e ≤ 12 arquivos por lote (SPEC.md e PROGRESSO.md contam) eles cabem em dois lotes só se dois itens forem para lotes que já editam um dos seus arquivos. O visual-08 (três versões do rótulo em caixa alta) completa o L21 porque também troca os rótulos da Visão geral do player (components/treinar/serie.tsx:223/:326), arquivo que o L21 já edita, e o L17 e o L24 estão no teto de 12 arquivos.",
-    "aceite_do_dono": "pendente — perguntar antes de montar o L21",
-    "alternativa": "sem o visual-08, o tela-treino-player-25 (foco da folha 'Ajustar' do player, P) vem do L20 para o L21: o L21 fica com 6 itens, 1 M e 8 arquivos (saem os cinco do visual-08, entra components/player/tela-player.tsx) e o L20 com 7; o visual-08 espera um lote de textos com folga (L24 e L25 estão no teto). As duas saídas da v2 deixavam um lote com 5 itens.",
-    "alternativa_v2": "sem o visual-08 o L21 fica com 5 itens; a outra saída é trazer para cá um C do player (C-visao-geral-esc-camada), o que deixa o L29 com 5"
-   },
-   "excecao_de_ordem": [],
-   "secoes": {
-    "B": 6,
-    "C": 0,
-    "D": 0
-   },
-   "areas_dos_itens": {
-    "player": 5,
-    "visual": 1
    }
   },
   {
@@ -11070,8 +11074,14 @@
    "L19",
    "L21"
   ],
-  "itens_com_decisao_pendente": [
-   "B-substituir-apaga-series-feitas"
+  "itens_com_decisao_pendente": [],
+  "decisoes_do_dono": [
+   {
+    "item": "B-substituir-apaga-series-feitas",
+    "resposta": "b",
+    "quando": "2026-09-24T14:00Z",
+    "efeito": "mantém as séries feitas do original; substituto do zero; muda §3.2"
+   }
   ]
  },
  "censo": {
