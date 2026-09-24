@@ -1,7 +1,7 @@
 {
  "versao": 3,
- "base": "905815d",
- "gerado_em": "2026-09-23T23:41Z",
+ "base": "b66e06c",
+ "gerado_em": "2026-09-24T11:32Z",
  "estados": [
   "pendente",
   "candidato",
@@ -9,12 +9,12 @@
   "descartado"
  ],
  "contagens": {
-  "itens": 151,
-  "pendente": 151,
+  "itens": 146,
+  "pendente": 146,
   "candidato": 0,
-  "resolvidos": 126,
+  "resolvidos": 136,
   "descartados": 18,
-  "canonicos": 295,
+  "canonicos": 300,
   "por_secao": {
    "B": {
     "pendente": 75,
@@ -23,9 +23,9 @@
     "descartado": 17
    },
    "C": {
-    "pendente": 71,
+    "pendente": 66,
     "candidato": 0,
-    "publicado": 10,
+    "publicado": 20,
     "descartado": 0
    },
    "D": {
@@ -41,7 +41,7 @@
     "descartado": 1
    }
   },
-  "lotes_planejados": 21,
+  "lotes_planejados": 20,
   "depende_do_dono": 7,
   "v2_para_v3": {
    "itens": [
@@ -134,7 +134,7 @@
     ]
    }
   },
-  "gerado_em": "2026-09-23T23:41Z"
+  "gerado_em": "2026-09-24T11:32Z"
  },
  "itens": [
   {
@@ -4271,226 +4271,6 @@
    "lote_planejado": "L19"
   },
   {
-   "id": "C-l13-aceite-lcp-vs-ordem",
-   "secao": "C",
-   "estado": "pendente",
-   "area": "ficha",
-   "titulo": "Aceite do item 4 do L13 fala em LCP; o e2e mede a ordem dos pedidos",
-   "detalhe": "PROBLEMA: SPEC §22.13 item 4 diz que o quadro 2 é pedido depois do LCP; o e2e (e2e/ultraloop-l13.spec.ts:348) mede que o pedido do quadro 2 começa depois do fim do pedido do quadro 1. FAZER: medir o LCP de verdade (PerformanceObserver largest-contentful-paint) na página da ficha sem a mídia mascarada, ou reescrever o aceite como ordem dos pedidos. ACEITE: aceite e teste dizem a mesma coisa. ESTADO EM a0bcfcf: não feito — mantido de propósito: a ordem é o mecanismo, e o LCP com a mídia mascarada não se mede pela captura.",
-   "arquivos": [
-    "SPEC.md",
-    "e2e/ultraloop-l13.spec.ts"
-   ],
-   "esforco": "P",
-   "origens": [
-    {
-     "fonte": "PROGRESSO (L13, rodada 13)",
-     "id_original": "aceite do item 4 fala em LCP",
-     "origem": "menor registrado pelo construtor e pelas auditorias do L13 (r13/l13/auditoria-2-*/veredito.json)"
-    }
-   ],
-   "duplicatas": [],
-   "nota": "L13 (rodada 13): não feito, motivo registrado no PROGRESSO.",
-   "lote_planejado": "L32"
-  },
-  {
-   "id": "C-plano-progresso-repete-desafio",
-   "secao": "C",
-   "estado": "pendente",
-   "area": "explorar",
-   "titulo": "Bloco de progresso das semanas do plano repete o do card de desafio",
-   "detalhe": "PROBLEMA: na tela do plano (Explorar → Planos → corrida/corda/barra fixa), o bloco 'Semanas do plano' (Semana N de 12 · K concluídas + barra) repete a informação do card de desafio logo acima. FAZER: decidir com o dono se o card de desafio some da tela do plano ou se o bloco fica só com a lista das semanas. ACEITE: a mesma informação aparece uma vez na rolagem. ESTADO EM a0bcfcf: não feito — é a informação pedida no item 9 da tela do plano (SPEC §22.13 item 9).",
-   "arquivos": [
-    "components/colecoes/tela-colecao.tsx"
-   ],
-   "esforco": "P",
-   "origens": [
-    {
-     "fonte": "PROGRESSO (L13, rodada 13)",
-     "id_original": "bloco de progresso das semanas repete o do card de desafio",
-     "origem": "menor registrado pelo construtor e pelas auditorias do L13 (r13/l13/auditoria-2-*/veredito.json)"
-    }
-   ],
-   "duplicatas": [],
-   "nota": "L13 (rodada 13): não feito, registrado no PROGRESSO.",
-   "lote_planejado": "L32"
-  },
-  {
-   "id": "C-busca-corda-capa-icone",
-   "secao": "C",
-   "estado": "pendente",
-   "area": "explorar",
-   "titulo": "Na busca por 'corda', 'Corda: 5 estágios' aparece com o ícone no lugar da foto",
-   "detalhe": "PROBLEMA: na busca 'corda' do Explorar, a linha 'Corda: 5 estágios' mostra o ícone de calendário, enquanto a vitrine (seção Planos) mostra a foto; as linhas 'Corda' e 'Corda de pular com rolamento' já usam essa foto na seção 'Coleções encontradas'. FAZER: decidir se a regra de capa sem repetição (§22.9 item 7, lib/colecoes.ts:518-535) vale entre seções da busca. ACEITE: o mesmo plano tem a mesma capa na vitrine e na busca, ou a SPEC diz por que não. ESTADO EM a0bcfcf: não feito — comportamento anterior ao L13, só anotado.",
-   "arquivos": [
-    "lib/colecoes.ts",
-    "lib/colecoes.test.ts"
-   ],
-   "esforco": "P",
-   "origens": [
-    {
-     "fonte": "PROGRESSO (L13, rodada 13)",
-     "id_original": "busca por 'corda' com o ícone",
-     "origem": "menor registrado pelo construtor e pelas auditorias do L13 (r13/l13/auditoria-2-*/veredito.json)"
-    }
-   ],
-   "duplicatas": [],
-   "nota": "L13 (rodada 13): anterior ao lote, só anotado.",
-   "lote_planejado": "L32"
-  },
-  {
-   "id": "C-l13-key-musculos-sem-teste",
-   "area": "ficha",
-   "titulo": "A key da aba Músculos da folha não tem teste",
-   "esforco": "P",
-   "arquivos": [
-    "components/exercicio/ficha-folha.tsx",
-    "e2e (novo caso)"
-   ],
-   "detalhe": "PROBLEMA: components/exercicio/ficha-folha.tsx (~:376-377, key={ilustracao.urls.join(\"|\")}) remonta a ilustração da aba Músculos ao trocar de exercício, mas nenhum unitário nem e2e cai se a key sair; o caminho \"Substituir\" da SPEC §22.13 item 4 também não tem e2e. FAZER: e2e que troca de exercício no lugar (seta › e Substituir) com a aba Músculos aberta e prova que a figura começa na posição 1 e não herda estado; provar por mutação (sem a key o teste cai). ACEITE: mutação sem a key derruba o e2e novo. ESTADO EM a0bcfcf: key presente, sem teste.",
-   "secao": "C",
-   "estado": "pendente",
-   "origens": [
-    {
-     "fonte": "PROGRESSO (Rodada 12/13 — Lote 13, menores da auditoria 2 ou verificação em produção)",
-     "id_original": "A key da aba Músculos da folha não tem teste",
-     "origem": "R13/L13"
-    }
-   ],
-   "duplicatas": [],
-   "lote_planejado": "L32"
-  },
-  {
-   "id": "C-media-grande-figura-quebrou-herdada",
-   "area": "ficha",
-   "titulo": "figuraQuebrou da MediaGrande passa de um exercício para o outro",
-   "esforco": "P",
-   "arquivos": [
-    "components/exercicio/media-grande.tsx",
-    "e2e (novo caso)"
-   ],
-   "detalhe": "PROBLEMA: components/exercicio/media-grande.tsx:59 guarda figuraQuebrou em estado; na troca no lugar (‹ › e Substituir da ficha no player) a MediaGrande não remonta, então se a figura do exercício A deu erro, o B cai direto na foto. FAZER: zerar o estado ao trocar de exercício (key pela identidade do exercício ou efeito), com e2e que aborta a figura de A e confere que B mostra a figura. ACEITE: e2e prova que B mostra a própria figura depois de A ter falhado. ESTADO EM a0bcfcf: sem key, estado herdado.",
-   "secao": "C",
-   "estado": "pendente",
-   "origens": [
-    {
-     "fonte": "PROGRESSO (Rodada 12/13 — Lote 13, menores da auditoria 2 ou verificação em produção)",
-     "id_original": "figuraQuebrou da MediaGrande passa de um exercício para o outro",
-     "origem": "R13/L13"
-    }
-   ],
-   "duplicatas": [],
-   "lote_planejado": "L32"
-  },
-  {
-   "id": "C-alt-execucao-genero",
-   "area": "ficha",
-   "titulo": "O alt \"Execução do <nome>\" erra o gênero nos nomes femininos",
-   "esforco": "P",
-   "arquivos": [
-    "lib/midia.ts",
-    "components/exercicio/midia.tsx",
-    "components/exercicio/ficha-folha.tsx",
-    "components/exercicio/ilustracao-alternada.tsx"
-   ],
-   "detalhe": "PROBLEMA: \"Execução do Prancha\", \"do Remada\", \"do Rosca\", \"do Elevação de pernas\" (lib/midia.ts:235, components/exercicio/midia.tsx:29, ficha-folha.tsx:362); desde o L13 o texto também é o nome da figura-botão, lido mais vezes. FAZER: uma fonte só para o texto, sem artigo (\"Execução: <nome>\") ou com o gênero vindo dos dados; teste percorrendo os 81 exercícios. ACEITE: nenhum alt/nome acessível com \"do\"/\"da\" errado em todos os exercícios de data/exercicios.json. ESTADO EM a0bcfcf: \"Execução do <nome>\" em três lugares.",
-   "secao": "C",
-   "estado": "pendente",
-   "origens": [
-    {
-     "fonte": "PROGRESSO (Rodada 12/13 — Lote 13, menores da auditoria 2 ou verificação em produção)",
-     "id_original": "O alt \"Execução do <nome>\" erra o gênero nos nomes femininos",
-     "origem": "R13/L13"
-    }
-   ],
-   "duplicatas": [],
-   "lote_planejado": "L32"
-  },
-  {
-   "id": "C-busca-linha-reservada-vazia",
-   "area": "explorar",
-   "titulo": "Na busca, linha de coleção sem subtítulo deixa um vão vazio",
-   "esforco": "P",
-   "arquivos": [
-    "components/colecoes/linha-colecao.tsx"
-   ],
-   "detalhe": "PROBLEMA: na busca, a linha sem subtítulo mostra a linha reservada vazia entre o título e \"contém …\" (busca \"corda\": Tríceps, Cross over de parede, Tatame EVA com um vão de ~20 px). A reserva da §22.13 item 7 serve à altura por seção da vitrine, mas na busca a altura já varia. FAZER: na lista da busca, não reservar a linha do subtítulo quando ele não existe; manter a reserva na vitrine; ajustar a SPEC §22.13 item 7. ACEITE: busca \"corda\" sem vão vazio nas linhas sem subtítulo, vitrine com a mesma altura por seção. ESTADO EM a0bcfcf: vão de ~20 px.",
-   "secao": "C",
-   "estado": "pendente",
-   "origens": [
-    {
-     "fonte": "PROGRESSO (Rodada 12/13 — Lote 13, menores da auditoria 2 ou verificação em produção)",
-     "id_original": "Na busca, linha de coleção sem subtítulo deixa um vão vazio",
-     "origem": "R13/L13"
-    }
-   ],
-   "duplicatas": [],
-   "lote_planejado": "L32"
-  },
-  {
-   "id": "C-plano-lista-canto-reto",
-   "area": "explorar",
-   "titulo": "Linha atual da lista \"Semanas do plano\" cobre os cantos arredondados do cartão",
-   "esforco": "P",
-   "arquivos": [
-    "components/colecoes/tela-colecao.tsx"
-   ],
-   "detalhe": "PROBLEMA: em /explorar/plano/<id>, a linha \"agora\" da lista \"Semanas do plano\" tem fundo de cantos retos que cobre os cantos arredondados de cima do cartão (visto em produção nos dois temas, r13/l13/producao/zoom-*-lista-topo.png). FAZER: recortar o fundo pelo raio do cartão (overflow-hidden no cartão ou raio na primeira/última linha). ACEITE: captura ampliada sem corte nos cantos nos dois temas. ESTADO EM a0bcfcf: corte visível.",
-   "secao": "C",
-   "estado": "pendente",
-   "origens": [
-    {
-     "fonte": "PROGRESSO (Rodada 12/13 — Lote 13, menores da auditoria 2 ou verificação em produção)",
-     "id_original": "Linha atual da lista \"Semanas do plano\" cobre os cantos arredondados do cartão",
-     "origem": "R13/L13"
-    }
-   ],
-   "duplicatas": [],
-   "lote_planejado": "L32"
-  },
-  {
-   "id": "C-l14-inventario-ficha-folha-como-abre",
-   "secao": "C",
-   "estado": "pendente",
-   "area": "ficha",
-   "titulo": "Inventário da §22.14 item 6: a linha da ficha-folha não cita todos os jeitos de abrir",
-   "detalhe": "PROBLEMA: Na tabela da SPEC §22.14 item 6, a coluna 'Como abre' de components/exercicio/ficha-folha.tsx cita só o player e o 'Como fazer' do bloco; a mesma folha também abre por estado em components/treino/lista.tsx:148 (toque no exercício da lista do dia) e em components/colecoes/lista-da-colecao.tsx:73 (lista de uma coleção do Explorar). FAZER: Completar a coluna 'Como abre' dessa linha com os dois gatilhos. ACEITE: A linha da tabela lista os quatro gatilhos, conferidos por grep de <FichaFolha em app/ e components/. ESTADO EM 0f730c9: pendente: só documentação; a regra já vale para a folha (sheet.tsx).",
-   "arquivos": [
-    "SPEC.md"
-   ],
-   "esforco": "P",
-   "origens": [
-    {
-     "fonte": "PROGRESSO (L14, rodada 16)",
-     "id_original": "inventário: ficha-folha também abre de lista.tsx e lista-da-colecao.tsx",
-     "origem": "menor da auditoria 1 em a68ea7f (r17/l14/auditoria-1-regra/veredito.json)"
-    }
-   ],
-   "duplicatas": [],
-   "lote_planejado": "L32"
-  },
-  {
-   "id": "C-l14-tag-equipamento-sem-sinal-visual",
-   "secao": "C",
-   "estado": "pendente",
-   "area": "ficha",
-   "titulo": "Tags de equipamento com e sem link têm o mesmo visual",
-   "detalhe": "PROBLEMA: Na ficha em página, seção 'Equipamento', a pílula sem coleção ('Anilhas', 54×20) tem cor, borda, fundo e sublinhado iguais às que são link ('Banco', 'Barra maciça', 'Cavalete', 44 px): nada diz qual abre a coleção. FAZER: Dar às tags que são link um sinal visual próprio (seta, sublinhado fixo ou estilo de botão) e deixar a tag sem coleção como texto simples. ACEITE: A 360 px, nos dois temas, a tag-link e a tag-texto se distinguem sem hover; e2e confere o estilo das duas; contraste ≥ 4,5:1. ESTADO EM 0f730c9: pendente: a SPEC §22.14 item 3(c) aceita a tag sem coleção como texto e o aceite do L14 passa; só falta a diferença visual.",
-   "arquivos": [
-    "components/exercicio/ficha-folha.tsx"
-   ],
-   "esforco": "P",
-   "origens": [
-    {
-     "fonte": "PROGRESSO (L14, rodada 16)",
-     "id_original": "pílula sem coleção igual às que são link",
-     "origem": "menor da auditoria 1 em a68ea7f (lente tela) e da correção da rodada 16 do construtor"
-    }
-   ],
-   "duplicatas": [],
-   "lote_planejado": "L32"
-  },
-  {
    "id": "C-l14-super-band-dois-filtros",
    "secao": "C",
    "estado": "pendente",
@@ -5134,6 +4914,115 @@
    ],
    "duplicatas": [],
    "lote_planejado": "L36"
+  },
+  {
+   "id": "C-l32-guarda-artigo-estreita",
+   "secao": "C",
+   "estado": "pendente",
+   "area": "ficha",
+   "titulo": "O grep de lib/l32.test.ts que barra artigo antes do nome é mais estreito que o aceite",
+   "detalhe": "PROBLEMA: lib/l32.test.ts (item 3): o regex só pega template numa linha só e expressão cujo último segmento é 'nome' (\\bnome\\b). Escapariam `${nomeDoExercicio}`, um template quebrado em duas linhas e 'o/a ${…nome}'. FAZER: Alargar a guarda: qualquer identificador que contenha 'nome' (não só o último segmento), templates em várias linhas e os artigos o/a/os/as, com as exceções do nome do treino ('Começar o ${resumo.nome}') e da fase listadas no teste. ACEITE: Mutações que escrevem 'Nota do ${nomeDoExercicio}', um template quebrado em duas linhas e 'a ${ex.nome}' derrubam o Vitest; sem mutação, verde. ESTADO EM b66e06c: pendente: greps mais largos da auditoria não acharam caso novo; não há defeito hoje.",
+   "arquivos": [
+    "lib/l32.test.ts"
+   ],
+   "esforco": "P",
+   "origens": [
+    {
+     "fonte": "PROGRESSO (L32, rodada 22)",
+     "id_original": "grep do item 3 estreito",
+     "origem": "menor da auditoria 1 em bb5adca (r22/l32/auditoria-1-regra/veredito.json)"
+    }
+   ],
+   "duplicatas": [],
+   "lote_planejado": "L33"
+  },
+  {
+   "id": "C-l32-e2e-nomes-a-mao",
+   "secao": "C",
+   "estado": "pendente",
+   "area": "ficha",
+   "titulo": "e2e do L32 com dois nomes de exercício escritos à mão",
+   "detalhe": "PROBLEMA: e2e/ultraloop-l32.spec.ts:307-310: a lista doTreino tem 'Agachamento livre' e 'Supino reto com barra' escritos à mão, ao lado da remada e da rosca que vêm de acharExercicio(). FAZER: Ler os quatro nomes dos dados (acharExercicio / data/exercicios.json), como o resto do spec. ACEITE: grep de string de nome de exercício literal no spec: nada; o teste continua verde. ESTADO EM b66e06c: pendente (inofensivo).",
+   "arquivos": [
+    "e2e/ultraloop-l32.spec.ts"
+   ],
+   "esforco": "P",
+   "origens": [
+    {
+     "fonte": "PROGRESSO (L32, rodada 22)",
+     "id_original": "nomes à mão no e2e",
+     "origem": "menor da auditoria 1 em bb5adca (r22/l32/auditoria-1-regra/veredito.json)"
+    }
+   ],
+   "duplicatas": [],
+   "lote_planejado": "L33"
+  },
+  {
+   "id": "C-l32-texto-aba-progresso",
+   "secao": "C",
+   "estado": "pendente",
+   "area": "ficha",
+   "titulo": "SPEC e PROGRESSO falam de uma aba Progresso que não existe",
+   "detalhe": "PROBLEMA: PROGRESSO (L32, rodada 22, 'Como testar no celular', passo 3) diz 'Progresso → gráficos dos grandes', e a SPEC §22.15 item 3 diz 'o gráfico de cada grande no Progresso e no Relatório'; app/(app)/progresso/page.tsx redireciona para /relatorio e TelaProgresso só existe dentro de tela-relatorio.tsx. FAZER: Trocar para 'Relatório → Gráficos' na SPEC §22.15 item 3 e no passo 3 do PROGRESSO. ACEITE: grep de 'no Progresso' e 'Progresso →' na §22.15 e no passo: nada; o texto aponta a tela real. ESTADO EM b66e06c: pendente (só texto).",
+   "arquivos": [
+    "SPEC.md",
+    "PROGRESSO.md"
+   ],
+   "esforco": "P",
+   "origens": [
+    {
+     "fonte": "PROGRESSO (L32, rodada 22)",
+     "id_original": "aba Progresso inexistente no texto",
+     "origem": "menor da auditoria 1 em bb5adca (r22/l32/auditoria-1-tela/veredito.json)"
+    }
+   ],
+   "duplicatas": [],
+   "lote_planejado": "L33"
+  },
+  {
+   "id": "C-l32-plano-capa-sem-o-dono",
+   "secao": "C",
+   "estado": "pendente",
+   "area": "explorar",
+   "titulo": "Capa do plano: decisão tomada sem o dono e guarda fraca",
+   "detalhe": "PROBLEMA: Item 7 do L32 (C-plano-progresso-repete-desafio): o ledger pedia 'decidir com o dono'; a decisão foi tomada sem ele (a capa fica e mostra a meta sem perfil). O botão 'Fazer a corrida da semana 3' ainda cita o número da semana sem o total, e o Vitest de detalheDaCapa (lib/l32.test.ts:240) é quase tautológico (a guarda real é o e2e). FAZER: Mostrar ao dono a capa e o bloco como estão (07-colecao) e registrar a resposta; trocar o Vitest de detalheDaCapa por um que compare com os dados de cardio.json (meta da última semana) em vez de repetir a função. ACEITE: Resposta do dono registrada no PROGRESSO; mutação que põe 'semana N de T' de volta na capa derruba o Vitest (não só o e2e). ESTADO EM b66e06c: pendente: aceite do item 7 cumprido e medido; falta a palavra do dono e a guarda de unidade.",
+   "arquivos": [
+    "lib/colecoes.ts",
+    "lib/l32.test.ts",
+    "components/colecoes/tela-colecao.tsx"
+   ],
+   "esforco": "P",
+   "origens": [
+    {
+     "fonte": "PROGRESSO (L32, rodada 22)",
+     "id_original": "item 7 sem o dono",
+     "origem": "menor da auditoria 1 em bb5adca (r22/l32/auditoria-1-regra/veredito.json) e menor do construtor (PROGRESSO, correção da auditoria)"
+    }
+   ],
+   "duplicatas": [],
+   "lote_planejado": "L33",
+   "nota": "área explorar no L33 (ficha) pela mesma exceção de área do L32: os arquivos de coleções do Explorar andam com a ficha."
+  },
+  {
+   "id": "C-a-r4-faixa-fixa-instavel-sob-carga",
+   "secao": "C",
+   "estado": "pendente",
+   "area": "treino",
+   "titulo": "e2e da faixa fixa da aba Treino instáveis sob carga",
+   "detalhe": "PROBLEMA: e2e/ultraloop-a-r4.spec.ts:227 (paradas 1, esperado > 5) e :284 (a faixa não apareceu depois de rolar) falharam na cadeia inteira de e6f42b2 (L32) com a máquina carregada e passaram sozinhos 2× (4/4). Por isso a cadeia do L32 ficou com status falhou:e2e e a varredura não rodou dentro dela. FAZER: Tornar os dois testes robustos à carga: esperar o estado da faixa (expect.poll/toBeVisible) em vez de contar paradas por tempo, e rolar até a faixa existir. ACEITE: 10 execuções seguidas dos dois testes com a cadeia de outro lote rodando ao lado: 10/10 verdes. ESTADO EM b66e06c: pendente: anotado como instável sob carga no L32 (não bloqueou).",
+   "arquivos": [
+    "e2e/ultraloop-a-r4.spec.ts"
+   ],
+   "esforco": "P",
+   "origens": [
+    {
+     "fonte": "PROGRESSO (L32, rodada 22)",
+     "id_original": "a-r4 :227/:284 instáveis",
+     "origem": "menor da auditoria 1 em bb5adca (r22/l32/auditoria-1-regra/veredito.json) e menor da auditoria 1 em bb5adca (r22/l32/auditoria-1-tela/veredito.json) (pré-condição .status)"
+    }
+   ],
+   "duplicatas": [],
+   "lote_planejado": "L28"
   }
  ],
  "resolvidos": [
@@ -9184,6 +9073,186 @@
      "origem": "feature nova aprovada pelo dono; SPEC §23"
     }
    ]
+  },
+  {
+   "id": "C-l13-key-musculos-sem-teste",
+   "secao": "C",
+   "estado": "publicado",
+   "sha": "b66e06c",
+   "pr": "#28",
+   "lote": "L32",
+   "rodada": 22,
+   "titulo": "A key da aba Músculos da folha não tem teste",
+   "prova": "SPEC.md:2897 (§22.15 item 1); e2e/ultraloop-l32.spec.ts:84 (Substituir com o supino na posição 2: o crossover começa na 1 e o quadro 2 espera o 1; aba Músculos aberta atravessando › e Substituir); mutação só da key com log próprio (r22/l32/mut-key)",
+   "origens": [
+    {
+     "fonte": "PROGRESSO (Rodada 12/13 — Lote 13, menores da auditoria 2 ou verificação em produção)",
+     "id_original": "A key da aba Músculos da folha não tem teste",
+     "origem": "R13/L13"
+    }
+   ]
+  },
+  {
+   "id": "C-media-grande-figura-quebrou-herdada",
+   "secao": "C",
+   "estado": "publicado",
+   "sha": "b66e06c",
+   "pr": "#28",
+   "lote": "L32",
+   "rodada": 22,
+   "titulo": "figuraQuebrou da MediaGrande passa de um exercício para o outro",
+   "prova": "SPEC.md:2916 (§22.15 item 2); components/exercicio/media-grande.tsx (guarda o endereço da figura que falhou); e2e/ultraloop-l32.spec.ts:178 (› e Substituir com a figura abortada)",
+   "origens": [
+    {
+     "fonte": "PROGRESSO (Rodada 12/13 — Lote 13, menores da auditoria 2 ou verificação em produção)",
+     "id_original": "figuraQuebrou da MediaGrande passa de um exercício para o outro",
+     "origem": "R13/L13"
+    }
+   ]
+  },
+  {
+   "id": "C-alt-execucao-genero",
+   "secao": "C",
+   "estado": "publicado",
+   "sha": "b66e06c",
+   "pr": "#28",
+   "lote": "L32",
+   "rodada": 22,
+   "titulo": "O alt \"Execução do <nome>\" erra o gênero nos nomes femininos",
+   "prova": "SPEC.md:2928 (§22.15 item 3); lib/midia.ts:244 (nomeAcessivel) e :253 (altDaExecucao); lib/l32.test.ts:32-82 (81 nomes × 6 rótulos, grep que barra artigo; mutações A 1/11 e B 4/11 em r22/l32/logs/l32-r22-mut-artigo.log); e2e/ultraloop-l32.spec.ts:236 e :254 (prancha; 'Nota: Remada curvada pronada' no player e na Visão geral)",
+   "origens": [
+    {
+     "fonte": "PROGRESSO (Rodada 12/13 — Lote 13, menores da auditoria 2 ou verificação em produção)",
+     "id_original": "O alt \"Execução do <nome>\" erra o gênero nos nomes femininos",
+     "origem": "R13/L13"
+    }
+   ]
+  },
+  {
+   "id": "C-l13-aceite-lcp-vs-ordem",
+   "secao": "C",
+   "estado": "publicado",
+   "sha": "b66e06c",
+   "pr": "#28",
+   "lote": "L32",
+   "rodada": 22,
+   "titulo": "Aceite do item 4 do L13 fala em LCP; o e2e mede a ordem dos pedidos",
+   "prova": "SPEC.md:2958 (§22.15 item 4: o aceite do §22.13 item 4 diz a ordem dos pedidos, o que e2e/ultraloop-l13.spec.ts mede; 'LCP' era do texto da fila)",
+   "origens": [
+    {
+     "fonte": "PROGRESSO (L13, rodada 13)",
+     "id_original": "aceite do item 4 fala em LCP",
+     "origem": "menor registrado pelo construtor e pelas auditorias do L13 (r13/l13/auditoria-2-*/veredito.json)"
+    }
+   ]
+  },
+  {
+   "id": "C-busca-linha-reservada-vazia",
+   "secao": "C",
+   "estado": "publicado",
+   "sha": "b66e06c",
+   "pr": "#28",
+   "lote": "L32",
+   "rodada": 22,
+   "titulo": "Na busca, linha de coleção sem subtítulo deixa um vão vazio",
+   "prova": "SPEC.md:2967 (§22.15 item 5); components/colecoes/linha-colecao.tsx:172 (data-linha='sem-subtitulo', reservarSubtitulo); e2e/ultraloop-l32.spec.ts:330; fumaça: 'sem-subtitulo' no chunk app/(app)/explorar/page-3404600d65825d84.js",
+   "origens": [
+    {
+     "fonte": "PROGRESSO (Rodada 12/13 — Lote 13, menores da auditoria 2 ou verificação em produção)",
+     "id_original": "Na busca, linha de coleção sem subtítulo deixa um vão vazio",
+     "origem": "R13/L13"
+    }
+   ]
+  },
+  {
+   "id": "C-busca-corda-capa-icone",
+   "secao": "C",
+   "estado": "publicado",
+   "sha": "b66e06c",
+   "pr": "#28",
+   "lote": "L32",
+   "rodada": 22,
+   "titulo": "Na busca por 'corda', 'Corda: 5 estágios' aparece com o ícone no lugar da foto",
+   "prova": "SPEC.md:2982 (§22.15 item 6, mecanismo real de capasNaBusca('corda')); lib/colecoes.ts (secoesDaVitrine, capasDaVitrine, capasNaBusca); lib/l32.test.ts:128-189; e2e/ultraloop-l32.spec.ts:392",
+   "origens": [
+    {
+     "fonte": "PROGRESSO (L13, rodada 13)",
+     "id_original": "busca por 'corda' com o ícone",
+     "origem": "menor registrado pelo construtor e pelas auditorias do L13 (r13/l13/auditoria-2-*/veredito.json)"
+    }
+   ]
+  },
+  {
+   "id": "C-plano-progresso-repete-desafio",
+   "secao": "C",
+   "estado": "publicado",
+   "sha": "b66e06c",
+   "pr": "#28",
+   "lote": "L32",
+   "rodada": 22,
+   "titulo": "Bloco de progresso das semanas do plano repete o do card de desafio",
+   "prova": "SPEC.md:3022 (§22.15 item 7); lib/colecoes.ts (detalheDaCapa); lib/l32.test.ts:240; e2e/ultraloop-l32.spec.ts:417 ('semana 3 de' uma vez só); captura 07-colecao (16,30 % / 22,07 %, esperada)",
+   "origens": [
+    {
+     "fonte": "PROGRESSO (L13, rodada 13)",
+     "id_original": "bloco de progresso das semanas repete o do card de desafio",
+     "origem": "menor registrado pelo construtor e pelas auditorias do L13 (r13/l13/auditoria-2-*/veredito.json)"
+    }
+   ]
+  },
+  {
+   "id": "C-plano-lista-canto-reto",
+   "secao": "C",
+   "estado": "publicado",
+   "sha": "b66e06c",
+   "pr": "#28",
+   "lote": "L32",
+   "rodada": 22,
+   "titulo": "Linha atual da lista \"Semanas do plano\" cobre os cantos arredondados do cartão",
+   "prova": "SPEC.md:3034 (§22.15 item 8); components/colecoes/tela-colecao.tsx (lista overflow-hidden, raio 16,8 px); e2e/ultraloop-l32.spec.ts:447 (semanas 1 e 12, dois temas)",
+   "origens": [
+    {
+     "fonte": "PROGRESSO (Rodada 12/13 — Lote 13, menores da auditoria 2 ou verificação em produção)",
+     "id_original": "Linha atual da lista \"Semanas do plano\" cobre os cantos arredondados do cartão",
+     "origem": "R13/L13"
+    }
+   ]
+  },
+  {
+   "id": "C-l14-inventario-ficha-folha-como-abre",
+   "secao": "C",
+   "estado": "publicado",
+   "sha": "b66e06c",
+   "pr": "#28",
+   "lote": "L32",
+   "rodada": 22,
+   "titulo": "Inventário da §22.14 item 6: a linha da ficha-folha não cita todos os jeitos de abrir",
+   "prova": "SPEC.md:2786 e :3045 (§22.14 item 6 com os quatro gatilhos; §22.15 item 9); lib/l32.test.ts:261 (grep de <FichaEmFolha)",
+   "origens": [
+    {
+     "fonte": "PROGRESSO (L14, rodada 16)",
+     "id_original": "inventário: ficha-folha também abre de lista.tsx e lista-da-colecao.tsx",
+     "origem": "menor da auditoria 1 em a68ea7f (r17/l14/auditoria-1-regra/veredito.json)"
+    }
+   ]
+  },
+  {
+   "id": "C-l14-tag-equipamento-sem-sinal-visual",
+   "secao": "C",
+   "estado": "publicado",
+   "sha": "b66e06c",
+   "pr": "#28",
+   "lote": "L32",
+   "rodada": 22,
+   "titulo": "Tags de equipamento com e sem link têm o mesmo visual",
+   "prova": "SPEC.md:3054 (§22.15 item 10); components/exercicio/ficha-folha.tsx (data-tag-equipamento link com contorno ≥ 3:1, sublinhado e ›; texto sem pílula); e2e/ultraloop-l32.spec.ts:537; fumaça: 'data-tag-equipamento' no grafo de app/(app)/exercicios/[id]/page-532eadbe73c9150f.js",
+   "origens": [
+    {
+     "fonte": "PROGRESSO (L14, rodada 16)",
+     "id_original": "pílula sem coleção igual às que são link",
+     "origem": "menor da auditoria 1 em a68ea7f (lente tela) e da correção da rodada 16 do construtor"
+    }
+   ]
   }
  ],
  "descartados": [
@@ -9798,6 +9867,16 @@
    "deployment": "dpl_5Mf1KbpBMicAu5TRhz4y6s9UopPJ",
    "no_ar": "2026-09-23T23:34Z",
    "nota": "rodada 17 construiu (auditoria 2 reprovou), rodada 18 retomou (auditoria 1 em 8b54cf1 reprovou: saída de urlInterna), rodada 19 corrigiu; auditoria 2 em 96056ac aprovada (0/0/10); migração 2026_09_23_lembretes_inscricoes aplicada pelo orquestrador às 23:25 UTC"
+  },
+  {
+   "rodada": 22,
+   "lote": "L32",
+   "titulo": "Sobras das auditorias: ficha e coleções do Explorar",
+   "pr": "#28",
+   "sha": "b66e06c",
+   "deployment": "dpl_8vLMG3r1hamomsdzPK5CMi4Q28Ly",
+   "no_ar": "2026-09-24T11:23Z",
+   "nota": "rodada 21 construiu (auditoria 2 reprovou: 1 bloqueante, nome acessível com artigo; 1 importante, SPEC §22.15 item 6), rodada 22 retomou; auditoria 1 em bb5adca aprovada (0/0/7); cadeia de e6f42b2 falhou:e2e só pelos 2 instáveis de a-r4 (2× verdes sozinhos), varredura 5/5 à parte em f36db69"
   }
  ],
  "marcos_anteriores_ao_ultraloop": [
@@ -9842,62 +9921,11 @@
    ]
   },
   {
-   "codigo": "L32",
-   "titulo": "Sobras das auditorias: ficha e coleções do Explorar",
-   "area": "ficha",
-   "ordem": 2,
-   "itens": [
-    "C-l13-key-musculos-sem-teste",
-    "C-media-grande-figura-quebrou-herdada",
-    "C-alt-execucao-genero",
-    "C-l13-aceite-lcp-vs-ordem",
-    "C-busca-linha-reservada-vazia",
-    "C-busca-corda-capa-icone",
-    "C-plano-progresso-repete-desafio",
-    "C-plano-lista-canto-reto",
-    "C-l14-inventario-ficha-folha-como-abre",
-    "C-l14-tag-equipamento-sem-sinal-visual"
-   ],
-   "arquivos": [
-    "components/exercicio/ficha-folha.tsx",
-    "components/exercicio/media-grande.tsx",
-    "components/exercicio/midia.tsx",
-    "components/exercicio/ilustracao-alternada.tsx",
-    "lib/midia.ts",
-    "components/colecoes/linha-colecao.tsx",
-    "components/colecoes/tela-colecao.tsx",
-    "lib/colecoes.ts",
-    "e2e/ultraloop-l32.spec.ts (novo)",
-    "SPEC.md",
-    "PROGRESSO.md"
-   ],
-   "telas_esperadas": [
-    "09-ficha-exercicio",
-    "10-ficha-folha",
-    "06-explorar",
-    "07-colecao",
-    "28-player-exercicio"
-   ],
-   "medios": 0,
-   "observacoes": "Criado em 23/09 pelo orquestrador com os menores que as auditorias e a verificação em produção do L13 deixaram (nada fora da fila). Roda logo depois do L14, que também edita a ficha. Rodada 16: + 2 menores do L14 (inventário da ficha-folha e sinal visual das tags de equipamento), sem arquivo novo.",
-   "excecao": {
-    "tipo": "área",
-    "itens": [
-     "C-busca-linha-reservada-vazia",
-     "C-busca-corda-capa-icone",
-     "C-plano-progresso-repete-desafio",
-     "C-plano-lista-canto-reto"
-    ],
-    "motivo": "Sobras do L13, que já juntava ficha e coleções do Explorar com exceção de área; os arquivos são os mesmos do L13."
-   },
-   "excecao_de_ordem": []
-  },
-  {
    "codigo": "L19",
    "codigo_anterior": "L19",
    "titulo": "Player: preparação e série; '%' colado nos textos",
    "area": "player",
-   "ordem": 3,
+   "ordem": 2,
    "itens": [
     "B-player-substituir-passo-atual",
     "ux-heuristicas-12",
@@ -9953,7 +9981,7 @@
    "codigo": "L36",
    "titulo": "Sobras do L34: lembretes (provas, textos e bordas)",
    "area": "lembretes",
-   "ordem": 4,
+   "ordem": 3,
    "itens": [
     "C-l34-notificationclick-sem-aba",
     "C-l34-rls-postgres-real",
@@ -9984,14 +10012,18 @@
    "codigo": "L33",
    "titulo": "Sobras do L14: ficha, catálogo e camadas modais",
    "area": "ficha",
-   "ordem": 5,
+   "ordem": 4,
    "itens": [
     "C-l14-super-band-dois-filtros",
     "C-l14-criterio-repeticao-numeros",
     "C-l14-nada-repetido-espelho-dom",
     "C-l14-historico-carregando-perfil",
     "C-l14-veu-ramo-morto",
-    "a11y-voltar-fecha-camada"
+    "a11y-voltar-fecha-camada",
+    "C-l32-guarda-artigo-estreita",
+    "C-l32-e2e-nomes-a-mao",
+    "C-l32-texto-aba-progresso",
+    "C-l32-plano-capa-sem-o-dono"
    ],
    "arquivos": [
     "lib/catalogo.ts",
@@ -10004,17 +10036,28 @@
     "lib/camada-modal.test.ts",
     "e2e/ultraloop-l14.spec.ts",
     "e2e/ultraloop-l33.spec.ts (novo)",
+    "lib/l32.test.ts",
+    "e2e/ultraloop-l32.spec.ts",
+    "lib/colecoes.ts",
+    "components/colecoes/tela-colecao.tsx",
     "SPEC.md",
     "PROGRESSO.md"
    ],
    "telas_esperadas": [
     "08-catalogo",
     "09-ficha-exercicio",
-    "10-ficha-folha"
+    "10-ficha-folha",
+    "07-colecao"
    ],
    "medios": 2,
-   "observacoes": "Criado na rodada 16 (registro do deploy do L14) com o que o L14 deixou registrado sem fazer: menores do construtor e das auditorias, e o item novo a11y-voltar-fecha-camada (área ficha, como o a11y-05 que o originou). Roda logo depois do L32, o próximo lote da área, que ficou com 10 itens.",
-   "excecao": null,
+   "observacoes": "Criado na rodada 16 (registro do deploy do L14) com o que o L14 deixou registrado sem fazer: menores do construtor e das auditorias, e o item novo a11y-voltar-fecha-camada (área ficha, como o a11y-05 que o originou). Roda logo depois do L32, o próximo lote da área, que ficou com 10 itens. Rodada 22: + 4 sobras do L32 (guarda do artigo, nomes à mão no e2e, aba Progresso no texto, capa do plano sem o dono), fica com 10.",
+   "excecao": {
+    "tipo": "área",
+    "itens": [
+     "C-l32-plano-capa-sem-o-dono"
+    ],
+    "motivo": "Sobra do L32, que já juntava ficha e coleções do Explorar com exceção de área; os arquivos são os mesmos do L32."
+   },
    "excecao_de_ordem": []
   },
   {
@@ -10022,7 +10065,7 @@
    "codigo_anterior": "L15",
    "titulo": "Corpo: peso, gráficos e campo de data",
    "area": "corpo",
-   "ordem": 6,
+   "ordem": 5,
    "itens": [
     "a11y-01",
     "tela-relatorio-corpo-calendario-12",
@@ -10069,7 +10112,7 @@
    "codigo_anterior": "L16",
    "titulo": "Corpo: medidas, fotos, data no celular e um verbo só para salvar",
    "area": "corpo",
-   "ordem": 7,
+   "ordem": 6,
    "itens": [
     "tela-relatorio-corpo-calendario-17",
     "tela-relatorio-corpo-calendario-18",
@@ -10120,7 +10163,7 @@
    "codigo_anterior": "L17",
    "titulo": "Casca: carregamento, rotas pesadas, zoom e bloco de sincronização",
    "area": "casca",
-   "ordem": 8,
+   "ordem": 7,
    "itens": [
     "C-loading-por-rota",
     "C-next-dynamic-rotas-pesadas",
@@ -10185,7 +10228,7 @@
    "codigo_anterior": "L18",
    "titulo": "Cardio e barra fixa",
    "area": "cardio",
-   "ordem": 9,
+   "ordem": 8,
    "itens": [
     "ux-heuristicas-17",
     "ux-heuristicas-18",
@@ -10233,7 +10276,7 @@
    "codigo_anterior": "L19b (censo)",
    "titulo": "Player: descanso, preparação e o caminho até o player",
    "area": "player",
-   "ordem": 10,
+   "ordem": 9,
    "itens": [
     "tela-treino-player-06",
     "tela-treino-player-07",
@@ -10281,7 +10324,7 @@
    "codigo_anterior": "L20",
    "titulo": "Player: firme, conclusão e Visão geral",
    "area": "player",
-   "ordem": 11,
+   "ordem": 10,
    "itens": [
     "tela-treino-player-29",
     "tela-treino-player-27",
@@ -10339,7 +10382,7 @@
    "codigo_anterior": "L21",
    "titulo": "Sem rede: sinal, fila, mensagens e sincronização",
    "area": "pwa",
-   "ordem": 12,
+   "ordem": 11,
    "itens": [
     "pwa-offline-01",
     "pwa-offline-06",
@@ -10385,7 +10428,7 @@
    "codigo_anterior": "L22",
    "titulo": "Instalação, cache de mídia e cor da barra",
    "area": "pwa",
-   "ordem": 13,
+   "ordem": 12,
    "itens": [
     "pwa-offline-03",
     "pwa-offline-04",
@@ -10437,7 +10480,7 @@
    "codigo_anterior": "L23",
    "titulo": "Mais: textos, linhas e prefetch",
    "area": "mais",
-   "ordem": 14,
+   "ordem": 13,
    "itens": [
     "copy-02",
     "copy-09",
@@ -10487,7 +10530,7 @@
    "codigo_anterior": "L23b (triagem-26)",
    "titulo": "Copy e mensagens: dia da semana, intervalo, perfil, backup e login",
    "area": "copy",
-   "ordem": 15,
+   "ordem": 14,
    "itens": [
     "copy-07",
     "copy-24",
@@ -10537,7 +10580,7 @@
    "codigo_anterior": "L24",
    "titulo": "Relatório: números, aviso, esqueleto e leituras repetidas",
    "area": "relatorio",
-   "ordem": 16,
+   "ordem": 15,
    "itens": [
     "C-relatorio-no-total-3-linhas",
     "C-aviso-conquista-regiao-viva",
@@ -10585,7 +10628,7 @@
    "codigo_anterior": "L25",
    "titulo": "Calendário: faixa, legenda e semana navegada",
    "area": "calendario",
-   "ordem": 17,
+   "ordem": 16,
    "itens": [
     "C-dois-vocabularios-da-marca",
     "C-legenda-faixa-ponto-orfao",
@@ -10633,7 +10676,7 @@
    "codigo_anterior": "L26",
    "titulo": "Aba Treino: cabeçalho, faixa fixa e avisos",
    "area": "treino",
-   "ordem": 18,
+   "ordem": 17,
    "itens": [
     "C-treino-h1-data-duas-linhas",
     "C-faixa-fixa-texto-cortado",
@@ -10641,7 +10684,8 @@
     "C-ajustar-sob-toast",
     "C-desafios-largura-inerte",
     "C-ajustes-gravacao-700ms",
-    "C-l14-recomecar-do-zero-foco-inicial"
+    "C-l14-recomecar-do-zero-foco-inicial",
+    "C-a-r4-faixa-fixa-instavel-sob-carga"
    ],
    "arquivos": [
     "components/treino/cabecalho.tsx",
@@ -10653,6 +10697,7 @@
     "components/treino/desafios.tsx",
     "components/mais/ajustes-do-treino.tsx",
     "e2e/ultraloop-l28.spec.ts (novo)",
+    "e2e/ultraloop-a-r4.spec.ts",
     "SPEC.md (§22.7 item 2)",
     "PROGRESSO.md"
    ],
@@ -10662,16 +10707,16 @@
     "19-preferencias"
    ],
    "medios": 0,
-   "observacoes": "C consolidado da auditoria do L7 (quatro passadas). O C-scroll-padding-global não está aqui: foi publicado no L7 (PR #13). O candidato C-cta-desafios-duas-fontes está no L12; se o L12 não o publicar, volta para cá. v3: sem mudança de itens. Rodada 16: + foco inicial do 'Recomeçar do zero?' (menor da auditoria do L14; retomada.tsx já está no lote).",
+   "observacoes": "C consolidado da auditoria do L7 (quatro passadas). O C-scroll-padding-global não está aqui: foi publicado no L7 (PR #13). O candidato C-cta-desafios-duas-fontes está no L12; se o L12 não o publicar, volta para cá. v3: sem mudança de itens. Rodada 16: + foco inicial do 'Recomeçar do zero?' (menor da auditoria do L14; retomada.tsx já está no lote). Rodada 22: + e2e da faixa fixa instáveis sob carga (a-r4 :227/:284, pré-condição do L32).",
    "excecao": null,
    "excecao_de_ordem": [],
    "secoes": {
     "B": 0,
-    "C": 6,
+    "C": 7,
     "D": 0
    },
    "areas_dos_itens": {
-    "treino": 6
+    "treino": 7
    }
   },
   {
@@ -10679,7 +10724,7 @@
    "codigo_anterior": "L27",
    "titulo": "Player: pendências das auditorias do L5",
    "area": "player",
-   "ordem": 19,
+   "ordem": 18,
    "itens": [
     "C-descanso-sinal-visivel",
     "C-rotulo-do-campo-de-carga",
@@ -10726,7 +10771,7 @@
    "codigo_anterior": "L28",
    "titulo": "Processo, testes e documentação",
    "area": "processo",
-   "ordem": 20,
+   "ordem": 19,
    "itens": [
     "C-capturas-rotulos-antigos",
     "C-fab-ajustar-nomes-e-docs",
@@ -10771,7 +10816,7 @@
    "codigo_anterior": "L29",
    "titulo": "D: medidas antes/depois, processo e scripts",
    "area": "D",
-   "ordem": 21,
+   "ordem": 20,
    "itens": [
     "R9-C1",
     "D-abertura-11s-aparelho-zerado",
@@ -13722,6 +13767,7 @@
   "23/09: L13 publicado (PR #21, a0bcfcf, rodada 13): os 10 itens foram para resolvidos; 3 observações não feitas entraram como C pendentes (C-l13-aceite-lcp-vs-ordem, C-plano-progresso-repete-desafio, C-busca-corda-capa-icone) e o H1 → H3 da ficha ficou como nota no tela-explorar-fichas-21 (L14), que já o cobre.",
   "23/09: L14 publicado (PR #23, 0f730c9, rodada 16): os 10 itens foram para resolvidos (copy-25 e tela-explorar-fichas-26 com o aceite ajustado na SPEC §22.14, com nota). 15 itens C novos, todos com lote: os 9 menores da auditoria 1 em a68ea7f (um deles igual ao menor do construtor sobre as tags), 4 menores só registrados pelo construtor (Super Band, critério com números, espelho × DOM, carregando sem o perfil) e os 2 itens novos declarados na SPEC (a11y-voltar-fecha-camada, a11y-visao-geral-foco-ao-abrir). Vão para L32 (2, fica com 10), L33 novo logo depois do L32 (6), L29 (3), L16 (1), L28 (1) e L30 (2). Além disso, C-visao-geral-esc-camada (L29) foi para resolvidos: o L14 o resolveu na rodada 15 (visao-geral.tsx:110, e2e/ultraloop-l14.spec.ts:1039).",
   "23/09: L34 publicado (PR #25, 905815d, rodada 18): os 6 itens LEM do lote foram para resolvidos. 11 itens C novos, todos com lote: os 10 menores da auditoria 2 em 96056ac deduplicados com os 4 itens não feitos do construtor (notificationclick sem aba, RLS no Postgres real, badge monocromático, passo 3) e o Sair × inscrição anotado na SPEC §23 para o L35. Vão para L35 (4, fica com 10) e L36 novo logo depois do L35 (7).",
-  "24/09 09:40 UTC (orquestrador): + B-player-substituir-passo-atual no L19; L19 sobe para 3º na ordem (depois de L35 e L32)."
+  "24/09 09:40 UTC (orquestrador): + B-player-substituir-passo-atual no L19; L19 sobe para 3º na ordem (depois de L35 e L32).",
+  "24/09: L32 publicado (PR #28, b66e06c, rodada 22): os 10 itens C do lote foram para resolvidos. 5 itens C novos, todos com lote: 4 menores da auditoria 1 em bb5adca (guarda do artigo, nomes à mão no e2e, aba Progresso no texto, capa do plano sem o dono) no L33 (fica com 10) e os 2 e2e instáveis de a-r4 no L28. O defeito do Substituir no passo atual (B-player-substituir-passo-atual) continua no L19, não é deste lote."
  ]
 }

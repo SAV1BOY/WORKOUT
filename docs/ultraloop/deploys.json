@@ -744,5 +744,59 @@
       "conta_apagada_utc": "00:00",
       "contas_restantes": 3
     }
+  },
+  {
+    "rodada": 22,
+    "data": "2026-09-24",
+    "hora_merge_utc": "11:20:54",
+    "hora_no_ar_utc": "11:23:07",
+    "duracao_min": 2,
+    "lotes": [
+      "L32-ficha-sobras"
+    ],
+    "merges": [
+      "183f6d4"
+    ],
+    "commit_auditoria": "6304ebb252f24d951ff48896fae3b110be9fee28",
+    "pr": "https://github.com/SAV1BOY/WORKOUT/pull/28",
+    "main_sha": "b66e06c0b29ed38015fb8a4bc4832303b0d59135",
+    "deployment_anterior": "dpl_7NnouXJ8g8pJuN8uL6TMb9pEpMJy",
+    "deployment_novo": "dpl_8vLMG3r1hamomsdzPK5CMi4Q28Ly",
+    "versao_prod": "b66e06c0b29ed38015fb8a4bc4832303b0d59135",
+    "versao_anterior": "c689f69c5ec4283d18f6ea8052998746f655a99d",
+    "css_login": "/_next/static/css/0d00d758a656b055.css -> /_next/static/css/720080b174380029.css",
+    "revisao_codex": "Codex Review Summary Completed em 6304ebb (11:17:29Z), 0 threads, 0 sugestoes",
+    "portoes": {
+      "lint": "limpo",
+      "tsc": "limpo",
+      "unitarios": 1643,
+      "e2e": 573,
+      "e2e_instaveis": 2,
+      "e2e_pulados": 5,
+      "varredura": "5/5 (a parte, em f36db69, mesmo codigo de e6f42b2)",
+      "build": "Compiled successfully",
+      "status_cadeia": "falhou:e2e (e2e/ultraloop-a-r4.spec.ts:227 e :284, 2x verdes sozinhos: instavel sob carga)",
+      "e2e_repetido_na_integracao": false,
+      "integracao": "6304ebb: lint limpo, tsc limpo, 74 arquivos / 1643 testes"
+    },
+    "conflito_merge": "nenhum (integracao == origin/main c689f69)",
+    "fumaca": {
+      "itens": 21,
+      "ok": 21,
+      "falhou": 0,
+      "execucoes": 4,
+      "execucoes_verdes_completas": 3,
+      "detalhe": "/login 200 + 'Treino do Terraco' + 'Entrar' + sem 'Configure NEXT_PUBLIC_SUPABASE_URL' + sem 'e secreta'; / -> 307 /login; /versao == sha; /sw.js 200 + /~offline + figuras/ + mesmo css; /manifest.webmanifest 200 + 'Treino do Terraco'; /~offline 200; 14 scripts 200; chunk app/(app)/exercicios/[id]/page-532eadbe73c9150f.js listado no sw.js com 'data-tag-equipamento' no grafo (chunk 2246); chunk app/(app)/explorar/page-3404600d65825d84.js listado com 'sem-subtitulo'",
+      "nota": "3a execucao (11:27) 20/21: main-app-d79e3bdb088a7b26.js voltou 000 (curl sem resposta), 3x 200 logo depois; 4a execucao (11:30) 21/21"
+    },
+    "sonda_360": "OK — /login e /~offline sem erro de console, scrollWidth 360 = clientWidth",
+    "capturas": "07-colecao claro e escuro de r22/l32/capturas-e6f42b2 copiados para base-ef3ad97; indice.json head=b66e06c; wt-base nao avancado",
+    "migracao_banco": "nenhuma",
+    "rollback": "nao",
+    "problemas": [
+      "pre-condicao literal nao cumprida: r22/l32/logs/e6f42b2.status = falhou:e2e (2 instaveis de a-r4, 2x verdes sozinhos; varredura 5/5 a parte em f36db69); lote publicado porque o orquestrador o aprovou com a nota da auditoria (instavel sob carga nao bloqueia); virou C-a-r4-faixa-fixa-instavel-sob-carga no L28",
+      "list_aliases com domain='treino-terraco.vercel.app' voltou vazio; deploymentId lido da listagem do projeto sem filtro de dominio",
+      "fumaca: 1 script voltou 000 numa das 4 execucoes (transitorio de rede do lado do curl)"
+    ]
   }
 ]
