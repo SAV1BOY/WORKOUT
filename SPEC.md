@@ -3102,8 +3102,10 @@ vizinhos citados) ou no e2e (`e2e/ultraloop-l33.spec.ts`).
    objeto continua um só (§22.14 item 9: `NOME_IMPLEMENTO.band` é
    `NOME_EQUIPAMENTO['super-band']`). Aceite: Vitest — para todo par
    implemento × equipamento dos 81, rótulos iguais só com resultados iguais;
-   os três que mudam e os três que ficam; mutação — sem o sufixo, o teste
-   cai. e2e — na folha, as opções de Implemento têm "Super Band (principal)"
+   os três que mudam e os três que ficam; numa lista sintética com o mesmo
+   tamanho nos dois filtros (1 × 1) e exercícios diferentes, ainda
+   "(principal)" (nos 81 não há esse caso); mutação — sem o sufixo, ou
+   comparando só o tamanho das listas, o teste cai. e2e — na folha, as opções de Implemento têm "Super Band (principal)"
    e as de Equipamento "Super Band"; com os dois ligados, os dois chips têm
    textos diferentes; nada vaza a largura.
 2. **O critério "nada repetido" compara palavras inteiras**
@@ -3148,7 +3150,9 @@ vizinhos citados) ou no e2e (`e2e/ultraloop-l33.spec.ts`).
    também fica fora do `inert` — o que não faz mal (ele não é focável e fica
    coberto pelo véu de cima). O ramo `data-veu` sai, e o §22.14 item 6 passa
    a dizer "os véus das camadas do Radix". Aceite: grep de `data-veu` em
-   `app/`, `components/` e `lib/`: nada; `lib/camada-modal.test.ts` verde.
+   `app/`, `components/` e `lib/`: nada — o grep é um Vitest em
+   `lib/l33.test.ts` (o ramo de volta derruba o teste);
+   `lib/camada-modal.test.ts` verde.
 6. **O voltar do celular fecha a camada de cima em qualquer página**
    (a11y-voltar-fecha-camada). Fora da Visão geral, nenhuma camada tinha
    entrada no histórico: com os filtros do catálogo, a foto ampliada ou um
@@ -3180,9 +3184,18 @@ vizinhos citados) ou no e2e (`e2e/ultraloop-l33.spec.ts`).
    ao de antes (nenhuma entrada sobrando); o "Ver resultados" dos filtros
    também volta o índice e deixa o primeiro resultado à vista; dentro da
    Visão geral, o índice não sobe ao abrir a folha (os e2e do §22.14 item 6
-   continuam). A entrada morta fica no Vitest: a ficha em folha não tem
-   link para outra rota (as tags e o "Aparece em" só existem na página), e
-   o e2e que a seguia não achou o link.
+   continuam). A entrada morta pelo caminho real, nos dois temas: no
+   Calendário, o diálogo de um dia passado com treino tem o link "Abrir o
+   treino"; tocar nele leva a `/treinar/<id>` com a entrada do diálogo morta
+   embaixo (índice +2); um `history.back()` volta direto a `/calendario`,
+   sem diálogo e sem `[inert]`, no índice de antes de abrir; um
+   `history.forward()` volta direto a `/treinar/<id>` (índice +2) — nenhum
+   passo gasto na entrada morta, nas duas direções. (A ficha em folha não
+   serve para isso: ela não tem link para outra rota.) Fica de fora, e
+   custa no máximo um toque: recarregar com a camada aberta deixa o usuário
+   numa entrada morta sem ouvinte, e o avançar que chega a uma entrada morta
+   de **outro** documento não a pula (o ouvinte do `popstate` só existe
+   depois de a primeira camada abrir no documento).
 7. **A guarda do artigo antes do nome pega o que escapava**
    (C-l32-guarda-artigo-estreita). O grep de `lib/l32.test.ts` (§22.15 item
    3) só pegava template numa linha e expressão terminada em `nome`.
@@ -3193,7 +3206,8 @@ vizinhos citados) ou no e2e (`e2e/ultraloop-l33.spec.ts`).
    ("Começar o ${resumo.nome}") e o da fase. Aceite: Vitest — mutações que
    escrevem "Nota do ${nomeDoExercicio}", um template quebrado em duas
    linhas e "a ${ex.nome}" num arquivo de `components/` derrubam o teste;
-   sem mutação, verde.
+   uma chamada antes do `.nome` ("o ${acharExercicio(id).nome}") também é
+   pega; sem mutação, verde.
 8. **O e2e do L32 lê os nomes dos dados** (C-l32-e2e-nomes-a-mao). A lista
    `doTreino` de `e2e/ultraloop-l32.spec.ts` tinha "Agachamento livre" e
    "Supino reto com barra" escritos à mão. Agora os quatro vêm de
