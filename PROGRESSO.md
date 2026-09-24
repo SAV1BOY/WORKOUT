@@ -11643,3 +11643,81 @@ resposta ≥ 400, nos dois temas. Uma primeira tentativa do tema claro foi
 descartada por falha do script de medida (o guia da primeira entrada abriu
 depois da espera) e refeita inteira. **Conta de teste apagada** às 00:00 UTC
 (ficam só as 3 contas reais).
+
+### Rodada 23 — Lote 19 — Player: Substituir no passo atual, preparação e série
+
+Branch `polimento/l19-player`, a partir de `main` `c689f69` (faixa D,
+worktree `/home/user/wt-d`, portas 3130/54351). SPEC §22.16 escrita antes do
+código (commit `b499ff1`). Seis itens da seção B do ledger (o player) e um
+por exceção de área (o `%` colado). O primeiro é um **defeito do fluxo
+principal**: "Substituir" o exercício do passo atual deixava o player no
+esqueleto até recarregar. `lib/progressao.ts` e `lib/montagem.ts`:
+`git diff c689f69` vazio.
+
+#### O que mudou
+
+1. **"Substituir" no passo atual não trava mais o player**
+   (B-player-substituir-passo-atual; `lib/player.ts`,
+   `components/player/tela-player.tsx`). **Era:** a chave do passo é
+   `serie:<id>`; `substituirExercicio` (`lib/sessao.ts`) recria as séries com
+   ids novos, `indiceDaChave` dava -1 e a tela caía no `EsqueletoCard` (só
+   barras cinzas, sem "Concluir série") até recarregar — pela ficha ("?" →
+   Substituir) e pela Visão geral ("substituir hoje"). **É:** o estado do
+   player anota o exercício do passo (`EstadoPlayer.ordem`; o descanso anota
+   o do passo antes dele) e a posição sai de `indiceDoEstado()` (pura): a
+   chave salva enquanto existir; senão, no mesmo exercício, a primeira série
+   que falta (a série 1 do exercício novo), o "firme?" dele quando não falta
+   nenhuma, e a retomada para o estado salvo por uma versão anterior. Com a
+   sequência não vazia nunca devolve -1. O passo achado vai para o Dexie na
+   hora (efeito em `tela-player.tsx`). Trocar um exercício anterior ou
+   posterior deixa o player onde estava. `lib/sessao.ts` não mudou: a troca
+   continua a da §3.2 (as séries do exercício trocado saem, o registro fica
+   com o substituto).
+2. **Preparação com saída e "Visão geral"** (ux-heuristicas-12, absorve o
+   tela-treino-player-08; `components/player/preparacao.tsx`,
+   `tela-player.tsx`). **Era:** dois controles ("Como fazer" e "Começar
+   agora"); só se saía pelo voltar do sistema. **É:** no topo, "Sair do
+   treino" (link para a aba Treino, como o "Continuar depois" da Visão
+   geral; a sessão fica aberta e a aba diz "Continuar") à esquerda e "Visão
+   geral do treino" à direita; fechar a Visão geral devolve o foco ao ícone.
+   A tela ganhou o `h1` só-leitor ("Treino A — preparação").
+3. **Preparação centrada** (tela-treino-player-09; `preparacao.tsx`).
+   **Era:** `flex-1 justify-center` num `main` que não é flex — o conteúdo
+   acabava em y≈460 e sobravam ~280 px embaixo. **É:** a preparação ocupa a
+   tela inteira (`fixed inset-0`, como a Visão geral) e o bloco fica no meio
+   dela, com `py-20` dos dois lados para nunca encostar no topo.
+4. **"Prepare-se"** (copy-21; `preparacao.tsx`, `e2e/player.spec.ts:108`,
+   `e2e/treino.spec.ts:349`). **Era:** "Preparado para começar" (masculino
+   para qualquer conta, §21). **É:** "Prepare-se". Os textos do player
+   dirigidos ao usuário foram varridos: nenhum outro adjetivo com gênero.
+5. **Um ponto por série do exercício** (tela-treino-player-12;
+   `lib/player.ts`, `components/player/exercicio.tsx`). **Era:** só a barra
+   de 4 px da sessão e a linha miúda "Aquecimento 1 de 2 · exercício 1 de 6".
+   **É:** abaixo do nome, os pontos de `pontosDoBloco()` — cheio = feita,
+   contorno = a fazer, a atual com contorno na cor de destaque, aquecimento
+   menor (10 px) que a série de trabalho (14 px) —, com o nome acessível
+   "Aquecimento 1 de 2 · 0 de 5 séries feitas" (`role="img"`). A barra da
+   sessão fica ("Progresso do treino"). A figura desceu de `h-40` para
+   `h-36` (160 → 144 px) para o passo caber na mesma altura
+   (`lib/midia-faixa-l13.test.ts` e a SPEC §22.13 acompanham).
+6. **Topo da série com dois ícones; polegares junto do nome, com aviso e
+   "Desfazer"** (ux-heuristicas-22, absorve o tela-treino-player-11;
+   `exercicio.tsx`, `lib/player.ts`). **Era:** quatro ícones sem texto no
+   topo, três deles a 2 px um do outro (`gap-0.5`), e os votos mudando as
+   listas em silêncio. **É:** topo com "Visão geral do treino" e "Ajustar";
+   "Gostei"/"Não gosto" na linha do nome, ao lado do "?", com 8 px entre os
+   alvos; cada toque mostra `avisoDoVoto()` com "Desfazer" (o voto de antes
+   volta). O "não gosto" diz o que faz de verdade ("… vai para o fim das
+   listas de substitutos e do Explorar.") — a proposta da análise ("não
+   vamos mais montar este exercício") prometia o que o app não faz.
+   **Aceite ajustado:** o desfazer volta a *nenhum voto*, então o
+   `aria-pressed` some (§22.1 item 5), em vez de ir a `false`.
+7. **O `%` colado** (OBS-porcentagem-com-espaco, exceção de área;
+   `data/progressao.json` ×3, `components/treino/tela-treino.tsx`,
+   `components/exercicios/historico-exercicio.tsx`, `lib/guia.ts`,
+   `lib/retomada.ts`, `lib/ficha.test.ts`). **Era:** "60 %"/"10 %" em sete
+   textos. **É:** "60%"/"10%". O aceite pede `data/*.json` inteiro, então a
+   linha do copy-19 (`data/cardio.json`, "20–25 %" → "20–25%", do L18)
+   também mudou — um caractere; a tela do cardio continua com o L18. O grep
+   `[0-9][[:space:]]%` em `data/ lib/ components/ app/` agora só devolve
+   comentários (e nomes de teste).
