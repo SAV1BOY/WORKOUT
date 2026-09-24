@@ -12590,3 +12590,221 @@ bloqueante nem importante):
    treino" → voltar: você cai direto no Calendário, sem o diálogo e sem um
    voltar "vazio" no meio; o avançar (menu do Chrome) leva de volta ao
    treino num toque só.
+
+#### Rodada 25 — deploy parado pela revisão do Codex (PR #31 fechado)
+
+A auditoria 2 (HEAD `e3bd441`) aprovou nas duas lentes: 0 bloqueantes, 0
+importantes e 6 menores em cada uma. No deploy, o L33 entrou na integração
+(merge `bb2f168`, veredito `561dd32`; lint e `tsc` limpos, `npm test` 75
+arquivos e 1.661 testes em `561dd32`) e abriu o PR #31. A revisão do Codex
+em `561dd32` achou **um defeito real (P2)** em
+`components/ui/camada-modal.ts:129-131`. A variável `direcao` só mudava no
+ouvinte `navigate` da Navigation API. Sem ela (Safari do iPhone, que é o
+aparelho do dono, e Firefox antigo), `direcao` ficava sempre −1. O caminho
+que falha: um link dentro da camada leva à rota B; o voltar pula a entrada
+morta, e isso está certo; o **avançar** chega à entrada morta,
+`aoAndarNoHistorico` diz `morta: true` e `aoAndar` chama
+`history.back()`, então o avançar nunca volta a B. A SPEC §22.17 item 6 pede
+o pulo "nas duas direções", e a exceção declarada só cobria recarregar e
+outro documento. O e2e rodava só no Chromium, que tem a API, e por isso não
+pegou. O PR foi **fechado sem merge**, e a integração tirou o L33 em
+`da8e07b` (revert de `bb2f168` e `561dd32`; o diff contra `432478e` ficou
+vazio). Produção continuou em `17075d7` (`dpl_BnU3iAfwWoQj65THcFQXtkfLbqTf`),
+sem deploy nem rollback. Para reintegrar, o deploy reverte `da8e07b` antes
+do merge.
+
+#### Rodada 28 — correção (revisão do Codex no PR #31) — Correção da auditoria
+
+Branch `polimento/l33-ficha-catalogo`, sobre `e3bd441`. A SPEC veio antes do
+código (`0bdae58`). `git diff 17075d7 -- lib/progressao.ts lib/montagem.ts`
+continua vazio. Nenhum arquivo das faixas B e D foi tocado e o banco não
+mudou.
+
+##### O que mudou (era → é)
+
+- **A direção do passo sem a Navigation API**
+  (`components/ui/camada-modal.ts`, `lib/camada-modal.ts`). Era: `direcao`
+  vinha só do evento `navigate` da Navigation API e, sem ela, valia "voltou".
+  No Safari do iPhone, o avançar até a entrada morta voltava para
+  `/calendario`. É: uma **régua** própria, feita só do que o app grava no
+  histórico. Cada entrada de camada tem um número em `history.state`, e os
+  números crescem na ordem do histórico. Numa entrada de página, que não tem
+  número, a régua fica meio passo acima ou abaixo da entrada de camada
+  vizinha. O link que leva a outra rota põe a régua meio passo acima da
+  morta. O voltar que fecha camadas a põe meio passo abaixo da mais baixa
+  delas. O passo que o app dá por cima da morta a põe meio passo além. No
+  `popstate`, se a entrada que chega tem número maior que a régua, o passo
+  foi para a frente; se tem número menor, foi para trás. **Quando a direção
+  é desconhecida, o app não anda**: a régua `null` depois de recarregar, ou
+  a mesma entrada. Ela nunca vira voltar. O número da entrada continua
+  crescendo depois de recarregar, porque o último fica em `sessionStorage`
+  (a sessão da aba vive junto com o histórico dela; `proximaEntrada`). Sem
+  isso, uma camada aberta depois do recarregar ganharia o número 1, acima
+  de mortas com número maior, e a régua trocaria a direção. O app não usa mais
+  `window.navigation`, então o caminho é o mesmo em todo navegador. As
+  regras puras são `direcaoDoPasso`, `passoNoHistorico`, `reguaAoSair` e
+  `proximaEntrada` (tipos `Regua` e `Direcao`), em `lib/camada-modal.ts`. O componente só
+  guarda a régua e chama as regras.
+- **O avançar depois do Esc** (a borda que a auditoria tinha deixado
+  registrada). Era: depois de fechar pelo Esc, X, toque fora ou "Ver
+  resultados", a entrada desfeita continuava como entrada de avançar. No
+  Chromium, o avançar parava nela (`forward()` sem nada adiante), e era um
+  toque vazio. É: a entrada **sem saída** (desfeita assim, ou fechada pelo
+  voltar) é guardada. Quando o avançar chega nela, o app volta um passo e o
+  usuário fica onde estava.
+- **Testes**. `lib/l33.test.ts` ganhou +11 casos (28 no arquivo): avançar,
+  voltar, desconhecido, recarregado (a régua `null` e o número acima do
+  guardado na sessão), sem saída, a régua numa entrada de
+  página, a camada que sai, o caminho do Calendário (link, voltar, avançar,
+  voltar), duas mortas em rotas seguidas e o avançar depois do Esc.
+  `e2e/ultraloop-l33.spec.ts` ganhou:
+  - `semNavigationApi`: um `page.addInitScript` que apaga `window.navigation`
+    antes de o app carregar. O índice é medido por uma referência guardada
+    antes de apagar, que o app não vê, e `conferirModo` confere que a
+    simulação vale.
+  - `andarNoHistorico`: dá o passo e espera o app assentar, contando os
+    `popstate`.
+  - A entrada morta pelo Calendário em **2 modos × 2 temas**. O voltar e o
+    avançar dão 2 `popstate` cada, e um segundo voltar volta de novo.
+  - O "Não vou treinar hoje" em 2 modos × 2 temas.
+  - O avançar logo depois do Esc em todas as camadas do
+    `voltarFechaACamada`: 2 `popstate`, o índice de antes e nenhum diálogo.
+- **Texto**. SPEC §22.17 item 6: a régua, a entrada sem saída, o aceite
+  novo (Vitest e e2e sem a API) e o que fica de fora (recarregar; avançar
+  até a morta de outro documento; um salto de vários passos pela lista do
+  toque longo); o número guardado na sessão. Item 8: a comparação dos nomes diferencia maiúsculas
+  (menor da auditoria 2). PROGRESSO: a contagem de testes das "Provas"
+  agora tem data, e o texto do item 6 diz o que valia na rodada 25.
+- Commits: `0bdae58` (SPEC), `e7cdc90` (regra pura + Vitest), `16db06c`
+  (componente), `a29af45` (e2e), `f90ec5e` (textos dos menores),
+  `1ff1f49` (SPEC: a numeração na sessão), `b53b857` (`proximaEntrada` +
+  Vitest), `6889dec` (componente).
+
+##### Provas
+
+- Vitest (`npx vitest run lib/l33.test.ts lib/camada-modal.test.ts`):
+  41/41, sendo 28 em `lib/l33.test.ts`. Mutações (desfeitas; logs em
+  `r28/l33/mutacoes/`):
+  - direção desconhecida valendo −1: caem 2 testes, "desconhecido" e
+    "recarregado";
+  - entrada sem saída ignorada: caem 2;
+  - régua do desfeito meio passo acima: cai 1;
+  - `proximaEntrada` sem o número da sessão: cai 1, o "recarregado".
+- e2e no `.next` do build:e2e de `a29af45` (`r28/l33/pre/head-e2e.log`;
+  o spec é o mesmo do HEAD final, e o componente ganhou só a numeração na
+  sessão): `--grep "22.17 item 6"` passou **13 de 13**, em 53,7 s.
+- **Mutação M1**: o componente de `e3bd441` de volta, com a direção pela
+  Navigation API e −1 sem ela (`r28/l33/pre/m1-e2e.log`). **Caem 8 de
+  13**:
+  - os 2 da entrada morta **sem a Navigation API** (claro e escuro), no
+    `waitForURL(/treinar/<id>)` depois do avançar, porque o avançar voltou
+    ao Calendário. É o defeito do Codex reproduzido;
+  - os 6 do avançar depois do Esc **com a API** (filtros, foto e
+    Calendário, dois temas): "Expected 2, Received 1", o avançar parado na
+    entrada desfeita.
+
+  Com a API, a entrada morta passa na M1. É o caso que o e2e antigo cobria,
+  e por isso ele não pegava o defeito.
+- **Mutação M2**: a régua, sem a entrada sem saída
+  (`r28/l33/pre/m2-e2e.log`). **Caem 8 de 13**: todos os avançar depois do
+  Esc, nos dois modos. Depois das mutações, o arquivo foi restaurado por
+  `git checkout`, a árvore ficou limpa e o `.next` foi reconstruído no HEAD.
+
+##### Portões — cadeia inteira em `6889dec`
+
+A cadeia de `f90ec5e` foi interrompida por mim às 16:12. Ela ainda
+esperava o lock no `test` quando decidi guardar a numeração na sessão
+(status `interrompida:test`). Os commits `1ff1f49`, `b53b857` e `6889dec`
+vieram depois dela.
+
+**Execução 1 em `6889dec`**: das 16:12:35 às 16:44:59 UTC, **falhou:e2e**.
+O log está guardado em `r28/l33/logs/6889dec.execucao1-falhou-e2e.log`.
+
+- `lint` e `tsc --noEmit` limpos.
+- `npm test`: **75 arquivos, 1.672 testes**, todos verdes (eram 1.661: +11
+  em `lib/l33.test.ts`).
+- `build`: "Compiled successfully in 22.4s". `build:e2e`: "Compiled
+  successfully in 20.1s".
+- `e2e`: **593 passaram, 1 falhou, 5 pulados** (24,8 min). Os 19 do
+  `ultraloop-l33` passaram, entre eles os 13 do item 6, com e sem a
+  Navigation API.
+- A falha foi em `corpo.spec.ts:142` ("a foto sobe para o bucket e aparece
+  na galeria"): depois do reload, a galeria ainda mostrava o `blob:` local
+  e não a URL assinada. Nesse teste nenhuma camada abre. Rodado sozinho no
+  mesmo `.next`, passou **2 de 2** (7,2 s e 7,1 s; `r28/l33/instavel-1` e
+  `instavel-2`). É instável sob carga: fica anotado e não bloqueia.
+
+**Execução 2 em `6889dec`, a cadeia inteira de novo no mesmo HEAD**
+(`r28/l33/logs/6889dec.log`): das 16:47:11 às 17:27:08 UTC, **status
+`ok`**.
+
+- `lint` e `tsc --noEmit` limpos.
+- `npm test`: **75 arquivos, 1.672 testes**, todos verdes.
+- `build`: "Compiled successfully in 18.9s". `build:e2e`: "Compiled
+  successfully in 19.0s".
+- `e2e`: **594 passaram, 0 falharam, 5 pulados** (26,0 min). Eram 590: +4
+  dos modos sem a Navigation API. Os 5 pulados são os da varredura, que
+  roda à parte.
+- `varredura`: **5 passaram** (4,6 min).
+
+`git diff 17075d7 -- lib/progressao.ts lib/montagem.ts`: vazio.
+
+##### Capturas em `6889dec`
+
+Fonte: `r28/l33/capturas-6889dec.md`. As capturas foram feitas com o
+`.next` do build:e2e da execução 2 e comparadas com a base real de `main`
+(`base-ef3ad97`). Telas declaradas: 08, 09, 10 e 07.
+
+Resultado: 60 PNGs, **nenhuma tela mudou** e as 60 têm Δ 0,00 %. O
+comparador diz "Nenhuma tela mudou fora do esperado". Isso é o esperado:
+a correção só muda o que acontece no voltar e no avançar do histórico, e
+nenhuma das 60 capturas mostra uma camada aberta.
+
+Diffs abertos: `08-catalogo-escuro.diff.png` e
+`10-ficha-folha-claro.diff.png`. Os dois mostram só a base esmaecida, sem
+nenhum pixel marcado.
+
+Servidores derrubados pelo `capturas.sh` (3100 e 54321 → 000). Ele esperou
+o lock, ocupado pelo e2e da faixa D, das 17:27 às ~17:47.
+
+| tela | Δ claro | Δ escuro | o que mudou |
+| --- | ---: | ---: | --- |
+| 08-catalogo (`/exercicios`) | 0,00 % | 0,00 % | nada: a folha de filtros só aparece aberta, e o voltar e o avançar são interação (e2e). |
+| 09-ficha-exercicio | 0,00 % | 0,00 % | nada: a foto ampliada é interação. |
+| 10-ficha-folha | 0,00 % | 0,00 % | nada. |
+| 07-colecao | 0,00 % | 0,00 % | nada. |
+| as outras 26 telas | 0,00 % | 0,00 % | nada. |
+
+##### Menores das auditorias da rodada 25 que ficam registrados
+
+- O item 8 diferencia maiúsculas. Dois títulos do spec do L32 citam nomes
+  em minúsculas. A SPEC agora diz isso; os títulos ficam para a fila.
+- `rotuloDoImplemento(implemento, lista)` passada direto a um `.map` recebe
+  o índice como `lista`. Nenhum chamador faz isso hoje; fica para a fila.
+- A guarda do artigo não pega o JSX com `{" "}` na quebra nem a
+  concatenação `"Carga do " + nome`. Não há caso real; fica para a fila.
+- "Anilha" × "Anilhas"; dois chips iguais quando as listas são iguais
+  (Barra fixa, Barra W, Corda); o título longo do diálogo do dia passado
+  encosta na área do "Fechar" (fora do lote); o foco no `<body>` depois do
+  voltar entre rotas. Ficam para a fila.
+- A pergunta ao dono sobre a capa do plano entra em
+  `docs/ultraloop/perguntas-ao-dono.md` pelo orquestrador, antes do merge.
+
+##### Como testar no celular (360 px)
+
+Os passos 1 a 7 acima continuam valendo. O passo 8 agora vale também no
+iPhone:
+
+8. **iPhone (Safari)**:
+   1. Abra o Calendário e toque num dia passado em que você treinou.
+   2. Toque em "Abrir o treino".
+   3. Arraste da borda esquerda (voltar): você cai direto no Calendário,
+      sem o diálogo.
+   4. Arraste da borda direita (avançar): você volta direto ao treino, num
+      gesto só.
+   5. Voltar de novo leva ao Calendário.
+
+   No Android, faça o mesmo com o voltar e o avançar do Chrome.
+9. Exercícios → **Filtros** → feche no X e use o **avançar** do navegador.
+   Você continua no catálogo, sem a folha e sem um toque "vazio". Um
+   voltar em seguida sai do catálogo de primeira.
