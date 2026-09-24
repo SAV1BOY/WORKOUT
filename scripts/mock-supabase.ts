@@ -183,11 +183,6 @@ interface EspecTabela {
   obrigatorias?: string[];
   /** Sem policy de update: o PATCH não altera nenhuma linha (RLS). */
   semUpdate?: boolean;
-  /**
-   * Só a policy de select (SPEC §23.11, `lembretes_enviados`): o dono lê, e
-   * POST/PATCH/DELETE pela API são recusados com `42501`, como a RLS faz.
-   */
-  somenteLeitura?: boolean;
 }
 
 const nulo: Padrao = () => null;
@@ -419,20 +414,6 @@ const ESQUEMA: Record<string, EspecTabela> = {
     // §23.2: user_id sem default (o app manda o da sessão) e nada de update
     obrigatorias: ["user_id", "endpoint", "p256dh", "auth"],
     semUpdate: true,
-  },
-  // SPEC §23.11: um lembrete que saiu (quem grava é a RPC lembretes_resultado)
-  lembretes_enviados: {
-    colunas: {
-      id: uuid,
-      user_id: nulo,
-      tipo: nulo,
-      dia: nulo,
-      enviado_em: agora,
-    },
-    chave: ["id"],
-    unicos: [["user_id", "tipo", "dia"]],
-    tocaUpdatedAt: false,
-    somenteLeitura: true,
   },
   schedule_overrides: {
     colunas: {
@@ -1169,11 +1150,9 @@ function respostaLista(
  *    `sou_o_dono()` está dentro da consulta — para qualquer outra conta ela
  *    devolve zero linhas.
  */
-function rotaRpc(req: IncomingMessage, url: URL, corpo: unknown): Resposta {
+function rotaRpc(req: IncomingMessage, url: URL): Resposta {
   const nome = url.pathname.replace(/^\/rest\/v1\/rpc\//, "");
   const usuario = usuarioDaRequisicao(req);
-
-  if (nome === "lembretes_resultado") return rpcLembretesResultado(corpo);
 
   if (nome === "vagas_para_conta") {
     return {
@@ -1200,40 +1179,6 @@ function rotaRpc(req: IncomingMessage, url: URL, corpo: unknown): Resposta {
   }
 
   throw new ErroMock(404, `mock: função ${nome} não existe`, { code: "PGRST202" });
-}
-
-/**
- * `public.lembretes_resultado(segredo, enviados, expirados)` (SPEC §23.11):
- * liberada ao anon, mas só faz algo com o segredo certo. O "Vault" do mock é
- * a variável `MOCK_LEMBRETES_SEGREDO` do processo (o `playwright.config.ts`
- * gera um por execução); sem ela, ou com o segredo errado, `28000` e nada
- * muda. Grava os enviados (sem repetir `user_id, tipo, dia`) e apaga as
- * inscrições expiradas.
- */
-function rpcLembretesResultado(corpo: unknown): Resposta {
-  const pedido = (corpo ?? {}) as { segredo?: unknown; enviados?: unknown; expirados?: unknown };
-  const vault = process.env.MOCK_LEMBRETES_SEGREDO ?? "";
-  if (!vault || typeof pedido.segredo !== "string" || pedido.segredo !== vault) {
-    throw new ErroMock(403, "segredo dos lembretes inválido", { code: "28000" });
-  }
-  const enviados = Array.isArray(pedido.enviados) ? (pedido.enviados as Linha[]) : [];
-  const tabela = linhas("lembretes_enviados");
-  let gravados = 0;
-  for (const e of enviados) {
-    if (e.tipo !== "treino" && e.tipo !== "corrida") continue;
-    const repetido = tabela.some(
-      (l) => l.user_id === e.user_id && l.tipo === e.tipo && l.dia === e.dia,
-    );
-    if (repetido) continue;
-    tabela.push(novaLinha("lembretes_enviados", { user_id: e.user_id, tipo: e.tipo, dia: e.dia }));
-    gravados += 1;
-  }
-  const expirados = new Set(Array.isArray(pedido.expirados) ? (pedido.expirados as string[]) : []);
-  const inscricoes = linhas("lembretes_inscricoes");
-  for (let i = inscricoes.length - 1; i >= 0; i -= 1) {
-    if (expirados.has(String(inscricoes[i]?.endpoint))) inscricoes.splice(i, 1);
-  }
-  return { status: 200, corpo: gravados, cabecalhos: {} };
 }
 
 /**
@@ -1300,7 +1245,7 @@ async function rotaRest(
   const metodo = req.method ?? "GET";
   const recurso = url.pathname.replace(/^\/rest\/v1\//, "").split("/")[0] ?? "";
 
-  if (recurso === "rpc") return rotaRpc(req, url, corpo);
+  if (recurso === "rpc") return rotaRpc(req, url);
   if (recurso === "app_config") return rotaAppConfig(req, corpo);
 
   if (!NOMES_TABELAS.includes(recurso) && !VIEWS.includes(recurso)) {
@@ -1351,13 +1296,6 @@ async function rotaRest(
 
   if (ehView) {
     throw new ErroMock(400, `mock: a view ${recurso} é somente leitura`);
-  }
-  if (ESQUEMA[recurso]?.somenteLeitura) {
-    throw new ErroMock(
-      403,
-      `new row violates row-level security policy for table "${recurso}"`,
-      { code: "42501" },
-    );
   }
 
   if (metodo === "POST") {

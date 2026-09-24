@@ -17,7 +17,6 @@ import {
   opcoesDaNotificacao,
   PAYLOAD_DE_TESTE,
   tabelaAusente,
-  ROTULO_DO_ESTADO,
   textoDoResultado,
   urlInterna,
   type EstadoDoAparelho,
@@ -26,31 +25,6 @@ import {
 } from "@/lib/lembretes";
 import { publicaDaPrivada } from "@/lib/web-push";
 
-describe("o badge monocromático (§23.13)", () => {
-  it("public/icons/badge-96.png: 96×96, só branco puro sobre transparente, e é o do opcoesDaNotificacao", async () => {
-    const { default: sharp } = await import("sharp");
-    const caminho = resolve(process.cwd(), "public", "icons", "badge-96.png");
-    const { data, info } = await sharp(caminho).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
-    expect([info.width, info.height, info.channels]).toEqual([96, 96, 4]);
-    let desenho = 0;
-    let colorido = 0;
-    let transparente = 0;
-    for (let i = 0; i < data.length; i += 4) {
-      if (data[i + 3] === 0) {
-        transparente += 1;
-        continue;
-      }
-      desenho += 1;
-      if (data[i] !== 255 || data[i + 1] !== 255 || data[i + 2] !== 255) colorido += 1;
-    }
-    expect(colorido).toBe(0);
-    // há desenho e há fundo: nem quadrado cheio, nem vazio
-    expect(desenho).toBeGreaterThan(500);
-    expect(transparente).toBeGreaterThan(96 * 96 * 0.5);
-    expect(opcoesDaNotificacao("oi").opcoes.badge).toBe("/icons/badge-96.png");
-  });
-});
-
 describe("opcoesDaNotificacao (o push vira notificação)", () => {
   it("título, corpo, ícone, badge, tag, pt-BR e url do payload", () => {
     const n = opcoesDaNotificacao(JSON.stringify(PAYLOAD_DE_TESTE));
@@ -58,8 +32,7 @@ describe("opcoesDaNotificacao (o push vira notificação)", () => {
     expect(n.opcoes).toEqual({
       body: PAYLOAD_DE_TESTE.corpo,
       icon: ICONE_DA_NOTIFICACAO,
-      // §23.13: o badge é o desenho monocromático próprio, não o ícone colorido
-      badge: "/icons/badge-96.png",
+      badge: ICONE_DA_NOTIFICACAO,
       tag: "lembrete-teste",
       lang: "pt-BR",
       data: { url: "/mais/lembretes" },
@@ -251,14 +224,7 @@ describe("instrucoesDoAparelho (§23.6)", () => {
     const [p] = instrucoesDoAparelho({ ...base, estado: "bloqueado" });
     expect(p?.passos.join(" ")).toMatch(/Notificações → Permitir/);
     // a volta é conferida pela tela (§23.4): o passo não manda recarregar
-    // §23.13: o último passo diz a verdade nos dois caminhos da volta — o
-    // Ativar (sem inscrição) ou direto "Ativado" (o navegador manteve a inscrição)
-    expect(p?.passos.at(-1)).toBe(
-      "Volte aqui: a tela confere de novo sozinha — mostra “Ativar lembretes neste aparelho” ou, se a inscrição continuou valendo, “Ativado neste aparelho”.",
-    );
-    expect(p?.passos.at(-1)).toContain(ROTULO_DO_ESTADO.ativado.replace(/\.$/, ""));
-    const [pi] = instrucoesDoAparelho({ ...base, estado: "bloqueado", ios: true, instalado: true });
-    expect(pi?.passos.at(-1)).toBe(p?.passos.at(-1));
+    expect(p?.passos.at(-1)).toBe("Volte aqui: a tela confere de novo e mostra “Ativar lembretes neste aparelho”.");
   });
   it("permissão negada no iPhone → os Ajustes do iPhone, nunca o cadeado nem o Android", () => {
     expect(ids({ estado: "bloqueado", ios: true, instalado: true })).toEqual(["permissao-iphone"]);

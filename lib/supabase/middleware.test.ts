@@ -73,15 +73,6 @@ describe("controle de acesso", () => {
     expect((await rodar("/apis")).status).toBe(307);
   });
 
-  /* SPEC §23.11: o pg_cron chama o disparo sem sessão; a porta é o segredo da rota. */
-  it("sem sessão, /api/lembretes/disparar passa (e só ela entre as /api)", async () => {
-    const resposta = await rodar("/api/lembretes/disparar");
-    expect(resposta.status).toBe(200);
-    expect(resposta.headers.get("location")).toBeNull();
-    expect((await rodar("/api/lembretes/teste")).status).toBe(401);
-    expect((await rodar("/api/lembretes/dispararx")).status).toBe(401);
-  });
-
   it("com sessão, /api/* passa", async () => {
     emailDoUsuario = "outra.pessoa@exemplo.com";
     const resposta = await rodar("/api/lembretes/teste");

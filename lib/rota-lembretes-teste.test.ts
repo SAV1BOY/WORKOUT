@@ -38,7 +38,7 @@ vi.mock("@/lib/supabase/server", () => ({
 
 const { POST } = await import("@/app/api/lembretes/teste/route");
 
-// a chave privada de exemplo da RFC 8291 (Apêndice A), usada aqui só como par VAPID de teste
+// um par qualquer, gerado a partir de uma privada fixa só neste teste
 const PRIVADA = "yfWPiYE-n46HLnH0KqZOF1fJJU3MYrct3AELtAQ-oRw";
 
 async function pedir(): Promise<{ status: number; corpo: Record<string, unknown> }> {

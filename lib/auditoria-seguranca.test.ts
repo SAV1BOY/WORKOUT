@@ -41,13 +41,6 @@ const TABELAS_DE_CONFIGURACAO = ["app_config"];
  */
 const TABELAS_POR_APARELHO = ["lembretes_inscricoes"];
 
-/**
- * Tabelas que o dono só LÊ (SPEC §23.11): `lembretes_enviados` é gravada pela
- * função `lembretes_resultado()` (security definer, com o segredo), nunca pela
- * API. Uma policy só, de select, por `auth.uid()`. Fora do backup.
- */
-const TABELAS_SO_LEITURA = ["lembretes_enviados"];
-
 /** As tabelas criadas no schema. */
 function tabelasCriadas(): string[] {
   return [...schema.matchAll(/create table if not exists public\.(\w+)/g)].map(
@@ -58,10 +51,7 @@ function tabelasCriadas(): string[] {
 /** As tabelas de dados do usuário (todas menos as de configuração). */
 function tabelasDoUsuario(): string[] {
   return tabelasCriadas().filter(
-    (t) =>
-      !TABELAS_DE_CONFIGURACAO.includes(t) &&
-      !TABELAS_POR_APARELHO.includes(t) &&
-      !TABELAS_SO_LEITURA.includes(t),
+    (t) => !TABELAS_DE_CONFIGURACAO.includes(t) && !TABELAS_POR_APARELHO.includes(t),
   );
 }
 
@@ -105,24 +95,6 @@ describe("schema.sql: RLS", () => {
         expect(papel, `policy ${nome}`).toBe("authenticated");
         expect(corpo, `policy ${nome}`).toMatch(/\(user_id = auth\.uid\(\)\)$/);
       }
-    }
-  });
-
-  it("as tabelas só de leitura têm RLS e uma policy só: select por auth.uid()", () => {
-    for (const tabela of TABELAS_SO_LEITURA) {
-      expect(tabelasCriadas(), `${tabela} não existe no schema`).toContain(tabela);
-      expect(tabelasComRls()).not.toContain(tabela);
-      expect([...TABELAS_BACKUP]).not.toContain(tabela);
-      expect(schema).toContain(`alter table public.${tabela} enable row level security`);
-      const policies = [
-        ...schema.matchAll(
-          new RegExp(`create policy "(\\w+)" on public\\.${tabela} for (\\w+) to (\\w+)\\s+([^;]*);`, "g"),
-        ),
-      ];
-      expect(policies.map((p) => [p[2], p[3]])).toEqual([["select", "authenticated"]]);
-      expect(policies[0]?.[4]).toMatch(/^using \(user_id = auth\.uid\(\)\)$/);
-      // e nenhuma escrita pela API, nem do authenticated
-      expect(schema).toContain(`revoke insert, update, delete, truncate on public.${tabela} from authenticated`);
     }
   });
 

@@ -17,19 +17,10 @@ export const LINHA_LEMBRETES = {
 
 export const NOME_DO_APP = "Treino do Terraço";
 
-/** O ícone da notificação: o do manifest (`app/manifest.ts`). */
+/** Ícone e badge da notificação: os do manifest (`app/manifest.ts`). */
 export const ICONE_DA_NOTIFICACAO = "/icons/icone-192.png";
-/**
- * O badge (o ícone pequeno da barra de status do Android): desenho próprio,
- * branco em fundo transparente — o Android só usa o alfa, e o ícone colorido
- * virava um quadrado branco (SPEC §23.13). Gerado por `npm run icones`.
- */
-export const BADGE_DA_NOTIFICACAO = "/icons/badge-96.png";
 
 export const SEM_CONFIGURACAO = "Lembretes ainda não configurados neste servidor.";
-/** Embaixo do "Próximo" quando o push não chega neste aparelho (§23.13). */
-export const PROXIMO_SEM_AVISO =
-  "Este aparelho não está recebendo avisos; o calendário abaixo tem alarme na mesma hora.";
 export const SEM_TABELA =
   "Os lembretes ainda não estão disponíveis neste servidor (falta atualizar o banco).";
 
@@ -119,7 +110,7 @@ export function opcoesDaNotificacao(texto: string | null | undefined): Notificac
     opcoes: {
       body: corpo,
       icon: ICONE_DA_NOTIFICACAO,
-      badge: BADGE_DA_NOTIFICACAO,
+      badge: ICONE_DA_NOTIFICACAO,
       tag,
       lang: "pt-BR",
       data: { url: urlInterna(dados.url) },
@@ -194,21 +185,13 @@ const BRAVE: Instrucao = {
   ],
 };
 
-/**
- * O último passo das duas instruções de permissão, verdadeiro nos dois
- * caminhos da volta (SPEC §23.4 e §23.13): sem inscrição, o Ativar; com a
- * inscrição que o navegador manteve, direto "Ativado".
- */
-export const VOLTE_AQUI =
-  "Volte aqui: a tela confere de novo sozinha — mostra “Ativar lembretes neste aparelho” ou, se a inscrição continuou valendo, “Ativado neste aparelho”.";
-
 const PERMISSAO: Instrucao = {
   id: "permissao",
   titulo: "O navegador está bloqueando as notificações deste app",
   passos: [
     "Toque no cadeado (ou no ⓘ) ao lado do endereço → Permissões → Notificações → Permitir.",
     "Com o app instalado: Configurações do Android → Apps → Treino do Terraço → Notificações → ligar.",
-    VOLTE_AQUI,
+    "Volte aqui: a tela confere de novo e mostra “Ativar lembretes neste aparelho”.",
   ],
 };
 
@@ -219,7 +202,7 @@ const PERMISSAO_IPHONE: Instrucao = {
   passos: [
     "Abra os Ajustes do iPhone → Notificações → Treino do Terraço.",
     "Ligue “Permitir Notificações”.",
-    VOLTE_AQUI,
+    "Volte aqui: a tela confere de novo e mostra “Ativar lembretes neste aparelho”.",
   ],
 };
 

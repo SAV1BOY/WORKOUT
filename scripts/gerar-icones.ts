@@ -52,24 +52,6 @@ function svg(tamanho: number, margem: number): string {
 }
 
 /**
- * O badge da notificação (SPEC §23.13): a mesma barra com anilhas, **branca
- * em fundo transparente**. O Android desenha o badge só pelo canal alfa — o
- * ícone colorido com fundo virava um quadrado branco na barra de status.
- */
-function svgBadge(s: number): string {
-  const b = (v: number) => (v / 100) * s;
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${s}" height="${s}" viewBox="0 0 ${s} ${s}">
-  <g fill="#ffffff">
-    <rect x="${b(14)}" y="${b(45)}" width="${b(72)}" height="${b(10)}" rx="${b(2)}"/>
-    <rect x="${b(20)}" y="${b(30)}" width="${b(10)}" height="${b(40)}" rx="${b(3)}"/>
-    <rect x="${b(70)}" y="${b(30)}" width="${b(10)}" height="${b(40)}" rx="${b(3)}"/>
-    <rect x="${b(8)}" y="${b(37)}" width="${b(10)}" height="${b(26)}" rx="${b(3)}"/>
-    <rect x="${b(82)}" y="${b(37)}" width="${b(10)}" height="${b(26)}" rx="${b(3)}"/>
-  </g>
-</svg>`;
-}
-
-/**
  * As telas de abertura do iPhone: o app instalado abria num preto sem nada
  * até o shell pintar. Fundo `#0a0a0a` (o mesmo `background_color` do
  * manifest) e o ícone no meio, a 30 % do lado menor.
@@ -122,11 +104,6 @@ async function gerar() {
     writeFileSync(join(destino, nome), png);
     console.log(`  public/icons/${nome}`);
   }
-
-  // o badge: só alfa (branco puro onde há desenho), 96 px como o Chrome pede
-  const badge = await sharp(Buffer.from(svgBadge(96))).ensureAlpha().png().toBuffer();
-  writeFileSync(join(destino, "badge-96.png"), badge);
-  console.log("  public/icons/badge-96.png");
 
   // ícone do app router (app/icon.png) e o /favicon.ico, que é outro arquivo
   const favicon = await sharp(Buffer.from(svg(256, 0.06))).png().toBuffer();

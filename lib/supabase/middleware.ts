@@ -9,8 +9,6 @@ const PUBLICAS = [
   "/~offline",
   // o teste de fumaça do deploy pergunta qual build está no ar (SPEC §22.1)
   "/versao",
-  // o pg_cron chama sem sessão: a rota confere o segredo dela (SPEC §23.11)
-  "/api/lembretes/disparar",
   "/manifest.webmanifest",
   "/sw.js",
   "/robots.txt",

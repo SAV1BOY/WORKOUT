@@ -3076,11 +3076,10 @@ notificação push**, no horário que o usuário escolhe. É feature nova, fora 
 - **Lembretes I (lote 34, esta seção 23.1–23.7):** o aparelho se inscreve, o
   service worker mostra a notificação e abre o app no lugar certo, e um botão
   manda **um lembrete de teste** para os aparelhos da conta.
-- **Lembretes II (lote 35, seções 23.8–23.14):** os horários que o usuário
-  edita, a regra de quem recebe o quê, o disparo automático a cada 5 minutos
-  (pg_cron → rota protegida por segredo), o arquivo de calendário (.ics) e o
-  "Último lembrete". Reusa a tabela (23.2), o service worker (23.3), a tela
-  (23.4) e a cifragem (23.5) da parte I.
+- **Lembretes II (lote 35, ainda não feito):** os horários que o usuário edita,
+  o disparo automático no horário e a relação com o calendário (§16/§17). Nada
+  disso existe no código deste lote: a tela não mostra horário nenhum. A tabela
+  (23.2) e a rota de envio (23.5) já nascem prontas para ele.
 
 **Problema medido** em `main` (27eda74): não há `push` nem `notificationclick`
 em `app/sw.ts`, nenhuma tabela de inscrição em `supabase/schema.sql`, nenhuma
@@ -3150,9 +3149,8 @@ testada no Vitest):
 
 - **`push`**: o corpo é JSON `{titulo, corpo, url, tag}`.
   `opcoesDaNotificacao()` monta o `showNotification`: título (ou "Treino do
-  Terraço" se vier vazio), `body`, o ícone do manifest
-  (`/icons/icone-192.png`), o badge monocromático (`/icons/badge-96.png`,
-  23.13), `tag` (a mesma tag substitui a notificação anterior
+  Terraço" se vier vazio), `body`, ícone e badge do manifest
+  (`/icons/icone-192.png`), `tag` (a mesma tag substitui a notificação anterior
   em vez de empilhar), `lang: "pt-BR"` e `data.url`. A `url` só vale se for um
   caminho do próprio app: começa com `/` (e não com `//` nem `/\`) **e**,
   resolvida pelo parser de URL contra uma origem fixa, continua nessa mesma
@@ -3270,12 +3268,10 @@ aparece onde o que ela manda fazer **existe no aparelho**:
   cadeado (ou ⓘ) ao lado do endereço → Permissões → Notificações → Permitir;
   com o app instalado, Configurações do Android → Apps → Treino do Terraço →
   Notificações; voltar ao app, que confere de novo sozinho (23.4) e mostra
-  "Ativar lembretes neste aparelho" — ou "Ativado neste aparelho", quando o
-  navegador manteve a inscrição (23.4). Permissão negada fora do iPhone.
+  "Ativar lembretes neste aparelho". Permissão negada fora do iPhone.
 - **`permissao-iphone`** — "O iPhone está bloqueando as notificações deste
   app": Ajustes do iPhone → Notificações → Treino do Terraço → ligar
-  **"Permitir Notificações"** e voltar ao app (o mesmo passo final da
-  `permissao`, com os dois caminhos). Permissão negada no iPhone (o
+  **"Permitir Notificações"** e voltar ao app. Permissão negada no iPhone (o
   cadeado e as Configurações do Android não existem lá). Fora da tela
   inicial ela vem **depois** da `iphone`: a entrada "Treino do Terraço" nos
   Ajustes só existe com o app instalado, então instalar é o primeiro passo.
@@ -3324,9 +3320,11 @@ Regra que a tabela cumpre: com a permissão negada, o navegador sem suporte ou
 uma falha ao ativar, a lista **nunca sai vazia**; ativado e sem configuração,
 sempre vazia.
 
-**Decidido no lote 35 (23.13):** o "Sair" (§22.11) continua sem mexer na
-inscrição do aparelho, e o badge da notificação passou a ser um desenho
-próprio, monocromático (`/icons/badge-96.png`).
+**Fica para o lote 35:** o "Sair" (§22.11) não mexe na inscrição do aparelho
+— hoje só chega o teste que a própria conta pede; quando houver disparo no
+horário, o lote 35 decide se sair apaga a linha deste aparelho. O badge da
+notificação é o `icone-192` colorido (o Android costuma mostrá-lo como um
+quadrado branco); um badge monocromático entra quando houver o desenho.
 
 ### 23.7 Critérios de aceite (lote 34)
 
@@ -3400,200 +3398,3 @@ próprio, monocromático (`/icons/badge-96.png`).
    (`lib/rota-lembretes-teste.test.ts`, com o cliente do Supabase trocado)
    que dá 503 `SEM_CONFIGURACAO` sem as variáveis, 401 sem sessão, 503
    `SEM_TABELA` com o `PGRST205`, 502 com outro erro e 409 sem aparelho.
-
-### 23.8 Lembretes II — o problema medido (lote 35)
-
-Medido em `main` (96056ac): `/mais/lembretes` só ativa o aparelho e manda o
-teste; **nenhum aviso sai sozinho** — não há horário em `profiles.prefs`
-(`grep -c lembretes lib/preferencias.ts` = 0), nenhuma tabela de envios, nenhum
-`pg_cron`/`pg_net` em `supabase/schema.sql`, nenhuma rota além de
-`/api/lembretes/teste`, e quem não tem push (iPhone sem instalar, servidor sem
-VAPID) não tem alternativa nenhuma. O badge da notificação é o ícone colorido
-(o Android o pinta de quadrado branco), o passo 3 das instruções de permissão
-prometia só o "Ativar" (o caminho ativado → bloqueado → liberado volta direto a
-"Ativado"), e os e2e da volta por `focus`/`pageshow`/sem internet rodavam só
-no tema claro, embora a 23.7 item 7 diga "nos dois temas".
-
-### 23.9 Os horários (`profiles.prefs.lembretes`)
-
-`/mais/lembretes` ganha o bloco **"Horários"** com duas linhas, cada uma com um
-liga/desliga (`role="switch"`, ≥ 44 px) e a hora (`<input type="time">`,
-teclado do sistema, passo de 5 min; o nome acessível diz de qual lembrete é —
-"Hora do lembrete do treino" / "Hora do lembrete da corrida" — porque o rótulo
-visível "Hora" se repete). "Horários salvos." sai numa região `aria-live`
-que já existe antes do primeiro salvo:
-
-- **"Lembrete do treino"** — nos dias de força;
-- **"Lembrete da corrida"** — nos dias de cardio (corrida, ou corda/caminhada
-  quando é isso que o plano do dia manda).
-
-Os dias são **os dias de treino do perfil** (§17): nada a escolher aqui além da
-hora. Gravado em `profiles.prefs.lembretes = {treino: {ligado, hora},
-corrida: {ligado, hora}}`, validado por `prefsLembretesSchema` (Zod, em
-`lib/schemas.ts`: hora `HH:MM` de `00:00` a `23:55`, múltiplo de 5 min, o
-passo do disparo; uma hora fora do passo, digitada no computador, é
-arredondada para baixo: 06:47 → 06:45). O campo tem largura para o formato de
-12 h (“06:45 AM”) do navegador em inglês sem cortar. Sem a chave, os dois vêm
-**desligados às 07:00** — ninguém
-passa a receber aviso sem pedir. A gravação é a mesma de Preferências
-(`salvarPrefs`, a fila offline cobre) e nunca apaga outras chaves de `prefs`.
-O fuso é sempre **America/Sao_Paulo**.
-
-**Sem push, os horários continuam.** O bloco "Horários" e o botão do
-calendário (23.12) aparecem e funcionam **mesmo sem as variáveis VAPID** no
-servidor, sem a tabela de inscrições e em aparelho sem suporte a push: o .ics é
-a alternativa que funciona em qualquer celular, inclusive no iPhone sem
-instalar. Só o bloco "Este aparelho" (ativar/desativar) e o "Enviar um
-lembrete de teste" dependem da configuração.
-
-### 23.10 A regra: quem recebe o quê agora (`lib/lembretes-regra.ts`, pura)
-
-`lembretesDevidos(usuario, agora)` decide, para uma conta e um instante, que
-avisos são devidos. Tudo no relógio de **America/Sao_Paulo**
-(`relogioDeSaoPaulo()`, pelo `Intl`, sem depender do fuso do servidor):
-
-1. O dia é o que a **aba Treino e o calendário** mostram: `montarGrade()`
-   (`lib/semana.ts`, a partir de `semanaCoerente()` de `lib/calendario.ts`)
-   com o perfil, os `schedule_overrides`, as sessões e os cardios — a mesma
-   fonte, nada escrito à mão.
-2. **Nada** em dia de descanso; nada em dia marcado **"Não vou treinar hoje"**
-   (o override de descanso que a §5.4 grava vira descanso no calendário);
-   nada se o dia já está **feito** (sessão de força concluída, ou cardio
-   concluído, no dia).
-3. Dia de força → o lembrete do **treino** (se ligado); dia de cardio → o da
-   **corrida** (se ligado).
-4. **Horário**: devido de `hora` até `hora + 30 min`, inclusive. Antes, ainda
-   não; depois dos 30 min, **pula o dia** (o disparo parado não despeja
-   avisos velhos). A tolerância não atravessa a meia-noite: um lembrete às
-   23:50 não sai às 00:10 do dia seguinte.
-5. **Nunca duas vezes**: se `lembretes_enviados` já tem `(tipo, dia)` daquela
-   conta, nada.
-
-O texto sai das mesmas funções da aba Treino: treino → título "Hora do
-treino", corpo `resumoDoTreino()` ("Treino A · 6 exercícios · 44 min" — nome
-e duração estimada de `programa.json`); corrida → título "Hora da corrida",
-corpo `textoDoCardio()` ("Corrida · semana 3 · … · 34 min"). O toque abre a
-aba Treino (`/`). `proximoLembrete()` (mesma regra) diz na tela o próximo
-aviso previsto nos próximos 7 dias.
-
-### 23.11 O disparo automático a cada 5 minutos
-
-**Banco** (`supabase/migracoes/2026-09-23-lembretes-disparo.sql`, o mesmo SQL
-em `schema.sql`, idempotente e expand-only):
-
-- `public.lembretes_enviados (id, user_id → auth.users on delete cascade,
-  tipo text check ('treino'|'corrida'), dia date, enviado_em timestamptz,
-  unique (user_id, tipo, dia))`, RLS ligada com **uma** policy: o dono **lê**
-  as suas (`select` para `authenticated`). Ninguém insere, altera ou apaga
-  pela API; o `anon` não tem nada.
-- Extensões `pg_cron` e `pg_net` (`create extension if not exists`).
-- `public.lembretes_tick()` — `security definer`, `search_path` fixo,
-  **não executável por `anon` nem `authenticated`** (revogado de `public`,
-  `anon` e `authenticated`; o dono `postgres` executa e o `service_role`
-  mantém o padrão do projeto Supabase, que o app nunca usa). Lê do **Vault** `lembretes_url` e `lembretes_segredo`;
-  **sem os dois, ou sem o `pg_net`, não faz nada** (retorna sem erro e sem
-  chamar a rede). Com eles, monta o JSON mínimo de quem tem ao menos um
-  lembrete ligado **e** ao menos uma inscrição — perfil (fase, último treino,
-  semanas dos planos, `prefs`), os overrides de 8 dias antes a 7 depois de
-  hoje, as sessões e os cardios dos últimos 8 dias, os envios de hoje e as
-  inscrições — e faz `net.http_post` para a URL
-  com o cabeçalho `x-lembretes-segredo`. Sem ninguém a avisar, não chama.
-- `public.lembretes_resultado(segredo text, enviados jsonb, expirados text[])`
-  — `security definer`, `search_path` fixo, revogado de `public`, `execute`
-  só para `anon`/`authenticated` (a rota chama com a chave anon; **o segredo
-  é a proteção**). Confere o segredo contra o do Vault comparando os
-  `sha256` dos dois (tamanho fixo, sem atalho no primeiro byte diferente);
-  errado ou sem Vault, erro `28000` e nada muda. Certo: grava os enviados
-  (`on conflict do nothing`) e apaga as inscrições cujo `endpoint` expirou
-  (404/410); devolve quantos gravou.
-- O job `pg_cron` **"lembretes"**, `*/5 * * * *`, `select
-  public.lembretes_tick()`: desagendado pelo nome se já existe e agendado de
-  novo (rodar a migração duas vezes deixa um job só).
-
-**Nenhum valor de segredo no repositório**: a migração cria funções, tabela e
-job; os valores do Vault (`lembretes_url`, `lembretes_segredo`) e a variável
-`LEMBRETES_SEGREDO` da Vercel quem cria é quem publica. **Nunca a service
-role**, nem no servidor.
-
-**Rota** `POST /api/lembretes/disparar` (runtime `nodejs`):
-
-1. sem `LEMBRETES_SEGREDO` no servidor → **503** `SEM_CONFIGURACAO`;
-2. `x-lembretes-segredo` ausente ou diferente (`timingSafeEqual` sobre os
-   `sha256`) → **401**, sem ler o corpo;
-3. sem as variáveis VAPID → **503** `SEM_CONFIGURACAO`;
-4. corpo que não é JSON ou fora do `disparoSchema` (Zod) → **400**; maior
-   que 512 KiB **em bytes** → **413** (o `content-length` declarado maior já
-   recusa, e a leitura para no primeiro pedaço que passar do limite);
-5. para cada conta, `lembretesDevidos()`; cada aviso devido vai para cada
-   inscrição da conta com `lib/web-push.ts` (a mesma cifragem e o mesmo VAPID
-   do teste, só para `endpointAceito()`);
-6. chama `lembretes_resultado` com os `(user_id, tipo, dia)` que chegaram a
-   **ao menos um** aparelho e os endpoints 404/410. Se nenhum chegou, não
-   marca: o próximo tick tenta de novo, dentro dos 30 min.
-
-Sem a tabela `lembretes_enviados` (migração não aplicada), a tela não quebra:
-o "Último lembrete" simplesmente não aparece.
-
-### 23.12 "Adicionar ao meu calendário" (`lib/ics.ts`)
-
-Botão em `/mais/lembretes` que baixa `treino-do-terraco.ics` (RFC 5545,
-UTF-8, linhas terminadas em CRLF e dobradas a 75 octetos sem partir um
-caractere): um `VEVENT` semanal por dia de treino do perfil —
-`RRULE:FREQ=WEEKLY;BYDAY=<dia>` nos dias de força (hora do lembrete do
-treino) e nos de cardio (hora do lembrete da corrida), `DTSTART;TZID=
-America/Sao_Paulo` no próximo dia daquele tipo, `DURATION` = a duração
-estimada do plano naquele dia (a mesma de 23.10), `UID` estável por conta,
-tipo e dia da semana (baixar de novo substitui em vez de duplicar),
-`VALARM` na hora do evento e o `VTIMEZONE` de São Paulo (UTC−3, sem horário
-de verão). O `DESCRIPTION` é genérico nos dois tipos ("Treino do Terraço: abra
-o app para ver o treino do dia / a corrida da semana (cerca de N min)."): o
-evento repete toda semana e o plano avança, então nada da semana atual (número
-da semana, protocolo da corrida) entra no texto. Funciona com o lembrete
-desligado (usa a hora escolhida) e sem push nenhum.
-
-### 23.13 O que mais fecha no lote 35
-
-- **Badge próprio**: `public/icons/badge-96.png`, gerado por
-  `npm run icones` — a barra com anilhas **branca em fundo transparente**
-  (só alfa, como o Android pede), usado por `opcoesDaNotificacao()`.
-- **Passo 3 das instruções de permissão** diz a verdade nos dois caminhos:
-  "Volte aqui: a tela confere de novo sozinha — mostra “Ativar lembretes neste
-  aparelho” ou, se a inscrição continuou valendo, “Ativado neste aparelho”."
-- **"Último lembrete: hoje às 07:00"** (ou "ontem às …", "dd/mm às …"), lido de
-  `lembretes_enviados` pela RLS, e **"Próximo: …"** pela regra de 23.10.
-  Quando o push **não** chega neste aparelho (servidor sem VAPID, sem a
-  tabela, navegador sem suporte, bloqueado ou não ativado), logo abaixo do
-  "Próximo" vem "Este aparelho não está recebendo avisos; o calendário abaixo
-  tem alarme na mesma hora." — a tela não promete um aviso que não vai
-  chegar. Com o aparelho ativado, a frase some.
-- **Sair** continua sem apagar a inscrição do aparelho: a linha é da conta
-  que ativou; outra conta que ativar no mesmo aparelho toma o endpoint
-  (23.2), e "Desativar" ou "Remover" encerram.
-
-### 23.14 Critérios de aceite (lote 35)
-
-1. **Horários**: Vitest do `prefsLembretesSchema` (padrão desligado 07:00,
-   hora fora do passo recusada) e e2e a 360×740 nos dois temas que liga o
-   treino, muda a hora e vê `prefs.lembretes` gravado no mock sem perder as
-   outras chaves — com e **sem** as variáveis VAPID.
-2. **Regra**: Vitest de dia de treino, descanso, "Não vou treinar hoje",
-   já concluído, corrida (semana N no texto), virada de dia, horário exato,
-   +30 min (sai) e +35 min (pula), já enviado; mutação: tirar os overrides
-   da conta derruba o teste do dia pulado.
-3. **Disparo**: `lib/migracao-lembretes-disparo.test.ts` (pedaço do
-   `schema.sql`, idempotente, expand-only, RLS só de leitura, revokes,
-   `security definer` com `search_path`, tick sem Vault/`pg_net` retorna
-   antes de chamar a rede, job desagendado antes de agendar); Vitest da rota
-   (503 sem segredo, 401 com segredo errado/ausente, 400 corpo inválido,
-   envio e marcação, falha sem marcação); e2e contra o mock: segredo errado
-   401; certo envia ao servidor de push falso (corpo decifra no aviso do
-   treino) e marca `lembretes_enviados`; a segunda chamada no mesmo dia não
-   reenvia.
-4. **Calendário**: Vitest do .ics (CRLF, dobra a 75 octetos com acento,
-   BYDAY dos dias do perfil, TZID, VALARM, UID estável, `DESCRIPTION` de
-   evento recorrente sem "semana N" nem protocolo) e e2e que baixa o
-   arquivo.
-5. **Último lembrete**: e2e com envio semeado no mock.
-6. **Agregados**: Vitest do badge (PNG 96×96 só branco/transparente); o
-   passo 3 novo; os e2e da volta por `focus`, `pageshow` e sem internet nos
-   dois temas.
