@@ -3303,8 +3303,9 @@ em `schema.sql`, idempotente e expand-only):
   pela API; o `anon` não tem nada.
 - Extensões `pg_cron` e `pg_net` (`create extension if not exists`).
 - `public.lembretes_tick()` — `security definer`, `search_path` fixo,
-  `execute` **só do `postgres`** (revogado de `public`, `anon` e
-  `authenticated`). Lê do **Vault** `lembretes_url` e `lembretes_segredo`;
+  **não executável por `anon` nem `authenticated`** (revogado de `public`,
+  `anon` e `authenticated`; o dono `postgres` executa e o `service_role`
+  mantém o padrão do projeto Supabase, que o app nunca usa). Lê do **Vault** `lembretes_url` e `lembretes_segredo`;
   **sem os dois, ou sem o `pg_net`, não faz nada** (retorna sem erro e sem
   chamar a rede). Com eles, monta o JSON mínimo de quem tem ao menos um
   lembrete ligado **e** ao menos uma inscrição — perfil (fase, último treino,
