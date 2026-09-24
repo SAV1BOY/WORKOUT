@@ -14,6 +14,7 @@ import {
   entrarNoApp,
   esperarAbaTreino,
   fixarData,
+  inserirNoMock,
   resetarMock,
   semRolagemHorizontal,
   usuarioComPerfil,
@@ -94,16 +95,17 @@ test.describe("§22.17 item 1 — um rótulo por filtro", () => {
         expect(doEquipamento).toContain(rotulo);
       }
       // um seletor por linha: o rótulo inteiro cabe, e nada vaza
-      // arredondado: a folha acabou de subir e a caixa vem com 43,99997 px
+      // a caixa medida sem arredondar: a folha acabou de subir e o subpixel
+      // dá 43,99997 px; a tolerância é explícita (0,01 px), não meio pixel
       const caixas = await folha.locator("select").evaluateAll((els) =>
         els.map((el) => {
           const c = el.getBoundingClientRect();
-          return { largura: Math.round(c.width), altura: Math.round(c.height) };
+          return { largura: c.width, altura: c.height };
         }),
       );
       expect(caixas).toHaveLength(3);
       for (const c of caixas) {
-        expect(c.altura).toBeGreaterThanOrEqual(44);
+        expect(c.altura).toBeGreaterThanOrEqual(43.99);
         expect(c.largura).toBeGreaterThanOrEqual(300);
       }
       await semRolagemHorizontal(page);
@@ -307,6 +309,67 @@ test.describe("§22.17 item 6 — o voltar do celular fecha só a camada de cima
       const gatilho = page.getByRole("button", { name: "Não vou treinar hoje" });
       await expect(gatilho).toBeVisible();
       await voltarFechaACamada(page, gatilho, page.getByRole("dialog"));
+    });
+  }
+
+  /*
+   * A entrada morta pelo caminho real: o diálogo de um dia passado do
+   * Calendário tem o link "Abrir o treino". A camada sai porque a rota mudou,
+   * a entrada dela fica embaixo de /treinar/<id>, e o voltar (e o avançar)
+   * passa por cima dela — um passo do dedo, um passo de tela.
+   */
+  for (const tema of TEMAS) {
+    test(`link dentro da camada: o voltar e o avançar pulam a entrada morta (${tema})`, async ({
+      page,
+    }) => {
+      const sessao = await usuarioComPerfil();
+      const id = "33333333-3333-4333-8333-333333333333";
+      await inserirNoMock(sessao, "sessions", [
+        {
+          id,
+          data: "2026-09-14",
+          workout_id: "A1",
+          fase: "fase1",
+          status: "concluida",
+          iniciada_em: "2026-09-14T11:00:00Z",
+          concluida_em: "2026-09-14T12:00:00Z",
+          duracao_s: 3600,
+        },
+      ]);
+      await page.setViewportSize({ width: 360, height: 740 });
+      await page.emulateMedia({ colorScheme: tema });
+      await fixarData(page, QUARTA);
+      await entrarNoApp(page);
+      await page.goto("/calendario");
+      await expect(page.getByRole("heading", { name: "Calendário" })).toBeVisible();
+      const antes = await indice(page);
+
+      await page.getByRole("button", { name: /^seg 14\/09/ }).click();
+      const dialogo = page.getByRole("dialog");
+      const link = dialogo.getByRole("link", { name: "Abrir o treino" });
+      await expect(link).toBeVisible();
+      // o diálogo tem a própria entrada, na mesma rota
+      await expect.poll(() => indice(page)).toBe(antes + 1);
+      await link.click();
+      await page.waitForURL(new RegExp(`/treinar/${id}$`));
+      await expect(page.getByRole("dialog")).toHaveCount(0);
+      // a rota nova foi por cima da entrada do diálogo, que ficou morta embaixo
+      await expect.poll(() => indice(page)).toBe(antes + 2);
+
+      // um voltar: de /treinar direto ao Calendário, sem diálogo e sem parar na morta
+      await page.evaluate(() => window.history.back());
+      await page.waitForURL(/\/calendario$/);
+      await expect.poll(() => indice(page)).toBe(antes);
+      await expect(page.getByRole("heading", { name: "Calendário" })).toBeVisible();
+      await expect(page.getByRole("dialog")).toHaveCount(0);
+      expect(await page.evaluate(() => document.querySelectorAll("[inert]").length)).toBe(0);
+      await semRolagemHorizontal(page);
+
+      // um avançar: do Calendário direto a /treinar, pulando a morta na outra direção
+      await page.evaluate(() => window.history.forward());
+      await page.waitForURL(new RegExp(`/treinar/${id}$`));
+      await expect.poll(() => indice(page)).toBe(antes + 2);
+      await expect(page.getByRole("dialog")).toHaveCount(0);
     });
   }
 
