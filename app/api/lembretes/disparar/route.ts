@@ -30,6 +30,31 @@ const PRAZO_DO_ENVIO_MS = 10_000;
 /** O corpo que o tick manda cabe folgado nisto; mais que isso não é o tick. */
 const MAIOR_CORPO = 512 * 1024;
 
+/**
+ * Lê o corpo em bytes até `limite`: o `content-length` declarado maior já
+ * recusa, e a leitura para no primeiro pedaço que passar (nada de guardar o
+ * resto na memória). Passou → `null` (413).
+ */
+async function lerAte(request: Request, limite: number): Promise<string | null> {
+  const declarado = Number(request.headers.get("content-length"));
+  if (Number.isFinite(declarado) && declarado > limite) return null;
+  if (!request.body) return "";
+  const leitor = request.body.getReader();
+  const partes: Uint8Array[] = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await leitor.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > limite) {
+      await leitor.cancel().catch(() => undefined);
+      return null;
+    }
+    partes.push(value);
+  }
+  return Buffer.concat(partes).toString("utf8");
+}
+
 function resposta(status: number, corpo: Record<string, unknown>) {
   return NextResponse.json(corpo, { status });
 }
@@ -86,8 +111,8 @@ export async function POST(request: Request) {
   const vapid = configuracaoVapid(process.env, publicaDaPrivada);
   if (!vapid.ok) return resposta(503, { erro: SEM_CONFIGURACAO, codigo: "SEM_CONFIGURACAO" });
 
-  const texto = await request.text();
-  if (texto.length > MAIOR_CORPO) return resposta(413, { erro: "Corpo grande demais." });
+  const texto = await lerAte(request, MAIOR_CORPO);
+  if (texto === null) return resposta(413, { erro: "Corpo grande demais." });
   let bruto: unknown;
   try {
     bruto = JSON.parse(texto);

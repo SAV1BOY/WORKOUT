@@ -144,6 +144,18 @@ describe("POST /api/lembretes/disparar", () => {
     expect((await pedir({ ...corpo("2026-09-21T10:00:00Z"), usuarios: [{ user_id: "x" }] })).status).toBe(400);
   });
 
+  it("corpo maior que 512 KiB em bytes (não em caracteres): 413, sem enviar", async () => {
+    // 300 mil "ç" = 300 mil caracteres (< 512 Ki) mas 600 mil bytes em UTF-8 (> 512 KiB)
+    const grande = JSON.stringify({ ...corpo("2026-09-21T10:00:00Z"), sobra: "ç".repeat(300_000) });
+    expect(grande.length).toBeLessThan(512 * 1024);
+    expect(Buffer.byteLength(grande, "utf8")).toBeGreaterThan(512 * 1024);
+    expect(await pedir(grande)).toEqual({ status: 413, corpo: { erro: "Corpo grande demais." } });
+    // logo abaixo do limite em bytes ainda é lido (e aqui recusado pelo formato)
+    expect((await pedir(JSON.stringify({ sobra: "a".repeat(500_000) }))).status).toBe(400);
+    expect(pushes).toEqual([]);
+    expect(banco.rpcs).toEqual([]);
+  });
+
   it("na hora: envia o aviso do treino cifrado para cada aparelho e marca pela RPC", async () => {
     const a = aparelho();
     const b = aparelho();

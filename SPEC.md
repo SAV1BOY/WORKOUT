@@ -3336,7 +3336,8 @@ role**, nem no servidor.
    `sha256`) → **401**, sem ler o corpo;
 3. sem as variáveis VAPID → **503** `SEM_CONFIGURACAO`;
 4. corpo que não é JSON ou fora do `disparoSchema` (Zod) → **400**; maior
-   que 512 KiB → **413**;
+   que 512 KiB **em bytes** → **413** (o `content-length` declarado maior já
+   recusa, e a leitura para no primeiro pedaço que passar do limite);
 5. para cada conta, `lembretesDevidos()`; cada aviso devido vai para cada
    inscrição da conta com `lib/web-push.ts` (a mesma cifragem e o mesmo VAPID
    do teste, só para `endpointAceito()`);
