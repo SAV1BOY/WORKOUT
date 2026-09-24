@@ -12,7 +12,10 @@ import {
   ficaInerte,
   focoAoFechar,
   marcar,
+  passoNoHistorico,
   proximoDoTab,
+  reguaAoSair,
+  type Regua,
 } from "@/lib/camada-modal";
 
 /**
@@ -34,7 +37,9 @@ import {
  * - O voltar do celular fecha só a camada de cima (SPEC §22.17 item 6): ao
  *   abrir, a camada põe uma entrada no histórico (mesma rota); o `popstate`
  *   que a tira entrega um Esc à camada de cima; fechada de outro jeito, ela
- *   desfaz a própria entrada se ainda é a do topo.
+ *   desfaz a própria entrada se ainda é a do topo. A entrada que ficou para
+ *   trás (morta) é pulada nas duas direções; a direção sai de uma régua
+ *   própria, sem a Navigation API (o Safari do iPhone não a tem).
  *
  * Sem dependência do Radix: a foto importa daqui sem levar o diálogo junto.
  */
@@ -55,21 +60,20 @@ const marcas = new Map<Element, number>();
 
 /** A última entrada posta no histórico (as de cima têm número maior). */
 let ultimaEntrada = 0;
-/** A direção do último passo no histórico: −1 voltou, +1 avançou. */
-let direcao = -1;
+/**
+ * Onde o histórico está, na régua das entradas de camada (`Regua` em
+ * `lib/camada-modal.ts`): é dela que sai a direção do passo, em qualquer
+ * navegador. `null`: este documento ainda não viu nenhuma.
+ */
+let regua: Regua = null;
+/**
+ * As entradas sem saída: as de camadas desfeitas pelo Esc (X, toque fora,
+ * "Ver resultados") ou fechadas pelo voltar. O avançar que chega nelas volta.
+ */
+const semSaida = new Set<number>();
 /** O `scrollRestoration` de antes da primeira camada (`null`: não mexemos). */
 let rolagemDeAntes: ScrollRestoration | null = null;
 let ouvindo = false;
-
-type Navegacao = EventTarget & { currentEntry: { index: number } | null };
-type EventoDeNavegar = Event & {
-  navigationType: string;
-  destination: { index: number };
-};
-
-function navegacao(): Navegacao | null {
-  return (window as unknown as { navigation?: Navegacao }).navigation ?? null;
-}
 
 /** O voltar vira o Esc da camada de cima: cada uma fecha do jeito dela. */
 function entregarEsc(): void {
@@ -87,6 +91,7 @@ function empilharEntrada(camada: Camada): void {
   window.history.scrollRestoration = "manual";
   ultimaEntrada = Math.max(ultimaEntrada, entradaDoEstado(window.history.state)) + 1;
   camada.entrada = ultimaEntrada;
+  regua = ultimaEntrada;
   window.history.pushState({ [CHAVE_DA_ENTRADA]: ultimaEntrada }, "");
 }
 
@@ -102,11 +107,20 @@ function devolverRolagemDepois(): void {
 }
 
 function aoAndar(evento: PopStateEvent): void {
+  const atual = entradaDoEstado(evento.state);
   const comEntrada = abertas.filter((c) => c.entrada !== null);
   const { fechar, morta } = aoAndarNoHistorico(
     comEntrada.map((c) => c.entrada!),
-    entradaDoEstado(evento.state),
+    atual,
   );
+  // o voltar tirou estas: acima delas só há entradas de camadas fechadas
+  for (const e of fechar) semSaida.add(e);
+  const andar = passoNoHistorico(regua, atual, {
+    morta,
+    fechar,
+    semSaida: semSaida.has(atual),
+  });
+  regua = andar.regua;
   if (fechar.length > 0) {
     const tiradas = comEntrada.filter((c) => fechar.includes(c.entrada!));
     for (const c of tiradas) c.entrada = null;
@@ -126,11 +140,9 @@ function aoAndar(evento: PopStateEvent): void {
       }, 0),
     );
   }
-  if (morta) {
-    if (direcao > 0) window.history.forward();
-    else window.history.back();
-  }
-  direcao = -1;
+  // a entrada morta: mais um passo na direção do toque (sem direção, fica)
+  if (andar.passo > 0) window.history.forward();
+  else if (andar.passo < 0) window.history.back();
   devolverRolagemDepois();
 }
 
@@ -138,14 +150,6 @@ function ouvirOHistorico(): void {
   if (ouvindo) return;
   ouvindo = true;
   window.addEventListener("popstate", aoAndar);
-  const nav = navegacao();
-  // a Navigation API diz a direção do passo (Chrome); sem ela, voltou
-  nav?.addEventListener("navigate", (evento) => {
-    const e = evento as EventoDeNavegar;
-    if (e.navigationType !== "traverse") return;
-    const agora = nav.currentEntry?.index ?? 0;
-    direcao = e.destination.index > agora ? 1 : -1;
-  });
 }
 
 function podeReceberFoco(no: HTMLElement): boolean {
@@ -224,8 +228,12 @@ export function abrirCamada(no: HTMLElement): {
        * fechou pelo Esc, pelo X ou pelo toque fora, a entrada é a do topo e sai.
        */
       setTimeout(() => {
-        if (desfazAoFechar(window.history.state, entrada)) window.history.back();
-        else devolverRolagem();
+        const desfez = desfazAoFechar(window.history.state, entrada);
+        regua = reguaAoSair(regua, entrada, desfez);
+        if (desfez) {
+          semSaida.add(entrada);
+          window.history.back();
+        } else devolverRolagem();
       }, 0);
     },
   };
