@@ -143,11 +143,13 @@ test.describe("§22.16 item 1 — Substituir no exercício do passo atual", () =
         .click();
       const ficha = page.getByRole("dialog");
       await expect(
-        ficha.getByRole("heading", { name: "Agachamento livre" }),
+        ficha.getByRole("heading", { name: "Agachamento livre", exact: true }),
       ).toBeVisible();
       const novo = await substituirNaFolha(ficha);
       const idNovo = idDoNome(novo);
-      await expect(ficha.getByRole("heading", { name: novo })).toBeVisible();
+      await expect(
+        ficha.getByRole("heading", { name: novo, exact: true }),
+      ).toBeVisible();
       await page.keyboard.press("Escape");
       await expect(ficha).toHaveCount(0);
 
@@ -156,7 +158,7 @@ test.describe("§22.16 item 1 — Substituir no exercício do passo atual", () =
         page.getByRole("button", { name: "Concluir série" }),
       ).toBeVisible();
       await expect(
-        page.getByRole("heading", { level: 2, name: novo }),
+        page.getByRole("heading", { level: 2, name: novo, exact: true }),
       ).toBeVisible();
       await expect(
         page.getByText(
@@ -211,21 +213,26 @@ test.describe("§22.16 item 1 — Substituir no exercício do passo atual", () =
         .toBe(0);
 
       // trocar um exercício POSTERIOR (o 2º, pela folha) não mexe no passo
-      await page.getByRole("button", { name: `Como fazer: ${novo}` }).click();
-      await expect(ficha.getByRole("heading", { name: novo })).toBeVisible();
+      await page
+        .getByRole("button", { name: `Como fazer: ${novo}`, exact: true })
+        .click();
+      await expect(
+        ficha.getByRole("heading", { name: novo, exact: true }),
+      ).toBeVisible();
       await ficha.getByRole("button", { name: "Próximo exercício" }).click();
+      await expect(ficha.getByRole("heading").first()).not.toHaveText(novo);
       const segundoAntes = (
         await ficha.getByRole("heading").first().innerText()
       ).trim();
       const segundoNovo = await substituirNaFolha(ficha);
       expect(segundoNovo).not.toBe(segundoAntes);
       await expect(
-        ficha.getByRole("heading", { name: segundoNovo }),
+        ficha.getByRole("heading", { name: segundoNovo, exact: true }),
       ).toBeVisible();
       await page.keyboard.press("Escape");
       await expect(ficha).toHaveCount(0);
       await expect(
-        page.getByRole("heading", { level: 2, name: novo }),
+        page.getByRole("heading", { level: 2, name: novo, exact: true }),
       ).toBeVisible();
       await expect(
         page.getByText(/^Série 2 de \d+ · exercício 1 de 6/),
@@ -255,20 +262,30 @@ test.describe("§22.16 item 1 — pela Visão geral", () => {
     await comecarNoPlayer(page);
 
     await page.getByRole("button", { name: "Visão geral do treino" }).click();
-    await expect(page.getByRole("heading", { level: 1, name: "Treino A" })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { level: 1, name: "Treino A" }),
+    ).toBeVisible();
     await page.getByRole("button", { name: "substituir hoje" }).first().click();
     const folha = page.getByRole("dialog");
-    await expect(folha.getByRole("heading", { name: "Substituir hoje" })).toBeVisible();
+    await expect(
+      folha.getByRole("heading", { name: "Substituir hoje" }),
+    ).toBeVisible();
     const primeira = folha.locator("ul li button").first();
     const novo = (await primeira.locator("span").first().innerText()).trim();
     await primeira.click();
     await expect(folha).toHaveCount(0);
     await page.getByRole("button", { name: "Fechar" }).click();
 
-    await expect(page.getByRole("button", { name: "Concluir série" })).toBeVisible();
-    await expect(page.getByRole("heading", { level: 2, name: novo })).toBeVisible();
     await expect(
-      page.getByText(/^Série 1 de \d+ · exercício 1 de 6 · no lugar de Agachamento livre$/),
+      page.getByRole("button", { name: "Concluir série" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("heading", { level: 2, name: novo, exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByText(
+        /^Série 1 de \d+ · exercício 1 de 6 · no lugar de Agachamento livre$/,
+      ),
     ).toBeVisible();
     await expect(page.locator('[aria-busy="true"]')).toHaveCount(0);
   });
