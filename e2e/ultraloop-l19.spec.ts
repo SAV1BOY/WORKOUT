@@ -72,6 +72,7 @@ async function sessaoNoAparelho(page: Page): Promise<string> {
 }
 
 interface SerieDoAparelho {
+  id: string;
   concluida: boolean;
   tipo: string;
 }
@@ -81,13 +82,21 @@ interface BlocoDoAparelho {
   series: SerieDoAparelho[];
 }
 
-async function blocosNoAparelho(page: Page): Promise<BlocoDoAparelho[]> {
+interface SessaoDoAparelho {
+  blocos?: BlocoDoAparelho[];
+  /** O passo do player como o aparelho o guarda (lib/player.ts). */
+  player?: { chave: string; ordem?: number | null };
+}
+
+async function sessaoDoAparelho(page: Page): Promise<SessaoDoAparelho> {
   const bruto = await sessaoNoAparelho(page);
   // `sessaoAtiva` guarda { id, dados: SessaoLocal, atualizadoEm } (lib/db.ts)
-  const linhas = JSON.parse(bruto || "[]") as {
-    dados?: { blocos?: BlocoDoAparelho[] };
-  }[];
-  return linhas.find((l) => l.dados?.blocos)?.dados?.blocos ?? [];
+  const linhas = JSON.parse(bruto || "[]") as { dados?: SessaoDoAparelho }[];
+  return linhas.find((l) => l.dados?.blocos)?.dados ?? {};
+}
+
+async function blocosNoAparelho(page: Page): Promise<BlocoDoAparelho[]> {
+  return (await sessaoDoAparelho(page)).blocos ?? [];
 }
 
 interface LinhaSerie {
@@ -118,14 +127,19 @@ async function substituirNaFolha(ficha: Locator): Promise<string> {
 
 test.describe("§22.16 item 1 — Substituir no exercício do passo atual", () => {
   for (const tema of TEMAS) {
-    test(`o player segue no exercício novo, sem recarregar e sem perder série — ${tema}`, async ({
+    test(`o player segue no exercício novo, sem recarregar; a série do substituto fica no aparelho e no mock — ${tema}`, async ({
       page,
     }) => {
       const sessao = await preparar(page, tema);
       await comecarOTreinoDoDia(page);
       await comecarNoPlayer(page);
 
-      // o aquecimento 1 do agachamento fica registrado (e sai com a troca, §3.2)
+      /*
+       * Com o aquecimento 1 do agachamento feito. O que acontece com ELE na
+       * troca (hoje sai do aparelho e do banco, como já saía em c689f69) é
+       * pergunta aberta ao dono (SPEC §22.16 item 1): este teste não afirma
+       * nem a perda nem o contrário.
+       */
       await concluirSerie(page);
       await expect(
         page.getByText("Aquecimento 2 de 2 · exercício 1 de 6"),
@@ -165,7 +179,9 @@ test.describe("§22.16 item 1 — Substituir no exercício do passo atual", () =
           /^Série 1 de \d+ · exercício 1 de 6 · no lugar de Agachamento livre$/,
         ),
       ).toBeVisible();
-      await expect(page.locator('[aria-busy="true"]')).toHaveCount(0);
+      await expect(
+        page.getByRole("status", { name: "Carregando" }),
+      ).toHaveCount(0);
       expect(
         await page.evaluate(
           () =>
@@ -173,6 +189,20 @@ test.describe("§22.16 item 1 — Substituir no exercício do passo atual", () =
         ),
       ).toBe(19);
       await semRolagemHorizontal(page);
+
+      // o passo achado fica anotado no aparelho: a série 1 do exercício novo
+      await expect
+        .poll(async () => {
+          const dados = await sessaoDoAparelho(page);
+          const bloco = dados.blocos?.find((b) => b.ordem === 1);
+          const primeira = bloco?.series.find((s) => !s.concluida);
+          return [
+            bloco?.exercicioId,
+            dados.player?.ordem,
+            dados.player?.chave === `serie:${primeira?.id ?? "?"}`,
+          ];
+        })
+        .toEqual([idNovo, 1, true]);
 
       // a série 1 do exercício novo: no aparelho e no mock
       await concluirSerie(page);
@@ -202,15 +232,6 @@ test.describe("§22.16 item 1 — Substituir no exercício do passo atual", () =
           },
         )
         .toBe(1);
-      // o registro do dia é do substituto (§3.2): o aquecimento do original saiu
-      await expect
-        .poll(
-          async () => (await seriesNoMock(sessao, "agachamento-livre")).length,
-          {
-            timeout: 15_000,
-          },
-        )
-        .toBe(0);
 
       // trocar um exercício POSTERIOR (o 2º, pela folha) não mexe no passo
       await page
@@ -287,7 +308,9 @@ test.describe("§22.16 item 1 — pela Visão geral", () => {
         /^Série 1 de \d+ · exercício 1 de 6 · no lugar de Agachamento livre$/,
       ),
     ).toBeVisible();
-    await expect(page.locator('[aria-busy="true"]')).toHaveCount(0);
+    await expect(
+      page.getByRole("status", { name: "Carregando" }),
+    ).toHaveCount(0);
   });
 });
 
@@ -350,6 +373,45 @@ test.describe("§22.16 itens 2–4 — a preparação", () => {
       await expect(page.getByText("Prepare-se", { exact: true })).toBeVisible();
     });
   }
+});
+
+test.describe("§22.16 item 2 — a contagem não corre atrás da Visão geral", () => {
+  test("20 s com a Visão geral aberta: 'Fechar' volta à preparação, e a contagem recomeça", async ({
+    page,
+  }) => {
+    await preparar(page);
+    await comecarOTreinoDoDia(page);
+    await expect(page.getByText("Prepare-se", { exact: true })).toBeVisible();
+
+    await page.getByRole("button", { name: "Visão geral do treino" }).click();
+    await expect(
+      page.getByRole("heading", { level: 1, name: "Treino A" }),
+    ).toBeVisible();
+    // o relógio anda 20 s (a contagem padrão é de 10 s) com a lista aberta
+    await page.clock.setFixedTime(
+      new Date(new Date(SEGUNDA).getTime() + 20_000),
+    );
+    // o relógio do player lê a hora a cada 250 ms: 1 s dá quatro leituras
+    await page.waitForTimeout(1_000);
+    await expect(
+      page.getByRole("heading", { level: 1, name: "Treino A" }),
+    ).toBeVisible();
+    await page.getByRole("button", { name: "Fechar" }).click();
+
+    // de volta na preparação, com a contagem cheia de novo
+    await expect(page.getByText("Prepare-se", { exact: true })).toBeVisible();
+    await page.waitForTimeout(1_000);
+    await expect(page.getByText("Prepare-se", { exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Concluir série" })).toHaveCount(0);
+
+    // mais uma contagem inteira depois, o treino começa sozinho
+    await page.clock.setFixedTime(
+      new Date(new Date(SEGUNDA).getTime() + 32_000),
+    );
+    await expect(
+      page.getByRole("button", { name: "Concluir série" }),
+    ).toBeVisible();
+  });
 });
 
 /* -------------------------------------- item 5: pontos por série */
@@ -526,7 +588,34 @@ test.describe("§22.16 item 6 — topo da série e polegares", () => {
         )
         .toEqual(["agachamento-livre"]);
 
-      await page.getByRole("button", { name: "Desfazer" }).click();
+      // o "Desfazer" é alvo de toque (≥ 44 × 44) e, focado pelo teclado,
+      // tem anel sólido que se vê contra o fundo do aviso
+      const desfazer = page.getByRole("button", { name: "Desfazer" });
+      const caixaDesfazer = await desfazer.boundingBox();
+      expect(caixaDesfazer?.width ?? 0).toBeGreaterThanOrEqual(44);
+      expect(caixaDesfazer?.height ?? 0).toBeGreaterThanOrEqual(44);
+      await page.keyboard.press("Shift");
+      await desfazer.focus();
+      const anel = await desfazer.evaluate((e) => {
+        const estilo = getComputedStyle(e);
+        const aviso = e.closest("[data-sonner-toast]");
+        return {
+          visivel: e.matches(":focus-visible"),
+          tipo: estilo.outlineStyle,
+          largura: parseFloat(estilo.outlineWidth),
+          cor: estilo.outlineColor,
+          fundo: aviso ? getComputedStyle(aviso).backgroundColor : "",
+        };
+      });
+      expect(anel.visivel).toBe(true);
+      expect(anel.tipo).toBe("solid");
+      expect(anel.largura).toBeGreaterThanOrEqual(2);
+      expect(
+        contraste(anel.cor, anel.fundo),
+        `anel ${anel.cor} sobre ${anel.fundo}`,
+      ).toBeGreaterThanOrEqual(3);
+
+      await desfazer.click();
       await expect(naoGosto).not.toHaveAttribute("aria-pressed", "true");
       await expect(naoGosto).not.toHaveAttribute("aria-pressed", "false");
       await expect(gostei).not.toHaveAttribute("aria-pressed", "true");
