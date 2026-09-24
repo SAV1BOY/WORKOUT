@@ -273,4 +273,48 @@ describe("§22.16 item 7 — o '%' colado ao número", () => {
     expect(guia).toContain("10% da carga");
     expect(guia).not.toMatch(/\d\s%/);
   });
+
+  /*
+   * Correção da auditoria 1: o " · semana leve (60%)" da ficha
+   * (components/exercicios/historico-exercicio.tsx) não tinha guarda — voltar
+   * a "60 %" ali não derrubava nada. Aqui o grep do aceite roda sozinho no
+   * código-fonte de lib/, components/ e app/, sem os comentários (que ficam,
+   * §22.16 item 7) e sem os testes.
+   */
+  it("nenhum texto do código (lib, components, app) separa o número do '%'", () => {
+    const arquivos: string[] = [];
+    const varrer = (pasta: string) => {
+      for (const item of readdirSync(pasta, { withFileTypes: true })) {
+        const caminho = join(pasta, item.name);
+        if (item.isDirectory()) varrer(caminho);
+        else if (/\.(ts|tsx)$/.test(item.name) && !/\.test\.tsx?$/.test(item.name)) {
+          arquivos.push(caminho);
+        }
+      }
+    };
+    for (const pasta of ["lib", "components", "app"]) varrer(join(process.cwd(), pasta));
+    expect(arquivos.length).toBeGreaterThan(100);
+
+    const semComentarios = (fonte: string) =>
+      fonte
+        .replace(/\/\*[\s\S]*?\*\//g, "")
+        .replace(/(^|[^:"'`\\])\/\/.*$/gm, "$1");
+    const achados: string[] = [];
+    for (const arquivo of arquivos) {
+      semComentarios(readFileSync(arquivo, "utf8"))
+        .split("\n")
+        .forEach((linha) => {
+          if (/\d[ \u00a0]%/.test(linha)) achados.push(`${arquivo}: ${linha.trim()}`);
+        });
+    }
+    expect(achados).toEqual([]);
+
+    // o guarda pega o que a auditoria achou sem guarda
+    const ficha = readFileSync(
+      join(process.cwd(), "components/exercicios/historico-exercicio.tsx"),
+      "utf8",
+    );
+    expect(ficha).toContain("semana leve (60%)");
+    expect(/\d[ \u00a0]%/.test(semComentarios(ficha.replace("(60%)", "(60 %)")))).toBe(true);
+  });
 });
