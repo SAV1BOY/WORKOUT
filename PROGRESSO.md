@@ -11735,9 +11735,11 @@ esqueleto até recarregar. `lib/progressao.ts` e `lib/montagem.ts`:
   esqueleto (`test-failed-1.png`: só as barras cinzas, sem "Concluir
   série"). É também a mutação "volta à chave antiga" no componente: em
   `c689f69` a tela lê `indiceDaChave`.
-- **Vitest** `lib/l19.test.ts` (14 casos no HEAD; eram 13 em `d44d2ef`, e o
-  14º, o guarda do `%` no código-fonte, veio na correção da auditoria 1,
-  abaixo): `indiceDoEstado` — trocar o
+- **Vitest** `lib/l19.test.ts` (16 casos no HEAD; eram 13 em `d44d2ef`; o
+  14º, o guarda do `%` no código-fonte, veio na correção da auditoria 1, e
+  o 15º e o 16º — o ramo "primeiro passo do exercício" e `avisoDoPolegar`
+  — na correção da auditoria da rodada 27, as duas abaixo):
+  `indiceDoEstado` — trocar o
   exercício do passo atual sem série feita, com 3 séries feitas nele e
   parado no descanso entre as séries dele (série 1 do exercício novo);
   trocar um posterior e um anterior com séries feitas (a chave fica e as
@@ -11757,9 +11759,10 @@ esqueleto até recarregar. `lib/progressao.ts` e `lib/montagem.ts`:
   feitos; o aviso do "não gosto" prometendo "não vai mais ser montado";
   "60 %" de volta na retomada; "10 %" de volta em `data/progressao.json`
   — **as 9 derrubam algum teste** (de 1 a 5 casos cada).
-- **e2e** `e2e/ultraloop-l19.spec.ts` (10 casos no HEAD, 360×740; eram 9 em
-  `d44d2ef`, e o 10º, a contagem parada na Visão geral, veio na correção da
-  auditoria 1, abaixo): item 1 nos dois
+- **e2e** `e2e/ultraloop-l19.spec.ts` (11 casos no HEAD, 360×740; eram 9 em
+  `d44d2ef`; o 10º, a contagem parada na Visão geral, veio na correção da
+  auditoria 1, e o 11º, o polegar sem perfil, na correção da auditoria da
+  rodada 27, as duas abaixo): item 1 nos dois
   temas — "?" → Substituir no passo atual → a folha mostra o exercício
   novo; fechada, "Concluir série", o `h2` do exercício novo e "Série 1 de N
   · exercício 1 de 6 · no lugar de Agachamento livre", nenhum
@@ -11828,9 +11831,19 @@ testes, todos verdes** · `build` ("Compiled successfully in 18.9s") ·
 pulados, 0 falhas** (25,0 min; os 5 pulados são a varredura, que roda à
 parte; os 10 casos de `e2e/ultraloop-l19.spec.ts`, ✓ 510–519, e o guarda do
 `%` em `e2e/treino.spec.ts:458`, ✓ 305) · `varredura` **5 passaram**
-(4,8 min). O HEAD final é `426bcde` com só PROGRESSO.md e SPEC.md mudados
-depois dele (`git diff --stat 426bcde HEAD` só lista esses dois), então essa
-cadeia vale para o código.
+(4,8 min). Essa cadeia valeu para o código até a auditoria da rodada 27;
+a correção dela mudou código, e a cadeia que vale agora é a de baixo.
+
+**Cadeia inteira no código final da correção da auditoria da rodada 27,
+`910b8c8`** (`r27/l19/logs/910b8c8.log`, das 15:30:59 às 16:13:47 UTC,
+`.status` **ok**): `lint` limpo · `tsc --noEmit` limpo · `npm test` **74
+arquivos, 1.648 testes, todos verdes** (os 2 a mais são os casos novos de
+`lib/l19.test.ts`, agora com 16) · `build` ("Compiled successfully in
+20.8s") · `build:e2e` ("Compiled successfully in 20.1s") · `e2e` **569
+passaram, 5 pulados, 0 falhas** (24,0 min; os 5 pulados são a varredura,
+que roda à parte; os 11 casos de `e2e/ultraloop-l19.spec.ts`, ✓ 510–520, e
+o guarda do `%` em `e2e/treino.spec.ts:458`, ✓ 305) · `varredura` **5
+passaram** (4,7 min). Depois de `910b8c8` só este PROGRESSO.md muda.
 
 #### Capturas
 
@@ -12124,3 +12137,178 @@ sendo a de `426bcde`.
 mudou, mas pela base do L32, e isso está explicado acima.
 
 **Como testar no celular:** nada novo. Valem os passos 1–9 acima.
+
+#### Rodada 27 — Correção da auditoria (auditoria 1 da rodada 27 em `6ecd777`: regra reprovada, tela aprovada)
+
+As duas lentes auditaram `6ecd777` (`r27/l19/auditoria-1-regra/veredito.json`
+e `r27/l19/auditoria-1-tela/veredito.json`). A **tela aprovou** (0
+bloqueantes, 0 importantes, 5 menores). A **regra reprovou por 1
+importante**: o aviso dos polegares confirmava um voto que não tinha sido
+gravado. Esta correção muda código do lote (só arquivos que ele já
+editava) e começa pela SPEC (`4bd32b0`). `lib/progressao.ts` e
+`lib/montagem.ts`: `git diff c689f69` vazio.
+
+**O que mudou (era → é):**
+
+1. **O aviso dos polegares só confirma voto gravado** (importante da
+   regra; `lib/player.ts`, `components/player/exercicio.tsx`,
+   `components/player/tela-player.tsx`; `190bcc3`). **Era:** o `votar`
+   chamava `aoAvaliar` e mostrava o aviso com "Desfazer" sem condição, e o
+   `avaliarExercicio` saía calado com `if (!perfil) return;`. O player abre
+   de propósito só com a sessão do Dexie, então sem o perfil (cache vazio
+   ou de mais de 7 dias sem rede, erro do `profiles`) o "Não gosto"
+   anunciava "Agachamento livre vai para o fim das listas…" com
+   "Desfazer" e nada ia para `prefs` nem para a fila. **É:**
+   `avaliarExercicio` devolve se gravou; o texto e a presença do
+   "Desfazer" saem de `avisoDoPolegar(nome, voto, gravou)` (puro, em
+   `lib/player.ts`). Sem gravação, o toque diz "Voto não anotado: o
+   perfil ainda não carregou.", sem "Desfazer" e sem `aria-pressed`.
+2. **O "Desfazer" grava sobre as preferências de agora** (menor 1 da
+   regra; mesmo commit). **Era:** o `onClick` do aviso guardava o
+   `avaliarExercicio` do render do voto e, com ele, o retrato de `prefs`
+   daquele render; `salvarPrefs` grava o jsonb inteiro, então qualquer
+   outra mudança de `prefs` feita com o aviso na tela (um ajuste, um voto
+   em outro exercício) era desfeita junto. **É:** `avaliarExercicio` lê o
+   perfil do cache na hora (`cliente.getQueryData(chaves.perfil())`) e
+   aplica `comVoto` sobre ele; o `perfil` do render fica só de reserva.
+3. **O ramo "primeiro passo do exercício" do `indiceDoEstado` tem teste**
+   (menor 2 da regra; `lib/l19.test.ts`, comentário em `lib/player.ts`;
+   `c77518f`). **Era:** a mutação M7, que tira o ramo, deixava tudo verde.
+   **É:** um caso monta um exercício só com aquecimentos, todos feitos
+   (sem série que falta e sem "firme?"), e confere que o player fica no
+   primeiro passo dele e não na retomada (que levaria de volta ao 1º
+   exercício). A M7 agora derruba esse caso. O ramo continua sem uso no
+   catálogo (todo bloco tem série de trabalho) e a SPEC §22.16 item 1 diz
+   isso.
+4. **O relógio de 250 ms para com a Visão geral aberta** (menor 5 da
+   regra; `components/player/tela-player.tsx`; `f39d5c3`). **Era:** com a
+   Visão geral aberta a partir da preparação, a contagem não valia, mas o
+   relógio seguia e redesenhava a Visão geral inteira 4 vezes por segundo.
+   **É:** o relógio liga só com `contando && !visaoGeral`; ao "Fechar",
+   ele volta, marca a hora e a contagem recomeça do início, como antes.
+5. **O comentário velho do e2e** (menor 3 da regra;
+   `e2e/ultraloop-l19.spec.ts`; `5b28788`): "pergunta aberta ao dono"
+   virou a decisão (b), que é do L21 (B-substituir-apaga-series-feitas).
+   O teste continua sem afirmar nem a perda nem o contrário.
+6. **Textos** (menor 4 da regra e menor 1 da tela; `SPEC.md` `4bd32b0`,
+   `PROGRESSO.md` `910b8c8`): as Provas dos itens 2–4 dizem agora que o
+   "Continuar" volta à preparação no e2e porque `fixarData` congela o
+   relógio — no aparelho, passados mais de 10 s, a volta vai direto ao
+   "Aquecimento 1" (§14.1.1). O número do "montagem" com "Afundo /
+   passada" passou de "cerca de 3 px" para "cerca de 10 px abaixo da
+   borda da barra (0,6 px sobre o 'Concluir série'), a página rola 33 px".
+
+**Provas:**
+
+- **Vitest** (`lib/l19.test.ts`, 16 casos): o novo caso do item 1 monta o
+  2º exercício só com um aquecimento feito, confere que a sequência não
+  tem "firme?" dele e que `indiceDoEstado` com a chave sumida e `ordem` 2
+  devolve o primeiro passo dele (a retomada, sem `ordem`, levaria à série
+  do 1º exercício). O novo caso do item 6 confere `avisoDoPolegar` nos
+  três votos: com gravação, o texto de `avisoDoVoto` e "Desfazer"; sem
+  gravação, "Voto não anotado: o perfil ainda não carregou.", sem
+  "Desfazer" e sem o nome nem o texto de voto gravado.
+- **Mutação M7** (tirar o ramo `qualquer` de `indiceDoEstado`, aplicada no
+  worktree e revertida na hora, nada comitado): **1 falha**, o caso novo.
+  Antes da correção a M7 deixava tudo verde.
+- **e2e novo** (`e2e/ultraloop-l19.spec.ts`, "§22.16 item 6 — sem perfil",
+  360×740, claro; `serviceWorkers: "block"` só nele, porque o worker leva
+  todo `/rest/v1/` pela rede e o que passa por ele fica fora do
+  `page.route`): com a série no Dexie, o `profiles` passa a responder 503
+  e um script de início esvazia a tabela `cache` antes de o app lê-la; ao
+  recarregar, o player abre em "Aquecimento 1 de 2 · exercício 1 de 6"
+  com "Concluir série"; "Não gosto" mostra "Voto não anotado: o perfil
+  ainda não carregou.", não mostra "Agachamento livre vai para o fim das
+  listas…" nem "Desfazer", o polegar fica sem `aria-pressed`, nada de
+  perfil na fila (`outbox`) e o `prefs.evitar_exercicios` do mock segue
+  vazio; sem rolagem lateral.
+- **Pré-rodada sob um lock só** (`r27/l19/pre-logs/pre-e-mutacao.log`,
+  15:28–15:30 UTC): `build:e2e` de `5b28788` e `e2e --grep "22.16 item
+  6"` → **3 passaram** (o novo e os dois temas do item 6). Depois a
+  **mutação "aviso sem condição"** em `exercicio.tsx` (o `votar` passa
+  `gravou = true` sempre), com `build:e2e` próprio: o e2e novo **cai** —
+  "Voto não anotado…" não aparece, e o trace
+  (`r27/l19/pre-logs/mutante/`) guarda o aviso falso "Agachamento livre
+  vai para o fim das listas de substitutos e do Explorar." na tela.
+  Revertida pelo `git checkout` do próprio script (`git status` limpo).
+- **Ao vivo** (`r27/l19/ao-vivo/desfazer.cjs` → `desfazer.json`, mock +
+  `next start` do `.next` da cadeia de `910b8c8`, 360×740, os dois temas,
+  servidores derrubados pelos PIDs depois, 3130 e 54351 → 000):
+  - **"Desfazer" sobre as prefs de agora:** "Não gosto" → com o aviso na
+    tela, "Ajustar" pelo teclado (o aviso cobre o topo) → "Vibração"
+    desligada → Esc → "Desfazer", em 826–915 ms. No mock, o final é
+    `evitar_exercicios: []` **e `descanso_vibra: false`**: o voto saiu e o
+    ajuste ficou. Com o código de antes, o "Desfazer" gravaria o retrato
+    do render do voto (`{ guia_visto: true }` sem a vibração) e a
+    Vibração voltaria sozinha — isso é leitura do código de `6ecd777`,
+    não uma execução dele.
+  - **Sem perfil:** o aviso "Voto não anotado: o perfil ainda não
+    carregou." tem 13 px e contraste de 19,8:1 no claro e 13,87:1 no
+    escuro, 0 botões dentro dele, nenhum "vai para o fim das listas",
+    nenhum `aria-pressed`, `prefs` do mock igual antes e depois, e a tela
+    com 360 px de largura (`02-sem-perfil-*.png`). Os erros da página são
+    os 503 de propósito e o `reading 'waiting'` do worker bloqueado no
+    script, que a auditoria já tinha explicado.
+- `git diff c689f69 -- lib/progressao.ts lib/montagem.ts`: vazio.
+  `package.json`, `package-lock.json`, `supabase/` e `scripts/` fora do
+  diff. Grep de segredos no diff (`service_role`, `eyJ`, `sk_live`,
+  `SUPABASE_SERVICE`): vazio.
+
+**Portões:** cadeia inteira em `910b8c8`, o código final
+(`r27/l19/logs/910b8c8.log`, 15:30:59 → 16:13:47 UTC, `.status` **ok**):
+`lint` limpo · `tsc` limpo · **74 arquivos, 1.648 testes** · `build` 20,8
+s · `build:e2e` 20,1 s · `e2e` **569 passaram, 5 pulados, 0 falhas**
+(24,0 min; os 11 do `ultraloop-l19` ✓ 510–520) · `varredura` **5
+passaram** (4,7 min). Nenhum teste instável nesta cadeia.
+
+**Capturas** (`capturas.sh` com o `.next` do build:e2e da cadeia de
+`910b8c8`, contra `base-ef3ad97`; `r27/l19/capturas-910b8c8.md`): 60 PNGs,
+**todos idênticos byte a byte aos de `6ae5c09`** (`cmp`, 0 de 60
+diferentes) — a correção não muda nenhuma das 60 telas (o aviso sem perfil
+não está nelas). Diffs abertos de novo:
+
+| tela | Δ claro | Δ escuro | o que mudou |
+| --- | ---: | ---: | --- |
+| 27-player-preparacao | 21,58 % | 21,18 % | o mesmo da rodada 23: "PREPARADO PARA COMEÇAR" → "PREPARE-SE", o bloco (anel, nome, "Começar agora") desce para o meio da tela, e entram "✕ Sair do treino" e o ícone de lista no topo |
+| 28-player-exercicio | 6,57 % | 7,67 % | o mesmo da rodada 23: os polegares saem do topo para a linha do nome, entra a fileira de 5 pontos, a figura fica 16 px mais baixa e o miolo desce alguns px |
+| 07-colecao (fora da lista) | 16,30 % | 22,07 % | o cartão do plano e a lista de semanas deslocados ~20 px: é a base com o L32, não o lote — o PNG é o mesmo md5 (`e2984f3ac9`/`fd081ed0b8`) das rodadas anteriores, que a auditoria de tela da rodada 27 casou com as branches sem o L32 |
+
+As outras 54 têm Δ 0,00 %.
+
+**Menores registrados, sem mudança de código:**
+
+- Regra, menor 6 (processo): o e2e do lote é `e2e/ultraloop-l19.spec.ts`
+  e não `e2e/player.spec.ts`, como as `observacoes_do_plano` previam. A
+  SPEC §22.16 dá esse nome; fica para o orquestrador anotar o desvio.
+- Regra, menor 7: as anotações do ledger (aceite ajustado do
+  ux-heuristicas-22, a linha do copy-19 em `data/cardio.json`, o aceite
+  do dono "pendente" da exceção de área, o guarda do `%` que só pega
+  número literal, o risco do "firme?") são do orquestrador; a SPEC já
+  registra o risco do "firme?".
+- Tela, menor 2: os avisos do Sonner cobrem a fileira do topo por ~4 s,
+  como já registrado; o "Desfazer" continua alcançável e o "Ajustar"
+  continua alcançável pelo teclado (medido acima).
+- Tela, menor 3: o contraste abaixo de AA fora do lote (aviso "Semana
+  leve…" 4,26:1 no claro; descrições da retomada 4,04:1 no escuro) fica
+  para o ledger; as cores não são deste lote.
+- Tela, menor 4: a perda das séries feitas do exercício trocado é do L21
+  (B-substituir-apaga-series-feitas, decisão (b) do dono).
+- Tela, menor 5: o `pageerror` "reading 'waiting'" vem de o script rodar
+  com `serviceWorkers: "block"`; apareceu também no script ao vivo desta
+  correção, pelo mesmo motivo.
+
+**Como testar no celular (360 px):** valem os passos 1–9 acima. O que esta
+correção acrescenta:
+
+1. No player, toque o polegar para baixo: o aviso "… vai para o fim das
+   listas de substitutos e do Explorar." com "Desfazer" continua igual; o
+   "Desfazer" tira o voto.
+2. O aviso sem perfil não aparece no uso normal (o perfil chega com o
+   app). Para vê-lo, no computador: DevTools → bloquear
+   `*/rest/v1/profiles*`, apagar a tabela `cache` do IndexedDB
+   `treino-terraco` e recarregar o player; o polegar para baixo diz "Voto
+   não anotado: o perfil ainda não carregou.", sem "Desfazer", e o polegar
+   não acende.
+3. O "Desfazer" sobre as preferências de agora não dá para provocar com o
+   dedo (o aviso cobre a engrenagem durante os ~4 s); foi medido ao vivo
+   pelo teclado, acima.
