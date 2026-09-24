@@ -11722,7 +11722,8 @@ entrou), o service worker e a tela. **Nunca a service role**, nem no servidor.
   CPUs. Parece uma corrida entre o `guia_visto` gravado pela fila offline e
   o `reload` do teste; nenhum arquivo do lote toca o guia da primeira entrada
   nem a sessão, e o mesmo spec já tinha caído sob carga em
-  `rodada-1/l2`. **Sozinho passou 2× no mesmo `.next`**
+  `rodada-1/l2/logs-parcial/ea984ef-tentativa1.log`. **Sozinho passou 2× no
+  mesmo `.next`**
   (`r20/l35/auditoria-2-tela/e2e-grep/10d4ae0.log`, com o lock: 1 passed em
   2,8 s / 7,4 s no total e 1 passed em 3,2 s / 7,9 s) e, no mesmo diretório,
   a **`varredura` à parte deu 5 passaram** (4,7 min, `.status` ok). Pela
@@ -11730,6 +11731,15 @@ entrou), o service worker e a tela. **Nunca a service role**, nem no servidor.
   teste; não bloqueia. Os 8 e2e do L35, os 40 do L34 (inclusive os que
   mudaram na correção: frase do "Próximo", sem VAPID com 18:30 no mock) e o
   worker real passaram nessa cadeia.
+- **`48be98c`** (rodada 24: = `10d4ae0` + só este PROGRESSO.md; o mesmo
+  código aprovado nas duas lentes; cadeia inteira rodada por mim,
+  `r24/l35/logs/48be98c.log`, das 11:20:39 às 11:52:17 UTC, `.status`
+  **ok**): `lint` limpo · `tsc` limpo · `npm test` **77 arquivos, 1.704
+  testes, todos verdes** · `build` ("Compiled successfully in 18.6s") ·
+  `build:e2e` ("Compiled successfully in 19.0s") · `e2e` **569 passaram, 5
+  pulados, nenhum ✘** (23,6 min; o `auditoria.spec.ts:86` passou) ·
+  `varredura` **5 passaram** (4,7 min). É a cadeia verde de ponta a ponta do
+  código corrigido.
 - `git diff 96056ac -- lib/progressao.ts lib/montagem.ts` vazio. Nenhum
   segredo no repositório; nenhuma service role.
 
