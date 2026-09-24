@@ -2972,9 +2972,13 @@ aceite de cada item é verificável no Vitest (`lib/midia.test.ts`,
    da seção Planos; nos 122 termos, nenhuma foto se repete numa busca, e
    toda coleção cuja capa da vitrine não está numa linha de cima tem a capa
    da vitrine (o que muda cai de 144 para 66 linhas, e os planos de 4 para
-   2 — barra fixa nas buscas "elástico" e "assistida", onde a foto da barra
-   fixa assistida já é a capa da linha da Super Band); e2e — na busca
-   "corda", a linha "Corda: 5 estágios" tem a foto da seção Planos.
+   2 — "Primeira barra fixa" nas buscas "elástico" e "assistida", onde a
+   foto da barra fixa assistida é a capa do circuito "Elástico", numa linha
+   de cima); na busca "corda", quem fica com o ícone passa a ser o aparelho
+   "Corda de pular com rolamento": a foto dele na vitrine (salto básico) é
+   a do circuito "Corda", logo acima, e as outras fotos dos exercícios dele
+   já estão em cima; e2e — na busca "corda", a linha "Corda: 5 estágios"
+   tem a foto da seção Planos.
 7. **A posição no plano aparece uma vez** (C-plano-progresso-repete-desafio).
    Na tela do plano com perfil, a capa dizia "semana 3 de 12" e o bloco
    "Semanas do plano", logo abaixo, "Semana 3 de 12 · 2 concluídas" com a

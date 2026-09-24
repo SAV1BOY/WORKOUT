@@ -55,10 +55,17 @@ export function tomDaCapa(id: string): string {
 export function LinhaColecao({
   colecao,
   mostrarRaios = true,
+  reservarSubtitulo = true,
   className,
 }: {
   colecao: Colecao;
   mostrarRaios?: boolean;
+  /**
+   * SPEC §22.15 item 5: a reserva da linha do subtítulo (§22.13 item 7) é da
+   * vitrine, onde as linhas de uma seção têm a mesma altura. Na busca a
+   * altura já varia, e a reserva vazia era um vão acima do motivo.
+   */
+  reservarSubtitulo?: boolean;
   className?: string;
 }) {
   /*
@@ -154,7 +161,7 @@ export function LinhaColecao({
               </>
             ) : null}
           </span>
-        ) : (
+        ) : reservarSubtitulo || colecao.circuito ? (
           <span
             aria-hidden={colecao.circuito ? undefined : true}
             className="block h-4 text-xs"
@@ -162,7 +169,7 @@ export function LinhaColecao({
           >
             {selo("abre")}
           </span>
-        )}
+        ) : null}
         {/*
           SPEC §22.12 item 3: o motivo aparece inteiro — cita no máximo um nome
           por termo, e com 4 termos o corte em 2 linhas escondia o 3º nome.

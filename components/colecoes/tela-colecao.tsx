@@ -10,8 +10,8 @@ import { BotaoLargo } from "@/components/ui/botao-largo";
 import { CardCapa } from "@/components/ui/card-capa";
 import {
   ctaDoPlano,
+  detalheDaCapa,
   exerciciosParaSessao,
-  metaDoPlano,
   planos,
   semanaDoPerfilNoPlano,
   semanaPresa,
@@ -51,17 +51,17 @@ export function TelaColecao({ colecao }: { colecao: Colecao }) {
 
   /* Plano não abre sessão livre: leva para a tela do plano (§3.3 e §3.4). */
   const dadosDoPlano = planos().find((p) => p.id === colecao.plano) ?? null;
-  /*
-   * SPEC §22.12 item 4: com o perfil na mão, o plano diz onde o usuário está
-   * ("semana 3 de 12"), como na vitrine; sem perfil, a da vitrine: a duração,
-   * ou nada quando o objetivo já diz o prazo.
-   */
   const perfil = perfilQ.data ?? null;
   const posicao = perfil
     ? { semanaFixa: perfil.semana_fixa, semanaCorrida: perfil.semana_corrida }
     : null;
-  const detalhe =
-    dadosDoPlano && posicao ? metaDoPlano(dadosDoPlano, posicao) : colecao.detalhe;
+  /*
+   * SPEC §22.15 item 7: a posição no plano ("semana 3 de 12") fica só no
+   * bloco "Semanas do plano", logo abaixo, com a barra e o "agora"; a capa
+   * diz o que o plano é — a duração, ou nada quando o objetivo já diz o
+   * prazo (§22.12 item 4).
+   */
+  const detalhe = detalheDaCapa(colecao, dadosDoPlano);
   /*
    * SPEC §22.12 item 7: o botão do plano é o MESMO do desafio (rótulo e
    * destino), vindo de `ctaDoPlano()` — esta tela não escreve o rótulo.
@@ -204,7 +204,13 @@ function SemanasDoPlano({
         </div>
       ) : null}
 
-      <ol className="border-border divide-border flex flex-col divide-y rounded-xl border">
+      {/*
+        SPEC §22.15 item 8: o fundo da linha "agora" tinha cantos retos e cobria
+        o arredondado do cartão. A lista recorta pelo próprio raio; o link da
+        linha atual fica a 10 px ou mais da borda, e o anel dele (2 px a 2 px)
+        não é cortado.
+      */}
+      <ol className="border-border divide-border flex flex-col divide-y overflow-hidden rounded-xl border">
         {linhas.map((l) => {
           const IconeDoEstado = l.estado ? ICONE_DO_ESTADO[l.estado] : null;
           return (
