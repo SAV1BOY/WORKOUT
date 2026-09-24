@@ -28,6 +28,8 @@ import {
   type OpcoesMontagem,
 } from "@/lib/montagem";
 import {
+  avisoDoVoto,
+  pontosDoBloco,
   rotuloDoPasso,
   serieAnteriorDe,
   type EntradaDoPasso,
@@ -113,6 +115,17 @@ export function TelaExercicio({
     if (pedidoDeFoco > 0) botaoDaLista.current?.focus();
   }, [pedidoDeFoco]);
 
+  const pontos = pontosDoBloco(bloco, passo);
+
+  /** O voto, com o aviso do que ele faz e o "Desfazer" (SPEC §22.16 item 6). */
+  const votar = (novo: VotoDoExercicio) => {
+    const antes = voto;
+    aoAvaliar(novo);
+    toast(avisoDoVoto(exercicio.nome, novo), {
+      action: { label: "Desfazer", onClick: () => aoAvaliar(antes) },
+    });
+  };
+
   /**
    * Carga digitada à mão (SPEC §6.4 e §10.5): o ± anda pela escala, mas o
    * teclado aceita qualquer número — o que o kit não monta cai na alcançável
@@ -153,8 +166,12 @@ export function TelaExercicio({
         {aviso}
       </p>
 
-      {/* ícones do topo (SPEC §14.1.2) */}
-      <div className="flex items-center justify-between gap-1 px-3 pt-1">
+      {/*
+        ícones do topo (SPEC §14.1.2 e §22.16 item 6): só dois, um em cada
+        canto — os polegares desceram para a linha do nome, onde dizem de
+        quem é o voto, e deixaram de ficar a 2 px um do outro.
+      */}
+      <div className="flex items-center justify-between gap-2 px-3 pt-1">
         <Button
           ref={botaoDaLista}
           variant="ghost"
@@ -165,42 +182,15 @@ export function TelaExercicio({
         >
           <List className="size-5" />
         </Button>
-        <div className="flex items-center gap-0.5">
-          {/*
-            SPEC §22.1: sem voto os dois polegares ficam neutros e nenhum
-            `aria-pressed` afirma uma escolha que o usuário não fez. Tocar de
-            novo no polegar aceso desfaz o voto — os três estados, no mesmo par.
-          */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className={cn("alvo size-11", voto === "preferido" && "text-primary")}
-            aria-label="Gostei deste exercício"
-            aria-pressed={voto === null ? undefined : voto === "preferido"}
-            onClick={() => aoAvaliar(voto === "preferido" ? null : "preferido")}
-          >
-            <ThumbsUp className="size-5" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className={cn("alvo size-11", voto === "evitado" && "text-destructive")}
-            aria-label="Não gosto deste exercício"
-            aria-pressed={voto === null ? undefined : voto === "evitado"}
-            onClick={() => aoAvaliar(voto === "evitado" ? null : "evitado")}
-          >
-            <ThumbsDown className="size-5" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="alvo"
-            aria-label="Ajustar"
-            onClick={aoAjustar}
-          >
-            <Settings className="size-5" />
-          </Button>
-        </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="alvo"
+          aria-label="Ajustar"
+          onClick={aoAjustar}
+        >
+          <Settings className="size-5" />
+        </Button>
       </div>
 
       {/* barra fina de progresso do treino */}
@@ -228,32 +218,88 @@ export function TelaExercicio({
            "?" ao lado do nome; a pausa é o botão do canto */
         aoAbrir={aoAbrirFicha}
         rotuloDoAbrir="abre o Como fazer"
-        /* h-40: com h-44 o chip "montagem" ficava 1,6 px sob a barra de
-           controles numa série com histórico, a 360 × 740 (§13.8.1) */
-        className="h-40"
+        /* h-36: com h-44 o chip "montagem" ficava 1,6 px sob a barra de
+           controles numa série com histórico, a 360 × 740 (§13.8.1); h-40
+           virou h-36 para caber a fileira de pontos (§22.16 item 5) */
+        className="h-36"
       />
 
-      <div className="flex items-center justify-center gap-1 px-3">
-        <h2 className="text-lg leading-tight font-semibold text-balance">
+      <div className="flex items-center justify-center gap-2 px-3">
+        <h2 className="min-w-0 text-lg leading-tight font-semibold text-balance">
           {exercicio.nome}
         </h2>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="alvo shrink-0"
-          aria-label={`Como fazer: ${exercicio.nome}`}
-          onClick={aoAbrirFicha}
-        >
-          <CircleHelp className="size-5" />
-        </Button>
+        <div className="flex shrink-0 items-center gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="alvo shrink-0"
+            aria-label={`Como fazer: ${exercicio.nome}`}
+            onClick={aoAbrirFicha}
+          >
+            <CircleHelp className="size-5" />
+          </Button>
+          {/*
+            SPEC §22.1: sem voto os dois polegares ficam neutros e nenhum
+            `aria-pressed` afirma uma escolha que o usuário não fez. Tocar de
+            novo no polegar aceso desfaz o voto — os três estados, no mesmo
+            par. §22.16 item 6: cada toque diz o que aconteceu, com
+            "Desfazer" (o voto de antes volta).
+          */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className={cn("alvo size-11", voto === "preferido" && "text-primary")}
+            aria-label="Gostei deste exercício"
+            aria-pressed={voto === null ? undefined : voto === "preferido"}
+            onClick={() => votar(voto === "preferido" ? null : "preferido")}
+          >
+            <ThumbsUp className="size-5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className={cn("alvo size-11", voto === "evitado" && "text-destructive")}
+            aria-label="Não gosto deste exercício"
+            aria-pressed={voto === null ? undefined : voto === "evitado"}
+            onClick={() => votar(voto === "evitado" ? null : "evitado")}
+          >
+            <ThumbsDown className="size-5" />
+          </Button>
+        </div>
       </div>
 
-      <p className="text-muted-foreground px-3 text-center text-sm">
-        {ondeEstou}
-        {bloco.substituido
-          ? ` · no lugar de ${acharExercicio(bloco.originalId).nome}`
-          : ""}
-      </p>
+      <div className="flex flex-col items-center gap-1.5 px-3">
+        {/* um ponto por série deste exercício (SPEC §22.16 item 5) */}
+        <div
+          role="img"
+          aria-label={pontos.rotulo}
+          data-pontos-do-bloco
+          className="flex items-center justify-center gap-1.5"
+        >
+          {pontos.pontos.map((ponto, i) => (
+            <span
+              key={i}
+              aria-hidden="true"
+              data-ponto={ponto.feita ? "feita" : "a-fazer"}
+              className={cn(
+                "block rounded-full border-2",
+                ponto.aquecimento ? "size-2.5" : "size-3.5",
+                ponto.feita
+                  ? "bg-primary border-primary"
+                  : ponto.atual
+                    ? "border-primary"
+                    : "border-muted-foreground",
+              )}
+            />
+          ))}
+        </div>
+        <p className="text-muted-foreground text-center text-sm">
+          {ondeEstou}
+          {bloco.substituido
+            ? ` · no lugar de ${acharExercicio(bloco.originalId).nome}`
+            : ""}
+        </p>
+      </div>
 
       <div className="flex flex-col gap-3 px-3">
         <MioloDoPasso
