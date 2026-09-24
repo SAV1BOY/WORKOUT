@@ -12125,3 +12125,56 @@ Rodada 22, sobre a auditoria 2 da rodada 21 (vereditos em
 5. O resto do lote (itens 1, 2, 5–8) segue os passos da rodada 21, acima;
    não use "Substituir" no exercício do passo atual do player (defeito
    anterior ao lote, fora dele).
+
+#### Auditoria
+
+- **Auditoria 1 em `bb5adca`: aprovada** (bloqueantes 0, importantes 0,
+  menores 7). Lente de regra: motor e montagem sem diff, árvore limpa,
+  Vitest do HEAD 74 arquivos / 1.643 testes, 1.059 alts do catálogo sem
+  artigo, busca "corda" na ordem da SPEC. Lente de tela: medições nos dois
+  temas (sem bloqueante). Vereditos em `r22/l32/auditoria-1-regra/` e
+  `r22/l32/auditoria-1-tela/`.
+
+Menores registrados (ficam na fila, nenhum quebra o aceite):
+
+- **[regra]** Pré-condição dos portões: `r22/l32/logs/e6f42b2.status` diz
+  `falhou:e2e`, e não `ok`. A varredura não rodou dentro da cadeia. As 2
+  falhas são `e2e/ultraloop-a-r4.spec.ts:227` (paradas 1, esperado > 5) e
+  `:284` (a faixa não apareceu depois de rolar). As duas passaram sozinhas
+  2× no mesmo `.next` (`instavel-1` e `instavel-2`, 4/4 em cada). A
+  varredura rodou sozinha em `f36db69`, com o mesmo código de `e6f42b2`: ok,
+  5/5. O lote não tem mecanismo para causar essas falhas (a rodada 22 só
+  trocou aria-labels, e `components/treino/lista.tsx` já importava
+  `lib/midia` antes), e os dois testes não falharam nas cadeias anteriores
+  do lote (`f63aee3` e `50adb21`, ok). Pela regra fixa, é instável sob
+  carga: fica anotado e não bloqueia. Mesmo assim, a letra da pré-condição
+  (`.status` ok) não foi cumprida.
+- **[regra]** `lib/l32.test.ts`, grep do item 3: o regex só pega template
+  numa linha só e expressão cujo último segmento é `nome` (`\bnome\b`).
+  Escapariam `${nomeDoExercicio}`, um template quebrado em duas linhas e
+  "o/a ${…nome}". Greps mais largos em `lib/`, `components/` e `app/` não
+  acharam caso novo (só "Começar o ${resumo.nome}", nome do treino, "de
+  ${…originalId).nome}" e "Fazer o treino da ${fase}", nenhum com artigo
+  antes do nome de exercício). Não há defeito hoje, só uma guarda mais
+  estreita que o texto do aceite.
+- **[regra]** `e2e/ultraloop-l32.spec.ts:307-310`: a lista `doTreino` tem
+  "Agachamento livre" e "Supino reto com barra" escritos à mão, ao lado da
+  remada e da rosca que vêm de `acharExercicio()`. Inofensivo, mas destoa
+  do resto do spec, que lê os nomes dos dados.
+- **[regra]** Item 7 (C-plano-progresso-repete-desafio): o ledger pedia
+  "decidir com o dono"; a decisão foi tomada sem ele (a capa fica e mostra
+  a meta sem perfil), e o PROGRESSO registra isso. O aceite está cumprido e
+  medido. O botão "Fazer a corrida da semana 3" ainda cita o número da
+  semana sem o total, e o Vitest de `detalheDaCapa` é quase tautológico (a
+  guarda real é o e2e). Já registrado; só apontado.
+- **[tela]** Pré-condição literal não cumprida (mesmo achado da regra): não
+  existe cadeia inteira com status ok neste HEAD; as 2 falhas de a-r4 estão
+  fora dos arquivos do lote e passaram sozinhas 2×.
+- **[tela]** "Como testar no celular" da rodada 22, passo 3, diz "Progresso
+  → gráficos dos grandes", mas não existe aba Progresso
+  (`app/(app)/progresso/page.tsx` redireciona para `/relatorio`; o gráfico
+  fica em Relatório → Gráficos). A SPEC §22.15 item 3 diz o mesmo ("no
+  Progresso e no Relatório").
+- **[tela]** Observação sem defeito: na busca "corda", o aparelho "Corda de
+  pular com rolamento" mostra o ícone no lugar da foto e fica diferente da
+  vitrine "Por aparelho" — é a troca que a SPEC §22.15 item 6 descreve.
