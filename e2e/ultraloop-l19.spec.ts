@@ -246,6 +246,34 @@ test.describe("§22.16 item 1 — Substituir no exercício do passo atual", () =
   }
 });
 
+test.describe("§22.16 item 1 — pela Visão geral", () => {
+  test("trocar o exercício do passo atual pela Visão geral também não trava", async ({
+    page,
+  }) => {
+    await preparar(page);
+    await comecarOTreinoDoDia(page);
+    await comecarNoPlayer(page);
+
+    await page.getByRole("button", { name: "Visão geral do treino" }).click();
+    await expect(page.getByRole("heading", { level: 1, name: "Treino A" })).toBeVisible();
+    await page.getByRole("button", { name: "substituir hoje" }).first().click();
+    const folha = page.getByRole("dialog");
+    await expect(folha.getByRole("heading", { name: "Substituir hoje" })).toBeVisible();
+    const primeira = folha.locator("ul li button").first();
+    const novo = (await primeira.locator("span").first().innerText()).trim();
+    await primeira.click();
+    await expect(folha).toHaveCount(0);
+    await page.getByRole("button", { name: "Fechar" }).click();
+
+    await expect(page.getByRole("button", { name: "Concluir série" })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 2, name: novo })).toBeVisible();
+    await expect(
+      page.getByText(/^Série 1 de \d+ · exercício 1 de 6 · no lugar de Agachamento livre$/),
+    ).toBeVisible();
+    await expect(page.locator('[aria-busy="true"]')).toHaveCount(0);
+  });
+});
+
 /* --------------------------------------- itens 2–4: a preparação */
 
 test.describe("§22.16 itens 2–4 — a preparação", () => {
