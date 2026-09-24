@@ -3,8 +3,8 @@
  * ficha, catálogo e camadas modais. As regras puras; o caminho do dedo está
  * em `e2e/ultraloop-l33.spec.ts`.
  */
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { readdirSync, readFileSync, statSync } from "node:fs";
+import { join, relative, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   aoAndarNoHistorico,
@@ -103,6 +103,25 @@ describe("§22.17 item 1 — rótulo igual só com resultado igual", () => {
     const soComBand = exercicios.filter((e) => e.implemento === "band");
     expect(rotuloDoImplemento("band", soComBand)).toBe("Super Band");
   });
+
+  it("mesmo tamanho não basta: 1 × 1 com exercícios diferentes ainda diz '(principal)'", () => {
+    // nos 81 nenhum par tem o mesmo tamanho e membros diferentes: lista sintética
+    const comBand = exercicios.find((e) => e.implemento === "band")!;
+    const outro = exercicios.find(
+      (e) => e.implemento !== "band" && !e.equipamento.includes("super-band"),
+    )!;
+    const lista = [
+      { ...comBand, equipamento: comBand.equipamento.filter((t) => t !== "super-band") },
+      { ...outro, equipamento: [...outro.equipamento, "super-band" as EquipamentoTag] },
+    ];
+    expect(filtrarExercicios(lista, { implemento: "band" }).map((e) => e.id)).toEqual([
+      comBand.id,
+    ]);
+    expect(filtrarExercicios(lista, { equipamento: "super-band" }).map((e) => e.id)).toEqual([
+      outro.id,
+    ]);
+    expect(rotuloDoImplemento("band", lista)).toBe("Super Band (principal)");
+  });
 });
 
 /* ------------------------------- item 2: o critério em palavras inteiras */
@@ -151,6 +170,28 @@ describe("§22.17 item 4 — o histórico espera o perfil", () => {
       "utf8",
     );
     expect(fonte).toMatch(/historicoCarregando\(\{\s*perfil: perfilQ\.isPending,/);
+  });
+});
+
+/* -------------------------------- item 5: o ramo data-veu não volta */
+
+describe("§22.17 item 5 — os véus são os do Radix, sem data-veu", () => {
+  it("nenhum data-veu (nem dataVeu) em app/, components/ e lib/", () => {
+    const raiz = resolve(__dirname, "..");
+    const achados: string[] = [];
+    const varrer = (pasta: string) => {
+      for (const nome of readdirSync(pasta)) {
+        const caminho = join(pasta, nome);
+        if (statSync(caminho).isDirectory()) varrer(caminho);
+        else if (/\.(ts|tsx|css)$/.test(nome) && !nome.endsWith("l33.test.ts")) {
+          if (/data-veu|dataVeu/.test(readFileSync(caminho, "utf8"))) {
+            achados.push(relative(raiz, caminho));
+          }
+        }
+      }
+    };
+    for (const pasta of ["app", "components", "lib"]) varrer(join(raiz, pasta));
+    expect(achados).toEqual([]);
   });
 });
 

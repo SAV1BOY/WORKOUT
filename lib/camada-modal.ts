@@ -152,9 +152,12 @@ export function empilhaEntrada(estadoDoTopo: unknown): boolean {
  * - `fechar`: as entradas das camadas que o voltar tirou — as acima da atual —,
  *   de cima para baixo. Cada uma recebe o Esc da vez.
  * - `morta`: a entrada atual é de uma camada que já fechou sem desfazê-la (um
- *   link dentro dela levou a outra rota, ou a página recarregou): o app anda
- *   mais um passo na mesma direção, para ninguém gastar um voltar numa
- *   entrada vazia.
+ *   link dentro dela levou a outra rota no mesmo documento): o app anda mais
+ *   um passo na mesma direção, para ninguém gastar um voltar numa entrada
+ *   vazia. Quem decide é o ouvinte do `popstate`, que só existe depois de a
+ *   primeira camada abrir no documento: recarregar com a camada aberta, ou
+ *   chegar a uma entrada morta de outro documento pelo avançar, ainda gasta
+ *   um toque (SPEC §22.17 item 6).
  */
 export function aoAndarNoHistorico(
   abertas: readonly number[],

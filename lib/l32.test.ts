@@ -115,6 +115,9 @@ describe("§22.15 item 3 — \"Execução: <nome>\", sem artigo", () => {
       "<p>Carga do {exercicio?.nome}</p>",
       "<p>os {ex.nome}</p>",
       'const e = "Execução do " + nome;',
+      // uma chamada antes do `.nome` (auditoria 1 do L33)
+      "const f = `Troque o ${acharExercicio(id).nome}`;",
+      "<p>Série da {acharExercicio(item.id)?.nome}</p>",
     ];
     for (const m of mutacoes) expect(artigoAntesDoNome(m).length, m).toBeGreaterThanOrEqual(1);
     const permitidos = [
@@ -134,7 +137,8 @@ describe("§22.15 item 3 — \"Execução: <nome>\", sem artigo", () => {
 /**
  * Artigo (o/a/os/as) ou contração (do/da/no/na/dos/das/nos/nas) logo antes de
  * uma expressão — template `${…}` ou JSX `{…}`, na mesma linha ou na seguinte
- * — cujo identificador contém "nome". Comentários não contam. Exceções: o
+ * — cujo identificador contém "nome", mesmo depois de uma chamada
+ * (`acharExercicio(id).nome`). Comentários não contam. Exceções: o
  * nome do treino ("Começar o ${resumo.nome}") e o da fase ("da
  * ${nomeCurtoDaFase(fase.nome)…}"), que não são nomes de exercício.
  */
@@ -143,7 +147,7 @@ function artigoAntesDoNome(fonte: string): string[] {
     .replace(/\/\*[\s\S]*?\*\//g, (c) => c.replace(/[^\n]/g, " "))
     .replace(/(^|[^:"'`])\/\/.*$/gm, "$1");
   const artigo =
-    /(?<![\p{L}\p{N}_])(?:do|da|no|na|dos|das|nos|nas|o|a|os|as)\s+\$?\{\s*[\w?.!]*nome\w*[^}]*\}/gu;
+    /(?<![\p{L}\p{N}_])(?:do|da|no|na|dos|das|nos|nas|o|a|os|as)\s+\$?\{\s*[\w?.!]*(?:\([^()]*\)[\w?.!]*)*nome\w*[^}]*\}/gu;
   const excecoes = [/^o\s+\$\{\s*resumo\.nome\s*\}$/u, /^da\s+\$\{\s*nomeCurtoDaFase\(fase\.nome\)/u];
   return [...semComentarios.matchAll(artigo), ...semComentarios.matchAll(/[`"']Execução d[oa] /g)]
     .map((m) => m[0])
