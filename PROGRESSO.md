@@ -11670,9 +11670,10 @@ esqueleto até recarregar. `lib/progressao.ts` e `lib/montagem.ts`:
    nenhuma, e a retomada para o estado salvo por uma versão anterior. Com a
    sequência não vazia nunca devolve -1. O passo achado vai para o Dexie na
    hora (efeito em `tela-player.tsx`). Trocar um exercício anterior ou
-   posterior deixa o player onde estava. `lib/sessao.ts` não mudou: a troca
-   continua a da §3.2 (as séries do exercício trocado saem, o registro fica
-   com o substituto).
+   posterior deixa o player onde estava. `lib/sessao.ts` não mudou. As
+   séries **já feitas do exercício trocado** continuam saindo do aparelho e
+   do banco na troca, como em `c689f69` — isso **não** é aceite do lote: é
+   pergunta aberta ao dono (ver "Correção da auditoria 1" abaixo).
 2. **Preparação com saída e "Visão geral"** (ux-heuristicas-12, absorve o
    tela-treino-player-08; `components/player/preparacao.tsx`,
    `tela-player.tsx`). **Era:** dois controles ("Como fazer" e "Começar
@@ -11756,10 +11757,9 @@ esqueleto até recarregar. `lib/progressao.ts` e `lib/montagem.ts`:
   temas — "?" → Substituir no passo atual → a folha mostra o exercício
   novo; fechada, "Concluir série", o `h2` do exercício novo e "Série 1 de N
   · exercício 1 de 6 · no lugar de Agachamento livre", nenhum
-  `aria-busy`, a marca na `window` intacta (não recarregou); a série 1
+  esqueleto (`role="status"` "Carregando"), a marca na `window` intacta (não recarregou); a série 1
   concluída está no Dexie (`sessaoAtiva.dados.blocos`) e em
-  `session_sets` no mock; os registros do agachamento saíram (§3.2);
-  trocar o 2º exercício pela folha ("Próximo exercício") deixa o player
+  `session_sets` no mock; trocar o 2º exercício pela folha ("Próximo exercício") deixa o player
   em "Série 2 de N" do exercício novo, com a série 1 ainda no Dexie e no
   mock. Item 1 pela Visão geral ("substituir hoje" → Fechar). Itens 2–4
   nos dois temas — "Prepare-se", nada de "Preparad…", `h1`; "Sair do
