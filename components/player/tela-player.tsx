@@ -171,8 +171,14 @@ export function TelaPlayer({
   /* ------------------------------------------------------ relógio */
 
   const contando = estado?.fimEm !== null && estado?.fimEm !== undefined;
+  /*
+   * Com a Visão geral aberta a contagem da preparação não vale (§22.16 item
+   * 2), e o relógio só redesenharia a Visão geral 4 vezes por segundo à toa.
+   * Ao "Fechar", ele volta e marca a hora na mesma passada.
+   */
+  const relogioLigado = contando && !visaoGeral;
   useEffect(() => {
-    if (!contando) return;
+    if (!relogioLigado) return;
     const tique = () => setAgora(Date.now());
     tique();
     const relogio = setInterval(tique, 250);
@@ -185,7 +191,7 @@ export function TelaPlayer({
       clearInterval(relogio);
       document.removeEventListener("visibilitychange", aoVoltar);
     };
-  }, [contando, estado?.chave]);
+  }, [relogioLigado, estado?.chave]);
 
   /*
    * A preparação é uma contagem: ao zerar, o treino começa sozinho (§14.1.1).
