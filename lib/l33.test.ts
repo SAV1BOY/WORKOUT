@@ -10,8 +10,13 @@ import {
   aoAndarNoHistorico,
   CHAVE_DA_ENTRADA,
   desfazAoFechar,
+  direcaoDoPasso,
   empilhaEntrada,
   entradaDoEstado,
+  passoNoHistorico,
+  proximaEntrada,
+  reguaAoSair,
+  type Regua,
 } from "@/lib/camada-modal";
 import {
   chipsDosFiltros,
@@ -235,6 +240,134 @@ describe("§22.17 item 6 — a entrada da camada no histórico", () => {
     expect(desfazAoFechar({ [CHAVE_DA_ENTRADA]: 1 }, 2)).toBe(false); // o voltar já tirou
     expect(desfazAoFechar({ __NA: true }, 2)).toBe(false); // outra rota por cima
     expect(desfazAoFechar({ [CHAVE_DA_ENTRADA]: 2 }, null)).toBe(false); // não empilhou
+  });
+});
+
+/**
+ * A direção sem a Navigation API (revisão do Codex no PR #31): o Safari do
+ * iPhone não tem `window.navigation`, e o avançar que chegava à entrada morta
+ * virava voltar. A régua própria dá a direção em qualquer navegador.
+ */
+describe("§22.17 item 6 — a direção do passo pela régua, sem a Navigation API", () => {
+  const nada = { morta: false, fechar: [] as number[], semSaida: false };
+  const morta = { morta: true, fechar: [] as number[], semSaida: false };
+
+  it("avançar: a entrada que chega é maior que a régua", () => {
+    expect(direcaoDoPasso(0.5, 1)).toBe(1);
+    expect(direcaoDoPasso(1, 3)).toBe(1);
+    expect(passoNoHistorico(0.5, 1, morta)).toEqual({ passo: 1, regua: 1.5 });
+  });
+
+  it("voltar: a entrada que chega é menor que a régua", () => {
+    expect(direcaoDoPasso(1.5, 1)).toBe(-1);
+    expect(direcaoDoPasso(4, 2)).toBe(-1);
+    expect(passoNoHistorico(1.5, 1, morta)).toEqual({ passo: -1, regua: 0.5 });
+  });
+
+  it("desconhecido não vira voltar: a morta fica, sem passo", () => {
+    // a mesma entrada, ou uma entrada de página (sem número)
+    expect(direcaoDoPasso(2, 2)).toBe(0);
+    expect(direcaoDoPasso(1.5, 0)).toBe(0);
+    expect(passoNoHistorico(2, 2, morta)).toEqual({ passo: 0, regua: 2 });
+  });
+
+  it("recarregado: a régua começa sem saber (null), e a primeira morta fica", () => {
+    expect(direcaoDoPasso(null, 3)).toBe(0);
+    expect(passoNoHistorico(null, 3, morta)).toEqual({ passo: 0, regua: 3 });
+    // e aprende com a primeira entrada viva que vê
+    expect(passoNoHistorico(null, 3, nada)).toEqual({ passo: 0, regua: 3 });
+  });
+
+  it("recarregado: o número da próxima entrada continua acima do guardado na sessão", () => {
+    // antes de recarregar, as entradas iam até a 5 (mortas embaixo da página)
+    expect(proximaEntrada(0, "5", null)).toBe(6);
+    expect(proximaEntrada(0, "5", { __NA: true })).toBe(6);
+    // na mesma página, o maior dos três
+    expect(proximaEntrada(7, "5", { [CHAVE_DA_ENTRADA]: 3 })).toBe(8);
+    expect(proximaEntrada(2, null, { [CHAVE_DA_ENTRADA]: 4 })).toBe(5);
+    // sessão vazia ou estranha: conta do que a página sabe
+    expect(proximaEntrada(0, null, null)).toBe(1);
+    expect(proximaEntrada(1, "abc", null)).toBe(2);
+    expect(proximaEntrada(1, "-3", null)).toBe(2);
+    expect(proximaEntrada(1, "2.5", null)).toBe(2);
+    // e a régua, recarregada, acerta a direção com os números da sessão:
+    // a camada nova (6) fecha pelo voltar → a régua fica abaixo dela, mas
+    // acima da morta 5 — o voltar seguinte, que chega na 5, continua voltando
+    const nova = proximaEntrada(0, "5", null);
+    const depois = passoNoHistorico(nova, 0, { morta: false, fechar: [nova], semSaida: false });
+    expect(passoNoHistorico(depois.regua, 5, { morta: true, fechar: [], semSaida: false }).passo).toBe(
+      -1,
+    );
+  });
+
+  it("sem saída (desfeita pelo Esc ou fechada pelo voltar): o avançar volta", () => {
+    const semSaida = { morta: true, fechar: [] as number[], semSaida: true };
+    expect(passoNoHistorico(1.5, 2, semSaida)).toEqual({ passo: -1, regua: 1.5 });
+    expect(passoNoHistorico(null, 2, semSaida)).toEqual({ passo: -1, regua: 1.5 });
+  });
+
+  it("a régua numa entrada de página: meio passo abaixo das que o voltar fechou, ou onde estava", () => {
+    expect(passoNoHistorico(3, 0, { morta: false, fechar: [3, 2], semSaida: false })).toEqual({
+      passo: 0,
+      regua: 1.5,
+    });
+    expect(passoNoHistorico(0.5, 0, nada)).toEqual({ passo: 0, regua: 0.5 });
+    expect(passoNoHistorico(null, 0, nada)).toEqual({ passo: 0, regua: null });
+    // numa entrada viva, a régua é o número dela
+    expect(passoNoHistorico(3, 1, { morta: false, fechar: [3], semSaida: false })).toEqual({
+      passo: 0,
+      regua: 1,
+    });
+  });
+
+  it("a camada que sai: desfeita, meio passo abaixo; com rota por cima, meio acima", () => {
+    expect(reguaAoSair(2, 2, true)).toBe(1.5);
+    expect(reguaAoSair(1, 1, false)).toBe(1.5);
+    expect(reguaAoSair(null, 1, false)).toBe(1.5);
+    // outra camada, mais alta, já está por cima: a régua não desce
+    expect(reguaAoSair(5, 3, false)).toBe(5);
+  });
+
+  /** Um popstate: devolve o passo e move a régua. */
+  function chegar(r: { v: Regua }, atual: number, extra: Partial<typeof nada> = {}) {
+    const andar = passoNoHistorico(r.v, atual, { ...nada, ...extra });
+    r.v = andar.regua;
+    return andar.passo;
+  }
+
+  it("o caminho do Calendário: link na camada, voltar, avançar, voltar", () => {
+    const r: { v: Regua } = { v: null };
+    r.v = 1; // o diálogo abre e empilha a entrada 1
+    r.v = reguaAoSair(r.v, 1, false); // "Abrir o treino": /treinar por cima, 1 morta
+    // voltar: chega na 1 (morta) → mais um voltar → Calendário (página)
+    expect(chegar(r, 1, { morta: true })).toBe(-1);
+    expect(chegar(r, 0)).toBe(0);
+    // avançar: chega na 1 → mais um avançar → /treinar (página)
+    expect(chegar(r, 1, { morta: true })).toBe(1);
+    expect(chegar(r, 0)).toBe(0);
+    // e voltar de novo continua voltando
+    expect(chegar(r, 1, { morta: true })).toBe(-1);
+  });
+
+  it("duas mortas em rotas seguidas: cada passo pula a sua, nas duas direções", () => {
+    const r: { v: Regua } = { v: 1 };
+    r.v = reguaAoSair(r.v, 1, false); // camada 1 → rota B
+    r.v = 2; // em B, a camada 2 abre
+    r.v = reguaAoSair(r.v, 2, false); // camada 2 → rota C
+    expect(chegar(r, 2, { morta: true })).toBe(-1); // voltar de C: pula a 2
+    expect(chegar(r, 0)).toBe(0); // B
+    expect(chegar(r, 1, { morta: true })).toBe(-1); // voltar de B: pula a 1
+    expect(chegar(r, 0)).toBe(0); // A
+    expect(chegar(r, 1, { morta: true })).toBe(1); // avançar: pula a 1
+    expect(chegar(r, 0)).toBe(0); // B
+    expect(chegar(r, 2, { morta: true })).toBe(1); // avançar: pula a 2
+  });
+
+  it("depois do Esc, o avançar não para na entrada desfeita", () => {
+    const r: { v: Regua } = { v: 2 }; // a camada 2 aberta
+    r.v = reguaAoSair(r.v, 2, true); // Esc: desfaz (back) → página
+    expect(chegar(r, 0)).toBe(0);
+    expect(chegar(r, 2, { morta: true, semSaida: true })).toBe(-1);
   });
 });
 

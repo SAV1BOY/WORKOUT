@@ -3169,19 +3169,48 @@ vizinhos citados) ou no e2e (`e2e/ultraloop-l33.spec.ts`).
    de cima, a camada **não** empilha: uma entrada por voltar), quais
    camadas o `popstate` fecha (as de entrada acima da atual) e a entrada
    **morta** — a de uma camada que já fechou sem desfazê-la, porque um link
-   ou botão dentro dela levou a outra rota: ao chegar nela pelo voltar, o
-   app anda mais um passo na mesma direção, e ninguém gasta um voltar numa
-   entrada vazia. Enquanto a entrada da camada existe, a rolagem da página
+   ou botão dentro dela levou a outra rota: ao chegar nela pelo voltar ou
+   pelo avançar, o app anda mais um passo na mesma direção, e ninguém gasta
+   um toque numa entrada vazia. **A direção não depende da Navigation API**
+   (`window.navigation` não existe no Safari do iPhone, o aparelho do dono,
+   nem em Firefox antigo; até a rodada 28 o avançar sem ela virava voltar —
+   revisão do Codex no PR #31). O app guarda uma **régua** própria, só com
+   o que ele mesmo grava no histórico: o número da entrada de cada camada
+   (`history.state`, crescente — e crescente também depois de recarregar:
+   o último número fica guardado na sessão da aba, `sessionStorage`, que
+   vive junto com o histórico dela; sem `sessionStorage`, recomeça do
+   maior entre o da memória e o da entrada atual) e, numa entrada de página (que não tem
+   número), meio passo acima ou abaixo da entrada de camada vizinha que ele
+   conhece (o link que leva a outra rota põe a régua meio passo acima da
+   entrada morta; o voltar que fecha camadas, meio passo abaixo da mais
+   baixa delas; o passo que o app dá por cima da morta, meio passo além
+   dela). No `popstate`, a entrada que chega comparada com a régua dá a
+   direção: número maior, avançou; menor, voltou. **Direção desconhecida
+   não vira voltar**: se a régua não sabe (o documento acabou de carregar,
+   ou recarregou), o app não anda — o toque fica na entrada morta, como na
+   exceção abaixo. E a entrada **sem saída** — a de uma camada desfeita
+   pelo Esc, pelo X, pelo toque fora ou pelo "Ver resultados", ou fechada
+   pelo voltar (acima dela só há entradas de camadas fechadas) — quando o
+   avançar chega nela, o app volta um passo: o avançar depois do Esc não
+   deixa o usuário parado numa entrada vazia. Enquanto a entrada da camada existe, a rolagem da página
    de baixo não é restaurada pelo navegador na volta
    (`history.scrollRestoration = "manual"`, devolvido ao valor de antes
    quando a camada sai): fechar uma camada não mexe na rolagem (o "Ver
    resultados" continua levando ao primeiro resultado). Aceite: Vitest —
-   empilhar, fechar e entrada morta; e2e a 360×740 — com os filtros do
+   empilhar, fechar e entrada morta; a régua (`direcaoDoPasso`,
+   `passoNoHistorico`, `reguaAoSair` em `lib/camada-modal.ts`): avançar
+   (maior → +1), voltar (menor → −1), desconhecido (régua igual ou entrada
+   de página → 0, nunca −1), recarregado (régua `null` → a morta fica, sem
+   passo; o número da próxima entrada, `proximaEntrada`, continua acima do
+   guardado na sessão), sem saída (sempre −1) e a régua meio passo além
+   depois de cada caso; mutação — a direção desconhecida valendo −1 derruba o Vitest; e2e a 360×740 — com os filtros do
    catálogo, a foto ampliada da ficha e o diálogo "Não vou treinar hoje" do
    Calendário, cada um aberto pelo teclado: `history.back()` fecha só a
    camada, a rota e o índice do histórico (Navigation API) voltam aos de
    antes de abrir e o foco volta ao gatilho; fechar pelo Esc volta o índice
-   ao de antes (nenhuma entrada sobrando); o "Ver resultados" dos filtros
+   ao de antes (nenhuma entrada sobrando), e um `history.forward()` logo
+   depois volta ao mesmo índice sem diálogo (a entrada desfeita é pulada);
+   o "Ver resultados" dos filtros
    também volta o índice e deixa o primeiro resultado à vista; dentro da
    Visão geral, o índice não sobe ao abrir a folha (os e2e do §22.14 item 6
    continuam). A entrada morta pelo caminho real, nos dois temas: no
@@ -3190,12 +3219,22 @@ vizinhos citados) ou no e2e (`e2e/ultraloop-l33.spec.ts`).
    embaixo (índice +2); um `history.back()` volta direto a `/calendario`,
    sem diálogo e sem `[inert]`, no índice de antes de abrir; um
    `history.forward()` volta direto a `/treinar/<id>` (índice +2) — nenhum
-   passo gasto na entrada morta, nas duas direções. (A ficha em folha não
-   serve para isso: ela não tem link para outra rota.) Fica de fora, e
-   custa no máximo um toque: recarregar com a camada aberta deixa o usuário
-   numa entrada morta sem ouvinte, e o avançar que chega a uma entrada morta
-   de **outro** documento não a pula (o ouvinte do `popstate` só existe
-   depois de a primeira camada abrir no documento).
+   passo gasto na entrada morta, nas duas direções. O mesmo caminho roda
+   duas vezes em cada tema: no Chromium como ele é e **sem a Navigation
+   API** (`page.addInitScript` apaga `window.navigation` antes de o app
+   carregar; o e2e mede o índice por uma referência guardada antes de
+   apagar, que o app não vê). Mutação — a direção de volta à Navigation
+   API com "voltou" como padrão derruba o e2e sem ela (o avançar cai em
+   `/calendario`); sem a entrada sem saída, cai o avançar depois do Esc.
+   (A ficha em folha não serve para isso: ela não tem link para outra
+   rota.) Fica de fora, e custa no máximo um toque: recarregar com a camada
+   aberta deixa o usuário numa entrada morta sem ouvinte (e, depois de
+   recarregar, a régua começa sem saber: a primeira entrada morta fica
+   onde está, sem passo); o avançar que chega a uma entrada morta de
+   **outro** documento não a pula (o ouvinte do `popstate` só existe depois
+   de a primeira camada abrir no documento); e um salto de vários passos
+   de uma vez (a lista do toque longo no voltar) pode deixar a régua
+   atrasada até a próxima entrada de camada.
 7. **A guarda do artigo antes do nome pega o que escapava**
    (C-l32-guarda-artigo-estreita). O grep de `lib/l32.test.ts` (§22.15 item
    3) só pegava template numa linha e expressão terminada em `nome`.
@@ -3212,9 +3251,13 @@ vizinhos citados) ou no e2e (`e2e/ultraloop-l33.spec.ts`).
    `doTreino` de `e2e/ultraloop-l32.spec.ts` tinha "Agachamento livre" e
    "Supino reto com barra" escritos à mão. Agora os quatro vêm de
    `acharExercicio()`, e também o nome da prancha (numa regex) e o da
-   remada (no título de um teste). Aceite: nenhum dos 81 nomes aparece
-   escrito no spec — string, regex ou título (Vitest em
-   `lib/l33.test.ts`); o spec continua verde.
+   remada (no título de um teste). Aceite: nenhum dos 81 nomes, na grafia
+   do catálogo (a comparação diferencia maiúsculas), aparece escrito no
+   spec — string, regex ou título (Vitest em `lib/l33.test.ts`); o spec
+   continua verde. Dois títulos de teste ainda citam nomes em minúsculas
+   no meio da frase ("supino reto com barra: tag-link × …" e "na ficha da
+   prancha e no player"): não são dado lido pelo teste e ficam para a fila
+   (auditoria 2 da rodada 25).
 9. **A SPEC e o PROGRESSO apontam a tela que existe**
    (C-l32-texto-aba-progresso). O §22.15 item 3 e o passo 3 do "Como testar
    no celular" da rodada 22 falavam de um "Progresso" que não existe mais
