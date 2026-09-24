@@ -295,10 +295,18 @@ for (const tema of TEMAS) {
     // recarregar mantém o estado (a inscrição do navegador + a linha)
     await page.reload();
     await expect(estado(page)).toHaveText("Ativado neste aparelho.");
+    // §23.13: com o aparelho ativado, o "Próximo" vale sem ressalva
+    await page.getByRole("switch", { name: "Lembrete do treino" }).click();
+    await expect(page.locator("[data-proximo]")).toContainText(/^Próximo: /);
+    await expect(page.locator("[data-proximo-sem-aviso]")).toHaveCount(0);
 
     await page.getByRole("button", { name: "Desativar neste aparelho" }).click();
     await expect(recado(page)).toHaveText("Lembretes desativados neste aparelho.");
     await expect(estado(page)).toHaveText("Desativado neste aparelho.");
+    // desativado: o "Próximo" diz que o aviso não chega aqui
+    await expect(page.locator("[data-proximo-sem-aviso]")).toHaveText(
+      "Este aparelho não está recebendo avisos; o calendário abaixo tem alarme na mesma hora.",
+    );
     expect(await lerDoMock(sessao, TABELA)).toHaveLength(0);
     expect(await page.evaluate(() => localStorage.getItem("__push_falso"))).toBe("null");
   });
@@ -712,15 +720,15 @@ test("a troca da permissão avisada pelo navegador (permissions change) também 
   await expect(page.locator("[data-instrucao]")).toHaveCount(0);
 });
 
-/* Cada ouvinte da volta sozinho: `focus` e `pageshow` (o `visibilitychange` está acima, nos dois temas). */
+/* Cada ouvinte da volta sozinho: `focus` e `pageshow`, nos dois temas (§23.7 item 7; o `visibilitychange` está acima). */
 const OUTRAS_VOLTAS = {
   focus: () => window.dispatchEvent(new FocusEvent("focus")),
   pageshow: () => window.dispatchEvent(new PageTransitionEvent("pageshow", { persisted: true })),
 } as const;
 
-for (const evento of Object.keys(OUTRAS_VOLTAS) as (keyof typeof OUTRAS_VOLTAS)[]) {
-  test(`liberada nas configurações, a volta por ${evento} sozinho mostra o Ativar`, async ({ page, baseURL }) => {
-    await preparar(page, "light", { aparelho: aparelhoNovo(), semPermissionsApi: true }, false);
+for (const tema of TEMAS) for (const evento of Object.keys(OUTRAS_VOLTAS) as (keyof typeof OUTRAS_VOLTAS)[]) {
+  test(`${tema}: liberada nas configurações, a volta por ${evento} sozinho mostra o Ativar`, async ({ page, baseURL }) => {
+    await preparar(page, tema, { aparelho: aparelhoNovo(), semPermissionsApi: true }, false);
     const origem = new URL(baseURL ?? "").origin;
     await negarDeVerdade(page, origem);
     await esperarServiceWorker(page);
@@ -778,10 +786,11 @@ function leituras(page: Page): Promise<number> {
  */
 const TENTATIVAS_SEM_REDE = 4;
 
-test("a volta sem internet mantém a frase do aparelho (não troca pelo aviso da lista)", async ({ page }) => {
+for (const tema of TEMAS) {
+test(`${tema}: a volta sem internet mantém a frase do aparelho (não troca pelo aviso da lista)`, async ({ page }) => {
   await preparar(
     page,
-    "light",
+    tema,
     { aparelho: aparelhoNovo(), brave: true, negar: true, semPermissionsApi: true, leituraSemRede: true },
     false,
   );
@@ -801,8 +810,8 @@ test("a volta sem internet mantém a frase do aparelho (não troca pelo aviso da
   await expect(page.locator('[data-instrucao="brave"]')).toBeVisible();
 });
 
-test("sem frase do aparelho, o aviso da lista aparece sem internet e sai na volta com internet", async ({ page }) => {
-  await preparar(page, "light", { aparelho: aparelhoNovo(), semPermissionsApi: true, leituraSemRede: true });
+test(`${tema}: sem frase do aparelho, o aviso da lista aparece sem internet e sai na volta com internet`, async ({ page }) => {
+  await preparar(page, tema, { aparelho: aparelhoNovo(), semPermissionsApi: true, leituraSemRede: true });
   await esperarServiceWorker(page);
   await page.goto("/mais/lembretes");
   await expect(estado(page)).toHaveText("Desativado neste aparelho.");
@@ -819,6 +828,7 @@ test("sem frase do aparelho, o aviso da lista aparece sem internet e sai na volt
   await expect(aviso(page)).toHaveCount(0);
   await expect(estado(page)).toHaveText("Desativado neste aparelho.");
 });
+}
 
 /* ------------------------------ §23.7 item 5: a frase na primeira dobra */
 
@@ -873,6 +883,9 @@ for (const tema of TEMAS) {
     await expect(page.getByRole("button", { name: /Ativar|Enviar/ })).toHaveCount(0);
     await expect(page.locator("[data-instrucao]")).toHaveCount(0);
     await expect(aviso(page)).toHaveCount(0);
+    // §23.9: sem a tabela de inscrições, os horários e o calendário continuam
+    await expect(page.getByRole("switch", { name: "Lembrete do treino" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Adicionar ao meu calendário" })).toBeEnabled();
     await alvosDe44(page);
     await semRolagemHorizontal(page);
   });
@@ -941,7 +954,7 @@ test.describe("sem as variáveis VAPID (um segundo next start, do mesmo build)",
 
   for (const tema of TEMAS) {
     test(`${tema}: a tela diz que não está configurado, sem botão, e a rota responde 503`, async ({ page }) => {
-      await preparar(page, tema, {});
+      const sessao = await preparar(page, tema, {});
       // o cookie da sessão é do host (127.0.0.1), não da porta: vale nos dois servidores
       await page.goto(`${urlSemVapid}/mais/lembretes`);
       await expect(page.getByRole("heading", { name: "Lembretes", level: 1 })).toBeVisible();
@@ -950,8 +963,36 @@ test.describe("sem as variáveis VAPID (um segundo next start, do mesmo build)",
       );
       await expect(page.getByRole("button", { name: /Ativar|Enviar/ })).toHaveCount(0);
       await expect(page.locator("[data-instrucao]")).toHaveCount(0);
+      // §23.9: sem as variáveis VAPID, os horários gravam e o calendário baixa
+      const treino = page.getByRole("switch", { name: "Lembrete do treino" });
+      await treino.click();
+      await expect(treino).toHaveAttribute("aria-checked", "true");
+      await page.locator("#hora-treino").fill("18:30");
+      await expect(page.locator("[data-recado-horarios]")).toHaveText("Horários salvos.");
+      // §23.14 item 1: gravado no mock sem perder as outras chaves de prefs
+      await expect
+        .poll(
+          async () =>
+            ((await lerDoMock<{ prefs: Record<string, unknown> }>(sessao, "profiles"))[0]?.prefs ?? {}).lembretes,
+          { timeout: 10_000 },
+        )
+        .toEqual({ treino: { ligado: true, hora: "18:30" }, corrida: { ligado: false, hora: "07:00" } });
+      const prefs = (await lerDoMock<{ prefs: Record<string, unknown> }>(sessao, "profiles"))[0]?.prefs ?? {};
+      expect(prefs.guia_visto).toBe(true);
+      await expect(page.locator("#hora-treino")).toHaveValue("18:30");
+      // sem push, o "Próximo" não promete aviso neste aparelho (§23.13)
+      await expect(page.locator("[data-proximo]")).toContainText(/^Próximo: .+ às 18:30 — /);
+      await expect(page.locator("[data-proximo-sem-aviso]")).toHaveText(
+        "Este aparelho não está recebendo avisos; o calendário abaixo tem alarme na mesma hora.",
+      );
+      const [baixado] = await Promise.all([
+        page.waitForEvent("download"),
+        page.getByRole("button", { name: "Adicionar ao meu calendário" }).click(),
+      ]);
+      expect(baixado.suggestedFilename()).toBe("treino-do-terraco.ics");
       await alvosDe44(page);
       await semRolagemHorizontal(page);
+      await page.screenshot({ path: `test-results/l35-sem-vapid-${tema}.png`, fullPage: true });
 
       const resposta = await page.request.post(`${urlSemVapid}/api/lembretes/teste`);
       expect(resposta.status()).toBe(503);

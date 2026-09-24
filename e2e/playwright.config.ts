@@ -1,4 +1,4 @@
-import { generateKeyPairSync } from "node:crypto";
+import { generateKeyPairSync, randomBytes } from "node:crypto";
 import { resolve } from "node:path";
 import { defineConfig, devices } from "@playwright/test";
 
@@ -38,6 +38,15 @@ function garantirParVapid(): void {
 }
 garantirParVapid();
 
+/**
+ * O segredo do disparo (SPEC §23.11), também gerado aqui a cada execução: o
+ * app o recebe como `LEMBRETES_SEGREDO` e o mock como o "Vault"
+ * (`MOCK_LEMBRETES_SEGREDO`). Os workers herdam o mesmo pelo `process.env`.
+ */
+if (!process.env.E2E_LEMBRETES_SEGREDO) {
+  process.env.E2E_LEMBRETES_SEGREDO = randomBytes(24).toString("base64url");
+}
+
 /** As variáveis que o app precisa, apontando para o mock. */
 const ambiente = {
   NEXT_PUBLIC_SUPABASE_URL: URL_MOCK,
@@ -48,6 +57,7 @@ const ambiente = {
   VAPID_PRIVATE_KEY: process.env.E2E_VAPID_PRIVADA ?? "",
   VAPID_SUBJECT: "mailto:e2e@example.com",
   LEMBRETES_PUSH_DE_TESTE: URL_MOCK,
+  LEMBRETES_SEGREDO: process.env.E2E_LEMBRETES_SEGREDO ?? "",
 };
 
 export default defineConfig({
@@ -100,7 +110,10 @@ export default defineConfig({
       timeout: 30_000,
       stdout: "pipe",
       stderr: "pipe",
-      env: { MOCK_SUPABASE_PORT: String(PORTA_MOCK) },
+      env: {
+        MOCK_SUPABASE_PORT: String(PORTA_MOCK),
+        MOCK_LEMBRETES_SEGREDO: process.env.E2E_LEMBRETES_SEGREDO ?? "",
+      },
     },
     {
       command: `npx next start -p ${PORTA_APP}`,

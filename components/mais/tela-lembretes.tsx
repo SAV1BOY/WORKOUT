@@ -1,9 +1,30 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { addDays } from "date-fns";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CabecalhoMais } from "@/components/mais/cabecalho";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { iso } from "@/lib/calendario";
 import { formatarData } from "@/lib/formato";
+import { gerarIcs, NOME_DO_ARQUIVO_ICS, TIPO_ICS } from "@/lib/ics";
+import {
+  comLembretes,
+  DIAS_DO_LEMBRETE,
+  eventosDoCalendario,
+  lembretesDasPrefs,
+  PASSO_MIN,
+  proximoLembrete,
+  relogioDeSaoPaulo,
+  ROTULO_DO_LEMBRETE,
+  textoDoUltimo,
+  type ContaDaRegra,
+} from "@/lib/lembretes-regra";
+import { salvarPrefs } from "@/lib/queries/mais";
+import { useCardio, useOverrides, usePerfil, useSessoes } from "@/lib/queries/dados";
 import {
   bytesDaChave,
   ehIos,
@@ -11,12 +32,21 @@ import {
   instrucoesDoAparelho,
   LINHA_LEMBRETES,
   nomeDoAparelho,
+  PROXIMO_SEM_AVISO,
   ROTULO_DO_ESTADO,
   SEM_CONFIGURACAO,
   SEM_TABELA,
   tabelaAusente,
 } from "@/lib/lembretes";
-import { inscricaoLembreteSchema, type InscricaoLembrete } from "@/lib/schemas";
+import {
+  envioLembreteSchema,
+  inscricaoLembreteSchema,
+  prefsLembretesSchema,
+  type EnvioLembrete,
+  type InscricaoLembrete,
+  type PrefsLembretes,
+  type TipoDeLembrete,
+} from "@/lib/schemas";
 import { clienteNavegador } from "@/lib/supabase/client";
 
 const TABELA = "lembretes_inscricoes";
@@ -417,9 +447,15 @@ export function TelaLembretes({
       />
 
       {chavePublica === null || semTabela ? (
-        <p data-estado="sem-configuracao" className={`${bloco} text-sm text-balance`}>
-          {chavePublica === null ? SEM_CONFIGURACAO : SEM_TABELA}
-        </p>
+        <div className={bloco}>
+          <p data-estado="sem-configuracao" className="text-sm text-balance">
+            {chavePublica === null ? SEM_CONFIGURACAO : SEM_TABELA}
+          </p>
+          {/* §23.9: sem push, os horários e o calendário continuam */}
+          <p className="text-muted-foreground text-sm text-balance">
+            Os horários e o calendário abaixo funcionam mesmo assim.
+          </p>
+        </div>
       ) : !carregado ? (
         <p className="text-muted-foreground text-sm">Conferindo este aparelho…</p>
       ) : (
@@ -521,6 +557,260 @@ export function TelaLembretes({
           </section>
         </>
       )}
+
+      <BlocoHorarios
+        userId={userId}
+        avisoAqui={chavePublica === null || semTabela ? false : !carregado ? null : estado === "ativado"}
+      />
     </section>
+  );
+}
+
+/** Dia de hoje ± n, em ISO (a janela que a regra lê, como o tick). */
+function diaMais(hoje: string, n: number): string {
+  return iso(addDays(new Date(`${hoje}T12:00:00`), n));
+}
+
+/** Arredonda `HH:MM` para baixo no passo do disparo (5 min). */
+function noPasso(hora: string): string | null {
+  const m = /^(\d{2}):(\d{2})$/.exec(hora);
+  if (!m) return null;
+  const minutos = Math.floor(Number(m[2]) / PASSO_MIN) * PASSO_MIN;
+  const saida = `${m[1]}:${String(minutos).padStart(2, "0")}`;
+  return prefsLembretesSchema.shape.treino.shape.hora.safeParse(saida).success ? saida : null;
+}
+
+const TIPOS: readonly TipoDeLembrete[] = ["treino", "corrida"];
+
+
+/**
+ * Os horários (SPEC §23.9), o "Próximo"/"Último lembrete" (§23.13) e o
+ * calendário (§23.12). Não dependem do push: aparecem e funcionam sem as
+ * variáveis VAPID, sem a tabela de inscrições e em aparelho sem suporte.
+ */
+function BlocoHorarios({
+  userId,
+  avisoAqui,
+}: {
+  userId: string;
+  /** O push chega neste aparelho (ativado)? `null` enquanto confere. */
+  avisoAqui: boolean | null;
+}) {
+  const cliente = useQueryClient();
+  const perfilQ = usePerfil();
+  const perfil = perfilQ.data ?? null;
+  const [agora, setAgora] = useState<Date | null>(null);
+  useEffect(() => setAgora(new Date()), []);
+  const hoje = agora ? relogioDeSaoPaulo(agora).dia : null;
+  const de = hoje ? diaMais(hoje, -8) : null;
+  const ate = hoje ? diaMais(hoje, 7) : null;
+  const overridesQ = useOverrides(de, ate);
+  const sessoesQ = useSessoes();
+  const cardioQ = useCardio(de, hoje);
+  const [enviados, setEnviados] = useState<EnvioLembrete[]>([]);
+  /*
+   * Os lembretes saem SEMPRE do perfil do cache (gravar já o atualiza na hora,
+   * `salvarPrefs` → `setQueryData`): o cache persistido pode abrir com um valor
+   * velho e a leitura do servidor corrigir logo depois — um estado local lido
+   * uma vez só ficaria com o velho.
+   */
+  const lembretes = useMemo(() => (perfil ? lembretesDasPrefs(perfil.prefs) : null), [perfil]);
+  const [horas, setHoras] = useState<Record<TipoDeLembrete, string>>({ treino: "", corrida: "" });
+  const [recado, setRecado] = useState<{ texto: string; erro: boolean } | null>(null);
+  const espera = useRef<Partial<Record<TipoDeLembrete, ReturnType<typeof setTimeout>>>>({});
+  const perfilAtual = useRef(perfil);
+  perfilAtual.current = perfil;
+
+  // o campo mostra o gravado, menos enquanto a pessoa ainda está digitando nele
+  useEffect(() => {
+    if (!lembretes) return;
+    setHoras((h) => ({
+      treino: espera.current.treino ? h.treino : lembretes.treino.hora,
+      corrida: espera.current.corrida ? h.corrida : lembretes.corrida.hora,
+    }));
+  }, [lembretes]);
+
+  // "Último lembrete" (RLS: só os desta conta). Sem a tabela, não aparece.
+  useEffect(() => {
+    let viva = true;
+    void (async () => {
+      const { data, error } = await clienteNavegador()
+        .from("lembretes_enviados")
+        .select("tipo, dia, enviado_em")
+        .order("enviado_em", { ascending: false })
+        .limit(5);
+      if (!viva || error) return;
+      setEnviados(
+        (data ?? []).flatMap((linha: unknown) => {
+          const lida = envioLembreteSchema.safeParse(linha);
+          return lida.success ? [lida.data] : [];
+        }),
+      );
+    })().catch(() => undefined);
+    return () => {
+      viva = false;
+    };
+  }, []);
+
+  const conta: ContaDaRegra | null = useMemo(() => {
+    if (!perfil || !lembretes) return null;
+    return {
+      perfil: { ...perfil, prefs: comLembretes(perfil.prefs, lembretes) },
+      overrides: overridesQ.data ?? [],
+      sessoes: sessoesQ.data ?? [],
+      cardios: cardioQ.data ?? [],
+      enviados: hoje ? enviados.filter((e) => e.dia === hoje) : [],
+    };
+  }, [perfil, lembretes, overridesQ.data, sessoesQ.data, cardioQ.data, enviados, hoje]);
+
+  const proximo = conta && agora ? proximoLembrete(conta, agora) : null;
+  const ultimo = agora ? textoDoUltimo(enviados, agora) : null;
+
+  /** Muda um tipo sobre o que está gravado AGORA (não sobre o de quando o toque começou). */
+  async function gravar(tipo: TipoDeLembrete, mudanca: Partial<PrefsLembretes[TipoDeLembrete]>) {
+    const atual = perfilAtual.current;
+    if (!atual) return;
+    const lidos = lembretesDasPrefs(atual.prefs);
+    const validos = prefsLembretesSchema.safeParse({ ...lidos, [tipo]: { ...lidos[tipo], ...mudanca } });
+    if (!validos.success) return;
+    try {
+      await salvarPrefs({ userId, prefs: comLembretes(atual.prefs, validos.data), cliente });
+      setRecado({ texto: "Horários salvos.", erro: false });
+    } catch {
+      setRecado({ texto: "Não deu para salvar agora. Confira a internet e tente de novo.", erro: true });
+    }
+  }
+
+  function ligar(tipo: TipoDeLembrete, ligado: boolean) {
+    void gravar(tipo, { ligado });
+  }
+
+  function mudarHora(tipo: TipoDeLembrete, valor: string) {
+    setHoras((h) => ({ ...h, [tipo]: valor }));
+    clearTimeout(espera.current[tipo]);
+    const hora = noPasso(valor);
+    if (!hora) {
+      espera.current[tipo] = undefined;
+      return;
+    }
+    // o campo de hora do computador muda a cada dígito: grava quando parar
+    espera.current[tipo] = setTimeout(() => {
+      espera.current[tipo] = undefined;
+      setHoras((h) => ({ ...h, [tipo]: hora }));
+      void gravar(tipo, { hora });
+    }, 600);
+  }
+
+  function baixarCalendario() {
+    if (!perfil || !lembretes) return;
+    const momento = new Date();
+    const eventos = eventosDoCalendario(
+      { ...perfil, prefs: comLembretes(perfil.prefs, lembretes) },
+      momento,
+    );
+    const arquivo = new Blob([gerarIcs(eventos, userId, momento)], { type: TIPO_ICS });
+    const url = URL.createObjectURL(arquivo);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = NOME_DO_ARQUIVO_ICS;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10_000);
+  }
+
+  const bloco = "bg-card border-border flex flex-col gap-3 rounded-xl border p-4";
+
+  return (
+    <>
+      <section aria-labelledby="titulo-horarios" data-horarios className={bloco}>
+        <h2 id="titulo-horarios" className="text-base font-semibold">
+          Horários
+        </h2>
+        <p className="text-muted-foreground text-sm text-balance">
+          Nos dias do seu plano (Mais → Preferências → Dias de treino), no horário de Brasília.
+        </p>
+        {!lembretes ? (
+          <p className="text-muted-foreground text-sm">Carregando…</p>
+        ) : (
+          TIPOS.map((tipo) => (
+            <div key={tipo} data-lembrete={tipo} className="border-border flex flex-col gap-2 border-t pt-3">
+              <div className="flex min-h-11 items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <Label htmlFor={`lembrete-${tipo}`} className="text-base">
+                    {ROTULO_DO_LEMBRETE[tipo]}
+                  </Label>
+                  <p className="text-muted-foreground text-xs text-balance">{DIAS_DO_LEMBRETE[tipo]}</p>
+                </div>
+                <Switch
+                  id={`lembrete-${tipo}`}
+                  className="-mr-1.5"
+                  checked={lembretes[tipo].ligado}
+                  onCheckedChange={(v) => ligar(tipo, v)}
+                />
+              </div>
+              <div className="flex items-center gap-3">
+                <Label htmlFor={`hora-${tipo}`} className="text-sm">
+                  Hora
+                </Label>
+                <Input
+                  id={`hora-${tipo}`}
+                  // o rótulo visível "Hora" se repete nas duas linhas: o nome diz de qual
+                  aria-label={`Hora do ${ROTULO_DO_LEMBRETE[tipo].toLowerCase()}`}
+                  type="time"
+                  step={PASSO_MIN * 60}
+                  value={horas[tipo]}
+                  onChange={(e) => mudarHora(tipo, e.target.value)}
+                  className="alvo numero h-12 w-40"
+                />
+              </div>
+            </div>
+          ))
+        )}
+        {/* a região viva existe desde o começo: um aria-live que nasce junto com o texto não é lido */}
+        <p
+          aria-live="polite"
+          data-recado-horarios
+          className={!recado ? "sr-only" : recado.erro ? "text-destructive text-sm" : "text-sm font-medium"}
+        >
+          {recado?.texto ?? ""}
+        </p>
+        {proximo ? (
+          <p data-proximo className="text-sm text-balance">
+            {proximo}
+          </p>
+        ) : null}
+        {/* sem push aqui, o "Próximo" não pode prometer um aviso que não chega */}
+        {proximo && avisoAqui === false ? (
+          <p data-proximo-sem-aviso className="text-muted-foreground text-sm text-balance">
+            {PROXIMO_SEM_AVISO}
+          </p>
+        ) : null}
+        {ultimo ? (
+          <p data-ultimo className="text-muted-foreground text-sm">
+            {ultimo}
+          </p>
+        ) : null}
+      </section>
+
+      <section aria-labelledby="titulo-calendario" className={bloco}>
+        <h2 id="titulo-calendario" className="text-base font-semibold">
+          No calendário do celular
+        </h2>
+        <p className="text-muted-foreground text-sm text-balance">
+          Um evento por semana em cada dia de treino, com alarme na hora escolhida. Funciona em qualquer
+          celular, mesmo onde a notificação do app não chega.
+        </p>
+        <Button
+          type="button"
+          variant="outline"
+          className="alvo h-12 w-full"
+          disabled={!lembretes}
+          onClick={baixarCalendario}
+        >
+          Adicionar ao meu calendário
+        </Button>
+      </section>
+    </>
   );
 }
