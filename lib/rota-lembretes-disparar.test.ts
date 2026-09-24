@@ -156,6 +156,43 @@ describe("POST /api/lembretes/disparar", () => {
     expect(banco.rpcs).toEqual([]);
   });
 
+  it("o limite é inclusivo: 512 KiB exatos são lidos; 1 byte a mais, 413", async () => {
+    const LIMITE = 512 * 1024;
+    const exato = (bytes: number) => {
+      const casca = JSON.stringify({ sobra: "" });
+      return JSON.stringify({ sobra: "a".repeat(bytes - Buffer.byteLength(casca, "utf8")) });
+    };
+    expect(Buffer.byteLength(exato(LIMITE), "utf8")).toBe(LIMITE);
+    // lido até o fim e recusado só pelo formato
+    expect((await pedir(exato(LIMITE))).status).toBe(400);
+    expect(await pedir(exato(LIMITE + 1))).toEqual({ status: 413, corpo: { erro: "Corpo grande demais." } });
+    expect(pushes).toEqual([]);
+  });
+
+  it("content-length declarado acima do limite: 413 antes de ler o corpo", async () => {
+    const pequeno = JSON.stringify(corpo("2026-09-21T10:00:00Z"));
+    const pedirDeclarando = async (declarado: number) => {
+      const r = await POST(
+        new Request("http://localhost/api/lembretes/disparar", {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            "content-length": String(declarado),
+            "x-lembretes-segredo": SEGREDO,
+          },
+          body: pequeno,
+        }),
+      );
+      return { status: r.status, corpo: (await r.json()) as Record<string, unknown> };
+    };
+    // o corpo de verdade é pequeno e válido; só o cabeçalho diz que passa do limite
+    expect(await pedirDeclarando(512 * 1024 + 1)).toEqual({ status: 413, corpo: { erro: "Corpo grande demais." } });
+    expect(pushes).toEqual([]);
+    expect(banco.rpcs).toEqual([]);
+    // declarar exatamente o limite não recusa: o corpo é lido e processado
+    expect((await pedirDeclarando(512 * 1024)).status).toBe(200);
+  });
+
   it("na hora: envia o aviso do treino cifrado para cada aparelho e marca pela RPC", async () => {
     const a = aparelho();
     const b = aparelho();

@@ -175,6 +175,23 @@ describe("lembretesDevidos (§23.10)", () => {
     expect(lembretesDevidos(ontem, sp("2026-09-21", "07:10"))).toHaveLength(1);
   });
 
+  it("o enviado de hoje só bloqueia o mesmo tipo: o dia que virou treino depois de um aviso de corrida ainda lembra", () => {
+    // terça 22/09 é corrida; o aviso da corrida já saiu hoje e o dia foi trocado por treino num override
+    const trocado = conta({
+      overrides: [{ data: "2026-09-22", tipo: "forca", workout_id: "B1", sessao: null }],
+      enviados: [{ tipo: "corrida", dia: "2026-09-22" }],
+    });
+    const devidos = lembretesDevidos(trocado, sp("2026-09-22", "07:10"));
+    expect(devidos).toHaveLength(1);
+    expect(devidos[0]?.tipo).toBe("treino");
+    // e o do próprio tipo, sim, bloqueia
+    const mesmoTipo = conta({
+      overrides: [{ data: "2026-09-22", tipo: "forca", workout_id: "B1", sessao: null }],
+      enviados: [{ tipo: "treino", dia: "2026-09-22" }],
+    });
+    expect(lembretesDevidos(mesmoTipo, sp("2026-09-22", "07:10"))).toEqual([]);
+  });
+
   it("virada de dia: 23:50 não sai às 00:10 do dia seguinte", () => {
     const tarde = conta({}, { lembretes: { ...LIGADOS, treino: { ligado: true, hora: "23:50" } } });
     // domingo 20/09 é descanso; segunda 21/09 é força: às 00:10 de segunda, 23:50 ainda não chegou
@@ -194,6 +211,14 @@ describe("o que a tela mostra (§23.13)", () => {
     // enviado hoje: o próximo é o de amanhã
     const enviado = conta({ enviados: [{ tipo: "treino", dia: "2026-09-21" }] });
     expect(proximoLembrete(enviado, sp("2026-09-21", "07:10"))).toMatch(/^Próximo: amanhã às 18:30/);
+  });
+  it("próximo: o treino de hoje já concluído antes da hora não promete 'hoje'", () => {
+    // concluído às 06:00, antes das 07:00 escolhidas: o próximo é a corrida de amanhã
+    const feito = conta({ sessoes: [{ id: "s1", data: "2026-09-21", status: "concluida", workout_id: "A1" }] });
+    expect(proximoLembrete(feito, sp("2026-09-21", "06:30"))).toMatch(/^Próximo: amanhã às 18:30 — Corrida/);
+    // só começado ainda promete hoje
+    const aberto = conta({ sessoes: [{ id: "s1", data: "2026-09-21", status: "em_andamento", workout_id: "A1" }] });
+    expect(proximoLembrete(aberto, sp("2026-09-21", "06:30"))).toMatch(/^Próximo: hoje às 07:00 — Treino/);
   });
   it("último lembrete: hoje / ontem / dd/mm, na hora de São Paulo", () => {
     const agora = sp("2026-09-21", "12:00");
