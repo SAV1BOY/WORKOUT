@@ -146,7 +146,7 @@ export function HistoricoExercicio({
             <p className="text-muted-foreground text-sm">
               Próxima sessão: {textoDoAlvo(series_, alvo)}
               {alvo.assistencia ? ` · elástico ${nomeDaAssistencia(alvo.assistencia)}` : ""}
-              {alvo.semana_leve ? " · semana leve (60 %)" : ""}
+              {alvo.semana_leve ? " · semana leve (60%)" : ""}
             </p>
           ) : null}
           {onde.ajustePelasBarras ? (

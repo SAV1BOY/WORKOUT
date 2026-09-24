@@ -45,11 +45,11 @@
     },
     {
       "situacao": "falhou 2 vezes seguidas na mesma carga",
-      "acao": "volte 10 % e suba pela metade do incremento (2 kg viram 1 kg)"
+      "acao": "volte 10% e suba pela metade do incremento (2 kg viram 1 kg)"
     },
     {
       "situacao": "falhou 3 vezes",
-      "acao": "semana leve: 60 % da carga, mesmas séries; volte na semana seguinte"
+      "acao": "semana leve: 60% da carga, mesmas séries; volte na semana seguinte"
     },
     {
       "situacao": "dor articular por mais de 48 h",
@@ -65,7 +65,7 @@
     },
     {
       "situacao": "sem vontade de treinar há dias",
-      "acao": "normalmente é sono ou comida: uma semana a 60 % da carga resolve mais que parar"
+      "acao": "normalmente é sono ou comida: uma semana a 60% da carga resolve mais que parar"
     }
   ],
   "faixas": [
