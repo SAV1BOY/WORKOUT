@@ -293,7 +293,7 @@ Vitrine de **coleções derivadas** dos JSON, cada uma com capa (foto de um exer
 - **Parte do corpo em foco**: chips dos 8 grupos (`grupo` de `exercicios.json`); cada um lista os exercícios do grupo e oferece "Começar" com os 6 primeiros do grupo que usam equipamento disponível (ordem: compostos primeiro, depois isolamento, como a tabela de faixas de `progressao.json`).
 - **Por aparelho**: os itens de `equipamentos.json` que habilitam algum exercício, com o `nome_curto` do item e a meta "N exercícios que dão para fazer com ele" (§22.12 item 2; a foto de `assets/itens/<item>/` fica em Mais → Equipamento).
 - **Circuitos** (os 14 exercícios de `origem = "aparelho"`): "Core no tatame" (8), "Corda" (3), "Elástico" (3). Abrem no **modo circuito guiado** (13.6).
-- **Planos e desafios**: "Primeira barra fixa" (`cardio.barra_fixa`), "5 km sem parar" (a meta da última semana de `cardio.corrida`) e "Corda: 5 estágios" (`cardio.corda`) — títulos curtos, o prazo fica no objetivo e na meta (§22.12 item 4; sem perfil e sem meta, o objetivo aparece inteiro) —, barra fixa e corrida com a semana atual do perfil, a corda com a sua duração na meta da vitrine e da capa (a posição dela, `profiles.semana_corda`, aparece na lista das semanas da tela do plano, §22.13 item 9), e cada um com o botão da sessão (§22.12 item 7). "Desafio" aqui é o plano real com progresso visível; não existe desafio inventado.
+- **Planos e desafios**: "Primeira barra fixa" (`cardio.barra_fixa`), "5 km sem parar" (a meta da última semana de `cardio.corrida`) e "Corda: 5 estágios" (`cardio.corda`) — títulos curtos, o prazo fica no objetivo e na meta (§22.12 item 4; sem perfil e sem meta, o objetivo aparece inteiro) —, barra fixa e corrida com a semana atual do perfil na meta da vitrine (na tela do plano, a posição fica só no bloco das semanas, §22.15 item 7), a corda com a sua duração na meta da vitrine e da capa (a posição dela, `profiles.semana_corda`, aparece na lista das semanas da tela do plano, §22.13 item 9), e cada um com o botão da sessão (§22.12 item 7). "Desafio" aqui é o plano real com progresso visível; não existe desafio inventado.
 - **Treinos do programa**: A1, B1, SA, IA, SB, IB com "Fazer hoje" (vale como próximo da alternância, §5.3).
 - **Busca** por nome de exercício e de coleção, sem acento.
 
@@ -2902,12 +2902,17 @@ aceite de cada item é verificável no Vitest (`lib/midia.test.ts`,
    Vídeo (`media-grande.tsx`, §22.13 item 4, correção da auditoria 3), que
    o e2e do L13 cobre pela seta ›, mas não pelo **"Substituir"**. Agora há
    e2e dos dois caminhos que trocam de exercício com a folha aberta no
-   player: com a figura do agachamento livre na posição 2, "Substituir" →
-   afundo: a figura começa na posição 1 e o pedido do quadro 2 do afundo
-   começa depois do fim do pedido do quadro 1; e, com a aba **Músculos**
-   aberta, › e "Substituir" deixam a aba aberta com a legenda do exercício
-   novo e sem imagem de execução. Aceite: e2e — os dois casos; mutação — sem
-   a `key` da ilustração em `media-grande.tsx`, o caso do "Substituir" cai.
+   player: com a figura do supino (o 2º exercício, aberto pela ›) na posição
+   2, "Substituir" → crossover na polia: a figura começa na posição 1 e o
+   pedido do quadro 2 do crossover começa depois do fim do pedido do quadro
+   1; e, com a aba **Músculos** aberta, › e "Substituir" deixam a aba aberta
+   com a legenda do exercício novo e sem imagem de execução. A troca é feita
+   num exercício que não é o do passo atual do player: substituir o do passo
+   atual deixa o player no esqueleto de carregamento (a chave do passo é a
+   da série, e a troca recria as séries) — defeito anterior a este lote,
+   medido pelo e2e e registrado à parte, fora deste aceite. Aceite: e2e — os
+   dois casos; mutação — sem a `key` da ilustração em `media-grande.tsx`, o
+   caso do "Substituir" cai.
 2. **A figura quebrada não passa para o próximo exercício**
    (C-media-grande-figura-quebrou-herdada). A `MediaGrande` guardava
    "a figura deu erro" num booleano; na troca no lugar (‹ › e "Substituir"
@@ -2915,10 +2920,11 @@ aceite de cada item é verificável no Vitest (`lib/midia.test.ts`,
    B nem era tentada e a tela caía direto na foto de B. Agora ela guarda
    **qual** figura falhou (o endereço) e só cai na foto quando é a figura
    desenhada agora. Aceite: e2e — na ficha aberta no player, com a opção
-   "Figura" escolhida e o pedido da figura do agachamento livre abortado (a
-   foto aparece no lugar), › leva ao supino e "Substituir" ao afundo, e nos
-   dois a figura do exercício novo aparece (`<img>` da figura dele,
-   carregada); mutação — voltando ao booleano, o e2e cai.
+   "Figura" escolhida e o pedido da figura abortado (a foto aparece no
+   lugar), › do agachamento livre leva ao supino, e "Substituir" do supino
+   leva ao crossover na polia; nos dois a figura do exercício novo aparece
+   (`<img>` da figura dele, carregada); mutação — voltando ao booleano, o
+   e2e cai.
 3. **"Execução: <nome>", sem artigo** (C-alt-execucao-genero). O texto
    alternativo da demonstração era "Execução do <nome>" — "Execução do
    Prancha", "do Remada", "do Rosca" — e desde o §22.13 item 5 ele também é

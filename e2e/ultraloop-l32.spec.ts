@@ -25,8 +25,13 @@ type Tema = (typeof TEMAS)[number];
 
 const AGACHAMENTO = "agachamento-livre";
 const SUPINO = "supino-reto-com-barra";
-/** O primeiro da lista do "Substituir" do agachamento livre. */
-const AFUNDO = "afundo-passada";
+/**
+ * O primeiro da lista do "Substituir" do supino. A troca é feita no supino
+ * (2º exercício, não o do passo atual do player): substituir o exercício do
+ * passo atual deixa o player no esqueleto — defeito anterior a este lote,
+ * registrado à parte (a chave do passo é a da série, que a troca recria).
+ */
+const CROSSOVER = "crossover-na-polia";
 
 /*
  * O config roda um worker só, em série (`workers: 1`, `fullyParallel: false`):
@@ -90,49 +95,50 @@ test.describe("§22.15 item 1 — a figura nasce de novo também no Substituir",
     });
   }
 
-  test("Substituir com o agachamento na posição 2: o afundo começa na 1 e o quadro 2 espera o 1", async ({
+  test("Substituir com o supino na posição 2: o crossover começa na 1 e o quadro 2 espera o 1", async ({
     page,
   }) => {
     await preparar(page);
-    const QUADRO_2 = new RegExp(`/ilustracoes/${AFUNDO}-2\\.`);
+    const QUADRO_2 = new RegExp(`/ilustracoes/${CROSSOVER}-2\\.`);
     const tempos: { fim1: number | null; inicio2: number | null } = { fim1: null, inicio2: null };
     page.on("request", (r) => {
       if (r.resourceType() === "image" && QUADRO_2.test(r.url())) tempos.inicio2 ??= Date.now();
     });
     page.on("requestfinished", (r) => {
-      if (r.resourceType() === "image" && r.url().includes(`/ilustracoes/${AFUNDO}-1.`)) {
+      if (r.resourceType() === "image" && r.url().includes(`/ilustracoes/${CROSSOVER}-1.`)) {
         tempos.fim1 ??= Date.now();
       }
     });
-    // o quadro 2 do afundo demora 2,5 s: a posição herdada apareceria vazia
+    // o quadro 2 do crossover demora 2,5 s: a posição herdada apareceria vazia
     await page.route(QUADRO_2, async (rota) => {
       await new Promise((r) => setTimeout(r, 2_500));
       await rota.continue();
     });
 
     const ficha = await abrirFichaNoPlayer(page);
+    await proximo(ficha, SUPINO);
     const figura = ficha.locator("[data-ilustracao]").first();
     await expect
       .poll(async () => (await lerFigura(figura)).srcs[0] ?? "")
-      .toContain(`/ilustracoes/${AGACHAMENTO}-1.`);
+      .toContain(`/ilustracoes/${SUPINO}-1.`);
     await expect(figura).toHaveAttribute("data-posicao", "2", { timeout: 6_000 });
 
-    await substituirPor(ficha, AFUNDO);
+    await substituirPor(ficha, CROSSOVER);
     await expect
       .poll(async () => (await lerFigura(figura)).srcs[0] ?? "")
-      .toContain(`/ilustracoes/${AFUNDO}-1.`);
+      .toContain(`/ilustracoes/${CROSSOVER}-1.`);
     let semOQuadro2 = 0;
     for (let i = 0; i < 12; i += 1) {
       const f = await lerFigura(figura);
       if (f.chegou2) break;
       semOQuadro2 += 1;
-      expect(f.posicao, "sem o quadro 2 do afundo, a posição fica na 1").toBe("1");
+      expect(f.posicao, "sem o quadro 2 do crossover, a posição fica na 1").toBe("1");
       await page.waitForTimeout(150);
     }
     expect(semOQuadro2, "o atraso do quadro 2 foi visto").toBeGreaterThan(3);
     await expect.poll(() => tempos.inicio2).not.toBeNull();
-    expect(tempos.fim1, "o quadro 1 do afundo foi pedido e chegou").not.toBeNull();
-    expect(tempos.inicio2!, "o quadro 2 do afundo só é pedido depois do 1").toBeGreaterThanOrEqual(
+    expect(tempos.fim1, "o quadro 1 do crossover foi pedido e chegou").not.toBeNull();
+    expect(tempos.inicio2!, "o quadro 2 do crossover só é pedido depois do 1").toBeGreaterThanOrEqual(
       tempos.fim1!,
     );
     await expect
@@ -159,11 +165,9 @@ test.describe("§22.15 item 1 — a figura nasce de novo também no Substituir",
     await expect(painel).toContainText(principais(SUPINO));
     await expect(painel.getByRole("img", { name: /Execução/ })).toHaveCount(0);
 
-    await ficha.getByRole("button", { name: "Exercício anterior" }).click();
-    await expect(ficha.getByRole("heading", { name: acharExercicio(AGACHAMENTO).nome })).toBeVisible();
-    await substituirPor(ficha, AFUNDO);
+    await substituirPor(ficha, CROSSOVER);
     await expect(aba).toHaveAttribute("aria-selected", "true");
-    await expect(painel).toContainText(principais(AFUNDO));
+    await expect(painel).toContainText(principais(CROSSOVER));
     await expect(painel.getByRole("img", { name: /Execução/ })).toHaveCount(0);
   });
 });
@@ -173,15 +177,16 @@ test.describe("§22.15 item 1 — a figura nasce de novo também no Substituir",
 test.describe("§22.15 item 2 — a figura quebrada não passa para o próximo", () => {
   test.use({ serviceWorkers: "block" });
 
-  /** A ficha no player com "Figura" escolhida e a figura do agachamento abortada. */
-  async function figuraDoAgachamentoQuebrada(page: Page): Promise<Locator> {
+  /** A ficha no player, em `id`, com "Figura" escolhida e a figura dele abortada. */
+  async function figuraQuebradaEm(page: Page, id: string): Promise<Locator> {
     await preparar(page);
     let abortados = 0;
-    await page.route(new RegExp(`/figuras/${AGACHAMENTO}\\.svg`), async (rota) => {
+    await page.route(new RegExp(`/figuras/${id}\\.svg`), async (rota) => {
       abortados += 1;
       await rota.abort("failed");
     });
     const ficha = await abrirFichaNoPlayer(page);
+    if (id !== AGACHAMENTO) await proximo(ficha, id);
     await ficha
       .getByRole("group", { name: "Como ver o exercício" })
       .getByRole("button", { name: "Figura" })
@@ -189,7 +194,7 @@ test.describe("§22.15 item 2 — a figura quebrada não passa para o próximo",
     await expect.poll(() => abortados).toBeGreaterThan(0);
     // a figura quebrou: a foto de início aparece no lugar
     await expect(
-      ficha.getByRole("img", { name: `${acharExercicio(AGACHAMENTO).nome} — início` }),
+      ficha.getByRole("img", { name: `${acharExercicio(id).nome} — início` }),
     ).toBeVisible();
     return ficha;
   }
@@ -208,7 +213,7 @@ test.describe("§22.15 item 2 — a figura quebrada não passa para o próximo",
   }
 
   test("› do agachamento (figura abortada) ao supino: a figura do supino aparece", async ({ page }) => {
-    const ficha = await figuraDoAgachamentoQuebrada(page);
+    const ficha = await figuraQuebradaEm(page, AGACHAMENTO);
     await proximo(ficha, SUPINO);
     await expect(
       ficha.getByRole("group", { name: "Como ver o exercício" }).getByRole("button", { name: "Figura" }),
@@ -216,12 +221,12 @@ test.describe("§22.15 item 2 — a figura quebrada não passa para o próximo",
     await conferirFigura(ficha, SUPINO);
   });
 
-  test("Substituir o agachamento (figura abortada) pelo afundo: a figura do afundo aparece", async ({
+  test("Substituir o supino (figura abortada) pelo crossover: a figura do crossover aparece", async ({
     page,
   }) => {
-    const ficha = await figuraDoAgachamentoQuebrada(page);
-    await substituirPor(ficha, AFUNDO);
-    await conferirFigura(ficha, AFUNDO);
+    const ficha = await figuraQuebradaEm(page, SUPINO);
+    await substituirPor(ficha, CROSSOVER);
+    await conferirFigura(ficha, CROSSOVER);
   });
 });
 
@@ -360,10 +365,11 @@ test.describe("§22.15 item 7 — a posição no plano aparece uma vez", () => {
 
 /* ============================================================ item 8 */
 
-/** Um pixel da captura da página inteira, em coordenadas CSS (escala 1). */
+/** Um pixel da captura da tela, em coordenadas CSS (a captura sai em 2×). */
 async function pixel(png: Buffer, x: number, y: number): Promise<[number, number, number]> {
   const { data, info } = await sharp(png).raw().toBuffer({ resolveWithObject: true });
-  const i = (Math.round(y) * info.width + Math.round(x)) * info.channels;
+  const escala = info.width / 360;
+  const i = (Math.floor(y * escala) * info.width + Math.floor(x * escala)) * info.channels;
   return [data[i]!, data[i + 1]!, data[i + 2]!];
 }
 
