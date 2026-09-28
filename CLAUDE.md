@@ -42,3 +42,7 @@ NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 ALLOWED_EMAIL=miguelgsaviotti29@gmail.com
 ```
+
+<!-- BEGIN managed:agent-permissions v1 -->
+@AGENTS.md
+<!-- END managed:agent-permissions v1 -->
