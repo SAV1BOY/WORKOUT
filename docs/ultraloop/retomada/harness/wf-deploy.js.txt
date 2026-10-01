@@ -1,0 +1,58 @@
+export const meta = {
+  name: 'treino-terraco-ultraloop-deploy',
+  description: 'Ultraloop: mescla os lotes aprovados de uma rodada na branch de integração, abre e mescla o PR em main, espera o deploy da Vercel, faz o teste de fumaça em produção e reverte se quebrar',
+  phases: [{ title: 'Deploy', detail: 'merge → PR → main → fumaça → (rollback)' }],
+}
+
+const S = '/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop'
+const TRAILER = `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_0176cnwNLSFyGMPQkTtF8dVS`
+
+const RESULTADO = {
+  type: 'object',
+  properties: {
+    ok: { type: 'boolean' },
+    merges: { type: 'array', items: { type: 'string' } },
+    pr: { type: 'string' },
+    main_sha: { type: 'string' },
+    deployment_anterior: { type: 'string' },
+    deployment_novo: { type: 'string' },
+    versao_prod: { type: 'string' },
+    fumaca: { type: 'string' },
+    rollback: { type: 'string' },
+    duracao_min: { type: 'number' },
+    problemas: { type: 'array', items: { type: 'string' } },
+  },
+  required: ['ok', 'merges', 'fumaca', 'rollback', 'problemas'],
+}
+
+const lotes = args.lotes_aprovados.map(l => `- ${l.nome}: branch ${l.branch}, head ${l.head}${l.contem ? ' (já contém ' + l.contem + ')' : ''}; telas mudadas: ${(l.telas_mudadas || []).join(', ') || '-'}; marcadores: ${(l.marcadores || []).join(' | ') || '-'}`).join('\n')
+
+const BRIEF = `# Contexto — Ultraloop 20/09/2026: DEPLOY da rodada ${args.rodada} — hora limite ${args.prazo} UTC (date -u)
+
+Você é o agente de deploy (runbook mecânico). Repositório de integração: /home/user/WORKOUT, branch 'claude/academia-miguel-index-ekvwi0' (é a branch que vira PR para main; NUNCA faça push direto em main a não ser o fallback descrito). Produção: https://treino-terraco.vercel.app (Vercel projeto prj_bg70eG7aLWMb0fplks1H6xhOtmn2, time team_yZYV721KQAmfIiGI79gsI51U; push em main = deploy de produção; previews exigem login). Ferramentas MCP via ToolSearch: mcp__github__create_pull_request, mcp__github__merge_pull_request, mcp__github__pull_request_read, mcp__Vercel__list_aliases, mcp__Vercel__request_rollback, mcp__Vercel__list_deployment_events. Responda em português; a resposta final é DADOS (schema).
+
+## Lotes aprovados desta rodada (mescle nesta ordem)
+${lotes}
+Resumo para o PR: ${args.resumo}
+${args.migracoes_aplicadas && args.migracoes_aplicadas.length ? 'Migrações já aplicadas no projeto real pelo orquestrador: ' + args.migracoes_aplicadas.join(', ') : 'Nenhuma migração de banco nesta rodada.'}
+
+## Runbook (siga na ordem; registre cada passo com hora em ${S}/diario.md e o resultado final em ${S}/deploys.json — array de objetos, acrescente um)
+1. Estado anterior: mcp__Vercel__list_aliases({projectId, teamId, domain:'treino-terraco.vercel.app'}) → deploymentId atual; curl -s https://treino-terraco.vercel.app/versao (pode não existir antes do lote 1; então guarde o hash do CSS de /login: curl -s .../login | grep -o '/_next/static/css/[^"]*').
+2. Pré-condições por lote: git -C <worktree do lote> rev-parse --short HEAD == head; ${S}/logs/... <head>.status == ok (o caminho do log vem em cada lote: ${args.lotes_aprovados.map(l => l.portoes_log).join(' ; ')}); o .log contém 'passed' e 'Compiled successfully'. Se falhar, NÃO mescle esse lote; registre em problemas e siga com os outros.
+3. Em /home/user/WORKOUT: git status --porcelain vazio; git fetch origin; git merge --ff-only origin/main (sanidade; se a branch de integração estiver à frente de origin/main por commits legítimos anteriores, tudo bem — apenas não perca nada). Para cada lote: git merge --no-ff <branch> -m "Ultraloop 20/09 — rodada ${args.rodada}, lote <nome>" -m "<uma linha por item feito>" -m "Portões: lint limpo, build ok, N unitários, M e2e (do <head>.log)" -m "${TRAILER.replace(/\n/g, '" -m "')}". Se um lote 'contém' o outro (faixa B integrou A), mesclar só B basta — confira com git diff <branch A> HEAD -- . (o conteúdo de A precisa estar dentro).
+4. Portão final no tree de integração (só se houve mais de um merge e não existe log de integração cobrindo o HEAD resultante): lint + tsc + test rápidos; se a integração B já contém A com portões completos, pule o e2e.
+5. git push origin claude/academia-miguel-index-ekvwi0 (até 4 tentativas, 2/4/8/16 s). PR: mcp__github__create_pull_request({owner:'SAV1BOY', repo:'WORKOUT', head:'claude/academia-miguel-index-ekvwi0', base:'main', draft:false, title:'Ultraloop 20/09 — rodada ${args.rodada}: <lotes>', body}) com corpo em português no formato do PR #5 (o que mudou por lote com provas, portões, capturas, 'Motor e montagem intocados', e ao final as duas linhas: '🤖 Generated with [Claude Code](https://claude.com/claude-code)' e 'https://claude.ai/code/session_0176cnwNLSFyGMPQkTtF8dVS'). Se já existir PR aberto para a branch, atualize o corpo (mcp__github__update_pull_request) em vez de criar. ANTES do merge: o repositório tem revisão automática do Codex (bot chatgpt-codex-connector). Espere até 10 min (consulta a cada 60 s com mcp__github__pull_request_read get_comments e get_review_comments) até o comentário "Codex Review Summary" mostrar "Completed" para o sha do PR. Se houver review threads ou comentários do Codex com sugestões, NÃO mescle: verifique cada achado no código. Se for real, pare antes do merge, registre em problemas com arquivo:linha e devolva ok:false (o orquestrador corrige numa rodada). Antes de devolver, deixe a integração limpa para as outras faixas: em /home/user/WORKOUT, UM commit em português que reverte o merge do lote e o commit do veredito (git revert --no-commit <veredito> && git revert --no-commit -m 1 <merge> && git commit -m "Integração: tira o <lote> até corrigir a revisão do Codex no PR #N" + trailer), confira git diff <estado anterior ao merge> HEAD vazio, lint e tsc, push; comente no PR (um comentário só, com o rodapé "\\n\\n---\\n_Generated by [Claude Code](https://claude.ai/code)_") listando os achados e o commit que tirou o lote, e feche o PR sem mesclar (mcp__github__update_pull_request state closed). Para reintegrar depois, o orquestrador reverte esse commit e mescla os commits novos da branch do lote. Se for falso, responda no fio em uma linha com a prova (terminando com o rodapé "\\n\\n---\\n_Generated by [Claude Code](https://claude.ai/code)_") e siga. Se a revisão não terminar em 10 min, registre e siga. Merge: mcp__github__merge_pull_request({owner, repo, pullNumber, merge_method:'merge', expectedHeadSha:<sha da branch>, commit_title:'<título> (#N)', commit_message:'<resumo>\\n\\n${TRAILER.replace(/\n/g, '\\n')}'}). Fallback se a API do GitHub falhar 3 vezes: git push origin claude/academia-miguel-index-ekvwi0:main. Depois: git fetch origin && git merge --ff-only origin/main na integração (a branch fica igual a main) e git push origin claude/academia-miguel-index-ekvwi0.
+6. Esperar o deploy (≤ 12 min, curl a cada 30 s): /versao devolvendo o sha do merge em main (se a rota existir), senão o CSS de /login mudando para um hash que existe em /home/user/WORKOUT/.next? (não: o .next local não é o de produção — use a mudança do hash + o sw.js listando os chunks novos). Se passar de 12 min: mcp__Vercel__list_deployment_events({idOrUrl:<deploymentId novo via list_aliases>, limit:100, direction:'backward'}) e procure erro de build → trate como 'quebrou'.
+7. Fumaça em produção (3 tentativas, 40 s entre elas; TODAS obrigatórias): GET /login 200 contendo 'Treino do Terraço' e 'Entrar' e NÃO contendo 'Configure NEXT_PUBLIC_SUPABASE_URL' nem 'é secreta'; GET / → 307 para /login; GET /versao == sha (quando existir); GET /sw.js 200 contendo '/~offline' e 'figuras/' e o MESMO css hash do HTML de /login; GET /manifest.webmanifest 200 com 'Treino do Terraço'; GET /~offline 200; todo <script src="/_next/static/..."> de /login → 200; marcadores de cada lote (textos em rotas públicas: /login, /~offline, /manifest; chunks das telas mudadas: procure em /sw.js a URL do chunk 'app/(app)/<rota>/page-*.js', baixe e confira que contém o marcador, lembrando que o bundle escapa acentos como \\xe9 — procure sem acento). Sonda opcional (1 min): Playwright a 360×740 em /login e /~offline: sem erro de console, scrollWidth <= clientWidth.
+8. QUEBROU (qualquer item após 3 tentativas, build com erro, ou /versao não virar em 12 min): (a) mcp__Vercel__request_rollback({projectId:'prj_bg70eG7aLWMb0fplks1H6xhOtmn2', teamId:'team_yZYV721KQAmfIiGI79gsI51U', deploymentId:<anterior>, description:'Ultraloop rodada ${args.rodada}: fumaça falhou — <motivo>'}) e confirmar por curl que /versao (ou o CSS) voltou; (b) em /home/user/WORKOUT: git revert -m 1 <sha do merge do lote culpado (ou de todos)> com o trailer, push, PR + merge em main como no passo 5 (o deploy do revert recoloca main = produção); (c) registre em deploys.json e no diário; NUNCA corrija para frente em produção.
+9. Sem rollback: copie as capturas 'depois' do último auditor de cada lote para ${S}/base/ (sobrescrevendo só os PNGs das telas mudadas) e regenere nada mais; anote deployment_novo. Atualize no PROGRESSO.md (integração) a linha 'Deploy' da subseção de cada lote (deployment anterior → novo, /versao, fumaça item a item, rollback: não) e o '### Relatório para o dono (9h)' com 3–6 linhas do que já está no ar; commit "Ultraloop 20/09: registro do deploy da rodada ${args.rodada}" com o trailer; push (não precisa de PR agora: entra no próximo deploy).
+
+${args.instrucoes_extra || ''}
+
+Retorno: schema RESULTADO (fumaca = tabela curta item: ok/falhou; rollback = 'não' ou o motivo + sha do revert).`
+
+phase('Deploy')
+log(`Ultraloop: deploy da rodada ${args.rodada}`)
+const r = await agent(BRIEF, { model: 'opus', effort: 'high', label: `deploy:r${args.rodada}`, phase: 'Deploy', schema: RESULTADO })
+return { rodada: args.rodada, resultado: r, encerrado_por: r === null ? 'agente_nulo' : null }

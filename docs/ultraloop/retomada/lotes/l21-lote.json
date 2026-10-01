@@ -1,0 +1,315 @@
+{
+ "codigo": "L21",
+ "titulo": "Player: firme, conclusão e Visão geral",
+ "area": "player",
+ "arquivos_previstos": [
+  "PROGRESSO.md",
+  "SPEC.md",
+  "app/(app)/mais/page.tsx",
+  "components/calendario/dialogos.tsx",
+  "components/exercicio/ficha-folha.tsx",
+  "components/mais/guia.tsx",
+  "components/player/conclusao.tsx",
+  "components/player/firme.tsx",
+  "components/relatorio/aviso-conquista.tsx",
+  "components/relatorio/conquistas.tsx",
+  "components/stepper-numerico.tsx",
+  "components/treinar/bloco.tsx",
+  "components/treinar/serie.tsx",
+  "components/treinar/usar-sessao.ts",
+  "e2e/ultraloop-l21.spec.ts (novo)",
+  "lib/sessao.ts"
+ ],
+ "telas_esperadas": [
+  "28-player-exercicio",
+  "30-player-conclusao",
+  "13-relatorio-conquistas",
+  "18-mais",
+  "22-guia"
+ ],
+ "observacoes_do_plano": "Resto dos grupos do player do REMONTAR_L12 (só B): 11 itens B do player não fecham dois lotes de 6. A Visão geral não tem captura própria na lista das 30: medir no e2e. O visual-08 entra pela exceção abaixo. v3: sem mudança de itens; a alternativa da exceção foi refeita (a da v2 deixava um lote com 5 itens). | 24/09: + B-substituir-apaga-series-feitas na frente (decisão do dono = b; integridade de dados); o L21 sobe para logo depois do L19 na faixa do player. Exceção de arquivos (16 > 12) aceita pelo orquestrador por prioridade de integridade; item que não couber vai para itens_nao_feitos.",
+ "excecao": {
+  "tipo": "área",
+  "itens": [
+   "visual-08"
+  ],
+  "motivo": "os 15 itens de Mais/casca (3 C da remontagem, a11y-16 e os 11 do grupo a11y-10) pedem ~25 arquivos de código; com 6–10 itens e ≤ 12 arquivos por lote (SPEC.md e PROGRESSO.md contam) eles cabem em dois lotes só se dois itens forem para lotes que já editam um dos seus arquivos. O visual-08 (três versões do rótulo em caixa alta) completa o L21 porque também troca os rótulos da Visão geral do player (components/treinar/serie.tsx:223/:326), arquivo que o L21 já edita, e o L17 e o L24 estão no teto de 12 arquivos.",
+  "aceite_do_dono": "pendente — perguntar antes de montar o L21",
+  "alternativa": "sem o visual-08, o tela-treino-player-25 (foco da folha 'Ajustar' do player, P) vem do L20 para o L21: o L21 fica com 6 itens, 1 M e 8 arquivos (saem os cinco do visual-08, entra components/player/tela-player.tsx) e o L20 com 7; o visual-08 espera um lote de textos com folga (L24 e L25 estão no teto). As duas saídas da v2 deixavam um lote com 5 itens.",
+  "alternativa_v2": "sem o visual-08 o L21 fica com 5 itens; a outra saída é trazer para cá um C do player (C-visao-geral-esc-camada), o que deixa o L29 com 5"
+ },
+ "excecao_de_ordem": [],
+ "itens": [
+  {
+   "id": "B-substituir-apaga-series-feitas",
+   "secao": "B",
+   "estado": "pendente",
+   "titulo": "Substituir pela ficha apaga sem aviso as séries já feitas do exercício trocado",
+   "detalhe": "PROBLEMA: no player, '?' → ficha → 'Substituir' (components/exercicio/ficha-folha.tsx:601-648) troca o exercício e as séries JÁ CONCLUÍDAS do original saem do Dexie e de session_sets (components/treinar/usar-sessao.ts:320-345 → descartarSeriesDoBloco, lib/queries/sessao.ts:267; lib/sessao.ts substituirExercicio recria as séries). A ficha anda pelos exercícios da sessão ('Exercício anterior'/'Próximo exercício'), então um toque apaga um exercício inteiro já feito. A folha 'substituir hoje' da Visão geral avisa antes (components/treinar/bloco.tsx:224: 'As séries já registradas deste bloco serão trocadas pelas do substituto'); a ficha não. Já acontecia em main c689f69 (não é regressão do L19). A §3.2 diz só 'registro fica com o exercício substituto; a progressão do original não muda'; o CLAUDE.md diz 'Nunca perder um registro'. PROVA: auditoria 1 tela do L19 (r23/l19/auditoria-1-tela/medidas-a.json → troca.mock/trocaVisao.mock; medidas-anterior-*.json: mockAntes 6 linhas → mockDepois 1) e auditoria 1 regra (r23/l19/auditoria-1-regra/veredito.json). FAZER (decisão do dono = b): substituir um exercício — pela ficha ou pela folha 'Substituir hoje' da Visão geral — NUNCA apaga séries concluídas: as séries feitas do original continuam registradas (Dexie e session_sets) com o exercício original e contam como feitas dele; só as séries ainda não feitas passam para o substituto, que começa do zero. A SPEC §3.2 é reescrita antes do código; o aviso da Visão geral muda para dizer isso. ACEITE: regra pura com Vitest (troca com 0, 1 e todas as séries feitas; troca do passo atual; troca de um exercício anterior) e e2e nos dois temas pelos dois caminhos (ficha e Visão geral): depois da troca, as séries feitas do original continuam no Dexie e no mock (session_sets) e aparecem no histórico/relatório como dele; o substituto começa na série 1; nenhum registro some; o player continua no passo certo.",
+   "arquivos": [
+    "components/exercicio/ficha-folha.tsx",
+    "components/treinar/usar-sessao.ts",
+    "lib/sessao.ts",
+    "components/treinar/bloco.tsx",
+    "SPEC.md §3.2"
+   ],
+   "esforco": "M",
+   "origens": [
+    {
+     "fonte": "auditoria 1 regra do L19 (rodada 23)",
+     "id_original": "importante 1"
+    },
+    {
+     "fonte": "auditoria 1 tela do L19 (rodada 23)",
+     "id_original": "importante 2"
+    }
+   ],
+   "area": "player",
+   "lote_planejado": "L21",
+   "nota": "DECISÃO DO DONO (24/09, ~14:00 UTC): opção (b) — as séries já feitas do exercício original ficam registradas (Dexie e session_sets) e contam como feitas; o substituto começa do zero. Muda a SPEC §3.2 e o aviso da folha 'Substituir hoje' da Visão geral (components/treinar/bloco.tsx). Prioridade: integridade de dados ('Nunca perder um registro'). | 24/09 rodada 29: não feito no L19 (decisão do dono (b)); segue no L21."
+  },
+  {
+   "id": "tela-treino-player-29",
+   "secao": "B",
+   "estado": "pendente",
+   "area": "player",
+   "titulo": "'Nota curta' antes de Fácil/Firme/Falhei abre o teclado antes da resposta",
+   "detalhe": "PROBLEMA (Player — Firme?): EVIDÊNCIA: /tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-treino-player/tela-treino-player-29.png — p06-firme-escuro.png — medido: o campo \"Nota curta (opcional)\" ocupa y=200..248, ACIMA de Fácil (y=268), Firme (y=332) e Falhei (y=396); e sobram ~270 px vazios abaixo de \"Continuar\" (y=472..528) PROPOSTA DA ANÁLISE: Descer o input de firme.tsx:67-72 para depois das três opções, atrás de um \"adicionar nota\" — a pergunta da tela é a nota do esforço, e hoje o primeiro elemento tocável abre o teclado antes de ela ser respondida. FAZER: Em components/player/firme.tsx descer 'Nota curta (opcional)' para depois das três opções, atrás de um 'Adicionar nota' que abre o campo. ACEITE: e2e na tela 'Firme?': o primeiro elemento tocável é 'Fácil'; o campo de nota só aparece depois de 'Adicionar nota' e a nota continua gravada na série. ESTADO EM ef3ad97: Pendente em ef3ad97: components/player/firme.tsx:97 'Nota curta (opcional)' antes das opções Fácil/Firme/Falhei (:104-115).",
+   "arquivos": [
+    "components/player/firme.tsx:67"
+   ],
+   "esforco": "P",
+   "origens": [
+    {
+     "fonte": "lotes-r6#REMONTAR_L12",
+     "id_original": "tela-treino-player-29",
+     "origem": "remontagem do L12: tela-treino-player-12/27 (conclusão)"
+    },
+    {
+     "fonte": "analise/tela-treino-player",
+     "id_original": "tela-treino-player-29",
+     "origem": "análise de 20/09 (lente tela-treino-player, severidade media)"
+    }
+   ],
+   "duplicatas": [],
+   "subsecao": "remontagem-L12",
+   "lote_planejado": "L21"
+  },
+  {
+   "id": "tela-treino-player-27",
+   "secao": "B",
+   "estado": "pendente",
+   "area": "player",
+   "titulo": "Conclusão lista todos os recordes (18 linhas numa primeira sessão)",
+   "detalhe": "PROBLEMA (Player — Conclusão): EVIDÊNCIA: /tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-treino-player/tela-treino-player-27.png — p08-conclusao-escuro.png — o bloco \"Recordes\" trouxe 18 linhas de 12 px (3 por exercício × 6 exercícios) numa primeira sessão; conclusao.tsx:157-165 mapeia tudo sem limite PROPOSTA DA ANÁLISE: Limitar a 5 recordes (os de maior salto) com \"ver todos\" abrindo o resto, em conclusao.tsx:157 — numa primeira sessão TODO recorde é recorde e o bloco vira parede de texto. FAZER: Em components/player/conclusao.tsx limitar 'Recordes' aos 5 de maior salto, com 'Ver todos (N)' que abre o resto. ACEITE: e2e: numa primeira sessão com 18 recordes a conclusão mostra 5 linhas e 'Ver todos (18)'; o toque mostra as 18. ESTADO EM ef3ad97: Pendente em ef3ad97: components/player/conclusao.tsx:189-200 mapeia todos os recordes, sem limite nem 'ver todos'.",
+   "arquivos": [
+    "components/player/conclusao.tsx:157"
+   ],
+   "esforco": "P",
+   "origens": [
+    {
+     "fonte": "lotes-r6#REMONTAR_L12",
+     "id_original": "tela-treino-player-27",
+     "origem": "remontagem do L12: tela-treino-player-12/27 (conclusão)"
+    },
+    {
+     "fonte": "analise/tela-treino-player",
+     "id_original": "tela-treino-player-27",
+     "origem": "análise de 20/09 (lente tela-treino-player, severidade media)"
+    }
+   ],
+   "duplicatas": [],
+   "subsecao": "remontagem-L12",
+   "lote_planejado": "L21"
+  },
+  {
+   "id": "ux-heuristicas-15",
+   "secao": "B",
+   "estado": "pendente",
+   "area": "player",
+   "titulo": "Série da Visão geral com steppers de 44 px onde '15,5' não cabe",
+   "detalhe": "PROBLEMA (Player → Visão geral × Player → Série): EVIDÊNCIA: Medido: o mesmo campo \"carga na barra\" tem 176×56 na tela de série e 44×44 na visão geral (steppers de 44×44 nos dois lados). Em 44 px de largura, \"15,5\" já não cabe inteiro; e os dois lugares onde se digita o mesmo número têm alturas diferentes (56 × 44) e passos de toque diferentes. Capturas: /tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/ux-heuristicas/ux-heuristicas-15.png e /tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/ux-heuristicas/player-serie-escuro.png PROPOSTA DA ANÁLISE: Fazer a linha de série da visão geral usar uma única fileira por série em vez de dois steppers lado a lado: reps à esquerda (ocupando ~50% da largura, campo ≥64 px), carga à direita, ambos com 48 px de altura — ou, mais simples, empilhar reps e carga em duas linhas. components/treinar/serie.tsx:120-190. Ganha-se também a consistência com o player. FAZER: Em components/treinar/serie.tsx (Visão geral) trocar os dois steppers compactos lado a lado por reps e carga empilhados (ou uma fileira com campo ≥ 64 px), com 48 px de altura, como no player. ACEITE: e2e a 360×740 na Visão geral: o campo de carga mostra '15,5' inteiro (scrollWidth ≤ clientWidth), os campos têm ≥ 48 px de altura e nada vaza a largura. ESTADO EM ef3ad97: Pendente em ef3ad97: components/treinar/serie.tsx:186-191 StepperNumerico `compacto` na Visão geral.",
+   "arquivos": [
+    "components/treinar/serie.tsx"
+   ],
+   "esforco": "M",
+   "origens": [
+    {
+     "fonte": "lotes-r6#REMONTAR_L12",
+     "id_original": "ux-heuristicas-15",
+     "origem": "remontagem do L12: ux-heuristicas-06/12/15 (player, se o L5 não cobrir)"
+    },
+    {
+     "fonte": "analise/ux-heuristicas",
+     "id_original": "ux-heuristicas-15",
+     "origem": "análise de 20/09 (lente ux-heuristicas, severidade media)"
+    }
+   ],
+   "duplicatas": [],
+   "subsecao": "remontagem-L12",
+   "lote_planejado": "L21"
+  },
+  {
+   "id": "ux-heuristicas-14",
+   "secao": "B",
+   "estado": "pendente",
+   "area": "player",
+   "titulo": "17 botões 'Aumentar repetições' idênticos na Visão geral",
+   "detalhe": "PROBLEMA (Player → Visão geral do treino): EVIDÊNCIA: Contei no inventário da página: 17 botões com o nome \"Aumentar repetições\", 17 \"Diminuir repetições\" e 17 pares de carga, nenhum com contexto de série ou exercício; e 6 botões \"Série 1 concluída\", um por exercício. O role=\"group\" do contêiner tem o nome certo (\"Série 1 — Levantamento terra\", serie.tsx:86), mas o nome do botão não herda isso: por voz ou por leitor de tela, 17 alvos idênticos. Captura: /tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/ux-heuristicas/ux-heuristicas-14.png PROPOSTA DA ANÁLISE: Em components/treinar/serie.tsx (rótulos dos steppers e do checkbox) e em components/stepper-numerico.tsx, passar o contexto para dentro do nome: `Aumentar repetições da ${nome} do ${exercicio.nome}`. É só concatenar o que o grupo já sabe. FAZER: Passar o contexto para o nome dos controles: components/stepper-numerico.tsx aceita um complemento de rótulo e components/treinar/serie.tsx o preenche ('Aumentar repetições da Série 1 do Levantamento terra'). ACEITE: e2e na Visão geral: nenhum nome acessível de botão se repete; unitário do montador de rótulo. ESTADO EM ef3ad97: Pendente em ef3ad97: components/stepper-numerico.tsx:147 e :199 `Diminuir ${rotulo}` / `Aumentar ${rotulo}` sem série nem exercício.",
+   "arquivos": [
+    "components/treinar/serie.tsx",
+    "components/stepper-numerico.tsx"
+   ],
+   "esforco": "P",
+   "origens": [
+    {
+     "fonte": "lotes-r6#REMONTAR_L12",
+     "id_original": "ux-heuristicas-14",
+     "origem": "remontagem do L12: ux-heuristicas-06/12/15 (player, se o L5 não cobrir)"
+    },
+    {
+     "fonte": "analise/ux-heuristicas",
+     "id_original": "ux-heuristicas-14",
+     "origem": "análise de 20/09 (lente ux-heuristicas, severidade media)"
+    }
+   ],
+   "duplicatas": [],
+   "subsecao": "remontagem-L12",
+   "lote_planejado": "L21"
+  },
+  {
+   "id": "ux-heuristicas-13",
+   "secao": "B",
+   "estado": "pendente",
+   "area": "player",
+   "titulo": "'Aquecimento 1 concluída': concordância errada no rótulo",
+   "detalhe": "PROBLEMA (Player → Visão geral (linhas de aquecimento)): EVIDÊNCIA: components/treinar/serie.tsx:98 monta aria-label={`${nome} concluída`} para toda linha — com nome=\"Aquecimento 1\" sai \"Aquecimento 1 concluída\", concordância errada em pt-BR (masculino). Colhi 4 ocorrências no inventário da visão geral (\"Aquecimento 1 concluída\", \"Aquecimento 2 concluída\"). Captura: /tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/ux-heuristicas/ux-heuristicas-13.png PROPOSTA DA ANÁLISE: Em components/treinar/serie.tsx:98, gerar o rótulo pelo tipo: serie.tipo === \"aquecimento\" ? `${nome} concluído` : `${nome} concluída`, e enquanto estiver lá incluir o exercício (ver achado 14). Bom candidato ao dicionário de mensagens do L5. FAZER: Em components/treinar/serie.tsx:98 gerar o rótulo pelo tipo — aquecimento → '… concluído', trabalho → '… concluída' — junto com o contexto do exercício do ux-heuristicas-14. ACEITE: e2e ou unitário: a linha 'Aquecimento 1' tem nome 'Aquecimento 1 concluído'; 'Série 1', 'Série 1 concluída'. ESTADO EM ef3ad97: Pendente em ef3ad97: components/treinar/serie.tsx:98 aria-label={`${nome} concluída`} também para 'Aquecimento 1'.",
+   "arquivos": [
+    "components/treinar/serie.tsx"
+   ],
+   "esforco": "P",
+   "origens": [
+    {
+     "fonte": "lotes-r6#REMONTAR_L12",
+     "id_original": "ux-heuristicas-13",
+     "origem": "remontagem do L12: ux-heuristicas-06/12/15 (player, se o L5 não cobrir)"
+    },
+    {
+     "fonte": "analise/ux-heuristicas",
+     "id_original": "ux-heuristicas-13",
+     "origem": "análise de 20/09 (lente ux-heuristicas, severidade baixa)"
+    }
+   ],
+   "duplicatas": [],
+   "subsecao": "remontagem-L12",
+   "lote_planejado": "L21"
+  },
+  {
+   "id": "visual-08",
+   "secao": "B",
+   "estado": "pendente",
+   "area": "visual",
+   "titulo": "Três versões do rótulo em caixa alta (tamanho, peso e tracking diferentes)",
+   "detalhe": "PROBLEMA (Rótulos em caixa alta (Hoje × Mais × Calendário)): EVIDÊNCIA: Medido: o mesmo papel de \"eyebrow\" existe em duas versões — 11px/400 com tracking 0,275px e uppercase (\"FASE\", \"PESO\", 22 ocorrências) e 12px/500 com tracking 0,3px e uppercase (\"CONTA\" em /mais, \"SETEMBRO DE 2026\" em /calendario). Há ainda uma terceira, 11px/500 tracking 0,275 (\"CONQUISTAS\" no aviso do relatório). PROPOSTA DA ANÁLISE: Um único papel `--texto-rotulo`: 11px/600, tracking 0,08em, uppercase, cor muted-foreground — aplicado em todos eles. Hoje as três versões estão espalhadas em components/treino/tela-treino.tsx, components/mais/*, components/calendario/* e components/relatorio/aviso-conquista.tsx. FAZER: Um papel só para o rótulo em caixa alta. Direção: a variante dominante (text-rotulo + tracking-wide + uppercase, 11 px/400 — components/treino/cabecalho.tsx:145, components/treino/cards.tsx:357, components/player/exercicio.tsx:431/:490 e as demais). Passam para ela: app/(app)/mais/page.tsx:106 (12 px/500), components/relatorio/aviso-conquista.tsx:52, components/relatorio/conquistas.tsx:164 e components/mais/guia.tsx:203 (11 px/500), components/calendario/dialogos.tsx:128/149/171 (12 px/400) e components/treinar/serie.tsx:223/:326 (sem tracking). A análise propunha 11 px/600 em todos; ficar com a dominante troca seis arquivos em vez de todos os usos — se o dono quiser o 600, é troca de token num lote próprio. ACEITE: e2e: em /, /mais, /relatorio (aviso e lista de conquistas), no diálogo do Calendário, no guia e na Visão geral do player todo rótulo em caixa alta tem o mesmo font-size, font-weight e letter-spacing (getComputedStyle); grep por 'text-xs font-medium tracking-wide uppercase' e 'text-rotulo font-medium tracking-wide uppercase' vazio. ESTADO EM ef3ad97: Pendente em ef3ad97: app/(app)/mais/page.tsx:106 `text-xs font-medium tracking-wide uppercase` (12 px/500); components/relatorio/aviso-conquista.tsx:52, components/relatorio/conquistas.tsx:164 e components/mais/guia.tsx:203 `text-rotulo font-medium tracking-wide uppercase` (11 px/500); components/calendario/dialogos.tsx:128/149/171 `text-xs tracking-wide uppercase`; components/treinar/serie.tsx:223/:326 `text-rotulo uppercase` sem tracking. O 'SETEMBRO DE 2026' do Calendário virou h2 com first-letter:uppercase (components/calendario/grade.tsx:157) — essa parte da evidência já não vale.",
+   "arquivos": [
+    "app/(app)/mais/page.tsx",
+    "components/relatorio/aviso-conquista.tsx",
+    "components/relatorio/conquistas.tsx",
+    "components/mais/guia.tsx",
+    "components/calendario/dialogos.tsx",
+    "components/treinar/serie.tsx"
+   ],
+   "esforco": "P",
+   "origens": [
+    {
+     "fonte": "lotes-r6#REMONTAR_L12",
+     "id_original": "visual-08",
+     "origem": "remontagem do L12: a11y-10 (nav a 200 % de zoom + a11y-05/a11y-16)",
+     "nota": "expandido pelo motivo de analise/lotes-propostos#descartados[a11y-10] (importado na rodada 2 do ledger, correção 6 do verificador)"
+    },
+    {
+     "fonte": "analise/lotes-propostos#descartados",
+     "id_original": "a11y-10",
+     "origem": "descartado por teto no planejamento da R2",
+     "nota": "Nav inferior a 200% de zoom (com a11y-05 na folha, a11y-16 no bloco de sincronização, visual-08/16/19 e copy-02/07/09/16/17/20/29/30 em Mais): área 'outra', formam o lote de Mais/casca que não coube nos 8 deste round — a11y-10 é 'alta' e deve abri-lo."
+    },
+    {
+     "fonte": "analise/visual",
+     "id_original": "visual-08",
+     "origem": "análise de 20/09 (lente visual, severidade baixa)"
+    }
+   ],
+   "duplicatas": [],
+   "subsecao": "remontagem-L12",
+   "lote_planejado": "L21",
+   "importado_na_rodada": 2
+  },
+  {
+   "id": "C-l19-desfazer-e-relogio-sem-teste-que-falhe",
+   "secao": "C",
+   "estado": "pendente",
+   "area": "player",
+   "titulo": "'Desfazer' sobre as prefs atuais e relógio parado com a Visão geral sem teste que falhe",
+   "detalhe": "PROBLEMA: o 'Desfazer' grava o voto de antes sobre as preferências de agora e o relógio de 250 ms para com a Visão geral aberta, mas nenhum teste cai se essas duas regras forem desfeitas (medido só ao vivo, r27/l19/ao-vivo/desfazer.json). FAZER: Vitest da função que monta as prefs do 'Desfazer' a partir das prefs atuais e e2e que abre a Visão geral por 20 s e confere que o relógio não andou; mutação de cada regra derruba o teste. ACEITE: mutação 'Desfazer sobre as prefs do render' e mutação 'relógio sem pausa' derrubam ao menos 1 teste cada. ESTADO EM a7b7d1b: comportamento certo (medido ao vivo), sem teste que falhe.",
+   "arquivos": [
+    "components/player/exercicio.tsx",
+    "components/player/tela-player.tsx",
+    "lib/l19.test.ts",
+    "e2e/ultraloop-l19.spec.ts"
+   ],
+   "esforco": "P",
+   "origens": [
+    {
+     "fonte": "auditoria 2 do L19 (rodada 27, 13c7014)",
+     "id_original": "[regra] 'Desfazer' sobre as prefs atuais e relógio parado com a Visão geral sem teste que falhe",
+     "origem": "menor registrado no PROGRESSO (subseção do L19, #### Auditoria)"
+    }
+   ],
+   "lote_planejado": "L21"
+  },
+  {
+   "id": "C-l19-desfazer-dois-avisos-voto-do-render",
+   "secao": "C",
+   "estado": "pendente",
+   "area": "player",
+   "titulo": "'Desfazer' com dois avisos seguidos do mesmo exercício usa o voto do render de cada toque",
+   "detalhe": "PROBLEMA: dois votos seguidos no mesmo exercício deixam dois avisos; o 'Desfazer' do primeiro devolve o voto do render daquele toque, não o anterior ao segundo voto. FAZER: fechar o aviso anterior do mesmo exercício ao abrir o novo (id do toast por exercício) ou ler o voto de antes na hora do toque. ACEITE: e2e: 'Não gosto' → 'Gostei' → 'Desfazer' do aviso visível deixa o voto que havia antes do 'Gostei'; só um aviso por exercício na tela. ESTADO EM a7b7d1b: dois avisos podem coexistir por ~4 s.",
+   "arquivos": [
+    "components/player/exercicio.tsx",
+    "e2e/ultraloop-l19.spec.ts"
+   ],
+   "esforco": "P",
+   "origens": [
+    {
+     "fonte": "auditoria 2 do L19 (rodada 27, 13c7014)",
+     "id_original": "[regra] Desfazer com dois avisos seguidos do mesmo exercício usa o voto do render de cada toque.",
+     "origem": "menor registrado no PROGRESSO (subseção do L19, #### Auditoria)"
+    }
+   ],
+   "lote_planejado": "L21"
+  },
+  {
+   "id": "C-l19-icone-visao-geral-muda-de-lado",
+   "secao": "C",
+   "estado": "pendente",
+   "area": "player",
+   "titulo": "Ícone 'Visão geral do treino' muda de lado entre preparação e série",
+   "detalhe": "PROBLEMA: na preparação o ícone da Visão geral fica à direita; na série, à esquerda. FAZER: pôr o ícone no mesmo canto nas duas telas (a série já tem 2 ícones; decidir o canto e alinhar a preparação). ACEITE: e2e mede o x do botão 'Visão geral do treino' na preparação e na série: igual (±1 px), nos dois temas; capturas 27 e 28 declaradas. ESTADO EM a7b7d1b: lados trocados.",
+   "arquivos": [
+    "components/player/preparacao.tsx",
+    "components/player/exercicio.tsx"
+   ],
+   "esforco": "P",
+   "origens": [
+    {
+     "fonte": "auditoria 2 do L19 (rodada 27, 13c7014)",
+     "id_original": "[tela] ícone 'Visão geral do treino' muda de lado entre preparação (direita) e série (esquerda).",
+     "origem": "menor registrado no PROGRESSO (subseção do L19, #### Auditoria)"
+    }
+   ],
+   "lote_planejado": "L21"
+  }
+ ],
+ "checklist_regra": "Para cada item: o ACEITE do detalhe conferido no código e nos dados reais (todos os casos), regra pura com teste que falharia sem a mudança, e2e pelo caminho real, SPEC e PROGRESSO iguais ao código.",
+ "checklist_tela": "Para cada item: o ACEITE medido a 360×740 nos dois temas pelo caminho real (alvos ≥ 44 px, scrollWidth == clientWidth, contraste AA do texto e ≥ 3:1 de elementos, headings e aria no DOM), e os diffs das telas declaradas inspecionados."
+}

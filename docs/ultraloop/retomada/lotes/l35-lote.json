@@ -1,0 +1,56 @@
+{
+ "codigo": "L35",
+ "titulo": "Lembretes II: horário, disparo automático e calendário",
+ "area": "lembretes",
+ "telas_esperadas": [
+  "18-mais"
+ ],
+ "itens": [
+  {
+   "id": "LEM-horarios",
+   "secao": "B",
+   "esforco": "P",
+   "titulo": "Horário do lembrete do treino e da corrida",
+   "detalhe": "FAZER: em /mais/lembretes, \"Lembrete do treino\" (liga/desliga + hora, padrão 07:00) e \"Lembrete da corrida\" (liga/desliga + hora), gravados em profiles.prefs.lembretes validado por Zod (lib/schemas.ts), fuso America/Sao_Paulo; os dias são os dias de treino do perfil (§17). ACEITE: unitário do schema e e2e que muda a hora e vê gravado no mock."
+  },
+  {
+   "id": "LEM-regra-mensagem",
+   "secao": "B",
+   "esforco": "M",
+   "titulo": "Regra pura: quem recebe o quê hoje",
+   "detalhe": "FAZER: lib/lembretes.ts decide, para um usuário e uma data/hora em America/Sao_Paulo, se o lembrete do treino e o da corrida são devidos agora (passou do horário escolhido, ainda não enviado hoje) e o texto: treino do dia com o nome e a duração estimada (mesma fonte que a aba Treino usa — lib/calendario/semana; nada escrito à mão), corrida da semana N; NADA em dia de descanso, em dia marcado como \"Não vou treinar hoje\" (schedule_overrides), nem se o treino do dia já foi concluído. ACEITE: unitários cobrindo dia de treino, descanso, pulado, já concluído, corrida, virada de dia, horário exato e atraso de até 30 min; mutação da checagem de dia pulado derruba teste."
+  },
+  {
+   "id": "LEM-disparo",
+   "secao": "B",
+   "esforco": "M",
+   "titulo": "Disparo automático a cada 5 minutos",
+   "detalhe": "FAZER: migração 2026-09-23-lembretes-disparo: tabela public.lembretes_enviados (user_id, tipo, dia date, enviado_em, unique(user_id,tipo,dia), RLS só leitura do dono); extensões pg_cron e pg_net; função public.lembretes_tick() (security definer, executável só por postgres) que monta, para cada usuário com lembrete ligado e inscrição, o JSON mínimo que a regra precisa (perfil, prefs, overrides da semana, sessões recentes) e faz net.http_post para a URL guardada no Vault (lembretes_url) com o cabeçalho x-lembretes-segredo lido do Vault (lembretes_segredo); função public.lembretes_resultado(segredo text, enviados jsonb, expirados text[]) security definer que confere o segredo contra o Vault e grava enviados / apaga inscrições expiradas (revoke de public; grant execute só a anon/authenticated porque a rota chama com a chave anon — o segredo é a proteção, com comparação de tamanho fixo); o job pg_cron \"lembretes\" a cada 5 min criado de forma idempotente. Rota POST /api/lembretes/disparar (nodejs) confere o segredo (timingSafeEqual) contra LEMBRETES_SEGREDO, aplica lib/lembretes.ts, envia com web-push e chama lembretes_resultado. NÃO grave segredo em arquivo do repo: a migração cria as funções e o job; os valores do Vault o orquestrador cria. ACEITE: teste de migração (RLS, idempotência, revokes, tick sem segredo no Vault não quebra), e2e/unitário da rota com segredo errado 401, certo envia ao servidor de push falso e marca enviado (não reenvia no mesmo dia)."
+  },
+  {
+   "id": "LEM-ics",
+   "secao": "B",
+   "esforco": "P",
+   "titulo": "Botão \"Adicionar ao meu calendário\"",
+   "detalhe": "FAZER: lib/ics.ts gera um .ics (RFC 5545) com um evento semanal por dia de treino do perfil (RRULE:FREQ=WEEKLY;BYDAY=...) no horário do lembrete, duração estimada, alarme (VALARM) na hora, TZID America/Sao_Paulo, UID estável, texto pt-BR sem acento quebrado (UTF-8); botão em /mais/lembretes baixa o arquivo. ACEITE: unitários validando a estrutura (linhas dobradas a 75 octetos, CRLF, BYDAY certos para os dias do perfil) e e2e baixando o arquivo."
+  },
+  {
+   "id": "LEM-guia-spec-l34",
+   "secao": "B",
+   "esforco": "P",
+   "titulo": "SPEC §23 parte II, guia e PROGRESSO",
+   "detalhe": "FAZER: completar a §23 com horários, disparo e calendário; guia com o passo do horário. ACEITE: SPEC igual ao código."
+  },
+  {
+   "id": "LEM-painel-estado",
+   "secao": "B",
+   "esforco": "P",
+   "titulo": "Mostrar quando foi o último lembrete",
+   "detalhe": "FAZER: /mais/lembretes mostra \"Último lembrete: hoje às 07:00\" (de lembretes_enviados, RLS) e o próximo previsto pela regra pura. ACEITE: e2e com dado semeado no mock."
+  }
+ ],
+ "contrato": "DECISÃO DO DONO (23/09): o app passa a ter lembretes no celular por notificação push, no horário que o usuário edita. Sai do escopo da SPEC §11 por decisão explícita do dono: escreva a SPEC §23 \"Lembretes no celular\" ANTES do código. Stack fechada: Web Push pelo service worker Serwist que já existe (app/sw.ts), Supabase com RLS, Next.js route handlers (runtime nodejs) na Vercel; dependência nova permitida: web-push (e @types/web-push) — justifique no PROGRESSO. Segurança: NUNCA service role em lugar nenhum (nem no servidor); chave privada VAPID só em variável de ambiente do servidor (VAPID_PRIVATE_KEY, VAPID_SUBJECT); chave pública em NEXT_PUBLIC_VAPID_PUBLIC_KEY; sem essas variáveis a funcionalidade some da tela com texto honesto ('Lembretes ainda não configurados neste servidor') e nada quebra. Nos testes use um par VAPID gerado no próprio teste (crypto P-256) e um servidor de push falso local (o mock) — nunca a rede real. Banco: expand-only, o MESMO SQL em supabase/schema.sql e em supabase/migracoes/2026-09-23-<nome>.sql, idempotente, com teste no molde de lib/migracao-contas.test.ts, scripts/mock-supabase.ts e lib/schemas.ts cientes; você NÃO aplica no projeto real (o orquestrador aplica antes do deploy) e o código não pode quebrar se a tabela ainda não existir (degradar com aviso). pt-BR, 360 px, alvos ≥ 44 px, dois temas. Público: o dono usa Brave no Android (Brave bloqueia push até ligar 'Usar os serviços do Google para mensagens push' em Configurações → Privacidade e segurança); iPhone só recebe com o app instalado na tela inicial (iOS 16.4+).\nESTE LOTE (II): horários, regra de quem recebe, disparo automático e calendário. Base: o L34 publicado (tabela de inscrições, service worker, página e rota de teste).",
+ "orquestrador_antes_do_deploy": "aplicar a migração 2026-09-23-lembretes-disparo (ensaio, apply_migration, advisors); criar no Vault lembretes_segredo e lembretes_url (https://treino-terraco.vercel.app/api/lembretes/disparar); criar na Vercel LEMBRETES_SEGREDO (sensitive); conferir cron.job e a primeira execução em net._http_response.",
+ "checklist_regra": "Para cada item: o ACEITE conferido no código; regras puras com teste que falharia sem a mudança (mutação); migração expand-only com teste de RLS/idempotência/revokes; nenhum segredo no repo; nenhuma service role; SPEC §23 igual ao código.",
+ "checklist_tela": "Para cada item: o ACEITE medido a 360×740 nos dois temas pelo caminho real no mock (permissão concedida/negada pelo contexto do Playwright, Brave simulado), alvos ≥ 44 px, sem rolagem lateral, pt-BR; notificação exibida pelo service worker real."
+}

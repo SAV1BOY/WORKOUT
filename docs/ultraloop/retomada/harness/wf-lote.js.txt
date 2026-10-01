@@ -1,0 +1,234 @@
+export const meta = {
+  name: 'treino-terraco-lote',
+  description: 'Um lote do ultraloop do Treino do Terraço: construir, auditar em duas lentes, corrigir e reauditar, publicar em produção com fumaça e rollback, e verificar logado',
+  phases: [
+    { title: 'Construção', detail: 'SPEC antes do código, regra pura + teste, e2e, portões completos, capturas' },
+    { title: 'Auditoria', detail: 'lente regra/testes e lente tela/acessibilidade, independentes' },
+    { title: 'Correção', detail: 'no máximo uma correção e uma segunda auditoria' },
+    { title: 'Deploy', detail: 'wf-deploy.js: merge, PR, main, /versao, fumaça, rollback' },
+    { title: 'Verificação', detail: 'produção logada a 360×740 nos dois temas' },
+  ],
+}
+
+const S = '/tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop'
+const L = args.lote
+const F = args.faixa
+const P = args.prazos
+const R = S + '/' + args.pasta
+const TRAILER = 'Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_0176cnwNLSFyGMPQkTtF8dVS'
+
+const NOTA_R = args.nota_retomada ? `\n\n## RETOMADA DEPOIS DE REINÍCIO DO ORQUESTRADOR (leia antes de tudo)\n${args.nota_retomada}` : ''
+const REGRAS = `## Regras fixas (valem para você)
+- Leia CLAUDE.md (já injetado) e siga. Conteúdo só de data/*.json; lib/progressao.ts e lib/montagem.ts intocados (git diff ${args.main} -- lib/progressao.ts lib/montagem.ts vazio); pt-BR, vírgula decimal, dd/mm; celular primeiro a 360×740, alvos ≥ 44 px, zero rolagem lateral, claro e escuro; nunca perder série; nunca service role no cliente; RLS; nenhum segredo; sem gamificação; sem feature fora da SPEC; banco só expand-only com schema + migração idempotente + teste, e o orquestrador aplica (você não aplica SQL no projeto real).
+- Não pule, desative nem isole teste para ficar verde. Teste instável que falha sob carga e passa sozinho 2× é anotado e não bloqueia; que falha sozinho bloqueia.
+- Commits pequenos em português, um por item quando der, terminando com as duas linhas abaixo. NUNCA git push, NUNCA rebase/amend/--force, NUNCA pkill. Mate só PIDs que você subiu (registre em ${S}/pids/${F.pids}.txt) ou órfãos cujo /proc/<pid>/cwd seja ${F.worktree} — um a um, descendo a árvore (pgrep -P) e anotando. Não toque em outros worktrees nem em /home/user/WORKOUT.
+- Bash tem 10 min por chamada: o que for longo vai com nohup + arquivo .status/.log e você faz polling (sleep ≤ 60 s por chamada).
+- Não declare portão, e2e, captura ou medição que você não executou. Número de testes é o que o log do SEU HEAD mostra.
+- Responda em português. Sua resposta final é DADOS no schema pedido. Confira a hora com \`date -u\`; ao bater o prazo, feche o que tiver (árvore verde, commit) e devolva parcial:true.
+Trailer:
+${TRAILER}`
+
+const FAIXA = `## Sua faixa
+Worktree ${F.worktree}, branch ${L.branch} (criada a partir de main ${args.main}). Portas app ${F.app} / mock ${F.mock}; confira que estão livres (curl) antes de subir qualquer coisa. node_modules é symlink para /home/user/WORKOUT/node_modules (não rode npm install). Chromium do Playwright já está em /opt/pw-browsers (PLAYWRIGHT_BROWSERS_PATH já configurado; não rode playwright install).
+- Cadeia de portões completa (ordem fixa, ~25 min, pega o lock ${S}/pesado.lock nos pesados): \`nohup env E2E_PORT=${F.app} MOCK_SUPABASE_PORT=${F.mock} bash ${S}/portoes.sh ${F.worktree} ${R}/logs lint tsc test build build:e2e e2e varredura > /dev/null 2>&1 &\` → grava ${R}/logs/<hash7>.log e .status (rodando | ok | falhou:<portão>). Se ela falhar e você corrigir, rode a CADEIA INTEIRA de novo no novo HEAD (nunca uma execução parcial por cima do log de um HEAD). Só um spec: \`e2e-grep:<padrão>\` (precisa de build:e2e antes).
+- Capturas: depois da cadeia verde (o .next fica assado pelo build:e2e), \`bash ${S}/capturas.sh ${F.worktree} ${F.app} ${F.mock} <saida> ${args.base_capturas} "<telas-esperadas>" <saida>-diff <saida>.md\` (sobe mock+app, 60 PNGs, compara com a base real de main, derruba tudo). OLHE os PNGs de diff das telas que mudaram (Read no arquivo) e descreva o que mudou; tela inesperada com Δ > 0,5 % é regressão até prova em contrário.
+- Registre cada passo com hora em ${S}/diario.md (prefixo "${L.codigo}").`
+
+const DEF = L.fonte ? `\n### Definição completa (LEIA ANTES DE TUDO)\n${L.fonte} — JSON com os itens do ledger (id, seção, título, detalhe com PROBLEMA/FAZER/ACEITE/ESTADO em ${args.main}, arquivos, esforço, origens), arquivos previstos, telas esperadas, observações do plano e as checklists. O ledger inteiro está em /home/user/WORKOUT/docs/ultraloop/fila.json (versão 2). Cada item só fecha com o ACEITE medido; se um item se mostrar já cumprido, inviável ou em conflito com a SPEC, NÃO force: registre com prova e diga em itens_nao_feitos.\n` : ''
+if (!L.itens) L.itens = []
+if (!L.contrato) L.contrato = 'Ver a definição completa no arquivo acima: o contrato é o ACEITE de cada item.'
+if (!L.checklist_regra) L.checklist_regra = `Os aceites de cada item em ${L.fonte}, conferidos no código e nos dados reais (todos os casos, não amostras), e a checklist_regra do arquivo, se houver.`
+if (!L.checklist_tela) L.checklist_tela = `Os aceites de cada item em ${L.fonte}, medidos na tela a 360×740 nos dois temas pelo caminho real, e a checklist_tela do arquivo, se houver; mais as telas declaradas nas capturas.`
+if (!L.checklist_producao) L.checklist_producao = `Cada item de ${L.fonte} conferido em produção pelo caminho real, logado, a 360×740 nos dois temas.`
+if (!L.marcadores) L.marcadores = ['o chunk de uma tela alterada pelo lote (listado em /sw.js) contém um texto novo do lote (acentos escapados como \\xe9)']
+const LOTE = `## O lote ${L.codigo} — ${L.titulo}
+SPEC: escreva/mantenha a §${L.secao_spec} "${L.titulo}" em SPEC.md ANTES do código (problema medido, o que muda, aceite verificável por item). PROGRESSO.md: subseção "${L.secao_progresso}" com O que mudou (era → é, arquivos), Provas, Portões (<hash>.log com números reais), Capturas (tabela), Como testar no celular; a linha de Deploy e o veredito entram depois.
+Telas que podem mudar (declaradas): ${L.telas_esperadas.join(', ')}.${DEF}
+Itens da fila que este lote fecha:
+${L.itens.map(i => `- [${i.secao}] ${i.id} — ${i.titulo}: ${i.detalhe}`).join('\n')}
+
+### Contrato do lote (o que o dono quer ver funcionando)
+${L.contrato}`
+
+const CONSTRUIR = `# Construção do lote ${L.codigo} — prazo ${P.construir} UTC
+${REGRAS}
+${FAIXA}
+${LOTE}
+
+## Como construir
+1. Leia SPEC.md §22 (§22.0, §22.0.1 e os lotes publicados) e o PROGRESSO a partir de "## Ultraloop 20/09/2026" para repetir o formato; leia os arquivos que o lote toca e os testes vizinhos.
+2. Escreva a SPEC §${L.secao_spec}. Depois o código: toda decisão vira regra pura em lib/ ou scripts/ com teste Vitest (o Vitest só carrega lib/** e scripts/**); todo comportamento de tela ganha e2e Playwright que percorre o caminho real (360×740, contra o mock, com e2e/fixtures.ts: sessaoNoMock, usuarioComPerfil, /__mock/seed, /__mock/estado; NUNCA /__mock/reset em teste paralelo). Evite teste tautológico (ex.: medir altura de texto sob line-clamp); prove que o teste falharia sem a mudança quando a asserção for sutil.
+3. Antes de rodar a cadeia, faça a sua própria pré-auditoria com as lições das auditorias dos lotes 12 e 13 (foram elas que devolveram lotes à fila):
+   - Mutação: para cada regra nova, desfaça a linha-chave numa cópia no scratchpad e prove que algum teste cai; teste que passa com a regra quebrada não conta.
+   - Dados inteiros: percorra TODOS os registros de data/*.json afetados (todas as fotos, todas as ilustrações, todos os aparelhos), não amostras; proporções e casos de borda (retrato, singular, vazio, sem perfil).
+   - SPEC sem contradição: grep na SPEC inteira pelo comportamento antigo (§13, §14, §22.x anteriores) e alinhe tudo com a seção nova.
+   - Foco e leitor de tela: todo elemento que vira botão/link tem anel de foco VISÍVEL (overflow-hidden de ancestral corta outline externo — use anel interno), nome acessível estável (não muda enquanto tem foco), headings em ordem.
+   - Nenhum helper paralelo: o mesmo rótulo/valor sai de uma fonte só.
+   - Telas fora das capturas: o player (/treinar), a Visão geral e estados sem perfil/sem dados não aparecem nas 60 capturas — meça-os ao vivo e com e2e.
+   - Números da documentação conferidos contra os logs e os dados.
+4. lint, tsc, test locais verdes; commits; cadeia completa verde no HEAD final; capturas comparadas com a base; PROGRESSO com os números reais; servidores derrubados; ${F.app}/${F.mock} livres; árvore limpa.
+Retorno: schema.`
+
+const ENTREGA = {
+  type: 'object',
+  properties: {
+    head: { type: 'string' }, branch: { type: 'string' },
+    portoes_log: { type: 'string' }, portoes_status: { type: 'string' },
+    unitarios: { type: 'number' }, e2e: { type: 'number' }, varredura: { type: 'string' },
+    capturas: { type: 'string' }, telas_mudadas: { type: 'array', items: { type: 'string' } },
+    itens_feitos: { type: 'array', items: { type: 'string' } },
+    itens_nao_feitos: { type: 'array', items: { type: 'string' } },
+    arquivos: { type: 'array', items: { type: 'string' } },
+    resumo: { type: 'string' }, problemas: { type: 'array', items: { type: 'string' } }, parcial: { type: 'boolean' },
+  },
+  required: ['head', 'branch', 'portoes_log', 'portoes_status', 'capturas', 'telas_mudadas', 'itens_feitos', 'itens_nao_feitos', 'resumo', 'problemas', 'parcial'],
+}
+
+const VEREDITO = {
+  type: 'object',
+  properties: {
+    lente: { type: 'string' }, head: { type: 'string' }, aprovado: { type: 'boolean' },
+    bloqueantes: { type: 'array', items: { type: 'string' } },
+    importantes: { type: 'array', items: { type: 'string' } },
+    menores: { type: 'array', items: { type: 'string' } },
+    provas: { type: 'array', items: { type: 'string' } },
+    parcial: { type: 'boolean' },
+  },
+  required: ['lente', 'head', 'aprovado', 'bloqueantes', 'importantes', 'menores', 'provas', 'parcial'],
+}
+
+function auditar(entrega, lente, n, prazo) {
+  const regra = lente === 'regra'
+  return `# Auditoria ${n} do lote ${L.codigo} — lente "${lente}" — prazo ${prazo} UTC
+${REGRAS}
+${FAIXA}
+${LOTE}
+
+## O que o construtor/corretor declara (não é prova)
+${JSON.stringify(entrega).slice(0, 5000)}
+
+## Sua lente: ${regra ? 'REGRA, DADOS E TESTES — você NÃO sobe servidor, NÃO roda build nem e2e (outro auditor usa as portas e o .next ao mesmo tempo); só lê, roda Vitest e lê os logs' : 'TELA E ACESSIBILIDADE — você é o único que sobe servidor e navegador; não rode build (o .next já está assado pela cadeia); se precisar, rode e2e por --grep dos specs do lote'}
+Pré-condições (as duas lentes): HEAD de ${F.worktree} == ${entrega && entrega.head}; ${entrega && entrega.portoes_log} com a cadeia INTEIRA (lint, tsc, "Tests … passed", build e build:e2e com "Compiled successfully", e2e "passed", varredura "passed") e .status ok; git diff ${args.main} -- lib/progressao.ts lib/montagem.ts vazio; árvore limpa; package.json/package-lock sem dependência nova injustificada; nada em supabase/ sem migração e teste; nenhum segredo.
+${regra ? `Faça: leia o diff inteiro (git diff ${args.main}...HEAD) com olho adversarial; confira cada item contra o aceite da SPEC §${L.secao_spec} e contra os dados reais de data/*.json (percorra TODOS os casos, não amostras: escreva um script tsx no scratchpad que importe as funções puras e rode sobre o catálogo inteiro quando fizer sentido); rode os unitários novos e relacionados (npx vitest run <arquivos>) e verifique se eles FALHARIAM sem a mudança (desfaça mentalmente ou em cópia temporária — nunca comite); confira que os e2e novos exercitam o caminho real (não só presença, sem tautologia, sem /__mock/reset); SPEC e PROGRESSO dizem exatamente o que o código faz; nenhum texto fora do pt-BR.
+REVISÃO DE ROBUSTEZ (obrigatória — foi o que um revisor externo achou e as auditorias deixaram passar no L35): leia cada arquivo de código do diff como um revisor de PR hostil e procure, com arquivo:linha: (a) dado controlado pelo usuário (prefs, textos, listas) que viaja sem limite para um processo compartilhado (um POST para todas as contas, um lote, um cache) e pode derrubar os outros — exija projeção dos campos necessários, limite e isolamento por conta; (b) laços com await em série sobre coisas lentas (rede, push) que podem estourar um prazo — exija concorrência limitada e prazo total; (c) estado de tela que fica velho com a tela aberta (relógio, 'agora', listas lidas uma vez só) — exija releitura no intervalo/na volta (focus/visibilitychange/pageshow); (d) atualização otimista sem desfazer quando a gravação falha; (e) campo que o usuário apaga ou digita inválido e fica num estado que não corresponde ao que está gravado; (f) dados exportados/importados (arquivos, calendário, backup) que ficam desatualizados ou duplicados quando o usuário muda a configuração; (g) corrida entre gravação assíncrona e recarregar a página; (h) mensagens de erro/offline. Cada achado real é importante (ou bloqueante se derruba outros usuários ou perde registro).
+Checklist específica desta lente:
+${L.checklist_regra}` : `Faça: suba mock+app do .next (copie o jeito de ${S}/capturas.sh: MOCK_SUPABASE_PORT=${F.mock} npx tsx scripts/mock-supabase.ts e NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:${F.mock} NEXT_PUBLIC_SUPABASE_ANON_KEY=mock-anon ALLOWED_EMAIL=miguelgsaviotti29@gmail.com npx next start -p ${F.app}; semeie um usuário como e2e/fixtures.ts faz), e com Chromium (require('/home/user/WORKOUT/node_modules/@playwright/test'), sem proxy para 127.0.0.1) a 360×740, deviceScaleFactor 2, isMobile, hasTouch, nos DOIS temas, percorra cada item pelo caminho real e MEÇA (getBoundingClientRect para alvos ≥ 44 px; scrollWidth == clientWidth; contraste; DOM para headings e aria). Capturas suas em ${R}/auditoria-${n}-${lente}/. Abra as imagens de diff da comparação do construtor (${entrega && entrega.capturas}) e as suas capturas com Read e descreva o que vê. Derrube tudo pelos PIDs ao terminar.
+Checklist específica desta lente:
+${L.checklist_tela}`}
+
+Grave o seu veredito completo (o mesmo JSON do retorno, sem cortar nada) em ${R}/auditoria-${n}-${lente}/veredito.json antes de responder.
+Veredito: bloqueantes (quebra, regressão, portão vermelho, aceite não cumprido, prova ausente), importantes (regra sem teste, teste que não falharia, alvo < 44 px, texto errado, SPEC/PROGRESSO divergentes), menores. aprovado = true só com bloqueantes e importantes vazios. Retorno: schema (lente = "${lente}").` + (args.retomar_etapa === 'auditar' + n ? NOTA_R : '')
+}
+
+function corrigir(vereditos, prazo) {
+  return `# Correção do lote ${L.codigo} — prazo ${prazo} UTC
+${REGRAS}
+${FAIXA}
+${LOTE}
+
+## Vereditos das auditorias (atenda TODOS os bloqueantes e importantes; menores se couber sem risco)
+Os vereditos completos estão gravados em ${R}/auditoria-*/veredito.json e em ${R}/../*/vereditos-*.json quando houver — LEIA OS ARQUIVOS; o texto abaixo pode estar resumido.
+${JSON.stringify(vereditos).slice(0, 24000)}
+
+Trabalhe sobre o HEAD atual de ${L.branch}; corrija, melhore ou refaça o que for preciso; ajuste a SPEC se o contrato final mudar; atualize testes. Commits pequenos. Cadeia INTEIRA de novo no HEAD final (status ok), capturas de novo comparadas com a base, PROGRESSO com os números novos e uma nota "Correção da auditoria". Servidores derrubados. Retorno: schema.`
+}
+
+function juntar(vs) {
+  const ok = vs.filter(Boolean)
+  return {
+    aprovado: ok.length === 2 && ok.every(v => v.aprovado),
+    bloqueantes: ok.flatMap(v => v.bloqueantes.map(x => `[${v.lente}] ${x}`)),
+    importantes: ok.flatMap(v => v.importantes.map(x => `[${v.lente}] ${x}`)),
+    menores: ok.flatMap(v => v.menores.map(x => `[${v.lente}] ${x}`)),
+    faltou_lente: ok.length < 2,
+  }
+}
+
+let entrega, vs, v, auditorias
+if (args.publicar_aprovado) {
+  // Lote já aprovado num run anterior que parou antes do deploy (ex.: migração a aplicar): vai direto ao deploy.
+  entrega = args.publicar_aprovado.entrega
+  auditorias = args.publicar_aprovado.auditorias
+  v = { aprovado: true, menores: args.publicar_aprovado.menores || [] }
+  log(`${L.codigo}: publicando o aprovado em ${entrega.head}`)
+} else {
+phase('Construção')
+log(`${L.codigo}: construção`)
+entrega = args.entrega_pronta
+  ? args.entrega_pronta
+  : args.retomar
+  ? await agent(corrigir(args.retomar.vereditos, P.construir) + `\n\n## Retomada\n${args.retomar.nota}`, { model: 'opus', label: `retomar:${L.codigo}`, phase: 'Construção', schema: ENTREGA })
+  : await agent(CONSTRUIR, { model: 'opus', label: `construir:${L.codigo}`, phase: 'Construção', schema: ENTREGA })
+if (!entrega) return { lote: L.codigo, encerrado_por: 'agente_nulo', etapa: 'construir' }
+
+vs = await parallel(['regra', 'tela'].map(lente => () =>
+  agent(auditar(entrega, lente, 1, P.auditar1), { model: 'opus', label: `auditar1:${lente}`, phase: 'Auditoria', schema: VEREDITO })))
+v = juntar(vs)
+auditorias = [{ n: 1, head: entrega.head, ...v, vereditos: vs }]
+if (!v.aprovado) {
+  log(`${L.codigo}: auditoria 1 reprovou (${v.bloqueantes.length} bloqueantes, ${v.importantes.length} importantes) — corrigindo`)
+  const c = await agent(corrigir(vs, P.corrigir) + (args.retomar_etapa === 'corrigir' ? NOTA_R : ''), { model: 'opus', label: `corrigir:${L.codigo}`, phase: 'Correção', schema: ENTREGA })
+  if (!c) return { lote: L.codigo, encerrado_por: 'agente_nulo', etapa: 'corrigir', entrega, auditorias }
+  entrega = c
+  vs = await parallel(['regra', 'tela'].map(lente => () =>
+    agent(auditar(entrega, lente, 2, P.auditar2), { model: 'opus', label: `auditar2:${lente}`, phase: 'Auditoria', schema: VEREDITO })))
+  v = juntar(vs)
+  auditorias.push({ n: 2, head: entrega.head, ...v, vereditos: vs })
+}
+if (!v.aprovado) return { lote: L.codigo, aprovado: false, devolvido_a_fila: true, entrega, auditorias }
+if (args.parar_antes_do_deploy) return { lote: L.codigo, aprovado: true, parado_antes_do_deploy: true, entrega, auditorias, menores: v.menores }
+}
+
+phase('Deploy')
+log(`${L.codigo}: aprovado em ${entrega.head} — deploy`)
+const resumoVeredito = auditorias.map(a => `auditoria ${a.n} em ${a.head}: ${a.aprovado ? 'aprovada' : 'reprovada'} (bloqueantes ${a.bloqueantes.length}, importantes ${a.importantes.length}, menores ${a.menores.length})`).join('; ')
+const deploy = await workflow({ scriptPath: S + '/wf-deploy.js' }, {
+  rodada: args.rodada,
+  prazo: P.deploy,
+  migracoes_aplicadas: args.migracoes || [],
+  resumo: `Rodada ${args.rodada} — ${L.codigo} ${L.titulo}. ${entrega.resumo}`,
+  lotes_aprovados: [{
+    nome: `${L.codigo} (branch ${L.branch}, criada de main ${args.main})`,
+    branch: L.branch, head: entrega.head, contem: 'main ' + args.main, worktree: F.worktree,
+    portoes_log: entrega.portoes_log, telas_mudadas: entrega.telas_mudadas,
+    marcadores: L.marcadores, capturas_depois: [entrega.capturas],
+  }],
+  instrucoes_extra: `
+## Complementos do orquestrador (${L.codigo})
+- ANTES do PR: na subseção "${L.secao_progresso}" do PROGRESSO.md, acrescente "Auditoria" com: ${resumoVeredito}. Menores registrados: ${JSON.stringify(v.menores).slice(0, 1500)}. Commit "${L.codigo}: veredito da auditoria" na integração.
+- A integração (/home/user/WORKOUT, branch claude/academia-miguel-index-ekvwi0) pode estar À FRENTE de origin/main só por commits de docs ou por commits que TIRARAM lotes (reverts): confira com git diff origin/main HEAD --stat que nada de código difere; git fetch; git merge --ff-only origin/main quando possível. Conflito só em PROGRESSO.md/SPEC.md: mantenha os dois lados. Conflito em código: não mescle, registre e pare antes do push.${args.reintegrar ? `
+- REINTEGRAÇÃO (este lote já foi tirado da integração antes): ANTES do merge da branch, rode na integração \`${args.reintegrar}\` (reverte o commit que tirou o lote; mensagem em português com o trailer; conflito só em PROGRESSO/SPEC: mantenha os dois lados). Só então mescle a branch do lote (traz os commits novos). Confira depois que os arquivos de código que o lote toca estão iguais aos da branch: git diff <branch do lote> HEAD -- $(git diff --name-only <base do lote> <branch do lote> | grep -v -e PROGRESSO.md -e SPEC.md -e '^docs/') sai vazio (se main andou nesses mesmos arquivos por outro lote, registre o que difere e por quê).` : ''}
+- Depois do merge não repita e2e: lint + tsc + npm test (o tree unido pode diferir do lote se main andou) e siga.
+${args.atualizar_fila ? `- No commit de registro do deploy, atualize docs/ultraloop/fila.json (versão 2): mova CADA item deste lote que foi feito (itens_feitos: ${JSON.stringify(entrega.itens_feitos).slice(0,1500)}) de \"itens\" para \"resolvidos\" com estado \"publicado\", sha = sha do merge em main, pr, lote \"${L.codigo}\" e prova (arquivo:linha ou teste); itens não feitos (${JSON.stringify(entrega.itens_nao_feitos).slice(0,800)}) ficam em \"itens\" como pendente com nota; recalcule \"contagens\" e confira com python3 que batem com os arrays. Todo menor que ficou registrado no PROGRESSO por este lote (auditorias, construtor) e não foi feito entra no ledger como item C pendente com PROBLEMA/FAZER/ACEITE/ESTADO EM <sha> e origem, com lote_planejado num lote planejado da mesma área que tenha folga (máx. 10 itens) ou num lote novo de sobras da área inserido logo depois do próximo lote da área; nenhum item pendente pode ficar sem lote (confira com python3). Regere as tabelas da Fila do PROGRESSO com: python3 ${S}/fila-progresso.py /home/user/WORKOUT.` : '- NÃO mexa em docs/ultraloop/fila.json (o orquestrador reconcilia).'} Mexa em docs/ultraloop/deploys.json: acrescente a entrada desta rodada no formato das anteriores (além do ${S}/deploys.json).
+- Push negado pela permissão: no máximo 2 tentativas, registre 'push negado' e siga (o orquestrador faz).
+- Passo 9: base visual — copie para ${args.base_capturas}/ só os PNGs das telas que mudaram (de ${entrega.capturas}) e anote no indice.json (head = sha do merge). NÃO avance wt-base. PROGRESSO: linha "Deploy (rodada ${args.rodada}, …)" na subseção do lote e um bloco "Rodada ${args.rodada} no ar" no "### Relatório para o dono (9h)" em linguagem do dono, com como ver no celular. Commit "Ultraloop: registro do deploy da rodada ${args.rodada}" na integração e push da integração (não em main).
+${L.nota_deploy ? '- ' + L.nota_deploy : ''}
+`,
+})
+const okDeploy = !!(deploy && deploy.resultado && deploy.resultado.ok)
+if (!okDeploy) return { lote: L.codigo, aprovado: true, deploy, entrega, auditorias }
+const sha = deploy.resultado.main_sha
+
+phase('Verificação')
+const verificacao = await agent(`# Verificação em produção do lote ${L.codigo} — prazo ${P.verificar} UTC
+${REGRAS}
+${LOTE}
+Produção acabou de publicar main ${sha} (confira curl https://treino-terraco.vercel.app/versao até bater; até 12 min). Navegador real contra PRODUÇÃO: \`const { chromium } = require('/home/user/WORKOUT/node_modules/@playwright/test'); chromium.launch({ proxy: { server: process.env.HTTPS_PROXY } })\` (CA do proxy já no NSS db; NÃO desligue TLS). 000/502 transitórios pelo proxy: repita até 3× antes de concluir algo.
+1. Crie a conta de teste ${args.conta_teste} pela tela "Criar conta" (senha forte de 16+ caracteres que você inventa; e-mail auto-confirmado). Se já existir, entre com ela se souber a senha; senão use ${args.conta_teste.replace('@', '-b@')}. Devolva o e-mail usado no retorno.
+2. Logado, a 360×740, nos DOIS temas (contextos separados), percorra cada item do lote pelo caminho real e meça: alvos ≥ 44 px, scrollWidth == clientWidth, 0 erro de console, 0 resposta ≥ 400 inesperada, pt-BR.
+Checklist de produção deste lote:
+${L.checklist_producao}
+3. Passe rápido pelas outras abas (Treino, Calendário, Explorar, Relatório, Corpo, Mais) sem erro de console nem rolagem lateral.
+Não envie foto, não troque senha, não apague nada, não toque nas contas reais. Capturas em ${R}/producao/. Retorno: schema (um item por caso; conta_teste com o e-mail usado).`, {
+  model: 'opus', label: `verificar:${L.codigo}`, phase: 'Verificação',
+  schema: {
+    type: 'object',
+    properties: {
+      ok: { type: 'boolean' }, conta_teste: { type: 'string' },
+      checklist: { type: 'array', items: { type: 'object', properties: { item: { type: 'string' }, resultado: { type: 'string' } }, required: ['item', 'resultado'] } },
+      problemas: { type: 'array', items: { type: 'string' } }, parcial: { type: 'boolean' },
+    },
+    required: ['ok', 'conta_teste', 'checklist', 'problemas', 'parcial'],
+  },
+})
+return { lote: L.codigo, aprovado: true, main_sha: sha, deploy: deploy.resultado, entrega, auditorias, verificacao }

@@ -1,7 +1,7 @@
 {
  "versao": 3,
- "base": "b66e06c",
- "gerado_em": "2026-09-24T11:32Z",
+ "base": "a7b7d1b",
+ "gerado_em": "2026-09-24T18:20Z",
  "estados": [
   "pendente",
   "candidato",
@@ -9,21 +9,21 @@
   "descartado"
  ],
  "contagens": {
-  "itens": 149,
-  "pendente": 149,
+  "itens": 151,
+  "pendente": 151,
   "candidato": 0,
-  "resolvidos": 136,
+  "resolvidos": 143,
   "descartados": 18,
-  "canonicos": 303,
+  "canonicos": 312,
   "por_secao": {
    "B": {
-    "pendente": 76,
+    "pendente": 69,
     "candidato": 0,
-    "publicado": 39,
+    "publicado": 46,
     "descartado": 17
    },
    "C": {
-    "pendente": 68,
+    "pendente": 77,
     "candidato": 0,
     "publicado": 20,
     "descartado": 0
@@ -41,7 +41,7 @@
     "descartado": 1
    }
   },
-  "lotes_planejados": 20,
+  "lotes_planejados": 19,
   "depende_do_dono": 7,
   "v2_para_v3": {
    "itens": [
@@ -134,38 +134,9 @@
     ]
    }
   },
-  "gerado_em": "2026-09-24T11:32Z"
+  "gerado_em": "2026-09-24T18:20Z"
  },
  "itens": [
-  {
-   "id": "B-player-substituir-passo-atual",
-   "secao": "B",
-   "estado": "pendente",
-   "area": "player",
-   "titulo": "'Substituir' no exercício do passo atual trava o player no esqueleto",
-   "detalhe": "PROBLEMA: no player, '?' → folha do exercício do PASSO ATUAL → 'Substituir' → outro exercício: a folha fecha e o player fica no esqueleto de carregamento (só barras cinzas, sem 'Concluir série') até recarregar a página. Nenhuma série se perde (o Dexie guarda a troca; ao recarregar o player volta em 'Preparado para começar' com o exercício novo). Causa lida no código: a chave do passo é serie:<id> (lib/player.ts:164); substituirExercicio (lib/sessao.ts:690) recria as séries com ids novos; indiceDaChave dá -1 e components/player/tela-player.tsx:336 fica em `if (!estado || !passo) return <EsqueletoCard/>`. Trocar um exercício que NÃO é o do passo atual funciona. FAZER: depois da troca, o player continua no mesmo lugar da sessão (mesma posição de exercício e de série, agora do exercício novo) — a chave do passo sobrevive à troca (ex.: remapear pela posição/ordem do exercício, ou a troca devolve o novo id da série do passo atual) — regra pura em lib/ com Vitest (trocar o exercício do passo atual, de um passo anterior e de um posterior; com séries já feitas no exercício trocado) e e2e: no player, '?' → Substituir no exercício do passo atual → o player mostra o exercício novo pronto para a série, sem recarregar, nos dois temas; nenhum registro perdido. ACEITE: e2e acima verde; mutação que volta a chave antiga derruba o teste. ESTADO EM f813c41: defeito presente (reproduzido pelo construtor do L32 em r21/l32/pre-logs/320c6bf.log e pelo auditor tela da rodada 21 em r21/l32/auditoria-2-tela/passo-atual.cjs com captura passo-atual-player-depois.png).",
-   "arquivos": [
-    "lib/player.ts",
-    "lib/sessao.ts",
-    "components/player/tela-player.tsx",
-    "components/exercicio/ficha-folha.tsx"
-   ],
-   "esforco": "M",
-   "origens": [
-    {
-     "fonte": "construtor L32 rodada 21 (commit 31db3dc)",
-     "id_original": "defeito-substituir-passo-atual",
-     "origem": "e2e do L32 caiu no esqueleto ao substituir o exercício do passo atual"
-    },
-    {
-     "fonte": "auditoria 2 tela do L32 (rodada 21)",
-     "id_original": "menor: defeito anterior ao lote",
-     "origem": "reproduzido no player real do mock (passo-atual.cjs)"
-    }
-   ],
-   "lote_planejado": "L19",
-   "nota": "Prioridade: defeito no fluxo principal do player; L19 sobe para a próxima vaga livre."
-  },
   {
    "id": "a11y-01",
    "secao": "B",
@@ -1620,69 +1591,6 @@
    "lote_planejado": "L18"
   },
   {
-   "id": "tela-treino-player-12",
-   "secao": "B",
-   "estado": "pendente",
-   "area": "player",
-   "titulo": "Progresso da sessão é uma barra de 4 px; nada diz quantas séries faltam no exercício",
-   "detalhe": "PROBLEMA (Player — Exercício): EVIDÊNCIA: /tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-treino-player/tela-treino-player-12.png — p02-exercicio-escuro.png — o progresso da sessão é uma barra de 4 px sem rótulo (exercicio.tsx:170) e a linha \"Aquecimento 1 de 2 · exercício 1 de 6\" em 14 px muted (exercicio.tsx:203-208); não existe indicação de quantas séries de trabalho faltam NESTE exercício PROPOSTA DA ANÁLISE: Trocar a barra fina por pontinhos por série do bloco (cheio = feita, contorno = a fazer) logo abaixo do nome — é a informação que o usuário procura entre séries e hoje só existe em texto muted. FAZER: Em components/player/exercicio.tsx pontinhos por série do bloco logo abaixo do nome (cheio = feita, contorno = a fazer, aquecimento distinto), mantendo o progresso da sessão num role=\"progressbar\" com nome. ACEITE: e2e no player: com 2 aquecimentos e 3 séries de trabalho aparecem 5 pontos, o grupo tem nome acessível 'Série N de 3' (ou equivalente) e a cada 'Concluir' um ponto enche. ESTADO EM ef3ad97: Pendente em ef3ad97: components/player/exercicio.tsx:208-214 role='progressbar' com barra `h-1`.",
-   "arquivos": [
-    "components/player/exercicio.tsx:163",
-    "components/player/exercicio.tsx:203"
-   ],
-   "esforco": "M",
-   "origens": [
-    {
-     "fonte": "lotes-r6#REMONTAR_L12",
-     "id_original": "tela-treino-player-12",
-     "origem": "remontagem do L12: tela-treino-player-12/27 (conclusão)"
-    },
-    {
-     "fonte": "analise/tela-treino-player",
-     "id_original": "tela-treino-player-12",
-     "origem": "análise de 20/09 (lente tela-treino-player, severidade media)"
-    }
-   ],
-   "duplicatas": [],
-   "subsecao": "remontagem-L12",
-   "lote_planejado": "L19"
-  },
-  {
-   "id": "ux-heuristicas-22",
-   "secao": "B",
-   "estado": "pendente",
-   "area": "player",
-   "titulo": "Quatro ícones colados no topo da série; Gostei/Não gosto mudam o plano sem retorno",
-   "detalhe": "PROBLEMA (Player → Série (ícones do topo)): EVIDÊNCIA: Medido: quatro botões de 44×44 sem nenhum texto no topo da tela de série — \"Visão geral do treino\" (28,20), \"Gostei deste exercício\" (196,20), \"Não gosto deste exercício\" (242,20) e \"Ajustar\" (288,20). Os dois do meio mudam o que o app vai montar nos próximos treinos (aria-pressed em exercicio.tsx:132-140) e não devolvem nenhuma confirmação na tela; os quatro ícones (lista, polegares, engrenagem) não têm parentesco visual entre si. Captura: /tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/ux-heuristicas/ux-heuristicas-22.png PROPOSTA DA ANÁLISE: Reduzir a quatro para dois no topo (\"Visão geral\" à esquerda, \"Ajustar\" à direita) e mover gostei/não gosto para junto do nome do exercício, com um toast curto do que aconteceu (\"não vamos mais montar este exercício — desfazer\"). components/player/exercicio.tsx:118-150. Enquanto isso, um rótulo de 10 px sob cada ícone já resolve o reconhecimento. || ABSORVIDO tela-treino-player-11 (mesmo defeito, mesmo trecho: os ícones do topo da série colados (gap-0.5, components/player/exercicio.tsx) e o 'Não gosto' sem retorno — o ux-heuristicas-22 resolve os dois.): EVIDÊNCIA: /tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-treino-player/tela-treino-player-11.png — p02-exercicio-escuro.png — medido: \"Gostei\" x=196..240, \"Não gosto\" x=242..286, \"Ajustar\" x=288..332 — 2 px entre alvos de 44 px (exercicio.tsx:130 usa gap-0.5) PROPOSTA: Subir para gap-2 (8 px) entre os três ícones do topo, e dar retorno ao \"Não gosto\" (que reordena as listas em toda parte) com um toast de desfazer — hoje o toque erra por 2 px e muda preferência sem aviso. FAZER: Topo da série com dois ícones (Visão geral à esquerda, Ajustar à direita); Gostei/Não gosto vão para junto do nome do exercício, cada toque com toast curto e 'Desfazer' ('Não vamos mais montar este exercício'); nenhum par de alvos com menos de 8 px entre si (components/player/exercicio.tsx:157-190). Absorve o tela-treino-player-11 (gap-0.5). ACEITE: e2e a 360×740: o topo da série tem 2 botões; a distância entre quaisquer dois alvos de 44 px é ≥ 8 px; 'Não gosto' mostra o toast com 'Desfazer' e o desfazer volta o aria-pressed a false. ESTADO EM ef3ad97: Pendente em ef3ad97: components/player/exercicio.tsx:157-190 quatro ícones no topo (Visão geral, Gostei, Não gosto, Ajustar) com `gap-0.5` entre os do meio (:168).",
-   "arquivos": [
-    "components/player/exercicio.tsx"
-   ],
-   "esforco": "M",
-   "origens": [
-    {
-     "fonte": "lotes-r6#REMONTAR_L12",
-     "id_original": "ux-heuristicas-22",
-     "origem": "remontagem do L12: tela-treino-player-12/27 (conclusão)"
-    },
-    {
-     "fonte": "analise/ux-heuristicas",
-     "id_original": "ux-heuristicas-22",
-     "origem": "análise de 20/09 (lente ux-heuristicas, severidade media)"
-    },
-    {
-     "fonte": "analise/tela-treino-player",
-     "id_original": "tela-treino-player-11",
-     "origem": "análise de 20/09 (lente tela-treino-player, severidade media)",
-     "nota": "mesmo defeito, mesmo trecho: os ícones do topo da série colados (gap-0.5, components/player/exercicio.tsx) e o 'Não gosto' sem retorno — o ux-heuristicas-22 resolve os dois."
-    }
-   ],
-   "duplicatas": [
-    "tela-treino-player-11"
-   ],
-   "subsecao": "remontagem-L12",
-   "lote_planejado": "L19"
-  },
-  {
    "id": "tela-treino-player-27",
    "secao": "B",
    "estado": "pendente",
@@ -1737,35 +1645,6 @@
    "lote_planejado": "L21"
   },
   {
-   "id": "copy-21",
-   "secao": "B",
-   "estado": "pendente",
-   "area": "player",
-   "titulo": "'Preparado para começar' no masculino para qualquer conta",
-   "detalhe": "PROBLEMA (Player → Preparação): EVIDÊNCIA: /tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/copy/copy-21.png — a tela inteira é “PREPARADO PARA COMEÇAR / 10 / segundos / Levantamento terra / Começar agora” — fonte: components/player/preparacao.tsx:35 (“Preparado para começar”, com o caixa-alta feito por CSS) PROPOSTA DA ANÁLISE: “PREPARADO” concorda no masculino, e o app aceita outras contas dentro da cota do dono (SPEC §21) — a primeira tela do treino trata toda usuária no masculino. Trocar por forma neutra: “PREPARE-SE” (ou “COMEÇANDO EM”). Arquivo: components/player/preparacao.tsx. Vale varrer o resto por adjetivos com gênero dirigidos ao usuário. FAZER: Trocar 'Preparado para começar' (components/player/preparacao.tsx:35) por forma neutra ('Prepare-se' ou 'Começando em') e varrer os textos do player dirigidos ao usuário atrás de adjetivos com gênero. Atualizar os e2e que afirmam o texto antigo (e2e/treino.spec.ts:349 e e2e/player.spec.ts:108). ACEITE: e2e: a preparação mostra a forma neutra; grep por 'Preparado' e por adjetivos com gênero dirigidos ao usuário vazio em components/player. ESTADO EM ef3ad97: Pendente em ef3ad97: components/player/preparacao.tsx:35 'Preparado para começar'. (Arquivos: a análise citava ['components/player/preparacao.tsx']; em ef3ad97 e no FAZER acima: ['components/player/preparacao.tsx', 'e2e/treino.spec.ts', 'e2e/player.spec.ts'].)",
-   "arquivos": [
-    "components/player/preparacao.tsx",
-    "e2e/treino.spec.ts",
-    "e2e/player.spec.ts"
-   ],
-   "esforco": "P",
-   "origens": [
-    {
-     "fonte": "lotes-r6#REMONTAR_L12",
-     "id_original": "copy-21",
-     "origem": "remontagem do L12: tela-treino-player-12/27 (conclusão)"
-    },
-    {
-     "fonte": "analise/copy",
-     "id_original": "copy-21",
-     "origem": "análise de 20/09 (lente copy, severidade media)"
-    }
-   ],
-   "duplicatas": [],
-   "subsecao": "remontagem-L12",
-   "lote_planejado": "L19"
-  },
-  {
    "id": "ux-heuristicas-06",
    "secao": "B",
    "estado": "pendente",
@@ -1793,68 +1672,6 @@
    "subsecao": "remontagem-L12",
    "lote_planejado": "L20",
    "nota": "v3: saiu do L19 para o L20 (o L19b do censo): o tela-treino-player-06 completa o mesmo topo do descanso, e a saída abriu no L19 os arquivos para o OBS-porcentagem-com-espaco."
-  },
-  {
-   "id": "ux-heuristicas-12",
-   "secao": "B",
-   "estado": "pendente",
-   "area": "player",
-   "titulo": "Preparação sem saída nem 'Visão geral do treino'",
-   "detalhe": "PROBLEMA (Player → Preparação (\"Preparado para começar\")): EVIDÊNCIA: Medido: a tela inteira tem dois controles — \"Como fazer: Levantamento terra\" (44×44) e \"Começar agora\" (296×56). Não há saída nem \"Visão geral\": quem tocou \"Começar treino\" sem querer (o CTA ocupa 294×56 na aba Treino) fica com uma sessão aberta e só sai pelo voltar do celular. A barra de abas some nesta tela. Captura: /tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/ux-heuristicas/ux-heuristicas-12.png PROPOSTA DA ANÁLISE: Repetir na preparação o ícone \"Visão geral do treino\" que existe na tela de série (components/player/exercicio.tsx:120-128) ou pôr um \"Sair\" de texto no canto superior esquerdo de components/player/preparacao.tsx:30-34 — a contagem de 10 s é exatamente o momento em que a pessoa percebe que entrou no lugar errado. || ABSORVIDO tela-treino-player-08 (mesmo defeito, mesmo trecho: a preparação sem 'Visão geral' nem saída (components/player/preparacao.tsx + props em tela-player.tsx).): EVIDÊNCIA: /tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-treino-player/tela-treino-player-08.png — p01-preparacao-escuro.png — medidos só 2 alvos na tela inteira: \"Como fazer: Levantamento terra\" (44×44) e \"Começar agora\" (296×56). Não há \"Visão geral do treino\" nem saída; tela-player.tsx:278-291 só passa aoAbrirFicha e aoPular PROPOSTA: Repetir na preparação a fileira de ícones do topo da tela de exercício (exercicio.tsx:120-161), pelo menos com \"Visão geral do treino\" (aoAbrirLista) e uma saída \"Sair do treino\". Hoje, quem começa por engano só sai pelo botão do sistema. FAZER: Na preparação (components/player/preparacao.tsx, com as props vindas de components/player/tela-player.tsx) repetir o ícone 'Visão geral do treino' da tela de série e pôr uma saída 'Sair do treino' no canto superior esquerdo. Absorve o tela-treino-player-08. ACEITE: e2e: na preparação existem 'Visão geral do treino' e 'Sair do treino' (≥ 44 px); 'Sair do treino' volta para a aba Treino e a sessão continua retomável. ESTADO EM ef3ad97: Pendente em ef3ad97: components/player/preparacao.tsx sem 'Visão geral' nem saída (grep vazio).",
-   "arquivos": [
-    "components/player/preparacao.tsx"
-   ],
-   "esforco": "P",
-   "origens": [
-    {
-     "fonte": "lotes-r6#REMONTAR_L12",
-     "id_original": "ux-heuristicas-12",
-     "origem": "remontagem do L12: ux-heuristicas-06/12/15 (player, se o L5 não cobrir)"
-    },
-    {
-     "fonte": "analise/ux-heuristicas",
-     "id_original": "ux-heuristicas-12",
-     "origem": "análise de 20/09 (lente ux-heuristicas, severidade media)"
-    },
-    {
-     "fonte": "analise/tela-treino-player",
-     "id_original": "tela-treino-player-08",
-     "origem": "análise de 20/09 (lente tela-treino-player, severidade alta)",
-     "nota": "mesmo defeito, mesmo trecho: a preparação sem 'Visão geral' nem saída (components/player/preparacao.tsx + props em tela-player.tsx)."
-    }
-   ],
-   "duplicatas": [
-    "tela-treino-player-08"
-   ],
-   "subsecao": "remontagem-L12",
-   "lote_planejado": "L19"
-  },
-  {
-   "id": "tela-treino-player-09",
-   "secao": "B",
-   "estado": "pendente",
-   "area": "player",
-   "titulo": "Preparação com ~280 px vazios: o justify-center não centraliza",
-   "detalhe": "PROBLEMA (Player — Preparação): EVIDÊNCIA: /tmp/claude-0/-home-user-WORKOUT/19b8c32e-5647-551a-b360-eec4ee383d9c/scratchpad/ultraloop/analise/tela-treino-player/tela-treino-player-09.png — p01-preparacao-escuro.png — o conteúdo acaba em y≈460 e sobram ~280 px (38% da tela de 740) vazios abaixo do botão PROPOSTA DA ANÁLISE: Em preparacao.tsx:32 o justify-center não centraliza porque a seção é flex-1 dentro de um pai com rodapé reservado: ou centralizar de verdade (min-h-dvh + place-content-center), ou usar o espaço para a lista do que vem (os 6 exercícios do dia) — a preparação é a única tela sem informação nenhuma. FAZER: Em components/player/preparacao.tsx:32 centralizar de verdade (min-h-dvh + place-content-center no contêiner certo) ou usar o espaço para a lista dos exercícios do dia. ACEITE: e2e a 360×740: o bloco da preparação fica centrado (diferença entre o espaço acima e abaixo ≤ 24 px) ou a lista do dia ocupa o espaço. ESTADO EM ef3ad97: Pendente em ef3ad97: components/player/preparacao.tsx:32 `flex flex-1 flex-col items-center justify-center`.",
-   "arquivos": [
-    "components/player/preparacao.tsx:32"
-   ],
-   "esforco": "P",
-   "origens": [
-    {
-     "fonte": "lotes-r6#REMONTAR_L12",
-     "id_original": "tela-treino-player-09",
-     "origem": "remontagem do L12: ux-heuristicas-06/12/15 (player, se o L5 não cobrir)"
-    },
-    {
-     "fonte": "analise/tela-treino-player",
-     "id_original": "tela-treino-player-09",
-     "origem": "análise de 20/09 (lente tela-treino-player, severidade baixa)"
-    }
-   ],
-   "duplicatas": [],
-   "subsecao": "remontagem-L12",
-   "lote_planejado": "L19"
   },
   {
    "id": "ux-heuristicas-15",
@@ -4237,40 +4054,6 @@
    "importado_na_rodada": 3
   },
   {
-   "id": "OBS-porcentagem-com-espaco",
-   "secao": "B",
-   "estado": "pendente",
-   "area": "copy",
-   "titulo": "'%' separado do número por espaço em 7 textos de 5 arquivos, contra a grafia única da §22.6 item 8",
-   "detalhe": "PROBLEMA (aba Treino → diálogo de retomada e aviso depois da escolha; Ficha do exercício → alvo em semana leve; Mais → Guia; conteúdo da progressão): EVIDÊNCIA (medida em ef3ad97 com grep -rnE '[0-9][[:space:]]%' em data/, lib/, components/ e app/, fora de comentário e de teste) — 7 ocorrências em 5 arquivos, além da do copy-19 (data/cardio.json:332, L18): (1) data/progressao.json:48 'volte 10 % e suba pela metade do incremento (2 kg viram 1 kg)' (falhas[1].acao); (2) data/progressao.json:52 'semana leve: 60 % da carga, mesmas séries; volte na semana seguinte' (falhas[2].acao); (3) data/progressao.json:68 'normalmente é sono ou comida: uma semana a 60 % da carga resolve mais que parar' (falhas[6].acao); (4) components/treino/tela-treino.tsx:95 'Semana leve: 60 % da carga. O app devolve a carga depois.' (AVISO_DA_ESCOLHA.leve, o aviso depois de escolher 'Voltar mais leve' na retomada, SPEC §18.2); (5) components/exercicios/historico-exercicio.tsx:104 ' · semana leve (60 %)' (a próxima sessão na ficha); (6) lib/guia.ts:358 '… o app volta 10 % da carga sozinho.' (Mais → Guia, 'Quando a série falha'); (7) lib/retomada.ts:136 'Uma semana a 60 % da carga em todos os exercícios; depois o app devolve a carga.' (descrição da opção 'Voltar mais leve'). A SPEC §22.6 item 8 (SPEC.md:1789-1792) fixa um formato só, 'com o símbolo colado (\"78%\")'; o e2e que a guarda (e2e/ultraloop-b-r3.spec.ts:480-481, not.toMatch(/\\d\\s%/)) só olha o Relatório. O censo contou 'sete arquivos': são sete ocorrências em cinco arquivos. O falhas[] de data/progressao.json hoje só é lido pelo schema (lib/schemas.ts:316), não aparece na tela, mas é conteúdo e fica com a mesma grafia. Os outros ' %' do grep são comentários (lib/progressao.ts:246/:255/:461/:465/:784/:801, lib/retomada.ts:11/:37/:329/:340, lib/sessao.ts:1212, components/calendario/tela-calendario.tsx:279/:397, components/ui/card-capa.tsx:107, components/ui/faixa-semana.tsx:36, components/treino/desafios.tsx:103, components/treino/cabecalho.tsx:39, components/mais/tela-equipamento.tsx:211) e nomes de teste (lib/*.test.ts, e2e/*.spec.ts) — ficam. PROPOSTA (censo R10, observacoes_novas): item de varredura com um guarda que recusa /\\d\\s%/ nos textos. FAZER: trocar ' %' por '%' nas 7 linhas acima, só no texto (o motor não muda: lib/progressao.ts e lib/montagem.ts intocados — nenhum dos 7 está neles). Guarda num caso novo de e2e/treino.spec.ts (arquivo que o lote já edita pelo copy-21): importa data/*.json — como o e2e do L18 faz com data/cardio.json no copy-19 — e as descrições exportadas de lib/retomada.ts e lib/guia.ts, e recusa /\\d\\s%/ em todo texto. ACEITE: (1) o grep acima só devolve as linhas de comentário listadas; (2) o caso novo de e2e/treino.spec.ts passa: nenhum texto de data/*.json nem das descrições da retomada e do guia casa /\\d\\s%/, e, com a última sessão semeada 20 dias atrás no mock, o diálogo de retomada mostra 'Uma semana a 60% da carga…' e, escolhido 'Voltar mais leve', o aviso diz 'Semana leve: 60% da carga.'; (3) npm run validar e npm test verdes; git diff de lib/progressao.ts e lib/montagem.ts vazio. Nenhuma das 30 capturas muda (os textos só aparecem na retomada, em semana leve e no fim do Guia). ESTADO EM ef3ad97: as 7 linhas acima com ' %'; data/cardio.json:332 é do copy-19.",
-   "arquivos": [
-    "data/progressao.json",
-    "components/treino/tela-treino.tsx",
-    "components/exercicios/historico-exercicio.tsx",
-    "lib/guia.ts",
-    "lib/retomada.ts",
-    "e2e/treino.spec.ts"
-   ],
-   "esforco": "P",
-   "origens": [
-    {
-     "fonte": "censo-analise#observacoes_novas",
-     "id_original": "OBS-porcentagem-com-espaco",
-     "origem": "censo R10 (22/09): observação nova, vista ao conferir o copy-19; não está na análise nem no ledger v2"
-    },
-    {
-     "fonte": "analise/copy",
-     "id_original": "copy-19",
-     "origem": "análise de 20/09 (lente copy, severidade media)",
-     "nota": "irmão: a ocorrência de data/cardio.json:332 fica no copy-19 (L18); esta observação leva as outras sete"
-    }
-   ],
-   "duplicatas": [],
-   "subsecao": "censo-R10-observacoes",
-   "importado_na_rodada": 3,
-   "lote_planejado": "L19"
-  },
-  {
    "id": "C-l14-super-band-dois-filtros",
    "secao": "C",
    "estado": "pendente",
@@ -5073,7 +4856,7 @@
    ],
    "area": "player",
    "lote_planejado": "L21",
-   "nota": "DECISÃO DO DONO (24/09, ~14:00 UTC): opção (b) — as séries já feitas do exercício original ficam registradas (Dexie e session_sets) e contam como feitas; o substituto começa do zero. Muda a SPEC §3.2 e o aviso da folha 'Substituir hoje' da Visão geral (components/treinar/bloco.tsx). Prioridade: integridade de dados ('Nunca perder um registro')."
+   "nota": "DECISÃO DO DONO (24/09, ~14:00 UTC): opção (b) — as séries já feitas do exercício original ficam registradas (Dexie e session_sets) e contam como feitas; o substituto começa do zero. Muda a SPEC §3.2 e o aviso da folha 'Substituir hoje' da Visão geral (components/treinar/bloco.tsx). Prioridade: integridade de dados ('Nunca perder um registro'). | 24/09 rodada 29: não feito no L19 (decisão do dono (b)); segue no L21."
   },
   {
    "id": "C-hidratacao-react-418",
@@ -5095,6 +4878,195 @@
     }
    ],
    "lote_planejado": "L17"
+  },
+  {
+   "id": "C-l19-desfazer-e-relogio-sem-teste-que-falhe",
+   "secao": "C",
+   "estado": "pendente",
+   "area": "player",
+   "titulo": "'Desfazer' sobre as prefs atuais e relógio parado com a Visão geral sem teste que falhe",
+   "detalhe": "PROBLEMA: o 'Desfazer' grava o voto de antes sobre as preferências de agora e o relógio de 250 ms para com a Visão geral aberta, mas nenhum teste cai se essas duas regras forem desfeitas (medido só ao vivo, r27/l19/ao-vivo/desfazer.json). FAZER: Vitest da função que monta as prefs do 'Desfazer' a partir das prefs atuais e e2e que abre a Visão geral por 20 s e confere que o relógio não andou; mutação de cada regra derruba o teste. ACEITE: mutação 'Desfazer sobre as prefs do render' e mutação 'relógio sem pausa' derrubam ao menos 1 teste cada. ESTADO EM a7b7d1b: comportamento certo (medido ao vivo), sem teste que falhe.",
+   "arquivos": [
+    "components/player/exercicio.tsx",
+    "components/player/tela-player.tsx",
+    "lib/l19.test.ts",
+    "e2e/ultraloop-l19.spec.ts"
+   ],
+   "esforco": "P",
+   "origens": [
+    {
+     "fonte": "auditoria 2 do L19 (rodada 27, 13c7014)",
+     "id_original": "[regra] 'Desfazer' sobre as prefs atuais e relógio parado com a Visão geral sem teste que falhe",
+     "origem": "menor registrado no PROGRESSO (subseção do L19, #### Auditoria)"
+    }
+   ],
+   "lote_planejado": "L21"
+  },
+  {
+   "id": "C-l19-desfazer-dois-avisos-voto-do-render",
+   "secao": "C",
+   "estado": "pendente",
+   "area": "player",
+   "titulo": "'Desfazer' com dois avisos seguidos do mesmo exercício usa o voto do render de cada toque",
+   "detalhe": "PROBLEMA: dois votos seguidos no mesmo exercício deixam dois avisos; o 'Desfazer' do primeiro devolve o voto do render daquele toque, não o anterior ao segundo voto. FAZER: fechar o aviso anterior do mesmo exercício ao abrir o novo (id do toast por exercício) ou ler o voto de antes na hora do toque. ACEITE: e2e: 'Não gosto' → 'Gostei' → 'Desfazer' do aviso visível deixa o voto que havia antes do 'Gostei'; só um aviso por exercício na tela. ESTADO EM a7b7d1b: dois avisos podem coexistir por ~4 s.",
+   "arquivos": [
+    "components/player/exercicio.tsx",
+    "e2e/ultraloop-l19.spec.ts"
+   ],
+   "esforco": "P",
+   "origens": [
+    {
+     "fonte": "auditoria 2 do L19 (rodada 27, 13c7014)",
+     "id_original": "[regra] Desfazer com dois avisos seguidos do mesmo exercício usa o voto do render de cada toque.",
+     "origem": "menor registrado no PROGRESSO (subseção do L19, #### Auditoria)"
+    }
+   ],
+   "lote_planejado": "L21"
+  },
+  {
+   "id": "C-l19-icone-visao-geral-muda-de-lado",
+   "secao": "C",
+   "estado": "pendente",
+   "area": "player",
+   "titulo": "Ícone 'Visão geral do treino' muda de lado entre preparação e série",
+   "detalhe": "PROBLEMA: na preparação o ícone da Visão geral fica à direita; na série, à esquerda. FAZER: pôr o ícone no mesmo canto nas duas telas (a série já tem 2 ícones; decidir o canto e alinhar a preparação). ACEITE: e2e mede o x do botão 'Visão geral do treino' na preparação e na série: igual (±1 px), nos dois temas; capturas 27 e 28 declaradas. ESTADO EM a7b7d1b: lados trocados.",
+   "arquivos": [
+    "components/player/preparacao.tsx",
+    "components/player/exercicio.tsx"
+   ],
+   "esforco": "P",
+   "origens": [
+    {
+     "fonte": "auditoria 2 do L19 (rodada 27, 13c7014)",
+     "id_original": "[tela] ícone 'Visão geral do treino' muda de lado entre preparação (direita) e série (esquerda).",
+     "origem": "menor registrado no PROGRESSO (subseção do L19, #### Auditoria)"
+    }
+   ],
+   "lote_planejado": "L21"
+  },
+  {
+   "id": "C-l19-nome-longo-quebra-com-polegares",
+   "secao": "C",
+   "estado": "pendente",
+   "area": "player",
+   "titulo": "Nome do exercício quebra em 2 linhas a 360 px com os polegares na linha do nome",
+   "detalhe": "PROBLEMA: com os polegares na linha do nome, nomes de 29–32 caracteres quebram em 2 linhas a 360 px; com nome longo + unilateral + substituto, 'montagem' fica ~10 px sob a barra (SPEC §22.16 item 5). FAZER: reservar a largura dos polegares sem estreitar o nome (nome em linha própria acima dos ícones, ou reduzir os ícones a 44 px sem margem extra) e medir o pior caso. ACEITE: e2e a 360×740 com o nome mais longo do catálogo: nome em 1 linha ou a quebra não empurra nada para baixo da barra; nenhum texto sob a barra fixa. ESTADO EM a7b7d1b: risco medido, sem defeito de uso.",
+   "arquivos": [
+    "components/player/exercicio.tsx",
+    "app/globals.css"
+   ],
+   "esforco": "P",
+   "origens": [
+    {
+     "fonte": "auditoria 2 do L19 (rodada 27, 13c7014)",
+     "id_original": "[tela] nome do exercício quebra em 2 linhas a 360 px com os polegares na linha do nome.",
+     "origem": "menor registrado no PROGRESSO (subseção do L19, #### Auditoria)"
+    }
+   ],
+   "lote_planejado": "L20"
+  },
+  {
+   "id": "C-l19-sonner-cobre-fileira-do-topo",
+   "secao": "C",
+   "estado": "pendente",
+   "area": "player",
+   "titulo": "Avisos do Sonner cobrem a fileira do topo do player por ~4 s",
+   "detalhe": "PROBLEMA: o aviso do voto (e o do 'Continuar depois') aparece no topo e cobre a fileira de ícones (Visão geral, polegares, Ajustar) por ~4 s. FAZER: mover os avisos do player para baixo (position bottom-center acima do rodapé) ou deslocar o offset abaixo da fileira do topo. ACEITE: e2e: com o aviso aberto, os 4 ícones do topo recebem toque (elementFromPoint no centro de cada um devolve o próprio botão), nos dois temas. ESTADO EM a7b7d1b: transitório; 'Desfazer' e 'Ajustar' alcançáveis pelo teclado.",
+   "arquivos": [
+    "app/providers.tsx",
+    "components/player/tela-player.tsx"
+   ],
+   "esforco": "P",
+   "origens": [
+    {
+     "fonte": "auditoria 2 do L19 (rodada 27, 13c7014)",
+     "id_original": "[tela] avisos do Sonner cobrem a fileira do topo ~4 s.",
+     "origem": "menor registrado no PROGRESSO (subseção do L19, #### Auditoria)"
+    }
+   ],
+   "lote_planejado": "L20"
+  },
+  {
+   "id": "C-l19-avaliar-exercicio-antes-de-gravar",
+   "secao": "C",
+   "estado": "pendente",
+   "area": "player",
+   "titulo": "avaliarExercicio devolve true antes de salvarPrefs resolver",
+   "detalhe": "PROBLEMA: avaliarExercicio chama salvarPrefs com void e devolve true na hora; se a gravação falhar, o aviso já disse 'gravado'. FAZER: esperar salvarPrefs (await) antes de devolver, ou devolver a promessa e o aviso só confirmar no resolve. ACEITE: Vitest com salvarPrefs que rejeita: o aviso diz que não anotou e não oferece 'Desfazer'. ESTADO EM a7b7d1b: o aviso confirma antes de a gravação local terminar.",
+   "arquivos": [
+    "components/player/tela-player.tsx",
+    "lib/l19.test.ts"
+   ],
+   "esforco": "P",
+   "origens": [
+    {
+     "fonte": "auditoria 2 do L19 (rodada 27, 13c7014)",
+     "id_original": "[regra] avaliarExercicio devolve true antes de salvarPrefs resolver (void).",
+     "origem": "menor registrado no PROGRESSO (subseção do L19, #### Auditoria)"
+    }
+   ],
+   "lote_planejado": "L29"
+  },
+  {
+   "id": "C-l19-pontos-repetem-leitor-de-tela",
+   "secao": "C",
+   "estado": "pendente",
+   "area": "player",
+   "titulo": "Os pontos do bloco repetem para o leitor de tela o que a linha visível diz",
+   "detalhe": "PROBLEMA: a fileira de pontos tem aria-label com 'Série N de 3…' e a linha visível logo abaixo diz o mesmo; o leitor de tela lê duas vezes. FAZER: aria-hidden nos pontos (a linha visível já informa) ou tirar o texto da linha do nome acessível. ACEITE: e2e/axe: a árvore acessível da série tem uma só ocorrência de 'Série N de 3'. ESTADO EM a7b7d1b: leitura duplicada.",
+   "arquivos": [
+    "components/player/exercicio.tsx"
+   ],
+   "esforco": "P",
+   "origens": [
+    {
+     "fonte": "auditoria 2 do L19 (rodada 27, 13c7014)",
+     "id_original": "[tela] os pontos repetem para o leitor de tela o que a linha visível diz.",
+     "origem": "menor registrado no PROGRESSO (subseção do L19, #### Auditoria)"
+    }
+   ],
+   "lote_planejado": "L29"
+  },
+  {
+   "id": "C-l19-guarda-porcentagem-outros-espacos",
+   "secao": "C",
+   "estado": "pendente",
+   "area": "processo",
+   "titulo": "Guarda do '%' colado pega só espaço comum e NBSP e só número literal",
+   "detalhe": "PROBLEMA: o guarda de lib/l19.test.ts:359 procura /\\d[ \\u00a0]%/: escapam o espaço fino (U+202F/U+2009) e expressões como `${n} %`. FAZER: ampliar o regex para \\s e os espaços Unicode e para '} %' em templates, fora de comentários. ACEITE: mutação: um texto com '10\\u202f%' e outro com '${n} %' em lib/ fazem o teste cair. ESTADO EM a7b7d1b: nenhuma ocorrência hoje (grep refeito no HEAD da rodada 27).",
+   "arquivos": [
+    "lib/l19.test.ts"
+   ],
+   "esforco": "P",
+   "origens": [
+    {
+     "fonte": "auditoria 2 do L19 (rodada 27, 13c7014)",
+     "id_original": "[regra] guarda do '%' pega só espaço comum e NBSP.",
+     "origem": "menor registrado no PROGRESSO (subseção do L19, #### Auditoria)"
+    }
+   ],
+   "lote_planejado": "L30"
+  },
+  {
+   "id": "C-contraste-aa-semana-leve-e-retomada",
+   "secao": "C",
+   "estado": "pendente",
+   "area": "treino",
+   "titulo": "Contraste abaixo de AA no aviso 'Semana leve…' e nas descrições da retomada",
+   "detalhe": "PROBLEMA: no claro, o aviso de sucesso 'Semana leve…' tem 4,26:1 a 13 px; no escuro, as descrições das opções da retomada têm 4,04:1 a 12 px (medido na auditoria do L19, fora do lote). FAZER: ajustar os tokens de cor do aviso de sucesso e do texto muted das descrições para ≥ 4,5:1 nos dois temas. ACEITE: medição de contraste no e2e (ou axe color-contrast) nos dois temas: ≥ 4,5:1 nos dois pontos. ESTADO EM a7b7d1b: 4,26:1 e 4,04:1.",
+   "arquivos": [
+    "app/globals.css",
+    "components/treino/tela-treino.tsx"
+   ],
+   "esforco": "P",
+   "origens": [
+    {
+     "fonte": "auditoria 2 do L19 (rodada 27, 13c7014)",
+     "id_original": "[tela] contraste abaixo de AA fora do lote (aviso 'Semana leve…').",
+     "origem": "menor registrado no PROGRESSO (subseção do L19, #### Auditoria)"
+    }
+   ],
+   "lote_planejado": "L28"
   }
  ],
  "resolvidos": [
@@ -9325,6 +9297,180 @@
      "origem": "menor da auditoria 1 em a68ea7f (lente tela) e da correção da rodada 16 do construtor"
     }
    ]
+  },
+  {
+   "id": "B-player-substituir-passo-atual",
+   "secao": "B",
+   "estado": "publicado",
+   "sha": "a7b7d1b",
+   "pr": "#32",
+   "lote": "L19",
+   "rodada": 29,
+   "titulo": "'Substituir' no exercício do passo atual trava o player no esqueleto",
+   "prova": "lib/player.ts:390 (indiceDoEstado: a chave do passo sobrevive à troca); lib/l19.test.ts:92-208; e2e/ultraloop-l19.spec.ts:227 e :377",
+   "origens": [
+    {
+     "fonte": "construtor L32 rodada 21 (commit 31db3dc)",
+     "id_original": "defeito-substituir-passo-atual",
+     "origem": "e2e do L32 caiu no esqueleto ao substituir o exercício do passo atual"
+    },
+    {
+     "fonte": "auditoria 2 tela do L32 (rodada 21)",
+     "id_original": "menor: defeito anterior ao lote",
+     "origem": "reproduzido no player real do mock (passo-atual.cjs)"
+    }
+   ]
+  },
+  {
+   "id": "tela-treino-player-12",
+   "secao": "B",
+   "estado": "publicado",
+   "sha": "a7b7d1b",
+   "pr": "#32",
+   "lote": "L19",
+   "rodada": 29,
+   "titulo": "Progresso da sessão é uma barra de 4 px; nada diz quantas séries faltam no exercício",
+   "prova": "lib/player.ts:240 (pontosDoBloco); components/player/exercicio.tsx:288 (data-pontos-do-bloco); lib/l19.test.ts:244-258; e2e/ultraloop-l19.spec.ts:535",
+   "origens": [
+    {
+     "fonte": "lotes-r6#REMONTAR_L12",
+     "id_original": "tela-treino-player-12",
+     "origem": "remontagem do L12: tela-treino-player-12/27 (conclusão)"
+    },
+    {
+     "fonte": "analise/tela-treino-player",
+     "id_original": "tela-treino-player-12",
+     "origem": "análise de 20/09 (lente tela-treino-player, severidade media)"
+    }
+   ]
+  },
+  {
+   "id": "ux-heuristicas-22",
+   "secao": "B",
+   "estado": "publicado",
+   "sha": "a7b7d1b",
+   "pr": "#32",
+   "lote": "L19",
+   "rodada": 29,
+   "titulo": "Quatro ícones colados no topo da série; Gostei/Não gosto mudam o plano sem retorno",
+   "prova": "lib/player.ts:265-283 (avisoDoVoto/avisoDoPolegar: só confirma voto gravado); components/player/exercicio.tsx:136 ('Desfazer' ≥ 44 px, classe aviso-desfazer); lib/l19.test.ts:269-280; e2e/ultraloop-l19.spec.ts:155 e :615",
+   "origens": [
+    {
+     "fonte": "lotes-r6#REMONTAR_L12",
+     "id_original": "ux-heuristicas-22",
+     "origem": "remontagem do L12: tela-treino-player-12/27 (conclusão)"
+    },
+    {
+     "fonte": "analise/ux-heuristicas",
+     "id_original": "ux-heuristicas-22",
+     "origem": "análise de 20/09 (lente ux-heuristicas, severidade media)"
+    },
+    {
+     "fonte": "analise/tela-treino-player",
+     "id_original": "tela-treino-player-11",
+     "origem": "análise de 20/09 (lente tela-treino-player, severidade media)",
+     "nota": "mesmo defeito, mesmo trecho: os ícones do topo da série colados (gap-0.5, components/player/exercicio.tsx) e o 'Não gosto' sem retorno — o ux-heuristicas-22 resolve os dois."
+    }
+   ]
+  },
+  {
+   "id": "copy-21",
+   "secao": "B",
+   "estado": "publicado",
+   "sha": "a7b7d1b",
+   "pr": "#32",
+   "lote": "L19",
+   "rodada": 29,
+   "titulo": "'Preparado para começar' no masculino para qualquer conta",
+   "prova": "components/player/preparacao.tsx:85 ('Prepare-se' no lugar de 'Preparado para começar'); e2e/ultraloop-l19.spec.ts:420; fumaça: 'Prepare-se' no chunk app/(app)/treinar/[sessionId]/page-5d00f34630b0e4bf.js",
+   "origens": [
+    {
+     "fonte": "lotes-r6#REMONTAR_L12",
+     "id_original": "copy-21",
+     "origem": "remontagem do L12: tela-treino-player-12/27 (conclusão)"
+    },
+    {
+     "fonte": "analise/copy",
+     "id_original": "copy-21",
+     "origem": "análise de 20/09 (lente copy, severidade media)"
+    }
+   ]
+  },
+  {
+   "id": "ux-heuristicas-12",
+   "secao": "B",
+   "estado": "publicado",
+   "sha": "a7b7d1b",
+   "pr": "#32",
+   "lote": "L19",
+   "rodada": 29,
+   "titulo": "Preparação sem saída nem 'Visão geral do treino'",
+   "prova": "components/player/preparacao.tsx:65 ('Sair do treino' no topo, com a Visão geral); e2e/ultraloop-l19.spec.ts:420 e :478 (a contagem para com a Visão geral aberta); fumaça: 'Sair do treino' no chunk app/(app)/treinar/[sessionId]/page-5d00f34630b0e4bf.js",
+   "origens": [
+    {
+     "fonte": "lotes-r6#REMONTAR_L12",
+     "id_original": "ux-heuristicas-12",
+     "origem": "remontagem do L12: ux-heuristicas-06/12/15 (player, se o L5 não cobrir)"
+    },
+    {
+     "fonte": "analise/ux-heuristicas",
+     "id_original": "ux-heuristicas-12",
+     "origem": "análise de 20/09 (lente ux-heuristicas, severidade media)"
+    },
+    {
+     "fonte": "analise/tela-treino-player",
+     "id_original": "tela-treino-player-08",
+     "origem": "análise de 20/09 (lente tela-treino-player, severidade alta)",
+     "nota": "mesmo defeito, mesmo trecho: a preparação sem 'Visão geral' nem saída (components/player/preparacao.tsx + props em tela-player.tsx)."
+    }
+   ]
+  },
+  {
+   "id": "tela-treino-player-09",
+   "secao": "B",
+   "estado": "publicado",
+   "sha": "a7b7d1b",
+   "pr": "#32",
+   "lote": "L19",
+   "rodada": 29,
+   "titulo": "Preparação com ~280 px vazios: o justify-center não centraliza",
+   "prova": "components/player/preparacao.tsx (tela cheia, bloco centrado); e2e/ultraloop-l19.spec.ts:420 (centrada, 2 temas); captura 27-player-preparacao 21,58/21,18 %",
+   "origens": [
+    {
+     "fonte": "lotes-r6#REMONTAR_L12",
+     "id_original": "tela-treino-player-09",
+     "origem": "remontagem do L12: ux-heuristicas-06/12/15 (player, se o L5 não cobrir)"
+    },
+    {
+     "fonte": "analise/tela-treino-player",
+     "id_original": "tela-treino-player-09",
+     "origem": "análise de 20/09 (lente tela-treino-player, severidade baixa)"
+    }
+   ]
+  },
+  {
+   "id": "OBS-porcentagem-com-espaco",
+   "secao": "B",
+   "estado": "publicado",
+   "sha": "a7b7d1b",
+   "pr": "#32",
+   "lote": "L19",
+   "rodada": 29,
+   "titulo": "'%' separado do número por espaço em 7 textos de 5 arquivos, contra a grafia única da §22.6 item 8",
+   "prova": "lib/l19.test.ts:310-370 (guarda do '%' colado em data/, lib/, components/, app/); data/progressao.json e data/cardio.json corrigidos",
+   "origens": [
+    {
+     "fonte": "censo-analise#observacoes_novas",
+     "id_original": "OBS-porcentagem-com-espaco",
+     "origem": "censo R10 (22/09): observação nova, vista ao conferir o copy-19; não está na análise nem no ledger v2"
+    },
+    {
+     "fonte": "analise/copy",
+     "id_original": "copy-19",
+     "origem": "análise de 20/09 (lente copy, severidade media)",
+     "nota": "irmão: a ocorrência de data/cardio.json:332 fica no copy-19 (L18); esta observação leva as outras sete"
+    }
+   ]
   }
  ],
  "descartados": [
@@ -9949,6 +10095,16 @@
    "deployment": "dpl_8vLMG3r1hamomsdzPK5CMi4Q28Ly",
    "no_ar": "2026-09-24T11:23Z",
    "nota": "rodada 21 construiu (auditoria 2 reprovou: 1 bloqueante, nome acessível com artigo; 1 importante, SPEC §22.15 item 6), rodada 22 retomou; auditoria 1 em bb5adca aprovada (0/0/7); cadeia de e6f42b2 falhou:e2e só pelos 2 instáveis de a-r4 (2× verdes sozinhos), varredura 5/5 à parte em f36db69"
+  },
+  {
+   "rodada": 29,
+   "lote": "L19",
+   "titulo": "Player: Substituir no passo atual, preparação e série; '%' colado nos textos",
+   "pr": "#32",
+   "sha": "a7b7d1b",
+   "deployment": "dpl_Zyf24MAvTv4JYdYVqosMUu6XqxwN",
+   "no_ar": "2026-09-24T18:14Z",
+   "nota": "construído na rodada 23 (auditoria 2 reprovou por processo), retomado na rodada 27; auditoria 1 em 6ecd777 reprovada (0/1/12), auditoria 2 em 13c7014 aprovada (0/0/16); deploy da rodada 27 abortado por conflito com o L32; branch unida com main em 8a5837a (cadeia ok: 1.659 unit, 587 e2e, varredura 5/5). Desvio registrado: o e2e do lote é e2e/ultraloop-l19.spec.ts, não e2e/player.spec.ts como as observações do plano previam."
   }
  ],
  "marcos_anteriores_ao_ultraloop": [
@@ -9993,68 +10149,11 @@
    ]
   },
   {
-   "codigo": "L19",
-   "codigo_anterior": "L19",
-   "titulo": "Player: preparação e série; '%' colado nos textos",
-   "area": "player",
-   "ordem": 2,
-   "itens": [
-    "B-player-substituir-passo-atual",
-    "ux-heuristicas-12",
-    "tela-treino-player-09",
-    "copy-21",
-    "tela-treino-player-12",
-    "ux-heuristicas-22",
-    "OBS-porcentagem-com-espaco"
-   ],
-   "arquivos": [
-    "PROGRESSO.md",
-    "SPEC.md",
-    "components/exercicios/historico-exercicio.tsx",
-    "components/player/exercicio.tsx",
-    "components/player/preparacao.tsx",
-    "components/player/tela-player.tsx",
-    "components/treino/tela-treino.tsx",
-    "data/progressao.json",
-    "e2e/player.spec.ts ('Preparado para começar' :108 + casos do lote)",
-    "e2e/treino.spec.ts ('Preparado para começar' :349 + caso do '%')",
-    "lib/guia.ts",
-    "lib/player.ts",
-    "lib/retomada.ts",
-    "lib/sessao.ts"
-   ],
-   "telas_esperadas": [
-    "27-player-preparacao",
-    "28-player-exercicio"
-   ],
-   "medios": 3,
-   "observacoes": "Grupos tela-treino-player-12 e ux-heuristicas-12 do REMONTAR_L12, só B. Os C do player (C-progresso-do-player-valuetext, C-descanso-sinal-visivel) estão no L29: o C-progresso-do-player-valuetext mexe na barra que o tela-treino-player-12 refaz — por isso vem depois. v3: − ux-heuristicas-06 (→ L20, junto do tela-treino-player-06, que completa o mesmo topo do descanso), + OBS-porcentagem-com-espaco (observação do censo) pela exceção abaixo. Sem e2e novo: os casos do lote entram em e2e/player.spec.ts e o guarda do '%' em e2e/treino.spec.ts, que o lote já edita pelo copy-21. A tela 29-player-descanso saiu das esperadas com o ux-heuristicas-06; o '%' não muda nenhuma das 30 capturas (medir no e2e). 6 itens, 2 M, 12 arquivos, 2 telas. | 24/09: + B-player-substituir-passo-atual (defeito do fluxo principal achado no L32), na frente; o lote sobe na ordem.",
-   "excecao": {
-    "tipo": "área",
-    "itens": [
-     "OBS-porcentagem-com-espaco"
-    ],
-    "motivo": "Varredura de grafia sem dono de área: 7 linhas em 5 arquivos de quatro telas (retomada da aba Treino, ficha, Guia e conteúdo da progressão), um caractere por linha. Nenhum lote a recebe sem passar de 12 arquivos — os lotes de textos (L24 e L25) e os que já editam algum dos cinco (L14, L17, L28) estão em 11–12 — e ela sozinha não fecha lote (1 < 6). O L19 é o único lote B com folga para os cinco depois que o ux-heuristicas-06 foi para o L20 (descanso.tsx saiu) e os casos do lote passaram para e2e/player.spec.ts; o guarda vai em e2e/treino.spec.ts, que o copy-21 já edita. Nenhuma tela esperada a mais.",
-    "aceite_do_dono": "pendente — perguntar antes de montar o L19 (perguntas-ao-dono.md, seção 2)",
-    "alternativa": "sem a exceção o OBS-porcentagem-com-espaco fica pendente sem lote até um lote de textos com folga de 5 arquivos (ou entra no L25 'Copy e mensagens' com exceção de arquivos: 17)."
-   },
-   "excecao_de_ordem": [],
-   "secoes": {
-    "B": 6,
-    "C": 0,
-    "D": 0
-   },
-   "areas_dos_itens": {
-    "player": 5,
-    "copy": 1
-   }
-  },
-  {
    "codigo": "L21",
    "codigo_anterior": "L20",
    "titulo": "Player: firme, conclusão e Visão geral",
    "area": "player",
-   "ordem": 3,
+   "ordem": 2,
    "itens": [
     "B-substituir-apaga-series-feitas",
     "tela-treino-player-29",
@@ -10062,7 +10161,10 @@
     "ux-heuristicas-15",
     "ux-heuristicas-14",
     "ux-heuristicas-13",
-    "visual-08"
+    "visual-08",
+    "C-l19-desfazer-e-relogio-sem-teste-que-falhe",
+    "C-l19-desfazer-dois-avisos-voto-do-render",
+    "C-l19-icone-visao-geral-muda-de-lado"
    ],
    "arquivos": [
     "PROGRESSO.md",
@@ -10104,11 +10206,11 @@
    "excecao_de_ordem": [],
    "secoes": {
     "B": 6,
-    "C": 0,
+    "C": 3,
     "D": 0
    },
    "areas_dos_itens": {
-    "player": 5,
+    "player": 8,
     "visual": 1
    }
   },
@@ -10116,7 +10218,7 @@
    "codigo": "L36",
    "titulo": "Sobras do L34: lembretes (provas, textos e bordas)",
    "area": "lembretes",
-   "ordem": 4,
+   "ordem": 3,
    "itens": [
     "C-l34-notificationclick-sem-aba",
     "C-l34-rls-postgres-real",
@@ -10147,7 +10249,7 @@
    "codigo": "L33",
    "titulo": "Sobras do L14: ficha, catálogo e camadas modais",
    "area": "ficha",
-   "ordem": 5,
+   "ordem": 4,
    "itens": [
     "C-l14-super-band-dois-filtros",
     "C-l14-criterio-repeticao-numeros",
@@ -10200,7 +10302,7 @@
    "codigo_anterior": "L15",
    "titulo": "Corpo: peso, gráficos e campo de data",
    "area": "corpo",
-   "ordem": 6,
+   "ordem": 5,
    "itens": [
     "a11y-01",
     "tela-relatorio-corpo-calendario-12",
@@ -10247,7 +10349,7 @@
    "codigo_anterior": "L16",
    "titulo": "Corpo: medidas, fotos, data no celular e um verbo só para salvar",
    "area": "corpo",
-   "ordem": 7,
+   "ordem": 6,
    "itens": [
     "tela-relatorio-corpo-calendario-17",
     "tela-relatorio-corpo-calendario-18",
@@ -10298,7 +10400,7 @@
    "codigo_anterior": "L17",
    "titulo": "Casca: carregamento, rotas pesadas, zoom e bloco de sincronização",
    "area": "casca",
-   "ordem": 8,
+   "ordem": 7,
    "itens": [
     "C-loading-por-rota",
     "C-next-dynamic-rotas-pesadas",
@@ -10364,7 +10466,7 @@
    "codigo_anterior": "L18",
    "titulo": "Cardio e barra fixa",
    "area": "cardio",
-   "ordem": 9,
+   "ordem": 8,
    "itens": [
     "ux-heuristicas-17",
     "ux-heuristicas-18",
@@ -10412,7 +10514,7 @@
    "codigo_anterior": "L19b (censo)",
    "titulo": "Player: descanso, preparação e o caminho até o player",
    "area": "player",
-   "ordem": 10,
+   "ordem": 9,
    "itens": [
     "tela-treino-player-06",
     "tela-treino-player-07",
@@ -10421,7 +10523,9 @@
     "a11y-15",
     "copy-22",
     "performance-18",
-    "ux-heuristicas-06"
+    "ux-heuristicas-06",
+    "C-l19-nome-longo-quebra-com-polegares",
+    "C-l19-sonner-cobre-fileira-do-topo"
    ],
    "arquivos": [
     "components/player/descanso.tsx",
@@ -10448,11 +10552,11 @@
    "excecao_de_ordem": [],
    "secoes": {
     "B": 8,
-    "C": 0,
+    "C": 2,
     "D": 0
    },
    "areas_dos_itens": {
-    "player": 8
+    "player": 10
    }
   },
   {
@@ -10460,7 +10564,7 @@
    "codigo_anterior": "L21",
    "titulo": "Sem rede: sinal, fila, mensagens e sincronização",
    "area": "pwa",
-   "ordem": 11,
+   "ordem": 10,
    "itens": [
     "pwa-offline-01",
     "pwa-offline-06",
@@ -10506,7 +10610,7 @@
    "codigo_anterior": "L22",
    "titulo": "Instalação, cache de mídia e cor da barra",
    "area": "pwa",
-   "ordem": 12,
+   "ordem": 11,
    "itens": [
     "pwa-offline-03",
     "pwa-offline-04",
@@ -10558,7 +10662,7 @@
    "codigo_anterior": "L23",
    "titulo": "Mais: textos, linhas e prefetch",
    "area": "mais",
-   "ordem": 13,
+   "ordem": 12,
    "itens": [
     "copy-02",
     "copy-09",
@@ -10609,7 +10713,7 @@
    "codigo_anterior": "L23b (triagem-26)",
    "titulo": "Copy e mensagens: dia da semana, intervalo, perfil, backup e login",
    "area": "copy",
-   "ordem": 14,
+   "ordem": 13,
    "itens": [
     "copy-07",
     "copy-24",
@@ -10659,7 +10763,7 @@
    "codigo_anterior": "L24",
    "titulo": "Relatório: números, aviso, esqueleto e leituras repetidas",
    "area": "relatorio",
-   "ordem": 15,
+   "ordem": 14,
    "itens": [
     "C-relatorio-no-total-3-linhas",
     "C-aviso-conquista-regiao-viva",
@@ -10707,7 +10811,7 @@
    "codigo_anterior": "L25",
    "titulo": "Calendário: faixa, legenda e semana navegada",
    "area": "calendario",
-   "ordem": 16,
+   "ordem": 15,
    "itens": [
     "C-dois-vocabularios-da-marca",
     "C-legenda-faixa-ponto-orfao",
@@ -10755,7 +10859,7 @@
    "codigo_anterior": "L26",
    "titulo": "Aba Treino: cabeçalho, faixa fixa e avisos",
    "area": "treino",
-   "ordem": 17,
+   "ordem": 16,
    "itens": [
     "C-treino-h1-data-duas-linhas",
     "C-faixa-fixa-texto-cortado",
@@ -10764,7 +10868,8 @@
     "C-desafios-largura-inerte",
     "C-ajustes-gravacao-700ms",
     "C-l14-recomecar-do-zero-foco-inicial",
-    "C-a-r4-faixa-fixa-instavel-sob-carga"
+    "C-a-r4-faixa-fixa-instavel-sob-carga",
+    "C-contraste-aa-semana-leve-e-retomada"
    ],
    "arquivos": [
     "components/treino/cabecalho.tsx",
@@ -10791,11 +10896,11 @@
    "excecao_de_ordem": [],
    "secoes": {
     "B": 0,
-    "C": 7,
+    "C": 8,
     "D": 0
    },
    "areas_dos_itens": {
-    "treino": 7
+    "treino": 8
    }
   },
   {
@@ -10803,7 +10908,7 @@
    "codigo_anterior": "L27",
    "titulo": "Player: pendências das auditorias do L5",
    "area": "player",
-   "ordem": 18,
+   "ordem": 17,
    "itens": [
     "C-descanso-sinal-visivel",
     "C-rotulo-do-campo-de-carga",
@@ -10812,7 +10917,9 @@
     "C-progresso-do-player-valuetext",
     "C-l14-comentario-voltar-visao-geral",
     "C-l14-spec-voltar-resumo-gravando",
-    "a11y-visao-geral-foco-ao-abrir"
+    "a11y-visao-geral-foco-ao-abrir",
+    "C-l19-avaliar-exercicio-antes-de-gravar",
+    "C-l19-pontos-repetem-leitor-de-tela"
    ],
    "arquivos": [
     "components/treinar/visao-geral.tsx",
@@ -10838,11 +10945,11 @@
    "excecao_de_ordem": [],
    "secoes": {
     "B": 0,
-    "C": 6,
+    "C": 8,
     "D": 0
    },
    "areas_dos_itens": {
-    "player": 6
+    "player": 8
    }
   },
   {
@@ -10850,7 +10957,7 @@
    "codigo_anterior": "L28",
    "titulo": "Processo, testes e documentação",
    "area": "processo",
-   "ordem": 19,
+   "ordem": 18,
    "itens": [
     "C-capturas-rotulos-antigos",
     "C-fab-ajustar-nomes-e-docs",
@@ -10860,7 +10967,8 @@
     "C-higiene-pids-construtor",
     "C-portoes-hash-curto",
     "C-l14-nomes-das-rodadas",
-    "C-l14-ordem-commits-spec-antes"
+    "C-l14-ordem-commits-spec-antes",
+    "C-l19-guarda-porcentagem-outros-espacos"
    ],
    "arquivos": [
     "scripts/capturas.ts",
@@ -10883,11 +10991,11 @@
    "excecao_de_ordem": [],
    "secoes": {
     "B": 0,
-    "C": 7,
+    "C": 8,
     "D": 0
    },
    "areas_dos_itens": {
-    "processo": 7
+    "processo": 8
    }
   },
   {
@@ -10895,7 +11003,7 @@
    "codigo_anterior": "L29",
    "titulo": "D: medidas antes/depois, processo e scripts",
    "area": "D",
-   "ordem": 20,
+   "ordem": 19,
    "itens": [
     "R9-C1",
     "D-abertura-11s-aparelho-zerado",
@@ -13856,6 +13964,7 @@
   "23/09: L14 publicado (PR #23, 0f730c9, rodada 16): os 10 itens foram para resolvidos (copy-25 e tela-explorar-fichas-26 com o aceite ajustado na SPEC §22.14, com nota). 15 itens C novos, todos com lote: os 9 menores da auditoria 1 em a68ea7f (um deles igual ao menor do construtor sobre as tags), 4 menores só registrados pelo construtor (Super Band, critério com números, espelho × DOM, carregando sem o perfil) e os 2 itens novos declarados na SPEC (a11y-voltar-fecha-camada, a11y-visao-geral-foco-ao-abrir). Vão para L32 (2, fica com 10), L33 novo logo depois do L32 (6), L29 (3), L16 (1), L28 (1) e L30 (2). Além disso, C-visao-geral-esc-camada (L29) foi para resolvidos: o L14 o resolveu na rodada 15 (visao-geral.tsx:110, e2e/ultraloop-l14.spec.ts:1039).",
   "23/09: L34 publicado (PR #25, 905815d, rodada 18): os 6 itens LEM do lote foram para resolvidos. 11 itens C novos, todos com lote: os 10 menores da auditoria 2 em 96056ac deduplicados com os 4 itens não feitos do construtor (notificationclick sem aba, RLS no Postgres real, badge monocromático, passo 3) e o Sair × inscrição anotado na SPEC §23 para o L35. Vão para L35 (4, fica com 10) e L36 novo logo depois do L35 (7).",
   "24/09 09:40 UTC (orquestrador): + B-player-substituir-passo-atual no L19; L19 sobe para 3º na ordem (depois de L35 e L32).",
-  "24/09: L32 publicado (PR #28, b66e06c, rodada 22): os 10 itens C do lote foram para resolvidos. 5 itens C novos, todos com lote: 4 menores da auditoria 1 em bb5adca (guarda do artigo, nomes à mão no e2e, aba Progresso no texto, capa do plano sem o dono) no L33 (fica com 10) e os 2 e2e instáveis de a-r4 no L28. O defeito do Substituir no passo atual (B-player-substituir-passo-atual) continua no L19, não é deste lote."
+  "24/09: L32 publicado (PR #28, b66e06c, rodada 22): os 10 itens C do lote foram para resolvidos. 5 itens C novos, todos com lote: 4 menores da auditoria 1 em bb5adca (guarda do artigo, nomes à mão no e2e, aba Progresso no texto, capa do plano sem o dono) no L33 (fica com 10) e os 2 e2e instáveis de a-r4 no L28. O defeito do Substituir no passo atual (B-player-substituir-passo-atual) continua no L19, não é deste lote.",
+  "24/09: L19 publicado (PR #32, a7b7d1b, rodada 29): os 7 itens do lote foram para resolvidos. 9 itens C novos, todos com lote (menores das auditorias do L19 deduplicados com os do construtor): 3 no L21 (Desfazer/relógio sem teste, dois avisos, ícone da Visão geral; fica com 10), 2 no L20 (nome longo com polegares, Sonner no topo; fica com 10), 2 no L29 (avaliarExercicio antes de gravar, pontos repetidos; fica com 10), 1 no L30 (guarda do '%'; fica com 10) e 1 no L28 (contraste AA do 'Semana leve…' e da retomada). B-substituir-apaga-series-feitas segue no L21 (decisão (b)). A exceção de área do OBS-porcentagem-com-espaco foi publicada com o aceite do dono ainda 'pendente'."
  ]
 }
