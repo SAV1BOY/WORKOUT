@@ -54,6 +54,12 @@ export function estadoDaLinha(
   linha: LinhaEstadoExercicio | null | undefined,
 ): EstadoExercicio | null {
   if (!linha) return null;
+  // Uma linha pode ter sido criada só para a nota. O exercício continua na
+  // primeira prescrição mesmo depois de a pessoa remover a nota.
+  if (linha.carga_atual_kg == null && linha.reps_alvo == null && linha.tempo_alvo_s == null &&
+      linha.assistencia == null && linha.incremento_kg == null && !linha.falhas_seguidas &&
+      !linha.incremento_reduzido && !linha.exigir_rep_extra && !linha.semana_leve &&
+      linha.carga_antes_leve == null && !linha.sessoes_graca && !linha.desativado) return null;
   return {
     carga_atual_kg: linha.carga_atual_kg,
     reps_alvo: linha.reps_alvo,

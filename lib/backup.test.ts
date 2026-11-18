@@ -268,3 +268,16 @@ describe("escritas da importação (SPEC §9)", () => {
     expect(lotes.flat()).toEqual(lista);
   });
 });
+
+it("restaura notas fixas e preserva campos desconhecidos em backups anteriores", () => {
+  const backup = montarBackup({ userId: EU, exportadoEm: AGORA, tabelas: { exercise_state: [
+    { exercise_id: "supino", notas: "antiga", nota_pessoal: null },
+    { exercise_id: "remada", notas: "barco", nota_pessoal: "banco" },
+    { exercise_id: "agachamento", notas: "suporte 3" },
+    { exercise_id: "terra", notas: null },
+  ] } });
+  const lotes = linhasParaImportar(lerBackup(textoDoBackup(backup)), OUTRO);
+  expect(lotes.map((l) => l.linhas.map((linha) => linha.exercise_id))).toEqual([["supino", "remada", "agachamento"], ["terra"]]);
+  expect(lotes[0]?.linhas.map((linha) => linha.nota_pessoal)).toEqual([null, "banco", "suporte 3"]);
+  expect(lotes[1]?.linhas[0]).not.toHaveProperty("nota_pessoal");
+});

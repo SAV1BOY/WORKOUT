@@ -12984,3 +12984,9 @@ Para repetir contra um mock local após `npm run build:e2e`, execute
 ### Decisão sobre a semana na capa dos planos — 18/11/2026
 
 O dono escolheu exibir “Semana N de 12” na capa e no bloco de progresso. Corrida, corda e barra fixa usam a semana da conta para o respectivo plano. [Capa e progresso](components/colecoes/tela-colecao.tsx) · [Teste dos três planos](e2e/ultraloop-l32.spec.ts)
+
+### Notas pessoais nos exercícios — 18/11/2026
+
+Na ficha, **Lembrar no próximo treino** guarda uma nota, como “banco no terceiro furo”. A primeira série do exercício mostra o texto. Tocar nele abre a ficha para editar ou remover. A gravação usa a fila offline e a coluna `exercise_state.nota_pessoal`, exclusiva da nota fixa. A migração `2026-11-18-nota-pessoal.sql` copia uma vez as notas existentes e permite que aparelhos antigos continuem enviando a progressão. O motor preserva as notas ao calcular a próxima carga.
+
+Para conferir no celular, salve uma nota no primeiro exercício do treino de hoje e comece o treino. Abra a nota pela primeira série, edite sem rede e volte a conectar. Ao reabrir a ficha em outro aparelho da mesma conta, a edição deve aparecer. O roteiro automatizado está em `e2e/nota-pessoal.spec.ts`.

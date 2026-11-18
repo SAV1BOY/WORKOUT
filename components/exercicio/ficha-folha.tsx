@@ -10,6 +10,7 @@ import {
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { createContext, useContext, useEffect, useRef, useState } from "react";
+import { NotaPessoal } from "@/components/exercicio/nota-pessoal";
 import { FazerAgora } from "@/components/exercicio/acoes-da-ficha";
 import { FotosAmpliaveis } from "@/components/exercicios/fotos-ampliaveis";
 import { HistoricoExercicio } from "@/components/exercicios/historico-exercicio";
@@ -140,6 +141,7 @@ export function ConteudoDaFicha({
       />
 
       {contexto ? <StepperDaSessao contexto={contexto} /> : null}
+      <NotaPessoal exercicioId={exercicioId} />
 
       {comoPagina ? (
         <>

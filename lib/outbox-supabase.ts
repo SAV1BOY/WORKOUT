@@ -167,6 +167,10 @@ export function alvoDaEscrita(escrita: EscritaTabela): string | undefined {
    * ressuscitaria o dia marcado. Um alvo por **data** basta: o resto do
    * mecanismo (travados em `umaRodada`) já cuida da ordem.
    */
+  if (escrita.tabela === "exercise_state") {
+    const { user_id: conta, exercise_id: exercicio } = escrita.linha ?? {};
+    if (typeof conta === "string" && typeof exercicio === "string") return `exercise_state:${conta}:${exercicio}`;
+  }
   if (escrita.tabela === "pullup_singles") {
     const id = escrita.linha?.id ?? escrita.filtro?.id;
     if (typeof id === "string" && id) return `pullup_singles:${id}`;

@@ -520,6 +520,7 @@ export function TelaPlayer({
     return (
       <>
         <TelaExercicio
+          conta={sessao.userId}
           passo={passo}
           bloco={bloco}
           serie={serie}

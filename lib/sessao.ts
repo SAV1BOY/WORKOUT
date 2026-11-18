@@ -41,7 +41,6 @@ import {
 import type { EstadoPlayer } from "@/lib/player";
 import type { Assistencia, Exercicio, FaseId, TreinoId } from "@/lib/schemas";
 import type {
-  LinhaEstadoExercicio,
   LinhaSerie,
   LinhaSessao,
   MotivoProgressao,
@@ -1412,12 +1411,22 @@ function linhaDeEstado(
   sessao: SessaoLocal,
   exercicioId: string,
   estado: EstadoExercicio,
-): LinhaEstadoExercicio {
+) {
+  // A progressão grava só o que ela calculou. Nota, incremento manual e
+  // desativação podem ter sido editados depois da abertura desta sessão.
   return {
     user_id: sessao.userId,
     exercise_id: exercicioId,
-    ...estado,
-    notas: null,
+    carga_atual_kg: estado.carga_atual_kg,
+    reps_alvo: estado.reps_alvo,
+    tempo_alvo_s: estado.tempo_alvo_s,
+    assistencia: estado.assistencia,
+    falhas_seguidas: estado.falhas_seguidas,
+    incremento_reduzido: estado.incremento_reduzido,
+    exigir_rep_extra: estado.exigir_rep_extra,
+    semana_leve: estado.semana_leve,
+    carga_antes_leve: estado.carga_antes_leve,
+    sessoes_graca: estado.sessoes_graca,
   };
 }
 
