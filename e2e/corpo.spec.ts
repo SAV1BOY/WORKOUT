@@ -213,12 +213,12 @@ test.describe("Corpo — fotos (SPEC §3.8)", () => {
     await usuarioComPerfil();
     await abrirCorpo(page, "Fotos");
 
-    await expect(
-      page.getByText("A comparação precisa de fotos de dois dias diferentes."),
-    ).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Registre sua primeira foto" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Comparar" })).toHaveCount(0);
 
     await enviarFoto(page, "frente");
     await expect(page.getByRole("img", { name: "Frente em 16/09" })).toBeVisible();
+    await expect(page.getByText("A comparação precisa de fotos de dois dias diferentes.")).toBeVisible();
 
     /*
      * SPEC §22.19 item 6: "Outra data" abre o seletor do aparelho, que o

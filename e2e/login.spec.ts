@@ -110,7 +110,7 @@ test.describe("login", () => {
     await page.getByRole("button", { name: "Ocultar senha" }).click();
     await expect(senha).toHaveValue("senha-errada");
     await page.getByRole("button", { name: "Entrar" }).click();
-    await expect(page.getByRole("alert")).toHaveText("E-mail ou senha incorretos.");
+    await expect(page.locator("form").getByRole("alert")).toHaveText("E-mail ou senha incorretos.");
     await expect(page.getByLabel("E-mail")).toBeFocused();
     await expect(senha).toHaveAttribute("aria-describedby", "erro-login");
     await expect(senha).toHaveAttribute("aria-invalid", "true");
@@ -220,7 +220,7 @@ test("entrar sem rede mantém os campos e o erro no formulário", async ({ page,
   await page.getByLabel("Senha", { exact: true }).fill(SENHA);
   await context.setOffline(true);
   await page.getByRole("button", { name: "Entrar" }).click();
-  await expect(page.getByRole("alert")).toContainText("Sem rede");
+  await expect(page.locator("form").getByRole("alert")).toContainText("Sem rede");
   await expect(page.getByLabel("E-mail")).toBeFocused();
   await context.setOffline(false);
   await page.getByRole("button", { name: "Entrar" }).click();

@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { montarSessao, substituirExercicio } from "./sessao";
-import { estadoInicial } from "./progressao";
+import { montarSessao, montarSessaoAvulsa, substituirExercicio } from "./sessao";
+import { estadoInicial, prescricaoPadrao } from "./progressao";
 import dados from "@/data/alternativas.json";
 import { alternativasPara, equipamentosDaAlternativa, motivoDaAlternativa } from "./alternativas";
-import { acharExercicio, exercicioPorId, exerciciosComVariacoes, programa, variacoes } from "./dados";
+import { acharExercicio, exercicios, exercicioPorId, exerciciosComVariacoes, programa, variacoes } from "./dados";
 import type { EquipamentoTag } from "./schemas";
 
 const ids = (lista: ReturnType<typeof alternativasPara>) => lista.map((e) => e.id);
@@ -40,9 +40,55 @@ describe("alternativas de uma série", () => {
     }
     for (const e of variacoes) {
       expect(acharExercicio(e.id)).toBe(e);
-      expect(e.progressao.tipo).toBe("reps");
+      expect(e.progressao.tipo).toBe(e.prescricao_padrao.tipo === "tempo_s" ? "tempo" : "reps");
       expect(e.fotos).toEqual([]);
     }
+  });
+
+  it.each(exercicios)("oferece uma troca executável no kit leve para $nome", (origem) => {
+    const kit = new Set<EquipamentoTag>(["tatame", "super-band"]);
+    const leves = alternativasPara(origem.id, "todos", kit);
+    expect(leves.length).toBeGreaterThan(0);
+    for (const e of leves) {
+      expect(e.id).not.toBe(origem.id);
+      expect(equipamentosDaAlternativa(e, kit).some((montagem) => montagem.every((tag) => kit.has(tag)))).toBe(true);
+      expect(motivoDaAlternativa(origem, e)).not.toBe("");
+      expect(e.prescricao_padrao.tipo).not.toBe("ver_cardio_corda");
+      expect(e.grupo === "Cardio").toBe(origem.grupo === "Cardio");
+    }
+  });
+
+  it("mantém a unidade, o descanso e a progressão dos substitutos nos três cardios", () => {
+    const kit = new Set<EquipamentoTag>(["tatame", "super-band"]);
+    for (const [id, esperado] of [
+      ["salto-basico", "salto-ritmado-sem-corda"],
+      ["corrida-no-lugar-com-a-corda", "corrida-estacionaria-sem-corda"],
+      ["salto-com-joelho-alto", "salto-vertical-com-contramovimento"],
+    ] as const) {
+      const origem = acharExercicio(id);
+      const leves = alternativasPara(id, "todos", kit);
+      expect(leves[0]?.id).toBe(esperado);
+      const sessao = montarSessaoAvulsa({
+        id: "cardio-avulso", userId: "pessoa", data: "2026-11-18", workoutId: "livre", fase: "fase1",
+        itens: [{ exercicioId: id, prescricao: prescricaoPadrao(origem), descansoS: 60, descansoTexto: "60 s" }],
+      });
+      const bloco = substituirExercicio(sessao, sessao.blocos[0]!.ordem, esperado).blocos[0]!;
+      const tempo = origem.prescricao_padrao.tipo !== "reps";
+      expect(bloco.alvo.tipo).toBe(tempo ? "tempo_s" : "reps");
+      expect(bloco.descansoS).toBe(tempo ? 60 : 90);
+      expect(bloco.series.length).toBe(tempo ? 4 : 3);
+      for (const serie of bloco.series) {
+        expect(tempo ? serie.tempoS : serie.reps).toBeGreaterThan(0);
+        expect(tempo ? serie.reps : serie.tempoS).toBeNull();
+      }
+      for (const e of leves) {
+        expect(e.prescricao_padrao.tipo).toBe(tempo ? "tempo_s" : "reps");
+        expect(e.progressao.tipo).toBe(tempo ? "tempo" : "reps");
+        expect(e.prescricao_padrao.descanso_s).toBe(tempo ? 60 : 90);
+      }
+    }
+    expect(ids(alternativasPara("superman", "tatame"))).toContain("bird-dog-no-tatame");
+    expect(ids(alternativasPara("abertura-de-ombros", "tatame"))).toContain("elevacao-em-t-no-tatame");
   });
 
   it("usa a progressão da variação sem transferir o peso do exercício original", () => {

@@ -384,11 +384,18 @@ export function fotosPorData(linhas: readonly FotoBruta[]): DiaDeFotos[] {
 /** As duas datas que a comparação abre por padrão: a mais antiga e a mais nova. */
 export function parDeComparacao(
   dias: readonly DiaDeFotos[],
+  escolhidas?: { antes: string | null; depois: string | null },
 ): { antes: string | null; depois: string | null } {
-  if (dias.length === 0) return { antes: null, depois: null };
-  const depois = dias[0]?.data ?? null;
-  const antes = dias[dias.length - 1]?.data ?? depois;
-  return { antes, depois };
+  const primeira = dias.at(-1)?.data ?? null;
+  const ultima = dias[0]?.data ?? null;
+  const antes = dias.find((dia) => dia.data === escolhidas?.antes)?.data ?? primeira;
+  const depois = dias.find((dia) => dia.data === escolhidas?.depois)?.data ?? ultima;
+  if (antes !== depois || dias.length < 2) return { antes, depois };
+  // A remoção de um dia selecionado pode fazer o fallback coincidir com o
+  // que restou. Preserva a escolha ainda válida e encontra o outro extremo.
+  return antes === escolhidas?.antes
+    ? { antes, depois: dias.find((dia) => dia.data !== antes)!.data }
+    : { antes: [...dias].reverse().find((dia) => dia.data !== depois)!.data, depois };
 }
 
 /** Os ângulos que as duas datas têm em comum (o slider só mostra esses). */

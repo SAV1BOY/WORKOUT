@@ -8,7 +8,7 @@
     "Dobrar e estender o quadril": ["levantamento-terra", "stiff-terra-romeno", "terra-romeno-com-halteres", "good-morning", "good-morning-com-elastico"],
     "Pressionar acima da cabeça": ["desenvolvimento-militar-em-pe", "desenvolvimento-sentado-com-barra", "desenvolvimento-com-halteres", "arnold-press", "desenvolvimento-com-elastico"],
     "Elevar os braços para os lados": ["elevacao-lateral", "remada-alta"],
-    "Abrir os braços para trás": ["crucifixo-inverso", "face-pull", "abertura-de-ombros"],
+    "Abrir os braços para trás": ["crucifixo-inverso", "face-pull", "abertura-de-ombros", "elevacao-em-t-no-tatame"],
     "Flexionar os cotovelos": ["rosca-direta-com-barra", "rosca-com-barra-w", "rosca-alternada", "rosca-martelo", "rosca-inclinada", "rosca-concentrada", "rosca-scott-improvisada", "rosca-inversa", "rosca-na-polia-baixa", "rosca-com-elastico"],
     "Estender os cotovelos": ["triceps-testa", "triceps-frances", "extensao-unilateral", "triceps-coice", "triceps-na-corda"],
     "Agachar com os dois pés apoiados": ["agachamento-livre", "agachamento-frontal", "agachamento-goblet", "agachamento-sumo", "agachamento-com-peso-corporal"],
@@ -16,7 +16,10 @@
     "Elevar os calcanhares": ["elevacao-de-panturrilha-em-pe", "elevacao-de-panturrilha-sentado", "elevacao-de-panturrilha-sem-carga"],
     "Flexionar o tronco": ["abdominal-no-banco-declinado", "abdominal-com-anilha", "abdominal-supra", "abdominal-completo"],
     "Girar o tronco": ["russian-twist", "abdominal-cruzado", "abdominal-bicicleta"],
-    "Estabilizar o tronco": ["prancha", "prancha-lateral", "escalador"]
+    "Estabilizar o tronco": ["prancha", "prancha-lateral", "escalador", "bird-dog-no-tatame"],
+    "Saltar em ritmo contínuo": ["salto-basico", "salto-ritmado-sem-corda"],
+    "Correr no lugar em ritmo contínuo": ["corrida-no-lugar-com-a-corda", "corrida-estacionaria-sem-corda"],
+    "Saltar na vertical com potência": ["salto-com-joelho-alto", "salto-vertical-com-contramovimento"]
   },
   "montagens": {
     "flexao-de-braco": [[], ["tatame"]],
