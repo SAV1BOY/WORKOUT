@@ -12951,6 +12951,35 @@ real a 360×740 nos dois temas, `/versao` = `b66e06c`.
 
 **Conta de teste apagada** às 12:00 UTC. Ficam só as 3 contas reais.
 
+### 18/11/2026 — JavaScript inicial no celular
+
+O build de produção do Next reportou os seguintes tamanhos de *First Load JS*.
+Os três builds usaram a configuração local de testes.
+
+| Rota | Main antes das melhorias (`1e80c6c`) | Integração antes do ajuste | Com o ajuste |
+| --- | ---: | ---: | ---: |
+| Treino (`/`) | 423 kB | 414 kB | 379 kB |
+| Escolher treino (`/treinar`) | 396 kB | 384 kB | 350 kB |
+| Player (`/treinar/[sessionId]`) | 436 kB | 410 kB | 377 kB |
+| Coleção (`/explorar/[tipo]/[valor]`) | 394 kB | 372 kB | 338 kB |
+| Relatório (`/relatorio`) | 384 kB | 395 kB | 356 kB |
+
+O prebuild valida os 11 JSON estáticos com Zod e confere se o conteúdo lido
+é igual à saída do parser. Os arquivos de backup enviados pelo usuário
+continuam passando pela validação de importação no navegador. As consultas
+compartilhadas leem as chaves das tabelas diretamente, e as telas que
+só gravam preferências deixaram de carregar o código de importação e exportação.
+Os manifestos de produção confirmam que as cinco rotas da tabela dispensam
+o pacote de Zod no carregamento inicial. A tela de backup carrega o pacote.
+
+Os testes de dados, alternativas, sessão, Relatório, precache, backup e
+consultas de backup passaram. Com entradas de teste, o build rejeitou tanto
+um JSON sem campo obrigatório quanto um campo que seria descartado pelo
+parser. Um backup antigo com `user_id` ausente continuou sendo lido com
+`user_id: null`, e o parser do disparo de lembretes continuou preenchendo as
+cinco listas omitidas. O postbuild conferiu os arquivos do worker contra os
+manifestos produzidos pelo Next, somando 104 recursos e 2.969.937 bytes.
+
 ### 18/11/2026 — abertura do player e validações de identidade (L31)
 
 Medições locais com build de produção do Next, Chromium com viewport de

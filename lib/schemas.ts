@@ -4,6 +4,7 @@
  * nunca o conteúdo (exercícios, séries, regras ou textos).
  */
 import { z } from "zod";
+import { TAGS_DE_EQUIPAMENTO } from "./tags-de-equipamento";
 
 /* ---------------------------------------------------------------- enums */
 
@@ -41,20 +42,7 @@ export const musculoSchema = z.enum([
   "panturrilha",
 ]);
 
-export const equipamentoTagSchema = z.enum([
-  "anilhas",
-  "banco",
-  "barra-macica",
-  "barra-w",
-  "halteres",
-  "cavalete",
-  "barra-fixa",
-  "cross-over",
-  "puxadores",
-  "tatame",
-  "corda",
-  "super-band",
-]);
+export const equipamentoTagSchema = z.enum(TAGS_DE_EQUIPAMENTO);
 
 export const implementoSchema = z.enum([
   "barra_macica",
@@ -549,6 +537,7 @@ export const perfilSchema = z.object({
 
 /* ----------------------------------------------------------------- tipos */
 
+export type RegrasDeAlternativas = z.infer<typeof alternativasSchema>;
 export type Grupo = z.infer<typeof grupoSchema>;
 export type Subgrupo = z.infer<typeof subgrupoSchema>;
 export type Musculo = z.infer<typeof musculoSchema>;
