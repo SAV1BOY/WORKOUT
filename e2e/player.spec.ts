@@ -48,8 +48,8 @@ test.beforeEach(async () => {
 });
 
 /** Entra, começa o Treino A e passa da preparação para o 1º exercício. */
-async function abrirPlayer(page: Page): Promise<SessaoMock> {
-  const sessao = await usuarioComPerfil();
+async function abrirPlayer(page: Page, perfil?: Parameters<typeof usuarioComPerfil>[0]): Promise<SessaoMock> {
+  const sessao = await usuarioComPerfil(perfil);
   await fixarData(page, SEGUNDA);
   await entrarNoApp(page);
   await comecarOTreinoDoDia(page);
@@ -799,6 +799,17 @@ test.describe("o campo de carga é do dedo de quem digita (SPEC §22.11)", () =>
         { timeout: 10_000 },
       )
       .toEqual([11.5]);
+  });
+
+  test("com barra pesada em 8,5 kg, concluir ao sair do campo grava os 12,5 kg montáveis", async ({ page }) => {
+    const sessao = await abrirPlayer(page, { prefs: { pesos_barras: { "barra-macica": 8.5 } } });
+    const carga = page.getByRole("textbox", { name: "carga na barra" });
+    await carga.fill("12,5");
+    await page.getByRole("button", { name: "Concluir série" }).click();
+    await expect.poll(async () =>
+      (await lerDoMock<LinhaSerie>(sessao, "session_sets"))
+        .filter(s => s.exercise_id === "agachamento-livre").map(s => s.carga_kg),
+    ).toEqual([12.5]);
   });
 });
 
