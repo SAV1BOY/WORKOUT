@@ -2,6 +2,8 @@ import { expect, test } from "@playwright/test";
 import { entrarNoApp, resetarMock, usuarioComPerfil } from "./fixtures";
 
 test("o HTML inicial reserva quatro linhas em Explorar e três totais no Relatório", async ({ browser, page }) => {
+  // Duas páginas completas por rota, em contextos separados, além do login.
+  test.slow();
   await resetarMock();
   await usuarioComPerfil();
   await entrarNoApp(page);

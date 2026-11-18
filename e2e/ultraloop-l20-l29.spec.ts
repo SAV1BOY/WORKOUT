@@ -171,7 +171,11 @@ test("nome longo e aviso de voto deixam os controles livres a 360 px", async ({ 
   }
 
   const proximo = page.getByRole("button", { name: "Próximo passo" });
-  for (let i = 0; i < 12 && await proximo.isVisible(); i++) await proximo.click();
+  const total = exercicio.prescricao_padrao.series;
+  for (let i = 1; i <= total; i++) {
+    await expect(page.getByText(`Série ${i} de ${total} · exercício 1 de 1`, { exact: true })).toBeVisible();
+    await proximo.click();
+  }
   const h1 = page.getByRole("heading", { level: 1 });
   await expect(h1).toHaveCount(1);
   await expect(h1).toContainText("esforço");

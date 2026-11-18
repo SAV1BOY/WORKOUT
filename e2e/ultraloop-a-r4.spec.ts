@@ -235,6 +235,8 @@ test("com a sessão aberta, a faixa fixa diz o progresso e continua (item 2)", a
   await page.goBack();
   await esperarAbaTreino(page);
 
+  await expect(page.getByRole("region", { name: "Hoje" }).getByRole("link", { name: "Continuar" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /^Substituir / }).last()).toBeVisible();
   await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
   const faixa = page.locator("[data-faixa-do-dia]");
   await expect(faixa).toContainText("Treino A");
@@ -466,7 +468,13 @@ for (const tema of ["light", "dark"] as const) {
     await page.getByRole("button", { name: /^Substituir / }).last().scrollIntoViewIfNeeded();
     const faixa = page.locator("[data-faixa-do-dia] aside");
     await expect(faixa).toBeVisible();
-    expect(await faixa.locator(".truncate").evaluate((e) => e.scrollWidth <= e.clientWidth)).toBe(true);
+    const resumo = faixa.locator("[data-resumo-da-faixa]");
+    await expect(resumo).toHaveText("Treino A · 44 min · 6 exercícios");
+    const cabe = await resumo.evaluate((e) =>
+      e.scrollWidth <= e.clientWidth && e.scrollHeight <= e.clientHeight,
+    );
+    expect(cabe, "o resumo inteiro da faixa cabe nos dois eixos").toBe(true);
+    expect((await faixa.boundingBox())!.height).toBeLessThanOrEqual(56);
   });
 }
 

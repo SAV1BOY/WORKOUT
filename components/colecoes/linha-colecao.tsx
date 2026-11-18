@@ -152,7 +152,11 @@ export function LinhaColecao({
         */}
         {colecao.subtitulo ? (
           <span
-            className={cn("text-muted-foreground text-xs", temMeta && "line-clamp-1")}
+            className={cn(
+              "text-muted-foreground text-xs",
+              temMeta && "line-clamp-1",
+              colecao.tipo === "plano" && !temMeta && "leading-[1.0625rem]",
+            )}
             data-linha="subtitulo"
           >
             {seloNaMeta ? null : selo("abre")}

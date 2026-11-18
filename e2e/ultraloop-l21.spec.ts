@@ -295,9 +295,11 @@ test("troca offline, retoma no mesmo ponto e sincroniza as séries com seus exer
     return bloco?.trocados?.flatMap((troca) => troca.series.filter(s => s.concluida).map(s => s.id));
   }).toEqual([original]);
 
+  const proximaSerie = page.getByText(/^Série 2 de \d+ · exercício 1 de 6/);
+  await expect(proximaSerie).toBeVisible();
   await page.reload();
   await expect(page.getByRole("heading", { name: "Agachamento goblet" })).toBeVisible();
-  await expect(page.getByText(/^Série 2 de \d+ · exercício 1 de 6/)).toBeVisible();
+  await expect(proximaSerie).toBeVisible();
   await context.setOffline(false);
   await expect.poll(async () =>
     (await seriesNoMock(sessao)).map((s) => [s.exercise_id, s.id, s.concluida]).sort(),
@@ -358,36 +360,24 @@ test.describe("§22.18 item 2 — 'Firme?' pergunta antes de abrir o teclado", (
 
 /** Anda o treino inteiro pelo player até a conclusão, respondendo "Firme". */
 async function atravessarOTreino(page: Page): Promise<void> {
-  const fim = page.getByText("Excelente! Você concluiu o treino.");
-  for (let i = 0; i < 120; i++) {
-    if (await fim.isVisible().catch(() => false)) return;
-    const concluir = page.getByRole("button", { name: "Concluir série" });
-    if (await concluir.isVisible().catch(() => false)) {
+  await expect.poll(() => blocosNoAparelho(page)).not.toHaveLength(0);
+  const blocos = await blocosNoAparelho(page);
+  const concluir = page.getByRole("button", { name: "Concluir série" });
+  const descanso = page.getByRole("button", { name: "Pular descanso" });
+  const firme = page.getByRole("radiogroup", { name: "Última repetição" })
+    .getByRole("radio", { name: "Firme" });
+  for (const [posicao, bloco] of blocos.entries()) {
+    for (const [indice] of bloco.series.entries()) {
       await concluir.click();
-      continue;
+      if (indice < bloco.series.length - 1) await descanso.click();
     }
-    const pular = page.getByRole("button", { name: "Pular descanso" });
-    if (await pular.isVisible().catch(() => false)) {
-      await pular.click();
-      continue;
-    }
-    const firme = page
-      .getByRole("radiogroup", { name: "Última repetição" })
-      .getByRole("radio", { name: "Firme" });
-    if (await firme.isVisible().catch(() => false)) {
-      await firme.click();
-      await firme.waitFor({ state: "detached" }).catch(() => undefined);
-      continue;
-    }
-    const sensacao = page.getByRole("radiogroup", { name: "Sensação" });
-    if (await sensacao.isVisible().catch(() => false)) {
-      await sensacao.getByRole("radio", { name: "Na medida certa" }).click();
-      await page.getByRole("button", { name: "Concluir", exact: true }).click();
-      continue;
-    }
-    await page.waitForTimeout(100);
+    await firme.click();
+    if (posicao < blocos.length - 1) await descanso.click();
   }
-  await expect(fim).toBeVisible();
+  await page.getByRole("radiogroup", { name: "Sensação" })
+    .getByRole("radio", { name: "Na medida certa" }).click();
+  await page.getByRole("button", { name: "Concluir", exact: true }).click();
+  await expect(page.getByText("Excelente! Você concluiu o treino.")).toBeVisible();
 }
 
 /** Rótulos em caixa alta com espaçamento (o papel "eyebrow"), fora de selos. */

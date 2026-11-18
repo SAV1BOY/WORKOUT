@@ -386,14 +386,16 @@ test.describe("§22.15 item 5 — na busca, sem vão onde não há subtítulo", 
   test("a vitrine continua reservando: mesma altura por seção", async ({ page }) => {
     await preparar(page);
     await page.goto("/explorar");
+    await expect(page.getByRole("searchbox", { name: "Buscar exercício ou coleção" })).toBeEditable();
     for (const nome of ["Parte do corpo", "Por aparelho"]) {
       const secao = page.getByRole("region", { name: nome });
-      const botao = secao.getByRole("button", { name: /^Ver todos/ });
-      if (await botao.count()) await botao.click();
+      await secao.getByRole("button", { name: /^Ver todos/ }).click();
+      await expect(secao.getByRole("button", { name: "Ver menos" })).toHaveAttribute("aria-expanded", "true");
       const alturas = await secao
         .locator("[data-colecao]")
         .evaluateAll((ls) => ls.map((l) => l.getBoundingClientRect().height));
       expect(alturas.length).toBeGreaterThan(3);
+      expect(Math.min(...alturas), `${nome}: alvo de toque`).toBeGreaterThanOrEqual(44);
       expect(Math.max(...alturas) - Math.min(...alturas), nome).toBeLessThanOrEqual(1);
       await expect(secao.locator('[data-linha="sem-subtitulo"]').first()).toBeAttached();
     }
