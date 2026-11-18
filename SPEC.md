@@ -4264,16 +4264,24 @@ em `schema.sql`, idempotente e expand-only):
   public.lembretes_tick()`: desagendado pelo nome se já existe e agendado de
   novo (rodar a migração duas vezes deixa um job só).
 
-**Nenhum valor de segredo no repositório**: a migração cria funções, tabela e
-job; os valores do Vault (`lembretes_url`, `lembretes_segredo`) e a variável
-`LEMBRETES_SEGREDO` da Vercel quem cria é quem publica. **Nunca a service
-role**, nem no servidor.
+**Nenhum valor de segredo no repositório.** Quem publica configura
+`lembretes_url` e `lembretes_segredo` no Vault. A
+migração cria as funções, a tabela e o job. A rota usa a chave anon do
+Supabase e pode consultar o Vault para autenticar o disparo. Para quem já
+usa a verificação local, `LEMBRETES_SEGREDO` é opcional na Vercel e deve
+corresponder à credencial do Vault. **Nunca a service role**, nem no servidor.
 
 **Rota** `POST /api/lembretes/disparar` (runtime `nodejs`):
 
-1. sem `LEMBRETES_SEGREDO` no servidor → **503** `SEM_CONFIGURACAO`;
-2. `x-lembretes-segredo` ausente ou diferente (`timingSafeEqual` sobre os
-   `sha256`) → **401**, sem ler o corpo;
+1. A rota exige o cabeçalho `x-lembretes-segredo` antes de ler o corpo.
+   A ausência do cabeçalho retorna **401**. Com `LEMBRETES_SEGREDO` local,
+   compara os valores com `timingSafeEqual` sobre os `sha256` e retorna
+   **401** se diferirem.
+2. Sem verificador local, chama `lembretes_resultado` com o valor recebido
+   e as listas `enviados` e `expirados` vazias. A RPC valida pelo Vault e
+   afeta zero linhas. Só a resposta numérica `0` sem erro autoriza o disparo.
+   O erro `28000` retorna **401**. Falha de conexão, prazo de três segundos
+   esgotado ou resposta inesperada retornam **503**.
 3. sem as variáveis VAPID → **503** `SEM_CONFIGURACAO`;
 4. corpo que não é JSON ou fora do `disparoSchema` (Zod) → **400** (desde
    23.15, o envelope; cada conta é conferida sozinha e a inválida é pulada e

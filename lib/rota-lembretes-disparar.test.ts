@@ -14,8 +14,9 @@ const banco = vi.hoisted(() => ({
   /** O `AbortSignal` de cada chamada da RPC, na mesma ordem. */
   sinais: [] as AbortSignal[],
   erro: null as { code: string } | null,
-  /** A RPC só responde quando o sinal aborta (o Supabase travado, §23.16). */
-  travada: false,
+  resultadoVazio: 0 as unknown,
+  /** Simula a conexão travada, inclusive um cliente que ignora o cancelamento. */
+  travada: false as boolean | "ignora o cancelamento",
 }));
 
 /** A conta cuja regra lança (a guarda por conta da rota, §23.16): marcada pela data de início. */
@@ -42,7 +43,13 @@ vi.mock("@/lib/supabase/server", () => ({
       return {
         abortSignal(sinal: AbortSignal) {
           banco.sinais.push(sinal);
-          if (!banco.travada) return Promise.resolve({ data: 1, error: banco.erro });
+          if (!banco.travada) {
+            const enviados = args.enviados as unknown[];
+            const expirados = args.expirados as unknown[];
+            const data = enviados.length || expirados.length ? enviados.length : banco.resultadoVazio;
+            return Promise.resolve({ data, error: banco.erro });
+          }
+          if (banco.travada === "ignora o cancelamento") return new Promise(() => {});
           return new Promise((_, recusar) =>
             sinal.addEventListener("abort", () => recusar(new DOMException("abortado", "AbortError"))),
           );
@@ -59,6 +66,10 @@ const PRIVADA = "yfWPiYE-n46HLnH0KqZOF1fJJU3MYrct3AELtAQ-oRw";
 const SEGREDO = "segredo-de-teste-que-nao-e-de-producao";
 const PUSH = "http://127.0.0.1:9";
 const USUARIO = "0b6f1c2e-1111-4222-8333-944445555666";
+
+function verificacaoNoVault(segredo: string) {
+  return { nome: "lembretes_resultado", args: { segredo, enviados: [], expirados: [] } };
+}
 
 function aparelho() {
   const ecdh = createECDH("prime256v1");
@@ -125,6 +136,7 @@ describe("POST /api/lembretes/disparar", () => {
     banco.rpcs = [];
     banco.sinais = [];
     banco.erro = null;
+    banco.resultadoVazio = 0;
     banco.travada = false;
     regra.lancarComInicio = null;
     pushes = [];
@@ -145,14 +157,63 @@ describe("POST /api/lembretes/disparar", () => {
     buscar.mockRestore();
   });
 
-  it("sem LEMBRETES_SEGREDO no servidor: 503 SEM_CONFIGURACAO, sem nada sair", async () => {
-    vi.stubEnv("LEMBRETES_SEGREDO", "");
-    expect(await pedir(corpo("2026-09-21T10:00:00Z"))).toEqual({
-      status: 503,
-      corpo: { erro: SEM_CONFIGURACAO, codigo: "SEM_CONFIGURACAO" },
+  it("sem segredo local, um lote vazio autenticado pelo Vault retorna zero entregas", async () => {
+    vi.stubEnv("LEMBRETES_SEGREDO", undefined);
+    const r = await pedir({ agora: "2026-09-21T10:00:00Z", usuarios: [] });
+    expect(r.status).toBe(200);
+    expect(r.corpo).toMatchObject({
+      contas: 0, avisos: 0, entregas: 0, marcados: 0, expirados: 0, gravado: true,
     });
+    expect(banco.rpcs).toEqual([verificacaoNoVault(SEGREDO)]);
     expect(pushes).toEqual([]);
+  });
+
+  it("sem verificador local, a falta de cabeçalho é recusada antes da RPC e da leitura do corpo", async () => {
+    vi.stubEnv("LEMBRETES_SEGREDO", "");
+    expect((await pedir("não é JSON", null)).status).toBe(401);
     expect(banco.rpcs).toEqual([]);
+    expect(pushes).toEqual([]);
+  });
+
+  it.each([
+    { erro: { code: "28000" }, data: 0, status: 401 },
+    { erro: { code: "PGRST202" }, data: 0, status: 503 },
+    { erro: null, data: null, status: 503 },
+    { erro: null, data: "0", status: 503 },
+    { erro: null, data: 1, status: 503 },
+  ])("a verificação do Vault com erro=$erro e resultado=$data retorna $status antes de enviar", async ({ erro, data, status }) => {
+    vi.stubEnv("LEMBRETES_SEGREDO", "");
+    banco.erro = erro;
+    banco.resultadoVazio = data;
+    const a = aparelho();
+    const dados = corpo("2026-09-21T10:00:00Z", {}, [{ endpoint: `${PUSH}/__push/201/a`, p256dh: a.p256dh, auth: a.auth }]);
+    const r = await pedir(dados, "credencial-recebida-para-o-teste");
+    expect(r.status).toBe(status);
+    expect(JSON.stringify(r.corpo)).not.toContain("credencial-recebida-para-o-teste");
+    expect(banco.rpcs).toEqual([verificacaoNoVault("credencial-recebida-para-o-teste")]);
+    expect(pushes).toEqual([]);
+  });
+
+  it.each([true, "ignora o cancelamento"] as const)("o Vault travado (%s) tem limite de três segundos e nenhuma entrega começa", async (travada) => {
+    vi.stubEnv("LEMBRETES_SEGREDO", "");
+    vi.useFakeTimers();
+    try {
+      banco.travada = travada;
+      const a = aparelho();
+      const pendente = pedir(corpo("2026-09-21T10:00:00Z", {}, [
+        { endpoint: `${PUSH}/__push/201/a`, p256dh: a.p256dh, auth: a.auth },
+      ]));
+      await vi.advanceTimersByTimeAsync(2_999);
+      expect(banco.sinais[0]?.aborted).toBe(false);
+      expect(pushes).toEqual([]);
+      await vi.advanceTimersByTimeAsync(1);
+      expect(banco.sinais[0]?.aborted).toBe(true);
+      expect((await pendente).status).toBe(503);
+      expect(banco.rpcs).toEqual([verificacaoNoVault(SEGREDO)]);
+      expect(pushes).toEqual([]);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("segredo errado ou ausente: 401, sem ler o corpo nem enviar", async () => {
@@ -167,7 +228,9 @@ describe("POST /api/lembretes/disparar", () => {
 
   it("sem as variáveis VAPID: 503", async () => {
     vi.stubEnv("VAPID_PRIVATE_KEY", "");
-    expect((await pedir(corpo("2026-09-21T10:00:00Z"))).status).toBe(503);
+    expect(await pedir(corpo("2026-09-21T10:00:00Z"))).toEqual({
+      status: 503, corpo: { erro: SEM_CONFIGURACAO, codigo: "SEM_CONFIGURACAO" },
+    });
   });
 
   it("corpo fora do formato (não é JSON, sem agora/usuarios): 400", async () => {
@@ -314,7 +377,13 @@ describe("POST /api/lembretes/disparar", () => {
     expect((await pedirDeclarando(512 * 1024)).status).toBe(200);
   });
 
-  it("na hora: envia o aviso do treino cifrado para cada aparelho e marca pela RPC", async () => {
+  it.each(["local", "Vault"])("com verificação %s, o aviso cifrado chega a cada aparelho e fica marcado", async (verificador) => {
+    const verificacoes = verificador === "Vault" ? [verificacaoNoVault(SEGREDO)] : [];
+    if (verificador === "Vault") vi.stubEnv("LEMBRETES_SEGREDO", "");
+    statusDoPush = () => {
+      expect(banco.rpcs).toEqual(verificacoes);
+      return 201;
+    };
     const a = aparelho();
     const b = aparelho();
     const dados = corpo("2026-09-21T10:05:00.123456+00:00", {}, [
@@ -332,6 +401,7 @@ describe("POST /api/lembretes/disparar", () => {
     expect(pushes[0]!.cabecalhos.Authorization).toMatch(/^vapid t=[\w-]+\.[\w-]+\.[\w-]+, k=/);
     expect(pushes[0]!.cabecalhos.Topic).toBe("lembrete-treino");
     expect(banco.rpcs).toEqual([
+      ...verificacoes,
       {
         nome: "lembretes_resultado",
         args: { segredo: SEGREDO, enviados: [{ user_id: USUARIO, tipo: "treino", dia: "2026-09-21" }], expirados: [] },

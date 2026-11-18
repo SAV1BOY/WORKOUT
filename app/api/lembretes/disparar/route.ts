@@ -39,14 +39,16 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 30;
 
 const PRAZO_DO_ENVIO_MS = 10_000;
+/** Até 3 s para consultar o Vault quando a rota não tem um verificador local. */
+const PRAZO_DA_AUTENTICACAO_MS = 3_000;
 /** Todas as entregas de um POST cabem nisto (o `pg_net` desiste aos 30 s). */
 const PRAZO_TOTAL_MS = 20_000;
 /** Quantos envios ao mesmo tempo. */
 const ENVIOS_SIMULTANEOS = 8;
 /**
  * A marcação (RPC `lembretes_resultado`) usa o que sobra do prazo total, mas
- * nunca menos que isto (SPEC §23.16): 20 s de envios + 3 s ficam abaixo dos
- * 30 s do `pg_net` e do `maxDuration`.
+ * nunca menos que isto (SPEC §23.16). Mesmo com a autenticação pelo Vault,
+ * 3 s de autenticação + 20 s de envios + 3 s de marcação cabem nos 30 s.
  */
 const PRAZO_MINIMO_DA_MARCACAO_MS = 3_000;
 /** O corpo que o tick manda cabe folgado nisto; mais que isso não é o tick. */
@@ -82,11 +84,47 @@ function resposta(status: number, corpo: Record<string, unknown>) {
 }
 
 /** Compara os sha256 (32 bytes dos dois lados): tempo constante, sem vazar o tamanho. */
-function segredoConfere(recebido: string | null, esperado: string): boolean {
-  if (!recebido) return false;
+function segredoConfere(recebido: string, esperado: string): boolean {
   const a = createHash("sha256").update(recebido, "utf8").digest();
   const b = createHash("sha256").update(esperado, "utf8").digest();
   return timingSafeEqual(a, b);
+}
+
+async function resultadoNoBanco(
+  segredo: string,
+  enviados: { user_id: string; tipo: LembreteDevido["tipo"]; dia: string }[],
+  expirados: string[],
+  prazoMs: number,
+) {
+  const controle = new AbortController();
+  const prazo = new Promise<null>((resolver) => {
+    controle.signal.addEventListener("abort", () => resolver(null), { once: true });
+  });
+  const relogio = setTimeout(() => controle.abort(), prazoMs);
+  try {
+    const pedido = criarClienteServidor().then((supabase) => {
+      if (controle.signal.aborted) return null;
+      return supabase.rpc("lembretes_resultado", { segredo, enviados, expirados }).abortSignal(controle.signal);
+    });
+    return await Promise.race([pedido, prazo]);
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(relogio);
+  }
+}
+
+async function autenticar(segredo: string): Promise<"valido" | "invalido" | "indisponivel"> {
+  if (!segredo) return "invalido";
+  const local = (process.env.LEMBRETES_SEGREDO ?? "").trim();
+  if (local) return segredoConfere(segredo, local) ? "valido" : "invalido";
+
+  // A RPC confere o segredo no Vault antes de percorrer as listas. Com as duas
+  // vazias, uma verificação bem-sucedida devolve exatamente zero e não altera linhas.
+  const resultado = await resultadoNoBanco(segredo, [], [], PRAZO_DA_AUTENTICACAO_MS);
+  if (resultado?.error?.code === "28000") return "invalido";
+  if (!resultado || resultado.error || resultado.data !== 0) return "indisponivel";
+  return "valido";
 }
 
 /** A conta do JSON do tick no formato da regra pura. */
@@ -125,10 +163,13 @@ function contaDaRegra(u: UsuarioDoDisparo): ContaDaRegra {
 }
 
 export async function POST(request: Request) {
-  const segredo = (process.env.LEMBRETES_SEGREDO ?? "").trim();
-  if (!segredo) return resposta(503, { erro: SEM_CONFIGURACAO, codigo: "SEM_CONFIGURACAO" });
-  if (!segredoConfere(request.headers.get("x-lembretes-segredo"), segredo)) {
+  const segredo = request.headers.get("x-lembretes-segredo") ?? "";
+  const autenticacao = await autenticar(segredo);
+  if (autenticacao === "invalido") {
     return resposta(401, { erro: "Segredo dos lembretes inválido." });
+  }
+  if (autenticacao === "indisponivel") {
+    return resposta(503, { erro: "Não foi possível verificar o segredo dos lembretes." });
   }
   const vapid = configuracaoVapid(process.env, publicaDaPrivada);
   if (!vapid.ok) return resposta(503, { erro: SEM_CONFIGURACAO, codigo: "SEM_CONFIGURACAO" });
@@ -224,24 +265,8 @@ export async function POST(request: Request) {
   if (enviados.length > 0 || expirados.size > 0) {
     // o que sobra do prazo total (no mínimo 3 s): a marcação não passa dos 30 s do pg_net
     const resta = Math.max(PRAZO_MINIMO_DA_MARCACAO_MS, PRAZO_TOTAL_MS - (Date.now() - comecoDosEnvios));
-    const controle = new AbortController();
-    const relogio = setTimeout(() => controle.abort(), resta);
-    try {
-      const supabase = await criarClienteServidor();
-      const { error } = await supabase
-        .rpc("lembretes_resultado", {
-          segredo,
-          enviados,
-          expirados: [...expirados],
-        })
-        .abortSignal(controle.signal);
-      gravado = !error;
-    } catch {
-      // abortado no prazo (ou a rede caiu): nada marcado, o próximo tick tenta de novo
-      gravado = false;
-    } finally {
-      clearTimeout(relogio);
-    }
+    const resultado = await resultadoNoBanco(segredo, enviados, [...expirados], resta);
+    gravado = resultado !== null && !resultado.error;
   }
 
   return resposta(gravado ? 200 : 502, {
