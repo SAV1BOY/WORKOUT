@@ -1118,26 +1118,34 @@ test.describe("L13 — fotos em retrato inteiras (correção da auditoria 2, ite
 test.describe("L13 — o selo Circuito não corta o subtítulo (correção da auditoria 2, item 10)", () => {
   async function conferirCorda(linha: Locator, onde: string) {
     await expect(linha).toBeVisible();
+    await linha.scrollIntoViewIfNeeded();
+    await expect(linha).toBeInViewport();
     const m = await linha.evaluate((el) => {
       const sub = el.querySelector('[data-linha="subtitulo"]')!;
       const meta = el.querySelector('[data-linha="meta"]')!;
       const titulo = el.querySelector('[data-linha="titulo"]')!.getBoundingClientRect();
       const selo = el.querySelector('[data-selo="circuito"]');
-      // onde começa o texto do subtítulo (o 1º caractere)
+      // Os espaços entre os elementos de uma linha não fazem parte do subtítulo.
       const faixa = document.createRange();
-      const texto = [...sub.childNodes].find((n) => n.nodeType === Node.TEXT_NODE)!;
-      faixa.setStart(texto, 0);
-      faixa.setEnd(texto, 1);
-      const inicio = faixa.getClientRects()[0]!;
+      const texto = [...sub.childNodes].find(
+        (n): n is Text => n.nodeType === Node.TEXT_NODE && /\S/.test(n.textContent ?? ""),
+      );
+      if (!texto) throw new Error("O subtítulo da corda precisa de texto.");
+      const primeiro = texto.data.search(/\S/);
+      faixa.setStart(texto, primeiro);
+      faixa.setEnd(texto, primeiro + 1);
+      const inicio = faixa.getBoundingClientRect();
       return {
         seloNaMeta: selo ? meta.contains(selo) : null,
         seloNoSubtitulo: selo ? sub.contains(selo) : null,
+        larguraDoCaractere: inicio.width,
         inicioDoSubtitulo: inicio.left - titulo.left,
         alturaDaMeta: meta.getBoundingClientRect().height,
       };
     });
     expect(m.seloNaMeta, `${onde}: o selo fecha a meta`).toBe(true);
     expect(m.seloNoSubtitulo, `${onde}: o selo não abre o subtítulo cortado`).toBe(false);
+    expect(m.larguraDoCaractere, `${onde}: o primeiro caractere está desenhado`).toBeGreaterThan(0);
     expect(Math.abs(m.inicioDoSubtitulo), `${onde}: o subtítulo começa na coluna`).toBeLessThanOrEqual(1);
     // a meta com os raios e o selo continua numa linha só
     expect(m.alturaDaMeta, `${onde}: meta numa linha`).toBeLessThanOrEqual(18);
@@ -1146,12 +1154,15 @@ test.describe("L13 — o selo Circuito não corta o subtítulo (correção da au
   test("Corda: 5 estágios, na seção Planos e na busca por corda", async ({ page }) => {
     await preparar(page);
     await page.goto("/explorar");
+    const busca = page.getByRole("searchbox", { name: "Buscar exercício ou coleção" });
+    await expect(busca).toBeEditable();
     const planos = page.getByRole("region", { name: "Planos" });
     await conferirCorda(planos.locator('[data-colecao="plano:corda"]'), "Planos");
-    await page.locator('main input[type="search"]').first().fill("corda");
-    await conferirCorda(page.locator('[data-colecao="plano:corda"]').first(), 'busca "corda"');
+    await busca.fill("corda");
+    const resultados = page.getByRole("region", { name: "Coleções encontradas" });
+    await conferirCorda(resultados.locator('[data-colecao="plano:corda"]'), 'busca "corda"');
     // sem subtítulo, o selo continua abrindo a linha reservada (o circuito da corda)
-    const circuito = page.locator('[data-colecao="circuito:corda"]').first();
+    const circuito = resultados.locator('[data-colecao="circuito:corda"]');
     await expect(circuito.locator('[data-linha="sem-subtitulo"] [data-selo="circuito"]')).toBeVisible();
     await semRolagemHorizontal(page);
   });
