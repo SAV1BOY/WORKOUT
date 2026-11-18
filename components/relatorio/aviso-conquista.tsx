@@ -43,7 +43,7 @@ export function AvisoDeConquista({
       role="status"
       aria-label="Conquista nova"
       data-aviso-conquista={mostrar ? novas.map((c) => c.id).join(" ") : undefined}
-      className={mostrar ? "cartao border-primary/40 bg-primary/5 flex flex-col gap-2 border p-3" : "sr-only"}
+      className={mostrar ? "cartao border-primary/40 bg-primary/5 flex flex-col gap-2 border p-3" : "-my-1.5 h-0 overflow-hidden"}
     >
       {mostrar ? (
         <>

@@ -221,18 +221,18 @@ export function TelaRelatorio() {
             className="grid grid-rows-[auto_1fr_auto]"
             rotulo="Sessões"
             valor={pronto ? formatarNumero(contadores.treinos) : "—"}
-            detalhe={pronto ? (
+            detalhe={
               <span className="block text-rotulo leading-3">
                 no total <span className="whitespace-nowrap">(força + cardio)</span>
               </span>
-            ) : "—"}
+            }
             icone={<Dumbbell aria-hidden="true" className="size-3.5 shrink-0" />}
           />
           <Contador
             className="grid grid-rows-[auto_1fr_auto]"
             rotulo="Minutos"
             valor={pronto ? formatarNumero(contadores.minutos) : "—"}
-            detalhe={pronto ? "no total" : "—"}
+            detalhe="no total"
             icone={<Timer aria-hidden="true" className="size-3.5 shrink-0" />}
           />
           {/*
@@ -244,7 +244,7 @@ export function TelaRelatorio() {
             className="grid grid-rows-[auto_1fr_auto]"
             rotulo="Volume"
             valor={pronto ? formatarNumero(contadores.volumeKg) : "—"}
-            detalhe={pronto ? "kg no total" : "—"}
+            detalhe="kg no total"
             icone={<Weight aria-hidden="true" className="size-3.5 shrink-0" />}
           />
         </section>
@@ -462,7 +462,7 @@ function EsqueletoNumeros() {
       <Skeleton className="h-13 w-full rounded-xl" />
       <div className="grid grid-cols-3 gap-2">
         {[0, 1, 2].map((i) => (
-          <Skeleton key={i} className="h-[4.75rem] rounded-xl" />
+          <Skeleton key={i} className="h-[5.5rem] rounded-xl" />
         ))}
       </div>
       <div className="flex flex-col gap-1.5">
@@ -472,7 +472,7 @@ function EsqueletoNumeros() {
       </div>
       <div className="grid grid-cols-2 gap-2">
         {[0, 1].map((i) => (
-          <Skeleton key={i} className="h-[4.75rem] rounded-xl" />
+          <Skeleton key={i} className="h-[5.5rem] rounded-xl" />
         ))}
       </div>
     </div>
