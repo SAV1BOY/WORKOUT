@@ -353,18 +353,38 @@ export async function comecarNoPlayer(page: Page): Promise<void> {
 
 /** Anda pelas séries e descansos. A chegada ao feedback deixa a resposta para quem chamou. */
 export async function avancarNoPlayerAte(page: Page, alvo: Locator): Promise<void> {
-  const descanso = page.getByRole("button", { name: "Pular descanso" });
-  const pergunta = page.getByRole("region", { name: "Última repetição" })
-    .getByRole("button", { name: "Pular esta pergunta" });
-  const proximo = page.getByRole("button", { name: "Próximo passo" });
-  // Depois de responder “Firme”, a pergunta avança sozinha. Espere a tela
-  // seguinte sem tentar clicar em “Continuar” durante essa transição.
+  const descanso = page.getByRole("region", { name: "Descanso", exact: true });
+  const pergunta = page.getByRole("region", { name: "Última repetição", exact: true });
+  const serie = page.getByText(/^(Aquecimento|Série) \d+ de \d+ · exercício \d+ de \d+/);
+  const passos = serie.or(descanso).or(pergunta);
+
   for (let i = 0; i < 80; i++) {
-    await alvo.or(descanso).or(pergunta).or(proximo).first().waitFor();
+    await passos.or(alvo).first().waitFor();
+    const identidade = await passos.evaluateAll(([el]) =>
+      el?.getAttribute("aria-label") ?? el?.textContent?.trim(),
+    );
     if (await alvo.isVisible()) return;
-    if (await descanso.isVisible()) await descanso.click();
-    else if (await pergunta.isVisible()) await pergunta.click();
-    else if (await proximo.isVisible()) await proximo.click();
+    if (!identidade) continue;
+
+    const ehDescanso = identidade === "Descanso";
+    const ehPergunta = identidade === "Última repetição";
+    const atual = ehDescanso ? descanso : ehPergunta ? pergunta : page.getByText(identidade, { exact: true });
+    const tela = ehDescanso || ehPergunta ? atual : page.getByRole("region").filter({ has: atual });
+    const nome = ehDescanso ? "Pular descanso" : ehPergunta ? "Pular esta pergunta" : "Próximo passo";
+
+    // Um elemento desta etapa não pode ser resolvido de novo numa etapa futura.
+    // A pergunta já respondida avança sozinha e não tem o botão de pular.
+    const [botao] = await tela.getByRole("button", { name: nome, exact: true }).elementHandles();
+    if (botao) {
+      try {
+        await botao.click();
+      } catch (erro) {
+        if (await atual.isVisible()) throw erro;
+      } finally {
+        await botao.dispose();
+      }
+    }
+    await expect(atual).toBeHidden();
   }
   await expect(alvo).toBeVisible();
 }

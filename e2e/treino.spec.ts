@@ -414,18 +414,41 @@ test.describe("o vigia da hidratação (lib/vigia.ts)", () => {
   test.use({ serviceWorkers: "block" });
   test.describe.configure({ timeout: 90_000 });
 
+  test("a primeira transferência do app falha e Lembretes abre no mesmo documento", async ({ page }) => {
+    await usuarioComPerfil({ prefs: { lembretes: { treino: { ligado: true, hora: "06:30" } } } });
+    await entrarNoApp(page);
+    let pedidos = 0;
+    await page.route("**/_next/static/chunks/main-app-*.js", (rota) => {
+      pedidos++;
+      return pedidos === 1 ? rota.abort("aborted") : rota.continue();
+    });
+    let documentos = 0;
+    page.on("request", (req) => {
+      if (req.isNavigationRequest() && req.frame() === page.mainFrame()) documentos++;
+    });
+    await page.goto("/mais/lembretes");
+    await expect(page.locator("#hora-treino")).toHaveValue("06:30");
+    expect(pedidos).toBe(2);
+    expect(documentos).toBe(1);
+  });
+
   test("página que não hidrata ganha a faixa 'Recarregar'", async ({ page }) => {
     await usuarioComPerfil();
     await fixarData(page, SEGUNDA);
     await entrarNoApp(page);
     await esperarAbaTreino(page);
 
-    await page.route("**/_next/static/chunks/main-app-*.js", (rota) => rota.abort());
+    let pedidos = 0;
+    await page.route("**/_next/static/chunks/main-app-*.js", (rota) => {
+      pedidos++;
+      return rota.abort();
+    });
     await page.goto("/treinar");
 
     const faixa = page.locator("#vigia-hidratacao");
     await expect(faixa).toBeVisible({ timeout: 30_000 });
     await expect(faixa).toContainText("O app não terminou de abrir.");
+    expect(pedidos).toBe(2);
 
     // o alvo do dedo (SPEC §13.8.1)
     const botao = faixa.getByRole("button", { name: "Recarregar" });

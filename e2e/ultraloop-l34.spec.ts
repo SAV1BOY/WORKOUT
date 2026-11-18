@@ -484,13 +484,22 @@ test("o worker real mostra o push como notificação e o toque leva à url", asy
   await esperarServiceWorker(page);
   const worker = await workerDoApp(context);
 
-  await worker.evaluate(async (payload) => {
-    const escopo = globalThis as unknown as {
-      dispatchEvent: (e: Event) => boolean;
-      PushEvent: new (tipo: string, init: { data: string }) => Event;
-    };
-    escopo.dispatchEvent(new escopo.PushEvent("push", { data: JSON.stringify(payload) }));
-  }, { titulo: "Hora do treino", corpo: "Treino A hoje, 3 exercícios.", url: "/relatorio", tag: "e2e-push" });
+  const escopoDoApp = await page.evaluate(async () => (await navigator.serviceWorker.ready).scope);
+  const cdp = await context.newCDPSession(page);
+  const idDoRegistro = new Promise<string>((resolver) => {
+    cdp.on("ServiceWorker.workerRegistrationUpdated", ({ registrations }) => {
+      const registro = registrations.find((r) => !r.isDeleted && r.scopeURL === escopoDoApp);
+      if (registro) resolver(registro.registrationId);
+    });
+  });
+  await cdp.send("ServiceWorker.enable");
+  // O Chromium entrega o evento ao registro ativo e mantém o worker vivo pelo waitUntil.
+  await cdp.send("ServiceWorker.deliverPushMessage", {
+    origin: new URL(escopoDoApp).origin,
+    registrationId: await idDoRegistro,
+    data: JSON.stringify({ titulo: "Hora do treino", corpo: "Treino A hoje, 3 exercícios.", url: "/relatorio", tag: "e2e-push" }),
+  });
+  await cdp.detach();
 
   const lerNotificacoes = () =>
     worker.evaluate(async () => {

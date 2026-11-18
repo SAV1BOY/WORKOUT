@@ -30,7 +30,33 @@ export const MARCA_DE_VIDA = "__appVivo";
 
 /** O script inline do `layout` — sem React, sem import, sem módulo. */
 export function scriptDoVigia(ms: number = VIGIA_MS): string {
-  return `(function(){var m=${ms};setTimeout(function(){
+  return `(function(){
+// Durante a abertura, uma transferência interrompida pode deixar só o HTML.
+// Repetimos o script na mesma página para preservar os dados e a posição do usuário.
+const tentados = new WeakSet();
+window.addEventListener("error", function(evento) {
+  const original = evento.target;
+  if (window.${MARCA_DE_VIDA} || !(original instanceof HTMLScriptElement) || !original.src || tentados.has(original)) return;
+  const url = new URL(original.src);
+  if (url.origin !== location.origin || !url.pathname.startsWith("/_next/static/chunks/") || !url.pathname.endsWith(".js")) return;
+
+  // O carregador do Next só deve receber o resultado depois da segunda tentativa.
+  evento.stopImmediatePropagation();
+  const novo = document.createElement("script");
+  tentados.add(original);
+  tentados.add(novo);
+  for (const atributo of original.attributes) novo.setAttribute(atributo.name, atributo.value);
+  novo.async = original.async;
+  if (original.nonce) novo.nonce = original.nonce;
+  function terminar(resultado) {
+    original.dispatchEvent(new Event(resultado));
+    novo.remove();
+  }
+  novo.onload = function() { terminar("load"); };
+  novo.onerror = function() { terminar("error"); };
+  document.head.appendChild(novo);
+}, true);
+var m=${ms};setTimeout(function(){
 if(window.${MARCA_DE_VIDA}===true||document.getElementById("${ID_DO_VIGIA}"))return;
 var c=document.createElement("div");c.id="${ID_DO_VIGIA}";c.setAttribute("role","alert");
 c.style.cssText="position:fixed;left:0;right:0;bottom:0;z-index:2147483647;display:flex;align-items:center;gap:12px;padding:12px 16px;background:#171717;color:#fafafa;font:14px/1.3 system-ui,sans-serif";
