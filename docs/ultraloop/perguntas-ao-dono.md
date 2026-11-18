@@ -134,22 +134,12 @@ O L31 (os itens D por último, de várias áreas) não precisa de pergunta: é a
 
 ## 4. Decisão tomada sem o dono no L32 (24/09)
 
-### L32 → L33 — A capa do plano deixou de dizer "semana N de 12"
+### L32 → L33 — Semana do plano na capa e no progresso
 
-**Pergunta:** Na tela de um plano do Explorar (por exemplo, Corrida em
-/explorar/plano/corrida), a capa dizia "semana 2 de 12" e o bloco logo abaixo
-dizia de novo "Semana 2 de 12 · 1 concluída". O L32 tirou a posição da capa:
-agora ela aparece só no bloco. A capa continua com o título e o botão "Fazer a
-corrida da semana N". Você aprova assim?
-
-- **Sim** → fica como está (publicado em `b66e06c`). O L33 só troca o teste de
-  unidade por um que confere com `data/cardio.json`.
-- **Não** → a posição volta para a capa e sai do bloco, ou fica nos dois
-  lugares, como você preferir. Isso vira um item B num lote do Explorar.
-
-_Origem: o ledger pedia "decidir com o dono" (C-plano-progresso-repete-desafio).
-A decisão foi tomada sem você e ficou registrada no item
-C-l32-plano-capa-sem-o-dono (L33)._
+Em 18/11/2026, o dono escolheu ver **“Semana N de 12” nos dois lugares**.
+Corrida, corda e barra fixa exibem a semana da conta tanto na capa quanto
+no bloco de progresso. Abaixo da capa, a barra continua mostrando quantas
+semanas já foram concluídas. [Especificação](../../SPEC.md)
 
 ## 5. Descoberta no L19 (24/09): o Substituir da ficha apaga séries já feitas
 

@@ -343,9 +343,15 @@ test.describe("a rede do worker cai (SPEC §22.10)", () => {
     await esperarServiceWorker(page);
 
     const worker = await workerDoApp(context);
+    /*
+     * Espera a cura TERMINAR, não começar: ela grava os pedaços primeiro e o
+     * HTML por último (`lib/sw-cura.ts`), então quem diz que acabou é o
+     * `/~offline` no `socorro`, como no teste do aparelho despejado abaixo.
+     * Contar entradas (`socorro > 0`) passava no primeiro pedaço gravado.
+     */
     await expect
-      .poll(async () => (await inventarioDeCaches(worker)).socorro ?? 0, { timeout: 20_000 })
-      .toBeGreaterThan(0);
+      .poll(async () => await caminhosDoCache(worker, "socorro"), { timeout: 20_000 })
+      .toContain("/~offline");
 
     // ---- o aparelho perde TODA cópia, inclusive a própria -------------
     await worker.evaluate(() => caches.delete("socorro"));
@@ -354,9 +360,18 @@ test.describe("a rede do worker cai (SPEC §22.10)", () => {
 
     // ---- uma navegação que chega ao servidor: a cura repõe -----------
     await page.goto("/mais", { waitUntil: "domcontentloaded" });
+    /*
+     * De novo o HTML, e não o número de entradas: com `socorro > 0` o teste
+     * cortava a rede entre o primeiro pedaço e o HTML, a `/~offline` ainda
+     * não estava lá e a tela vinha do degrau (d), o socorro embutido, sem
+     * folha de estilo (cadeia `35ba0cd`, rodada 34, sob carga).
+     */
     await expect
-      .poll(async () => (await inventarioDeCaches(worker)).socorro ?? 0, { timeout: 30_000 })
-      .toBeGreaterThan(0);
+      .poll(async () => await caminhosDoCache(worker, "socorro"), {
+        timeout: 30_000,
+        message: "a autocura tem de repor a /~offline e os pedaços dela",
+      })
+      .toContain("/~offline");
 
     // ---- e é ela que segura a tela quando a rede cai -----------------
     await semRedeNoWorker(worker);
@@ -370,6 +385,27 @@ test.describe("a rede do worker cai (SPEC §22.10)", () => {
       "é a /~offline de verdade, vinda do cache socorro",
     ).toBeGreaterThan(0);
     await expect(page.getByRole("link", { name: "Ir para o Treino" })).toBeVisible();
+
+    // A segunda navegação usa a mesma cópia, sem abrir um asset por vez.
+    const chamadas = await worker.evaluateHandle(() => {
+      const contagem = { assets: 0, html: 0 };
+      const match = caches.match.bind(caches);
+      caches.match = (pedido, opcoes) => {
+        if (typeof pedido === "string" && pedido.startsWith("/_next/") && opcoes?.ignoreSearch) contagem.assets++;
+        return match(pedido, opcoes);
+      };
+      const texto = Response.prototype.text;
+      Response.prototype.text = function () {
+        if (this.headers.get("content-type")?.includes("text/html")) contagem.html++;
+        return texto.call(this);
+      };
+      return contagem;
+    });
+    await page.goto("/mais/preferencias?revisita=1", { waitUntil: "domcontentloaded" });
+    await expect(page.getByRole("heading", { name: "Sem conexão" })).toBeVisible();
+    const medidas = await chamadas.jsonValue();
+    expect(medidas, "revisita da cópia íntegra sem rede").toEqual({ assets: 0, html: 0 });
+
   });
 
   /*

@@ -1,7 +1,9 @@
 "use client";
 
+import { liveQuery } from "dexie";
+import { useRede } from "@/lib/usar-rede";
 import { RefreshCw } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,15 +25,11 @@ export function LinhaSincronizacao() {
   const [estado, setEstado] = useState<EstadoDaFila>({ quantos: 0 });
   const [tentando, setTentando] = useState(false);
 
-  const olhar = useCallback(async () => {
-    setEstado(await estadoDaFila().catch(() => ({ quantos: 0 })));
-  }, []);
-
+  const online = useRede();
   useEffect(() => {
-    void olhar();
-    const relogio = setInterval(() => void olhar(), 5_000);
-    return () => clearInterval(relogio);
-  }, [olhar]);
+    const assinatura = liveQuery(estadoDaFila).subscribe({ next: setEstado, error: () => {} });
+    return () => assinatura.unsubscribe();
+  }, []);
 
   const { titulo, detalhe, travada } = resumoDaFila(estado);
 
@@ -51,14 +49,15 @@ export function LinhaSincronizacao() {
 
   return (
     <section
+      id="sincronizacao"
       aria-label="Sincronização"
-      className="border-border flex items-center gap-3 rounded-lg border px-3 py-3"
+      className="bg-muted flex items-center gap-2 px-3 py-2"
     >
       <RefreshCw
         aria-hidden
-        className={`size-5 shrink-0 ${travada ? "text-destructive" : "text-muted-foreground"}`}
+        className={`size-4 shrink-0 ${travada ? "text-destructive" : "text-muted-foreground"}`}
       />
-      <span className="flex min-w-0 flex-col">
+      <span role="status" aria-live="polite" className="flex min-w-0 flex-col">
         <span className="font-medium">{titulo}</span>
         {/* SPEC §22.3 item 11: o detalhe é cortado em três linhas. */}
         <span
@@ -72,10 +71,10 @@ export function LinhaSincronizacao() {
         <Button
           variant="outline"
           className="alvo ml-auto shrink-0"
-          disabled={tentando}
+          disabled={!online || tentando}
           onClick={() => void tentar()}
         >
-          {tentando ? "Tentando…" : "Tentar agora"}
+          {!online ? "Sem rede" : tentando ? "Tentando…" : "Tentar agora"}
         </Button>
       ) : null}
     </section>

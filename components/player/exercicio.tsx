@@ -8,6 +8,7 @@ import {
   List,
   Pause,
   Play,
+  Repeat2,
   Settings,
   ThumbsDown,
   ThumbsUp,
@@ -20,7 +21,7 @@ import { BotaoMontagem } from "@/components/treinar/montagem";
 import { SeletorAssistencia } from "@/components/treinar/serie";
 import { Button } from "@/components/ui/button";
 import { acharExercicio } from "@/lib/dados";
-import { formatarDuracao, formatarKg, rotuloDaCarga } from "@/lib/formato";
+import { formatarDuracao, formatarKg, rotuloDaCarga, rotuloDoCampoDeCarga } from "@/lib/formato";
 import {
   alcancavelParaBaixo,
   cargasPossiveis,
@@ -70,6 +71,7 @@ export function TelaExercicio({
   aoAnterior,
   aoProximo,
   aoAbrirFicha,
+  aoTrocar,
   aoAbrirLista,
   aoAjustar,
   aoAvaliar,
@@ -100,10 +102,14 @@ export function TelaExercicio({
   aoAnterior: () => void;
   aoProximo: () => void;
   aoAbrirFicha: () => void;
+  aoTrocar?: () => void;
   aoAbrirLista: () => void;
   aoAjustar: () => void;
-  /** Grava o voto; devolve se gravou (sem perfil não há onde gravar). */
-  aoAvaliar: (voto: VotoDoExercicio) => boolean;
+  /**
+   * Grava o voto; devolve o voto que havia antes do toque, ou `undefined`
+   * quando não gravou (sem perfil não há onde gravar).
+   */
+  aoAvaliar: (voto: VotoDoExercicio) => Promise<VotoDoExercicio | undefined>;
 }) {
   const exercicio = acharExercicio(bloco.exercicioId);
   const implemento = exercicio.implemento as ImplementoMontagem;
@@ -125,15 +131,43 @@ export function TelaExercicio({
    * não foi anotado, e não há "Desfazer". O "Desfazer" grava o voto de antes
    * sobre as preferências de agora (`aoAvaliar` lê o cache na hora).
    */
-  const votar = (novo: VotoDoExercicio) => {
-    const antes = voto;
-    const aviso = avisoDoPolegar(exercicio.nome, novo, aoAvaliar(novo));
-    if (!aviso.desfazer) {
-      toast(aviso.texto);
+  const ultimaEscolha = useRef(0);
+  const votar = async (novo: VotoDoExercicio) => {
+    const tentativa = ++ultimaEscolha.current;
+    const id = `voto-${exercicio.id}`;
+    const local = {
+      id,
+      position: "bottom-center" as const,
+      style: { bottom: "calc(5rem + env(safe-area-inset-bottom))" },
+    };
+    let antes: VotoDoExercicio | undefined;
+    // o voto de antes vem da gravação, lido na hora do toque (§22.18 item 8)
+    try {
+      antes = await aoAvaliar(novo);
+    } catch {
+      if (tentativa === ultimaEscolha.current) {
+        toast.error("Voto não anotado. Tente novamente.", local);
+      }
+      return;
+    }
+    if (tentativa !== ultimaEscolha.current) return;
+    const aviso = avisoDoPolegar(exercicio.nome, novo, antes !== undefined);
+    /*
+     * Um aviso por exercício (§22.18 item 8): o id fixo faz o segundo voto
+     * substituir o aviso do primeiro, em vez de empilhar dois "Desfazer".
+     */
+    if (antes === undefined) {
+      toast(aviso.texto, local);
       return;
     }
     toast(aviso.texto, {
-      action: { label: "Desfazer", onClick: () => aoAvaliar(antes) },
+      ...local,
+      action: {
+        label: "Desfazer",
+        onClick: () => void aoAvaliar(antes).catch(() => {
+          toast.error("Não consegui desfazer o voto. Tente novamente.", local);
+        }),
+      },
       // ≥ 44 px e anel de destaque no foco (app/globals.css, §22.16 item 6)
       classNames: { actionButton: "aviso-desfazer" },
     });
@@ -165,7 +199,7 @@ export function TelaExercicio({
 
   return (
     <section
-      aria-label={`${rotuloDoPasso(passo)} — ${exercicio.nome}`}
+      aria-label={exercicio.nome}
       /* pb-24: os controles são 72 px colados no rodapé (§22.1) — os 160 px
          de antes reservavam também a barra de abas, que o player não tem */
       className="flex flex-1 flex-col gap-3 pb-24"
@@ -184,7 +218,28 @@ export function TelaExercicio({
         canto — os polegares desceram para a linha do nome, onde dizem de
         quem é o voto, e deixaram de ficar a 2 px um do outro.
       */}
-      <div className="flex items-center justify-between gap-2 px-3 pt-1">
+      {/*
+        SPEC §22.18 item 7: a "Visão geral" fica à direita, no mesmo canto
+        da preparação (onde a esquerda é o "Sair do treino"). `-mx-1` sem
+        padding: o `main` tem 16 px de lado e a fileira da preparação, 12 —
+        assim os ícones caem no mesmo x nas duas telas.
+      */}
+      <div className="-mx-1 flex items-center justify-between gap-2 pt-1">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="alvo"
+          aria-label="Ajustar"
+          onClick={aoAjustar}
+        >
+          <Settings className="size-5" />
+        </Button>
+        {aoTrocar && (
+          <Button variant="outline" className="alvo gap-2" onClick={aoTrocar}>
+            <Repeat2 className="size-4" aria-hidden="true" />
+            Trocar exercício
+          </Button>
+        )}
         <Button
           ref={botaoDaLista}
           variant="ghost"
@@ -195,15 +250,6 @@ export function TelaExercicio({
         >
           <List className="size-5" />
         </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="alvo"
-          aria-label="Ajustar"
-          onClick={aoAjustar}
-        >
-          <Settings className="size-5" />
-        </Button>
       </div>
 
       {/* barra fina de progresso do treino */}
@@ -213,7 +259,7 @@ export function TelaExercicio({
         aria-valuemin={0}
         aria-valuemax={total}
         aria-valuenow={feitas}
-        aria-valuetext={`exercício ${passo.posicao} de ${passo.totalExercicios}`}
+        aria-valuetext={`${feitas} de ${total} séries feitas · exercício ${passo.posicao} de ${passo.totalExercicios}`}
         className="bg-muted mx-3 h-1 overflow-hidden rounded-full"
       >
         <span
@@ -234,7 +280,7 @@ export function TelaExercicio({
         /* h-36: com h-44 o chip "montagem" ficava 1,6 px sob a barra de
            controles numa série com histórico, a 360 × 740 (§13.8.1); h-40
            virou h-36 para caber a fileira de pontos (§22.16 item 5) */
-        className="h-36"
+        className={entrada.unilateral ? "h-28" : "h-36"}
       />
 
       <div className="flex items-center justify-center gap-2 px-3">
@@ -316,6 +362,7 @@ export function TelaExercicio({
 
       <div className="flex flex-col gap-3 px-3">
         <MioloDoPasso
+          key={serie.id}
           entrada={entrada}
           bloco={bloco}
           serie={serie}
@@ -338,6 +385,7 @@ export function TelaExercicio({
             </p>
           ) : null}
           <BotaoMontagem
+            noPlayer
             exercicioId={bloco.exercicioId}
             carga={serie.cargaKg}
             opcoes={opcoes}
@@ -456,11 +504,11 @@ function MioloDoPasso({
 
       {entrada.comCarga ? (
         /* SPEC §22.5 item 10: "NA BARRA" sozinho não diz o que é o número */
-        <LinhaGrande rotulo={`carga ${rotuloDaCarga(exercicio.implemento)}`}>
+        <LinhaGrande rotulo={rotuloDoCampoDeCarga(exercicio.implemento)}>
           <StepperNumerico
             grande
             decimal
-            rotulo={`carga ${rotuloDaCarga(exercicio.implemento)}`}
+            rotulo={rotuloDoCampoDeCarga(exercicio.implemento)}
             valor={serie.cargaKg}
             passo={incremento > 0 ? incremento : 1}
             aoAndar={(direcao) =>

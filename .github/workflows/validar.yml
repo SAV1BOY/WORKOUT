@@ -1,0 +1,101 @@
+name: Validar o aplicativo
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: validar-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NEXT_TELEMETRY_DISABLED: '1'
+
+jobs:
+  build:
+    name: Lint, build e testes unitários
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    outputs:
+      artifact-id: ${{ steps.enviar.outputs.artifact-id }}
+      sha256: ${{ steps.empacotar.outputs.sha256 }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with: &checkout
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !**/.env*
+            /.env.local.example
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with: &node
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      # O prebuild valida os dados e gera as imagens. O postbuild confere o precache.
+      - run: npm run build:e2e
+      - run: npm test
+      - name: Empacotar o build do servidor simulado
+        id: empacotar
+        run: |
+          cd "$GITHUB_WORKSPACE"
+          tar --exclude=.next/cache --exclude=.next/trace --exclude=.next/diagnostics \
+            -czf "$RUNNER_TEMP/app-e2e.tar.gz" .next public
+          digest=$(sha256sum "$RUNNER_TEMP/app-e2e.tar.gz" | cut -d' ' -f1)
+          echo "sha256=$digest" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        id: enviar
+        with:
+          name: app-e2e-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/app-e2e.tar.gz
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 3
+
+  e2e:
+    name: Playwright (${{ matrix.parte }}/4)
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        parte: [1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with: *checkout
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with: *node
+      - run: npm ci
+      - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
+        with:
+          artifact-ids: ${{ needs.build.outputs.artifact-id }}
+          path: ${{ runner.temp }}
+      - name: Conferir e restaurar o build
+        env:
+          DIGEST: ${{ needs.build.outputs.sha256 }}
+        run: |
+          cd "$RUNNER_TEMP"
+          printf '%s  app-e2e.tar.gz\n' "$DIGEST" | sha256sum --check
+          tar -xzf app-e2e.tar.gz -C "$GITHUB_WORKSPACE"
+      - run: npm exec -- playwright install --with-deps chromium
+      - run: npm run e2e -- --shard=${{ matrix.parte }}/4
+        env:
+          VARREDURA: '1'
+      - name: Guardar o contexto das falhas no navegador
+        if: failure() && !cancelled()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: falhas-e2e-${{ matrix.parte }}-${{ github.run_attempt }}
+          path: |
+            test-results/**/error-context.md
+            test-results/**/test-failed-*.png
+          if-no-files-found: ignore
+          retention-days: 3

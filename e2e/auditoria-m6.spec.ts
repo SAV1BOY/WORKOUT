@@ -163,7 +163,7 @@ test.describe("Fase 2 — o limiar contado do mesmo jeito (SPEC §5.1)", () => {
     await expect(
       page.getByRole("button", { name: "Passar para a Fase 2" }),
     ).toHaveCount(0);
-    await expect(page.getByText(/você tem 11 e 30/)).toBeVisible();
+    await expect(page.getByText(/você tem 11 semanas completas e 30 treinos/)).toBeVisible();
   });
 
   test("com 12 semanas cheias a Fase 2 é oferecida", async ({ page }) => {
@@ -173,7 +173,7 @@ test.describe("Fase 2 — o limiar contado do mesmo jeito (SPEC §5.1)", () => {
     await entrarNoApp(page);
     await page.goto("/mais/perfil");
 
-    await expect(page.getByText(/12 semanas de Fase 1 e 30 treinos/)).toBeVisible();
+    await expect(page.getByText(/12 semanas completas de Fase 1 e 30 treinos/)).toBeVisible();
     await expect(
       page.getByRole("button", { name: "Passar para a Fase 2" }),
     ).toBeVisible();

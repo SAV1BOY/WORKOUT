@@ -1,0 +1,40 @@
+{
+  "movimentos": {
+    "Empurrar à frente do peito": ["supino-reto-com-barra", "supino-inclinado-com-barra", "supino-declinado-com-barra", "supino-reto-com-halteres", "supino-inclinado-com-halteres", "supino-fechado", "flexao-declinada", "flexao-inclinada", "flexao-de-braco", "flexao-fechada"],
+    "Aproximar os braços à frente do peito": ["crucifixo-reto", "crucifixo-inclinado", "crossover-na-polia"],
+    "Estender o ombro com os braços quase retos": ["pullover-com-halter", "pullover-na-polia"],
+    "Puxar na vertical": ["barra-fixa-pronada", "barra-fixa-supinada", "barra-fixa-com-lastro", "puxada-alta-na-polia", "puxada-com-triangulo", "barra-fixa-assistida"],
+    "Puxar na horizontal": ["remada-curvada-pronada", "remada-curvada-supinada", "remada-unilateral-serrote", "remada-baixa-na-polia", "remada-com-elastico"],
+    "Dobrar e estender o quadril": ["levantamento-terra", "stiff-terra-romeno", "terra-romeno-com-halteres", "good-morning", "good-morning-com-elastico"],
+    "Pressionar acima da cabeça": ["desenvolvimento-militar-em-pe", "desenvolvimento-sentado-com-barra", "desenvolvimento-com-halteres", "arnold-press", "desenvolvimento-com-elastico"],
+    "Elevar os braços para os lados": ["elevacao-lateral", "remada-alta"],
+    "Abrir os braços para trás": ["crucifixo-inverso", "face-pull", "abertura-de-ombros", "elevacao-em-t-no-tatame"],
+    "Flexionar os cotovelos": ["rosca-direta-com-barra", "rosca-com-barra-w", "rosca-alternada", "rosca-martelo", "rosca-inclinada", "rosca-concentrada", "rosca-scott-improvisada", "rosca-inversa", "rosca-na-polia-baixa", "rosca-com-elastico"],
+    "Estender os cotovelos": ["triceps-testa", "triceps-frances", "extensao-unilateral", "triceps-coice", "triceps-na-corda"],
+    "Agachar com os dois pés apoiados": ["agachamento-livre", "agachamento-frontal", "agachamento-goblet", "agachamento-sumo", "agachamento-com-peso-corporal"],
+    "Estender a perna com apoio unilateral": ["agachamento-bulgaro", "afundo-passada", "step-up-no-banco"],
+    "Elevar os calcanhares": ["elevacao-de-panturrilha-em-pe", "elevacao-de-panturrilha-sentado", "elevacao-de-panturrilha-sem-carga"],
+    "Flexionar o tronco": ["abdominal-no-banco-declinado", "abdominal-com-anilha", "abdominal-supra", "abdominal-completo"],
+    "Girar o tronco": ["russian-twist", "abdominal-cruzado", "abdominal-bicicleta"],
+    "Estabilizar o tronco": ["prancha", "prancha-lateral", "escalador", "bird-dog-no-tatame"],
+    "Saltar em ritmo contínuo": ["salto-basico", "salto-ritmado-sem-corda"],
+    "Correr no lugar em ritmo contínuo": ["corrida-no-lugar-com-a-corda", "corrida-estacionaria-sem-corda"],
+    "Saltar na vertical com potência": ["salto-com-joelho-alto", "salto-vertical-com-contramovimento"]
+  },
+  "montagens": {
+    "flexao-de-braco": [[], ["tatame"]],
+    "flexao-fechada": [[], ["tatame"]],
+    "escalador": [[], ["tatame"]],
+    "prancha": [[], ["tatame"]],
+    "barra-fixa-pronada": [["barra-fixa"], ["barra-fixa", "super-band"]],
+    "barra-fixa-supinada": [["barra-fixa"], ["barra-fixa", "super-band"]],
+    "mergulho-no-banco": [["banco"], ["banco", "anilhas"]],
+    "stiff-terra-romeno": [["anilhas", "barra-macica"]],
+    "encolhimento-de-ombros": [["anilhas", "barra-macica"]],
+    "afundo-passada": [["anilhas", "barra-macica"]],
+    "agachamento-sumo": [["anilhas", "barra-macica"]],
+    "elevacao-frontal": [["anilhas", "halteres"]],
+    "elevacao-de-panturrilha-em-pe": [["anilhas", "barra-macica", "cavalete"]],
+    "elevacao-de-panturrilha-sentado": [["anilhas", "barra-macica", "banco"]]
+  }
+}

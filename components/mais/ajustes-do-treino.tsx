@@ -1,7 +1,7 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,7 +20,7 @@ import {
   semEvitados,
   type ChaveLigada,
 } from "@/lib/preferencias";
-import { salvarPrefs } from "@/lib/queries/mais";
+import { salvarPrefsOuDesfazer } from "@/lib/queries/mais";
 import type { LinhaPerfil } from "@/lib/types";
 
 /** Os interruptores do treino (SPEC §14.4). */
@@ -28,17 +28,17 @@ const INTERRUPTORES: { chave: ChaveLigada; titulo: string; descricao: string }[]
   {
     chave: "avancar_sozinho",
     titulo: "Avançar sozinho",
-    descricao: "Ao zerar o descanso, o player já vai para o próximo passo.",
+    descricao: "Quando o descanso termina, o treino avança para o próximo passo.",
   },
   {
     chave: "descanso_som",
     titulo: "Som no fim do descanso",
-    descricao: "Um apito curto quando o timer zera.",
+    descricao: "Um apito curto quando a contagem termina.",
   },
   {
     chave: "descanso_vibra",
     titulo: "Vibração",
-    descricao: "O celular vibra quando o timer zera (onde existir).",
+    descricao: "O celular vibra no fim da contagem, quando há suporte.",
   },
   {
     chave: "cardio_voz",
@@ -83,12 +83,14 @@ export function AjustesDoTreino({
   const evitados = evitarExercicios(prefs);
 
   const gravar = useCallback(
-    async (novas: Parameters<typeof salvarPrefs>[0]["prefs"]) => {
+    async (novas: Parameters<typeof salvarPrefsOuDesfazer>[0]["prefs"]) => {
       setSalvando(true);
       try {
-        await salvarPrefs({ userId, prefs: novas, cliente });
+        await salvarPrefsOuDesfazer({ userId, prefs: novas, cliente });
+        return true;
       } catch {
         toast.error("Não consegui salvar agora.");
+        return false;
       } finally {
         setSalvando(false);
       }
@@ -96,43 +98,33 @@ export function AjustesDoTreino({
     [userId, cliente],
   );
 
-  /*
-   * SPEC §22.7 item 3: os dois campos gravam sozinhos, como os interruptores
-   * ao lado — dois modelos de gravação na mesma folha faziam duvidar se o
-   * interruptor tinha pegado. Enquanto se digita a gravação é silenciosa (um
-   * texto pela metade não vira erro); ao sair do campo, o que não for número
-   * volta ao valor gravado e diz por quê.
-   */
+  // Confirmar ao sair do campo ou com Enter evita guardar só o primeiro dígito.
   const gravarPreparacao = useCallback(
-    async (texto: string, aoSair: boolean) => {
+    async (texto: string) => {
       const n = lerNumero(texto.trim());
       if (n === null || n < 0) {
-        if (aoSair) {
-          toast.error("Digite os segundos da preparação, por exemplo 10.");
-          setPreparacao(String(preparacaoGravada));
-        }
+        toast.error("Digite os segundos da preparação, por exemplo 10.");
+        setPreparacao(String(preparacaoGravada));
         return;
       }
       if (n === preparacaoGravada) return;
-      await gravar(comPreparacaoS(prefs, n));
+      if (!(await gravar(comPreparacaoS(prefs, n)))) return;
       toast.success(n === 0 ? "Sem tela de preparação." : `Preparação: ${n} s.`);
     },
     [gravar, prefs, preparacaoGravada],
   );
 
   const gravarDescanso = useCallback(
-    async (texto: string, aoSair: boolean) => {
+    async (texto: string) => {
       const limpo = texto.trim();
       const n = limpo === "" ? null : lerNumero(limpo);
       if (limpo !== "" && (n === null || n <= 0)) {
-        if (aoSair) {
-          toast.error("Digite os segundos do descanso, por exemplo 90.");
-          setDescansoTexto(descansoGravado === null ? "" : String(descansoGravado));
-        }
+        toast.error("Digite os segundos do descanso, por exemplo 90.");
+        setDescansoTexto(descansoGravado === null ? "" : String(descansoGravado));
         return;
       }
       if (n === descansoGravado) return;
-      await gravar(comDescansoPadraoS(prefs, n));
+      if (!(await gravar(comDescansoPadraoS(prefs, n)))) return;
       toast.success(
         n === null ? "Descanso: o do exercício." : `Descanso padrão: ${n} s.`,
       );
@@ -140,28 +132,13 @@ export function AjustesDoTreino({
     [gravar, prefs, descansoGravado],
   );
 
-  /* o mesmo atraso dos campos numéricos do player: grava quem parou de digitar */
-  useEffect(() => {
-    if (preparacao === String(preparacaoGravada)) return;
-    const relogio = window.setTimeout(() => void gravarPreparacao(preparacao, false), 700);
-    return () => window.clearTimeout(relogio);
-  }, [preparacao, preparacaoGravada, gravarPreparacao]);
-
-  useEffect(() => {
-    const gravadoTexto = descansoGravado === null ? "" : String(descansoGravado);
-    if (descansoTexto === gravadoTexto) return;
-    const relogio = window.setTimeout(() => void gravarDescanso(descansoTexto, false), 700);
-    return () => window.clearTimeout(relogio);
-  }, [descansoTexto, descansoGravado, gravarDescanso]);
-
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-end gap-2">
         <div className="flex min-w-0 flex-1 flex-col gap-1">
-          <Label htmlFor="pref-preparacao">Preparação (s)</Label>
+          <Label htmlFor="pref-preparacao">Preparação (segundos)</Label>
           <p className="text-muted-foreground text-xs">
-            A contagem antes do primeiro exercício. 0 = sem preparação (padrão{" "}
-            {PREPARACAO_PADRAO_S}).
+            Use 0 para pular a preparação. O padrão é {PREPARACAO_PADRAO_S} segundos.
           </p>
         </div>
         <Input
@@ -170,17 +147,17 @@ export function AjustesDoTreino({
           inputMode="numeric"
           value={preparacao}
           onChange={(e) => setPreparacao(e.target.value)}
-          onBlur={() => void gravarPreparacao(preparacao, true)}
+          onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
+          onBlur={() => void gravarPreparacao(preparacao)}
           className="alvo numero h-12 w-24"
         />
       </div>
 
       <div className="flex items-end gap-2">
         <div className="flex min-w-0 flex-1 flex-col gap-1">
-          <Label htmlFor="pref-descanso">Descanso padrão (s)</Label>
+          <Label htmlFor="pref-descanso">Descanso padrão (segundos)</Label>
           <p className="text-muted-foreground text-xs">
-            Vale para todos os exercícios. Vazio = o descanso do próprio
-            exercício, como está no guia.
+            Deixe em branco para usar o descanso de cada exercício.
           </p>
         </div>
         {/* a frase acima já diz o que o vazio significa: aqui cabia só
@@ -192,7 +169,8 @@ export function AjustesDoTreino({
           placeholder="—"
           value={descansoTexto}
           onChange={(e) => setDescansoTexto(e.target.value)}
-          onBlur={() => void gravarDescanso(descansoTexto, true)}
+          onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
+          onBlur={() => void gravarDescanso(descansoTexto)}
           className="alvo numero h-12 w-24"
         />
       </div>
@@ -221,7 +199,9 @@ export function AjustesDoTreino({
           <p className="text-muted-foreground text-xs">
             {evitados.length === 0
               ? "Nenhum por enquanto. Quando você marcar algum, ele passa a aparecer por último nas listas."
-              : `${evitados.length} marcado(s); aparecem por último nas listas.`}
+              : evitados.length === 1
+                ? "1 marcado. Aparece por último nas listas."
+                : `${evitados.length} marcados. Aparecem por último nas listas.`}
           </p>
         </div>
         <Button

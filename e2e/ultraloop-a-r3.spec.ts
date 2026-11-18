@@ -9,6 +9,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import {
   abrirVisaoGeral,
+  avancarNoPlayerAte,
   comecarNoPlayer,
   comecarOTreinoDoDia,
   entrarNoApp,
@@ -261,20 +262,11 @@ test.describe("§22.5 itens 4 e 5 — as perguntas chegam sem resposta e com cor
       "true",
     );
 
+    // O toque em “Firme” já avança sozinho. No restante do percurso, os
+    // controles que levam ao feedback nunca incluem a ação de CONCLUÍ-LO.
+    await expect(firme).toBeHidden();
     const sensacao = page.getByRole("radiogroup", { name: "Sensação" });
-    for (let i = 0; i < 80 && !(await sensacao.isVisible().catch(() => false)); i++) {
-      const pular = page.getByRole("button", { name: "Pular descanso" });
-      if (await pular.isVisible().catch(() => false)) {
-        await pular.click();
-        continue;
-      }
-      const pergunta = primarioDaPergunta(page);
-      if (await pergunta.isVisible().catch(() => false)) {
-        await pergunta.click();
-        continue;
-      }
-      await page.getByRole("button", { name: "Próximo passo" }).click();
-    }
+    await avancarNoPlayerAte(page, sensacao);
     await expect(sensacao).toBeVisible();
     for (const marcada of await sensacao
       .getByRole("radio")
@@ -299,7 +291,8 @@ test.describe("§22.5 itens 6, 7, 8 e 10 — a barra, o descanso e o que se ouve
       /Treino A — exercício 1 de 6/,
     );
     const barra = page.getByRole("progressbar", { name: "Progresso do treino" });
-    await expect(barra).toHaveAttribute("aria-valuetext", "exercício 1 de 6");
+    const total = await barra.getAttribute("aria-valuemax");
+    await expect(barra).toHaveAttribute("aria-valuetext", `0 de ${total} séries feitas · exercício 1 de 6`);
     await expect(barra).toHaveAttribute("aria-valuemax", /\d+/);
 
     // item 10: o rótulo visível diz o que o número é

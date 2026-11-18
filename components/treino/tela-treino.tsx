@@ -34,6 +34,7 @@ import { formatarDiaEData } from "@/lib/formato";
 import {
   alternativaDeCorda,
   avisoCorridaEPerna,
+  detalheDoTreino,
   estadosPorExercicio,
   houveCardioHoje,
   previaDoTreino,
@@ -73,8 +74,10 @@ import {
   useSoltasDoDia,
   useUltimoPeso,
 } from "@/lib/queries/dados";
+import { carregarSessaoLocal } from "@/lib/queries/sessao";
+import { progressoDaSessao, type SessaoLocal } from "@/lib/sessao";
 import { useHoje } from "@/lib/relogio";
-import { guiaVisto, ligado, opcoesDeMontagem } from "@/lib/preferencias";
+import { guiaVisto, guiaVistoNoAparelho, ligado, opcoesDeMontagem } from "@/lib/preferencias";
 import {
   faixaDaRetomada,
   pausaCorrente,
@@ -103,7 +106,7 @@ const AVISO_DA_ESCOLHA: Record<EscolhaRetomada, string> = {
  * enquanto a gravação ainda está na fila (§8). Recarregar zera a marca, que é
  * o comportamento desejado: quem fecha o app sem reconhecer vê o guia outra vez.
  */
-let jaMandouParaOGuia = false;
+const contasEnviadasAoGuia = new Set<string>();
 
 /** Quantas semanas para trás a sequência de semanas precisa ler. */
 const SEMANAS_LIDAS = 16;
@@ -142,7 +145,7 @@ export function TelaTreino({ userId }: { userId: string }) {
   const perfil = perfilQ.data ?? null;
 
   /* SPEC §20.1: conta sem `prefs.guia_visto` cai no guia antes de tudo. */
-  const semGuiaVisto = perfil !== null && !guiaVisto(perfil.prefs);
+  const semGuiaVisto = perfil !== null && !guiaVisto(perfil.prefs, guiaVistoNoAparelho(userId));
   /*
    * Quem desvia é ESTA montagem: a marca de módulo só impede um segundo desvio.
    * Sem isto, voltar para a aba Treino sem ter reconhecido o guia (o "Ir" do
@@ -150,13 +153,13 @@ export function TelaTreino({ userId }: { userId: string }) {
    * desviava mais e também não desenhava nada.
    */
   const desviouAqui = useRef(false);
-  const desviando = semGuiaVisto && (desviouAqui.current || !jaMandouParaOGuia);
+  const desviando = semGuiaVisto && (desviouAqui.current || !contasEnviadasAoGuia.has(userId));
   useEffect(() => {
-    if (!semGuiaVisto || jaMandouParaOGuia) return;
-    jaMandouParaOGuia = true;
+    if (!semGuiaVisto || contasEnviadasAoGuia.has(userId)) return;
+    contasEnviadasAoGuia.add(userId);
     desviouAqui.current = true;
     router.replace("/mais/guia?inicio=1");
-  }, [semGuiaVisto, router]);
+  }, [semGuiaVisto, router, userId]);
 
   const dia = useMemo(() => {
     if (!hoje || !perfil) return null;
@@ -277,6 +280,16 @@ export function TelaTreino({ userId }: { userId: string }) {
   }, [treinoId, estadosQ.data, eventosQ.data, perfil?.prefs, trocas, ordem]);
 
   const aberta = sessaoAberta(abertasQ.data ?? []);
+  const abertaId = aberta?.id;
+  const [abertaLocal, setAbertaLocal] = useState<SessaoLocal | null>(null);
+  useEffect(() => {
+    if (!abertaId) return;
+    let ativa = true;
+    void carregarSessaoLocal(abertaId).then((sessao) => {
+      if (ativa) setAbertaLocal(sessao);
+    });
+    return () => { ativa = false; };
+  }, [abertaId]);
   const seriesDaAbertaQ = useSeriesDaSessao(aberta?.id ?? null);
 
   /*
@@ -289,18 +302,19 @@ export function TelaTreino({ userId }: { userId: string }) {
   const desenhado = Boolean(hoje && perfil && dia && intervalo) && !desviando;
   useEffect(() => {
     const alvo = refSentinela.current;
-    if (!alvo || typeof IntersectionObserver === "undefined") return;
-    const observador = new IntersectionObserver(
-      ([entrada]) => {
-        if (!entrada) return;
-        setPassouDoCard(
-          !entrada.isIntersecting && entrada.boundingClientRect.top < 0,
-        );
-      },
-      { threshold: 0 },
-    );
-    observador.observe(alvo);
-    return () => observador.disconnect();
+    if (!alvo) return;
+    const atualizar = () => setPassouDoCard(alvo.getBoundingClientRect().bottom <= 0);
+    // Um salto até o fim pode levar a sentinela de baixo da tela para cima
+    // sem jamais intersectá-la. O observador também cuida de mudanças de layout.
+    const observador = typeof IntersectionObserver === "undefined"
+      ? null : new IntersectionObserver(atualizar);
+    observador?.observe(alvo);
+    window.addEventListener("scroll", atualizar, { passive: true });
+    atualizar();
+    return () => {
+      window.removeEventListener("scroll", atualizar);
+      observador?.disconnect();
+    };
   }, [desenhado]);
 
   /* SPEC §22.7 item 9: voltar do player avisa e destaca quem tem o "Continuar" */
@@ -368,7 +382,9 @@ export function TelaTreino({ userId }: { userId: string }) {
     aberta && treinoId && aberta.data === hoje && aberta.workoutId === treinoId
       ? {
           id: aberta.id,
-          progresso: progressoDaAberta(aberta.workoutId, seriesDaAbertaQ.data ?? []).texto,
+          progresso: abertaLocal?.id === aberta.id
+            ? progressoDaSessao(abertaLocal).texto
+            : progressoDaAberta(aberta.workoutId, seriesDaAbertaQ.data ?? [], abertasQ.data?.find((s) => s.id === aberta.id)?.plano).texto,
         }
       : null;
 
@@ -581,7 +597,7 @@ export function TelaTreino({ userId }: { userId: string }) {
       {passouDoCard && dia.tipo === "forca" && treinoId ? (
         <FaixaFixaDoDia
           titulo={resumoDoTreino(treinoId).nome}
-          detalhe={abertaDoDia ? abertaDoDia.progresso : resumoDoTreino(treinoId).foco}
+          detalhe={abertaDoDia ? abertaDoDia.progresso : detalheDoTreino(treinoId)}
           rotulo={abertaDoDia ? "Continuar" : "Começar"}
           href={abertaDoDia ? `/treinar/${abertaDoDia.id}` : undefined}
           aoTocar={() => {

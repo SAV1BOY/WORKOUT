@@ -372,6 +372,10 @@ create policy "progresso_dono_select" on storage.objects for select to authentic
   using (bucket_id = 'progresso' and (storage.foldername(name))[1] = auth.uid()::text);
 create policy "progresso_dono_insert" on storage.objects for insert to authenticated
   with check (bucket_id = 'progresso' and (storage.foldername(name))[1] = auth.uid()::text);
+drop policy if exists "progresso_dono_update" on storage.objects;
+create policy "progresso_dono_update" on storage.objects for update to authenticated
+  using (bucket_id = 'progresso' and (storage.foldername(name))[1] = auth.uid()::text)
+  with check (bucket_id = 'progresso' and (storage.foldername(name))[1] = auth.uid()::text);
 create policy "progresso_dono_delete" on storage.objects for delete to authenticated
   using (bucket_id = 'progresso' and (storage.foldername(name))[1] = auth.uid()::text);
 
@@ -435,5 +439,204 @@ do $$
 begin
   if exists (select 1 from pg_roles where rolname = 'anon') then
     execute 'revoke all on public.lembretes_inscricoes from anon';
+  end if;
+end $$;
+
+-- ---------- lembretes II: o disparo no horário (SPEC §23.11) ----------
+-- A cada 5 minutos o pg_cron chama `lembretes_tick()`, que manda para a rota
+-- `POST /api/lembretes/disparar` (pg_net) o mínimo que a regra de §23.10
+-- precisa de quem tem um lembrete ligado e um aparelho inscrito. A rota decide,
+-- envia o push e devolve o resultado por `lembretes_resultado()`.
+-- A URL e o segredo moram no Vault (`lembretes_url`, `lembretes_segredo`):
+-- nenhum valor aqui. Sem eles (ou sem o pg_net), o tick não faz nada.
+-- Expand-only: só cria (extensões, tabela, policy, funções, job).
+create extension if not exists pg_cron with schema pg_catalog;
+create extension if not exists pg_net with schema extensions;
+
+-- Um lembrete que saiu: no máximo um por conta, tipo e dia.
+create table if not exists public.lembretes_enviados (
+  id          uuid primary key default gen_random_uuid(),
+  user_id     uuid not null references auth.users(id) on delete cascade,
+  tipo        text not null check (tipo in ('treino', 'corrida')),
+  dia         date not null,
+  enviado_em  timestamptz not null default now(),
+  unique (user_id, tipo, dia)
+);
+
+-- RLS: o dono só LÊ os seus (o "Último lembrete" da tela). Quem grava é
+-- `lembretes_resultado()`; ninguém insere, altera ou apaga pela API.
+alter table public.lembretes_enviados enable row level security;
+drop policy if exists "lembretes_enviados_select" on public.lembretes_enviados;
+create policy "lembretes_enviados_select" on public.lembretes_enviados for select to authenticated
+  using (user_id = auth.uid());
+do $$
+begin
+  if exists (select 1 from pg_roles where rolname = 'anon') then
+    execute 'revoke all on public.lembretes_enviados from anon';
+  end if;
+  if exists (select 1 from pg_roles where rolname = 'authenticated') then
+    execute 'revoke insert, update, delete, truncate on public.lembretes_enviados from authenticated';
+  end if;
+end $$;
+
+-- O tick (SPEC §23.15): executa quem é dono do job (postgres) e o
+-- service_role pelo padrão do projeto Supabase (o app nunca o usa); anon e
+-- authenticated, não. Lê o Vault e manda para a rota, em LOTES, o mínimo de
+-- cada conta com lembrete ligado e aparelho inscrito: de `prefs` só as chaves
+-- que a regra lê (`lembretes`, `dias_de_treino`), cada uma só se couber, e
+-- listas com teto. Até 50 contas e 256 KiB por POST; uma conta que sozinha
+-- passe de 32 KiB não vai — nunca derruba o lote das outras.
+create or replace function public.lembretes_tick() returns void
+  language plpgsql security definer set search_path = public as $$
+declare
+  v_url      text;
+  v_segredo  text;
+  v_hoje     date := (now() at time zone 'America/Sao_Paulo')::date;
+  v_conta    jsonb;
+  v_tamanho  int;
+  v_lote     jsonb := '[]'::jsonb;
+  v_contas   int := 0;
+  v_bytes    int := 0;
+  v_puladas  int := 0;
+begin
+  -- sem o pg_net ou sem o Vault: nada a fazer, e nada quebra
+  if not exists (select 1 from pg_extension where extname = 'pg_net')
+     or to_regclass('vault.decrypted_secrets') is null then
+    return;
+  end if;
+  execute 'select decrypted_secret from vault.decrypted_secrets where name = $1 limit 1'
+    into v_url using 'lembretes_url';
+  execute 'select decrypted_secret from vault.decrypted_secrets where name = $1 limit 1'
+    into v_segredo using 'lembretes_segredo';
+  if coalesce(v_url, '') = '' or coalesce(v_segredo, '') = '' then
+    return;
+  end if;
+
+  for v_conta in
+    select jsonb_build_object(
+      'user_id', p.user_id,
+      'perfil', jsonb_build_object(
+        'data_inicio', p.data_inicio, 'fase_atual', p.fase_atual, 'fase_desde', p.fase_desde,
+        'ultimo_treino', p.ultimo_treino, 'semana_corrida', p.semana_corrida,
+        'semana_corda', p.semana_corda, 'semana_fixa', p.semana_fixa,
+        'prefs', jsonb_strip_nulls(jsonb_build_object(
+          'lembretes', case when octet_length((p.prefs -> 'lembretes')::text) <= 1024
+                            then p.prefs -> 'lembretes' end,
+          'dias_de_treino', case when octet_length((p.prefs -> 'dias_de_treino')::text) <= 256
+                                 then p.prefs -> 'dias_de_treino' end))),
+      'overrides', coalesce((
+        select jsonb_agg(x.linha) from (
+          select jsonb_build_object('data', o.data, 'tipo', o.tipo,
+                                    'workout_id', o.workout_id, 'sessao', o.sessao) as linha
+          from public.schedule_overrides o
+          where o.user_id = p.user_id and o.data between v_hoje - 8 and v_hoje + 7
+          order by o.data
+          limit 40) x), '[]'::jsonb),
+      'sessoes', coalesce((
+        select jsonb_agg(x.linha) from (
+          select jsonb_build_object('id', s.id, 'data', s.data, 'status', s.status,
+                                    'workout_id', s.workout_id) as linha
+          from public.sessions s
+          where s.user_id = p.user_id and s.data between v_hoje - 8 and v_hoje
+          order by s.data desc
+          limit 40) x), '[]'::jsonb),
+      'cardios', coalesce((
+        select jsonb_agg(x.linha) from (
+          select jsonb_build_object('id', c.id, 'data', c.data, 'tipo', c.tipo,
+                                    'concluida', c.concluida) as linha
+          from public.cardio_sessions c
+          where c.user_id = p.user_id and c.data between v_hoje - 8 and v_hoje
+          order by c.data desc
+          limit 40) x), '[]'::jsonb),
+      'enviados', coalesce((
+        select jsonb_agg(jsonb_build_object('tipo', e.tipo, 'dia', e.dia))
+        from public.lembretes_enviados e
+        where e.user_id = p.user_id and e.dia = v_hoje), '[]'::jsonb),
+      'inscricoes', coalesce((
+        select jsonb_agg(x.linha) from (
+          select jsonb_build_object('endpoint', i.endpoint, 'p256dh', i.p256dh, 'auth', i.auth) as linha
+          from public.lembretes_inscricoes i
+          where i.user_id = p.user_id
+          order by i.criado_em desc
+          limit 10) x), '[]'::jsonb)
+    )
+    from public.profiles p
+    where (p.prefs #> '{lembretes,treino,ligado}' = 'true'::jsonb
+           or p.prefs #> '{lembretes,corrida,ligado}' = 'true'::jsonb)
+      and exists (select 1 from public.lembretes_inscricoes i where i.user_id = p.user_id)
+    order by p.user_id
+  loop
+    v_tamanho := octet_length(v_conta::text);
+    -- uma conta que sozinha não cabe fica de fora (e é contada), as outras seguem
+    if v_tamanho > 32768 then
+      v_puladas := v_puladas + 1;
+      continue;
+    end if;
+    -- lote cheio (50 contas ou 256 KiB): manda e começa outro
+    if v_contas > 0 and (v_contas >= 50 or v_bytes + v_tamanho > 262144) then
+      execute 'select net.http_post(url := $1, body := $2, headers := $3, timeout_milliseconds := 30000)'
+        using v_url,
+              jsonb_build_object('agora', now(), 'usuarios', v_lote),
+              jsonb_build_object('Content-Type', 'application/json', 'x-lembretes-segredo', v_segredo);
+      v_lote := '[]'::jsonb;
+      v_contas := 0;
+      v_bytes := 0;
+    end if;
+    v_lote := v_lote || jsonb_build_array(v_conta);
+    v_contas := v_contas + 1;
+    v_bytes := v_bytes + v_tamanho;
+  end loop;
+
+  if v_puladas > 0 then
+    raise log 'lembretes_tick: % conta(s) acima de 32 KiB ficaram de fora', v_puladas;
+  end if;
+  -- ninguém (mais) a avisar: não chama a rede
+  if v_contas = 0 then
+    return;
+  end if;
+  execute 'select net.http_post(url := $1, body := $2, headers := $3, timeout_milliseconds := 30000)'
+    using v_url,
+          jsonb_build_object('agora', now(), 'usuarios', v_lote),
+          jsonb_build_object('Content-Type', 'application/json', 'x-lembretes-segredo', v_segredo);
+end $$;
+revoke all on function public.lembretes_tick() from public, anon, authenticated;
+
+-- O resultado: a rota chama com a chave anon, então o segredo é a proteção.
+-- Compara os sha256 dos dois (32 bytes cada): nada de atalho no primeiro byte
+-- diferente que deixe adivinhar o segredo aos pedaços.
+create or replace function public.lembretes_resultado(segredo text, enviados jsonb, expirados text[])
+  returns int
+  language plpgsql security definer set search_path = public as $$
+declare
+  v_segredo  text;
+  v_gravados int := 0;
+begin
+  if to_regclass('vault.decrypted_secrets') is not null then
+    execute 'select decrypted_secret from vault.decrypted_secrets where name = $1 limit 1'
+      into v_segredo using 'lembretes_segredo';
+  end if;
+  if coalesce(v_segredo, '') = '' or segredo is null
+     or sha256(convert_to(segredo, 'UTF8')) <> sha256(convert_to(v_segredo, 'UTF8')) then
+    raise exception 'segredo dos lembretes inválido' using errcode = '28000';
+  end if;
+  insert into public.lembretes_enviados (user_id, tipo, dia)
+  select (e ->> 'user_id')::uuid, e ->> 'tipo', (e ->> 'dia')::date
+  from jsonb_array_elements(coalesce(enviados, '[]'::jsonb)) e
+  where e ->> 'tipo' in ('treino', 'corrida')
+  on conflict (user_id, tipo, dia) do nothing;
+  get diagnostics v_gravados = row_count;
+  -- 404/410 do serviço de push: a inscrição não existe mais (RFC 8030 §7.3)
+  delete from public.lembretes_inscricoes where endpoint = any(coalesce(expirados, '{}'::text[]));
+  return v_gravados;
+end $$;
+revoke all on function public.lembretes_resultado(text, jsonb, text[]) from public;
+grant execute on function public.lembretes_resultado(text, jsonb, text[]) to anon, authenticated;
+
+-- O job: desagendado pelo nome se já existe e agendado de novo (um job só).
+do $$
+begin
+  if exists (select 1 from pg_extension where extname = 'pg_cron') then
+    perform cron.unschedule(jobid) from cron.job where jobname = 'lembretes';
+    perform cron.schedule('lembretes', '*/5 * * * *', 'select public.lembretes_tick()');
   end if;
 end $$;

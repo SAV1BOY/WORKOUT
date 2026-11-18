@@ -62,7 +62,7 @@ async function criarContaPelaTela(
 ): Promise<void> {
   await page.goto("/login");
   await page.getByLabel("E-mail").fill(email);
-  await page.getByLabel("Senha").fill(senha);
+  await page.getByLabel("Senha", { exact: true }).fill(senha);
   await page.getByRole("button", { name: "Criar conta" }).click();
 }
 
@@ -317,7 +317,7 @@ test.describe("Mais → Contas (SPEC §21.5.3)", () => {
 
     // a rota, na mão, não lhe mostra lista nenhuma
     await page.goto("/mais/contas");
-    await expect(page.getByText("Só o dono vê esta tela.")).toBeVisible();
+    await expect(page.getByText("Esta tela é do dono do app")).toBeVisible();
     await expect(page.getByText(EMAIL_DONO)).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Salvar" })).toHaveCount(0);
 

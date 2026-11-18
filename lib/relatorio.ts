@@ -4,7 +4,8 @@
  * nenhum React. As contas de gráfico continuam em `lib/progresso.ts`; aqui
  * mora o **histórico**, que é novo.
  */
-import { acharTreino } from "@/lib/dados";
+import { minutosDoPlano } from "@/lib/cardio";
+import { acharTreino, ehTreinoDoPrograma } from "@/lib/dados";
 import { formatarMinutos } from "@/lib/formato";
 import { ehSessaoLivre, tituloDoPlano } from "@/lib/livre";
 import {
@@ -16,7 +17,6 @@ import {
   type SessaoBruta,
   type SoltaBruta,
 } from "@/lib/progresso";
-import { ehTreinoDoPrograma } from "@/lib/sessao";
 import type { RetomadaGravada } from "@/lib/retomada";
 import type { MotivoProgressao, TipoCardio } from "@/lib/types";
 
@@ -165,20 +165,26 @@ export function registros({
 
   const deCardio: Registro[] = cardios
     .filter((c) => c.concluida && dentro(c.data))
-    .map((c, i) => ({
-      chave: `cardio:${c.data}:${c.tipo}:${i}`,
-      tipo: "cardio" as const,
-      data: c.data,
-      titulo: NOME_DO_CARDIO[c.tipo] ?? NOME_DO_CARDIO.outro,
-      detalhe: [
-        c.semana_plano ? `semana ${c.semana_plano}` : null,
-        c.duracao_min ? formatarMinutos(c.duracao_min) : null,
-      ]
-        .filter((p): p is string => p !== null)
-        .join(" · "),
-      motor: null,
-      href: `/cardio/${c.tipo}`,
-    }));
+    .map((c, i) => {
+      const segundos = c.planejado && typeof c.planejado === "object" && "total_s" in c.planejado
+        ? c.planejado.total_s : undefined;
+      const planejados = typeof segundos === "number" ? minutosDoPlano(segundos) : null;
+      return {
+        chave: `cardio:${c.data}:${c.tipo}:${i}`,
+        tipo: "cardio" as const,
+        data: c.data,
+        titulo: NOME_DO_CARDIO[c.tipo] ?? NOME_DO_CARDIO.outro,
+        detalhe: [
+          c.semana_plano ? `semana ${c.semana_plano}` : null,
+          c.duracao_min ? formatarMinutos(c.duracao_min) : null,
+          planejados !== null ? `${formatarMinutos(planejados)} planejados` : null,
+        ]
+          .filter((p): p is string => p !== null)
+          .join(" · "),
+        motor: null,
+        href: `/cardio/${c.tipo}`,
+      };
+    });
 
   const porDia = new Map<string, number>();
   for (const s of soltas) {

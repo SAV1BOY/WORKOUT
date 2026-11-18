@@ -10,21 +10,15 @@
 "use client";
 
 import { useQuery, type QueryClient, type UseQueryResult } from "@tanstack/react-query";
-import {
-  CHAVE_DA_TABELA,
-  TABELAS_BACKUP,
-  emLotes,
-  linhasParaImportar,
-  montarBackup,
-  type Backup,
-  type Linha,
-  type TabelaBackup,
-} from "@/lib/backup";
+import { CHAVE_DA_TABELA, TABELAS_BACKUP, type TabelaBackup } from "@/lib/tabelas-do-usuario";
+import type { Backup, Linha } from "@/lib/backup";
 import { adiarFase2 } from "@/lib/calendario";
 import { esperarFila } from "@/lib/outbox";
+import { guardarConsultasAgora } from "@/lib/persistencia-query";
 import { enfileirarEscrita } from "@/lib/outbox-supabase";
 import { novoId } from "@/lib/queries/acoes";
 import { chaves } from "@/lib/queries/dados";
+import { lerTabelaCompleta } from "@/lib/queries/ler";
 import { gravarPerfil, type MudancaDePerfil } from "@/lib/queries/perfil";
 import { clienteNavegador } from "@/lib/supabase/client";
 import type { LinhaEstadoExercicio, LinhaPerfil, Prefs } from "@/lib/types";
@@ -49,6 +43,108 @@ export async function salvarPrefs(opcoes: {
     mudanca: { prefs: opcoes.prefs },
     cliente: opcoes.cliente,
   });
+}
+
+/**
+ * As gravações de prefs em curso num mesmo `QueryClient` (SPEC §23.15, aceite
+ * 6). Um grupo começa quando não há nenhuma em curso e termina quando a última
+ * delas se resolve. `confirmadas` são as prefs que de fato entraram na fila por
+ * último (a de maior ordem entre as que passaram) — ou as do cache quando o
+ * grupo começou, se nenhuma passou.
+ */
+interface GrupoDeGravacoes {
+  confirmadas: Prefs | undefined;
+  ordemConfirmada: number;
+  ultimaOrdem: number;
+  prefsDaUltima: Prefs | undefined;
+  ultimaFalhou: boolean;
+  emCurso: number;
+  fim: Promise<void>;
+  terminar: () => void;
+}
+
+const gruposDeGravacoes = new WeakMap<QueryClient, GrupoDeGravacoes>();
+
+function iguais(a: Prefs | undefined, b: Prefs | undefined): boolean {
+  // o cache guarda uma cópia (structural sharing), não a referência: compara o conteúdo
+  return JSON.stringify(a) === JSON.stringify(b);
+}
+
+/**
+ * Grava as prefs e, se não deu para pôr na fila (o IndexedDB recusou), desfaz
+ * o que `gravarPerfil` já tinha posto no cache — para as ÚLTIMAS prefs que de
+ * fato entraram na fila, não para as de antes de cada chamada (SPEC §23.15,
+ * aceite 6). Com gravações sobrepostas, cada uma nasce das prefs que a
+ * anterior pôs no cache e as leva junto para a fila:
+ *
+ * - enquanto houver gravação em curso, o cache fica com a última tentada;
+ * - quando a última se resolve, se a de maior ordem falhou, o cache volta às
+ *   confirmadas (a tela, o "Próximo" e o .ics mostram o gravado);
+ * - uma gravação que falhou mas cuja mudança foi para a fila dentro de uma
+ *   posterior que passou termina bem (a tela diz "salvo", não "não deu");
+ * - se nenhuma posterior passou, o erro sobe para quem chamou avisar.
+ */
+export async function salvarPrefsOuDesfazer(opcoes: {
+  userId: string;
+  prefs: Prefs;
+  cliente: QueryClient;
+}): Promise<void> {
+  const { cliente } = opcoes;
+  let grupo = gruposDeGravacoes.get(cliente);
+  if (!grupo) {
+    let terminar: () => void = () => undefined;
+    const fim = new Promise<void>((resolver) => {
+      terminar = resolver;
+    });
+    grupo = {
+      confirmadas: cliente.getQueryData<LinhaPerfil | null>(chaves.perfil())?.prefs,
+      ordemConfirmada: 0,
+      ultimaOrdem: 0,
+      prefsDaUltima: undefined,
+      ultimaFalhou: false,
+      emCurso: 0,
+      fim,
+      terminar,
+    };
+    gruposDeGravacoes.set(cliente, grupo);
+  }
+  grupo.ultimaOrdem += 1;
+  const ordem = grupo.ultimaOrdem;
+  grupo.prefsDaUltima = opcoes.prefs;
+  grupo.ultimaFalhou = false;
+  grupo.emCurso += 1;
+
+  let falha: { erro: unknown } | null = null;
+  try {
+    await salvarPrefs(opcoes);
+  } catch (erro) {
+    falha = { erro };
+  }
+
+  if (!falha && ordem > grupo.ordemConfirmada) {
+    grupo.confirmadas = opcoes.prefs;
+    grupo.ordemConfirmada = ordem;
+  }
+  if (falha && ordem === grupo.ultimaOrdem) grupo.ultimaFalhou = true;
+  grupo.emCurso -= 1;
+
+  if (grupo.emCurso === 0) {
+    gruposDeGravacoes.delete(cliente);
+    const { confirmadas, prefsDaUltima } = grupo;
+    // a última tentada não entrou na fila: o cache volta ao que entrou por último
+    if (grupo.ultimaFalhou && confirmadas) {
+      cliente.setQueryData<LinhaPerfil | null>(chaves.perfil(), (atual) =>
+        atual && iguais(atual.prefs, prefsDaUltima) ? { ...atual, prefs: confirmadas } : atual,
+      );
+    }
+    grupo.terminar();
+  }
+
+  if (!falha) return;
+  // espera o grupo terminar: uma posterior que passou levou esta mudança junto
+  await grupo.fim;
+  if (grupo.ordemConfirmada > ordem) return;
+  throw falha.erro;
 }
 
 /**
@@ -122,6 +218,17 @@ export async function salvarIncremento(opcoes: {
 }): Promise<void> {
   const { userId, exercicioId, incrementoKg, cliente, idsEmTela } = opcoes;
 
+  await enfileirarEscrita("estado_exercicio", {
+    tabela: "exercise_state",
+    op: "upsert",
+    linha: {
+      user_id: userId,
+      exercise_id: exercicioId,
+      incremento_kg: incrementoKg,
+    },
+    onConflict: "user_id,exercise_id",
+  });
+
   cliente.setQueryData<LinhaEstadoExercicio[]>(
     chaves.estados(idsEmTela),
     (atual) => {
@@ -134,7 +241,7 @@ export async function salvarIncremento(opcoes: {
             : l,
         );
       }
-      // Exercício ainda sem linha em `exercise_state`: o upsert abaixo vai
+      // Exercício ainda sem linha em `exercise_state`: o upsert vai
       // criá-la com os defaults do schema. Sem acrescentá-la aqui, o cache
       // (que é persistido no Dexie, SPEC §8) guardava o estado de antes e a
       // tela voltava dizendo "usando 4 kg" depois de recarregar, até o
@@ -163,50 +270,33 @@ export async function salvarIncremento(opcoes: {
     },
   );
 
-  await enfileirarEscrita("estado_exercicio", {
-    tabela: "exercise_state",
-    op: "upsert",
-    linha: {
-      user_id: userId,
-      exercise_id: exercicioId,
-      incremento_kg: incrementoKg,
-    },
-    onConflict: "user_id,exercise_id",
-  });
+  // A recarga imediata usa este cache enquanto a consulta ainda for recente.
+  await guardarConsultasAgora(cliente).catch(() => {});
 }
 
 /* ------------------------------------------------------------ backup */
 
-/** Quantas linhas por tabela o backup lê de uma vez. */
-export const LIMITE_EXPORTACAO = 5000;
-
-/**
- * Lê as 11 tabelas do usuário. A RLS já filtra por dono (§9), então não há
- * `user_id` no filtro: o que voltar é do usuário logado.
- */
-export async function lerTudo(): Promise<Partial<Record<TabelaBackup, Linha[]>>> {
-  const supabase = clienteNavegador();
+/** A exportação e a prévia percorrem as mesmas tabelas e chaves da conta. */
+async function lerTabelasDoBackup(userId: string | undefined, soChaves: boolean) {
   const tabelas: Partial<Record<TabelaBackup, Linha[]>> = {};
-
   for (const tabela of TABELAS_BACKUP) {
-    const { data, error } = await supabase
-      .from(tabela)
-      .select("*")
-      .limit(LIMITE_EXPORTACAO);
-    if (error) {
-      throw new Error(`Não consegui ler ${tabela}. ${error.message}`);
-    }
-    tabelas[tabela] = (data ?? []) as Linha[];
+    const colunas = soChaves ? CHAVE_DA_TABELA[tabela].join(",") : "*";
+    tabelas[tabela] = await lerTabelaCompleta<Linha>(tabela, colunas, tabela, userId);
   }
-
   return tabelas;
+}
+
+export function lerTudo(userId?: string) {
+  return lerTabelasDoBackup(userId, false);
 }
 
 export async function exportarBackup(opcoes: {
   userId: string;
   agora: string;
 }): Promise<Backup> {
-  const tabelas = await lerTudo();
+  const [{ montarBackup }, tabelas] = await Promise.all([
+    import("@/lib/backup"), lerTudo(opcoes.userId),
+  ]);
   return montarBackup({
     userId: opcoes.userId,
     exportadoEm: opcoes.agora,
@@ -215,25 +305,8 @@ export async function exportarBackup(opcoes: {
 }
 
 /** Só as chaves do que já existe, para a prévia da importação (§3.9). */
-export async function lerChavesExistentes(): Promise<
-  Partial<Record<TabelaBackup, Linha[]>>
-> {
-  const supabase = clienteNavegador();
-  const existentes: Partial<Record<TabelaBackup, Linha[]>> = {};
-
-  for (const tabela of TABELAS_BACKUP) {
-    const colunas = CHAVE_DA_TABELA[tabela].join(",");
-    const { data, error } = await supabase
-      .from(tabela)
-      .select(colunas)
-      .limit(LIMITE_EXPORTACAO);
-    if (error) {
-      throw new Error(`Não consegui ler ${tabela}. ${error.message}`);
-    }
-    existentes[tabela] = (data ?? []) as unknown as Linha[];
-  }
-
-  return existentes;
+export function lerChavesExistentes(userId?: string) {
+  return lerTabelasDoBackup(userId, true);
 }
 
 /** O tipo da fila que cada tabela usa (só para o item ficar legível). */
@@ -261,6 +334,7 @@ export async function importarBackup(opcoes: {
   userId: string;
   cliente: QueryClient;
 }): Promise<number> {
+  const { emLotes, linhasParaImportar } = await import("@/lib/backup");
   const { backup, userId, cliente } = opcoes;
   let linhas = 0;
 

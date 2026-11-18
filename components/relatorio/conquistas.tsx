@@ -161,7 +161,7 @@ function Grupo({
 }) {
   return (
     <div data-grupo={rotulo} className="flex flex-col gap-1.5">
-      <h3 className="text-muted-foreground text-rotulo font-medium tracking-wide uppercase">
+      <h3 className="text-muted-foreground text-rotulo tracking-wide uppercase">
         {rotulo} · {formatarNumero(lista.length)}
       </h3>
       {lista.length === 0 ? (

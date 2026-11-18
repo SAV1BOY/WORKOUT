@@ -63,7 +63,7 @@ Fluxo em uma página com rolagem, um bloco por exercício, na ordem do treino:
 - Marcar a série concluída inicia o **timer de descanso** (barra fixa no topo da tela, tempo do exercício; vibra e toca ao zerar; pode pular). Tela fica acesa durante a sessão (Wake Lock API).
 - No fim do bloco: toggle "Última repetição saiu firme?" (padrão: sim se todas as séries chegaram ao topo da faixa) e campo de nota curta. É esse toggle que o motor usa.
 - Rodapé: tempo total decorrido, séries feitas/total, "Concluir treino" → resumo (o que subiu, o que repetiu, recordes) + sensação 1–5 + peso do dia opcional → salva e volta para Hoje. "Abandonar" mantém o que foi registrado com `status = 'abandonada'`.
-- Trocar exercício: em cada bloco, "substituir hoje" abre a lista de exercícios do mesmo grupo que usam equipamento disponível (registro fica com o exercício substituto; a progressão do original não muda).
+- **Trocar exercício durante a sessão.** A aba Treino, a ficha e a visão geral oferecem alternativas do catálogo que compartilham músculos primários ou a função do movimento. A lista identifica o motivo da sugestão e permite escolher pelo equipamento disponível, incluindo peso corporal, tatame e elástico. As séries concluídas conservam seus exercícios, valores, índices e registros de esforço. Após começar o bloco, a alternativa assume as séries de trabalho restantes com suas próprias unidades e carga. A troca vale somente para a sessão, inclusive ao retomá-la sem rede. Cada um dos 81 exercícios da vitrine tem pelo menos uma alternativa executável com peso corporal, tatame ou elástico. Nos três cardios, os intervalos rítmicos usam segundos e os saltos de potência usam repetições. Uma variação avulsa tem prescrição e progresso próprios. O plano semanal da corda continua sendo registrado na tela de cardio.
 - Tudo que é digitado é salvo localmente a cada mudança (§8); o envio ao Supabase acontece por série concluída e ao finalizar.
 
 ### 3.3 `/cardio/[id]` — sessão de cardio
@@ -208,7 +208,7 @@ Design: sóbrio, alto contraste, tipografia grande nos números (é lido a um br
 
 ## 8. Offline e sincronização
 
-- Service worker (Serwist/`@serwist/next`) com precache do shell, das figuras e das fotos do programa atual; fotos do catálogo inteiro em cache sob demanda.
+- O service worker (Serwist/`@serwist/next`) instala as rotas do App Router, os ícones e a página de socorro. As imagens da fase podem ser baixadas em Mais. Abrir exercícios também guarda as mídias no aparelho.
 - **Sessão em andamento vive no cliente** (IndexedDB via Dexie ou `idb-keyval`): cada toque é salvo localmente na hora. Uma fila de saída (`outbox`) envia para o Supabase o que mudou (série concluída, sessão finalizada, peso, cardio). Se estiver sem rede, a fila espera e reenvia ao voltar (`online` event + retry com backoff). Nunca perder uma série registrada por falta de sinal.
 - Leitura: TanStack Query com cache persistido; a tela Hoje abre com os dados da última sincronização e atualiza em segundo plano.
 - Conflitos: um usuário, um aparelho por vez — última escrita vence; `sessions.id` gerado no cliente (uuid) para permitir criar offline.
@@ -293,7 +293,7 @@ Vitrine de **coleções derivadas** dos JSON, cada uma com capa (foto de um exer
 - **Parte do corpo em foco**: chips dos 8 grupos (`grupo` de `exercicios.json`); cada um lista os exercícios do grupo e oferece "Começar" com os 6 primeiros do grupo que usam equipamento disponível (ordem: compostos primeiro, depois isolamento, como a tabela de faixas de `progressao.json`).
 - **Por aparelho**: os itens de `equipamentos.json` que habilitam algum exercício, com o `nome_curto` do item e a meta "N exercícios que dão para fazer com ele" (§22.12 item 2; a foto de `assets/itens/<item>/` fica em Mais → Equipamento).
 - **Circuitos** (os 14 exercícios de `origem = "aparelho"`): "Core no tatame" (8), "Corda" (3), "Elástico" (3). Abrem no **modo circuito guiado** (13.6).
-- **Planos e desafios**: "Primeira barra fixa" (`cardio.barra_fixa`), "5 km sem parar" (a meta da última semana de `cardio.corrida`) e "Corda: 5 estágios" (`cardio.corda`) — títulos curtos, o prazo fica no objetivo e na meta (§22.12 item 4; sem perfil e sem meta, o objetivo aparece inteiro) —, barra fixa e corrida com a semana atual do perfil na meta da vitrine (na tela do plano, a posição fica só no bloco das semanas, §22.15 item 7), a corda com a sua duração na meta da vitrine e da capa (a posição dela, `profiles.semana_corda`, aparece na lista das semanas da tela do plano, §22.13 item 9), e cada um com o botão da sessão (§22.12 item 7). "Desafio" aqui é o plano real com progresso visível; não existe desafio inventado.
+- **Planos e desafios**: "Primeira barra fixa" (`cardio.barra_fixa`), "5 km sem parar" (a meta da última semana de `cardio.corrida`) e "Corda: 5 estágios" (`cardio.corda`) — títulos curtos, o prazo fica no objetivo e na meta (§22.12 item 4; sem perfil e sem meta, o objetivo aparece inteiro) —, na vitrine, barra fixa e corrida mostram a semana atual do perfil e a corda mostra a duração. Na tela dos três planos, a capa e o bloco de progresso mostram a semana atual do perfil (§22.15 item 7). Cada plano tem o botão da sessão (§22.12 item 7). "Desafio" aqui é o plano real com progresso visível; não existe desafio inventado.
 - **Treinos do programa**: A1, B1, SA, IA, SB, IB com "Fazer hoje" (vale como próximo da alternância, §5.3).
 - **Busca** por nome de exercício e de coleção, sem acento.
 
@@ -1476,7 +1476,7 @@ a tela — afrouxar o limite não é uma opção.
 4. **Ilustrações sem placa acesa.** No tema escuro a placa clara atrás das
    ilustrações de traço não passa de **60 % de luminância** (`#e7e4e0` →
    `#cfcac4`); no claro ela é a cor do card. O traço continua com ≥ 4,5:1.
-5. **Elevação que existe nos dois temas.** O que flutua (o FAB "Ajustar", o
+5. **Elevação que existe nos dois temas.** O que flutua (a faixa fixa do dia, o
    play do tutorial) usa `--sombra-flutuante`/`.flutuante` no lugar de
    `shadow-lg`: sombra no tema claro, anel de 1 px na cor de destaque mais
    glow curto no escuro, onde sombra preta sobre preto não aparece.
@@ -1986,7 +1986,7 @@ muda **o que fica ao alcance do polegar** e **quem manda no toque**.
    saiu junto.
 2. **A sessão de hoje deixa de sumir ao rolar.** Quando o card do dia passa
    para cima da tela, uma **faixa fixa fina** assume o mesmo caminho no alto
-   ("Treino A · 0/17 séries · Continuar", ou o foco do treino e "Começar"
+   ("Treino A · 0/17 séries · Continuar", ou a duração e o número de exercícios com "Começar"
    quando ainda não há sessão). Vale nos dias de força, onde a aba é longa; a
    sentinela que a liga fica logo abaixo do card. As linhas da lista ganharam
    `scroll-mt-14` para a faixa não comer a linha recém-rolada.
@@ -2520,8 +2520,8 @@ de cada item é verificável no Vitest ou no e2e (`e2e/ultraloop-l13.spec.ts`).
    derivado de `perfil.semana_corrida`,
    `semana_corda` e `semana_fixa`; a atual tem `aria-current="step"` e o
    link da sessão da semana (o mesmo `href` de `ctaDoPlano()`). Sem perfil,
-   a lista aparece sem estado e sem barra. A posição fica só aqui: a capa da
-   tela do plano não repete "semana N de T" (§22.15 item 7). A conta é pura:
+   a lista aparece sem estado e sem barra. Com o perfil, a capa e este bloco
+   mostram "Semana N de T" (§22.15 item 7). A conta é pura:
    `semanasDoPlano(plano, semanaAtual)` em `lib/colecoes.ts`. Aceite:
    Vitest — `semanasDoPlano('corrida', 3)` devolve 12 linhas, 2 feitas, a 3ª
    atual, com a descrição igual à do JSON; e2e em `/explorar/plano/corrida`
@@ -2699,7 +2699,7 @@ não muda (§22.0.1 item 7). O aceite de cada item é verificável no Vitest
 6. **As folhas são modais de verdade** (a11y-05). Vale para toda folha
    (`components/ui/sheet.tsx`: ficha, "Substituir hoje", filtros do
    catálogo, conquistas, montagem, bloco, personalizar, player) e, desde a
-   rodada 17, para toda camada modal do inventário no fim deste item. O conteúdo
+   rodada 17 (segunda correção do L14), para toda camada modal do inventário no fim deste item. O conteúdo
    da folha tem `aria-modal="true"`; enquanto ela está aberta, o resto da
    página (`main`, `header`, `nav`) fica **`inert`** — fora do Tab e da
    árvore do leitor de tela — e volta ao normal quando ela fecha; o primeiro
@@ -2739,7 +2739,7 @@ não muda (§22.0.1 item 7). O aceite de cada item é verificável no Vitest
    fecha do jeito dela (e o foco volta a quem a abriu — nos diálogos, desde
    a rodada 17); sem nada por cima, fecha a lista, como antes. Com o resumo
    do fim **gravando** (`salvando`), ele ignora o Esc para não cortar a
-   gravação, e o voltar, que vira Esc, espera o fim dela. A foto ampliada passa a devolver o foco a quem
+   gravação. Enquanto ela está em andamento, o voltar é ignorado e o resumo continua aberto. A foto ampliada passa a devolver o foco a quem
    a abriu (Esc, X ou toque fora) e marca (`preventDefault`) o Esc que trata.
    Aceite: e2e a 360×740, nos dois temas, dentro da Visão geral — o voltar
    (`history.back()`) com a "substituir hoje" e com a ficha do "Como fazer"
@@ -3019,18 +3019,12 @@ e2e (`e2e/ultraloop-l32.spec.ts`).
    "assistida", onde a foto da barra fixa assistida é a capa do circuito
    "Elástico", numa linha de cima); e2e — na busca "corda", a linha "Corda:
    5 estágios" tem a foto da seção Planos.
-7. **A posição no plano aparece uma vez** (C-plano-progresso-repete-desafio).
-   Na tela do plano com perfil, a capa dizia "semana 3 de 12" e o bloco
-   "Semanas do plano", logo abaixo, "Semana 3 de 12 · 2 concluídas" com a
-   barra. O ledger deixava ao dono tirar a capa ou o bloco; nenhum dos dois:
-   a capa fica (é o título da página, §22.12 item 6, e o botão da sessão) e
-   deixa de dizer a **posição** — mostra o que o plano é, a meta sem perfil
-   (a duração, ou nada quando o objetivo já diz o prazo, §22.12 item 4) —,
-   e a posição fica só no bloco, que tem a barra e a lista com "agora". A
-   vitrine e o destaque do Explorar, que não têm o bloco, continuam com
-   "semana N de T". Aceite: e2e — em `/explorar/plano/corrida` e
-   `/explorar/plano/barra_fixa` com perfil na semana 3, "semana 3 de 12"
-   aparece uma vez no texto do `<main>` (antes, duas), dentro do bloco.
+7. **Semana atual na capa e no bloco de progresso** (C-plano-progresso-repete-desafio).
+   Em 18/11/2026, o dono escolheu exibir “Semana N de 12” na capa e também
+   no bloco “Semanas do plano”. Corrida, barra fixa e corda usam a semana
+   do próprio perfil e o total de semanas do plano. A barra e a contagem
+   de semanas concluídas acompanham a posição no bloco. Antes da leitura
+   do perfil, a capa mostra a duração quando o objetivo ainda não a menciona.
 8. **A linha "agora" não cobre o canto do cartão** (C-plano-lista-canto-reto).
    O fundo da linha atual da lista "Semanas do plano" tinha cantos retos e
    cobria os cantos arredondados do cartão (visto em produção nos dois
@@ -3272,6 +3266,553 @@ Vitest (`lib/l19.test.ts`) ou no e2e (`e2e/ultraloop-l19.spec.ts`).
    atrás, o diálogo de retomada mostra "Uma semana a 60% da carga…" e,
    escolhido "Voltar mais leve", o aviso diz "Semana leve: 60% da carga.".
 
+### 22.17 Sobras do L14 e do L32: ficha, catálogo e camadas modais
+
+Medido em `main` (17075d7, com o L32 publicado em b66e06c) a 360×740. Dez
+sobras da fila (seção C): seis deixadas pelo L14 (§22.14) e quatro pelo L32
+(§22.15). A última (capa do plano) é das coleções do Explorar e entra pela
+mesma **exceção de área** do §22.15. O motor não muda (§22.0.1 item 7). O
+aceite de cada item é verificável no Vitest (`lib/l33.test.ts` e os testes
+vizinhos citados) ou no e2e (`e2e/ultraloop-l33.spec.ts`).
+
+1. **Um rótulo por filtro: o implemento que repete o nome de um
+   equipamento diz "(principal)"** (C-l14-super-band-dois-filtros). A folha
+   de filtros do catálogo tem dois seletores de aparelho: **Implemento** (o
+   aparelho principal do exercício, um por exercício) e **Equipamento**
+   (tudo o que o exercício usa, várias tags). Seis nomes aparecem nos dois.
+   Medido nos 81: "Barra fixa" (5 e 5), "Barra W" (3 e 3) e "Corda" (2 e 2)
+   dão o mesmo resultado nos dois seletores, mas "Barra maciça" (21 × 23),
+   "Halteres" (23 × 28) e "Super Band" (2 × 5) não — e o chip do filtro
+   ligado dizia o mesmo nome para duas listas diferentes. Agora o rótulo do
+   implemento sai de `rotuloDoImplemento()` (`lib/catalogo.ts`): quando o
+   nome é igual ao de um equipamento **e** os resultados diferem, ele ganha
+   "(principal)" — "Barra maciça (principal)", "Halteres (principal)",
+   "Super Band (principal)" —; os outros ficam como estão. A decisão vem
+   dos dados (se um dia "Corda" passar a dar resultados diferentes, ganha o
+   sufixo sozinha). O seletor e o chip usam a mesma função. Com o sufixo, o
+   seletor de Implemento não cabe na meia largura a 360 px: os três
+   seletores passam a ocupar a largura inteira, um por linha. O nome do
+   objeto continua um só (§22.14 item 9: `NOME_IMPLEMENTO.band` é
+   `NOME_EQUIPAMENTO['super-band']`). Aceite: Vitest — para todo par
+   implemento × equipamento dos 81, rótulos iguais só com resultados iguais;
+   os três que mudam e os três que ficam; numa lista sintética com o mesmo
+   tamanho nos dois filtros (1 × 1) e exercícios diferentes, ainda
+   "(principal)" (nos 81 não há esse caso); mutação — sem o sufixo, ou
+   comparando só o tamanho das listas, o teste cai. e2e — na folha, as opções de Implemento têm "Super Band (principal)"
+   e as de Equipamento "Super Band"; com os dois ligados, os dois chips têm
+   textos diferentes; nada vaza a largura.
+2. **O critério "nada repetido" compara palavras inteiras**
+   (C-l14-criterio-repeticao-numeros). O critério do §22.14 item 3 (texto de
+   12 caracteres ou mais igual a outro ou contido nele) acusava "7,5 kg na
+   barra" dentro de "17,5 kg na barra". Agora "contido" quer dizer contido
+   **em palavras inteiras**: antes e depois do trecho, no texto maior, há
+   começo/fim ou um caractere que não é letra nem algarismo (nem a vírgula
+   de um número). O critério mora num lugar só, `textoRepetido()` em
+   `lib/ficha.ts`, e o e2e usa a mesma função. Aceite: Vitest — "7,5 kg na
+   barra" × "17,5 kg na barra" não acusa; "peso corporal" dentro de "Core ·
+   Tatame · peso corporal" e o par igual "peso do corpo" continuam acusados;
+   mutação — voltando ao `includes`, o caso dos números cai.
+3. **O espelho dos textos da ficha é conferido contra o DOM nos 81**
+   (C-l14-nada-repetido-espelho-dom). O Vitest aplica o critério aos 81 pelo
+   espelho `textosDaPagina()`, que só existia no teste; o DOM real era
+   provado em 7 fichas. Agora o espelho mora em `lib/ficha-espelho.ts` (o
+   Vitest e o e2e importam o mesmo) e um e2e abre
+   as 81 fichas em página (histórico vazio, 360×740) e compara, ficha a
+   ficha, os parágrafos e itens visíveis do `<main>` (12 caracteres ou mais)
+   com o espelho: o que o DOM mostra e o espelho não tem, e o contrário,
+   reprova. Aceite: e2e — as 81 fichas, DOM igual ao espelho; mutação — um
+   texto a mais no espelho (ou a menos) derruba o e2e.
+4. **"Onde você está" espera o perfil** (C-l14-historico-carregando-perfil).
+   O histórico da ficha saía do esqueleto sem esperar o perfil; com barras
+   pesadas em Mais → Equipamento, o cartão "Onde você está" nascia escondido
+   (a carga calculada sem as barras) e aparecia quando o perfil chegava,
+   empurrando a página. Agora o esqueleto fica até o perfil **e** as
+   consultas do histórico chegarem (`historicoCarregando()` em
+   `lib/ficha.ts`). Aceite: Vitest — com o perfil pendente, carregando;
+   mutação — sem o perfil na regra, cai. e2e — com a barra W de 5 kg e o
+   pedido do perfil atrasado, na rosca com barra W, desde o primeiro quadro
+   em que o histórico sai do esqueleto o cartão "Onde você está" já está lá
+   e a altura do histórico não muda depois (±1 px), com o cache do aparelho
+   vazio (o perfil só da rede).
+   **Leitura que falha mostra o Erro** (revisão do Codex no PR #33, rodada
+   34). Esperar o perfil não basta: com o cache vazio, o pedido do perfil
+   que falha tira o esqueleto (`isPending` vira `false`) e "Onde você está"
+   calculava a carga sem as barras pesadas, sem aviso; os eventos do motor
+   que falham davam o cartão único "Ainda sem histórico". E o "Tentar de
+   novo" só refazia as cargas e as séries. Agora **qualquer** uma das seis
+   leituras do histórico (perfil, cargas, séries, recordes, sessões e
+   eventos do motor) que falhe mostra o Erro com "Tentar de novo" no lugar
+   do histórico — nenhum número calculado com dado faltando —, e o "Tentar
+   de novo" refaz as leituras que falharam (`historicoErro()` e
+   `leiturasQueFalharam()` em `lib/ficha.ts`, na mesma ordem de
+   `historicoCarregando()`). Sem falha, nada muda na tela. Aceite: Vitest —
+   cada uma das seis, sozinha, dá o Erro e entra na lista do "Tentar de
+   novo"; sem erro, `null` e lista vazia; o componente passa as seis
+   (tirar qualquer uma derruba o teste). e2e — com a barra W de 5 kg, o
+   cache vazio e o pedido do perfil falhando, a rosca com barra W mostra o
+   Erro, sem "Onde você está" e sem o cartão único; o "Tentar de novo",
+   com a rede de volta, mostra "5 kg na barra"; o mesmo com os eventos do
+   motor falhando (o "Tentar de novo" mostra o evento). A falha é injetada
+   por `page.route` com o service worker bloqueado no describe
+   (`serviceWorkers: "block"`: o `/rest/v1` que o worker trata não passa
+   pelo route) e o cache do aparelho é apagado fora do app, sem corrida
+   com a restauração. Mutação — com o worker bloqueado, o componente de
+   antes (sem o perfil e os eventos no Erro) derruba os três e2e (perfil
+   claro e escuro, eventos).
+5. **O véu: sem ramo morto, e a SPEC diz o que o código faz**
+   (C-l14-veu-ramo-morto). `components/ui/camada-modal.ts` aceitava
+   `data-veu` como véu, e ninguém usa (grep em `app/` e `components/`:
+   nada); e o §22.14 item 6 dizia "o véu da própria camada", mas o código
+   tira do `inert` o véu de **qualquer** camada do Radix (`data-slot` que
+   termina em `-overlay`): o véu de uma camada de baixo, irmão da de cima,
+   também fica fora do `inert` — o que não faz mal (ele não é focável e fica
+   coberto pelo véu de cima). O ramo `data-veu` sai, e o §22.14 item 6 passa
+   a dizer "os véus das camadas do Radix". Aceite: grep de `data-veu` em
+   `app/`, `components/` e `lib/`: nada — o grep é um Vitest em
+   `lib/l33.test.ts` (o ramo de volta derruba o teste);
+   `lib/camada-modal.test.ts` verde.
+6. **O voltar do celular fecha a camada de cima em qualquer página**
+   (a11y-voltar-fecha-camada). Fora da Visão geral, nenhuma camada tinha
+   entrada no histórico: com os filtros do catálogo, a foto ampliada ou um
+   diálogo abertos, o voltar do Android (e o gesto de voltar do leitor de
+   tela) navegava para a página anterior. Agora toda camada da tabela do
+   §22.14 item 6 (`useCamadaModal` e `useCamadaPropria`) põe, ao abrir, uma
+   entrada no histórico (`pushState`, mesma rota) e, no `popstate` que a
+   tira, entrega um Esc à camada de cima — o voltar segue a regra do Esc,
+   como na Visão geral, e o foco volta ao gatilho do jeito de cada camada.
+   Fechada de outro jeito (Esc, X, toque fora, "Ver resultados"), a camada
+   desfaz a própria entrada (`history.back()`) se ela ainda é a do topo;
+   nada fica sobrando. As decisões são puras, em `lib/camada-modal.ts`:
+   empilhar ou não (dentro da Visão geral, que já entrega o voltar à camada
+   de cima, a camada **não** empilha: uma entrada por voltar), quais
+   camadas o `popstate` fecha (as de entrada acima da atual) e a entrada
+   **morta** — a de uma camada que já fechou sem desfazê-la, porque um link
+   ou botão dentro dela levou a outra rota: ao chegar nela pelo voltar ou
+   pelo avançar, o app anda mais um passo na mesma direção, e ninguém gasta
+   um toque numa entrada vazia. **A direção não depende da Navigation API**
+   (`window.navigation` não existe no Safari do iPhone, o aparelho do dono,
+   nem em Firefox antigo; até a rodada 28 o avançar sem ela virava voltar —
+   revisão do Codex no PR #31). O app guarda uma **régua** própria, só com
+   o que ele mesmo grava no histórico: o número da entrada de cada camada
+   (`history.state`, crescente — e crescente também depois de recarregar:
+   o último número fica guardado na sessão da aba, `sessionStorage`, que
+   vive junto com o histórico dela; sem `sessionStorage`, recomeça do
+   maior entre o da memória e o da entrada atual) e, numa entrada de página (que não tem
+   número), meio passo acima ou abaixo da entrada de camada vizinha que ele
+   conhece (o link que leva a outra rota põe a régua meio passo acima da
+   entrada morta; o voltar que fecha camadas, meio passo abaixo da mais
+   baixa delas; o passo que o app dá por cima da morta, meio passo além
+   dela). No `popstate`, a entrada que chega comparada com a régua dá a
+   direção: número maior, avançou; menor, voltou. **Direção desconhecida
+   não vira voltar**: se a régua não sabe (o documento acabou de carregar,
+   ou recarregou), o app não anda — o toque fica na entrada morta, como na
+   exceção abaixo. E a entrada **sem saída** — a de uma camada desfeita
+   pelo Esc, pelo X, pelo toque fora ou pelo "Ver resultados", ou fechada
+   pelo voltar (acima dela só há entradas de camadas fechadas) — quando o
+   avançar chega nela, o app volta um passo: o avançar depois do Esc não
+   deixa o usuário parado numa entrada vazia. Enquanto a entrada da camada existe, a rolagem da página
+   de baixo não é restaurada pelo navegador na volta
+   (`history.scrollRestoration = "manual"`, devolvido ao valor de antes
+   quando a camada sai): fechar uma camada não mexe na rolagem (o "Ver
+   resultados" continua levando ao primeiro resultado). Aceite: Vitest —
+   empilhar, fechar e entrada morta; a régua (`direcaoDoPasso`,
+   `passoNoHistorico`, `reguaAoSair` em `lib/camada-modal.ts`): avançar
+   (maior → +1), voltar (menor → −1), desconhecido (régua igual ou entrada
+   de página → 0, nunca −1), recarregado (régua `null` → a morta fica, sem
+   passo; o número da próxima entrada, `proximaEntrada`, continua acima do
+   guardado na sessão), sem saída (sempre −1) e a régua meio passo além
+   depois de cada caso; mutação — a direção desconhecida valendo −1 derruba o Vitest; e2e a 360×740 — com os filtros do
+   catálogo, a foto ampliada da ficha e o diálogo "Não vou treinar hoje" do
+   Calendário, cada um aberto pelo teclado: `history.back()` fecha só a
+   camada, a rota e o índice do histórico (Navigation API) voltam aos de
+   antes de abrir e o foco volta ao gatilho; fechar pelo Esc volta o índice
+   ao de antes (nenhuma entrada sobrando), e um `history.forward()` logo
+   depois volta ao mesmo índice sem diálogo (a entrada desfeita é pulada);
+   o "Ver resultados" dos filtros
+   também volta o índice e deixa o primeiro resultado à vista; dentro da
+   Visão geral, o índice não sobe ao abrir a folha (os e2e do §22.14 item 6
+   continuam). A entrada morta pelo caminho real, nos dois temas: no
+   Calendário, o diálogo de um dia passado com treino tem o link "Abrir o
+   treino"; tocar nele leva a `/treinar/<id>` com a entrada do diálogo morta
+   embaixo (índice +2); um `history.back()` volta direto a `/calendario`,
+   sem diálogo e sem `[inert]`, no índice de antes de abrir; um
+   `history.forward()` volta direto a `/treinar/<id>` (índice +2) — nenhum
+   passo gasto na entrada morta, nas duas direções. O mesmo caminho roda
+   duas vezes em cada tema: no Chromium como ele é e **sem a Navigation
+   API** (`page.addInitScript` apaga `window.navigation` antes de o app
+   carregar; o e2e mede o índice por uma referência guardada antes de
+   apagar, que o app não vê). Mutação — a direção de volta à Navigation
+   API com "voltou" como padrão derruba o e2e sem ela (o avançar cai em
+   `/calendario`); sem a entrada sem saída, cai o avançar depois do Esc.
+   (A ficha em folha não serve para isso: ela não tem link para outra
+   rota.) Fica de fora, e custa no máximo um toque: recarregar com a camada
+   aberta deixa o usuário numa entrada morta sem ouvinte (e, depois de
+   recarregar, a régua começa sem saber: a primeira entrada morta fica
+   onde está, sem passo); o avançar que chega a uma entrada morta de
+   **outro** documento não a pula (o ouvinte do `popstate` só existe depois
+   de a primeira camada abrir no documento); e um salto de vários passos
+   de uma vez (a lista do toque longo no voltar) pode deixar a régua
+   atrasada até a próxima entrada de camada.
+7. **A guarda do artigo antes do nome pega o que escapava**
+   (C-l32-guarda-artigo-estreita). O grep de `lib/l32.test.ts` (§22.15 item
+   3) só pegava template numa linha e expressão terminada em `nome`.
+   Agora ele lê o arquivo inteiro (o template pode quebrar linha), aceita
+   qualquer identificador que **contenha** "nome" (`nomeDoExercicio`,
+   `ex.nome`, `item.nome.trim()`) e os artigos o/a/os/as além das
+   contrações, com duas exceções listadas no teste: o nome do treino
+   ("Começar o ${resumo.nome}") e o da fase. Aceite: Vitest — mutações que
+   escrevem "Nota do ${nomeDoExercicio}", um template quebrado em duas
+   linhas e "a ${ex.nome}" num arquivo de `components/` derrubam o teste;
+   uma chamada antes do `.nome` ("o ${acharExercicio(id).nome}") também é
+   pega; sem mutação, verde.
+8. **O e2e do L32 lê os nomes dos dados** (C-l32-e2e-nomes-a-mao). A lista
+   `doTreino` de `e2e/ultraloop-l32.spec.ts` tinha "Agachamento livre" e
+   "Supino reto com barra" escritos à mão. Agora os quatro vêm de
+   `acharExercicio()`, e também o nome da prancha (numa regex) e o da
+   remada (no título de um teste). Aceite: nenhum dos 81 nomes, na grafia
+   do catálogo (a comparação diferencia maiúsculas), aparece escrito no
+   spec — string, regex ou título (Vitest em `lib/l33.test.ts`); o spec
+   continua verde. Dois títulos de teste ainda citam nomes em minúsculas
+   no meio da frase ("supino reto com barra: tag-link × …" e "na ficha da
+   prancha e no player"): não são dado lido pelo teste e ficam para a fila
+   (auditoria 2 da rodada 25).
+9. **A SPEC e o PROGRESSO apontam a tela que existe**
+   (C-l32-texto-aba-progresso). O §22.15 item 3 e o passo 3 do "Como testar
+   no celular" da rodada 22 falavam de um "Progresso" que não existe mais
+   (`/progresso` redireciona para `/relatorio`; os gráficos dos grandes
+   estão na seção **Gráficos** do Relatório). Aceite: grep de "no
+   Progresso" e "Progresso →" no §22.15 e no passo: nada.
+10. **A capa do plano é conferida contra `cardio.json`**
+    (C-l32-plano-capa-sem-o-dono). O teste de unidade lê o total do plano
+    na última semana do JSON e confere a capa para todas as semanas,
+    inclusive os limites. O teste no navegador abre os três planos com
+    semanas diferentes na mesma conta e confere a posição na capa e no
+    bloco de progresso, conforme a escolha do dono em 18/11/2026 (§22.15 item 7).
+
+---
+
+### 22.18 Player: séries feitas no Substituir, firme, conclusão e Visão geral
+
+Medido em `main` (a7b7d1b) a 360×740. Oito itens da seção B do ledger (o
+player e a Visão geral), um por exceção de área (visual-08, o rótulo em
+caixa alta, porque também troca os rótulos da Visão geral) e três sobras
+da auditoria do L19 (C). O primeiro é de **integridade de dados** ("nunca
+perder um registro", CLAUDE.md). O motor não muda (§22.0.1 item 7):
+`lib/progressao.ts` e `lib/montagem.ts` ficam intocados. O aceite de cada
+item é verificável no Vitest (`lib/l21.test.ts`) ou no e2e
+(`e2e/ultraloop-l21.spec.ts`).
+
+1. **Substituir nunca apaga série concluída** (B-substituir-apaga-series-feitas,
+   decisão do dono de 24/09, opção b). Medido: no player, "?" → ficha →
+   "Substituir" (e a folha "substituir hoje" da Visão geral) tirava do
+   aparelho e de `session_sets` as séries **já concluídas** do exercício
+   trocado (`descartarSeriesDoBloco` → `delete` em `session_sets`; a
+   auditoria do L19 mediu 6 linhas no mock antes e 1 depois). Como a ficha
+   anda pelos outros exercícios da sessão ("Exercício anterior"/"Próximo
+   exercício"), um toque apagava um exercício inteiro já feito, e só a
+   Visão geral avisava. Agora (§3.2 reescrita): a troca **não gera escrita
+   de apagar nenhuma**. `substituirExercicio` (`lib/sessao.ts`, pura) tira
+   do bloco as séries concluídas do exercício que sai e as guarda no próprio
+   bloco (`BlocoLocal.trocados`: o exercício, as séries com o mesmo id,
+   `set_index` e valores, e o `ultima_firme` de quando saíram); as séries
+   que faltavam deixam de existir, e o substituto entra com a prescrição
+   **dele**, da série 1, com o estado dele (§6.3). As séries guardadas
+   continuam no Dexie (`sessaoAtiva`) e em `session_sets` com o
+   `exercise_id` do original e o `ordem_ex` do bloco — o "concluir" as
+   reenvia com o exercício certo (`seriesFeitasDaSessao`, a mesma lista
+   dos contadores e do progresso). Contam como feitas **dele**: o histórico
+   do exercício, os recordes (`v_records`) e o relatório leem
+   `session_sets`, e o progresso da sessão e os contadores da conclusão as
+   somam. O original continua **sem avaliação** do motor nesta sessão (a
+   progressão dele não muda — §3.2 e §6.3; nenhuma leitura nova no motor).
+   Voltar ao original na mesma sessão devolve ao bloco as séries que ele
+   já tinha feito (concluídas, com os mesmos ids) e completa a prescrição
+   com séries novas depois delas — sem duas "série 1" do mesmo exercício
+   na mesma sessão. O player continua onde a §22.16 item 1 manda: trocar o
+   exercício do passo atual leva à série 1 do substituto; trocar outro
+   deixa o passo onde estava. O aviso sai de uma fonte só,
+   `avisoDaTroca()` (pura), e aparece nos dois caminhos — na folha da
+   Visão geral (descrição) e na ficha (acima da lista do "Substituir"):
+   com séries feitas, "As 2 séries já feitas de Agachamento livre ficam
+   registradas com ele. O substituto começa da série 1." (singular: "A
+   série já feita de … fica registrada com ele."); sem nenhuma, "O
+   registro fica com o substituto; a progressão do original não muda." O
+   bloco da Visão geral, depois da troca, diz "Feitas antes da troca: 2
+   séries de Agachamento livre (ficam registradas)". Aceite: Vitest — troca
+   com 0, 1 e todas as séries feitas (as concluídas vão para `trocados`
+   com id, `set_index` e valores intactos; o substituto começa na série 1,
+   nenhuma concluída); troca de exercício anterior e posterior (os outros
+   blocos não mudam); troca em cadeia (A → B → C guarda A e B) e volta ao
+   original (A → B → A devolve as de A, sem `set_index` repetido); a lista
+   de escritas do "concluir" leva as séries guardadas com o `exercise_id`
+   do original, nas duas situações de uma sessão salva no Supabase
+   (refeita do banco) e de uma que só existe no Dexie; nenhuma escrita de
+   `delete` em `session_sets` sai de nenhum caminho da troca; e2e, nos dois
+   temas, pelos dois caminhos (ficha e Visão geral) — com séries feitas,
+   trocar mostra o aviso novo; depois da troca as séries feitas do original
+   continuam no Dexie (`trocados` do bloco) e no mock (`session_sets` com o
+   `exercise_id` dele); o substituto está na série 1; o player segue no
+   passo certo; concluído o treino, o mock tem as linhas do original e as
+   do substituto, e o histórico do original ("Seu histórico" da ficha em
+   `/exercicios/<id>`) mostra a sessão com as séries dele. A mutação que
+   volta a apagar (a chamada do `delete` ou o `substituirExercicio` sem
+   guardar) derruba os testes.
+2. **"Firme?" pergunta antes de abrir o teclado** (tela-treino-player-29).
+   Medido: o campo "Nota curta (opcional)" ficava em y=200..248, acima de
+   Fácil (y=268), Firme e Falhei — o primeiro alvo da tela abria o
+   teclado antes de a pergunta ser respondida. Agora a ordem é: as três
+   opções; depois **"Adicionar nota"** (botão, ≥ 44 px), que abre o campo
+   com o foco nele; depois Voltar/Continuar. Com nota já escrita, o campo
+   aparece aberto. A nota continua indo para o bloco (e, no fim, para
+   `sessions.notas`). Aceite: e2e nos dois temas — dentro da tela "Firme?"
+   o primeiro controle na ordem do documento é "Fácil"; não há campo de
+   nota até tocar "Adicionar nota"; a nota digitada fica no Dexie
+   (`blocos[].nota`) e a tela ainda responde "Firme".
+3. **Recordes da conclusão: os 5 maiores, com "Ver todos (N)"**
+   (tela-treino-player-27). Medido: numa primeira sessão o bloco
+   "Recordes" listava 18 linhas (3 por exercício × 6). Agora mostra no
+   máximo **5**, escolhidos por `recordesEmDestaque()` (pura): primeiro os
+   que batem uma marca anterior, pelo maior salto relativo sobre ela; depois
+   os de estreia (sem marca anterior), na ordem do treino e com a carga
+   antes das repetições e da estimada. Com mais de 5, o botão **"Ver todos
+   (N)"** (≥ 44 px, `aria-expanded`) abre a lista inteira; com 5 ou menos
+   não há botão. O toque leva o foco ao 6º recorde (o primeiro que
+   apareceu) e o botão sai — o nome dele não muda enquanto tem foco.
+   Aceite: Vitest da ordem e do corte (18 estreias → 5 visíveis); e2e — no
+   Treino A de uma primeira sessão, feito todo no valor pré-preenchido, são
+   **16** recordes (carga, repetições e estimada nos 5 exercícios com
+   carga; só repetições na elevação de pernas na barra fixa — a análise
+   tinha contado 18): a conclusão mostra 5 linhas e "Ver todos (16)"; o
+   toque mostra os 16.
+4. **Série da Visão geral com campos que cabem** (ux-heuristicas-15).
+   Medido: o campo de carga tinha 44×44 px entre dois steppers de 44 px
+   (duas colunas a 360 px) e "15,5" não cabia; no player o mesmo campo tem
+   56 px de altura. Agora, na Visão geral, repetições e carga ficam
+   **empilhados** (uma linha cada, a largura toda do cartão) e o stepper
+   usa a altura de 48 px (`alto`) nos botões e no campo. Aceite: e2e a
+   360×740 — o campo de carga com "15,5" tem `scrollWidth ≤ clientWidth`,
+   os campos e botões têm ≥ 48 px de altura e a página não rola para o
+   lado.
+5. **Nomes dos controles da Visão geral com série e exercício; concordância
+   do aquecimento** (ux-heuristicas-14 e ux-heuristicas-13). Medido: 17
+   botões "Aumentar repetições" idênticos (e 17 "Diminuir…", e os de carga),
+   e "Aquecimento 1 concluída". Agora os nomes saem de `rotulosDaSerie()`
+   (pura, `lib/sessao.ts`; o nome do − e do + sai de `nomeDoPasso`, em
+   `lib/digitar-numero.ts`): o stepper aceita um complemento (`contexto`) e a Visão geral o
+   preenche — "Aumentar repetições da Série 1 de Levantamento terra",
+   "Diminuir carga na barra do Aquecimento 2 de Agachamento livre"; o
+   visto diz "Aquecimento 1 concluído — Agachamento livre" e "Série 1
+   concluída — Levantamento terra" (eram 6 "Série 1 concluída"). O campo de
+   texto continua só com o nome curto ("repetições"), porque está dentro do
+   grupo "Série 1 — Levantamento terra". Aceite: Vitest do montador (os
+   dois gêneros, aquecimento e série); e2e na Visão geral — nenhum nome
+   acessível de botão (nem de visto) se repete, e a linha "Aquecimento 1"
+   tem o visto "Aquecimento 1 concluído — Agachamento livre". Para isso o
+   "montagem" e o "substituir hoje" de cada bloco também dizem de qual
+   exercício são ("Montagem: Agachamento livre", "Substituir hoje:
+   Agachamento livre", por `nomeAcessivel`) — eram 6 iguais de cada —, e o
+   botão de pausa da figura de cada bloco leva o texto dela ("Parar a
+   animação — Execução: Agachamento livre").
+6. **Um rótulo em caixa alta só** (visual-08, exceção de área). Medido:
+   três versões do mesmo papel — 11 px/400 com `tracking-wide` (a
+   dominante), 12 px/500 ("CONTA" em Mais) e 11 px/500 ("CONQUISTAS" no
+   aviso, a lista de conquistas e os grupos do Guia) —, e os rótulos da
+   Visão geral sem `tracking`. Todos passam à dominante: `text-rotulo
+   tracking-wide uppercase`, 11 px/400. Aceite: e2e — em `/mais`, no
+   `/relatorio` (aviso e lista de conquistas), no Guia e na Visão geral do
+   player, todo rótulo com essas classes tem o mesmo `font-size`,
+   `font-weight` e `letter-spacing` (getComputedStyle); grep por
+   `text-xs font-medium tracking-wide uppercase` e `text-rotulo font-medium
+   tracking-wide uppercase` vazio.
+7. **"Visão geral do treino" no mesmo canto na preparação e na série**
+   (C-l19-icone-visao-geral-muda-de-lado). Medido: na preparação o ícone
+   ficava à direita; na série, à esquerda. Agora fica à **direita** nas
+   duas (a esquerda da preparação é o "Sair do treino"); na série o
+   "Ajustar" passa para a esquerda. Aceite: e2e nos dois temas — o x do
+   botão "Visão geral do treino" é o mesmo (±1 px) na preparação e na
+   série.
+8. **Um aviso de voto por exercício; o "Desfazer" devolve o voto de
+   antes do último toque** (C-l19-desfazer-dois-avisos-voto-do-render).
+   Medido: dois votos seguidos deixavam dois avisos por ~4 s, e o
+   "Desfazer" do primeiro devolvia o voto do render daquele toque. Agora o
+   aviso tem id por exercício (o segundo substitui o primeiro) e o voto de
+   antes é lido das preferências **na hora do toque** (`votoAntesDoToque`
+   dentro de `prefsDoVoto()`, pura). Aceite: e2e — "Não gosto" → "Gostei"
+   → um aviso só na tela; o "Desfazer" dele volta ao "Não gosto"
+   (`aria-pressed="true"` e o exercício em `prefs.evitar_exercicios` do
+   mock).
+9. **Testes que caem para o "Desfazer" sobre as prefs de agora e o relógio
+   parado com a Visão geral** (C-l19-desfazer-e-relogio-sem-teste-que-falhe).
+   As duas regras da §22.16 (itens 2 e 6) estavam certas mas sem teste que
+   falhasse. Agora as prefs do voto saem de `prefsDoVoto()` (pura: as do
+   cache de agora; as do render só sem cache), com Vitest; e um e2e abre a
+   Visão geral a partir da preparação por 20 s e conta os tiques do relógio
+   de 250 ms (um `setInterval` de 250 ms instrumentado no teste): zero
+   enquanto ela está aberta. Aceite: a mutação "prefs do render" derruba o
+   Vitest e a mutação "relógio sem pausa" derruba o e2e.
+
+### 22.19 Corpo: peso, gráficos e campo de data
+
+Medido em `main` (a7b7d1b) a 360×740. Seis itens do ledger na seção B
+(Corpo, lote L15). O motor não muda (§22.0.1 item 7): `lib/progressao.ts` e
+`lib/montagem.ts` ficam intocados. Toda decisão sai de uma função pura em
+`lib/` com teste em `lib/l15.test.ts`; o caminho de tela está em
+`e2e/ultraloop-l15.spec.ts`, a 360×740, nos dois temas.
+
+1. **Todo gráfico é uma figura com a leitura dos dados** (a11y-01). Medido:
+   os gráficos do Relatório e do Corpo entravam na árvore de acessibilidade
+   como `role="application"`, com `tabindex="0"` na `<svg>` (a camada de
+   acessibilidade do Recharts), e o leitor de tela lia os rótulos dos eixos
+   grudados ("29/0613/0727/07…0246 8"); a `<figure>` só tinha o título. Agora
+   o invólucro dos gráficos (`components/graficos/grafico.tsx`) desliga a
+   camada do Recharts (`accessibilityLayer={false}`), esconde o desenho da
+   árvore (`aria-hidden="true"` na área do gráfico) e a `<figure>` vira
+   `role="img"` com um nome que é o título **mais a leitura dos dados**, que
+   sai de `leituraDoGrafico()` (`lib/grafico-leitura.ts`, pura): por série,
+   até 6 pontos todos eles ("Peso: 84,2 kg em 12/08, 83,1 kg em 26/08,
+   82,4 kg em 12/09 — queda de 1,8 kg"); com 7 ou mais, o resumo (quantos
+   valores e de quando a quando, o primeiro, o último, a tendência, o menor e
+   o maior com a data). Série constante com 7 ou mais pontos não repete o
+   mesmo número como primeiro, último, menor e maior: "Séries: 12 valores de
+   29/06 a 14/09, todos 0". Série sem valor nenhum não é citada; a meta, quando o
+   gráfico a desenha, entra no fim ("Meta: 78,5 kg"). Vale para todos os
+   gráficos do app, que passam pelo mesmo invólucro: os dois do Corpo (peso e
+   medida), os do Relatório (peso, carga dos grandes, volume, barra fixa,
+   minutos e quilômetros) e o "Carga por sessão" da ficha. A dica ao tocar
+   (tooltip) continua para quem vê. Aceite: Vitest — `leituraDoGrafico` com
+   1, 3 e 30 pontos, queda, alta e sem variação, série vazia omitida, sufixo
+   e meta; com 6 pontos cita os 6 e com 7 resume; 12 zeros viram "todos 0";
+   e2e — em `/corpo` (Peso e Medidas) e em `/relatorio` (seções
+   Corpo e Gráficos abertas) nenhum elemento tem `role="application"` nem
+   há `<svg tabindex>`, e cada gráfico é um `img` cujo nome começa pelo
+   título e traz os valores ("84,2 kg em 12/08").
+2. **A aba Peso começa pelo peso** (tela-relatorio-corpo-calendario-12).
+   Medido: o cartão do IMC vinha primeiro, e o peso atual e o gráfico só
+   apareciam depois de rolar (o título "82,4 kg em 12/09" em y≈611 a
+   360×740, o gráfico abaixo da barra de abas). A ordem passa a ser: **peso
+   atual + gráfico → Registrar peso → IMC → Variação por semana → Meta**. O
+   título do IMC nesta aba é um `h2` (ele vem logo abaixo do `h1` "Corpo";
+   no Relatório e na conclusão continua `h3`). Aceite: e2e a 360×740, nos
+   dois temas — o título do peso atual e o gráfico inteiro ficam acima da
+   barra de abas de baixo, sem rolar.
+3. **Uma régua só para o peso, sem série vazia e com a variação do
+   período** (tela-relatorio-corpo-calendario-14, absorve o -15). Medido: o
+   eixo do peso tinha domínio "folgado" de 1 kg e passo escolhido pelo
+   Recharts — o Relatório e o Corpo mostravam réguas diferentes para as
+   mesmas pesagens —, a legenda citava "Média de 7 dias" mesmo quando a
+   média era só a cópia do peso (pesagens a mais de 6 dias uma da outra), e
+   o card do Relatório dizia "maior 84,2 kg · menor 82,4 kg". Agora:
+   - `reguaDoPeso()` (`lib/corpo.ts`, pura) dá o domínio e os rótulos do
+     eixo y dos **dois** gráficos de peso (Corpo e Relatório): o menor e o
+     maior valor arredondados para fora em múltiplos do passo, rótulos de
+     passo em passo; o passo é **2 kg**, e só sobe (5, 10, 20, 50 kg)
+     quando a faixa passaria de 5 intervalos — a 120 px de altura, mais que
+     isso encavala. Um valor só (ou todos iguais e múltiplos do passo) abre
+     um passo para cada lado. A meta, quando existe, entra na conta (item 4)
+     e **nunca fica no piso do eixo**: quando ela cai exatamente no menor
+     rótulo, a régua abre mais um passo para baixo — senão a linha tracejada
+     se deita sobre a linha do eixo x e vira um traço duplo.
+     O domínio folgado de 1 kg (`dominioFolgado`) continua só nas medidas.
+   - `seriesDoPeso()` (`lib/corpo.ts`) só inclui a **média de 7 dias**
+     quando ela tem pontos próprios — alguma pesagem com outra até 6 dias
+     antes (a janela de 7 dias de calendário da §3.8); sem isso a série e a
+     entrada da legenda somem. A legenda só aparece com duas entradas ou
+     mais (peso, média, meta). A média é desenhada, lida e mostrada na dica
+     com **1 casa**, como o peso (81,97 → 82; `pontosDoGraficoDoPeso()`).
+   - O card Peso do Relatório troca "maior · menor" pela **variação do
+     período**, `textoDaVariacao()` (`lib/corpo.ts`): "−1,8 kg desde
+     12/08" (a primeira pesagem até a última; "+0,6 kg desde …"; "mesmo
+     peso desde …"). A aba Peso do Corpo mostra a mesma linha, da mesma
+     função, sob o peso atual. Com uma pesagem só, nada.
+   Aceite: Vitest — `reguaDoPeso` (82,4–84,2 → 82 a 86 de 2 em 2; um valor
+   só; faixa larga sobe o passo; meta abaixo entra e, no piso, abre um passo
+   a mais: meta 80 → 78 a 86), os limiares presos — `reguaDoEixo([72, 82])`
+   fica no passo 2 com exatamente 5 intervalos e `reguaDoEixo([70, 82])` (6
+   intervalos de 2) sobe para o passo 5, 70 a 85 —, `seriesDoPeso` (três
+   pesagens a 14 dias uma da outra → só "peso"; duas a 3 dias → "peso" e
+   "media"), `textoDaVariacao`; e2e — para as mesmas pesagens os rótulos do
+   eixo y do Relatório e do Corpo são iguais e de 2 em 2; com as pesagens
+   espaçadas não há "Média de 7 dias" nem segunda linha; com pesagens
+   próximas há; o Relatório mostra "−1,8 kg desde 12/08" e não "maior".
+4. **A meta aparece no gráfico, e ninguém orienta por "embaixo"**
+   (tela-relatorio-corpo-calendario-19, absorve o copy-10). Medido: a meta
+   só existia no texto ("Faltam 3,9 kg para a meta de 78,5 kg"), e sem meta
+   a aba dizia "Defina uma meta embaixo, se quiser." — orientação por
+   posição. Agora, com meta, os dois gráficos de peso desenham uma linha
+   horizontal tracejada na meta (`ReferenceLine`, cor `--chart-2`), a
+   legenda ganha "Meta 78,5 kg" e a régua (item 3) inclui a meta, para ela
+   ficar dentro do gráfico. O "Faltam X kg para a meta de Y kg." continua
+   logo abaixo do peso atual. Sem meta, a frase vira o link **"Definir uma
+   meta"**, que rola até o cartão Meta e põe o foco no campo "Meta (kg)";
+   com meta e sem pesagem ainda, a linha diz "Meta de 80 kg.".
+   Aceite: e2e — com meta de 80 kg e pesagens entre 82 e 84, a linha da
+   meta está no gráfico do Corpo e no do Relatório, dentro da área de
+   desenho e acima do piso do eixo (rótulos 78 a 86), e a leitura diz
+   "Meta: 80 kg"; sem meta, "Definir uma meta" leva
+   o foco ao campo "Meta (kg)", visível na tela; nenhum texto de
+   `components/corpo/` diz "embaixo". (O "aqui embaixo" da conclusão do
+   treino, `components/player/conclusao.tsx`, é da faixa do player e fica
+   registrado no PROGRESSO para ela.)
+5. **O IMC diz a faixa em texto sob a barra** (tela-relatorio-corpo-
+   calendario-13). Medido: um círculo sobre uma barra de cinco tons do mesmo
+   laranja, com "15" e "40" nas pontas — a faixa só se lia pela cor. Agora o
+   marcador é um **traço fino com um triângulo** apontando para a barra, e
+   sob ela vão quatro rótulos de 10 px, cada um centrado no seu trecho:
+   **abaixo · saudável · sobrepeso · obesidade** (a obesidade junta os graus
+   1 e 2–3, de 30 a 40). O rótulo da faixa atual fica em negrito e na cor do
+   texto; os outros, em cinza. Os trechos e o rótulo aceso saem de
+   `faixasDaBarra()` (`lib/imc.ts`, pura). Vale para o mesmo card no Corpo,
+   no Relatório e na conclusão do treino (§13.5, §14.1.5). Aceite: Vitest —
+   `faixasDaBarra` soma 1, os quatro rótulos na ordem e a faixa acesa certa
+   em 15, 18,4, 18,5, 24,9, 25, 29,9, 30, 35, 45 e sem valor; e2e nos dois
+   temas — com 190 cm e 82,4 kg (22,8) o rótulo aceso é "saudável", o
+   marcador cai dentro do trecho dele e os rótulos não se encostam.
+6. **O campo de data vira "Hoje · Ontem · Outra data"**
+   (tela-relatorio-corpo-calendario-11). Medido: as três abas do Corpo
+   tinham um `<input type="date">` cru, que o navegador desenhava no formato
+   dele ("09/16/2026" no Chromium em inglês), quando quase sempre a data é
+   hoje. Agora o campo (`components/ui/campo-data.tsx`) é um grupo "Data" com
+   três botões de 48 px de altura: **Hoje** e **Ontem**, cada um com a sua data em
+   dd/mm, e **Outra data**, que abre o seletor do aparelho
+   (`showPicker()` de um `input type="date"` escondido, com `max` = hoje) e,
+   escolhida uma data que não é hoje nem ontem, mostra essa data em dd/mm.
+   O botão da data escolhida fica aceso (`aria-pressed`). Hoje já vem
+   escolhido: registrar o peso de hoje não exige toque nenhum na data. O
+   estado dos botões sai de `opcoesDaData()` (`lib/campo-data.ts`, pura).
+   Vale para Peso, Medidas e Fotos.
+   - **A escolha acompanha o dia.** Medido na auditoria (cd7c78f): a data
+     era `useState(hoje)`, lida só na montagem; com o Corpo aberto (ou em
+     segundo plano) na virada do dia, o `hoje` do relógio mudava mas a data
+     não — "Ontem" acendia sozinho e "Registrar" sem tocar na data gravava
+     na véspera, **sobrescrevendo** a pesagem de ontem (a gravação é por
+     usuário e data). Agora o campo guarda a *escolha*, não a data:
+     sem toque, é **Hoje**, que segue o relógio do aparelho; Ontem e Outra
+     data valem para o dia em que foram tocados e, na virada, o campo volta
+     para Hoje. Em Peso e Medidas ele volta para Hoje também depois de
+     registrar (a próxima pesagem é de hoje); em Fotos a data fica, para os
+     três ângulos do mesmo dia. A regra é `dataDaEscolha()` /
+     `escolherData()` (`lib/campo-data.ts`, puras).
+   - Uma data depois de hoje devolvida pelo seletor (um seletor que ignora
+     `max`) não troca a data e avisa "Escolha uma data até hoje.". Sem
+     `showPicker()`, o campo escondido sai do `aria-hidden` enquanto está
+     em uso (recebe o foco com o nome "Outra data") e volta a ele ao perder
+     o foco.
+   Aceite: Vitest — `opcoesDaData` (hoje, ontem, outra, virada de mês e de
+   ano), `dataDaEscolha` (sem toque = hoje e segue a virada; Ontem e Outra
+   data valem no dia em que foram tocados e voltam para hoje no dia
+   seguinte; escolher hoje é o mesmo que não tocar); e2e a 360×740 nos dois
+   temas — Peso: digitar o peso e "Registrar" grava hoje; "Ontem" (um toque)
+   grava ontem e o campo volta para Hoje; "Outra data" chama o seletor do
+   aparelho e, escolhido 16/08, o botão mostra "16/08" aceso e a pesagem vai
+   para 2026-08-16; uma data futura avisa e não troca; com o Corpo aberto de
+   16/09 para 17/09 (o relógio avança e o app volta ao primeiro plano),
+   "Hoje 17/09" acende sem toque, "Registrar" grava 2026-09-17 e a pesagem
+   de 16/09 continua a mesma, e um "Ontem" tocado em 16/09 volta para Hoje;
+   sem `showPicker()`, o toque em Outra data põe o foco no campo, fora do
+   `aria-hidden`, com o nome "Outra data"; nas três abas nenhuma data
+   aparece como "aaaa-mm-dd" ou "mm/dd/aaaa", os três botões medem ≥ 44 px
+   e nada rola para o lado.
+
 ## 23. Lembretes no celular — decisão de 23/09/2026 (adendo)
 
 O pedido do dono (23/09): o app passa a ter **lembretes no celular por
@@ -3281,10 +3822,11 @@ notificação push**, no horário que o usuário escolhe. É feature nova, fora 
 - **Lembretes I (lote 34, esta seção 23.1–23.7):** o aparelho se inscreve, o
   service worker mostra a notificação e abre o app no lugar certo, e um botão
   manda **um lembrete de teste** para os aparelhos da conta.
-- **Lembretes II (lote 35, ainda não feito):** os horários que o usuário edita,
-  o disparo automático no horário e a relação com o calendário (§16/§17). Nada
-  disso existe no código deste lote: a tela não mostra horário nenhum. A tabela
-  (23.2) e a rota de envio (23.5) já nascem prontas para ele.
+- **Lembretes II (lote 35, seções 23.8–23.14):** os horários que o usuário
+  edita, a regra de quem recebe o quê, o disparo automático a cada 5 minutos
+  (pg_cron → rota protegida por segredo), o arquivo de calendário (.ics) e o
+  "Último lembrete". Reusa a tabela (23.2), o service worker (23.3), a tela
+  (23.4) e a cifragem (23.5) da parte I.
 
 **Problema medido** em `main` (27eda74): não há `push` nem `notificationclick`
 em `app/sw.ts`, nenhuma tabela de inscrição em `supabase/schema.sql`, nenhuma
@@ -3354,8 +3896,9 @@ testada no Vitest):
 
 - **`push`**: o corpo é JSON `{titulo, corpo, url, tag}`.
   `opcoesDaNotificacao()` monta o `showNotification`: título (ou "Treino do
-  Terraço" se vier vazio), `body`, ícone e badge do manifest
-  (`/icons/icone-192.png`), `tag` (a mesma tag substitui a notificação anterior
+  Terraço" se vier vazio), `body`, o ícone do manifest
+  (`/icons/icone-192.png`), o badge monocromático (`/icons/badge-96.png`,
+  23.13), `tag` (a mesma tag substitui a notificação anterior
   em vez de empilhar), `lang: "pt-BR"` e `data.url`. A `url` só vale se for um
   caminho do próprio app: começa com `/` (e não com `//` nem `/\`) **e**,
   resolvida pelo parser de URL contra uma origem fixa, continua nessa mesma
@@ -3473,10 +4016,12 @@ aparece onde o que ela manda fazer **existe no aparelho**:
   cadeado (ou ⓘ) ao lado do endereço → Permissões → Notificações → Permitir;
   com o app instalado, Configurações do Android → Apps → Treino do Terraço →
   Notificações; voltar ao app, que confere de novo sozinho (23.4) e mostra
-  "Ativar lembretes neste aparelho". Permissão negada fora do iPhone.
+  "Ativar lembretes neste aparelho" — ou "Ativado neste aparelho", quando o
+  navegador manteve a inscrição (23.4). Permissão negada fora do iPhone.
 - **`permissao-iphone`** — "O iPhone está bloqueando as notificações deste
   app": Ajustes do iPhone → Notificações → Treino do Terraço → ligar
-  **"Permitir Notificações"** e voltar ao app. Permissão negada no iPhone (o
+  **"Permitir Notificações"** e voltar ao app (o mesmo passo final da
+  `permissao`, com os dois caminhos). Permissão negada no iPhone (o
   cadeado e as Configurações do Android não existem lá). Fora da tela
   inicial ela vem **depois** da `iphone`: a entrada "Treino do Terraço" nos
   Ajustes só existe com o app instalado, então instalar é o primeiro passo.
@@ -3525,11 +4070,9 @@ Regra que a tabela cumpre: com a permissão negada, o navegador sem suporte ou
 uma falha ao ativar, a lista **nunca sai vazia**; ativado e sem configuração,
 sempre vazia.
 
-**Fica para o lote 35:** o "Sair" (§22.11) não mexe na inscrição do aparelho
-— hoje só chega o teste que a própria conta pede; quando houver disparo no
-horário, o lote 35 decide se sair apaga a linha deste aparelho. O badge da
-notificação é o `icone-192` colorido (o Android costuma mostrá-lo como um
-quadrado branco); um badge monocromático entra quando houver o desenho.
+**Decidido no lote 35 (23.13):** o "Sair" (§22.11) continua sem mexer na
+inscrição do aparelho, e o badge da notificação passou a ser um desenho
+próprio, monocromático (`/icons/badge-96.png`).
 
 ### 23.7 Critérios de aceite (lote 34)
 
@@ -3603,3 +4146,481 @@ quadrado branco); um badge monocromático entra quando houver o desenho.
    (`lib/rota-lembretes-teste.test.ts`, com o cliente do Supabase trocado)
    que dá 503 `SEM_CONFIGURACAO` sem as variáveis, 401 sem sessão, 503
    `SEM_TABELA` com o `PGRST205`, 502 com outro erro e 409 sem aparelho.
+
+### 23.8 Lembretes II — o problema medido (lote 35)
+
+Medido em `main` (96056ac): `/mais/lembretes` só ativa o aparelho e manda o
+teste; **nenhum aviso sai sozinho** — não há horário em `profiles.prefs`
+(`grep -c lembretes lib/preferencias.ts` = 0), nenhuma tabela de envios, nenhum
+`pg_cron`/`pg_net` em `supabase/schema.sql`, nenhuma rota além de
+`/api/lembretes/teste`, e quem não tem push (iPhone sem instalar, servidor sem
+VAPID) não tem alternativa nenhuma. O badge da notificação é o ícone colorido
+(o Android o pinta de quadrado branco), o passo 3 das instruções de permissão
+prometia só o "Ativar" (o caminho ativado → bloqueado → liberado volta direto a
+"Ativado"), e os e2e da volta por `focus`/`pageshow`/sem internet rodavam só
+no tema claro, embora a 23.7 item 7 diga "nos dois temas".
+
+### 23.9 Os horários (`profiles.prefs.lembretes`)
+
+`/mais/lembretes` ganha o bloco **"Horários"** com duas linhas, cada uma com um
+liga/desliga (`role="switch"`, ≥ 44 px) e a hora (`<input type="time">`,
+teclado do sistema, passo de 5 min; o nome acessível diz de qual lembrete é —
+"Hora do lembrete do treino" / "Hora do lembrete da corrida" — porque o rótulo
+visível "Hora" se repete). "Horários salvos." sai numa região `aria-live`
+que já existe antes do primeiro salvo:
+
+- **"Lembrete do treino"** — nos dias de força;
+- **"Lembrete da corrida"** — nos dias de cardio (corrida, ou corda/caminhada
+  quando é isso que o plano do dia manda).
+
+Os dias são **os dias de treino do perfil** (§17): nada a escolher aqui além da
+hora. Gravado em `profiles.prefs.lembretes = {treino: {ligado, hora},
+corrida: {ligado, hora}}`, validado por `prefsLembretesSchema` (Zod, em
+`lib/schemas.ts`: hora `HH:MM` de `00:00` a `23:55`, múltiplo de 5 min, o
+passo do disparo; uma hora fora do passo, digitada no computador, é
+arredondada para baixo: 06:47 → 06:45). O campo tem largura para o formato de
+12 h (“06:45 AM”) do navegador em inglês sem cortar. Sem a chave, os dois vêm
+**desligados às 07:00** — ninguém
+passa a receber aviso sem pedir. A gravação é a mesma de Preferências
+(`salvarPrefs`, a fila offline cobre) e nunca apaga outras chaves de `prefs`.
+O fuso é sempre **America/Sao_Paulo**.
+
+**Sem push, os horários continuam.** O bloco "Horários" e o botão do
+calendário (23.12) aparecem e funcionam **mesmo sem as variáveis VAPID** no
+servidor, sem a tabela de inscrições e em aparelho sem suporte a push: o .ics é
+a alternativa que funciona em qualquer celular, inclusive no iPhone sem
+instalar. Só o bloco "Este aparelho" (ativar/desativar) e o "Enviar um
+lembrete de teste" dependem da configuração.
+
+### 23.10 A regra: quem recebe o quê agora (`lib/lembretes-regra.ts`, pura)
+
+`lembretesDevidos(usuario, agora)` decide, para uma conta e um instante, que
+avisos são devidos. Tudo no relógio de **America/Sao_Paulo**
+(`relogioDeSaoPaulo()`, pelo `Intl`, sem depender do fuso do servidor):
+
+1. O dia é o que a **aba Treino e o calendário** mostram: `montarGrade()`
+   (`lib/semana.ts`, a partir de `semanaCoerente()` de `lib/calendario.ts`)
+   com o perfil, os `schedule_overrides`, as sessões e os cardios — a mesma
+   fonte, nada escrito à mão.
+2. **Nada** em dia de descanso; nada em dia marcado **"Não vou treinar hoje"**
+   (o override de descanso que a §5.4 grava vira descanso no calendário);
+   nada se o dia já está **feito** (sessão de força concluída, ou cardio
+   concluído, no dia).
+3. Dia de força → o lembrete do **treino** (se ligado); dia de cardio → o da
+   **corrida** (se ligado).
+4. **Horário**: devido de `hora` até `hora + 30 min`, inclusive. Antes, ainda
+   não; depois dos 30 min, **pula o dia** (o disparo parado não despeja
+   avisos velhos). A tolerância não atravessa a meia-noite: um lembrete às
+   23:50 não sai às 00:10 do dia seguinte.
+5. **Nunca duas vezes**: se `lembretes_enviados` já tem `(tipo, dia)` daquela
+   conta, nada.
+
+O texto sai das mesmas funções da aba Treino: treino → título "Hora do
+treino", corpo `resumoDoTreino()` ("Treino A · 6 exercícios · 44 min" — nome
+e duração estimada de `programa.json`); corrida → título "Hora da corrida",
+corpo `textoDoCardio()` ("Corrida · semana 3 · … · 34 min"). O toque abre a
+aba Treino (`/`). `proximoLembrete()` (mesma regra) diz na tela o próximo
+aviso previsto nos próximos 7 dias.
+
+### 23.11 O disparo automático a cada 5 minutos
+
+**Banco** (`supabase/migracoes/2026-09-23-lembretes-disparo.sql`, o mesmo SQL
+em `schema.sql`, idempotente e expand-only):
+
+- `public.lembretes_enviados (id, user_id → auth.users on delete cascade,
+  tipo text check ('treino'|'corrida'), dia date, enviado_em timestamptz,
+  unique (user_id, tipo, dia))`, RLS ligada com **uma** policy: o dono **lê**
+  as suas (`select` para `authenticated`). Ninguém insere, altera ou apaga
+  pela API; o `anon` não tem nada.
+- Extensões `pg_cron` e `pg_net` (`create extension if not exists`).
+- `public.lembretes_tick()` — `security definer`, `search_path` fixo,
+  **não executável por `anon` nem `authenticated`** (revogado de `public`,
+  `anon` e `authenticated`; o dono `postgres` executa e o `service_role`
+  mantém o padrão do projeto Supabase, que o app nunca usa). Lê do **Vault** `lembretes_url` e `lembretes_segredo`;
+  **sem os dois, ou sem o `pg_net`, não faz nada** (retorna sem erro e sem
+  chamar a rede). Com eles, monta o JSON mínimo de quem tem ao menos um
+  lembrete ligado **e** ao menos uma inscrição — perfil (fase, último treino,
+  semanas dos planos, `prefs`), os overrides de 8 dias antes a 7 depois de
+  hoje, as sessões e os cardios dos últimos 8 dias, os envios de hoje e as
+  inscrições — e faz `net.http_post` para a URL
+  com o cabeçalho `x-lembretes-segredo`. Sem ninguém a avisar, não chama.
+  **Desde 23.15** (migração de 2026-09-24): de `prefs` só as chaves que a
+  regra lê, listas com teto e as contas em lotes de até 50 / 256 KiB.
+- `public.lembretes_resultado(segredo text, enviados jsonb, expirados text[])`
+  — `security definer`, `search_path` fixo, revogado de `public`, `execute`
+  só para `anon`/`authenticated` (a rota chama com a chave anon; **o segredo
+  é a proteção**). Confere o segredo contra o do Vault comparando os
+  `sha256` dos dois (tamanho fixo, sem atalho no primeiro byte diferente);
+  errado ou sem Vault, erro `28000` e nada muda. Certo: grava os enviados
+  (`on conflict do nothing`) e apaga as inscrições cujo `endpoint` expirou
+  (404/410); devolve quantos gravou.
+- O job `pg_cron` **"lembretes"**, `*/5 * * * *`, `select
+  public.lembretes_tick()`: desagendado pelo nome se já existe e agendado de
+  novo (rodar a migração duas vezes deixa um job só).
+
+**Nenhum valor de segredo no repositório**: a migração cria funções, tabela e
+job; os valores do Vault (`lembretes_url`, `lembretes_segredo`) e a variável
+`LEMBRETES_SEGREDO` da Vercel quem cria é quem publica. **Nunca a service
+role**, nem no servidor.
+
+**Rota** `POST /api/lembretes/disparar` (runtime `nodejs`):
+
+1. sem `LEMBRETES_SEGREDO` no servidor → **503** `SEM_CONFIGURACAO`;
+2. `x-lembretes-segredo` ausente ou diferente (`timingSafeEqual` sobre os
+   `sha256`) → **401**, sem ler o corpo;
+3. sem as variáveis VAPID → **503** `SEM_CONFIGURACAO`;
+4. corpo que não é JSON ou fora do `disparoSchema` (Zod) → **400** (desde
+   23.15, o envelope; cada conta é conferida sozinha e a inválida é pulada e
+   contada); maior
+   que 512 KiB **em bytes** → **413** (o `content-length` declarado maior já
+   recusa, e a leitura para no primeiro pedaço que passar do limite);
+5. para cada conta, `lembretesDevidos()`; cada aviso devido vai para cada
+   inscrição da conta com `lib/web-push.ts` (a mesma cifragem e o mesmo VAPID
+   do teste, só para `endpointAceito()`) — desde 23.15 numa fila só, até 8
+   ao mesmo tempo e prazo total de 20 s;
+6. chama `lembretes_resultado` com os `(user_id, tipo, dia)` que chegaram a
+   **ao menos um** aparelho e os endpoints 404/410. Se nenhum chegou, não
+   marca: o próximo tick tenta de novo, dentro dos 30 min.
+
+Sem a tabela `lembretes_enviados` (migração não aplicada), a tela não quebra:
+o "Último lembrete" simplesmente não aparece.
+
+### 23.12 "Adicionar ao meu calendário" (`lib/ics.ts`)
+
+Botão em `/mais/lembretes` que baixa `treino-do-terraco.ics` (RFC 5545,
+UTF-8, linhas terminadas em CRLF e dobradas a 75 octetos sem partir um
+caractere): um `VEVENT` semanal por dia de treino do perfil —
+`RRULE:FREQ=WEEKLY;BYDAY=<dia>` nos dias de força (hora do lembrete do
+treino) e nos de cardio (hora do lembrete da corrida), `DTSTART;TZID=
+America/Sao_Paulo` no próximo dia daquele tipo, `DURATION` = a duração
+estimada do plano naquele dia (a mesma de 23.10), `UID` estável por conta,
+tipo e dia da semana (baixar de novo substitui em vez de duplicar),
+`VALARM` na hora do evento e o `VTIMEZONE` de São Paulo (UTC−3, sem horário
+de verão). O `DESCRIPTION` é genérico nos dois tipos ("Treino do Terraço: abra
+o app para ver o treino do dia / a corrida da semana (cerca de N min)."): o
+evento repete toda semana e o plano avança, então nada da semana atual (número
+da semana, protocolo da corrida) entra no texto. Funciona com o lembrete
+desligado (usa a hora escolhida) e sem push nenhum. O arquivo baixado não se
+atualiza sozinho: mudou a hora ou os dias, é preciso baixar de novo — a tela
+diz isso e avisa quando o baixado neste aparelho ficou velho (23.16).
+
+### 23.13 O que mais fecha no lote 35
+
+- **Badge próprio**: `public/icons/badge-96.png`, gerado por
+  `npm run icones` — a barra com anilhas **branca em fundo transparente**
+  (só alfa, como o Android pede), usado por `opcoesDaNotificacao()`.
+- **Passo 3 das instruções de permissão** diz a verdade nos dois caminhos:
+  "Volte aqui: a tela confere de novo sozinha — mostra “Ativar lembretes neste
+  aparelho” ou, se a inscrição continuou valendo, “Ativado neste aparelho”."
+- **"Último lembrete: hoje às 07:00"** (ou "ontem às …", "dd/mm às …"), lido de
+  `lembretes_enviados` pela RLS, e **"Próximo: …"** pela regra de 23.10.
+  Quando o push **não** chega neste aparelho (servidor sem VAPID, sem a
+  tabela, navegador sem suporte, bloqueado ou não ativado), logo abaixo do
+  "Próximo" vem "Este aparelho não está recebendo avisos. O alarme fica com o
+  calendário abaixo — baixe de novo sempre que mudar a hora ou os dias."
+  (23.16) — a tela não promete um aviso que não vai chegar. Com o aparelho
+  ativado, a frase some.
+- **Sair** continua sem apagar a inscrição do aparelho: a linha é da conta
+  que ativou; outra conta que ativar no mesmo aparelho toma o endpoint
+  (23.2), e "Desativar" ou "Remover" encerram.
+
+### 23.14 Critérios de aceite (lote 35)
+
+1. **Horários**: Vitest do `prefsLembretesSchema` (padrão desligado 07:00,
+   hora fora do passo recusada) e e2e a 360×740 nos dois temas que liga o
+   treino, muda a hora e vê `prefs.lembretes` gravado no mock sem perder as
+   outras chaves — com e **sem** as variáveis VAPID.
+2. **Regra**: Vitest de dia de treino, descanso, "Não vou treinar hoje",
+   já concluído, corrida (semana N no texto), virada de dia, horário exato,
+   +30 min (sai) e +35 min (pula), já enviado; mutação: tirar os overrides
+   da conta derruba o teste do dia pulado.
+3. **Disparo**: `lib/migracao-lembretes-disparo.test.ts` (pedaço do
+   `schema.sql`, idempotente, expand-only, RLS só de leitura, revokes,
+   `security definer` com `search_path`, tick sem Vault/`pg_net` retorna
+   antes de chamar a rede, job desagendado antes de agendar); Vitest da rota
+   (503 sem segredo, 401 com segredo errado/ausente, 400 corpo inválido,
+   envio e marcação, falha sem marcação); e2e contra o mock: segredo errado
+   401; certo envia ao servidor de push falso (corpo decifra no aviso do
+   treino) e marca `lembretes_enviados`; a segunda chamada no mesmo dia não
+   reenvia.
+4. **Calendário**: Vitest do .ics (CRLF, dobra a 75 octetos com acento,
+   BYDAY dos dias do perfil, TZID, VALARM, UID estável, `DESCRIPTION` de
+   evento recorrente sem "semana N" nem protocolo) e e2e que baixa o
+   arquivo.
+5. **Último lembrete**: e2e com envio semeado no mock.
+6. **Agregados**: Vitest do badge (PNG 96×96 só branco/transparente); o
+   passo 3 novo; os e2e da volta por `focus`, `pageshow` e sem internet nos
+   dois temas.
+
+### 23.15 Lembretes II — correção da revisão do PR #30 (rodada 26)
+
+**Problema medido.** A revisão automática do PR #30 (Codex, 24/09) achou 7
+defeitos reais no lote 35, e o PR foi fechado sem merge:
+
+1. **P1 — o tick manda `profiles.prefs` inteiro de todas as contas num POST
+   só.** `prefs` é um jsonb que cada conta grava sem limite; uma conta com
+   `prefs` de 600 KiB faz o corpo passar dos 512 KiB da rota, **todo** tick
+   recebe 413 e o lembrete de ninguém sai. E a rota validava o corpo inteiro:
+   uma conta fora do formato derrubava as outras (400).
+2. **P2 — a rota era serial**: conta por conta, aviso por aviso, cada envio
+   com até 10 s. Três aparelhos lentos no começo gastavam os 30 s do `pg_net`
+   e as últimas contas nunca eram tentadas (tick após tick).
+3. **P2 — o relógio da tela parava**: `agora` era lido uma vez na montagem;
+   com a tela aberta além da hora (ou da meia-noite), o "Próximo" continuava
+   prometendo um aviso que já tinha passado.
+4. **P2 — `lembretes_enviados` lido uma vez só**: um lembrete que saiu com a
+   tela aberta não aparecia no "Último lembrete" na volta.
+5. **P2 — cache otimista não desfeito**: `gravarPerfil` põe a mudança no
+   cache antes de enfileirar; se o IndexedDB recusa (`salvarPrefs` falha), a
+   tela e o .ics ficavam com a hora nova que não foi gravada em lugar nenhum.
+6. **P2 — campo de hora apagado**: apagar a hora deixava o campo vazio, sem
+   gravar e sem dizer nada; a tela mostrava "sem hora" e o servidor seguia
+   com a antiga.
+7. **P2 — .ics sem cancelamento**: trocar os dias (ou um dia de força por
+   cardio) e baixar de novo só omitia o UID antigo; omitir não cancela o
+   evento já importado, e o alarme velho ficava junto com o novo.
+
+Menores que entram: o comentário "O tick: só o postgres executa" (o
+`service_role` também, pelo padrão do Supabase — o app nunca usa); e o plano
+em que o lembrete da corrida está ligado mas a semana não tem dia de cardio
+(ex.: 3 dias na fase 1), em que o "Próximo" e o .ics só mostram força sem
+dizer por quê.
+
+**O que muda.**
+
+- **Tick limitado e em lotes** — migração **nova**
+  `supabase/migracoes/2026-09-24-lembretes-tick-limitado.sql` (o mesmo SQL em
+  `schema.sql`; a de 2026-09-23 **não** é editada: ela já está aplicada e é o
+  histórico — o `schema.sql` guarda o estado atual, com o tick novo).
+  `create or replace function public.lembretes_tick()` (mesma assinatura,
+  mesmas guardas: sem `pg_net`/Vault/valores → não faz nada; mesmos revokes,
+  `security definer`, `search_path` fixo):
+  - de `prefs` vão **só as chaves que a regra lê** — `lembretes` e
+    `dias_de_treino` —, cada uma só se couber (`lembretes` ≤ 1 KiB,
+    `dias_de_treino` ≤ 256 bytes em texto); fora disso a chave não vai e a
+    regra usa o padrão;
+  - listas com teto: overrides, sessões e cardios da janela até 40 cada,
+    inscrições até 10 (as mais novas);
+  - **lotes**: as contas vão em vários `net.http_post`, cada um com até **50
+    contas** e até **256 KiB** de contas; uma conta que sozinha passe de
+    **32 KiB** não vai (é pulada e contada no `raise log`) — nunca derruba o
+    lote dos outros.
+- **Rota valida por conta**: o corpo tem `agora` e `usuarios` (até 500
+  itens quaisquer); cada conta é conferida sozinha pelo schema da conta. A
+  inválida é **pulada e contada** (`invalidas` na resposta); as outras
+  seguem. Corpo que não é JSON ou sem `agora`/`usuarios` continua 400; maior
+  que 512 KiB, 413.
+- **Envio concorrente com prazo total**: todas as entregas do POST (conta ×
+  aviso × aparelho) numa fila com **até 8 ao mesmo tempo**; cada envio com
+  até 10 s e nunca além do **prazo total de 20 s** (abaixo dos 30 s do
+  `pg_net`). O que não começou até o prazo fica para o próximo tick (não é
+  marcado; conta em `adiadas`). Um aviso é marcado se chegou a **ao menos
+  um** aparelho, como antes. **Limite honesto**: as contas vão sempre na
+  mesma ordem (`user_id`), sem rodízio; se num lote os serviços de push
+  seguram envios até o prazo (8 simultâneos × 10 s cabem 16 no prazo), as
+  contas do fim do lote podem ficar adiadas em todo tick até a janela de
+  30 min fechar. Com `endpointAceito` só aceitando serviços de push
+  conhecidos isso é raro; rodízio fica para quando o log (`adiadas`)
+  mostrar que acontece.
+- **Relógio vivo na tela**: `agora` se atualiza a cada minuto e na volta
+  (`visibilitychange` visível, `focus`, `pageshow` — os mesmos eventos da
+  volta de 23.4); o "Próximo", o "Último" e a janela de dias acompanham.
+- **`lembretes_enviados` relido na volta** (os mesmos eventos) e a cada 5
+  minutos com a tela visível (o passo do tick).
+- **Falha ao gravar desfaz**: se `salvarPrefs` falha, o perfil do cache
+  volta às `prefs` de antes; o interruptor, o campo de hora, o "Próximo" e o
+  .ics voltam ao gravado, e a tela diz "Não deu para salvar agora…". Só
+  desfaz se o cache ainda tem as `prefs` daquela gravação (rodada 30, menor
+  da auditoria 2): se outra gravação, que nasceu das `prefs` do cache e leva
+  esta mudança junto para a fila, já pôs as dela por cima, o cache fica com
+  as dela — voltar às de antes apagaria da tela o que foi enfileirado.
+- **Hora apagada ou inválida**: ao sair do campo (`blur`), o campo volta à
+  hora gravada e a tela diz "Hora inválida: mantida a de antes (HH:MM)." —
+  nada é gravado.
+- **O recado aparece de verdade**: "Horários salvos.", "Não deu para salvar
+  agora…" e "Hora inválida…" saem logo abaixo do campo de hora do lembrete
+  que mudou (cada lembrete com a sua região `aria-live`, que existe desde o
+  começo). Cada lembrete guarda o seu último recado: o da corrida não apaga
+  o do treino (nem o contrário), para o campo que está com o dedo não saltar
+  quando o recado do outro some. Assim que um recado aparece, a tela **faz a
+  conta**: se o fundo dele (`getBoundingClientRect`) passa do topo da barra
+  de navegação fixa menos 8 px, rola a página exatamente o que falta
+  (`window.scrollBy`); se ele estiver acima do topo da tela, rola para cima
+  até ele. Nada de `scrollIntoView` nem `scroll-margin` (ver a correção da
+  auditoria 2 abaixo). Sempre há como rolar: abaixo do recado da corrida
+  ainda vêm o "Próximo", o bloco do calendário e a folga do rodapé
+  (`pb-24`, 96 px), bem mais que a barra (57 px mais a área segura de
+  baixo). Vale nos dois layouts da
+  tela (com as variáveis VAPID, em que "Este aparelho" e "Aparelhos desta
+  conta" vêm antes dos Horários, e sem elas, como a produção de hoje) e nos
+  dois temas.
+
+  **Correção da auditoria 2 (rodada 30) — problema medido.** A rodada 26
+  chamava `scrollIntoView({ block: "nearest" })` com `scroll-margin-bottom`
+  de 112 px. No Chromium (o Brave do dono é Chromium), o `nearest` não rola
+  quando a caixa do elemento já está inteira dentro da viewport, mesmo atrás
+  da barra — a margem só conta quando ele já precisa rolar. Sem VAPID, a
+  360×740, os dois campos cabem na primeira tela (treino em top 508, corrida
+  em 633) e o recado da corrida nascia em top 689–709 (729 com duas linhas)
+  com a barra em 682: `scrollY` ficava 0 e `elementFromPoint` no centro do
+  recado devolvia a barra, nos dois temas, para "Horários salvos.", "Hora
+  inválida…" e "Não deu para salvar agora…". O e2e rodava só com VAPID, em
+  que o campo da corrida abre em top 1037 e o `fill()` o traz para o meio da
+  tela: passava com a rolagem trocada por nada. E, quando o recado da
+  corrida aparecia, o do treino sumia no mesmo desenho e o campo da corrida,
+  com foco, subia 28 px.
+- **.ics cancela o que saiu do plano**: para cada UID possível (tipo ×
+  dia da semana = 14) que **não** está no plano atual, o arquivo leva um
+  `VEVENT` com o **mesmo UID**, `STATUS:CANCELLED`, sem alarme; todos os
+  eventos (ativos e cancelados) levam `SEQUENCE` = segundos desde
+  2026-01-01T00:00Z do momento do download (sempre maior que o do arquivo
+  anterior) e `DTSTAMP` do mesmo momento. **Limite honesto**: os apps de
+  calendário variam em como aplicam um cancelamento vindo de arquivo
+  importado (alguns atualizam pelo UID, outros importam como evento novo e
+  ignoram o cancelado); a tela e esta seção não prometem mais que isso — se o
+  alarme antigo continuar, apague o evento antigo no calendário.
+- **Corrida sem dia no plano**: com o lembrete da corrida ligado e nenhum
+  dia de cardio na semana do plano, abaixo do interruptor vem "Seu plano
+  desta fase não tem dia de corrida: este lembrete só toca quando tiver." (o
+  mesmo para o treino, com "dia de força").
+
+**Aceite (verificável).**
+
+1. `lib/migracao-lembretes-tick-limitado.test.ts`: a migração nova é pedaço
+   do `schema.sql`; idempotente (`create or replace`); expand-only; revokes
+   de `public, anon, authenticated` sem grant; `security definer` com
+   `search_path`; guardas antes da rede; **nenhum `p.prefs` inteiro no
+   corpo** (só `p.prefs -> 'lembretes'` e `p.prefs -> 'dias_de_treino'`, com
+   `octet_length`); lotes com 50 contas / 256 KiB e conta acima de 32 KiB
+   pulada; nenhum segredo/URL. O teste da migração de 2026-09-23 continua
+   conferindo o arquivo dela e que o tick dela foi **substituído** pelo da
+   nova no `schema.sql`.
+2. Vitest da rota: uma conta inválida (e uma gigante fora do formato) no
+   meio não impede as outras de receber; resposta com `invalidas`.
+3. Vitest da rota com aparelhos lentos (que só respondem quando o prazo
+   aborta): as **últimas** contas também recebem, e o total respeita o prazo.
+4. e2e com o relógio do Playwright (`page.clock`): a tela aberta passa da
+   hora do lembrete (o "Próximo" pula para o próximo dia do plano) e da
+   meia-noite.
+5. e2e: um envio gravado no mock com a tela aberta aparece no "Último
+   lembrete" depois da volta — por `focus`, `pageshow` e `visibilitychange`,
+   nos dois temas — e, sem volta nenhuma, no 5º minuto com a tela aberta
+   (relógio do Playwright: no 4º ainda não).
+6. Vitest: `salvarPrefs` que falha → o cache do perfil volta às `prefs` de
+   antes; com duas gravações sobrepostas e a primeira falhando depois de a
+   segunda ser enfileirada, o cache fica com as `prefs` da segunda (e, desde
+   23.16, a primeira termina bem: a mudança dela foi na segunda).
+7. e2e: apagar a hora e sair do campo → o campo volta à gravada, o aviso
+   aparece e o mock não muda.
+8. Vitest do .ics: plano com 3 dias gera 3 ativos + 11 cancelados com os
+   UIDs complementares, `STATUS:CANCELLED`, sem `VALARM`; `SEQUENCE` igual
+   nos 14 e maior num download posterior.
+9. e2e a 360×740, nos dois temas e nos **dois layouts** — sem as variáveis
+   VAPID (um segundo `next start` do mesmo build, sem elas, como a produção
+   de hoje: a pessoa muda a hora da corrida sem rolar, `scrollY` 0 antes) e
+   com elas (a pessoa rola até o campo da corrida ficar logo acima da barra
+   e muda): mudar a hora da corrida, apagá-la e sair do campo, e mudá-la com
+   o IndexedDB recusando → "Horários salvos.", "Hora inválida…" e "Não deu
+   para salvar agora…" ficam **inteiros dentro da tela e acima do topo da
+   barra de navegação** (`getBoundingClientRect` do recado contra o da
+   barra, e `elementFromPoint` no centro do recado devolve o próprio
+   recado); o mesmo para o treino. Com o recado do treino já na tela, o
+   campo da corrida não se move na página (`top + scrollY`) quando o recado
+   dela aparece. **Mutação**: com a conta da rolagem trocada por nada, o e2e
+   sem VAPID cai (registrado no PROGRESSO).
+
+### 23.16 Lembretes II — correção da auditoria da rodada 30
+
+**Problema medido.** A auditoria da regra (rodada 30, HEAD `bd8e476`)
+reprovou com dois importantes:
+
+1. **Desfazer para o "antes" de cada chamada deixa na tela o que nunca foi
+   gravado.** Com P0 no cache, a gravação 1 (P1, treino 06:15) começa; a 2
+   (P2, nascida de P1) começa antes de a 1 recusar; a 1 recusa (o cache tem
+   P2, não desfaz); a 2 recusa e volta ao "antes" **dela**, P1. A tela, o
+   "Próximo" e o .ics ficavam em 06:15, que não estava nem no IndexedDB nem
+   no servidor (Vitest da auditoria: `expected P0, received treino 06:15`).
+   E, quando a 1 falhava e a 2 passava (levando a mudança da 1 para a fila),
+   o recado da 1 dizia "Não deu para salvar agora…".
+2. **O .ics fica velho e a tela não avisa.** Quem não tem push (a produção de
+   hoje, sem VAPID; iPhone sem instalar) baixa o .ics com o treino às 07:00 e
+   depois muda a hora para 06:30 (ou os dias em Preferências). A tela dizia
+   "Horários salvos.", "Próximo: amanhã às 06:30" e "Este aparelho não está
+   recebendo avisos; o calendário abaixo tem alarme **na mesma hora**." — falso:
+   o calendário importado continua tocando às 07:00, e nada dizia para baixar
+   de novo.
+
+Menores que entram: a regra por conta que lança não tinha teste (o `catch`
+da rota era mutação sobrevivente); a RPC `lembretes_resultado` ficava fora do
+prazo total de 20 s; a hora esperando os 600 ms se perdia se a página fechasse
+nesse meio; "Confira a internet" aparecia para uma falha do IndexedDB (sem
+internet a gravação funciona: vai para a fila); perfil que não carrega deixava
+os Horários em "Carregando…" para sempre.
+
+**O que muda.**
+
+- **Desfazer para o que entrou na fila** (`salvarPrefsOuDesfazer`,
+  `lib/queries/mais.ts`): as gravações de prefs em curso no mesmo cliente
+  formam um grupo. Enquanto houver alguma em curso, o cache fica com a última
+  tentada. Quando a última do grupo se resolve, se a de maior ordem falhou, o
+  cache volta às **confirmadas** — as `prefs` da gravação de maior ordem que
+  entrou na fila, ou as do cache quando o grupo começou se nenhuma entrou.
+  Uma gravação que falhou, mas cuja mudança foi para a fila dentro de uma
+  posterior que passou, termina bem (a tela diz "Horários salvos."); se
+  nenhuma posterior passou, o erro sobe. Substitui a regra "só desfaz se o
+  cache ainda tem as `prefs` daquela gravação" de 23.15.
+- **Recado da falha**: "Não consegui salvar agora. Tente de novo." (a falha
+  é do aparelho, não da internet; o mesmo "Não consegui salvar agora." de
+  Preferências).
+- **O calendário baixado não fica velho em silêncio** (`lib/ics.ts`,
+  `components/mais/tela-lembretes.tsx`):
+  - `assinaturaDoIcs(eventos)` (pura): os eventos ativos do .ics como
+    `tipo·dia·hora`, em ordem — muda quando muda a hora ou os dias, e não
+    muda com a duração da semana nem com o interruptor (o .ics funciona com
+    o lembrete desligado, 23.12);
+  - ao baixar, a tela guarda a assinatura **neste aparelho**
+    (`localStorage`, só conveniência: sem ele nada quebra) por conta;
+  - se a assinatura de agora difere da baixada, o bloco "No calendário do
+    celular" mostra "O calendário que você baixou neste aparelho ainda está
+    com o horário ou os dias de antes. Baixe de novo para ele tocar na hora
+    certa." — e some quando baixa de novo (ou volta ao que foi baixado);
+  - depois de gravar uma hora que deixa o baixado velho, o recado é "Horários
+    salvos. Baixe o calendário de novo, abaixo, para ele tocar no horário
+    novo.";
+  - o texto fixo do bloco termina com "Mudou a hora ou os dias? Baixe de
+    novo: o arquivo novo substitui o antigo." (vale para o arquivo baixado
+    noutro aparelho);
+  - abaixo do "Próximo", sem push aqui: "Este aparelho não está recebendo
+    avisos. O alarme fica com o calendário abaixo — baixe de novo sempre que
+    mudar a hora ou os dias." (nada de "na mesma hora").
+- **Rota**: a RPC `lembretes_resultado` leva um `AbortSignal` com o que sobra
+  do prazo total (no mínimo 3 s), para a marcação não passar dos 30 s do
+  `pg_net`.
+- **Hora sem esperar ao sair**: sair do campo (`blur`) ou esconder a página
+  (`pagehide`, `visibilitychange` oculto) com uma hora válida esperando os
+  600 ms grava na hora.
+- **Perfil que não carrega**: sem perfil no cache e com erro na leitura, os
+  Horários dizem "Não consegui carregar os horários." com o botão "Tentar de
+  novo" (≥ 44 px), em vez de "Carregando…" para sempre.
+
+**Aceite (verificável).**
+
+1. Vitest (`lib/queries/mais.test.ts`): duas gravações sobrepostas — as duas
+   falham (em qualquer ordem) → cache = P0; a 1 falha e a 2 passa (em
+   qualquer ordem) → as duas terminam bem e o cache = P2; a 2 falha antes e a
+   1 passa depois → cache = P1. Os casos derrubam a implementação anterior
+   (4 ✗, registrado no PROGRESSO).
+2. Vitest de `assinaturaDoIcs`: muda com a hora e com os dias; não muda com
+   o interruptor nem com a semana que avança.
+3. e2e a 360×740 nos dois temas, **sem VAPID** (o layout da produção de
+   hoje): baixa o .ics, muda a hora do treino → o recado pede para baixar de
+   novo e o bloco do calendário mostra o aviso de arquivo velho; baixa de novo
+   → o aviso some; e o texto abaixo do "Próximo" não diz "na mesma hora".
+4. Vitest da rota: a regra forçada a lançar numa conta não derruba as outras
+   (a conta é contada como inválida); a RPC recebe um `AbortSignal`.
+5. e2e: a hora esperando os 600 ms é gravada no mock ao sair do campo antes
+   do prazo.
+
+### 23.17 Retorno da conexão e entrega no aparelho
+
+Ao voltar das configurações com a permissão alterada, o estado da permissão passa a valer imediatamente. Se a lista de aparelhos estiver indisponível, a tela remove a mensagem antiga sobre a permissão e indica que não conseguiu ler a lista. Ao receber o evento de reconexão, a página tenta a leitura de novo. O teste em navegador cobre ambos os temas. O Chromium automatizado verifica o clique que leva a uma aba existente e a URL interna entregue a `clients.openWindow`. A abertura de uma janela nova por um toque físico no sistema de notificações requer um aparelho com push habilitado.

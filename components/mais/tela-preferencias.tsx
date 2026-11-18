@@ -71,7 +71,7 @@ export function TelaPreferencias({ userId }: { userId: string }) {
         <CardHeader>
           <CardTitle className="text-base">Créditos das imagens</CardTitle>
           <CardDescription>
-            Autor, licença e link de cada ilustração e do mapa muscular (SPEC §15).
+            Autor, licença e link de cada ilustração e do mapa muscular.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -198,7 +198,7 @@ function MetaSemanal({ userId, perfil }: { userId: string; perfil: LinhaPerfil }
         <CardTitle className="text-base">Meta semanal</CardTitle>
         <CardDescription>
           Quantas sessões (força + cardio) contam como semana cumprida na aba
-          Treino. Vazio = o padrão da fase ({padrao}).
+          Treino. Deixe em branco para usar o padrão da fase ({padrao} por semana).
         </CardDescription>
       </CardHeader>
       <CardContent className="flex items-end gap-2">
@@ -239,7 +239,7 @@ function Treino({ userId, perfil }: { userId: string; perfil: LinhaPerfil }) {
       <CardHeader>
         <CardTitle className="text-base">Treino</CardTitle>
         <CardDescription>
-          Como o player se comporta: preparação, descanso, avisos e tela.
+          Ajuste a preparação, o descanso e os avisos durante o treino.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -283,8 +283,8 @@ function Incrementos({
       <CardHeader>
         <CardTitle className="text-base">Incremento por exercício</CardTitle>
         <CardDescription>
-          Quanto a carga sobe quando o treino fecha no topo da faixa. Vazio =
-          o valor do programa.
+          Quanto a carga sobe quando o treino fecha no topo da faixa. Deixe em
+          branco para usar o valor do programa.
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">

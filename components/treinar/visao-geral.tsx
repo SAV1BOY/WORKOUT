@@ -69,14 +69,16 @@ export function VisaoGeralDaSessao({
    * para o `popstate` consumir, e quem fecha pelo botão desfaz essa entrada.
    */
   const raiz = useRef<HTMLDivElement>(null);
+  const titulo = useRef<HTMLHeadingElement>(null);
 
   useEffect(() => {
     if (!aoFechar) return;
+    titulo.current?.focus();
     window.history.pushState({ visaoGeralDoTreino: true }, "");
     /*
      * SPEC §22.14 item 6 (rodada 16): o voltar do celular — e o gesto de
      * voltar do TalkBack/VoiceOver, e o Alt+← — segue a regra do Esc: fecha
-     * só a camada de cima. Com uma folha, um alerta ou a foto ampliada aberta
+     * só a camada de cima. Com uma folha ou um alerta aberto
      * por cima da lista, o `popstate` devolve a entrada da lista ao histórico
      * e entrega um Esc à camada de cima, que fecha do jeito dela (o Radix
      * devolve o foco a quem a abriu). Sem nada por cima, fecha a lista.
@@ -144,7 +146,7 @@ export function VisaoGeralDaSessao({
 
       <header className="flex items-start gap-2">
         <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <h1 className="text-2xl font-semibold tracking-tight">
+          <h1 ref={titulo} tabIndex={-1} className="text-2xl font-semibold tracking-tight">
             {treino?.nome ?? (plano ? "Barra fixa" : "Treino")}
           </h1>
           <p className="text-muted-foreground text-sm">

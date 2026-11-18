@@ -294,9 +294,13 @@ export function TelaCardio({
       <Button
         variant={sessao.timer.terminado ? "default" : "outline"}
         className="alvo h-14 w-full text-base font-semibold"
+        disabled={decorridoS <= 0}
         onClick={() => setEncerrando(true)}
       >
         Encerrar e registrar
+      </Button>
+      <Button variant="ghost" className="alvo" onClick={() => void descartar()}>
+        Sair sem registrar
       </Button>
 
       {comBlocos ? (
@@ -315,9 +319,7 @@ export function TelaCardio({
         </ul>
       ) : null}
 
-      <Button variant="ghost" className="alvo" onClick={() => void descartar()}>
-        Sair sem registrar
-      </Button>
+
 
       <FimDoCardio
         aberto={encerrando}

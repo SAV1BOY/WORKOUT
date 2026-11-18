@@ -160,6 +160,13 @@ describe("fotos", () => {
     const dias = fotosPorData(fotos);
     expect(parDeComparacao(dias)).toEqual({ antes: "2026-09-14", depois: "2026-10-14" });
     expect(parDeComparacao([])).toEqual({ antes: null, depois: null });
+    // A comparação já montada com apenas a foto recente passa a exibir
+    // os dois dias quando a foto mais antiga entra, sem clique no seletor.
+    const semEscolha = { antes: null, depois: null };
+    expect(parDeComparacao(dias.slice(0, 1), semEscolha)).toEqual({ antes: dias[0]!.data, depois: dias[0]!.data });
+    expect(parDeComparacao(dias, semEscolha)).toEqual({ antes: dias[1]!.data, depois: dias[0]!.data });
+    expect(parDeComparacao(dias, { antes: dias[0]!.data, depois: "data-removida" })).toEqual({ antes: dias[0]!.data, depois: dias[1]!.data });
+    expect(parDeComparacao(dias, { antes: "data-removida", depois: dias[1]!.data })).toEqual({ antes: dias[0]!.data, depois: dias[1]!.data });
   });
 
   it("o slider só oferece os ângulos que as duas datas têm", () => {

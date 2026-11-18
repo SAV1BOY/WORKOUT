@@ -8,6 +8,7 @@
  */
 import { expect, test, type Page } from "@playwright/test";
 import {
+  avancarNoPlayerAte,
   comecarNoPlayer,
   comecarOTreinoDoDia,
   entrarNoApp,
@@ -47,8 +48,8 @@ test.beforeEach(async () => {
 });
 
 /** Entra, começa o Treino A e passa da preparação para o 1º exercício. */
-async function abrirPlayer(page: Page): Promise<SessaoMock> {
-  const sessao = await usuarioComPerfil();
+async function abrirPlayer(page: Page, perfil?: Parameters<typeof usuarioComPerfil>[0]): Promise<SessaoMock> {
+  const sessao = await usuarioComPerfil(perfil);
   await fixarData(page, SEGUNDA);
   await entrarNoApp(page);
   await comecarOTreinoDoDia(page);
@@ -64,35 +65,6 @@ async function concluirSerie(page: Page) {
   await page.getByRole("button", { name: "Concluir série" }).click();
   const pular = page.getByRole("button", { name: "Pular descanso" });
   if (await pular.isVisible().catch(() => false)) await pular.click();
-}
-
-/**
- * Anda pelo player (seta "próximo", pulando descansos) até `alvo` aparecer.
- * Para sozinho quando não há mais para onde ir — o feedback e a conclusão não
- * têm seta.
- */
-async function irAte(page: Page, alvo: ReturnType<Page["getByText"]>) {
-  for (let i = 0; i < 40; i++) {
-    if (await alvo.isVisible().catch(() => false)) return;
-    const pular = page.getByRole("button", { name: "Pular descanso" });
-    if (await pular.isVisible().catch(() => false)) {
-      await pular.click();
-      continue;
-    }
-    // a pergunta "firme?" sai pelo primário dela, não pela seta — e ele se
-    // chama "Pular esta pergunta" enquanto ninguém responde (§22.5 item 4)
-    const pergunta = page.getByRole("button", {
-      name: /^(Pular esta pergunta|Continuar|Concluir sem responder|Concluir)$/,
-    });
-    if (await pergunta.first().isVisible().catch(() => false)) {
-      await pergunta.first().click();
-      continue;
-    }
-    const proximo = page.getByRole("button", { name: "Próximo passo" });
-    if (!(await proximo.isVisible().catch(() => false))) break;
-    await proximo.click();
-  }
-  await expect(alvo).toBeVisible();
 }
 
 test.describe("preparação → exercício → descanso (SPEC §14.1.1–3)", () => {
@@ -341,7 +313,7 @@ test.describe("o Treino A inteiro pelo player (SPEC §14.5.1 e §14.5.2)", () =>
 
     // as setas levam até o fim do treino
     const sensacao = page.getByRole("radiogroup", { name: "Sensação" });
-    await irAte(page, sensacao);
+    await avancarNoPlayerAte(page, sensacao);
 
     // 4. feedback (SPEC §14.1.4): 1 = muito difícil … 5 = muito fácil
     await expect(page.getByText("O que você achou do treino de hoje?")).toBeVisible();
@@ -414,7 +386,7 @@ test.describe("o peso do dia na conclusão (SPEC §14.1.5)", () => {
       .getByRole("radio", { name: "Firme" })
       .click();
     const sensacao = page.getByRole("radiogroup", { name: "Sensação" });
-    await irAte(page, sensacao);
+    await avancarNoPlayerAte(page, sensacao);
     await sensacao.getByRole("radio", { name: "Na medida certa" }).click();
     await page.getByRole("button", { name: "Concluir", exact: true }).click();
   }
@@ -479,7 +451,7 @@ test.describe("o peso do dia na conclusão (SPEC §14.1.5)", () => {
       .click();
 
     const sensacao = page.getByRole("radiogroup", { name: "Sensação" });
-    await irAte(page, sensacao);
+    await avancarNoPlayerAte(page, sensacao);
     await sensacao.getByRole("radio", { name: "Na medida certa" }).click();
     await page.getByRole("button", { name: "Concluir", exact: true }).click();
 
@@ -542,10 +514,10 @@ test.describe("circuito de core: reps e tempo (SPEC §14.5.3)", () => {
     /*
      * Até a elevação de pernas (peso do corpo, por repetições). O alvo é o
      * `h1` só-leitor do player (SPEC §22.5 item 10): a tela de descanso mostra
-     * o nome do próximo e, desde a §22.5, também "· exercício 5 de 6" — só o
-     * `h1` existe apenas no passo do exercício.
+     * o nome do próximo no próprio título, como “descanso antes do exercício”.
+     * A série tem o título do treino seguido de “— exercício”.
      */
-    await irAte(page, page.getByRole("heading", { level: 1, name: /exercício 5 de 6/ }));
+    await avancarNoPlayerAte(page, page.getByRole("heading", { level: 1, name: /— exercício 5 de 6$/ }));
     await expect(
       page.getByRole("heading", { name: "Elevação de pernas na barra fixa" }),
     ).toBeVisible();
@@ -556,7 +528,7 @@ test.describe("circuito de core: reps e tempo (SPEC §14.5.3)", () => {
     await concluirSerie(page);
 
     // a prancha: contagem regressiva com Começar/Pausar (SPEC §14.1.2)
-    await irAte(page, page.getByRole("heading", { level: 1, name: /exercício 6 de 6/ }));
+    await avancarNoPlayerAte(page, page.getByRole("heading", { level: 1, name: /— exercício 6 de 6$/ }));
     await expect(page.getByRole("heading", { name: "Prancha" })).toBeVisible();
     const contagem = page.getByRole("timer", { name: "Contagem do exercício" });
     await expect(contagem).toHaveText("1:00");
@@ -812,12 +784,10 @@ test.describe("o campo de carga é do dedo de quem digita (SPEC §22.11)", () =>
       expect(naTela).toBe(esperado);
     }
 
-    // sair do campo: aí sim o ajuste de anilha chega à tela (11,5 com o kit
-    // do dono, 12,5 se este kit montar 12,5)
+    // O kit padrão tem barra de 7,5 kg e monta 11,5 kg abaixo do pedido.
+    // Desde o primeiro quadro sem o foco, o campo deve mostrar o valor do registro.
     await carga.press("Enter");
-    await expect(carga).toHaveValue(/^(11,5|12,5)$/);
-    const depois = await carga.inputValue();
-    const kg = Number(depois.replace(",", "."));
+    expect(await carga.inputValue()).toBe("11,5");
 
     await page.getByRole("button", { name: "Concluir série" }).click();
     await expect
@@ -828,7 +798,18 @@ test.describe("o campo de carga é do dedo de quem digita (SPEC §22.11)", () =>
             .map((s) => s.carga_kg),
         { timeout: 10_000 },
       )
-      .toContain(kg);
+      .toEqual([11.5]);
+  });
+
+  test("com barra pesada em 8,5 kg, concluir ao sair do campo grava os 12,5 kg montáveis", async ({ page }) => {
+    const sessao = await abrirPlayer(page, { prefs: { pesos_barras: { "barra-macica": 8.5 } } });
+    const carga = page.getByRole("textbox", { name: "carga na barra" });
+    await carga.fill("12,5");
+    await page.getByRole("button", { name: "Concluir série" }).click();
+    await expect.poll(async () =>
+      (await lerDoMock<LinhaSerie>(sessao, "session_sets"))
+        .filter(s => s.exercise_id === "agachamento-livre").map(s => s.carga_kg),
+    ).toEqual([12.5]);
   });
 });
 

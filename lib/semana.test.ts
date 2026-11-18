@@ -87,7 +87,7 @@ describe("grade da semana (SPEC §3.5 e §10.6)", () => {
       hoje,
     });
     expect(grade[0]).toMatchObject({ marca: "feito", simbolo: "✓", sessaoId: "s1" });
-    expect(grade[1]).toMatchObject({ marca: "faltou", simbolo: "✕" }); // terça sem corrida
+    expect(grade[1]).toMatchObject({ marca: "faltou", simbolo: "●" }); // terça sem corrida
     expect(grade[2]).toMatchObject({ marca: "parcial", sessaoId: "s2" });
     expect(grade[3]?.marca).toBe("descanso");
     expect(grade[4]).toMatchObject({ marca: "aberto", ehHoje: true });
@@ -615,4 +615,14 @@ describe("a legenda da faixa da semana", () => {
     expect(GLIFO_DA_MARCA.faltou).not.toBe(GLIFO_DA_MARCA.aberto);
     expect(GLIFO_DA_MARCA.parcial).not.toBe(GLIFO_DA_MARCA.feito);
   });
+});
+
+
+it("a semana projetada avança a corrida sem gravar o perfil e mantém planejados os dias futuros", () => {
+  const perfil = { fase_atual: "fase1" as const, ultimo_treino: null, semana_corrida: 3, data_inicio: "2026-11-15" };
+  const grade = montarGrade({ data: "2026-10-05", perfil, hoje: "2026-09-21" });
+  const corrida = grade.find((d) => d.dia.cardio?.tipo === "corrida")!;
+  expect(corrida.dia.cardio?.semana).toBe(5);
+  expect(corrida.marca).toBe("aberto");
+  expect(perfil.semana_corrida).toBe(3);
 });

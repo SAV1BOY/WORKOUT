@@ -230,6 +230,9 @@ export const ROTULOS_DO_EXERCICIO = [
   "Nota",
   "Última repetição firme",
   "Carga por sessão",
+  // SPEC §22.18 item 5: um por bloco na Visão geral — o nome diz de qual
+  "Substituir hoje",
+  "Ver a montagem",
 ] as const;
 export type RotuloDoExercicio = (typeof ROTULOS_DO_EXERCICIO)[number];
 

@@ -1,9 +1,9 @@
 "use client";
 
 import { Minus, Plus } from "lucide-react";
-import { useEffect, useId, useState } from "react";
+import { useId, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { aceitarDigitacao } from "@/lib/digitar-numero";
+import { aceitarDigitacao, nomeDoPasso } from "@/lib/digitar-numero";
 import { formatarNumero, lerNumero } from "@/lib/formato";
 import { cn } from "@/lib/utils";
 
@@ -26,6 +26,8 @@ export function StepperNumerico({
   decimal = false,
   compacto = false,
   grande = false,
+  alto = false,
+  contexto,
   desabilitado = false,
 }: {
   valor: number | null;
@@ -41,37 +43,25 @@ export function StepperNumerico({
   compacto?: boolean;
   /** Número grande e alvos de 56 px: é o passo do player (SPEC §14.1.2). */
   grande?: boolean;
+  /**
+   * Botões e campo com 48 px de altura: a série da Visão geral, onde o
+   * stepper ocupa a largura toda do cartão (SPEC §22.18 item 4).
+   */
+  alto?: boolean;
+  /**
+   * Complemento do nome dos botões − e + ("da Série 1 de Levantamento
+   * terra"): na Visão geral há um par por série, e sem isto eram 17
+   * "Aumentar repetições" idênticos (SPEC §22.18 item 5). O campo fica só
+   * com o `rotulo` — ele já está dentro do grupo da série.
+   */
+  contexto?: string;
   desabilitado?: boolean;
 }) {
   const id = useId();
-  const [texto, setTexto] = useState(() => (valor === null ? "" : formatarNumero(valor)));
-  /**
-   * SPEC §22.11: enquanto o campo tem foco, o texto é do usuário.
-   *
-   * Estado, e não `ref`, porque a **saída** do foco também tem de acordar o
-   * efeito abaixo: quem digita "12,5" onde o kit só monta 11,5 acaba de
-   * confirmar um valor que o pai já tinha ajustado, e sem esta dependência o
-   * `valor` não mudaria — o campo ficaria mostrando "12,5" para sempre.
-   */
-  const [focado, setFocado] = useState(false);
-
-  // o valor pode mudar por fora (série anterior preenchendo a seguinte)
-  useEffect(() => {
-    /*
-     * Campo focado não se reescreve (SPEC §22.11). Digitando "12,5" depressa
-     * em CARGA NA BARRA, ao chegar em "12" o app ajusta para a anilha possível
-     * (11,5) e este efeito reescrevia o texto no meio da digitação: as teclas
-     * "," e "5" caíam no texto novo e a tela mostrava "11,5,5". O ajuste
-     * chega ao campo no `onBlur`, que é quando ele deixa de ser do dedo.
-     */
-    if (focado) return;
-    setTexto((atual) => {
-      // o que está escrito já é este valor ("82," enquanto se digita "82,4"):
-      // reescrever aqui apagaria a vírgula recém-digitada
-      if (lerNumero(atual) === valor) return atual;
-      return valor === null ? "" : formatarNumero(valor);
-    });
-  }, [valor, focado]);
+  // Durante a digitação, preserve inclusive a vírgula final. Fora dela,
+  // mostre diretamente o valor aceito pelo pai (por exemplo, a carga montável).
+  const [rascunho, setRascunho] = useState<string | null>(null);
+  const texto = rascunho ?? (valor === null ? "" : formatarNumero(valor));
 
   const andar = (direcao: 1 | -1) => {
     if (desabilitado) return;
@@ -83,7 +73,7 @@ export function StepperNumerico({
      * enquanto o valor já andou. É o caminho de celular que o e2e exercita
      * com `dispatchEvent`, que também não mexe no foco.
      */
-    setFocado(false);
+    setRascunho(null);
     if (aoAndar) {
       aoAndar(direcao);
       return;
@@ -108,8 +98,7 @@ export function StepperNumerico({
     // digitar é o que faz o texto ser do dedo — e não focar: no Safari o campo
     // continua focado depois de um toque no + , e o `onFocus` não volta a
     // disparar quando o usuário retoma a digitação
-    setFocado(true);
-    setTexto(aceito);
+    setRascunho(aceito);
     const lido = lerNumero(aceito);
     if (lido === null) return;
     const preso = Math.min(maximo ?? Number.POSITIVE_INFINITY, Math.max(minimo, lido));
@@ -117,22 +106,16 @@ export function StepperNumerico({
   };
 
   const confirmar = () => {
+    setRascunho(null);
     const lido = lerNumero(texto);
     if (lido === null) {
       aoMudar(null);
-      setTexto("");
       return;
     }
     const preso = Math.min(maximo ?? Number.POSITIVE_INFINITY, Math.max(minimo, lido));
-    /*
-     * Só sobe o que `digitar` ainda não subiu: o número que não precisa de
-     * aperto já foi mandado tecla a tecla, e repeti-lo aqui faria o pai avisar
-     * duas vezes ("26,5 kg não fecha com estas anilhas…" em dose dupla, SPEC
-     * §22.11). O texto, esse sim, é reconciliado sempre — pelo efeito lá em
-     * cima, agora que sair do foco também o acorda.
-     */
+    // O número válido já subiu a cada tecla. Só envie novamente se teve
+    // de ser limitado ao sair do campo, evitando um segundo aviso de anilha.
     if (preso !== lido) aoMudar(preso);
-    setTexto(formatarNumero(preso));
   };
 
   return (
@@ -141,10 +124,10 @@ export function StepperNumerico({
         type="button"
         variant="outline"
         size="icon"
-        className={cn("alvo shrink-0", grande ? "size-14 rounded-2xl" : "size-11")}
+        className={cn("alvo shrink-0", grande ? "size-14 rounded-2xl" : alto ? "size-12" : "size-11")}
         onClick={() => andar(-1)}
         disabled={desabilitado}
-        aria-label={`Diminuir ${rotulo}`}
+        aria-label={nomeDoPasso("Diminuir", rotulo, contexto)}
       >
         <Minus className={grande ? "size-7" : "size-5"} />
       </Button>
@@ -157,11 +140,8 @@ export function StepperNumerico({
           id={id}
           value={texto}
           onChange={(e) => digitar(e.target.value)}
-          onFocus={() => setFocado(true)}
-          onBlur={() => {
-            setFocado(false);
-            confirmar();
-          }}
+          onFocus={() => setRascunho(texto)}
+          onBlur={confirmar}
           onKeyDown={(e) => {
             if (e.key === "Enter") (e.target as HTMLInputElement).blur();
           }}
@@ -174,7 +154,7 @@ export function StepperNumerico({
             // tem o campo como alvo, e na grade de duas colunas da sessão ele
             // fechava em 37 px de largura.
             "numero border-input bg-background w-full min-w-11 rounded-lg border text-center tabular-nums",
-            grande ? "h-14 rounded-2xl" : "h-11",
+            grande ? "h-14 rounded-2xl" : alto ? "h-12" : "h-11",
             // "107,5" ainda cabe na coluna estreita de 360 px
             grande ? "px-1 text-3xl font-semibold" : compacto ? "px-0.5 text-base" : "px-2 text-lg",
             "focus-visible:border-ring focus-visible:ring-ring outline-none focus-visible:ring-3",
@@ -193,10 +173,10 @@ export function StepperNumerico({
         type="button"
         variant="outline"
         size="icon"
-        className={cn("alvo shrink-0", grande ? "size-14 rounded-2xl" : "size-11")}
+        className={cn("alvo shrink-0", grande ? "size-14 rounded-2xl" : alto ? "size-12" : "size-11")}
         onClick={() => andar(1)}
         disabled={desabilitado}
-        aria-label={`Aumentar ${rotulo}`}
+        aria-label={nomeDoPasso("Aumentar", rotulo, contexto)}
       >
         <Plus className={grande ? "size-7" : "size-5"} />
       </Button>

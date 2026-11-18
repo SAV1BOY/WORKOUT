@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { MAX_TENTATIVAS, atrasoDaTentativa, resumoDaFila, venceu } from "@/lib/outbox";
+import { MAX_TENTATIVAS, atrasoDaTentativa, mensagemDeRegistro, resumoDaFila, venceu } from "@/lib/outbox";
 import { alvoDaEscrita, enviarItem } from "@/lib/outbox-supabase";
+
+it("confirma o registro e, sem rede, explica quando ele será enviado", () => {
+  expect(mensagemDeRegistro("Peso registrado.", true)).toBe("Peso registrado.");
+  expect(mensagemDeRegistro("Peso registrado.", false)).toBe("Peso registrado no celular. Sobe quando a rede voltar.");
+});
 
 describe("retry da fila de saída", () => {
   it("cresce exponencialmente", () => {
@@ -112,9 +117,6 @@ describe("ordem da fila: quem espera por quem (SPEC §8)", () => {
     expect(
       alvoDaEscrita({ tabela: "body_weights", op: "upsert", linha: { id: "p1" } }),
     ).toBeUndefined();
-    expect(
-      alvoDaEscrita({ tabela: "pullup_singles", op: "upsert", linha: { id: "s1" } }),
-    ).toBeUndefined();
     // evento do programa inteiro (troca de fase, §5.1): não tem sessão
     expect(
       alvoDaEscrita({
@@ -204,4 +206,13 @@ describe("resumo da fila em /mais (SPEC §8)", () => {
     expect(r.travada).toBe(true);
     expect(r.detalhe).toMatch(/Parou de tentar/);
   });
+});
+
+it("envia e desfaz a mesma repetição de barra fixa na ordem, sem afetar outras", () => {
+  const add = alvoDaEscrita({ tabela: "pullup_singles", op: "upsert", linha: { id: "a" } });
+  const undo = alvoDaEscrita({ tabela: "pullup_singles", op: "delete", filtro: { id: "a" } });
+  const outra = alvoDaEscrita({ tabela: "pullup_singles", op: "upsert", linha: { id: "b" } });
+  expect(add).toBe("pullup_singles:a");
+  expect(undo).toBe(add);
+  expect(outra).not.toBe(add);
 });

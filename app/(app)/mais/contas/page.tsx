@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import { redirect } from "next/navigation";
 import { CabecalhoMais } from "@/components/mais/cabecalho";
 import { TelaContas } from "@/components/mais/tela-contas";
@@ -20,8 +22,8 @@ export default async function Contas() {
   if (!ehDono(email)) {
     return (
       <section className="flex flex-col gap-4">
-        <CabecalhoMais titulo="Contas" />
-        <p className="text-muted-foreground text-sm">Só o dono vê esta tela.</p>
+        <CabecalhoMais titulo="Esta tela é do dono do app" descricao="Só quem administra as contas vê o limite e quem está usando." />
+        <Button asChild className="alvo self-start"><Link href="/mais">Voltar para Mais</Link></Button>
       </section>
     );
   }

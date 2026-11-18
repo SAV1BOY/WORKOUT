@@ -300,8 +300,8 @@ export function textoDizOPrazo(texto: string | null | undefined, semanas: number
  * perfil, e sempre na corda, a duração — a não ser que o objetivo do JSON (o
  * subtítulo) já diga o prazo: aí não há meta (`null`), para o prazo não
  * aparecer duas vezes na mesma linha. A corda também tem posição no perfil
- * (`profiles.semana_corda`), mas ela não entra nesta meta: aparece na lista
- * das semanas da tela do plano (SPEC §13.4 e §22.13 item 9).
+ * (`profiles.semana_corda`), que aparece no bloco de progresso
+ * e na capa da tela do plano (SPEC §13.4 e §22.13 item 9).
  */
 export function metaDoPlano(
   dados: { id: PlanoId; semanas: number; subtitulo: string | null },
@@ -321,18 +321,15 @@ export function metaDoPlano(
   return `semana ${semanaPresa(semana, dados.semanas)} de ${dados.semanas}`;
 }
 
-/**
- * O detalhe da capa da tela de uma coleção (SPEC §22.15 item 7). Na tela do
- * plano, a posição ("semana N de T") mora no bloco "Semanas do plano", com a
- * barra e o "agora"; repetida na capa, aparecia duas vezes na mesma rolagem.
- * A capa diz o que o plano é: a meta sem perfil — a duração, ou nada quando o
- * objetivo já diz o prazo. As outras coleções ficam com o detalhe delas.
- */
+/** A capa e o bloco de progresso mostram a semana atual dos três planos. */
 export function detalheDaCapa(
   colecao: Pick<Colecao, "detalhe">,
   plano: { id: PlanoId; semanas: number; subtitulo: string | null } | null,
+  semanaAtual: number | null = null,
 ): string | null {
-  return plano ? metaDoPlano(plano, null) : colecao.detalhe;
+  if (!plano) return colecao.detalhe;
+  if (semanaAtual === null || !Number.isFinite(semanaAtual)) return metaDoPlano(plano, null);
+  return `Semana ${semanaPresa(semanaAtual, plano.semanas)} de ${plano.semanas}`;
 }
 
 /** O botão de um plano: o rótulo, que diz o destino, e a rota. */

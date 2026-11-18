@@ -1,7 +1,7 @@
 "use client";
 
 import { Trophy } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CardImc } from "@/components/corpo/card-imc";
 import { CardDaSemana } from "@/components/player/card-da-semana";
 import { AvisoDeConquista } from "@/components/relatorio/aviso-conquista";
@@ -13,7 +13,11 @@ import { Contador } from "@/components/ui/contador";
 import { capaDoExercicio } from "@/lib/capas";
 import { acharExercicio } from "@/lib/dados";
 import { formatarKg, formatarNumero } from "@/lib/formato";
-import type { ContadoresDaSessao, ResultadoExercicio } from "@/lib/sessao";
+import {
+  recordesEmDestaque,
+  type ContadoresDaSessao,
+  type ResultadoExercicio,
+} from "@/lib/sessao";
 import { cn } from "@/lib/utils";
 
 /**
@@ -94,9 +98,15 @@ export function TelaConclusao({
   const comEvento = resultados.filter((r) => r.motivo !== null);
   const semCarga = resultados.filter((r) => r.motivoNaoAvaliado === "estado_desconhecido");
   const naoFeitos = resultados.filter((r) => r.motivoNaoAvaliado === "nao_feito");
-  const recordes = resultados.flatMap((r) =>
-    r.recordes.map((rec) => ({ nome: r.nome, texto: rec.texto })),
-  );
+  /* SPEC §22.18 item 3: os 5 de maior salto; o resto atrás de "Ver todos" */
+  const destaque = recordesEmDestaque(resultados);
+  const [todosOsRecordes, setTodosOsRecordes] = useState(false);
+  const recordes = todosOsRecordes ? destaque.todos : destaque.visiveis;
+  const escondidos = destaque.todos.length - destaque.visiveis.length;
+  const primeiroRevelado = useRef<HTMLLIElement>(null);
+  useEffect(() => {
+    if (todosOsRecordes) primeiroRevelado.current?.focus();
+  }, [todosOsRecordes]);
 
   return (
     <section aria-label="Treino concluído" className="flex flex-col gap-3 px-3 pb-28">
@@ -192,14 +202,30 @@ export function TelaConclusao({
             <Trophy className="text-primary size-4" />
             Recordes
           </h3>
-          <ul aria-label="Recordes" className="flex flex-col gap-0.5 text-xs">
+          <ul id="lista-de-recordes" aria-label="Recordes" className="flex flex-col gap-0.5 text-xs">
             {recordes.map((r, i) => (
-              <li key={`${r.nome}-${i}`}>
+              <li
+                key={`${r.nome}-${i}`}
+                /* ao abrir "Ver todos", o foco vai ao primeiro que apareceu */
+                ref={i === destaque.visiveis.length ? primeiroRevelado : undefined}
+                tabIndex={i === destaque.visiveis.length ? -1 : undefined}
+                className="focus-visible:ring-ring rounded-sm outline-none focus-visible:ring-2"
+              >
                 <span className="font-medium">{r.nome}:</span>{" "}
                 <span className="numero">{r.texto}</span>
               </li>
             ))}
           </ul>
+          {escondidos > 0 && !todosOsRecordes ? (
+            <Button
+              variant="ghost"
+              className="alvo self-start px-2"
+              aria-controls="lista-de-recordes"
+              onClick={() => setTodosOsRecordes(true)}
+            >
+              Ver todos ({destaque.todos.length})
+            </Button>
+          ) : null}
         </section>
       ) : null}
 

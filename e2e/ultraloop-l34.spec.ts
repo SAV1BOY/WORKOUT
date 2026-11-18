@@ -9,10 +9,7 @@
  * que o TESTE gerou — por isso o teste consegue decifrar o que a rota mandou.
  * O service worker é o de verdade (build de produção).
  */
-import { spawn, type ChildProcess } from "node:child_process";
 import { createECDH, createPublicKey, randomBytes, verify } from "node:crypto";
-import { createServer, type AddressInfo } from "node:net";
-import { resolve } from "node:path";
 import {
   expect,
   test,
@@ -35,6 +32,7 @@ import {
   usuarioComPerfil,
   type SessaoMock,
 } from "./fixtures";
+import { subirSemVapid, type ServidorSemVapid } from "./servidor-sem-vapid";
 
 const TEMAS = ["light", "dark"] as const;
 type Tema = (typeof TEMAS)[number];
@@ -100,6 +98,7 @@ interface Simulacao {
    * `page.route` alcançam o que passa por ele (ver auditoria-offline.spec).
    */
   leituraSemRede?: boolean;
+  tabelaAusente?: boolean;
 }
 
 /** Troca o PushManager, o `navigator.brave` e a permissão, antes do app. */
@@ -115,7 +114,7 @@ async function simular(context: BrowserContext, sim: Simulacao): Promise<void> {
     if (cfg.semPermissionsApi) {
       Permissions.prototype.query = () => Promise.reject(new TypeError("desligada neste teste"));
     }
-    if (cfg.leituraSemRede) {
+    if (cfg.leituraSemRede || cfg.tabelaAusente) {
       const original = window.fetch.bind(window);
       w.__leituras = 0;
       w.__semRede = false;
@@ -124,6 +123,14 @@ async function simular(context: BrowserContext, sim: Simulacao): Promise<void> {
         const metodo = (opcoes?.method ?? (entrada instanceof Request ? entrada.method : "GET")).toUpperCase();
         if (metodo === "GET" && /\/rest\/v1\/lembretes_inscricoes/.test(url)) {
           w.__leituras = Number(w.__leituras) + 1;
+          if (cfg.tabelaAusente) {
+            return Promise.resolve(Response.json({
+              code: "PGRST205",
+              details: null,
+              hint: null,
+              message: "Could not find the table 'public.lembretes_inscricoes' in the schema cache",
+            }, { status: 404 }));
+          }
           if (w.__semRede) return Promise.reject(new TypeError("Failed to fetch"));
         }
         return original(entrada, opcoes);
@@ -195,6 +202,7 @@ async function simular(context: BrowserContext, sim: Simulacao): Promise<void> {
     semPermissionsApi: sim.semPermissionsApi ?? false,
     subscribeAtrasoMs: sim.subscribeAtrasoMs ?? 0,
     leituraSemRede: sim.leituraSemRede ?? false,
+    tabelaAusente: sim.tabelaAusente ?? false,
   });
 }
 
@@ -295,10 +303,18 @@ for (const tema of TEMAS) {
     // recarregar mantém o estado (a inscrição do navegador + a linha)
     await page.reload();
     await expect(estado(page)).toHaveText("Ativado neste aparelho.");
+    // §23.13: com o aparelho ativado, o "Próximo" vale sem ressalva
+    await page.getByRole("switch", { name: "Lembrete do treino" }).click();
+    await expect(page.locator("[data-proximo]")).toContainText(/^Próximo: /);
+    await expect(page.locator("[data-proximo-sem-aviso]")).toHaveCount(0);
 
     await page.getByRole("button", { name: "Desativar neste aparelho" }).click();
     await expect(recado(page)).toHaveText("Lembretes desativados neste aparelho.");
     await expect(estado(page)).toHaveText("Desativado neste aparelho.");
+    // desativado: o "Próximo" diz que o aviso não chega aqui
+    await expect(page.locator("[data-proximo-sem-aviso]")).toHaveText(
+      "Este aparelho não está recebendo avisos. O alarme fica com o calendário abaixo — baixe de novo sempre que mudar a hora ou os dias.",
+    );
     expect(await lerDoMock(sessao, TABELA)).toHaveLength(0);
     expect(await page.evaluate(() => localStorage.getItem("__push_falso"))).toBe("null");
   });
@@ -506,6 +522,41 @@ test("o worker real mostra o push como notificação e o toque leva à url", asy
   await expect.poll(async () => (await lerNotificacoes()).length).toBe(0);
 });
 
+test("sem aba do app, o toque pede uma nova janela na rota do lembrete", async ({ page, context }) => {
+  await preparar(page, "light", {});
+  await esperarServiceWorker(page);
+  const worker = await workerDoApp(context);
+  const destino = new URL("/relatorio", page.url()).href;
+  await page.goto("about:blank");
+
+  await expect.poll(() => worker.evaluate(async () => {
+    const clientes = (globalThis as unknown as { clients: { matchAll: (opcoes: object) => Promise<unknown[]> } }).clients;
+    return (await clientes.matchAll({ type: "window", includeUncontrolled: true })).length;
+  })).toBe(0);
+
+  await worker.evaluate(async () => {
+    const escopo = globalThis as unknown as {
+      clients: { openWindow: (url: string) => Promise<null> };
+      destinoPedido?: string;
+      registration: ServiceWorkerRegistration;
+      dispatchEvent: (e: Event) => boolean;
+      NotificationEvent: new (tipo: string, init: { notification: Notification }) => Event;
+    };
+    // Chromium exige um gesto físico para abrir a janela. Medimos a chamada feita pelo worker real.
+    escopo.clients.openWindow = async (url) => {
+      escopo.destinoPedido = url;
+      return null;
+    };
+    await escopo.registration.showNotification("Hora do treino", { tag: "sem-aba", data: { url: "/relatorio" } });
+    const [notificacao] = await escopo.registration.getNotifications({ tag: "sem-aba" });
+    if (!notificacao) throw new Error("A notificação de teste não foi criada");
+    escopo.dispatchEvent(new escopo.NotificationEvent("notificationclick", { notification: notificacao }));
+  });
+  await expect.poll(() => worker.evaluate(() =>
+    (globalThis as unknown as { destinoPedido?: string }).destinoPedido,
+  )).toBe(destino);
+});
+
 /* ------------------------------ §23.7 itens 3 e 5: bloqueado, Brave, sem suporte */
 
 for (const tema of TEMAS) {
@@ -612,11 +663,11 @@ for (const tema of TEMAS) {
 /* ------------------------------ §23.7 item 7: a volta das configurações */
 
 /**
- * Nega a notificação de verdade no Chromium (o Playwright só sabe conceder).
+ * Define no Chromium a permissão inicial ou a recusa que o teste vai observar.
  * A sessão CDP fica aberta até o fim do teste: ao se desligar, o Chromium
  * desfaz as permissões que ela mudou.
  */
-async function negarDeVerdade(page: Page, origem: string): Promise<void> {
+async function definirPermissao(page: Page, origem: string, estado: "prompt" | "denied"): Promise<void> {
   const cdp = await page.context().newCDPSession(page);
   const { targetInfo } = (await cdp.send("Target.getTargetInfo")) as {
     targetInfo: { browserContextId?: string };
@@ -624,7 +675,7 @@ async function negarDeVerdade(page: Page, origem: string): Promise<void> {
   await cdp.send("Browser.setPermission", {
     origin: origem,
     permission: { name: "notifications" },
-    setting: "denied",
+    setting: estado,
     browserContextId: targetInfo.browserContextId,
   });
 }
@@ -647,7 +698,7 @@ for (const tema of TEMAS) {
   test(`${tema}: liberada nas configurações, a volta mostra o Ativar e tira a instrução (visibilitychange)`, async ({ page, baseURL }) => {
     const sessao = await preparar(page, tema, { aparelho: aparelhoNovo(), semPermissionsApi: true }, false);
     const origem = new URL(baseURL ?? "").origin;
-    await negarDeVerdade(page, origem);
+    await definirPermissao(page, origem, "denied");
     await esperarServiceWorker(page);
     await page.goto("/mais/lembretes");
     expect(await page.evaluate(() => Notification.permission)).toBe("denied");
@@ -681,10 +732,11 @@ for (const tema of TEMAS) {
     // começa em "perguntar"; o pedido é recusado pelo Chromium de verdade
     await preparar(page, tema, { aparelho: aparelhoNovo(), semPermissionsApi: true }, false);
     const origem = new URL(baseURL ?? "").origin;
+    await definirPermissao(page, origem, "prompt");
     await esperarServiceWorker(page);
     await page.goto("/mais/lembretes");
     await expect(estado(page)).toHaveText("Desativado neste aparelho.");
-    await negarDeVerdade(page, origem);
+    await definirPermissao(page, origem, "denied");
     await page.getByRole("button", { name: "Ativar lembretes neste aparelho" }).click();
     await expect(aviso(page)).toHaveText("O navegador recusou as notificações deste app.");
     await expect(estado(page)).toHaveText("Bloqueado pelo navegador.");
@@ -701,7 +753,7 @@ for (const tema of TEMAS) {
 test("a troca da permissão avisada pelo navegador (permissions change) também relê", async ({ page, baseURL }) => {
   await preparar(page, "light", { aparelho: aparelhoNovo() }, false);
   const origem = new URL(baseURL ?? "").origin;
-  await negarDeVerdade(page, origem);
+  await definirPermissao(page, origem, "denied");
   await esperarServiceWorker(page);
   await page.goto("/mais/lembretes");
   await expect(estado(page)).toHaveText("Bloqueado pelo navegador.");
@@ -712,17 +764,17 @@ test("a troca da permissão avisada pelo navegador (permissions change) também 
   await expect(page.locator("[data-instrucao]")).toHaveCount(0);
 });
 
-/* Cada ouvinte da volta sozinho: `focus` e `pageshow` (o `visibilitychange` está acima, nos dois temas). */
+/* Cada ouvinte da volta sozinho: `focus` e `pageshow`, nos dois temas (§23.7 item 7; o `visibilitychange` está acima). */
 const OUTRAS_VOLTAS = {
   focus: () => window.dispatchEvent(new FocusEvent("focus")),
   pageshow: () => window.dispatchEvent(new PageTransitionEvent("pageshow", { persisted: true })),
 } as const;
 
-for (const evento of Object.keys(OUTRAS_VOLTAS) as (keyof typeof OUTRAS_VOLTAS)[]) {
-  test(`liberada nas configurações, a volta por ${evento} sozinho mostra o Ativar`, async ({ page, baseURL }) => {
-    await preparar(page, "light", { aparelho: aparelhoNovo(), semPermissionsApi: true }, false);
+for (const tema of TEMAS) for (const evento of Object.keys(OUTRAS_VOLTAS) as (keyof typeof OUTRAS_VOLTAS)[]) {
+  test(`${tema}: liberada nas configurações, a volta por ${evento} sozinho mostra o Ativar`, async ({ page, baseURL }) => {
+    await preparar(page, tema, { aparelho: aparelhoNovo(), semPermissionsApi: true }, false);
     const origem = new URL(baseURL ?? "").origin;
-    await negarDeVerdade(page, origem);
+    await definirPermissao(page, origem, "denied");
     await esperarServiceWorker(page);
     await page.goto("/mais/lembretes");
     await expect(estado(page)).toHaveText("Bloqueado pelo navegador.");
@@ -778,10 +830,11 @@ function leituras(page: Page): Promise<number> {
  */
 const TENTATIVAS_SEM_REDE = 4;
 
-test("a volta sem internet mantém a frase do aparelho (não troca pelo aviso da lista)", async ({ page }) => {
+for (const tema of TEMAS) {
+test(`${tema}: a volta sem internet mantém a frase do aparelho (não troca pelo aviso da lista)`, async ({ page }) => {
   await preparar(
     page,
-    "light",
+    tema,
     { aparelho: aparelhoNovo(), brave: true, negar: true, semPermissionsApi: true, leituraSemRede: true },
     false,
   );
@@ -801,8 +854,26 @@ test("a volta sem internet mantém a frase do aparelho (não troca pelo aviso da
   await expect(page.locator('[data-instrucao="brave"]')).toBeVisible();
 });
 
-test("sem frase do aparelho, o aviso da lista aparece sem internet e sai na volta com internet", async ({ page }) => {
-  await preparar(page, "light", { aparelho: aparelhoNovo(), semPermissionsApi: true, leituraSemRede: true });
+test(`${tema}: permissão liberada sem rede atualiza o aparelho e sinaliza a lista indisponível`, async ({ page, baseURL }) => {
+  await preparar(page, tema, { aparelho: aparelhoNovo(), semPermissionsApi: true, leituraSemRede: true }, false);
+  const origem = new URL(baseURL ?? "").origin;
+  await definirPermissao(page, origem, "denied");
+  await esperarServiceWorker(page);
+  await page.goto("/mais/lembretes");
+  await expect(estado(page)).toHaveText("Bloqueado pelo navegador.");
+  await semRede(page, true);
+  await page.context().grantPermissions(["notifications"], { origin: origem });
+  await voltarDasConfiguracoes(page);
+  await expect(estado(page)).toHaveText("Desativado neste aparelho.");
+  await expect(page.locator("[data-instrucao]")).toHaveCount(0);
+  await expect(aviso(page)).toHaveText("Não deu para ler os aparelhos agora.", { timeout: 20_000 });
+  await semRede(page, false);
+  await page.evaluate(() => window.dispatchEvent(new Event("online")));
+  await expect(aviso(page)).toHaveCount(0);
+});
+
+test(`${tema}: sem frase do aparelho, o aviso da lista aparece sem internet e sai na volta com internet`, async ({ page }) => {
+  await preparar(page, tema, { aparelho: aparelhoNovo(), semPermissionsApi: true, leituraSemRede: true });
   await esperarServiceWorker(page);
   await page.goto("/mais/lembretes");
   await expect(estado(page)).toHaveText("Desativado neste aparelho.");
@@ -814,11 +885,12 @@ test("sem frase do aparelho, o aviso da lista aparece sem internet e sai na volt
 
   await semRede(page, false);
   const antes = await leituras(page);
-  await page.evaluate(() => window.dispatchEvent(new FocusEvent("focus")));
+  await page.evaluate(() => window.dispatchEvent(new Event("online")));
   await expect.poll(() => leituras(page)).toBeGreaterThan(antes);
   await expect(aviso(page)).toHaveCount(0);
   await expect(estado(page)).toHaveText("Desativado neste aparelho.");
 });
+}
 
 /* ------------------------------ §23.7 item 5: a frase na primeira dobra */
 
@@ -852,20 +924,7 @@ for (const tema of TEMAS) {
 
 for (const tema of TEMAS) {
   test(`${tema}: sem a tabela no banco (PGRST205), a tela diz que falta atualizar o banco`, async ({ page }) => {
-    await preparar(page, tema, { aparelho: aparelhoNovo() });
-    // o PostgREST de um projeto sem a migração
-    await page.route(/\/rest\/v1\/lembretes_inscricoes/, (rota) =>
-      rota.fulfill({
-        status: 404,
-        contentType: "application/json",
-        body: JSON.stringify({
-          code: "PGRST205",
-          details: null,
-          hint: null,
-          message: "Could not find the table 'public.lembretes_inscricoes' in the schema cache",
-        }),
-      }),
-    );
+    await preparar(page, tema, { aparelho: aparelhoNovo(), tabelaAusente: true });
     await page.goto("/mais/lembretes");
     await expect(page.locator('[data-estado="sem-configuracao"]')).toHaveText(
       "Os lembretes ainda não estão disponíveis neste servidor (falta atualizar o banco).",
@@ -873,87 +932,69 @@ for (const tema of TEMAS) {
     await expect(page.getByRole("button", { name: /Ativar|Enviar/ })).toHaveCount(0);
     await expect(page.locator("[data-instrucao]")).toHaveCount(0);
     await expect(aviso(page)).toHaveCount(0);
+    // §23.9: sem a tabela de inscrições, os horários e o calendário continuam
+    await expect(page.getByRole("switch", { name: "Lembrete do treino" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Adicionar ao meu calendário" })).toBeEnabled();
     await alvosDe44(page);
     await semRolagemHorizontal(page);
   });
 }
 
-/** Uma porta livre na própria máquina, para o segundo `next start`. */
-function portaLivre(): Promise<number> {
-  return new Promise((ok, falha) => {
-    const s = createServer();
-    s.once("error", falha);
-    s.listen(0, "127.0.0.1", () => {
-      const { port } = s.address() as AddressInfo;
-      s.close(() => ok(port));
-    });
-  });
-}
-
 test.describe("sem as variáveis VAPID (um segundo next start, do mesmo build)", () => {
-  let servidor: ChildProcess | null = null;
-  let urlSemVapid = "";
+  let semVapid: ServidorSemVapid | null = null;
 
   test.beforeAll(async () => {
     test.setTimeout(120_000);
-    const porta = await portaLivre();
-    const raiz = resolve(__dirname, "..");
-    const env: NodeJS.ProcessEnv = {
-      ...process.env,
-      NEXT_PUBLIC_SUPABASE_URL: URL_MOCK,
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: "mock-anon",
-      ALLOWED_EMAIL: "miguelgsaviotti29@gmail.com",
-    };
-    delete env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-    delete env.VAPID_PRIVATE_KEY;
-    delete env.VAPID_SUBJECT;
-    delete env.LEMBRETES_PUSH_DE_TESTE;
-    servidor = spawn(
-      process.execPath,
-      [resolve(raiz, "node_modules/next/dist/bin/next"), "start", "-p", String(porta), "-H", "127.0.0.1"],
-      { cwd: raiz, env, stdio: "ignore", detached: true },
-    );
-    urlSemVapid = `http://127.0.0.1:${porta}`;
-    await expect
-      .poll(
-        async () => {
-          try {
-            return (await fetch(`${urlSemVapid}/login`)).status;
-          } catch {
-            return 0;
-          }
-        },
-        { timeout: 90_000, intervals: [250] },
-      )
-      .toBe(200);
+    semVapid = await subirSemVapid();
   });
 
   test.afterAll(() => {
-    // o grupo inteiro do processo que este teste subiu (detached)
-    if (servidor?.pid) {
-      try {
-        process.kill(-servidor.pid, "SIGTERM");
-      } catch {
-        /* já saiu */
-      }
-    }
+    semVapid?.parar();
   });
 
   for (const tema of TEMAS) {
     test(`${tema}: a tela diz que não está configurado, sem botão, e a rota responde 503`, async ({ page }) => {
-      await preparar(page, tema, {});
+      const sessao = await preparar(page, tema, {});
       // o cookie da sessão é do host (127.0.0.1), não da porta: vale nos dois servidores
-      await page.goto(`${urlSemVapid}/mais/lembretes`);
+      await page.goto(`${semVapid?.url}/mais/lembretes`);
       await expect(page.getByRole("heading", { name: "Lembretes", level: 1 })).toBeVisible();
       await expect(page.locator('[data-estado="sem-configuracao"]')).toHaveText(
         "Lembretes ainda não configurados neste servidor.",
       );
       await expect(page.getByRole("button", { name: /Ativar|Enviar/ })).toHaveCount(0);
       await expect(page.locator("[data-instrucao]")).toHaveCount(0);
+      // §23.9: sem as variáveis VAPID, os horários gravam e o calendário baixa
+      const treino = page.getByRole("switch", { name: "Lembrete do treino" });
+      await treino.click();
+      await expect(treino).toHaveAttribute("aria-checked", "true");
+      await page.locator("#hora-treino").fill("18:30");
+      await expect(page.locator('[data-recado-horarios="treino"]')).toHaveText("Horários salvos.");
+      // §23.14 item 1: gravado no mock sem perder as outras chaves de prefs
+      await expect
+        .poll(
+          async () =>
+            ((await lerDoMock<{ prefs: Record<string, unknown> }>(sessao, "profiles"))[0]?.prefs ?? {}).lembretes,
+          { timeout: 10_000 },
+        )
+        .toEqual({ treino: { ligado: true, hora: "18:30" }, corrida: { ligado: false, hora: "07:00" } });
+      const prefs = (await lerDoMock<{ prefs: Record<string, unknown> }>(sessao, "profiles"))[0]?.prefs ?? {};
+      expect(prefs.guia_visto).toBe(true);
+      await expect(page.locator("#hora-treino")).toHaveValue("18:30");
+      // sem push, o "Próximo" não promete aviso neste aparelho (§23.13)
+      await expect(page.locator("[data-proximo]")).toContainText(/^Próximo: .+ às 18:30 — /);
+      await expect(page.locator("[data-proximo-sem-aviso]")).toHaveText(
+        "Este aparelho não está recebendo avisos. O alarme fica com o calendário abaixo — baixe de novo sempre que mudar a hora ou os dias.",
+      );
+      const [baixado] = await Promise.all([
+        page.waitForEvent("download"),
+        page.getByRole("button", { name: "Adicionar ao meu calendário" }).click(),
+      ]);
+      expect(baixado.suggestedFilename()).toBe("treino-do-terraco.ics");
       await alvosDe44(page);
       await semRolagemHorizontal(page);
+      await page.screenshot({ path: `test-results/l35-sem-vapid-${tema}.png`, fullPage: true });
 
-      const resposta = await page.request.post(`${urlSemVapid}/api/lembretes/teste`);
+      const resposta = await page.request.post(`${semVapid?.url}/api/lembretes/teste`);
       expect(resposta.status()).toBe(503);
       expect(await resposta.json()).toEqual({ erro: "Lembretes ainda não configurados neste servidor." });
     });

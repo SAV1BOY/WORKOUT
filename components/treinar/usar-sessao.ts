@@ -10,7 +10,7 @@ import {
   itemDaSessao,
   prescricaoDaSemana,
 } from "@/lib/barra-fixa";
-import { acharTreino } from "@/lib/dados";
+import { acharTreino, exercicioPorId } from "@/lib/dados";
 import { decidirTela, servidorTerminouDeBuscar } from "@/lib/estado-do-player";
 import { itensDoPlano, tituloDoPlano } from "@/lib/livre";
 import {
@@ -21,6 +21,8 @@ import {
 import { anterioresPorExercicio, type SerieDeOutroDia } from "@/lib/player";
 import { opcoesDeMontagem } from "@/lib/preferencias";
 import {
+  chaves,
+  type SessaoResumo,
   useEstados,
   useEventos,
   usePerfil,
@@ -33,7 +35,7 @@ import {
 import {
   carregarSessaoLocal,
   descarregarSessao,
-  descartarSeriesDoBloco,
+  enviarPlanoDaTroca,
   enviarSerie,
   finalizarSessao,
   salvarSessaoLocal,
@@ -73,6 +75,14 @@ export type FimDaSessao = "concluida" | "abandonada";
  * Assim não há duas cópias do estado nem duas gravações concorrentes.
  */
 export function useSessaoDeTreino(sessaoId: string) {
+  useEffect(() => () => {
+    if (window.location.pathname !== "/") return;
+    try {
+      window.sessionStorage.setItem("treino:saiu-para", `/treinar/${sessaoId}`);
+    } catch {
+      // O aviso de volta é opcional em navegadores sem armazenamento.
+    }
+  }, [sessaoId]);
   const router = useRouter();
   const cliente = useQueryClient();
   const [sessao, setSessao] = useState<SessaoLocal | null | undefined>(undefined);
@@ -100,6 +110,7 @@ export function useSessaoDeTreino(sessaoId: string) {
    */
   const [montagemFalhou, setMontagemFalhou] = useState(false);
   const [salvando, setSalvando] = useState(false);
+  const [encerradaAqui, setEncerradaAqui] = useState<string | null>(null);
   const [agora, setAgora] = useState(() => Date.now());
   const naFila = usePendentes();
 
@@ -107,8 +118,15 @@ export function useSessaoDeTreino(sessaoId: string) {
   const perfilPrefs = perfilQ.data?.prefs;
   // identidade estável: `prefs` entra nas dependências de efeitos (§3.9)
   const prefs: Prefs = useMemo(() => perfilPrefs ?? {}, [perfilPrefs]);
-  const sessaoQ = useSessao(sessao === null ? sessaoId : null);
-  const seriesQ = useSeriesDaSessao(sessao === null ? sessaoId : null);
+  // Em um aparelho novo as leituras do banco podem começar junto com o Dexie.
+  // A sessão local, quando existe, continua tendo precedência sobre o servidor.
+  const idParaReconstruir = sessao == null ? sessaoId : null;
+  const sessaoQ = useSessao(sessaoId);
+  const resumoSalvo = cliente.getQueryData<SessaoResumo[]>(chaves.sessoes())?.find((s) => s.id === sessaoId);
+  const encerradaAntes = encerradaAqui !== sessaoId && [resumoSalvo, sessaoQ.data].some(
+    (linha) => linha && (linha.status !== "em_andamento" || linha.concluida_em != null),
+  );
+  const seriesQ = useSeriesDaSessao(idParaReconstruir);
 
   /*
    * A sessão de barra fixa (SPEC §3.4) não é um treino do `programa.json`:
@@ -160,8 +178,14 @@ export function useSessaoDeTreino(sessaoId: string) {
           )
             .sort()
             .join(",")
-        : idsDoTreino.join(","),
-    [sessao, idsDoTreino],
+        : [...new Set([
+            ...idsDoTreino,
+            ...(seriesQ.data ?? []).map((s) => s.exercise_id),
+            ...Object.values(planoDaLinha?.trocas ?? {}).flatMap((grupo) =>
+              Array.isArray(grupo) ? grupo.map((e) => e?.exercicio_id) : []
+            ),
+          ])].filter((id) => exercicioPorId.has(id)).sort().join(","),
+    [sessao, idsDoTreino, seriesQ.data, planoDaLinha],
   );
   const ids = useMemo(
     () => (idsDosBlocos ? idsComSubstitutos(idsDosBlocos.split(",")) : []),
@@ -218,9 +242,18 @@ export function useSessaoDeTreino(sessaoId: string) {
 
   // a sessão não está neste aparelho: refaz do que o banco tem (SPEC §8)
   useEffect(() => {
+    if (encerradaAntes) {
+      router.replace("/relatorio#historico");
+      return;
+    }
     if (sessao !== null) return;
     const linha = sessaoQ.data;
-    if (!linha || seriesQ.isPending) return;
+    if (!linha) return;
+    if (seriesQ.isPending) return;
+    if (seriesQ.isError) {
+      setMontagemFalhou(true);
+      return;
+    }
     if (!dadosDoMotor) {
       /*
        * Sem `ids` as consultas do motor nem são feitas, e `dadosDoMotor` fica
@@ -243,7 +276,7 @@ export function useSessaoDeTreino(sessaoId: string) {
       // tentamos e não deu: agora "não achei este treino" é verdade
       setMontagemFalhou(true);
     }
-  }, [sessao, sessaoQ.data, seriesQ.data, seriesQ.isPending, dadosDoMotor, ids, itensDaFixa, prefs, adotar]);
+  }, [sessao, sessaoQ.data, seriesQ.data, seriesQ.isPending, seriesQ.isError, dadosDoMotor, ids, itensDaFixa, prefs, adotar, router, encerradaAntes]);
 
   /* --------------------------------------------- relógio e saída da aba */
 
@@ -319,15 +352,8 @@ export function useSessaoDeTreino(sessaoId: string) {
 
   const substituir = useCallback(
     (bloco: BlocoLocal, novoExercicioId: string) => {
-      const sessao = ultima.current;
-      if (!sessao) return;
-      /*
-       * O que o original já gravou sai do banco: o registro do dia é do
-       * substituto (SPEC §3.2) e a folha promete a troca das séries já
-       * registradas.
-       */
-      void descartarSeriesDoBloco(sessao, bloco);
-      mexer((atual) =>
+      const antes = ultima.current;
+      const nova = mexer((atual) =>
         substituirExercicio(
           atual,
           bloco.ordem,
@@ -342,6 +368,10 @@ export function useSessaoDeTreino(sessaoId: string) {
           },
         ),
       );
+      if (nova && nova !== antes) {
+        void descarregarSessao();
+        void enviarPlanoDaTroca(nova);
+      }
     },
     [mexer, dadosDoMotor],
   );
@@ -373,6 +403,7 @@ export function useSessaoDeTreino(sessaoId: string) {
     ): Promise<boolean> => {
       if (!sessao) return false;
       setSalvando(true);
+      setEncerradaAqui(sessao.id);
       try {
         await descarregarSessao();
         await finalizarSessao({
@@ -390,6 +421,7 @@ export function useSessaoDeTreino(sessaoId: string) {
         router.push("/");
         return true;
       } catch {
+        setEncerradaAqui(null);
         toast.error("Não consegui salvar agora. Está tudo guardado no aparelho.");
         setSalvando(false);
         return false;
@@ -446,7 +478,7 @@ export function useSessaoDeTreino(sessaoId: string) {
     recordesQ.error ??
     anterioresQ.error ??
     null;
-  const tela = decidirTela({
+  const tela = encerradaAntes ? "carregando" : decidirTela({
     localTerminou: sessao !== undefined,
     servidorTerminou,
     sessao,

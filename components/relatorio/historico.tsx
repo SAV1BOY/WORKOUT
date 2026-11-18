@@ -6,12 +6,12 @@ import { addDays } from "date-fns";
 import { useMemo, useState } from "react";
 import { FaixaSemana } from "@/components/ui/faixa-semana";
 import { Vazio } from "@/components/ui/vazio";
-import { formatarData } from "@/lib/formato";
+import { formatarData, formatarIntervaloDaSemana } from "@/lib/formato";
 import { iso, inicioDaSemana, paraData } from "@/lib/calendario";
 import { registros, textoDoMotorDaSessao, type EventoDeSessao } from "@/lib/relatorio";
 import { retomadaDasPrefs } from "@/lib/retomada";
 import type { CardioBruto, SerieBruta, SessaoBruta, SoltaBruta } from "@/lib/progresso";
-import { LEGENDA_DA_FAIXA, faixaDaSemana, montarGrade } from "@/lib/semana";
+import { GLIFO_DA_MARCA, NOME_DA_MARCA, ORDEM_DA_LEGENDA, faixaDaSemana, montarGrade } from "@/lib/semana";
 import type { LinhaPerfil, LinhaExcecaoAgenda } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -103,7 +103,7 @@ export function Historico({
     <section aria-label="Histórico" className="flex flex-col gap-3">
       <FaixaSemana
         dias={dias}
-        rotulo={`${formatarData(inicio)} a ${formatarData(fim)}`}
+        rotulo={formatarIntervaloDaSemana(inicio, fim)}
         aoVoltar={() => {
           setAtras((n) => n + 1);
           setPaginas(1);
@@ -125,9 +125,14 @@ export function Historico({
         mão ele explicava quatro glifos para as cinco marcas que a faixa
         desenha, e "parcial" ficava de fora.
       */}
-      <p className="text-muted-foreground text-micro -mt-1.5 text-center text-balance">
-        {LEGENDA_DA_FAIXA}
-      </p>
+      <ul aria-label="Legenda da semana" className="text-muted-foreground text-rotulo -mt-1.5 flex flex-wrap justify-center gap-x-3 gap-y-1">
+        {ORDEM_DA_LEGENDA.map((marca) => (
+          <li key={marca} className="whitespace-nowrap">
+            <span aria-hidden>{GLIFO_DA_MARCA[marca]} </span>{NOME_DA_MARCA[marca]}
+          </li>
+        ))}
+        <li className="whitespace-nowrap">hoje em destaque</li>
+      </ul>
 
       <div className="flex items-baseline justify-between gap-2">
         <h3 className="text-sm font-semibold">

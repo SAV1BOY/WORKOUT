@@ -3,32 +3,24 @@
 import { CircleHelp, Repeat } from "lucide-react";
 import { useState } from "react";
 import { MediaGrande } from "@/components/exercicio/media-grande";
-import { FichaEmFolha } from "@/components/exercicio/ficha-folha";
+import { FichaEmFolha } from "@/components/exercicio/ficha-sob-demanda";
 import { BotaoMontagem } from "@/components/treinar/montagem";
 import { LinhaSerieForm } from "@/components/treinar/serie";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import {
-  Sheet,
-  SheetClose,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
+import { SeletorAlternativa } from "@/components/exercicio/seletor-alternativa";
 import { acharExercicio } from "@/lib/dados";
 import { nomeAcessivel } from "@/lib/midia";
 import { textoDoAlvo } from "@/lib/hoje";
 import type { OpcoesMontagem } from "@/lib/montagem";
-import { evitado, evitadosPorUltimo } from "@/lib/preferencias";
 import type { Prefs } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import {
+  avisoDaTroca,
   cargaEmUso,
   firmePadrao,
-  substitutosPara,
   textoDaCargaDoBloco,
+  textoDosTrocados,
   type BlocoLocal,
   type SerieLocal,
 } from "@/lib/sessao";
@@ -62,6 +54,7 @@ export function BlocoExercicio({
   const exercicio = acharExercicio(bloco.exercicioId);
   const firme = bloco.ultimaFirme ?? firmePadrao(bloco);
   const [ficha, setFicha] = useState(false);
+  const trocados = textoDosTrocados(bloco);
   let nAquecimento = 0;
   let nTrabalho = 0;
 
@@ -119,6 +112,8 @@ export function BlocoExercicio({
           </p>
         ) : null}
 
+        {trocados && <p className="text-muted-foreground text-xs">{trocados}</p>}
+
         <div className="flex flex-wrap items-center gap-2 pt-1">
           {/* a montagem fala da carga que está na barra agora, não da do dia */}
           <BotaoMontagem
@@ -126,12 +121,22 @@ export function BlocoExercicio({
             carga={cargaEmUso(bloco)}
             opcoes={opcoes}
           />
-          <Substituir
+          <SeletorAlternativa
+            avisoDaTroca={avisoDaTroca(bloco)}
+            voltarAoOriginal={bloco.substituido ? {
+              nome: acharExercicio(bloco.originalId).nome,
+              escolher: () => aoSubstituir(bloco.originalId),
+            } : undefined}
             exercicioId={bloco.exercicioId}
-            temRegistro={bloco.series.some((s) => s.concluida)}
             prefs={prefs}
-            aoEscolher={aoSubstituir}
-          />
+            aoSubstituir={aoSubstituir}
+          >
+            <Button variant="ghost" size="sm" className="alvo gap-1.5 px-3"
+              aria-label={nomeAcessivel("Substituir hoje", exercicio.nome)}>
+              <Repeat aria-hidden="true" className="size-4" />
+              substituir hoje
+            </Button>
+          </SeletorAlternativa>
         </div>
       </CardHeader>
 
@@ -190,62 +195,5 @@ export function BlocoExercicio({
         />
       </CardContent>
     </Card>
-  );
-}
-
-/** "Substituir hoje" (SPEC §3.2): mesmo grupo, equipamento que existe aqui. */
-function Substituir({
-  exercicioId,
-  temRegistro,
-  prefs,
-  aoEscolher,
-}: {
-  exercicioId: string;
-  temRegistro: boolean;
-  prefs?: Prefs;
-  aoEscolher: (id: string) => void;
-}) {
-  const [aberto, setAberto] = useState(false);
-  const lista = evitadosPorUltimo(substitutosPara(exercicioId), (e) => e.id, prefs);
-  if (lista.length === 0) return null;
-
-  return (
-    <Sheet open={aberto} onOpenChange={setAberto}>
-      <SheetTrigger asChild>
-        <Button variant="ghost" size="sm" className="alvo gap-1.5 px-3">
-          <Repeat className="size-4" />
-          substituir hoje
-        </Button>
-      </SheetTrigger>
-      <SheetContent side="bottom" className="max-h-[80dvh] overflow-y-auto pb-8">
-        <SheetHeader className="pb-0">
-          <SheetTitle>Substituir hoje</SheetTitle>
-          <SheetDescription>
-            {temRegistro
-              ? "As séries já registradas deste bloco serão trocadas pelas do substituto."
-              : "O registro fica com o substituto; a progressão do original não muda."}
-          </SheetDescription>
-        </SheetHeader>
-        <ul className="flex flex-col gap-1 px-4">
-          {lista.map((e) => (
-            <li key={e.id}>
-              <SheetClose asChild>
-                <button
-                  type="button"
-                  onClick={() => aoEscolher(e.id)}
-                  className="hover:bg-muted alvo flex w-full flex-col items-start gap-0.5 rounded-lg px-3 py-2 text-left"
-                >
-                  <span className="text-sm font-medium">{e.nome}</span>
-                  <span className="text-muted-foreground text-xs">
-                    {e.prescricao_padrao.texto} · {e.equipamento_texto}
-                    {evitado(prefs, e.id) ? " · você marcou como evitar" : ""}
-                  </span>
-                </button>
-              </SheetClose>
-            </li>
-          ))}
-        </ul>
-      </SheetContent>
-    </Sheet>
   );
 }

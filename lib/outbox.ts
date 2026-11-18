@@ -5,6 +5,11 @@
  */
 import { bd, temIndexedDB, type ItemSaida, type TipoSaida } from "@/lib/db";
 
+/** Confirma o registro no aparelho mesmo antes da fila ser enviada. */
+export function mensagemDeRegistro(texto: string, online = typeof navigator === "undefined" || navigator.onLine): string {
+  return online ? texto : `${texto.replace(/\.$/, "")} no celular. Sobe quando a rede voltar.`;
+}
+
 export type Enviador = (item: ItemSaida) => Promise<void>;
 
 const ATRASO_BASE_MS = 2_000;
@@ -281,11 +286,13 @@ export async function pendentes(): Promise<number> {
 }
 
 /** Liga o listener de 'online' e faz o primeiro flush. Idempotente. */
-export function iniciarOutbox() {
+export function iniciarOutbox(aoReconectar?: (enviados: number) => void) {
   if (iniciado || typeof window === "undefined") return;
   iniciado = true;
   window.addEventListener("online", () => {
-    void tentarAgora();
+    void tentarAgora().then(async (enviados) => {
+      if (enviados > 0 && await pendentes() === 0) aoReconectar?.(enviados);
+    }).catch(() => {});
   });
   window.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible") void processar();

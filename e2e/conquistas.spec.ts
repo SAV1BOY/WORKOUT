@@ -10,6 +10,7 @@ import { mkdirSync } from "node:fs";
 import { expect, test, type Page } from "@playwright/test";
 import {
   abrirSecaoDoRelatorio,
+  avancarNoPlayerAte,
   comecarNoPlayer,
   comecarOTreinoDoDia,
   entrarNoApp,
@@ -253,7 +254,7 @@ async function reconhecerOAviso(page: Page): Promise<void> {
   await expect(aviso).toBeVisible();
   await expect(aviso).toContainText("10 treinos");
   await aviso.getByRole("button", { name: "Ok" }).click();
-  await expect(aviso).toHaveCount(0);
+  await expect(aviso).toBeEmpty();
 }
 
 test.beforeEach(async () => {
@@ -496,7 +497,7 @@ test.describe("o aviso de conquista nova", () => {
 
     /* as setas levam até o feedback e dele à conclusão (SPEC §14.1) */
     const sensacao = page.getByRole("radiogroup", { name: "Sensação" });
-    await irAte(page, sensacao);
+    await avancarNoPlayerAte(page, sensacao);
     await sensacao.getByRole("radio", { name: "Um pouco fácil" }).click();
     await page.getByRole("button", { name: "Concluir", exact: true }).click();
 
@@ -517,7 +518,7 @@ test.describe("o aviso de conquista nova", () => {
     });
 
     await aviso.getByRole("button", { name: "Ok" }).click();
-    await expect(aviso).toHaveCount(0);
+    await expect(aviso).toBeEmpty();
 
     /* o "Ok" grava em prefs.conquistas_vistas pela fila (SPEC §8 e §19.5) */
     await expect
@@ -539,7 +540,7 @@ test.describe("o aviso de conquista nova", () => {
     await irNaAba(page, "Relatório");
     await expect(page.getByRole("heading", { name: "Relatório" })).toBeVisible();
     await expect(page.getByRole("region", { name: "Números" })).toBeVisible();
-    await expect(page.getByRole("status", { name: "Conquista nova" })).toHaveCount(0);
+    await expect(page.getByRole("status", { name: "Conquista nova" })).toBeEmpty();
     await abrirSecaoDoRelatorio(page, "conquistas");
     await expect(conquista(page, "semana-completa")).toHaveAttribute(
       "data-atingida",
@@ -548,34 +549,3 @@ test.describe("o aviso de conquista nova", () => {
     await semRolagemHorizontal(page);
   });
 });
-
-/**
- * Anda pelo player (seta "próximo", pulando descansos) até `alvo` aparecer —
- * o mesmo caminho de `e2e/player.spec.ts`.
- */
-async function irAte(page: Page, alvo: ReturnType<Page["getByRole"]>) {
-  for (let i = 0; i < 60; i++) {
-    if (await alvo.isVisible().catch(() => false)) return;
-    const pular = page.getByRole("button", { name: "Pular descanso" });
-    if (await pular.isVisible().catch(() => false)) {
-      await pular.click();
-      continue;
-    }
-    // o primário da pergunta "firme?" se chama "Pular esta pergunta"
-    // enquanto ninguém responde (SPEC §22.5 item 4)
-    const pergunta = page
-      .getByRole("region", { name: "Última repetição" })
-      .or(page.getByRole("region", { name: "Feedback do treino" }))
-      .getByRole("button", {
-        name: /^(Pular esta pergunta|Continuar|Concluir sem responder|Concluir)$/,
-      });
-    if (await pergunta.isVisible().catch(() => false)) {
-      await pergunta.click();
-      continue;
-    }
-    const proximo = page.getByRole("button", { name: "Próximo passo" });
-    if (!(await proximo.isVisible().catch(() => false))) break;
-    await proximo.click();
-  }
-  await expect(alvo).toBeVisible();
-}

@@ -126,7 +126,7 @@
     {
       "id": "kit-100kg",
       "nome": "Kit 100 kg: 24 anilhas + 4 barras ocas + 8 presilhas",
-      "specs": "ver 'anilhas' e 'barras'",
+      "specs": "ver “anilhas” e “barras”",
       "fotos": "assets/itens/kit-100kg/"
     },
     {
@@ -148,11 +148,11 @@
     "pasta": "assets/itens/",
     "origem": "anúncios dos produtos comprados pelo dono",
     "licenca": null,
-    "uso": "registro particular do inventário do terraço, só em Mais → Equipamento (SPEC §15.3)"
+    "uso": "registro particular do inventário do terraço, usado só em Mais → Equipamento"
   },
   "faltam": [
     "leg press e cadeira extensora (substituídos por agachamento, búlgaro e afundo)",
     "puxada com apoio de coxa (a barra fixa segue sendo a puxada principal)",
-    "gaiola com travas (único upgrade que mudaria o treino)"
+    "gaiola com travas (única compra que mudaria o treino)"
   ]
 }

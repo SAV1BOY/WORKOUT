@@ -75,3 +75,40 @@ export function larguraDaFaixa(faixa: FaixaDeImc): number {
   const ate = Math.min(IMC_MAX, faixa.ate ?? IMC_MAX);
   return Math.max(0, (ate - de) / (IMC_MAX - IMC_MIN));
 }
+
+/** Um trecho rotulado da barra de 15 a 40 (SPEC §22.19 item 5). */
+export interface TrechoDaBarra {
+  chave: "abaixo" | "saudavel" | "sobrepeso" | "obesidade";
+  /** O rótulo curto de 10 px sob a barra. */
+  rotulo: string;
+  /** As faixas da OMS que o trecho cobre (a obesidade junta os graus). */
+  faixas: readonly ChaveDaFaixa[];
+  /** Fração da barra (os quatro somam 1). */
+  largura: number;
+  /** O IMC cai neste trecho. */
+  atual: boolean;
+}
+
+const TRECHOS: readonly Omit<TrechoDaBarra, "largura" | "atual">[] = [
+  { chave: "abaixo", rotulo: "abaixo", faixas: ["abaixo"] },
+  { chave: "saudavel", rotulo: "saudável", faixas: ["saudavel"] },
+  { chave: "sobrepeso", rotulo: "sobrepeso", faixas: ["sobrepeso"] },
+  { chave: "obesidade", rotulo: "obesidade", faixas: ["obesidade1", "obesidade2"] },
+];
+
+/**
+ * Os quatro rótulos sob a barra do IMC — abaixo · saudável · sobrepeso ·
+ * obesidade —, com a largura de cada trecho e qual deles está aceso. É o que
+ * deixa ler a faixa sem interpretar a cor. Sem IMC nenhum, nenhum aceso.
+ */
+export function faixasDaBarra(valor: number | null): TrechoDaBarra[] {
+  const faixa = faixaDoImc(valor);
+  return TRECHOS.map((t) => ({
+    ...t,
+    largura: FAIXAS_DE_IMC.filter((f) => t.faixas.includes(f.chave)).reduce(
+      (soma, f) => soma + larguraDaFaixa(f),
+      0,
+    ),
+    atual: faixa !== null && t.faixas.includes(faixa.chave),
+  }));
+}

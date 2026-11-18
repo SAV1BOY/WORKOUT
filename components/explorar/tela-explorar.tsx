@@ -150,6 +150,9 @@ export function TelaExplorar() {
           <Input
             type="search"
             inputMode="search"
+            // O HTML já mostra a busca enquanto o JavaScript carrega. Aguardar
+            // a montagem evita que a primeira digitação seja substituída na hidratação.
+            readOnly={hoje === null}
             value={busca}
             onChange={(e) => trocarBusca(e.target.value)}
             placeholder="Buscar exercício ou coleção"

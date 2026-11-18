@@ -436,7 +436,7 @@ async function esperarTreino(page: Page) {
 async function entrar(page: Page, email: string) {
   await page.goto(`${APP}/login`);
   await page.getByLabel("E-mail").fill(email);
-  await page.getByLabel("Senha").fill(SENHA);
+  await page.getByLabel("Senha", { exact: true }).fill(SENHA);
   await page.getByRole("button", { name: "Entrar" }).click();
   await esperarTreino(page);
 }
@@ -573,17 +573,17 @@ async function telasDoPlayer(page: Page, tema: Tema, indice: Registro[]) {
     if (await concluido.first().isVisible().catch(() => false)) {
       await concluido.first().click();
     }
-    await page
-      .getByRole("region", { name: "Treino concluído" })
-      .waitFor({ timeout: 20_000 });
-    await page.waitForTimeout(800);
-    /* `role="status"`, não `region` (SPEC §22.6 item 6) — com o papel errado
-       o "Ok" nunca era clicado e a conclusão saía com o aviso por cima. */
-    const aviso = page.getByRole("status", { name: "Conquista nova" });
-    if (await aviso.isVisible().catch(() => false)) {
-      await aviso.getByRole("button", { name: "Ok" }).click().catch(() => {});
-      await page.waitForTimeout(400);
-    }
+    const fim = page.getByRole("region", { name: "Treino concluído" });
+    await fim.getByText(/^Treino salvo\. Já está no histórico/).waitFor({ timeout: 20_000 });
+    await fim.getByRole("button", { name: "Próximo", exact: true }).waitFor();
+    // A conclusão grava e mostra um aviso temporário. Espere a confirmação
+    // desaparecer antes de fotografar o resumo definitivo, nos dois temas.
+    await page.locator("[data-sonner-toast]").filter({ hasText: "Treino salvo." })
+      .waitFor({ state: "hidden", timeout: 15_000 });
+    const ok = fim.getByRole("status", { name: "Conquista nova" }).getByRole("button", { name: "Ok" });
+    if (await ok.isVisible()) await ok.click();
+    // O clique em “Ok” pode rolar até a conquista, longe do começo da tela.
+    await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
     indice.push(await tirar(page, porNome("30-player-conclusao"), tema));
   } catch (e) {
     indice.push(falhou(porNome("30-player-conclusao"), tema, e));
@@ -606,6 +606,13 @@ async function contextoDeCelular(navegador: Browser, tema: Tema) {
 
 async function main() {
   mkdirSync(DESTINO, { recursive: true });
+  const versao = await fetch(`${APP}/versao`, { cache: "no-store" });
+  if (!versao.ok) throw new Error(`GET /versao: ${versao.status}`);
+  const { commit } = await versao.json() as { commit: string };
+  if (!commit) throw new Error("O build não identifica sua versão em /versao.");
+  if (process.env.CAPTURAS_COMMIT && commit !== process.env.CAPTURAS_COMMIT) {
+    throw new Error(`O build é do commit ${commit}, esperava ${process.env.CAPTURAS_COMMIT}.`);
+  }
   const indice: Registro[] = [];
   const navegador = await chromium.launch();
 
@@ -651,7 +658,7 @@ async function main() {
 
   await navegador.close();
   indice.sort((a, b) => a.arquivo.localeCompare(b.arquivo, "pt-BR"));
-  writeFileSync(join(DESTINO, "indice.json"), `${JSON.stringify(indice, null, 2)}\n`);
+  writeFileSync(join(DESTINO, "indice.json"), `${JSON.stringify(indice.map(registro => ({ ...registro, commit })), null, 2)}\n`);
   const faltam = indice.filter((r) => !r.alcancada);
   console.log(
     `capturas em ${DESTINO}: ${indice.length - faltam.length} de ${indice.length}` +

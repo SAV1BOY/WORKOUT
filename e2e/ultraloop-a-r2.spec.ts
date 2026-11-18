@@ -531,33 +531,37 @@ test("o bloco de Mais e as seções de Créditos têm fundo próprio", async ({ 
 test("a galeria de fotos vazia não se anuncia como gráfico", async ({ page }) => {
   await abrir(page, "/corpo", "dark");
   await page.getByRole("tab", { name: "Fotos" }).click();
-  const vazio = page.locator("[data-slot=vazio]").first();
-  await expect(vazio).toBeVisible();
-  await expect(vazio).toContainText("Nenhuma foto ainda.");
-  await expect(vazio).not.toContainText("Sem dados por enquanto");
+  await expect(page.getByRole("heading", { name: "Registre sua primeira foto" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Galeria" })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Comparar" })).toHaveCount(0);
+  await expect(page.getByLabel("Foto de frente", { exact: true })).toBeAttached();
 });
 
 /*
  * item 7, o que faltava para o `fixme` da varredura sair: os dois focáveis de
  * `/corpo` que recebiam Tab sem desenhar nada. O painel da aba (o Radix lhe dá
- * `tabindex="0"`) vinha com `outline-none` do shadcn; e o campo de data tem
- * shadow DOM — o Tab passa por dia, mês, ano E pelo ícone do calendário, e
- * nesse último passo o host deixa de casar `:focus-visible`.
+ * `tabindex="0"`) vinha com `outline-none` do shadcn; e o campo de data tinha
+ * shadow DOM — o Tab passava por dia, mês, ano E pelo ícone do calendário.
+ *
+ * SPEC §22.19 item 6: o campo de data virou o grupo "Hoje · Ontem · Outra
+ * data" (três `<button>`); o `input[type="date"]` ficou escondido, só para o
+ * seletor do aparelho, fora do Tab. O que se mede agora é o anel dos três
+ * botões — e que o Tab nunca cai no campo escondido.
  */
 test("o painel da aba e o campo de data desenham anel de foco", async ({ page }) => {
   for (const tema of TEMAS) {
     await abrir(page, "/corpo", tema);
     await page.evaluate(() => document.body.focus());
 
-    // 1º Tab: a aba "Peso". 2º: o painel. Do 3º ao 6º: "Editar altura" e os
-    // quatro passos do campo de data — o último dentro da sombra.
-    const vistos: { slot: string; id: string; anel: boolean }[] = [];
-    for (let i = 0; i < 8; i++) {
+    // 1º Tab: a aba "Peso". 2º: o painel. Depois, os controles do cartão do
+    // peso e do Registrar — entre eles, os três botões da data.
+    const vistos: { slot: string; id: string; rotulo: string; anel: boolean }[] = [];
+    for (let i = 0; i < 12; i++) {
       await page.keyboard.press("Tab");
       vistos.push(
         (await page.evaluate(async () => {
           const el = document.activeElement as HTMLElement | null;
-          if (!el || el === document.body) return { slot: "", id: "", anel: false };
+          if (!el || el === document.body) return { slot: "", id: "", rotulo: "", anel: false };
           // o anel do Button entra por transição de 150 ms
           await new Promise((r) => setTimeout(() => r(null), 420));
           const e = getComputedStyle(el);
@@ -583,9 +587,10 @@ test("o painel da aba e o campo de data desenham anel de foco", async ({ page })
           return {
             slot: el.getAttribute("data-slot") ?? "",
             id: el.id,
+            rotulo: el.getAttribute("aria-label") ?? (el.textContent ?? "").trim(),
             anel: contorno || sombra,
           };
-        })) as { slot: string; id: string; anel: boolean },
+        })) as { slot: string; id: string; rotulo: string; anel: boolean },
       );
     }
 
@@ -593,16 +598,31 @@ test("o painel da aba e o campo de data desenham anel de foco", async ({ page })
     expect(painel, `${tema}: o painel da aba não recebeu Tab`).toBeTruthy();
     expect(painel?.anel, `${tema}: painel da aba sem anel`).toBe(true);
 
-    const data = vistos.filter((v) => v.id === "peso-data");
-    expect(data.length, `${tema}: o campo de data não recebeu Tab`).toBeGreaterThan(3);
-    for (const passo of data) {
-      expect(passo.anel, `${tema}: campo de data sem anel em um dos passos`).toBe(true);
+    for (const botao of [/^Hoje/, /^Ontem/, /^Outra data$/]) {
+      const passo = vistos.find((v) => botao.test(v.rotulo));
+      expect(passo, `${tema}: ${botao} não recebeu Tab (${vistos.map((v) => v.rotulo).join(" | ")})`).toBeTruthy();
+      expect(passo?.anel, `${tema}: ${botao} sem anel`).toBe(true);
     }
+    expect(
+      vistos.filter((v) => v.id === "peso-data"),
+      `${tema}: o Tab caiu no campo de data escondido`,
+    ).toHaveLength(0);
   }
 });
 
-/* o mesmo campo tem nome acessível em pt-BR — o `<Label htmlFor>` da tela */
+/*
+ * O campo de data tem nome acessível em pt-BR: o grupo "Data" (o `<Label
+ * htmlFor>` do campo cru até a §22.19) e os três botões com nome; o campo
+ * escondido do seletor fica fora da árvore e do Tab.
+ */
 test("o campo de data de /corpo tem nome acessível", async ({ page }) => {
   await abrir(page, "/corpo", "dark");
-  await expect(page.locator("#peso-data")).toHaveAccessibleName("Data");
+  const grupo = page.getByRole("group", { name: "Data" });
+  await expect(grupo).toBeVisible();
+  await expect(grupo.getByRole("button")).toHaveCount(3);
+  await expect(grupo.getByRole("button", { name: /^Hoje/ })).toBeVisible();
+  await expect(grupo.getByRole("button", { name: /^Ontem/ })).toBeVisible();
+  await expect(grupo.getByRole("button", { name: "Outra data", exact: true })).toBeVisible();
+  await expect(page.locator("#peso-data")).toHaveAttribute("aria-hidden", "true");
+  await expect(page.locator("#peso-data")).toHaveAttribute("tabindex", "-1");
 });

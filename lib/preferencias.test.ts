@@ -246,6 +246,11 @@ describe("guia de uso (SPEC §20.2)", () => {
     expect(guiaVisto({ guia_visto: 1 })).toBe(false);
   });
 
+  it("reconhece a confirmação local mesmo antes de o perfil sincronizar", () => {
+    expect(guiaVisto({}, true)).toBe(true);
+    expect(guiaVisto({}, false)).toBe(false);
+  });
+
   it("marcar não perde as outras chaves", () => {
     const antes: Prefs = { tema: "escuro", conquistas_vistas: ["forca-1"] };
     const depois = comGuiaVisto(antes);

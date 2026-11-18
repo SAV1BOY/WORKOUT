@@ -270,6 +270,33 @@ test.describe("registrar série a série (SPEC §3.2 e §10.3)", () => {
   });
 });
 
+test("reabrir a URL de uma sessão concluída mostra o histórico e conserva o único treino", async ({ page }) => {
+  const conta = await usuarioComPerfil();
+  const id = "a7a6c1ff-0678-4b2b-b462-17f5454e9001";
+  await inserirNoMock(conta, "sessions", [{
+    id, workout_id: "A1", fase: "fase1", data: "2026-09-14", status: "concluida",
+    iniciada_em: "2026-09-14T10:00:00Z", concluida_em: "2026-09-14T10:45:00Z",
+  }]);
+  await fixarData(page, SEGUNDA);
+  await entrarNoApp(page);
+  await page.goto(`/treinar/${id}`);
+  await expect(page).toHaveURL(/\/relatorio#historico$/);
+  await expect(page.getByRole("button", { name: "Começar agora" })).toHaveCount(0);
+  expect(await lerDoMock(conta, "sessions")).toHaveLength(1);
+});
+
+test("a sessão concluída em outro aparelho também encerra a cópia local ao reabrir", async ({ page }) => {
+  const conta = await comecarTreinoA(page);
+  const url = new URL(page.url());
+  const id = url.pathname.split("/").at(-1)!;
+  await atualizarNoMock(conta, "sessions", `id=eq.${id}`, {
+    status: "concluida", concluida_em: "2026-09-14T10:45:00Z",
+  });
+  await page.reload();
+  await expect(page).toHaveURL(/\/relatorio#historico$/);
+  expect(await lerDoMock(conta, "sessions")).toHaveLength(1);
+});
+
 test.describe("concluir e o que o motor decide (SPEC §6.2, §6.6, §10.3 e §10.4)", () => {
   test("tudo no topo com a última firme: resumo ↑ e a carga sobe no próximo treino", async ({
     page,
@@ -520,6 +547,38 @@ test.describe("ajuda, montagem e substituição (SPEC §3.2, §6.5 e §7)", () =
       .toBe(1);
     const [serie] = await lerDoMock<LinhaSerie>(sessao, "session_sets");
     expect(serie?.exercise_id).toBe("agachamento-frontal");
+  });
+
+  test("na volta ao exercício, a segunda série registrada mantém a identidade e as vagas restantes", async ({ page }) => {
+    const sessao = await comecarTreinoA(page);
+    const bloco = page.locator("#bloco-1");
+    await marcar(page, "Agachamento livre", 2);
+    const lidas = () => lerDoMock<LinhaSerie & { id: string }>(sessao, "session_sets");
+    await expect.poll(async () => (await lidas()).length).toBe(1);
+    const [original] = await lidas();
+
+    async function trocarPara(nome: string) {
+      await bloco.getByRole("button", { name: /substituir hoje/i }).click();
+      await page.getByRole("list", { name: "Exercícios alternativos" })
+        .getByRole("button", { name: new RegExp(`^${nome}\\b`) }).click();
+      await expect(bloco.getByRole("heading", { name: `1. ${nome}` })).toBeVisible();
+    }
+
+    await trocarPara("Agachamento frontal");
+    const series = bloco.getByRole("group", { name: /^Série \d+ — / });
+    await expect(series).toHaveCount(2);
+    await marcar(page, "Agachamento frontal", 1);
+    await trocarPara("Agachamento livre");
+    await expect(series.getByRole("checkbox", { checked: true })).toHaveCount(1);
+    await expect(series.getByRole("checkbox", { checked: false })).toHaveCount(1);
+    await series.getByRole("checkbox", { checked: false }).click();
+    await expect.poll(async () => (await lidas()).length).toBe(3);
+    const linhas = await lidas();
+    expect(linhas).toContainEqual(original);
+    expect(linhas.filter(s => s.exercise_id === "agachamento-frontal")).toHaveLength(1);
+    const concluidas = linhas.filter(s => s.exercise_id === "agachamento-livre");
+    expect(new Set(concluidas.map(s => s.set_index)).size).toBe(2);
+    expect(concluidas.every(s => s.concluida)).toBe(true);
   });
 
   /*

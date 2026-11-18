@@ -37,3 +37,16 @@ export function aceitarDigitacao(
   if (!/^\d*,?\d*$/.test(corpo)) return textoAtual;
   return proposto;
 }
+
+/**
+ * O nome dos botões − e + do `StepperNumerico`: "Aumentar repetições da
+ * Série 1 de Levantamento terra" (SPEC §22.18 item 5). O `contexto` vem de
+ * `rotulosDaSerie` (`lib/sessao.ts`); sem ele, só "Aumentar repetições".
+ */
+export function nomeDoPasso(
+  verbo: "Aumentar" | "Diminuir",
+  rotulo: string,
+  contexto?: string,
+): string {
+  return contexto ? `${verbo} ${rotulo} ${contexto}` : `${verbo} ${rotulo}`;
+}

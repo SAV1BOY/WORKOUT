@@ -262,7 +262,12 @@ test.describe("§10.7 — gráficos com 1 e com 30 pontos", () => {
     await entrarNoApp(page);
     await page.goto("/corpo");
 
-    const grafico = page.getByLabel("Peso por data, com a média de 7 dias");
+    /*
+     * SPEC §22.19 item 3: com UMA pesagem a média de 7 dias não tem ponto
+     * próprio e o título não a promete ("Peso por data"); com 30 seguidas ela
+     * volta ("Peso por data, com a média de 7 dias").
+     */
+    const grafico = page.getByRole("img", { name: /^Peso por data/ });
     await expect(grafico).toBeVisible();
     expect(await grafico.locator("svg .recharts-dot").count()).toBeGreaterThan(0);
     await semRolagemHorizontal(page);
@@ -313,7 +318,7 @@ test.describe("§3.8 — a foto grande é reduzida a 1600 px", () => {
       mimeType: "image/png",
       buffer: Buffer.from(grande),
     });
-    await expect(page.getByText("Foto de frente guardada.")).toBeVisible();
+    await expect(page.getByText("Foto de frente registrada.")).toBeVisible();
 
     const caminho = `${sessao.userId}/2026-09-16-frente.jpg`;
     await expect
@@ -466,11 +471,11 @@ test.describe("§3.8 — a meta de peso nos dois sentidos", () => {
     await expect(page.getByText(/82 kg em 16\/09/)).toBeVisible();
 
     await page.getByLabel("Meta (kg)").fill("90,0");
-    await page.getByRole("button", { name: "Guardar" }).click();
+    await page.getByRole("button", { name: "Salvar" }).click();
     await expect(page.getByText("Faltam 8 kg para a meta de 90 kg.")).toBeVisible();
 
     await page.getByLabel("Meta (kg)").fill("78,5");
-    await page.getByRole("button", { name: "Guardar" }).click();
+    await page.getByRole("button", { name: "Salvar" }).click();
     await expect(page.getByText("Faltam 3,5 kg para a meta de 78,5 kg.")).toBeVisible();
   });
 

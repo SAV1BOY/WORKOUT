@@ -26,6 +26,7 @@ import {
   lerDoMock,
   resetarMock,
   sessaoNoMock,
+  semCacheDoAparelho,
   semRolagemHorizontal,
   usuarioComPerfil,
   type SessaoMock,
@@ -93,7 +94,7 @@ async function contaNova(): Promise<SessaoMock> {
 async function entrarSemEsperar(page: Page): Promise<void> {
   await page.goto("/login");
   await page.getByLabel("E-mail").fill(EMAIL_DONO);
-  await page.getByLabel("Senha").fill(SENHA);
+  await page.getByLabel("Senha", { exact: true }).fill(SENHA);
   await page.getByRole("button", { name: "Entrar" }).click();
 }
 
@@ -106,6 +107,41 @@ async function guiaVistoNoMock(sessao: SessaoMock): Promise<unknown> {
   );
   return linhas[0]?.prefs?.guia_visto;
 }
+
+test.describe("guia reconhecido com a sincronização em espera", () => {
+  test.use({ serviceWorkers: "block" });
+  for (const tema of ["light", "dark"] as const) {
+    test(`pular o guia sobrevive à recarga antes de sincronizar — ${tema}`, async ({ page }) => {
+      const sessao = await contaNova();
+      await page.emulateMedia({ colorScheme: tema });
+      await fixarData(page, QUARTA);
+      await entrarSemEsperar(page);
+      await page.waitForURL(/\/mais\/guia\?inicio=1$/);
+      let reter = true;
+      let retidas = 0;
+      await page.route(/\/rest\/v1\/profiles(?:\?|$)/, async (route) => {
+        if (reter && route.request().method() === "PATCH") {
+          retidas++;
+          await route.fulfill({ status: 503, contentType: "application/json", body: "{}" });
+        } else {
+          await route.continue();
+        }
+      });
+      await page.getByRole("button", { name: "Pular por agora" }).click();
+      await esperarAbaTreino(page);
+      await expect.poll(() => retidas).toBeGreaterThan(0);
+      expect(await guiaVistoNoMock(sessao)).toBeUndefined();
+
+      await semCacheDoAparelho(page);
+      await page.goto("/");
+      await esperarAbaTreino(page);
+      await expect(page).toHaveURL(/\/$/);
+      reter = false;
+      await page.evaluate(() => window.dispatchEvent(new Event("online")));
+      await expect.poll(() => guiaVistoNoMock(sessao), { timeout: 20_000 }).toBe(true);
+    });
+  }
+});
 
 test.describe("primeira entrada da conta (SPEC §20.1)", () => {
   test("cai no guia com “Pular por agora”, reconhece e não volta mais", async ({

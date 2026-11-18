@@ -301,6 +301,68 @@ test.describe("cards do dia (SPEC §13.3)", () => {
 });
 
 test.describe("substituir pela lista do dia (SPEC §13.3)", () => {
+  test("filtra as alternativas do supino pelo material à mão e leva a flexão para a sessão", async ({ page }) => {
+    await usuarioComPerfil();
+    await abrir(page, SEGUNDA);
+    const lista = page.getByRole("list", { name: "Exercícios de hoje" });
+    await lista.getByRole("button", { name: "Substituir Supino reto com barra" }).click();
+    const folha = page.getByRole("dialog", { name: "Substituir hoje" });
+    const filtros = folha.getByRole("group", { name: "Equipamento para a alternativa" });
+    const opcoes = folha.getByRole("list", { name: "Exercícios alternativos" });
+    const halteres = opcoes.getByRole("button", { name: /^Supino reto com halteres/ });
+    const flexao = opcoes.getByRole("button", { name: /^Flexão de braço/ });
+
+    await filtros.getByRole("button", { name: "Outro equipamento" }).click();
+    await expect(halteres).toBeVisible();
+    await folha.getByText("Equipamentos disponíveis", { exact: true }).click();
+    await folha.getByRole("checkbox", { name: "Halteres" }).uncheck();
+    await expect(halteres).toHaveCount(0);
+
+    await filtros.getByRole("button", { name: "Elástico" }).click();
+    await expect(folha.getByText(/Nenhuma alternativa com este equipamento/)).toBeVisible();
+    for (const filtro of ["Peso do corpo", "Tatame"]) {
+      const botao = filtros.getByRole("button", { name: filtro });
+      await botao.click();
+      await expect(botao).toHaveAttribute("aria-pressed", "true");
+      await expect(flexao).toBeVisible();
+      await expect(halteres).toHaveCount(0);
+    }
+    await flexao.click();
+    await expect(lista.getByRole("button", { name: "Substituir Flexão de braço" })).toBeVisible();
+
+    await comecarOTreinoDoDia(page);
+    await abrirVisaoGeral(page);
+    await expect(page.getByRole("heading", { name: "2. Flexão de braço" })).toBeVisible();
+    await expect(page.locator("#bloco-2")).toContainText("no lugar de Supino reto com barra");
+    await semRolagemHorizontal(page);
+  });
+
+  test("o elástico substitui a barra e o equipamento desmarcado sai das opções", async ({ page }) => {
+    await usuarioComPerfil();
+    await abrir(page, SEGUNDA);
+    await page.getByRole("button", { name: "Substituir Remada curvada pronada" }).click();
+    const folha = page.getByRole("dialog", { name: "Substituir hoje" });
+    await folha.getByRole("button", { name: "Elástico", exact: true }).click();
+    const remada = folha.getByRole("button", { name: /^Remada com elástico/ });
+    await expect(remada).toBeVisible();
+    await folha.getByText("Equipamentos disponíveis", { exact: true }).click();
+    const faixa = folha.getByRole("checkbox", { name: /Super Band/ });
+    await faixa.uncheck();
+    await expect(remada).toHaveCount(0);
+    await faixa.check();
+    await remada.click();
+    await expect(page.getByRole("button", { name: "Substituir Remada com elástico" })).toBeVisible();
+  });
+
+  test("a lista oferece um movimento de mesma função mesmo de outro grupo", async ({ page }) => {
+    await usuarioComPerfil();
+    await abrir(page, SEGUNDA);
+    await page.getByRole("button", { name: "Substituir Rosca direta com barra" }).click();
+    const inversa = page.getByRole("list", { name: "Exercícios alternativos" })
+      .getByRole("button", { name: /^Rosca inversa/ });
+    await expect(inversa).toContainText(/flexionar os cotovelos/i);
+  });
+
   test("a escolha vale para a sessão que começa depois", async ({ page }) => {
     const sessao = await usuarioComPerfil();
     await abrir(page, SEGUNDA);

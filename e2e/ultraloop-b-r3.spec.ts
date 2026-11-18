@@ -261,10 +261,21 @@ test("§22.6-6: o aviso corta em 3, esconde a data de hoje e é um status", asyn
 }) => {
   const sessao = await usuarioComPerfil({ prefs: { conquistas_vistas: [] } });
   await semearForca(sessao);
+  await page.addInitScript(() => {
+    const observador = new MutationObserver(() => {
+      const regiao = document.querySelector('section[role="status"][aria-label="Conquista nova"]');
+      if (regiao && regiao.textContent?.trim() === "") {
+        regiao.setAttribute("data-teste-vazia", "sim");
+        observador.disconnect();
+      }
+    });
+    observador.observe(document, { childList: true, subtree: true });
+  });
   await abrirRelatorio(page);
 
   const aviso = page.getByRole("status", { name: "Conquista nova" });
-  await expect(aviso).toBeVisible();
+  await expect(aviso).toHaveAttribute("data-aviso-conquista", /.+/);
+  await expect(aviso).toHaveAttribute("data-teste-vazia", "sim");
 
   const ids = (await aviso.getAttribute("data-aviso-conquista"))?.split(" ") ?? [];
   expect(ids.length, "a semente fecha mais de 3 conquistas de uma vez").toBeGreaterThan(3);
@@ -290,6 +301,23 @@ test("§22.6-4: nenhum par de números com o mesmo rótulo se contradiz", async 
   const totais = page.getByRole("region", { name: "Totais" });
   const sessoes = totais.locator('[data-contador="Sessões"]');
   await expect(sessoes).toContainText("no total (força + cardio)");
+
+  const sequencias = page.getByRole("region", { name: "Sequências" });
+  const numeros = page.getByRole("heading", { name: "Números", exact: true });
+  const cabecalho = page.locator('[data-secao-cabecalho="resumo"]');
+  for (const tema of ["light", "dark"]) {
+    await page.evaluate((t) => {
+      document.documentElement.classList.remove("light", "dark");
+      document.documentElement.classList.add(t);
+    }, tema);
+    const alturaTotais = (await totais.boundingBox())!.height;
+    const alturaSequencias = (await sequencias.boundingBox())!.height;
+    expect(Math.abs(alturaTotais - alturaSequencias), `altura da fileira em ${tema}`).toBeLessThanOrEqual(8);
+    await numeros.evaluate((el) => el.scrollIntoView({ block: "start", behavior: "instant" }));
+    const titulo = (await numeros.boundingBox())!;
+    const topo = (await cabecalho.boundingBox())!;
+    expect(titulo.y, `Números abaixo do cabeçalho em ${tema}`).toBeGreaterThanOrEqual(topo.y + topo.height);
+  }
 
   await abrirSecao(page, "graficos");
   const treinos = page.getByText(/de força no total/).first();
@@ -566,7 +594,7 @@ test("§22.6-9: a faixa tem legenda e o exercício sem registro é uma linha", a
    * lido: hoje por fazer tem de ser ANEL (borda de 2 px, sem preenchimento),
    * como todo dia por fazer.
    */
-  await expect(historico.getByText(LEGENDA_DA_FAIXA)).toBeVisible();
+  await expect(historico.getByRole("list", { name: "Legenda da semana" })).toBeVisible();
   for (const marca of ORDEM_DA_LEGENDA) {
     expect(LEGENDA_DA_FAIXA, marca).toContain(
       `${GLIFO_DA_MARCA[marca]} ${NOME_DA_MARCA[marca]}`,

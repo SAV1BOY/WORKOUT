@@ -46,7 +46,7 @@ test.describe("porta de entrada", () => {
   }) => {
     await page.goto("/login");
     await page.getByLabel("E-mail").fill("nova.pessoa@exemplo.com");
-    await page.getByLabel("Senha").fill("1234567");
+    await page.getByLabel("Senha", { exact: true }).fill("1234567");
     await page.getByRole("button", { name: "Criar conta" }).click();
     await expect(
       page.getByText("A senha precisa ter pelo menos 8 caracteres."),
@@ -67,7 +67,7 @@ test.describe("porta de entrada", () => {
 
     // e mesmo forçando a ação do servidor pelo teclado não há signup: só Entrar
     await page.getByLabel("E-mail").fill("mais.uma@exemplo.com");
-    await page.getByLabel("Senha").fill("senha123456");
+    await page.getByLabel("Senha", { exact: true }).fill("senha123456");
     await page.getByRole("button", { name: "Entrar" }).click();
     await expect(page.getByText("E-mail ou senha incorretos.")).toBeVisible();
 
@@ -192,7 +192,7 @@ test.describe("o mock não finge sucesso", () => {
     await irNaAba(page, "Mais");
     await page.getByRole("button", { name: "Sair" }).click();
     await page.getByLabel("E-mail").fill(EMAIL_DONO);
-    await page.getByLabel("Senha").fill(SENHA);
+    await page.getByLabel("Senha", { exact: true }).fill(SENHA);
     await page.getByRole("button", { name: "Entrar" }).click();
     await esperarAbaTreino(page);
 

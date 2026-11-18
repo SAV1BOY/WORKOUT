@@ -82,7 +82,7 @@ export function TimerIntervalos({
   const trabalho = blocos.filter((b) => b.trabalho).length;
 
   return (
-    <section className="flex flex-col gap-3" aria-label="Timer de intervalos">
+    <section className="flex flex-col gap-3" aria-label="Cronômetro dos blocos">
       <div className={`flex flex-col gap-2 rounded-xl p-4 ${COR[atual.tipo]}`}>
         <div className="flex items-baseline justify-between gap-2">
           <span className="text-lg font-semibold">{atual.rotulo}</span>

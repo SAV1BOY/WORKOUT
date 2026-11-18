@@ -9,6 +9,9 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { SECOES } from "@/lib/guia";
 import {
+  avisoDaPreparacao,
+  progressoDoPlayer,
+  indiceDeRetomada,
   avisoDoPolegar,
   avisoDoVoto,
   estadoDoPasso,
@@ -16,6 +19,7 @@ import {
   indiceDoEstado,
   pontosDoBloco,
   sequenciaDoPlayer,
+  serieAntesDoDescanso,
   type Passo,
   type PassoSerie,
 } from "@/lib/player";
@@ -252,7 +256,7 @@ describe("§22.16 item 5 — pontosDoBloco", () => {
     expect(pontos.map((p) => p.aquecimento)).toEqual([true, true, false, false, false]);
     expect(pontos.map((p) => p.feita)).toEqual([true, false, false, false, false]);
     expect(pontos.map((p) => p.atual)).toEqual([false, true, false, false, false]);
-    expect(rotulo).toBe("Aquecimento 2 de 2 · 1 de 5 séries feitas");
+    expect(rotulo).toBe("1 de 5 séries feitas");
   });
 
   it("na série de trabalho o nome diz 'Série N de 3'", () => {
@@ -261,7 +265,7 @@ describe("§22.16 item 5 — pontosDoBloco", () => {
     const bloco = sessao.blocos[0];
     const passo = series(seq, PRIMEIRO)[3];
     if (!bloco || !passo) throw new Error("bloco ausente");
-    expect(pontosDoBloco(bloco, passo).rotulo).toBe("Série 2 de 3 · 3 de 5 séries feitas");
+    expect(pontosDoBloco(bloco, passo).rotulo).toBe("3 de 5 séries feitas");
   });
 });
 
@@ -351,12 +355,13 @@ describe("§22.16 item 7 — o '%' colado ao número", () => {
       fonte
         .replace(/\/\*[\s\S]*?\*\//g, "")
         .replace(/(^|[^:"'`\\])\/\/.*$/gm, "$1");
+    const porcentagemSeparada = /[\d}]\s+%/u;
     const achados: string[] = [];
     for (const arquivo of arquivos) {
       semComentarios(readFileSync(arquivo, "utf8"))
         .split("\n")
         .forEach((linha) => {
-          if (/\d[ \u00a0]%/.test(linha)) achados.push(`${arquivo}: ${linha.trim()}`);
+          if (porcentagemSeparada.test(linha)) achados.push(`${arquivo}: ${linha.trim()}`);
         });
     }
     expect(achados).toEqual([]);
@@ -367,6 +372,43 @@ describe("§22.16 item 7 — o '%' colado ao número", () => {
       "utf8",
     );
     expect(ficha).toContain("semana leve (60%)");
-    expect(/\d[ \u00a0]%/.test(semComentarios(ficha.replace("(60%)", "(60 %)")))).toBe(true);
+    for (const alterado of ["60 %", "10\u202f%", "10\u2009%", "${n} %"]) {
+      expect(porcentagemSeparada.test(semComentarios(ficha.replace("60%", alterado)))).toBe(true);
+    }
+    expect(porcentagemSeparada.test(semComentarios("// 10\u202f%"))).toBe(false);
+  });
+});
+
+describe("retomada e progresso depois de trocar uma série", () => {
+  it("A → B → A guarda o progresso, recupera a primeira vaga de A e dispensa nova preparação", () => {
+    const original = marcar(sessaoA(), PRIMEIRO, 3);
+    const trocada = trocar(original, PRIMEIRO);
+    const seq = sequenciaDoPlayer(trocada);
+    const primeiroDeB = seq[indiceDeRetomada(seq, trocada)];
+    expect(primeiroDeB).toMatchObject({ tipo: "serie", numero: 1, total: 2 });
+    expect(progressoDoPlayer(trocada)).toEqual(progressoDoPlayer(original));
+
+    const comBFeito = marcar(trocada, PRIMEIRO, 1);
+    const volta = substituirExercicio(comBFeito, PRIMEIRO, original.blocos[0]!.exercicioId, null, { novoId: contador("volta") });
+    const novamente = sequenciaDoPlayer(volta);
+    const passo = novamente[indiceDeRetomada(novamente, volta)];
+    expect(passo).toMatchObject({ tipo: "serie", ordem: PRIMEIRO, exercicioId: original.blocos[0]!.exercicioId, numero: 2 });
+    expect(progressoDoPlayer(volta)).toEqual({ feitas: 4, total: progressoDoPlayer(original).total });
+  });
+
+  it("o descanso depois de 'firme?' também permite corrigir a última série, sem buscar outro bloco", () => {
+    const comSerie = marcar(sessaoA(), PRIMEIRO, 5);
+    const seq = sequenciaDoPlayer(comSerie);
+    const entre = seq.findIndex((p) => p.tipo === "descanso" && p.entreExercicios);
+    expect(serieAntesDoDescanso(seq, entre, comSerie)).toMatchObject({
+      tipo: "serie", ordem: PRIMEIRO, numero: 3,
+    });
+    expect(serieAntesDoDescanso(seq, entre, sessaoA())).toBeNull();
+  });
+
+  it("o anúncio da preparação muda apenas uma vez antes de o treino começar", () => {
+    expect([10, 4, 3, 2, 1, 0].map(avisoDaPreparacao)).toEqual([
+      "", "", "Começa em 3 segundos.", "Começa em 3 segundos.", "Começa em 3 segundos.", "",
+    ]);
   });
 });

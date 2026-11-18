@@ -2,7 +2,7 @@
  * Ajudantes dos testes de ponta a ponta: falar com o mock do Supabase
  * (scripts/mock-supabase.ts), entrar no app e conferir o básico do celular.
  */
-import { expect, type Page } from "@playwright/test";
+import { expect, type Locator, type Page } from "@playwright/test";
 
 export const URL_MOCK =
   process.env.MOCK_SUPABASE_URL ??
@@ -130,7 +130,7 @@ export async function login(
 ): Promise<void> {
   await page.goto("/login");
   await page.getByLabel("E-mail").fill(email);
-  await page.getByLabel("Senha").fill(senha);
+  await page.getByLabel("Senha", { exact: true }).fill(senha);
   await page.getByRole("button", { name: "Criar conta" }).click();
 
   // conta já criada num teste anterior: entra com a mesma senha
@@ -322,7 +322,7 @@ export async function entrarNoApp(
 ): Promise<void> {
   await page.goto("/login");
   await page.getByLabel("E-mail").fill(email);
-  await page.getByLabel("Senha").fill(senha);
+  await page.getByLabel("Senha", { exact: true }).fill(senha);
   await page.getByRole("button", { name: "Entrar" }).click();
   await esperarAbaTreino(page);
 }
@@ -349,6 +349,24 @@ export async function comecarNoPlayer(page: Page): Promise<void> {
   await comecar.or(concluir).first().waitFor();
   if (await comecar.isVisible().catch(() => false)) await comecar.click();
   await concluir.waitFor();
+}
+
+/** Anda pelas séries e descansos. A chegada ao feedback deixa a resposta para quem chamou. */
+export async function avancarNoPlayerAte(page: Page, alvo: Locator): Promise<void> {
+  const descanso = page.getByRole("button", { name: "Pular descanso" });
+  const pergunta = page.getByRole("region", { name: "Última repetição" })
+    .getByRole("button", { name: "Pular esta pergunta" });
+  const proximo = page.getByRole("button", { name: "Próximo passo" });
+  // Depois de responder “Firme”, a pergunta avança sozinha. Espere a tela
+  // seguinte sem tentar clicar em “Continuar” durante essa transição.
+  for (let i = 0; i < 80; i++) {
+    await alvo.or(descanso).or(pergunta).or(proximo).first().waitFor();
+    if (await alvo.isVisible()) return;
+    if (await descanso.isVisible()) await descanso.click();
+    else if (await pergunta.isVisible()) await pergunta.click();
+    else if (await proximo.isVisible()) await proximo.click();
+  }
+  await expect(alvo).toBeVisible();
 }
 
 /**
@@ -383,4 +401,34 @@ export async function abrirSecaoDoRelatorio(page: Page, id: string): Promise<voi
   if (await secao.evaluate((d) => (d as HTMLDetailsElement).open)) return;
   await secao.locator("summary").click();
   await expect(secao).toHaveAttribute("open", "");
+}
+
+/** Descarta só os dados de leitura, fora do app, para refazê-los na rede. */
+export async function semCacheDoAparelho(page: Page): Promise<void> {
+  await page.goto("/robots.txt");
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve, reject) => {
+        const pedido = indexedDB.open("treino-terraco");
+        pedido.onerror = () => reject(pedido.error);
+        pedido.onsuccess = () => {
+          const banco = pedido.result;
+          if (!banco.objectStoreNames.contains("cache")) {
+            banco.close();
+            resolve();
+            return;
+          }
+          const tx = banco.transaction("cache", "readwrite");
+          tx.objectStore("cache").delete("react-query-v1");
+          tx.oncomplete = () => {
+            banco.close();
+            resolve();
+          };
+          tx.onerror = () => {
+            banco.close();
+            reject(tx.error);
+          };
+        };
+      }),
+  );
 }

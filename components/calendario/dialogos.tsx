@@ -125,7 +125,7 @@ export function DialogoDia({
             ) : (
               <div className="flex flex-col gap-4">
                 <fieldset className="flex flex-col gap-2">
-                  <legend className="text-muted-foreground mb-2 text-xs tracking-wide uppercase">
+                  <legend className="text-muted-foreground mb-2 text-rotulo tracking-wide uppercase">
                     Tipo do dia
                   </legend>
                   <div className="grid grid-cols-3 gap-2">
@@ -146,7 +146,7 @@ export function DialogoDia({
 
                 {tipo === "forca" ? (
                   <fieldset className="flex flex-col gap-2">
-                    <legend className="text-muted-foreground mb-2 text-xs tracking-wide uppercase">
+                    <legend className="text-muted-foreground mb-2 text-rotulo tracking-wide uppercase">
                       Qual treino
                     </legend>
                     <div className="flex flex-wrap gap-2">
@@ -168,7 +168,7 @@ export function DialogoDia({
 
                 {tipo === "cardio" ? (
                   <fieldset className="flex flex-col gap-2">
-                    <legend className="text-muted-foreground mb-2 text-xs tracking-wide uppercase">
+                    <legend className="text-muted-foreground mb-2 text-rotulo tracking-wide uppercase">
                       Qual sessão
                     </legend>
                     <div className="grid grid-cols-2 gap-2">

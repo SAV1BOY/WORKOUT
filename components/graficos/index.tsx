@@ -37,4 +37,9 @@ export const GraficoBarras = comAltura(() =>
   import("@/components/graficos/grafico").then((m) => m.GraficoBarras),
 );
 
-export { LegendaDoGrafico, SemDados, type SerieDoGrafico } from "@/components/graficos/apoio";
+export {
+  COR_REFERENCIA,
+  LegendaDoGrafico,
+  SemDados,
+  type SerieDoGrafico,
+} from "@/components/graficos/apoio";

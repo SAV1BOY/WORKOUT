@@ -34,7 +34,7 @@ export async function registrarSolta(opcoes: {
   /** O histórico da tela de barra fixa, para ele subir na hora também (§3.4). */
   intervalo?: { de: string; ate: string };
   cliente: QueryClient;
-}): Promise<void> {
+}): Promise<string> {
   const { userId, data, reps = 1, intervalo, cliente } = opcoes;
   const linha = {
     id: novoId(),
@@ -71,6 +71,19 @@ export async function registrarSolta(opcoes: {
     onConflict: "id",
     linha,
   });
+  return linha.id;
+}
+
+/** Desfaz só o toque que originou o aviso, inclusive se houve outro depois. */
+export async function desfazerSolta(id: string, userId: string, cliente: QueryClient) {
+  await enfileirarEscrita("barra_fixa_solta", {
+    tabela: "pullup_singles", op: "delete", filtro: { id, user_id: userId },
+  });
+  for (const lista of ["soltas", "soltas-periodo", "soltas-todas"]) {
+    cliente.setQueriesData<SoltaResumo[]>({ queryKey: [lista] }, (atual) =>
+      atual?.filter((solta) => solta.id !== id),
+    );
+  }
 }
 
 /* --------------------------------------------- calendário: overrides */

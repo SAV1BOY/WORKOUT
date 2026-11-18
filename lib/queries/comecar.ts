@@ -11,7 +11,7 @@
 
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { exerciciosDoTreino } from "@/lib/dados";
 import { estadosPorExercicio } from "@/lib/hoje";
@@ -54,13 +54,20 @@ export function idsParaComecar(
   );
 }
 
-export function useComecarTreino(): {
+export function useComecarTreino(aquecerRota = false): {
   criando: TreinoId | null;
   comecar: (entrada: EntradaComecar) => Promise<void>;
 } {
   const cliente = useQueryClient();
   const router = useRouter();
   const [criando, setCriando] = useState<TreinoId | null>(null);
+
+  const idReservado = useRef<string | null>(null);
+  useEffect(() => {
+    if (!aquecerRota) return;
+    idReservado.current ??= crypto.randomUUID();
+    router.prefetch(`/treinar/${idReservado.current}`);
+  }, [aquecerRota, router]);
 
   const comecar = useCallback(
     async (e: EntradaComecar) => {
@@ -74,6 +81,7 @@ export function useComecarTreino(): {
         for (const r of recordesNoCache(cliente, ids)) recordes[r.exercise_id] = r;
 
         const sessao = await criarSessao({
+          id: idReservado.current ?? undefined,
           cliente,
           userId: e.userId,
           data: e.hoje,
@@ -96,6 +104,7 @@ export function useComecarTreino(): {
           limparTrocasDoAparelho();
           limparOrdemDoAparelho();
         }
+        idReservado.current = null;
         router.push(`/treinar/${sessao.id}`);
       } catch {
         setCriando(null);

@@ -4,6 +4,7 @@
  * nunca o conteúdo (exercícios, séries, regras ou textos).
  */
 import { z } from "zod";
+import { TAGS_DE_EQUIPAMENTO } from "./tags-de-equipamento";
 
 /* ---------------------------------------------------------------- enums */
 
@@ -41,20 +42,7 @@ export const musculoSchema = z.enum([
   "panturrilha",
 ]);
 
-export const equipamentoTagSchema = z.enum([
-  "anilhas",
-  "banco",
-  "barra-macica",
-  "barra-w",
-  "halteres",
-  "cavalete",
-  "barra-fixa",
-  "cross-over",
-  "puxadores",
-  "tatame",
-  "corda",
-  "super-band",
-]);
+export const equipamentoTagSchema = z.enum(TAGS_DE_EQUIPAMENTO);
 
 export const implementoSchema = z.enum([
   "barra_macica",
@@ -167,6 +155,11 @@ export const exercicioSchema = z.object({
 });
 
 export const exerciciosSchema = z.array(exercicioSchema).min(1);
+
+export const alternativasSchema = z.object({
+  movimentos: z.record(z.string(), z.array(z.string()).min(2)),
+  montagens: z.record(z.string(), z.array(z.array(equipamentoTagSchema)).min(1)),
+});
 
 /* -------------------------------------------------------------- programa */
 
@@ -283,6 +276,7 @@ export const cardioSchema = z.object({
     ajustes: z.array(z.string()),
   }),
   barra_fixa: z.object({
+    rotulos: z.object({ assistencia: z.string(), foco: z.string() }),
     objetivo: z.string(),
     sessoes_por_semana: z.number().int().positive(),
     regra: z.string(),
@@ -543,6 +537,7 @@ export const perfilSchema = z.object({
 
 /* ----------------------------------------------------------------- tipos */
 
+export type RegrasDeAlternativas = z.infer<typeof alternativasSchema>;
 export type Grupo = z.infer<typeof grupoSchema>;
 export type Subgrupo = z.infer<typeof subgrupoSchema>;
 export type Musculo = z.infer<typeof musculoSchema>;
@@ -610,3 +605,90 @@ export const inscricaoLembreteSchema = z.object({
   criado_em: z.string(),
 });
 export type InscricaoLembrete = z.infer<typeof inscricaoLembreteSchema>;
+
+/* --------------------------------------- lembretes II (SPEC §23.9–23.11) */
+
+/** `HH:MM`, de 00:00 a 23:55, no passo de 5 min do disparo (SPEC §23.9). */
+export const horaDoLembreteSchema = z
+  .string()
+  .regex(/^([01]\d|2[0-3]):[0-5][05]$/, "hora HH:MM no passo de 5 minutos");
+
+export const lembreteDoTipoSchema = z.object({
+  ligado: z.boolean(),
+  hora: horaDoLembreteSchema,
+});
+
+/** `profiles.prefs.lembretes`. Sem a chave: os dois desligados às 07:00. */
+export const prefsLembretesSchema = z.object({
+  treino: lembreteDoTipoSchema,
+  corrida: lembreteDoTipoSchema,
+});
+export type PrefsLembretes = z.infer<typeof prefsLembretesSchema>;
+export type TipoDeLembrete = keyof PrefsLembretes;
+
+/** Uma linha de `public.lembretes_enviados` (só leitura pela RLS). */
+export const envioLembreteSchema = z.object({
+  tipo: z.enum(["treino", "corrida"]),
+  dia: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  enviado_em: z.string(),
+});
+export type EnvioLembrete = z.infer<typeof envioLembreteSchema>;
+
+const dataIso = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+
+/**
+ * Uma conta do JSON que `public.lembretes_tick()` manda para
+ * `POST /api/lembretes/disparar` (SPEC §23.11 e §23.15): o mínimo que a regra
+ * de §23.10 precisa. A rota confere **cada conta sozinha**: a que não fecha
+ * é pulada e contada, e as outras seguem.
+ */
+export const usuarioDoDisparoSchema = z.object({
+  user_id: z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i),
+  perfil: z.object({
+    data_inicio: dataIso.nullable().optional(),
+    fase_atual: faseIdSchema,
+    fase_desde: dataIso.nullable().optional(),
+    ultimo_treino: treinoIdSchema.nullable(),
+    semana_corrida: z.number().int().nullable().optional(),
+    semana_corda: z.number().int().nullable().optional(),
+    semana_fixa: z.number().int().nullable().optional(),
+    prefs: z.record(z.string(), z.unknown()).nullable(),
+  }),
+  overrides: z
+    .array(
+      z.object({
+        data: dataIso,
+        tipo: z.enum(["forca", "cardio", "descanso"]),
+        workout_id: treinoIdSchema.nullable().optional(),
+        sessao: z.string().nullable().optional(),
+      }),
+    )
+    .default([]),
+  sessoes: z
+    .array(z.object({ id: z.string(), data: dataIso, status: z.string(), workout_id: z.string() }))
+    .default([]),
+  cardios: z
+    .array(z.object({ id: z.string(), data: dataIso, tipo: z.string(), concluida: z.boolean() }))
+    .default([]),
+  enviados: z.array(z.object({ tipo: z.enum(["treino", "corrida"]), dia: dataIso })).default([]),
+  inscricoes: z
+    .array(
+      z.object({
+        endpoint: z.string().regex(/^https?:\/\/\S+$/),
+        p256dh: z.string().min(1),
+        auth: z.string().min(1),
+      }),
+    )
+    .default([]),
+});
+export type UsuarioDoDisparo = z.infer<typeof usuarioDoDisparoSchema>;
+
+/**
+ * O envelope de um POST do tick (um lote): `agora` e até 500 contas, cada uma
+ * ainda por conferir com `usuarioDoDisparoSchema`.
+ */
+export const disparoSchema = z.object({
+  agora: z.iso.datetime({ offset: true }),
+  usuarios: z.array(z.unknown()).max(500),
+});
+export type Disparo = z.infer<typeof disparoSchema>;

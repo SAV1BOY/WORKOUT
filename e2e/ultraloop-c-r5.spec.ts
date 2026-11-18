@@ -62,6 +62,8 @@ test("§22.8-1: passada a semana 12, a Fase 1 não mostra “16 de 12”", async
     "href",
     "/mais/perfil",
   );
+  for (let i = 0; i < 8; i++) await page.getByRole("button", { name: "Semana anterior" }).click();
+  await expect(page.getByRole("link", { name: "Passar para a Fase 2" })).toBeVisible();
 });
 
 test("§22.8-1: até a semana 12 a contagem segue igual", async ({ page }) => {
@@ -247,17 +249,18 @@ test("§22.8-6: a grade do mês tem legenda e separa feito de planejado pela for
 
   const setembro = mesDe(page, "setembro de 2026");
   // o glifo de "perdido" é um ✕ de texto dentro do próprio item: sem `exact`
-  for (const texto of ["feito", "parcial", "força a fazer", "cardio a fazer", "perdido"]) {
+  for (const texto of ["feito", "parcial", "força a fazer", "cardio a fazer", "faltou"]) {
     await expect(setembro.getByText(texto).last()).toBeVisible();
   }
 
   const desenho = (nome: RegExp) =>
     setembro
       .getByRole("button", { name: nome })
-      .locator("span > span")
+      .locator("[data-glifo]")
       .last()
       .evaluate((el) => {
-        const cs = getComputedStyle(el);
+        const forma = el.getAttribute("data-glifo") === "aberto" ? el.firstElementChild ?? el : el;
+        const cs = getComputedStyle(forma);
         return {
           borda: Math.round(Number.parseFloat(cs.borderTopWidth)),
           fundo: cs.backgroundColor,

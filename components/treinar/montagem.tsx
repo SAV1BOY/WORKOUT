@@ -11,6 +11,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { acharExercicio } from "@/lib/dados";
+import { nomeAcessivel } from "@/lib/midia";
 import { formatarKg, formatarNumero, rotuloDaCarga } from "@/lib/formato";
 import type { Montagem, OpcoesMontagem } from "@/lib/montagem";
 import { montagemDaCarga } from "@/lib/sessao";
@@ -102,10 +103,12 @@ export function DetalheMontagem({
 
 /** O botão "montagem" do cabeçalho do bloco (SPEC §3.2 e §6.5). */
 export function BotaoMontagem({
+  noPlayer = false,
   exercicioId,
   carga,
   opcoes,
 }: {
+  noPlayer?: boolean;
   exercicioId: string;
   carga: number | null;
   opcoes?: OpcoesMontagem;
@@ -116,9 +119,14 @@ export function BotaoMontagem({
   return (
     <Sheet>
       <SheetTrigger asChild>
-        <Button variant="outline" size="sm" className="alvo gap-1.5 px-3">
+        <Button
+          variant="outline"
+          size="sm"
+          className="alvo gap-1.5 px-3"
+          aria-label={noPlayer ? undefined : nomeAcessivel("Ver a montagem", acharExercicio(exercicioId).nome)}
+        >
           <Layers className="size-4" />
-          montagem
+          Ver a montagem
         </Button>
       </SheetTrigger>
       <SheetContent side="bottom" className="pb-8">

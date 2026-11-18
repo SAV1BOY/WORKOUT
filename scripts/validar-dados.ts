@@ -3,8 +3,10 @@
  * Roda antes do build (prebuild). Sai com código != 0 e mensagem clara.
  */
 import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { isDeepStrictEqual } from "node:util";
 import { join } from "node:path";
 import {
+  alternativasSchema,
   cardioSchema,
   equipamentosSchema,
   exerciciosSchema,
@@ -47,10 +49,28 @@ function validar<T>(schema: ZodType<T>, arquivo: string): T | null {
     }
     return null;
   }
+  if (!isDeepStrictEqual(bruto, r.data)) {
+    erros.push(
+      `data/${arquivo}: o parser altera o conteúdo. Normalize os dados estáticos antes de entregá-los ao app.`,
+    );
+  }
   return r.data;
 }
 
 const exercicios = validar(exerciciosSchema, "exercicios.json");
+const variacoes = validar(exerciciosSchema, "variacoes.json");
+const alternativas = validar(alternativasSchema, "alternativas.json");
+if (exercicios && variacoes && alternativas) {
+  const fichas = [...exercicios, ...variacoes];
+  console.log(`  ${variacoes.length} variações de exercício com ficha própria`);
+  const ids = new Set(fichas.map((e) => e.id));
+  if (ids.size !== fichas.length) erros.push("Os exercícios e as variações devem ter IDs únicos.");
+  const agrupados = Object.values(alternativas.movimentos).flat();
+  if (new Set(agrupados).size !== agrupados.length) erros.push("Um exercício aparece em mais de um padrão de movimento.");
+  for (const id of [...agrupados, ...Object.keys(alternativas.montagens)]) {
+    if (!ids.has(id)) erros.push(`alternativas.json: exercício desconhecido "${id}"`);
+  }
+}
 const programa = validar(programaSchema, "programa.json");
 validar(cardioSchema, "cardio.json");
 validar(progressaoJsonSchema, "progressao.json");

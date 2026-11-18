@@ -68,6 +68,15 @@ describe("guia: estrutura", () => {
     }
   });
 
+  it("o texto visível usa os termos do treino", () => {
+    for (const secao of SECOES) {
+      const textos = [secao.titulo, secao.resumo, secao.chip, ...secao.funcoes.flatMap((f) =>
+        [f.nome, f.oQueFaz, f.grupo, f.nota, ...f.caminho],
+      )];
+      expect(textos.join(" ")).not.toMatch(/\b(?:players?|timers?|cards?)\b/i);
+    }
+  });
+
   it("nenhum texto vazio", () => {
     for (const secao of SECOES) {
       expect(secao.id.trim(), "id da seção").not.toBe("");
@@ -112,7 +121,7 @@ describe("guia: estrutura", () => {
     const treino = secaoDoGuia("treino")!;
     expect(blocosDaSecao(treino).map((b) => b.grupo)).toEqual([
       "A tela",
-      "No player",
+      "Durante o treino",
       "Cardio",
       "Barra fixa",
     ]);
@@ -206,14 +215,14 @@ describe("guia: cobertura da §20.5", () => {
     "Personalizar treino",
     "Parte do corpo em foco",
     "Desafios",
-    "Card de retomada",
+    "Retomada do treino",
     "Preparação",
     "Última repetição",
     "Descanso",
     "Visão geral do treino",
     "O que muda no próximo treino",
     "Conclusão",
-    "Timer de intervalos",
+    "Cronômetro dos blocos",
     "Cronômetro",
     "Encerrar e registrar",
     "Fazer sessão de barra fixa",

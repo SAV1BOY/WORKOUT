@@ -5,6 +5,18 @@ repositório, não um plano.
 
 ---
 
+## Atualização de 18 de novembro de 2026
+
+O player permite trocar o exercício durante o treino e conserva as séries
+que já foram feitas, inclusive quando a pessoa volta ao exercício original.
+As sugestões indicam o músculo ou movimento em comum e permitem filtrar
+por equipamento disponível, peso do corpo, tatame ou elástico.
+
+O backup e o relatório percorrem todo o histórico. A atualização também
+cobre a substituição de fotos da própria conta, o uso sem rede e os lembretes
+por aparelho. Os critérios e testes de cada lote estão no
+[registro desta entrega](docs/ultraloop/entrega-2026-11-18.md).
+
 ## Estado da entrega — v2.1 (camada visual) ✅
 
 A camada visual está pronta no código: 5 abas, player unificado, ficha em
@@ -7595,7 +7607,7 @@ Barra fixa viraram `grid-cols-[5.5rem_1fr]`, com o valor sempre no mesmo x.
 
 **10. Legenda da faixa e cartão vazio de uma linha**
 (`components/relatorio/historico.tsx`, `tela-progresso.tsx`) — a faixa da semana
-ganhou "✓ feito · ○ a fazer · ● faltou · — descanso · hoje em destaque"; em
+ganhou "✓ feito · ◉ parcial · ○ a fazer · ● faltou · — descanso · hoje em destaque"; em
 "Carga dos grandes" o exercício sem registro virou **uma linha** (nome + "sem
 registro", 44 px) no lugar de um cartão de altura cheia com um vazio de gráfico
 dentro.
@@ -10507,6 +10519,21 @@ medidos pelo e2e (nenhuma captura abre a Visão geral).
    progredir": "Segue a progressão do plano da corda (…)", sem nome de
    arquivo.
 
+#### Rodada 15 — auditoria 2 reprovou por a regra da folha valer só na folha; lote devolvido à fila
+
+A auditoria 2 sobre `1d41620` (cadeia verde: 1.540 unitários, 514 e2e + 5
+pulados, varredura 5/5; capturas só 09, 10 e 24) reprovou nas **duas
+lentes** pelo mesmo motivo de fundo, 0 bloqueantes: o contrato do lote e a
+SPEC §22.14 item 6 prometiam a regra da folha (a11y-05: foco guardado e
+devolvido a quem abriu, `aria-modal`, fundo inerte, Esc e voltar fecham só
+a camada de cima) para **toda** camada modal, mas só `components/ui/sheet.tsx`
+a cumpria. Medido: o alerta "Descartar este treino?" e o resumo do fim,
+abertos por estado dentro da Visão geral, fechavam com o foco no `<body>`
+e abriam sem `aria-modal` e com o fundo vivo; na foto ampliada, 6 de 6
+Tabs saíam da camada (no Corpo, para a barra de baixo), e no "Apagar esta
+foto?" também, até o aviso "Foto de frente guardada." por cima do véu.
+Lote devolvido à fila. Vereditos: `r15/l14/vereditos-auditoria-2.json`.
+
 #### Rodada 16 — correção da auditoria 1 da rodada 15
 
 As duas lentes da auditoria 1 sobre `4f55487` devolveram o lote com o
@@ -10665,22 +10692,7 @@ em:" com os dois chips, como na rodada 15.
 4. No modo avião, ficha → "Tutorial no YouTube": com o leitor de tela, o
    link lê "Abrir no YouTube (abre fora do app)"; na tela, nada mudou.
 
-#### Rodada 15 — auditoria 2 reprovou por a regra da folha valer só na folha; lote devolvido à fila
-
-A auditoria 2 sobre `1d41620` (cadeia verde: 1.540 unitários, 514 e2e + 5
-pulados, varredura 5/5; capturas só 09, 10 e 24) reprovou nas **duas
-lentes** pelo mesmo motivo de fundo, 0 bloqueantes: o contrato do lote e a
-SPEC §22.14 item 6 prometiam a regra da folha (a11y-05: foco guardado e
-devolvido a quem abriu, `aria-modal`, fundo inerte, Esc e voltar fecham só
-a camada de cima) para **toda** camada modal, mas só `components/ui/sheet.tsx`
-a cumpria. Medido: o alerta "Descartar este treino?" e o resumo do fim,
-abertos por estado dentro da Visão geral, fechavam com o foco no `<body>`
-e abriam sem `aria-modal` e com o fundo vivo; na foto ampliada, 6 de 6
-Tabs saíam da camada (no Corpo, para a barra de baixo), e no "Apagar esta
-foto?" também, até o aviso "Foto de frente guardada." por cima do véu.
-Lote devolvido à fila. Vereditos: `r15/l14/vereditos-auditoria-2.json`.
-
-#### Rodada 16 — retomada (segunda correção, logs em `r17/l14`)
+#### Rodada 17 — segunda correção do L14 (logs em `r17/l14`)
 
 Retomada sobre `1d41620`, na mesma branch; logs em `r17/l14/`. Commits:
 `9cd961e` (a regra num lugar só e os três primitivos), `cb9845d` (foto
@@ -10752,7 +10764,7 @@ ampliada e cartão), o e2e e a SPEC (§22.14 item 6: inventário e regra).
   2, Equipamento 5) — é o FAZER literal do OBS-elastico e está no aceite.
 
 
-##### Provas (rodada 16 — retomada)
+##### Provas (rodada 17 — segunda correção do L14)
 
 - **Vitest** (`lib/camada-modal.test.ts`, novo, **13 testes**): o que fica
   inerte (main, header, nav, o portal de outra camada) e o que fica de fora
@@ -10800,7 +10812,7 @@ ampliada e cartão), o e2e e a SPEC (§22.14 item 6: inventário e regra).
   `package.json`, `package-lock.json` e `supabase/` sem mudança; nenhum
   segredo no diff.
 
-##### Como testar no celular (rodada 16 — retomada)
+##### Como testar no celular (rodada 17 — segunda correção do L14)
 
 1. Treino → Começar → no player, o ícone de lista (Visão geral) → no
    rodapé, "Descartar este treino" → o alerta abre com o foco no
@@ -10819,7 +10831,7 @@ ampliada e cartão), o e2e e a SPEC (§22.14 item 6: inventário e regra).
    (O foco de volta se vê pelo teclado ou pelo leitor de tela: o toque do
    dedo no Safari não foca o botão.)
 
-##### Portões (rodada 16 — retomada)
+##### Portões (rodada 17 — segunda correção do L14)
 
 Cadeia inteira em `e1b7feb` (todo o código, os testes, a SPEC e o rascunho
 deste registro; `r17/l14/logs/e1b7feb.log`, das 15:35:58 às 16:02:17 UTC,
@@ -10835,7 +10847,7 @@ do spec do L14, que tem **43** linhas ✓ no log, nenhuma ✘ nem flaky) ·
 commit deste registro só acrescenta estes números ao PROGRESSO; a cadeia
 roda de novo, inteira, nele (`r17/l14/logs/<hash>.log`).
 
-##### Capturas (rodada 16 — retomada)
+##### Capturas (rodada 17 — segunda correção do L14)
 
 `capturas.sh` em `e1b7feb`, depois da cadeia verde, contra a base real de
 `main` (`base-ef3ad97`), com as seis telas declaradas
@@ -11497,7 +11509,7 @@ menores. Sobre `8b54cf1`, logs em `r19/l34/`. SPEC antes do código
     página (a página é do service worker: nem `context.setOffline` nem
     `page.route` alcançam o que passa por ele), e o teste espera as **4
     tentativas** do postgrest-js (1 s, 2 s e 4 s de espera) antes de olhar a
-    tela. Mutações (build:e2e de cada uma, `r19/l34/local/mut-a.log` e
+    tela. Mutações (grupo A reunido no mesmo build de teste, `r19/l34/local/mut-a.log` e
     `mut-b.log`): sem manter a frase, sem limpar o aviso, sem o ouvinte de
     `pageshow` e sem a guarda → **4 de 4** caem (a guarda:
     "GET GET DELETE POST GET"); sem o ouvinte de `focus` → o teste do `focus` cai (1 de 1).
@@ -11593,7 +11605,7 @@ Menores registrados (ficam na fila, nenhum quebra o aceite):
 - **[regra]** SPEC §23.7 item 7 é ambíguo sobre os temas: os e2e da volta
   por focus/pageshow e da volta sem internet rodam só num tema.
 - **[regra]** PROGRESSO rodada 19 diz "um build:e2e por mutação"; o
-  `mut-a.log` mostra outra organização (conferir a frase).
+  `mut-a.log` agrupa as mutações A. A descrição da rodada foi corrigida.
 - **[regra]** SPEC §23.4 não diz o que acontece quando a volta encontra a
   permissão mudada E a leitura sem internet ao mesmo tempo.
 - **[regra]** Borda antiga: no `ativar()`, se a gravação dá certo e a
@@ -12938,3 +12950,88 @@ real a 360×740 nos dois temas, `/versao` = `b66e06c`.
   resolvido: ele é o 1º item do L19.
 
 **Conta de teste apagada** às 12:00 UTC. Ficam só as 3 contas reais.
+
+### 18/11/2026 — JavaScript inicial no celular
+
+O build de produção do Next reportou os seguintes tamanhos de *First Load JS*.
+Os três builds usaram a configuração local de testes.
+
+| Rota | Main antes das melhorias (`1e80c6c`) | Integração antes do ajuste | Com o ajuste |
+| --- | ---: | ---: | ---: |
+| Treino (`/`) | 423 kB | 414 kB | 379 kB |
+| Escolher treino (`/treinar`) | 396 kB | 384 kB | 350 kB |
+| Player (`/treinar/[sessionId]`) | 436 kB | 410 kB | 377 kB |
+| Coleção (`/explorar/[tipo]/[valor]`) | 394 kB | 372 kB | 338 kB |
+| Relatório (`/relatorio`) | 384 kB | 395 kB | 356 kB |
+
+O prebuild valida os 11 JSON estáticos com Zod e confere se o conteúdo lido
+é igual à saída do parser. Os arquivos de backup enviados pelo usuário
+continuam passando pela validação de importação no navegador. As consultas
+compartilhadas leem as chaves das tabelas diretamente, e as telas que
+só gravam preferências deixaram de carregar o código de importação e exportação.
+Os manifestos de produção confirmam que as cinco rotas da tabela dispensam
+o pacote de Zod no carregamento inicial. A tela de backup carrega o pacote.
+
+Os testes de dados, alternativas, sessão, Relatório, precache, backup e
+consultas de backup passaram. Com entradas de teste, o build rejeitou tanto
+um JSON sem campo obrigatório quanto um campo que seria descartado pelo
+parser. Um backup antigo com `user_id` ausente continuou sendo lido com
+`user_id: null`, e o parser do disparo de lembretes continuou preenchendo as
+cinco listas omitidas. O postbuild conferiu os arquivos do worker contra os
+manifestos produzidos pelo Next, somando 104 recursos e 2.969.937 bytes.
+
+### 18/11/2026 — medições do player, da navegação offline e da faixa do treino
+
+Cada abertura usou a URL da mesma sessão A1, em um novo contexto do Chromium
+156.0.8078.79, com apenas os cookies de login. O cronômetro começou na
+navegação e terminou ao aparecer o primeiro botão do player. O teste usou o
+build de produção do Next, Supabase simulado e tela de 360 × 740 px. A rede
+4G emulada teve 80 ms de latência, 9 Mbit/s de download e 1,5 Mbit/s de upload.
+
+| Revisão | Seis aberturas frias, em ms | Mediana |
+| --- | --- | ---: |
+| `1e80c6c` · main de referência | 4833, 4071, 5066, 7146, 5292, 4622 | 4949,5 ms |
+| `5f4a369` · sessão e séries consultadas em paralelo com o IndexedDB | 4470, 4464, 5499, 4733, 3845, 4174 | 4467 ms |
+| `429469d` · redução do JavaScript inicial integrada | 2273, 1748, 1651, 1882, 1698, 2019 | 1815 ms |
+| `12b6f0d` · candidato com o ajuste da faixa e do player | 2466, 3131, 2395, 3456, 1624, 2308 | 2430,5 ms |
+
+A mediana do candidato ficou 50,9% abaixo da referência. As seis aberturas
+ficaram abaixo de 4 s na emulação. A medição em telefone físico com a rede
+móvel do usuário segue pendente. Para repetir a amostra e a contagem de
+autenticação, execute `E2E_MEDIR_SESSAO=1 npm run e2e -- e2e/medir-sessao.spec.ts`
+após `npm run build:e2e`. [Teste de medição](e2e/medir-sessao.spec.ts)
+
+- **Autenticação.** Dois contextos autenticados visitaram Treino, Corpo,
+  Calendário e Mais a cada 15 s, em seis ciclos de quatro telas. As requisições
+  GET a `/auth/v1/user` em seis minutos caíram de 258 em `1e80c6c` para 222
+  em `5f4a369`, redução de 14,0% com tokens HS256 do mock. A contagem do
+  serviço real de autenticação depende dos registros de produção.
+- **Navegação sem rede.** A prova no Chromium apagou a página de socorro,
+  recompôs o cache ao navegar com rede e visitou duas rotas com a rede do worker
+  desligada. Na segunda navegação, a referência fez 45 buscas globais de
+  arquivos de JavaScript/CSS no cache e 3 leituras do corpo HTML. Em `429469d`
+  e `12b6f0d` as contagens foram zero nas duas categorias. A página offline
+  manteve o estilo e o link “Ir para o Treino”. [Teste do worker](e2e/sem-conexao.spec.ts)
+- **Faixa a 360 px.** No Chromium 141.0.7390.37 do projeto, o resumo
+  “Treino A · 44 min · 6 exercícios” passou de 227 a 243 px de largura
+  disponível, com uma linha nos dois temas e 52 px de altura interna da faixa.
+  A 125% do tamanho padrão da fonte, a versão anterior precisava de 250 px
+  e dispunha de 217 px. Em `12b6f0d` as palavras passaram a ocupar duas linhas
+  de até 235 px, sem corte. O teste também confirmou que rolar até o fim ao
+  voltar de uma sessão ativa mostra o progresso e o link “Continuar”. Com
+  outras provas de navegador em paralelo, a varredura dos pontos de toque
+  e a ativação da faixa pelo título passaram dez vezes cada em `429469d`
+  e dez vezes cada no build de `429469d` com a correção incorporada em
+  `12b6f0d`. [Teste da faixa](e2e/ultraloop-a-r4.spec.ts)
+
+### Decisão sobre a semana na capa dos planos — 18/11/2026
+
+O dono escolheu exibir “Semana N de 12” na capa e no bloco de progresso. Corrida, corda e barra fixa usam a semana da conta para o respectivo plano. [Capa e progresso](components/colecoes/tela-colecao.tsx) · [Teste dos três planos](e2e/ultraloop-l32.spec.ts)
+
+### Instalação offline do candidato — 18/11/2026
+
+A soma dos tamanhos sem compressão das entradas em `public/sw.js`, incluindo o HTML de socorro, passou de 3.745.339 bytes (3,57 MiB, 156 entradas) na base para 3.024.220 bytes (2,88 MiB, 100 entradas) no candidato. A redução foi de 721.119 bytes, ou 19,3%. Das entradas da base, 67 eram figuras, somando 573.559 bytes. O novo manifesto contém zero figuras.
+
+O build confere todos os recursos dos manifestos do App Router, módulos dinâmicos, polyfills e a página de socorro. A validação reprovou a retirada do player, do gráfico dinâmico e do polyfill em cópias isoladas. Também reprovou o retorno dos seis arquivos exclusivos do Pages Router. [Conferência automática do manifesto](scripts/validar-precache.ts) · [Configuração do cache](next.config.ts)
+
+A compilação integrada `b270200`, com as 93 fichas, confirmou 105 entradas no worker, 2.998.332 bytes (2,86 MiB) e zero figuras no precache. Frente aos mesmos 3.745.339 bytes da base, a redução final foi de 747.007 bytes (19,9%). A primeira carga nas cinco rotas caiu de 423 para 382 kB em Treino, de 396 para 351 kB na prévia, de 436 para 380 kB no player, de 394 para 339 kB na coleção e de 384 para 359 kB no Relatório. [Matriz da entrega](docs/ultraloop/entrega-2026-11-18.md)

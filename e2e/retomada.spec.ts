@@ -6,6 +6,7 @@
  * banco, a confirmação em duas etapas do "Recomeçar do zero", o card que não
  * volta a perguntar pela mesma pausa e a escolha feita sem rede.
  */
+import { contrasteDe } from "./contraste";
 import { mkdirSync } from "node:fs";
 import { expect, test, type Page } from "@playwright/test";
 import {
@@ -255,6 +256,22 @@ test.describe("o card da retomada (SPEC §18.2 e §18.3)", () => {
 });
 
 test.describe("voltar mais leve (SPEC §18.2)", () => {
+  for (const tema of ["light", "dark"] as const) {
+    test(`opções e aviso da semana leve têm contraste AA no tema ${tema}`, async ({ page }) => {
+      await usuarioParado(20);
+      await page.emulateMedia({ colorScheme: tema });
+      await fixarData(page, HOJE);
+      await entrarNoApp(page);
+      const leve = opcao(page, "leve");
+      await expect(leve).toBeEnabled();
+      expect(await contrasteDe(page, '[data-retomada-opcao="leve"] span:last-child')).toBeGreaterThanOrEqual(4.5);
+      await leve.click();
+      const aviso = '[data-sonner-toast][data-type="success"] [data-title]';
+      await expect(page.locator(aviso).filter({ hasText: "Semana leve" })).toBeVisible();
+      expect(await contrasteDe(page, aviso)).toBeGreaterThanOrEqual(4.5);
+    });
+  }
+
   test("20 dias parado: a semana leve a 60 % e a carga guardada", async ({ page }) => {
     const sessao = await usuarioParado(20);
     await fixarData(page, HOJE);
@@ -318,10 +335,12 @@ test.describe("recomeçar do zero (SPEC §18.2 e §18.3)", () => {
     await semRolagemHorizontal(page);
     await page.screenshot({ path: `${CAPTURAS}/03-retomada-40-dias.png`, fullPage: true });
 
-    // 1ª etapa: o que se perde
-    await opcao(page, "zero").click();
+    // 1ª etapa aberta pelo teclado começa na escolha reversível.
+    await opcao(page, "zero").focus();
+    await opcao(page, "zero").press("Enter");
     const dialogo = page.getByRole("dialog");
     await expect(dialogo).toHaveAttribute("data-retomada-etapa", "1");
+    await expect(dialogo.getByRole("button", { name: "Agora não" })).toBeFocused();
     await expect(dialogo).toContainText("volta ao começo do programa");
     await expect(dialogo).toContainText("continuam no histórico");
     await page.screenshot({ path: `${CAPTURAS}/04-confirmacao-zero.png`, fullPage: true });
@@ -570,7 +589,7 @@ test.describe("auditoria do marco Retomada", () => {
      * A primeira vez que o card é desenhado sem rede é a primeira vez que a
      * leitura de TODAS as cargas não chega (ela só roda quando a faixa tem
      * "mais leve"). Se ela desligasse o card inteiro, a pausa trancaria a aba
-     * Treino: o card barra todo gesto e o FAB some.
+     * Treino: o card barra todo gesto e o botão Ajustar do cabeçalho some.
      */
     const sessao = await usuarioParado(20);
     await fixarData(page, HOJE);
@@ -592,7 +611,7 @@ test.describe("auditoria do marco Retomada", () => {
     expect(estados.map((e) => e.carga_atual_kg)).toEqual([CARGA, 29.5]);
   });
 
-  test("o FAB Ajustar sai da tela enquanto a pausa não foi decidida (SPEC §18.3)", async ({
+  test("o botão Ajustar do cabeçalho sai da tela enquanto a pausa não foi decidida (SPEC §18.3)", async ({
     page,
   }) => {
     const sessao = await usuarioParado(40);

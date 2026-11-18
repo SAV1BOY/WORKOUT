@@ -15,6 +15,8 @@
  * somar ticks daria um descanso maior do que o pedido.
  */
 import { acharExercicio } from "@/lib/dados";
+import { comVoto, votoDoExercicio, type VotoDoExercicio } from "@/lib/preferencias";
+import type { Prefs } from "@/lib/types";
 import type { BlocoLocal, SerieLocal, SessaoLocal } from "@/lib/sessao";
 
 /* ------------------------------------------------------------ constantes */
@@ -252,7 +254,7 @@ export function pontosDoBloco(
   const series = pontos.length === 1 ? "série feita" : "séries feitas";
   return {
     pontos,
-    rotulo: `${rotuloDoPasso(passo)} · ${feitas} de ${pontos.length} ${series}`,
+    rotulo: `${feitas} de ${pontos.length} ${series}`,
   };
 }
 
@@ -292,6 +294,39 @@ export function avisoDoPolegar(
     };
   }
   return { texto: avisoDoVoto(nome, voto), desfazer: true };
+}
+
+/** O que o voto grava: de quem, as preferências novas e o voto de antes. */
+export interface GravacaoDoVoto {
+  userId: string;
+  prefs: Prefs;
+  /** O voto que havia **na hora do toque** — é ele que o "Desfazer" devolve. */
+  antes: VotoDoExercicio;
+}
+
+/**
+ * As preferências que um toque nos polegares grava (SPEC §22.16 item 6 e
+ * §22.18 itens 8 e 9). Partem do perfil **de agora** — o cache, lido na hora
+ * do toque —, e só sem cache do perfil do render: o "Desfazer" chega segundos
+ * depois, e gravar por cima um retrato do render apagaria qualquer outra
+ * mudança de `prefs` feita no meio (um voto noutro exercício, um ajuste). O
+ * voto de antes sai das mesmas preferências, também na hora do toque: dois
+ * votos seguidos no mesmo exercício desfazem para o que havia antes do
+ * segundo. Sem perfil nenhum, `null` — não há onde gravar.
+ */
+export function prefsDoVoto(
+  cache: { user_id: string; prefs: Prefs | null } | null | undefined,
+  doRender: { user_id: string; prefs: Prefs | null } | null | undefined,
+  exercicioId: string,
+  voto: VotoDoExercicio,
+): GravacaoDoVoto | null {
+  const atual = cache ?? doRender;
+  if (!atual) return null;
+  return {
+    userId: atual.user_id,
+    prefs: comVoto(atual.prefs, exercicioId, voto),
+    antes: votoDoExercicio(atual.prefs, exercicioId),
+  };
 }
 
 /* ------------------------------------------------ o que a tela do meio é */
@@ -365,8 +400,7 @@ export function indiceDeRetomada(
   seq: readonly Passo[],
   sessao: SessaoLocal,
 ): number {
-  const algumaFeita = sessao.blocos.some((b) => b.series.some((s) => s.concluida));
-  if (!algumaFeita) return 0;
+  if (progressoDoPlayer(sessao).feitas === 0) return 0;
   const pendente = seq.findIndex(
     (p) => p.tipo === "serie" && serieDoPasso(sessao, p)?.concluida !== true,
   );
@@ -414,6 +448,22 @@ export function indiceDoEstado(
   return indiceDeRetomada(seq, sessao);
 }
 
+/** A última série registrada no bloco que originou este descanso, inclusive depois de “firme?”. */
+export function serieAntesDoDescanso(
+  seq: readonly Passo[],
+  indice: number,
+  sessao: SessaoLocal,
+): PassoSerie | null {
+  const descanso = seq[indice];
+  if (descanso?.tipo !== "descanso") return null;
+  for (let i = indice - 1; i >= 0; i--) {
+    const passo = seq[i];
+    if (!passo || !("ordem" in passo) || passo.ordem !== descanso.ordem) break;
+    if (passo.tipo === "serie" && serieDoPasso(sessao, passo)?.concluida) return passo;
+  }
+  return null;
+}
+
 /** O passo logo depois do ✓ (normalmente o descanso). */
 export function apos(seq: readonly Passo[], indice: number): number {
   return Math.min(indice + 1, Math.max(0, seq.length - 1));
@@ -435,7 +485,22 @@ export function anterior(seq: readonly Passo[], indice: number): number {
   return 0;
 }
 
-/** Quantas séries a sessão tem, para a barra fina de progresso. */
+/** Conta o trabalho e os aquecimentos registrados, inclusive os de antes da troca. */
+export function progressoDoPlayer(sessao: SessaoLocal): { feitas: number; total: number } {
+  let feitas = 0;
+  let total = 0;
+  for (const bloco of sessao.blocos) {
+    const preservadas = (bloco.trocados ?? []).reduce(
+      (n, registro) => n + registro.series.filter((serie) => serie.concluida).length,
+      0,
+    );
+    feitas += preservadas + bloco.series.filter((serie) => serie.concluida).length;
+    total += preservadas + bloco.series.length;
+  }
+  return { feitas, total };
+}
+
+/** Quantas séries existem na sequência navegável (sem as guardadas na troca). */
 export function totalDeSeries(seq: readonly Passo[]): number {
   return seq.filter((p) => p.tipo === "serie").length;
 }
@@ -467,6 +532,8 @@ export interface EstadoPlayer {
    * item 1). Ausente no estado salvo por versões anteriores.
    */
   ordem?: number | null;
+  /** Prazo do descanso ao voltar dele para corrigir a série já gravada. */
+  descansoAoCorrigir?: Pick<EstadoPlayer, "chave" | "ordem" | "fimEm" | "totalS">;
 }
 
 function contaTempo(passo: Passo): number | null {
@@ -512,6 +579,10 @@ export function fracaoRestante(estado: EstadoPlayer, agora: number): number {
 
 export function zerou(estado: EstadoPlayer, agora: number): boolean {
   return estado.fimEm !== null && agora >= estado.fimEm;
+}
+
+export function avisoDaPreparacao(falta: number): string {
+  return falta > 0 && falta <= 3 ? "Começa em 3 segundos." : "";
 }
 
 /**

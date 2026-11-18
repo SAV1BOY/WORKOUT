@@ -71,6 +71,9 @@ export function FimDoCardio({
             {plano.repeticoes > 0
               ? ` · ${repeticoesCumpridas} de ${plano.repeticoes} blocos`
               : ""}
+            {plano.repeticoes > 0 && repeticoesCumpridas === 0
+              ? " · Nenhum bloco feito. Registrar mesmo assim?"
+              : null}
           </DialogDescription>
         </DialogHeader>
 

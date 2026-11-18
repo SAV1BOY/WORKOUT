@@ -109,6 +109,15 @@ test.describe("Relatório (SPEC §3.7 e §13.5)", () => {
     await irNaAba(page, "Relatório");
     await expect(page.getByRole("heading", { name: "Relatório" })).toBeVisible();
     /* SPEC §22.6 item 1: os gráficos moram numa seção dobrável */
+    // O Resumo já obteve as quatro tabelas necessárias para os gráficos.
+    await expect(page.locator('[data-contador="Sessões"] .numero-grande')).toHaveText("3");
+    const tabelasRepetidas: string[] = [];
+    page.on("request", (req) => {
+      const tabela = new URL(req.url()).pathname.split("/rest/v1/")[1];
+      if (tabela && ["session_sets", "cardio_sessions", "pullup_singles", "schedule_overrides"].includes(tabela)) {
+        tabelasRepetidas.push(tabela);
+      }
+    });
     await abrirSecaoDoRelatorio(page, "graficos");
 
     // 2 treinos na semana civil (14 e 16/09)
@@ -130,6 +139,7 @@ test.describe("Relatório (SPEC §3.7 e §13.5)", () => {
     await expect(page.getByText("Recordes recentes")).toBeVisible();
     await expect(page.getByText("11,5 kg").first()).toBeVisible();
 
+    expect(tabelasRepetidas).toEqual([]);
     await semRolagemHorizontal(page);
   });
 

@@ -15,17 +15,37 @@ export interface SerieDoGrafico {
 
 const COR_PADRAO = "var(--chart-1)";
 
-/** Uma legenda simples (a do Recharts é pequena demais a 360 px). */
+/**
+ * A cor da linha de referência (a meta do peso, SPEC §22.19 item 4): a cor
+ * do texto do tema, tracejada. Mora aqui (e não em `grafico.tsx`) para a
+ * legenda usar a mesma cor sem trazer o Recharts junto.
+ */
+export const COR_REFERENCIA = "var(--chart-2)";
+
+/**
+ * Uma legenda simples (a do Recharts é pequena demais a 360 px). A série
+ * tracejada (a média de 7 dias, a meta) ganha um traço tracejado no lugar do
+ * ponto — a mesma forma da linha no gráfico, não só a cor.
+ */
 export function LegendaDoGrafico({ series }: { series: readonly SerieDoGrafico[] }) {
   return (
     <ul className="text-muted-foreground flex flex-wrap gap-x-3 gap-y-1 text-xs">
       {series.map((s) => (
         <li key={s.chave} className="flex items-center gap-1">
-          <span
-            aria-hidden="true"
-            className="inline-block size-2 rounded-full"
-            style={{ backgroundColor: s.cor ?? COR_PADRAO }}
-          />
+          {s.tracejada ? (
+            <span
+              aria-hidden="true"
+              data-legenda="tracejada"
+              className="inline-block w-3.5 border-t-2 border-dashed"
+              style={{ borderColor: s.cor ?? COR_PADRAO }}
+            />
+          ) : (
+            <span
+              aria-hidden="true"
+              className="inline-block size-2 rounded-full"
+              style={{ backgroundColor: s.cor ?? COR_PADRAO }}
+            />
+          )}
           {s.nome}
         </li>
       ))}

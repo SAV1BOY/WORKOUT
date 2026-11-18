@@ -1,12 +1,12 @@
 import { notFound } from "next/navigation";
 import { VoltarDaFicha } from "@/components/exercicio/acoes-da-ficha";
 import { ConteudoDaFicha } from "@/components/exercicio/ficha-folha";
-import { exercicioPorId, exercicios } from "@/lib/dados";
+import { exercicioPorId } from "@/lib/dados";
 import { idsComVideo } from "@/lib/videos";
 
-/** As 81 fichas são conteúdo dos JSON: os ids saem do catálogo. */
+/** As fichas do catálogo e das variações são conteúdo dos JSON: os ids saem do catálogo. */
 export function generateStaticParams() {
-  return exercicios.map((e) => ({ id: e.id }));
+  return [...exercicioPorId.keys()].map((id) => ({ id }));
 }
 
 export async function generateMetadata({

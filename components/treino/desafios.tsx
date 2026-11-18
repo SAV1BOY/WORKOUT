@@ -56,7 +56,7 @@ export function Desafios({ desafios }: { desafios: Desafio[] }) {
           <li
             key={d.id}
             data-desafio={d.id}
-            className="w-[min(19rem,86vw)] shrink-0 snap-start"
+            className="w-[min(17.5rem,86vw)] shrink-0 snap-start"
           >
             <CardDoDesafio desafio={d} />
           </li>

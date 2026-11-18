@@ -1,10 +1,10 @@
 /**
- * Único ponto de entrada do conteúdo: importa os JSON de data/, valida com
- * zod na carga do módulo (falha ruidosa se algo estiver errado) e expõe
- * índices e helpers pequenos. Nenhum conteúdo de treino é escrito aqui.
+ * Conteúdo tipado dos JSON de data/ validados pelo prebuild e índices do catálogo.
  */
+import alternativasJson from "@/data/alternativas.json";
 import cardioJson from "@/data/cardio.json";
 import equipamentosJson from "@/data/equipamentos.json";
+import variacoesJson from "@/data/variacoes.json";
 import exerciciosJson from "@/data/exercicios.json";
 import ilustracoesJson from "@/data/ilustracoes.json";
 import medidasDeFotoJson from "@/data/medidas-de-foto.json";
@@ -12,71 +12,26 @@ import perfilJson from "@/data/perfil.json";
 import programaJson from "@/data/programa.json";
 import progressaoJson from "@/data/progressao.json";
 import tutoriaisJson from "@/data/tutoriais.json";
-import {
-  cardioSchema,
-  equipamentoTagSchema,
-  equipamentosSchema,
-  exerciciosSchema,
-  ilustracoesSchema,
-  medidasDeFotoSchema,
-  perfilSchema,
-  programaSchema,
-  progressaoJsonSchema,
-  tutoriaisSchema,
-  type DiaSemana,
-  type EquipamentoTag,
-  type Exercicio,
-  type Fase,
-  type FaseId,
-  type Ilustracao,
-  type MedidaDeFoto,
-  type MedidaDoCorpo,
-  type RefDeTexto,
-  type Treino,
-  type TreinoId,
-  type Tutorial,
+import type {
+  Cardio, DiaSemana, Equipamentos, EquipamentoTag, Exercicio, Fase, FaseId,
+  Ilustracao, MedidaDeFoto, MedidaDoCorpo, Perfil, Programa, ProgressaoJson,
+  RegrasDeAlternativas, RefDeTexto, Treino, TreinoId, Tutorial, Tutoriais,
 } from "@/lib/schemas";
-import type { ZodType } from "zod";
+import { ehTagDeEquipamento } from "@/lib/tags-de-equipamento";
+import type { WorkoutId } from "@/lib/types";
 
-function validar<T>(schema: ZodType<T>, valor: unknown, arquivo: string): T {
-  const r = schema.safeParse(valor);
-  if (!r.success) {
-    const primeiro = r.error.issues[0];
-    const onde = primeiro ? primeiro.path.join(".") : "?";
-    const msg = primeiro ? primeiro.message : "formato inválido";
-    throw new Error(`data/${arquivo} inválido em "${onde}": ${msg}`);
-  }
-  return r.data;
-}
-
-export const exercicios = validar(
-  exerciciosSchema,
-  exerciciosJson,
-  "exercicios.json",
-);
-export const programa = validar(programaSchema, programaJson, "programa.json");
-export const cardio = validar(cardioSchema, cardioJson, "cardio.json");
-export const progressao = validar(
-  progressaoJsonSchema,
-  progressaoJson,
-  "progressao.json",
-);
-export const equipamentos = validar(
-  equipamentosSchema,
-  equipamentosJson,
-  "equipamentos.json",
-);
-export const perfilInicial = validar(perfilSchema, perfilJson, "perfil.json");
-export const ilustracoes = validar(
-  ilustracoesSchema,
-  ilustracoesJson,
-  "ilustracoes.json",
-);
-export const tutoriais = validar(
-  tutoriaisSchema,
-  tutoriaisJson,
-  "tutoriais.json",
-).tutoriais;
+// O prebuild valida cada JSON com o schema correspondente e confere a
+// igualdade entre entrada e saída. Os tipos abaixo são inferidos desses schemas.
+export const exercicios = exerciciosJson as Exercicio[];
+export const variacoes = variacoesJson as Exercicio[];
+export const regrasDeAlternativas = alternativasJson as RegrasDeAlternativas;
+export const programa = programaJson as Programa;
+export const cardio = cardioJson as Cardio;
+export const progressao = progressaoJson as ProgressaoJson;
+export const equipamentos = equipamentosJson as Equipamentos;
+export const perfilInicial = perfilJson as Perfil;
+export const ilustracoes = ilustracoesJson as Ilustracao[];
+export const tutoriais = (tutoriaisJson as Tutoriais).tutoriais;
 
 /**
  * A medida de cada foto de execução do kit e da derivada WebP (SPEC §22.4
@@ -85,16 +40,16 @@ export const tutoriais = validar(
  * fazia a `<img>` mais pesada do app reservar uma caixa de proporção errada
  * (auditoria do lote 4). Quem lê isto na tela é `medidaDaFoto` (lib/midia.ts).
  */
-export const medidasDeFoto: Readonly<Record<string, MedidaDeFoto>> = validar(
-  medidasDeFotoSchema,
-  medidasDeFotoJson,
-  "medidas-de-foto.json",
-).fotos;
+const medidasDoArquivo: Record<string, { kit: number[]; webp: number[] }> = medidasDeFotoJson.fotos;
+export const medidasDeFoto = medidasDoArquivo as Readonly<Record<string, MedidaDeFoto>>;
 
 /* --------------------------------------------------------------- índices */
 
+/** As fichas suplementares têm IDs próprios para manter histórico e progressão. */
+export const exerciciosComVariacoes = [...exercicios, ...variacoes];
+
 export const exercicioPorId: ReadonlyMap<string, Exercicio> = new Map(
-  exercicios.map((e) => [e.id, e]),
+  exerciciosComVariacoes.map((e) => [e.id, e]),
 );
 
 export const ilustracaoPorExercicioId: ReadonlyMap<string, Ilustracao> = new Map(
@@ -143,6 +98,10 @@ export function acharExercicio(id: string): Exercicio {
   const e = exercicioPorId.get(id);
   if (!e) throw new Error(`exercício desconhecido: ${id}`);
   return e;
+}
+
+export function ehTreinoDoPrograma(id: WorkoutId): id is TreinoId {
+  return id !== "livre" && id !== "fixa";
 }
 
 export function acharTreino(id: TreinoId): Treino {
@@ -302,8 +261,7 @@ export function pesoDaBarra(id: string): number | null {
 export function equipamentoDisponivel(): ReadonlySet<EquipamentoTag> {
   const tags = new Set<EquipamentoTag>();
   const talvez = (valor: string) => {
-    const r = equipamentoTagSchema.safeParse(valor);
-    if (r.success) tags.add(r.data);
+    if (ehTagDeEquipamento(valor)) tags.add(valor);
   };
   for (const item of equipamentos.itens) talvez(item.id);
   for (const barra of equipamentos.barras) talvez(barra.id);

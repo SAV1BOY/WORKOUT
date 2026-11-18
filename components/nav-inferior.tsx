@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ICONE_DA_ABA } from "@/components/icones-das-abas";
 import { ehPlayer } from "@/components/miolo";
+import { useFilaPendente } from "@/lib/usar-fila";
 import { ABAS } from "@/lib/abas";
 import { cn } from "@/lib/utils";
 
@@ -16,6 +17,7 @@ function ativo(caminho: string, prefixos: readonly string[]): boolean {
 /** A barra de baixo (SPEC §13.2). A lista das abas vive em `lib/abas.ts`. */
 export function NavInferior() {
   const caminho = usePathname();
+  const aguardando = useFilaPendente();
 
   /*
    * SPEC §14.1: o player é tela cheia — a saída é pelo ícone de lista/voltar
@@ -28,7 +30,7 @@ export function NavInferior() {
       aria-label="Navegação principal"
       className="bg-background/95 border-border pb-segura fixed inset-x-0 bottom-0 z-40 border-t backdrop-blur"
     >
-      <ul className="mx-auto flex max-w-lg">
+      <ul className="mx-auto flex max-w-lg overflow-x-auto">
         {ABAS.map(({ href, rotulo, icone, prefixos }) => {
           const aceso = ativo(caminho, prefixos);
           const Icone = ICONE_DA_ABA[icone];
@@ -36,6 +38,7 @@ export function NavInferior() {
             <li key={href} className="flex-1">
               <Link
                 href={href}
+                aria-label={href === "/mais" && aguardando ? `Mais, ${aguardando} esperando a rede` : rotulo}
                 aria-current={aceso ? "page" : undefined}
                 className={cn(
                   "alvo foco text-rotulo relative flex min-h-14 flex-col items-center justify-center gap-1 px-1 py-2 -outline-offset-2",
@@ -56,8 +59,9 @@ export function NavInferior() {
                     className="bg-primary absolute inset-x-3 top-0 h-0.5 rounded-b-full"
                   />
                 ) : null}
+                {href === "/mais" && aguardando > 0 && <span aria-hidden="true" data-fila-pendente className="bg-primary absolute left-[58%] top-1 size-2 rounded-full" />}
                 <Icone className="size-6" />
-                {rotulo}
+                <span className="max-[280px]:sr-only">{rotulo}</span>
               </Link>
             </li>
           );

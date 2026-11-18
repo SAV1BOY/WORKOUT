@@ -25,7 +25,7 @@ import {
   comSubstituicoes,
   concluirSessao,
   escritaDaSerie,
-  escritaDeDescarte,
+  escritasDasSeriesFeitas,
   escritaDaSessao,
   itensDoTreino,
   montarSessao,
@@ -259,18 +259,12 @@ async function registrarSessaoNova(
   return sessao;
 }
 
-/**
- * Troca de exercício no bloco (SPEC §3.2): as séries que o original já tinha
- * gravado saem de `session_sets` — o registro do dia é do substituto. Sem
- * rede, o delete espera na fila como qualquer outra escrita (§8).
- */
-export async function descartarSeriesDoBloco(
-  sessao: SessaoLocal,
-  bloco: BlocoLocal,
-): Promise<void> {
-  const escrita = escritaDeDescarte(sessao, bloco);
-  if (!escrita) return;
-  await enfileirar("serie", escrita);
+/** Persiste a seleção atual mesmo sem nenhuma série registrada do substituto. */
+export async function enviarPlanoDaTroca(sessao: SessaoLocal): Promise<void> {
+  await enfileirar("sessao", {
+    tabela: "sessions", op: "update", linha: { plano: escritaDaSessao(sessao).linha?.plano },
+    filtro: { id: sessao.id, status: "em_andamento" },
+  });
 }
 
 /** Uma série concluída sobe sozinha (upsert por id: remarcar não duplica). */
@@ -306,10 +300,8 @@ export async function finalizarSessao(entrada: EntradaFim): Promise<Conclusao> {
   const conclusao = concluirSessao({ sessao, agora, novoId });
 
   // as séries concluídas vão de novo (a rede pode ter faltado no caminho)
-  for (const bloco of sessao.blocos) {
-    for (const serie of bloco.series) {
-      if (serie.concluida) await enviarSerie(sessao, bloco, serie);
-    }
+  for (const escrita of escritasDasSeriesFeitas(sessao)) {
+    await enfileirar("serie", escrita);
   }
 
   for (const escrita of conclusao.escritas) {

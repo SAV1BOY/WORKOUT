@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { FichaEmFolha } from "@/components/exercicio/ficha-folha";
+import { FichaEmFolha } from "@/components/exercicio/ficha-sob-demanda";
 import { useTemVideo } from "@/components/videos-do-app";
 import { Miniatura } from "@/components/ui/miniatura";
 import { Raios } from "@/components/ui/raios";

@@ -237,7 +237,10 @@ test.describe("§22.15 item 3 — \"Execução: <nome>\", sem artigo", () => {
   test("na ficha da prancha e no player", async ({ page }) => {
     await preparar(page);
     await page.goto("/exercicios/prancha");
-    const figura = page.getByRole("img", { name: /^Execução: Prancha(, posição \d de \d)?$/ });
+    const prancha = acharExercicio("prancha").nome;
+    const figura = page.getByRole("img", {
+      name: new RegExp(`^Execução: ${prancha}(, posição \\d de \\d)?$`),
+    });
     await expect(figura.first()).toBeVisible();
     await expect(page.getByRole("img", { name: /Execução d[oa] / })).toHaveCount(0);
 
@@ -252,7 +255,7 @@ test.describe("§22.15 item 3 — \"Execução: <nome>\", sem artigo", () => {
 });
 
 test.describe("§22.15 item 3 — nenhum nome acessível põe artigo antes do nome", () => {
-  test("Remada curvada pronada: \"Nota: …\" no player; \"Nota: …\" e \"Última repetição firme: …\" na Visão geral", async ({
+  test(`${acharExercicio("remada-curvada-pronada").nome}: "Nota: …" no player; "Nota: …" e "Última repetição firme: …" na Visão geral`, async ({
     page,
   }) => {
     test.setTimeout(120_000);
@@ -266,6 +269,14 @@ test.describe("§22.15 item 3 — nenhum nome acessível põe artigo antes do no
     const notaDaRemada = page.getByRole("textbox", { name: `Nota: ${remada}`, exact: true });
     for (let i = 0; i < 60; i++) {
       if (await notaDaRemada.isVisible().catch(() => false)) break;
+      // SPEC §22.18 item 2: na pergunta "firme?" a nota mora atrás de "Adicionar nota"
+      const firmeDaRemada = page
+        .getByRole("region", { name: "Última repetição" })
+        .filter({ hasText: remada });
+      if (await firmeDaRemada.isVisible().catch(() => false)) {
+        await firmeDaRemada.getByRole("button", { name: "Adicionar nota" }).click();
+        continue;
+      }
       const pular = page.getByRole("button", { name: "Pular descanso" });
       if (await pular.isVisible().catch(() => false)) {
         await pular.click();
@@ -305,8 +316,8 @@ test.describe("§22.15 item 3 — nenhum nome acessível põe artigo antes do no
       .locator("[aria-label]")
       .evaluateAll((els) => els.map((el) => el.getAttribute("aria-label") ?? ""));
     const doTreino = [
-      "Agachamento livre",
-      "Supino reto com barra",
+      acharExercicio(AGACHAMENTO).nome,
+      acharExercicio(SUPINO).nome,
       remada,
       acharExercicio("rosca-direta-com-barra").nome,
     ];
@@ -375,14 +386,16 @@ test.describe("§22.15 item 5 — na busca, sem vão onde não há subtítulo", 
   test("a vitrine continua reservando: mesma altura por seção", async ({ page }) => {
     await preparar(page);
     await page.goto("/explorar");
+    await expect(page.getByRole("searchbox", { name: "Buscar exercício ou coleção" })).toBeEditable();
     for (const nome of ["Parte do corpo", "Por aparelho"]) {
       const secao = page.getByRole("region", { name: nome });
-      const botao = secao.getByRole("button", { name: /^Ver todos/ });
-      if (await botao.count()) await botao.click();
+      await secao.getByRole("button", { name: /^Ver todos/ }).click();
+      await expect(secao.getByRole("button", { name: "Ver menos" })).toHaveAttribute("aria-expanded", "true");
       const alturas = await secao
         .locator("[data-colecao]")
         .evaluateAll((ls) => ls.map((l) => l.getBoundingClientRect().height));
       expect(alturas.length).toBeGreaterThan(3);
+      expect(Math.min(...alturas), `${nome}: alvo de toque`).toBeGreaterThanOrEqual(44);
       expect(Math.max(...alturas) - Math.min(...alturas), nome).toBeLessThanOrEqual(1);
       await expect(secao.locator('[data-linha="sem-subtitulo"]').first()).toBeAttached();
     }
@@ -414,19 +427,17 @@ test.describe("§22.15 item 6 — na busca, a coleção leva a capa da vitrine",
 
 /* ============================================================ item 7 */
 
-test.describe("§22.15 item 7 — a posição no plano aparece uma vez", () => {
-  for (const plano of ["corrida", "barra_fixa"] as const) {
-    test(`/explorar/plano/${plano} com o perfil na semana 3`, async ({ page }) => {
-      await preparar(page, "light", { semana_corrida: 3, semana_fixa: 3 });
+test.describe("§22.15 item 7 — semana atual na capa e no bloco", () => {
+  const semanas = { corrida: 3, corda: 5, barra_fixa: 8 };
+  for (const [plano, semana] of Object.entries(semanas)) {
+    test(`/explorar/plano/${plano} usa a posição do próprio plano`, async ({ page }) => {
+      await preparar(page, "light", { semana_corrida: 3, semana_corda: 5, semana_fixa: 8 });
       await page.goto(`/explorar/plano/${plano}`);
       const bloco = page.locator("section[aria-labelledby=semanas-do-plano]");
+      const atual = `Semana ${semana} de 12`;
+      await expect(page.locator("[data-capa]").first()).toContainText(atual);
+      await expect(bloco).toContainText(`${atual} · ${semana - 1} concluídas`);
       await expect(bloco.getByRole("progressbar")).toBeVisible();
-      const texto = (await page.locator("main").innerText()).toLowerCase();
-      const vezes = texto.match(/semana 3 de \d+/g) ?? [];
-      expect(vezes, "a posição uma vez só na rolagem").toHaveLength(1);
-      await expect(bloco).toContainText(/Semana 3 de \d+ · 2 concluídas/);
-      // a capa diz o que o plano é, não a posição
-      await expect(page.locator("[data-capa]").first()).not.toContainText(/semana \d+ de/i);
     });
   }
 });

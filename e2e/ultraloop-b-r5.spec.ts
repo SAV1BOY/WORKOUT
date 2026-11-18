@@ -78,7 +78,8 @@ test.describe("Explorar e catálogo (SPEC §22.9)", () => {
     await page.goto("/explorar");
     await page.getByLabel("Buscar exercício ou coleção").fill("supino");
 
-    const primeiro = page.locator('a[href^="/exercicios/"]').first();
+    const resultados = page.getByRole("region", { name: "Exercícios encontrados" });
+    const primeiro = resultados.locator('a[href^="/exercicios/"]').first();
     await expect(primeiro).toBeVisible();
     const caixa = await primeiro.boundingBox();
     expect(caixa, "o primeiro exercício tem caixa").not.toBeNull();
@@ -175,14 +176,11 @@ test.describe("Explorar e catálogo (SPEC §22.9)", () => {
     await page.goto("/explorar");
     const rotulo = page.getByText("Escolhas para você");
     const titulo = page.getByRole("heading", { name: "Parte do corpo" });
-    const tamanho = async (loc: typeof rotulo) =>
-      Number(
-        (
-          await loc.evaluate((e) => getComputedStyle(e).fontSize)
-        ).replace("px", ""),
-      );
-    expect(await tamanho(rotulo)).toBeLessThanOrEqual(11);
-    expect(await tamanho(titulo)).toBeGreaterThanOrEqual(16);
+    await expect(rotulo).toBeVisible();
+    await expect(titulo).toBeVisible();
+    const tamanho = (loc: typeof rotulo) => loc.evaluate((e) => Number.parseFloat(getComputedStyle(e).fontSize));
+    await expect.poll(() => tamanho(rotulo)).toBeLessThanOrEqual(11);
+    await expect.poll(() => tamanho(titulo)).toBeGreaterThanOrEqual(16);
   });
 
   test("item 9: toda coleção da vitrine abre pela URL que a vitrine gerou", async ({

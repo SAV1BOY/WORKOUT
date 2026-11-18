@@ -111,7 +111,7 @@ test.describe("Treino — dia de cardio (SPEC §3.1 e §13.3)", () => {
     await page.getByRole("button", { name: "Fazer corda em vez de corrida" }).click();
     await expect(page.getByRole("heading", { name: "Corda · semana 1" })).toBeVisible();
     await expect(
-      page.getByText("6 × 30 s de corda (60 s de descanso) · 13 min"),
+      page.getByText("6 × 30 s de corda (60 s de descanso) · 8 min"),
     ).toBeVisible();
     // milhar com ponto, do jeito pt-BR (≈ 300 saltos na semana 1)
     await expect(page.getByText("≈ 300 saltos")).toBeVisible();

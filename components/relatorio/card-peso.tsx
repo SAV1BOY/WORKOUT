@@ -1,31 +1,26 @@
 "use client";
 
 import Link from "next/link";
-import { GraficoLinha, SemDados } from "@/components/graficos";
+import { SemDados } from "@/components/graficos";
+import { GraficoDoPeso } from "@/components/corpo/grafico-peso";
 import { Button } from "@/components/ui/button";
-import { dominioFolgado, pontosDePeso, ultimoPeso, type PesoBruto } from "@/lib/corpo";
+import { pontosDePeso, textoDaVariacao, ultimoPeso, type PesoBruto } from "@/lib/corpo";
 import { formatarData, formatarKg } from "@/lib/formato";
 
 /**
  * O card de Peso do Relatório (SPEC §14.4, como na referência): "Registrar",
- * o peso atual, o maior e o menor, e o gráfico pequeno. Registrar mesmo é em
- * Corpo → Peso, que é onde a balança já mora (§3.8).
+ * o peso atual, a variação do período e o gráfico pequeno. Registrar mesmo é
+ * em Corpo → Peso, que é onde a balança já mora (§3.8).
+ *
+ * SPEC §22.19 item 3: o "maior · menor" virou "−1,8 kg desde 12/08" — é
+ * isso que se procura aqui —, e o gráfico é o MESMO do Corpo
+ * (`GraficoDoPeso`: a mesma régua de 2 em 2 kg e a meta tracejada), só que
+ * sem a média de 7 dias.
  */
-export function CardPeso({ pesos }: { pesos: PesoBruto[] }) {
-  /*
-   * O eixo x mostra a data em dd/MM, como o gráfico do Corpo (§3.8) e o resto
-   * do app: sem o rótulo, o Recharts desenhava o ISO cru ("2026-09-07"), que
-   * nem é pt-BR nem cabe a 360 px.
-   */
-  const pontos = pontosDePeso(pesos).map((p) => ({
-    ...p,
-    rotulo: formatarData(p.data),
-  }));
+export function CardPeso({ pesos, meta }: { pesos: PesoBruto[]; meta: number | null }) {
   const ultimo = ultimoPeso(pesos);
-  const valores = pontos.map((p) => p.peso);
-  const maior = valores.length > 0 ? Math.max(...valores) : null;
-  const menor = valores.length > 0 ? Math.min(...valores) : null;
-  const dominioY = dominioFolgado(valores, 1);
+  const variacao = textoDaVariacao(pesos);
+  const quantas = pontosDePeso(pesos).length;
 
   return (
     <section
@@ -49,20 +44,11 @@ export function CardPeso({ pesos }: { pesos: PesoBruto[] }) {
               em {formatarData(ultimo.data)}
             </span>
           </div>
-          <p className="numero text-muted-foreground text-xs">
-            maior {maior !== null ? formatarKg(maior) : "—"} · menor{" "}
-            {menor !== null ? formatarKg(menor) : "—"}
-          </p>
-          {pontos.length > 1 ? (
-            <GraficoLinha
-              titulo="Peso por pesagem"
-              dados={pontos}
-              x="rotulo"
-              sufixo=" kg"
-              altura={120}
-              dominioY={dominioY}
-              series={[{ chave: "peso", nome: "Peso" }]}
-            />
+          {variacao ? (
+            <p className="numero text-muted-foreground text-xs">{variacao}</p>
+          ) : null}
+          {quantas > 1 ? (
+            <GraficoDoPeso pesos={pesos} meta={meta} altura={120} comMedia={false} />
           ) : null}
         </>
       )}

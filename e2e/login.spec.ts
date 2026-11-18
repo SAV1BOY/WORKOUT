@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 import {
   EMAIL_DONO,
   encherACota,
+  entrarNoApp,
   esperarAbaTreino,
   estadoDoMock,
   irNaAba,
@@ -9,7 +10,6 @@ import {
   resetarMock,
   semRolagemHorizontal,
   SENHA,
-  URL_MOCK,
   usuarioComPerfil,
 } from "./fixtures";
 
@@ -45,7 +45,7 @@ test.describe("login", () => {
   test("quem não tem conta não entra: credenciais inválidas", async ({ page }) => {
     await page.goto("/login");
     await page.getByLabel("E-mail").fill("outra.pessoa@exemplo.com");
-    await page.getByLabel("Senha").fill("senha123456");
+    await page.getByLabel("Senha", { exact: true }).fill("senha123456");
     await page.getByRole("button", { name: "Entrar" }).click();
 
     await expect(page.getByText("E-mail ou senha incorretos.")).toBeVisible();
@@ -74,7 +74,7 @@ test.describe("login", () => {
   test("a senha curta é recusada antes de criar a conta", async ({ page }) => {
     await page.goto("/login");
     await page.getByLabel("E-mail").fill("nova.pessoa@exemplo.com");
-    await page.getByLabel("Senha").fill("1234567");
+    await page.getByLabel("Senha", { exact: true }).fill("1234567");
     await page.getByRole("button", { name: "Criar conta" }).click();
 
     await expect(
@@ -103,9 +103,17 @@ test.describe("login", () => {
     await expect(page).toHaveURL(/\/login$/);
 
     await page.getByLabel("E-mail").fill(EMAIL_DONO);
-    await page.getByLabel("Senha").fill("senha-errada");
+    const senha = page.getByLabel("Senha", { exact: true });
+    await senha.fill("senha-errada");
+    await page.getByRole("button", { name: "Mostrar senha" }).click();
+    await expect(senha).toHaveAttribute("type", "text");
+    await page.getByRole("button", { name: "Ocultar senha" }).click();
+    await expect(senha).toHaveValue("senha-errada");
     await page.getByRole("button", { name: "Entrar" }).click();
-    await expect(page.getByText("E-mail ou senha incorretos.")).toBeVisible();
+    await expect(page.locator("form").getByRole("alert")).toHaveText("E-mail ou senha incorretos.");
+    await expect(page.getByLabel("E-mail")).toBeFocused();
+    await expect(senha).toHaveAttribute("aria-describedby", "erro-login");
+    await expect(senha).toHaveAttribute("aria-invalid", "true");
   });
 
   test("sair volta ao login e a sessão não abre mais o app", async ({ page }) => {
@@ -142,46 +150,34 @@ test.describe("login", () => {
     expect(logouts.map((l) => l.scope)).toEqual(logouts.map(() => "local"));
   });
 
-  /*
-   * E o que o escopo faz: o dono tem o celular e o navegador abertos com a
-   * mesma conta. Sair num deles derrubava o outro (403 na primeira leitura).
-   * Aqui as duas sessões nascem no mock, uma sai com `scope=local`, e a outra
-   * continua de pé — o refresh dela ainda troca por um par novo.
-   */
-  test("sair num aparelho não derruba o outro (§21.4)", async () => {
+  test("sair num aparelho mantém o outro conectado e capaz de renovar a sessão (§21.4)", async ({
+    page, browser, baseURL,
+  }) => {
     await usuarioComPerfil();
-    const entrar = async () => {
-      const r = await fetch(`${URL_MOCK}/auth/v1/token?grant_type=password`, {
-        method: "POST",
-        headers: { "content-type": "application/json", apikey: "mock-anon" },
-        body: JSON.stringify({ email: EMAIL_DONO, password: SENHA }),
-      });
-      expect(r.status, "o mock recusou a senha do dono").toBe(200);
-      return (await r.json()) as { access_token: string; refresh_token: string };
-    };
-    const celular = await entrar();
-    const navegador = await entrar();
+    await entrarNoApp(page);
+    const outroContexto = await browser.newContext({ baseURL });
+    try {
+      const outro = await outroContexto.newPage();
+      await entrarNoApp(outro);
+      await irNaAba(page, "Mais");
+      await page.getByRole("button", { name: "Sair" }).click();
+      await expect(page).toHaveURL(/\/login$/);
 
-    const saida = await fetch(`${URL_MOCK}/auth/v1/logout?scope=local`, {
-      method: "POST",
-      headers: { apikey: "mock-anon", authorization: `Bearer ${celular.access_token}` },
-    });
-    expect(saida.status).toBe(204);
-    expect((await estadoDoMock()).ultimo_logout).toMatchObject({ scope: "local" });
-
-    const renovar = async (refresh_token: string) =>
-      (
-        await fetch(`${URL_MOCK}/auth/v1/token?grant_type=refresh_token`, {
-          method: "POST",
-          headers: { "content-type": "application/json", apikey: "mock-anon" },
-          body: JSON.stringify({ refresh_token }),
-        })
-      ).status;
-
-    // o aparelho que ficou continua dentro
-    expect(await renovar(navegador.refresh_token), "o outro aparelho caiu junto").toBe(200);
-    // e o que saiu, saiu mesmo
-    expect(await renovar(celular.refresh_token)).toBe(400);
+      // Avança só o relógio do outro navegador, até o cliente precisar renovar.
+      const renovou = outro.waitForResponse(r =>
+        r.url().includes("grant_type=refresh_token") && r.ok(),
+      );
+      await outro.clock.setFixedTime(new Date(Date.now() + 61 * 60_000));
+      await outro.reload();
+      await renovou;
+      await outro.clock.setFixedTime(new Date());
+      await irNaAba(outro, "Corpo");
+      await expect(outro.getByRole("heading", { name: "Corpo", exact: true })).toBeVisible();
+      await page.goto("/corpo");
+      await expect(page).toHaveURL(/\/login/);
+    } finally {
+      await outroContexto.close();
+    }
   });
 
   test("entrar de novo com a conta que já existe", async ({ page }) => {
@@ -191,7 +187,7 @@ test.describe("login", () => {
     await expect(page).toHaveURL(/\/login$/);
 
     await page.getByLabel("E-mail").fill(EMAIL_DONO);
-    await page.getByLabel("Senha").fill(SENHA);
+    await page.getByLabel("Senha", { exact: true }).fill(SENHA);
     await page.getByRole("button", { name: "Entrar" }).click();
     await esperarAbaTreino(page);
   });
@@ -203,15 +199,30 @@ test.describe("login", () => {
 
     await page.goto("/login");
     await page.getByLabel("E-mail").fill(EMAIL_DONO);
-    await page.getByLabel("Senha").fill(SENHA);
+    await page.getByLabel("Senha", { exact: true }).fill(SENHA);
     await page.getByRole("button", { name: "Criar conta" }).click();
     await expect(page.getByText("Essa conta já existe")).toBeVisible();
 
     // os campos continuam preenchidos
     await expect(page.getByLabel("E-mail")).toHaveValue(EMAIL_DONO);
-    await expect(page.getByLabel("Senha")).toHaveValue(SENHA);
+    await expect(page.getByLabel("Senha", { exact: true })).toHaveValue(SENHA);
 
     await page.getByRole("button", { name: "Entrar" }).click();
     await esperarAbaTreino(page);
   });
+});
+
+
+test("entrar sem rede mantém os campos e o erro no formulário", async ({ page, context }) => {
+  await usuarioComPerfil();
+  await page.goto("/login");
+  await page.getByLabel("E-mail").fill(EMAIL_DONO);
+  await page.getByLabel("Senha", { exact: true }).fill(SENHA);
+  await context.setOffline(true);
+  await page.getByRole("button", { name: "Entrar" }).click();
+  await expect(page.locator("form").getByRole("alert")).toContainText("Sem rede");
+  await expect(page.getByLabel("E-mail")).toBeFocused();
+  await context.setOffline(false);
+  await page.getByRole("button", { name: "Entrar" }).click();
+  await esperarAbaTreino(page);
 });
