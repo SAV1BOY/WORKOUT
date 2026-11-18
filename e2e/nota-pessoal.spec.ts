@@ -2,6 +2,8 @@ import { expect, test } from "@playwright/test";
 import { comecarNoPlayer, comecarOTreinoDoDia, entrarNoApp, fixarData, lerDoMock, resetarMock, usuarioComPerfil } from "./fixtures";
 
 test("a nota da ficha reaparece na primeira série e a edição sem rede sincroniza ao voltar", async ({ page, context }) => {
+  // Login, quatro navegações e uma reconexão no fluxo completo da mesma sessão.
+  test.setTimeout(90_000);
   await resetarMock();
   const conta = await usuarioComPerfil();
   const id = "agachamento-livre";
