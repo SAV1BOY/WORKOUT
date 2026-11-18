@@ -248,6 +248,7 @@ const ESQUEMA: Record<string, EspecTabela> = {
       sessoes_graca: lit(0),
       desativado: lit(false),
       notas: nulo,
+      nota_pessoal: nulo,
       updated_at: agora,
     },
     chave: ["user_id", "exercise_id"],
