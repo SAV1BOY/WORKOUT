@@ -53,6 +53,7 @@ import {
 } from "@/lib/preferencias";
 import { enfileirarEscrita } from "@/lib/outbox-supabase";
 import { registrarPeso } from "@/lib/queries/corpo";
+import { descarregarSessao } from "@/lib/queries/sessao";
 import { salvarPerfil, salvarPrefsOuDesfazer } from "@/lib/queries/mais";
 import { chaves, useUltimoPeso } from "@/lib/queries/dados";
 import { useHoje } from "@/lib/relogio";
@@ -149,6 +150,8 @@ export function TelaPlayer({
     (novo: EstadoPlayer) => {
       setEstado(novo);
       dados.mexer((atual: SessaoLocal) => ({ ...atual, player: novo }));
+      // Recarregar logo após pular o descanso precisa retomar a série já aberta.
+      void descarregarSessao();
     },
     [dados],
   );

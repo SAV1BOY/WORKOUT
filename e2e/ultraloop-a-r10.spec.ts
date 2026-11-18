@@ -235,8 +235,10 @@ test.describe("B e C — linhas de coleção e o motivo da busca (itens 2 e 3)",
   }) => {
     await preparar(page);
     await page.goto("/explorar");
+    await expect(page.getByRole("searchbox", { name: "Buscar exercício ou coleção" })).toBeEditable();
     const secao = page.getByRole("region", { name: "Por aparelho" });
     await secao.getByRole("button", { name: /^Ver todos/ }).click();
+    await expect(secao.getByRole("button", { name: "Ver menos" })).toHaveAttribute("aria-expanded", "true");
     const linhas = secao.locator('[data-colecao^="aparelho:"]');
     const quantas = await linhas.count();
     expect(quantas).toBeGreaterThan(3);

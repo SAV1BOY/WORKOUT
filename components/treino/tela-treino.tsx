@@ -302,18 +302,19 @@ export function TelaTreino({ userId }: { userId: string }) {
   const desenhado = Boolean(hoje && perfil && dia && intervalo) && !desviando;
   useEffect(() => {
     const alvo = refSentinela.current;
-    if (!alvo || typeof IntersectionObserver === "undefined") return;
-    const observador = new IntersectionObserver(
-      ([entrada]) => {
-        if (!entrada) return;
-        setPassouDoCard(
-          !entrada.isIntersecting && entrada.boundingClientRect.top < 0,
-        );
-      },
-      { threshold: 0 },
-    );
-    observador.observe(alvo);
-    return () => observador.disconnect();
+    if (!alvo) return;
+    const atualizar = () => setPassouDoCard(alvo.getBoundingClientRect().bottom <= 0);
+    // Um salto até o fim pode levar a sentinela de baixo da tela para cima
+    // sem jamais intersectá-la. O observador também cuida de mudanças de layout.
+    const observador = typeof IntersectionObserver === "undefined"
+      ? null : new IntersectionObserver(atualizar);
+    observador?.observe(alvo);
+    window.addEventListener("scroll", atualizar, { passive: true });
+    atualizar();
+    return () => {
+      window.removeEventListener("scroll", atualizar);
+      observador?.disconnect();
+    };
   }, [desenhado]);
 
   /* SPEC §22.7 item 9: voltar do player avisa e destaca quem tem o "Continuar" */

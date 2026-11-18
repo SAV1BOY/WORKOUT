@@ -138,12 +138,13 @@ test("uma falha local ao anotar o voto mantém o botão disponível para tentar 
 
 test("nome longo e aviso de voto deixam os controles livres a 360 px", async ({ page }) => {
   const exercicio = exercicios.reduce((maior, e) => e.nome.length > maior.nome.length ? e : maior);
+  const item = itemDoExercicio(exercicio);
   const usuario = await usuarioComPerfil({ prefs: { preparacao_s: 0 } });
   const id = crypto.randomUUID();
   await inserirNoMock(usuario, "sessions", [{
     id, user_id: usuario.userId, data: "2026-09-14", workout_id: "livre",
     iniciada_em: new Date(INICIO).toISOString(), fase: "fase1", status: "em_andamento",
-    plano: planoDaSessao([itemDoExercicio(exercicio)]),
+    plano: planoDaSessao([item]),
   }]);
   await fixarData(page, new Date(INICIO).toISOString());
   await entrarNoApp(page);
@@ -171,7 +172,11 @@ test("nome longo e aviso de voto deixam os controles livres a 360 px", async ({ 
   }
 
   const proximo = page.getByRole("button", { name: "Próximo passo" });
-  for (let i = 0; i < 12 && await proximo.isVisible(); i++) await proximo.click();
+  const total = item.prescricao.series;
+  for (let i = 1; i <= total; i++) {
+    await expect(page.getByText(`Série ${i} de ${total} · exercício 1 de 1`, { exact: true })).toBeVisible();
+    await proximo.click();
+  }
   const h1 = page.getByRole("heading", { level: 1 });
   await expect(h1).toHaveCount(1);
   await expect(h1).toContainText("esforço");

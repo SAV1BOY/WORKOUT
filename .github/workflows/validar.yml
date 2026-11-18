@@ -89,3 +89,13 @@ jobs:
       - run: npm run e2e -- --shard=${{ matrix.parte }}/4
         env:
           VARREDURA: '1'
+      - name: Guardar o contexto das falhas no navegador
+        if: failure() && !cancelled()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: falhas-e2e-${{ matrix.parte }}-${{ github.run_attempt }}
+          path: |
+            test-results/**/error-context.md
+            test-results/**/test-failed-*.png
+          if-no-files-found: ignore
+          retention-days: 3

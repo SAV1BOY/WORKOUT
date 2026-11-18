@@ -197,11 +197,11 @@ export function FaixaFixaDoDia({
   const nomeAcessivel = `${rotulo} — ${titulo}${detalhe ? `, ${detalhe}` : ""}`;
 
   const classeDaBarra =
-    "group alvo flex w-full items-center gap-2 px-4 py-1 text-left outline-none focus-visible:ring-3 focus-visible:ring-ring focus-visible:ring-inset";
+    "group alvo flex w-full items-center gap-2 px-3 py-1 text-left outline-none focus-visible:ring-3 focus-visible:ring-ring focus-visible:ring-inset min-[400px]:px-4";
 
   const conteudo = (
     <>
-      <span className="min-w-0 flex-1 truncate text-sm">
+      <span data-resumo-da-faixa className="min-w-0 flex-1 text-sm">
         <span className="font-semibold">{titulo}</span>
         {detalhe ? (
           <span className="text-muted-foreground numero">{` · ${detalhe}`}</span>
@@ -212,7 +212,7 @@ export function FaixaFixaDoDia({
         aria-hidden="true"
         className={cn(
           buttonVariants(),
-          "pointer-events-none shrink-0 group-hover:bg-primary/80",
+          "pointer-events-none shrink-0 px-3 group-hover:bg-primary/80 min-[400px]:px-4",
         )}
       >
         {rotulo}

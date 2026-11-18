@@ -177,7 +177,7 @@ export function MesEmMiniatura({
                   </span>
                   <span aria-hidden className="flex h-4 items-center justify-center">
                     {d.marca !== "antes" && <MarcaDoDiaVisual marca={d.marca} ehHoje={d.ehHoje} />}
-                    {d.marca === "aberto" && <small>{d.tipo === "forca" ? "F" : "C"}</small>}
+                    {d.marca === "aberto" && <span className="text-micro">{d.tipo === "forca" ? "F" : "C"}</span>}
                   </span>
                 </button>
               ))}
@@ -192,7 +192,7 @@ export function MesEmMiniatura({
             <li key={texto} className="flex items-center gap-1 whitespace-nowrap">
               <span aria-hidden className="flex items-center">
                 <MarcaDoDiaVisual marca={marca} />
-                {marca === "aberto" && <small>{texto.startsWith("força") ? "F" : "C"}</small>}
+                {marca === "aberto" && <span className="text-micro">{texto.startsWith("força") ? "F" : "C"}</span>}
               </span>
               {texto}
             </li>

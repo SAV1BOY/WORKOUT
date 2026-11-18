@@ -98,6 +98,7 @@ interface Simulacao {
    * `page.route` alcançam o que passa por ele (ver auditoria-offline.spec).
    */
   leituraSemRede?: boolean;
+  tabelaAusente?: boolean;
 }
 
 /** Troca o PushManager, o `navigator.brave` e a permissão, antes do app. */
@@ -113,7 +114,7 @@ async function simular(context: BrowserContext, sim: Simulacao): Promise<void> {
     if (cfg.semPermissionsApi) {
       Permissions.prototype.query = () => Promise.reject(new TypeError("desligada neste teste"));
     }
-    if (cfg.leituraSemRede) {
+    if (cfg.leituraSemRede || cfg.tabelaAusente) {
       const original = window.fetch.bind(window);
       w.__leituras = 0;
       w.__semRede = false;
@@ -122,6 +123,14 @@ async function simular(context: BrowserContext, sim: Simulacao): Promise<void> {
         const metodo = (opcoes?.method ?? (entrada instanceof Request ? entrada.method : "GET")).toUpperCase();
         if (metodo === "GET" && /\/rest\/v1\/lembretes_inscricoes/.test(url)) {
           w.__leituras = Number(w.__leituras) + 1;
+          if (cfg.tabelaAusente) {
+            return Promise.resolve(Response.json({
+              code: "PGRST205",
+              details: null,
+              hint: null,
+              message: "Could not find the table 'public.lembretes_inscricoes' in the schema cache",
+            }, { status: 404 }));
+          }
           if (w.__semRede) return Promise.reject(new TypeError("Failed to fetch"));
         }
         return original(entrada, opcoes);
@@ -193,6 +202,7 @@ async function simular(context: BrowserContext, sim: Simulacao): Promise<void> {
     semPermissionsApi: sim.semPermissionsApi ?? false,
     subscribeAtrasoMs: sim.subscribeAtrasoMs ?? 0,
     leituraSemRede: sim.leituraSemRede ?? false,
+    tabelaAusente: sim.tabelaAusente ?? false,
   });
 }
 
@@ -653,11 +663,11 @@ for (const tema of TEMAS) {
 /* ------------------------------ §23.7 item 7: a volta das configurações */
 
 /**
- * Nega a notificação de verdade no Chromium (o Playwright só sabe conceder).
+ * Define no Chromium a permissão inicial ou a recusa que o teste vai observar.
  * A sessão CDP fica aberta até o fim do teste: ao se desligar, o Chromium
  * desfaz as permissões que ela mudou.
  */
-async function negarDeVerdade(page: Page, origem: string): Promise<void> {
+async function definirPermissao(page: Page, origem: string, estado: "prompt" | "denied"): Promise<void> {
   const cdp = await page.context().newCDPSession(page);
   const { targetInfo } = (await cdp.send("Target.getTargetInfo")) as {
     targetInfo: { browserContextId?: string };
@@ -665,7 +675,7 @@ async function negarDeVerdade(page: Page, origem: string): Promise<void> {
   await cdp.send("Browser.setPermission", {
     origin: origem,
     permission: { name: "notifications" },
-    setting: "denied",
+    setting: estado,
     browserContextId: targetInfo.browserContextId,
   });
 }
@@ -688,7 +698,7 @@ for (const tema of TEMAS) {
   test(`${tema}: liberada nas configurações, a volta mostra o Ativar e tira a instrução (visibilitychange)`, async ({ page, baseURL }) => {
     const sessao = await preparar(page, tema, { aparelho: aparelhoNovo(), semPermissionsApi: true }, false);
     const origem = new URL(baseURL ?? "").origin;
-    await negarDeVerdade(page, origem);
+    await definirPermissao(page, origem, "denied");
     await esperarServiceWorker(page);
     await page.goto("/mais/lembretes");
     expect(await page.evaluate(() => Notification.permission)).toBe("denied");
@@ -722,10 +732,11 @@ for (const tema of TEMAS) {
     // começa em "perguntar"; o pedido é recusado pelo Chromium de verdade
     await preparar(page, tema, { aparelho: aparelhoNovo(), semPermissionsApi: true }, false);
     const origem = new URL(baseURL ?? "").origin;
+    await definirPermissao(page, origem, "prompt");
     await esperarServiceWorker(page);
     await page.goto("/mais/lembretes");
     await expect(estado(page)).toHaveText("Desativado neste aparelho.");
-    await negarDeVerdade(page, origem);
+    await definirPermissao(page, origem, "denied");
     await page.getByRole("button", { name: "Ativar lembretes neste aparelho" }).click();
     await expect(aviso(page)).toHaveText("O navegador recusou as notificações deste app.");
     await expect(estado(page)).toHaveText("Bloqueado pelo navegador.");
@@ -742,7 +753,7 @@ for (const tema of TEMAS) {
 test("a troca da permissão avisada pelo navegador (permissions change) também relê", async ({ page, baseURL }) => {
   await preparar(page, "light", { aparelho: aparelhoNovo() }, false);
   const origem = new URL(baseURL ?? "").origin;
-  await negarDeVerdade(page, origem);
+  await definirPermissao(page, origem, "denied");
   await esperarServiceWorker(page);
   await page.goto("/mais/lembretes");
   await expect(estado(page)).toHaveText("Bloqueado pelo navegador.");
@@ -763,7 +774,7 @@ for (const tema of TEMAS) for (const evento of Object.keys(OUTRAS_VOLTAS) as (ke
   test(`${tema}: liberada nas configurações, a volta por ${evento} sozinho mostra o Ativar`, async ({ page, baseURL }) => {
     await preparar(page, tema, { aparelho: aparelhoNovo(), semPermissionsApi: true }, false);
     const origem = new URL(baseURL ?? "").origin;
-    await negarDeVerdade(page, origem);
+    await definirPermissao(page, origem, "denied");
     await esperarServiceWorker(page);
     await page.goto("/mais/lembretes");
     await expect(estado(page)).toHaveText("Bloqueado pelo navegador.");
@@ -846,7 +857,7 @@ test(`${tema}: a volta sem internet mantém a frase do aparelho (não troca pelo
 test(`${tema}: permissão liberada sem rede atualiza o aparelho e sinaliza a lista indisponível`, async ({ page, baseURL }) => {
   await preparar(page, tema, { aparelho: aparelhoNovo(), semPermissionsApi: true, leituraSemRede: true }, false);
   const origem = new URL(baseURL ?? "").origin;
-  await negarDeVerdade(page, origem);
+  await definirPermissao(page, origem, "denied");
   await esperarServiceWorker(page);
   await page.goto("/mais/lembretes");
   await expect(estado(page)).toHaveText("Bloqueado pelo navegador.");
@@ -913,20 +924,7 @@ for (const tema of TEMAS) {
 
 for (const tema of TEMAS) {
   test(`${tema}: sem a tabela no banco (PGRST205), a tela diz que falta atualizar o banco`, async ({ page }) => {
-    await preparar(page, tema, { aparelho: aparelhoNovo() });
-    // o PostgREST de um projeto sem a migração
-    await page.route(/\/rest\/v1\/lembretes_inscricoes/, (rota) =>
-      rota.fulfill({
-        status: 404,
-        contentType: "application/json",
-        body: JSON.stringify({
-          code: "PGRST205",
-          details: null,
-          hint: null,
-          message: "Could not find the table 'public.lembretes_inscricoes' in the schema cache",
-        }),
-      }),
-    );
+    await preparar(page, tema, { aparelho: aparelhoNovo(), tabelaAusente: true });
     await page.goto("/mais/lembretes");
     await expect(page.locator('[data-estado="sem-configuracao"]')).toHaveText(
       "Os lembretes ainda não estão disponíveis neste servidor (falta atualizar o banco).",
