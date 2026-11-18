@@ -7,25 +7,37 @@ function lerJson<T>(arquivo: string): T {
   return JSON.parse(readFileSync(join(".next", arquivo), "utf8"));
 }
 
+function propriedade(no: ts.Node, nome: string): no is ts.PropertyAssignment {
+  return ts.isPropertyAssignment(no)
+    && (ts.isIdentifier(no.name) || ts.isStringLiteral(no.name))
+    && no.name.text === nome;
+}
+
+function localizarManifesto(no: ts.Node): ts.ArrayLiteralExpression | undefined {
+  if (propriedade(no, "precacheEntries") && ts.isArrayLiteralExpression(no.initializer)) {
+    return no.initializer;
+  }
+  return ts.forEachChild(no, localizarManifesto);
+}
+
 function entradasDoWorker(): Set<string> {
   const fonte = ts.createSourceFile("sw.js", readFileSync("public/sw.js", "utf8"), ts.ScriptTarget.Latest);
+  const manifesto = localizarManifesto(fonte);
+  if (!manifesto) throw new Error("O worker compilado não tem o manifesto de instalação");
   const urls = new Set<string>();
-  function visitar(no: ts.Node): void {
-    if (ts.isPropertyAssignment(no) && ts.isIdentifier(no.name) && no.name.text === "precacheEntries" && ts.isArrayLiteralExpression(no.initializer)) {
-      for (const entrada of no.initializer.elements) {
-        if (ts.isObjectLiteralExpression(entrada)) {
-          for (const campo of entrada.properties) {
-            if (ts.isPropertyAssignment(campo) && (ts.isIdentifier(campo.name) || ts.isStringLiteral(campo.name)) && campo.name.text === "url" && ts.isStringLiteral(campo.initializer)) {
-              urls.add(decodeURIComponent(campo.initializer.text));
-            }
-          }
-        }
-      }
-      return;
+  for (const entrada of manifesto.elements) {
+    if (ts.isStringLiteral(entrada)) {
+      urls.add(decodeURIComponent(entrada.text));
+      continue;
     }
-    ts.forEachChild(no, visitar);
+    const url = ts.isObjectLiteralExpression(entrada)
+      ? entrada.properties.find((campo) => propriedade(campo, "url"))
+      : undefined;
+    if (!url || !ts.isPropertyAssignment(url) || !ts.isStringLiteral(url.initializer)) {
+      throw new Error("Entrada de precache sem URL estática");
+    }
+    urls.add(decodeURIComponent(url.initializer.text));
   }
-  visitar(fonte);
   return urls;
 }
 
@@ -54,8 +66,9 @@ if (!existsSync("pages") && !existsSync("src/pages")) {
 if (indevidos.length) throw new Error("Recursos extras no precache de instalação: " + indevidos.join(", "));
 
 const total = [...urls].reduce((soma, url) => {
-  const arquivo = url === "/~offline" ? ".next/server/app/~offline.html" :
-    url.startsWith("/_next/") ? join(".next", url.slice("/_next/".length)) : join("public", url);
+  let arquivo = join("public", url);
+  if (url === "/~offline") arquivo = ".next/server/app/~offline.html";
+  if (url.startsWith("/_next/")) arquivo = join(".next", url.slice("/_next/".length));
   return soma + statSync(arquivo).size;
 }, 0);
 console.log(`Precache verificado: ${urls.size} recursos, ${total} bytes (${(total / 1048576).toFixed(2)} MiB).`);

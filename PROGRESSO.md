@@ -12984,3 +12984,9 @@ Para repetir contra um mock local após `npm run build:e2e`, execute
 ### Decisão sobre a semana na capa dos planos — 18/11/2026
 
 O dono escolheu exibir “Semana N de 12” na capa e no bloco de progresso. Corrida, corda e barra fixa usam a semana da conta para o respectivo plano. [Capa e progresso](components/colecoes/tela-colecao.tsx) · [Teste dos três planos](e2e/ultraloop-l32.spec.ts)
+
+### Instalação offline do candidato — 18/11/2026
+
+A soma dos tamanhos sem compressão das entradas em `public/sw.js`, incluindo o HTML de socorro, passou de 3.745.339 bytes (3,57 MiB, 156 entradas) na base para 3.024.220 bytes (2,88 MiB, 100 entradas) no candidato. A redução foi de 721.119 bytes, ou 19,3%. Das entradas da base, 67 eram figuras, somando 573.559 bytes. O novo manifesto contém zero figuras.
+
+O build confere todos os recursos dos manifestos do App Router, módulos dinâmicos, polyfills e a página de socorro. A validação reprovou a retirada do player, do gráfico dinâmico e do polyfill em cópias isoladas. Também reprovou o retorno dos seis arquivos exclusivos do Pages Router. [Conferência automática do manifesto](scripts/validar-precache.ts) · [Configuração do cache](next.config.ts)
