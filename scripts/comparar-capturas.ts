@@ -73,6 +73,11 @@ async function comparar(o: Opcoes): Promise<number> {
   mkdirSync(o.saida, { recursive: true });
   const naBase = pngs(o.base);
   const noDepois = pngs(o.depois);
+  const nomes = [...naBase, ...noDepois];
+  const desconhecidas = o.esperadas.filter(e => !nomes.some(nome => casaEsperada([e], nome)));
+  if (desconhecidas.length) {
+    throw new Error(`Nenhuma captura corresponde a: ${desconhecidas.join(", ")}`);
+  }
   const linhas: Linha[] = [];
 
   for (const nome of naBase) {

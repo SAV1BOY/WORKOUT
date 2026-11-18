@@ -1,10 +1,12 @@
 import { defaultCache } from "@serwist/next/worker";
 import {
   CACHE_DE_MIDIA,
+  CACHE_DO_CATALOGO,
   CACHE_DE_SOCORRO,
   OFFLINE,
 } from "@/lib/caches-do-worker";
-import { copiaServe, urlsDeAssets } from "@/lib/sw-assets";
+import { limitarCatalogo, separarCacheAntigo } from "@/lib/midia-no-aparelho";
+import { verificarCopiaInteira } from "@/lib/sw-assets";
 import { criarCura } from "@/lib/sw-cura";
 import {
   ehNavegacao,
@@ -43,11 +45,9 @@ declare const self: ServiceWorkerGlobalScope;
 const SUPABASE = /\/(rest|auth|storage|realtime|functions)\/v1\//;
 
 /**
- * As ilustrações, as figuras e as fotos: arquivos imutáveis com o nome do
- * exercício. As figuras do programa já vêm no precache da instalação
- * (globPublicPatterns em next.config.ts); as ilustrações e as fotos entram
- * aqui, sob demanda — e as da fase inteira são puxadas por
- * `lib/precache-do-programa.ts`.
+ * A mídia fica disponível no aparelho quando ele abre o exercício ou baixa
+ * a mídia da fase em Mais. Figuras e ilustrações usam o cache do treino.
+ * Fotos e itens do catálogo têm seu próprio limite de espaço.
  */
 const MIDIA = /\/(figuras|fotos|ilustracoes|itens|mapa-muscular)\//;
 
@@ -99,7 +99,9 @@ let noPrecache: (url: string) => Promise<Response | undefined> = async () =>
  * troca o `self.fetch` do worker por uma função que rejeita, alcança também
  * esta ida à rede.
  */
+const copiaInteira = verificarCopiaInteira(self.location.origin, caches);
 const garantirOSocorro = criarCura({
+  copiaInteira,
   doPrecache: (url) => noPrecache(url),
   armazenamento: caches,
   buscar: (url, init) => fetch(url, init),
@@ -205,17 +207,6 @@ async function maisUmaTentativa(url: string): Promise<Response | undefined> {
  * serve a cópia quando todos os assets que ela referencia estão em algum
  * cache; senão desce para o socorro embutido, que não depende de nada.
  */
-async function copiaInteira(guardada: Response): Promise<boolean> {
-  const urls = urlsDeAssets(await guardada.clone().text(), self.location.origin);
-  const presentes = new Set<string>();
-  await Promise.all(
-    urls.map(async (url) => {
-      if (await caches.match(url, { ignoreSearch: true })) presentes.add(url);
-    }),
-  );
-  return copiaServe(urls, presentes);
-}
-
 async function emQualquerCache(): Promise<Response | undefined> {
   const nomes = await caches.keys();
   /*
@@ -236,7 +227,7 @@ async function emQualquerCache(): Promise<Response | undefined> {
       ignoreSearch: true,
       ignoreVary: true,
     });
-    if (guardada && (await copiaInteira(guardada))) return guardada;
+    if (guardada && (await copiaInteira(nome, cache, guardada))) return guardada;
   }
   return undefined;
 }
@@ -295,17 +286,14 @@ const regras: RuntimeCaching[] = [
     handler: new NetworkOnly(),
   },
   {
+    matcher: ({ url, sameOrigin }) => sameOrigin && /^\/(figuras|ilustracoes)\//.test(url.pathname),
+    handler: new CacheFirst({ cacheName: CACHE_DE_MIDIA }),
+  },
+  {
     matcher: ({ url, sameOrigin }) => sameOrigin && MIDIA.test(url.pathname),
     handler: new CacheFirst({
-      // o "Sair" poupa este cache (`lib/caches-do-worker.ts`)
-      cacheName: CACHE_DE_MIDIA,
-      plugins: [
-        new ExpirationPlugin({
-          maxEntries: 300,
-          maxAgeSeconds: 180 * 24 * 60 * 60,
-          maxAgeFrom: "last-used",
-        }),
-      ],
+      cacheName: CACHE_DO_CATALOGO,
+      plugins: [{ cacheDidUpdate: () => limitarCatalogo() }],
     }),
   },
   /*
@@ -387,6 +375,7 @@ serwist.addEventListeners();
  * guardada é a do build anterior. Tirar a nova do precache não custa rede.
  */
 self.addEventListener("activate", (evento) => {
+  evento.waitUntil(separarCacheAntigo().catch(() => undefined));
   evento.waitUntil(
     garantirOSocorro({
       renovar: true,

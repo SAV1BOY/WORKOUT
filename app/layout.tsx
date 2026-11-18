@@ -58,15 +58,9 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  /*
-   * A barra do sistema segue o `prefers-color-scheme` do aparelho, e o HTML
-   * já sai com a cor certa. Quem escolheu "claro" no aparelho escuro (ou o
-   * contrário) fica com a barra do aparelho: seguir o tema escolhido pedia
-   * mexer na meta pelo cliente, e isso voltou atrás neste mesmo lote — ficou
-   * para outro (SPEC §22.4 item 5 e PROGRESSO.md).
-   */
+  // Antes da hidratação, vale o tema do dispositivo.
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#fafafa" },
+    { media: "(prefers-color-scheme: light)", color: "#e0e0dd" },
     { media: "(prefers-color-scheme: dark)", color: "#0a0a0a" },
   ],
 };

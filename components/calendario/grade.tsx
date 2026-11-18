@@ -1,25 +1,15 @@
 "use client";
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { formatarData, paraData } from "@/lib/formato";
-import { diaCurto } from "@/lib/hoje";
-import type { TipoDia } from "@/lib/schemas";
+import { formatarData, formatarDiaCurto, formatarDiaLongo, paraData } from "@/lib/formato";
+import { MarcaDoDiaVisual } from "@/components/ui/faixa-semana";
 import {
   NOME_DA_MARCA,
   type DiaDaGrade,
   type DiaDoMes,
-  type MarcaDoDia,
+  type MarcaVisivel,
 } from "@/lib/semana";
 import { cn } from "@/lib/utils";
-
-const CORES_DA_MARCA: Record<string, string> = {
-  feito: "text-primary",
-  parcial: "text-muted-foreground",
-  faltou: "text-destructive",
-  aberto: "text-muted-foreground",
-  descanso: "text-muted-foreground",
-  antes: "text-muted-foreground",
-};
 
 /** A semana de segunda a domingo, um dia por linha (SPEC §3.5). */
 export function GradeDaSemana({
@@ -36,7 +26,8 @@ export function GradeDaSemana({
           <button
             type="button"
             onClick={() => aoTocar(d)}
-            aria-label={`${diaCurto(d.data)} ${formatarData(d.data)}: ${d.rotulo}, ${NOME_DA_MARCA[d.marca]}`}
+            aria-current={d.ehHoje ? "date" : undefined}
+            aria-label={`${formatarDiaLongo(d.data)} ${formatarData(d.data)}: ${d.rotulo}, ${NOME_DA_MARCA[d.marca]}${d.ehHoje ? ", hoje" : ""}`}
             /*
               SPEC §22.3 item 11: o rótulo longo e o detalhe são cortados pelo
               `line-clamp`. O nome acessível segue curto — é o que o leitor de
@@ -51,8 +42,8 @@ export function GradeDaSemana({
             )}
           >
             <span className="flex w-11 shrink-0 flex-col items-center">
-              <span className="text-muted-foreground text-rotulo uppercase">
-                {diaCurto(d.data)}
+              <span className="text-muted-foreground text-rotulo">
+                {formatarDiaCurto(d.data)}
               </span>
               <span className="numero text-base">{paraData(d.data).getDate()}</span>
             </span>
@@ -73,14 +64,8 @@ export function GradeDaSemana({
               ) : null}
             </span>
 
-            <span
-              aria-hidden
-              className={cn(
-                "numero w-5 shrink-0 text-center text-lg",
-                CORES_DA_MARCA[d.marca],
-              )}
-            >
-              {d.simbolo}
+            <span aria-hidden className="shrink-0">
+              <MarcaDoDiaVisual marca={d.marca} ehHoje={d.ehHoje} />
             </span>
           </button>
         </li>
@@ -89,43 +74,14 @@ export function GradeDaSemana({
   );
 }
 
-/**
- * O desenho de uma casa do mês (SPEC §22.8 item 6). O estado vem primeiro e
- * muda a FORMA — disco cheio, anel, ✕ —, não só o tom; o tipo do dia separa
- * força (círculo) de cardio (losango). É o mesmo componente na grade e na
- * legenda: nenhuma das duas pode passar a mentir sobre a outra.
- *
- * SPEC §22.8 item 11: "antes" (dia anterior a `profiles.data_inicio`) e
- * "descanso" não desenham nada — a casa fica com o número e mais nada.
- */
-function GlifoDoMes({ marca, tipo }: { marca: MarcaDoDia; tipo: TipoDia }) {
-  const miolo =
-    marca === "feito" ? (
-      <span className="bg-primary size-2.5 rounded-full" />
-    ) : marca === "parcial" ? (
-      <span className="border-primary size-2.5 rounded-full border-2" />
-    ) : marca === "faltou" ? (
-      <span className="text-destructive text-micro leading-none font-semibold">✕</span>
-    ) : marca === "descanso" || marca === "antes" ? null : tipo === "cardio" ? (
-      <span className="border-foreground/60 size-2 rotate-45 border" />
-    ) : (
-      <span className="border-primary/70 size-2.5 rounded-full border" />
-    );
-  return (
-    <span aria-hidden className="flex h-2.5 items-center justify-center">
-      {miolo}
-    </span>
-  );
-}
-
-/** A legenda de uma linha sob a grade, desenhada com os mesmos glifos. */
-const LEGENDA_DO_MES: { marca: MarcaDoDia; tipo: TipoDia; texto: string }[] = [
-  { marca: "feito", tipo: "forca", texto: "feito" },
-  { marca: "parcial", tipo: "forca", texto: "parcial" },
-  { marca: "aberto", tipo: "forca", texto: "força a fazer" },
-  { marca: "aberto", tipo: "cardio", texto: "cardio a fazer" },
-  { marca: "faltou", tipo: "forca", texto: "perdido" },
-];
+/** Cada marca do dia tem uma legenda. Para a fazer, F e C identificam o treino. */
+const LEGENDA_DO_MES = {
+  feito: [NOME_DA_MARCA.feito],
+  parcial: [NOME_DA_MARCA.parcial],
+  aberto: ["força a fazer", "cardio a fazer"],
+  faltou: [NOME_DA_MARCA.faltou],
+  descanso: [NOME_DA_MARCA.descanso],
+} satisfies Record<MarcaVisivel, string[]>;
 
 const DIAS_DA_SEMANA = ["seg", "ter", "qua", "qui", "sex", "sáb", "dom"];
 
@@ -207,7 +163,7 @@ export function MesEmMiniatura({
                     item 11).
                   */
                   aria-current={d.ehHoje ? "date" : undefined}
-                  aria-label={`${formatarData(d.data)}: ${NOME_DA_MARCA[d.marca]}${
+                  aria-label={`${formatarData(d.data)}: ${NOME_DA_MARCA[d.marca]}${d.marca === "aberto" ? `, ${d.tipo === "forca" ? "força" : "cardio"}` : ""}${
                     d.ehHoje ? ", hoje" : ""
                   }`}
                   className={cn(
@@ -219,7 +175,10 @@ export function MesEmMiniatura({
                   <span aria-hidden className="numero">
                     {d.numero}
                   </span>
-                  <GlifoDoMes marca={d.marca} tipo={d.tipo} />
+                  <span aria-hidden className="flex h-4 items-center justify-center">
+                    {d.marca !== "antes" && <MarcaDoDiaVisual marca={d.marca} ehHoje={d.ehHoje} />}
+                    {d.marca === "aberto" && <small>{d.tipo === "forca" ? "F" : "C"}</small>}
+                  </span>
                 </button>
               ))}
             </div>
@@ -228,12 +187,17 @@ export function MesEmMiniatura({
       </div>
 
       <ul className="text-muted-foreground text-micro flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
-        {LEGENDA_DO_MES.map((l) => (
-          <li key={l.texto} className="flex items-center gap-1">
-            <GlifoDoMes marca={l.marca} tipo={l.tipo} />
-            {l.texto}
-          </li>
-        ))}
+        {(Object.keys(LEGENDA_DO_MES) as MarcaVisivel[]).flatMap((marca) =>
+          LEGENDA_DO_MES[marca].map((texto) => (
+            <li key={texto} className="flex items-center gap-1 whitespace-nowrap">
+              <span aria-hidden className="flex items-center">
+                <MarcaDoDiaVisual marca={marca} />
+                {marca === "aberto" && <small>{texto.startsWith("força") ? "F" : "C"}</small>}
+              </span>
+              {texto}
+            </li>
+          )),
+        )}
       </ul>
     </section>
   );

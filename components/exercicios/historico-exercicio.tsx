@@ -17,7 +17,14 @@ import {
   formatarNumero,
   rotuloDaCarga,
 } from "@/lib/formato";
-import { SEM_HISTORICO, historicoVazio, ondeVoceEsta } from "@/lib/ficha";
+import {
+  SEM_HISTORICO,
+  historicoCarregando,
+  historicoErro,
+  historicoVazio,
+  leiturasQueFalharam,
+  ondeVoceEsta,
+} from "@/lib/ficha";
 import { estadoDaLinha, textoDaCarga, textoDoAlvo, textoDoEvento } from "@/lib/hoje";
 import { nomeDaAssistencia } from "@/lib/sessao";
 import { cargaDeHoje, prescricaoPadrao } from "@/lib/progressao";
@@ -72,22 +79,45 @@ export function HistoricoExercicio({
     [series, porSessao, exercicioId],
   );
 
-  const carregando =
-    estadosQ.isPending ||
-    seriesQ.isPending ||
-    recordesQ.isPending ||
-    sessoesQ.isPending ||
-    // o cartão único só vale com os eventos do motor lidos (§22.14 item 2)
-    eventosQ.isPending;
-  const erro = estadosQ.error ?? seriesQ.error ?? recordesQ.error ?? sessoesQ.error;
+  // SPEC §22.17 item 4: o perfil também — as barras pesadas mudam a carga
+  const carregando = historicoCarregando({
+    perfil: perfilQ.isPending,
+    estados: estadosQ.isPending,
+    series: seriesQ.isPending,
+    recordes: recordesQ.isPending,
+    sessoes: sessoesQ.isPending,
+    eventos: eventosQ.isPending,
+  });
+  /*
+   * SPEC §22.17 item 4 (revisão do Codex no PR #33): qualquer uma das seis
+   * leituras que falhe vira o Erro — o perfil que falha não pode dar a carga
+   * sem as barras pesadas, nem os eventos que falham o cartão único — e o
+   * "Tentar de novo" refaz as que falharam.
+   */
+  const leituras = {
+    perfil: perfilQ,
+    estados: estadosQ,
+    series: seriesQ,
+    recordes: recordesQ,
+    sessoes: sessoesQ,
+    eventos: eventosQ,
+  };
+  const erros = {
+    perfil: perfilQ.error,
+    estados: estadosQ.error,
+    series: seriesQ.error,
+    recordes: recordesQ.error,
+    sessoes: sessoesQ.error,
+    eventos: eventosQ.error,
+  };
+  const erro = historicoErro(erros);
 
   if (erro) {
     return (
       <Erro
-        mensagem={(erro as Error).message}
+        mensagem={erro.message}
         aoTentarDeNovo={() => {
-          void estadosQ.refetch();
-          void seriesQ.refetch();
+          for (const chave of leiturasQueFalharam(erros)) void leituras[chave].refetch();
         }}
       />
     );

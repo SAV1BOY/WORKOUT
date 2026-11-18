@@ -6,7 +6,7 @@ import { StepperNumerico } from "@/components/stepper-numerico";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { acharExercicio } from "@/lib/dados";
-import { formatarKg, rotuloDaCarga } from "@/lib/formato";
+import { formatarKg, rotuloDaCarga, rotuloDoCampoDeCarga } from "@/lib/formato";
 import {
   alcancavelParaBaixo,
   cargasPossiveis,
@@ -17,6 +17,7 @@ import { DEGRAUS_ASSISTENCIA } from "@/lib/progressao";
 import {
   nomeDaAssistencia,
   proximaCarga,
+  rotulosDaSerie,
   type BlocoLocal,
   type SerieLocal,
 } from "@/lib/sessao";
@@ -51,8 +52,9 @@ export function LinhaSerieForm({
   const mostraAssistencia =
     serie.tipo === "trabalho" && exercicio.progressao.tipo === "assistencia";
 
-  const nome =
-    serie.tipo === "aquecimento" ? `Aquecimento ${indice}` : `Série ${indice}`;
+  // SPEC §22.18 item 5: os nomes do grupo, do visto e dos − e + de uma fonte só
+  const rotulos = rotulosDaSerie(serie.tipo, indice, exercicio.nome);
+  const { nome, contexto } = rotulos;
 
   /**
    * Carga digitada à mão (SPEC §6.4 e §10.5): o ± já anda pela escala, mas o
@@ -83,7 +85,7 @@ export function LinhaSerieForm({
       {/* group + aria-label: cada série é um alvo com nome próprio na tela */}
       <div
         role="group"
-        aria-label={`${nome} — ${exercicio.nome}`}
+        aria-label={rotulos.grupo}
         className={cn(
           "flex flex-col gap-2 rounded-lg border p-2.5",
           serie.concluida ? "border-primary/50 bg-primary/5" : "border-border",
@@ -95,7 +97,7 @@ export function LinhaSerieForm({
             type="button"
             role="checkbox"
             aria-checked={serie.concluida}
-            aria-label={`${nome} concluída`}
+            aria-label={rotulos.concluida}
             onClick={() => aoMarcar(!serie.concluida)}
             className={cn(
               "alvo flex size-11 shrink-0 items-center justify-center rounded-lg border transition-colors",
@@ -125,16 +127,16 @@ export function LinhaSerieForm({
           />
         ) : null}
 
-        <div
-          className={cn(
-            "grid gap-2",
-            // o cronômetro rouba 44 px da coluna: em tempo cada campo é uma linha
-            tipo === "tempo_s" ? "grid-cols-1" : "grid-cols-2",
-          )}
-        >
+        {/*
+          SPEC §22.18 item 4: um campo por linha, a largura toda do cartão, com
+          48 px de altura — lado a lado, o campo de carga tinha 44 px de
+          largura e "15,5" não cabia.
+        */}
+        <div className="grid grid-cols-1 gap-2">
           {tipo === "tempo_s" ? (
             <CampoTempo
               rotulo={unilateral ? "segundos (D)" : "segundos"}
+              contexto={contexto}
               valor={serie.tempoS}
               concluida={serie.concluida}
               aoMudar={(v) => aoMudar({ tempoS: v })}
@@ -145,7 +147,8 @@ export function LinhaSerieForm({
                 rotulo="passos"
                 valor={serie.passos}
                 passo={1}
-                compacto
+                alto
+                contexto={contexto}
                 aoMudar={(v) => aoMudar({ passos: v })}
               />
             </Campo>
@@ -157,7 +160,8 @@ export function LinhaSerieForm({
                 }
                 valor={serie.reps}
                 passo={1}
-                compacto
+                alto
+                contexto={contexto}
                 aoMudar={(v) => aoMudar({ reps: v })}
               />
             </Campo>
@@ -166,6 +170,7 @@ export function LinhaSerieForm({
           {unilateral && tipo === "tempo_s" ? (
             <CampoTempo
               rotulo="segundos (E)"
+              contexto={contexto}
               valor={serie.tempoSLado2}
               concluida={serie.concluida}
               aoMudar={(v) => aoMudar({ tempoSLado2: v })}
@@ -176,19 +181,21 @@ export function LinhaSerieForm({
                 rotulo="repetições do lado esquerdo"
                 valor={serie.repsLado2}
                 passo={1}
-                compacto
+                alto
+                contexto={contexto}
                 aoMudar={(v) => aoMudar({ repsLado2: v })}
               />
             </Campo>
           ) : null}
 
           {temCarga ? (
-            <Campo rotulo={rotuloDaCarga(exercicio.implemento)}>
+            <Campo rotulo={rotuloDoCampoDeCarga(exercicio.implemento)}>
               <StepperNumerico
-                rotulo={`carga ${rotuloDaCarga(exercicio.implemento)}`}
+                rotulo={rotuloDoCampoDeCarga(exercicio.implemento)}
                 valor={serie.cargaKg}
                 decimal
-                compacto
+                alto
+                contexto={contexto}
                 passo={incremento > 0 ? incremento : 1}
                 aoAndar={(direcao) =>
                   aoMudar({
@@ -220,7 +227,7 @@ function Campo({
 }) {
   return (
     <div className="flex min-w-0 flex-col gap-1">
-      <span className="text-muted-foreground text-rotulo uppercase">
+      <span className="text-muted-foreground text-rotulo tracking-wide uppercase">
         {rotulo}
       </span>
       {children}
@@ -231,11 +238,14 @@ function Campo({
 /** Segundos com cronômetro (SPEC §3.2): prancha e companhia. */
 function CampoTempo({
   rotulo,
+  contexto,
   valor,
   concluida,
   aoMudar,
 }: {
   rotulo: string;
+  /** "da Série 1 de Prancha" — o nome dos botões diz de qual série (§22.18). */
+  contexto: string;
   valor: number | null;
   /** A série já foi marcada: o cronômetro para (o valor gravado é este). */
   concluida: boolean;
@@ -291,8 +301,8 @@ function CampoTempo({
           className="alvo size-11 shrink-0"
           aria-label={
             rodando
-              ? `Parar o cronômetro (${rotulo})`
-              : `Cronômetro (${rotulo})`
+              ? `Parar o cronômetro (${rotulo}) ${contexto}`
+              : `Cronômetro (${rotulo}) ${contexto}`
           }
           onClick={() => setRodando((r) => !r)}
         >
@@ -302,7 +312,8 @@ function CampoTempo({
           rotulo={rotulo}
           valor={valor}
           passo={5}
-          compacto
+          alto
+          contexto={contexto}
           aoMudar={(v) => {
             setRodando(false);
             aoMudar(v);
@@ -323,7 +334,7 @@ export function SeletorAssistencia({
 }) {
   return (
     <div className="flex flex-col gap-1">
-      <span className="text-muted-foreground text-rotulo uppercase">
+      <span className="text-muted-foreground text-rotulo tracking-wide uppercase">
         elástico
       </span>
       <div

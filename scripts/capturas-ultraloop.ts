@@ -436,7 +436,7 @@ async function esperarTreino(page: Page) {
 async function entrar(page: Page, email: string) {
   await page.goto(`${APP}/login`);
   await page.getByLabel("E-mail").fill(email);
-  await page.getByLabel("Senha").fill(SENHA);
+  await page.getByLabel("Senha", { exact: true }).fill(SENHA);
   await page.getByRole("button", { name: "Entrar" }).click();
   await esperarTreino(page);
 }
@@ -606,6 +606,13 @@ async function contextoDeCelular(navegador: Browser, tema: Tema) {
 
 async function main() {
   mkdirSync(DESTINO, { recursive: true });
+  const versao = await fetch(`${APP}/versao`, { cache: "no-store" });
+  if (!versao.ok) throw new Error(`GET /versao: ${versao.status}`);
+  const { commit } = await versao.json() as { commit: string };
+  if (!commit) throw new Error("O build não identifica sua versão em /versao.");
+  if (process.env.CAPTURAS_COMMIT && commit !== process.env.CAPTURAS_COMMIT) {
+    throw new Error(`O build é do commit ${commit}, esperava ${process.env.CAPTURAS_COMMIT}.`);
+  }
   const indice: Registro[] = [];
   const navegador = await chromium.launch();
 
@@ -651,7 +658,7 @@ async function main() {
 
   await navegador.close();
   indice.sort((a, b) => a.arquivo.localeCompare(b.arquivo, "pt-BR"));
-  writeFileSync(join(DESTINO, "indice.json"), `${JSON.stringify(indice, null, 2)}\n`);
+  writeFileSync(join(DESTINO, "indice.json"), `${JSON.stringify(indice.map(registro => ({ ...registro, commit })), null, 2)}\n`);
   const faltam = indice.filter((r) => !r.alcancada);
   console.log(
     `capturas em ${DESTINO}: ${indice.length - faltam.length} de ${indice.length}` +

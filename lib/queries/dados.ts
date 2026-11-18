@@ -8,6 +8,7 @@
 "use client";
 
 import { useQuery, type QueryClient, type UseQueryResult } from "@tanstack/react-query";
+import { lerTabelaCompleta } from "@/lib/queries/ler";
 import { clienteNavegador } from "@/lib/supabase/client";
 import type {
   LinhaBarraFixaSolta,
@@ -27,9 +28,6 @@ export const SESSOES_RECENTES = 60;
 
 /** Quantas sessões de cardio as sequências da aba Treino precisam ver. */
 export const CARDIOS_RECENTES = 120;
-
-/** Quantas sessões de cardio o total do Relatório lê (uns cinco anos). */
-export const CARDIOS_TODOS = 800;
 
 export const chaves = {
   perfil: () => ["perfil"] as const,
@@ -115,7 +113,7 @@ export function useOverrides(
 export type SessaoResumo = Pick<
   LinhaSessao,
   "id" | "data" | "status" | "workout_id" | "fase" | "concluida_em"
->;
+> & Partial<Pick<LinhaSessao, "plano">>;
 
 const COLUNAS_SESSAO = "id,data,status,workout_id,fase,concluida_em";
 
@@ -142,7 +140,7 @@ export function useSessoesAbertas(): UseQueryResult<SessaoResumo[]> {
       lerLista<SessaoResumo>(
         clienteNavegador()
           .from("sessions")
-          .select(COLUNAS_SESSAO)
+          .select(`${COLUNAS_SESSAO},plano`)
           .eq("status", "em_andamento")
           .order("data", { ascending: false })
           .limit(5),
@@ -204,15 +202,12 @@ export function useCardioDesde(
 export function useCardioTodos(): UseQueryResult<LinhaSessaoCardio[]> {
   return useQuery({
     queryKey: chaves.cardioTodos(),
-    queryFn: () =>
-      lerLista<LinhaSessaoCardio>(
-        clienteNavegador()
-          .from("cardio_sessions")
-          .select("*")
-          .order("data", { ascending: false })
-          .limit(CARDIOS_TODOS),
-        "as sessões de cardio",
-      ),
+    queryFn: async () => {
+      const linhas = await lerTabelaCompleta<LinhaSessaoCardio>(
+        "cardio_sessions", "*", "as sessões de cardio",
+      );
+      return linhas.sort((a, b) => b.data.localeCompare(a.data));
+    },
   });
 }
 
@@ -279,9 +274,6 @@ export function useSoltas(
   });
 }
 
-/** Quantos dias de repetições soltas o Relatório lê (uns cinco anos). */
-export const SOLTAS_TODAS = 2000;
-
 /**
  * Todas as repetições soltas (SPEC §19.2): os Números por período e as
  * conquistas de barra fixa contam desde o começo, não só a janela do histórico.
@@ -289,15 +281,12 @@ export const SOLTAS_TODAS = 2000;
 export function useSoltasTodas(): UseQueryResult<SoltaComAssistencia[]> {
   return useQuery({
     queryKey: chaves.soltasTodas(),
-    queryFn: () =>
-      lerLista<SoltaComAssistencia>(
-        clienteNavegador()
-          .from("pullup_singles")
-          .select("id,data,reps,assistencia")
-          .order("data", { ascending: false })
-          .limit(SOLTAS_TODAS),
-        "as repetições soltas",
-      ),
+    queryFn: async () => {
+      const linhas = await lerTabelaCompleta<SoltaComAssistencia>(
+        "pullup_singles", "id,data,reps,assistencia", "as repetições soltas",
+      );
+      return linhas.sort((a, b) => b.data.localeCompare(a.data));
+    },
   });
 }
 
@@ -386,6 +375,8 @@ export function useEventos(ids: readonly string[]): UseQueryResult<EventoResumo[
 export function useSessao(id: string | null): UseQueryResult<LinhaSessao | null> {
   return useQuery({
     queryKey: chaves.sessao(id ?? ""),
+    // Ao reabrir, descobre se outro aparelho concluiu a cópia que ficou aqui.
+    refetchOnMount: "always",
     enabled: id !== null,
     queryFn: () =>
       ler<LinhaSessao>(
@@ -421,27 +412,53 @@ export const SERIES_ANTERIORES = 200;
 
 export type SerieAnterior = Pick<
   LinhaSerie,
-  "exercise_id" | "session_id" | "set_index" | "reps" | "tipo" | "concluida" | "registrada_em"
+  "exercise_id" | "session_id" | "ordem_ex" | "set_index" | "reps" | "tipo" | "concluida" | "registrada_em"
 >;
 
-/** As séries recentes destes exercícios (o tipo `maximo` compara com elas). */
+/** As séries de um exercício interrompido continuam no histórico, mas não
+ * servem de referência para avaliar um novo treino de tipo máximo. */
+export function seriesComparaveis(
+  series: SerieAnterior[],
+  sessoes: Pick<LinhaSessao, "id" | "status" | "plano">[],
+): SerieAnterior[] {
+  const porId = new Map(sessoes.map((s) => [s.id, s]));
+  return series.filter((s) => {
+    const sessao = porId.get(s.session_id);
+    if (!sessao || sessao.status === "em_andamento") return false;
+    const atual = sessao.plano?.trocas?.[s.ordem_ex]?.[0];
+    return !atual || atual.exercicio_id === s.exercise_id;
+  });
+}
+
+/** As séries recentes destes exercícios (o tipo máximo compara com elas). */
 export function useSeriesAnteriores(
   ids: readonly string[],
 ): UseQueryResult<SerieAnterior[]> {
   return useQuery({
     queryKey: chaves.seriesAnteriores(ids),
     enabled: ids.length > 0,
-    queryFn: () =>
-      lerLista<SerieAnterior>(
-        clienteNavegador()
-          .from("session_sets")
-          .select("exercise_id,session_id,set_index,reps,tipo,concluida,registrada_em")
+    queryFn: async () => {
+      const cliente = clienteNavegador();
+      const series = await lerLista<SerieAnterior>(
+        cliente.from("session_sets")
+          .select("exercise_id,session_id,ordem_ex,set_index,reps,tipo,concluida,registrada_em")
           .in("exercise_id", [...ids])
           .eq("tipo", "trabalho")
+          .eq("concluida", true)
           .order("registrada_em", { ascending: false })
           .limit(SERIES_ANTERIORES),
         "as séries anteriores",
-      ),
+      );
+      const sessoes = [...new Set(series.map((s) => s.session_id))];
+      const consultas = [];
+      for (let inicio = 0; inicio < sessoes.length; inicio += 50) {
+        consultas.push(lerLista<Pick<LinhaSessao, "id" | "status" | "plano">>(
+          cliente.from("sessions").select("id,status,plano").in("id", sessoes.slice(inicio, inicio + 50)),
+          "as sessões das séries anteriores",
+        ));
+      }
+      return seriesComparaveis(series, (await Promise.all(consultas)).flat());
+    },
   });
 }
 

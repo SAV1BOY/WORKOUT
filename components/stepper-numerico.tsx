@@ -3,7 +3,7 @@
 import { Minus, Plus } from "lucide-react";
 import { useEffect, useId, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { aceitarDigitacao } from "@/lib/digitar-numero";
+import { aceitarDigitacao, nomeDoPasso } from "@/lib/digitar-numero";
 import { formatarNumero, lerNumero } from "@/lib/formato";
 import { cn } from "@/lib/utils";
 
@@ -26,6 +26,8 @@ export function StepperNumerico({
   decimal = false,
   compacto = false,
   grande = false,
+  alto = false,
+  contexto,
   desabilitado = false,
 }: {
   valor: number | null;
@@ -41,6 +43,18 @@ export function StepperNumerico({
   compacto?: boolean;
   /** Número grande e alvos de 56 px: é o passo do player (SPEC §14.1.2). */
   grande?: boolean;
+  /**
+   * Botões e campo com 48 px de altura: a série da Visão geral, onde o
+   * stepper ocupa a largura toda do cartão (SPEC §22.18 item 4).
+   */
+  alto?: boolean;
+  /**
+   * Complemento do nome dos botões − e + ("da Série 1 de Levantamento
+   * terra"): na Visão geral há um par por série, e sem isto eram 17
+   * "Aumentar repetições" idênticos (SPEC §22.18 item 5). O campo fica só
+   * com o `rotulo` — ele já está dentro do grupo da série.
+   */
+  contexto?: string;
   desabilitado?: boolean;
 }) {
   const id = useId();
@@ -141,10 +155,10 @@ export function StepperNumerico({
         type="button"
         variant="outline"
         size="icon"
-        className={cn("alvo shrink-0", grande ? "size-14 rounded-2xl" : "size-11")}
+        className={cn("alvo shrink-0", grande ? "size-14 rounded-2xl" : alto ? "size-12" : "size-11")}
         onClick={() => andar(-1)}
         disabled={desabilitado}
-        aria-label={`Diminuir ${rotulo}`}
+        aria-label={nomeDoPasso("Diminuir", rotulo, contexto)}
       >
         <Minus className={grande ? "size-7" : "size-5"} />
       </Button>
@@ -174,7 +188,7 @@ export function StepperNumerico({
             // tem o campo como alvo, e na grade de duas colunas da sessão ele
             // fechava em 37 px de largura.
             "numero border-input bg-background w-full min-w-11 rounded-lg border text-center tabular-nums",
-            grande ? "h-14 rounded-2xl" : "h-11",
+            grande ? "h-14 rounded-2xl" : alto ? "h-12" : "h-11",
             // "107,5" ainda cabe na coluna estreita de 360 px
             grande ? "px-1 text-3xl font-semibold" : compacto ? "px-0.5 text-base" : "px-2 text-lg",
             "focus-visible:border-ring focus-visible:ring-ring outline-none focus-visible:ring-3",
@@ -193,10 +207,10 @@ export function StepperNumerico({
         type="button"
         variant="outline"
         size="icon"
-        className={cn("alvo shrink-0", grande ? "size-14 rounded-2xl" : "size-11")}
+        className={cn("alvo shrink-0", grande ? "size-14 rounded-2xl" : alto ? "size-12" : "size-11")}
         onClick={() => andar(1)}
         disabled={desabilitado}
-        aria-label={`Aumentar ${rotulo}`}
+        aria-label={nomeDoPasso("Aumentar", rotulo, contexto)}
       >
         <Plus className={grande ? "size-7" : "size-5"} />
       </Button>

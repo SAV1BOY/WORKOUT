@@ -11,6 +11,8 @@ import {
   estadosNoCache,
   recordesNoCache,
   seriesAnterioresNoCache,
+  seriesComparaveis,
+  type SerieAnterior,
 } from "@/lib/queries/dados";
 
 function estado(id: string, carga: number) {
@@ -99,4 +101,25 @@ describe("recordesNoCache e seriesAnterioresNoCache", () => {
     expect(seriesAnterioresNoCache(cliente, ["agachamento-livre"])).toHaveLength(1);
     expect(seriesAnterioresNoCache(cliente, ["remada-curvada-com-barra"])).toEqual([]);
   });
+});
+
+
+it("o máximo compara com sessões encerradas e exclui o exercício interrompido pela troca", () => {
+  const linha = (session_id: string, exercise_id: string): SerieAnterior => ({
+    session_id, exercise_id, ordem_ex: 2, tipo: "trabalho", concluida: true,
+    set_index: 1, reps: 5, registrada_em: "2026-11-18T13:00:00Z",
+  });
+  const antiga = linha("antiga", "barra-fixa-pronada");
+  const interrompida = linha("troca", "barra-fixa-pronada");
+  const substituta = linha("troca", "barra-fixa-supinada");
+  const aberta = linha("aberta", "barra-fixa-pronada");
+  const participantes = [substituta, interrompida].map((s) => ({
+    exercicio_id: s.exercise_id, trabalho: [1], aquecimento: [], ultima_firme: null, nota: null,
+  }));
+  const sessoes = [
+    { id: "antiga", status: "concluida" as const, plano: null },
+    { id: "aberta", status: "em_andamento" as const, plano: null },
+    { id: "troca", status: "concluida" as const, plano: { titulo: null, colecao: null, itens: [], trocas: { 2: participantes } } },
+  ];
+  expect(seriesComparaveis([antiga, interrompida, substituta, aberta], sessoes)).toEqual([antiga, substituta]);
 });

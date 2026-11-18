@@ -190,12 +190,17 @@ export function planoDeCardio(tipo: TipoCardio, semana: number): PlanoCardio {
   };
 }
 
+/** Minutos de todos os blocos do timer, incluindo pausas, aquecimento e soltura. */
+export function minutosDoPlano(totalS: number, estimativaMin: number | null = null): number | null {
+  return totalS > 0 ? Math.round(totalS / 60) : estimativaMin;
+}
+
 /** "Corrida · semana 1 · 8 × (1 min corrida / 2 min caminhada) · 34 min". */
 export function textoDoPlano(plano: PlanoCardio): string {
   const partes = [plano.titulo];
   if (plano.descricao) partes.push(plano.descricao);
-  if (plano.totalS > 0) partes.push(formatarMinutos(plano.totalS / 60));
-  else if (plano.sessaoMin !== null) partes.push(formatarMinutos(plano.sessaoMin));
+  const min = minutosDoPlano(plano.totalS, plano.sessaoMin);
+  if (min !== null) partes.push(formatarMinutos(min));
   return partes.join(" · ");
 }
 

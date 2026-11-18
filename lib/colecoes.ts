@@ -321,18 +321,15 @@ export function metaDoPlano(
   return `semana ${semanaPresa(semana, dados.semanas)} de ${dados.semanas}`;
 }
 
-/**
- * O detalhe da capa da tela de uma coleção (SPEC §22.15 item 7). Na tela do
- * plano, a posição ("semana N de T") mora no bloco "Semanas do plano", com a
- * barra e o "agora"; repetida na capa, aparecia duas vezes na mesma rolagem.
- * A capa diz o que o plano é: a meta sem perfil — a duração, ou nada quando o
- * objetivo já diz o prazo. As outras coleções ficam com o detalhe delas.
- */
+/** A capa e o bloco de progresso mostram a semana atual dos três planos. */
 export function detalheDaCapa(
   colecao: Pick<Colecao, "detalhe">,
   plano: { id: PlanoId; semanas: number; subtitulo: string | null } | null,
+  semanaAtual: number | null = null,
 ): string | null {
-  return plano ? metaDoPlano(plano, null) : colecao.detalhe;
+  if (!plano) return colecao.detalhe;
+  if (semanaAtual === null || !Number.isFinite(semanaAtual)) return metaDoPlano(plano, null);
+  return `Semana ${semanaPresa(semanaAtual, plano.semanas)} de ${plano.semanas}`;
 }
 
 /** O botão de um plano: o rótulo, que diz o destino, e a rota. */

@@ -17,6 +17,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
+import { Erro } from "@/components/carregando";
 import { ICONE_DA_ABA } from "@/components/icones-das-abas";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,7 +28,7 @@ import {
   type IconeDaSecao,
   type SecaoDoGuia,
 } from "@/lib/guia";
-import { comGuiaVisto } from "@/lib/preferencias";
+import { comGuiaVisto, marcarGuiaNoAparelho } from "@/lib/preferencias";
 import { usePerfil } from "@/lib/queries/dados";
 import { salvarPrefs } from "@/lib/queries/mais";
 
@@ -79,24 +80,28 @@ export function TelaGuia() {
           prefs: comGuiaVisto(perfil.prefs),
           cliente,
         });
+        marcarGuiaNoAparelho(perfil.user_id);
       }
+      router.replace(destino);
     } catch {
-      toast.error("Não consegui salvar agora. Fica na fila.");
+      toast.error("Não consegui salvar agora. Tente de novo.");
     } finally {
       setSalvando(false);
-      router.replace(destino);
     }
   };
 
   return (
     <section aria-label="Como usar o app" className="flex flex-col gap-5">
+      {inicio && !perfil && perfilQ.isError && (
+        <Erro mensagem="Não consegui ler seu perfil." aoTentarDeNovo={() => void perfilQ.refetch()} />
+      )}
       <header className="flex flex-col gap-2">
         {inicio ? (
           <div className="flex justify-end">
             <Button
               variant="ghost"
               className="alvo text-muted-foreground -mr-2"
-              disabled={salvando}
+              disabled={salvando || (inicio && !perfil)}
               onClick={() => void reconhecer("/")}
             >
               Pular por agora
@@ -129,7 +134,7 @@ export function TelaGuia() {
       <div className="flex flex-col gap-2 pb-2">
         <Button
           className="alvo h-14 w-full text-base font-semibold"
-          disabled={salvando}
+          disabled={salvando || (inicio && !perfil)}
           onClick={() => void reconhecer(inicio ? "/" : "/mais")}
         >
           {inicio ? "Entendi, começar a treinar" : "Entendi"}
@@ -200,7 +205,7 @@ function Secao({ secao }: { secao: SecaoDoGuia }) {
         {blocos.map((bloco, i) => (
           <div key={bloco.grupo ?? `bloco-${i}`}>
             {bloco.grupo ? (
-              <h3 className="text-muted-foreground border-border border-b pt-3 pb-1 text-rotulo font-medium tracking-wide uppercase first:pt-1">
+              <h3 className="text-muted-foreground border-border border-b pt-3 pb-1 text-rotulo tracking-wide uppercase first:pt-1">
                 {bloco.grupo}
               </h3>
             ) : null}

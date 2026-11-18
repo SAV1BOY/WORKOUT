@@ -1,16 +1,15 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Erro, EsqueletoCard } from "@/components/carregando";
-import { FichaEmFolha, type ContextoDaFicha } from "@/components/exercicio/ficha-folha";
-import { AjustesDoTreino } from "@/components/mais/ajustes-do-treino";
-import { TelaConclusao } from "@/components/player/conclusao";
+import { FichaEmFolha } from "@/components/exercicio/ficha-sob-demanda";
+import type { ContextoDaFicha } from "@/components/exercicio/ficha-folha";
+import { SeletorAlternativa } from "@/components/exercicio/seletor-alternativa";
 import { TelaDescanso } from "@/components/player/descanso";
 import { TelaExercicio } from "@/components/player/exercicio";
-import { TelaFeedback } from "@/components/player/feedback";
-import { TelaFirme } from "@/components/player/firme";
 import { TelaPreparacao } from "@/components/player/preparacao";
 import { useSessaoDeTreino } from "@/components/treinar/usar-sessao";
 import { VisaoGeralDaSessao } from "@/components/treinar/visao-geral";
@@ -33,19 +32,20 @@ import {
   indiceDeRetomada,
   indiceDoEstado,
   irPara,
-  posicaoNaSequencia,
+  progressoDoPlayer,
+  prefsDoVoto,
   rotuloDoPasso,
   seguinte,
   sequenciaDoPlayer,
+  serieAntesDoDescanso,
   serieDoPasso,
   somarSegundos,
-  totalDeSeries,
+  indiceDaChave,
   zerou,
   type EstadoPlayer,
   type PassoSerie,
 } from "@/lib/player";
 import {
-  comVoto,
   ligado,
   opcoesDoPlayer,
   votoDoExercicio,
@@ -53,11 +53,12 @@ import {
 } from "@/lib/preferencias";
 import { enfileirarEscrita } from "@/lib/outbox-supabase";
 import { registrarPeso } from "@/lib/queries/corpo";
-import { salvarPerfil, salvarPrefs } from "@/lib/queries/mais";
+import { salvarPerfil, salvarPrefsOuDesfazer } from "@/lib/queries/mais";
 import { chaves, useUltimoPeso } from "@/lib/queries/dados";
 import { useHoje } from "@/lib/relogio";
 import {
   ajustarPrescricaoDaSessao,
+  avisoDaTroca,
   contadoresDaSessao,
   firmePadrao,
   type BlocoLocal,
@@ -65,6 +66,11 @@ import {
   type SessaoLocal,
 } from "@/lib/sessao";
 import type { LinhaPerfil } from "@/lib/types";
+
+const AjustesDoTreino = dynamic(() => import("@/components/mais/ajustes-do-treino").then((m) => m.AjustesDoTreino));
+const TelaConclusao = dynamic(() => import("@/components/player/conclusao").then((m) => m.TelaConclusao));
+const TelaFeedback = dynamic(() => import("@/components/player/feedback").then((m) => m.TelaFeedback));
+const TelaFirme = dynamic(() => import("@/components/player/firme").then((m) => m.TelaFirme));
 
 /**
  * O player (SPEC §14.1): preparação → exercício → descanso → "firme?" →
@@ -92,7 +98,8 @@ export function TelaPlayer({
   const [estado, setEstado] = useState<EstadoPlayer | null>(null);
   const [agora, setAgora] = useState(() => Date.now());
   const [visaoGeral, setVisaoGeral] = useState(false);
-  const [ficha, setFicha] = useState<string | null>(null);
+  const [ordemDaFicha, setFicha] = useState<number | null>(null);
+  const [trocando, setTrocando] = useState(false);
   const [ajustar, setAjustar] = useState(false);
   /** Muda ao fechar a Visão geral: o foco volta ao botão que a abriu (§22.5). */
   const [pedidoDeFoco, setPedidoDeFoco] = useState(0);
@@ -302,23 +309,23 @@ export function TelaPlayer({
   /* ------------------------------------------------------ ações */
 
   /**
-   * O voto dos polegares (SPEC §22.16 item 6). Devolve se gravou: sem perfil
+   * O voto dos polegares (SPEC §22.16 item 6 e §22.18 itens 8 e 9). Devolve
+   * o voto que havia antes do toque, ou `null` quando não gravou: sem perfil
    * (o player abre só com a sessão do aparelho) não há onde gravar, e a tela
-   * não pode confirmar o voto. As preferências são as de AGORA, lidas do
-   * cache na hora: o "Desfazer" chega segundos depois, e gravar por cima um
-   * retrato do render do voto apagaria qualquer outra mudança feita no meio.
+   * não pode confirmar o voto. As preferências — e o voto de antes — são as
+   * de AGORA, lidas do cache na hora (`prefsDoVoto`, pura).
    */
   const avaliarExercicio = useCallback(
-    (exercicioId: string, voto: VotoDoExercicio): boolean => {
-      const atual =
-        cliente.getQueryData<LinhaPerfil | null>(chaves.perfil()) ?? perfil;
-      if (!atual) return false;
-      void salvarPrefs({
-        userId: atual.user_id,
-        prefs: comVoto(atual.prefs, exercicioId, voto),
-        cliente,
-      });
-      return true;
+    async (exercicioId: string, voto: VotoDoExercicio): Promise<VotoDoExercicio | undefined> => {
+      const gravacao = prefsDoVoto(
+        cliente.getQueryData<LinhaPerfil | null>(chaves.perfil()),
+        perfil,
+        exercicioId,
+        voto,
+      );
+      if (!gravacao) return undefined;
+      await salvarPrefsOuDesfazer({ userId: gravacao.userId, prefs: gravacao.prefs, cliente });
+      return gravacao.antes;
     },
     [perfil, cliente],
   );
@@ -387,9 +394,12 @@ export function TelaPlayer({
       ? (sessao.blocos.find((b) => b.ordem === passo.ordem) ?? null)
       : null;
 
+  const blocoDaFicha = sessao.blocos.find((b) => b.ordem === ordemDaFicha);
+  const ficha = blocoDaFicha?.exercicioId ?? null;
+  const nomeDoTreino = nomeDaSessao(dados);
   /** A ficha aberta de dentro da sessão mexe na prescrição de hoje (§14.2). */
   const contextoDaFicha = ((): ContextoDaFicha | undefined => {
-    const alvoBloco = sessao.blocos.find((b) => b.exercicioId === ficha);
+    const alvoBloco = blocoDaFicha;
     if (!ficha || !alvoBloco) return undefined;
     const pendente =
       alvoBloco.series.find((s) => s.tipo === "trabalho" && !s.concluida) ??
@@ -414,30 +424,58 @@ export function TelaPlayer({
         dados.mexer((atual) =>
           ajustarPrescricaoDaSessao(atual, alvoBloco.ordem, { alvo: v }),
         ),
-      aoSubstituir: (novo) => {
-        dados.substituir(alvoBloco, novo);
-        setFicha(novo);
-      },
+      aoSubstituir: alvoBloco.series.some((s) => s.tipo === "trabalho" && !s.concluida)
+        ? (novo) => dados.substituir(alvoBloco, novo)
+        : undefined,
+      originalId: alvoBloco.substituido ? alvoBloco.originalId : undefined,
+      avisoDaTroca: avisoDaTroca(alvoBloco),
       indice: sessao.blocos.indexOf(alvoBloco),
       total: sessao.blocos.length,
-      aoIr: (i) => setFicha(sessao.blocos[i]?.exercicioId ?? null),
+      aoIr: (i) => setFicha(sessao.blocos[i]?.ordem ?? null),
     };
   })();
 
   const folha = (
     <>
-      <FichaEmFolha
-        exercicioId={ficha}
-        aberto={ficha !== null}
-        aoMudarAberto={(v) => setFicha(v ? ficha : null)}
-        temVideo={ficha !== null && videos.includes(ficha)}
-        contexto={contextoDaFicha}
-        prefs={prefs}
-      />
+      {ficha !== null && (
+        <FichaEmFolha
+          exercicioId={ficha}
+          aberto
+          aoMudarAberto={(aberto) => { if (!aberto) setFicha(null); }}
+          temVideo={videos.includes(ficha)}
+          contexto={contextoDaFicha}
+          prefs={prefs}
+        />
+      )}
+      {passo.tipo === "serie" && bloco && (
+        <SeletorAlternativa
+          exercicioId={bloco.exercicioId}
+          prefs={prefs}
+          aberto={trocando}
+          aoMudarAberto={setTrocando}
+          avisoDaTroca={avisoDaTroca(bloco)}
+          voltarAoOriginal={bloco.substituido ? {
+            nome: acharExercicio(bloco.originalId).nome,
+            escolher: () => dados.substituir(bloco, bloco.originalId),
+          } : undefined}
+          aoSubstituir={(novo) => {
+            dados.substituir(bloco, novo);
+            setAviso(`Exercício escolhido: ${acharExercicio(novo).nome}.`);
+          }}
+        />
+      )}
       <Sheet open={ajustar} onOpenChange={setAjustar}>
-        <SheetContent side="bottom" className="max-h-[88dvh] overflow-y-auto pb-8">
+        <SheetContent
+          side="bottom"
+          className="max-h-[88dvh] overflow-y-auto pb-8"
+          onOpenAutoFocus={(evento) => {
+            evento.preventDefault();
+            (evento.currentTarget as HTMLElement)
+              .querySelector<HTMLElement>("[data-titulo-da-folha]")?.focus();
+          }}
+        >
           <SheetHeader className="pb-0">
-            <SheetTitle>Ajustar</SheetTitle>
+            <SheetTitle data-titulo-da-folha tabIndex={-1}>Ajustar</SheetTitle>
             <SheetDescription>
               Vale para todos os treinos. Fica em Mais → Preferências.
             </SheetDescription>
@@ -461,9 +499,9 @@ export function TelaPlayer({
           exercicioId={passo.exercicioId}
           estado={estado}
           agora={agora}
-          nomeDoTreino={nomeDaSessao(dados)}
+          nomeDoTreino={nomeDoTreino}
           pedidoDeFoco={pedidoDeFoco}
-          aoAbrirFicha={() => setFicha(passo.exercicioId)}
+          aoAbrirFicha={() => setFicha(passo.ordem)}
           aoAbrirLista={() => {
             recontar.current = true;
             setVisaoGeral(true);
@@ -478,6 +516,7 @@ export function TelaPlayer({
   if (passo.tipo === "serie" && bloco) {
     const serie = serieDoPasso(sessao, passo);
     if (!serie) return <EsqueletoCard linhas={6} />;
+    const progresso = progressoDoPlayer(sessao);
     return (
       <>
         <TelaExercicio
@@ -489,14 +528,20 @@ export function TelaPlayer({
           temVideo={videos.includes(bloco.exercicioId)}
           anteriores={dados.anteriores[bloco.exercicioId]}
           voto={votoDoExercicio(prefs, bloco.exercicioId)}
-          feitas={posicaoNaSequencia(seq, indice)}
-          total={totalDeSeries(seq)}
-          nomeDoTreino={nomeDaSessao(dados)}
+          feitas={progresso.feitas}
+          total={progresso.total}
+          nomeDoTreino={nomeDoTreino}
           aviso={aviso}
           pedidoDeFoco={pedidoDeFoco}
           aoMudar={(campos) => dados.mudarSerie(bloco.ordem, serie.id, campos)}
           aoConcluir={() => {
-            if (!serie.concluida) dados.marcar(bloco.ordem, serie.id, true);
+            const descanso = estado.descansoAoCorrigir;
+            if (!serie.concluida || descanso) dados.marcar(bloco.ordem, serie.id, true);
+            if (descanso && indiceDaChave(seq, descanso.chave) >= 0) {
+              setAviso(textoDaSerieGravada(passo, bloco, serie, null));
+              guardar(descanso);
+              return;
+            }
             const destino = apos(seq, indice);
             // SPEC §22.5 item 10: gravar a série deixa de ser silencioso
             setAviso(textoDaSerieGravada(passo, bloco, serie, seq[destino] ?? null));
@@ -504,7 +549,10 @@ export function TelaPlayer({
           }}
           aoAnterior={() => ir(passoAnterior(seq, indice))}
           aoProximo={() => ir(seguinte(seq, indice))}
-          aoAbrirFicha={() => setFicha(bloco.exercicioId)}
+          aoAbrirFicha={() => setFicha(bloco.ordem)}
+          aoTrocar={bloco.series.some((s) => s.tipo === "trabalho" && !s.concluida)
+            ? () => setTrocando(true)
+            : undefined}
           aoAbrirLista={() => setVisaoGeral(true)}
           aoAjustar={() => setAjustar(true)}
           aoAvaliar={(voto) => avaliarExercicio(bloco.exercicioId, voto)}
@@ -520,27 +568,47 @@ export function TelaPlayer({
     const blocoDoProximo = proximo
       ? (sessao.blocos.find((b) => b.ordem === proximo.ordem) ?? null)
       : null;
+    const anterior = serieAntesDoDescanso(seq, indice, sessao);
+    const serieFeita = anterior ? serieDoPasso(sessao, anterior) : null;
+    const blocoFeito = anterior
+      ? sessao.blocos.find((b) => b.ordem === anterior.ordem)
+      : null;
+    const registrado = anterior && blocoFeito && serieFeita
+      ? textoDaSerieGravada(anterior, blocoFeito, serieFeita, null)
+      : null;
     return (
-      <TelaDescanso
-        estado={estado}
-        agora={agora}
-        proximo={proximo}
-        blocoDoProximo={blocoDoProximo}
-        serieDoProximo={proximo ? serieDoPasso(sessao, proximo) : null}
-        som={ligado(prefs, "descanso_som")}
-        vibracao={ligado(prefs, "descanso_vibra")}
-        avancarSozinho={ligado(prefs, "avancar_sozinho")}
-        aviso={aviso}
-        aoSomar={(s) => guardar(somarSegundos(estado, s, Date.now()))}
-        aoDefinir={(s) => guardar(definirDuracao(estado, s, Date.now()))}
-        aoPular={() => ir(passo.indiceProximo)}
-      />
+      <>
+        <h1 className="sr-only">{nomeDoTreino} — descanso{proximo ? ` antes do exercício ${proximo.posicao} de ${proximo.totalExercicios}` : ""}</h1>
+        <TelaDescanso
+          estado={estado}
+          agora={agora}
+          proximo={proximo}
+          blocoDoProximo={blocoDoProximo}
+          serieDoProximo={proximo ? serieDoPasso(sessao, proximo) : null}
+          som={ligado(prefs, "descanso_som")}
+          vibracao={ligado(prefs, "descanso_vibra")}
+          avancarSozinho={ligado(prefs, "avancar_sozinho") && ficha === null}
+          registrado={registrado}
+          aoAbrirFicha={() => proximo && setFicha(proximo.ordem)}
+          aoCorrigir={() => {
+            if (anterior) {
+              guardar({ ...estadoDoPasso(anterior, Date.now()), descansoAoCorrigir: estado });
+            }
+          }}
+          aviso={aviso}
+          aoSomar={(s) => guardar(somarSegundos(estado, s, Date.now()))}
+          aoDefinir={(s) => guardar(definirDuracao(estado, s, Date.now()))}
+          aoPular={() => ir(passo.indiceProximo)}
+        />
+        {folha}
+      </>
     );
   }
 
   if (passo.tipo === "firme" && bloco) {
     return (
       <>
+        <h1 className="sr-only">{nomeDoTreino} — esforço em {acharExercicio(bloco.exercicioId).nome}</h1>
         <TelaFirme
           exercicioId={bloco.exercicioId}
           firme={bloco.ultimaFirme ?? firmePadrao(bloco)}
@@ -557,65 +625,70 @@ export function TelaPlayer({
 
   if (passo.tipo === "feedback") {
     return (
-      <TelaFeedback
-        sensacao={sessao.sensacao}
-        aoEscolher={(valor) =>
-          dados.mexer((atual) => ({ ...atual, sensacao: valor }))
-        }
-        aoSeguir={() => ir(indice + 1)}
-        aoVoltar={() => ir(passoAnterior(seq, indice))}
-      />
+      <>
+        <h1 className="sr-only">{nomeDoTreino} — avaliação do treino</h1>
+        <TelaFeedback
+          sensacao={sessao.sensacao}
+          aoEscolher={(valor) =>
+            dados.mexer((atual) => ({ ...atual, sensacao: valor }))
+          }
+          aoSeguir={() => ir(indice + 1)}
+          aoVoltar={() => ir(passoAnterior(seq, indice))}
+        />
+      </>
     );
   }
 
   const primeiro = sessao.blocos[0]?.exercicioId ?? null;
-  const nomeDoTreino = nomeDaSessao(dados);
   const semana = perfil ? semanaDaFase(sessao.data, perfil.fase_desde) : null;
   const pesoDaTela = pesoDigitado ?? sessao.pesoCorporal;
 
   return (
-    <TelaConclusao
-      sessaoId={sessao.id}
-      titulo={`${nomeDoTreino} concluído`}
-      subtitulo={
-        semana ? `${nomeDoTreino} · semana ${semana} da fase` : nomeDoTreino
-      }
-      primeiroExercicioId={primeiro}
-      contadores={contadoresDaSessao(sessao)}
-      duracaoS={dados.decorridoS}
-      resultados={dados.previa("concluida")}
-      hoje={hoje ?? sessao.data}
-      dataDaSessao={sessao.data}
-      pesoAtual={pesoQ.data?.[0]?.peso_kg ?? null}
-      pesoDeHoje={
-        pesoQ.data?.[0]?.data === (hoje ?? sessao.data)
-          ? (pesoQ.data?.[0]?.peso_kg ?? null)
-          : null
-      }
-      alturaCm={perfil?.altura_cm ?? null}
-      peso={pesoDaTela}
-      aoMudarPeso={anotarPeso}
-      aoMudarAltura={perfil ? mudarAltura : undefined}
-      salvando={dados.salvando}
-      gravada={gravacao === "feita"}
-      falhou={gravacao === "falhou"}
-      aoSeguir={() => {
-        if (gravacao === "falhou") {
-          gravarAgora();
-          return;
+    <>
+      <h1 className="sr-only">{nomeDoTreino} — conclusão</h1>
+      <TelaConclusao
+        sessaoId={sessao.id}
+        titulo={`${nomeDoTreino} concluído`}
+        subtitulo={
+          semana ? `${nomeDoTreino} · semana ${semana} da fase` : nomeDoTreino
         }
-        escreverPeso();
-        router.push("/");
-      }}
-      /*
-        SPEC §22.5 item 2: com a sessão já gravada não há para onde voltar —
-        reentrar na conclusão rodaria o motor de novo. O "Voltar ao treino" só
-        existe enquanto a gravação não terminou.
-      */
-      aoVoltar={
-        gravacao === "feita" ? undefined : () => ir(passoAnterior(seq, indice))
-      }
-    />
+        primeiroExercicioId={primeiro}
+        contadores={contadoresDaSessao(sessao)}
+        duracaoS={dados.decorridoS}
+        resultados={dados.previa("concluida")}
+        hoje={hoje ?? sessao.data}
+        dataDaSessao={sessao.data}
+        pesoAtual={pesoQ.data?.[0]?.peso_kg ?? null}
+        pesoDeHoje={
+          pesoQ.data?.[0]?.data === (hoje ?? sessao.data)
+            ? (pesoQ.data?.[0]?.peso_kg ?? null)
+            : null
+        }
+        alturaCm={perfil?.altura_cm ?? null}
+        peso={pesoDaTela}
+        aoMudarPeso={anotarPeso}
+        aoMudarAltura={perfil ? mudarAltura : undefined}
+        salvando={dados.salvando}
+        gravada={gravacao === "feita"}
+        falhou={gravacao === "falhou"}
+        aoSeguir={() => {
+          if (gravacao === "falhou") {
+            gravarAgora();
+            return;
+          }
+          escreverPeso();
+          router.push("/");
+        }}
+        /*
+          SPEC §22.5 item 2: com a sessão já gravada não há para onde voltar —
+          reentrar na conclusão rodaria o motor de novo. O "Voltar ao treino" só
+          existe enquanto a gravação não terminou.
+        */
+        aoVoltar={
+          gravacao === "feita" ? undefined : () => ir(passoAnterior(seq, indice))
+        }
+      />
+    </>
   );
 }
 

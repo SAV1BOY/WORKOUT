@@ -12,7 +12,7 @@ import { capaDoCardio, capaDoExercicio, capaDoTreino } from "@/lib/capas";
 import { acharExercicio, cardio as dadosCardio, exerciciosDoTreino } from "@/lib/dados";
 import { dificuldadeDaColecao } from "@/lib/dificuldade";
 import { formatarKm, formatarMinutos, formatarNumero } from "@/lib/formato";
-import { descricaoDoCardio, detalheDoTreino, type ResumoDoTreino } from "@/lib/hoje";
+import { descricaoDoCardio, minutosDoCardio, detalheDoTreino, type ResumoDoTreino } from "@/lib/hoje";
 import { cn } from "@/lib/utils";
 
 /* --------------------------------------------------------------- avisos */
@@ -263,9 +263,10 @@ export function CardCardio({
   const mostrada = comCorda && alternativaCorda ? alternativaCorda : sessao;
   /* SPEC §3.3: a rota é o tipo da sessão (corrida | corda | caminhada). */
   const href = `/cardio/${mostrada.tipo}?semana=${mostrada.semana}`;
+  const min = minutosDoCardio(mostrada);
   const detalhe = [
     descricaoDoCardio(mostrada),
-    mostrada.min !== null ? formatarMinutos(mostrada.min) : null,
+    min !== null ? formatarMinutos(min) : null,
   ]
     .filter(Boolean)
     .join(" · ");

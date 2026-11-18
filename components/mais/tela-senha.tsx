@@ -171,8 +171,7 @@ export function TelaSenha() {
       </Card>
 
       <p className="text-muted-foreground text-xs text-balance">
-        A senha é do Supabase, não fica guardada neste aparelho. Se esquecer,
-        troque de novo pelo painel do banco.
+        A senha não fica guardada neste aparelho. Se esquecer, peça uma senha nova ao dono do app.
       </p>
     </section>
   );

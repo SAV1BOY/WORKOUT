@@ -6,6 +6,7 @@ import {
   CartesianGrid,
   Line,
   LineChart,
+  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -16,8 +17,9 @@ import type {
   NameType,
   ValueType,
 } from "recharts/types/component/DefaultTooltipContent";
-import type { SerieDoGrafico } from "@/components/graficos/apoio";
+import { COR_REFERENCIA, type SerieDoGrafico } from "@/components/graficos/apoio";
 import { formatarNumero } from "@/lib/formato";
+import { leituraDoGrafico, type ReferenciaParaLer } from "@/lib/grafico-leitura";
 
 /**
  * Gráficos da SPEC §3.6/§3.7/§3.8 (Recharts).
@@ -25,6 +27,12 @@ import { formatarNumero } from "@/lib/formato";
  * Celular primeiro: sem legenda quando há uma série só, poucos rótulos no eixo
  * x, números tabulares e as cores do tema (uma cor de destaque). Funciona com
  * 1 ponto (o ponto aparece sozinho) e com 30.
+ *
+ * Acessibilidade (SPEC §22.19 item 1): o desenho fica FORA da árvore — a
+ * camada do Recharts (`role="application"`, `tabindex="0"` na `<svg>`, os
+ * rótulos dos eixos lidos grudados) é desligada e a área do gráfico é
+ * `aria-hidden` — e a `<figure role="img">` leva o título mais a leitura dos
+ * dados (`leituraDoGrafico`, `lib/grafico-leitura.ts`).
  */
 
 interface Comum {
@@ -34,7 +42,10 @@ interface Comum {
   series: readonly SerieDoGrafico[];
   altura?: number;
   sufixo?: string;
-  /** Rótulo de acessibilidade — o gráfico é uma figura. */
+  /**
+   * O começo do nome acessível da figura; a leitura dos dados vem depois
+   * ("Peso por data. Peso: 84,2 kg em 12/08, …").
+   */
   titulo: string;
   /**
    * Domínio do eixo y (o padrão do Recharts é `[0, "auto"]`).
@@ -45,6 +56,17 @@ interface Comum {
    * quem chama passa um domínio folgado (`lib/corpo.ts`, `dominioFolgado`).
    */
   dominioY?: [number | string, number | string];
+  /** Os rótulos do eixo y, quando quem chama fixa a régua (o peso, §22.19). */
+  ticksY?: readonly number[];
+}
+
+/** Só a linha desenha referência: nas barras ela não existe nem no tipo. */
+interface DaLinha extends Comum {
+  /**
+   * Uma linha horizontal tracejada — a meta do peso (§22.19 item 4). Entra
+   * também na leitura em texto.
+   */
+  referencia?: ReferenciaParaLer | null;
 }
 
 export const COR_PADRAO = "var(--chart-1)";
@@ -84,6 +106,7 @@ function eixos(
   sufixo: string,
   dominioY?: Comum["dominioY"],
   folgaNoX = false,
+  ticksY?: Comum["ticksY"],
 ) {
   return (
     <>
@@ -106,6 +129,7 @@ function eixos(
       />
       <YAxis
         {...(dominioY ? { domain: dominioY } : {})}
+        {...(ticksY ? { ticks: [...ticksY], interval: 0 } : {})}
         stroke={EIXO}
         tick={{ fontSize: 10 }}
         tickLine={false}
@@ -119,17 +143,17 @@ function eixos(
 }
 
 function Moldura({
-  titulo,
+  leitura,
   altura,
   children,
 }: {
-  titulo: string;
+  leitura: string;
   altura: number;
   children: React.ReactElement;
 }) {
   return (
-    <figure className="w-full" aria-label={titulo}>
-      <div style={{ height: altura }} className="w-full">
+    <figure role="img" className="w-full" aria-label={leitura}>
+      <div style={{ height: altura }} className="w-full" aria-hidden="true">
         <ResponsiveContainer width="100%" height="100%">
           {children}
         </ResponsiveContainer>
@@ -146,11 +170,27 @@ export function GraficoLinha({
   sufixo = "",
   titulo,
   dominioY,
-}: Comum) {
+  ticksY,
+  referencia = null,
+}: DaLinha) {
+  const leitura = leituraDoGrafico({ titulo, dados, x, series, sufixo, referencia });
   return (
-    <Moldura titulo={titulo} altura={altura}>
-      <LineChart data={[...dados] as object[]} margin={{ top: 8, right: 16, bottom: 0, left: 0 }}>
-        {eixos(dados, x, sufixo, dominioY, true)}
+    <Moldura leitura={leitura} altura={altura}>
+      <LineChart
+        data={[...dados] as object[]}
+        margin={{ top: 8, right: 16, bottom: 0, left: 0 }}
+        accessibilityLayer={false}
+      >
+        {eixos(dados, x, sufixo, dominioY, true, ticksY)}
+        {referencia ? (
+          <ReferenceLine
+            y={referencia.valor}
+            stroke={COR_REFERENCIA}
+            strokeWidth={1.5}
+            strokeDasharray="6 4"
+            ifOverflow="extendDomain"
+          />
+        ) : null}
         {series.map((s) => (
           <Line
             key={s.chave}
@@ -179,12 +219,18 @@ export function GraficoBarras({
   sufixo = "",
   titulo,
   dominioY,
+  ticksY,
   empilhado = false,
 }: Comum & { empilhado?: boolean }) {
+  const leitura = leituraDoGrafico({ titulo, dados, x, series, sufixo });
   return (
-    <Moldura titulo={titulo} altura={altura}>
-      <BarChart data={[...dados] as object[]} margin={{ top: 8, right: 16, bottom: 0, left: 0 }}>
-        {eixos(dados, x, sufixo, dominioY)}
+    <Moldura leitura={leitura} altura={altura}>
+      <BarChart
+        data={[...dados] as object[]}
+        margin={{ top: 8, right: 16, bottom: 0, left: 0 }}
+        accessibilityLayer={false}
+      >
+        {eixos(dados, x, sufixo, dominioY, false, ticksY)}
         {series.map((s) => (
           <Bar
             key={s.chave}

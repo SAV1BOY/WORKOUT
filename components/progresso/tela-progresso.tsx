@@ -16,7 +16,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { acharExercicio, exercicioPorId, exercicios } from "@/lib/dados";
+import { acharExercicio, exercicioPorId } from "@/lib/dados";
 import {
   formatarData,
   formatarDuracao,
@@ -38,13 +38,9 @@ import {
   volumeDaSemana,
   volumePorSemana,
 } from "@/lib/progresso";
-import { useCardio, useOverrides, usePerfil, useSoltas } from "@/lib/queries/dados";
-import {
-  useSeriesDesde,
-  useSessoesTodas,
-  useTodosOsRecordes,
-} from "@/lib/queries/progresso";
-import { useHoje } from "@/lib/relogio";
+import type { CardioBruto, SerieBruta, SessaoBruta, SoltaBruta } from "@/lib/progresso";
+import type { LinhaExcecaoAgenda, LinhaPerfil } from "@/lib/types";
+import { useTodosOsRecordes } from "@/lib/queries/progresso";
 import { nomeAcessivel } from "@/lib/midia";
 import { cn } from "@/lib/utils";
 
@@ -64,82 +60,52 @@ const SEMANAS_DE_ADERENCIA = 4;
  * recordes. O endereço antigo `/progresso` redireciona para cá.
  */
 export function TelaProgresso({
-  comCabecalho = true,
+  hoje, perfil, sessoes, series: todas, cardios, soltas, overrides,
 }: {
-  /**
-   * `false` quando a tela entra **dentro** do Relatório do marco V3, que já
-   * tem o próprio cabeçalho (SPEC §13.5.3: "os gráficos e a lista de recordes
-   * continuam abaixo").
-   */
-  comCabecalho?: boolean;
-} = {}) {
-  const hoje = useHoje();
-  const janela = hoje ? semanasAte(hoje, SEMANAS)[0] ?? null : null;
-  const janelaAderencia = hoje ? semanasAte(hoje, SEMANAS_DE_ADERENCIA)[0] ?? null : null;
-
-  const perfilQ = usePerfil();
-  const sessoesQ = useSessoesTodas();
-  const seriesQ = useSeriesDesde(janela);
-  const cardioQ = useCardio(janela, hoje);
-  const soltasQ = useSoltas(janela, hoje);
-  const overridesQ = useOverrides(janelaAderencia, hoje);
+  hoje: string;
+  perfil: LinhaPerfil;
+  sessoes: SessaoBruta[];
+  series: SerieBruta[];
+  cardios: CardioBruto[];
+  soltas: SoltaBruta[];
+  overrides: LinhaExcecaoAgenda[];
+}) {
   const recordesQ = useTodosOsRecordes();
-
-  const sessoes = useMemo(() => sessoesQ.data ?? [], [sessoesQ.data]);
-  const series = useMemo(() => seriesQ.data ?? [], [seriesQ.data]);
+  const janela = semanasAte(hoje, SEMANAS)[0] ?? hoje;
+  const series = useMemo(
+    () => todas.filter((s) => s.registrada_em >= janela), [todas, janela],
+  );
   const porSessao = useMemo(() => datasDasSessoes(sessoes), [sessoes]);
 
-  const erro =
-    perfilQ.error ?? sessoesQ.error ?? seriesQ.error ?? cardioQ.error ?? recordesQ.error;
-
-  if (erro) {
-    return (
-      <Tela comCabecalho={comCabecalho}>
-        <Erro
-          mensagem={(erro as Error).message}
-          aoTentarDeNovo={() => {
-            void sessoesQ.refetch();
-            void seriesQ.refetch();
-          }}
-        />
-      </Tela>
-    );
+  if (recordesQ.error) {
+    return <Erro mensagem={recordesQ.error.message} aoTentarDeNovo={() => void recordesQ.refetch()} />;
   }
+  if (recordesQ.isPending) return <EsqueletoCard linhas={5} />;
 
-  if (!hoje || !perfilQ.data || sessoesQ.isPending || seriesQ.isPending) {
-    return (
-      <Tela comCabecalho={comCabecalho}>
-        <EsqueletoCard linhas={3} />
-        <EsqueletoCard linhas={5} />
-      </Tela>
-    );
-  }
-
-  const perfil = perfilQ.data;
   const treinos = treinosConcluidos(sessoes, hoje);
   const ade = aderencia({
     hoje,
     perfil: { ...perfil, data_inicio: perfil.data_inicio },
-    overrides: overridesQ.data ?? [],
+    overrides,
     sessoes,
-    cardios: cardioQ.data ?? [],
+    cardios,
     semanas: SEMANAS_DE_ADERENCIA,
   });
   const volumeSemana = volumeDaSemana(series, porSessao, hoje);
   const volume = volumePorSemana(series, porSessao, { hoje, semanas: SEMANAS });
-  const fixa = barraFixaPorSemana(series, porSessao, soltasQ.data ?? [], {
+  const fixa = barraFixaPorSemana(series, porSessao, soltas, {
     hoje,
     semanas: SEMANAS,
   });
-  const corrida = corridaPorSemana(cardioQ.data ?? [], { hoje, semanas: SEMANAS });
+  const corrida = corridaPorSemana(cardios, { hoje, semanas: SEMANAS });
   const recentes = recordesRecentes(series, porSessao, { hoje, dias: 30 });
-  const nomes = new Map(exercicios.map((e) => [e.id, e.nome]));
+  const nomes = new Map([...exercicioPorId.values()].map((e) => [e.id, e.nome]));
   const recordes = ordenarRecordes(recordesQ.data ?? [], nomes);
 
   const semTreino = sessoes.length === 0;
 
   return (
-    <Tela comCabecalho={comCabecalho}>
+    <section className="flex flex-col gap-4">
       <div className="grid grid-cols-2 gap-2">
         <Numero
           rotulo="Treinos na semana"
@@ -405,37 +371,6 @@ export function TelaProgresso({
           )}
         </CardContent>
       </Card>
-    </Tela>
-  );
-}
-
-function Tela({
-  children,
-  comCabecalho = true,
-}: {
-  children: React.ReactNode;
-  comCabecalho?: boolean;
-}) {
-  return (
-    <section className="flex flex-col gap-4">
-      {comCabecalho ? (
-      <header className="flex flex-col gap-2">
-        <div className="flex flex-col gap-0.5">
-          <h1 className="text-2xl font-semibold tracking-tight">Relatório</h1>
-          <p className="text-muted-foreground text-sm text-balance">
-            O que já foi feito e para onde a carga está indo.
-          </p>
-        </div>
-        <Link
-          href="/exercicios"
-          className="alvo border-border bg-card hover:bg-accent flex items-center justify-between rounded-xl border px-3 py-2 text-sm font-medium"
-        >
-          Catálogo de exercícios
-          <span aria-hidden="true">→</span>
-        </Link>
-      </header>
-      ) : null}
-      {children}
     </section>
   );
 }

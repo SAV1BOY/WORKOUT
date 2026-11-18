@@ -7,6 +7,7 @@ import {
   Play,
   Repeat,
 } from "lucide-react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { FazerAgora } from "@/components/exercicio/acoes-da-ficha";
@@ -14,7 +15,6 @@ import { FotosAmpliaveis } from "@/components/exercicios/fotos-ampliaveis";
 import { HistoricoExercicio } from "@/components/exercicios/historico-exercicio";
 import { MediaGrande } from "@/components/exercicio/media-grande";
 import { FotosExercicio } from "@/components/exercicio/midia";
-import { TutorialDoExercicio } from "@/components/exercicio/tutorial";
 import { MapaAnatomico } from "@/components/mapa-anatomico";
 import { StepperNumerico } from "@/components/stepper-numerico";
 import { Badge } from "@/components/ui/badge";
@@ -42,10 +42,13 @@ import {
 import { formatarDescanso } from "@/lib/formato";
 import type { PrescricaoTipo } from "@/lib/schemas";
 import { opcoesDeMidia, type TipoDeMidia } from "@/lib/midia";
-import { substitutosPara } from "@/lib/sessao";
+import { AVISO_DA_TROCA, OpcoesDeAlternativa } from "@/components/exercicio/seletor-alternativa";
 import type { Prefs } from "@/lib/types";
-import { evitado, evitadosPorUltimo } from "@/lib/preferencias";
 import { cn } from "@/lib/utils";
+
+const TutorialDoExercicio = dynamic(() =>
+  import("@/components/exercicio/tutorial").then((modulo) => modulo.TutorialDoExercicio),
+);
 
 /** O que a ficha ganha quando é aberta de dentro de uma sessão (SPEC §14.2). */
 export interface ContextoDaFicha {
@@ -57,6 +60,8 @@ export interface ContextoDaFicha {
   aoMudarSeries: (n: number) => void;
   aoMudarAlvo: (v: number) => void;
   aoSubstituir?: (novoExercicioId: string) => void;
+  avisoDaTroca?: string;
+  originalId?: string;
   /** Posição no treino, para o "anterior/próximo (n/N)". */
   indice: number;
   total: number;
@@ -120,6 +125,8 @@ export function ConteudoDaFicha({
     <div className="flex flex-col gap-4">
       {contexto?.aoSubstituir ? (
         <Substituir
+          avisoDaTroca={contexto.avisoDaTroca}
+          originalId={contexto.originalId}
           exercicioId={exercicioId}
           prefs={prefs}
           aoEscolher={contexto.aoSubstituir}
@@ -313,7 +320,11 @@ function AbasDaMidia({
   temVideo: boolean;
   comoPagina: boolean;
 }) {
-  const abas = abasDaFicha(tutorialPorExercicio(exercicioId) !== null);
+  const temTutorial = tutorialPorExercicio(exercicioId) !== null;
+  if (!temTutorial && opcoesDeMidia(exercicioId, { temVideo }).length === 0) {
+    return <AbaMusculos exercicioId={exercicioId} />;
+  }
+  const abas = abasDaFicha(temTutorial);
   return (
     <Tabs defaultValue="video" className="gap-3">
       <TabsList className="w-full">
@@ -609,54 +620,57 @@ function Navegacao({ contexto }: { contexto: ContextoDaFicha }) {
   );
 }
 
-/** "Substituir hoje" (SPEC §3.2 e §14.1.2: quem é "evitar" vai para o fim). */
+/** Na ficha a escolha é feita logo abaixo do botão, sem abrir outra camada. */
 function Substituir({
   exercicioId,
   prefs,
+  avisoDaTroca = AVISO_DA_TROCA,
+  originalId,
   aoEscolher,
 }: {
   exercicioId: string;
   prefs?: Prefs;
+  avisoDaTroca?: string;
+  originalId?: string;
   aoEscolher: (id: string) => void;
 }) {
   const [aberto, setAberto] = useState(false);
-  const lista = evitadosPorUltimo(substitutosPara(exercicioId), (e) => e.id, prefs);
-  if (lista.length === 0) return null;
-
+  const botao = useRef<HTMLButtonElement>(null);
+  function escolher(id: string) {
+    // O item escolhido vai sair da tela; o botão continua na ficha atualizada.
+    botao.current?.focus({ preventScroll: true });
+    setAberto(false);
+    aoEscolher(id);
+  }
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex flex-col gap-2">
       <Button
+        ref={botao}
         variant="outline"
         className="alvo self-start"
-        onClick={() => setAberto((v) => !v)}
+        aria-expanded={aberto}
+        onClick={() => setAberto(!aberto)}
       >
-        <Repeat className="size-4" />
+        <Repeat aria-hidden="true" className="size-4" />
         Substituir
       </Button>
-      {aberto ? (
-        <ul className="flex flex-col gap-1">
-          {lista.map((e) => (
-            <li key={e.id}>
-              <button
-                type="button"
-                onClick={() => {
-                  setAberto(false);
-                  aoEscolher(e.id);
-                }}
-                className={cn(
-                  "hover:bg-muted alvo flex w-full flex-col items-start gap-0.5 rounded-lg px-3 py-2 text-left",
-                )}
-              >
-                <span className="text-sm font-medium">{e.nome}</span>
-                <span className="text-muted-foreground text-xs">
-                  {e.prescricao_padrao.texto} · {e.equipamento_texto}
-                  {evitado(prefs, e.id) ? " · você marcou como evitar" : ""}
-                </span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      ) : null}
+      {aberto && (
+        <>
+          <p className="text-muted-foreground text-sm">{avisoDaTroca}</p>
+          {originalId && originalId !== exercicioId && (
+            <Button type="button" variant="outline" className="alvo h-auto whitespace-normal"
+              onClick={() => escolher(originalId)}>
+              Voltar para {acharExercicio(originalId).nome}
+            </Button>
+          )}
+          <OpcoesDeAlternativa
+            key={exercicioId}
+            exercicioId={exercicioId}
+            prefs={prefs}
+            aoSubstituir={escolher}
+          />
+        </>
+      )}
     </div>
   );
 }

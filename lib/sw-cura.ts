@@ -27,7 +27,7 @@
  * cabe num teste de unidade (`lib/sw-cura.test.ts`).
  */
 import { CACHE_DE_SOCORRO, OFFLINE } from "@/lib/caches-do-worker";
-import { MAXIMO_DE_ASSETS, copiaServe, urlsDeAssets } from "@/lib/sw-assets";
+import { MAXIMO_DE_ASSETS, VERSAO_DA_COPIA, verificarCopiaInteira, urlsDeAssets } from "@/lib/sw-assets";
 
 /** O que a tentativa fez — o teste prende cada um destes caminhos. */
 export type ResultadoDaCura =
@@ -44,6 +44,7 @@ export type ResultadoDaCura =
 
 /** O mundo de fora, injetado para caber no Vitest. */
 export type FerramentasDaCura = {
+  copiaInteira?: ReturnType<typeof verificarCopiaInteira>;
   /** `serwist.matchPrecache` */
   doPrecache: (url: string) => Promise<Response | undefined>;
   /** `caches` */
@@ -78,6 +79,7 @@ export const PRAZO_PADRAO = 5_000;
  * duas vezes) e a hora da próxima ida à rede.
  */
 export function criarCura(ferramentas: FerramentasDaCura) {
+  const copiaInteira = ferramentas.copiaInteira ?? verificarCopiaInteira(ferramentas.origem, ferramentas.armazenamento);
   let proximaIda = 0;
   let emVoo: Promise<ResultadoDaCura> | null = null;
 
@@ -96,16 +98,7 @@ export function criarCura(ferramentas: FerramentasDaCura) {
     const cache = await ferramentas.armazenamento.open(CACHE_DE_SOCORRO);
     const guardada = await cache.match(OFFLINE);
     if (!guardada) return false;
-    const urls = urlsDeAssets(await guardada.clone().text(), ferramentas.origem);
-    const presentes = new Set<string>();
-    await Promise.all(
-      urls.map(async (url) => {
-        if (await ferramentas.armazenamento.match(url, { ignoreSearch: true })) {
-          presentes.add(url);
-        }
-      }),
-    );
-    return copiaServe(urls, presentes);
+    return copiaInteira(CACHE_DE_SOCORRO, cache, guardada);
   }
 
   /**
@@ -170,7 +163,9 @@ export function criarCura(ferramentas: FerramentasDaCura) {
     if (baixados.some((par) => par === null)) return false;
     const cache = await ferramentas.armazenamento.open(CACHE_DE_SOCORRO);
     for (const par of baixados) if (par) await cache.put(par[0], par[1]);
-    await cache.put(OFFLINE, resposta);
+    const headers = new Headers(resposta.headers);
+    headers.set(VERSAO_DA_COPIA, crypto.randomUUID());
+    await cache.put(OFFLINE, new Response(resposta.body, { status: resposta.status, headers }));
     return true;
   }
 

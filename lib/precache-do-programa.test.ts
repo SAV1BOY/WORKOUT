@@ -139,8 +139,28 @@ describe("mídia do programa atual (SPEC §8)", () => {
     expect(alguma).toBeGreaterThan(0);
   });
 
-  /** O precache da instalação é o shell + figuras; o resto entra aqui. */
+  /** A instalação guarda o shell e os ícones. A mídia da fase entra aqui. */
   it("a fase 1 cabe num aquecimento curto", () => {
     expect(midiaDaFase("fase1").length).toBeLessThan(90);
+  });
+});
+
+import { redePermiteAquecimento } from "@/lib/precache-do-programa";
+import { LIMITE_CATALOGO, quantasRemover } from "@/lib/midia-no-aparelho";
+import { CACHE_DO_CATALOGO, ehCachePublico } from "@/lib/caches-do-worker";
+
+describe("mídia para treinar sem rede", () => {
+  it("respeita a economia de dados e a conexão móvel lenta", () => {
+    expect(redePermiteAquecimento({ saveData: true })).toBe(false);
+    for (const tipo of ["slow-2g", "2g", "3g"]) expect(redePermiteAquecimento({ effectiveType: tipo })).toBe(false);
+    expect(redePermiteAquecimento({ effectiveType: "4g" })).toBe(true);
+    expect(redePermiteAquecimento()).toBe(true);
+  });
+  it("remove do catálogo os arquivos mais antigos até voltar ao teto em bytes", () => {
+    expect(quantasRemover([1, LIMITE_CATALOGO], LIMITE_CATALOGO)).toBe(1);
+    expect(quantasRemover([20, 70, 40], 50)).toBe(2);
+    expect(quantasRemover([LIMITE_CATALOGO + 1], LIMITE_CATALOGO)).toBe(1);
+    expect(quantasRemover([LIMITE_CATALOGO], LIMITE_CATALOGO)).toBe(0);
+    expect(ehCachePublico(CACHE_DO_CATALOGO)).toBe(true);
   });
 });

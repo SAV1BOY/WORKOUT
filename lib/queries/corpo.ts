@@ -111,6 +111,8 @@ export function useUrlsDasFotos(
   return useQuery({
     queryKey: chavesCorpo.urls(caminhos),
     enabled: caminhos.length > 0,
+    // O arquivo pendente no IndexedDB também precisa de URL ao reabrir sem internet.
+    networkMode: "always",
     // a URL assinada vale 1 h; não adianta reassinar a cada foco
     staleTime: (SEGUNDOS_DA_URL - 300) * 1000,
     queryFn: async () => {

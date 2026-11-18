@@ -121,6 +121,14 @@ export interface PlanoDaSessao {
   /** Id da coleção derivada que gerou a sessão ("grupo:Core"), ou `null`. */
   colecao: string | null;
   itens: ItemDoPlano[];
+  /** Por posição: primeiro o exercício ativo, depois os que passaram pelo bloco. */
+  trocas?: Record<string, {
+    exercicio_id: string;
+    trabalho: number[];
+    aquecimento: number[];
+    ultima_firme: boolean | null;
+    nota: string | null;
+  }[]>;
 }
 
 export interface LinhaSerie {

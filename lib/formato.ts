@@ -49,6 +49,10 @@ export function formatarData(valor: DataEntrada): string {
   return format(paraData(valor), "dd/MM", { locale: ptBR });
 }
 
+export function formatarIntervaloDaSemana(inicio: DataEntrada, fim: DataEntrada): string {
+  return `${formatarData(inicio)} – ${formatarData(fim)}`;
+}
+
 /** 14/09/2026 */
 export function formatarDataCompleta(valor: DataEntrada): string {
   return format(paraData(valor), "dd/MM/yyyy", { locale: ptBR });
@@ -159,4 +163,9 @@ export function rotuloDaCarga(implemento: string): string {
     default:
       return "na barra";
   }
+}
+
+export function rotuloDoCampoDeCarga(implemento: string): string {
+  const unidade = rotuloDaCarga(implemento);
+  return unidade === "peso do corpo" ? "peso do corpo" : `carga ${unidade}`;
 }

@@ -27,7 +27,7 @@ import {
   formatarDiaLongo,
   formatarMinutos,
 } from "@/lib/formato";
-import { descricaoDoCardio } from "@/lib/hoje";
+import { descricaoDoCardio, minutosDoCardio } from "@/lib/hoje";
 import type { FaseId, TipoDia, TreinoId } from "@/lib/schemas";
 import type { LinhaSessao, LinhaSessaoCardio, TipoCardio } from "@/lib/types";
 
@@ -54,15 +54,6 @@ export type MarcaDoDia =
  */
 export type MarcaVisivel = Exclude<MarcaDoDia, "antes">;
 
-export const SIMBOLO: Record<MarcaDoDia, string> = {
-  feito: "✓",
-  parcial: "~",
-  faltou: "✕",
-  aberto: "",
-  descanso: "",
-  antes: "",
-};
-
 export const NOME_DA_MARCA: Record<MarcaDoDia, string> = {
   feito: "feito",
   parcial: "parcial",
@@ -88,6 +79,8 @@ export const GLIFO_DA_MARCA: Record<MarcaVisivel, string> = {
   faltou: "●",
   descanso: "—",
 };
+
+export const SIMBOLO: Record<MarcaDoDia, string> = { ...GLIFO_DA_MARCA, antes: "" };
 
 /** A ordem em que a legenda lê as marcas: do dia vencido ao dia de folga. */
 export const ORDEM_DA_LEGENDA: readonly MarcaVisivel[] = [
@@ -232,7 +225,8 @@ export function detalheDoDia(dia: DiaDoPlano): string | null {
   }
   if (dia.tipo === "cardio" && dia.cardio) {
     const desc = descricaoDoCardio(dia.cardio);
-    const min = dia.cardio.min !== null ? formatarMinutos(dia.cardio.min) : null;
+    const minutos = minutosDoCardio(dia.cardio);
+    const min = minutos !== null ? formatarMinutos(minutos) : null;
     return [desc, min].filter(Boolean).join(" · ") || null;
   }
   return dia.nota && dia.nota.trim() !== "" ? dia.nota : null;
@@ -260,7 +254,7 @@ function marcarDia(
   inicioDoPrograma: string | null = null,
 ): MarcaDaSessao {
   const vazio = { sessaoId: null, sessaoTipo: null };
-  const antesDoComeco = inicioDoPrograma !== null && dia.data < inicioDoPrograma;
+  const antesDoComeco = inicioDoPrograma !== null && dia.data < inicioDoPrograma && dia.data <= hoje;
   if (dia.tipo === "descanso") {
     /*
      * SPEC §16.2: descanso em que ele treinou mesmo assim (§5.3) ganha a marca

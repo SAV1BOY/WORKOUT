@@ -1,0 +1,375 @@
+[
+  {
+    "id": "agachamento-com-peso-corporal",
+    "nome": "Agachamento com peso corporal",
+    "grupo": "Pernas",
+    "origem": "aparelho",
+    "subgrupo": null,
+    "musculos_primarios": [
+      "quadriceps",
+      "gluteo"
+    ],
+    "musculos_secundarios": [
+      "adutor",
+      "abdomen"
+    ],
+    "musculos_primarios_nome": [
+      "Quadríceps",
+      "Glúteo"
+    ],
+    "musculos_secundarios_nome": [
+      "Adutores",
+      "Reto abdominal"
+    ],
+    "equipamento_texto": "Peso corporal",
+    "equipamento": [],
+    "implemento": "peso_corporal",
+    "montagem": "Em pé, afaste os pés em uma posição confortável e deixe o espaço à sua volta livre.",
+    "passos": [
+      "Dobre os joelhos e o quadril ao mesmo tempo, mantendo os pés apoiados.",
+      "Desça até onde mantiver controle e volte a ficar de pé."
+    ],
+    "erro_comum": "Deixar o calcanhar levantar para tentar descer mais.",
+    "prescricao_padrao": {
+      "series": 3,
+      "tipo": "reps",
+      "min": 8,
+      "max": 12,
+      "unilateral": false,
+      "texto": "3 × 8–12",
+      "descanso_s": 60
+    },
+    "categoria": "composto_moderado",
+    "carga_inicial": {
+      "kg": 0,
+      "nota": "Peso corporal, sem carga externa."
+    },
+    "progressao": {
+      "tipo": "reps",
+      "incremento_reps": 1,
+      "regra": "Complete as séries com controle e aumente uma repetição por série conforme a faixa do treino."
+    },
+    "figura": null,
+    "figura_animada": false,
+    "fotos": [],
+    "foto_fonte_id": ""
+  },
+  {
+    "id": "remada-com-elastico",
+    "nome": "Remada com elástico",
+    "grupo": "Costas",
+    "origem": "aparelho",
+    "subgrupo": "band",
+    "musculos_primarios": [
+      "dorsal",
+      "trapezio"
+    ],
+    "musculos_secundarios": [
+      "biceps",
+      "ombrop"
+    ],
+    "musculos_primarios_nome": [
+      "Dorsal (latíssimo)",
+      "Trapézio"
+    ],
+    "musculos_secundarios_nome": [
+      "Bíceps",
+      "Deltoide posterior"
+    ],
+    "equipamento_texto": "Super Band",
+    "equipamento": [
+      "super-band"
+    ],
+    "implemento": "band",
+    "montagem": "Em pé, pise no meio da faixa com os dois pés calçados. Segure os lados e incline o tronco dobrando o quadril, com os joelhos levemente flexionados.",
+    "passos": [
+      "Mantenha as costas firmes e puxe os cotovelos em direção aos quadris.",
+      "Volte devagar até os braços ficarem estendidos; a faixa continua presa sob os pés."
+    ],
+    "erro_comum": "Levantar o tronco a cada repetição para puxar o elástico.",
+    "prescricao_padrao": {
+      "series": 3,
+      "tipo": "reps",
+      "min": 8,
+      "max": 12,
+      "unilateral": false,
+      "texto": "3 × 8–12",
+      "descanso_s": 60
+    },
+    "categoria": "composto_moderado",
+    "carga_inicial": {
+      "kg": 0,
+      "nota": "Resistência da faixa, sem carga em kg."
+    },
+    "progressao": {
+      "tipo": "reps",
+      "incremento_reps": 1,
+      "regra": "Complete as séries com controle e aumente uma repetição por série conforme a faixa do treino."
+    },
+    "figura": null,
+    "figura_animada": false,
+    "fotos": [],
+    "foto_fonte_id": ""
+  },
+  {
+    "id": "rosca-com-elastico",
+    "nome": "Rosca com elástico",
+    "grupo": "Bíceps",
+    "origem": "aparelho",
+    "subgrupo": "band",
+    "musculos_primarios": [
+      "biceps"
+    ],
+    "musculos_secundarios": [
+      "antebraco"
+    ],
+    "musculos_primarios_nome": [
+      "Bíceps"
+    ],
+    "musculos_secundarios_nome": [
+      "Antebraço"
+    ],
+    "equipamento_texto": "Super Band",
+    "equipamento": [
+      "super-band"
+    ],
+    "implemento": "band",
+    "montagem": "Em pé, pise no meio da faixa com os pés calçados e segure os lados, com as palmas para a frente.",
+    "passos": [
+      "Com os cotovelos junto ao tronco, dobre os braços até onde conseguir sem balançar.",
+      "Estenda os braços devagar, mantendo a faixa presa."
+    ],
+    "erro_comum": "Jogar os ombros à frente e balançar o corpo.",
+    "prescricao_padrao": {
+      "series": 3,
+      "tipo": "reps",
+      "min": 8,
+      "max": 12,
+      "unilateral": false,
+      "texto": "3 × 8–12",
+      "descanso_s": 60
+    },
+    "categoria": "isolamento",
+    "carga_inicial": {
+      "kg": 0,
+      "nota": "Resistência da faixa, sem carga em kg."
+    },
+    "progressao": {
+      "tipo": "reps",
+      "incremento_reps": 1,
+      "regra": "Complete as séries com controle e aumente uma repetição por série conforme a faixa do treino."
+    },
+    "figura": null,
+    "figura_animada": false,
+    "fotos": [],
+    "foto_fonte_id": ""
+  },
+  {
+    "id": "desenvolvimento-com-elastico",
+    "nome": "Desenvolvimento com elástico",
+    "grupo": "Ombros",
+    "origem": "aparelho",
+    "subgrupo": "band",
+    "musculos_primarios": [
+      "ombro"
+    ],
+    "musculos_secundarios": [
+      "triceps"
+    ],
+    "musculos_primarios_nome": [
+      "Deltoide anterior e medial"
+    ],
+    "musculos_secundarios_nome": [
+      "Tríceps"
+    ],
+    "equipamento_texto": "Super Band",
+    "equipamento": [
+      "super-band"
+    ],
+    "implemento": "band",
+    "montagem": "Em pé, prenda o meio da faixa sob os dois pés calçados e segure os lados na altura dos ombros. Use uma faixa que permita estender os braços com controle.",
+    "passos": [
+      "Com o tronco firme, empurre as mãos para cima sem inclinar o corpo para trás.",
+      "Volte devagar à posição inicial, sem soltar a faixa."
+    ],
+    "erro_comum": "Arquear a lombar para vencer uma resistência que ficou pesada demais.",
+    "prescricao_padrao": {
+      "series": 3,
+      "tipo": "reps",
+      "min": 8,
+      "max": 12,
+      "unilateral": false,
+      "texto": "3 × 8–12",
+      "descanso_s": 60
+    },
+    "categoria": "composto_moderado",
+    "carga_inicial": {
+      "kg": 0,
+      "nota": "Resistência da faixa, sem carga em kg."
+    },
+    "progressao": {
+      "tipo": "reps",
+      "incremento_reps": 1,
+      "regra": "Complete as séries com controle e aumente uma repetição por série conforme a faixa do treino."
+    },
+    "figura": null,
+    "figura_animada": false,
+    "fotos": [],
+    "foto_fonte_id": ""
+  },
+  {
+    "id": "elevacao-de-panturrilha-sem-carga",
+    "nome": "Elevação de panturrilha sem carga",
+    "grupo": "Pernas",
+    "origem": "aparelho",
+    "subgrupo": null,
+    "musculos_primarios": [
+      "panturrilha"
+    ],
+    "musculos_secundarios": [],
+    "musculos_primarios_nome": [
+      "Panturrilha"
+    ],
+    "musculos_secundarios_nome": [],
+    "equipamento_texto": "Peso corporal",
+    "equipamento": [],
+    "implemento": "peso_corporal",
+    "montagem": "Em pé em piso firme, mantenha os pés paralelos. Se precisar de equilíbrio, encoste a mão na parede.",
+    "passos": [
+      "Eleve os calcanhares mantendo o peso distribuído na frente dos pés.",
+      "Faça uma pausa curta no alto e desça os calcanhares com controle."
+    ],
+    "erro_comum": "Fazer pequenos saltos em vez de controlar a subida e a descida.",
+    "prescricao_padrao": {
+      "series": 3,
+      "tipo": "reps",
+      "min": 8,
+      "max": 12,
+      "unilateral": false,
+      "texto": "3 × 8–12",
+      "descanso_s": 60
+    },
+    "categoria": "isolamento",
+    "carga_inicial": {
+      "kg": 0,
+      "nota": "Peso corporal, sem carga externa."
+    },
+    "progressao": {
+      "tipo": "reps",
+      "incremento_reps": 1,
+      "regra": "Complete as séries com controle e aumente uma repetição por série conforme a faixa do treino."
+    },
+    "figura": null,
+    "figura_animada": false,
+    "fotos": [],
+    "foto_fonte_id": ""
+  },
+  {
+    "id": "flexao-fechada",
+    "nome": "Flexão fechada",
+    "grupo": "Tríceps",
+    "origem": "aparelho",
+    "subgrupo": null,
+    "musculos_primarios": [
+      "triceps"
+    ],
+    "musculos_secundarios": [
+      "peito",
+      "ombro"
+    ],
+    "musculos_primarios_nome": [
+      "Tríceps"
+    ],
+    "musculos_secundarios_nome": [
+      "Peitoral",
+      "Deltoide anterior e medial"
+    ],
+    "equipamento_texto": "Peso corporal",
+    "equipamento": [],
+    "implemento": "peso_corporal",
+    "montagem": "Apoie as mãos no piso, um pouco mais próximas que a largura dos ombros. Alinhe o tronco aos pés, ou apoie os joelhos para reduzir a dificuldade.",
+    "passos": [
+      "Flexione os cotovelos junto ao tronco e aproxime o peito do piso.",
+      "Empurre o chão para estender os braços sem deixar o quadril cair."
+    ],
+    "erro_comum": "Forçar os punhos juntando as mãos além do que é confortável.",
+    "prescricao_padrao": {
+      "series": 3,
+      "tipo": "reps",
+      "min": 8,
+      "max": 12,
+      "unilateral": false,
+      "texto": "3 × 8–12",
+      "descanso_s": 60
+    },
+    "categoria": "composto_moderado",
+    "carga_inicial": {
+      "kg": 0,
+      "nota": "Peso corporal, sem carga externa."
+    },
+    "progressao": {
+      "tipo": "reps",
+      "incremento_reps": 1,
+      "regra": "Complete as séries com controle e aumente uma repetição por série conforme a faixa do treino."
+    },
+    "figura": null,
+    "figura_animada": false,
+    "fotos": [],
+    "foto_fonte_id": ""
+  },
+  {
+    "id": "ponte-de-gluteos-no-tatame",
+    "nome": "Ponte de glúteos no tatame",
+    "grupo": "Pernas",
+    "origem": "aparelho",
+    "subgrupo": "tatame",
+    "musculos_primarios": [
+      "gluteo",
+      "posterior"
+    ],
+    "musculos_secundarios": [
+      "abdomen"
+    ],
+    "musculos_primarios_nome": [
+      "Glúteo",
+      "Posterior de coxa"
+    ],
+    "musculos_secundarios_nome": [
+      "Reto abdominal"
+    ],
+    "equipamento_texto": "Peso corporal · Tatame",
+    "equipamento": [
+      "tatame"
+    ],
+    "implemento": "peso_corporal",
+    "montagem": "Deite de costas no tatame, com os joelhos dobrados e os pés apoiados, afastados na largura do quadril.",
+    "passos": [
+      "Pressione os pés contra o chão e eleve o quadril até alinhar joelhos, quadril e ombros.",
+      "Abaixe devagar sem arquear a lombar."
+    ],
+    "erro_comum": "Subir além do alinhamento e transferir o esforço para a lombar.",
+    "prescricao_padrao": {
+      "series": 3,
+      "tipo": "reps",
+      "min": 8,
+      "max": 12,
+      "unilateral": false,
+      "texto": "3 × 8–12",
+      "descanso_s": 60
+    },
+    "categoria": "composto_moderado",
+    "carga_inicial": {
+      "kg": 0,
+      "nota": "Peso corporal, sem carga externa."
+    },
+    "progressao": {
+      "tipo": "reps",
+      "incremento_reps": 1,
+      "regra": "Complete as séries com controle e aumente uma repetição por série conforme a faixa do treino."
+    },
+    "figura": null,
+    "figura_animada": false,
+    "fotos": [],
+    "foto_fonte_id": ""
+  }
+]

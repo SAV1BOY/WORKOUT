@@ -16,15 +16,15 @@ test.beforeEach(async ({ page }) => {
 });
 
 test.describe("PWA e offline (SPEC §8)", () => {
-  test("o service worker é servido e o precache leva o shell e as figuras, não as 162 fotos", async ({
+  test("o service worker é servido e o precache leva o shell e os ícones", async ({
     request,
   }) => {
     const resposta = await request.get("/sw.js");
     expect(resposta.status()).toBe(200);
     const codigo = await resposta.text();
 
-    // as figuras dos exercícios entram na instalação (SPEC §8)
-    expect(codigo).toContain("/figuras/agachamento-livre.svg");
+    // as figuras entram sob demanda ou ao baixar o treino
+    expect(codigo).not.toContain("/figuras/agachamento-livre.svg");
     expect(codigo).toContain("/icons/icone-512.png");
     // e a página de fallback, senão a navegação offline morre no navegador
     expect(codigo).toContain("/~offline");
@@ -82,8 +82,8 @@ test.describe("PWA e offline (SPEC §8)", () => {
       /\/(rest|auth|storage|realtime)\/v1\//.test(u),
     );
     expect(doSupabase, "o SW guardou resposta do Supabase").toEqual([]);
-    // e guardou o que deve: as figuras do programa
-    expect(guardadas.some((u) => u.includes("/figuras/"))).toBe(true);
+    // O shell (incluindo o socorro) já está disponível antes do download da fase.
+    expect(guardadas.some((u) => u.includes("/~offline"))).toBe(true);
   });
 
   test("a figura e as fotos do treino de hoje ficam no cache para o terraço", async ({

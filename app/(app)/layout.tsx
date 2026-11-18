@@ -4,6 +4,7 @@ import { AquecerMidia } from "@/components/aquecer-midia";
 import { ConfigurarSupabase } from "@/components/configurar-supabase";
 import { SpriteMuscular } from "@/components/sprite-muscular";
 import { TemaDoPerfil } from "@/components/tema-do-perfil";
+import { EstadoDaRede } from "@/components/estado-da-rede";
 import { Miolo } from "@/components/miolo";
 import { NavInferior } from "@/components/nav-inferior";
 import { VideosDoApp } from "@/components/videos-do-app";
@@ -14,7 +15,7 @@ import {
   supabaseConfigurado,
 } from "@/lib/env";
 import { garantirPerfil } from "@/lib/queries/perfil";
-import { criarClienteServidor } from "@/lib/supabase/server";
+import { criarClienteServidor, identidadeDaRequisicao } from "@/lib/supabase/server";
 import { idsComVideo } from "@/lib/videos";
 
 // o shell autenticado lê cookies: nunca é pré-renderizado estático
@@ -28,9 +29,7 @@ export default async function LayoutApp({
   if (!supabaseConfigurado()) redirect("/login");
 
   const supabase = await criarClienteServidor();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await identidadeDaRequisicao();
 
   if (!user) redirect("/login");
 
@@ -46,6 +45,7 @@ export default async function LayoutApp({
       <AquecerMidia />
       {/* a lista de vídeos é lida do disco aqui e desce pronta (§22.2 item 7) */}
       <VideosDoApp ids={idsComVideo()}>
+        <EstadoDaRede />
         <Miolo>{children}</Miolo>
       </VideosDoApp>
       <NavInferior />

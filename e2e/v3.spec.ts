@@ -301,7 +301,7 @@ test.describe("aba Treino — Personalizar e Editar (§14.3)", () => {
     await esperarAbaTreino(page);
   });
 
-  test("o FAB Ajustar abre os mesmos ajustes do player", async ({ page }) => {
+  test("o botão Ajustar do cabeçalho abre os mesmos ajustes do player", async ({ page }) => {
     await usuarioComPerfil();
     await abrir(page);
 
@@ -312,8 +312,8 @@ test.describe("aba Treino — Personalizar e Editar (§14.3)", () => {
 
     await fab.click();
     const folha = page.getByRole("dialog");
-    await expect(folha.getByLabel("Preparação (s)")).toBeVisible();
-    await expect(folha.getByLabel("Descanso padrão (s)")).toBeVisible();
+    await expect(folha.getByLabel("Preparação (segundos)")).toBeVisible();
+    await expect(folha.getByLabel("Descanso padrão (segundos)")).toBeVisible();
     await expect(folha.getByLabel("Avançar sozinho")).toBeVisible();
   });
 });
@@ -546,8 +546,9 @@ test.describe("Relatório (§13.5 e §14.4)", () => {
     await abrirSecaoDoRelatorio(page, "corpo");
     const peso = page.getByRole("region", { name: "Peso" });
     await expect(peso).toContainText("85,2 kg");
-    await expect(peso).toContainText("maior 86 kg");
-    await expect(peso).toContainText("menor 85,2 kg");
+    /* SPEC §22.19 item 3: o "maior · menor" virou a variação do período */
+    await expect(peso).toContainText("−0,8 kg desde 10/09");
+    await expect(peso).not.toContainText("maior");
 
     const imc = page.getByRole("region", { name: "IMC" });
     // 85,2 kg e 1,90 m → 23,6 (peso saudável)
@@ -606,8 +607,8 @@ test.describe("Corpo e Preferências (§14.4)", () => {
     await page.getByRole("link", { name: /Preferências/ }).click();
 
     await expect(page.getByLabel("Meta semanal")).toBeVisible();
-    await expect(page.getByLabel("Preparação (s)")).toBeVisible();
-    await expect(page.getByLabel("Descanso padrão (s)")).toBeVisible();
+    await expect(page.getByLabel("Preparação (segundos)")).toBeVisible();
+    await expect(page.getByLabel("Descanso padrão (segundos)")).toBeVisible();
     for (const nome of [
       "Avançar sozinho",
       "Som no fim do descanso",
@@ -628,8 +629,8 @@ test.describe("Corpo e Preferências (§14.4)", () => {
      * SPEC §22.7 item 3: os dois campos numéricos gravam sozinhos — não há
      * mais botão "Salvar" nenhum na folha, só o sair do campo (ou o atraso).
      */
-    await page.getByLabel("Descanso padrão (s)").fill("75");
-    await page.getByLabel("Descanso padrão (s)").blur();
+    await page.getByLabel("Descanso padrão (segundos)").fill("75");
+    await page.getByLabel("Descanso padrão (segundos)").blur();
     await expect.poll(async () => {
       const perfis = await lerDoMock<{ prefs: Record<string, unknown> }>(
         sessao,

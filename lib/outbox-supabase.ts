@@ -167,6 +167,10 @@ export function alvoDaEscrita(escrita: EscritaTabela): string | undefined {
    * ressuscitaria o dia marcado. Um alvo por **data** basta: o resto do
    * mecanismo (travados em `umaRodada`) já cuida da ordem.
    */
+  if (escrita.tabela === "pullup_singles") {
+    const id = escrita.linha?.id ?? escrita.filtro?.id;
+    if (typeof id === "string" && id) return `pullup_singles:${id}`;
+  }
   if (escrita.tabela === "schedule_overrides") {
     const data = escrita.linha?.data ?? escrita.filtro?.data;
     return typeof data === "string" && data !== ""

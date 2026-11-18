@@ -47,7 +47,7 @@ export function EsqueletoCapa() {
   );
 }
 
-/** Os três contadores do Relatório (Semana · Mês · Tudo). */
+/** Os três totais reservados durante a abertura do Relatório. */
 export function EsqueletoGrade3() {
   return (
     <div role="status" aria-label="Carregando" className="grid grid-cols-3 gap-2">

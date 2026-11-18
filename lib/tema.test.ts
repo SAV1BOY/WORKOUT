@@ -178,7 +178,7 @@ describe("a placa das ilustrações (tema escuro)", () => {
 });
 
 /*
- * SPEC §22.3 item 5: o que flutua (o FAB "Ajustar", o play do tutorial) tem de
+ * SPEC §22.3 item 5: o que flutua (a faixa fixa do dia, o play do tutorial) tem de
  * ter contorno nos DOIS temas. `shadow-lg` é sombra preta: sobre `#0a0a0a` ela
  * não existe, então o escuro ganha um anel na cor de destaque.
  */

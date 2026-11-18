@@ -33,7 +33,7 @@ export function AvisoDeConquista({
   const hoje = useHoje();
   const [fechado, setFechado] = useState(false);
 
-  if (!pronto || fechado || novas.length === 0) return null;
+  const mostrar = pronto && !fechado && novas.length > 0;
 
   const mostradas = novas.slice(0, LIMITE);
   const aMais = novas.length - mostradas.length;
@@ -42,54 +42,58 @@ export function AvisoDeConquista({
     <section
       role="status"
       aria-label="Conquista nova"
-      data-aviso-conquista={novas.map((c) => c.id).join(" ")}
-      className="cartao border-primary/40 bg-primary/5 flex flex-col gap-2 border p-3"
+      data-aviso-conquista={mostrar ? novas.map((c) => c.id).join(" ") : undefined}
+      className={mostrar ? "cartao border-primary/40 bg-primary/5 flex flex-col gap-2 border p-3" : "sr-only"}
     >
-      {/*
-        "Nova conquista", não "Conquistas": a mesma tela já tem uma SEÇÃO
-        chamada Conquistas, e o aviso ficava parecendo o título dela.
-      */}
-      <h2 className="text-muted-foreground text-rotulo font-medium tracking-wide uppercase">
-        {novas.length === 1 ? "Nova conquista" : "Novas conquistas"}
-      </h2>
-      {/*
-        Uma LINHA por conquista (SPEC §22.6 item 6): ícone, nome e, quando não
-        é de hoje, a data. A descrição fica na seção Conquistas — aqui ela
-        fazia o aviso ocupar 300 px no alto da tela.
-      */}
-      <ul className="flex flex-col gap-1.5">
-        {mostradas.map((c) => (
-          <li key={c.id} className="flex items-center gap-2">
-            <span className="bg-primary/15 text-primary flex size-7 shrink-0 items-center justify-center rounded-full">
-              <IconeDaCelula nome={c.icone} className="size-3.5" />
-            </span>
-            <span className="min-w-0 flex-1 truncate text-sm font-medium">
-              {c.nome}
-            </span>
-            {c.em && c.em !== hoje ? (
-              <span className="numero text-muted-foreground shrink-0 text-xs">
-                {formatarData(c.em)}
-              </span>
-            ) : null}
-          </li>
-        ))}
-      </ul>
-      {aMais > 0 ? (
-        <p className="text-muted-foreground text-xs">
-          e mais {formatarNumero(aMais)}
-          {aMais === 1 ? " conquista" : " conquistas"} · veja em Conquistas
-        </p>
+      {mostrar ? (
+        <>
+          {/*
+            "Nova conquista", não "Conquistas": a mesma tela já tem uma SEÇÃO
+            chamada Conquistas, e o aviso ficava parecendo o título dela.
+          */}
+          <h2 className="text-muted-foreground text-rotulo tracking-wide uppercase">
+            {novas.length === 1 ? "Nova conquista" : "Novas conquistas"}
+          </h2>
+          {/*
+            Uma LINHA por conquista (SPEC §22.6 item 6): ícone, nome e, quando não
+            é de hoje, a data. A descrição fica na seção Conquistas — aqui ela
+            fazia o aviso ocupar 300 px no alto da tela.
+          */}
+          <ul className="flex flex-col gap-1.5">
+            {mostradas.map((c) => (
+              <li key={c.id} className="flex items-center gap-2">
+                <span className="bg-primary/15 text-primary flex size-7 shrink-0 items-center justify-center rounded-full">
+                  <IconeDaCelula nome={c.icone} className="size-3.5" />
+                </span>
+                <span className="min-w-0 flex-1 truncate text-sm font-medium">
+                  {c.nome}
+                </span>
+                {c.em && c.em !== hoje ? (
+                  <span className="numero text-muted-foreground shrink-0 text-xs">
+                    {formatarData(c.em)}
+                  </span>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+          {aMais > 0 ? (
+            <p className="text-muted-foreground text-xs">
+              e mais {formatarNumero(aMais)}
+              {aMais === 1 ? " conquista" : " conquistas"} · veja em Conquistas
+            </p>
+          ) : null}
+          <Button
+            variant="outline"
+            className="alvo"
+            onClick={() => {
+              setFechado(true);
+              void marcarComoVistas(novas.map((c) => c.id));
+            }}
+          >
+            Ok
+          </Button>
+        </>
       ) : null}
-      <Button
-        variant="outline"
-        className="alvo"
-        onClick={() => {
-          setFechado(true);
-          void marcarComoVistas(novas.map((c) => c.id));
-        }}
-      >
-        Ok
-      </Button>
     </section>
   );
 }

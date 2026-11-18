@@ -1,5 +1,6 @@
 "use client";
 
+import { NotebookPen } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { acharExercicio } from "@/lib/dados";
@@ -48,6 +49,16 @@ export function TelaFirme({
    * em `null`, porque ninguém respondeu ainda.
    */
   const [escolha, setEscolha] = useState<Escolha | null>(null);
+  /** O campo da nota só existe depois de "Adicionar nota" (§22.18 item 2). */
+  const [notaAberta, setNotaAberta] = useState(() => Boolean(nota));
+  const campoDaNota = useRef<HTMLInputElement>(null);
+  // aberto pelo toque, o foco vai para o campo (aberto por já ter nota, não)
+  const focarNota = useRef(false);
+  useEffect(() => {
+    if (!notaAberta || !focarNota.current) return;
+    focarNota.current = false;
+    campoDaNota.current?.focus();
+  }, [notaAberta]);
   const relogio = useRef<ReturnType<typeof setTimeout> | null>(null);
   const seguir = useRef(aoSeguir);
   useEffect(() => {
@@ -86,20 +97,6 @@ export function TelaFirme({
         </p>
       </header>
 
-      {/*
-        A nota vem ANTES dos três botões (auditoria do marco V2): tocar num
-        deles já responde e sai da tela, como na referência — com a nota
-        embaixo, quem quisesse escrever teria de escrever antes de escolher,
-        ao contrário da ordem de leitura.
-      */}
-      <input
-        value={nota ?? ""}
-        onChange={(e) => aoMudarNota(e.target.value)}
-        placeholder="Nota curta (opcional)"
-        aria-label={nomeAcessivel("Nota", exercicio.nome)}
-        className="border-input bg-card focus-visible:border-ring focus-visible:ring-ring h-12 w-full rounded-xl border px-3 text-sm outline-none focus-visible:ring-3"
-      />
-
       <div role="radiogroup" aria-label="Última repetição" className="flex flex-col gap-2">
         <Opcao
           rotulo="Fácil"
@@ -119,6 +116,37 @@ export function TelaFirme({
       </div>
 
       {/*
+        SPEC §22.18 item 2: a pergunta vem primeiro. O campo da nota ficava
+        acima das três opções e era o primeiro alvo da tela — abria o teclado
+        antes de a pergunta ser respondida. Agora ele mora atrás de
+        "Adicionar nota", depois das opções; com nota já escrita ele aparece
+        aberto. Tocar numa opção responde e sai da tela, então quem quer
+        anotar anota antes de escolher.
+      */}
+      {notaAberta ? (
+        <input
+          ref={campoDaNota}
+          value={nota ?? ""}
+          onChange={(e) => aoMudarNota(e.target.value)}
+          placeholder="Nota curta (opcional)"
+          aria-label={nomeAcessivel("Nota", exercicio.nome)}
+          className="border-input bg-card focus-visible:border-ring focus-visible:ring-ring h-12 w-full rounded-xl border px-3 text-sm outline-none focus-visible:ring-3"
+        />
+      ) : (
+        <Button
+          variant="ghost"
+          className="alvo gap-1.5 self-center px-3"
+          onClick={() => {
+            focarNota.current = true;
+            setNotaAberta(true);
+          }}
+        >
+          <NotebookPen className="size-4" />
+          Adicionar nota
+        </Button>
+      )}
+
+      {/*
         SPEC §22.5 item 5: o "Voltar" tinha o tratamento IDÊNTICO ao das três
         opções (h-14, rounded-2xl, contorno), e parecia a quarta. Agora é o
         botão padrão do projeto, ao lado de um primário que diz a verdade
@@ -130,6 +158,7 @@ export function TelaFirme({
         </Button>
         <Button
           size="xl"
+          variant={escolha === null ? "outline" : "default"}
           className="alvo flex-1 rounded-2xl font-semibold"
           onClick={aoSeguir}
         >

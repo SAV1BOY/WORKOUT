@@ -299,7 +299,8 @@ test.describe("§22.5 itens 6, 7, 8 e 10 — a barra, o descanso e o que se ouve
       /Treino A — exercício 1 de 6/,
     );
     const barra = page.getByRole("progressbar", { name: "Progresso do treino" });
-    await expect(barra).toHaveAttribute("aria-valuetext", "exercício 1 de 6");
+    const total = await barra.getAttribute("aria-valuemax");
+    await expect(barra).toHaveAttribute("aria-valuetext", `0 de ${total} séries feitas · exercício 1 de 6`);
     await expect(barra).toHaveAttribute("aria-valuemax", /\d+/);
 
     // item 10: o rótulo visível diz o que o número é

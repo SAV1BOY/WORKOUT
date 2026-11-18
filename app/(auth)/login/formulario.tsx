@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { criarConta, entrar, type EstadoLogin } from "@/app/(auth)/login/acoes";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,15 +22,27 @@ export function FormularioLogin({
   avisoInicial?: string;
   comVaga?: boolean;
 }) {
-  const [estadoEntrar, acaoEntrar, entrando] = useActionState(entrar, inicial);
-  const [estadoCriar, acaoCriar, criando] = useActionState(criarConta, inicial);
-
-  const estado: EstadoLogin = {
-    erro: estadoEntrar.erro ?? estadoCriar.erro,
-    aviso: avisoInicial ?? estadoEntrar.aviso ?? estadoCriar.aviso,
-    ok: estadoCriar.ok ?? estadoEntrar.ok,
-  };
-  const ocupado = entrando || criando;
+  const [tentativa, setTentativa] = useState("entrar");
+  const [estado, enviar, ocupado] = useActionState(
+    async (anterior: EstadoLogin, dados: FormData): Promise<EstadoLogin> => {
+      const semRede = { erro: "Sem rede: não dá para entrar agora. Tente de novo quando a conexão voltar." };
+      if (!navigator.onLine) return semRede;
+      try {
+        const acao = dados.get("acao") === "criar" ? criarConta : entrar;
+        return await acao(anterior, dados);
+      } catch (erro) {
+        // Redirecionamentos das ações do Next sobem normalmente.
+        if (erro instanceof TypeError || !navigator.onLine) return semRede;
+        throw erro;
+      }
+    },
+    inicial,
+  );
+  const campoEmail = useRef<HTMLInputElement>(null);
+  const [senhaVisivel, setSenhaVisivel] = useState(false);
+  useEffect(() => {
+    if (estado.erro) campoEmail.current?.focus();
+  }, [estado]);
 
   /*
    * Campos controlados de propósito: o React 19 dá `form.reset()` automático
@@ -41,11 +54,14 @@ export function FormularioLogin({
   const [senha, setSenha] = useState("");
 
   return (
-    <form className="flex flex-col gap-4">
+    <form action={enviar} className="flex flex-col gap-4">
       <div className="flex flex-col gap-2">
         <Label htmlFor="email">E-mail</Label>
         <Input
           id="email"
+          ref={campoEmail}
+          aria-invalid={estado.erro ? true : undefined}
+          aria-describedby={estado.erro ? "erro-login" : undefined}
           name="email"
           type="email"
           inputMode="email"
@@ -60,30 +76,45 @@ export function FormularioLogin({
 
       <div className="flex flex-col gap-2">
         <Label htmlFor="senha">Senha</Label>
-        <Input
-          id="senha"
-          name="senha"
-          type="password"
-          autoComplete="current-password"
-          required
-          minLength={6}
-          value={senha}
-          onChange={(e) => setSenha(e.target.value)}
-          className="alvo h-12 text-base"
-        />
+        <div className="relative">
+          <Input
+            id="senha"
+            aria-invalid={estado.erro ? true : undefined}
+            aria-describedby={estado.erro ? "erro-login" : undefined}
+            name="senha"
+            type={senhaVisivel ? "text" : "password"}
+            autoComplete="current-password"
+            required
+            minLength={6}
+            value={senha}
+            onChange={(e) => setSenha(e.target.value)}
+            className="alvo h-12 pr-14 text-base"
+          />
+          <button
+            type="button"
+            aria-pressed={senhaVisivel}
+            aria-controls="senha"
+            aria-label={senhaVisivel ? "Ocultar senha" : "Mostrar senha"}
+            className="alvo absolute inset-y-0 right-0 flex w-12 items-center justify-center"
+            onClick={() => setSenhaVisivel((visivel) => !visivel)}
+          >
+            {senhaVisivel ? <EyeOff aria-hidden className="size-5" /> : <Eye aria-hidden className="size-5" />}
+          </button>
+        </div>
       </div>
 
-      {estado.aviso ? (
+      {(estado.aviso || avisoInicial) ? (
         <p
           role="status"
           className="border-primary/40 bg-primary/10 text-foreground rounded-lg border px-3 py-2 text-sm"
         >
-          {estado.aviso}
+          {estado.aviso ?? avisoInicial}
         </p>
       ) : null}
       {estado.erro ? (
         <p
           role="alert"
+          id="erro-login"
           className="border-destructive/40 text-destructive rounded-lg border px-3 py-2 text-sm"
         >
           {estado.erro}
@@ -97,21 +128,23 @@ export function FormularioLogin({
 
       <Button
         type="submit"
-        formAction={acaoEntrar}
+        name="acao" value="entrar"
+        onClick={() => setTentativa("entrar")}
         disabled={ocupado}
         className="alvo h-12 w-full text-base"
       >
-        {entrando ? "Entrando…" : "Entrar"}
+        {ocupado && tentativa === "entrar" ? "Entrando…" : "Entrar"}
       </Button>
       {comVaga ? (
         <Button
           type="submit"
           variant="outline"
-          formAction={acaoCriar}
+          name="acao" value="criar"
+          onClick={() => setTentativa("criar")}
           disabled={ocupado}
           className="alvo h-12 w-full text-base"
         >
-          {criando ? "Criando…" : "Criar conta"}
+          {ocupado && tentativa === "criar" ? "Criando…" : "Criar conta"}
         </Button>
       ) : (
         <p

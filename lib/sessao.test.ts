@@ -14,11 +14,12 @@ import {
   atualizarSerie,
   comSubstituicoes,
   contadoresDaSessao,
+  definirFirme,
   avaliarSessao,
   concluirSessao,
   escritaDaSerie,
   escritaDaSessao,
-  escritaDeDescarte,
+  escritasDasSeriesFeitas,
   cargaEmUso,
   firmePadrao,
   marcarSerie,
@@ -297,37 +298,61 @@ describe("mexer nas séries", () => {
 /* ---------------------------------------------------------- substituição */
 
 describe("substituir hoje (SPEC §3.2)", () => {
-  it("só oferece exercícios do mesmo grupo com equipamento daqui", () => {
+  it("inclui a alternativa do catálogo e exclui o exercício atual", () => {
     const lista = substitutosPara("agachamento-livre");
-    expect(lista.length).toBeGreaterThan(0);
-    expect(lista.every((e) => e.grupo === "Pernas")).toBe(true);
     expect(lista.some((e) => e.id === "agachamento-livre")).toBe(false);
     expect(lista.some((e) => e.id === "agachamento-frontal")).toBe(true);
   });
 
-  it("as séries que o original já gravou saem do banco (SPEC §3.2)", () => {
-    const s = sessaoA();
-    const b = bloco(s, "agachamento-livre");
-    // nada subiu ainda: não há o que apagar
-    expect(escritaDeDescarte(s, b)).toBeNull();
+  it("A → B → A preserva os índices não contíguos, o feedback, a prescrição e os IDs", () => {
+    const inicio = sessaoA();
+    const a = inicio.blocos[0]!;
+    const serie3 = a.series.find((s) => s.tipo === "trabalho" && s.setIndex === 3)!;
+    let treino = marcarSerie(inicio, a.ordem, serie3.id, true);
+    treino = definirFirme(treino, a.ordem, false);
+    const novoId = contador("novo");
+    treino = substituirExercicio(treino, a.ordem, "agachamento-frontal", null, { novoId });
+    expect(treino.blocos[0]!.series).toHaveLength(2);
+    const frontal = treino.blocos[0]!.series[0]!;
+    treino = marcarSerie(treino, 1, frontal.id, true);
+    treino = substituirExercicio(treino, 1, a.exercicioId, null, { novoId });
+    const voltou = treino.blocos[0]!;
+    expect(voltou.ultimaFirme).toBe(false);
+    expect(voltou.series.map((s) => s.setIndex)).toEqual([1, 3]);
+    expect(voltou.series[1]).toMatchObject({ id: serie3.id, concluida: true });
+    expect(avaliarSessao(treino)[0]?.decisao.evento?.motivo).not.toBe("subiu");
+    const gravadas = escritasDasSeriesFeitas(treino);
+    expect(gravadas.map((e) => [e.linha?.id, e.linha?.exercise_id])).toEqual([
+      [serie3.id, a.exercicioId], [frontal.id, "agachamento-frontal"],
+    ]);
+    expect(progressoDaSessao(treino)).toMatchObject({ feitas: 2, total: 16 });
+    expect(contadoresDaSessao(treino)).toMatchObject({ series: 2, exercicios: 2 });
+    expect(substituirExercicio(treino, 1, a.exercicioId)).toBe(treino);
+    const reconstruida = reconstruirSessao(
+      escritaDaSessao(treino).linha as unknown as Parameters<typeof reconstruirSessao>[0],
+      gravadas.map((e) => e.linha as unknown as LinhaSerie),
+    )!;
+    expect(reconstruida.blocos[0]!.ultimaFirme).toBe(false);
+    expect(reconstruida.blocos[0]!.series.map((s) => s.setIndex)).toEqual([1, 3]);
+    expect(escritasDasSeriesFeitas(reconstruida).map((e) => e.linha?.id)).toEqual([serie3.id, frontal.id]);
+  });
 
-    const comSerie = marcarSerie(s, 1, b.series[0]!.id, true, "2026-09-14T09:10:00.000Z");
-    const descarte = escritaDeDescarte(comSerie, bloco(comSerie, "agachamento-livre"));
-    expect(descarte).toEqual({
-      tabela: "session_sets",
-      op: "delete",
-      filtro: {
-        session_id: "sess-1",
-        exercise_id: "agachamento-livre",
-        ordem_ex: 1,
-      },
-    });
-
-    // depois da troca, o bloco é do substituto e as linhas locais são novas
-    const trocada = substituirExercicio(comSerie, 1, "agachamento-frontal", null, {
-      novoId: contador("n"),
-    });
-    expect(trocada.blocos[0]?.series.every((x) => x.registradaEm === null)).toBe(true);
+  it("troca reps por tempo sem reaproveitar unidades e mantém a seleção em outro aparelho antes da primeira série", () => {
+    const base = sessaoA();
+    const a = base.blocos[0]!;
+    const trabalho = a.series.find((s) => s.tipo === "trabalho")!;
+    const feito = marcarSerie(base, a.ordem, trabalho.id, true);
+    const trocada = substituirExercicio(feito, a.ordem, "prancha");
+    expect(trocada.blocos[0]!.series).toHaveLength(2);
+    expect(trocada.blocos[0]!.series.every((s) => s.reps === null && s.tempoS !== null)).toBe(true);
+    const gravadas = escritasDasSeriesFeitas(trocada);
+    const voltou = reconstruirSessao(
+      escritaDaSessao(trocada).linha as unknown as Parameters<typeof reconstruirSessao>[0],
+      gravadas.map((e) => e.linha as unknown as LinhaSerie),
+    )!;
+    expect(voltou.blocos[0]!.exercicioId).toBe("prancha");
+    expect(voltou.blocos[0]!.series).toHaveLength(2);
+    expect(progressoDaSessao(voltou)).toMatchObject({ feitas: 1, total: 16 });
   });
 
   it("o registro fica com o substituto e o original não é avaliado", () => {

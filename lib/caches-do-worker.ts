@@ -16,6 +16,7 @@ export const OFFLINE = "/~offline";
  * app, caro de baixar de novo num celular.
  */
 export const CACHE_DE_MIDIA = "midia-do-treino";
+export const CACHE_DO_CATALOGO = "midia-catalogo";
 
 /**
  * A cópia própria da `/~offline` que o worker mantém (SPEC §22.10, `lib/sw-cura.ts`).
@@ -48,6 +49,7 @@ export const PREFIXO_DO_PRECACHE = "serwist-precache";
 export function ehCachePublico(nome: string): boolean {
   return (
     nome === CACHE_DE_MIDIA ||
+    nome === CACHE_DO_CATALOGO ||
     nome === CACHE_DE_SOCORRO ||
     nome.startsWith(PREFIXO_DO_PRECACHE)
   );

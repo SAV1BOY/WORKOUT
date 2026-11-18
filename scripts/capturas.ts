@@ -5,7 +5,7 @@
  *
  * Como usar (três terminais, ou o mesmo com `&`):
  *
- *   npm run build
+ *   npm run build:e2e
  *   npx tsx scripts/mock-supabase.ts &
  *   NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321 \
  *   NEXT_PUBLIC_SUPABASE_ANON_KEY=mock-anon \
@@ -164,7 +164,7 @@ async function entrar(page: Page) {
   await page.clock.setFixedTime(new Date(QUANDO));
   await page.goto(`${APP}/login`);
   await page.getByLabel("E-mail").fill(EMAIL);
-  await page.getByLabel("Senha").fill(SENHA);
+  await page.getByLabel("Senha", { exact: true }).fill(SENHA);
   await page.getByRole("button", { name: "Entrar" }).click();
   await page.getByRole("region", { name: "Treino", exact: true }).waitFor();
   await page.waitForTimeout(1_500);
@@ -195,10 +195,10 @@ async function celular(
 
 /** Anda pelo player até `alvo` aparecer (pulando descansos). */
 async function andar(page: Page, alvo: ReturnType<Page["getByText"]>) {
-  for (let i = 0; i < 40; i++) {
+  for (let i = 0; i < 100; i++) {
     if (await alvo.isVisible().catch(() => false)) return;
-    for (const nome of ["Pular", "Continuar", "Próximo passo"]) {
-      const botao = page.getByRole("button", { name: nome });
+    for (const nome of ["Pular descanso", "Concluir série", "Pular esta pergunta", "Continuar", "Próximo passo"]) {
+      const botao = page.getByRole("button", { name: nome, exact: true });
       if (await botao.isVisible().catch(() => false)) {
         await botao.click();
         break;
@@ -206,6 +206,7 @@ async function andar(page: Page, alvo: ReturnType<Page["getByText"]>) {
     }
     await page.waitForTimeout(150);
   }
+  await alvo.waitFor({ timeout: 3000 });
 }
 
 /**
@@ -223,13 +224,13 @@ async function capturasDoPlayer(navegador: Awaited<ReturnType<typeof chromium.la
     const sufixo = escuro ? "" : "-claro";
 
     await page.goto(`${APP}/treinar`);
-    await page.getByRole("button", { name: /^Começar Treino/ }).first().click();
+    await page.getByRole("button", { name: /^Começar o Treino/ }).first().click();
     await page.waitForURL(/\/treinar\/[0-9a-f-]{36}$/);
     await page.getByRole("timer", { name: "Preparação" }).waitFor();
     if (escuro) await tirar(page, "01-preparacao.png");
 
     await page.getByRole("button", { name: "Começar agora" }).click();
-    await page.getByRole("button", { name: "Concluir a série" }).waitFor();
+    await page.getByRole("button", { name: "Concluir série" }).waitFor();
     await tirar(page, `02-exercicio-carga${sufixo}.png`);
 
     if (escuro) {
@@ -249,11 +250,11 @@ async function capturasDoPlayer(navegador: Awaited<ReturnType<typeof chromium.la
       await page.getByRole("button", { name: "Visão geral do treino" }).click();
       await page.getByRole("heading", { level: 1 }).waitFor();
       await tirar(page, "11-visao-geral.png");
-      await page.getByRole("button", { name: "Voltar ao treino" }).click();
+      await page.getByRole("dialog", { name: "Visão geral do treino" }).getByRole("button", { name: "Fechar", exact: true }).click();
       await page.waitForTimeout(400);
 
       // ✓ → descanso em tela cheia
-      await page.getByRole("button", { name: "Concluir a série" }).click();
+      await page.getByRole("button", { name: "Concluir série" }).click();
       await page.getByRole("timer", { name: "Descanso" }).waitFor();
       await tirar(page, "03-descanso.png");
 
@@ -261,12 +262,12 @@ async function capturasDoPlayer(navegador: Awaited<ReturnType<typeof chromium.la
       const firme = page.getByText("Última repetição saiu firme?");
       for (let i = 0; i < 8; i++) {
         if (await firme.isVisible().catch(() => false)) break;
-        const pular = page.getByRole("button", { name: "Pular" });
+        const pular = page.getByRole("button", { name: "Pular descanso", exact: true });
         if (await pular.isVisible().catch(() => false)) {
           await pular.click();
           continue;
         }
-        await page.getByRole("button", { name: "Concluir a série" }).click();
+        await page.getByRole("button", { name: "Concluir série" }).click();
         await page.waitForTimeout(150);
       }
       await firme.waitFor();
@@ -278,7 +279,7 @@ async function capturasDoPlayer(navegador: Awaited<ReturnType<typeof chromium.la
     await andar(page, page.getByText("O que você achou do treino de hoje?"));
     if (escuro) await tirar(page, "06-feedback.png");
     await page.getByRole("radio", { name: "Na medida certa" }).click();
-    await page.getByRole("button", { name: "Concluir", exact: true }).click();
+    await page.getByRole("button", { name: /^(Concluir|Concluir sem responder)$/ }).click();
     await page.getByRole("region", { name: "Treino concluído" }).waitFor();
     await page.waitForTimeout(600);
     await tirar(page, `07-conclusao${sufixo}.png`);
@@ -294,7 +295,7 @@ async function capturasDoPlayer(navegador: Awaited<ReturnType<typeof chromium.la
   const page = await contexto.newPage();
   await entrar(page);
   await page.goto(`${APP}/treinar`);
-  await page.getByRole("button", { name: "Começar Inferior A" }).click();
+  await page.getByRole("button", { name: "Começar o Inferior A" }).click();
   await page.waitForURL(/\/treinar\/[0-9a-f-]{36}$/);
   await page.getByRole("button", { name: "Começar agora" }).click();
   await andar(page, page.getByText("· exercício 6 de 6"));
@@ -346,7 +347,7 @@ async function main() {
       await tirar(page, "05-treinar.png");
 
       // a sessão de força restilizada
-      await page.getByRole("button", { name: /^Começar Treino/ }).first().click();
+      await page.getByRole("button", { name: /^Começar o Treino/ }).first().click();
       await page.waitForURL(/\/treinar\/[0-9a-f-]{36}$/);
       await page.waitForTimeout(1_200);
       await tirar(page, "04-sessao.png");

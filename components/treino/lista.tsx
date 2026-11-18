@@ -2,27 +2,17 @@
 
 import { ChevronRight, Repeat } from "lucide-react";
 import { useState } from "react";
-import { FichaEmFolha } from "@/components/exercicio/ficha-folha";
+import { FichaEmFolha } from "@/components/exercicio/ficha-sob-demanda";
 import { useTemVideo } from "@/components/videos-do-app";
 import { Miniatura } from "@/components/ui/miniatura";
 import { Raios } from "@/components/ui/raios";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Sheet,
-  SheetClose,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
+import { SeletorAlternativa } from "@/components/exercicio/seletor-alternativa";
 import { acharExercicio } from "@/lib/dados";
 import { dificuldadeDe } from "@/lib/dificuldade";
 import type { ItemPrevia } from "@/lib/hoje";
-import { evitado, evitadosPorUltimo } from "@/lib/preferencias";
 import { nomeAcessivel } from "@/lib/midia";
-import { substitutosPara } from "@/lib/sessao";
 import type { Prefs } from "@/lib/types";
 
 /**
@@ -131,18 +121,25 @@ export function ListaDoDia({
           </button>
 
           {aoSubstituir ? (
-            <Substituir
+            <SeletorAlternativa
+              antesDoTreino
               exercicioId={item.exercicioId}
-              nome={item.nome}
-              aoEscolher={(novo) => aoSubstituir(item.originalId, novo)}
-              aoDesfazer={
-                item.substituido
-                  ? () => aoSubstituir(item.originalId, item.originalId)
-                  : undefined
-              }
-              nomeDoOriginal={acharExercicio(item.originalId).nome}
               prefs={prefs}
-            />
+              aoSubstituir={(novo) => aoSubstituir(item.originalId, novo)}
+              voltarAoOriginal={item.substituido ? {
+                nome: acharExercicio(item.originalId).nome,
+                escolher: () => aoSubstituir(item.originalId, item.originalId),
+              } : undefined}
+            >
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label={`Substituir ${item.nome}`}
+                className="alvo text-muted-foreground shrink-0"
+              >
+                <Repeat aria-hidden="true" className="size-5" />
+              </Button>
+            </SeletorAlternativa>
           ) : null}
         </li>
       ))}
@@ -154,98 +151,5 @@ export function ListaDoDia({
         temVideo={temVideo}
       />
     </ul>
-  );
-}
-
-/**
- * O mesmo fluxo da sessão (SPEC §3.2): exercícios do mesmo grupo que dão para
- * fazer com o equipamento do terraço. A escolha aqui fica guardada para a
- * sessão que vai começar (§13.3).
- */
-function Substituir({
-  exercicioId,
-  nome,
-  nomeDoOriginal,
-  prefs,
-  aoEscolher,
-  aoDesfazer,
-}: {
-  exercicioId: string;
-  nome: string;
-  nomeDoOriginal: string;
-  prefs?: Prefs;
-  aoEscolher: (id: string) => void;
-  aoDesfazer?: () => void;
-}) {
-  const [aberto, setAberto] = useState(false);
-  const lista = evitadosPorUltimo(
-    substitutosPara(exercicioId),
-    (e) => e.id,
-    prefs,
-  );
-  if (lista.length === 0 && !aoDesfazer) return null;
-
-  return (
-    <Sheet open={aberto} onOpenChange={setAberto}>
-      <SheetTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          aria-label={`Substituir ${nome}`}
-          className="alvo text-muted-foreground shrink-0"
-        >
-          <Repeat className="size-5" />
-        </Button>
-      </SheetTrigger>
-      <SheetContent
-        side="bottom"
-        className="max-h-[80dvh] overflow-y-auto pb-8"
-      >
-        <SheetHeader className="pb-0">
-          <SheetTitle>Substituir hoje</SheetTitle>
-          <SheetDescription>
-            O registro fica com o substituto; a progressão do original não muda.
-            A escolha vale para o treino que você começar hoje.
-          </SheetDescription>
-        </SheetHeader>
-        <ul className="flex flex-col gap-1 px-4">
-          {aoDesfazer ? (
-            <li>
-              <SheetClose asChild>
-                <button
-                  type="button"
-                  onClick={aoDesfazer}
-                  className="hover:bg-muted alvo flex w-full flex-col items-start gap-0.5 rounded-lg px-3 py-2 text-left"
-                >
-                  <span className="text-sm font-medium">
-                    Voltar para {nomeDoOriginal}
-                  </span>
-                  <span className="text-muted-foreground text-xs">
-                    o exercício do programa
-                  </span>
-                </button>
-              </SheetClose>
-            </li>
-          ) : null}
-          {lista.map((e) => (
-            <li key={e.id}>
-              <SheetClose asChild>
-                <button
-                  type="button"
-                  onClick={() => aoEscolher(e.id)}
-                  className="hover:bg-muted alvo flex w-full flex-col items-start gap-0.5 rounded-lg px-3 py-2 text-left"
-                >
-                  <span className="text-sm font-medium">{e.nome}</span>
-                  <span className="text-muted-foreground text-xs">
-                    {e.prescricao_padrao.texto} · {e.equipamento_texto}
-                    {evitado(prefs, e.id) ? " · você marcou como evitar" : ""}
-                  </span>
-                </button>
-              </SheetClose>
-            </li>
-          ))}
-        </ul>
-      </SheetContent>
-    </Sheet>
   );
 }

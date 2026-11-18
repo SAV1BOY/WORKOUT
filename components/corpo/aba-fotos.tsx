@@ -12,8 +12,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { CampoData, useDataDoRegistro } from "@/components/ui/campo-data";
 import {
   ANGULOS,
   NOME_ANGULO,
@@ -27,6 +26,8 @@ import { formatarData } from "@/lib/formato";
 import { apagarFoto, enviarFoto, useUrlsDasFotos } from "@/lib/queries/corpo";
 import type { AnguloFoto } from "@/lib/types";
 import { cn } from "@/lib/utils";
+
+const AVISO_FOTO_REGISTRADA = "foto-de-progresso-registrada";
 
 /**
  * Aba Fotos (SPEC §3.8): upload de frente/lado/costas por data (reduzidas no
@@ -42,7 +43,8 @@ export function AbaFotos({
   fotos: FotoBruta[];
 }) {
   const cliente = useQueryClient();
-  const [data, setData] = useState(hoje);
+  // a data fica depois de enviar (os três ângulos do mesmo dia); a virada do dia a devolve para hoje
+  const { data, escolher } = useDataDoRegistro(hoje);
   const [enviando, setEnviando] = useState<AnguloFoto | null>(null);
   /** A foto aberta em tela cheia (onde fica o Apagar, SPEC §22.2 item 3). */
   const [aberta, setAberta] = useState<{ foto: FotoBruta; titulo: string } | null>(null);
@@ -60,9 +62,9 @@ export function AbaFotos({
       const existente =
         fotos.find((f) => f.data === data && f.angulo === angulo) ?? null;
       await enviarFoto({ userId, data, angulo, arquivo, cliente, existente });
-      toast.success(`Foto de ${NOME_ANGULO[angulo].toLowerCase()} guardada.`);
+      toast.success(`Foto de ${NOME_ANGULO[angulo].toLowerCase()} registrada.`, { id: AVISO_FOTO_REGISTRADA });
     } catch {
-      toast.error("Não consegui guardar essa foto.");
+      toast.error("Não consegui registrar essa foto.");
     } finally {
       setEnviando(null);
     }
@@ -86,33 +88,23 @@ export function AbaFotos({
     <div className="flex flex-col gap-4">
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Fotos do dia</CardTitle>
+          <CardTitle role="heading" aria-level={2} className="text-base">{dias.length ? "Fotos do dia" : "Registre sua primeira foto"}</CardTitle>
           <CardDescription>
-            Mesma luz, mesma distância, mesma pose. Elas ficam só no seu bucket privado.
+            Mesma luz, mesma distância, mesma pose. Só você tem acesso às suas fotos.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
-          <div className="flex flex-col gap-1">
-            <Label htmlFor="fotos-data">Data</Label>
-            <Input
-              id="fotos-data"
-              type="date"
-              value={data}
-              max={hoje}
-              onChange={(e) => setData(e.target.value)}
-              className="alvo h-12"
-            />
-          </div>
+          <CampoData id="fotos-data" valor={data} hoje={hoje} aoMudar={escolher} />
 
-          <div className="grid grid-cols-3 gap-2">
+          <div className="flex flex-col gap-2">
             {ANGULOS.map((angulo) => (
               <label
                 key={angulo}
-                className="alvo border-input hover:bg-accent flex cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border border-dashed p-2 text-center"
+                className="alvo border-input hover:bg-accent flex cursor-pointer items-center gap-2 rounded-lg border border-dashed px-3 focus-within:ring-2"
               >
                 <Camera className="size-5" aria-hidden="true" />
                 <span className="text-xs font-medium">{NOME_ANGULO[angulo]}</span>
-                <span className="text-muted-foreground text-micro">
+                <span className="text-primary ml-auto flex min-h-11 items-center text-sm">
                   {enviando === angulo ? "enviando…" : "escolher"}
                 </span>
                 <input
@@ -132,14 +124,12 @@ export function AbaFotos({
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Galeria</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {dias.length === 0 ? (
-            <SemDados icone={Camera} titulo="Nenhuma foto ainda." />
-          ) : (
+      {dias.length > 0 ? (
+        <Card>
+          <CardHeader>
+            <CardTitle role="heading" aria-level={2} className="text-base">Galeria</CardTitle>
+          </CardHeader>
+          <CardContent>
             <ul className="flex flex-col gap-4">
               {dias.map((dia) => (
                 <li key={dia.data} className="flex flex-col gap-1">
@@ -154,12 +144,13 @@ export function AbaFotos({
                             // um toque abre a foto em tela cheia, onde fica o Apagar (§22.2)
                             <button
                               type="button"
-                              onClick={() =>
+                              onClick={() => {
+                                toast.dismiss(AVISO_FOTO_REGISTRADA);
                                 setAberta({
                                   foto,
                                   titulo: `${NOME_ANGULO[angulo]} em ${formatarData(dia.data)}`,
-                                })
-                              }
+                                });
+                              }}
                               // "Ver a foto: Frente em 16/09" — sem repetir o
                               // rótulo do input de upload ("Foto de frente")
                               aria-label={`Ver a foto: ${NOME_ANGULO[angulo]} em ${formatarData(dia.data)}`}
@@ -192,11 +183,11 @@ export function AbaFotos({
                 </li>
               ))}
             </ul>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      ) : null}
 
-      <Comparacao dias={dias} urls={urls} />
+      {dias.length > 0 ? <Comparacao dias={dias} urls={urls} /> : null}
 
       {aberta && urls[aberta.foto.storage_path] ? (
         <FotoAmpliada
@@ -240,7 +231,7 @@ function Comparacao({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Comparar</CardTitle>
+        <CardTitle role="heading" aria-level={2} className="text-base">Comparar</CardTitle>
         <CardDescription>Arraste para revelar a foto mais antiga.</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">

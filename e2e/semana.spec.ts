@@ -106,7 +106,7 @@ test.describe("Semana visível — a aba Treino e o calendário dizem o mesmo (S
       expect(textos[4]).toContain("Treino A · semana 1");
 
       await expect(
-        page.getByRole("button", { name: /^seg 14\/09.*Treino A, feito$/ }),
+        page.getByRole("button", { name: /^segunda 14\/09.*Treino A, feito$/ }),
       ).toBeVisible();
 
       await semRolagemHorizontal(page);
@@ -196,7 +196,7 @@ test.describe("Semana visível — a aba Treino e o calendário dizem o mesmo (S
     expect(textos[2]).toContain("Treino B · semana 1");
     expect(textos[4]).toContain("Treino A · semana 1");
     await expect(
-      page.getByRole("button", { name: /^qua 16\/09.*Treino B, feito$/ }),
+      page.getByRole("button", { name: /^quarta 16\/09.*Treino B, feito$/ }),
     ).toBeVisible();
 
     await semRolagemHorizontal(page);
@@ -225,7 +225,7 @@ test.describe("Semana visível — a aba Treino e o calendário dizem o mesmo (S
     await page.goto("/calendario");
     await expect(page.getByRole("heading", { name: "Calendário" })).toBeVisible();
     await expect(
-      page.getByRole("button", { name: /^qui 17\/09.*Corrida, feito$/ }),
+      page.getByRole("button", { name: /^quinta 17\/09.*Corrida, feito$/ }),
     ).toBeVisible();
   });
 
@@ -240,11 +240,11 @@ test.describe("Semana visível — a aba Treino e o calendário dizem o mesmo (S
     await expect(page.getByRole("heading", { name: "Calendário" })).toBeVisible();
 
     await expect(
-      page.getByRole("button", { name: /^qua 16\/09.*Treino B, faltou$/ }),
+      page.getByRole("button", { name: /^quarta 16\/09.*Treino B, faltou$/ }),
     ).toBeVisible();
     // e a sexta (hoje) continua ancorada no ultimo_treino do perfil
     await expect(
-      page.getByRole("button", { name: /^sex 18\/09.*Treino B, a fazer$/ }),
+      page.getByRole("button", { name: /^sexta 18\/09.*Treino B, a fazer$/ }),
     ).toBeVisible();
   });
 });

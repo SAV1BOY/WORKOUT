@@ -259,7 +259,9 @@ export function IlustracaoAlternada({
       <button
         type="button"
         data-pausa
-        aria-label={alternando ? "Parar a animação" : "Voltar a alternar"}
+        /* SPEC §22.18 item 5: a Visão geral tem uma figura por bloco — o nome
+           diz de qual (eram 6 "Parar a animação" iguais) */
+        aria-label={`${alternando ? "Parar a animação" : "Voltar a alternar"} — ${alt}`}
         onClick={() => {
           if (alternando) {
             setEscolha(true);

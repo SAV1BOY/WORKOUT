@@ -26,6 +26,7 @@ export function TelaCorpo({ userId }: { userId: string }) {
         <Erro
           mensagem={(erro as Error).message}
           aoTentarDeNovo={() => {
+            void perfilQ.refetch();
             void pesosQ.refetch();
             void medidasQ.refetch();
             void fotosQ.refetch();
@@ -48,7 +49,7 @@ export function TelaCorpo({ userId }: { userId: string }) {
   return (
     <Tela>
       <Tabs defaultValue="peso">
-        <TabsList className="h-12 w-full">
+        <TabsList aria-label="Seções do corpo" className="h-12 w-full">
           <TabsTrigger value="peso" className="alvo">
             Peso
           </TabsTrigger>
@@ -100,12 +101,8 @@ function EsqueletoDaAba({ forma }: { forma: "peso" | "medidas" | "fotos" }) {
     <div role="status" aria-label="Carregando" className="flex flex-col gap-4">
       <div className="border-border bg-card flex flex-col gap-3 rounded-xl border p-4">
         <Skeleton className="h-5 w-2/5" />
-        {forma === "peso" ? (
-          <>
-            <Skeleton className="h-12 w-full" />
-            <Skeleton className="h-40 w-full" />
-          </>
-        ) : null}
+        {/* o peso atual e o gráfico vêm primeiro (SPEC §22.19 item 2) */}
+        {forma === "peso" ? <Skeleton className="h-44 w-full" /> : null}
         {forma === "medidas" ? (
           <div className="grid grid-cols-2 gap-3">
             {Array.from({ length: 6 }).map((_, i) => (

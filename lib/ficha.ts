@@ -202,3 +202,107 @@ export function ondeVoceEsta(c: {
     ajustePelasBarras: outraCarga && !c.semanaLeve,
   };
 }
+
+/*
+ * SPEC §22.17 item 2: o critério "nada repetido" da ficha (§22.14 item 3) —
+ * nenhum parágrafo ou item de 12 caracteres ou mais igual a outro ou contido
+ * nele. "Contido" é em **palavras inteiras**: "7,5 kg na barra" não está em
+ * "17,5 kg na barra". O Vitest e o e2e usam esta função.
+ */
+
+/** Letra, algarismo ou a vírgula/ponto de dentro de um número. */
+const DE_DENTRO_DA_PALAVRA = /[\p{L}\p{N}]/u;
+
+/** `menor` aparece em `maior` com limite de palavra nas duas pontas? */
+export function contidoEmPalavras(menor: string, maior: string): boolean {
+  if (menor.length === 0) return false;
+  let de = maior.indexOf(menor);
+  while (de >= 0) {
+    const antes = maior.slice(0, de);
+    const depois = maior.slice(de + menor.length);
+    const livreAntes =
+      antes === "" ||
+      (!DE_DENTRO_DA_PALAVRA.test(antes.slice(-1)) &&
+        !(/[,.]$/.test(antes) && /\p{N}$/u.test(antes.slice(0, -1)) && /^\p{N}/u.test(menor)));
+    const livreDepois =
+      depois === "" ||
+      (!DE_DENTRO_DA_PALAVRA.test(depois[0]!) &&
+        !(/^[,.]\p{N}/u.test(depois) && /\p{N}$/u.test(menor)));
+    if (livreAntes && livreDepois) return true;
+    de = maior.indexOf(menor, de + 1);
+  }
+  return false;
+}
+
+/** Os pares repetidos de uma lista de textos (já sem espaços duplicados). */
+export function textoRepetido(textos: readonly string[]): string[] {
+  const achados: string[] = [];
+  textos.forEach((a, i) =>
+    textos.forEach((b, j) => {
+      if (i === j) return;
+      if (a === b ? i < j : contidoEmPalavras(a, b)) achados.push(`«${a}» ⊂ «${b}»`);
+    }),
+  );
+  return achados;
+}
+
+/**
+ * SPEC §22.17 item 4: o histórico da ficha sai do esqueleto só com o perfil
+ * **e** as consultas dele lidos. Sem o perfil, a carga era calculada sem as
+ * barras pesadas de Mais → Equipamento, e "Onde você está" nascia escondido e
+ * aparecia quando o perfil chegava, empurrando a página.
+ */
+export function historicoCarregando(pendentes: {
+  perfil: boolean;
+  estados: boolean;
+  series: boolean;
+  recordes: boolean;
+  sessoes: boolean;
+  eventos: boolean;
+}): boolean {
+  return (
+    pendentes.perfil ||
+    pendentes.estados ||
+    pendentes.series ||
+    pendentes.recordes ||
+    pendentes.sessoes ||
+    // o cartão único só vale com os eventos do motor lidos (§22.14 item 2)
+    pendentes.eventos
+  );
+}
+
+/** As seis leituras do histórico da ficha, na ordem de `historicoCarregando`. */
+export const LEITURAS_DO_HISTORICO = [
+  "perfil",
+  "estados",
+  "series",
+  "recordes",
+  "sessoes",
+  "eventos",
+] as const;
+
+export type LeituraDoHistorico = (typeof LEITURAS_DO_HISTORICO)[number];
+
+/**
+ * SPEC §22.17 item 4 (revisão do Codex no PR #33): **qualquer** uma das seis
+ * leituras do histórico que falhe vira o Erro — nunca um número calculado
+ * com dado faltando (o perfil que falha tirava o esqueleto e a carga saía
+ * sem as barras pesadas; os eventos que falham davam o cartão único). O
+ * primeiro erro, na ordem de `LEITURAS_DO_HISTORICO`, ou `null`.
+ */
+export function historicoErro(
+  erros: Readonly<Record<LeituraDoHistorico, unknown>>,
+): Error | null {
+  for (const chave of LEITURAS_DO_HISTORICO) {
+    const erro = erros[chave];
+    if (erro) return erro instanceof Error ? erro : new Error(String(erro));
+  }
+  return null;
+}
+
+/** O que o "Tentar de novo" refaz: as leituras que falharam, na mesma ordem. */
+export function leiturasQueFalharam(
+  erros: Readonly<Record<LeituraDoHistorico, unknown>>,
+): LeituraDoHistorico[] {
+  return LEITURAS_DO_HISTORICO.filter((chave) => Boolean(erros[chave]));
+}

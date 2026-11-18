@@ -1,5 +1,7 @@
 "use client";
 
+import { useRede } from "@/lib/usar-rede";
+
 import { useQueryClient } from "@tanstack/react-query";
 import { Download, Upload } from "lucide-react";
 import { useRef, useState } from "react";
@@ -31,17 +33,18 @@ import {
 
 /** `/mais/backup` (SPEC §9): exportar tudo e importar de volta. */
 export function TelaBackup({ userId }: { userId: string }) {
+  const online = useRede();
   return (
     <section className="flex flex-col gap-4">
       <CabecalhoMais
         titulo="Backup"
         descricao="Um arquivo com tudo que é seu: treinos, séries, cardio, peso, medidas e ajustes."
       />
+      {!online && <p role="status">Precisa de rede para ler os seus registros no servidor.</p>}
       <Exportar userId={userId} />
       <Importar userId={userId} />
       <p className="text-muted-foreground text-xs text-balance">
-        As fotos de progresso não entram no arquivo (elas ficam no bucket
-        privado). O resto volta igual: importar o mesmo arquivo duas vezes não
+        As fotos de progresso ficam guardadas à parte, só para você. O resto volta igual: importar o mesmo arquivo duas vezes não
         duplica nada.
       </p>
     </section>
@@ -51,6 +54,7 @@ export function TelaBackup({ userId }: { userId: string }) {
 /* ---------------------------------------------------------- exportar */
 
 function Exportar({ userId }: { userId: string }) {
+  const online = useRede();
   const [ocupado, setOcupado] = useState(false);
 
   const baixar = async () => {
@@ -88,13 +92,13 @@ function Exportar({ userId }: { userId: string }) {
       <CardHeader>
         <CardTitle className="text-base">Exportar</CardTitle>
         <CardDescription>
-          Baixa um JSON com as 11 tabelas do seu usuário.
+          Baixa um arquivo com tudo que você registrou.
         </CardDescription>
       </CardHeader>
       <CardContent>
         <Button
           className="alvo h-12 w-full gap-2"
-          disabled={ocupado}
+          disabled={!online || ocupado}
           onClick={() => void baixar()}
         >
           <Download className="size-5" />
@@ -117,13 +121,14 @@ function Importar({ userId }: { userId: string }) {
   const cliente = useQueryClient();
   const entrada = useRef<HTMLInputElement>(null);
   const [escolhido, setEscolhido] = useState<Escolhido | null>(null);
+  const online = useRede();
   const [ocupado, setOcupado] = useState(false);
 
   const escolher = async (arquivo: File) => {
     setOcupado(true);
     try {
       const backup = lerBackup(await arquivo.text());
-      const existentes = await lerChavesExistentes();
+      const existentes = await lerChavesExistentes(userId);
       setEscolhido({
         nome: arquivo.name,
         backup,
@@ -170,6 +175,7 @@ function Importar({ userId }: { userId: string }) {
           ref={entrada}
           id="arquivo-backup"
           type="file"
+          disabled={!online || ocupado}
           accept="application/json,.json"
           className="sr-only"
           onChange={(e) => {
@@ -180,7 +186,7 @@ function Importar({ userId }: { userId: string }) {
         <Button
           variant="outline"
           className="alvo h-12 w-full gap-2"
-          disabled={ocupado}
+          disabled={!online || ocupado}
           onClick={() => entrada.current?.click()}
         >
           <Upload className="size-5" />
@@ -233,7 +239,7 @@ function Importar({ userId }: { userId: string }) {
                 </p>
                 <Button
                   className="alvo h-12"
-                  disabled={ocupado}
+                  disabled={!online || ocupado}
                   onClick={() => void confirmar()}
                 >
                   {ocupado ? "Importando…" : "Importar tudo"}

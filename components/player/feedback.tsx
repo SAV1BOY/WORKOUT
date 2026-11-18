@@ -65,6 +65,7 @@ export function TelaFeedback({
         </Button>
         <Button
           size="xl"
+          variant={sensacao === null ? "outline" : "default"}
           className="alvo flex-1 rounded-2xl font-semibold"
           onClick={aoSeguir}
         >

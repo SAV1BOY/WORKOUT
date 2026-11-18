@@ -21,7 +21,7 @@ import {
   type Realizado,
 } from "@/lib/calendario";
 import { acharTreino } from "@/lib/dados";
-import { formatarData, formatarMesAno } from "@/lib/formato";
+import { formatarData, formatarIntervaloDaSemana, formatarMesAno } from "@/lib/formato";
 import { apagarOverride, gravarOverrides } from "@/lib/queries/acoes";
 import { useCardio, useOverrides, usePerfil, useSessoes } from "@/lib/queries/dados";
 import { useHoje } from "@/lib/relogio";
@@ -232,7 +232,7 @@ export function TelaCalendario({ userId }: { userId: string }) {
   };
 
   const semanaDaFaseMostrada = semanaDaFase(ref, perfil.fase_desde);
-  const ofereceFase2 = faseCumprida(perfil.fase_atual, semanaDaFaseMostrada);
+  const ofereceFase2 = faseCumprida(perfil.fase_atual, semanaDaFase(hoje, perfil.fase_desde));
 
   /*
    * SPEC §22.8 item 7: "0 perdidos" não é notícia — a semana perfeita lê
@@ -289,7 +289,7 @@ export function TelaCalendario({ userId }: { userId: string }) {
           <ChevronLeft className="size-5" />
         </Button>
         <p className="numero min-w-0 flex-1 text-center text-sm font-medium">
-          {formatarData(primeiro)} – {formatarData(ultimo)}
+          {formatarIntervaloDaSemana(primeiro, ultimo)}
         </p>
         <Button
           variant="outline"

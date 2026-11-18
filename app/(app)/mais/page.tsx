@@ -13,6 +13,7 @@ import {
 import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { BotaoSair } from "@/components/botao-sair";
+import { UsoNoCelular } from "@/components/mais/uso-no-celular";
 import { LinhaSincronizacao } from "@/components/mais/linha-sincronizacao";
 import { ehDono } from "@/lib/env";
 import { LINHA_LEMBRETES } from "@/lib/lembretes";
@@ -52,7 +53,7 @@ const SECOES: Secao[] = [
   {
     href: "/mais/preferencias",
     titulo: "Preferências",
-    descricao: "Tema, som e vibração do timer, tela acesa, incrementos.",
+    descricao: "Tema, som e vibração no fim do descanso, tela acesa, incrementos.",
     Icone: SlidersHorizontal,
   },
   /* SPEC §23.4: título e descrição da mesma fonte que o guia de uso. */
@@ -84,7 +85,7 @@ const CONTA: Secao[] = [
   {
     href: "/mais/senha",
     titulo: "Trocar senha",
-    descricao: "Troque a senha temporária pela sua, sem sair do app.",
+    descricao: "Defina uma senha nova, sem sair do app.",
     Icone: KeyRound,
   },
 ];
@@ -103,11 +104,12 @@ export default async function Mais() {
       </nav>
 
       <LinhaSincronizacao />
+      <UsoNoCelular />
 
       <section aria-labelledby="titulo-conta" className="flex flex-col gap-2">
         <h2
           id="titulo-conta"
-          className="text-muted-foreground px-1 text-xs font-medium tracking-wide uppercase"
+          className="text-muted-foreground px-1 text-rotulo tracking-wide uppercase"
         >
           Conta
         </h2>
@@ -127,9 +129,9 @@ export default async function Mais() {
 
 function Lista({ secoes }: { secoes: Secao[] }) {
   return (
-    <ul className="border-border divide-border bg-card divide-y overflow-hidden rounded-lg border">
+    <ul className="border-border bg-card overflow-hidden rounded-lg border">
       {secoes.map(({ href, titulo, descricao, Icone }) => (
-        <li key={href}>
+        <li key={href} className="relative not-last:after:pointer-events-none not-last:after:absolute not-last:after:right-0 not-last:after:bottom-0 not-last:after:left-11 not-last:after:border-b">
           {/*
             O anel de foco é INTERNO (−4 px): a lista tem `overflow-hidden`
             (os cantos arredondados), e o anel de fora, a +2 px, saía cortado
@@ -137,16 +139,17 @@ function Lista({ secoes }: { secoes: Secao[] }) {
           */}
           <Link
             href={href}
-            className="alvo hover:bg-muted/50 flex min-h-16 items-center gap-3 px-3 py-3 focus-visible:-outline-offset-4"
+            prefetch={false}
+            className="alvo hover:bg-muted/50 flex min-h-16 items-start gap-3 px-3 py-3 focus-visible:-outline-offset-4"
           >
-            <Icone className="text-muted-foreground size-5 shrink-0" />
+            <Icone aria-hidden="true" className="text-muted-foreground mt-0.5 size-5 shrink-0" />
             <span className="flex min-w-0 flex-col">
               <span className="font-medium">{titulo}</span>
               <span className="text-muted-foreground text-xs text-balance">
                 {descricao}
               </span>
             </span>
-            <ChevronRight className="text-muted-foreground ml-auto size-5 shrink-0" />
+            <ChevronRight className="text-muted-foreground ml-auto size-5 shrink-0 self-center" />
           </Link>
         </li>
       ))}

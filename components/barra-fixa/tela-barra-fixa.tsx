@@ -1,7 +1,6 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
-import { Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -30,7 +29,7 @@ import { avancoDeSemana } from "@/lib/cardio";
 import { cardio, ultimaSemanaDeBarraFixa } from "@/lib/dados";
 import { formatarDiaCurto } from "@/lib/formato";
 import { estadosPorExercicio } from "@/lib/hoje";
-import { registrarSolta } from "@/lib/queries/acoes";
+import { desfazerSolta, registrarSolta } from "@/lib/queries/acoes";
 import {
   useEstados,
   usePerfil,
@@ -117,11 +116,20 @@ export function TelaBarraFixa({ userId }: { userId: string }) {
     if (!hoje || somando) return;
     setSomando(true);
     try {
-      await registrarSolta({
+      const id = await registrarSolta({
         userId,
         data: hoje,
         intervalo: historico ?? undefined,
         cliente,
+      });
+      toast.success("Repetição registrada.", {
+        duration: 5000,
+        action: {
+          label: "Desfazer",
+          onClick: () => {
+            void desfazerSolta(id, userId, cliente).catch(() => toast.error("Não consegui desfazer agora."));
+          },
+        },
       });
     } catch {
       toast.error("Não consegui registrar agora.");
@@ -190,10 +198,10 @@ export function TelaBarraFixa({ userId }: { userId: string }) {
           <CardTitle className="text-lg text-balance">
             Semana {plano.faixa} · {plano.texto}
           </CardTitle>
-          <CardDescription className="text-balance">{plano.assistencia}</CardDescription>
+          <CardDescription className="text-balance">{cardio.barra_fixa.rotulos.assistencia}: {plano.assistencia}</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
-          <p className="text-muted-foreground text-xs text-balance">{plano.treina}</p>
+          <p className="text-muted-foreground text-xs text-balance">{cardio.barra_fixa.rotulos.foco}: {plano.treina}</p>
           <Button
             className="alvo h-14 w-full text-base font-semibold"
             disabled={criando}
@@ -228,7 +236,7 @@ export function TelaBarraFixa({ userId }: { userId: string }) {
               disabled={somando}
               aria-label="Somar uma repetição solta de barra fixa"
             >
-              <Plus className="size-5" />1
+              +1
             </Button>
           </div>
 
@@ -293,10 +301,10 @@ export function TelaBarraFixa({ userId }: { userId: string }) {
                   <td className="px-2 py-2 align-top">
                     <span className="numero">{l.porSessao}</span>
                     <span className="text-muted-foreground block text-xs font-normal text-balance">
-                      {l.assistencia}
+                      {cardio.barra_fixa.rotulos.assistencia}: {l.assistencia}
                     </span>
                     <span className="text-muted-foreground block text-xs font-normal text-balance">
-                      {l.treina}
+                      {cardio.barra_fixa.rotulos.foco}: {l.treina}
                     </span>
                   </td>
                   <td className="numero px-2 py-2 text-right align-top whitespace-nowrap">

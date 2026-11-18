@@ -12,6 +12,7 @@ import {
   entrarNoApp,
   esperarAbaTreino,
   fixarData,
+  irNaAba,
   lerDoMock,
   resetarMock,
   usuarioComPerfil,
@@ -175,7 +176,7 @@ test("a folha do 'Ajustar' abre com o foco no título, não no teclado (item 3)"
   await page.getByRole("button", { name: "Ajustar" }).click();
 
   const folha = page.getByRole("dialog");
-  await expect(folha.getByLabel("Preparação (s)")).toBeVisible();
+  await expect(folha.getByLabel("Preparação (segundos)")).toBeVisible();
   const focado = await page.evaluate(() => ({
     etiqueta: document.activeElement?.tagName ?? null,
     texto: document.activeElement?.textContent?.trim() ?? null,
@@ -206,6 +207,26 @@ test("depois de rolar, a faixa fixa continua levando ao treino de hoje (item 2)"
   await page.waitForURL(/\/treinar\/[0-9a-f-]+$/);
 });
 
+for (const tema of ["light", "dark"] as const) {
+  test(`a faixa fixa tem a sombra do tema ${tema}`, async ({ page }) => {
+    await page.emulateMedia({ colorScheme: tema });
+    await abrirAbaTreino(page);
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    const faixa = page.locator("[data-faixa-do-dia] aside");
+    await expect(faixa).toBeVisible();
+    const sombra = await faixa.evaluate(el => {
+      const sonda = document.createElement("span");
+      sonda.className = "flutuante";
+      el.append(sonda);
+      const esperada = getComputedStyle(sonda).boxShadow;
+      sonda.remove();
+      return { esperada, atual: getComputedStyle(el).boxShadow };
+    });
+    expect(sombra.esperada).not.toBe("none");
+    expect(sombra.atual).toBe(sombra.esperada);
+  });
+}
+
 test("com a sessão aberta, a faixa fixa diz o progresso e continua (item 2)", async ({
   page,
 }) => {
@@ -227,6 +248,8 @@ test("com a sessão aberta, a faixa fixa diz o progresso e continua (item 2)", a
 test("nenhum toque na faixa fixa atravessa para a lista de baixo (item 2)", async ({
   page,
 }) => {
+  test.slow(); // esta rodada mede o ponteiro com outro lote em execução
+
   /*
    * A faixa é um cartão OPACO por cima da lista, com o nome do treino escrito
    * nele: cada pixel dela tem de ser dela. A tentativa de deixá-la inerte
@@ -237,6 +260,11 @@ test("nenhum toque na faixa fixa atravessa para a lista de baixo (item 2)", asyn
    * faixa, a cada 60 px de rolagem, em três alturas dela.
    */
   await abrirAbaTreino(page);
+
+  // A lista chega do cache ou da rede depois da casca. Medir a casca vazia
+  // encurtava o percurso e fazia a faixa desaparecer quando a máquina estava ocupada.
+  await expect(page.getByRole("button", { name: /^Substituir / }).last()).toBeVisible();
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollHeight - innerHeight)).toBeGreaterThan(600);
 
   const varredura = await page.evaluate(async () => {
     const esperar = (ms: number) =>
@@ -284,10 +312,14 @@ test("nenhum toque na faixa fixa atravessa para a lista de baixo (item 2)", asyn
 test("a faixa fixa inteira é o controle anunciado (item 2)", async ({
   page,
 }) => {
+  test.slow(); // esta rodada mede o ponteiro com outro lote em execução
+
   await abrirAbaTreino(page);
-  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
   const faixa = page.locator("[data-faixa-do-dia] aside");
-  await expect(faixa).toBeVisible();
+  await expect.poll(async () => {
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    return faixa.isVisible();
+  }).toBe(true);
 
   /* o controle ocupa a faixa toda, e o nome dele diz o verbo e o treino */
   const medida = await faixa.evaluate((el) => {
@@ -329,12 +361,29 @@ test("voltar do player avisa em pt-BR e destaca o card do dia (item 9)", async (
     page.getByText("Treino guardado — toque em Continuar para retomar."),
   ).toBeVisible();
   await expect(page.getByText("em andamento").first()).toBeVisible();
+  const ajustar = page.getByRole("button", { name: "Ajustar" });
+  expect(await ajustar.evaluate((el) => {
+    const r = el.getBoundingClientRect();
+    return el.contains(document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2));
+  }), "o aviso não cobre o botão Ajustar").toBe(true);
+
 
   // a sessão aberta É a do dia: o anel fica no card "em andamento", que é
   // quem tem o "Continuar" — e em mais ninguém
   expect(await quemEstaComAnel(page)).toEqual([
     { rotulo: "Treino A", temContinuar: true },
   ]);
+});
+
+test("passar pelo Relatório depois do player deixa a volta ao Treino sem aviso", async ({ page }) => {
+  await abrirAbaTreino(page);
+  await comecarOTreinoDoDia(page);
+  await page.getByRole("button", { name: /Começar agora|Concluir série/ }).first().waitFor();
+  await page.goto("/relatorio");
+  await irNaAba(page, "Treino");
+  await esperarAbaTreino(page);
+  await expect(page.getByRole("link", { name: "Continuar" }).first()).toBeVisible();
+  await expect(page.getByText("Treino guardado — toque em Continuar para retomar.")).toHaveCount(0);
 });
 
 test("voltar de uma sessão livre destaca o banner, que é quem tem o 'Continuar' (item 9)", async ({
@@ -379,14 +428,19 @@ test("os dois campos do 'Ajustar' gravam sozinhos, sem botão Salvar (item 3)", 
   const folha = page.getByRole("dialog");
 
   await expect(folha.getByRole("button", { name: /^Salvar/ })).toHaveCount(0);
-  await expect(folha.getByLabel("Descanso padrão (s)")).toHaveAttribute(
+  await expect(folha.getByLabel("Descanso padrão (segundos)")).toHaveAttribute(
     "placeholder",
     "—",
   );
   await expect(folha.getByText("Nenhum por enquanto.")).toBeVisible();
 
-  await folha.getByLabel("Descanso padrão (s)").fill("75");
-  await folha.getByLabel("Descanso padrão (s)").blur();
+  const descanso = folha.getByLabel("Descanso padrão (segundos)");
+  await descanso.fill("7");
+  await page.waitForTimeout(1100); // pausa real de digitação maior que o antigo debounce
+  const parcial = await lerDoMock<{ prefs: Record<string, unknown> }>(sessao, "profiles");
+  expect(parcial[0]?.prefs?.descanso_padrao_s).not.toBe(7);
+  await descanso.fill("75");
+  await descanso.press("Enter");
   await expect
     .poll(async () => {
       const perfis = await lerDoMock<{ prefs: Record<string, unknown> }>(
@@ -397,6 +451,24 @@ test("os dois campos do 'Ajustar' gravam sozinhos, sem botão Salvar (item 3)", 
     })
     .toBe(75);
 });
+
+for (const tema of ["light", "dark"] as const) {
+  test(`L28 — cabeçalho, carrossel e faixa cabem a 360 px (${tema})`, async ({ page }) => {
+    await page.emulateMedia({ colorScheme: tema });
+    await abrirAbaTreino(page);
+    const data = page.getByRole("region", { name: "Situação" }).getByRole("heading", { level: 1 });
+    await expect(data).toBeVisible();
+    const linhas = await data.evaluate((e) => e.clientHeight / parseFloat(getComputedStyle(e).lineHeight));
+    expect(linhas).toBeLessThan(1.1);
+    const desafio = page.locator("[data-desafio]").first();
+    await expect(desafio).toBeAttached();
+    expect((await desafio.boundingBox())!.width).toBeLessThanOrEqual(280);
+    await page.getByRole("button", { name: /^Substituir / }).last().scrollIntoViewIfNeeded();
+    const faixa = page.locator("[data-faixa-do-dia] aside");
+    await expect(faixa).toBeVisible();
+    expect(await faixa.locator(".truncate").evaluate((e) => e.scrollWidth <= e.clientWidth)).toBe(true);
+  });
+}
 
 /* ------------------------------------------------- item 4: os dois ladrilhos */
 
@@ -442,28 +514,21 @@ test("nenhum nome de exercício passa de duas linhas a 360 px (item 5)", async (
    */
   const listaDeHoje = page.locator('ul[aria-label="Exercícios de hoje"]');
   await expect(listaDeHoje).toBeVisible();
-  const linhas = await page.evaluate(() => {
-    const lista = document.querySelector('ul[aria-label="Exercícios de hoje"]');
-    if (!lista) return null;
-    return [
-      ...lista.querySelectorAll("li > button > span > span:first-child"),
-    ].map((el) => {
-      const alturaDaLinha = parseFloat(getComputedStyle(el).lineHeight);
-      const altura = el.getBoundingClientRect().height;
-      return {
-        texto: el.textContent ?? "",
-        linhas: Math.round(altura / alturaDaLinha),
-      };
-    });
-  });
-  expect(linhas).not.toBeNull();
-  expect(linhas!.length).toBeGreaterThan(2);
-  for (const linha of linhas!) {
-    expect(
-      linha.linhas,
-      `"${linha.texto}" passou de duas linhas`,
-    ).toBeLessThanOrEqual(2);
+  const nomes = listaDeHoje.locator("li > button > span > span:first-child");
+  await expect(nomes.first()).toBeVisible();
+  const contarLinhas = () => nomes.evaluateAll(itens => itens.map(nome => ({
+    texto: nome.textContent,
+    linhas: Math.round(nome.scrollHeight / parseFloat(getComputedStyle(nome).lineHeight)),
+  })));
+  const linhas = await contarLinhas();
+  expect(linhas.length).toBeGreaterThan(2);
+  for (const linha of linhas) {
+    expect(linha.linhas, `"${linha.texto}" ficou truncado`).toBeLessThanOrEqual(2);
   }
+
+  // Um nome truncado continua desenhando duas linhas, mas o conteúdo precisa de mais.
+  await nomes.first().evaluate(nome => { nome.textContent = "Exercício muito longo ".repeat(12); });
+  expect((await contarLinhas())[0]!.linhas).toBeGreaterThan(2);
 });
 
 /* ------------------------------------------------ item 6: o carrossel conta */

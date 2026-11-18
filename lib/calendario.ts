@@ -26,6 +26,7 @@ import {
   semanaDeCorrida,
   ultimaSemanaDeBarraFixa,
   ultimaSemanaDeCorda,
+  ultimaSemanaDeCorrida,
 } from "@/lib/dados";
 import { diasDeTreinoDasPrefs, semanaPersonalizada } from "@/lib/dias";
 import type {
@@ -580,7 +581,13 @@ export function semanaEEstado(
       .ultimo;
   }
 
-  return montarSemana(inicioAlvo, perfil, overrides, sessoes, hoje, ancora, cardios);
+  const deslocamento = differenceInCalendarWeeks(inicioAlvo, inicioHoje, SEMANA_COMECA);
+  const projetado = deslocamento === 0 ? perfil : {
+    ...perfil,
+    semana_corrida: Math.max(1, Math.min(ultimaSemanaDeCorrida(), (perfil.semana_corrida ?? 1) + deslocamento)),
+    semana_corda: Math.max(1, Math.min(ultimaSemanaDeCorda(), (perfil.semana_corda ?? 1) + deslocamento)),
+  };
+  return montarSemana(inicioAlvo, projetado, overrides, sessoes, hoje, ancora, cardios);
 }
 
 /** Só os dias de `semanaEEstado()`. */

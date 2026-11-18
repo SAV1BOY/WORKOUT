@@ -280,15 +280,13 @@ test("varredura: todo texto visível passa no contraste AA", async ({ page }) =>
  *      parecer o cartão do IMC). Ele trazia `outline-none` do shadcn — uma
  *      utilitária, que ganha da regra global de `app/globals.css` — e por
  *      isso recebia o foco sem desenhar nada. Agora leva `.foco`.
- *   2. o campo `#peso-data`, um `input[type="date"]`: o Chromium lhe dá
- *      shadow DOM e o Tab anda por dia, mês, ano e ainda pelo ícone do
- *      calendário. Nesse último passo o `document.activeElement` continua
- *      sendo o campo, mas quem tem o foco é um nó de DENTRO, então o host
- *      deixa de casar `:focus-visible` e o anel sumia. O `Input` ganhou
- *      `focus-within:ring-3`, que casa com o host enquanto o foco estiver na
- *      sombra. (O campo TEM nome acessível — o `<Label htmlFor="peso-data">`
- *      "Data"; o que o relatório antigo via como "sem nome" era só o
- *      `textContent` vazio de um `<input>`.)
+ *   2. o campo `#peso-data`, que ERA um `input[type="date"]` visível: o
+ *      Chromium lhe dá shadow DOM e o Tab andava por dia, mês, ano e pelo
+ *      ícone do calendário; no último passo o anel sumia, e o `Input` ganhou
+ *      `focus-within:ring-3`. Desde o L15 (SPEC §22.19 item 6) a data é o
+ *      grupo "Data" com três botões (Hoje · Ontem · Outra data), cada um
+ *      com o anel próprio; o `input[type="date"]` ficou escondido, fora do
+ *      Tab (`tabindex="-1"`) e `aria-hidden` — só o `showPicker()` o usa.
  *
  * A cor do anel é lida pelo CANVAS, não por `regex`: o Chromium devolve
  * `oklab(… / 0.5)` em `box-shadow` sempre que a cor passa por `color-mix`

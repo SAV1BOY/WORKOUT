@@ -213,7 +213,7 @@ describe("cardio do dia (SPEC §3.1)", () => {
     const corda = alternativaDeCorda(1);
     expect(descricaoDoCardio(corda)).toBe("6 × 30 s de corda (60 s de descanso)");
     expect(textoDoCardio(corda)).toBe(
-      "Corda · semana 1 · 6 × 30 s de corda (60 s de descanso) · 13 min",
+      "Corda · semana 1 · 6 × 30 s de corda (60 s de descanso) · 8 min",
     );
   });
 });
@@ -371,6 +371,20 @@ describe("progressoDaAberta (SPEC §13.3)", () => {
     expect(p.feitas).toBe(2);
     expect(p.total).toBe(16);
     expect(p.texto).toBe("2/16 séries");
+  });
+
+  it("usa as posições ativas do plano e inclui as séries preservadas no numerador", () => {
+    const plano = {
+      titulo: null,
+      colecao: null,
+      itens: [{ exercicio_id: "a", series: 3, tipo: "reps" as const, min: 5, max: 8, unilateral: false, descanso_s: 60, descanso_texto: "60 s" }],
+      trocas: { 1: [{ exercicio_id: "b", trabalho: [1, 2], aquecimento: [], ultima_firme: null, nota: null }] },
+    };
+    const feitas = [
+      { ...serie(true), ordem_ex: 1, exercise_id: "a" },
+      { ...serie(true), ordem_ex: 1, exercise_id: "b" },
+    ];
+    expect(progressoDaAbertaV2("A1", feitas, plano).texto).toBe("2/3 séries");
   });
 
   it("sessão sem treino do programa não tem total", () => {

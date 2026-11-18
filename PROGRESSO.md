@@ -5,6 +5,18 @@ repositório, não um plano.
 
 ---
 
+## Atualização de 18 de novembro de 2026
+
+O player permite trocar o exercício durante o treino e conserva as séries
+que já foram feitas, inclusive quando a pessoa volta ao exercício original.
+As sugestões indicam o músculo ou movimento em comum e permitem filtrar
+por equipamento disponível, peso do corpo, tatame ou elástico.
+
+O backup e o relatório percorrem todo o histórico. A atualização também
+cobre a substituição de fotos da própria conta, o uso sem rede e os lembretes
+por aparelho. Os critérios e testes de cada lote estão no
+[registro desta entrega](docs/ultraloop/entrega-2026-11-18.md).
+
 ## Estado da entrega — v2.1 (camada visual) ✅
 
 A camada visual está pronta no código: 5 abas, player unificado, ficha em
@@ -7595,7 +7607,7 @@ Barra fixa viraram `grid-cols-[5.5rem_1fr]`, com o valor sempre no mesmo x.
 
 **10. Legenda da faixa e cartão vazio de uma linha**
 (`components/relatorio/historico.tsx`, `tela-progresso.tsx`) — a faixa da semana
-ganhou "✓ feito · ○ a fazer · ● faltou · — descanso · hoje em destaque"; em
+ganhou "✓ feito · ◉ parcial · ○ a fazer · ● faltou · — descanso · hoje em destaque"; em
 "Carga dos grandes" o exercício sem registro virou **uma linha** (nome + "sem
 registro", 44 px) no lugar de um cartão de altura cheia com um vazio de gráfico
 dentro.
@@ -10507,6 +10519,21 @@ medidos pelo e2e (nenhuma captura abre a Visão geral).
    progredir": "Segue a progressão do plano da corda (…)", sem nome de
    arquivo.
 
+#### Rodada 15 — auditoria 2 reprovou por a regra da folha valer só na folha; lote devolvido à fila
+
+A auditoria 2 sobre `1d41620` (cadeia verde: 1.540 unitários, 514 e2e + 5
+pulados, varredura 5/5; capturas só 09, 10 e 24) reprovou nas **duas
+lentes** pelo mesmo motivo de fundo, 0 bloqueantes: o contrato do lote e a
+SPEC §22.14 item 6 prometiam a regra da folha (a11y-05: foco guardado e
+devolvido a quem abriu, `aria-modal`, fundo inerte, Esc e voltar fecham só
+a camada de cima) para **toda** camada modal, mas só `components/ui/sheet.tsx`
+a cumpria. Medido: o alerta "Descartar este treino?" e o resumo do fim,
+abertos por estado dentro da Visão geral, fechavam com o foco no `<body>`
+e abriam sem `aria-modal` e com o fundo vivo; na foto ampliada, 6 de 6
+Tabs saíam da camada (no Corpo, para a barra de baixo), e no "Apagar esta
+foto?" também, até o aviso "Foto de frente guardada." por cima do véu.
+Lote devolvido à fila. Vereditos: `r15/l14/vereditos-auditoria-2.json`.
+
 #### Rodada 16 — correção da auditoria 1 da rodada 15
 
 As duas lentes da auditoria 1 sobre `4f55487` devolveram o lote com o
@@ -10665,22 +10692,7 @@ em:" com os dois chips, como na rodada 15.
 4. No modo avião, ficha → "Tutorial no YouTube": com o leitor de tela, o
    link lê "Abrir no YouTube (abre fora do app)"; na tela, nada mudou.
 
-#### Rodada 15 — auditoria 2 reprovou por a regra da folha valer só na folha; lote devolvido à fila
-
-A auditoria 2 sobre `1d41620` (cadeia verde: 1.540 unitários, 514 e2e + 5
-pulados, varredura 5/5; capturas só 09, 10 e 24) reprovou nas **duas
-lentes** pelo mesmo motivo de fundo, 0 bloqueantes: o contrato do lote e a
-SPEC §22.14 item 6 prometiam a regra da folha (a11y-05: foco guardado e
-devolvido a quem abriu, `aria-modal`, fundo inerte, Esc e voltar fecham só
-a camada de cima) para **toda** camada modal, mas só `components/ui/sheet.tsx`
-a cumpria. Medido: o alerta "Descartar este treino?" e o resumo do fim,
-abertos por estado dentro da Visão geral, fechavam com o foco no `<body>`
-e abriam sem `aria-modal` e com o fundo vivo; na foto ampliada, 6 de 6
-Tabs saíam da camada (no Corpo, para a barra de baixo), e no "Apagar esta
-foto?" também, até o aviso "Foto de frente guardada." por cima do véu.
-Lote devolvido à fila. Vereditos: `r15/l14/vereditos-auditoria-2.json`.
-
-#### Rodada 16 — retomada (segunda correção, logs em `r17/l14`)
+#### Rodada 17 — segunda correção do L14 (logs em `r17/l14`)
 
 Retomada sobre `1d41620`, na mesma branch; logs em `r17/l14/`. Commits:
 `9cd961e` (a regra num lugar só e os três primitivos), `cb9845d` (foto
@@ -10752,7 +10764,7 @@ ampliada e cartão), o e2e e a SPEC (§22.14 item 6: inventário e regra).
   2, Equipamento 5) — é o FAZER literal do OBS-elastico e está no aceite.
 
 
-##### Provas (rodada 16 — retomada)
+##### Provas (rodada 17 — segunda correção do L14)
 
 - **Vitest** (`lib/camada-modal.test.ts`, novo, **13 testes**): o que fica
   inerte (main, header, nav, o portal de outra camada) e o que fica de fora
@@ -10800,7 +10812,7 @@ ampliada e cartão), o e2e e a SPEC (§22.14 item 6: inventário e regra).
   `package.json`, `package-lock.json` e `supabase/` sem mudança; nenhum
   segredo no diff.
 
-##### Como testar no celular (rodada 16 — retomada)
+##### Como testar no celular (rodada 17 — segunda correção do L14)
 
 1. Treino → Começar → no player, o ícone de lista (Visão geral) → no
    rodapé, "Descartar este treino" → o alerta abre com o foco no
@@ -10819,7 +10831,7 @@ ampliada e cartão), o e2e e a SPEC (§22.14 item 6: inventário e regra).
    (O foco de volta se vê pelo teclado ou pelo leitor de tela: o toque do
    dedo no Safari não foca o botão.)
 
-##### Portões (rodada 16 — retomada)
+##### Portões (rodada 17 — segunda correção do L14)
 
 Cadeia inteira em `e1b7feb` (todo o código, os testes, a SPEC e o rascunho
 deste registro; `r17/l14/logs/e1b7feb.log`, das 15:35:58 às 16:02:17 UTC,
@@ -10835,7 +10847,7 @@ do spec do L14, que tem **43** linhas ✓ no log, nenhuma ✘ nem flaky) ·
 commit deste registro só acrescenta estes números ao PROGRESSO; a cadeia
 roda de novo, inteira, nele (`r17/l14/logs/<hash>.log`).
 
-##### Capturas (rodada 16 — retomada)
+##### Capturas (rodada 17 — segunda correção do L14)
 
 `capturas.sh` em `e1b7feb`, depois da cadeia verde, contra a base real de
 `main` (`base-ef3ad97`), com as seis telas declaradas
@@ -11497,7 +11509,7 @@ menores. Sobre `8b54cf1`, logs em `r19/l34/`. SPEC antes do código
     página (a página é do service worker: nem `context.setOffline` nem
     `page.route` alcançam o que passa por ele), e o teste espera as **4
     tentativas** do postgrest-js (1 s, 2 s e 4 s de espera) antes de olhar a
-    tela. Mutações (build:e2e de cada uma, `r19/l34/local/mut-a.log` e
+    tela. Mutações (grupo A reunido no mesmo build de teste, `r19/l34/local/mut-a.log` e
     `mut-b.log`): sem manter a frase, sem limpar o aviso, sem o ouvinte de
     `pageshow` e sem a guarda → **4 de 4** caem (a guarda:
     "GET GET DELETE POST GET"); sem o ouvinte de `focus` → o teste do `focus` cai (1 de 1).
@@ -11593,7 +11605,7 @@ Menores registrados (ficam na fila, nenhum quebra o aceite):
 - **[regra]** SPEC §23.7 item 7 é ambíguo sobre os temas: os e2e da volta
   por focus/pageshow e da volta sem internet rodam só num tema.
 - **[regra]** PROGRESSO rodada 19 diz "um build:e2e por mutação"; o
-  `mut-a.log` mostra outra organização (conferir a frase).
+  `mut-a.log` agrupa as mutações A. A descrição da rodada foi corrigida.
 - **[regra]** SPEC §23.4 não diz o que acontece quando a volta encontra a
   permissão mudada E a leitura sem internet ao mesmo tempo.
 - **[regra]** Borda antiga: no `ativar()`, se a gravação dá certo e a
@@ -12938,3 +12950,37 @@ real a 360×740 nos dois temas, `/versao` = `b66e06c`.
   resolvido: ele é o 1º item do L19.
 
 **Conta de teste apagada** às 12:00 UTC. Ficam só as 3 contas reais.
+
+### 18/11/2026 — abertura do player e validações de identidade (L31)
+
+Medições locais com build de produção do Next, Chromium com viewport de
+360 × 740 e Supabase simulado. A referência é o commit `1e80c6c`. A segunda
+coluna de resultados vem da integração de 18/11. A mesma sequência foi
+executada nas duas versões.
+
+| Medição | Referência | Integração |
+| --- | ---: | ---: |
+| Seis aberturas da sessão A1, em ms | 4833, 4071, 5066, 7146, 5292, 4622 | 4470, 4464, 5499, 4733, 3845, 4174 |
+| Mediana da abertura | 4949,5 ms | 4467 ms |
+| GET em `/auth/v1/user` em seis minutos | 258 | 222 |
+
+Cada abertura começou com um novo contexto do navegador contendo apenas os
+cookies de login. O cronômetro foi da navegação na URL da sessão ao primeiro
+botão visível do player. A rede emulada usou latência de 80 ms, download de
+9 Mbit/s e upload de 1,5 Mbit/s. O aparelho lê o IndexedDB ao mesmo tempo que
+pede a sessão e as séries ao servidor. A redução local da mediana foi de 9,7%.
+O exemplo de meta de 4 s ainda fica abaixo da mediana observada.
+
+Para a contagem de identidade, dois contextos autenticados visitaram Treino,
+Corpo, Calendário e Mais, seis ciclos de quatro telas por contexto, a cada
+15 s. O mock usa tokens HS256, cuja verificação também pode consultar o
+servidor. Compartilhar a identidade verificada na mesma requisição produziu
+14,0% menos chamadas nesse cenário. Os valores de produção dependem da chave
+de assinatura e dos registros do serviço de autenticação.
+
+Para repetir contra um mock local após `npm run build:e2e`, execute
+`E2E_MEDIR_SESSAO=1 npm run e2e -- e2e/medir-sessao.spec.ts`.
+
+### Decisão sobre a semana na capa dos planos — 18/11/2026
+
+O dono escolheu exibir “Semana N de 12” na capa e no bloco de progresso. Corrida, corda e barra fixa usam a semana da conta para o respectivo plano. [Capa e progresso](components/colecoes/tela-colecao.tsx) · [Teste dos três planos](e2e/ultraloop-l32.spec.ts)

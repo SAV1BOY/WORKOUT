@@ -1,6 +1,6 @@
 "use client";
 
-import { Minus, Plus, SkipForward, Timer } from "lucide-react";
+import { Pencil, SkipForward, Timer } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { AnelDeContagem } from "@/components/player/anel";
 import { Miniatura } from "@/components/ui/miniatura";
@@ -8,6 +8,7 @@ import { StepperNumerico } from "@/components/stepper-numerico";
 import { Button } from "@/components/ui/button";
 import { apitar, vibrar } from "@/lib/apito";
 import { acharExercicio } from "@/lib/dados";
+import { nomeAcessivel } from "@/lib/midia";
 import { formatarDuracao } from "@/lib/formato";
 import { textoDaCarga, textoDoAlvo } from "@/lib/hoje";
 import {
@@ -46,6 +47,9 @@ export function TelaDescanso({
   vibracao,
   avancarSozinho,
   aviso = "",
+  registrado,
+  aoAbrirFicha,
+  aoCorrigir,
   aoSomar,
   aoDefinir,
   aoPular,
@@ -70,6 +74,9 @@ export function TelaDescanso({
    * algo a dizer.
    */
   aviso?: string;
+  registrado: string | null;
+  aoAbrirFicha: () => void;
+  aoCorrigir: () => void;
   aoSomar: (segundos: number) => void;
   aoDefinir: (segundos: number) => void;
   aoPular: () => void;
@@ -118,27 +125,41 @@ export function TelaDescanso({
     <section
       aria-label="Descanso"
       data-tela="descanso"
-      className="bg-descanso text-descanso-foreground fixed inset-0 z-50 flex flex-col items-center justify-between gap-4 overflow-y-auto px-4 pt-8"
+      className="bg-descanso text-descanso-foreground fixed inset-0 z-50 flex flex-col items-center justify-between gap-2 overflow-y-auto px-4 pt-3"
       /* a área segura entra somada aos 2rem de respiro: o "Pular" é o botão
          mais baixo da tela e não pode ficar sob o indicador de home (§22.1) */
       style={{ paddingBottom: "calc(2rem + env(safe-area-inset-bottom, 0px))" }}
     >
-      <div className="flex flex-col items-center gap-2 text-center">
+      <div className="flex flex-col items-center gap-1 text-center">
+        {registrado && (
+          <button type="button" className="alvo flex flex-wrap items-center justify-center gap-x-1.5 text-sm"
+            onClick={aoCorrigir} aria-label={`Corrigir a série. ${registrado}`}>
+            <Pencil className="size-4" aria-hidden="true" />
+            <span className="underline underline-offset-2">Corrigir a série</span>
+            <span>{registrado}</span>
+          </button>
+        )}
+        {proximo && <p className="text-rotulo tracking-wide uppercase">A seguir</p>}
         {/*
           SPEC §22.5 item 10: uma grafia só. O exercício escreve "Aquecimento
           2 de 2 · exercício 1 de 6"; aqui era "Próximo 2/6" ou só "Aquecimento
           2 de 2", duas formas diferentes para a mesma informação. O caixa-alta
           é do CSS, não do texto.
         */}
-        <p className="text-descanso-destaque text-xs font-semibold tracking-[0.2em] uppercase">
+        <p className="text-descanso-destaque text-xs font-semibold tracking-wide text-balance uppercase">
           {proximo
             ? `${rotuloDoPasso(proximo)} · exercício ${proximo.posicao} de ${proximo.totalExercicios}`
             : "Descanso"}
         </p>
         {blocoDoProximo && exercicio ? (
           <>
-            <Miniatura exercicioId={blocoDoProximo.exercicioId} className="size-24" />
-            <h2 className="text-lg font-semibold text-balance">{exercicio.nome}</h2>
+            <h2 aria-label={exercicio.nome}>
+              <button type="button" className="alvo flex items-center justify-center gap-2 text-lg font-semibold text-balance"
+                aria-label={nomeAcessivel("Como fazer", exercicio.nome)} onClick={aoAbrirFicha}>
+                <Miniatura exercicioId={blocoDoProximo.exercicioId} className="size-14" />
+                {exercicio.nome}
+              </button>
+            </h2>
             <p className="text-descanso-destaque numero text-sm">
               {proximo?.aquecimento
                 ? textoDoAquecimento(exercicio.implemento, serieDoProximo)
@@ -229,8 +250,7 @@ export function TelaDescanso({
             className="alvo border-descanso-destaque/50 text-descanso-destaque hover:bg-descanso-destaque/15 hover:text-descanso-destaque h-14 flex-1 rounded-2xl border text-base font-semibold"
             onClick={() => aoSomar(-Math.min(EXTRA_DESCANSO_S, falta))}
           >
-            <Minus className="size-5" />
-            {EXTRA_DESCANSO_S} s
+            −{EXTRA_DESCANSO_S} s
           </Button>
           <Button
             variant="ghost"
@@ -238,8 +258,7 @@ export function TelaDescanso({
             className="alvo border-descanso-destaque/50 text-descanso-destaque hover:bg-descanso-destaque/15 hover:text-descanso-destaque h-14 flex-1 rounded-2xl border text-base font-semibold"
             onClick={() => aoSomar(EXTRA_DESCANSO_S)}
           >
-            <Plus className="size-5" />
-            {EXTRA_DESCANSO_S} s
+            +{EXTRA_DESCANSO_S} s
           </Button>
         </div>
         {/*

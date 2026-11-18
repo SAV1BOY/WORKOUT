@@ -1,22 +1,61 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { addDays } from "date-fns";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CabecalhoMais } from "@/components/mais/cabecalho";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { iso } from "@/lib/calendario";
 import { formatarData } from "@/lib/formato";
+import {
+  assinaturaDoIcs,
+  gerarIcs,
+  guardarIcsBaixado,
+  lerIcsBaixado,
+  NOME_DO_ARQUIVO_ICS,
+  TIPO_ICS,
+} from "@/lib/ics";
+import {
+  comLembretes,
+  DIAS_DO_LEMBRETE,
+  eventosDoCalendario,
+  lembretesDasPrefs,
+  PASSO_MIN,
+  proximoLembrete,
+  relogioDeSaoPaulo,
+  ROTULO_DO_LEMBRETE,
+  textoDoUltimo,
+  type ContaDaRegra,
+} from "@/lib/lembretes-regra";
+import { salvarPrefsOuDesfazer } from "@/lib/queries/mais";
+import { useCardio, useOverrides, usePerfil, useSessoes } from "@/lib/queries/dados";
 import {
   bytesDaChave,
   ehIos,
   estadoDoAparelho,
+  ICS_VELHO,
+  ICS_VELHO_DEPOIS_DE_SALVAR,
   instrucoesDoAparelho,
   LINHA_LEMBRETES,
   nomeDoAparelho,
+  PROXIMO_SEM_AVISO,
   ROTULO_DO_ESTADO,
   SEM_CONFIGURACAO,
   SEM_TABELA,
   tabelaAusente,
 } from "@/lib/lembretes";
-import { inscricaoLembreteSchema, type InscricaoLembrete } from "@/lib/schemas";
+import {
+  envioLembreteSchema,
+  inscricaoLembreteSchema,
+  prefsLembretesSchema,
+  type EnvioLembrete,
+  type InscricaoLembrete,
+  type PrefsLembretes,
+  type TipoDeLembrete,
+} from "@/lib/schemas";
 import { clienteNavegador } from "@/lib/supabase/client";
 
 const TABELA = "lembretes_inscricoes";
@@ -231,6 +270,7 @@ export function TelaLembretes({
     document.addEventListener("visibilitychange", reler);
     window.addEventListener("focus", reler);
     window.addEventListener("pageshow", reler);
+    window.addEventListener("online", reler);
     let status: PermissionStatus | null = null;
     if (typeof navigator.permissions?.query === "function") {
       navigator.permissions
@@ -247,6 +287,7 @@ export function TelaLembretes({
       document.removeEventListener("visibilitychange", reler);
       window.removeEventListener("focus", reler);
       window.removeEventListener("pageshow", reler);
+      window.removeEventListener("online", reler);
       status?.removeEventListener("change", reler);
     };
   }, [carregar]);
@@ -417,9 +458,15 @@ export function TelaLembretes({
       />
 
       {chavePublica === null || semTabela ? (
-        <p data-estado="sem-configuracao" className={`${bloco} text-sm text-balance`}>
-          {chavePublica === null ? SEM_CONFIGURACAO : SEM_TABELA}
-        </p>
+        <div className={bloco}>
+          <p data-estado="sem-configuracao" className="text-sm text-balance">
+            {chavePublica === null ? SEM_CONFIGURACAO : SEM_TABELA}
+          </p>
+          {/* §23.9: sem push, os horários e o calendário continuam */}
+          <p className="text-muted-foreground text-sm text-balance">
+            Os horários e o calendário abaixo funcionam mesmo assim.
+          </p>
+        </div>
       ) : !carregado ? (
         <p className="text-muted-foreground text-sm">Conferindo este aparelho…</p>
       ) : (
@@ -521,6 +568,461 @@ export function TelaLembretes({
           </section>
         </>
       )}
+
+      <BlocoHorarios
+        userId={userId}
+        avisoAqui={chavePublica === null || semTabela ? false : !carregado ? null : estado === "ativado"}
+      />
     </section>
+  );
+}
+
+/** Dia de hoje ± n, em ISO (a janela que a regra lê, como o tick). */
+function diaMais(hoje: string, n: number): string {
+  return iso(addDays(new Date(`${hoje}T12:00:00`), n));
+}
+
+/** Arredonda `HH:MM` para baixo no passo do disparo (5 min). */
+function noPasso(hora: string): string | null {
+  const m = /^(\d{2}):(\d{2})$/.exec(hora);
+  if (!m) return null;
+  const minutos = Math.floor(Number(m[2]) / PASSO_MIN) * PASSO_MIN;
+  const saida = `${m[1]}:${String(minutos).padStart(2, "0")}`;
+  return prefsLembretesSchema.shape.treino.shape.hora.safeParse(saida).success ? saida : null;
+}
+
+const TIPOS: readonly TipoDeLembrete[] = ["treino", "corrida"];
+
+/** Ligado, mas a semana do plano não tem dia daquele tipo (§23.15). */
+const SEM_DIA_NO_PLANO: Readonly<Record<TipoDeLembrete, string>> = {
+  treino: "Seu plano desta fase não tem dia de força: este lembrete só toca quando tiver.",
+  corrida: "Seu plano desta fase não tem dia de corrida: este lembrete só toca quando tiver.",
+};
+
+
+/** Folga entre o fundo do recado e o topo da barra de navegação fixa (px). */
+const FOLGA_DA_BARRA = 8;
+
+/**
+ * Rola a página o que falta para `el` ficar inteiro na tela e acima da barra
+ * de navegação fixa (§23.15). Conta explícita: o
+ * `scrollIntoView({ block: "nearest" })` do Chromium não rola quando a caixa
+ * já está dentro da viewport, mesmo atrás da barra (a `scroll-margin` só conta
+ * quando ele já precisa rolar) — medido a 360×740 sem VAPID, na auditoria 2.
+ */
+function mostrarAcimaDaBarra(el: HTMLElement): void {
+  // a barra de baixo (components/nav-inferior.tsx); sem ela, o fundo da tela
+  const barra = document.querySelector('nav[aria-label="Navegação principal"]');
+  const limite = barra ? barra.getBoundingClientRect().top : window.innerHeight;
+  const caixa = el.getBoundingClientRect();
+  const falta = caixa.bottom + FOLGA_DA_BARRA - limite;
+  if (falta > 0) window.scrollBy(0, Math.ceil(falta));
+  else if (caixa.top < 0) window.scrollBy(0, Math.floor(caixa.top - FOLGA_DA_BARRA));
+}
+
+/**
+ * Os horários (SPEC §23.9), o "Próximo"/"Último lembrete" (§23.13) e o
+ * calendário (§23.12). Não dependem do push: aparecem e funcionam sem as
+ * variáveis VAPID, sem a tabela de inscrições e em aparelho sem suporte.
+ */
+function BlocoHorarios({
+  userId,
+  avisoAqui,
+}: {
+  userId: string;
+  /** O push chega neste aparelho (ativado)? `null` enquanto confere. */
+  avisoAqui: boolean | null;
+}) {
+  const cliente = useQueryClient();
+  const perfilQ = usePerfil();
+  const perfil = perfilQ.data ?? null;
+  /*
+   * O relógio da tela (§23.15): a cada minuto e na volta (ficar visível,
+   * ganhar foco, voltar do cache — os eventos da volta de §23.4). `leitura`
+   * pede reler os envios: na volta e a cada 5 minutos com a tela visível.
+   */
+  const [agora, setAgora] = useState<Date | null>(null);
+  const [leitura, setLeitura] = useState(0);
+  useEffect(() => {
+    let minutos = 0;
+    setAgora(new Date());
+    const relogio = setInterval(() => {
+      setAgora(new Date());
+      minutos += 1;
+      if (minutos % 5 === 0 && document.visibilityState === "visible") setLeitura((n) => n + 1);
+    }, 60_000);
+    const aoVoltar = () => {
+      if (document.visibilityState !== "visible") return;
+      setAgora(new Date());
+      setLeitura((n) => n + 1);
+    };
+    document.addEventListener("visibilitychange", aoVoltar);
+    window.addEventListener("focus", aoVoltar);
+    window.addEventListener("pageshow", aoVoltar);
+    return () => {
+      clearInterval(relogio);
+      document.removeEventListener("visibilitychange", aoVoltar);
+      window.removeEventListener("focus", aoVoltar);
+      window.removeEventListener("pageshow", aoVoltar);
+    };
+  }, []);
+  const hoje = agora ? relogioDeSaoPaulo(agora).dia : null;
+  const de = hoje ? diaMais(hoje, -8) : null;
+  const ate = hoje ? diaMais(hoje, 7) : null;
+  const overridesQ = useOverrides(de, ate);
+  const sessoesQ = useSessoes();
+  const cardioQ = useCardio(de, hoje);
+  const [enviados, setEnviados] = useState<EnvioLembrete[]>([]);
+  /*
+   * Os lembretes saem SEMPRE do perfil do cache (gravar já o atualiza na hora,
+   * `salvarPrefs` → `setQueryData`): o cache persistido pode abrir com um valor
+   * velho e a leitura do servidor corrigir logo depois — um estado local lido
+   * uma vez só ficaria com o velho.
+   */
+  const lembretes = useMemo(() => (perfil ? lembretesDasPrefs(perfil.prefs) : null), [perfil]);
+  const [horas, setHoras] = useState<Record<TipoDeLembrete, string>>({ treino: "", corrida: "" });
+  /*
+   * O recado sai logo abaixo do campo do lembrete que mudou (§23.15). Cada
+   * lembrete guarda o seu: o recado de um não some quando o outro muda — o
+   * campo que está com o dedo não salta. `recadoNovo` é um objeto novo a cada
+   * recado (o mesmo texto duas vezes também rola até ele).
+   */
+  const [recados, setRecados] = useState<Partial<Record<TipoDeLembrete, { texto: string; erro: boolean }>>>({});
+  const [recadoNovo, setRecadoNovo] = useState<{ tipo: TipoDeLembrete } | null>(null);
+  const regiaoDoRecado = useRef<Partial<Record<TipoDeLembrete, HTMLParagraphElement | null>>>({});
+  const espera = useRef<Partial<Record<TipoDeLembrete, ReturnType<typeof setTimeout>>>>({});
+  /** A hora válida que espera os 600 ms para ser gravada (§23.16: grava já ao sair). */
+  const pendente = useRef<Partial<Record<TipoDeLembrete, string>>>({});
+  /*
+   * A assinatura do último .ics baixado NESTE aparelho (§23.16): se a de agora
+   * é outra, o arquivo importado ficou com a hora ou os dias de antes.
+   */
+  const [icsBaixado, setIcsBaixado] = useState<string | null>(null);
+  useEffect(() => {
+    setIcsBaixado(lerIcsBaixado(userId));
+  }, [userId]);
+  const perfilAtual = useRef(perfil);
+  perfilAtual.current = perfil;
+
+  /*
+   * A barra de navegação é fixa: sem VAPID, a 360×740, o recado da corrida
+   * nasce atrás dela (top 689, barra em 682). Rola o que falta (§23.15).
+   */
+  useEffect(() => {
+    if (!recadoNovo) return;
+    const regiao = regiaoDoRecado.current[recadoNovo.tipo];
+    if (regiao) mostrarAcimaDaBarra(regiao);
+  }, [recadoNovo]);
+
+  function avisar(tipo: TipoDeLembrete, texto: string, erro: boolean) {
+    setRecados((r) => ({ ...r, [tipo]: { texto, erro } }));
+    setRecadoNovo({ tipo });
+  }
+
+  // o campo mostra o gravado, menos enquanto a pessoa ainda está digitando nele
+  useEffect(() => {
+    if (!lembretes) return;
+    setHoras((h) => ({
+      treino: espera.current.treino ? h.treino : lembretes.treino.hora,
+      corrida: espera.current.corrida ? h.corrida : lembretes.corrida.hora,
+    }));
+  }, [lembretes]);
+
+  // "Último lembrete" (RLS: só os desta conta), relido na volta. Sem a tabela, não aparece.
+  useEffect(() => {
+    let viva = true;
+    void (async () => {
+      const { data, error } = await clienteNavegador()
+        .from("lembretes_enviados")
+        .select("tipo, dia, enviado_em")
+        .order("enviado_em", { ascending: false })
+        .limit(5);
+      if (!viva || error) return;
+      setEnviados(
+        (data ?? []).flatMap((linha: unknown) => {
+          const lida = envioLembreteSchema.safeParse(linha);
+          return lida.success ? [lida.data] : [];
+        }),
+      );
+    })().catch(() => undefined);
+    return () => {
+      viva = false;
+    };
+  }, [leitura]);
+
+  const conta: ContaDaRegra | null = useMemo(() => {
+    if (!perfil || !lembretes) return null;
+    return {
+      perfil: { ...perfil, prefs: comLembretes(perfil.prefs, lembretes) },
+      overrides: overridesQ.data ?? [],
+      sessoes: sessoesQ.data ?? [],
+      cardios: cardioQ.data ?? [],
+      enviados: hoje ? enviados.filter((e) => e.dia === hoje) : [],
+    };
+  }, [perfil, lembretes, overridesQ.data, sessoesQ.data, cardioQ.data, enviados, hoje]);
+
+  const proximo = conta && agora ? proximoLembrete(conta, agora) : null;
+  // os eventos que o .ics leva agora (a semana do plano)
+  const eventosDoIcs = useMemo(() => {
+    if (!perfil || !lembretes || !agora) return null;
+    return eventosDoCalendario({ ...perfil, prefs: comLembretes(perfil.prefs, lembretes) }, agora);
+  }, [perfil, lembretes, agora]);
+  // os tipos que a semana do plano tem (o mesmo que o .ics usa): ligado sem dia → a tela diz
+  const tiposNoPlano = useMemo(
+    () => (eventosDoIcs ? new Set(eventosDoIcs.map((e) => e.tipo)) : null),
+    [eventosDoIcs],
+  );
+  const icsVelho =
+    icsBaixado !== null && eventosDoIcs !== null && assinaturaDoIcs(eventosDoIcs) !== icsBaixado;
+  const ultimo = agora ? textoDoUltimo(enviados, agora) : null;
+
+  /** Muda um tipo sobre o que está gravado AGORA (não sobre o de quando o toque começou). */
+  async function gravar(tipo: TipoDeLembrete, mudanca: Partial<PrefsLembretes[TipoDeLembrete]>) {
+    const atual = perfilAtual.current;
+    if (!atual) return;
+    const lidos = lembretesDasPrefs(atual.prefs);
+    const validos = prefsLembretesSchema.safeParse({ ...lidos, [tipo]: { ...lidos[tipo], ...mudanca } });
+    if (!validos.success) return;
+    const novas = comLembretes(atual.prefs, validos.data);
+    try {
+      // não deu para pôr na fila: o cache volta ao gravado (a tela e o .ics também)
+      await salvarPrefsOuDesfazer({ userId, prefs: novas, cliente });
+    } catch {
+      // a falha é do aparelho (a fila no IndexedDB), não da internet: sem rede a gravação vai para a fila
+      avisar(tipo, "Não consegui salvar agora. Tente de novo.", true);
+      return;
+    }
+    // o .ics baixado neste aparelho ficou com a hora de antes? (§23.16)
+    const baixado = lerIcsBaixado(userId);
+    const velho =
+      baixado !== null && assinaturaDoIcs(eventosDoCalendario({ ...atual, prefs: novas }, new Date())) !== baixado;
+    avisar(tipo, velho ? ICS_VELHO_DEPOIS_DE_SALVAR : "Horários salvos.", false);
+  }
+
+  function ligar(tipo: TipoDeLembrete, ligado: boolean) {
+    void gravar(tipo, { ligado });
+  }
+
+  /** Grava já a hora que esperava os 600 ms (se houver). */
+  function gravarPendente(tipo: TipoDeLembrete) {
+    const hora = pendente.current[tipo];
+    clearTimeout(espera.current[tipo]);
+    espera.current[tipo] = undefined;
+    pendente.current[tipo] = undefined;
+    if (!hora) return;
+    setHoras((h) => ({ ...h, [tipo]: hora }));
+    void gravar(tipo, { hora });
+  }
+  const gravarPendenteAgora = useRef(gravarPendente);
+  gravarPendenteAgora.current = gravarPendente;
+
+  /*
+   * Esconder ou fechar a página dentro dos 600 ms não perde a hora nova
+   * (§23.16): `pagehide` e `visibilitychange` oculto gravam já; sair da tela
+   * pelo app (desmontar) também.
+   */
+  useEffect(() => {
+    const gravarTudo = () => {
+      for (const tipo of TIPOS) gravarPendenteAgora.current(tipo);
+    };
+    const aoEsconder = () => {
+      if (document.visibilityState === "hidden") gravarTudo();
+    };
+    window.addEventListener("pagehide", gravarTudo);
+    document.addEventListener("visibilitychange", aoEsconder);
+    return () => {
+      window.removeEventListener("pagehide", gravarTudo);
+      document.removeEventListener("visibilitychange", aoEsconder);
+      gravarTudo();
+    };
+  }, []);
+
+  function mudarHora(tipo: TipoDeLembrete, valor: string) {
+    setHoras((h) => ({ ...h, [tipo]: valor }));
+    clearTimeout(espera.current[tipo]);
+    const hora = noPasso(valor);
+    if (!hora) {
+      espera.current[tipo] = undefined;
+      pendente.current[tipo] = undefined;
+      return;
+    }
+    // o campo de hora do computador muda a cada dígito: grava quando parar (ou ao sair do campo)
+    pendente.current[tipo] = hora;
+    espera.current[tipo] = setTimeout(() => gravarPendente(tipo), 600);
+  }
+
+  /**
+   * Saiu do campo. Com uma hora válida esperando os 600 ms, grava já
+   * (§23.16). Com a hora apagada ou inválida (§23.15): volta à gravada e diz
+   * por quê — nada é gravado.
+   */
+  function sairDaHora(tipo: TipoDeLembrete, valor: string) {
+    if (noPasso(valor)) {
+      gravarPendente(tipo);
+      return;
+    }
+    if (!lembretes) return;
+    clearTimeout(espera.current[tipo]);
+    espera.current[tipo] = undefined;
+    pendente.current[tipo] = undefined;
+    const gravada = lembretesDasPrefs(perfilAtual.current?.prefs)[tipo].hora;
+    setHoras((h) => ({ ...h, [tipo]: gravada }));
+    avisar(tipo, `Hora inválida: mantida a de antes (${gravada}).`, true);
+  }
+
+  function baixarCalendario() {
+    if (!perfil || !lembretes) return;
+    const momento = new Date();
+    const eventos = eventosDoCalendario(
+      { ...perfil, prefs: comLembretes(perfil.prefs, lembretes) },
+      momento,
+    );
+    const horasDoIcs = { treino: lembretes.treino.hora, corrida: lembretes.corrida.hora };
+    const arquivo = new Blob([gerarIcs(eventos, userId, momento, horasDoIcs)], { type: TIPO_ICS });
+    // o que este arquivo faz tocar: se a hora ou os dias mudarem, a tela avisa (§23.16)
+    const assinatura = assinaturaDoIcs(eventos);
+    guardarIcsBaixado(userId, assinatura);
+    setIcsBaixado(assinatura);
+    // o recado que pedia para baixar de novo já foi atendido (sem rolar a tela até ele)
+    setRecados((r) => {
+      const novos = { ...r };
+      for (const tipo of TIPOS) {
+        if (novos[tipo]?.texto === ICS_VELHO_DEPOIS_DE_SALVAR) novos[tipo] = { texto: "Horários salvos.", erro: false };
+      }
+      return novos;
+    });
+    const url = URL.createObjectURL(arquivo);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = NOME_DO_ARQUIVO_ICS;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10_000);
+  }
+
+  const bloco = "bg-card border-border flex flex-col gap-3 rounded-xl border p-4";
+
+  return (
+    <>
+      <section aria-labelledby="titulo-horarios" data-horarios className={bloco}>
+        <h2 id="titulo-horarios" className="text-base font-semibold">
+          Horários
+        </h2>
+        <p className="text-muted-foreground text-sm text-balance">
+          Nos dias do seu plano (Mais → Preferências → Dias de treino), no horário de Brasília.
+        </p>
+        {!lembretes && (perfilQ.isError || perfilQ.isSuccess) ? (
+          // sem perfil no cache e a leitura falhou (ou não veio): nada de "Carregando…" para sempre (§23.16)
+          <div data-horarios-erro className="flex flex-col gap-2">
+            <p className="text-destructive text-sm">Não consegui carregar os horários.</p>
+            <Button
+              type="button"
+              variant="outline"
+              className="alvo h-12 w-full"
+              onClick={() => void perfilQ.refetch()}
+            >
+              Tentar de novo
+            </Button>
+          </div>
+        ) : !lembretes ? (
+          <p className="text-muted-foreground text-sm">Carregando…</p>
+        ) : (
+          TIPOS.map((tipo) => (
+            <div key={tipo} data-lembrete={tipo} className="border-border flex flex-col gap-2 border-t pt-3">
+              <div className="flex min-h-11 items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <Label htmlFor={`lembrete-${tipo}`} className="text-base">
+                    {ROTULO_DO_LEMBRETE[tipo]}
+                  </Label>
+                  <p className="text-muted-foreground text-xs text-balance">{DIAS_DO_LEMBRETE[tipo]}</p>
+                </div>
+                <Switch
+                  id={`lembrete-${tipo}`}
+                  className="-mr-1.5"
+                  checked={lembretes[tipo].ligado}
+                  onCheckedChange={(v) => ligar(tipo, v)}
+                />
+              </div>
+              {lembretes[tipo].ligado && tiposNoPlano && !tiposNoPlano.has(tipo) ? (
+                <p data-sem-dia={tipo} className="text-muted-foreground text-sm text-balance">
+                  {SEM_DIA_NO_PLANO[tipo]}
+                </p>
+              ) : null}
+              <div className="flex items-center gap-3">
+                <Label htmlFor={`hora-${tipo}`} className="text-sm">
+                  Hora
+                </Label>
+                <Input
+                  id={`hora-${tipo}`}
+                  // o rótulo visível "Hora" se repete nas duas linhas: o nome diz de qual
+                  aria-label={`Hora do ${ROTULO_DO_LEMBRETE[tipo].toLowerCase()}`}
+                  type="time"
+                  step={PASSO_MIN * 60}
+                  value={horas[tipo]}
+                  onChange={(e) => mudarHora(tipo, e.target.value)}
+                  onBlur={(e) => sairDaHora(tipo, e.target.value)}
+                  className="alvo numero h-12 w-40"
+                />
+              </div>
+              {/* a região viva existe desde o começo: um aria-live que nasce junto com o texto não é lido */}
+              <p
+                ref={(el) => {
+                  regiaoDoRecado.current[tipo] = el;
+                }}
+                aria-live="polite"
+                data-recado-horarios={tipo}
+                className={
+                  !recados[tipo] ? "sr-only" : `text-sm ${recados[tipo]?.erro ? "text-destructive" : "font-medium"}`
+                }
+              >
+                {recados[tipo]?.texto ?? ""}
+              </p>
+            </div>
+          ))
+        )}
+        {proximo ? (
+          <p data-proximo className="text-sm text-balance">
+            {proximo}
+          </p>
+        ) : null}
+        {/* sem push aqui, o "Próximo" não pode prometer um aviso que não chega */}
+        {proximo && avisoAqui === false ? (
+          <p data-proximo-sem-aviso className="text-muted-foreground text-sm text-balance">
+            {PROXIMO_SEM_AVISO}
+          </p>
+        ) : null}
+        {ultimo ? (
+          <p data-ultimo className="text-muted-foreground text-sm">
+            {ultimo}
+          </p>
+        ) : null}
+      </section>
+
+      <section aria-labelledby="titulo-calendario" className={bloco}>
+        <h2 id="titulo-calendario" className="text-base font-semibold">
+          No calendário do celular
+        </h2>
+        <p className="text-muted-foreground text-sm text-balance">
+          Um evento por semana em cada dia de treino, com alarme na hora escolhida. Funciona em qualquer
+          celular, mesmo onde a notificação do app não chega. Mudou a hora ou os dias? Baixe de novo: o
+          arquivo novo substitui o antigo.
+        </p>
+        {icsVelho ? (
+          <p data-ics-velho className="text-sm font-medium text-balance">
+            {ICS_VELHO}
+          </p>
+        ) : null}
+        <Button
+          type="button"
+          variant="outline"
+          className="alvo h-12 w-full"
+          disabled={!lembretes}
+          onClick={baixarCalendario}
+        >
+          Adicionar ao meu calendário
+        </Button>
+      </section>
+    </>
   );
 }

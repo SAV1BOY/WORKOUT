@@ -5,6 +5,9 @@ import { ESPERA_ENTRE_IDAS, criarCura } from "@/lib/sw-cura";
 /** Um Cache Storage de mentira, com o pouco que a cura usa. */
 class CacheFalso {
   itens = new Map<string, Response>();
+  async keys(): Promise<Request[]> {
+    return [...this.itens.keys()].map((caminho) => new Request(new URL(caminho, ORIGEM)));
+  }
   async match(chave: RequestInfo | URL): Promise<Response | undefined> {
     return this.itens.get(String(chave));
   }

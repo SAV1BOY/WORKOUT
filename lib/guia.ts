@@ -114,7 +114,7 @@ const PRIMEIROS_PASSOS: SecaoDoGuia = {
       id: "primeiro-treino",
       nome: "Começar o primeiro treino",
       oQueFaz:
-        "O card do dia monta a sessão com a carga de cada exercício e abre o player.",
+        "O botão do treino do dia abre a sessão com a carga de cada exercício.",
       caminho: ["Treino", "Começar treino"],
       href: "/",
     },
@@ -129,7 +129,7 @@ const BARRA: SecaoDoGuia = {
   chip: "Abas",
   icone: "LayoutGrid",
   resumo:
-    "Cinco abas, sempre no rodapé. Só o player some com elas — ali a saída é o ícone de lista.",
+    "Cinco abas, sempre no rodapé. Durante uma sessão de força, use o ícone de lista para abrir a visão geral e sair.",
   funcoes: ABAS.map((a) => ({
     id: a.rotulo.toLowerCase(),
     nome: a.rotulo,
@@ -142,7 +142,7 @@ const BARRA: SecaoDoGuia = {
 /* ---------------------------------------------------------- 3. Treino */
 
 const TELA = "A tela";
-const PLAYER = "No player";
+const DURANTE_O_TREINO = "Durante o treino";
 const CARDIO = "Cardio";
 const FIXA = "Barra fixa";
 
@@ -202,7 +202,7 @@ const TREINO: SecaoDoGuia = {
       id: "comecar",
       nome: "Começar treino",
       oQueFaz:
-        "No dia de força, o card do treino de hoje. O botão cria a sessão com a carga certa e já entra no player.",
+        "No dia de força, toque no treino de hoje para abrir a sessão com a carga de cada exercício.",
       caminho: ["Treino", "Começar treino"],
       grupo: TELA,
     },
@@ -210,15 +210,15 @@ const TREINO: SecaoDoGuia = {
       id: "continuar",
       nome: "Continuar",
       oQueFaz:
-        "Saiu no meio do treino? O card vira “Continuar” e o player volta na série em que você parou. Uma sessão de outro dia aparece numa faixa, com Continuar e Descartar.",
+        "Saiu no meio do treino? O botão muda para “Continuar” e a sessão volta à série em que você parou. Uma sessão de outro dia aparece numa faixa, com Continuar e Descartar.",
       caminho: ["Treino", "Continuar"],
       grupo: TELA,
     },
     {
       id: "card-cardio",
-      nome: "Card de cardio",
+      nome: "Sessão de cardio",
       oQueFaz:
-        "No dia de corrida ou de corda, o card da sessão da semana do plano, com “Começar”.",
+        "No dia de corrida ou de corda, toque em “Começar” para abrir a sessão da semana do plano.",
       caminho: ["Treino", "Começar"],
       grupo: TELA,
     },
@@ -226,13 +226,13 @@ const TREINO: SecaoDoGuia = {
       id: "corda-em-vez",
       nome: "Fazer corda em vez de corrida",
       oQueFaz:
-        "No dia de corrida, o card troca para a sessão de corda da mesma semana — e volta quando você quiser.",
+        "No dia de corrida, você pode trocar para a sessão de corda da mesma semana — e volta quando você quiser.",
       caminho: ["Treino", "Fazer corda em vez de corrida"],
       grupo: TELA,
     },
     {
       id: "card-descanso",
-      nome: "Card de descanso",
+      nome: "Dia de descanso",
       oQueFaz:
         "No dia de folga, a nota do dia e qual é o próximo treino.",
       caminho: ["Treino"],
@@ -242,7 +242,7 @@ const TREINO: SecaoDoGuia = {
       id: "caminhada",
       nome: "Começar caminhada leve",
       oQueFaz:
-        "No domingo o programa pede uma caminhada; o botão do card de descanso abre o cronômetro dela.",
+        "No domingo o programa pede uma caminhada; o botão do dia de descanso abre o cronômetro dela.",
       caminho: ["Treino", "Começar caminhada leve"],
       grupo: TELA,
     },
@@ -275,7 +275,7 @@ const TREINO: SecaoDoGuia = {
       id: "substituir",
       nome: "⇄ Substituir",
       oQueFaz:
-        "Troca um exercício por outro parecido — só no treino de hoje; amanhã volta o do programa.",
+        "Escolha outro exercício para hoje pelo movimento, pelos músculos e pelo equipamento disponível. Durante a sessão, “Trocar exercício” mantém as séries que você já registrou.",
       caminho: ["Treino", "exercício", "⇄"],
       grupo: TELA,
     },
@@ -316,89 +316,89 @@ const TREINO: SecaoDoGuia = {
       id: "desafios",
       nome: "Desafios",
       oQueFaz:
-        "Os três cards do carrossel — primeira barra fixa, corrida e a fase do programa — com a semana em que você está e o botão que leva à sessão de cada um, com o mesmo rótulo do destaque do Explorar.",
+        "As três opções — primeira barra fixa, corrida e a fase do programa — com a semana em que você está e o botão que leva à sessão de cada um, com o mesmo rótulo do destaque do Explorar.",
       caminho: ["Treino", "Desafios"],
       grupo: TELA,
     },
     {
       id: "retomada",
-      nome: "Card de retomada",
+      nome: "Retomada do treino",
       oQueFaz:
         "Depois de 7 dias ou mais sem registrar nada, o app pergunta como voltar: continuar, repetir a semana, voltar mais leve ou recomeçar do zero. Enquanto você não escolhe, ele segura o começo do treino.",
-      caminho: ["Treino", "card de retomada"],
+      caminho: ["Treino", "Retomada do treino"],
       grupo: TELA,
     },
     {
       id: "preparacao",
       nome: "Preparação",
       oQueFaz:
-        "O player abre com uma contagem antes do primeiro exercício, com o nome dele e a ficha à mão. Dá para pular.",
-      caminho: ["Treino", "Começar treino", "Player"],
-      grupo: PLAYER,
+        "O treino abre com uma contagem antes do primeiro exercício, com o nome dele e a ficha à mão. Dá para pular.",
+      caminho: ["Treino", "Começar treino", "Tela do treino"],
+      grupo: DURANTE_O_TREINO,
     },
     {
       id: "serie",
       nome: "Série a série",
       oQueFaz:
         "Uma série por tela, com as repetições e a carga já preenchidas. “Concluir série” registra na hora, mesmo sem internet.",
-      caminho: ["Player", "Concluir série"],
-      grupo: PLAYER,
+      caminho: ["Tela do treino", "Concluir série"],
+      grupo: DURANTE_O_TREINO,
     },
     {
       id: "firme",
       nome: "Última repetição",
       oQueFaz:
         "Você diz se a última repetição saiu firme ou na raça. É isso que decide se a carga sobe no próximo treino.",
-      caminho: ["Player", "Última repetição"],
-      grupo: PLAYER,
+      caminho: ["Tela do treino", "Última repetição"],
+      grupo: DURANTE_O_TREINO,
     },
     {
       id: "falha",
       nome: "Quando a série falha",
       oQueFaz:
         "Não precisa de botão: digite as repetições que saíram de verdade. Abaixo do mínimo duas vezes seguidas, o app volta 10% da carga sozinho.",
-      caminho: ["Player", "repetições"],
-      grupo: PLAYER,
+      caminho: ["Tela do treino", "repetições"],
+      grupo: DURANTE_O_TREINO,
     },
     {
       id: "carga-de-hoje",
       nome: "Carga de hoje",
       oQueFaz:
         "O seletor de kg muda o peso só desta série, e avisa quando o valor não fecha com as anilhas que você tem.",
-      caminho: ["Player", "kg"],
-      grupo: PLAYER,
+      caminho: ["Tela do treino", "kg"],
+      grupo: DURANTE_O_TREINO,
     },
     {
       id: "descanso",
       nome: "Descanso",
       oQueFaz:
         "Entre as séries o descanso corre sozinho, com som e vibração se você quiser, e dá para pular.",
-      caminho: ["Player", "Descanso"],
-      grupo: PLAYER,
+      caminho: ["Tela do treino", "Descanso"],
+      grupo: DURANTE_O_TREINO,
     },
     {
       id: "visao-geral",
       nome: "Visão geral do treino",
       oQueFaz:
         "O ícone de lista abre todas as séries da sessão: é por ali que se corrige qualquer uma e se encerra o treino.",
-      caminho: ["Player", "Visão geral do treino"],
-      grupo: PLAYER,
+      caminho: ["Tela do treino", "Visão geral do treino"],
+      grupo: DURANTE_O_TREINO,
     },
     {
       id: "o-que-muda",
       nome: "O que muda no próximo treino",
       oQueFaz:
         "No fim, exercício por exercício, o que o app decidiu: subiu, repetiu ou voltou — e por quê.",
-      caminho: ["Player", "Treino concluído"],
-      grupo: PLAYER,
+      caminho: ["Tela do treino", "Treino concluído"],
+      grupo: DURANTE_O_TREINO,
     },
     {
       id: "conclusao",
       nome: "Conclusão",
       oQueFaz:
         "Exercícios, minutos, recordes do dia, o peso de hoje (opcional) e, quando você fecha um marco, o aviso de conquista com “Ok”. O “Próximo” é quem grava a sessão.",
-      caminho: ["Player", "Próximo"],
-      grupo: PLAYER,
+      caminho: ["Tela do treino", "Próximo"],
+      grupo: DURANTE_O_TREINO,
     },
     {
       id: "cardio-sessao",
@@ -410,10 +410,10 @@ const TREINO: SecaoDoGuia = {
     },
     {
       id: "timer-intervalos",
-      nome: "Timer de intervalos",
+      nome: "Cronômetro dos blocos",
       oQueFaz:
         "Conduz bloco por bloco, avisando a troca. Dá para pausar e retomar.",
-      caminho: ["Treino", "Começar", "Timer de intervalos"],
+      caminho: ["Treino", "Começar", "Cronômetro dos blocos"],
       grupo: CARDIO,
     },
     {
@@ -476,7 +476,7 @@ const EXPLORAR: SecaoDoGuia = {
       id: "destaque",
       nome: "Destaque de hoje",
       oQueFaz:
-        "O card grande no topo é o treino de hoje (ou a sessão do plano da semana), com o botão para começar.",
+        "O destaque no topo mostra o treino de hoje (ou a sessão do plano da semana), com o botão para começar.",
       caminho: ["Explorar"],
     },
     {
@@ -601,7 +601,7 @@ const CORPO: SecaoDoGuia = {
       id: "imc",
       nome: "IMC",
       oQueFaz:
-        "Calculado com o último peso e a sua altura; a altura se corrige no próprio card.",
+        "Calculado com o último peso e a sua altura; você pode ajustar a altura ali mesmo.",
       caminho: ["Corpo", "Peso", "IMC"],
     },
   ],
@@ -667,7 +667,7 @@ const MAIS: SecaoDoGuia = {
       id: "treino-player",
       nome: "Treino",
       oQueFaz:
-        "Como o player se comporta: preparação, descanso padrão, avançar sozinho, som, vibração, voz no cardio, manter a tela acesa, raios de dificuldade e os “não gosto”.",
+        "Ajuste a preparação, o descanso, o avanço automático, o som, a vibração, a voz no cardio, a tela acesa, os raios de dificuldade e a lista de exercícios a evitar.",
       caminho: ["Mais", "Preferências", "Treino"],
       href: "/mais/preferencias#treino",
     },
@@ -682,7 +682,7 @@ const MAIS: SecaoDoGuia = {
     {
       id: "lembretes",
       nome: LINHA_LEMBRETES.titulo,
-      oQueFaz: `${LINHA_LEMBRETES.descricao} O botão “Enviar um lembrete de teste” confere se o aviso chega.`,
+      oQueFaz: `${LINHA_LEMBRETES.descricao} Em “Horários”, ligue o lembrete do treino e o da corrida e escolha a hora; “Adicionar ao meu calendário” põe os dias de treino no calendário do celular (funciona mesmo sem notificação) — mudou a hora ou os dias, baixe de novo. O botão “Enviar um lembrete de teste” confere se o aviso chega.`,
       caminho: ["Mais", LINHA_LEMBRETES.titulo],
       href: LINHA_LEMBRETES.href,
     },
@@ -761,7 +761,7 @@ const CALENDARIO: SecaoDoGuia = {
     {
       id: "meus-dias",
       nome: "Meus dias",
-      oQueFaz: "Atalho direto para o card “Dias de treino” das Preferências.",
+      oQueFaz: "Atalho direto para “Dias de treino” das Preferências.",
       caminho: ["Calendário", "Meus dias"],
       href: "/mais/preferencias#dias-de-treino",
     },
@@ -789,7 +789,7 @@ const OFFLINE: SecaoDoGuia = {
       nome: "Treinar sem internet",
       oQueFaz:
         "Instalado, o app abre e funciona offline: cada série digitada é gravada no próprio celular na hora.",
-      caminho: ["Treino", "Começar treino", "Player"],
+      caminho: ["Treino", "Começar treino", "Tela do treino"],
     },
     {
       id: "fila",

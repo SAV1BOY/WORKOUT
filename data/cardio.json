@@ -391,16 +391,17 @@
     ]
   },
   "barra_fixa": {
+    "rotulos": { "assistencia": "Elástico", "foco": "Foco da semana" },
     "objetivo": "a primeira barra fixa sem elástico em 8–12 semanas",
     "sessoes_por_semana": 2,
     "regra": "a carga nunca muda — o que muda é quanta ajuda o elástico dá",
     "semanas": [
       {
         "semanas": "1–2",
-        "assistencia": "nenhuma — pendurado + negativas (suba no banco, chegue no topo e desça em 4 s)",
+        "assistencia": "nenhum — pendurado + negativas (suba no banco, chegue no topo e desça em 4 s)",
         "por_sessao": "4 × 5",
         "reps_semana": 40,
-        "treina": "pegada e a parte excêntrica"
+        "treina": "pegada e a descida (fase excêntrica)"
       },
       {
         "semanas": "3–4",

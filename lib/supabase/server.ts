@@ -1,4 +1,5 @@
 import { createServerClient } from "@supabase/ssr";
+import { cache } from "react";
 import { cookies } from "next/headers";
 import { SUPABASE_ANON_KEY, SUPABASE_URL, supabaseConfigurado } from "@/lib/env";
 
@@ -26,20 +27,19 @@ export async function criarClienteServidor() {
   });
 }
 
-/** O id do usuário logado. O layout autenticado já garantiu que existe. */
-export async function idDoUsuario(): Promise<string | null> {
+/** React compartilha a verificação somente durante a mesma requisição. */
+export const identidadeDaRequisicao = cache(async () => {
   const supabase = await criarClienteServidor();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  return user?.id ?? null;
+  const { data } = await supabase.auth.getClaims();
+  const claims = data?.claims;
+  if (!claims || typeof claims.sub !== "string") return null;
+  return { id: claims.sub, email: typeof claims.email === "string" ? claims.email : null };
+});
+
+export async function idDoUsuario(): Promise<string | null> {
+  return (await identidadeDaRequisicao())?.id ?? null;
 }
 
-/** O e-mail de quem está logado — é com ele que `ehDono()` decide (SPEC §21). */
 export async function emailDoUsuario(): Promise<string | null> {
-  const supabase = await criarClienteServidor();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  return user?.email ?? null;
+  return (await identidadeDaRequisicao())?.email ?? null;
 }

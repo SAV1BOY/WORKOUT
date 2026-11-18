@@ -9,7 +9,7 @@ const raiz = resolve(__dirname, "..");
 /** Roda `npm run validar` e devolve o que saiu, sem estourar o teste. */
 function validar(): { ok: boolean; saida: string } {
   try {
-    const saida = execFileSync("npx", ["tsx", "scripts/validar-dados.ts"], {
+    const saida = execFileSync(process.execPath, ["--import", "tsx", "scripts/validar-dados.ts"], {
       cwd: raiz,
       encoding: "utf8",
       stdio: ["ignore", "pipe", "pipe"],
@@ -33,7 +33,7 @@ afterEach(() => {
   }
 });
 
-describe("npm run validar (marco Mídia)", () => {
+describe("npm run validar (marco Mídia)", { timeout: 30_000 }, () => {
   it("passa com os dados e os assets como estão", () => {
     const r = validar();
     expect(r.saida).toContain("ilustrações");

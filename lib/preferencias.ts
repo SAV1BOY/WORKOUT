@@ -328,8 +328,26 @@ export function evitadosPorUltimo<T>(
  * e a aba Treino manda para o guia. Só `true` conta: o jsonb vem do banco (e
  * de um backup importado), então nada aqui confia no formato.
  */
-export function guiaVisto(prefs: Prefs | null | undefined): boolean {
-  return prefs?.guia_visto === true;
+export function guiaVisto(prefs: Prefs | null | undefined, vistoNoAparelho = false): boolean {
+  return prefs?.guia_visto === true || vistoNoAparelho;
+}
+
+// A preferência do perfil pode demorar a subir pela fila. O reconhecimento
+// local também sobrevive à recarga, sempre associado à conta que o fez.
+export function guiaVistoNoAparelho(userId: string): boolean {
+  try {
+    return window.localStorage.getItem(`treino-terraco:guia-visto:${userId}`) === "1";
+  } catch {
+    return false;
+  }
+}
+
+export function marcarGuiaNoAparelho(userId: string): void {
+  try {
+    window.localStorage.setItem(`treino-terraco:guia-visto:${userId}`, "1");
+  } catch {
+    // A gravação já foi feita na fila de saída antes de marcar neste aparelho.
+  }
 }
 
 export function comGuiaVisto(prefs: Prefs | null | undefined): Prefs {

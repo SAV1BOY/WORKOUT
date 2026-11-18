@@ -5,7 +5,7 @@
  * o guarda em e2e/treino.spec.ts.)
  */
 import { expect, test, type Locator, type Page } from "@playwright/test";
-import { exercicios } from "../lib/dados";
+import { exerciciosComVariacoes } from "../lib/dados";
 import {
   comecarNoPlayer,
   comecarOTreinoDoDia,
@@ -49,7 +49,7 @@ async function concluirSerie(page: Page): Promise<void> {
 }
 
 function idDoNome(nome: string): string {
-  const achado = exercicios.find((e) => e.nome === nome);
+  const achado = exerciciosComVariacoes.find((e) => e.nome === nome);
   if (!achado) throw new Error(`exercício sem id: ${nome}`);
   return achado.id;
 }
@@ -231,14 +231,7 @@ test.describe("§22.16 item 1 — Substituir no exercício do passo atual", () =
       await comecarOTreinoDoDia(page);
       await comecarNoPlayer(page);
 
-      /*
-       * Com o aquecimento 1 do agachamento feito. O que acontece com ELE na
-       * troca (hoje sai do aparelho e do banco, como já saía em c689f69) já
-       * foi decidido pelo dono — opção (b), manter as séries feitas do
-       * original — e é o L21 (B-substituir-apaga-series-feitas, SPEC §22.16
-       * item 1) que traz o conserto e os testes dele: este teste não afirma
-       * nem a perda nem o contrário.
-       */
+      // O primeiro aquecimento já está registrado antes da troca no exercício atual.
       await concluirSerie(page);
       await expect(
         page.getByText("Aquecimento 2 de 2 · exercício 1 de 6"),
@@ -543,7 +536,7 @@ test.describe("§22.16 item 5 — um ponto por série do exercício", () => {
       await expect(pontos).toHaveAttribute("role", "img");
       await expect(pontos).toHaveAttribute(
         "aria-label",
-        "Aquecimento 1 de 2 · 0 de 5 séries feitas",
+        "0 de 5 séries feitas",
       );
       await expect(pontos.locator("[data-ponto]")).toHaveCount(5);
       await expect(pontos.locator('[data-ponto="feita"]')).toHaveCount(0);
@@ -561,14 +554,14 @@ test.describe("§22.16 item 5 — um ponto por série do exercício", () => {
       await concluirSerie(page);
       await expect(pontos).toHaveAttribute(
         "aria-label",
-        "Aquecimento 2 de 2 · 1 de 5 séries feitas",
+        "1 de 5 séries feitas",
       );
       await expect(pontos.locator('[data-ponto="feita"]')).toHaveCount(1);
 
       await concluirSerie(page);
       await expect(pontos).toHaveAttribute(
         "aria-label",
-        "Série 1 de 3 · 2 de 5 séries feitas",
+        "2 de 5 séries feitas",
       );
       await expect(pontos.locator('[data-ponto="feita"]')).toHaveCount(2);
       await semRolagemHorizontal(page);

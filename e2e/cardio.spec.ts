@@ -30,7 +30,7 @@ async function abrir(page: Page, quando: string, rota?: string) {
 
 /** O cartão grande do bloco atual (o resto da tela também diz "Corrida"). */
 function blocoAtual(page: Page): Locator {
-  return page.getByRole("region", { name: "Timer de intervalos" });
+  return page.getByRole("region", { name: "Cronômetro dos blocos" });
 }
 
 /**
@@ -378,6 +378,10 @@ test.describe("Barra fixa (SPEC §3.4)", () => {
       name: "Somar uma repetição solta de barra fixa",
     });
     expect((await somar.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
+    await expect(somar).toHaveText("+1");
+    await somar.click();
+    await page.getByRole("button", { name: "Desfazer" }).click();
+    await expect.poll(async () => (await lerDoMock(sessao, "pullup_singles")).length).toBe(0);
     await somar.click();
     await somar.click();
 
@@ -495,4 +499,15 @@ test.describe("Barra fixa (SPEC §3.4)", () => {
     ).toHaveAttribute("aria-checked", "true");
     await contexto.close();
   });
+});
+
+
+test("uma sessão zerada oferece começar e sair sem gravar", async ({ page }) => {
+  await usuarioComPerfil();
+  await abrir(page, QUINTA, "/cardio/corrida?semana=2");
+  await expect(page.getByRole("button", { name: "Começar" })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "Encerrar e registrar" })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Sair sem registrar" })).toBeInViewport();
+  await page.getByRole("button", { name: "Sair sem registrar" }).click();
+  await esperarAbaTreino(page);
 });

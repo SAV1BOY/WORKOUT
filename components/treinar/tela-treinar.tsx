@@ -24,15 +24,17 @@ import {
   useRecordes,
   useSeriesAnteriores,
   useSessoesAbertas,
+  useUltimasSeries,
 } from "@/lib/queries/dados";
 import { ligado, opcoesDeMontagem } from "@/lib/preferencias";
 import { lerOrdemDoAparelho } from "@/lib/ordem";
 import { lerTrocasDoAparelho } from "@/lib/trocas";
-import { useComecarTreino } from "@/lib/queries/comecar";
+import { idsParaComecar, useComecarTreino, type EntradaComecar } from "@/lib/queries/comecar";
 import { useDemorouDemais } from "@/lib/espera";
 import { sessaoLocalMaisRecente } from "@/lib/queries/sessao";
 import { useHoje } from "@/lib/relogio";
 import { intervaloDaSemana } from "@/lib/semana";
+import { idsComSubstitutos, idsQueComparamComAnterior } from "@/lib/sessao";
 import type { TreinoId } from "@/lib/schemas";
 
 /**
@@ -42,7 +44,7 @@ import type { TreinoId } from "@/lib/schemas";
 export function TelaTreinar({ userId }: { userId: string }) {
   const router = useRouter();
   const hoje = useHoje();
-  const { criando, comecar } = useComecarTreino();
+  const { criando, comecar } = useComecarTreino(true);
 
   const perfilQ = usePerfil();
   const perfil = perfilQ.data ?? null;
@@ -82,24 +84,10 @@ export function TelaTreinar({ userId }: { userId: string }) {
     setOrdem(lerOrdemDoAparelho(hoje, treinoDoDia));
   }, [hoje, treinoDoDia]);
 
-  const ids = useMemo(
-    () =>
-      Array.from(
-        new Set([
-          ...treinos.flatMap((t) =>
-            exerciciosDoTreino(t).map(({ exercicio }) => exercicio.id),
-          ),
-          ...Object.values(trocas),
-        ]),
-      ),
-    [treinos, trocas],
-  );
-
-  const estadosQ = useEstados(ids);
-  const eventosQ = useEventos(ids);
-  /* lidos para o cache: quem monta a sessão é useComecarTreino (§6.3) */
-  useSeriesAnteriores(ids);
-  useRecordes(ids);
+  useEffect(() => {
+    // A rota tem um UUID criado no clique. Aqueça o módulo que ela renderiza.
+    void import("@/components/player/tela-player").catch(() => undefined);
+  }, []);
 
   /* ---------------------------------- já tem treino aberto? vai para ele */
 
@@ -158,64 +146,65 @@ export function TelaTreinar({ userId }: { userId: string }) {
     );
   }
 
-  const estados = estadosPorExercicio(estadosQ.data ?? []);
-  const eventos = eventosQ.data ?? [];
-
   return (
     <Tela>
-      {treinos.map((treinoId, i) => {
-        const resumo = resumoDoTreino(treinoId);
-        const doDia = i === 0 && dia?.tipo === "forca" && dia.treinoId === treinoId;
-        const raios = dificuldadeDaColecao(
-          exerciciosDoTreino(treinoId).map(({ exercicio }) => exercicio),
-        );
-        return (
-          <CardCapa
-            key={treinoId}
-            titulo={resumo.nome}
-            subtitulo={resumo.foco}
-            detalhe={detalheDoTreino(treinoId)}
-            foto={capaDoTreino(treinoId)}
-            raios={ligado(perfil.prefs, "mostrar_raios") ? raios : null}
-            etiqueta={doDia ? "hoje" : null}
-            altura={doDia ? "media" : "baixa"}
-            className={doDia ? "border-primary/50" : undefined}
-          >
-            <BotaoLargo
-              variant={doDia ? "default" : "outline"}
-              disabled={criando !== null}
-              onClick={() =>
-                void comecar({
-                  userId,
-                  perfil,
-                  hoje,
-                  treinoId,
-                  trocas,
-                  ordem,
-                  doDia: treinoId === treinoDoDia,
-                })
-              }
-            >
-              {/* SPEC §22.7 item 8: "Começar o Treino B", com artigo */}
-              {criando === treinoId ? "Começando…" : `Começar o ${resumo.nome}`}
-            </BotaoLargo>
-            {doDia ? (
-              <ListaDoDia
-                itens={previaDoTreino({
-                  treinoId,
-                  estados,
-                  eventos,
-                  montagem: opcoesDeMontagem(perfil.prefs),
-                  trocas,
-                })}
-                carregando={estadosQ.isPending && ids.length > 0}
-                mostrarRaios={ligado(perfil.prefs, "mostrar_raios")}
-              />
-            ) : null}
-          </CardCapa>
-        );
-      })}
+      {treinos.map((treinoId) => (
+        <TreinoParaComecar
+          key={treinoId}
+          entrada={{ userId, perfil, hoje, treinoId, trocas, ordem, doDia: treinoId === treinoDoDia }}
+          criando={criando}
+          comecar={comecar}
+        />
+      ))}
     </Tela>
+  );
+}
+
+/** Cada card aquece as mesmas consultas que sua sessão usará no player. */
+function TreinoParaComecar({ entrada, criando, comecar }: {
+  entrada: EntradaComecar;
+  criando: TreinoId | null;
+  comecar: (entrada: EntradaComecar) => Promise<void>;
+}) {
+  const { treinoId, perfil, doDia } = entrada;
+  const trocas = doDia ? entrada.trocas : undefined;
+  const exercicios = useMemo(() => exerciciosDoTreino(treinoId), [treinoId]);
+  const idsAtivos = useMemo(() => exercicios.map(({ exercicio }) => trocas?.[exercicio.id] ?? exercicio.id), [exercicios, trocas]);
+  const ids = useMemo(() => idsComSubstitutos(idsParaComecar(treinoId, trocas)), [treinoId, trocas]);
+  const estadosQ = useEstados(ids);
+  const eventosQ = useEventos(idsAtivos);
+  useUltimasSeries(idsAtivos);
+  useRecordes(ids);
+  useSeriesAnteriores(idsQueComparamComAnterior(ids));
+
+  const resumo = resumoDoTreino(treinoId);
+  const raios = dificuldadeDaColecao(exercicios.map(({ exercicio }) => exercicio));
+  return (
+    <CardCapa
+      titulo={resumo.nome}
+      subtitulo={resumo.foco}
+      detalhe={detalheDoTreino(treinoId)}
+      foto={capaDoTreino(treinoId)}
+      raios={ligado(perfil.prefs, "mostrar_raios") ? raios : null}
+      etiqueta={doDia ? "hoje" : null}
+      altura={doDia ? "media" : "baixa"}
+      className={doDia ? "border-primary/50" : undefined}
+    >
+      <BotaoLargo variant={doDia ? "default" : "outline"} disabled={criando !== null}
+        onClick={() => void comecar(entrada)}>
+        {criando === treinoId ? "Começando…" : `Começar o ${resumo.nome}`}
+      </BotaoLargo>
+      {doDia && (
+        <ListaDoDia
+          itens={previaDoTreino({
+            treinoId, estados: estadosPorExercicio(estadosQ.data ?? []),
+            eventos: eventosQ.data ?? [], montagem: opcoesDeMontagem(perfil.prefs), trocas,
+          })}
+          carregando={estadosQ.isPending}
+          mostrarRaios={ligado(perfil.prefs, "mostrar_raios")}
+        />
+      )}
+    </CardCapa>
   );
 }
 

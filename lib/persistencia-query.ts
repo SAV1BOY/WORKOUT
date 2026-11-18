@@ -27,6 +27,12 @@ interface Guardado {
   estado: DehydratedState;
 }
 
+/** Uma URL blob: só existe no documento que a criou. O arquivo continua no Dexie. */
+function temUrlLocalDeFoto(chave: readonly unknown[], dados: unknown): boolean {
+  return chave[0] === "corpo" && chave[1] === "fotos-url" && !!dados && typeof dados === "object"
+    && Object.values(dados).some((url) => typeof url === "string" && url.startsWith("blob:"));
+}
+
 /**
  * Restaura o que foi salvo da última vez e passa a salvar as mudanças.
  * Devolve a função que desliga a assinatura.
@@ -48,7 +54,8 @@ export function persistirQueryClient(cliente: QueryClient): () => void {
        * sem rede (SPEC §8) — as cargas atuais, entre elas.
        */
       shouldDehydrateQuery: (q) =>
-        q.state.data !== undefined && q.state.status !== "pending",
+        q.state.data !== undefined && q.state.status !== "pending" &&
+        !temUrlLocalDeFoto(q.queryKey, q.state.data),
     });
     void guardarCache(CHAVE_CACHE, {
       salvoEm: Date.now(),
@@ -61,7 +68,11 @@ export function persistirQueryClient(cliente: QueryClient): () => void {
       const guardado = await lerCache<Guardado>(CHAVE_CACHE);
       if (!vivo || !guardado) return;
       if (Date.now() - guardado.salvoEm > VALIDADE_MS) return;
-      hydrate(cliente, guardado.estado);
+      // Os caches gravados por versões anteriores também podem conter URLs vencidas.
+      hydrate(cliente, {
+        ...guardado.estado,
+        queries: guardado.estado.queries.filter((q) => !temUrlLocalDeFoto(q.queryKey, q.state.data)),
+      });
     } catch {
       // cache ilegível não pode derrubar o app: segue com a rede
     }

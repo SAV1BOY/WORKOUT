@@ -55,13 +55,8 @@ export function TelaColecao({ colecao }: { colecao: Colecao }) {
   const posicao = perfil
     ? { semanaFixa: perfil.semana_fixa, semanaCorrida: perfil.semana_corrida }
     : null;
-  /*
-   * SPEC §22.15 item 7: a posição no plano ("semana 3 de 12") fica só no
-   * bloco "Semanas do plano", logo abaixo, com a barra e o "agora"; a capa
-   * diz o que o plano é — a duração, ou nada quando o objetivo já diz o
-   * prazo (§22.12 item 4).
-   */
-  const detalhe = detalheDaCapa(colecao, dadosDoPlano);
+  const semanaAtual = dadosDoPlano ? semanaDoPerfilNoPlano(dadosDoPlano.id, perfil) : null;
+  const detalhe = detalheDaCapa(colecao, dadosDoPlano, semanaAtual);
   /*
    * SPEC §22.12 item 7: o botão do plano é o MESMO do desafio (rótulo e
    * destino), vindo de `ctaDoPlano()` — esta tela não escreve o rótulo.
@@ -120,7 +115,7 @@ export function TelaColecao({ colecao }: { colecao: Colecao }) {
       {dadosDoPlano ? (
         <SemanasDoPlano
           plano={dadosDoPlano}
-          semanaAtual={semanaDoPerfilNoPlano(dadosDoPlano.id, perfil)}
+          semanaAtual={semanaAtual}
           cta={cta}
         />
       ) : null}

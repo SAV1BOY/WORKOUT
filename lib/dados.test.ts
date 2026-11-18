@@ -7,6 +7,7 @@ import {
   caminhoPublico,
   equipamentos,
   exercicioPorId,
+  exerciciosComVariacoes,
   exercicios,
   exerciciosDoTreino,
   perfilInicial,
@@ -70,7 +71,7 @@ describe("integridade entre programa e catálogo", () => {
     expect(faltando).toEqual([]);
   });
   it("ids são únicos", () => {
-    expect(exercicioPorId.size).toBe(exercicios.length);
+    expect(exercicioPorId.size).toBe(exerciciosComVariacoes.length);
   });
 });
 

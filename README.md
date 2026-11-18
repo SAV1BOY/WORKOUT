@@ -3,7 +3,7 @@
 App de treino para o terraço de casa: Next.js 15 + Supabase, instalável como
 PWA, feito para um celular de 360 px e para funcionar sem rede. Qualquer pessoa
 pode criar conta pela tela de login **enquanto houver vaga** — o dono ajusta o
-limite em Mais → Contas (SPEC §21) — e cada conta só vê os próprios dados. Todo o conteúdo — 81 exercícios, o programa das duas
+limite em Mais → Contas (SPEC §21) — e cada conta só vê os próprios dados. Todo o conteúdo — 81 exercícios do catálogo, sete variações para substituições, o programa das duas
 fases, os planos de cardio e de barra fixa, as regras de progressão e o
 equipamento — vem dos JSON em `data/`; o código não escreve treino nenhum.
 
@@ -39,7 +39,7 @@ Cinco abas na barra de baixo:
 
 | Aba | O que faz |
 |---|---|
-| **Treino** | o dia de hoje: faixa da semana, meta, o card do treino com capa e a lista dos exercícios (miniatura, prescrição e a carga de hoje com o rótulo do implemento). "Começar treino" entra direto no player. Traz também os Desafios, a "Parte do corpo em foco", Editar/reordenar e o FAB **Ajustar** |
+| **Treino** | o dia de hoje: faixa da semana, meta, o card do treino com capa e a lista dos exercícios (miniatura, prescrição e a carga de hoje com o rótulo do implemento). "Começar treino" entra direto no player. Traz também os Desafios, a "Parte do corpo em foco", Editar/reordenar e o botão **Ajustar** no cabeçalho |
 | **Explorar** | as coleções derivadas dos JSON: 6 treinos, 8 grupos musculares, 9 aparelhos, 3 circuitos e 3 planos, mais o catálogo dos 81 com filtros e busca sem acento. "Começar" abre uma **sessão livre**, que registra e progride como um treino do programa |
 | **Relatório** | os contadores do acumulado (treinos, minutos, volume), o card da semana, o histórico com "todos os registros", as sequências, os recordes, os gráficos e o peso com o IMC |
 | **Corpo** | peso (com vírgula e média móvel), as 8 medidas, as fotos de progresso lado a lado e o IMC |
@@ -51,6 +51,18 @@ Feedback → Conclusão. Cada série digitada vai para o IndexedDB na hora e sob
 por uma fila com retry: fechar o app, ficar sem rede ou trocar de aba não perde
 nada, e reabrir volta ao mesmo passo. O ícone de lista abre a visão geral com
 todas as séries e a saída do treino.
+
+**Trocar um exercício durante o treino.** Toque em **Trocar exercício** e
+escolha **Peso do corpo**, **Tatame**, **Elástico** ou **Outro equipamento**.
+Em **Equipamentos disponíveis**, marque o que está à mão. Cada opção explica
+qual músculo ou movimento tem em comum com o exercício atual e mostra a sua
+prescrição. Ao confirmar, as séries já feitas continuam no histórico com o
+exercício original. O player segue com a alternativa. Também dá para escolher
+a substituição na lista do dia antes de começar.
+
+Em **Mais → Lembretes**, escolha os avisos e horários. Para receber
+notificações, ative este aparelho quando a opção estiver disponível. Você
+também pode baixar o arquivo de calendário e importá-lo no celular.
 
 A **ficha em folha** abre da lista do dia, do player e de dentro de uma coleção,
 com três abas: **Vídeo** (a ilustração alternando as duas posições, com o
@@ -120,7 +132,7 @@ puras, sem React e sem Supabase, cobertas pelos 22 casos de
 > ordem e com os comandos, está em **`PROGRESSO.md` → "Checklist de
 > infraestrutura"**. O resumo:
 
-1. **Supabase**: novo projeto; **antes de colar o schema**, confira no topo de
+1. Para um **novo projeto Supabase**, antes de aplicar o schema, confira no topo de
    `supabase/schema.sql` o bloco **"AJUSTE AQUI"** — a função
    `public.allowed_email()` tem que devolver o mesmo e-mail do `ALLOWED_EMAIL`
    do app (é o e-mail do **dono**: quem administra a cota de contas). Rodar o
@@ -128,24 +140,23 @@ puras, sem React e sem Supabase, cobertas pelos 22 casos de
    tabela `app_config` (a cota, semeada com 5) e o bucket `progresso`, e em
    *Authentication → Providers → Email* deixar **Confirm email desligado**.
    Copiar a *Project URL* e a chave **anon public** (a `service_role` nunca sai
-   do painel). Num banco que já tem uma versão anterior deste schema, o delta
-   do marco Contas está em `supabase/migracoes/2026-09-17-contas.sql` — também
-   idempotente.
-2. **Repositório**: o código de produção fica em `main`, no repositório privado
-   `SAV1BOY/WORKOUT`. A camada visual v2.1 está no **PR #2** — sem o merge, o
-   celular continua com o app antigo.
-3. **Vercel**: importar o repositório com *Production Branch* `main`. As
-   três variáveis vão **versionadas em `.env.production`** (só valores
-   públicos por desenho: a URL e a chave **anon** do Supabase, que de qualquer
-   forma vão para o navegador, e o e-mail do dono, que já está no schema);
-   a `service_role` nunca entra no repositório. Quem preferir variáveis no
-   painel apaga o arquivo e cadastra as três em **Production e Preview**:
+   do painel). Em um projeto existente, compare o histórico de migrações com
+   `supabase/migracoes/` e aplique os deltas pendentes em ordem.
+2. O código de produção fica na branch `main` de `SAV1BOY/WORKOUT`.
+3. Na **Vercel**, importe o repositório com *Production Branch* `main`.
+   A aplicação usa as seguintes variáveis.
 
    | Variável | Valor |
    |---|---|
    | `NEXT_PUBLIC_SUPABASE_URL` | a *Project URL* do Supabase |
    | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | a chave **anon public** |
    | `ALLOWED_EMAIL` | `miguelgsaviotti29@gmail.com` — o e-mail do **dono** (§21) |
+   | `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | par VAPID e contato usados no envio das notificações |
+   | `LEMBRETES_SEGREDO` | credencial interna que deve corresponder à entrada `lembretes_segredo` no Supabase Vault |
+
+   No Vault, `lembretes_url` aponta para a rota de produção
+   `/api/lembretes/disparar`. O agendamento do Supabase verifica os avisos
+   a cada cinco minutos. Cada conta escolhe seus horários e autoriza os aparelhos.
 
    *Deployment Protection* pode ficar em *Standard Protection*: ela protege só
    os links internos de deploy e de preview; `https://treino-terraco.vercel.app`

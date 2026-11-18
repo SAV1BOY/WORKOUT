@@ -9,14 +9,14 @@
  * As regras não são reimplementadas: quem decide é `lib/progressao.ts`, quem
  * monta as anilhas é `lib/montagem.ts` e o conteúdo vem de `lib/dados.ts`.
  */
+import { alternativasPara } from "@/lib/alternativas";
 import {
   acharExercicio,
   acharTreino,
-  equipamentoDisponivel,
   exercicioPorId,
-  exercicios,
   textoDoMotor,
 } from "@/lib/dados";
+import { itensDoPlano, planoDaSessao } from "@/lib/livre";
 import { formatarKg, formatarNumero, rotuloDaCarga } from "@/lib/formato";
 import {
   alcancavelParaBaixo,
@@ -120,7 +120,11 @@ export interface BlocoLocal {
   /** "Última repetição saiu firme?"; `null` = ainda vale o padrão calculado. */
   ultimaFirme: boolean | null;
   nota: string | null;
+  /** Estado de cada exercício anterior deste bloco, inclusive feedback e séries feitas. */
+  trocados?: RegistroDoExercicioTrocado[];
 }
+
+export type RegistroDoExercicioTrocado = Omit<BlocoLocal, "trocados">;
 
 /** A sessão inteira, como ela vive no IndexedDB (SPEC §8). */
 export interface SessaoLocal {
@@ -460,56 +464,63 @@ export function reconstruirSessao(
     plano: linha.plano ?? null,
   });
 
-  const porChave = new Map(
-    series.map((s) => [`${s.exercise_id}|${s.tipo}|${s.set_index}`, s] as const),
-  );
-
-  return {
-    ...base,
-    status: linha.status,
-    blocos: base.blocos.map((bloco) => ({
-      ...bloco,
-      series: bloco.series.map((serie) => {
-        const gravada = porChave.get(
-          `${bloco.exercicioId}|${serie.tipo}|${serie.setIndex}`,
-        );
-        if (!gravada) return serie;
-        return {
-          ...serie,
-          id: gravada.id,
-          reps: gravada.reps,
-          repsLado2: gravada.reps_lado2,
-          cargaKg: gravada.carga_kg,
-          tempoS: gravada.tempo_s,
-          tempoSLado2: gravada.tempo_s_lado2,
-          passos: gravada.passos,
-          assistencia: gravada.assistencia,
-          concluida: gravada.concluida,
-          registradaEm: gravada.registrada_em,
-        } satisfies SerieLocal;
-      }),
-      /*
-       * Numa sessão ainda em andamento o `ultima_firme` gravado em cada série
-       * é só o padrão calculado NO MOMENTO daquela escrita (a série 1 é
-       * gravada quando as outras três ainda nem existem, então vai `false`) — o
-       * valor final só é escrito na conclusão, e o toggle só sai do aparelho
-       * ali. Herdar esse retrato parcial fixava "não" numa sessão refeita
-       * noutro celular e fazia o motor repetir a carga em vez de subir.
-       */
-      ultimaFirme:
-        linha.status === "em_andamento"
-          ? null
-          : primeiroFirme(series, bloco.exercicioId),
-    })),
-  };
-}
-
-/** O `ultima_firme` que a conclusão gravou (só vale em sessão terminada). */
-function primeiroFirme(series: LinhaSerie[], exercicioId: string): boolean | null {
-  const com = series.find(
-    (s) => s.exercise_id === exercicioId && s.ultima_firme !== null,
-  );
-  return com?.ultima_firme ?? null;
+  const blocos = base.blocos.map((bloco) => {
+    const linhas = series.filter((s) => s.ordem_ex === bloco.ordem);
+    const trocas = linha.plano?.trocas?.[bloco.ordem];
+    const configurados = Array.isArray(trocas) ? trocas.filter((t) =>
+      t && exercicioPorId.has(t.exercicio_id) && Array.isArray(t.trabalho) && Array.isArray(t.aquecimento)
+    ) : [];
+    // Um registro antigo não tinha a escolha no plano. A última série desta posição
+    // ainda permite reconhecer o exercício ativo e manter também os demais.
+    const maisRecente = linhas.reduce<LinhaSerie | undefined>((a, b) =>
+      !a || b.registrada_em > a.registrada_em ? b : a, undefined);
+    const ativo = configurados[0]?.exercicio_id ?? maisRecente?.exercise_id ?? bloco.exercicioId;
+    const ids = new Set([ativo, ...configurados.map((t) => t.exercicio_id), ...linhas.map((r) => r.exercise_id)]);
+    const registros: RegistroDoExercicioTrocado[] = [];
+    for (const id of ids) {
+      if (!exercicioPorId.has(id)) continue;
+      const config = configurados.find((t) => t.exercicio_id === id);
+      const remoto = linhas.filter((r) => r.exercise_id === id);
+      const inicial = id === bloco.exercicioId ? bloco : substituirExercicio(base, bloco.ordem, id, resto.estados?.[id] ?? null, {
+        anteriores: resto.anteriores?.[id], recorde: resto.recordes?.[id],
+        estadoConhecido: resto.conhecidos ? resto.conhecidos.has(id) : resto.estadoConhecido,
+        novoId: resto.novoId,
+      }).blocos[bloco.ordem - 1]!;
+      const series: SerieLocal[] = [];
+      for (const tipo of ["aquecimento", "trabalho"] as const) {
+        const indices = new Set(config?.[tipo] ?? inicial.series.filter((s) => s.tipo === tipo).map((s) => s.setIndex));
+        for (const r of remoto) if (r.tipo === tipo) indices.add(r.set_index);
+        for (const indice of [...indices].filter((n) => Number.isSafeInteger(n) && n > 0).sort((a, b) => a - b)) {
+          const r = remoto.find((r) => r.tipo === tipo && r.set_index === indice);
+          const padrao = inicial.series.find((s) => s.tipo === tipo && s.setIndex === indice);
+          if (r) {
+            series.push({
+              id: r.id, tipo, setIndex: indice, repsAlvoMin: r.reps_alvo_min, repsAlvoMax: r.reps_alvo_max,
+              reps: r.reps, repsLado2: r.reps_lado2, tempoS: r.tempo_s, tempoSLado2: r.tempo_s_lado2,
+              passos: r.passos, cargaKg: r.carga_kg, assistencia: r.assistencia,
+              concluida: r.concluida, registradaEm: r.registrada_em,
+            });
+          } else if (padrao) {
+            series.push(padrao);
+          } else if (tipo === "trabalho") {
+            series.push(serieDeTrabalho(indice, inicial.alvo, inicial.prescricao, resto.novoId ?? idPadrao));
+          }
+        }
+      }
+      // Em andamento o ultima_firme de uma linha é apenas o cálculo do momento
+      // da gravação. Somente o feedback explícito do plano deve prevalecer.
+      const firme = config?.ultima_firme ?? (linha.status !== "em_andamento" ? remoto.find((s) => s.ultima_firme !== null)?.ultima_firme : null);
+      const registro: BlocoLocal = {
+        ...inicial, series, nota: config?.nota ?? null, ultimaFirme: firme ?? null,
+        prescricao: { ...inicial.prescricao, series: series.filter((s) => s.tipo === "trabalho").length },
+      };
+      delete registro.trocados;
+      registros.push(registro);
+    }
+    const [atual, ...anteriores] = registros;
+    return atual ? { ...atual, trocados: anteriores.length ? anteriores : undefined } : bloco;
+  });
+  return { ...base, status: linha.status, blocos };
 }
 
 /* ------------------------------------------------------ mexer na sessão */
@@ -704,38 +715,70 @@ export function substituirExercicio(
     novoId?: () => string;
   } = {},
 ): SessaoLocal {
-  const novoId = extras.novoId ?? idPadrao;
-  const exercicio = acharExercicio(novoExercicioId);
+  const bloco = sessao.blocos.find((b) => b.ordem === ordem);
+  if (!bloco || bloco.exercicioId === novoExercicioId) return sessao;
+  const { trocados = [], ...anterior } = bloco;
+  const iniciado = [anterior, ...trocados].some((b) => b.series.some((s) => s.concluida));
+  const faltam = bloco.series.filter((s) => s.tipo === "trabalho" && !s.concluida).length;
+  if (iniciado && faltam === 0) return sessao;
 
-  return trocarBloco(sessao, ordem, (bloco) => {
-    const padrao = prescricaoPadrao(exercicio);
-    const prescricao: Alvo = {
-      ...padrao,
-      series: padrao.series || bloco.prescricao.series,
-    };
-    const alvo = cargaDeHoje(exercicio, estado, prescricao, sessao.opcoesMontagem);
-    const series: SerieLocal[] = [];
-    for (let s = 1; s <= prescricao.series; s++) {
-      series.push(serieDeTrabalho(s, alvo, prescricao, novoId));
-    }
-    return {
-      ...bloco,
-      exercicioId: exercicio.id,
-      substituido: exercicio.id !== bloco.originalId,
-      prescricao,
-      descansoS: exercicio.prescricao_padrao.descanso_s,
-      descansoTexto: textoDoDescanso(exercicio.prescricao_padrao.descanso_s),
-      alvo,
-      estado,
-      estadoConhecido: extras.estadoConhecido !== false,
-      seriesAnteriores: extras.anteriores ?? null,
-      recordeCarga: extras.recorde?.carga_max_kg ?? null,
-      recordeReps: extras.recorde?.reps_max ?? null,
-      recordeE1rm: extras.recorde?.e1rm_epley ?? null,
-      series,
-      ultimaFirme: null,
-    };
-  });
+  const exercicio = acharExercicio(novoExercicioId);
+  const volta = trocados.find((b) => b.exercicioId === novoExercicioId);
+  const itemOriginal = exercicio.id === bloco.originalId && !volta
+    ? (itensDoPlano(sessao.plano) ?? (ehTreinoDoPrograma(sessao.workoutId) ? itensDoTreino(sessao.workoutId) : []))
+        .find((i) => i.exercicioId === exercicio.id)
+    : undefined;
+  const prescricao = volta?.prescricao ?? itemOriginal?.prescricao ?? prescricaoPadrao(exercicio);
+  const alvo = volta?.alvo ?? cargaDeHoje(exercicio, estado, prescricao, sessao.opcoesMontagem);
+  const feitas = volta?.series.filter((s) => s.concluida) ?? [];
+  const trabalhoFeito = feitas.filter((s) => s.tipo === "trabalho");
+  const vagas = iniciado ? faltam : (prescricao.series || bloco.prescricao.series);
+  const usados = new Set(trabalhoFeito.map((s) => s.setIndex));
+  const trabalho = [...trabalhoFeito];
+  const novoId = extras.novoId ?? idPadrao;
+  for (let indice = 1; trabalho.length < trabalhoFeito.length + vagas; indice++) {
+    if (!usados.has(indice)) trabalho.push(serieDeTrabalho(indice, alvo, prescricao, novoId));
+  }
+  trabalho.sort((a, b) => a.setIndex - b.setIndex);
+  const aquecimento = volta?.series.filter((s) => s.tipo === "aquecimento" && (s.concluida || !iniciado)) ?? [];
+  const destino: RegistroDoExercicioTrocado = volta ?? {
+    ...anterior,
+    exercicioId: exercicio.id,
+    substituido: exercicio.id !== bloco.originalId,
+    descansoS: itemOriginal?.descansoS ?? exercicio.prescricao_padrao.descanso_s,
+    descansoTexto: itemOriginal?.descansoTexto ?? textoDoDescanso(exercicio.prescricao_padrao.descanso_s),
+    estado,
+    estadoConhecido: extras.estadoConhecido !== false,
+    seriesAnteriores: extras.anteriores ?? null,
+    recordeCarga: extras.recorde?.carga_max_kg ?? null,
+    recordeReps: extras.recorde?.reps_max ?? null,
+    recordeE1rm: extras.recorde?.e1rm_epley ?? null,
+    nota: null,
+    ultimaFirme: null,
+  };
+  return trocarBloco(sessao, ordem, () => ({
+    ...destino,
+    prescricao: { ...prescricao, series: trabalho.length },
+    alvo,
+    series: [...aquecimento, ...trabalho],
+    trocados: [...trocados.filter((b) => b !== volta), anterior],
+  }));
+}
+
+export function avisoDaTroca(bloco: BlocoLocal): string {
+  const feitas = [bloco, ...(bloco.trocados ?? [])].some((b) => b.series.some((s) => s.concluida));
+  return feitas
+    ? "As séries já feitas ficam com cada exercício. Só as séries de trabalho restantes passam para o exercício escolhido."
+    : "O exercício escolhido usa a própria carga e prescrição.";
+}
+
+export function textoDosTrocados(bloco: BlocoLocal): string | null {
+  const partes: string[] = [];
+  for (const anterior of bloco.trocados ?? []) {
+    const n = anterior.series.filter((s) => s.concluida).length;
+    if (n > 0) partes.push(`${n} ${n === 1 ? "série" : "séries"} de ${acharExercicio(anterior.exercicioId).nome}`);
+  }
+  return partes.length ? `Feitas antes da troca: ${partes.join(" e ")}.` : null;
 }
 
 /**
@@ -778,19 +821,9 @@ export function textoDoDescanso(segundos: number): string {
   return `${formatarNumero(segundos / 60)} min`;
 }
 
-/** Exercícios que podem substituir: mesmo grupo e equipamento que existe aqui. */
+/** Alternativas compatíveis, compartilhadas com a ficha e a prévia. */
 export function substitutosPara(exercicioId: string): Exercicio[] {
-  const alvo = acharExercicio(exercicioId);
-  const disponivel = equipamentoDisponivel();
-  return exercicios
-    .filter(
-      (e) =>
-        e.id !== alvo.id &&
-        e.grupo === alvo.grupo &&
-        e.prescricao_padrao.tipo !== "ver_cardio_corda" &&
-        e.equipamento.every((tag) => disponivel.has(tag)),
-    )
-    .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+  return alternativasPara(exercicioId);
 }
 
 /**
@@ -816,6 +849,43 @@ export function idsComSubstitutos(ids: readonly string[]): string[] {
  */
 export function idsQueComparamComAnterior(ids: readonly string[]): string[] {
   return ids.filter((id) => acharExercicio(id).prescricao_padrao.tipo === "maximo");
+}
+
+/* ------------------------------------------ nomes da série (Visão geral) */
+
+export interface RotulosDaSerie {
+  /** "Série 1", "Aquecimento 2" — o que a linha mostra. */
+  nome: string;
+  /** "Série 1 — Levantamento terra": o nome do grupo da linha. */
+  grupo: string;
+  /**
+   * O visto: "Série 1 concluída — Levantamento terra", "Aquecimento 1
+   * concluído — Agachamento livre" (§22.18 item 5): o gênero certo e de qual
+   * exercício — eram 6 "Série 1 concluída" iguais na Visão geral.
+   */
+  concluida: string;
+  /** O complemento dos − e +: "da Série 1 de Levantamento terra". */
+  contexto: string;
+}
+
+/**
+ * Os nomes de uma linha de série da Visão geral (SPEC §22.18 item 5): uma
+ * fonte só para o grupo, o visto e os steppers. "Aquecimento" é masculino e
+ * "Série", feminina; o exercício entra com "de", sem artigo (§22.15 item 3).
+ */
+export function rotulosDaSerie(
+  tipo: TipoSerie,
+  indice: number,
+  exercicioNome: string,
+): RotulosDaSerie {
+  const aquecimento = tipo === "aquecimento";
+  const nome = aquecimento ? `Aquecimento ${indice}` : `Série ${indice}`;
+  return {
+    nome,
+    grupo: `${nome} — ${exercicioNome}`,
+    concluida: `${nome} ${aquecimento ? "concluído" : "concluída"} — ${exercicioNome}`,
+    contexto: `${aquecimento ? "do" : "da"} ${nome} de ${exercicioNome}`,
+  };
 }
 
 /* ------------------------------------------------------------- steppers */
@@ -860,6 +930,11 @@ export function progressoDaSessao(sessao: SessaoLocal): ProgressoSessao {
   let feitas = 0;
   let total = 0;
   for (const bloco of sessao.blocos) {
+    for (const anterior of bloco.trocados ?? []) {
+      const n = anterior.series.filter((s) => s.tipo === "trabalho" && s.concluida).length;
+      feitas += n;
+      total += n;
+    }
     for (const serie of bloco.series) {
       if (serie.tipo !== "trabalho") continue;
       total += 1;
@@ -956,6 +1031,25 @@ export interface Escrita {
   filtro?: Record<string, string | number | boolean>;
 }
 
+/** O plano mantém a escolha mesmo que o substituto ainda não tenha uma série no banco. */
+function planoParaGravar(sessao: SessaoLocal): PlanoDaSessao | null {
+  const alterados = sessao.blocos.filter((b) => b.trocados?.length);
+  if (!alterados.length) return sessao.plano;
+  const base = sessao.plano ?? planoDaSessao(sessao.blocos.map((bloco) => {
+    const original = [bloco, ...(bloco.trocados ?? [])].find((b) => b.exercicioId === bloco.originalId) ?? bloco;
+    return { exercicioId: original.exercicioId, prescricao: original.prescricao, descansoS: original.descansoS, descansoTexto: original.descansoTexto };
+  }));
+  return {
+    ...base,
+    trocas: Object.fromEntries(alterados.map((b) => [b.ordem, [b, ...(b.trocados ?? [])].map((e) => ({
+      exercicio_id: e.exercicioId,
+      trabalho: e.series.filter((s) => s.tipo === "trabalho").map((s) => s.setIndex),
+      aquecimento: e.series.filter((s) => s.tipo === "aquecimento").map((s) => s.setIndex),
+      ultima_firme: e.ultimaFirme, nota: e.nota,
+    }))])),
+  };
+}
+
 /** A criação da sessão (`sessions`), com o id gerado no cliente. */
 export function escritaDaSessao(sessao: SessaoLocal): Escrita {
   return {
@@ -971,38 +1065,18 @@ export function escritaDaSessao(sessao: SessaoLocal): Escrita {
       status: sessao.status,
       iniciada_em: sessao.iniciadaEm,
       semana_plano: sessao.semanaPlano,
-      plano: sessao.plano,
+      plano: planoParaGravar(sessao),
     },
   };
 }
 
-/**
- * Substituir o exercício do bloco apaga do banco as séries que o ORIGINAL já
- * tinha gravado nesta sessão.
- *
- * A folha promete "as séries já registradas deste bloco serão trocadas pelas
- * do substituto" e a SPEC §3.2 diz que "o registro fica com o exercício
- * substituto". Sem isto, as linhas que já subiram ficavam em `session_sets` e
- * viravam uma sessão fantasma do original no histórico e nos recordes dele
- * (§3.6/§3.7) — de um exercício que, no fim, não foi o que ele treinou.
- *
- * Devolve `null` quando nada daquele bloco chegou a subir.
- */
-export function escritaDeDescarte(
-  sessao: SessaoLocal,
-  bloco: BlocoLocal,
-): Escrita | null {
-  const subiuAlguma = bloco.series.some((s) => s.registradaEm !== null);
-  if (!subiuAlguma) return null;
-  return {
-    tabela: "session_sets",
-    op: "delete",
-    filtro: {
-      session_id: sessao.id,
-      exercise_id: bloco.exercicioId,
-      ordem_ex: bloco.ordem,
-    },
-  };
+/** Todas as séries efetivamente feitas, com o exercício, a carga e o feedback que lhes pertencem. */
+export function escritasDasSeriesFeitas(sessao: SessaoLocal): Escrita[] {
+  return sessao.blocos.flatMap((bloco) =>
+    [bloco, ...(bloco.trocados ?? [])].flatMap((exercicio) =>
+      exercicio.series.filter((s) => s.concluida).map((s) => escritaDaSerie(sessao, exercicio, s)),
+    ),
+  );
 }
 
 /** Uma série concluída (`session_sets`), upsert por id: remarcar não duplica. */
@@ -1049,6 +1123,11 @@ export interface RecordeNovo {
   rotulo: string;
   valor: number;
   texto: string;
+  /**
+   * A marca que ele bateu (`v_records` antes desta sessão); `null` = a
+   * estreia do exercício — nada a bater (SPEC §22.18 item 3).
+   */
+  anterior: number | null;
 }
 
 export interface ResultadoExercicio {
@@ -1166,6 +1245,7 @@ export function recordesDoBloco(bloco: BlocoLocal): RecordeNovo[] {
       rotulo: "carga máxima",
       valor: cargaMax,
       texto: `${formatarKg(cargaMax)} ${unidade}`,
+      anterior: marcaAnterior(bloco.recordeCarga),
     });
   }
   if (repsMax > 0 && repsMax > (bloco.recordeReps ?? 0)) {
@@ -1174,6 +1254,7 @@ export function recordesDoBloco(bloco: BlocoLocal): RecordeNovo[] {
       rotulo: "repetições",
       valor: repsMax,
       texto: `${repsMax} repetições`,
+      anterior: marcaAnterior(bloco.recordeReps),
     });
   }
   if (e1rm > 0 && e1rm > (bloco.recordeE1rm ?? 0) + 1e-9) {
@@ -1182,9 +1263,52 @@ export function recordesDoBloco(bloco: BlocoLocal): RecordeNovo[] {
       rotulo: "carga máxima estimada",
       valor: e1rm,
       texto: `${formatarKg(e1rm, 1)} de carga máxima estimada`,
+      anterior: marcaAnterior(bloco.recordeE1rm),
     });
   }
   return novos;
+}
+
+function marcaAnterior(valor: number | null): number | null {
+  return valor !== null && valor > 0 ? valor : null;
+}
+
+/** Quantos recordes a conclusão mostra antes do "Ver todos" (§22.18 item 3). */
+export const RECORDES_EM_DESTAQUE = 5;
+
+export interface RecordeDaConclusao {
+  nome: string;
+  texto: string;
+}
+
+/**
+ * Os recordes da conclusão em ordem de destaque (SPEC §22.18 item 3): primeiro
+ * os que batem uma marca anterior, pelo maior salto relativo sobre ela; depois
+ * as estreias (sem marca), na ordem do treino e, no mesmo exercício, carga →
+ * repetições → estimada. `visiveis` são os `limite` primeiros; `todos`, a
+ * lista inteira nessa mesma ordem.
+ */
+export function recordesEmDestaque(
+  resultados: readonly Pick<ResultadoExercicio, "nome" | "ordem" | "recordes">[],
+  limite: number = RECORDES_EM_DESTAQUE,
+): { visiveis: RecordeDaConclusao[]; todos: RecordeDaConclusao[] } {
+  const ORDEM_DO_TIPO = { carga: 0, reps: 1, e1rm: 2 } as const;
+  const lista = resultados.flatMap((r) =>
+    r.recordes.map((rec) => ({
+      nome: r.nome,
+      texto: rec.texto,
+      ordem: r.ordem,
+      tipo: ORDEM_DO_TIPO[rec.tipo],
+      salto: rec.anterior !== null ? (rec.valor - rec.anterior) / rec.anterior : null,
+    })),
+  );
+  lista.sort((a, b) => {
+    if (a.salto !== null && b.salto !== null && a.salto !== b.salto) return b.salto - a.salto;
+    if ((a.salto === null) !== (b.salto === null)) return a.salto === null ? 1 : -1;
+    return a.ordem - b.ordem || a.tipo - b.tipo;
+  });
+  const todos = lista.map(({ nome, texto }) => ({ nome, texto }));
+  return { visiveis: todos.slice(0, Math.max(0, limite)), todos };
 }
 
 /**
@@ -1433,16 +1557,13 @@ export function contadoresDaSessao(sessao: SessaoLocal): ContadoresDaSessao {
   let exercicios = 0;
   let series = 0;
   let volumeKg = 0;
-  for (const bloco of sessao.blocos) {
-    let algumaFeita = false;
-    for (const serie of bloco.series) {
-      if (!serie.concluida || serie.tipo !== "trabalho") continue;
-      algumaFeita = true;
-      series += 1;
-      const reps = (serie.reps ?? 0) + (serie.repsLado2 ?? 0);
-      volumeKg += reps * (serie.cargaKg ?? 0);
+  for (const bloco of sessao.blocos.flatMap((b) => [b, ...(b.trocados ?? [])])) {
+    const feitas = bloco.series.filter((s) => s.concluida && s.tipo === "trabalho");
+    if (feitas.length > 0) exercicios++;
+    series += feitas.length;
+    for (const serie of feitas) {
+      volumeKg += ((serie.reps ?? 0) + (serie.repsLado2 ?? 0)) * (serie.cargaKg ?? 0);
     }
-    if (algumaFeita) exercicios += 1;
   }
   return { exercicios, series, volumeKg: Math.round(volumeKg * 10) / 10 };
 }

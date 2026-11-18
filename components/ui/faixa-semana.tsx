@@ -68,7 +68,7 @@ export function FaixaSemana({
             >
               {dia.rotulo}
             </span>
-            <Marca marca={dia.marca} ehHoje={dia.ehHoje} />
+            <MarcaDoDiaVisual marca={dia.marca} ehHoje={dia.ehHoje} />
             <span
               aria-hidden="true"
               className={cn(
@@ -165,7 +165,7 @@ export function FaixaSemana({
  * "parcial" pintavam 24 px e o resto 8–10 px: sete marcadores, sete pesos
  * diferentes, sem uma linha de base comum.
  */
-function Marca({ marca, ehHoje }: { marca: DiaDaFaixa["marca"]; ehHoje: boolean }) {
+export function MarcaDoDiaVisual({ marca, ehHoje = false }: { marca: DiaDaFaixa["marca"]; ehHoje?: boolean }) {
   if (marca === "feito") {
     return (
       <span

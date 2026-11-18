@@ -7,7 +7,7 @@ import { AnelDeContagem } from "@/components/player/anel";
 import { Button } from "@/components/ui/button";
 import { acharExercicio } from "@/lib/dados";
 import { nomeAcessivel } from "@/lib/midia";
-import { fracaoRestante, restanteS, type EstadoPlayer } from "@/lib/player";
+import { avisoDaPreparacao, fracaoRestante, restanteS, type EstadoPlayer } from "@/lib/player";
 
 /**
  * "PREPARE-SE" (SPEC §14.1.1 e §22.16 itens 2–4): o anel de contagem, o nome
@@ -95,6 +95,7 @@ export function TelaPreparacao({
             </span>
             <span className="text-muted-foreground text-xs">segundos</span>
           </AnelDeContagem>
+          <p role="status" className="sr-only">{avisoDaPreparacao(falta)}</p>
 
           <div className="flex items-center justify-center gap-1">
             <h2 className="text-xl font-semibold text-balance">{exercicio.nome}</h2>

@@ -7,14 +7,12 @@
 "use client";
 
 import { useQuery, type UseQueryResult } from "@tanstack/react-query";
-import { lerLista } from "@/lib/queries/ler";
+import { lerLista, lerTabelaCompleta } from "@/lib/queries/ler";
 import { clienteNavegador } from "@/lib/supabase/client";
 import type { SerieBruta, SessaoBruta } from "@/lib/progresso";
 import type { EventoDeSessao } from "@/lib/relatorio";
 import type { LinhaRecorde } from "@/lib/types";
 
-/** Quantas sessões de força a tela de progresso lê (o total de §3.7). */
-export const LIMITE_SESSOES = 500;
 /** Quantas séries a janela de 12 semanas pode ter. */
 export const LIMITE_SERIES = 3000;
 /** Quantas séries a ficha de um exercício mostra. */
@@ -32,19 +30,16 @@ export const chavesProgresso = {
   recordes: () => ["progresso", "recordes"] as const,
 };
 
-/** Todas as sessões de força (é um usuário só; 500 cobrem uns três anos). */
+/** Todas as sessões de força da conta, da mais nova para a mais antiga. */
 export function useSessoesTodas(): UseQueryResult<SessaoBruta[]> {
   return useQuery({
     queryKey: chavesProgresso.sessoesTodas(),
-    queryFn: () =>
-      lerLista<SessaoBruta>(
-        clienteNavegador()
-          .from("sessions")
-          .select("id,data,status,workout_id,duracao_s,plano")
-          .order("data", { ascending: false })
-          .limit(LIMITE_SESSOES),
-        "os seus treinos",
-      ),
+    queryFn: async () => {
+      const sessoes = await lerTabelaCompleta<SessaoBruta>(
+        "sessions", "id,data,status,workout_id,duracao_s,plano", "os seus treinos",
+      );
+      return sessoes.sort((a, b) => b.data.localeCompare(a.data));
+    },
   });
 }
 
@@ -74,15 +69,12 @@ export function useSeriesDesde(de: string | null): UseQueryResult<SerieBruta[]> 
 export function useSeriesTodas(): UseQueryResult<SerieBruta[]> {
   return useQuery({
     queryKey: chavesProgresso.seriesTodas(),
-    queryFn: () =>
-      lerLista<SerieBruta>(
-        clienteNavegador()
-          .from("session_sets")
-          .select(COLUNAS_SERIE)
-          .order("registrada_em", { ascending: true })
-          .limit(LIMITE_SERIES),
-        "as séries registradas",
-      ),
+    queryFn: async () => {
+      const series = await lerTabelaCompleta<SerieBruta>(
+        "session_sets", `id,${COLUNAS_SERIE}`, "as séries registradas",
+      );
+      return series.sort((a, b) => a.registrada_em.localeCompare(b.registrada_em));
+    },
   });
 }
 

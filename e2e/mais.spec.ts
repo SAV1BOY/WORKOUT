@@ -550,7 +550,7 @@ test.describe("/mais/senha — trocar a senha (SPEC §9)", () => {
 
     // a senha antiga não entra mais
     await page.getByLabel("E-mail").fill(EMAIL_DONO);
-    await page.getByLabel("Senha").fill(SENHA);
+    await page.getByLabel("Senha", { exact: true }).fill(SENHA);
     await page.getByRole("button", { name: "Entrar" }).click();
     await expect(page.getByText("E-mail ou senha incorretos.")).toBeVisible();
 

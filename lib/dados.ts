@@ -3,8 +3,10 @@
  * zod na carga do módulo (falha ruidosa se algo estiver errado) e expõe
  * índices e helpers pequenos. Nenhum conteúdo de treino é escrito aqui.
  */
+import alternativasJson from "@/data/alternativas.json";
 import cardioJson from "@/data/cardio.json";
 import equipamentosJson from "@/data/equipamentos.json";
+import variacoesJson from "@/data/variacoes.json";
 import exerciciosJson from "@/data/exercicios.json";
 import ilustracoesJson from "@/data/ilustracoes.json";
 import medidasDeFotoJson from "@/data/medidas-de-foto.json";
@@ -13,6 +15,7 @@ import programaJson from "@/data/programa.json";
 import progressaoJson from "@/data/progressao.json";
 import tutoriaisJson from "@/data/tutoriais.json";
 import {
+  alternativasSchema,
   cardioSchema,
   equipamentoTagSchema,
   equipamentosSchema,
@@ -93,8 +96,13 @@ export const medidasDeFoto: Readonly<Record<string, MedidaDeFoto>> = validar(
 
 /* --------------------------------------------------------------- índices */
 
+/** As fichas suplementares têm IDs próprios para manter histórico e progressão. */
+export const regrasDeAlternativas = validar(alternativasSchema, alternativasJson, "alternativas.json");
+export const variacoes = validar(exerciciosSchema, variacoesJson, "variacoes.json");
+export const exerciciosComVariacoes = [...exercicios, ...variacoes];
+
 export const exercicioPorId: ReadonlyMap<string, Exercicio> = new Map(
-  exercicios.map((e) => [e.id, e]),
+  exerciciosComVariacoes.map((e) => [e.id, e]),
 );
 
 export const ilustracaoPorExercicioId: ReadonlyMap<string, Ilustracao> = new Map(

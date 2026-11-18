@@ -54,12 +54,17 @@ test.describe("Corpo — peso (SPEC §3.8)", () => {
     await page.getByLabel("Peso (kg)").fill("82,4");
     await page.getByRole("button", { name: "Registrar" }).click();
 
-    // o card do topo e o gráfico com média móvel
+    // o card do topo e o gráfico
     await expect(page.getByText("82,4 kg em 16/09")).toBeVisible();
+    /*
+     * SPEC §22.19 itens 1 e 3: o gráfico é uma figura com a leitura dos
+     * dados, e com UMA pesagem a média de 7 dias é a cópia do peso — nem a
+     * linha nem a legenda a citam.
+     */
     await expect(
-      page.getByLabel("Peso por data, com a média de 7 dias"),
+      page.getByRole("img", { name: "Peso por data. Peso: 82,4 kg em 16/09." }),
     ).toBeVisible();
-    await expect(page.getByText("Média de 7 dias")).toBeVisible();
+    await expect(page.getByText("Média de 7 dias")).toHaveCount(0);
 
     // e a linha em body_weights (upsert por (user_id, data))
     await expect
@@ -93,7 +98,7 @@ test.describe("Corpo — peso (SPEC §3.8)", () => {
     await abrirCorpo(page);
 
     await page.getByLabel("Meta (kg)").fill("78,5");
-    await page.getByRole("button", { name: "Guardar" }).click();
+    await page.getByRole("button", { name: "Salvar" }).click();
 
     await expect
       .poll(async () => {
@@ -118,11 +123,18 @@ test.describe("Corpo — medidas (SPEC §3.8)", () => {
 
     await page.getByLabel("Cintura (cm)").fill("91,5");
     await page.getByLabel("Peito (cm)").fill("104");
-    await page.getByRole("button", { name: "Salvar medidas" }).click();
+    await page.getByRole("button", { name: "Registrar medidas" }).click();
 
     await expect(page.getByRole("table", { name: "Medidas registradas" })).toBeVisible();
     await expect(page.getByRole("cell", { name: "91,5" })).toBeVisible();
     await expect(page.getByLabel("Medida por data")).toBeVisible();
+    await expect(page.getByRole("tablist", { name: "Seções do corpo" })).toBeVisible();
+    await expect(page.getByRole("columnheader", { name: "Cintura" })).toBeVisible();
+    await page.getByLabel("Escolher a medida do gráfico").selectOption("peito_cm");
+    await expect(page.getByRole("columnheader", { name: "Peito" })).toBeVisible();
+    await expect(page.getByRole("cell", { name: "104 cm" })).toBeVisible();
+    await expect(page.getByRole("columnheader")).toHaveCount(2);
+
 
     await expect
       .poll(async () => {
@@ -148,6 +160,11 @@ test.describe("Corpo — fotos (SPEC §3.8)", () => {
     // a galeria mostra a foto na hora (o blob ainda está no aparelho)
     const naGaleria = page.getByRole("img", { name: "Frente em 16/09" });
     await expect(naGaleria).toBeVisible();
+
+    await naGaleria.click();
+    const fechar = page.getByRole("button", { name: "Fechar a foto" });
+    await fechar.click();
+    await expect(fechar).toHaveCount(0);
 
     // e ela chega ao bucket no caminho da policy: <user_id>/<data>-<angulo>.jpg
     const caminho = `${sessao.userId}/2026-09-16-frente.jpg`;
@@ -203,7 +220,16 @@ test.describe("Corpo — fotos (SPEC §3.8)", () => {
     await enviarFoto(page, "frente");
     await expect(page.getByRole("img", { name: "Frente em 16/09" })).toBeVisible();
 
-    await page.getByLabel("Data").fill("2026-08-16");
+    /*
+     * SPEC §22.19 item 6: "Outra data" abre o seletor do aparelho, que o
+     * Playwright não desenha; o seletor escreve no campo de data escondido,
+     * e é isso que o teste faz (o toque em "Outra data" é do ultraloop-l15).
+     */
+    await page.locator("#fotos-data").fill("2026-08-16");
+    await expect(page.getByRole("button", { name: "Outra data" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
     await enviarFoto(page, "frente");
     await expect(page.getByRole("img", { name: "Frente em 16/08" })).toBeVisible();
 

@@ -72,9 +72,9 @@ test.describe("Calendário — a semana (SPEC §3.5 e §10.6)", () => {
     // quarta-feira: a segunda já passou e a terça (corrida) ficou para trás
     await abrirCalendario(page, "2026-09-16T08:00:00-03:00");
 
-    await expect(page.getByRole("button", { name: /^seg 14\/09.*feito$/ })).toBeVisible();
-    await expect(page.getByRole("button", { name: /^ter 15\/09.*faltou$/ })).toBeVisible();
-    await expect(page.getByRole("button", { name: /^sex 18\/09.*a fazer$/ })).toBeVisible();
+    await expect(page.getByRole("button", { name: /^segunda 14\/09.*feito$/ })).toBeVisible();
+    await expect(page.getByRole("button", { name: /^terça 15\/09.*faltou$/ })).toBeVisible();
+    await expect(page.getByRole("button", { name: /^sexta 18\/09.*a fazer$/ })).toBeVisible();
     await expect(page.getByText("1 feito · 3 a fazer · 1 perdido")).toBeVisible();
   });
 
@@ -105,14 +105,14 @@ test.describe("Calendário — trocar o tipo de um dia (SPEC §3.5)", () => {
     const sessao = await usuarioComPerfil();
     await abrirCalendario(page);
 
-    await page.getByRole("button", { name: /^qua 16\/09/ }).click();
+    await page.getByRole("button", { name: /^quarta 16\/09/ }).click();
     await expect(page.getByRole("dialog")).toContainText("16 de setembro de 2026");
 
     await page.getByRole("button", { name: "Descanso" }).click();
     await page.getByLabel("Motivo (opcional)").fill("chuva");
     await page.getByRole("button", { name: "Salvar a troca" }).click();
 
-    await expect(page.getByRole("button", { name: /^qua 16\/09.*Descanso/ })).toBeVisible();
+    await expect(page.getByRole("button", { name: /^quarta 16\/09.*Descanso/ })).toBeVisible();
 
     await expect
       .poll(
@@ -132,7 +132,7 @@ test.describe("Calendário — trocar o tipo de um dia (SPEC §3.5)", () => {
     await usuarioComPerfil();
     await abrirCalendario(page, "2026-09-16T08:00:00-03:00");
 
-    await page.getByRole("button", { name: /^seg 14\/09/ }).click();
+    await page.getByRole("button", { name: /^segunda 14\/09/ }).click();
     const dialogo = page.getByRole("dialog");
     await expect(dialogo).toContainText("Nada registrado neste dia.");
     await expect(dialogo.getByRole("button", { name: "Salvar a troca" })).toBeHidden();
@@ -154,8 +154,8 @@ test.describe("Calendário — semana curta (SPEC §5.4)", () => {
 
     await dialogo.getByRole("button", { name: "Aplicar à semana" }).click();
 
-    await expect(page.getByRole("button", { name: /^seg 14\/09.*Descanso/ })).toBeVisible();
-    await expect(page.getByRole("button", { name: /^qui 17\/09.*Treino B/ })).toBeVisible();
+    await expect(page.getByRole("button", { name: /^segunda 14\/09.*Descanso/ })).toBeVisible();
+    await expect(page.getByRole("button", { name: /^quinta 17\/09.*Treino B/ })).toBeVisible();
 
     await expect
       .poll(
@@ -186,7 +186,7 @@ test.describe("Calendário — auditoria do marco 2", () => {
 
     await abrirCalendario(page, "2026-09-18T08:00:00-03:00");
 
-    await page.getByRole("button", { name: /^ter 15\/09/ }).click();
+    await page.getByRole("button", { name: /^terça 15\/09/ }).click();
     const dialogo = page.getByRole("dialog");
     // SPEC §3.3: a rota é por TIPO; o id da sessão vai em `?sessao=`
     await expect(dialogo.getByRole("link", { name: "Abrir o cardio" })).toHaveAttribute(
@@ -199,7 +199,7 @@ test.describe("Calendário — auditoria do marco 2", () => {
     await usuarioComPerfil();
     await abrirCalendario(page);
 
-    await page.getByRole("button", { name: /^qua 16\/09/ }).click();
+    await page.getByRole("button", { name: /^quarta 16\/09/ }).click();
     const fechar = page.getByRole("dialog").getByRole("button", { name: "Fechar" });
     await expect(fechar).toBeVisible();
     // offsetWidth/Height é a caixa de layout: o boundingBox pega a animação de

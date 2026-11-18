@@ -273,6 +273,8 @@
   }
   html {
     @apply font-sans;
+    /* No zoom alto, um título longo não pode alargar a viewport que posiciona a barra de abas. */
+    overflow-x: clip;
     -webkit-text-size-adjust: 100%;
   }
   /*

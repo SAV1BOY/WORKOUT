@@ -95,3 +95,16 @@ describe("copiaServe", () => {
     expect(copiaServe(urls.slice(0, MAXIMO_DE_ASSETS), new Set(urls))).toBe(true);
   });
 });
+
+
+it("a cópia com a mesma versão é lida uma vez e uma nova versão substitui os assets", async () => {
+  const { memorizarAssetsDaCopia, VERSAO_DA_COPIA } = await import("./sw-assets");
+  const origem = "https://treino.example";
+  const ler = memorizarAssetsDaCopia(origem);
+  const resposta = (nome: string) => new Response(`<script src="/_next/${nome}.js"></script>`, { headers: { [VERSAO_DA_COPIA]: nome } });
+  const um = resposta("v1");
+  expect(await ler("socorro", um)).toEqual(["/_next/v1.js"]);
+  await um.text(); // não é mais possível clonar o corpo desta resposta
+  expect(await ler("socorro", um)).toEqual(["/_next/v1.js"]);
+  expect(await ler("socorro", resposta("v2"))).toEqual(["/_next/v2.js"]);
+});

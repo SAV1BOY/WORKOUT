@@ -130,7 +130,7 @@ export async function login(
 ): Promise<void> {
   await page.goto("/login");
   await page.getByLabel("E-mail").fill(email);
-  await page.getByLabel("Senha").fill(senha);
+  await page.getByLabel("Senha", { exact: true }).fill(senha);
   await page.getByRole("button", { name: "Criar conta" }).click();
 
   // conta já criada num teste anterior: entra com a mesma senha
@@ -322,7 +322,7 @@ export async function entrarNoApp(
 ): Promise<void> {
   await page.goto("/login");
   await page.getByLabel("E-mail").fill(email);
-  await page.getByLabel("Senha").fill(senha);
+  await page.getByLabel("Senha", { exact: true }).fill(senha);
   await page.getByRole("button", { name: "Entrar" }).click();
   await esperarAbaTreino(page);
 }
@@ -383,4 +383,34 @@ export async function abrirSecaoDoRelatorio(page: Page, id: string): Promise<voi
   if (await secao.evaluate((d) => (d as HTMLDetailsElement).open)) return;
   await secao.locator("summary").click();
   await expect(secao).toHaveAttribute("open", "");
+}
+
+/** Descarta só os dados de leitura, fora do app, para refazê-los na rede. */
+export async function semCacheDoAparelho(page: Page): Promise<void> {
+  await page.goto("/robots.txt");
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve, reject) => {
+        const pedido = indexedDB.open("treino-terraco");
+        pedido.onerror = () => reject(pedido.error);
+        pedido.onsuccess = () => {
+          const banco = pedido.result;
+          if (!banco.objectStoreNames.contains("cache")) {
+            banco.close();
+            resolve();
+            return;
+          }
+          const tx = banco.transaction("cache", "readwrite");
+          tx.objectStore("cache").delete("react-query-v1");
+          tx.oncomplete = () => {
+            banco.close();
+            resolve();
+          };
+          tx.onerror = () => {
+            banco.close();
+            reject(tx.error);
+          };
+        };
+      }),
+  );
 }

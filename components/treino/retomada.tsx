@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
 
 /* ------------------------------------------- voltar do player (§22.7 item 9) */
 
-/** Onde fica anotada a rota para onde a aba Treino saiu da última vez. */
+/** O player anota a saída quando a próxima tela é a aba Treino. */
 const CHAVE_DA_SAIDA = "treino:saiu-para";
 
 /** `/treinar/<id>` é o player; `/treinar` é a escolha do treino (SPEC §14.1). */
@@ -26,8 +26,7 @@ function ehRotaDoPlayer(caminho: string): boolean {
 
 /**
  * SPEC §22.7 item 9: o "voltar" do celular no meio do treino não é bloqueado —
- * o gesto do sistema continua saindo do player —, mas deixa de ser mudo. A aba
- * Treino anota para onde saiu; ao voltar do player com a sessão ainda aberta,
+ * o gesto do sistema continua saindo do player —, mas deixa de ser mudo. Ao voltar diretamente do player com a sessão ainda aberta,
  * avisa que o treino ficou guardado e devolve `true` por alguns segundos. Quem
  * usa o destaque decide ONDE ele cai: o anel acompanha o "Continuar" daquela
  * sessão — o card "em andamento" quando ela é a do dia, senão o banner "Você
@@ -62,17 +61,6 @@ export function useAvisoDeVoltaDoPlayer(temSessaoAberta: boolean): boolean {
     const relogio = window.setTimeout(() => setDestacado(false), 4000);
     return () => window.clearTimeout(relogio);
   }, [voltou, temSessaoAberta]);
-
-  /* ao sair da aba, anota para onde foi: é o que identifica a volta do player */
-  useEffect(() => {
-    return () => {
-      try {
-        window.sessionStorage.setItem(CHAVE_DA_SAIDA, window.location.pathname);
-      } catch {
-        /* aparelho sem sessionStorage: o aviso simplesmente não aparece */
-      }
-    };
-  }, []);
 
   return destacado;
 }
@@ -123,6 +111,7 @@ export function CardRetomada({
   ref?: React.Ref<HTMLElement>;
 }) {
   /* o diálogo do "Recomeçar do zero": 0 = fechado, 1 e 2 = as duas etapas */
+  const cancelar = useRef<HTMLButtonElement>(null);
   const [etapa, setEtapa] = useState<0 | 1 | 2>(0);
 
   return (
@@ -160,7 +149,7 @@ export function CardRetomada({
             )}
           >
             <span className="text-sm font-medium">{opcao.rotulo}</span>
-            <span className="text-muted-foreground text-xs font-normal text-balance">
+            <span className="text-foreground text-xs font-normal text-balance">
               {opcao.descricao}
             </span>
           </Button>
@@ -177,6 +166,10 @@ export function CardRetomada({
       <Dialog open={etapa !== 0} onOpenChange={(v) => !v && setEtapa(0)}>
         <DialogContent
           data-retomada-etapa={etapa}
+          onOpenAutoFocus={(evento) => {
+            evento.preventDefault();
+            cancelar.current?.focus();
+          }}
           className="max-w-[calc(100vw-2rem)] sm:max-w-md"
         >
           <DialogHeader>
@@ -219,6 +212,7 @@ export function CardRetomada({
               type="button"
               variant="ghost"
               className="alvo h-12 w-full"
+              ref={cancelar}
               data-retomada-zero="cancelar"
               onClick={() => setEtapa(0)}
             >

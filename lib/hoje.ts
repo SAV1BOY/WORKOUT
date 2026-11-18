@@ -5,6 +5,7 @@
  *
  * O conteúdo (nomes, séries, faixas, minutos) vem sempre de `lib/dados.ts`.
  */
+import { minutosDoPlano, planoDeCardio } from "@/lib/cardio";
 import {
   acharExercicio,
   acharTreino,
@@ -30,6 +31,7 @@ import {
 } from "@/lib/progressao";
 import type { Grupo, Implemento, TreinoId } from "@/lib/schemas";
 import type {
+  PlanoDaSessao,
   LinhaEstadoExercicio,
   LinhaSerie,
   LinhaEventoProgressao,
@@ -129,9 +131,20 @@ export interface ProgressoDaAberta {
  */
 export function progressoDaAberta(
   workoutId: string,
-  series: Pick<LinhaSerie, "tipo" | "concluida">[] = [],
+  series: (Pick<LinhaSerie, "tipo" | "concluida"> & Partial<Pick<LinhaSerie, "ordem_ex" | "exercise_id">>)[] = [],
+  plano?: PlanoDaSessao | null,
 ): ProgressoDaAberta {
   const feitas = series.filter((s) => s.tipo === "trabalho" && s.concluida).length;
+  if (plano?.trocas && Array.isArray(plano.itens)) {
+    const faltam = plano.itens.reduce((soma, item, indice) => {
+      const ativo = plano.trocas?.[indice + 1]?.[0];
+      const id = ativo?.exercicio_id ?? item.exercicio_id;
+      const previstas = ativo?.trabalho?.length ?? item.series;
+      const feitasNeste = series.filter((s) => s.tipo === "trabalho" && s.concluida && s.ordem_ex === indice + 1 && s.exercise_id === id).length;
+      return soma + Math.max(0, previstas - feitasNeste);
+    }, 0);
+    return { feitas, total: feitas + faltam, texto: `${feitas}/${feitas + faltam} séries` };
+  }
   // "fixa" e "livre" não são treinos do `programa.json`: não há total prescrito
   const treino = treinoPorId[workoutId as TreinoId] ?? null;
   if (!treino) {
@@ -362,6 +375,11 @@ export function descricaoDoCardio(cardio: SessaoCardioDoDia): string | null {
   return null;
 }
 
+export function minutosDoCardio(cardio: SessaoCardioDoDia): number | null {
+  const plano = planoDeCardio(cardio.tipo, cardio.semana);
+  return minutosDoPlano(plano.totalS, cardio.min);
+}
+
 /** "Corrida · semana 1 · 8 × (1 min corrida / 2 min caminhada) · 34 min". */
 export function textoDoCardio(cardio: SessaoCardioDoDia): string {
   const nome =
@@ -373,7 +391,8 @@ export function textoDoCardio(cardio: SessaoCardioDoDia): string {
   const partes = [nome, `semana ${cardio.semana}`];
   const desc = descricaoDoCardio(cardio);
   if (desc) partes.push(desc);
-  if (cardio.min !== null) partes.push(formatarMinutos(cardio.min));
+  const min = minutosDoCardio(cardio);
+  if (min !== null) partes.push(formatarMinutos(min));
   return partes.join(" · ");
 }
 

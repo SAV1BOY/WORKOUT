@@ -47,8 +47,8 @@ export function CabecalhoDoTreino({
 
   return (
     <section aria-label="Situação" className="flex flex-col gap-3">
-      <header className="flex items-center justify-between gap-2">
-        <h1 className="text-2xl font-semibold tracking-tight first-letter:uppercase">
+      <header className="flex flex-wrap items-center justify-between gap-2">
+        <h1 className="text-2xl font-semibold tracking-tight min-[340px]:whitespace-nowrap first-letter:uppercase">
           {saudacao}
         </h1>
         <div className="flex shrink-0 items-center gap-2">
@@ -61,7 +61,7 @@ export function CabecalhoDoTreino({
             >
               <Flame aria-hidden="true" className="size-4" />
               <span className="numero">{sequenciaDeSemanas}</span>
-              {sequenciaDeSemanas === 1 ? "semana" : "semanas"}
+              <span className="hidden min-[400px]:inline">{sequenciaDeSemanas === 1 ? "semana" : "semanas"}</span>
             </span>
           ) : null}
           {acoes}

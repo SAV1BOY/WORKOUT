@@ -22,6 +22,8 @@
  * Vitest não entra (a mesma lição de `lib/sw-navegacao.ts` e `lib/sw-cura.ts`).
  */
 
+import { CACHE_DE_SOCORRO } from "@/lib/caches-do-worker";
+
 /**
  * Teto de assets de uma cópia. Uma página do Next carrega ~14 pedaços; 30 dá
  * folga para o app crescer sem transformar a autocura num download. Acima
@@ -101,4 +103,41 @@ export function copiaServe(
 ): boolean {
   if (urls.length > MAXIMO_DE_ASSETS) return false;
   return urls.every((url) => emCache.has(url));
+}
+
+/** Identifica o HTML exato gravado pela autocura, mesmo quando a resposta não tinha ETag. */
+export const VERSAO_DA_COPIA = "X-Treino-Copia";
+
+/** Evita reler o corpo de uma cópia que conserva o mesmo identificador. */
+export function memorizarAssetsDaCopia(origem: string) {
+  const conhecidas = new Map<string, { versao: string; urls: string[] }>();
+  return async (nome: string, resposta: Response): Promise<string[]> => {
+    const versao = resposta.headers.get(VERSAO_DA_COPIA) ?? resposta.headers.get("etag");
+    const anterior = conhecidas.get(nome);
+    if (versao && anterior?.versao === versao) return anterior.urls;
+    const urls = urlsDeAssets(await resposta.clone().text(), origem);
+    if (versao) conhecidas.set(nome, { versao, urls });
+    return urls;
+  };
+}
+
+/** A autocura e a navegação conferem a mesma cópia com a mesma lista de assets. */
+export function verificarCopiaInteira(origem: string, armazenamento: CacheStorage) {
+  const assetsDaCopia = memorizarAssetsDaCopia(origem);
+  return async (nome: string, cache: Cache, guardada: Response): Promise<boolean> => {
+    const urls = await assetsDaCopia(nome, guardada);
+    const presentes = new Set<string>();
+    if (nome === CACHE_DE_SOCORRO) {
+      // Este cache guarda somente o HTML e seus assets. Uma única leitura das
+      // chaves reconhece uma cópia completa e também percebe despejos parciais.
+      for (const pedido of await cache.keys()) {
+        const url = new URL(pedido.url);
+        presentes.add(url.pathname + url.search);
+      }
+    }
+    await Promise.all(urls.filter((url) => !presentes.has(url)).map(async (url) => {
+      if (await armazenamento.match(url, { ignoreSearch: true })) presentes.add(url);
+    }));
+    return copiaServe(urls, presentes);
+  };
 }

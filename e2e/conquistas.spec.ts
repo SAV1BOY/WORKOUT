@@ -253,7 +253,7 @@ async function reconhecerOAviso(page: Page): Promise<void> {
   await expect(aviso).toBeVisible();
   await expect(aviso).toContainText("10 treinos");
   await aviso.getByRole("button", { name: "Ok" }).click();
-  await expect(aviso).toHaveCount(0);
+  await expect(aviso).toBeEmpty();
 }
 
 test.beforeEach(async () => {
@@ -517,7 +517,7 @@ test.describe("o aviso de conquista nova", () => {
     });
 
     await aviso.getByRole("button", { name: "Ok" }).click();
-    await expect(aviso).toHaveCount(0);
+    await expect(aviso).toBeEmpty();
 
     /* o "Ok" grava em prefs.conquistas_vistas pela fila (SPEC §8 e §19.5) */
     await expect
@@ -539,7 +539,7 @@ test.describe("o aviso de conquista nova", () => {
     await irNaAba(page, "Relatório");
     await expect(page.getByRole("heading", { name: "Relatório" })).toBeVisible();
     await expect(page.getByRole("region", { name: "Números" })).toBeVisible();
-    await expect(page.getByRole("status", { name: "Conquista nova" })).toHaveCount(0);
+    await expect(page.getByRole("status", { name: "Conquista nova" })).toBeEmpty();
     await abrirSecaoDoRelatorio(page, "conquistas");
     await expect(conquista(page, "semana-completa")).toHaveAttribute(
       "data-atingida",

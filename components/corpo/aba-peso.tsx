@@ -1,11 +1,14 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { mensagemDeRegistro } from "@/lib/outbox";
 import { toast } from "sonner";
-import { GraficoLinha, LegendaDoGrafico, SemDados } from "@/components/graficos";
+import { SemDados } from "@/components/graficos";
 import { CardImc } from "@/components/corpo/card-imc";
+import { GraficoDoPeso } from "@/components/corpo/grafico-peso";
 import { Button } from "@/components/ui/button";
+import { CampoData, useDataDoRegistro } from "@/components/ui/campo-data";
 import {
   Card,
   CardContent,
@@ -16,10 +19,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  dominioFolgado,
   faltaParaMeta,
-  mediaMovel,
   metaDePeso,
+  textoDaVariacao,
   ultimoPeso,
   variacaoPorSemana,
   type PesoBruto,
@@ -29,12 +31,12 @@ import { gravarPerfil } from "@/lib/queries/perfil";
 import { registrarPeso } from "@/lib/queries/corpo";
 import type { LinhaPerfil } from "@/lib/types";
 
-const SERIES = [
-  { chave: "peso", nome: "Peso" },
-  { chave: "media", nome: "Média de 7 dias", cor: "var(--chart-3)", tracejada: true },
-];
-
-/** Aba Peso (SPEC §3.8): registrar, média móvel de 7 dias, variação e meta. */
+/**
+ * Aba Peso (SPEC §3.8): registrar, média móvel de 7 dias, variação e meta.
+ *
+ * A ordem é a do que se veio ver (SPEC §22.19 item 2): o peso atual e o
+ * gráfico, Registrar, IMC, variação por semana e a meta.
+ */
 export function AbaPeso({
   userId,
   hoje,
@@ -47,7 +49,7 @@ export function AbaPeso({
   perfil: LinhaPerfil;
 }) {
   const cliente = useQueryClient();
-  const [data, setData] = useState(hoje);
+  const { data, escolher, voltarParaHoje } = useDataDoRegistro(hoje);
   const [peso, setPeso] = useState("");
   const [salvando, setSalvando] = useState(false);
   const [meta, setMeta] = useState(() => {
@@ -55,13 +57,26 @@ export function AbaPeso({
     return atual === null ? "" : formatarNumero(atual);
   });
 
-  const pontos = mediaMovel(pesos);
-  // sem isto o eixo vai de 0 a 100 e a média de 7 dias some dentro da linha
-  const dominioY = dominioFolgado(pontos.flatMap((p) => [p.peso, p.media]), 1);
+  const campoMeta = useRef<HTMLInputElement>(null);
+
   const semanas = variacaoPorSemana(pesos).slice(-8).reverse();
   const ultimo = ultimoPeso(pesos);
   const alvo = metaDePeso(perfil.prefs);
   const falta = faltaParaMeta(ultimo?.peso ?? null, alvo);
+  const variacao = textoDaVariacao(pesos);
+
+  /*
+   * SPEC §22.19 item 4: no lugar de "Defina uma meta embaixo" (orientação por
+   * posição), um link que leva ao campo da meta — rola até ele e põe o foco.
+   */
+  const irParaAMeta = (evento: React.MouseEvent<HTMLAnchorElement>) => {
+    evento.preventDefault();
+    const campo = campoMeta.current;
+    if (!campo) return;
+    const reduzir = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+    campo.scrollIntoView({ block: "center", behavior: reduzir ? "auto" : "smooth" });
+    campo.focus({ preventScroll: true });
+  };
 
   const salvar = async () => {
     const valor = lerNumero(peso);
@@ -73,7 +88,8 @@ export function AbaPeso({
     try {
       await registrarPeso({ userId, data, pesoKg: valor, cliente });
       setPeso("");
-      toast.success(`Peso de ${formatarData(data)} registrado.`);
+      voltarParaHoje();
+      toast.success(mensagemDeRegistro(`Peso de ${formatarData(data)} registrado.`));
     } catch {
       toast.error("Não consegui registrar agora.");
     } finally {
@@ -91,61 +107,82 @@ export function AbaPeso({
         },
         cliente,
       });
-      toast.success(valor ? `Meta de ${formatarKg(valor)} guardada.` : "Meta removida.");
+      toast.success(valor ? `Meta de ${formatarKg(valor)} salva.` : "Meta removida.");
     } catch {
-      toast.error("Não consegui guardar a meta agora.");
+      toast.error("Não consegui salvar a meta agora.");
     }
   };
 
   const mudarAltura = async (cm: number) => {
     try {
       await gravarPerfil({ userId, mudanca: { altura_cm: cm }, cliente });
-      toast.success(`Altura de ${cm} cm guardada.`);
+      toast.success(`Altura de ${cm} cm salva.`);
     } catch {
-      toast.error("Não consegui guardar a altura agora.");
+      toast.error("Não consegui salvar a altura agora.");
     }
   };
 
   return (
     <div className="flex flex-col gap-4">
-      {/* O IMC da §13.7: o mesmo card do Relatório e da conclusão do treino. */}
-      <CardImc
-        pesoKg={ultimo?.peso ?? null}
-        alturaCm={perfil.altura_cm}
-        aoMudarAltura={(cm) => void mudarAltura(cm)}
-      />
+      <Card>
+        <CardHeader>
+          <CardTitle role="heading" aria-level={2} className="text-base">
+            {ultimo ? `${formatarKg(ultimo.peso)} em ${formatarData(ultimo.data)}` : "Sem pesagem"}
+          </CardTitle>
+          <CardDescription className="flex flex-col items-start gap-0.5">
+            {variacao ? <span className="numero">{variacao}</span> : null}
+            {/*
+              A meta pode estar para baixo (secar) ou para cima (o objetivo do
+              perfil é ganhar músculo): o que falta é a distância, nos dois
+              sentidos.
+            */}
+            {alvo === null ? (
+              <a
+                href="#peso-meta"
+                onClick={irParaAMeta}
+                className="alvo text-primary inline-flex items-center underline underline-offset-4"
+              >
+                Definir uma meta
+              </a>
+            ) : falta === null ? (
+              <span>Meta de {formatarKg(alvo)}.</span>
+            ) : falta === 0 ? (
+              <span>Você está na meta de {formatarKg(alvo)}.</span>
+            ) : (
+              <span>
+                Faltam {formatarKg(Math.abs(falta))} para a meta de {formatarKg(alvo)}.
+              </span>
+            )}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-2">
+          {pesos.length === 0 ? (
+            <SemDados>O gráfico aparece com a primeira pesagem.</SemDados>
+          ) : (
+            <GraficoDoPeso pesos={pesos} meta={alvo} comMedia />
+          )}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Registrar peso</CardTitle>
+          <CardTitle role="heading" aria-level={2} className="text-base">Registrar peso</CardTitle>
           <CardDescription>Uma pesagem por dia — a última vale.</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
-          <div className="grid grid-cols-2 gap-2">
-            <div className="flex flex-col gap-1">
-              <Label htmlFor="peso-data">Data</Label>
-              <Input
-                id="peso-data"
-                type="date"
-                value={data}
-                max={hoje}
-                onChange={(e) => setData(e.target.value)}
-                className="alvo h-12"
-              />
-            </div>
-            <div className="flex flex-col gap-1">
-              <Label htmlFor="peso-kg">Peso (kg)</Label>
-              <Input
-                id="peso-kg"
-                type="text"
-                inputMode="decimal"
-                placeholder="82,4"
-                value={peso}
-                onChange={(e) => setPeso(e.target.value)}
-                className="alvo numero h-12 text-lg"
-              />
-            </div>
+          <div className="flex flex-col gap-1">
+            <Label htmlFor="peso-kg">Peso (kg)</Label>
+            <Input
+              id="peso-kg"
+              type="text"
+              inputMode="decimal"
+              placeholder="82,4"
+              value={peso}
+              onChange={(e) => setPeso(e.target.value)}
+              className="alvo numero h-12 text-lg"
+            />
           </div>
+          <CampoData id="peso-data" valor={data} hoje={hoje} aoMudar={escolher} />
           <Button
             className="alvo h-12 w-full text-base font-semibold"
             disabled={salvando}
@@ -156,46 +193,17 @@ export function AbaPeso({
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">
-            {ultimo ? `${formatarKg(ultimo.peso)} em ${formatarData(ultimo.data)}` : "Sem pesagem"}
-          </CardTitle>
-          <CardDescription>
-            {/*
-              A meta pode estar para baixo (secar) ou para cima (o objetivo do
-              perfil é ganhar músculo): o que falta é a distância, nos dois
-              sentidos.
-            */}
-            {falta === null
-              ? "Defina uma meta embaixo, se quiser."
-              : falta === 0
-                ? `Você está na meta de ${formatarKg(alvo ?? 0)}.`
-                : `Faltam ${formatarKg(Math.abs(falta))} para a meta de ${formatarKg(alvo ?? 0)}.`}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-2">
-          {pontos.length === 0 ? (
-            <SemDados>O gráfico aparece com a primeira pesagem.</SemDados>
-          ) : (
-            <>
-              <GraficoLinha
-                titulo="Peso por data, com a média de 7 dias"
-                dados={pontos}
-                x="rotulo"
-                sufixo=" kg"
-                dominioY={dominioY}
-                series={SERIES}
-              />
-              <LegendaDoGrafico series={SERIES} />
-            </>
-          )}
-        </CardContent>
-      </Card>
+      {/* O IMC da §13.7: o mesmo card do Relatório e da conclusão do treino. */}
+      <CardImc
+        nivel={2}
+        pesoKg={ultimo?.peso ?? null}
+        alturaCm={perfil.altura_cm}
+        aoMudarAltura={(cm) => void mudarAltura(cm)}
+      />
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Variação por semana</CardTitle>
+          <CardTitle role="heading" aria-level={2} className="text-base">Variação por semana</CardTitle>
         </CardHeader>
         <CardContent>
           {semanas.length === 0 ? (
@@ -230,13 +238,14 @@ export function AbaPeso({
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Meta (opcional)</CardTitle>
-          <CardDescription>Fica guardada no seu perfil.</CardDescription>
+          <CardTitle role="heading" aria-level={2} className="text-base">Meta (opcional)</CardTitle>
+          <CardDescription>Fica salva no seu perfil.</CardDescription>
         </CardHeader>
         <CardContent className="flex items-end gap-2">
           <div className="flex flex-1 flex-col gap-1">
             <Label htmlFor="peso-meta">Meta (kg)</Label>
             <Input
+              ref={campoMeta}
               id="peso-meta"
               type="text"
               inputMode="decimal"
@@ -247,7 +256,7 @@ export function AbaPeso({
             />
           </div>
           <Button variant="outline" className="alvo h-12" onClick={() => void salvarMeta()}>
-            Guardar
+            Salvar
           </Button>
         </CardContent>
       </Card>

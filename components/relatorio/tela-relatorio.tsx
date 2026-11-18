@@ -4,6 +4,7 @@ import { ChevronDown, Dumbbell, Flame, Timer, Weight } from "lucide-react";
 import Link from "next/link";
 import { addDays } from "date-fns";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { Erro } from "@/components/carregando";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CardImc } from "@/components/corpo/card-imc";
 import { AvisoDeConquista } from "@/components/relatorio/aviso-conquista";
@@ -16,7 +17,7 @@ import { TelaProgresso } from "@/components/progresso/tela-progresso";
 import { Contador } from "@/components/ui/contador";
 import { iso, inicioDaSemana, paraData } from "@/lib/calendario";
 import { formatarNumero } from "@/lib/formato";
-import { ultimoPeso } from "@/lib/corpo";
+import { metaDePeso, ultimoPeso } from "@/lib/corpo";
 import { TOTAL_DE_CONQUISTAS, totalConquistado } from "@/lib/conquistas";
 import { metaSemanal, sequenciaDeDias, sequenciaDeSemanas } from "@/lib/metas";
 import { contadoresDoRelatorio } from "@/lib/relatorio";
@@ -26,7 +27,6 @@ import {
   useCardioTodos,
   useOverrides,
   usePerfil,
-  useSoltas,
   useSoltasTodas,
 } from "@/lib/queries/dados";
 import {
@@ -143,11 +143,10 @@ export function TelaRelatorio() {
   const sessoesQ = useSessoesTodas();
   const seriesQ = useSeriesTodas();
   const cardioQ = useCardioTodos();
-  const soltasQ = useSoltas(desde, hoje);
   /* SPEC §19.2: os Números e as conquistas contam desde o começo */
   const soltasTodasQ = useSoltasTodas();
   const eventosQ = useEventosDesde(desde);
-  const overridesQ = useOverrides(intervalo?.de ?? null, intervalo?.ate ?? null);
+  const overridesQ = useOverrides(desde, intervalo?.ate ?? null);
   const pesosQ = usePesos();
 
   const perfil = perfilQ.data ?? null;
@@ -174,7 +173,13 @@ export function TelaRelatorio() {
     [cardios, desde],
   );
 
-  const pronto = Boolean(hoje && perfil);
+  const soltasDaJanela = useMemo(
+    () => soltasTodas.filter((s) => desde && hoje && s.data >= desde && s.data <= hoje),
+    [soltasTodas, desde, hoje],
+  );
+  const pronto = Boolean(hoje && perfil && sessoesQ.data && seriesQ.data && cardioQ.data && soltasTodasQ.data);
+  const leituras = [perfilQ, sessoesQ, seriesQ, cardioQ, soltasTodasQ, eventosQ, overridesQ, pesosQ];
+  const falha = leituras.find((q) => q.isError);
   const feitas = totalConquistado(conquistas.lista);
   const meta = perfil ? metaSemanal(perfil.prefs, perfil.fase_atual) : 0;
   const dias = hoje ? sequenciaDeDias({ sessoes, cardios, hoje }) : 0;
@@ -183,6 +188,12 @@ export function TelaRelatorio() {
   const peso = ultimoPeso(pesos);
 
   const comum = { abertas, montadas, aoAlternar: alternar };
+
+  if (falha?.error) {
+    return <Erro mensagem={falha.error.message} aoTentarDeNovo={() => {
+      for (const consulta of leituras) if (consulta.isError) void consulta.refetch();
+    }} />;
+  }
 
   return (
     <section aria-label="Relatório" className="flex flex-col gap-3">
@@ -210,14 +221,18 @@ export function TelaRelatorio() {
             className="grid grid-rows-[auto_1fr_auto]"
             rotulo="Sessões"
             valor={pronto ? formatarNumero(contadores.treinos) : "—"}
-            detalhe="no total (força + cardio)"
+            detalhe={pronto ? (
+              <span className="block text-rotulo leading-3">
+                no total <span className="whitespace-nowrap">(força + cardio)</span>
+              </span>
+            ) : "—"}
             icone={<Dumbbell aria-hidden="true" className="size-3.5 shrink-0" />}
           />
           <Contador
             className="grid grid-rows-[auto_1fr_auto]"
             rotulo="Minutos"
             valor={pronto ? formatarNumero(contadores.minutos) : "—"}
-            detalhe="no total"
+            detalhe={pronto ? "no total" : "—"}
             icone={<Timer aria-hidden="true" className="size-3.5 shrink-0" />}
           />
           {/*
@@ -229,12 +244,12 @@ export function TelaRelatorio() {
             className="grid grid-rows-[auto_1fr_auto]"
             rotulo="Volume"
             valor={pronto ? formatarNumero(contadores.volumeKg) : "—"}
-            detalhe="kg no total"
+            detalhe={pronto ? "kg no total" : "—"}
             icone={<Weight aria-hidden="true" className="size-3.5 shrink-0" />}
           />
         </section>
 
-        {hoje ? (
+        {pronto && hoje ? (
           <Numeros
             hoje={hoje}
             sessoes={sessoes}
@@ -251,14 +266,14 @@ export function TelaRelatorio() {
             className="grid grid-rows-[auto_1fr_auto]"
             rotulo="Dias seguidos"
             valor={pronto ? formatarNumero(dias) : "—"}
-            detalhe={dias === 0 ? "comece hoje" : "com alguma sessão"}
+            detalhe={pronto ? (dias === 0 ? "comece hoje" : "com alguma sessão") : "—"}
             icone={<Flame aria-hidden="true" className="size-3.5 shrink-0" />}
           />
           <Contador
             className="grid grid-rows-[auto_1fr_auto]"
             rotulo="Semanas seguidas"
             valor={pronto ? formatarNumero(semanas) : "—"}
-            detalhe={`com a meta de ${formatarNumero(meta)}`}
+            detalhe={pronto ? `com a meta de ${formatarNumero(meta)}` : "—"}
             icone={<Flame aria-hidden="true" className="size-3.5 shrink-0" />}
           />
         </section>
@@ -275,7 +290,7 @@ export function TelaRelatorio() {
         {...comum}
         id="conquistas"
         titulo="Conquistas"
-        contador={`${formatarNumero(feitas)} de ${formatarNumero(TOTAL_DE_CONQUISTAS)}`}
+        contador={conquistas.pronto ? `${formatarNumero(feitas)} de ${formatarNumero(TOTAL_DE_CONQUISTAS)}` : "—"}
         subtitulo="Marcos que saem dos seus próprios registros."
       >
         <Conquistas lista={conquistas.lista} />
@@ -295,7 +310,7 @@ export function TelaRelatorio() {
             sessoes={sessoes}
             cardios={cardiosDaJanela}
             series={seriesDaJanela}
-            soltas={soltasQ.data ?? []}
+            soltas={soltasDaJanela}
             eventos={eventosQ.data ?? []}
           />
         ) : (
@@ -309,7 +324,7 @@ export function TelaRelatorio() {
         titulo="Corpo"
         subtitulo="O peso registrado e o IMC calculado com a sua altura."
       >
-        <CardPeso pesos={pesos} />
+        <CardPeso pesos={pesos} meta={metaDePeso(perfil?.prefs)} />
         {perfil ? (
           <CardImc
             pesoKg={peso?.peso ?? null}
@@ -333,7 +348,10 @@ export function TelaRelatorio() {
         titulo="Gráficos"
         subtitulo="Carga dos grandes, volume, barra fixa, corrida e recordes."
       >
-        <TelaProgresso comCabecalho={false} />
+        {pronto && hoje && perfil && overridesQ.data ? (
+          <TelaProgresso hoje={hoje} perfil={perfil} sessoes={sessoes} series={series}
+            soltas={soltasTodas} cardios={cardios} overrides={overridesQ.data} />
+        ) : <EsqueletoLinhas linhas={3} />}
       </Secao>
 
       {/*
@@ -387,7 +405,7 @@ function Secao({
       <summary
         data-secao-cabecalho={id}
         className={cn(
-          "alvo bg-card sticky top-0 z-10 flex cursor-pointer list-none items-start gap-2 rounded-xl px-3 py-2.5",
+          "alvo bg-card sticky top-0 scroll-mt-16 z-10 flex cursor-pointer list-none items-start gap-2 rounded-xl px-3 py-2.5",
           "[&::-webkit-details-marker]:hidden",
           aberta && "border-border rounded-b-none border-b",
         )}
@@ -422,7 +440,7 @@ function Secao({
         item 7). O cabeçalho continua com `px-3` — ele tem uma linha de texto
         só e não divide largura com ninguém.
       */}
-      <div className="flex flex-col gap-4 px-2 pt-3 pb-3">
+      <div className="flex flex-col gap-4 px-2 pt-3 pb-3 [&_:is(section,h2,h3,button,a,input,select,[tabindex])]:scroll-mt-20">
         {montadas.includes(id) ? children : null}
       </div>
     </details>
