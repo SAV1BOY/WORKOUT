@@ -784,12 +784,10 @@ test.describe("o campo de carga é do dedo de quem digita (SPEC §22.11)", () =>
       expect(naTela).toBe(esperado);
     }
 
-    // sair do campo: aí sim o ajuste de anilha chega à tela (11,5 com o kit
-    // do dono, 12,5 se este kit montar 12,5)
+    // O kit padrão tem barra de 7,5 kg e monta 11,5 kg abaixo do pedido.
+    // Desde o primeiro quadro sem o foco, o campo deve mostrar o valor do registro.
     await carga.press("Enter");
-    await expect(carga).toHaveValue(/^(11,5|12,5)$/);
-    const depois = await carga.inputValue();
-    const kg = Number(depois.replace(",", "."));
+    expect(await carga.inputValue()).toBe("11,5");
 
     await page.getByRole("button", { name: "Concluir série" }).click();
     await expect
@@ -800,7 +798,7 @@ test.describe("o campo de carga é do dedo de quem digita (SPEC §22.11)", () =>
             .map((s) => s.carga_kg),
         { timeout: 10_000 },
       )
-      .toContain(kg);
+      .toEqual([11.5]);
   });
 });
 
