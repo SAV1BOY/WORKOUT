@@ -9,6 +9,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import {
   abrirVisaoGeral,
+  avancarNoPlayerAte,
   comecarNoPlayer,
   comecarOTreinoDoDia,
   entrarNoApp,
@@ -265,17 +266,7 @@ test.describe("§22.5 itens 4 e 5 — as perguntas chegam sem resposta e com cor
     // controles que levam ao feedback nunca incluem a ação de CONCLUÍ-LO.
     await expect(firme).toBeHidden();
     const sensacao = page.getByRole("radiogroup", { name: "Sensação" });
-    const pular = page.getByRole("button", { name: "Pular descanso" });
-    const pergunta = page.getByRole("region", { name: "Última repetição" })
-      .getByRole("button", { name: "Pular esta pergunta" });
-    const proximo = page.getByRole("button", { name: "Próximo passo" });
-    for (let i = 0; i < 80; i++) {
-      await sensacao.or(pular).or(pergunta).or(proximo).first().waitFor();
-      if (await sensacao.isVisible()) break;
-      if (await pular.isVisible()) await pular.click();
-      else if (await pergunta.isVisible()) await pergunta.click();
-      else if (await proximo.isVisible()) await proximo.click();
-    }
+    await avancarNoPlayerAte(page, sensacao);
     await expect(sensacao).toBeVisible();
     for (const marcada of await sensacao
       .getByRole("radio")

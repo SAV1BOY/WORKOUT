@@ -2,7 +2,6 @@
 
 import { useEffect } from "react";
 import { registrarEnviador } from "@/lib/outbox-supabase";
-import { iniciarOutbox } from "@/lib/outbox";
 import { definirConfigSupabase } from "@/lib/supabase/client";
 
 /**
@@ -19,7 +18,6 @@ export function ConfigurarSupabase({ url, chave }: { url: string; chave: string 
   useEffect(() => {
     definirConfigSupabase(url, chave);
     registrarEnviador();
-    iniciarOutbox();
   }, [url, chave]);
 
   return null;

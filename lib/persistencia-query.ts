@@ -24,7 +24,20 @@ const INTERVALO_MS = 1_000;
 
 interface Guardado {
   salvoEm: number;
+  /** Versões antigas só guardavam o horário da cópia. */
+  sincronizadoEm?: number | null;
   estado: DehydratedState;
+}
+
+const leiturasDaRede = new WeakMap<QueryClient, number>();
+
+function horarioDaSincronizacao(cache: Guardado): number | null {
+  return cache.sincronizadoEm === undefined ? cache.salvoEm : cache.sincronizadoEm;
+}
+
+export async function lerUltimaSincronizacao(): Promise<number | null> {
+  const cache = await lerCache<Guardado>(CHAVE_CACHE);
+  return cache ? horarioDaSincronizacao(cache) : null;
 }
 
 /** Uma URL blob: só existe no documento que a criou. O arquivo continua no Dexie. */
@@ -50,6 +63,7 @@ export async function guardarConsultasAgora(cliente: QueryClient): Promise<void>
   });
   await guardarCache(CHAVE_CACHE, {
     salvoEm: Date.now(),
+    sincronizadoEm: leiturasDaRede.get(cliente) ?? null,
     estado,
   } satisfies Guardado);
 }
@@ -74,6 +88,10 @@ export function persistirQueryClient(cliente: QueryClient): () => void {
       const guardado = await lerCache<Guardado>(CHAVE_CACHE);
       if (!vivo || !guardado) return;
       if (Date.now() - guardado.salvoEm > VALIDADE_MS) return;
+      const anterior = horarioDaSincronizacao(guardado);
+      if (anterior != null && anterior > (leiturasDaRede.get(cliente) ?? 0)) {
+        leiturasDaRede.set(cliente, anterior);
+      }
       // Os caches gravados por versões anteriores também podem conter URLs vencidas.
       hydrate(cliente, {
         ...guardado.estado,
@@ -84,8 +102,13 @@ export function persistirQueryClient(cliente: QueryClient): () => void {
     }
   })();
 
-  const cancelar = cliente.getQueryCache().subscribe(() => {
-    if (!vivo || agendado !== null) return;
+  const cancelar = cliente.getQueryCache().subscribe((evento) => {
+    if (!vivo) return;
+    // Atualizações otimistas e gravações no aparelho não são novas leituras da rede.
+    if (evento.type === "updated" && evento.action.type === "success" && !evento.action.manual && navigator.onLine) {
+      leiturasDaRede.set(cliente, Date.now());
+    }
+    if (agendado !== null) return;
     agendado = setTimeout(salvar, INTERVALO_MS);
   });
 

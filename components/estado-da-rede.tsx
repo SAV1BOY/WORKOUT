@@ -1,29 +1,29 @@
 "use client";
 
+import { liveQuery } from "dexie";
 import { useFilaPendente } from "@/lib/usar-fila";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { lerCache } from "@/lib/db";
-import { CHAVE_CACHE } from "@/lib/persistencia-query";
+import { lerUltimaSincronizacao } from "@/lib/persistencia-query";
 import { useRede } from "@/lib/usar-rede";
 
 export function EstadoDaRede() {
   const online = useRede();
   const caminho = usePathname();
   const quantos = useFilaPendente();
-  const [salvoEm, setSalvoEm] = useState<number>();
+  const [sincronizadoEm, setSincronizadoEm] = useState<number | null>(null);
   useEffect(() => {
     if (online) return;
-    let atual = true;
-    void lerCache<{ salvoEm: number }>(CHAVE_CACHE).then(cache => {
-      if (atual) setSalvoEm(cache?.salvoEm);
-    }).catch(() => {});
-    return () => { atual = false; };
+    const assinatura = liveQuery(lerUltimaSincronizacao).subscribe({
+      next: setSincronizadoEm,
+      error: () => {},
+    });
+    return () => assinatura.unsubscribe();
   }, [online]);
 
   if (online && (!quantos || caminho === "/mais")) return null;
-  const hora = salvoEm && new Date(salvoEm).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  const hora = sincronizadoEm && new Date(sincronizadoEm).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
   return (
     <aside className="bg-muted text-muted-foreground mx-auto max-w-lg px-4 py-1.5 text-xs">
       <span role="status" aria-live="polite">
