@@ -2,7 +2,7 @@
  * Ajudantes dos testes de ponta a ponta: falar com o mock do Supabase
  * (scripts/mock-supabase.ts), entrar no app e conferir o básico do celular.
  */
-import { expect, type Page } from "@playwright/test";
+import { expect, type Locator, type Page } from "@playwright/test";
 
 export const URL_MOCK =
   process.env.MOCK_SUPABASE_URL ??
@@ -349,6 +349,24 @@ export async function comecarNoPlayer(page: Page): Promise<void> {
   await comecar.or(concluir).first().waitFor();
   if (await comecar.isVisible().catch(() => false)) await comecar.click();
   await concluir.waitFor();
+}
+
+/** Anda pelas séries e descansos. A chegada ao feedback deixa a resposta para quem chamou. */
+export async function avancarNoPlayerAte(page: Page, alvo: Locator): Promise<void> {
+  const descanso = page.getByRole("button", { name: "Pular descanso" });
+  const pergunta = page.getByRole("region", { name: "Última repetição" })
+    .getByRole("button", { name: "Pular esta pergunta" });
+  const proximo = page.getByRole("button", { name: "Próximo passo" });
+  // Depois de responder “Firme”, a pergunta avança sozinha. Espere a tela
+  // seguinte sem tentar clicar em “Continuar” durante essa transição.
+  for (let i = 0; i < 80; i++) {
+    await alvo.or(descanso).or(pergunta).or(proximo).first().waitFor();
+    if (await alvo.isVisible()) return;
+    if (await descanso.isVisible()) await descanso.click();
+    else if (await pergunta.isVisible()) await pergunta.click();
+    else if (await proximo.isVisible()) await proximo.click();
+  }
+  await expect(alvo).toBeVisible();
 }
 
 /**

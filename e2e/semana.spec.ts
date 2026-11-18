@@ -196,7 +196,7 @@ test.describe("Semana visível — a aba Treino e o calendário dizem o mesmo (S
     expect(textos[2]).toContain("Treino B · semana 1");
     expect(textos[4]).toContain("Treino A · semana 1");
     await expect(
-      page.getByRole("button", { name: /^quarta 16\/09.*Treino B, feito$/ }),
+      page.getByRole("button", { name: /^quarta 16\/09: Treino B, feito, hoje$/ }),
     ).toBeVisible();
 
     await semRolagemHorizontal(page);
@@ -244,7 +244,7 @@ test.describe("Semana visível — a aba Treino e o calendário dizem o mesmo (S
     ).toBeVisible();
     // e a sexta (hoje) continua ancorada no ultimo_treino do perfil
     await expect(
-      page.getByRole("button", { name: /^sexta 18\/09.*Treino B, a fazer$/ }),
+      page.getByRole("button", { name: /^sexta 18\/09: Treino B, a fazer, hoje$/ }),
     ).toBeVisible();
   });
 });

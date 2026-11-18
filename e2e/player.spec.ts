@@ -8,6 +8,7 @@
  */
 import { expect, test, type Page } from "@playwright/test";
 import {
+  avancarNoPlayerAte,
   comecarNoPlayer,
   comecarOTreinoDoDia,
   entrarNoApp,
@@ -64,35 +65,6 @@ async function concluirSerie(page: Page) {
   await page.getByRole("button", { name: "Concluir série" }).click();
   const pular = page.getByRole("button", { name: "Pular descanso" });
   if (await pular.isVisible().catch(() => false)) await pular.click();
-}
-
-/**
- * Anda pelo player (seta "próximo", pulando descansos) até `alvo` aparecer.
- * Para sozinho quando não há mais para onde ir — o feedback e a conclusão não
- * têm seta.
- */
-async function irAte(page: Page, alvo: ReturnType<Page["getByText"]>) {
-  for (let i = 0; i < 40; i++) {
-    if (await alvo.isVisible().catch(() => false)) return;
-    const pular = page.getByRole("button", { name: "Pular descanso" });
-    if (await pular.isVisible().catch(() => false)) {
-      await pular.click();
-      continue;
-    }
-    // a pergunta "firme?" sai pelo primário dela, não pela seta — e ele se
-    // chama "Pular esta pergunta" enquanto ninguém responde (§22.5 item 4)
-    const pergunta = page.getByRole("button", {
-      name: /^(Pular esta pergunta|Continuar|Concluir sem responder|Concluir)$/,
-    });
-    if (await pergunta.first().isVisible().catch(() => false)) {
-      await pergunta.first().click();
-      continue;
-    }
-    const proximo = page.getByRole("button", { name: "Próximo passo" });
-    if (!(await proximo.isVisible().catch(() => false))) break;
-    await proximo.click();
-  }
-  await expect(alvo).toBeVisible();
 }
 
 test.describe("preparação → exercício → descanso (SPEC §14.1.1–3)", () => {
@@ -341,7 +313,7 @@ test.describe("o Treino A inteiro pelo player (SPEC §14.5.1 e §14.5.2)", () =>
 
     // as setas levam até o fim do treino
     const sensacao = page.getByRole("radiogroup", { name: "Sensação" });
-    await irAte(page, sensacao);
+    await avancarNoPlayerAte(page, sensacao);
 
     // 4. feedback (SPEC §14.1.4): 1 = muito difícil … 5 = muito fácil
     await expect(page.getByText("O que você achou do treino de hoje?")).toBeVisible();
@@ -414,7 +386,7 @@ test.describe("o peso do dia na conclusão (SPEC §14.1.5)", () => {
       .getByRole("radio", { name: "Firme" })
       .click();
     const sensacao = page.getByRole("radiogroup", { name: "Sensação" });
-    await irAte(page, sensacao);
+    await avancarNoPlayerAte(page, sensacao);
     await sensacao.getByRole("radio", { name: "Na medida certa" }).click();
     await page.getByRole("button", { name: "Concluir", exact: true }).click();
   }
@@ -479,7 +451,7 @@ test.describe("o peso do dia na conclusão (SPEC §14.1.5)", () => {
       .click();
 
     const sensacao = page.getByRole("radiogroup", { name: "Sensação" });
-    await irAte(page, sensacao);
+    await avancarNoPlayerAte(page, sensacao);
     await sensacao.getByRole("radio", { name: "Na medida certa" }).click();
     await page.getByRole("button", { name: "Concluir", exact: true }).click();
 
@@ -542,10 +514,10 @@ test.describe("circuito de core: reps e tempo (SPEC §14.5.3)", () => {
     /*
      * Até a elevação de pernas (peso do corpo, por repetições). O alvo é o
      * `h1` só-leitor do player (SPEC §22.5 item 10): a tela de descanso mostra
-     * o nome do próximo e, desde a §22.5, também "· exercício 5 de 6" — só o
-     * `h1` existe apenas no passo do exercício.
+     * o nome do próximo no próprio título, como “descanso antes do exercício”.
+     * A série tem o título do treino seguido de “— exercício”.
      */
-    await irAte(page, page.getByRole("heading", { level: 1, name: /exercício 5 de 6/ }));
+    await avancarNoPlayerAte(page, page.getByRole("heading", { level: 1, name: /— exercício 5 de 6$/ }));
     await expect(
       page.getByRole("heading", { name: "Elevação de pernas na barra fixa" }),
     ).toBeVisible();
@@ -556,7 +528,7 @@ test.describe("circuito de core: reps e tempo (SPEC §14.5.3)", () => {
     await concluirSerie(page);
 
     // a prancha: contagem regressiva com Começar/Pausar (SPEC §14.1.2)
-    await irAte(page, page.getByRole("heading", { level: 1, name: /exercício 6 de 6/ }));
+    await avancarNoPlayerAte(page, page.getByRole("heading", { level: 1, name: /— exercício 6 de 6$/ }));
     await expect(page.getByRole("heading", { name: "Prancha" })).toBeVisible();
     const contagem = page.getByRole("timer", { name: "Contagem do exercício" });
     await expect(contagem).toHaveText("1:00");

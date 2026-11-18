@@ -13020,6 +13020,8 @@ A soma dos tamanhos sem compressão das entradas em `public/sw.js`, incluindo o 
 
 O build confere todos os recursos dos manifestos do App Router, módulos dinâmicos, polyfills e a página de socorro. A validação reprovou a retirada do player, do gráfico dinâmico e do polyfill em cópias isoladas. Também reprovou o retorno dos seis arquivos exclusivos do Pages Router. [Conferência automática do manifesto](scripts/validar-precache.ts) · [Configuração do cache](next.config.ts)
 
+A compilação integrada `b270200`, com as 93 fichas, confirmou 105 entradas no worker, 2.998.332 bytes (2,86 MiB) e zero figuras no precache. Frente aos mesmos 3.745.339 bytes da base, a redução final foi de 747.007 bytes (19,9%). A primeira carga nas cinco rotas caiu de 423 para 382 kB em Treino, de 396 para 351 kB na prévia, de 436 para 380 kB no player, de 394 para 339 kB na coleção e de 384 para 359 kB no Relatório. [Matriz da entrega](docs/ultraloop/entrega-2026-11-18.md)
+
 ### Notas pessoais nos exercícios — 18/11/2026
 
 Na ficha, **Lembrar no próximo treino** guarda uma nota, como “banco no terceiro furo”. A primeira série do exercício mostra o texto. Tocar nele abre a ficha para editar ou remover. A gravação usa a fila offline e a coluna `exercise_state.nota_pessoal`, exclusiva da nota fixa. A migração `2026-11-18-nota-pessoal.sql` copia uma vez as notas existentes e permite que aparelhos antigos continuem enviando a progressão. O motor preserva as notas ao calcular a próxima carga.

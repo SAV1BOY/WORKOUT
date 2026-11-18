@@ -487,7 +487,7 @@ test.describe("§22.17 item 6 — o voltar do celular fecha só a camada de cima
   /*
    * A entrada morta pelo caminho real: o diálogo de um dia passado do
    * Calendário tem o link "Abrir o treino". A camada sai porque a rota mudou,
-   * a entrada dela fica embaixo de /treinar/<id>, e o voltar (e o avançar)
+   * a sessão concluída abre o histórico do Relatório, e o voltar (e o avançar)
    * passa por cima dela — um passo do dedo, um passo de tela. Nos dois temas,
    * com e sem a Navigation API (o Safari do iPhone não a tem: até a rodada 28
    * o avançar sem ela virava voltar — revisão do Codex no PR #31).
@@ -527,12 +527,12 @@ test.describe("§22.17 item 6 — o voltar do celular fecha só a camada de cima
       // o diálogo tem a própria entrada, na mesma rota
       await expect.poll(() => indice(page)).toBe(antes + 1);
       await link.click();
-      await page.waitForURL(new RegExp(`/treinar/${id}$`));
+      await page.waitForURL(/\/relatorio#historico$/);
       await expect(page.getByRole("dialog")).toHaveCount(0);
       // a rota nova foi por cima da entrada do diálogo, que ficou morta embaixo
       await expect.poll(() => indice(page)).toBe(antes + 2);
 
-      // um voltar: de /treinar direto ao Calendário, sem diálogo e sem parar na morta
+      // um voltar: do histórico do Relatório direto ao Calendário, sem diálogo e sem parar na morta
       // (dois popstate: o do toque, na morta, e o do passo a mais)
       expect(await andarNoHistorico(page, "back")).toBe(2);
       await page.waitForURL(/\/calendario$/);
@@ -542,9 +542,9 @@ test.describe("§22.17 item 6 — o voltar do celular fecha só a camada de cima
       expect(await page.evaluate(() => document.querySelectorAll("[inert]").length)).toBe(0);
       await semRolagemHorizontal(page);
 
-      // um avançar: do Calendário direto a /treinar, pulando a morta na outra direção
+      // um avançar: do Calendário direto ao histórico do Relatório, pulando a morta na outra direção
       expect(await andarNoHistorico(page, "forward")).toBe(2);
-      await page.waitForURL(new RegExp(`/treinar/${id}$`));
+      await page.waitForURL(/\/relatorio#historico$/);
       expect(await indice(page)).toBe(antes + 2);
       await expect(page.getByRole("dialog")).toHaveCount(0);
 

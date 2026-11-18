@@ -23,7 +23,7 @@ for (const tema of ["claro", "escuro"] as const) {
     await usuarioComPerfil({ prefs: { tema } });
     await entrarNoApp(page);
     // O horário só existe depois da primeira gravação de dados neste aparelho.
-    await page.waitForFunction(() => new Promise<boolean>((resolver) => {
+    await expect.poll(() => page.evaluate(() => new Promise<boolean>((resolver) => {
       const abertura = indexedDB.open("treino-terraco");
       abertura.onerror = () => resolver(false);
       abertura.onsuccess = () => {
@@ -34,10 +34,10 @@ for (const tema of ["claro", "escuro"] as const) {
           return;
         }
         const registro = banco.transaction("cache").objectStore("cache").get("react-query-v1");
-        registro.onsuccess = () => { banco.close(); resolver(Boolean(registro.result?.valor?.salvoEm)); };
+        registro.onsuccess = () => { banco.close(); resolver(Boolean(registro.result?.valor?.sincronizadoEm)); };
         registro.onerror = () => { banco.close(); resolver(false); };
       };
-    }), null, { polling: 250 });
+    })), { message: "a primeira leitura da rede tem de estar no aparelho" }).toBe(true);
     for (const aba of ABAS) {
       await irNaAba(page, aba);
       await expect(page.getByRole("navigation", { name: "Navegação principal" })
