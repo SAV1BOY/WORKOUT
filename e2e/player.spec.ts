@@ -784,10 +784,17 @@ test.describe("o campo de carga é do dedo de quem digita (SPEC §22.11)", () =>
       expect(naTela).toBe(esperado);
     }
 
-    // O kit padrão tem barra de 7,5 kg e monta 11,5 kg abaixo do pedido.
-    // Desde o primeiro quadro sem o foco, o campo deve mostrar o valor do registro.
+    // Capture o primeiro valor depois do evento inteiro de perda de foco. Uma
+    // leitura só após o retorno do Playwright pode ocorrer depois da próxima pintura.
+    await carga.evaluate((campo: HTMLInputElement) => {
+      document.addEventListener("focusout", () => {
+        queueMicrotask(() => { campo.dataset.cargaAoSair = campo.value; });
+      }, { once: true });
+    });
     await carga.press("Enter");
-    expect(await carga.inputValue()).toBe("11,5");
+    // Barra padrão de 7,5 kg: o kit monta 11,5 kg abaixo do pedido de 12,5.
+    await expect(carga).toHaveAttribute("data-carga-ao-sair", "11,5");
+    await expect(carga).toHaveValue("11,5");
 
     await page.getByRole("button", { name: "Concluir série" }).click();
     await expect
