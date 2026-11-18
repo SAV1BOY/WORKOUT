@@ -11,7 +11,7 @@
 
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
 import { toast } from "sonner";
 import { exerciciosDoTreino } from "@/lib/dados";
 import { estadosPorExercicio } from "@/lib/hoje";
@@ -22,8 +22,9 @@ import {
   seriesAnterioresNoCache,
 } from "@/lib/queries/dados";
 import { criarSessao } from "@/lib/queries/sessao";
+import { lerTrocasLocaisDoPrograma } from "@/lib/queries/trocas-do-programa";
 import { limparOrdemDoAparelho } from "@/lib/ordem";
-import { limparTrocasDoAparelho } from "@/lib/trocas";
+import { limparTrocasDoAparelho, resolverTrocasDoTreino } from "@/lib/trocas";
 import { seriesAnterioresPorExercicio, type RecordeAntes } from "@/lib/sessao";
 import type { TreinoId } from "@/lib/schemas";
 import type { LinhaPerfil } from "@/lib/types";
@@ -33,6 +34,11 @@ export interface EntradaComecar {
   perfil: LinhaPerfil;
   hoje: string;
   treinoId: TreinoId;
+  /** Lembranças deste tipo de treino, inclusive quando o usuário o escolheu fora do dia. */
+  lembradas: {
+    data: Record<string, string> | undefined;
+    refetch(): Promise<{ data?: Record<string, string> }>;
+  };
   /** O ⇄ da lista do dia (SPEC §13.3). */
   trocas?: Record<string, string>;
   /** O "Editar" da lista do dia (SPEC §14.3). */
@@ -54,7 +60,18 @@ export function idsParaComecar(
   );
 }
 
+/** A preferência nasceu depois do modo offline; sua ausência não impede usar o programa. */
+export async function trocasParaComecar(
+  { treinoId, lembradas, trocas, doDia }: Pick<EntradaComecar, "treinoId" | "lembradas" | "trocas" | "doDia">,
+  lerCopiaLocal: () => Promise<Record<string, string>>,
+): Promise<Record<string, string>> {
+  const mapa = lembradas.data ?? (await lembradas.refetch().catch(() => undefined))?.data
+    ?? await lerCopiaLocal().catch(() => ({}));
+  return resolverTrocasDoTreino(treinoId, mapa, doDia === false ? {} : trocas);
+}
+
 export function useComecarTreino(aquecerRota = false): {
+  iniciando: RefObject<boolean>;
   criando: TreinoId | null;
   comecar: (entrada: EntradaComecar) => Promise<void>;
 } {
@@ -63,6 +80,7 @@ export function useComecarTreino(aquecerRota = false): {
   const [criando, setCriando] = useState<TreinoId | null>(null);
 
   const idReservado = useRef<string | null>(null);
+  const iniciando = useRef(false);
   useEffect(() => {
     if (!aquecerRota) return;
     idReservado.current ??= crypto.randomUUID();
@@ -71,10 +89,14 @@ export function useComecarTreino(aquecerRota = false): {
 
   const comecar = useCallback(
     async (e: EntradaComecar) => {
-      const trocas = e.doDia === false ? {} : (e.trocas ?? {});
+      if (iniciando.current) return;
+      iniciando.current = true;
       const ordem = e.doDia === false ? [] : (e.ordem ?? []);
       setCriando(e.treinoId);
       try {
+        // Um toque rápido na primeira abertura também usa as escolhas da
+        // conta. Em uma retomada offline a consulta resolve pelo cache local.
+        const trocas = await trocasParaComecar(e, () => lerTrocasLocaisDoPrograma(cliente, e.userId, e.treinoId));
         const ids = idsParaComecar(e.treinoId, trocas);
         const { estados, conhecidos } = estadosNoCache(cliente, ids);
         const recordes: Record<string, RecordeAntes> = {};
@@ -101,12 +123,13 @@ export function useComecarTreino(aquecerRota = false): {
           ordem,
         });
         if (e.doDia !== false) {
-          limparTrocasDoAparelho();
+          limparTrocasDoAparelho(e.userId, e.treinoId);
           limparOrdemDoAparelho();
         }
         idReservado.current = null;
         router.push(`/treinar/${sessao.id}`);
       } catch {
+        iniciando.current = false;
         setCriando(null);
         toast.error("Não consegui começar o treino agora.");
       }
@@ -114,5 +137,5 @@ export function useComecarTreino(aquecerRota = false): {
     [cliente, router],
   );
 
-  return { criando, comecar };
+  return { iniciando, criando, comecar };
 }

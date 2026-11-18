@@ -43,7 +43,7 @@ import {
 import { formatarDescanso } from "@/lib/formato";
 import type { PrescricaoTipo } from "@/lib/schemas";
 import { opcoesDeMidia, type TipoDeMidia } from "@/lib/midia";
-import { AVISO_DA_TROCA, OpcoesDeAlternativa } from "@/components/exercicio/seletor-alternativa";
+import { AVISO_DA_TROCA, OpcoesDeAlternativa, type RecorrenciaDaTroca } from "@/components/exercicio/seletor-alternativa";
 import type { Prefs } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -51,8 +51,17 @@ const TutorialDoExercicio = dynamic(() =>
   import("@/components/exercicio/tutorial").then((modulo) => modulo.TutorialDoExercicio),
 );
 
-/** O que a ficha ganha quando é aberta de dentro de uma sessão (SPEC §14.2). */
-export interface ContextoDaFicha {
+/** A ficha também permite trocar o exercício antes de começar a sessão. */
+interface TrocaNaFicha {
+  aoSubstituir?: (novoExercicioId: string) => void;
+  avisoDaTroca?: string;
+  originalId?: string;
+  recorrencia?: RecorrenciaDaTroca;
+  ocupados?: readonly string[];
+}
+
+/** Dentro de uma sessão, a ficha também edita a prescrição de hoje (SPEC §14.2). */
+export interface ContextoDaFicha extends TrocaNaFicha {
   /** Séries desta sessão (o stepper mexe só nelas). */
   series: number;
   /** Repetições, segundos ou passos de hoje — conforme `tipo`. */
@@ -60,9 +69,6 @@ export interface ContextoDaFicha {
   tipo: PrescricaoTipo;
   aoMudarSeries: (n: number) => void;
   aoMudarAlvo: (v: number) => void;
-  aoSubstituir?: (novoExercicioId: string) => void;
-  avisoDaTroca?: string;
-  originalId?: string;
   /** Posição no treino, para o "anterior/próximo (n/N)". */
   indice: number;
   total: number;
@@ -104,6 +110,7 @@ export function ConteudoDaFicha({
   exercicioId,
   temVideo = false,
   contexto,
+  troca,
   prefs,
   comoPagina = false,
   aoFechar,
@@ -111,6 +118,7 @@ export function ConteudoDaFicha({
   exercicioId: string;
   temVideo?: boolean;
   contexto?: ContextoDaFicha;
+  troca?: TrocaNaFicha;
   prefs?: Prefs;
   /** Página inteira (`/exercicios/[id]`): sem o "Fechar" e com tudo aberto. */
   comoPagina?: boolean;
@@ -119,18 +127,21 @@ export function ConteudoDaFicha({
   const exercicio = acharExercicio(exercicioId);
   const treinos = linksDosTreinos(treinosDoExercicio(exercicio.id));
   const p = exercicio.prescricao_padrao;
+  const escolha = troca ?? contexto;
   const notaDaCarga = notaDaCargaInicial(exercicio.carga_inicial);
 
   return (
     <NivelDaFicha.Provider value={nivelDosTitulos(comoPagina)}>
     <div className="flex flex-col gap-4">
-      {contexto?.aoSubstituir ? (
+      {escolha?.aoSubstituir ? (
         <Substituir
-          avisoDaTroca={contexto.avisoDaTroca}
-          originalId={contexto.originalId}
+          avisoDaTroca={escolha.avisoDaTroca}
+          originalId={escolha.originalId}
+          recorrencia={escolha.recorrencia}
+          ocupados={escolha.ocupados}
           exercicioId={exercicioId}
           prefs={prefs}
-          aoEscolher={contexto.aoSubstituir}
+          aoEscolher={escolha.aoSubstituir}
         />
       ) : null}
 
@@ -628,12 +639,16 @@ function Substituir({
   prefs,
   avisoDaTroca = AVISO_DA_TROCA,
   originalId,
+  recorrencia,
+  ocupados,
   aoEscolher,
 }: {
   exercicioId: string;
   prefs?: Prefs;
   avisoDaTroca?: string;
   originalId?: string;
+  recorrencia?: RecorrenciaDaTroca;
+  ocupados?: readonly string[];
   aoEscolher: (id: string) => void;
 }) {
   const [aberto, setAberto] = useState(false);
@@ -659,13 +674,16 @@ function Substituir({
       {aberto && (
         <>
           <p className="text-muted-foreground text-sm">{avisoDaTroca}</p>
-          {originalId && originalId !== exercicioId && (
+          {originalId && originalId !== exercicioId && !ocupados?.includes(originalId) && (
             <Button type="button" variant="outline" className="alvo h-auto whitespace-normal"
               onClick={() => escolher(originalId)}>
-              Voltar para {acharExercicio(originalId).nome}
+              Voltar para {acharExercicio(originalId).nome}{recorrencia && " só neste treino"}
             </Button>
           )}
           <OpcoesDeAlternativa
+            originalId={originalId}
+            recorrencia={recorrencia}
+            ocupados={ocupados}
             key={exercicioId}
             exercicioId={exercicioId}
             prefs={prefs}
@@ -684,6 +702,7 @@ export function FichaEmFolha({
   aoMudarAberto,
   temVideo = false,
   contexto,
+  troca,
   prefs,
 }: {
   exercicioId: string | null;
@@ -691,6 +710,7 @@ export function FichaEmFolha({
   aoMudarAberto: (v: boolean) => void;
   temVideo?: boolean;
   contexto?: ContextoDaFicha;
+  troca?: TrocaNaFicha;
   prefs?: Prefs;
 }) {
   if (!exercicioId) return null;
@@ -710,6 +730,7 @@ export function FichaEmFolha({
             exercicioId={exercicioId}
             temVideo={temVideo}
             contexto={contexto}
+            troca={troca}
             prefs={prefs}
             aoFechar={() => aoMudarAberto(false)}
           />

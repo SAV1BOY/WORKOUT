@@ -8,7 +8,7 @@
  *     bucket das fotos privado e preso ao `user_id` no caminho, e a cota de
  *     contas da SPEC §21 (trigger de vaga, `app_config` só do dono, e o e-mail
  *     do dono sem sair pelo PostgREST).
- *  2. As 11 tabelas do backup (§9) são exatamente as tabelas com RLS: uma
+ *  2. As tabelas do backup (§9) são exatamente as tabelas com RLS: uma
  *     tabela nova sem policy, ou um backup apontando para tabela que não
  *     existe, quebra aqui.
  *  3. O mock do Supabase (scripts/mock-supabase.ts) não é importado por nada
@@ -143,7 +143,7 @@ describe("schema.sql: RLS", () => {
     }
   });
 
-  it("as 11 tabelas do backup (§9) são as tabelas com RLS", () => {
+  it("as tabelas do backup (§9) são as tabelas com RLS", () => {
     expect([...TABELAS_BACKUP].sort()).toEqual([...tabelasDoUsuario()].sort());
     // a cota é do app, não de quem exporta: nunca entra no backup
     for (const tabela of TABELAS_DE_CONFIGURACAO) {

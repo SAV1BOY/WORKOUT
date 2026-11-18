@@ -41,6 +41,7 @@ import {
   type BlocoLocal,
   type SessaoLocal,
 } from "@/lib/sessao";
+import { resolverTrocasDoTreino } from "@/lib/trocas";
 import type { LinhaSerie } from "@/lib/types";
 
 /** Ids previsíveis para os testes (no app é `crypto.randomUUID`). */
@@ -1180,6 +1181,22 @@ describe("comSubstituicoes (SPEC §13.3)", () => {
     expect(primeiro.substituido).toBe(true);
     // a prescrição passa a ser a do substituto (§6.3)
     expect(primeiro.series.length).toBe(primeiro.prescricao.series);
+  });
+
+  it("o próximo A1 adota a nova preferência e outro aparelho recupera a sessão anterior pelo plano gravado", () => {
+    const original = "agachamento-livre";
+    const primeiro = comSubstituicoes(sessaoA(), resolverTrocasDoTreino("A1", { [original]: "agachamento-frontal" }), {});
+    const serie = primeiro.blocos[0]!.series[0]!;
+    const comRegistro = marcarSerie(primeiro, 1, serie.id, true);
+    const linha = escritaDaSessao(comRegistro).linha as unknown as Parameters<typeof reconstruirSessao>[0];
+    const logs = escritasDasSeriesFeitas(comRegistro).map((e) => e.linha as unknown as LinhaSerie);
+
+    const seguinte = comSubstituicoes(sessaoA({ id: "sess-2" }),
+      resolverTrocasDoTreino("A1", { [original]: "agachamento-goblet" }), {});
+    expect(seguinte.blocos[0]).toMatchObject({ originalId: original, exercicioId: "agachamento-goblet" });
+    const reaberta = reconstruirSessao(linha, logs);
+    expect(reaberta?.blocos[0]).toMatchObject({ originalId: original, exercicioId: "agachamento-frontal" });
+    expect(reaberta?.blocos[0]?.series.find((s) => s.concluida)?.id).toBe(serie.id);
   });
 
   it("ignora troca vazia, para o próprio exercício e para id inexistente", () => {

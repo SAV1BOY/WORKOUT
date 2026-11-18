@@ -132,7 +132,7 @@ function Importar({ userId }: { userId: string }) {
       setEscolhido({
         nome: arquivo.name,
         backup,
-        previa: previaDaImportacao(backup, existentes),
+        previa: previaDaImportacao(backup, existentes, userId),
       });
     } catch (e) {
       setEscolhido(null);
@@ -233,9 +233,6 @@ function Importar({ userId }: { userId: string }) {
                   {escolhido.previa.novas} linhas novas e{" "}
                   {escolhido.previa.atualizadas} que já existem (serão
                   sobrescritas).
-                  {escolhido.previa.invalidas > 0
-                    ? ` ${escolhido.previa.invalidas} sem identificação serão ignoradas.`
-                    : ""}
                 </p>
                 <Button
                   className="alvo h-12"
@@ -245,6 +242,11 @@ function Importar({ userId }: { userId: string }) {
                   {ocupado ? "Importando…" : "Importar tudo"}
                 </Button>
               </>
+            )}
+            {escolhido.previa.invalidas > 0 && (
+              <p className="text-muted-foreground text-xs">
+                Registros ignorados por dados inválidos: {escolhido.previa.invalidas}.
+              </p>
             )}
             <Button
               variant="ghost"

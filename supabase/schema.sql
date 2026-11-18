@@ -74,6 +74,18 @@ create table if not exists public.exercise_state (
   primary key (user_id, exercise_id)
 );
 
+-- ---------- alternativas lembradas para os próximos treinos do programa ----------
+create table if not exists public.trocas_do_programa (
+  user_id uuid not null references auth.users(id) on delete cascade,
+  workout_id text not null check (workout_id in ('A1', 'B1', 'SA', 'IA', 'SB', 'IB')),
+  exercicio_original_id text not null check (btrim(exercicio_original_id) <> ''),
+  substituto_id text not null check (btrim(substituto_id) <> '' and substituto_id <> exercicio_original_id),
+  primary key (user_id, workout_id, exercicio_original_id)
+);
+alter table public.trocas_do_programa enable row level security;
+revoke all on public.trocas_do_programa from public, anon, authenticated;
+grant select, insert, update, delete on public.trocas_do_programa to authenticated;
+
 -- ---------- sessões de força ----------
 create table if not exists public.sessions (
   id            uuid primary key default gen_random_uuid(),
@@ -367,7 +379,7 @@ revoke all on function public.handle_new_user() from public, anon, authenticated
 do $$
 declare t text;
 begin
-  for t in select unnest(array['profiles','exercise_state','sessions','session_sets','progression_events',
+  for t in select unnest(array['profiles','exercise_state','trocas_do_programa','sessions','session_sets','progression_events',
                                'cardio_sessions','pullup_singles','body_weights','body_measurements',
                                'progress_photos','schedule_overrides'])
   loop

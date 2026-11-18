@@ -8,7 +8,7 @@ import { Miniatura } from "@/components/ui/miniatura";
 import { Raios } from "@/components/ui/raios";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { SeletorAlternativa } from "@/components/exercicio/seletor-alternativa";
+import { duracaoDaTroca, SeletorAlternativa, type RecorrenciaDaTroca } from "@/components/exercicio/seletor-alternativa";
 import { acharExercicio } from "@/lib/dados";
 import { dificuldadeDe } from "@/lib/dificuldade";
 import type { ItemPrevia } from "@/lib/hoje";
@@ -26,6 +26,7 @@ export function ListaDoDia({
   mostrarRaios = true,
   prefs,
   aoSubstituir,
+  recorrencia,
   titulo = "Exercícios de hoje",
 }: {
   itens: ItemPrevia[];
@@ -35,11 +36,16 @@ export function ListaDoDia({
   prefs?: Prefs;
   /** Quando existe, cada item ganha o ⇄ (a lista da aba Treino). */
   aoSubstituir?: (originalId: string, novoExercicioId: string) => void;
+  recorrencia?: RecorrenciaDaTroca;
   titulo?: string;
 }) {
-  const [ficha, setFicha] = useState<string | null>(null);
+  const [originalDaFicha, setFicha] = useState<string | null>(null);
   // a ficha aberta daqui mostra vídeo igual à do player (SPEC §22.2 item 7)
+  const itemDaFicha = itens.find((item) => item.originalId === originalDaFicha);
+  const ficha = itemDaFicha?.exercicioId ?? null;
   const temVideo = useTemVideo(ficha);
+  const ocupadosForaDe = (originalId: string) =>
+    itens.filter((outro) => outro.originalId !== originalId).map((outro) => outro.exercicioId);
 
   if (carregando) {
     return (
@@ -74,7 +80,7 @@ export function ListaDoDia({
           <button
             type="button"
             aria-label={nomeAcessivel("Ficha", item.nome)}
-            onClick={() => setFicha(item.exercicioId)}
+            onClick={() => setFicha(item.originalId)}
             className="hover:bg-muted/40 alvo -mx-1 flex min-w-0 flex-1 items-center gap-3 rounded-xl px-1 py-1 text-left"
           >
             <Miniatura exercicioId={item.exercicioId} />
@@ -110,7 +116,7 @@ export function ListaDoDia({
               </span>
               {item.substituido ? (
                 <span className="text-muted-foreground text-xs">
-                  no lugar de {acharExercicio(item.originalId).nome} (só hoje)
+                  no lugar de {acharExercicio(item.originalId).nome} ({duracaoDaTroca(item.originalId, item.exercicioId, recorrencia)})
                 </span>
               ) : null}
             </span>
@@ -123,6 +129,9 @@ export function ListaDoDia({
           {aoSubstituir ? (
             <SeletorAlternativa
               antesDoTreino
+              originalId={item.originalId}
+              ocupados={ocupadosForaDe(item.originalId)}
+              recorrencia={recorrencia}
               exercicioId={item.exercicioId}
               prefs={prefs}
               aoSubstituir={(novo) => aoSubstituir(item.originalId, novo)}
@@ -146,7 +155,14 @@ export function ListaDoDia({
       <FichaEmFolha
         exercicioId={ficha}
         aberto={ficha !== null}
-        aoMudarAberto={(v) => setFicha(v ? ficha : null)}
+        aoMudarAberto={(v) => { if (!v) setFicha(null); }}
+        troca={itemDaFicha && aoSubstituir ? {
+          originalId: itemDaFicha.originalId,
+          ocupados: ocupadosForaDe(itemDaFicha.originalId),
+          recorrencia,
+          avisoDaTroca: "Escolha o exercício para o treino de hoje.",
+          aoSubstituir: (novo) => aoSubstituir(itemDaFicha.originalId, novo),
+        } : undefined}
         prefs={prefs}
         temVideo={temVideo}
       />

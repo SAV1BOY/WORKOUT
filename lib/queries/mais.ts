@@ -313,6 +313,7 @@ export function lerChavesExistentes(userId?: string) {
 const TIPO_DA_TABELA: Record<TabelaBackup, Parameters<typeof enfileirarEscrita>[0]> = {
   profiles: "perfil",
   exercise_state: "estado_exercicio",
+  trocas_do_programa: "troca_do_programa",
   sessions: "sessao",
   session_sets: "serie",
   progression_events: "evento_progressao",
@@ -339,6 +340,16 @@ export async function importarBackup(opcoes: {
   let linhas = 0;
 
   for (const escrita of linhasParaImportar(backup, userId)) {
+    if (escrita.tabela === "trocas_do_programa") {
+      const { salvarTrocaDoPrograma } = await import("@/lib/queries/trocas-do-programa");
+      for (const linha of escrita.linhas) {
+        // A validação do backup já conferiu os três identificadores.
+        await salvarTrocaDoPrograma(cliente, userId, linha.workout_id as string,
+          linha.exercicio_original_id as string, linha.substituto_id as string);
+        linhas++;
+      }
+      continue;
+    }
     for (const lote of emLotes(escrita.linhas)) {
       await enfileirarEscrita(TIPO_DA_TABELA[escrita.tabela], {
         tabela: escrita.tabela,

@@ -60,6 +60,13 @@ prescrição. Ao confirmar, as séries já feitas continuam no histórico com o
 exercício original. O player segue com a alternativa. Também dá para escolher
 a substituição na lista do dia antes de começar.
 
+Nos treinos do programa, **Só neste treino** vem selecionado. Para repetir a
+troca, marque **Usar nos próximos A1** antes de escolher a alternativa. O
+rótulo acompanha o treino aberto. Por exemplo, trocar supino por flexão no A1
+mantém o B1 como estava. Para desfazer a escolha futura, abra o seletor e toque
+em **Restaurar**. O treino em andamento conserva os exercícios e as séries já
+registradas. As escolhas ficam disponíveis sem rede e entram no backup da conta.
+
 Em **Mais → Lembretes**, escolha os avisos e horários. Para receber
 notificações, ative este aparelho quando a opção estiver disponível. Você
 também pode baixar o arquivo de calendário e importá-lo no celular.

@@ -38,7 +38,7 @@ function backupDeExemplo(): Backup {
 }
 
 describe("exportar (SPEC §9)", () => {
-  it("as 11 tabelas do schema aparecem, mesmo vazias", () => {
+  it("as tabelas do schema aparecem, mesmo vazias", () => {
     const backup = backupDeExemplo();
     expect(Object.keys(backup.tabelas).sort()).toEqual([...TABELAS_BACKUP].sort());
     expect(backup.tabelas.pullup_singles).toEqual([]);
@@ -145,6 +145,51 @@ describe("prévia da importação (SPEC §3.9)", () => {
     const previa = previaDaImportacao(backup, {});
     expect(previa.total).toBe(1);
     expect(previa.invalidas).toBe(1);
+  });
+});
+
+describe("trocas lembradas no programa", () => {
+  const supino = "supino-reto-com-barra";
+  const troca = { user_id: OUTRO, workout_id: "A1", exercicio_original_id: supino, substituto_id: "flexao-de-braco" };
+  const outraNoMesmoExercicio = { ...troca, workout_id: "SA" };
+  const tabela = "trocas_do_programa";
+
+  it("exporta e restaura cada posição com a chave e o dono de destino", () => {
+    const backup = montarBackup({ userId: OUTRO, exportadoEm: AGORA, tabelas: {
+      trocas_do_programa: [troca, outraNoMesmoExercicio],
+    } });
+    const lido = lerBackup(textoDoBackup(backup));
+    expect(lido.tabelas.trocas_do_programa).toEqual([troca, outraNoMesmoExercicio]);
+    lido.tabelas.trocas_do_programa!.push({ ...troca, user_id: EU, extra: true });
+    const destino = [troca, outraNoMesmoExercicio].map((l) => ({ ...l, user_id: EU }));
+    const previa = previaDaImportacao(lido, { trocas_do_programa: [destino[0]!] }, EU);
+    expect(previa).toMatchObject({ novas: 1, atualizadas: 1, invalidas: 0, total: 2 });
+    expect(linhasParaImportar(lido, EU)).toEqual([{
+      tabela, onConflict: "user_id,workout_id,exercicio_original_id", linhas: destino,
+    }]);
+  });
+
+  it("descarta treino fora do programa, exercício na posição errada e substituto inválido", () => {
+    const invalidas = [
+      { ...troca, workout_id: "livre" }, { ...troca, workout_id: "B1" },
+      { ...troca, exercicio_original_id: {} }, { ...troca, substituto_id: null },
+      { ...troca, substituto_id: "inventado" }, { ...troca, substituto_id: supino },
+      { ...troca, substituto_id: "elevacao-de-panturrilha-em-pe" },
+    ];
+    const backup = montarBackup({ userId: OUTRO, exportadoEm: AGORA, tabelas: {
+      trocas_do_programa: [...invalidas, { ...troca, is_admin: true }],
+    } });
+    expect(previaDaImportacao(backup, {}, EU)).toMatchObject({ total: 1, invalidas: invalidas.length });
+    expect(linhasParaImportar(backup, EU)[0]?.linhas).toEqual([{ ...troca, user_id: EU }]);
+  });
+
+  it("restaura um arquivo antigo ou uma tabela vazia sem apagar as trocas do destino", () => {
+    const antigo = lerBackup(JSON.stringify({ app: APP_BACKUP, versao: 1, exportado_em: AGORA, tabelas: {} }));
+    expect(antigo.tabelas).not.toHaveProperty(tabela);
+    for (const backup of [antigo, { ...antigo, tabelas: { trocas_do_programa: [] } }]) {
+      expect(previaDaImportacao(backup, { trocas_do_programa: [troca] }, EU).total).toBe(0);
+      expect(linhasParaImportar(backup, EU)).toEqual([]);
+    }
   });
 });
 

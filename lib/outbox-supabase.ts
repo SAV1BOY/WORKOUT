@@ -93,7 +93,17 @@ export async function enviarItem(item: ItemSaida): Promise<void> {
   ) {
     throw new Error(`escrita em ${p.tabela} sem filtro: recusada`);
   }
-  const tabela = clienteNavegador().from(p.tabela);
+  const cliente = clienteNavegador();
+  if (p.tabela === "trocas_do_programa" && p.op === "delete") {
+    if (!alvoDaEscrita(p)) throw new Error("A remoção precisa indicar uma posição do treino.");
+    // Sob RLS, apagar uma linha de outra conta devolveria sucesso com zero
+    // linhas. A remoção precisa continuar na fila até voltar a sessão do dono.
+    const { data } = await cliente.auth.getSession();
+    if (!data.session || data.session.user.id !== p.filtro?.user_id) {
+      throw new Error("Aguardando a conta que restaurou o exercício do programa.");
+    }
+  }
+  const tabela = cliente.from(p.tabela);
 
   // uma linha ou um lote: o resto do caminho é idêntico
   const corpo: Record<string, unknown> | Record<string, unknown>[] =
@@ -159,6 +169,13 @@ export function registrarEnviador(): void {
  * ser concluída. Devolver `undefined` quer dizer "pode ir em qualquer ordem".
  */
 export function alvoDaEscrita(escrita: EscritaTabela): string | undefined {
+  if (escrita.tabela === "trocas_do_programa") {
+    const { user_id, workout_id, exercicio_original_id } =
+      (escrita.op === "delete" ? escrita.filtro : escrita.linha) ?? {};
+    if (typeof user_id === "string" && typeof workout_id === "string" && typeof exercicio_original_id === "string") {
+      return `trocas_do_programa:${user_id}:${workout_id}:${exercicio_original_id}`;
+    }
+  }
   /*
    * `schedule_overrides` sofre a mesma inversão das sessões: marcar um dia
    * (upsert) e desmarcá-lo (delete com filtro `{data}`) na mesma janela

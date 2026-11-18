@@ -24,8 +24,8 @@ export async function lerLista<T>(
 
 /**
  * Pagina por chave, sem deslocamento: exclusões entre páginas não pulam a
- * linha seguinte. A RLS limita as leituras a uma conta, então exercise_id
- * identifica cada exercise_state dela, mesmo com a chave composta.
+ * linha seguinte. A RLS limita a consulta a uma conta. Nas trocas do
+ * programa, o mesmo exercício pode ser a chave de vários treinos.
  */
 export async function lerTabelaCompleta<T>(
   tabela: TabelaBackup,
@@ -33,32 +33,52 @@ export async function lerTabelaCompleta<T>(
   oQue: string,
   userId?: string,
 ): Promise<T[]> {
-  const chave = CHAVE_DA_TABELA[tabela].at(-1)!;
+  const colunasChave = CHAVE_DA_TABELA[tabela];
+  const chave = colunasChave.at(-1)!;
+  const grupo = colunasChave.find((c) => c !== "user_id" && c !== chave);
   const linhas: T[] = [];
   let depoisDe: string | undefined;
+  let ultimoGrupo: string | undefined;
   for (;;) {
     let consulta = clienteNavegador()
       .from(tabela)
-      .select(colunas, depoisDe === undefined ? { count: "exact" } : {})
-      .order(chave)
+      .select(colunas, linhas.length === 0 ? { count: "exact" } : {})
       .limit(1000);
     if (userId !== undefined) consulta = consulta.eq("user_id", userId);
+    if (grupo) {
+      consulta = consulta.order(grupo);
+      if (ultimoGrupo !== undefined) {
+        // Primeiro esgota os exercícios do treino onde a página terminou.
+        consulta = depoisDe === undefined ? consulta.gt(grupo, ultimoGrupo) : consulta.eq(grupo, ultimoGrupo);
+      }
+    }
+    consulta = consulta.order(chave);
     if (depoisDe !== undefined) consulta = consulta.gt(chave, depoisDe);
 
     const { data, error, count }: Resposta<(T & Record<string, unknown>)[]> & {
       count: number | null;
     } = await consulta;
     if (error) throw new Error(`Não consegui carregar ${oQue}. ${error.message}`);
-    if (!data?.length) return linhas;
+    if (!data?.length) {
+      if (grupo && depoisDe !== undefined) {
+        depoisDe = undefined;
+        continue; // acabou este treino; busca os treinos seguintes
+      }
+      return linhas;
+    }
     linhas.push(...data);
 
     // O servidor pode entregar menos que o limite pedido. A contagem da
     // primeira página evita uma ida extra no caso normal de histórico curto.
-    if (depoisDe === undefined && count === linhas.length) return linhas;
-    const ultimo = data[data.length - 1]?.[chave];
-    if (typeof ultimo !== "string" || ultimo === depoisDe) {
+    if (count === linhas.length) return linhas;
+    const ultimaLinha = data[data.length - 1]!;
+    const ultimo = ultimaLinha[chave];
+    const proximoGrupo = grupo ? ultimaLinha[grupo] : undefined;
+    if (typeof ultimo !== "string" || (grupo && typeof proximoGrupo !== "string") ||
+      (ultimo === depoisDe && proximoGrupo === ultimoGrupo)) {
       throw new Error(`Não consegui continuar a leitura de ${oQue}.`);
     }
     depoisDe = ultimo;
+    if (typeof proximoGrupo === "string") ultimoGrupo = proximoGrupo;
   }
 }

@@ -133,9 +133,10 @@ export function useSessoes(): UseQueryResult<SessaoResumo[]> {
 }
 
 /** As sessões ainda abertas, venham de quando vierem (banner da §3.1). */
-export function useSessoesAbertas(): UseQueryResult<SessaoResumo[]> {
+export function useSessoesAbertas(confirmarAoAbrir = false): UseQueryResult<SessaoResumo[]> {
   return useQuery({
     queryKey: chaves.sessoesAbertas(),
+    refetchOnMount: confirmarAoAbrir ? "always" : true,
     queryFn: () =>
       lerLista<SessaoResumo>(
         clienteNavegador()

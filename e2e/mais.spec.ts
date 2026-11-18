@@ -336,6 +336,11 @@ test.describe("/mais/backup (SPEC §9)", () => {
       { id: "66666666-6666-4666-8666-000000000001", data: "2026-09-13", peso_kg: 82.4 },
     ]);
 
+    const trocas = ["A1", "SA"].map((workout_id) => ({
+      workout_id, exercicio_original_id: "supino-reto-com-barra", substituto_id: "flexao-de-braco",
+    }));
+    await inserirNoMock(antes, "trocas_do_programa", trocas.map((t) => ({ ...t, user_id: antes.userId })));
+
     await entrarNoApp(page);
     await page.goto("/mais/backup");
 
@@ -354,21 +359,32 @@ test.describe("/mais/backup (SPEC §9)", () => {
     expect(conteudo.tabelas.sessions).toHaveLength(1);
     expect(conteudo.tabelas.session_sets).toHaveLength(1);
     expect(conteudo.tabelas.body_weights).toHaveLength(1);
+    expect(conteudo.tabelas.trocas_do_programa).toEqual(trocas.map((t) => ({ ...t, user_id: antes.userId })));
 
     /* ------------------------------- 2) mock zerado, usuário novo, import */
     await resetarMock();
     const depois = await usuarioComPerfil();
+    expect(depois.userId).not.toBe(antes.userId);
+    await inserirNoMock(depois, "trocas_do_programa", [{
+      ...trocas[1], user_id: depois.userId, substituto_id: "supino-inclinado-com-halteres",
+    }]);
     await entrarNoApp(page);
     await page.goto("/mais/backup");
 
     await page.setInputFiles("#arquivo-backup", caminho);
     await expect(page.getByText(/linhas novas/)).toBeVisible();
     await expect(page.getByRole("cell", { name: "treinos" })).toBeVisible();
+    const linhaDasTrocas = page.getByRole("row", { name: /trocas lembradas no programa/ });
+    await expect(linhaDasTrocas.getByRole("cell")).toHaveText(["trocas lembradas no programa", "1", "1"]);
     await page.getByRole("button", { name: "Importar tudo" }).click();
     await expect(page.getByText(/linhas importadas/)).toBeVisible();
     await esperarFila(page);
 
     /* -------------------------------------------- 3) o estado voltou igual */
+    const trocasRestauradas = trocas.map((t) => ({ ...t, user_id: depois.userId }));
+    const lerTrocas = async () => (await lerDoMock<(typeof trocasRestauradas)[number]>(depois, "trocas_do_programa"))
+      .sort((a, b) => a.workout_id.localeCompare(b.workout_id));
+    await expect.poll(lerTrocas).toEqual(trocasRestauradas);
     const sessoes = await lerDoMock<{ id: string; workout_id: string; user_id: string }>(
       depois,
       "sessions",
@@ -407,6 +423,7 @@ test.describe("/mais/backup (SPEC §9)", () => {
     await page.getByRole("button", { name: "Importar tudo" }).click();
     await esperarFila(page);
 
+    await expect.poll(lerTrocas).toEqual(trocasRestauradas);
     expect(await lerDoMock(depois, "sessions")).toHaveLength(1);
     expect(await lerDoMock(depois, "session_sets")).toHaveLength(1);
     expect(await lerDoMock(depois, "body_weights")).toHaveLength(1);

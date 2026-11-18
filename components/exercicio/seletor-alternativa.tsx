@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactElement } from "react";
+import { useId, useRef, useState, type ReactElement } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger,
@@ -12,7 +12,8 @@ import {
 import { NOME_EQUIPAMENTO } from "@/lib/catalogo";
 import { acharExercicio, equipamentoDisponivel } from "@/lib/dados";
 import { evitado, evitadosPorUltimo } from "@/lib/preferencias";
-import type { EquipamentoTag } from "@/lib/schemas";
+import { resolverTrocasDoTreino } from "@/lib/trocas";
+import type { EquipamentoTag, TreinoId } from "@/lib/schemas";
 import type { Prefs } from "@/lib/types";
 
 const FILTROS: Record<FiltroAlternativa, string> = {
@@ -29,18 +30,70 @@ const INVENTARIO = [...equipamentoDisponivel()].sort((a, b) =>
 export const AVISO_DA_TROCA =
   "As séries que você já fez ficam registradas no exercício original. A alternativa começa com suas próprias séries.";
 
+export interface RecorrenciaDaTroca {
+  treinoId: TreinoId;
+  lembradas: Readonly<Record<string, string>>;
+  aoLembrar: (originalId: string, alternativaId: string | null) => Promise<void>;
+}
+
 type Escolha = {
   exercicioId: string;
+  originalId?: string;
+  ocupados?: readonly string[];
+  recorrencia?: RecorrenciaDaTroca;
   prefs?: Prefs;
   aoSubstituir: (id: string) => void;
 };
 
+export function duracaoDaTroca(originalId: string, ativoId: string, recorrencia?: RecorrenciaDaTroca): string {
+  return recorrencia?.lembradas[originalId] === ativoId ? `nos treinos ${recorrencia.treinoId}` : "só hoje";
+}
+
 /** Os mesmos filtros e alternativas na ficha, no player e na lista do dia. */
-export function OpcoesDeAlternativa({ exercicioId, prefs, aoSubstituir }: Escolha) {
+export function OpcoesDeAlternativa({
+  exercicioId, originalId = exercicioId, ocupados, recorrencia, prefs, aoSubstituir,
+}: Escolha) {
   const [filtro, setFiltro] = useState<FiltroAlternativa>("todos");
   const [disponiveis, setDisponiveis] = useState<ReadonlySet<EquipamentoTag>>(equipamentoDisponivel);
-  const origem = acharExercicio(exercicioId);
-  const opcoes = evitadosPorUltimo(alternativasPara(exercicioId, filtro, disponiveis), (e) => e.id, prefs);
+  const [lembrar, setLembrar] = useState(false);
+  const [gravando, setGravando] = useState(false);
+  const [erro, setErro] = useState("");
+  const ocupado = useRef(false);
+  const nomeDoGrupo = useId();
+  const paraOPrograma = lembrar && recorrencia;
+  const origem = acharExercicio(paraOPrograma ? originalId : exercicioId);
+  const lembradasDosOutros = paraOPrograma
+    ? Object.entries(resolverTrocasDoTreino(paraOPrograma.treinoId, paraOPrograma.lembradas))
+        .filter(([original]) => original !== originalId)
+    : [];
+  const alternativas = alternativasPara(origem.id, filtro, disponiveis).filter((e) => {
+    if (ocupados?.includes(e.id)) return false;
+    if (!paraOPrograma) return true;
+    const mapa = { ...paraOPrograma.lembradas, [originalId]: e.id };
+    const efetivas = resolverTrocasDoTreino(paraOPrograma.treinoId, mapa);
+    return efetivas[originalId] === e.id &&
+      lembradasDosOutros.every(([original, destino]) => efetivas[original] === destino);
+  });
+  const opcoes = evitadosPorUltimo(alternativas, (e) => e.id, prefs);
+
+  async function aplicar(paraHoje: string, paraOProximo: string | null) {
+    if (ocupado.current) return;
+    setErro("");
+    if (recorrencia && (paraOPrograma || paraOProximo === null)) {
+      ocupado.current = true;
+      setGravando(true);
+      try {
+        await recorrencia.aoLembrar(originalId, paraOProximo);
+      } catch {
+        setErro("Não foi possível guardar a mudança para os próximos treinos. Tente de novo.");
+        return;
+      } finally {
+        ocupado.current = false;
+        setGravando(false);
+      }
+    }
+    aoSubstituir(paraHoje);
+  }
 
   function mudarEquipamento(tag: EquipamentoTag, marcado: boolean) {
     setDisponiveis((atual) => {
@@ -53,6 +106,27 @@ export function OpcoesDeAlternativa({ exercicioId, prefs, aoSubstituir }: Escolh
 
   return (
     <div className="flex flex-col gap-3">
+      {recorrencia && (
+        <fieldset disabled={gravando} className="flex flex-col gap-1">
+          <legend className="mb-1 text-sm font-medium">Aplicar a troca</legend>
+          <div className="grid grid-cols-2 gap-2">
+            {([false, true] as const).map((valor) => (
+              <label key={String(valor)} className="alvo flex cursor-pointer items-center gap-2 rounded-md border px-2 py-1 text-sm has-checked:border-primary">
+                <input type="radio" name={nomeDoGrupo} checked={lembrar === valor}
+                  onChange={() => { setLembrar(valor); setErro(""); }} className="accent-primary" />
+                {valor ? `Usar nos próximos ${recorrencia.treinoId}` : "Só neste treino"}
+              </label>
+            ))}
+          </div>
+          {recorrencia.lembradas[originalId] && (
+            <Button type="button" variant="ghost" className="alvo h-auto justify-start whitespace-normal text-left"
+              onClick={() => void aplicar(exercicioId, null)}>
+              Restaurar {acharExercicio(originalId).nome} nos próximos {recorrencia.treinoId}
+            </Button>
+          )}
+        </fieldset>
+      )}
+      {erro && <p role="alert" className="text-destructive text-sm">{erro}</p>}
       <div role="group" aria-label="Equipamento para a alternativa" className="flex flex-wrap gap-1.5">
         {(Object.keys(FILTROS) as FiltroAlternativa[]).map((valor) => (
           <Button
@@ -93,7 +167,7 @@ export function OpcoesDeAlternativa({ exercicioId, prefs, aoSubstituir }: Escolh
             ).join(" ou ");
             return (
               <li key={e.id}>
-                <button type="button" onClick={() => aoSubstituir(e.id)}
+                <button type="button" disabled={gravando} onClick={() => void aplicar(e.id, e.id)}
                   className="hover:bg-muted alvo flex w-full flex-col items-start gap-1 rounded-lg px-2 py-2 text-left">
                   <span className="text-sm font-semibold">{e.nome}</span>
                   <span className="text-muted-foreground text-xs">{e.prescricao_padrao.texto} · {equipamento}</span>
@@ -115,7 +189,7 @@ export function OpcoesDeAlternativa({ exercicioId, prefs, aoSubstituir }: Escolh
 
 /** O botão pode estar dentro da folha (trigger) ou ser controlado pelo player. */
 export function SeletorAlternativa({
-  exercicioId, prefs, aoSubstituir, aberto, aoMudarAberto, children,
+  exercicioId, originalId, ocupados, recorrencia, prefs, aoSubstituir, aberto, aoMudarAberto, children,
   antesDoTreino = false, voltarAoOriginal, avisoDaTroca = AVISO_DA_TROCA,
 }: Escolha & {
   aberto?: boolean;
@@ -137,17 +211,18 @@ export function SeletorAlternativa({
         <SheetHeader className="pr-14 pb-0">
           <SheetTitle>Substituir hoje</SheetTitle>
           <SheetDescription>
-            {acharExercicio(exercicioId).nome}. {antesDoTreino ? "A escolha vale para o treino que você começar hoje." : avisoDaTroca}
+            {acharExercicio(exercicioId).nome}. {antesDoTreino ? "Escolha o exercício para o treino de hoje." : avisoDaTroca}
           </SheetDescription>
         </SheetHeader>
         <div className="flex flex-col gap-3 px-4">
-          {voltarAoOriginal && (
+          {voltarAoOriginal && (!originalId || !ocupados?.includes(originalId)) && (
             <Button type="button" variant="outline" className="alvo h-auto whitespace-normal"
               onClick={() => { voltarAoOriginal.escolher(); mudarAberto(false); }}>
-              Voltar para {voltarAoOriginal.nome}
+              Voltar para {voltarAoOriginal.nome}{recorrencia && " só neste treino"}
             </Button>
           )}
-          <OpcoesDeAlternativa key={exercicioId} exercicioId={exercicioId} prefs={prefs}
+          <OpcoesDeAlternativa key={exercicioId} exercicioId={exercicioId} originalId={originalId}
+            ocupados={ocupados} recorrencia={recorrencia} prefs={prefs}
             aoSubstituir={(id) => { aoSubstituir(id); mudarAberto(false); }} />
         </div>
       </SheetContent>

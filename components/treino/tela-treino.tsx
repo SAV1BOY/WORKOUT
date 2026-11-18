@@ -56,6 +56,7 @@ import {
 } from "@/lib/ordem";
 import { descartarSessao, registrarSolta } from "@/lib/queries/acoes";
 import { aplicarRetomada } from "@/lib/queries/retomada";
+import { salvarTrocaDoPrograma, useTrocasDoPrograma } from "@/lib/queries/trocas-do-programa";
 import { useComecarTreino } from "@/lib/queries/comecar";
 import {
   useCardio,
@@ -88,6 +89,7 @@ import {
   guardarTrocasNoAparelho,
   lerTrocasDoAparelho,
   limparTrocasDoAparelho,
+  resolverTrocasDoTreino,
 } from "@/lib/trocas";
 import { Pencil } from "lucide-react";
 
@@ -117,7 +119,7 @@ export function TelaTreino({ userId }: { userId: string }) {
   const router = useRouter();
   const cliente = useQueryClient();
   const [somando, setSomando] = useState(false);
-  const [trocas, setTrocas] = useState<Record<string, string>>({});
+  const [rascunho, setRascunho] = useState<{ conta: string; data: string; treino: string; trocas: Record<string, string> } | null>(null);
   /* "Editar" (SPEC §14.3): a ordem vale só para a sessão que vai começar */
   const [ordem, setOrdem] = useState<string[]>([]);
   const [editando, setEditando] = useState(false);
@@ -142,7 +144,7 @@ export function TelaTreino({ userId }: { userId: string }) {
   /* SPEC §18.1: a barra fixa solta também conta como atividade */
   const soltasDoPeriodoQ = useSoltas(desde, hoje);
 
-  const perfil = perfilQ.data ?? null;
+  const perfil = perfilQ.data?.user_id === userId ? perfilQ.data : null;
 
   /* SPEC §20.1: conta sem `prefs.guia_visto` cai no guia antes de tudo. */
   const semGuiaVisto = perfil !== null && !guiaVisto(perfil.prefs, guiaVistoNoAparelho(userId));
@@ -167,6 +169,11 @@ export function TelaTreino({ userId }: { userId: string }) {
   }, [hoje, perfil, overridesQ.data]);
 
   const treinoId = dia?.tipo === "forca" ? dia.treinoId : null;
+  const lembradas = useTrocasDoPrograma(userId, treinoId);
+  const soHoje = rascunho?.conta === userId && rascunho.data === hoje && rascunho.treino === treinoId
+    ? rascunho.trocas : undefined;
+  const trocas = useMemo(() => treinoId ? resolverTrocasDoTreino(treinoId, lembradas.data, soHoje) : {},
+    [treinoId, lembradas.data, soHoje]);
 
   /*
    * SPEC §18.1: há quantos dias inteiros ele não registra nada — força, cardio
@@ -200,27 +207,17 @@ export function TelaTreino({ userId }: { userId: string }) {
 
   /* a escolha do ⇄ vale para o treino de hoje e some sozinha no dia seguinte */
   useEffect(() => {
-    if (!hoje || !treinoId) {
-      setTrocas({});
-      return;
-    }
-    setTrocas(lerTrocasDoAparelho(hoje, treinoId));
+    if (!hoje || !treinoId) return;
+    setRascunho({ conta: userId, data: hoje, treino: treinoId, trocas: lerTrocasDoAparelho(userId, hoje, treinoId) });
     setOrdem(lerOrdemDoAparelho(hoje, treinoId));
-  }, [hoje, treinoId]);
+  }, [userId, hoje, treinoId]);
 
-  const trocar = useCallback(
-    (originalId: string, novoId: string) => {
-      if (!hoje || !treinoId) return;
-      setTrocas((atuais) => {
-        const novas = { ...atuais };
-        if (novoId === originalId) delete novas[originalId];
-        else novas[originalId] = novoId;
-        guardarTrocasNoAparelho(hoje, treinoId, novas);
-        return novas;
-      });
-    },
-    [hoje, treinoId],
-  );
+  const trocar = (originalId: string, novoId: string) => {
+    if (!hoje || !treinoId) return;
+    const novas = { ...(soHoje ?? lerTrocasDoAparelho(userId, hoje, treinoId)), [originalId]: novoId };
+    guardarTrocasNoAparelho(userId, hoje, treinoId, novas);
+    setRascunho({ conta: userId, data: hoje, treino: treinoId, trocas: novas });
+  };
 
   /** Os ids do programa, na ordem do programa (a base de "Editar"). */
   const idsDoPrograma = useMemo(
@@ -404,6 +401,14 @@ export function TelaTreino({ userId }: { userId: string }) {
     return true;
   };
 
+  const comecarTreinoDeHoje = () => {
+    if (!treinoId || pedirDecisao()) return;
+    void comecar({
+      userId, perfil, hoje, treinoId, lembradas, ordem,
+      trocas: soHoje ?? lerTrocasDoAparelho(userId, hoje, treinoId),
+    });
+  };
+
   /* SPEC §18.2: a escolha vai para a fila e o card some. */
   const escolherRetomada = async (escolha: EscolhaRetomada) => {
     if (pausa.dias === null) return;
@@ -443,9 +448,11 @@ export function TelaTreino({ userId }: { userId: string }) {
   const descartar = async (id: string) => {
     try {
       await descartarSessao({ id, cliente });
-      // a sessão descartada leva junto as trocas guardadas para ela
-      limparTrocasDoAparelho();
-      setTrocas({});
+      // Descartar um treino de ontem não consome a escolha feita para o de hoje.
+      if (treinoId && aberta?.id === id && aberta.data === hoje && aberta.workoutId === treinoId) {
+        limparTrocasDoAparelho(userId, treinoId);
+        setRascunho(null);
+      }
       toast.success("Treino guardado como abandonado.");
     } catch {
       toast.error("Não consegui descartar agora. Vou tentar de novo sozinho.");
@@ -507,11 +514,7 @@ export function TelaTreino({ userId }: { userId: string }) {
             /* só quando é ESTE card que tem o "Continuar" (§22.7 item 9) */
             destacado={destacarAberta && abertaDoDia !== null}
             criando={criando !== null}
-            aoComecar={() => {
-              /* SPEC §18.3: com a retomada pendente, decidir vem antes */
-              if (pedirDecisao()) return;
-              void comecar({ userId, perfil, hoje, treinoId, trocas, ordem });
-            }}
+            aoComecar={comecarTreinoDeHoje}
           />
         ) : null}
 
@@ -562,6 +565,11 @@ export function TelaTreino({ userId }: { userId: string }) {
               mostrarRaios={mostrarRaios}
               prefs={perfil?.prefs}
               aoSubstituir={trocar}
+              recorrencia={{
+                treinoId,
+                lembradas: lembradas.data ?? {},
+                aoLembrar: (original, destino) => salvarTrocaDoPrograma(cliente, userId, treinoId, original, destino),
+              }}
             />
             <Button
               variant="outline"
@@ -600,11 +608,7 @@ export function TelaTreino({ userId }: { userId: string }) {
           detalhe={abertaDoDia ? abertaDoDia.progresso : detalheDoTreino(treinoId)}
           rotulo={abertaDoDia ? "Continuar" : "Começar"}
           href={abertaDoDia ? `/treinar/${abertaDoDia.id}` : undefined}
-          aoTocar={() => {
-            /* SPEC §18.3: com a retomada pendente, decidir vem antes */
-            if (pedirDecisao()) return;
-            void comecar({ userId, perfil, hoje, treinoId, trocas, ordem });
-          }}
+          aoTocar={comecarTreinoDeHoje}
         />
       ) : null}
     </Tela>
