@@ -31,6 +31,10 @@ import { gravarPerfil } from "@/lib/queries/perfil";
 import { registrarPeso } from "@/lib/queries/corpo";
 import type { LinhaPerfil } from "@/lib/types";
 
+// As confirmações são apenas texto. O toque deve alcançar o formulário que
+// fica sob o aviso, inclusive para ajustar a meta logo após salvá-la.
+const confirmacao = { id: "confirmacao-peso", style: { pointerEvents: "none" } } as const;
+
 /**
  * Aba Peso (SPEC §3.8): registrar, média móvel de 7 dias, variação e meta.
  *
@@ -89,7 +93,7 @@ export function AbaPeso({
       await registrarPeso({ userId, data, pesoKg: valor, cliente });
       setPeso("");
       voltarParaHoje();
-      toast.success(mensagemDeRegistro(`Peso de ${formatarData(data)} registrado.`));
+      toast.success(mensagemDeRegistro(`Peso de ${formatarData(data)} registrado.`), confirmacao);
     } catch {
       toast.error("Não consegui registrar agora.");
     } finally {
@@ -107,7 +111,7 @@ export function AbaPeso({
         },
         cliente,
       });
-      toast.success(valor ? `Meta de ${formatarKg(valor)} salva.` : "Meta removida.");
+      toast.success(valor ? `Meta de ${formatarKg(valor)} salva.` : "Meta removida.", confirmacao);
     } catch {
       toast.error("Não consegui salvar a meta agora.");
     }
@@ -116,7 +120,7 @@ export function AbaPeso({
   const mudarAltura = async (cm: number) => {
     try {
       await gravarPerfil({ userId, mudanca: { altura_cm: cm }, cliente });
-      toast.success(`Altura de ${cm} cm salva.`);
+      toast.success(`Altura de ${cm} cm salva.`, confirmacao);
     } catch {
       toast.error("Não consegui salvar a altura agora.");
     }
