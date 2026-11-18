@@ -207,6 +207,9 @@ test.describe("a rede voltando no meio do treino (SPEC §3.2 e §8)", () => {
 });
 
 test.describe("a criação da sessão que falha uma vez (SPEC §8)", () => {
+  // O primeiro POST precisa chegar à interceptação da página.
+  test.use({ serviceWorkers: "block" });
+
   test("a conclusão não passa na frente e o treino não fica aberto para sempre", async ({
     page,
   }) => {
@@ -233,6 +236,7 @@ test.describe("a criação da sessão que falha uma vez (SPEC §8)", () => {
     });
 
     await comecarOTreinoDoDia(page);
+    await expect.poll(() => derrubou, { message: "a primeira criação deve falhar antes das séries" }).toBe(true);
     await abrirVisaoGeral(page);
     await expect(page.getByRole("heading", { name: "Treino A", level: 1 })).toBeVisible();
 
@@ -244,8 +248,6 @@ test.describe("a criação da sessão que falha uma vez (SPEC §8)", () => {
     await resumo.getByRole("radio", { name: "Um pouco fácil" }).click();
     await resumo.getByRole("button", { name: "Salvar e voltar" }).click();
     await esperarAbaTreino(page);
-
-    expect(derrubou).toBe(true);
 
     // a sessão chega inteira e CONCLUÍDA, com a duração e a sensação
     await expect

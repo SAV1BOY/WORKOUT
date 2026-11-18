@@ -14,6 +14,7 @@ import {
   irNaAba,
   lerDoMock,
   resetarMock,
+  semCacheDoAparelho,
   usuarioComPerfil,
 } from "./fixtures";
 
@@ -127,29 +128,36 @@ test.describe("Lote 2 — capa e vitrine (SPEC §22.2 itens 9 e 10)", () => {
     await expect(treinos.locator('[data-selo="circuito"]')).toHaveCount(0);
   });
 
-  test("o destaque do Explorar reserva o lugar enquanto o perfil não chega", async ({
-    page,
-  }) => {
-    await usuarioComPerfil();
-    await fixarData(page, QUARTA);
-    await entrarNoApp(page);
+  test.describe("leitura inicial da vitrine", () => {
+    test.use({ serviceWorkers: "block" });
 
-    // o perfil demora: a tela tem de mostrar a forma do destaque, não um buraco
-    await page.route(/\/rest\/v1\/profiles/, async (rota) => {
-      await new Promise((r) => setTimeout(r, 1500));
-      await rota.continue().catch(() => {});
-    });
-    await page.goto("/explorar");
-    const esqueleto = page.getByRole("status", { name: "Carregando o destaque" });
-    await expect(esqueleto).toBeVisible();
-    const altura = (await esqueleto.boundingBox())?.height ?? 0;
-    expect(altura).toBeGreaterThan(150);
+    test("o destaque do Explorar reserva o lugar enquanto o perfil não chega", async ({ page }) => {
+      await usuarioComPerfil();
+      await fixarData(page, QUARTA);
+      await entrarNoApp(page);
+      await semCacheDoAparelho(page);
 
-    // e quando o perfil chega, o destaque ocupa o mesmo lugar
-    await expect(page.locator("main [data-capa] h2").first()).toBeVisible({
-      timeout: 20_000,
+      // Somente liberar o perfil depois de medir o esqueleto mantém o cenário
+      // válido tanto no aparelho rápido quanto durante uma suíte em paralelo.
+      let liberar!: () => void;
+      const leitura = new Promise<void>((resolve) => { liberar = resolve; });
+      await page.route(/\/rest\/v1\/profiles/, async (rota) => {
+        await leitura;
+        await rota.continue().catch(() => {});
+      });
+      const esqueleto = page.getByRole("status", { name: "Carregando o destaque" });
+      try {
+        const pedido = page.waitForRequest(/\/rest\/v1\/profiles/);
+        await page.goto("/explorar");
+        await pedido;
+        await expect(esqueleto).toBeVisible();
+        expect((await esqueleto.boundingBox())?.height ?? 0).toBeGreaterThan(150);
+      } finally {
+        liberar();
+      }
+      await expect(page.locator("main [data-capa] h2").first()).toBeVisible({ timeout: 20_000 });
+      await expect(esqueleto).toHaveCount(0);
     });
-    await expect(esqueleto).toHaveCount(0);
   });
 });
 
@@ -294,23 +302,34 @@ test.describe("Lote 2 — Corpo (SPEC §22.2 itens 3 e 4)", () => {
     });
   }
 
-  test("Medidas e Fotos esperam a leitura com o esqueleto da própria forma", async ({
-    page,
-  }) => {
-    await usuarioComPerfil();
-    await fixarData(page, QUARTA);
-    await entrarNoApp(page);
+  test.describe("leituras pendentes em Corpo", () => {
+    // O worker passa a requisição por fetch próprio. Aqui o teste controla
+    // exatamente quando cada leitura termina, em vez de adivinhar por tempo.
+    test.use({ serviceWorkers: "block" });
 
-    await page.route(/\/rest\/v1\/body_measurements/, async (rota) => {
-      await new Promise((r) => setTimeout(r, 1500));
-      await rota.continue().catch(() => {});
+    test("Medidas e Fotos esperam a leitura com o esqueleto da própria forma", async ({ page }) => {
+      await usuarioComPerfil();
+      await fixarData(page, QUARTA);
+      await entrarNoApp(page);
+      let liberar = () => {};
+      const pendente = new Promise<void>((resolver) => { liberar = resolver; });
+      await page.route(/\/rest\/v1\/(body_measurements|progress_photos)\b/, async (rota) => {
+        await pendente;
+        await rota.continue();
+      });
+      try {
+        await page.goto("/corpo");
+        for (const aba of ["Medidas", "Fotos"]) {
+          await page.getByRole("tab", { name: aba }).click();
+          await expect(page.getByRole("tabpanel", { name: aba }).getByRole("status", { name: "Carregando" })).toBeVisible();
+        }
+      } finally {
+        liberar();
+      }
+      await expect(page.getByRole("tabpanel", { name: "Fotos" }).getByLabel("Foto de frente")).toBeAttached();
+      await page.getByRole("tab", { name: "Medidas" }).click();
+      await expect(page.getByLabel("Cintura (cm)")).toBeVisible();
     });
-    await page.goto("/corpo");
-    await page.getByRole("tab", { name: "Medidas" }).click();
-    await expect(page.getByRole("status", { name: "Carregando" }).first()).toBeVisible();
-
-    // e a aba se preenche quando a leitura chega
-    await expect(page.getByLabel("Cintura (cm)")).toBeVisible({ timeout: 20_000 });
   });
 });
 

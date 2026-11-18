@@ -261,19 +261,20 @@ test.describe("§22.5 itens 4 e 5 — as perguntas chegam sem resposta e com cor
       "true",
     );
 
+    // O toque em “Firme” já avança sozinho. No restante do percurso, os
+    // controles que levam ao feedback nunca incluem a ação de CONCLUÍ-LO.
+    await expect(firme).toBeHidden();
     const sensacao = page.getByRole("radiogroup", { name: "Sensação" });
-    for (let i = 0; i < 80 && !(await sensacao.isVisible().catch(() => false)); i++) {
-      const pular = page.getByRole("button", { name: "Pular descanso" });
-      if (await pular.isVisible().catch(() => false)) {
-        await pular.click();
-        continue;
-      }
-      const pergunta = primarioDaPergunta(page);
-      if (await pergunta.isVisible().catch(() => false)) {
-        await pergunta.click();
-        continue;
-      }
-      await page.getByRole("button", { name: "Próximo passo" }).click();
+    const pular = page.getByRole("button", { name: "Pular descanso" });
+    const pergunta = page.getByRole("region", { name: "Última repetição" })
+      .getByRole("button", { name: "Pular esta pergunta" });
+    const proximo = page.getByRole("button", { name: "Próximo passo" });
+    for (let i = 0; i < 80; i++) {
+      await sensacao.or(pular).or(pergunta).or(proximo).first().waitFor();
+      if (await sensacao.isVisible()) break;
+      if (await pular.isVisible()) await pular.click();
+      else if (await pergunta.isVisible()) await pergunta.click();
+      else if (await proximo.isVisible()) await proximo.click();
     }
     await expect(sensacao).toBeVisible();
     for (const marcada of await sensacao

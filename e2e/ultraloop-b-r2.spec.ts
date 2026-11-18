@@ -84,6 +84,7 @@ test("§22.4-1: a capa do treino de hoje vem da derivada, com o dobro da caixa",
 
   const capa = page.locator("article[data-capa] img").first();
   await expect(capa).toBeVisible();
+  await capa.evaluate((el) => (el as HTMLImageElement).decode());
   const medida = await capa.evaluate((el) => {
     const img = el as HTMLImageElement;
     return {
@@ -287,6 +288,8 @@ test("§22.4-1: a foto do item do terraço também tem o dobro da caixa", async 
   await page.goto("/mais/equipamento");
   const foto = page.locator("li img[src^='/itens/']").first();
   await expect(foto).toBeVisible();
+  await foto.scrollIntoViewIfNeeded();
+  await foto.evaluate((el) => (el as HTMLImageElement).decode());
 
   const medida = await foto.evaluate((el) => {
     const img = el as HTMLImageElement;
