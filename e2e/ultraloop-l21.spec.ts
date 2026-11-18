@@ -286,6 +286,12 @@ test("troca offline, retoma no mesmo ponto e sincroniza as séries com seus exer
   await expect(ficha.getByRole("heading", { name: "Agachamento goblet" })).toBeVisible();
   await page.keyboard.press("Escape");
   await concluirSerie(page);
+  const proximaSerie = page.getByText(/^Série 2 de \d+ · exercício 1 de 6/);
+  await expect(proximaSerie).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "Agachamento goblet" })).toBeVisible();
+  await expect(proximaSerie).toBeVisible();
+
   await expect.poll(() => feitasDoPrimeiro(page)).toHaveLength(1);
   const [nova] = await feitasDoPrimeiro(page);
   expect(nova).not.toBe(original);
@@ -295,11 +301,6 @@ test("troca offline, retoma no mesmo ponto e sincroniza as séries com seus exer
     return bloco?.trocados?.flatMap((troca) => troca.series.filter(s => s.concluida).map(s => s.id));
   }).toEqual([original]);
 
-  const proximaSerie = page.getByText(/^Série 2 de \d+ · exercício 1 de 6/);
-  await expect(proximaSerie).toBeVisible();
-  await page.reload();
-  await expect(page.getByRole("heading", { name: "Agachamento goblet" })).toBeVisible();
-  await expect(proximaSerie).toBeVisible();
   await context.setOffline(false);
   await expect.poll(async () =>
     (await seriesNoMock(sessao)).map((s) => [s.exercise_id, s.id, s.concluida]).sort(),
