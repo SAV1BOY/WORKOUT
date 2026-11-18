@@ -824,6 +824,11 @@ describe("concluirSessao — o motor e as escritas (SPEC §6.2, §6.6 e §8)", (
     });
 
     const estados = escritas.filter((e) => e.tabela === "exercise_state");
+    for (const escrita of estados) {
+      expect(escrita.linha).not.toHaveProperty("notas");
+      expect(escrita.linha).not.toHaveProperty("incremento_kg");
+      expect(escrita.linha).not.toHaveProperty("desativado");
+    }
     expect(estados).toHaveLength(6);
     expect(estados[0]).toMatchObject({ op: "upsert", onConflict: "user_id,exercise_id" });
     expect(estados[0]?.linha).toMatchObject({

@@ -44,49 +44,6 @@ async function concluirSerie(page: Page) {
   if (await pular.isVisible().catch(() => false)) await pular.click();
 }
 
-/**
- * O primário da tela de pergunta atual, se houver uma.
- *
- * Precisa ser procurado DENTRO da região: o cronômetro dos exercícios de
- * tempo também tem um botão "Continuar", e ele começa a contagem.
- */
-function primarioDaPergunta(page: Page) {
-  return page
-    .getByRole("region", { name: "Última repetição" })
-    .or(page.getByRole("region", { name: "Feedback do treino" }))
-    .getByRole("button", {
-      name: /^(Pular esta pergunta|Continuar|Concluir sem responder|Concluir)$/,
-    });
-}
-
-/** Do 1º exercício até a tela de conclusão, respondendo tudo pelo primário. */
-async function irAteAConclusao(page: Page) {
-  for (let i = 0; i < 40; i++) {
-    if (
-      await page
-        .getByRole("region", { name: "Treino concluído" })
-        .isVisible()
-        .catch(() => false)
-    ) {
-      return;
-    }
-    const pular = page.getByRole("button", { name: "Pular descanso" });
-    if (await pular.isVisible().catch(() => false)) {
-      await pular.click();
-      continue;
-    }
-    const pergunta = primarioDaPergunta(page);
-    if (await pergunta.isVisible().catch(() => false)) {
-      await pergunta.click();
-      continue;
-    }
-    const proximo = page.getByRole("button", { name: "Próximo passo" });
-    if (!(await proximo.isVisible().catch(() => false))) break;
-    await proximo.click();
-  }
-  await expect(page.getByRole("region", { name: "Treino concluído" })).toBeVisible();
-}
-
 test.describe("§22.5 item 1 — dois toques no mesmo ponto não jogam o treino fora", () => {
   test("o descarte pede um AlertDialog, e o 2º toque no mesmo lugar não descarta", async ({
     page,
@@ -151,7 +108,9 @@ test.describe("§22.5 item 2 — a conclusão grava ao entrar", () => {
   }) => {
     test.setTimeout(150_000);
     const sessao = await abrirPlayer(page);
-    await irAteAConclusao(page);
+    const feedback = page.getByRole("region", { name: "Feedback do treino" });
+    await avancarNoPlayerAte(page, feedback);
+    await feedback.getByRole("button", { name: "Concluir sem responder" }).click();
 
     const fim = page.getByRole("region", { name: "Treino concluído" });
     await expect(fim.getByText(/Treino salvo/)).toBeVisible({ timeout: 15_000 });

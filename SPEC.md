@@ -349,6 +349,12 @@ Toda sessão (treino do programa, sessão livre, circuito, sessão de barra fixa
 ### 14.2 Ficha em folha (bottom sheet) — `components/exercicio/ficha-folha.tsx`
 Abre por cima de qualquer tela (Treino, player, Explorar) sem perder estado: título + **Substituir** (mesmo fluxo de substitutos); mídia com três abas **Vídeo · Músculos · Tutorial no YouTube** (§22.14 item 4: o rótulo diz de onde vem o vídeo, sem ícone de link externo — com rede ele toca dentro do app —, e a aba só existe quando o JSON tem o tutorial): Vídeo = figura animada (ou vídeo local) com botão de pausa; Músculos = mapa frente/costas com primários fortes e secundários claros (§22.14 item 3: a figura já é a aba Vídeo e não se repete); **Tutorial** = vídeo do YouTube de `data/tutoriais.json` (81 entradas: `exercicio_id`, `youtube_id`, `titulo`, `canal`, `idioma`, `url`, `nota`; validado em `lib/schemas.ts`, lido por `lib/dados.ts`), mostrado como miniatura `https://i.ytimg.com/vi/<id>/hqdefault.jpg` + play, e só ao tocar vira `<iframe src="https://www.youtube-nocookie.com/embed/<id>">` (sem rede a aba mostra "Precisa de internet" e o botão "Abrir no YouTube"); stepper **Duração / Repetições / Séries** que ajusta **só a prescrição desta sessão** (nunca `exercise_state`); **Instruções** (passos do JSON) e **Erro comum**; **Área de foco** em chips (primário = ponto forte, secundário = claro) a partir de `musculos_*_nome` — na folha; na página ela não se repete (§22.14 item 3); histórico e recorde abaixo (sem nenhum dado, um cartão só — §22.14 item 2); navegação **anterior/próximo (n/N)** dentro do treino; **Fechar**. A rota `/exercicios/[id]` continua existindo e usa o mesmo componente em página inteira, com "Voltar" no topo e "Fazer agora" no fim (§22.14 item 1).
 
+#### 14.2.1 Lembrar no próximo treino
+
+A ficha permite salvar, editar e remover uma nota pessoal de cada exercício. A primeira série do exercício, inclusive um aquecimento, mostra a nota e abre a ficha ao toque. Se houver substituição, aparece a nota do exercício que será feito. A nota pode registrar o ajuste do aparelho, como a altura do banco.
+
+A nota pertence à conta e ao exercício (`exercise_state.nota_pessoal`). Uma edição sem rede fica no aparelho e sincroniza ao reconectar. As observações de uma sessão continuam no histórico daquele treino. Concluir uma sessão ou reiniciar a progressão preserva a nota pessoal.
+
 ### 14.3 Aba Treino — acréscimos à §13.3
 Abaixo da lista do treino do dia: **Editar** (modo reordenar com alças e setas ↑↓; ordem só desta sessão, gravada em `sessions.plano` quando a sessão é criada; "voltar à ordem do programa"); **Ajustar** no cabeçalho, ao lado da data (descanso padrão, preparação, avançar sozinho, voz, vibração, tela acesa, mostrar raios); **Desafios** (carrossel manual, sem rotação automática, com os planos reais — títulos e botões como definidos em §22.7 item 6 e §22.12 itens 4 e 7; capa de `assets/`, semana atual e progresso); **Parte do corpo em foco** (chips dos 8 grupos → lista com miniatura, `N exercícios · ~M min`, raios, "Começar" = sessão livre com os 6 primeiros do grupo, compostos antes de isolamento); chips de filtro derivados (≤ 15 min · 15–30 min · com equipamento · sem equipamento · core · cardio); **Personalizar treino** ("Crie o seu próprio": escolher exercícios do catálogo e começar uma sessão livre). Sem busca na Treino (fica em Explorar).
 
@@ -4258,16 +4264,24 @@ em `schema.sql`, idempotente e expand-only):
   public.lembretes_tick()`: desagendado pelo nome se já existe e agendado de
   novo (rodar a migração duas vezes deixa um job só).
 
-**Nenhum valor de segredo no repositório**: a migração cria funções, tabela e
-job; os valores do Vault (`lembretes_url`, `lembretes_segredo`) e a variável
-`LEMBRETES_SEGREDO` da Vercel quem cria é quem publica. **Nunca a service
-role**, nem no servidor.
+**Nenhum valor de segredo no repositório.** Quem publica configura
+`lembretes_url` e `lembretes_segredo` no Vault. A
+migração cria as funções, a tabela e o job. A rota usa a chave anon do
+Supabase e pode consultar o Vault para autenticar o disparo. Para quem já
+usa a verificação local, `LEMBRETES_SEGREDO` é opcional na Vercel e deve
+corresponder à credencial do Vault. **Nunca a service role**, nem no servidor.
 
 **Rota** `POST /api/lembretes/disparar` (runtime `nodejs`):
 
-1. sem `LEMBRETES_SEGREDO` no servidor → **503** `SEM_CONFIGURACAO`;
-2. `x-lembretes-segredo` ausente ou diferente (`timingSafeEqual` sobre os
-   `sha256`) → **401**, sem ler o corpo;
+1. A rota exige o cabeçalho `x-lembretes-segredo` antes de ler o corpo.
+   A ausência do cabeçalho retorna **401**. Com `LEMBRETES_SEGREDO` local,
+   compara os valores com `timingSafeEqual` sobre os `sha256` e retorna
+   **401** se diferirem.
+2. Sem verificador local, chama `lembretes_resultado` com o valor recebido
+   e as listas `enviados` e `expirados` vazias. A RPC valida pelo Vault e
+   afeta zero linhas. Só a resposta numérica `0` sem erro autoriza o disparo.
+   O erro `28000` retorna **401**. Falha de conexão, prazo de três segundos
+   esgotado ou resposta inesperada retornam **503**.
 3. sem as variáveis VAPID → **503** `SEM_CONFIGURACAO`;
 4. corpo que não é JSON ou fora do `disparoSchema` (Zod) → **400** (desde
    23.15, o envelope; cada conta é conferida sozinha e a inválida é pulada e

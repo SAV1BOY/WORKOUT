@@ -7,6 +7,7 @@ import {
   avisoCorridaEPerna,
   descricaoDoCardio,
   estadosPorExercicio,
+  estadoDaLinha,
   houveCardioHoje,
   previaDoTreino,
   resumoDoTreino,
@@ -72,6 +73,12 @@ describe("resumo do treino (SPEC §3.1 e §10.2)", () => {
 });
 
 describe("prévia do treino (SPEC §3.1 com §6.1)", () => {
+  it("fixar ou remover uma nota antes do primeiro treino conserva a prescrição inicial", () => {
+    for (const notas of ["Banco no terceiro furo", null]) {
+      expect(estadoDaLinha(estado("agachamento-livre", { notas }))).toBeNull();
+    }
+    expect(estadoDaLinha(estado("agachamento-livre", { incremento_kg: 4 }))).toMatchObject({ incremento_kg: 4 });
+  });
   it("na primeira vez traz as cargas iniciais com o rótulo de cada implemento", () => {
     const itens = previaDoTreino({ treinoId: "A1" });
     const porId = Object.fromEntries(itens.map((i) => [i.exercicioId, i]));

@@ -44,7 +44,7 @@ export const COLUNAS_DA_TABELA: Record<TabelaBackup, string[]> = {
     "user_id", "exercise_id", "carga_atual_kg", "reps_alvo", "tempo_alvo_s",
     "assistencia", "incremento_kg", "falhas_seguidas", "incremento_reduzido",
     "exigir_rep_extra", "semana_leve", "carga_antes_leve", "sessoes_graca",
-    "desativado", "notas",
+    "desativado", "notas", "nota_pessoal",
   ],
   sessions: [
     "id", "user_id", "data", "workout_id", "fase", "status", "iniciada_em",
@@ -336,6 +336,9 @@ export function linhasParaImportar(
       for (const coluna of colunas) {
         if (coluna in bruta) limpa[coluna] = bruta[coluna];
       }
+      if (tabela === "exercise_state" && !("nota_pessoal" in limpa) && typeof limpa.notas === "string") {
+        limpa.nota_pessoal = limpa.notas;
+      }
       limpa.user_id = userId;
       if (!apontaParaDentro(tabela, limpa, userId, sessoesDoArquivo)) continue;
 
@@ -345,12 +348,14 @@ export function linhasParaImportar(
       linhas.push(limpa);
     }
 
-    if (linhas.length > 0) {
-      escritas.push({
-        tabela,
-        onConflict: CHAVE_DA_TABELA[tabela].join(","),
-        linhas,
-      });
+    // O PostgREST reúne as colunas de um upsert em lote. Uma linha de um
+    // backup antigo sem o campo não deve zerar a nota pessoal já existente.
+    const grupos = tabela === "exercise_state" ? [
+      linhas.filter((linha) => "nota_pessoal" in linha),
+      linhas.filter((linha) => !("nota_pessoal" in linha)),
+    ] : [linhas];
+    for (const grupo of grupos) {
+      if (grupo.length) escritas.push({ tabela, onConflict: CHAVE_DA_TABELA[tabela].join(","), linhas: grupo });
     }
   }
 

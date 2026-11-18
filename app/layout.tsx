@@ -68,9 +68,10 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="pt-BR" suppressHydrationWarning>
-      <body className="antialiased">
-        {/* a saída de uma tela que nunca hidratou (lib/vigia.ts) */}
+      <head>
         <script dangerouslySetInnerHTML={{ __html: scriptDoVigia() }} />
+      </head>
+      <body className="antialiased">
         <Providers>{children}</Providers>
       </body>
     </html>

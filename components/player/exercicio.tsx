@@ -40,6 +40,7 @@ import {
 } from "@/lib/player";
 import type { VotoDoExercicio } from "@/lib/preferencias";
 import { proximaCarga, type BlocoLocal, type SerieLocal } from "@/lib/sessao";
+import { useNotaDoExercicio } from "@/lib/queries/nota-do-exercicio";
 import { cn } from "@/lib/utils";
 
 /**
@@ -53,6 +54,7 @@ import { cn } from "@/lib/utils";
  * registrada e o descanso que começa.
  */
 export function TelaExercicio({
+  conta,
   passo,
   bloco,
   serie,
@@ -76,6 +78,7 @@ export function TelaExercicio({
   aoAjustar,
   aoAvaliar,
 }: {
+  conta: string;
   passo: PassoSerie;
   bloco: BlocoLocal;
   serie: SerieLocal;
@@ -112,6 +115,8 @@ export function TelaExercicio({
   aoAvaliar: (voto: VotoDoExercicio) => Promise<VotoDoExercicio | undefined>;
 }) {
   const exercicio = acharExercicio(bloco.exercicioId);
+  const primeiraSerie = bloco.series.find((s) => s.tipo === "aquecimento") ?? bloco.series[0];
+  const nota = useNotaDoExercicio(conta, primeiraSerie?.id === serie.id ? bloco.exercicioId : "");
   const implemento = exercicio.implemento as ImplementoMontagem;
   const incremento = bloco.alvo.incremento_kg;
   const anterior = serieAnteriorDe(anteriores, passo.numero);
@@ -326,6 +331,13 @@ export function TelaExercicio({
           </Button>
         </div>
       </div>
+
+      {nota.data && primeiraSerie?.id === serie.id ? (
+        <button type="button" onClick={aoAbrirFicha} className="alvo bg-muted mx-3 rounded-md px-3 py-1.5 text-left text-sm">
+          <span className="font-semibold">Nota pessoal</span>
+          <span className="line-clamp-2 break-words">{nota.data}</span>
+        </button>
+      ) : null}
 
       <div className="flex flex-col items-center gap-1.5 px-3">
         {/* um ponto por série deste exercício (SPEC §22.16 item 5) */}

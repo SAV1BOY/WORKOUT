@@ -74,6 +74,8 @@ export interface LinhaEstadoExercicio {
   sessoes_graca: number;
   desativado: boolean;
   notas: string | null;
+  /** Ausente nos caches e backups anteriores às notas fixas. */
+  nota_pessoal?: string | null;
   updated_at?: string;
 }
 

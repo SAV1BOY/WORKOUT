@@ -153,10 +153,11 @@ puras, sem React e sem Supabase, cobertas pelos 22 casos de
    | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | a chave **anon public** |
    | `ALLOWED_EMAIL` | `miguelgsaviotti29@gmail.com` — o e-mail do **dono** (§21) |
    | `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | par VAPID e contato usados no envio das notificações |
-   | `LEMBRETES_SEGREDO` | credencial interna que deve corresponder à entrada `lembretes_segredo` no Supabase Vault |
+   | `LEMBRETES_SEGREDO` | opcional. Se já estiver configurada, deve corresponder a `lembretes_segredo` no Supabase Vault |
 
-   No Vault, `lembretes_url` aponta para a rota de produção
-   `/api/lembretes/disparar`. O agendamento do Supabase verifica os avisos
+   No Vault, guarde a credencial em `lembretes_segredo` e a URL da rota de produção
+   `/api/lembretes/disparar` em `lembretes_url`. A rota pode autenticar o disparo
+   diretamente pelo Vault. O agendamento do Supabase verifica os avisos
    a cada cinco minutos. Cada conta escolhe seus horários e autoriza os aparelhos.
 
    *Deployment Protection* pode ficar em *Standard Protection*: ela protege só

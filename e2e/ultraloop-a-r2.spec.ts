@@ -355,7 +355,7 @@ test("o texto cortado em duas linhas continua inteiro no title", async ({ page }
   // e os `title` que serviam só de tooltip saíram
   await abrir(page, "/calendario", "dark");
   const casas = page.locator("main [class*='text-rotulo']");
-  expect(await casas.count()).toBeGreaterThan(0);
+  await expect(casas.first()).toBeVisible();
   const raios = page.locator("[data-raios]").first();
   if ((await raios.count()) > 0) {
     expect(await raios.getAttribute("title")).toBeNull();
