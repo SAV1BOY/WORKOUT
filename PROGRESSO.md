@@ -12980,35 +12980,49 @@ parser. Um backup antigo com `user_id` ausente continuou sendo lido com
 cinco listas omitidas. O postbuild conferiu os arquivos do worker contra os
 manifestos produzidos pelo Next, somando 104 recursos e 2.969.937 bytes.
 
-### 18/11/2026 — abertura do player e validações de identidade (L31)
+### 18/11/2026 — medições do player, da navegação offline e da faixa do treino
 
-Medições locais com build de produção do Next, Chromium com viewport de
-360 × 740 e Supabase simulado. A referência é o commit `1e80c6c`. A segunda
-coluna de resultados vem da integração de 18/11. A mesma sequência foi
-executada nas duas versões.
+Cada abertura usou a URL da mesma sessão A1, em um novo contexto do Chromium
+156.0.8078.79, com apenas os cookies de login. O cronômetro começou na
+navegação e terminou ao aparecer o primeiro botão do player. O teste usou o
+build de produção do Next, Supabase simulado e tela de 360 × 740 px. A rede
+4G emulada teve 80 ms de latência, 9 Mbit/s de download e 1,5 Mbit/s de upload.
 
-| Medição | Referência | Integração |
-| --- | ---: | ---: |
-| Seis aberturas da sessão A1, em ms | 4833, 4071, 5066, 7146, 5292, 4622 | 4470, 4464, 5499, 4733, 3845, 4174 |
-| Mediana da abertura | 4949,5 ms | 4467 ms |
-| GET em `/auth/v1/user` em seis minutos | 258 | 222 |
+| Revisão | Seis aberturas frias, em ms | Mediana |
+| --- | --- | ---: |
+| `1e80c6c` · main de referência | 4833, 4071, 5066, 7146, 5292, 4622 | 4949,5 ms |
+| `5f4a369` · sessão e séries consultadas em paralelo com o IndexedDB | 4470, 4464, 5499, 4733, 3845, 4174 | 4467 ms |
+| `429469d` · redução do JavaScript inicial integrada | 2273, 1748, 1651, 1882, 1698, 2019 | 1815 ms |
+| `12b6f0d` · candidato com o ajuste da faixa e do player | 2466, 3131, 2395, 3456, 1624, 2308 | 2430,5 ms |
 
-Cada abertura começou com um novo contexto do navegador contendo apenas os
-cookies de login. O cronômetro foi da navegação na URL da sessão ao primeiro
-botão visível do player. A rede emulada usou latência de 80 ms, download de
-9 Mbit/s e upload de 1,5 Mbit/s. O aparelho lê o IndexedDB ao mesmo tempo que
-pede a sessão e as séries ao servidor. A redução local da mediana foi de 9,7%.
-O exemplo de meta de 4 s ainda fica abaixo da mediana observada.
+A mediana do candidato ficou 50,9% abaixo da referência. As seis aberturas
+ficaram abaixo de 4 s na emulação. A medição em telefone físico com a rede
+móvel do usuário segue pendente. Para repetir a amostra e a contagem de
+autenticação, execute `E2E_MEDIR_SESSAO=1 npm run e2e -- e2e/medir-sessao.spec.ts`
+após `npm run build:e2e`. [Teste de medição](e2e/medir-sessao.spec.ts)
 
-Para a contagem de identidade, dois contextos autenticados visitaram Treino,
-Corpo, Calendário e Mais, seis ciclos de quatro telas por contexto, a cada
-15 s. O mock usa tokens HS256, cuja verificação também pode consultar o
-servidor. Compartilhar a identidade verificada na mesma requisição produziu
-14,0% menos chamadas nesse cenário. Os valores de produção dependem da chave
-de assinatura e dos registros do serviço de autenticação.
-
-Para repetir contra um mock local após `npm run build:e2e`, execute
-`E2E_MEDIR_SESSAO=1 npm run e2e -- e2e/medir-sessao.spec.ts`.
+- **Autenticação.** Dois contextos autenticados visitaram Treino, Corpo,
+  Calendário e Mais a cada 15 s, em seis ciclos de quatro telas. As requisições
+  GET a `/auth/v1/user` em seis minutos caíram de 258 em `1e80c6c` para 222
+  em `5f4a369`, redução de 14,0% com tokens HS256 do mock. A contagem do
+  serviço real de autenticação depende dos registros de produção.
+- **Navegação sem rede.** A prova no Chromium apagou a página de socorro,
+  recompôs o cache ao navegar com rede e visitou duas rotas com a rede do worker
+  desligada. Na segunda navegação, a referência fez 45 buscas globais de
+  arquivos de JavaScript/CSS no cache e 3 leituras do corpo HTML. Em `429469d`
+  e `12b6f0d` as contagens foram zero nas duas categorias. A página offline
+  manteve o estilo e o link “Ir para o Treino”. [Teste do worker](e2e/sem-conexao.spec.ts)
+- **Faixa a 360 px.** No Chromium 141.0.7390.37 do projeto, o resumo
+  “Treino A · 44 min · 6 exercícios” passou de 227 a 243 px de largura
+  disponível, com uma linha nos dois temas e 52 px de altura interna da faixa.
+  A 125% do tamanho padrão da fonte, a versão anterior precisava de 250 px
+  e dispunha de 217 px. Em `12b6f0d` as palavras passaram a ocupar duas linhas
+  de até 235 px, sem corte. O teste também confirmou que rolar até o fim ao
+  voltar de uma sessão ativa mostra o progresso e o link “Continuar”. Com
+  outras provas de navegador em paralelo, a varredura dos pontos de toque
+  e a ativação da faixa pelo título passaram dez vezes cada em `429469d`
+  e dez vezes cada no build de `429469d` com a correção incorporada em
+  `12b6f0d`. [Teste da faixa](e2e/ultraloop-a-r4.spec.ts)
 
 ### Decisão sobre a semana na capa dos planos — 18/11/2026
 
