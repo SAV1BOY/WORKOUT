@@ -208,7 +208,7 @@ Design: sóbrio, alto contraste, tipografia grande nos números (é lido a um br
 
 ## 8. Offline e sincronização
 
-- Service worker (Serwist/`@serwist/next`) com precache do shell, das figuras e das fotos do programa atual; fotos do catálogo inteiro em cache sob demanda.
+- O service worker (Serwist/`@serwist/next`) instala as rotas do App Router, os ícones e a página de socorro. As imagens da fase podem ser baixadas em Mais. Abrir exercícios também guarda as mídias no aparelho.
 - **Sessão em andamento vive no cliente** (IndexedDB via Dexie ou `idb-keyval`): cada toque é salvo localmente na hora. Uma fila de saída (`outbox`) envia para o Supabase o que mudou (série concluída, sessão finalizada, peso, cardio). Se estiver sem rede, a fila espera e reenvia ao voltar (`online` event + retry com backoff). Nunca perder uma série registrada por falta de sinal.
 - Leitura: TanStack Query com cache persistido; a tela Hoje abre com os dados da última sincronização e atualiza em segundo plano.
 - Conflitos: um usuário, um aparelho por vez — última escrita vence; `sessions.id` gerado no cliente (uuid) para permitir criar offline.
@@ -293,7 +293,7 @@ Vitrine de **coleções derivadas** dos JSON, cada uma com capa (foto de um exer
 - **Parte do corpo em foco**: chips dos 8 grupos (`grupo` de `exercicios.json`); cada um lista os exercícios do grupo e oferece "Começar" com os 6 primeiros do grupo que usam equipamento disponível (ordem: compostos primeiro, depois isolamento, como a tabela de faixas de `progressao.json`).
 - **Por aparelho**: os itens de `equipamentos.json` que habilitam algum exercício, com o `nome_curto` do item e a meta "N exercícios que dão para fazer com ele" (§22.12 item 2; a foto de `assets/itens/<item>/` fica em Mais → Equipamento).
 - **Circuitos** (os 14 exercícios de `origem = "aparelho"`): "Core no tatame" (8), "Corda" (3), "Elástico" (3). Abrem no **modo circuito guiado** (13.6).
-- **Planos e desafios**: "Primeira barra fixa" (`cardio.barra_fixa`), "5 km sem parar" (a meta da última semana de `cardio.corrida`) e "Corda: 5 estágios" (`cardio.corda`) — títulos curtos, o prazo fica no objetivo e na meta (§22.12 item 4; sem perfil e sem meta, o objetivo aparece inteiro) —, barra fixa e corrida com a semana atual do perfil na meta da vitrine (na tela do plano, a posição fica só no bloco das semanas, §22.15 item 7), a corda com a sua duração na meta da vitrine e da capa (a posição dela, `profiles.semana_corda`, aparece na lista das semanas da tela do plano, §22.13 item 9), e cada um com o botão da sessão (§22.12 item 7). "Desafio" aqui é o plano real com progresso visível; não existe desafio inventado.
+- **Planos e desafios**: "Primeira barra fixa" (`cardio.barra_fixa`), "5 km sem parar" (a meta da última semana de `cardio.corrida`) e "Corda: 5 estágios" (`cardio.corda`) — títulos curtos, o prazo fica no objetivo e na meta (§22.12 item 4; sem perfil e sem meta, o objetivo aparece inteiro) —, na vitrine, barra fixa e corrida mostram a semana atual do perfil e a corda mostra a duração. Na tela dos três planos, a capa e o bloco de progresso mostram a semana atual do perfil (§22.15 item 7). Cada plano tem o botão da sessão (§22.12 item 7). "Desafio" aqui é o plano real com progresso visível; não existe desafio inventado.
 - **Treinos do programa**: A1, B1, SA, IA, SB, IB com "Fazer hoje" (vale como próximo da alternância, §5.3).
 - **Busca** por nome de exercício e de coleção, sem acento.
 
