@@ -9,23 +9,8 @@
  */
 import { z } from "zod";
 import { ANGULOS, caminhoDaFoto } from "@/lib/corpo";
-
-/** As 11 tabelas de `supabase/schema.sql` que pertencem ao usuário. */
-export const TABELAS_BACKUP = [
-  "profiles",
-  "exercise_state",
-  "sessions",
-  "session_sets",
-  "progression_events",
-  "cardio_sessions",
-  "pullup_singles",
-  "body_weights",
-  "body_measurements",
-  "progress_photos",
-  "schedule_overrides",
-] as const;
-
-export type TabelaBackup = (typeof TABELAS_BACKUP)[number];
+import { CHAVE_DA_TABELA, TABELAS_BACKUP, type TabelaBackup } from "@/lib/tabelas-do-usuario";
+export { CHAVE_DA_TABELA, TABELAS_BACKUP, type TabelaBackup } from "@/lib/tabelas-do-usuario";
 
 export type Linha = Record<string, unknown>;
 
@@ -42,21 +27,6 @@ export const NOME_DA_TABELA: Record<TabelaBackup, string> = {
   body_measurements: "medidas",
   progress_photos: "fotos de progresso",
   schedule_overrides: "trocas do calendário",
-};
-
-/** A chave primária de cada tabela (o que torna a importação idempotente). */
-export const CHAVE_DA_TABELA: Record<TabelaBackup, string[]> = {
-  profiles: ["user_id"],
-  exercise_state: ["user_id", "exercise_id"],
-  sessions: ["id"],
-  session_sets: ["id"],
-  progression_events: ["id"],
-  cardio_sessions: ["id"],
-  pullup_singles: ["id"],
-  body_weights: ["id"],
-  body_measurements: ["id"],
-  progress_photos: ["id"],
-  schedule_overrides: ["id"],
 };
 
 /**
@@ -118,14 +88,12 @@ export interface Backup {
   tabelas: Partial<Record<TabelaBackup, Linha[]>>;
 }
 
-const linhaSchema = z.record(z.string(), z.unknown());
-
 const backupSchema = z.object({
   app: z.string(),
   versao: z.number().int().positive(),
   exportado_em: z.string(),
   user_id: z.string().nullable().optional(),
-  tabelas: z.record(z.string(), z.array(linhaSchema)),
+  tabelas: z.record(z.string(), z.array(z.record(z.string(), z.unknown()))),
 });
 
 /* ------------------------------------------------------------ exportar */

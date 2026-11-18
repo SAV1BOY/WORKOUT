@@ -1,4 +1,4 @@
-import { CHAVE_DA_TABELA, type TabelaBackup } from "@/lib/backup";
+import { CHAVE_DA_TABELA, type TabelaBackup } from "@/lib/tabelas-do-usuario";
 import { clienteNavegador } from "@/lib/supabase/client";
 
 /**

@@ -13,6 +13,7 @@ import { alternativasPara } from "@/lib/alternativas";
 import {
   acharExercicio,
   acharTreino,
+  ehTreinoDoPrograma,
   exercicioPorId,
   textoDoMotor,
 } from "@/lib/dados";
@@ -60,10 +61,7 @@ import type {
  */
 export type { WorkoutId };
 
-/** É um treino do programa (só eles avançam `profiles.ultimo_treino`)? */
-export function ehTreinoDoPrograma(id: WorkoutId): id is TreinoId {
-  return id !== "livre" && id !== "fixa";
-}
+export { ehTreinoDoPrograma } from "@/lib/dados";
 
 /** Uma linha de série na tela e no `session_sets`. */
 export interface SerieLocal {

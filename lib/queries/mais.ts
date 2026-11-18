@@ -10,16 +10,8 @@
 "use client";
 
 import { useQuery, type QueryClient, type UseQueryResult } from "@tanstack/react-query";
-import {
-  CHAVE_DA_TABELA,
-  TABELAS_BACKUP,
-  emLotes,
-  linhasParaImportar,
-  montarBackup,
-  type Backup,
-  type Linha,
-  type TabelaBackup,
-} from "@/lib/backup";
+import { CHAVE_DA_TABELA, TABELAS_BACKUP, type TabelaBackup } from "@/lib/tabelas-do-usuario";
+import type { Backup, Linha } from "@/lib/backup";
 import { adiarFase2 } from "@/lib/calendario";
 import { esperarFila } from "@/lib/outbox";
 import { enfileirarEscrita } from "@/lib/outbox-supabase";
@@ -298,7 +290,9 @@ export async function exportarBackup(opcoes: {
   userId: string;
   agora: string;
 }): Promise<Backup> {
-  const tabelas = await lerTudo(opcoes.userId);
+  const [{ montarBackup }, tabelas] = await Promise.all([
+    import("@/lib/backup"), lerTudo(opcoes.userId),
+  ]);
   return montarBackup({
     userId: opcoes.userId,
     exportadoEm: opcoes.agora,
@@ -336,6 +330,7 @@ export async function importarBackup(opcoes: {
   userId: string;
   cliente: QueryClient;
 }): Promise<number> {
+  const { emLotes, linhasParaImportar } = await import("@/lib/backup");
   const { backup, userId, cliente } = opcoes;
   let linhas = 0;
 
