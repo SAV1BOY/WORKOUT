@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
-import { QueryClient } from "@tanstack/react-query";
+import { hydrate, type DehydratedState, QueryClient } from "@tanstack/react-query";
 import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
-import { type ItemSaida } from "@/lib/db";
+import { guardarCache, type ItemSaida } from "@/lib/db";
 import { enfileirar } from "@/lib/outbox";
 import { alvoDaEscrita, type EscritaTabela } from "@/lib/outbox-supabase";
 import { chaveDaNota, gravarNotaDoExercicio, lerNotaDoExercicio } from "@/lib/queries/nota-do-exercicio";
@@ -12,6 +12,7 @@ vi.mock("@/lib/supabase/client", () => ({ clienteNavegador: vi.fn() }));
 vi.mock("@/lib/outbox", () => ({ enfileirar: vi.fn() }));
 vi.mock("@/lib/db", () => ({
   temIndexedDB: () => true,
+  guardarCache: vi.fn(async () => {}),
   bd: () => ({ outbox: { where: (indice: string) => ({ equals: (tipo: string) => ({ reverse: () => ({
     toArray: () => Promise.resolve(pendentes.filter((i) => i[indice as keyof ItemSaida] === tipo).reverse()),
   }) }) }) } }),
@@ -50,6 +51,20 @@ describe("notas pessoais por conta e exercício", () => {
     await gravarNotaDoExercicio(primeiro, "ana", "supino", "");
     expect(await lerNotaDoExercicio(reaberto, "ana", "supino", sinal())).toBeNull();
     expect(await lerNotaDoExercicio(reaberto, "bia", "supino", sinal())).toBe("banco 1");
+    expect(clienteNavegador).not.toHaveBeenCalled();
+  });
+  it("um reload imediato sem rede lê a última edição já entregue ao servidor, inclusive a remoção", async () => {
+    vi.stubGlobal("navigator", { onLine: false });
+    const anterior = new QueryClient();
+    for (const texto of ["nova regulagem", ""]) {
+      await gravarNotaDoExercicio(anterior, "ana", "supino", texto);
+      // A entrega já drenou a fila e a página fechou sem esperar o debounce.
+      pendentes.length = 0;
+      const disco = vi.mocked(guardarCache).mock.calls.at(-1)?.[1] as { estado: DehydratedState };
+      const reaberto = new QueryClient();
+      hydrate(reaberto, disco.estado);
+      expect(await lerNotaDoExercicio(reaberto, "ana", "supino", sinal())).toBe(texto || null);
+    }
     expect(clienteNavegador).not.toHaveBeenCalled();
   });
   it("lê do servidor somente a coluna da nota e restringe a consulta à conta e ao exercício", async () => {

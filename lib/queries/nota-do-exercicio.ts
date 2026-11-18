@@ -2,6 +2,7 @@
 
 import { useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { bd, temIndexedDB } from "@/lib/db";
+import { guardarConsultasAgora } from "@/lib/persistencia-query";
 import { enfileirarEscrita, type EscritaTabela } from "@/lib/outbox-supabase";
 import { clienteNavegador } from "@/lib/supabase/client";
 import type { LinhaEstadoExercicio } from "@/lib/types";
@@ -57,6 +58,8 @@ export function useNotaDoExercicio(conta: string, exercicioId: string) {
     queryKey: chaveDaNota(conta, exercicioId),
     enabled: Boolean(conta && exercicioId),
     networkMode: "always",
+    // Uma ficha pode ter sido editada logo antes de um reload ou em outro aparelho.
+    refetchOnMount: "always",
     // O player normalmente já leu os estados do treino, inclusive sem rede.
     placeholderData: () => notaNosEstados(cliente, conta, exercicioId),
     queryFn: ({ signal }) => lerNotaDoExercicio(cliente, conta, exercicioId, signal),
@@ -80,4 +83,7 @@ export async function gravarNotaDoExercicio(cliente: QueryClient, conta: string,
         ? { ...linha, nota_pessoal: nota } : linha),
     );
   }
+  // O cache normal só é gravado após o debounce. A pessoa pode fechar a
+  // ficha ou recarregar offline assim que a confirmação de gravação aparece.
+  await guardarConsultasAgora(cliente);
 }
