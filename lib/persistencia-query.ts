@@ -33,6 +33,27 @@ function temUrlLocalDeFoto(chave: readonly unknown[], dados: unknown): boolean {
     && Object.values(dados).some((url) => typeof url === "string" && url.startsWith("blob:"));
 }
 
+/** Grava o estado atual sem aguardar o intervalo das escritas em segundo plano. */
+export async function guardarConsultasAgora(cliente: QueryClient): Promise<void> {
+  if (!temIndexedDB()) return;
+  const estado = dehydrate(cliente, {
+    /*
+     * Tudo que TEM dado, não só o que está com `status: "success"`. Sem rede
+     * a consulta rehidratada falha ao revalidar e passa para "error" com os
+     * dados ainda ali; guardando só o "success", a primeira gravação depois
+     * de ficar offline apagava do cache justamente o que faz o app funcionar
+     * sem rede (SPEC §8) — as cargas atuais, entre elas.
+     */
+    shouldDehydrateQuery: (q) =>
+      q.state.data !== undefined && q.state.status !== "pending" &&
+      !temUrlLocalDeFoto(q.queryKey, q.state.data),
+  });
+  await guardarCache(CHAVE_CACHE, {
+    salvoEm: Date.now(),
+    estado,
+  } satisfies Guardado);
+}
+
 /**
  * Restaura o que foi salvo da última vez e passa a salvar as mudanças.
  * Devolve a função que desliga a assinatura.
@@ -45,22 +66,7 @@ export function persistirQueryClient(cliente: QueryClient): () => void {
 
   const salvar = () => {
     agendado = null;
-    const estado = dehydrate(cliente, {
-      /*
-       * Tudo que TEM dado, não só o que está com `status: "success"`. Sem rede
-       * a consulta rehidratada falha ao revalidar e passa para "error" com os
-       * dados ainda ali; guardando só o "success", a primeira gravação depois
-       * de ficar offline apagava do cache justamente o que faz o app funcionar
-       * sem rede (SPEC §8) — as cargas atuais, entre elas.
-       */
-      shouldDehydrateQuery: (q) =>
-        q.state.data !== undefined && q.state.status !== "pending" &&
-        !temUrlLocalDeFoto(q.queryKey, q.state.data),
-    });
-    void guardarCache(CHAVE_CACHE, {
-      salvoEm: Date.now(),
-      estado,
-    } satisfies Guardado).catch(() => {});
+    void guardarConsultasAgora(cliente).catch(() => {});
   };
 
   void (async () => {

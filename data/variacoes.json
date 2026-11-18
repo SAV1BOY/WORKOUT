@@ -371,5 +371,276 @@
     "figura_animada": false,
     "fotos": [],
     "foto_fonte_id": ""
+  },
+  {
+    "id": "salto-ritmado-sem-corda",
+    "nome": "Salto ritmado com corda imaginária",
+    "grupo": "Cardio",
+    "origem": "aparelho",
+    "subgrupo": null,
+    "musculos_primarios": [
+      "panturrilha"
+    ],
+    "musculos_secundarios": [
+      "quadriceps",
+      "abdomen"
+    ],
+    "musculos_primarios_nome": [
+      "Panturrilha"
+    ],
+    "musculos_secundarios_nome": [
+      "Quadríceps",
+      "Reto abdominal"
+    ],
+    "equipamento_texto": "Peso corporal",
+    "equipamento": [],
+    "implemento": "peso_corporal",
+    "montagem": "Em pé em um piso firme, deixe espaço livre em volta dos pés e dobre os cotovelos junto ao tronco.",
+    "passos": [
+      "Faça saltos baixos com os pés juntos, girando suavemente os punhos como se passasse uma corda.",
+      "Aterrisse com os joelhos soltos e mantenha uma cadência que consiga sustentar durante o intervalo."
+    ],
+    "erro_comum": "Saltar mais alto a cada repetição e perder o ritmo.",
+    "prescricao_padrao": {
+      "series": 4,
+      "tipo": "tempo_s",
+      "min": 30,
+      "max": 45,
+      "unilateral": false,
+      "texto": "4 × 30–45 s",
+      "descanso_s": 60
+    },
+    "categoria": "core_peso_corporal",
+    "carga_inicial": {
+      "kg": 0,
+      "nota": "Peso corporal, sem carga externa."
+    },
+    "progressao": {
+      "tipo": "tempo",
+      "incremento_s": 5,
+      "regra": "Quando completar todos os intervalos com ritmo regular, acrescente 5 segundos por série dentro da faixa."
+    },
+    "figura": null,
+    "figura_animada": false,
+    "fotos": [],
+    "foto_fonte_id": ""
+  },
+  {
+    "id": "corrida-estacionaria-sem-corda",
+    "nome": "Corrida no lugar sem corda",
+    "grupo": "Cardio",
+    "origem": "aparelho",
+    "subgrupo": null,
+    "musculos_primarios": [
+      "panturrilha"
+    ],
+    "musculos_secundarios": [
+      "quadriceps",
+      "posterior",
+      "abdomen"
+    ],
+    "musculos_primarios_nome": [
+      "Panturrilha"
+    ],
+    "musculos_secundarios_nome": [
+      "Quadríceps",
+      "Posterior de coxa",
+      "Reto abdominal"
+    ],
+    "equipamento_texto": "Peso corporal",
+    "equipamento": [],
+    "implemento": "peso_corporal",
+    "montagem": "Fique em pé em um piso firme, com os cotovelos dobrados e os pés afastados na largura dos quadris.",
+    "passos": [
+      "Alterne os pés em passos curtos, acompanhando cada passada com o braço oposto.",
+      "Apoie os pés perto da linha dos quadris e mantenha o ritmo por todo o intervalo."
+    ],
+    "erro_comum": "Avançar pelo espaço ou bater os pés com força para ganhar velocidade.",
+    "prescricao_padrao": {
+      "series": 4,
+      "tipo": "tempo_s",
+      "min": 30,
+      "max": 45,
+      "unilateral": false,
+      "texto": "4 × 30–45 s",
+      "descanso_s": 60
+    },
+    "categoria": "core_peso_corporal",
+    "carga_inicial": {
+      "kg": 0,
+      "nota": "Peso corporal, sem carga externa."
+    },
+    "progressao": {
+      "tipo": "tempo",
+      "incremento_s": 5,
+      "regra": "Quando completar todos os intervalos com ritmo regular, acrescente 5 segundos por série dentro da faixa."
+    },
+    "figura": null,
+    "figura_animada": false,
+    "fotos": [],
+    "foto_fonte_id": ""
+  },
+  {
+    "id": "salto-vertical-com-contramovimento",
+    "nome": "Salto vertical com contramovimento",
+    "grupo": "Cardio",
+    "origem": "aparelho",
+    "subgrupo": null,
+    "musculos_primarios": [
+      "quadriceps"
+    ],
+    "musculos_secundarios": [
+      "gluteo",
+      "panturrilha"
+    ],
+    "musculos_primarios_nome": [
+      "Quadríceps"
+    ],
+    "musculos_secundarios_nome": [
+      "Glúteo",
+      "Panturrilha"
+    ],
+    "equipamento_texto": "Peso corporal",
+    "equipamento": [],
+    "implemento": "peso_corporal",
+    "montagem": "Escolha uma superfície firme e nivelada com altura livre acima da cabeça. Fique com os pés na largura dos quadris.",
+    "passos": [
+      "Flexione quadris e joelhos em um movimento curto e estenda as pernas para saltar na vertical.",
+      "Aterrisse com os dois pés, amorteça dobrando quadris e joelhos e retome o equilíbrio antes do próximo salto."
+    ],
+    "erro_comum": "Rebater no chão sem recuperar o equilíbrio entre os saltos.",
+    "prescricao_padrao": {
+      "series": 3,
+      "tipo": "reps",
+      "min": 4,
+      "max": 6,
+      "unilateral": false,
+      "texto": "3 × 4–6",
+      "descanso_s": 90
+    },
+    "categoria": "core_peso_corporal",
+    "carga_inicial": {
+      "kg": 0,
+      "nota": "Peso corporal, sem carga externa."
+    },
+    "progressao": {
+      "tipo": "reps",
+      "incremento_reps": 1,
+      "regra": "Mantenha a mesma altura e uma aterrissagem controlada em cada repetição. Acrescente uma repetição dentro da faixa quando conseguir repetir essa qualidade."
+    },
+    "figura": null,
+    "figura_animada": false,
+    "fotos": [],
+    "foto_fonte_id": ""
+  },
+  {
+    "id": "bird-dog-no-tatame",
+    "nome": "Bird dog em quatro apoios",
+    "grupo": "Core",
+    "origem": "aparelho",
+    "subgrupo": "tatame",
+    "musculos_primarios": [
+      "lombar"
+    ],
+    "musculos_secundarios": [
+      "abdomen",
+      "obliquo",
+      "gluteo"
+    ],
+    "musculos_primarios_nome": [
+      "Lombar (eretores)"
+    ],
+    "musculos_secundarios_nome": [
+      "Reto abdominal",
+      "Oblíquos",
+      "Glúteo"
+    ],
+    "equipamento_texto": "Tatame",
+    "equipamento": [
+      "tatame"
+    ],
+    "implemento": "peso_corporal",
+    "montagem": "No tatame, apoie as mãos abaixo dos ombros e os joelhos abaixo dos quadris, com o tronco alinhado.",
+    "passos": [
+      "Estenda ao mesmo tempo um braço e a perna oposta até ficarem alinhados ao tronco.",
+      "Faça uma breve pausa sem girar a pelve, retorne aos apoios e repita do outro lado. Conte cada lado separadamente."
+    ],
+    "erro_comum": "Levantar a perna acima do quadril e arquear a lombar.",
+    "prescricao_padrao": {
+      "series": 3,
+      "tipo": "reps",
+      "min": 6,
+      "max": 10,
+      "unilateral": true,
+      "texto": "3 × 6–10 por lado",
+      "descanso_s": 60
+    },
+    "categoria": "core_peso_corporal",
+    "carga_inicial": {
+      "kg": 0,
+      "nota": "Peso corporal, sem carga externa."
+    },
+    "progressao": {
+      "tipo": "reps",
+      "incremento_reps": 1,
+      "regra": "Aumente uma repetição dentro da faixa quando completar todas as séries com controle."
+    },
+    "figura": null,
+    "figura_animada": false,
+    "fotos": [],
+    "foto_fonte_id": ""
+  },
+  {
+    "id": "elevacao-em-t-no-tatame",
+    "nome": "Elevação em T no tatame",
+    "grupo": "Ombros",
+    "origem": "aparelho",
+    "subgrupo": "tatame",
+    "musculos_primarios": [
+      "ombrop"
+    ],
+    "musculos_secundarios": [
+      "trapezio"
+    ],
+    "musculos_primarios_nome": [
+      "Deltoide posterior"
+    ],
+    "musculos_secundarios_nome": [
+      "Trapézio"
+    ],
+    "equipamento_texto": "Tatame",
+    "equipamento": [
+      "tatame"
+    ],
+    "implemento": "peso_corporal",
+    "montagem": "Deite de barriga para baixo, com o pescoço alinhado e os braços abertos em T, polegares para cima.",
+    "passos": [
+      "Aproxime suavemente as escápulas e tire os braços poucos centímetros do chão.",
+      "Faça uma pausa breve e abaixe devagar, mantendo o peito e a pelve apoiados."
+    ],
+    "erro_comum": "Encolher os ombros ou erguer o peito para aumentar a amplitude.",
+    "prescricao_padrao": {
+      "series": 2,
+      "tipo": "reps",
+      "min": 12,
+      "max": 15,
+      "unilateral": false,
+      "texto": "2 × 12–15",
+      "descanso_s": 60
+    },
+    "categoria": "core_peso_corporal",
+    "carga_inicial": {
+      "kg": 0,
+      "nota": "Peso corporal, sem carga externa."
+    },
+    "progressao": {
+      "tipo": "reps",
+      "incremento_reps": 1,
+      "regra": "Aumente uma repetição dentro da faixa quando completar todas as séries com controle."
+    },
+    "figura": null,
+    "figura_animada": false,
+    "fotos": [],
+    "foto_fonte_id": ""
   }
 ]

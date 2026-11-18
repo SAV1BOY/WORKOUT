@@ -3,7 +3,7 @@
 App de treino para o terraço de casa: Next.js 15 + Supabase, instalável como
 PWA, feito para um celular de 360 px e para funcionar sem rede. Qualquer pessoa
 pode criar conta pela tela de login **enquanto houver vaga** — o dono ajusta o
-limite em Mais → Contas (SPEC §21) — e cada conta só vê os próprios dados. Todo o conteúdo — 81 exercícios do catálogo, sete variações para substituições, o programa das duas
+limite em Mais → Contas (SPEC §21) — e cada conta só vê os próprios dados. Todo o conteúdo — 81 exercícios do catálogo, 12 variações para substituições, o programa das duas
 fases, os planos de cardio e de barra fixa, as regras de progressão e o
 equipamento — vem dos JSON em `data/`; o código não escreve treino nenhum.
 
@@ -136,8 +136,9 @@ puras, sem React e sem Supabase, cobertas pelos 22 casos de
    `supabase/schema.sql` o bloco **"AJUSTE AQUI"** — a função
    `public.allowed_email()` tem que devolver o mesmo e-mail do `ALLOWED_EMAIL`
    do app (é o e-mail do **dono**: quem administra a cota de contas). Rodar o
-   arquivo inteiro no SQL Editor (é idempotente), conferir as 11 tabelas, a
-   tabela `app_config` (a cota, semeada com 5) e o bucket `progresso`, e em
+   arquivo inteiro no SQL Editor (é idempotente). Confira as tabelas de treino,
+   `app_config` (a cota inicial é 5), `lembretes_inscricoes`,
+   `lembretes_enviados` e o bucket `progresso`. Em
    *Authentication → Providers → Email* deixar **Confirm email desligado**.
    Copiar a *Project URL* e a chave **anon public** (a `service_role` nunca sai
    do painel). Em um projeto existente, compare o histórico de migrações com

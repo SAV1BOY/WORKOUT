@@ -621,6 +621,10 @@ async function conferirAbas(escopo: Locator, page: Page): Promise<void> {
 }
 
 test.describe("§22.14 item 4 — a aba do tutorial diz para onde leva", () => {
+  // A miniatura nas duas condições de rede é servida pelo Playwright.
+  // Um fetch do service worker passaria por fora dessas rotas do navegador.
+  test.use({ serviceWorkers: "block" });
+
   test("com rede o tutorial toca dentro do app, e a aba não tem ícone de saída", async ({
     page,
   }) => {
@@ -644,15 +648,6 @@ test.describe("§22.14 item 4 — a aba do tutorial diz para onde leva", () => {
   });
 
   test.describe("sem rede", () => {
-    /*
-     * Rodada 16: o service worker (NetworkFirst para outra origem) busca a
-     * miniatura ele mesmo, e o que ele busca não passa pelo `page.route` —
-     * quando ele já controlava a página, a miniatura chegava da rede de
-     * verdade e o "sem rede" não aparecia (falhou 1 vez na sonda da rodada
-     * 16). Bloqueado aqui, como em `ultraloop-b-r2.spec.ts`.
-     */
-    test.use({ serviceWorkers: "block" });
-
     test("sem rede, o 'Abrir no YouTube' é o que sai do app, e é ele que tem o ícone", async ({
       page,
     }) => {

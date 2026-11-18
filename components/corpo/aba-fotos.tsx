@@ -210,13 +210,15 @@ function Comparacao({
   dias: ReturnType<typeof fotosPorData>;
   urls: Record<string, string>;
 }) {
-  const padrao = parDeComparacao(dias);
-  const [antes, setAntes] = useState<string | null>(padrao.antes);
-  const [depois, setDepois] = useState<string | null>(padrao.depois);
+  // Só guardamos escolhas feitas pela pessoa. Antes disso, o par acompanha
+  // as fotos que acabam de entrar ou sair da galeria.
+  const [antes, setAntes] = useState<string | null>(null);
+  const [depois, setDepois] = useState<string | null>(null);
   const [posicao, setPosicao] = useState(50);
 
-  const diaAntes = dias.find((d) => d.data === (antes ?? padrao.antes)) ?? null;
-  const diaDepois = dias.find((d) => d.data === (depois ?? padrao.depois)) ?? null;
+  const par = parDeComparacao(dias, { antes, depois });
+  const diaAntes = dias.find((d) => d.data === par.antes) ?? null;
+  const diaDepois = dias.find((d) => d.data === par.depois) ?? null;
   const comuns = angulosEmComum(diaAntes, diaDepois);
   const [angulo, setAngulo] = useState<AnguloFoto>("frente");
   const anguloAtivo = comuns.includes(angulo) ? angulo : (comuns[0] ?? null);
@@ -248,7 +250,10 @@ function Comparacao({
                 </span>
                 <select
                   value={diaAntes?.data ?? ""}
-                  onChange={(e) => setAntes(e.target.value)}
+                  onChange={(e) => {
+                    if (e.target.value === par.depois) setDepois(par.antes);
+                    setAntes(e.target.value);
+                  }}
                   className="alvo border-input bg-background h-11 rounded-md border px-2 text-sm"
                 >
                   {dias.map((d) => (
@@ -264,7 +269,10 @@ function Comparacao({
                 </span>
                 <select
                   value={diaDepois?.data ?? ""}
-                  onChange={(e) => setDepois(e.target.value)}
+                  onChange={(e) => {
+                    if (e.target.value === par.antes) setAntes(par.depois);
+                    setDepois(e.target.value);
+                  }}
                   className="alvo border-input bg-background h-11 rounded-md border px-2 text-sm"
                 >
                   {dias.map((d) => (

@@ -5,7 +5,7 @@
  * mora o **histórico**, que é novo.
  */
 import { minutosDoPlano } from "@/lib/cardio";
-import { acharTreino } from "@/lib/dados";
+import { acharTreino, ehTreinoDoPrograma } from "@/lib/dados";
 import { formatarMinutos } from "@/lib/formato";
 import { ehSessaoLivre, tituloDoPlano } from "@/lib/livre";
 import {
@@ -17,7 +17,6 @@ import {
   type SessaoBruta,
   type SoltaBruta,
 } from "@/lib/progresso";
-import { ehTreinoDoPrograma } from "@/lib/sessao";
 import type { RetomadaGravada } from "@/lib/retomada";
 import type { MotivoProgressao, TipoCardio } from "@/lib/types";
 

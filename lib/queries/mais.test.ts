@@ -1,10 +1,17 @@
 import { QueryClient } from "@tanstack/react-query";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { guardarCache } from "@/lib/db";
 import { chaves } from "@/lib/queries/dados";
 import { salvarIncremento, salvarPrefsOuDesfazer } from "@/lib/queries/mais";
 import type { LinhaEstadoExercicio, LinhaPerfil, Prefs } from "@/lib/types";
 
 const enfileirada = vi.hoisted(() => vi.fn());
+
+vi.mock("@/lib/db", async (original) => ({
+  ...(await original<typeof import("@/lib/db")>()),
+  temIndexedDB: () => true,
+  guardarCache: vi.fn().mockResolvedValue(undefined),
+}));
 
 vi.mock("@/lib/outbox-supabase", () => ({
   enfileirarEscrita: enfileirada,
@@ -35,6 +42,24 @@ function linhaExistente(): LinhaEstadoExercicio {
 describe("salvarIncremento (SPEC §3.9)", () => {
   beforeEach(() => {
     enfileirada.mockClear();
+  });
+
+  it("a confirmação de uma alteração já inclui a cópia usada na próxima recarga", async () => {
+    const cliente = new QueryClient();
+    await salvarIncremento({
+      userId: "u1", exercicioId: "agachamento-livre", incrementoKg: 6, cliente, idsEmTela: IDS,
+    });
+
+    expect(guardarCache).toHaveBeenLastCalledWith("react-query-v1", expect.objectContaining({
+      estado: expect.objectContaining({
+        queries: [expect.objectContaining({
+          queryKey: chaves.estados(IDS),
+          state: expect.objectContaining({
+            data: [expect.objectContaining({ exercise_id: "agachamento-livre", incremento_kg: 6 })],
+          }),
+        })],
+      }),
+    }));
   });
 
   it("atualiza a linha que já existe no cache", async () => {

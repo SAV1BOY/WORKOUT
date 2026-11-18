@@ -10,18 +10,11 @@
 "use client";
 
 import { useQuery, type QueryClient, type UseQueryResult } from "@tanstack/react-query";
-import {
-  CHAVE_DA_TABELA,
-  TABELAS_BACKUP,
-  emLotes,
-  linhasParaImportar,
-  montarBackup,
-  type Backup,
-  type Linha,
-  type TabelaBackup,
-} from "@/lib/backup";
+import { CHAVE_DA_TABELA, TABELAS_BACKUP, type TabelaBackup } from "@/lib/tabelas-do-usuario";
+import type { Backup, Linha } from "@/lib/backup";
 import { adiarFase2 } from "@/lib/calendario";
 import { esperarFila } from "@/lib/outbox";
+import { guardarConsultasAgora } from "@/lib/persistencia-query";
 import { enfileirarEscrita } from "@/lib/outbox-supabase";
 import { novoId } from "@/lib/queries/acoes";
 import { chaves } from "@/lib/queries/dados";
@@ -225,6 +218,17 @@ export async function salvarIncremento(opcoes: {
 }): Promise<void> {
   const { userId, exercicioId, incrementoKg, cliente, idsEmTela } = opcoes;
 
+  await enfileirarEscrita("estado_exercicio", {
+    tabela: "exercise_state",
+    op: "upsert",
+    linha: {
+      user_id: userId,
+      exercise_id: exercicioId,
+      incremento_kg: incrementoKg,
+    },
+    onConflict: "user_id,exercise_id",
+  });
+
   cliente.setQueryData<LinhaEstadoExercicio[]>(
     chaves.estados(idsEmTela),
     (atual) => {
@@ -237,7 +241,7 @@ export async function salvarIncremento(opcoes: {
             : l,
         );
       }
-      // Exercício ainda sem linha em `exercise_state`: o upsert abaixo vai
+      // Exercício ainda sem linha em `exercise_state`: o upsert vai
       // criá-la com os defaults do schema. Sem acrescentá-la aqui, o cache
       // (que é persistido no Dexie, SPEC §8) guardava o estado de antes e a
       // tela voltava dizendo "usando 4 kg" depois de recarregar, até o
@@ -266,16 +270,8 @@ export async function salvarIncremento(opcoes: {
     },
   );
 
-  await enfileirarEscrita("estado_exercicio", {
-    tabela: "exercise_state",
-    op: "upsert",
-    linha: {
-      user_id: userId,
-      exercise_id: exercicioId,
-      incremento_kg: incrementoKg,
-    },
-    onConflict: "user_id,exercise_id",
-  });
+  // A recarga imediata usa este cache enquanto a consulta ainda for recente.
+  await guardarConsultasAgora(cliente).catch(() => {});
 }
 
 /* ------------------------------------------------------------ backup */
@@ -298,7 +294,9 @@ export async function exportarBackup(opcoes: {
   userId: string;
   agora: string;
 }): Promise<Backup> {
-  const tabelas = await lerTudo(opcoes.userId);
+  const [{ montarBackup }, tabelas] = await Promise.all([
+    import("@/lib/backup"), lerTudo(opcoes.userId),
+  ]);
   return montarBackup({
     userId: opcoes.userId,
     exportadoEm: opcoes.agora,
@@ -336,6 +334,7 @@ export async function importarBackup(opcoes: {
   userId: string;
   cliente: QueryClient;
 }): Promise<number> {
+  const { emLotes, linhasParaImportar } = await import("@/lib/backup");
   const { backup, userId, cliente } = opcoes;
   let linhas = 0;
 

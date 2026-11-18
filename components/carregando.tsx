@@ -50,7 +50,7 @@ export function EsqueletoCapa() {
 /** Os três totais reservados durante a abertura do Relatório. */
 export function EsqueletoGrade3() {
   return (
-    <div role="status" aria-label="Carregando" className="grid grid-cols-3 gap-2">
+    <div data-grade-de-totais aria-hidden="true" className="grid grid-cols-3 gap-2">
       {[0, 1, 2].map((i) => (
         <div
           key={i}

@@ -105,6 +105,12 @@ export function alternativasPara(
     // O salto de potência e o trabalho de força não são intercambiáveis só
     // porque ambos usam quadríceps; planos de corda têm registro próprio.
     if ((e.grupo === "Cardio") !== (origem.grupo === "Cardio")) continue;
+    // Os intervalos de corda são medidos em segundos. Os saltos de potência
+    // são contados um a um e incluem recuperação entre as tentativas.
+    if (origem.grupo === "Cardio") {
+      const unidade = origem.prescricao_padrao.tipo === "ver_cardio_corda" ? "tempo_s" : origem.prescricao_padrao.tipo;
+      if (e.prescricao_padrao.tipo !== unidade) continue;
+    }
     const pontos = afinidade(origem, e);
     if (pontos > 0 && montagensParaTroca(origem, e, filtro, disponiveis).length > 0) {
       candidatas.push({ e, pontos });

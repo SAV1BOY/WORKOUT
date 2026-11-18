@@ -185,8 +185,10 @@ test.describe("/mais/equipamento", () => {
     const fotos = page.locator("ul li img");
     await expect(fotos).toHaveCount(10);
     for (let i = 0; i < 10; i++) {
-      await expect(fotos.nth(i)).toHaveJSProperty("complete", true);
-      const largura = await fotos.nth(i).evaluate(
+      const foto = fotos.nth(i);
+      await foto.scrollIntoViewIfNeeded();
+      await expect(foto).toHaveJSProperty("complete", true);
+      const largura = await foto.evaluate(
         (el) => (el as HTMLImageElement).naturalWidth,
       );
       expect(largura, `foto ${i} não carregou`).toBeGreaterThan(0);
@@ -283,6 +285,9 @@ test.describe("/mais/preferencias", () => {
       .getByRole("button", { name: "Salvar incremento: Agachamento livre" })
       .click();
     await expect(page.getByText(/6 kg por subida/)).toBeVisible();
+    // Recarregar assim que a tela confirma não pode ressuscitar o valor anterior.
+    await page.reload();
+    await expect(page.getByText("programa 4 kg · usando 6 kg").first()).toBeVisible();
     await esperarFila(page);
 
     const estados = await lerDoMock<{
@@ -292,9 +297,6 @@ test.describe("/mais/preferencias", () => {
     expect(estados).toHaveLength(1);
     expect(estados[0]?.exercise_id).toBe("agachamento-livre");
     expect(Number(estados[0]?.incremento_kg)).toBe(6);
-
-    await page.reload();
-    await expect(page.getByText("programa 4 kg · usando 6 kg").first()).toBeVisible();
   });
 });
 

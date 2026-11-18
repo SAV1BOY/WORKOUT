@@ -3,6 +3,7 @@
  * Roda antes do build (prebuild). Sai com código != 0 e mensagem clara.
  */
 import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { isDeepStrictEqual } from "node:util";
 import { join } from "node:path";
 import {
   alternativasSchema,
@@ -47,6 +48,11 @@ function validar<T>(schema: ZodType<T>, arquivo: string): T | null {
       erros.push(`data/${arquivo} → ${issue.path.join(".")}: ${issue.message}`);
     }
     return null;
+  }
+  if (!isDeepStrictEqual(bruto, r.data)) {
+    erros.push(
+      `data/${arquivo}: o parser altera o conteúdo. Normalize os dados estáticos antes de entregá-los ao app.`,
+    );
   }
   return r.data;
 }
