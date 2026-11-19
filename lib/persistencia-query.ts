@@ -42,10 +42,16 @@ export async function lerUltimaSincronizacao(): Promise<number | null> {
 
 /** Primeira leitura depois de atualizar o app, mesmo antes de o React Query hidratar o cache. */
 export async function lerConsultaGuardada<T>(chave: readonly string[]): Promise<T | undefined> {
+  return (await lerConsultaGuardadaComData<T>(chave))?.valor;
+}
+
+/** Usa a data da leitura ou edição para comparar a consulta com uma cópia gravada separadamente. */
+export async function lerConsultaGuardadaComData<T>(chave: readonly string[]): Promise<{ valor: T; atualizadoEm: number } | undefined> {
   const cache = await lerCache<Guardado>(CHAVE_CACHE);
   if (!cache || Date.now() - cache.salvoEm > VALIDADE_MS) return undefined;
   const consulta = cache.estado.queries.find(q => q.queryKey.length === chave.length && chave.every((v, i) => q.queryKey[i] === v));
-  return consulta?.state.data as T | undefined;
+  if (!consulta || consulta.state.data === undefined) return undefined;
+  return { valor: consulta.state.data as T, atualizadoEm: consulta.state.dataUpdatedAt ?? cache.salvoEm };
 }
 
 /** Uma URL blob: só existe no documento que a criou. O arquivo continua no Dexie. */

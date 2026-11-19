@@ -375,3 +375,69 @@ test("uma sessão aberta no cliente antigo recupera a nota de outro aparelho e p
   await expect(feedback.getByText(revisada, { exact: true })).toBeVisible();
   expect(await sessaoNoServidor(conta, id)).toMatchObject({ status: "em_andamento", nota_geral: revisada });
 });
+
+test("o histórico offline já mostra a nota se as métricas de séries ainda estão carregando", async ({ page, context }) => {
+  const conta = await usuarioComPerfil();
+  const titulo = "Treino com elástico";
+  const nota = "Consegui manter o ritmo.";
+  await semearTreino(conta, titulo, "concluida", { nota_geral: nota });
+  await entrarNoApp(page);
+  await esperarServiceWorker(page);
+  await historico(page);
+  await expect(registro(page, titulo)).toContainText(nota);
+  // Esta cópia sincronizou o perfil e o histórico. Uma leitura auxiliar não ficou no aparelho.
+  await expect.poll(() => page.evaluate(id => new Promise<boolean>((resolve, reject) => {
+    const abrir = indexedDB.open("treino-terraco");
+    abrir.onerror = () => reject(abrir.error);
+    abrir.onsuccess = () => {
+      const banco = abrir.result;
+      const pedido = banco.transaction("cache").objectStore("cache").get("react-query-v1");
+      pedido.onsuccess = () => {
+        banco.close();
+        resolve(pedido.result?.valor?.estado?.queries?.some(
+          (q: { queryKey: string[]; state: { data?: { user_id?: string } } }) =>
+            q.queryKey[0] === "perfil" && q.state.data?.user_id === id,
+        ) ?? false);
+      };
+    };
+  }), conta.userId)).toBe(true);
+  await page.goto("/robots.txt");
+  await page.evaluate(() => new Promise<void>((resolve, reject) => {
+    const abrir = indexedDB.open("treino-terraco");
+    abrir.onerror = () => reject(abrir.error);
+    abrir.onsuccess = () => {
+      const banco = abrir.result;
+      const tx = banco.transaction("cache", "readwrite");
+      tx.oncomplete = () => { banco.close(); resolve(); };
+      tx.onabort = () => { banco.close(); reject(tx.error); };
+      const tabela = tx.objectStore("cache");
+      const pedido = tabela.get("react-query-v1");
+      pedido.onsuccess = () => {
+        const registro = pedido.result;
+        registro.valor.estado.queries = registro.valor.estado.queries.filter(
+          (q: { queryKey: string[] }) => !(q.queryKey[0] === "progresso" && q.queryKey[1] === "series-todas"),
+        );
+        tabela.put(registro);
+      };
+    };
+  }));
+  await page.addInitScript(() => {
+    const original = window.fetch.bind(window);
+    window.fetch = (entrada, init) => {
+      const url = new URL(entrada instanceof Request ? entrada.url : String(entrada), location.href);
+      if (!navigator.onLine && url.pathname === "/rest/v1/session_sets") {
+        // O relatório deve ficar disponível antes do resultado, inclusive durante a tentativa de leitura.
+        document.documentElement.dataset.aguardandoSeries = "true";
+        return new Promise<Response>(() => {});
+      }
+      return original(entrada, init);
+    };
+  });
+  const worker = await workerDoApp(context);
+  await semRedeNoWorker(worker);
+  await context.setOffline(true);
+  await page.goto("/relatorio");
+  await abrirSecaoDoRelatorio(page, "historico");
+  await expect(page.locator("html")).toHaveAttribute("data-aguardando-series", "true");
+  await expect(registro(page, titulo)).toContainText(nota);
+});

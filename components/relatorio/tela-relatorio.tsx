@@ -35,6 +35,7 @@ import {
   useSessoesTodas,
 } from "@/lib/queries/progresso";
 import { useHoje } from "@/lib/relogio";
+import { useRede } from "@/lib/usar-rede";
 import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import { intervaloDaSemana } from "@/lib/semana";
@@ -130,6 +131,7 @@ function useSecoes() {
  */
 export function TelaRelatorio({ userId }: { userId: string }) {
   const hoje = useHoje();
+  const online = useRede();
   const cliente = useQueryClient();
   const { abertas, montadas, alternar } = useSecoes();
 
@@ -200,7 +202,8 @@ export function TelaRelatorio({ userId }: { userId: string }) {
   const avisoDeErro = falha?.error && <Erro mensagem={falha.error.message} aoTentarDeNovo={() => {
     for (const consulta of leituras) if (consulta.isError) void consulta.refetch();
   }} />;
-  const historicoDisponivel = Boolean(perfil && sessoesQ.data && (pronto || seriesQ.isPaused || falha));
+  // Ao abrir o app já offline, o React Query pode ainda tentar buscar os totais pela rede.
+  const historicoDisponivel = Boolean(perfil && sessoesQ.data && (pronto || !online || falha));
   if (avisoDeErro && !historicoDisponivel) return avisoDeErro;
 
   return (
@@ -319,6 +322,7 @@ export function TelaRelatorio({ userId }: { userId: string }) {
             sessoes={sessoes}
             cardios={cardiosDaJanela}
             series={seriesDaJanela}
+            seriesDisponiveis={seriesQ.data !== undefined}
             soltas={soltasDaJanela}
             eventos={eventosQ.data ?? []}
           />

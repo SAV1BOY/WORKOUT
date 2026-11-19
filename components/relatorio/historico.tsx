@@ -36,6 +36,7 @@ export function Historico({
   sessoes,
   cardios,
   series,
+  seriesDisponiveis,
   soltas,
   eventos,
 }: {
@@ -45,6 +46,7 @@ export function Historico({
   sessoes: SessaoBruta[];
   cardios: CardioBruto[];
   series: SerieBruta[];
+  seriesDisponiveis: boolean;
   soltas: SoltaBruta[];
   eventos: EventoDeSessao[];
 }) {
@@ -91,17 +93,18 @@ export function Historico({
         sessoes,
         cardios,
         series,
+        seriesDisponiveis,
         soltas,
         eventos,
         retomada,
         de: inicio,
         ate: fim,
       }),
-    [sessoes, cardios, series, soltas, eventos, retomada, inicio, fim],
+    [sessoes, cardios, series, seriesDisponiveis, soltas, eventos, retomada, inicio, fim],
   );
   const todos = useMemo(
-    () => registros({ sessoes, cardios, series, soltas, eventos, retomada }),
-    [sessoes, cardios, series, soltas, eventos, retomada],
+    () => registros({ sessoes, cardios, series, seriesDisponiveis, soltas, eventos, retomada }),
+    [sessoes, cardios, series, seriesDisponiveis, soltas, eventos, retomada],
   );
 
   const lista = tudo ? todos : daSemana;

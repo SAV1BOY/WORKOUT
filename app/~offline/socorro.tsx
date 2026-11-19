@@ -3,7 +3,9 @@
 import { WifiOff } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState, type ReactNode } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
+import type { LinhaPerfil } from "@/lib/types";
 import { EVENTO_DE_LOGIN_CONFIRMADO, idDoPlayerNoCaminho, type VinculoDoPlayer } from "@/lib/vinculo-do-player";
 
 interface PlayerDoAparelho {
@@ -28,6 +30,7 @@ interface AbaDoAparelho {
  * vai no próprio JSX (o React 19 o leva para o `<head>`).
  */
 export function Socorro({ videos, children }: { videos: string[]; children: ReactNode }) {
+  const cliente = useQueryClient();
   const [tela, setTela] = useState<PlayerDoAparelho | AbaDoAparelho | null>(null);
   useEffect(() => {
     const caminho = window.location.pathname;
@@ -40,8 +43,19 @@ export function Socorro({ videos, children }: { videos: string[]; children: Reac
         const { vinculoParaAbaLocal, vinculoParaPlayerLocal } = await import("@/lib/player-sem-rede");
         let proxima: PlayerDoAparelho | AbaDoAparelho | null = null;
         if (caminho === "/" || caminho === "/relatorio") {
-          const vinculo = await vinculoParaAbaLocal(caminho);
-          if (vinculo) proxima = { aba: caminho, vinculo, Componente: (await import("./aba-local")).default };
+          const local = await vinculoParaAbaLocal(caminho);
+          if (local) {
+            const Componente = (await import("./aba-local")).default;
+            if (versao !== vez) return;
+            const emMemoria = cliente.getQueryState<LinhaPerfil>(["perfil"]);
+            if (!emMemoria?.data || emMemoria.data.user_id === local.vinculo.conta) {
+              // Uma navegação rápida pode preceder a gravação do cache geral das consultas.
+              if (!emMemoria?.data || local.perfil.atualizadoEm > emMemoria.dataUpdatedAt) {
+                cliente.setQueryData(["perfil"], local.perfil.valor, { updatedAt: local.perfil.atualizadoEm });
+              }
+              proxima = { aba: caminho, vinculo: local.vinculo, Componente };
+            }
+          }
         } else if (sessaoId) {
           const vinculo = await vinculoParaPlayerLocal(sessaoId);
           if (vinculo) proxima = { sessaoId, vinculo, Componente: (await import("./player-local")).default };
@@ -64,7 +78,7 @@ export function Socorro({ videos, children }: { videos: string[]; children: Reac
       window.removeEventListener("focus", verificar);
       window.removeEventListener(EVENTO_DE_LOGIN_CONFIRMADO, verificar);
     };
-  }, []);
+  }, [cliente]);
   if (tela && "aba" in tela) {
     const { Componente, aba, vinculo } = tela;
     return <Componente key={vinculo.conta + aba} aba={aba} vinculo={vinculo} videos={videos}>{children}</Componente>;

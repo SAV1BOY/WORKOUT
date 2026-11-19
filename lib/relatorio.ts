@@ -120,6 +120,8 @@ function contarMotor(eventos: readonly EventoDeSessao[], sessaoId: string) {
 export interface EntradaDosRegistros extends EntradaDosContadores {
   soltas?: readonly SoltaBruta[];
   eventos?: readonly EventoDeSessao[];
+  /** Falso enquanto o aparelho só tem as sessões e ainda não recebeu suas séries. */
+  seriesDisponiveis?: boolean;
   /** A pausa decidida em `prefs.retomada` (SPEC §18.5), se houver. */
   retomada?: RetomadaGravada | null;
   /** Só o que caiu dentro de um intervalo (a faixa da semana), se houver. */
@@ -138,6 +140,7 @@ export function registros({
   series,
   soltas = [],
   eventos = [],
+  seriesDisponiveis = true,
   retomada = null,
   de = null,
   ate = null,
@@ -148,7 +151,7 @@ export function registros({
   const deForca: Registro[] = sessoes
     .filter((s) => s.status === "concluida" && dentro(s.data))
     .map((s) => {
-      const n = s.seriesDeTrabalhoLocais ?? contarSeries(series, s.id);
+      const n = s.seriesDeTrabalhoLocais ?? (seriesDisponiveis ? contarSeries(series, s.id) : null);
       const duracao = s.duracao_s
         ? formatarMinutos(Math.round(s.duracao_s / 60))
         : null;
@@ -157,7 +160,7 @@ export function registros({
         tipo: "forca" as const,
         data: s.data,
         titulo: tituloDaSessao(s),
-        detalhe: [duracao, `${n} ${n === 1 ? "série" : "séries"}`]
+        detalhe: [duracao, n === null ? null : `${n} ${n === 1 ? "série" : "séries"}`]
           .filter((p): p is string => p !== null)
           .join(" · "),
         motor: contarMotor(eventos, s.id),
