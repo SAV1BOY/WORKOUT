@@ -200,7 +200,7 @@ function TreinoParaComecar({ entrada, criando, comecar }: {
   const ids = useMemo(() => idsComSubstitutos(idsParaComecar(treinoId, trocas)), [treinoId, trocas]);
   const estadosQ = useEstados(ids);
   const eventosQ = useEventos(idsAtivos);
-  useUltimasSeries(idsAtivos);
+  useUltimasSeries(userId, idsAtivos);
   useRecordes(ids);
   useSeriesAnteriores(idsQueComparamComAnterior(ids));
 

@@ -475,6 +475,69 @@ describe("anterior: 9,5 kg × 5 (SPEC §14.1.2)", () => {
     const mapa = anterioresPorExercicio(linhas);
     expect(mapa["agachamento-livre"]?.[0]?.session_id).toBe("de-hoje");
   });
+
+  it("compara o índice gravado mesmo sem a série 1 e identifica a série usada quando o número falta", () => {
+    const segunda = { ...linhas[0]!, set_index: 2, reps: 10, carga_kg: 20 };
+    const terceira = { ...linhas[0]!, set_index: 3, reps: 8, carga_kg: 22.5 };
+    const anterior = [terceira, segunda];
+    expect(serieAnteriorDe(anterior, 2, 1)).toBe(segunda);
+    expect(serieAnteriorDe(anterior, 3, 1)).toBe(terceira);
+    expect(serieAnteriorDe(anterior, 1, 1)).toBe(terceira);
+    expect(serieAnteriorDe(anterior, 4, 1)).toBe(terceira);
+    // O mesmo vale quando a série da posição visual 2 foi gravada com índice 4.
+    const quarta = { ...terceira, set_index: 4 };
+    expect(serieAnteriorDe([segunda, quarta], 4)).toBe(quarta);
+  });
+
+  it("duas sessões no mesmo dia não misturam séries, mesmo com fusos diferentes e dados chegando fora de ordem", () => {
+    const cedo = { ...linhas[0]!, session_id: "cedo", registrada_em: "2026-09-14T12:00:00Z" };
+    const tarde = { ...linhas[0]!, session_id: "tarde", registrada_em: "2026-09-14T10:00:00-03:00", set_index: 2 };
+    const gravadas = [tarde, cedo,
+      { ...cedo, set_index: 3, concluida: false, registrada_em: "2026-09-14T14:00:00Z" },
+      { ...cedo, tipo: "aquecimento", registrada_em: "2026-09-14T15:00:00Z" },
+      { ...cedo, session_id: "aberta", registrada_em: "2026-09-14T16:00:00Z" },
+    ];
+    for (const ordem of [gravadas, [...gravadas].reverse()]) {
+      const anteriores = anterioresPorExercicio(ordem, "aberta")["agachamento-livre"];
+      expect(anteriores).toEqual([tarde]);
+      expect(serieAnteriorDe(anteriores, 1)).toBe(tarde);
+    }
+  });
+
+  it("guarda a comparação dentro do bloco correspondente mesmo havendo o número exato em outro bloco", () => {
+    const primeiro = { ...linhas[0]!, ordem_ex: 1, set_index: 1, carga_kg: 10 };
+    const quinto = { ...linhas[0]!, ordem_ex: 5, set_index: 1, carga_kg: 25 };
+    const quintaPosicaoSerie2 = { ...quinto, set_index: 2, carga_kg: 30 };
+    const anteriores = [quinto, quintaPosicaoSerie2, primeiro];
+    expect(serieAnteriorDe(anteriores, 1, 1)).toBe(primeiro);
+    expect(serieAnteriorDe(anteriores, 1, 5)).toBe(quinto);
+    expect(serieAnteriorDe(anteriores, 2, 1)).toBe(primeiro);
+    expect(serieAnteriorDe(anteriores, 2, 5)).toBe(quintaPosicaoSerie2);
+    expect(serieAnteriorDe(anteriores, 1, 3)).toBeNull();
+    expect(serieAnteriorDe(anteriores, 1)).toBeNull();
+    expect(serieAnteriorDe([quinto, quintaPosicaoSerie2], 1, 1)).toBe(quinto);
+  });
+
+  it("aceita cache anterior sem ordem do bloco quando os números de série são distintos", () => {
+    const uma = { ...linhas[0]!, set_index: 1 };
+    const duas = { ...linhas[0]!, set_index: 2 };
+    expect(serieAnteriorDe([duas, uma], 2, 5)).toBe(duas);
+    expect(serieAnteriorDe([uma, { ...uma, carga_kg: 40 }], 1, 5)).toBeNull();
+    const identificada = { ...duas, ordem_ex: 5 };
+    expect(serieAnteriorDe([uma, identificada], 1, 5)).toBe(identificada);
+    expect(serieAnteriorDe([uma, identificada], 1, 1)).toBeNull();
+  });
+
+  it("mantém as medidas da referência e descarta um índice ausente ou inválido", () => {
+    const serie = { ...linhas[0]!, id: "série-teste", set_index: 3, ordem_ex: 1, carga_kg: 0, reps: 0,
+      reps_lado2: 7, tempo_s: null, tempo_s_lado2: 35, passos: 12, assistencia: "joelho" as const };
+    const invalida = { ...linhas[0]!, set_index: 0, session_id: "invalida", registrada_em: "2026-09-14T10:00:00Z" };
+    const anteriores = anterioresPorExercicio([invalida, serie])["agachamento-livre"];
+    expect(anteriores).toEqual([serie]);
+    expect(serieAnteriorDe(anteriores, 3)).toBe(serie);
+    expect(serieAnteriorDe(anteriores, 0)).toBeNull();
+    expect(serieAnteriorDe([], 1)).toBeNull();
+  });
 });
 
 /*

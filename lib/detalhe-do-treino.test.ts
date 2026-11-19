@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { detalharSeriesDoTreino, valoresDaSerieRegistrada } from "@/lib/detalhe-do-treino";
+import { detalharSeriesDoTreino, valoresDaSerieAnterior, valoresDaSerieRegistrada } from "@/lib/detalhe-do-treino";
 import { itensDeIds, planoDaSessao } from "@/lib/livre";
 import type { SerieBruta, SessaoBruta } from "@/lib/progresso";
 
@@ -15,6 +15,26 @@ function serie(campos: Partial<SerieBruta> = {}): SerieBruta {
     passos: null, assistencia: null, concluida: true, registrada_em: "2026-11-19T09:00:00Z", ...campos,
   };
 }
+
+describe("a referência à última série no player", () => {
+  it("preserva a comparação compacta e distingue carga extra zero de carga ausente no cache antigo", () => {
+    const legada = { exercise_id: supino, tipo: "trabalho", reps: 8, carga_kg: 23.5, tempo_s: null };
+    expect(valoresDaSerieAnterior(legada)).toBe("23,5 kg na barra × 8");
+    expect(valoresDaSerieAnterior({ ...legada, exercise_id: flexao, carga_kg: 0 })).toBe("0 kg de carga adicional × 8");
+    expect(valoresDaSerieAnterior({ ...legada, exercise_id: flexao, carga_kg: null })).toBe("× 8");
+    expect(valoresDaSerieAnterior({ ...legada, exercise_id: "prancha", reps: null, carga_kg: null, tempo_s: 45 })).toBe("45 s");
+  });
+
+  it("mostra somente as medidas que ficaram registradas, inclusive o lado esquerdo isolado", () => {
+    expect(valoresDaSerieAnterior(serie({ exercise_id: "rosca-alternada", reps: 10, reps_lado2: 8, carga_kg: 6.5 })))
+      .toBe("10 repetições à direita · 8 repetições à esquerda · 6,5 kg por halter");
+    expect(valoresDaSerieAnterior(serie({ exercise_id: "prancha-lateral", tempo_s_lado2: 40 }))).toBe("40 s à esquerda");
+    expect(valoresDaSerieAnterior(serie({ exercise_id: "barra-fixa-assistida", reps: 4, assistencia: "joelho" })))
+      .toBe("4 repetições · elástico no joelho");
+    expect(valoresDaSerieAnterior(serie({ exercise_id: "movimento-antigo", passos: 1 }))).toBe("1 passo");
+    expect(valoresDaSerieAnterior(serie({ exercise_id: flexao }))).toBe("Sem valores registrados");
+  });
+});
 
 describe("valores de cada série registrada", () => {
   it.each([

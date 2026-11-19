@@ -18,7 +18,7 @@ import { acharExercicio } from "@/lib/dados";
 import { descansoPersonalizadoDaSessao, limitarTempoDeDescanso } from "@/lib/descanso-da-sessao";
 export { DESCANSO_MIN_S, DESCANSO_MAX_S } from "@/lib/descanso-da-sessao";
 import { comVoto, votoDoExercicio, type VotoDoExercicio } from "@/lib/preferencias";
-import type { Prefs } from "@/lib/types";
+import type { LinhaSerie, Prefs } from "@/lib/types";
 import type { BlocoLocal, SerieLocal, SessaoLocal } from "@/lib/sessao";
 
 /* ------------------------------------------------------------ constantes */
@@ -691,17 +691,15 @@ export function rotuloDaSensacao(valor: number | null): string | null {
 
 /* -------------------------------------------- "anterior: 9,5 kg × 5" (§7) */
 
-/** O mínimo de uma série já registrada noutra sessão. */
-export interface SerieDeOutroDia {
-  exercise_id: string;
-  session_id: string;
-  set_index: number;
+/** Série já registrada noutra sessão. Caches antigos omitem a posição do bloco e as medidas adicionais. */
+export interface SerieDeOutroDia extends
+  Pick<LinhaSerie, "exercise_id" | "session_id" | "set_index" | "concluida" | "registrada_em" | "reps" | "carga_kg" | "tempo_s">,
+  Partial<Pick<LinhaSerie, "id" | "ordem_ex" | "reps_lado2" | "tempo_s_lado2" | "passos" | "assistencia">> {
   tipo: string;
-  concluida: boolean;
-  registrada_em: string;
-  reps: number | null;
-  carga_kg: number | null;
-  tempo_s: number | null;
+}
+
+function indiceRegistrado(valor: number | undefined): valor is number {
+  return typeof valor === "number" && Number.isSafeInteger(valor) && valor > 0;
 }
 
 /**
@@ -716,18 +714,17 @@ export function anterioresPorExercicio(
   const uteis = linhas.filter(
     (l) =>
       l.tipo === "trabalho" &&
-      l.concluida &&
+      l.concluida && indiceRegistrado(l.set_index) &&
       (!ignorarSessao || l.session_id !== ignorarSessao),
   );
 
-  const ultima = new Map<string, { sessao: string; quando: string }>();
+  const ultima = new Map<string, { sessao: string; quando: number }>();
   for (const linha of uteis) {
     const atual = ultima.get(linha.exercise_id);
-    if (!atual || linha.registrada_em > atual.quando) {
-      ultima.set(linha.exercise_id, {
-        sessao: linha.session_id,
-        quando: linha.registrada_em,
-      });
+    const instante = Date.parse(linha.registrada_em);
+    const quando = Number.isFinite(instante) ? instante : -Infinity;
+    if (!atual || quando > atual.quando || (quando === atual.quando && linha.session_id > atual.sessao)) {
+      ultima.set(linha.exercise_id, { sessao: linha.session_id, quando });
     }
   }
 
@@ -740,11 +737,27 @@ export function anterioresPorExercicio(
   return saida;
 }
 
-/** A série correspondente do dia anterior (a de mesmo número, ou a última). */
+/** A série de mesmo número do bloco anterior ou, na sua falta, a última na ordem registrada. */
 export function serieAnteriorDe(
   anteriores: readonly SerieDeOutroDia[] | undefined,
   numero: number,
+  ordemDoBloco?: number,
 ): SerieDeOutroDia | null {
-  if (!anteriores || anteriores.length === 0) return null;
-  return anteriores[numero - 1] ?? anteriores[anteriores.length - 1] ?? null;
+  if (!anteriores?.length || !indiceRegistrado(numero)) return null;
+  const posicoes = new Set(anteriores.map(s => indiceRegistrado(s.ordem_ex) ? s.ordem_ex : undefined));
+  // Um único bloco pode mudar de posição. Com vários blocos, só o da posição atual serve.
+  const ordem = posicoes.size === 1 ? posicoes.values().next().value : ordemDoBloco;
+  if (posicoes.size > 1 && (ordem === undefined || !posicoes.has(ordem))) return null;
+  const doBloco = ordem === undefined ? anteriores : anteriores.filter(s => s.ordem_ex === ordem);
+
+  const porNumero = new Map<number, SerieDeOutroDia>();
+  let ultima: SerieDeOutroDia | null = null;
+  for (const serie of doBloco) {
+    if (!indiceRegistrado(serie.set_index)) continue;
+    // Num cache sem a posição, dois registros "série 1" podem ser de blocos diferentes.
+    if (porNumero.has(serie.set_index)) return null;
+    porNumero.set(serie.set_index, serie);
+    if (!ultima || serie.set_index > ultima.set_index) ultima = serie;
+  }
+  return porNumero.get(numero) ?? ultima;
 }

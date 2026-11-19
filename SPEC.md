@@ -342,6 +342,9 @@ Player por tempo para as coleções "Circuitos" e para qualquer sessão livre co
 O dono enviou 16 telas do app *Home Workout / Treino em Casa* (Leap Fitness) e pediu que o site e o PWA fiquem **quase idênticos** no uso, mantendo o que é nosso. A análise tela a tela está em `docs/analise-referencia-treino-em-casa.md`; o estudo dos apps e do open source em `docs/estudo-apps-de-treino.md`. Este adendo **complementa a §13 e prevalece sobre ela onde conflitar**. Continuam valendo §13.1 (regras que não mudam), a paleta escura com laranja, o conteúdo só dos JSON, o motor e a montagem intocados, o offline da §8.
 
 ### 14.1 Player unificado (substitui a tela de sessão com rolagem como caminho principal)
+
+Durante uma série de trabalho, o indicador **anterior** compara a série atual com a de mesmo número na sessão anterior daquele exercício. Se aquele número foi pulado, a referência à última série registrada mostra o número dela. O aquecimento e as séries da sessão em andamento ficam fora da comparação.
+
 Toda sessão (treino do programa, sessão livre, circuito, sessão de barra fixa) roda no player, em `/treinar/[sessionId]`, com estas telas em sequência:
 1. **Preparação**: "PREPARE-SE" (§22.16 item 4; era "PREPARADO PARA COMEÇAR"), nome do 1º exercício com "?" (abre a ficha por cima), anel de contagem (padrão 10 s, `prefs.preparacao_s`), botão pular, e no topo "Sair do treino" e "Visão geral do treino" (§22.16 item 2). Aparece **ao começar**. **Decisão de 15/09/2026**: ao *retomar* uma sessão aberta ela **não** reaparece — vale a regra do fim desta seção ("fechar e reabrir volta ao mesmo passo"), que é o que não faz perder um descanso em andamento nem repetir uma contagem no meio do treino.
 2. **Exercício** — a mesma tela para todos, com o passo dependendo do tipo (`implemento` e `prescricao.tipo`):

@@ -221,7 +221,7 @@ export function useSessaoDeTreino(sessaoId: string, userId: string) {
     [sessao],
   );
   const eventosQ = useEventos(idsNaTela);
-  const ultimasQ = useUltimasSeries(idsNaTela);
+  const ultimasQ = useUltimasSeries(userId, idsNaTela, sessaoId);
 
   /** "anterior: 9,5 kg × 5" por exercício (SPEC §14.1.2). */
   const anteriores: Record<string, SerieDeOutroDia[]> = useMemo(

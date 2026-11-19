@@ -21,6 +21,7 @@ import { BotaoMontagem } from "@/components/treinar/montagem";
 import { SeletorAssistencia } from "@/components/treinar/serie";
 import { Button } from "@/components/ui/button";
 import { acharExercicio } from "@/lib/dados";
+import { valoresDaSerieAnterior } from "@/lib/detalhe-do-treino";
 import { formatarDuracao, formatarKg, rotuloDaCarga, rotuloDoCampoDeCarga } from "@/lib/formato";
 import {
   alcancavelParaBaixo,
@@ -119,7 +120,7 @@ export function TelaExercicio({
   const nota = useNotaDoExercicio(conta, primeiraSerie?.id === serie.id ? bloco.exercicioId : "");
   const implemento = exercicio.implemento as ImplementoMontagem;
   const incremento = bloco.alvo.incremento_kg;
-  const anterior = serieAnteriorDe(anteriores, passo.numero);
+  const anterior = passo.aquecimento ? null : serieAnteriorDe(anteriores, serie.setIndex, bloco.ordem);
   /** "Aquecimento 2 de 2 · exercício 1 de 6" — a mesma grafia do descanso. */
   const ondeEstou = `${rotuloDoPasso(passo)} · exercício ${passo.posicao} de ${passo.totalExercicios}`;
 
@@ -391,9 +392,10 @@ export function TelaExercicio({
           controles (auditoria do marco V2). Juntos cabem de uma vez.
         */}
         <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
-          {anterior && !passo.aquecimento ? (
+          {anterior ? (
             <p className="text-muted-foreground numero text-center text-sm">
-              anterior: {textoDoAnterior(anterior, exercicio.implemento)}
+              {anterior.set_index === serie.setIndex && anterior.set_index === passo.numero
+                ? "anterior" : `anterior · série ${anterior.set_index}`}: {valoresDaSerieAnterior(anterior)}
             </p>
           ) : null}
           <BotaoMontagem
@@ -413,20 +415,6 @@ export function TelaExercicio({
       />
     </section>
   );
-}
-
-/** "9,5 kg × 5" · "45 s" · "12 reps" — o que ficou registrado da última vez. */
-function textoDoAnterior(
-  serie: SerieDeOutroDia,
-  implemento: Parameters<typeof rotuloDaCarga>[0],
-): string {
-  const partes: string[] = [];
-  if (serie.carga_kg !== null && serie.carga_kg > 0) {
-    partes.push(`${formatarKg(serie.carga_kg)} ${rotuloDaCarga(implemento)}`);
-  }
-  if (serie.reps !== null) partes.push(`× ${serie.reps}`);
-  else if (serie.tempo_s !== null) partes.push(`${serie.tempo_s} s`);
-  return partes.join(" ") || "—";
 }
 
 /** O bloco central, conforme o tipo do passo (SPEC §14.1.2). */
