@@ -12,8 +12,19 @@ for (const sair of ["recarregar", "abrir Mais"] as const) {
     await entrarNoApp(page);
     await page.goto("/calendario");
     const dia = page.getByRole("button", { name: /^quarta 16\/09/ });
+    const nomeDoDia = await dia.getAttribute("aria-label");
     await dia.click();
     await expect(page.getByRole("dialog")).toContainText("16 de setembro de 2026");
+    const fechamento = Promise.withResolvers<boolean>();
+    await page.exposeFunction("avisarFocoDoDia", fechamento.resolve);
+    await page.evaluate(nome => {
+      document.addEventListener("focusin", evento => {
+        if (evento.target instanceof HTMLButtonElement && evento.target.getAttribute("aria-label") === nome) {
+          const aba = window as Window & { avisarFocoDoDia: (saiu: boolean) => Promise<void> };
+          void aba.avisarFocoDoDia(document.querySelector('[role="dialog"]') === null);
+        }
+      });
+    }, nomeDoDia);
 
     const caminho = sair === "recarregar" ? "/calendario" : "/mais";
     await page.route(url => url.pathname === caminho, async rota => {
@@ -21,7 +32,7 @@ for (const sair of ["recarregar", "abrir Mais"] as const) {
       // O documento antigo continua visível enquanto o novo chega. O Esc
       // fecha sua folha e devolve o foco à grade. Só então chega a resposta.
       await page.keyboard.press("Escape");
-      await expect(dia).toBeFocused();
+      expect(await fechamento.promise).toBe(true);
       await rota.continue();
     });
     const resposta = sair === "recarregar" ? await page.reload() : await page.goto(caminho);
