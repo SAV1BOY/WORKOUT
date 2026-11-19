@@ -195,12 +195,6 @@ export function Historico({
             return (
               <li key={r.chave}>
                 <LinhaDoRegistro registro={r} />
-                {sessao && sessao.user_id === perfil.user_id && (
-                  <div className="pb-2 pl-12">
-                    <NotaDoTreino key={`${perfil.user_id}:${sessao.id}`} valor={sessao.nota_geral}
-                      aoGuardar={(texto, anterior) => editarNotaNoHistorico(cliente, perfil.user_id, sessao, texto, anterior)} />
-                  </div>
-                )}
                 {sessao && sessao.user_id === perfil.user_id && montarRepeticaoDoTreinoLivre(sessao) && (
                   <div className="flex flex-col items-start gap-1 pb-2 pl-12">
                     <Button type="button" variant="outline" size="sm"
@@ -215,6 +209,12 @@ export function Historico({
                     {erro?.id === sessao.id && (
                       <p role="alert" className="text-destructive text-sm">{erro.mensagem}</p>
                     )}
+                  </div>
+                )}
+                {sessao && sessao.user_id === perfil.user_id && (
+                  <div className="pb-2 pl-12">
+                    <NotaDoTreino key={`${perfil.user_id}:${sessao.id}`} valor={sessao.nota_geral}
+                      aoGuardar={(texto, anterior) => editarNotaNoHistorico(cliente, perfil.user_id, sessao, texto, anterior)} />
                   </div>
                 )}
               </li>

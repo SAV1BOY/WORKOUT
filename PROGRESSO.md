@@ -13145,3 +13145,5 @@ Em outra prova de abertura sem rede, o relatório tinha recuperado o perfil corr
 Com a leitura auxiliar de séries retida no Chromium, a revisão `77c60a5` ficou em **Carregando**. Sob a mesma condição o app corrigido exibiu a nota do treino. Outra prova retirou os cookies do login com o Relatório local aberto. Ao voltar o foco para a aba, a nota e o editor saíram da tela.
 
 Na volta rápida do primeiro treino sem rede, a sessão concluída e o vínculo de login já estavam no aparelho, mas o cache geral ainda não tinha guardado o perfil. A leitura do perfil passou a conservar uma cópia da conta antes de apresentá-lo. A recuperação da aba escolhe a versão mais recente disponível da mesma pessoa. Um perfil de outra conta não dá acesso aos registros, e a falta de espaço no aparelho permite continuar a leitura online.
+
+A suíte completa também verificou o Histórico com teclado a 360 px e fonte a 125%, nos temas claro e escuro. O novo botão da nota inicialmente recebia o primeiro Tab após o link do treino livre. A ordem dos controles foi ajustada para manter **Repetir treino** logo após esse link e permitir chegar à nota no Tab seguinte.
