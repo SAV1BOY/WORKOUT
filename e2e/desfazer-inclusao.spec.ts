@@ -205,9 +205,14 @@ test("a troca aberta em outra aba respeita a série e a nota da flexão antes de
   await trocar.click();
   await fechada.click();
   await expect(bloco.getByRole("heading", { name: "3. Flexão fechada" })).toBeVisible();
+  const pendentes = bloco.getByRole("checkbox", { checked: false });
+  await expect(pendentes).toHaveCount(2);
+  await expect(pendentes.nth(0)).toHaveAccessibleName("Série 1 concluída — Flexão fechada");
+  await expect(pendentes.nth(1)).toHaveAccessibleName("Série 2 concluída — Flexão fechada");
+  await expect(bloco.getByRole("checkbox", { checked: true })).toHaveCount(0);
   await expect.poll(async () => (await planoSalvo(conta, id))?.trocas?.["3"]).toMatchObject([
-    { exercicio_id: "flexao-fechada", trabalho: [2, 3] },
-    { exercicio_id: FLEXAO_ID, trabalho: [1], nota },
+    { exercicio_id: "flexao-fechada", trabalho: [1, 2] },
+    { exercicio_id: FLEXAO_ID, nota },
   ]);
   expect(await series(conta, id)).toEqual(originais);
 });
