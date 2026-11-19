@@ -494,7 +494,7 @@ export async function enviarPlanoDaSessao(sessao: SessaoLocal): Promise<SessaoLo
 
 export { enviarPlanoDaSessao as enviarPlanoDaTroca };
 
-async function confirmarToquesPendentes(sessao?: SessaoLocal): Promise<void> {
+export async function confirmarToquesPendentes(sessao?: SessaoLocal): Promise<void> {
   while (gravandoToque) await gravandoToque;
   const atual = pendente;
   if (!atual || (sessao && (atual.id !== sessao.id || atual.userId !== sessao.userId))) return;

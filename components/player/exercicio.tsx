@@ -102,7 +102,7 @@ export function TelaExercicio({
    * (SPEC §22.5 item 3). Zero = ninguém pediu nada ainda.
    */
   pedidoDeFoco?: number;
-  aoMudar: (campos: Partial<SerieLocal>) => void;
+  aoMudar: (campos: Partial<SerieLocal>) => void | Promise<void>;
   aoConcluir: () => void;
   aoAnterior: () => void;
   aoProximo: () => void;
@@ -127,7 +127,7 @@ export function TelaExercicio({
 
   const tela = useRef<HTMLElement>(null);
   const botaoDaLista = useRef<HTMLButtonElement>(null);
-  const confirmarTempo = useRef<(() => void) | null>(null);
+  const confirmarTempo = useRef<(() => Promise<boolean> | undefined) | null>(null);
   useEffect(() => {
     if (pedidoDeFoco > 0) botaoDaLista.current?.focus();
   }, [pedidoDeFoco]);
@@ -254,7 +254,10 @@ export function TelaExercicio({
           size="icon"
           className="alvo"
           aria-label="Visão geral do treino"
-          onClick={aoAbrirLista}
+          onClick={async () => {
+            const gravacao = confirmarTempo.current?.();
+            if (!gravacao || await gravacao) aoAbrirLista();
+          }}
         >
           <List className="size-5" />
         </Button>
@@ -438,14 +441,14 @@ function MioloDoPasso({
   aoMudar,
   aoMudarCarga,
 }: {
-  confirmarTempo: RefObject<(() => void) | null>;
+  confirmarTempo: RefObject<(() => Promise<boolean> | undefined) | null>;
   entrada: EntradaDoPasso;
   bloco: BlocoLocal;
   serie: SerieLocal;
   incremento: number;
   implemento: ImplementoMontagem;
   opcoes: OpcoesMontagem;
-  aoMudar: (campos: Partial<SerieLocal>) => void;
+  aoMudar: (campos: Partial<SerieLocal>) => void | Promise<void>;
   aoMudarCarga: (kg: number | null) => void;
 }) {
   const exercicio = acharExercicio(bloco.exercicioId);
@@ -562,15 +565,17 @@ function Cronometro({
 }: {
   serie: SerieLocal;
   unilateral: boolean;
-  confirmarTempo: RefObject<(() => void) | null>;
-  aoMudar: (campos: Partial<SerieLocal>) => void;
+  confirmarTempo: RefObject<(() => Promise<boolean> | undefined) | null>;
+  aoMudar: (campos: Partial<SerieLocal>) => void | Promise<void>;
 }) {
   const { id, tempoS: valor, concluida } = serie;
   const medicao = medicaoDaSerie(serie);
   const alvoDaMedicao = medicao?.alvoS;
   const alvo = Math.max(0, Math.round(alvoDaMedicao ?? valor ?? 0));
   const feitos = medicao?.medidoS ?? 0;
-  const falta = Math.max(0, alvo - feitos);
+  // Enquanto o IndexedDB grava, a tela conserva o último segundo que uma recarga recuperaria.
+  const [checkpoint, setCheckpoint] = useState<{ feitos: number; valor: typeof valor } | null>(null);
+  const falta = Math.max(0, alvo - (checkpoint?.feitos ?? feitos));
   const terminou = alvoDaMedicao !== undefined && falta === 0;
   const [rodando, setRodando] = useState(false);
   const trecho = useRef<{
@@ -580,8 +585,31 @@ function Cronometro({
     ultimoS: number;
   } | null>(null);
   const fracaoPausada = useRef(0);
-  const gravar = useRef(aoMudar);
-  useLayoutEffect(() => { gravar.current = aoMudar; }, [aoMudar]);
+  const gravacoes = useRef<{ pedidos: number; confirmado: number; emCurso?: Promise<boolean> }>({ pedidos: 0, confirmado: 0 });
+  const gravar = useRef<(alvoS: number, medidoS: number) => void>(() => {});
+  useLayoutEffect(() => {
+    gravar.current = (alvoS, medidoS) => {
+      const lote = gravacoes.current;
+      const pedido = ++lote.pedidos;
+      setCheckpoint(anterior => anterior ?? { feitos, valor });
+      // Concluir usa a medida imediatamente. Só apresentamos o segundo que o aparelho já guardou.
+      lote.emCurso = Promise.resolve(aoMudar(camposDoCronometro(id, alvoS, medidoS))).then(() => {
+        if (lote !== gravacoes.current) return false;
+        if (pedido <= lote.confirmado) return true;
+        lote.confirmado = pedido;
+        setCheckpoint(pedido === lote.pedidos ? null : { feitos: medidoS, valor: medidoS });
+        return true;
+      }, () => {
+        if (lote === gravacoes.current && pedido === lote.pedidos) {
+          trecho.current = null;
+          setRodando(false);
+          toast.error("Não foi possível guardar o tempo neste aparelho. Toque em Continuar para tentar de novo.");
+        }
+        return false;
+      });
+    };
+  }, [aoMudar, feitos, id, valor]);
+  useLayoutEffect(() => () => { gravacoes.current = { pedidos: 0, confirmado: 0 }; }, []);
 
   const medir = useCallback((pausar: boolean) => {
     const atual = trecho.current;
@@ -596,12 +624,15 @@ function Cronometro({
     }
     if (segundos !== atual.ultimoS) {
       atual.ultimoS = segundos;
-      gravar.current(camposDoCronometro(id, atual.alvoS, segundos));
+      gravar.current(atual.alvoS, segundos);
     }
-  }, [id]);
+  }, []);
 
   useLayoutEffect(() => {
-    confirmarTempo.current = () => medir(true);
+    confirmarTempo.current = () => {
+      medir(true);
+      return gravacoes.current.emCurso;
+    };
     return () => { confirmarTempo.current = null; };
   }, [confirmarTempo, medir]);
 
@@ -634,7 +665,7 @@ function Cronometro({
       ultimoS: feitos,
     };
     // Até o primeiro segundo completo, concluir uma medição deve registrar zero.
-    if (alvoDaMedicao === undefined) aoMudar(camposDoCronometro(id, alvo, 0));
+    if (alvoDaMedicao === undefined || checkpoint !== null) gravar.current(alvo, feitos);
     setRodando(true);
   };
 
@@ -673,9 +704,11 @@ function Cronometro({
           <StepperNumerico
             grande
             rotulo={unilateral ? "segundos do lado direito" : "segundos"}
-            valor={valor}
+            valor={checkpoint ? checkpoint.valor : valor}
             passo={5}
             aoMudar={(v) => {
+              gravacoes.current = { pedidos: 0, confirmado: 0 };
+              setCheckpoint(null);
               trecho.current = null;
               fracaoPausada.current = 0;
               setRodando(false);
