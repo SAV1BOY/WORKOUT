@@ -40,6 +40,7 @@ import {
   carregarSessaoLocal,
   conciliarBlocosAcrescentados,
   descarregarSessao,
+  desfazerUltimaInclusaoNaSessao,
   enviarPlanoDaTroca,
   enviarSerie,
   finalizarSessao,
@@ -48,6 +49,7 @@ import {
   guardarNotaGeralDaSessao,
   mesmoRelogio,
   MENSAGEM_CRONOMETRO_ALTERADO,
+  MENSAGEM_INCLUSAO_ALTERADA,
   MENSAGEM_NOTA_GERAL_ALTERADA,
   salvarSessaoLocal,
   sincronizarNotaGeralDaSessao,
@@ -373,22 +375,41 @@ export function useSessaoDeTreino(sessaoId: string, userId: string) {
    * a série que mudaram (quem chamou decide o que fazer com o descanso).
    */
   const marcar = useCallback(
-    (
+    async (
       ordem: number,
       serieId: string,
       concluida: boolean,
-    ): { sessao: SessaoLocal; bloco: BlocoLocal; serie: SerieLocal } | null => {
+    ): Promise<{ sessao: SessaoLocal; bloco: BlocoLocal; serie: SerieLocal } | null> => {
+      const antes = ultima.current;
+      if (!antes || antes.id !== sessaoId || antes.userId !== userId) return null;
       const nova = mexer((atual) => marcarSerie(atual, ordem, serieId, concluida));
       if (!nova) return null;
       const bloco = nova.blocos.find((b) => b.ordem === ordem);
       const serie = bloco?.series.find((s) => s.id === serieId);
       if (!bloco || !serie) return null;
-      // o registro sai do aparelho para a fila antes de qualquer animação (§8)
-      void descarregarSessao();
-      void enviarSerie(nova, bloco, serie);
-      return { sessao: nova, bloco, serie };
+      try {
+        const gravou = await enviarSerie(nova, bloco, serie);
+        if (ultima.current?.id !== sessaoId || ultima.current.userId !== userId) return null;
+        if (gravou) return { sessao: nova, bloco, serie };
+
+        const salva = await carregarSessaoLocal(sessaoId);
+        const atual = ultima.current;
+        if (atual?.id !== sessaoId || atual.userId !== userId) return null;
+        if (salva?.userId === userId && salva.status === "em_andamento") {
+          adotar(atual === nova ? salva : conciliarBlocosAcrescentados(atual, salva));
+        } else {
+          router.replace("/relatorio#historico");
+        }
+        toast.error("O treino mudou. A série não foi registrada.");
+      } catch {
+        const atual = ultima.current;
+        if (atual?.id !== sessaoId || atual.userId !== userId) return null;
+        if (atual === nova) mexer(() => antes);
+        toast.error("Não foi possível confirmar a série neste aparelho. Tente de novo.");
+      }
+      return null;
     },
-    [mexer],
+    [adotar, mexer, router, sessaoId, userId],
   );
 
   const mudarSerie = useCallback(
@@ -507,9 +528,10 @@ export function useSessaoDeTreino(sessaoId: string, userId: string) {
   }, [adotar, sessaoId, userId]);
 
   const substituir = useCallback(
-    (bloco: BlocoLocal, novoExercicioId: string) => {
+    async (bloco: BlocoLocal, novoExercicioId: string): Promise<boolean> => {
       const antes = ultima.current;
-      if (!antes || antes.blocos.some((outro) => outro.ordem !== bloco.ordem && outro.exercicioId === novoExercicioId)) return;
+      if (antes?.id !== sessaoId || antes.userId !== userId || antes.status !== "em_andamento" ||
+          antes.blocos.some((outro) => outro.ordem !== bloco.ordem && outro.exercicioId === novoExercicioId)) return false;
       const nova = mexer((atual) =>
         substituirExercicio(
           atual,
@@ -525,12 +547,36 @@ export function useSessaoDeTreino(sessaoId: string, userId: string) {
           },
         ),
       );
-      if (nova && nova !== antes) {
-        void descarregarSessao();
-        void enviarPlanoDaTroca(nova);
+      if (!nova || nova === antes) return false;
+      const pretendido = nova.blocos.find(b => b.ordem === bloco.ordem);
+      if (pretendido?.exercicioId !== novoExercicioId) return false;
+      try {
+        const salva = await enviarPlanoDaTroca(nova);
+        const atual = ultima.current;
+        if (atual?.id !== sessaoId || atual.userId !== userId || atual.status !== "em_andamento" ||
+            atual.blocos.find(b => b.ordem === bloco.ordem) !== pretendido) return false;
+        if (salva?.id !== sessaoId || salva.userId !== userId || salva.status !== "em_andamento") return false;
+        const confirmado = salva.blocos.find(b => b.ordem === bloco.ordem);
+        if (confirmado?.exercicioId === novoExercicioId) return true;
+        if (atual === nova) {
+          adotar(salva);
+        } else if (confirmado) {
+          // Uma edição posterior em outro bloco ou no relógio continua na tela.
+          adotar({ ...atual, blocos: atual.blocos.map(b => b === pretendido ? confirmado : b) });
+        } else {
+          adotar(conciliarBlocosAcrescentados(atual, salva));
+        }
+        toast.error("Outra aba atualizou este exercício. Confira o que foi registrado antes de trocar.");
+      } catch {
+        const atual = ultima.current;
+        if (atual?.id === sessaoId && atual.userId === userId &&
+            atual.blocos.find(b => b.ordem === bloco.ordem) === pretendido) {
+          toast.error("Não foi possível confirmar a troca neste aparelho. Confira o treino antes de continuar.");
+        }
       }
+      return false;
     },
-    [mexer, dadosDoMotor],
+    [adotar, mexer, dadosDoMotor, sessaoId, userId],
   );
 
   /* ------------------------------------------------------------- fim */
@@ -541,29 +587,47 @@ export function useSessaoDeTreino(sessaoId: string, userId: string) {
   });
   const aguardarMaterial = material?.aguardar;
 
-  const adicaoEmGravacao = useRef<Promise<void> | null>(null);
-  const adicionarExercicio = useCallback(async (exercicioId: string) => {
-    if (adicaoEmGravacao.current) throw new Error("Outro exercício está sendo adicionado.");
+  const inclusaoEmGravacao = useRef<Promise<void> | null>(null);
+  const alterarInclusao = useCallback(async (alterar: (base: SessaoLocal) => Promise<SessaoLocal>) => {
+    if (inclusaoEmGravacao.current) throw new Error("Aguarde a alteração do exercício.");
     async function gravar() {
       await aguardarMaterial?.();
+      await notaEmGravacao.current?.catch(() => {});
+      await filaDoCronometro.current;
+      await descansoEmGravacao.current?.catch(() => {});
       const antes = ultima.current;
       if (antes?.id !== sessaoId || antes.userId !== userId || antes.status !== "em_andamento"
         || !ehSessaoLivre(antes.workoutId) || encerradaAntes || encerradaAqui === sessaoId) {
-        throw new Error("Este treino já não está aberto para adicionar exercícios.");
+        throw new Error("Este treino já não está aberto para alterar os exercícios.");
       }
-      const salva = await acrescentarExercicioNaSessao(cliente, antes, exercicioId);
-      const atual = ultima.current;
-      if (atual?.id !== sessaoId || atual.userId !== userId || atual.status !== "em_andamento") return;
-      // A tela pode ter registrado outra série ou avançado o relógio enquanto o banco local gravava.
-      adotar(atual === antes ? salva : conciliarBlocosAcrescentados(atual, salva));
+      function mostrarConfirmada(salva: SessaoLocal) {
+        const atual = ultima.current;
+        if (atual?.id !== sessaoId || atual.userId !== userId || atual.status !== "em_andamento"
+          || salva.id !== sessaoId || salva.userId !== userId || salva.status !== "em_andamento") return;
+        // Outra série ou o relógio podem avançar enquanto o banco local confirma a inclusão.
+        adotar(atual === antes ? salva : conciliarBlocosAcrescentados(atual, salva));
+      }
+      try {
+        mostrarConfirmada(await alterar(antes));
+      } catch (falha) {
+        if (falha instanceof Error && falha.message === MENSAGEM_INCLUSAO_ALTERADA) {
+          const salva = await carregarSessaoLocal(sessaoId);
+          if (salva) mostrarConfirmada(salva);
+        }
+        throw falha;
+      }
     }
-    adicaoEmGravacao.current = gravar();
+    inclusaoEmGravacao.current = gravar();
     try {
-      await adicaoEmGravacao.current;
+      await inclusaoEmGravacao.current;
     } finally {
-      adicaoEmGravacao.current = null;
+      inclusaoEmGravacao.current = null;
     }
-  }, [adotar, aguardarMaterial, cliente, encerradaAntes, encerradaAqui, sessaoId, userId]);
+  }, [adotar, aguardarMaterial, encerradaAntes, encerradaAqui, sessaoId, userId]);
+  const adicionarExercicio = useCallback((id: string) =>
+    alterarInclusao(base => acrescentarExercicioNaSessao(cliente, base, id)), [alterarInclusao, cliente]);
+  const desfazerInclusao = useCallback((id: string) =>
+    alterarInclusao(base => desfazerUltimaInclusaoNaSessao(base, id)), [alterarInclusao]);
 
   /** O que o motor vai decidir, sem gravar nada (o resumo da conclusão). */
   const previa = useCallback(
@@ -597,7 +661,7 @@ export function useSessaoDeTreino(sessaoId: string, userId: string) {
         await notaEmGravacao.current;
         await filaDoCronometro.current;
         await descansoEmGravacao.current?.catch(() => {});
-        await adicaoEmGravacao.current?.catch(() => {});
+        await inclusaoEmGravacao.current?.catch(() => {});
         const atual = ultima.current ?? sessao;
         await finalizarSessao({
           sessao: { ...atual, sensacao: dados.sensacao, pesoCorporal: dados.peso },
@@ -730,6 +794,7 @@ export function useSessaoDeTreino(sessaoId: string, userId: string) {
     adicionarExercicio: sessao?.userId === userId && sessao.id === sessaoId && ehSessaoLivre(sessao.workoutId)
       && sessao.status === "em_andamento" && !salvando && !encerradaAntes && encerradaAqui !== sessaoId
       ? adicionarExercicio : undefined,
+    desfazerInclusao,
     substituir,
     previa,
     salvar,

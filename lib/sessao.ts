@@ -46,6 +46,7 @@ import {
 import type { EstadoPlayer } from "@/lib/player";
 import type { Assistencia, EquipamentoTag, Exercicio, FaseId, TreinoId } from "@/lib/schemas";
 import type {
+  InclusaoNaSessao,
   LinhaSerie,
   LinhaSessao,
   MotivoProgressao,
@@ -398,6 +399,11 @@ export function montarSessaoAvulsa(e: EntradaAvulsa): SessaoLocal {
     return bloco;
   });
 
+  let plano = e.plano ?? null;
+  if (plano?.ultima_inclusao && plano.ultima_inclusao.sessao_id !== e.id) {
+    plano = { ...plano };
+    delete plano.ultima_inclusao;
+  }
   const sessao: SessaoLocal = {
     id: e.id,
     userId: e.userId,
@@ -408,7 +414,7 @@ export function montarSessaoAvulsa(e: EntradaAvulsa): SessaoLocal {
     iniciadaEm: agora,
     concluidaEm: null,
     semanaPlano: e.semanaPlano ?? null,
-    plano: e.plano ?? null,
+    plano,
     sensacao: null,
     pesoCorporal: null,
     notas: null,
@@ -533,10 +539,10 @@ export function reconstruirSessao(
     const [atual, ...anteriores] = registros;
     return atual ? { ...atual, trocados: anteriores.length ? anteriores : undefined } : bloco;
   });
-  return {
+  return bloquearDesfazerSeIniciado({
     ...base, status: linha.status, blocos,
     ...(linha.nota_geral !== undefined && { notaGeral: linha.nota_geral }),
-  };
+  });
 }
 
 /* ------------------------------------------------------ mexer na sessão */
@@ -565,8 +571,77 @@ export function acrescentarExercicioNaSessao(
   return {
     ...sessao,
     blocos: [...sessao.blocos, bloco],
-    plano: { ...plano, itens: [...plano.itens, itemParaPlano(item)] },
+    plano: {
+      ...plano, itens: [...plano.itens, itemParaPlano(item)],
+      ultima_inclusao: {
+        id: (motor.novoId ?? idPadrao)(), sessao_id: sessao.id, ordem, exercicio_id: exercicioId,
+        estado: "disponivel", series_iniciais: valoresDoBlocoIncluido(bloco),
+      },
+    },
   };
+}
+
+/** Uma reconstrução pelo banco cria novos UUIDs para as séries pendentes. */
+function valoresDoBlocoIncluido(bloco: BlocoLocal): string {
+  const p = bloco.prescricao;
+  return JSON.stringify([
+    p.tipo, p.min, p.max, p.unilateral, p.series, bloco.descansoS, bloco.descansoTexto,
+    ...bloco.series.map(s => [s.tipo, s.setIndex, s.repsAlvoMin, s.repsAlvoMax, s.reps, s.repsLado2,
+      s.tempoS, s.tempoSLado2, s.cargaKg, s.passos, s.assistencia]),
+  ]);
+}
+
+function playerNoBloco(player: EstadoPlayer | null | undefined, bloco: BlocoLocal): boolean {
+  if (!player) return false;
+  const chave = player.chave.replace(/^descanso:/, "");
+  return player.ordem === bloco.ordem || chave === `firme:${bloco.ordem}` ||
+    bloco.series.some(s => chave === `serie:${s.id}`);
+}
+
+function blocoDaUltimaInclusao(sessao: SessaoLocal, inclusao: InclusaoNaSessao): BlocoLocal | undefined {
+  const plano = sessao.plano;
+  if (sessao.workoutId !== "livre" || sessao.status !== "em_andamento" ||
+      !plano || inclusao.estado !== "disponivel" || typeof inclusao.id !== "string" || !inclusao.id ||
+      inclusao.sessao_id !== sessao.id || inclusao.ordem <= 1 || inclusao.ordem !== sessao.blocos.length ||
+      !Array.isArray(plano.itens) || plano.itens.length !== inclusao.ordem ||
+      plano.itens.some((item, i) => item?.exercicio_id !== sessao.blocos[i]?.originalId)) return;
+  const bloco = sessao.blocos[inclusao.ordem - 1];
+  if (bloco?.ordem === inclusao.ordem && bloco.originalId === inclusao.exercicio_id &&
+      plano.itens[inclusao.ordem - 1]?.exercicio_id === inclusao.exercicio_id) return bloco;
+}
+
+function inclusaoFoiUsada(sessao: SessaoLocal, bloco: BlocoLocal, inclusao: InclusaoNaSessao): boolean {
+  return bloco.substituido || bloco.exercicioId !== inclusao.exercicio_id || !!bloco.trocados?.length ||
+    sessao.plano?.trocas?.[bloco.ordem] !== undefined || sessao.plano?.descansos_por_exercicio?.[bloco.exercicioId] !== undefined ||
+    bloco.nota !== null || bloco.ultimaFirme !== null || bloco.series.some(s => s.concluida || s.registradaEm !== null) ||
+    valoresDoBlocoIncluido(bloco) !== inclusao.series_iniciais ||
+    playerNoBloco(sessao.player, bloco) || playerNoBloco(sessao.player?.descansoAoCorrigir, bloco);
+}
+
+export function ultimaInclusaoDesfazivel(sessao: SessaoLocal): InclusaoNaSessao | null {
+  const inclusao = sessao.plano?.ultima_inclusao;
+  if (!inclusao) return null;
+  const bloco = blocoDaUltimaInclusao(sessao, inclusao);
+  return bloco && !inclusaoFoiUsada(sessao, bloco, inclusao) ? inclusao : null;
+}
+
+/** O primeiro uso continua gravado mesmo após desmarcar, limpar uma nota ou voltar de passo. */
+export function bloquearDesfazerSeIniciado(sessao: SessaoLocal): SessaoLocal {
+  const plano = sessao.plano;
+  const inclusao = plano?.ultima_inclusao;
+  if (!plano || !inclusao) return sessao;
+  const bloco = blocoDaUltimaInclusao(sessao, inclusao);
+  if (!bloco || !inclusaoFoiUsada(sessao, bloco, inclusao)) return sessao;
+  return { ...sessao, plano: { ...plano, ultima_inclusao: { ...inclusao, estado: "iniciada" } } };
+}
+
+export function desfazerUltimaInclusao(sessao: SessaoLocal, id: string): SessaoLocal {
+  const plano = sessao.plano;
+  const inclusao = ultimaInclusaoDesfazivel(sessao);
+  if (!plano || !inclusao || inclusao.id !== id) return sessao;
+  return { ...sessao, blocos: sessao.blocos.slice(0, -1), plano: {
+    ...plano, itens: plano.itens.slice(0, -1), ultima_inclusao: { ...inclusao, estado: "desfeita" },
+  } };
 }
 
 function trocarBloco(
@@ -574,10 +649,12 @@ function trocarBloco(
   ordem: number,
   fn: (bloco: BlocoLocal) => BlocoLocal,
 ): SessaoLocal {
-  return {
-    ...sessao,
+  const base = sessao.plano?.ultima_inclusao?.ordem === ordem ? bloquearDesfazerSeIniciado(sessao) : sessao;
+  const atualizada = {
+    ...base,
     blocos: sessao.blocos.map((b) => (b.ordem === ordem ? fn(b) : b)),
   };
+  return base.plano?.ultima_inclusao?.ordem === ordem ? bloquearDesfazerSeIniciado(atualizada) : atualizada;
 }
 
 /** Muda campos de uma série (cada toque, SPEC §8). */
@@ -1109,7 +1186,7 @@ export function definirDescansoDoExercicioNaSessao(
   else descansos[exercicioId] = valor;
   if (Object.keys(descansos).length) plano.descansos_por_exercicio = descansos;
   else delete plano.descansos_por_exercicio;
-  return { ...sessao, plano };
+  return bloquearDesfazerSeIniciado({ ...sessao, plano });
 }
 
 /** O plano mantém a escolha mesmo que o substituto ainda não tenha uma série no banco. */

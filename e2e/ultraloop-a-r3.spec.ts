@@ -18,6 +18,8 @@ import {
   lerDoMock,
   resetarMock,
   usuarioComPerfil,
+  concluirSerie,
+  ocuparArmazenamentoDaSessao,
 } from "./fixtures";
 
 /** 14/09/2026 é a segunda-feira que abre o programa: Treino A (SPEC §5). */
@@ -35,13 +37,6 @@ async function abrirPlayer(page: Page) {
   await comecarOTreinoDoDia(page);
   await comecarNoPlayer(page);
   return sessao;
-}
-
-/** ✓ na série atual e pula o descanso que vier. */
-async function concluirSerie(page: Page) {
-  await page.getByRole("button", { name: "Concluir série" }).click();
-  const pular = page.getByRole("button", { name: "Pular descanso" });
-  if (await pular.isVisible().catch(() => false)) await pular.click();
 }
 
 test.describe("§22.5 item 1 — dois toques no mesmo ponto não jogam o treino fora", () => {
@@ -188,8 +183,25 @@ test.describe("§22.5 item 3 — a Visão geral é um diálogo", () => {
 test.describe("§22.5 itens 4 e 5 — as perguntas chegam sem resposta e com cor própria", () => {
   test("'firme?' e o feedback nascem sem nenhuma opção marcada", async ({ page }) => {
     test.setTimeout(120_000);
-    await abrirPlayer(page);
-    for (let i = 0; i < 5; i++) await concluirSerie(page);
+    const conta = await abrirPlayer(page);
+    const id = new URL(page.url()).pathname.split("/").at(-1)!;
+    const liberar = await ocuparArmazenamentoDaSessao(page, id);
+    const primeira = concluirSerie(page);
+    try {
+      await expect(page.getByRole("button", { name: "Série feita", exact: true })).toBeVisible();
+      await expect(page.getByText("Aquecimento 1 de 2 · exercício 1 de 6", { exact: true })).toBeVisible();
+      await expect(page.getByRole("region", { name: "Descanso", exact: true })).toHaveCount(0);
+      expect(await lerDoMock(conta, "session_sets", `session_id=eq.${id}`)).toEqual([]);
+    } finally {
+      await liberar();
+      await primeira;
+    }
+    await expect(page.getByRole("region", { name: "Agachamento livre", exact: true })
+      .getByText("Aquecimento 2 de 2 · exercício 1 de 6", { exact: true })).toBeVisible();
+    await expect.poll(() => lerDoMock(conta, "session_sets", `session_id=eq.${id}`)).toMatchObject([
+      { exercise_id: "agachamento-livre", tipo: "aquecimento", concluida: true },
+    ]);
+    for (let i = 1; i < 5; i++) await concluirSerie(page);
 
     const firme = page.getByRole("radiogroup", { name: "Última repetição" });
     await expect(firme).toBeVisible();

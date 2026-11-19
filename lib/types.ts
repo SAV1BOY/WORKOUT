@@ -118,6 +118,17 @@ export interface ItemDoPlano {
   descanso_texto: string;
 }
 
+/** Identifica esta inclusão mesmo que o mesmo movimento seja retirado e incluído novamente. */
+export interface InclusaoNaSessao {
+  id: string;
+  sessao_id: string;
+  ordem: number;
+  exercicio_id: string;
+  estado: "disponivel" | "iniciada" | "desfeita";
+  /** Valores prescritos no momento da inclusão, sem os UUIDs locais das séries. */
+  series_iniciais: string;
+}
+
 /** `sessions.plano` (jsonb): de onde a sessão veio e o que ela tem. */
 export interface PlanoDaSessao {
   /** Rótulo da coleção que gerou a sessão ("Core no tatame"), ou `null`. */
@@ -125,6 +136,8 @@ export interface PlanoDaSessao {
   /** Id da coleção derivada que gerou a sessão ("grupo:Core"), ou `null`. */
   colecao: string | null;
   itens: ItemDoPlano[];
+  /** Ausente nas sessões anteriores à opção de desfazer e ao iniciar um treino novo. */
+  ultima_inclusao?: InclusaoNaSessao;
   /** Equipamento para esta sessão. Ausente nos planos antigos; [] = só peso corporal. */
   equipamento_disponivel?: EquipamentoTag[];
   /** Segundos entre séries de trabalho do movimento executado, só nesta sessão. */

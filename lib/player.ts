@@ -205,8 +205,12 @@ export function sequenciaDoPlayer(
       });
     }
 
+    const transicao = descansoDepoisDe(passos, descanso, true);
     if (i < blocos.length - 1 && descanso > 0) {
-      passos.push(descansoDepoisDe(passos, descanso, true));
+      passos.push(transicao);
+    } else if (cronometro?.chave === transicao.chave && cronometro.fimEm != null) {
+      // Desfazer o próximo exercício mantém o prazo do intervalo que já começou.
+      passos.push({ ...transicao, segundos: cronometro.totalS ?? descanso });
     }
   });
 
@@ -623,8 +627,9 @@ export function avisoDoDescanso(
   falta: number,
   totalS: number,
   acabou: boolean,
+  antesDoFeedback = false,
 ): string {
-  if (acabou) return "Descanso terminado, próxima série.";
+  if (acabou) return antesDoFeedback ? "Descanso terminado. Avalie o treino." : "Descanso terminado, próxima série.";
   if (falta <= 10 && totalS > 10) return "Faltam 10 segundos de descanso.";
   if (falta <= 30 && totalS > 30) return "Faltam 30 segundos de descanso.";
   return "";

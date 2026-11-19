@@ -154,6 +154,28 @@ describe("sequenciaDoPlayer — Treino A (SPEC §14.1)", () => {
     expect(seq[iFeedback - 1]?.tipo).toBe("firme");
   });
 
+  it("mantém o prazo da transição iniciada ao retirar o exercício seguinte", () => {
+    const livre = sessaoCom(["prancha", "flexao-de-braco"]);
+    const transicao = sequenciaDoPlayer(livre).find(p => p.tipo === "descanso" && p.entreExercicios)!;
+    const relogio = somarSegundos(estadoDoPasso(transicao, 0), 20, 5_000);
+    const reduzida = { ...livre, blocos: livre.blocos.slice(0, 1), player: relogio };
+    const seq = sequenciaDoPlayer(reduzida);
+    const mantido = seq[indiceDaChave(seq, transicao.chave)];
+    expect(mantido).toMatchObject({ tipo: "descanso", segundos: 80 });
+    expect(restanteS(relogio, 7_000)).toBe(73);
+    expect(zerou(relogio, 80_000)).toBe(true);
+    expect(avisoDoDescanso(0, 80, true, true)).toBe("Descanso terminado. Avalie o treino.");
+    if (mantido?.tipo !== "descanso") throw new Error("Descanso ausente");
+    const feedback = seq[mantido.indiceProximo]!;
+    expect(feedback.tipo).toBe("feedback");
+    const terminou = sequenciaDoPlayer({ ...reduzida, player: estadoDoPasso(feedback, 80_000) });
+    expect(indiceDaChave(terminou, transicao.chave)).toBe(-1);
+
+    const serie = seq.find(p => p.tipo === "serie")!;
+    const corrigindo = { ...estadoDoPasso(serie, 7_000), descansoAoCorrigir: relogio };
+    expect(sequenciaDoPlayer({ ...reduzida, player: corrigindo })).toEqual(seq);
+  });
+
   it("a posição do exercício acompanha o passo (PRÓXIMO n/N)", () => {
     const primeira = seq.find((p): p is PassoSerie => p.tipo === "serie");
     expect(primeira).toMatchObject({ posicao: 1, totalExercicios: 6 });

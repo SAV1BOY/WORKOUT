@@ -179,7 +179,8 @@ export function VisaoGeralDaSessao({
       </header>
 
       {dados.adicionarExercicio && dados.material && !fim && (
-        <AdicionarExercicio sessao={sessao} material={dados.material} prefs={prefs} aoAdicionar={dados.adicionarExercicio} />
+        <AdicionarExercicio key={sessao.id} sessao={sessao} material={dados.material} prefs={prefs}
+          aoAdicionar={dados.adicionarExercicio} aoDesfazer={dados.desfazerInclusao} />
       )}
       {sessao.blocos.map((bloco) => (
         <BlocoExercicio
@@ -195,8 +196,8 @@ export function VisaoGeralDaSessao({
           aoMudarSerie={(serieId, campos) =>
             dados.mudarSerie(bloco.ordem, serieId, campos)
           }
-          aoMarcarSerie={(serieId, concluida) => {
-            const feito = dados.marcar(bloco.ordem, serieId, concluida);
+          aoMarcarSerie={async (serieId, concluida) => {
+            const feito = await dados.marcar(bloco.ordem, serieId, concluida);
             if (!feito || !concluida) return;
             // Na lista, dá para marcar fora de ordem. Vale a série de trabalho que ainda falta.
             const entreSeries = feito.serie.tipo === "trabalho" &&

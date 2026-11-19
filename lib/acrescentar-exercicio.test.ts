@@ -40,7 +40,10 @@ describe("acrescentar um exercício ao treino livre em andamento", () => {
     expect(outra.blocos.map(b => [b.ordem, b.exercicioId])).toEqual([[1, PRANCHA], [2, ROSCA]]);
     expect(outra).toEqual({ ...emDescanso,
       blocos: [...emDescanso.blocos, outra.blocos[1]],
-      plano: { ...emDescanso.plano, itens: [...emDescanso.plano!.itens, ...planoDaSessao(itensDeIds([ROSCA])).itens] },
+      plano: { ...emDescanso.plano,
+        itens: [...emDescanso.plano!.itens, ...planoDaSessao(itensDeIds([ROSCA])).itens],
+        ultima_inclusao: expect.objectContaining({ sessao_id: emDescanso.id, exercicio_id: ROSCA, ordem: 2, estado: "disponivel" }),
+      },
     });
     expect(outra.player).toBe(player);
     const seq = sequenciaDoPlayer(outra);

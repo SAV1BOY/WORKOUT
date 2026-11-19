@@ -41,6 +41,7 @@ export function TelaDescanso({
   estado,
   agora,
   proximo,
+  antesDoFeedback = false,
   blocoDoProximo,
   serieDoProximo,
   avancarSozinho,
@@ -59,6 +60,7 @@ export function TelaDescanso({
   estado: EstadoPlayer;
   agora: number;
   proximo: PassoSerie | null;
+  antesDoFeedback?: boolean;
   blocoDoProximo: BlocoLocal | null;
   /**
    * A série do próximo passo. Num passo de **aquecimento** o alvo é o dela
@@ -173,7 +175,7 @@ export function TelaDescanso({
             <span>{registrado}</span>
           </button>
         )}
-        {proximo && <p className="text-rotulo tracking-wide uppercase">A seguir</p>}
+        {(proximo || antesDoFeedback) && <p className="text-rotulo tracking-wide uppercase">A seguir</p>}
         {/*
           SPEC §22.5 item 10: uma grafia só. O exercício escreve "Aquecimento
           2 de 2 · exercício 1 de 6"; aqui era "Próximo 2/6" ou só "Aquecimento
@@ -183,7 +185,7 @@ export function TelaDescanso({
         <p className="text-descanso-destaque text-xs font-semibold tracking-wide text-balance uppercase">
           {proximo
             ? `${rotuloDoPasso(proximo)} · exercício ${proximo.posicao} de ${proximo.totalExercicios}`
-            : "Descanso"}
+            : antesDoFeedback ? "Avaliação do treino" : "Descanso"}
         </p>
         {blocoDoProximo && exercicio ? (
           <>
@@ -227,7 +229,7 @@ export function TelaDescanso({
         </span>
       </AnelDeContagem>
       <p role="status" className="sr-only">
-        {avisoDoDescanso(falta, estado.totalS ?? 0, acabou) || aviso}
+        {avisoDoDescanso(falta, estado.totalS ?? 0, acabou, antesDoFeedback) || aviso}
       </p>
 
       <div className="flex w-full max-w-xs flex-col gap-2">

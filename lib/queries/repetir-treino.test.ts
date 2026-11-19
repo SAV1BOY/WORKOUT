@@ -11,10 +11,11 @@ import { lerMotorParaRepetir } from "@/lib/queries/motor-repetir-treino";
 import { abrirRepeticaoDoTreino } from "@/lib/queries/repetir-treino";
 import {
   acrescentarExercicioNaSessao, criarSessaoLivre, descarregarSessao, enviarPlanoDaTroca, finalizarSessao,
-  guardarDescansoDaSessao, guardarMaterialDaSessao, salvarSessaoLocal,
+  desfazerUltimaInclusaoNaSessao, enviarSerie, guardarDescansoDaSessao, guardarMaterialDaSessao,
+  MENSAGEM_INCLUSAO_ALTERADA, salvarSessaoLocal,
 } from "@/lib/queries/sessao";
 import {
-  definirEquipamentoDaSessao, definirNota, marcarSerie, substituirExercicio, type SessaoLocal,
+  atualizarSerie, definirEquipamentoDaSessao, definirFirme, definirNota, marcarSerie, substituirExercicio, type SessaoLocal,
 } from "@/lib/sessao";
 import { clienteNavegador } from "@/lib/supabase/client";
 import type { LinhaPerfil } from "@/lib/types";
@@ -191,6 +192,153 @@ describe("acrescentar ao treino livre que está no aparelho", () => {
     }), "sessions:aberta");
     expect(lerMotorParaRepetir).toHaveBeenCalledWith(cache, "ana", [remada], expect.any(Function));
     expect(clienteNavegador().auth.getSession).not.toHaveBeenCalled();
+  });
+
+  it("desfaz uma única vez, com o plano e a fila no mesmo commit local, e recusa outro login", async () => {
+    vi.stubGlobal("navigator", { onLine: false });
+    const s = await iniciar();
+    const comBloco = await incluir(s, remada);
+    const token = comBloco.plano!.ultima_inclusao!.id;
+    login = "bia";
+    await expect(desfazerUltimaInclusaoNaSessao(comBloco, token)).rejects.toThrow("confirmar a conta");
+    login = "ana";
+    vi.mocked(guardarNaFila).mockRejectedValueOnce(new Error("quota"));
+    await expect(desfazerUltimaInclusaoNaSessao(comBloco, token)).rejects.toThrow("quota");
+    expect(locais.get(s.id)).toEqual(comBloco);
+    vi.mocked(guardarNaFila).mockClear();
+    const [primeira, repetida] = await Promise.all([desfazerUltimaInclusaoNaSessao(comBloco, token), desfazerUltimaInclusaoNaSessao(comBloco, token)]);
+    expect(primeira).toEqual(repetida);
+    expect(primeira.blocos).toEqual(s.blocos);
+    expect(primeira.plano).toMatchObject({ itens: s.plano!.itens, ultima_inclusao: { id: token, estado: "desfeita" } });
+    expect(guardarNaFila).toHaveBeenCalledTimes(1);
+    expect(guardarNaFila).toHaveBeenCalledWith("sessao", expect.objectContaining({
+      op: "update", filtro: { id: s.id, user_id: "ana", status: "em_andamento" }, linha: { plano: primeira.plano },
+    }), "sessions:aberta");
+  });
+
+  it("não ressuscita o bloco desfeito em uma edição de outra série, troca, reconstrução ou conclusão antiga", async () => {
+    const s = await iniciar();
+    const comBloco = await incluir(s, remada);
+    await desfazerUltimaInclusaoNaSessao(comBloco, comBloco.plano!.ultima_inclusao!.id);
+    const antiga = definirNota(marcarSerie(comBloco, 1, comBloco.blocos[0]!.series[0]!.id, true), 1, "Fiz a série");
+    salvarSessaoLocal(antiga, comBloco);
+    await descarregarSessao();
+    salvarSessaoLocal(comBloco); // reconstrução da rede que começou antes de desfazer
+    await descarregarSessao();
+    expect(locais.get(s.id)!.blocos).toEqual([antiga.blocos[0]]);
+    await enviarPlanoDaTroca(comBloco);
+    expect(guardarNaFila).toHaveBeenLastCalledWith("sessao", expect.objectContaining({
+      linha: { plano: expect.objectContaining({ itens: s.plano!.itens, ultima_inclusao: expect.objectContaining({ estado: "desfeita" }) }) },
+    }), "sessions:aberta");
+    const fim = await fechar(antiga);
+    expect(fim.resultados.some(r => r.exercicioId === remada)).toBe(false);
+    expect(guardarNaFila).toHaveBeenCalledWith("serie", expect.objectContaining({ linha: expect.objectContaining({
+      id: s.blocos[0]!.series[0]!.id, concluida: true,
+    }) }), "sessions:aberta");
+    expect(locais.get(s.id)).toBeUndefined();
+    await expect(desfazerUltimaInclusaoNaSessao(comBloco, comBloco.plano!.ultima_inclusao!.id)).rejects.toThrow("não está aberta");
+  });
+
+  it("uma aba com o bloco antigo não envia sua série depois de desfazer e reincluir o mesmo exercício", async () => {
+    const s = await iniciar();
+    const adicionada = await incluir(s, remada);
+    const token = adicionada.plano!.ultima_inclusao!.id;
+    const desfeita = await desfazerUltimaInclusaoNaSessao(adicionada, token);
+    const antiga = marcarSerie(adicionada, 2, adicionada.blocos[1]!.series[0]!.id, true);
+    const bloco = antiga.blocos[1]!;
+    salvarSessaoLocal(antiga, adicionada);
+    expect(await enviarSerie(antiga, bloco, bloco.series[0]!)).toBe(false);
+    const reincluida = await incluir(desfeita, remada);
+    expect(reincluida.plano!.ultima_inclusao!.id).not.toBe(token);
+    expect(reincluida.blocos[1]!.series[0]!.id).not.toBe(bloco.series[0]!.id);
+    salvarSessaoLocal(antiga, adicionada);
+    expect(await enviarSerie(antiga, bloco, bloco.series[0]!)).toBe(false);
+    await expect(desfazerUltimaInclusaoNaSessao(adicionada, token)).rejects.toThrow(MENSAGEM_INCLUSAO_ALTERADA);
+    expect(locais.get(s.id)).toEqual(reincluida);
+    expect(guardarNaFila).not.toHaveBeenCalledWith("serie", expect.anything(), expect.anything());
+  });
+
+  it("conserva uma edição no bloco e uma marcação posteriormente desmarcada antes do desfazer de outra aba", async () => {
+    const s = await iniciar();
+    const adicionada = await incluir(s, remada);
+    const token = adicionada.plano!.ultima_inclusao!.id;
+    const editada = definirNota(adicionada, 2, "Ombros relaxados");
+    salvarSessaoLocal(editada, adicionada);
+    await expect(desfazerUltimaInclusaoNaSessao(adicionada, token)).rejects.toThrow(MENSAGEM_INCLUSAO_ALTERADA);
+    expect(locais.get(s.id)!.blocos[1]!.nota).toBe("Ombros relaxados");
+    const marcada = marcarSerie(editada, 2, editada.blocos[1]!.series[0]!.id, true);
+    salvarSessaoLocal(marcada, editada);
+    expect(await enviarSerie(marcada, marcada.blocos[1]!, marcada.blocos[1]!.series[0]!)).toBe(true);
+    const desmarcada = marcarSerie(marcada, 2, marcada.blocos[1]!.series[0]!.id, false);
+    salvarSessaoLocal(desmarcada, marcada);
+    expect(await enviarSerie(desmarcada, desmarcada.blocos[1]!, desmarcada.blocos[1]!.series[0]!)).toBe(true);
+    await expect(desfazerUltimaInclusaoNaSessao(adicionada, token)).rejects.toThrow(MENSAGEM_INCLUSAO_ALTERADA);
+    expect(guardarNaFila).toHaveBeenCalledWith("sessao", expect.objectContaining({ linha: { plano: expect.objectContaining({
+      ultima_inclusao: expect.objectContaining({ id: token, estado: "iniciada" }),
+    }) } }), "sessions:aberta");
+    expect(guardarNaFila).toHaveBeenLastCalledWith("serie", expect.objectContaining({ linha: expect.objectContaining({
+      id: marcada.blocos[1]!.series[0]!.id, concluida: false,
+    }) }), "sessions:aberta");
+  });
+
+  it("duas abas marcam séries diferentes do mesmo exercício e preservam nota, firme e carga ao reabrir", async () => {
+    const s = await iniciar();
+    const inicial = await incluir(s, remada);
+    const [primeira, segunda] = inicial.blocos[1]!.series;
+    const comCarga = atualizarSerie(inicial, 2, primeira!.id, { cargaKg: 19 });
+    const primeiraFeita = definirNota(definirFirme(marcarSerie(comCarga, 2, primeira!.id, true), 2, true), 2, "Costas firmes");
+    salvarSessaoLocal(primeiraFeita, inicial);
+    await descarregarSessao();
+    // Esta aba ainda mostra a primeira série pendente e sem nota.
+    const segundaFeita = marcarSerie(inicial, 2, segunda!.id, true);
+    salvarSessaoLocal(segundaFeita, inicial);
+    expect(await enviarSerie(segundaFeita, segundaFeita.blocos[1]!, segundaFeita.blocos[1]!.series[1]!)).toBe(true);
+    const reaberta = locais.get(s.id)!;
+    expect(reaberta.blocos[1]).toMatchObject({ nota: "Costas firmes", ultimaFirme: true });
+    expect(reaberta.blocos[1]!.series[0]).toMatchObject({ id: primeira!.id, cargaKg: 19, concluida: true });
+    expect(reaberta.blocos[1]!.series[1]).toMatchObject({ id: segunda!.id, concluida: true });
+    const corrigida = atualizarSerie(inicial, 2, primeira!.id, { reps: 14 });
+    salvarSessaoLocal(corrigida, inicial);
+    await descarregarSessao();
+    expect(locais.get(s.id)!.blocos[1]!.series[0]).toMatchObject({ id: primeira!.id, cargaKg: 19, reps: 14, concluida: true });
+    await expect(desfazerUltimaInclusaoNaSessao(inicial, inicial.plano!.ultima_inclusao!.id)).rejects.toThrow(MENSAGEM_INCLUSAO_ALTERADA);
+  });
+
+  it("recusa a troca que arquivaria um bloco anterior aos registros de outra aba e devolve o movimento real", async () => {
+    const inicial = await incluir(await iniciar(), remada);
+    const bloco = inicial.blocos[1]!;
+    const marcada = marcarSerie(inicial, 2, bloco.series[0]!.id, true);
+    const editada = definirNota(definirFirme(marcada, 2, false), 2, "Manter a faixa esticada");
+    salvarSessaoLocal(editada, inicial);
+    await descarregarSessao();
+    const trocaAntiga = substituirExercicio(inicial, 2, "prancha");
+    salvarSessaoLocal(trocaAntiga, inicial);
+    const confirmada = await enviarPlanoDaTroca(trocaAntiga);
+    expect(confirmada!.blocos[1]).toEqual(editada.blocos[1]);
+    expect(locais.get(inicial.id)!.blocos[1]).toEqual(editada.blocos[1]);
+    expect(guardarNaFila).toHaveBeenLastCalledWith("sessao", expect.objectContaining({
+      linha: { plano: expect.not.objectContaining({ trocas: expect.anything() }) },
+    }), "sessions:aberta");
+    const novaTentativa = substituirExercicio(confirmada!, 2, "prancha");
+    salvarSessaoLocal(novaTentativa, confirmada!);
+    const salva = await enviarPlanoDaTroca(novaTentativa);
+    expect(salva!.blocos[1]!.trocados![0]!).toMatchObject({
+      exercicioId: remada, nota: "Manter a faixa esticada", ultimaFirme: false,
+    });
+    expect(salva!.blocos[1]!.trocados![0]!.series[0]).toMatchObject({ id: bloco.series[0]!.id, concluida: true });
+  });
+
+  it("preserva a troca e a restauração do movimento no bloco incluído com séries pendentes novas", async () => {
+    const inicial = await incluir(await iniciar(), remada);
+    const trocada = substituirExercicio(inicial, 2, "prancha");
+    salvarSessaoLocal(trocada, inicial);
+    await descarregarSessao();
+    expect(locais.get(inicial.id)!.blocos[1]!.exercicioId).toBe("prancha");
+    const restaurada = substituirExercicio(trocada, 2, remada);
+    salvarSessaoLocal(restaurada, trocada);
+    await enviarPlanoDaTroca(restaurada);
+    expect(locais.get(inicial.id)!.blocos[1]).toEqual(restaurada.blocos[1]);
+    expect(locais.get(inicial.id)!.plano!.ultima_inclusao!.estado).toBe("iniciada");
   });
 
   it("uma aba antiga marca, troca e encerra sem perder a progressão, as séries ou as notas do bloco acrescentado", async () => {
