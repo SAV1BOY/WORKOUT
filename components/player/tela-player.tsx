@@ -21,6 +21,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { apitar, vibrar } from "@/lib/apito";
 import { semanaDaFase } from "@/lib/calendario";
 import { acharExercicio } from "@/lib/dados";
 import { formatarDuracao, formatarKg, rotuloDaCarga } from "@/lib/formato";
@@ -110,7 +111,6 @@ export function TelaPlayer({
   /** Muda ao fechar a Visão geral: o foco volta ao botão que a abriu (§22.5). */
   const [pedidoDeFoco, setPedidoDeFoco] = useState(0);
   const listaAbertaNoDescanso = useRef(false);
-  const ultimoDescansoAvisado = useRef<string | null>(null);
   const focarListaDoDescanso = useCallback((botao: HTMLButtonElement | null) => {
     if (botao && listaAbertaNoDescanso.current) {
       listaAbertaNoDescanso.current = false;
@@ -198,16 +198,27 @@ export function TelaPlayer({
 
   /* ------------------------------------------------------ relógio */
 
-  const contando = estado?.fimEm !== null && estado?.fimEm !== undefined;
+  const fimEm = estado?.fimEm ?? null;
+  const chaveDoDescanso = passo?.tipo === "descanso" && passo.chave === estado?.chave ? passo.chave : null;
+  const ultimoDescansoAvisado = useRef<{ chave: string; fimEm: number } | null>(null);
+  const som = ligado(prefs, "descanso_som");
+  const vibracao = ligado(prefs, "descanso_vibra");
   /*
-   * Com a Visão geral aberta a contagem da preparação não vale (§22.16 item
-   * 2), e o relógio só redesenharia a Visão geral 4 vezes por segundo à toa.
-   * Ao "Fechar", ele volta e marca a hora na mesma passada.
+   * Com a Visão geral aberta, a preparação espera (§22.16 item 2). O descanso
+   * ainda avisa no prazo sem redesenhar a lista ou interromper a escolha.
    */
-  const relogioLigado = contando && !visaoGeral;
   useEffect(() => {
-    if (!relogioLigado) return;
-    const tique = () => setAgora(Date.now());
+    if (fimEm === null || (visaoGeral && !chaveDoDescanso)) return;
+    const tique = () => {
+      const agora = Date.now();
+      if (!visaoGeral) setAgora(agora);
+      if (!chaveDoDescanso || agora < fimEm) return;
+      const anterior = ultimoDescansoAvisado.current;
+      if (anterior?.chave === chaveDoDescanso && anterior.fimEm === fimEm) return;
+      ultimoDescansoAvisado.current = { chave: chaveDoDescanso, fimEm };
+      if (vibracao) vibrar();
+      if (som) apitar();
+    };
     tique();
     const relogio = setInterval(tique, 250);
     // voltar para a aba não pode mostrar o número congelado (§14.1)
@@ -219,7 +230,7 @@ export function TelaPlayer({
       clearInterval(relogio);
       document.removeEventListener("visibilitychange", aoVoltar);
     };
-  }, [relogioLigado, estado?.chave]);
+  }, [fimEm, visaoGeral, chaveDoDescanso, som, vibracao]);
 
   /*
    * A preparação é uma contagem: ao zerar, o treino começa sozinho (§14.1.1).
@@ -619,8 +630,6 @@ export function TelaPlayer({
           proximo={proximo}
           blocoDoProximo={blocoDoProximo}
           serieDoProximo={proximo ? serieDoPasso(sessao, proximo) : null}
-          som={ligado(prefs, "descanso_som")}
-          vibracao={ligado(prefs, "descanso_vibra")}
           avancarSozinho={ligado(prefs, "avancar_sozinho") && ficha === null}
           registrado={registrado}
           aoAbrirFicha={() => proximo && setFicha(proximo.ordem)}
@@ -630,7 +639,6 @@ export function TelaPlayer({
             }
           }}
           aviso={aviso}
-          ultimoDescansoAvisado={ultimoDescansoAvisado}
           botaoDaLista={focarListaDoDescanso}
           aoAbrirLista={dados.adicionarExercicio ? () => {
             listaAbertaNoDescanso.current = true;

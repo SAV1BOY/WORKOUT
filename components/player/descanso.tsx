@@ -1,12 +1,11 @@
 "use client";
 
 import { List, Pencil, SkipForward, Timer } from "lucide-react";
-import { useEffect, useId, useRef, useState, type RefObject } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { AnelDeContagem } from "@/components/player/anel";
 import { Miniatura } from "@/components/ui/miniatura";
 import { StepperNumerico } from "@/components/stepper-numerico";
 import { Button } from "@/components/ui/button";
-import { apitar, vibrar } from "@/lib/apito";
 import { acharExercicio } from "@/lib/dados";
 import { nomeAcessivel } from "@/lib/midia";
 import { formatarDuracao } from "@/lib/formato";
@@ -43,15 +42,12 @@ export function TelaDescanso({
   proximo,
   blocoDoProximo,
   serieDoProximo,
-  som,
-  vibracao,
   avancarSozinho,
   aviso = "",
   registrado,
   aoAbrirFicha,
   aoAbrirLista,
   botaoDaLista,
-  ultimoDescansoAvisado,
   aoCorrigir,
   aoSomar,
   aoDefinir,
@@ -68,8 +64,6 @@ export function TelaDescanso({
    * "3 × 5" sob "AQUECIMENTO 2 DE 2" era o defeito da auditoria do marco V2.
    */
   serieDoProximo: SerieLocal | null;
-  som: boolean;
-  vibracao: boolean;
   avancarSozinho: boolean;
   /**
    * "Série 2 de 3 registrada: …" (SPEC §22.5 item 10). Ele chega aqui porque
@@ -82,7 +76,6 @@ export function TelaDescanso({
   aoAbrirFicha: () => void;
   aoAbrirLista?: () => void;
   botaoDaLista: (botao: HTMLButtonElement | null) => void;
-  ultimoDescansoAvisado: RefObject<string | null>;
   aoCorrigir: () => void;
   aoSomar: (segundos: number) => void;
   aoDefinir: (segundos: number) => void;
@@ -114,19 +107,6 @@ export function TelaDescanso({
   useEffect(() => {
     pular.current = aoPular;
   });
-
-  // o aviso toca uma vez por descanso (a chave muda a cada passo novo)
-  useEffect(() => {
-    if (!acabou || ultimoDescansoAvisado.current === estado.chave) return;
-    ultimoDescansoAvisado.current = estado.chave;
-    if (vibracao) vibrar();
-    if (som) apitar();
-  }, [acabou, estado.chave, som, vibracao, ultimoDescansoAvisado]);
-
-  // "+20 s" depois de zerar faz o aviso valer de novo
-  useEffect(() => {
-    if (!acabou) ultimoDescansoAvisado.current = null;
-  }, [acabou, ultimoDescansoAvisado]);
 
   useEffect(() => {
     // O relógio pode zerar durante a edição. Aguarda a pessoa concluir antes de trocar a tela.

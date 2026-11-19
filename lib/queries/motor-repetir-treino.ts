@@ -4,6 +4,7 @@ import { bd, temIndexedDB } from "@/lib/db";
 import { estadosPorExercicio } from "@/lib/hoje";
 import type { EscritaTabela } from "@/lib/outbox-supabase";
 import { guardarConsultasAgora } from "@/lib/persistencia-query";
+import { guardarCargasLidas, lerCargasNoAparelho } from "@/lib/queries/cargas-no-aparelho";
 import { SERIES_ANTERIORES, seriesComparaveis, type SerieAnterior } from "@/lib/queries/dados";
 import { seriesAnterioresPorExercicio, type EntradaMontagem } from "@/lib/sessao";
 import { clienteNavegador } from "@/lib/supabase/client";
@@ -17,12 +18,17 @@ const chave = (conta: string, fonte: Fonte, id: string) => ["motor-repetir", con
 /** Uma leitura vazia só confirma ausência quando a chave também identifica a conta. */
 function linhasSalvas<T extends LinhaDaConta>(
   cliente: QueryClient, conta: string, ids: readonly string[], fonte: "estados" | "recordes",
+  doAparelho?: ReadonlyMap<string, { linha: T | null; lidoEm: number }>,
 ): Map<string, T | null> {
   const linhas = new Map<string, T | null>();
   const quando = new Map<string, number>();
+  for (const [id, carga] of doAparelho ?? []) {
+    linhas.set(id, carga.linha);
+    quando.set(id, carga.lidoEm);
+  }
   for (const id of ids) {
     const estado = cliente.getQueryState<T | null>(chave(conta, fonte, id));
-    if (estado?.data === null || estado?.data?.user_id === conta) {
+    if ((estado?.data === null || estado?.data?.user_id === conta) && estado.dataUpdatedAt >= (quando.get(id) ?? -1)) {
       linhas.set(id, estado.data);
       quando.set(id, estado.dataUpdatedAt);
     }
@@ -143,12 +149,14 @@ export async function lerMotorParaRepetir(
   const ids = [...new Set(exercicios)].filter((id) => exercicioPorId.has(id));
   if (!userId || !ids.length) return { estados: {}, conhecidos: new Set(), anteriores: {}, recordes: {} };
   const maximos = ids.filter((id) => exercicioPorId.get(id)?.prescricao_padrao.tipo === "maximo");
-  const estados = linhasSalvas<LinhaEstadoExercicio>(cliente, userId, ids, "estados");
+  const doAparelho = await lerCargasNoAparelho(userId, ids).catch(() => undefined);
+  const estados = linhasSalvas<LinhaEstadoExercicio>(cliente, userId, ids, "estados", doAparelho);
   const recordes = linhasSalvas<LinhaRecorde>(cliente, userId, ids, "recordes");
   let anteriores = repeticoesSalvas(cliente, userId, maximos);
 
   // Captura a fila antes do GET: ela pode ser drenada enquanto o servidor responde.
   const pendentes = await estadosPendentes().catch(() => []);
+  const inicioDaLeitura = Date.now();
   let leuEstados = false;
   let leuRecordes = false;
   let leuAnteriores = false;
@@ -195,6 +203,10 @@ export async function lerMotorParaRepetir(
   // A troca de login durante um GET pode dar [] sob RLS. Confirma a identidade
   // antes de substituir a cópia anterior por uma ausência aparente.
   await confirmarConta?.();
+  if (leuEstados) {
+    const confirmadas = [...estados.values()].filter((e): e is LinhaEstadoExercicio => e !== null);
+    await guardarCargasLidas(confirmadas, inicioDaLeitura, confirmarConta ? { conta: userId, ids } : undefined).catch(() => {});
+  }
   for (const id of leuEstados ? ids : alterados) cliente.setQueryData(chave(userId, "estados", id), estados.get(id));
   if (leuRecordes) for (const id of ids) cliente.setQueryData(chave(userId, "recordes", id), recordes.get(id));
   if (leuAnteriores) for (const id of maximos) cliente.setQueryData(chave(userId, "anteriores", id), anteriores[id] ?? []);

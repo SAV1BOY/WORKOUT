@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import type { LinhaSerie, LinhaSessao, PlanoDaSessao } from "../lib/types";
+import type { LinhaSerie, LinhaSessao, PlanoDaSessao, Prefs } from "../lib/types";
 import {
   abrirVisaoGeral, avancarNoPlayerAte, comecarNoPlayer, comecarOTreinoDoDia, entrarNoApp,
   esperarServiceWorker, fixarData, HOJE_FIXO, inserirNoMock, lerDoMock, resetarMock,
@@ -19,8 +19,8 @@ const busca = (page: Page) => catalogo(page).getByRole("searchbox", { name: "Bus
 const adicionar = (page: Page) => catalogo(page).getByRole("button", { name: `Adicionar ${NOME}`, exact: true });
 const timer = (page: Page) => page.getByRole("region", { name: "Descanso", exact: true }).getByRole("timer");
 
-async function treinoAberto(page: Page, aquecerCache = false) {
-  const conta = await usuarioComPerfil({ prefs: { preparacao_s: 0, avancar_sozinho: false } });
+async function treinoAberto(page: Page, opcoes: { prepararCargaOffline?: boolean; prefs?: Prefs } = {}) {
+  const conta = await usuarioComPerfil({ prefs: { preparacao_s: 0, avancar_sozinho: false, ...opcoes.prefs } });
   const id = crypto.randomUUID();
   const plano: PlanoDaSessao = {
     titulo: "Treino livre de segunda", colecao: null,
@@ -39,7 +39,7 @@ async function treinoAberto(page: Page, aquecerCache = false) {
     incremento_reduzido: false, exigir_rep_extra: false, semana_leve: false, sessoes_graca: 0, desativado: false,
   }]);
   await entrarNoApp(page);
-  if (aquecerCache) {
+  if (opcoes.prepararCargaOffline) {
     await page.goto(`/exercicios/${FRONTAL}`);
     await expect(page.getByText(/31,5 kg/).first()).toBeVisible();
   }
@@ -84,30 +84,13 @@ test("durante o descanso, acrescentar no fim preserva a série registrada e o pr
   await page.screenshot({ path: info.outputPath("visao-geral-durante-o-descanso.png") });
   await abrirVisaoGeral(page);
 
-  const entrada = abrirCatalogo(page);
-  await entrada.focus();
-  await page.keyboard.press("Enter");
-  await expect(catalogo(page).getByRole("heading", { name: "Adicionar exercício", exact: true })).toBeFocused();
-  await page.keyboard.press("Tab");
-  await expect(busca(page)).toBeFocused();
-  await busca(page).fill("supino reto com barra"); // O banco não está no equipamento desta sessão.
-  await expect(catalogo(page).getByRole("button", { name: "Adicionar Supino reto com barra" })).toHaveCount(0);
-  await busca(page).fill("rosca com elástico"); // Já ocupa o primeiro bloco.
-  await expect(catalogo(page).getByRole("button", { name: "Adicionar Rosca com elástico" })).toHaveCount(0);
-  await page.keyboard.press("Escape");
-  await expect(entrada).toBeFocused();
-  await page.keyboard.press("Enter");
+  await abrirCatalogo(page).click();
   await busca(page).fill("agachamento frontal");
-  await expect(adicionar(page)).toBeVisible();
-  await semRolagemHorizontal(page);
-  const caixa = await adicionar(page).boundingBox();
-  expect(caixa!.height).toBeGreaterThanOrEqual(44);
-  await page.screenshot({ path: info.outputPath("adicionar-exercicio-no-celular.png") });
   await fixarData(page, new Date(Date.parse(HOJE_FIXO) + 15_000).toISOString());
   await adicionar(page).focus();
   await page.keyboard.press("Enter");
   await expect(catalogo(page)).toBeHidden();
-  await expect(entrada).toBeFocused();
+  await expect(abrirCatalogo(page)).toBeFocused();
   await conferirBlocoNovo(page);
   await expect.poll(() => planoSalvo(conta, id)).toMatchObject({
     ...plano, itens: [...plano.itens, { exercicio_id: FRONTAL }],
@@ -128,9 +111,39 @@ test("durante o descanso, acrescentar no fim preserva a série registrada e o pr
   ]);
 });
 
+test("a busca filtra por equipamento e o teclado e o voltar fecham só a folha do catálogo", async ({ page }, info) => {
+  const { conta, id, plano } = await treinoAberto(page);
+  await abrirVisaoGeral(page);
+  await expect(geral(page).getByRole("heading", { level: 1 })).toHaveText("Treino livre de segunda");
+  const entrada = abrirCatalogo(page);
+  await entrada.focus();
+  await page.keyboard.press("Enter");
+  await expect(catalogo(page).getByRole("heading", { name: "Adicionar exercício", exact: true })).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(busca(page)).toBeFocused();
+  await busca(page).fill("supino reto com barra"); // O banco não está no equipamento desta sessão.
+  await expect(catalogo(page).getByRole("button", { name: "Adicionar Supino reto com barra" })).toHaveCount(0);
+  await busca(page).fill("rosca com elástico"); // Já ocupa o primeiro bloco.
+  await expect(catalogo(page).getByRole("button", { name: "Adicionar Rosca com elástico" })).toHaveCount(0);
+  await page.keyboard.press("Escape");
+  await expect(entrada).toBeFocused();
+  await page.keyboard.press("Enter");
+  await busca(page).fill("agachamento frontal");
+  await expect(adicionar(page)).toBeVisible();
+  await semRolagemHorizontal(page);
+  const caixa = await adicionar(page).boundingBox();
+  expect(caixa!.height).toBeGreaterThanOrEqual(44);
+  await page.screenshot({ path: info.outputPath("adicionar-exercicio-no-celular.png") });
+  await page.evaluate(() => window.history.back());
+  await expect(catalogo(page)).toBeHidden();
+  await expect(entrada).toBeFocused();
+  await expect(geral(page).locator('[id^="bloco-"] h2')).toHaveCount(2);
+  expect(await planoSalvo(conta, id)).toEqual(plano);
+});
+
 test("dois toques sem rede acrescentam uma vez e a recarga retoma o mesmo treino e suas cargas", async ({ page, context }) => {
   test.slow(); // O cenário abre uma ficha, retoma o treino e força uma navegação offline real.
-  const { conta, id, plano } = await treinoAberto(page, true);
+  const { conta, id, plano } = await treinoAberto(page, { prepararCargaOffline: true });
   await esperarServiceWorker(page);
   await page.getByRole("button", { name: "Concluir série" }).click();
   await expect(timer(page)).toHaveText("1:35");
@@ -204,3 +217,35 @@ test("o treino do programa mantém a substituição e sua lista prescrita", asyn
   await expect(geral(page).getByRole("button", { name: /substituir hoje/i }).first()).toBeVisible();
   await expect(abrirCatalogo(page)).toHaveCount(0);
 });
+
+for (const vibra of [true, false]) {
+  test(`o descanso termina com o catálogo aberto e vibração ${vibra ? "ligada" : "desligada"}`, async ({ page }) => {
+    await treinoAberto(page, { prefs: { descanso_vibra: vibra, descanso_som: false, avancar_sozinho: true } });
+    await page.clock.install({ time: new Date(HOJE_FIXO) });
+    await page.evaluate(() => {
+      let avisos = 0;
+      document.documentElement.dataset.vibracoes = "0";
+      Object.defineProperty(navigator, "vibrate", { configurable: true, value() {
+        document.documentElement.dataset.vibracoes = String(++avisos);
+        return true;
+      } });
+    });
+    await page.getByRole("button", { name: "Concluir série" }).click();
+    await expect(timer(page)).toHaveText("1:35");
+    await abrirVisaoGeral(page);
+    await abrirCatalogo(page).click();
+    await busca(page).fill("agachamento frontal");
+    await expect(adicionar(page)).toBeVisible();
+    await expect(page.locator("html")).toHaveAttribute("data-vibracoes", "0");
+    await page.clock.fastForward(96_000);
+    await page.clock.runFor(1_250); // Também passa o segundo que normalmente dispara o avanço automático.
+    const quantidade = vibra ? "1" : "0";
+    await expect(page.locator("html")).toHaveAttribute("data-vibracoes", quantidade);
+    await expect(busca(page)).toHaveValue("agachamento frontal");
+    await page.keyboard.press("Escape");
+    await expect(abrirCatalogo(page)).toBeFocused();
+    await geral(page).getByRole("button", { name: "Voltar ao treino" }).click();
+    await expect(page.getByText("Série 2 de 3 · exercício 1 de 2", { exact: true })).toBeVisible();
+    await expect(page.locator("html")).toHaveAttribute("data-vibracoes", quantidade);
+  });
+}

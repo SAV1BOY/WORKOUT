@@ -1,16 +1,27 @@
 import { createClient } from "@supabase/supabase-js";
 import { QueryClient, hydrate, type DehydratedState } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { ItemCache } from "@/lib/db";
+import { VALIDADE_MS } from "@/lib/persistencia-query";
+import { guardarCargasLidas, lerCargasNoAparelho } from "@/lib/queries/cargas-no-aparelho";
 import type { EscritaTabela } from "@/lib/outbox-supabase";
 import { lerMotorParaRepetir } from "@/lib/queries/motor-repetir-treino";
 import { clienteNavegador } from "@/lib/supabase/client";
 
 let disco: { estado: DehydratedState } | null = null;
 const fila: EscritaTabela[] = [];
+const cargas = new Map<string, ItemCache>();
 vi.mock("@/lib/supabase/client", () => ({ clienteNavegador: vi.fn() }));
 vi.mock("@/lib/db", () => ({
   temIndexedDB: () => true,
-  bd: () => ({ outbox: { where: () => ({ equals: () => ({ toArray: async () => fila.map((payload, id) => ({ id, payload })) }) }) } }),
+  bd: () => ({
+    outbox: { where: () => ({ equals: () => ({ toArray: async () => fila.map((payload, id) => ({ id, payload })) }) }) },
+    cache: {
+      bulkGet: async (chaves: string[]) => chaves.map(k => cargas.get(k)),
+      bulkPut: async (linhas: ItemCache[]) => linhas.forEach(r => cargas.set(r.chave, r)),
+    },
+    transaction: (_modo: string, _cache: unknown, operar: () => Promise<void>) => operar(),
+  }),
   guardarCache: async (_chave: string, valor: { estado: DehydratedState }) => { disco = valor; },
 }));
 
@@ -29,7 +40,7 @@ const serie = (user_id: string, session_id: string, reps: number, set_index = 1)
 function servidor(fetch: typeof globalThis.fetch) {
   vi.mocked(clienteNavegador).mockReturnValue(createClient("http://localhost", "mock-anon", { global: { fetch } }));
 }
-beforeEach(() => { disco = null; fila.length = 0; });
+beforeEach(() => { disco = null; fila.length = 0; cargas.clear(); });
 afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.clearAllMocks(); vi.useRealTimers(); });
 
 describe("motor atual da conta para repetir um treino", () => {
@@ -88,6 +99,49 @@ describe("motor atual da conta para repetir um treino", () => {
     expect(Object.keys(a.recordes!)).toEqual([supino]);
     expect(a.anteriores).toEqual({});
     expect(clienteNavegador).not.toHaveBeenCalled();
+  });
+
+  it("após fechar a ficha imediatamente, o treino sem rede recupera a carga por dono e movimento", async () => {
+    vi.stubGlobal("navigator", { onLine: false });
+    const agora = Date.now();
+    await guardarCargasLidas([estado("ana", agachamento, 31.5), estado("bia", agachamento, 48)], agora);
+    expect(disco).toBeNull(); // a persistência periódica não rodou
+    const leitura = await lerMotorParaRepetir(new QueryClient(), "ana", [agachamento, supino]);
+    expect(leitura.estados?.[agachamento]?.carga_atual_kg).toBe(31.5);
+    expect(leitura.conhecidos).toEqual(new Set([agachamento]));
+    expect((await lerMotorParaRepetir(new QueryClient(), "bia", [agachamento])).estados?.[agachamento]?.carga_atual_kg).toBe(48);
+    expect((await lerMotorParaRepetir(new QueryClient(), "outra", [agachamento])).conhecidos).toEqual(new Set());
+  });
+
+  it("uma resposta tardia, uma lista vazia sem dono e uma carga vencida não apagam nem inventam progresso", async () => {
+    const agora = Date.now();
+    await guardarCargasLidas([estado("ana", agachamento, 31.5)], agora);
+    await guardarCargasLidas([estado("ana", agachamento, 10)], agora - 2000);
+    await guardarCargasLidas([], agora);
+    await guardarCargasLidas([estado("ana", supino, 12)], agora - VALIDADE_MS - 1000);
+    expect((await lerCargasNoAparelho("ana", [agachamento, supino])).get(agachamento)?.linha?.carga_atual_kg).toBe(31.5);
+    expect((await lerCargasNoAparelho("ana", [supino])).size).toBe(0);
+    servidor(async () => Response.json([]));
+    await lerMotorParaRepetir(new QueryClient(), "ana", [agachamento], async () => {});
+    const confirmada = await lerCargasNoAparelho("ana", [agachamento]);
+    expect(confirmada.get(agachamento)?.linha).toBeNull(); // consulta remota com identidade confirmada
+    vi.stubGlobal("navigator", { onLine: false });
+    const motor = await lerMotorParaRepetir(new QueryClient(), "ana", [agachamento]);
+    expect(motor.estados).toEqual({});
+    expect(motor.conhecidos).toEqual(new Set([agachamento]));
+  });
+
+  it("mantém uma carga do cache geral mais recente e protege os dados em troca de conta durante a leitura", async () => {
+    const agora = Date.now();
+    await guardarCargasLidas([estado("ana", supino, 20)], agora - 3000);
+    const cliente = new QueryClient();
+    cliente.setQueryData(["estados", supino], [estado("ana", supino, 30)], { updatedAt: agora });
+    vi.stubGlobal("navigator", { onLine: false });
+    expect((await lerMotorParaRepetir(cliente, "ana", [supino])).estados?.[supino]?.carga_atual_kg).toBe(30);
+    vi.stubGlobal("navigator", { onLine: true });
+    servidor(async () => Response.json([]));
+    await expect(lerMotorParaRepetir(cliente, "ana", [supino], async () => { throw new Error("Mudou."); })).rejects.toThrow("Mudou.");
+    expect((await lerCargasNoAparelho("ana", [supino])).get(supino)?.linha?.carga_atual_kg).toBe(20);
   });
 
   it("reconhece as séries de máximo do histórico pela sessão da conta, exceto quando falta a posição de uma troca", async () => {

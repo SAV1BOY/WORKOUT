@@ -8,6 +8,7 @@
 "use client";
 
 import { useQuery, type QueryClient, type UseQueryResult } from "@tanstack/react-query";
+import { guardarCargasLidas } from "@/lib/queries/cargas-no-aparelho";
 import { lerTabelaCompleta } from "@/lib/queries/ler";
 import { clienteNavegador } from "@/lib/supabase/client";
 import type {
@@ -312,20 +313,24 @@ export function useCardioPorId(
 
 /* ------------------------------------------ estado e eventos por exercício */
 
+async function lerCargas(ids?: readonly string[]): Promise<LinhaEstadoExercicio[]> {
+  const lidoEm = Date.now();
+  const consulta = clienteNavegador().from("exercise_state").select("*");
+  const linhas = await lerLista<LinhaEstadoExercicio>(
+    ids ? consulta.in("exercise_id", [...ids]) : consulta, "as cargas dos exercícios",
+  );
+  // Uma falha de armazenamento no aparelho não impede a consulta online.
+  await guardarCargasLidas(linhas, lidoEm).catch(() => {});
+  return linhas;
+}
+
 export function useEstados(
   ids: readonly string[],
 ): UseQueryResult<LinhaEstadoExercicio[]> {
   return useQuery({
     queryKey: chaves.estados(ids),
     enabled: ids.length > 0,
-    queryFn: () =>
-      lerLista<LinhaEstadoExercicio>(
-        clienteNavegador()
-          .from("exercise_state")
-          .select("*")
-          .in("exercise_id", [...ids]),
-        "as cargas dos exercícios",
-      ),
+    queryFn: () => lerCargas(ids),
   });
 }
 
@@ -340,11 +345,7 @@ export function useEstadosTodos(
   return useQuery({
     queryKey: chaves.estadosTodos(),
     enabled: ativo,
-    queryFn: () =>
-      lerLista<LinhaEstadoExercicio>(
-        clienteNavegador().from("exercise_state").select("*"),
-        "as cargas dos exercícios",
-      ),
+    queryFn: () => lerCargas(),
   });
 }
 
