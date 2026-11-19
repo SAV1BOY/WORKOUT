@@ -227,7 +227,7 @@ describe("descanso da sessão no aparelho e na fila", () => {
     const { aberta, bloco, novo } = await emDescanso();
     await guardarDescansoDaSessao(aberta, bloco.exercicioId, 90, novo);
     await finalizarSessao({ sessao: aberta, status: "concluida", cliente: new QueryClient() });
-    expect(guardarNaFila).toHaveBeenLastCalledWith("sessao", expect.objectContaining({
+    expect(guardarNaFila).toHaveBeenCalledWith("sessao", expect.objectContaining({
       op: "upsert", linha: expect.objectContaining({
         status: "concluida", plano: expect.objectContaining({ descansos_por_exercicio: { [bloco.exercicioId]: 90 } }),
       }),

@@ -125,7 +125,7 @@ export function TelaConclusao({
         )}
       >
         {falhou
-          ? "Não consegui salvar agora. Está tudo guardado no aparelho — dá para tentar de novo aqui embaixo."
+          ? "Não consegui salvar agora. Mantenha o treino aberto e tente salvar de novo."
           : gravada
             ? "Treino salvo. Já está no histórico, mesmo que você saia agora."
             : "Salvando o treino…"}
@@ -183,8 +183,8 @@ export function TelaConclusao({
         {semCarga.length > 0 ? (
           <p className="text-muted-foreground text-xs">
             Sem avaliar, porque não consegui ler a carga atual:{" "}
-            {semCarga.map((r) => r.nome).join(" · ")}. As séries foram guardadas;
-            a progressão fica como está.
+            {semCarga.map((r) => r.nome).join(" · ")}.{" "}
+            {gravada && "As séries foram guardadas. "}A progressão fica como está.
           </p>
         ) : null}
         {/* SPEC §6.3: o que não foi tentado não conta como falha */}

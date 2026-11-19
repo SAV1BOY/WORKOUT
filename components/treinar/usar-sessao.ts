@@ -15,7 +15,7 @@ import {
 } from "@/lib/barra-fixa";
 import { acharTreino, exercicioPorId } from "@/lib/dados";
 import { decidirTela, servidorTerminouDeBuscar } from "@/lib/estado-do-player";
-import { itensDoPlano, tituloDoPlano } from "@/lib/livre";
+import { ehSessaoLivre, itensDoPlano, tituloDoPlano } from "@/lib/livre";
 import {
   estadosPorExercicio,
   textoDoEvento,
@@ -36,7 +36,9 @@ import {
   useUltimasSeries,
 } from "@/lib/queries/dados";
 import {
+  acrescentarExercicioNaSessao,
   carregarSessaoLocal,
+  conciliarBlocosAcrescentados,
   descarregarSessao,
   enviarPlanoDaTroca,
   enviarSerie,
@@ -429,6 +431,30 @@ export function useSessaoDeTreino(sessaoId: string, userId: string) {
   });
   const aguardarMaterial = material?.aguardar;
 
+  const adicaoEmGravacao = useRef<Promise<void> | null>(null);
+  const adicionarExercicio = useCallback(async (exercicioId: string) => {
+    if (adicaoEmGravacao.current) throw new Error("Outro exercício está sendo adicionado.");
+    async function gravar() {
+      await aguardarMaterial?.();
+      const antes = ultima.current;
+      if (antes?.id !== sessaoId || antes.userId !== userId || antes.status !== "em_andamento"
+        || !ehSessaoLivre(antes.workoutId) || encerradaAntes || encerradaAqui === sessaoId) {
+        throw new Error("Este treino já não está aberto para adicionar exercícios.");
+      }
+      const salva = await acrescentarExercicioNaSessao(cliente, antes, exercicioId);
+      const atual = ultima.current;
+      if (atual?.id !== sessaoId || atual.userId !== userId || atual.status !== "em_andamento") return;
+      // A tela pode ter registrado outra série ou avançado o relógio enquanto o banco local gravava.
+      adotar(atual === antes ? salva : conciliarBlocosAcrescentados(atual, salva));
+    }
+    adicaoEmGravacao.current = gravar();
+    try {
+      await adicaoEmGravacao.current;
+    } finally {
+      adicaoEmGravacao.current = null;
+    }
+  }, [adotar, aguardarMaterial, cliente, encerradaAntes, encerradaAqui, sessaoId, userId]);
+
   /** O que o motor vai decidir, sem gravar nada (o resumo da conclusão). */
   const previa = useCallback(
     (fim: FimDaSessao): ResultadoExercicio[] =>
@@ -459,8 +485,8 @@ export function useSessaoDeTreino(sessaoId: string, userId: string) {
         // A conclusão reenvia o plano inteiro. Inclua a última escolha feita antes de fechar o treino.
         await aguardarMaterial?.();
         await descansoEmGravacao.current?.catch(() => {});
+        await adicaoEmGravacao.current?.catch(() => {});
         const atual = ultima.current ?? sessao;
-        await descarregarSessao();
         await finalizarSessao({
           sessao: { ...atual, sensacao: dados.sensacao, pesoCorporal: dados.peso },
           status: fim,
@@ -477,7 +503,7 @@ export function useSessaoDeTreino(sessaoId: string, userId: string) {
         return true;
       } catch {
         setEncerradaAqui(null);
-        toast.error("Não consegui salvar agora. Está tudo guardado no aparelho.");
+        toast.error("Não consegui salvar agora. Mantenha o treino aberto e tente salvar de novo.");
         setSalvando(false);
         return false;
       }
@@ -585,6 +611,9 @@ export function useSessaoDeTreino(sessaoId: string, userId: string) {
     mudarFirme,
     mudarNota,
     mudarDescanso,
+    adicionarExercicio: sessao?.userId === userId && sessao.id === sessaoId && ehSessaoLivre(sessao.workoutId)
+      && sessao.status === "em_andamento" && !salvando && !encerradaAntes && encerradaAqui !== sessaoId
+      ? adicionarExercicio : undefined,
     substituir,
     previa,
     salvar,

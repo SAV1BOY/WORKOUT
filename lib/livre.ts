@@ -60,7 +60,7 @@ export function itensNaOrdem(
 
 /* -------------------------------------------------- plano (o jsonb) */
 
-function itemParaPlano(item: ItemDaSessao): ItemDoPlano {
+export function itemParaPlano(item: ItemDaSessao): ItemDoPlano {
   return {
     exercicio_id: item.exercicioId,
     series: item.prescricao.series,

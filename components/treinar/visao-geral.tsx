@@ -3,6 +3,7 @@
 import { ChevronDown, LogOut, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { AdicionarExercicio } from "@/components/treinar/adicionar-exercicio";
 import { BlocoExercicio } from "@/components/treinar/bloco";
 import { ResumoDoFim } from "@/components/treinar/resumo";
 import { TimerDescanso, type DescansoAtivo } from "@/components/treinar/timer-descanso";
@@ -38,12 +39,14 @@ import { proximoExercicio, type SessaoLocal } from "@/lib/sessao";
  */
 export function VisaoGeralDaSessao({
   sessao,
+  nomeDoTreino,
   dados,
   opcoesDoPlayer,
   videos = [],
   aoFechar,
 }: {
   sessao: SessaoLocal;
+  nomeDoTreino: string;
   dados: SessaoDeTreino;
   opcoesDoPlayer: OpcoesDoPlayer;
   /** Ids com `public/videos/<id>.mp4` (SPEC §13.1). */
@@ -58,6 +61,7 @@ export function VisaoGeralDaSessao({
   const [fim, setFim] = useState<FimDaSessao | null>(null);
 
   const { prefs, naFila, treino, plano, progresso, decorridoS, salvando } = dados;
+  const foco = treino?.foco ?? (plano ? `semana ${plano.faixa} · ${plano.texto}` : "");
 
   const preview = useMemo(
     () => (fim ? dados.previa(fim) : []),
@@ -150,11 +154,10 @@ export function VisaoGeralDaSessao({
       <header className="flex items-start gap-2">
         <div className="flex min-w-0 flex-1 flex-col gap-0.5">
           <h1 ref={titulo} tabIndex={-1} className="text-2xl font-semibold tracking-tight">
-            {treino?.nome ?? (plano ? "Barra fixa" : "Treino")}
+            {nomeDoTreino}
           </h1>
           <p className="text-muted-foreground text-sm">
-            {treino?.foco ?? (plano ? `semana ${plano.faixa} · ${plano.texto}` : "")}
-            {naFila > 0 ? ` · ${naFila} para sincronizar` : " · sincronizado"}
+            {foco && `${foco} · `}{naFila > 0 ? `${naFila} para sincronizar` : "sincronizado"}
           </p>
         </div>
         {/*
@@ -175,6 +178,9 @@ export function VisaoGeralDaSessao({
         ) : null}
       </header>
 
+      {dados.adicionarExercicio && dados.material && !fim && (
+        <AdicionarExercicio sessao={sessao} material={dados.material} prefs={prefs} aoAdicionar={dados.adicionarExercicio} />
+      )}
       {sessao.blocos.map((bloco) => (
         <BlocoExercicio
           recorrencia={dados.recorrencia}

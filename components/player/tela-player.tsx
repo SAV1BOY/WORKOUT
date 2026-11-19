@@ -109,6 +109,14 @@ export function TelaPlayer({
   const [ajustar, setAjustar] = useState(false);
   /** Muda ao fechar a Visão geral: o foco volta ao botão que a abriu (§22.5). */
   const [pedidoDeFoco, setPedidoDeFoco] = useState(0);
+  const listaAbertaNoDescanso = useRef(false);
+  const ultimoDescansoAvisado = useRef<string | null>(null);
+  const focarListaDoDescanso = useCallback((botao: HTMLButtonElement | null) => {
+    if (botao && listaAbertaNoDescanso.current) {
+      listaAbertaNoDescanso.current = false;
+      botao.focus();
+    }
+  }, []);
   /** O que o leitor de tela ouve depois de gravar uma série (§22.5 item 10). */
   const [aviso, setAviso] = useState("");
   /**
@@ -383,6 +391,7 @@ export function TelaPlayer({
     );
   }
 
+  const nomeDoTreino = nomeDaSessao(dados);
   if (visaoGeral) {
     return (
       /* tela cheia: no player a barra de abas devolve `null` (§14.1), então
@@ -391,6 +400,7 @@ export function TelaPlayer({
         <div className="pb-segura mx-auto w-full max-w-lg px-4 pt-4">
           <VisaoGeralDaSessao
             sessao={sessao}
+            nomeDoTreino={nomeDoTreino}
             dados={dados}
             opcoesDoPlayer={opcoes}
             videos={videos}
@@ -410,7 +420,6 @@ export function TelaPlayer({
 
   const blocoDaFicha = sessao.blocos.find((b) => b.ordem === ordemDaFicha);
   const ficha = blocoDaFicha?.exercicioId ?? null;
-  const nomeDoTreino = nomeDaSessao(dados);
   /** A ficha aberta de dentro da sessão mexe na prescrição de hoje (§14.2). */
   const contextoDaFicha = ((): ContextoDaFicha | undefined => {
     const alvoBloco = blocoDaFicha;
@@ -621,6 +630,12 @@ export function TelaPlayer({
             }
           }}
           aviso={aviso}
+          ultimoDescansoAvisado={ultimoDescansoAvisado}
+          botaoDaLista={focarListaDoDescanso}
+          aoAbrirLista={dados.adicionarExercicio ? () => {
+            listaAbertaNoDescanso.current = true;
+            setVisaoGeral(true);
+          } : undefined}
           aoSomar={(s) => guardar(somarSegundos(estado, s, Date.now()))}
           aoDefinir={(s) => guardar(definirDuracao(estado, s, Date.now()))}
           proximasSeries={trabalho ? {
