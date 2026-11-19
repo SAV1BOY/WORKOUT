@@ -389,6 +389,8 @@ A nota pertence à conta e ao exercício (`exercise_state.nota_pessoal`). Uma ed
 
 ### 14.3 Aba Treino — acréscimos à §13.3
 
+A ordem escolhida em **Treino → Editar** vale para a conta, o dia e o treino selecionados. Ao iniciar, a sessão guarda a ordem no plano que aparece no player e no histórico. Outra pessoa pode usar o mesmo aparelho e escolher a própria sequência.
+
 Em **Treino → Personalizar treino**, a busca inclui as mesmas variações de equipamento disponíveis ao adicionar exercícios durante a sessão. A pessoa pode começar diretamente com Remada com elástico e Ponte de glúteos no tatame, na ordem escolhida.
 
 Abaixo da lista do treino do dia: **Editar** (modo reordenar com alças e setas ↑↓; ordem só desta sessão, gravada em `sessions.plano` quando a sessão é criada; "voltar à ordem do programa"); **Ajustar** no cabeçalho, ao lado da data (descanso padrão, preparação, avançar sozinho, voz, vibração, tela acesa, mostrar raios); **Desafios** (carrossel manual, sem rotação automática, com os planos reais — títulos e botões como definidos em §22.7 item 6 e §22.12 itens 4 e 7; capa de `assets/`, semana atual e progresso); **Parte do corpo em foco** (chips dos 8 grupos → lista com miniatura, `N exercícios · ~M min`, raios, "Começar" = sessão livre com os 6 primeiros do grupo, compostos antes de isolamento); chips de filtro derivados (≤ 15 min · 15–30 min · com equipamento · sem equipamento · core · cardio); **Personalizar treino** ("Crie o seu próprio": escolher exercícios do catálogo e começar uma sessão livre). Sem busca na Treino (fica em Explorar).

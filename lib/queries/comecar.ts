@@ -24,7 +24,7 @@ import {
 } from "@/lib/queries/dados";
 import { criarSessao, type EntradaCriacao } from "@/lib/queries/sessao";
 import { lerTrocasLocaisDoPrograma } from "@/lib/queries/trocas-do-programa";
-import { limparOrdemDoAparelho } from "@/lib/ordem";
+import { chaveDaOrdemDoDia, consumirOrdemDoAparelho, lerOrdem, lerTextoDaOrdem, type OrdemTemporaria } from "@/lib/ordem";
 import { limparTrocasDoAparelho, resolverTrocasDoTreino } from "@/lib/trocas";
 import { seriesAnterioresPorExercicio, type RecordeAntes } from "@/lib/sessao";
 import type { EquipamentoTag, TreinoId } from "@/lib/schemas";
@@ -44,8 +44,8 @@ export interface EntradaComecar {
   };
   /** O ⇄ da lista do dia (SPEC §13.3). */
   trocas?: Record<string, string>;
-  /** O "Editar" da lista do dia (SPEC §14.3). */
-  ordem?: readonly string[];
+  /** Ordem visível em caso de falha ao guardar. A persistida é lida no toque de começar. */
+  ordemTemporaria?: OrdemTemporaria;
   /** As escolhas acima valem só para o treino de hoje. */
   doDia?: boolean;
 }
@@ -103,7 +103,9 @@ export function useComecarTreino(aquecerRota = false): {
     async (e: EntradaComecar) => {
       if (iniciando.current) return;
       iniciando.current = true;
-      const ordem = e.doDia === false ? [] : (e.ordem ?? []);
+      const temporaria = e.ordemTemporaria?.chave === chaveDaOrdemDoDia(e.userId, e.hoje, e.treinoId) ? e.ordemTemporaria : undefined;
+      const texto = e.doDia === false ? null : temporaria ? temporaria.textoAnterior : lerTextoDaOrdem(e.userId, e.hoje, e.treinoId);
+      const ordem = e.doDia === false ? [] : temporaria?.ordem ?? lerOrdem(texto, e.hoje, e.treinoId);
       setCriando(e.treinoId);
       try {
         // Um toque rápido na primeira abertura também usa as escolhas da
@@ -137,7 +139,10 @@ export function useComecarTreino(aquecerRota = false): {
         });
         if (e.doDia !== false) {
           limparTrocasDoAparelho(e.userId, e.treinoId);
-          limparOrdemDoAparelho();
+          const consumida = consumirOrdemDoAparelho(e.userId, e.hoje, e.treinoId, texto);
+          if (!consumida && (temporaria || texto)) {
+            toast.info("Treino iniciado. A ordem salva para este dia pode continuar no aparelho.");
+          }
         }
         idReservado.current = null;
         router.push(`/treinar/${sessao.id}`);

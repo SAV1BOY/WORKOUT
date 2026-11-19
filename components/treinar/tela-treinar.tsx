@@ -31,7 +31,7 @@ import {
   useUltimasSeries,
 } from "@/lib/queries/dados";
 import { ligado, opcoesDeMontagem } from "@/lib/preferencias";
-import { lerOrdemDoAparelho } from "@/lib/ordem";
+import { useOrdemDoDia } from "@/components/treino/usar-ordem-do-dia";
 import { salvarTrocaDoPrograma, useTrocasDoPrograma } from "@/lib/queries/trocas-do-programa";
 import { guardarTrocasNoAparelho, lerTrocasDoAparelho, resolverTrocasDoTreino } from "@/lib/trocas";
 import { idsParaComecar, useComecarTreino, type EntradaComecar } from "@/lib/queries/comecar";
@@ -77,16 +77,6 @@ export function TelaTreinar({ userId }: { userId: string }) {
    * entram nas leituras (estado, séries anteriores, recordes).
    */
   const treinoDoDia = dia?.tipo === "forca" ? dia.treinoId : null;
-
-  /* a ordem escolhida em "Editar" (SPEC §14.3) vale para a sessão que começa */
-  const [ordem, setOrdem] = useState<string[]>([]);
-  useEffect(() => {
-    if (!hoje || !treinoDoDia) {
-      setOrdem([]);
-      return;
-    }
-    setOrdem(lerOrdemDoAparelho(hoje, treinoDoDia));
-  }, [hoje, treinoDoDia]);
 
   useEffect(() => {
     // A rota tem um UUID criado no clique. Aqueça o módulo que ela renderiza.
@@ -165,7 +155,7 @@ export function TelaTreinar({ userId }: { userId: string }) {
       {treinos.map((treinoId) => (
         <TreinoParaComecar
           key={treinoId}
-          entrada={{ userId, perfil, hoje, treinoId, ordem, doDia: treinoId === treinoDoDia }}
+          entrada={{ userId, perfil, hoje, treinoId, doDia: treinoId === treinoDoDia }}
           criando={criando}
           comecar={comecar}
         />
@@ -184,6 +174,7 @@ function TreinoParaComecar({ entrada, criando, comecar }: {
   const cliente = useQueryClient();
   const lembradas = useTrocasDoPrograma(userId, treinoId);
   const material = useMaterialDoDia(userId, hoje, treinoId);
+  const { ordem } = useOrdemDoDia(userId, hoje, doDia ? treinoId : null);
   const [escolha, setEscolha] = useState<{ conta: string; data: string; treino: TreinoId; trocas: Record<string, string> } | null>(null);
   const rascunho = useMemo(() => doDia ? lerTrocasDoAparelho(userId, hoje, treinoId) : undefined,
     [doDia, userId, hoje, treinoId]);
@@ -228,7 +219,7 @@ function TreinoParaComecar({ entrada, criando, comecar }: {
           aoSubstituir={trocar}
           itens={previaDoTreino({
             treinoId, estados: estadosPorExercicio(estadosQ.data ?? []),
-            eventos: eventosQ.data ?? [], montagem: opcoesDeMontagem(perfil.prefs), trocas,
+            eventos: eventosQ.data ?? [], montagem: opcoesDeMontagem(perfil.prefs), trocas, ordem,
           })}
           recorrencia={{
             treinoId,

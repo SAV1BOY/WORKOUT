@@ -2,15 +2,11 @@
  * "Editar" na aba Treino (SPEC §14.3): reordenar os exercícios do dia.
  *
  * A ordem vale **só para a sessão que vai começar** — o programa não muda. Ela
- * fica no aparelho enquanto o Miguel não toca em "Começar treino" (o mesmo
- * par (data, treino) das trocas, §13.3) e, na criação da sessão, vai para
+ * fica no aparelho por conta, data e treino. Na criação da sessão, vai para
  * `sessions.plano`, que é o que refaz a sessão noutro aparelho.
  *
- * Funções puras, testadas sem navegador; as duas pontas com `localStorage`
- * ficam no fim e nunca lançam.
+ * As operações com localStorage ficam no fim.
  */
-
-export const CHAVE_ORDEM = "treino-ordem";
 
 export interface OrdemDoDia {
   data: string;
@@ -108,33 +104,69 @@ export function escreverOrdem(
 
 /* ---------------------------------------------- ponte com o navegador */
 
-export function lerOrdemDoAparelho(data: string, treinoId: string): string[] {
+/** A antiga chave única "treino-ordem" não identificava o dono do rascunho. */
+export function chaveDaOrdemDoDia(conta: string, data: string, treinoId: string): string {
+  return `treino-ordem:${encodeURIComponent(conta)}:${data}:${treinoId}`;
+}
+
+/** null é ausência confirmada; undefined indica que não foi possível ler a escolha. */
+export function lerTextoDaOrdem(conta: string, data: string, treinoId: string): string | null | undefined {
+  if (!conta) return undefined;
   try {
-    return lerOrdem(window.localStorage.getItem(CHAVE_ORDEM), data, treinoId);
+    return window.localStorage.getItem(chaveDaOrdemDoDia(conta, data, treinoId));
   } catch {
-    return [];
+    return undefined;
+  }
+}
+
+/** Quando a escrita falha, a lista usa esta edição enquanto a tela estiver aberta. */
+export interface OrdemTemporaria {
+  chave: string;
+  ordem: string[];
+  textoAnterior: string | null | undefined;
+}
+
+/** O evento nativo só chega às outras abas. A tela que criou a sessão também pode continuar montada. */
+function avisarOrdemAlterada(chave: string): void {
+  if (typeof window !== "undefined" && typeof StorageEvent !== "undefined") {
+    window.dispatchEvent?.(new StorageEvent("storage", { key: chave }));
   }
 }
 
 export function guardarOrdemNoAparelho(
+  conta: string,
   data: string,
   treinoId: string,
   ids: readonly string[],
   ordem: readonly string[],
-): void {
+): boolean {
+  if (!conta) return false;
+  const chave = chaveDaOrdemDoDia(conta, data, treinoId);
   try {
     const texto = escreverOrdem(data, treinoId, ids, ordem);
-    if (texto === null) window.localStorage.removeItem(CHAVE_ORDEM);
-    else window.localStorage.setItem(CHAVE_ORDEM, texto);
+    if (texto === null) window.localStorage.removeItem(chave);
+    else window.localStorage.setItem(chave, texto);
   } catch {
-    /* sem storage a ordem vale só nesta tela */
+    return false;
   }
+  avisarOrdemAlterada(chave);
+  return true;
 }
 
-export function limparOrdemDoAparelho(): void {
+/** Consome somente a versão lida antes da edição temporária ou no toque de começar. */
+export function consumirOrdemDoAparelho(
+  conta: string, data: string, treinoId: string, textoUsado: string | null | undefined,
+): boolean {
+  if (!conta) return false;
+  const chave = chaveDaOrdemDoDia(conta, data, treinoId);
+  let confirmada = textoUsado !== undefined;
   try {
-    window.localStorage.removeItem(CHAVE_ORDEM);
+    if (typeof textoUsado === "string" && window.localStorage.getItem(chave) === textoUsado) {
+      window.localStorage.removeItem(chave);
+    }
   } catch {
-    /* nada a limpar */
+    confirmada = false;
   }
+  avisarOrdemAlterada(chave);
+  return confirmada;
 }

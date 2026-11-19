@@ -283,7 +283,7 @@ const TREINO: SecaoDoGuia = {
       id: "editar",
       nome: "Editar",
       oQueFaz:
-        "Muda a ordem dos exercícios da sessão que vai começar, e volta à ordem do programa quando você quiser.",
+        "Escolha a ordem dos exercícios do seu próximo treino. A escolha fica na sua conta neste aparelho até começar. Você pode voltar à ordem do programa.",
       caminho: ["Treino", "Editar"],
       grupo: TELA,
     },
