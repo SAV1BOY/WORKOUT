@@ -2,6 +2,7 @@
 
 import { Settings2 } from "lucide-react";
 import { useState } from "react";
+import { EquipamentoDeHoje, type MaterialDoTreino } from "@/components/exercicio/equipamento-de-hoje";
 import { EsqueletoCard } from "@/components/carregando";
 import { AjustesDoTreino } from "@/components/mais/ajustes-do-treino";
 import {
@@ -24,7 +25,7 @@ import type { LinhaPerfil } from "@/lib/types";
  * exatamente a mesma folha da engrenagem do player. Agora mora no cabeçalho da
  * aba, ao lado da data, onde sobrava espaço e nada mais disputa o toque.
  */
-export function BotaoAjustar({ perfil }: { perfil: LinhaPerfil | null }) {
+export function BotaoAjustar({ perfil, material }: { perfil: LinhaPerfil | null; material?: MaterialDoTreino }) {
   const [aberto, setAberto] = useState(false);
 
   return (
@@ -57,10 +58,13 @@ export function BotaoAjustar({ perfil }: { perfil: LinhaPerfil | null }) {
             Ajustar
           </SheetTitle>
           <SheetDescription>
-            Vale para todos os treinos. Fica em Mais → Preferências.
+            {material
+              ? "O equipamento vale para esta sessão. Os outros ajustes ficam em Mais → Preferências."
+              : "Vale para todos os treinos. Fica em Mais → Preferências."}
           </SheetDescription>
         </SheetHeader>
-        <div className="px-4">
+        <div className="flex flex-col gap-4 px-4">
+          {material && <EquipamentoDeHoje material={material} />}
           {perfil ? (
             <AjustesDoTreino userId={perfil.user_id} perfil={perfil} />
           ) : (

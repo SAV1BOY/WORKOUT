@@ -43,6 +43,7 @@ import {
 import { formatarDescanso } from "@/lib/formato";
 import type { PrescricaoTipo } from "@/lib/schemas";
 import { opcoesDeMidia, type TipoDeMidia } from "@/lib/midia";
+import type { MaterialDoTreino } from "@/components/exercicio/equipamento-de-hoje";
 import { AVISO_DA_TROCA, OpcoesDeAlternativa, type RecorrenciaDaTroca } from "@/components/exercicio/seletor-alternativa";
 import type { Prefs } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -57,6 +58,7 @@ interface TrocaNaFicha {
   avisoDaTroca?: string;
   originalId?: string;
   recorrencia?: RecorrenciaDaTroca;
+  material?: MaterialDoTreino;
   ocupados?: readonly string[];
 }
 
@@ -138,6 +140,7 @@ export function ConteudoDaFicha({
           avisoDaTroca={escolha.avisoDaTroca}
           originalId={escolha.originalId}
           recorrencia={escolha.recorrencia}
+          material={escolha.material}
           ocupados={escolha.ocupados}
           exercicioId={exercicioId}
           prefs={prefs}
@@ -640,6 +643,7 @@ function Substituir({
   avisoDaTroca = AVISO_DA_TROCA,
   originalId,
   recorrencia,
+  material,
   ocupados,
   aoEscolher,
 }: {
@@ -648,6 +652,7 @@ function Substituir({
   avisoDaTroca?: string;
   originalId?: string;
   recorrencia?: RecorrenciaDaTroca;
+  material?: MaterialDoTreino;
   ocupados?: readonly string[];
   aoEscolher: (id: string) => void;
 }) {
@@ -683,6 +688,7 @@ function Substituir({
           <OpcoesDeAlternativa
             originalId={originalId}
             recorrencia={recorrencia}
+            material={material}
             ocupados={ocupados}
             key={exercicioId}
             exercicioId={exercicioId}

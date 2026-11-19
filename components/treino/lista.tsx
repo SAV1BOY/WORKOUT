@@ -8,6 +8,7 @@ import { Miniatura } from "@/components/ui/miniatura";
 import { Raios } from "@/components/ui/raios";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import type { MaterialDoTreino } from "@/components/exercicio/equipamento-de-hoje";
 import { duracaoDaTroca, SeletorAlternativa, type RecorrenciaDaTroca } from "@/components/exercicio/seletor-alternativa";
 import { acharExercicio } from "@/lib/dados";
 import { dificuldadeDe } from "@/lib/dificuldade";
@@ -27,6 +28,7 @@ export function ListaDoDia({
   prefs,
   aoSubstituir,
   recorrencia,
+  material,
   titulo = "Exercícios de hoje",
 }: {
   itens: ItemPrevia[];
@@ -37,6 +39,7 @@ export function ListaDoDia({
   /** Quando existe, cada item ganha o ⇄ (a lista da aba Treino). */
   aoSubstituir?: (originalId: string, novoExercicioId: string) => void;
   recorrencia?: RecorrenciaDaTroca;
+  material?: MaterialDoTreino;
   titulo?: string;
 }) {
   const [originalDaFicha, setFicha] = useState<string | null>(null);
@@ -132,6 +135,7 @@ export function ListaDoDia({
               originalId={item.originalId}
               ocupados={ocupadosForaDe(item.originalId)}
               recorrencia={recorrencia}
+              material={material}
               exercicioId={item.exercicioId}
               prefs={prefs}
               aoSubstituir={(novo) => aoSubstituir(item.originalId, novo)}
@@ -160,6 +164,7 @@ export function ListaDoDia({
           originalId: itemDaFicha.originalId,
           ocupados: ocupadosForaDe(itemDaFicha.originalId),
           recorrencia,
+          material,
           avisoDaTroca: "Escolha o exercício para o treino de hoje.",
           aoSubstituir: (novo) => aoSubstituir(itemDaFicha.originalId, novo),
         } : undefined}

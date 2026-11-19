@@ -94,13 +94,15 @@ export async function enviarItem(item: ItemSaida): Promise<void> {
     throw new Error(`escrita em ${p.tabela} sem filtro: recusada`);
   }
   const cliente = clienteNavegador();
-  if (p.tabela === "trocas_do_programa" && p.op === "delete") {
-    if (!alvoDaEscrita(p)) throw new Error("A remoção precisa indicar uma posição do treino.");
-    // Sob RLS, apagar uma linha de outra conta devolveria sucesso com zero
-    // linhas. A remoção precisa continuar na fila até voltar a sessão do dono.
+  const apagaTroca = p.tabela === "trocas_do_programa" && p.op === "delete";
+  const editaPlano = p.tabela === "sessions" && p.op === "update" &&
+    typeof p.filtro?.user_id === "string" && Object.hasOwn(p.linha ?? {}, "plano");
+  if (apagaTroca && !alvoDaEscrita(p)) throw new Error("A remoção precisa indicar uma posição do treino.");
+  if (apagaTroca || editaPlano) {
+    // Sob RLS, a conta errada receberia sucesso com zero linhas afetadas.
     const { data } = await cliente.auth.getSession();
     if (!data.session || data.session.user.id !== p.filtro?.user_id) {
-      throw new Error("Aguardando a conta que restaurou o exercício do programa.");
+      throw new Error("Aguardando a conta que alterou o treino.");
     }
   }
   const tabela = cliente.from(p.tabela);

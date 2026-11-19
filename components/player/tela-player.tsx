@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Erro, EsqueletoCard } from "@/components/carregando";
+import { EquipamentoDeHoje } from "@/components/exercicio/equipamento-de-hoje";
 import { FichaEmFolha } from "@/components/exercicio/ficha-sob-demanda";
 import type { ContextoDaFicha } from "@/components/exercicio/ficha-folha";
 import { SeletorAlternativa } from "@/components/exercicio/seletor-alternativa";
@@ -82,9 +83,11 @@ const TelaFirme = dynamic(() => import("@/components/player/firme").then((m) => 
  * relógio ancorado em `Date.now()` — nunca numa soma de ticks.
  */
 export function TelaPlayer({
+  userId,
   sessaoId,
   videos = [],
 }: {
+  userId: string;
   sessaoId: string;
   /** Ids com `public/videos/<id>.mp4` (SPEC §13.1). */
   videos?: string[];
@@ -92,7 +95,7 @@ export function TelaPlayer({
   const router = useRouter();
   const cliente = useQueryClient();
   const hoje = useHoje();
-  const dados = useSessaoDeTreino(sessaoId);
+  const dados = useSessaoDeTreino(sessaoId, userId);
   const { sessao, prefs, perfil } = dados;
   const pesoQ = useUltimoPeso();
 
@@ -432,6 +435,7 @@ export function TelaPlayer({
         : undefined,
       originalId: alvoBloco.originalId,
       recorrencia: dados.recorrencia,
+      material: dados.material,
       ocupados: sessao.blocos.filter((outro) => outro.ordem !== alvoBloco.ordem).map((outro) => outro.exercicioId),
       avisoDaTroca: avisoDaTroca(alvoBloco),
       indice: sessao.blocos.indexOf(alvoBloco),
@@ -456,6 +460,7 @@ export function TelaPlayer({
         <SeletorAlternativa
           originalId={bloco.originalId}
           recorrencia={dados.recorrencia}
+          material={dados.material}
           ocupados={sessao.blocos.filter((outro) => outro.ordem !== bloco.ordem).map((outro) => outro.exercicioId)}
           exercicioId={bloco.exercicioId}
           prefs={prefs}
@@ -485,10 +490,11 @@ export function TelaPlayer({
           <SheetHeader className="pb-0">
             <SheetTitle data-titulo-da-folha tabIndex={-1}>Ajustar</SheetTitle>
             <SheetDescription>
-              Vale para todos os treinos. Fica em Mais → Preferências.
+              O equipamento vale para esta sessão. Os outros ajustes ficam em Mais → Preferências.
             </SheetDescription>
           </SheetHeader>
-          <div className="px-4">
+          <div className="flex flex-col gap-4 px-4">
+            {dados.material && <EquipamentoDeHoje material={dados.material} />}
             {perfil ? (
               <AjustesDoTreino userId={perfil.user_id} perfil={perfil} />
             ) : (

@@ -175,6 +175,7 @@ export function VisaoGeralDaSessao({
       {sessao.blocos.map((bloco) => (
         <BlocoExercicio
           recorrencia={dados.recorrencia}
+          material={dados.material}
           ocupados={sessao.blocos.filter((outro) => outro.ordem !== bloco.ordem).map((outro) => outro.exercicioId)}
           key={bloco.ordem}
           bloco={bloco}

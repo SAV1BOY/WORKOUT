@@ -291,7 +291,7 @@ const TREINO: SecaoDoGuia = {
       id: "ajustar",
       nome: "Ajustar",
       oQueFaz:
-        "O botão redondo abre os ajustes do treino: preparação, descanso padrão, som, vibração, tela acesa e os “não gosto”. Vale para todos os treinos.",
+        "O botão redondo permite marcar o equipamento disponível neste treino. Preparação, descanso padrão, som, vibração, tela acesa e os “não gosto” valem para os próximos treinos também.",
       caminho: ["Treino", "Ajustar"],
       href: "/mais/preferencias#treino",
       grupo: TELA,

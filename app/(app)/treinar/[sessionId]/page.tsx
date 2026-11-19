@@ -16,5 +16,5 @@ export default async function Sessao({
 
   const { sessionId } = await params;
   // SPEC §13.1: o vídeo é opcional e mora em public/videos (nenhum vem no kit)
-  return <TelaPlayer sessaoId={sessionId} videos={idsComVideo()} />;
+  return <TelaPlayer key={`${userId}:${sessionId}`} userId={userId} sessaoId={sessionId} videos={idsComVideo()} />;
 }

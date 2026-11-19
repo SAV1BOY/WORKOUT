@@ -3877,12 +3877,12 @@
       "Oblíquos",
       "Deltoide anterior e medial"
     ],
-    "equipamento_texto": "Tatame",
+    "equipamento_texto": "Tatame opcional",
     "equipamento": [
       "tatame"
     ],
     "implemento": "peso_corporal",
-    "montagem": "Antebraços e pontas dos pés no tatame, cotovelos sob os ombros.",
+    "montagem": "Apoie os antebraços e as pontas dos pés no chão ou no tatame, com os cotovelos sob os ombros.",
     "passos": [
       "Corpo em linha reta da cabeça ao calcanhar.",
       "Contraia glúteo e abdômen ao mesmo tempo.",
@@ -4000,12 +4000,12 @@
       "Deltoide anterior e medial",
       "Reto abdominal"
     ],
-    "equipamento_texto": "Tatame · peso corporal",
+    "equipamento_texto": "Tatame opcional · peso corporal",
     "equipamento": [
       "tatame"
     ],
     "implemento": "peso_corporal",
-    "montagem": "Mãos no tatame um pouco mais abertas que os ombros, corpo em linha reta do calcanhar à cabeça.",
+    "montagem": "Apoie as mãos no chão ou no tatame, um pouco além da largura dos ombros. Mantenha o corpo em linha reta dos calcanhares à cabeça.",
     "passos": [
       "Desça até o peito quase encostar, cotovelos a 45° do tronco.",
       "Empurre o chão e volte sem deixar o quadril cair nem subir.",
@@ -4283,7 +4283,7 @@
       "Quadríceps",
       "Peitoral"
     ],
-    "equipamento_texto": "Tatame · peso corporal",
+    "equipamento_texto": "Tatame opcional · peso corporal",
     "equipamento": [
       "tatame"
     ],

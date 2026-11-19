@@ -3,6 +3,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { salvarTrocaDoPrograma, useTrocasDoPrograma } from "@/lib/queries/trocas-do-programa";
 import type { RecorrenciaDaTroca } from "@/components/exercicio/seletor-alternativa";
+import { useMaterialDaSessao } from "@/components/treinar/usar-material-da-sessao";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -48,6 +49,7 @@ import {
   avaliarSessao,
   definirFirme,
   definirNota,
+  definirEquipamentoDaSessao,
   ehTreinoDoPrograma,
   idsComSubstitutos,
   idsQueComparamComAnterior,
@@ -76,7 +78,7 @@ export type FimDaSessao = "concluida" | "abandonada";
  * quem chama este hook é o player, que passa o que a visão geral precisa.
  * Assim não há duas cópias do estado nem duas gravações concorrentes.
  */
-export function useSessaoDeTreino(sessaoId: string) {
+export function useSessaoDeTreino(sessaoId: string, userId: string) {
   useEffect(() => () => {
     if (window.location.pathname !== "/") return;
     try {
@@ -117,15 +119,17 @@ export function useSessaoDeTreino(sessaoId: string) {
   const naFila = usePendentes();
 
   const perfilQ = usePerfil();
-  const perfilPrefs = perfilQ.data?.prefs;
+  const perfil = perfilQ.data?.user_id === userId ? perfilQ.data : null;
+  const perfilPrefs = perfil?.prefs;
   // identidade estável: `prefs` entra nas dependências de efeitos (§3.9)
   const prefs: Prefs = useMemo(() => perfilPrefs ?? {}, [perfilPrefs]);
   // Em um aparelho novo as leituras do banco podem começar junto com o Dexie.
   // A sessão local, quando existe, continua tendo precedência sobre o servidor.
   const idParaReconstruir = sessao == null ? sessaoId : null;
   const sessaoQ = useSessao(sessaoId);
+  const linhaDaConta = sessaoQ.data?.user_id === userId ? sessaoQ.data : null;
   const resumoSalvo = cliente.getQueryData<SessaoResumo[]>(chaves.sessoes())?.find((s) => s.id === sessaoId);
-  const encerradaAntes = encerradaAqui !== sessaoId && [resumoSalvo, sessaoQ.data].some(
+  const encerradaAntes = encerradaAqui !== sessaoId && [resumoSalvo, linhaDaConta].some(
     (linha) => linha && (linha.status !== "em_andamento" || linha.concluida_em != null),
   );
   const seriesQ = useSeriesDaSessao(idParaReconstruir);
@@ -135,16 +139,16 @@ export function useSessaoDeTreino(sessaoId: string) {
    * os exercícios dela vêm do plano da semana (`profiles.semana_fixa`), e é
    * essa lista que refaz a sessão quando ela não está neste aparelho.
    */
-  const workoutId = sessaoQ.data?.workout_id ?? null;
+  const workoutId = linhaDaConta?.workout_id ?? null;
   const ehFixa = workoutId === WORKOUT_BARRA_FIXA;
   const semanaFixa =
-    sessao?.semanaPlano ?? sessaoQ.data?.semana_plano ?? perfilQ.data?.semana_fixa ?? 1;
+    sessao?.semanaPlano ?? linhaDaConta?.semana_plano ?? perfil?.semana_fixa ?? 1;
   /*
    * A sessão livre (SPEC §13.4) e a sessão do programa que foi **reordenada**
    * (§14.3) não dão para refazer a partir do `programa.json`: a lista está em
    * `sessions.plano`, e é ela que manda quando existe.
    */
-  const planoDaLinha = sessao?.plano ?? sessaoQ.data?.plano ?? null;
+  const planoDaLinha = sessao?.plano ?? linhaDaConta?.plano ?? null;
   const itensDoPlanoDaLinha = useMemo(
     () => itensDoPlano(planoDaLinha) ?? undefined,
     [planoDaLinha],
@@ -235,12 +239,12 @@ export function useSessaoDeTreino(sessaoId: string) {
     void carregarSessaoLocal(sessaoId).then((s) => {
       if (!vivo) return;
       setMontagemFalhou(false);
-      adotar(s);
+      adotar(s?.userId === userId ? s : null);
     });
     return () => {
       vivo = false;
     };
-  }, [sessaoId, adotar]);
+  }, [sessaoId, adotar, userId]);
 
   // a sessão não está neste aparelho: refaz do que o banco tem (SPEC §8)
   useEffect(() => {
@@ -249,7 +253,7 @@ export function useSessaoDeTreino(sessaoId: string) {
       return;
     }
     if (sessao !== null) return;
-    const linha = sessaoQ.data;
+    const linha = linhaDaConta;
     if (!linha) return;
     if (seriesQ.isPending) return;
     if (seriesQ.isError) {
@@ -278,7 +282,7 @@ export function useSessaoDeTreino(sessaoId: string) {
       // tentamos e não deu: agora "não achei este treino" é verdade
       setMontagemFalhou(true);
     }
-  }, [sessao, sessaoQ.data, seriesQ.data, seriesQ.isPending, seriesQ.isError, dadosDoMotor, ids, itensDaFixa, prefs, adotar, router, encerradaAntes]);
+  }, [sessao, linhaDaConta, seriesQ.data, seriesQ.isPending, seriesQ.isError, dadosDoMotor, ids, itensDaFixa, prefs, adotar, router, encerradaAntes]);
 
   /* --------------------------------------------- relógio e saída da aba */
 
@@ -381,6 +385,12 @@ export function useSessaoDeTreino(sessaoId: string) {
 
   /* ------------------------------------------------------------- fim */
 
+  const material = useMaterialDaSessao(sessao, (id, tags, confirmada, anterior) => {
+    const atual = ultima.current;
+    if (atual?.id === id) adotar(atual === anterior ? confirmada : definirEquipamentoDaSessao(atual, tags));
+  });
+  const aguardarMaterial = material?.aguardar;
+
   /** O que o motor vai decidir, sem gravar nada (o resumo da conclusão). */
   const previa = useCallback(
     (fim: FimDaSessao): ResultadoExercicio[] =>
@@ -408,9 +418,12 @@ export function useSessaoDeTreino(sessaoId: string) {
       setSalvando(true);
       setEncerradaAqui(sessao.id);
       try {
+        // A conclusão reenvia o plano inteiro. Inclua a última escolha feita antes de fechar o treino.
+        await aguardarMaterial?.();
+        const atual = ultima.current ?? sessao;
         await descarregarSessao();
         await finalizarSessao({
-          sessao: { ...sessao, sensacao: dados.sensacao, pesoCorporal: dados.peso },
+          sessao: { ...atual, sensacao: dados.sensacao, pesoCorporal: dados.peso },
           status: fim,
           cliente,
         });
@@ -430,7 +443,7 @@ export function useSessaoDeTreino(sessaoId: string) {
         return false;
       }
     },
-    [sessao, cliente, router],
+    [sessao, cliente, router, aguardarMaterial],
   );
 
   /* -------------------------------------------------------- derivados */
@@ -481,7 +494,7 @@ export function useSessaoDeTreino(sessaoId: string) {
   const servidorTerminou = servidorTerminouDeBuscar({
     sessaoPendente: sessaoQ.isPending,
     seriesPendente: seriesQ.isPending,
-    linhaDoServidor: sessaoQ.data ?? null,
+    linhaDoServidor: linhaDaConta,
     montagemFalhou,
   });
   const erroDaBusca =
@@ -510,7 +523,7 @@ export function useSessaoDeTreino(sessaoId: string) {
 
   return {
     sessao,
-    perfil: perfilQ.data ?? null,
+    perfil,
     tela,
     recarregar,
     carregando: tela === "carregando",
@@ -525,6 +538,7 @@ export function useSessaoDeTreino(sessaoId: string) {
     anteriores,
     historicoDe,
     recorrencia,
+    material,
     dadosDoMotor,
     mexer,
     marcar,

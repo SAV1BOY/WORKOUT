@@ -3,6 +3,7 @@
 import { CircleHelp, Repeat } from "lucide-react";
 import { useState } from "react";
 import { MediaGrande } from "@/components/exercicio/media-grande";
+import type { MaterialDoTreino } from "@/components/exercicio/equipamento-de-hoje";
 import { FichaEmFolha } from "@/components/exercicio/ficha-sob-demanda";
 import { BotaoMontagem } from "@/components/treinar/montagem";
 import { LinhaSerieForm } from "@/components/treinar/serie";
@@ -37,6 +38,7 @@ export function BlocoExercicio({
   aoMudarNota,
   aoSubstituir,
   recorrencia,
+  material,
   ocupados,
 }: {
   bloco: BlocoLocal;
@@ -53,6 +55,7 @@ export function BlocoExercicio({
   aoMudarNota: (nota: string) => void;
   aoSubstituir: (novoExercicioId: string) => void;
   recorrencia?: RecorrenciaDaTroca;
+  material?: MaterialDoTreino;
   ocupados?: readonly string[];
 }) {
   const exercicio = acharExercicio(bloco.exercicioId);
@@ -100,6 +103,7 @@ export function BlocoExercicio({
             troca={{
               originalId: bloco.originalId,
               recorrencia,
+              material,
               ocupados,
               avisoDaTroca: avisoDaTroca(bloco),
               aoSubstituir,
@@ -136,6 +140,7 @@ export function BlocoExercicio({
             originalId={bloco.originalId}
             ocupados={ocupados}
             recorrencia={recorrencia}
+            material={material}
             avisoDaTroca={avisoDaTroca(bloco)}
             voltarAoOriginal={bloco.substituido ? {
               nome: acharExercicio(bloco.originalId).nome,

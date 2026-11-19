@@ -12,19 +12,21 @@ import type { QueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { bd, temIndexedDB } from "@/lib/db";
 import { acharTreino } from "@/lib/dados";
+import { equipamentoDaSessao } from "@/lib/equipamento-da-sessao";
 import {
   WORKOUT_LIVRE,
   itensDeIds,
   itensNaOrdem,
   planoDaSessao,
 } from "@/lib/livre";
-import { enfileirarEscrita } from "@/lib/outbox-supabase";
+import { alvoDaEscrita, enfileirarEscrita, type EscritaTabela } from "@/lib/outbox-supabase";
 import { guardarConsultasAgora } from "@/lib/persistencia-query";
-import { esperarFila, pendentes } from "@/lib/outbox";
+import { esperarFila, guardarNaFila, pendentes, processar } from "@/lib/outbox";
 import { chaves, type SessaoResumo } from "@/lib/queries/dados";
 import {
   comSubstituicoes,
   concluirSessao,
+  definirEquipamentoDaSessao,
   escritaDaSerie,
   escritasDasSeriesFeitas,
   escritaDaSessao,
@@ -32,6 +34,7 @@ import {
   montarSessao,
   montarSessaoAvulsa,
   notasDaSessao,
+  planoParaGravar,
   type BlocoLocal,
   type Conclusao,
   type EntradaAvulsa,
@@ -41,7 +44,7 @@ import {
   type SessaoLocal,
 } from "@/lib/sessao";
 import type { TipoSaida } from "@/lib/db";
-import type { StatusSessao } from "@/lib/types";
+import type { PlanoDaSessao, StatusSessao } from "@/lib/types";
 
 /** Id novo, gerado no cliente (SPEC §8). */
 export function novoId(): string {
@@ -242,8 +245,7 @@ async function registrarSessaoNova(
   sessao: SessaoLocal,
   cliente: QueryClient,
 ): Promise<SessaoLocal> {
-  await gravar(sessao);
-  await enfileirar("sessao", escritaDaSessao(sessao));
+  await gravarSessaoComSaida(sessao, "criar");
 
   cliente.setQueryData<SessaoResumo[]>(chaves.sessoesAbertas(), (atual) => [
     {
@@ -260,12 +262,70 @@ async function registrarSessaoNova(
   return sessao;
 }
 
-/** Persiste a seleção atual mesmo sem nenhuma série registrada do substituto. */
-export async function enviarPlanoDaTroca(sessao: SessaoLocal): Promise<void> {
-  await enfileirar("sessao", {
-    tabela: "sessions", op: "update", linha: { plano: escritaDaSessao(sessao).linha?.plano },
-    filtro: { id: sessao.id, status: "em_andamento" },
+async function gravarSessaoComSaida(sessao: SessaoLocal, operacao: "criar" | "equipamento"): Promise<SessaoLocal> {
+  const banco = bd();
+  const gravada = await banco.transaction("rw", banco.sessaoAtiva, banco.outbox, async () => {
+    let atual = sessao;
+    let escrita: EscritaTabela;
+    if (operacao === "equipamento") {
+      // Outra aba pode ter registrado uma série ou encerrado o treino desde a renderização.
+      const copia = await banco.sessaoAtiva.get(sessao.id);
+      const salva = copia?.dados as SessaoLocal | undefined;
+      if (!salva || salva.userId !== sessao.userId || salva.status !== "em_andamento") {
+        throw new Error("Esta sessão não está aberta nesta conta e aparelho.");
+      }
+      atual = definirEquipamentoDaSessao(salva, equipamentoDaSessao(sessao));
+      escrita = escritaDoPlano(atual.id, atual.userId, planoParaGravar(atual));
+    } else {
+      escrita = escritaDaSessao(atual);
+    }
+    await banco.sessaoAtiva.put({ id: atual.id, dados: atual, atualizadoEm: Date.now() });
+    await guardarNaFila("sessao", escrita, alvoDaEscrita(escrita));
+    return atual;
   });
+  void processar();
+  return gravada;
+}
+
+function escritaDoPlano(id: string, userId: string, plano: PlanoDaSessao | null): EscritaTabela {
+  return {
+    tabela: "sessions", op: "update", linha: { plano },
+    filtro: { id, user_id: userId, status: "em_andamento" },
+  };
+}
+
+/** A fila ordena as edições de equipamento e trocas pelo mesmo ID da sessão. */
+export async function gravarPlanoDaSessao(id: string, userId: string, plano: PlanoDaSessao | null): Promise<void> {
+  await enfileirarEscrita("sessao", escritaDoPlano(id, userId, plano));
+}
+
+export async function enviarPlanoDaSessao(sessao: SessaoLocal): Promise<void> {
+  await gravarPlanoDaSessao(sessao.id, sessao.userId, planoParaGravar(sessao));
+}
+
+export { enviarPlanoDaSessao as enviarPlanoDaTroca };
+
+/** Confirma a escolha depois de a cópia local e o PATCH entrarem no mesmo commit. */
+export async function guardarMaterialDaSessao(sessao: SessaoLocal): Promise<SessaoLocal> {
+  const anterior = pendente?.id === sessao.id ? pendente : null;
+  const equipamento = equipamentoDaSessao(sessao);
+  if (anterior) {
+    // Confirma o toque anterior primeiro; se só o equipamento falhar, a série fica salva.
+    pendente = null;
+    if (relogio) clearTimeout(relogio);
+    relogio = null;
+    try {
+      await gravar(anterior);
+    } catch (erro) {
+      if (!pendente) salvarSessaoLocal(anterior);
+      throw erro;
+    }
+  }
+  const salva = await gravarSessaoComSaida(sessao, "equipamento");
+  if (pendente?.id === sessao.id) {
+    pendente = definirEquipamentoDaSessao(pendente, equipamento);
+  }
+  return salva;
 }
 
 /** Uma série concluída sobe sozinha (upsert por id: remarcar não duplica). */

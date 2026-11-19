@@ -10,6 +10,7 @@
  * monta as anilhas é `lib/montagem.ts` e o conteúdo vem de `lib/dados.ts`.
  */
 import { alternativasPara } from "@/lib/alternativas";
+import { equipamentoDaSessao, tagsDoEquipamento } from "@/lib/equipamento-da-sessao";
 import { resolverTrocasDoTreino } from "@/lib/trocas";
 import {
   acharExercicio,
@@ -41,7 +42,7 @@ import {
   type SerieFeita,
 } from "@/lib/progressao";
 import type { EstadoPlayer } from "@/lib/player";
-import type { Assistencia, Exercicio, FaseId, TreinoId } from "@/lib/schemas";
+import type { Assistencia, EquipamentoTag, Exercicio, FaseId, TreinoId } from "@/lib/schemas";
 import type {
   LinhaSerie,
   LinhaSessao,
@@ -191,6 +192,8 @@ export interface EntradaMontagem {
   /** `v_records` por exercício, para o resumo do fim (SPEC §6.6). */
   recordes?: Record<string, RecordeAntes>;
   opcoesMontagem?: OpcoesMontagem;
+  /** Materiais que a pessoa marcou para esta única sessão. */
+  equipamentosDisponiveis?: ReadonlySet<EquipamentoTag>;
   /** Quando a sessão começou (ISO). */
   agora?: string;
   /** Gerador de id das séries — injetado para os testes serem determinísticos. */
@@ -385,7 +388,7 @@ export function montarSessaoAvulsa(e: EntradaAvulsa): SessaoLocal {
     } satisfies BlocoLocal;
   });
 
-  return {
+  const sessao: SessaoLocal = {
     id: e.id,
     userId: e.userId,
     data: e.data,
@@ -402,6 +405,7 @@ export function montarSessaoAvulsa(e: EntradaAvulsa): SessaoLocal {
     opcoesMontagem: opcoes,
     blocos,
   };
+  return e.equipamentosDisponiveis ? definirEquipamentoDaSessao(sessao, e.equipamentosDisponiveis) : sessao;
 }
 
 /** `exerciciosDoTreino` com o tipo do item preservado. */
@@ -430,7 +434,7 @@ export function reconstruirSessao(
     | "iniciada_em"
   > & { semana_plano?: number | null; plano?: PlanoDaSessao | null },
   series: LinhaSerie[],
-  resto: Omit<EntradaMontagem, "id" | "userId" | "data" | "treinoId" | "fase"> & {
+  resto: Omit<EntradaMontagem, "id" | "userId" | "data" | "treinoId" | "fase" | "equipamentosDisponiveis"> & {
     /** Sessão fora do programa (§3.4): os itens não estão em `programa.json`. */
     itens?: ItemDaSessao[];
   } = {},
@@ -1032,16 +1036,27 @@ export interface Escrita {
   filtro?: Record<string, string | number | boolean>;
 }
 
-/** O plano mantém a escolha mesmo que o substituto ainda não tenha uma série no banco. */
-function planoParaGravar(sessao: SessaoLocal): PlanoDaSessao | null {
-  const alterados = sessao.blocos.filter((b) => b.trocados?.length);
-  if (!alterados.length) return sessao.plano;
-  const base = sessao.plano ?? planoDaSessao(sessao.blocos.map((bloco) => {
+function planoAtualOuDosBlocos(sessao: SessaoLocal): PlanoDaSessao {
+  return sessao.plano ?? planoDaSessao(sessao.blocos.map((bloco) => {
     const original = [bloco, ...(bloco.trocados ?? [])].find((b) => b.exercicioId === bloco.originalId) ?? bloco;
     return { exercicioId: original.exercicioId, prescricao: original.prescricao, descansoS: original.descansoS, descansoTexto: original.descansoTexto };
   }));
+}
+
+/** O material só limita as alternativas que a pessoa poderá escolher. */
+export function definirEquipamentoDaSessao(sessao: SessaoLocal, disponiveis: ReadonlySet<EquipamentoTag>): SessaoLocal {
+  const tags = tagsDoEquipamento(disponiveis);
+  const atual = equipamentoDaSessao(sessao);
+  if (tags.length === atual.size && tags.every((tag) => atual.has(tag))) return sessao;
+  return { ...sessao, plano: { ...planoAtualOuDosBlocos(sessao), equipamento_disponivel: tags } };
+}
+
+/** O plano mantém a escolha mesmo que o substituto ainda não tenha uma série no banco. */
+export function planoParaGravar(sessao: SessaoLocal): PlanoDaSessao | null {
+  const alterados = sessao.blocos.filter((b) => b.trocados?.length);
+  if (!alterados.length) return sessao.plano;
   return {
-    ...base,
+    ...planoAtualOuDosBlocos(sessao),
     trocas: Object.fromEntries(alterados.map((b) => [b.ordem, [b, ...(b.trocados ?? [])].map((e) => ({
       exercicio_id: e.exercicioId,
       trabalho: e.series.filter((s) => s.tipo === "trabalho").map((s) => s.setIndex),
