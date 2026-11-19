@@ -25,7 +25,7 @@
  * logout não pode levar o app junto) e a **autocura** (a cópia própria da
  * página, que até então era código inalcançável).
  */
-import { expect, test, type BrowserContext, type Worker } from "@playwright/test";
+import { expect, test, type Worker } from "@playwright/test";
 import {
   entrarNoApp,
   esperarAbaTreino,
@@ -35,6 +35,7 @@ import {
   resetarMock,
   usuarioComPerfil,
 } from "./fixtures";
+import { comRedeNoWorker, semRedeNoWorker, workerDoApp } from "./rede-do-worker";
 
 /** Segunda, 14/09/2026: o primeiro dia do programa (SPEC §5). */
 const SEGUNDA = "2026-09-14T08:00:00-03:00";
@@ -42,49 +43,6 @@ const SEGUNDA = "2026-09-14T08:00:00-03:00";
 test.beforeEach(async () => {
   await resetarMock();
 });
-
-/** O service worker que controla a página, como objeto manipulável. */
-async function workerDoApp(context: BrowserContext): Promise<Worker> {
-  const [jaRegistrado] = context.serviceWorkers();
-  if (jaRegistrado) return jaRegistrado;
-  return context.waitForEvent("serviceworker", { timeout: 30_000 });
-}
-
-/**
- * Corta a rede DO WORKER. Reaplicável de propósito: o navegador pode parar um
- * service worker ocioso e recomeçá-lo com o `fetch` nativo de volta, então
- * cada navegação do teste chama isto antes.
- */
-async function semRedeNoWorker(worker: Worker): Promise<void> {
-  await worker.evaluate(async () => {
-    const escopo = self as unknown as {
-      fetch: typeof fetch;
-      __fetchDeVerdade?: typeof fetch;
-      registration: { navigationPreload?: { disable(): Promise<void> } };
-    };
-    if (!escopo.__fetchDeVerdade) {
-      escopo.__fetchDeVerdade = escopo.fetch.bind(self);
-    }
-    // o preload é o NAVEGADOR quem dispara: trocar `self.fetch` não o alcança
-    try {
-      await escopo.registration.navigationPreload?.disable();
-    } catch {
-      // registration sem preload: nada a desligar
-    }
-    escopo.fetch = () => Promise.reject(new TypeError("Failed to fetch"));
-  });
-}
-
-/** Devolve a rede ao worker. */
-async function comRedeNoWorker(worker: Worker): Promise<void> {
-  await worker.evaluate(() => {
-    const escopo = self as unknown as {
-      fetch: typeof fetch;
-      __fetchDeVerdade?: typeof fetch;
-    };
-    if (escopo.__fetchDeVerdade) escopo.fetch = escopo.__fetchDeVerdade;
-  });
-}
 
 /** Quantas cópias da `/~offline` existem no aparelho, em qualquer cache. */
 async function copiasDaOffline(worker: Worker): Promise<number> {

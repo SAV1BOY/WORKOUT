@@ -482,40 +482,77 @@ async function workerDoApp(context: BrowserContext): Promise<Worker> {
 test("o worker real mostra o push como notificação e o toque leva à url", async ({ page, context }) => {
   await preparar(page, "light", {});
   await esperarServiceWorker(page);
-  const worker = await workerDoApp(context);
+  const escopoDoApp = new URL("/", page.url()).href;
+  const script = new URL("sw.js", escopoDoApp).href;
+  // O Chromium já fornece ready e controller enquanto a ativação ainda está executando o waitUntil.
+  await expect.poll(() => page.evaluate(async () => {
+    const registro = await navigator.serviceWorker.getRegistration();
+    return {
+      escopo: registro?.scope, script: registro?.active?.scriptURL, estado: registro?.active?.state,
+      controlador: navigator.serviceWorker.controller?.scriptURL, permissao: Notification.permission,
+    };
+  })).toEqual({ escopo: escopoDoApp, script, estado: "activated", controlador: script, permissao: "granted" });
 
-  const escopoDoApp = await page.evaluate(async () => (await navigator.serviceWorker.ready).scope);
+  const worker = context.serviceWorkers().find(w => w.url() === script);
+  if (!worker) throw new Error("O worker ativo que controla o app não foi encontrado");
+
+  const lerNotificacoes = (tag: string) => page.evaluate(async tag => {
+    const registro = await navigator.serviceWorker.ready;
+    const lista = await registro.getNotifications({ tag });
+    return lista.map(n => ({ title: n.title, body: n.body, tag: n.tag, icon: n.icon, lang: n.lang, data: n.data as unknown }));
+  }, tag);
+
+  // Controle positivo: o navegador consegue publicar e ler neste mesmo registro antes do push.
+  await worker.evaluate(async () => {
+    const { registration } = globalThis as unknown as { registration: ServiceWorkerRegistration };
+    await registration.showNotification("Controle local", { tag: "e2e-controle" });
+  });
+  await expect.poll(() => lerNotificacoes("e2e-controle")).toMatchObject([{ title: "Controle local" }]);
+  await page.evaluate(async () => {
+    const lista = await (await navigator.serviceWorker.ready).getNotifications({ tag: "e2e-controle" });
+    for (const notificacao of lista) notificacao.close();
+  });
+
+  const observado = await worker.evaluateHandle(() => {
+    const resultado = { tag: null as string | null, confiavel: false };
+    const escopo = globalThis as unknown as ServiceWorkerGlobalScope;
+    escopo.addEventListener("push", evento => {
+      resultado.tag = evento.data?.json().tag ?? null;
+      resultado.confiavel = evento.isTrusted;
+    }, { once: true });
+    return resultado;
+  });
+
   const cdp = await context.newCDPSession(page);
-  const idDoRegistro = new Promise<string>((resolver) => {
-    cdp.on("ServiceWorker.workerRegistrationUpdated", ({ registrations }) => {
-      const registro = registrations.find((r) => !r.isDeleted && r.scopeURL === escopoDoApp);
-      if (registro) resolver(registro.registrationId);
+  try {
+    const idDoRegistro = new Promise<string>(resolver => {
+      cdp.on("ServiceWorker.workerRegistrationUpdated", ({ registrations }) => {
+        const registro = registrations.find(r => !r.isDeleted && r.scopeURL === escopoDoApp);
+        if (registro) resolver(registro.registrationId);
+      });
     });
-  });
-  await cdp.send("ServiceWorker.enable");
-  // O Chromium entrega o evento ao registro ativo e mantém o worker vivo pelo waitUntil.
-  await cdp.send("ServiceWorker.deliverPushMessage", {
-    origin: new URL(escopoDoApp).origin,
-    registrationId: await idDoRegistro,
-    data: JSON.stringify({ titulo: "Hora do treino", corpo: "Treino A hoje, 3 exercícios.", url: "/relatorio", tag: "e2e-push" }),
-  });
-  await cdp.detach();
+    await cdp.send("ServiceWorker.enable");
+    await cdp.send("ServiceWorker.deliverPushMessage", {
+      origin: new URL(escopoDoApp).origin,
+      registrationId: await idDoRegistro,
+      data: JSON.stringify({ titulo: "Hora do treino", corpo: "Treino A hoje, 3 exercícios.", url: "/relatorio", tag: "e2e-push" }),
+    });
 
-  const lerNotificacoes = () =>
-    worker.evaluate(async () => {
-      const escopo = globalThis as unknown as { registration: ServiceWorkerRegistration };
-      const lista = await escopo.registration.getNotifications();
-      return lista.map((n) => ({ title: n.title, body: n.body, tag: n.tag, icon: n.icon, lang: n.lang, data: n.data as unknown }));
-    });
-  await expect.poll(async () => (await lerNotificacoes()).length).toBe(1);
-  expect((await lerNotificacoes())[0]).toEqual({
-    title: "Hora do treino",
-    body: "Treino A hoje, 3 exercícios.",
-    tag: "e2e-push",
-    icon: expect.stringMatching(/\/icons\/icone-192\.png$/) as unknown as string,
-    lang: "pt-BR",
-    data: { url: "/relatorio" },
-  });
+    await expect.poll(() => observado.jsonValue(), { message: "Entrega do PushEvent nativo ao worker ativo" })
+      .toEqual({ tag: "e2e-push", confiavel: true });
+    await expect.poll(() => lerNotificacoes("e2e-push"), { message: "Exibição da notificação enviada pelo worker" })
+      .toEqual([{
+        title: "Hora do treino",
+        body: "Treino A hoje, 3 exercícios.",
+        tag: "e2e-push",
+        icon: new URL("/icons/icone-192.png", escopoDoApp).href,
+        lang: "pt-BR",
+        data: { url: "/relatorio" },
+      }]);
+  } finally {
+    await cdp.detach();
+    await observado.dispose();
+  }
 
   await worker.evaluate(async () => {
     const escopo = globalThis as unknown as {
@@ -528,7 +565,7 @@ test("o worker real mostra o push como notificação e o toque leva à url", asy
     escopo.dispatchEvent(new escopo.NotificationEvent("notificationclick", { notification: n }));
   });
   await expect(page).toHaveURL(/\/relatorio$/);
-  await expect.poll(async () => (await lerNotificacoes()).length).toBe(0);
+  await expect.poll(() => lerNotificacoes("e2e-push")).toEqual([]);
 });
 
 test("sem aba do app, o toque pede uma nova janela na rota do lembrete", async ({ page, context }) => {

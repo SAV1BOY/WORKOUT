@@ -36,7 +36,7 @@ export function useSessoesTodas(): UseQueryResult<SessaoBruta[]> {
     queryKey: chavesProgresso.sessoesTodas(),
     queryFn: async () => {
       const sessoes = await lerTabelaCompleta<SessaoBruta>(
-        "sessions", "id,data,status,workout_id,duracao_s,plano", "os seus treinos",
+        "sessions", "id,user_id,data,status,workout_id,duracao_s,plano", "os seus treinos",
       );
       return sessoes.sort((a, b) => b.data.localeCompare(a.data));
     },

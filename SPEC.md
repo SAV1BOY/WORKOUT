@@ -303,6 +303,9 @@ Vitrine de **coleções derivadas** dos JSON, cada uma com capa (foto de um exer
 **Dificuldade (raios 1–3)**: derivada da `categoria` do exercício (`composto_pesado` = 3, `composto_moderado` = 2, `isolamento` e `core_peso_corporal` = 1); a coleção mostra a maior. Nunca editada à mão.
 
 ### 13.5 Relatório (`/relatorio`)
+
+**Repetir um treino livre pelo histórico.** Uma sessão livre concluída com um plano válido oferece **Repetir treino**. A nova sessão começa hoje com identificação própria, a ordem dos blocos e o último movimento ativo de cada bloco. O registro de séries começa vazio, a carga vem do estado atual de cada exercício e todo o equipamento fica disponível. A sessão anterior conserva seus valores, datas e notas. Um toque duplo cria uma única sessão. Com os dados já disponíveis no aparelho, a repetição funciona offline e sincroniza ao voltar a rede.
+
 1. **Contadores** no topo: treinos concluídos (força + cardio) · minutos treinados · volume da semana (Σ reps × kg).
 2. **Histórico**: faixa da semana (a mesma do Treino) com navegação por semanas; **"Todos os registros"**: lista por data (sessões de força com treino, duração, séries e ↑/=/↓; cardio com tipo, semana e duração; reps soltas), toque abre o resumo da sessão. **Sequência de dias** (dias seguidos com qualquer sessão) e **sequência de semanas** com meta cumprida.
 3. Os gráficos e a lista de recordes da §3.7 continuam abaixo.

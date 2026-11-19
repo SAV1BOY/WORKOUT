@@ -463,33 +463,49 @@ test.describe("Sincronização em /mais (SPEC §8)", () => {
     await expect(linha.getByRole("button", { name: "Tentar agora" })).toHaveCount(0);
     await semRolagemHorizontal(page);
   });
+});
+
+test.describe("Falha de sincronização em /mais (SPEC §8)", () => {
+  // As respostas desta prova são dadas pela rota do navegador.
+  test.use({ serviceWorkers: "block" });
 
   test("o que não sobe aparece na fila e o Tentar agora resolve", async ({ page }) => {
     const sessao = await usuarioComPerfil();
     await entrarNoApp(page);
 
-    /*
-     * A escrita do peso é cortada antes de chegar ao Supabase: o registro fica
-     * no IndexedDB (nada se perde, §8) e o item da fila guarda o erro. Aqui é
-     * um abort no lugar de `setOffline` porque o app precisa continuar
-     * navegando — quem cai é a gravação, não o aparelho.
-     */
-    await page.route("**/rest/v1/body_weights**", (rota) => rota.abort());
+    const pesagens = (url: URL) => url.pathname === "/rest/v1/body_weights";
+    await page.route(pesagens, rota => {
+      if (rota.request().method() !== "POST") return rota.continue();
+      return rota.fulfill({
+        status: 503,
+        json: { message: "Gravação da pesagem indisponível" },
+      });
+    });
+
     await page.goto("/corpo");
-    await page.getByLabel("Peso (kg)").fill("82,4");
+    await page.getByLabel("Peso (kg)", { exact: true }).fill("82,4");
+    const recusada = page.waitForResponse(resposta =>
+      pesagens(new URL(resposta.url())) && resposta.request().method() === "POST" && resposta.status() === 503);
     await page.getByRole("button", { name: "Registrar" }).click();
+    const tentativa = (await recusada).request().postDataJSON();
+    expect(tentativa).toMatchObject({ id: expect.any(String), user_id: sessao.userId, peso_kg: 82.4 });
 
     await page.goto("/mais");
     const linha = page.getByLabel("Sincronização");
-    await expect(linha.getByText(/item esperando|itens esperando/)).toBeVisible({
-      timeout: 15_000,
-    });
+    await expect(linha.getByText("1 item esperando", { exact: true })).toBeVisible();
+    const tentar = linha.getByRole("button", { name: "Tentar agora" });
+    await expect(tentar).toBeEnabled();
+    expect(await lerDoMock(sessao, "body_weights")).toHaveLength(0);
 
-    await page.unroute("**/rest/v1/body_weights**");
-    const botao = linha.getByRole("button", { name: "Tentar agora" });
-    if (await botao.isVisible()) await botao.click();
-    await expect(linha.getByText("Tudo sincronizado")).toBeVisible({ timeout: 20_000 });
-    expect(await lerDoMock(sessao, "body_weights")).toHaveLength(1);
+    await page.unroute(pesagens);
+    await tentar.click();
+    await expect(linha.getByText("Tudo sincronizado")).toBeVisible();
+    expect(await lerDoMock(sessao, "body_weights")).toMatchObject([{
+      id: tentativa.id, user_id: sessao.userId, data: "2026-09-14", peso_kg: 82.4,
+    }]);
+    const escritas = (await requisicoesDoMock()).filter(r =>
+      r.metodo === "POST" && r.caminho === "/rest/v1/body_weights");
+    expect(escritas).toHaveLength(1);
   });
 });
 

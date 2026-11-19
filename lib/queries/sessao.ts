@@ -40,6 +40,7 @@ import {
   type EntradaAvulsa,
   type EntradaMontagem,
   type Escrita,
+  type ItemDaSessao,
   type SerieLocal,
   type SessaoLocal,
 } from "@/lib/sessao";
@@ -100,10 +101,13 @@ export async function carregarSessaoLocal(id: string): Promise<SessaoLocal | nul
 }
 
 /** A sessão aberta mais recente guardada neste aparelho. */
-export async function sessaoLocalMaisRecente(): Promise<SessaoLocal | null> {
+export async function sessaoLocalMaisRecente(conta?: string, encerradas?: ReadonlySet<string>): Promise<SessaoLocal | null> {
   if (!temIndexedDB()) return null;
-  const itens = await bd().sessaoAtiva.orderBy("atualizadoEm").reverse().limit(1).toArray();
-  const item = itens[0];
+  const recentes = bd().sessaoAtiva.orderBy("atualizadoEm").reverse();
+  const item = await (conta === undefined ? recentes : recentes.filter(({ dados }) => {
+    const sessao = dados as SessaoLocal;
+    return sessao.userId === conta && sessao.status === "em_andamento" && !encerradas?.has(sessao.id);
+  })).first();
   return item ? (item.dados as SessaoLocal) : null;
 }
 
@@ -193,17 +197,19 @@ export interface EntradaCriacaoAvulsa extends Omit<EntradaAvulsa, "id"> {
   id?: string;
 }
 
-export interface EntradaCriacaoLivre
-  extends Omit<EntradaAvulsa, "id" | "workoutId" | "itens"> {
+export type EntradaCriacaoLivre = Omit<EntradaAvulsa, "id" | "workoutId" | "itens"> & {
   cliente: QueryClient;
   id?: string;
-  /** Os exercícios escolhidos, na ordem em que vão ser feitos. */
-  exercicios: readonly string[];
   /** O rótulo da coleção que gerou a sessão ("Core no tatame"). */
   titulo?: string | null;
   /** O id da coleção derivada ("grupo:Core"), quando veio de uma. */
   colecao?: string | null;
-}
+  /** Na repetição, retoma uma sessão que outra aba possa ter criado durante a leitura. */
+  retomarSeAberta?: { encerradas: ReadonlySet<string> };
+} & (
+  | { exercicios: readonly string[]; itens?: never }
+  | { itens: readonly ItemDaSessao[]; exercicios?: never }
+);
 
 /**
  * "Começar" numa coleção ou no "Personalizar treino" (SPEC §13.4 e §14.3): a
@@ -214,9 +220,9 @@ export interface EntradaCriacaoLivre
 export async function criarSessaoLivre(
   entrada: EntradaCriacaoLivre,
 ): Promise<SessaoLocal> {
-  const { cliente, exercicios, titulo, colecao, ...resto } = entrada;
+  const { cliente, exercicios, itens: prescritos, titulo, colecao, retomarSeAberta, ...resto } = entrada;
   const id = entrada.id ?? novoId();
-  const itens = itensDeIds(exercicios);
+  const itens = prescritos ? [...prescritos] : itensDeIds(exercicios);
   if (itens.length === 0) throw new Error("sessão livre sem exercício");
   const sessao = montarSessaoAvulsa({
     ...resto,
@@ -226,7 +232,7 @@ export async function criarSessaoLivre(
     itens,
     plano: planoDaSessao(itens, { titulo, colecao }),
   });
-  return registrarSessaoNova(sessao, cliente);
+  return registrarSessaoNova(sessao, cliente, retomarSeAberta);
 }
 
 /**
@@ -244,12 +250,15 @@ export async function criarSessaoAvulsa(
 async function registrarSessaoNova(
   sessao: SessaoLocal,
   cliente: QueryClient,
+  retomarSeAberta?: { encerradas: ReadonlySet<string> },
 ): Promise<SessaoLocal> {
-  await gravarSessaoComSaida(sessao, "criar");
+  const salva = await gravarSessaoComSaida(sessao, "criar", retomarSeAberta);
+  if (salva !== sessao) return salva;
 
   cliente.setQueryData<SessaoResumo[]>(chaves.sessoesAbertas(), (atual) => [
     {
       id: sessao.id,
+      user_id: sessao.userId,
       data: sessao.data,
       status: "em_andamento",
       workout_id: sessao.workoutId,
@@ -262,11 +271,17 @@ async function registrarSessaoNova(
   return sessao;
 }
 
-async function gravarSessaoComSaida(sessao: SessaoLocal, operacao: "criar" | "equipamento"): Promise<SessaoLocal> {
+async function gravarSessaoComSaida(
+  sessao: SessaoLocal, operacao: "criar" | "equipamento", retomarSeAberta?: { encerradas: ReadonlySet<string> },
+): Promise<SessaoLocal> {
   const banco = bd();
   const gravada = await banco.transaction("rw", banco.sessaoAtiva, banco.outbox, async () => {
     let atual = sessao;
     let escrita: EscritaTabela;
+    if (retomarSeAberta) {
+      const existente = await sessaoLocalMaisRecente(sessao.userId, retomarSeAberta.encerradas);
+      if (existente) return existente;
+    }
     if (operacao === "equipamento") {
       // Outra aba pode ter registrado uma série ou encerrado o treino desde a renderização.
       const copia = await banco.sessaoAtiva.get(sessao.id);
@@ -283,7 +298,7 @@ async function gravarSessaoComSaida(sessao: SessaoLocal, operacao: "criar" | "eq
     await guardarNaFila("sessao", escrita, alvoDaEscrita(escrita));
     return atual;
   });
-  void processar();
+  if (operacao === "equipamento" || gravada === sessao) void processar();
   return gravada;
 }
 
@@ -376,6 +391,7 @@ export async function finalizarSessao(entrada: EntradaFim): Promise<Conclusao> {
   cliente.setQueryData<SessaoResumo[]>(chaves.sessoes(), (atual) => {
     const resumo: SessaoResumo = {
       id: sessao.id,
+      user_id: sessao.userId,
       data: sessao.data,
       status,
       workout_id: sessao.workoutId,

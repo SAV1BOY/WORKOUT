@@ -2,6 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { cache } from "react";
 import { cookies } from "next/headers";
 import { SUPABASE_ANON_KEY, SUPABASE_URL, supabaseConfigurado } from "@/lib/env";
+import { impressaoDoLogin } from "@/lib/vinculo-do-player";
 
 /** Cliente Supabase do servidor (Next 15: cookies() é assíncrono). */
 export async function criarClienteServidor() {
@@ -30,10 +31,15 @@ export async function criarClienteServidor() {
 /** React compartilha a verificação somente durante a mesma requisição. */
 export const identidadeDaRequisicao = cache(async () => {
   const supabase = await criarClienteServidor();
-  const { data } = await supabase.auth.getClaims();
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return null;
+  const { data } = await supabase.auth.getClaims(session.access_token);
   const claims = data?.claims;
   if (!claims || typeof claims.sub !== "string") return null;
-  return { id: claims.sub, email: typeof claims.email === "string" ? claims.email : null };
+  return {
+    id: claims.sub, email: typeof claims.email === "string" ? claims.email : null,
+    impressao: await impressaoDoLogin(claims.sub, SUPABASE_URL, SUPABASE_ANON_KEY, session.access_token),
+  };
 });
 
 export async function idDoUsuario(): Promise<string | null> {

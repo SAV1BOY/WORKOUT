@@ -39,7 +39,7 @@ export default async function LayoutApp({
 
   return (
     <div className="min-h-dvh">
-      <ConfigurarSupabase url={SUPABASE_URL} chave={SUPABASE_ANON_KEY} />
+      <ConfigurarSupabase url={SUPABASE_URL} chave={SUPABASE_ANON_KEY} conta={user.id} impressao={user.impressao} />
       <SpriteMuscular />
       <TemaDoPerfil />
       <AquecerMidia />

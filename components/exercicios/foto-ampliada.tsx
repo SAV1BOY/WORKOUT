@@ -2,6 +2,7 @@
 
 import { Trash2, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useCamadaPropria } from "@/components/ui/camada-modal";
 import { fonteComReserva, reservaDaImagem } from "@/components/ui/imagem";
 import { medidaDaFoto, urlWebp } from "@/lib/midia";
@@ -95,7 +96,8 @@ export function FotoAmpliada({
     return () => document.removeEventListener("keydown", aoTeclar);
   }, [aoFechar, confirmando]);
 
-  return (
+  // A ficha inteira fica inerte, inclusive os controles que chegam da rede com a foto já aberta.
+  return createPortal(
     <div
       ref={camada}
       role="dialog"
@@ -152,7 +154,8 @@ export function FotoAmpliada({
           }}
         />
       ) : null}
-    </div>
+    </div>,
+    document.body,
   );
 }
 
