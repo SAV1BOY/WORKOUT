@@ -103,11 +103,14 @@ test("duas séries concluídas offline aparecem antes de sincronizar, sobrevivem
   const worker = await workerDoApp(context);
   await semRedeNoWorker(worker);
   await context.setOffline(true);
-  for (const [indice, reps, kg] of [[1, "10", "21,5"], [2, "8", "22,5"]] as const) {
+  // A barra de 7,5 kg aceita pares de anilhas em passos de 2 kg.
+  for (const [indice, reps, kg] of [[1, "10", "21,5"], [2, "8", "23,5"]] as const) {
     const linha = geral(page).getByRole("group", { name: `Série ${indice} — ${NOME}`, exact: true });
     await linha.getByRole("textbox", { name: "repetições" }).fill(reps);
-    await linha.getByRole("textbox", { name: "carga na barra" }).fill(kg);
+    const carga = linha.getByRole("textbox", { name: "carga na barra" });
+    await carga.fill(kg);
     await linha.getByRole("checkbox").check();
+    await expect(carga).toHaveValue(kg);
   }
   await geral(page).getByRole("button", { name: "Concluir", exact: true }).click();
   await page.getByRole("dialog", { name: "Treino concluído" }).getByRole("button", { name: "Salvar e voltar" }).click();
@@ -120,7 +123,7 @@ test("duas séries concluídas offline aparecem antes de sincronizar, sobrevivem
     const agachamento = folha.getByRole("region", { name: /Agachamento frontal/ });
     await expect(agachamento.getByRole("listitem")).toHaveCount(2);
     await expect(repeticoesOnde(agachamento, "Série 1")).toContainText("10 repetições · 21,5 kg na barra");
-    await expect(repeticoesOnde(agachamento, "Série 2")).toContainText("8 repetições · 22,5 kg na barra");
+    await expect(repeticoesOnde(agachamento, "Série 2")).toContainText("8 repetições · 23,5 kg na barra");
     await folha.getByRole("button", { name: "Fechar", exact: true }).click();
   };
   await conferir();
@@ -134,7 +137,7 @@ test("duas séries concluídas offline aparecem antes de sincronizar, sobrevivem
   await expect.poll(() => lerDoMock<LinhaSessao>(conta, "sessions", `id=eq.${id}`)).toMatchObject([{ status: "concluida" }]);
   const ordenadas = () => lerDoMock(conta, "session_sets", `session_id=eq.${id}&order=set_index.asc`);
   await expect.poll(ordenadas).toMatchObject([
-    { set_index: 1, reps: 10, carga_kg: 21.5, exercise_id: FRONTAL }, { set_index: 2, reps: 8, carga_kg: 22.5, exercise_id: FRONTAL },
+    { set_index: 1, reps: 10, carga_kg: 21.5, exercise_id: FRONTAL }, { set_index: 2, reps: 8, carga_kg: 23.5, exercise_id: FRONTAL },
   ]);
   await page.reload();
   await abrirSecaoDoRelatorio(page, "historico");
