@@ -5,6 +5,7 @@ import {
   CACHE_DE_SOCORRO,
   OFFLINE,
 } from "@/lib/caches-do-worker";
+import { PEDIR_CONTROLE_DO_WORKER } from "@/lib/controle-do-worker";
 import { limitarCatalogo, separarCacheAntigo } from "@/lib/midia-no-aparelho";
 import { verificarCopiaInteira } from "@/lib/sw-assets";
 import { criarCura } from "@/lib/sw-cura";
@@ -365,6 +366,15 @@ serwist.precacheStrategy.plugins.push(socorroDeAssets);
 anunciarOSocorro(comSocorro + 1);
 
 serwist.addEventListeners();
+
+// O documento recém-aberto pode ter ficado entre a navegação e o primeiro claim.
+self.addEventListener("message", (evento) => {
+  if (evento.data !== PEDIR_CONTROLE_DO_WORKER || evento.origin !== self.location.origin) return;
+  const cliente = evento.source;
+  if (!cliente || !("type" in cliente) || cliente.type !== "window" ||
+      !cliente.url.startsWith(self.registration.scope)) return;
+  evento.waitUntil(self.clients.claim());
+});
 
 /*
  * Depois do `addEventListeners`: são dois ouvintes de `activate` no mesmo

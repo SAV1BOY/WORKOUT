@@ -15,6 +15,8 @@
  * somar ticks daria um descanso maior do que o pedido.
  */
 import { acharExercicio } from "@/lib/dados";
+import { descansoPersonalizadoDaSessao, limitarTempoDeDescanso } from "@/lib/descanso-da-sessao";
+export { DESCANSO_MIN_S, DESCANSO_MAX_S } from "@/lib/descanso-da-sessao";
 import { comVoto, votoDoExercicio, type VotoDoExercicio } from "@/lib/preferencias";
 import type { Prefs } from "@/lib/types";
 import type { BlocoLocal, SerieLocal, SessaoLocal } from "@/lib/sessao";
@@ -26,10 +28,6 @@ export const PREPARACAO_PADRAO_S = 10;
 
 /** O "+20 s" da tela de descanso (SPEC §14.1.3). */
 export const EXTRA_DESCANSO_S = 20;
-
-/** Limites do "Editar tempo de descanso". */
-export const DESCANSO_MIN_S = 5;
-export const DESCANSO_MAX_S = 900;
 
 /** Limites da preparação (0 = sem tela de preparação). */
 export const PREPARACAO_MIN_S = 0;
@@ -115,6 +113,14 @@ export function descansoDoBloco(
   return bloco.descansoS;
 }
 
+export function descansoEntreSeriesDeTrabalho(
+  sessao: SessaoLocal,
+  bloco: BlocoLocal,
+  opcoes: OpcoesDoPlayer,
+): number {
+  return descansoPersonalizadoDaSessao(sessao, bloco.exercicioId) ?? descansoDoBloco(bloco, opcoes);
+}
+
 function descansoDepoisDe(
   passos: Passo[],
   segundos: number,
@@ -144,6 +150,7 @@ export function sequenciaDoPlayer(
   const passos: Passo[] = [];
   const blocos = [...sessao.blocos].sort((a, b) => a.ordem - b.ordem);
   const preparacaoS = Math.max(0, Math.round(opcoes.preparacaoS ?? PREPARACAO_PADRAO_S));
+  const cronometro = sessao.player?.descansoAoCorrigir ?? sessao.player;
 
   const primeiro = blocos[0];
   if (primeiro && preparacaoS > 0) {
@@ -158,6 +165,7 @@ export function sequenciaDoPlayer(
 
   blocos.forEach((bloco, i) => {
     const descanso = descansoDoBloco(bloco, opcoes);
+    const descansoDeTrabalho = descansoEntreSeriesDeTrabalho(sessao, bloco, opcoes);
     const aquecimentos = bloco.series.filter((s) => s.tipo === "aquecimento");
     const trabalho = bloco.series.filter((s) => s.tipo !== "aquecimento");
     const todas = [...aquecimentos, ...trabalho];
@@ -177,8 +185,14 @@ export function sequenciaDoPlayer(
         totalExercicios: blocos.length,
       });
       const ultimaDoBloco = j === todas.length - 1;
-      if (!ultimaDoBloco && descanso > 0) {
-        passos.push(descansoDepoisDe(passos, descanso, false));
+      let entreSeries = aquecimento ? descanso : descansoDeTrabalho;
+      // Voltar ao padrão de zero segundos elimina as pausas futuras, mas o
+      // relógio já aberto (inclusive ao voltar para corrigir a série) termina normalmente.
+      if (entreSeries === 0 && cronometro?.chave === `descanso:serie:${serie.id}` && cronometro.fimEm !== null) {
+        entreSeries = cronometro.totalS ?? 0;
+      }
+      if (!ultimaDoBloco && entreSeries > 0) {
+        passos.push(descansoDepoisDe(passos, entreSeries, false));
       }
     });
 
@@ -448,6 +462,16 @@ export function indiceDoEstado(
   return indiceDeRetomada(seq, sessao);
 }
 
+/** Movimento que pode usar este intervalo nas suas outras séries de trabalho. */
+export function exercicioDoDescansoEntreSeries(seq: readonly Passo[], indice: number): PassoSerie | null {
+  const descanso = seq[indice];
+  if (descanso?.tipo !== "descanso" || descanso.entreExercicios) return null;
+  const anterior = seq[indice - 1];
+  const proximo = seq[descanso.indiceProximo];
+  if (anterior?.tipo !== "serie" || anterior.aquecimento || proximo?.tipo !== "serie" || proximo.aquecimento) return null;
+  return anterior.ordem === proximo.ordem && anterior.exercicioId === proximo.exercicioId ? anterior : null;
+}
+
 /** A última série registrada no bloco que originou este descanso, inclusive depois de “firme?”. */
 export function serieAntesDoDescanso(
   seq: readonly Passo[],
@@ -629,7 +653,7 @@ export function definirDuracao(
   segundos: number,
   agora: number,
 ): EstadoPlayer {
-  const preso = Math.min(DESCANSO_MAX_S, Math.max(DESCANSO_MIN_S, Math.round(segundos)));
+  const preso = limitarTempoDeDescanso(segundos);
   return { ...estado, fimEm: agora + preso * 1000, totalS: preso };
 }
 

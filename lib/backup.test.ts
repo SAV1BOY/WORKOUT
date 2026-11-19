@@ -19,7 +19,7 @@ import {
 import { equipamentoDisponivel } from "@/lib/dados";
 import { equipamentoDaSessao } from "@/lib/equipamento-da-sessao";
 import { itensDeIds, itensDoPlano, planoDaSessao } from "@/lib/livre";
-import { reconstruirSessao } from "@/lib/sessao";
+import { descansoPersonalizadoDaSessao, reconstruirSessao } from "@/lib/sessao";
 import type { PlanoDaSessao } from "@/lib/types";
 
 const AGORA = "2026-09-15T10:00:00.000Z";
@@ -199,7 +199,7 @@ describe("trocas lembradas no programa", () => {
   });
 });
 
-describe("equipamento de hoje no backup v1", () => {
+describe("equipamento e descansos da sessão no backup v1", () => {
   const titulo = "Treino reordenado";
   const plano = planoDaSessao(itensDeIds(["supino-reto-com-barra", "agachamento-livre"]), { titulo });
   const linha = {
@@ -213,7 +213,13 @@ describe("equipamento de hoje no backup v1", () => {
     { caso: "plano legado", campos: { plano }, esperado: equipamentoDisponivel() },
     { caso: "só o corpo", campos: { plano: { ...plano, equipamento_disponivel: [] } }, esperado: new Set() },
     { caso: "equipamento selecionado", campos: { plano: { ...plano, equipamento_disponivel: ["tatame", "super-band"] } }, esperado: new Set(["tatame", "super-band"]) },
-  ])("restaura na conta de destino e retoma a sessão com $caso", ({ campos, esperado }) => {
+    {
+      caso: "equipamento e intervalo próprio do supino",
+      campos: { plano: { ...plano, equipamento_disponivel: ["tatame"], descansos_por_exercicio: { "supino-reto-com-barra": 75 } } },
+      esperado: new Set(["tatame"]),
+      descansoSupino: 75,
+    },
+  ])("restaura na conta de destino e retoma a sessão com $caso", ({ campos, esperado, descansoSupino }) => {
     const backup = montarBackup({ userId: OUTRO, exportadoEm: AGORA, tabelas: { sessions: [{ ...linha, ...campos }] } });
     const arquivo = lerBackup(textoDoBackup(backup));
     const escritas = linhasParaImportar(arquivo, EU);
@@ -225,6 +231,8 @@ describe("equipamento de hoje no backup v1", () => {
     });
     expect(sessao).not.toBeNull();
     expect(equipamentoDaSessao(sessao!)).toEqual(esperado);
+    expect(descansoPersonalizadoDaSessao(sessao!, "supino-reto-com-barra")).toBe(descansoSupino ?? null);
+    expect(descansoPersonalizadoDaSessao(sessao!, "agachamento-livre")).toBeNull();
     if (restaurado) expect(sessao!.blocos.map((b) => b.exercicioId)).toEqual(["supino-reto-com-barra", "agachamento-livre"]);
   });
 });

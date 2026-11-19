@@ -6,8 +6,8 @@ import { equipamentoDaSessao, guardarEquipamentoDoDia, lerEquipamentoDoDia } fro
 import { guardarNaFila, processar } from "@/lib/outbox";
 import { enviarItem, type EscritaTabela } from "@/lib/outbox-supabase";
 import { criarSessaoComEquipamentoDoDia } from "@/lib/queries/comecar";
-import { descarregarSessao, guardarMaterialDaSessao, salvarSessaoLocal } from "@/lib/queries/sessao";
-import { definirEquipamentoDaSessao, marcarSerie, type SessaoLocal } from "@/lib/sessao";
+import { descarregarSessao, enviarPlanoDaTroca, finalizarSessao, guardarDescansoDaSessao, guardarMaterialDaSessao, salvarSessaoLocal } from "@/lib/queries/sessao";
+import { definirEquipamentoDaSessao, descansoPersonalizadoDaSessao, marcarSerie, substituirExercicio, type SessaoLocal } from "@/lib/sessao";
 import { clienteNavegador } from "@/lib/supabase/client";
 
 const locais = new Map<string, SessaoLocal>();
@@ -16,9 +16,11 @@ vi.mock("@/lib/db", () => ({ temIndexedDB: () => true, bd: () => ({
   outbox: {},
   sessaoAtiva: {
     put: async ({ id, dados }: { id: string; dados: SessaoLocal }) => locais.set(id, dados),
+    delete: async (id: string) => { locais.delete(id); },
     get: async (id: string) => locais.has(id) ? { dados: locais.get(id) } : undefined,
   },
-  transaction: async (_modo: string, _sessoes: unknown, _fila: unknown, fazer: () => Promise<SessaoLocal>) => {
+  transaction: async (_modo: string, ...args: unknown[]) => {
+    const fazer = args.at(-1) as () => Promise<unknown>;
     const antes = new Map(locais);
     try { return await fazer(); } catch (erro) {
       locais.clear();
@@ -27,7 +29,10 @@ vi.mock("@/lib/db", () => ({ temIndexedDB: () => true, bd: () => ({
     }
   },
 }) }));
-vi.mock("@/lib/outbox", () => ({ guardarNaFila: vi.fn(), processar: vi.fn() }));
+vi.mock("@/lib/outbox", () => ({
+  guardarNaFila: vi.fn(), enfileirar: vi.fn(), processar: vi.fn(), esperarFila: () => Promise.resolve(),
+}));
+vi.mock("@/lib/persistencia-query", () => ({ guardarConsultasAgora: vi.fn().mockResolvedValue(undefined) }));
 vi.mock("@/lib/supabase/client", () => ({ clienteNavegador: vi.fn() }));
 const dia = "2026-11-19";
 const entrada = () => ({ id: "sessao", userId: "ana", data: dia, treinoId: "A1", fase: "fase1", cliente: new QueryClient() } as const);
@@ -131,5 +136,121 @@ describe("material da sessão aberta e fila de saída", () => {
     await expect(guardarMaterialDaSessao(desejada)).rejects.toThrow("não está aberta");
     expect(guardarNaFila).toHaveBeenCalledTimes(2);
     expect(locais.size).toBe(0);
+  });
+});
+
+async function emDescanso() {
+  const sessao = await criarSessaoComEquipamentoDoDia(entrada());
+  const bloco = sessao.blocos[0]!;
+  const serie = bloco.series.find(s => s.tipo === "trabalho")!;
+  const player = { chave: `descanso:serie:${serie.id}`, totalS: 60, fimEm: 71_000, ordem: bloco.ordem };
+  const aberta = { ...marcarSerie(sessao, bloco.ordem, serie.id, true), player };
+  locais.set(aberta.id, aberta);
+  return { aberta, bloco, player, novo: { ...player, totalS: 90, fimEm: 108_000 } };
+}
+
+describe("descanso da sessão no aparelho e na fila", () => {
+  it("grava junto o relógio e o intervalo do exercício sem perder o material atualizado em outra aba", async () => {
+    const { aberta, bloco, novo } = await emDescanso();
+    locais.set(aberta.id, definirEquipamentoDaSessao(aberta, new Set(["tatame"])));
+    const confirmada = await guardarDescansoDaSessao(aberta, bloco.exercicioId, 90, novo);
+    expect(confirmada.player).toEqual(novo);
+    expect(confirmada.blocos).toEqual(aberta.blocos);
+    expect(confirmada.plano).toMatchObject({
+      equipamento_disponivel: ["tatame"], descansos_por_exercicio: { [bloco.exercicioId]: 90 },
+    });
+    expect(locais.get(aberta.id)).toEqual(confirmada);
+    expect(guardarNaFila).toHaveBeenLastCalledWith("sessao", {
+      tabela: "sessions", op: "update", linha: { plano: confirmada.plano },
+      filtro: { id: aberta.id, user_id: "ana", status: "em_andamento" },
+    }, "sessions:sessao");
+  });
+
+  it("reverte a edição inteira em erro da fila e preserva a série que aguardava gravação", async () => {
+    const { aberta, bloco, player, novo } = await emDescanso();
+    const outraSerie = bloco.series.at(-1)!;
+    const comSerie = marcarSerie(aberta, bloco.ordem, outraSerie.id, true);
+    salvarSessaoLocal(comSerie, aberta);
+    vi.mocked(guardarNaFila).mockRejectedValueOnce(new Error("quota"));
+    await expect(guardarDescansoDaSessao(comSerie, bloco.exercicioId, 90, novo)).rejects.toThrow("quota");
+    const salva = locais.get(aberta.id)!;
+    expect(salva.player).toEqual(player);
+    expect(salva.blocos).toEqual(comSerie.blocos);
+    expect(descansoPersonalizadoDaSessao(salva, bloco.exercicioId)).toBeNull();
+    expect(processar).toHaveBeenCalledTimes(1);
+  });
+
+  it("não apaga o ajuste com uma cópia anterior nem o traz de volta depois de restaurar", async () => {
+    const { aberta, bloco, novo } = await emDescanso();
+    const ajustada = await guardarDescansoDaSessao(aberta, bloco.exercicioId, 90, novo);
+    const serie = bloco.series.at(-1)!;
+    const antigaComSerie = marcarSerie(aberta, bloco.ordem, serie.id, true);
+    salvarSessaoLocal(antigaComSerie, aberta);
+    await descarregarSessao();
+    expect(locais.get(aberta.id)!.player).toEqual(novo);
+    expect(descansoPersonalizadoDaSessao(locais.get(aberta.id)!, bloco.exercicioId)).toBe(90);
+    const comTroca = substituirExercicio(antigaComSerie, aberta.blocos[1]!.ordem, "flexao-de-braco", null, { novoId: () => crypto.randomUUID() });
+    await enviarPlanoDaTroca(comTroca);
+    const ultimoPlano = () => (vi.mocked(guardarNaFila).mock.lastCall![1] as EscritaTabela).linha!.plano;
+    expect(ultimoPlano()).toMatchObject({ descansos_por_exercicio: { [bloco.exercicioId]: 90 }, trocas: expect.any(Object) });
+
+    const restaurada = await guardarDescansoDaSessao(antigaComSerie, bloco.exercicioId, null, { ...novo, fimEm: 0 });
+    expect(restaurada.player).toEqual(novo);
+    expect(restaurada.blocos[0]!.series.at(-1)?.concluida).toBe(true);
+    salvarSessaoLocal(ajustada, ajustada);
+    await descarregarSessao();
+    expect(descansoPersonalizadoDaSessao(locais.get(aberta.id)!, bloco.exercicioId)).toBeNull();
+    await enviarPlanoDaTroca(ajustada);
+    expect(ultimoPlano()).not.toHaveProperty("descansos_por_exercicio");
+  });
+
+  it("o último descanso padrão conhecido sobrevive a uma gravação do relógio em outra aba", async () => {
+    const { aberta, novo } = await emDescanso();
+    const comPadrao = { ...aberta, descansoPadraoConhecidoS: 75 };
+    salvarSessaoLocal(comPadrao, aberta);
+    await descarregarSessao();
+    salvarSessaoLocal({ ...aberta, player: novo }, aberta);
+    await descarregarSessao();
+    const salva = locais.get(aberta.id)!;
+    expect(salva.descansoPadraoConhecidoS).toBe(75);
+    expect(salva.player).toEqual(novo);
+    salvarSessaoLocal({ ...salva, descansoPadraoConhecidoS: null }, salva);
+    await descarregarSessao();
+    salvarSessaoLocal({ ...comPadrao, sensacao: 3 }, comPadrao);
+    await descarregarSessao();
+    expect(locais.get(aberta.id)!.descansoPadraoConhecidoS).toBeNull();
+    expect(locais.get(aberta.id)!.player).toEqual(novo);
+    expect(guardarNaFila).toHaveBeenCalledTimes(1); // só a criação da sessão
+  });
+
+  it("a conclusão feita de uma aba antiga guarda os descansos confirmados por último", async () => {
+    const { aberta, bloco, novo } = await emDescanso();
+    await guardarDescansoDaSessao(aberta, bloco.exercicioId, 90, novo);
+    await finalizarSessao({ sessao: aberta, status: "concluida", cliente: new QueryClient() });
+    expect(guardarNaFila).toHaveBeenLastCalledWith("sessao", expect.objectContaining({
+      op: "upsert", linha: expect.objectContaining({
+        status: "concluida", plano: expect.objectContaining({ descansos_por_exercicio: { [bloco.exercicioId]: 90 } }),
+      }),
+    }), "sessions:sessao");
+    expect(locais.size).toBe(0);
+  });
+
+  it("recusa edição de outra conta, treino encerrado, movimento trocado ou relógio já alterado", async () => {
+    const { aberta, bloco, player, novo } = await emDescanso();
+    await expect(guardarDescansoDaSessao({ ...aberta, userId: "bia" }, bloco.exercicioId, 90, novo)).rejects.toThrow("não está aberta");
+    const trocada = substituirExercicio(aberta, bloco.ordem, "flexao-de-braco", null, { novoId: () => crypto.randomUUID() });
+    locais.set(aberta.id, trocada);
+    salvarSessaoLocal({ ...aberta, sensacao: 3 }, aberta);
+    await expect(guardarDescansoDaSessao(aberta, bloco.exercicioId, 90, novo)).rejects.toThrow("O treino mudou");
+    expect(locais.get(aberta.id)?.blocos[0]?.exercicioId).toBe("flexao-de-braco");
+    locais.set(aberta.id, { ...aberta, player: { ...player, fimEm: 18_000 } });
+    await expect(guardarDescansoDaSessao(aberta, bloco.exercicioId, 90, novo)).rejects.toThrow("O treino mudou");
+    expect(locais.get(aberta.id)?.player?.fimEm).toBe(18_000);
+    locais.delete(aberta.id);
+    salvarSessaoLocal({ ...aberta }, aberta);
+    await expect(guardarDescansoDaSessao(aberta, bloco.exercicioId, 90, novo)).rejects.toThrow("não está aberta");
+    await descarregarSessao();
+    expect(locais.size).toBe(0);
+    expect(guardarNaFila).toHaveBeenCalledTimes(1);
   });
 });

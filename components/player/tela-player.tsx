@@ -30,6 +30,7 @@ import {
   definirDuracao,
   entradaDoPasso,
   estadoDoPasso,
+  exercicioDoDescansoEntreSeries,
   indiceDeRetomada,
   indiceDoEstado,
   irPara,
@@ -62,6 +63,7 @@ import {
   ajustarPrescricaoDaSessao,
   avisoDaTroca,
   contadoresDaSessao,
+  descansoPersonalizadoDaSessao,
   firmePadrao,
   type BlocoLocal,
   type SerieLocal,
@@ -124,7 +126,12 @@ export function TelaPlayer({
    */
   const [pesoDigitado, setPesoDigitado] = useState<number | null>(null);
 
-  const opcoes = useMemo(() => opcoesDoPlayer(prefs), [prefs]);
+  const descansoNoAparelho = sessao?.descansoPadraoConhecidoS;
+  const opcoes = useMemo(() => {
+    const atuais = opcoesDoPlayer(prefs);
+    if (!perfil && descansoNoAparelho !== undefined) atuais.descansoPadraoS = descansoNoAparelho;
+    return atuais;
+  }, [perfil, prefs, descansoNoAparelho]);
   const seq = useMemo(
     () => (sessao ? sequenciaDoPlayer(sessao, opcoes) : []),
     [sessao, opcoes],
@@ -385,6 +392,7 @@ export function TelaPlayer({
           <VisaoGeralDaSessao
             sessao={sessao}
             dados={dados}
+            opcoesDoPlayer={opcoes}
             videos={videos}
             aoFechar={fecharVisaoGeral}
           />
@@ -578,6 +586,7 @@ export function TelaPlayer({
   }
 
   if (passo.tipo === "descanso") {
+    const trabalho = exercicioDoDescansoEntreSeries(seq, indice);
     const alvo = seq[passo.indiceProximo];
     const proximo = alvo && alvo.tipo === "serie" ? (alvo as PassoSerie) : null;
     const blocoDoProximo = proximo
@@ -595,6 +604,7 @@ export function TelaPlayer({
       <>
         <h1 className="sr-only">{nomeDoTreino} — descanso{proximo ? ` antes do exercício ${proximo.posicao} de ${proximo.totalExercicios}` : ""}</h1>
         <TelaDescanso
+          key={passo.chave}
           estado={estado}
           agora={agora}
           proximo={proximo}
@@ -613,6 +623,15 @@ export function TelaPlayer({
           aviso={aviso}
           aoSomar={(s) => guardar(somarSegundos(estado, s, Date.now()))}
           aoDefinir={(s) => guardar(definirDuracao(estado, s, Date.now()))}
+          proximasSeries={trabalho ? {
+            exercicio: acharExercicio(trabalho.exercicioId).nome,
+            segundos: descansoPersonalizadoDaSessao(sessao, trabalho.exercicioId),
+            aoGuardar: async (segundos) => {
+              const novo = segundos === null ? undefined : definirDuracao(estado, segundos, Date.now());
+              await dados.mudarDescanso(trabalho.exercicioId, segundos, novo);
+              if (novo) setEstado((atual) => atual === estado ? novo : atual);
+            },
+          } : undefined}
           aoPular={() => ir(passo.indiceProximo)}
         />
         {folha}

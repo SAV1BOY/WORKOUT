@@ -10,6 +10,8 @@
  * monta as anilhas é `lib/montagem.ts` e o conteúdo vem de `lib/dados.ts`.
  */
 import { alternativasPara } from "@/lib/alternativas";
+import { descansoPersonalizadoDaSessao, limitarTempoDeDescanso } from "@/lib/descanso-da-sessao";
+export { descansoPersonalizadoDaSessao } from "@/lib/descanso-da-sessao";
 import { equipamentoDaSessao, tagsDoEquipamento } from "@/lib/equipamento-da-sessao";
 import { resolverTrocasDoTreino } from "@/lib/trocas";
 import {
@@ -162,6 +164,9 @@ export interface SessaoLocal {
    * player neste aparelho, e o passo é recalculado por `indiceDeRetomada`.
    */
   player?: EstadoPlayer | null;
+  /** Último padrão da conta lido neste aparelho, usado ao retomar a sessão sem o perfil.
+   * Ausente = perfil ainda desconhecido; null = a conta usa a prescrição de cada exercício. */
+  descansoPadraoConhecidoS?: number | null;
 }
 
 /* ------------------------------------------------------------ montagem */
@@ -1049,6 +1054,25 @@ export function definirEquipamentoDaSessao(sessao: SessaoLocal, disponiveis: Rea
   const atual = equipamentoDaSessao(sessao);
   if (tags.length === atual.size && tags.every((tag) => atual.has(tag))) return sessao;
   return { ...sessao, plano: { ...planoAtualOuDosBlocos(sessao), equipamento_disponivel: tags } };
+}
+
+/** Guarda o intervalo para o movimento executado. A prescrição original continua no bloco. */
+export function definirDescansoDoExercicioNaSessao(
+  sessao: SessaoLocal, exercicioId: string, segundos: number | null,
+): SessaoLocal {
+  if (sessao.status !== "em_andamento" || !sessao.blocos.some(b => b.exercicioId === exercicioId)) return sessao;
+  if (segundos !== null && !Number.isFinite(segundos)) return sessao;
+  const valor = segundos === null ? null : limitarTempoDeDescanso(segundos);
+  if (valor === descansoPersonalizadoDaSessao(sessao, exercicioId)) return sessao;
+
+  const plano = { ...planoAtualOuDosBlocos(sessao) };
+  const atual = plano.descansos_por_exercicio;
+  const descansos = atual && typeof atual === "object" && !Array.isArray(atual) ? { ...atual } : {};
+  if (valor === null) delete descansos[exercicioId];
+  else descansos[exercicioId] = valor;
+  if (Object.keys(descansos).length) plano.descansos_por_exercicio = descansos;
+  else delete plano.descansos_por_exercicio;
+  return { ...sessao, plano };
 }
 
 /** O plano mantém a escolha mesmo que o substituto ainda não tenha uma série no banco. */
