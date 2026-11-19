@@ -1,7 +1,7 @@
 "use client";
 
 import { Eye, EyeOff } from "lucide-react";
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useActionState, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { criarConta, entrar, type EstadoLogin } from "@/app/(auth)/login/acoes";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,14 +44,15 @@ export function FormularioLogin({
     if (estado.erro) campoEmail.current?.focus();
   }, [estado]);
 
-  /*
-   * Campos controlados de propósito: o React 19 dá `form.reset()` automático
-   * quando uma ação de formulário termina, e com inputs não controlados um
-   * "Criar conta" que falhou apagava o e-mail e a senha — o toque seguinte em
-   * "Entrar" enviava o formulário vazio e não acontecia nada.
-   */
-  const [email, setEmail] = useState("");
-  const [senha, setSenha] = useState("");
+  useLayoutEffect(() => {
+    const formulario = campoEmail.current?.form;
+    if (!formulario) return;
+    // Os campos nativos preservam o que foi digitado antes da hidratação.
+    // O React 19 chama reset() ao terminar uma ação, inclusive após um erro.
+    const preservarCampos = (evento: Event) => evento.preventDefault();
+    formulario.addEventListener("reset", preservarCampos);
+    return () => formulario.removeEventListener("reset", preservarCampos);
+  }, []);
 
   return (
     <form action={enviar} className="flex flex-col gap-4">
@@ -68,8 +69,6 @@ export function FormularioLogin({
           autoComplete="email"
           autoCapitalize="none"
           required
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
           className="alvo h-12 text-base"
         />
       </div>
@@ -86,8 +85,6 @@ export function FormularioLogin({
             autoComplete="current-password"
             required
             minLength={6}
-            value={senha}
-            onChange={(e) => setSenha(e.target.value)}
             className="alvo h-12 pr-14 text-base"
           />
           <button

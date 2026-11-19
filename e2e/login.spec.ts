@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { MARCA_DE_VIDA } from "../lib/vigia";
 import {
   EMAIL_DONO,
   encherACota,
@@ -18,6 +19,31 @@ test.beforeEach(async () => {
 });
 
 test.describe("login", () => {
+  test("o e-mail digitado na abertura fria permanece ao preencher a senha e entrar", async ({ page }) => {
+    await usuarioComPerfil();
+    const email = page.getByLabel("E-mail", { exact: true });
+    const senha = page.getByLabel("Senha", { exact: true });
+    const scripts = /\/_next\/static\/chunks\/[^?]+\.js(?:\?.*)?$/;
+    const liberar = Promise.withResolvers<void>();
+    await page.route(scripts, async (rota) => {
+      await liberar.promise;
+      await rota.continue();
+    });
+    try {
+      await Promise.all([page.waitForRequest(scripts), page.goto("/login", { waitUntil: "commit" })]);
+      await email.pressSequentially(EMAIL_DONO);
+      expect((await email.inputValue()) === EMAIL_DONO).toBe(true);
+    } finally {
+      liberar.resolve();
+    }
+
+    await page.waitForFunction(marca => Reflect.get(window, marca) === true, MARCA_DE_VIDA);
+    await senha.pressSequentially(SENHA);
+    expect((await email.inputValue()) === EMAIL_DONO, "o formulário conservou o e-mail").toBe(true);
+    await page.getByRole("button", { name: "Entrar", exact: true }).click();
+    await esperarAbaTreino(page);
+  });
+
   test("a tela de login cabe em 360 px e tem alvos grandes", async ({ page }) => {
     await page.goto("/login");
 
@@ -114,6 +140,8 @@ test.describe("login", () => {
     await expect(page.getByLabel("E-mail")).toBeFocused();
     await expect(senha).toHaveAttribute("aria-describedby", "erro-login");
     await expect(senha).toHaveAttribute("aria-invalid", "true");
+    expect((await page.getByLabel("E-mail").inputValue()) === EMAIL_DONO).toBe(true);
+    expect((await senha.inputValue()) === "senha-errada").toBe(true);
   });
 
   test("sair volta ao login e a sessão não abre mais o app", async ({ page }) => {
@@ -193,8 +221,8 @@ test.describe("login", () => {
   });
 
   test("depois de um 'Criar conta' recusado, 'Entrar' ainda funciona", async ({ page }) => {
-    // O React 19 reseta o formulário quando uma ação termina: com campos não
-    // controlados, o e-mail e a senha sumiam e o toque seguinte não fazia nada.
+    // A tentativa de cadastro termina com erro. A pessoa pode entrar com os
+    // mesmos dados, mesmo se o React tentar resetar o formulário após a ação.
     await usuarioComPerfil();
 
     await page.goto("/login");

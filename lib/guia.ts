@@ -275,7 +275,7 @@ const TREINO: SecaoDoGuia = {
       id: "substituir",
       nome: "⇄ Substituir",
       oQueFaz:
-        "Escolha outro exercício para hoje pelo movimento, pelos músculos e pelo equipamento disponível. Durante a sessão, “Trocar exercício” mantém as séries que você já registrou.",
+        "Encontre alternativas pelo movimento, pelos músculos e pelo equipamento disponível. Use “Ver execução” para ler a montagem e os passos antes de escolher. Durante a sessão, “Trocar exercício” mantém as séries já feitas no histórico do exercício original.",
       caminho: ["Treino", "exercício", "⇄"],
       grupo: TELA,
     },

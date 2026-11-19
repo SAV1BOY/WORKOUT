@@ -59,13 +59,14 @@ function alternativa(folha: Locator, nome: string) {
 }
 
 async function verificarMontagens(folha: Locator, disponiveis: string[]) {
-  const opcoes = folha.getByRole("list", { name: "Exercícios alternativos" }).getByRole("button");
+  const opcoes = folha.getByRole("list", { name: "Exercícios alternativos" }).locator(":scope > li");
   await expect(opcoes.first()).toBeVisible();
-  const montagens = await opcoes.locator("span:nth-child(2)").allTextContents();
-  expect(montagens.length).toBe(await opcoes.count());
-  for (const linha of montagens) {
-    const materiais = linha.split(" · ").at(-1)!.split(/ ou | \+ /);
-    for (const material of materiais) expect(["Peso do corpo", ...disponiveis], linha).toContain(material);
+  for (const opcao of await opcoes.all()) {
+    const escolher = opcao.locator(":scope > button");
+    await expect(escolher).toHaveCount(1);
+    const montagem = await escolher.locator("span:nth-child(2)").innerText();
+    const materiais = montagem.split(" · ").at(-1)!.split(/ ou | \+ /);
+    for (const material of materiais) expect(["Peso do corpo", ...disponiveis], montagem).toContain(material);
   }
 }
 

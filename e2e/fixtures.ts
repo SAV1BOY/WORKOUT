@@ -338,17 +338,28 @@ export async function comecarOTreinoDoDia(page: Page): Promise<void> {
 }
 
 /**
- * O player (SPEC §14.1) abre na tela de preparação: este ajudante passa dela
- * para o primeiro exercício quando ela está na frente. Com o relógio fixo
- * (`fixarData`) a contagem não anda sozinha, então o toque é obrigatório.
+ * A preparação pode terminar enquanto o navegador entrega o toque. Só o
+ * botão daquela tela pode recebê-lo. Com o relógio fixo o toque é necessário.
  */
+async function passarDaPreparacao(page: Page, destino: Locator): Promise<void> {
+  const comecar = page.getByRole("button", { name: "Começar agora", exact: true });
+  await comecar.or(destino).first().waitFor();
+  const [botao] = await comecar.elementHandles();
+  if (botao) {
+    try {
+      await botao.click();
+    } catch (erro) {
+      if (await botao.evaluate(elemento => elemento.isConnected)) throw erro;
+    } finally {
+      await botao.dispose();
+    }
+    await comecar.waitFor({ state: "hidden" });
+  }
+  await destino.waitFor();
+}
+
 export async function comecarNoPlayer(page: Page): Promise<void> {
-  const comecar = page.getByRole("button", { name: "Começar agora" });
-  const concluir = page.getByRole("button", { name: "Concluir série" });
-  // espera o player desenhar: a preparação ou já o primeiro exercício
-  await comecar.or(concluir).first().waitFor();
-  if (await comecar.isVisible().catch(() => false)) await comecar.click();
-  await concluir.waitFor();
+  await passarDaPreparacao(page, page.getByRole("button", { name: "Concluir série", exact: true }));
 }
 
 const ROTULO_DO_PASSO = /^(Aquecimento|Série) \d+ de \d+ · exercício \d+ de \d+/;
@@ -415,14 +426,7 @@ export async function avancarNoPlayerAte(page: Page, alvo: Locator): Promise<voi
  */
 export async function abrirVisaoGeral(page: Page): Promise<void> {
   const lista = page.getByRole("button", { name: "Visão geral do treino" });
-  const comecar = page.getByRole("button", { name: "Começar agora" });
-  // espera o player desenhar (preparação ou exercício) antes de decidir
-  await lista.or(comecar).first().waitFor();
-  if (await comecar.isVisible().catch(() => false)) {
-    await comecar.click();
-    // só o passo do exercício tem o ícone de lista: espera ele desenhar
-    await page.getByRole("button", { name: "Concluir série" }).waitFor();
-  }
+  await passarDaPreparacao(page, lista);
   await lista.click();
   await page.getByRole("heading", { level: 1 }).waitFor();
 }

@@ -1,7 +1,9 @@
 "use client";
 
+import { ChevronDown } from "lucide-react";
 import { useId, useRef, useState, type ReactElement } from "react";
 import { EquipamentoDeHoje, nomeDoMaterial, type MaterialDoTreino } from "@/components/exercicio/equipamento-de-hoje";
+import { PassosDoExercicio } from "@/components/exercicio/passos-do-exercicio";
 import { Button } from "@/components/ui/button";
 import {
   Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger,
@@ -13,7 +15,7 @@ import {
 import { acharExercicio, equipamentoDisponivel } from "@/lib/dados";
 import { evitado, evitadosPorUltimo } from "@/lib/preferencias";
 import { resolverTrocasDoTreino } from "@/lib/trocas";
-import type { EquipamentoTag, TreinoId } from "@/lib/schemas";
+import type { EquipamentoTag, Exercicio, TreinoId } from "@/lib/schemas";
 import type { Prefs } from "@/lib/types";
 
 const FILTROS: Record<FiltroAlternativa, string> = {
@@ -45,6 +47,56 @@ type Escolha = {
 
 export function duracaoDaTroca(originalId: string, ativoId: string, recorrencia?: RecorrenciaDaTroca): string {
   return recorrencia?.lembradas[originalId] === ativoId ? `nos treinos ${recorrencia.treinoId}` : "só hoje";
+}
+
+function execucaoAberta(escopo: Element | null) {
+  return escopo?.querySelector<HTMLDetailsElement>("details[data-execucao-da-alternativa][open]");
+}
+
+function ExecucaoDaAlternativa({ exercicio }: { exercicio: Exercicio }) {
+  const [aberta, setAberta] = useState(false);
+  const conteudoId = useId();
+  return (
+    <details data-execucao-da-alternativa className="group/execucao min-w-0"
+      onToggle={evento => setAberta(evento.currentTarget.open)}>
+      <summary role="button" aria-label={`Ver execução de ${exercicio.nome}`} aria-controls={conteudoId} aria-expanded={aberta}
+        onClick={evento => {
+          // O summary abre com toque, Enter e Espaço, inclusive no Safari sem details.name.
+          const gatilho = evento.currentTarget;
+          const anterior = execucaoAberta(gatilho.closest("ul"));
+          if (anterior && anterior !== gatilho.parentElement) anterior.open = false;
+        }}
+        className="foco alvo text-primary hover:bg-muted flex w-fit max-w-full cursor-pointer items-center gap-2 rounded-md px-2 text-left text-sm font-medium">
+        Ver execução
+        <ChevronDown aria-hidden="true" className="size-4 shrink-0 group-open/execucao:rotate-180" />
+      </summary>
+      <section id={conteudoId} aria-label={`Execução de ${exercicio.nome}`}
+        className="mb-2 flex min-w-0 flex-col gap-3 rounded-lg bg-muted/50 p-3 wrap-anywhere">
+        {aberta && (
+          <>
+            <div>
+              <h3 className="mb-1 text-sm font-semibold">Montagem</h3>
+              <p className="text-muted-foreground text-sm">{exercicio.montagem}</p>
+            </div>
+            <div>
+              <h3 className="mb-1 text-sm font-semibold">Instruções</h3>
+              <PassosDoExercicio passos={exercicio.passos} />
+            </div>
+          </>
+        )}
+      </section>
+    </details>
+  );
+}
+
+/** Um primeiro Escape recolhe a execução dentro da folha; o seguinte fecha a folha. */
+export function recolherExecucaoDaAlternativa(evento: KeyboardEvent) {
+  if (!(evento.target instanceof Element)) return;
+  const aberta = execucaoAberta(evento.target.closest('[role="dialog"]'));
+  if (!aberta) return;
+  evento.preventDefault();
+  aberta.open = false;
+  aberta.querySelector("summary")?.focus();
 }
 
 /** Os mesmos filtros e alternativas na ficha, no player e na lista do dia. */
@@ -98,14 +150,14 @@ export function OpcoesDeAlternativa({
   return (
     <div className="flex flex-col gap-3">
       {recorrencia && (
-        <fieldset disabled={gravando} className="flex flex-col gap-1">
+        <fieldset disabled={gravando} className="flex min-w-0 flex-col gap-1">
           <legend className="mb-1 text-sm font-medium">Aplicar a troca</legend>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,8rem),1fr))] gap-2">
             {([false, true] as const).map((valor) => (
               <label key={String(valor)} className="alvo flex cursor-pointer items-center gap-2 rounded-md border px-2 py-1 text-sm has-checked:border-primary">
                 <input type="radio" name={nomeDoGrupo} checked={lembrar === valor}
-                  onChange={() => { setLembrar(valor); setErro(""); }} className="accent-primary" />
-                {valor ? `Usar nos próximos ${recorrencia.treinoId}` : "Só neste treino"}
+                  onChange={() => { setLembrar(valor); setErro(""); }} className="shrink-0 accent-primary" />
+                <span className="min-w-0 wrap-anywhere">{valor ? `Usar nos próximos ${recorrencia.treinoId}` : "Só neste treino"}</span>
               </label>
             ))}
           </div>
@@ -126,7 +178,7 @@ export function OpcoesDeAlternativa({
             size="sm"
             variant={filtro === valor ? "default" : "outline"}
             aria-pressed={filtro === valor}
-            className="alvo px-3"
+            className="alvo h-auto max-w-full whitespace-normal px-3 py-1 wrap-anywhere"
             onClick={() => setFiltro(valor)}
           >
             {FILTROS[valor]}
@@ -141,14 +193,15 @@ export function OpcoesDeAlternativa({
               kit.length ? kit.map(nomeDoMaterial).join(" + ") : "Peso do corpo",
             ).join(" ou ");
             return (
-              <li key={e.id}>
+              <li key={e.id} className="min-w-0 py-1">
                 <button type="button" disabled={gravando} onClick={() => void aplicar(e.id, e.id)}
-                  className="hover:bg-muted alvo flex w-full flex-col items-start gap-1 rounded-lg px-2 py-2 text-left">
+                  className="hover:bg-muted alvo flex w-full flex-col items-start gap-1 rounded-lg px-2 py-2 text-left wrap-anywhere">
                   <span className="text-sm font-semibold">{e.nome}</span>
                   <span className="text-muted-foreground text-xs">{e.prescricao_padrao.texto} · {equipamento}</span>
                   <span className="text-muted-foreground text-xs">{motivoDaAlternativa(origem, e)}</span>
                   {evitado(prefs, e.id) ? <span className="text-muted-foreground text-xs">Você marcou como evitar.</span> : null}
                 </button>
+                <ExecucaoDaAlternativa exercicio={e} />
               </li>
             );
           })}
@@ -182,7 +235,7 @@ export function SeletorAlternativa({
   return (
     <Sheet open={aberto ?? abertoLocal} onOpenChange={mudarAberto}>
       {children && <SheetTrigger asChild>{children}</SheetTrigger>}
-      <SheetContent side="bottom" className="max-h-[85dvh] overflow-y-auto pb-8">
+      <SheetContent side="bottom" className="max-h-[85dvh] overflow-y-auto pb-8" onEscapeKeyDown={recolherExecucaoDaAlternativa}>
         <SheetHeader className="pr-14 pb-0">
           <SheetTitle>Substituir hoje</SheetTitle>
           <SheetDescription>

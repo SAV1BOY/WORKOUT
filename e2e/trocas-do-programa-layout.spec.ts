@@ -37,7 +37,7 @@ for (const tema of ["light", "dark"] as const) {
     await expect(proximos).toBeChecked();
     await info.attach(`proximos-A1-${tema}`, { body: await page.screenshot(), contentType: "image/png" });
 
-    const ultima = folha.getByRole("list", { name: "Exercícios alternativos" }).getByRole("button").last();
+    const ultima = folha.getByRole("list", { name: "Exercícios alternativos" }).locator(":scope > li > button").last();
     await ultima.scrollIntoViewIfNeeded();
     await expect(ultima).toBeInViewport({ ratio: 0.95 });
     const geometria = await folha.evaluate(el => ({

@@ -396,11 +396,13 @@ test("§22.8-10: os sete cartões da semana têm a mesma altura e o mês é um t
   await usuarioComPerfil();
   await abrirCalendario(page);
 
-  const alturas = await page
-    .getByRole("list", { name: "Semana" })
-    .getByRole("listitem")
-    .evaluateAll((els) => els.map((el) => Math.round(el.getBoundingClientRect().height)));
+  const cartoes = page.getByRole("list", { name: "Semana" }).getByRole("listitem");
+  await expect(cartoes).toHaveCount(7);
+  const alturas = await cartoes.evaluateAll((els) =>
+    els.map((el) => Math.round(el.getBoundingClientRect().height)),
+  );
   expect(alturas).toHaveLength(7);
+  expect(Math.min(...alturas)).toBeGreaterThan(0);
   expect(new Set(alturas).size, `alturas: ${alturas.join(", ")}`).toBe(1);
 
   const titulo = page.getByRole("heading", { name: "setembro de 2026", level: 2 });

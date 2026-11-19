@@ -536,7 +536,8 @@ test.describe("ajuda, montagem e substituição (SPEC §3.2, §6.5 e §7)", () =
     const sessao = await comecarTreinoA(page);
 
     await page.locator("#bloco-1").getByRole("button", { name: "substituir hoje" }).click();
-    await page.getByRole("dialog").getByRole("button", { name: /Agachamento frontal/ }).click();
+    await page.getByRole("list", { name: "Exercícios alternativos", exact: true })
+      .getByRole("button", { name: /^Agachamento frontal\b/ }).click();
 
     await expect(page.getByRole("heading", { name: "1. Agachamento frontal" })).toBeVisible();
     await expect(page.getByText("no lugar de Agachamento livre (só hoje)")).toBeVisible();
@@ -616,8 +617,8 @@ test.describe("ajuda, montagem e substituição (SPEC §3.2, §6.5 e §7)", () =
 
     await page.locator("#bloco-1").getByRole("button", { name: "substituir hoje" }).click();
     await page
-      .getByRole("dialog")
-      .getByRole("button", { name: /Agachamento frontal/ })
+      .getByRole("list", { name: "Exercícios alternativos", exact: true })
+      .getByRole("button", { name: /^Agachamento frontal\b/ })
       .click();
 
     const bloco = page.locator("#bloco-1");
