@@ -8,13 +8,15 @@ import { Input } from "@/components/ui/input";
 import { Miniatura } from "@/components/ui/miniatura";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { equipamentosDaAlternativa } from "@/lib/alternativas";
-import { filtrarExercicios } from "@/lib/catalogo";
+import { filtrarExercicios, opcoesDoCatalogo } from "@/lib/catalogo";
 import { exerciciosComVariacoes } from "@/lib/dados";
 import { evitado, evitadosPorUltimo } from "@/lib/preferencias";
 import { MENSAGEM_EQUIPAMENTO_ALTERADO } from "@/lib/queries/sessao";
-import type { Exercicio } from "@/lib/schemas";
+import type { Exercicio, Grupo } from "@/lib/schemas";
 import { exerciciosOcupadosNaSessao, type SessaoLocal } from "@/lib/sessao";
 import type { Prefs } from "@/lib/types";
+
+const { grupos } = opcoesDoCatalogo(exerciciosComVariacoes);
 
 export function AdicionarExercicio({ sessao, material, prefs, aoAdicionar }: {
   sessao: SessaoLocal;
@@ -24,13 +26,14 @@ export function AdicionarExercicio({ sessao, material, prefs, aoAdicionar }: {
 }) {
   const [aberto, setAberto] = useState(false);
   const [busca, setBusca] = useState("");
+  const [grupo, setGrupo] = useState<Grupo | "todos">("todos");
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState("");
   const [aviso, setAviso] = useState("");
   const emGravacao = useRef(false);
   const ocupados = exerciciosOcupadosNaSessao(sessao);
   const opcoes = aberto ? evitadosPorUltimo(
-    filtrarExercicios(exerciciosComVariacoes, { busca }).filter(e => !ocupados.has(e.id)),
+    filtrarExercicios(exerciciosComVariacoes, { busca, grupo }).filter(e => !ocupados.has(e.id)),
     e => e.id, prefs,
   ).flatMap(exercicio => {
     const kits = equipamentosDaAlternativa(exercicio, material.disponiveis);
@@ -43,6 +46,7 @@ export function AdicionarExercicio({ sessao, material, prefs, aoAdicionar }: {
     setAberto(valor);
     if (valor) {
       setBusca("");
+      setGrupo("todos");
       setErro("");
       setAviso("");
     }
@@ -88,6 +92,14 @@ export function AdicionarExercicio({ sessao, material, prefs, aoAdicionar }: {
           {erro && <p role="alert" className="text-destructive px-4 text-sm">{erro}</p>}
           {salvando && <p role="status" className="px-4 text-sm">Adicionando exercício…</p>}
           <div className="flex min-h-0 flex-col gap-2 overflow-y-auto px-4 pb-2">
+            <label className="flex items-center gap-3 text-sm font-medium">
+              Grupo muscular
+              <select value={grupo} onChange={e => setGrupo(e.target.value as Grupo | "todos")}
+                className="alvo foco border-input bg-background min-w-0 flex-1 rounded-md border px-2 text-base font-normal">
+                <option value="todos">Todos</option>
+                {grupos.map(g => <option key={g} value={g}>{g}</option>)}
+              </select>
+            </label>
             <EquipamentoDeHoje material={material} noSeletor />
             {opcoes.length ? (
               <ul aria-label="Exercícios disponíveis" className="divide-y">
@@ -112,7 +124,8 @@ export function AdicionarExercicio({ sessao, material, prefs, aoAdicionar }: {
               </ul>
             ) : (
               <p role="status" className="text-muted-foreground py-2 text-sm">
-                {busca.trim() ? "Nenhum exercício disponível com esse nome. Tente outra busca ou ajuste o equipamento."
+                {grupo !== "todos" ? "Nenhum exercício disponível para esse grupo com os filtros atuais. Escolha outro grupo ou ajuste a busca e o equipamento."
+                  : busca.trim() ? "Nenhum exercício disponível com esse nome. Tente outra busca ou ajuste o equipamento."
                   : "Você já usou todos os exercícios disponíveis com esse equipamento neste treino."}
               </p>
             )}
