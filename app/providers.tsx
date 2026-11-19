@@ -9,6 +9,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { iniciarOutbox } from "@/lib/outbox";
 import { persistirQueryClient } from "@/lib/persistencia-query";
 import { marcarAppVivo } from "@/lib/vigia";
+import { pedirControleDaPagina } from "@/lib/controle-do-worker";
 
 function CorDoTema() {
   const { resolvedTheme } = useTheme();
@@ -53,10 +54,11 @@ export function Providers({ children }: { children: ReactNode }) {
     // o React hidratou: o vigia da tela morta pode descansar (lib/vigia.ts)
     marcarAppVivo();
     iniciarOutbox((n) => toast.success(n === 1 ? "1 registro subiu." : `${n} registros subiram.`));
+    const pararPedidoDeControle = pedirControleDaPagina(navigator.serviceWorker, location.origin);
     // SPEC §8: a tela abre com os dados da última sincronização
     const pararInstalacao = observarInstalacao();
     const pararCache = persistirQueryClient(cliente);
-    return () => { pararInstalacao(); pararCache(); };
+    return () => { pararPedidoDeControle(); pararInstalacao(); pararCache(); };
   }, [cliente]);
 
   return (

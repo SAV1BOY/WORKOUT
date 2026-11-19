@@ -17,7 +17,7 @@ test.beforeEach(async () => {
 });
 
 /** Uma sessão já iniciada antes desta versão, com dois movimentos de trabalho e sem personalização. */
-async function abrirTreinoAnterior(page: Page, series: number) {
+async function prepararTreinoAnterior(page: Page, series: number) {
   await fixarData(page, HOJE_FIXO);
   const conta = await usuarioComPerfil({ prefs: { preparacao_s: 0, descanso_padrao_s: 70 } });
   const id = crypto.randomUUID();
@@ -33,10 +33,15 @@ async function abrirTreinoAnterior(page: Page, series: number) {
     iniciada_em: new Date(HOJE_FIXO).toISOString(), status: "em_andamento", plano,
   }]);
   await entrarNoApp(page);
-  await page.goto(`/treinar/${id}`);
+  return { conta, id, plano };
+}
+
+async function abrirTreinoAnterior(page: Page, series: number) {
+  const sessao = await prepararTreinoAnterior(page, series);
+  await page.goto(`/treinar/${sessao.id}`);
   await comecarNoPlayer(page);
   await expect(page.getByRole("heading", { name: NOME, exact: true })).toBeVisible();
-  return { conta, id, plano };
+  return sessao;
 }
 
 const timer = (page: Page) => page.getByRole("timer", { name: "Descanso" });
@@ -121,6 +126,69 @@ test("o ajuste avulso dura um intervalo e restaurar o padrão preserva a contage
     return salva?.plano;
   }).toEqual(plano);
   expect((await lerDoMock(conta, "profiles"))[0]?.prefs).toMatchObject({ descanso_padrao_s: 70 });
+});
+
+test("o link do treino ganha controle offline sem recarregar quando a instalação termina durante a navegação", async ({ page, context }) => {
+  // No Playwright 1.56 o tráfego do próprio worker requer esta opção no Chromium.
+  const opcaoAnterior = process.env.PW_EXPERIMENTAL_SERVICE_WORKER_NETWORK_EVENTS;
+  process.env.PW_EXPERIMENTAL_SERVICE_WORKER_NETWORK_EVENTS = "1";
+  const precacheIniciado = Promise.withResolvers<void>();
+  const liberarPrecache = Promise.withResolvers<void>();
+  const workerAtivado = Promise.withResolvers<void>();
+  const cdp = await context.newCDPSession(page);
+  try {
+    cdp.on("ServiceWorker.workerVersionUpdated", ({ versions }) => {
+      if (versions.some(v => v.status === "activated" && new URL(v.scriptURL).pathname === "/sw.js")) {
+        workerAtivado.resolve();
+      }
+    });
+    await cdp.send("ServiceWorker.enable");
+    await context.route(url => url.pathname === "/~offline", async rota => {
+      if (rota.request().serviceWorker()) {
+        precacheIniciado.resolve();
+        await liberarPrecache.promise;
+      }
+      await rota.continue();
+    });
+
+    const { id, conta } = await prepararTreinoAnterior(page, 4);
+    await test.step("o primeiro acesso começou a preparar o app para uso offline", () => precacheIniciado.promise);
+    const caminho = `/treinar/${id}`;
+    // O HTML chega depois do clients.claim da ativação, mas a navegação começou antes.
+    await page.route(url => url.pathname === caminho, async rota => {
+      if (rota.request().isNavigationRequest()) {
+        liberarPrecache.resolve();
+        await workerAtivado.promise;
+      }
+      await rota.continue();
+    });
+    let documentos = 0;
+    // O roteador também usa replaceState na mesma URL, sem criar outro documento.
+    cdp.on("Page.frameNavigated", ({ frame }) => {
+      if (!frame.parentId && new URL(frame.url).pathname === caminho) documentos++;
+    });
+    await cdp.send("Page.enable");
+    await page.goto(caminho);
+    await comecarNoPlayer(page);
+    await expect.poll(() => page.evaluate(async () => ({
+      ativo: (await navigator.serviceWorker.getRegistration())?.active?.state,
+      controlador: navigator.serviceWorker.controller && new URL(navigator.serviceWorker.controller.scriptURL).pathname,
+    }))).toEqual({ ativo: "activated", controlador: "/sw.js" });
+    expect(documentos, "a sessão recebeu controle na página que a pessoa abriu").toBe(1);
+    await concluir(page);
+    await expect(timer(page)).toHaveText("1:10");
+    await expect.poll(() => lerDoMock(conta, "session_sets", `session_id=eq.${id}`)).toHaveLength(1);
+    await semRedeNoWorker(await workerDoApp(context));
+    await context.setOffline(true);
+    await page.reload();
+    await expect(timer(page)).toHaveText("1:10");
+  } finally {
+    liberarPrecache.resolve();
+    workerAtivado.resolve();
+    if (opcaoAnterior === undefined) delete process.env.PW_EXPERIMENTAL_SERVICE_WORKER_NETWORK_EVENTS;
+    else process.env.PW_EXPERIMENTAL_SERVICE_WORKER_NETWORK_EVENTS = opcaoAnterior;
+    await cdp.detach();
+  }
 });
 
 test("a recarga offline mantém o intervalo avulso e a duração das séries seguintes", async ({ page, context }) => {
