@@ -13433,3 +13433,33 @@ O navegador agora conserva os valores dos campos desde o primeiro toque. Uma ten
 ### Encontrar uma alternativa pelo nome
 
 No fluxo de treino livre, o seletor do Pullover com halter apresentou 23 alternativas em 360 × 740 px. O filtro Outro equipamento deixou 18 opções. Puxada com triângulo era a décima e Remada curvada pronada a décima oitava. Foram necessários cinco gestos de rolagem para poder tocar nessa remada. A biblioteca em Explorar já encontra exercícios pelo nome sem depender dos acentos. A próxima melhoria a verificar é oferecer essa busca dentro do próprio seletor, junto com o material disponível, para encontrar uma alternativa sem sair da sessão. [Biblioteca de exercícios do Hevy](https://www.hevyapp.com/features/exercise-library/)
+
+### Publicação da consulta de execução antes de trocar
+
+O domínio do Treino do Terraço confirmou o commit `279b2d555f078eddece5d17f5044d19d5d67ff1b` com HTTP 200. O PR #56 publicou **Ver execução** na lista do dia, no player e na ficha. A tela de entrada também passou a conservar o e-mail digitado enquanto o app termina de carregar. A árvore da integração, `1e9e68a66463d85e861929e5cf9da54d9d3388b0`, coincide com a revisão aprovada `4896472`. Passaram lint, build, 2.377 testes unitários em 125 arquivos e 847 cenários de Chromium, em grupos de 222, 220, 217 e 188. O pacote usou o esquema de dados existente. [PR #56](https://github.com/SAV1BOY/WORKOUT/pull/56) · [Suíte aprovada](https://github.com/SAV1BOY/WORKOUT/actions/runs/44615205527)
+
+Na atualização entre os builds oficiais do #55 e do #56, o A1 conservou a flexão lembrada anteriormente. Foi possível abrir as instruções de movimentos com tatame e elástico sem rede. Em uma prova adicional no WebKit com perfil de iPhone 13 emulado, a recarga em rede isolada recuperou o descanso de 1:13 e a série de 9 repetições com 25,5 kg.
+
+Na repetição após a publicação, a main também passou no lint, no build, nas 2.377 unidades e nos quatro grupos com 847 cenários. Depois dessa aprovação, o domínio voltou a servir a integração `279b2d5`. [Suíte na main](https://github.com/SAV1BOY/WORKOUT/actions/runs/44618134887)
+
+### Buscar alternativas compatíveis e começar com variações
+
+No build oficial do #56, a lista do A1 e a ficha de Pullover durante um descanso sem rede abriam as opções de substituição, mas não ofereciam busca pelo nome. Em **Treino → Personalizar treino**, a consulta `remada com elastico` também não devolvia o movimento, embora a pessoa já pudesse acrescentá-lo depois de começar a sessão.
+
+O seletor agora busca entre as alternativas compatíveis com a função, os músculos e o equipamento escolhidos. A consulta aceita palavras fora de ordem e sem acentos. Em um A1 de teste, pesquisar, consultar as instruções e limpar o campo conservou a remada já reservada para outro movimento. O servidor simulado recebeu uma única gravação quando a pessoa escolheu aplicar a nova troca aos próximos A1.
+
+O treino personalizado inclui as doze variações de equipamento do catálogo da sessão. Duas execuções em Chromium começaram diretamente com Remada com elástico e Ponte de glúteos no tatame. Após marcar a primeira série sem rede e recarregar, os dois movimentos conservaram a ordem, a série continuou marcada e a reconexão sincronizou um único registro.
+
+Na atualização do build oficial do #56 para o candidato local, uma conta com tatame e elástico manteve o treino aberto. Após a recarga sem rede, a busca `braco flexao` mostrou apenas Flexão de braço. O descanso chegou a 1:13 e o supino conservou a série de 9 repetições com 25,5 kg no mesmo registro. A busca e a consulta das instruções deixaram a fila vazia. [Biblioteca de exercícios do Hevy](https://www.hevyapp.com/features/exercise-library/)
+
+Uma prova no #56 encontrou outra necessidade no treino livre. Com Abdominal supra, Agachamento livre e Flexão de braço, a Visão geral permitiu registrar a flexão fora de ordem enquanto o cavalete estava ocupado. O player, porém, continuou pedindo o agachamento em seguida. A recarga sem rede conservou os dois registros e a ordem inicial. Uma próxima melhoria a verificar é poder antecipar um movimento ainda pendente no roteiro, mantendo a série atual e o tempo de descanso. [Reordenar exercícios durante o treino no Strong](https://help.strongapp.io/article/229-my-first-workout)
+
+No primeiro candidato, com a tela de 320 px e a fonte a 200%, o botão de limpar deixava 62 px para digitar. O campo passou a oferecer 150 px úteis com o botão visível. A palavra “Supino” ocupou 104 px na medição em Chromium. As provas de teclado passaram nos dois temas. No WebKit 26.0 com perfil de iPhone 13 emulado, o percurso de buscar, limpar, consultar e aplicar passou duas vezes por toque.
+
+No candidato final, o Histórico exibiu as três séries da remada (10, 9 e 8 repetições) e da ponte (11, 12 e 10). Repetir treino abriu outra sessão com seis séries pendentes na mesma ordem. O backup exportado pelo app continha os dois planos e as seis séries realizadas na primeira sessão.
+
+Na primeira revisão do PR #57, o GitHub aprovou lint, build, 2.377 testes unitários e 851 dos 852 cenários de Chromium. A prancha lateral mostrou 0:34 em andamento, mas uma recarga imediata sem rede recuperou 0:35. A captura da suíte mostrou 5 segundos à direita e 50 à esquerda depois da recarga. No build usado pelo GitHub, reter a escrita no IndexedDB reproduziu a diferença entre a tela e o tempo guardado. [Primeira rodada do PR #57](https://github.com/SAV1BOY/WORKOUT/actions/runs/44631145460)
+
+Em Chromium e WebKit, o contador antigo exibiu o sexto segundo de exercício antes de a gravação local terminar. A recarga pelo service worker voltou ao quinto segundo. Duas repetições no build publicado do #56 também recuperaram 0:35 depois de mostrar 0:34. Uma prova adicional isolou a virada do segundo entre dois tiques do relógio. Abrir a Visão geral naquele instante e marcar a série pela lista gravou 0 s à direita e 25 s à esquerda, embora o lado direito já tivesse completado um segundo.
+
+Na correção, a tela atualiza o tempo do exercício à medida que o aparelho confirma a medição. Duas execuções da prova em Chromium mantiveram 0:35 enquanto a escrita estava retida, exibiram 0:34 depois da confirmação e recuperaram 0:34 ao recarregar sem rede. A reconexão enviou uma única série com 8 segundos à direita e 50 à esquerda. A Visão geral também passou a medir até o instante do toque antes de abrir a lista. O mesmo teste que havia gravado 0/25 s confirmou 1/25 s duas vezes na revisão corrigida. Lint, build e 2.377 unidades passaram localmente.

@@ -275,7 +275,7 @@ const TREINO: SecaoDoGuia = {
       id: "substituir",
       nome: "⇄ Substituir",
       oQueFaz:
-        "Encontre alternativas pelo movimento, pelos músculos e pelo equipamento disponível. Use “Ver execução” para ler a montagem e os passos antes de escolher. Durante a sessão, “Trocar exercício” mantém as séries já feitas no histórico do exercício original.",
+        "Busque pelo nome entre as alternativas que trabalham o movimento ou os músculos com o equipamento disponível. Use “Ver execução” para ler a montagem e os passos antes de escolher. Durante a sessão, “Trocar exercício” mantém as séries já feitas no histórico do exercício original.",
       caminho: ["Treino", "exercício", "⇄"],
       grupo: TELA,
     },
@@ -300,7 +300,7 @@ const TREINO: SecaoDoGuia = {
       id: "personalizar",
       nome: "Personalizar treino",
       oQueFaz:
-        "Monta uma sessão só sua, escolhendo exercícios do catálogo pelo nome.",
+        "Escolha os exercícios pelo nome, na ordem do seu treino. Você também pode começar com variações como Remada com elástico e Ponte de glúteos no tatame.",
       caminho: ["Treino", "Personalizar treino"],
       grupo: TELA,
     },

@@ -39,6 +39,7 @@ import {
   acrescentarExercicioNaSessao,
   carregarSessaoLocal,
   conciliarBlocosAcrescentados,
+  confirmarToquesPendentes,
   descarregarSessao,
   desfazerUltimaInclusaoNaSessao,
   enviarPlanoDaTroca,
@@ -413,8 +414,10 @@ export function useSessaoDeTreino(sessaoId: string, userId: string) {
   );
 
   const mudarSerie = useCallback(
-    (ordem: number, serieId: string, campos: Partial<SerieLocal>) =>
-      mexer((atual) => atualizarSerie(atual, ordem, serieId, campos)),
+    (ordem: number, serieId: string, campos: Partial<SerieLocal>) => {
+      const nova = mexer(atual => atualizarSerie(atual, ordem, serieId, campos));
+      if (nova && campos.medicaoCronometro) return confirmarToquesPendentes(nova);
+    },
     [mexer],
   );
 

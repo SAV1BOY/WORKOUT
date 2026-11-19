@@ -16,15 +16,14 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { filtrarExercicios } from "@/lib/catalogo";
-import { acharExercicio, exercicios } from "@/lib/dados";
+import { acharExercicio, exerciciosComVariacoes } from "@/lib/dados";
 import { evitadosPorUltimo } from "@/lib/preferencias";
 import type { Prefs } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 /**
- * "Personalizar treino" (SPEC §14.3): escolher exercícios do catálogo dos 81,
- * com busca sem acento, e começar uma sessão livre com eles, na ordem em que
- * foram escolhidos. Nada de conteúdo novo — a lista é o próprio catálogo.
+ * Começa um treino livre com os movimentos do catálogo e suas variações,
+ * na ordem em que a pessoa os escolheu.
  */
 export function Personalizar({ prefs }: { prefs?: Prefs }) {
   const [aberto, setAberto] = useState(false);
@@ -34,7 +33,7 @@ export function Personalizar({ prefs }: { prefs?: Prefs }) {
   const achados = useMemo(
     () =>
       evitadosPorUltimo(
-        filtrarExercicios(exercicios, { busca }),
+        filtrarExercicios(exerciciosComVariacoes, { busca }),
         (e) => e.id,
         prefs,
       ),

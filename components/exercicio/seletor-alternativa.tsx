@@ -1,10 +1,11 @@
 "use client";
 
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, X } from "lucide-react";
 import { useId, useRef, useState, type ReactElement } from "react";
 import { EquipamentoDeHoje, nomeDoMaterial, type MaterialDoTreino } from "@/components/exercicio/equipamento-de-hoje";
 import { PassosDoExercicio } from "@/components/exercicio/passos-do-exercicio";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger,
 } from "@/components/ui/sheet";
@@ -12,6 +13,7 @@ import {
   alternativasPara, montagensParaTroca, motivoDaAlternativa,
   type FiltroAlternativa,
 } from "@/lib/alternativas";
+import { filtrarExercicios } from "@/lib/catalogo";
 import { acharExercicio, equipamentoDisponivel } from "@/lib/dados";
 import { evitado, evitadosPorUltimo } from "@/lib/preferencias";
 import { resolverTrocasDoTreino } from "@/lib/trocas";
@@ -104,6 +106,9 @@ export function OpcoesDeAlternativa({
   exercicioId, originalId = exercicioId, ocupados, recorrencia, material, prefs, aoSubstituir,
 }: Escolha) {
   const [filtro, setFiltro] = useState<FiltroAlternativa>("todos");
+  const [busca, setBusca] = useState("");
+  const campoBusca = useRef<HTMLInputElement>(null);
+  const buscaId = useId();
   const [materialLocal, setMaterialLocal] = useState<ReadonlySet<EquipamentoTag>>(equipamentoDisponivel);
   const materialAtual = material ?? { disponiveis: materialLocal, aoMudar: setMaterialLocal };
   const { disponiveis } = materialAtual;
@@ -127,6 +132,7 @@ export function OpcoesDeAlternativa({
       lembradasDosOutros.every(([original, destino]) => efetivas[original] === destino);
   });
   const opcoes = evitadosPorUltimo(alternativas, (e) => e.id, prefs);
+  const visiveis = filtrarExercicios(opcoes, { busca });
 
   async function aplicar(paraHoje: string, paraOProximo: string | null) {
     if (ocupado.current) return;
@@ -186,9 +192,23 @@ export function OpcoesDeAlternativa({
         ))}
       </div>
       <EquipamentoDeHoje material={materialAtual} noSeletor />
-      {opcoes.length ? (
+      <div className="flex min-w-0 flex-col gap-1">
+        <label htmlFor={buscaId} className="text-sm font-medium wrap-anywhere">Buscar alternativa pelo nome</label>
+        <div className="flex items-center gap-1">
+          <Input id={buscaId} ref={campoBusca} type="search" inputMode="search"
+            value={busca} onChange={evento => setBusca(evento.target.value)}
+            className="alvo h-12 flex-1 px-2 text-base [&::-webkit-search-cancel-button]:appearance-none" />
+          {busca && (
+            <Button type="button" size="icon" variant="ghost" aria-label="Limpar busca"
+              className="alvo w-[max(44px,2rem)] shrink-0" onClick={() => { setBusca(""); campoBusca.current?.focus(); }}>
+              <X aria-hidden="true" />
+            </Button>
+          )}
+        </div>
+      </div>
+      {visiveis.length ? (
         <ul aria-label="Exercícios alternativos" className="flex flex-col divide-y">
-          {opcoes.map((e) => {
+          {visiveis.map((e) => {
             const equipamento = montagensParaTroca(origem, e, filtro, disponiveis).map((kit) =>
               kit.length ? kit.map(nomeDoMaterial).join(" + ") : "Peso do corpo",
             ).join(" ou ");
@@ -208,7 +228,8 @@ export function OpcoesDeAlternativa({
         </ul>
       ) : (
         <p role="status" className="text-muted-foreground text-sm">
-          Nenhuma alternativa com este equipamento. Escolha outro filtro ou ajuste os equipamentos disponíveis.
+          {opcoes.length ? "Nenhuma alternativa com esse nome." :
+            "Nenhuma alternativa com este equipamento. Escolha outro filtro ou ajuste os equipamentos disponíveis."}
         </p>
       )}
     </div>

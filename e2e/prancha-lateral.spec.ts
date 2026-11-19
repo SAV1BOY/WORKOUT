@@ -3,7 +3,7 @@ import { itensDeIds, planoDaSessao } from "../lib/livre";
 import {
   abrirSecaoDoRelatorio, abrirVisaoGeral, comecarNoPlayer, entrarNoApp, esperarAbaTreino,
   esperarServiceWorker, fixarData, HOJE_FIXO, inserirNoMock, irNaAba, lerDoMock,
-  resetarMock, semRolagemHorizontal, usuarioComPerfil,
+  ocuparArmazenamentoDaSessao, resetarMock, semRolagemHorizontal, usuarioComPerfil,
 } from "./fixtures";
 import { comRedeNoWorker, semRedeNoWorker, workerDoApp } from "./rede-do-worker";
 
@@ -78,7 +78,15 @@ test("a prancha lateral a 320 px permite tocar nos dois lados, retomar offline e
   await hora(15);
   await expect(contagem).toHaveText("0:35");
   await page.setViewportSize({ width: 740, height: 320 });
-  await hora(16);
+  const liberar = await ocuparArmazenamentoDaSessao(page, id);
+  try {
+    await hora(16);
+    // O relógio mede o sexto segundo enquanto outra transação ocupa a sessão.
+    await page.clock.runFor(1_000);
+    expect(await contagem.innerText(), "o tempo exibido deve estar confirmado no aparelho").toBe("0:35");
+  } finally {
+    await liberar();
+  }
   await expect(contagem).toHaveText("0:34");
   await semRedeNoWorker(worker);
   await context.setOffline(true);
@@ -139,3 +147,28 @@ for (const esperado of [0, 35]) {
     await expect(linhas).toContainText([`${esperado} s à direita · 25 s à esquerda`]);
   });
 }
+
+test("abrir a Visão geral na virada do segundo e marcar a série registra 1 s à direita e 25 s à esquerda", async ({ page }) => {
+  const { conta, id, direito, esquerdo, contagem } = await abrirPrancha(page);
+  await direito.fill("35");
+  await direito.press("Enter");
+  await esquerdo.fill("25");
+  await esquerdo.press("Enter");
+  await page.getByRole("button", { name: "Começar", exact: true }).tap();
+  await expect(page.getByRole("button", { name: "Pausar", exact: true })).toBeVisible();
+  await expect(contagem).toHaveText("0:35");
+
+  const abrirLista = page.getByRole("button", { name: "Visão geral do treino" });
+  // O segundo se completa no próprio toque, antes do próximo tique de 200 ms.
+  await abrirLista.evaluate(botao => botao.addEventListener("click", () => {
+    const instanteDoToque = Date.now() + 1_000;
+    Date.now = () => instanteDoToque;
+  }, { capture: true, once: true }));
+  await abrirLista.tap();
+  const primeira = page.getByRole("dialog", { name: "Visão geral do treino" })
+    .getByRole("group", { name: "Série 1 — Prancha lateral", exact: true });
+  await primeira.getByRole("checkbox").check();
+  await expect.poll(() => lerDoMock(conta, "session_sets", `session_id=eq.${id}`)).toMatchObject([{
+    exercise_id: "prancha-lateral", set_index: 1, tipo: "trabalho", tempo_s: 1, tempo_s_lado2: 25, concluida: true,
+  }]);
+});
