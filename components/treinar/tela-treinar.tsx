@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Erro, EsqueletoCard } from "@/components/carregando";
 import { ListaDoDia } from "@/components/treino/lista";
+import { useMaterialDoDia } from "@/components/treino/usar-material-do-dia";
 import { BotaoLargo } from "@/components/ui/botao-largo";
 import { CardCapa } from "@/components/ui/card-capa";
 import { treinoDeHoje } from "@/lib/calendario";
@@ -32,7 +33,7 @@ import {
 import { ligado, opcoesDeMontagem } from "@/lib/preferencias";
 import { lerOrdemDoAparelho } from "@/lib/ordem";
 import { salvarTrocaDoPrograma, useTrocasDoPrograma } from "@/lib/queries/trocas-do-programa";
-import { lerTrocasDoAparelho, resolverTrocasDoTreino } from "@/lib/trocas";
+import { guardarTrocasNoAparelho, lerTrocasDoAparelho, resolverTrocasDoTreino } from "@/lib/trocas";
 import { idsParaComecar, useComecarTreino, type EntradaComecar } from "@/lib/queries/comecar";
 import { useDemorouDemais } from "@/lib/espera";
 import { sessaoLocalMaisRecente } from "@/lib/queries/sessao";
@@ -182,8 +183,16 @@ function TreinoParaComecar({ entrada, criando, comecar }: {
   const { treinoId, perfil, doDia, hoje, userId } = entrada;
   const cliente = useQueryClient();
   const lembradas = useTrocasDoPrograma(userId, treinoId);
-  const soHoje = useMemo(() => doDia ? lerTrocasDoAparelho(userId, hoje, treinoId) : undefined,
+  const material = useMaterialDoDia(userId, hoje, treinoId);
+  const [escolha, setEscolha] = useState<{ conta: string; data: string; treino: TreinoId; trocas: Record<string, string> } | null>(null);
+  const rascunho = useMemo(() => doDia ? lerTrocasDoAparelho(userId, hoje, treinoId) : undefined,
     [doDia, userId, hoje, treinoId]);
+  const soHoje = escolha?.conta === userId && escolha.data === hoje && escolha.treino === treinoId ? escolha.trocas : rascunho;
+  const trocar = (original: string, destino: string) => {
+    const novas = { ...soHoje, [original]: destino };
+    guardarTrocasNoAparelho(userId, hoje, treinoId, novas);
+    setEscolha({ conta: userId, data: hoje, treino: treinoId, trocas: novas });
+  };
   const trocas = useMemo(() => resolverTrocasDoTreino(treinoId, lembradas.data, soHoje),
     [treinoId, lembradas.data, soHoje]);
   const exercicios = useMemo(() => exerciciosDoTreino(treinoId), [treinoId]);
@@ -209,11 +218,14 @@ function TreinoParaComecar({ entrada, criando, comecar }: {
       className={doDia ? "border-primary/50" : undefined}
     >
       <BotaoLargo variant={doDia ? "default" : "outline"} disabled={criando !== null}
-        onClick={() => void comecar({ ...entrada, lembradas, trocas: soHoje })}>
+        onClick={() => void comecar({ ...entrada, lembradas, trocas: soHoje, equipamentosDisponiveis: material?.disponiveis })}>
         {criando === treinoId ? "Começando…" : `Começar o ${resumo.nome}`}
       </BotaoLargo>
       {doDia && (
         <ListaDoDia
+          material={material}
+          prefs={perfil.prefs}
+          aoSubstituir={trocar}
           itens={previaDoTreino({
             treinoId, estados: estadosPorExercicio(estadosQ.data ?? []),
             eventos: eventosQ.data ?? [], montagem: opcoesDeMontagem(perfil.prefs), trocas,

@@ -4,6 +4,7 @@
  */
 import type {
   Assistencia,
+  EquipamentoTag,
   FaseId,
   PrescricaoTipo,
   TreinoId,
@@ -123,6 +124,8 @@ export interface PlanoDaSessao {
   /** Id da coleção derivada que gerou a sessão ("grupo:Core"), ou `null`. */
   colecao: string | null;
   itens: ItemDoPlano[];
+  /** Equipamento para esta sessão. Ausente nos planos antigos; [] = só peso corporal. */
+  equipamento_disponivel?: EquipamentoTag[];
   /** Por posição: primeiro o exercício ativo, depois os que passaram pelo bloco. */
   trocas?: Record<string, {
     exercicio_id: string;

@@ -6,6 +6,9 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Erro, EsqueletoCapa, EsqueletoLista } from "@/components/carregando";
+import type { MaterialDoTreino } from "@/components/exercicio/equipamento-de-hoje";
+import { useMaterialDaSessao } from "@/components/treinar/usar-material-da-sessao";
+import { useMaterialDoDia } from "@/components/treino/usar-material-do-dia";
 import {
   BannerSessaoAberta,
   CardCardio,
@@ -30,6 +33,9 @@ import {
   treinoDeHoje,
 } from "@/lib/calendario";
 import { acharFase, acharTreino, exerciciosDoTreino } from "@/lib/dados";
+import { equipamentoDaSessao, tagsDoEquipamento } from "@/lib/equipamento-da-sessao";
+import { planoDaSessao } from "@/lib/livre";
+import { guardarConsultasAgora } from "@/lib/persistencia-query";
 import { formatarDiaEData } from "@/lib/formato";
 import {
   alternativaDeCorda,
@@ -59,6 +65,8 @@ import { aplicarRetomada } from "@/lib/queries/retomada";
 import { salvarTrocaDoPrograma, useTrocasDoPrograma } from "@/lib/queries/trocas-do-programa";
 import { useComecarTreino } from "@/lib/queries/comecar";
 import {
+  chaves,
+  type SessaoResumo,
   useCardio,
   useCardioDesde,
   useEstados,
@@ -69,14 +77,17 @@ import {
   useRecordes,
   useSeriesAnteriores,
   useSeriesDaSessao,
+  useSessao,
   useSessoes,
   useSessoesAbertas,
   useSoltas,
   useSoltasDoDia,
   useUltimoPeso,
 } from "@/lib/queries/dados";
-import { carregarSessaoLocal } from "@/lib/queries/sessao";
-import { progressoDaSessao, type SessaoLocal } from "@/lib/sessao";
+import { carregarSessaoLocal, gravarPlanoDaSessao } from "@/lib/queries/sessao";
+import { definirEquipamentoDaSessao, itensDoTreino, progressoDaSessao, type SessaoLocal } from "@/lib/sessao";
+import type { EquipamentoTag } from "@/lib/schemas";
+import type { LinhaSessao } from "@/lib/types";
 import { useHoje } from "@/lib/relogio";
 import { guiaVisto, guiaVistoNoAparelho, ligado, opcoesDeMontagem } from "@/lib/preferencias";
 import {
@@ -169,6 +180,7 @@ export function TelaTreino({ userId }: { userId: string }) {
   }, [hoje, perfil, overridesQ.data]);
 
   const treinoId = dia?.tipo === "forca" ? dia.treinoId : null;
+  const materialDoDia = useMaterialDoDia(userId, hoje, treinoId);
   const lembradas = useTrocasDoPrograma(userId, treinoId);
   const soHoje = rascunho?.conta === userId && rascunho.data === hoje && rascunho.treino === treinoId
     ? rascunho.trocas : undefined;
@@ -278,15 +290,55 @@ export function TelaTreino({ userId }: { userId: string }) {
 
   const aberta = sessaoAberta(abertasQ.data ?? []);
   const abertaId = aberta?.id;
-  const [abertaLocal, setAbertaLocal] = useState<SessaoLocal | null>(null);
+  const [leituraLocal, setLeituraLocal] = useState<{ id: string; conta: string; sessao: SessaoLocal | null } | null>(null);
+  const abertaLocal = leituraLocal?.id === abertaId && leituraLocal?.conta === userId ? leituraLocal.sessao : null;
   useEffect(() => {
     if (!abertaId) return;
     let ativa = true;
-    void carregarSessaoLocal(abertaId).then((sessao) => {
-      if (ativa) setAbertaLocal(sessao);
+    void carregarSessaoLocal(abertaId).catch(() => null).then((sessao) => {
+      if (ativa) setLeituraLocal({ id: abertaId, conta: userId, sessao: sessao?.userId === userId ? sessao : null });
     });
     return () => { ativa = false; };
-  }, [abertaId]);
+  }, [abertaId, userId]);
+  const idDoDia = aberta && aberta.data === hoje && aberta.workoutId === treinoId ? aberta.id : null;
+  const confirmarMaterial = useCallback((id: string, tags: ReadonlySet<EquipamentoTag>, confirmada: SessaoLocal, anterior: SessaoLocal) => {
+    setLeituraLocal((atual) => atual?.conta === userId && atual.sessao?.id === id
+      ? { ...atual, sessao: atual.sessao === anterior ? confirmada : definirEquipamentoDaSessao(atual.sessao, tags) } : atual);
+  }, [userId]);
+  const materialLocal = useMaterialDaSessao(abertaLocal?.id === idDoDia ? abertaLocal : null, confirmarMaterial);
+  const semCopia = idDoDia && leituraLocal?.id === idDoDia && leituraLocal.conta === userId && !abertaLocal;
+  const linhaQ = useSessao(semCopia ? idDoDia : null);
+  const remota = linhaQ.data?.id === idDoDia && linhaQ.data?.user_id === userId &&
+    linhaQ.data.status === "em_andamento" ? linhaQ.data : null;
+  const [edicaoRemota, setEdicaoRemota] = useState<{ id: string; conta: string; tags: ReadonlySet<EquipamentoTag> } | null>(null);
+  const gravacaoRemota = useRef(Promise.resolve());
+  const materialRemoto: MaterialDoTreino | undefined = remota && treinoId ? {
+    disponiveis: edicaoRemota?.conta === userId && edicaoRemota.id === remota.id
+      ? edicaoRemota.tags : equipamentoDaSessao(remota),
+    aoMudar: (tags) => {
+      const edicao = { id: remota.id, conta: userId, tags };
+      setEdicaoRemota(edicao);
+      const gravar = async () => {
+        const chave = chaves.sessao(remota.id);
+        const ultima = cliente.getQueryData<LinhaSessao | null>(chave);
+        if (!ultima || ultima.user_id !== userId || ultima.status !== "em_andamento") return;
+        const plano = { ...(ultima.plano ?? planoDaSessao(itensDoTreino(treinoId))), equipamento_disponivel: tagsDoEquipamento(tags) };
+        await gravarPlanoDaSessao(remota.id, userId, plano);
+        // Um GET iniciado antes do toque ainda pode ter o plano antigo.
+        await Promise.all([chave, chaves.sessoesAbertas()].map((queryKey) => cliente.cancelQueries({ queryKey, exact: true })));
+        cliente.setQueryData<LinhaSessao | null>(chave, (linha) => linha?.user_id === userId && linha.status === "em_andamento" ? { ...linha, plano } : linha);
+        cliente.setQueryData<SessaoResumo[]>(chaves.sessoesAbertas(), (linhas) =>
+          linhas?.map((linha) => linha.id === remota.id ? { ...linha, plano } : linha));
+        await guardarConsultasAgora(cliente).catch(() => {
+          toast.error("A mudança está na fila. Não foi possível atualizar a cópia para consulta sem rede.");
+        });
+      };
+      gravacaoRemota.current = gravacaoRemota.current.then(gravar).catch(() => {
+        toast.error("Não foi possível guardar o equipamento desta sessão. Tente novamente.");
+      }).finally(() => setEdicaoRemota((atual) => atual === edicao ? null : atual));
+    },
+  } : undefined;
+  const material = idDoDia ? materialLocal ?? materialRemoto : materialDoDia;
   const seriesDaAbertaQ = useSeriesDaSessao(aberta?.id ?? null);
 
   /*
@@ -405,6 +457,7 @@ export function TelaTreino({ userId }: { userId: string }) {
     if (!treinoId || pedirDecisao()) return;
     void comecar({
       userId, perfil, hoje, treinoId, lembradas, ordem,
+      equipamentosDisponiveis: materialDoDia?.disponiveis,
       trocas: soHoje ?? lerTrocasDoAparelho(userId, hoje, treinoId),
     });
   };
@@ -473,7 +526,7 @@ export function TelaTreino({ userId }: { userId: string }) {
          * SPEC §18.3: com a pausa por decidir, ajustar não vem antes de
          * decidir — o "Ajustar" sai da tela, como saía quando era um FAB.
          */
-        acoes={mostrarRetomada ? null : <BotaoAjustar perfil={perfil} />}
+        acoes={mostrarRetomada ? null : <BotaoAjustar perfil={perfil} material={material} />}
       />
 
       {aberta && !abertaDoDia ? (
@@ -560,6 +613,7 @@ export function TelaTreino({ userId }: { userId: string }) {
         ) : (
           <>
             <ListaDoDia
+              material={material}
               itens={itens}
               carregando={estadosQ.isPending && ids.length > 0}
               mostrarRaios={mostrarRaios}

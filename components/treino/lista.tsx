@@ -1,13 +1,14 @@
 "use client";
 
 import { ChevronRight, Repeat } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { FichaEmFolha } from "@/components/exercicio/ficha-sob-demanda";
 import { useTemVideo } from "@/components/videos-do-app";
 import { Miniatura } from "@/components/ui/miniatura";
 import { Raios } from "@/components/ui/raios";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import type { MaterialDoTreino } from "@/components/exercicio/equipamento-de-hoje";
 import { duracaoDaTroca, SeletorAlternativa, type RecorrenciaDaTroca } from "@/components/exercicio/seletor-alternativa";
 import { acharExercicio } from "@/lib/dados";
 import { dificuldadeDe } from "@/lib/dificuldade";
@@ -27,6 +28,7 @@ export function ListaDoDia({
   prefs,
   aoSubstituir,
   recorrencia,
+  material,
   titulo = "Exercícios de hoje",
 }: {
   itens: ItemPrevia[];
@@ -37,9 +39,14 @@ export function ListaDoDia({
   /** Quando existe, cada item ganha o ⇄ (a lista da aba Treino). */
   aoSubstituir?: (originalId: string, novoExercicioId: string) => void;
   recorrencia?: RecorrenciaDaTroca;
+  material?: MaterialDoTreino;
   titulo?: string;
 }) {
   const [originalDaFicha, setFicha] = useState<string | null>(null);
+  const [listaJaExibida, setListaJaExibida] = useState(!carregando);
+  useEffect(() => {
+    if (!carregando) setListaJaExibida(true);
+  }, [carregando]);
   // a ficha aberta daqui mostra vídeo igual à do player (SPEC §22.2 item 7)
   const itemDaFicha = itens.find((item) => item.originalId === originalDaFicha);
   const ficha = itemDaFicha?.exercicioId ?? null;
@@ -47,7 +54,9 @@ export function ListaDoDia({
   const ocupadosForaDe = (originalId: string) =>
     itens.filter((outro) => outro.originalId !== originalId).map((outro) => outro.exercicioId);
 
-  if (carregando) {
+  // Uma troca muda os IDs da consulta de cargas. A lista, a ficha e o botão
+  // que recebe o foco ao fechá-la continuam montados durante essa leitura.
+  if (carregando && !listaJaExibida && !originalDaFicha) {
     return (
       <ul
         className="flex flex-col gap-3"
@@ -68,7 +77,7 @@ export function ListaDoDia({
   }
 
   return (
-    <ul aria-label={titulo} className="flex flex-col divide-y">
+    <ul aria-label={titulo} aria-busy={carregando} className="flex flex-col divide-y">
       {/* `scroll-mt-14` na linha: a faixa fixa do dia (§22.7 item 2) não pode
           comer a linha para onde a página acabou de rolar */}
       {itens.map((item) => (
@@ -109,10 +118,14 @@ export function ListaDoDia({
               </span>
               <span className="text-muted-foreground text-xs">
                 {/* o olho bate no número da carga, não na palavra "Hoje" */}
-                <span className="text-foreground">
-                  Hoje: <span className="numero">{item.cargaTexto}</span>
-                </span>
-                {item.historico ? ` (${item.historico})` : ""}
+                {carregando ? "Carregando a carga de hoje…" : (
+                  <>
+                    <span className="text-foreground">
+                      Hoje: <span className="numero">{item.cargaTexto}</span>
+                    </span>
+                    {item.historico ? ` (${item.historico})` : ""}
+                  </>
+                )}
               </span>
               {item.substituido ? (
                 <span className="text-muted-foreground text-xs">
@@ -132,6 +145,7 @@ export function ListaDoDia({
               originalId={item.originalId}
               ocupados={ocupadosForaDe(item.originalId)}
               recorrencia={recorrencia}
+              material={material}
               exercicioId={item.exercicioId}
               prefs={prefs}
               aoSubstituir={(novo) => aoSubstituir(item.originalId, novo)}
@@ -160,6 +174,7 @@ export function ListaDoDia({
           originalId: itemDaFicha.originalId,
           ocupados: ocupadosForaDe(itemDaFicha.originalId),
           recorrencia,
+          material,
           avisoDaTroca: "Escolha o exercício para o treino de hoje.",
           aoSubstituir: (novo) => aoSubstituir(itemDaFicha.originalId, novo),
         } : undefined}

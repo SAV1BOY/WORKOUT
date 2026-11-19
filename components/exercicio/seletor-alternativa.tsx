@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useRef, useState, type ReactElement } from "react";
+import { EquipamentoDeHoje, nomeDoMaterial, type MaterialDoTreino } from "@/components/exercicio/equipamento-de-hoje";
 import { Button } from "@/components/ui/button";
 import {
   Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger,
@@ -9,7 +10,6 @@ import {
   alternativasPara, montagensParaTroca, motivoDaAlternativa,
   type FiltroAlternativa,
 } from "@/lib/alternativas";
-import { NOME_EQUIPAMENTO } from "@/lib/catalogo";
 import { acharExercicio, equipamentoDisponivel } from "@/lib/dados";
 import { evitado, evitadosPorUltimo } from "@/lib/preferencias";
 import { resolverTrocasDoTreino } from "@/lib/trocas";
@@ -23,9 +23,6 @@ const FILTROS: Record<FiltroAlternativa, string> = {
   elastico: "Elástico",
   "outro-equipamento": "Outro equipamento",
 };
-const INVENTARIO = [...equipamentoDisponivel()].sort((a, b) =>
-  NOME_EQUIPAMENTO[a].localeCompare(NOME_EQUIPAMENTO[b], "pt-BR"),
-);
 
 export const AVISO_DA_TROCA =
   "As séries que você já fez ficam registradas no exercício original. A alternativa começa com suas próprias séries.";
@@ -41,6 +38,7 @@ type Escolha = {
   originalId?: string;
   ocupados?: readonly string[];
   recorrencia?: RecorrenciaDaTroca;
+  material?: MaterialDoTreino;
   prefs?: Prefs;
   aoSubstituir: (id: string) => void;
 };
@@ -51,10 +49,12 @@ export function duracaoDaTroca(originalId: string, ativoId: string, recorrencia?
 
 /** Os mesmos filtros e alternativas na ficha, no player e na lista do dia. */
 export function OpcoesDeAlternativa({
-  exercicioId, originalId = exercicioId, ocupados, recorrencia, prefs, aoSubstituir,
+  exercicioId, originalId = exercicioId, ocupados, recorrencia, material, prefs, aoSubstituir,
 }: Escolha) {
   const [filtro, setFiltro] = useState<FiltroAlternativa>("todos");
-  const [disponiveis, setDisponiveis] = useState<ReadonlySet<EquipamentoTag>>(equipamentoDisponivel);
+  const [materialLocal, setMaterialLocal] = useState<ReadonlySet<EquipamentoTag>>(equipamentoDisponivel);
+  const materialAtual = material ?? { disponiveis: materialLocal, aoMudar: setMaterialLocal };
+  const { disponiveis } = materialAtual;
   const [lembrar, setLembrar] = useState(false);
   const [gravando, setGravando] = useState(false);
   const [erro, setErro] = useState("");
@@ -95,15 +95,6 @@ export function OpcoesDeAlternativa({
     aoSubstituir(paraHoje);
   }
 
-  function mudarEquipamento(tag: EquipamentoTag, marcado: boolean) {
-    setDisponiveis((atual) => {
-      const proximo = new Set(atual);
-      if (marcado) proximo.add(tag);
-      else proximo.delete(tag);
-      return proximo;
-    });
-  }
-
   return (
     <div className="flex flex-col gap-3">
       {recorrencia && (
@@ -142,28 +133,12 @@ export function OpcoesDeAlternativa({
           </Button>
         ))}
       </div>
-      <details className="rounded-lg border px-3">
-        <summary className="alvo cursor-pointer content-center text-sm font-medium">
-          Equipamentos disponíveis
-        </summary>
-        <fieldset className="pb-2">
-          <legend className="text-muted-foreground text-xs">Marque o que está à mão para esta troca.</legend>
-          <div className="grid grid-cols-2 gap-x-2">
-            {INVENTARIO.map((tag) => (
-              <label key={tag} className="alvo flex cursor-pointer items-center gap-2 text-sm">
-                <input type="checkbox" className="size-4 accent-primary" checked={disponiveis.has(tag)}
-                  onChange={(evento) => mudarEquipamento(tag, evento.target.checked)} />
-                {NOME_EQUIPAMENTO[tag]}
-              </label>
-            ))}
-          </div>
-        </fieldset>
-      </details>
+      <EquipamentoDeHoje material={materialAtual} noSeletor />
       {opcoes.length ? (
         <ul aria-label="Exercícios alternativos" className="flex flex-col divide-y">
           {opcoes.map((e) => {
             const equipamento = montagensParaTroca(origem, e, filtro, disponiveis).map((kit) =>
-              kit.length ? kit.map((tag) => NOME_EQUIPAMENTO[tag]).join(" + ") : "Peso do corpo",
+              kit.length ? kit.map(nomeDoMaterial).join(" + ") : "Peso do corpo",
             ).join(" ou ");
             return (
               <li key={e.id}>
@@ -189,7 +164,7 @@ export function OpcoesDeAlternativa({
 
 /** O botão pode estar dentro da folha (trigger) ou ser controlado pelo player. */
 export function SeletorAlternativa({
-  exercicioId, originalId, ocupados, recorrencia, prefs, aoSubstituir, aberto, aoMudarAberto, children,
+  exercicioId, originalId, ocupados, recorrencia, material, prefs, aoSubstituir, aberto, aoMudarAberto, children,
   antesDoTreino = false, voltarAoOriginal, avisoDaTroca = AVISO_DA_TROCA,
 }: Escolha & {
   aberto?: boolean;
@@ -222,7 +197,7 @@ export function SeletorAlternativa({
             </Button>
           )}
           <OpcoesDeAlternativa key={exercicioId} exercicioId={exercicioId} originalId={originalId}
-            ocupados={ocupados} recorrencia={recorrencia} prefs={prefs}
+            ocupados={ocupados} recorrencia={recorrencia} material={material} prefs={prefs}
             aoSubstituir={(id) => { aoSubstituir(id); mudarAberto(false); }} />
         </div>
       </SheetContent>

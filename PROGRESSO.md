@@ -13057,3 +13057,19 @@ Quem escolhe uma alternativa pode usá-la só na sessão atual ou também nos pr
 A preferência é guardada por conta, tipo de treino e exercício original, inclusive no aparelho enquanto ele estiver sem rede. O backup inclui as trocas. Restaurar um arquivo antigo preserva as preferências que a pessoa já tem. A tabela tem segurança por linha e uma prova com duas contas em PostgreSQL 16. A fila e a cópia local são gravadas juntas. Se faltar espaço para a cópia, a operação inteira é desfeita. As abas coordenam o envio por Web Locks. Se o Wi-Fi aparentar conexão mas o servidor não responder, o início do treino usa a preferência local depois de 1,5 s. Ao reabrir a tela Treinar, a lista de sessões em andamento é confirmada para evitar que uma sessão já encerrada desvie o usuário para o relatório. Os testes de navegador acompanham a escolha, a restauração, a retomada de uma sessão e a leitura em tela de 360 px.
 
 A escolha explícita entre a sessão e os treinos futuros também aparece no Hevy e no Strong. No Terraço, ela se aplica a um exercício do programa por vez. [Como o Hevy atualiza uma rotina](https://help.hevyapp.com/hc/en-us/articles/38387296276375-Update-Routine-vs-Keep-Original-Routine) · [Como o Strong atualiza um modelo](https://help.strongapp.io/article/177-update-template)
+
+### Publicação das trocas recorrentes em 18/11/2026
+
+O domínio público confirmou a integração `88d42f8` do PR #38, com a mesma árvore Git que passou por 2.024 testes unitários e 736 cenários de navegador. No Chromium móvel local, 36 cenários distintos e 6 repetições passaram. Em um deles, o aparelho continuava conectado ao Wi-Fi, a consulta da preferência ficou sem resposta e o player abriu em 2,05 s com a flexão salva no aparelho. O Supabase de produção confirmou a chave composta e o isolamento entre contas na nova tabela. [PR #38](https://github.com/SAV1BOY/WORKOUT/pull/38) · [Validação integral](https://github.com/SAV1BOY/WORKOUT/actions/runs/44423462209)
+
+A configuração de push segue pendente na Vercel. Na versão `88d42f8`, um pedido sem autenticação recebeu HTTP 401 e o teste autenticado pelo Vault recebeu HTTP 503 com `SEM_CONFIGURACAO`. O teste usou uma lista vazia de destinatários.
+
+### Equipamento disponível para uma sessão
+
+Em **Treino → Ajustar → Equipamento de hoje**, escolha o que está à mão. O seletor de alternativas usa a mesma seleção em todos os exercícios da sessão e permite ajustá-la. Por exemplo, **Só peso do corpo** seguido de **Tatame** e **Elástico (Super Band)** restringe as sugestões aos movimentos que a pessoa consegue fazer com esses materiais. Um movimento que exige halteres, anilhas e banco só aparece se os três estiverem disponíveis. Flexão de braço, prancha e escalador identificam o tatame como opcional na ficha.
+
+Ao trocar um exercício pela ficha, a ficha permanece aberta enquanto o app consulta a carga do substituto. O teste de navegador mantém essa consulta pendente para conferir o título e o foco da ficha.
+
+A seleção acompanha o plano da sessão em `sessions.plano` e a cópia no aparelho. Uma sessão antiga ou recém-criada começa com o inventário completo. Mudar o material conserva as séries feitas e as preferências de substituição dos próximos treinos. A versão do backup permanece a mesma. O Hevy também usa o conjunto de equipamentos disponível para orientar a seleção dos exercícios. [Configurações do Hevy Trainer](https://help.hevyapp.com/hc/en-us/articles/43572343844247-How-Hevy-Trainer-Settings-Work)
+
+Para conferir no celular, escolha o material, abra a troca de dois exercícios diferentes, comece a sessão e recarregue o player sem rede. Abra a ficha e confira a seleção. Ao começar o treino seguinte, o inventário completo deve voltar.

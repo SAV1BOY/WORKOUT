@@ -54,7 +54,12 @@ todas as séries e a saída do treino.
 
 **Trocar um exercício durante o treino.** Toque em **Trocar exercício** e
 escolha **Peso do corpo**, **Tatame**, **Elástico** ou **Outro equipamento**.
-Em **Equipamentos disponíveis**, marque o que está à mão. Cada opção explica
+Em **Treino → Ajustar → Equipamento de hoje**, marque o que está à mão.
+Você também pode mudar a seleção no próprio seletor de alternativas. Por
+exemplo, marque tatame e elástico uma vez para ver o que consegue fazer com
+eles ao longo da sessão. **Só peso do corpo** dispensa todo o material.
+O app conserva a seleção ao reabrir o treino sem rede. O próximo treino
+começa com todo o equipamento disponível. Cada opção explica
 qual músculo ou movimento tem em comum com o exercício atual e mostra a sua
 prescrição. Ao confirmar, as séries já feitas continuam no histórico com o
 exercício original. O player segue com a alternativa. Também dá para escolher

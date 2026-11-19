@@ -16,6 +16,12 @@ import {
   type Backup,
 } from "@/lib/backup";
 
+import { equipamentoDisponivel } from "@/lib/dados";
+import { equipamentoDaSessao } from "@/lib/equipamento-da-sessao";
+import { itensDeIds, itensDoPlano, planoDaSessao } from "@/lib/livre";
+import { reconstruirSessao } from "@/lib/sessao";
+import type { PlanoDaSessao } from "@/lib/types";
+
 const AGORA = "2026-09-15T10:00:00.000Z";
 const EU = "11111111-1111-4111-8111-111111111111";
 const OUTRO = "22222222-2222-4222-8222-222222222222";
@@ -190,6 +196,36 @@ describe("trocas lembradas no programa", () => {
       expect(previaDaImportacao(backup, { trocas_do_programa: [troca] }, EU).total).toBe(0);
       expect(linhasParaImportar(backup, EU)).toEqual([]);
     }
+  });
+});
+
+describe("equipamento de hoje no backup v1", () => {
+  const titulo = "Treino reordenado";
+  const plano = planoDaSessao(itensDeIds(["supino-reto-com-barra", "agachamento-livre"]), { titulo });
+  const linha = {
+    id: "sessao-exportada", user_id: OUTRO, data: "2026-09-14", workout_id: "A1", fase: "fase1",
+    status: "em_andamento", iniciada_em: AGORA,
+  } as const;
+
+  it.each([
+    { caso: "sem coluna plano", campos: {}, esperado: equipamentoDisponivel() },
+    { caso: "plano nulo", campos: { plano: null }, esperado: equipamentoDisponivel() },
+    { caso: "plano legado", campos: { plano }, esperado: equipamentoDisponivel() },
+    { caso: "só o corpo", campos: { plano: { ...plano, equipamento_disponivel: [] } }, esperado: new Set() },
+    { caso: "equipamento selecionado", campos: { plano: { ...plano, equipamento_disponivel: ["tatame", "super-band"] } }, esperado: new Set(["tatame", "super-band"]) },
+  ])("restaura na conta de destino e retoma a sessão com $caso", ({ campos, esperado }) => {
+    const backup = montarBackup({ userId: OUTRO, exportadoEm: AGORA, tabelas: { sessions: [{ ...linha, ...campos }] } });
+    const arquivo = lerBackup(textoDoBackup(backup));
+    const escritas = linhasParaImportar(arquivo, EU);
+    expect(escritas).toEqual([{ tabela: "sessions", onConflict: "id", linhas: [{ ...linha, ...campos, user_id: EU }] }]);
+
+    const restaurado = escritas[0]!.linhas[0]!.plano as PlanoDaSessao | null | undefined;
+    const sessao = reconstruirSessao({ ...linha, user_id: EU, plano: restaurado }, [], {
+      itens: itensDoPlano(restaurado) ?? undefined,
+    });
+    expect(sessao).not.toBeNull();
+    expect(equipamentoDaSessao(sessao!)).toEqual(esperado);
+    if (restaurado) expect(sessao!.blocos.map((b) => b.exercicioId)).toEqual(["supino-reto-com-barra", "agachamento-livre"]);
   });
 });
 

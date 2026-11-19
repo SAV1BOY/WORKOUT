@@ -52,33 +52,59 @@ for (const tema of ["light", "dark"] as const) {
   });
 }
 
-test("a ficha do dia lembra a troca e a ficha do player restaura os próximos A1", async ({ page }) => {
-  await resetarMock();
-  const conta = await usuarioComPerfil();
-  await fixarData(page, HOJE_FIXO);
-  await entrarNoApp(page);
+test.describe("troca na ficha durante a leitura das cargas", () => {
+  test.use({ serviceWorkers: "block" });
 
-  await page.getByRole("button", { name: "Ficha: Agachamento livre" }).click();
-  const ficha = page.getByRole("dialog");
-  await ficha.getByRole("button", { name: "Substituir", exact: true }).click();
-  await ficha.getByRole("radio", { name: "Usar nos próximos A1" }).check();
-  await ficha.getByRole("list", { name: "Exercícios alternativos" })
-    .getByRole("button", { name: /^Agachamento goblet / }).click();
-  await expect(ficha.getByRole("heading", { name: "Agachamento goblet", exact: true })).toBeVisible();
-  await expect.poll(() => lerDoMock(conta, "trocas_do_programa")).toMatchObject([{
-    workout_id: "A1", exercicio_original_id: "agachamento-livre", substituto_id: "agachamento-goblet",
-  }]);
-  await page.keyboard.press("Escape");
-  await expect(ficha).toBeHidden();
+  test("a ficha do dia lembra a troca e a ficha do player restaura os próximos A1", async ({ page }) => {
+    await resetarMock();
+    const conta = await usuarioComPerfil();
+    await fixarData(page, HOJE_FIXO);
+    await entrarNoApp(page);
 
-  await comecarOTreinoDoDia(page);
-  await comecarNoPlayer(page);
-  await page.getByRole("button", { name: "Como fazer: Agachamento goblet" }).click();
-  await ficha.getByRole("button", { name: "Substituir", exact: true }).click();
-  await expect(ficha.getByRole("radio", { name: "Só neste treino" })).toBeChecked();
-  await ficha.getByRole("button", { name: "Restaurar Agachamento livre nos próximos A1" }).click();
-  await expect(ficha.getByRole("heading", { name: "Agachamento goblet", exact: true })).toBeVisible();
-  await expect.poll(() => lerDoMock(conta, "trocas_do_programa")).toEqual([]);
+    await page.getByRole("button", { name: "Ficha: Agachamento livre" }).click();
+    const ficha = page.getByRole("dialog");
+    await ficha.getByRole("button", { name: "Substituir", exact: true }).click();
+    await ficha.getByRole("radio", { name: "Usar nos próximos A1" }).check();
+    const cargasDoGoblet = (url: URL) => url.pathname === "/rest/v1/exercise_state" &&
+      (url.searchParams.get("exercise_id") ?? "").includes("agachamento-goblet");
+    let liberar!: () => void;
+    const liberado = new Promise<void>(resolve => { liberar = resolve; });
+    await page.route(cargasDoGoblet, async rota => {
+      await liberado;
+      await rota.continue();
+    });
+    const consulta = page.waitForRequest(req => cargasDoGoblet(new URL(req.url())));
+    const titulo = ficha.getByRole("heading", { name: "Agachamento goblet", exact: true });
+    try {
+      await ficha.getByRole("list", { name: "Exercícios alternativos" })
+        .getByRole("button", { name: /^Agachamento goblet / }).click();
+      const pedido = await consulta;
+      // A escolha já tem ficha no catálogo enquanto a carga do substituto ainda está na rede.
+      await expect(titulo).toBeVisible();
+      liberar();
+      const resposta = await pedido.response();
+      expect(resposta?.ok()).toBe(true);
+      await resposta!.finished();
+      await expect(titulo).toBeVisible();
+    } finally {
+      liberar();
+    }
+    await expect.poll(() => lerDoMock(conta, "trocas_do_programa")).toMatchObject([{
+      workout_id: "A1", exercicio_original_id: "agachamento-livre", substituto_id: "agachamento-goblet",
+    }]);
+    await page.keyboard.press("Escape");
+    await expect(ficha).toBeHidden();
+    await expect(page.getByRole("button", { name: "Ficha: Agachamento goblet" })).toBeFocused();
+
+    await comecarOTreinoDoDia(page);
+    await comecarNoPlayer(page);
+    await page.getByRole("button", { name: "Como fazer: Agachamento goblet" }).click();
+    await ficha.getByRole("button", { name: "Substituir", exact: true }).click();
+    await expect(ficha.getByRole("radio", { name: "Só neste treino" })).toBeChecked();
+    await ficha.getByRole("button", { name: "Restaurar Agachamento livre nos próximos A1" }).click();
+    await expect(ficha.getByRole("heading", { name: "Agachamento goblet", exact: true })).toBeVisible();
+    await expect.poll(() => lerDoMock(conta, "trocas_do_programa")).toEqual([]);
+  });
 });
 
 test("a ficha de uma sessão livre troca a atividade sem criar preferência no programa", async ({ page }) => {

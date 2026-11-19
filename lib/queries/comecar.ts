@@ -14,6 +14,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
 import { toast } from "sonner";
 import { exerciciosDoTreino } from "@/lib/dados";
+import { consumirEquipamentoDoDia, lerEquipamentoDoDia } from "@/lib/equipamento-da-sessao";
 import { estadosPorExercicio } from "@/lib/hoje";
 import { opcoesDeMontagem } from "@/lib/preferencias";
 import {
@@ -21,12 +22,12 @@ import {
   recordesNoCache,
   seriesAnterioresNoCache,
 } from "@/lib/queries/dados";
-import { criarSessao } from "@/lib/queries/sessao";
+import { criarSessao, type EntradaCriacao } from "@/lib/queries/sessao";
 import { lerTrocasLocaisDoPrograma } from "@/lib/queries/trocas-do-programa";
 import { limparOrdemDoAparelho } from "@/lib/ordem";
 import { limparTrocasDoAparelho, resolverTrocasDoTreino } from "@/lib/trocas";
 import { seriesAnterioresPorExercicio, type RecordeAntes } from "@/lib/sessao";
-import type { TreinoId } from "@/lib/schemas";
+import type { EquipamentoTag, TreinoId } from "@/lib/schemas";
 import type { LinhaPerfil } from "@/lib/types";
 
 export interface EntradaComecar {
@@ -34,6 +35,8 @@ export interface EntradaComecar {
   perfil: LinhaPerfil;
   hoje: string;
   treinoId: TreinoId;
+  /** Seleção visível deste treino, inclusive se o storage do navegador foi bloqueado. */
+  equipamentosDisponiveis?: ReadonlySet<EquipamentoTag>;
   /** Lembranças deste tipo de treino, inclusive quando o usuário o escolheu fora do dia. */
   lembradas: {
     data: Record<string, string> | undefined;
@@ -70,6 +73,15 @@ export async function trocasParaComecar(
   return resolverTrocasDoTreino(treinoId, mapa, doDia === false ? {} : trocas);
 }
 
+/** Uma criação que falha mantém o equipamento disponível para a próxima tentativa. */
+export async function criarSessaoComEquipamentoDoDia(entrada: EntradaCriacao) {
+  const { userId, data, treinoId } = entrada;
+  const equipamentosDisponiveis = entrada.equipamentosDisponiveis ?? lerEquipamentoDoDia(userId, data, treinoId);
+  const sessao = await criarSessao({ ...entrada, equipamentosDisponiveis });
+  consumirEquipamentoDoDia(userId, data, treinoId, equipamentosDisponiveis);
+  return sessao;
+}
+
 export function useComecarTreino(aquecerRota = false): {
   iniciando: RefObject<boolean>;
   criando: TreinoId | null;
@@ -102,12 +114,13 @@ export function useComecarTreino(aquecerRota = false): {
         const recordes: Record<string, RecordeAntes> = {};
         for (const r of recordesNoCache(cliente, ids)) recordes[r.exercise_id] = r;
 
-        const sessao = await criarSessao({
+        const sessao = await criarSessaoComEquipamentoDoDia({
           id: idReservado.current ?? undefined,
           cliente,
           userId: e.userId,
           data: e.hoje,
           treinoId: e.treinoId,
+          equipamentosDisponiveis: e.equipamentosDisponiveis,
           fase: e.perfil.fase_atual,
           estados: estadosPorExercicio(estados),
           anteriores: seriesAnterioresPorExercicio(seriesAnterioresNoCache(cliente, ids)),
