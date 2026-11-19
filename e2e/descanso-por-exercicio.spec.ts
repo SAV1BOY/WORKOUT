@@ -223,6 +223,35 @@ test("o link do treino ganha controle offline sem recarregar quando a instalaç�
   }
 });
 
+/** Segura uma escrita concorrente até o teste liberar o IndexedDB. */
+async function ocuparArmazenamentoDaSessao(page: Page, id: string) {
+  const liberar = await page.evaluateHandle(id => new Promise<() => void>((resolve, reject) => {
+    const abertura = indexedDB.open("treino-terraco");
+    abertura.onerror = () => reject(abertura.error);
+    abertura.onsuccess = () => {
+      const banco = abertura.result;
+      const tx = banco.transaction("sessaoAtiva", "readwrite");
+      const sessoes = tx.objectStore("sessaoAtiva");
+      let ocupada = true;
+      tx.oncomplete = () => banco.close();
+      tx.onabort = () => { banco.close(); reject(tx.error); };
+      const proximaLeitura = () => {
+        if (ocupada) sessoes.getKey(id).onsuccess = proximaLeitura;
+      };
+      // A primeira leitura confirma que esta transação tem a vez. Leituras encadeadas
+      // mantêm a transação ativa, sem alterar a sessão nem depender de um atraso arbitrário.
+      sessoes.getKey(id).onsuccess = () => {
+        proximaLeitura();
+        resolve(() => { ocupada = false; });
+      };
+    };
+  }), id);
+  return async () => {
+    await liberar.evaluate(soltar => soltar());
+    await liberar.dispose();
+  };
+}
+
 test("a recarga offline mantém o intervalo avulso e a duração das séries seguintes", async ({ page, context }) => {
   test.slow(); // Duas recargas reais sem rede, intercaladas com a sincronização da sessão.
   const { conta, id } = await abrirTreinoAnterior(page, 4);
@@ -235,7 +264,13 @@ test("a recarga offline mantém o intervalo avulso e a duração das séries seg
   await context.setOffline(true);
   await escolherTempo(page, 90, true);
   await salvarTempo(page);
-  await page.getByRole("button", { name: "Tirar 20 segundos do descanso" }).click();
+  const liberar = await ocuparArmazenamentoDaSessao(page, id);
+  try {
+    await page.getByRole("button", { name: "Tirar 20 segundos do descanso" }).click();
+    expect(await timer(page).innerText(), "o prazo exibido continua sendo o último confirmado").toBe("1:30");
+  } finally {
+    await liberar();
+  }
   await expect(timer(page)).toHaveText("1:10");
   await semRedeNoWorker(worker);
   await page.reload();
@@ -274,6 +309,80 @@ test("a recarga offline mantém o intervalo avulso e a duração das séries seg
     const [sessao] = await lerDoMock<{ plano: PlanoDaSessao }>(conta, "sessions", `id=eq.${id}`);
     return sessao?.plano.descansos_por_exercicio;
   }).toBeUndefined();
+});
+
+test("os toques rápidos no descanso são gravados em ordem e o ajuste avulso permite tentar de novo", async ({ page, context }) => {
+  const { id } = await abrirTreinoAnterior(page, 4);
+  await esperarServiceWorker(page);
+  const worker = await workerDoApp(context);
+  await concluir(page);
+  await escolherTempo(page, 90, true);
+  await salvarTempo(page);
+  await semRedeNoWorker(worker);
+  await context.setOffline(true);
+  const somar = page.getByRole("button", { name: "Somar 20 segundos ao descanso" });
+  const tirar = page.getByRole("button", { name: "Tirar 20 segundos do descanso" });
+  const liberar = await ocuparArmazenamentoDaSessao(page, id);
+  try {
+    await somar.evaluate((b: HTMLButtonElement) => { b.click(); b.click(); });
+    await tirar.click();
+    expect(await timer(page).innerText()).toBe("1:30");
+  } finally {
+    await liberar();
+  }
+  await expect(timer(page)).toHaveText("1:50");
+
+  // Recusa a próxima escrita de um ajuste avulso, como um aparelho sem espaço.
+  await page.evaluate(() => {
+    const gravar = IDBObjectStore.prototype.put;
+    IDBObjectStore.prototype.put = function (...args) {
+      if (this.name === "sessaoAtiva" && args[0]?.dados?.player?.totalS === 55) {
+        IDBObjectStore.prototype.put = gravar;
+        throw new DOMException("Sem espaço para a sessão", "QuotaExceededError");
+      }
+      return gravar.apply(this, args);
+    };
+  });
+  await escolherTempo(page, 55, false);
+  await page.getByRole("button", { name: "Salvar", exact: true }).click();
+  await expect(page.getByRole("alert").filter({ hasText: "Não foi possível guardar o descanso." })).toBeVisible();
+  await expect(timer(page)).toHaveText("1:50");
+  await expect(tempo(page)).toHaveValue("55");
+  await salvarTempo(page);
+  await expect(timer(page)).toHaveText("0:55");
+  await semRedeNoWorker(worker);
+  await page.reload();
+  await expect(timer(page)).toHaveText("0:55");
+  await pular(page);
+  await concluir(page);
+  await expect(timer(page)).toHaveText("1:30");
+});
+
+test("corrigir e pular durante uma gravação respeitam o prazo confirmado e a próxima série", async ({ page }) => {
+  const { id } = await abrirTreinoAnterior(page, 4);
+  await concluir(page);
+  await escolherTempo(page, 90, true);
+  await salvarTempo(page);
+  const liberarSoma = await ocuparArmazenamentoDaSessao(page, id);
+  try {
+    await page.getByRole("button", { name: "Somar 20 segundos ao descanso" }).click();
+    await page.getByRole("button", { name: /^Corrigir a série/ }).click();
+  } finally {
+    await liberarSoma();
+  }
+  await page.getByRole("button", { name: "Série feita", exact: true }).click();
+  await expect(timer(page)).toHaveText("1:50");
+
+  const liberarReducao = await ocuparArmazenamentoDaSessao(page, id);
+  try {
+    await page.getByRole("button", { name: "Tirar 20 segundos do descanso" }).click();
+    await pular(page);
+  } finally {
+    await liberarReducao();
+  }
+  await expect(page.getByText("Série 2 de 4 · exercício 1 de 2", { exact: true })).toBeVisible();
+  await concluir(page);
+  await expect(timer(page)).toHaveText("1:30");
 });
 
 test("a transição, o outro exercício e a repetição do treino mantêm seus próprios descansos", async ({ page }) => {
