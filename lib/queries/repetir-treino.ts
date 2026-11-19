@@ -1,7 +1,7 @@
 "use client";
 
 import type { QueryClient } from "@tanstack/react-query";
-import { vinculoDoLoginAtual } from "@/lib/player-sem-rede";
+import { confirmarContaDoTreino } from "@/lib/queries/conta-do-treino";
 import { opcoesDeMontagem } from "@/lib/preferencias";
 import type { SessaoBruta } from "@/lib/progresso";
 import { chaves, type SessaoResumo } from "@/lib/queries/dados";
@@ -11,16 +11,6 @@ import { criarSessaoLivre, novoId, sessaoLocalMaisRecente } from "@/lib/queries/
 import { montarRepeticaoDoTreinoLivre } from "@/lib/repetir-treino-livre";
 import { clienteNavegador } from "@/lib/supabase/client";
 import type { LinhaPerfil } from "@/lib/types";
-
-async function confirmarConta(conta: string): Promise<void> {
-  const vinculo = await vinculoDoLoginAtual().catch(() => null);
-  if (vinculo?.conta === conta) return;
-  if (navigator.onLine !== false && !vinculo) {
-    const { data } = await clienteNavegador().auth.getSession();
-    if (data.session?.user.id === conta) return;
-  }
-  throw new Error("Não foi possível confirmar sua conta. Abra o relatório com conexão.");
-}
 
 async function sessaoAbertaParaRepeticao(cliente: QueryClient, conta: string) {
   const historico = [
@@ -62,13 +52,14 @@ export async function abrirRepeticaoDoTreino(
   if (!modelo) throw new Error("Este treino não tem um plano que possa ser repetido.");
 
   const conta = perfil.user_id;
-  await confirmarConta(conta);
+  const confirmar = () => confirmarContaDoTreino(conta, "Não foi possível confirmar sua conta. Abra o relatório com conexão.");
+  await confirmar();
   const aberta = await sessaoAbertaParaRepeticao(cliente, conta);
   const motor = aberta.id ? null : await lerMotorParaRepetir(
-    cliente, conta, modelo.itens.map(i => i.exercicioId), () => confirmarConta(conta),
+    cliente, conta, modelo.itens.map(i => i.exercicioId), confirmar,
   );
   // Uma troca de login em outra aba pode ocorrer enquanto as leituras estão em curso.
-  await confirmarConta(conta);
+  await confirmar();
   if (aberta.id) return { id: aberta.id, retomada: true };
 
   const id = novoId();

@@ -21,7 +21,7 @@ import {
   exercicioPorId,
   textoDoMotor,
 } from "@/lib/dados";
-import { itensDoPlano, planoDaSessao } from "@/lib/livre";
+import { itemDoExercicio, itemParaPlano, itensDoPlano, planoDaSessao } from "@/lib/livre";
 import { formatarKg, formatarNumero, rotuloDaCarga } from "@/lib/formato";
 import {
   alcancavelParaBaixo,
@@ -340,57 +340,56 @@ export function montarSessao(e: EntradaMontagem): SessaoLocal {
   });
 }
 
+export type DadosDoExercicioAcrescentado = Pick<
+  EntradaMontagem, "estados" | "estadoConhecido" | "conhecidos" | "anteriores" | "recordes" | "novoId"
+>;
+
+function montarBloco(
+  item: ItemDaSessao, ordem: number, dados: DadosDoExercicioAcrescentado,
+  opcoes: OpcoesMontagem, podeAquecer: boolean,
+): BlocoLocal {
+  const exercicio = acharExercicio(item.exercicioId);
+  const prescricao = item.prescricao;
+  const estado = dados.estados?.[exercicio.id] ?? null;
+  const alvo = cargaDeHoje(exercicio, estado, prescricao, opcoes);
+  const novoId = dados.novoId ?? idPadrao;
+  const series = podeAquecer && exercicio.categoria === "composto_pesado"
+    ? seriesDeAquecimento(exercicio, alvo, opcoes, novoId) : [];
+  for (let s = 1; s <= prescricao.series; s++) {
+    series.push(serieDeTrabalho(s, alvo, prescricao, novoId));
+  }
+
+  const rec = dados.recordes?.[exercicio.id];
+  return {
+    ordem,
+    exercicioId: exercicio.id,
+    originalId: exercicio.id,
+    substituido: false,
+    prescricao,
+    descansoS: item.descansoS,
+    descansoTexto: item.descansoTexto,
+    alvo,
+    estado,
+    estadoConhecido: dados.conhecidos ? dados.conhecidos.has(exercicio.id) : dados.estadoConhecido !== false,
+    seriesAnteriores: dados.anteriores?.[exercicio.id] ?? null,
+    recordeCarga: rec?.carga_max_kg ?? null,
+    recordeReps: rec?.reps_max ?? null,
+    recordeE1rm: rec?.e1rm_epley ?? null,
+    series,
+    ultimaFirme: null,
+    nota: null,
+  };
+}
+
 /** A mesma montagem, com os exercícios vindo de fora do programa (§3.4). */
 export function montarSessaoAvulsa(e: EntradaAvulsa): SessaoLocal {
-  const novoId = e.novoId ?? idPadrao;
   const opcoes = e.opcoesMontagem ?? {};
-  const estados = e.estados ?? {};
-  const anteriores = e.anteriores ?? {};
-  const recordes = e.recordes ?? {};
   const agora = e.agora ?? new Date().toISOString();
-
   let aquecimentoUsado = false;
-
   const blocos = e.itens.map((item, i) => {
-    const exercicio = acharExercicio(item.exercicioId);
-    const prescricao = item.prescricao;
-    const estado = estados[exercicio.id] ?? null;
-    const alvo = cargaDeHoje(exercicio, estado, prescricao, opcoes);
-
-    const series: SerieLocal[] = [];
-    if (!aquecimentoUsado && exercicio.categoria === "composto_pesado") {
-      const aquece = seriesDeAquecimento(exercicio, alvo, opcoes, novoId);
-      if (aquece.length > 0) {
-        series.push(...aquece);
-        aquecimentoUsado = true;
-      }
-    }
-    for (let s = 1; s <= prescricao.series; s++) {
-      series.push(serieDeTrabalho(s, alvo, prescricao, novoId));
-    }
-
-    const rec = recordes[exercicio.id];
-    return {
-      ordem: i + 1,
-      exercicioId: exercicio.id,
-      originalId: exercicio.id,
-      substituido: false,
-      prescricao,
-      descansoS: item.descansoS,
-      descansoTexto: item.descansoTexto,
-      alvo,
-      estado,
-      estadoConhecido: e.conhecidos
-        ? e.conhecidos.has(exercicio.id)
-        : e.estadoConhecido !== false,
-      seriesAnteriores: anteriores[exercicio.id] ?? null,
-      recordeCarga: rec?.carga_max_kg ?? null,
-      recordeReps: rec?.reps_max ?? null,
-      recordeE1rm: rec?.e1rm_epley ?? null,
-      series,
-      ultimaFirme: null,
-      nota: null,
-    } satisfies BlocoLocal;
+    const bloco = montarBloco(item, i + 1, e, opcoes, !aquecimentoUsado);
+    if (bloco.series[0]?.tipo === "aquecimento") aquecimentoUsado = true;
+    return bloco;
   });
 
   const sessao: SessaoLocal = {
@@ -531,6 +530,34 @@ export function reconstruirSessao(
 }
 
 /* ------------------------------------------------------ mexer na sessão */
+
+/** Cada movimento já vinculado a uma posição pertence a ela, inclusive depois de uma troca. */
+export function exerciciosOcupadosNaSessao(sessao: SessaoLocal): Set<string> {
+  return new Set(sessao.blocos.flatMap(bloco => [
+    bloco.originalId, bloco.exercicioId, ...(bloco.trocados ?? []).map(anterior => anterior.exercicioId),
+  ]));
+}
+
+export function acrescentarExercicioNaSessao(
+  sessao: SessaoLocal, exercicioId: string, motor: DadosDoExercicioAcrescentado,
+): SessaoLocal {
+  if (sessao.workoutId !== "livre" || sessao.status !== "em_andamento") return sessao;
+  const exercicio = exercicioPorId.get(exercicioId);
+  if (!exercicio || exerciciosOcupadosNaSessao(sessao).has(exercicioId)) return sessao;
+
+  const item = itemDoExercicio(exercicio);
+  const jaAqueceu = sessao.blocos.some(bloco => [bloco, ...(bloco.trocados ?? [])]
+    .some(registro => registro.series.some(serie => serie.tipo === "aquecimento")));
+  const ordem = sessao.blocos.length + 1;
+  const dados = { ...motor, estadoConhecido: motor.estadoConhecido ?? false };
+  const bloco = montarBloco(item, ordem, dados, sessao.opcoesMontagem, !jaAqueceu);
+  const plano = planoAtualOuDosBlocos(sessao);
+  return {
+    ...sessao,
+    blocos: [...sessao.blocos, bloco],
+    plano: { ...plano, itens: [...plano.itens, itemParaPlano(item)] },
+  };
+}
 
 function trocarBloco(
   sessao: SessaoLocal,

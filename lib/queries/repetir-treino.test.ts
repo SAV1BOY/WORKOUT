@@ -8,12 +8,19 @@ import type { SessaoBruta } from "@/lib/progresso";
 import { chaves } from "@/lib/queries/dados";
 import { lerMotorParaRepetir } from "@/lib/queries/motor-repetir-treino";
 import { abrirRepeticaoDoTreino } from "@/lib/queries/repetir-treino";
-import type { SessaoLocal } from "@/lib/sessao";
+import {
+  acrescentarExercicioNaSessao, criarSessaoLivre, descarregarSessao, enviarPlanoDaTroca, finalizarSessao,
+  guardarDescansoDaSessao, guardarMaterialDaSessao, salvarSessaoLocal,
+} from "@/lib/queries/sessao";
+import {
+  definirEquipamentoDaSessao, definirNota, marcarSerie, substituirExercicio, type SessaoLocal,
+} from "@/lib/sessao";
 import { clienteNavegador } from "@/lib/supabase/client";
 import type { LinhaPerfil } from "@/lib/types";
 
 const locais = new Map<string, SessaoLocal>();
 let anterior = Promise.resolve();
+const put = vi.fn(async ({ id, dados }: { id: string; dados: SessaoLocal }) => locais.set(id, dados));
 vi.mock("@/lib/db", () => ({
   temIndexedDB: () => true,
   bd: () => ({
@@ -23,10 +30,13 @@ vi.mock("@/lib/db", () => ({
           first: async () => [...locais.values()].reverse().map(dados => ({ dados })).find(aceita),
         }),
       }) }),
-      put: async ({ id, dados }: { id: string; dados: SessaoLocal }) => locais.set(id, dados),
+      put,
+      get: async (id: string) => locais.has(id) ? { dados: locais.get(id) } : undefined,
+      delete: async (id: string) => locais.delete(id),
     },
     outbox: {},
-    transaction: (_modo: string, _ativas: unknown, _fila: unknown, operar: () => Promise<SessaoLocal>) => {
+    transaction: (_modo: string, ...args: unknown[]) => {
+      const operar = args.at(-1) as () => Promise<unknown>;
       const operacao = anterior.then(async () => {
         const copia = [...locais.entries()];
         try { return await operar(); } catch (erro) {
@@ -40,7 +50,8 @@ vi.mock("@/lib/db", () => ({
     },
   }),
 }));
-vi.mock("@/lib/outbox", () => ({ guardarNaFila: vi.fn(), processar: vi.fn() }));
+vi.mock("@/lib/outbox", () => ({ guardarNaFila: vi.fn(), processar: vi.fn(), esperarFila: async () => {} }));
+vi.mock("@/lib/persistencia-query", () => ({ guardarConsultasAgora: async () => {} }));
 vi.mock("@/lib/supabase/client", () => ({ clienteNavegador: vi.fn() }));
 vi.mock("@/lib/player-sem-rede", () => ({ vinculoDoLoginAtual: vi.fn() }));
 vi.mock("@/lib/queries/motor-repetir-treino", () => ({ lerMotorParaRepetir: vi.fn() }));
@@ -143,5 +154,135 @@ describe("abertura do treino livre pelo Histórico", () => {
     sessao.mockRejectedValue(new Error("refresh sem rede"));
     await expect(abrir()).resolves.toMatchObject({ retomada: false });
     expect(sessao).not.toHaveBeenCalled();
+  });
+});
+
+describe("acrescentar ao treino livre que está no aparelho", () => {
+  const rosca = "rosca-com-elastico";
+  const remada = "remada-com-elastico";
+  const iniciar = () => criarSessaoLivre({
+    cliente: cache, userId: "ana", id: "aberta", data: hoje, fase: "fase1", exercicios: [rosca],
+  });
+  const incluir = (s: SessaoLocal, id: string) => acrescentarExercicioNaSessao(cache, s, id);
+  const fechar = (s: SessaoLocal) => finalizarSessao({ sessao: s, status: "concluida", cliente: cache });
+
+  it("serializa duas abas do mesmo aparelho, mantém os IDs e só enfileira os acréscimos distintos", async () => {
+    const s = await iniciar();
+    vi.stubGlobal("navigator", { onLine: false });
+    const [primeira, segunda] = await Promise.all([incluir(s, remada), incluir(s, remada)]);
+    expect(primeira.blocos[1]).toEqual(segunda.blocos[1]);
+    await incluir(s, "prancha");
+    expect(locais.get(s.id)!.blocos.map(b => b.exercicioId)).toEqual([rosca, remada, "prancha"]);
+    expect(guardarNaFila).toHaveBeenCalledTimes(3);
+    expect(guardarNaFila).toHaveBeenLastCalledWith("sessao", expect.objectContaining({
+      op: "update", filtro: { id: s.id, user_id: "ana", status: "em_andamento" },
+    }), "sessions:aberta");
+    expect(lerMotorParaRepetir).toHaveBeenCalledWith(cache, "ana", [remada], expect.any(Function));
+    expect(clienteNavegador().auth.getSession).not.toHaveBeenCalled();
+  });
+
+  it("uma aba antiga marca, troca e encerra sem perder a progressão, as séries ou as notas do bloco acrescentado", async () => {
+    const s = await iniciar();
+    const nova = await incluir(s, remada);
+    const bloco = nova.blocos[1]!;
+    const serie = bloco.series[0]!;
+    const comNota = definirNota(marcarSerie(nova, bloco.ordem, serie.id, true), bloco.ordem, "cotovelo junto");
+    salvarSessaoLocal(comNota, nova);
+    await guardarMaterialDaSessao(definirEquipamentoDaSessao(comNota, new Set(["tatame"])));
+    await guardarDescansoDaSessao(comNota, remada, 95);
+
+    const feita = marcarSerie(s, 1, s.blocos[0]!.series[0]!.id, true);
+    const substituida = substituirExercicio(feita, 1, "flexao-de-braco");
+    salvarSessaoLocal(substituida, s);
+    await descarregarSessao();
+    await enviarPlanoDaTroca(substituida);
+    const salva = locais.get(s.id)!;
+    expect(salva.blocos[1]).toEqual(comNota.blocos[1]);
+    expect(salva.plano).toMatchObject({
+      itens: [{ exercicio_id: rosca }, { exercicio_id: remada }],
+      equipamento_disponivel: ["tatame"], descansos_por_exercicio: { [remada]: 95 },
+    });
+    const planoEnviado = expect.objectContaining({
+      ...salva.plano, trocas: expect.objectContaining({ 1: expect.any(Array) }),
+    });
+    expect(guardarNaFila).toHaveBeenLastCalledWith("sessao", expect.objectContaining({ linha: { plano: planoEnviado } }), "sessions:aberta");
+
+    const conclusao = await fechar(substituida);
+    expect(conclusao.resultados.map(r => r.exercicioId)).toContain(remada);
+    expect(guardarNaFila).toHaveBeenCalledWith("serie", expect.objectContaining({
+      linha: expect.objectContaining({ id: serie.id, exercise_id: remada, concluida: true }),
+    }), "sessions:aberta");
+    expect(guardarNaFila).toHaveBeenCalledWith("sessao", expect.objectContaining({
+      linha: expect.objectContaining({ status: "concluida", notas: expect.stringContaining("cotovelo junto"), plano: planoEnviado }),
+    }), "sessions:aberta");
+    expect(locais.size).toBe(0);
+    await expect(incluir(s, "prancha")).rejects.toThrow("não está aberta");
+  });
+
+  it("o debounce de uma tela que acabou de adotar o novo bloco conserva a primeira edição nele", async () => {
+    const s = await iniciar();
+    const nova = await incluir(s, remada);
+    // Uma escrita da tela antiga aguardava o debounce quando a lista cresceu.
+    salvarSessaoLocal(definirNota(s, 1, "primeira"), s);
+    const marcada = marcarSerie(nova, 2, nova.blocos[1]!.series[0]!.id, true);
+    salvarSessaoLocal(definirNota(marcada, 1, "primeira"), nova);
+    await descarregarSessao();
+    expect(locais.get(s.id)!.blocos[0]!.nota).toBe("primeira");
+    expect(locais.get(s.id)!.blocos[1]!.series[0]).toMatchObject({ id: nova.blocos[1]!.series[0]!.id, concluida: true });
+  });
+
+  it("reverte o acréscimo se a fila não couber, permitindo tentar com os registros anteriores preservados", async () => {
+    const s = await iniciar();
+    const serie = s.blocos[0]!.series[0]!;
+    const feita = marcarSerie(s, 1, serie.id, true);
+    salvarSessaoLocal(feita, s);
+    vi.mocked(guardarNaFila).mockRejectedValueOnce(new Error("quota"));
+    await expect(incluir(s, remada)).rejects.toThrow("quota");
+    expect(locais.get(s.id)).toEqual(feita);
+    const nova = await incluir(s, remada);
+    expect(nova.blocos.map(b => b.exercicioId)).toEqual([rosca, remada]);
+    expect(nova.blocos[0]).toEqual(feita.blocos[0]);
+  });
+
+  it("uma falha no debounce conserva a nota e a série até a confirmação do fechamento conseguir gravá-las", async () => {
+    const s = await iniciar();
+    const feita = marcarSerie(s, 1, s.blocos[0]!.series[0]!.id, true);
+    const comNota = definirNota(feita, 1, "mesma carga");
+    salvarSessaoLocal(comNota, s);
+    put.mockRejectedValueOnce(new Error("quota"));
+    await descarregarSessao();
+    put.mockRejectedValueOnce(new Error("quota"));
+    await expect(fechar(s)).rejects.toThrow("quota");
+    expect(locais.get(s.id)).toEqual(s);
+    expect(guardarNaFila).toHaveBeenCalledTimes(1);
+    await fechar(s);
+    expect(guardarNaFila).toHaveBeenCalledWith("sessao", expect.objectContaining({
+      linha: expect.objectContaining({ status: "concluida", notas: expect.stringContaining("mesma carga") }),
+    }), "sessions:aberta");
+    expect(guardarNaFila).toHaveBeenCalledWith("serie", expect.objectContaining({
+      linha: expect.objectContaining({ id: feita.blocos[0]!.series[0]!.id, concluida: true }),
+    }), "sessions:aberta");
+  });
+
+  it("confere o material mais recente e permite repetir o toque em um exercício já incluído", async () => {
+    const s = await iniciar();
+    await incluir(s, remada);
+    await guardarMaterialDaSessao(definirEquipamentoDaSessao(s, new Set(["tatame"])));
+    const nAntes = vi.mocked(guardarNaFila).mock.calls.length;
+    expect((await incluir(s, remada)).blocos).toHaveLength(2);
+    await expect(incluir(s, "supino-reto-com-barra")).rejects.toThrow("equipamento");
+    expect(guardarNaFila).toHaveBeenCalledTimes(nAntes);
+  });
+
+  it("se outra aba encerra durante a leitura da carga, ou o login muda, não recria a sessão", async () => {
+    const s = await iniciar();
+    vi.mocked(lerMotorParaRepetir).mockImplementationOnce(async () => { login = "bia"; return {}; });
+    await expect(incluir(s, remada)).rejects.toThrow("confirmar a conta");
+    expect(locais.get(s.id)).toEqual(s);
+    login = "ana";
+    vi.mocked(lerMotorParaRepetir).mockImplementationOnce(async () => { await fechar(s); return {}; });
+    await expect(incluir(s, remada)).rejects.toThrow("não está aberta");
+    expect(locais.size).toBe(0);
+    expect(guardarNaFila).not.toHaveBeenCalledWith("sessao", expect.objectContaining({ op: "update" }), "sessions:aberta");
   });
 });

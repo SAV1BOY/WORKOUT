@@ -1,12 +1,11 @@
 "use client";
 
-import { Pencil, SkipForward, Timer } from "lucide-react";
+import { List, Pencil, SkipForward, Timer } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import { AnelDeContagem } from "@/components/player/anel";
 import { Miniatura } from "@/components/ui/miniatura";
 import { StepperNumerico } from "@/components/stepper-numerico";
 import { Button } from "@/components/ui/button";
-import { apitar, vibrar } from "@/lib/apito";
 import { acharExercicio } from "@/lib/dados";
 import { nomeAcessivel } from "@/lib/midia";
 import { formatarDuracao } from "@/lib/formato";
@@ -43,12 +42,12 @@ export function TelaDescanso({
   proximo,
   blocoDoProximo,
   serieDoProximo,
-  som,
-  vibracao,
   avancarSozinho,
   aviso = "",
   registrado,
   aoAbrirFicha,
+  aoAbrirLista,
+  botaoDaLista,
   aoCorrigir,
   aoSomar,
   aoDefinir,
@@ -65,8 +64,6 @@ export function TelaDescanso({
    * "3 × 5" sob "AQUECIMENTO 2 DE 2" era o defeito da auditoria do marco V2.
    */
   serieDoProximo: SerieLocal | null;
-  som: boolean;
-  vibracao: boolean;
   avancarSozinho: boolean;
   /**
    * "Série 2 de 3 registrada: …" (SPEC §22.5 item 10). Ele chega aqui porque
@@ -77,6 +74,8 @@ export function TelaDescanso({
   aviso?: string;
   registrado: string | null;
   aoAbrirFicha: () => void;
+  aoAbrirLista?: () => void;
+  botaoDaLista: (botao: HTMLButtonElement | null) => void;
   aoCorrigir: () => void;
   aoSomar: (segundos: number) => void;
   aoDefinir: (segundos: number) => void;
@@ -95,7 +94,6 @@ export function TelaDescanso({
   const emGravacao = useRef(false);
   const botaoEditar = useRef<HTMLButtonElement>(null);
   const editorId = useId();
-  const tocou = useRef<string | null>(null);
   const acabou = zerou(estado, agora);
   const falta = restanteS(estado, agora);
 
@@ -109,19 +107,6 @@ export function TelaDescanso({
   useEffect(() => {
     pular.current = aoPular;
   });
-
-  // o aviso toca uma vez por descanso (a chave muda a cada passo novo)
-  useEffect(() => {
-    if (!acabou || tocou.current === estado.chave) return;
-    tocou.current = estado.chave;
-    if (vibracao) vibrar();
-    if (som) apitar();
-  }, [acabou, estado.chave, som, vibracao]);
-
-  // "+20 s" depois de zerar faz o aviso valer de novo
-  useEffect(() => {
-    if (!acabou) tocou.current = null;
-  }, [acabou]);
 
   useEffect(() => {
     // O relógio pode zerar durante a edição. Aguarda a pessoa concluir antes de trocar a tela.
@@ -232,28 +217,37 @@ export function TelaDescanso({
       </p>
 
       <div className="flex w-full max-w-xs flex-col gap-2">
-        <button
-          ref={botaoEditar}
-          type="button"
-          aria-expanded={editando}
-          aria-controls={editando ? editorId : undefined}
-          aria-disabled={guardando}
-          onClick={() => {
-            if (emGravacao.current) return;
-            if (editando) {
-              fecharEditor();
-              return;
-            }
-            setNovoTempo(estado.totalS ?? 60);
-            setUsarNasProximas(false);
-            setErro("");
-            setEditando(true);
-          }}
-          className="alvo text-descanso-destaque flex items-center justify-center gap-1.5 text-sm underline underline-offset-4"
-        >
-          <Timer aria-hidden="true" className="size-4" />
-          Editar tempo de descanso
-        </button>
+        <div className="flex items-center justify-center gap-3">
+          <button
+            ref={botaoEditar}
+            type="button"
+            aria-expanded={editando}
+            aria-controls={editando ? editorId : undefined}
+            aria-disabled={guardando}
+            onClick={() => {
+              if (emGravacao.current) return;
+              if (editando) {
+                fecharEditor();
+                return;
+              }
+              setNovoTempo(estado.totalS ?? 60);
+              setUsarNasProximas(false);
+              setErro("");
+              setEditando(true);
+            }}
+            className="alvo text-descanso-destaque flex items-center justify-center gap-1.5 text-sm underline underline-offset-4"
+          >
+            <Timer aria-hidden="true" className="size-4" />
+            Editar tempo de descanso
+          </button>
+          {aoAbrirLista && !editando && (
+            <button type="button" ref={botaoDaLista} aria-label="Visão geral do treino"
+              onClick={aoAbrirLista} className="alvo text-descanso-destaque flex items-center justify-center gap-1.5 text-sm underline underline-offset-4">
+              <List className="size-4 shrink-0" aria-hidden="true" />
+              Visão geral
+            </button>
+          )}
+        </div>
         {proximasSeries?.segundos != null && (
           <p className="text-descanso-destaque text-center text-sm" role="status">
             {editando ? "Tempo salvo" : `Próximas séries de ${proximasSeries.exercicio}`} · {formatarDuracao(proximasSeries.segundos)}
