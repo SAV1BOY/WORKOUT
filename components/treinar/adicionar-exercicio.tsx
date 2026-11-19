@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, Undo2 } from "lucide-react";
 import { useRef, useState } from "react";
 import { EquipamentoDeHoje, nomeDoMaterial, type MaterialDoTreino } from "@/components/exercicio/equipamento-de-hoje";
 import { Button } from "@/components/ui/button";
@@ -9,28 +9,32 @@ import { Miniatura } from "@/components/ui/miniatura";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { equipamentosDaAlternativa } from "@/lib/alternativas";
 import { filtrarExercicios, opcoesDoCatalogo } from "@/lib/catalogo";
-import { exerciciosComVariacoes } from "@/lib/dados";
+import { acharExercicio, exerciciosComVariacoes } from "@/lib/dados";
 import { evitado, evitadosPorUltimo } from "@/lib/preferencias";
-import { MENSAGEM_EQUIPAMENTO_ALTERADO } from "@/lib/queries/sessao";
+import { MENSAGEM_EQUIPAMENTO_ALTERADO, MENSAGEM_INCLUSAO_ALTERADA } from "@/lib/queries/sessao";
 import type { Exercicio, Grupo } from "@/lib/schemas";
-import { exerciciosOcupadosNaSessao, type SessaoLocal } from "@/lib/sessao";
+import { exerciciosOcupadosNaSessao, ultimaInclusaoDesfazivel, type SessaoLocal } from "@/lib/sessao";
 import type { Prefs } from "@/lib/types";
 
 const { grupos } = opcoesDoCatalogo(exerciciosComVariacoes);
 
-export function AdicionarExercicio({ sessao, material, prefs, aoAdicionar }: {
+export function AdicionarExercicio({ sessao, material, prefs, aoAdicionar, aoDesfazer }: {
   sessao: SessaoLocal;
   material: MaterialDoTreino;
   prefs: Prefs;
   aoAdicionar: (id: string) => Promise<void>;
+  aoDesfazer: (idDaInclusao: string) => Promise<void>;
 }) {
   const [aberto, setAberto] = useState(false);
   const [busca, setBusca] = useState("");
   const [grupo, setGrupo] = useState<Grupo | "todos">("todos");
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState("");
+  const [erroAoDesfazer, setErroAoDesfazer] = useState("");
   const [aviso, setAviso] = useState("");
   const emGravacao = useRef(false);
+  const botaoAdicionar = useRef<HTMLButtonElement>(null);
+  const inclusao = ultimaInclusaoDesfazivel(sessao);
   const ocupados = exerciciosOcupadosNaSessao(sessao);
   const opcoes = aberto ? evitadosPorUltimo(
     filtrarExercicios(exerciciosComVariacoes, { busca, grupo }).filter(e => !ocupados.has(e.id)),
@@ -48,6 +52,7 @@ export function AdicionarExercicio({ sessao, material, prefs, aoAdicionar }: {
       setBusca("");
       setGrupo("todos");
       setErro("");
+      setErroAoDesfazer("");
       setAviso("");
     }
   }
@@ -70,11 +75,35 @@ export function AdicionarExercicio({ sessao, material, prefs, aoAdicionar }: {
     }
   }
 
+  async function desfazer() {
+    if (!inclusao || emGravacao.current) return;
+    emGravacao.current = true;
+    setSalvando(true);
+    setErroAoDesfazer("");
+    setAviso("");
+    try {
+      await aoDesfazer(inclusao.id);
+      setAviso(`Inclusão de ${acharExercicio(inclusao.exercicio_id).nome} desfeita.`);
+      botaoAdicionar.current?.focus();
+    } catch (falha) {
+      if (falha instanceof Error && falha.message === MENSAGEM_INCLUSAO_ALTERADA) {
+        setErroAoDesfazer(MENSAGEM_INCLUSAO_ALTERADA);
+        botaoAdicionar.current?.focus();
+      } else {
+        setErroAoDesfazer("Não foi possível desfazer a inclusão. Tente de novo.");
+      }
+    } finally {
+      emGravacao.current = false;
+      setSalvando(false);
+    }
+  }
+
   return (
     <div>
       <Sheet open={aberto} onOpenChange={mudarAberto}>
         <SheetTrigger asChild>
-          <Button type="button" variant="outline" className="alvo w-full">
+          <Button ref={botaoAdicionar} type="button" variant="outline" className="alvo w-full"
+            aria-disabled={salvando} onClick={e => { if (emGravacao.current) e.preventDefault(); }}>
             <Plus aria-hidden="true" /> Adicionar exercício
           </Button>
         </SheetTrigger>
@@ -133,6 +162,13 @@ export function AdicionarExercicio({ sessao, material, prefs, aoAdicionar }: {
         </SheetContent>
       </Sheet>
       <p role="status" className="text-muted-foreground text-sm empty:hidden">{aviso}</p>
+      {erroAoDesfazer && <p role="alert" className="text-destructive text-sm">{erroAoDesfazer}</p>}
+      {inclusao && (
+        <Button type="button" variant="ghost" aria-disabled={salvando} onClick={() => void desfazer()}
+          className="alvo h-auto max-w-full justify-start py-2 text-left whitespace-normal">
+          <Undo2 aria-hidden="true" /> Desfazer inclusão de {acharExercicio(inclusao.exercicio_id).nome}
+        </Button>
+      )}
     </div>
   );
 }

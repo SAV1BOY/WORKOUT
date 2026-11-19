@@ -20,7 +20,7 @@ import {
   itensNaOrdem,
   planoDaSessao,
 } from "@/lib/livre";
-import { alvoDaEscrita, enfileirarEscrita, type EscritaTabela } from "@/lib/outbox-supabase";
+import { alvoDaEscrita, type EscritaTabela } from "@/lib/outbox-supabase";
 import type { EstadoPlayer } from "@/lib/player";
 import { guardarConsultasAgora } from "@/lib/persistencia-query";
 import { esperarFila, guardarNaFila, pendentes, processar } from "@/lib/outbox";
@@ -30,10 +30,12 @@ import { lerMotorParaRepetir } from "@/lib/queries/motor-repetir-treino";
 import { chaves, type SessaoResumo } from "@/lib/queries/dados";
 import {
   acrescentarExercicioNaSessao as acrescentarBloco,
+  bloquearDesfazerSeIniciado,
   comSubstituicoes,
   concluirSessao,
   definirDescansoDoExercicioNaSessao,
   definirEquipamentoDaSessao,
+  desfazerUltimaInclusao,
   escritaDaSerie,
   escritasDasSeriesFeitas,
   escritaDaSessao,
@@ -47,7 +49,6 @@ import {
   type Conclusao,
   type EntradaAvulsa,
   type EntradaMontagem,
-  type Escrita,
   type ItemDaSessao,
   type SerieLocal,
   type SessaoLocal,
@@ -90,6 +91,18 @@ function preservarPlanoSalvo(
     if (persistido?.equipamento_disponivel) atualizado.equipamento_disponivel = persistido.equipamento_disponivel;
     else delete atualizado.equipamento_disponivel;
   }
+  const inclusao = persistido?.ultima_inclusao;
+  if (salva.workoutId === WORKOUT_LIVRE && inclusao) {
+    // Só os comandos atômicos de adicionar e desfazer podem mudar a lista ou o token da inclusão.
+    atualizado.itens = persistido.itens;
+    if (persistido.trocas) atualizado.trocas = persistido.trocas;
+    else delete atualizado.trocas;
+    const iniciou = base.ultima_inclusao?.id === inclusao.id && base.ultima_inclusao.estado === "iniciada";
+    atualizado.ultima_inclusao = iniciou && inclusao.estado === "disponivel"
+      ? { ...inclusao, estado: "iniciada" } : inclusao;
+    return atualizado;
+  }
+  delete atualizado.ultima_inclusao;
   if (salva.workoutId === WORKOUT_LIVRE && Array.isArray(persistido?.itens) &&
       Array.isArray(base.itens) && persistido.itens.length > base.itens.length) {
     atualizado.itens = persistido.itens;
@@ -104,14 +117,71 @@ function preservarPlanoSalvo(
   return atualizado;
 }
 
-/** Adota os IDs de série já confirmados no disco sem desfazer uma edição de tela posterior. */
+/** A troca pode criar novas séries pendentes, mas arquiva os registros do movimento anterior. */
+function blocosCompartilhamSeries(a: BlocoLocal | undefined, b: BlocoLocal | undefined): boolean {
+  if (!a || !b || a.originalId !== b.originalId) return false;
+  if (a === b) return true;
+  const ids = new Set([a, ...(a.trocados ?? [])].flatMap(bloco => bloco.series.map(serie => serie.id)));
+  return [b, ...(b.trocados ?? [])].some(bloco => bloco.series.some(serie => ids.has(serie.id)));
+}
+
+function comCamposEditados<T extends object>(gravado: T, base: T, editado: T): T {
+  const resultado = { ...gravado };
+  for (const campo of Object.keys(editado) as (keyof T)[]) {
+    if (editado[campo] !== base[campo]) resultado[campo] = editado[campo];
+  }
+  return resultado;
+}
+
+/** Um toque em reps, firme ou nota não sobrescreve as edições de outra aba no mesmo exercício. */
+function conciliarEdicaoDoBloco(gravado: BlocoLocal, base: BlocoLocal, editado: BlocoLocal): BlocoLocal {
+  if (gravado.exercicioId !== base.exercicioId || base === editado) return gravado;
+  if (editado.exercicioId !== base.exercicioId) {
+    // A troca arquiva um retrato inteiro do movimento. Só esse comando precisa comparar todo o bloco.
+    return JSON.stringify(gravado) === JSON.stringify(base) ? editado : gravado;
+  }
+  const bloco = comCamposEditados(gravado, base, editado);
+  if (base.series === editado.series) return bloco;
+  const antes = new Map(base.series.map(s => [s.id, s]));
+  const tocadas = new Map(editado.series.map(s => [s.id, s]));
+  bloco.series = gravado.series.flatMap(salva => {
+    const anterior = antes.get(salva.id);
+    if (!anterior) return [salva]; // Criada na outra aba.
+    const tocada = tocadas.get(salva.id);
+    if (tocada) return [comCamposEditados(salva, anterior, tocada)];
+    // O corte da prescrição só pode retirar uma série que continua intocada.
+    const mudou = (Object.keys(anterior) as (keyof SerieLocal)[]).some(k => anterior[k] !== salva[k]);
+    return salva.concluida || mudou ? [salva] : [];
+  });
+  for (const nova of editado.series) {
+    if (!antes.has(nova.id) && !bloco.series.some(s => s.tipo === nova.tipo && s.setIndex === nova.setIndex)) {
+      bloco.series.push(nova);
+    }
+  }
+  if (bloco.series.length !== gravado.series.length || bloco.series.length !== editado.series.length) {
+    bloco.prescricao = { ...bloco.prescricao, series: bloco.series.filter(s => s.tipo === "trabalho").length };
+  }
+  return bloco;
+}
+
+/** A lista confirmada no disco pode ter crescido, encolhido ou recebido o mesmo exercício com novos UUIDs. */
 export function conciliarBlocosAcrescentados(atual: SessaoLocal, salva: SessaoLocal): SessaoLocal {
-  if (atual.id !== salva.id || atual.userId !== salva.userId || atual.workoutId !== WORKOUT_LIVRE ||
-      atual.blocos.length >= salva.blocos.length) return atual;
+  if (atual.id !== salva.id || atual.userId !== salva.userId || atual.workoutId !== WORKOUT_LIVRE) return atual;
+  if (!salva.plano?.ultima_inclusao && atual.blocos.length >= salva.blocos.length) return atual;
+  const inclusaoAtual = atual.plano?.ultima_inclusao;
+  const inclusaoSalva = salva.plano?.ultima_inclusao;
+  const mesmaLista = inclusaoAtual && inclusaoAtual.id === inclusaoSalva?.id &&
+    (inclusaoAtual.estado === "desfeita") === (inclusaoSalva.estado === "desfeita");
+  const blocos = salva.blocos.map((gravado, i) => {
+    const bloco = atual.blocos[i];
+    return bloco && (mesmaLista || blocosCompartilhamSeries(bloco, gravado)) ? bloco : gravado;
+  });
+  const ordem = atual.player?.ordem;
+  const passoRemovido = ordem != null && (!blocos[ordem - 1] ||
+    (!mesmaLista && !blocosCompartilhamSeries(atual.blocos[ordem - 1], blocos[ordem - 1])));
   return {
-    ...atual,
-    plano: preservarPlanoSalvo(atual.plano, salva, true),
-    blocos: [...atual.blocos, ...salva.blocos.slice(atual.blocos.length)],
+    ...atual, blocos, plano: preservarPlanoSalvo(atual.plano, salva, true),
+    ...(passoRemovido ? { player: salva.player } : {}),
   };
 }
 
@@ -122,12 +192,14 @@ export function mesmoRelogio(a: SessaoLocal["player"], b: SessaoLocal["player"])
 async function gravar(sessao: SessaoLocal, antes?: SessaoLocal): Promise<void> {
   if (!temIndexedDB()) return;
   const banco = bd();
-  await banco.transaction("rw", banco.sessaoAtiva, async () => {
+  const mudouPlano = await banco.transaction("rw", banco.sessaoAtiva, banco.outbox, async () => {
     const salva = await carregarSessaoLocal(sessao.id);
     if (antes && (!salva || salva.status !== "em_andamento")) throw new Error("Esta sessão não está aberta neste aparelho.");
     if (salva && salva.userId !== sessao.userId) throw new Error("A sessão pertence a outra conta.");
+    // Uma reconstrução pela rede pode terminar depois que a cópia local já avançou.
+    if (!antes && salva?.plano?.ultima_inclusao) return false;
     const plano = antes && salva && sessao.plano === antes.plano ? salva.plano : preservarPlanoSalvo(sessao.plano, salva, true);
-    const nova = { ...sessao, plano };
+    const nova = { ...(salva ? conciliarBlocosAcrescentados(sessao, salva) : sessao), plano };
     // Só o editor altera esta nota. Um toque em uma série pode partir de uma aba com a versão anterior.
     if (salva?.notaGeral !== undefined) {
       nova.notaGeral = salva.notaGeral;
@@ -139,17 +211,27 @@ async function gravar(sessao: SessaoLocal, antes?: SessaoLocal): Promise<void> {
       }
       // Um toque pendente não volta a um passo ou exercício já trocado em outra aba.
       if (sessao.player === antes.player || !mesmoRelogio(antes.player, salva.player)) nova.player = salva.player;
-      nova.blocos = sessao.blocos.map(bloco => {
+      nova.blocos = nova.blocos.map(bloco => {
         const base = antes.blocos.find(b => b.ordem === bloco.ordem);
         const maisNovo = salva.blocos.find(b => b.ordem === bloco.ordem);
         if (!maisNovo) return bloco;
+        if (base && salva.plano?.ultima_inclusao) {
+          // Se a lista mudou, a conciliação já devolveu o bloco da geração atual.
+          if (bloco === maisNovo) return maisNovo;
+          return conciliarEdicaoDoBloco(maisNovo, base, bloco);
+        }
         if (base === bloco || maisNovo.exercicioId !== (base ?? bloco).exercicioId) return maisNovo;
         return bloco;
       });
     }
-    const completa = salva ? conciliarBlocosAcrescentados(nova, salva) : nova;
+    const completa = bloquearDesfazerSeIniciado(nova);
     await banco.sessaoAtiva.put({ id: sessao.id, dados: completa, atualizadoEm: Date.now() });
+    if (salva?.plano?.ultima_inclusao?.estado !== "disponivel" || completa.plano?.ultima_inclusao?.estado !== "iniciada") return false;
+    const escrita = escritaDoPlano(completa.id, completa.userId, planoParaGravar(completa));
+    await guardarNaFila("sessao", escrita, alvoDaEscrita(escrita));
+    return true;
   });
+  if (mudouPlano) void processar();
 }
 
 /** Guarda a sessão no aparelho. Não lança: o registro não pode sumir por erro. */
@@ -190,16 +272,6 @@ export async function apagarSessaoLocal(id: string): Promise<void> {
 }
 
 /* ------------------------------------------------------ fila de saída */
-
-async function enfileirar(tipo: TipoSaida, escrita: Escrita): Promise<void> {
-  await enfileirarEscrita(tipo, {
-    tabela: escrita.tabela,
-    op: escrita.op,
-    linha: escrita.linha,
-    onConflict: escrita.onConflict,
-    filtro: escrita.filtro,
-  });
-}
 
 const TIPO_POR_TABELA: Record<string, TipoSaida> = {
   sessions: "sessao",
@@ -390,16 +462,24 @@ function escritaDoPlano(id: string, userId: string, plano: PlanoDaSessao | null)
 }
 
 /** Releitura e enfileiramento na mesma transação mantêm a ordem em relação ao editor de descanso. */
-async function enfileirarComPlanoAtual(id: string, conta: string, escrita: EscritaTabela, manterMaterial: boolean): Promise<void> {
+async function enfileirarComPlanoAtual(id: string, conta: string, escrita: EscritaTabela, manterMaterial: boolean): Promise<SessaoLocal | null> {
   const banco = bd();
-  await banco.transaction("rw", banco.sessaoAtiva, banco.outbox, async () => {
+  const confirmada = await banco.transaction("rw", banco.sessaoAtiva, banco.outbox, async () => {
     const salva = await carregarSessaoLocal(id);
     if (salva && salva.userId !== conta) throw new Error("A sessão pertence a outra conta.");
-    const plano = preservarPlanoSalvo(escrita.linha?.plano as PlanoDaSessao | null, salva, manterMaterial);
+    // As trocas e a lista da sessão livre já foram conciliadas ao descarregar a edição de tela.
+    const recebido = escrita.linha?.plano as PlanoDaSessao | null;
+    let plano = preservarPlanoSalvo(recebido, salva, manterMaterial);
+    if (salva?.plano?.ultima_inclusao) {
+      plano = planoParaGravar(salva);
+      if (!manterMaterial && plano) plano = { ...plano, equipamento_disponivel: recebido?.equipamento_disponivel };
+    }
     const completa = { ...escrita, linha: { ...escrita.linha, plano } };
     await guardarNaFila("sessao", completa, alvoDaEscrita(completa));
+    return salva;
   });
   void processar();
+  return confirmada;
 }
 
 /** A fila ordena as edições do plano pelo mesmo ID da sessão. */
@@ -407,8 +487,9 @@ export async function gravarPlanoDaSessao(id: string, userId: string, plano: Pla
   await enfileirarComPlanoAtual(id, userId, escritaDoPlano(id, userId, plano), false);
 }
 
-export async function enviarPlanoDaSessao(sessao: SessaoLocal): Promise<void> {
-  await enfileirarComPlanoAtual(sessao.id, sessao.userId, escritaDoPlano(sessao.id, sessao.userId, planoParaGravar(sessao)), true);
+export async function enviarPlanoDaSessao(sessao: SessaoLocal): Promise<SessaoLocal | null> {
+  await confirmarToquesPendentes(sessao);
+  return enfileirarComPlanoAtual(sessao.id, sessao.userId, escritaDoPlano(sessao.id, sessao.userId, planoParaGravar(sessao)), true);
 }
 
 export { enviarPlanoDaSessao as enviarPlanoDaTroca };
@@ -589,13 +670,46 @@ export async function acrescentarExercicioNaSessao(
   }, undefined, conciliarBlocosAcrescentados);
 }
 
-/** Uma série concluída sobe sozinha (upsert por id: remarcar não duplica). */
-export async function enviarSerie(
-  sessao: SessaoLocal,
-  bloco: BlocoLocal,
-  serie: SerieLocal,
-): Promise<void> {
-  await enfileirar("serie", escritaDaSerie(sessao, bloco, serie));
+export const MENSAGEM_INCLUSAO_ALTERADA = "O treino mudou. Confira a lista antes de desfazer a inclusão.";
+
+export async function desfazerUltimaInclusaoNaSessao(sessao: SessaoLocal, identificador: string): Promise<SessaoLocal> {
+  await confirmarContaDoTreino(sessao.userId, "Não foi possível confirmar a conta deste treino.");
+  return guardarAjusteDoPlano(sessao, atual => {
+    const inclusao = atual.plano?.ultima_inclusao;
+    if (!inclusao || inclusao.sessao_id !== atual.id || inclusao.id !== identificador || atual.workoutId !== WORKOUT_LIVRE) throw new Error(MENSAGEM_INCLUSAO_ALTERADA);
+    if (inclusao.estado === "desfeita") return atual;
+    const desfeita = desfazerUltimaInclusao(atual, identificador);
+    if (desfeita === atual) throw new Error(MENSAGEM_INCLUSAO_ALTERADA);
+    return desfeita;
+  }, undefined, conciliarBlocosAcrescentados);
+}
+
+/** A série deve existir no mesmo bloco quando entra na fila, inclusive se outra aba desfez e reincluiu o exercício. */
+export async function enviarSerie(sessao: SessaoLocal, bloco: BlocoLocal, serie: SerieLocal): Promise<boolean> {
+  await confirmarToquesPendentes(sessao);
+  const banco = bd();
+  const enfileirada = await banco.transaction("rw", banco.sessaoAtiva, banco.outbox, async () => {
+    const salva = await carregarSessaoLocal(sessao.id);
+    if (!salva || salva.status !== "em_andamento" || salva.userId !== sessao.userId) return false;
+    const posicao = salva.blocos.find(b => b.ordem === bloco.ordem);
+    if (!posicao) return false;
+    const movimento = [posicao, ...(posicao.trocados ?? [])].find(b => b.exercicioId === bloco.exercicioId);
+    const registrada = movimento?.series.find(s => s.id === serie.id);
+    if (!movimento || !registrada) return false;
+    // Mesmo uma desmarcação deixa uma linha no servidor. A exclusão não pode passar depois dela.
+    const inclusao = salva.plano?.ultima_inclusao;
+    if (salva.plano && inclusao?.estado === "disponivel" && inclusao.ordem === bloco.ordem) {
+      const atual: SessaoLocal = { ...salva, plano: { ...salva.plano, ultima_inclusao: { ...inclusao, estado: "iniciada" } } };
+      await banco.sessaoAtiva.put({ id: atual.id, dados: atual, atualizadoEm: Date.now() });
+      const plano = escritaDoPlano(atual.id, atual.userId, planoParaGravar(atual));
+      await guardarNaFila("sessao", plano, alvoDaEscrita(plano));
+    }
+    const escrita = escritaDaSerie(salva, movimento, registrada);
+    await guardarNaFila("serie", escrita, alvoDaEscrita(escrita));
+    return true;
+  });
+  if (enfileirada) void processar();
+  return enfileirada;
 }
 
 /* -------------------------------------------------------------- fim */

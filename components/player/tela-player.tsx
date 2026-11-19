@@ -64,6 +64,7 @@ import { useHoje } from "@/lib/relogio";
 import {
   ajustarPrescricaoDaSessao,
   avisoDaTroca,
+  bloquearDesfazerSeIniciado,
   contadoresDaSessao,
   descansoPersonalizadoDaSessao,
   firmePadrao,
@@ -120,6 +121,7 @@ export function TelaPlayer({
   }, []);
   /** O que o leitor de tela ouve depois de gravar uma série (§22.5 item 10). */
   const [aviso, setAviso] = useState("");
+  const marcacaoEmCurso = useRef<symbol | null>(null);
   /**
    * SPEC §22.5 item 2: a gravação acontece ao ENTRAR na conclusão. "pendente"
    * é o estado de quem ainda não chegou lá (ou está gravando agora).
@@ -148,32 +150,34 @@ export function TelaPlayer({
 
   /* ------------------------------------------------- onde estamos */
 
-  // primeira carga: o passo salvo no aparelho, ou o que a sessão deixa retomar
-  useEffect(() => {
-    if (!sessao || estado !== null || seq.length === 0) return;
-    const salvo = sessao.player ?? null;
-    // a chave salva pode ter sumido (troca de exercício): `indiceDoEstado`
-    // acha o passo no mesmo exercício, e o efeito abaixo o anota (§22.16)
-    if (salvo) {
-      setEstado(salvo);
-      return;
-    }
-    setEstado(irPara(seq, indiceDeRetomada(seq, sessao), Date.now()));
-  }, [sessao, seq, estado]);
-
-  const indice = estado && sessao ? indiceDoEstado(seq, sessao, estado) : -1;
-  const passo = indice >= 0 ? seq[indice] : null;
-
   /** Anota o passo na sessão (Dexie) antes de qualquer animação (§8). */
   const guardar = useCallback(
     (novo: EstadoPlayer) => {
       setEstado(novo);
-      dados.mexer((atual: SessaoLocal) => ({ ...atual, player: novo }));
+      dados.mexer((atual: SessaoLocal) => bloquearDesfazerSeIniciado({ ...atual, player: novo }));
       // Recarregar logo após pular o descanso precisa retomar a série já aberta.
       void descarregarSessao();
     },
     [dados],
   );
+
+  // primeira carga: o passo salvo no aparelho, ou o que a sessão deixa retomar
+  useEffect(() => {
+    if (!sessao || estado !== null || seq.length === 0) return;
+    // a chave salva pode ter sumido (troca de exercício): `indiceDoEstado`
+    // acha o passo no mesmo exercício, e o efeito abaixo o anota (§22.16)
+    const passoInicial = sessao.player ?? irPara(seq, indiceDeRetomada(seq, sessao), Date.now());
+    const comPasso = { ...sessao, player: passoInicial };
+    if (bloquearDesfazerSeIniciado(comPasso) !== comPasso) guardar(passoInicial);
+    else setEstado(passoInicial);
+  }, [sessao, seq, estado, guardar]);
+
+  const indice = estado && sessao ? indiceDoEstado(seq, sessao, estado) : -1;
+  const passo = indice >= 0 ? seq[indice] : null;
+
+  useEffect(() => () => {
+    marcacaoEmCurso.current = null;
+  }, [sessao?.id, estado?.chave, visaoGeral]);
 
   const ir = useCallback(
     (destino: number) => guardar(irPara(seq, destino, Date.now())),
@@ -500,9 +504,8 @@ export function TelaPlayer({
             nome: acharExercicio(bloco.originalId).nome,
             escolher: () => dados.substituir(bloco, bloco.originalId),
           } : undefined}
-          aoSubstituir={(novo) => {
-            dados.substituir(bloco, novo);
-            if (novo !== bloco.exercicioId) setAviso(`Exercício escolhido: ${acharExercicio(novo).nome}.`);
+          aoSubstituir={async (novo) => {
+            if (await dados.substituir(bloco, novo)) setAviso(`Exercício escolhido: ${acharExercicio(novo).nome}.`);
           }}
         />
       )}
@@ -578,9 +581,17 @@ export function TelaPlayer({
           aviso={aviso}
           pedidoDeFoco={pedidoDeFoco}
           aoMudar={(campos) => dados.mudarSerie(bloco.ordem, serie.id, campos)}
-          aoConcluir={() => {
+          aoConcluir={async () => {
+            if (marcacaoEmCurso.current) return;
             const descanso = estado.descansoAoCorrigir;
-            if (!serie.concluida || descanso) dados.marcar(bloco.ordem, serie.id, true);
+            if (!serie.concluida || descanso) {
+              const pedido = Symbol();
+              marcacaoEmCurso.current = pedido;
+              const salvo = await dados.marcar(bloco.ordem, serie.id, true);
+              if (marcacaoEmCurso.current !== pedido) return;
+              marcacaoEmCurso.current = null;
+              if (!salvo) return;
+            }
             if (descanso && indiceDaChave(seq, descanso.chave) >= 0) {
               setAviso(textoDaSerieGravada(passo, bloco, serie, null));
               guardar(descanso);
@@ -632,6 +643,7 @@ export function TelaPlayer({
           estado={estado}
           agora={agora}
           proximo={proximo}
+          antesDoFeedback={alvo?.tipo === "feedback"}
           blocoDoProximo={blocoDoProximo}
           serieDoProximo={proximo ? serieDoPasso(sessao, proximo) : null}
           avancarSozinho={ligado(prefs, "avancar_sozinho") && ficha === null && !dados.ajustandoCronometro}
