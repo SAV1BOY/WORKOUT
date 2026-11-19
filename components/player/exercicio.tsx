@@ -206,9 +206,8 @@ export function TelaExercicio({
   return (
     <section
       aria-label={exercicio.nome}
-      /* pb-24: os controles são 72 px colados no rodapé (§22.1) — os 160 px
-         de antes reservavam também a barra de abas, que o player não tem */
-      className="flex flex-1 flex-col gap-3 pb-24"
+      /* Deixa a montagem alcançável ao rolar mesmo com a legenda do rodapé em duas linhas. */
+      className="flex flex-1 flex-col gap-3 pb-[calc(7rem+env(safe-area-inset-bottom,0px))]"
     >
       {/* SPEC §22.5 item 10: era a única rota do app sem `h1` */}
       <h1 className="sr-only">
@@ -661,37 +660,39 @@ export function ControlesDoPlayer({
     <div className="bg-card/95 border-border pb-segura fixed inset-x-0 bottom-0 z-30 border-t backdrop-blur">
       {/*
         SPEC §22.5 item 6: eram 8 px (`gap-2`) entre gravar a série e pulá-la
-        sem gravar. Agora são 24 px (`gap-6`) de cada lado do primário, e as
+        sem gravar. Agora são 24 px de cada lado do primário, e as
         setas descem para os 44 px padrão do projeto — o ✓ continua com 56 px
         e é o único alvo grande da barra.
       */}
-      <div className="mx-auto flex w-full max-w-lg items-center gap-6 px-3 py-2">
+      <div className="mx-auto flex w-full max-w-lg items-center gap-[24px] px-[12px] py-2">
         <Button
           variant="outline"
           size="icon"
-          className="alvo shrink-0 rounded-2xl"
+          className="alvo size-[44px] shrink-0 rounded-2xl"
           aria-label="Passo anterior"
           onClick={aoAnterior}
         >
-          <ChevronLeft className="size-6" />
+          <ChevronLeft className="size-[24px]" />
         </Button>
         <Button
           size="xl"
           /* SPEC §22.5 item 10: o nome acessível é o texto que está escrito */
-          className="alvo min-w-0 flex-1 rounded-2xl px-3 font-semibold"
+          className="alvo h-auto min-h-[max(56px,3.5rem)] min-w-0 flex-1 rounded-2xl px-2 py-1 font-semibold whitespace-normal"
           onClick={aoConcluir}
         >
-          <Check className="size-6" strokeWidth={3} />
-          {concluida ? "Série feita" : "Concluir série"}
+          <span className="min-w-0 wrap-anywhere">
+            <Check aria-hidden="true" className="mr-2 inline-block size-6 align-middle" strokeWidth={3} />
+            {concluida ? "Série feita" : "Concluir série"}
+          </span>
         </Button>
         <Button
           variant="outline"
           size="icon"
-          className="alvo shrink-0 rounded-2xl"
+          className="alvo size-[44px] shrink-0 rounded-2xl"
           aria-label="Próximo passo"
           onClick={aoProximo}
         >
-          <ChevronRight className="size-6" />
+          <ChevronRight className="size-[24px]" />
         </Button>
       </div>
     </div>

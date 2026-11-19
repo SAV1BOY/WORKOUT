@@ -13243,3 +13243,17 @@ Outro ponto confirmado na versão do #48 está em **Ficha do exercício → Hist
 Na conferência de histórico longo, 124 séries mais recentes de agachamento ocupavam toda a janela de 120 linhas. No #48, a segunda série do supino ficou sem comparação apesar de existir uma série anterior de 8 repetições com 22,5 kg. No candidato, essa série apareceu online e voltou a aparecer depois de fechar e reabrir o treino sem rede. O caminho habitual para um histórico curto continua usando uma consulta de séries.
 
 Na revisão intermediária `cd52546`, um treino livre foi concluído sem rede com 9 repetições de agachamento frontal a 31,5 kg. O Histórico exibiu essa série enquanto a fila aguardava envio. Ao tocar em **Repetir treino**, o novo player abriu sem a referência, embora a série continuasse no aparelho. Em outro teste, o Relatório já mostrava uma correção para 27,5 kg × 10 depois de enviar a fila, mas reabrir a repetição sem rede voltava a exibir 23,5 kg × 9. Os dois percursos ganharam testes de navegador.
+
+### Publicação da comparação com a série anterior
+
+O domínio público confirmou `34d7b66088afac3a1184d4be2c2ea981e5a6dd2c`, e a Vercel registrou a publicação como concluída. A integração tem a mesma árvore `4b55ffc906df6baabda4b8c817a7f33ddfa2ca10` da revisão aprovada `6d9d1ab`. O GitHub aprovou lint, build, 2.233 testes unitários em 115 arquivos e 797 cenários de navegador. Os quatro grupos executaram 212, 187, 211 e 187 cenários. Cinco cenários do player também passaram no Chromium local usando o mesmo binário preparado pelo GitHub. O pacote utilizou o esquema existente do banco. [PR #49](https://github.com/SAV1BOY/WORKOUT/pull/49) · [Suíte da revisão](https://github.com/SAV1BOY/WORKOUT/actions/runs/44536925170) · [Conferência da main](https://github.com/SAV1BOY/WORKOUT/actions/runs/44539812337)
+
+A nova sessão, aberta pelo Histórico ainda sem rede, mostrou o agachamento frontal de 31,5 kg × 9 que acabara de ser registrado. Depois da sincronização, uma correção para 27,5 kg × 10 confirmada pelo Relatório prevaleceu também na reabertura offline. Na atualização a partir do #48, as séries da própria conta voltaram a aparecer na posição correta, inclusive quando o mesmo exercício ocupava dois blocos da sessão.
+
+### Botão de concluir a série em tela pequena
+
+Em Chromium a 360 px com a fonte ampliada para 125%, o botão **Concluir série** media 160 px. O ícone e a legenda ocupavam cerca de 177 px. Em tema claro, parte do traço e da última letra ultrapassava o fundo laranja. As versões do #48 e do #49 apresentaram as mesmas medidas no player de remada unilateral.
+
+Em 320 px com a fonte a 200%, a primeira correção acomodou o texto, mas o rodapé ainda cobria cerca de 5 px da borda inferior de **Ver a montagem** na rolagem máxima. O teste percorre o treino do dia, verifica que o toque alcança essa borda e abre e fecha a montagem pelo teclado.
+
+Na versão corrigida, o botão ficou legível com a fonte ampliada em temas claro e escuro. As setas mantiveram alvos de 44 px, com 24 px entre elas e o botão principal. A 320 px e 200%, a última borda de **Ver a montagem** ficou cerca de 27 px acima do rodapé ao chegar ao fim da tela. Abrir a montagem com Enter e fechá-la com Escape devolveu o foco ao botão. A 360 × 740 com a fonte padrão, o primeiro quadro preservou as posições medidas no #49. Os três testes de regressão e outros seis cenários do player passaram no Chromium. [Testes dos controles do player](e2e/controles-do-player.spec.ts)
