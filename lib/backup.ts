@@ -51,7 +51,7 @@ export const COLUNAS_DA_TABELA: Record<TabelaBackup, string[]> = {
   sessions: [
     "id", "user_id", "data", "workout_id", "fase", "status", "iniciada_em",
     "concluida_em", "duracao_s", "semana_plano", "plano", "sensacao", "peso_corporal",
-    "notas",
+    "notas", "nota_geral",
   ],
   session_sets: [
     "id", "session_id", "user_id", "exercise_id", "ordem_ex", "set_index",
@@ -286,6 +286,11 @@ export interface EscritaDeImportacao {
   linhas: Linha[];
 }
 
+const COLUNA_DE_NOTA: Partial<Record<TabelaBackup, string>> = {
+  exercise_state: "nota_pessoal",
+  sessions: "nota_geral",
+};
+
 /**
  * Conserta (ou descarta) as duas colunas do backup que apontam para fora do
  * usuário. O resto da importação já força `user_id`, mas estas duas escapavam:
@@ -360,11 +365,12 @@ export function linhasParaImportar(
       linhas.push(limpa);
     }
 
-    // O PostgREST reúne as colunas de um upsert em lote. Uma linha de um
-    // backup antigo sem o campo não deve zerar a nota pessoal já existente.
-    const grupos = tabela === "exercise_state" ? [
-      linhas.filter((linha) => "nota_pessoal" in linha),
-      linhas.filter((linha) => !("nota_pessoal" in linha)),
+    // O PostgREST reúne as colunas de um upsert em lote. Separe as linhas
+    // antigas para que a ausência de nota no arquivo preserve a do destino.
+    const campoDeNota = COLUNA_DE_NOTA[tabela];
+    const grupos = campoDeNota ? [
+      linhas.filter((linha) => campoDeNota in linha),
+      linhas.filter((linha) => !(campoDeNota in linha)),
     ] : [linhas];
     for (const grupo of grupos) {
       if (grupo.length) escritas.push({ tabela, onConflict: CHAVE_DA_TABELA[tabela].join(","), linhas: grupo });

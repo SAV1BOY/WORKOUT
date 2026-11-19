@@ -63,7 +63,7 @@ export function HistoricoExercicio({
   const recordesQ = useRecordes(ids);
   const eventosQ = useEventos(ids);
   const seriesQ = useSeriesDoExercicio(exercicioId);
-  const sessoesQ = useSessoesTodas();
+  const sessoesQ = useSessoesTodas(perfilQ.data?.user_id ?? null);
 
   const porSessao = useMemo(
     () => datasDasSessoes(sessoesQ.data ?? []),

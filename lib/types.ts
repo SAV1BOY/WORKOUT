@@ -102,6 +102,7 @@ export interface LinhaSessao {
   sensacao: number | null;
   peso_corporal: number | null;
   notas: string | null;
+  nota_geral?: string | null;
   created_at?: string;
 }
 

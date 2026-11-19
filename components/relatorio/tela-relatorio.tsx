@@ -145,7 +145,7 @@ export function TelaRelatorio({ userId }: { userId: string }) {
    * leem a MESMA janela (tudo). O histórico e as sequências recortam as 26
    * semanas destas mesmas listas, sem uma segunda leitura.
    */
-  const sessoesQ = useSessoesTodas();
+  const sessoesQ = useSessoesTodas(userId);
   const seriesQ = useSeriesTodas();
   const cardioQ = useCardioTodos();
   /* SPEC §19.2: os Números e as conquistas contam desde o começo */
@@ -197,11 +197,11 @@ export function TelaRelatorio({ userId }: { userId: string }) {
 
   const comum = { abertas, montadas, aoAlternar: alternar };
 
-  if (falha?.error) {
-    return <Erro mensagem={falha.error.message} aoTentarDeNovo={() => {
-      for (const consulta of leituras) if (consulta.isError) void consulta.refetch();
-    }} />;
-  }
+  const avisoDeErro = falha?.error && <Erro mensagem={falha.error.message} aoTentarDeNovo={() => {
+    for (const consulta of leituras) if (consulta.isError) void consulta.refetch();
+  }} />;
+  const historicoDisponivel = Boolean(perfil && sessoesQ.data && (pronto || seriesQ.isPaused || falha));
+  if (avisoDeErro && !historicoDisponivel) return avisoDeErro;
 
   return (
     <section aria-label="Relatório" className="flex flex-col gap-3">
@@ -211,6 +211,7 @@ export function TelaRelatorio({ userId }: { userId: string }) {
           O que já foi feito e para onde a carga está indo.
         </p>
       </header>
+      {avisoDeErro}
 
       <Secao
         {...comum}
@@ -310,7 +311,7 @@ export function TelaRelatorio({ userId }: { userId: string }) {
         titulo="Histórico"
         subtitulo="A semana marcada e a lista de tudo o que foi registrado."
       >
-        {pronto && hoje && perfil ? (
+        {hoje && perfil && historicoDisponivel ? (
           <Historico
             hoje={hoje}
             perfil={perfil}

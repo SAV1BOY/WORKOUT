@@ -73,8 +73,8 @@ export interface Registro {
   motor: { subiu: number; repetiu: number; voltou: number } | null;
   /** Para onde o toque leva (o resumo da sessão). */
   href: string | null;
-  /** Dados do treino livre que originou esta linha do histórico. */
-  sessaoLivre?: SessaoBruta;
+  /** A sessão exata para anotar ou repetir esta linha, inclusive em dias com dois treinos. */
+  sessaoDeForca?: SessaoBruta;
 }
 
 export interface EventoDeSessao {
@@ -148,7 +148,7 @@ export function registros({
   const deForca: Registro[] = sessoes
     .filter((s) => s.status === "concluida" && dentro(s.data))
     .map((s) => {
-      const n = contarSeries(series, s.id);
+      const n = s.seriesDeTrabalhoLocais ?? contarSeries(series, s.id);
       const duracao = s.duracao_s
         ? formatarMinutos(Math.round(s.duracao_s / 60))
         : null;
@@ -162,7 +162,7 @@ export function registros({
           .join(" · "),
         motor: contarMotor(eventos, s.id),
         href: `/treinar/${s.id}`,
-        ...(ehSessaoLivre(s.workout_id) ? { sessaoLivre: s } : {}),
+        sessaoDeForca: s,
       };
     });
 

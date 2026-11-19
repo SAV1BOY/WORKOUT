@@ -8,16 +8,21 @@ import { vinculoDoLoginAtual } from "@/lib/player-sem-rede";
 import { guardarNaFila, processar } from "@/lib/outbox";
 import { enviarItem, type EscritaTabela } from "@/lib/outbox-supabase";
 import { criarSessaoComEquipamentoDoDia } from "@/lib/queries/comecar";
-import { descarregarSessao, enviarPlanoDaTroca, finalizarSessao, guardarCronometroDaSessao, guardarDescansoDaSessao, guardarMaterialDaSessao, salvarSessaoLocal } from "@/lib/queries/sessao";
-import { definirEquipamentoDaSessao, descansoPersonalizadoDaSessao, marcarSerie, substituirExercicio, type SessaoLocal } from "@/lib/sessao";
+import { descarregarSessao, enviarPlanoDaTroca, finalizarSessao, guardarCronometroDaSessao, guardarDescansoDaSessao, guardarMaterialDaSessao, guardarNotaGeralDaSessao, salvarSessaoLocal, sincronizarNotaGeralDaSessao } from "@/lib/queries/sessao";
+import { definirEquipamentoDaSessao, definirNota, descansoPersonalizadoDaSessao, marcarSerie, substituirExercicio, type SessaoLocal } from "@/lib/sessao";
 import { clienteNavegador } from "@/lib/supabase/client";
 
 const locais = new Map<string, SessaoLocal>();
+const consultas = new Map<string, unknown>();
+const filaDeNotas: { payload: EscritaTabela }[] = [];
 const rascunhos = new Map<string, string>();
 const antesDeGravar = vi.fn(async () => {});
 let anterior = Promise.resolve();
-vi.mock("@/lib/db", () => ({ temIndexedDB: () => true, bd: () => ({
-  outbox: {},
+vi.mock("@/lib/db", () => ({ temIndexedDB: () => true, lerCache: async (chave: string) => consultas.get(chave) ?? null, bd: () => ({
+  cache: { put: async ({ chave, valor }: { chave: string; valor: unknown }) => consultas.set(chave, valor) },
+  outbox: { where: () => ({ equals: () => ({
+    filter: (aceita: (item: { payload: EscritaTabela }) => boolean) => ({ first: async () => filaDeNotas.find(aceita) }),
+  }) }) },
   sessaoAtiva: {
     put: async ({ id, dados }: { id: string; dados: SessaoLocal }) => {
       await antesDeGravar();
@@ -44,13 +49,15 @@ vi.mock("@/lib/outbox", () => ({
   guardarNaFila: vi.fn(), enfileirar: vi.fn(), processar: vi.fn(), esperarFila: () => Promise.resolve(),
 }));
 vi.mock("@/lib/player-sem-rede", () => ({ vinculoDoLoginAtual: vi.fn() }));
-vi.mock("@/lib/persistencia-query", () => ({ guardarConsultasAgora: vi.fn().mockResolvedValue(undefined) }));
+vi.mock("@/lib/persistencia-query", () => ({ lerConsultaGuardada: async () => undefined, guardarConsultasAgora: vi.fn().mockResolvedValue(undefined) }));
 vi.mock("@/lib/supabase/client", () => ({ clienteNavegador: vi.fn() }));
 const dia = "2026-11-19";
 const entrada = () => ({ id: "sessao", userId: "ana", data: dia, treinoId: "A1", fase: "fase1", cliente: new QueryClient() } as const);
 
 beforeEach(() => {
   locais.clear();
+  consultas.clear();
+  filaDeNotas.length = 0;
   rascunhos.clear();
   vi.mocked(vinculoDoLoginAtual).mockResolvedValue({ conta: "ana", url: "http://localhost", chave: "simulada", impressao: "confirmada" });
   vi.stubGlobal("window", { localStorage: {
@@ -161,6 +168,124 @@ async function emDescanso() {
   locais.set(aberta.id, aberta);
   return { aberta, bloco, player, novo: { ...player, totalS: 90, fimEm: 108_000 } };
 }
+
+describe("nota geral da sessão aberta", () => {
+  it("confirma somente a edição no treino certo e mantém as séries e notas dos exercícios", async () => {
+    const aberta = await criarSessaoComEquipamentoDoDia(entrada());
+    const outroTreino = await criarSessaoComEquipamentoDoDia({ ...entrada(), id: "outro" });
+    const comSerie = marcarSerie(aberta, 1, aberta.blocos[0]!.series[0]!.id, true);
+    salvarSessaoLocal(definirNota(comSerie, 1, "degrau · azul"), aberta);
+    const salva = await guardarNotaGeralDaSessao(aberta, "  Dormi bem.\nTreino curto.  ");
+    expect(salva.notaGeral).toBe("Dormi bem.\nTreino curto.");
+    expect(salva.blocos[0]?.series[0]?.concluida).toBe(true);
+    expect(salva.blocos[0]?.nota).toBe("degrau · azul");
+    expect(locais.get(outroTreino.id)).not.toHaveProperty("notaGeral");
+    expect(guardarNaFila).toHaveBeenLastCalledWith("sessao", {
+      tabela: "sessions", op: "update", linha: { nota_geral: salva.notaGeral }, filtro: { id: aberta.id, user_id: "ana" },
+    }, "sessions:sessao");
+    const resultado = await finalizarSessao({ sessao: aberta, status: "concluida", cliente: new QueryClient() });
+    const conclusao = resultado.escritas.find(e => e.tabela === "sessions")!.linha;
+    expect(conclusao?.notas).toContain("degrau · azul");
+    // Uma nota que outro aparelho já editou não pode ser substituída por fechar o treino.
+    expect(conclusao).not.toHaveProperty("nota_geral");
+    expect(consultas.get("historico-de-forca:ana")).toEqual([expect.objectContaining({
+      id: aberta.id, nota_geral: salva.notaGeral,
+    })]);
+  });
+
+  it("consulta a nota exata da conta ao reabrir uma sessão, recebe alterações e remoções do outro aparelho", async () => {
+    const aberta = await criarSessaoComEquipamentoDoDia(entrada());
+    let nota: string | null = "Feito cedo";
+    const fetch = vi.fn<typeof globalThis.fetch>(async url => {
+      expect(Object.fromEntries(new URL(String(url)).searchParams)).toEqual({
+        select: "nota_geral", id: "eq.sessao", user_id: "eq.ana", status: "eq.em_andamento",
+      });
+      return Response.json([{ nota_geral: nota }]);
+    });
+    vi.mocked(clienteNavegador).mockReturnValue(createClient("http://localhost", "mock-anon", { global: { fetch } }));
+    expect(await sincronizarNotaGeralDaSessao({ ...aberta, userId: "bia" })).toBeNull();
+    expect((await sincronizarNotaGeralDaSessao(aberta))?.notaGeral).toBe("Feito cedo");
+    nota = "Outro dia";
+    expect((await sincronizarNotaGeralDaSessao(aberta))?.notaGeral).toBe("Outro dia");
+    nota = null;
+    expect((await sincronizarNotaGeralDaSessao(aberta))?.notaGeral).toBeNull();
+    expect(locais.get(aberta.id)?.notaGeral).toBeNull();
+    expect(guardarNaFila).toHaveBeenCalledTimes(1);
+    locais.delete(aberta.id);
+    expect(await sincronizarNotaGeralDaSessao(aberta)).toBeNull();
+    expect(fetch).toHaveBeenCalledTimes(3);
+  });
+
+  it("ignora leitura com PATCH pendente e resposta atrasada, mesmo depois de editar e voltar ao mesmo texto", async () => {
+    const aberta = await criarSessaoComEquipamentoDoDia(entrada());
+    const base = await guardarNotaGeralDaSessao(aberta, "Hoje");
+    const fetch = vi.fn<typeof globalThis.fetch>(async () => {
+      const outra = await guardarNotaGeralDaSessao(base, "Intermediária");
+      await guardarNotaGeralDaSessao(outra, "Hoje");
+      return Response.json([{ nota_geral: "Resposta antiga" }]);
+    });
+    vi.mocked(clienteNavegador).mockReturnValue(createClient("http://localhost", "mock-anon", { global: { fetch } }));
+    filaDeNotas.push({ payload: vi.mocked(guardarNaFila).mock.lastCall![1] as EscritaTabela });
+    expect(await sincronizarNotaGeralDaSessao(base)).toBeNull();
+    expect(fetch).not.toHaveBeenCalled();
+    filaDeNotas.length = 0;
+    expect(await sincronizarNotaGeralDaSessao(base)).toBeNull();
+    expect(locais.get(aberta.id)?.notaGeral).toBe("Hoje");
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("conserva a nota e a remoção confirmada ao gravar o toque atrasado de outra aba", async () => {
+    const aberta = await criarSessaoComEquipamentoDoDia(entrada());
+    const salva = await guardarNotaGeralDaSessao(aberta, "Menos tempo");
+    salvarSessaoLocal({ ...aberta, sensacao: 4 }, aberta);
+    await descarregarSessao();
+    expect(locais.get(aberta.id)).toMatchObject({ notaGeral: "Menos tempo", sensacao: 4 });
+    await expect(guardarNotaGeralDaSessao(aberta, "Da tela antiga")).rejects.toThrow("Cancele a edição");
+    expect(await guardarNotaGeralDaSessao(aberta, "Menos tempo")).toMatchObject({ notaGeral: "Menos tempo" });
+    await guardarNotaGeralDaSessao(salva, "   ");
+    salvarSessaoLocal({ ...salva, sensacao: 2 });
+    await descarregarSessao();
+    expect(locais.get(aberta.id)).toMatchObject({ notaGeral: null, sensacao: 2 });
+    expect(guardarNaFila).toHaveBeenLastCalledWith("sessao", expect.objectContaining({ linha: { nota_geral: null } }), "sessions:sessao");
+    expect(guardarNaFila).toHaveBeenCalledTimes(3); // criação e duas edições distintas
+  });
+
+  it("recusa a conta errada e a sessão encerrada, reverte uma falha na fila e permite tentar de novo", async () => {
+    const aberta = await criarSessaoComEquipamentoDoDia(entrada());
+    await expect(guardarNotaGeralDaSessao({ ...aberta, userId: "bia" }, "outra")).rejects.toThrow("confirmar a conta");
+    vi.mocked(guardarNaFila).mockRejectedValueOnce(new Error("quota"));
+    await expect(guardarNotaGeralDaSessao(aberta, "mesmo texto")).rejects.toThrow("quota");
+    expect(locais.get(aberta.id)).not.toHaveProperty("notaGeral");
+    await guardarNotaGeralDaSessao(aberta, "mesmo texto");
+    expect(locais.get(aberta.id)?.notaGeral).toBe("mesmo texto");
+    locais.delete(aberta.id);
+    await expect(guardarNotaGeralDaSessao(aberta, "fechada")).rejects.toThrow("não está aberta");
+    expect(locais.size).toBe(0);
+  });
+
+  it("envia a edição offline após o fechamento por outro aparelho e espera o login correto", async () => {
+    const aberta = await criarSessaoComEquipamentoDoDia(entrada());
+    await guardarNotaGeralDaSessao(aberta, "Cedo");
+    const payload = vi.mocked(guardarNaFila).mock.lastCall![1] as EscritaTabela;
+    const remota = { status: "concluida", nota_geral: null };
+    const fetch = vi.fn<typeof globalThis.fetch>(async (url, init) => {
+      expect(Object.fromEntries(new URL(String(url)).searchParams)).toEqual({ id: "eq.sessao", user_id: "eq.ana" });
+      Object.assign(remota, JSON.parse(String(init?.body)));
+      return new Response(null, { status: 204 });
+    });
+    const cliente = createClient("http://localhost", "mock-anon", { global: { fetch } });
+    vi.mocked(clienteNavegador).mockReturnValue(cliente);
+    const getSession = vi.spyOn(cliente.auth, "getSession");
+    const item = { tipo: "sessao", payload, tentativas: 0, criadoEm: 0, proximaTentativa: 0 } as const;
+    for (const conta of ["bia", "ana"]) {
+      getSession.mockResolvedValue({ data: { session: { user: { id: conta } } as Session }, error: null });
+      if (conta === "bia") await expect(enviarItem(item)).rejects.toThrow("Aguardando a conta");
+      else await enviarItem(item);
+    }
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(remota).toEqual({ status: "concluida", nota_geral: "Cedo" });
+  });
+});
 
 describe("descanso da sessão no aparelho e na fila", () => {
   it("grava junto o relógio e o intervalo do exercício sem perder o material atualizado em outra aba", async () => {

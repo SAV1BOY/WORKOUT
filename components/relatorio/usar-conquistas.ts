@@ -42,7 +42,7 @@ export function useConquistas(opcoes?: {
 } {
   const cliente = useQueryClient();
   const perfilQ = usePerfil();
-  const sessoesQ = useSessoesTodas();
+  const sessoesQ = useSessoesTodas(perfilQ.data?.user_id ?? null);
   const seriesQ = useSeriesTodas();
   const cardiosQ = useCardioTodos();
   const soltasQ = useSoltasTodas();

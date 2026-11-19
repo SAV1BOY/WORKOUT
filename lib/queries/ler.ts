@@ -8,6 +8,8 @@ import { clienteNavegador } from "@/lib/supabase/client";
  * porque toda leitura do app trata o erro do mesmo jeito: a mensagem vai para
  * a tela, e a lista vazia é resposta legítima (usuário novo, semana sem nada).
  */
+export class FalhaDeRedeNaTabela extends Error {}
+
 export interface Resposta<T> {
   data: T | null;
   error: { message: string } | null;
@@ -55,10 +57,14 @@ export async function lerTabelaCompleta<T>(
     consulta = consulta.order(chave);
     if (depoisDe !== undefined) consulta = consulta.gt(chave, depoisDe);
 
-    const { data, error, count }: Resposta<(T & Record<string, unknown>)[]> & {
+    const { data, error, count, status }: Resposta<(T & Record<string, unknown>)[]> & {
+      status: number;
       count: number | null;
     } = await consulta;
-    if (error) throw new Error(`Não consegui carregar ${oQue}. ${error.message}`);
+    if (error) {
+      const mensagem = `Não consegui carregar ${oQue}. ${error.message}`;
+      throw status === 0 ? new FalhaDeRedeNaTabela(mensagem) : new Error(mensagem);
+    }
     if (!data?.length) {
       if (grupo && depoisDe !== undefined) {
         depoisDe = undefined;

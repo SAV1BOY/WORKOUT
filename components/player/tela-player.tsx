@@ -698,6 +698,9 @@ export function TelaPlayer({
       <>
         <h1 className="sr-only">{nomeDoTreino} — avaliação do treino</h1>
         <TelaFeedback
+          key={`${sessao.userId}:${sessao.id}`}
+          notaGeral={sessao.notaGeral}
+          aoGuardarNota={dados.guardarNotaGeral}
           sensacao={sessao.sensacao}
           aoEscolher={(valor) =>
             dados.mexer((atual) => ({ ...atual, sensacao: valor }))

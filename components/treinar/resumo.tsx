@@ -3,6 +3,7 @@
 import { Trophy } from "lucide-react";
 import { useState } from "react";
 import { StepperNumerico } from "@/components/stepper-numerico";
+import { NotaDoTreino } from "@/components/treinar/nota-do-treino";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -29,6 +30,8 @@ export function ResumoDoFim({
   duracaoS,
   seriesTexto,
   salvando,
+  notaGeral,
+  aoGuardarNota,
   aoSalvar,
 }: {
   aberto: boolean;
@@ -39,6 +42,8 @@ export function ResumoDoFim({
   duracaoS: number;
   seriesTexto: string;
   salvando: boolean;
+  notaGeral?: string | null;
+  aoGuardarNota: (texto: string, notaAoAbrir: string | null) => Promise<void>;
   aoSalvar: (dados: { sensacao: number | null; peso: number | null }) => void;
 }) {
   const [sensacao, setSensacao] = useState<number | null>(null);
@@ -188,18 +193,17 @@ export function ResumoDoFim({
           )}
         </section>
 
-        <div className="flex flex-col gap-2">
-          <Button
-            className="alvo h-14 w-full text-base font-semibold"
-            disabled={salvando}
-            onClick={() => aoSalvar({ sensacao, peso })}
-          >
-            {salvando ? "Salvando…" : "Salvar e voltar"}
-          </Button>
-          <Button variant="ghost" className="alvo" onClick={aoFechar} disabled={salvando}>
-            Voltar ao treino
-          </Button>
-        </div>
+        <NotaDoTreino valor={notaGeral} aoGuardar={aoGuardarNota} bloqueado={salvando}
+          aoConcluir={() => aoSalvar({ sensacao, peso })}>
+          <div className="flex flex-col gap-2">
+            <Button type="submit" className="alvo h-14 w-full text-base font-semibold">
+              {salvando ? "Salvando…" : "Salvar e voltar"}
+            </Button>
+            <Button type="button" variant="ghost" className="alvo" onClick={aoFechar}>
+              Voltar ao treino
+            </Button>
+          </div>
+        </NotaDoTreino>
       </DialogContent>
     </Dialog>
   );

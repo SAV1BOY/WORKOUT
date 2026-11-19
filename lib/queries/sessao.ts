@@ -24,6 +24,7 @@ import { alvoDaEscrita, enfileirarEscrita, type EscritaTabela } from "@/lib/outb
 import type { EstadoPlayer } from "@/lib/player";
 import { guardarConsultasAgora } from "@/lib/persistencia-query";
 import { esperarFila, guardarNaFila, pendentes, processar } from "@/lib/outbox";
+import { chaveDoHistorico, guardarConclusaoNoHistorico } from "@/lib/queries/historico-da-sessao";
 import { confirmarContaDoTreino } from "@/lib/queries/conta-do-treino";
 import { lerMotorParaRepetir } from "@/lib/queries/motor-repetir-treino";
 import { chaves, type SessaoResumo } from "@/lib/queries/dados";
@@ -39,6 +40,7 @@ import {
   itensDoTreino,
   montarSessao,
   montarSessaoAvulsa,
+  MENSAGEM_NOTA_GERAL_ALTERADA,
   notasDaSessao,
   planoParaGravar,
   type BlocoLocal,
@@ -52,6 +54,7 @@ import {
 } from "@/lib/sessao";
 import type { TipoSaida } from "@/lib/db";
 import type { PlanoDaSessao, StatusSessao } from "@/lib/types";
+import { clienteNavegador } from "@/lib/supabase/client";
 
 /** Id novo, gerado no cliente (SPEC §8). */
 export function novoId(): string {
@@ -125,6 +128,11 @@ async function gravar(sessao: SessaoLocal, antes?: SessaoLocal): Promise<void> {
     if (salva && salva.userId !== sessao.userId) throw new Error("A sessão pertence a outra conta.");
     const plano = antes && salva && sessao.plano === antes.plano ? salva.plano : preservarPlanoSalvo(sessao.plano, salva, true);
     const nova = { ...sessao, plano };
+    // Só o editor altera esta nota. Um toque em uma série pode partir de uma aba com a versão anterior.
+    if (salva?.notaGeral !== undefined) {
+      nova.notaGeral = salva.notaGeral;
+      nova.revisaoNotaGeral = salva.revisaoNotaGeral;
+    }
     if (salva && antes) {
       if (sessao.descansoPadraoConhecidoS === antes.descansoPadraoConhecidoS) {
         nova.descansoPadraoConhecidoS = salva.descansoPadraoConhecidoS;
@@ -340,7 +348,11 @@ type AlterarSessao = (atual: SessaoLocal) => SessaoLocal;
 
 async function gravarSessaoComSaida(
   sessao: SessaoLocal,
-  { alterar, retomarSeAberta }: { alterar?: AlterarSessao; retomarSeAberta?: { encerradas: ReadonlySet<string> } },
+  { alterar, escritaDaAlteracao, retomarSeAberta }: {
+    alterar?: AlterarSessao;
+    escritaDaAlteracao?: (atual: SessaoLocal) => EscritaTabela;
+    retomarSeAberta?: { encerradas: ReadonlySet<string> };
+  },
 ): Promise<SessaoLocal> {
   const banco = bd();
   const gravada = await banco.transaction("rw", banco.sessaoAtiva, banco.outbox, async () => {
@@ -358,7 +370,7 @@ async function gravarSessaoComSaida(
       }
       atual = alterar(salva);
       if (atual === salva) return salva;
-      escrita = escritaDoPlano(atual.id, atual.userId, planoParaGravar(atual));
+      escrita = escritaDaAlteracao ? escritaDaAlteracao(atual) : escritaDoPlano(atual.id, atual.userId, planoParaGravar(atual));
     } else {
       escrita = escritaDaSessao(atual);
     }
@@ -442,6 +454,59 @@ async function guardarAjusteDoPlano(
 export function guardarMaterialDaSessao(sessao: SessaoLocal): Promise<SessaoLocal> {
   const equipamento = equipamentoDaSessao(sessao);
   return guardarAjusteDoPlano(sessao, atual => definirEquipamentoDaSessao(atual, equipamento));
+}
+
+export { MENSAGEM_NOTA_GERAL_ALTERADA } from "@/lib/sessao";
+
+/** Confirma o texto exibido no editor e o seu envio na mesma transação do aparelho. */
+export async function guardarNotaGeralDaSessao(sessao: SessaoLocal, texto: string): Promise<SessaoLocal> {
+  const nota = texto.trim() || null;
+  await confirmarToquesPendentes(sessao);
+  await confirmarContaDoTreino(sessao.userId, "Não foi possível confirmar a conta deste treino.");
+  return gravarSessaoComSaida(sessao, {
+    alterar: salva => {
+      if ((salva.notaGeral ?? null) === nota) return salva;
+      if ((salva.notaGeral ?? null) !== (sessao.notaGeral ?? null)) throw new Error(MENSAGEM_NOTA_GERAL_ALTERADA);
+      return { ...salva, notaGeral: nota, revisaoNotaGeral: novoId() };
+    },
+    // Uma edição offline também pertence à sessão se outro aparelho a concluir antes da sincronização.
+    escritaDaAlteracao: atual => ({
+      tabela: "sessions", op: "update", linha: { nota_geral: nota }, filtro: { id: atual.id, user_id: atual.userId },
+    }),
+  });
+}
+
+/** Ao reabrir, incorpora uma edição de outro aparelho se a cópia local continua sem edição pendente. */
+export async function sincronizarNotaGeralDaSessao(sessao: SessaoLocal, sinal?: AbortSignal): Promise<SessaoLocal | null> {
+  if (navigator.onLine === false || !temIndexedDB()) return null;
+  const banco = bd();
+  const lerSemEdicaoPendente = async () => {
+    const salva = await carregarSessaoLocal(sessao.id);
+    if (salva?.userId !== sessao.userId || salva.status !== "em_andamento") return null;
+    const pendente = await banco.outbox.where("tipo").equals("sessao").filter(item => {
+      const p = item.payload as EscritaTabela;
+      return p.tabela === "sessions" && p.filtro?.id === sessao.id && p.filtro.user_id === sessao.userId &&
+        Object.hasOwn(p.linha ?? {}, "nota_geral");
+    }).first();
+    return pendente ? null : salva;
+  };
+  const base = await banco.transaction("r", banco.sessaoAtiva, banco.outbox, lerSemEdicaoPendente);
+  if (!base || sinal?.aborted) return null;
+  let consulta = clienteNavegador().from("sessions").select("nota_geral")
+    .eq("id", sessao.id).eq("user_id", sessao.userId).eq("status", "em_andamento");
+  if (sinal) consulta = consulta.abortSignal(sinal);
+  const { data, error } = await consulta.maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data || (data.nota_geral !== null && typeof data.nota_geral !== "string")) return null;
+  const nota: string | null = data.nota_geral;
+  return banco.transaction("rw", banco.sessaoAtiva, banco.outbox, async () => {
+    const atual = await lerSemEdicaoPendente();
+    if (!atual || sinal?.aborted || base.notaGeral !== atual.notaGeral || base.revisaoNotaGeral !== atual.revisaoNotaGeral) return null;
+    if (nota === (atual.notaGeral ?? null)) return atual;
+    const reconciliada = { ...atual, notaGeral: nota, revisaoNotaGeral: novoId() };
+    await banco.sessaoAtiva.put({ id: atual.id, dados: reconciliada, atualizadoEm: Date.now() });
+    return reconciliada;
+  });
 }
 
 export const MENSAGEM_CRONOMETRO_ALTERADO = "O descanso mudou. Reabra o treino para ver o tempo atual.";
@@ -552,7 +617,7 @@ export async function finalizarSessao(entrada: EntradaFim): Promise<Conclusao> {
   await confirmarToquesPendentes(sessao);
   // Um acréscimo simultâneo ou fica no treino que avaliamos, ou encontra o treino já encerrado.
   const banco = bd();
-  const conclusao = await banco.transaction("rw", banco.sessaoAtiva, banco.outbox, async () => {
+  const { conclusao, historico } = await banco.transaction("rw", banco.sessaoAtiva, banco.outbox, banco.cache, async () => {
     const salva = await carregarSessaoLocal(sessao.id);
     if (!salva || salva.userId !== sessao.userId || salva.status !== "em_andamento") {
       throw new Error("Esta sessão não está aberta nesta conta e aparelho.");
@@ -561,12 +626,16 @@ export async function finalizarSessao(entrada: EntradaFim): Promise<Conclusao> {
       ...salva, status, sensacao: sessao.sensacao, pesoCorporal: sessao.pesoCorporal, notas: notasDaSessao(salva),
     };
     const resultado = concluirSessao({ sessao: encerrada, agora, novoId });
-    for (const escrita of [...escritasDasSeriesFeitas(encerrada), ...resultado.escritas]) {
+    const series = escritasDasSeriesFeitas(encerrada);
+    for (const escrita of [...series, ...resultado.escritas]) {
       await guardarNaFila(TIPO_POR_TABELA[escrita.tabela] ?? "sessao", escrita, alvoDaEscrita(escrita));
     }
     await banco.sessaoAtiva.delete(sessao.id);
-    return resultado;
+    const deTrabalho = series.filter(s => s.linha?.tipo === "trabalho").length;
+    return { conclusao: resultado, historico: await guardarConclusaoNoHistorico(cliente, resultado, encerrada.notaGeral, deTrabalho) };
   });
+  await cliente.cancelQueries({ queryKey: chaveDoHistorico(sessao.userId), exact: true });
+  cliente.setQueryData(chaveDoHistorico(sessao.userId), historico);
   void processar();
 
   await cliente.cancelQueries({ queryKey: chaves.sessoesAbertas(), exact: true });

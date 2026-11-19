@@ -45,9 +45,12 @@ import {
   finalizarSessao,
   guardarCronometroDaSessao,
   guardarDescansoDaSessao,
+  guardarNotaGeralDaSessao,
   mesmoRelogio,
   MENSAGEM_CRONOMETRO_ALTERADO,
+  MENSAGEM_NOTA_GERAL_ALTERADA,
   salvarSessaoLocal,
+  sincronizarNotaGeralDaSessao,
   usePendentes,
 } from "@/lib/queries/sessao";
 import {
@@ -337,6 +340,34 @@ export function useSessaoDeTreino(sessaoId: string, userId: string) {
     void descarregarSessao();
   }, [descansoDaConta, idNoAparelho, mexer, sessaoId, userId]);
 
+  // A conta pode ter editado esta sessão em outro aparelho desde a última abertura.
+  useEffect(() => {
+    let consulta: AbortController | undefined;
+    function atualizarNota() {
+      const antes = ultima.current;
+      if (!navigator.onLine || antes?.id !== sessaoId || antes.userId !== userId || antes.status !== "em_andamento") return;
+      consulta?.abort();
+      consulta = new AbortController();
+      const { signal } = consulta;
+      void sincronizarNotaGeralDaSessao(antes, signal).then(salva => {
+        const atual = ultima.current;
+        if (signal.aborted || !salva || atual?.id !== sessaoId || atual.userId !== userId ||
+            atual.status !== "em_andamento" || atual.notaGeral !== antes.notaGeral ||
+            atual.revisaoNotaGeral !== antes.revisaoNotaGeral ||
+            (atual.notaGeral === salva.notaGeral && atual.revisaoNotaGeral === salva.revisaoNotaGeral)) return;
+        adotar({ ...atual, notaGeral: salva.notaGeral, revisaoNotaGeral: salva.revisaoNotaGeral });
+      }).catch(() => {
+        // Uma consulta sem rede ou sem espaço mantém a nota já disponível neste aparelho.
+      });
+    }
+    atualizarNota();
+    window.addEventListener("online", atualizarNota);
+    return () => {
+      consulta?.abort();
+      window.removeEventListener("online", atualizarNota);
+    };
+  }, [adotar, idNoAparelho, sessaoId, userId]);
+
   /**
    * Marcar uma série: grava no aparelho, manda para a fila e devolve o bloco e
    * a série que mudaram (quem chamou decide o que fazer com o descanso).
@@ -376,6 +407,35 @@ export function useSessaoDeTreino(sessaoId: string, userId: string) {
     (ordem: number, nota: string) => mexer((atual) => definirNota(atual, ordem, nota)),
     [mexer],
   );
+
+  const notaEmGravacao = useRef<Promise<void> | null>(null);
+  const guardarNotaGeral = useCallback(async (texto: string, notaAoAbrir: string | null) => {
+    const antes = ultima.current;
+    if (antes?.id !== sessaoId || antes.userId !== userId || antes.status !== "em_andamento" ||
+        notaEmGravacao.current || encerradaAntes || encerradaAqui === sessaoId) {
+      throw new Error("Este treino já não está disponível para editar a nota.");
+    }
+    if ((antes.notaGeral ?? null) !== notaAoAbrir) throw new Error(MENSAGEM_NOTA_GERAL_ALTERADA);
+    function adotarNota(salva: SessaoLocal) {
+      const atual = ultima.current;
+      if (atual?.id !== sessaoId || atual.userId !== userId || atual.status !== "em_andamento") return;
+      adotar({ ...atual, notaGeral: salva.notaGeral, revisaoNotaGeral: salva.revisaoNotaGeral });
+    }
+    const gravacao = guardarNotaGeralDaSessao(antes, texto).then(adotarNota, async (falha: unknown) => {
+      // O editor conserva o rascunho; ao cancelá-lo, passa a oferecer a nota que a outra aba gravou.
+      if (falha instanceof Error && falha.message === MENSAGEM_NOTA_GERAL_ALTERADA) {
+        const salva = await carregarSessaoLocal(sessaoId);
+        if (salva?.userId === userId && salva.status === "em_andamento") adotarNota(salva);
+      }
+      throw falha;
+    });
+    notaEmGravacao.current = gravacao;
+    try {
+      await gravacao;
+    } finally {
+      notaEmGravacao.current = null;
+    }
+  }, [adotar, sessaoId, userId, encerradaAntes, encerradaAqui]);
 
   // Cada toque parte do prazo que o toque anterior conseguiu gravar neste aparelho.
   const filaDoCronometro = useRef<Promise<void> | null>(null);
@@ -534,6 +594,7 @@ export function useSessaoDeTreino(sessaoId: string, userId: string) {
       try {
         // A conclusão reenvia o plano inteiro. Inclua a última escolha feita antes de fechar o treino.
         await aguardarMaterial?.();
+        await notaEmGravacao.current;
         await filaDoCronometro.current;
         await descansoEmGravacao.current?.catch(() => {});
         await adicaoEmGravacao.current?.catch(() => {});
@@ -661,6 +722,7 @@ export function useSessaoDeTreino(sessaoId: string, userId: string) {
     mudarSerie,
     mudarFirme,
     mudarNota,
+    guardarNotaGeral,
     mudarDescanso,
     ajustarCronometro,
     ajustandoCronometro,

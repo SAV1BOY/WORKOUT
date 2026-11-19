@@ -1,6 +1,8 @@
 import { stringToBase64URL } from "@supabase/ssr";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { correspondeAoCookie, guardarVinculoDoPlayer, vinculoDoLoginAtual, vinculoParaPlayerLocal } from "@/lib/player-sem-rede";
+import { correspondeAoCookie, guardarVinculoDoPlayer, vinculoDoLoginAtual, vinculoParaAbaLocal, vinculoParaPlayerLocal } from "@/lib/player-sem-rede";
+import { chaveDoHistoricoNoDisco } from "@/lib/chaves-do-historico";
+import { CHAVE_CACHE, VALIDADE_MS } from "@/lib/persistencia-query";
 import { idDoPlayerNoCaminho, impressaoDoLogin, type VinculoDoPlayer } from "@/lib/vinculo-do-player";
 
 const id = "b2194b1c-6fe1-4d09-b036-3d1d453d40d7";
@@ -33,6 +35,57 @@ beforeEach(() => {
   vi.stubGlobal("document", { cookie: "" });
 });
 afterEach(() => vi.unstubAllGlobals());
+
+describe("abas do aparelho quando falta o documento", () => {
+  function guardarPerfil(conta: string, salvoEm = Date.now()) {
+    disco.set(CHAVE_CACHE, { salvoEm, estado: { queries: [{
+      queryKey: ["perfil"], state: { data: { user_id: conta } },
+    }] } });
+  }
+
+  it("Treino exige perfil recente do mesmo login e Relatório exige também o histórico dessa conta", async () => {
+    document.cookie = cookie("login-a");
+    const vinculo = await confirmado("ana", "login-a");
+    await guardarVinculoDoPlayer(vinculo);
+    expect(await vinculoParaAbaLocal("/")).toBeNull();
+    guardarPerfil("bia");
+    expect(await vinculoParaAbaLocal("/")).toBeNull();
+    guardarPerfil("ana", Date.now() - VALIDADE_MS - 1);
+    expect(await vinculoParaAbaLocal("/")).toBeNull();
+    guardarPerfil("ana");
+    expect(await vinculoParaAbaLocal("/")).toEqual(vinculo);
+    disco.set(chaveDoHistoricoNoDisco("bia"), [{ user_id: "bia" }]);
+    expect(await vinculoParaAbaLocal("/relatorio")).toBeNull();
+    disco.set(chaveDoHistoricoNoDisco("ana"), [{ user_id: "bia" }]);
+    expect(await vinculoParaAbaLocal("/relatorio")).toBeNull();
+    disco.set(chaveDoHistoricoNoDisco("ana"), []);
+    expect(await vinculoParaAbaLocal("/relatorio")).toEqual(vinculo);
+    disco.set(chaveDoHistoricoNoDisco("ana"), [{ user_id: "ana" }]);
+    expect(await vinculoParaAbaLocal("/relatorio")).toEqual(vinculo);
+    document.cookie = cookie("login-b");
+    expect(await vinculoParaAbaLocal("/relatorio")).toBeNull();
+    document.cookie = "";
+    expect(await vinculoParaAbaLocal("/")).toBeNull();
+  });
+
+  it("a versão anterior pode abrir o histórico salvo da própria conta na primeira recarga sem rede", async () => {
+    document.cookie = cookie("login-a");
+    const vinculo = await confirmado("ana", "login-a");
+    await guardarVinculoDoPlayer(vinculo);
+    for (const [linhas, esperado] of [
+      [[], vinculo],
+      [[{ user_id: "ana" }], vinculo],
+      [[{ user_id: "bia" }], null],
+      [[{ id: "sem-dono" }], null],
+    ] as const) {
+      disco.set(CHAVE_CACHE, { salvoEm: Date.now(), estado: { queries: [
+        { queryKey: ["perfil"], state: { data: { user_id: "ana" } } },
+        { queryKey: ["progresso", "sessoes"], state: { data: linhas } },
+      ] } });
+      expect(await vinculoParaAbaLocal("/relatorio")).toEqual(esperado);
+    }
+  });
+});
 
 describe("identidade na retomada do player sem rede", () => {
   it("considera só a rota inteira de uma sessão UUID", () => {

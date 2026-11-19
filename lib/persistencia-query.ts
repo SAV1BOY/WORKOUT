@@ -40,10 +40,23 @@ export async function lerUltimaSincronizacao(): Promise<number | null> {
   return cache ? horarioDaSincronizacao(cache) : null;
 }
 
+/** Primeira leitura depois de atualizar o app, mesmo antes de o React Query hidratar o cache. */
+export async function lerConsultaGuardada<T>(chave: readonly string[]): Promise<T | undefined> {
+  const cache = await lerCache<Guardado>(CHAVE_CACHE);
+  if (!cache || Date.now() - cache.salvoEm > VALIDADE_MS) return undefined;
+  const consulta = cache.estado.queries.find(q => q.queryKey.length === chave.length && chave.every((v, i) => q.queryKey[i] === v));
+  return consulta?.state.data as T | undefined;
+}
+
 /** Uma URL blob: só existe no documento que a criou. O arquivo continua no Dexie. */
 function temUrlLocalDeFoto(chave: readonly unknown[], dados: unknown): boolean {
   return chave[0] === "corpo" && chave[1] === "fotos-url" && !!dados && typeof dados === "object"
     && Object.values(dados).some((url) => typeof url === "string" && url.startsWith("blob:"));
+}
+
+/** O histórico por conta tem cópia própria, transacional com a fila de notas. */
+function temCopiaPropria(chave: readonly unknown[]): boolean {
+  return chave.length === 3 && chave[0] === "progresso" && chave[1] === "sessoes" && typeof chave[2] === "string";
 }
 
 /** Grava o estado atual sem aguardar o intervalo das escritas em segundo plano. */
@@ -59,7 +72,7 @@ export async function guardarConsultasAgora(cliente: QueryClient): Promise<void>
      */
     shouldDehydrateQuery: (q) =>
       q.state.data !== undefined && q.state.status !== "pending" &&
-      !temUrlLocalDeFoto(q.queryKey, q.state.data),
+      !temUrlLocalDeFoto(q.queryKey, q.state.data) && !temCopiaPropria(q.queryKey),
   });
   await guardarCache(CHAVE_CACHE, {
     salvoEm: Date.now(),
@@ -95,7 +108,7 @@ export function persistirQueryClient(cliente: QueryClient): () => void {
       // Os caches gravados por versões anteriores também podem conter URLs vencidas.
       hydrate(cliente, {
         ...guardado.estado,
-        queries: guardado.estado.queries.filter((q) => !temUrlLocalDeFoto(q.queryKey, q.state.data)),
+        queries: guardado.estado.queries.filter((q) => !temUrlLocalDeFoto(q.queryKey, q.state.data) && !temCopiaPropria(q.queryKey)),
       });
     } catch {
       // cache ilegível não pode derrubar o app: segue com a rede

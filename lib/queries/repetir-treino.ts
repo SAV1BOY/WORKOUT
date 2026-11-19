@@ -6,6 +6,7 @@ import { opcoesDeMontagem } from "@/lib/preferencias";
 import type { SessaoBruta } from "@/lib/progresso";
 import { chaves, type SessaoResumo } from "@/lib/queries/dados";
 import { lerMotorParaRepetir } from "@/lib/queries/motor-repetir-treino";
+import { chaveDoHistorico } from "@/lib/chaves-do-historico";
 import { chavesProgresso } from "@/lib/queries/progresso";
 import { criarSessaoLivre, novoId, sessaoLocalMaisRecente } from "@/lib/queries/sessao";
 import { montarRepeticaoDoTreinoLivre } from "@/lib/repetir-treino-livre";
@@ -15,7 +16,8 @@ import type { LinhaPerfil } from "@/lib/types";
 async function sessaoAbertaParaRepeticao(cliente: QueryClient, conta: string) {
   const historico = [
     ...(cliente.getQueryData<SessaoResumo[]>(chaves.sessoes()) ?? []),
-    ...(cliente.getQueryData<SessaoBruta[]>(chavesProgresso.sessoesTodas()) ?? []),
+    ...(cliente.getQueryData<SessaoBruta[]>(chaveDoHistorico(conta))
+      ?? cliente.getQueryData<SessaoBruta[]>(chavesProgresso.sessoesTodas()) ?? []),
   ].filter(s => s.user_id === conta);
   // A conclusão offline já altera o resumo antes de o servidor receber a fila.
   const encerradas = new Set(historico.filter(s => s.status !== "em_andamento").map(s => s.id));

@@ -12,6 +12,12 @@ interface PlayerDoAparelho {
   Componente: typeof import("./player-local").default;
 }
 
+interface AbaDoAparelho {
+  aba: "/" | "/relatorio";
+  vinculo: VinculoDoPlayer;
+  Componente: typeof import("./aba-local").default;
+}
+
 /**
  * A página que o service worker serve quando a navegação não tem de onde vir
  * (SPEC §8 e §22.1). Ela é o fim da linha de qualquer rota sem rede, então tem
@@ -22,20 +28,27 @@ interface PlayerDoAparelho {
  * vai no próprio JSX (o React 19 o leva para o `<head>`).
  */
 export function Socorro({ videos, children }: { videos: string[]; children: ReactNode }) {
-  const [player, setPlayer] = useState<PlayerDoAparelho | null>(null);
+  const [tela, setTela] = useState<PlayerDoAparelho | AbaDoAparelho | null>(null);
   useEffect(() => {
-    const sessaoId = idDoPlayerNoCaminho(window.location.pathname);
-    if (!sessaoId) return;
+    const caminho = window.location.pathname;
+    const sessaoId = idDoPlayerNoCaminho(caminho);
+    if (!sessaoId && caminho !== "/" && caminho !== "/relatorio") return;
     let versao = 0;
     const verificar = async () => {
       const vez = ++versao;
       try {
-        const { vinculoParaPlayerLocal } = await import("@/lib/player-sem-rede");
-        const vinculo = await vinculoParaPlayerLocal(sessaoId);
-        const proximo = vinculo ? { sessaoId, vinculo, Componente: (await import("./player-local")).default } : null;
-        if (versao === vez) setPlayer(proximo);
+        const { vinculoParaAbaLocal, vinculoParaPlayerLocal } = await import("@/lib/player-sem-rede");
+        let proxima: PlayerDoAparelho | AbaDoAparelho | null = null;
+        if (caminho === "/" || caminho === "/relatorio") {
+          const vinculo = await vinculoParaAbaLocal(caminho);
+          if (vinculo) proxima = { aba: caminho, vinculo, Componente: (await import("./aba-local")).default };
+        } else if (sessaoId) {
+          const vinculo = await vinculoParaPlayerLocal(sessaoId);
+          if (vinculo) proxima = { sessaoId, vinculo, Componente: (await import("./player-local")).default };
+        }
+        if (versao === vez) setTela(proxima);
       } catch {
-        if (versao === vez) setPlayer(null);
+        if (versao === vez) setTela(null);
       }
     };
     void verificar();
@@ -52,8 +65,12 @@ export function Socorro({ videos, children }: { videos: string[]; children: Reac
       window.removeEventListener(EVENTO_DE_LOGIN_CONFIRMADO, verificar);
     };
   }, []);
-  if (player) {
-    const { Componente, sessaoId, vinculo } = player;
+  if (tela && "aba" in tela) {
+    const { Componente, aba, vinculo } = tela;
+    return <Componente key={vinculo.conta + aba} aba={aba} vinculo={vinculo} videos={videos}>{children}</Componente>;
+  }
+  if (tela) {
+    const { Componente, sessaoId, vinculo } = tela;
     return <Componente key={`${vinculo.conta}:${sessaoId}`} sessaoId={sessaoId} vinculo={vinculo} videos={videos}>{children}</Componente>;
   }
   return (

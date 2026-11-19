@@ -238,6 +238,8 @@ export function VisaoGeralDaSessao({
         duracaoS={decorridoS}
         seriesTexto={progresso?.texto ?? ""}
         salvando={salvando}
+        notaGeral={sessao.notaGeral}
+        aoGuardarNota={dados.guardarNotaGeral}
         aoSalvar={(valores) => {
           if (fim) void dados.salvar(fim, valores);
         }}

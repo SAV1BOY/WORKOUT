@@ -7,6 +7,7 @@
 "use client";
 
 import { useQuery, type UseQueryResult } from "@tanstack/react-query";
+import { chaveDoHistorico, lerHistoricoDaConta } from "@/lib/queries/historico-da-sessao";
 import { lerLista, lerTabelaCompleta } from "@/lib/queries/ler";
 import { clienteNavegador } from "@/lib/supabase/client";
 import type { SerieBruta, SessaoBruta } from "@/lib/progresso";
@@ -31,10 +32,14 @@ export const chavesProgresso = {
 };
 
 /** Todas as sessões de força da conta, da mais nova para a mais antiga. */
-export function useSessoesTodas(): UseQueryResult<SessaoBruta[]> {
+export function useSessoesTodas(conta?: string | null): UseQueryResult<SessaoBruta[]> {
   return useQuery({
-    queryKey: chavesProgresso.sessoesTodas(),
-    queryFn: async () => {
+    queryKey: conta ? chaveDoHistorico(conta) : chavesProgresso.sessoesTodas(),
+    networkMode: conta ? "always" : "online",
+    enabled: conta !== null,
+    refetchOnMount: conta ? "always" : true,
+    queryFn: async (contexto) => {
+      if (conta) return lerHistoricoDaConta(contexto.client, conta, contexto.signal);
       const sessoes = await lerTabelaCompleta<SessaoBruta>(
         "sessions", "id,user_id,data,status,workout_id,duracao_s,plano", "os seus treinos",
       );
