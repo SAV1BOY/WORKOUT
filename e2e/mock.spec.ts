@@ -192,6 +192,23 @@ test.describe("mock do Supabase", () => {
     expect(await (await request.get(linha, { headers })).json()).toEqual([{ reps: 9, carga_kg: 27.5 }]);
   });
 
+  test("uma gravação condicional devolve somente as séries que ela alterou", async ({ request }) => {
+    const url = URL_MOCK + "/rest/v1/session_sets";
+    const headers = comSessao({ Prefer: "return=representation" });
+    const linha = { id: crypto.randomUUID(), session_id: crypto.randomUUID(), exercise_id: "flexao-de-braco",
+      ordem_ex: 1, set_index: 2, tipo: "trabalho", concluida: true, reps: 17, carga_kg: 41.5, passos: null };
+    expect((await request.post(url, { headers, data: linha })).status()).toBe(201);
+    const duplicada = await request.post(url + "?on_conflict=id", {
+      headers: comSessao({ Prefer: "resolution=ignore-duplicates,return=representation" }), data: { ...linha, carga_kg: 10 },
+    });
+    expect(duplicada.status()).toBe(201);
+    expect(await duplicada.json()).toEqual([]);
+    const filtro = url + "?id=eq." + linha.id + "&user_id=eq." + userId + "&passos=is.null&select=id,reps,carga_kg";
+    const corrigir = (observada: number) => request.patch(filtro + "&reps=eq." + observada, { headers, data: { reps: 10 } });
+    expect(await (await corrigir(15)).json()).toEqual([]);
+    expect(await (await corrigir(17)).json()).toEqual([{ id: linha.id, reps: 10, carga_kg: 41.5 }]);
+  });
+
   test("sessão de força: insert, filtros, ordem, count e v_records", async ({
     request,
   }) => {

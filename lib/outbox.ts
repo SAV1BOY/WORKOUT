@@ -10,7 +10,10 @@ export function mensagemDeRegistro(texto: string, online = typeof navigator === 
   return online ? texto : `${texto.replace(/\.$/, "")} no celular. Sobe quando a rede voltar.`;
 }
 
-export type Enviador = (item: ItemSaida) => Promise<void>;
+// A conciliação confirma/retira várias escritas na mesma transação dos dados locais.
+export const AVISO_DE_CONFLITO_DE_CONTAGEM = "Confira em Mais os valores desta série para continuar.";
+export type ResultadoDoEnvio = void | "fila-reconciliada" | "aguarda-conciliacao";
+export type Enviador = (item: ItemSaida) => Promise<ResultadoDoEnvio>;
 
 const ATRASO_BASE_MS = 2_000;
 const ATRASO_MAX_MS = 5 * 60_000;
@@ -213,7 +216,18 @@ async function umaRodada(): Promise<number> {
     }
 
     try {
-      await enviar(item);
+      const resultado = await enviar(item);
+      if (resultado === "aguarda-conciliacao") {
+        const proximaTentativa = agora + ATRASO_MAX_MS;
+        await bd().outbox.update(item.id, { proximaTentativa, tentativas: 0, erro: AVISO_DE_CONFLITO_DE_CONTAGEM });
+        if (item.alvo) travados.set(item.alvo, proximaTentativa);
+        continue;
+      }
+      if (resultado === "fila-reconciliada") {
+        enviados++;
+        repetir = true;
+        break; // releia a fila: a mesma transação pode ter retirado linhas de outros lotes.
+      }
       await bd().outbox.delete(item.id);
       enviados += 1;
     } catch (e) {

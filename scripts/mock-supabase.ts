@@ -1440,10 +1440,8 @@ async function rotaRest(
       );
 
       if (existente) {
-        if (prefer.ignorar) {
-          gravadas.push(existente);
-          continue;
-        }
+        // ON CONFLICT DO NOTHING não inclui a linha existente no RETURNING.
+        if (prefer.ignorar) continue;
         if (!prefer.merge) {
           throw new ErroMock(409, `duplicate key value violates unique constraint`, {
             code: "23505",

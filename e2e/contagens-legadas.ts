@@ -8,7 +8,7 @@ const DIA = "2026-09-14";
 const TITULO = "Treino da varanda";
 
 /** Formato que a versão anterior deixava no IndexedDB ao concluir o treino. */
-export async function prepararFechamentoAntigo(page: Page, comWorker = true) {
+export async function prepararFechamentoAntigo(page: Page, comWorker = true, cargaDaPrimeira = 21.5) {
   const conta = await usuarioComPerfil();
   const id = crypto.randomUUID();
   const plano = planoDaSessao(itensDeIds([FRONTAL]), { titulo: TITULO });
@@ -31,7 +31,7 @@ export async function prepararFechamentoAntigo(page: Page, comWorker = true) {
     ordem_ex: 1, set_index: indice, tipo: "trabalho", reps, carga_kg: carga,
     concluida: true, registrada_em: DIA + "T11:10:00Z",
   });
-  const series = [serie(1, 9.5, 21.5), serie(2, 8.5, 23.5)] as const;
+  const series = [serie(1, 9.5, cargaDaPrimeira), serie(2, 8.5, 23.5)] as const;
   // A pessoa corrigiu a primeira para 10 antes de concluir. A escrita 9,5 seguia na frente.
   const finais = [{ ...series[0], reps: 10 }, series[1]];
   const escritas = [...series, ...finais].map(linha => ({

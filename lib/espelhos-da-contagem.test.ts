@@ -4,7 +4,8 @@ import { beforeEach, expect, it, vi } from "vitest";
 import { chaveDoDetalheDaSessao } from "@/lib/chaves-do-historico";
 import type { CorrecaoDeContagem } from "@/lib/contagens-pendentes";
 import { bd } from "@/lib/db";
-import { corrigirConsultasDaSerie, corrigirCopiasDaSerie } from "@/lib/espelhos-da-contagem";
+import { corrigirConsultasDaSerie, corrigirCopiasDaSerie, observarConciliacoesDeSeries,
+  reconciliarCopiasDaSerie, retirarSerieAusenteDasCopias, revisaoDasSeries } from "@/lib/espelhos-da-contagem";
 
 const banco = bd();
 const disco = banco.cache;
@@ -121,5 +122,99 @@ it("a falha em uma cópia reverte a correção da sessão e da fila na mesma tra
     expect((await disco.get(chave))?.valor).toEqual([linha]);
   } finally {
     falha.mockRestore();
+  }
+});
+
+const sessaoA = chaveDoDetalheDaSessao("ana", "sessao");
+const sessaoB = chaveDoDetalheDaSessao("ana", "nova");
+const globalDaAna = "series-do-historico-v2:ana";
+const feita = { ...corrigida, tipo: "trabalho", ordem_ex: 1, set_index: 1, concluida: true };
+const noBackup = { ...feita, exercise_id: "flexao", session_id: "nova", reps: 18, carga_kg: 0 };
+const vizinha = { ...feita, id: "vizinha", set_index: 2 };
+const transacao = (atualizar: () => Promise<void>) => banco.transaction("rw", [disco, ativas, banco.outbox], async () => { await atualizar(); });
+
+it("move o UUID canônico entre treinos e movimentos sem duplicar, mudar a conta nem promover a data das cópias", async () => {
+  const jogador = "series-anteriores-do-player:ana:passada:preparo";
+  const alheia = "series-do-historico-v2:bia";
+  await guardar(sessaoA, [feita, vizinha]);
+  await guardar(sessaoB, []);
+  const novoMovimento = "series-anteriores-do-player:ana:flexao:preparo";
+  await guardar(novoMovimento, { ignorada: null, linhas: [] });
+  await guardar(globalDaAna, [feita, { ...feita }, vizinha]);
+  await guardar(alheia, [{ ...feita, user_id: "bia" }]);
+  await guardar(jogador, { ignorada: null, linhas: [feita, vizinha] });
+  const dados = { id: "sessao", userId: "ana", blocos: [{ ordem: 1, exercicioId: "passada", series: [
+    { id: feita.id, reps: 9 }, { id: vizinha.id, reps: 8 },
+  ] }] };
+  await ativas.put({ id: dados.id, dados, atualizadoEm: 666 });
+  // A última escrita local já aponta para o treino B e a aba do treino A ainda está aberta.
+  await transacao(() => reconciliarCopiasDaSerie("ana", noBackup, noBackup, feita));
+  expect(await disco.get(sessaoA)).toEqual({ chave: sessaoA, valor: [vizinha], atualizadoEm: 4321 });
+  expect(await disco.get(sessaoB)).toEqual({ chave: sessaoB, valor: [noBackup], atualizadoEm: 4321 });
+  expect((await disco.get(globalDaAna))?.valor).toEqual([noBackup, vizinha]);
+  expect((await disco.get(jogador))?.valor).toEqual({ ignorada: null, linhas: [vizinha] });
+  expect((await disco.get(novoMovimento))?.valor).toEqual({ ignorada: null, linhas: [noBackup] });
+  expect((await disco.get(alheia))?.valor).toEqual([{ ...feita, user_id: "bia" }]);
+  expect((await ativas.get("sessao"))?.dados).toMatchObject({ blocos: [{ series: [{ id: vizinha.id, reps: 8 }] }] });
+  expect(await revisaoDasSeries("ana")).toBe(1);
+  expect(await revisaoDasSeries("bia")).toBe(0);
+});
+
+it("uma edição explícita posterior ao envio prevalece no próprio UUID, sem criar fechamento a partir de uma linha", async () => {
+  await guardar(sessaoA, [feita, vizinha]);
+  await guardar(globalDaAna, [feita]);
+  await banco.outbox.add({ tipo: "serie", criadoEm: 100, proximaTentativa: 1, tentativas: 0, payload: {
+    tabela: "session_sets", operacaoGuardada: "upsert", seriesEmConciliacao: ["contagens-a-conciliar:ana:outra"],
+    linhas: [{ id: feita.id, session_id: "nova", user_id: "ana", reps: 22 },
+      { ...feita, user_id: "bia", carga_kg: 999 }],
+  } });
+  await transacao(() => reconciliarCopiasDaSerie("ana", feita, noBackup));
+  expect((await disco.get(globalDaAna))?.valor).toEqual([{ ...noBackup, reps: 22 }]);
+  expect((await disco.get(sessaoA))?.valor).toEqual([vizinha]);
+  expect(await disco.get(sessaoB)).toBeUndefined();
+  expect(await banco.outbox.count()).toBe(1);
+});
+
+it("ao manter a ausência, retira o UUID dos treinos antigo e proposto sem excluir a série vizinha ou uma escrita posterior", async () => {
+  await guardar(sessaoA, [feita, vizinha]);
+  await guardar(sessaoB, [noBackup]);
+  await guardar(globalDaAna, [feita, vizinha]);
+  await transacao(() => retirarSerieAusenteDasCopias("ana", noBackup, feita));
+  expect((await disco.get(sessaoA))?.valor).toEqual([vizinha]);
+  expect((await disco.get(sessaoB))?.valor).toEqual([]);
+  expect((await disco.get(globalDaAna))?.valor).toEqual([vizinha]);
+  await banco.outbox.add({ tipo: "serie", criadoEm: 1, proximaTentativa: 1, tentativas: 0, payload: {
+    tabela: "session_sets", op: "upsert", linha: { ...noBackup, reps: 30 },
+  } });
+  await transacao(() => retirarSerieAusenteDasCopias("ana", noBackup, feita));
+  expect((await disco.get(sessaoB))?.valor).toEqual([{ ...noBackup, reps: 30 }]);
+  expect((await disco.get(globalDaAna))?.valor).toEqual([vizinha, { ...noBackup, reps: 30 }]);
+});
+
+it("uma aba observa de uma vez duas decisões da conta e não volta a persistir o peso ou movimento anterior", async () => {
+  const q = new QueryClient(), chave = ["progresso", "series-todas", "ana"];
+  const parcial = { completa: false, linhas: [feita, vizinha] };
+  q.setQueryData(chave, parcial, { updatedAt: 758 });
+  // Espera a leitura inicial real do liveQuery, mesmo se o teste rodar em uma máquina lenta.
+  const inicial = { ...feita, id: "inicial" };
+  await transacao(() => reconciliarCopiasDaSerie("ana", inicial, inicial));
+  const primeiraLeitura = Promise.withResolvers<void>();
+  const aposLeitura = (item: { chave: string }) => {
+    if (item?.chave.endsWith(":ana:inicial")) primeiraLeitura.resolve();
+    return item;
+  };
+  disco.hook("reading", aposLeitura);
+  const parar = observarConciliacoesDeSeries(q);
+  try {
+    await primeiraLeitura.promise;
+    const recente = { ...vizinha, reps: 15, carga_kg: 35.5 };
+    await transacao(async () => {
+      await reconciliarCopiasDaSerie("ana", feita, noBackup);
+      await reconciliarCopiasDaSerie("ana", vizinha, recente);
+    });
+    await vi.waitFor(() => expect(q.getQueryData(chave)).toEqual({ completa: false, linhas: [noBackup, recente] }));
+    expect(q.getQueryState(chave)?.dataUpdatedAt).toBe(758);
+  } finally {
+    parar(); disco.hook("reading").unsubscribe(aposLeitura); q.clear();
   }
 });

@@ -202,3 +202,15 @@ describe("detalhe da sessão aberta pela ficha de um exercício", () => {
     expect(disco.has(chave)).toBe(false);
   });
 });
+
+it("ao receber depois da conciliação um GET de uma série movida para outro treino, a ficha não repõe o UUID no original", async () => {
+  const velha = linha("serie");
+  http.mockImplementationOnce(async () => {
+    salvar("ultima-conciliacao-de-serie:" + uid, { revisao: 1 }, Date.now());
+    servidor = [{ ...velha, exercise_id: "flexao", session_id: "outro-treino" }];
+    return Response.json([velha], { headers: { "content-range": "*/1" } });
+  });
+  expect((await ler()).linhas).toEqual([]);
+  expect(http).toHaveBeenCalledTimes(2);
+  expect(disco.get(chave)?.valor).toEqual([]);
+});

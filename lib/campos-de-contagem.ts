@@ -3,3 +3,6 @@ export const CAMPOS_DE_CONTAGEM = [
 ] as const;
 
 export type CampoContagem = (typeof CAMPOS_DE_CONTAGEM)[number];
+
+export const prefixoDasIntencoes = (conta: string) => `contagens-a-conciliar:${conta}:`;
+export const chaveIntencao = (conta: string, id: string) => prefixoDasIntencoes(conta) + id;

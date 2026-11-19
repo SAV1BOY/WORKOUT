@@ -471,7 +471,7 @@ export function useSeriesAnteriores(
       const cliente = clienteNavegador();
       const series = await lerLista<SerieAnterior>(
         cliente.from("session_sets")
-          .select("exercise_id,session_id,ordem_ex,set_index,reps,tipo,concluida,registrada_em")
+          .select("id,user_id,exercise_id,session_id,ordem_ex,set_index,reps,tipo,concluida,registrada_em")
           .in("exercise_id", [...ids])
           .eq("tipo", "trabalho")
           .eq("concluida", true)

@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { chaveDoDetalheDaSessao } from "@/lib/chaves-do-historico";
 import { bd, temIndexedDB } from "@/lib/db";
 import type { SerieBruta } from "@/lib/progresso";
+import { revisaoDasSeries } from "@/lib/espelhos-da-contagem";
 import { conferirContagensObservadas, LeituraAnteriorACorrecao } from "@/lib/queries/contagens-observadas";
 import { encerramentosPendentes } from "@/lib/queries/cache-do-detalhe";
 import { confirmarContaDoTreino } from "@/lib/queries/conta-do-treino";
@@ -63,10 +64,10 @@ const chaveDaFicha = (conta: string, sessaoId: string) => ["progresso", "series-
 const conferirConta = (conta: string) => confirmarContaDoTreino(conta, "A conta do treino mudou. Reabra a ficha.");
 
 async function situacaoDoDetalhe(conta: string, sessaoId: string) {
-  const [foto, encerramentos, escritas] = await Promise.all([
-    lerFechamentoDoDetalhe(conta, sessaoId), encerramentosPendentes(conta), escritasPendentes("series", conta),
+  const [foto, encerramentos, escritas, revisao] = await Promise.all([
+    lerFechamentoDoDetalhe(conta, sessaoId), encerramentosPendentes(conta), escritasPendentes("series", conta), revisaoDasSeries(conta),
   ]);
-  return { foto, pendente: encerramentos.has(sessaoId), escritas };
+  return { foto, pendente: encerramentos.has(sessaoId), escritas, revisao };
 }
 
 function daSessao(conta: string, sessaoId: string, lista: ListaDoRelatorio<SerieBruta>, foto: Fechamento | null) {
@@ -136,6 +137,7 @@ export async function lerSeriesDaSessaoNaFicha(cliente: QueryClient, conta: stri
   try {
     await banco.transaction("rw", banco.cache, banco.outbox, async () => {
       const agora = await situacaoDoDetalhe(conta, sessaoId);
+      if (agora.revisao !== antes.revisao) throw new LeituraAnteriorACorrecao();
       conferir?.(agora.escritas);
       const arquivo = await arquivoDeSeriesPosterior<SerieBruta>(conta, inicio);
       const pendente = antes.pendente || agora.pendente;

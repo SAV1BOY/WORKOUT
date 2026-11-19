@@ -253,3 +253,37 @@ describe("fontes históricas da conta no aparelho", () => {
     expect(buscar).not.toHaveBeenCalled();
   });
 });
+
+it("um lote em conciliação protege só o UUID proposto; a vizinha continua visível e a proposta não desfaz um backup", async () => {
+  const anterior = { user_id: "ana", id: "alvo", session_id: "treino", exercise_id: "agachamento", reps: 10, carga_kg: 21.5 };
+  const vizinha = { ...anterior, id: "outra", reps: 12 };
+  const remota = { ...anterior, exercise_id: "flexao", session_id: "outra-sessao", reps: 18, carga_kg: 0 };
+  fila.push({ tipo: "serie", payload: { tabela: "session_sets", operacaoGuardada: "upsert",
+    linhas: [anterior, vizinha, { ...vizinha, user_id: "bia" }], seriesEmConciliacao: ["contagens-a-conciliar:ana:alvo"] } });
+  const ler = () => lerFonteDoRelatorio(cliente, "ana", "series", antiga, buscar);
+  expect(await ler()).toEqual({ completa: false, linhas: [anterior, vizinha] });
+  vi.stubGlobal("navigator", { onLine: true });
+  buscar.mockResolvedValue([remota]);
+  expect((await ler()).linhas).toEqual([remota, vizinha]);
+  buscar.mockResolvedValue([]);
+  expect((await ler()).linhas).toEqual([vizinha]);
+});
+
+it("descarta o GET que começou com a proposta já inteira e chegou depois da decisão do histórico", async () => {
+  vi.stubGlobal("navigator", { onLine: true });
+  const anterior = { user_id: "ana", id: "alvo", session_id: "treino", exercise_id: "agachamento", reps: 10, carga_kg: 21.5 };
+  const recente = { ...anterior, reps: 15, carga_kg: 35.5 };
+  fila.push({ tipo: "serie", payload: { tabela: "session_sets", operacaoGuardada: "upsert",
+    linha: anterior, seriesEmConciliacao: ["contagens-a-conciliar:ana:alvo"] } });
+  buscar.mockImplementationOnce(async () => {
+    const chave = "ultima-conciliacao-de-serie:ana";
+    disco.set(chave, { chave, atualizadoEm: Date.now(), valor: { revisao: 1 } });
+    fila.length = 0;
+    return [anterior];
+  }).mockResolvedValue([recente]);
+  const ler = () => lerFonteDoRelatorio(cliente, "ana", "series", antiga, buscar);
+  expect((await ler()).linhas).toEqual([recente]);
+  expect(buscar).toHaveBeenCalledTimes(2);
+  vi.stubGlobal("navigator", { onLine: false });
+  expect((await ler()).linhas).toEqual([recente]);
+});
