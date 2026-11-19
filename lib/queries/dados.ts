@@ -113,9 +113,9 @@ export function useOverrides(
 export type SessaoResumo = Pick<
   LinhaSessao,
   "id" | "data" | "status" | "workout_id" | "fase" | "concluida_em"
-> & Partial<Pick<LinhaSessao, "plano">>;
+> & Partial<Pick<LinhaSessao, "user_id" | "plano">>;
 
-const COLUNAS_SESSAO = "id,data,status,workout_id,fase,concluida_em";
+const COLUNAS_SESSAO = "id,user_id,data,status,workout_id,fase,concluida_em";
 
 export function useSessoes(): UseQueryResult<SessaoResumo[]> {
   return useQuery({

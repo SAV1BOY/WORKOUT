@@ -72,6 +72,12 @@ mantém o B1 como estava. Para desfazer a escolha futura, abra o seletor e toque
 em **Restaurar**. O treino em andamento conserva os exercícios e as séries já
 registradas. As escolhas ficam disponíveis sem rede e entram no backup da conta.
 
+**Repetir um treino livre.** Em **Relatório → Histórico**, encontre o treino
+livre concluído e toque em **Repetir treino**. A nova sessão usa os exercícios
+na ordem em que ficaram, a carga atual e todo o equipamento disponível.
+As séries estão prontas para registrar de novo. O treino anterior continua no
+histórico com as cargas e repetições que você fez.
+
 Em **Mais → Lembretes**, escolha os avisos e horários. Para receber
 notificações, ative este aparelho quando a opção estiver disponível. Você
 também pode baixar o arquivo de calendário e importá-lo no celular.

@@ -13073,3 +13073,13 @@ Ao trocar um exercício pela ficha, a ficha permanece aberta enquanto o app cons
 A seleção acompanha o plano da sessão em `sessions.plano` e a cópia no aparelho. Uma sessão antiga ou recém-criada começa com o inventário completo. Mudar o material conserva as séries feitas e as preferências de substituição dos próximos treinos. A versão do backup permanece a mesma. O Hevy também usa o conjunto de equipamentos disponível para orientar a seleção dos exercícios. [Configurações do Hevy Trainer](https://help.hevyapp.com/hc/en-us/articles/43572343844247-How-Hevy-Trainer-Settings-Work)
 
 Para conferir no celular, escolha o material, abra a troca de dois exercícios diferentes, comece a sessão e recarregue o player sem rede. Abra a ficha e confira a seleção. Ao começar o treino seguinte, o inventário completo deve voltar.
+
+### Publicação do equipamento da sessão em 18/11/2026
+
+O domínio público confirmou o commit de integração `d456c10` do PR #39. A revisão final passou por 2.037 testes unitários e 743 cenários de navegador. A ficha de um exercício substituído continua aberta mesmo enquanto o app espera a carga do novo movimento. Antes da correção, o teste com resposta de rede retida reproduziu o fechamento nas duas tentativas. Depois dela, passou nas cinco repetições com rede retida e nas oito em rede normal. A entrega usou a coluna JSONB de sessões que já existia em produção. [PR #39](https://github.com/SAV1BOY/WORKOUT/pull/39) · [Validação integral](https://github.com/SAV1BOY/WORKOUT/actions/runs/44432153773)
+
+### Repetir treino livre pelo histórico
+
+Em **Relatório → Histórico**, a opção **Repetir treino** fica junto de uma sessão livre concluída com plano válido e identificada como pertencente à conta atual. A nova sessão guarda a ordem e o último exercício ativo de cada posição. Ela começa com todo o equipamento disponível e todas as séries por registrar. O motor usa os dados atuais de carga, inclusive a progressão local de um treino concluído que ainda aguarda sincronização. A sessão original continua no histórico com suas cargas e resultados. Se a pessoa já tiver outro treino em andamento, o app oferece continuidade nesse treino.
+
+Para conferir no celular, conclua um treino livre com dois ou mais exercícios e uma substituição. Abra o Relatório, toque em **Repetir treino** e confira a data, a ordem e os movimentos da nova sessão. Depois, volte ao histórico e confira que o registro anterior conserva suas séries. A ação também funciona sem rede quando a sessão de origem está disponível no aparelho. O Hevy documenta a possibilidade de começar uma sessão a partir de um treino já salvo. [Como o Hevy copia treinos do histórico](https://www.hevyapp.com/features/best-way-to-track-workouts/)

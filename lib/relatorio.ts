@@ -73,6 +73,8 @@ export interface Registro {
   motor: { subiu: number; repetiu: number; voltou: number } | null;
   /** Para onde o toque leva (o resumo da sessão). */
   href: string | null;
+  /** Dados do treino livre que originou esta linha do histórico. */
+  sessaoLivre?: SessaoBruta;
 }
 
 export interface EventoDeSessao {
@@ -160,6 +162,7 @@ export function registros({
           .join(" · "),
         motor: contarMotor(eventos, s.id),
         href: `/treinar/${s.id}`,
+        ...(ehSessaoLivre(s.workout_id) ? { sessaoLivre: s } : {}),
       };
     });
 

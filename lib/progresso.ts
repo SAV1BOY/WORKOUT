@@ -38,7 +38,7 @@ export type SerieBruta = Pick<
 >;
 
 export type SessaoBruta = Pick<LinhaSessao, "id" | "data" | "status" | "workout_id"> &
-  Partial<Pick<LinhaSessao, "duracao_s" | "plano">>;
+  Partial<Pick<LinhaSessao, "user_id" | "duracao_s" | "plano">>;
 export type SoltaBruta = Pick<LinhaBarraFixaSolta, "data" | "reps">;
 export type CardioBruto = Pick<
   LinhaSessaoCardio,

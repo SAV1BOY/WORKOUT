@@ -1,14 +1,17 @@
 "use client";
 
-import { Flame, History, Pause } from "lucide-react";
+import { Flame, History, Pause, Repeat2 } from "lucide-react";
 import Link from "next/link";
 import { addDays } from "date-fns";
 import { useMemo, useState } from "react";
+import { useRepetirTreinoLivre } from "@/components/relatorio/usar-repeticao";
+import { Button } from "@/components/ui/button";
 import { FaixaSemana } from "@/components/ui/faixa-semana";
 import { Vazio } from "@/components/ui/vazio";
-import { formatarData, formatarIntervaloDaSemana } from "@/lib/formato";
+import { formatarData, formatarDataCompleta, formatarIntervaloDaSemana } from "@/lib/formato";
 import { iso, inicioDaSemana, paraData } from "@/lib/calendario";
 import { registros, textoDoMotorDaSessao, type EventoDeSessao } from "@/lib/relatorio";
+import { montarRepeticaoDoTreinoLivre } from "@/lib/repetir-treino-livre";
 import { retomadaDasPrefs } from "@/lib/retomada";
 import type { CardioBruto, SerieBruta, SessaoBruta, SoltaBruta } from "@/lib/progresso";
 import { GLIFO_DA_MARCA, NOME_DA_MARCA, ORDEM_DA_LEGENDA, faixaDaSemana, montarGrade } from "@/lib/semana";
@@ -47,6 +50,7 @@ export function Historico({
   const [tudo, setTudo] = useState(false);
   /* quantas páginas de 12 já foram abertas; volta a 1 ao trocar de recorte */
   const [paginas, setPaginas] = useState(1);
+  const { repetir, repetindoId, erro } = useRepetirTreinoLivre(perfil, hoje);
 
   const inicio = useMemo(
     () => iso(addDays(inicioDaSemana(paraData(hoje)), -7 * atras)),
@@ -151,6 +155,7 @@ export function Historico({
         </button>
       </div>
 
+      <span role="status" className="sr-only">{repetindoId ? "Abrindo treino…" : ""}</span>
       {mostrados.length === 0 ? (
         <Vazio
           icone={History}
@@ -178,11 +183,30 @@ export function Historico({
         />
       ) : (
         <ul aria-label="Registros" className="flex flex-col divide-y">
-          {mostrados.map((r) => (
-            <li key={r.chave}>
-              <LinhaDoRegistro registro={r} />
-            </li>
-          ))}
+          {mostrados.map((r) => {
+            const origem = r.sessaoLivre;
+            return (
+              <li key={r.chave}>
+                <LinhaDoRegistro registro={r} />
+                {origem && origem.user_id === perfil.user_id && montarRepeticaoDoTreinoLivre(origem) && (
+                  <div className="flex flex-col items-start gap-1 pb-2 pl-12">
+                    <Button type="button" variant="outline" size="sm"
+                      className="alvo h-auto max-w-full scroll-mb-24 whitespace-normal"
+                      aria-label={`Repetir treino: ${r.titulo} de ${formatarDataCompleta(r.data)}`}
+                      aria-busy={repetindoId === origem.id}
+                      disabled={repetindoId !== null}
+                      onClick={() => void repetir(origem)}>
+                      <Repeat2 aria-hidden="true" className="size-4" />
+                      {repetindoId === origem.id ? "Abrindo treino…" : "Repetir treino"}
+                    </Button>
+                    {erro?.id === origem.id && (
+                      <p role="alert" className="text-destructive text-sm">{erro.mensagem}</p>
+                    )}
+                  </div>
+                )}
+              </li>
+            );
+          })}
         </ul>
       )}
 
@@ -222,7 +246,7 @@ function LinhaDoRegistro({
         {r.tipo === "soltas" || r.tipo === "pausa" ? null : r.titulo.slice(0, 1)}
       </span>
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span className="text-sm font-medium text-balance">{r.titulo}</span>
+        <span className="text-sm font-medium text-balance wrap-anywhere">{r.titulo}</span>
         <span className="numero text-muted-foreground text-xs">
           {r.detalhe}
           {motor ? ` · ${motor}` : ""}
@@ -245,7 +269,7 @@ function LinhaDoRegistro({
     <Link
       href={r.href}
       data-registro={r.tipo}
-      className="hover:bg-muted/40 alvo -mx-1 flex items-center gap-3 rounded-xl px-1 py-2"
+      className="hover:bg-muted/40 alvo flex items-center gap-3 rounded-xl py-2"
     >
       {miolo}
     </Link>

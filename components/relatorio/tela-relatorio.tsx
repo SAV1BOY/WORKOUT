@@ -2,6 +2,7 @@
 
 import { ChevronDown, Dumbbell, Flame, Timer, Weight } from "lucide-react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { addDays } from "date-fns";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Erro } from "@/components/carregando";
@@ -10,7 +11,6 @@ import { CardImc } from "@/components/corpo/card-imc";
 import { AvisoDeConquista } from "@/components/relatorio/aviso-conquista";
 import { CardPeso } from "@/components/relatorio/card-peso";
 import { Conquistas } from "@/components/relatorio/conquistas";
-import { Historico } from "@/components/relatorio/historico";
 import { Numeros } from "@/components/relatorio/numeros";
 import { useConquistas } from "@/components/relatorio/usar-conquistas";
 import { TelaProgresso } from "@/components/progresso/tela-progresso";
@@ -38,6 +38,11 @@ import { useHoje } from "@/lib/relogio";
 import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import { intervaloDaSemana } from "@/lib/semana";
+
+const Historico = dynamic(
+  () => import("@/components/relatorio/historico").then((modulo) => modulo.Historico),
+  { loading: () => <EsqueletoLinhas linhas={3} /> },
+);
 
 /** Quantas semanas para trás o histórico e as sequências leem. */
 const SEMANAS = 26;
@@ -123,7 +128,7 @@ function useSecoes() {
  * Conquistas, Histórico, Corpo e Gráficos —, cada uma com o cabeçalho grudado
  * no topo e a caixa reservada antes de o dado chegar.
  */
-export function TelaRelatorio() {
+export function TelaRelatorio({ userId }: { userId: string }) {
   const hoje = useHoje();
   const cliente = useQueryClient();
   const { abertas, montadas, alternar } = useSecoes();
@@ -149,8 +154,11 @@ export function TelaRelatorio() {
   const overridesQ = useOverrides(desde, intervalo?.ate ?? null);
   const pesosQ = usePesos();
 
-  const perfil = perfilQ.data ?? null;
-  const sessoes = useMemo(() => sessoesQ.data ?? [], [sessoesQ.data]);
+  const perfil = perfilQ.data?.user_id === userId ? perfilQ.data : null;
+  const sessoes = useMemo(
+    () => (sessoesQ.data ?? []).filter((s) => !s.user_id || s.user_id === userId),
+    [sessoesQ.data, userId],
+  );
   const cardios = useMemo(() => cardioQ.data ?? [], [cardioQ.data]);
   const series = useMemo(() => seriesQ.data ?? [], [seriesQ.data]);
 
