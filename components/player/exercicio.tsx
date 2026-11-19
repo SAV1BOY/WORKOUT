@@ -13,7 +13,7 @@ import {
   ThumbsDown,
   ThumbsUp,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { MediaGrande } from "@/components/exercicio/media-grande";
 import { StepperNumerico } from "@/components/stepper-numerico";
@@ -206,9 +206,7 @@ export function TelaExercicio({
   return (
     <section
       aria-label={exercicio.nome}
-      /* pb-24: os controles são 72 px colados no rodapé (§22.1) — os 160 px
-         de antes reservavam também a barra de abas, que o player não tem */
-      className="flex flex-1 flex-col gap-3 pb-24"
+      className="flex flex-1 flex-col gap-3 pb-[calc(var(--altura-dos-controles,3.5rem)+24px)]"
     >
       {/* SPEC §22.5 item 10: era a única rota do app sem `h1` */}
       <h1 className="sr-only">
@@ -657,41 +655,62 @@ export function ControlesDoPlayer({
   aoProximo: () => void;
   aoConcluir: () => void;
 }) {
+  const rodape = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const barra = rodape.current;
+    const tela = barra?.parentElement;
+    if (!barra || !tela) return;
+
+    // A caixa inclui o indicador de home e todas as linhas da legenda ampliada.
+    const reservarAltura = () => {
+      tela.style.setProperty("--altura-dos-controles", `${barra.getBoundingClientRect().height}px`);
+    };
+    reservarAltura();
+    const observador = new ResizeObserver(reservarAltura);
+    observador.observe(barra, { box: "border-box" });
+    return () => {
+      observador.disconnect();
+      tela.style.removeProperty("--altura-dos-controles");
+    };
+  }, []);
+
   return (
-    <div className="bg-card/95 border-border pb-segura fixed inset-x-0 bottom-0 z-30 border-t backdrop-blur">
+    <div ref={rodape} className="bg-card/95 border-border pb-segura fixed inset-x-0 bottom-0 z-30 border-t backdrop-blur">
       {/*
         SPEC §22.5 item 6: eram 8 px (`gap-2`) entre gravar a série e pulá-la
-        sem gravar. Agora são 24 px (`gap-6`) de cada lado do primário, e as
+        sem gravar. Agora são 24 px de cada lado do primário, e as
         setas descem para os 44 px padrão do projeto — o ✓ continua com 56 px
         e é o único alvo grande da barra.
       */}
-      <div className="mx-auto flex w-full max-w-lg items-center gap-6 px-3 py-2">
+      <div className="mx-auto flex w-full max-w-lg items-center gap-[24px] px-[12px] py-2">
         <Button
           variant="outline"
           size="icon"
-          className="alvo shrink-0 rounded-2xl"
+          className="alvo size-[44px] shrink-0 rounded-2xl"
           aria-label="Passo anterior"
           onClick={aoAnterior}
         >
-          <ChevronLeft className="size-6" />
+          <ChevronLeft className="size-[24px]" />
         </Button>
         <Button
           size="xl"
           /* SPEC §22.5 item 10: o nome acessível é o texto que está escrito */
-          className="alvo min-w-0 flex-1 rounded-2xl px-3 font-semibold"
+          className="alvo h-auto min-h-[max(56px,3.5rem)] min-w-0 flex-1 rounded-2xl px-[4px] py-1 font-semibold whitespace-normal"
           onClick={aoConcluir}
         >
-          <Check className="size-6" strokeWidth={3} />
-          {concluida ? "Série feita" : "Concluir série"}
+          <span className="min-w-0 wrap-anywhere">
+            <Check aria-hidden="true" className="mr-2 inline-block size-6 align-middle" strokeWidth={3} />
+            {concluida ? "Série feita" : "Concluir série"}
+          </span>
         </Button>
         <Button
           variant="outline"
           size="icon"
-          className="alvo shrink-0 rounded-2xl"
+          className="alvo size-[44px] shrink-0 rounded-2xl"
           aria-label="Próximo passo"
           onClick={aoProximo}
         >
-          <ChevronRight className="size-6" />
+          <ChevronRight className="size-[24px]" />
         </Button>
       </div>
     </div>

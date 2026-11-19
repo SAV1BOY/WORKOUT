@@ -1683,7 +1683,8 @@ a tela — afrouxar o limite não é uma opção.
 6. **24 px entre gravar a série e perdê-la.** "Próximo passo" (que pula a
    série sem gravar) ficava a 8 px do "Concluir série". A barra passa a
    `gap-6`; as setas descem para os 44 px padrão do projeto e o ✓ segue sendo
-   o único alvo de 56 px.
+   o único alvo de 56 px. O ícone e o texto de **Concluir série** ou **Série feita**
+   devem caber dentro do botão, inclusive quando a pessoa amplia a fonte.
 7. **O fim do descanso é anunciado sem som.** Os timers usam `role="timer"`,
    que tem `aria-live` desligado — quem usa leitor de tela só descobria o fim
    pelo bipe, e o bipe é um interruptor que ele pode ter desligado. Ao lado do
