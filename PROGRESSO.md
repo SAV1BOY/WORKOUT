@@ -13068,6 +13068,8 @@ A configuração de push segue pendente na Vercel. Na versão `88d42f8`, um pedi
 
 Em **Treino → Ajustar → Equipamento de hoje**, escolha o que está à mão. O seletor de alternativas usa a mesma seleção em todos os exercícios da sessão e permite ajustá-la. Por exemplo, **Só peso do corpo** seguido de **Tatame** e **Elástico (Super Band)** restringe as sugestões aos movimentos que a pessoa consegue fazer com esses materiais. Um movimento que exige halteres, anilhas e banco só aparece se os três estiverem disponíveis. Flexão de braço, prancha e escalador identificam o tatame como opcional na ficha.
 
+Ao trocar um exercício pela ficha, a ficha permanece aberta enquanto o app consulta a carga do substituto. O teste de navegador mantém essa consulta pendente para conferir o título e o foco da ficha.
+
 A seleção acompanha o plano da sessão em `sessions.plano` e a cópia no aparelho. Uma sessão antiga ou recém-criada começa com o inventário completo. Mudar o material conserva as séries feitas e as preferências de substituição dos próximos treinos. A versão do backup permanece a mesma. O Hevy também usa o conjunto de equipamentos disponível para orientar a seleção dos exercícios. [Configurações do Hevy Trainer](https://help.hevyapp.com/hc/en-us/articles/43572343844247-How-Hevy-Trainer-Settings-Work)
 
 Para conferir no celular, escolha o material, abra a troca de dois exercícios diferentes, comece a sessão e recarregue o player sem rede. Abra a ficha e confira a seleção. Ao começar o treino seguinte, o inventário completo deve voltar.
