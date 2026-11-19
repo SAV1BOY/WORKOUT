@@ -20,6 +20,7 @@ import {
   inserirNoMock,
   irNaAba,
   resetarMock,
+  semCacheDoAparelho,
   semRolagemHorizontal,
   usuarioComPerfil,
 } from "./fixtures";
@@ -1090,22 +1091,48 @@ test.describe("§22.14 item 6 — alerta e diálogo dentro da Visão geral segue
   });
 });
 
-test.describe("§22.14 item 6 — a foto ampliada e o 'Apagar esta foto?' seguem a regra da folha", () => {
-  test("foto ampliada da ficha: aria-modal, fundo inerte, Tab preso, Esc devolve o foco", async ({
-    page,
-  }) => {
-    await preparar(page);
-    await abrirFicha(page, SUPINO);
-    const gatilho = page.getByRole("button", { name: /Ampliar a foto do início/ });
-    await gatilho.focus();
-    await page.keyboard.press("Enter");
-    await conferirCamadaModal(page, '[role="dialog"]');
-    await page.keyboard.press("Escape");
-    await expect(page.getByRole("dialog")).toHaveCount(0);
-    await expect(gatilho).toBeFocused();
-    expect(await contarInertes(page)).toBe(0);
-  });
+test.describe("§22.14 item 6 — a foto ampliada da ficha", () => {
+  test.use({ serviceWorkers: "block" });
 
+  test("foto ampliada da ficha: aria-modal, fundo inerte, Tab preso, Esc devolve o foco", async ({ page }) => {
+    await preparar(page);
+    await semCacheDoAparelho(page);
+    // A nota pessoal só monta quando a ficha descobre a conta no perfil.
+    const perfil = (url: URL) => url.pathname === "/rest/v1/profiles";
+    let liberar!: () => void;
+    const liberado = new Promise<void>(resolver => { liberar = resolver; });
+    await page.route(perfil, async rota => {
+      if (rota.request().method() === "GET") await liberado;
+      await rota.continue();
+    });
+    const consulta = page.waitForRequest(pedido => pedido.method() === "GET" && perfil(new URL(pedido.url())));
+    try {
+      await abrirFicha(page, SUPINO);
+      await consulta;
+      const nota = page.locator('section[aria-label="Lembrar no próximo treino"] button');
+      await expect(nota).toHaveCount(0);
+      const gatilho = page.getByRole("button", { name: /Ampliar a foto do início/ });
+      await gatilho.focus();
+      await page.keyboard.press("Enter");
+      await expect(page.getByRole("button", { name: "Fechar a foto" })).toBeFocused();
+      liberar();
+      // Busca no DOM: o botão já existe, mesmo quando a camada o oculta do leitor de tela.
+      await expect(nota).toHaveText("Lembrar no próximo treino");
+      await conferirCamadaModal(page, '[role="dialog"]');
+      await page.keyboard.press("Escape");
+      await expect(page.getByRole("dialog")).toHaveCount(0);
+      await expect(gatilho).toBeFocused();
+      expect(await contarInertes(page)).toBe(0);
+      await expect(nota).toBeEnabled();
+      await nota.focus();
+      await expect(nota).toBeFocused();
+    } finally {
+      liberar();
+    }
+  });
+});
+
+test.describe("§22.14 item 6 — a foto ampliada e o 'Apagar esta foto?' seguem a regra da folha", () => {
   for (const tema of TEMAS) {
     test(`Corpo → Fotos: a foto e o cartão por cima, cada um fecha só a si (${tema})`, async ({
       page,
