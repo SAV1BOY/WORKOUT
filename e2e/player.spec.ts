@@ -8,6 +8,7 @@
  */
 import { expect, test, type Page } from "@playwright/test";
 import {
+  abrirVisaoGeral,
   avancarNoPlayerAte,
   comecarNoPlayer,
   comecarOTreinoDoDia,
@@ -62,6 +63,37 @@ async function abrirPlayer(page: Page, perfil?: Parameters<typeof usuarioComPerf
 }
 
 test.describe("preparação → exercício → descanso (SPEC §14.1.1–3)", () => {
+  for (const destino of ["a primeira série", "a visão geral"]) {
+    test(`a preparação termina antes do toque e abre ${destino} sem registrar série`, async ({ page }) => {
+      const conta = await usuarioComPerfil();
+      await fixarData(page, SEGUNDA);
+      await entrarNoApp(page);
+      await comecarOTreinoDoDia(page);
+      await expect(page.getByRole("timer", { name: "Preparação" })).toHaveText("10");
+
+      // O botão existe, mas o navegador ainda precisa rolá-lo para poder tocar.
+      const comecar = page.getByRole("button", { name: "Começar agora", exact: true });
+      await comecar.evaluate((botao) => {
+        Object.assign(botao.parentElement!.style, { display: "block", height: "120px", overflowY: "auto" });
+        Object.assign(botao.style, { marginTop: "100vh", pointerEvents: "none" });
+      });
+      const avancar = destino === "a primeira série" ? comecarNoPlayer : abrirVisaoGeral;
+      await Promise.all([avancar(page), (async () => {
+        await page.waitForFunction(() => (document.querySelector("[data-bloco-preparacao]")?.scrollTop ?? 0) > 0);
+        await page.clock.setFixedTime(new Date(Date.parse(SEGUNDA) + 10_000));
+        await comecar.waitFor({ state: "detached" });
+      })()]);
+
+      if (destino === "a primeira série") {
+        await expect(page.getByText("Aquecimento 1 de 2 · exercício 1 de 6")).toBeVisible();
+      } else {
+        await expect(page.getByRole("group", { name: "Aquecimento 1 — Agachamento livre" })
+          .getByRole("checkbox")).not.toBeChecked();
+      }
+      expect(await lerDoMock(conta, "session_sets")).toHaveLength(0);
+    });
+  }
+
   test("a preparação anuncia o 1º exercício e o ✓ abre o descanso com o próximo", async ({
     page,
   }) => {
