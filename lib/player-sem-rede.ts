@@ -4,7 +4,7 @@ import { chaveDoHistoricoNoDisco } from "@/lib/chaves-do-historico";
 import { lerConsultaGuardada } from "@/lib/persistencia-query";
 import { lerPerfilDoAparelho } from "@/lib/queries/perfil-no-aparelho";
 import type { SessaoLocal } from "@/lib/sessao";
-import { EVENTO_DE_LOGIN_CONFIRMADO, impressaoDoLogin, type VinculoDoPlayer } from "@/lib/vinculo-do-player";
+import { EVENTO_DE_LOGIN_CONFIRMADO, impressaoDoLogin, type CaminhoDeAbaLocal, type VinculoDoPlayer } from "@/lib/vinculo-do-player";
 
 const CHAVE = "player:login-confirmado";
 
@@ -50,7 +50,7 @@ export async function vinculoParaPlayerLocal(id: string): Promise<VinculoDoPlaye
 }
 
 /** As abas usam o perfil que o servidor já sincronizou para a conta deste cookie. */
-export async function vinculoParaAbaLocal(aba: "/" | "/relatorio") {
+export async function vinculoParaAbaLocal(aba: CaminhoDeAbaLocal) {
   const vinculo = await vinculoDoLoginAtual();
   if (!vinculo) return null;
   const perfil = await lerPerfilDoAparelho(vinculo.conta);

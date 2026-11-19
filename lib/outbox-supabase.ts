@@ -105,6 +105,10 @@ export async function enviarItem(item: ItemSaida): Promise<ResultadoDoEnvio> {
   ) {
     throw new Error(`escrita em ${p.tabela} sem filtro: recusada`);
   }
+  if (p.tabela === "sessions" && p.op === "update" && p.linha?.status === "abandonada" && typeof p.filtro?.id === "string") {
+    const { enviarDescarteDaSessao } = await import("@/lib/queries/enviar-descarte");
+    return enviarDescarteDaSessao(item, p.filtro.id, p.filtro.user_id);
+  }
   const cliente = clienteNavegador();
   const apagaTroca = p.tabela === "trocas_do_programa" && p.op === "delete";
   const editaTreino = p.tabela === "sessions" && p.op === "update" &&

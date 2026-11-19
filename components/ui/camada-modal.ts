@@ -219,6 +219,12 @@ export function abrirCamada(no: HTMLElement): {
     })),
   );
   const camada: Camada = { no, candidatos, entrada: null };
+  // Entre o Esc e o fim da animação, o navegador já pode estar recarregando
+  // ou abrindo outro documento. Um back() nesse intervalo aborta essa viagem.
+  let saindoDoDocumento = false;
+  const ouvintes = new AbortController();
+  window.addEventListener("beforeunload", () => { saindoDoDocumento = true; }, { signal: ouvintes.signal });
+  window.addEventListener("pageshow", () => { saindoDoDocumento = false; }, { signal: ouvintes.signal });
   abertas.push(camada);
   const alvos = irmaosParaInert(no);
   for (const el of marcar(marcas, alvos)) el.setAttribute("inert", "");
@@ -240,6 +246,7 @@ export function abrirCamada(no: HTMLElement): {
       const entrada = camada.entrada;
       camada.entrada = null;
       if (entrada === null) {
+        ouvintes.abort();
         devolverRolagem();
         return;
       }
@@ -250,7 +257,8 @@ export function abrirCamada(no: HTMLElement): {
        * fechou pelo Esc, pelo X ou pelo toque fora, a entrada é a do topo e sai.
        */
       setTimeout(() => {
-        const desfez = desfazAoFechar(window.history.state, entrada);
+        ouvintes.abort();
+        const desfez = !saindoDoDocumento && desfazAoFechar(window.history.state, entrada);
         regua = reguaAoSair(regua, entrada, desfez);
         if (desfez) {
           semSaida.add(entrada);

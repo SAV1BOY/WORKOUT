@@ -500,7 +500,7 @@ export function TelaTreino({ userId }: { userId: string }) {
 
   const descartar = async (id: string) => {
     try {
-      await descartarSessao({ id, cliente });
+      await descartarSessao({ id, userId, cliente });
       // Descartar um treino de ontem não consome a escolha feita para o de hoje.
       if (treinoId && aberta?.id === id && aberta.data === hoje && aberta.workoutId === treinoId) {
         limparTrocasDoAparelho(userId, treinoId);

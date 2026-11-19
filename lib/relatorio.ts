@@ -82,7 +82,7 @@ export interface EventoDeSessao {
   motivo: MotivoProgressao;
 }
 
-const NOME_DO_CARDIO: Record<TipoCardio, string> = {
+export const NOME_DO_CARDIO: Record<TipoCardio, string> = {
   corrida: "Corrida",
   corda: "Corda",
   caminhada: "Caminhada",

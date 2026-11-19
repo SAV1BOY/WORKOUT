@@ -35,7 +35,7 @@ export async function lerTabelaCompleta<T>(
   oQue: string,
   userId?: string,
   sinal?: AbortSignal,
-  sessaoId?: string,
+  filtro?: string | { de: string; ate: string },
 ): Promise<T[]> {
   const colunasChave = CHAVE_DA_TABELA[tabela];
   const chave = colunasChave.at(-1)!;
@@ -50,7 +50,8 @@ export async function lerTabelaCompleta<T>(
       .select(colunas, linhas.length === 0 ? { count: "exact" } : {})
       .limit(1000);
     if (userId !== undefined) consulta = consulta.eq("user_id", userId);
-    if (sessaoId !== undefined) consulta = consulta.eq("session_id", sessaoId);
+    if (typeof filtro === "string") consulta = consulta.eq("session_id", filtro);
+    else if (filtro) consulta = consulta.gte("data", filtro.de).lte("data", filtro.ate);
     if (grupo) {
       consulta = consulta.order(grupo);
       if (ultimoGrupo !== undefined) {

@@ -18,7 +18,6 @@ import {
   type DiaDoPlano,
   type ExcecaoAgenda,
   type PerfilCalendario,
-  type SessaoDeForca,
 } from "@/lib/calendario";
 import { acharFase, acharTreino, nomeCurtoDaFase } from "@/lib/dados";
 import {
@@ -29,7 +28,8 @@ import {
 } from "@/lib/formato";
 import { descricaoDoCardio, minutosDoCardio } from "@/lib/hoje";
 import type { FaseId, TipoDia, TreinoId } from "@/lib/schemas";
-import type { LinhaSessao, LinhaSessaoCardio, TipoCardio } from "@/lib/types";
+import type { SessaoBruta } from "@/lib/progresso";
+import type { LinhaSessaoCardio, TipoCardio } from "@/lib/types";
 
 /**
  * O que aconteceu no dia: feito, pela metade, perdido, ainda por fazer,
@@ -101,8 +101,12 @@ export const LEGENDA_DA_FAIXA: string = [
   "hoje em destaque",
 ].join(" · ");
 
-export type SessaoCurta = Pick<LinhaSessao, "id" | "data" | "status" | "workout_id">;
-export type CardioCurto = Pick<LinhaSessaoCardio, "id" | "data" | "tipo" | "concluida">;
+export type SessaoCurta = SessaoBruta;
+export type CardioCurto = Pick<LinhaSessaoCardio, "id" | "data" | "tipo" | "concluida"> & Partial<LinhaSessaoCardio>;
+
+export type RegistroDoDia =
+  | { tipo: "forca"; sessao: SessaoCurta }
+  | { tipo: "cardio"; sessao: CardioCurto };
 
 export interface DiaDaGrade {
   dia: DiaDoPlano;
@@ -122,12 +126,11 @@ export interface DiaDaGrade {
   semanaDaFase: number;
   /** "6 exercícios · 44 min", "8 × (1 min corrida / 2 min caminhada) · 34 min" */
   detalhe: string | null;
-  /** Sessão registrada naquele dia (para abrir o resumo). */
+  /** Força concluída ou em andamento e cardio concluído, com os dados de cada sessão. */
+  registros: RegistroDoDia[];
+  /** Sessão representada pela marca do dia. */
   sessaoId: string | null;
-  /**
-   * Num dia de cardio, o tipo da sessão registrada (`cardio_sessions.tipo`):
-   * a rota `/cardio/[id]` é por tipo, não por id (SPEC §3.3). `null` no resto.
-   */
+  /** Modalidade do cardio representado pela marca. Sessões de força usam `null`. */
   sessaoTipo: TipoCardio | null;
 }
 
@@ -232,77 +235,52 @@ export function detalheDoDia(dia: DiaDoPlano): string | null {
   return dia.nota && dia.nota.trim() !== "" ? dia.nota : null;
 }
 
-interface MarcaDaSessao {
-  marca: MarcaDoDia;
-  sessaoId: string | null;
-  sessaoTipo: TipoCardio | null;
+/** A grade e o mês consultam o mesmo índice por data, inclusive quando há vários anos de registros. */
+function agruparPorData(sessoes: SessaoCurta[], cardios: CardioCurto[]): Map<string, RegistroDoDia[]> {
+  const porData = new Map<string, RegistroDoDia[]>();
+  function guardar(registro: RegistroDoDia) {
+    const data = registro.sessao.data;
+    const doDia = porData.get(data);
+    if (doDia) doDia.push(registro);
+    else porData.set(data, [registro]);
+  }
+  for (const sessao of sessoes) guardar({ tipo: "forca", sessao });
+  for (const sessao of cardios) guardar({ tipo: "cardio", sessao });
+  return porData;
 }
 
-/**
- * A marca de um dia (SPEC §16.2). `inicioDoPrograma` é `profiles.data_inicio`:
- * antes dele o app não existia para o usuário, então o dia planejado que já
- * passou **não é falta** — é "antes", que não desenha nada e não acusa nada
- * (SPEC §11: sem culpa; §22.8 item 11). Uma sessão registrada naquele dia
- * (quem mudou a data de início depois de treinar) continua valendo mais que a
- * regra: feito é feito.
- */
+function foiConcluido(registro: RegistroDoDia) {
+  return registro.tipo === "forca" ? registro.sessao.status === "concluida" : registro.sessao.concluida;
+}
+
+function registrosDisponiveis(registros: RegistroDoDia[]) {
+  return registros.filter(r => foiConcluido(r) || (r.tipo === "forca" && r.sessao.status === "em_andamento"));
+}
+
+/** Um dia com qualquer atividade concluída recebe o ✓; os rótulos e as metas continuam vindo do plano. */
 function marcarDia(
   dia: DiaDoPlano,
-  sessoes: SessaoCurta[],
-  cardios: CardioCurto[],
+  registros: RegistroDoDia[],
   hoje: string,
-  inicioDoPrograma: string | null = null,
-): MarcaDaSessao {
-  const vazio = { sessaoId: null, sessaoTipo: null };
-  const antesDoComeco = inicioDoPrograma !== null && dia.data < inicioDoPrograma && dia.data <= hoje;
-  if (dia.tipo === "descanso") {
-    /*
-     * SPEC §16.2: descanso em que ele treinou mesmo assim (§5.3) ganha a marca
-     * de feito — a sessão já contava na meta semanal e no Relatório, e só o
-     * histórico visual a escondia. O rótulo do dia continua sendo o do plano.
-     */
-    const forca = sessoes.filter((s) => s.data === dia.data);
-    const concluida = forca.find((s) => s.status === "concluida");
-    if (concluida) return { marca: "feito", sessaoId: concluida.id, sessaoTipo: null };
-    const cardio = cardios.filter((c) => c.data === dia.data);
-    const cardioFeito = cardio.find((c) => c.concluida);
-    if (cardioFeito) {
-      return { marca: "feito", sessaoId: cardioFeito.id, sessaoTipo: cardioFeito.tipo };
-    }
-    const parcial = forca[0];
-    if (parcial) return { marca: "parcial", sessaoId: parcial.id, sessaoTipo: null };
-    const cardioParcial = cardio[0];
-    if (cardioParcial) {
-      return {
-        marca: "parcial",
-        sessaoId: cardioParcial.id,
-        sessaoTipo: cardioParcial.tipo,
-      };
-    }
-    return { marca: antesDoComeco ? "antes" : "descanso", ...vazio };
+  inicioDoPrograma: string | undefined,
+): Pick<DiaDaGrade, "marca" | "sessaoId" | "sessaoTipo"> {
+  const concluidos = registros.filter(foiConcluido);
+  const candidatos = concluidos.length ? concluidos : registros;
+  const primeiro = candidatos.find(r => r.tipo === dia.tipo) ?? candidatos[0];
+  if (primeiro) {
+    return {
+      marca: concluidos.length ? "feito" : "parcial",
+      sessaoId: primeiro.sessao.id,
+      sessaoTipo: primeiro.tipo === "cardio" ? primeiro.sessao.tipo : null,
+    };
   }
 
-  if (dia.tipo === "forca") {
-    const doDia = sessoes.filter((s) => s.data === dia.data);
-    const concluida = doDia.find((s) => s.status === "concluida");
-    if (concluida) return { marca: "feito", sessaoId: concluida.id, sessaoTipo: null };
-    const parcial = doDia[0];
-    if (parcial) return { marca: "parcial", sessaoId: parcial.id, sessaoTipo: null };
-  } else {
-    const doDia = cardios.filter((c) => c.data === dia.data);
-    const concluida = doDia.find((c) => c.concluida);
-    if (concluida) {
-      return { marca: "feito", sessaoId: concluida.id, sessaoTipo: concluida.tipo };
-    }
-    const parcial = doDia[0];
-    if (parcial) {
-      return { marca: "parcial", sessaoId: parcial.id, sessaoTipo: parcial.tipo };
-    }
-  }
-
-  if (antesDoComeco) return { marca: "antes", ...vazio };
-  if (dia.data < hoje) return { marca: "faltou", ...vazio };
-  return { marca: "aberto", ...vazio };
+  // Dias anteriores ao programa não contam como faltas, mesmo com treino previsto no calendário.
+  let marca: MarcaDoDia;
+  if (inicioDoPrograma && dia.data < inicioDoPrograma && dia.data <= hoje) marca = "antes";
+  else if (dia.tipo === "descanso") marca = "descanso";
+  else marca = dia.data < hoje ? "faltou" : "aberto";
+  return { marca, sessaoId: null, sessaoTipo: null };
 }
 
 /** De onde a grade tira a semana (SPEC §16.2). */
@@ -330,7 +308,7 @@ export function montarGrade(fonte: FonteDaGrade): DiaDaGrade[] {
   const cardios = fonte.cardios ?? [];
   const semana = semanaCoerente(data, perfil, {
     overrides: fonte.overrides ?? [],
-    sessoes: sessoes as SessaoDeForca[],
+    sessoes,
     // SPEC §22.2 item 5: o cardio de um dia de descanso também monta o dia
     cardios,
     hoje,
@@ -346,14 +324,10 @@ export function montarGradeDe(
   hoje: string,
   perfil?: Pick<PerfilCalendario, "fase_desde"> & { data_inicio?: string },
 ): DiaDaGrade[] {
+  const porData = agruparPorData(sessoes, cardios);
   return semana.map((dia) => {
-    const { marca, sessaoId, sessaoTipo } = marcarDia(
-      dia,
-      sessoes,
-      cardios,
-      hoje,
-      perfil?.data_inicio ?? null,
-    );
+    const doDia = porData.get(dia.data) ?? [];
+    const { marca, sessaoId, sessaoTipo } = marcarDia(dia, doDia, hoje, perfil?.data_inicio);
     const semanaDaFaseDoDia = semanaDaFase(dia.data, perfil?.fase_desde ?? dia.data);
     return {
       dia,
@@ -368,6 +342,7 @@ export function montarGradeDe(
       sigla: siglaDoDia(dia),
       semanaDaFase: semanaDaFaseDoDia,
       detalhe: detalheDoDia(dia),
+      registros: registrosDisponiveis(doDia),
       sessaoId,
       sessaoTipo,
     };
@@ -437,6 +412,7 @@ export function montarMes(
   const mes = primeiro.getMonth();
 
   const semanas: DiaDoMes[][] = [];
+  const porData = agruparPorData(sessoes, cardios);
   let cursor = inicioDaSemana(primeiro);
 
   while (cursor <= ultimo) {
@@ -455,13 +431,7 @@ export function montarMes(
         nota: null,
         min: null,
       };
-      const { marca } = marcarDia(
-        dia,
-        sessoes,
-        cardios,
-        hoje,
-        perfil.data_inicio ?? null,
-      );
+      const { marca } = marcarDia(dia, porData.get(dia.data) ?? [], hoje, perfil.data_inicio);
       return {
         data: info.data,
         numero: paraData(data).getDate(),

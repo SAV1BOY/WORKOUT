@@ -10,6 +10,12 @@ import {
   usuarioComPerfil,
 } from "./fixtures";
 
+declare global {
+  interface Window {
+    aguardarCardioDoMes(): Promise<void>;
+  }
+}
+
 /** Terça 15/09/2026: o dia de corrida da semana 1 do plano (SPEC §5.2). */
 const TERCA = "2026-09-15T08:00:00-03:00";
 /** Quinta 17/09/2026: dia de descanso — o grease the groove da §3.4. */
@@ -326,7 +332,7 @@ test.describe("Cardio — corrida (SPEC §3.3)", () => {
         const resposta = await buscar(...args);
         const url = new URL(resposta.url, location.href);
         if (url.pathname === "/rest/v1/cardio_sessions" && url.searchParams.has("data")) {
-          await (window as Window & { aguardarCardioDoMes: () => Promise<void> }).aguardarCardioDoMes();
+          await window.aguardarCardioDoMes();
         }
         return resposta;
       };

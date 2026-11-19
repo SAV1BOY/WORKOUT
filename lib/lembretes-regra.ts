@@ -139,7 +139,9 @@ export function lembreteDoDia(conta: ContaDaRegra, dia: string, hoje: string): L
   const doDia = grade.find((g) => g.data === dia);
   if (!doDia) return null;
   const plano = doDia.dia;
-  const feito = doDia.marca === "feito";
+  // O calendário também marca um treino feito fora do plano. O lembrete verifica sua própria modalidade.
+  const feito = doDia.registros.some(r => r.tipo === plano.tipo &&
+    (r.tipo === "forca" ? r.sessao.status === "concluida" : r.sessao.concluida));
   if (plano.tipo === "forca") {
     const resumo = plano.treinoId ? resumoDoTreino(plano.treinoId) : null;
     return {

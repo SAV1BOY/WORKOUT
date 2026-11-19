@@ -178,11 +178,13 @@ export function useSessoesAbertas(confirmarAoAbrir = false): UseQueryResult<Sess
 
 async function consultarCardio(conta: string, chave: readonly string[], sinal: AbortSignal) {
   const [grupo, inicio, fim] = chave;
+  if (grupo === "cardio") return lerTabelaCompleta<LinhaSessaoCardio>(
+    "cardio_sessions", "*", "as sessões de cardio", conta, sinal, { de: inicio!, ate: fim! },
+  );
   let consulta = clienteNavegador().from("cardio_sessions").select("*").eq("user_id", conta);
   if (grupo === "cardio-sessao") consulta = consulta.eq("id", inicio!);
   else {
-    consulta = consulta.gte("data", inicio!).order("data", { ascending: false });
-    consulta = grupo === "cardio" ? consulta.lte("data", fim!) : consulta.limit(CARDIOS_RECENTES);
+    consulta = consulta.gte("data", inicio!).order("data", { ascending: false }).limit(CARDIOS_RECENTES);
   }
   const { data, error, status } = await consulta.abortSignal(sinal);
   if (error) {

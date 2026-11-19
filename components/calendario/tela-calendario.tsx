@@ -7,6 +7,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { DialogoDia, DialogoSemanaCurta, type TrocaDoDia } from "@/components/calendario/dialogos";
+import { useNavegacaoDoCalendario } from "@/components/calendario/navegacao-do-calendario";
 import { GradeDaSemana, MesEmMiniatura } from "@/components/calendario/grade";
 import { Erro, EsqueletoCard } from "@/components/carregando";
 import { Button } from "@/components/ui/button";
@@ -23,7 +24,8 @@ import {
 import { acharTreino } from "@/lib/dados";
 import { formatarData, formatarIntervaloDaSemana, formatarMesAno } from "@/lib/formato";
 import { apagarOverride, gravarOverrides } from "@/lib/queries/acoes";
-import { useCardio, useOverrides, usePerfil, useSessoes } from "@/lib/queries/dados";
+import { useCardio, useOverrides, usePerfil } from "@/lib/queries/dados";
+import { useSessoesDoCalendario } from "@/lib/queries/sessoes-do-calendario";
 import { useHoje } from "@/lib/relogio";
 import {
   faseCumprida,
@@ -44,7 +46,7 @@ function intervaloDoMes(referencia: string): { de: string; ate: string } {
 export function TelaCalendario({ userId }: { userId: string }) {
   const hoje = useHoje();
   const cliente = useQueryClient();
-  const [referencia, setReferencia] = useState<string | null>(null);
+  const { referencia, guardar, focarAoVoltar } = useNavegacaoDoCalendario(userId);
   const [diaTocado, setDiaTocado] = useState<DiaDaGrade | null>(null);
   const [semanaCurtaAberta, setSemanaCurtaAberta] = useState(false);
 
@@ -53,12 +55,11 @@ export function TelaCalendario({ userId }: { userId: string }) {
 
   const perfilQ = usePerfil();
   const overridesQ = useOverrides(intervalo?.de ?? null, intervalo?.ate ?? null);
-  const sessoesQ = useSessoes();
+  const sessoes = useSessoesDoCalendario(userId);
   const cardioQ = useCardio(intervalo?.de ?? null, intervalo?.ate ?? null, userId);
 
   const perfil = perfilQ.data ?? null;
   const overrides = useMemo(() => overridesQ.data ?? [], [overridesQ.data]);
-  const sessoes = useMemo(() => sessoesQ.data ?? [], [sessoesQ.data]);
   const cardios = useMemo(() => cardioQ.data ?? [], [cardioQ.data]);
 
   /*
@@ -75,9 +76,8 @@ export function TelaCalendario({ userId }: { userId: string }) {
   );
   // O resumo acompanha as consultas que chegam depois do toque. No editor de
   // hoje ou de um dia futuro, mantenha o rascunho que a pessoa já está alterando.
-  const diaDoDialogo = diaTocado?.passado
-    ? grade.find(d => d.data === diaTocado.data) ?? diaTocado
-    : diaTocado;
+  const diaAtualizado = diaTocado && grade.find(d => d.data === diaTocado.data);
+  const diaDoDialogo = diaTocado?.passado ? diaAtualizado ?? diaTocado : diaTocado;
 
   /*
    * SPEC §22.8 item 11: a contagem da semana lê a MESMA grade, já sem os dias
@@ -161,10 +161,10 @@ export function TelaCalendario({ userId }: { userId: string }) {
   const temHoje = grade.some((d) => d.ehHoje);
 
   const irPara = (semanas: number) =>
-    setReferencia(iso(addWeeks(new Date(`${ref}T00:00:00`), semanas)));
+    guardar(iso(addWeeks(new Date(`${ref}T00:00:00`), semanas)));
 
   const irParaMes = (meses: number) =>
-    setReferencia(iso(addMonths(new Date(`${ref}T00:00:00`), meses)));
+    guardar(iso(addMonths(new Date(`${ref}T00:00:00`), meses)));
 
   /*
    * SPEC §22.8 item 2: tocar num dia do mês abre o MESMO diálogo do cartão da
@@ -181,7 +181,7 @@ export function TelaCalendario({ userId }: { userId: string }) {
       cardios,
       hoje,
     }).find((g) => g.data === d.data);
-    setReferencia(d.data);
+    guardar(d.data, `calendario-mes-${d.data}`);
     if (doDia) setDiaTocado(doDia);
   };
 
@@ -308,7 +308,7 @@ export function TelaCalendario({ userId }: { userId: string }) {
           <Button
             variant="secondary"
             className="alvo px-3 text-sm"
-            onClick={() => setReferencia(hoje)}
+            onClick={() => guardar(null)}
           >
             Hoje
           </Button>
@@ -335,7 +335,10 @@ export function TelaCalendario({ userId }: { userId: string }) {
         </div>
       ) : null}
 
-      <GradeDaSemana dias={grade} aoTocar={setDiaTocado} />
+      <GradeDaSemana dias={grade} focarAoVoltar={focarAoVoltar} aoTocar={(dia) => {
+        guardar(referencia, `calendario-semana-${dia.data}`);
+        setDiaTocado(dia);
+      }} />
 
       {/*
         SPEC §22.8 item 9: a ação flutuava no fim da tela, longe do dia que
@@ -365,10 +368,13 @@ export function TelaCalendario({ userId }: { userId: string }) {
         aoVoltar={() => irParaMes(-1)}
         aoAvancar={() => irParaMes(1)}
         focoEm={ref}
+        focarAoVoltar={focarAoVoltar}
       />
 
       <DialogoDia
         dia={diaDoDialogo}
+        conta={userId}
+        registros={diaAtualizado?.registros ?? diaDoDialogo?.registros ?? []}
         fase={perfil.fase_atual}
         aoFechar={() => setDiaTocado(null)}
         aoTrocar={(troca) => diaTocado && void trocarDia(diaTocado, troca)}

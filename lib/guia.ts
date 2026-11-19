@@ -748,7 +748,7 @@ const CALENDARIO: SecaoDoGuia = {
       id: "tocar",
       nome: "Tocar num dia",
       oQueFaz:
-        "Num dia passado, o resumo do que foi feito (e o atalho para abrir o treino). Em hoje ou no futuro, a troca do dia: outro treino, cardio ou descanso.",
+        "Escolha a data para ver as séries de cada treino de força, retomar um treino em andamento ou abrir o resumo de um cardio. Para hoje ou uma data futura, você também pode trocar o que está programado.",
       caminho: ["Calendário", "dia"],
     },
     {

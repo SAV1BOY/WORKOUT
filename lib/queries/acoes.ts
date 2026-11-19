@@ -9,7 +9,8 @@
 "use client";
 
 import type { QueryClient } from "@tanstack/react-query";
-import { bd, temIndexedDB } from "@/lib/db";
+import { processar } from "@/lib/outbox";
+import { chaveDoHistorico, guardarDescarteNoHistorico } from "@/lib/queries/historico-da-sessao";
 import { enfileirarEscrita } from "@/lib/outbox-supabase";
 import { atualizarFonteDoRelatorio } from "@/lib/queries/lista-do-relatorio";
 import {
@@ -153,27 +154,16 @@ export async function apagarOverride(opcoes: {
 /* ------------------------------------------------ treino aberto (§3.1) */
 
 /** "Descartar": a sessão fica registrada como abandonada, sem perder as séries. */
-export async function descartarSessao(opcoes: {
-  id: string;
-  cliente: QueryClient;
-}): Promise<void> {
-  const { id, cliente } = opcoes;
-
+export async function descartarSessao(opcoes: { id: string; userId: string; cliente: QueryClient }): Promise<void> {
+  const { id, userId, cliente } = opcoes;
+  const resumo = cliente.getQueryData<SessaoResumo[]>(chaves.sessoesAbertas())?.find(s => s.id === id);
+  const historico = await guardarDescarteNoHistorico(cliente, userId, id, resumo);
+  cliente.setQueryData(chaveDoHistorico(userId), historico);
   cliente.setQueryData<SessaoResumo[]>(chaves.sessoesAbertas(), (atual) =>
-    (atual ?? []).filter((s) => s.id !== id),
+    (atual ?? []).filter(s => s.id !== id || s.user_id !== userId),
   );
   cliente.setQueryData<SessaoResumo[]>(chaves.sessoes(), (atual) =>
-    (atual ?? []).map((s) => (s.id === id ? { ...s, status: "abandonada" } : s)),
+    (atual ?? []).map(s => s.id === id && s.user_id === userId ? { ...s, status: "abandonada" } : s),
   );
-
-  if (temIndexedDB()) {
-    await bd().sessaoAtiva.delete(id).catch(() => {});
-  }
-
-  await enfileirarEscrita("sessao", {
-    tabela: "sessions",
-    op: "update",
-    linha: { status: "abandonada" },
-    filtro: { id },
-  });
+  void processar();
 }
