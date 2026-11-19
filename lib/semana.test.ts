@@ -20,6 +20,8 @@ import {
   rotuloDaFase,
   rotuloDoDia,
   siglaDoDia,
+  type CardioCurto,
+  type SessaoCurta,
   type MarcaDoDia,
   type MarcaVisivel,
 } from "@/lib/semana";
@@ -110,6 +112,54 @@ describe("grade da semana (SPEC §3.5 e §10.6)", () => {
     expect(quinta).toBeDefined();
     expect(rotuloDoDia(quinta!)).toBe("Descanso");
     expect(detalheDoDia(quinta!)).toMatch(/grease the groove/);
+  });
+});
+
+describe("registros do dia no calendário", () => {
+  it("lista as duas forças e cada cardio do dia pelo próprio identificador, inclusive IDs iguais em tabelas distintas", () => {
+    const data = SEMANA_1;
+    const sessoes: SessaoCurta[] = [
+      { id: "mesmo-id", data, workout_id: "livre", status: "concluida", nota_geral: "Primeiro treino" },
+      { id: "ativa", data, workout_id: "A1", status: "em_andamento" },
+      { id: "abandonada", data, workout_id: "fixa", status: "abandonada" },
+      { id: "outra-data", data: "2026-09-15", workout_id: "B1", status: "concluida" },
+    ];
+    const cardios: CardioCurto[] = [
+      { id: "mesmo-id", data, tipo: "corrida", concluida: true, distancia_km: 4.25 },
+      { id: "outro", data, tipo: "outro", concluida: true, notas: "Volta na praça" },
+      { id: "incompleta", data, tipo: "corda", concluida: false },
+    ];
+    const grade = montarGrade({ data, perfil: PERFIL, sessoes, cardios, hoje: "2026-09-16" });
+    expect(grade[0]?.registros).toEqual([
+      { tipo: "forca", sessao: sessoes[0] },
+      { tipo: "forca", sessao: sessoes[1] },
+      { tipo: "cardio", sessao: cardios[0] },
+      { tipo: "cardio", sessao: cardios[1] },
+    ]);
+    expect(grade[1]?.registros).toEqual([{ tipo: "forca", sessao: sessoes[3] }]);
+  });
+
+  it("marca no mês e na semana a modalidade feita fora do plano, conservando a prescrição", () => {
+    const hoje = "2026-09-19";
+    const sessoes: SessaoCurta[] = [{ id: "f1", data: "2026-09-15", workout_id: "livre", status: "concluida" }];
+    const cardios: CardioCurto[] = [{ id: "c1", data: SEMANA_1, tipo: "outro", concluida: true }];
+    const grade = montarGrade({ data: SEMANA_1, perfil: PERFIL, sessoes, cardios, hoje });
+    const mes = montarMes(SEMANA_1, PERFIL, [], sessoes, cardios, hoje).flat();
+    for (const fonte of [grade, mes]) {
+      expect(fonte.find(d => d.data === SEMANA_1)?.marca).toBe("feito");
+      expect(fonte.find(d => d.data === "2026-09-15")?.marca).toBe("feito");
+    }
+    expect(grade[0]).toMatchObject({ dia: { tipo: "forca" }, sessaoId: "c1", sessaoTipo: "outro" });
+    expect(grade[1]).toMatchObject({ dia: { tipo: "cardio" }, sessaoId: "f1", sessaoTipo: null });
+  });
+
+  it("mantém a marca parcial e só oferece ações para os treinos que podem ser abertos", () => {
+    const data = "2026-09-17";
+    const grade = montarGrade({ data, perfil: PERFIL, hoje: "2026-09-20",
+      sessoes: [{ id: "s1", data, workout_id: "livre", status: "abandonada" }],
+      cardios: [{ id: "c1", data, tipo: "outro", concluida: false }],
+    });
+    expect(grade.find(d => d.data === data)).toMatchObject({ marca: "parcial", registros: [] });
   });
 });
 

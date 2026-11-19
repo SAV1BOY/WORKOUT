@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { RegistrosDoDia } from "@/components/calendario/registros-do-dia";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,7 +16,7 @@ import { Label } from "@/components/ui/label";
 import { acharFase, acharTreino } from "@/lib/dados";
 import { formatarDataLonga } from "@/lib/formato";
 import type { FaseId, TipoDia, TreinoId } from "@/lib/schemas";
-import { NOME_DA_MARCA, type DiaDaGrade, type NovoOverride } from "@/lib/semana";
+import { NOME_DA_MARCA, type DiaDaGrade, type NovoOverride, type RegistroDoDia } from "@/lib/semana";
 import { cn } from "@/lib/utils";
 
 export interface TrocaDoDia {
@@ -55,12 +55,16 @@ function Opcao({
  */
 export function DialogoDia({
   dia,
+  conta,
+  registros,
   fase,
   aoFechar,
   aoTrocar,
   aoDesfazer,
 }: {
   dia: DiaDaGrade | null;
+  conta: string;
+  registros: readonly RegistroDoDia[];
   fase: FaseId;
   aoFechar: () => void;
   aoTrocar: (troca: TrocaDoDia) => void;
@@ -85,11 +89,11 @@ export function DialogoDia({
 
   return (
     <Dialog open={aberto} onOpenChange={(v) => !v && aoFechar()}>
-      <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-md">
+      <DialogContent className="max-h-[calc(100dvh-2rem)] max-w-[calc(100vw-32px)] overflow-y-auto px-[min(1rem,16px)] sm:max-w-md">
         {dia ? (
           <>
-            <DialogHeader>
-              <DialogTitle className="text-left first-letter:uppercase">
+            <DialogHeader className="min-w-0 wrap-anywhere">
+              <DialogTitle className="pr-11 text-left first-letter:uppercase">
                 {formatarDataLonga(dia.data)}
               </DialogTitle>
               <DialogDescription className="text-left">
@@ -99,30 +103,11 @@ export function DialogoDia({
               </DialogDescription>
             </DialogHeader>
 
-            {passado ? (
-              <div className="flex flex-col gap-3">
-                {dia.sessaoId ? (
-                  <Button asChild className="alvo h-12 w-full">
-                    {/* a rota de força é pelo id da sessão; a de cardio é pelo
-                        TIPO, com o id da `cardio_sessions` em `?sessao=`
-                        (SPEC §3.2 e §3.3). */}
-                    {dia.dia.tipo === "cardio" ? (
-                      <Link
-                        href={`/cardio/${dia.sessaoTipo ?? dia.dia.cardio?.tipo ?? "corrida"}?sessao=${dia.sessaoId}`}
-                      >
-                        Abrir o cardio
-                      </Link>
-                    ) : (
-                      <Link href={`/treinar/${dia.sessaoId}`}>Abrir o treino</Link>
-                    )}
-                  </Button>
-                ) : (
-                  <p className="text-muted-foreground text-sm">
-                    Nada registrado neste dia.
-                  </p>
-                )}
-              </div>
-            ) : (
+            {registros.length > 0 && <RegistrosDoDia registros={registros} conta={conta} />}
+            {passado && registros.length === 0 && (
+              <p className="text-muted-foreground text-sm">Nada registrado neste dia.</p>
+            )}
+            {!passado && (
               <div className="flex flex-col gap-4">
                 <fieldset className="flex flex-col gap-2">
                   <legend className="text-muted-foreground mb-2 text-rotulo tracking-wide uppercase">

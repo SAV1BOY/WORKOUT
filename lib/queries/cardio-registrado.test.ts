@@ -161,3 +161,28 @@ it("o update da nota tem o mesmo filtro do servidor quando outra atividade passa
   await enfileirar({ tabela: "cardio_sessions", op: "delete", filtro });
   expect(await ler(sessao)).toEqual([novo]);
 });
+
+it("abre por UUID cada cardio visto só no calendário, após fechar a aba imediatamente e antes de visitar o Histórico", async () => {
+  vi.stubGlobal("navigator", { onLine: true });
+  const outro = { ...corrida, id: "segundo", tipo: "outro" as const, notas: "No tatame" };
+  await ler(semana, vi.fn(async () => [outro, corrida]));
+  vi.stubGlobal("navigator", { onLine: false });
+  expect(await ler(sessao)).toEqual([corrida]);
+  expect(await ler(["cardio-sessao", outro.id, conta])).toEqual([outro]);
+  expect(await ler(["cardio-sessao", outro.id, "bia"], semRede, "bia")).toEqual([]);
+  expect(await ler(semana)).toEqual([outro, corrida]);
+
+  vi.stubGlobal("navigator", { onLine: true });
+  await ler(semana, vi.fn(async () => [corrida]));
+  vi.stubGlobal("navigator", { onLine: false });
+  expect(await ler(["cardio-sessao", outro.id, conta])).toEqual([]);
+  expect(await ler(sessao)).toEqual([corrida]);
+});
+
+it("reabre o resumo em outra página offline quando o calendário só possuía o mês no cache da versão anterior", async () => {
+  const antiga = new QueryClient();
+  antiga.setQueryData(semana.slice(0, -1), [corrida]);
+  await lerCardioRegistrado(antiga, conta, semana, semRede, new AbortController().signal);
+  expect(await ler(sessao)).toEqual([corrida]);
+  expect(semRede).not.toHaveBeenCalled();
+});

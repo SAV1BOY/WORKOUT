@@ -7,7 +7,7 @@ import { lerHistoricoDaFichaOffline } from "@/lib/queries/historico-da-ficha-off
 import { ChevronRight } from "lucide-react";
 import { GraficoLinha, SemDados } from "@/components/graficos";
 import { EsqueletoLista, Erro } from "@/components/carregando";
-import { FolhaDasSeries, SeriesRegistradas } from "@/components/relatorio/detalhe-das-series";
+import { DetalhePorSessao, FolhaDasSeries } from "@/components/relatorio/detalhe-das-series";
 import {
   Card,
   CardContent,
@@ -23,6 +23,7 @@ import {
   formatarKg,
   formatarNumero,
   rotuloDaCarga,
+  horaDeInicio,
 } from "@/lib/formato";
 import {
   SEM_HISTORICO,
@@ -47,7 +48,6 @@ import {
 import { opcoesDeMontagem } from "@/lib/preferencias";
 import { useEstados, useEventos, usePerfil, useRecordes } from "@/lib/queries/dados";
 import { useSeriesDoExercicio, useSessoesTodas } from "@/lib/queries/progresso";
-import { useSeriesDaSessaoNaFicha } from "@/lib/queries/series-do-detalhe";
 
 /**
  * O histórico do exercício na ficha (SPEC §3.6): carga atual, recorde,
@@ -366,12 +366,6 @@ function UltimasSessoes({ ultimas, conta, offline = false }: {
   );
 }
 
-function horaDeInicio(inicio?: string | null) {
-  if (!inicio || !/T\d{2}:\d{2}/i.test(inicio)) return;
-  const data = new Date(inicio);
-  if (Number.isFinite(data.getTime())) return data.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-}
-
 type Origem = { sessao: SessaoBruta; titulo: string; hora?: string; registro?: string };
 
 function identificarOrigens(dias: readonly SessaoDoExercicio[], sessoes: readonly SessaoBruta[]):
@@ -413,22 +407,11 @@ function OrigemDoTreino({ dia, origem, conta }: {
           <ChevronRight aria-hidden="true" className="text-muted-foreground size-4 shrink-0" />
         </button>
       }>
-        <DetalheNaFicha sessao={sessao} conta={conta} recorte={dia.series} />
+        <DetalhePorSessao sessao={sessao} conta={conta} recorte={dia.series} />
       </FolhaDasSeries>
       <div id={resumo}><SeriesDoDia data={dia.data} series={dia.series} /></div>
     </>
   );
-}
-
-function DetalheNaFicha({ sessao, conta, recorte }: { sessao: SessaoBruta; conta: string; recorte: readonly SerieBruta[] }) {
-  const consulta = useSeriesDaSessaoNaFicha(conta, sessao.id);
-  if (consulta.error) return (
-    <div className="px-4 pb-6"><Erro mensagem={consulta.error.message} aoTentarDeNovo={() => void consulta.refetch()} /></div>
-  );
-  const fonte = consulta.data;
-  return <SeriesRegistradas sessao={sessao} conta={conta}
-    linhas={fonte && (fonte.completa || fonte.linhas.length > 0) ? fonte.linhas : recorte}
-    completa={fonte?.completa === true} carregando={consulta.isFetching && !fonte} />;
 }
 
 function Recorde({ rotulo, valor }: { rotulo: string; valor: string }) {

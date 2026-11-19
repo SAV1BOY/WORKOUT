@@ -40,7 +40,8 @@ const dados: Record<string, Linha[]> = {
   trocas_do_programa: [...trocas].reverse().concat({ ...trocas[0]!, user_id: "outra-conta" }),
   sessions: gerar(501),
   session_sets: series,
-  cardio_sessions: gerar(802),
+  cardio_sessions: [{ id: "000000", user_id: uid, data: "2026-11-19" }, ...gerar(802),
+    { id: "zzz", user_id: uid, data: "2026-11-17" }],
   pullup_singles: gerar(2002),
   exercise_state: Array.from({ length: 1200 }, (_, i) => ({
     user_id: uid, exercise_id: String(i).padStart(5, "0"),
@@ -67,6 +68,8 @@ beforeEach(() => {
     const linhas = (dados[tabela] ?? []).filter((linha) => {
       for (const [coluna, filtro] of url.searchParams) {
         if (filtro.startsWith("eq.") && linha[coluna] !== filtro.slice(3)) return false;
+        if (filtro.startsWith("gte.") && String(linha[coluna]) < filtro.slice(4)) return false;
+        if (filtro.startsWith("lte.") && String(linha[coluna]) > filtro.slice(4)) return false;
         if (filtro.startsWith("gt.") && String(linha[coluna]) <= filtro.slice(3)) return false;
       }
       return true;
@@ -130,6 +133,11 @@ describe("histórico maior que uma página do servidor", () => {
       expect(lista.linhas.map((linha) => linha.id)).toEqual(dados[tabela]!.map((linha) => linha.id));
       if (tabela === "session_sets") expect(lista.linhas.at(-1)).toEqual(ultimoRegistro);
     }
+  });
+
+  it("pagina o cardio do calendário por UUID conservando a data e a conta em todas as páginas", async () => {
+    const cardios = await lerTabelaCompleta<Linha>("cardio_sessions", "*", "o período", uid, undefined, { de: dia, ate: dia });
+    expect(cardios).toEqual(gerar(802));
   });
 
   it("interrompe a exportação se uma leitura falhar no meio", async () => {

@@ -98,6 +98,12 @@ export function formatarDiaCurto(valor: DataEntrada): string {
   return DIAS_CURTOS[paraData(valor).getDay()] ?? "";
 }
 
+export function horaDeInicio(inicio?: string | null) {
+  if (!inicio || !/T\d{2}:\d{2}/i.test(inicio)) return;
+  const data = new Date(inicio);
+  if (Number.isFinite(data.getTime())) return data.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+}
+
 /** 150 → "2:30" · 3720 → "1:02:00" · 45 → "0:45" */
 export function formatarDuracao(segundos: number): string {
   const total = Math.max(0, Math.round(segundos));

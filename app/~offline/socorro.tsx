@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { resumoDeCardioNaUrl } from "@/lib/rota-de-cardio";
 import type { DestinoLocal } from "./aba-local";
 import type { LinhaPerfil } from "@/lib/types";
-import { EVENTO_DE_LOGIN_CONFIRMADO, idDoPlayerNoCaminho, type VinculoDoPlayer } from "@/lib/vinculo-do-player";
+import { ehAbaLocal, EVENTO_DE_LOGIN_CONFIRMADO, idDoPlayerNoCaminho, type VinculoDoPlayer } from "@/lib/vinculo-do-player";
 
 interface PlayerDoAparelho {
   sessaoId: string;
@@ -36,17 +36,18 @@ export function Socorro({ videos, children }: { videos: string[]; children: Reac
   const [tela, setTela] = useState<PlayerDoAparelho | AbaDoAparelho | null>(null);
   useEffect(() => {
     const caminho = window.location.pathname;
+    const aba = ehAbaLocal(caminho) ? caminho : null;
     const sessaoId = idDoPlayerNoCaminho(caminho);
     const cardio = resumoDeCardioNaUrl(new URL(window.location.href));
-    if (!cardio && !sessaoId && caminho !== "/" && caminho !== "/relatorio") return;
+    if (!aba && !cardio && !sessaoId) return;
     let versao = 0;
     const verificar = async () => {
       const vez = ++versao;
       try {
         const { vinculoDoLoginAtual, vinculoParaAbaLocal, vinculoParaPlayerLocal } = await import("@/lib/player-sem-rede");
         let proxima: PlayerDoAparelho | AbaDoAparelho | null = null;
-        if (caminho === "/" || caminho === "/relatorio") {
-          const local = await vinculoParaAbaLocal(caminho);
+        if (aba) {
+          const local = await vinculoParaAbaLocal(aba);
           if (local) {
             const Componente = (await import("./aba-local")).default;
             if (versao !== vez) return;
@@ -56,7 +57,7 @@ export function Socorro({ videos, children }: { videos: string[]; children: Reac
               if (!emMemoria?.data || local.perfil.atualizadoEm > emMemoria.dataUpdatedAt) {
                 cliente.setQueryData(["perfil"], local.perfil.valor, { updatedAt: local.perfil.atualizadoEm });
               }
-              proxima = { aba: caminho, vinculo: local.vinculo, Componente };
+              proxima = { aba, vinculo: local.vinculo, Componente };
             }
           }
         } else if (cardio) {

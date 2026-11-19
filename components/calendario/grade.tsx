@@ -15,9 +15,11 @@ import { cn } from "@/lib/utils";
 export function GradeDaSemana({
   dias,
   aoTocar,
+  focarAoVoltar,
 }: {
   dias: DiaDaGrade[];
   aoTocar: (dia: DiaDaGrade) => void;
+  focarAoVoltar: (no: HTMLButtonElement | null) => void;
 }) {
   return (
     <ul aria-label="Semana" className="flex flex-col gap-1.5">
@@ -25,6 +27,8 @@ export function GradeDaSemana({
         <li key={d.data}>
           <button
             type="button"
+            id={`calendario-semana-${d.data}`}
+            ref={focarAoVoltar}
             onClick={() => aoTocar(d)}
             aria-current={d.ehHoje ? "date" : undefined}
             aria-label={`${formatarDiaLongo(d.data)} ${formatarData(d.data)}: ${d.rotulo}, ${NOME_DA_MARCA[d.marca]}${d.ehHoje ? ", hoje" : ""}`}
@@ -97,6 +101,7 @@ export function MesEmMiniatura({
   aoVoltar,
   aoAvancar,
   focoEm,
+  focarAoVoltar,
 }: {
   semanas: DiaDoMes[][];
   titulo: string;
@@ -105,6 +110,7 @@ export function MesEmMiniatura({
   aoAvancar: () => void;
   /** A data da semana que a grade de cima mostra — a linha ganha realce. */
   focoEm?: string;
+  focarAoVoltar: (no: HTMLButtonElement | null) => void;
 }) {
   return (
     <section aria-label={`Mês de ${titulo}`} className="flex flex-col gap-2">
@@ -155,6 +161,8 @@ export function MesEmMiniatura({
                 <button
                   key={d.data}
                   type="button"
+                  id={`calendario-mes-${d.data}`}
+                  ref={focarAoVoltar}
                   onClick={() => aoTocarDia(d)}
                   /*
                     SPEC §22.8 item 5: "hoje" deixa de existir só como cor —

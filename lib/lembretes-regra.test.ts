@@ -244,6 +244,18 @@ describe("lembreteDoDia e o calendário", () => {
     expect(lembretesDevidos(escolhidos, sp("2026-09-21", "07:00"))).toEqual([]);
     expect(lembretesDevidos(escolhidos, sp("2026-09-22", "07:00"))[0]?.tipo).toBe("treino");
   });
+  it("uma atividade fora da modalidade do plano aparece no calendário e conserva o lembrete devido", () => {
+    const seg = "2026-09-21";
+    const ter = "2026-09-22";
+    const c = conta({
+      cardios: [{ id: "corda", data: seg, tipo: "corda", concluida: true }],
+      sessoes: [{ id: "livre", data: ter, workout_id: "livre", status: "concluida" }],
+    });
+    expect(lembreteDoDia(c, seg, seg)).toMatchObject({ tipo: "treino", feito: false });
+    expect(lembreteDoDia(c, ter, ter)).toMatchObject({ tipo: "corrida", feito: false });
+    c.cardios.push({ id: "outro", data: ter, tipo: "outro", concluida: true });
+    expect(lembreteDoDia(c, ter, ter)).toMatchObject({ tipo: "corrida", feito: true });
+  });
   it("um evento por dia de treino da semana do plano, com a hora de cada tipo", () => {
     const eventos = eventosDoCalendario(conta().perfil, sp("2026-09-21", "09:00"));
     expect(eventos.map((e) => `${e.diaSemana}:${e.tipo}:${e.hora}`)).toEqual([

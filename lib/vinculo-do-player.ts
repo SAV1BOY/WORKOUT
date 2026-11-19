@@ -14,6 +14,12 @@ export interface VinculoDoPlayer {
 
 export const EVENTO_DE_LOGIN_CONFIRMADO = "treino:login-confirmado";
 
+export type CaminhoDeAbaLocal = "/" | "/relatorio" | "/calendario";
+
+export function ehAbaLocal(caminho: string): caminho is CaminhoDeAbaLocal {
+  return caminho === "/" || caminho === "/relatorio" || caminho === "/calendario";
+}
+
 export function idDoPlayerNoCaminho(caminho: string): string | null {
   return /^\/treinar\/([a-f\d]{8}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{12})\/?$/i.exec(caminho)?.[1] ?? null;
 }

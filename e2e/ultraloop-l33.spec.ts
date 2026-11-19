@@ -486,8 +486,8 @@ test.describe("§22.17 item 6 — o voltar do celular fecha só a camada de cima
 
   /*
    * A entrada morta pelo caminho real: o diálogo de um dia passado do
-   * Calendário tem o link "Abrir o treino". A camada sai porque a rota mudou,
-   * a sessão concluída abre o histórico do Relatório, e o voltar (e o avançar)
+   * Calendário tem o link "Abrir o cardio". A camada sai porque a rota mudou,
+   * a sessão concluída abre o resumo do cardio, e o voltar (e o avançar)
    * passa por cima dela — um passo do dedo, um passo de tela. Nos dois temas,
    * com e sem a Navigation API (o Safari do iPhone não a tem: até a rodada 28
    * o avançar sem ela virava voltar — revisão do Codex no PR #31).
@@ -497,20 +497,12 @@ test.describe("§22.17 item 6 — o voltar do celular fecha só a camada de cima
       page,
     }) => {
       if (modo === "sem a Navigation API") await semNavigationApi(page);
-      const sessao = await usuarioComPerfil();
+      const sessao = await usuarioComPerfil({ data_inicio: "2026-07-06", fase_desde: "2026-07-06" });
       const id = "33333333-3333-4333-8333-333333333333";
-      await inserirNoMock(sessao, "sessions", [
-        {
-          id,
-          data: "2026-09-14",
-          workout_id: "A1",
-          fase: "fase1",
-          status: "concluida",
-          iniciada_em: "2026-09-14T11:00:00Z",
-          concluida_em: "2026-09-14T12:00:00Z",
-          duracao_s: 3600,
-        },
-      ]);
+      await inserirNoMock(sessao, "cardio_sessions", [{
+        id, data: "2026-08-18", tipo: "corrida", concluida: true,
+        duracao_min: 34, distancia_km: 3.6, notas: "Corrida de agosto.",
+      }]);
       await page.setViewportSize({ width: 360, height: 740 });
       await page.emulateMedia({ colorScheme: tema });
       await fixarData(page, QUARTA);
@@ -520,40 +512,81 @@ test.describe("§22.17 item 6 — o voltar do celular fecha só a camada de cima
       await expect(page.getByRole("heading", { name: "Calendário" })).toBeVisible();
       const antes = await indice(page);
 
-      await page.getByRole("button", { name: /^segunda 14\/09/ }).click();
+      await page.getByRole("button", { name: "Mês anterior" }).click();
+      const mes = page.getByRole("region", { name: "Mês de agosto de 2026" });
+      await expect(mes).toBeVisible();
+      const naSemana = tema === "light";
+      const gatilho = naSemana ? page.getByRole("list", { name: "Semana" }).getByRole("button", { name: /^terça 18\/08/ })
+        : mes.getByRole("button", { name: /^18\/08:/ });
+      // O dia 16/08 está na semana anterior a terça 18/08.
+      if (naSemana) await page.getByRole("button", { name: "Próxima semana" }).click();
+      await gatilho.focus();
+      await gatilho.press("Enter");
       const dialogo = page.getByRole("dialog");
-      const link = dialogo.getByRole("link", { name: "Abrir o treino" });
+      const link = dialogo.getByRole("link", { name: "Abrir o cardio", exact: true });
       await expect(link).toBeVisible();
       // o diálogo tem a própria entrada, na mesma rota
       await expect.poll(() => indice(page)).toBe(antes + 1);
       await link.click();
-      await page.waitForURL(/\/relatorio#historico$/);
+      await page.waitForURL((url) => url.pathname === "/cardio/corrida" && url.searchParams.get("sessao") === id);
+      await expect(page.getByText("Corrida de agosto.")).toBeVisible();
       await expect(page.getByRole("dialog")).toHaveCount(0);
       // a rota nova foi por cima da entrada do diálogo, que ficou morta embaixo
       await expect.poll(() => indice(page)).toBe(antes + 2);
 
-      // um voltar: do histórico do Relatório direto ao Calendário, sem diálogo e sem parar na morta
+      // um voltar: do resumo do cardio direto ao Calendário, sem diálogo e sem parar na morta
       // (dois popstate: o do toque, na morta, e o do passo a mais)
       expect(await andarNoHistorico(page, "back")).toBe(2);
-      await page.waitForURL(/\/calendario$/);
+      await page.waitForURL((url) => url.pathname === "/calendario");
+      await expect(mes).toBeVisible();
+      await expect(gatilho).toBeFocused();
       expect(await indice(page)).toBe(antes);
       await expect(page.getByRole("heading", { name: "Calendário" })).toBeVisible();
       await expect(page.getByRole("dialog")).toHaveCount(0);
       expect(await page.evaluate(() => document.querySelectorAll("[inert]").length)).toBe(0);
       await semRolagemHorizontal(page);
 
-      // um avançar: do Calendário direto ao histórico do Relatório, pulando a morta na outra direção
+      // um avançar: do Calendário direto ao resumo do cardio, pulando a morta na outra direção
       expect(await andarNoHistorico(page, "forward")).toBe(2);
-      await page.waitForURL(/\/relatorio#historico$/);
+      await page.waitForURL((url) => url.pathname === "/cardio/corrida" && url.searchParams.get("sessao") === id);
+      await expect(page.getByText("Corrida de agosto.")).toBeVisible();
       expect(await indice(page)).toBe(antes + 2);
       await expect(page.getByRole("dialog")).toHaveCount(0);
 
       // e o voltar de novo continua voltando
       expect(await andarNoHistorico(page, "back")).toBe(2);
-      await page.waitForURL(/\/calendario$/);
+      await page.waitForURL((url) => url.pathname === "/calendario");
+      await expect(mes).toBeVisible();
+      await expect(gatilho).toBeFocused();
       expect(await indice(page)).toBe(antes);
     });
   }
+
+  test("dia do histórico abre a semana e preserva a programação futura ao recarregar e voltar", async ({ page }) => {
+    await preparar(page, "light", QUARTA);
+    const mes = (nome: string) => page.getByRole("region", { name: `Mês de ${nome} de 2026` });
+    for (const dia of ["2026-02-30", "2027-04-10"]) {
+      await page.goto(`/calendario?dia=${dia}`);
+      await expect(mes("setembro")).toBeVisible();
+    }
+    await page.goto("/calendario?dia=2026-08-18");
+    const semana = page.getByRole("list", { name: "Semana" });
+    await expect(semana.getByRole("button", { name: /^terça 18\/08/ })).toBeVisible();
+    await page.reload();
+    await expect(mes("agosto")).toBeVisible();
+    await page.getByRole("button", { name: "Hoje", exact: true }).click();
+    await expect(mes("setembro")).toBeVisible();
+    await page.getByRole("button", { name: "Próximo mês" }).click();
+    await expect(mes("outubro")).toBeVisible();
+    expect(new URL(page.url()).searchParams.get("dia")).toBeNull();
+    await page.reload();
+    await expect(semana.getByRole("button", { name: /^sexta 16\/10/ })).toBeVisible();
+    await page.getByRole("link", { name: "Meus dias" }).click();
+    await page.waitForURL((url) => url.pathname === "/mais/preferencias");
+    await page.goBack();
+    await expect(mes("outubro")).toBeVisible();
+    await expect(semana.getByRole("button", { name: /^sexta 16\/10/ })).toBeVisible();
+  });
 
   test("dentro da Visão geral a folha não empilha: o índice não sobe ao abrir", async ({
     page,

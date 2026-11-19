@@ -54,6 +54,21 @@ describe("abas do aparelho quando falta o documento", () => {
     }] } });
   }
 
+  it("o calendário requer um perfil recente da própria conta, inclusive para quem ainda não tem histórico", async () => {
+    document.cookie = cookie("login-a");
+    const vinculo = await confirmado("ana", "login-a");
+    await guardarVinculoDoPlayer(vinculo);
+    expect(await vinculoParaAbaLocal("/calendario")).toBeNull();
+    guardarPerfil("bia");
+    expect(await vinculoParaAbaLocal("/calendario")).toBeNull();
+    guardarPerfil("ana", Date.now() - VALIDADE_MS - 1);
+    expect(await vinculoParaAbaLocal("/calendario")).toBeNull();
+    guardarPerfil("ana");
+    expect((await vinculoParaAbaLocal("/calendario"))?.vinculo).toEqual(vinculo);
+    document.cookie = cookie("login-b");
+    expect(await vinculoParaAbaLocal("/calendario")).toBeNull();
+  });
+
   it("Treino exige perfil recente do mesmo login e Relatório exige também o histórico dessa conta", async () => {
     document.cookie = cookie("login-a");
     const vinculo = await confirmado("ana", "login-a");

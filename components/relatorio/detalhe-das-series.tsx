@@ -1,6 +1,8 @@
 "use client";
 
 import { useId, useMemo, type ReactElement, type ReactNode } from "react";
+import { Erro } from "@/components/carregando";
+import { useSeriesDaSessaoNaFicha } from "@/lib/queries/series-do-detalhe";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { detalharSeriesDoTreino, type GrupoDeSeriesDoTreino } from "@/lib/detalhe-do-treino";
 import type { SerieBruta, SessaoBruta } from "@/lib/progresso";
@@ -17,9 +19,12 @@ export function FolhaDasSeries({ gatilho, descricao, children }: {
       <SheetContent side="bottom" className="max-h-[85dvh] gap-3 overflow-hidden">
         <SheetHeader className="shrink-0 gap-1 pr-16 pb-0">
           <SheetTitle>Séries do treino</SheetTitle>
-          <SheetDescription className="wrap-anywhere">{descricao}</SheetDescription>
         </SheetHeader>
-        {children}
+        <div tabIndex={0} role="region" aria-label="Séries registradas"
+          className="foco flex min-h-0 flex-col gap-3 overflow-y-auto px-4 pb-6">
+          <SheetDescription className="wrap-anywhere">{descricao}</SheetDescription>
+          {children}
+        </div>
       </SheetContent>
     </Sheet>
   );
@@ -36,12 +41,27 @@ export function DetalheDasSeries({ sessao, conta, series, fonteCompleta, confirm
   return <SeriesRegistradas sessao={sessao} conta={conta} {...resultado} />;
 }
 
-export function SeriesRegistradas({ sessao, conta, linhas, completa, carregando }: {
+export function DetalhePorSessao({ sessao, conta, recorte = [], mostrarNota = false }: {
+  sessao: SessaoBruta; conta: string; recorte?: readonly SerieBruta[]; mostrarNota?: boolean;
+}) {
+  const consulta = useSeriesDaSessaoNaFicha(conta, sessao.id);
+  if (consulta.error) return (
+    <Erro mensagem={consulta.error.message} aoTentarDeNovo={() => void consulta.refetch()} />
+  );
+  const fonte = consulta.data;
+  return <SeriesRegistradas sessao={sessao} conta={conta}
+    linhas={fonte && (fonte.completa || fonte.linhas.length > 0) ? fonte.linhas : recorte}
+    nota={mostrarNota && sessao.user_id === conta ? sessao.nota_geral : undefined}
+    completa={fonte?.completa === true} carregando={consulta.isFetching && !fonte} />;
+}
+
+export function SeriesRegistradas({ sessao, conta, linhas, completa, carregando, nota }: {
   sessao: SessaoBruta;
   conta: string;
   linhas: readonly SerieBruta[];
   completa: boolean;
   carregando: boolean;
+  nota?: string | null;
 }) {
   const grupos = useMemo(() => detalharSeriesDoTreino(sessao, linhas, conta), [sessao, linhas, conta]);
   const aviso = carregando ? "Consultando as séries guardadas neste aparelho…"
@@ -49,8 +69,13 @@ export function SeriesRegistradas({ sessao, conta, linhas, completa, carregando 
     : grupos.length === 0 ? "Nenhuma série registrada neste treino." : null;
 
   return (
-    <div tabIndex={grupos.length ? 0 : undefined} role="region" aria-label="Séries registradas"
-      className="foco flex min-h-0 flex-col gap-4 overflow-y-auto px-4 pb-6">
+    <div className="flex flex-col gap-4">
+      {nota?.trim() && (
+        <div className="min-w-0">
+          <h3 className="mb-1 text-sm font-semibold">Nota do treino</h3>
+          <p className="text-sm whitespace-pre-wrap wrap-anywhere">{nota}</p>
+        </div>
+      )}
       {aviso && <p role="status" className="text-muted-foreground text-sm">{aviso}</p>}
       {grupos.map(grupo => <SeriesDoExercicio key={grupo.chave} grupo={grupo} />)}
     </div>
