@@ -49,13 +49,23 @@ export function duracaoDaTroca(originalId: string, ativoId: string, recorrencia?
   return recorrencia?.lembradas[originalId] === ativoId ? `nos treinos ${recorrencia.treinoId}` : "só hoje";
 }
 
-function ExecucaoDaAlternativa({ exercicio, grupo }: { exercicio: Exercicio; grupo: string }) {
+function execucaoAberta(escopo: Element | null) {
+  return escopo?.querySelector<HTMLDetailsElement>("details[data-execucao-da-alternativa][open]");
+}
+
+function ExecucaoDaAlternativa({ exercicio }: { exercicio: Exercicio }) {
   const [aberta, setAberta] = useState(false);
   const conteudoId = useId();
   return (
-    <details data-execucao-da-alternativa name={grupo} className="group/execucao min-w-0"
+    <details data-execucao-da-alternativa className="group/execucao min-w-0"
       onToggle={evento => setAberta(evento.currentTarget.open)}>
       <summary role="button" aria-label={`Ver execução de ${exercicio.nome}`} aria-controls={conteudoId} aria-expanded={aberta}
+        onClick={evento => {
+          // O summary abre com toque, Enter e Espaço, inclusive no Safari sem details.name.
+          const gatilho = evento.currentTarget;
+          const anterior = execucaoAberta(gatilho.closest("ul"));
+          if (anterior && anterior !== gatilho.parentElement) anterior.open = false;
+        }}
         className="foco alvo text-primary hover:bg-muted flex w-fit max-w-full cursor-pointer items-center gap-2 rounded-md px-2 text-left text-sm font-medium">
         Ver execução
         <ChevronDown aria-hidden="true" className="size-4 shrink-0 group-open/execucao:rotate-180" />
@@ -82,8 +92,7 @@ function ExecucaoDaAlternativa({ exercicio, grupo }: { exercicio: Exercicio; gru
 /** Um primeiro Escape recolhe a execução dentro da folha; o seguinte fecha a folha. */
 export function recolherExecucaoDaAlternativa(evento: KeyboardEvent) {
   if (!(evento.target instanceof Element)) return;
-  const folha = evento.target.closest('[role="dialog"]');
-  const aberta = folha?.querySelector<HTMLDetailsElement>("details[data-execucao-da-alternativa][open]");
+  const aberta = execucaoAberta(evento.target.closest('[role="dialog"]'));
   if (!aberta) return;
   evento.preventDefault();
   aberta.open = false;
@@ -192,7 +201,7 @@ export function OpcoesDeAlternativa({
                   <span className="text-muted-foreground text-xs">{motivoDaAlternativa(origem, e)}</span>
                   {evitado(prefs, e.id) ? <span className="text-muted-foreground text-xs">Você marcou como evitar.</span> : null}
                 </button>
-                <ExecucaoDaAlternativa exercicio={e} grupo={nomeDoGrupo} />
+                <ExecucaoDaAlternativa exercicio={e} />
               </li>
             );
           })}

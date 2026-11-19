@@ -33,6 +33,33 @@ test.beforeEach(async ({ page }) => {
   await fixarData(page, HOJE_FIXO);
 });
 
+test("comparar duas execuções e voltar funciona mesmo em navegador sem agrupamento nativo", async ({ page }) => {
+  await usuarioComPerfil();
+  await entrarNoApp(page);
+  const abrir = page.getByRole("button", { name: "Substituir Supino reto com barra", exact: true });
+  await abrir.click();
+  const folha = page.getByRole("dialog", { name: "Substituir hoje" });
+  const lista = folha.getByRole("list", { name: "Exercícios alternativos" });
+  // O Safari 16.4 abre <details>, mas ignora seu agrupamento por name.
+  await lista.locator("details[name]").evaluateAll(elementos => {
+    for (const elemento of elementos) elemento.removeAttribute("name");
+  });
+  const primeira = verExecucao(folha);
+  const segunda = lista.getByRole("button", { name: "Ver execução de Supino inclinado com halteres", exact: true });
+  await primeira.click();
+  await expect(primeira).toHaveAttribute("aria-expanded", "true");
+  await segunda.press("Space");
+  await expect(segunda).toHaveAttribute("aria-expanded", "true");
+  await expect.soft(primeira).toHaveAttribute("aria-expanded", "false");
+  await page.evaluate(() => history.back());
+  await expect(segunda).toBeFocused();
+  await expect(segunda).toHaveAttribute("aria-expanded", "false");
+  await expect(folha).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(abrir).toBeFocused();
+  expect(await naFila(page)).toBe(0);
+});
+
 test("a lista do dia mostra como fazer a flexão com o tatame e só lembra a troca ao aplicá-la", async ({ page }) => {
   const conta = await usuarioComPerfil();
   const anterior = crypto.randomUUID();
