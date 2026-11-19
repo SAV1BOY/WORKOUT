@@ -6,13 +6,15 @@ import { useOverrides } from "@/lib/queries/dados";
 import { useEventosTodos } from "@/lib/queries/progresso";
 import { editarNotaNoHistorico } from "@/lib/queries/historico-da-sessao";
 import { NotaDoTreino } from "@/components/treinar/nota-do-treino";
-import { Flame, History, Pause, Repeat2 } from "lucide-react";
+import { ChevronRight, Flame, History, Pause, Repeat2 } from "lucide-react";
 import Link from "next/link";
 import { addDays } from "date-fns";
-import { useMemo, useState } from "react";
+import { useId, useMemo, useState } from "react";
+import { DetalheDasSeries } from "@/components/relatorio/detalhe-das-series";
 import { useRepetirTreinoLivre } from "@/components/relatorio/usar-repeticao";
 import { Button } from "@/components/ui/button";
 import { FaixaSemana } from "@/components/ui/faixa-semana";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Vazio } from "@/components/ui/vazio";
 import { formatarData, formatarDataCompleta, formatarIntervaloDaSemana } from "@/lib/formato";
 import { iso, inicioDaSemana, paraData } from "@/lib/calendario";
@@ -41,6 +43,7 @@ export function Historico({
   cardios,
   series,
   seriesDisponiveis,
+  seriesConfirmadasEm,
   atividadesCompletas,
   online,
   soltas,
@@ -53,6 +56,7 @@ export function Historico({
   cardios: CardioBruto[];
   series: SerieBruta[];
   seriesDisponiveis: boolean;
+  seriesConfirmadasEm?: number;
   atividadesCompletas: boolean;
   online: boolean;
   soltas: SoltaBruta[];
@@ -198,8 +202,9 @@ export function Historico({
           {mostrados.map((r) => {
             const sessao = r.sessaoDeForca;
             return (
-              <li key={r.chave}>
-                <LinhaDoRegistro registro={r} />
+              <li key={`${perfil.user_id}:${r.chave}`}>
+                <LinhaDoRegistro registro={r} conta={perfil.user_id}
+                  series={series} seriesDisponiveis={seriesDisponiveis} confirmadasEm={seriesConfirmadasEm} />
                 {sessao && sessao.user_id === perfil.user_id && montarRepeticaoDoTreinoLivre(sessao) && (
                   <div className="flex flex-col items-start gap-1 pb-2 pl-12">
                     <Button type="button" variant="outline" size="sm"
@@ -243,10 +248,15 @@ export function Historico({
 }
 
 function LinhaDoRegistro({
-  registro: r,
+  registro: r, conta, series, seriesDisponiveis, confirmadasEm,
 }: {
   registro: ReturnType<typeof registros>[number];
+  conta: string;
+  series: readonly SerieBruta[];
+  seriesDisponiveis: boolean;
+  confirmadasEm?: number;
 }) {
+  const descricaoId = useId();
   const motor = textoDoMotorDaSessao(r.motor);
   const miolo = (
     <>
@@ -265,7 +275,7 @@ function LinhaDoRegistro({
       </span>
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="text-sm font-medium text-balance wrap-anywhere">{r.titulo}</span>
-        <span className="numero text-muted-foreground text-xs">
+        <span id={descricaoId} className="numero text-muted-foreground text-xs">
           {r.detalhe}
           {motor ? ` · ${motor}` : ""}
         </span>
@@ -276,6 +286,32 @@ function LinhaDoRegistro({
     </>
   );
 
+  const sessao = r.sessaoDeForca;
+  if (sessao?.status === "concluida" && sessao.user_id === conta) {
+    return (
+      <Sheet>
+        <SheetTrigger asChild>
+          <button type="button" data-registro={r.tipo}
+            aria-label={`Ver séries de ${r.titulo} de ${formatarDataCompleta(r.data)}`}
+            aria-describedby={descricaoId}
+            className="alvo foco hover:bg-muted/40 flex w-full items-center gap-3 rounded-xl py-2 text-left">
+            {miolo}
+            <ChevronRight aria-hidden="true" className="text-muted-foreground size-4 shrink-0" />
+          </button>
+        </SheetTrigger>
+        <SheetContent side="bottom" className="max-h-[85dvh] gap-3 overflow-hidden">
+          <SheetHeader className="shrink-0 gap-1 pr-16 pb-0">
+            <SheetTitle>Séries do treino</SheetTitle>
+            <SheetDescription className="wrap-anywhere">
+              {r.titulo} · {formatarDataCompleta(r.data)}
+            </SheetDescription>
+          </SheetHeader>
+          <DetalheDasSeries sessao={sessao} conta={conta} series={series}
+            fonteCompleta={seriesDisponiveis} confirmadasEm={confirmadasEm} />
+        </SheetContent>
+      </Sheet>
+    );
+  }
   if (!r.href) {
     return (
       <span data-registro={r.tipo} className="flex items-center gap-3 py-2">

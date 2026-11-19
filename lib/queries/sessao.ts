@@ -745,8 +745,8 @@ export async function finalizarSessao(entrada: EntradaFim): Promise<Conclusao> {
       await guardarNaFila(TIPO_POR_TABELA[escrita.tabela] ?? "sessao", escrita, alvoDaEscrita(escrita));
     }
     await banco.sessaoAtiva.delete(sessao.id);
-    const deTrabalho = series.filter(s => s.linha?.tipo === "trabalho").length;
-    return { conclusao: resultado, historico: await guardarConclusaoNoHistorico(cliente, resultado, encerrada.notaGeral, deTrabalho) };
+    const historico = await guardarConclusaoNoHistorico(cliente, resultado, encerrada.notaGeral, series.map(s => s.linha));
+    return { conclusao: resultado, historico };
   });
   await cliente.cancelQueries({ queryKey: chaveDoHistorico(sessao.userId), exact: true });
   cliente.setQueryData(chaveDoHistorico(sessao.userId), historico);

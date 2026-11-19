@@ -1,6 +1,8 @@
 import { dehydrate, QueryClient } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CHAVE_CACHE } from "@/lib/persistencia-query";
+import { chaveDoDetalheDaSessao } from "@/lib/chaves-do-historico";
+import type { LinhaSerie } from "@/lib/types";
 import type { SessaoBruta } from "@/lib/progresso";
 import { confirmarContaDoTreino } from "@/lib/queries/conta-do-treino";
 import { FalhaDeRedeNaTabela, lerTabelaCompleta } from "@/lib/queries/ler";
@@ -140,9 +142,19 @@ describe("nota geral no histórico de força", () => {
   it("ao concluir conserva o snapshot, as séries feitas e a nota sem misturar textos legados", async () => {
     await lerHistoricoDaConta(cliente, "ana");
     const fim = { resultados: [], escritas: [{ tabela: "sessions", op: "upsert" as const, linha: { ...sessao, notas: "um · dois", duracao_s: 300 } }] };
-    await guardarConclusaoNoHistorico(cliente, fim, "treino do dia", 1);
+    const serie: LinhaSerie = {
+      id: "serie", user_id: "ana", session_id: "um", exercise_id: "remada-unilateral", ordem_ex: 2,
+      set_index: 1, tipo: "trabalho", concluida: true, reps: 8, reps_lado2: 7, carga_kg: 10,
+      reps_alvo_min: 6, reps_alvo_max: 10, tempo_s: null, tempo_s_lado2: null, passos: null,
+      assistencia: null, rpe: null, ultima_firme: true, registrada_em: "2026-11-19T12:00:00Z",
+    };
+    const series = [{ ...serie, id: "aquecimento", tipo: "aquecimento" as const, carga_kg: 5 }, serie];
+    await guardarConclusaoNoHistorico(cliente, fim, "treino do dia", series);
     rede(false);
     expect((await lerHistoricoDaConta(new QueryClient(), "ana"))[0]).toMatchObject({ nota_geral: "treino do dia", duracao_s: 300, seriesDeTrabalhoLocais: 1 });
     expect((await lerHistoricoDaConta(new QueryClient(), "ana"))[0]).not.toHaveProperty("notas");
+    expect(disco.get(chaveDoDetalheDaSessao("ana", "um"))).toEqual(series);
+    expect(disco.has(chaveDoDetalheDaSessao("bia", "um"))).toBe(false);
+    expect(disco.has(chaveDoDetalheDaSessao("ana", "dois"))).toBe(false);
   });
 });

@@ -9,6 +9,7 @@
 import { useQuery, type UseQueryResult } from "@tanstack/react-query";
 import { chaveDoHistorico, lerHistoricoDaConta } from "@/lib/queries/historico-da-sessao";
 import { lerFonteDoRelatorio, lerListaDoRelatorio, type ListaDoRelatorio } from "@/lib/queries/lista-do-relatorio";
+export { useSeriesDoDetalhe } from "@/lib/queries/series-do-detalhe";
 import { lerLista, lerTabelaCompleta } from "@/lib/queries/ler";
 import { clienteNavegador } from "@/lib/supabase/client";
 import type { SerieBruta, SessaoBruta } from "@/lib/progresso";
@@ -80,7 +81,7 @@ export function useSeriesTodas(conta: string | null): UseQueryResult<ListaDoRela
     networkMode: "always",
     queryFn: ({ client, signal }) => lerFonteDoRelatorio(client, conta!, "series", ["progresso", "series-todas"], async () => {
       const series = await lerTabelaCompleta<SerieBruta>(
-        "session_sets", `id,user_id,${COLUNAS_SERIE}`, "as séries registradas", conta!, signal,
+        "session_sets", `id,user_id,ordem_ex,${COLUNAS_SERIE}`, "as séries registradas", conta!, signal,
       );
       return series.sort((a, b) => a.registrada_em.localeCompare(b.registrada_em));
     }, signal),
@@ -98,7 +99,7 @@ export function useSeriesDoExercicio(
       lerLista<SerieBruta>(
         clienteNavegador()
           .from("session_sets")
-          .select(COLUNAS_SERIE)
+          .select(`id,user_id,ordem_ex,${COLUNAS_SERIE}`)
           .eq("exercise_id", exercicioId ?? "")
           .order("registrada_em", { ascending: false })
           .limit(LIMITE_SERIES_DO_EXERCICIO),

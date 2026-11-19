@@ -254,6 +254,15 @@ describe("sessõesDoExercicio", () => {
     expect(dias[1]?.series.map((s) => s.set_index)).toEqual([1, 2]);
   });
 
+  it("mantém juntas as séries do mesmo bloco quando o exercício reaparece mais tarde no treino", () => {
+    const [dia] = sessoesDoExercicio([
+      serie({ session_id: "s1", ordem_ex: 3, set_index: 1, carga_kg: 27.5 }),
+      serie({ session_id: "s1", ordem_ex: 1, set_index: 2, carga_kg: 22.5 }),
+      serie({ session_id: "s1", ordem_ex: 1, set_index: 1, carga_kg: 20 }),
+    ], porSessao, "supino-reto-com-barra");
+    expect(dia?.series.map(s => s.carga_kg)).toEqual([20, 22.5, 27.5]);
+  });
+
   it("guarda no máximo o limite pedido", () => {
     const muitas = Array.from({ length: 15 }, (_, i) =>
       serie({ session_id: `s${i}`, registrada_em: `2026-09-${String(i + 1).padStart(2, "0")}T10:00:00.000Z` }),

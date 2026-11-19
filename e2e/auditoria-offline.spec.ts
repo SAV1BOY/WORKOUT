@@ -18,6 +18,7 @@ import {
   fixarData,
   fixarRelogio,
   lerDoMock,
+  naFila,
   requisicoesDoMock,
   resetarMock,
   usuarioComPerfil,
@@ -45,38 +46,6 @@ interface LinhaSerie {
 test.beforeEach(async () => {
   await resetarMock();
 });
-
-/**
- * Quantos itens ainda esperam na fila de saída (a tabela `outbox` do Dexie).
- * Devolve -1 quando a página está navegando no meio da leitura — quem chama
- * está sempre dentro de um `expect.poll`, que tenta de novo.
- */
-async function naFila(page: Page): Promise<number> {
-  return page.evaluate(
-    () =>
-      new Promise<number>((ok, falhou) => {
-        const pedido = indexedDB.open("treino-terraco");
-        pedido.onerror = () => falhou(pedido.error);
-        pedido.onsuccess = () => {
-          const banco = pedido.result;
-          if (!banco.objectStoreNames.contains("outbox")) {
-            banco.close();
-            ok(0);
-            return;
-          }
-          const conta = banco.transaction("outbox", "readonly").objectStore("outbox").count();
-          conta.onsuccess = () => {
-            ok(conta.result);
-            banco.close();
-          };
-          conta.onerror = () => {
-            falhou(conta.error);
-            banco.close();
-          };
-        };
-      }),
-  ).catch(() => -1);
-}
 
 /**
  * "A rede voltou": o evento que zera o backoff da fila (SPEC §8).

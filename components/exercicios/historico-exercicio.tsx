@@ -10,8 +10,10 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { acharExercicio } from "@/lib/dados";
+import { valoresDaSerieRegistrada } from "@/lib/detalhe-do-treino";
 import {
   formatarData,
+  formatarDataCompleta,
   formatarDuracao,
   formatarKg,
   formatarNumero,
@@ -69,7 +71,10 @@ export function HistoricoExercicio({
     () => datasDasSessoes(sessoesQ.data ?? []),
     [sessoesQ.data],
   );
-  const series = useMemo(() => seriesQ.data ?? [], [seriesQ.data]);
+  const conta = perfilQ.data?.user_id;
+  const series = useMemo(() => (seriesQ.data ?? []).filter(s =>
+    conta && (s.user_id === undefined ? porSessao.has(s.session_id) : s.user_id === conta)
+  ), [conta, porSessao, seriesQ.data]);
   const pontos = useMemo(
     () => cargaPorSessao(series, porSessao, exercicioId),
     [series, porSessao, exercicioId],
@@ -271,10 +276,7 @@ export function HistoricoExercicio({
               {ultimas.map((dia) => (
                 <li key={`${dia.data}-${dia.sessionId}`} className="flex flex-col gap-0.5 py-2">
                   <span className="text-xs font-medium">{formatarData(dia.data)}</span>
-                  <span className="numero text-sm">{textoDasSeries(dia.series)}</span>
-                  <span className="text-muted-foreground text-xs">
-                    {textoDaCarga(exercicio.implemento, dia.series[0]?.carga_kg ?? null)}
-                  </span>
+                  <SeriesDoDia data={dia.data} series={dia.series} />
                 </li>
               ))}
             </ul>
@@ -320,17 +322,24 @@ function Recorde({ rotulo, valor }: { rotulo: string; valor: string }) {
   );
 }
 
-/** "8 · 8 · 7", "30 s · 30 s", "40 passos" — o que foi feito naquele dia. */
-function textoDasSeries(series: readonly SerieBruta[]): string {
-  return series
-    .map((s) => {
-      if (s.tempo_s !== null) {
-        const lados = s.tempo_s_lado2 !== null ? `${s.tempo_s}/${s.tempo_s_lado2}` : `${s.tempo_s}`;
-        return `${lados} s`;
-      }
-      if (s.passos !== null) return `${s.passos} passos`;
-      if (s.reps_lado2 !== null) return `${s.reps ?? 0}/${s.reps_lado2}`;
-      return formatarNumero(s.reps ?? 0);
-    })
-    .join(" · ");
+function SeriesDoDia({ data, series }: { data: string; series: readonly SerieBruta[] }) {
+  const valores = series.map(serie => valoresDaSerieRegistrada(serie));
+  if (valores.every(valor => valor === valores[0])) {
+    return (
+      <p className="numero text-sm">
+        {valores.length > 1 && `${valores.length} séries · `}{valores[0]}
+      </p>
+    );
+  }
+
+  return (
+    <ol className="space-y-1" aria-label={`Séries de trabalho de ${formatarDataCompleta(data)}`}>
+      {series.map((serie, i) => (
+        <li key={serie.id ?? `${serie.set_index}-${i}`} className="flex flex-wrap gap-x-2 text-sm">
+          <span className="text-muted-foreground">Série {serie.set_index}</span>
+          <span className="numero">{valores[i]}</span>
+        </li>
+      ))}
+    </ol>
+  );
 }

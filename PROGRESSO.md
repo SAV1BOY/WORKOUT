@@ -13209,3 +13209,15 @@ A primeira execução integral da revisão `2ee42e3` passou em 781 de 786 cenár
 Um teste reteve a escrita no IndexedDB enquanto a pessoa confirmava o primeiro aquecimento. No mesmo binário do app, o teste anterior terminou a ação antes da gravação e ficou na tela de descanso. Com a espera corrigida, o teste encontrou o segundo aquecimento na tela do agachamento, conferiu as perguntas sobre a última repetição e a sensação do treino, e confirmou a série no servidor de teste. Os cinco casos que falharam na CI e mais duas provas de navegação passaram localmente.
 
 O próximo ponto de continuidade é consultar as séries de uma sessão concluída em **Relatório → Histórico**. Na prova com o app do #46, um treino de supino tinha 10 repetições com 20 kg e 8 com 22,5 kg. Tocar em **30 min · 2 séries** retornou à mesma lista. A ficha do exercício mostrou as duas contagens de repetições acompanhadas apenas da primeira carga. O Hevy documenta abrir os detalhes de um treino a partir do histórico. [Histórico no Hevy](https://www.hevyapp.com/features/best-way-to-track-workouts/)
+
+### Publicação de Desfazer inclusão
+
+O PR #47 entrou em produção no commit `59194021feccd09c6e6485bab8a3a87f16a52cd3`, confirmado no domínio público e pela Vercel. A integração tem a mesma árvore `b6bdb0acaecc3035e2a2073eb90fe427160f306c` da revisão `dc60ecd`. O lint, o build, os 2.174 testes unitários em 109 arquivos e os 786 cenários de Chromium passaram no PR e novamente na main. Os quatro grupos aprovaram 206, 191, 202 e 187 cenários nas duas rodadas. A entrega usou o esquema existente do banco. [PR #47](https://github.com/SAV1BOY/WORKOUT/pull/47) · [Testes do PR](https://github.com/SAV1BOY/WORKOUT/actions/runs/44510240904) · [Testes da integração](https://github.com/SAV1BOY/WORKOUT/actions/runs/44513831010)
+
+### Carga e repetições por série no histórico
+
+Na versão publicada do #47, um treino de supino tinha 10 repetições com 20 kg e 8 com 22,5 kg. No Chromium a 360 px, tocar em **30 min · 2 séries** voltava à mesma lista. Na ficha do exercício, as duas contagens apareciam juntas, acompanhadas de 20 kg. Consultar os detalhes de um treino pelo histórico também é um fluxo documentado no Hevy. [Histórico de treinos no Hevy](https://www.hevyapp.com/features/best-way-to-track-workouts/)
+
+Em **Relatório → Histórico**, tocar no treino concluído abre as séries daquela sessão. A lista preserva aquecimentos, exercícios substituídos e os valores registrados em cada série. A ficha do exercício também associa as repetições à carga correspondente. A conclusão de um treino guarda as séries no aparelho junto com a gravação do treino na fila de sincronização. A entrega usa as colunas existentes do banco.
+
+Na atualização real do #47 em Chromium, o aparelho reabriu sem rede com as duas séries de supino e uma de remada. O cache anterior preservava repetições e pesos, mas omitia a posição do exercício. A primeira reconexão recuperou as posições em uma consulta; a recarga offline seguinte manteve a sequência supino com 20 kg, remada com 15 kg e supino com 22,5 kg.

@@ -8,6 +8,8 @@ import { confirmarContaDoTreino } from "@/lib/queries/conta-do-treino";
 import { FalhaDeRedeNaTabela, lerTabelaCompleta } from "@/lib/queries/ler";
 import { MENSAGEM_NOTA_GERAL_ALTERADA, type Conclusao } from "@/lib/sessao";
 import { lerConsultaGuardada } from "@/lib/persistencia-query";
+import { gravarDetalheDaSessao } from "@/lib/queries/cache-do-detalhe";
+import type { LinhaSerie } from "@/lib/types";
 
 export { chaveDoHistorico } from "@/lib/chaves-do-historico";
 
@@ -102,7 +104,7 @@ export async function lerHistoricoDaConta(cliente: QueryClient, conta: string, s
 
 /** Dentro da mesma transação que remove a sessão aberta e enfileira a sua conclusão. */
 export async function guardarConclusaoNoHistorico(
-  cliente: QueryClient, conclusao: Conclusao, nota: string | null | undefined, deTrabalho: number,
+  cliente: QueryClient, conclusao: Conclusao, nota: string | null | undefined, series: LinhaSerie[],
 ) {
   const linha = conclusao.escritas.find(e => e.tabela === "sessions")!.linha as SessaoBruta;
   const conta = linha.user_id!;
@@ -111,11 +113,13 @@ export async function guardarConclusaoNoHistorico(
   const registro: SessaoBruta = {
     id: linha.id, data: linha.data, workout_id: linha.workout_id, user_id: conta,
     status: linha.status, duracao_s: linha.duracao_s, plano: linha.plano,
-    nota_geral: nota === undefined ? anterior?.nota_geral : nota, seriesDeTrabalhoLocais: deTrabalho,
+    nota_geral: nota === undefined ? anterior?.nota_geral : nota,
+    seriesDeTrabalhoLocais: series.filter(s => s.tipo === "trabalho").length,
     revisaoDaNotaLocal: anterior?.revisaoDaNotaLocal,
   };
   const historico = substituirSessao(lista, registro);
   await guardarLista(conta, historico);
+  await gravarDetalheDaSessao(conta, linha.id, series);
   return historico;
 }
 

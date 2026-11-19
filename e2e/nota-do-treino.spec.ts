@@ -412,6 +412,7 @@ test("o histórico offline mostra a nota sem atribuir zero séries quando a cont
       tx.onabort = () => { banco.close(); reject(tx.error); };
       const tabela = tx.objectStore("cache");
       tabela.delete(`series-do-historico:${id}`);
+      tabela.delete(`series-do-historico-v2:${id}`);
       const pedido = tabela.get("react-query-v1");
       pedido.onsuccess = () => {
         const registro = pedido.result;
@@ -430,4 +431,8 @@ test("o histórico offline mostra a nota sem atribuir zero séries quando a cont
   const linha = registro(page, titulo);
   await expect(linha).toContainText(nota);
   await expect(linha).not.toContainText(/\d+ séries?/);
+  await linha.getByRole("button", { name: /^Ver séries de / }).click();
+  const detalhe = page.getByRole("dialog", { name: "Séries do treino", exact: true });
+  await expect(detalhe).toContainText("O histórico de séries deste treino está incompleto neste aparelho.");
+  await expect(detalhe).not.toContainText("Nenhuma série registrada");
 });
