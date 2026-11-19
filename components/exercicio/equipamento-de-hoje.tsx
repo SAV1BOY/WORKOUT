@@ -45,7 +45,7 @@ export function EquipamentoDeHoje({ material, noSeletor = false }: {
   return (
     <details className="group rounded-lg border">
       <summary className="alvo hover:bg-muted/50 flex cursor-pointer items-center justify-between gap-2 rounded-lg px-3 py-2">
-        <span className="flex min-w-0 flex-col text-left">
+        <span className="flex min-w-0 flex-col text-left wrap-anywhere">
           <span className="text-sm font-medium">{noSeletor ? "Equipamentos disponíveis" : "Equipamento de hoje"}</span>
           <span className="text-muted-foreground text-xs">{resumoDoMaterial(marcados)}</span>
         </span>
@@ -64,12 +64,12 @@ export function EquipamentoDeHoje({ material, noSeletor = false }: {
             Usar todo o equipamento
           </Button>
         </div>
-        <div className="grid grid-cols-2 gap-x-2">
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,8rem),1fr))] gap-x-2">
           {inventario.map(tag => (
             <label key={tag} className="alvo flex min-w-0 cursor-pointer items-center gap-2 text-sm">
               <input type="checkbox" className="size-4 shrink-0 accent-primary" checked={disponiveis.has(tag)}
                 onChange={evento => mudar(tag, evento.target.checked)} />
-              {nomeDoMaterial(tag)}
+              <span className="min-w-0 wrap-anywhere">{nomeDoMaterial(tag)}</span>
             </label>
           ))}
         </div>
