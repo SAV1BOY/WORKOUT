@@ -351,11 +351,30 @@ export async function comecarNoPlayer(page: Page): Promise<void> {
   await concluir.waitFor();
 }
 
+const ROTULO_DO_PASSO = /^(Aquecimento|Série) \d+ de \d+ · exercício \d+ de \d+/;
+
+/** Grava a série, espera a saída daquela etapa e pula só o descanso que veio depois. */
+export async function concluirSerie(page: Page): Promise<void> {
+  const concluir = page.getByRole("button", { name: "Concluir série", exact: true });
+  const etapa = await page.getByRole("region").filter({ has: concluir }).getByText(ROTULO_DO_PASSO).innerText();
+  await concluir.click();
+  await expect(page.getByText(etapa, { exact: true })).toBeHidden();
+
+  const pular = page.getByRole("button", { name: "Pular descanso", exact: true });
+  const firme = page.getByRole("region", { name: "Última repetição", exact: true });
+  const feedback = page.getByRole("region", { name: "Feedback do treino", exact: true });
+  await pular.or(concluir).or(firme).or(feedback).first().waitFor();
+  if (await pular.isVisible()) {
+    await pular.click();
+    await expect(pular).toBeHidden();
+  }
+}
+
 /** Anda pelas séries e descansos. A chegada ao feedback deixa a resposta para quem chamou. */
 export async function avancarNoPlayerAte(page: Page, alvo: Locator): Promise<void> {
   const descanso = page.getByRole("region", { name: "Descanso", exact: true });
   const pergunta = page.getByRole("region", { name: "Última repetição", exact: true });
-  const serie = page.getByText(/^(Aquecimento|Série) \d+ de \d+ · exercício \d+ de \d+/);
+  const serie = page.getByText(ROTULO_DO_PASSO);
   const passos = serie.or(descanso).or(pergunta);
 
   for (let i = 0; i < 80; i++) {
@@ -421,6 +440,35 @@ export async function abrirSecaoDoRelatorio(page: Page, id: string): Promise<voi
   if (await secao.evaluate((d) => (d as HTMLDetailsElement).open)) return;
   await secao.locator("summary").click();
   await expect(secao).toHaveAttribute("open", "");
+}
+
+/** Segura uma escrita concorrente até o teste liberar o IndexedDB. */
+export async function ocuparArmazenamentoDaSessao(page: Page, id: string) {
+  const liberar = await page.evaluateHandle(id => new Promise<() => void>((resolve, reject) => {
+    const abertura = indexedDB.open("treino-terraco");
+    abertura.onerror = () => reject(abertura.error);
+    abertura.onsuccess = () => {
+      const banco = abertura.result;
+      const tx = banco.transaction("sessaoAtiva", "readwrite");
+      const sessoes = tx.objectStore("sessaoAtiva");
+      let ocupada = true;
+      tx.oncomplete = () => banco.close();
+      tx.onabort = () => { banco.close(); reject(tx.error); };
+      const proximaLeitura = () => {
+        if (ocupada) sessoes.getKey(id).onsuccess = proximaLeitura;
+      };
+      // A primeira leitura confirma que esta transação tem a vez. Leituras encadeadas
+      // mantêm a transação ativa, sem alterar a sessão nem depender de um atraso arbitrário.
+      sessoes.getKey(id).onsuccess = () => {
+        proximaLeitura();
+        resolve(() => { ocupada = false; });
+      };
+    };
+  }), id);
+  return async () => {
+    await liberar.evaluate(soltar => soltar());
+    await liberar.dispose();
+  };
 }
 
 /** Descarta só os dados de leitura, fora do app, para refazê-los na rede. */

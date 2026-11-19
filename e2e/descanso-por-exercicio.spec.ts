@@ -4,6 +4,7 @@ import {
   abrirSecaoDoRelatorio, abrirVisaoGeral, avancarNoPlayerAte, comecarNoPlayer, comecarOTreinoDoDia, entrarNoApp,
   esperarAbaTreino, esperarServiceWorker, fixarData, HOJE_FIXO, inserirNoMock, lerDoMock, resetarMock,
   semRolagemHorizontal, usuarioComPerfil,
+  ocuparArmazenamentoDaSessao,
 } from "./fixtures";
 import { comRedeNoWorker, semRedeNoWorker, workerDoApp } from "./rede-do-worker";
 
@@ -222,35 +223,6 @@ test("o link do treino ganha controle offline sem recarregar quando a instalaç�
     await cdp.detach();
   }
 });
-
-/** Segura uma escrita concorrente até o teste liberar o IndexedDB. */
-async function ocuparArmazenamentoDaSessao(page: Page, id: string) {
-  const liberar = await page.evaluateHandle(id => new Promise<() => void>((resolve, reject) => {
-    const abertura = indexedDB.open("treino-terraco");
-    abertura.onerror = () => reject(abertura.error);
-    abertura.onsuccess = () => {
-      const banco = abertura.result;
-      const tx = banco.transaction("sessaoAtiva", "readwrite");
-      const sessoes = tx.objectStore("sessaoAtiva");
-      let ocupada = true;
-      tx.oncomplete = () => banco.close();
-      tx.onabort = () => { banco.close(); reject(tx.error); };
-      const proximaLeitura = () => {
-        if (ocupada) sessoes.getKey(id).onsuccess = proximaLeitura;
-      };
-      // A primeira leitura confirma que esta transação tem a vez. Leituras encadeadas
-      // mantêm a transação ativa, sem alterar a sessão nem depender de um atraso arbitrário.
-      sessoes.getKey(id).onsuccess = () => {
-        proximaLeitura();
-        resolve(() => { ocupada = false; });
-      };
-    };
-  }), id);
-  return async () => {
-    await liberar.evaluate(soltar => soltar());
-    await liberar.dispose();
-  };
-}
 
 test("a recarga offline mantém o intervalo avulso e a duração das séries seguintes", async ({ page, context }) => {
   test.slow(); // Duas recargas reais sem rede, intercaladas com a sincronização da sessão.

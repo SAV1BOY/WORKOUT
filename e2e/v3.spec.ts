@@ -25,6 +25,7 @@ import {
   semRolagemHorizontal,
   type SessaoMock,
   usuarioComPerfil,
+  concluirSerie,
 } from "./fixtures";
 
 const SEGUNDA = "2026-09-14T08:00:00-03:00";
@@ -39,13 +40,6 @@ async function abrir(page: Page, quando: string = SEGUNDA) {
 test.beforeEach(async () => {
   await resetarMock();
 });
-
-/** ✓ na série atual e pula o descanso que vem logo depois. */
-async function concluirSerie(page: Page) {
-  await page.getByRole("button", { name: "Concluir série" }).click();
-  const pular = page.getByRole("button", { name: "Pular descanso" });
-  if (await pular.isVisible().catch(() => false)) await pular.click();
-}
 
 /* --------------------------------------------------- aba Treino (§14.3) */
 

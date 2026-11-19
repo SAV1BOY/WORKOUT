@@ -21,6 +21,7 @@ import {
   semRolagemHorizontal,
   type SessaoMock,
   usuarioComPerfil,
+  concluirSerie,
 } from "./fixtures";
 
 /** 14/09/2026 é a segunda-feira que abre o programa: Treino A (SPEC §5). */
@@ -58,13 +59,6 @@ async function abrirPlayer(page: Page, perfil?: Parameters<typeof usuarioComPerf
   await comecarNoPlayer(page);
   await expect(page.getByRole("button", { name: "Concluir série" })).toBeVisible();
   return sessao;
-}
-
-/** ✓ na série atual e pula o descanso que vem logo depois. */
-async function concluirSerie(page: Page) {
-  await page.getByRole("button", { name: "Concluir série" }).click();
-  const pular = page.getByRole("button", { name: "Pular descanso" });
-  if (await pular.isVisible().catch(() => false)) await pular.click();
 }
 
 test.describe("preparação → exercício → descanso (SPEC §14.1.1–3)", () => {
