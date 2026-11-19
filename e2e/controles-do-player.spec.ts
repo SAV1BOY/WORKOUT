@@ -69,12 +69,24 @@ test("a montagem fica inteiramente acima do rodapé a 320 px com fonte a 200%", 
   await abrirPlayer(page, "dark", 320, 200);
   const montagem = page.getByRole("button", { name: "Ver a montagem", exact: true });
   await expect(montagem).toBeVisible();
-  await page.evaluate(() => window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "instant" }));
-  const bordaLivre = await montagem.evaluate(botao => {
-    const { left, width, bottom } = botao.getBoundingClientRect();
-    return botao.contains(document.elementFromPoint(left + width / 2, bottom - 1));
-  });
-  expect(bordaLivre, "o último pixel do botão de montagem deve receber o toque").toBe(true);
+  // O texto espaçado pode ocupar mais uma linha, dependendo da fonte do aparelho.
+  for (const espaco of ["normal", "0.12em"]) {
+    await page.addStyleTag({ content: `button { letter-spacing: ${espaco} !important; }` });
+    const medida = await montagem.evaluate(async botao => {
+      // Uma mudança de fonte pode redimensionar o rodapé antes da próxima pintura.
+      await new Promise<number>(requestAnimationFrame);
+      await new Promise<number>(requestAnimationFrame);
+      const pagina = document.documentElement;
+      window.scrollTo({ top: pagina.scrollHeight, behavior: "instant" });
+      const { left, width, bottom } = botao.getBoundingClientRect();
+      return {
+        faltaRolar: pagina.scrollHeight - pagina.clientHeight - pagina.scrollTop,
+        bordaLivre: botao.contains(document.elementFromPoint(left + width / 2, bottom - 1)),
+      };
+    });
+    expect(Math.abs(medida.faltaRolar), "distância até o fim da página (px)").toBeLessThanOrEqual(1);
+    expect(medida.bordaLivre, `borda inferior de Montagem com espaçamento ${espaco}`).toBe(true);
+  }
   await montagem.focus();
   await page.keyboard.press("Enter");
   await expect(page.getByRole("dialog", { name: "Montagem", exact: true })).toBeVisible();

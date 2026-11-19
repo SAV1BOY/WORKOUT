@@ -13,7 +13,7 @@ import {
   ThumbsDown,
   ThumbsUp,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { MediaGrande } from "@/components/exercicio/media-grande";
 import { StepperNumerico } from "@/components/stepper-numerico";
@@ -206,8 +206,7 @@ export function TelaExercicio({
   return (
     <section
       aria-label={exercicio.nome}
-      /* Deixa a montagem alcançável ao rolar mesmo com a legenda do rodapé em duas linhas. */
-      className="flex flex-1 flex-col gap-3 pb-[calc(7rem+env(safe-area-inset-bottom,0px))]"
+      className="flex flex-1 flex-col gap-3 pb-[calc(var(--altura-dos-controles,3.5rem)+24px)]"
     >
       {/* SPEC §22.5 item 10: era a única rota do app sem `h1` */}
       <h1 className="sr-only">
@@ -656,8 +655,27 @@ export function ControlesDoPlayer({
   aoProximo: () => void;
   aoConcluir: () => void;
 }) {
+  const rodape = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const barra = rodape.current;
+    const tela = barra?.parentElement;
+    if (!barra || !tela) return;
+
+    // A caixa inclui o indicador de home e todas as linhas da legenda ampliada.
+    const reservarAltura = () => {
+      tela.style.setProperty("--altura-dos-controles", `${barra.getBoundingClientRect().height}px`);
+    };
+    reservarAltura();
+    const observador = new ResizeObserver(reservarAltura);
+    observador.observe(barra, { box: "border-box" });
+    return () => {
+      observador.disconnect();
+      tela.style.removeProperty("--altura-dos-controles");
+    };
+  }, []);
+
   return (
-    <div className="bg-card/95 border-border pb-segura fixed inset-x-0 bottom-0 z-30 border-t backdrop-blur">
+    <div ref={rodape} className="bg-card/95 border-border pb-segura fixed inset-x-0 bottom-0 z-30 border-t backdrop-blur">
       {/*
         SPEC §22.5 item 6: eram 8 px (`gap-2`) entre gravar a série e pulá-la
         sem gravar. Agora são 24 px de cada lado do primário, e as
@@ -677,7 +695,7 @@ export function ControlesDoPlayer({
         <Button
           size="xl"
           /* SPEC §22.5 item 10: o nome acessível é o texto que está escrito */
-          className="alvo h-auto min-h-[max(56px,3.5rem)] min-w-0 flex-1 rounded-2xl px-2 py-1 font-semibold whitespace-normal"
+          className="alvo h-auto min-h-[max(56px,3.5rem)] min-w-0 flex-1 rounded-2xl px-[4px] py-1 font-semibold whitespace-normal"
           onClick={aoConcluir}
         >
           <span className="min-w-0 wrap-anywhere">
