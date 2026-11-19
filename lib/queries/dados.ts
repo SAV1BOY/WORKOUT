@@ -7,6 +7,7 @@
  */
 "use client";
 
+import { useEffect } from "react";
 import { useQuery, type QueryClient, type UseQueryResult } from "@tanstack/react-query";
 import { lerSeriesDoTreinoPassado, type UltimaSerie } from "@/lib/queries/series-do-treino-passado";
 import { lerExcecoesDoHistorico } from "@/lib/queries/excecoes-do-historico";
@@ -493,12 +494,24 @@ export function useSeriesAnteriores(
 
 /** Comparação visual do player, separada da referência do motor de progressão. */
 export function useUltimasSeries(conta: string, ids: readonly string[], atual?: string): UseQueryResult<UltimaSerie[]> {
-  return useQuery({
+  const habilitada = Boolean(conta) && ids.length > 0;
+  const consulta = useQuery({
     queryKey: chaves.ultimasSeries(conta, ids, atual),
-    enabled: Boolean(conta) && ids.length > 0,
+    enabled: habilitada,
     networkMode: "always",
+    refetchOnReconnect: false,
     queryFn: ({ client, signal }) => lerSeriesDoTreinoPassado(client, conta, ids, atual, signal),
   });
+  const { refetch } = consulta;
+  useEffect(() => {
+    // Funciona também quando o documento foi aberto offline e a biblioteca
+    // ainda não recebeu um evento de desconexão. A chave deduplica a leitura.
+    if (!habilitada) return;
+    const aoVoltar = () => { void refetch({ cancelRefetch: false }); };
+    window.addEventListener("online", aoVoltar);
+    return () => window.removeEventListener("online", aoVoltar);
+  }, [habilitada, refetch]);
+  return consulta;
 }
 
 /** Recordes por exercício (view `v_records`), para o resumo do fim (§6.6). */

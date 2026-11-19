@@ -5,7 +5,7 @@ import {
   definirCota, entrarNoApp, esperarAbaTreino, esperarServiceWorker, fixarData, inserirNoMock,
   irNaAba, lerDoMock, resetarMock, sessaoNoMock, usuarioComPerfil, type SessaoMock,
 } from "./fixtures";
-import { semRedeNoWorker, workerDoApp } from "./rede-do-worker";
+import { comRedeNoWorker, semRedeNoWorker, workerDoApp } from "./rede-do-worker";
 
 const SUPINO = "supino-reto-com-barra";
 const NOME = "Supino reto com barra";
@@ -82,6 +82,16 @@ test("o supino compara o número registrado, identifica a última série usada c
     const anteriores = await lerDoMock(conta, "session_sets",
       `session_id=eq.${anterior}&tipo=eq.trabalho&concluida=eq.true&order=set_index.asc`);
     expect(anteriores).toMatchObject([{ set_index: 2, reps: 10, carga_kg: 20 }, { set_index: 3, reps: 8, carga_kg: 22.5 }]);
+
+    // Outro aparelho corrige a terceira série enquanto este só tem a cópia anterior.
+    await atualizarNoMock(conta, "session_sets", `session_id=eq.${anterior}&tipo=eq.trabalho&set_index=eq.3`, {
+      reps: 7, carga_kg: 25.5,
+    });
+    await expect(referencia(retomada)).toHaveText("anterior: 22,5 kg na barra × 8");
+    await comRedeNoWorker(await workerDoApp(context));
+    await context.setOffline(false);
+    await expect(referencia(retomada)).toHaveText("anterior: 25,5 kg na barra × 7");
+    await expect(trabalho(retomada, 3)).toBeVisible();
   } finally {
     await retomada.close();
   }
