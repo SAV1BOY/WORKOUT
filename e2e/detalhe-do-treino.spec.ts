@@ -89,7 +89,11 @@ test("a sessão escolhida separa aquecimento, movimentos e cargas de cada série
   await expect(repeticoesOnde(outro, "Série 1")).toContainText("4 repetições · 40 kg na barra");
   await folha.getByRole("button", { name: "Fechar", exact: true }).click();
 
-  await page.goto(`/exercicios/${SUPINO}`);
+  await irNaAba(page, "Explorar");
+  await page.getByRole("link", { name: /^Ver os [0-9]+ exercícios$/ }).click();
+  await page.getByLabel("Buscar exercício pelo nome").fill("supino reto");
+  await page.getByRole("link", { name: /Supino reto com barra/ }).first().click();
+  await expect(page.getByRole("heading", { name: "Supino reto com barra", level: 1 })).toBeVisible();
   const anteriores = page.getByRole("list", { name: /Séries de trabalho de / }).filter({ hasText: "22,5 kg" });
   await expect(anteriores.getByRole("listitem")).toHaveCount(2);
   await expect(anteriores.getByRole("listitem").nth(0)).toContainText("10 repetições · 20 kg na barra");
