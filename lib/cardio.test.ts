@@ -24,6 +24,7 @@ import {
   trabalhoCumprido,
 } from "@/lib/cardio";
 import { cardio } from "@/lib/dados";
+import { resumoDeCardioNaUrl } from "@/lib/rota-de-cardio";
 
 const AGORA = 1_700_000_000_000;
 
@@ -120,6 +121,18 @@ describe("blocos da sessão de corda", () => {
     expect(planoDeCardio("caminhada", 1).blocos).toHaveLength(0);
     expect(planoDeCardio("outro", 1).blocos).toHaveLength(0);
     expect(planoDeCardio("caminhada", 1).titulo).toBe("Caminhada leve");
+  });
+
+  it("o socorro offline reconhece apenas resumos por UUID, sem iniciar o cronômetro", () => {
+    const id = "44a8ded3-55c2-43c6-9cf6-68b0cf77cc87";
+    const url = (caminho: string) => new URL(caminho, "https://exemplo.com");
+    for (const tipo of ["corrida", "corda", "caminhada", "outro"]) {
+      expect(resumoDeCardioNaUrl(url(`/cardio/${tipo}/?sessao=${id}`))).toEqual({ tipo, sessaoId: id });
+    }
+    for (const caminho of ["/cardio/corda", "/cardio/corda?semana=1", "/cardio/outro?sessao=invalido",
+      `/cardio/bicicleta?sessao=${id}`, `/cardio/corda/treinar?sessao=${id}`]) {
+      expect(resumoDeCardioNaUrl(url(caminho))).toBeNull();
+    }
   });
 
   it("só os quatro tipos da rota são aceitos", () => {

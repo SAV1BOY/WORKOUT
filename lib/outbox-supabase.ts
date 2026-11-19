@@ -73,6 +73,11 @@ function ehEscrita(valor: unknown): valor is EscritaTabela {
 /** Envia um item da fila. Lançar aqui faz a fila tentar de novo depois. */
 export async function enviarItem(item: ItemSaida): Promise<ResultadoDoEnvio> {
   const pLocal = item.payload as Record<string, unknown> | null;
+  if (item.tipo === "cardio" && pLocal?.tabela === "cardio_sessions" &&
+      pLocal.conciliacaoDosSaltos && !Object.hasOwn(pLocal, "op")) {
+    const { enviarSaltosEmConciliacao } = await import("@/lib/saltos-pendentes");
+    return enviarSaltosEmConciliacao(item);
+  }
   if (item.tipo === "serie" && pLocal?.tabela === "session_sets" && !pLocal.op &&
     Array.isArray(pLocal.seriesEmConciliacao) && pLocal.seriesEmConciliacao.length &&
     (pLocal.operacaoGuardada === "upsert" || pLocal.operacaoGuardada === "insert")) {
@@ -105,8 +110,9 @@ export async function enviarItem(item: ItemSaida): Promise<ResultadoDoEnvio> {
   const editaTreino = p.tabela === "sessions" && p.op === "update" &&
     typeof p.filtro?.user_id === "string" &&
     (Object.hasOwn(p.linha ?? {}, "plano") || Object.hasOwn(p.linha ?? {}, "nota_geral"));
+  const editaCardio = p.tabela === "cardio_sessions" && p.op === "update" && typeof p.filtro?.user_id === "string";
   if (apagaTroca && !alvoDaEscrita(p)) throw new Error("A remoção precisa indicar uma posição do treino.");
-  if (apagaTroca || editaTreino) {
+  if (apagaTroca || editaTreino || editaCardio) {
     // Sob RLS, a conta errada receberia sucesso com zero linhas afetadas.
     const { data } = await cliente.auth.getSession();
     if (!data.session || data.session.user.id !== p.filtro?.user_id) {
@@ -126,10 +132,20 @@ export async function enviarItem(item: ItemSaida): Promise<ResultadoDoEnvio> {
   }
 
   if (p.op === "upsert") {
-    const { error } = await tabela.upsert(
+    const confirmarCardios = p.tabela === "cardio_sessions" && p.linhas
+      ? await (await import("@/lib/espelhos-dos-saltos")).observarCardiosDoBackup(item, p.linhas)
+      : undefined;
+    const gravacao = tabela.upsert(
       corpo,
       p.onConflict ? { onConflict: p.onConflict } : undefined,
     );
+    if (confirmarCardios) {
+      const { data, error } = await gravacao.select("*");
+      if (error) throw new Error(error.message);
+      await confirmarCardios(data);
+      return "fila-reconciliada";
+    }
+    const { error } = await gravacao;
     if (error) throw new Error(error.message);
     return;
   }

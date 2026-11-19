@@ -143,6 +143,34 @@ describe("detalhe da sessão aberta pela ficha de um exercício", () => {
     expect(await ler()).toEqual({ completa: true, linhas: [], confirmadasEm: instante + 1 });
   });
 
+  it("ao reconectar no mesmo instante do relógio, o GET atualiza a cópia consultada antes da edição remota", async () => {
+    const relogio = vi.spyOn(Date, "now").mockReturnValue(Date.now());
+    try {
+      servidor = [linha("segunda", { reps: 8, carga_kg: 23.5 })];
+      await ler();
+      vi.stubGlobal("navigator", { onLine: false });
+      expect((await ler()).linhas).toEqual(servidor);
+      servidor = [{ ...servidor[0]!, reps: 11 }];
+      vi.stubGlobal("navigator", { onLine: true });
+      expect((await ler()).linhas).toEqual(servidor);
+      expect(disco.get(chave)?.valor).toEqual(servidor);
+    } finally { relogio.mockRestore(); }
+  });
+
+  it("conserva uma edição do fechamento que ocorreu durante o GET no mesmo instante do relógio", async () => {
+    const instante = Date.now(), anterior = linha("segunda", { reps: 8 }), editada = { ...anterior, reps: 12 };
+    const relogio = vi.spyOn(Date, "now").mockReturnValue(instante);
+    try {
+      salvar(chave, [anterior], instante);
+      http.mockImplementationOnce(async () => {
+        salvar(chave, [editada], instante);
+        return Response.json([anterior], { headers: { "content-range": "*/1" } });
+      });
+      expect((await ler()).linhas).toEqual([editada]);
+      expect(disco.get(chave)?.valor).toEqual([editada]);
+    } finally { relogio.mockRestore(); }
+  });
+
   it("um encerramento na fila vence o GET anterior mesmo quando a fila esvaziou durante a consulta", async () => {
     const fotos = [linha("local", { exercise_id: "remada", reps: 11 })];
     salvar(chave, fotos, 100);

@@ -13,7 +13,8 @@ function copia(tipo: string, versao?: string, corpo = "") {
 }
 
 describe("navegação que restou no aparelho durante uma troca de build", () => {
-  it.each(["/", "/relatorio", "/treinar/44a8ded3-55c2-43c6-9cf6-68b0cf77cc87"])(
+  it.each(["/", "/relatorio", "/treinar/44a8ded3-55c2-43c6-9cf6-68b0cf77cc87",
+    "/cardio/corda?sessao=44a8ded3-55c2-43c6-9cf6-68b0cf77cc87"])(
     "deixa o shell atual remontar %s se o HTML é antigo, inclusive sem o cabeçalho", async caminho => {
       const temAsset = vi.fn(async () => true);
       for (const versao of [undefined, "anterior"]) {

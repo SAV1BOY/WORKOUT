@@ -3,10 +3,12 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useId, useRef, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { CampoInteiroRecusado, EscolhaDoRegistro, acaoDaFolha, lerInteiro, numero } from "./controles-de-contagem";
+import { CorrecaoDosSaltos, EscolhaDosSaltos } from "./correcao-dos-saltos";
+import type { ConciliacaoDeSaltos, SaltosPendentes } from "@/lib/saltos-pendentes";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import {
-  confirmarContagemPendente, contagemInteiraValida, MAX_CONTAGEM, resolverConciliacaoDeContagem,
+  confirmarContagemPendente, resolverConciliacaoDeContagem,
   type CampoContagem, type ConciliacaoDeContagem, type ContagemPendente,
 } from "@/lib/contagens-pendentes";
 import { CAMPOS_DE_CONTAGEM } from "@/lib/campos-de-contagem";
@@ -20,8 +22,6 @@ const rotulos: Record<CampoContagem, string> = {
   tempo_s: "Tempo em segundos", tempo_s_lado2: "Tempo em segundos (lado esquerdo)",
   passos: "Passos", reps_alvo_min: "Meta mínima de repetições", reps_alvo_max: "Meta máxima de repetições",
 };
-const acaoDaFolha = "alvo h-auto max-w-full py-1 whitespace-normal wrap-anywhere";
-const numero = new Intl.NumberFormat("pt-BR", { maximumSignificantDigits: 21 });
 const momento = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" });
 
 function rotuloDaContagem(campo: CampoContagem, unilateral: boolean | undefined) {
@@ -29,13 +29,9 @@ function rotuloDaContagem(campo: CampoContagem, unilateral: boolean | undefined)
     ? `${rotulos[campo]} (lado direito)` : rotulos[campo];
 }
 
-function lerInteiro(texto = "") {
-  const valor = /^\d+$/.test(texto.trim()) ? Number(texto) : NaN;
-  return contagemInteiraValida(valor) ? valor : null;
-}
-
-export function CorrecoesDeContagem({ conta, pendencias, comparacoes, online, tentando, tentar, aoFecharSemPendencias }: {
+export function CorrecoesDeContagem({ conta, pendencias, comparacoes, saltos, comparacoesDeSaltos, online, tentando, tentar, aoFecharSemPendencias }: {
   conta: string; pendencias: ContagemPendente[]; comparacoes: ConciliacaoDeContagem[];
+  saltos: SaltosPendentes[]; comparacoesDeSaltos: ConciliacaoDeSaltos[];
   online: boolean; tentando: boolean; tentar: () => Promise<void>; aoFecharSemPendencias: () => void;
 }) {
   const [aberta, setAberta] = useState(false);
@@ -43,17 +39,25 @@ export function CorrecoesDeContagem({ conta, pendencias, comparacoes, online, te
   const [decididas, setDecididas] = useState<Record<string, string>>({});
   const aviso = useRef<HTMLParagraphElement>(null);
   const conflitos = comparacoes.filter(c => c.estado !== "aguardando");
-  const aguardando = comparacoes.filter(c => c.estado === "aguardando");
-  const haEscolha = pendencias.length > 0 || conflitos.length > 0;
+  const conflitosDeSaltos = comparacoesDeSaltos.filter(c => c.estado !== "aguardando");
+  const seriesNaEspera = comparacoes.filter(c => c.estado === "aguardando");
+  const cordasNaEspera = comparacoesDeSaltos.filter(c => c.estado === "aguardando");
+  const aguardando = [...seriesNaEspera, ...cordasNaEspera];
+  const haEscolha = pendencias.length + conflitos.length + saltos.length + conflitosDeSaltos.length > 0;
   const aoGuardar = (texto: string) => {
     setMensagem(texto);
     aviso.current?.focus();
+  };
+  const escolhaSalva = (id: string, revisao: string) => {
+    setDecididas(anteriores => ({ ...anteriores, [id]: revisao }));
+    aoGuardar("Escolha salva neste aparelho.");
   };
   const falhas = [...new Set(aguardando.flatMap(c => c.erro ? [c.erro] : []))];
   const espera = aguardando.length > 0 && (
     <div className="grid gap-1">
       <p role="status" className="text-muted-foreground text-sm">
-        {aguardando.length === 1 ? "Uma série aguarda comparação com o histórico." : `${aguardando.length} séries aguardam comparação com o histórico.`}
+        {seriesNaEspera.length > 0 && (seriesNaEspera.length === 1 ? "Uma série aguarda comparação com o histórico." : `${seriesNaEspera.length} séries aguardam comparação com o histórico.`)}
+        {cordasNaEspera.length > 0 && (cordasNaEspera.length === 1 ? " Um treino de corda aguarda comparação com o histórico." : ` ${cordasNaEspera.length} treinos de corda aguardam comparação com o histórico.`)}
         {!online && " A comparação será feita quando a conexão voltar."}
       </p>
       {falhas.length > 0 && (
@@ -91,13 +95,19 @@ export function CorrecoesDeContagem({ conta, pendencias, comparacoes, online, te
           {espera}
           {conflitos.map(c => (
             <EscolhaDaContagem key={c.serieId} conta={conta} atual={c} revisaoEscolhida={decididas[c.serieId]}
-              aoEscolher={() => {
-                setDecididas(anteriores => ({ ...anteriores, [c.serieId]: c.revisao }));
-                aoGuardar("Escolha salva neste aparelho.");
-              }} />
+              aoEscolher={() => escolhaSalva(c.serieId, c.revisao)} />
           ))}
           {pendencias.map(pendencia => (
             <CorrecaoDaSerie key={`${pendencia.sessaoId}/${pendencia.serieId}`} conta={conta} atual={pendencia}
+              aoGuardar={() => aoGuardar("Correção salva neste aparelho.")} />
+          ))}
+          {conflitosDeSaltos.map(c => (
+            <EscolhaDosSaltos key={`corda:${c.cardioId}`} conta={conta} atual={c}
+              revisaoEscolhida={decididas[`corda:${c.cardioId}`]}
+              aoEscolher={() => escolhaSalva(`corda:${c.cardioId}`, c.revisao)} />
+          ))}
+          {saltos.map(p => (
+            <CorrecaoDosSaltos key={p.cardioId} conta={conta} atual={p}
               aoGuardar={() => aoGuardar("Correção salva neste aparelho.")} />
           ))}
         </div>
@@ -164,28 +174,6 @@ function MedidasDaContagem({ origem, linha, campos, mostrarIdentidade, mostrarPr
 function EscolhaDaContagem({ conta, atual, revisaoEscolhida, aoEscolher }: {
   conta: string; atual: ConciliacaoDeContagem; revisaoEscolhida?: string; aoEscolher: () => void;
 }) {
-  const id = useId();
-  const [revista, setRevista] = useState(revisaoEscolhida ?? atual.revisao);
-  const [salvando, setSalvando] = useState(false);
-  const [erro, setErro] = useState("");
-  const emCurso = useRef(false);
-  const mudou = revista !== atual.revisao;
-  const decidir = async (usar: "aparelho" | "historico" | "criar" | "manter-ausencia") => {
-    if (emCurso.current || mudou) return;
-    emCurso.current = true;
-    setSalvando(true);
-    setErro("");
-    try {
-      await resolverConciliacaoDeContagem(conta, atual, usar);
-      await confirmarContaDoTreino(conta, "A conta desta série mudou.");
-      aoEscolher();
-    } catch {
-      setErro("Não foi possível salvar a escolha. Confira os valores atuais e tente de novo.");
-    } finally {
-      emCurso.current = false;
-      setSalvando(false);
-    }
-  };
   const ausente = atual.estado === "ausente";
   const local = ausente ? atual.origem ?? atual.local : atual.local;
   const outra = ausente ? atual.insercao : atual.remota;
@@ -193,8 +181,9 @@ function EscolhaDaContagem({ conta, atual, revisaoEscolhida, aoEscolher }: {
     atual.campos.includes(campo) || local[campo] != null || outra?.[campo] != null) : atual.campos;
   const mostrarIdentidade = ausente || !atual.mesmaIdentidade;
   return (
-    <section role="group" aria-labelledby={id} className="border-border flex flex-col gap-3 border-b py-4 last:border-0">
-      <h3 id={id} className="font-semibold wrap-anywhere">{tituloDaLinha(local)}</h3>
+    <EscolhaDoRegistro tipo="série" titulo={tituloDaLinha(local)} conta={conta} atual={atual}
+      revisaoEscolhida={revisaoEscolhida} salvar={escolha => resolverConciliacaoDeContagem(conta, atual, escolha)}
+      aoEscolher={aoEscolher}>
       {ausente ? (
         <p className="text-sm">O histórico está sem esta série. O backup mudou sua identificação. Confira o registro do backup antes de decidir.</p>
       ) : atual.mesmaIdentidade ? (
@@ -215,24 +204,7 @@ function EscolhaDaContagem({ conta, atual, revisaoEscolhida, aoEscolher }: {
         ? "A nova série usará os valores mostrados em “Série do backup”."
         : "O backup tem dados insuficientes para criar esta série."}</p>}
       {!ausente && atual.mesmaIdentidade && campos.length > 1 && <p className="text-sm">A escolha vale para as {campos.length} contagens exibidas.</p>}
-      {mudou ? (
-        <>
-          <p role="status" className="text-sm">O histórico mudou. Confira os valores atuais.</p>
-          <Button variant="outline" className={`${acaoDaFolha} self-start`} onClick={() => { setRevista(atual.revisao); setErro(""); }}>Rever valores</Button>
-        </>
-      ) : (
-        <div className="flex flex-wrap gap-2">
-          <Button className={acaoDaFolha} disabled={salvando} onClick={() => void decidir(ausente ? "manter-ausencia" : "historico")}>
-            {ausente ? "Manter o histórico sem esta série" : atual.mesmaIdentidade ? "Manter a contagem do histórico" : "Manter a série do histórico"}
-          </Button>
-          {ausente && atual.permiteCriar && <Button variant="outline" className={acaoDaFolha} disabled={salvando}
-            onClick={() => void decidir("criar")}>Criar a série no histórico</Button>}
-          {!ausente && atual.mesmaIdentidade && <Button variant="outline" className={acaoDaFolha} disabled={salvando}
-            onClick={() => void decidir("aparelho")}>Usar a contagem do aparelho</Button>}
-        </div>
-      )}
-      {erro && <p role="alert" className="text-destructive text-sm">{erro}</p>}
-    </section>
+    </EscolhaDoRegistro>
   );
 }
 
@@ -286,30 +258,11 @@ function CorrecaoDaSerie({ conta, atual, aoGuardar }: {
           {base.ordemEx != null && ` · Exercício ${base.ordemEx}`}
         </p>
       </div>
-      {base.campos.map(({ campo, fracionario, posterior }) => {
-        const rotulo = rotuloDaContagem(campo, unilateral);
-        const campoId = `${id}-${campo}`;
-        const invalido = Boolean(digitados[campo]) && lerInteiro(digitados[campo]) === null;
-        return (
-          <div key={campo} className="grid gap-1">
-            {posterior === null ? <label htmlFor={campoId} className="font-medium">{rotulo}</label> : <p className="font-medium">{rotulo}</p>}
-            <p id={`${campoId}-recusado`} className="text-muted-foreground text-sm">Valor recusado: {numero.format(fracionario)}</p>
-            {posterior !== null ? (
-              <p className="text-sm">Valor já corrigido: {numero.format(posterior)}</p>
-            ) : (
-              <>
-                <Input id={campoId} type="text" inputMode="numeric" autoComplete="off" value={digitados[campo] ?? ""}
-                  aria-invalid={invalido} aria-describedby={`${campoId}-recusado ${campoId}-ajuda`}
-                  disabled={salvando || mudou} className="alvo max-w-44" placeholder="Número inteiro"
-                  onChange={e => setDigitados({ ...digitados, [campo]: e.target.value })} />
-                <p id={`${campoId}-ajuda`} className="text-muted-foreground text-xs">
-                  {invalido ? `Use um inteiro de 0 a ${numero.format(MAX_CONTAGEM)}.` : "Digite o valor desta série, sem casas decimais."}
-                </p>
-              </>
-            )}
-          </div>
-        );
-      })}
+      {base.campos.map(({ campo, fracionario, posterior }) => (
+        <CampoInteiroRecusado key={campo} rotulo={rotuloDaContagem(campo, unilateral)} fracionario={fracionario}
+          posterior={posterior ?? undefined} texto={digitados[campo] ?? ""} aoDigitar={valor => setDigitados({ ...digitados, [campo]: valor })}
+          bloqueado={salvando || mudou} ajuda="Digite o valor desta série, sem casas decimais." />
+      ))}
       {mudou ? (
         <>
           <p role="status" className="text-sm">A série mudou neste aparelho. Confira os valores atuais.</p>

@@ -1,3 +1,4 @@
+import { resumoDeCardioNaUrl } from "@/lib/rota-de-cardio";
 import { urlsDeAssets } from "@/lib/sw-assets";
 import { CABECALHO_DO_BUILD, ehRsc, type PedidoDeNavegacao } from "@/lib/sw-navegacao";
 import { idDoPlayerNoCaminho } from "@/lib/vinculo-do-player";
@@ -13,7 +14,7 @@ export async function navegacaoGuardadaServe(
   if (tipo !== "text/html" || !resposta.ok) return false;
   const url = new URL(pedido.url);
   // Estas telas podem ser remontadas pelo shell atual com o vínculo de login e os dados locais.
-  if (!desteBuild && (url.pathname === "/" || url.pathname === "/relatorio" || idDoPlayerNoCaminho(url.pathname))) return false;
+  if (!desteBuild && (url.pathname === "/" || url.pathname === "/relatorio" || idDoPlayerNoCaminho(url.pathname) || resumoDeCardioNaUrl(url))) return false;
   const assets = urlsDeAssets(await resposta.clone().text(), url.origin);
   return (await Promise.all(assets.map(temAsset))).every(Boolean);
 }

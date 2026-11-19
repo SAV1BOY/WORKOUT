@@ -132,6 +132,19 @@ describe("todos os registros (SPEC §13.5)", () => {
     expect(lista.some((r) => r.chave === "forca:s2")).toBe(false);
   });
 
+  it("abre cada cardio concluído do dia pelo UUID e conserva a leitura de linhas legadas sem id", () => {
+    const corda = { ...CARDIOS[1]!, concluida: true };
+    const primeira = "3973053c-08ff-4cfc-ad0b-d6cb39d5b3fe";
+    const segunda = "a722a999-0eb7-4646-a0f2-5ed126064d87";
+    const lista = registros({ sessoes: [], series: [], cardios: [
+      { ...corda, id: primeira }, { ...corda, id: segunda }, corda,
+    ] });
+    expect(lista.map(r => r.href)).toEqual([
+      "/cardio/corda?sessao=" + primeira, "/cardio/corda?sessao=" + segunda, null,
+    ]);
+    expect(lista[2]?.titulo).toBe("Corda");
+  });
+
   it("a linha de força tem treino, duração, séries e o ↑/=/↓", () => {
     const [, forca] = registros({
       sessoes: SESSOES,

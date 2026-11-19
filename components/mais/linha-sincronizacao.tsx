@@ -9,6 +9,7 @@ import { CorrecoesDeContagem } from "@/components/mais/correcoes-de-contagem";
 import { listarConciliacoesDeContagem, listarContagensPendentes, type ConciliacaoDeContagem, type ContagemPendente } from "@/lib/contagens-pendentes";
 import { AVISO_DE_CONFLITO_DE_CONTAGEM, estadoDaFila, resumoDaFila, tentarAgora, type EstadoDaFila } from "@/lib/outbox";
 import { confirmarContaDoTreino } from "@/lib/queries/conta-do-treino";
+import { listarConciliacoesDeSaltos, listarSaltosPendentes, type ConciliacaoDeSaltos, type SaltosPendentes } from "@/lib/saltos-pendentes";
 import { clienteNavegador } from "@/lib/supabase/client";
 import { useRede } from "@/lib/usar-rede";
 import { EVENTO_DE_LOGIN_CONFIRMADO } from "@/lib/vinculo-do-player";
@@ -55,10 +56,14 @@ export function LinhaSincronizacao({ userId }: { userId: string }) {
   return conta === userId ? <FilaDaConta key={userId} conta={userId} /> : null;
 }
 
+const semCorrecoes = {
+  pendencias: [] as ContagemPendente[], comparacoes: [] as ConciliacaoDeContagem[],
+  saltos: [] as SaltosPendentes[], comparacoesDeSaltos: [] as ConciliacaoDeSaltos[],
+};
+
 function FilaDaConta({ conta }: { conta: string }) {
   const [estado, setEstado] = useState<EstadoDaFila | null>(null);
-  const [pendencias, setPendencias] = useState<ContagemPendente[]>([]);
-  const [comparacoes, setComparacoes] = useState<ConciliacaoDeContagem[]>([]);
+  const [correcoes, setCorrecoes] = useState(semCorrecoes);
   const [tentando, setTentando] = useState(false);
   const [erro, setErro] = useState("");
   const secao = useRef<HTMLElement>(null);
@@ -66,19 +71,19 @@ function FilaDaConta({ conta }: { conta: string }) {
   useEffect(() => {
     const inscricao = liveQuery(async () => ({
       fila: await estadoDaFila(conta),
-      contagens: await listarContagensPendentes(conta),
+      pendencias: await listarContagensPendentes(conta),
       comparacoes: await listarConciliacoesDeContagem(conta),
+      saltos: await listarSaltosPendentes(conta),
+      comparacoesDeSaltos: await listarConciliacoesDeSaltos(conta),
     })).subscribe({
-      next: ({ fila, contagens, comparacoes }) => {
+      next: ({ fila, ...lidas }) => {
         setEstado(fila);
-        setPendencias(contagens);
-        setComparacoes(comparacoes);
+        setCorrecoes(lidas);
         setErro("");
       },
       error: () => {
         setEstado(null);
-        setPendencias([]);
-        setComparacoes([]);
+        setCorrecoes(semCorrecoes);
         setErro("Não foi possível consultar a fila neste aparelho.");
       },
     });
@@ -100,10 +105,12 @@ function FilaDaConta({ conta }: { conta: string }) {
     }
   };
   const resumo = estado && resumoDaFila(estado);
-  const haConflito = comparacoes.some(c => c.estado !== "aguardando");
+  const haConflitoDeSaltos = correcoes.comparacoesDeSaltos.some(c => c.estado !== "aguardando");
+  const haConflito = haConflitoDeSaltos || correcoes.comparacoes.some(c => c.estado !== "aguardando");
+  const instrucao = haConflitoDeSaltos ? "Confira os registros em Corrigir contagens para concluir a sincronização."
+    : "Confira as séries em Corrigir contagens para concluir a sincronização.";
   const detalhe = haConflito && (!estado?.erro || estado.erro === AVISO_DE_CONFLITO_DE_CONTAGEM)
-    ? "Confira as séries em Corrigir contagens para concluir a sincronização."
-    : resumo?.detalhe;
+    ? instrucao : resumo?.detalhe;
 
   return (
     <section ref={secao} id="sincronizacao" aria-label="Sincronização" tabIndex={-1} className="bg-muted grid gap-2 px-3 py-2">
@@ -120,7 +127,7 @@ function FilaDaConta({ conta }: { conta: string }) {
         )}
       </div>
       {erro && <p role="alert" className="text-sm">{erro}</p>}
-      <CorrecoesDeContagem conta={conta} pendencias={pendencias} comparacoes={comparacoes} online={online}
+      <CorrecoesDeContagem conta={conta} {...correcoes} online={online}
         tentando={tentando} tentar={tentar} aoFecharSemPendencias={() => secao.current?.focus()} />
     </section>
   );

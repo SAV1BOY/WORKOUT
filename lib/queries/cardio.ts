@@ -139,7 +139,7 @@ export async function encerrarCardio(fim: FimDoCardio): Promise<LinhaSessaoCardi
 
   if (fim.intervalo) {
     cliente.setQueryData<LinhaSessaoCardio[]>(
-      chaves.cardio(fim.intervalo.de, fim.intervalo.ate),
+      chaves.cardio(fim.intervalo.de, fim.intervalo.ate, sessao.userId),
       (atual) => [linha, ...(atual ?? []).filter((c) => c.id !== linha.id)],
     );
   }

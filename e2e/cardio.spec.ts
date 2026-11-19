@@ -311,13 +311,40 @@ test.describe("Cardio — corrida (SPEC §3.3)", () => {
       },
     ]);
 
-    await abrir(page, "2026-09-16T08:00:00-03:00", "/calendario");
-    await page.getByText("Corrida").first().click();
-    const abrirCardio = page.getByRole("link", { name: "Abrir o cardio" });
+    await abrir(page, "2026-09-16T08:00:00-03:00");
+    const respostaDoMes = Promise.withResolvers<void>();
+    const liberar = Promise.withResolvers<void>();
+    await page.exposeFunction("aguardarCardioDoMes", () => {
+      respostaDoMes.resolve();
+      return liberar.promise;
+    });
+    // Reter a resposta depois do fetch também funciona quando o service worker já controla a página.
+    await page.addInitScript(() => {
+      if (location.pathname !== "/calendario") return;
+      const buscar = window.fetch.bind(window);
+      window.fetch = async (...args) => {
+        const resposta = await buscar(...args);
+        const url = new URL(resposta.url, location.href);
+        if (url.pathname === "/rest/v1/cardio_sessions" && url.searchParams.has("data")) {
+          await (window as Window & { aguardarCardioDoMes: () => Promise<void> }).aguardarCardioDoMes();
+        }
+        return resposta;
+      };
+    });
+    await page.goto("/calendario");
+    await respostaDoMes.promise;
+    await page.getByRole("button", { name: /^terça 15\/09:/ }).click();
+    const dia = page.getByRole("dialog", { name: /15 de setembro/ });
+    const fechar = dia.getByRole("button", { name: "Fechar" });
+    await fechar.focus();
+    const abrirCardio = dia.getByRole("link", { name: "Abrir o cardio" });
+    await expect(abrirCardio).toHaveCount(0);
+    liberar.resolve();
     await expect(abrirCardio).toHaveAttribute(
       "href",
       "/cardio/corrida?sessao=55555555-5555-4555-8555-555555555555",
     );
+    await expect(fechar).toBeFocused();
     await abrirCardio.click();
 
     await expect(page.getByText("Sessão registrada")).toBeVisible();

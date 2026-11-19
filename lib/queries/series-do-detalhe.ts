@@ -1,7 +1,7 @@
 "use client";
 
 import { liveQuery } from "dexie";
-import { useQuery, type QueryClient } from "@tanstack/react-query";
+import { replaceEqualDeep, useQuery, type QueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { chaveDoDetalheDaSessao } from "@/lib/chaves-do-historico";
 import { bd, temIndexedDB } from "@/lib/db";
@@ -141,7 +141,10 @@ export async function lerSeriesDaSessaoNaFicha(cliente: QueryClient, conta: stri
       conferir?.(agora.escritas);
       const arquivo = await arquivoDeSeriesPosterior<SerieBruta>(conta, inicio);
       const pendente = antes.pendente || agora.pendente;
-      const foto = agora.foto ?? (antes.pendente && !arquivo ? antes.foto : null);
+      // Mesmo com o relógio parado ou atrasado, um GET pode substituir a cópia que já
+      // existia na saída. Uma edição durante a consulta ou um fechamento na fila ainda prevalecem.
+      const ultimaFoto = agora.foto ?? (antes.pendente && !arquivo ? antes.foto : null);
+      const foto = !pendente && replaceEqualDeep(antes.foto, ultimaFoto) === antes.foto ? null : ultimaFoto;
       const base = arquivo ?? resultado;
       const escolha = daSessao(conta, sessaoId, pendente && foto ? { ...base, confirmadasEm: undefined } : base, foto);
       const escritas = arquivo && escolha.linhas !== foto?.linhas ? agora.escritas : [...antes.escritas, ...agora.escritas];

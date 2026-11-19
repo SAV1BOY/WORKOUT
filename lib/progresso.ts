@@ -49,7 +49,7 @@ export type CardioBruto = Pick<
   LinhaSessaoCardio,
   "data" | "tipo" | "duracao_min" | "distancia_km" | "feito" | "concluida"
 > &
-  Partial<Pick<LinhaSessaoCardio, "semana_plano" | "planejado">>;
+  Partial<Pick<LinhaSessaoCardio, "id" | "semana_plano" | "planejado">>;
 
 /** Um ponto de qualquer gráfico semanal: a segunda-feira e o valor. */
 export interface PontoSemanal {

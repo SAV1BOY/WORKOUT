@@ -193,7 +193,7 @@ export function registros({
           .filter((p): p is string => p !== null)
           .join(" · "),
         motor: null,
-        href: `/cardio/${c.tipo}`,
+        href: c.id ? `/cardio/${c.tipo}?sessao=${encodeURIComponent(c.id)}` : null,
       };
     });
 
