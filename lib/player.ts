@@ -598,6 +598,14 @@ export function restanteS(estado: EstadoPlayer, agora: number): number {
   return Math.max(0, Math.ceil((estado.fimEm - agora) / 1000));
 }
 
+/** Mede só o trecho em andamento e os milissegundos acumulados antes de pausar. */
+export function tempoMedidoNoExercicio(
+  alvoS: number, acumuladoMs: number, inicioEm: number, agora: number,
+) {
+  const totalMs = Math.min(alvoS * 1_000, acumuladoMs + Math.max(0, agora - inicioEm));
+  return { totalMs, segundos: Math.floor(totalMs / 1_000) };
+}
+
 /** Fração que ainda falta (1 → 0), para o anel e a barra. */
 export function fracaoRestante(estado: EstadoPlayer, agora: number): number {
   if (estado.fimEm === null || !estado.totalS) return 0;

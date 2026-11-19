@@ -80,6 +80,8 @@ export interface SerieLocal {
   repsLado2: number | null;
   cargaKg: number | null;
   tempoS: number | null;
+  /** Rascunho local da medição, associado aos segundos que o cronômetro gravou nesta série. */
+  medicaoCronometro?: { serieId: string; alvoS: number; medidoS: number };
   tempoSLado2: number | null;
   passos: number | null;
   assistencia: Assistencia | null;
@@ -657,6 +659,19 @@ function trocarBloco(
   return base.plano?.ultima_inclusao?.ordem === ordem ? bloquearDesfazerSeIniciado(atualizada) : atualizada;
 }
 
+/** Um cliente antigo pode editar o tempo ou duplicar a série sem conhecer o rascunho. */
+export function medicaoDaSerie(serie: SerieLocal) {
+  const medicao = serie.medicaoCronometro;
+  if (!medicao || medicao.serieId !== serie.id || medicao.medidoS !== serie.tempoS) return;
+  const { alvoS, medidoS } = medicao;
+  if (Number.isSafeInteger(alvoS) && alvoS > 0 &&
+      Number.isSafeInteger(medidoS) && medidoS >= 0 && medidoS <= alvoS) return medicao;
+}
+
+export function camposDoCronometro(serieId: string, alvoS: number, medidoS: number) {
+  return { tempoS: medidoS, medicaoCronometro: { serieId, alvoS, medidoS } };
+}
+
 /** Muda campos de uma série (cada toque, SPEC §8). */
 export function atualizarSerie(
   sessao: SessaoLocal,
@@ -666,7 +681,13 @@ export function atualizarSerie(
 ): SessaoLocal {
   return trocarBloco(sessao, ordem, (bloco) => ({
     ...bloco,
-    series: bloco.series.map((s) => (s.id === serieId ? { ...s, ...campos } : s)),
+    series: bloco.series.map((s) => {
+      if (s.id !== serieId) return s;
+      const nova = { ...s, ...campos };
+      const manual = "tempoS" in campos && !("medicaoCronometro" in campos);
+      if (nova.medicaoCronometro && (manual || !medicaoDaSerie(nova))) nova.medicaoCronometro = undefined;
+      return nova;
+    }),
   }));
 }
 
@@ -700,8 +721,9 @@ export function marcarSerie(
         reps: atual.reps,
         repsLado2: atual.repsLado2,
         cargaKg: atual.cargaKg,
-        tempoS: atual.tempoS,
-        tempoSLado2: atual.tempoSLado2,
+        ...(medicaoDaSerie(proxima) ? {} : {
+          tempoS: atual.tempoS, tempoSLado2: atual.tempoSLado2, medicaoCronometro: undefined,
+        }),
         passos: atual.passos,
         assistencia: atual.assistencia,
       };
@@ -747,6 +769,7 @@ export function ajustarPrescricaoDaSessao(
           return {
             ...s,
             tempoS: valor,
+            medicaoCronometro: undefined,
             tempoSLado2: prescricao.unilateral ? valor : s.tempoSLado2,
           };
         }
@@ -781,6 +804,7 @@ export function ajustarPrescricaoDaSessao(
           modelo
             ? {
                 ...modelo,
+                medicaoCronometro: undefined,
                 id: novoId(),
                 setIndex: trabalho.length + 1,
                 concluida: false,

@@ -21,12 +21,14 @@ async function conferirControles(page: Page, nome: string) {
   const proximo = page.getByRole("button", { name: "Próximo passo", exact: true });
   await expect(gravar).toHaveText(nome);
   await expect(gravar.locator("svg")).toBeVisible();
-  const [esquerda, centro, direita] = await Promise.all([anterior, gravar, proximo].map(async botao => {
-    const caixa = (await botao.boundingBox())!;
+  const [esquerda, centro, direita] = await Promise.all([
+    anterior.boundingBox(), gravar.boundingBox(), proximo.boundingBox(),
+  ]);
+  if (!esquerda || !centro || !direita) throw new Error("Os três controles da série precisam estar visíveis.");
+  for (const caixa of [esquerda, centro, direita]) {
     expect(caixa.width).toBeGreaterThanOrEqual(44);
     expect(caixa.height).toBeGreaterThanOrEqual(44);
-    return caixa;
-  }));
+  }
   expect(centro.height).toBeGreaterThanOrEqual(56);
   expect(centro.x - esquerda.x - esquerda.width).toBeGreaterThanOrEqual(24);
   expect(direita.x - centro.x - centro.width).toBeGreaterThanOrEqual(24);
@@ -68,25 +70,48 @@ for (const tema of ["light", "dark"] as const) {
 test("a montagem fica inteiramente acima do rodapé a 320 px com fonte a 200%", async ({ page }) => {
   await abrirPlayer(page, "dark", 320, 200);
   const montagem = page.getByRole("button", { name: "Ver a montagem", exact: true });
+  const concluir = page.getByRole("button", { name: "Concluir série", exact: true });
   await expect(montagem).toBeVisible();
-  // O texto espaçado pode ocupar mais uma linha, dependendo da fonte do aparelho.
-  for (const espaco of ["normal", "0.12em"]) {
-    await page.addStyleTag({ content: `button { letter-spacing: ${espaco} !important; }` });
-    const medida = await montagem.evaluate(async botao => {
-      // Uma mudança de fonte pode redimensionar o rodapé antes da próxima pintura.
-      await new Promise<number>(requestAnimationFrame);
-      await new Promise<number>(requestAnimationFrame);
-      const pagina = document.documentElement;
-      window.scrollTo({ top: pagina.scrollHeight, behavior: "instant" });
-      const { left, width, bottom } = botao.getBoundingClientRect();
-      return {
-        faltaRolar: pagina.scrollHeight - pagina.clientHeight - pagina.scrollTop,
-        bordaLivre: botao.contains(document.elementFromPoint(left + width / 2, bottom - 1)),
-      };
-    });
-    expect(Math.abs(medida.faltaRolar), "distância até o fim da página (px)").toBeLessThanOrEqual(1);
-    expect(medida.bordaLivre, `borda inferior de Montagem com espaçamento ${espaco}`).toBe(true);
-  }
+  // Esta fonte quebra o rótulo em mais uma linha quando o espaçamento aumenta.
+  await page.addStyleTag({ content: 'button { font-family: "DejaVu Sans Mono", monospace !important; }' });
+  const mudarEspaco = (espaco: string) =>
+    page.addStyleTag({ content: `button { letter-spacing: ${espaco} !important; }` });
+  const altura = () => concluir.evaluate(botao => botao.getBoundingClientRect().height);
+  await mudarEspaco("normal");
+  const alturaInicial = await altura();
+  const posicao = () => page.evaluate(() => [window.scrollX, window.scrollY]);
+  expect(await posicao(), "a sessão começou no topo").toEqual([0, 0]);
+
+  await page.evaluate(() => window.scrollTo({ top: 140, behavior: "instant" }));
+  await mudarEspaco("0.12em");
+  await expect.poll(altura).toBeGreaterThan(alturaInicial + 1);
+  expect(await posicao(), "a página manteve a posição de leitura").toEqual([0, 140]);
+  await mudarEspaco("normal");
+  await expect.poll(altura).toBe(alturaInicial);
+
+  const montagemNoFim = () => montagem.evaluate(botao => {
+    const pagina = document.documentElement;
+    const { left, width, bottom } = botao.getBoundingClientRect();
+    return Math.abs(pagina.scrollHeight - pagina.clientHeight - pagina.scrollTop) <= 1 &&
+      botao.contains(document.elementFromPoint(left + width / 2, bottom - 1));
+  });
+  await page.evaluate(() => window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "instant" }));
+  await expect.poll(montagemNoFim).toBe(true);
+  await mudarEspaco("0.12em");
+  await expect.poll(altura).toBeGreaterThan(alturaInicial + 1);
+  // A pessoa já tinha chegado ao fim. Uma segunda rolagem esconderia a regressão.
+  await expect.poll(montagemNoFim).toBe(true);
+
+  const mudarFonte = (percentual: number) =>
+    page.addStyleTag({ content: `html { font-size: ${percentual}% !important; }` });
+  await mudarFonte(150);
+  await expect.poll(altura).toBeLessThan(alturaInicial);
+  await page.keyboard.press("End");
+  await expect.poll(montagemNoFim).toBe(true);
+  // Mudar a fonte do telefone alonga também o conteúdo acima de Montagem.
+  await mudarFonte(200);
+  await expect.poll(altura).toBeGreaterThan(alturaInicial + 1);
+  await expect.poll(montagemNoFim).toBe(true);
   await montagem.focus();
   await page.keyboard.press("Enter");
   await expect(page.getByRole("dialog", { name: "Montagem", exact: true })).toBeVisible();

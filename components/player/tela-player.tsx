@@ -584,6 +584,7 @@ export function TelaPlayer({
           aoConcluir={async () => {
             if (marcacaoEmCurso.current) return;
             const descanso = estado.descansoAoCorrigir;
+            let registrada = serie;
             if (!serie.concluida || descanso) {
               const pedido = Symbol();
               marcacaoEmCurso.current = pedido;
@@ -591,15 +592,16 @@ export function TelaPlayer({
               if (marcacaoEmCurso.current !== pedido) return;
               marcacaoEmCurso.current = null;
               if (!salvo) return;
+              registrada = salvo.serie;
             }
             if (descanso && indiceDaChave(seq, descanso.chave) >= 0) {
-              setAviso(textoDaSerieGravada(passo, bloco, serie, null));
+              setAviso(textoDaSerieGravada(passo, bloco, registrada, null));
               guardar(descanso);
               return;
             }
             const destino = apos(seq, indice);
             // SPEC §22.5 item 10: gravar a série deixa de ser silencioso
-            setAviso(textoDaSerieGravada(passo, bloco, serie, seq[destino] ?? null));
+            setAviso(textoDaSerieGravada(passo, bloco, registrada, seq[destino] ?? null));
             ir(destino);
           }}
           aoAnterior={() => ir(passoAnterior(seq, indice))}

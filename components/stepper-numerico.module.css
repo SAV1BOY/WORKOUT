@@ -1,0 +1,55 @@
+.espaco {
+  container: entrada-da-serie / inline-size;
+  min-width: 0;
+  width: 100%;
+}
+
+.grande {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.grande > button {
+  flex: 0 1 3.5rem;
+}
+
+.grande > .campo {
+  flex: 1 0 auto;
+  /* As duas teclas continuam disponíveis mesmo enquanto se digita um valor longo. */
+  max-width: calc(100% - 112px - 1rem);
+}
+
+.campo input {
+  field-sizing: content;
+}
+
+.grande > .emDuasLinhas {
+  display: none;
+}
+
+/* Duas teclas, seus espaços e um campo que mostre até "107,5" na fonte grande. */
+@container entrada-da-serie (inline-size < calc(8rem + 9ch + 10px)) {
+  .grande {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(56px, 1fr));
+  }
+
+  .grande > .campo {
+    grid-column: 1 / -1;
+    max-width: none;
+  }
+
+  .grande > button {
+    width: 100%;
+    height: max(56px, 2.25rem);
+  }
+
+  .grande > .emLinha {
+    display: none;
+  }
+
+  .grande > .emDuasLinhas {
+    display: inline-flex;
+  }
+}

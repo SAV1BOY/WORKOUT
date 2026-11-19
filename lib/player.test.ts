@@ -31,6 +31,7 @@ import {
   serieAnteriorDe,
   serieDoPasso,
   somarSegundos,
+  tempoMedidoNoExercicio,
   totalDeSeries,
   zerou,
   type Passo,
@@ -336,6 +337,22 @@ describe("navegação", () => {
     const i = seq.findIndex((p) => p.tipo === "serie");
     expect(posicaoNaSequencia(seq, i)).toBe(1);
     expect(posicaoNaSequencia(seq, seq.length - 1)).toBe(18);
+  });
+});
+
+describe("cronômetro do exercício", () => {
+  it("registra só os segundos completos e termina na meta mesmo em aba suspensa", () => {
+    expect(tempoMedidoNoExercicio(40, 0, 1_000, 1_999).segundos).toBe(0);
+    expect(tempoMedidoNoExercicio(40, 0, 1_000, 3_000).segundos).toBe(2);
+    const terminou = tempoMedidoNoExercicio(40, 0, 1_000, 60_000);
+    expect(terminou).toEqual({ totalMs: 40_000, segundos: 40 });
+  });
+
+  it("pausar e retomar conserva a fração de segundo sem contar o tempo da pausa", () => {
+    const pausa = tempoMedidoNoExercicio(40, 0, 1_000, 2_750);
+    expect(pausa).toEqual({ totalMs: 1_750, segundos: 1 });
+    const retomada = tempoMedidoNoExercicio(40, pausa.totalMs, 90_000, 90_250);
+    expect(retomada).toEqual({ totalMs: 2_000, segundos: 2 });
   });
 });
 
