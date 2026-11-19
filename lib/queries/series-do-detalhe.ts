@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { chaveDoDetalheDaSessao } from "@/lib/chaves-do-historico";
 import { bd, temIndexedDB } from "@/lib/db";
 import type { SerieBruta } from "@/lib/progresso";
+import { conferirContagensObservadas, LeituraAnteriorACorrecao } from "@/lib/queries/contagens-observadas";
 import { encerramentosPendentes } from "@/lib/queries/cache-do-detalhe";
 import { confirmarContaDoTreino } from "@/lib/queries/conta-do-treino";
 import { FalhaDeRedeNaTabela, lerTabelaCompleta } from "@/lib/queries/ler";
@@ -96,7 +97,7 @@ async function doAparelho(
 }
 
 /** A ficha do movimento não conhece as séries dos outros exercícios. Só a fonte da sessão pode confirmar o total. */
-export async function lerSeriesDaSessaoNaFicha(cliente: QueryClient, conta: string, sessaoId: string, sinal: AbortSignal) {
+export async function lerSeriesDaSessaoNaFicha(cliente: QueryClient, conta: string, sessaoId: string, sinal: AbortSignal): Promise<ListaDoRelatorio<SerieBruta>> {
   sinal.throwIfAborted();
   await conferirConta(conta);
   const inicio = Date.now();
@@ -131,9 +132,11 @@ export async function lerSeriesDaSessaoNaFicha(cliente: QueryClient, conta: stri
   sinal.throwIfAborted();
   let resultado: ListaDoRelatorio<SerieBruta> = { linhas: remotas, completa: true, confirmadasEm: inicio };
   if (!banco || !antes) return resultado;
+  const conferir = conferirContagensObservadas(antes.escritas, sessaoId);
   try {
     await banco.transaction("rw", banco.cache, banco.outbox, async () => {
       const agora = await situacaoDoDetalhe(conta, sessaoId);
+      conferir?.(agora.escritas);
       const arquivo = await arquivoDeSeriesPosterior<SerieBruta>(conta, inicio);
       const pendente = antes.pendente || agora.pendente;
       const foto = agora.foto ?? (antes.pendente && !arquivo ? antes.foto : null);
@@ -148,7 +151,8 @@ export async function lerSeriesDaSessaoNaFicha(cliente: QueryClient, conta: stri
         await banco.cache.put({ chave: chaveDoDetalheDaSessao(conta, sessaoId), valor: linhas, atualizadoEm: inicio });
       }
     });
-  } catch {
+  } catch (erro) {
+    if (erro instanceof LeituraAnteriorACorrecao) return lerSeriesDaSessaoNaFicha(cliente, conta, sessaoId, sinal);
     // A falta de espaço no aparelho não invalida a resposta recebida.
     sinal.throwIfAborted();
   }

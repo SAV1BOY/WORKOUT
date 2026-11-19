@@ -4,7 +4,7 @@ import { List, Pencil, SkipForward, Timer } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import { AnelDeContagem } from "@/components/player/anel";
 import { Miniatura } from "@/components/ui/miniatura";
-import { StepperNumerico } from "@/components/stepper-numerico";
+import { StepperNumerico, validarContagens } from "@/components/stepper-numerico";
 import { Button } from "@/components/ui/button";
 import { acharExercicio } from "@/lib/dados";
 import { nomeAcessivel } from "@/lib/midia";
@@ -292,6 +292,7 @@ export function TelaDescanso({
               />
               <Button variant="secondary" className="alvo h-11 shrink-0"
                 onClick={evento => {
+                  if (!validarContagens(evento.currentTarget.closest("fieldset"))) return;
                   const segundos = novoTempo ?? DESCANSO_MIN_S;
                   void guardarEdicao(
                     () => usarNasProximas && proximasSeries ? proximasSeries.aoGuardar(segundos) : aoDefinir(segundos),

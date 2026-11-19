@@ -3,6 +3,7 @@ import { bd, temIndexedDB, type ItemCache } from "@/lib/db";
 import { lerConsultaGuardada, VALIDADE_MS } from "@/lib/persistencia-query";
 import { FalhaDeRedeNaTabela } from "@/lib/queries/ler";
 import type { EscritaTabela } from "@/lib/outbox-supabase";
+import { conferirContagensObservadas, LeituraAnteriorACorrecao } from "@/lib/queries/contagens-observadas";
 import { retirarDetalhesCobertos } from "@/lib/queries/cache-do-detalhe";
 import { chaveDoHistorico, chaveDoHistoricoNoDisco } from "@/lib/chaves-do-historico";
 
@@ -79,8 +80,9 @@ async function lerListaConfirmada<T>(
       await gravacao?.depoisDeGuardar?.(inicio);
       return confirmada;
     });
-  } catch {
+  } catch (erro) {
     sinal?.throwIfAborted();
+    if (erro instanceof LeituraAnteriorACorrecao) throw erro;
     // A resposta continua visível, mas uma transação revertida não confirmou o fechamento no aparelho.
     return { linhas };
   }
@@ -147,20 +149,30 @@ export async function lerFonteDoRelatorio<T>(
     return pendentes;
   };
   const antes = await lerFila();
+  let conferir: ReturnType<typeof conferirContagensObservadas>;
   try {
     const confirmada = await lerListaConfirmada(conta, chaveDaLista(fonte, conta), consultar && (async () => {
       const remotas = await consultar();
       // A fila pode esvaziar enquanto o servidor responde com a foto anterior aos envios.
-      return aplicarPendentes(remotas, [...antes, ...await lerFila()]);
+      const observadas = [...antes, ...await lerFila()];
+      if (fonte === "series") conferir = conferirContagensObservadas(observadas);
+      return aplicarPendentes(remotas, observadas);
     }), sinal, {
       inicio, podeGuardar: () => filaLegivel,
-      depoisDeGuardar: fonte === "series" ? horario => retirarDetalhesCobertos(conta, horario) : undefined,
+      depoisDeGuardar: fonte === "series" ? async horario => {
+        // A gravação do histórico e esta conferência da fila estão na mesma transação.
+        if (conferir) conferir(await escritasPendentes(fonte, conta));
+        await retirarDetalhesCobertos(conta, horario);
+      } : undefined,
     });
-    const linhas = aplicarPendentes(confirmada.linhas, await lerFila());
+    const finais = await lerFila();
+    if (filaLegivel) conferir?.(finais);
+    const linhas = aplicarPendentes(confirmada.linhas, finais);
     return fonte === "series" && filaLegivel && confirmada.confirmadasEm !== undefined
       ? { linhas, completa: true, confirmadasEm: confirmada.confirmadasEm }
       : { linhas, completa: true };
   } catch (erro) {
+    if (erro instanceof LeituraAnteriorACorrecao) return lerFonteDoRelatorio(cliente, conta, fonte, antiga, consultar, sinal);
     if (!(erro instanceof FalhaDeRedeNaTabela)) throw erro;
   }
 

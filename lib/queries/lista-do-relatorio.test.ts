@@ -37,6 +37,18 @@ beforeEach(() => {
 afterEach(() => { vi.unstubAllGlobals(); vi.useRealTimers(); });
 
 describe("fontes históricas da conta no aparelho", () => {
+  it("um GET antigo não repõe a fração corrigida em outra aba depois de a fila esvaziar", async () => {
+    vi.stubGlobal("navigator", { onLine: true });
+    const row = { user_id: "ana", session_id: "treino", id: "serie", reps: 8, carga_kg: 21.5 };
+    fila.push({ tipo: "serie", payload: { tabela: "session_sets", op: "upsert", linhas: [{ ...row, reps: 8.5 }] } });
+    buscar.mockImplementationOnce(async () => { fila.length = 0; return []; }).mockResolvedValue([row]);
+    const ler = () => lerFonteDoRelatorio(cliente, "ana", "series", antiga, buscar);
+    expect((await ler()).linhas).toEqual([row]);
+    expect(disco.get(chaveDaLista("series", "ana"))?.valor).toEqual([row]);
+    vi.stubGlobal("navigator", { onLine: false });
+    expect((await ler()).linhas).toEqual([row]);
+  });
+
   it("recupera séries legadas só por sessões com dono e só confirma cobertura da versão paginada", async () => {
     const ana = { id: "s1", user_id: "ana" };
     const bia = { id: "s2", user_id: "bia" };

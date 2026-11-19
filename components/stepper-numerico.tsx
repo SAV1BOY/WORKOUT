@@ -1,12 +1,20 @@
 "use client";
 
 import { Minus, Plus } from "lucide-react";
-import { useId, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { aceitarDigitacao, nomeDoPasso } from "@/lib/digitar-numero";
+import { aceitarDigitacao, erroDaContagem, MAXIMO_DA_CONTAGEM, nomeDoPasso } from "@/lib/digitar-numero";
 import { formatarNumero, lerNumero } from "@/lib/formato";
 import { cn } from "@/lib/utils";
 import estilos from "./stepper-numerico.module.css";
+
+/** Antes de usar as contagens deste grupo, leve a pessoa ao campo que precisa de correção. */
+export function validarContagens(grupo: ParentNode | null): boolean {
+  const invalido = grupo?.querySelector<HTMLInputElement>('input[inputmode="numeric"][aria-invalid="true"]');
+  if (!invalido) return true;
+  invalido.focus();
+  return false;
+}
 
 /**
  * − valor + com digitação direta (SPEC §7). Celular primeiro: os dois botões
@@ -25,6 +33,7 @@ export function StepperNumerico({
   rotulo,
   sufixo,
   decimal = false,
+  confirmarAoSair = false,
   compacto = false,
   grande = false,
   alto = false,
@@ -41,6 +50,8 @@ export function StepperNumerico({
   rotulo: string;
   sufixo?: string;
   decimal?: boolean;
+  /** Na prescrição, um prefixo como "1" não pode remover séries enquanto se digita. */
+  confirmarAoSair?: boolean;
   compacto?: boolean;
   /** Número grande e alvos de 56 px: é o passo do player (SPEC §14.1.2). */
   grande?: boolean;
@@ -59,13 +70,22 @@ export function StepperNumerico({
   desabilitado?: boolean;
 }) {
   const id = useId();
+  const campo = useRef<HTMLInputElement>(null);
   // Durante a digitação, preserve inclusive a vírgula final. Fora dela,
   // mostre diretamente o valor aceito pelo pai (por exemplo, a carga montável).
   const [rascunho, setRascunho] = useState<string | null>(null);
-  const texto = rascunho ?? (valor === null ? "" : formatarNumero(valor));
+  // No campo editável "1000" são mil saltos. O ponto é reservado à entrada decimal.
+  const textoDoValor = valor === null ? "" : decimal ? formatarNumero(valor) : String(valor).replace(".", ",");
+  const texto = rascunho ?? textoDoValor;
+  const erro = decimal ? null : erroDaContagem(texto, maximo);
+  const teto = maximo ?? (decimal ? Number.POSITIVE_INFINITY : MAXIMO_DA_CONTAGEM);
 
   const andar = (direcao: 1 | -1) => {
     if (desabilitado) return;
+    if (erro) {
+      campo.current?.focus();
+      return;
+    }
     /*
      * Apertar − ou + devolve o campo ao app: o texto deixa de ser do dedo e
      * volta a se reconciliar com o `valor`. No Chromium tocar num `<button>`
@@ -79,9 +99,9 @@ export function StepperNumerico({
       aoAndar(direcao);
       return;
     }
-    const base = valor ?? minimo;
+    const base = (confirmarAoSair ? lerNumero(texto) : valor) ?? minimo;
     const bruto = base + direcao * passo;
-    const preso = Math.min(maximo ?? Number.POSITIVE_INFINITY, Math.max(minimo, bruto));
+    const preso = Math.min(teto, Math.max(minimo, bruto));
     aoMudar(Number(preso.toFixed(2)));
   };
 
@@ -100,23 +120,30 @@ export function StepperNumerico({
     // continua focado depois de um toque no + , e o `onFocus` não volta a
     // disparar quando o usuário retoma a digitação
     setRascunho(aceito);
+    if (confirmarAoSair || (!decimal && erroDaContagem(aceito, maximo))) return;
+    // No iPhone um toque em Concluir pode não desfocar a entrada que a pessoa acabou de limpar.
+    if (!decimal && aceito === "") {
+      if (valor !== null) aoMudar(null);
+      return;
+    }
     const lido = lerNumero(aceito);
     if (lido === null) return;
-    const preso = Math.min(maximo ?? Number.POSITIVE_INFINITY, Math.max(minimo, lido));
+    const preso = Math.min(teto, Math.max(minimo, lido));
     if (preso === lido && lido !== valor) aoMudar(lido);
   };
 
   const confirmar = () => {
+    if (erro) return;
     setRascunho(null);
     const lido = lerNumero(texto);
     if (lido === null) {
       aoMudar(null);
       return;
     }
-    const preso = Math.min(maximo ?? Number.POSITIVE_INFINITY, Math.max(minimo, lido));
-    // O número válido já subiu a cada tecla. Só envie novamente se teve
-    // de ser limitado ao sair do campo, evitando um segundo aviso de anilha.
-    if (preso !== lido) aoMudar(preso);
+    const preso = Math.min(teto, Math.max(minimo, lido));
+    // A prescrição aguarda a quantidade completa. Nos demais campos o valor
+    // válido já subiu a cada tecla; só falta aplicar eventuais limites.
+    if (confirmarAoSair ? preso !== valor : preso !== lido) aoMudar(preso);
   };
 
   const tamanhoDoBotao = grande ? "size-14 min-h-[56px] min-w-[56px] rounded-2xl" : alto ? "size-12" : "size-11";
@@ -127,8 +154,13 @@ export function StepperNumerico({
     </Button>
   );
 
+  const aviso = erro && (
+    <p id={`${id}-erro`} role="alert" className="mt-1 basis-full text-sm font-medium wrap-anywhere">
+      {erro}
+    </p>
+  );
   const controle = (
-    <div className={grande ? estilos.grande : cn("flex items-center", compacto ? "gap-0.5" : "gap-1")}>
+    <div className={grande ? estilos.grande : cn("flex items-center", compacto ? "gap-0.5" : "gap-1", erro && "flex-wrap")}>
       {diminuir(grande ? estilos.emLinha : undefined)}
 
       <div className={cn("relative min-w-11 flex-1", grande && estilos.campo)}>
@@ -136,6 +168,7 @@ export function StepperNumerico({
           {rotulo}
         </label>
         <input
+          ref={campo}
           id={id}
           value={texto}
           size={grande ? 5 : undefined}
@@ -143,10 +176,16 @@ export function StepperNumerico({
           onFocus={() => setRascunho(texto)}
           onBlur={confirmar}
           onKeyDown={(e) => {
-            if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+            if (e.key !== "Enter") return;
+            if (erro) e.preventDefault();
+            else e.currentTarget.blur();
           }}
           disabled={desabilitado}
           inputMode={decimal ? "decimal" : "numeric"}
+          pattern={decimal ? undefined : "-?[0-9]+"}
+          data-confirmar-ao-sair={confirmarAoSair || undefined}
+          aria-invalid={Boolean(erro) || undefined}
+          aria-describedby={erro ? `${id}-erro` : undefined}
           enterKeyHint="done"
           autoComplete="off"
           className={cn(
@@ -181,7 +220,8 @@ export function StepperNumerico({
       >
         <Plus className={grande ? "size-7" : "size-5"} />
       </Button>
+      {!grande && aviso}
     </div>
   );
-  return grande ? <div className={estilos.espaco}>{controle}</div> : controle;
+  return grande ? <div className={estilos.espaco}>{controle}{aviso}</div> : controle;
 }

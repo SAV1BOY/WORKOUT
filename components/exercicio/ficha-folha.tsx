@@ -154,7 +154,7 @@ export function ConteudoDaFicha({
         comoPagina={comoPagina}
       />
 
-      {contexto ? <StepperDaSessao contexto={contexto} /> : null}
+      {contexto ? <StepperDaSessao key={`${contexto.indice}:${exercicioId}`} contexto={contexto} /> : null}
       <NotaPessoal exercicioId={exercicioId} />
 
       {comoPagina ? (
@@ -583,6 +583,7 @@ function StepperDaSessao({ contexto }: { contexto: ContextoDaFicha }) {
           <StepperNumerico
             rotulo={rotuloAlvo}
             valor={contexto.alvo}
+            confirmarAoSair
             passo={contexto.tipo === "tempo_s" ? 5 : 1}
             minimo={1}
             aoMudar={(v) => contexto.aoMudarAlvo(v ?? 1)}
@@ -594,6 +595,7 @@ function StepperDaSessao({ contexto }: { contexto: ContextoDaFicha }) {
         <StepperNumerico
           rotulo="Séries"
           valor={contexto.series}
+          confirmarAoSair
           passo={1}
           minimo={MIN_SERIES}
           maximo={MAX_SERIES}
@@ -722,9 +724,22 @@ export function FichaEmFolha({
   if (!exercicioId) return null;
   const exercicio = acharExercicio(exercicioId);
 
+  // No iPhone o toque em um botão pode deixar o campo com foco até a folha
+  // desmontar. A digitação da prescrição precisa terminar antes desse toque.
+  const confirmarCampo = () => {
+    const focado = document.activeElement;
+    if (focado instanceof HTMLInputElement && focado.hasAttribute("data-confirmar-ao-sair")) focado.blur();
+  };
+  const mudarAberto = (abrir: boolean) => {
+    if (!abrir) confirmarCampo();
+    aoMudarAberto(abrir);
+  };
   return (
-    <Sheet open={aberto} onOpenChange={aoMudarAberto}>
-      <SheetContent side="bottom" className="max-h-[92dvh] overflow-y-auto pb-8">
+    <Sheet open={aberto} onOpenChange={mudarAberto}>
+      <SheetContent side="bottom" className="max-h-[92dvh] overflow-y-auto pb-8"
+        onClickCapture={evento => {
+          if (evento.target instanceof Element && evento.target.closest("button, a")) confirmarCampo();
+        }}>
         <SheetHeader className="pb-0">
           <SheetTitle className="text-balance">{exercicio.nome}</SheetTitle>
           <SheetDescription>
@@ -738,7 +753,7 @@ export function FichaEmFolha({
             contexto={contexto}
             troca={troca}
             prefs={prefs}
-            aoFechar={() => aoMudarAberto(false)}
+            aoFechar={() => mudarAberto(false)}
           />
         </div>
       </SheetContent>

@@ -175,6 +175,23 @@ test.describe("mock do Supabase", () => {
     );
   });
 
+  test("contagens recusam frações no lote inteiro e a carga mantém as casas decimais", async ({ request }) => {
+    const url = `${URL_MOCK}/rest/v1/session_sets`;
+    const headers = comSessao({ Prefer: "return=representation" });
+    const id = crypto.randomUUID();
+    const serie = { id, reps: 9, carga_kg: 27.5 };
+    const lote = await request.post(url, { headers, data: [serie, { ...serie, id: crypto.randomUUID(), tempo_s: 9.5 }] });
+    expect(lote.status()).toBe(400);
+    expect(await lote.json()).toMatchObject({ code: "22P02" });
+    const linha = `${url}?id=eq.${id}&select=reps,carga_kg`;
+    expect(await (await request.get(linha, { headers })).json()).toEqual([]);
+    expect((await request.post(url, { headers, data: serie })).status()).toBe(201);
+    const patch = await request.patch(linha, { headers, data: { reps: 8.5 } });
+    expect(patch.status()).toBe(400);
+    expect(await patch.json()).toMatchObject({ code: "22P02" });
+    expect(await (await request.get(linha, { headers })).json()).toEqual([{ reps: 9, carga_kg: 27.5 }]);
+  });
+
   test("sessão de força: insert, filtros, ordem, count e v_records", async ({
     request,
   }) => {

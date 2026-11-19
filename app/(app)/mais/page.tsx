@@ -17,7 +17,7 @@ import { UsoNoCelular } from "@/components/mais/uso-no-celular";
 import { LinhaSincronizacao } from "@/components/mais/linha-sincronizacao";
 import { ehDono } from "@/lib/env";
 import { LINHA_LEMBRETES } from "@/lib/lembretes";
-import { emailDoUsuario } from "@/lib/supabase/server";
+import { identidadeDaRequisicao } from "@/lib/supabase/server";
 
 export const metadata = { title: "Mais — Treino do Terraço" };
 // a lista muda conforme quem está logado (a linha Contas é só do dono)
@@ -92,7 +92,8 @@ const CONTA: Secao[] = [
 
 export default async function Mais() {
   // o e-mail vem do servidor: o cliente não decide quem é o dono
-  const dono = ehDono(await emailDoUsuario());
+  const usuario = await identidadeDaRequisicao();
+  const dono = ehDono(usuario?.email ?? null);
   const ajustes = dono ? [...SECOES, CONTAS] : SECOES;
 
   return (
@@ -103,7 +104,7 @@ export default async function Mais() {
         <Lista secoes={ajustes} />
       </nav>
 
-      <LinhaSincronizacao />
+      {usuario && <LinhaSincronizacao key={usuario.id} userId={usuario.id} />}
       <UsoNoCelular />
 
       <section aria-labelledby="titulo-conta" className="flex flex-col gap-2">

@@ -3,6 +3,7 @@
 import { ChevronDown, LogOut, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { validarContagens } from "@/components/stepper-numerico";
 import { AdicionarExercicio } from "@/components/treinar/adicionar-exercicio";
 import { BlocoExercicio } from "@/components/treinar/bloco";
 import { ResumoDoFim } from "@/components/treinar/resumo";
@@ -225,7 +226,9 @@ export function VisaoGeralDaSessao({
         seriesFeitas={progresso?.feitas ?? 0}
         proximo={proximoExercicio(sessao)}
         aoFechar={aoFechar}
-        aoConcluir={() => setFim("concluida")}
+        aoConcluir={() => {
+          if (validarContagens(raiz.current)) setFim("concluida");
+        }}
         aoDescartar={() => setFim("abandonada")}
       />
 

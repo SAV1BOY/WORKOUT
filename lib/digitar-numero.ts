@@ -38,6 +38,19 @@ export function aceitarDigitacao(
   return proposto;
 }
 
+/** Limites de PostgreSQL integer usados nas contagens de séries e cardio. */
+export const MAXIMO_DA_CONTAGEM = 2_147_483_647;
+
+/** Uma contagem pode estar em branco. O separador fica visível até a correção. */
+export function erroDaContagem(texto: string, maximo = MAXIMO_DA_CONTAGEM): string | null {
+  if (texto === "") return null;
+  if (!/^-?\d+$/.test(texto)) return "Use um número inteiro.";
+  const valor = Number(texto);
+  if (valor > MAXIMO_DA_CONTAGEM) return `O maior valor permitido é ${maximo.toLocaleString("pt-BR")}.`;
+  if (valor < -2_147_483_648) return "O menor valor permitido é −2.147.483.648.";
+  return null;
+}
+
 /**
  * O nome dos botões − e + do `StepperNumerico`: "Aumentar repetições da
  * Série 1 de Levantamento terra" (SPEC §22.18 item 5). O `contexto` vem de
