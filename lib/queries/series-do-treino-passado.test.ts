@@ -1,6 +1,8 @@
 import { QueryClient } from "@tanstack/react-query";
 import { createClient } from "@supabase/supabase-js";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { chaveDoDetalheDaSessao } from "@/lib/chaves-do-historico";
+import type { EscritaTabela } from "@/lib/outbox-supabase";
 import type { ItemCache } from "@/lib/db";
 import { CHAVE_CACHE, VALIDADE_MS } from "@/lib/persistencia-query";
 import { anterioresPorExercicio, serieAnteriorDe } from "@/lib/player";
@@ -9,12 +11,20 @@ import { lerSeriesDoTreinoPassado, type UltimaSerie } from "@/lib/queries/series
 import { clienteNavegador } from "@/lib/supabase/client";
 
 const disco = new Map<string, ItemCache>();
+const fila: EscritaTabela[] = [];
+const get = vi.fn(async (k: string) => disco.get(k));
 const bulkPut = vi.fn(async (itens: ItemCache[]) => { for (const i of itens) disco.set(i.chave, i); });
 vi.mock("@/lib/db", () => ({
   temIndexedDB: () => true, lerCache: async (chave: string) => disco.get(chave)?.valor ?? null,
   bd: () => ({
-    cache: { get: async (k: string) => disco.get(k), bulkGet: async (ks: string[]) => ks.map(k => disco.get(k)), bulkPut },
-    transaction: (_modo: string, _tabela: unknown, executar: () => Promise<unknown>) => executar(),
+    cache: {
+      get, bulkGet: async (ks: string[]) => ks.map(k => disco.get(k)), bulkPut,
+      where: () => ({ aboveOrEqual: (data: number) => ({ eachPrimaryKey: async (visitar: (chave: string, cursor: { key: number }) => void) => {
+        for (const item of disco.values()) if (item.atualizadoEm >= data) visitar(item.chave, { key: item.atualizadoEm });
+      } }) }),
+    },
+    outbox: { where: () => ({ equals: () => ({ toArray: async () => fila.map(payload => ({ payload })) }) }) },
+    transaction: (_modo: string, ...args: unknown[]) => (args.at(-1) as () => Promise<unknown>)(),
   }),
 }));
 vi.mock("@/lib/queries/conta-do-treino", () => ({ confirmarContaDoTreino: vi.fn() }));
@@ -40,7 +50,7 @@ function semDono(s: UltimaSerie) {
 }
 
 beforeEach(() => {
-  banco = []; disco.clear(); cliente.clear(); urls.length = 0; limite = 1000;
+  banco = []; fila.length = 0; disco.clear(); cliente.clear(); urls.length = 0; limite = 1000;
   vi.stubGlobal("navigator", { onLine: true });
   vi.mocked(clienteNavegador).mockReturnValue(createClient("http://localhost", "simulada", {
     auth: { persistSession: false, autoRefreshToken: false }, global: { fetch: rede },
@@ -152,6 +162,77 @@ describe("consulta da referência de cada série", () => {
     cliente.setQueryData(["ultimas-series", "prancha"], Array.from({ length: 120 }, () => semDono(s)));
     cliente.setQueryData(["sessoes"], [{ id: "s", user_id: "ana" }]);
     expect(await ler(["prancha"], "atual")).toEqual([]);
+  });
+
+  it("usa o treino encerrado na fila e depois de drená-la, com posição, lados e dono", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    banco = [linha("antiga", "supino", 1, 5)];
+    await ler(["supino"]);
+    desligar();
+    const nova = { ...linha("origem", "supino", 1, 20, 3), carga_kg: 31.5, reps: 9, reps_lado2: 8 };
+    const chave = chaveDoDetalheDaSessao("ana", "origem");
+    disco.set(chave, { chave, valor: [nova], atualizadoEm: Date.now() });
+    const invalida = chaveDoDetalheDaSessao("ana", "estranha");
+    disco.set(invalida, { chave: invalida, valor: [{ ...nova, user_id: "bia", session_id: "estranha" }], atualizadoEm: Date.now() });
+    fila.push({ tabela: "sessions", op: "upsert", linha: { id: "origem", user_id: "ana", status: "concluida" } });
+    const anterior = async () => serieAnteriorDe(anterioresPorExercicio(await ler(["supino"], "nova", "ana", new QueryClient())).supino, 1);
+    expect(await anterior()).toEqual(nova);
+    fila.length = 0;
+    expect(await anterior()).toEqual(nova);
+    expect(await ler(["supino"], "origem")).toEqual(banco);
+    expect(await ler(["supino"], "nova", "bia")).toEqual([]);
+  });
+
+  it("após o expurgo, uma confirmação completa mais nova corrige ou exclui a referência em cache", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    const inicial = linha("origem", "remada", 2, 5);
+    banco = [inicial];
+    await ler(["remada"], "nova");
+    desligar();
+    const chave = "series-do-historico-v2:ana";
+    disco.set(chave, { chave, valor: [], atualizadoEm: Date.now() - 1 });
+    get.mockClear();
+    expect(await ler(["remada"], "nova")).toEqual([inicial]);
+    expect(get).not.toHaveBeenCalledWith(chave); // lê só a data da fonte mais antiga
+    vi.setSystemTime(Date.now() + 1000);
+    const corrigida = { ...inicial, reps: 10, carga_kg: 27.5 };
+    disco.set(chave, { chave, valor: [corrigida], atualizadoEm: Date.now() });
+    expect(await ler(["remada"], "nova")).toEqual([corrigida]);
+    disco.set(chave, { chave, valor: [], atualizadoEm: Date.now() + 1 });
+    expect(await ler(["remada"], "nova")).toEqual([]);
+  });
+
+  it("se o envio e o expurgo terminam durante um GET antigo, preserva o fechamento até a leitura posterior", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    const nova = linha("origem", "supino", 1, 20);
+    const chave = chaveDoDetalheDaSessao("ana", nova.session_id);
+    disco.set(chave, { chave, valor: [nova], atualizadoEm: Date.now() - 1000 });
+    fila.push({ tabela: "sessions", op: "upsert", linha: { id: "origem", user_id: "ana", status: "concluida" } });
+    rede.mockImplementationOnce(async () => {
+      fila.length = 0;
+      disco.delete(chave);
+      const arquivo = "series-do-historico-v2:ana";
+      disco.set(arquivo, { chave: arquivo, valor: [nova], atualizadoEm: Date.now() - 500 });
+      return Response.json([]);
+    });
+    expect(await ler(["supino"], "repetida")).toEqual([nova]);
+    desligar();
+    expect(await ler(["supino"], "repetida")).toEqual([nova]);
+    vi.stubGlobal("navigator", { onLine: true });
+    vi.setSystemTime(Date.now() + 1000);
+    banco = [{ ...nova, reps: 14 }];
+    expect(await ler(["supino"], "repetida")).toEqual(banco);
+  });
+
+  it("um fechamento vazio também substitui os valores antigos; outro movimento segue com a própria sessão", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    const remada = linha("remada-antiga", "remada", 2, 15);
+    banco = [linha("corrigida", "rosca", 1, 9), remada];
+    await ler(["rosca", "remada"]);
+    const chave = chaveDoDetalheDaSessao("ana", "corrigida");
+    disco.set(chave, { chave, valor: [], atualizadoEm: Date.now() + 1 });
+    desligar();
+    expect(await ler(["rosca", "remada"], "nova")).toEqual([remada]);
   });
 
   it("não troca a cópia confirmada quando a sessão da conta muda ou a leitura é cancelada", async () => {

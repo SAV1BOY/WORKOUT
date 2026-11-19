@@ -13,6 +13,23 @@ export async function gravarDetalheDaSessao(conta: string, sessaoId: string, ser
   await bd().cache.put({ chave: chaveDoDetalheDaSessao(conta, sessaoId), valor: series, atualizadoEm: Date.now() });
 }
 
+/** As séries feitas são reenviadas antes da linha que encerra o treino, com o mesmo alvo na fila. */
+export async function encerramentosPendentes(conta: string): Promise<Set<string>> {
+  const fechamentos = new Set<string>();
+  for (const item of await bd().outbox.where("tipo").equals("sessao").toArray()) {
+    const escrita = item.payload as EscritaTabela;
+    if (escrita.tabela !== "sessions") continue;
+    for (const linha of escrita.linhas ?? (escrita.linha ? [escrita.linha] : [])) {
+      const id = linha.id ?? escrita.filtro?.id;
+      if ((linha.user_id ?? escrita.filtro?.user_id) === conta && typeof id === "string" &&
+          (linha.status === "concluida" || linha.status === "abandonada")) {
+        fechamentos.add(id);
+      }
+    }
+  }
+  return fechamentos;
+}
+
 /** A lista completa já foi gravada na mesma transação. Fechamentos posteriores ainda precisam de sua cópia. */
 export async function retirarDetalhesCobertos(conta: string, inicioDaLeitura: number) {
   const banco = bd();
@@ -20,18 +37,8 @@ export async function retirarDetalhesCobertos(conta: string, inicioDaLeitura: nu
   const anteriores = await banco.cache.where("chave").startsWith(prefixo)
     .filter(item => item.atualizadoEm < inicioDaLeitura).primaryKeys();
   if (!anteriores.length) return;
-  const fechamentos = new Set<string>();
-  for (const item of await banco.outbox.where("tipo").equals("sessao").toArray()) {
-    const escrita = item.payload as EscritaTabela;
-    if (escrita.tabela !== "sessions") continue;
-    for (const linha of escrita.linhas ?? (escrita.linha ? [escrita.linha] : [])) {
-      const id = linha.id ?? escrita.filtro?.id;
-      if ((linha.user_id ?? escrita.filtro?.user_id) === conta && typeof id === "string" &&
-          (linha.status === "concluida" || linha.status === "abandonada")) {
-        fechamentos.add(chaveDoDetalheDaSessao(conta, id));
-      }
-    }
-  }
+  const ids = await encerramentosPendentes(conta);
+  const fechamentos = new Set([...ids].map(id => chaveDoDetalheDaSessao(conta, id)));
   // O servidor ainda não confirmou o fechamento. No detalhe, o empate com esse GET favorece a cópia do aparelho.
   for (const chave of anteriores) {
     if (fechamentos.has(chave)) await banco.cache.update(chave, { atualizadoEm: inicioDaLeitura });

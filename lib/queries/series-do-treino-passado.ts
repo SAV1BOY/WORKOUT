@@ -3,6 +3,7 @@ import { chaveDoHistorico, chaveDoHistoricoNoDisco } from "@/lib/chaves-do-histo
 import { bd, temIndexedDB, type ItemCache } from "@/lib/db";
 import { lerConsultaGuardadaComData, VALIDADE_MS } from "@/lib/persistencia-query";
 import { confirmarContaDoTreino } from "@/lib/queries/conta-do-treino";
+import { combinarFechamentos, fotosPendentes, fontesDoAparelho, type FonteDeSeries } from "@/lib/queries/fechamentos-do-player";
 import { FalhaDeRedeNaTabela } from "@/lib/queries/ler";
 import { clienteNavegador } from "@/lib/supabase/client";
 import type { LinhaSerie } from "@/lib/types";
@@ -134,15 +135,9 @@ async function consultaAntiga<T>(cliente: QueryClient, chave: readonly string[])
   }
 }
 
-async function doLegado(cliente: QueryClient, conta: string, ids: readonly string[], faltam: Set<string>) {
-  // O #48 já guardava o arquivo completo do Relatório com posição, medidas dos lados e dono.
-  const [antiga, arquivo] = await Promise.all([
-    consultaAntiga<UltimaSerie[]>(cliente, ["ultimas-series", [...ids].sort().join(",")]),
-    temIndexedDB() ? bd().cache.get(`series-do-historico-v2:${conta}`).catch(() => undefined) : undefined,
-  ]);
-  const completo: UltimaSerie[] | undefined = arquivo && Date.now() - arquivo.atualizadoEm <= VALIDADE_MS &&
-    Array.isArray(arquivo.valor) && arquivo.valor.every(s => s?.user_id === conta)
-    ? arquivo.valor.filter(s => faltam.has(s.exercise_id)) : undefined;
+async function doLegado(cliente: QueryClient, conta: string, ids: readonly string[], faltam: Set<string>, arquivo?: FonteDeSeries) {
+  const antiga = await consultaAntiga<UltimaSerie[]>(cliente, ["ultimas-series", [...ids].sort().join(",")]);
+  const completo = arquivo?.linhas.filter(s => faltam.has(s.exercise_id));
   // O recorte antigo de 120 não comprova que as séries de uma sessão estão todas presentes.
   if (!Array.isArray(antiga?.valor) || antiga.valor.length >= PAGINA ||
     (completo && arquivo!.atualizadoEm >= antiga.atualizadoEm)) {
@@ -184,14 +179,21 @@ export async function lerSeriesDoTreinoPassado(
   const inicio = Date.now();
   const ids = [...new Set(idsDaTela)];
   if (!conta || !ids.length) return [];
+  const pedidos = new Set(ids);
+  const elegiveis = (linhas: UltimaSerie[]) => linhas.filter(l => l.session_id !== atual && l.tipo === "trabalho" && l.concluida);
   if (typeof navigator === "undefined" || navigator.onLine !== false) {
     try {
+      const antes = await fotosPendentes(conta, pedidos).catch(() => undefined);
       const linhas = await consultar(conta, ids, atual, sinal);
       await confirmarContaDoTreino(conta, "A conta do treino mudou. Reabra o player.");
       sinal.throwIfAborted();
-      await guardar(conta, ids, atual, linhas, inicio, sinal);
+      const locais = await fontesDoAparelho(conta, pedidos, inicio, antes).catch(() => undefined);
       sinal.throwIfAborted();
-      return linhas;
+      if (!locais) return linhas;
+      const confirmadas = elegiveis(ids.flatMap(id => combinarFechamentos(id, { linhas, atualizadoEm: inicio }, locais)));
+      if (antes) await guardar(conta, ids, atual, confirmadas, inicio, sinal);
+      sinal.throwIfAborted();
+      return confirmadas;
     } catch (erro) {
       sinal.throwIfAborted();
       if (!(erro instanceof FalhaDeRedeNaTabela)) throw erro;
@@ -201,23 +203,30 @@ export async function lerSeriesDoTreinoPassado(
   const chaves = ids.flatMap(id => [chave(conta, id, false), chave(conta, id, true)]);
   const copias = temIndexedDB() ? await bd().cache.bulkGet(chaves).catch(() => []) : [];
   const faltam = new Set<string>();
-  const linhas: UltimaSerie[] = [];
+  const bases = new Map<string, FonteDeSeries>();
   for (const [i, id] of ids.entries()) {
     const candidatas = copias.slice(2 * i, 2 * i + 2).sort((a, b) => (b?.atualizadoEm ?? 0) - (a?.atualizadoEm ?? 0));
-    const salva = candidatas.map(item => copiaDoExercicio(item, conta, id, atual)).find(Boolean);
-    if (salva) linhas.push(...salva.linhas);
-    else faltam.add(id);
-  }
-  if (faltam.size) {
-    const legado = await doLegado(cliente, conta, idsDaTela, faltam);
-    const verificadas = legado.linhas.map(l => ({ ...l, user_id: conta }));
-    if (verificadas.length) {
-      // Depois da primeira abertura o React Query pode descartar a chave do #48.
-      // Preserve as linhas reconhecidas com a data da leitura que as originou.
-      await guardar(conta, [...new Set(verificadas.map(l => l.exercise_id))], atual, verificadas, legado.atualizadoEm, sinal);
-      linhas.push(...verificadas);
+    for (const item of candidatas) {
+      const salva = copiaDoExercicio(item, conta, id, atual);
+      if (item && salva) {
+        bases.set(id, { atualizadoEm: item.atualizadoEm, linhas: salva.linhas });
+        break;
+      }
     }
+    if (!bases.has(id)) faltam.add(id);
+  }
+  const desde = faltam.size ? 0 : Math.min(...[...bases.values()].map(b => b.atualizadoEm));
+  const locais = await fontesDoAparelho(conta, pedidos, desde).catch(() => ({ fechamentos: [], arquivo: undefined }));
+  const legado = faltam.size ? await doLegado(cliente, conta, idsDaTela, faltam, locais.arquivo) : undefined;
+  const verificadas = legado?.linhas.map(l => ({ ...l, user_id: conta })) ?? [];
+  const resultado = elegiveis(ids.flatMap(id => {
+    const base = bases.get(id);
+    return combinarFechamentos(id, base ?? { linhas: verificadas, atualizadoEm: legado?.atualizadoEm ?? 0 }, locais);
+  }));
+  if (verificadas.length && legado) {
+    // Após a atualização o React Query pode descartar a chave do #48. Mantenha a data da leitura original.
+    await guardar(conta, [...new Set(verificadas.map(l => l.exercise_id))], atual, resultado, legado.atualizadoEm, sinal);
   }
   sinal.throwIfAborted();
-  return linhas.filter(l => l.session_id !== atual && l.tipo === "trabalho" && l.concluida);
+  return resultado;
 }

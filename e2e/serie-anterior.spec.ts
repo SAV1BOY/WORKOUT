@@ -1,7 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { itensDeIds, planoDaSessao } from "../lib/livre";
 import {
-  abrirVisaoGeral, avancarNoPlayerAte, atualizarNoMock, comecarNoPlayer, concluirSerie,
+  abrirSecaoDoRelatorio, abrirVisaoGeral, avancarNoPlayerAte, atualizarNoMock, comecarNoPlayer, concluirSerie,
   definirCota, entrarNoApp, esperarAbaTreino, esperarServiceWorker, fixarData, inserirNoMock,
   irNaAba, lerDoMock, resetarMock, sessaoNoMock, usuarioComPerfil, type SessaoMock,
 } from "./fixtures";
@@ -125,4 +125,46 @@ test("depois de trocar de conta a referência do supino vem do treino dessa pess
   await abrirPlayer(page, atualB);
   await avancarNoPlayerAte(page, trabalho(page, 1));
   await expect(referencia(page)).toHaveText("anterior: 11,5 kg na barra × 12");
+});
+
+test("a repetição reaberta offline acompanha a correção que o Relatório já confirmou", async ({ page, context }) => {
+  const conta = await usuarioComPerfil({ prefs: PREFS });
+  const origem = await criarSessao(conta, "2026-09-14", true);
+  const feita = serie(origem, "2026-09-14", 1, 9, 23.5);
+  await inserirNoMock(conta, "session_sets", [feita]);
+  await entrarNoApp(page);
+  await irNaAba(page, "Relatório");
+  await abrirSecaoDoRelatorio(page, "historico");
+  const repetir = page.getByRole("button", { name: /^Repetir treino:/ });
+  await repetir.click();
+  await comecarNoPlayer(page);
+  await avancarNoPlayerAte(page, trabalho(page, 1));
+  const rota = page.url();
+  expect(rota).not.toContain(origem);
+  await expect(referencia(page)).toHaveText("anterior: 23,5 kg na barra × 9");
+  await abrirVisaoGeral(page);
+  await page.getByRole("link", { name: "Continuar depois" }).click();
+  await esperarAbaTreino(page);
+
+  // A mesma linha foi corrigida em outro aparelho, depois da leitura do player.
+  await fixarData(page, "2026-09-14T08:05:00-03:00");
+  await atualizarNoMock(conta, "session_sets", `id=eq.${feita.id}`, { reps: 10, carga_kg: 27.5 });
+  await irNaAba(page, "Relatório");
+  await abrirSecaoDoRelatorio(page, "historico");
+  const abrir = page.getByRole("button", { name: /^Ver séries de / });
+  await abrir.click();
+  const detalhe = page.getByRole("dialog", { name: "Séries do treino", exact: true });
+  await expect(detalhe).toContainText("10 repetições · 27,5 kg na barra");
+  await detalhe.getByRole("button", { name: "Fechar", exact: true }).click();
+  await expect(abrir).toBeFocused();
+
+  await esperarServiceWorker(page);
+  await semRedeNoWorker(await workerDoApp(context));
+  await context.setOffline(true);
+  await page.reload();
+  await abrirSecaoDoRelatorio(page, "historico");
+  await repetir.click();
+  await expect(page).toHaveURL(rota);
+  await expect(trabalho(page, 1)).toBeVisible();
+  await expect(referencia(page)).toHaveText("anterior: 27,5 kg na barra × 10");
 });
