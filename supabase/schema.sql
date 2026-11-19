@@ -102,6 +102,7 @@ create table if not exists public.sessions (
   sensacao      int check (sensacao between 1 and 5),    -- como foi o treino (1 muito difícil … 5 muito fácil)
   peso_corporal numeric(5,2),                            -- opcional: peso do dia
   notas         text,
+  nota_geral    text,                                    -- contexto do treino inteiro
   created_at    timestamptz not null default now()
 );
 create index if not exists sessions_user_data on public.sessions(user_id, data desc);
@@ -249,6 +250,7 @@ alter table public.exercise_state add column if not exists exigir_rep_extra bool
 alter table public.exercise_state add column if not exists carga_antes_leve numeric(6,2);
 alter table public.sessions add column if not exists semana_plano int;
 alter table public.sessions add column if not exists plano jsonb;
+alter table public.sessions add column if not exists nota_geral text;
 alter table public.profiles alter column nome set default '';
 
 -- ---------- updated_at automático ----------

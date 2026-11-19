@@ -1,5 +1,8 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
+import { editarNotaNoHistorico } from "@/lib/queries/historico-da-sessao";
+import { NotaDoTreino } from "@/components/treinar/nota-do-treino";
 import { Flame, History, Pause, Repeat2 } from "lucide-react";
 import Link from "next/link";
 import { addDays } from "date-fns";
@@ -33,6 +36,7 @@ export function Historico({
   sessoes,
   cardios,
   series,
+  seriesDisponiveis,
   soltas,
   eventos,
 }: {
@@ -42,10 +46,12 @@ export function Historico({
   sessoes: SessaoBruta[];
   cardios: CardioBruto[];
   series: SerieBruta[];
+  seriesDisponiveis: boolean;
   soltas: SoltaBruta[];
   eventos: EventoDeSessao[];
 }) {
   /** Quantas semanas atrás da de hoje a faixa está (0 = esta semana). */
+  const cliente = useQueryClient();
   const [atras, setAtras] = useState(0);
   const [tudo, setTudo] = useState(false);
   /* quantas páginas de 12 já foram abertas; volta a 1 ao trocar de recorte */
@@ -87,17 +93,18 @@ export function Historico({
         sessoes,
         cardios,
         series,
+        seriesDisponiveis,
         soltas,
         eventos,
         retomada,
         de: inicio,
         ate: fim,
       }),
-    [sessoes, cardios, series, soltas, eventos, retomada, inicio, fim],
+    [sessoes, cardios, series, seriesDisponiveis, soltas, eventos, retomada, inicio, fim],
   );
   const todos = useMemo(
-    () => registros({ sessoes, cardios, series, soltas, eventos, retomada }),
-    [sessoes, cardios, series, soltas, eventos, retomada],
+    () => registros({ sessoes, cardios, series, seriesDisponiveis, soltas, eventos, retomada }),
+    [sessoes, cardios, series, seriesDisponiveis, soltas, eventos, retomada],
   );
 
   const lista = tudo ? todos : daSemana;
@@ -184,24 +191,30 @@ export function Historico({
       ) : (
         <ul aria-label="Registros" className="flex flex-col divide-y">
           {mostrados.map((r) => {
-            const origem = r.sessaoLivre;
+            const sessao = r.sessaoDeForca;
             return (
               <li key={r.chave}>
                 <LinhaDoRegistro registro={r} />
-                {origem && origem.user_id === perfil.user_id && montarRepeticaoDoTreinoLivre(origem) && (
+                {sessao && sessao.user_id === perfil.user_id && montarRepeticaoDoTreinoLivre(sessao) && (
                   <div className="flex flex-col items-start gap-1 pb-2 pl-12">
                     <Button type="button" variant="outline" size="sm"
                       className="alvo h-auto max-w-full scroll-mb-24 whitespace-normal"
                       aria-label={`Repetir treino: ${r.titulo} de ${formatarDataCompleta(r.data)}`}
-                      aria-busy={repetindoId === origem.id}
+                      aria-busy={repetindoId === sessao.id}
                       disabled={repetindoId !== null}
-                      onClick={() => void repetir(origem)}>
+                      onClick={() => void repetir(sessao)}>
                       <Repeat2 aria-hidden="true" className="size-4" />
-                      {repetindoId === origem.id ? "Abrindo treino…" : "Repetir treino"}
+                      {repetindoId === sessao.id ? "Abrindo treino…" : "Repetir treino"}
                     </Button>
-                    {erro?.id === origem.id && (
+                    {erro?.id === sessao.id && (
                       <p role="alert" className="text-destructive text-sm">{erro.mensagem}</p>
                     )}
+                  </div>
+                )}
+                {sessao && sessao.user_id === perfil.user_id && (
+                  <div className="pb-2 pl-12">
+                    <NotaDoTreino key={`${perfil.user_id}:${sessao.id}`} valor={sessao.nota_geral}
+                      aoGuardar={(texto, anterior) => editarNotaNoHistorico(cliente, perfil.user_id, sessao, texto, anterior)} />
                   </div>
                 )}
               </li>

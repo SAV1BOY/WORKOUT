@@ -9,6 +9,7 @@
 
 import { useQuery, type QueryClient, type UseQueryResult } from "@tanstack/react-query";
 import { guardarCargasLidas } from "@/lib/queries/cargas-no-aparelho";
+import { guardarPerfilLido } from "@/lib/queries/perfil-no-aparelho";
 import { lerTabelaCompleta } from "@/lib/queries/ler";
 import { clienteNavegador } from "@/lib/supabase/client";
 import type {
@@ -80,12 +81,22 @@ async function lerLista<T>(
 export function usePerfil(): UseQueryResult<LinhaPerfil | null> {
   return useQuery({
     queryKey: chaves.perfil(),
-    queryFn: () =>
-      ler<LinhaPerfil>(
-        clienteNavegador().from("profiles").select("*").maybeSingle(),
-        "o seu perfil",
-      ),
+    queryFn: ({ signal }) => lerPerfilAtual(signal),
   });
+}
+
+export async function lerPerfilAtual(sinal: AbortSignal): Promise<LinhaPerfil | null> {
+  const lidoEm = Date.now();
+  const cliente = clienteNavegador();
+  const perfil = await ler<LinhaPerfil>(cliente.from("profiles").select("*").abortSignal(sinal).maybeSingle(), "o seu perfil");
+  if (!perfil) return null;
+  const { data } = await cliente.auth.getSession();
+  sinal.throwIfAborted();
+  if (data.session?.user.id !== perfil.user_id) throw new Error("O login mudou. Reabra a tela para carregar o perfil atual.");
+  // A linha autenticada continua disponível online quando o navegador recusa a escrita (ex.: quota).
+  await guardarPerfilLido(perfil, lidoEm, sinal).catch(() => {});
+  sinal.throwIfAborted();
+  return perfil;
 }
 
 /* ------------------------------------------------------ agenda (§3.5) */

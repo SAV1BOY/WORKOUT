@@ -127,6 +127,8 @@ export interface BlocoLocal {
 
 export type RegistroDoExercicioTrocado = Omit<BlocoLocal, "trocados">;
 
+export const MENSAGEM_NOTA_GERAL_ALTERADA = "A nota do treino mudou. Cancele a edição para ver a versão atual.";
+
 /** A sessão inteira, como ela vive no IndexedDB (SPEC §8). */
 export interface SessaoLocal {
   id: string;
@@ -153,6 +155,10 @@ export interface SessaoLocal {
   sensacao: number | null;
   pesoCorporal: number | null;
   notas: string | null;
+  /** Texto sobre este treino inteiro, independente das notas dos blocos. */
+  notaGeral?: string | null;
+  /** Identifica a edição no aparelho enquanto uma leitura do servidor está em andamento. */
+  revisaoNotaGeral?: string;
   /** Barra W / reta oca já pesadas na balança (SPEC §3.9). */
   opcoesMontagem: OpcoesMontagem;
   blocos: BlocoLocal[];
@@ -436,6 +442,7 @@ export function reconstruirSessao(
     | "fase"
     | "status"
     | "iniciada_em"
+    | "nota_geral"
   > & { semana_plano?: number | null; plano?: PlanoDaSessao | null },
   series: LinhaSerie[],
   resto: Omit<EntradaMontagem, "id" | "userId" | "data" | "treinoId" | "fase" | "equipamentosDisponiveis"> & {
@@ -526,7 +533,10 @@ export function reconstruirSessao(
     const [atual, ...anteriores] = registros;
     return atual ? { ...atual, trocados: anteriores.length ? anteriores : undefined } : bloco;
   });
-  return { ...base, status: linha.status, blocos };
+  return {
+    ...base, status: linha.status, blocos,
+    ...(linha.nota_geral !== undefined && { notaGeral: linha.nota_geral }),
+  };
 }
 
 /* ------------------------------------------------------ mexer na sessão */
@@ -1645,7 +1655,7 @@ export function contadoresDaSessao(sessao: SessaoLocal): ContadoresDaSessao {
   return { exercicios, series, volumeKg: Math.round(volumeKg * 10) / 10 };
 }
 
-/** Junta as notas dos blocos numa nota só da sessão (o schema tem uma). */
+/** Mantém em sessions.notas o resumo das notas dos blocos que os clientes antigos leem. */
 export function notasDaSessao(sessao: SessaoLocal): string | null {
   const partes = sessao.blocos
     .filter((b) => b.nota)

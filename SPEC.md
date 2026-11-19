@@ -304,6 +304,8 @@ Vitrine de **coleções derivadas** dos JSON, cada uma com capa (foto de um exer
 
 ### 13.5 Relatório (`/relatorio`)
 
+**Nota do treino.** Ao concluir uma sessão de força, a pessoa pode escrever sobre aquele treino no feedback ou no resumo da Visão geral. Em **Relatório → Histórico**, pode reler, editar ou apagar a anotação da sessão escolhida. A nota acompanha o treino mesmo quando ele termina sem rede. Cada sessão tem seu próprio texto, inclusive quando há duas na mesma data. A repetição de um treino começa com a nota em branco.
+
 **Repetir um treino livre pelo histórico.** Uma sessão livre concluída com um plano válido oferece **Repetir treino**. A nova sessão começa hoje com identificação própria, a ordem dos blocos e o último movimento ativo de cada bloco. O registro de séries começa vazio, a carga vem do estado atual de cada exercício e todo o equipamento fica disponível. A sessão anterior conserva seus valores, datas e notas. Um toque duplo cria uma única sessão. Com os dados já disponíveis no aparelho, a repetição funciona offline e sincroniza ao voltar a rede.
 
 1. **Contadores** no topo: treinos concluídos (força + cardio) · minutos treinados · volume da semana (Σ reps × kg).

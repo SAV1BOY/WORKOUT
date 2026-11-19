@@ -1,5 +1,6 @@
 "use client";
 
+import { NotaDoTreino } from "@/components/treinar/nota-do-treino";
 import { Button } from "@/components/ui/button";
 import { OPCOES_DE_FEEDBACK } from "@/lib/player";
 import { cn } from "@/lib/utils";
@@ -14,11 +15,15 @@ import { cn } from "@/lib/utils";
  */
 export function TelaFeedback({
   sensacao,
+  notaGeral,
+  aoGuardarNota,
   aoEscolher,
   aoSeguir,
   aoVoltar,
 }: {
   sensacao: number | null;
+  notaGeral?: string | null;
+  aoGuardarNota: (texto: string, notaAoAbrir: string | null) => Promise<void>;
   aoEscolher: (valor: number) => void;
   aoSeguir: () => void;
   aoVoltar: () => void;
@@ -59,19 +64,21 @@ export function TelaFeedback({
         ))}
       </div>
 
-      <div className="flex items-center gap-2">
-        <Button variant="outline" className="alvo" onClick={aoVoltar}>
-          Voltar
-        </Button>
-        <Button
-          size="xl"
-          variant={sensacao === null ? "outline" : "default"}
-          className="alvo flex-1 rounded-2xl font-semibold"
-          onClick={aoSeguir}
-        >
-          {sensacao === null ? "Concluir sem responder" : "Concluir"}
-        </Button>
-      </div>
+      <NotaDoTreino valor={notaGeral} aoGuardar={aoGuardarNota} aoConcluir={aoSeguir}>
+        <div className="flex items-center gap-2">
+          <Button type="button" variant="outline" className="alvo" onClick={aoVoltar}>
+            Voltar
+          </Button>
+          <Button
+            size="xl"
+            variant={sensacao === null ? "outline" : "default"}
+            className="alvo flex-1 rounded-2xl font-semibold"
+            type="submit"
+          >
+            {sensacao === null ? "Concluir sem responder" : "Concluir"}
+          </Button>
+        </div>
+      </NotaDoTreino>
     </section>
   );
 }

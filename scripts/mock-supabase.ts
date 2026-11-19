@@ -287,6 +287,7 @@ const ESQUEMA: Record<string, EspecTabela> = {
       sensacao: nulo,
       peso_corporal: nulo,
       notas: nulo,
+      nota_geral: nulo,
       created_at: agora,
     },
     chave: ["id"],

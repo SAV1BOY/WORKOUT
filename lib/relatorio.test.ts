@@ -105,6 +105,14 @@ describe("todos os registros (SPEC §13.5)", () => {
     { session_id: "outra", motivo: "subiu" },
   ];
 
+  it("distingue a contagem local, a lista vazia confirmada e séries ainda indisponíveis", () => {
+    const remota: SessaoBruta = { id: "antiga", data: "2026-09-15", workout_id: "A1", status: "concluida", duracao_s: 120 };
+    const local = { ...remota, id: "nova", seriesDeTrabalhoLocais: 1 };
+    const entrada = { sessoes: [remota, local], cardios: [], series: [] };
+    expect(registros({ ...entrada, seriesDisponiveis: false }).map(r => r.detalhe)).toEqual(["2 min", "2 min · 1 série"]);
+    expect(registros(entrada).map(r => r.detalhe)).toEqual(["2 min · 0 séries", "2 min · 1 série"]);
+  });
+
   it("lista da mais recente para a mais antiga, sem a sessão aberta", () => {
     const lista = registros({
       sessoes: SESSOES,

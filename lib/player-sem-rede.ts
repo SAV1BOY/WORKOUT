@@ -1,5 +1,8 @@
 import { combineChunks, parseCookieHeader, stringFromBase64URL } from "@supabase/ssr";
 import { bd, guardarCache, lerCache } from "@/lib/db";
+import { chaveDoHistoricoNoDisco } from "@/lib/chaves-do-historico";
+import { lerConsultaGuardada } from "@/lib/persistencia-query";
+import { lerPerfilDoAparelho } from "@/lib/queries/perfil-no-aparelho";
 import type { SessaoLocal } from "@/lib/sessao";
 import { EVENTO_DE_LOGIN_CONFIRMADO, impressaoDoLogin, type VinculoDoPlayer } from "@/lib/vinculo-do-player";
 
@@ -44,4 +47,19 @@ export async function vinculoParaPlayerLocal(id: string): Promise<VinculoDoPlaye
   const item = await bd().sessaoAtiva.get(id);
   const sessao = item?.dados as Partial<SessaoLocal> | undefined;
   return sessao?.id === id && sessao.userId === vinculo.conta && sessao.status === "em_andamento" ? vinculo : null;
+}
+
+/** As abas usam o perfil que o servidor já sincronizou para a conta deste cookie. */
+export async function vinculoParaAbaLocal(aba: "/" | "/relatorio") {
+  const vinculo = await vinculoDoLoginAtual();
+  if (!vinculo) return null;
+  const perfil = await lerPerfilDoAparelho(vinculo.conta);
+  if (perfil?.valor.user_id !== vinculo.conta) return null;
+  if (aba === "/relatorio") {
+    // Antes da nota do treino, a consulta global já trazia o dono em cada linha.
+    const sessoes = await lerCache<{ user_id: string }[]>(chaveDoHistoricoNoDisco(vinculo.conta))
+      ?? await lerConsultaGuardada<{ user_id: string }[]>(["progresso", "sessoes"]);
+    if (!Array.isArray(sessoes) || !sessoes.every(s => s?.user_id === vinculo.conta)) return null;
+  }
+  return { vinculo, perfil };
 }

@@ -95,10 +95,11 @@ export async function enviarItem(item: ItemSaida): Promise<void> {
   }
   const cliente = clienteNavegador();
   const apagaTroca = p.tabela === "trocas_do_programa" && p.op === "delete";
-  const editaPlano = p.tabela === "sessions" && p.op === "update" &&
-    typeof p.filtro?.user_id === "string" && Object.hasOwn(p.linha ?? {}, "plano");
+  const editaTreino = p.tabela === "sessions" && p.op === "update" &&
+    typeof p.filtro?.user_id === "string" &&
+    (Object.hasOwn(p.linha ?? {}, "plano") || Object.hasOwn(p.linha ?? {}, "nota_geral"));
   if (apagaTroca && !alvoDaEscrita(p)) throw new Error("A remoção precisa indicar uma posição do treino.");
-  if (apagaTroca || editaPlano) {
+  if (apagaTroca || editaTreino) {
     // Sob RLS, a conta errada receberia sucesso com zero linhas afetadas.
     const { data } = await cliente.auth.getSession();
     if (!data.session || data.session.user.id !== p.filtro?.user_id) {

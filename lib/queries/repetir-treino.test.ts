@@ -5,6 +5,7 @@ import { itensDeIds, planoDaSessao } from "@/lib/livre";
 import { guardarNaFila, processar } from "@/lib/outbox";
 import { vinculoDoLoginAtual } from "@/lib/player-sem-rede";
 import type { SessaoBruta } from "@/lib/progresso";
+import { chaveDoHistorico } from "@/lib/chaves-do-historico";
 import { chaves } from "@/lib/queries/dados";
 import { lerMotorParaRepetir } from "@/lib/queries/motor-repetir-treino";
 import { abrirRepeticaoDoTreino } from "@/lib/queries/repetir-treino";
@@ -19,11 +20,14 @@ import { clienteNavegador } from "@/lib/supabase/client";
 import type { LinhaPerfil } from "@/lib/types";
 
 const locais = new Map<string, SessaoLocal>();
+const consultasNoDisco = new Map<string, unknown>();
 let anterior = Promise.resolve();
 const put = vi.fn(async ({ id, dados }: { id: string; dados: SessaoLocal }) => locais.set(id, dados));
 vi.mock("@/lib/db", () => ({
   temIndexedDB: () => true,
+  lerCache: async (chave: string) => consultasNoDisco.get(chave) ?? null,
   bd: () => ({
+    cache: { put: async ({ chave, valor }: { chave: string; valor: unknown }) => consultasNoDisco.set(chave, valor) },
     sessaoAtiva: {
       orderBy: () => ({ reverse: () => ({
         filter: (aceita: (item: { dados: SessaoLocal }) => boolean) => ({
@@ -51,7 +55,7 @@ vi.mock("@/lib/db", () => ({
   }),
 }));
 vi.mock("@/lib/outbox", () => ({ guardarNaFila: vi.fn(), processar: vi.fn(), esperarFila: async () => {} }));
-vi.mock("@/lib/persistencia-query", () => ({ guardarConsultasAgora: async () => {} }));
+vi.mock("@/lib/persistencia-query", () => ({ lerConsultaGuardada: async () => undefined, guardarConsultasAgora: async () => {} }));
 vi.mock("@/lib/supabase/client", () => ({ clienteNavegador: vi.fn() }));
 vi.mock("@/lib/player-sem-rede", () => ({ vinculoDoLoginAtual: vi.fn() }));
 vi.mock("@/lib/queries/motor-repetir-treino", () => ({ lerMotorParaRepetir: vi.fn() }));
@@ -74,6 +78,7 @@ const abrir = (origem = modelo) => abrirRepeticaoDoTreino(cache, perfil, hoje, o
 beforeEach(() => {
   cache = new QueryClient();
   locais.clear();
+  consultasNoDisco.clear();
   login = "ana";
   vi.mocked(vinculoDoLoginAtual).mockImplementation(async () => login
     ? { conta: login, url: "http://localhost", chave: "simulada", impressao: "confirmada" } : null);
@@ -124,6 +129,13 @@ describe("abertura do treino livre pelo Histórico", () => {
     expect(url.searchParams.get("user_id")).toBe("eq.ana");
     expect(url.searchParams.get("status")).toBe("eq.em_andamento");
     expect(lerMotorParaRepetir).not.toHaveBeenCalled();
+    expect(guardarNaFila).not.toHaveBeenCalled();
+  });
+
+  it("retoma offline um treino que só aparece no histórico da conta", async () => {
+    vi.stubGlobal("navigator", { onLine: false });
+    cache.setQueryData(chaveDoHistorico("ana"), [{ ...modelo, id: "em-aberto", status: "em_andamento" }]);
+    await expect(abrir()).resolves.toEqual({ id: "em-aberto", retomada: true });
     expect(guardarNaFila).not.toHaveBeenCalled();
   });
 

@@ -1004,6 +1004,18 @@ describe("seriesAnterioresPorExercicio — o tipo `maximo` precisa da última se
 /* -------------------------------------------------------- reconstrução */
 
 describe("reconstruirSessao — voltar de onde parou sem o aparelho de origem", () => {
+  it("reabre a nota geral separada dos blocos e aceita um registro anterior à coluna", () => {
+    const linha = {
+      id: "sessao", user_id: "ana", data: "2026-11-19", workout_id: "A1", fase: "fase1",
+      status: "em_andamento", iniciada_em: "2026-11-19T10:00:00Z", notas: "Agachamento: técnica",
+    } as const;
+    const nova = reconstruirSessao({ ...linha, nota_geral: "Pouco tempo hoje" }, []);
+    expect(nova?.notaGeral).toBe("Pouco tempo hoje");
+    expect(nova?.blocos.every(b => b.nota === null)).toBe(true);
+    expect(reconstruirSessao(linha, [])).not.toHaveProperty("notaGeral");
+    expect(reconstruirSessao({ ...linha, nota_geral: null }, [])?.notaGeral).toBeNull();
+  });
+
   it("as séries gravadas vencem as pré-preenchidas", () => {
     const original = fazerTudoNoTopo(sessaoA(), "agachamento-livre");
     const b = bloco(original, "agachamento-livre");

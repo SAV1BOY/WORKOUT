@@ -13123,3 +13123,29 @@ O PR #42 entrou em produção no commit `fd848a64efa143f382c3dfe5fedbbfb91088052
 Na repetição da suíte sobre a integração, passaram 765 dos 766 cenários de navegador. A única falha aconteceu na recarga imediata sem rede. Depois de tocar em **−20 s**, o treino de teste mostrava 1:10, mas voltava a 1:30 ao recarregar. Antes da recarga, o teste já havia confirmado a primeira série e guardado 1:30 para os próximos intervalos. A correção do cronômetro avulso trata a confirmação da escrita local antes de exibir a duração ajustada. [Execução que identificou a falha](https://github.com/SAV1BOY/WORKOUT/actions/runs/44467397174)
 
 Com uma escrita de 450 ms concorrendo pelo armazenamento, o erro ocorreu em duas de duas tentativas na versão publicada. O candidato corrigido manteve 1:10 nas três repetições com recarga offline imediata. O teste permanente ocupa o IndexedDB até a liberação explícita e confere quando o valor pode aparecer. Outros cenários cobrem toques rápidos, a tentativa de salvar novamente após falta de espaço e as ações Corrigir e Pular enquanto a gravação aguarda.
+
+### Publicação da correção do cronômetro
+
+O PR #43 entrou em produção no commit `81f792f8fa2d1f6514724e5a198ddc0bc6d131ba`. A Vercel e o endereço público confirmaram a publicação. A revisão `b31dde9` e a integração têm a mesma árvore `20108d14c024dda02333b58fb17d752e4bf9a655`. O lint, o build, os 2.108 testes unitários em 103 arquivos e os 768 cenários de Chromium passaram tanto no PR quanto na integração. Os quatro grupos de navegador tiveram 196, 197, 188 e 187 aprovações. O teste que reproduzia a perda do ajuste de 1:30 para 1:10 passou novamente após a publicação. A correção usa o armazenamento do aparelho. [PR #43](https://github.com/SAV1BOY/WORKOUT/pull/43) · [Validação da revisão](https://github.com/SAV1BOY/WORKOUT/actions/runs/44470132589) · [Validação da integração](https://github.com/SAV1BOY/WORKOUT/actions/runs/44472257574)
+
+### Nota do treino de força
+
+Ao concluir um treino de força, **Adicionar nota do treino** permite guardar um texto sobre aquele dia. O mesmo campo aparece no feedback do player e no resumo da Visão geral. O **Relatório → Histórico** associa a nota ao identificador da sessão, inclusive quando a pessoa treinou duas vezes na mesma data. É possível editar ou apagar a anotação. Uma repetição do treino começa com seu próprio campo em branco. O Strong documenta esse uso de uma nota geral ao rever treinos no histórico. [Notas de treino no Strong](https://help.strongapp.io/article/134-about-notes)
+
+A coluna opcional `sessions.nota_geral` guarda o contexto da sessão. As versões anteriores continuam gravando em `sessions.notas` o texto composto a partir das notas de cada exercício. O backup v1 distingue um campo ausente em arquivo antigo de uma exclusão explícita feita no app.
+
+Ao restaurar uma cópia que contém notas gerais em uma conta vazia, use a versão que oferece **Nota do treino**. O importador do cliente #43 reconhece apenas os campos que já existiam naquela versão.
+
+A migração foi aplicada duas vezes em PostgreSQL local com quatro sessões de teste distribuídas entre duas contas. A primeira aplicação preservou as quatro linhas e deixou as notas gerais em branco. A reaplicação manteve o texto já salvo. A política de acesso impediu que uma conta alterasse o treino da outra. O importador v1 e os dados de conclusão do cliente do PR #43 atualizaram os campos antigos e preservaram a nota geral existente.
+
+Nos primeiros testes em navegador, o treino salvo sem rede podia terminar na tela **Sem conexão** ao voltar para Treino. A recarga do Relatório visitado pelo menu também podia cair nessa tela. A recuperação local agora abre Treino e Relatório com o vínculo de login e os dados já disponíveis da própria conta. O histórico guarda a contagem de séries de trabalho no momento da conclusão para poder mostrá-la junto da nota antes que a rede volte.
+
+Em outra prova de abertura sem rede, o relatório tinha recuperado o perfil correto e duas sessões com suas notas, mas mostrava **Carregando** no histórico enquanto aguardava consultas de cardio e séries. O teste passou a conferir que a nota e a contagem de séries já registradas podem ser lidas enquanto essas consultas ainda não responderam. Nos treinos antigos cuja contagem ainda não está no aparelho, o número de séries aparece quando a leitura correspondente termina.
+
+Com a leitura auxiliar de séries retida no Chromium, a revisão `77c60a5` ficou em **Carregando**. Sob a mesma condição o app corrigido exibiu a nota do treino. Outra prova retirou os cookies do login com o Relatório local aberto. Ao voltar o foco para a aba, a nota e o editor saíram da tela.
+
+Na volta rápida do primeiro treino sem rede, a sessão concluída e o vínculo de login já estavam no aparelho, mas o cache geral ainda não tinha guardado o perfil. A leitura do perfil passou a conservar uma cópia da conta antes de apresentá-lo. A recuperação da aba escolhe a versão mais recente disponível da mesma pessoa. Um perfil de outra conta não dá acesso aos registros, e a falta de espaço no aparelho permite continuar a leitura online.
+
+A suíte completa também verificou o Histórico com teclado a 360 px e fonte a 125%, nos temas claro e escuro. O novo botão da nota inicialmente recebia o primeiro Tab após o link do treino livre. A ordem dos controles foi ajustada para manter **Repetir treino** logo após esse link e permitir chegar à nota no Tab seguinte.
+
+Nessa largura, o texto de **Adicionar nota do treino** ocupava 241 px em um espaço de 238 px. O botão agora permite a quebra de linha e conserva uma área de toque de pelo menos 44 px de altura. O teste também percorre os dois botões com Tab e Shift+Tab.

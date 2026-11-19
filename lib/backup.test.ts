@@ -370,3 +370,23 @@ it("restaura notas fixas e preserva campos desconhecidos em backups anteriores",
   expect(lotes[0]?.linhas.map((linha) => linha.nota_pessoal)).toEqual([null, "banco", "suporte 3"]);
   expect(lotes[1]?.linhas[0]).not.toHaveProperty("nota_pessoal");
 });
+
+it("o backup v1 preserva as notas dos blocos e distingue a nota geral apagada da ausente", () => {
+  const antigas = "Supino: ajustar banco · Remada: trocar pegada";
+  const contexto = "Treino no terraço\nTempo curto hoje.";
+  const sessoes = [
+    { id: "legada", notas: antigas },
+    { id: "anotada", notas: antigas, nota_geral: contexto },
+    { id: "apagada", notas: null, nota_geral: null },
+  ];
+  const backup = montarBackup({ userId: EU, exportadoEm: AGORA, tabelas: { sessions: sessoes } });
+  const arquivo = lerBackup(textoDoBackup(backup));
+  expect(arquivo.versao).toBe(1);
+  expect(arquivo.tabelas.sessions).toEqual(sessoes);
+  const lotes = linhasParaImportar(arquivo, OUTRO);
+  expect(lotes.map((lote) => lote.linhas)).toEqual([
+    [{ ...sessoes[1], user_id: OUTRO }, { ...sessoes[2], user_id: OUTRO }],
+    [{ ...sessoes[0], user_id: OUTRO }],
+  ]);
+  expect(lotes[1]!.linhas[0]).not.toHaveProperty("nota_geral");
+});
