@@ -6,6 +6,7 @@ import { useTheme, ThemeProvider } from "next-themes";
 import { useEffect, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
+import { observarConciliacoesDeSeries } from "@/lib/espelhos-da-contagem";
 import { iniciarOutbox } from "@/lib/outbox";
 import { persistirQueryClient } from "@/lib/persistencia-query";
 import { marcarAppVivo } from "@/lib/vigia";
@@ -58,7 +59,8 @@ export function Providers({ children }: { children: ReactNode }) {
     // SPEC §8: a tela abre com os dados da última sincronização
     const pararInstalacao = observarInstalacao();
     const pararCache = persistirQueryClient(cliente);
-    return () => { pararPedidoDeControle(); pararInstalacao(); pararCache(); };
+    const pararConciliacoes = observarConciliacoesDeSeries(cliente);
+    return () => { pararPedidoDeControle(); pararInstalacao(); pararCache(); pararConciliacoes(); };
   }, [cliente]);
 
   return (

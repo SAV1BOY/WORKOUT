@@ -1,10 +1,10 @@
 "use client";
 
 import { Users } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { CabecalhoMais } from "@/components/mais/cabecalho";
-import { StepperNumerico } from "@/components/stepper-numerico";
+import { StepperNumerico, validarContagens } from "@/components/stepper-numerico";
 import { Button } from "@/components/ui/button";
 import { Vazio } from "@/components/ui/vazio";
 import {
@@ -43,6 +43,7 @@ const NAO_DEU = "Não consegui falar com o servidor. Tente de novo.";
  * a porta, não a tranca.
  */
 export function TelaContas() {
+  const editorDoLimite = useRef<HTMLDivElement>(null);
   const [contas, setContas] = useState<ContaCadastrada[] | null>(null);
   const [limite, setLimite] = useState<number | null>(null);
   /** o limite que está no banco — para saber se há algo a salvar */
@@ -159,7 +160,7 @@ export function TelaContas() {
             continua entrando mesmo se o limite baixar.
           </CardDescription>
         </CardHeader>
-        <CardContent className="flex flex-col gap-3">
+        <CardContent ref={editorDoLimite} className="flex flex-col gap-3">
           <StepperNumerico
             valor={limite}
             aoMudar={(n) => setLimite(n)}
@@ -182,7 +183,9 @@ export function TelaContas() {
             type="button"
             className="alvo h-12"
             disabled={salvando || limiteSalvo === null || !mudou}
-            onClick={() => void salvar()}
+            onClick={() => {
+              if (validarContagens(editorDoLimite.current)) void salvar();
+            }}
           >
             {salvando ? "Salvando…" : "Salvar"}
           </Button>

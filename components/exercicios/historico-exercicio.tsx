@@ -1,6 +1,9 @@
 "use client";
 
-import { useId, useMemo } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
+import { liveQuery } from "dexie";
+import { useRede } from "@/lib/usar-rede";
+import { lerHistoricoDaFichaOffline } from "@/lib/queries/historico-da-ficha-offline";
 import { ChevronRight } from "lucide-react";
 import { GraficoLinha, SemDados } from "@/components/graficos";
 import { EsqueletoLista, Erro } from "@/components/carregando";
@@ -63,6 +66,7 @@ export function HistoricoExercicio({
    */
   comoPagina?: boolean;
 }) {
+  const online = useRede();
   const ids = useMemo(() => [exercicioId], [exercicioId]);
   const exercicio = acharExercicio(exercicioId);
 
@@ -131,7 +135,14 @@ export function HistoricoExercicio({
       />
     );
   }
-  if (carregando) return <EsqueletoLista linhas={3} />;
+  if (carregando) {
+    return (
+      <div className="flex flex-col gap-4">
+        <SessoesDaFicha key={exercicioId} exercicioId={exercicioId} conta={conta}
+          consultarAparelho={!online} linhas={seriesQ.data} lidoEm={seriesQ.dataUpdatedAt} />
+      </div>
+    );
+  }
 
   const estado = estadoDaLinha(estadosQ.data?.[0]);
   const prescricao = prescricaoPadrao(exercicio);
@@ -268,32 +279,11 @@ export function HistoricoExercicio({
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Últimas sessões</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {ultimas.length === 0 ? (
-            <SemDados>Nenhuma série registrada até agora.</SemDados>
-          ) : (
-            <ul className="divide-border divide-y">
-              {ultimas.map(({ dia, origem }) => (
-                <li key={`${conta}:${dia.sessionId}:${dia.data}`} className="relative flex flex-col gap-0.5 py-2">
-                  {origem && conta ? (
-                    <OrigemDoTreino dia={dia} origem={origem} conta={conta} />
-                  ) : (
-                    <>
-                      <span className="text-xs font-medium">{formatarData(dia.data)}</span>
-                      <SeriesDoDia data={dia.data} series={dia.series} />
-                    </>
-                  )}
-                </li>
-              ))}
-            </ul>
-          )}
-        </CardContent>
-      </Card>
+      </>
+      )}
+      {!vazio && <SessoesDaFicha key={exercicioId} exercicioId={exercicioId} ultimas={ultimas} conta={conta} />}
 
+      {!vazio && (
       <Card>
         <CardHeader>
           <CardTitle className="text-base">O que o motor decidiu</CardTitle>
@@ -317,9 +307,62 @@ export function HistoricoExercicio({
           )}
         </CardContent>
       </Card>
-      </>
       )}
     </div>
+  );
+}
+
+function SessoesDaFicha({ exercicioId, ultimas, conta, consultarAparelho = false, linhas, lidoEm = 0 }: {
+  exercicioId: string; ultimas?: ReturnType<typeof identificarOrigens>; conta?: string;
+  consultarAparelho?: boolean; linhas?: SerieBruta[]; lidoEm?: number;
+}) {
+  const [local, setLocal] = useState<Awaited<ReturnType<typeof lerHistoricoDaFichaOffline>>>();
+  useEffect(() => {
+    if (!consultarAparelho) return;
+    const assinatura = liveQuery(() => lerHistoricoDaFichaOffline(exercicioId, linhas, lidoEm)).subscribe({
+      next: setLocal, error: () => setLocal(null),
+    });
+    return () => assinatura.unsubscribe();
+  }, [consultarAparelho, exercicioId, linhas, lidoEm]);
+
+  if (ultimas) return <UltimasSessoes ultimas={ultimas} conta={conta} />;
+  // A lista continua montada com a folha aberta enquanto a rede repõe as demais consultas.
+  if (local === undefined) return <EsqueletoLista linhas={3} />;
+  const daConta = local && (!conta || conta === local.conta) ? local : null;
+  const dias = daConta ? sessoesDoExercicio(daConta.series, datasDasSessoes(daConta.sessoes), exercicioId, 10) : [];
+  const origens = identificarOrigens(dias, daConta?.sessoes ?? []);
+  return <UltimasSessoes ultimas={origens} conta={daConta?.conta} offline />;
+}
+
+function UltimasSessoes({ ultimas, conta, offline = false }: {
+  ultimas: ReturnType<typeof identificarOrigens>; conta?: string; offline?: boolean;
+}) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Últimas sessões</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {ultimas.length === 0 ? (
+          <SemDados>{offline ? "Nenhuma sessão deste exercício disponível sem rede." : "Nenhuma série registrada até agora."}</SemDados>
+        ) : (
+          <ul className="divide-border divide-y">
+            {ultimas.map(({ dia, origem }) => (
+              <li key={`${conta}:${dia.sessionId}:${dia.data}`} className="relative flex flex-col gap-0.5 py-2">
+                {origem && conta ? (
+                  <OrigemDoTreino dia={dia} origem={origem} conta={conta} />
+                ) : (
+                  <>
+                    <span className="text-xs font-medium">{formatarData(dia.data)}</span>
+                    <SeriesDoDia data={dia.data} series={dia.series} />
+                  </>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 

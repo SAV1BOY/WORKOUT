@@ -280,3 +280,18 @@ describe("consulta da referência de cada série", () => {
     expect(await ler(["supino"], "agora")).toEqual([]);
   });
 });
+
+it("a confirmação de outra aba durante o GET do player não devolve nem guarda a carga anterior", async () => {
+  const velha = linha("treino", "agachamento", 1, 5);
+  const nova = { ...velha, reps: 15, carga_kg: 35.5 };
+  rede.mockImplementationOnce(async () => {
+    const chave = "ultima-conciliacao-de-serie:ana";
+    disco.set(chave, { chave, atualizadoEm: Date.now(), valor: { revisao: 1 } });
+    banco = [nova];
+    return Response.json([velha], { headers: { "content-range": "*/1" } });
+  });
+  expect(await ler(["agachamento"], "atual")).toEqual([nova]);
+  expect(rede).toHaveBeenCalledTimes(2);
+  desligar();
+  expect(await ler(["agachamento"], "atual", "ana", new QueryClient())).toEqual([nova]);
+});

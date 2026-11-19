@@ -87,6 +87,7 @@ export function CardImc({
             rotulo="altura em cm"
             valor={altura}
             passo={1}
+            decimal
             minimo={100}
             maximo={230}
             sufixo="cm"

@@ -1,8 +1,11 @@
 import type { QueryClient } from "@tanstack/react-query";
+import { CAMPOS_DE_CONTAGEM, chaveIntencao } from "@/lib/campos-de-contagem";
 import { bd, temIndexedDB, type ItemCache } from "@/lib/db";
 import { lerConsultaGuardada, VALIDADE_MS } from "@/lib/persistencia-query";
 import { FalhaDeRedeNaTabela } from "@/lib/queries/ler";
 import type { EscritaTabela } from "@/lib/outbox-supabase";
+import { revisaoDasSeries } from "@/lib/espelhos-da-contagem";
+import { conferirContagensObservadas, LeituraAnteriorACorrecao } from "@/lib/queries/contagens-observadas";
 import { retirarDetalhesCobertos } from "@/lib/queries/cache-do-detalhe";
 import { chaveDoHistorico, chaveDoHistoricoNoDisco } from "@/lib/chaves-do-historico";
 
@@ -79,8 +82,9 @@ async function lerListaConfirmada<T>(
       await gravacao?.depoisDeGuardar?.(inicio);
       return confirmada;
     });
-  } catch {
+  } catch (erro) {
     sinal?.throwIfAborted();
+    if (erro instanceof LeituraAnteriorACorrecao) throw erro;
     // A resposta continua visível, mas uma transação revertida não confirmou o fechamento no aparelho.
     return { linhas };
   }
@@ -96,21 +100,27 @@ const saidasPorFonte = {
   soltas: { tipo: "barra_fixa_solta", tabela: "pullup_singles" },
 } as const;
 
-export async function escritasPendentes(fonte: Fonte, conta: string): Promise<EscritaTabela[]> {
+/** Somente para leitura. Uma operação em conciliação permanece sem op no transporte dos clientes antigos. */
+interface EscritaParaLeitura extends EscritaTabela { proposta?: boolean }
+
+export async function escritasPendentes(fonte: Fonte, conta: string): Promise<EscritaParaLeitura[]> {
   if (!temIndexedDB()) return [];
   const { tipo, tabela } = saidasPorFonte[fonte];
   const itens = await bd().outbox.where("tipo").equals(tipo).toArray();
-  return itens.flatMap(item => {
-    const p = item.payload as EscritaTabela;
+  return itens.flatMap<EscritaParaLeitura>(item => {
+    const p = item.payload as EscritaTabela & { operacaoGuardada?: "insert" | "upsert"; seriesEmConciliacao?: string[] };
     if (p.tabela !== tabela) return [];
-    if (p.op === "upsert" && p.linhas) {
-      return p.linhas.filter(linha => linha.user_id === conta).map(linha => ({ tabela, op: "upsert" as const, linha }));
+    const op = p.op ?? p.operacaoGuardada;
+    if (op === "upsert" || op === "insert") {
+      return (p.linhas ?? (p.linha ? [p.linha] : [])).filter(linha => linha.user_id === conta).map(linha => ({
+        tabela, op, linha, ...(p.seriesEmConciliacao?.includes(chaveIntencao(conta, String(linha.id))) && { proposta: true }),
+      }));
     }
     return (p.filtro?.user_id ?? p.linha?.user_id) === conta ? [p] : [];
   });
 }
 
-export function aplicarPendentes<T>(linhas: T[], pendentes: EscritaTabela[]): T[] {
+export function aplicarPendentes<T>(linhas: T[], pendentes: EscritaParaLeitura[], fonteParcial = false): T[] {
   if (!pendentes.length) return linhas;
   const porId = new Map<string, T>();
   const semId: T[] = [];
@@ -122,7 +132,23 @@ export function aplicarPendentes<T>(linhas: T[], pendentes: EscritaTabela[]): T[
   for (const p of pendentes) {
     const id = p.filtro?.id ?? p.linha?.id;
     if (typeof id !== "string") continue;
-    if (p.op === "delete") porId.delete(id);
+    if (p.proposta && p.linha) {
+      // Um backup pode ter trocado a série inteira desde a recusa. A proposta só
+      // substitui frações de uma linha compatível; não move de volta um UUID confirmado.
+      const anterior = porId.get(id) as Record<string, unknown> | undefined;
+      if (!anterior) {
+        if (fonteParcial) porId.set(id, p.linha as T);
+      } else if (["session_id", "exercise_id", "ordem_ex", "set_index", "tipo"].every(k =>
+        anterior[k] === undefined || p.linha![k] === undefined || anterior[k] === p.linha![k])) {
+        const valores: Record<string, unknown> = {};
+        for (const campo of CAMPOS_DE_CONTAGEM) {
+          if (typeof anterior[campo] === "number" && !Number.isInteger(anterior[campo]) && Number.isInteger(p.linha[campo])) {
+            valores[campo] = p.linha[campo];
+          }
+        }
+        porId.set(id, { ...anterior, ...valores } as T);
+      }
+    } else if (p.op === "delete") porId.delete(id);
     else if (p.linha && (p.op !== "update" || porId.has(id))) porId.set(id, { ...porId.get(id), ...p.linha } as T);
   }
   return [...porId.values(), ...semId];
@@ -146,21 +172,40 @@ export async function lerFonteDoRelatorio<T>(
     sinal?.throwIfAborted();
     return pendentes;
   };
+  const lerRevisao = () => revisaoDasSeries(conta).catch(() => { filaLegivel = false; return undefined; });
+  const revisaoInicial = fonte === "series" && temIndexedDB() ? await lerRevisao() : undefined;
+  const conferirRevisao = async () => {
+    if (revisaoInicial === undefined) return;
+    const atual = await lerRevisao();
+    if (atual !== undefined && atual !== revisaoInicial) throw new LeituraAnteriorACorrecao();
+  };
   const antes = await lerFila();
+  let conferir: ReturnType<typeof conferirContagensObservadas>;
   try {
     const confirmada = await lerListaConfirmada(conta, chaveDaLista(fonte, conta), consultar && (async () => {
       const remotas = await consultar();
       // A fila pode esvaziar enquanto o servidor responde com a foto anterior aos envios.
-      return aplicarPendentes(remotas, [...antes, ...await lerFila()]);
+      const observadas = [...antes, ...await lerFila()];
+      if (fonte === "series") conferir = conferirContagensObservadas(observadas);
+      return aplicarPendentes(remotas, observadas);
     }), sinal, {
       inicio, podeGuardar: () => filaLegivel,
-      depoisDeGuardar: fonte === "series" ? horario => retirarDetalhesCobertos(conta, horario) : undefined,
+      depoisDeGuardar: fonte === "series" ? async horario => {
+        // A gravação do histórico e esta conferência da fila estão na mesma transação.
+        await conferirRevisao();
+        if (conferir) conferir(await escritasPendentes(fonte, conta));
+        await retirarDetalhesCobertos(conta, horario);
+      } : undefined,
     });
-    const linhas = aplicarPendentes(confirmada.linhas, await lerFila());
+    const finais = await lerFila();
+    await conferirRevisao();
+    if (filaLegivel) conferir?.(finais);
+    const linhas = aplicarPendentes(confirmada.linhas, finais);
     return fonte === "series" && filaLegivel && confirmada.confirmadasEm !== undefined
       ? { linhas, completa: true, confirmadasEm: confirmada.confirmadasEm }
       : { linhas, completa: true };
   } catch (erro) {
+    if (erro instanceof LeituraAnteriorACorrecao) return lerFonteDoRelatorio(cliente, conta, fonte, antiga, consultar, sinal);
     if (!(erro instanceof FalhaDeRedeNaTabela)) throw erro;
   }
 
@@ -175,7 +220,7 @@ export async function lerFonteDoRelatorio<T>(
     cliente.getQueryData<R>(chave) ?? (temIndexedDB() ? await lerConsultaGuardada<R>(chave) : undefined);
   type Antiga = T & { id?: string; user_id?: string; session_id?: string };
   const antigas = await pegar<Antiga[]>(antiga);
-  if (!antigas?.length) return { linhas: aplicarPendentes([], antes), completa: false };
+  if (!antigas?.length) return { linhas: aplicarPendentes([], antes, true), completa: false };
 
   const sessoes = new Set<string>();
   if (fonte === "series") {
@@ -190,7 +235,7 @@ export async function lerFonteDoRelatorio<T>(
     fonte === "series" && l.session_id !== undefined && sessoes.has(l.session_id));
   // Antes da paginação por chave, as séries vinham sem id; cardio e soltas usavam a mesma projeção com limite.
   const completa = fonte === "series" && linhas.length === antigas.length && linhas.every(l => typeof l.id === "string");
-  return { linhas: aplicarPendentes(linhas, antes), completa };
+  return { linhas: aplicarPendentes(linhas, antes, !completa), completa };
 }
 
 /** Uma edição de cardio ou de repetições soltas também atualiza a cópia completa já confirmada no aparelho. */

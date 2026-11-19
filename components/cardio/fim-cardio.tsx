@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { StepperNumerico } from "@/components/stepper-numerico";
+import { StepperNumerico, validarContagens } from "@/components/stepper-numerico";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -155,14 +155,15 @@ export function FimDoCardio({
           <Button
             className="alvo h-14 w-full text-base font-semibold"
             disabled={salvando}
-            onClick={() =>
+            onClick={evento => {
+              if (!validarContagens(evento.currentTarget.closest('[role="dialog"]'))) return;
               aoSalvar({
                 distanciaKm: plano.tipo === "corrida" ? distancia : null,
                 saltos: plano.tipo === "corda" ? saltos : null,
                 esforco: comEsforco ? esforco : null,
                 notas: notas.trim() === "" ? null : notas.trim(),
-              })
-            }
+              });
+            }}
           >
             {salvando ? "Salvando…" : "Salvar e voltar"}
           </Button>

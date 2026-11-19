@@ -10,7 +10,7 @@ import {
   clienteNavegador,
   supabaseConfiguradoNoNavegador,
 } from "@/lib/supabase/client";
-import { enfileirar, definirEnviador, processar } from "@/lib/outbox";
+import { enfileirar, definirEnviador, processar, type ResultadoDoEnvio } from "@/lib/outbox";
 import { bd, temIndexedDB, type ItemSaida, type TipoSaida } from "@/lib/db";
 
 export type Operacao = "insert" | "upsert" | "update" | "delete";
@@ -67,11 +67,18 @@ async function enviarArquivo(p: EscritaArquivo): Promise<void> {
 function ehEscrita(valor: unknown): valor is EscritaTabela {
   if (typeof valor !== "object" || valor === null) return false;
   const v = valor as Partial<EscritaTabela>;
-  return typeof v.tabela === "string" && typeof v.op === "string";
+  return typeof v.tabela === "string" && (v.op === "insert" || v.op === "upsert" || v.op === "update" || v.op === "delete");
 }
 
 /** Envia um item da fila. Lançar aqui faz a fila tentar de novo depois. */
-export async function enviarItem(item: ItemSaida): Promise<void> {
+export async function enviarItem(item: ItemSaida): Promise<ResultadoDoEnvio> {
+  const pLocal = item.payload as Record<string, unknown> | null;
+  if (item.tipo === "serie" && pLocal?.tabela === "session_sets" && !pLocal.op &&
+    Array.isArray(pLocal.seriesEmConciliacao) && pLocal.seriesEmConciliacao.length &&
+    (pLocal.operacaoGuardada === "upsert" || pLocal.operacaoGuardada === "insert")) {
+    const { enviarContagemEmConciliacao } = await import("@/lib/contagens-pendentes");
+    return enviarContagemEmConciliacao(item);
+  }
   if (ehEscritaArquivo(item.payload)) {
     await enviarArquivo(item.payload);
     return;

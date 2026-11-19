@@ -181,6 +181,8 @@ interface EspecTabela {
    * Tabelas sem esta lista seguem com o `user_id` posto pelo mock.
    */
   obrigatorias?: string[];
+  /** Colunas de contagem que o PostgREST converte para integer. */
+  inteiras?: string[];
   /** Sem policy de update: o PATCH não altera nenhuma linha (RLS). */
   semUpdate?: boolean;
   /**
@@ -295,6 +297,7 @@ const ESQUEMA: Record<string, EspecTabela> = {
     tocaUpdatedAt: false,
   },
   session_sets: {
+    inteiras: ["ordem_ex", "set_index", "reps_alvo_min", "reps_alvo_max", "reps", "reps_lado2", "tempo_s", "tempo_s_lado2", "passos"],
     colunas: {
       id: uuid,
       session_id: nulo,
@@ -338,6 +341,7 @@ const ESQUEMA: Record<string, EspecTabela> = {
     tocaUpdatedAt: false,
   },
   cardio_sessions: {
+    inteiras: ["semana_plano", "saltos"],
     colunas: {
       id: uuid,
       user_id: nulo,
@@ -359,6 +363,7 @@ const ESQUEMA: Record<string, EspecTabela> = {
     tocaUpdatedAt: false,
   },
   pullup_singles: {
+    inteiras: ["reps"],
     colunas: {
       id: uuid,
       user_id: nulo,
@@ -1131,6 +1136,23 @@ function objetoUnico(req: IncomingMessage): boolean {
   return String(req.headers.accept ?? "").includes("application/vnd.pgrst.object");
 }
 
+function conferirContagens(espec: EspecTabela, entrada: Linha) {
+  for (const coluna of espec.inteiras ?? []) {
+    const valor = entrada[coluna];
+    if (valor == null) continue;
+    const inteiro = typeof valor === "number" ? Number.isInteger(valor)
+      : typeof valor === "string" && /^[+-]?\d+$/.test(valor.trim());
+    if (!inteiro) {
+      throw new ErroMock(400, `invalid input syntax for type integer: "${String(valor)}"`, { code: "22P02" });
+    }
+    const numero = Number(valor);
+    if (numero < -2147483648 || numero > 2147483647) {
+      throw new ErroMock(400, `value "${String(valor)}" is out of range for type integer`, { code: "22003" });
+    }
+    entrada[coluna] = numero;
+  }
+}
+
 function chavesDeConflito(tabela: string, url: URL): string[] {
   const pedido = url.searchParams.get("on_conflict");
   if (pedido) return pedido.split(",").map((c) => c.trim());
@@ -1386,6 +1408,8 @@ async function rotaRest(
     const tabela = linhas(recurso);
     const gravadas: Linha[] = [];
 
+    // A conversão do lote inteiro ocorre antes de o PostgreSQL gravar a primeira linha.
+    for (const entrada of entradas) conferirContagens(espec, entrada);
     for (const entrada of entradas) {
       for (const c of espec.obrigatorias ?? []) {
         if (entrada[c] !== undefined && entrada[c] !== null) continue;
@@ -1416,10 +1440,8 @@ async function rotaRest(
       );
 
       if (existente) {
-        if (prefer.ignorar) {
-          gravadas.push(existente);
-          continue;
-        }
+        // ON CONFLICT DO NOTHING não inclui a linha existente no RETURNING.
+        if (prefer.ignorar) continue;
         if (!prefer.merge) {
           throw new ErroMock(409, `duplicate key value violates unique constraint`, {
             code: "23505",
@@ -1457,6 +1479,7 @@ async function rotaRest(
       recurso,
     );
     const mudancas = (corpo ?? {}) as Linha;
+    conferirContagens(espec, mudancas);
     for (const c of Object.keys(mudancas)) {
       if (!(c in espec.colunas)) {
         throw new ErroMock(

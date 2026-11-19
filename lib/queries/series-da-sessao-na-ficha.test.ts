@@ -89,6 +89,30 @@ describe("detalhe da sessão aberta pela ficha de um exercício", () => {
     expect((await leitura).linhas).toEqual([linha("nova")]);
   });
 
+  it("o GET da ficha iniciado antes da correção não volta a guardar a fração antiga após o envio", async () => {
+    const certa = linha("serie", { reps: 8, carga_kg: 21.5 });
+    fila.push({ tipo: "serie", payload: { tabela: "session_sets", op: "upsert", linha: { ...certa, reps: 8.5 } } });
+    http.mockImplementationOnce(async () => {
+      fila.length = 0; servidor = [certa];
+      return Response.json([], { headers: { "content-range": "*/0" } });
+    });
+    expect((await ler()).linhas).toEqual([certa]);
+    expect(disco.get(chave)?.valor).toEqual([certa]);
+    vi.stubGlobal("navigator", { onLine: false });
+    expect((await ler()).linhas).toEqual([certa]);
+  });
+
+  it("corrigir outra sessão não repete a consulta da ficha nem altera sua carga fracionária", async () => {
+    const desta = linha("serie", { carga_kg: 21.5 });
+    fila.push({ tipo: "serie", payload: { tabela: "session_sets", op: "upsert", linha: { ...desta, id: "outra-serie", session_id: "outra", reps: 8.5 } } });
+    http.mockImplementationOnce(async () => {
+      fila.length = 0;
+      return Response.json([desta], { headers: { "content-range": "*/1" } });
+    });
+    expect((await ler()).linhas).toEqual([desta]);
+    expect(http).toHaveBeenCalledOnce();
+  });
+
   it("completa todas as páginas pelo UUID, guarda antes de responder e reabre somente o treino pedido sem rede", async () => {
     servidor = [linha("a"), linha("b", { tipo: "aquecimento" }), linha("e", { exercise_id: "remada" }),
       linha("c", { session_id: "outra" }), linha("d", { user_id: "outra-conta" })];
@@ -177,4 +201,16 @@ describe("detalhe da sessão aberta pela ficha de um exercício", () => {
     expect((await ler()).linhas).toEqual([{ ...a, carga_kg: 27.5 }]);
     expect(disco.has(chave)).toBe(false);
   });
+});
+
+it("ao receber depois da conciliação um GET de uma série movida para outro treino, a ficha não repõe o UUID no original", async () => {
+  const velha = linha("serie");
+  http.mockImplementationOnce(async () => {
+    salvar("ultima-conciliacao-de-serie:" + uid, { revisao: 1 }, Date.now());
+    servidor = [{ ...velha, exercise_id: "flexao", session_id: "outro-treino" }];
+    return Response.json([velha], { headers: { "content-range": "*/1" } });
+  });
+  expect((await ler()).linhas).toEqual([]);
+  expect(http).toHaveBeenCalledTimes(2);
+  expect(disco.get(chave)?.valor).toEqual([]);
 });

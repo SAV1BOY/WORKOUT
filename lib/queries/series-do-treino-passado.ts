@@ -2,6 +2,8 @@ import type { QueryClient } from "@tanstack/react-query";
 import { chaveDoHistorico, chaveDoHistoricoNoDisco } from "@/lib/chaves-do-historico";
 import { bd, temIndexedDB, type ItemCache } from "@/lib/db";
 import { lerConsultaGuardadaComData, VALIDADE_MS } from "@/lib/persistencia-query";
+import { revisaoDasSeries } from "@/lib/espelhos-da-contagem";
+import { LeituraAnteriorACorrecao } from "@/lib/queries/contagens-observadas";
 import { confirmarContaDoTreino } from "@/lib/queries/conta-do-treino";
 import { combinarFechamentos, fotosPendentes, fontesDoAparelho, type FonteDeSeries } from "@/lib/queries/fechamentos-do-player";
 import { FalhaDeRedeNaTabela } from "@/lib/queries/ler";
@@ -108,11 +110,12 @@ function copiaDoExercicio(item: ItemCache | undefined, conta: string, id: string
   return copia.linhas.every(l => l?.user_id === conta && l.exercise_id === id) ? copia : undefined;
 }
 
-async function guardar(conta: string, ids: string[], atual: string | undefined, linhas: UltimaSerie[], inicio: number, sinal: AbortSignal) {
+async function guardar(conta: string, ids: string[], atual: string | undefined, linhas: UltimaSerie[], inicio: number, sinal: AbortSignal, conferirRevisao: () => Promise<void>) {
   if (!temIndexedDB()) return;
   const banco = bd();
   const chaves = ids.map(id => chave(conta, id, Boolean(atual)));
   await banco.transaction("rw", banco.cache, async () => {
+    await conferirRevisao();
     const existentes = await banco.cache.bulkGet(chaves);
     sinal.throwIfAborted();
     const novas = ids.flatMap((id, i) => {
@@ -121,7 +124,10 @@ async function guardar(conta: string, ids: string[], atual: string | undefined, 
         valor: { ignorada: atual ?? null, linhas: linhas.filter(l => l.exercise_id === id) } satisfies Copia }];
     });
     await banco.cache.bulkPut(novas);
-  }).catch(() => { sinal.throwIfAborted(); }); // A quota não impede a leitura online.
+  }).catch(erro => {
+    if (erro instanceof LeituraAnteriorACorrecao) throw erro;
+    sinal.throwIfAborted(); // A quota não impede a leitura online.
+  });
 }
 
 async function consultaAntiga<T>(cliente: QueryClient, chave: readonly string[]) {
@@ -179,6 +185,13 @@ export async function lerSeriesDoTreinoPassado(
   const inicio = Date.now();
   const ids = [...new Set(idsDaTela)];
   if (!conta || !ids.length) return [];
+  const revisao = temIndexedDB() ? await revisaoDasSeries(conta).catch(() => undefined) : undefined;
+  const conferirRevisao = async () => {
+    if (revisao === undefined) return;
+    const atual = await revisaoDasSeries(conta).catch(() => undefined);
+    if (atual !== undefined && atual !== revisao) throw new LeituraAnteriorACorrecao();
+  };
+  const repetir = () => lerSeriesDoTreinoPassado(cliente, conta, idsDaTela, atual, sinal);
   const pedidos = new Set(ids);
   const elegiveis = (linhas: UltimaSerie[]) => linhas.filter(l => l.session_id !== atual && l.tipo === "trabalho" && l.concluida);
   if (typeof navigator === "undefined" || navigator.onLine !== false) {
@@ -189,13 +202,16 @@ export async function lerSeriesDoTreinoPassado(
       sinal.throwIfAborted();
       const locais = await fontesDoAparelho(conta, pedidos, inicio, antes).catch(() => undefined);
       sinal.throwIfAborted();
+      await conferirRevisao();
       if (!locais) return linhas;
       const confirmadas = elegiveis(ids.flatMap(id => combinarFechamentos(id, { linhas, atualizadoEm: inicio }, locais)));
-      if (antes) await guardar(conta, ids, atual, confirmadas, inicio, sinal);
+      if (antes && revisao !== undefined) await guardar(conta, ids, atual, confirmadas, inicio, sinal, conferirRevisao);
+      await conferirRevisao();
       sinal.throwIfAborted();
       return confirmadas;
     } catch (erro) {
       sinal.throwIfAborted();
+      if (erro instanceof LeituraAnteriorACorrecao) return repetir();
       if (!(erro instanceof FalhaDeRedeNaTabela)) throw erro;
     }
   }
@@ -223,9 +239,15 @@ export async function lerSeriesDoTreinoPassado(
     const base = bases.get(id);
     return combinarFechamentos(id, base ?? { linhas: verificadas, atualizadoEm: legado?.atualizadoEm ?? 0 }, locais);
   }));
-  if (verificadas.length && legado) {
-    // Após a atualização o React Query pode descartar a chave do #48. Mantenha a data da leitura original.
-    await guardar(conta, [...new Set(verificadas.map(l => l.exercise_id))], atual, resultado, legado.atualizadoEm, sinal);
+  try {
+    if (verificadas.length && legado) {
+      // Após a atualização o React Query pode descartar a chave do #48. Mantenha a data da leitura original.
+      await guardar(conta, [...new Set(verificadas.map(l => l.exercise_id))], atual, resultado, legado.atualizadoEm, sinal, conferirRevisao);
+    }
+    await conferirRevisao();
+  } catch (erro) {
+    if (erro instanceof LeituraAnteriorACorrecao) return repetir();
+    throw erro;
   }
   sinal.throwIfAborted();
   return resultado;

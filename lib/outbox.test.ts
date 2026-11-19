@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MAX_TENTATIVAS, atrasoDaTentativa, mensagemDeRegistro, resumoDaFila, venceu } from "@/lib/outbox";
+import { MAX_TENTATIVAS, atrasoDaTentativa, estadoDaFilaDaConta, mensagemDeRegistro, resumoDaFila, venceu } from "@/lib/outbox";
 import { alvoDaEscrita, enviarItem } from "@/lib/outbox-supabase";
 
 it("confirma o registro e, sem rede, explica quando ele será enviado", () => {
@@ -196,15 +196,30 @@ describe("resumo da fila em /mais (SPEC §8)", () => {
     expect(r.travada).toBe(false);
   });
 
-  /* O item que passou do teto de tentativas não tenta mais sozinho. */
-  it("item travado é apontado como travado", () => {
+  it("ao mudar de conta só expõe os erros das escritas do titular", () => {
+    const item = (payload: unknown, erro: string, criadoEm: number, tipo: "serie" | "foto" = "serie") =>
+      ({ tipo, payload, criadoEm, erro, tentativas: 3, proximaTentativa: 0 });
+    const fila = [
+      item({ linhas: [{ user_id: "ana" }, { user_id: "ana" }] }, "Erro da Ana", 1),
+      item({ filtro: { user_id: "bia" } }, "Erro da Bia", 2),
+      item({ linha: { user_id: "ana" } }, "Outra série", 3),
+      item({ caminho: "bia/uma-foto.jpg" }, "Foto da Bia", 4, "foto"),
+    ];
+    expect(estadoDaFilaDaConta(fila, "ana")).toMatchObject({ quantos: 2, erro: "Erro da Ana" });
+    expect(estadoDaFilaDaConta(fila, "bia")).toMatchObject({ quantos: 2, erro: "Erro da Bia" });
+    expect(estadoDaFilaDaConta(fila, "caio")).toEqual({ quantos: 0 });
+    fila.unshift(item({ filtro: { id: "legado" } }, "Valor particular de uma série antiga", 0));
+    expect(estadoDaFilaDaConta(fila, "bia")).toEqual({ quantos: 3 });
+  });
+
+  it("explica o prazo da próxima tentativa depois de várias falhas", () => {
     const r = resumoDaFila({
       quantos: 1,
       erro: "PGRST204: coluna não existe",
       tentativas: MAX_TENTATIVAS,
     });
     expect(r.travada).toBe(true);
-    expect(r.detalhe).toMatch(/Parou de tentar/);
+    expect(r.detalhe).toBe("Com rede, tenta de novo em até 5 minutos. PGRST204: coluna não existe");
   });
 });
 

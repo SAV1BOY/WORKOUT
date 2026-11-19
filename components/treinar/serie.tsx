@@ -2,7 +2,7 @@
 
 import { Check, Pause, Play } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { StepperNumerico } from "@/components/stepper-numerico";
+import { StepperNumerico, validarContagens } from "@/components/stepper-numerico";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { acharExercicio } from "@/lib/dados";
@@ -98,7 +98,11 @@ export function LinhaSerieForm({
             role="checkbox"
             aria-checked={serie.concluida}
             aria-label={rotulos.concluida}
-            onClick={() => aoMarcar(!serie.concluida)}
+            onClick={evento => {
+              if (validarContagens(evento.currentTarget.closest('[role="group"]'))) {
+                aoMarcar(!serie.concluida);
+              }
+            }}
             className={cn(
               "alvo flex size-11 shrink-0 items-center justify-center rounded-lg border transition-colors",
               serie.concluida
@@ -304,7 +308,11 @@ function CampoTempo({
               ? `Parar o cronômetro (${rotulo}) ${contexto}`
               : `Cronômetro (${rotulo}) ${contexto}`
           }
-          onClick={() => setRodando((r) => !r)}
+          onClick={evento => {
+            if (rodando || validarContagens(evento.currentTarget.closest('[role="group"]'))) {
+              setRodando(!rodando);
+            }
+          }}
         >
           {rodando ? <Pause className="size-5" /> : <Play className="size-5" />}
         </Button>

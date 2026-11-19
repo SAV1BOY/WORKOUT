@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { aceitarDigitacao } from "@/lib/digitar-numero";
+import { aceitarDigitacao, erroDaContagem } from "@/lib/digitar-numero";
 
 describe("aceitarDigitacao", () => {
   it("deixa digitar um decimal inteiro, tecla a tecla", () => {
@@ -53,5 +53,28 @@ describe("aceitarDigitacao", () => {
 
   it("apagar do meio continua valendo", () => {
     expect(aceitarDigitacao("12,5", "1,5")).toBe("1,5");
+  });
+});
+
+describe("contagens", () => {
+  it("preserva o separador enquanto se digita, sem juntar 9 e 5", () => {
+    let texto = "9";
+    for (const tecla of [",", "5"]) {
+      texto = aceitarDigitacao(texto, texto + tecla);
+      expect(erroDaContagem(texto)).toBe("Use um número inteiro.");
+    }
+    expect(texto).toBe("9,5");
+    expect(erroDaContagem(aceitarDigitacao("12", "9.5"))).toBe("Use um número inteiro.");
+  });
+
+  it.each(["", "0", "13", "1050", "-5", "-2147483648", "2147483647"])("permite a contagem %j", (texto) => {
+    expect(erroDaContagem(texto)).toBeNull();
+  });
+
+  it("identifica estouro sem transformar a entrada no limite", () => {
+    expect(erroDaContagem("2147483648")).toBe("O maior valor permitido é 2.147.483.647.");
+    expect(erroDaContagem("2147483648", 99)).toBe("O maior valor permitido é 99.");
+    expect(erroDaContagem("-2147483649")).toBe("O menor valor permitido é −2.147.483.648.");
+    expect(erroDaContagem("9".repeat(400))).toBe("O maior valor permitido é 2.147.483.647.");
   });
 });

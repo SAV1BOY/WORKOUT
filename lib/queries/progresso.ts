@@ -57,7 +57,7 @@ export function useSeriesDesde(de: string | null): UseQueryResult<SerieBruta[]> 
       lerLista<SerieBruta>(
         clienteNavegador()
           .from("session_sets")
-          .select(COLUNAS_SERIE)
+          .select(`id,user_id,${COLUNAS_SERIE}`)
           .gte("registrada_em", de ?? "")
           .order("registrada_em", { ascending: true })
           .limit(LIMITE_SERIES),

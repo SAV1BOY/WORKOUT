@@ -202,7 +202,7 @@ Função `montagem(carga_total, implemento)` → lista de anilhas por lado, gulo
 - **MapaAnatomico**: `assets/mapa-muscular/mapa-anatomico.svg` inline no servidor, com as classes `p-<musculo>` e `s-<musculo>` do exercício; cores por CSS variables (ver `assets/mapa-muscular/README.md`). O sprite antigo do boneco (`#bf`/`#bb`) e o componente `MapaMuscular` saíram do app no lote 4 (§22.4 item 8).
 - **TimerDescanso**: barra fixa no topo, contagem regressiva, vibração (`navigator.vibrate`) + som curto ao zerar, botão pular / +30 s.
 - **TimerIntervalos** (cardio): blocos com cor por tipo, próximo bloco visível, fala opcional ("corrida", "caminhada") via `speechSynthesis` em pt-BR.
-- **StepperNumerico**: − valor + com passo configurável e digitação direta; teclado numérico (`inputMode="decimal"`).
+- **StepperNumerico** oferece digitação e botões com incremento configurável. Repetições, segundos, passos e saltos aceitam números inteiros. Uma fração permanece visível para correção antes de registrar a série. Carga, peso, distância e altura aceitam casas decimais.
 - Copiar os assets para `public/figuras`, `public/fotos`, `public/itens`, `public/mapa-muscular` no scaffold (script `scripts/copiar-assets.ts`).
 
 Design: sóbrio, alto contraste, tipografia grande nos números (é lido a um braço de distância, no sol do terraço), tema escuro de verdade (não cinza), cor de destaque única. Sem confete, sem gamificação barata; a recompensa é o gráfico subindo. **Gamificação sóbria = §13 e §19**: contadores, números por tipo e conquistas derivadas dos registros — nunca confete, som, pontos, níveis, ranking ou compartilhamento.
@@ -210,6 +210,10 @@ Design: sóbrio, alto contraste, tipografia grande nos números (é lido a um br
 ---
 
 ## 8. Offline e sincronização
+
+Em **Mais → Sincronização → Corrigir contagens**, a pessoa pode recuperar uma série que uma versão antiga guardou com contagem fracionária. Quando já corrigiu o valor naquela mesma série, o app mostra o inteiro que ela registrou depois. Caso contrário, ela informa a contagem correta. A escolha fica guardada no aparelho e permite consultar o treino sem rede. Ao reconectar, o app verifica aquela série na conta. Se a série ainda falta, a sincronização pode criá-la com o UUID original. Se o histórico já tem outra contagem para o mesmo exercício, a tela mostra os dois valores. A pessoa pode manter o registro sincronizado ou aplicar apenas a contagem escolhida no aparelho. Uma mudança posterior exige conferir os valores atuais. Quando o registro já pertence a outro exercício ou treino, a tela permite conservar o movimento sincronizado e sua carga.
+
+Se um backup reaproveitou o UUID para outro movimento e a série ainda falta no servidor, a tela mostra os dados de origem e os do exercício proposto. A pessoa pode manter o histórico sem aquela série ou criar o novo movimento quando o arquivo identifica a sua posição. A criação usa as contagens e a carga que o arquivo informou para o novo movimento.
 
 - O service worker (Serwist/`@serwist/next`) instala as rotas do App Router, os ícones e a página de socorro. As imagens da fase podem ser baixadas em Mais. Abrir exercícios também guarda as mídias no aparelho.
 - **Sessão em andamento vive no cliente** (IndexedDB via Dexie ou `idb-keyval`): cada toque é salvo localmente na hora. Uma fila de saída (`outbox`) envia para o Supabase o que mudou (série concluída, sessão finalizada, peso, cardio). Se estiver sem rede, a fila espera e reenvia ao voltar (`online` event + retry com backoff). Nunca perder uma série registrada por falta de sinal.

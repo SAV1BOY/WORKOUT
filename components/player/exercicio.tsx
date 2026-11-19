@@ -16,7 +16,7 @@ import {
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
 import { toast } from "sonner";
 import { MediaGrande } from "@/components/exercicio/media-grande";
-import { StepperNumerico } from "@/components/stepper-numerico";
+import { StepperNumerico, validarContagens } from "@/components/stepper-numerico";
 import { BotaoMontagem } from "@/components/treinar/montagem";
 import { SeletorAssistencia } from "@/components/treinar/serie";
 import { Button } from "@/components/ui/button";
@@ -125,6 +125,7 @@ export function TelaExercicio({
   /** "Aquecimento 2 de 2 · exercício 1 de 6" — a mesma grafia do descanso. */
   const ondeEstou = `${rotuloDoPasso(passo)} · exercício ${passo.posicao} de ${passo.totalExercicios}`;
 
+  const tela = useRef<HTMLElement>(null);
   const botaoDaLista = useRef<HTMLButtonElement>(null);
   const confirmarTempo = useRef<(() => void) | null>(null);
   useEffect(() => {
@@ -207,6 +208,7 @@ export function TelaExercicio({
 
   return (
     <section
+      ref={tela}
       aria-label={exercicio.nome}
       className="flex flex-1 flex-col gap-3 pb-[calc(var(--altura-dos-controles,3.5rem)+24px)]"
     >
@@ -415,6 +417,7 @@ export function TelaExercicio({
         aoAnterior={aoAnterior}
         aoProximo={aoProximo}
         aoConcluir={() => {
+          if (!validarContagens(tela.current)) return;
           confirmarTempo.current?.();
           aoConcluir();
         }}
@@ -656,7 +659,9 @@ function Cronometro({
         <Button
           variant={rodando ? "default" : "outline"}
           className="alvo h-auto min-h-[max(56px,3.5rem)] max-w-full rounded-2xl px-[min(1.25rem,20px)] py-1 text-base whitespace-normal"
-          onClick={alternar}
+          onClick={evento => {
+            if (rodando || validarContagens(evento.currentTarget.closest("section"))) alternar();
+          }}
           disabled={concluida || terminou || alvo === 0}
         >
           {rodando ? <Pause className="size-5" /> : <Play className="size-5" />}

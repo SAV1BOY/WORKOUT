@@ -47,9 +47,7 @@ export async function retirarDetalhesCobertos(conta: string, inicioDaLeitura: nu
 }
 
 /** O backup faz upsert por id. Um arquivo parcial conserva as séries ausentes e não comprova um treino inteiro. */
-export async function enfileirarSeriesDoBackup(conta: string, lote: Linha[], onConflict: string) {
-  const banco = bd();
-  const escrita: EscritaTabela = { tabela: "session_sets", op: "upsert", linhas: lote, onConflict };
+function seriesDoLote(conta: string, lote: Linha[]) {
   const porId = new Map<string, Linha>();
   const porSessao = new Map<string, Linha[]>();
   for (const linha of lote) {
@@ -61,33 +59,49 @@ export async function enfileirarSeriesDoBackup(conta: string, lote: Linha[], onC
     lista.push(linha);
     porSessao.set(linha.session_id, lista);
   }
+  return { porId, porSessao };
+}
+
+async function aplicarLoteAosDetalhes(conta: string, { porId, porSessao }: ReturnType<typeof seriesDoLote>, conservarData: boolean) {
+  const banco = bd();
   const prefixo = prefixoDosDetalhesDaConta(conta);
+  for (const item of await banco.cache.where("chave").startsWith(prefixo).toArray()) {
+    const id = item.chave.slice(prefixo.length);
+    const linhas = item.valor;
+    if (!Array.isArray(linhas) || !linhas.every(s => s?.user_id === conta && s.session_id === id && typeof s.id === "string")) continue;
+    const importadas = porSessao.get(id) ?? [];
+    if (!importadas.length && !linhas.some(s => porId.has(s.id))) continue;
+    const salvas = new Map<string, Linha>(linhas.map(s => [s.id, s]));
+    // Um arquivo pode corrigir também o treino a que pertence um UUID.
+    for (const s of linhas) if (porId.has(s.id) && porId.get(s.id)?.session_id !== id) salvas.delete(s.id);
+    for (const nova of importadas) {
+      const serieId = nova.id as string;
+      const linha = { ...salvas.get(serieId), ...nova };
+      if (linha.concluida === false) salvas.delete(serieId);
+      else salvas.set(serieId, linha);
+    }
+    const valor = [...salvas.values()];
+    if (valor.every(s => s.concluida === true && typeof s.exercise_id === "string" &&
+      (s.tipo === "trabalho" || s.tipo === "aquecimento") && typeof s.set_index === "number")) {
+      await banco.cache.put({ chave: item.chave, valor, atualizadoEm: conservarData ? item.atualizadoEm : Date.now() });
+    } else {
+      // Uma linha nova sem prescrição identificável precisa dos padrões aplicados pelo banco.
+      await banco.cache.delete(item.chave);
+    }
+  }
+}
+
+export async function atualizarDetalhesExistentes(conta: string, lote: Linha[]) {
+  await aplicarLoteAosDetalhes(conta, seriesDoLote(conta, lote), true);
+}
+
+export async function enfileirarSeriesDoBackup(conta: string, lote: Linha[], onConflict: string) {
+  const banco = bd();
+  const series = seriesDoLote(conta, lote);
+  const escrita: EscritaTabela = { tabela: "session_sets", op: "upsert", linhas: lote, onConflict };
   await banco.transaction("rw", banco.cache, banco.outbox, async () => {
     await guardarNaFila("serie", escrita, alvoDaEscrita(escrita));
-    for (const item of await banco.cache.where("chave").startsWith(prefixo).toArray()) {
-      const id = item.chave.slice(prefixo.length);
-      const linhas = item.valor;
-      if (!Array.isArray(linhas) || !linhas.every(s => s?.user_id === conta && s.session_id === id && typeof s.id === "string")) continue;
-      const importadas = porSessao.get(id) ?? [];
-      if (!importadas.length && !linhas.some(s => porId.has(s.id))) continue;
-      const salvas = new Map<string, Linha>(linhas.map(s => [s.id, s]));
-      // Um arquivo pode corrigir também o treino a que pertence um UUID.
-      for (const s of linhas) if (porId.has(s.id) && porId.get(s.id)?.session_id !== id) salvas.delete(s.id);
-      for (const nova of importadas) {
-        const serieId = nova.id as string;
-        const linha = { ...salvas.get(serieId), ...nova };
-        if (linha.concluida === false) salvas.delete(serieId);
-        else salvas.set(serieId, linha);
-      }
-      const valor = [...salvas.values()];
-      if (valor.every(s => s.concluida === true && typeof s.exercise_id === "string" &&
-        (s.tipo === "trabalho" || s.tipo === "aquecimento") && typeof s.set_index === "number")) {
-        await banco.cache.put({ chave: item.chave, valor, atualizadoEm: Date.now() });
-      } else {
-        // Uma linha nova sem prescrição identificável precisa dos padrões aplicados pelo banco.
-        await banco.cache.delete(item.chave);
-      }
-    }
+    await aplicarLoteAosDetalhes(conta, series, false);
   });
   void processar();
 }

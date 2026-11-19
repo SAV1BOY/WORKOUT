@@ -10,7 +10,10 @@ export function mensagemDeRegistro(texto: string, online = typeof navigator === 
   return online ? texto : `${texto.replace(/\.$/, "")} no celular. Sobe quando a rede voltar.`;
 }
 
-export type Enviador = (item: ItemSaida) => Promise<void>;
+// A conciliação confirma/retira várias escritas na mesma transação dos dados locais.
+export const AVISO_DE_CONFLITO_DE_CONTAGEM = "Confira em Mais os valores desta série para continuar.";
+export type ResultadoDoEnvio = void | "fila-reconciliada" | "aguarda-conciliacao";
+export type Enviador = (item: ItemSaida) => Promise<ResultadoDoEnvio>;
 
 const ATRASO_BASE_MS = 2_000;
 const ATRASO_MAX_MS = 5 * 60_000;
@@ -78,6 +81,14 @@ export async function guardarNaFila(tipo: TipoSaida, payload: unknown, alvo?: st
   });
 }
 
+/** O envio e as correções confirmadas no aparelho trabalham sobre a mesma versão da fila. */
+export async function comTravaDaFila<T>(operar: () => Promise<T>): Promise<T> {
+  if (typeof navigator !== "undefined" && navigator.locks) {
+    return navigator.locks.request("treino-terraco:outbox", operar);
+  }
+  return operar();
+}
+
 /**
  * Tenta enviar o que está vencido na fila. Devolve quantos subiram.
  *
@@ -105,11 +116,7 @@ export async function processar(): Promise<number> {
   try {
     // A fila IndexedDB pertence à origem inteira. Um segundo documento só
     // lê seus itens quando a aba anterior terminou de confirmá-los no servidor.
-    if (typeof navigator !== "undefined" && navigator.locks) {
-      await navigator.locks.request("treino-terraco:outbox", consumir);
-    } else {
-      await consumir();
-    }
+    await comTravaDaFila(consumir);
   } finally {
     rodando = false;
   }
@@ -209,7 +216,18 @@ async function umaRodada(): Promise<number> {
     }
 
     try {
-      await enviar(item);
+      const resultado = await enviar(item);
+      if (resultado === "aguarda-conciliacao") {
+        const proximaTentativa = agora + ATRASO_MAX_MS;
+        await bd().outbox.update(item.id, { proximaTentativa, tentativas: 0, erro: AVISO_DE_CONFLITO_DE_CONTAGEM });
+        if (item.alvo) travados.set(item.alvo, proximaTentativa);
+        continue;
+      }
+      if (resultado === "fila-reconciliada") {
+        enviados++;
+        repetir = true;
+        break; // releia a fila: a mesma transação pode ter retirado linhas de outros lotes.
+      }
       await bd().outbox.delete(item.id);
       enviados += 1;
     } catch (e) {
@@ -278,15 +296,42 @@ export function resumoDaFila(estado: EstadoDaFila): {
     estado.quantos === 1 ? "1 item esperando" : `${estado.quantos} itens esperando`;
   const travada = (estado.tentativas ?? 0) >= MAX_TENTATIVAS;
   if (travada && estado.erro) {
-    return { titulo, detalhe: `Parou de tentar sozinho: ${estado.erro}`, travada };
+    return { titulo, detalhe: `Com rede, tenta de novo em até 5 minutos. ${estado.erro}`, travada };
   }
   if (estado.erro) return { titulo, detalhe: `Última falha: ${estado.erro}`, travada };
   return { titulo, detalhe: "Sobe assim que a rede voltar.", travada };
 }
 
+/** A linha, o lote, o filtro e o caminho da foto identificam a conta nas escritas do app. */
+export function estadoDaFilaDaConta(itens: readonly ItemSaida[], conta: string): EstadoDaFila {
+  let quantos = 0;
+  let primeiro: ItemSaida | undefined;
+  let primeiroComDono = false;
+  for (const item of itens) {
+    const p = item.payload as {
+      linha?: { user_id?: unknown }; linhas?: { user_id?: unknown }[];
+      filtro?: { user_id?: unknown }; caminho?: string;
+    } | null;
+    const donos = [
+      p?.linha?.user_id, p?.filtro?.user_id,
+      ...(Array.isArray(p?.linhas) ? p.linhas.map(l => l?.user_id) : []),
+      item.tipo === "foto" && typeof p?.caminho === "string" ? p.caminho.split("/")[0] : null,
+    ].filter((d): d is string => typeof d === "string" && d.length > 0);
+    if (donos.some(d => d !== conta)) continue;
+    quantos++;
+    if (!primeiro || item.criadoEm < primeiro.criadoEm) {
+      primeiro = item;
+      primeiroComDono = donos.length > 0 && (!Array.isArray(p?.linhas) || p.linhas.every(l => l?.user_id === conta));
+    }
+  }
+  if (!primeiroComDono || !primeiro) return { quantos };
+  return { quantos, erro: primeiro.erro, tentativas: primeiro.tentativas };
+}
+
 /** O estado da fila para a tela (quantos e o erro do item mais antigo). */
-export async function estadoDaFila(): Promise<EstadoDaFila> {
+export async function estadoDaFila(conta?: string): Promise<EstadoDaFila> {
   if (!temIndexedDB()) return { quantos: 0 };
+  if (conta !== undefined) return estadoDaFilaDaConta(await bd().outbox.toArray(), conta);
   const quantos = await bd().outbox.count();
   if (quantos === 0) return { quantos: 0 };
   const primeiro = await bd().outbox.orderBy("criadoEm").first();
