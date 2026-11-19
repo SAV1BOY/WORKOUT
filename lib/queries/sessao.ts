@@ -112,7 +112,7 @@ export function conciliarBlocosAcrescentados(atual: SessaoLocal, salva: SessaoLo
   };
 }
 
-function mesmoRelogio(a: SessaoLocal["player"], b: SessaoLocal["player"]): boolean {
+export function mesmoRelogio(a: SessaoLocal["player"], b: SessaoLocal["player"]): boolean {
   return a?.chave === b?.chave && a?.fimEm === b?.fimEm && a?.totalS === b?.totalS;
 }
 
@@ -442,6 +442,41 @@ async function guardarAjusteDoPlano(
 export function guardarMaterialDaSessao(sessao: SessaoLocal): Promise<SessaoLocal> {
   const equipamento = equipamentoDaSessao(sessao);
   return guardarAjusteDoPlano(sessao, atual => definirEquipamentoDaSessao(atual, equipamento));
+}
+
+export const MENSAGEM_CRONOMETRO_ALTERADO = "O descanso mudou. Reabra o treino para ver o tempo atual.";
+
+/** A confirmação de um ajuste avulso depende só do relógio no aparelho. */
+export async function guardarCronometroDaSessao(
+  sessao: SessaoLocal, novo: EstadoPlayer,
+): Promise<SessaoLocal> {
+  const antes = sessao.player;
+  if (sessao.status !== "em_andamento" || !antes?.chave.startsWith("descanso:") ||
+      antes.fimEm === null || antes.totalS === null || novo.chave !== antes.chave ||
+      novo.ordem !== antes.ordem || novo.fimEm === null || !Number.isFinite(novo.fimEm) ||
+      novo.totalS === null || !Number.isFinite(novo.totalS) || novo.totalS < 0) {
+    throw new Error(MENSAGEM_CRONOMETRO_ALTERADO);
+  }
+  await confirmarContaDoTreino(sessao.userId, "Não foi possível confirmar a conta deste treino.");
+  await confirmarToquesPendentes(sessao);
+  const banco = bd();
+  return banco.transaction("rw", banco.sessaoAtiva, async () => {
+    const salva = await carregarSessaoLocal(sessao.id);
+    if (!salva || salva.userId !== sessao.userId || salva.status !== "em_andamento") {
+      throw new Error("Esta sessão não está aberta nesta conta e aparelho.");
+    }
+    const ordem = antes.ordem;
+    const movimentoMudou = ordem != null && sessao.blocos.find(b => b.ordem === ordem)?.exercicioId !==
+      salva.blocos.find(b => b.ordem === ordem)?.exercicioId;
+    if (!salva.player || (salva.player.ordem ?? null) !== (ordem ?? null) ||
+        !mesmoRelogio(antes, salva.player) || movimentoMudou) {
+      throw new Error(MENSAGEM_CRONOMETRO_ALTERADO);
+    }
+    const player = { ...salva.player, fimEm: novo.fimEm, totalS: novo.totalS };
+    const atual = { ...salva, player };
+    await banco.sessaoAtiva.put({ id: salva.id, dados: atual, atualizadoEm: Date.now() });
+    return atual;
+  });
 }
 
 export function guardarDescansoDaSessao(

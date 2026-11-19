@@ -23,6 +23,7 @@ import {
   type PassoSerie,
 } from "@/lib/player";
 import type { Implemento } from "@/lib/schemas";
+import { MENSAGEM_CRONOMETRO_ALTERADO } from "@/lib/queries/sessao";
 import type { BlocoLocal, SerieLocal } from "@/lib/sessao";
 
 /**
@@ -43,6 +44,7 @@ export function TelaDescanso({
   blocoDoProximo,
   serieDoProximo,
   avancarSozinho,
+  ajustando,
   aviso = "",
   registrado,
   aoAbrirFicha,
@@ -65,6 +67,7 @@ export function TelaDescanso({
    */
   serieDoProximo: SerieLocal | null;
   avancarSozinho: boolean;
+  ajustando: boolean;
   /**
    * "Série 2 de 3 registrada: …" (SPEC §22.5 item 10). Ele chega aqui porque
    * a tela de exercício **sai do ar** no mesmo toque que grava: o `status`
@@ -77,8 +80,8 @@ export function TelaDescanso({
   aoAbrirLista?: () => void;
   botaoDaLista: (botao: HTMLButtonElement | null) => void;
   aoCorrigir: () => void;
-  aoSomar: (segundos: number) => void;
-  aoDefinir: (segundos: number) => void;
+  aoSomar: (segundos: number) => Promise<void>;
+  aoDefinir: (segundos: number) => Promise<void>;
   proximasSeries?: {
     exercicio: string;
     segundos: number | null;
@@ -120,20 +123,30 @@ export function TelaDescanso({
     botaoEditar.current?.focus();
   }
 
-  async function guardarParaAsProximas(segundos: number | null, origem: HTMLButtonElement) {
-    if (!proximasSeries || emGravacao.current) return;
+  async function guardarEdicao(gravar: () => Promise<void>, origem: HTMLButtonElement) {
+    if (emGravacao.current) return;
     emGravacao.current = true;
     setGuardando(true);
     setErro("");
     try {
-      await proximasSeries.aoGuardar(segundos);
+      await gravar();
       fecharEditor();
-    } catch {
-      setErro("Não foi possível guardar o descanso. Tente novamente.");
+    } catch (falha) {
+      setErro(recadoDaGravacao(falha));
       requestAnimationFrame(() => origem.focus());
     } finally {
       emGravacao.current = false;
       setGuardando(false);
+    }
+  }
+
+  async function somar(segundos: number) {
+    setErro("");
+    try {
+      await aoSomar(segundos);
+      setErro("");
+    } catch (falha) {
+      setErro(recadoDaGravacao(falha));
     }
   }
 
@@ -207,6 +220,7 @@ export function TelaDescanso({
         <span
           role="timer"
           aria-label="Descanso"
+          aria-busy={ajustando}
           className={`numero-grande leading-none tabular-nums ${anelCompacto ? "text-5xl" : "text-6xl"}`}
         >
           {formatarDuracao(falta)}
@@ -277,25 +291,23 @@ export function TelaDescanso({
               <Button variant="secondary" className="alvo h-11 shrink-0"
                 onClick={evento => {
                   const segundos = novoTempo ?? DESCANSO_MIN_S;
-                  if (usarNasProximas && proximasSeries) {
-                    void guardarParaAsProximas(segundos, evento.currentTarget);
-                    return;
-                  }
-                  aoDefinir(segundos);
-                  fecharEditor();
+                  void guardarEdicao(
+                    () => usarNasProximas && proximasSeries ? proximasSeries.aoGuardar(segundos) : aoDefinir(segundos),
+                    evento.currentTarget,
+                  );
                 }}>
                 Salvar
               </Button>
             </div>
             {proximasSeries?.segundos != null && (
               <button type="button" className="alvo text-descanso-destaque text-sm underline underline-offset-4"
-                onClick={evento => void guardarParaAsProximas(null, evento.currentTarget)}>
+                onClick={evento => void guardarEdicao(() => proximasSeries.aoGuardar(null), evento.currentTarget)}>
                 Restaurar padrão para as próximas séries
               </button>
             )}
-            {erro && <p role="alert" className="text-sm">{erro}</p>}
           </fieldset>
         )}
+        {erro && <p role="alert" className="text-sm">{erro}</p>}
 
         {/*
           SPEC §22.5 item 7: dois alvos de 56 px, o sinal em TEXTO ("+20 s" e
@@ -306,9 +318,9 @@ export function TelaDescanso({
           <Button
             variant="ghost"
             aria-label={`Tirar ${EXTRA_DESCANSO_S} segundos do descanso`}
-            disabled={falta <= 0 || guardando}
+            disabled={(!ajustando && falta <= 0) || guardando}
             className="alvo border-descanso-destaque/50 text-descanso-destaque hover:bg-descanso-destaque/15 hover:text-descanso-destaque h-14 flex-1 rounded-2xl border text-base font-semibold"
-            onClick={() => aoSomar(-Math.min(EXTRA_DESCANSO_S, falta))}
+            onClick={() => void somar(-EXTRA_DESCANSO_S)}
           >
             −{EXTRA_DESCANSO_S} s
           </Button>
@@ -317,7 +329,7 @@ export function TelaDescanso({
             aria-label={`Somar ${EXTRA_DESCANSO_S} segundos ao descanso`}
             disabled={guardando}
             className="alvo border-descanso-destaque/50 text-descanso-destaque hover:bg-descanso-destaque/15 hover:text-descanso-destaque h-14 flex-1 rounded-2xl border text-base font-semibold"
-            onClick={() => aoSomar(EXTRA_DESCANSO_S)}
+            onClick={() => void somar(EXTRA_DESCANSO_S)}
           >
             +{EXTRA_DESCANSO_S} s
           </Button>
@@ -339,6 +351,11 @@ export function TelaDescanso({
       </div>
     </section>
   );
+}
+
+function recadoDaGravacao(falha: unknown): string {
+  return falha instanceof Error && falha.message === MENSAGEM_CRONOMETRO_ALTERADO
+    ? MENSAGEM_CRONOMETRO_ALTERADO : "Não foi possível guardar o descanso. Tente novamente.";
 }
 
 /** "5 × 7,5 kg na barra" — o alvo da própria série de aquecimento (§14.1.2). */

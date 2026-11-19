@@ -3,35 +3,47 @@ import { QueryClient } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { equipamentoDisponivel } from "@/lib/dados";
 import { equipamentoDaSessao, guardarEquipamentoDoDia, lerEquipamentoDoDia } from "@/lib/equipamento-da-sessao";
+import { definirDuracao, somarSegundos } from "@/lib/player";
+import { vinculoDoLoginAtual } from "@/lib/player-sem-rede";
 import { guardarNaFila, processar } from "@/lib/outbox";
 import { enviarItem, type EscritaTabela } from "@/lib/outbox-supabase";
 import { criarSessaoComEquipamentoDoDia } from "@/lib/queries/comecar";
-import { descarregarSessao, enviarPlanoDaTroca, finalizarSessao, guardarDescansoDaSessao, guardarMaterialDaSessao, salvarSessaoLocal } from "@/lib/queries/sessao";
+import { descarregarSessao, enviarPlanoDaTroca, finalizarSessao, guardarCronometroDaSessao, guardarDescansoDaSessao, guardarMaterialDaSessao, salvarSessaoLocal } from "@/lib/queries/sessao";
 import { definirEquipamentoDaSessao, descansoPersonalizadoDaSessao, marcarSerie, substituirExercicio, type SessaoLocal } from "@/lib/sessao";
 import { clienteNavegador } from "@/lib/supabase/client";
 
 const locais = new Map<string, SessaoLocal>();
 const rascunhos = new Map<string, string>();
+const antesDeGravar = vi.fn(async () => {});
+let anterior = Promise.resolve();
 vi.mock("@/lib/db", () => ({ temIndexedDB: () => true, bd: () => ({
   outbox: {},
   sessaoAtiva: {
-    put: async ({ id, dados }: { id: string; dados: SessaoLocal }) => locais.set(id, dados),
+    put: async ({ id, dados }: { id: string; dados: SessaoLocal }) => {
+      await antesDeGravar();
+      locais.set(id, dados);
+    },
     delete: async (id: string) => { locais.delete(id); },
     get: async (id: string) => locais.has(id) ? { dados: locais.get(id) } : undefined,
   },
   transaction: async (_modo: string, ...args: unknown[]) => {
     const fazer = args.at(-1) as () => Promise<unknown>;
-    const antes = new Map(locais);
-    try { return await fazer(); } catch (erro) {
-      locais.clear();
-      for (const [id, sessao] of antes) locais.set(id, sessao);
-      throw erro;
-    }
+    const transacao = anterior.then(async () => {
+      const antes = new Map(locais);
+      try { return await fazer(); } catch (erro) {
+        locais.clear();
+        for (const [id, sessao] of antes) locais.set(id, sessao);
+        throw erro;
+      }
+    });
+    anterior = transacao.then(() => {}, () => {});
+    return transacao;
   },
 }) }));
 vi.mock("@/lib/outbox", () => ({
   guardarNaFila: vi.fn(), enfileirar: vi.fn(), processar: vi.fn(), esperarFila: () => Promise.resolve(),
 }));
+vi.mock("@/lib/player-sem-rede", () => ({ vinculoDoLoginAtual: vi.fn() }));
 vi.mock("@/lib/persistencia-query", () => ({ guardarConsultasAgora: vi.fn().mockResolvedValue(undefined) }));
 vi.mock("@/lib/supabase/client", () => ({ clienteNavegador: vi.fn() }));
 const dia = "2026-11-19";
@@ -40,6 +52,7 @@ const entrada = () => ({ id: "sessao", userId: "ana", data: dia, treinoId: "A1",
 beforeEach(() => {
   locais.clear();
   rascunhos.clear();
+  vi.mocked(vinculoDoLoginAtual).mockResolvedValue({ conta: "ana", url: "http://localhost", chave: "simulada", impressao: "confirmada" });
   vi.stubGlobal("window", { localStorage: {
     getItem: (k: string) => rascunhos.get(k) ?? null,
     setItem: (k: string, v: string) => rascunhos.set(k, v),
@@ -251,6 +264,90 @@ describe("descanso da sessão no aparelho e na fila", () => {
     await expect(guardarDescansoDaSessao(aberta, bloco.exercicioId, 90, novo)).rejects.toThrow("não está aberta");
     await descarregarSessao();
     expect(locais.size).toBe(0);
+    expect(guardarNaFila).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("ajuste avulso do cronômetro no aparelho", () => {
+  it("só confirma o novo prazo depois da gravação local, conservando o plano e a fila", async () => {
+    const { aberta, bloco, player } = await emDescanso();
+    const primeiro = await guardarDescansoDaSessao(aberta, bloco.exercicioId, 90, definirDuracao(player, 90, 11_000));
+    const comEquipamento = definirEquipamentoDaSessao(primeiro, new Set(["tatame"]));
+    const salvo = await guardarMaterialDaSessao(comEquipamento);
+    const serie = bloco.series.at(-1)!;
+    salvarSessaoLocal(marcarSerie(salvo, bloco.ordem, serie.id, true), salvo);
+    await descarregarSessao();
+
+    const iniciou = Promise.withResolvers<void>();
+    const liberar = Promise.withResolvers<void>();
+    antesDeGravar.mockImplementationOnce(async () => { iniciou.resolve(); await liberar.promise; });
+    const novo = somarSegundos(primeiro.player!, -20, 11_000);
+    let confirmou = false;
+    const ajustando = guardarCronometroDaSessao(primeiro, novo).then(s => { confirmou = true; return s; });
+    await iniciou.promise;
+    expect(confirmou).toBe(false);
+    expect(locais.get(aberta.id)?.player?.totalS).toBe(90);
+    liberar.resolve();
+    const ajustada = await ajustando;
+    expect(locais.get(aberta.id)).toEqual(ajustada);
+    expect(ajustada.player).toEqual(novo);
+    expect(ajustada.plano).toEqual(salvo.plano);
+    expect(ajustada.blocos[0]!.series.at(-1)?.concluida).toBe(true);
+    expect(guardarNaFila).toHaveBeenCalledTimes(3); // criação, próximas séries e equipamento
+  });
+
+  it("dois pedidos que partiram do mesmo prazo não sobrescrevem o que já confirmou", async () => {
+    const { aberta, player } = await emDescanso();
+    const novo = somarSegundos(player, 20, 11_000);
+    const resultados = await Promise.allSettled([
+      guardarCronometroDaSessao(aberta, novo), guardarCronometroDaSessao(aberta, definirDuracao(player, 42, 11_000)),
+    ]);
+    expect(resultados.map(r => r.status).sort()).toEqual(["fulfilled", "rejected"]);
+    const primeira = locais.get(aberta.id)!;
+    const proxima = somarSegundos(primeira.player!, 20, 12_000);
+    expect((await guardarCronometroDaSessao(primeira, proxima)).player).toEqual(proxima);
+    expect(guardarNaFila).toHaveBeenCalledTimes(1);
+  });
+
+  it("uma falha de espaço deixa o valor anterior e a nova tentativa avulsa funciona offline", async () => {
+    const { aberta, player } = await emDescanso();
+    vi.stubGlobal("navigator", { onLine: false });
+    const editado = definirDuracao(player, 44, 21_000);
+    antesDeGravar.mockRejectedValueOnce(new Error("quota"));
+    await expect(guardarCronometroDaSessao(aberta, editado)).rejects.toThrow("quota");
+    expect(locais.get(aberta.id)?.player).toEqual(player);
+    expect((await guardarCronometroDaSessao(aberta, editado)).player).toEqual(editado);
+    expect(clienteNavegador).not.toHaveBeenCalled();
+    expect(guardarNaFila).toHaveBeenCalledTimes(1);
+  });
+
+  it("inclui o toque pendente do player e uma gravação antiga posterior não volta o ponteiro", async () => {
+    const { aberta, bloco, player } = await emDescanso();
+    const semRelogio = { ...aberta, player: undefined };
+    locais.set(aberta.id, semRelogio);
+    salvarSessaoLocal(aberta, semRelogio);
+    const zerado = somarSegundos(player, -60, 11_000);
+    expect((await guardarCronometroDaSessao(aberta, zerado)).player?.totalS).toBe(0);
+    salvarSessaoLocal(marcarSerie(aberta, bloco.ordem, bloco.series.at(-1)!.id, true), aberta);
+    await descarregarSessao();
+    expect(locais.get(aberta.id)?.player).toEqual(zerado);
+  });
+
+  it("recusa prazo inválido, série trocada, passo avançado, sessão encerrada ou login diferente", async () => {
+    const { aberta, bloco, player, novo } = await emDescanso();
+    for (const invalido of [{ ...novo, totalS: NaN }, { ...novo, fimEm: null }, { ...novo, chave: "feedback" }]) {
+      await expect(guardarCronometroDaSessao(aberta, invalido)).rejects.toThrow("descanso mudou");
+    }
+    locais.set(aberta.id, substituirExercicio(aberta, bloco.ordem, "flexao-de-braco"));
+    await expect(guardarCronometroDaSessao(aberta, novo)).rejects.toThrow("descanso mudou");
+    locais.set(aberta.id, { ...aberta, player: { ...player, chave: "serie:proxima" } });
+    await expect(guardarCronometroDaSessao(aberta, novo)).rejects.toThrow("descanso mudou");
+    locais.set(aberta.id, { ...aberta, status: "abandonada" });
+    await expect(guardarCronometroDaSessao(aberta, novo)).rejects.toThrow("não está aberta");
+    locais.set(aberta.id, { ...aberta, userId: "bia" });
+    await expect(guardarCronometroDaSessao(aberta, novo)).rejects.toThrow("não está aberta");
+    vi.mocked(vinculoDoLoginAtual).mockResolvedValue({ conta: "bia", url: "http://localhost", chave: "simulada", impressao: "confirmada" });
+    await expect(guardarCronometroDaSessao(aberta, novo)).rejects.toThrow("confirmar a conta");
     expect(guardarNaFila).toHaveBeenCalledTimes(1);
   });
 });

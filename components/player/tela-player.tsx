@@ -36,6 +36,7 @@ import {
   indiceDoEstado,
   irPara,
   progressoDoPlayer,
+  restanteS,
   prefsDoVoto,
   rotuloDoPasso,
   seguinte,
@@ -56,7 +57,7 @@ import {
 } from "@/lib/preferencias";
 import { enfileirarEscrita } from "@/lib/outbox-supabase";
 import { registrarPeso } from "@/lib/queries/corpo";
-import { descarregarSessao } from "@/lib/queries/sessao";
+import { descarregarSessao, mesmoRelogio } from "@/lib/queries/sessao";
 import { salvarPerfil, salvarPrefsOuDesfazer } from "@/lib/queries/mais";
 import { chaves, useUltimoPeso } from "@/lib/queries/dados";
 import { useHoje } from "@/lib/relogio";
@@ -620,6 +621,9 @@ export function TelaPlayer({
     const registrado = anterior && blocoFeito && serieFeita
       ? textoDaSerieGravada(anterior, blocoFeito, serieFeita, null)
       : null;
+    const mostrarConfirmado = (gravado: { base: EstadoPlayer; novo: EstadoPlayer } | null) => {
+      if (gravado) setEstado(atual => mesmoRelogio(atual, gravado.base) ? gravado.novo : atual);
+    };
     return (
       <>
         <h1 className="sr-only">{nomeDoTreino} — descanso{proximo ? ` antes do exercício ${proximo.posicao} de ${proximo.totalExercicios}` : ""}</h1>
@@ -630,32 +634,41 @@ export function TelaPlayer({
           proximo={proximo}
           blocoDoProximo={blocoDoProximo}
           serieDoProximo={proximo ? serieDoPasso(sessao, proximo) : null}
-          avancarSozinho={ligado(prefs, "avancar_sozinho") && ficha === null}
+          avancarSozinho={ligado(prefs, "avancar_sozinho") && ficha === null && !dados.ajustandoCronometro}
+          ajustando={dados.ajustandoCronometro}
           registrado={registrado}
           aoAbrirFicha={() => proximo && setFicha(proximo.ordem)}
-          aoCorrigir={() => {
+          aoCorrigir={() => dados.aposAjustarCronometro(passo.chave, confirmado => {
             if (anterior) {
-              guardar({ ...estadoDoPasso(anterior, Date.now()), descansoAoCorrigir: estado });
+              guardar({ ...estadoDoPasso(anterior, Date.now()), descansoAoCorrigir: confirmado });
             }
-          }}
+          })}
           aviso={aviso}
           botaoDaLista={focarListaDoDescanso}
           aoAbrirLista={dados.adicionarExercicio ? () => {
             listaAbertaNoDescanso.current = true;
             setVisaoGeral(true);
           } : undefined}
-          aoSomar={(s) => guardar(somarSegundos(estado, s, Date.now()))}
-          aoDefinir={(s) => guardar(definirDuracao(estado, s, Date.now()))}
+          aoSomar={(s) => {
+            const instante = Date.now();
+            return dados.ajustarCronometro(passo.chave, base => {
+              const delta = Math.max(s, -restanteS(base, instante));
+              return delta === 0 ? base : somarSegundos(base, delta, instante);
+            }).then(mostrarConfirmado);
+          }}
+          aoDefinir={(s) => {
+            const instante = Date.now();
+            return dados.ajustarCronometro(passo.chave, base => definirDuracao(base, s, instante)).then(mostrarConfirmado);
+          }}
           proximasSeries={trabalho ? {
             exercicio: acharExercicio(trabalho.exercicioId).nome,
             segundos: descansoPersonalizadoDaSessao(sessao, trabalho.exercicioId),
             aoGuardar: async (segundos) => {
               const novo = segundos === null ? undefined : definirDuracao(estado, segundos, Date.now());
-              await dados.mudarDescanso(trabalho.exercicioId, segundos, novo);
-              if (novo) setEstado((atual) => atual === estado ? novo : atual);
+              mostrarConfirmado(await dados.mudarDescanso(trabalho.exercicioId, segundos, novo));
             },
           } : undefined}
-          aoPular={() => ir(passo.indiceProximo)}
+          aoPular={() => dados.aposAjustarCronometro(passo.chave, () => ir(passo.indiceProximo))}
         />
         {folha}
       </>

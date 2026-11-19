@@ -43,7 +43,10 @@ import {
   enviarPlanoDaTroca,
   enviarSerie,
   finalizarSessao,
+  guardarCronometroDaSessao,
   guardarDescansoDaSessao,
+  mesmoRelogio,
+  MENSAGEM_CRONOMETRO_ALTERADO,
   salvarSessaoLocal,
   usePendentes,
 } from "@/lib/queries/sessao";
@@ -248,6 +251,8 @@ export function useSessaoDeTreino(sessaoId: string, userId: string) {
     });
     return () => {
       vivo = false;
+      // Um Pular/Corrigir que aguardava o disco já não pode mover o player que foi fechado.
+      ultima.current = undefined;
     };
   }, [sessaoId, adotar, userId]);
 
@@ -372,8 +377,50 @@ export function useSessaoDeTreino(sessaoId: string, userId: string) {
     [mexer],
   );
 
+  // Cada toque parte do prazo que o toque anterior conseguiu gravar neste aparelho.
+  const filaDoCronometro = useRef<Promise<void> | null>(null);
+  const [ajustandoCronometro, setAjustandoCronometro] = useState(false);
+  const ajustarCronometro = useCallback((chave: string, aplicar: (base: EstadoPlayer) => EstadoPlayer) => {
+    async function gravar() {
+      const antes = ultima.current;
+      const base = antes?.player;
+      if (!antes || antes.id !== sessaoId || antes.userId !== userId || antes.status !== "em_andamento"
+        || !base || base.chave !== chave) throw new Error(MENSAGEM_CRONOMETRO_ALTERADO);
+      const novo = aplicar(base);
+      const salva = await guardarCronometroDaSessao(antes, novo);
+      const atual = ultima.current;
+      if (atual?.id !== sessaoId || atual.userId !== userId || atual.status !== "em_andamento"
+        || !mesmoRelogio(atual.player, base)) return null;
+      adotar(atual === antes ? salva : { ...atual, player: novo });
+      return { base, novo };
+    }
+    setAjustandoCronometro(true);
+    const resultado = (filaDoCronometro.current ?? Promise.resolve()).then(gravar);
+    // A falha é devolvida ao botão; um novo toque ainda pode tentar a partir da base confirmada.
+    const fim = resultado.then(() => {}, () => {});
+    filaDoCronometro.current = fim;
+    void fim.then(() => {
+      if (filaDoCronometro.current === fim) {
+        filaDoCronometro.current = null;
+        setAjustandoCronometro(false);
+      }
+    });
+    return resultado;
+  }, [adotar, sessaoId, userId]);
+
+  const aposAjustarCronometro = useCallback((chave: string, acao: (confirmado: EstadoPlayer) => void) => {
+    const seguir = () => {
+      const atual = ultima.current;
+      if (atual?.id === sessaoId && atual.userId === userId && atual.status === "em_andamento"
+        && atual.player?.chave === chave) acao(atual.player);
+    };
+    if (filaDoCronometro.current) void filaDoCronometro.current.then(seguir);
+    else seguir();
+  }, [sessaoId, userId]);
+
   const descansoEmGravacao = useRef<Promise<SessaoLocal> | null>(null);
   const mudarDescanso = useCallback(async (exercicioId: string, segundos: number | null, player?: EstadoPlayer) => {
+    if (filaDoCronometro.current) await filaDoCronometro.current;
     const antes = ultima.current;
     if (antes?.id !== sessaoId || antes.userId !== userId || antes.status !== "em_andamento" || descansoEmGravacao.current) {
       throw new Error("Não foi possível guardar o descanso nesta sessão.");
@@ -383,14 +430,17 @@ export function useSessaoDeTreino(sessaoId: string, userId: string) {
     try {
       const confirmada = await gravacao;
       const atual = ultima.current;
-      if (atual?.id !== sessaoId || atual.userId !== userId || atual.status !== "em_andamento") return;
+      if (atual?.id !== sessaoId || atual.userId !== userId || atual.status !== "em_andamento") return null;
+      const relogioConfirmado = player && antes.player && mesmoRelogio(atual.player, antes.player)
+        ? { base: antes.player, novo: player } : null;
       if (atual === antes) {
         adotar(confirmada);
       } else {
         // Uma série ou passo pode ter mudado enquanto o IndexedDB confirmava a edição.
         const comDescanso = definirDescansoDoExercicioNaSessao(atual, exercicioId, segundos);
-        adotar(player && atual.player === antes.player ? { ...comDescanso, player } : comDescanso);
+        adotar(relogioConfirmado ? { ...comDescanso, player: relogioConfirmado.novo } : comDescanso);
       }
+      return relogioConfirmado;
     } finally {
       descansoEmGravacao.current = null;
     }
@@ -484,6 +534,7 @@ export function useSessaoDeTreino(sessaoId: string, userId: string) {
       try {
         // A conclusão reenvia o plano inteiro. Inclua a última escolha feita antes de fechar o treino.
         await aguardarMaterial?.();
+        await filaDoCronometro.current;
         await descansoEmGravacao.current?.catch(() => {});
         await adicaoEmGravacao.current?.catch(() => {});
         const atual = ultima.current ?? sessao;
@@ -611,6 +662,9 @@ export function useSessaoDeTreino(sessaoId: string, userId: string) {
     mudarFirme,
     mudarNota,
     mudarDescanso,
+    ajustarCronometro,
+    ajustandoCronometro,
+    aposAjustarCronometro,
     adicionarExercicio: sessao?.userId === userId && sessao.id === sessaoId && ehSessaoLivre(sessao.workoutId)
       && sessao.status === "em_andamento" && !salvando && !encerradaAntes && encerradaAqui !== sessaoId
       ? adicionarExercicio : undefined,
