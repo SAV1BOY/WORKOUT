@@ -78,6 +78,12 @@ na ordem em que ficaram, a carga atual e todo o equipamento disponível.
 As séries estão prontas para registrar de novo. O treino anterior continua no
 histórico com as cargas e repetições que você fez.
 
+**Ajustar o descanso de um exercício.** Entre duas séries de trabalho, toque em
+**Editar tempo de descanso**. Para repetir o intervalo nas séries seguintes,
+marque **Usar nas próximas séries** e salve. Por exemplo, você pode usar 90 segundos
+no supino durante esse treino. A escolha acompanha a sessão ao reabrir o app
+sem internet. No mesmo editor, você pode restaurar o padrão para as próximas séries.
+
 Em **Mais → Lembretes**, escolha os avisos e horários. Para receber
 notificações, ative este aparelho quando a opção estiver disponível. Você
 também pode baixar o arquivo de calendário e importá-lo no celular.

@@ -21,8 +21,8 @@ import {
   textoDoEvento,
   ultimoEventoPorExercicio,
 } from "@/lib/hoje";
-import { anterioresPorExercicio, type SerieDeOutroDia } from "@/lib/player";
-import { opcoesDeMontagem } from "@/lib/preferencias";
+import { anterioresPorExercicio, type EstadoPlayer, type SerieDeOutroDia } from "@/lib/player";
+import { descansoPadraoS, opcoesDeMontagem } from "@/lib/preferencias";
 import {
   chaves,
   type SessaoResumo,
@@ -41,6 +41,7 @@ import {
   enviarPlanoDaTroca,
   enviarSerie,
   finalizarSessao,
+  guardarDescansoDaSessao,
   salvarSessaoLocal,
   usePendentes,
 } from "@/lib/queries/sessao";
@@ -49,6 +50,7 @@ import {
   avaliarSessao,
   definirFirme,
   definirNota,
+  definirDescansoDoExercicioNaSessao,
   definirEquipamentoDaSessao,
   ehTreinoDoPrograma,
   idsComSubstitutos,
@@ -121,6 +123,7 @@ export function useSessaoDeTreino(sessaoId: string, userId: string) {
   const perfilQ = usePerfil();
   const perfil = perfilQ.data?.user_id === userId ? perfilQ.data : null;
   const perfilPrefs = perfil?.prefs;
+  const descansoDaConta = perfil ? descansoPadraoS(perfilPrefs) : undefined;
   // identidade estável: `prefs` entra nas dependências de efeitos (§3.9)
   const prefs: Prefs = useMemo(() => perfilPrefs ?? {}, [perfilPrefs]);
   // Em um aparelho novo as leituras do banco podem começar junto com o Dexie.
@@ -310,11 +313,22 @@ export function useSessaoDeTreino(sessaoId: string, userId: string) {
       if (!atual) return null;
       const nova = fn(atual);
       adotar(nova);
-      salvarSessaoLocal(nova);
+      salvarSessaoLocal(nova, atual);
       return nova;
     },
     [adotar],
   );
+
+  // O cache de consultas pode estar pendente na recarga sem rede. O padrão que a
+  // conta realmente usou acompanha a cópia local da sessão, inclusive o valor nulo.
+  const idNoAparelho = sessao?.id;
+  useEffect(() => {
+    const atual = ultima.current;
+    if (descansoDaConta === undefined || atual?.id !== sessaoId || atual.userId !== userId
+      || atual.status !== "em_andamento" || atual.descansoPadraoConhecidoS === descansoDaConta) return;
+    mexer(maisRecente => ({ ...maisRecente, descansoPadraoConhecidoS: descansoDaConta }));
+    void descarregarSessao();
+  }, [descansoDaConta, idNoAparelho, mexer, sessaoId, userId]);
 
   /**
    * Marcar uma série: grava no aparelho, manda para a fila e devolve o bloco e
@@ -355,6 +369,30 @@ export function useSessaoDeTreino(sessaoId: string, userId: string) {
     (ordem: number, nota: string) => mexer((atual) => definirNota(atual, ordem, nota)),
     [mexer],
   );
+
+  const descansoEmGravacao = useRef<Promise<SessaoLocal> | null>(null);
+  const mudarDescanso = useCallback(async (exercicioId: string, segundos: number | null, player?: EstadoPlayer) => {
+    const antes = ultima.current;
+    if (antes?.id !== sessaoId || antes.userId !== userId || antes.status !== "em_andamento" || descansoEmGravacao.current) {
+      throw new Error("Não foi possível guardar o descanso nesta sessão.");
+    }
+    const gravacao = guardarDescansoDaSessao(antes, exercicioId, segundos, player);
+    descansoEmGravacao.current = gravacao;
+    try {
+      const confirmada = await gravacao;
+      const atual = ultima.current;
+      if (atual?.id !== sessaoId || atual.userId !== userId || atual.status !== "em_andamento") return;
+      if (atual === antes) {
+        adotar(confirmada);
+      } else {
+        // Uma série ou passo pode ter mudado enquanto o IndexedDB confirmava a edição.
+        const comDescanso = definirDescansoDoExercicioNaSessao(atual, exercicioId, segundos);
+        adotar(player && atual.player === antes.player ? { ...comDescanso, player } : comDescanso);
+      }
+    } finally {
+      descansoEmGravacao.current = null;
+    }
+  }, [adotar, sessaoId, userId]);
 
   const substituir = useCallback(
     (bloco: BlocoLocal, novoExercicioId: string) => {
@@ -420,6 +458,7 @@ export function useSessaoDeTreino(sessaoId: string, userId: string) {
       try {
         // A conclusão reenvia o plano inteiro. Inclua a última escolha feita antes de fechar o treino.
         await aguardarMaterial?.();
+        await descansoEmGravacao.current?.catch(() => {});
         const atual = ultima.current ?? sessao;
         await descarregarSessao();
         await finalizarSessao({
@@ -545,6 +584,7 @@ export function useSessaoDeTreino(sessaoId: string, userId: string) {
     mudarSerie,
     mudarFirme,
     mudarNota,
+    mudarDescanso,
     substituir,
     previa,
     salvar,

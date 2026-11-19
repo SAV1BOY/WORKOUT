@@ -1,7 +1,7 @@
 "use client";
 
 import { Pencil, SkipForward, Timer } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { AnelDeContagem } from "@/components/player/anel";
 import { Miniatura } from "@/components/ui/miniatura";
 import { StepperNumerico } from "@/components/stepper-numerico";
@@ -52,6 +52,7 @@ export function TelaDescanso({
   aoCorrigir,
   aoSomar,
   aoDefinir,
+  proximasSeries,
   aoPular,
 }: {
   estado: EstadoPlayer;
@@ -79,10 +80,21 @@ export function TelaDescanso({
   aoCorrigir: () => void;
   aoSomar: (segundos: number) => void;
   aoDefinir: (segundos: number) => void;
+  proximasSeries?: {
+    exercicio: string;
+    segundos: number | null;
+    aoGuardar: (segundos: number | null) => Promise<void>;
+  };
   aoPular: () => void;
 }) {
   const [editando, setEditando] = useState(false);
   const [novoTempo, setNovoTempo] = useState<number | null>(estado.totalS ?? 60);
+  const [usarNasProximas, setUsarNasProximas] = useState(false);
+  const [guardando, setGuardando] = useState(false);
+  const [erro, setErro] = useState("");
+  const emGravacao = useRef(false);
+  const botaoEditar = useRef<HTMLButtonElement>(null);
+  const editorId = useId();
   const tocou = useRef<string | null>(null);
   const acabou = zerou(estado, agora);
   const falta = restanteS(estado, agora);
@@ -112,14 +124,38 @@ export function TelaDescanso({
   }, [acabou]);
 
   useEffect(() => {
-    if (!acabou || !avancarSozinho) return;
+    // O relógio pode zerar durante a edição. Aguarda a pessoa concluir antes de trocar a tela.
+    if (!acabou || !avancarSozinho || editando) return;
     const relogio = setTimeout(() => pular.current(), 1_000);
     return () => clearTimeout(relogio);
-  }, [acabou, avancarSozinho]);
+  }, [acabou, avancarSozinho, editando]);
+
+  function fecharEditor() {
+    setEditando(false);
+    botaoEditar.current?.focus();
+  }
+
+  async function guardarParaAsProximas(segundos: number | null, origem: HTMLButtonElement) {
+    if (!proximasSeries || emGravacao.current) return;
+    emGravacao.current = true;
+    setGuardando(true);
+    setErro("");
+    try {
+      await proximasSeries.aoGuardar(segundos);
+      fecharEditor();
+    } catch {
+      setErro("Não foi possível guardar o descanso. Tente novamente.");
+      requestAnimationFrame(() => origem.focus());
+    } finally {
+      emGravacao.current = false;
+      setGuardando(false);
+    }
+  }
 
   const exercicio = blocoDoProximo
     ? acharExercicio(blocoDoProximo.exercicioId)
     : null;
+  const anelCompacto = editando && Boolean(proximasSeries);
 
   return (
     <section
@@ -133,7 +169,7 @@ export function TelaDescanso({
       <div className="flex flex-col items-center gap-1 text-center">
         {registrado && (
           <button type="button" className="alvo flex flex-wrap items-center justify-center gap-x-1.5 text-sm"
-            onClick={aoCorrigir} aria-label={`Corrigir a série. ${registrado}`}>
+            onClick={aoCorrigir} disabled={guardando} aria-label={`Corrigir a série. ${registrado}`}>
             <Pencil className="size-4" aria-hidden="true" />
             <span className="underline underline-offset-2">Corrigir a série</span>
             <span>{registrado}</span>
@@ -155,7 +191,7 @@ export function TelaDescanso({
           <>
             <h2 aria-label={exercicio.nome}>
               <button type="button" className="alvo flex items-center justify-center gap-2 text-lg font-semibold text-balance"
-                aria-label={nomeAcessivel("Como fazer", exercicio.nome)} onClick={aoAbrirFicha}>
+                aria-label={nomeAcessivel("Como fazer", exercicio.nome)} onClick={aoAbrirFicha} disabled={guardando}>
                 <Miniatura exercicioId={blocoDoProximo.exercicioId} className="size-14" />
                 {exercicio.nome}
               </button>
@@ -176,7 +212,7 @@ export function TelaDescanso({
       */}
       <AnelDeContagem
         fracao={fracaoRestante(estado, agora)}
-        tamanho={220}
+        tamanho={anelCompacto ? 156 : 220}
         classeTrilho="stroke-descanso-foreground/25"
         classeArco="stroke-descanso-destaque"
       >
@@ -186,7 +222,7 @@ export function TelaDescanso({
         <span
           role="timer"
           aria-label="Descanso"
-          className="numero-grande text-6xl leading-none tabular-nums"
+          className={`numero-grande leading-none tabular-nums ${anelCompacto ? "text-5xl" : "text-6xl"}`}
         >
           {formatarDuracao(falta)}
         </span>
@@ -196,45 +232,75 @@ export function TelaDescanso({
       </p>
 
       <div className="flex w-full max-w-xs flex-col gap-2">
-        {editando ? (
-          /*
-           * `text-foreground` de volta: o stepper e os botões de contorno são
-           * componentes do tema normal (fundo `--background`), mas herdavam a
-           * cor do texto da tela de descanso — no tema claro isso dava branco
-           * sobre quase-branco, e o número do tempo sumia.
-           */
-          <div className="text-foreground flex items-center gap-2">
-            <StepperNumerico
-              rotulo="tempo de descanso em segundos"
-              valor={novoTempo}
-              passo={10}
-              minimo={DESCANSO_MIN_S}
-              maximo={DESCANSO_MAX_S}
-              aoMudar={setNovoTempo}
-            />
-            <Button
-              variant="secondary"
-              className="alvo h-11 shrink-0"
-              onClick={() => {
-                aoDefinir(novoTempo ?? DESCANSO_MIN_S);
-                setEditando(false);
-              }}
-            >
-              Salvar
-            </Button>
-          </div>
-        ) : (
-          <button
-            type="button"
-            onClick={() => {
-              setNovoTempo(estado.totalS ?? 60);
-              setEditando(true);
-            }}
-            className="alvo text-descanso-destaque flex items-center justify-center gap-1.5 text-sm underline underline-offset-4"
-          >
-            <Timer aria-hidden="true" className="size-4" />
-            Editar tempo de descanso
-          </button>
+        <button
+          ref={botaoEditar}
+          type="button"
+          aria-expanded={editando}
+          aria-controls={editando ? editorId : undefined}
+          aria-disabled={guardando}
+          onClick={() => {
+            if (emGravacao.current) return;
+            if (editando) {
+              fecharEditor();
+              return;
+            }
+            setNovoTempo(estado.totalS ?? 60);
+            setUsarNasProximas(false);
+            setErro("");
+            setEditando(true);
+          }}
+          className="alvo text-descanso-destaque flex items-center justify-center gap-1.5 text-sm underline underline-offset-4"
+        >
+          <Timer aria-hidden="true" className="size-4" />
+          Editar tempo de descanso
+        </button>
+        {proximasSeries?.segundos != null && (
+          <p className="text-descanso-destaque text-center text-sm" role="status">
+            {editando ? "Tempo salvo" : `Próximas séries de ${proximasSeries.exercicio}`} · {formatarDuracao(proximasSeries.segundos)}
+          </p>
+        )}
+        {editando && (
+          <fieldset id={editorId} disabled={guardando} className="flex min-w-0 flex-col gap-1">
+            <legend className="sr-only">Editar tempo de descanso</legend>
+            {proximasSeries && (
+              <label className="alvo flex cursor-pointer items-center gap-2 text-sm">
+                <input type="checkbox" checked={usarNasProximas}
+                  className="size-5 shrink-0 accent-current"
+                  onChange={evento => setUsarNasProximas(evento.target.checked)} />
+                Usar nas próximas séries de {proximasSeries.exercicio}
+              </label>
+            )}
+            {/* O campo usa as cores do tema normal para manter o contraste nos dois temas. */}
+            <div className="text-foreground flex items-center gap-2">
+              <StepperNumerico
+                rotulo="tempo de descanso em segundos"
+                valor={novoTempo}
+                passo={10}
+                minimo={DESCANSO_MIN_S}
+                maximo={DESCANSO_MAX_S}
+                aoMudar={setNovoTempo}
+              />
+              <Button variant="secondary" className="alvo h-11 shrink-0"
+                onClick={evento => {
+                  const segundos = novoTempo ?? DESCANSO_MIN_S;
+                  if (usarNasProximas && proximasSeries) {
+                    void guardarParaAsProximas(segundos, evento.currentTarget);
+                    return;
+                  }
+                  aoDefinir(segundos);
+                  fecharEditor();
+                }}>
+                Salvar
+              </Button>
+            </div>
+            {proximasSeries?.segundos != null && (
+              <button type="button" className="alvo text-descanso-destaque text-sm underline underline-offset-4"
+                onClick={evento => void guardarParaAsProximas(null, evento.currentTarget)}>
+                Restaurar padrão para as próximas séries
+              </button>
+            )}
+            {erro && <p role="alert" className="text-sm">{erro}</p>}
+          </fieldset>
         )}
 
         {/*
@@ -246,7 +312,7 @@ export function TelaDescanso({
           <Button
             variant="ghost"
             aria-label={`Tirar ${EXTRA_DESCANSO_S} segundos do descanso`}
-            disabled={falta <= 0}
+            disabled={falta <= 0 || guardando}
             className="alvo border-descanso-destaque/50 text-descanso-destaque hover:bg-descanso-destaque/15 hover:text-descanso-destaque h-14 flex-1 rounded-2xl border text-base font-semibold"
             onClick={() => aoSomar(-Math.min(EXTRA_DESCANSO_S, falta))}
           >
@@ -255,6 +321,7 @@ export function TelaDescanso({
           <Button
             variant="ghost"
             aria-label={`Somar ${EXTRA_DESCANSO_S} segundos ao descanso`}
+            disabled={guardando}
             className="alvo border-descanso-destaque/50 text-descanso-destaque hover:bg-descanso-destaque/15 hover:text-descanso-destaque h-14 flex-1 rounded-2xl border text-base font-semibold"
             onClick={() => aoSomar(EXTRA_DESCANSO_S)}
           >
@@ -270,6 +337,7 @@ export function TelaDescanso({
           variant="ghost"
           className="alvo border-descanso-foreground/40 text-descanso-foreground hover:bg-descanso-foreground/10 hover:text-descanso-foreground h-14 rounded-2xl border text-base font-medium"
           onClick={aoPular}
+          disabled={guardando}
         >
           <SkipForward className="size-5" />
           Pular descanso

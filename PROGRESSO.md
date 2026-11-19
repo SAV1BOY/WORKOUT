@@ -13085,3 +13085,15 @@ Em **Relatório → Histórico**, a opção **Repetir treino** fica junto de uma
 Para conferir no celular, conclua um treino livre com dois ou mais exercícios e uma substituição. Abra o Relatório, toque em **Repetir treino** e confira a data, a ordem e os movimentos da nova sessão. Depois, volte ao histórico e confira que o registro anterior conserva suas séries. A ação também funciona sem rede quando a sessão de origem está disponível no aparelho. O Hevy documenta a possibilidade de começar uma sessão a partir de um treino já salvo. [Como o Hevy copia treinos do histórico](https://www.hevyapp.com/features/best-way-to-track-workouts/)
 
 A rodada de navegador também encontrou uma falha de acessibilidade na ficha. Ao ampliar a foto antes de o perfil terminar de carregar, o botão de nota pessoal podia receber foco atrás da imagem. A foto ampliada agora deixa toda a ficha inativa até fechar. O teste segura a leitura do perfil, usa o teclado para abrir e fechar a foto e verifica que o foco volta ao botão de origem.
+
+### Publicação da repetição de treino livre
+
+O PR #40 entrou em produção no commit `8fa5175c066882d82578b273d995980e3aaab73d`, confirmado em `/versao`. A revisão `55926f7` e o commit publicado têm a mesma árvore `eedb5b6bf68dff2936192d3ec1110cfbd364c24d`. Passaram os 2.059 testes unitários e os 751 cenários de navegador, distribuídos em quatro grupos de 199, 177, 188 e 187. A entrega utilizou o esquema existente do Supabase. [PR #40](https://github.com/SAV1BOY/WORKOUT/pull/40) · [Validação integral](https://github.com/SAV1BOY/WORKOUT/actions/runs/44444888683)
+
+### Descanso por exercício durante a sessão
+
+Ao editar o descanso entre séries de trabalho, a pessoa pode usar o valor nas próximas séries do movimento atual. Um supino pode ter 90 segundos durante aquele treino enquanto a próxima remada usa o intervalo dela. Voltar ao padrão recupera o tempo definido em Mais → Preferências ou, quando ele estiver vazio, o tempo da prescrição. Hevy e Strong documentam a duração por exercício e o início automático ao concluir uma série. [Cronômetro do Hevy](https://www.hevyapp.com/features/workout-rest-timer/) · [Cronômetro do Strong](https://help.strongapp.io/article/231-rest-timer)
+
+Na prova de recarga rápida, o perfil da conta tinha um padrão de 70 segundos e a prescrição da rosca com elástico era de 60 segundos. A primeira versão do ajuste perdia os 70 segundos quando a página recarregava antes da cópia periódica das consultas. A cópia local da sessão agora também guarda o último padrão confirmado para aquela conta, inclusive a escolha de voltar à prescrição. O perfil da própria conta volta a prevalecer quando está disponível.
+
+O build local passou em 2.073 testes unitários e nos seis novos cenários de Chromium. Os cenários cobrem o ajuste avulso, as próximas séries, a restauração depois da recarga offline, a troca de exercício, um treino repetido, a nova tentativa quando falta espaço no aparelho e o avanço automático durante a edição.

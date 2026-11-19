@@ -126,6 +126,8 @@ export interface PlanoDaSessao {
   itens: ItemDoPlano[];
   /** Equipamento para esta sessão. Ausente nos planos antigos; [] = só peso corporal. */
   equipamento_disponivel?: EquipamentoTag[];
+  /** Segundos entre séries de trabalho do movimento executado, só nesta sessão. */
+  descansos_por_exercicio?: Record<string, number>;
   /** Por posição: primeiro o exercício ativo, depois os que passaram pelo bloco. */
   trocas?: Record<string, {
     exercicio_id: string;
