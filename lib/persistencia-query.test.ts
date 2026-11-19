@@ -1,7 +1,7 @@
 import { dehydrate, QueryClient } from "@tanstack/react-query";
 import { afterEach, expect, it, vi } from "vitest";
 import { guardarCache, lerCache } from "@/lib/db";
-import { lerUltimaSincronizacao, persistirQueryClient } from "@/lib/persistencia-query";
+import { guardarConsultasAgora, lerUltimaSincronizacao, persistirQueryClient } from "@/lib/persistencia-query";
 
 vi.mock("@/lib/db", () => ({
   temIndexedDB: () => true,
@@ -48,4 +48,33 @@ it("a cópia legada tem horário e uma cópia nova sem leitura da rede ainda nã
 
   vi.mocked(lerCache).mockResolvedValue({ salvoEm, sincronizadoEm: null, estado });
   await expect(lerUltimaSincronizacao()).resolves.toBeNull();
+});
+
+it("o detalhe de uma sessão permanece só no seu próprio cache e a ficha antiga continua hidratando", async () => {
+  const detalhe = ["progresso", "series-da-sessao", "conta-a", "sessao-a"];
+  const ficha = ["progresso", "series-ex", "supino"];
+  const anteriores = ["progresso", "series-todas"];
+  const agrupadas = new QueryClient();
+  agrupadas.setQueryData(detalhe, { completa: true, linhas: [{ reps: 8 }] });
+  agrupadas.setQueryData(ficha, [{ session_id: "sessao-a", reps: 6 }]);
+  agrupadas.setQueryData(anteriores, []);
+  await guardarConsultasAgora(agrupadas);
+  expect(guardarCache).toHaveBeenLastCalledWith("react-query-v1", expect.objectContaining({
+    estado: expect.objectContaining({ queries: [
+      expect.objectContaining({ queryKey: ficha }), expect.objectContaining({ queryKey: anteriores }),
+    ] }),
+  }));
+
+  vi.mocked(lerCache).mockResolvedValue({ salvoEm: Date.now(), estado: dehydrate(agrupadas) });
+  const reaberto = new QueryClient();
+  const parar = persistirQueryClient(reaberto);
+  try {
+    await vi.waitFor(() => expect(reaberto.getQueryData(ficha)).toEqual(agrupadas.getQueryData(ficha)));
+    expect(reaberto.getQueryData(anteriores)).toEqual([]);
+    expect(reaberto.getQueryData(detalhe)).toBeUndefined();
+  } finally {
+    parar();
+    reaberto.clear();
+    agrupadas.clear();
+  }
 });

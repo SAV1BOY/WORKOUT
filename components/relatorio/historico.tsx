@@ -10,11 +10,10 @@ import { ChevronRight, Flame, History, Pause, Repeat2 } from "lucide-react";
 import Link from "next/link";
 import { addDays } from "date-fns";
 import { useId, useMemo, useState } from "react";
-import { DetalheDasSeries } from "@/components/relatorio/detalhe-das-series";
+import { DetalheDasSeries, FolhaDasSeries } from "@/components/relatorio/detalhe-das-series";
 import { useRepetirTreinoLivre } from "@/components/relatorio/usar-repeticao";
 import { Button } from "@/components/ui/button";
 import { FaixaSemana } from "@/components/ui/faixa-semana";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Vazio } from "@/components/ui/vazio";
 import { formatarData, formatarDataCompleta, formatarIntervaloDaSemana } from "@/lib/formato";
 import { iso, inicioDaSemana, paraData } from "@/lib/calendario";
@@ -289,8 +288,8 @@ function LinhaDoRegistro({
   const sessao = r.sessaoDeForca;
   if (sessao?.status === "concluida" && sessao.user_id === conta) {
     return (
-      <Sheet>
-        <SheetTrigger asChild>
+      <FolhaDasSeries descricao={`${r.titulo} · ${formatarDataCompleta(r.data)}`}
+        gatilho={
           <button type="button" data-registro={r.tipo}
             aria-label={`Ver séries de ${r.titulo} de ${formatarDataCompleta(r.data)}`}
             aria-describedby={descricaoId}
@@ -298,18 +297,10 @@ function LinhaDoRegistro({
             {miolo}
             <ChevronRight aria-hidden="true" className="text-muted-foreground size-4 shrink-0" />
           </button>
-        </SheetTrigger>
-        <SheetContent side="bottom" className="max-h-[85dvh] gap-3 overflow-hidden">
-          <SheetHeader className="shrink-0 gap-1 pr-16 pb-0">
-            <SheetTitle>Séries do treino</SheetTitle>
-            <SheetDescription className="wrap-anywhere">
-              {r.titulo} · {formatarDataCompleta(r.data)}
-            </SheetDescription>
-          </SheetHeader>
-          <DetalheDasSeries sessao={sessao} conta={conta} series={series}
-            fonteCompleta={seriesDisponiveis} confirmadasEm={confirmadasEm} />
-        </SheetContent>
-      </Sheet>
+        }>
+        <DetalheDasSeries sessao={sessao} conta={conta} series={series}
+          fonteCompleta={seriesDisponiveis} confirmadasEm={confirmadasEm} />
+      </FolhaDasSeries>
     );
   }
   if (!r.href) {
