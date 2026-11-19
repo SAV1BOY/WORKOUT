@@ -57,6 +57,12 @@ export function venceu(
  * contrário de "nada se perde". As telas já tratam o erro do enfileiramento.
  */
 export async function enfileirar(tipo: TipoSaida, payload: unknown, alvo?: string) {
+  await guardarNaFila(tipo, payload, alvo);
+  void processar();
+}
+
+/** Permite incluir a fila e a cópia local na mesma transação antes de enviar. */
+export async function guardarNaFila(tipo: TipoSaida, payload: unknown, alvo?: string) {
   if (!temIndexedDB()) {
     throw new Error(
       "Este navegador não está deixando guardar nada (saia do modo privado).",
@@ -70,7 +76,6 @@ export async function enfileirar(tipo: TipoSaida, payload: unknown, alvo?: strin
     criadoEm: Date.now(),
     ...(alvo ? { alvo } : {}),
   });
-  void processar();
 }
 
 /**
@@ -90,11 +95,21 @@ export async function processar(): Promise<number> {
   if (typeof navigator !== "undefined" && navigator.onLine === false) return 0;
   rodando = true;
   let enviados = 0;
-  try {
+  async function consumir() {
+    if (typeof navigator !== "undefined" && navigator.onLine === false) return;
     do {
       repetir = false;
       enviados += await umaRodada();
     } while (repetir);
+  }
+  try {
+    // A fila IndexedDB pertence à origem inteira. Um segundo documento só
+    // lê seus itens quando a aba anterior terminou de confirmá-los no servidor.
+    if (typeof navigator !== "undefined" && navigator.locks) {
+      await navigator.locks.request("treino-terraco:outbox", consumir);
+    } else {
+      await consumir();
+    }
   } finally {
     rodando = false;
   }
@@ -169,7 +184,9 @@ async function umaRodada(): Promise<number> {
 
   let enviados = 0;
   const agora = Date.now();
-  const pendentes = await bd().outbox.orderBy("criadoEm").toArray();
+  // A chave autoincremental mantém a ordem das ações mesmo quando o celular
+  // corrige a hora entre lembrar a alternativa e restaurar o exercício.
+  const pendentes = await bd().outbox.toArray();
 
   /** alvo → quando o item que está segurando a fila vai tentar de novo. */
   const travados = new Map<string, number>();

@@ -1,7 +1,8 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Erro, EsqueletoCard } from "@/components/carregando";
 import { ListaDoDia } from "@/components/treino/lista";
 import { BotaoLargo } from "@/components/ui/botao-largo";
@@ -17,6 +18,8 @@ import {
   resumoDoTreino,
 } from "@/lib/hoje";
 import {
+  chaves,
+  type SessaoResumo,
   useEstados,
   useEventos,
   useOverrides,
@@ -28,7 +31,8 @@ import {
 } from "@/lib/queries/dados";
 import { ligado, opcoesDeMontagem } from "@/lib/preferencias";
 import { lerOrdemDoAparelho } from "@/lib/ordem";
-import { lerTrocasDoAparelho } from "@/lib/trocas";
+import { salvarTrocaDoPrograma, useTrocasDoPrograma } from "@/lib/queries/trocas-do-programa";
+import { lerTrocasDoAparelho, resolverTrocasDoTreino } from "@/lib/trocas";
 import { idsParaComecar, useComecarTreino, type EntradaComecar } from "@/lib/queries/comecar";
 import { useDemorouDemais } from "@/lib/espera";
 import { sessaoLocalMaisRecente } from "@/lib/queries/sessao";
@@ -44,13 +48,14 @@ import type { TreinoId } from "@/lib/schemas";
 export function TelaTreinar({ userId }: { userId: string }) {
   const router = useRouter();
   const hoje = useHoje();
-  const { criando, comecar } = useComecarTreino(true);
+  const { criando, comecar, iniciando } = useComecarTreino(true);
+  const cliente = useQueryClient();
 
   const perfilQ = usePerfil();
-  const perfil = perfilQ.data ?? null;
+  const perfil = perfilQ.data?.user_id === userId ? perfilQ.data : null;
   const intervalo = hoje ? intervaloDaSemana(hoje) : null;
   const overridesQ = useOverrides(intervalo?.de ?? null, intervalo?.ate ?? null);
-  const abertasQ = useSessoesAbertas();
+  const abertasQ = useSessoesAbertas(true);
 
   const dia = useMemo(() => {
     if (!hoje || !perfil) return null;
@@ -71,16 +76,14 @@ export function TelaTreinar({ userId }: { userId: string }) {
    * entram nas leituras (estado, séries anteriores, recordes).
    */
   const treinoDoDia = dia?.tipo === "forca" ? dia.treinoId : null;
-  const [trocas, setTrocas] = useState<Record<string, string>>({});
+
   /* a ordem escolhida em "Editar" (SPEC §14.3) vale para a sessão que começa */
   const [ordem, setOrdem] = useState<string[]>([]);
   useEffect(() => {
     if (!hoje || !treinoDoDia) {
-      setTrocas({});
       setOrdem([]);
       return;
     }
-    setTrocas(lerTrocasDoAparelho(hoje, treinoDoDia));
     setOrdem(lerOrdemDoAparelho(hoje, treinoDoDia));
   }, [hoje, treinoDoDia]);
 
@@ -91,20 +94,30 @@ export function TelaTreinar({ userId }: { userId: string }) {
 
   /* ---------------------------------- já tem treino aberto? vai para ele */
 
+  const retomar = useCallback((id: string) => {
+    if (iniciando.current) return false;
+    const historico = cliente.getQueryData<SessaoResumo[]>(chaves.sessoes());
+    if (historico?.some((s) => s.id === id && s.status !== "em_andamento")) return false;
+    router.replace(`/treinar/${id}`);
+    return true;
+  }, [cliente, iniciando, router]);
+
+  const aberta = abertasQ.data?.[0];
+  // Uma lista hidratada pode ainda conter a sessão que acabou de ser encerrada.
+  // Com rede, a retomada automática espera a confirmação. Sem rede, usa a cópia.
+  const abertasConfirmadas = abertasQ.fetchStatus === "paused" ||
+    (abertasQ.isSuccess && abertasQ.isFetchedAfterMount && !abertasQ.isFetching);
   useEffect(() => {
     let vivo = true;
-    void sessaoLocalMaisRecente().then((s) => {
-      if (vivo && s && s.status === "em_andamento") router.replace(`/treinar/${s.id}`);
+    void sessaoLocalMaisRecente().catch(() => null).then((s) => {
+      if (!vivo) return;
+      if (s?.userId === userId && s.status === "em_andamento" && retomar(s.id)) return;
+      if (abertasConfirmadas && aberta) retomar(aberta.id);
     });
     return () => {
       vivo = false;
     };
-  }, [router]);
-
-  const aberta = abertasQ.data?.[0];
-  useEffect(() => {
-    if (aberta) router.replace(`/treinar/${aberta.id}`);
-  }, [aberta, router]);
+  }, [aberta, abertasConfirmadas, retomar, userId]);
 
   /* --------------------------------------------------------- renderizar */
 
@@ -151,7 +164,7 @@ export function TelaTreinar({ userId }: { userId: string }) {
       {treinos.map((treinoId) => (
         <TreinoParaComecar
           key={treinoId}
-          entrada={{ userId, perfil, hoje, treinoId, trocas, ordem, doDia: treinoId === treinoDoDia }}
+          entrada={{ userId, perfil, hoje, treinoId, ordem, doDia: treinoId === treinoDoDia }}
           criando={criando}
           comecar={comecar}
         />
@@ -162,12 +175,17 @@ export function TelaTreinar({ userId }: { userId: string }) {
 
 /** Cada card aquece as mesmas consultas que sua sessão usará no player. */
 function TreinoParaComecar({ entrada, criando, comecar }: {
-  entrada: EntradaComecar;
+  entrada: Omit<EntradaComecar, "lembradas">;
   criando: TreinoId | null;
   comecar: (entrada: EntradaComecar) => Promise<void>;
 }) {
-  const { treinoId, perfil, doDia } = entrada;
-  const trocas = doDia ? entrada.trocas : undefined;
+  const { treinoId, perfil, doDia, hoje, userId } = entrada;
+  const cliente = useQueryClient();
+  const lembradas = useTrocasDoPrograma(userId, treinoId);
+  const soHoje = useMemo(() => doDia ? lerTrocasDoAparelho(userId, hoje, treinoId) : undefined,
+    [doDia, userId, hoje, treinoId]);
+  const trocas = useMemo(() => resolverTrocasDoTreino(treinoId, lembradas.data, soHoje),
+    [treinoId, lembradas.data, soHoje]);
   const exercicios = useMemo(() => exerciciosDoTreino(treinoId), [treinoId]);
   const idsAtivos = useMemo(() => exercicios.map(({ exercicio }) => trocas?.[exercicio.id] ?? exercicio.id), [exercicios, trocas]);
   const ids = useMemo(() => idsComSubstitutos(idsParaComecar(treinoId, trocas)), [treinoId, trocas]);
@@ -191,7 +209,7 @@ function TreinoParaComecar({ entrada, criando, comecar }: {
       className={doDia ? "border-primary/50" : undefined}
     >
       <BotaoLargo variant={doDia ? "default" : "outline"} disabled={criando !== null}
-        onClick={() => void comecar(entrada)}>
+        onClick={() => void comecar({ ...entrada, lembradas, trocas: soHoje })}>
         {criando === treinoId ? "Começando…" : `Começar o ${resumo.nome}`}
       </BotaoLargo>
       {doDia && (
@@ -200,6 +218,11 @@ function TreinoParaComecar({ entrada, criando, comecar }: {
             treinoId, estados: estadosPorExercicio(estadosQ.data ?? []),
             eventos: eventosQ.data ?? [], montagem: opcoesDeMontagem(perfil.prefs), trocas,
           })}
+          recorrencia={{
+            treinoId,
+            lembradas: lembradas.data ?? {},
+            aoLembrar: (original, destino) => salvarTrocaDoPrograma(cliente, userId, treinoId, original, destino),
+          }}
           carregando={estadosQ.isPending}
           mostrarRaios={ligado(perfil.prefs, "mostrar_raios")}
         />

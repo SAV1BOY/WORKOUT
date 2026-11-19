@@ -13041,3 +13041,19 @@ A compilação integrada `b270200`, com as 93 fichas, confirmou 105 entradas no 
 Na ficha, **Lembrar no próximo treino** guarda uma nota, como “banco no terceiro furo”. A primeira série do exercício mostra o texto. Tocar nele abre a ficha para editar ou remover. A gravação usa a fila offline e a coluna `exercise_state.nota_pessoal`, exclusiva da nota fixa. A migração `2026-11-18-nota-pessoal.sql` copia uma vez as notas existentes e permite que aparelhos antigos continuem enviando a progressão. O motor preserva as notas ao calcular a próxima carga.
 
 Para conferir no celular, salve uma nota no primeiro exercício do treino de hoje e comece o treino. Abra a nota pela primeira série, edite sem rede e volte a conectar. Ao reabrir a ficha em outro aparelho da mesma conta, a edição deve aparecer. O roteiro automatizado está em `e2e/nota-pessoal.spec.ts`.
+
+### Publicações da troca de exercícios e das notas pessoais em 18/11/2026
+
+A Vercel publicou primeiro a troca de exercícios na integração `86e01a8` e depois as notas pessoais na integração `d24381b`. O endereço público `/versao` identificou os dois commits. A primeira revisão passou por 1.980 testes de unidade e 725 de navegador. A segunda passou por 1.997 de unidade e 727 de navegador. [Testes do primeiro pacote](https://github.com/SAV1BOY/WORKOUT/actions/runs/44403911145) · [Testes do segundo pacote](https://github.com/SAV1BOY/WORKOUT/actions/runs/44417004689)
+
+No projeto Supabase `treino-terraco`, foram aplicados o limite de lotes dos lembretes, a política de substituição de fotos da própria conta e a coluna da nota pessoal. A consulta posterior confirmou o isolamento de fotos, a preservação das notas existentes e a segurança por linha de `exercise_state`.
+
+O pedido anônimo de disparo de lembretes recebeu HTTP 401. Um lote vazio, autenticado pelo Vault e encaminhado ao próprio domínio de produção, chegou à verificação de VAPID e recebeu HTTP 503 com `SEM_CONFIGURACAO`. O próximo teste depende de uma configuração VAPID válida na Vercel. O teste usou zero destinatários. As três verificações em celular físico continuam registradas na [matriz de entrega](docs/ultraloop/entrega-2026-11-18.md).
+
+### Lembrar a troca nos próximos treinos do mesmo tipo
+
+Quem escolhe uma alternativa pode usá-la só na sessão atual ou também nos próximos treinos do mesmo tipo. Por exemplo, o A1 pode passar a usar flexão no lugar do supino. O B1 continua com o seu plano. Na lista do dia, no player e na visão geral, o seletor permite restaurar o original para as sessões futuras. Cada série conserva o movimento, a carga e o esforço registrados. A ficha pessoal continua ligada ao movimento executado.
+
+A preferência é guardada por conta, tipo de treino e exercício original, inclusive no aparelho enquanto ele estiver sem rede. O backup inclui as trocas. Restaurar um arquivo antigo preserva as preferências que a pessoa já tem. A tabela tem segurança por linha e uma prova com duas contas em PostgreSQL 16. A fila e a cópia local são gravadas juntas. Se faltar espaço para a cópia, a operação inteira é desfeita. As abas coordenam o envio por Web Locks. Se o Wi-Fi aparentar conexão mas o servidor não responder, o início do treino usa a preferência local depois de 1,5 s. Ao reabrir a tela Treinar, a lista de sessões em andamento é confirmada para evitar que uma sessão já encerrada desvie o usuário para o relatório. Os testes de navegador acompanham a escolha, a restauração, a retomada de uma sessão e a leitura em tela de 360 px.
+
+A escolha explícita entre a sessão e os treinos futuros também aparece no Hevy e no Strong. No Terraço, ela se aplica a um exercício do programa por vez. [Como o Hevy atualiza uma rotina](https://help.hevyapp.com/hc/en-us/articles/38387296276375-Update-Routine-vs-Keep-Original-Routine) · [Como o Strong atualiza um modelo](https://help.strongapp.io/article/177-update-template)

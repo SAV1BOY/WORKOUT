@@ -430,7 +430,9 @@ export function TelaPlayer({
       aoSubstituir: alvoBloco.series.some((s) => s.tipo === "trabalho" && !s.concluida)
         ? (novo) => dados.substituir(alvoBloco, novo)
         : undefined,
-      originalId: alvoBloco.substituido ? alvoBloco.originalId : undefined,
+      originalId: alvoBloco.originalId,
+      recorrencia: dados.recorrencia,
+      ocupados: sessao.blocos.filter((outro) => outro.ordem !== alvoBloco.ordem).map((outro) => outro.exercicioId),
       avisoDaTroca: avisoDaTroca(alvoBloco),
       indice: sessao.blocos.indexOf(alvoBloco),
       total: sessao.blocos.length,
@@ -452,6 +454,9 @@ export function TelaPlayer({
       )}
       {passo.tipo === "serie" && bloco && (
         <SeletorAlternativa
+          originalId={bloco.originalId}
+          recorrencia={dados.recorrencia}
+          ocupados={sessao.blocos.filter((outro) => outro.ordem !== bloco.ordem).map((outro) => outro.exercicioId)}
           exercicioId={bloco.exercicioId}
           prefs={prefs}
           aberto={trocando}
@@ -463,7 +468,7 @@ export function TelaPlayer({
           } : undefined}
           aoSubstituir={(novo) => {
             dados.substituir(bloco, novo);
-            setAviso(`Exercício escolhido: ${acharExercicio(novo).nome}.`);
+            if (novo !== bloco.exercicioId) setAviso(`Exercício escolhido: ${acharExercicio(novo).nome}.`);
           }}
         />
       )}

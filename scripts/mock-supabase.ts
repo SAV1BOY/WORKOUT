@@ -197,6 +197,15 @@ const lit =
   () =>
     v;
 
+function conferirTrocaDoPrograma(linha: Linha) {
+  const { workout_id, exercicio_original_id, substituto_id } = linha;
+  if (!["A1", "B1", "SA", "IA", "SB", "IB"].includes(String(workout_id)) ||
+      typeof exercicio_original_id !== "string" || !exercicio_original_id.trim() ||
+      typeof substituto_id !== "string" || !substituto_id.trim() || substituto_id === exercicio_original_id) {
+    throw new ErroMock(400, "mock: alternativa inválida na posição do treino", { code: "23514" });
+  }
+}
+
 const ESQUEMA: Record<string, EspecTabela> = {
   profiles: {
     colunas: {
@@ -254,6 +263,13 @@ const ESQUEMA: Record<string, EspecTabela> = {
     chave: ["user_id", "exercise_id"],
     unicos: [],
     tocaUpdatedAt: true,
+  },
+  trocas_do_programa: {
+    colunas: { user_id: nulo, workout_id: nulo, exercicio_original_id: nulo, substituto_id: nulo },
+    chave: ["user_id", "workout_id", "exercicio_original_id"],
+    obrigatorias: ["user_id", "workout_id", "exercicio_original_id", "substituto_id"],
+    unicos: [],
+    tocaUpdatedAt: false,
   },
   sessions: {
     colunas: {
@@ -1392,6 +1408,7 @@ async function rotaRest(
         });
       }
       const candidata = novaLinha(recurso, { ...entrada, user_id: usuario.id });
+      if (recurso === "trocas_do_programa") conferirTrocaDoPrograma(candidata);
       const conflitos = [chaves, espec.chave, ...espec.unicos];
       const existente = tabela.find((l) =>
         conflitos.some((cs) => cs.every((c) => c in candidata) && mesmaChave(l, candidata, cs)),
@@ -1449,6 +1466,12 @@ async function rotaRest(
       }
     }
     if (espec.semUpdate) alvo.length = 0; // sem policy de update: nada muda
+    if (recurso === "trocas_do_programa" && alvo.length) {
+      if ("user_id" in mudancas && mudancas.user_id !== usuario.id) {
+        throw new ErroMock(403, "mock: a troca só pode pertencer ao dono da sessão", { code: "42501" });
+      }
+      for (const linha of alvo) conferirTrocaDoPrograma({ ...linha, ...mudancas });
+    }
     for (const linha of alvo) {
       Object.assign(linha, mudancas);
       linha.user_id = usuario.id;

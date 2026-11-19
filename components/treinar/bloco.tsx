@@ -8,7 +8,7 @@ import { BotaoMontagem } from "@/components/treinar/montagem";
 import { LinhaSerieForm } from "@/components/treinar/serie";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { SeletorAlternativa } from "@/components/exercicio/seletor-alternativa";
+import { duracaoDaTroca, SeletorAlternativa, type RecorrenciaDaTroca } from "@/components/exercicio/seletor-alternativa";
 import { acharExercicio } from "@/lib/dados";
 import { nomeAcessivel } from "@/lib/midia";
 import { textoDoAlvo } from "@/lib/hoje";
@@ -36,6 +36,8 @@ export function BlocoExercicio({
   aoMudarFirme,
   aoMudarNota,
   aoSubstituir,
+  recorrencia,
+  ocupados,
 }: {
   bloco: BlocoLocal;
   /** "subiu +2 kg no treino de 12/09" (SPEC §6.6). */
@@ -50,6 +52,8 @@ export function BlocoExercicio({
   aoMudarFirme: (firme: boolean) => void;
   aoMudarNota: (nota: string) => void;
   aoSubstituir: (novoExercicioId: string) => void;
+  recorrencia?: RecorrenciaDaTroca;
+  ocupados?: readonly string[];
 }) {
   const exercicio = acharExercicio(bloco.exercicioId);
   const firme = bloco.ultimaFirme ?? firmePadrao(bloco);
@@ -93,6 +97,13 @@ export function BlocoExercicio({
           <FichaEmFolha
             exercicioId={bloco.exercicioId}
             aberto={ficha}
+            troca={{
+              originalId: bloco.originalId,
+              recorrencia,
+              ocupados,
+              avisoDaTroca: avisoDaTroca(bloco),
+              aoSubstituir,
+            }}
             aoMudarAberto={setFicha}
             temVideo={temVideo}
             prefs={prefs}
@@ -108,7 +119,7 @@ export function BlocoExercicio({
 
         {bloco.substituido ? (
           <p className="text-muted-foreground text-xs">
-            no lugar de {acharExercicio(bloco.originalId).nome} (só hoje)
+            no lugar de {acharExercicio(bloco.originalId).nome} ({duracaoDaTroca(bloco.originalId, bloco.exercicioId, recorrencia)})
           </p>
         ) : null}
 
@@ -122,6 +133,9 @@ export function BlocoExercicio({
             opcoes={opcoes}
           />
           <SeletorAlternativa
+            originalId={bloco.originalId}
+            ocupados={ocupados}
+            recorrencia={recorrencia}
             avisoDaTroca={avisoDaTroca(bloco)}
             voltarAoOriginal={bloco.substituido ? {
               nome: acharExercicio(bloco.originalId).nome,

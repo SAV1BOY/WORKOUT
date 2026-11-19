@@ -1,14 +1,73 @@
 /**
  * As substituições escolhidas na aba Treino (SPEC §13.3): o ⇄ da lista do dia
  * abre os mesmos substitutos da sessão (§3.2) e guarda a escolha para a sessão
- * que vai começar. O par (data, treino) faz parte do registro: a escolha vale
- * para o treino de hoje e some sozinha no dia seguinte.
+ * que vai começar. O rascunho pertence à conta, ao dia e ao treino. Depois
+ * de consumido, voltam a valer as escolhas lembradas para a próxima sessão.
  *
  * Funções puras, testadas sem navegador; as duas pontas com `localStorage`
  * ficam no fim e nunca lançam (aba anônima, cota cheia).
  */
 
-export const CHAVE_TROCAS = "treino-trocas";
+import { alternativasPara } from "@/lib/alternativas";
+import { exercicioPorId, programa } from "@/lib/dados";
+import type { TreinoId } from "@/lib/schemas";
+
+const treinos = new Map<string, string[]>(Object.values(programa.treinos).map((treino) => [
+  treino.id, treino.exercicios.map((item) => item.exercicio_id),
+]));
+const compativeis = new Map<string, Set<string>>();
+
+export function trocaDoProgramaValida(treinoId: string, originalId: string, substitutoId: string): boolean {
+  if (originalId === substitutoId || !treinos.get(treinoId)?.includes(originalId)) return false;
+  let opcoes = compativeis.get(originalId);
+  if (!opcoes) {
+    opcoes = new Set(alternativasPara(originalId).map((alternativa) => alternativa.id));
+    compativeis.set(originalId, opcoes);
+  }
+  return opcoes.has(substitutoId);
+}
+
+/** A escolha explícita do dia prevalece, inclusive quando pede o próprio original. */
+export function resolverTrocasDoTreino(
+  treinoId: TreinoId,
+  lembradas: Readonly<Record<string, string>> = {},
+  soHoje: Readonly<Record<string, string>> = {},
+): Record<string, string> {
+  const originais = treinos.get(treinoId) ?? [];
+  const escolhidas = new Map<string, string>();
+  const destinos = new Set<string>();
+
+  // Se dois slots pedem o mesmo destino, prioriza o pedido do dia. Entre
+  // escolhas de mesmo escopo, a ordem do programa dá um resultado estável.
+  const doDia = new Set(originais.filter((id) => exercicioPorId.has(soHoje[id] ?? "")));
+  for (const id of [...doDia, ...originais.filter((id) => !doDia.has(id))]) {
+    const hoje = doDia.has(id);
+    const destino = hoje ? soHoje[id] : lembradas[id];
+    if (!destino || destino === id || destinos.has(destino)) continue;
+    if (!hoje && !trocaDoProgramaValida(treinoId, id, destino)) continue;
+    escolhidas.set(id, destino);
+    destinos.add(destino);
+  }
+
+  // Um slot que ficou com seu original sempre o conserva. Reverter uma
+  // colisão pode liberar outra em cadeia. Ciclos completos já são distintos.
+  const mantidos = originais.filter((id) => !escolhidas.has(id));
+  for (const mantido of mantidos) {
+    for (const [id, destino] of escolhidas) {
+      if (destino === mantido) {
+        escolhidas.delete(id);
+        mantidos.push(id);
+        break;
+      }
+    }
+  }
+  return Object.fromEntries(escolhidas);
+}
+
+const CHAVE_TROCAS = "treino-trocas";
+function chaveDaConta(userId: string, treinoId: string): string {
+  return `${CHAVE_TROCAS}:${encodeURIComponent(userId)}:${treinoId}`;
+}
 
 export interface TrocasDoDia {
   data: string;
@@ -18,7 +77,7 @@ export interface TrocasDoDia {
 }
 
 function ehMapaDeTexto(valor: unknown): valor is Record<string, string> {
-  if (typeof valor !== "object" || valor === null) return false;
+  if (typeof valor !== "object" || valor === null || Array.isArray(valor)) return false;
   return Object.values(valor as Record<string, unknown>).every(
     (v) => typeof v === "string",
   );
@@ -55,7 +114,7 @@ export function escreverTrocas(
 ): string | null {
   const limpo: Record<string, string> = {};
   for (const [de, para] of Object.entries(trocas)) {
-    if (typeof para === "string" && para !== "" && para !== de) limpo[de] = para;
+    if (de && typeof para === "string" && para) limpo[de] = para;
   }
   if (Object.keys(limpo).length === 0) return null;
   return JSON.stringify({ data, treinoId, trocas: limpo } satisfies TrocasDoDia);
@@ -71,31 +130,32 @@ export function comTrocas(
 
 /* ------------------------------------------------------- ponte com o navegador */
 
-export function lerTrocasDoAparelho(data: string, treinoId: string): Record<string, string> {
+export function lerTrocasDoAparelho(userId: string, data: string, treinoId: string): Record<string, string> {
   try {
-    return lerTrocas(window.localStorage.getItem(CHAVE_TROCAS), data, treinoId);
+    return lerTrocas(window.localStorage.getItem(chaveDaConta(userId, treinoId)), data, treinoId);
   } catch {
     return {};
   }
 }
 
 export function guardarTrocasNoAparelho(
+  userId: string,
   data: string,
   treinoId: string,
   trocas: Record<string, string>,
 ): void {
   try {
     const texto = escreverTrocas(data, treinoId, trocas);
-    if (texto === null) window.localStorage.removeItem(CHAVE_TROCAS);
-    else window.localStorage.setItem(CHAVE_TROCAS, texto);
+    if (texto === null) window.localStorage.removeItem(chaveDaConta(userId, treinoId));
+    else window.localStorage.setItem(chaveDaConta(userId, treinoId), texto);
   } catch {
     /* sem storage a escolha vale só nesta tela */
   }
 }
 
-export function limparTrocasDoAparelho(): void {
+export function limparTrocasDoAparelho(userId: string, treinoId: string): void {
   try {
-    window.localStorage.removeItem(CHAVE_TROCAS);
+    window.localStorage.removeItem(chaveDaConta(userId, treinoId));
   } catch {
     /* nada a limpar */
   }

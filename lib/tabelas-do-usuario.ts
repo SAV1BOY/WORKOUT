@@ -1,4 +1,4 @@
-/** As 11 tabelas de `supabase/schema.sql` que pertencem ao usuário. */
+/** As tabelas de `supabase/schema.sql` que pertencem ao usuário. */
 export const TABELAS_BACKUP = [
   "profiles",
   "exercise_state",
@@ -11,6 +11,7 @@ export const TABELAS_BACKUP = [
   "body_measurements",
   "progress_photos",
   "schedule_overrides",
+  "trocas_do_programa",
 ] as const;
 
 export type TabelaBackup = (typeof TABELAS_BACKUP)[number];
@@ -28,4 +29,5 @@ export const CHAVE_DA_TABELA: Record<TabelaBackup, string[]> = {
   body_measurements: ["id"],
   progress_photos: ["id"],
   schedule_overrides: ["id"],
+  trocas_do_programa: ["user_id", "workout_id", "exercicio_original_id"],
 };

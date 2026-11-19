@@ -17,6 +17,7 @@ export type TipoSaida =
   | "sessao"
   | "evento_progressao"
   | "estado_exercicio"
+  | "troca_do_programa"
   | "perfil"
   | "cardio"
   | "barra_fixa_solta"

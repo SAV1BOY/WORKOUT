@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { CHAVE_DA_TABELA, type Linha } from "@/lib/backup";
+import { lerTabelaCompleta } from "@/lib/queries/ler";
 import { exportarBackup, lerChavesExistentes } from "@/lib/queries/mais";
 import { useSeriesTodas, useSessoesTodas } from "@/lib/queries/progresso";
 import { useCardioTodos, useSoltasTodas } from "@/lib/queries/dados";
@@ -19,7 +20,15 @@ function gerar(quantidade: number): Linha[] {
     id: String(i + 1).padStart(6, "0"), user_id: uid, data: dia, registrada_em: dia,
   }));
 }
+const trocas = [
+  ["A1", "agachamento-livre", "agachamento-frontal"],
+  ["A1", "supino-reto-com-barra", "flexao-de-braco"],
+  ["SA", "puxada-alta-na-polia", "barra-fixa-pronada"],
+  ["SA", "supino-inclinado-com-halteres", "flexao-de-braco"],
+  ["SA", "supino-reto-com-barra", "flexao-de-braco"],
+].map(([workout_id, exercicio_original_id, substituto_id]) => ({ user_id: uid, workout_id, exercicio_original_id, substituto_id }));
 const dados: Record<string, Linha[]> = {
+  trocas_do_programa: [...trocas].reverse().concat({ ...trocas[0]!, user_id: "outra-conta" }),
   sessions: gerar(501),
   session_sets: gerar(5007),
   cardio_sessions: gerar(802),
@@ -30,22 +39,39 @@ const dados: Record<string, Linha[]> = {
 };
 let falhar = false;
 const limiteServidor = 120;
+let limiteTrocas = limiteServidor;
+let consultasTrocas = 0;
 
 beforeEach(() => {
   falhar = false;
+  limiteTrocas = limiteServidor;
+  consultasTrocas = 0;
   const servidor: typeof fetch = async (input, opcoes) => {
     const url = new URL(String(input));
     const tabela = url.pathname.split("/").at(-1)!;
-    const [campo, sentido] = url.searchParams.get("order")!.split(".");
-    expect(campo).toBe(CHAVE_DA_TABELA[tabela as keyof typeof CHAVE_DA_TABELA].at(-1));
-    expect(sentido).toBe("asc");
-    const cursor = url.searchParams.get(campo!)?.replace(/^gt\./, "");
-    if (falhar && cursor && tabela === "session_sets") {
+    const chave = CHAVE_DA_TABELA[tabela as keyof typeof CHAVE_DA_TABELA].at(-1)!;
+    const campos = tabela === "trocas_do_programa" ? ["workout_id", chave] : [chave];
+    expect(url.searchParams.get("order")).toBe(campos.map((c) => `${c}.asc`).join(","));
+    if (falhar && url.searchParams.has(chave) && tabela === "session_sets") {
       return Response.json({ message: "leitura interrompida" }, { status: 400 });
     }
-    const linhas = (dados[tabela] ?? []).filter((l) => !cursor || String(l[campo!]) > cursor);
+    const linhas = (dados[tabela] ?? []).filter((linha) => {
+      for (const [coluna, filtro] of url.searchParams) {
+        if (filtro.startsWith("eq.") && linha[coluna] !== filtro.slice(3)) return false;
+        if (filtro.startsWith("gt.") && String(linha[coluna]) <= filtro.slice(3)) return false;
+      }
+      return true;
+    }).sort((a, b) => {
+      for (const campo of campos) {
+        const ordem = String(a[campo]).localeCompare(String(b[campo]));
+        if (ordem) return ordem;
+      }
+      return 0;
+    });
+    if (tabela === "trocas_do_programa") consultasTrocas++;
+    const limite = tabela === "trocas_do_programa" ? limiteTrocas : limiteServidor;
     const select = url.searchParams.get("select")!;
-    const corpo = linhas.slice(0, limiteServidor).map((l) =>
+    const corpo = linhas.slice(0, limite).map((l) =>
       select === "*" ? l : Object.fromEntries(select.split(",").map((c) => [c, l[c]])),
     );
     const headers = new Headers();
@@ -65,10 +91,22 @@ describe("histórico maior que uma página do servidor", () => {
   it("exporta mais de 5.000 séries e procura também as chaves da última página na importação", async () => {
     const backup = await exportarBackup({ userId: uid, agora: dia });
     expect(backup.tabelas.session_sets).toEqual(dados.session_sets);
+    expect(backup.tabelas.trocas_do_programa).toEqual(trocas);
+    expect(consultasTrocas).toBe(1);
     expect(backup.tabelas.exercise_state).toEqual(dados.exercise_state);
     const chaves = await lerChavesExistentes(uid);
     expect(chaves.session_sets).toEqual(dados.session_sets!.map(({ id }) => ({ id })));
     expect(chaves.exercise_state).toEqual(dados.exercise_state);
+  });
+
+  it("exporta e encontra as chaves de todos os treinos mesmo se o servidor cortar o mesmo exercício entre páginas", async () => {
+    limiteTrocas = 2;
+    const exportadas = await lerTabelaCompleta("trocas_do_programa", "*", "trocas", uid);
+    expect(exportadas).toEqual(trocas);
+    const chaves = await lerChavesExistentes(uid);
+    expect(chaves.trocas_do_programa).toEqual(trocas.map(({ user_id, workout_id, exercicio_original_id }) => ({
+      user_id, workout_id, exercicio_original_id,
+    })));
   });
 
   it("inclui no relatório toda a força, cardio e barra, mesmo com a mesma data em páginas diferentes", async () => {

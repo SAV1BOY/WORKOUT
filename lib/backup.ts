@@ -8,6 +8,7 @@
  * `lib/queries/mais.ts`; quem guarda offline é a fila de saída (§8).
  */
 import { z } from "zod";
+import { trocaDoProgramaValida } from "@/lib/trocas";
 import { ANGULOS, caminhoDaFoto } from "@/lib/corpo";
 import { CHAVE_DA_TABELA, TABELAS_BACKUP, type TabelaBackup } from "@/lib/tabelas-do-usuario";
 export { CHAVE_DA_TABELA, TABELAS_BACKUP, type TabelaBackup } from "@/lib/tabelas-do-usuario";
@@ -27,6 +28,7 @@ export const NOME_DA_TABELA: Record<TabelaBackup, string> = {
   body_measurements: "medidas",
   progress_photos: "fotos de progresso",
   schedule_overrides: "trocas do calendário",
+  trocas_do_programa: "trocas lembradas no programa",
 };
 
 /**
@@ -72,6 +74,7 @@ export const COLUNAS_DA_TABELA: Record<TabelaBackup, string[]> = {
     "panturrilha_cm", "notas",
   ],
   progress_photos: ["id", "user_id", "data", "angulo", "storage_path", "notas"],
+  trocas_do_programa: ["user_id", "workout_id", "exercicio_original_id", "substituto_id"],
   schedule_overrides: [
     "id", "user_id", "data", "tipo", "workout_id", "sessao", "motivo",
   ],
@@ -179,15 +182,22 @@ export function lerBackup(texto: string): Backup {
 }
 
 /** A identidade da linha na tabela; `null` quando falta parte da chave. */
-export function chaveDaLinha(tabela: TabelaBackup, linha: Linha): string | null {
+export function chaveDaLinha(tabela: TabelaBackup, linha: Linha, userId?: string): string | null {
   const colunas = CHAVE_DA_TABELA[tabela];
   const partes: string[] = [];
   for (const coluna of colunas) {
-    const valor = linha[coluna];
+    const valor = coluna === "user_id" && userId !== undefined ? userId : linha[coluna];
     if (valor === null || valor === undefined || valor === "") return null;
     partes.push(String(valor));
   }
   return partes.join("|");
+}
+
+function trocaValida(linha: Linha): boolean {
+  const { workout_id, exercicio_original_id, substituto_id } = linha;
+  return typeof workout_id === "string" && typeof exercicio_original_id === "string" &&
+    typeof substituto_id === "string" &&
+    trocaDoProgramaValida(workout_id, exercicio_original_id, substituto_id);
 }
 
 export interface ItemPrevia {
@@ -197,7 +207,7 @@ export interface ItemPrevia {
   total: number;
   novas: number;
   atualizadas: number;
-  /** Linhas descartadas por não terem a chave primária. */
+  /** Linhas descartadas por chave incompleta ou troca inválida. */
   invalidas: number;
 }
 
@@ -217,6 +227,7 @@ export interface Previa {
 export function previaDaImportacao(
   backup: Backup,
   existentes: Partial<Record<TabelaBackup, Linha[]>> = {},
+  userId?: string,
 ): Previa {
   const itens: ItemPrevia[] = [];
 
@@ -236,8 +247,8 @@ export function previaDaImportacao(
     let invalidas = 0;
 
     for (const linha of linhas) {
-      const chave = chaveDaLinha(tabela, linha);
-      if (chave === null) {
+      const chave = chaveDaLinha(tabela, linha, userId);
+      if (chave === null || (tabela === "trocas_do_programa" && !trocaValida(linha))) {
         invalidas += 1;
         continue;
       }
@@ -332,6 +343,7 @@ export function linhasParaImportar(
     const vistas = new Set<string>();
 
     for (const bruta of backup.tabelas[tabela] ?? []) {
+      if (tabela === "trocas_do_programa" && !trocaValida(bruta)) continue;
       const limpa: Linha = {};
       for (const coluna of colunas) {
         if (coluna in bruta) limpa[coluna] = bruta[coluna];

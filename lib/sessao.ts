@@ -10,6 +10,7 @@
  * monta as anilhas é `lib/montagem.ts` e o conteúdo vem de `lib/dados.ts`.
  */
 import { alternativasPara } from "@/lib/alternativas";
+import { resolverTrocasDoTreino } from "@/lib/trocas";
 import {
   acharExercicio,
   acharTreino,
@@ -795,9 +796,12 @@ export function comSubstituicoes(
     novoId?: () => string;
   } = {},
 ): SessaoLocal {
+  const escolhas = ehTreinoDoPrograma(sessao.workoutId)
+    ? resolverTrocasDoTreino(sessao.workoutId, {}, substituicoes)
+    : substituicoes;
   let atual = sessao;
   for (const bloco of sessao.blocos) {
-    const novo = substituicoes[bloco.originalId];
+    const novo = escolhas[bloco.originalId];
     if (!novo || novo === bloco.originalId) continue;
     if (!exercicioPorId.has(novo)) continue;
     atual = substituirExercicio(atual, bloco.ordem, novo, dados.estados?.[novo] ?? null, {

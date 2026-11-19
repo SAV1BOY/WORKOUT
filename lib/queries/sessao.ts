@@ -19,6 +19,7 @@ import {
   planoDaSessao,
 } from "@/lib/livre";
 import { enfileirarEscrita } from "@/lib/outbox-supabase";
+import { guardarConsultasAgora } from "@/lib/persistencia-query";
 import { esperarFila, pendentes } from "@/lib/outbox";
 import { chaves, type SessaoResumo } from "@/lib/queries/dados";
 import {
@@ -308,6 +309,7 @@ export async function finalizarSessao(entrada: EntradaFim): Promise<Conclusao> {
     await enfileirar(TIPO_POR_TABELA[escrita.tabela] ?? "sessao", escrita);
   }
 
+  await cliente.cancelQueries({ queryKey: chaves.sessoesAbertas(), exact: true });
   cliente.setQueryData<SessaoResumo[]>(chaves.sessoesAbertas(), (atual) =>
     (atual ?? []).filter((s) => s.id !== sessao.id),
   );
@@ -329,7 +331,8 @@ export async function finalizarSessao(entrada: EntradaFim): Promise<Conclusao> {
    * esvaziar traria o estado velho, então a releitura espera a fila (sem
    * segurar a navegação; sem rede ela desiste e o cache local segue valendo).
    */
-  await apagarSessaoLocal(sessao.id);
+  // Uma recarga imediata precisa encontrar o fechamento no cache do aparelho.
+  await Promise.all([apagarSessaoLocal(sessao.id), guardarConsultasAgora(cliente).catch(() => {})]);
   void esperarFila().then(() => {
     void cliente.invalidateQueries({ queryKey: ["estados"] });
     void cliente.invalidateQueries({ queryKey: ["eventos"] });

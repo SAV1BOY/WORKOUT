@@ -1,6 +1,8 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
+import { salvarTrocaDoPrograma, useTrocasDoPrograma } from "@/lib/queries/trocas-do-programa";
+import type { RecorrenciaDaTroca } from "@/components/exercicio/seletor-alternativa";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -353,6 +355,7 @@ export function useSessaoDeTreino(sessaoId: string) {
   const substituir = useCallback(
     (bloco: BlocoLocal, novoExercicioId: string) => {
       const antes = ultima.current;
+      if (!antes || antes.blocos.some((outro) => outro.ordem !== bloco.ordem && outro.exercicioId === novoExercicioId)) return;
       const nova = mexer((atual) =>
         substituirExercicio(
           atual,
@@ -431,6 +434,16 @@ export function useSessaoDeTreino(sessaoId: string) {
   );
 
   /* -------------------------------------------------------- derivados */
+
+  const treinoDaTroca = sessao && ehTreinoDoPrograma(sessao.workoutId) ? sessao.workoutId : null;
+  const contaDaTroca = treinoDaTroca ? sessao?.userId : null;
+  const trocasQ = useTrocasDoPrograma(contaDaTroca, treinoDaTroca);
+  const recorrencia: RecorrenciaDaTroca | undefined = treinoDaTroca && contaDaTroca ? {
+    treinoId: treinoDaTroca,
+    lembradas: trocasQ.data ?? {},
+    aoLembrar: (originalId, alternativaId) =>
+      salvarTrocaDoPrograma(cliente, contaDaTroca, treinoDaTroca, originalId, alternativaId),
+  } : undefined;
 
   const treino = sessao && ehTreinoDoPrograma(sessao.workoutId)
     ? acharTreino(sessao.workoutId)
@@ -511,6 +524,7 @@ export function useSessaoDeTreino(sessaoId: string) {
     decorridoS,
     anteriores,
     historicoDe,
+    recorrencia,
     dadosDoMotor,
     mexer,
     marcar,
