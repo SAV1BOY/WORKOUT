@@ -13147,3 +13147,5 @@ Com a leitura auxiliar de séries retida no Chromium, a revisão `77c60a5` ficou
 Na volta rápida do primeiro treino sem rede, a sessão concluída e o vínculo de login já estavam no aparelho, mas o cache geral ainda não tinha guardado o perfil. A leitura do perfil passou a conservar uma cópia da conta antes de apresentá-lo. A recuperação da aba escolhe a versão mais recente disponível da mesma pessoa. Um perfil de outra conta não dá acesso aos registros, e a falta de espaço no aparelho permite continuar a leitura online.
 
 A suíte completa também verificou o Histórico com teclado a 360 px e fonte a 125%, nos temas claro e escuro. O novo botão da nota inicialmente recebia o primeiro Tab após o link do treino livre. A ordem dos controles foi ajustada para manter **Repetir treino** logo após esse link e permitir chegar à nota no Tab seguinte.
+
+Nessa largura, o texto de **Adicionar nota do treino** ocupava 241 px em um espaço de 238 px. O botão agora permite a quebra de linha e conserva uma área de toque de pelo menos 44 px de altura. O teste também percorre os dois botões com Tab e Shift+Tab.

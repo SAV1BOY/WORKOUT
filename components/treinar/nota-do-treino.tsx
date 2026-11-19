@@ -69,7 +69,7 @@ export function NotaDoTreino({
                 <p className="w-full text-sm whitespace-pre-wrap break-words">{valor}</p>
               </>
             )}
-            <Button ref={abrir} type="button" variant="ghost" className="alvo"
+            <Button ref={abrir} type="button" variant="ghost" className="alvo h-auto max-w-full whitespace-normal"
               onClick={() => { setAviso(""); setEdicao({ texto: valor ?? "", inicial: valor ?? null }); }}>
               {valor ? "Editar nota do treino" : "Adicionar nota do treino"}
             </Button>

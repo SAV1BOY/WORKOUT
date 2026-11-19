@@ -48,6 +48,12 @@ for (const tema of ["light", "dark"] as const) {
     expect(caixa!.x).toBeGreaterThanOrEqual(0);
     expect(caixa!.x + caixa!.width).toBeLessThanOrEqual(360);
     expect(await registro.evaluate(el => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
+    await page.keyboard.press("Tab");
+    const nota = registro.getByRole("button", { name: "Adicionar nota do treino" });
+    await expect(nota).toBeFocused();
+    expect((await nota.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+    await page.keyboard.press("Shift+Tab");
+    await expect(repetir).toBeFocused();
     await semRolagemHorizontal(page);
     await info.attach(`repetir-treino-${tema}`, { body: await page.screenshot(), contentType: "image/png" });
     await page.keyboard.press("Enter");
