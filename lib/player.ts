@@ -113,6 +113,14 @@ export function descansoDoBloco(
   return bloco.descansoS;
 }
 
+export function descansoEntreSeriesDeTrabalho(
+  sessao: SessaoLocal,
+  bloco: BlocoLocal,
+  opcoes: OpcoesDoPlayer,
+): number {
+  return descansoPersonalizadoDaSessao(sessao, bloco.exercicioId) ?? descansoDoBloco(bloco, opcoes);
+}
+
 function descansoDepoisDe(
   passos: Passo[],
   segundos: number,
@@ -157,7 +165,7 @@ export function sequenciaDoPlayer(
 
   blocos.forEach((bloco, i) => {
     const descanso = descansoDoBloco(bloco, opcoes);
-    const descansoDeTrabalho = descansoPersonalizadoDaSessao(sessao, bloco.exercicioId) ?? descanso;
+    const descansoDeTrabalho = descansoEntreSeriesDeTrabalho(sessao, bloco, opcoes);
     const aquecimentos = bloco.series.filter((s) => s.tipo === "aquecimento");
     const trabalho = bloco.series.filter((s) => s.tipo !== "aquecimento");
     const todas = [...aquecimentos, ...trabalho];

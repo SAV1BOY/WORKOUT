@@ -128,6 +128,38 @@ test("o ajuste avulso dura um intervalo e restaurar o padrão preserva a contage
   expect((await lerDoMock(conta, "profiles"))[0]?.prefs).toMatchObject({ descanso_padrao_s: 70 });
 });
 
+test("a Visão geral usa o descanso salvo no player e mantém o padrão do outro exercício", async ({ page }) => {
+  const { conta, id } = await abrirTreinoAnterior(page, 4);
+  await concluir(page);
+  await escolherTempo(page, 95, true);
+  await salvarTempo(page);
+  await pular(page);
+  await abrirVisaoGeral(page);
+
+  const geral = page.getByRole("dialog", { name: "Visão geral do treino" });
+  const barra = geral.getByRole("timer", { name: "Descanso" });
+  await geral.getByRole("checkbox", { name: `Série 2 concluída — ${NOME}`, exact: true }).check();
+  await expect(barra.getByText("1:35", { exact: true })).toBeVisible();
+  await expect(barra).toContainText(NOME);
+  await barra.getByRole("button", { name: "Pular" }).click();
+
+  await geral.getByRole("checkbox", { name: "Série 1 concluída — Remada com elástico", exact: true }).check();
+  await expect(barra.getByText("1:10", { exact: true })).toBeVisible();
+  await expect(barra).toContainText("Remada com elástico");
+  await barra.getByRole("button", { name: "Pular" }).click();
+
+  // A lista permite concluir fora de ordem. Ainda falta a terceira Rosca ao marcar a quarta.
+  await geral.getByRole("checkbox", { name: `Série 4 concluída — ${NOME}`, exact: true }).check();
+  await expect(barra.getByText("1:35", { exact: true })).toBeVisible();
+  await barra.getByRole("button", { name: "Pular" }).click();
+  await geral.getByRole("checkbox", { name: `Série 3 concluída — ${NOME}`, exact: true }).check();
+  await expect(barra.getByText("1:00", { exact: true })).toBeVisible();
+  await expect.poll(async () => {
+    const series = await lerDoMock<LinhaSerie>(conta, "session_sets", `session_id=eq.${id}`);
+    return series.filter(s => s.concluida).map(s => [s.exercise_id, s.set_index]).sort();
+  }).toEqual([[REMADA, 1], [ROSCA, 1], [ROSCA, 2], [ROSCA, 3], [ROSCA, 4]]);
+});
+
 test("o link do treino ganha controle offline sem recarregar quando a instalação termina durante a navegação", async ({ page, context }) => {
   // No Playwright 1.56 o tráfego do próprio worker requer esta opção no Chromium.
   const opcaoAnterior = process.env.PW_EXPERIMENTAL_SERVICE_WORKER_NETWORK_EVENTS;

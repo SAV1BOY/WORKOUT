@@ -81,8 +81,10 @@ histórico com as cargas e repetições que você fez.
 **Ajustar o descanso de um exercício.** Entre duas séries de trabalho, toque em
 **Editar tempo de descanso**. Para repetir o intervalo nas séries seguintes,
 marque **Usar nas próximas séries** e salve. Por exemplo, você pode usar 90 segundos
-no supino durante esse treino. A escolha acompanha a sessão ao reabrir o app
-sem internet. No mesmo editor, você pode restaurar o padrão para as próximas séries.
+no supino durante esse treino. Se você registrar as séries pela **Visão geral**,
+o cronômetro também usa esse intervalo enquanto houver outra série de trabalho
+do supino por fazer. A escolha acompanha a sessão ao reabrir o app sem internet.
+No mesmo editor, você pode restaurar o padrão para as próximas séries.
 
 Em **Mais → Lembretes**, escolha os avisos e horários. Para receber
 notificações, ative este aparelho quando a opção estiver disponível. Você

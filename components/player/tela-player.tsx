@@ -392,6 +392,7 @@ export function TelaPlayer({
           <VisaoGeralDaSessao
             sessao={sessao}
             dados={dados}
+            opcoesDoPlayer={opcoes}
             videos={videos}
             aoFechar={fecharVisaoGeral}
           />

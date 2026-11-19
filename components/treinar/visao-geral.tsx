@@ -20,6 +20,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { acharExercicio } from "@/lib/dados";
 import { formatarDuracao } from "@/lib/formato";
+import { descansoEntreSeriesDeTrabalho, type OpcoesDoPlayer } from "@/lib/player";
 import { proximoExercicio, type SessaoLocal } from "@/lib/sessao";
 
 /**
@@ -38,11 +39,13 @@ import { proximoExercicio, type SessaoLocal } from "@/lib/sessao";
 export function VisaoGeralDaSessao({
   sessao,
   dados,
+  opcoesDoPlayer,
   videos = [],
   aoFechar,
 }: {
   sessao: SessaoLocal;
   dados: SessaoDeTreino;
+  opcoesDoPlayer: OpcoesDoPlayer;
   /** Ids com `public/videos/<id>.mp4` (SPEC §13.1). */
   videos?: string[];
   /**
@@ -188,11 +191,18 @@ export function VisaoGeralDaSessao({
           }
           aoMarcarSerie={(serieId, concluida) => {
             const feito = dados.marcar(bloco.ordem, serieId, concluida);
-            if (feito && concluida && bloco.descansoS > 0) {
+            if (!feito || !concluida) return;
+            // Na lista, dá para marcar fora de ordem. Vale a série de trabalho que ainda falta.
+            const entreSeries = feito.serie.tipo === "trabalho" &&
+              feito.bloco.series.some((s) => s.tipo === "trabalho" && !s.concluida);
+            const segundos = entreSeries
+              ? descansoEntreSeriesDeTrabalho(feito.sessao, feito.bloco, opcoesDoPlayer)
+              : feito.bloco.descansoS;
+            if (segundos > 0) {
               setDescanso({
                 chave: Date.now(),
-                segundos: bloco.descansoS,
-                exercicio: acharExercicio(bloco.exercicioId).nome,
+                segundos,
+                exercicio: acharExercicio(feito.bloco.exercicioId).nome,
               });
             }
           }}
