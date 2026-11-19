@@ -54,14 +54,17 @@ function linhasSalvas<T extends LinhaDaConta>(
 function repeticoesSalvas(cliente: QueryClient, conta: string, ids: string[]) {
   const anteriores: Record<string, (number | null)[]> = {};
   if (!ids.length) return anteriores;
-  const historico = cliente.getQueryData<Pick<LinhaSessao, "id" | "user_id" | "status" | "plano">[]>(
-    ["progresso", "sessoes"],
-  ) ?? [];
+  type SessaoDoHistorico = Pick<LinhaSessao, "id" | "user_id" | "status" | "plano">;
+  const historico = cliente.getQueryData<SessaoDoHistorico[]>(["progresso", "sessoes", conta])
+    ?? cliente.getQueryData<SessaoDoHistorico[]>(["progresso", "sessoes"]) ?? [];
   const minhas = new Map(historico.filter((s) => s.user_id === conta && s.status !== "em_andamento")
     .map((s) => [s.id, s]));
-  const copia = cliente.getQueryState<SerieAnterior[]>(["progresso", "series-todas"]);
-  if (minhas.size && copia?.data) {
-    const identificadas = copia.data.filter((serie) => {
+  const escopada = cliente.getQueryState<{ linhas: SerieAnterior[] }>(["progresso", "series-todas", conta]);
+  const antiga = cliente.getQueryState<SerieAnterior[]>(["progresso", "series-todas"]);
+  const linhas = escopada?.data?.linhas ?? antiga?.data;
+  const dataDaCopia = escopada?.data ? escopada.dataUpdatedAt : antiga?.dataUpdatedAt;
+  if (minhas.size && linhas) {
+    const identificadas = linhas.filter((serie) => {
       const sessao = minhas.get(serie.session_id);
       if (!sessao || !ids.includes(serie.exercise_id) || sessao.plano === undefined) return false;
       if (!sessao.plano?.trocas || !Object.keys(sessao.plano.trocas).length) return true;
@@ -73,7 +76,7 @@ function repeticoesSalvas(cliente: QueryClient, conta: string, ids: string[]) {
   }
   for (const id of ids) {
     const escopada = cliente.getQueryState<(number | null)[]>(chave(conta, "anteriores", id));
-    if (escopada?.data && (!anteriores[id] || escopada.dataUpdatedAt >= (copia?.dataUpdatedAt ?? 0))) {
+    if (escopada?.data && (!anteriores[id] || escopada.dataUpdatedAt >= (dataDaCopia ?? 0))) {
       if (escopada.data.length) anteriores[id] = escopada.data;
       else delete anteriores[id];
     }

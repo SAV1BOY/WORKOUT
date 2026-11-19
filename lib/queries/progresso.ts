@@ -8,11 +8,11 @@
 
 import { useQuery, type UseQueryResult } from "@tanstack/react-query";
 import { chaveDoHistorico, lerHistoricoDaConta } from "@/lib/queries/historico-da-sessao";
+import { lerFonteDoRelatorio, lerListaDoRelatorio, type ListaDoRelatorio } from "@/lib/queries/lista-do-relatorio";
 import { lerLista, lerTabelaCompleta } from "@/lib/queries/ler";
 import { clienteNavegador } from "@/lib/supabase/client";
 import type { SerieBruta, SessaoBruta } from "@/lib/progresso";
-import type { EventoDeSessao } from "@/lib/relatorio";
-import type { LinhaRecorde } from "@/lib/types";
+import type { LinhaEventoProgressao, LinhaRecorde } from "@/lib/types";
 
 /** Quantas séries a janela de 12 semanas pode ter. */
 export const LIMITE_SERIES = 3000;
@@ -24,9 +24,9 @@ export const COLUNAS_SERIE =
 
 export const chavesProgresso = {
   sessoesTodas: () => ["progresso", "sessoes"] as const,
-  eventosDesde: (de: string) => ["progresso", "eventos", de] as const,
+  eventosTodos: (conta: string) => ["progresso", "eventos-todos", conta] as const,
   seriesDesde: (de: string) => ["progresso", "series", de] as const,
-  seriesTodas: () => ["progresso", "series-todas"] as const,
+  seriesTodas: (conta: string) => ["progresso", "series-todas", conta] as const,
   seriesDoExercicio: (id: string) => ["progresso", "series-ex", id] as const,
   recordes: () => ["progresso", "recordes"] as const,
 };
@@ -35,6 +35,7 @@ export const chavesProgresso = {
 export function useSessoesTodas(conta?: string | null): UseQueryResult<SessaoBruta[]> {
   return useQuery({
     queryKey: conta ? chaveDoHistorico(conta) : chavesProgresso.sessoesTodas(),
+    meta: { contaDoRelatorio: conta },
     networkMode: conta ? "always" : "online",
     enabled: conta !== null,
     refetchOnMount: conta ? "always" : true,
@@ -68,18 +69,21 @@ export function useSeriesDesde(de: string | null): UseQueryResult<SerieBruta[]> 
 
 /**
  * Todas as séries registradas (SPEC §14.4): o volume acumulado do topo do
- * Relatório lê a mesma janela que os treinos e os minutos. O histórico e os
- * gráficos recortam 26 semanas desta mesma lista, sem uma segunda leitura.
+ * Relatório lê a mesma janela que os treinos e os minutos. O histórico usa a lista
+ * completa, e os gráficos recortam dela o período exibido.
  */
-export function useSeriesTodas(): UseQueryResult<SerieBruta[]> {
+export function useSeriesTodas(conta: string | null): UseQueryResult<ListaDoRelatorio<SerieBruta>> {
   return useQuery({
-    queryKey: chavesProgresso.seriesTodas(),
-    queryFn: async () => {
+    queryKey: chavesProgresso.seriesTodas(conta ?? ""),
+    meta: { contaDoRelatorio: conta },
+    enabled: Boolean(conta),
+    networkMode: "always",
+    queryFn: ({ client, signal }) => lerFonteDoRelatorio(client, conta!, "series", ["progresso", "series-todas"], async () => {
       const series = await lerTabelaCompleta<SerieBruta>(
-        "session_sets", `id,${COLUNAS_SERIE}`, "as séries registradas",
+        "session_sets", `id,user_id,${COLUNAS_SERIE}`, "as séries registradas", conta!, signal,
       );
       return series.sort((a, b) => a.registrada_em.localeCompare(b.registrada_em));
-    },
+    }, signal),
   });
 }
 
@@ -115,27 +119,23 @@ export function useTodosOsRecordes(): UseQueryResult<LinhaRecorde[]> {
   });
 }
 
-/** Quantos eventos do motor a janela do histórico lê. */
-export const LIMITE_EVENTOS = 1000;
+/** O ID distingue decisões iguais para dois exercícios na mesma sessão. */
+export type EventoDoHistorico = Pick<LinhaEventoProgressao, "id" | "user_id" | "session_id" | "motivo">;
 
-/**
- * Os eventos do motor a partir de uma data: é deles que sai o ↑/=/↓ de cada
- * sessão em "Todos os registros" (SPEC §13.5).
- */
-export function useEventosDesde(
-  de: string | null,
-): UseQueryResult<EventoDeSessao[]> {
+export function lerEventosDoHistorico(conta: string, sinal?: AbortSignal): Promise<EventoDoHistorico[]> {
+  const consultar = () => lerTabelaCompleta<EventoDoHistorico>(
+    "progression_events", "id,user_id,session_id,motivo", "o histórico de progressão", conta, sinal,
+  );
+  return lerListaDoRelatorio(conta, `eventos-do-historico:${conta}`, consultar, sinal);
+}
+
+/** As decisões do motor em todas as sessões, inclusive nas semanas anteriores aos gráficos. */
+export function useEventosTodos(conta: string): UseQueryResult<EventoDoHistorico[]> {
   return useQuery({
-    queryKey: chavesProgresso.eventosDesde(de ?? ""),
-    enabled: de !== null,
-    queryFn: () =>
-      lerLista<EventoDeSessao>(
-        clienteNavegador()
-          .from("progression_events")
-          .select("session_id,motivo")
-          .gte("data", de ?? "")
-          .limit(LIMITE_EVENTOS),
-        "o histórico de progressão",
-      ),
+    queryKey: chavesProgresso.eventosTodos(conta),
+    meta: { contaDoRelatorio: conta },
+    enabled: Boolean(conta),
+    networkMode: "always",
+    queryFn: ({ signal }) => lerEventosDoHistorico(conta, signal),
   });
 }

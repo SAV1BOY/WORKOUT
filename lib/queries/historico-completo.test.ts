@@ -1,3 +1,4 @@
+import { QueryClient } from "@tanstack/react-query";
 import { createClient } from "@supabase/supabase-js";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { CHAVE_DA_TABELA, type Linha } from "@/lib/backup";
@@ -10,7 +11,8 @@ import { clienteNavegador } from "@/lib/supabase/client";
 vi.mock("@/lib/supabase/client", () => ({ clienteNavegador: vi.fn() }));
 vi.mock("@tanstack/react-query", async (original) => ({
   ...(await original<typeof import("@tanstack/react-query")>()),
-  useQuery: (opcoes: { queryFn: () => Promise<unknown> }) => opcoes.queryFn(),
+  useQuery: (opcoes: { queryFn: (ctx: { client: QueryClient; signal: AbortSignal }) => Promise<unknown> }) =>
+    opcoes.queryFn({ client: new QueryClient(), signal: new AbortController().signal }),
 }));
 
 const uid = "pessoa";
@@ -110,12 +112,15 @@ describe("histórico maior que uma página do servidor", () => {
   });
 
   it("inclui no relatório toda a força, cardio e barra, mesmo com a mesma data em páginas diferentes", async () => {
+    const sessoes = await (useSessoesTodas() as unknown as Promise<Linha[]>);
+    expect(sessoes.map(s => s.id)).toEqual(dados.sessions!.map(s => s.id));
     for (const [consulta, tabela] of [
-      [useSessoesTodas, "sessions"], [useSeriesTodas, "session_sets"],
+      [useSeriesTodas, "session_sets"],
       [useCardioTodos, "cardio_sessions"], [useSoltasTodas, "pullup_singles"],
     ] as const) {
-      const linhas = await (consulta() as unknown as Promise<Linha[]>);
-      expect(linhas.map((linha) => linha.id)).toEqual(dados[tabela]!.map((linha) => linha.id));
+      const lista = await (consulta(uid) as unknown as Promise<{linhas: Linha[]; completa: boolean}>);
+      expect(lista.completa).toBe(true);
+      expect(lista.linhas.map((linha) => linha.id)).toEqual(dados[tabela]!.map((linha) => linha.id));
     }
   });
 

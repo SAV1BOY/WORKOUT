@@ -720,6 +720,7 @@ export function TelaPlayer({
     <>
       <h1 className="sr-only">{nomeDoTreino} — conclusão</h1>
       <TelaConclusao
+        conta={userId}
         sessaoId={sessao.id}
         titulo={`${nomeDoTreino} concluído`}
         subtitulo={

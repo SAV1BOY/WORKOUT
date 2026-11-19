@@ -11,6 +11,7 @@
 import type { QueryClient } from "@tanstack/react-query";
 import { bd, temIndexedDB } from "@/lib/db";
 import { enfileirarEscrita } from "@/lib/outbox-supabase";
+import { atualizarFonteDoRelatorio } from "@/lib/queries/lista-do-relatorio";
 import {
   chaves,
   type SessaoResumo,
@@ -53,11 +54,6 @@ export async function registrarSolta(opcoes: {
       (atual) => [{ id: linha.id, data, reps }, ...(atual ?? [])],
     );
   }
-  /* SPEC §19.2: a lista completa alimenta os Números e as conquistas */
-  cliente.setQueryData<SoltaComAssistencia[]>(chaves.soltasTodas(), (atual) =>
-    atual ? [{ id: linha.id, data, reps, assistencia: null }, ...atual] : atual,
-  );
-
   /*
    * Upsert pelo id gerado aqui, não insert (SPEC §8). A rede pode cair depois
    * de o servidor gravar e antes de a resposta voltar: o item continua na fila
@@ -71,6 +67,8 @@ export async function registrarSolta(opcoes: {
     onConflict: "id",
     linha,
   });
+  await atualizarFonteDoRelatorio<SoltaComAssistencia>(cliente, userId, "soltas", chaves.soltasTodas(userId),
+    anteriores => [{ ...linha, assistencia: null }, ...anteriores.filter(s => s.id !== linha.id)]);
   return linha.id;
 }
 
@@ -79,7 +77,9 @@ export async function desfazerSolta(id: string, userId: string, cliente: QueryCl
   await enfileirarEscrita("barra_fixa_solta", {
     tabela: "pullup_singles", op: "delete", filtro: { id, user_id: userId },
   });
-  for (const lista of ["soltas", "soltas-periodo", "soltas-todas"]) {
+  await atualizarFonteDoRelatorio<SoltaComAssistencia>(cliente, userId, "soltas", chaves.soltasTodas(userId),
+    anteriores => anteriores.filter(sol => sol.id !== id));
+  for (const lista of ["soltas", "soltas-periodo"]) {
     cliente.setQueriesData<SoltaResumo[]>({ queryKey: [lista] }, (atual) =>
       atual?.filter((solta) => solta.id !== id),
     );

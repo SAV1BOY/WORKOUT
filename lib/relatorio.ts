@@ -100,21 +100,25 @@ export function tituloDaSessao(sessao: SessaoBruta): string {
     : "Treino";
 }
 
-function contarSeries(series: readonly SerieBruta[], sessaoId: string): number {
-  return series.filter(
-    (s) => s.session_id === sessaoId && s.concluida && serieDeTrabalho(s),
-  ).length;
-}
-
-function contarMotor(eventos: readonly EventoDeSessao[], sessaoId: string) {
-  const meus = eventos.filter((e) => e.session_id === sessaoId);
-  return {
-    subiu: meus.filter((e) => e.motivo === "subiu").length,
-    repetiu: meus.filter((e) => e.motivo === "repetiu").length,
-    voltou: meus.filter(
-      (e) => e.motivo === "falha_2x_voltou_10" || e.motivo === "semana_leve_60",
-    ).length,
-  };
+function resumirSessoes(
+  sessoes: readonly SessaoBruta[], series: readonly SerieBruta[], eventos: readonly EventoDeSessao[],
+) {
+  const resumos = new Map(sessoes.map(s => [s.id, { series: 0, motor: { subiu: 0, repetiu: 0, voltou: 0 } }]));
+  if (resumos.size === 0) return resumos;
+  for (const serie of series) {
+    if (!serieDeTrabalho(serie)) continue;
+    const resumo = resumos.get(serie.session_id);
+    if (resumo) resumo.series++;
+  }
+  for (const { session_id, motivo } of eventos) {
+    if (session_id === null) continue;
+    const resumo = resumos.get(session_id);
+    if (!resumo) continue;
+    if (motivo === "subiu") resumo.motor.subiu++;
+    else if (motivo === "repetiu") resumo.motor.repetiu++;
+    else if (motivo === "falha_2x_voltou_10" || motivo === "semana_leve_60") resumo.motor.voltou++;
+  }
+  return resumos;
 }
 
 export interface EntradaDosRegistros extends EntradaDosContadores {
@@ -148,26 +152,27 @@ export function registros({
   const dentro = (data: string) =>
     (de === null || data >= de) && (ate === null || data <= ate);
 
-  const deForca: Registro[] = sessoes
-    .filter((s) => s.status === "concluida" && dentro(s.data))
-    .map((s) => {
-      const n = s.seriesDeTrabalhoLocais ?? (seriesDisponiveis ? contarSeries(series, s.id) : null);
-      const duracao = s.duracao_s
-        ? formatarMinutos(Math.round(s.duracao_s / 60))
-        : null;
-      return {
-        chave: `forca:${s.id}`,
-        tipo: "forca" as const,
-        data: s.data,
-        titulo: tituloDaSessao(s),
-        detalhe: [duracao, n === null ? null : `${n} ${n === 1 ? "série" : "séries"}`]
-          .filter((p): p is string => p !== null)
-          .join(" · "),
-        motor: contarMotor(eventos, s.id),
-        href: `/treinar/${s.id}`,
-        sessaoDeForca: s,
-      };
-    });
+  const concluidas = sessoes.filter(s => s.status === "concluida" && dentro(s.data));
+  const resumos = resumirSessoes(concluidas, seriesDisponiveis ? series : [], eventos);
+  const deForca: Registro[] = concluidas.map((s) => {
+    const resumo = resumos.get(s.id)!;
+    const n = s.seriesDeTrabalhoLocais ?? (seriesDisponiveis ? resumo.series : null);
+    const duracao = s.duracao_s
+      ? formatarMinutos(Math.round(s.duracao_s / 60))
+      : null;
+    return {
+      chave: `forca:${s.id}`,
+      tipo: "forca",
+      data: s.data,
+      titulo: tituloDaSessao(s),
+      detalhe: [duracao, n === null ? null : `${n} ${n === 1 ? "série" : "séries"}`]
+        .filter((p): p is string => p !== null)
+        .join(" · "),
+      motor: resumo.motor,
+      href: `/treinar/${s.id}`,
+      sessaoDeForca: s,
+    };
+  });
 
   const deCardio: Registro[] = cardios
     .filter((c) => c.concluida && dentro(c.data))

@@ -21,7 +21,7 @@ import type { SessaoBruta } from "@/lib/progresso";
  * antes de ela subir — sem esta memória, o card voltaria sozinho depois do
  * "Ok". Quem guarda de verdade continua sendo as prefs; isto só cobre o vão.
  */
-const avisadosAgora = new Set<string>();
+const avisadosAgora = new Map<string, Set<string>>();
 
 /**
  * As conquistas avaliadas (SPEC §19.3) a partir do que já está em cache: as
@@ -32,7 +32,8 @@ const avisadosAgora = new Set<string>();
  * fila: ela entra na conta antes de chegar ao banco, como o card da semana da
  * §14.1.5 já faz.
  */
-export function useConquistas(opcoes?: {
+export function useConquistas(opcoes: {
+  conta: string;
   sessaoConcluida?: { id: string; data: string } | null;
 }): {
   lista: ConquistaAvaliada[];
@@ -42,13 +43,14 @@ export function useConquistas(opcoes?: {
 } {
   const cliente = useQueryClient();
   const perfilQ = usePerfil();
-  const sessoesQ = useSessoesTodas(perfilQ.data?.user_id ?? null);
-  const seriesQ = useSeriesTodas();
-  const cardiosQ = useCardioTodos();
-  const soltasQ = useSoltasTodas();
+  const conta = opcoes.conta;
+  const sessoesQ = useSessoesTodas(conta);
+  const seriesQ = useSeriesTodas(conta);
+  const cardiosQ = useCardioTodos(conta);
+  const soltasQ = useSoltasTodas(conta);
 
-  const perfil = perfilQ.data ?? null;
-  const recem = opcoes?.sessaoConcluida ?? null;
+  const perfil = perfilQ.data?.user_id === conta ? perfilQ.data : null;
+  const recem = opcoes.sessaoConcluida ?? null;
 
   const sessoes = useMemo<SessaoBruta[]>(() => {
     const lista = sessoesQ.data ?? [];
@@ -74,9 +76,9 @@ export function useConquistas(opcoes?: {
     if (!perfil) return [];
     return avaliarConquistas({
       sessoes,
-      series: seriesQ.data ?? [],
-      cardios: cardiosQ.data ?? [],
-      soltas: soltasQ.data ?? [],
+      series: seriesQ.data?.linhas ?? [],
+      cardios: cardiosQ.data?.linhas ?? [],
+      soltas: soltasQ.data?.linhas ?? [],
       meta: metaSemanal(perfil.prefs, perfil.fase_atual),
       planejadasNaSemana: metaSemanalPadrao(perfil.fase_atual, perfil.prefs),
       fase: { atual: perfil.fase_atual, desde: perfil.fase_desde },
@@ -87,16 +89,18 @@ export function useConquistas(opcoes?: {
     () =>
       conquistasNovas(lista, [
         ...conquistasVistasDasPrefs(perfil?.prefs),
-        ...avisadosAgora,
+        ...(avisadosAgora.get(perfil?.user_id ?? "") ?? []),
       ]),
-    [lista, perfil?.prefs],
+    [lista, perfil?.prefs, perfil?.user_id],
   );
 
   const marcarComoVistas = useCallback(
     async (ids: readonly string[]) => {
       if (ids.length === 0) return;
-      for (const id of ids) avisadosAgora.add(id);
       if (!perfil) return;
+      const vistos = avisadosAgora.get(perfil.user_id) ?? new Set<string>();
+      for (const id of ids) vistos.add(id);
+      avisadosAgora.set(perfil.user_id, vistos);
       await salvarPrefs({
         userId: perfil.user_id,
         prefs: comConquistasVistas(perfil.prefs, ids),
@@ -113,9 +117,9 @@ export function useConquistas(opcoes?: {
   const pronto =
     perfil !== null &&
     sessoesQ.isSuccess &&
-    seriesQ.isSuccess &&
-    cardiosQ.isSuccess &&
-    soltasQ.isSuccess;
+    seriesQ.data?.completa === true &&
+    cardiosQ.data?.completa === true &&
+    soltasQ.data?.completa === true;
 
   return { lista, novas, pronto, marcarComoVistas };
 }

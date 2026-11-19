@@ -34,6 +34,7 @@ import { cn } from "@/lib/utils";
  * com o mesmo padrão de `ControlesDoPlayer`.
  */
 export function TelaConclusao({
+  conta,
   sessaoId,
   titulo,
   subtitulo,
@@ -55,6 +56,7 @@ export function TelaConclusao({
   aoSeguir,
   aoVoltar,
 }: {
+  conta: string;
   /** A sessão que acabou — ela conta nas conquistas antes de subir (§19.5). */
   sessaoId: string;
   titulo: string;
@@ -230,7 +232,7 @@ export function TelaConclusao({
       ) : null}
 
       {/* SPEC §19.5: a conquista nova, sóbria, antes do "Próximo" */}
-      <AvisoDeConquista sessaoConcluida={{ id: sessaoId, data: dataDaSessao }} />
+      <AvisoDeConquista conta={conta} sessaoConcluida={{ id: sessaoId, data: dataDaSessao }} />
 
       <CardDaSemana hoje={hoje} dataDaSessao={dataDaSessao} />
 

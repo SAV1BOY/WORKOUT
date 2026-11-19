@@ -21,6 +21,7 @@ import { metaDePeso, ultimoPeso } from "@/lib/corpo";
 import { TOTAL_DE_CONQUISTAS, totalConquistado } from "@/lib/conquistas";
 import { metaSemanal, sequenciaDeDias, sequenciaDeSemanas } from "@/lib/metas";
 import { contadoresDoRelatorio } from "@/lib/relatorio";
+import { confirmarContaDoTreino } from "@/lib/queries/conta-do-treino";
 import { gravarPerfil } from "@/lib/queries/perfil";
 import { usePesos } from "@/lib/queries/corpo";
 import {
@@ -30,7 +31,6 @@ import {
   useSoltasTodas,
 } from "@/lib/queries/dados";
 import {
-  useEventosDesde,
   useSeriesTodas,
   useSessoesTodas,
 } from "@/lib/queries/progresso";
@@ -45,7 +45,7 @@ const Historico = dynamic(
   { loading: () => <EsqueletoLinhas linhas={3} /> },
 );
 
-/** Quantas semanas para trás o histórico e as sequências leem. */
+/** O intervalo já carregado para as exceções de calendário dos gráficos e da faixa inicial. */
 const SEMANAS = 26;
 
 /** As cinco seções dobráveis do Relatório (SPEC §22.6 item 1). */
@@ -135,6 +135,29 @@ export function TelaRelatorio({ userId }: { userId: string }) {
   const cliente = useQueryClient();
   const { abertas, montadas, alternar } = useSecoes();
 
+  useEffect(() => {
+    let montado = true;
+    async function aoReconectar() {
+      try {
+        await confirmarContaDoTreino(userId, "O login do relatório mudou.");
+      } catch {
+        return;
+      }
+      if (!montado || !navigator.onLine) return;
+      // As fontes abrem pelo aparelho mesmo offline. Uma cópia local pode ainda estar fresca
+      // para o React Query quando ocorre o primeiro evento online deste documento.
+      await cliente.refetchQueries({
+        type: "active",
+        predicate: consulta => consulta.meta?.contaDoRelatorio === userId,
+      });
+    }
+    window.addEventListener("online", aoReconectar);
+    return () => {
+      montado = false;
+      window.removeEventListener("online", aoReconectar);
+    };
+  }, [cliente, userId]);
+
   const desde = useMemo(
     () => (hoje ? iso(addDays(inicioDaSemana(paraData(hoje)), -7 * (SEMANAS - 1))) : null),
     [hoje],
@@ -144,16 +167,14 @@ export function TelaRelatorio({ userId }: { userId: string }) {
   const perfilQ = usePerfil();
   /*
    * SPEC §14.4: os contadores do topo são acumulados, então as três fontes
-   * leem a MESMA janela (tudo). O histórico e as sequências recortam as 26
-   * semanas destas mesmas listas, sem uma segunda leitura.
+   * leem toda a história. A faixa semanal e os gráficos delimitam seu próprio período.
    */
   const sessoesQ = useSessoesTodas(userId);
-  const seriesQ = useSeriesTodas();
-  const cardioQ = useCardioTodos();
+  const seriesQ = useSeriesTodas(userId);
+  const cardioQ = useCardioTodos(userId);
   /* SPEC §19.2: os Números e as conquistas contam desde o começo */
-  const soltasTodasQ = useSoltasTodas();
-  const eventosQ = useEventosDesde(desde);
-  const overridesQ = useOverrides(desde, intervalo?.ate ?? null);
+  const soltasTodasQ = useSoltasTodas(userId);
+  const overridesQ = useOverrides(desde, intervalo?.ate ?? null, userId);
   const pesosQ = usePesos();
 
   const perfil = perfilQ.data?.user_id === userId ? perfilQ.data : null;
@@ -161,34 +182,21 @@ export function TelaRelatorio({ userId }: { userId: string }) {
     () => (sessoesQ.data ?? []).filter((s) => !s.user_id || s.user_id === userId),
     [sessoesQ.data, userId],
   );
-  const cardios = useMemo(() => cardioQ.data ?? [], [cardioQ.data]);
-  const series = useMemo(() => seriesQ.data ?? [], [seriesQ.data]);
+  const cardios = useMemo(() => cardioQ.data?.linhas ?? [], [cardioQ.data]);
+  const series = useMemo(() => seriesQ.data?.linhas ?? [], [seriesQ.data]);
 
-  const soltasTodas = useMemo(() => soltasTodasQ.data ?? [], [soltasTodasQ.data]);
+  const soltasTodas = useMemo(() => soltasTodasQ.data?.linhas ?? [], [soltasTodasQ.data]);
 
   const contadores = useMemo(
     () => contadoresDoRelatorio({ sessoes, cardios, series }),
     [sessoes, cardios, series],
   );
 
-  const conquistas = useConquistas();
+  const conquistas = useConquistas({ conta: userId });
 
-  /* a janela do histórico e dos gráficos, recortada do que já foi lido */
-  const seriesDaJanela = useMemo(
-    () => (desde ? series.filter((s) => (s.registrada_em ?? "") >= desde) : series),
-    [series, desde],
-  );
-  const cardiosDaJanela = useMemo(
-    () => (desde ? cardios.filter((c) => c.data >= desde) : cardios),
-    [cardios, desde],
-  );
-
-  const soltasDaJanela = useMemo(
-    () => soltasTodas.filter((s) => desde && hoje && s.data >= desde && s.data <= hoje),
-    [soltasTodas, desde, hoje],
-  );
-  const pronto = Boolean(hoje && perfil && sessoesQ.data && seriesQ.data && cardioQ.data && soltasTodasQ.data);
-  const leituras = [perfilQ, sessoesQ, seriesQ, cardioQ, soltasTodasQ, eventosQ, overridesQ, pesosQ];
+  const leiturasCompletas = Boolean(seriesQ.data?.completa && cardioQ.data?.completa && soltasTodasQ.data?.completa);
+  const pronto = Boolean(hoje && perfil && sessoesQ.data && leiturasCompletas);
+  const leituras = [perfilQ, sessoesQ, seriesQ, cardioQ, soltasTodasQ, overridesQ, pesosQ];
   const falha = leituras.find((q) => q.isError);
   const feitas = totalConquistado(conquistas.lista);
   const meta = perfil ? metaSemanal(perfil.prefs, perfil.fase_atual) : 0;
@@ -199,11 +207,11 @@ export function TelaRelatorio({ userId }: { userId: string }) {
 
   const comum = { abertas, montadas, aoAlternar: alternar };
 
-  const avisoDeErro = falha?.error && <Erro mensagem={falha.error.message} aoTentarDeNovo={() => {
+  const avisoDeErro = falha?.error && (online || !perfil || !sessoesQ.data) && <Erro mensagem={falha.error.message} aoTentarDeNovo={() => {
     for (const consulta of leituras) if (consulta.isError) void consulta.refetch();
   }} />;
   // Ao abrir o app já offline, o React Query pode ainda tentar buscar os totais pela rede.
-  const historicoDisponivel = Boolean(perfil && sessoesQ.data && (pronto || !online || falha));
+  const historicoDisponivel = Boolean(perfil && sessoesQ.data && ((seriesQ.data && cardioQ.data && soltasTodasQ.data) || !online || falha));
   if (avisoDeErro && !historicoDisponivel) return avisoDeErro;
 
   return (
@@ -296,7 +304,7 @@ export function TelaRelatorio({ userId }: { userId: string }) {
         da tela. Ele só existe DEPOIS das ~10 leituras, e no alto empurrava
         297 px de conteúdo já pintado para baixo — sozinho, 0,3155 de CLS.
       */}
-      <AvisoDeConquista />
+      <AvisoDeConquista conta={userId} />
 
       <Secao
         {...comum}
@@ -318,13 +326,15 @@ export function TelaRelatorio({ userId }: { userId: string }) {
           <Historico
             hoje={hoje}
             perfil={perfil}
-            overrides={overridesQ.data ?? []}
+            overrides={overridesQ.data}
+            inicioDaAgenda={desde}
             sessoes={sessoes}
-            cardios={cardiosDaJanela}
-            series={seriesDaJanela}
-            seriesDisponiveis={seriesQ.data !== undefined}
-            soltas={soltasDaJanela}
-            eventos={eventosQ.data ?? []}
+            cardios={cardios}
+            series={series}
+            seriesDisponiveis={seriesQ.data?.completa === true}
+            atividadesCompletas={Boolean(cardioQ.data?.completa && soltasTodasQ.data?.completa)}
+            online={online}
+            soltas={soltasTodas}
           />
         ) : (
           <EsqueletoLinhas linhas={3} />

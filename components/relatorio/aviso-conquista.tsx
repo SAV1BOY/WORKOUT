@@ -26,10 +26,12 @@ const LIMITE = 3;
  */
 export function AvisoDeConquista({
   sessaoConcluida = null,
+  conta,
 }: {
+  conta: string;
   sessaoConcluida?: { id: string; data: string } | null;
 }) {
-  const { novas, pronto, marcarComoVistas } = useConquistas({ sessaoConcluida });
+  const { novas, pronto, marcarComoVistas } = useConquistas({ conta, sessaoConcluida });
   const hoje = useHoje();
   const [fechado, setFechado] = useState(false);
 
