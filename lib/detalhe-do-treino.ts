@@ -1,6 +1,7 @@
 import { exercicioPorId } from "@/lib/dados";
 import { formatarKg, formatarNumero, rotuloDaCarga } from "@/lib/formato";
 import type { SerieBruta, SessaoBruta } from "@/lib/progresso";
+import type { Exercicio } from "@/lib/schemas";
 import { nomeDaAssistencia, rotulosDaSerie } from "@/lib/sessao";
 
 export interface GrupoDeSeriesDoTreino {
@@ -47,12 +48,16 @@ function textoDaMedida(valor: number, singular: string, plural: string) {
   return `${formatarNumero(valor)} ${valor === 1 ? singular : plural}`;
 }
 
-function medidaRegistrada(valor: number | null): valor is number {
+// As leituras antigas do player não guardavam o segundo lado, os passos ou a assistência.
+type MedidasRegistradas = Pick<SerieBruta, "exercise_id" | "reps" | "carga_kg" | "tempo_s"> &
+  Partial<Pick<SerieBruta, "reps_lado2" | "tempo_s_lado2" | "passos" | "assistencia">> & { tipo: string };
+
+function medidaRegistrada(valor: number | null | undefined): valor is number {
   return typeof valor === "number" && Number.isFinite(valor);
 }
 
 function medidasPorLado(
-  direito: number | null, esquerdo: number | null, unilateral: boolean, singular: string, plural: string,
+  direito: number | null, esquerdo: number | null | undefined, unilateral: boolean, singular: string, plural: string,
 ): string[] {
   const lados: string[] = [];
   if (medidaRegistrada(direito)) {
@@ -62,9 +67,16 @@ function medidasPorLado(
   return lados;
 }
 
+function cargaDaSerie(carga: number, exercicio: Exercicio | undefined): string {
+  const kg = formatarKg(carga);
+  if (!exercicio) return kg;
+  const rotulo = rotuloDaCarga(exercicio.implemento);
+  return rotulo === "peso do corpo" ? `${kg} de carga adicional` : `${kg} ${rotulo}`;
+}
+
 /** As medidas vêm da série registrada. O catálogo fornece a convenção da carga e dos lados. */
 export function valoresDaSerieRegistrada(
-  serie: SerieBruta,
+  serie: MedidasRegistradas,
   exercicio = exercicioPorId.get(serie.exercise_id),
   prescricaoUnilateral = exercicio?.prescricao_padrao.unilateral ?? false,
 ): string {
@@ -75,10 +87,7 @@ export function valoresDaSerieRegistrada(
   ];
   if (medidaRegistrada(serie.passos)) valores.push(textoDaMedida(serie.passos, "passo", "passos"));
   if (medidaRegistrada(serie.carga_kg)) {
-    const kg = formatarKg(serie.carga_kg);
-    const rotulo = exercicio && rotuloDaCarga(exercicio.implemento);
-    if (rotulo === "peso do corpo") valores.push(`${kg} de carga adicional`);
-    else valores.push(rotulo ? `${kg} ${rotulo}` : kg);
+    valores.push(cargaDaSerie(serie.carga_kg, exercicio));
   } else if (exercicio?.progressao.tipo === "carga") {
     valores.push("carga não registrada");
   }
@@ -87,6 +96,18 @@ export function valoresDaSerieRegistrada(
     valores.push(serie.assistencia === "sem" ? apoio : `elástico no ${apoio}`);
   }
   return valores.join(" · ") || "Sem valores registrados";
+}
+
+/** No player, uma série simples continua cabendo ao lado do botão Montagem. */
+export function valoresDaSerieAnterior(serie: MedidasRegistradas): string {
+  const exercicio = exercicioPorId.get(serie.exercise_id);
+  const reps = serie.reps;
+  const soRepeticoes = medidaRegistrada(reps) && !exercicio?.prescricao_padrao.unilateral &&
+    serie.reps_lado2 == null && serie.tempo_s == null && serie.tempo_s_lado2 == null &&
+    serie.passos == null && serie.assistencia == null;
+  if (!soRepeticoes) return valoresDaSerieRegistrada(serie, exercicio);
+  const carga = medidaRegistrada(serie.carga_kg) ? cargaDaSerie(serie.carga_kg, exercicio) + " " : "";
+  return `${carga}× ${formatarNumero(reps)}`;
 }
 
 function instante(serie: SerieBruta) {

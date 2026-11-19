@@ -7,7 +7,9 @@
  */
 "use client";
 
+import { useEffect } from "react";
 import { useQuery, type QueryClient, type UseQueryResult } from "@tanstack/react-query";
+import { lerSeriesDoTreinoPassado, type UltimaSerie } from "@/lib/queries/series-do-treino-passado";
 import { lerExcecoesDoHistorico } from "@/lib/queries/excecoes-do-historico";
 import { guardarCargasLidas } from "@/lib/queries/cargas-no-aparelho";
 import { guardarPerfilLido } from "@/lib/queries/perfil-no-aparelho";
@@ -57,8 +59,8 @@ export const chaves = {
   seriesAnteriores: (ids: readonly string[]) =>
     ["series-anteriores", [...ids].sort().join(",")] as const,
   recordes: (ids: readonly string[]) => ["recordes", [...ids].sort().join(",")] as const,
-  ultimasSeries: (ids: readonly string[]) =>
-    ["ultimas-series", [...ids].sort().join(",")] as const,
+  ultimasSeries: (conta: string, ids: readonly string[], atual?: string) =>
+    ["ultimas-series", conta, [...new Set(ids)].sort().join(","), atual ?? ""] as const,
 };
 
 interface Resposta<T> {
@@ -490,51 +492,26 @@ export function useSeriesAnteriores(
   });
 }
 
-/** Quantas séries a linha "anterior: 9,5 kg × 5" do player precisa olhar. */
-export const ULTIMAS_SERIES = 120;
-
-export type UltimaSerie = Pick<
-  LinhaSerie,
-  | "exercise_id"
-  | "session_id"
-  | "set_index"
-  | "reps"
-  | "carga_kg"
-  | "tempo_s"
-  | "tipo"
-  | "concluida"
-  | "registrada_em"
->;
-
-/**
- * As últimas séries de trabalho destes exercícios, com carga e tempo — é delas
- * que sai o "anterior: 9,5 kg × 5" do player (SPEC §14.1.2).
- *
- * Consulta separada da `useSeriesAnteriores` de propósito: aquela alimenta o
- * motor (tipo `maximo`) e é pedida para os exercícios do treino **mais todos
- * os substitutos possíveis**; misturar as duas mudaria o recorte de linhas que
- * o motor vê.
- */
-export function useUltimasSeries(
-  ids: readonly string[],
-): UseQueryResult<UltimaSerie[]> {
-  return useQuery({
-    queryKey: chaves.ultimasSeries(ids),
-    enabled: ids.length > 0,
-    queryFn: () =>
-      lerLista<UltimaSerie>(
-        clienteNavegador()
-          .from("session_sets")
-          .select(
-            "exercise_id,session_id,set_index,reps,carga_kg,tempo_s,tipo,concluida,registrada_em",
-          )
-          .in("exercise_id", [...ids])
-          .eq("tipo", "trabalho")
-          .order("registrada_em", { ascending: false })
-          .limit(ULTIMAS_SERIES),
-        "as séries do treino passado",
-      ),
+/** Comparação visual do player, separada da referência do motor de progressão. */
+export function useUltimasSeries(conta: string, ids: readonly string[], atual?: string): UseQueryResult<UltimaSerie[]> {
+  const habilitada = Boolean(conta) && ids.length > 0;
+  const consulta = useQuery({
+    queryKey: chaves.ultimasSeries(conta, ids, atual),
+    enabled: habilitada,
+    networkMode: "always",
+    refetchOnReconnect: false,
+    queryFn: ({ client, signal }) => lerSeriesDoTreinoPassado(client, conta, ids, atual, signal),
   });
+  const { refetch } = consulta;
+  useEffect(() => {
+    // Funciona também quando o documento foi aberto offline e a biblioteca
+    // ainda não recebeu um evento de desconexão. A chave deduplica a leitura.
+    if (!habilitada) return;
+    const aoVoltar = () => { void refetch({ cancelRefetch: false }); };
+    window.addEventListener("online", aoVoltar);
+    return () => window.removeEventListener("online", aoVoltar);
+  }, [habilitada, refetch]);
+  return consulta;
 }
 
 /** Recordes por exercício (view `v_records`), para o resumo do fim (§6.6). */
