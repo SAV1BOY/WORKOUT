@@ -202,6 +202,7 @@ test("um treino enviado pela fila fora do relatório ainda tem detalhes na prime
   await expect.poll(() => naFila(page)).toBe(0);
   await expect(page.getByLabel("Sincronização").getByText("Tudo sincronizado", { exact: true })).toBeVisible();
   await irNaAba(page, "Treino");
+  await esperarAbaTreino(page);
   await semRedeNoWorker(await workerDoApp(context));
   await context.setOffline(true);
   await page.reload();

@@ -25,6 +25,9 @@ export interface PedidoDeNavegacao {
   url: string;
 }
 
+/** Identifica o build que produziu o documento ou payload de navegação do Next. */
+export const CABECALHO_DO_BUILD = "X-Treino-Build";
+
 /** O fetch que o roteador do Next faz para trocar de tela sem recarregar. */
 export function ehRsc(pedido: PedidoDeNavegacao): boolean {
   if (pedido.rsc === "1") return true;

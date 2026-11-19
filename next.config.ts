@@ -4,6 +4,7 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import withSerwistInit from "@serwist/next";
 import type { NextConfig } from "next";
+import { CABECALHO_DO_BUILD } from "./lib/sw-navegacao";
 
 /**
  * O precache da instalação guarda o shell, as rotas do App Router, os ícones
@@ -158,6 +159,7 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       { source: "/:caminho*", headers: CABECALHOS_DE_SEGURANCA },
+      { source: "/:caminho((?!_next/|api/).*)", headers: [{ key: CABECALHO_DO_BUILD, value: CONSTRUIDO_EM }] },
       { source: MIDIA_DE_PUBLIC, headers: CACHE_DA_MIDIA },
     ];
   },
