@@ -1,10 +1,30 @@
 import { readFile } from "node:fs/promises";
-import { expect, test } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 import { prepararFechamentoAntigo } from "./contagens-legadas";
 import { abrirConflitosDoBackup, corrigirAsDuasContagens, FLEXAO_IMPORTADA, importarNaTelaDeBackup } from "./contagens-em-conflito";
 import { abrirSecaoDoRelatorio, fixarData, irNaAba, lerDoMock, naFila, resetarMock } from "./fixtures";
 import { comRedeNoWorker, semRedeNoWorker, workerDoApp } from "./rede-do-worker";
 import { FRONTAL, NOME } from "./treino-livre-ativo";
+
+async function conferirEscolhasComTextoAmpliado(page: Page, dialogo: Locator, grupo: Locator) {
+  await page.setViewportSize({ width: 320, height: 740 });
+  await page.addStyleTag({ content: "html { font-size: 200% !important; }" });
+  await page.evaluate(() => document.fonts.ready);
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("button", { name: "Corrigir contagens", exact: true })).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(dialogo.getByRole("heading", { name: "Corrigir contagens", exact: true })).toBeFocused();
+
+  // Só a rolagem vertical deve ser necessária para ler e escolher qualquer uma das duas opções.
+  expect(await grupo.evaluate(no => no.scrollWidth <= no.clientWidth)).toBe(true);
+  const opcoes = grupo.getByRole("button");
+  await expect(opcoes).toHaveCount(2);
+  for (const opcao of await opcoes.all()) {
+    await page.keyboard.press("Tab");
+    await expect(opcao).toBeFocused();
+    await expect(opcao).toBeInViewport({ ratio: 1 });
+  }
+}
 
 for (const escolha of ["histórico", "aparelho"] as const) {
   test(`um backup e outro aparelho alteraram o treino: escolher a contagem do ${escolha} preserva carga e movimento`, async ({ page, context }) => {
@@ -16,7 +36,16 @@ for (const escolha of ["histórico", "aparelho"] as const) {
     await expect(primeira).toContainText("10");
     await expect(primeira).toContainText("35,5");
     const acao = escolha === "histórico" ? "Manter a contagem do histórico" : "Usar a contagem do aparelho";
-    await primeira.getByRole("button", { name: acao, exact: true }).click();
+    const opcao = primeira.getByRole("button", { name: acao, exact: true });
+    if (escolha === "histórico") {
+      await conferirEscolhasComTextoAmpliado(page, dialogo, primeira);
+      await page.keyboard.press("Shift+Tab");
+      await expect(opcao).toBeFocused();
+      await page.keyboard.press("Enter");
+      await expect(dialogo.getByText("Escolha salva neste aparelho.", { exact: true })).toBeFocused();
+    } else {
+      await opcao.click();
+    }
     await expect(primeira).toHaveCount(0);
 
     await expect(segunda).toContainText(NOME);
@@ -33,6 +62,7 @@ for (const escolha of ["histórico", "aparelho"] as const) {
     expect(await lerSeries()).toMatchObject(esperadas);
     await page.keyboard.press("Escape");
     await expect(dialogo).toHaveCount(0);
+    await expect(page.getByRole("region", { name: "Sincronização", exact: true })).toBeFocused();
 
     await page.goto("/mais/backup");
     const baixando = page.waitForEvent("download");
@@ -107,7 +137,9 @@ test("um backup que só identifica outro exercício permite criar a série sem m
   await expect(criar).toContainText("Flexão de braço");
   await expect(criar).toContainText("Sem registro");
   expect(await lerSeries()).toEqual([]);
-  await criar.getByRole("button", { name: "Criar a série no histórico", exact: true }).click();
+  await conferirEscolhasComTextoAmpliado(page, dialogo, criar);
+  await expect(criar.getByRole("button", { name: "Criar a série no histórico", exact: true })).toBeFocused();
+  await page.keyboard.press("Enter");
   await expect(criar).toHaveCount(0);
   await grupo(2).getByRole("button", { name: "Manter o histórico sem esta série", exact: true }).click();
   await expect(grupo(2)).toHaveCount(0);

@@ -20,6 +20,7 @@ const rotulos: Record<CampoContagem, string> = {
   tempo_s: "Tempo em segundos", tempo_s_lado2: "Tempo em segundos (lado esquerdo)",
   passos: "Passos", reps_alvo_min: "Meta mínima de repetições", reps_alvo_max: "Meta máxima de repetições",
 };
+const acaoDaFolha = "alvo h-auto max-w-full py-1 whitespace-normal wrap-anywhere";
 const numero = new Intl.NumberFormat("pt-BR", { maximumSignificantDigits: 21 });
 const momento = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" });
 
@@ -60,7 +61,7 @@ export function CorrecoesDeContagem({ conta, pendencias, comparacoes, online, te
           <p role="alert" className="text-sm wrap-anywhere">
             Não foi possível concluir a comparação com o histórico. {falhas.join(" ")}
           </p>
-          {aberta && <Button variant="outline" className="alvo justify-self-start" disabled={!online || tentando}
+          {aberta && <Button variant="outline" className={`${acaoDaFolha} justify-self-start`} disabled={!online || tentando}
             onClick={() => void tentar()}>Tentar comparar de novo</Button>}
         </>
       )}
@@ -81,11 +82,11 @@ export function CorrecoesDeContagem({ conta, pendencias, comparacoes, online, te
           evento.preventDefault();
           aoFecharSemPendencias();
         }}>
-        <SheetHeader className="shrink-0 pr-14">
+        <SheetHeader className="shrink-0 pr-14 pb-0">
           <SheetTitle>Corrigir contagens</SheetTitle>
-          <SheetDescription>Confira as contagens que precisam de correção ou que diferem do histórico.</SheetDescription>
         </SheetHeader>
         <div className="min-h-0 overflow-y-auto px-4 pb-3">
+          <SheetDescription className="mb-3">Confira as contagens que precisam de correção ou que diferem do histórico.</SheetDescription>
           <p ref={aviso} tabIndex={-1} role="status" className="text-sm font-medium">{mensagem}</p>
           {espera}
           {conflitos.map(c => (
@@ -201,7 +202,7 @@ function EscolhaDaContagem({ conta, atual, revisaoEscolhida, aoEscolher }: {
       ) : (
         <p className="text-sm">A identificação ou a marcação desta série mudou no histórico. Confira os dois registros.</p>
       )}
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,9rem),1fr))] gap-2">
         <MedidasDaContagem origem="No aparelho" linha={local} campos={campos} mostrarIdentidade={mostrarIdentidade} mostrarProposta={ausente} />
         {outra ? <MedidasDaContagem origem={ausente ? "Série do backup" : "No histórico"} linha={outra} campos={campos}
           mostrarIdentidade={mostrarIdentidade} mostrarProposta={ausente} /> : ausente && (
@@ -211,22 +212,22 @@ function EscolhaDaContagem({ conta, atual, revisaoEscolhida, aoEscolher }: {
         )}
       </div>
       {ausente && <p className="text-sm">{atual.permiteCriar
-        ? "A nova série usará os valores da coluna Série do backup."
+        ? "A nova série usará os valores mostrados em “Série do backup”."
         : "O backup tem dados insuficientes para criar esta série."}</p>}
       {!ausente && atual.mesmaIdentidade && campos.length > 1 && <p className="text-sm">A escolha vale para as {campos.length} contagens exibidas.</p>}
       {mudou ? (
         <>
           <p role="status" className="text-sm">O histórico mudou. Confira os valores atuais.</p>
-          <Button variant="outline" className="alvo self-start" onClick={() => { setRevista(atual.revisao); setErro(""); }}>Rever valores</Button>
+          <Button variant="outline" className={`${acaoDaFolha} self-start`} onClick={() => { setRevista(atual.revisao); setErro(""); }}>Rever valores</Button>
         </>
       ) : (
         <div className="flex flex-wrap gap-2">
-          <Button className="alvo h-auto whitespace-normal" disabled={salvando} onClick={() => void decidir(ausente ? "manter-ausencia" : "historico")}>
+          <Button className={acaoDaFolha} disabled={salvando} onClick={() => void decidir(ausente ? "manter-ausencia" : "historico")}>
             {ausente ? "Manter o histórico sem esta série" : atual.mesmaIdentidade ? "Manter a contagem do histórico" : "Manter a série do histórico"}
           </Button>
-          {ausente && atual.permiteCriar && <Button variant="outline" className="alvo h-auto whitespace-normal" disabled={salvando}
+          {ausente && atual.permiteCriar && <Button variant="outline" className={acaoDaFolha} disabled={salvando}
             onClick={() => void decidir("criar")}>Criar a série no histórico</Button>}
-          {!ausente && atual.mesmaIdentidade && <Button variant="outline" className="alvo h-auto whitespace-normal" disabled={salvando}
+          {!ausente && atual.mesmaIdentidade && <Button variant="outline" className={acaoDaFolha} disabled={salvando}
             onClick={() => void decidir("aparelho")}>Usar a contagem do aparelho</Button>}
         </div>
       )}
@@ -312,12 +313,12 @@ function CorrecaoDaSerie({ conta, atual, aoGuardar }: {
       {mudou ? (
         <>
           <p role="status" className="text-sm">A série mudou neste aparelho. Confira os valores atuais.</p>
-          <Button type="button" variant="outline" className="alvo self-start" onClick={() => { setBase(atual); setDigitados({}); setErro(""); }}>
+          <Button type="button" variant="outline" className={`${acaoDaFolha} self-start`} onClick={() => { setBase(atual); setDigitados({}); setErro(""); }}>
             Rever valores
           </Button>
         </>
       ) : (
-        <Button type="submit" className="alvo self-start" disabled={salvando || faltaValor}>
+        <Button type="submit" className={`${acaoDaFolha} self-start`} disabled={salvando || faltaValor}>
           {salvando ? "Confirmando…" : "Confirmar correção"}
         </Button>
       )}

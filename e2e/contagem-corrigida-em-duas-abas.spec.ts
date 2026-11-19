@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { prepararFechamentoAntigo } from "./contagens-legadas";
-import { esperarServiceWorker, fixarData, inserirNoMock, lerDoMock, naFila, resetarMock } from "./fixtures";
-import { semRedeNoWorker, workerDoApp } from "./rede-do-worker";
+import { atualizarNoMock, esperarServiceWorker, fixarData, inserirNoMock, lerDoMock, naFila, resetarMock } from "./fixtures";
+import { comRedeNoWorker, semRedeNoWorker, workerDoApp } from "./rede-do-worker";
 import { FRONTAL, NOME } from "./treino-livre-ativo";
 
 declare global {
@@ -24,6 +24,18 @@ test("um GET antigo da ficha não repõe 8,5 após a correção da série em out
   const ficha = await context.newPage();
   await fixarData(ficha, "2026-09-14T13:01:00-03:00");
   await ficha.addInitScript(sessaoId => {
+    // A aba Mais foi a última a guardar seu conjunto de consultas. Mantemos essa ordem
+    // mesmo quando o temporizador de persistência da ficha dispara primeiro no Chromium.
+    const gravar = IDBObjectStore.prototype.put;
+    IDBObjectStore.prototype.put = function (...args) {
+      const registro = args[0];
+      if (this.name === "cache" && registro?.chave === "react-query-v1") {
+        const estado = registro.valor.estado;
+        const queries = estado.queries.filter((q: { queryKey: string[] }) => q.queryKey[1] !== "series-ex");
+        args[0] = { ...registro, valor: { ...registro.valor, estado: { ...estado, queries } } };
+      }
+      return gravar.apply(this, args);
+    };
     const buscar = window.fetch.bind(window);
     let liberar!: () => void;
     const barreira = new Promise<void>(ok => { liberar = ok; });
@@ -67,10 +79,28 @@ test("um GET antigo da ficha não repõe 8,5 após a correção da série em out
   const segundaSerie = detalhe.getByRole("listitem").filter({ has: ficha.getByText("Série 2", { exact: true }) });
   await expect(segundaSerie).toContainText("8 repetições · 23,5 kg na barra");
   await expect(detalhe).not.toContainText("8,5 repetições");
-  await semRedeNoWorker(await workerDoApp(context));
+  const worker = await workerDoApp(context);
+  await semRedeNoWorker(worker);
   await context.setOffline(true);
   expect((await ficha.reload())?.fromServiceWorker()).toBe(true);
+  await expect(ficha.getByRole("heading", { name: NOME, exact: true })).toBeVisible();
+  await expect(abrir).toBeVisible();
   await abrir.click();
   await expect(segundaSerie).toContainText("8 repetições · 23,5 kg na barra");
   await expect(detalhe).not.toContainText("8,5 repetições");
+
+  // O detalhe segue aberto quando o celular volta a receber as séries da conta.
+  await atualizarNoMock(conta, "session_sets", `id=eq.${series[1].id}&user_id=eq.${conta.userId}`, { reps: 11 });
+  await ficha.evaluate(() => window.leituraAntigaDaFicha.liberar());
+  const voltou = ficha.waitForResponse(r => {
+    const url = new URL(r.url());
+    return r.ok() && url.pathname === "/rest/v1/session_sets" && url.searchParams.get("exercise_id") === `eq.${FRONTAL}`;
+  });
+  await comRedeNoWorker(worker);
+  await context.setOffline(false);
+  await voltou;
+  await expect(detalhe).toBeVisible();
+  await expect(segundaSerie).toContainText("11 repetições · 23,5 kg na barra");
+  await ficha.keyboard.press("Escape");
+  await expect(abrir).toBeFocused();
 });
