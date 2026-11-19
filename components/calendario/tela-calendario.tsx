@@ -54,7 +54,7 @@ export function TelaCalendario({ userId }: { userId: string }) {
   const perfilQ = usePerfil();
   const overridesQ = useOverrides(intervalo?.de ?? null, intervalo?.ate ?? null);
   const sessoesQ = useSessoes();
-  const cardioQ = useCardio(intervalo?.de ?? null, intervalo?.ate ?? null);
+  const cardioQ = useCardio(intervalo?.de ?? null, intervalo?.ate ?? null, userId);
 
   const perfil = perfilQ.data ?? null;
   const overrides = useMemo(() => overridesQ.data ?? [], [overridesQ.data]);

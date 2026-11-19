@@ -24,7 +24,7 @@ export function CardDaSemana({
   const intervalo = intervaloDaSemana(hoje);
   const perfilQ = usePerfil();
   const sessoesQ = useSessoes();
-  const cardioQ = useCardio(intervalo.de, intervalo.ate);
+  const cardioQ = useCardio(intervalo.de, intervalo.ate, perfilQ.data?.user_id ?? "");
   const overridesQ = useOverrides(intervalo.de, intervalo.ate);
   const perfil = perfilQ.data ?? null;
 

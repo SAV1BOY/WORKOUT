@@ -1,5 +1,5 @@
 import { bd, temIndexedDB, type ItemSaida } from "@/lib/db";
-import { CAMPOS_DE_CONTAGEM, chaveIntencao, prefixoDasIntencoes, type CampoContagem } from "@/lib/campos-de-contagem";
+import { CAMPOS_DE_CONTAGEM, chaveIntencao, contagemInteiraValida, fracionaria, prefixoDasIntencoes, type CampoContagem } from "@/lib/campos-de-contagem";
 import { corrigirCopiasDaSerie, reconciliarCopiasDaSerie, retirarSerieAusenteDasCopias } from "@/lib/espelhos-da-contagem";
 import { AVISO_DE_CONFLITO_DE_CONTAGEM, comTravaDaFila, processar } from "@/lib/outbox";
 import { conferirSerieRemota, mesmaIdentidadeDaSerie, podeInserirSerie } from "@/lib/recuperacao-de-serie-remota";
@@ -7,13 +7,7 @@ import type { EscritaTabela } from "@/lib/outbox-supabase";
 import { confirmarContaDoTreino } from "@/lib/queries/conta-do-treino";
 
 export type { CampoContagem } from "@/lib/campos-de-contagem";
-export const MAX_CONTAGEM = 2_147_483_647; // session_sets usa integer no Postgres.
-export function contagemInteiraValida(valor: unknown): valor is number {
-  return typeof valor === "number" && Number.isInteger(valor) && valor >= 0 && valor <= MAX_CONTAGEM;
-}
-function fracionaria(valor: unknown): valor is number {
-  return typeof valor === "number" && Number.isFinite(valor) && !Number.isInteger(valor);
-}
+export { contagemInteiraValida, MAX_CONTAGEM } from "@/lib/campos-de-contagem";
 
 export interface CorrecaoDeContagem {
   campo: CampoContagem;

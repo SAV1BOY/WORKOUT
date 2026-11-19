@@ -2,7 +2,7 @@
 
 import { useQueryClient } from "@tanstack/react-query";
 import { addDays } from "date-fns";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { CabecalhoMais } from "@/components/mais/cabecalho";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -671,7 +671,7 @@ function BlocoHorarios({
   const ate = hoje ? diaMais(hoje, 7) : null;
   const overridesQ = useOverrides(de, ate);
   const sessoesQ = useSessoes();
-  const cardioQ = useCardio(de, hoje);
+  const cardioQ = useCardio(de, hoje, userId);
   const [enviados, setEnviados] = useState<EnvioLembrete[]>([]);
   /*
    * Os lembretes saem SEMPRE do perfil do cache (gravar já o atualiza na hora,
@@ -708,11 +708,20 @@ function BlocoHorarios({
    * A barra de navegação é fixa: sem VAPID, a 360×740, o recado da corrida
    * nasce atrás dela (top 689, barra em 682). Rola o que falta (§23.15).
    */
-  useEffect(() => {
+  const conferindoAparelho = avisoAqui === null;
+  useLayoutEffect(() => {
     if (!recadoNovo) return;
     const regiao = regiaoDoRecado.current[recadoNovo.tipo];
-    if (regiao) mostrarAcimaDaBarra(regiao);
-  }, [recadoNovo]);
+    if (!regiao) return;
+    mostrarAcimaDaBarra(regiao);
+    if (!conferindoAparelho) return;
+    // A lista e as instruções chegam acima dos horários. Revele o recado
+    // depois dessa mudança de altura se a pessoa continuou lendo no mesmo lugar.
+    const posicao = window.scrollY;
+    const aoRolar = () => { if (window.scrollY !== posicao) setRecadoNovo(null); };
+    window.addEventListener("scroll", aoRolar, { passive: true });
+    return () => window.removeEventListener("scroll", aoRolar);
+  }, [recadoNovo, conferindoAparelho]);
 
   function avisar(tipo: TipoDeLembrete, texto: string, erro: boolean) {
     setRecados((r) => ({ ...r, [tipo]: { texto, erro } }));

@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useEffect, useState, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
+import { resumoDeCardioNaUrl } from "@/lib/rota-de-cardio";
+import type { DestinoLocal } from "./aba-local";
 import type { LinhaPerfil } from "@/lib/types";
 import { EVENTO_DE_LOGIN_CONFIRMADO, idDoPlayerNoCaminho, type VinculoDoPlayer } from "@/lib/vinculo-do-player";
 
@@ -15,7 +17,7 @@ interface PlayerDoAparelho {
 }
 
 interface AbaDoAparelho {
-  aba: "/" | "/relatorio";
+  aba: DestinoLocal;
   vinculo: VinculoDoPlayer;
   Componente: typeof import("./aba-local").default;
 }
@@ -35,12 +37,13 @@ export function Socorro({ videos, children }: { videos: string[]; children: Reac
   useEffect(() => {
     const caminho = window.location.pathname;
     const sessaoId = idDoPlayerNoCaminho(caminho);
-    if (!sessaoId && caminho !== "/" && caminho !== "/relatorio") return;
+    const cardio = resumoDeCardioNaUrl(new URL(window.location.href));
+    if (!cardio && !sessaoId && caminho !== "/" && caminho !== "/relatorio") return;
     let versao = 0;
     const verificar = async () => {
       const vez = ++versao;
       try {
-        const { vinculoParaAbaLocal, vinculoParaPlayerLocal } = await import("@/lib/player-sem-rede");
+        const { vinculoDoLoginAtual, vinculoParaAbaLocal, vinculoParaPlayerLocal } = await import("@/lib/player-sem-rede");
         let proxima: PlayerDoAparelho | AbaDoAparelho | null = null;
         if (caminho === "/" || caminho === "/relatorio") {
           const local = await vinculoParaAbaLocal(caminho);
@@ -56,6 +59,9 @@ export function Socorro({ videos, children }: { videos: string[]; children: Reac
               proxima = { aba: caminho, vinculo: local.vinculo, Componente };
             }
           }
+        } else if (cardio) {
+          const vinculo = await vinculoDoLoginAtual();
+          if (vinculo) proxima = { aba: cardio, vinculo, Componente: (await import("./aba-local")).default };
         } else if (sessaoId) {
           const vinculo = await vinculoParaPlayerLocal(sessaoId);
           if (vinculo) proxima = { sessaoId, vinculo, Componente: (await import("./player-local")).default };
@@ -81,7 +87,7 @@ export function Socorro({ videos, children }: { videos: string[]; children: Reac
   }, [cliente]);
   if (tela && "aba" in tela) {
     const { Componente, aba, vinculo } = tela;
-    return <Componente key={vinculo.conta + aba} aba={aba} vinculo={vinculo} videos={videos}>{children}</Componente>;
+    return <Componente key={`${vinculo.conta}:${typeof aba === "string" ? aba : aba.sessaoId}`} aba={aba} vinculo={vinculo} videos={videos}>{children}</Componente>;
   }
   if (tela) {
     const { Componente, sessaoId, vinculo } = tela;

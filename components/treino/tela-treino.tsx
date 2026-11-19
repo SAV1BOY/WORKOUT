@@ -148,8 +148,8 @@ export function TelaTreino({ userId }: { userId: string }) {
   const overridesQ = useOverrides(intervalo?.de ?? null, intervalo?.ate ?? null);
   const sessoesQ = useSessoes();
   const abertasQ = useSessoesAbertas();
-  const cardioQ = useCardio(intervalo?.de ?? null, intervalo?.ate ?? null);
-  const cardioDesdeQ = useCardioDesde(desde);
+  const cardioQ = useCardio(intervalo?.de ?? null, intervalo?.ate ?? null, userId);
+  const cardioDesdeQ = useCardioDesde(desde, userId);
   const pesoQ = useUltimoPeso();
   const soltasQ = useSoltasDoDia(hoje);
   /* SPEC §18.1: a barra fixa solta também conta como atividade */

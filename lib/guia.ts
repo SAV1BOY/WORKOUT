@@ -795,7 +795,7 @@ const OFFLINE: SecaoDoGuia = {
       id: "fila",
       nome: "Fila de envio",
       oQueFaz:
-        "O que ainda não subiu fica numa fila e sobe sozinho quando a rede volta. A linha em Mais mostra quantos itens faltam e tem o “Tentar agora”.",
+        "Em Mais, veja os registros que aguardam envio e use “Tentar agora” quando houver rede. Se uma versão antiga guardou repetições ou saltos fracionários, abra “Corrigir contagens” para recuperar o treino.",
       caminho: ["Mais", "Sincronização", "Tentar agora"],
       href: "/mais",
     },

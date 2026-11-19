@@ -86,7 +86,7 @@ function consultaDeSeries(chave: QueryKey, id: Identidade) {
   return fonte === "series-ex" || fonte === "series";
 }
 
-function alterarConsultasPersistidas(valor: unknown, alterar: (chave: QueryKey, dados: unknown) => unknown) {
+export function alterarConsultasPersistidas(valor: unknown, alterar: (chave: QueryKey, dados: unknown) => unknown) {
   if (!registro(valor) || !registro(valor.estado) || !Array.isArray(valor.estado.queries)) return valor;
   const { estado } = valor;
   const queries = atualizarLista(estado.queries as unknown[], q => {

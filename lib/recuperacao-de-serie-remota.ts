@@ -1,10 +1,9 @@
-import { CAMPOS_DE_CONTAGEM, type CampoContagem } from "@/lib/campos-de-contagem";
-import { clienteNavegador } from "@/lib/supabase/client";
+import { CAMPOS_DE_CONTAGEM, contagemInteiraValida, type CampoContagem } from "@/lib/campos-de-contagem";
+import { registroRemotoEmRecuperacao, type DecisaoSobreRegistro, type PropostaNaAusencia, type ResultadoDaRecuperacao } from "@/lib/registro-remoto-em-recuperacao";
 
 type Linha = Record<string, unknown>;
-export type DecisaoSobreSerie = { usar: "aparelho" | "historico"; observada: Linha };
-export type PropostaNaAusencia = { insercao: Linha; confirmada: boolean; manterAusencia?: boolean };
-type Resultado = { estado: "confirmada" | "conflito" | "confirmar-insercao" | "ausencia-mantida"; linha: Linha };
+export type DecisaoSobreSerie = DecisaoSobreRegistro;
+export type { PropostaNaAusencia };
 
 const identidade = ["session_id", "exercise_id", "ordem_ex", "set_index", "tipo", "concluida"] as const;
 
@@ -17,8 +16,7 @@ export function mesmaIdentidadeDaSerie(local: Linha, remota: Linha): boolean {
 
 function temContagem(local: Linha, campo: CampoContagem): boolean {
   const valor = local[campo];
-  return Object.hasOwn(local, campo) && (valor === null ||
-    (typeof valor === "number" && Number.isInteger(valor) && valor >= 0 && valor <= 2_147_483_647));
+  return Object.hasOwn(local, campo) && (valor === null || contagemInteiraValida(valor));
 }
 
 export function podeInserirSerie(linha: Linha): boolean {
@@ -39,37 +37,21 @@ function correspondeAInsercao(proposta: Linha, linha: Linha): boolean {
     : linha[k] === v);
 }
 
-function unicaLinha(
-  resposta: { data: unknown; error: { message: string } | null }, conta: string, id: string, campos: readonly CampoContagem[],
-): Linha | null {
-  if (resposta.error) throw new Error(resposta.error.message);
-  if (Array.isArray(resposta.data) && !resposta.data.length) return null;
-  const linha = Array.isArray(resposta.data) && resposta.data.length === 1 ? resposta.data[0] : null;
-  if (!linha || linha.user_id !== conta || linha.id !== id || typeof linha.session_id !== "string" ||
-      typeof linha.exercise_id !== "string" || typeof linha.concluida !== "boolean" ||
-      !Number.isInteger(linha.ordem_ex) || !Number.isInteger(linha.set_index) || typeof linha.tipo !== "string" ||
-      !campos.every(c => linha[c] === null || Number.isInteger(linha[c]))) {
-    throw new Error("A resposta não confirmou a série desta conta.");
-  }
-  return linha;
-}
-
 /** Só o envio da recuperação usa este caminho. Uma escrita normal da série continua seguindo a ordem do treino. */
 export async function conferirSerieRemota(
   conta: string, local: Linha, campos: readonly CampoContagem[], decisao?: DecisaoSobreSerie, ausencia?: PropostaNaAusencia,
-): Promise<Resultado> {
+): Promise<ResultadoDaRecuperacao> {
   const id = local.id;
   if (!conta || local.user_id !== conta || typeof id !== "string" || !id || typeof local.session_id !== "string" ||
       !local.session_id || !campos.length || !campos.every(c => CAMPOS_DE_CONTAGEM.includes(c) && temContagem(local, c))) {
     throw new Error("Confira a conta, o treino e as contagens da série antes de enviar.");
   }
-  const cliente = clienteNavegador();
-  const { data, error } = await cliente.auth.getSession();
-  if (error || data.session?.user.id !== conta) throw new Error("Aguardando a conta que corrigiu a série.");
-  const tabela = () => cliente.from("session_sets");
+  const registro = await registroRemotoEmRecuperacao("session_sets", conta, id, linha =>
+    typeof linha.session_id === "string" && typeof linha.exercise_id === "string" && typeof linha.concluida === "boolean" &&
+    Number.isInteger(linha.ordem_ex) && Number.isInteger(linha.set_index) && typeof linha.tipo === "string" &&
+    campos.every(c => linha[c] === null || Number.isInteger(linha[c])));
   // Uma importação pode ter movido a série. Procurar apenas no treino original a faria parecer ausente.
-  const buscar = async () => unicaLinha(await tabela().select("*").eq("user_id", conta).eq("id", id), conta, id, campos);
-  let remota = await buscar();
+  let remota = await registro.buscar();
   if (ausencia) {
     const proposta = ausencia.insercao;
     if (proposta.user_id !== conta || proposta.id !== id || proposta.session_id !== local.session_id) {
@@ -79,9 +61,7 @@ export async function conferirSerieRemota(
       if (!decisao && ausencia.manterAusencia) return { estado: "ausencia-mantida", linha: proposta };
       if (decisao || !ausencia.confirmada || !podeInserirSerie(proposta)) return { estado: "confirmar-insercao", linha: proposta };
       // A importação mudou o vínculo. Somente os dados informados para o destino compõem esta nova série.
-      const insercao = await tabela().upsert(proposta, { onConflict: "id", ignoreDuplicates: true });
-      if (insercao.error) throw new Error(insercao.error.message);
-      remota = await buscar();
+      remota = await registro.inserirSeAusente(proposta);
       if (!remota) throw new Error("O histórico ainda não confirmou a série restaurada nesta conta.");
     }
     if (!decisao && (ausencia.confirmada || ausencia.manterAusencia)) {
@@ -93,10 +73,7 @@ export async function conferirSerieRemota(
     if (!podeInserirSerie(local)) {
       throw new Error("Faltam o exercício ou a posição para restaurar esta série que ainda não consta no histórico.");
     }
-    const insercao = await tabela().upsert(local, { onConflict: "id", ignoreDuplicates: true });
-    if (insercao.error) throw new Error(insercao.error.message);
-    // ON CONFLICT DO NOTHING também tem sucesso. A linha pode pertencer a outra sessão ou conta.
-    remota = await buscar();
+    remota = await registro.inserirSeAusente(local);
   }
   if (!remota) throw new Error("A série não está disponível nesta conta para confirmar a correção.");
 
@@ -112,13 +89,8 @@ export async function conferirSerieRemota(
   }
 
   const alteracoes = Object.fromEntries(campos.filter(c => local[c] !== remota[c]).map(c => [c, local[c]]));
-  let atualizacao = tabela().update(alteracoes).eq("user_id", conta).eq("id", id);
   // A escolha só vale para a identidade e as contagens que apareceram na tela.
-  for (const chave of [...identidade, ...campos]) {
-    atualizacao = remota[chave] === null ? atualizacao.is(chave, null) : atualizacao.eq(chave, remota[chave]);
-  }
-  const gravada = unicaLinha(await atualizacao.select("*"), conta, id, campos);
-  const atual = gravada ?? await buscar();
+  const atual = await registro.atualizarSeIgual(alteracoes, remota, [...identidade, ...campos]);
   if (!atual) throw new Error("A série deixou de estar disponível enquanto a correção era enviada.");
   return { estado: coincide(local, atual) ? "confirmada" : "conflito", linha: atual };
 }

@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { chaveDoDetalheDaSessao } from "../lib/chaves-do-historico";
 import { prepararFechamentoAntigo } from "./contagens-legadas";
 import { atualizarNoMock, esperarServiceWorker, fixarData, inserirNoMock, lerDoMock, naFila, resetarMock } from "./fixtures";
 import { comRedeNoWorker, semRedeNoWorker, workerDoApp } from "./rede-do-worker";
@@ -6,7 +7,7 @@ import { FRONTAL, NOME } from "./treino-livre-ativo";
 
 declare global {
   interface Window {
-    leituraAntigaDaFicha: { ids: string[]; liberar: () => void };
+    leituraAntigaDaFicha: { ids: string[]; guardadaEm: number; liberar: () => void };
   }
 }
 
@@ -23,7 +24,11 @@ test("um GET antigo da ficha não repõe 8,5 após a correção da série em out
 
   const ficha = await context.newPage();
   await fixarData(ficha, "2026-09-14T13:01:00-03:00");
-  await ficha.addInitScript(sessaoId => {
+  await ficha.addInitScript(({ sessaoId, chave, segunda }) => {
+    let liberar!: () => void;
+    const barreira = new Promise<void>(ok => { liberar = ok; });
+    const sinal = { ids: [] as string[], guardadaEm: 0, liberar };
+    window.leituraAntigaDaFicha = sinal;
     // A aba Mais foi a última a guardar seu conjunto de consultas. Mantemos essa ordem
     // mesmo quando o temporizador de persistência da ficha dispara primeiro no Chromium.
     const gravar = IDBObjectStore.prototype.put;
@@ -34,13 +39,13 @@ test("um GET antigo da ficha não repõe 8,5 após a correção da série em out
         const queries = estado.queries.filter((q: { queryKey: string[] }) => q.queryKey[1] !== "series-ex");
         args[0] = { ...registro, valor: { ...registro.valor, estado: { ...estado, queries } } };
       }
+      if (this.name === "cache" && registro?.chave === chave &&
+        registro.valor.some((s: { id: string; reps: number }) => s.id === segunda && s.reps === 8)) {
+        this.transaction.addEventListener("complete", () => { sinal.guardadaEm = registro.atualizadoEm; }, { once: true });
+      }
       return gravar.apply(this, args);
     };
     const buscar = window.fetch.bind(window);
-    let liberar!: () => void;
-    const barreira = new Promise<void>(ok => { liberar = ok; });
-    const sinal = { ids: [] as string[], liberar };
-    window.leituraAntigaDaFicha = sinal;
     window.fetch = async (entrada, opcoes) => {
       const resposta = await buscar(entrada, opcoes);
       const url = new URL(entrada instanceof Request ? entrada.url : String(entrada), location.href);
@@ -52,7 +57,7 @@ test("um GET antigo da ficha não repõe 8,5 após a correção da série em out
       }
       return resposta;
     };
-  }, id);
+  }, { sessaoId: id, chave: chaveDoDetalheDaSessao(conta.userId, id), segunda: series[1].id });
   await ficha.goto(`/exercicios/${FRONTAL}`);
   await esperarServiceWorker(ficha);
   const abrir = ficha.getByRole("button", { name: /^Ver séries de Treino da varanda/ });
@@ -79,6 +84,11 @@ test("um GET antigo da ficha não repõe 8,5 após a correção da série em out
   const segundaSerie = detalhe.getByRole("listitem").filter({ has: ficha.getByText("Série 2", { exact: true }) });
   await expect(segundaSerie).toContainText("8 repetições · 23,5 kg na barra");
   await expect(detalhe).not.toContainText("8,5 repetições");
+  // Reaberta online, a ficha guarda a série corrigida antes de perder a rede.
+  // A próxima leitura vai ocorrer no mesmo instante do relógio, com o servidor já editado.
+  await ficha.keyboard.press("Escape");
+  await abrir.click();
+  await expect.poll(() => ficha.evaluate(() => window.leituraAntigaDaFicha.guardadaEm === Date.now())).toBe(true);
   const worker = await workerDoApp(context);
   await semRedeNoWorker(worker);
   await context.setOffline(true);
@@ -94,13 +104,18 @@ test("um GET antigo da ficha não repõe 8,5 após a correção da série em out
   await ficha.evaluate(() => window.leituraAntigaDaFicha.liberar());
   const voltou = ficha.waitForResponse(r => {
     const url = new URL(r.url());
-    return r.ok() && url.pathname === "/rest/v1/session_sets" && url.searchParams.get("exercise_id") === `eq.${FRONTAL}`;
+    return r.ok() && url.pathname === "/rest/v1/session_sets" && url.searchParams.get("session_id") === "eq." + id;
   });
   await comRedeNoWorker(worker);
   await context.setOffline(false);
-  await voltou;
+  expect(await (await voltou).json()).toEqual(expect.arrayContaining([expect.objectContaining({ id: series[1].id, reps: 11 })]));
   await expect(detalhe).toBeVisible();
   await expect(segundaSerie).toContainText("11 repetições · 23,5 kg na barra");
   await ficha.keyboard.press("Escape");
   await expect(abrir).toBeFocused();
+  await semRedeNoWorker(worker);
+  await context.setOffline(true);
+  expect((await ficha.reload())?.fromServiceWorker()).toBe(true);
+  await abrir.click();
+  await expect(segundaSerie).toContainText("11 repetições · 23,5 kg na barra");
 });

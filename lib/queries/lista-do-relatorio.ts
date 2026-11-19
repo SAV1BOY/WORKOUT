@@ -1,9 +1,13 @@
 import type { QueryClient } from "@tanstack/react-query";
 import { CAMPOS_DE_CONTAGEM, chaveIntencao } from "@/lib/campos-de-contagem";
 import { bd, temIndexedDB, type ItemCache } from "@/lib/db";
-import { lerConsultaGuardada, VALIDADE_MS } from "@/lib/persistencia-query";
+import { lerConsultaGuardada, lerConsultaGuardadaComData, VALIDADE_MS } from "@/lib/persistencia-query";
 import { FalhaDeRedeNaTabela } from "@/lib/queries/ler";
 import type { EscritaTabela } from "@/lib/outbox-supabase";
+import {
+  aplicarAlteracoesDoCardio, aplicarPropostaDosSaltos, atualizarCardiosConciliados, cardioCorrespondeAoFiltro,
+  cardiosConfirmadosAusentes, revisaoDoCardio, saltosFracionarios,
+} from "@/lib/espelhos-dos-saltos";
 import { revisaoDasSeries } from "@/lib/espelhos-da-contagem";
 import { conferirContagensObservadas, LeituraAnteriorACorrecao } from "@/lib/queries/contagens-observadas";
 import { retirarDetalhesCobertos } from "@/lib/queries/cache-do-detalhe";
@@ -101,23 +105,31 @@ const saidasPorFonte = {
 } as const;
 
 /** Somente para leitura. Uma operação em conciliação permanece sem op no transporte dos clientes antigos. */
-interface EscritaParaLeitura extends EscritaTabela { proposta?: boolean }
+interface EscritaParaLeitura extends EscritaTabela { proposta?: boolean; propostaDosSaltos?: boolean }
 
 export async function escritasPendentes(fonte: Fonte, conta: string): Promise<EscritaParaLeitura[]> {
   if (!temIndexedDB()) return [];
   const { tipo, tabela } = saidasPorFonte[fonte];
   const itens = await bd().outbox.where("tipo").equals(tipo).toArray();
-  return itens.flatMap<EscritaParaLeitura>(item => {
-    const p = item.payload as EscritaTabela & { operacaoGuardada?: "insert" | "upsert"; seriesEmConciliacao?: string[] };
+  const escritas = itens.flatMap<EscritaParaLeitura>(item => {
+    const p = item.payload as EscritaTabela & { operacaoGuardada?: "insert" | "upsert"; seriesEmConciliacao?: string[]; conciliacaoDosSaltos?: unknown };
     if (p.tabela !== tabela) return [];
+    if (fonte === "cardio" && p.conciliacaoDosSaltos && p.linha?.user_id === conta) {
+      return [{ tabela, op: "upsert", linha: p.linha, propostaDosSaltos: true }];
+    }
     const op = p.op ?? p.operacaoGuardada;
     if (op === "upsert" || op === "insert") {
       return (p.linhas ?? (p.linha ? [p.linha] : [])).filter(linha => linha.user_id === conta).map(linha => ({
-        tabela, op, linha, ...(p.seriesEmConciliacao?.includes(chaveIntencao(conta, String(linha.id))) && { proposta: true }),
+        tabela, op, linha, ...(fonte === "cardio" && saltosFracionarios(linha.saltos) && { propostaDosSaltos: true }),
+        ...(p.seriesEmConciliacao?.includes(chaveIntencao(conta, String(linha.id))) && { proposta: true }),
       }));
     }
     return (p.filtro?.user_id ?? p.linha?.user_id) === conta ? [p] : [];
   });
+  if (fonte !== "cardio") return escritas;
+  const idsEmProposta = escritas.flatMap(p => p.propostaDosSaltos && typeof p.linha?.id === "string" ? [p.linha.id] : []);
+  const ausentes = await cardiosConfirmadosAusentes(conta, idsEmProposta);
+  return escritas.filter(p => !p.propostaDosSaltos || !ausentes.has(String(p.linha?.id)));
 }
 
 export function aplicarPendentes<T>(linhas: T[], pendentes: EscritaParaLeitura[], fonteParcial = false): T[] {
@@ -132,7 +144,14 @@ export function aplicarPendentes<T>(linhas: T[], pendentes: EscritaParaLeitura[]
   for (const p of pendentes) {
     const id = p.filtro?.id ?? p.linha?.id;
     if (typeof id !== "string") continue;
-    if (p.proposta && p.linha) {
+    if (p.tabela === "cardio_sessions" && (p.op === "update" || p.op === "delete") && !cardioCorrespondeAoFiltro(porId.get(id), p.filtro)) continue;
+    if (p.propostaDosSaltos && p.linha) {
+      const anterior = porId.get(id) as Record<string, unknown> | undefined;
+      if (anterior || fonteParcial) {
+        const escolhida = aplicarPropostaDosSaltos(anterior, p.linha);
+        if (escolhida) porId.set(id, escolhida as T);
+      }
+    } else if (p.proposta && p.linha) {
       // Um backup pode ter trocado a série inteira desde a recusa. A proposta só
       // substitui frações de uma linha compatível; não move de volta um UUID confirmado.
       const anterior = porId.get(id) as Record<string, unknown> | undefined;
@@ -172,18 +191,24 @@ export async function lerFonteDoRelatorio<T>(
     sinal?.throwIfAborted();
     return pendentes;
   };
-  const lerRevisao = () => revisaoDasSeries(conta).catch(() => { filaLegivel = false; return undefined; });
-  const revisaoInicial = fonte === "series" && temIndexedDB() ? await lerRevisao() : undefined;
+  const revisao = fonte === "cardio" ? revisaoDoCardio : revisaoDasSeries;
+  const lerRevisao = () => revisao(conta).catch(() => { filaLegivel = false; return undefined; });
+  const [revisaoInicial, antes] = await Promise.all([
+    fonte !== "soltas" && temIndexedDB() ? lerRevisao() : undefined,
+    lerFila(),
+  ]);
   const conferirRevisao = async () => {
     if (revisaoInicial === undefined) return;
     const atual = await lerRevisao();
     if (atual !== undefined && atual !== revisaoInicial) throw new LeituraAnteriorACorrecao();
   };
-  const antes = await lerFila();
   let conferir: ReturnType<typeof conferirContagensObservadas>;
   try {
     const confirmada = await lerListaConfirmada(conta, chaveDaLista(fonte, conta), consultar && (async () => {
       const remotas = await consultar();
+      if (fonte === "cardio") {
+        await atualizarCardiosConciliados(conta, remotas, ["cardio-todos", conta], revisaoInicial, sinal).catch(() => sinal?.throwIfAborted());
+      }
       // A fila pode esvaziar enquanto o servidor responde com a foto anterior aos envios.
       const observadas = [...antes, ...await lerFila()];
       if (fonte === "series") conferir = conferirContagensObservadas(observadas);
@@ -195,12 +220,14 @@ export async function lerFonteDoRelatorio<T>(
         await conferirRevisao();
         if (conferir) conferir(await escritasPendentes(fonte, conta));
         await retirarDetalhesCobertos(conta, horario);
-      } : undefined,
+      } : fonte === "cardio" ? conferirRevisao : undefined,
     });
     const finais = await lerFila();
     await conferirRevisao();
     if (filaLegivel) conferir?.(finais);
-    const linhas = aplicarPendentes(confirmada.linhas, finais);
+    const base = fonte === "cardio" ? await aplicarAlteracoesDoCardio(conta, confirmada.linhas,
+      confirmada.confirmadasEm ?? inicio, ["cardio-todos", conta]).catch(() => confirmada.linhas) : confirmada.linhas;
+    const linhas = aplicarPendentes(base, finais);
     return fonte === "series" && filaLegivel && confirmada.confirmadasEm !== undefined
       ? { linhas, completa: true, confirmadasEm: confirmada.confirmadasEm }
       : { linhas, completa: true };
@@ -220,7 +247,7 @@ export async function lerFonteDoRelatorio<T>(
     cliente.getQueryData<R>(chave) ?? (temIndexedDB() ? await lerConsultaGuardada<R>(chave) : undefined);
   type Antiga = T & { id?: string; user_id?: string; session_id?: string };
   const antigas = await pegar<Antiga[]>(antiga);
-  if (!antigas?.length) return { linhas: aplicarPendentes([], antes, true), completa: false };
+  if (!antigas?.length && fonte !== "cardio") return { linhas: aplicarPendentes([], antes, true), completa: false };
 
   const sessoes = new Set<string>();
   if (fonte === "series") {
@@ -231,10 +258,15 @@ export async function lerFonteDoRelatorio<T>(
       for (const s of lista) if (s?.user_id === conta) sessoes.add(s.id);
     }
   }
-  const linhas = antigas.filter(l => l.user_id !== undefined ? l.user_id === conta :
+  let linhas = (antigas ?? []).filter(l => l.user_id !== undefined ? l.user_id === conta :
     fonte === "series" && l.session_id !== undefined && sessoes.has(l.session_id));
   // Antes da paginação por chave, as séries vinham sem id; cardio e soltas usavam a mesma projeção com limite.
-  const completa = fonte === "series" && linhas.length === antigas.length && linhas.every(l => typeof l.id === "string");
+  const completa = fonte === "series" && linhas.length === antigas?.length && linhas.every(l => typeof l.id === "string");
+  if (fonte === "cardio") {
+    const desde = cliente.getQueryState(antiga)?.dataUpdatedAt ??
+      (temIndexedDB() ? (await lerConsultaGuardadaComData(antiga))?.atualizadoEm : undefined) ?? 0;
+    linhas = await aplicarAlteracoesDoCardio(conta, linhas, desde, ["cardio-todos", conta]).catch(() => linhas);
+  }
   return { linhas: aplicarPendentes(linhas, antes, !completa), completa };
 }
 

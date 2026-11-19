@@ -438,20 +438,43 @@ for (const tema of TEMAS) {
   });
 
   test(`${tema}: apagar a hora e sair do campo volta à gravada, avisa e não grava`, async ({ page }) => {
+    // Os horários já estão editáveis enquanto a lista dos aparelhos ainda está chegando.
+    await page.addInitScript(() => {
+      const buscar = window.fetch.bind(window);
+      const liberar = new Promise<void>(resolve => window.addEventListener("liberar-aparelhos", () => resolve(), { once: true }));
+      window.fetch = async (entrada, opcoes) => {
+        const url = new URL(entrada instanceof Request ? entrada.url : String(entrada), location.href);
+        const metodo = opcoes?.method ?? (entrada instanceof Request ? entrada.method : "GET");
+        const resultado = await buscar(entrada, opcoes);
+        if (metodo === "GET" && url.pathname === "/rest/v1/lembretes_inscricoes") await liberar;
+        return resultado;
+      };
+    });
     const sessao = await abrir(page, tema, {
       lembretes: { treino: { ligado: true, hora: "06:45" }, corrida: { ligado: false, hora: "07:00" } },
     });
     const campo = page.locator("#hora-treino");
     await expect(campo).toHaveValue("06:45");
+    const escritasNoPerfil: string[] = [];
+    page.on("request", pedido => {
+      if (["POST", "PATCH", "PUT"].includes(pedido.method()) && new URL(pedido.url()).pathname === "/rest/v1/profiles") {
+        escritasNoPerfil.push(pedido.method());
+      }
+    });
     await campo.fill("");
     await campo.blur();
     await expect(campo).toHaveValue("06:45");
+    await recadoAVista(page, "treino", "Hora inválida: mantida a de antes (06:45).");
+    await expect(page.getByText("Conferindo este aparelho…", { exact: true })).toBeVisible();
+    await page.evaluate(() => window.dispatchEvent(new Event("liberar-aparelhos")));
+    await expect(page.getByRole("heading", { name: "Aparelhos desta conta", exact: true })).toBeVisible();
     await recadoAVista(page, "treino", "Hora inválida: mantida a de antes (06:45).");
     // nada foi gravado: o mock segue com 06:45 (e segue depois do tempo de a fila mandar)
     const lembretes = (await prefsDoMock(sessao)).lembretes as { treino: { hora: string } };
     expect(lembretes.treino.hora).toBe("06:45");
     await page.waitForTimeout(1_500);
     expect(((await prefsDoMock(sessao)).lembretes as { treino: { hora: string } }).treino.hora).toBe("06:45");
+    expect(escritasNoPerfil).toEqual([]);
     await alvosDe44(page);
     await semRolagemHorizontal(page);
   });

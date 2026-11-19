@@ -204,17 +204,7 @@ export function textoDoPlano(plano: PlanoCardio): string {
   return partes.join(" · ");
 }
 
-/** Os quatro tipos que a rota `/cardio/[id]` aceita. */
-export const TIPOS_DE_CARDIO: readonly TipoCardio[] = [
-  "corrida",
-  "corda",
-  "caminhada",
-  "outro",
-];
-
-export function ehTipoDeCardio(valor: string): valor is TipoCardio {
-  return (TIPOS_DE_CARDIO as readonly string[]).includes(valor);
-}
+export { ehTipoDeCardio, TIPOS_DE_CARDIO } from "@/lib/rota-de-cardio";
 
 /* ------------------------------------------------------------- relógio */
 

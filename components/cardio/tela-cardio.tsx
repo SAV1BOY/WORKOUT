@@ -68,8 +68,8 @@ export function TelaCardio({
   const perfil = perfilQ.data ?? null;
 
   const intervalo = hoje ? intervaloDaSemana(hoje) : null;
-  const cardioQ = useCardio(intervalo?.de ?? null, intervalo?.ate ?? null);
-  const registradaQ = useCardioPorId(sessaoId);
+  const cardioQ = useCardio(intervalo?.de ?? null, intervalo?.ate ?? null, userId);
+  const registradaQ = useCardioPorId(sessaoId, userId);
 
   const [sessao, setSessao] = useState<CardioLocal | null | undefined>(undefined);
   const [agora, setAgora] = useState(() => Date.now());
@@ -229,8 +229,10 @@ export function TelaCardio({
   /* ------------------------------------------------------- renderizar */
 
   if (sessaoId) {
+    const registrada = registradaQ.data;
+    const titulo = registrada ? planoDeCardio(registrada.tipo, registrada.semana_plano ?? 1).titulo : plano.titulo;
     return (
-      <Tela titulo={plano.titulo} descricao="Sessão registrada">
+      <Tela titulo={titulo} descricao="Sessão registrada">
         <SessaoRegistrada
           linha={registradaQ.data ?? null}
           carregando={registradaQ.isPending}

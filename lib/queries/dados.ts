@@ -14,7 +14,8 @@ import { lerExcecoesDoHistorico } from "@/lib/queries/excecoes-do-historico";
 import { guardarCargasLidas } from "@/lib/queries/cargas-no-aparelho";
 import { guardarPerfilLido } from "@/lib/queries/perfil-no-aparelho";
 import { lerFonteDoRelatorio, type ListaDoRelatorio } from "@/lib/queries/lista-do-relatorio";
-import { lerTabelaCompleta } from "@/lib/queries/ler";
+import { CARDIOS_RECENTES, lerCardioRegistrado } from "@/lib/queries/cardio-registrado";
+import { FalhaDeRedeNaTabela, lerTabelaCompleta } from "@/lib/queries/ler";
 import { clienteNavegador } from "@/lib/supabase/client";
 import type {
   LinhaBarraFixaSolta,
@@ -33,7 +34,7 @@ import type {
 export const SESSOES_RECENTES = 60;
 
 /** Quantas sessões de cardio as sequências da aba Treino precisam ver. */
-export const CARDIOS_RECENTES = 120;
+export { CARDIOS_RECENTES };
 
 export const chaves = {
   perfil: () => ["perfil"] as const,
@@ -41,15 +42,15 @@ export const chaves = {
     ? ["overrides", de, ate, conta] as const : ["overrides", de, ate] as const,
   sessoes: () => ["sessoes"] as const,
   sessoesAbertas: () => ["sessoes-abertas"] as const,
-  cardio: (de: string, ate: string) => ["cardio", de, ate] as const,
-  cardioDesde: (de: string) => ["cardio-desde", de] as const,
+  cardio: (de: string, ate: string, conta: string) => ["cardio", de, ate, conta] as const,
+  cardioDesde: (de: string, conta: string) => ["cardio-desde", de, conta] as const,
   cardioTodos: (conta: string) => ["cardio-todos", conta] as const,
   peso: () => ["peso"] as const,
   soltas: (data: string) => ["soltas", data] as const,
   soltasNoPeriodo: (de: string, ate: string) => ["soltas-periodo", de, ate] as const,
   /** Todas as repetições soltas — os Números e as conquistas (SPEC §19). */
   soltasTodas: (conta: string) => ["soltas-todas", conta] as const,
-  cardioPorId: (id: string) => ["cardio-sessao", id] as const,
+  cardioPorId: (id: string, conta: string) => ["cardio-sessao", id, conta] as const,
   estados: (ids: readonly string[]) => ["estados", [...ids].sort().join(",")] as const,
   /** Todas as linhas de `exercise_state` — a retomada (SPEC §18.2). */
   estadosTodos: () => ["estados-todos"] as const,
@@ -175,47 +176,36 @@ export function useSessoesAbertas(confirmarAoAbrir = false): UseQueryResult<Sess
 
 /* ---------------------------------------------------------- cardio */
 
-export function useCardio(
-  de: string | null,
-  ate: string | null,
-): UseQueryResult<LinhaSessaoCardio[]> {
+async function consultarCardio(conta: string, chave: readonly string[], sinal: AbortSignal) {
+  const [grupo, inicio, fim] = chave;
+  let consulta = clienteNavegador().from("cardio_sessions").select("*").eq("user_id", conta);
+  if (grupo === "cardio-sessao") consulta = consulta.eq("id", inicio!);
+  else {
+    consulta = consulta.gte("data", inicio!).order("data", { ascending: false });
+    consulta = grupo === "cardio" ? consulta.lte("data", fim!) : consulta.limit(CARDIOS_RECENTES);
+  }
+  const { data, error, status } = await consulta.abortSignal(sinal);
+  if (error) {
+    const mensagem = `Não consegui carregar as sessões de cardio. ${error.message}`;
+    throw status === 0 ? new FalhaDeRedeNaTabela(mensagem) : new Error(mensagem);
+  }
+  return (data ?? []) as LinhaSessaoCardio[];
+}
+
+function useCardioNoPeriodo(chave: readonly string[], conta: string, habilitada: boolean) {
   return useQuery({
-    queryKey: chaves.cardio(de ?? "", ate ?? ""),
-    enabled: de !== null && ate !== null,
-    queryFn: () =>
-      lerLista<LinhaSessaoCardio>(
-        clienteNavegador()
-          .from("cardio_sessions")
-          .select("*")
-          .gte("data", de ?? "")
-          .lte("data", ate ?? "")
-          .order("data", { ascending: false }),
-        "as sessões de cardio",
-      ),
+    queryKey: chave, enabled: Boolean(conta) && habilitada, networkMode: "always",
+    queryFn: ({ client, signal }) => lerCardioRegistrado(client, conta, chave, async () => consultarCardio(conta, chave, signal), signal),
   });
 }
 
-/**
- * As sessões de cardio desde uma data (SPEC §13.3): a sequência de semanas com
- * a meta cumprida precisa de mais do que a semana em curso.
- */
-export function useCardioDesde(
-  de: string | null,
-): UseQueryResult<LinhaSessaoCardio[]> {
-  return useQuery({
-    queryKey: chaves.cardioDesde(de ?? ""),
-    enabled: de !== null,
-    queryFn: () =>
-      lerLista<LinhaSessaoCardio>(
-        clienteNavegador()
-          .from("cardio_sessions")
-          .select("*")
-          .gte("data", de ?? "")
-          .order("data", { ascending: false })
-          .limit(CARDIOS_RECENTES),
-        "as sessões de cardio",
-      ),
-  });
+export function useCardio(de: string | null, ate: string | null, conta: string): UseQueryResult<LinhaSessaoCardio[]> {
+  return useCardioNoPeriodo(chaves.cardio(de ?? "", ate ?? "", conta), conta, de !== null && ate !== null);
+}
+
+/** As sequências semanais leem os últimos registros desde uma data. */
+export function useCardioDesde(de: string | null, conta: string): UseQueryResult<LinhaSessaoCardio[]> {
+  return useCardioNoPeriodo(chaves.cardioDesde(de ?? "", conta), conta, de !== null);
 }
 
 /**
@@ -321,21 +311,14 @@ export function useSoltasTodas(conta: string | null): UseQueryResult<ListaDoRela
 }
 
 /** Uma sessão de cardio pelo id (o calendário abre um dia já registrado). */
-export function useCardioPorId(
-  id: string | null,
-): UseQueryResult<LinhaSessaoCardio | null> {
+export function useCardioPorId(id: string | null, conta: string): UseQueryResult<LinhaSessaoCardio | null> {
+  const chave = chaves.cardioPorId(id ?? "", conta);
   return useQuery({
-    queryKey: chaves.cardioPorId(id ?? ""),
-    enabled: id !== null,
-    queryFn: () =>
-      ler<LinhaSessaoCardio>(
-        clienteNavegador()
-          .from("cardio_sessions")
-          .select("*")
-          .eq("id", id ?? "")
-          .maybeSingle(),
-        "esta sessão de cardio",
-      ),
+    queryKey: chave, enabled: Boolean(id && conta), networkMode: "always",
+    queryFn: async ({ client, signal }) => {
+      const linhas = await lerCardioRegistrado(client, conta, chave, async () => consultarCardio(conta, chave, signal), signal);
+      return linhas[0] ?? null;
+    },
   });
 }
 
