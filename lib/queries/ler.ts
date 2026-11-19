@@ -34,6 +34,7 @@ export async function lerTabelaCompleta<T>(
   colunas: string,
   oQue: string,
   userId?: string,
+  sinal?: AbortSignal,
 ): Promise<T[]> {
   const colunasChave = CHAVE_DA_TABELA[tabela];
   const chave = colunasChave.at(-1)!;
@@ -42,6 +43,7 @@ export async function lerTabelaCompleta<T>(
   let depoisDe: string | undefined;
   let ultimoGrupo: string | undefined;
   for (;;) {
+    sinal?.throwIfAborted();
     let consulta = clienteNavegador()
       .from(tabela)
       .select(colunas, linhas.length === 0 ? { count: "exact" } : {})
@@ -56,11 +58,13 @@ export async function lerTabelaCompleta<T>(
     }
     consulta = consulta.order(chave);
     if (depoisDe !== undefined) consulta = consulta.gt(chave, depoisDe);
+    if (sinal) consulta = consulta.abortSignal(sinal);
 
     const { data, error, count, status }: Resposta<(T & Record<string, unknown>)[]> & {
       status: number;
       count: number | null;
     } = await consulta;
+    sinal?.throwIfAborted();
     if (error) {
       const mensagem = `Não consegui carregar ${oQue}. ${error.message}`;
       throw status === 0 ? new FalhaDeRedeNaTabela(mensagem) : new Error(mensagem);

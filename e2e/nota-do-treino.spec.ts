@@ -376,7 +376,7 @@ test("uma sessão aberta no cliente antigo recupera a nota de outro aparelho e p
   expect(await sessaoNoServidor(conta, id)).toMatchObject({ status: "em_andamento", nota_geral: revisada });
 });
 
-test("o histórico offline já mostra a nota se as métricas de séries ainda estão carregando", async ({ page, context }) => {
+test("o histórico offline mostra a nota sem atribuir zero séries quando a contagem não está no aparelho", async ({ page, context }) => {
   const conta = await usuarioComPerfil();
   const titulo = "Treino com elástico";
   const nota = "Consegui manter o ritmo.";
@@ -402,7 +402,7 @@ test("o histórico offline já mostra a nota se as métricas de séries ainda es
     };
   }), conta.userId)).toBe(true);
   await page.goto("/robots.txt");
-  await page.evaluate(() => new Promise<void>((resolve, reject) => {
+  await page.evaluate(id => new Promise<void>((resolve, reject) => {
     const abrir = indexedDB.open("treino-terraco");
     abrir.onerror = () => reject(abrir.error);
     abrir.onsuccess = () => {
@@ -411,6 +411,7 @@ test("o histórico offline já mostra a nota se as métricas de séries ainda es
       tx.oncomplete = () => { banco.close(); resolve(); };
       tx.onabort = () => { banco.close(); reject(tx.error); };
       const tabela = tx.objectStore("cache");
+      tabela.delete(`series-do-historico:${id}`);
       const pedido = tabela.get("react-query-v1");
       pedido.onsuccess = () => {
         const registro = pedido.result;
@@ -420,24 +421,13 @@ test("o histórico offline já mostra a nota se as métricas de séries ainda es
         tabela.put(registro);
       };
     };
-  }));
-  await page.addInitScript(() => {
-    const original = window.fetch.bind(window);
-    window.fetch = (entrada, init) => {
-      const url = new URL(entrada instanceof Request ? entrada.url : String(entrada), location.href);
-      if (!navigator.onLine && url.pathname === "/rest/v1/session_sets") {
-        // O relatório deve ficar disponível antes do resultado, inclusive durante a tentativa de leitura.
-        document.documentElement.dataset.aguardandoSeries = "true";
-        return new Promise<Response>(() => {});
-      }
-      return original(entrada, init);
-    };
-  });
+  }), conta.userId);
   const worker = await workerDoApp(context);
   await semRedeNoWorker(worker);
   await context.setOffline(true);
   await page.goto("/relatorio");
   await abrirSecaoDoRelatorio(page, "historico");
-  await expect(page.locator("html")).toHaveAttribute("data-aguardando-series", "true");
-  await expect(registro(page, titulo)).toContainText(nota);
+  const linha = registro(page, titulo);
+  await expect(linha).toContainText(nota);
+  await expect(linha).not.toContainText(/\d+ séries?/);
 });

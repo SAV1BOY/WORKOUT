@@ -8,8 +8,10 @@
 "use client";
 
 import { useQuery, type QueryClient, type UseQueryResult } from "@tanstack/react-query";
+import { lerExcecoesDoHistorico } from "@/lib/queries/excecoes-do-historico";
 import { guardarCargasLidas } from "@/lib/queries/cargas-no-aparelho";
 import { guardarPerfilLido } from "@/lib/queries/perfil-no-aparelho";
+import { lerFonteDoRelatorio, type ListaDoRelatorio } from "@/lib/queries/lista-do-relatorio";
 import { lerTabelaCompleta } from "@/lib/queries/ler";
 import { clienteNavegador } from "@/lib/supabase/client";
 import type {
@@ -33,17 +35,18 @@ export const CARDIOS_RECENTES = 120;
 
 export const chaves = {
   perfil: () => ["perfil"] as const,
-  overrides: (de: string, ate: string) => ["overrides", de, ate] as const,
+  overrides: (de: string, ate: string, conta?: string) => conta
+    ? ["overrides", de, ate, conta] as const : ["overrides", de, ate] as const,
   sessoes: () => ["sessoes"] as const,
   sessoesAbertas: () => ["sessoes-abertas"] as const,
   cardio: (de: string, ate: string) => ["cardio", de, ate] as const,
   cardioDesde: (de: string) => ["cardio-desde", de] as const,
-  cardioTodos: () => ["cardio-todos"] as const,
+  cardioTodos: (conta: string) => ["cardio-todos", conta] as const,
   peso: () => ["peso"] as const,
   soltas: (data: string) => ["soltas", data] as const,
   soltasNoPeriodo: (de: string, ate: string) => ["soltas-periodo", de, ate] as const,
   /** Todas as repetições soltas — os Números e as conquistas (SPEC §19). */
-  soltasTodas: () => ["soltas-todas"] as const,
+  soltasTodas: (conta: string) => ["soltas-todas", conta] as const,
   cardioPorId: (id: string) => ["cardio-sessao", id] as const,
   estados: (ids: readonly string[]) => ["estados", [...ids].sort().join(",")] as const,
   /** Todas as linhas de `exercise_state` — a retomada (SPEC §18.2). */
@@ -104,19 +107,25 @@ export async function lerPerfilAtual(sinal: AbortSignal): Promise<LinhaPerfil | 
 export function useOverrides(
   de: string | null,
   ate: string | null,
+  conta?: string,
 ): UseQueryResult<LinhaExcecaoAgenda[]> {
   return useQuery({
-    queryKey: chaves.overrides(de ?? "", ate ?? ""),
+    queryKey: chaves.overrides(de ?? "", ate ?? "", conta),
+    meta: { contaDoRelatorio: conta },
     enabled: de !== null && ate !== null,
-    queryFn: () =>
-      lerLista<LinhaExcecaoAgenda>(
+    networkMode: conta ? "always" : "online",
+    queryFn: ({ client, signal }) => {
+      if (de === null || ate === null) return [];
+      if (conta) return lerExcecoesDoHistorico(client, conta, de, ate, signal);
+      return lerLista<LinhaExcecaoAgenda>(
         clienteNavegador()
           .from("schedule_overrides")
           .select("*")
           .gte("data", de ?? "")
           .lte("data", ate ?? ""),
         "as trocas do calendário",
-      ),
+      );
+    },
   });
 }
 
@@ -212,15 +221,18 @@ export function useCardioDesde(
  * são **acumulados**, e as três fontes têm que ler a mesma janela — a janela
  * de 26 semanas dava "10 treinos" em cima e "6 no total" embaixo.
  */
-export function useCardioTodos(): UseQueryResult<LinhaSessaoCardio[]> {
+export function useCardioTodos(conta: string | null): UseQueryResult<ListaDoRelatorio<LinhaSessaoCardio>> {
   return useQuery({
-    queryKey: chaves.cardioTodos(),
-    queryFn: async () => {
+    queryKey: chaves.cardioTodos(conta ?? ""),
+    meta: { contaDoRelatorio: conta },
+    enabled: Boolean(conta),
+    networkMode: "always",
+    queryFn: ({ client, signal }) => lerFonteDoRelatorio(client, conta!, "cardio", ["cardio-todos"], async () => {
       const linhas = await lerTabelaCompleta<LinhaSessaoCardio>(
-        "cardio_sessions", "*", "as sessões de cardio",
+        "cardio_sessions", "*", "as sessões de cardio", conta!, signal,
       );
       return linhas.sort((a, b) => b.data.localeCompare(a.data));
-    },
+    }, signal),
   });
 }
 
@@ -291,15 +303,18 @@ export function useSoltas(
  * Todas as repetições soltas (SPEC §19.2): os Números por período e as
  * conquistas de barra fixa contam desde o começo, não só a janela do histórico.
  */
-export function useSoltasTodas(): UseQueryResult<SoltaComAssistencia[]> {
+export function useSoltasTodas(conta: string | null): UseQueryResult<ListaDoRelatorio<SoltaComAssistencia>> {
   return useQuery({
-    queryKey: chaves.soltasTodas(),
-    queryFn: async () => {
+    queryKey: chaves.soltasTodas(conta ?? ""),
+    meta: { contaDoRelatorio: conta },
+    enabled: Boolean(conta),
+    networkMode: "always",
+    queryFn: ({ client, signal }) => lerFonteDoRelatorio(client, conta!, "soltas", ["soltas-todas"], async () => {
       const linhas = await lerTabelaCompleta<SoltaComAssistencia>(
-        "pullup_singles", "id,data,reps,assistencia", "as repetições soltas",
+        "pullup_singles", "id,user_id,data,reps,assistencia", "as repetições soltas", conta!, signal,
       );
       return linhas.sort((a, b) => b.data.localeCompare(a.data));
-    },
+    }, signal),
   });
 }
 

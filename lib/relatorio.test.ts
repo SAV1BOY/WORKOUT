@@ -146,6 +146,25 @@ describe("todos os registros (SPEC §13.5)", () => {
     expect(forca?.href).toBe("/treinar/s1");
   });
 
+  it("mantém séries e motivos do motor separados por treino no mesmo dia e respeita a contagem local zero", () => {
+    const primeira = SESSOES[0]!;
+    const segunda = { ...primeira, id: "s3", seriesDeTrabalhoLocais: 0 };
+    const lista = registros({
+      sessoes: [segunda, ...SESSOES], cardios: [],
+      series: [...SERIES, serie({ session_id: segunda.id }), serie({ session_id: "s2" })],
+      eventos: [
+        ...eventos,
+        { session_id: segunda.id, motivo: "semana_leve_60" },
+        { session_id: segunda.id, motivo: "manual" },
+        { session_id: null, motivo: "subiu" },
+      ],
+    });
+    expect(lista.map(r => [r.chave, r.detalhe, r.motor])).toEqual([
+      ["forca:s1", "45 min · 2 séries", { subiu: 2, repetiu: 1, voltou: 1 }],
+      ["forca:s3", "45 min · 0 séries", { subiu: 0, repetiu: 0, voltou: 1 }],
+    ]);
+  });
+
   it("a linha de cardio tem tipo, semana e duração", () => {
     const [corrida] = registros({ sessoes: [], cardios: CARDIOS, series: [] });
     expect(corrida?.titulo).toBe("Corrida");

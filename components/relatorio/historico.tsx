@@ -1,6 +1,9 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
+import { Erro } from "@/components/carregando";
+import { useOverrides } from "@/lib/queries/dados";
+import { useEventosTodos } from "@/lib/queries/progresso";
 import { editarNotaNoHistorico } from "@/lib/queries/historico-da-sessao";
 import { NotaDoTreino } from "@/components/treinar/nota-do-treino";
 import { Flame, History, Pause, Repeat2 } from "lucide-react";
@@ -13,7 +16,7 @@ import { FaixaSemana } from "@/components/ui/faixa-semana";
 import { Vazio } from "@/components/ui/vazio";
 import { formatarData, formatarDataCompleta, formatarIntervaloDaSemana } from "@/lib/formato";
 import { iso, inicioDaSemana, paraData } from "@/lib/calendario";
-import { registros, textoDoMotorDaSessao, type EventoDeSessao } from "@/lib/relatorio";
+import { registros, textoDoMotorDaSessao } from "@/lib/relatorio";
 import { montarRepeticaoDoTreinoLivre } from "@/lib/repetir-treino-livre";
 import { retomadaDasPrefs } from "@/lib/retomada";
 import type { CardioBruto, SerieBruta, SessaoBruta, SoltaBruta } from "@/lib/progresso";
@@ -33,22 +36,26 @@ export function Historico({
   hoje,
   perfil,
   overrides,
+  inicioDaAgenda,
   sessoes,
   cardios,
   series,
   seriesDisponiveis,
+  atividadesCompletas,
+  online,
   soltas,
-  eventos,
 }: {
   hoje: string;
   perfil: LinhaPerfil;
-  overrides: LinhaExcecaoAgenda[];
+  overrides: LinhaExcecaoAgenda[] | undefined;
+  inicioDaAgenda: string | null;
   sessoes: SessaoBruta[];
   cardios: CardioBruto[];
   series: SerieBruta[];
   seriesDisponiveis: boolean;
+  atividadesCompletas: boolean;
+  online: boolean;
   soltas: SoltaBruta[];
-  eventos: EventoDeSessao[];
 }) {
   /** Quantas semanas atrás da de hoje a faixa está (0 = esta semana). */
   const cliente = useQueryClient();
@@ -64,14 +71,19 @@ export function Historico({
   );
   const fim = useMemo(() => iso(addDays(paraData(inicio), 6)), [inicio]);
 
+  const anteriores = inicioDaAgenda !== null && inicio < inicioDaAgenda;
+  const semanaQ = useOverrides(anteriores ? inicio : null, anteriores ? fim : null, perfil.user_id);
+  const overridesDaFaixa = anteriores ? semanaQ.data : overrides;
+  const eventosQ = useEventosTodos(perfil.user_id);
+
   const dias = useMemo(
     () =>
       faixaDaSemana(
         montarGrade({
           data: inicio,
           perfil,
-          overrides,
-          sessoes: sessoes.map((s) => ({ ...s, id: s.id })),
+          overrides: overridesDaFaixa,
+          sessoes,
           cardios: cardios.map((c, i) => ({
             id: `c${i}`,
             data: c.data,
@@ -81,37 +93,28 @@ export function Historico({
           hoje,
         }),
       ),
-    [inicio, perfil, overrides, sessoes, cardios, hoje],
+    [inicio, perfil, overridesDaFaixa, sessoes, cardios, hoje],
   );
 
   /* SPEC §18.5: a pausa decidida, que mora nas prefs do perfil */
   const retomada = useMemo(() => retomadaDasPrefs(perfil.prefs), [perfil.prefs]);
 
-  const daSemana = useMemo(
-    () =>
-      registros({
-        sessoes,
-        cardios,
-        series,
-        seriesDisponiveis,
-        soltas,
-        eventos,
-        retomada,
-        de: inicio,
-        ate: fim,
-      }),
-    [sessoes, cardios, series, seriesDisponiveis, soltas, eventos, retomada, inicio, fim],
+  const lista = useMemo(
+    () => registros({
+      sessoes, cardios, series, seriesDisponiveis, soltas, eventos: eventosQ.data, retomada,
+      de: tudo ? null : inicio, ate: tudo ? null : fim,
+    }),
+    [sessoes, cardios, series, seriesDisponiveis, soltas, eventosQ.data, retomada, tudo, inicio, fim],
   );
-  const todos = useMemo(
-    () => registros({ sessoes, cardios, series, seriesDisponiveis, soltas, eventos, retomada }),
-    [sessoes, cardios, series, seriesDisponiveis, soltas, eventos, retomada],
-  );
-
-  const lista = tudo ? todos : daSemana;
   const mostrados = lista.slice(0, PAGINA * paginas);
+  const consultas = [semanaQ, eventosQ];
+  const falha = consultas.find(q => q.error);
 
   return (
     <section aria-label="Histórico" className="flex flex-col gap-3">
+      {online && falha?.error && <Erro mensagem={falha.error.message} aoTentarDeNovo={() => {
+        for (const consulta of consultas) if (consulta.isError) void consulta.refetch();
+      }} />}
       <FaixaSemana
         dias={dias}
         rotulo={formatarIntervaloDaSemana(inicio, fim)}
@@ -163,7 +166,9 @@ export function Historico({
       </div>
 
       <span role="status" className="sr-only">{repetindoId ? "Abrindo treino…" : ""}</span>
-      {mostrados.length === 0 ? (
+      {mostrados.length === 0 && !atividadesCompletas ? (
+        <p className="text-muted-foreground text-sm" role="status">Os registros desta lista ainda estão incompletos neste aparelho.</p>
+      ) : mostrados.length === 0 ? (
         <Vazio
           icone={History}
           titulo={tudo ? "Nenhum registro ainda" : "Nada registrado nesta semana"}

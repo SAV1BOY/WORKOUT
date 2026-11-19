@@ -13149,3 +13149,25 @@ Na volta rápida do primeiro treino sem rede, a sessão concluída e o vínculo 
 A suíte completa também verificou o Histórico com teclado a 360 px e fonte a 125%, nos temas claro e escuro. O novo botão da nota inicialmente recebia o primeiro Tab após o link do treino livre. A ordem dos controles foi ajustada para manter **Repetir treino** logo após esse link e permitir chegar à nota no Tab seguinte.
 
 Nessa largura, o texto de **Adicionar nota do treino** ocupava 241 px em um espaço de 238 px. O botão agora permite a quebra de linha e conserva uma área de toque de pelo menos 44 px de altura. O teste também percorre os dois botões com Tab e Shift+Tab.
+
+### Publicação da nota geral do treino
+
+O PR #44 entrou em produção no commit `2820e0722c8497d33571b235429310f9cdd93d58`. O domínio público e a Vercel confirmaram essa versão. A integração tem a mesma árvore `98c1fc69327c4f10d63f09480d737b52f9cf5757` da revisão `0ce5a28`. Passaram o lint, o build, os 2.133 testes unitários em 105 arquivos e os 776 cenários de Chromium em quatro grupos de 196, 205, 188 e 187. O teste com teclado a 360 px e fonte a 125% passou nos temas claro e escuro. [PR #44](https://github.com/SAV1BOY/WORKOUT/pull/44) · [Validação da revisão](https://github.com/SAV1BOY/WORKOUT/actions/runs/44483296788)
+
+A suíte do commit publicado também passou no lint, no build, nas unidades e nos quatro grupos de navegador. [Verificação da integração](https://github.com/SAV1BOY/WORKOUT/actions/runs/44485938881)
+
+Após a aprovação, o projeto **SAVIOTTI TECH → treino-terraco** recebeu a migração `2026_11_19_nota_geral_do_treino`, registrada como `20261119081400`. O banco confirmou a nova coluna de texto opcional, sem valor padrão, e a política que limita leitura e escrita às sessões da própria conta. Os treinos anteriores conservaram o campo `notas` que as versões anteriores utilizam.
+
+### Treinos anteriores a 26 semanas no Histórico
+
+No app do PR #44, a conferência em Chromium usou registros simulados de 24 e 25 de maio, com 19 de novembro de 2026 como data atual. O resumo contou três sessões, 45 minutos e 200 kg. Em **Relatório → Histórico → Todos os registros**, a força de 24/05 apareceu com a nota correta e zero séries, apesar de ter três séries de trabalho e uma progressão. Faltaram a corrida de 20 minutos e as seis repetições de barra daquele domingo. O treino de controle de 25/05, primeiro dia da janela, mostrou sua série. Selecionar a semana de 18 a 24/05 repetiu o problema. No Hevy, a pessoa pode voltar ao primeiro treino da conta ou abrir uma data pelo calendário para consultar o que registrou. [Histórico de treino no Hevy](https://www.hevyapp.com/features/best-way-to-track-workouts/)
+
+Na correção, a semana escolhida e a lista completa recuperam as séries, o cardio, a barra e as decisões do motor da conta. As consultas avançam pelo identificador de cada registro até a última página. O histórico agrupa séries e decisões pela sessão antes de montar as linhas, inclusive quando há dois treinos no mesmo dia. A grade recupera as trocas de calendário da semana antiga visitada. Os gráficos mantêm os intervalos que já usavam.
+
+A conferência de paginação retornou 1.230 decisões de progressão com o mesmo motivo e a mesma sessão. O serviço de teste limitou cada página a 120 linhas. Após a última página, o aparelho confirmou a cópia integral e a releu sem rede. Quando a segunda página falhou ou foi cancelada, a cópia integral anterior continuou disponível. Nos dados antigos cuja conta ou cobertura ainda precisa ser confirmada, o histórico pode mostrar a nota e a duração do treino enquanto aguarda as métricas. A primeira leitura online bem-sucedida repõe a cópia completa.
+
+Em outra prova, o Chromium abriu a versão do PR #44, guardou a sessão, instalou a atualização no mesmo perfil e reabriu o Relatório sem rede. A versão candidata exibiu a nota, as duas séries ligadas à sessão e a corrida de 24 minutos. As sete repetições de barra do cache antigo ainda precisavam de confirmação da conta. Na primeira reconexão, a tela ficou aberta por 20 segundos e as repetições continuaram ausentes. O teste de reconexão usa essa situação sem recarregar a página ou mudar de aba.
+
+A mesma prova passou no candidato corrigido. Ao reconectar, uma única leitura de repetições da conta trouxe as sete barras para o documento aberto. Uma segunda recarga, já sem rede, manteve a nota, as duas séries, a corrida de 24 minutos e as sete barras. O cenário permanente também simulou outro aparelho registrando uma série e uma decisão do motor antes da reconexão. A lista atualizou a sessão e as repetições da conta e conservou os números na recarga seguinte.
+
+Se a fila local ficar temporariamente ilegível com a internet disponível, o relatório apresenta a resposta do servidor e conserva a cópia que já estava no aparelho. Quatro testes simularam falhas de leitura antes e depois da resposta e o cancelamento da consulta. O candidato corrigido passou nos quatro.

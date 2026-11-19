@@ -8,6 +8,7 @@
  */
 "use client";
 
+import { atualizarFonteDoRelatorio } from "@/lib/queries/lista-do-relatorio";
 import type { QueryClient } from "@tanstack/react-query";
 import {
   duracaoEmMinutos,
@@ -142,11 +143,6 @@ export async function encerrarCardio(fim: FimDoCardio): Promise<LinhaSessaoCardi
       (atual) => [linha, ...(atual ?? []).filter((c) => c.id !== linha.id)],
     );
   }
-  /* SPEC §19.2: a lista completa alimenta os Números e as conquistas */
-  cliente.setQueryData<LinhaSessaoCardio[]>(chaves.cardioTodos(), (atual) =>
-    atual ? [linha, ...atual.filter((c) => c.id !== linha.id)] : atual,
-  );
-
   await enfileirarEscrita("cardio", {
     tabela: "cardio_sessions",
     op: "upsert",
@@ -154,6 +150,8 @@ export async function encerrarCardio(fim: FimDoCardio): Promise<LinhaSessaoCardi
     linha: { ...linha },
   });
 
+  await atualizarFonteDoRelatorio<LinhaSessaoCardio>(cliente, sessao.userId, "cardio", chaves.cardioTodos(sessao.userId),
+    anteriores => [linha, ...anteriores.filter(c => c.id !== linha.id)]);
   await apagarCardioLocal(sessao.id);
   return linha;
 }
