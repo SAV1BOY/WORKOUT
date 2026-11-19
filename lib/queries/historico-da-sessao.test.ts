@@ -141,7 +141,9 @@ describe("nota geral no histórico de força", () => {
 
   it("ao concluir conserva o snapshot, as séries feitas e a nota sem misturar textos legados", async () => {
     await lerHistoricoDaConta(cliente, "ana");
-    const fim = { resultados: [], escritas: [{ tabela: "sessions", op: "upsert" as const, linha: { ...sessao, notas: "um · dois", duracao_s: 300 } }] };
+    const inicio = "2026-11-19T11:55:00Z";
+    const fim = { resultados: [], escritas: [{ tabela: "sessions", op: "upsert" as const,
+      linha: { ...sessao, iniciada_em: inicio, notas: "um · dois", duracao_s: 300 } }] };
     const serie: LinhaSerie = {
       id: "serie", user_id: "ana", session_id: "um", exercise_id: "remada-unilateral", ordem_ex: 2,
       set_index: 1, tipo: "trabalho", concluida: true, reps: 8, reps_lado2: 7, carga_kg: 10,
@@ -151,7 +153,9 @@ describe("nota geral no histórico de força", () => {
     const series = [{ ...serie, id: "aquecimento", tipo: "aquecimento" as const, carga_kg: 5 }, serie];
     await guardarConclusaoNoHistorico(cliente, fim, "treino do dia", series);
     rede(false);
-    expect((await lerHistoricoDaConta(new QueryClient(), "ana"))[0]).toMatchObject({ nota_geral: "treino do dia", duracao_s: 300, seriesDeTrabalhoLocais: 1 });
+    expect((await lerHistoricoDaConta(new QueryClient(), "ana"))[0]).toMatchObject({
+      iniciada_em: inicio, nota_geral: "treino do dia", duracao_s: 300, seriesDeTrabalhoLocais: 1,
+    });
     expect((await lerHistoricoDaConta(new QueryClient(), "ana"))[0]).not.toHaveProperty("notas");
     expect(disco.get(chaveDoDetalheDaSessao("ana", "um"))).toEqual(series);
     expect(disco.has(chaveDoDetalheDaSessao("bia", "um"))).toBe(false);

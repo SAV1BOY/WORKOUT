@@ -9,7 +9,8 @@
 import { useQuery, type UseQueryResult } from "@tanstack/react-query";
 import { chaveDoHistorico, lerHistoricoDaConta } from "@/lib/queries/historico-da-sessao";
 import { lerFonteDoRelatorio, lerListaDoRelatorio, type ListaDoRelatorio } from "@/lib/queries/lista-do-relatorio";
-export { useSeriesDoDetalhe } from "@/lib/queries/series-do-detalhe";
+import { COLUNAS_SERIE } from "@/lib/queries/series-do-detalhe";
+export { COLUNAS_SERIE, useSeriesDoDetalhe } from "@/lib/queries/series-do-detalhe";
 import { lerLista, lerTabelaCompleta } from "@/lib/queries/ler";
 import { clienteNavegador } from "@/lib/supabase/client";
 import type { SerieBruta, SessaoBruta } from "@/lib/progresso";
@@ -19,9 +20,6 @@ import type { LinhaEventoProgressao, LinhaRecorde } from "@/lib/types";
 export const LIMITE_SERIES = 3000;
 /** Quantas séries a ficha de um exercício mostra. */
 export const LIMITE_SERIES_DO_EXERCICIO = 300;
-
-export const COLUNAS_SERIE =
-  "exercise_id,session_id,set_index,tipo,reps,reps_lado2,carga_kg,tempo_s,tempo_s_lado2,passos,assistencia,concluida,registrada_em";
 
 export const chavesProgresso = {
   sessoesTodas: () => ["progresso", "sessoes"] as const,
@@ -102,6 +100,8 @@ export function useSeriesDoExercicio(
           .select(`id,user_id,ordem_ex,${COLUNAS_SERIE}`)
           .eq("exercise_id", exercicioId ?? "")
           .order("registrada_em", { ascending: false })
+          .order("session_id", { ascending: false })
+          .order("id", { ascending: false })
           .limit(LIMITE_SERIES_DO_EXERCICIO),
         "o histórico deste exercício",
       ),

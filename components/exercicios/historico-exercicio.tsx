@@ -1,8 +1,10 @@
 "use client";
 
-import { useMemo } from "react";
+import { useId, useMemo } from "react";
+import { ChevronRight } from "lucide-react";
 import { GraficoLinha, SemDados } from "@/components/graficos";
 import { EsqueletoLista, Erro } from "@/components/carregando";
+import { FolhaDasSeries, SeriesRegistradas } from "@/components/relatorio/detalhe-das-series";
 import {
   Card,
   CardContent,
@@ -29,16 +31,20 @@ import {
 } from "@/lib/ficha";
 import { estadoDaLinha, textoDaCarga, textoDoAlvo, textoDoEvento } from "@/lib/hoje";
 import { nomeDaAssistencia } from "@/lib/sessao";
+import { tituloDaSessao } from "@/lib/relatorio";
 import { cargaDeHoje, prescricaoPadrao } from "@/lib/progressao";
 import {
   cargaPorSessao,
   datasDasSessoes,
   sessoesDoExercicio,
   type SerieBruta,
+  type SessaoBruta,
+  type SessaoDoExercicio,
 } from "@/lib/progresso";
 import { opcoesDeMontagem } from "@/lib/preferencias";
 import { useEstados, useEventos, usePerfil, useRecordes } from "@/lib/queries/dados";
 import { useSeriesDoExercicio, useSessoesTodas } from "@/lib/queries/progresso";
+import { useSeriesDaSessaoNaFicha } from "@/lib/queries/series-do-detalhe";
 
 /**
  * O histórico do exercício na ficha (SPEC §3.6): carga atual, recorde,
@@ -67,11 +73,10 @@ export function HistoricoExercicio({
   const seriesQ = useSeriesDoExercicio(exercicioId);
   const sessoesQ = useSessoesTodas(perfilQ.data?.user_id ?? null);
 
-  const porSessao = useMemo(
-    () => datasDasSessoes(sessoesQ.data ?? []),
-    [sessoesQ.data],
-  );
   const conta = perfilQ.data?.user_id;
+  const sessoesDaConta = useMemo(() => (sessoesQ.data ?? []).filter(s => conta && s.user_id === conta),
+    [conta, sessoesQ.data]);
+  const porSessao = useMemo(() => datasDasSessoes(sessoesDaConta), [sessoesDaConta]);
   const series = useMemo(() => (seriesQ.data ?? []).filter(s =>
     conta && (s.user_id === undefined ? porSessao.has(s.session_id) : s.user_id === conta)
   ), [conta, porSessao, seriesQ.data]);
@@ -79,10 +84,9 @@ export function HistoricoExercicio({
     () => cargaPorSessao(series, porSessao, exercicioId),
     [series, porSessao, exercicioId],
   );
-  const ultimas = useMemo(
-    () => sessoesDoExercicio(series, porSessao, exercicioId, 10),
-    [series, porSessao, exercicioId],
-  );
+  const ultimas = useMemo(() => identificarOrigens(
+    sessoesDoExercicio(series, porSessao, exercicioId, 10), sessoesDaConta,
+  ), [series, porSessao, exercicioId, sessoesDaConta]);
 
   // SPEC §22.17 item 4: o perfil também — as barras pesadas mudam a carga
   const carregando = historicoCarregando({
@@ -273,10 +277,16 @@ export function HistoricoExercicio({
             <SemDados>Nenhuma série registrada até agora.</SemDados>
           ) : (
             <ul className="divide-border divide-y">
-              {ultimas.map((dia) => (
-                <li key={`${dia.data}-${dia.sessionId}`} className="flex flex-col gap-0.5 py-2">
-                  <span className="text-xs font-medium">{formatarData(dia.data)}</span>
-                  <SeriesDoDia data={dia.data} series={dia.series} />
+              {ultimas.map(({ dia, origem }) => (
+                <li key={`${conta}:${dia.sessionId}:${dia.data}`} className="relative flex flex-col gap-0.5 py-2">
+                  {origem && conta ? (
+                    <OrigemDoTreino dia={dia} origem={origem} conta={conta} />
+                  ) : (
+                    <>
+                      <span className="text-xs font-medium">{formatarData(dia.data)}</span>
+                      <SeriesDoDia data={dia.data} series={dia.series} />
+                    </>
+                  )}
                 </li>
               ))}
             </ul>
@@ -311,6 +321,71 @@ export function HistoricoExercicio({
       )}
     </div>
   );
+}
+
+function horaDeInicio(inicio?: string | null) {
+  if (!inicio || !/T\d{2}:\d{2}/i.test(inicio)) return;
+  const data = new Date(inicio);
+  if (Number.isFinite(data.getTime())) return data.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+}
+
+type Origem = { sessao: SessaoBruta; titulo: string; hora?: string; registro?: string };
+
+function identificarOrigens(dias: readonly SessaoDoExercicio[], sessoes: readonly SessaoBruta[]):
+  { dia: SessaoDoExercicio; origem?: Origem }[] {
+  const concluidas = new Map(sessoes.filter(s => s.status === "concluida").map(s => [s.id, s]));
+  const linhas = dias.map(dia => {
+    const sessao = concluidas.get(dia.sessionId);
+    return { dia, origem: sessao && { sessao, titulo: tituloDaSessao(sessao), hora: horaDeInicio(sessao.iniciada_em) } };
+  });
+  return linhas.map(linha => {
+    const { dia, origem } = linha;
+    if (!origem) return linha;
+    const mesmoTitulo = linhas.filter(l => l.dia.data === dia.data && l.origem?.titulo === origem.titulo);
+    const hora = mesmoTitulo.length > 1 ? origem.hora : undefined;
+    const mesmoHorario = mesmoTitulo.filter(l => l.origem?.hora === origem.hora);
+    const registro = mesmoHorario.length > 1
+      ? `Registro ${mesmoHorario.indexOf(linha) + 1} de ${mesmoHorario.length}` : undefined;
+    return { dia, origem: { ...origem, hora, registro } };
+  });
+}
+
+function OrigemDoTreino({ dia, origem, conta }: {
+  dia: SessaoDoExercicio; origem: Origem; conta: string;
+}) {
+  const resumo = useId();
+  const { sessao, titulo, hora, registro } = origem;
+  const data = formatarDataCompleta(dia.data) + (hora ? ` às ${hora}` : "") + (registro ? ` · ${registro}` : "");
+  return (
+    <>
+      <FolhaDasSeries descricao={`${titulo} · ${data}`} gatilho={
+        <button type="button" aria-label={`Ver séries de ${titulo} de ${data}`} aria-describedby={resumo}
+          className="alvo foco hover:text-primary flex w-full items-center gap-2 rounded-md text-left after:absolute after:inset-0">
+          <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+            <span className="text-sm font-medium wrap-anywhere">{titulo}</span>
+            <span className="numero text-muted-foreground text-xs">
+              {formatarData(dia.data)}{hora && ` · ${hora}`}{registro && ` · ${registro}`}
+            </span>
+          </span>
+          <ChevronRight aria-hidden="true" className="text-muted-foreground size-4 shrink-0" />
+        </button>
+      }>
+        <DetalheNaFicha sessao={sessao} conta={conta} recorte={dia.series} />
+      </FolhaDasSeries>
+      <div id={resumo}><SeriesDoDia data={dia.data} series={dia.series} /></div>
+    </>
+  );
+}
+
+function DetalheNaFicha({ sessao, conta, recorte }: { sessao: SessaoBruta; conta: string; recorte: readonly SerieBruta[] }) {
+  const consulta = useSeriesDaSessaoNaFicha(conta, sessao.id);
+  if (consulta.error) return (
+    <div className="px-4 pb-6"><Erro mensagem={consulta.error.message} aoTentarDeNovo={() => void consulta.refetch()} /></div>
+  );
+  const fonte = consulta.data;
+  return <SeriesRegistradas sessao={sessao} conta={conta}
+    linhas={fonte && (fonte.completa || fonte.linhas.length > 0) ? fonte.linhas : recorte}
+    completa={fonte?.completa === true} carregando={consulta.isFetching && !fonte} />;
 }
 
 function Recorde({ rotulo, valor }: { rotulo: string; valor: string }) {

@@ -1,9 +1,29 @@
 "use client";
 
-import { useId, useMemo } from "react";
+import { useId, useMemo, type ReactElement, type ReactNode } from "react";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { detalharSeriesDoTreino, type GrupoDeSeriesDoTreino } from "@/lib/detalhe-do-treino";
 import type { SerieBruta, SessaoBruta } from "@/lib/progresso";
 import { useSeriesDoDetalhe } from "@/lib/queries/progresso";
+
+export function FolhaDasSeries({ gatilho, descricao, children }: {
+  gatilho: ReactElement;
+  descricao: string;
+  children: ReactNode;
+}) {
+  return (
+    <Sheet>
+      <SheetTrigger asChild>{gatilho}</SheetTrigger>
+      <SheetContent side="bottom" className="max-h-[85dvh] gap-3 overflow-hidden">
+        <SheetHeader className="shrink-0 gap-1 pr-16 pb-0">
+          <SheetTitle>Séries do treino</SheetTitle>
+          <SheetDescription className="wrap-anywhere">{descricao}</SheetDescription>
+        </SheetHeader>
+        {children}
+      </SheetContent>
+    </Sheet>
+  );
+}
 
 export function DetalheDasSeries({ sessao, conta, series, fonteCompleta, confirmadasEm }: {
   sessao: SessaoBruta;
@@ -12,7 +32,17 @@ export function DetalheDasSeries({ sessao, conta, series, fonteCompleta, confirm
   fonteCompleta: boolean;
   confirmadasEm?: number;
 }) {
-  const { linhas, completa, carregando } = useSeriesDoDetalhe(conta, sessao.id, series, fonteCompleta, confirmadasEm);
+  const resultado = useSeriesDoDetalhe(conta, sessao.id, series, fonteCompleta, confirmadasEm);
+  return <SeriesRegistradas sessao={sessao} conta={conta} {...resultado} />;
+}
+
+export function SeriesRegistradas({ sessao, conta, linhas, completa, carregando }: {
+  sessao: SessaoBruta;
+  conta: string;
+  linhas: readonly SerieBruta[];
+  completa: boolean;
+  carregando: boolean;
+}) {
   const grupos = useMemo(() => detalharSeriesDoTreino(sessao, linhas, conta), [sessao, linhas, conta]);
   const aviso = carregando ? "Consultando as séries guardadas neste aparelho…"
     : !completa ? "O histórico de séries deste treino está incompleto neste aparelho."

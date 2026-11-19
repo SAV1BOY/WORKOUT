@@ -13,7 +13,7 @@ import type { LinhaSerie } from "@/lib/types";
 
 export { chaveDoHistorico } from "@/lib/chaves-do-historico";
 
-const colunas = "id,user_id,data,status,workout_id,duracao_s,plano,nota_geral";
+const colunas = "id,user_id,data,status,workout_id,iniciada_em,duracao_s,plano,nota_geral";
 
 function substituirSessao(lista: SessaoBruta[], sessao: SessaoBruta): SessaoBruta[] {
   return [sessao, ...lista.filter(s => s.id !== sessao.id)].sort((a, b) => b.data.localeCompare(a.data));
@@ -113,6 +113,7 @@ export async function guardarConclusaoNoHistorico(
   const registro: SessaoBruta = {
     id: linha.id, data: linha.data, workout_id: linha.workout_id, user_id: conta,
     status: linha.status, duracao_s: linha.duracao_s, plano: linha.plano,
+    iniciada_em: linha.iniciada_em ?? anterior?.iniciada_em,
     nota_geral: nota === undefined ? anterior?.nota_geral : nota,
     seriesDeTrabalhoLocais: series.filter(s => s.tipo === "trabalho").length,
     revisaoDaNotaLocal: anterior?.revisaoDaNotaLocal,

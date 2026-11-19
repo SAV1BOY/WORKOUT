@@ -60,8 +60,11 @@ function temUrlLocalDeFoto(chave: readonly unknown[], dados: unknown): boolean {
     && Object.values(dados).some((url) => typeof url === "string" && url.startsWith("blob:"));
 }
 
-/** As listas completas do Histórico já têm cópias por conta no aparelho. */
+/** O Histórico guarda as listas da conta e o detalhe de cada sessão em chaves próprias. */
 function temCopiaPropria(chave: readonly unknown[]): boolean {
+  if (chave.length === 4 && chave[0] === "progresso" && chave[1] === "series-da-sessao") {
+    return typeof chave[2] === "string" && typeof chave[3] === "string";
+  }
   if (chave.length === 2 && typeof chave[1] === "string") {
     return chave[0] === "cardio-todos" || chave[0] === "soltas-todas";
   }

@@ -82,6 +82,8 @@ Grade da semana (seg–dom) com o tipo de cada dia, o que foi feito (✓, parcia
 ### 3.6 `/exercicios` e `/exercicios/[id]` — catálogo
 Lista com busca e filtros (grupo, equipamento, implemento, "está no meu programa"). Detalhe: figura animada + 2 fotos (toque abre em tela cheia), mapa muscular, equipamento, montagem, passos numerados, erro comum, prescrição padrão, regra de progressão e carga inicial; **histórico do exercício**: carga atual, recorde (carga máxima, reps máximas, e1RM Epley), gráfico carga × data, últimas 10 sessões (séries feitas), eventos de progressão.
 
+Em **Histórico → Últimas sessões**, a pessoa pode abrir um treino de força concluído da própria conta e consultar as séries de todos os exercícios, inclusive os aquecimentos. O nome e a data ajudam a escolher entre dois treinos do mesmo dia. Cada linha abre sua própria sessão pelo identificador. Ao fechar o detalhe, o foco volta para aquela linha. Quando a ficha foi aberta durante o treino, a série ou o descanso continua de onde a pessoa saiu. Sem rede, o detalhe indica quando só parte das séries está disponível no aparelho.
+
 ### 3.7 `/progresso`
 - Cards: treinos concluídos (semana / mês / total), aderência (feitos ÷ planejados nas últimas 4 semanas), volume semanal (Σ reps × kg das séries de trabalho), recordes recentes.
 - Gráficos (Recharts): carga dos três grandes (agachamento, terra, supino) + desenvolvimento militar por sessão; volume semanal (12 semanas); reps da barra fixa por semana; corrida: minutos correndo e km por semana.

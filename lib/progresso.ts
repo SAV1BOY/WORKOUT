@@ -38,7 +38,7 @@ export type SerieBruta = Pick<
 > & Partial<Pick<LinhaSerie, "id" | "user_id" | "ordem_ex">>; // Ausentes em projeções antigas do Relatório.
 
 export type SessaoBruta = Pick<LinhaSessao, "id" | "data" | "status" | "workout_id"> &
-  Partial<Pick<LinhaSessao, "user_id" | "duracao_s" | "plano" | "nota_geral">> & {
+  Partial<Pick<LinhaSessao, "user_id" | "iniciada_em" | "duracao_s" | "plano" | "nota_geral">> & {
     /** Confirmada ao fechar no aparelho, enquanto o histórico remoto de séries ainda sincroniza. */
     seriesDeTrabalhoLocais?: number;
     /** Versão da edição no aparelho, inclusive se o texto voltou ao valor anterior. */
