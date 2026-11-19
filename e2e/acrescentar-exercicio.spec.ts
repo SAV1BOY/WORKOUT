@@ -16,6 +16,7 @@ const geral = (page: Page) => page.getByRole("dialog", { name: "Visão geral do 
 const abrirCatalogo = (page: Page) => geral(page).getByRole("button", { name: "Adicionar exercício", exact: true });
 const catalogo = (page: Page) => page.getByRole("dialog", { name: "Adicionar exercício", exact: true });
 const busca = (page: Page) => catalogo(page).getByRole("searchbox", { name: "Buscar exercício pelo nome" });
+const grupoMuscular = (page: Page) => catalogo(page).getByRole("combobox", { name: "Grupo muscular", exact: true });
 const adicionar = (page: Page) => catalogo(page).getByRole("button", { name: `Adicionar ${NOME}`, exact: true });
 const timer = (page: Page) => page.getByRole("region", { name: "Descanso", exact: true }).getByRole("timer");
 
@@ -111,7 +112,8 @@ test("durante o descanso, acrescentar no fim preserva a série registrada e o pr
   ]);
 });
 
-test("a busca filtra por equipamento e o teclado e o voltar fecham só a folha do catálogo", async ({ page }, info) => {
+test("busca, grupo muscular e equipamento pelo teclado no tema claro; voltar fecha só o catálogo", async ({ page }, info) => {
+  await page.emulateMedia({ colorScheme: "light", reducedMotion: "reduce" });
   const { conta, id, plano } = await treinoAberto(page);
   await abrirVisaoGeral(page);
   await expect(geral(page).getByRole("heading", { level: 1 })).toHaveText("Treino livre de segunda");
@@ -121,8 +123,17 @@ test("a busca filtra por equipamento e o teclado e o voltar fecham só a folha d
   await expect(catalogo(page).getByRole("heading", { name: "Adicionar exercício", exact: true })).toBeFocused();
   await page.keyboard.press("Tab");
   await expect(busca(page)).toBeFocused();
+  await expect(page.locator("html")).toHaveClass(/\blight\b/);
+  await busca(page).press("Tab");
+  await expect(grupoMuscular(page)).toBeFocused();
+  await grupoMuscular(page).press("p");
+  await expect(grupoMuscular(page)).toHaveValue("Peito");
+  await grupoMuscular(page).press("Shift+Tab");
+  await expect(busca(page)).toBeFocused();
   await busca(page).fill("supino reto com barra"); // O banco não está no equipamento desta sessão.
   await expect(catalogo(page).getByRole("button", { name: "Adicionar Supino reto com barra" })).toHaveCount(0);
+  await expect(catalogo(page).getByRole("status")).toContainText("Nenhum exercício disponível para esse grupo");
+  await grupoMuscular(page).selectOption("todos");
   await busca(page).fill("rosca com elástico"); // Já ocupa o primeiro bloco.
   await expect(catalogo(page).getByRole("button", { name: "Adicionar Rosca com elástico" })).toHaveCount(0);
   await page.keyboard.press("Escape");
@@ -178,6 +189,72 @@ test("dois toques sem rede acrescentam uma vez e a recarga retoma o mesmo treino
     anterior, { user_id: conta.userId, exercise_id: FRONTAL, ordem_ex: 3, set_index: 1, carga_kg: 31.5, concluida: true },
   ]);
   expect((await lerDoMock<LinhaSessao>(conta, "sessions")).map(s => s.id)).toEqual([id]);
+});
+
+test("o grupo muscular com busca e material acrescenta uma flexão offline e retoma no tema escuro", async ({ page, context }) => {
+  await page.emulateMedia({ colorScheme: "dark", reducedMotion: "reduce" });
+  const { conta, id, plano } = await treinoAberto(page);
+  await expect(page.locator("html")).toHaveClass(/\bdark\b/);
+  await esperarServiceWorker(page);
+  await abrirVisaoGeral(page);
+  await abrirCatalogo(page).click();
+  const folha = catalogo(page);
+  const grupo = grupoMuscular(page);
+  const movimento = (nome: string) => folha.getByRole("button", { name: `Adicionar ${nome}`, exact: true });
+  const equipamento = folha.locator("summary").filter({ hasText: "Equipamentos disponíveis" });
+  await equipamento.click();
+  await folha.getByRole("button", { name: "Só peso do corpo", exact: true }).click();
+  await folha.getByRole("checkbox", { name: "Elástico (Super Band)", exact: true }).check();
+  await folha.getByRole("checkbox", { name: "Tatame", exact: true }).check();
+  await equipamento.click();
+  await expect(equipamento).toContainText("Elástico e Tatame");
+  await expect.poll(() => planoSalvo(conta, id)).toMatchObject({ equipamento_disponivel: ["tatame", "super-band"] });
+
+  const worker = await workerDoApp(context);
+  await semRedeNoWorker(worker);
+  await context.setOffline(true);
+  await busca(page).fill("flexao");
+  await grupo.selectOption("Peito");
+  const flexao = movimento("Flexão de braço");
+  const fechada = movimento("Flexão fechada");
+  const inclinada = movimento("Flexão inclinada");
+  await expect(flexao).toBeVisible();
+  await expect(fechada).toHaveCount(0); // Tríceps.
+  await expect(inclinada).toHaveCount(0); // Peito, mas usa banco.
+  await expect(folha.getByRole("listitem")).toHaveCount(1);
+  await grupo.press("Home"); // "Todos" limpa só o grupo.
+  await expect(grupo).toHaveValue("todos");
+  await expect(busca(page)).toHaveValue("flexao");
+  await expect(equipamento).toContainText("Elástico e Tatame");
+  await expect(fechada).toBeVisible();
+  await expect(inclinada).toHaveCount(0);
+  await grupo.selectOption("Peito");
+  await semRolagemHorizontal(page);
+  const caixa = await grupo.boundingBox();
+  expect(caixa!.height).toBeGreaterThanOrEqual(44);
+  await flexao.focus();
+  await flexao.press("Enter");
+  await expect(abrirCatalogo(page)).toBeFocused();
+  await expect(geral(page).getByRole("heading", { name: "3. Flexão de braço" })).toBeVisible();
+  expect((await planoSalvo(conta, id))?.itens).toEqual(plano.itens);
+
+  await page.reload();
+  await expect(page).toHaveURL(new RegExp(`/treinar/${id}$`));
+  await abrirVisaoGeral(page);
+  await expect(geral(page).getByRole("heading", { name: "3. Flexão de braço" })).toBeVisible();
+  await abrirCatalogo(page).click();
+  await expect(grupo).toHaveValue("todos");
+  await expect(busca(page)).toHaveValue("");
+  await expect(equipamento).toContainText("Elástico e Tatame");
+  await busca(page).fill("flexao");
+  await grupo.selectOption("Peito");
+  await expect(folha.getByRole("status")).toContainText("Nenhum exercício disponível para esse grupo");
+  await expect(flexao).toHaveCount(0); // Já está no fim deste treino.
+  await comRedeNoWorker(await workerDoApp(context));
+  await context.setOffline(false);
+  await expect.poll(() => planoSalvo(conta, id)).toMatchObject({
+    equipamento_disponivel: ["tatame", "super-band"], itens: [...plano.itens, { exercicio_id: "flexao-de-braco" }],
+  });
 });
 
 test("a falha ao gravar mantém o catálogo e permite tentar outra vez", async ({ page }) => {

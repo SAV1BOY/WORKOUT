@@ -13171,3 +13171,13 @@ Em outra prova, o Chromium abriu a versão do PR #44, guardou a sessão, instalo
 A mesma prova passou no candidato corrigido. Ao reconectar, uma única leitura de repetições da conta trouxe as sete barras para o documento aberto. Uma segunda recarga, já sem rede, manteve a nota, as duas séries, a corrida de 24 minutos e as sete barras. O cenário permanente também simulou outro aparelho registrando uma série e uma decisão do motor antes da reconexão. A lista atualizou a sessão e as repetições da conta e conservou os números na recarga seguinte.
 
 Se a fila local ficar temporariamente ilegível com a internet disponível, o relatório apresenta a resposta do servidor e conserva a cópia que já estava no aparelho. Quatro testes simularam falhas de leitura antes e depois da resposta e o cancelamento da consulta. O candidato corrigido passou nos quatro.
+
+### Publicação do Histórico completo
+
+O PR #45 entrou em produção no commit `5c4a876c43c86709da23c6fffa45b3fdc6484004`, confirmado pela Vercel e pelo endereço público. A revisão `51a35ba` e a integração têm a mesma árvore `9a8521e2e6dac089f3ea6b427dcc7f1ec79d25aa`. O lint, o build, os 2.153 testes unitários em 108 arquivos e os 780 cenários de Chromium passaram na revisão. Os quatro grupos tiveram 200, 191, 202 e 187 aprovações. A prova de atualização no mesmo perfil do navegador também passou da versão do PR #44 para essa revisão. A entrega usou o esquema existente do banco. [PR #45](https://github.com/SAV1BOY/WORKOUT/pull/45) · [Validação da revisão](https://github.com/SAV1BOY/WORKOUT/actions/runs/44489740297)
+
+### Grupo muscular ao acrescentar um exercício
+
+Na versão do PR #45, **Treino livre → Visão geral → Adicionar exercício** encontrava movimentos pelo nome e pelos equipamentos da sessão. Quem queria trabalhar peito no tatame precisava conhecer um nome ou percorrer a lista. A biblioteca em Explorar já usava os grupos do catálogo. O Hevy também documenta o uso conjunto de busca por nome, equipamento e músculo para escolher exercícios. [Biblioteca de exercícios do Hevy](https://www.hevyapp.com/features/exercise-library/)
+
+Na inclusão durante a sessão, escolher **Peito** com a busca “flexao” e apenas tatame e elástico mostra **Flexão de braço**. A flexão fechada pertence ao grupo de tríceps e a inclinada precisa de banco. Ao escolher **Todos**, a busca e o equipamento continuam selecionados. No teste em Chromium a 360 px, o teclado percorreu o controle no tema claro. No tema escuro, o exercício entrou no fim do treino sem rede, reapareceu após recarregar e sincronizou quando a conexão voltou. Abrir novamente a lista começa com todos os grupos e mantém o equipamento da sessão.
