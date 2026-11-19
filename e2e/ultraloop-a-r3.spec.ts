@@ -198,6 +198,9 @@ test.describe("§22.5 itens 4 e 5 — as perguntas chegam sem resposta e com cor
     }
     await expect(page.getByRole("region", { name: "Agachamento livre", exact: true })
       .getByText("Aquecimento 2 de 2 · exercício 1 de 6", { exact: true })).toBeVisible();
+    await expect.poll(() => lerDoMock(conta, "session_sets", `session_id=eq.${id}`)).toMatchObject([
+      { exercise_id: "agachamento-livre", tipo: "aquecimento", concluida: true },
+    ]);
     for (let i = 1; i < 5; i++) await concluirSerie(page);
 
     const firme = page.getByRole("radiogroup", { name: "Última repetição" });
