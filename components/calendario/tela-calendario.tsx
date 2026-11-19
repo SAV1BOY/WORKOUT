@@ -73,6 +73,11 @@ export function TelaCalendario({ userId }: { userId: string }) {
         : [],
     [ref, perfil, overrides, sessoes, cardios, hoje],
   );
+  // O resumo acompanha as consultas que chegam depois do toque. No editor de
+  // hoje ou de um dia futuro, mantenha o rascunho que a pessoa já está alterando.
+  const diaDoDialogo = diaTocado?.passado
+    ? grade.find(d => d.data === diaTocado.data) ?? diaTocado
+    : diaTocado;
 
   /*
    * SPEC §22.8 item 11: a contagem da semana lê a MESMA grade, já sem os dias
@@ -363,7 +368,7 @@ export function TelaCalendario({ userId }: { userId: string }) {
       />
 
       <DialogoDia
-        dia={diaTocado}
+        dia={diaDoDialogo}
         fase={perfil.fase_atual}
         aoFechar={() => setDiaTocado(null)}
         aoTrocar={(troca) => diaTocado && void trocarDia(diaTocado, troca)}
