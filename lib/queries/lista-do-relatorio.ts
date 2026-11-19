@@ -3,15 +3,20 @@ import { bd, temIndexedDB, type ItemCache } from "@/lib/db";
 import { lerConsultaGuardada, VALIDADE_MS } from "@/lib/persistencia-query";
 import { FalhaDeRedeNaTabela } from "@/lib/queries/ler";
 import type { EscritaTabela } from "@/lib/outbox-supabase";
+import { retirarDetalhesCobertos } from "@/lib/queries/cache-do-detalhe";
 import { chaveDoHistorico, chaveDoHistoricoNoDisco } from "@/lib/chaves-do-historico";
 
 export interface ListaDoRelatorio<T> {
   linhas: T[];
   completa: boolean;
+  /** Início da leitura paginada das séries, ou data dessa mesma confirmação no disco. */
+  confirmadasEm?: number;
 }
 type Fonte = "series" | "cardio" | "soltas";
 
-export const chaveDaLista = (fonte: Fonte, conta: string) => `${fonte}-do-historico:${conta}`;
+/** O app anterior ainda pode escrever a projeção sem ordem_ex em outra aba. */
+export const chaveDaLista = (fonte: Fonte, conta: string) => fonte === "series"
+  ? `series-do-historico-v2:${conta}` : `${fonte}-do-historico:${conta}`;
 
 function daConta<T>(item: ItemCache | undefined, conta: string): T[] | undefined {
   if (!item || Date.now() - item.atualizadoEm > VALIDADE_MS || !Array.isArray(item.valor)) return undefined;
@@ -19,13 +24,13 @@ function daConta<T>(item: ItemCache | undefined, conta: string): T[] | undefined
 }
 
 /** Confirma a última página antes de atualizar a cópia da conta. Uma leitura iniciada antes não apaga outra mais nova. */
-export async function lerListaDoRelatorio<T>(
+async function lerListaConfirmada<T>(
   conta: string, chave: string, consultar: () => Promise<T[]>, sinal?: AbortSignal,
-  podeGuardar: () => boolean = () => true,
-): Promise<T[]> {
+  gravacao?: { inicio: number; podeGuardar: () => boolean; depoisDeGuardar?: (inicio: number) => Promise<void> },
+): Promise<{ linhas: T[]; confirmadasEm?: number }> {
   sinal?.throwIfAborted();
   if (!conta) throw new Error("Não foi possível identificar a conta do relatório.");
-  const inicio = Date.now();
+  const inicio = gravacao?.inicio ?? Date.now();
   let linhas: T[];
   try {
     if (typeof navigator !== "undefined" && navigator.onLine === false) {
@@ -40,29 +45,38 @@ export async function lerListaDoRelatorio<T>(
   } catch (erro) {
     sinal?.throwIfAborted();
     if (erro instanceof FalhaDeRedeNaTabela && temIndexedDB()) {
-      const salvas = daConta<T>(await bd().cache.get(chave).catch(() => undefined), conta);
+      const item = await bd().cache.get(chave).catch(() => undefined);
+      const salvas = daConta<T>(item, conta);
       sinal?.throwIfAborted();
-      if (salvas) return salvas;
+      if (salvas && item) return { linhas: salvas, confirmadasEm: item.atualizadoEm };
     }
     throw erro;
   }
-  if (!temIndexedDB() || !podeGuardar()) return linhas;
+  const confirmada = { linhas, confirmadasEm: inicio };
+  if (!temIndexedDB() || (gravacao && !gravacao.podeGuardar())) return confirmada;
   const banco = bd();
   try {
-    return await banco.transaction("rw", banco.cache, async () => {
+    const tabelas = gravacao?.depoisDeGuardar ? [banco.cache, banco.outbox] : [banco.cache];
+    return await banco.transaction("rw", tabelas, async () => {
       const item = await banco.cache.get(chave);
       sinal?.throwIfAborted();
       if (item && item.atualizadoEm > inicio) {
         const recentes = daConta<T>(item, conta);
-        if (recentes) return recentes;
+        if (recentes) return { linhas: recentes, confirmadasEm: item.atualizadoEm };
       }
       await banco.cache.put({ chave, valor: linhas, atualizadoEm: inicio });
-      return linhas;
+      await gravacao?.depoisDeGuardar?.(inicio);
+      return confirmada;
     });
   } catch {
     sinal?.throwIfAborted();
-    return linhas;
+    // A resposta continua visível, mas uma transação revertida não confirmou o fechamento no aparelho.
+    return { linhas };
   }
+}
+
+export async function lerListaDoRelatorio<T>(conta: string, chave: string, consultar: () => Promise<T[]>, sinal?: AbortSignal): Promise<T[]> {
+  return (await lerListaConfirmada(conta, chave, consultar, sinal)).linhas;
 }
 
 const saidasPorFonte = {
@@ -75,8 +89,14 @@ async function escritasPendentes(fonte: Fonte, conta: string): Promise<EscritaTa
   if (!temIndexedDB()) return [];
   const { tipo, tabela } = saidasPorFonte[fonte];
   const itens = await bd().outbox.where("tipo").equals(tipo).toArray();
-  return itens.map(item => item.payload as EscritaTabela).filter(p =>
-    p.tabela === tabela && (p.filtro?.user_id ?? p.linha?.user_id) === conta);
+  return itens.flatMap(item => {
+    const p = item.payload as EscritaTabela;
+    if (p.tabela !== tabela) return [];
+    if (p.op === "upsert" && p.linhas) {
+      return p.linhas.filter(linha => linha.user_id === conta).map(linha => ({ tabela, op: "upsert" as const, linha }));
+    }
+    return (p.filtro?.user_id ?? p.linha?.user_id) === conta ? [p] : [];
+  });
 }
 
 function aplicarPendentes<T>(linhas: T[], pendentes: EscritaTabela[]): T[] {
@@ -100,6 +120,8 @@ function aplicarPendentes<T>(linhas: T[], pendentes: EscritaTabela[]): T[] {
 export async function lerFonteDoRelatorio<T>(
   cliente: QueryClient, conta: string, fonte: Fonte, antiga: readonly string[], consultar: () => Promise<T[]>, sinal?: AbortSignal,
 ): Promise<ListaDoRelatorio<T>> {
+  // A observação começa na fila. Um treino pode fechar antes de a consulta de rede chegar a iniciar.
+  const inicio = Date.now();
   let filaLegivel = true;
   const lerFila = async () => {
     sinal?.throwIfAborted();
@@ -115,14 +137,27 @@ export async function lerFonteDoRelatorio<T>(
   };
   const antes = await lerFila();
   try {
-    const linhas = await lerListaDoRelatorio(conta, chaveDaLista(fonte, conta), async () => {
+    const confirmada = await lerListaConfirmada(conta, chaveDaLista(fonte, conta), async () => {
       const remotas = await consultar();
       // A fila pode esvaziar enquanto o servidor responde com a foto anterior aos envios.
       return aplicarPendentes(remotas, [...antes, ...await lerFila()]);
-    }, sinal, () => filaLegivel);
-    return { linhas: aplicarPendentes(linhas, await lerFila()), completa: true };
+    }, sinal, {
+      inicio, podeGuardar: () => filaLegivel,
+      depoisDeGuardar: fonte === "series" ? horario => retirarDetalhesCobertos(conta, horario) : undefined,
+    });
+    const linhas = aplicarPendentes(confirmada.linhas, await lerFila());
+    return fonte === "series" && filaLegivel && confirmada.confirmadasEm !== undefined
+      ? { linhas, completa: true, confirmadasEm: confirmada.confirmadasEm }
+      : { linhas, completa: true };
   } catch (erro) {
     if (!(erro instanceof FalhaDeRedeNaTabela)) throw erro;
+  }
+
+  if (fonte === "series" && temIndexedDB()) {
+    const arquivoAnterior = await bd().cache.get(`series-do-historico:${conta}`).catch(() => undefined);
+    sinal?.throwIfAborted();
+    const salvas = daConta<T>(arquivoAnterior, conta);
+    if (salvas) return { linhas: aplicarPendentes(salvas, await lerFila()), completa: true };
   }
 
   const pegar = async <R>(chave: readonly string[]): Promise<R | undefined> =>

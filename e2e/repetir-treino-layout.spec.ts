@@ -29,11 +29,18 @@ for (const tema of ["light", "dark"] as const) {
     await abrirSecaoDoRelatorio(page, "historico");
     const registro = page.getByRole("list", { name: "Registros", exact: true })
       .getByRole("listitem").filter({ hasText: TITULO });
-    const link = registro.getByRole("link");
+    const series = registro.getByRole("button", { name: `Ver séries de ${TITULO} de 14/09/2026`, exact: true });
     const repetir = registro.getByRole("button", { name: `Repetir treino: ${TITULO} de 14/09/2026`, exact: true });
-    await expect(link).toHaveAttribute("href", `/treinar/${ORIGEM}`);
-    await expect(link.getByRole("button")).toHaveCount(0);
-    await link.focus();
+    await expect(series.getByRole("button")).toHaveCount(0);
+    await series.focus();
+    await page.keyboard.press("Enter");
+    const detalhe = page.getByRole("dialog", { name: "Séries do treino", exact: true });
+    await expect(detalhe.getByRole("heading", { name: "Séries do treino", exact: true })).toBeFocused();
+    await expect(detalhe).toContainText("Nenhuma série registrada neste treino.");
+    expect(await detalhe.evaluate(el => el.scrollWidth - el.clientWidth)).toBeLessThanOrEqual(1);
+    await semRolagemHorizontal(page);
+    await page.keyboard.press("Escape");
+    await expect(series).toBeFocused();
     await page.keyboard.press("Tab");
     await expect(repetir).toBeFocused();
     // Um viewport rolável ainda pode ter a navegação fixa por cima do botão.

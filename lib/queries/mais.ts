@@ -351,12 +351,14 @@ export async function importarBackup(opcoes: {
       continue;
     }
     for (const lote of emLotes(escrita.linhas)) {
-      await enfileirarEscrita(TIPO_DA_TABELA[escrita.tabela], {
-        tabela: escrita.tabela,
-        op: "upsert",
-        linhas: lote,
-        onConflict: escrita.onConflict,
-      });
+      if (escrita.tabela === "session_sets") {
+        const { enfileirarSeriesDoBackup } = await import("@/lib/queries/cache-do-detalhe");
+        await enfileirarSeriesDoBackup(userId, lote, escrita.onConflict);
+      } else {
+        await enfileirarEscrita(TIPO_DA_TABELA[escrita.tabela], {
+          tabela: escrita.tabela, op: "upsert", linhas: lote, onConflict: escrita.onConflict,
+        });
+      }
       linhas += lote.length;
     }
   }

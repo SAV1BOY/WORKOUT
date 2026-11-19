@@ -499,10 +499,13 @@ test.describe("Relatório (§13.5 e §14.4)", () => {
     await expect(registros).toContainText("Barra fixa no descanso");
     await expect(registros).toContainText("8 repetições");
 
-    // o toque num registro de força abre o resumo da sessão
-    await expect(
-      registros.getByRole("link").filter({ hasText: "Treino A" }),
-    ).toHaveAttribute("href", /\/treinar\//);
+    // A consulta acontece dentro do histórico, na sessão escolhida.
+    const series = registros.getByRole("button", { name: /^Ver séries de Treino A de / });
+    await series.click();
+    const detalhe = page.getByRole("dialog", { name: "Séries do treino", exact: true });
+    await expect(detalhe).toBeVisible();
+    await detalhe.getByRole("button", { name: "Fechar", exact: true }).click();
+    await expect(series).toBeFocused();
 
     // sequências
     const sequencias = page.getByRole("region", { name: "Sequências" });

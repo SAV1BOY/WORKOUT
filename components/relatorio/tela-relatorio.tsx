@@ -332,6 +332,7 @@ export function TelaRelatorio({ userId }: { userId: string }) {
             cardios={cardios}
             series={series}
             seriesDisponiveis={seriesQ.data?.completa === true}
+            seriesConfirmadasEm={seriesQ.data?.confirmadasEm}
             atividadesCompletas={Boolean(cardioQ.data?.completa && soltasTodasQ.data?.completa)}
             online={online}
             soltas={soltasTodas}

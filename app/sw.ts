@@ -9,6 +9,8 @@ import { PEDIR_CONTROLE_DO_WORKER } from "@/lib/controle-do-worker";
 import { limitarCatalogo, separarCacheAntigo } from "@/lib/midia-no-aparelho";
 import { verificarCopiaInteira } from "@/lib/sw-assets";
 import { criarCura } from "@/lib/sw-cura";
+import { navegacaoGuardadaServe } from "@/lib/sw-documento-guardado";
+import { limparPrecacheDaAtualizacao, servirEstaticoDoBuild } from "@/lib/sw-estaticos-anteriores";
 import {
   ehNavegacao,
   ehRsc,
@@ -132,6 +134,8 @@ const servirDoSocorro = criarServirDoSocorro(caches);
  * Nenhuma navegação chega às regras genéricas.
  */
 const socorroDeAssets: SerwistPlugin = {
+  cachedResponseWillBeUsed: async ({ request, cachedResponse }) => cachedResponse ??
+    servirEstaticoDoBuild(request.url, self.location.origin, caches, serwist.precacheStrategy.cacheName),
   handlerDidError: ({ request }) => servirDoSocorro(request.url),
 };
 
@@ -239,7 +243,7 @@ async function emQualquerCache(): Promise<Response | undefined> {
  * navegação — degrau que falha é degrau que não existe, e o último sempre
  * responde.
  */
-async function semRede(request: Request): Promise<Response> {
+async function semRede(request: Request, tentarRede = true): Promise<Response> {
   if (ehRsc(pedidoDe(request))) {
     /*
      * Uma resposta que **não** é payload de RSC faz o roteador do Next desistir
@@ -253,7 +257,7 @@ async function semRede(request: Request): Promise<Response> {
   }
 
   const escada = [
-    () => maisUmaTentativa(request.url),
+    ...(tentarRede ? [() => maisUmaTentativa(request.url)] : []),
     () => noPrecache(OFFLINE),
     () => emQualquerCache(),
   ];
@@ -327,6 +331,23 @@ const regras: RuntimeCaching[] = [
           },
         },
         new ExpirationPlugin({ maxEntries: 32, maxAgeSeconds: 24 * 60 * 60 }),
+        {
+          cachedResponseWillBeUsed: async ({ request, cachedResponse }) => {
+            if (!cachedResponse) return undefined;
+            try {
+              const serve = await navegacaoGuardadaServe(pedidoDe(request), cachedResponse,
+                process.env.NEXT_PUBLIC_CONSTRUIDO_EM!, async url => {
+                  const resposta = await caches.match(url, { ignoreSearch: true });
+                  return resposta?.ok === true;
+                });
+              if (serve) return cachedResponse;
+            } catch {
+              // O navegador pode ter despejado parte da cópia durante a leitura.
+            }
+            // A NetworkFirst já tentou a rede. Uma resposta demorada ainda pode renovar o cache.
+            return semRede(request, false);
+          },
+        },
       ],
     }),
   },
@@ -365,7 +386,10 @@ noPrecache = (url) => serwist.matchPrecache(url);
 serwist.precacheStrategy.plugins.push(socorroDeAssets);
 anunciarOSocorro(comSocorro + 1);
 
-serwist.addEventListeners();
+// A limpeza padrão de handleActivate apagaria também os imports tardios das abas abertas.
+self.addEventListener("install", serwist.handleInstall);
+self.addEventListener("fetch", serwist.handleFetch);
+self.addEventListener("message", serwist.handleCache);
 
 // O documento recém-aberto pode ter ficado entre a navegação e o primeiro claim.
 self.addEventListener("message", (evento) => {
@@ -377,14 +401,14 @@ self.addEventListener("message", (evento) => {
 });
 
 /*
- * Depois do `addEventListeners`: são dois ouvintes de `activate` no mesmo
- * worker (o do Serwist e este), e cada um estende a ativação com o seu
- * `waitUntil` — um não atrapalha o outro.
- *
  * `renovar`: o precache aqui é o do build que acabou de instalar, e a cópia
  * guardada é a do build anterior. Tirar a nova do precache não custa rede.
  */
 self.addEventListener("activate", (evento) => {
+  evento.waitUntil(caches.open(serwist.precacheStrategy.cacheName).then(cache =>
+    limparPrecacheDaAtualizacao(cache, serwist.getUrlsToPrecacheKeys().values(),
+      process.env.NEXT_PUBLIC_CONSTRUIDO_EM!, self.location.origin),
+  ).catch(() => undefined));
   evento.waitUntil(separarCacheAntigo().catch(() => undefined));
   evento.waitUntil(
     garantirOSocorro({

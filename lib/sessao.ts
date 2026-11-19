@@ -1225,7 +1225,9 @@ export function escritaDaSessao(sessao: SessaoLocal): Escrita {
 }
 
 /** Todas as séries efetivamente feitas, com o exercício, a carga e o feedback que lhes pertencem. */
-export function escritasDasSeriesFeitas(sessao: SessaoLocal): Escrita[] {
+type EscritaDeSerie = Escrita & { linha: LinhaSerie };
+
+export function escritasDasSeriesFeitas(sessao: SessaoLocal): EscritaDeSerie[] {
   return sessao.blocos.flatMap((bloco) =>
     [bloco, ...(bloco.trocados ?? [])].flatMap((exercicio) =>
       exercicio.series.filter((s) => s.concluida).map((s) => escritaDaSerie(sessao, exercicio, s)),
@@ -1238,7 +1240,7 @@ export function escritaDaSerie(
   sessao: SessaoLocal,
   bloco: BlocoLocal,
   serie: SerieLocal,
-): Escrita {
+): EscritaDeSerie {
   const linha: Omit<LinhaSerie, "registrada_em"> & { registrada_em: string } = {
     id: serie.id,
     session_id: sessao.id,

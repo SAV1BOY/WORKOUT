@@ -29,10 +29,17 @@ const trocas = [
   ["SA", "supino-inclinado-com-halteres", "flexao-de-braco"],
   ["SA", "supino-reto-com-barra", "flexao-de-braco"],
 ].map(([workout_id, exercicio_original_id, substituto_id]) => ({ user_id: uid, workout_id, exercicio_original_id, substituto_id }));
+const series = gerar(5007);
+const ultimoRegistro = {
+  id: series.at(-1)!.id, user_id: uid, registrada_em: dia, exercise_id: "levantamento-terra", session_id: "livre-antigo", ordem_ex: 6,
+  set_index: 3, tipo: "aquecimento", reps: 8, reps_lado2: 7, carga_kg: 2.5,
+  tempo_s: 16, tempo_s_lado2: 14, passos: 12, assistencia: "media", concluida: true,
+};
+series[series.length - 1] = ultimoRegistro;
 const dados: Record<string, Linha[]> = {
   trocas_do_programa: [...trocas].reverse().concat({ ...trocas[0]!, user_id: "outra-conta" }),
   sessions: gerar(501),
-  session_sets: gerar(5007),
+  session_sets: series,
   cardio_sessions: gerar(802),
   pullup_singles: gerar(2002),
   exercise_state: Array.from({ length: 1200 }, (_, i) => ({
@@ -121,6 +128,7 @@ describe("histórico maior que uma página do servidor", () => {
       const lista = await (consulta(uid) as unknown as Promise<{linhas: Linha[]; completa: boolean}>);
       expect(lista.completa).toBe(true);
       expect(lista.linhas.map((linha) => linha.id)).toEqual(dados[tabela]!.map((linha) => linha.id));
+      if (tabela === "session_sets") expect(lista.linhas.at(-1)).toEqual(ultimoRegistro);
     }
   });
 

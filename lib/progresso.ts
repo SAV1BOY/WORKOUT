@@ -35,7 +35,7 @@ export type SerieBruta = Pick<
   | "assistencia"
   | "concluida"
   | "registrada_em"
->;
+> & Partial<Pick<LinhaSerie, "id" | "user_id" | "ordem_ex">>; // Ausentes em projeções antigas do Relatório.
 
 export type SessaoBruta = Pick<LinhaSessao, "id" | "data" | "status" | "workout_id"> &
   Partial<Pick<LinhaSessao, "user_id" | "duracao_s" | "plano" | "nota_geral">> & {
@@ -358,7 +358,13 @@ export function sessoesDoExercicio(
   return [...dias.values()]
     .sort((a, b) => b.data.localeCompare(a.data))
     .slice(0, limite)
-    .map((d) => ({ ...d, series: [...d.series].sort((a, b) => a.set_index - b.set_index) }));
+    .map(d => {
+      // O mesmo movimento pode voltar em outro bloco depois de uma substituição.
+      const temPosicoes = d.series.every(s => s.ordem_ex != null);
+      return { ...d, series: d.series.sort((a, b) =>
+        (temPosicoes ? a.ordem_ex! - b.ordem_ex! : 0) || a.set_index - b.set_index ||
+        (a.registrada_em ?? "").localeCompare(b.registrada_em ?? "")) };
+    });
 }
 
 /* ------------------------------------------------ barra fixa e corrida */
