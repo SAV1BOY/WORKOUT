@@ -13,7 +13,7 @@ import {
   ThumbsDown,
   ThumbsUp,
 } from "lucide-react";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
 import { toast } from "sonner";
 import { MediaGrande } from "@/components/exercicio/media-grande";
 import { StepperNumerico } from "@/components/stepper-numerico";
@@ -35,12 +35,13 @@ import {
   pontosDoBloco,
   rotuloDoPasso,
   serieAnteriorDe,
+  tempoMedidoNoExercicio,
   type EntradaDoPasso,
   type PassoSerie,
   type SerieDeOutroDia,
 } from "@/lib/player";
 import type { VotoDoExercicio } from "@/lib/preferencias";
-import { proximaCarga, type BlocoLocal, type SerieLocal } from "@/lib/sessao";
+import { camposDoCronometro, medicaoDaSerie, proximaCarga, type BlocoLocal, type SerieLocal } from "@/lib/sessao";
 import { useNotaDoExercicio } from "@/lib/queries/nota-do-exercicio";
 import { cn } from "@/lib/utils";
 
@@ -125,6 +126,7 @@ export function TelaExercicio({
   const ondeEstou = `${rotuloDoPasso(passo)} · exercício ${passo.posicao} de ${passo.totalExercicios}`;
 
   const botaoDaLista = useRef<HTMLButtonElement>(null);
+  const confirmarTempo = useRef<(() => void) | null>(null);
   useEffect(() => {
     if (pedidoDeFoco > 0) botaoDaLista.current?.focus();
   }, [pedidoDeFoco]);
@@ -371,9 +373,11 @@ export function TelaExercicio({
         </p>
       </div>
 
-      <div className="flex flex-col gap-3 px-3">
+      {/* Acima de 125% os recuos do miolo não devem tirar espaço dos dígitos. */}
+      <div className="mx-[min(0px,calc(20px-1rem))] flex flex-col gap-3 px-[min(0.75rem,15px)]">
         <MioloDoPasso
           key={serie.id}
+          confirmarTempo={confirmarTempo}
           entrada={entrada}
           bloco={bloco}
           serie={serie}
@@ -409,7 +413,10 @@ export function TelaExercicio({
         concluida={serie.concluida}
         aoAnterior={aoAnterior}
         aoProximo={aoProximo}
-        aoConcluir={aoConcluir}
+        aoConcluir={() => {
+          confirmarTempo.current?.();
+          aoConcluir();
+        }}
       />
     </section>
   );
@@ -417,6 +424,7 @@ export function TelaExercicio({
 
 /** O bloco central, conforme o tipo do passo (SPEC §14.1.2). */
 function MioloDoPasso({
+  confirmarTempo,
   entrada,
   bloco,
   serie,
@@ -426,6 +434,7 @@ function MioloDoPasso({
   aoMudar,
   aoMudarCarga,
 }: {
+  confirmarTempo: RefObject<(() => void) | null>;
   entrada: EntradaDoPasso;
   bloco: BlocoLocal;
   serie: SerieLocal;
@@ -450,15 +459,10 @@ function MioloDoPasso({
 
       {entrada.tipo === "tempo" ? (
         <Cronometro
-          alvoS={serie.tempoS}
+          serie={serie}
           unilateral={entrada.unilateral}
-          concluida={serie.concluida}
-          aoMudar={(segundos) =>
-            aoMudar({
-              tempoS: segundos,
-              ...(entrada.unilateral ? { tempoSLado2: segundos } : {}),
-            })
-          }
+          confirmarTempo={confirmarTempo}
+          aoMudar={aoMudar}
         />
       ) : entrada.tipo === "passos" ? (
         <LinhaGrande rotulo="passos">
@@ -550,49 +554,85 @@ function LinhaGrande({
  * sistema: o número que fica registrado é o tempo que passou de verdade.
  */
 function Cronometro({
-  alvoS,
-  unilateral,
-  concluida,
-  aoMudar,
+  serie, unilateral, confirmarTempo, aoMudar,
 }: {
-  alvoS: number | null;
+  serie: SerieLocal;
   unilateral: boolean;
-  concluida: boolean;
-  aoMudar: (segundos: number) => void;
+  confirmarTempo: RefObject<(() => void) | null>;
+  aoMudar: (campos: Partial<SerieLocal>) => void;
 }) {
-  const alvo = alvoS ?? 0;
+  const { id, tempoS: valor, concluida } = serie;
+  const medicao = medicaoDaSerie(serie);
+  const alvoDaMedicao = medicao?.alvoS;
+  const alvo = Math.max(0, Math.round(alvoDaMedicao ?? valor ?? 0));
+  const feitos = medicao?.medidoS ?? 0;
+  const falta = Math.max(0, alvo - feitos);
+  const terminou = alvoDaMedicao !== undefined && falta === 0;
   const [rodando, setRodando] = useState(false);
-  const [feitos, setFeitos] = useState(0);
-  const comeco = useRef(0);
-  const ultimo = useRef<number | null>(null);
-  const aviso = useRef(aoMudar);
+  const trecho = useRef<{
+    alvoS: number;
+    acumuladoMs: number;
+    inicioEm: number;
+    ultimoS: number;
+  } | null>(null);
+  const fracaoPausada = useRef(0);
+  const gravar = useRef(aoMudar);
+  useLayoutEffect(() => { gravar.current = aoMudar; }, [aoMudar]);
 
-  useEffect(() => {
-    aviso.current = aoMudar;
-  });
+  const medir = useCallback((pausar: boolean) => {
+    const atual = trecho.current;
+    if (!atual) return;
+    const { segundos, totalMs } = tempoMedidoNoExercicio(
+      atual.alvoS, atual.acumuladoMs, atual.inicioEm, Date.now(),
+    );
+    if (pausar || segundos === atual.alvoS) {
+      trecho.current = null;
+      fracaoPausada.current = totalMs % 1_000;
+      setRodando(false);
+    }
+    if (segundos !== atual.ultimoS) {
+      atual.ultimoS = segundos;
+      gravar.current(camposDoCronometro(id, atual.alvoS, segundos));
+    }
+  }, [id]);
 
-  useEffect(() => {
-    if (concluida) setRodando(false);
-  }, [concluida]);
+  useLayoutEffect(() => {
+    confirmarTempo.current = () => medir(true);
+    return () => { confirmarTempo.current = null; };
+  }, [confirmarTempo, medir]);
 
   useEffect(() => {
     if (!rodando) return;
-    comeco.current = Date.now() - feitos * 1000;
-    ultimo.current = null;
-    const relogio = setInterval(() => {
-      const segundos = Math.round((Date.now() - comeco.current) / 1000);
-      if (segundos === ultimo.current) return;
-      ultimo.current = segundos;
-      setFeitos(segundos);
-      // uma gravação por segundo: recarregar no meio não perde o que passou
-      aviso.current(segundos);
-    }, 250);
+    const relogio = setInterval(() => medir(false), 200);
     return () => clearInterval(relogio);
-    // `feitos` entra só na retomada: o efeito não pode reiniciar a cada tique
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rodando]);
+  }, [rodando, medir]);
 
-  const falta = Math.max(0, alvo - feitos);
+  // Outra superfície pode concluir a série ou alterar sua prescrição.
+  useLayoutEffect(() => {
+    if (trecho.current && (concluida || trecho.current.alvoS !== alvoDaMedicao)) {
+      trecho.current = null;
+      fracaoPausada.current = 0;
+      setRodando(false);
+    }
+  }, [concluida, alvoDaMedicao]);
+
+  const alternar = () => {
+    if (trecho.current) {
+      medir(true);
+      return;
+    }
+    if (!alvo || terminou || concluida) return;
+    const fracao = alvoDaMedicao === undefined ? 0 : fracaoPausada.current;
+    trecho.current = {
+      alvoS: alvo,
+      acumuladoMs: feitos * 1_000 + fracao,
+      inicioEm: Date.now(),
+      ultimoS: feitos,
+    };
+    // Até o primeiro segundo completo, concluir uma medição deve registrar zero.
+    if (alvoDaMedicao === undefined) aoMudar(camposDoCronometro(id, alvo, 0));
+    setRodando(true);
+  };
 
   return (
     <div className="flex flex-col items-center gap-2">
@@ -604,32 +644,39 @@ function Cronometro({
         aria-label="Contagem do exercício"
         className="numero-grande text-5xl tabular-nums"
       >
-        {formatarDuracao(rodando || feitos > 0 ? falta : alvo)}
+        {formatarDuracao(falta)}
       </span>
       {/* SPEC §22.5 item 7: `role="timer"` tem `aria-live` desligado — sem
           isto o fim da contagem só existia para quem ouve o bipe */}
       <p role="status" className="sr-only">
-        {avisoDaContagem(rodando, falta, alvo)}
+        {terminou ? "Tempo terminado." : avisoDaContagem(rodando, falta, alvo)}
       </p>
-      <div className="flex items-center gap-2">
+      <div className="flex w-full flex-wrap items-center justify-center gap-2">
         <Button
           variant={rodando ? "default" : "outline"}
-          className="alvo h-14 rounded-2xl px-5 text-base"
-          onClick={() => setRodando((r) => !r)}
+          className="alvo h-auto min-h-[max(56px,3.5rem)] max-w-full rounded-2xl px-[min(1.25rem,20px)] py-1 text-base whitespace-normal"
+          onClick={alternar}
+          disabled={concluida || terminou || alvo === 0}
         >
           {rodando ? <Pause className="size-5" /> : <Play className="size-5" />}
-          {rodando ? "Pausar" : feitos > 0 ? "Continuar" : "Começar"}
+          {terminou ? "Tempo terminado"
+            : rodando ? "Pausar"
+            : alvoDaMedicao !== undefined ? "Continuar" : "Começar"}
         </Button>
-        <StepperNumerico
-          rotulo={unilateral ? "segundos do lado direito" : "segundos"}
-          valor={alvoS}
-          passo={5}
-          aoMudar={(v) => {
-            setRodando(false);
-            setFeitos(0);
-            aoMudar(v ?? 0);
-          }}
-        />
+        <div className="min-w-0 flex-[1_1_calc(8rem+9ch+10px)]">
+          <StepperNumerico
+            grande
+            rotulo={unilateral ? "segundos do lado direito" : "segundos"}
+            valor={valor}
+            passo={5}
+            aoMudar={(v) => {
+              trecho.current = null;
+              fracaoPausada.current = 0;
+              setRodando(false);
+              aoMudar({ tempoS: v });
+            }}
+          />
+        </div>
       </div>
     </div>
   );
@@ -661,15 +708,38 @@ export function ControlesDoPlayer({
     const tela = barra?.parentElement;
     if (!barra || !tela) return;
 
-    // A caixa inclui o indicador de home e todas as linhas da legenda ampliada.
+    let alturaReservada: number | undefined;
+    let ajusteDoFim: number | undefined;
     const reservarAltura = () => {
-      tela.style.setProperty("--altura-dos-controles", `${barra.getBoundingClientRect().height}px`);
+      const altura = barra.getBoundingClientRect().height;
+      if (altura === alturaReservada) return;
+      const pagina = document.documentElement;
+      const fimAnterior = pagina.scrollHeight - pagina.clientHeight;
+      const manterFim = alturaReservada !== undefined && fimAnterior > 0 &&
+        Math.abs(fimAnterior - pagina.scrollTop) <= 1;
+      // Uma linha a mais no rodapé aumenta a página. Quem já chegou ao fim
+      // precisa continuar vendo Montagem sem ter de rolar uma segunda vez.
+      const posicao = pagina.scrollTop;
+      tela.style.setProperty("--altura-dos-controles", `${altura}px`);
+      alturaReservada = altura;
+      if (manterFim) {
+        if (ajusteDoFim !== undefined) cancelAnimationFrame(ajusteDoFim);
+        ajusteDoFim = requestAnimationFrame(() => {
+          ajusteDoFim = undefined;
+          // No callback do ResizeObserver o documento ainda pode ter o tamanho antigo.
+          // Quem começou a rolar nesse intervalo continua no ponto escolhido.
+          if (Math.abs(pagina.scrollTop - posicao) <= 1) {
+            window.scrollTo({ top: pagina.scrollHeight, left: window.scrollX, behavior: "instant" });
+          }
+        });
+      }
     };
     reservarAltura();
     const observador = new ResizeObserver(reservarAltura);
     observador.observe(barra, { box: "border-box" });
     return () => {
       observador.disconnect();
+      if (ajusteDoFim !== undefined) cancelAnimationFrame(ajusteDoFim);
       tela.style.removeProperty("--altura-dos-controles");
     };
   }, []);
@@ -720,7 +790,6 @@ export function ControlesDoPlayer({
 /** O que o leitor de tela ouve na contagem de um exercício de tempo. */
 function avisoDaContagem(rodando: boolean, falta: number, alvo: number): string {
   if (!rodando) return "";
-  if (falta <= 0) return "Tempo terminado.";
   if (falta <= 10 && alvo > 10) return "Faltam 10 segundos.";
   return "";
 }

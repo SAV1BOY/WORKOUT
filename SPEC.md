@@ -343,6 +343,10 @@ O dono enviou 16 telas do app *Home Workout / Treino em Casa* (Leap Fitness) e p
 
 ### 14.1 Player unificado (substitui a tela de sessão com rolagem como caminho principal)
 
+Nos campos do player, a carga e as repetições devem continuar legíveis com a fonte ampliada. Os botões de diminuir e aumentar precisam caber inteiros na tela e conservar seus alvos de toque de pelo menos 56 px.
+
+Nos exercícios por tempo, começar a contagem fixa a meta daquela série. **Concluir série** registra os segundos completos medidos até o toque, limitados à meta. O tempo digitado vale quando a pessoa registra a série manualmente. Nos exercícios por lado, medir ou editar o lado direito preserva o tempo do esquerdo. Ao reabrir o treino no aparelho, **Continuar** retoma a partir dos segundos já salvos. O período em que o treino esteve fechado fica fora da medição.
+
 Durante uma série de trabalho, o indicador **anterior** compara a série atual com a de mesmo número na sessão anterior daquele exercício. Se aquele número foi pulado, a referência à última série registrada mostra o número dela. O aquecimento e as séries da sessão em andamento ficam fora da comparação. Ao repetir um treino concluído sem rede, as séries já salvas no aparelho servem de referência desde a abertura da nova sessão.
 
 Toda sessão (treino do programa, sessão livre, circuito, sessão de barra fixa) roda no player, em `/treinar/[sessionId]`, com estas telas em sequência:

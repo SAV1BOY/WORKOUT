@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { aceitarDigitacao, nomeDoPasso } from "@/lib/digitar-numero";
 import { formatarNumero, lerNumero } from "@/lib/formato";
 import { cn } from "@/lib/utils";
+import estilos from "./stepper-numerico.module.css";
 
 /**
  * − valor + com digitação direta (SPEC §7). Celular primeiro: os dois botões
@@ -118,27 +119,26 @@ export function StepperNumerico({
     if (preso !== lido) aoMudar(preso);
   };
 
-  return (
-    <div className={cn("flex items-center", compacto ? "gap-0.5" : "gap-1", grande && "gap-2")}>
-      <Button
-        type="button"
-        variant="outline"
-        size="icon"
-        className={cn("alvo shrink-0", grande ? "size-14 rounded-2xl" : alto ? "size-12" : "size-11")}
-        onClick={() => andar(-1)}
-        disabled={desabilitado}
-        aria-label={nomeDoPasso("Diminuir", rotulo, contexto)}
-      >
-        <Minus className={grande ? "size-7" : "size-5"} />
-      </Button>
+  const tamanhoDoBotao = grande ? "size-14 min-h-[56px] min-w-[56px] rounded-2xl" : alto ? "size-12" : "size-11";
+  const diminuir = (classe?: string) => (
+    <Button type="button" variant="outline" size="icon" className={cn("alvo shrink-0", tamanhoDoBotao, classe)}
+      onClick={() => andar(-1)} disabled={desabilitado} aria-label={nomeDoPasso("Diminuir", rotulo, contexto)}>
+      <Minus className={grande ? "size-7" : "size-5"} />
+    </Button>
+  );
 
-      <div className="relative min-w-11 flex-1">
+  const controle = (
+    <div className={grande ? estilos.grande : cn("flex items-center", compacto ? "gap-0.5" : "gap-1")}>
+      {diminuir(grande ? estilos.emLinha : undefined)}
+
+      <div className={cn("relative min-w-11 flex-1", grande && estilos.campo)}>
         <label className="sr-only" htmlFor={id}>
           {rotulo}
         </label>
         <input
           id={id}
           value={texto}
+          size={grande ? 5 : undefined}
           onChange={(e) => digitar(e.target.value)}
           onFocus={() => setRascunho(texto)}
           onBlur={confirmar}
@@ -154,9 +154,8 @@ export function StepperNumerico({
             // tem o campo como alvo, e na grade de duas colunas da sessão ele
             // fechava em 37 px de largura.
             "numero border-input bg-background w-full min-w-11 rounded-lg border text-center tabular-nums",
-            grande ? "h-14 rounded-2xl" : alto ? "h-12" : "h-11",
-            // "107,5" ainda cabe na coluna estreita de 360 px
-            grande ? "px-1 text-3xl font-semibold" : compacto ? "px-0.5 text-base" : "px-2 text-lg",
+            grande ? "h-14 min-h-[56px] min-w-[56px] rounded-2xl" : alto ? "h-12" : "h-11",
+            grande ? "px-[4px] text-3xl font-semibold" : compacto ? "px-0.5 text-base" : "px-2 text-lg",
             "focus-visible:border-ring focus-visible:ring-ring outline-none focus-visible:ring-3",
             "disabled:opacity-50",
           )}
@@ -169,11 +168,13 @@ export function StepperNumerico({
         ) : null}
       </div>
 
+      {/* Na disposição estreita o campo vem primeiro, inclusive no Tab. */}
+      {grande && diminuir(estilos.emDuasLinhas)}
       <Button
         type="button"
         variant="outline"
         size="icon"
-        className={cn("alvo shrink-0", grande ? "size-14 rounded-2xl" : alto ? "size-12" : "size-11")}
+        className={cn("alvo shrink-0", tamanhoDoBotao)}
         onClick={() => andar(1)}
         disabled={desabilitado}
         aria-label={nomeDoPasso("Aumentar", rotulo, contexto)}
@@ -182,4 +183,5 @@ export function StepperNumerico({
       </Button>
     </div>
   );
+  return grande ? <div className={estilos.espaco}>{controle}</div> : controle;
 }

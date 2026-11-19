@@ -13264,4 +13264,30 @@ A primeira rodada completa encontrou outra quebra de linha a 320 px. Com DejaVu 
 
 Na contraprova, a fonte DejaVu Sans a 200% deixou a borda de montagem 24 px acima do rodapé. Com espaçamento ampliado e 34 px de área segura emulada, a barra mediu 279 px, e a montagem permaneceu alcançável até a última linha de pixels. O botão também recebeu foco de volta ao fechar a ficha.
 
-Uma medição separada no #49 encontrou outra limitação a 320 px com fonte a 200%. No aquecimento do agachamento frontal, os botões **Aumentar repetições** e **Aumentar carga na barra** chegavam a x=400 numa tela de 320 px. O toque alcançava apenas uma faixa de 32 px, e o valor de 7,5 kg excedia a largura útil do campo. A 360 px com fonte a 125%, os dois controles ficavam inteiros. Essa medição serve de ponto de partida para melhorar os campos de registro da série.
+Uma medição separada no #49 encontrou outra limitação a 320 px com fonte a 200%. No aquecimento do agachamento livre, os botões **Aumentar repetições** e **Aumentar carga na barra** chegavam a x=400 numa tela de 320 px. O toque alcançava apenas uma faixa de 32 px, e o valor de 7,5 kg excedia a largura útil do campo. A 360 px com fonte a 125%, os dois controles ficavam inteiros. Essa medição serve de ponto de partida para melhorar os campos de registro da série.
+
+### Publicação do botão de concluir a série
+
+A Vercel e o domínio público confirmaram o commit `801506d740a5aecef64a82bd2c593220422e3194`. A revisão `e93130f` e a integração compartilham a árvore `aa188fe21353b2768f04ffd8c00711d66f1998ee`. Passaram lint, build e 2.233 testes unitários em 115 arquivos. Os quatro grupos de Chromium aprovaram 215, 185, 213 e 187 cenários, totalizando 800. A atualização também foi conferida com alteração da fonte durante a série e 34 px de área segura emulada. [PR #50](https://github.com/SAV1BOY/WORKOUT/pull/50) · [Suíte da revisão](https://github.com/SAV1BOY/WORKOUT/actions/runs/44546423704) · [Suíte da integração](https://github.com/SAV1BOY/WORKOUT/actions/runs/44549434875)
+
+Na repetição sobre a integração, passaram lint, build, 2.233 unidades e 799 dos 800 cenários de navegador. O caso que falhou atingiu o fim da página no mesmo instante em que a legenda do rodapé ganhou uma linha. No binário publicado, o erro foi reproduzido duas vezes a 320 px com fonte a 200%. O rodapé cresceu 48 px e encobriu 24 px de **Ver a montagem**. A pessoa precisava rolar até o fim pela segunda vez para alcançar o botão inteiro.
+
+O player passou a preservar o fim da página quando o rodapé muda de altura com a pessoa já nessa posição. Se ela estiver lendo o meio da página ou começar a rolar durante a mudança, o ajuste respeita a posição escolhida. O teste amplia o texto, verifica o toque no último pixel de **Ver a montagem** e abre e fecha a ficha pelo teclado.
+
+### Campos de carga e repetições com fonte ampliada
+
+No primeiro aquecimento de agachamento livre da versão do #49, uma tela emulada de 320 px com fonte a 200% mostrava inteira a ação de diminuir, mas a de aumentar começava em x=288 e terminava em x=400. O ícone de aumentar ficava fora da tela. O campo decimal dispunha de 70 px para mostrar “7,5”, que ocupava 82 px. A 360 px e 125%, os mesmos controles e o valor cabiam na tela.
+
+O mesmo teste reproduziu o corte de 12 px no binário publicado pelo #50. Na prancha lateral, aumentar a duração do lado direito também sobrescrevia o valor do esquerdo. Uma meta de 40 segundos mostrava 0:00 aos dois segundos. Com a meta de 35 e o outro lado em 25, deixar passar 42 segundos chegou a gravar 42/42.
+
+O player passou a manter a meta da contagem separada do tempo feito. Em Chromium, três sessões tiveram a rede bloqueada durante o exercício. Concluir no primeiro instante registrou 0/25. Esperar 42 segundos registrou 35/25. Ao fechar o treino com seis segundos feitos, reabrir dez segundos depois mostrou 0:29 e **Continuar**. Mais dois segundos de exercício registraram 8/25. Em cada caso, a reconexão esvaziou a fila e o servidor de teste recebeu uma única série.
+
+Em sete combinações de largura, fonte e espaçamento, o Chromium exibiu 107,5 kg por inteiro. Com 360 px e fonte a 125%, as teclas de diminuir e aumentar continuaram na mesma linha. A 320 px e 200%, o campo passou para a linha acima delas. Uma mudança de largura enquanto a pessoa digitava “107,” conservou o foco e a posição do cursor. Os percursos de afundo, caminhada e aquecimento também preservaram os valores por lado, os passos e a carga ao concluir e reabrir sem rede.
+
+Na prancha, o toque em **Concluir série** após 2,4 segundos registrou dois segundos. O anúncio de confirmação, lido pela tecnologia assistiva, passou a usar os mesmos dois segundos registrados no histórico.
+
+Na prova entre versões, uma série tinha 8 de 40 segundos feitos à direita e 50 segundos à esquerda. Editar o valor direito na versão #50 para 20 ou 60 fez o candidato reabrir com **Começar** em 0:20 ou 1:00. Sem essa edição, ofereceu **Continuar** em 0:32. A série criada pela versão antiga a partir da primeira recebeu seu próprio cronômetro. O backup permaneceu legível no #50, com os segundos dos dois lados.
+
+A suíte local passou em 2.238 testes unitários em 115 arquivos. No fluxo de **Relatório → Histórico → Ver séries**, as provas de conclusão imediata e de término da meta mostraram respectivamente “0 s à direita · 25 s à esquerda” e “35 s à direita · 25 s à esquerda”, com uma única série em cada treino.
+
+No ciclo seguinte, o ponto a conferir é a origem de cada registro na ficha do exercício. A seção **Últimas sessões** mostrou duas linhas com a mesma data para dois treinos de supino, um de 40 kg × 4 e outro de 22,5 kg × 8. Tocar em qualquer uma delas manteve a ficha na mesma posição. O Relatório já tem o detalhe das séries pelo identificador da sessão. O próximo teste deve abrir o treino correto diretamente pela ficha e retornar ao mesmo exercício ou descanso. [Histórico do exercício no Hevy](https://www.hevyapp.com/features/gym-performance/)

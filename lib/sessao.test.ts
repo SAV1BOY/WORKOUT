@@ -12,6 +12,8 @@ import {
   MIN_SERIES_DA_SESSAO,
   ajustarPrescricaoDaSessao,
   atualizarSerie,
+  camposDoCronometro,
+  medicaoDaSerie,
   comSubstituicoes,
   contadoresDaSessao,
   definirFirme,
@@ -1340,6 +1342,71 @@ describe("prescrição só de hoje (SPEC §14.2)", () => {
     // unilateral: os dois lados (SPEC §6.3 usa o menor)
     expect(serie.tempoSLado2).toBe(50);
     expect(serie.reps).toBeNull();
+  });
+
+  function treinoDePrancha() {
+    return montarSessaoAvulsa({
+      id: "prancha", userId: "u1", data: "2026-09-14",
+      workoutId: "livre", fase: "fase1", novoId: contador(),
+      itens: [{
+        exercicioId: "prancha-lateral",
+        prescricao: prescricaoPadrao(acharExercicio("prancha-lateral")),
+        descansoS: 60, descansoTexto: "60 s",
+      }],
+    });
+  }
+
+  it("preserva o cronômetro da série ao editar o outro lado", () => {
+    const base = treinoDePrancha();
+    const [primeira, segunda] = base.blocos[0]!.series;
+    const medida = atualizarSerie(base, 1, segunda!.id, camposDoCronometro(segunda!.id, 40, 6));
+    const editada = atualizarSerie(medida, 1, segunda!.id, { tempoSLado2: 50 });
+    const feita = marcarSerie(editada, 1, primeira!.id, true);
+    const segundaFeita = feita.blocos[0]!.series[1]!;
+    expect(segundaFeita).toMatchObject({
+      tempoS: 6, tempoSLado2: 50, medicaoCronometro: { alvoS: 40, medidoS: 6 },
+    });
+    const escrita = escritaDaSerie(feita, feita.blocos[0]!, segundaFeita).linha;
+    expect(escrita).toMatchObject({ tempo_s: 6, tempo_s_lado2: 50 });
+    expect(escrita).not.toHaveProperty("medicaoCronometro");
+
+    const manual = atualizarSerie(feita, 1, segunda!.id, { tempoS: 9 });
+    expect(manual.blocos[0]!.series[1]).toMatchObject({
+      tempoS: 9, tempoSLado2: 50, medicaoCronometro: undefined,
+    });
+    const redefinida = ajustarPrescricaoDaSessao(feita, 1, { alvo: 35 });
+    expect(redefinida.blocos[0]!.series[1]).toMatchObject({
+      tempoS: 35, tempoSLado2: 35, medicaoCronometro: undefined,
+    });
+    const reduzida = ajustarPrescricaoDaSessao(feita, 1, { series: 2 });
+    const aumentada = ajustarPrescricaoDaSessao(
+      reduzida, 1, { series: 3 }, { novoId: contador("nova") },
+    );
+    expect(aumentada.blocos[0]!.series[2]!.medicaoCronometro).toBeUndefined();
+  });
+
+  it.each([60, 20])("aceita a edição de 8/40 para %i no cliente que desconhece a medição", (novoAlvo) => {
+    const original = treinoDePrancha();
+    const bloco = original.blocos[0]!;
+    const [primeira, segunda] = bloco.series;
+    const medida = { ...segunda!, ...camposDoCronometro(segunda!.id, 40, 8) };
+    expect(medicaoDaSerie(medida)).toEqual({ serieId: medida.id, alvoS: 40, medidoS: 8 });
+
+    // O cliente antigo usa spread: escreve apenas o seu valor e deixa intactos os campos desconhecidos.
+    const legado = { ...medida, tempoS: novoAlvo, tempoSLado2: 25 };
+    expect(medicaoDaSerie(legado)).toBeUndefined();
+    expect(medicaoDaSerie({ ...medida, id: "serie-acrescentada" })).toBeUndefined();
+    const antes = {
+      ...original,
+      blocos: [{ ...bloco, series: [{ ...primeira!, tempoS: 8 }, legado] }],
+    };
+    const outraEdicao = atualizarSerie(antes, bloco.ordem, legado.id, { tempoSLado2: 30 });
+    expect(outraEdicao.blocos[0]!.series[1]).toMatchObject({
+      tempoS: novoAlvo, medicaoCronometro: undefined,
+    });
+    const marcada = marcarSerie(antes, bloco.ordem, primeira!.id, true);
+    expect(marcada.blocos[0]!.series[1]!.tempoS).toBe(8);
+    expect(medicaoDaSerie(marcada.blocos[0]!.series[1]!)).toBeUndefined();
   });
 
   it("os limites: no mínimo 1 série, no máximo 10", () => {
