@@ -11,8 +11,11 @@ export function useNavegacaoDoCalendario(conta: string) {
   const [focoDeVolta, setFocoDeVolta] = useState<string | null>(null);
 
   useEffect(() => {
-    function lerEntrada() {
-      if (location.pathname !== "/calendario" || entradaDoEstado(history.state)) return;
+    function lerEntrada(evento?: Event) {
+      if (location.pathname !== "/calendario") return;
+      // O documento novo perdeu a folha do anterior, mas pode ter herdado sua entrada.
+      // Depois da montagem, as travessias de camadas ficam com o próprio diálogo.
+      if (evento && entradaDoEstado(history.state)) return;
       const salvo = history.state?.retornoDoCalendario;
       const destaConta = salvo?.conta === conta ? salvo : null;
       const dia = new URL(location.href).searchParams.get("dia");

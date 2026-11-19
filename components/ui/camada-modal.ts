@@ -94,7 +94,11 @@ function empilharEntrada(camada: Camada): void {
   const numero = numerarEntrada();
   camada.entrada = numero;
   regua = numero;
-  window.history.pushState({ [CHAVE_DA_ENTRADA]: numero }, "");
+  // Se o documento recarregar nesta entrada, o calendário precisa da data e do gatilho
+  // da própria conta. Uma semana futura escolhida no app não aparece na URL.
+  const retorno = window.location.pathname === "/calendario" && window.history.state?.retornoDoCalendario;
+  const estado = retorno ? { retornoDoCalendario: retorno, [CHAVE_DA_ENTRADA]: numero } : { [CHAVE_DA_ENTRADA]: numero };
+  window.history.pushState(estado, "");
 }
 
 /**
