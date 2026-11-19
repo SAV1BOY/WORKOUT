@@ -314,11 +314,22 @@ test.describe("Cardio — corrida (SPEC §3.3)", () => {
     await abrir(page, "2026-09-16T08:00:00-03:00");
     const respostaDoMes = Promise.withResolvers<void>();
     const liberar = Promise.withResolvers<void>();
-    await page.route(url => url.pathname === "/rest/v1/cardio_sessions" && url.searchParams.has("data"), async rota => {
-      const resposta = await rota.fetch();
+    await page.exposeFunction("aguardarCardioDoMes", () => {
       respostaDoMes.resolve();
-      await liberar.promise;
-      await rota.fulfill({ response: resposta });
+      return liberar.promise;
+    });
+    // Reter a resposta depois do fetch também funciona quando o service worker já controla a página.
+    await page.addInitScript(() => {
+      if (location.pathname !== "/calendario") return;
+      const buscar = window.fetch.bind(window);
+      window.fetch = async (...args) => {
+        const resposta = await buscar(...args);
+        const url = new URL(resposta.url, location.href);
+        if (url.pathname === "/rest/v1/cardio_sessions" && url.searchParams.has("data")) {
+          await (window as Window & { aguardarCardioDoMes: () => Promise<void> }).aguardarCardioDoMes();
+        }
+        return resposta;
+      };
     });
     await page.goto("/calendario");
     await respostaDoMes.promise;
