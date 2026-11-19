@@ -410,6 +410,7 @@ export function TelaExercicio({
       </div>
 
       <ControlesDoPlayer
+        serieId={serie.id}
         concluida={serie.concluida}
         aoAnterior={aoAnterior}
         aoProximo={aoProximo}
@@ -692,11 +693,13 @@ function Cronometro({
  * ✓ não ficar sob ele.
  */
 export function ControlesDoPlayer({
+  serieId,
   concluida,
   aoAnterior,
   aoProximo,
   aoConcluir,
 }: {
+  serieId: string;
   concluida: boolean;
   aoAnterior: () => void;
   aoProximo: () => void;
@@ -708,41 +711,44 @@ export function ControlesDoPlayer({
     const tela = barra?.parentElement;
     if (!barra || !tela) return;
 
+    const pagina = document.documentElement;
     let alturaReservada: number | undefined;
-    let ajusteDoFim: number | undefined;
+    let ultimaRolagemNoFim: number | undefined;
+    let posicaoAntesDaReserva: number | undefined;
+    const noFim = () => pagina.scrollTop > 0 &&
+      Math.abs(pagina.scrollHeight - pagina.clientHeight - pagina.scrollTop) <= 1;
+    const lembrarRolagem = () => {
+      ultimaRolagemNoFim = noFim() ? pagina.scrollTop : undefined;
+    };
     const reservarAltura = () => {
       const altura = barra.getBoundingClientRect().height;
-      if (altura === alturaReservada) return;
-      const pagina = document.documentElement;
-      const fimAnterior = pagina.scrollHeight - pagina.clientHeight;
-      const manterFim = alturaReservada !== undefined && fimAnterior > 0 &&
-        Math.abs(fimAnterior - pagina.scrollTop) <= 1;
-      // Uma linha a mais no rodapé aumenta a página. Quem já chegou ao fim
-      // precisa continuar vendo Montagem sem ter de rolar uma segunda vez.
       const posicao = pagina.scrollTop;
-      tela.style.setProperty("--altura-dos-controles", `${altura}px`);
-      alturaReservada = altura;
-      if (manterFim) {
-        if (ajusteDoFim !== undefined) cancelAnimationFrame(ajusteDoFim);
-        ajusteDoFim = requestAnimationFrame(() => {
-          ajusteDoFim = undefined;
-          // No callback do ResizeObserver o documento ainda pode ter o tamanho antigo.
-          // Quem começou a rolar nesse intervalo continua no ponto escolhido.
-          if (Math.abs(pagina.scrollTop - posicao) <= 1) {
-            window.scrollTo({ top: pagina.scrollHeight, left: window.scrollX, behavior: "instant" });
-          }
-        });
+      if (altura !== alturaReservada) {
+        // Ampliar a fonte pode ter alongado o conteúdo antes de medirmos o rodapé.
+        const estavaNoFim = noFim() ||
+          (ultimaRolagemNoFim !== undefined && Math.abs(ultimaRolagemNoFim - posicao) <= 1);
+        posicaoAntesDaReserva = alturaReservada !== undefined && estavaNoFim ? posicao : undefined;
+        tela.style.setProperty("--altura-dos-controles", `${altura}px`);
+        alturaReservada = altura;
+      } else if (posicaoAntesDaReserva !== undefined) {
+        // A seção já recebeu o novo padding. Quem rolou nesse intervalo fica onde escolheu.
+        if (Math.abs(posicaoAntesDaReserva - posicao) <= 1) {
+          window.scrollTo({ top: pagina.scrollHeight, left: window.scrollX, behavior: "instant" });
+        }
+        posicaoAntesDaReserva = undefined;
       }
     };
     reservarAltura();
+    window.addEventListener("scroll", lembrarRolagem, { passive: true });
     const observador = new ResizeObserver(reservarAltura);
     observador.observe(barra, { box: "border-box" });
+    observador.observe(tela, { box: "border-box" });
     return () => {
       observador.disconnect();
-      if (ajusteDoFim !== undefined) cancelAnimationFrame(ajusteDoFim);
+      window.removeEventListener("scroll", lembrarRolagem);
       tela.style.removeProperty("--altura-dos-controles");
     };
-  }, []);
+  }, [serieId]);
 
   return (
     <div ref={rodape} className="bg-card/95 border-border pb-segura fixed inset-x-0 bottom-0 z-30 border-t backdrop-blur">

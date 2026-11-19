@@ -101,6 +101,17 @@ test("a montagem fica inteiramente acima do rodapé a 320 px com fonte a 200%", 
   await expect.poll(altura).toBeGreaterThan(alturaInicial + 1);
   // A pessoa já tinha chegado ao fim. Uma segunda rolagem esconderia a regressão.
   await expect.poll(montagemNoFim).toBe(true);
+
+  const mudarFonte = (percentual: number) =>
+    page.addStyleTag({ content: `html { font-size: ${percentual}% !important; }` });
+  await mudarFonte(150);
+  await expect.poll(altura).toBeLessThan(alturaInicial);
+  await page.keyboard.press("End");
+  await expect.poll(montagemNoFim).toBe(true);
+  // Mudar a fonte do telefone alonga também o conteúdo acima de Montagem.
+  await mudarFonte(200);
+  await expect.poll(altura).toBeGreaterThan(alturaInicial + 1);
+  await expect.poll(montagemNoFim).toBe(true);
   await montagem.focus();
   await page.keyboard.press("Enter");
   await expect(page.getByRole("dialog", { name: "Montagem", exact: true })).toBeVisible();

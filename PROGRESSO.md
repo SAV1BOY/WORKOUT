@@ -13274,6 +13274,8 @@ Na repetição sobre a integração, passaram lint, build, 2.233 unidades e 799 
 
 O player passou a preservar o fim da página quando o rodapé muda de altura com a pessoa já nessa posição. Se ela estiver lendo o meio da página ou começar a rolar durante a mudança, o ajuste respeita a posição escolhida. O teste amplia o texto, verifica o toque no último pixel de **Ver a montagem** e abre e fecha a ficha pelo teclado.
 
+Na primeira revisão do #51, esperar o quadro seguinte ainda podia deixar 48 px por rolar. O navegador já mostrava o rodapé mais alto, mas ainda calculava a página com a altura antiga. O ajuste passou a aguardar a mudança de tamanho da seção do exercício. O teste também muda a fonte da tela inteira com a pessoa já no fim e verifica que a posição de leitura no meio da série é respeitada.
+
 ### Campos de carga e repetições com fonte ampliada
 
 No primeiro aquecimento de agachamento livre da versão do #49, uma tela emulada de 320 px com fonte a 200% mostrava inteira a ação de diminuir, mas a de aumentar começava em x=288 e terminava em x=400. O ícone de aumentar ficava fora da tela. O campo decimal dispunha de 70 px para mostrar “7,5”, que ocupava 82 px. A 360 px e 125%, os mesmos controles e o valor cabiam na tela.
