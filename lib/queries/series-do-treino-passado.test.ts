@@ -224,6 +224,18 @@ describe("consulta da referência de cada série", () => {
     expect(await ler(["supino"], "repetida")).toEqual(banco);
   });
 
+  it("a ordem é a da série registrada, mesmo quando outro treino é encerrado no aparelho mais tarde", async () => {
+    const recente = linha("mais-recente", "remada", 2, 40);
+    banco = [recente];
+    await ler(["remada"]);
+    desligar();
+    const antiga = linha("treino-antigo", "remada", 2, 10);
+    const chave = chaveDoDetalheDaSessao("ana", "treino-antigo");
+    disco.set(chave, { chave, valor: [antiga], atualizadoEm: Date.now() + 1000 });
+    const referencias = anterioresPorExercicio(await ler(["remada"], "repetida"));
+    expect(serieAnteriorDe(referencias.remada, 2)).toEqual(recente);
+  });
+
   it("um fechamento vazio também substitui os valores antigos; outro movimento segue com a própria sessão", async () => {
     vi.useFakeTimers({ toFake: ["Date"] });
     const remada = linha("remada-antiga", "remada", 2, 15);
