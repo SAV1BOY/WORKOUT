@@ -154,12 +154,12 @@ test("salva no feedback sem rede, retoma, conclui com a edição e relê a sess�
   await historico(page);
   const linha = registro(page, titulo);
   await expect(linha).toContainText(definitiva);
-  await expect(linha).toContainText(/\b1 série\b/);
+  await expect(linha.getByText(/(?:^|· )1 série$/)).toBeVisible();
   await semRedeNoWorker(worker);
   await page.reload();
   await abrirSecaoDoRelatorio(page, "historico");
   await expect(linha).toContainText(definitiva);
-  await expect(linha).toContainText(/\b1 série\b/);
+  await expect(linha.getByText(/(?:^|· )1 série$/)).toBeVisible();
   await expect(registro(page, anterior)).toContainText("Alonguei mais cedo.");
   expect(await sessaoNoServidor(conta, id)).toMatchObject({ status: "em_andamento", nota_geral: null });
   await comRedeNoWorker(worker);
