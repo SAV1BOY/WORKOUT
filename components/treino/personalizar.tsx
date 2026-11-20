@@ -79,6 +79,7 @@ export function Personalizar({ conta, prefs }: { conta: string; prefs?: Prefs })
   const [nome, setNome] = useState("");
   const [gravando, setGravando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
+  const [sessaoCriada, setSessaoCriada] = useState<{ id: string; modeloDaLista?: string } | null>(null);
   const campoBusca = useRef<HTMLInputElement>(null);
   const campoGrupo = useRef<HTMLSelectElement>(null);
   const titulo = useRef<HTMLHeadingElement>(null);
@@ -86,6 +87,8 @@ export function Personalizar({ conta, prefs }: { conta: string; prefs?: Prefs })
   const gatilhoDasSeries = useRef<HTMLButtonElement>(null);
   const edicaoDosDescansos = useRef<EdicaoDosDescansos>(null);
   const gatilhoDosSalvos = useRef<HTMLButtonElement>(null);
+  const gatilhoDaFolha = useRef<HTMLButtonElement>(null);
+  const bibliotecaVeioDaAba = useRef(false);
   const gatilhoDeSalvar = useRef<HTMLButtonElement>(null);
   const gatilhoDaCopia = useRef<HTMLButtonElement>(null);
   const gatilhoDaConfirmacao = useRef<HTMLButtonElement | null>(null);
@@ -114,10 +117,11 @@ export function Personalizar({ conta, prefs }: { conta: string; prefs?: Prefs })
   }
 
   function voltar() {
-    if (mutando.current) return;
+    if (mutando.current || iniciando.current || ocupado) return;
     switch (tela.tipo) {
       case "excluir":
       case "descartar":
+      case "iniciar":
         mostrar({ tipo: "salvos" }, gatilhoDaConfirmacao.current);
         break;
       case "trocar": mostrar({ tipo: "editor" }, idDoBotaoDeTroca(tela.id)); break;
@@ -126,7 +130,10 @@ export function Personalizar({ conta, prefs }: { conta: string; prefs?: Prefs })
         edicaoDosDescansos.current?.aplicarValidos();
         mostrar({ tipo: "editor" }, gatilhoDasSeries.current);
         break;
-      case "salvos": mostrar({ tipo: "editor" }, gatilhoDosSalvos.current); break;
+      case "salvos":
+        if (bibliotecaVeioDaAba.current) abrirOuFechar(false);
+        else mostrar({ tipo: "editor" }, gatilhoDosSalvos.current);
+        break;
       case "salvar":
         mostrar({ tipo: "editor" }, tela.modo === "copia" ? gatilhoDaCopia.current : gatilhoDeSalvar.current);
         break;
@@ -280,40 +287,55 @@ export function Personalizar({ conta, prefs }: { conta: string; prefs?: Prefs })
     });
   }
 
-  async function iniciar() {
-    if (iniciando.current || ocupado || !pronto || escolhidos.length === 0) return;
+  async function iniciar(modelo?: ModeloDeTreino) {
+    const ids = modelo?.exercicios ?? escolhidos;
+    if (iniciando.current || ocupado || !pronto || ids.length === 0) return;
+    if (modelo && sessaoCriada?.modeloDaLista === modelo.id) {
+      window.location.assign(`/treinar/${sessaoCriada.id}`);
+      return;
+    }
+    setSessaoCriada(null);
     iniciando.current = true;
     try {
-      await comecar(escolhidos, {
-        titulo: carregado?.nome ?? "Treino personalizado",
-        equipamentosDisponiveis: material,
-        seriesPorExercicio,
-        descansosPorExercicio,
-        contaDoModelo: carregado?.user_id,
+      const id = await comecar(ids, {
+        titulo: modelo?.nome ?? carregado?.nome ?? "Treino personalizado",
+        equipamentosDisponiveis: modelo ? lerSelecaoDeEquipamento(modelo.equipamento_disponivel) : material,
+        seriesPorExercicio: modelo ? modelo.series_por_exercicio ?? {} : seriesPorExercicio,
+        descansosPorExercicio: modelo ? modelo.descansos_por_exercicio ?? {} : descansosPorExercicio,
+        contaDoModelo: (modelo ?? carregado)?.user_id,
       });
+      if (id) setSessaoCriada({ id, modeloDaLista: modelo?.id });
     } finally {
       iniciando.current = false;
     }
   }
 
+  function iniciarDaLista(modelo: ModeloDeTreino, gatilho: HTMLButtonElement) {
+    if (!alterado || sessaoCriada?.modeloDaLista === modelo.id) return void iniciar(modelo);
+    gatilhoDaConfirmacao.current = gatilho;
+    mostrar({ tipo: "iniciar", modelo });
+  }
+
+  function abrirOuFechar(v: boolean) {
+    if (!v && (ocupado || iniciando.current || mutando.current)) return;
+    if (!v && tela.tipo === "series") edicaoDosDescansos.current?.aplicarValidos();
+    setAberto(v);
+    if (!v) {
+      focoAoAlternar.current = null;
+      if (tela.tipo !== "salvar") setTela({ tipo: "editor" });
+      setBusca("");
+      setGrupo("todos");
+      setSessaoCriada(null);
+    }
+  }
+
+  const painelDaBiblioteca = tela.tipo === "salvos" || tela.tipo === "excluir" || tela.tipo === "descartar" || tela.tipo === "iniciar";
   return (
-    <Sheet
-      open={aberto}
-      onOpenChange={(v) => {
-        if (!v && (ocupado || mutando.current)) return;
-        if (!v && tela.tipo === "series") edicaoDosDescansos.current?.aplicarValidos();
-        setAberto(v);
-        if (!v) {
-          focoAoAlternar.current = null;
-          if (tela.tipo !== "salvar") setTela({ tipo: "editor" });
-          setBusca("");
-          setGrupo("todos");
-        }
-      }}
-    >
+    <Sheet open={aberto} onOpenChange={abrirOuFechar}>
       <SheetTrigger asChild>
         <button
           type="button"
+          onClick={evento => { gatilhoDaFolha.current = evento.currentTarget; }}
           className="cartao border-border bg-card hover:bg-muted/40 alvo flex w-full items-center gap-3 border border-dashed px-4 py-4 text-left"
         >
           <span className="bg-primary/15 text-primary flex size-11 shrink-0 items-center justify-center rounded-full">
@@ -327,12 +349,27 @@ export function Personalizar({ conta, prefs }: { conta: string; prefs?: Prefs })
           </span>
         </button>
       </SheetTrigger>
+      <SheetTrigger asChild>
+        <Button type="button" variant="outline" className="alvo h-auto w-full py-3 whitespace-normal" onClick={evento => {
+          gatilhoDaFolha.current = evento.currentTarget;
+          bibliotecaVeioDaAba.current = true;
+          mostrar({ tipo: "salvos" });
+        }}>
+          <Bookmark aria-hidden="true" /> Treinos salvos
+        </Button>
+      </SheetTrigger>
 
       <SheetContent side="bottom" className={cn("flex max-h-[90dvh] flex-col pb-8",
         tela.tipo === "editor" && "pb-[max(0.5rem,env(safe-area-inset-bottom))]",
-        tela.tipo === "salvar" && "block overflow-y-auto",
+        (tela.tipo === "salvar" || painelDaBiblioteca) && "block overflow-y-auto",
         (tela.tipo === "series" || tela.tipo === "trocar") && "overflow-y-auto")}
         showCloseButton={tela.tipo !== "editor" && !ocupado && !gravando}
+        onCloseAutoFocus={evento => {
+          const gatilho = gatilhoDaFolha.current;
+          if (!gatilho?.isConnected) return;
+          evento.preventDefault();
+          gatilho.focus();
+        }}
         onEscapeKeyDown={evento => {
           if (tela.tipo === "trocar") {
             recolherExecucaoDaAlternativa(evento);
@@ -352,13 +389,14 @@ export function Personalizar({ conta, prefs }: { conta: string; prefs?: Prefs })
             {tela.tipo === "salvar" && gravacaoDoModelo[tela.modo].titulo}
             {tela.tipo === "excluir" && "Excluir treino?"}
             {tela.tipo === "descartar" && "Descartar alterações?"}
+            {tela.tipo === "iniciar" && "Começar o treino salvo?"}
           </SheetTitle>
           {tela.tipo === "ordem" && <SheetDescription>{escolhidos.length} exercícios no treino.</SheetDescription>}
           {tela.tipo === "trocar" && <SheetDescription className="wrap-anywhere">
             Escolha uma alternativa para {acharExercicio(tela.id).nome}.
           </SheetDescription>}
           {tela.tipo === "series" && <SheetDescription>O descanso vale para as séries de trabalho.</SheetDescription>}
-          {tela.tipo === "salvos" && <SheetDescription>Escolha um treino para abrir no editor.</SheetDescription>}
+          {tela.tipo === "salvos" && <SheetDescription>Comece um treino ou carregue-o para editar.</SheetDescription>}
           {tela.tipo === "salvar" && <SheetDescription>Guarde a seleção, a ordem, as séries, o descanso e os equipamentos para outro dia.</SheetDescription>}
         </SheetHeader>}
 
@@ -373,8 +411,14 @@ export function Personalizar({ conta, prefs }: { conta: string; prefs?: Prefs })
         {tela.tipo === "series" && <SeriesDosEscolhidos ref={edicaoDosDescansos} ids={escolhidos} ajustes={seriesPorExercicio}
           descansos={descansosPorExercicio} descansoDaConta={descansoPadraoS(prefs)} aoMudar={ajustarSeries}
           aoConfirmarDescansos={setDescansosPorExercicio} aoFechar={() => mostrar({ tipo: "editor" }, gatilhoDasSeries.current)} />}
-        {(tela.tipo === "salvos" || tela.tipo === "excluir" || tela.tipo === "descartar") && (
-          <TreinosSalvos conta={conta} oculto={tela.tipo !== "salvos"} aoVoltar={voltar} aoEscolher={escolher}
+        {sessaoCriada && <div className="px-5 pb-2">
+          <Button asChild variant="outline" className="alvo h-auto max-w-full py-2 whitespace-normal">
+            <a href={`/treinar/${sessaoCriada.id}`}>Abrir treino criado</a>
+          </Button>
+        </div>}
+        {painelDaBiblioteca && (
+          <TreinosSalvos conta={conta} oculto={tela.tipo !== "salvos"} pronto={pronto} ocupado={ocupado}
+            aoIniciar={iniciarDaLista} aoVoltar={voltar} aoEscolher={escolher}
             aoExcluir={(modelo, gatilho) => {
               gatilhoDaConfirmacao.current = gatilho;
               mostrar({ tipo: "excluir", modelo });
@@ -388,6 +432,9 @@ export function Personalizar({ conta, prefs }: { conta: string; prefs?: Prefs })
         {tela.tipo === "descartar" && <ConfirmacaoDoModelo gravando={false} erro={null} aoCancelar={voltar}
           descricao="A seleção atual tem alterações que ainda não foram salvas."
           acao="Descartar alterações" aoConfirmar={() => carregar(tela.proximo)} />}
+        {tela.tipo === "iniciar" && <ConfirmacaoDoModelo gravando={ocupado} erro={null} aoCancelar={voltar}
+          descricao={`A montagem tem alterações ainda não salvas. Quer começar “${tela.modelo.nome}” com os exercícios salvos?`}
+          acao="Começar treino" aoConfirmar={() => void iniciar(tela.modelo)} />}
         {/* Cabeçalho e catálogo rolam juntos. O rodapé tem seu próprio espaço e não encobre o controle focado. */}
         <div className={cn("flex min-h-0 flex-1 flex-col gap-2 px-4", tela.tipo !== "editor" && "hidden")}>
           <div className="min-h-0 overflow-y-auto px-1">
@@ -407,7 +454,10 @@ export function Personalizar({ conta, prefs }: { conta: string; prefs?: Prefs })
             )}
             <div className="mb-3 flex flex-wrap gap-2">
               <Button ref={gatilhoDosSalvos} type="button" variant="outline" disabled={ocupado}
-                className="alvo h-auto max-w-full whitespace-normal py-2" onClick={() => mostrar({ tipo: "salvos" })}>
+                className="alvo h-auto max-w-full whitespace-normal py-2" onClick={() => {
+                  bibliotecaVeioDaAba.current = false;
+                  mostrar({ tipo: "salvos" });
+                }}>
                 <Bookmark aria-hidden="true" /> Treinos salvos
               </Button>
               {escolhidos.length > 0 && (
