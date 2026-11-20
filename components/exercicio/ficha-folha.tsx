@@ -45,7 +45,8 @@ import { formatarDescanso } from "@/lib/formato";
 import type { PrescricaoTipo } from "@/lib/schemas";
 import { opcoesDeMidia, type TipoDeMidia } from "@/lib/midia";
 import type { MaterialDoTreino } from "@/components/exercicio/equipamento-de-hoje";
-import { AVISO_DA_TROCA, OpcoesDeAlternativa, recolherExecucaoDaAlternativa, type RecorrenciaDaTroca } from "@/components/exercicio/seletor-alternativa";
+import { recolherPreviaDeExecucao } from "@/components/exercicio/previa-de-execucao";
+import { AVISO_DA_TROCA, OpcoesDeAlternativa, type RecorrenciaDaTroca } from "@/components/exercicio/seletor-alternativa";
 import type { Prefs } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -733,7 +734,7 @@ export function FichaEmFolha({
   };
   return (
     <Sheet open={aberto} onOpenChange={mudarAberto}>
-      <SheetContent side="bottom" className="max-h-[92dvh] overflow-y-auto pb-8" onEscapeKeyDown={recolherExecucaoDaAlternativa}
+      <SheetContent side="bottom" className="max-h-[92dvh] overflow-y-auto pb-8" onEscapeKeyDown={recolherPreviaDeExecucao}
         onClickCapture={evento => {
           if (evento.target instanceof Element && evento.target.closest("button, a")) confirmarCampo();
         }}>

@@ -14,6 +14,7 @@ import {
   prescricaoDaSemana,
 } from "@/lib/barra-fixa";
 import { acharTreino, exercicioPorId } from "@/lib/dados";
+import { equipamentoDaSessao } from "@/lib/equipamento-da-sessao";
 import { decidirTela, servidorTerminouDeBuscar } from "@/lib/estado-do-player";
 import { ehSessaoLivre, itensDoPlano, tituloDoPlano } from "@/lib/livre";
 import {
@@ -54,6 +55,7 @@ import {
   mesmaVersaoDaOrdem,
   mesmoRelogio,
   MENSAGEM_CRONOMETRO_ALTERADO,
+  MENSAGEM_EQUIPAMENTO_ALTERADO,
   MENSAGEM_INCLUSAO_ALTERADA,
   MENSAGEM_NOTA_GERAL_ALTERADA,
   salvarSessaoLocal,
@@ -613,19 +615,22 @@ export function useSessaoDeTreino(sessaoId: string, userId: string) {
         || !ehSessaoLivre(antes.workoutId) || encerradaAntes || encerradaAqui === sessaoId) {
         throw new Error("Este treino já não está aberto para alterar os exercícios.");
       }
-      function mostrarConfirmada(salva: SessaoLocal) {
+      function mostrarConfirmada(salva: SessaoLocal, atualizarMaterial = false) {
         const atual = ultima.current;
         if (atual?.id !== sessaoId || atual.userId !== userId || atual.status !== "em_andamento"
           || salva.id !== sessaoId || salva.userId !== userId || salva.status !== "em_andamento") return;
         // Outra série ou o relógio podem avançar enquanto o banco local confirma a inclusão.
-        adotar(atual === antes ? salva : conciliarBlocosAcrescentados(atual, salva));
+        const conciliada = atual === antes ? salva : conciliarBlocosAcrescentados(atual, salva);
+        adotar(atualizarMaterial && conciliada !== salva
+          ? definirEquipamentoDaSessao(conciliada, equipamentoDaSessao(salva)) : conciliada);
       }
       try {
         mostrarConfirmada(await alterar(antes));
       } catch (falha) {
-        if (falha instanceof Error && falha.message === MENSAGEM_INCLUSAO_ALTERADA) {
+        const materialAlterado = falha instanceof Error && falha.message === MENSAGEM_EQUIPAMENTO_ALTERADO;
+        if (materialAlterado || (falha instanceof Error && falha.message === MENSAGEM_INCLUSAO_ALTERADA)) {
           const salva = await carregarSessaoLocal(sessaoId);
-          if (salva) mostrarConfirmada(salva);
+          if (salva) mostrarConfirmada(salva, materialAlterado);
         }
         throw falha;
       }

@@ -314,7 +314,7 @@ test.describe("substituir pela lista do dia (SPEC §13.3)", () => {
 
     await filtros.getByRole("button", { name: "Outro equipamento" }).click();
     await expect(halteres).toBeVisible();
-    await folha.getByText("Equipamentos disponíveis", { exact: true }).click();
+    await folha.locator("summary").filter({ hasText: "Equipamentos disponíveis" }).click();
     await folha.getByRole("checkbox", { name: "Halteres" }).uncheck();
     await expect(halteres).toHaveCount(0);
 
@@ -345,7 +345,7 @@ test.describe("substituir pela lista do dia (SPEC §13.3)", () => {
     await folha.getByRole("button", { name: "Elástico", exact: true }).click();
     const remada = folha.getByRole("button", { name: /^Remada com elástico/ });
     await expect(remada).toBeVisible();
-    await folha.getByText("Equipamentos disponíveis", { exact: true }).click();
+    await folha.locator("summary").filter({ hasText: "Equipamentos disponíveis" }).click();
     const faixa = folha.getByRole("checkbox", { name: /Super Band/ });
     await faixa.uncheck();
     await expect(remada).toHaveCount(0);

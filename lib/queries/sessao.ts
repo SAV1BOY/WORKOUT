@@ -780,7 +780,7 @@ export function guardarDescansoDaSessao(
   });
 }
 
-export const MENSAGEM_EQUIPAMENTO_ALTERADO = "O equipamento deste treino mudou. Reabra o treino para ver os exercícios disponíveis.";
+export const MENSAGEM_EQUIPAMENTO_ALTERADO = "O equipamento deste treino mudou. Escolha um exercício disponível com o material atual.";
 
 /** Acrescenta ao treino aberto, usando a carga confirmada do movimento para esta conta. */
 export async function acrescentarExercicioNaSessao(

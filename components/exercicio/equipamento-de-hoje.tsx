@@ -59,7 +59,8 @@ export function EquipamentoDeHoje({
 
   return (
     <details className="group rounded-lg border">
-      <summary className="alvo hover:bg-muted/50 flex cursor-pointer items-center justify-between gap-2 rounded-lg px-3 py-2">
+      {/* O WebKit mantém a sequência de Tab quando o toque no texto chega ao próprio summary. */}
+      <summary className="alvo hover:bg-muted/50 flex cursor-pointer items-center justify-between gap-2 rounded-lg px-3 py-2 [&_*]:pointer-events-none">
         <span className="flex min-w-0 flex-col text-left wrap-anywhere">
           <span className="text-sm font-medium">{noSeletor ? "Equipamentos disponíveis" : "Equipamento de hoje"}</span>
           <span className="text-muted-foreground text-xs">{resumoDoMaterial(marcados)}</span>
