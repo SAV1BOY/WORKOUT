@@ -2,8 +2,8 @@ import { expect, test, type Page } from "@playwright/test";
 import type { LinhaSerie, PlanoDaSessao } from "../lib/types";
 import {
   abrirSecaoDoRelatorio, abrirVisaoGeral, avancarNoPlayerAte, comecarNoPlayer, comecarOTreinoDoDia, entrarNoApp,
-  esperarAbaTreino, esperarServiceWorker, fixarData, HOJE_FIXO, inserirNoMock, lerDoMock, resetarMock,
-  semRolagemHorizontal, usuarioComPerfil,
+  esperarAbaTreino, esperarServiceWorker, fixarData, HOJE_FIXO, inserirNoMock, lerDoMock,
+  marcarSerieNaVisaoGeral, resetarMock, semRolagemHorizontal, usuarioComPerfil,
   ocuparArmazenamentoDaSessao,
 } from "./fixtures";
 import { comRedeNoWorker, semRedeNoWorker, workerDoApp } from "./rede-do-worker";
@@ -139,21 +139,23 @@ test("a Visão geral usa o descanso salvo no player e mantém o padrão do outro
 
   const geral = page.getByRole("dialog", { name: "Visão geral do treino" });
   const barra = geral.getByRole("timer", { name: "Descanso" });
-  await geral.getByRole("checkbox", { name: `Série 2 concluída — ${NOME}`, exact: true }).check();
+  await marcarSerieNaVisaoGeral(geral.getByRole("checkbox", { name: `Série 2 concluída — ${NOME}`, exact: true }));
   await expect(barra.getByText("1:35", { exact: true })).toBeVisible();
   await expect(barra).toContainText(NOME);
   await barra.getByRole("button", { name: "Pular" }).click();
 
-  await geral.getByRole("checkbox", { name: "Série 1 concluída — Remada com elástico", exact: true }).check();
+  await marcarSerieNaVisaoGeral(
+    geral.getByRole("checkbox", { name: "Série 1 concluída — Remada com elástico", exact: true }),
+  );
   await expect(barra.getByText("1:10", { exact: true })).toBeVisible();
   await expect(barra).toContainText("Remada com elástico");
   await barra.getByRole("button", { name: "Pular" }).click();
 
   // A lista permite concluir fora de ordem. Ainda falta a terceira Rosca ao marcar a quarta.
-  await geral.getByRole("checkbox", { name: `Série 4 concluída — ${NOME}`, exact: true }).check();
+  await marcarSerieNaVisaoGeral(geral.getByRole("checkbox", { name: `Série 4 concluída — ${NOME}`, exact: true }));
   await expect(barra.getByText("1:35", { exact: true })).toBeVisible();
   await barra.getByRole("button", { name: "Pular" }).click();
-  await geral.getByRole("checkbox", { name: `Série 3 concluída — ${NOME}`, exact: true }).check();
+  await marcarSerieNaVisaoGeral(geral.getByRole("checkbox", { name: `Série 3 concluída — ${NOME}`, exact: true }));
   await expect(barra.getByText("1:00", { exact: true })).toBeVisible();
   await expect.poll(async () => {
     const series = await lerDoMock<LinhaSerie>(conta, "session_sets", `session_id=eq.${id}`);

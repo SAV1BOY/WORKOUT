@@ -3,7 +3,8 @@ import type { ModeloDeTreino } from "../lib/modelo-de-treino";
 import type { LinhaSessao } from "../lib/types";
 import {
   abrirSecaoDoRelatorio, abrirVisaoGeral, atualizarNoMock, definirCota, entrarNoApp, esperarAbaTreino,
-  esperarServiceWorker, fixarData, inserirNoMock, irNaAba, lerDoMock, naFila, requisicoesDoMock,
+  esperarServiceWorker, fixarData, inserirNoMock, irNaAba, lerDoMock,
+  marcarSerieNaVisaoGeral, naFila, requisicoesDoMock,
   resetarMock, sessaoNoMock, usuarioComPerfil, type SessaoMock,
 } from "./fixtures";
 import { comRedeNoWorker, semRedeNoWorker, workerDoApp } from "./rede-do-worker";
@@ -186,7 +187,7 @@ test("editar e excluir o modelo preserva as sessões e a progressão usada em ca
   const primeiraSerie = geral(page).getByRole("group", { name: `Série 1 — ${AGACHAMENTO}`, exact: true });
   const carga = primeiraSerie.getByRole("textbox", { name: "carga na barra" });
   await expect(carga).toHaveValue("15,5");
-  await primeiraSerie.getByRole("checkbox").check();
+  await marcarSerieNaVisaoGeral(primeiraSerie.getByRole("checkbox"));
   await botao(geral(page), "Concluir").click();
   await botao(dialogo(page, "Treino concluído"), "Salvar e voltar").click();
   await esperarAbaTreino(page);
@@ -222,7 +223,7 @@ test("editar e excluir o modelo preserva as sessões e a progressão usada em ca
   await expect(geral(page).getByRole("heading", { level: 2 })).toHaveText([`1. ${AGACHAMENTO}`]);
   await expect(geral(page).getByRole("checkbox", { checked: true })).toHaveCount(0);
   await expect(carga).toHaveValue("31,5");
-  await primeiraSerie.getByRole("checkbox").check();
+  await marcarSerieNaVisaoGeral(primeiraSerie.getByRole("checkbox"));
   await expect.poll(() => series(conta, segunda)).toMatchObject([{ id: expect.stringMatching(UUID), concluida: true, carga_kg: 31.5 }]);
   const seriesNovas = await series(conta, segunda);
   expect(seriesNovas[0]!.id).not.toBe(seriesAnteriores[0]!.id);

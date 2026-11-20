@@ -10,7 +10,7 @@ import { chaves } from "@/lib/queries/dados";
 import { lerMotorParaRepetir } from "@/lib/queries/motor-repetir-treino";
 import { abrirRepeticaoDoTreino } from "@/lib/queries/repetir-treino";
 import {
-  acrescentarExercicioNaSessao, criarSessaoLivre, descarregarSessao, enviarPlanoDaTroca, finalizarSessao,
+  acrescentarExercicioNaSessao, confirmarMarcacaoDaSerie, criarSessaoLivre, descarregarSessao, enviarPlanoDaTroca, finalizarSessao,
   desfazerUltimaInclusaoNaSessao, enviarSerie, guardarDescansoDaSessao, guardarMaterialDaSessao,
   MENSAGEM_INCLUSAO_ALTERADA, salvarSessaoLocal,
 } from "@/lib/queries/sessao";
@@ -237,6 +237,46 @@ describe("acrescentar ao treino livre que está no aparelho", () => {
     }) }), "sessions:aberta");
     expect(locais.get(s.id)).toBeUndefined();
     await expect(desfazerUltimaInclusaoNaSessao(comBloco, comBloco.plano!.ultima_inclusao!.id)).rejects.toThrow("não está aberta");
+  });
+
+  it("uma falha ao enfileirar a série mantém o visto e o desfazer no estado anterior", async () => {
+    const aberta = await incluir(await iniciar(), remada);
+    const bloco = aberta.blocos[1]!;
+    const id = bloco.series[0]!.id;
+    const fila = vi.mocked(guardarNaFila);
+    fila.mockImplementation(async tipo => {
+      if (tipo === "serie") throw new Error("quota");
+    });
+    await expect(confirmarMarcacaoDaSerie(aberta, bloco.ordem, id, true)).rejects.toThrow("quota");
+    expect(locais.get(aberta.id)).toEqual(aberta);
+
+    fila.mockReset();
+    const salva = await confirmarMarcacaoDaSerie(aberta, bloco.ordem, id, true);
+    expect(salva?.blocos[1]?.series[0]).toMatchObject({ id, concluida: true });
+    expect(salva?.plano?.ultima_inclusao?.estado).toBe("iniciada");
+    expect(locais.get(aberta.id)).toEqual(salva);
+    expect(fila.mock.calls.filter(([tipo]) => tipo === "serie")).toHaveLength(1);
+    expect(fila).toHaveBeenCalledWith("serie", expect.objectContaining({
+      linha: expect.objectContaining({ id, session_id: aberta.id, exercise_id: remada, concluida: true }),
+    }), "sessions:aberta");
+  });
+
+  it("duas abas marcam séries distintas do mesmo bloco a partir da mesma cópia", async () => {
+    const aberta = await incluir(await iniciar(), remada);
+    const bloco = aberta.blocos[1]!;
+    const ids = bloco.series.slice(0, 2).map(s => s.id);
+    expect(ids).toHaveLength(2);
+    vi.mocked(guardarNaFila).mockClear();
+    const resultados = await Promise.all(ids.map(id => confirmarMarcacaoDaSerie(aberta, bloco.ordem, id, true)));
+    expect(resultados.every(Boolean)).toBe(true);
+    expect(locais.get(aberta.id)?.blocos[1]?.series.filter(s => s.concluida).map(s => s.id)).toEqual(ids);
+    const series = vi.mocked(guardarNaFila).mock.calls.filter(([tipo]) => tipo === "serie");
+    expect(series).toHaveLength(2);
+    for (const id of ids) {
+      expect(series).toContainEqual(["serie", expect.objectContaining({
+        linha: expect.objectContaining({ id, user_id: "ana", concluida: true }),
+      }), "sessions:aberta"]);
+    }
   });
 
   it("uma aba com o bloco antigo não envia sua série depois de desfazer e reincluir o mesmo exercício", async () => {

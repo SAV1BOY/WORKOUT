@@ -2,7 +2,8 @@ import { expect, test } from "@playwright/test";
 import { itensDeIds, planoDaSessao } from "../lib/livre";
 import {
   abrirSecaoDoRelatorio, abrirVisaoGeral, avancarNoPlayerAte, comecarNoPlayer, entrarNoApp,
-  esperarAbaTreino, esperarServiceWorker, fixarData, inserirNoMock, irNaAba, resetarMock, usuarioComPerfil,
+  esperarAbaTreino, esperarServiceWorker, fixarData, inserirNoMock, irNaAba,
+  marcarSerieNaVisaoGeral, resetarMock, usuarioComPerfil,
 } from "./fixtures";
 import { semRedeNoWorker, workerDoApp } from "./rede-do-worker";
 import { FRONTAL, geral, NOME, series } from "./treino-livre-ativo";
@@ -43,7 +44,7 @@ test("repetir um treino encerrado sem rede compara com a série que acabou de se
   await linha.getByRole("textbox", { name: "repetições" }).fill("9");
   const carga = linha.getByRole("textbox", { name: "carga na barra" });
   await carga.fill("31,5");
-  await linha.getByRole("checkbox").check();
+  await marcarSerieNaVisaoGeral(linha.getByRole("checkbox"));
   await expect(carga).toHaveValue("31,5");
   await geral(page).getByRole("button", { name: "Concluir", exact: true }).click();
   await page.getByRole("dialog", { name: "Treino concluído" }).getByRole("button", { name: "Salvar e voltar" }).click();

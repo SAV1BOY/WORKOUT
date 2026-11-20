@@ -3,7 +3,7 @@ import type { ModeloDeTreino } from "../lib/modelo-de-treino";
 import type { LinhaSessao } from "../lib/types";
 import {
   abrirVisaoGeral, entrarNoApp, esperarServiceWorker, fixarData, inserirNoMock,
-  lerDoMock, naFila, requisicoesDoMock, resetarMock, usuarioComPerfil,
+  lerDoMock, marcarSerieNaVisaoGeral, naFila, requisicoesDoMock, resetarMock, usuarioComPerfil,
 } from "./fixtures";
 import { ajustar, campo, carregar, descanso, dialogo, editor, personalizar, pronto } from "./montar-modelo";
 import { comRedeNoWorker, semRedeNoWorker, workerDoApp } from "./rede-do-worker";
@@ -101,7 +101,7 @@ test("trocar um agachamento sem cavalete mantém a posição e inicia com a prog
   ]);
   const primeira = visao.getByRole("group", { name: "Série 1 — " + nomeAlternativa, exact: true });
   await expect(primeira.getByRole("textbox", { name: "repetições", exact: true })).toHaveValue("17");
-  await primeira.getByRole("checkbox").check();
+  await marcarSerieNaVisaoGeral(primeira.getByRole("checkbox"));
   await expect.poll(() => series(conta, id)).toMatchObject([{
     exercise_id: ALTERNATIVA, ordem_ex: 2, reps_alvo_min: 8, reps_alvo_max: 17, reps: 17, concluida: true,
   }]);

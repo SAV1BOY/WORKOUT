@@ -2,7 +2,7 @@ import { expect, test, type BrowserContext, type Page } from "@playwright/test";
 import type { LinhaSessao } from "../lib/types";
 import {
   abrirSecaoDoRelatorio, abrirVisaoGeral, esperarAbaTreino, esperarServiceWorker, fixarData, HOJE_FIXO,
-  irNaAba, lerDoMock, resetarMock, semRolagemHorizontal,
+  irNaAba, lerDoMock, marcarSerieNaVisaoGeral, resetarMock, semRolagemHorizontal,
 } from "./fixtures";
 import { comRedeNoWorker, semRedeNoWorker, workerDoApp } from "./rede-do-worker";
 import { abrirCatalogo, busca, catalogo, FRONTAL, geral, NOME, planoSalvo, series, timer, treinoAberto } from "./treino-livre-ativo";
@@ -147,7 +147,7 @@ test("a segunda aba ainda pode registrar uma série do treino depois que a prime
   await expect(blocos(outra)).toHaveCount(2);
   expect(await series(conta, id)).toEqual([]);
   const remada = outra.getByRole("checkbox", { name: "Série 1 concluída — Remada com elástico", exact: true });
-  await remada.check();
+  await marcarSerieNaVisaoGeral(remada);
   await expect.poll(() => series(conta, id)).toMatchObject([{ session_id: id, exercise_id: "remada-com-elastico", ordem_ex: 2, concluida: true }]);
   await outra.reload();
   await abrirVisaoGeral(outra);
@@ -162,7 +162,7 @@ test("uma inclusão usada na segunda aba conserva seu bloco e a série mesmo se 
   await acrescentarFlexao(page);
   const outra = await abrirSegundaAba(context, id);
   const rotulo = `Série 1 concluída — ${FLEXAO}`;
-  await geral(outra).getByRole("checkbox", { name: rotulo, exact: true }).check();
+  await marcarSerieNaVisaoGeral(geral(outra).getByRole("checkbox", { name: rotulo, exact: true }));
   await expect.poll(() => series(conta, id)).toMatchObject([{ session_id: id, exercise_id: FLEXAO_ID, ordem_ex: 3, concluida: true }]);
   if (await desfazer(page).isVisible()) {
     await desfazer(page).click();
@@ -193,7 +193,7 @@ test("a troca aberta em outra aba respeita a série e a nota da flexão antes de
   const nota = "Apoiei as mãos na largura dos ombros.";
   const serieDoBloco = `Série 1 concluída — ${FLEXAO}`;
   await geral(outra).getByRole("textbox", { name: `Nota: ${FLEXAO}`, exact: true }).fill(nota);
-  await geral(outra).getByRole("checkbox", { name: serieDoBloco, exact: true }).check();
+  await marcarSerieNaVisaoGeral(geral(outra).getByRole("checkbox", { name: serieDoBloco, exact: true }));
   await expect.poll(() => series(conta, id)).toMatchObject([{ exercise_id: FLEXAO_ID, set_index: 1, concluida: true }]);
   const originais = await series(conta, id);
 

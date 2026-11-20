@@ -44,6 +44,7 @@ import {
   escritasDasSeriesFeitas,
   escritaDaSessao,
   itensDoTreino,
+  marcarSerie,
   montarSessao,
   montarSessaoAvulsa,
   MENSAGEM_NOTA_GERAL_ALTERADA,
@@ -192,6 +193,19 @@ export function conciliarBlocosAcrescentados(atual: SessaoLocal, salva: SessaoLo
   };
 }
 
+/** Mantém os campos editados na tela durante a gravação, junto da marcação já confirmada. */
+export function conciliarMarcacaoConfirmada(antes: SessaoLocal, atual: SessaoLocal, salva: SessaoLocal, ordem: number): SessaoLocal {
+  if (atual === antes) return salva;
+  const conciliada = conciliarBlocosAcrescentados(atual, salva);
+  const base = antes.blocos.find(b => b.ordem === ordem);
+  const gravado = salva.blocos.find(b => b.ordem === ordem);
+  if (!base || !gravado) return conciliada;
+  return { ...conciliada, blocos: conciliada.blocos.map(bloco => {
+    if (bloco.ordem !== ordem || !blocosCompartilhamSeries(base, bloco) || bloco === gravado) return bloco;
+    return conciliarEdicaoDoBloco(gravado, base, bloco);
+  }) };
+}
+
 /** Preserva a escolha já confirmada durante uma edição que não alterou a sequência. */
 export function comOrdemConfirmada(atual: SessaoLocal, salva: SessaoLocal): SessaoLocal {
   const ordem = salva.ordemExecucao ?? salva.plano?.ordem_execucao;
@@ -241,7 +255,7 @@ async function gravar(sessao: SessaoLocal, antes?: SessaoLocal): Promise<void> {
         const base = antes.blocos.find(b => b.ordem === bloco.ordem);
         const maisNovo = salva.blocos.find(b => b.ordem === bloco.ordem);
         if (!maisNovo) return bloco;
-        if (base && (salva.plano?.ultima_inclusao || salva.ordemExecucao || salva.plano?.ordem_execucao)) {
+        if (base && (base.exercicioId === bloco.exercicioId || salva.plano?.ultima_inclusao || salva.ordemExecucao || salva.plano?.ordem_execucao)) {
           // Se a lista mudou, a conciliação já devolveu o bloco da geração atual.
           if (bloco === maisNovo) return maisNovo;
           return conciliarEdicaoDoBloco(maisNovo, base, bloco);
@@ -806,32 +820,40 @@ export async function desfazerUltimaInclusaoNaSessao(sessao: SessaoLocal, identi
   }, undefined, conciliarBlocosAcrescentados);
 }
 
-/** A série deve existir no mesmo bloco quando entra na fila, inclusive se outra aba desfez e reincluiu o exercício. */
-export async function enviarSerie(sessao: SessaoLocal, bloco: BlocoLocal, serie: SerieLocal): Promise<boolean> {
+/** O visto, os valores herdados e a escrita a sincronizar entram no mesmo commit do aparelho. */
+export async function confirmarMarcacaoDaSerie(
+  sessao: SessaoLocal, ordem: number, serieId: string, concluida: boolean, agora = new Date().toISOString(),
+): Promise<SessaoLocal | null> {
+  const esperado = sessao.blocos.find(b => b.ordem === ordem);
+  if (!esperado?.series.some(s => s.id === serieId)) return null;
   await confirmarToquesPendentes(sessao);
   const banco = bd();
-  const enfileirada = await banco.transaction("rw", banco.sessaoAtiva, banco.outbox, banco.cache, async () => {
+  const confirmada = await banco.transaction("rw", banco.sessaoAtiva, banco.outbox, banco.cache, async () => {
     const salva = await lerSessaoNaTransacao(sessao.id);
-    if (!salva || salva.status !== "em_andamento" || salva.userId !== sessao.userId) return false;
-    const posicao = salva.blocos.find(b => b.ordem === bloco.ordem);
-    if (!posicao) return false;
-    const movimento = [posicao, ...(posicao.trocados ?? [])].find(b => b.exercicioId === bloco.exercicioId);
-    const registrada = movimento?.series.find(s => s.id === serie.id);
-    if (!movimento || !registrada) return false;
+    if (!salva || salva.status !== "em_andamento" || salva.userId !== sessao.userId) return null;
+    const bloco = salva.blocos.find(b => b.ordem === ordem);
+    if (bloco?.exercicioId !== esperado.exercicioId || !bloco.series.some(s => s.id === serieId)) return null;
+    let atual = marcarSerie(salva, ordem, serieId, concluida, agora);
     // Mesmo uma desmarcação deixa uma linha no servidor. A exclusão não pode passar depois dela.
     const inclusao = salva.plano?.ultima_inclusao;
-    if (salva.plano && inclusao?.estado === "disponivel" && inclusao.ordem === bloco.ordem) {
-      const atual: SessaoLocal = { ...salva, plano: { ...salva.plano, ultima_inclusao: { ...inclusao, estado: "iniciada" } } };
-      await banco.sessaoAtiva.put({ id: atual.id, dados: atual, atualizadoEm: Date.now() });
+    if (salva.plano && inclusao?.estado === "disponivel" && inclusao.ordem === ordem) {
+      atual = { ...atual, plano: { ...salva.plano, ultima_inclusao: { ...inclusao, estado: "iniciada" } } };
       const plano = escritaDoPlano(atual.id, atual.userId, planoParaGravar(atual));
       await guardarNaFila("sessao", plano, alvoDaEscrita(plano));
     }
-    const escrita = escritaDaSerie(salva, movimento, registrada);
+    const movimento = atual.blocos.find(b => b.ordem === ordem)!;
+    const registrada = movimento.series.find(s => s.id === serieId)!;
+    await banco.sessaoAtiva.put({ id: atual.id, dados: atual, atualizadoEm: Date.now() });
+    const escrita = escritaDaSerie(atual, movimento, registrada);
     await guardarNaFila("serie", escrita, alvoDaEscrita(escrita));
-    return true;
+    return atual;
   });
-  if (enfileirada) void processar();
-  return enfileirada;
+  if (confirmada) void processar();
+  return confirmada;
+}
+
+export async function enviarSerie(sessao: SessaoLocal, bloco: BlocoLocal, serie: SerieLocal): Promise<boolean> {
+  return (await confirmarMarcacaoDaSerie(sessao, bloco.ordem, serie.id, serie.concluida, serie.registradaEm ?? undefined)) !== null;
 }
 
 /* -------------------------------------------------------------- fim */

@@ -2,7 +2,7 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 import type { ModeloDeTreino } from "../lib/modelo-de-treino";
 import {
   abrirVisaoGeral, entrarNoApp, esperarAbaTreino, esperarServiceWorker, fixarData, inserirNoMock, lerDoMock,
-  naFila, requisicoesDoMock, resetarMock, semRolagemHorizontal, usuarioComPerfil,
+  marcarSerieNaVisaoGeral, naFila, requisicoesDoMock, resetarMock, semRolagemHorizontal, usuarioComPerfil,
 } from "./fixtures";
 import { comRedeNoWorker, semRedeNoWorker, workerDoApp } from "./rede-do-worker";
 import { geral, planoSalvo } from "./treino-livre-ativo";
@@ -107,7 +107,9 @@ test("editar o modelo sem rede altera as séries da próxima sessão e sincroniz
   await page.keyboard.press("Escape");
   await abrirVisaoGeral(page);
   await conferirSessao(page, 1, 4);
-  await geral(page).getByRole("checkbox", { name: `Série 1 concluída — ${AGACHAMENTO}`, exact: true }).check();
+  await marcarSerieNaVisaoGeral(
+    geral(page).getByRole("checkbox", { name: `Série 1 concluída — ${AGACHAMENTO}`, exact: true }),
+  );
   await geral(page).getByRole("button", { name: "Concluir", exact: true }).click();
   await dialogo(page, "Treino concluído").getByRole("button", { name: "Salvar e voltar", exact: true }).click();
   await esperarAbaTreino(page);

@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import {
-  abrirVisaoGeral, comecarNoPlayer, entrarNoApp, esperarAbaTreino, fixarData, lerDoMock,
+  abrirVisaoGeral, comecarNoPlayer, entrarNoApp, esperarAbaTreino, fixarData, lerDoMock, marcarSerieNaVisaoGeral,
   naFila, resetarMock, usuarioComPerfil,
 } from "./fixtures";
 import { ajustar, ajustes, campo, carregar, descanso, dialogo, editor, escolher, iniciar, personalizar, pronto } from "./montar-modelo";
@@ -59,7 +59,9 @@ test("cada sessão recebe os 95 segundos da rosca e mantém os 70 segundos da co
   await expect(timer).toHaveText("1:10");
   await pular.click();
   await abrirVisaoGeral(page);
-  await geral(page).getByRole("checkbox", { name: `Série 1 concluída — ${remada}`, exact: true }).check();
+  await marcarSerieNaVisaoGeral(
+    geral(page).getByRole("checkbox", { name: `Série 1 concluída — ${remada}`, exact: true }),
+  );
   const barra = geral(page).getByRole("timer", { name: "Descanso" });
   await expect(barra.getByText("1:10", { exact: true })).toBeVisible();
   await expect(barra).toContainText(remada);

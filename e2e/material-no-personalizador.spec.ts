@@ -2,7 +2,7 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 import type { LinhaSessao } from "../lib/types";
 import {
   abrirVisaoGeral, comecarNoPlayer, entrarNoApp, esperarAbaTreino, esperarServiceWorker,
-  fixarData, lerDoMock, naFila, resetarMock, usuarioComPerfil,
+  fixarData, lerDoMock, marcarSerieNaVisaoGeral, naFila, resetarMock, usuarioComPerfil,
 } from "./fixtures";
 import { comRedeNoWorker, semRedeNoWorker, workerDoApp } from "./rede-do-worker";
 import { abrirCatalogo, catalogo, geral, series } from "./treino-livre-ativo";
@@ -169,7 +169,9 @@ test("a escolha do treino personalizado respeita o rascunho de A1 e a próxima s
   await opcao(page, FLEXAO).click();
   const primeira = await iniciar(page, 1);
   await abrirVisaoGeral(page);
-  await geral(page).getByRole("checkbox", { name: `Série 1 concluída — ${FLEXAO}`, exact: true }).check();
+  await marcarSerieNaVisaoGeral(
+    geral(page).getByRole("checkbox", { name: `Série 1 concluída — ${FLEXAO}`, exact: true }),
+  );
   await geral(page).getByRole("button", { name: "Concluir", exact: true }).click();
   await page.getByRole("dialog", { name: "Treino concluído", exact: true }).getByRole("button", { name: "Salvar e voltar" }).click();
   await esperarAbaTreino(page);

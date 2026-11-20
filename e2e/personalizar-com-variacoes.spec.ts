@@ -7,6 +7,7 @@ import {
   fixarData,
   HOJE_FIXO,
   lerDoMock,
+  marcarSerieNaVisaoGeral,
   naFila,
   resetarMock,
   usuarioComPerfil,
@@ -56,7 +57,7 @@ test("Personalizar inicia só com elástico e tatame e retoma a série marcada s
   await semRedeNoWorker(worker);
   await context.setOffline(true);
   const primeira = visao.getByRole("checkbox", { name: "Série 1 concluída — Remada com elástico" });
-  await primeira.check();
+  await marcarSerieNaVisaoGeral(primeira);
   await expect.poll(() => naFila(page)).toBeGreaterThan(0);
   expect(await series(conta, id)).toHaveLength(0);
   await semRedeNoWorker(worker);

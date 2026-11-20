@@ -3,8 +3,8 @@ import { itensDeIds, planoDaSessao } from "../lib/livre";
 import type { LinhaSessao } from "../lib/types";
 import {
   abrirSecaoDoRelatorio, abrirVisaoGeral, atualizarNoMock, definirCota, entrarNoApp, esperarAbaTreino,
-  esperarServiceWorker, fixarData, inserirNoMock, irNaAba, lerDoMock, naFila, resetarMock, sessaoNoMock,
-  usuarioComPerfil, type SessaoMock,
+  esperarServiceWorker, fixarData, inserirNoMock, irNaAba, lerDoMock,
+  marcarSerieNaVisaoGeral, naFila, resetarMock, sessaoNoMock, usuarioComPerfil, type SessaoMock,
 } from "./fixtures";
 import { comRedeNoWorker, semRedeNoWorker, workerDoApp } from "./rede-do-worker";
 import { FRONTAL, geral, NOME, series, treinoAberto } from "./treino-livre-ativo";
@@ -113,7 +113,7 @@ test("duas séries concluídas offline aparecem antes de sincronizar, sobrevivem
     await linha.getByRole("textbox", { name: "repetições" }).fill(reps);
     const carga = linha.getByRole("textbox", { name: "carga na barra" });
     await carga.fill(kg);
-    await linha.getByRole("checkbox").check();
+    await marcarSerieNaVisaoGeral(linha.getByRole("checkbox"));
     await expect(carga).toHaveValue(kg);
   }
   await geral(page).getByRole("button", { name: "Concluir", exact: true }).click();
@@ -192,7 +192,7 @@ test("um treino enviado pela fila fora do relatório ainda tem detalhes na prime
   await context.setOffline(true);
   const linha = geral(page).getByRole("group", { name: `Série 1 — ${NOME}`, exact: true });
   await linha.getByRole("textbox", { name: "repetições" }).fill("9");
-  await linha.getByRole("checkbox").check();
+  await marcarSerieNaVisaoGeral(linha.getByRole("checkbox"));
   await geral(page).getByRole("button", { name: "Concluir", exact: true }).click();
   await page.getByRole("dialog", { name: "Treino concluído" }).getByRole("button", { name: "Salvar e voltar" }).click();
   await esperarAbaTreino(page);

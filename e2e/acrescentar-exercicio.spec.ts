@@ -2,7 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import type { LinhaSessao } from "../lib/types";
 import {
   abrirVisaoGeral, avancarNoPlayerAte, comecarNoPlayer, comecarOTreinoDoDia, entrarNoApp,
-  esperarServiceWorker, fixarData, HOJE_FIXO, lerDoMock, resetarMock,
+  esperarServiceWorker, fixarData, HOJE_FIXO, lerDoMock, naFila, ocuparArmazenamentoDaSessao, requisicoesDoMock, resetarMock,
   semRolagemHorizontal, usuarioComPerfil,
 } from "./fixtures";
 import { comRedeNoWorker, semRedeNoWorker, workerDoApp } from "./rede-do-worker";
@@ -11,6 +11,10 @@ import { abrirCatalogo, busca, catalogo, FRONTAL, geral, NOME, planoSalvo, serie
 
 const grupoMuscular = (page: Page) => catalogo(page).getByRole("combobox", { name: "Grupo muscular", exact: true });
 const adicionar = (page: Page) => catalogo(page).getByRole("button", { name: `Adicionar ${NOME}`, exact: true });
+
+async function escritasDeSeries() {
+  return (await requisicoesDoMock()).filter(p => p.metodo === "POST" && p.caminho === "/rest/v1/session_sets").length;
+}
 
 async function conferirBlocoNovo(page: Page) {
   await expect(geral(page).locator('[id^="bloco-"] h2')).toHaveText([
@@ -124,24 +128,76 @@ test("dois toques sem rede acrescentam uma vez e a recarga retoma o mesmo treino
   await adicionar(page).evaluate((botao: HTMLButtonElement) => { botao.click(); botao.click(); });
   await expect(catalogo(page)).toBeHidden();
   const primeira = await conferirBlocoNovo(page);
-  await primeira.getByRole("checkbox").check();
-  expect(await planoSalvo(conta, id)).toEqual(plano);
-  expect(await series(conta, id)).toEqual([anterior]);
-
+  const visto = primeira.getByRole("checkbox");
+  const escritasAntes = await escritasDeSeries();
   await semRedeNoWorker(worker);
+  const liberar = await ocuparArmazenamentoDaSessao(page, id);
+  try {
+    await visto.click();
+    expect(await visto.getAttribute("aria-checked"), "a série só fica marcada quando o aparelho confirma a gravação").toBe("false");
+    await visto.click();
+  } finally {
+    await liberar();
+  }
+  await expect(visto).toBeChecked();
   await page.reload();
   await expect(page).toHaveURL(new RegExp(`/treinar/${id}$`));
   await expect(page.getByText("Série 2 de 3 · exercício 1 de 3", { exact: true })).toBeVisible();
   await abrirVisaoGeral(page);
   await expect(geral(page).locator('[id^="bloco-"] h2')).toHaveCount(3);
   await expect(geral(page).getByRole("checkbox", { name: `Série 1 concluída — ${NOME}` })).toBeChecked();
+  expect(await planoSalvo(conta, id)).toEqual(plano);
+  expect(await series(conta, id)).toEqual([anterior]);
   await comRedeNoWorker(worker);
   await context.setOffline(false);
   await expect.poll(() => planoSalvo(conta, id)).toMatchObject({ ...plano, itens: [...plano.itens, { exercicio_id: FRONTAL }] });
   await expect.poll(() => series(conta, id)).toMatchObject([
     anterior, { user_id: conta.userId, exercise_id: FRONTAL, ordem_ex: 3, set_index: 1, carga_kg: 31.5, concluida: true },
   ]);
+  await expect.poll(() => naFila(page)).toBe(0);
+  expect(await escritasDeSeries()).toBe(escritasAntes + 1);
   expect((await lerDoMock<LinhaSessao>(conta, "sessions")).map(s => s.id)).toEqual([id]);
+});
+
+test("a fila sem espaço mantém a série pendente e permite confirmar uma única vez após reabrir", async ({ page, context }) => {
+  test.slow(); // Inclui recarga offline e sincronização após a tentativa com espaço disponível.
+  const { conta, id } = await treinoAberto(page, { comFrontal: true });
+  await esperarServiceWorker(page);
+  await abrirVisaoGeral(page);
+  const visto = geral(page).getByRole("checkbox", { name: `Série 1 concluída — ${NOME}`, exact: true });
+  const intervalo = geral(page).getByRole("timer", { name: "Descanso" });
+  const antes = await escritasDeSeries();
+  const worker = await workerDoApp(context);
+  await semRedeNoWorker(worker);
+  await context.setOffline(true);
+  await page.evaluate(() => {
+    const gravar = IDBObjectStore.prototype.add;
+    IDBObjectStore.prototype.add = function (...args) {
+      if (this.name === "outbox" && args[0]?.tipo === "serie") {
+        IDBObjectStore.prototype.add = gravar;
+        throw new DOMException("Sem espaço para a série", "QuotaExceededError");
+      }
+      return gravar.apply(this, args);
+    };
+  });
+  await visto.click();
+  await expect(page.getByText("Não foi possível confirmar a série neste aparelho. Tente de novo.")).toBeVisible();
+  await expect(visto).not.toBeChecked();
+  await expect(intervalo).toBeHidden();
+  await page.reload();
+  await abrirVisaoGeral(page);
+  await expect(visto).not.toBeChecked();
+  await visto.click();
+  await expect(visto).toBeChecked();
+  await expect(intervalo).toBeVisible();
+  expect(await series(conta, id)).toHaveLength(0);
+  await comRedeNoWorker(worker);
+  await context.setOffline(false);
+  await expect.poll(() => series(conta, id)).toMatchObject([
+    { exercise_id: FRONTAL, set_index: 1, concluida: true, carga_kg: 31.5 },
+  ]);
+  await expect.poll(() => naFila(page)).toBe(0);
+  expect(await escritasDeSeries()).toBe(antes + 1);
 });
 
 test("o grupo muscular com busca e material acrescenta uma flexão offline e retoma no tema escuro", async ({ page, context }) => {

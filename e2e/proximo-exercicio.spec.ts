@@ -3,7 +3,8 @@ import { itensDeIds, planoDaSessao } from "../lib/livre";
 import type { LinhaSessao } from "../lib/types";
 import {
   abrirSecaoDoRelatorio, abrirVisaoGeral, comecarNoPlayer, entrarNoApp, esperarAbaTreino, esperarServiceWorker,
-  fixarData, HOJE_FIXO, inserirNoMock, irNaAba, lerDoMock, naFila, ocuparArmazenamentoDaSessao, requisicoesDoMock, resetarMock, usuarioComPerfil,
+  fixarData, HOJE_FIXO, inserirNoMock, irNaAba, lerDoMock,
+  marcarSerieNaVisaoGeral, naFila, ocuparArmazenamentoDaSessao, requisicoesDoMock, resetarMock, usuarioComPerfil,
 } from "./fixtures";
 import { comRedeNoWorker, semRedeNoWorker, workerDoApp } from "./rede-do-worker";
 import { geral, series, timer } from "./treino-livre-ativo";
@@ -136,7 +137,7 @@ test("uma série de agachamento iniciada em outra aba protege a sequência do tr
   const agachamento = geral(outra).getByRole("group", { name: "Série 1 — Agachamento livre", exact: true });
   await agachamento.getByRole("textbox", { name: "repetições" }).fill("7");
   await agachamento.getByRole("textbox", { name: "carga na barra" }).fill("31,5");
-  await agachamento.getByRole("checkbox").check();
+  await marcarSerieNaVisaoGeral(agachamento.getByRole("checkbox"));
   await expect.poll(() => series(conta, id)).toMatchObject([
     { exercise_id: IDS[0] }, { exercise_id: IDS[1], ordem_ex: 2, reps: 7, carga_kg: 31.5 },
   ]);
@@ -155,7 +156,9 @@ test("Histórico e Repetir treino seguem a ordem escolhida na sessão concluída
   const { conta, id } = await chegarAoCavalete(page);
   await escolherFlexao(page);
   for (const nome of [FLEXAO, AGACHAMENTO]) {
-    await geral(page).getByRole("group", { name: `Série 1 — ${nome}`, exact: true }).getByRole("checkbox").check();
+    await marcarSerieNaVisaoGeral(
+      geral(page).getByRole("group", { name: `Série 1 — ${nome}`, exact: true }).getByRole("checkbox"),
+    );
   }
   await geral(page).getByRole("button", { name: "Concluir", exact: true }).click();
   await page.getByRole("dialog", { name: "Treino concluído", exact: true }).getByRole("button", { name: "Salvar e voltar" }).click();
