@@ -382,29 +382,30 @@ export function useSessaoDeTreino(sessaoId: string, userId: string) {
    * Marcar uma série: grava no aparelho, manda para a fila e devolve o bloco e
    * a série que mudaram (quem chamou decide o que fazer com o descanso).
    */
-  const marcacoesEmGravacao = useRef(new Map<string, Promise<SessaoLocal | null>>());
+  const marcacoesEmGravacao = useRef(new Map<string, ReturnType<typeof confirmarMarcacaoDaSerie>>());
   const marcar = useCallback(
     async (
       ordem: number,
       serieId: string,
       concluida: boolean,
-    ): Promise<{ sessao: SessaoLocal; bloco: BlocoLocal; serie: SerieLocal } | null> => {
+    ): Promise<{ sessao: SessaoLocal; bloco: BlocoLocal; serie: SerieLocal; aplicada: boolean } | null> => {
       const antes = ultima.current;
       if (!antes || antes.id !== sessaoId || antes.userId !== userId || marcacoesEmGravacao.current.has(serieId)) return null;
       const gravacao = confirmarMarcacaoDaSerie(antes, ordem, serieId, concluida);
       marcacoesEmGravacao.current.set(serieId, gravacao);
       try {
         const confirmada = await gravacao;
-        const salva = confirmada ?? await carregarSessaoLocal(sessaoId);
+        const salva = confirmada?.sessao ?? await carregarSessaoLocal(sessaoId);
         const atual = ultima.current;
         if (atual?.id !== sessaoId || atual.userId !== userId) return null;
         if (salva?.userId === userId && salva.status === "em_andamento") {
           const nova = conciliarMarcacaoConfirmada(antes, atual, salva, ordem);
           adotar(nova);
           if (confirmada) {
-            const bloco = nova.blocos.find(b => b.ordem === ordem);
+            const sessao = confirmada.aplicada ? nova : confirmada.sessao;
+            const bloco = sessao.blocos.find(b => b.ordem === ordem);
             const serie = bloco?.series.find(s => s.id === serieId);
-            return bloco && serie ? { sessao: nova, bloco, serie } : null;
+            return bloco && serie ? { sessao, bloco, serie, aplicada: confirmada.aplicada } : null;
           }
         } else {
           router.replace("/relatorio#historico");

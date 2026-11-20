@@ -16,6 +16,8 @@ import {
   esperarAbaTreino,
   fixarData,
   lerDoMock,
+  naFila,
+  requisicoesDoMock,
   resetarMock,
   usuarioComPerfil,
   concluirSerie,
@@ -186,21 +188,24 @@ test.describe("§22.5 itens 4 e 5 — as perguntas chegam sem resposta e com cor
     const conta = await abrirPlayer(page);
     const id = new URL(page.url()).pathname.split("/").at(-1)!;
     const liberar = await ocuparArmazenamentoDaSessao(page, id);
-    const primeira = concluirSerie(page);
-    try {
-      await expect(page.getByRole("button", { name: "Série feita", exact: true })).toBeVisible();
+    async function conferirGravacaoPendente() {
+      const gravando = page.getByRole("button", { name: "Gravando série…", exact: true });
+      await expect(gravando).toBeVisible();
+      await expect(gravando).toHaveAttribute("aria-busy", "true");
+      await expect(page.getByRole("button", { name: "Série feita", exact: true })).toHaveCount(0);
       await expect(page.getByText("Aquecimento 1 de 2 · exercício 1 de 6", { exact: true })).toBeVisible();
       await expect(page.getByRole("region", { name: "Descanso", exact: true })).toHaveCount(0);
       expect(await lerDoMock(conta, "session_sets", `session_id=eq.${id}`)).toEqual([]);
-    } finally {
-      await liberar();
-      await primeira;
     }
+    await Promise.all([conferirGravacaoPendente().finally(liberar), concluirSerie(page)]);
     await expect(page.getByRole("region", { name: "Agachamento livre", exact: true })
       .getByText("Aquecimento 2 de 2 · exercício 1 de 6", { exact: true })).toBeVisible();
     await expect.poll(() => lerDoMock(conta, "session_sets", `session_id=eq.${id}`)).toMatchObject([
-      { exercise_id: "agachamento-livre", tipo: "aquecimento", concluida: true },
+      { session_id: id, exercise_id: "agachamento-livre", tipo: "aquecimento", set_index: 1, concluida: true },
     ]);
+    await expect.poll(() => naFila(page)).toBe(0);
+    const envios = (await requisicoesDoMock()).filter(r => r.metodo === "POST" && r.caminho === "/rest/v1/session_sets");
+    expect(envios).toHaveLength(1);
     for (let i = 1; i < 5; i++) await concluirSerie(page);
 
     const firme = page.getByRole("radiogroup", { name: "Última repetição" });

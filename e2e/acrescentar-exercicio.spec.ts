@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import type { SessaoLocal } from "../lib/sessao";
 import type { LinhaSessao } from "../lib/types";
 import {
   abrirVisaoGeral, avancarNoPlayerAte, comecarNoPlayer, comecarOTreinoDoDia, entrarNoApp,
@@ -198,6 +199,59 @@ test("a fila sem espaço mantém a série pendente e permite confirmar uma únic
   ]);
   await expect.poll(() => naFila(page)).toBe(0);
   expect(await escritasDeSeries()).toBe(antes + 1);
+});
+
+test("o mesmo visto em duas abas preserva a série seguinte e não reinicia o descanso", async ({ page, context }) => {
+  const { conta, id } = await treinoAberto(page, { comFrontal: true });
+  await esperarServiceWorker(page);
+  await abrirVisaoGeral(page);
+  const outra = await context.newPage();
+  await outra.goto(`/treinar/${id}`);
+  await abrirVisaoGeral(outra);
+  const visto = (aba: Page) => geral(aba).getByRole("checkbox", { name: `Série 1 concluída — ${NOME}`, exact: true });
+  const segunda = (aba: Page) => geral(aba).getByRole("group", { name: `Série 2 — ${NOME}`, exact: true });
+  await expect(visto(outra)).not.toBeChecked();
+  const antes = await escritasDeSeries();
+  await visto(page).click();
+  await expect(visto(page)).toBeChecked();
+  await expect.poll(() => series(conta, id)).toHaveLength(1);
+  const [original] = await series(conta, id);
+  expect(original).toMatchObject({ carga_kg: 31.5, registrada_em: new Date(HOJE_FIXO).toISOString() });
+  await expect.poll(() => naFila(page)).toBe(0);
+
+  const worker = await workerDoApp(context);
+  await semRedeNoWorker(worker);
+  await context.setOffline(true);
+  await segunda(page).getByRole("button", { name: /Aumentar carga na barra/ }).click();
+  // A segunda aba toca a série só depois que a carga ajustada está no aparelho.
+  await expect.poll(() => page.evaluate(id => new Promise<number | null>((resolve, reject) => {
+    const abrir = indexedDB.open("treino-terraco");
+    abrir.onerror = () => reject(abrir.error);
+    abrir.onsuccess = () => {
+      const banco = abrir.result;
+      const ler = banco.transaction("sessaoAtiva").objectStore("sessaoAtiva").get(id);
+      ler.onsuccess = () => {
+        const sessao = ler.result?.dados as SessaoLocal | undefined;
+        banco.close();
+        resolve(sessao?.blocos[0]?.series[1]?.cargaKg ?? null);
+      };
+      ler.onerror = () => { banco.close(); reject(ler.error); };
+    };
+  }), id)).toBe(33.5);
+
+  await expect(visto(outra)).not.toBeChecked();
+  await fixarData(outra, new Date(Date.parse(HOJE_FIXO) + 16_000).toISOString());
+  await visto(outra).click();
+  await expect(visto(outra)).toBeChecked();
+  await expect(segunda(outra).getByRole("textbox", { name: "carga na barra", exact: true })).toHaveValue("33,5");
+  const pendentes = await naFila(outra);
+  await comRedeNoWorker(worker);
+  await context.setOffline(false);
+  await expect.poll(() => naFila(outra)).toBe(0);
+  expect(await series(conta, id)).toEqual([original]);
+  expect(await escritasDeSeries()).toBe(antes + 1);
+  expect(pendentes).toBe(0);
+  await expect(geral(outra).getByRole("timer", { name: "Descanso" })).toBeHidden();
 });
 
 test("o grupo muscular com busca e material acrescenta uma flexão offline e retoma no tema escuro", async ({ page, context }) => {

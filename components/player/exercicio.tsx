@@ -60,6 +60,7 @@ export function TelaExercicio({
   passo,
   bloco,
   serie,
+  gravando,
   entrada,
   opcoes,
   temVideo,
@@ -84,6 +85,7 @@ export function TelaExercicio({
   passo: PassoSerie;
   bloco: BlocoLocal;
   serie: SerieLocal;
+  gravando: boolean;
   entrada: EntradaDoPasso;
   opcoes: OpcoesMontagem;
   temVideo: boolean;
@@ -419,6 +421,7 @@ export function TelaExercicio({
       <ControlesDoPlayer
         serieId={serie.id}
         concluida={serie.concluida}
+        gravando={gravando}
         aoAnterior={aoAnterior}
         aoProximo={aoProximo}
         aoConcluir={() => {
@@ -735,12 +738,14 @@ function Cronometro({
 export function ControlesDoPlayer({
   serieId,
   concluida,
+  gravando,
   aoAnterior,
   aoProximo,
   aoConcluir,
 }: {
   serieId: string;
   concluida: boolean;
+  gravando: boolean;
   aoAnterior: () => void;
   aoProximo: () => void;
   aoConcluir: () => void;
@@ -812,11 +817,13 @@ export function ControlesDoPlayer({
           size="xl"
           /* SPEC §22.5 item 10: o nome acessível é o texto que está escrito */
           className="alvo h-auto min-h-[max(56px,3.5rem)] min-w-0 flex-1 rounded-2xl px-[4px] py-1 font-semibold whitespace-normal"
-          onClick={aoConcluir}
+          aria-busy={gravando}
+          aria-disabled={gravando}
+          onClick={gravando ? undefined : aoConcluir}
         >
           <span className="min-w-0 wrap-anywhere">
             <Check aria-hidden="true" className="mr-2 inline-block size-6 align-middle" strokeWidth={3} />
-            {concluida ? "Série feita" : "Concluir série"}
+            {gravando ? "Gravando série…" : concluida ? "Série feita" : "Concluir série"}
           </span>
         </Button>
         <Button

@@ -173,8 +173,8 @@ describe("abertura do treino livre pelo Histórico", () => {
 describe("acrescentar ao treino livre que está no aparelho", () => {
   const rosca = "rosca-com-elastico";
   const remada = "remada-com-elastico";
-  const iniciar = () => criarSessaoLivre({
-    cliente: cache, userId: "ana", id: "aberta", data: hoje, fase: "fase1", exercicios: [rosca],
+  const iniciar = (exercicio = rosca) => criarSessaoLivre({
+    cliente: cache, userId: "ana", id: "aberta", data: hoje, fase: "fase1", exercicios: [exercicio],
   });
   const incluir = (s: SessaoLocal, id: string) => acrescentarExercicioNaSessao(cache, s, id);
   const fechar = (s: SessaoLocal) => finalizarSessao({ sessao: s, status: "concluida", cliente: cache });
@@ -252,12 +252,76 @@ describe("acrescentar ao treino livre que está no aparelho", () => {
 
     fila.mockReset();
     const salva = await confirmarMarcacaoDaSerie(aberta, bloco.ordem, id, true);
-    expect(salva?.blocos[1]?.series[0]).toMatchObject({ id, concluida: true });
-    expect(salva?.plano?.ultima_inclusao?.estado).toBe("iniciada");
-    expect(locais.get(aberta.id)).toEqual(salva);
+    expect(salva?.aplicada).toBe(true);
+    expect(salva?.sessao.blocos[1]?.series[0]).toMatchObject({ id, concluida: true });
+    expect(salva?.sessao.plano?.ultima_inclusao?.estado).toBe("iniciada");
+    expect(locais.get(aberta.id)).toEqual(salva?.sessao);
     expect(fila.mock.calls.filter(([tipo]) => tipo === "serie")).toHaveLength(1);
     expect(fila).toHaveBeenCalledWith("serie", expect.objectContaining({
       linha: expect.objectContaining({ id, session_id: aberta.id, exercise_id: remada, concluida: true }),
+    }), "sessions:aberta");
+  });
+
+  it("o toque repetido de outra aba preserva o horário e a carga preparada para a próxima série", async () => {
+    const aberta = await iniciar("agachamento-frontal");
+    const [primeira, segunda] = aberta.blocos[0]!.series.filter(s => s.tipo === "trabalho");
+    const base = atualizarSerie(aberta, 1, primeira!.id, { cargaKg: 20 });
+    salvarSessaoLocal(base, aberta);
+    await descarregarSessao();
+    vi.mocked(guardarNaFila).mockClear();
+    const horario = "2026-11-20T11:00:00.000Z";
+    const { sessao: marcada, aplicada } = (await confirmarMarcacaoDaSerie(base, 1, primeira!.id, true, horario))!;
+    expect(aplicada).toBe(true);
+    const preparada = atualizarSerie(marcada, 1, segunda!.id, { cargaKg: 25 });
+    salvarSessaoLocal(preparada, marcada);
+    await descarregarSessao();
+
+    const { sessao: repetida, aplicada: reaplicada } = (await confirmarMarcacaoDaSerie(base, 1, primeira!.id, true, "2026-11-20T11:01:00.000Z"))!;
+    expect(reaplicada).toBe(false);
+    expect(repetida.blocos[0]?.series.find(s => s.id === primeira!.id)).toMatchObject({ registradaEm: horario, cargaKg: 20, concluida: true });
+    expect(repetida.blocos[0]?.series.find(s => s.id === segunda!.id)).toMatchObject({ cargaKg: 25, concluida: false });
+    const escritas = () => vi.mocked(guardarNaFila).mock.calls.filter(([tipo]) => tipo === "serie");
+    expect(escritas()).toHaveLength(1);
+
+    // Em Corrigir no player, a própria tela parte de uma série já marcada.
+    const corrigida = atualizarSerie(repetida, 1, primeira!.id, { cargaKg: 22.5 });
+    salvarSessaoLocal(corrigida, repetida);
+    const confirmada = await confirmarMarcacaoDaSerie(corrigida, 1, primeira!.id, true);
+    expect(confirmada?.aplicada).toBe(true);
+    expect(confirmada?.sessao.blocos[0]?.series.find(s => s.id === primeira!.id)).toMatchObject({ id: primeira!.id, cargaKg: 22.5, concluida: true });
+    expect(escritas()).toHaveLength(2);
+    expect(escritas()[1]).toEqual(["serie", expect.objectContaining({
+      linha: expect.objectContaining({ id: primeira!.id, carga_kg: 22.5 }),
+    }), "sessions:aberta"]);
+  });
+
+  it("uma troca preparada antes da confirmação conserva a série do plano original", async () => {
+    const aberta = await iniciar();
+    expect(aberta.plano?.ultima_inclusao).toBeUndefined();
+    expect(aberta.ordemExecucao).toBeUndefined();
+    const bloco = aberta.blocos[0]!;
+    const id = bloco.series[0]!.id;
+    const tentativa = substituirExercicio(aberta, bloco.ordem, remada);
+    const marcada = await confirmarMarcacaoDaSerie(aberta, bloco.ordem, id, true);
+    expect(marcada?.sessao.blocos[0]?.series[0]).toMatchObject({ id, concluida: true });
+    salvarSessaoLocal(tentativa, aberta);
+    const mantida = (await enviarPlanoDaTroca(tentativa))!;
+    expect(mantida.blocos[0]).toMatchObject({ exercicioId: rosca });
+    expect(mantida.blocos[0]?.series.find(serie => serie.id === id)).toMatchObject({ id, concluida: true });
+    expect(guardarNaFila).toHaveBeenLastCalledWith("sessao", expect.objectContaining({
+      linha: { plano: aberta.plano },
+    }), "sessions:aberta");
+
+    const nova = substituirExercicio(mantida, bloco.ordem, remada);
+    salvarSessaoLocal(nova, mantida);
+    const trocada = (await enviarPlanoDaTroca(nova))!;
+    expect(trocada.blocos[0]?.exercicioId).toBe(remada);
+    expect(trocada.blocos[0]?.trocados?.[0]?.series.find(serie => serie.id === id)).toMatchObject({ id, concluida: true });
+    expect(trocada.blocos[0]?.series.filter(serie => serie.tipo === "trabalho")).toHaveLength(2);
+    expect(guardarNaFila).toHaveBeenLastCalledWith("sessao", expect.objectContaining({
+      linha: { plano: expect.objectContaining({ trocas: { 1: [
+        expect.objectContaining({ exercicio_id: remada }), expect.objectContaining({ exercicio_id: rosca }),
+      ] } }) },
     }), "sessions:aberta");
   });
 
@@ -268,7 +332,7 @@ describe("acrescentar ao treino livre que está no aparelho", () => {
     expect(ids).toHaveLength(2);
     vi.mocked(guardarNaFila).mockClear();
     const resultados = await Promise.all(ids.map(id => confirmarMarcacaoDaSerie(aberta, bloco.ordem, id, true)));
-    expect(resultados.every(Boolean)).toBe(true);
+    expect(resultados.map(confirmacao => confirmacao?.aplicada)).toEqual([true, true]);
     expect(locais.get(aberta.id)?.blocos[1]?.series.filter(s => s.concluida).map(s => s.id)).toEqual(ids);
     const series = vi.mocked(guardarNaFila).mock.calls.filter(([tipo]) => tipo === "serie");
     expect(series).toHaveLength(2);
