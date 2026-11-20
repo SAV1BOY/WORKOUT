@@ -1,16 +1,17 @@
 "use client";
 
 import { Trash2 } from "lucide-react";
+import { useId, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SheetDescription } from "@/components/ui/sheet";
-import { ajustesDoModeloConfirmados, modeloCompativelComCatalogo } from "@/lib/modelo-de-treino";
+import { ajustesDoModeloConfirmados, LIMITE_DO_NOME_DO_TREINO, modeloCompativelComCatalogo } from "@/lib/modelo-de-treino";
 import { useModelosDeTreino, type ModeloDeTreino } from "@/lib/queries/modelos-de-treino";
 import { useRede } from "@/lib/usar-rede";
 
 export type PainelDosModelos =
   | { tipo: "salvos" }
-  | { tipo: "salvar"; id: string }
+  | { tipo: "salvar"; id: string; modo: "novo" | "atualizar" | "copia" }
   | { tipo: "excluir"; modelo: ModeloDeTreino }
   | { tipo: "descartar"; proximo: ModeloDeTreino | null };
 
@@ -95,16 +96,27 @@ export function NomeDoTreino({ nome, aoMudar, atualizando, gravando, erro, aoSal
   aoSalvar: () => void;
   aoVoltar: () => void;
 }) {
+  const idDoLimite = useId();
+  const [compondo, setCompondo] = useState(false);
+  const nomeAparado = nome.trim();
+  const excedeuLimite = [...nomeAparado].length > LIMITE_DO_NOME_DO_TREINO;
+  const mostrarLimite = excedeuLimite && !compondo;
+  const podeSalvar = !gravando && !compondo && !excedeuLimite && nomeAparado.length > 0;
   return (
-    <form className={painel} onSubmit={evento => { evento.preventDefault(); aoSalvar(); }}>
+    <form className={painel} onSubmit={evento => { evento.preventDefault(); if (podeSalvar) aoSalvar(); }}>
       <label className="flex flex-col gap-1 text-sm font-medium">
         Nome do treino
-        <Input autoComplete="off" enterKeyHint="done" maxLength={80} required value={nome}
+        <Input autoComplete="off" enterKeyHint="done" required value={nome}
+          aria-invalid={mostrarLimite || undefined} aria-describedby={mostrarLimite ? idDoLimite : undefined}
+          onCompositionStart={() => setCompondo(true)} onCompositionEnd={() => setCompondo(false)}
           disabled={gravando} onChange={evento => aoMudar(evento.target.value)} />
       </label>
+      {mostrarLimite && <p id={idDoLimite} role="alert" className="text-destructive mt-2 text-sm">
+        Use até {LIMITE_DO_NOME_DO_TREINO} caracteres no nome do treino.
+      </p>}
       {erro && <p role="alert" className="text-destructive mt-2 text-sm">{erro}</p>}
       <div className="mt-3 flex flex-wrap gap-2">
-        <Button type="submit" disabled={gravando || !nome.trim()} className={botao}>
+        <Button type="submit" disabled={!podeSalvar} className={botao}>
           {gravando ? "Salvando…" : atualizando ? "Salvar alterações" : "Salvar"}
         </Button>
         <Button type="button" disabled={gravando} variant="outline" className={botao} onClick={aoVoltar}>Cancelar</Button>

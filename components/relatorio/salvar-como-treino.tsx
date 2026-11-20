@@ -7,6 +7,7 @@ import { NomeDoTreino } from "@/components/treino/treinos-salvos";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { composicaoDoModeloDaSessao } from "@/lib/modelo-da-sessao";
+import { LIMITE_DO_NOME_DO_TREINO } from "@/lib/modelo-de-treino";
 import type { SessaoBruta } from "@/lib/progresso";
 import { salvarModeloDeTreino } from "@/lib/queries/modelos-de-treino";
 import { novoId } from "@/lib/queries/sessao";
@@ -27,7 +28,7 @@ export function SalvarComoTreino({ sessao, conta, titulo }: { sessao: SessaoBrut
     if (emGravacao.current) return;
     if (aberto) {
       setId(novoId());
-      setNome([...titulo.trim()].slice(0, 80).join(""));
+      setNome([...titulo.trim()].slice(0, LIMITE_DO_NOME_DO_TREINO).join(""));
       setErro(null);
       setAviso("");
     } else setId(null);

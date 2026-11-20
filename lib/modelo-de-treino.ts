@@ -14,6 +14,7 @@ export type ModeloDeTreino = {
 };
 
 export const camposDeAjusteDoModelo = ["series_por_exercicio", "descansos_por_exercicio"] as const;
+export const LIMITE_DO_NOME_DO_TREINO = 80;
 
 /** Um GET antigo pode ter guardado só parte dos ajustes no cache compartilhado. */
 export function ajustesDoModeloConfirmados(modelo: ModeloDeTreino): boolean {
@@ -40,7 +41,7 @@ export function modeloDeTreinoValido(valor: unknown): valor is ModeloDeTreino {
   if (!valor || typeof valor !== "object") return false;
   const { id, user_id, nome, exercicios, equipamento_disponivel, series_por_exercicio, descansos_por_exercicio } = valor as Partial<ModeloDeTreino>;
   return idDeModeloValido(id) && typeof user_id === "string" && user_id.trim().length > 0 &&
-    typeof nome === "string" && nome === nome.trim() && nome.length > 0 && [...nome].length <= 80 &&
+    typeof nome === "string" && nome === nome.trim() && nome.length > 0 && [...nome].length <= LIMITE_DO_NOME_DO_TREINO &&
     listaDeIdsValida(exercicios) && exercicios.length > 0 &&
     mapaDeAjustesValido(series_por_exercicio, exercicios, quantidadeDeSeriesValida) &&
     mapaDeAjustesValido(descansos_por_exercicio, exercicios, duracaoDeDescansoValida) &&
