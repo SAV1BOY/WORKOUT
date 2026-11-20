@@ -12,7 +12,7 @@ import {
   useRecordes,
   useSeriesAnteriores,
 } from "@/lib/queries/dados";
-import { criarSessaoLivre } from "@/lib/queries/sessao";
+import { criarSessaoLivre, type EntradaCriacaoLivre } from "@/lib/queries/sessao";
 import { useHoje } from "@/lib/relogio";
 import { seriesAnterioresPorExercicio, type RecordeAntes } from "@/lib/sessao";
 
@@ -44,7 +44,7 @@ export function useSessaoLivre(ids: readonly string[]) {
   const comecar = useCallback(
     async (
       escolhidos: readonly string[],
-      rotulos: { titulo?: string | null; colecao?: string | null } = {},
+      opcoes: Pick<EntradaCriacaoLivre, "titulo" | "colecao" | "equipamentosDisponiveis"> = {},
     ) => {
       const perfil = perfilQ.data;
       if (!perfil || !hoje || escolhidos.length === 0) return;
@@ -59,8 +59,9 @@ export function useSessaoLivre(ids: readonly string[]) {
           data: hoje,
           fase: perfil.fase_atual,
           exercicios: escolhidos,
-          titulo: rotulos.titulo ?? null,
-          colecao: rotulos.colecao ?? null,
+          titulo: opcoes.titulo ?? null,
+          colecao: opcoes.colecao ?? null,
+          equipamentosDisponiveis: opcoes.equipamentosDisponiveis,
           estados: estadosPorExercicio(estadosQ.data ?? []),
           anteriores: seriesAnterioresPorExercicio(anterioresQ.data ?? []),
           recordes,

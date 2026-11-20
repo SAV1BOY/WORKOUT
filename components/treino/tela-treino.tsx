@@ -634,7 +634,7 @@ export function TelaTreino({ userId }: { userId: string }) {
 
       <ParteDoCorpo prefs={perfil.prefs} mostrarRaios={mostrarRaios} />
 
-      <Personalizar prefs={perfil.prefs} />
+      <Personalizar key={perfil.user_id} prefs={perfil.prefs} />
 
       {/*
         SPEC §22.7 item 2: a faixa fixa do dia. Só nos dias de força — nos dias

@@ -28,9 +28,14 @@ function resumoDoMaterial(marcados: EquipamentoTag[]): string {
   return `${marcados.length} de ${inventario.length} itens`;
 }
 
-export function EquipamentoDeHoje({ material, noSeletor = false }: {
+export function EquipamentoDeHoje({
+  material, noSeletor = false, desabilitado,
+  descricao = "As alternativas deste treino usam o material marcado.",
+}: {
   material: MaterialDoTreino;
   noSeletor?: boolean;
+  desabilitado?: boolean;
+  descricao?: string;
 }) {
   const { disponiveis, aoMudar } = material;
   const marcados = inventario.filter(tag => disponiveis.has(tag));
@@ -51,9 +56,9 @@ export function EquipamentoDeHoje({ material, noSeletor = false }: {
         </span>
         <ChevronDown aria-hidden="true" className="size-4 shrink-0 group-open:rotate-180" />
       </summary>
-      <fieldset className="min-w-0 px-3 pb-2">
+      <fieldset disabled={desabilitado} className="min-w-0 px-3 pb-2">
         <legend className="sr-only">Equipamento de hoje</legend>
-        <p className="text-muted-foreground mb-2 text-sm">As alternativas deste treino usam o material marcado.</p>
+        <p className="text-muted-foreground mb-2 text-sm">{descricao}</p>
         <div className="flex flex-wrap gap-2">
           <Button type="button" size="sm" variant="outline" disabled={!marcados.length}
             className="alvo h-auto whitespace-normal px-2" onClick={() => aoMudar(new Set())}>
