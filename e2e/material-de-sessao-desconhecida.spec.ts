@@ -347,6 +347,7 @@ for (const ordem of ["antes", "depois"]) {
     try {
       await comecar.tap();
       await expect.poll(() => naFila(observadora)).toBe(1);
+      await expect(page).toHaveURL(url => /^\/treinar\/[a-f0-9-]{36}$/.test(url.pathname));
       await page.goto("about:blank");
       await consultaGuardada(observadora, "sessoes-abertas", true);
     } finally {
