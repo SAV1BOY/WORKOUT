@@ -40,6 +40,7 @@ import {
   decidir,
   prescricaoDoTreino,
   prescricaoPadrao,
+  quantidadeDeSeriesValida,
   type Alvo,
   type AlvoDeHoje,
   type Decisao,
@@ -1282,6 +1283,21 @@ export function planoParaGravar(sessao: SessaoLocal): PlanoDaSessao | null {
   };
 }
 
+/** A prescrição original continua no plano. No fechamento, registra o que mudou durante o treino. */
+function planoDaLinhaDaSessao(sessao: SessaoLocal): PlanoDaSessao | null {
+  const plano = planoParaGravar(sessao);
+  if (!plano || sessao.workoutId !== "livre" || sessao.status !== "concluida" || !Array.isArray(plano.itens)) return plano;
+  const ajustes: Record<string, number> = {};
+  for (const bloco of sessao.blocos) {
+    const item = plano.itens[bloco.ordem - 1];
+    // O snapshot da troca já guarda todos os índices de trabalho do movimento final.
+    if (plano.trocas?.[bloco.ordem] || item?.exercicio_id !== bloco.exercicioId) continue;
+    const quantidade = bloco.series.filter(serie => serie.tipo === "trabalho").length;
+    if (quantidade !== item.series && quantidadeDeSeriesValida(quantidade)) ajustes[bloco.exercicioId] = quantidade;
+  }
+  return Object.keys(ajustes).length ? { ...plano, series_de_trabalho_ao_concluir: ajustes } : plano;
+}
+
 /** A criação da sessão (`sessions`), com o id gerado no cliente. */
 export function escritaDaSessao(sessao: SessaoLocal): Escrita {
   return {
@@ -1297,7 +1313,7 @@ export function escritaDaSessao(sessao: SessaoLocal): Escrita {
       status: sessao.status,
       iniciada_em: sessao.iniciadaEm,
       semana_plano: sessao.semanaPlano,
-      plano: planoParaGravar(sessao),
+      plano: planoDaLinhaDaSessao(sessao),
     },
   };
 }

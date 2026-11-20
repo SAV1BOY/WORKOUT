@@ -148,6 +148,8 @@ export interface PlanoDaSessao {
   equipamento_disponivel?: EquipamentoTag[];
   /** Segundos entre séries de trabalho do movimento executado, só nesta sessão. */
   descansos_por_exercicio?: Record<string, number>;
+  /** Quantidade final nos movimentos sem troca que tiveram a prescrição de séries ajustada. */
+  series_de_trabalho_ao_concluir?: Record<string, number>;
   /** Por posição: primeiro o exercício ativo, depois os que passaram pelo bloco. */
   trocas?: Record<string, {
     exercicio_id: string;

@@ -11,6 +11,7 @@ import Link from "next/link";
 import { addDays } from "date-fns";
 import { useId, useMemo, useState } from "react";
 import { DetalheDasSeries, FolhaDasSeries } from "@/components/relatorio/detalhe-das-series";
+import { SalvarComoTreino } from "@/components/relatorio/salvar-como-treino";
 import { useRepetirTreinoLivre } from "@/components/relatorio/usar-repeticao";
 import { Button } from "@/components/ui/button";
 import { FaixaSemana } from "@/components/ui/faixa-semana";
@@ -298,6 +299,7 @@ function LinhaDoRegistro({
             <ChevronRight aria-hidden="true" className="text-muted-foreground size-4 shrink-0" />
           </button>
         }>
+        <SalvarComoTreino sessao={sessao} conta={conta} titulo={r.titulo} />
         <DetalheDasSeries sessao={sessao} conta={conta} series={series}
           fonteCompleta={seriesDisponiveis} confirmadasEm={confirmadasEm} />
       </FolhaDasSeries>
