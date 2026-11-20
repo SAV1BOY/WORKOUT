@@ -5,6 +5,7 @@
  */
 import { describe, expect, it } from "vitest";
 import { acharExercicio } from "@/lib/dados";
+import { planoDaSessao } from "@/lib/livre";
 import {
   avisoDoDescanso,
   DESCANSO_MAX_S,
@@ -14,6 +15,7 @@ import {
   PREPARACAO_PADRAO_S,
   anterior,
   anterioresPorExercicio,
+  contextoDoProximoExercicio,
   apos,
   definirDuracao,
   descansoDoBloco,
@@ -28,6 +30,7 @@ import {
   rotuloDoPasso,
   seguinte,
   sequenciaDoPlayer,
+  serieAntesDoDescanso,
   serieAnteriorDe,
   serieDoPasso,
   somarSegundos,
@@ -39,6 +42,9 @@ import {
 } from "@/lib/player";
 import { prescricaoPadrao } from "@/lib/progressao";
 import {
+  atualizarSerie,
+  escolherProximoExercicio,
+  escritasDasSeriesFeitas,
   marcarSerie,
   montarSessao,
   montarSessaoAvulsa,
@@ -184,6 +190,78 @@ describe("sequenciaDoPlayer — Treino A (SPEC §14.1)", () => {
       .reverse()
       .find((p): p is PassoSerie => p.tipo === "serie");
     expect(ultima).toMatchObject({ posicao: 6, totalExercicios: 6 });
+  });
+});
+
+describe("próximo exercício na sessão livre", () => {
+  const inicio = 100_000;
+  const ids = ["pullover-com-halter", "agachamento-livre", "remada-curvada-pronada", "prancha"];
+  const base = { ...sessaoCom(ids, 90), plano: planoDaSessao(ids.map(id => item(id, 90))) };
+  const primeira = base.blocos[0]!.series[0]!.id;
+  const primeiraFeita = marcarSerie(atualizarSerie(base, 1, primeira, { reps: 11, cargaKg: 7.5 }),
+    1, primeira, true, "2026-09-14T09:15:00.000Z");
+
+  function comPlayer(sessao: SessaoLocal, chave: string): SessaoLocal {
+    const seq = sequenciaDoPlayer(sessao);
+    return { ...sessao, player: estadoDoPasso(seq[indiceDaChave(seq, chave)]!, inicio) };
+  }
+
+  it("mantém A como atual antes da primeira série e durante o intervalo A→A", () => {
+    const opcoes = { origem: 1, proximo: 2, candidatos: [3, 4], entreBlocos: false };
+    expect(contextoDoProximoExercicio(comPlayer(base, "preparacao"))).toEqual(opcoes);
+    expect(contextoDoProximoExercicio(comPlayer(base, `serie:${primeira}`))).toEqual(opcoes);
+    const pausada = comPlayer(primeiraFeita, `descanso:serie:${primeira}`);
+    expect(contextoDoProximoExercicio(pausada)).toEqual(opcoes);
+    const serie = comPlayer(pausada, `serie:${primeira}`).player!;
+    expect(contextoDoProximoExercicio(pausada, { ...serie, descansoAoCorrigir: pausada.player! })).toEqual(opcoes);
+    const alterada = escolherProximoExercicio(pausada, 1, 3);
+    const seq = sequenciaDoPlayer(alterada);
+    const pausa = seq[indiceDaChave(seq, pausada.player!.chave)]!;
+    if (pausa.tipo !== "descanso") throw new Error("Descanso ausente");
+    expect(seq[pausa.indiceProximo]).toMatchObject({ tipo: "serie", ordem: 1, numero: 2, posicao: 1 });
+    expect(seq.filter(p => p.tipo === "firme").map(p => p.ordem)).toEqual([1, 3, 2, 4]);
+    expect(restanteS(alterada.player!, inicio + 17_000)).toBe(73);
+    expect(escritasDasSeriesFeitas(alterada).map(e => e.linha)).toMatchObject([
+      { id: primeira, ordem_ex: 1, exercise_id: ids[0], reps: 11, carga_kg: 7.5 },
+    ]);
+  });
+
+  it("muda o destino A→B para C, recupera o mesmo prazo e corrige o mesmo UUID em A", () => {
+    const pausa = comPlayer(fazerBloco(primeiraFeita, 1), "descanso:firme:1");
+    const aSeguir = (sessao: SessaoLocal) => {
+      const seq = sequenciaDoPlayer(sessao);
+      const i = indiceDaChave(seq, sessao.player!.chave);
+      const passo = seq[i]!;
+      if (passo.tipo !== "descanso") throw new Error("Descanso ausente");
+      return { destino: seq[passo.indiceProximo], corrigir: serieAntesDoDescanso(seq, i, sessao)! };
+    };
+    expect(contextoDoProximoExercicio(pausa)).toEqual({ origem: 1, proximo: 2, candidatos: [3, 4], entreBlocos: true });
+    expect(aSeguir(pausa).destino).toMatchObject({ tipo: "serie", ordem: 2, posicao: 2 });
+    const recarregada: SessaoLocal = JSON.parse(JSON.stringify(escolherProximoExercicio(pausa, 1, 3)));
+    const { destino, corrigir } = aSeguir(recarregada);
+    expect(recarregada.player).toEqual(pausa.player);
+    expect(restanteS(recarregada.player!, inicio + 17_000)).toBe(73);
+    expect(destino).toMatchObject({ tipo: "serie", ordem: 3, posicao: 2, serieId: base.blocos[2]!.series[0]!.id });
+    expect(corrigir).toEqual(aSeguir(pausa).corrigir);
+    expect(corrigir.serieId).toBe(base.blocos[0]!.series.at(-1)!.id);
+    expect(escritasDasSeriesFeitas(recarregada)).toEqual(escritasDasSeriesFeitas(pausa));
+    const corrigindo = { ...estadoDoPasso(corrigir, inicio + 17_000), descansoAoCorrigir: recarregada.player! };
+    expect(contextoDoProximoExercicio(recarregada, corrigindo)).toBeNull();
+  });
+
+  it("ancora no B em curso, recusa chave obsoleta e protege a série de aquecimento de um bloco futuro", () => {
+    const idB = base.blocos[1]!.series[0]!.id;
+    const emB = comPlayer(base, `serie:${idB}`);
+    expect(contextoDoProximoExercicio(emB)).toEqual({ origem: 2, proximo: 3, candidatos: [4], entreBlocos: false });
+    expect(contextoDoProximoExercicio(emB, { ...emB.player!, chave: "serie:antiga" })).toBeNull();
+    const alterada = escolherProximoExercicio(emB, 2, 4);
+    const seq = sequenciaDoPlayer(alterada);
+    expect(seq.filter(p => p.tipo === "firme").map(p => p.ordem)).toEqual([1, 2, 4, 3]);
+    expect(seq[indiceDaChave(seq, emB.player!.chave)]).toMatchObject({ tipo: "serie", ordem: 2, posicao: 2, serieId: idB });
+    const emA = comPlayer(marcarSerie(base, 2, idB, true), `serie:${primeira}`);
+    expect(emA.blocos[1]!.series[0]!.tipo).toBe("aquecimento");
+    expect(contextoDoProximoExercicio(emA)).toBeNull();
+    expect(contextoDoProximoExercicio(comPlayer(base, "feedback"))).toBeNull();
   });
 });
 

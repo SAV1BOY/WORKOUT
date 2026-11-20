@@ -19,7 +19,7 @@ import { descansoPersonalizadoDaSessao, limitarTempoDeDescanso } from "@/lib/des
 export { DESCANSO_MIN_S, DESCANSO_MAX_S } from "@/lib/descanso-da-sessao";
 import { comVoto, votoDoExercicio, type VotoDoExercicio } from "@/lib/preferencias";
 import type { LinhaSerie, Prefs } from "@/lib/types";
-import type { BlocoLocal, SerieLocal, SessaoLocal } from "@/lib/sessao";
+import { blocosNaOrdemDeExecucao, opcoesDeProximoExercicio, type BlocoLocal, type SerieLocal, type SessaoLocal } from "@/lib/sessao";
 
 /* ------------------------------------------------------------ constantes */
 
@@ -148,7 +148,7 @@ export function sequenciaDoPlayer(
   opcoes: OpcoesDoPlayer = {},
 ): Passo[] {
   const passos: Passo[] = [];
-  const blocos = [...sessao.blocos].sort((a, b) => a.ordem - b.ordem);
+  const blocos = blocosNaOrdemDeExecucao(sessao);
   const preparacaoS = Math.max(0, Math.round(opcoes.preparacaoS ?? PREPARACAO_PADRAO_S));
   const cronometro = sessao.player?.descansoAoCorrigir ?? sessao.player;
 
@@ -464,6 +464,28 @@ export function indiceDoEstado(
     if (qualquer >= 0) return qualquer;
   }
   return indiceDeRetomada(seq, sessao);
+}
+
+/** O próximo exercício vem depois do bloco em curso, inclusive nos descansos entre suas séries. */
+export function contextoDoProximoExercicio(
+  sessao: SessaoLocal, estado = sessao.player,
+  seq = sequenciaDoPlayer(sessao, { descansoPadraoS: sessao.descansoPadraoConhecidoS }),
+) {
+  if (!estado || sessao.workoutId !== "livre" || sessao.status !== "em_andamento") return null;
+  // Uma chave obsoleta serve para retomar, mas não para mudar a ordem que outra aba já está usando.
+  const indice = indiceDaChave(seq, estado.chave);
+  const atual = seq[indice];
+  if (!atual || !("ordem" in atual) || (estado.ordem != null && estado.ordem !== atual.ordem)) return null;
+  if (estado.descansoAoCorrigir) {
+    const pausa = seq[indiceDaChave(seq, estado.descansoAoCorrigir.chave)];
+    // O destino de uma transição anunciada só muda na própria pausa, após uma escolha explícita.
+    if (atual.tipo !== "serie" || pausa?.tipo !== "descanso" || pausa.entreExercicios || pausa.ordem !== atual.ordem) return null;
+  }
+  const candidatos = opcoesDeProximoExercicio(sessao, atual.ordem);
+  if (!candidatos.length) return null;
+  const proximo = seq.slice(indice + 1).find(p => p.tipo === "serie" && p.ordem !== atual.ordem);
+  if (!proximo || proximo.tipo !== "serie") return null;
+  return { origem: atual.ordem, proximo: proximo.ordem, candidatos, entreBlocos: atual.tipo === "descanso" && atual.entreExercicios };
 }
 
 /** Movimento que pode usar este intervalo nas suas outras séries de trabalho. */

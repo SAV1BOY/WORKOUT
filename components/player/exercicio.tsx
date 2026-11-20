@@ -232,27 +232,27 @@ export function TelaExercicio({
         padding: o `main` tem 16 px de lado e a fileira da preparação, 12 —
         assim os ícones caem no mesmo x nas duas telas.
       */}
-      <div className="-mx-1 flex items-center justify-between gap-2 pt-1">
+      <div className="@container/acoes -mx-1 flex items-center justify-between gap-2 pt-1">
         <Button
           variant="ghost"
           size="icon"
-          className="alvo"
+          className="alvo size-[44px] @2xs/acoes:size-11"
           aria-label="Ajustar"
           onClick={aoAjustar}
         >
           <Settings className="size-5" />
         </Button>
         {aoTrocar && (
-          <Button variant="outline" className="alvo gap-2" onClick={aoTrocar}>
-            <Repeat2 className="size-4" aria-hidden="true" />
-            Trocar exercício
+          <Button variant="outline" className="alvo h-auto min-h-11 min-w-0 shrink gap-2 px-2 py-1 whitespace-normal @2xs/acoes:px-4" onClick={aoTrocar}>
+            <Repeat2 className="hidden size-4 @2xs/acoes:block" aria-hidden="true" />
+            <span className="min-w-0 wrap-anywhere">Trocar exercício</span>
           </Button>
         )}
         <Button
           ref={botaoDaLista}
           variant="ghost"
           size="icon"
-          className="alvo"
+          className="alvo size-[44px] @2xs/acoes:size-11"
           aria-label="Visão geral do treino"
           onClick={async () => {
             const gravacao = confirmarTempo.current?.();
@@ -294,47 +294,49 @@ export function TelaExercicio({
         className={entrada.unilateral ? "h-28" : "h-36"}
       />
 
-      <div className="flex items-center justify-center gap-2 px-3">
-        <h2 className="min-w-0 text-lg leading-tight font-semibold text-balance">
-          {exercicio.nome}
-        </h2>
-        <div className="flex shrink-0 items-center gap-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="alvo shrink-0"
-            aria-label={nomeAcessivel("Como fazer", exercicio.nome)}
-            onClick={aoAbrirFicha}
-          >
-            <CircleHelp className="size-5" />
-          </Button>
-          {/*
-            SPEC §22.1: sem voto os dois polegares ficam neutros e nenhum
-            `aria-pressed` afirma uma escolha que o usuário não fez. Tocar de
-            novo no polegar aceso desfaz o voto — os três estados, no mesmo
-            par. §22.16 item 6: cada toque diz o que aconteceu, com
-            "Desfazer" (o voto de antes volta).
-          */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className={cn("alvo size-11", voto === "preferido" && "text-primary")}
-            aria-label="Gostei deste exercício"
-            aria-pressed={voto === null ? undefined : voto === "preferido"}
-            onClick={() => votar(voto === "preferido" ? null : "preferido")}
-          >
-            <ThumbsUp className="size-5" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className={cn("alvo size-11", voto === "evitado" && "text-destructive")}
-            aria-label="Não gosto deste exercício"
-            aria-pressed={voto === null ? undefined : voto === "evitado"}
-            onClick={() => votar(voto === "evitado" ? null : "evitado")}
-          >
-            <ThumbsDown className="size-5" />
-          </Button>
+      <div className="@container/player">
+        <div className="flex flex-col items-center justify-center gap-2 px-3 @2xs/player:flex-row">
+          <h2 className="min-w-0 max-w-full text-center text-lg leading-tight font-semibold text-balance wrap-anywhere @2xs/player:text-left">
+            {exercicio.nome}
+          </h2>
+          <div className="grid max-w-full shrink-0 grid-cols-3 items-center gap-2 [&>button]:max-w-full">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="alvo shrink-0"
+              aria-label={nomeAcessivel("Como fazer", exercicio.nome)}
+              onClick={aoAbrirFicha}
+            >
+              <CircleHelp className="size-5" />
+            </Button>
+            {/*
+              SPEC §22.1: sem voto os dois polegares ficam neutros e nenhum
+              `aria-pressed` afirma uma escolha que o usuário não fez. Tocar de
+              novo no polegar aceso desfaz o voto — os três estados, no mesmo
+              par. §22.16 item 6: cada toque diz o que aconteceu, com
+              "Desfazer" (o voto de antes volta).
+            */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className={cn("alvo size-11", voto === "preferido" && "text-primary")}
+              aria-label="Gostei deste exercício"
+              aria-pressed={voto === null ? undefined : voto === "preferido"}
+              onClick={() => votar(voto === "preferido" ? null : "preferido")}
+            >
+              <ThumbsUp className="size-5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className={cn("alvo size-11", voto === "evitado" && "text-destructive")}
+              aria-label="Não gosto deste exercício"
+              aria-pressed={voto === null ? undefined : voto === "evitado"}
+              onClick={() => votar(voto === "evitado" ? null : "evitado")}
+            >
+              <ThumbsDown className="size-5" />
+            </Button>
+          </div>
         </div>
       </div>
 

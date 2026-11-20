@@ -380,7 +380,7 @@ const TREINO: SecaoDoGuia = {
       id: "visao-geral",
       nome: "Visão geral do treino",
       oQueFaz:
-        "O ícone de lista abre todas as séries da sessão: é por ali que se corrige qualquer uma e se encerra o treino.",
+        "O ícone de lista abre as séries para corrigir ou encerrar o treino. No treino livre, use Próximo exercício para adiantar um movimento quando o aparelho estiver ocupado.",
       caminho: ["Tela do treino", "Visão geral do treino"],
       grupo: DURANTE_O_TREINO,
     },

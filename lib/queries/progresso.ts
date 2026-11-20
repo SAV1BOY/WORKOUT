@@ -41,7 +41,7 @@ export function useSessoesTodas(conta?: string | null): UseQueryResult<SessaoBru
     queryFn: async (contexto) => {
       if (conta) return lerHistoricoDaConta(contexto.client, conta, contexto.signal);
       const sessoes = await lerTabelaCompleta<SessaoBruta>(
-        "sessions", "id,user_id,data,status,workout_id,duracao_s,plano", "os seus treinos",
+        "sessions", "id,user_id,data,status,workout_id,duracao_s,plano,ordem_execucao", "os seus treinos",
       );
       return sessoes.sort((a, b) => b.data.localeCompare(a.data));
     },

@@ -38,6 +38,7 @@ import {
 import {
   acrescentarExercicioNaSessao,
   carregarSessaoLocal,
+  comOrdemConfirmada,
   conciliarBlocosAcrescentados,
   confirmarToquesPendentes,
   descarregarSessao,
@@ -48,6 +49,8 @@ import {
   guardarCronometroDaSessao,
   guardarDescansoDaSessao,
   guardarNotaGeralDaSessao,
+  guardarProximoExercicio,
+  mesmaVersaoDaOrdem,
   mesmoRelogio,
   MENSAGEM_CRONOMETRO_ALTERADO,
   MENSAGEM_INCLUSAO_ALTERADA,
@@ -355,10 +358,14 @@ export function useSessaoDeTreino(sessaoId: string, userId: string) {
       void sincronizarNotaGeralDaSessao(antes, signal).then(salva => {
         const atual = ultima.current;
         if (signal.aborted || !salva || atual?.id !== sessaoId || atual.userId !== userId ||
-            atual.status !== "em_andamento" || atual.notaGeral !== antes.notaGeral ||
-            atual.revisaoNotaGeral !== antes.revisaoNotaGeral ||
-            (atual.notaGeral === salva.notaGeral && atual.revisaoNotaGeral === salva.revisaoNotaGeral)) return;
-        adotar({ ...atual, notaGeral: salva.notaGeral, revisaoNotaGeral: salva.revisaoNotaGeral });
+            atual.status !== "em_andamento") return;
+        let nova = atual;
+        if (mesmaVersaoDaOrdem(atual, antes)) nova = comOrdemConfirmada(atual, salva);
+        if (atual.notaGeral === antes.notaGeral && atual.revisaoNotaGeral === antes.revisaoNotaGeral &&
+            (atual.notaGeral !== salva.notaGeral || atual.revisaoNotaGeral !== salva.revisaoNotaGeral)) {
+          nova = { ...nova, notaGeral: salva.notaGeral, revisaoNotaGeral: salva.revisaoNotaGeral };
+        }
+        if (nova !== atual) adotar(nova);
       }).catch(() => {
         // Uma consulta sem rede ou sem espaço mantém a nota já disponível neste aparelho.
       });
@@ -632,6 +639,42 @@ export function useSessaoDeTreino(sessaoId: string, userId: string) {
   const desfazerInclusao = useCallback((id: string) =>
     alterarInclusao(base => desfazerUltimaInclusaoNaSessao(base, id)), [alterarInclusao]);
 
+  const escolhaEmGravacao = useRef<Promise<unknown> | null>(null);
+  const escolherProximo = useCallback(async (antes: SessaoLocal, origem: number, escolhido: number, avancarSozinho = false) => {
+    const atualDoClique = ultima.current;
+    if (antes.id !== sessaoId || antes.userId !== userId || atualDoClique?.id !== sessaoId ||
+        atualDoClique.userId !== userId || encerradaAntes || encerradaAqui === sessaoId) return { aplicada: false, sessao: null };
+    if (escolhaEmGravacao.current) return { aplicada: false, sessao: atualDoClique };
+    const gravar = async () => {
+      await aguardarMaterial?.();
+      await filaDoCronometro.current;
+      await inclusaoEmGravacao.current;
+      const resultado = await guardarProximoExercicio(antes, origem, escolhido, avancarSozinho);
+      let salva = resultado.sessao;
+      if (salva && ultima.current !== atualDoClique) {
+        // Um toque local posterior ao clique tem de sobreviver à adoção do retrato da outra aba.
+        const antesDaLeitura = ultima.current;
+        await confirmarToquesPendentes(antes);
+        salva = await carregarSessaoLocal(sessaoId);
+        if (salva && ultima.current && ultima.current !== antesDaLeitura) {
+          salva = conciliarBlocosAcrescentados(ultima.current, salva);
+        }
+      }
+      const atual = ultima.current;
+      if (atual?.id !== sessaoId || atual.userId !== userId || salva?.userId !== userId ||
+          salva.status !== "em_andamento") return { aplicada: false, sessao: null };
+      adotar(salva);
+      return { aplicada: resultado.aplicada, sessao: salva };
+    };
+    const confirmacao = gravar();
+    escolhaEmGravacao.current = confirmacao;
+    try {
+      return await confirmacao;
+    } finally {
+      escolhaEmGravacao.current = null;
+    }
+  }, [adotar, aguardarMaterial, encerradaAntes, encerradaAqui, sessaoId, userId]);
+
   /** O que o motor vai decidir, sem gravar nada (o resumo da conclusão). */
   const previa = useCallback(
     (fim: FimDaSessao): ResultadoExercicio[] =>
@@ -665,6 +708,7 @@ export function useSessaoDeTreino(sessaoId: string, userId: string) {
         await filaDoCronometro.current;
         await descansoEmGravacao.current?.catch(() => {});
         await inclusaoEmGravacao.current?.catch(() => {});
+        await escolhaEmGravacao.current?.catch(() => {});
         const atual = ultima.current ?? sessao;
         await finalizarSessao({
           sessao: { ...atual, sensacao: dados.sensacao, pesoCorporal: dados.peso },
@@ -794,6 +838,7 @@ export function useSessaoDeTreino(sessaoId: string, userId: string) {
     ajustarCronometro,
     ajustandoCronometro,
     aposAjustarCronometro,
+    escolherProximo,
     adicionarExercicio: sessao?.userId === userId && sessao.id === sessaoId && ehSessaoLivre(sessao.workoutId)
       && sessao.status === "em_andamento" && !salvando && !encerradaAntes && encerradaAqui !== sessaoId
       ? adicionarExercicio : undefined,
