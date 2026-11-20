@@ -48,7 +48,7 @@ export function CopiasDeEdicoesDoTreino({ conta }: { conta: string }) {
   return (
     <Sheet>
       <SheetTrigger asChild>
-        <Button variant="outline" className={`${acaoDaFolha} justify-self-start`}>Cópias de edições do treino</Button>
+        <Button variant="outline" className={`${acaoDaFolha} scroll-mb-24 justify-self-start`}>Cópias de edições do treino</Button>
       </SheetTrigger>
       <SheetContent side="bottom" className="max-h-[85dvh] gap-2 overflow-hidden pb-3">
         <SheetHeader className="shrink-0 pr-14 pb-0">

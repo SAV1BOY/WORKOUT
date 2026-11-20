@@ -70,6 +70,7 @@ export function TelaExercicio({
   total,
   nomeDoTreino,
   aviso,
+  avisoSerieRecebida,
   pedidoDeFoco = 0,
   aoMudar,
   aoConcluir,
@@ -99,6 +100,7 @@ export function TelaExercicio({
   nomeDoTreino: string;
   /** "Série 2 de 3 registrada: …" — o que o leitor de tela ouve ao gravar. */
   aviso: string;
+  avisoSerieRecebida?: string | null;
   /**
    * Muda quando a Visão geral fecha: o foco volta ao botão que a abriu
    * (SPEC §22.5 item 3). Zero = ninguém pediu nada ainda.
@@ -219,8 +221,9 @@ export function TelaExercicio({
         {nomeDoTreino} — exercício {passo.posicao} de {passo.totalExercicios}
       </h1>
       {/* o que acabou de ser gravado, para quem não vê a tela mudar */}
-      <p role="status" className="sr-only">
-        {aviso}
+      <p role="status" className={avisoSerieRecebida ? "text-muted-foreground text-sm wrap-anywhere" : "sr-only"}>
+        <span className="sr-only">{aviso}</span>
+        {avisoSerieRecebida}
       </p>
 
       {/*

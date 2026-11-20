@@ -62,8 +62,8 @@ async function tirarElastico(page: Page) {
   await expect(ajustes).toBeHidden();
 }
 
-test("a ponte chega antes da primeira série e a reabertura reúne as dez repetições do outro aparelho", async ({ page, context, browser, baseURL }) => {
-  test.slow();
+async function prepararPonteComSerieAtrasada(page: Page, browser: Browser, baseURL: string | undefined) {
+  const context = page.context();
   const { conta, id } = await preparar(page);
   const outro = await outroAparelho(browser, baseURL, id);
   const retida = Promise.withResolvers<void>();
@@ -97,11 +97,90 @@ test("a ponte chega antes da primeira série e a reabertura reúne as dez repeti
   await expect(geral(page).getByRole("heading", { name: "3. " + NOME_PONTE })).toBeVisible();
   const grupo = geral(page).getByRole("group", { name: PRIMEIRA + NOME_PONTE, exact: true });
   await expect(grupo.getByRole("checkbox")).not.toBeChecked();
+  return { conta, id, outro, worker, grupo, liberar };
+}
+
+test("a ponte chega antes da primeira série e a reabertura reúne as dez repetições do outro aparelho", async ({ page, browser, baseURL }) => {
+  test.slow();
+  const { conta, id, outro, liberar } = await prepararPonteComSerieAtrasada(page, browser, baseURL);
   liberar.resolve();
   await expect.poll(() => series(conta, id)).toMatchObject([{ exercise_id: PONTE, ordem_ex: 3, reps: 10 }]);
   await page.goto("/");
   await page.goto("/treinar/" + id);
   await verificarPonte(page);
+  await outro.context().close();
+});
+
+test("digitar 17 quando chegam as dez repetições do outro aparelho conserva as duas séries", async ({ page, context, browser, baseURL }) => {
+  test.slow();
+  const { conta, id, outro, worker, grupo, liberar } = await prepararPonteComSerieAtrasada(page, browser, baseURL);
+  // Mantém aberta só a transação que já recebeu B, enquanto o campo de A continua editável.
+  const antes = Promise.withResolvers<string>();
+  await page.exposeFunction("aoSegurarSerieRecebida", antes.resolve);
+  await page.evaluate(id => {
+    const put = IDBObjectStore.prototype.put;
+    IDBObjectStore.prototype.put = function (valor, ...args) {
+      const serie = valor?.dados?.blocos?.[2]?.series?.[0];
+      if (this.name !== "sessaoAtiva" || valor.id !== id || serie?.reps !== 10 || !serie.concluida) return put.call(this, valor, ...args);
+      IDBObjectStore.prototype.put = put;
+      const ler = this.get(id);
+      ler.onsuccess = () => {
+        const informar = (window as unknown as { aoSegurarSerieRecebida: (id: string) => Promise<void> }).aoSegurarSerieRecebida;
+        void informar(ler.result.dados.blocos[2].series[0].id);
+      };
+      let reter = true;
+      window.addEventListener("soltar-serie-recebida", () => { reter = false; }, { once: true });
+      const manterAtiva = () => { if (reter) this.get(id).onsuccess = manterAtiva; };
+      manterAtiva();
+      return put.call(this, valor, ...args);
+    };
+  }, id);
+  liberar.resolve();
+  await expect.poll(() => series(conta, id)).toMatchObject([{ exercise_id: PONTE, ordem_ex: 3, set_index: 1, reps: 10 }]);
+  const [serieB] = await series(conta, id);
+  await semRedeNoWorker(worker);
+  await context.setOffline(true);
+  await comRedeNoWorker(worker);
+  await context.setOffline(false);
+  const idDoRascunho = await antes.promise;
+  expect(idDoRascunho).not.toBe(serieB!.id);
+  const reps = grupo.getByRole("textbox", { name: "repetições", exact: true });
+  await expect(reps).toHaveValue("12");
+  await reps.fill("17");
+  await expect(reps).toBeFocused();
+  await expect(grupo.getByRole("checkbox")).not.toBeChecked();
+  await page.evaluate(() => window.dispatchEvent(new Event("soltar-serie-recebida")));
+  await expect(geral(page).getByRole("status").filter({ hasText: "A série 1 foi registrada em outro aparelho. Seu ajuste ficou na série 2." })).toBeVisible();
+  const segunda = geral(page).getByRole("group", { name: "Série 2 — " + NOME_PONTE, exact: true });
+  await expect(reps).toHaveValue("10");
+  await expect(grupo.getByRole("checkbox")).toBeChecked();
+  await expect(segunda.getByRole("textbox", { name: "repetições", exact: true })).toHaveValue("17");
+  await expect(segunda.getByRole("textbox", { name: "repetições", exact: true })).toBeFocused();
+  await expect(segunda.getByRole("checkbox")).not.toBeChecked();
+  expect(await series(conta, id)).toEqual([serieB]);
+  expect(await naFila(page)).toBe(0);
+  await semRedeNoWorker(worker);
+  await context.setOffline(true);
+  expect((await page.reload())?.fromServiceWorker()).toBe(true);
+  await verificarPonte(page);
+  await expect(segunda.getByRole("textbox", { name: "repetições", exact: true })).toHaveValue("17");
+  await expect(segunda.getByRole("checkbox")).not.toBeChecked();
+  await marcarSerieNaVisaoGeral(segunda.getByRole("checkbox"));
+  await expect.poll(() => naFila(page)).toBe(1);
+  expect(await series(conta, id)).toEqual([serieB]);
+  await comRedeNoWorker(worker);
+  await context.setOffline(false);
+  await expect.poll(() => series(conta, id)).toMatchObject([
+    serieB!, { id: idDoRascunho, exercise_id: PONTE, ordem_ex: 3, set_index: 2, reps: 17, concluida: true },
+  ]);
+  const posts = (await requisicoesDoMock()).filter(r => r.metodo === "POST" && r.caminho.split("?")[0] === "/rest/v1/session_sets");
+  expect(posts).toHaveLength(2);
+  const limpo = await outroAparelho(browser, baseURL, id);
+  await verificarPonte(limpo);
+  const confirmada = geral(limpo).getByRole("group", { name: "Série 2 — " + NOME_PONTE, exact: true });
+  await expect(confirmada.getByRole("checkbox")).toBeChecked();
+  await expect(confirmada.getByRole("textbox", { name: "repetições", exact: true })).toHaveValue("17");
+  await limpo.context().close();
   await outro.context().close();
 });
 
@@ -172,6 +251,14 @@ async function usarFilaLegada(page: Page, id: string, conta: string, escrita: Es
 for (const escolha of ["Manter equipamento sincronizado", "Usar equipamento deste aparelho"] as const) {
   test(`fila antiga de material: ${escolha} conserva o bloco de outro aparelho e libera a próxima série`, async ({ page, context, browser, baseURL }) => {
     test.slow();
+    const documentosDeMais: string[] = [];
+    let consultasDeMais = 0;
+    page.on("request", req => {
+      const url = new URL(req.url());
+      if (url.pathname !== "/mais") return;
+      if (req.isNavigationRequest()) documentosDeMais.push(url.pathname);
+      if (url.searchParams.has("_rsc")) consultasDeMais++;
+    });
     const { conta, id, plano } = await preparar(page);
     const outro = await outroAparelho(browser, baseURL, id);
     const worker = await workerDoApp(context);
@@ -192,10 +279,32 @@ for (const escolha of ["Manter equipamento sincronizado", "Usar equipamento dest
     expect(inclusao).toMatchObject({ sessao_id: id, ordem: 3, exercicio_id: PONTE, estado: "iniciada" });
     await comRedeNoWorker(worker);
     await context.setOffline(false);
-    await page.goto("/mais#sincronizacao");
+    if (escolha === "Manter equipamento sincronizado") {
+      await page.setViewportSize({ width: 320, height: 420 });
+      await page.addInitScript(() => document.addEventListener("DOMContentLoaded", () => {
+        document.documentElement.style.setProperty("font-size", "200%", "important");
+      }));
+      await page.goto("/");
+      const documentoGuardado = await page.evaluate(async () => (await caches.match(new URL("/mais", location.href)))?.headers.get("content-type") ?? "");
+      expect(documentoGuardado).not.toContain("text/html");
+      await page.getByRole("navigation", { name: "Navegação principal" }).getByRole("link", { name: /^Mais(?:,|$)/ }).click();
+    } else {
+      await page.goto("/mais#sincronizacao");
+    }
     const painel = page.getByRole("region", { name: "Sincronização", exact: true });
     const rever = painel.getByRole("button", { name: REVER, exact: true });
     const folha = page.getByRole("dialog", { name: REVER, exact: true });
+    const conferirAlvo = () => expect.poll(() => rever.evaluate(botao => {
+      const r = botao.getBoundingClientRect();
+      const secao = botao.closest('[role="region"], section')!.getBoundingClientRect();
+      const x = r.left + r.width / 2, y = r.top + r.height / 2;
+      return { cabe: r.left >= Math.max(0, secao.left) && r.right <= Math.min(document.documentElement.clientWidth, secao.right),
+        toque: r.width >= 44 && r.height >= 44 && [y - 21, y, y + 21].every(altura => botao.contains(document.elementFromPoint(x, altura))) };
+    })).toEqual({ cabe: true, toque: true });
+    if (escolha === "Manter equipamento sincronizado") {
+      await rever.focus();
+      await conferirAlvo();
+    }
     await rever.press("Enter");
     const material = (titulo: string) => folha.locator("dl > div").filter({ hasText: titulo }).getByRole("definition");
     await expect(material("Neste aparelho")).toHaveText("Tatame");
@@ -204,12 +313,16 @@ for (const escolha of ["Manter equipamento sincronizado", "Usar equipamento dest
     await expect(folha.getByRole("listitem")).toHaveText("Flexão de braço · Série 1");
     await page.keyboard.press("Escape");
     await expect(rever).toBeFocused();
+    if (escolha === "Manter equipamento sincronizado") await conferirAlvo();
     expect(await series(conta, id)).toEqual([serieB]);
 
     if (escolha === "Manter equipamento sincronizado") {
+      expect(documentosDeMais).toEqual([]);
+      expect(consultasDeMais).toBeGreaterThan(0);
       await semRedeNoWorker(worker);
       await context.setOffline(true);
       expect((await page.reload())?.fromServiceWorker()).toBe(true);
+      expect(documentosDeMais).toEqual(["/mais"]);
       await rever.press("Enter");
       await expect(material("Neste aparelho")).toHaveText("Tatame");
       await folha.getByRole("button", { name: escolha, exact: true }).press("Enter");

@@ -124,15 +124,17 @@ function FilaDaConta({ conta }: { conta: string }) {
   }
 
   return (
-    <section ref={secao} id="sincronizacao" aria-label="Sincronização" tabIndex={-1} className="bg-muted grid gap-2 px-3 py-2">
-      <div className="flex items-center gap-2">
-        <RefreshCw aria-hidden className={`size-4 shrink-0 ${resumo?.travada ? "text-destructive" : "text-muted-foreground"}`} />
-        <span role="status" className="flex min-w-0 flex-col">
-          <span className="font-medium">{resumo?.titulo ?? "Consultando a fila…"}</span>
-          <span className="text-muted-foreground line-clamp-3 text-xs text-balance" title={detalhe}>{detalhe}</span>
-        </span>
+    <section ref={secao} id="sincronizacao" aria-label="Sincronização" tabIndex={-1} className="bg-muted grid min-w-0 grid-cols-1 gap-2 px-3 py-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="flex min-w-0 flex-[1_1_9rem] items-center gap-2">
+          <RefreshCw aria-hidden className={`size-4 shrink-0 ${resumo?.travada ? "text-destructive" : "text-muted-foreground"}`} />
+          <span role="status" className="flex min-w-0 flex-col wrap-anywhere">
+            <span className="font-medium">{resumo?.titulo ?? "Consultando a fila…"}</span>
+            <span className="text-muted-foreground line-clamp-3 text-xs text-balance" title={detalhe}>{detalhe}</span>
+          </span>
+        </div>
         {estado && estado.quantos > 0 && (
-          <Button variant="outline" className="alvo ml-auto shrink-0" disabled={!online || tentando} onClick={() => void tentar()}>
+          <Button variant="outline" className="alvo ml-auto h-auto max-w-full py-1 whitespace-normal wrap-anywhere" disabled={!online || tentando} onClick={() => void tentar()}>
             {!online ? "Sem rede" : tentando ? "Tentando…" : "Tentar agora"}
           </Button>
         )}

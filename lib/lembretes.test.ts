@@ -492,7 +492,7 @@ describe("fonte única: Mais e o guia de uso (§23.4)", () => {
 
   it("a tela Mais monta a linha a partir de LINHA_LEMBRETES (sem redigitar)", async () => {
     const { readFileSync } = await import("node:fs");
-    const fonte = readFileSync(new URL("../app/(app)/mais/page.tsx", import.meta.url), "utf8");
+    const fonte = readFileSync(new URL("../components/mais/tela-mais.tsx", import.meta.url), "utf8");
     expect(fonte).toContain("...LINHA_LEMBRETES");
     expect(fonte).not.toContain("Receber avisos no celular");
   });

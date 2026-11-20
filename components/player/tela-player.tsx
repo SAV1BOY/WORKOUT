@@ -626,6 +626,7 @@ function PlayerDaSessao({ dados, sessao, videos }: {
           total={progresso.total}
           nomeDoTreino={nomeDoTreino}
           aviso={aviso}
+          avisoSerieRecebida={bloco.ordem === sessao.plano?.ultima_inclusao?.ordem ? dados.avisoSerieRecebida : null}
           pedidoDeFoco={pedidoDeFoco}
           aoMudar={(campos) => dados.mudarSerie(bloco.ordem, serie.id, campos)}
           aoConcluir={async () => {

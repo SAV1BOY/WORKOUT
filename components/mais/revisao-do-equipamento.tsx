@@ -37,7 +37,7 @@ export function RevisaoDoEquipamento({ conta, materiais, online, aoFecharSemPend
       if (valor) setMensagem("");
     }}>
       <SheetTrigger asChild>
-        <Button variant="outline" className={`${acaoDaFolha} justify-self-start`}>Rever equipamento do treino</Button>
+        <Button variant="outline" className={`${acaoDaFolha} scroll-mb-24 justify-self-start`}>Rever equipamento do treino</Button>
       </SheetTrigger>
       <SheetContent side="bottom" className="max-h-[85dvh] gap-2 overflow-hidden pb-3" onCloseAutoFocus={evento => {
         if (materiais.length) return;

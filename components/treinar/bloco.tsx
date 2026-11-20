@@ -29,6 +29,7 @@ import {
 export function BlocoExercicio({
   bloco,
   posicao,
+  avisoSerieRecebida,
   historico,
   opcoes,
   prefs,
@@ -44,6 +45,7 @@ export function BlocoExercicio({
 }: {
   bloco: BlocoLocal;
   posicao: number;
+  avisoSerieRecebida?: string | null;
   /** "subiu +2 kg no treino de 12/09" (SPEC §6.6). */
   historico: string | null;
   opcoes: OpcoesMontagem;
@@ -162,6 +164,11 @@ export function BlocoExercicio({
       </CardHeader>
 
       <CardContent className="flex flex-col gap-3 px-4">
+        {avisoSerieRecebida !== undefined && (
+          <p role="status" className={avisoSerieRecebida ? "text-muted-foreground text-sm wrap-anywhere" : "sr-only"}>
+            {avisoSerieRecebida}
+          </p>
+        )}
         <ul className="flex flex-col gap-2">
           {bloco.series.map((serie) => {
             const indice =

@@ -193,6 +193,7 @@ export function VisaoGeralDaSessao({
       {blocosNaOrdemDeExecucao(sessao).map((bloco, indice) => (
         <BlocoExercicio
           posicao={indice + 1}
+          avisoSerieRecebida={bloco.ordem === sessao.plano?.ultima_inclusao?.ordem ? dados.avisoSerieRecebida : undefined}
           recorrencia={dados.recorrencia}
           material={dados.material}
           ocupados={sessao.blocos.filter((outro) => outro.ordem !== bloco.ordem).map((outro) => outro.exercicioId)}

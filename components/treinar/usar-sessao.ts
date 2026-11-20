@@ -198,7 +198,7 @@ export function useSessaoDeTreino(sessaoId: string, userId: string) {
 
   const refazerLinha = sessaoQ.refetch;
   const refazerSeries = seriesQ.refetch;
-  useSerieDaInclusao({ conta: userId, id: sessaoId, sessao, ultima, series: seriesDaConta, refazer: refazerSeries,
+  const avisoSerieRecebida = useSerieDaInclusao({ conta: userId, id: sessaoId, sessao, ultima, series: seriesDaConta, refazer: refazerSeries,
     bloqueada: edicaoBloqueada, adotar });
   const liberarSeConferido = useCallback(async (revisao: string, linha: LinhaSessao | null | undefined, series: LinhaSerie[] | undefined) => {
     if (!idsGuardados.length || localIncompativel || sessaoLida === undefined ||
@@ -964,6 +964,7 @@ export function useSessaoDeTreino(sessaoId: string, userId: string) {
 
   return {
     sessao,
+    avisoSerieRecebida,
     perfil,
     tela,
     recarregar,

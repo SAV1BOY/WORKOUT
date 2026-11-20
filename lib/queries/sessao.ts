@@ -18,6 +18,7 @@ import { acharTreino, exercicioPorId } from "@/lib/dados";
 import { equipamentoDaSessao, materialEscolhido, planoComMaterial } from "@/lib/equipamento-da-sessao";
 import { comandoDeMaterialDaSessao, comandoDeMaterialNaFila, type MaterialDaSessao } from "@/lib/material-pendente";
 import { lerMaterialConfirmado } from "@/lib/queries/material-confirmado";
+import { conservarRascunhoDaInclusao } from "@/lib/queries/serie-da-inclusao-remota";
 import {
   WORKOUT_LIVRE,
   itensDeIds,
@@ -238,11 +239,12 @@ async function gravar(sessao: SessaoLocal, antes?: SessaoLocal): Promise<void> {
   if (!temIndexedDB()) return;
   const banco = bd();
   const mudouPlano = await banco.transaction("rw", banco.sessaoAtiva, banco.outbox, banco.cache, async () => {
-    const salva = await lerSessaoNaTransacao(sessao.id, sessao.userId);
+    let salva = await lerSessaoNaTransacao(sessao.id, sessao.userId);
     if (antes && (!salva || salva.status !== "em_andamento")) throw new Error("Esta sessão não está aberta neste aparelho.");
     if (salva && salva.userId !== sessao.userId) throw new Error("A sessão pertence a outra conta.");
     // Uma reconstrução pela rede pode terminar depois que a cópia local já avançou.
     if (!antes && (salva?.plano?.ultima_inclusao || salva?.ordemExecucao || salva?.plano?.ordem_execucao)) return false;
+    if (salva && antes) salva = await conservarRascunhoDaInclusao(salva, antes, sessao);
     const plano = antes && salva && sessao.plano === antes.plano ? salva.plano : preservarPlanoSalvo(sessao.plano, salva);
     const nova = { ...(salva ? conciliarBlocosAcrescentados(sessao, salva) : sessao), plano };
     if (salva?.revisaoEquipamento !== undefined) nova.revisaoEquipamento = salva.revisaoEquipamento;

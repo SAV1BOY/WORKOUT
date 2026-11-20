@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, type RefObject } from "react";
-import { guardarSeriesQueChegaram, haSeriesDaInclusaoRecebida, incorporarSeriesQueChegaram } from "@/lib/queries/serie-da-inclusao-remota";
+import { useEffect, useState, type RefObject } from "react";
+import { avisoGuardadoDaInclusao, avisoSemVaga, guardarSeriesQueChegaram, haSeriesDaInclusaoRecebida, incorporarSeriesQueChegaram, rascunhoDoRegistro } from "@/lib/queries/serie-da-inclusao-remota";
 import type { SessaoLocal } from "@/lib/sessao";
 import type { LinhaSerie } from "@/lib/types";
 
@@ -18,9 +18,13 @@ interface Parametros {
 
 export function useSerieDaInclusao({ conta, id, sessao, ultima, series, refazer, bloqueada, adotar }: Parametros) {
   const token = sessao?.plano?.ultima_inclusao?.id;
+  const [aviso, setAviso] = useState<{ conta: string; id: string; token: string; texto: string } | null>(null);
   useEffect(() => {
     if (!token || bloqueada) return;
     let ativa = true;
+    void avisoGuardadoDaInclusao(conta, id, token).then(texto => {
+      if (ativa && texto) setAviso({ conta, id, token, texto });
+    }).catch(() => {});
     const consultar = async () => {
       if (navigator.onLine && await haSeriesDaInclusaoRecebida(conta, id, token) && ativa) await refazer({ cancelRefetch: false });
     };
@@ -37,8 +41,20 @@ export function useSerieDaInclusao({ conta, id, sessao, ultima, series, refazer,
       const atual = ultima.current;
       if (!ativa || !mudanca || atual?.id !== id || atual.userId !== conta) return;
       const nova = incorporarSeriesQueChegaram(atual, token, mudanca.ordem, mudanca.exercicio, mudanca.registros);
+      const bloco = nova.blocos.find(b => b.ordem === mudanca.ordem);
+      const mensagens = mudanca.registros.flatMap(r => {
+        const movida = bloco?.series.find(s => s.id === r.anterior.id);
+        if (movida && movida.setIndex !== r.anterior.setIndex) {
+          return [`A série ${r.anterior.setIndex} foi registrada em outro aparelho. Seu ajuste ficou na série ${movida.setIndex}.`];
+        }
+        const digitada = atual.blocos.find(b => b.ordem === mudanca.ordem)?.series.find(s => s.id === r.anterior.id);
+        const rascunho = rascunhoDoRegistro(digitada, r) ?? r.rascunho;
+        return rascunho && !movida ? [avisoSemVaga(rascunho)] : [];
+      });
+      if (mensagens.length) setAviso({ conta, id, token, texto: mensagens.join(" ") });
       if (nova !== atual) adotar(nova);
     }).catch(() => {});
     return () => { ativa = false; };
   }, [conta, id, token, bloqueada, ultima, series, adotar]);
+  return aviso?.conta === conta && aviso.id === id && aviso.token === token ? aviso.texto : null;
 }
