@@ -80,8 +80,10 @@ export function incorporarSeriesQueChegaram(
       mudou = true;
     } else if (!rascunho || !series.some(s => s.id === r.nova.id && replaceEqualDeep(s, r.nova) === s)) continue;
     if (!rascunho) continue;
-    const destino = series.findIndex(s => s.tipo === "trabalho" && s.setIndex > r.anterior.setIndex && !noPlayer(s.id) &&
-      r.livres.some(livre => livre.id === s.id && replaceEqualDeep(livre, s) === livre));
+    const livre = (s: SerieLocal) => s.tipo === "trabalho" && !noPlayer(s.id) &&
+      r.livres.some(padrao => padrao.id === s.id && replaceEqualDeep(padrao, s) === padrao);
+    const seguinte = series.findIndex(s => s.setIndex > r.anterior.setIndex && livre(s));
+    const destino = seguinte >= 0 ? seguinte : series.findIndex(livre);
     if (destino >= 0) {
       series[destino] = { ...rascunho, setIndex: series[destino]!.setIndex };
       mudou = true;
@@ -104,6 +106,20 @@ export function incorporarSeriesQueChegaram(
 
 function rascunhosSemVaga(bloco: SessaoLocal["blocos"][number], registros: RegistroRecebido[]) {
   return registros.flatMap(r => r.rascunho && !bloco.series.some(s => s.id === r.rascunho!.id) ? [r.rascunho] : []);
+}
+
+function acompanharRascunhosMovidos(originais: SerieLocal[], series: SerieLocal[], registros: RegistroRecebido[]) {
+  const pendentes = originais.slice();
+  for (const r of registros) {
+    const movida = series.find(s => s.id === r.anterior.id && s.setIndex !== r.anterior.setIndex);
+    if (!movida) continue;
+    const i = pendentes.findIndex(s => s.tipo === movida.tipo && s.setIndex === movida.setIndex);
+    // Outra série do mesmo aparelho também pode chegar depois. Guardamos a sugestão anterior à digitação.
+    const sugestao = { ...(pendentes[i] ?? r.anterior), id: movida.id, setIndex: movida.setIndex };
+    if (i < 0) pendentes.push(sugestao);
+    else pendentes[i] = sugestao;
+  }
+  return pendentes;
 }
 
 function guardarOrigem(conta: string, id: string, origem: SeriesDaInclusao, semVaga: SerieLocal[]) {
@@ -133,17 +149,22 @@ export async function conservarRascunhoDaInclusao(salva: SessaoLocal, antes: Ses
   const base = antes.blocos.find(b => b.ordem === inc.ordem);
   const tela = editada.blocos.find(b => b.ordem === inc.ordem);
   const disco = salva.blocos.find(b => b.ordem === inc.ordem);
-  if (!base || !tela || !disco || base.series === tela.series || base.exercicioId !== tela.exercicioId || base.exercicioId !== disco.exercicioId) return salva;
+  if (!base || !tela || !disco || (base.series === tela.series && antes.player?.chave === editada.player?.chave) ||
+      base.exercicioId !== tela.exercicioId || base.exercicioId !== disco.exercicioId) return salva;
   if (!tela.series.some(s => !s.concluida && !disco.series.some(d => d.id === s.id))) return salva;
   const origem = await lerCache<SeriesDaInclusao>(chave(salva.userId, salva.id));
   if (origem?.token !== inc.id || !origem.incorporadas?.length) return salva;
   const registros = origem.incorporadas.flatMap(r => {
-    const rascunho = rascunhoDoRegistro(tela.series.find(s => s.id === r.anterior.id), r);
+    const rascunho = rascunhoNoPasso(editada, tela.series.find(s => s.id === r.anterior.id), r);
     return rascunho && base.series.some(s => s.id === r.anterior.id) ? [{ ...r, rascunho }] : [];
   });
   const nova = incorporarSeriesQueChegaram(salva, inc.id, inc.ordem, origem.exercicio, registros);
-  const semVaga = rascunhosSemVaga(nova.blocos.find(b => b.ordem === inc.ordem)!, registros);
-  if (semVaga.length) await guardarOrigem(salva.userId, salva.id, origem, semVaga);
+  const atualizado = nova.blocos.find(b => b.ordem === inc.ordem)!;
+  const semVaga = rascunhosSemVaga(atualizado, registros);
+  if (nova !== salva || semVaga.length) {
+    const originais = acompanharRascunhosMovidos(origem.originais, atualizado.series, registros);
+    await guardarOrigem(salva.userId, salva.id, { ...origem, originais }, semVaga);
+  }
   return nova;
 }
 
@@ -194,9 +215,11 @@ export async function guardarSeriesQueChegaram(
     await banco.sessaoAtiva.put({ id, dados: salva, atualizadoEm: Date.now() });
     const gravadas = aceitas.filter(r => salva.blocos.some(b => b.ordem === origem.ordem && b.series.includes(r.nova)));
     const restantes = origem.originais.filter(s => !gravadas.some(r => r.anterior.id === s.id));
+    const bloco = salva.blocos.find(b => b.ordem === origem.ordem)!;
     await guardarOrigem(conta, id, {
-      ...origem, originais: restantes, incorporadas: [...(origem.incorporadas ?? []), ...gravadas.map(r => ({ ...r, rascunho: undefined }))],
-    }, rascunhosSemVaga(salva.blocos.find(b => b.ordem === origem.ordem)!, gravadas));
+      ...origem, originais: acompanharRascunhosMovidos(restantes, bloco.series, gravadas),
+      incorporadas: [...(origem.incorporadas ?? []), ...gravadas.map(r => ({ ...r, rascunho: undefined }))],
+    }, rascunhosSemVaga(bloco, gravadas));
     return { ordem: origem.ordem, exercicio: origem.exercicio, registros: gravadas };
   });
 }

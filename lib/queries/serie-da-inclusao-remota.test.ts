@@ -188,3 +188,18 @@ it("preserva o UUID do passo que A já começou quando B confirma a série, mesm
   expect(marcacao?.sessao.blocos[2]!.series[1]).toMatchObject({ id: provisoria.id, setIndex: 2, concluida: true });
   expect((await bd().outbox.toArray()).filter(i => i.tipo === "serie")).toHaveLength(1);
 });
+
+it("se a segunda série também chega depois, seu registro e o mesmo rascunho continuam com índices distintos", async () => {
+  const { recebida, linha, token, provisoria } = await cenario();
+  const tela = atualizarSerie(recebida, 3, provisoria.id, { reps: 17 });
+  await guardarSeriesQueChegaram(conta, id, token, [linha], () => tela);
+  const comUma = await local();
+  const segunda = { ...linha, id: crypto.randomUUID(), set_index: 2, reps: 9 };
+  await guardarSeriesQueChegaram(conta, id, token, [linha, segunda], () => comUma);
+  expect((await local()).blocos[2]!.series).toMatchObject([
+    { id: linha.id, setIndex: 1, reps: 10, concluida: true },
+    { id: segunda.id, setIndex: 2, reps: 9, concluida: true },
+    { id: provisoria.id, setIndex: 3, reps: 17, concluida: false },
+  ]);
+  expect(await bd().outbox.count()).toBe(0);
+});
