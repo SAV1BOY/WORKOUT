@@ -1,4 +1,5 @@
 import { combineChunks, parseCookieHeader, stringFromBase64URL } from "@supabase/ssr";
+import type { QueryClient } from "@tanstack/react-query";
 import { bd, guardarCache, lerCache } from "@/lib/db";
 import { chaveDoHistoricoNoDisco } from "@/lib/chaves-do-historico";
 import { lerConsultaGuardada } from "@/lib/persistencia-query";
@@ -62,4 +63,16 @@ export async function vinculoParaAbaLocal(aba: CaminhoDeAbaLocal) {
     if (!Array.isArray(sessoes) || !sessoes.every(s => s?.user_id === vinculo.conta)) return null;
   }
   return { vinculo, perfil };
+}
+
+/** O HTML guardado do Treino também pode abrir antes de o perfil chegar pela rede. */
+export async function recuperarPerfilNoTreino(cliente: QueryClient, conta: string, sinal: AbortSignal): Promise<void> {
+  if (sinal.aborted) return;
+  const local = await vinculoParaAbaLocal("/");
+  if (!local || local.vinculo.conta !== conta || sinal.aborted) return;
+  // A conta pode sair ou mudar enquanto o IndexedDB lê o perfil.
+  if ((await vinculoDoLoginAtual())?.impressao !== local.vinculo.impressao || sinal.aborted) return;
+  if (local.perfil.atualizadoEm > (cliente.getQueryState(["perfil"])?.dataUpdatedAt ?? 0)) {
+    cliente.setQueryData(["perfil"], local.perfil.valor, { updatedAt: local.perfil.atualizadoEm });
+  }
 }
