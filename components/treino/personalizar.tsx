@@ -1,8 +1,10 @@
 "use client";
 
-import { Check, Plus, Search, SearchX, X } from "lucide-react";
-import { useMemo, useState } from "react";
+import { ArrowUpDown, Check, Plus, Search, SearchX, X } from "lucide-react";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useSessaoLivre } from "@/components/colecoes/usar-sessao-livre";
+import { OrdemDosEscolhidos } from "@/components/treino/ordem-dos-escolhidos";
+import { Button } from "@/components/ui/button";
 import { BotaoLargo } from "@/components/ui/botao-largo";
 import { Input } from "@/components/ui/input";
 import { Miniatura } from "@/components/ui/miniatura";
@@ -17,18 +19,35 @@ import {
 } from "@/components/ui/sheet";
 import { filtrarExercicios } from "@/lib/catalogo";
 import { acharExercicio, exerciciosComVariacoes } from "@/lib/dados";
+import { mover } from "@/lib/ordem";
 import { evitadosPorUltimo } from "@/lib/preferencias";
 import type { Prefs } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 /**
  * Começa um treino livre com os movimentos do catálogo e suas variações,
- * na ordem em que a pessoa os escolheu.
+ * na ordem escolhida antes de começar.
  */
 export function Personalizar({ prefs }: { prefs?: Prefs }) {
   const [aberto, setAberto] = useState(false);
   const [busca, setBusca] = useState("");
   const [escolhidos, setEscolhidos] = useState<string[]>([]);
+  const [reordenando, setReordenando] = useState(false);
+  const titulo = useRef<HTMLHeadingElement>(null);
+  const gatilhoDaOrdem = useRef<HTMLButtonElement>(null);
+  const iniciando = useRef(false);
+  const focoAoAlternar = useRef(false);
+
+  useLayoutEffect(() => {
+    if (!focoAoAlternar.current) return;
+    focoAoAlternar.current = false;
+    (reordenando ? titulo.current : gatilhoDaOrdem.current)?.focus();
+  }, [reordenando]);
+
+  function mostrarOrdem(mostrar: boolean) {
+    focoAoAlternar.current = true;
+    setReordenando(mostrar);
+  }
 
   const achados = useMemo(
     () =>
@@ -47,12 +66,34 @@ export function Personalizar({ prefs }: { prefs?: Prefs }) {
       atuais.includes(id) ? atuais.filter((x) => x !== id) : [...atuais, id],
     );
 
+  function moverEscolhido(id: string, direcao: -1 | 1) {
+    setEscolhidos(atuais => {
+      const indice = atuais.indexOf(id);
+      return mover(atuais, indice, indice + direcao);
+    });
+  }
+
+  async function iniciar() {
+    if (iniciando.current || ocupado || !pronto || escolhidos.length === 0) return;
+    iniciando.current = true;
+    try {
+      await comecar(escolhidos, { titulo: "Treino personalizado" });
+    } finally {
+      iniciando.current = false;
+    }
+  }
+
   return (
     <Sheet
       open={aberto}
       onOpenChange={(v) => {
+        if (!v && ocupado) return;
         setAberto(v);
-        if (!v) setBusca("");
+        if (!v) {
+          focoAoAlternar.current = false;
+          setReordenando(false);
+          setBusca("");
+        }
       }}
     >
       <SheetTrigger asChild>
@@ -72,106 +113,130 @@ export function Personalizar({ prefs }: { prefs?: Prefs }) {
         </button>
       </SheetTrigger>
 
-      <SheetContent side="bottom" className="flex max-h-[90dvh] flex-col pb-8">
+      <SheetContent side="bottom" className="flex max-h-[90dvh] flex-col pb-8"
+        showCloseButton={!ocupado}
+        onEscapeKeyDown={evento => {
+          if (reordenando) {
+            evento.preventDefault();
+            mostrarOrdem(false);
+          }
+        }}>
         <SheetHeader className="pb-0">
-          <SheetTitle>Crie o seu próprio</SheetTitle>
-          <SheetDescription>
-            Escolha os exercícios na ordem em que vai fazer. A prescrição é a do
-            catálogo e a progressão de cada um continua valendo.
-          </SheetDescription>
+          <SheetTitle ref={titulo} className="pr-10 wrap-anywhere">
+            {reordenando ? "Reordenar escolhidos" : "Crie o seu próprio"}
+          </SheetTitle>
+          {reordenando && <SheetDescription>{escolhidos.length} exercícios no treino.</SheetDescription>}
         </SheetHeader>
 
-        <div className="flex min-h-0 flex-1 flex-col gap-3 px-4">
-          <div className="relative">
-            <Search
-              className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2"
-              aria-hidden="true"
-            />
-            <Input
-              type="search"
-              inputMode="search"
-              value={busca}
-              onChange={(e) => setBusca(e.target.value)}
-              placeholder="Buscar exercício"
-              aria-label="Buscar exercício pelo nome"
-              className="alvo h-12 pl-9 text-base"
-            />
+        {reordenando && <OrdemDosEscolhidos ids={escolhidos} aoMover={moverEscolhido} aoFechar={() => mostrarOrdem(false)} />}
+        <div className={cn("flex min-h-0 flex-1 flex-col gap-3 px-4", reordenando && "hidden")}>
+          <div className="min-h-0 overflow-y-auto px-1">
+            {!reordenando && (
+              <SheetDescription className="mb-3">
+                Escolha e ordene seus exercícios. Cada um mantém a prescrição do catálogo e a sua progressão.
+              </SheetDescription>
+            )}
+            <div className="relative">
+              <Search
+                className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2"
+                aria-hidden="true"
+              />
+              <Input
+                type="search"
+                inputMode="search"
+                value={busca}
+                disabled={ocupado}
+                onChange={(e) => setBusca(e.target.value)}
+                placeholder="Buscar exercício"
+                aria-label="Buscar exercício pelo nome"
+                className="alvo h-12 pl-9 text-base"
+              />
+            </div>
+
+            {escolhidos.length >= 2 && (
+              <Button ref={gatilhoDaOrdem} type="button" variant="outline" disabled={ocupado}
+                className="alvo mt-3 h-auto max-w-full whitespace-normal py-2"
+                onClick={() => mostrarOrdem(true)}>
+                <ArrowUpDown aria-hidden="true" className="size-4 shrink-0" />
+                Reordenar escolhidos
+              </Button>
+            )}
+            {escolhidos.length > 0 ? (
+              <ul aria-label="Escolhidos" className="mt-3 flex flex-wrap gap-2">
+                {escolhidos.map((id, i) => (
+                  <li key={id} className="max-w-full">
+                    <button
+                      type="button"
+                      disabled={ocupado}
+                      onClick={() => alternar(id)}
+                      aria-label={`Tirar ${acharExercicio(id).nome}`}
+                      className="border-primary bg-primary/10 alvo flex min-h-11 max-w-full items-center gap-1 rounded-full border px-3 py-1 text-left text-xs wrap-anywhere"
+                    >
+                      <span className="numero">{i + 1}.</span>
+                      {acharExercicio(id).nome}
+                      <X aria-hidden="true" className="size-3.5" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+
+            <ul
+              aria-label="Catálogo"
+              className="@container mt-3 divide-y"
+            >
+              {achados.map((e) => {
+                const marcado = escolhidos.includes(e.id);
+                return (
+                  <li key={e.id}>
+                    <button
+                      type="button"
+                      aria-pressed={marcado}
+                      disabled={ocupado}
+                      onClick={() => alternar(e.id)}
+                      className="hover:bg-muted/40 alvo grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 gap-y-1 py-2 text-left @2xs:flex @2xs:gap-3"
+                    >
+                      <Miniatura exercicioId={e.id} className="col-start-1 row-start-2 size-11 @2xs:size-14" />
+                      <span className="col-span-full row-start-1 flex min-w-0 flex-1 flex-col gap-0.5 wrap-anywhere">
+                        <span className="text-sm font-medium text-balance">{e.nome}</span>
+                        <span className="numero text-muted-foreground text-xs">
+                          {e.prescricao_padrao.texto} · {e.equipamento_texto}
+                        </span>
+                      </span>
+                      <span
+                        className={cn(
+                          "col-start-2 row-start-2 flex size-6 shrink-0 items-center justify-center rounded-full border",
+                          marcado
+                            ? "border-primary bg-primary text-primary-foreground"
+                            : "border-muted-foreground/40",
+                        )}
+                      >
+                        {marcado ? (
+                          <Check aria-hidden="true" className="size-4" strokeWidth={3} />
+                        ) : null}
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
+              {achados.length === 0 ? (
+                <li>
+                  <Vazio
+                    icone={SearchX}
+                    titulo="Nenhum exercício com esse nome"
+                    frase="A busca olha o nome do exercício; tente uma palavra só."
+                    acao={{ rotulo: "Limpar busca", aoTocar: () => setBusca("") }}
+                    className="border-0"
+                  />
+                </li>
+              ) : null}
+            </ul>
           </div>
 
-          {escolhidos.length > 0 ? (
-            <ul aria-label="Escolhidos" className="flex flex-wrap gap-2">
-              {escolhidos.map((id, i) => (
-                <li key={id}>
-                  <button
-                    type="button"
-                    onClick={() => alternar(id)}
-                    aria-label={`Tirar ${acharExercicio(id).nome}`}
-                    className="border-primary bg-primary/10 alvo flex h-11 items-center gap-1 rounded-full border px-3 text-xs"
-                  >
-                    <span className="numero">{i + 1}.</span>
-                    {acharExercicio(id).nome}
-                    <X aria-hidden="true" className="size-3.5" />
-                  </button>
-                </li>
-              ))}
-            </ul>
-          ) : null}
-
-          <ul
-            aria-label="Catálogo"
-            className="min-h-0 flex-1 divide-y overflow-y-auto"
-          >
-            {achados.map((e) => {
-              const marcado = escolhidos.includes(e.id);
-              return (
-                <li key={e.id}>
-                  <button
-                    type="button"
-                    aria-pressed={marcado}
-                    onClick={() => alternar(e.id)}
-                    className="hover:bg-muted/40 alvo flex w-full items-center gap-3 py-2 text-left"
-                  >
-                    <Miniatura exercicioId={e.id} />
-                    <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                      <span className="text-sm font-medium text-balance">{e.nome}</span>
-                      <span className="numero text-muted-foreground text-xs">
-                        {e.prescricao_padrao.texto} · {e.equipamento_texto}
-                      </span>
-                    </span>
-                    <span
-                      className={cn(
-                        "flex size-6 shrink-0 items-center justify-center rounded-full border",
-                        marcado
-                          ? "border-primary bg-primary text-primary-foreground"
-                          : "border-muted-foreground/40",
-                      )}
-                    >
-                      {marcado ? (
-                        <Check aria-hidden="true" className="size-4" strokeWidth={3} />
-                      ) : null}
-                    </span>
-                  </button>
-                </li>
-              );
-            })}
-            {achados.length === 0 ? (
-              <li>
-                <Vazio
-                  icone={SearchX}
-                  titulo="Nenhum exercício com esse nome"
-                  frase="A busca olha o nome do exercício; tente uma palavra só."
-                  acao={{ rotulo: "Limpar busca", aoTocar: () => setBusca("") }}
-                  className="border-0"
-                />
-              </li>
-            ) : null}
-          </ul>
-
           <BotaoLargo
+            className="h-auto min-h-14 shrink-0 py-2 whitespace-normal"
             disabled={!pronto || ocupado || escolhidos.length === 0}
-            onClick={() =>
-              void comecar(escolhidos, { titulo: "Treino personalizado" })
-            }
+            onClick={() => void iniciar()}
           >
             {/* SPEC §22.7 item 8: "Começar com 3 exercícios", não "Começar (3)" */}
             {ocupado

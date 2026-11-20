@@ -1,6 +1,7 @@
 "use client";
 
-import { ChevronDown, ChevronUp, GripVertical } from "lucide-react";
+import { GripVertical } from "lucide-react";
+import { SetasDeOrdem } from "@/components/treino/setas-de-ordem";
 import { Button } from "@/components/ui/button";
 import { Miniatura } from "@/components/ui/miniatura";
 import type { ItemPrevia } from "@/lib/hoje";
@@ -48,26 +49,8 @@ export function ModoEditar({
                 {item.alvoTexto}
               </span>
             </span>
-            <Button
-              variant="ghost"
-              size="icon"
-              aria-label={`Subir ${item.nome}`}
-              disabled={i === 0}
-              onClick={() => aoMover(i, i - 1)}
-              className="alvo shrink-0"
-            >
-              <ChevronUp className="size-5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              aria-label={`Descer ${item.nome}`}
-              disabled={i === itens.length - 1}
-              onClick={() => aoMover(i, i + 1)}
-              className="alvo shrink-0"
-            >
-              <ChevronDown className="size-5" />
-            </Button>
+            <SetasDeOrdem nome={item.nome} indice={i} total={itens.length}
+              aoMover={direcao => aoMover(i, i + direcao)} />
           </li>
         ))}
       </ol>

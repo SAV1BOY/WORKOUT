@@ -20,8 +20,11 @@ import {
 vi.mock("@/lib/player-sem-rede", () => ({ vinculoDoLoginAtual: vi.fn() }));
 vi.mock("@/lib/supabase/client", () => ({ clienteNavegador: vi.fn() }));
 
-const ids = ["pullover-com-halter", "agachamento-livre", "flexao-de-braco"];
-const esperada = [ids[0], ids[2], ids[1]];
+const pullover = "pullover-com-halter";
+const agachamento = "agachamento-livre";
+const flexao = "flexao-de-braco";
+const ids = [pullover, agachamento, flexao];
+const esperada = [pullover, flexao, agachamento];
 const conta = "ana";
 const fila = () => bd().outbox.toArray();
 
