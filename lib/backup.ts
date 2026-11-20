@@ -51,7 +51,7 @@ export const COLUNAS_DA_TABELA: Record<TabelaBackup, string[]> = {
   sessions: [
     "id", "user_id", "data", "workout_id", "fase", "status", "iniciada_em",
     "concluida_em", "duracao_s", "semana_plano", "plano", "sensacao", "peso_corporal",
-    "notas", "nota_geral",
+    "notas", "nota_geral", "ordem_execucao",
   ],
   session_sets: [
     "id", "session_id", "user_id", "exercise_id", "ordem_ex", "set_index",
@@ -101,6 +101,14 @@ const backupSchema = z.object({
 
 /* ------------------------------------------------------------ exportar */
 
+/** O importador v1 antigo só reconhece o plano. Ele pode ter sido regravado por outro aparelho. */
+function espelharOrdemNoBackup(sessao: Linha): Linha {
+  const { plano, ordem_execucao } = sessao;
+  if (sessao.workout_id !== "livre" || !Array.isArray(ordem_execucao) ||
+      !plano || typeof plano !== "object" || !("itens" in plano) || !Array.isArray(plano.itens)) return sessao;
+  return { ...sessao, plano: { ...plano, ordem_execucao } };
+}
+
 export function montarBackup(entrada: {
   userId: string | null;
   exportadoEm: string;
@@ -108,7 +116,8 @@ export function montarBackup(entrada: {
 }): Backup {
   const tabelas: Partial<Record<TabelaBackup, Linha[]>> = {};
   for (const tabela of TABELAS_BACKUP) {
-    tabelas[tabela] = entrada.tabelas[tabela] ?? [];
+    const linhas = entrada.tabelas[tabela] ?? [];
+    tabelas[tabela] = tabela === "sessions" ? linhas.map(espelharOrdemNoBackup) : linhas;
   }
   return {
     app: APP_BACKUP,
@@ -286,9 +295,9 @@ export interface EscritaDeImportacao {
   linhas: Linha[];
 }
 
-const COLUNA_DE_NOTA: Partial<Record<TabelaBackup, string>> = {
-  exercise_state: "nota_pessoal",
-  sessions: "nota_geral",
+const COLUNAS_OPCIONAIS_DO_LOTE: Partial<Record<TabelaBackup, string[]>> = {
+  exercise_state: ["nota_pessoal"],
+  sessions: ["nota_geral", "ordem_execucao"],
 };
 
 /**
@@ -365,13 +374,15 @@ export function linhasParaImportar(
       linhas.push(limpa);
     }
 
-    // O PostgREST reúne as colunas de um upsert em lote. Separe as linhas
-    // antigas para que a ausência de nota no arquivo preserve a do destino.
-    const campoDeNota = COLUNA_DE_NOTA[tabela];
-    const grupos = campoDeNota ? [
-      linhas.filter((linha) => campoDeNota in linha),
-      linhas.filter((linha) => !(campoDeNota in linha)),
-    ] : [linhas];
+    // O PostgREST reúne as colunas do lote. Uma coluna que só aparece em
+    // outras linhas seria gravada como null, apagando o valor do destino.
+    let grupos = [linhas];
+    for (const coluna of COLUNAS_OPCIONAIS_DO_LOTE[tabela] ?? []) {
+      grupos = grupos.flatMap((grupo) => [
+        grupo.filter((linha) => coluna in linha),
+        grupo.filter((linha) => !(coluna in linha)),
+      ]);
+    }
     for (const grupo of grupos) {
       if (grupo.length) escritas.push({ tabela, onConflict: CHAVE_DA_TABELA[tabela].join(","), linhas: grupo });
     }

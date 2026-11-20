@@ -16,6 +16,21 @@ function serie(campos: Partial<SerieBruta> = {}): SerieBruta {
   };
 }
 
+it("o detalhe segue o plano escolhido e mantém os pesos e os registros em cada bloco original", () => {
+  const plano = planoDaSessao(itensDeIds([supino, "prancha", flexao]));
+  const treino = { ...sessao, plano, ordem_execucao: [supino, flexao, "prancha"] };
+  const feitas = [
+    serie({ id: "barra", ordem_ex: 1, reps: 8, carga_kg: 25.5 }),
+    serie({ id: "solo", ordem_ex: 2, exercise_id: "prancha", tempo_s: 30 }),
+    serie({ id: "corpo", ordem_ex: 3, exercise_id: flexao, reps: 10 }),
+  ];
+  const grupos = detalharSeriesDoTreino(treino, feitas, conta);
+  expect(grupos.map(g => [g.ordem, g.exercicioId, g.series[0]?.chave])).toEqual([
+    [1, supino, "barra"], [3, flexao, "corpo"], [2, "prancha", "solo"],
+  ]);
+  expect(grupos[0]?.series[0]?.valores).toBe("8 repetições · 25,5 kg na barra");
+});
+
 describe("a referência à última série no player", () => {
   it("preserva a comparação compacta e distingue carga extra zero de carga ausente no cache antigo", () => {
     const legada = { exercise_id: supino, tipo: "trabalho", reps: 8, carga_kg: 23.5, tempo_s: null };

@@ -1,5 +1,6 @@
 import { exercicioPorId } from "@/lib/dados";
 import { ehSessaoLivre, itemDoExercicio } from "@/lib/livre";
+import { ordensDeExecucao } from "@/lib/ordem-da-sessao";
 import { MAX_SERIES_DA_SESSAO, type ItemDaSessao } from "@/lib/sessao";
 
 export interface RepeticaoDoTreinoLivre {
@@ -49,7 +50,7 @@ function exercicioAtivo(linha: Record<string, unknown> | null, grupo: unknown): 
 
 /** Extrai somente a composição que pode começar de novo, sem os registros da sessão de origem. */
 export function montarRepeticaoDoTreinoLivre(origem: {
-  workout_id: string; status: string; plano?: unknown;
+  workout_id: string; status: string; plano?: unknown; ordem_execucao?: unknown;
 }): RepeticaoDoTreinoLivre | null {
   const { plano } = origem;
   if (!ehSessaoLivre(origem.workout_id) || origem.status !== "concluida" || !ehObjeto(plano)) return null;
@@ -64,9 +65,10 @@ export function montarRepeticaoDoTreinoLivre(origem: {
 
   const itens: ItemDaSessao[] = [];
   const usados = new Set<string>();
-  for (const [indice, valor] of linhas.entries()) {
+  for (const ordem of ordensDeExecucao(plano, origem.ordem_execucao)) {
+    const valor = linhas[ordem - 1];
     const linha = ehObjeto(valor) ? valor : null;
-    const ativo = exercicioAtivo(linha, trocas[indice + 1]);
+    const ativo = exercicioAtivo(linha, trocas[ordem]);
     if (typeof ativo !== "string" || usados.has(ativo)) return null;
     const exercicio = exercicioPorId.get(ativo);
     if (!exercicio) return null;

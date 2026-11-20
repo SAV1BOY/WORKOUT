@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { validarContagens } from "@/components/stepper-numerico";
 import { AdicionarExercicio } from "@/components/treinar/adicionar-exercicio";
 import { BlocoExercicio } from "@/components/treinar/bloco";
+import { ProximoExercicio, type ContextoProximo } from "@/components/treinar/proximo-exercicio";
 import { ResumoDoFim } from "@/components/treinar/resumo";
 import { TimerDescanso, type DescansoAtivo } from "@/components/treinar/timer-descanso";
 import type { FimDaSessao, SessaoDeTreino } from "@/components/treinar/usar-sessao";
@@ -23,7 +24,7 @@ import { Button } from "@/components/ui/button";
 import { acharExercicio } from "@/lib/dados";
 import { formatarDuracao } from "@/lib/formato";
 import { descansoEntreSeriesDeTrabalho, type OpcoesDoPlayer } from "@/lib/player";
-import { proximoExercicio, type SessaoLocal } from "@/lib/sessao";
+import { blocosNaOrdemDeExecucao, proximoExercicio, type SessaoLocal } from "@/lib/sessao";
 
 /**
  * A visão geral da sessão (SPEC §14.1): a folha de rolagem com **todas** as
@@ -43,6 +44,7 @@ export function VisaoGeralDaSessao({
   nomeDoTreino,
   dados,
   opcoesDoPlayer,
+  contextoProximo,
   videos = [],
   aoFechar,
 }: {
@@ -50,6 +52,7 @@ export function VisaoGeralDaSessao({
   nomeDoTreino: string;
   dados: SessaoDeTreino;
   opcoesDoPlayer: OpcoesDoPlayer;
+  contextoProximo?: ContextoProximo;
   /** Ids com `public/videos/<id>.mp4` (SPEC §13.1). */
   videos?: string[];
   /**
@@ -183,8 +186,13 @@ export function VisaoGeralDaSessao({
         <AdicionarExercicio key={sessao.id} sessao={sessao} material={dados.material} prefs={prefs}
           aoAdicionar={dados.adicionarExercicio} aoDesfazer={dados.desfazerInclusao} />
       )}
-      {sessao.blocos.map((bloco) => (
+      {sessao.workoutId === "livre" && sessao.status === "em_andamento" && !fim && (
+        <ProximoExercicio key={sessao.id} contexto={contextoProximo} blocos={sessao.blocos}
+          aoPerderOpcoes={() => titulo.current?.focus()} />
+      )}
+      {blocosNaOrdemDeExecucao(sessao).map((bloco, indice) => (
         <BlocoExercicio
+          posicao={indice + 1}
           recorrencia={dados.recorrencia}
           material={dados.material}
           ocupados={sessao.blocos.filter((outro) => outro.ordem !== bloco.ordem).map((outro) => outro.exercicioId)}
@@ -286,7 +294,7 @@ function Rodape({
       {/* o rodapé é fixo: este espaço impede que ele cubra o último bloco */}
       <div aria-hidden="true" className="h-44" />
       {/* colado no rodapé: dentro do player não há barra de abas (§22.1) */}
-      <div className="bg-card/95 border-border pb-segura fixed inset-x-0 bottom-0 z-30 border-t backdrop-blur">
+      <div data-rodape-do-treino className="bg-card/95 border-border pb-segura fixed inset-x-0 bottom-0 z-30 border-t backdrop-blur">
         <div className="mx-auto flex w-full max-w-lg flex-col gap-1.5 px-3 py-2">
           {/* SPEC §13.3: o que vem depois, em linha inteira para caber o nome */}
           {proximo ? (

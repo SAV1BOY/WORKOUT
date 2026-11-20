@@ -10,6 +10,7 @@
  * monta as anilhas é `lib/montagem.ts` e o conteúdo vem de `lib/dados.ts`.
  */
 import { alternativasPara } from "@/lib/alternativas";
+import { carimbarUltimaInclusao, chavesDosItensDoPlano, ordensDeExecucao } from "@/lib/ordem-da-sessao";
 import { descansoPersonalizadoDaSessao, limitarTempoDeDescanso } from "@/lib/descanso-da-sessao";
 export { descansoPersonalizadoDaSessao } from "@/lib/descanso-da-sessao";
 import { equipamentoDaSessao, tagsDoEquipamento } from "@/lib/equipamento-da-sessao";
@@ -155,6 +156,10 @@ export interface SessaoLocal {
    * reordena o treino do dia. `null` = a ordem é a do programa.
    */
   plano: PlanoDaSessao | null;
+  /** Coluna da sessão livre. O plano contém uma cópia para clientes antigos. */
+  ordemExecucao?: string[] | null;
+  /** Identifica localmente a escolha para descartar respostas remotas anteriores. */
+  revisaoOrdemExecucao?: string;
   sensacao: number | null;
   pesoCorporal: number | null;
   notas: string | null;
@@ -451,6 +456,7 @@ export function reconstruirSessao(
     | "status"
     | "iniciada_em"
     | "nota_geral"
+    | "ordem_execucao"
   > & { semana_plano?: number | null; plano?: PlanoDaSessao | null },
   series: LinhaSerie[],
   resto: Omit<EntradaMontagem, "id" | "userId" | "data" | "treinoId" | "fase" | "equipamentosDisponiveis"> & {
@@ -541,10 +547,11 @@ export function reconstruirSessao(
     const [atual, ...anteriores] = registros;
     return atual ? { ...atual, trocados: anteriores.length ? anteriores : undefined } : bloco;
   });
-  return bloquearDesfazerSeIniciado({
+  const refeita = bloquearDesfazerSeIniciado({
     ...base, status: linha.status, blocos,
     ...(linha.nota_geral !== undefined && { notaGeral: linha.nota_geral }),
   });
+  return Array.isArray(linha.ordem_execucao) ? aplicarOrdemRemotaDaSessao(refeita, linha.ordem_execucao) : refeita;
 }
 
 /* ------------------------------------------------------ mexer na sessão */
@@ -581,6 +588,52 @@ export function acrescentarExercicioNaSessao(
       },
     },
   };
+}
+
+/** A posição física identifica as séries e trocas mesmo quando a pessoa escolhe outra sequência. */
+export function blocosNaOrdemDeExecucao(sessao: SessaoLocal): BlocoLocal[] {
+  const fisicos = [...sessao.blocos].sort((a, b) => a.ordem - b.ordem);
+  if (sessao.workoutId !== "livre" || !sessao.plano) return fisicos;
+  const ordens = ordensDeExecucao(sessao.plano, sessao.ordemExecucao);
+  if (ordens.length !== fisicos.length || fisicos.some((b, i) => b.ordem !== i + 1)) return fisicos;
+  return ordens.map(ordem => fisicos[ordem - 1]!);
+}
+
+/** Somente os movimentos pendentes que podem ser antecipados sem passar por uma série registrada. */
+export function opcoesDeProximoExercicio(sessao: SessaoLocal, origem: number): number[] {
+  const itens = sessao.plano?.itens;
+  if (sessao.workoutId !== "livre" || sessao.status !== "em_andamento" || !Array.isArray(itens) ||
+      itens.length !== sessao.blocos.length || sessao.blocos.some(b => itens[b.ordem - 1]?.exercicio_id !== b.originalId)) return [];
+  const visual = blocosNaOrdemDeExecucao(sessao);
+  const inicio = visual.findIndex(bloco => bloco.ordem === origem);
+  if (inicio < 0) return [];
+  const opcoes: number[] = [];
+  for (const [i, bloco] of visual.slice(inicio + 1).entries()) {
+    const registros = [bloco, ...(bloco.trocados ?? [])];
+    if (registros.some(r => r.series.some(s => s.concluida || s.registradaEm != null))) break;
+    if (i > 0) opcoes.push(bloco.ordem);
+  }
+  return opcoes;
+}
+
+export function aplicarOrdemRemotaDaSessao(sessao: SessaoLocal, ordemExecucao: readonly string[]): SessaoLocal {
+  if (sessao.workoutId !== "livre" || !sessao.plano) return sessao;
+  const chaves = [...new Set(ordemExecucao.filter(chave => typeof chave === "string" && chave !== ""))];
+  const ultima = sessao.plano.ultima_inclusao;
+  const plano = ultima && chaves.includes(`inclusao:${ultima.id}`) ? carimbarUltimaInclusao(sessao.plano) : sessao.plano;
+  const coincide = (lista?: readonly string[] | null) =>
+    lista?.length === chaves.length && chaves.every((chave, i) => chave === lista[i]);
+  if (plano === sessao.plano && coincide(sessao.ordemExecucao) && coincide(plano.ordem_execucao)) return sessao;
+  return { ...sessao, ordemExecucao: chaves, plano: { ...plano, ordem_execucao: chaves } };
+}
+
+export function escolherProximoExercicio(sessao: SessaoLocal, origem: number, escolhido: number): SessaoLocal {
+  if (!opcoesDeProximoExercicio(sessao, origem).includes(escolhido)) return sessao;
+  const chaves = chavesDosItensDoPlano(sessao.plano);
+  if (chaves.some(chave => chave === null) || new Set(chaves).size !== chaves.length) return sessao;
+  const ordens = ordensDeExecucao(sessao.plano, sessao.ordemExecucao).filter(ordem => ordem !== escolhido);
+  ordens.splice(ordens.indexOf(origem) + 1, 0, escolhido);
+  return aplicarOrdemRemotaDaSessao(sessao, ordens.map(ordem => chaves[ordem - 1]!));
 }
 
 /** Uma reconstrução pelo banco cria novos UUIDs para as séries pendentes. */
@@ -1098,7 +1151,7 @@ export function progressoDaSessao(sessao: SessaoLocal): ProgressoSessao {
  * `null` quando o treino está no último bloco (ou acabou).
  */
 export function proximoExercicio(sessao: SessaoLocal): string | null {
-  const pendentes = sessao.blocos.filter((bloco) =>
+  const pendentes = blocosNaOrdemDeExecucao(sessao).filter((bloco) =>
     bloco.series.some((s) => s.tipo === "trabalho" && !s.concluida),
   );
   const proximo = pendentes[1];

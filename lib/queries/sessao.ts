@@ -21,21 +21,25 @@ import {
   planoDaSessao,
 } from "@/lib/livre";
 import { alvoDaEscrita, type EscritaTabela } from "@/lib/outbox-supabase";
-import type { EstadoPlayer } from "@/lib/player";
+import { contextoDoProximoExercicio, type EstadoPlayer } from "@/lib/player";
+import { ordensDeExecucao } from "@/lib/ordem-da-sessao";
 import { guardarConsultasAgora } from "@/lib/persistencia-query";
 import { esperarFila, guardarNaFila, pendentes, processar } from "@/lib/outbox";
 import { chaveDoHistorico, guardarConclusaoNoHistorico } from "@/lib/queries/historico-da-sessao";
+import { apagarOrdemLocal, guardarOrdemLocal, lerComOrdemLocal } from "@/lib/queries/ordem-local-da-sessao";
 import { confirmarContaDoTreino } from "@/lib/queries/conta-do-treino";
 import { lerMotorParaRepetir } from "@/lib/queries/motor-repetir-treino";
 import { chaves, type SessaoResumo } from "@/lib/queries/dados";
 import {
   acrescentarExercicioNaSessao as acrescentarBloco,
+  aplicarOrdemRemotaDaSessao,
   bloquearDesfazerSeIniciado,
   comSubstituicoes,
   concluirSessao,
   definirDescansoDoExercicioNaSessao,
   definirEquipamentoDaSessao,
   desfazerUltimaInclusao,
+  escolherProximoExercicio,
   escritaDaSerie,
   escritasDasSeriesFeitas,
   escritaDaSessao,
@@ -85,6 +89,8 @@ function preservarPlanoSalvo(
   if (!base) return null;
   const atualizado = { ...base };
   const persistido = salva.plano;
+  const ordem = salva.ordemExecucao ?? persistido?.ordem_execucao;
+  if (Array.isArray(ordem)) atualizado.ordem_execucao = ordem;
   if (persistido?.descansos_por_exercicio) atualizado.descansos_por_exercicio = persistido.descansos_por_exercicio;
   else delete atualizado.descansos_por_exercicio;
   if (manterMaterial) {
@@ -167,6 +173,7 @@ function conciliarEdicaoDoBloco(gravado: BlocoLocal, base: BlocoLocal, editado: 
 /** A lista confirmada no disco pode ter crescido, encolhido ou recebido o mesmo exercício com novos UUIDs. */
 export function conciliarBlocosAcrescentados(atual: SessaoLocal, salva: SessaoLocal): SessaoLocal {
   if (atual.id !== salva.id || atual.userId !== salva.userId || atual.workoutId !== WORKOUT_LIVRE) return atual;
+  atual = comOrdemConfirmada(atual, salva);
   if (!salva.plano?.ultima_inclusao && atual.blocos.length >= salva.blocos.length) return atual;
   const inclusaoAtual = atual.plano?.ultima_inclusao;
   const inclusaoSalva = salva.plano?.ultima_inclusao;
@@ -185,6 +192,24 @@ export function conciliarBlocosAcrescentados(atual: SessaoLocal, salva: SessaoLo
   };
 }
 
+/** Preserva a escolha já confirmada durante uma edição que não alterou a sequência. */
+export function comOrdemConfirmada(atual: SessaoLocal, salva: SessaoLocal): SessaoLocal {
+  const ordem = salva.ordemExecucao ?? salva.plano?.ordem_execucao;
+  if (atual.id !== salva.id || atual.userId !== salva.userId || !Array.isArray(ordem)) return atual;
+  const comOrdem = aplicarOrdemRemotaDaSessao(atual, ordem);
+  return comOrdem.revisaoOrdemExecucao === salva.revisaoOrdemExecucao
+    ? comOrdem : { ...comOrdem, revisaoOrdemExecucao: salva.revisaoOrdemExecucao };
+}
+
+/** Uma aba #58 pode regravar só o espelho e omitir a revisão e a coluna do snapshot. */
+export function mesmaVersaoDaOrdem(a: SessaoLocal, b: SessaoLocal): boolean {
+  if (a.workoutId !== WORKOUT_LIVRE || b.workoutId !== WORKOUT_LIVRE) return true;
+  if (a.revisaoOrdemExecucao !== b.revisaoOrdemExecucao) return false;
+  const primeira = ordensDeExecucao(a.plano, a.ordemExecucao);
+  const segunda = ordensDeExecucao(b.plano, b.ordemExecucao);
+  return primeira.length === segunda.length && primeira.every((slot, i) => slot === segunda[i]);
+}
+
 export function mesmoRelogio(a: SessaoLocal["player"], b: SessaoLocal["player"]): boolean {
   return a?.chave === b?.chave && a?.fimEm === b?.fimEm && a?.totalS === b?.totalS;
 }
@@ -192,12 +217,12 @@ export function mesmoRelogio(a: SessaoLocal["player"], b: SessaoLocal["player"])
 async function gravar(sessao: SessaoLocal, antes?: SessaoLocal): Promise<void> {
   if (!temIndexedDB()) return;
   const banco = bd();
-  const mudouPlano = await banco.transaction("rw", banco.sessaoAtiva, banco.outbox, async () => {
-    const salva = await carregarSessaoLocal(sessao.id);
+  const mudouPlano = await banco.transaction("rw", banco.sessaoAtiva, banco.outbox, banco.cache, async () => {
+    const salva = await lerSessaoNaTransacao(sessao.id);
     if (antes && (!salva || salva.status !== "em_andamento")) throw new Error("Esta sessão não está aberta neste aparelho.");
     if (salva && salva.userId !== sessao.userId) throw new Error("A sessão pertence a outra conta.");
     // Uma reconstrução pela rede pode terminar depois que a cópia local já avançou.
-    if (!antes && salva?.plano?.ultima_inclusao) return false;
+    if (!antes && (salva?.plano?.ultima_inclusao || salva?.ordemExecucao || salva?.plano?.ordem_execucao)) return false;
     const plano = antes && salva && sessao.plano === antes.plano ? salva.plano : preservarPlanoSalvo(sessao.plano, salva, true);
     const nova = { ...(salva ? conciliarBlocosAcrescentados(sessao, salva) : sessao), plano };
     // Só o editor altera esta nota. Um toque em uma série pode partir de uma aba com a versão anterior.
@@ -210,12 +235,13 @@ async function gravar(sessao: SessaoLocal, antes?: SessaoLocal): Promise<void> {
         nova.descansoPadraoConhecidoS = salva.descansoPadraoConhecidoS;
       }
       // Um toque pendente não volta a um passo ou exercício já trocado em outra aba.
-      if (sessao.player === antes.player || !mesmoRelogio(antes.player, salva.player)) nova.player = salva.player;
+      if (sessao.player === antes.player || !mesmoRelogio(antes.player, salva.player) ||
+          !mesmaVersaoDaOrdem(antes, salva)) nova.player = salva.player;
       nova.blocos = nova.blocos.map(bloco => {
         const base = antes.blocos.find(b => b.ordem === bloco.ordem);
         const maisNovo = salva.blocos.find(b => b.ordem === bloco.ordem);
         if (!maisNovo) return bloco;
-        if (base && salva.plano?.ultima_inclusao) {
+        if (base && (salva.plano?.ultima_inclusao || salva.ordemExecucao || salva.plano?.ordem_execucao)) {
           // Se a lista mudou, a conciliação já devolveu o bloco da geração atual.
           if (bloco === maisNovo) return maisNovo;
           return conciliarEdicaoDoBloco(maisNovo, base, bloco);
@@ -226,6 +252,7 @@ async function gravar(sessao: SessaoLocal, antes?: SessaoLocal): Promise<void> {
     }
     const completa = bloquearDesfazerSeIniciado(nova);
     await banco.sessaoAtiva.put({ id: sessao.id, dados: completa, atualizadoEm: Date.now() });
+    if (!antes) await guardarOrdemLocal(completa);
     if (salva?.plano?.ultima_inclusao?.estado !== "disponivel" || completa.plano?.ultima_inclusao?.estado !== "iniciada") return false;
     const escrita = escritaDoPlano(completa.id, completa.userId, planoParaGravar(completa));
     await guardarNaFila("sessao", escrita, alvoDaEscrita(escrita));
@@ -249,26 +276,41 @@ export async function descarregarSessao(): Promise<void> {
   await confirmarToquesPendentes().catch(() => {});
 }
 
-export async function carregarSessaoLocal(id: string): Promise<SessaoLocal | null> {
-  if (!temIndexedDB()) return null;
+async function lerSessaoNaTransacao(id: string): Promise<SessaoLocal | null> {
   const item = await bd().sessaoAtiva.get(id);
-  return item ? (item.dados as SessaoLocal) : null;
+  return item ? lerComOrdemLocal(item.dados as SessaoLocal) : null;
 }
 
-/** A sessão aberta mais recente guardada neste aparelho. */
-export async function sessaoLocalMaisRecente(conta?: string, encerradas?: ReadonlySet<string>): Promise<SessaoLocal | null> {
+export async function carregarSessaoLocal(id: string): Promise<SessaoLocal | null> {
   if (!temIndexedDB()) return null;
+  const banco = bd();
+  return banco.transaction("r", banco.sessaoAtiva, banco.cache, () => lerSessaoNaTransacao(id));
+}
+
+async function lerRecenteNaTransacao(conta?: string, encerradas?: ReadonlySet<string>): Promise<SessaoLocal | null> {
   const recentes = bd().sessaoAtiva.orderBy("atualizadoEm").reverse();
   const item = await (conta === undefined ? recentes : recentes.filter(({ dados }) => {
     const sessao = dados as SessaoLocal;
     return sessao.userId === conta && sessao.status === "em_andamento" && !encerradas?.has(sessao.id);
   })).first();
-  return item ? (item.dados as SessaoLocal) : null;
+  return item ? lerComOrdemLocal(item.dados as SessaoLocal) : null;
+}
+
+/** A sessão aberta mais recente guardada neste aparelho. */
+export async function sessaoLocalMaisRecente(conta?: string, encerradas?: ReadonlySet<string>): Promise<SessaoLocal | null> {
+  if (!temIndexedDB()) return null;
+  const banco = bd();
+  return banco.transaction("r", banco.sessaoAtiva, banco.cache, () => lerRecenteNaTransacao(conta, encerradas));
 }
 
 export async function apagarSessaoLocal(id: string): Promise<void> {
   if (!temIndexedDB()) return;
-  await bd().sessaoAtiva.delete(id).catch(() => {});
+  const banco = bd();
+  await banco.transaction("rw", banco.sessaoAtiva, banco.cache, async () => {
+    const item = await banco.sessaoAtiva.get(id);
+    if (item) await apagarOrdemLocal((item.dados as SessaoLocal).userId, id);
+    await banco.sessaoAtiva.delete(id);
+  }).catch(() => {});
 }
 
 /* ------------------------------------------------------ fila de saída */
@@ -418,27 +460,30 @@ async function registrarSessaoNova(
 
 type AlterarSessao = (atual: SessaoLocal) => SessaoLocal;
 
+class SessaoNaoEstaAberta extends Error {}
+
 async function gravarSessaoComSaida(
   sessao: SessaoLocal,
-  { alterar, escritaDaAlteracao, retomarSeAberta }: {
+  { alterar, escritaDaAlteracao, retomarSeAberta, conferirAntesDeConfirmar }: {
     alterar?: AlterarSessao;
     escritaDaAlteracao?: (atual: SessaoLocal) => EscritaTabela;
+    conferirAntesDeConfirmar?: () => void;
     retomarSeAberta?: { encerradas: ReadonlySet<string> };
   },
 ): Promise<SessaoLocal> {
   const banco = bd();
-  const gravada = await banco.transaction("rw", banco.sessaoAtiva, banco.outbox, async () => {
+  const gravada = await banco.transaction("rw", banco.sessaoAtiva, banco.outbox, banco.cache, async () => {
     let atual = sessao;
     let escrita: EscritaTabela;
     if (retomarSeAberta) {
-      const existente = await sessaoLocalMaisRecente(sessao.userId, retomarSeAberta.encerradas);
+      const existente = await lerRecenteNaTransacao(sessao.userId, retomarSeAberta.encerradas);
       if (existente) return existente;
     }
     if (alterar) {
       // Outra aba pode ter registrado uma série ou encerrado o treino desde a renderização.
-      const salva = await carregarSessaoLocal(sessao.id);
+      const salva = await lerSessaoNaTransacao(sessao.id);
       if (!salva || salva.userId !== sessao.userId || salva.status !== "em_andamento") {
-        throw new Error("Esta sessão não está aberta nesta conta e aparelho.");
+        throw new SessaoNaoEstaAberta("Esta sessão não está aberta nesta conta e aparelho.");
       }
       atual = alterar(salva);
       if (atual === salva) return salva;
@@ -448,10 +493,66 @@ async function gravarSessaoComSaida(
     }
     await banco.sessaoAtiva.put({ id: atual.id, dados: atual, atualizadoEm: Date.now() });
     await guardarNaFila("sessao", escrita, alvoDaEscrita(escrita));
+    if (Array.isArray(escrita.linha?.ordem_execucao)) await guardarOrdemLocal(atual);
+    conferirAntesDeConfirmar?.();
     return atual;
   });
   if (alterar || gravada === sessao) void processar();
   return gravada;
+}
+
+/** Compara também as substituições e os UUIDs: desfazer e incluir novamente pode reutilizar o slot. */
+function mesmaEscolhaDeProximo(antes: SessaoLocal, salva: SessaoLocal, origem: number, escolhido: number): boolean {
+  if (antes.workoutId !== WORKOUT_LIVRE || salva.workoutId !== WORKOUT_LIVRE ||
+      antes.status !== "em_andamento" || !mesmaVersaoDaOrdem(antes, salva) ||
+      !mesmoRelogio(antes.player, salva.player) ||
+      !mesmoRelogio(antes.player?.descansoAoCorrigir, salva.player?.descansoAoCorrigir)) return false;
+  const a = contextoDoProximoExercicio(antes, antes.player);
+  const b = contextoDoProximoExercicio(salva, salva.player);
+  if (a?.origem !== origem || b?.origem !== origem || a.proximo !== b.proximo ||
+      !a.candidatos.includes(escolhido) || !b.candidatos.includes(escolhido)) return false;
+  const ordem = ordensDeExecucao(antes.plano, antes.ordemExecucao);
+  // Uma edição em um bloco posterior à escolha continua permitida e será mantida na sessão salva.
+  return ordem.slice(ordem.indexOf(origem), ordem.indexOf(escolhido) + 1).every(slot => {
+    const visto = antes.blocos.find(bloco => bloco.ordem === slot);
+    const gravado = salva.blocos.find(bloco => bloco.ordem === slot);
+    return visto && gravado && JSON.stringify(visto) === JSON.stringify(gravado);
+  });
+}
+
+export async function guardarProximoExercicio(antes: SessaoLocal, origem: number, escolhido: number, avancarSozinho = false) {
+  await confirmarContaDoTreino(antes.userId, "Não foi possível confirmar a conta deste treino.");
+  await confirmarToquesPendentes(antes);
+  let aplicada = false;
+  const prazo = avancarSozinho && antes.player?.chave.startsWith("descanso:") ? antes.player.fimEm : null;
+  const venceu = () => prazo != null && prazo <= Date.now();
+  const prazoVencido = new Error("O descanso terminou antes de confirmar a troca.");
+  const sessao = await gravarSessaoComSaida(antes, {
+    alterar: salva => {
+      if (!mesmaEscolhaDeProximo(antes, salva, origem, escolhido)) return salva;
+      if (venceu()) return salva;
+      const nova = escolherProximoExercicio(salva, origem, escolhido);
+      if (nova === salva) return salva;
+      aplicada = true;
+      return { ...nova, revisaoOrdemExecucao: novoId() };
+    },
+    escritaDaAlteracao: atual => ({
+      tabela: "sessions", op: "update",
+      linha: { ordem_execucao: atual.ordemExecucao, plano: planoParaGravar(atual) },
+      filtro: { id: atual.id, user_id: atual.userId, status: "em_andamento" },
+    }),
+    // O descanso automático também pode vencer enquanto o aparelho grava as duas linhas.
+    conferirAntesDeConfirmar: () => { if (venceu()) throw prazoVencido; },
+  }).catch(async (erro: unknown) => {
+    if (erro === prazoVencido) {
+      aplicada = false;
+      const salva = await carregarSessaoLocal(antes.id);
+      return salva?.userId === antes.userId && salva.status === "em_andamento" ? salva : null;
+    }
+    if (erro instanceof SessaoNaoEstaAberta) return null;
+    throw erro;
+  });
+  return { aplicada, sessao };
 }
 
 function escritaDoPlano(id: string, userId: string, plano: PlanoDaSessao | null): EscritaTabela {
@@ -464,8 +565,8 @@ function escritaDoPlano(id: string, userId: string, plano: PlanoDaSessao | null)
 /** Releitura e enfileiramento na mesma transação mantêm a ordem em relação ao editor de descanso. */
 async function enfileirarComPlanoAtual(id: string, conta: string, escrita: EscritaTabela, manterMaterial: boolean): Promise<SessaoLocal | null> {
   const banco = bd();
-  const confirmada = await banco.transaction("rw", banco.sessaoAtiva, banco.outbox, async () => {
-    const salva = await carregarSessaoLocal(id);
+  const confirmada = await banco.transaction("rw", banco.sessaoAtiva, banco.outbox, banco.cache, async () => {
+    const salva = await lerSessaoNaTransacao(id);
     if (salva && salva.userId !== conta) throw new Error("A sessão pertence a outra conta.");
     // As trocas e a lista da sessão livre já foram conciliadas ao descarregar a edição de tela.
     const recebido = escrita.linha?.plano as PlanoDaSessao | null;
@@ -557,36 +658,56 @@ export async function guardarNotaGeralDaSessao(sessao: SessaoLocal, texto: strin
   });
 }
 
-/** Ao reabrir, incorpora uma edição de outro aparelho se a cópia local continua sem edição pendente. */
+/** A mesma leitura recupera nota e sequência da conta. Cada campo protege a própria fila. */
 export async function sincronizarNotaGeralDaSessao(sessao: SessaoLocal, sinal?: AbortSignal): Promise<SessaoLocal | null> {
   if (navigator.onLine === false || !temIndexedDB()) return null;
   const banco = bd();
-  const lerSemEdicaoPendente = async () => {
-    const salva = await carregarSessaoLocal(sessao.id);
+  const lerEstado = async () => {
+    const salva = await lerSessaoNaTransacao(sessao.id);
     if (salva?.userId !== sessao.userId || salva.status !== "em_andamento") return null;
-    const pendente = await banco.outbox.where("tipo").equals("sessao").filter(item => {
+    const pendente = (campo: string) => banco.outbox.where("tipo").equals("sessao").filter(item => {
       const p = item.payload as EscritaTabela;
-      return p.tabela === "sessions" && p.filtro?.id === sessao.id && p.filtro.user_id === sessao.userId &&
-        Object.hasOwn(p.linha ?? {}, "nota_geral");
+      if (p.tabela !== "sessions") return false;
+      if (p.op === "update") return p.filtro?.id === sessao.id && p.filtro.user_id === sessao.userId &&
+        Object.hasOwn(p.linha ?? {}, campo);
+      return (p.linhas ?? (p.linha ? [p.linha] : [])).some(linha =>
+        linha.id === sessao.id && linha.user_id === sessao.userId && Object.hasOwn(linha, campo));
     }).first();
-    return pendente ? null : salva;
+    const nota = !await pendente("nota_geral");
+    const ordem = salva.workoutId === WORKOUT_LIVRE && !await pendente("ordem_execucao");
+    return nota || ordem ? { salva, nota, ordem } : null;
   };
-  const base = await banco.transaction("r", banco.sessaoAtiva, banco.outbox, lerSemEdicaoPendente);
+  const base = await banco.transaction("r", banco.sessaoAtiva, banco.outbox, banco.cache, lerEstado);
   if (!base || sinal?.aborted) return null;
-  let consulta = clienteNavegador().from("sessions").select("nota_geral")
+  const campos = base.ordem ? "nota_geral,ordem_execucao" : "nota_geral";
+  let consulta = clienteNavegador().from("sessions").select(campos)
     .eq("id", sessao.id).eq("user_id", sessao.userId).eq("status", "em_andamento");
   if (sinal) consulta = consulta.abortSignal(sinal);
   const { data, error } = await consulta.maybeSingle();
   if (error) throw new Error(error.message);
-  if (!data || (data.nota_geral !== null && typeof data.nota_geral !== "string")) return null;
-  const nota: string | null = data.nota_geral;
-  return banco.transaction("rw", banco.sessaoAtiva, banco.outbox, async () => {
-    const atual = await lerSemEdicaoPendente();
-    if (!atual || sinal?.aborted || base.notaGeral !== atual.notaGeral || base.revisaoNotaGeral !== atual.revisaoNotaGeral) return null;
-    if (nota === (atual.notaGeral ?? null)) return atual;
-    const reconciliada = { ...atual, notaGeral: nota, revisaoNotaGeral: novoId() };
-    await banco.sessaoAtiva.put({ id: atual.id, dados: reconciliada, atualizadoEm: Date.now() });
-    return reconciliada;
+  if (!data) return null;
+  return banco.transaction("rw", banco.sessaoAtiva, banco.outbox, banco.cache, async () => {
+    const atual = await lerEstado();
+    if (!atual || sinal?.aborted) return null;
+    const notaValida = base.nota && atual.nota && base.salva.notaGeral === atual.salva.notaGeral &&
+      base.salva.revisaoNotaGeral === atual.salva.revisaoNotaGeral && (data.nota_geral === null || typeof data.nota_geral === "string");
+    const ordemRemota = "ordem_execucao" in data ? data.ordem_execucao : undefined;
+    const ordemValida = base.ordem && atual.ordem && Array.isArray(ordemRemota) &&
+      mesmaVersaoDaOrdem(base.salva, atual.salva);
+    if (!notaValida && !ordemValida) return null;
+    let nova = atual.salva;
+    if (ordemValida) {
+      nova = aplicarOrdemRemotaDaSessao(nova, ordemRemota);
+      if (nova !== atual.salva) {
+        nova = { ...nova, revisaoOrdemExecucao: novoId() };
+        await guardarOrdemLocal(nova);
+      }
+    }
+    if (notaValida && data.nota_geral !== (nova.notaGeral ?? null)) {
+      nova = { ...nova, notaGeral: data.nota_geral, revisaoNotaGeral: novoId() };
+    }
+    if (nova !== atual.salva) await banco.sessaoAtiva.put({ id: nova.id, dados: nova, atualizadoEm: Date.now() });
+    return nova;
   });
 }
 
@@ -606,8 +727,8 @@ export async function guardarCronometroDaSessao(
   await confirmarContaDoTreino(sessao.userId, "Não foi possível confirmar a conta deste treino.");
   await confirmarToquesPendentes(sessao);
   const banco = bd();
-  return banco.transaction("rw", banco.sessaoAtiva, async () => {
-    const salva = await carregarSessaoLocal(sessao.id);
+  return banco.transaction("rw", banco.sessaoAtiva, banco.cache, async () => {
+    const salva = await lerSessaoNaTransacao(sessao.id);
     if (!salva || salva.userId !== sessao.userId || salva.status !== "em_andamento") {
       throw new Error("Esta sessão não está aberta nesta conta e aparelho.");
     }
@@ -688,8 +809,8 @@ export async function desfazerUltimaInclusaoNaSessao(sessao: SessaoLocal, identi
 export async function enviarSerie(sessao: SessaoLocal, bloco: BlocoLocal, serie: SerieLocal): Promise<boolean> {
   await confirmarToquesPendentes(sessao);
   const banco = bd();
-  const enfileirada = await banco.transaction("rw", banco.sessaoAtiva, banco.outbox, async () => {
-    const salva = await carregarSessaoLocal(sessao.id);
+  const enfileirada = await banco.transaction("rw", banco.sessaoAtiva, banco.outbox, banco.cache, async () => {
+    const salva = await lerSessaoNaTransacao(sessao.id);
     if (!salva || salva.status !== "em_andamento" || salva.userId !== sessao.userId) return false;
     const posicao = salva.blocos.find(b => b.ordem === bloco.ordem);
     if (!posicao) return false;
@@ -732,7 +853,7 @@ export async function finalizarSessao(entrada: EntradaFim): Promise<Conclusao> {
   // Um acréscimo simultâneo ou fica no treino que avaliamos, ou encontra o treino já encerrado.
   const banco = bd();
   const { conclusao, historico } = await banco.transaction("rw", banco.sessaoAtiva, banco.outbox, banco.cache, async () => {
-    const salva = await carregarSessaoLocal(sessao.id);
+    const salva = await lerSessaoNaTransacao(sessao.id);
     if (!salva || salva.userId !== sessao.userId || salva.status !== "em_andamento") {
       throw new Error("Esta sessão não está aberta nesta conta e aparelho.");
     }
@@ -745,7 +866,8 @@ export async function finalizarSessao(entrada: EntradaFim): Promise<Conclusao> {
       await guardarNaFila(TIPO_POR_TABELA[escrita.tabela] ?? "sessao", escrita, alvoDaEscrita(escrita));
     }
     await banco.sessaoAtiva.delete(sessao.id);
-    const historico = await guardarConclusaoNoHistorico(cliente, resultado, encerrada.notaGeral, series.map(s => s.linha));
+    if (Array.isArray(salva.ordemExecucao)) await apagarOrdemLocal(sessao.userId, sessao.id);
+    const historico = await guardarConclusaoNoHistorico(cliente, resultado, encerrada.notaGeral, series.map(s => s.linha), encerrada.ordemExecucao);
     return { conclusao: resultado, historico };
   });
   await cliente.cancelQueries({ queryKey: chaveDoHistorico(sessao.userId), exact: true });

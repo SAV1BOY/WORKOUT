@@ -9,6 +9,9 @@ import { chaveDoHistoricoNoDisco } from "@/lib/chaves-do-historico";
 import { guardarConsultasAgora } from "@/lib/persistencia-query";
 import type { SessaoBruta } from "@/lib/progresso";
 import { guardarDescarteNoHistorico, lerHistoricoDaConta } from "./historico-da-sessao";
+import { guardarOrdemLocal, lerComOrdemLocal } from "./ordem-local-da-sessao";
+import { montarSessaoAvulsa } from "@/lib/sessao";
+import { itensDeIds, planoDaSessao } from "@/lib/livre";
 import { lerSessoesLocaisDoCalendario, reunirSessoesDoCalendario } from "./sessoes-do-calendario";
 
 vi.mock("@/lib/supabase/client", () => ({ clienteNavegador: vi.fn() }));
@@ -37,6 +40,42 @@ it("conserva o horário e a duração das duas forças anteriores às sessenta m
   expect(resultado.filter(s => s.data === data)).toEqual([antiga, outra, expect.objectContaining({ id: "livre", status: "em_andamento" })]);
   expect(reunirSessoesDoCalendario("bia", lista, locais)).toEqual([]);
   expect(await lerSessoesLocaisDoCalendario("bia")).toMatchObject({ abertas: [{id: "outro"}], historico: null });
+});
+
+it("ao descartar uma sessão editada no cliente antigo, leva a ordem local ao histórico e libera a cópia do player", async () => {
+  const cliente = new QueryClient();
+  const ordem = ["prancha", "flexao-de-braco"];
+  const itens = itensDeIds(["flexao-de-braco", "prancha"]);
+  const dados = montarSessaoAvulsa({ userId: conta, id: aberta.id, data, fase: "fase1",
+    workoutId: "livre", itens, plano: planoDaSessao(itens) });
+  await guardarOrdemLocal({ ...dados, ordemExecucao: ordem });
+  await banco.sessaoAtiva.put({ id: dados.id, dados, atualizadoEm: Date.now() });
+  await banco.cache.put({ chave: chaveDoHistoricoNoDisco(conta), valor: [aberta], atualizadoEm: Date.now() });
+  await expect(guardarDescarteNoHistorico(cliente, "bia", aberta.id)).rejects.toThrow("outra conta");
+  const historico = await guardarDescarteNoHistorico(cliente, conta, aberta.id);
+  expect(historico[0]).toMatchObject({ status: "abandonada", ordem_execucao: ordem, plano: { ordem_execucao: ordem } });
+  expect(await banco.sessaoAtiva.get(aberta.id)).toBeUndefined();
+  expect((await lerComOrdemLocal(dados)).ordemExecucao).toBeUndefined();
+});
+
+it("recupera a sequência de uma conclusão offline antiga até o servidor confirmar outra ordem", async () => {
+  const itens = itensDeIds(["flexao-de-braco", "prancha"]);
+  const plano = planoDaSessao(itens);
+  const concluida = { ...aberta, status: "concluida" as const, plano };
+  const ordem = ["prancha", "flexao-de-braco"];
+  const dados = montarSessaoAvulsa({ userId: conta, id: aberta.id, data, fase: "fase1", workoutId: "livre", itens, plano });
+  await guardarOrdemLocal({ ...dados, ordemExecucao: ordem });
+  await banco.cache.put({ chave: chaveDoHistoricoNoDisco(conta), valor: [concluida], atualizadoEm: Date.now() });
+  expect((await lerHistoricoDaConta(new QueryClient(), conta))[0]?.ordem_execucao).toEqual(ordem);
+  const fetch = vi.fn(async () => Response.json([{ ...concluida, ordem_execucao: [] }], {
+    headers: { "content-range": "0-0/1" },
+  }));
+  vi.mocked(clienteNavegador).mockReturnValue(createClient("https://supabase.test", "anon-simulada", { global: { fetch } }));
+  vi.stubGlobal("navigator", { onLine: true });
+  expect((await lerHistoricoDaConta(new QueryClient(), conta))[0]?.ordem_execucao).toEqual([]);
+  vi.stubGlobal("navigator", { onLine: false });
+  expect((await lerHistoricoDaConta(new QueryClient(), conta))[0]?.ordem_execucao).toEqual([]);
+  expect(fetch).toHaveBeenCalledTimes(1);
 });
 
 it("reabre o cache do calendário anterior sem Relatório e preserva o descarte na fila e logo após a confirmação", async () => {

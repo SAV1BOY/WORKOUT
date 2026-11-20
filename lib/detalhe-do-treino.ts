@@ -1,5 +1,7 @@
 import { exercicioPorId } from "@/lib/dados";
 import { formatarKg, formatarNumero, rotuloDaCarga } from "@/lib/formato";
+import { ehSessaoLivre } from "@/lib/livre";
+import { ordensDeExecucao } from "@/lib/ordem-da-sessao";
 import type { SerieBruta, SessaoBruta } from "@/lib/progresso";
 import type { Exercicio } from "@/lib/schemas";
 import { nomeDaAssistencia, rotulosDaSerie } from "@/lib/sessao";
@@ -139,7 +141,10 @@ export function detalharSeriesDoTreino(
       grupos.set(chave, { ordem, exercicioId: s.exercise_id, primeiroRegistro: instante(s), linhas: [s] });
     }
   }
-  return [...grupos.entries()].sort(([, a], [, b]) => (a.ordem ?? Infinity) - (b.ordem ?? Infinity) ||
+  const sequencia = ehSessaoLivre(sessao.workout_id) ? ordensDeExecucao(sessao.plano, sessao.ordem_execucao) : [];
+  const posicoes = new Map(sequencia.map((ordem, i) => [ordem, i + 1]));
+  const posicaoNoPlano = (ordem: number | null) => ordem === null ? Infinity : posicoes.get(ordem) ?? ordem;
+  return [...grupos.entries()].sort(([, a], [, b]) => posicaoNoPlano(a.ordem) - posicaoNoPlano(b.ordem) ||
     a.primeiroRegistro - b.primeiroRegistro ||
     Number(movimentoOriginal(sessao, b.ordem, b.exercicioId)) - Number(movimentoOriginal(sessao, a.ordem, a.exercicioId)) ||
     a.exercicioId.localeCompare(b.exercicioId))

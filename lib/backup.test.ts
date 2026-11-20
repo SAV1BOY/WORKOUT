@@ -390,3 +390,52 @@ it("o backup v1 preserva as notas dos blocos e distingue a nota geral apagada da
   ]);
   expect(lotes[1]!.linhas[0]).not.toHaveProperty("nota_geral");
 });
+
+it("separa no backup v1 as quatro combinações de nota geral e ordem da sessão", () => {
+  const ordem = ["c", "a", "b"];
+  const plano = { itens: [], ordem_execucao: ordem };
+  const sessoes = [
+    { id: "legada", plano },
+    { id: "com-nota", plano, nota_geral: null },
+    { id: "com-ordem", plano, ordem_execucao: ordem },
+    { id: "ambas", plano, nota_geral: "Treino leve", ordem_execucao: [] },
+    { id: "coluna-nula", plano, ordem_execucao: null },
+  ];
+  const arquivo = lerBackup(textoDoBackup(montarBackup({
+    userId: OUTRO, exportadoEm: AGORA, tabelas: { sessions: sessoes },
+  })));
+  const lotes = linhasParaImportar(arquivo, EU);
+  expect(arquivo.versao).toBe(1);
+  expect(lotes).toHaveLength(4);
+  for (const lote of lotes) {
+    expect(lote.tabela).toBe("sessions");
+    expect(lote.onConflict).toBe("id");
+    const primeira = lote.linhas[0]!;
+    for (const linha of lote.linhas) {
+      expect("nota_geral" in linha).toBe("nota_geral" in primeira);
+      expect("ordem_execucao" in linha).toBe("ordem_execucao" in primeira);
+    }
+  }
+  const linhas = lotes.flatMap((lote) => lote.linhas);
+  expect(linhas).toHaveLength(sessoes.length);
+  for (const original of sessoes) {
+    expect(linhas.find((linha) => linha.id === original.id)).toStrictEqual({ ...original, user_id: EU });
+  }
+});
+
+it.each([
+  { caso: "escolha após o cliente antigo regravar o plano", ordem: ["flexao-de-braco", "supino-reto-com-barra"], espelhoAntigo: {} },
+  { caso: "retorno ao padrão com espelho desatualizado", ordem: [], espelhoAntigo: { ordem_execucao: ["flexao-de-braco", "supino-reto-com-barra"] } },
+])("exporta para um cliente anterior — $caso", ({ ordem, espelhoAntigo }) => {
+  const plano = {
+    ...planoDaSessao(itensDeIds(["supino-reto-com-barra", "flexao-de-braco"])),
+    ...espelhoAntigo,
+    equipamento_disponivel: ["tatame"],
+  };
+  const sessao = { id: "s1", workout_id: "livre", plano, nota_geral: "No terraço", ordem_execucao: ordem };
+  const original = structuredClone(sessao);
+  const backup = montarBackup({ userId: EU, exportadoEm: AGORA, tabelas: { sessions: [sessao] } });
+  const arquivo = lerBackup(textoDoBackup(backup));
+  expect(arquivo.tabelas.sessions).toStrictEqual([{ ...sessao, plano: { ...plano, ordem_execucao: ordem } }]);
+  expect(sessao).toStrictEqual(original);
+});

@@ -16,6 +16,23 @@ itens[1] = { ...itens[1]!, prescricao: { ...itens[1]!.prescricao, series: 4, min
 const plano = planoDaSessao(itens, rotulos);
 
 describe("composição de um treino livre concluído", () => {
+  it("repete a sequência escolhida e resolve a troca pela posição original", () => {
+    const planoAnterior = planoDaSessao(itensDeIds([apoio, original, "prancha"]));
+    const origem = {
+      status: "concluida", workout_id: "livre",
+      plano: { ...planoAnterior, trocas: { 2: [{ exercicio_id: variacao }] } },
+      ordem_execucao: [apoio, "prancha", original],
+    };
+    expect(montarRepeticaoDoTreinoLivre(origem)?.itens.map(i => i.exercicioId))
+      .toEqual([apoio, "prancha", variacao]);
+    expect(planoAnterior.itens.map(i => i.exercicio_id)).toEqual([apoio, original, "prancha"]);
+    const restaurada = { ...origem, plano: { ...origem.plano, ordem_execucao: origem.ordem_execucao } };
+    expect(montarRepeticaoDoTreinoLivre({ ...restaurada, ordem_execucao: null })?.itens.map(i => i.exercicioId))
+      .toEqual([apoio, "prancha", variacao]);
+    expect(montarRepeticaoDoTreinoLivre({ ...restaurada, ordem_execucao: [] })?.itens.map(i => i.exercicioId))
+      .toEqual([apoio, variacao, "prancha"]);
+  });
+
   it("repete a ordem, o título e a prescrição válida nas posições sem troca", () => {
     expect(concluida(plano)).toEqual({ itens, ...rotulos });
     expect(concluida({ itens: plano.itens })?.titulo).toBeNull();

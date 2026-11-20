@@ -28,6 +28,7 @@ import { formatarDuracao, formatarKg, rotuloDaCarga } from "@/lib/formato";
 import {
   anterior as passoAnterior,
   apos,
+  contextoDoProximoExercicio,
   definirDuracao,
   entradaDoPasso,
   estadoDoPasso,
@@ -65,6 +66,7 @@ import {
   ajustarPrescricaoDaSessao,
   avisoDaTroca,
   bloquearDesfazerSeIniciado,
+  blocosNaOrdemDeExecucao,
   contadoresDaSessao,
   descansoPersonalizadoDaSessao,
   firmePadrao,
@@ -409,6 +411,19 @@ export function TelaPlayer({
 
   const nomeDoTreino = nomeDaSessao(dados);
   if (visaoGeral) {
+    const contexto = sessao.id === sessaoId && sessao.userId === userId && mesmoRelogio(estado, sessao.player)
+      ? contextoDoProximoExercicio(sessao, estado, seq) : null;
+    const contextoProximo = contexto ? {
+      ...contexto,
+      escolher: async (ordem: number) => {
+        const resultado = await dados.escolherProximo(sessao, contexto.origem, ordem, ligado(prefs, "avancar_sozinho"));
+        const passoConfirmado = resultado.sessao?.player;
+        if (!resultado.aplicada && passoConfirmado && resultado.sessao?.id === sessaoId && resultado.sessao.userId === userId) {
+          setEstado(atual => mesmoRelogio(atual, sessao.player) ? passoConfirmado : atual);
+        }
+        return resultado.aplicada;
+      },
+    } : undefined;
     return (
       /* tela cheia: no player a barra de abas devolve `null` (§14.1), então
          parar 56 px antes do fim só deixava uma faixa morta (§22.1) */
@@ -419,6 +434,7 @@ export function TelaPlayer({
             nomeDoTreino={nomeDoTreino}
             dados={dados}
             opcoesDoPlayer={opcoes}
+            contextoProximo={contextoProximo}
             videos={videos}
             aoFechar={fecharVisaoGeral}
           />
@@ -434,12 +450,18 @@ export function TelaPlayer({
       ? (sessao.blocos.find((b) => b.ordem === passo.ordem) ?? null)
       : null;
 
+  const abrirVisaoGeral = () => {
+    // Na primeira série o estado da tela ainda pode não ter sido salvo neste aparelho.
+    if (!sessao.player && sessao.workoutId === "livre" && sessao.id === sessaoId && sessao.userId === userId) guardar(estado);
+    setVisaoGeral(true);
+  };
   const blocoDaFicha = sessao.blocos.find((b) => b.ordem === ordemDaFicha);
   const ficha = blocoDaFicha?.exercicioId ?? null;
   /** A ficha aberta de dentro da sessão mexe na prescrição de hoje (§14.2). */
   const contextoDaFicha = ((): ContextoDaFicha | undefined => {
     const alvoBloco = blocoDaFicha;
     if (!ficha || !alvoBloco) return undefined;
+    const blocos = blocosNaOrdemDeExecucao(sessao);
     const pendente =
       alvoBloco.series.find((s) => s.tipo === "trabalho" && !s.concluida) ??
       alvoBloco.series.find((s) => s.tipo === "trabalho");
@@ -471,9 +493,9 @@ export function TelaPlayer({
       material: dados.material,
       ocupados: sessao.blocos.filter((outro) => outro.ordem !== alvoBloco.ordem).map((outro) => outro.exercicioId),
       avisoDaTroca: avisoDaTroca(alvoBloco),
-      indice: sessao.blocos.indexOf(alvoBloco),
-      total: sessao.blocos.length,
-      aoIr: (i) => setFicha(sessao.blocos[i]?.ordem ?? null),
+      indice: blocos.indexOf(alvoBloco),
+      total: blocos.length,
+      aoIr: (i) => setFicha(blocos[i]?.ordem ?? null),
     };
   })();
 
@@ -550,7 +572,7 @@ export function TelaPlayer({
           aoAbrirFicha={() => setFicha(passo.ordem)}
           aoAbrirLista={() => {
             recontar.current = true;
-            setVisaoGeral(true);
+            abrirVisaoGeral();
           }}
           aoPular={() => ir(indice + 1)}
         />
@@ -610,7 +632,7 @@ export function TelaPlayer({
           aoTrocar={bloco.series.some((s) => s.tipo === "trabalho" && !s.concluida)
             ? () => setTrocando(true)
             : undefined}
-          aoAbrirLista={() => setVisaoGeral(true)}
+          aoAbrirLista={abrirVisaoGeral}
           aoAjustar={() => setAjustar(true)}
           aoAvaliar={(voto) => avaliarExercicio(bloco.exercicioId, voto)}
         />
@@ -661,7 +683,7 @@ export function TelaPlayer({
           botaoDaLista={focarListaDoDescanso}
           aoAbrirLista={dados.adicionarExercicio ? () => {
             listaAbertaNoDescanso.current = true;
-            setVisaoGeral(true);
+            abrirVisaoGeral();
           } : undefined}
           aoSomar={(s) => {
             const instante = Date.now();

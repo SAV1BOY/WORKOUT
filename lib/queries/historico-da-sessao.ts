@@ -9,11 +9,12 @@ import { FalhaDeRedeNaTabela, lerTabelaCompleta } from "@/lib/queries/ler";
 import { MENSAGEM_NOTA_GERAL_ALTERADA, type Conclusao, type SessaoLocal } from "@/lib/sessao";
 import { lerConsultaGuardada } from "@/lib/persistencia-query";
 import { gravarDetalheDaSessao } from "@/lib/queries/cache-do-detalhe";
+import { apagarOrdemLocal, lerComOrdemLocal, ordensLocaisDaConta } from "@/lib/queries/ordem-local-da-sessao";
 import type { LinhaSerie } from "@/lib/types";
 
 export { chaveDoHistorico } from "@/lib/chaves-do-historico";
 
-export const colunasDoHistorico = "id,user_id,data,status,workout_id,iniciada_em,duracao_s,plano,nota_geral";
+export const colunasDoHistorico = "id,user_id,data,status,workout_id,iniciada_em,duracao_s,plano,nota_geral,ordem_execucao";
 
 function substituirSessao(lista: SessaoBruta[], sessao: SessaoBruta): SessaoBruta[] {
   return [sessao, ...lista.filter(s => s.id !== sessao.id)].sort((a, b) => b.data.localeCompare(a.data));
@@ -21,6 +22,18 @@ function substituirSessao(lista: SessaoBruta[], sessao: SessaoBruta): SessaoBrut
 
 type Cobertura = { completa: boolean; ausentes: string[] };
 const chaveDaCobertura = (conta: string) => "cobertura-do-historico-de-forca:" + conta;
+
+/** Um cliente anterior pode encerrar offline sem levar a escolha local ao registro do Histórico. */
+async function recuperarOrdensDoClienteAnterior(conta: string, lista: SessaoBruta[]) {
+  const legado = (s: SessaoBruta) => s.workout_id === "livre" && s.status !== "em_andamento" && s.ordem_execucao === undefined;
+  if (!lista.some(legado)) return lista;
+  const locais = await ordensLocaisDaConta(conta);
+  if (!locais.size) return lista;
+  return lista.map(s => {
+    const ordem = legado(s) && locais.get(s.id);
+    return ordem ? { ...s, ordem_execucao: ordem } : s;
+  });
+}
 
 export async function baseDoHistoricoNoDisco(cliente: QueryClient | undefined, conta: string): Promise<SessaoBruta[] | undefined> {
   const arquivo = await lerCache<SessaoBruta[]>(chaveDoHistoricoNoDisco(conta));
@@ -30,7 +43,7 @@ export async function baseDoHistoricoNoDisco(cliente: QueryClient | undefined, c
   // A resposta integral antiga, inclusive a vazia, é autoritativa. Linhas montadas pela
   // conclusão têm contagem local; um arquivo composto só por elas ainda pode ser parcial.
   if (arquivo && (cobertura?.completa || (!cobertura && (!arquivo.length ||
-      arquivo.some(s => s.seriesDeTrabalhoLocais === undefined))))) return daConta(arquivo);
+      arquivo.some(s => s.seriesDeTrabalhoLocais === undefined))))) return recuperarOrdensDoClienteAnterior(conta, daConta(arquivo));
   const anteriores = ["progresso", "sessoes"] as const, recentes = ["sessoes"] as const;
   const legado = cliente?.getQueryData<SessaoBruta[]>(anteriores) ?? await lerConsultaGuardada<SessaoBruta[]>(anteriores);
   const resumo = cliente?.getQueryData<SessaoBruta[]>(recentes) ?? await lerConsultaGuardada<SessaoBruta[]>(recentes);
@@ -46,7 +59,7 @@ export async function baseDoHistoricoNoDisco(cliente: QueryClient | undefined, c
       porId.set(s.id, { ...anterior, ...s });
     }
   }
-  return [...porId.values()].sort((a, b) => b.data.localeCompare(a.data));
+  return recuperarOrdensDoClienteAnterior(conta, [...porId.values()].sort((a, b) => b.data.localeCompare(a.data)));
 }
 
 async function guardarLista(conta: string, valor: SessaoBruta[]): Promise<void> {
@@ -158,6 +171,7 @@ export async function lerHistoricoDaConta(cliente: QueryClient, conta: string, s
 /** Dentro da mesma transação que remove a sessão aberta e enfileira a sua conclusão. */
 export async function guardarConclusaoNoHistorico(
   cliente: QueryClient, conclusao: Conclusao, nota: string | null | undefined, series: LinhaSerie[],
+  ordemExecucao?: string[] | null,
 ) {
   const linha = conclusao.escritas.find(e => e.tabela === "sessions")!.linha as SessaoBruta;
   const conta = linha.user_id!;
@@ -166,6 +180,7 @@ export async function guardarConclusaoNoHistorico(
   const registro: SessaoBruta = {
     id: linha.id, data: linha.data, workout_id: linha.workout_id, user_id: conta,
     status: linha.status, duracao_s: linha.duracao_s, plano: linha.plano,
+    ordem_execucao: ordemExecucao === undefined ? anterior?.ordem_execucao : ordemExecucao,
     iniciada_em: linha.iniciada_em ?? anterior?.iniciada_em,
     nota_geral: nota === undefined ? anterior?.nota_geral : nota,
     seriesDeTrabalhoLocais: series.filter(s => s.tipo === "trabalho").length,
@@ -181,7 +196,7 @@ export function resumoDaSessaoAberta(item: SessaoAtiva, conta: string): SessaoBr
   const s = item.dados as Partial<SessaoLocal> | null;
   if (s?.userId !== conta || s.id !== item.id || s.status !== "em_andamento" || !s.data || !s.workoutId) return;
   return { id: item.id, user_id: conta, data: s.data, workout_id: s.workoutId,
-    status: s.status, iniciada_em: s.iniciadaEm, plano: s.plano };
+    status: s.status, iniciada_em: s.iniciadaEm, plano: s.plano, ordem_execucao: s.ordemExecucao };
 }
 
 /** O descarte retira o rascunho, registra o fechamento e o envia na mesma transação. */
@@ -193,13 +208,16 @@ export async function guardarDescarteNoHistorico(cliente: QueryClient, conta: st
     const item = await banco.sessaoAtiva.get(id);
     if (item && (item.dados as Partial<SessaoLocal>)?.userId !== conta) throw new Error("A sessão pertence a outra conta.");
     const lista = await baseDoHistoricoNoDisco(cliente, conta) ?? [];
-    const anterior = lista.find(s => s.id === id) ?? (item && resumoDaSessaoAberta(item, conta)) ??
-      (resumo?.user_id === conta && resumo.id === id ? resumo : undefined);
+    const anterior = lista.find(s => s.id === id) ?? (resumo?.user_id === conta && resumo.id === id ? resumo : undefined);
     if (anterior?.status === "concluida") throw new Error("Este treino já foi concluído.");
+    const local = item && resumoDaSessaoAberta({ ...item, dados: await lerComOrdemLocal(item.dados as SessaoLocal) }, conta);
+    const registro = local && anterior ? { ...anterior, plano: local.plano ?? anterior.plano,
+      ordem_execucao: local.ordem_execucao ?? anterior.ordem_execucao } : local ?? anterior;
     if (item) await banco.sessaoAtiva.delete(id);
+    await apagarOrdemLocal(conta, id);
     await guardarNaFila("sessao", escrita, alvoDaEscrita(escrita));
-    if (!anterior) return lista;
-    const historico = substituirSessao(lista, { ...anterior, status: "abandonada" });
+    if (!registro) return lista;
+    const historico = substituirSessao(lista, { ...registro, status: "abandonada" });
     await guardarLista(conta, historico);
     return historico;
   });

@@ -3537,6 +3537,8 @@ vizinhos citados) ou no e2e (`e2e/ultraloop-l33.spec.ts`).
 
 ### 22.18 Player: séries feitas no Substituir, firme, conclusão e Visão geral
 
+Em um **treino livre** com pelo menos dois movimentos pendentes após o atual, **Visão geral → Próximo exercício** permite adiantar um deles. Durante as séries do movimento atual, a escolha vale para o exercício seguinte. No descanso entre movimentos, a escolha explícita atualiza **A seguir** e mantém a hora de término. **Corrigir** ainda abre a série que originou esse descanso. A ordem escolhida acompanha a sessão, inclusive sem rede, e pode ser usada ao repetir o treino pelo Histórico. As séries, cargas e substituições mantêm sua associação ao exercício original.
+
 Medido em `main` (a7b7d1b) a 360×740. Oito itens da seção B do ledger (o
 player e a Visão geral), um por exceção de área (visual-08, o rótulo em
 caixa alta, porque também troca os rótulos da Visão geral) e três sobras

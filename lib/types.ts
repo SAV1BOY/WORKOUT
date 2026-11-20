@@ -99,6 +99,8 @@ export interface LinhaSessao {
    * lugar nenhum. `null` numa sessão do programa = a ordem é a do programa.
    */
   plano: PlanoDaSessao | null;
+  /** Sequência escolhida na sessão livre. Os registros mantêm suas posições físicas. */
+  ordem_execucao?: string[] | null;
   sensacao: number | null;
   peso_corporal: number | null;
   notas: string | null;
@@ -109,6 +111,8 @@ export interface LinhaSessao {
 /** Um exercício dentro de `sessions.plano` (jsonb). */
 export interface ItemDoPlano {
   exercicio_id: string;
+  /** Distingue uma inclusão de outra, inclusive ao reutilizar a última posição. */
+  inclusao_id?: string;
   series: number;
   tipo: PrescricaoTipo;
   min: number | null;
@@ -136,6 +140,8 @@ export interface PlanoDaSessao {
   /** Id da coleção derivada que gerou a sessão ("grupo:Core"), ou `null`. */
   colecao: string | null;
   itens: ItemDoPlano[];
+  /** Espelho para backups e clientes que só transportam o plano. */
+  ordem_execucao?: string[];
   /** Ausente nas sessões anteriores à opção de desfazer e ao iniciar um treino novo. */
   ultima_inclusao?: InclusaoNaSessao;
   /** Equipamento para esta sessão. Ausente nos planos antigos; [] = só peso corporal. */

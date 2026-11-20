@@ -28,6 +28,7 @@ import {
 
 export function BlocoExercicio({
   bloco,
+  posicao,
   historico,
   opcoes,
   prefs,
@@ -42,6 +43,7 @@ export function BlocoExercicio({
   ocupados,
 }: {
   bloco: BlocoLocal;
+  posicao: number;
   /** "subiu +2 kg no treino de 12/09" (SPEC §6.6). */
   historico: string | null;
   opcoes: OpcoesMontagem;
@@ -81,7 +83,7 @@ export function BlocoExercicio({
         <div className="flex items-start gap-1">
           <div className="flex min-w-0 flex-1 flex-col gap-0.5">
             <h2 className="text-base leading-tight font-semibold text-balance">
-              {bloco.ordem}. {exercicio.nome}
+              {posicao}. {exercicio.nome}
             </h2>
             <p className="text-muted-foreground text-xs">
               {textoDoAlvo(bloco.prescricao.series, bloco.alvo)} · descanso{" "}
