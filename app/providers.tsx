@@ -3,6 +3,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { observarInstalacao } from "@/lib/instalar-app";
 import { useTheme, ThemeProvider } from "next-themes";
+import { usePathname } from "next/navigation";
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import type { LinhaPerfil } from "@/lib/types";
 import { toast } from "sonner";
@@ -13,6 +14,7 @@ import { iniciarOutbox } from "@/lib/outbox";
 import { persistirQueryClient } from "@/lib/persistencia-query";
 import { marcarAppVivo } from "@/lib/vigia";
 import { pedirControleDaPagina } from "@/lib/controle-do-worker";
+import { EVENTO_DE_LOGIN_CONFIRMADO } from "@/lib/vinculo-do-player";
 
 function CorDoTema() {
   const { resolvedTheme } = useTheme();
@@ -56,6 +58,7 @@ export function ConsultasDaConta(props: PropsDaConta) {
 }
 
 function ClienteDaConta({ conta, perfilInicial, children }: PropsDaConta) {
+  const caminho = usePathname();
   const [cliente] = useState(() => {
     const novo = new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, retry: 2, refetchOnWindowFocus: false } } });
     if (perfilInicial) novo.setQueryData(["perfil"], perfilInicial.valor, { updatedAt: perfilInicial.atualizadoEm });
@@ -66,6 +69,21 @@ function ClienteDaConta({ conta, perfilInicial, children }: PropsDaConta) {
       cliente.setQueryData(["perfil"], perfilInicial.valor, { updatedAt: perfilInicial.atualizadoEm });
     }
   }, [cliente, perfilInicial]);
+  useEffect(() => {
+    if (caminho !== "/" || perfilInicial) return;
+    const controle = new AbortController();
+    const recuperar = () => {
+      void import("@/lib/player-sem-rede")
+        .then(({ recuperarPerfilNoTreino }) => recuperarPerfilNoTreino(cliente, conta, controle.signal))
+        .catch(() => { /* Sem cópia confirmada, a consulta normal continua. */ });
+    };
+    window.addEventListener(EVENTO_DE_LOGIN_CONFIRMADO, recuperar);
+    recuperar();
+    return () => {
+      controle.abort();
+      window.removeEventListener(EVENTO_DE_LOGIN_CONFIRMADO, recuperar);
+    };
+  }, [caminho, cliente, conta, perfilInicial]);
   useEffect(() => {
     const pararCache = persistirQueryClient(cliente, conta);
     const pararCardio = observarConciliacoesDoCardio(cliente);

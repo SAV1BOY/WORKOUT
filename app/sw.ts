@@ -16,14 +16,16 @@ import {
   ehRsc,
   type PedidoDeNavegacao,
 } from "@/lib/sw-navegacao";
+import { guardarPagina, lerPagina, respostaAteOPrazo, VALIDADE_DA_PAGINA_S } from "@/lib/sw-paginas";
 import { opcoesDaNotificacao, urlInterna } from "@/lib/lembretes";
 import { criarServirDoSocorro } from "@/lib/sw-servir-socorro";
 import { htmlDeSocorro } from "@/lib/sw-socorro";
 import type { PrecacheEntry, SerwistGlobalConfig } from "serwist";
 import {
   CacheFirst,
-  ExpirationPlugin,
-  NetworkFirst,
+  CacheExpiration,
+  Strategy,
+  type StrategyHandler,
   NetworkOnly,
   Serwist,
   type RuntimeCaching,
@@ -57,10 +59,10 @@ const MIDIA = /\/(figuras|fotos|ilustracoes|itens|mapa-muscular)\//;
 /**
  * Prazo da ida à rede numa navegação. Rede que aceita a conexão e não responde
  * (WiFi de elevador, portal de hotel) segurava a tela sem fim: passado isto, a
- * `NetworkFirst` serve a cópia guardada, e a escada de `semRede()` entra
+ * navegação serve a cópia guardada, e a escada de `semRede()` entra
  * quando não há cópia nenhuma.
  */
-const PRAZO_DA_REDE_S = 8;
+const PRAZO_DA_REDE_MS = 8_000;
 
 /** Prazo da retentativa do degrau (a): o usuário está olhando para a tela. */
 const PRAZO_DA_RETENTATIVA_MS = 6_000;
@@ -186,7 +188,7 @@ function anunciarOSocorro(quantas: number): void {
  * para acabar: quem está olhando para a tela prefere a `/~offline` que já está
  * no aparelho a uma espera sem fim.
  */
-async function maisUmaTentativa(url: string): Promise<Response | undefined> {
+async function maisUmaTentativa(url: string, prazoMs: number): Promise<Response | undefined> {
   // chegou resposta, qualquer resposta: a rede voltou, e ela é mais verdadeira
   // do que qualquer cópia guardada
   return fetch(
@@ -194,7 +196,7 @@ async function maisUmaTentativa(url: string): Promise<Response | undefined> {
       credentials: "include",
       redirect: "manual",
       cache: "no-store",
-      signal: AbortSignal.timeout(PRAZO_DA_RETENTATIVA_MS),
+      signal: AbortSignal.timeout(prazoMs),
     }),
   );
 }
@@ -243,7 +245,7 @@ async function emQualquerCache(): Promise<Response | undefined> {
  * navegação — degrau que falha é degrau que não existe, e o último sempre
  * responde.
  */
-async function semRede(request: Request, tentarRede = true): Promise<Response> {
+async function semRede(request: Request, prazoRetentativaMs = 0): Promise<Response> {
   if (ehRsc(pedidoDe(request))) {
     /*
      * Uma resposta que **não** é payload de RSC faz o roteador do Next desistir
@@ -257,7 +259,7 @@ async function semRede(request: Request, tentarRede = true): Promise<Response> {
   }
 
   const escada = [
-    ...(tentarRede ? [() => maisUmaTentativa(request.url)] : []),
+    ...(prazoRetentativaMs > 0 ? [() => maisUmaTentativa(request.url, prazoRetentativaMs)] : []),
     () => noPrecache(OFFLINE),
     () => emQualquerCache(),
   ];
@@ -283,6 +285,45 @@ async function semRede(request: Request, tentarRede = true): Promise<Response> {
       "Cache-Control": "no-store",
     },
   });
+}
+
+const CACHE_DE_PAGINAS = "paginas";
+const expiracaoAntiga = new CacheExpiration(CACHE_DE_PAGINAS, { maxAgeSeconds: VALIDADE_DA_PAGINA_S });
+const expirouNoCacheAntigo = (url: string) => expiracaoAntiga.isURLExpired(url);
+
+class Paginas extends Strategy {
+  async _handle(request: Request, handler: StrategyHandler): Promise<Response> {
+    const limite = performance.now() + PRAZO_DA_REDE_MS;
+    // Sair apaga este Cache. Uma resposta atrasada só pode escrever na geração de origem.
+    const geracao = caches.open(this.cacheName).catch(() => undefined);
+    const rede = handler.fetch(request); // inclui o navigationPreload nativo
+    void handler.waitUntil(rede.then(async resposta => {
+      const copia = resposta.clone();
+      const cache = await geracao;
+      if (cache) await guardarPagina(cache, request, copia, process.env.NEXT_PUBLIC_CONSTRUIDO_EM!, expirouNoCacheAntigo);
+    }).catch(() => undefined));
+
+    const resposta = await respostaAteOPrazo(rede, PRAZO_DA_REDE_MS);
+    if (typeof resposta !== "string") return resposta;
+    try {
+      // Consulte o cache atual, pois a conta pode ter saído enquanto o pedido esperava.
+      if (await caches.has(this.cacheName)) {
+        const copia = await lerPagina(await caches.open(this.cacheName), request, expirouNoCacheAntigo);
+        if (copia) {
+          const serve = await navegacaoGuardadaServe(pedidoDe(request), copia,
+            process.env.NEXT_PUBLIC_CONSTRUIDO_EM!, async url => {
+              const asset = await caches.match(url, { ignoreSearch: true });
+              return asset?.ok === true;
+            });
+          return serve ? copia : semRede(request);
+        }
+      }
+    } catch {
+      // Um despejo ou a indisponibilidade do armazenamento não impede o socorro.
+    }
+    const restante = Math.min(PRAZO_DA_RETENTATIVA_MS, Math.floor(limite - performance.now()));
+    return semRede(request, resposta === "falhou" ? restante : 0);
+  }
 }
 
 const regras: RuntimeCaching[] = [
@@ -312,43 +353,13 @@ const regras: RuntimeCaching[] = [
       sameOrigin &&
       !url.pathname.startsWith("/api/") &&
       ehNavegacao(pedidoDe(request)),
-    handler: new NetworkFirst({
-      cacheName: "paginas",
-      networkTimeoutSeconds: PRAZO_DA_REDE_S,
-      plugins: [
-        {
-          handlerDidError: async ({ request }) => semRede(request),
-          /*
-           * Depois de responder — o `handlerDidComplete` roda fora do caminho
-           * crítico, com a tela já entregue —, o worker confere se ainda tem a
-           * sua cópia da `/~offline` e a repõe se faltar. É aqui que a autocura
-           * alcança o aparelho de verdade: o `activate` só acontece quando o
-           * `sw.js` muda de bytes, e o precache pode sumir (despejo do
-           * navegador) muito antes do próximo deploy.
-           */
-          handlerDidComplete: async ({ response }) => {
-            if (response) await garantirOSocorro();
-          },
-        },
-        new ExpirationPlugin({ maxEntries: 32, maxAgeSeconds: 24 * 60 * 60 }),
-        {
-          cachedResponseWillBeUsed: async ({ request, cachedResponse }) => {
-            if (!cachedResponse) return undefined;
-            try {
-              const serve = await navegacaoGuardadaServe(pedidoDe(request), cachedResponse,
-                process.env.NEXT_PUBLIC_CONSTRUIDO_EM!, async url => {
-                  const resposta = await caches.match(url, { ignoreSearch: true });
-                  return resposta?.ok === true;
-                });
-              if (serve) return cachedResponse;
-            } catch {
-              // O navegador pode ter despejado parte da cópia durante a leitura.
-            }
-            // A NetworkFirst já tentou a rede. Uma resposta demorada ainda pode renovar o cache.
-            return semRede(request, false);
-          },
-        },
-      ],
+    handler: new Paginas({
+      cacheName: CACHE_DE_PAGINAS,
+      plugins: [{
+        handlerDidError: ({ request }) => semRede(request),
+        // A tela já foi entregue. A autocura independe de uma resposta tardia da navegação.
+        handlerDidRespond: async ({ response }) => { if (response) await garantirOSocorro(); },
+      }],
     }),
   },
   ...defaultCache,

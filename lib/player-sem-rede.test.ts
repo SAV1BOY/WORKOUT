@@ -1,6 +1,7 @@
 import { stringToBase64URL } from "@supabase/ssr";
+import { QueryClient } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { correspondeAoCookie, guardarVinculoDoPlayer, vinculoDoLoginAtual, vinculoParaAbaLocal, vinculoParaPlayerLocal } from "@/lib/player-sem-rede";
+import { correspondeAoCookie, guardarVinculoDoPlayer, recuperarPerfilNoTreino, vinculoDoLoginAtual, vinculoParaAbaLocal, vinculoParaPlayerLocal } from "@/lib/player-sem-rede";
 import { chaveDoHistoricoNoDisco } from "@/lib/chaves-do-historico";
 import { CHAVE_CACHE, VALIDADE_MS } from "@/lib/persistencia-query";
 import type { LinhaPerfil } from "@/lib/types";
@@ -106,6 +107,74 @@ describe("abas do aparelho quando falta o documento", () => {
     expect(await vinculoParaAbaLocal("/")).toEqual({ vinculo, perfil: { valor: perfil, atualizadoEm: item.atualizadoEm } });
     guardarPerfil("bia");
     expect(await vinculoParaAbaLocal("/")).toBeNull();
+  });
+
+  it("usa a cópia avulsa com a data original enquanto a rede consulta o perfil e aceita a resposta posterior", async () => {
+    document.cookie = cookie("login-a");
+    await guardarVinculoDoPlayer(await confirmado("ana", "login-a"));
+    const perfil = perfilDe("ana");
+    const atualizadoEm = Date.now() - 2_000;
+    cache.get.mockResolvedValue({ valor: perfil, atualizadoEm });
+    const cliente = new QueryClient();
+    const rede = Promise.withResolvers<LinhaPerfil>();
+    const consulta = cliente.fetchQuery({ queryKey: ["perfil"], queryFn: () => rede.promise });
+    await recuperarPerfilNoTreino(cliente, "ana", new AbortController().signal);
+    expect(cliente.getQueryState(["perfil"])).toMatchObject({ data: perfil, dataUpdatedAt: atualizadoEm, fetchStatus: "fetching" });
+    const recente = { ...perfil, nome: "Perfil atualizado" };
+    rede.resolve(recente);
+    await consulta;
+    expect(cliente.getQueryData(["perfil"])).toEqual(recente);
+  });
+
+  it.each(["edição", "logout", "troca de login", "tela fechada"])(
+    "descarta a cópia antiga se durante a leitura houve %s", async situacao => {
+      document.cookie = cookie("login-a");
+      await guardarVinculoDoPlayer(await confirmado("ana", "login-a"));
+      const perfil = perfilDe("ana");
+      const leitura = Promise.withResolvers<{ valor: LinhaPerfil; atualizadoEm: number }>();
+      const noDisco = Promise.withResolvers<void>();
+      cache.get.mockImplementationOnce(() => { noDisco.resolve(); return leitura.promise; });
+      const cliente = new QueryClient();
+      const controle = new AbortController();
+      const recuperando = recuperarPerfilNoTreino(cliente, "ana", controle.signal);
+      await noDisco.promise;
+      const agora = Date.now();
+      const editado = { ...perfil, nome: "Nome editado" };
+      if (situacao === "edição") cliente.setQueryData(["perfil"], editado, { updatedAt: agora });
+      if (situacao === "logout") disco.clear();
+      if (situacao === "troca de login") document.cookie = cookie("login-b");
+      if (situacao === "tela fechada") controle.abort();
+      leitura.resolve({ valor: perfil, atualizadoEm: agora - 2_000 });
+      await recuperando;
+      expect(cliente.getQueryData(["perfil"])).toEqual(situacao === "edição" ? editado : undefined);
+    },
+  );
+
+  it("não preenche o cliente de um documento que pertence a outra conta", async () => {
+    document.cookie = cookie("login-b");
+    await guardarVinculoDoPlayer(await confirmado("bia", "login-b"));
+    cache.get.mockResolvedValue({ valor: perfilDe("bia"), atualizadoEm: Date.now() });
+    const cliente = new QueryClient();
+    await recuperarPerfilNoTreino(cliente, "ana", new AbortController().signal);
+    expect(cliente.getQueryData(["perfil"])).toBeUndefined();
+  });
+
+  it("usa a cópia mais recente se o snapshot chegou primeiro e mantém a edição quando as datas coincidem", async () => {
+    document.cookie = cookie("login-a");
+    await guardarVinculoDoPlayer(await confirmado("ana", "login-a"));
+    const perfil = perfilDe("ana");
+    const recente = { ...perfil, nome: "Leitura mais recente" };
+    const agora = Date.now();
+    const cliente = new QueryClient();
+    cache.get.mockResolvedValue({ valor: recente, atualizadoEm: agora });
+    cliente.setQueryData(["perfil"], perfil, { updatedAt: agora - 2_000 });
+    const sinal = new AbortController().signal;
+    await recuperarPerfilNoTreino(cliente, "ana", sinal);
+    expect(cliente.getQueryData(["perfil"])).toEqual(recente);
+    const editado = { ...perfil, nome: "Edição local" };
+    cliente.setQueryData(["perfil"], editado, { updatedAt: agora });
+    await recuperarPerfilNoTreino(cliente, "ana", sinal);
+    expect(cliente.getQueryData(["perfil"])).toEqual(editado);
   });
 
   it("a versão anterior pode abrir o histórico salvo da própria conta na primeira recarga sem rede", async () => {
