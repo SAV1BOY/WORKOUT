@@ -9,6 +9,7 @@ import { Erro, EsqueletoCapa, EsqueletoLista } from "@/components/carregando";
 import type { MaterialDoTreino } from "@/components/exercicio/equipamento-de-hoje";
 import { useMaterialDaSessao } from "@/components/treinar/usar-material-da-sessao";
 import { useMaterialDoDia } from "@/components/treino/usar-material-do-dia";
+import { useOrdemDoDia } from "@/components/treino/usar-ordem-do-dia";
 import {
   BannerSessaoAberta,
   CardCardio,
@@ -55,9 +56,6 @@ import { metaSemanal, progressoDaMeta, sequenciaDeSemanas } from "@/lib/metas";
 import {
   aplicarOrdem,
   ehAOrdemDoPrograma,
-  guardarOrdemNoAparelho,
-  lerOrdemDoAparelho,
-  limparOrdemDoAparelho,
   mover,
 } from "@/lib/ordem";
 import { descartarSessao, registrarSolta } from "@/lib/queries/acoes";
@@ -131,8 +129,6 @@ export function TelaTreino({ userId }: { userId: string }) {
   const cliente = useQueryClient();
   const [somando, setSomando] = useState(false);
   const [rascunho, setRascunho] = useState<{ conta: string; data: string; treino: string; trocas: Record<string, string> } | null>(null);
-  /* "Editar" (SPEC §14.3): a ordem vale só para a sessão que vai começar */
-  const [ordem, setOrdem] = useState<string[]>([]);
   const [editando, setEditando] = useState(false);
   /* SPEC §18: a retomada decidida antes de treinar */
   const [decidindo, setDecidindo] = useState(false);
@@ -181,6 +177,7 @@ export function TelaTreino({ userId }: { userId: string }) {
 
   const treinoId = dia?.tipo === "forca" ? dia.treinoId : null;
   const materialDoDia = useMaterialDoDia(userId, hoje, treinoId);
+  const { ordem, ordemTemporaria, guardar: guardarOrdem } = useOrdemDoDia(userId, hoje, treinoId);
   const lembradas = useTrocasDoPrograma(userId, treinoId);
   const soHoje = rascunho?.conta === userId && rascunho.data === hoje && rascunho.treino === treinoId
     ? rascunho.trocas : undefined;
@@ -221,7 +218,6 @@ export function TelaTreino({ userId }: { userId: string }) {
   useEffect(() => {
     if (!hoje || !treinoId) return;
     setRascunho({ conta: userId, data: hoje, treino: treinoId, trocas: lerTrocasDoAparelho(userId, hoje, treinoId) });
-    setOrdem(lerOrdemDoAparelho(hoje, treinoId));
   }, [userId, hoje, treinoId]);
 
   const trocar = (originalId: string, novoId: string) => {
@@ -240,22 +236,11 @@ export function TelaTreino({ userId }: { userId: string }) {
     [treinoId],
   );
 
-  const reordenar = useCallback(
-    (de: number, para: number) => {
-      if (!hoje || !treinoId) return;
-      setOrdem((atual) => {
-        const nova = mover(aplicarOrdem(idsDoPrograma, atual), de, para);
-        guardarOrdemNoAparelho(hoje, treinoId, idsDoPrograma, nova);
-        return nova;
-      });
-    },
-    [hoje, treinoId, idsDoPrograma],
-  );
+  const reordenar = (de: number, para: number) => {
+    guardarOrdem(idsDoPrograma, mover(aplicarOrdem(idsDoPrograma, ordem), de, para));
+  };
 
-  const voltarAoPrograma = useCallback(() => {
-    setOrdem([]);
-    limparOrdemDoAparelho();
-  }, []);
+  const voltarAoPrograma = () => guardarOrdem(idsDoPrograma, []);
 
   const ids = useMemo(() => {
     if (!treinoId) return [];
@@ -456,7 +441,7 @@ export function TelaTreino({ userId }: { userId: string }) {
   const comecarTreinoDeHoje = () => {
     if (!treinoId || pedirDecisao()) return;
     void comecar({
-      userId, perfil, hoje, treinoId, lembradas, ordem,
+      userId, perfil, hoje, treinoId, lembradas, ordemTemporaria,
       equipamentosDisponiveis: materialDoDia?.disponiveis,
       trocas: soHoje ?? lerTrocasDoAparelho(userId, hoje, treinoId),
     });

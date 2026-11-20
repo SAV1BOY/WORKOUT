@@ -32,15 +32,15 @@ export function ModoEditar({
         <p className="text-muted-foreground text-xs">Só para o treino de hoje</p>
       </div>
 
-      <ol className="flex flex-col divide-y">
+      <ol className="@container flex flex-col divide-y">
         {itens.map((item, i) => (
-          <li key={item.originalId} className="flex items-center gap-2 py-2">
+          <li key={item.originalId} className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2 py-2 @2xs:flex">
             <GripVertical
               aria-hidden="true"
-              className="text-muted-foreground size-5 shrink-0"
+              className="text-muted-foreground hidden size-5 shrink-0 @2xs:block"
             />
-            <Miniatura exercicioId={item.exercicioId} className="size-11" />
-            <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+            <Miniatura exercicioId={item.exercicioId} className="col-start-1 row-start-2 aspect-square h-auto w-full max-w-11 @2xs:size-11" />
+            <span className="col-span-full row-start-1 flex min-w-0 flex-1 flex-col gap-0.5 wrap-anywhere">
               <span className="text-sm font-medium text-balance">
                 {i + 1}. {item.nome}
               </span>
@@ -72,16 +72,16 @@ export function ModoEditar({
         ))}
       </ol>
 
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         <Button
           variant="outline"
-          className="alvo h-12 flex-1"
+          className="alvo h-auto min-h-12 max-w-full grow py-2 whitespace-normal"
           disabled={ehAOrdemDoPrograma}
           onClick={aoVoltarAoPrograma}
         >
           Voltar à ordem do programa
         </Button>
-        <Button className="alvo h-12 flex-1" onClick={aoFechar}>
+        <Button className="alvo h-auto min-h-12 grow" onClick={aoFechar}>
           Pronto
         </Button>
       </div>
