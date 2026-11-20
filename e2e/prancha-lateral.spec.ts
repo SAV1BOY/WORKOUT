@@ -15,12 +15,14 @@ async function tocarNoCentro(page: Page, nome: string) {
     const { left, right, top, width, height } = el.getBoundingClientRect();
     const x = left + width / 2;
     const y = top + height / 2;
-    return { x, y, inteiro: left >= 0 && right <= document.documentElement.clientWidth,
+    return { centro: { x: el.clientWidth / 2, y: el.clientHeight / 2 },
+      inteiro: left >= 0 && right <= document.documentElement.clientWidth,
       atingivel: el.contains(document.elementFromPoint(x, y)) };
   });
   expect(alvo.inteiro, `${nome} deve caber sem rolagem horizontal`).toBe(true);
   expect(alvo.atingivel, `${nome} deve receber o toque`).toBe(true);
-  await page.touchscreen.tap(alvo.x, alvo.y);
+  // A rolagem pode mudar entre a medição e o gesto. O toque acompanha o centro do botão.
+  await botao.tap({ position: alvo.centro });
 }
 
 async function abrirPrancha(page: Page) {

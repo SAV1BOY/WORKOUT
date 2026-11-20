@@ -99,15 +99,14 @@ test.describe("Semana visível — a aba Treino e o calendário dizem o mesmo (S
       await expect(page.getByText("14/09 – 20/09")).toBeVisible();
       await expect(page.getByText("Fase 1 · semana 1 de 12")).toBeVisible();
 
+      await expect(
+        page.getByRole("button", { name: /^segunda 14\/09.*Treino A, feito$/ }),
+      ).toBeVisible();
       const textos = await rotulos(page);
       expect(textos[0]).toContain("Treino A · semana 1");
       expect(textos[1]).toContain("Corrida · semana 1 do plano");
       expect(textos[2]).toContain("Treino B · semana 1");
       expect(textos[4]).toContain("Treino A · semana 1");
-
-      await expect(
-        page.getByRole("button", { name: /^segunda 14\/09.*Treino A, feito$/ }),
-      ).toBeVisible();
 
       await semRolagemHorizontal(page);
       await page.screenshot({
@@ -191,14 +190,13 @@ test.describe("Semana visível — a aba Treino e o calendário dizem o mesmo (S
 
     await page.goto("/calendario");
     await expect(page.getByRole("heading", { name: "Calendário" })).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: /^quarta 16\/09: Treino B, feito, hoje$/ }),
+    ).toBeVisible();
     const textos = await rotulos(page);
     expect(textos[0]).toContain("Treino A · semana 1");
     expect(textos[2]).toContain("Treino B · semana 1");
     expect(textos[4]).toContain("Treino A · semana 1");
-    await expect(
-      page.getByRole("button", { name: /^quarta 16\/09: Treino B, feito, hoje$/ }),
-    ).toBeVisible();
-
     await semRolagemHorizontal(page);
     await page.screenshot({ path: `${CAPTURAS}/05-hoje-ja-treinado.png` });
   });
@@ -256,23 +254,12 @@ test.describe("Semana visível — a faixa mostra o treino de cada dia (SPEC §1
     await usuarioDoCaso();
     await fixarRelogio(page, QUARTA);
     await entrarNoApp(page);
-    await esperarAbaTreino(page);
-
-    const faixa = page.getByRole("region", { name: "Semana" }).first();
+    const faixa = page.getByRole("region", { name: "Semana", exact: true });
     const casas = faixa.locator("[data-dia]");
-    await expect(casas).toHaveCount(7);
-
-    const siglas = await casas.evaluateAll((nos) =>
-      nos.map((n) => (n.textContent ?? "").trim()),
-    );
-    // seg A · ter corrida · qua B · qui descanso · sex A · sáb corrida · dom descanso
-    expect(siglas[0]).toContain("A");
-    expect(siglas[1]).toContain("Corr.");
-    expect(siglas[2]).toContain("B");
-    expect(siglas[3]).toContain("Desc.");
-    expect(siglas[4]).toContain("A");
-    expect(siglas[5]).toContain("Corr.");
-    expect(siglas[6]).toContain("Desc.");
+    await expect(casaDaFaixa(page, SEGUNDA)).toHaveAttribute("data-marca", "feito");
+    await expect(casas.locator(":scope > :last-child")).toHaveText([
+      "A", "Corr.", "B", "Desc.", "A", "Corr.", "Desc.",
+    ]);
 
     // sete colunas cabem a 360 px, com alvo de ≥ 44 px e fonte ≥ 11 px
     const medida = await casas.first().evaluate((no) => {
@@ -309,22 +296,12 @@ test.describe("Semana visível — a Fase 2 é fixa por dia (SPEC §16.2 item 5)
     await usuarioComPerfil({ fase_atual: "fase2", ultimo_treino: "IB" });
     await fixarRelogio(page, QUARTA);
     await entrarNoApp(page);
-    await esperarAbaTreino(page);
-
     const casas = page
-      .getByRole("region", { name: "Semana" })
-      .first()
+      .getByRole("region", { name: "Semana", exact: true })
       .locator("[data-dia]");
-    const siglas = await casas.evaluateAll((nos) =>
-      nos.map((n) => (n.textContent ?? "").trim()),
-    );
-    expect(siglas[0]).toContain("SA");
-    expect(siglas[1]).toContain("IA");
-    expect(siglas[2]).toContain("Corr.");
-    expect(siglas[3]).toContain("SB");
-    expect(siglas[4]).toContain("IB");
-    expect(siglas[5]).toContain("Longa");
-    expect(siglas[6]).toContain("Desc.");
+    await expect(casas.locator(":scope > :last-child")).toHaveText([
+      "SA", "IA", "Corr.", "SB", "IB", "Longa", "Desc.",
+    ]);
 
     await page.goto("/calendario");
     await expect(page.getByRole("heading", { name: "Calendário" })).toBeVisible();
