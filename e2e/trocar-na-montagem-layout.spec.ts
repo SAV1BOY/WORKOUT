@@ -1,5 +1,5 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
-import { entrarNoApp, fixarData, resetarMock, semRolagemHorizontal, usuarioComPerfil } from "./fixtures";
+import { entrarNoApp, fixarData, lerDoMock, resetarMock, semRolagemHorizontal, usuarioComPerfil } from "./fixtures";
 import { dialogo, editor, escolher, personalizar } from "./montar-modelo";
 
 const botao = (grupo: Locator, nome: string) => grupo.getByRole("button", { name: nome, exact: true });
@@ -7,7 +7,7 @@ const painel = (page: Page) => dialogo(page, "Trocar exercício");
 
 async function abrirMontagem(page: Page, nome: string) {
   await resetarMock();
-  await usuarioComPerfil();
+  const conta = await usuarioComPerfil();
   await fixarData(page);
   await page.setViewportSize({ width: 320, height: 420 });
   await page.emulateMedia({ reducedMotion: "reduce" });
@@ -15,7 +15,7 @@ async function abrirMontagem(page: Page, nome: string) {
   await page.addStyleTag({ content: "html { font-size: 200% !important; }" });
   await personalizar(page).press("Enter");
   await escolher(page, nome);
-  return botao(editor(page), `Trocar ${nome}`);
+  return { trocar: botao(editor(page), `Trocar ${nome}`), conta };
 }
 
 // Quem volta pelo teclado deve ver o foco sem uma rolagem de ajuda do teste.
@@ -38,10 +38,42 @@ async function semRolagemLateral(page: Page, folha: Locator) {
   expect(await folha.evaluate(el => el.scrollWidth - el.clientWidth)).toBeLessThanOrEqual(1);
 }
 
+async function acionarAtalhoNaBorda(page: Page, atalho: Locator, comecar: Locator) {
+  await expect(atalho).toBeFocused();
+  const rodape = await comecar.boundingBox();
+  if (!rodape) throw new Error("Rodapé do editor indisponível");
+  // Reproduz a rolagem que deixa parte do atalho focado atrás de Começar antes de Enter.
+  const receptorAntes = await atalho.evaluate((el, y) => {
+    let lista = el.parentElement;
+    while (lista && !["auto", "scroll"].includes(getComputedStyle(lista).overflowY)) lista = lista.parentElement;
+    if (!lista) throw new Error("Área de rolagem do editor indisponível");
+    const r = el.getBoundingClientRect();
+    lista.scrollBy({ top: r.top + r.height / 2 - y, behavior: "instant" });
+    const pos = el.getBoundingClientRect();
+    return document.elementFromPoint(pos.left + pos.width / 2, pos.top + pos.height / 2)?.closest("button")?.textContent;
+  }, rodape.y + 8);
+  expect(receptorAntes).toBe(await comecar.textContent());
+  await page.keyboard.press("Enter");
+  await expect(atalho).toHaveAttribute("aria-disabled", "true");
+  await expect(atalho).toBeInViewport({ ratio: 0.999 });
+  await conferirAlvo(atalho, true);
+
+  const toque = await atalho.evaluateHandle(el => {
+    const r = el.getBoundingClientRect();
+    const prova = { x: r.left + r.width / 2, y: r.top + r.height / 2, recebido: false };
+    el.addEventListener("touchstart", () => { prova.recebido = true; }, { once: true });
+    return prova;
+  });
+  const { x, y } = await toque.jsonValue();
+  await page.touchscreen.tap(x, y);
+  expect(await toque.evaluate(prova => prova.recebido)).toBe(true);
+  await toque.dispose();
+}
+
 test("Escape e Voltar recolhem a execução e devolvem o foco ao exercício da montagem", async ({ page }) => {
   const original = "Desenvolvimento sentado com barra";
   const destino = "Desenvolvimento com elástico";
-  const trocar = await abrirMontagem(page, original);
+  const { trocar } = await abrirMontagem(page, original);
   await conferirAlvo(botao(editor(page), `Tirar ${original}`));
   for (const voltar of [() => page.keyboard.press("Escape"), () => page.evaluate(() => history.back())]) {
     await conferirAlvo(trocar);
@@ -80,7 +112,7 @@ test("Escape e Voltar recolhem a execução e devolvem o foco ao exercício da m
 test("os atalhos de material mantêm o foco e a troca por toque usa o tatame e o elástico marcados", async ({ page }) => {
   const original = "Crucifixo inverso";
   const destino = "Abertura de ombros";
-  const trocar = await abrirMontagem(page, original);
+  const { trocar } = await abrirMontagem(page, original);
   const material = editor(page).locator("summary").filter({ hasText: "Equipamentos disponíveis" });
   await conferirAlvo(material);
   await material.press("Enter");
@@ -142,4 +174,18 @@ test("os atalhos de material mantêm o foco e a troca por toque usa o tatame e o
   await tirar.tap();
   await expect(trocar).toHaveCount(0);
   await semRolagemLateral(page, editor(page));
+});
+
+test("ativar um atalho de equipamento junto ao rodapé mantém o toque no editor", async ({ page }) => {
+  const { conta } = await abrirMontagem(page, "Crucifixo inverso");
+  const folha = editor(page);
+  await folha.locator("summary").filter({ hasText: "Equipamentos disponíveis" }).press("Enter");
+  const grupo = folha.getByRole("group", { name: "Equipamento de hoje", exact: true });
+  const comecar = botao(folha, "Começar com 1 exercício");
+  for (const nome of ["Só peso do corpo", "Usar todo o equipamento"]) {
+    await page.keyboard.press("Tab");
+    await acionarAtalhoNaBorda(page, botao(grupo, nome), comecar);
+    await expect(folha).toBeVisible();
+  }
+  expect(await lerDoMock(conta, "sessions")).toHaveLength(0);
 });

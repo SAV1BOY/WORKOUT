@@ -1,6 +1,7 @@
 "use client";
 
 import { ChevronDown } from "lucide-react";
+import { useLayoutEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { NOME_EQUIPAMENTO } from "@/lib/catalogo";
 import { equipamentoDisponivel } from "@/lib/dados";
@@ -41,6 +42,13 @@ export function EquipamentoDeHoje({
   const marcados = inventario.filter(tag => disponiveis.has(tag));
   const soPesoDoCorpo = marcados.length === 0;
   const todoEquipamento = marcados.length === inventario.length;
+  const atalhos = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    // Refazer a lista de exercícios pode deixar o atalho focado atrás de Começar.
+    const aplicado = atalhos.current?.querySelector<HTMLButtonElement>('button:focus[aria-disabled="true"]');
+    aplicado?.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "instant" });
+  }, [soPesoDoCorpo, todoEquipamento]);
 
   function mudar(tag: EquipamentoTag, presente: boolean) {
     const proximo = new Set(disponiveis);
@@ -61,7 +69,7 @@ export function EquipamentoDeHoje({
       <fieldset disabled={desabilitado} className="min-w-0 px-3 pb-2">
         <legend className="sr-only">Equipamento de hoje</legend>
         <p className="text-muted-foreground mb-2 text-sm">{descricao}</p>
-        <div className="flex flex-wrap gap-2">
+        <div ref={atalhos} className="flex flex-wrap gap-2">
           <Button type="button" size="sm" variant="outline" aria-disabled={soPesoDoCorpo}
             className="alvo h-auto max-w-full whitespace-normal px-2 wrap-anywhere aria-disabled:bg-muted"
             onClick={() => { if (!soPesoDoCorpo) aoMudar(new Set()); }}>
