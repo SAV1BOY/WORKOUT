@@ -13507,3 +13507,29 @@ Uma aba aberta no #58 podia substituir o último movimento acrescentado e apagar
 Em outro aparelho com o #58 já aberto antes da escolha, a retirada ou reinclusão de um movimento seguida da inclusão de outro pode regravar o plano sem a identidade daquele movimento. Nesse caso ele volta à posição original da lista. No teste de compatibilidade, os blocos que já pertenciam ao plano mantiveram a ordem escolhida. O app associa uma posição especial a uma inclusão apenas enquanto consegue identificá-la.
 
 No #58 publicado, escolher Flexão de braço, Remada com elástico e Prancha em **Treino → Personalizar treino** exigiu retirar e recolocar os dois primeiros para fazer Prancha em primeiro. Foram quatro toques de seleção e foi preciso mudar a busca para reencontrá-los. A próxima melhoria a avaliar é permitir mover os exercícios escolhidos diretamente nessa tela antes de começar. [Editor de rotinas do Hevy](https://www.hevyapp.com/compare/fitbod/)
+
+### Publicação da escolha do próximo exercício no treino livre
+
+O commit `5d58a383dc346a004b8280a15518e585349b6028` foi confirmado pela Vercel e em `/versao`. A integração manteve a árvore `ba5953bc62a91b8446747b56593a74d420ad834a` da revisão aprovada `d65d0b4`. O GitHub passou em lint, build, 2.412 testes unitários em 127 arquivos e 865 cenários de Chromium nos grupos de 226, 215, 236 e 188. [PR #59](https://github.com/SAV1BOY/WORKOUT/pull/59) · [Validação aprovada](https://github.com/SAV1BOY/WORKOUT/actions/runs/44646346360)
+
+A migração `20261120005029` acrescentou a coluna opcional `sessions.ordem_execucao text[]` no projeto treino-terraco. O catálogo confirmou a ausência de valor padrão e a política que limita cada conta às próprias sessões.
+
+O binário oficial passou em 25 cenários locais de escolha, inclusão, remoção, repetição e acesso por teclado. No WebKit com iPhone emulado, o usuário pôde escolher por toque e retornar ao exercício em 320 px com fonte a 200%. Ao concluir sem rede no #58, o Histórico do #59 recuperou Pullover, Flexão fechada e Agachamento na sequência escolhida. A repetição iniciou com as séries pendentes. Depois de sincronizar, a série original ainda tinha o mesmo UUID, 11 repetições e 7,5 kg. Exportar no #59 e importar no #58 pelo menu **Mais → Backup** também conservou a sequência.
+
+A conferência pós-publicação na `main` repetiu lint, build, 2.412 unidades e os mesmos 865 cenários de Chromium nos quatro grupos. Depois da aprovação, o domínio voltou a confirmar `5d58a38`. [Validação na main](https://github.com/SAV1BOY/WORKOUT/actions/runs/44649109653)
+
+### Reordenar os escolhidos antes de começar um treino personalizado
+
+O cenário móvel repetido no binário publicado do #59 confirmou que **Treino → Personalizar treino** lista os movimentos na ordem de seleção e oferece **Tirar** a cada item. Com três exercícios selecionados ainda não havia uma ação para levar o terceiro ao início. A nova ação **Reordenar escolhidos** permite ajustar a sequência e voltar ao catálogo com a mesma busca. A ordem da sessão vem dessa lista no momento de começar. [Editor de rotinas do Hevy](https://www.hevyapp.com/compare/fitbod/)
+
+O #59 também permitiu abrir o personalizador sem rede depois de carregar o perfil no aparelho. Escolher três movimentos e começar gerou uma única sessão na reconexão. A nova opção precisa preservar esse caminho.
+
+No candidato, o treino personalizado abriu na ordem Remada com elástico, Prancha e Flexão de braço, com a busca por “prancha” preservada ao voltar do editor. Foi possível registrar 11 repetições de remada e recuperar a mesma série depois da recarga sem rede. Ao tirar um dos escolhidos e acrescentar uma variação, a nova entrou no fim e os outros mantiveram suas posições.
+
+Em uma abertura do personalizador já sem rede, o aparelho criou uma sessão com nove séries pendentes depois de tocar duas vezes em **Começar**. A reconexão gravou uma única sessão. Em outro percurso, uma sessão iniciada e registrada na versão anterior foi reaberta após a atualização com o mesmo ID de sessão e de série.
+
+No #59, **Personalizar treino** apresentou 93 movimentos ao montar uma sessão livre, inclusive Supino reto com barra. Com tatame e elástico definidos para o A1, a sessão livre nova abriu com o inventário completo. A próxima necessidade a investigar é permitir escolher o material no próprio personalizador, ver os movimentos compatíveis e levar essa escolha ao treino que começar. O rascunho do A1 pertence àquela rotina. [Filtros da biblioteca do Hevy](https://www.hevyapp.com/features/exercise-library/)
+
+Em 320 px com fonte a 200%, o primeiro candidato deixava apenas 32 px para o nome de um exercício do catálogo. Na revisão corrigida, o texto passou a ocupar 240 px. A palavra “sentado” coube em uma linha e o nome completo em três. O item passou de 1.316 para 316 px de altura. **Começar com 3 exercícios** também ficou inteiramente dentro do botão. A 360 px com fonte padrão, miniatura, nome e marcação continuam na mesma linha. No teclado, ao levar o exercício até a primeira posição, a seta para descer recebe o foco e permite ajustar a posição novamente.
+
+O build local passou em lint, 2.412 testes unitários em 127 arquivos e nove fluxos de Chromium de reordenação do treino do dia e treino personalizado. No WebKit emulado, sete toques permitiram adiantar o último exercício e usar Voltar duas vezes. A primeira volta devolveu o foco a **Reordenar escolhidos** no catálogo, com a busca e a ordem escolhidas. A segunda fechou a folha e devolveu o foco a **Personalizar treino**.
