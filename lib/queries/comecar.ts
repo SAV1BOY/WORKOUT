@@ -22,7 +22,7 @@ import {
   recordesNoCache,
   seriesAnterioresNoCache,
 } from "@/lib/queries/dados";
-import { criarSessao, type EntradaCriacao } from "@/lib/queries/sessao";
+import { criarSessao, novoId, type EntradaCriacao } from "@/lib/queries/sessao";
 import { lerTrocasLocaisDoPrograma } from "@/lib/queries/trocas-do-programa";
 import { chaveDaOrdemDoDia, consumirOrdemDoAparelho, lerOrdem, lerTextoDaOrdem, type OrdemTemporaria } from "@/lib/ordem";
 import { limparTrocasDoAparelho, resolverTrocasDoTreino } from "@/lib/trocas";
@@ -31,6 +31,7 @@ import type { EquipamentoTag, TreinoId } from "@/lib/schemas";
 import type { LinhaPerfil } from "@/lib/types";
 
 export interface EntradaComecar {
+  retomarCriacaoPendente?: boolean;
   userId: string;
   perfil: LinhaPerfil;
   hoje: string;
@@ -77,8 +78,9 @@ export async function trocasParaComecar(
 export async function criarSessaoComEquipamentoDoDia(entrada: EntradaCriacao) {
   const { userId, data, treinoId } = entrada;
   const equipamentosDisponiveis = entrada.equipamentosDisponiveis ?? lerEquipamentoDoDia(userId, data, treinoId);
-  const sessao = await criarSessao({ ...entrada, equipamentosDisponiveis });
-  consumirEquipamentoDoDia(userId, data, treinoId, equipamentosDisponiveis);
+  const id = entrada.id ?? novoId();
+  const sessao = await criarSessao({ ...entrada, id, equipamentosDisponiveis });
+  if (sessao.id === id) consumirEquipamentoDoDia(userId, data, treinoId, equipamentosDisponiveis);
   return sessao;
 }
 
@@ -116,8 +118,10 @@ export function useComecarTreino(aquecerRota = false): {
         const recordes: Record<string, RecordeAntes> = {};
         for (const r of recordesNoCache(cliente, ids)) recordes[r.exercise_id] = r;
 
+        const id = idReservado.current ?? novoId();
         const sessao = await criarSessaoComEquipamentoDoDia({
-          id: idReservado.current ?? undefined,
+          id,
+          retomarCriacaoPendente: e.retomarCriacaoPendente,
           cliente,
           userId: e.userId,
           data: e.hoje,
@@ -137,7 +141,7 @@ export function useComecarTreino(aquecerRota = false): {
           substituicoes: trocas,
           ordem,
         });
-        if (e.doDia !== false) {
+        if (e.doDia !== false && sessao.id === id) {
           limparTrocasDoAparelho(e.userId, e.treinoId);
           const consumida = consumirOrdemDoAparelho(e.userId, e.hoje, e.treinoId, texto);
           if (!consumida && (temporaria || texto)) {

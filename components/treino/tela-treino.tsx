@@ -87,7 +87,9 @@ import {
   useSoltasDoDia,
   useUltimoPeso,
 } from "@/lib/queries/dados";
-import { carregarSessaoLocal, gravarPlanoDaSessao, sessaoLocalMaisRecente } from "@/lib/queries/sessao";
+import {
+  carregarSessaoLocal, gravarPlanoDaSessao, lembrarSessaoAberta, sessaoLocalComCriacaoPendente, sessaoLocalMaisRecente,
+} from "@/lib/queries/sessao";
 import { definirEquipamentoDaSessao, itensDoTreino, progressoDaSessao, type SessaoLocal } from "@/lib/sessao";
 import type { EquipamentoTag } from "@/lib/schemas";
 import type { LinhaSessao } from "@/lib/types";
@@ -148,7 +150,7 @@ export function TelaTreino({ userId }: { userId: string }) {
   const perfilQ = usePerfil();
   const overridesQ = useOverrides(intervalo?.de ?? null, intervalo?.ate ?? null);
   const sessoesQ = useSessoes();
-  const abertasQ = useSessoesAbertas();
+  const abertasQ = useSessoesAbertas(false, userId);
   const cardioQ = useCardio(intervalo?.de ?? null, intervalo?.ate ?? null, userId);
   const cardioDesdeQ = useCardioDesde(desde, userId);
   const pesoQ = useUltimoPeso();
@@ -285,20 +287,22 @@ export function TelaTreino({ userId }: { userId: string }) {
   const abertaDaLista = sessaoAberta(abertas);
   const idDaLista = abertaDaLista?.id ?? null;
   // A sessão e a fila já podem ter sido gravadas quando o cache da lista ainda não foi salvo.
-  const procurarNoAparelho = !idDaLista && !(abertasQ.isSuccess && abertasQ.isFetchedAfterMount && abertasQ.fetchStatus === "idle");
+  const procurarNoAparelho = !idDaLista;
+  const soCriacoesPendentes = procurarNoAparelho && abertasQ.isSuccess && abertasQ.isFetchedAfterMount && abertasQ.fetchStatus === "idle";
   const excluirDaBusca = procurarNoAparelho ? encerradas : undefined;
   const [tentativa, setTentativa] = useState(0);
-  const buscaLocal = useMemo(() => ({ id: idDaLista, conta: userId, excluir: excluirDaBusca, tentativa }), [idDaLista, userId, excluirDaBusca, tentativa]);
+  const buscaLocal = useMemo(() => ({ id: idDaLista, conta: userId, excluir: excluirDaBusca, soCriacoesPendentes, tentativa }),
+    [idDaLista, userId, excluirDaBusca, soCriacoesPendentes, tentativa]);
   const [leituraLocal, setLeituraLocal] = useState<{ busca: typeof buscaLocal; sessao: SessaoLocal | null; protegida: boolean; falhou: boolean } | null>(null);
   const leuAberta = leituraLocal?.busca === buscaLocal;
   const abertaLocal = leuAberta ? leituraLocal.sessao : null;
   useEffect(() => {
     const { id, conta, excluir } = buscaLocal;
-    if (!id && !excluir) return;
+    const procurarSemResumo = buscaLocal.soCriacoesPendentes ? sessaoLocalComCriacaoPendente : sessaoLocalMaisRecente;
     const falha = { busca: buscaLocal, sessao: null, protegida: false, falhou: true };
     const assinatura = liveQuery(async () => {
       try {
-        const sessao = id ? await carregarSessaoLocal(id) : await sessaoLocalMaisRecente(conta, excluir);
+        const sessao = id ? await carregarSessaoLocal(id) : await procurarSemResumo(conta, excluir);
         const encontrada = id ?? sessao?.id;
         const ids = encontrada ? await lerIdsDaSessaoProtegida(conta, encontrada) : [];
         return {
@@ -310,11 +314,17 @@ export function TelaTreino({ userId }: { userId: string }) {
         return falha;
       }
     }).subscribe({
-      next: setLeituraLocal,
+      next: (leitura) => {
+        setLeituraLocal(leitura);
+        if (buscaLocal.soCriacoesPendentes && leitura.sessao) {
+          // A lista veio antes do POST. A confirmação da fila não deve apagar o Continuar.
+          lembrarSessaoAberta(cliente, leitura.sessao);
+        }
+      },
       error: () => setLeituraLocal(falha),
     });
     return () => assinatura.unsubscribe();
-  }, [buscaLocal]);
+  }, [buscaLocal, cliente]);
   const aberta = abertaDaLista ?? (abertaLocal && !encerradas.has(abertaLocal.id)
     ? sessaoAberta([{ id: abertaLocal.id, data: abertaLocal.data, workout_id: abertaLocal.workoutId, status: abertaLocal.status }]) : null);
   const abertaId = aberta?.id;
@@ -494,7 +504,7 @@ export function TelaTreino({ userId }: { userId: string }) {
   const comecarTreinoDeHoje = () => {
     if (bloquearInicio || !treinoId || pedirDecisao()) return;
     void comecar({
-      userId, perfil, hoje, treinoId, lembradas, ordemTemporaria,
+      userId, perfil, hoje, treinoId, lembradas, ordemTemporaria, retomarCriacaoPendente: true,
       equipamentosDisponiveis: materialDoDia?.disponiveis,
       trocas: soHoje ?? lerTrocasDoAparelho(userId, hoje, treinoId),
     });

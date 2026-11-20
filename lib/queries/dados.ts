@@ -9,6 +9,7 @@
 
 import { useEffect } from "react";
 import { useQuery, type QueryClient, type UseQueryResult } from "@tanstack/react-query";
+import { listarAbertasComCriacaoPendente } from "@/lib/queries/criacao-pendente-da-sessao";
 import { confirmarCatalogoLido } from "@/lib/queries/compatibilidade-da-sessao";
 import { lerSeriesDoTreinoPassado, type UltimaSerie } from "@/lib/queries/series-do-treino-passado";
 import { lerExcecoesDoHistorico } from "@/lib/queries/excecoes-do-historico";
@@ -158,20 +159,15 @@ export function useSessoes(): UseQueryResult<SessaoResumo[]> {
 }
 
 /** As sessões ainda abertas, venham de quando vierem (banner da §3.1). */
-export function useSessoesAbertas(confirmarAoAbrir = false): UseQueryResult<SessaoResumo[]> {
+export function useSessoesAbertas(confirmarAoAbrir: boolean, conta: string): UseQueryResult<SessaoResumo[]> {
   return useQuery({
     queryKey: chaves.sessoesAbertas(),
     refetchOnMount: confirmarAoAbrir ? "always" : true,
-    queryFn: () =>
-      lerLista<SessaoResumo>(
-        clienteNavegador()
-          .from("sessions")
-          .select(`${COLUNAS_SESSAO},plano`)
-          .eq("status", "em_andamento")
-          .order("data", { ascending: false })
-          .limit(5),
-        "os treinos em aberto",
-      ),
+    queryFn: ({ signal }) => listarAbertasComCriacaoPendente(conta, () => lerLista<SessaoResumo>(
+      clienteNavegador().from("sessions").select(`${COLUNAS_SESSAO},plano`)
+        .eq("user_id", conta).eq("status", "em_andamento").order("data", { ascending: false }).limit(5).abortSignal(signal),
+      "os treinos em aberto",
+    )),
   });
 }
 

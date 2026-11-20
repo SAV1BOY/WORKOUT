@@ -32,6 +32,8 @@ import { apagarOrdemLocal, guardarOrdemLocal, lerComOrdemLocal } from "@/lib/que
 import { confirmarContaDoTreino } from "@/lib/queries/conta-do-treino";
 import { lerMotorParaRepetir } from "@/lib/queries/motor-repetir-treino";
 import { chaves, type SessaoResumo } from "@/lib/queries/dados";
+import { lerCriacaoPendenteNaTransacao, resumoDaCriacao } from "@/lib/queries/criacao-pendente-da-sessao";
+export { sessaoLocalComCriacaoPendente } from "@/lib/queries/criacao-pendente-da-sessao";
 import {
   acrescentarExercicioNaSessao as acrescentarBloco,
   aplicarOrdemRemotaDaSessao,
@@ -342,7 +344,10 @@ const TIPO_POR_TABELA: Record<string, TipoSaida> = {
 
 /* ------------------------------------------------------------- começar */
 
+type RetomadaAoCriar = { encerradas: ReadonlySet<string>; exigirCriacaoPendente?: boolean };
+
 export interface EntradaCriacao extends Omit<EntradaMontagem, "id"> {
+  retomarCriacaoPendente?: boolean;
   cliente: QueryClient;
   id?: string;
   /**
@@ -364,7 +369,7 @@ export interface EntradaCriacao extends Omit<EntradaMontagem, "id"> {
  * cliente e entra na fila de saída. A navegação não espera a rede.
  */
 export async function criarSessao(entrada: EntradaCriacao): Promise<SessaoLocal> {
-  const { cliente, substituicoes, ordem, ...resto } = entrada;
+  const { cliente, substituicoes, ordem, retomarCriacaoPendente, ...resto } = entrada;
   const id = entrada.id ?? novoId();
   const base = itensDoTreino(resto.treinoId);
   const reordenado = ordem && ordem.length > 0 ? itensNaOrdem(base, ordem) : null;
@@ -392,7 +397,12 @@ export async function criarSessao(entrada: EntradaCriacao): Promise<SessaoLocal>
           novoId,
         })
       : montada;
-  return registrarSessaoNova(sessao, cliente);
+  const retomada = retomarCriacaoPendente ? {
+    exigirCriacaoPendente: true,
+    encerradas: new Set((cliente.getQueryData<SessaoResumo[]>(chaves.sessoes()) ?? [])
+      .filter(s => s.user_id === resto.userId && s.status !== "em_andamento").map(s => s.id)),
+  } : undefined;
+  return registrarSessaoNova(sessao, cliente, retomada);
 }
 
 export interface EntradaCriacaoAvulsa extends Omit<EntradaAvulsa, "id"> {
@@ -454,25 +464,21 @@ export async function criarSessaoAvulsa(
 async function registrarSessaoNova(
   sessao: SessaoLocal,
   cliente: QueryClient,
-  retomarSeAberta?: { encerradas: ReadonlySet<string> },
+  retomarSeAberta?: RetomadaAoCriar,
 ): Promise<SessaoLocal> {
   const salva = await gravarSessaoComSaida(sessao, { retomarSeAberta });
   if (salva !== sessao) return salva;
 
-  cliente.setQueryData<SessaoResumo[]>(chaves.sessoesAbertas(), (atual) => [
-    {
-      id: sessao.id,
-      user_id: sessao.userId,
-      data: sessao.data,
-      status: "em_andamento",
-      workout_id: sessao.workoutId,
-      fase: sessao.fase,
-      concluida_em: null,
-    },
-    ...(atual ?? []),
-  ]);
-
+  lembrarSessaoAberta(cliente, sessao);
   return sessao;
+}
+
+/** A criação confirmada no aparelho continua na lista até o servidor ler a mesma sessão. */
+export function lembrarSessaoAberta(cliente: QueryClient, sessao: SessaoLocal): void {
+  const chave = chaves.sessoesAbertas();
+  const atuais = cliente.getQueryData<SessaoResumo[]>(chave) ?? [];
+  if (atuais.some(s => s.id === sessao.id && s.user_id === sessao.userId)) return;
+  cliente.setQueryData<SessaoResumo[]>(chave, [resumoDaCriacao(sessao), ...atuais.filter(s => s.id !== sessao.id)]);
 }
 
 type AlterarSessao = (atual: SessaoLocal) => SessaoLocal;
@@ -485,7 +491,7 @@ async function gravarSessaoComSaida(
     alterar?: AlterarSessao;
     escritaDaAlteracao?: (atual: SessaoLocal) => EscritaTabela;
     conferirAntesDeConfirmar?: () => void;
-    retomarSeAberta?: { encerradas: ReadonlySet<string> };
+    retomarSeAberta?: RetomadaAoCriar;
   },
 ): Promise<SessaoLocal> {
   const banco = bd();
@@ -493,7 +499,9 @@ async function gravarSessaoComSaida(
     let atual = sessao;
     let escrita: EscritaTabela;
     if (retomarSeAberta) {
-      const existente = await lerRecenteNaTransacao(sessao.userId, retomarSeAberta.encerradas);
+      const existente = retomarSeAberta.exigirCriacaoPendente
+        ? await lerCriacaoPendenteNaTransacao(sessao.userId, retomarSeAberta.encerradas)
+        : await lerRecenteNaTransacao(sessao.userId, retomarSeAberta.encerradas);
       if (existente) return existente;
     }
     if (alterar) {

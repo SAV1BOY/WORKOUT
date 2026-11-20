@@ -326,3 +326,104 @@ test("a lista confirmada vazia e o histórico encerrado não reabrem cópias ant
   }
   expect(await lerDoMock(conta, "sessions", "id=eq." + encerrada.id)).toMatchObject([{ status: "concluida" }]);
 });
+
+for (const ordem of ["antes", "depois"]) {
+  test(`o A1 criado sem rede continua no cartão com a lista vazia recebida ${ordem} do envio`, async ({ page, context }) => {
+    const conta = await usuarioComPerfil();
+    await entrarNoApp(page);
+    await esperarServiceWorker(page);
+    await page.goto("/");
+    const hoje = page.getByRole("region", { name: "Hoje", exact: true });
+    const comecar = hoje.getByRole("button", { name: "Começar treino", exact: true });
+    const continuar = hoje.getByRole("link", { name: "Continuar", exact: true });
+    await expect(comecar).toBeEnabled();
+    const observadora = await context.newPage();
+    await observadora.goto("/manifest.webmanifest");
+    await expect.poll(() => consultaGuardada(observadora, "sessoes-abertas")).toEqual([]);
+
+    const worker = await workerDoApp(context);
+    await semRedeNoWorker(worker);
+    await context.setOffline(true);
+    try {
+      await comecar.tap();
+      await expect.poll(() => naFila(observadora)).toBe(1);
+      await page.goto("about:blank");
+      await consultaGuardada(observadora, "sessoes-abertas", true);
+    } finally {
+      await comRedeNoWorker(worker);
+      await context.setOffline(false);
+    }
+
+    let liberar!: () => void;
+    const liberado = new Promise<void>(resolve => { liberar = resolve; });
+    let entregar!: () => void;
+    const entrega = new Promise<void>(resolve => { entregar = resolve; });
+    let leituras = 0;
+    await page.exposeFunction("receberListaDeAbertas", () => {
+      leituras++;
+      if (leituras === 1 && ordem === "depois") return entrega;
+    });
+    const envios: string[] = [];
+    await page.exposeFunction("aguardarEnvioDeSessao", (id: string) => {
+      envios.push(id);
+      return liberado;
+    });
+    await page.addInitScript(() => {
+      const buscar = window.fetch.bind(window);
+      window.fetch = async (entrada, opcoes) => {
+        const url = new URL(entrada instanceof Request ? entrada.url : entrada.toString(), location.href);
+        if (url.pathname === "/rest/v1/sessions" && opcoes?.method === "POST") {
+          const linha = JSON.parse(String(opcoes.body));
+          const { aguardarEnvioDeSessao } = window as unknown as { aguardarEnvioDeSessao(id: string): Promise<void> };
+          await aguardarEnvioDeSessao(linha.id);
+        }
+        const resposta = await buscar(entrada, opcoes);
+        if (url.searchParams.get("status") === "eq.em_andamento" && !opcoes?.body) {
+          const { receberListaDeAbertas } = window as unknown as { receberListaDeAbertas(): Promise<void> };
+          await receberListaDeAbertas();
+        }
+        return resposta;
+      };
+    });
+    try {
+      const resposta = page.waitForResponse(r => {
+        const url = new URL(r.url());
+        return url.pathname === "/rest/v1/sessions" && url.searchParams.get("status") === "eq.em_andamento";
+      });
+      await page.goto("/");
+      expect(await (await resposta).json()).toEqual([]);
+      await expect.poll(() => envios.length).toBe(1);
+      await expect.poll(() => leituras).toBeGreaterThan(0);
+      const id = envios[0];
+      expect(id).toMatch(/^[a-f0-9-]{36}$/);
+      await expect(continuar).toHaveAttribute("href", "/treinar/" + id);
+      expect(await lerDoMock(conta, "sessions")).toEqual([]);
+
+      // Detecta o reaparecimento do comando de criar, inclusive enquanto a fila esvazia.
+      await hoje.evaluate(secao => {
+        const observador = new MutationObserver(() => {
+          if (Array.from(secao.querySelectorAll("button:enabled")).some(b => b.textContent?.trim() === "Começar treino")) {
+            secao.setAttribute("data-ofereceu-outra-criacao", "sim");
+          }
+        });
+        observador.observe(secao, { childList: true, subtree: true, attributes: true, attributeFilter: ["disabled"] });
+      });
+      liberar();
+      await expect.poll(() => naFila(observadora)).toBe(0);
+      // O servidor já criou o A1 mesmo quando o navegador ainda espera o primeiro GET.
+      expect(await lerDoMock(conta, "sessions")).toMatchObject([{ id, workout_id: "A1", status: "em_andamento" }]);
+      entregar();
+      await expect.poll(() => consultaGuardada(observadora, "sessoes-abertas")).toMatchObject([{ id }]);
+      await expect(continuar).toHaveAttribute("href", "/treinar/" + id);
+      await expect(hoje).not.toHaveAttribute("data-ofereceu-outra-criacao", "sim");
+      await continuar.press("Enter");
+      await expect(page).toHaveURL(url => url.pathname === "/treinar/" + id);
+      expect(await lerDoMock(conta, "sessions")).toMatchObject([{ id, workout_id: "A1", status: "em_andamento" }]);
+      expect(envios).toEqual([id]);
+    } finally {
+      liberar();
+      entregar();
+      await observadora.close();
+    }
+  });
+}
