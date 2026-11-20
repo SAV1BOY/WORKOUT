@@ -2,7 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { itensDeIds, planoDaSessao } from "../lib/livre";
 import {
   abrirSecaoDoRelatorio, abrirVisaoGeral, comecarNoPlayer, entrarNoApp, esperarAbaTreino,
-  esperarServiceWorker, fixarData, HOJE_FIXO, inserirNoMock, irNaAba, lerDoMock,
+  esperarServiceWorker, fixarData, HOJE_FIXO, inserirNoMock, irNaAba, lerDoMock, marcarSerieNaVisaoGeral,
   ocuparArmazenamentoDaSessao, resetarMock, semRolagemHorizontal, usuarioComPerfil,
 } from "./fixtures";
 import { comRedeNoWorker, semRedeNoWorker, workerDoApp } from "./rede-do-worker";
@@ -169,7 +169,7 @@ test("abrir a Visão geral na virada do segundo e marcar a série registra 1 s �
   await abrirLista.tap();
   const primeira = page.getByRole("dialog", { name: "Visão geral do treino" })
     .getByRole("group", { name: "Série 1 — Prancha lateral", exact: true });
-  await primeira.getByRole("checkbox").check();
+  await marcarSerieNaVisaoGeral(primeira.getByRole("checkbox"));
   await expect.poll(() => lerDoMock(conta, "session_sets", `session_id=eq.${id}`)).toMatchObject([{
     exercise_id: "prancha-lateral", set_index: 1, tipo: "trabalho", tempo_s: 1, tempo_s_lado2: 25, concluida: true,
   }]);

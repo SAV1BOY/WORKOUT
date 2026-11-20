@@ -35,7 +35,7 @@ async function abrirComTresEscolhidos(page: Page) {
 }
 
 async function conferirEscolhidos(page: Page, nomes: string[]) {
-  const itens = folha(page).getByRole("list", { name: "Escolhidos" }).getByRole("button");
+  const itens = folha(page).getByRole("list", { name: "Escolhidos" }).getByRole("button", { name: /^Tirar / });
   await expect(itens).toHaveCount(nomes.length);
   for (const [i, nome] of nomes.entries()) {
     await expect(itens.nth(i)).toHaveAccessibleName(`Tirar ${nome}`);

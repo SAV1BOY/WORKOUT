@@ -124,6 +124,7 @@ export function TelaPlayer({
   /** O que o leitor de tela ouve depois de gravar uma série (§22.5 item 10). */
   const [aviso, setAviso] = useState("");
   const marcacaoEmCurso = useRef<symbol | null>(null);
+  const [gravandoSerie, setGravandoSerie] = useState(false);
   /**
    * SPEC §22.5 item 2: a gravação acontece ao ENTRAR na conclusão. "pendente"
    * é o estado de quem ainda não chegou lá (ou está gravando agora).
@@ -179,6 +180,7 @@ export function TelaPlayer({
 
   useEffect(() => () => {
     marcacaoEmCurso.current = null;
+    setGravandoSerie(false);
   }, [sessao?.id, estado?.chave, visaoGeral]);
 
   const ir = useCallback(
@@ -592,6 +594,7 @@ export function TelaPlayer({
           passo={passo}
           bloco={bloco}
           serie={serie}
+          gravando={gravandoSerie}
           entrada={entradaDoPasso(bloco, serie)}
           opcoes={sessao.opcoesMontagem}
           temVideo={videos.includes(bloco.exercicioId)}
@@ -610,11 +613,32 @@ export function TelaPlayer({
             if (!serie.concluida || descanso) {
               const pedido = Symbol();
               marcacaoEmCurso.current = pedido;
-              const salvo = await dados.marcar(bloco.ordem, serie.id, true);
-              if (marcacaoEmCurso.current !== pedido) return;
-              marcacaoEmCurso.current = null;
-              if (!salvo) return;
-              registrada = salvo.serie;
+              setGravandoSerie(true);
+              try {
+                const salvo = await dados.marcar(bloco.ordem, serie.id, true);
+                if (marcacaoEmCurso.current !== pedido || !salvo) return;
+                registrada = salvo.serie;
+                if (!salvo.aplicada) {
+                  const passos = sequenciaDoPlayer(salvo.sessao, opcoes);
+                  const feita = indiceDaChave(passos, passo.chave);
+                  const player = salvo.sessao.player;
+                  if (player && (player.descansoAoCorrigir || indiceDaChave(passos, player.chave) > feita)) {
+                    setEstado(player);
+                  } else if (feita >= 0) {
+                    // A Visão geral registra a série sem avançar o player. O intervalo já está correndo.
+                    const desde = Date.parse(registrada.registradaEm ?? "");
+                    const temHorario = Number.isFinite(desde);
+                    const destino = temHorario ? apos(passos, feita) : seguinte(passos, feita);
+                    guardar(irPara(passos, destino, temHorario ? Math.min(desde, Date.now()) : Date.now()));
+                  }
+                  return;
+                }
+              } finally {
+                if (marcacaoEmCurso.current === pedido) {
+                  marcacaoEmCurso.current = null;
+                  setGravandoSerie(false);
+                }
+              }
             }
             if (descanso && indiceDaChave(seq, descanso.chave) >= 0) {
               setAviso(textoDaSerieGravada(passo, bloco, registrada, null));

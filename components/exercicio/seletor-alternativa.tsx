@@ -123,7 +123,8 @@ export function OpcoesDeAlternativa({
     ? Object.entries(resolverTrocasDoTreino(paraOPrograma.treinoId, paraOPrograma.lembradas))
         .filter(([original]) => original !== originalId)
     : [];
-  const alternativas = alternativasPara(origem.id, filtro, disponiveis).filter((e) => {
+  const compativeis = alternativasPara(origem.id, filtro, disponiveis);
+  const alternativas = compativeis.filter((e) => {
     if (ocupados?.includes(e.id)) return false;
     if (!paraOPrograma) return true;
     const mapa = { ...paraOPrograma.lembradas, [originalId]: e.id };
@@ -133,6 +134,11 @@ export function OpcoesDeAlternativa({
   });
   const opcoes = evitadosPorUltimo(alternativas, (e) => e.id, prefs);
   const visiveis = filtrarExercicios(opcoes, { busca });
+  let avisoSemAlternativas = "Nenhuma alternativa com este equipamento. Escolha outro filtro ou ajuste os equipamentos disponíveis.";
+  if (opcoes.length) avisoSemAlternativas = "Nenhuma alternativa com esse nome.";
+  else if (compativeis.length && compativeis.every(e => ocupados?.includes(e.id))) {
+    avisoSemAlternativas = "As alternativas compatíveis com este filtro já estão no treino.";
+  }
 
   async function aplicar(paraHoje: string, paraOProximo: string | null) {
     if (ocupado.current) return;
@@ -228,8 +234,7 @@ export function OpcoesDeAlternativa({
         </ul>
       ) : (
         <p role="status" className="text-muted-foreground text-sm">
-          {opcoes.length ? "Nenhuma alternativa com esse nome." :
-            "Nenhuma alternativa com este equipamento. Escolha outro filtro ou ajuste os equipamentos disponíveis."}
+          {avisoSemAlternativas}
         </p>
       )}
     </div>

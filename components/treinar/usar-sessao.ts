@@ -40,11 +40,12 @@ import {
   carregarSessaoLocal,
   comOrdemConfirmada,
   conciliarBlocosAcrescentados,
+  conciliarMarcacaoConfirmada,
+  confirmarMarcacaoDaSerie,
   confirmarToquesPendentes,
   descarregarSessao,
   desfazerUltimaInclusaoNaSessao,
   enviarPlanoDaTroca,
-  enviarSerie,
   finalizarSessao,
   guardarCronometroDaSessao,
   guardarDescansoDaSessao,
@@ -69,7 +70,6 @@ import {
   ehTreinoDoPrograma,
   idsComSubstitutos,
   idsQueComparamComAnterior,
-  marcarSerie,
   progressoDaSessao,
   reconstruirSessao,
   seriesAnterioresPorExercicio,
@@ -382,29 +382,31 @@ export function useSessaoDeTreino(sessaoId: string, userId: string) {
    * Marcar uma série: grava no aparelho, manda para a fila e devolve o bloco e
    * a série que mudaram (quem chamou decide o que fazer com o descanso).
    */
+  const marcacoesEmGravacao = useRef(new Map<string, ReturnType<typeof confirmarMarcacaoDaSerie>>());
   const marcar = useCallback(
     async (
       ordem: number,
       serieId: string,
       concluida: boolean,
-    ): Promise<{ sessao: SessaoLocal; bloco: BlocoLocal; serie: SerieLocal } | null> => {
+    ): Promise<{ sessao: SessaoLocal; bloco: BlocoLocal; serie: SerieLocal; aplicada: boolean } | null> => {
       const antes = ultima.current;
-      if (!antes || antes.id !== sessaoId || antes.userId !== userId) return null;
-      const nova = mexer((atual) => marcarSerie(atual, ordem, serieId, concluida));
-      if (!nova) return null;
-      const bloco = nova.blocos.find((b) => b.ordem === ordem);
-      const serie = bloco?.series.find((s) => s.id === serieId);
-      if (!bloco || !serie) return null;
+      if (!antes || antes.id !== sessaoId || antes.userId !== userId || marcacoesEmGravacao.current.has(serieId)) return null;
+      const gravacao = confirmarMarcacaoDaSerie(antes, ordem, serieId, concluida);
+      marcacoesEmGravacao.current.set(serieId, gravacao);
       try {
-        const gravou = await enviarSerie(nova, bloco, serie);
-        if (ultima.current?.id !== sessaoId || ultima.current.userId !== userId) return null;
-        if (gravou) return { sessao: nova, bloco, serie };
-
-        const salva = await carregarSessaoLocal(sessaoId);
+        const confirmada = await gravacao;
+        const salva = confirmada?.sessao ?? await carregarSessaoLocal(sessaoId);
         const atual = ultima.current;
         if (atual?.id !== sessaoId || atual.userId !== userId) return null;
         if (salva?.userId === userId && salva.status === "em_andamento") {
-          adotar(atual === nova ? salva : conciliarBlocosAcrescentados(atual, salva));
+          const nova = conciliarMarcacaoConfirmada(antes, atual, salva, ordem);
+          adotar(nova);
+          if (confirmada) {
+            const sessao = confirmada.aplicada ? nova : confirmada.sessao;
+            const bloco = sessao.blocos.find(b => b.ordem === ordem);
+            const serie = bloco?.series.find(s => s.id === serieId);
+            return bloco && serie ? { sessao, bloco, serie, aplicada: confirmada.aplicada } : null;
+          }
         } else {
           router.replace("/relatorio#historico");
         }
@@ -412,12 +414,13 @@ export function useSessaoDeTreino(sessaoId: string, userId: string) {
       } catch {
         const atual = ultima.current;
         if (atual?.id !== sessaoId || atual.userId !== userId) return null;
-        if (atual === nova) mexer(() => antes);
         toast.error("Não foi possível confirmar a série neste aparelho. Tente de novo.");
+      } finally {
+        marcacoesEmGravacao.current.delete(serieId);
       }
       return null;
     },
-    [adotar, mexer, router, sessaoId, userId],
+    [adotar, router, sessaoId, userId],
   );
 
   const mudarSerie = useCallback(
@@ -709,6 +712,7 @@ export function useSessaoDeTreino(sessaoId: string, userId: string) {
         await descansoEmGravacao.current?.catch(() => {});
         await inclusaoEmGravacao.current?.catch(() => {});
         await escolhaEmGravacao.current?.catch(() => {});
+        await Promise.all(marcacoesEmGravacao.current.values());
         const atual = ultima.current ?? sessao;
         await finalizarSessao({
           sessao: { ...atual, sensacao: dados.sensacao, pesoCorporal: dados.peso },

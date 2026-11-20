@@ -44,6 +44,7 @@ import {
   escritasDasSeriesFeitas,
   escritaDaSessao,
   itensDoTreino,
+  marcarSerie,
   montarSessao,
   montarSessaoAvulsa,
   MENSAGEM_NOTA_GERAL_ALTERADA,
@@ -192,6 +193,19 @@ export function conciliarBlocosAcrescentados(atual: SessaoLocal, salva: SessaoLo
   };
 }
 
+/** Mantém os campos editados na tela durante a gravação, junto da marcação já confirmada. */
+export function conciliarMarcacaoConfirmada(antes: SessaoLocal, atual: SessaoLocal, salva: SessaoLocal, ordem: number): SessaoLocal {
+  if (atual === antes) return salva;
+  const conciliada = conciliarBlocosAcrescentados(atual, salva);
+  const base = antes.blocos.find(b => b.ordem === ordem);
+  const gravado = salva.blocos.find(b => b.ordem === ordem);
+  if (!base || !gravado) return conciliada;
+  return { ...conciliada, blocos: conciliada.blocos.map(bloco => {
+    if (bloco.ordem !== ordem || !blocosCompartilhamSeries(base, bloco) || bloco === gravado) return bloco;
+    return conciliarEdicaoDoBloco(gravado, base, bloco);
+  }) };
+}
+
 /** Preserva a escolha já confirmada durante uma edição que não alterou a sequência. */
 export function comOrdemConfirmada(atual: SessaoLocal, salva: SessaoLocal): SessaoLocal {
   const ordem = salva.ordemExecucao ?? salva.plano?.ordem_execucao;
@@ -241,13 +255,9 @@ async function gravar(sessao: SessaoLocal, antes?: SessaoLocal): Promise<void> {
         const base = antes.blocos.find(b => b.ordem === bloco.ordem);
         const maisNovo = salva.blocos.find(b => b.ordem === bloco.ordem);
         if (!maisNovo) return bloco;
-        if (base && (salva.plano?.ultima_inclusao || salva.ordemExecucao || salva.plano?.ordem_execucao)) {
-          // Se a lista mudou, a conciliação já devolveu o bloco da geração atual.
-          if (bloco === maisNovo) return maisNovo;
-          return conciliarEdicaoDoBloco(maisNovo, base, bloco);
-        }
-        if (base === bloco || maisNovo.exercicioId !== (base ?? bloco).exercicioId) return maisNovo;
-        return bloco;
+        if (bloco === maisNovo) return maisNovo;
+        if (base) return conciliarEdicaoDoBloco(maisNovo, base, bloco);
+        return maisNovo.exercicioId === bloco.exercicioId ? bloco : maisNovo;
       });
     }
     const completa = bloquearDesfazerSeIniciado(nova);
@@ -564,17 +574,24 @@ function escritaDoPlano(id: string, userId: string, plano: PlanoDaSessao | null)
 }
 
 /** Releitura e enfileiramento na mesma transação mantêm a ordem em relação ao editor de descanso. */
-async function enfileirarComPlanoAtual(id: string, conta: string, escrita: EscritaTabela, manterMaterial: boolean): Promise<SessaoLocal | null> {
+async function enfileirarComPlanoAtual(id: string, conta: string, escrita: EscritaTabela, blocosDaTroca?: BlocoLocal[]): Promise<SessaoLocal | null> {
   const banco = bd();
   const confirmada = await banco.transaction("rw", banco.sessaoAtiva, banco.outbox, banco.cache, async () => {
     const salva = await lerSessaoNaTransacao(id);
     if (salva && salva.userId !== conta) throw new Error("A sessão pertence a outra conta.");
     // As trocas e a lista da sessão livre já foram conciliadas ao descarregar a edição de tela.
     const recebido = escrita.linha?.plano as PlanoDaSessao | null;
-    let plano = preservarPlanoSalvo(recebido, salva, manterMaterial);
-    if (salva?.plano?.ultima_inclusao) {
+    let plano = preservarPlanoSalvo(recebido, salva, !!blocosDaTroca);
+    // Uma troca enviada diretamente só pode arquivar o movimento que a aba realmente conhecia.
+    const trocaDesatualizada = salva && blocosDaTroca?.some(bloco => {
+      const gravado = salva.blocos.find(b => b.ordem === bloco.ordem);
+      if (!gravado || gravado.exercicioId === bloco.exercicioId) return false;
+      const arquivado = bloco.trocados?.find(b => b.exercicioId === gravado.exercicioId);
+      return JSON.stringify(arquivado) !== JSON.stringify({ ...gravado, trocados: undefined });
+    });
+    if (salva && (salva.plano?.ultima_inclusao || trocaDesatualizada)) {
       plano = planoParaGravar(salva);
-      if (!manterMaterial && plano) plano = { ...plano, equipamento_disponivel: recebido?.equipamento_disponivel };
+      if (!blocosDaTroca && plano) plano = { ...plano, equipamento_disponivel: recebido?.equipamento_disponivel };
     }
     const completa = { ...escrita, linha: { ...escrita.linha, plano } };
     await guardarNaFila("sessao", completa, alvoDaEscrita(completa));
@@ -586,12 +603,12 @@ async function enfileirarComPlanoAtual(id: string, conta: string, escrita: Escri
 
 /** A fila ordena as edições do plano pelo mesmo ID da sessão. */
 export async function gravarPlanoDaSessao(id: string, userId: string, plano: PlanoDaSessao | null): Promise<void> {
-  await enfileirarComPlanoAtual(id, userId, escritaDoPlano(id, userId, plano), false);
+  await enfileirarComPlanoAtual(id, userId, escritaDoPlano(id, userId, plano));
 }
 
 export async function enviarPlanoDaSessao(sessao: SessaoLocal): Promise<SessaoLocal | null> {
   await confirmarToquesPendentes(sessao);
-  return enfileirarComPlanoAtual(sessao.id, sessao.userId, escritaDoPlano(sessao.id, sessao.userId, planoParaGravar(sessao)), true);
+  return enfileirarComPlanoAtual(sessao.id, sessao.userId, escritaDoPlano(sessao.id, sessao.userId, planoParaGravar(sessao)), sessao.blocos);
 }
 
 export { enviarPlanoDaSessao as enviarPlanoDaTroca };
@@ -806,32 +823,44 @@ export async function desfazerUltimaInclusaoNaSessao(sessao: SessaoLocal, identi
   }, undefined, conciliarBlocosAcrescentados);
 }
 
-/** A série deve existir no mesmo bloco quando entra na fila, inclusive se outra aba desfez e reincluiu o exercício. */
-export async function enviarSerie(sessao: SessaoLocal, bloco: BlocoLocal, serie: SerieLocal): Promise<boolean> {
+/** O visto, os valores herdados e a escrita a sincronizar entram no mesmo commit do aparelho. */
+export async function confirmarMarcacaoDaSerie(
+  sessao: SessaoLocal, ordem: number, serieId: string, concluida: boolean, agora = new Date().toISOString(),
+): Promise<{ sessao: SessaoLocal; aplicada: boolean } | null> {
+  const esperado = sessao.blocos.find(b => b.ordem === ordem);
+  const serieNaTela = esperado?.series.find(s => s.id === serieId);
+  if (!esperado || !serieNaTela) return null;
   await confirmarToquesPendentes(sessao);
   const banco = bd();
-  const enfileirada = await banco.transaction("rw", banco.sessaoAtiva, banco.outbox, banco.cache, async () => {
+  const confirmada = await banco.transaction("rw", banco.sessaoAtiva, banco.outbox, banco.cache, async () => {
     const salva = await lerSessaoNaTransacao(sessao.id);
-    if (!salva || salva.status !== "em_andamento" || salva.userId !== sessao.userId) return false;
-    const posicao = salva.blocos.find(b => b.ordem === bloco.ordem);
-    if (!posicao) return false;
-    const movimento = [posicao, ...(posicao.trocados ?? [])].find(b => b.exercicioId === bloco.exercicioId);
-    const registrada = movimento?.series.find(s => s.id === serie.id);
-    if (!movimento || !registrada) return false;
+    if (!salva || salva.status !== "em_andamento" || salva.userId !== sessao.userId) return null;
+    const bloco = salva.blocos.find(b => b.ordem === ordem);
+    const serieSalva = bloco?.series.find(s => s.id === serieId);
+    if (bloco?.exercicioId !== esperado.exercicioId || !serieSalva) return null;
+    // Outra aba já aplicou o mesmo toque. Corrigir parte de uma série que a tela já mostra concluída.
+    if (serieNaTela.concluida !== concluida && serieSalva.concluida === concluida) return { sessao: salva, aplicada: false };
+    let atual = marcarSerie(salva, ordem, serieId, concluida, agora);
     // Mesmo uma desmarcação deixa uma linha no servidor. A exclusão não pode passar depois dela.
     const inclusao = salva.plano?.ultima_inclusao;
-    if (salva.plano && inclusao?.estado === "disponivel" && inclusao.ordem === bloco.ordem) {
-      const atual: SessaoLocal = { ...salva, plano: { ...salva.plano, ultima_inclusao: { ...inclusao, estado: "iniciada" } } };
-      await banco.sessaoAtiva.put({ id: atual.id, dados: atual, atualizadoEm: Date.now() });
+    if (salva.plano && inclusao?.estado === "disponivel" && inclusao.ordem === ordem) {
+      atual = { ...atual, plano: { ...salva.plano, ultima_inclusao: { ...inclusao, estado: "iniciada" } } };
       const plano = escritaDoPlano(atual.id, atual.userId, planoParaGravar(atual));
       await guardarNaFila("sessao", plano, alvoDaEscrita(plano));
     }
-    const escrita = escritaDaSerie(salva, movimento, registrada);
+    const movimento = atual.blocos.find(b => b.ordem === ordem)!;
+    const registrada = movimento.series.find(s => s.id === serieId)!;
+    await banco.sessaoAtiva.put({ id: atual.id, dados: atual, atualizadoEm: Date.now() });
+    const escrita = escritaDaSerie(atual, movimento, registrada);
     await guardarNaFila("serie", escrita, alvoDaEscrita(escrita));
-    return true;
+    return { sessao: atual, aplicada: true };
   });
-  if (enfileirada) void processar();
-  return enfileirada;
+  if (confirmada?.aplicada) void processar();
+  return confirmada;
+}
+
+export async function enviarSerie(sessao: SessaoLocal, bloco: BlocoLocal, serie: SerieLocal): Promise<boolean> {
+  return (await confirmarMarcacaoDaSerie(sessao, bloco.ordem, serie.id, serie.concluida, serie.registradaEm ?? undefined)) !== null;
 }
 
 /* -------------------------------------------------------------- fim */

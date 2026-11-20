@@ -3,7 +3,7 @@ import type { LinhaSessao, PlanoDaSessao } from "../lib/types";
 import {
   abrirSecaoDoRelatorio, abrirVisaoGeral, atualizarNoMock, avancarNoPlayerAte, comecarNoPlayer,
   definirCota, entrarNoApp, esperarAbaTreino, esperarServiceWorker, fixarData, HOJE_FIXO,
-  inserirNoMock, irNaAba, lerDoMock, resetarMock, semRolagemHorizontal, sessaoNoMock,
+  inserirNoMock, irNaAba, lerDoMock, marcarSerieNaVisaoGeral, resetarMock, semRolagemHorizontal, sessaoNoMock,
   usuarioComPerfil, type SessaoMock,
 } from "./fixtures";
 import { comRedeNoWorker, semRedeNoWorker, workerDoApp } from "./rede-do-worker";
@@ -81,7 +81,7 @@ test("a Visão geral salva a nota digitada ao concluir, conserva as outras notas
   await page.goto(`/treinar/${id}`);
   await abrirVisaoGeral(page);
   const geral = page.getByRole("dialog", { name: "Visão geral do treino" });
-  await geral.getByRole("checkbox", { name: `Série 1 concluída — ${NOME}` }).check();
+  await marcarSerieNaVisaoGeral(geral.getByRole("checkbox", { name: `Série 1 concluída — ${NOME}` }));
   await geral.getByRole("textbox", { name: `Nota: ${NOME}` }).fill(bloco);
   await geral.getByRole("button", { name: "Concluir", exact: true }).click();
   const fim = resumo(page);
@@ -111,7 +111,7 @@ test("a Visão geral salva a nota digitada ao concluir, conserva as outras notas
   expect(novaId).not.toBe(id);
   await abrirVisaoGeral(page);
   await expect(geral.getByRole("textbox", { name: `Nota: ${NOME}` })).toHaveValue("");
-  await geral.getByRole("checkbox", { name: `Série 1 concluída — ${NOME}` }).check();
+  await marcarSerieNaVisaoGeral(geral.getByRole("checkbox", { name: `Série 1 concluída — ${NOME}` }));
   await geral.getByRole("button", { name: "Concluir", exact: true }).click();
   await expect(adicionar(fim)).toBeVisible();
   await adicionar(fim).click();

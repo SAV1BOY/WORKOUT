@@ -18,12 +18,14 @@ import {
   fixarData,
   inserirNoMock,
   lerDoMock,
+  naFila,
   resetarMock,
   semRolagemHorizontal,
   type SessaoMock,
   usuarioComPerfil,
   concluirSerie,
 } from "./fixtures";
+import { comRedeNoWorker, semRedeNoWorker, workerDoApp } from "./rede-do-worker";
 
 /** 14/09/2026 é a segunda-feira que abre o programa: Treino A (SPEC §5). */
 const SEGUNDA = "2026-09-14T08:00:00-03:00";
@@ -63,6 +65,38 @@ async function abrirPlayer(page: Page, perfil?: Parameters<typeof usuarioComPerf
 }
 
 test.describe("preparação → exercício → descanso (SPEC §14.1.1–3)", () => {
+  test("confirmar a mesma série em outra aba conserva o prazo do descanso na recarga offline", async ({ page, context }) => {
+    const conta = await abrirPlayer(page);
+    const outra = await context.newPage();
+    await fixarData(outra, SEGUNDA);
+    await outra.goto(page.url());
+    const concluir = (aba: Page) => aba.getByRole("button", { name: "Concluir série", exact: true });
+    const descanso = (aba: Page) => aba.getByRole("timer", { name: "Descanso", exact: true });
+    await expect(concluir(outra)).toBeVisible();
+    await esperarServiceWorker(outra);
+
+    await concluir(page).click();
+    await expect(descanso(page)).toHaveText("2:30");
+    await expect.poll(() => lerDoMock(conta, "session_sets")).toHaveLength(1);
+    const original = await lerDoMock(conta, "session_sets");
+    await page.reload();
+    await expect(descanso(page)).toHaveText("2:30");
+    await expect.poll(() => naFila(page)).toBe(0);
+
+    const worker = await workerDoApp(context);
+    await semRedeNoWorker(worker);
+    await context.setOffline(true);
+    await fixarData(outra, new Date(Date.parse(SEGUNDA) + 15_000).toISOString());
+    await concluir(outra).click();
+    await expect(descanso(outra)).toHaveText("2:15");
+    await outra.reload();
+    await expect(descanso(outra)).toHaveText("2:15");
+    expect(await naFila(outra)).toBe(0);
+    await comRedeNoWorker(worker);
+    await context.setOffline(false);
+    expect(await lerDoMock(conta, "session_sets")).toEqual(original);
+  });
+
   for (const destino of ["a primeira série", "a visão geral"]) {
     test(`a preparação termina antes do toque e abre ${destino} sem registrar série`, async ({ page }) => {
       const conta = await usuarioComPerfil();

@@ -62,7 +62,7 @@ test("trocar o material pelo teclado identifica o escolhido incompatível e cons
   const tirarSupino = folha.getByRole("button", { name: "Tirar " + supino });
   await expect(escolhidos).toHaveCount(2);
   await expect(escolhidos.first()).toContainText(corporal);
-  await expect(escolhidos.first().getByRole("button")).not.toHaveAccessibleDescription(/Requer outro material/);
+  await expect(escolhidos.first().getByRole("button", { name: `Tirar ${corporal}` })).not.toHaveAccessibleDescription(/Requer outro material/);
   const aviso = escolhidos.last().getByText("Requer outro material", { exact: true });
   await expect(aviso).toBeVisible();
   await expect(tirarSupino).toHaveAccessibleDescription(/Requer outro material/);

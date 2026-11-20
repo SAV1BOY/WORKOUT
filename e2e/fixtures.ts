@@ -431,6 +431,12 @@ export async function abrirVisaoGeral(page: Page): Promise<void> {
   await page.getByRole("heading", { level: 1 }).waitFor();
 }
 
+/** O visto da Visão geral confirma a série quando o aparelho termina a gravação. */
+export async function marcarSerieNaVisaoGeral(visto: Locator): Promise<void> {
+  if (!(await visto.isChecked())) await visto.click();
+  await expect(visto).toBeChecked();
+}
+
 /**
  * Abre uma das cinco seções dobráveis do Relatório (SPEC §22.6 item 1):
  * `resumo`, `conquistas`, `historico`, `corpo` ou `graficos`. A tela abre só

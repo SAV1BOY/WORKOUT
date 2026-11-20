@@ -207,7 +207,7 @@ export function VisaoGeralDaSessao({
           }
           aoMarcarSerie={async (serieId, concluida) => {
             const feito = await dados.marcar(bloco.ordem, serieId, concluida);
-            if (!feito || !concluida) return;
+            if (!feito?.aplicada || !concluida) return;
             // Na lista, dá para marcar fora de ordem. Vale a série de trabalho que ainda falta.
             const entreSeries = feito.serie.tipo === "trabalho" &&
               feito.bloco.series.some((s) => s.tipo === "trabalho" && !s.concluida);

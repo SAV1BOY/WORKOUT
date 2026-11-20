@@ -4,7 +4,7 @@ import { itensDeIds, planoDaSessao } from "../lib/livre";
 import {
   abrirSecaoDoRelatorio, abrirVisaoGeral, atualizarNoMock, comecarNoPlayer, definirCota,
   entrarNoApp, esperarAbaTreino, esperarServiceWorker, fixarData, inserirNoMock, irNaAba,
-  naFila, resetarMock, sessaoNoMock, usuarioComPerfil, type SessaoMock,
+  marcarSerieNaVisaoGeral, naFila, resetarMock, sessaoNoMock, usuarioComPerfil, type SessaoMock,
 } from "./fixtures";
 import { comRedeNoWorker, semRedeNoWorker, workerDoApp } from "./rede-do-worker";
 import { FRONTAL, geral, series } from "./treino-livre-ativo";
@@ -205,7 +205,7 @@ test("um GET iniciado antes de a fila enviar a segunda série conserva o fechame
   await desligarRede(page);
   const segunda = geral(page).getByRole("group", { name: "Série 1 — Flexão de braço", exact: true });
   await segunda.getByRole("textbox", { name: "repetições" }).fill("13");
-  await segunda.getByRole("checkbox").check();
+  await marcarSerieNaVisaoGeral(segunda.getByRole("checkbox"));
   await geral(page).getByRole("button", { name: "Concluir", exact: true }).click();
   await page.getByRole("dialog", { name: "Treino concluído" }).getByRole("button", { name: "Salvar e voltar" }).click();
   await esperarAbaTreino(page);
