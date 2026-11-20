@@ -99,6 +99,8 @@ function useSecoes() {
 
   useEffect(() => {
     const guardadas = lerGuardadas();
+    // Uma ida direta ao Histórico abre a seção mesmo se a última visita a deixou recolhida.
+    if (window.location.hash === "#historico") guardadas.historico = true;
     if (Object.keys(guardadas).length === 0) return;
     setAbertas((a) => ({ ...a, ...guardadas }));
     setMontadas((m) => [
@@ -427,6 +429,7 @@ function Secao({
       className="cartao border-border bg-card group border"
     >
       <summary
+        id={id}
         data-secao-cabecalho={id}
         className={cn(
           "alvo bg-card sticky top-0 scroll-mt-16 z-10 flex cursor-pointer list-none items-start gap-2 rounded-xl px-3 py-2.5",

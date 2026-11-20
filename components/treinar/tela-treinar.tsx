@@ -56,7 +56,7 @@ export function TelaTreinar({ userId }: { userId: string }) {
   const perfil = perfilQ.data?.user_id === userId ? perfilQ.data : null;
   const intervalo = hoje ? intervaloDaSemana(hoje) : null;
   const overridesQ = useOverrides(intervalo?.de ?? null, intervalo?.ate ?? null);
-  const abertasQ = useSessoesAbertas(true);
+  const abertasQ = useSessoesAbertas(true, userId);
 
   const dia = useMemo(() => {
     if (!hoje || !perfil) return null;

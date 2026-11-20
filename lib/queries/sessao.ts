@@ -11,6 +11,8 @@
 import type { QueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { equipamentosDaAlternativa } from "@/lib/alternativas";
+import { conferirCatalogoParaEditar } from "@/lib/queries/compatibilidade-da-sessao";
+import { AVISO_CATALOGO_DA_SESSAO, planoComExercicioDesconhecido } from "@/lib/compatibilidade-da-sessao";
 import { bd, temIndexedDB } from "@/lib/db";
 import { acharTreino, exercicioPorId } from "@/lib/dados";
 import { equipamentoDaSessao } from "@/lib/equipamento-da-sessao";
@@ -30,6 +32,8 @@ import { apagarOrdemLocal, guardarOrdemLocal, lerComOrdemLocal } from "@/lib/que
 import { confirmarContaDoTreino } from "@/lib/queries/conta-do-treino";
 import { lerMotorParaRepetir } from "@/lib/queries/motor-repetir-treino";
 import { chaves, type SessaoResumo } from "@/lib/queries/dados";
+import { lerCriacaoPendenteNaTransacao, resumoDaCriacao } from "@/lib/queries/criacao-pendente-da-sessao";
+export { sessaoLocalComCriacaoPendente } from "@/lib/queries/criacao-pendente-da-sessao";
 import {
   acrescentarExercicioNaSessao as acrescentarBloco,
   aplicarOrdemRemotaDaSessao,
@@ -232,7 +236,7 @@ async function gravar(sessao: SessaoLocal, antes?: SessaoLocal): Promise<void> {
   if (!temIndexedDB()) return;
   const banco = bd();
   const mudouPlano = await banco.transaction("rw", banco.sessaoAtiva, banco.outbox, banco.cache, async () => {
-    const salva = await lerSessaoNaTransacao(sessao.id);
+    const salva = await lerSessaoNaTransacao(sessao.id, sessao.userId);
     if (antes && (!salva || salva.status !== "em_andamento")) throw new Error("Esta sessão não está aberta neste aparelho.");
     if (salva && salva.userId !== sessao.userId) throw new Error("A sessão pertence a outra conta.");
     // Uma reconstrução pela rede pode terminar depois que a cópia local já avançou.
@@ -286,9 +290,13 @@ export async function descarregarSessao(): Promise<void> {
   await confirmarToquesPendentes().catch(() => {});
 }
 
-async function lerSessaoNaTransacao(id: string): Promise<SessaoLocal | null> {
+async function lerSessaoNaTransacao(id: string, contaParaEdicao?: string): Promise<SessaoLocal | null> {
   const item = await bd().sessaoAtiva.get(id);
-  return item ? lerComOrdemLocal(item.dados as SessaoLocal) : null;
+  const sessao = item?.dados as SessaoLocal | undefined;
+  if (contaParaEdicao && (!sessao || sessao.userId === contaParaEdicao)) {
+    await conferirCatalogoParaEditar(contaParaEdicao, id, sessao);
+  }
+  return sessao ? lerComOrdemLocal(sessao) : null;
 }
 
 export async function carregarSessaoLocal(id: string): Promise<SessaoLocal | null> {
@@ -336,7 +344,10 @@ const TIPO_POR_TABELA: Record<string, TipoSaida> = {
 
 /* ------------------------------------------------------------- começar */
 
+type RetomadaAoCriar = { encerradas: ReadonlySet<string>; exigirCriacaoPendente?: boolean };
+
 export interface EntradaCriacao extends Omit<EntradaMontagem, "id"> {
+  retomarCriacaoPendente?: boolean;
   cliente: QueryClient;
   id?: string;
   /**
@@ -358,7 +369,7 @@ export interface EntradaCriacao extends Omit<EntradaMontagem, "id"> {
  * cliente e entra na fila de saída. A navegação não espera a rede.
  */
 export async function criarSessao(entrada: EntradaCriacao): Promise<SessaoLocal> {
-  const { cliente, substituicoes, ordem, ...resto } = entrada;
+  const { cliente, substituicoes, ordem, retomarCriacaoPendente, ...resto } = entrada;
   const id = entrada.id ?? novoId();
   const base = itensDoTreino(resto.treinoId);
   const reordenado = ordem && ordem.length > 0 ? itensNaOrdem(base, ordem) : null;
@@ -386,7 +397,12 @@ export async function criarSessao(entrada: EntradaCriacao): Promise<SessaoLocal>
           novoId,
         })
       : montada;
-  return registrarSessaoNova(sessao, cliente);
+  const retomada = retomarCriacaoPendente ? {
+    exigirCriacaoPendente: true,
+    encerradas: new Set((cliente.getQueryData<SessaoResumo[]>(chaves.sessoes()) ?? [])
+      .filter(s => s.user_id === resto.userId && s.status !== "em_andamento").map(s => s.id)),
+  } : undefined;
+  return registrarSessaoNova(sessao, cliente, retomada);
 }
 
 export interface EntradaCriacaoAvulsa extends Omit<EntradaAvulsa, "id"> {
@@ -448,25 +464,21 @@ export async function criarSessaoAvulsa(
 async function registrarSessaoNova(
   sessao: SessaoLocal,
   cliente: QueryClient,
-  retomarSeAberta?: { encerradas: ReadonlySet<string> },
+  retomarSeAberta?: RetomadaAoCriar,
 ): Promise<SessaoLocal> {
   const salva = await gravarSessaoComSaida(sessao, { retomarSeAberta });
   if (salva !== sessao) return salva;
 
-  cliente.setQueryData<SessaoResumo[]>(chaves.sessoesAbertas(), (atual) => [
-    {
-      id: sessao.id,
-      user_id: sessao.userId,
-      data: sessao.data,
-      status: "em_andamento",
-      workout_id: sessao.workoutId,
-      fase: sessao.fase,
-      concluida_em: null,
-    },
-    ...(atual ?? []),
-  ]);
-
+  lembrarSessaoAberta(cliente, sessao);
   return sessao;
+}
+
+/** A criação confirmada no aparelho continua na lista até o servidor ler a mesma sessão. */
+export function lembrarSessaoAberta(cliente: QueryClient, sessao: SessaoLocal): void {
+  const chave = chaves.sessoesAbertas();
+  const atuais = cliente.getQueryData<SessaoResumo[]>(chave) ?? [];
+  if (atuais.some(s => s.id === sessao.id && s.user_id === sessao.userId)) return;
+  cliente.setQueryData<SessaoResumo[]>(chave, [resumoDaCriacao(sessao), ...atuais.filter(s => s.id !== sessao.id)]);
 }
 
 type AlterarSessao = (atual: SessaoLocal) => SessaoLocal;
@@ -479,7 +491,7 @@ async function gravarSessaoComSaida(
     alterar?: AlterarSessao;
     escritaDaAlteracao?: (atual: SessaoLocal) => EscritaTabela;
     conferirAntesDeConfirmar?: () => void;
-    retomarSeAberta?: { encerradas: ReadonlySet<string> };
+    retomarSeAberta?: RetomadaAoCriar;
   },
 ): Promise<SessaoLocal> {
   const banco = bd();
@@ -487,12 +499,14 @@ async function gravarSessaoComSaida(
     let atual = sessao;
     let escrita: EscritaTabela;
     if (retomarSeAberta) {
-      const existente = await lerRecenteNaTransacao(sessao.userId, retomarSeAberta.encerradas);
+      const existente = retomarSeAberta.exigirCriacaoPendente
+        ? await lerCriacaoPendenteNaTransacao(sessao.userId, retomarSeAberta.encerradas)
+        : await lerRecenteNaTransacao(sessao.userId, retomarSeAberta.encerradas);
       if (existente) return existente;
     }
     if (alterar) {
       // Outra aba pode ter registrado uma série ou encerrado o treino desde a renderização.
-      const salva = await lerSessaoNaTransacao(sessao.id);
+      const salva = await lerSessaoNaTransacao(sessao.id, sessao.userId);
       if (!salva || salva.userId !== sessao.userId || salva.status !== "em_andamento") {
         throw new SessaoNaoEstaAberta("Esta sessão não está aberta nesta conta e aparelho.");
       }
@@ -577,10 +591,11 @@ function escritaDoPlano(id: string, userId: string, plano: PlanoDaSessao | null)
 async function enfileirarComPlanoAtual(id: string, conta: string, escrita: EscritaTabela, blocosDaTroca?: BlocoLocal[]): Promise<SessaoLocal | null> {
   const banco = bd();
   const confirmada = await banco.transaction("rw", banco.sessaoAtiva, banco.outbox, banco.cache, async () => {
-    const salva = await lerSessaoNaTransacao(id);
+    const salva = await lerSessaoNaTransacao(id, conta);
     if (salva && salva.userId !== conta) throw new Error("A sessão pertence a outra conta.");
     // As trocas e a lista da sessão livre já foram conciliadas ao descarregar a edição de tela.
     const recebido = escrita.linha?.plano as PlanoDaSessao | null;
+    if (planoComExercicioDesconhecido(recebido)) throw new Error(AVISO_CATALOGO_DA_SESSAO);
     let plano = preservarPlanoSalvo(recebido, salva, !!blocosDaTroca);
     // Uma troca enviada diretamente só pode arquivar o movimento que a aba realmente conhecia.
     const trocaDesatualizada = salva && blocosDaTroca?.some(bloco => {
@@ -681,7 +696,7 @@ export async function sincronizarNotaGeralDaSessao(sessao: SessaoLocal, sinal?: 
   if (navigator.onLine === false || !temIndexedDB()) return null;
   const banco = bd();
   const lerEstado = async () => {
-    const salva = await lerSessaoNaTransacao(sessao.id);
+    const salva = await lerSessaoNaTransacao(sessao.id, sessao.userId);
     if (salva?.userId !== sessao.userId || salva.status !== "em_andamento") return null;
     const pendente = (campo: string) => banco.outbox.where("tipo").equals("sessao").filter(item => {
       const p = item.payload as EscritaTabela;
@@ -746,7 +761,7 @@ export async function guardarCronometroDaSessao(
   await confirmarToquesPendentes(sessao);
   const banco = bd();
   return banco.transaction("rw", banco.sessaoAtiva, banco.cache, async () => {
-    const salva = await lerSessaoNaTransacao(sessao.id);
+    const salva = await lerSessaoNaTransacao(sessao.id, sessao.userId);
     if (!salva || salva.userId !== sessao.userId || salva.status !== "em_andamento") {
       throw new Error("Esta sessão não está aberta nesta conta e aparelho.");
     }
@@ -833,7 +848,7 @@ export async function confirmarMarcacaoDaSerie(
   await confirmarToquesPendentes(sessao);
   const banco = bd();
   const confirmada = await banco.transaction("rw", banco.sessaoAtiva, banco.outbox, banco.cache, async () => {
-    const salva = await lerSessaoNaTransacao(sessao.id);
+    const salva = await lerSessaoNaTransacao(sessao.id, sessao.userId);
     if (!salva || salva.status !== "em_andamento" || salva.userId !== sessao.userId) return null;
     const bloco = salva.blocos.find(b => b.ordem === ordem);
     const serieSalva = bloco?.series.find(s => s.id === serieId);
@@ -883,7 +898,7 @@ export async function finalizarSessao(entrada: EntradaFim): Promise<Conclusao> {
   // Um acréscimo simultâneo ou fica no treino que avaliamos, ou encontra o treino já encerrado.
   const banco = bd();
   const { conclusao, historico } = await banco.transaction("rw", banco.sessaoAtiva, banco.outbox, banco.cache, async () => {
-    const salva = await lerSessaoNaTransacao(sessao.id);
+    const salva = await lerSessaoNaTransacao(sessao.id, sessao.userId);
     if (!salva || salva.userId !== sessao.userId || salva.status !== "em_andamento") {
       throw new Error("Esta sessão não está aberta nesta conta e aparelho.");
     }

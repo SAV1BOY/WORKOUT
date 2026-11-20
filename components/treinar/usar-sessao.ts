@@ -1,11 +1,12 @@
 "use client";
 
+import { liveQuery } from "dexie";
 import { useQueryClient } from "@tanstack/react-query";
 import { salvarTrocaDoPrograma, useTrocasDoPrograma } from "@/lib/queries/trocas-do-programa";
 import type { RecorrenciaDaTroca } from "@/components/exercicio/seletor-alternativa";
 import { useMaterialDaSessao } from "@/components/treinar/usar-material-da-sessao";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   EXERCICIO_DA_SESSAO,
@@ -13,6 +14,8 @@ import {
   itemDaSessao,
   prescricaoDaSemana,
 } from "@/lib/barra-fixa";
+import { idsDaSessaoRemota, sessaoLocalComExercicioDesconhecido, sessaoLocalRepresentaServidor } from "@/lib/compatibilidade-da-sessao";
+import { confirmarIdsDaSessaoProtegida, lerIdsDaSessaoProtegida, lerRevisaoDaProtecao, liberarSessaoProtegida } from "@/lib/queries/compatibilidade-da-sessao";
 import { acharTreino, exercicioPorId } from "@/lib/dados";
 import { equipamentoDaSessao } from "@/lib/equipamento-da-sessao";
 import { decidirTela, servidorTerminouDeBuscar } from "@/lib/estado-do-player";
@@ -82,7 +85,7 @@ import {
   type SerieLocal,
   type SessaoLocal,
 } from "@/lib/sessao";
-import type { Prefs } from "@/lib/types";
+import type { LinhaSerie, LinhaSessao, Prefs } from "@/lib/types";
 import { useTelaAcesa } from "@/lib/wake-lock";
 
 export type FimDaSessao = "concluida" | "abandonada";
@@ -107,7 +110,7 @@ export function useSessaoDeTreino(sessaoId: string, userId: string) {
   }, [sessaoId]);
   const router = useRouter();
   const cliente = useQueryClient();
-  const [sessao, setSessao] = useState<SessaoLocal | null | undefined>(undefined);
+  const [sessaoLida, setSessaoLida] = useState<SessaoLocal | null | undefined>(undefined);
   /**
    * A última sessão, fora do ciclo de renderização.
    *
@@ -120,9 +123,11 @@ export function useSessaoDeTreino(sessaoId: string, userId: string) {
   const ultima = useRef<SessaoLocal | null | undefined>(undefined);
 
   /** Guarda a sessão nos dois lugares (referência + estado da tela). */
+  const bloqueada = useRef(false);
   const adotar = useCallback((nova: SessaoLocal | null) => {
+    if (bloqueada.current) return;
     ultima.current = nova;
-    setSessao(nova);
+    setSessaoLida(nova);
   }, []);
   /**
    * SPEC §22.11: a remontagem a partir do banco já foi tentada e não deu
@@ -131,6 +136,8 @@ export function useSessaoDeTreino(sessaoId: string, userId: string) {
    * treino gravado.
    */
   const [montagemFalhou, setMontagemFalhou] = useState(false);
+  const [falhouLeituraDoAparelho, setFalhouLeituraDoAparelho] = useState(false);
+  const [leituraDoAparelho, relerAparelho] = useState(0);
   const [salvando, setSalvando] = useState(false);
   const [encerradaAqui, setEncerradaAqui] = useState<string | null>(null);
   const [agora, setAgora] = useState(() => Date.now());
@@ -144,14 +151,91 @@ export function useSessaoDeTreino(sessaoId: string, userId: string) {
   const prefs: Prefs = useMemo(() => perfilPrefs ?? {}, [perfilPrefs]);
   // Em um aparelho novo as leituras do banco podem começar junto com o Dexie.
   // A sessão local, quando existe, continua tendo precedência sobre o servidor.
-  const idParaReconstruir = sessao == null ? sessaoId : null;
-  const sessaoQ = useSessao(sessaoId);
-  const linhaDaConta = sessaoQ.data?.user_id === userId ? sessaoQ.data : null;
-  const resumoSalvo = cliente.getQueryData<SessaoResumo[]>(chaves.sessoes())?.find((s) => s.id === sessaoId);
+  const sessaoQ = useSessao(sessaoId, userId);
+  const linhaDaConta = sessaoQ.data?.id === sessaoId && sessaoQ.data.user_id === userId ? sessaoQ.data : null;
+  const resumoSalvo = cliente.getQueryData<SessaoResumo[]>(chaves.sessoes())?.find(s => s.id === sessaoId && s.user_id === userId);
   const encerradaAntes = encerradaAqui !== sessaoId && [resumoSalvo, linhaDaConta].some(
     (linha) => linha && (linha.status !== "em_andamento" || linha.concluida_em != null),
   );
-  const seriesQ = useSeriesDaSessao(idParaReconstruir);
+  const seriesQ = useSeriesDaSessao(sessaoId, userId);
+  const seriesDaConta = useMemo(() => seriesQ.data?.filter(s => s.user_id === userId && s.session_id === sessaoId),
+    [seriesQ.data, userId, sessaoId]);
+  const planoParaConferir = linhaDaConta ? linhaDaConta.plano : resumoSalvo?.plano;
+  const idsReferenciados = useMemo(() => idsDaSessaoRemota(planoParaConferir, seriesDaConta, userId, sessaoId),
+    [planoParaConferir, seriesDaConta, userId, sessaoId]);
+  const idsRemotos = useMemo(() => idsReferenciados.filter(id => !exercicioPorId.has(id)), [idsReferenciados]);
+  const localIncompativel = useMemo(() => sessaoLocalComExercicioDesconhecido(sessaoLida), [sessaoLida]);
+  const [idsGuardados, setIdsGuardados] = useState<string[]>([]);
+  const protegida = localIncompativel || idsRemotos.length > 0 || idsGuardados.length > 0;
+  const edicaoBloqueada = protegida || falhouLeituraDoAparelho;
+  const sessao = edicaoBloqueada ? null : sessaoLida;
+  // Uma resposta do servidor pode chegar depois de o player já ter aberto a cópia do aparelho.
+  useLayoutEffect(() => {
+    bloqueada.current = edicaoBloqueada;
+    ultima.current = sessao;
+  }, [edicaoBloqueada, sessao]);
+
+  // A confirmação antecede o aviso para que uma recarga offline imediata volte a proteger o treino.
+  useEffect(() => {
+    if (encerradaAntes || !idsRemotos.some(id => !idsGuardados.includes(id))) return;
+    let vivo = true;
+    void confirmarIdsDaSessaoProtegida(userId, sessaoId, idsRemotos)
+      .catch(() => idsRemotos)
+      .then(ids => { if (vivo) setIdsGuardados(ids); });
+    return () => { vivo = false; };
+  }, [encerradaAntes, idsGuardados, idsRemotos, sessaoId, userId]);
+
+  // Outra aba pode descobrir o exercício depois de esta já ter retomado o snapshot.
+  useEffect(() => {
+    const assinatura = liveQuery(() => lerIdsDaSessaoProtegida(userId, sessaoId)).subscribe({
+      next: ids => setIdsGuardados(atuais => ids.length === atuais.length && ids.every(id => atuais.includes(id)) ? atuais : ids),
+      error: () => setFalhouLeituraDoAparelho(true),
+    });
+    return () => assinatura.unsubscribe();
+  }, [leituraDoAparelho, sessaoId, userId]);
+
+  const refazerLinha = sessaoQ.refetch;
+  const refazerSeries = seriesQ.refetch;
+  const liberarSeConferido = useCallback(async (revisao: string, linha: LinhaSessao | null | undefined, series: LinhaSerie[] | undefined) => {
+    if (!idsGuardados.length || localIncompativel || sessaoLida === undefined ||
+        !linha || linha.id !== sessaoId || linha.user_id !== userId || !Object.hasOwn(linha, "plano") ||
+        !Array.isArray(series) || series.some(s => s.user_id !== userId || s.session_id !== sessaoId)) return;
+    if (idsDaSessaoRemota(linha.plano, series, userId, sessaoId).some(id => !exercicioPorId.has(id))) return;
+    if (sessaoLida && !sessaoLocalRepresentaServidor(sessaoLida, linha, series)) return;
+    await liberarSessaoProtegida(userId, sessaoId, revisao);
+  }, [idsGuardados, localIncompativel, sessaoLida, sessaoId, userId]);
+
+  useEffect(() => {
+    if (!idsGuardados.length || !idsGuardados.every(id => idsReferenciados.includes(id) && exercicioPorId.has(id))) return;
+    // A revisão é lida antes de consultar as duas cópias. Outra confirmação invalida a liberação.
+    let vivo = true;
+    void lerRevisaoDaProtecao(userId, sessaoId).then(revisao => {
+      if (!vivo || !revisao) return;
+      const linha = cliente.getQueryData<LinhaSessao>(chaves.sessao(sessaoId));
+      const series = cliente.getQueryData<LinhaSerie[]>(chaves.series(sessaoId));
+      const idsDaCopia = idsDaSessaoRemota(linha?.plano, series, userId, sessaoId);
+      if (idsGuardados.every(id => idsDaCopia.includes(id))) return liberarSeConferido(revisao, linha, series);
+    }).catch(() => {});
+    return () => { vivo = false; };
+  }, [cliente, idsGuardados, idsReferenciados, liberarSeConferido, sessaoId, userId]);
+
+  const fontesDisponiveis = sessaoQ.data !== undefined && seriesQ.data !== undefined;
+  useEffect(() => {
+    if (!idsGuardados.length || !fontesDisponiveis || sessaoLida === undefined || localIncompativel) return;
+    let vivo = true;
+    async function reler() {
+      if (!navigator.onLine) return;
+      const revisao = await lerRevisaoDaProtecao(userId, sessaoId);
+      if (!vivo || !revisao) return;
+      // Inicia as duas leituras depois desta revisão. O cache pode ser anterior à última confirmação noutra aba.
+      const [linha, series] = await Promise.all([refazerLinha(), refazerSeries()]);
+      if (vivo && linha.isSuccess && series.isSuccess) await liberarSeConferido(revisao, linha.data, series.data);
+    }
+    const aoReconectar = () => { void reler().catch(() => {}); };
+    aoReconectar();
+    window.addEventListener("online", aoReconectar);
+    return () => { vivo = false; window.removeEventListener("online", aoReconectar); };
+  }, [fontesDisponiveis, idsGuardados, liberarSeConferido, localIncompativel, refazerLinha, refazerSeries, sessaoLida, sessaoId, userId]);
 
   /*
    * A sessão de barra fixa (SPEC §3.4) não é um treino do `programa.json`:
@@ -169,8 +253,8 @@ export function useSessaoDeTreino(sessaoId: string, userId: string) {
    */
   const planoDaLinha = sessao?.plano ?? linhaDaConta?.plano ?? null;
   const itensDoPlanoDaLinha = useMemo(
-    () => itensDoPlano(planoDaLinha) ?? undefined,
-    [planoDaLinha],
+    () => protegida ? undefined : itensDoPlano(planoDaLinha) ?? undefined,
+    [protegida, planoDaLinha],
   );
   const itensDaFixa = useMemo(
     () => (ehFixa ? [itemDaSessao(semanaFixa)] : itensDoPlanoDaLinha),
@@ -197,7 +281,7 @@ export function useSessaoDeTreino(sessaoId: string, userId: string) {
    */
   const idsDosBlocos = useMemo(
     () =>
-      sessao
+      protegida ? "" : sessao
         ? Array.from(
             new Set(sessao.blocos.flatMap((b) => [b.originalId, b.exercicioId])),
           )
@@ -205,12 +289,12 @@ export function useSessaoDeTreino(sessaoId: string, userId: string) {
             .join(",")
         : [...new Set([
             ...idsDoTreino,
-            ...(seriesQ.data ?? []).map((s) => s.exercise_id),
+            ...(seriesDaConta ?? []).map((s) => s.exercise_id),
             ...Object.values(planoDaLinha?.trocas ?? {}).flatMap((grupo) =>
               Array.isArray(grupo) ? grupo.map((e) => e?.exercicio_id) : []
             ),
           ])].filter((id) => exercicioPorId.has(id)).sort().join(","),
-    [sessao, idsDoTreino, seriesQ.data, planoDaLinha],
+    [protegida, sessao, idsDoTreino, seriesDaConta, planoDaLinha],
   );
   const ids = useMemo(
     () => (idsDosBlocos ? idsComSubstitutos(idsDosBlocos.split(",")) : []),
@@ -255,17 +339,21 @@ export function useSessaoDeTreino(sessaoId: string, userId: string) {
 
   useEffect(() => {
     let vivo = true;
-    void carregarSessaoLocal(sessaoId).then((s) => {
+    void Promise.all([carregarSessaoLocal(sessaoId), lerIdsDaSessaoProtegida(userId, sessaoId)]).then(([s, ids]) => {
       if (!vivo) return;
       setMontagemFalhou(false);
-      adotar(s?.userId === userId ? s : null);
+      if (ids.length) setIdsGuardados(atuais => [...new Set([...atuais, ...ids])]);
+      setSessaoLida(s?.id === sessaoId && s.userId === userId ? s : null);
+      setFalhouLeituraDoAparelho(false);
+    }).catch(() => {
+      if (vivo) setFalhouLeituraDoAparelho(true);
     });
     return () => {
       vivo = false;
       // Um Pular/Corrigir que aguardava o disco já não pode mover o player que foi fechado.
       ultima.current = undefined;
     };
-  }, [sessaoId, adotar, userId]);
+  }, [leituraDoAparelho, sessaoId, userId]);
 
   // a sessão não está neste aparelho: refaz do que o banco tem (SPEC §8)
   useEffect(() => {
@@ -273,7 +361,7 @@ export function useSessaoDeTreino(sessaoId: string, userId: string) {
       router.replace("/relatorio#historico");
       return;
     }
-    if (sessao !== null) return;
+    if (edicaoBloqueada || sessao !== null) return;
     const linha = linhaDaConta;
     if (!linha) return;
     if (seriesQ.isPending) return;
@@ -290,7 +378,7 @@ export function useSessaoDeTreino(sessaoId: string, userId: string) {
       if (ids.length === 0) setMontagemFalhou(true);
       return;
     }
-    const refeita = reconstruirSessao(linha, seriesQ.data ?? [], {
+    const refeita = reconstruirSessao(linha, seriesDaConta ?? [], {
       ...dadosDoMotor,
       itens: itensDaFixa,
       // as barras já pesadas na balança mudam a escala (SPEC §3.9)
@@ -303,11 +391,13 @@ export function useSessaoDeTreino(sessaoId: string, userId: string) {
       // tentamos e não deu: agora "não achei este treino" é verdade
       setMontagemFalhou(true);
     }
-  }, [sessao, linhaDaConta, seriesQ.data, seriesQ.isPending, seriesQ.isError, dadosDoMotor, ids, itensDaFixa, prefs, adotar, router, encerradaAntes]);
+  }, [edicaoBloqueada, sessao, linhaDaConta, seriesDaConta, seriesQ.isPending, seriesQ.isError, dadosDoMotor, ids, itensDaFixa, prefs, adotar, router, encerradaAntes]);
 
   /* --------------------------------------------- relógio e saída da aba */
 
+  const idNoAparelho = sessao?.id;
   useEffect(() => {
+    if (!idNoAparelho) return;
     const relogio = setInterval(() => setAgora(Date.now()), 1_000);
     const aoSair = () => void descarregarSessao();
     window.addEventListener("pagehide", aoSair);
@@ -318,7 +408,7 @@ export function useSessaoDeTreino(sessaoId: string, userId: string) {
       document.removeEventListener("visibilitychange", aoSair);
       void descarregarSessao();
     };
-  }, []);
+  }, [idNoAparelho]);
 
   /**
    * Toda mudança grava no aparelho na hora (SPEC §8). O novo estado é
@@ -339,7 +429,6 @@ export function useSessaoDeTreino(sessaoId: string, userId: string) {
 
   // O cache de consultas pode estar pendente na recarga sem rede. O padrão que a
   // conta realmente usou acompanha a cópia local da sessão, inclusive o valor nulo.
-  const idNoAparelho = sessao?.id;
   useEffect(() => {
     const atual = ultima.current;
     if (descansoDaConta === undefined || atual?.id !== sessaoId || atual.userId !== userId
@@ -657,6 +746,7 @@ export function useSessaoDeTreino(sessaoId: string, userId: string) {
       await aguardarMaterial?.();
       await filaDoCronometro.current;
       await inclusaoEmGravacao.current;
+      if (!ultima.current) return { aplicada: false, sessao: null };
       const resultado = await guardarProximoExercicio(antes, origem, escolhido, avancarSozinho);
       let salva = resultado.sessao;
       if (salva && ultima.current !== atualDoClique) {
@@ -718,7 +808,12 @@ export function useSessaoDeTreino(sessaoId: string, userId: string) {
         await inclusaoEmGravacao.current?.catch(() => {});
         await escolhaEmGravacao.current?.catch(() => {});
         await Promise.all(marcacoesEmGravacao.current.values());
-        const atual = ultima.current ?? sessao;
+        const atual = ultima.current;
+        if (!atual) {
+          setSalvando(false);
+          setEncerradaAqui(null);
+          return false;
+        }
         await finalizarSessao({
           sessao: { ...atual, sensacao: dados.sensacao, pesoCorporal: dados.peso },
           status: fim,
@@ -801,7 +896,9 @@ export function useSessaoDeTreino(sessaoId: string, userId: string) {
     recordesQ.error ??
     anterioresQ.error ??
     null;
-  const tela = encerradaAntes ? "carregando" : decidirTela({
+  const esperaConfirmacao = protegida && !localIncompativel && idsGuardados.length === 0;
+  const tela = encerradaAntes || esperaConfirmacao ? "carregando" : protegida ? "atualizar" :
+    falhouLeituraDoAparelho ? "erro-aparelho" : decidirTela({
     localTerminou: sessao !== undefined,
     servidorTerminou,
     sessao,
@@ -811,6 +908,7 @@ export function useSessaoDeTreino(sessaoId: string, userId: string) {
   /** O "Tentar de novo" da tela de erro: refaz as consultas, sem sair daqui. */
   const recarregar = useCallback(() => {
     setMontagemFalhou(false);
+    relerAparelho(tentativa => tentativa + 1);
     void sessaoQ.refetch();
     void seriesQ.refetch();
     void estadosQ.refetch();

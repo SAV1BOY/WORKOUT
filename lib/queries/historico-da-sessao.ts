@@ -1,3 +1,5 @@
+import { conferirCatalogoParaEditar } from "./compatibilidade-da-sessao";
+import { AVISO_CATALOGO_DA_SESSAO, planoComExercicioDesconhecido } from "@/lib/compatibilidade-da-sessao";
 import { chaveDoHistorico, chaveDoHistoricoNoDisco } from "@/lib/chaves-do-historico";
 import type { QueryClient } from "@tanstack/react-query";
 import { bd, lerCache, temIndexedDB, type SessaoAtiva } from "@/lib/db";
@@ -210,6 +212,11 @@ export async function guardarDescarteNoHistorico(cliente: QueryClient, conta: st
     const lista = await baseDoHistoricoNoDisco(cliente, conta) ?? [];
     const anterior = lista.find(s => s.id === id) ?? (resumo?.user_id === conta && resumo.id === id ? resumo : undefined);
     if (anterior?.status === "concluida") throw new Error("Este treino já foi concluído.");
+    await conferirCatalogoParaEditar(conta, id, item?.dados);
+    if (planoComExercicioDesconhecido(anterior?.plano) ||
+      (resumo?.user_id === conta && resumo.id === id && planoComExercicioDesconhecido(resumo.plano))) {
+      throw new Error(AVISO_CATALOGO_DA_SESSAO);
+    }
     const local = item && resumoDaSessaoAberta({ ...item, dados: await lerComOrdemLocal(item.dados as SessaoLocal) }, conta);
     const registro = local && anterior ? { ...anterior, plano: local.plano ?? anterior.plano,
       ordem_execucao: local.ordem_execucao ?? anterior.ordem_execucao } : local ?? anterior;

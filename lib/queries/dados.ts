@@ -9,6 +9,8 @@
 
 import { useEffect } from "react";
 import { useQuery, type QueryClient, type UseQueryResult } from "@tanstack/react-query";
+import { listarAbertasComCriacaoPendente } from "@/lib/queries/criacao-pendente-da-sessao";
+import { confirmarCatalogoLido } from "@/lib/queries/compatibilidade-da-sessao";
 import { lerSeriesDoTreinoPassado, type UltimaSerie } from "@/lib/queries/series-do-treino-passado";
 import { lerExcecoesDoHistorico } from "@/lib/queries/excecoes-do-historico";
 import { guardarCargasLidas } from "@/lib/queries/cargas-no-aparelho";
@@ -157,20 +159,15 @@ export function useSessoes(): UseQueryResult<SessaoResumo[]> {
 }
 
 /** As sessões ainda abertas, venham de quando vierem (banner da §3.1). */
-export function useSessoesAbertas(confirmarAoAbrir = false): UseQueryResult<SessaoResumo[]> {
+export function useSessoesAbertas(confirmarAoAbrir: boolean, conta: string): UseQueryResult<SessaoResumo[]> {
   return useQuery({
     queryKey: chaves.sessoesAbertas(),
     refetchOnMount: confirmarAoAbrir ? "always" : true,
-    queryFn: () =>
-      lerLista<SessaoResumo>(
-        clienteNavegador()
-          .from("sessions")
-          .select(`${COLUNAS_SESSAO},plano`)
-          .eq("status", "em_andamento")
-          .order("data", { ascending: false })
-          .limit(5),
-        "os treinos em aberto",
-      ),
+    queryFn: ({ signal }) => listarAbertasComCriacaoPendente(conta, () => lerLista<SessaoResumo>(
+      clienteNavegador().from("sessions").select(`${COLUNAS_SESSAO},plano`)
+        .eq("user_id", conta).eq("status", "em_andamento").order("data", { ascending: false }).limit(5).abortSignal(signal),
+      "os treinos em aberto",
+    )),
   });
 }
 
@@ -387,38 +384,35 @@ export function useEventos(ids: readonly string[]): UseQueryResult<EventoResumo[
 /* ------------------------------------------- sessão de força (marco 3) */
 
 /** Uma sessão pelo id (para reabrir num aparelho que não a criou). */
-export function useSessao(id: string | null): UseQueryResult<LinhaSessao | null> {
+export function useSessao(id: string | null, conta: string): UseQueryResult<LinhaSessao | null> {
   return useQuery({
     queryKey: chaves.sessao(id ?? ""),
     // Ao reabrir, descobre se outro aparelho concluiu a cópia que ficou aqui.
     refetchOnMount: "always",
     enabled: id !== null,
-    queryFn: () =>
-      ler<LinhaSessao>(
-        clienteNavegador()
-          .from("sessions")
-          .select("*")
-          .eq("id", id ?? "")
-          .maybeSingle(),
+    queryFn: async ({ signal }) => {
+      const linha = await ler<LinhaSessao>(
+        clienteNavegador().from("sessions").select("*").eq("id", id!).eq("user_id", conta).abortSignal(signal).maybeSingle(),
         "este treino",
-      ),
+      );
+      if (linha?.user_id === conta && linha.id === id && linha.status === "em_andamento") {
+        await confirmarCatalogoLido(conta, id!, linha.plano).catch(() => {});
+      }
+      return linha;
+    },
   });
 }
 
 /** As séries já gravadas de uma sessão. */
-export function useSeriesDaSessao(id: string | null): UseQueryResult<LinhaSerie[]> {
+export function useSeriesDaSessao(id: string | null, conta: string): UseQueryResult<LinhaSerie[]> {
   return useQuery({
     queryKey: chaves.series(id ?? ""),
     enabled: id !== null,
-    queryFn: () =>
-      lerLista<LinhaSerie>(
-        clienteNavegador()
-          .from("session_sets")
-          .select("*")
-          .eq("session_id", id ?? "")
-          .order("registrada_em", { ascending: true }),
-        "as séries deste treino",
-      ),
+    queryFn: async ({ signal }) => {
+      const linhas = await lerTabelaCompleta<LinhaSerie>("session_sets", "*", "as séries deste treino", conta, signal, id!);
+      await confirmarCatalogoLido(conta, id!, null, linhas).catch(() => {});
+      return linhas.sort((a, b) => a.registrada_em.localeCompare(b.registrada_em));
+    },
   });
 }
 

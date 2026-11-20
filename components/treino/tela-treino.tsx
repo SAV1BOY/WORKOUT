@@ -2,6 +2,7 @@
 
 import { useQueryClient } from "@tanstack/react-query";
 import { addDays } from "date-fns";
+import { liveQuery } from "dexie";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -34,6 +35,9 @@ import {
   treinoDeHoje,
 } from "@/lib/calendario";
 import { acharFase, acharTreino, exerciciosDoTreino } from "@/lib/dados";
+import {
+  planoComExercicioDesconhecido, seriesComExercicioDesconhecido, sessaoLocalComExercicioDesconhecido,
+} from "@/lib/compatibilidade-da-sessao";
 import { equipamentoDaSessao, tagsDoEquipamento } from "@/lib/equipamento-da-sessao";
 import { planoDaSessao } from "@/lib/livre";
 import { guardarConsultasAgora } from "@/lib/persistencia-query";
@@ -59,6 +63,7 @@ import {
   mover,
 } from "@/lib/ordem";
 import { descartarSessao, registrarSolta } from "@/lib/queries/acoes";
+import { lerIdsDaSessaoProtegida } from "@/lib/queries/compatibilidade-da-sessao";
 import { aplicarRetomada } from "@/lib/queries/retomada";
 import { salvarTrocaDoPrograma, useTrocasDoPrograma } from "@/lib/queries/trocas-do-programa";
 import { useComecarTreino } from "@/lib/queries/comecar";
@@ -82,7 +87,9 @@ import {
   useSoltasDoDia,
   useUltimoPeso,
 } from "@/lib/queries/dados";
-import { carregarSessaoLocal, gravarPlanoDaSessao } from "@/lib/queries/sessao";
+import {
+  carregarSessaoLocal, gravarPlanoDaSessao, lembrarSessaoAberta, sessaoLocalComCriacaoPendente, sessaoLocalMaisRecente,
+} from "@/lib/queries/sessao";
 import { definirEquipamentoDaSessao, itensDoTreino, progressoDaSessao, type SessaoLocal } from "@/lib/sessao";
 import type { EquipamentoTag } from "@/lib/schemas";
 import type { LinhaSessao } from "@/lib/types";
@@ -143,7 +150,7 @@ export function TelaTreino({ userId }: { userId: string }) {
   const perfilQ = usePerfil();
   const overridesQ = useOverrides(intervalo?.de ?? null, intervalo?.ate ?? null);
   const sessoesQ = useSessoes();
-  const abertasQ = useSessoesAbertas();
+  const abertasQ = useSessoesAbertas(false, userId);
   const cardioQ = useCardio(intervalo?.de ?? null, intervalo?.ate ?? null, userId);
   const cardioDesdeQ = useCardioDesde(desde, userId);
   const pesoQ = useUltimoPeso();
@@ -273,28 +280,78 @@ export function TelaTreino({ userId }: { userId: string }) {
     });
   }, [treinoId, estadosQ.data, eventosQ.data, perfil?.prefs, trocas, ordem]);
 
-  const aberta = sessaoAberta(abertasQ.data ?? []);
-  const abertaId = aberta?.id;
-  const [leituraLocal, setLeituraLocal] = useState<{ id: string; conta: string; sessao: SessaoLocal | null } | null>(null);
-  const abertaLocal = leituraLocal?.id === abertaId && leituraLocal?.conta === userId ? leituraLocal.sessao : null;
+  const encerradas = useMemo(() => new Set((sessoesQ.data ?? [])
+    .filter(s => s.user_id === userId && s.status !== "em_andamento")
+    .map(s => s.id)), [sessoesQ.data, userId]);
+  const abertas = (abertasQ.data ?? []).filter(s => s.user_id === userId && !encerradas.has(s.id));
+  const abertaDaLista = sessaoAberta(abertas);
+  const idDaLista = abertaDaLista?.id ?? null;
+  // A sessão e a fila já podem ter sido gravadas quando o cache da lista ainda não foi salvo.
+  const procurarNoAparelho = !idDaLista;
+  const soCriacoesPendentes = procurarNoAparelho && abertasQ.isSuccess && abertasQ.isFetchedAfterMount && abertasQ.fetchStatus === "idle";
+  const excluirDaBusca = procurarNoAparelho ? encerradas : undefined;
+  const [tentativa, setTentativa] = useState(0);
+  const buscaLocal = useMemo(() => ({ id: idDaLista, conta: userId, excluir: excluirDaBusca, soCriacoesPendentes, tentativa }),
+    [idDaLista, userId, excluirDaBusca, soCriacoesPendentes, tentativa]);
+  const [leituraLocal, setLeituraLocal] = useState<{ busca: typeof buscaLocal; sessao: SessaoLocal | null; protegida: boolean; falhou: boolean } | null>(null);
+  const leuAberta = leituraLocal?.busca === buscaLocal;
+  const abertaLocal = leuAberta ? leituraLocal.sessao : null;
   useEffect(() => {
-    if (!abertaId) return;
-    let ativa = true;
-    void carregarSessaoLocal(abertaId).catch(() => null).then((sessao) => {
-      if (ativa) setLeituraLocal({ id: abertaId, conta: userId, sessao: sessao?.userId === userId ? sessao : null });
+    const { id, conta, excluir } = buscaLocal;
+    const procurarSemResumo = buscaLocal.soCriacoesPendentes ? sessaoLocalComCriacaoPendente : sessaoLocalMaisRecente;
+    const falha = { busca: buscaLocal, sessao: null, protegida: false, falhou: true };
+    const assinatura = liveQuery(async () => {
+      try {
+        const sessao = id ? await carregarSessaoLocal(id) : await procurarSemResumo(conta, excluir);
+        const encontrada = id ?? sessao?.id;
+        const ids = encontrada ? await lerIdsDaSessaoProtegida(conta, encontrada) : [];
+        return {
+          busca: buscaLocal, sessao: sessao?.userId === conta && (!id || sessao.id === id) ? sessao : null,
+          protegida: ids.length > 0, falhou: false,
+        };
+      } catch {
+        // Uma transação abortada não chega ao observador de erros do liveQuery.
+        return falha;
+      }
+    }).subscribe({
+      next: (leitura) => {
+        setLeituraLocal(leitura);
+        if (buscaLocal.soCriacoesPendentes && leitura.sessao) {
+          // A lista veio antes do POST. A confirmação da fila não deve apagar o Continuar.
+          lembrarSessaoAberta(cliente, leitura.sessao);
+        }
+      },
+      error: () => setLeituraLocal(falha),
     });
-    return () => { ativa = false; };
-  }, [abertaId, userId]);
+    return () => assinatura.unsubscribe();
+  }, [buscaLocal, cliente]);
+  const aberta = abertaDaLista ?? (abertaLocal && !encerradas.has(abertaLocal.id)
+    ? sessaoAberta([{ id: abertaLocal.id, data: abertaLocal.data, workout_id: abertaLocal.workoutId, status: abertaLocal.status }]) : null);
+  const abertaId = aberta?.id;
+  const resumoDaAberta = abertas.find(s => s.id === abertaId);
+  const procurandoAberta = procurarNoAparelho && !leuAberta;
+  const leituraFalhou = leuAberta && leituraLocal.falhou;
+  const bloquearInicio = procurandoAberta || (procurarNoAparelho && leituraFalhou);
   const idDoDia = aberta && aberta.data === hoje && aberta.workoutId === treinoId ? aberta.id : null;
   const confirmarMaterial = useCallback((id: string, tags: ReadonlySet<EquipamentoTag>, confirmada: SessaoLocal, anterior: SessaoLocal) => {
-    setLeituraLocal((atual) => atual?.conta === userId && atual.sessao?.id === id
+    setLeituraLocal((atual) => atual?.busca.conta === userId && atual.sessao?.id === id
       ? { ...atual, sessao: atual.sessao === anterior ? confirmada : definirEquipamentoDaSessao(atual.sessao, tags) } : atual);
   }, [userId]);
-  const materialLocal = useMaterialDaSessao(abertaLocal?.id === idDoDia ? abertaLocal : null, confirmarMaterial);
-  const semCopia = idDoDia && leituraLocal?.id === idDoDia && leituraLocal.conta === userId && !abertaLocal;
-  const linhaQ = useSessao(semCopia ? idDoDia : null);
+  const semCopia = idDoDia && leuAberta && !abertaLocal;
+  const linhaQ = useSessao(semCopia ? idDoDia : null, userId);
   const remota = linhaQ.data?.id === idDoDia && linhaQ.data?.user_id === userId &&
     linhaQ.data.status === "em_andamento" ? linhaQ.data : null;
+  const seriesDaAbertaQ = useSeriesDaSessao(abertaId ?? null, userId);
+  // Uma versão anterior podia reconstruir só os blocos conhecidos. Confira também o plano bruto.
+  const abertaIncompativel = Boolean(abertaId && (
+    planoComExercicioDesconhecido(resumoDaAberta?.plano) || planoComExercicioDesconhecido(remota?.plano) ||
+    (leuAberta && leituraLocal.protegida) || sessaoLocalComExercicioDesconhecido(abertaLocal) ||
+    seriesComExercicioDesconhecido(seriesDaAbertaQ.data, userId, abertaId)
+  ));
+  const verificandoAberta = Boolean(abertaId && (!leuAberta || (!abertaLocal && (seriesDaAbertaQ.isLoading || (semCopia && linhaQ.isLoading)))));
+  const protegerAberta = abertaIncompativel || verificandoAberta || leituraFalhou;
+  const protegerDia = bloquearInicio || Boolean(idDoDia && protegerAberta);
+  const materialLocal = useMaterialDaSessao(!protegerDia && abertaLocal?.id === idDoDia ? abertaLocal : null, confirmarMaterial);
   const [edicaoRemota, setEdicaoRemota] = useState<{ id: string; conta: string; tags: ReadonlySet<EquipamentoTag> } | null>(null);
   const gravacaoRemota = useRef(Promise.resolve());
   const materialRemoto: MaterialDoTreino | undefined = remota && treinoId ? {
@@ -306,7 +363,10 @@ export function TelaTreino({ userId }: { userId: string }) {
       const gravar = async () => {
         const chave = chaves.sessao(remota.id);
         const ultima = cliente.getQueryData<LinhaSessao | null>(chave);
-        if (!ultima || ultima.user_id !== userId || ultima.status !== "em_andamento") return;
+        if (!ultima || ultima.user_id !== userId || ultima.status !== "em_andamento" || planoComExercicioDesconhecido(ultima.plano)) return;
+        const resumo = cliente.getQueryData<SessaoResumo[]>(chaves.sessoesAbertas())?.find(s => s.id === remota.id && s.user_id === userId);
+        if (planoComExercicioDesconhecido(resumo?.plano) ||
+          seriesComExercicioDesconhecido(cliente.getQueryData(chaves.series(remota.id)), userId, remota.id)) return;
         const plano = { ...(ultima.plano ?? planoDaSessao(itensDoTreino(treinoId))), equipamento_disponivel: tagsDoEquipamento(tags) };
         await gravarPlanoDaSessao(remota.id, userId, plano);
         // Um GET iniciado antes do toque ainda pode ter o plano antigo.
@@ -323,8 +383,7 @@ export function TelaTreino({ userId }: { userId: string }) {
       }).finally(() => setEdicaoRemota((atual) => atual === edicao ? null : atual));
     },
   } : undefined;
-  const material = idDoDia ? materialLocal ?? materialRemoto : materialDoDia;
-  const seriesDaAbertaQ = useSeriesDaSessao(aberta?.id ?? null);
+  const material = protegerDia ? undefined : idDoDia ? materialLocal ?? materialRemoto : materialDoDia;
 
   /*
    * SPEC §22.7 item 2: a aba tem 2.555 px e o caminho para o treino de hoje
@@ -416,9 +475,13 @@ export function TelaTreino({ userId }: { userId: string }) {
     aberta && treinoId && aberta.data === hoje && aberta.workoutId === treinoId
       ? {
           id: aberta.id,
-          progresso: abertaLocal?.id === aberta.id
+          incompativel: abertaIncompativel,
+          progresso: abertaIncompativel ? "Atualize o app para continuar este treino"
+            : leituraFalhou ? "Não foi possível consultar o treino salvo neste aparelho."
+            : verificandoAberta ? "Carregando o treino…"
+            : abertaLocal?.id === aberta.id
             ? progressoDaSessao(abertaLocal).texto
-            : progressoDaAberta(aberta.workoutId, seriesDaAbertaQ.data ?? [], abertasQ.data?.find((s) => s.id === aberta.id)?.plano).texto,
+            : progressoDaAberta(aberta.workoutId, seriesDaAbertaQ.data ?? [], resumoDaAberta?.plano).texto,
         }
       : null;
 
@@ -439,9 +502,9 @@ export function TelaTreino({ userId }: { userId: string }) {
   };
 
   const comecarTreinoDeHoje = () => {
-    if (!treinoId || pedirDecisao()) return;
+    if (bloquearInicio || !treinoId || pedirDecisao()) return;
     void comecar({
-      userId, perfil, hoje, treinoId, lembradas, ordemTemporaria,
+      userId, perfil, hoje, treinoId, lembradas, ordemTemporaria, retomarCriacaoPendente: true,
       equipamentosDisponiveis: materialDoDia?.disponiveis,
       trocas: soHoje ?? lerTrocasDoAparelho(userId, hoje, treinoId),
     });
@@ -516,9 +579,9 @@ export function TelaTreino({ userId }: { userId: string }) {
 
       {aberta && !abertaDoDia ? (
         <BannerSessaoAberta
-          texto={aberta.texto}
+          texto={abertaIncompativel ? `${aberta.texto}. Atualize o app para continuar este treino.` : aberta.texto}
           href={`/treinar/${aberta.id}`}
-          aoDescartar={() => void descartar(aberta.id)}
+          aoDescartar={protegerAberta ? undefined : () => void descartar(aberta.id)}
           /*
            * SPEC §22.7 item 9: o anel acompanha o "Continuar". Aqui dentro a
            * sessão aberta nunca é a do dia (`!abertaDoDia`), então o card do
@@ -552,6 +615,8 @@ export function TelaTreino({ userId }: { userId: string }) {
             /* só quando é ESTE card que tem o "Continuar" (§22.7 item 9) */
             destacado={destacarAberta && abertaDoDia !== null}
             criando={criando !== null}
+            procurandoAberta={procurandoAberta}
+            aoReverSessao={leituraFalhou && (procurarNoAparelho || idDoDia) ? () => setTentativa(n => n + 1) : undefined}
             aoComecar={comecarTreinoDeHoje}
           />
         ) : null}
@@ -586,7 +651,7 @@ export function TelaTreino({ userId }: { userId: string }) {
       </section>
       <div ref={refSentinela} aria-hidden="true" className="h-px" />
 
-      {treinoId ? (
+      {treinoId && !protegerDia ? (
         editando ? (
           <ModoEditar
             itens={itens}
@@ -641,7 +706,7 @@ export function TelaTreino({ userId }: { userId: string }) {
         de cardio e de descanso a aba cabe em pouco mais de uma tela e o card
         do dia continua à vista.
       */}
-      {passouDoCard && dia.tipo === "forca" && treinoId ? (
+      {passouDoCard && !bloquearInicio && dia.tipo === "forca" && treinoId ? (
         <FaixaFixaDoDia
           titulo={resumoDoTreino(treinoId).nome}
           detalhe={abertaDoDia ? abertaDoDia.progresso : detalheDoTreino(treinoId)}
