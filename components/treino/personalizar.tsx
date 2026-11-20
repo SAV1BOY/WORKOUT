@@ -30,7 +30,7 @@ import { equipamentosDaAlternativa } from "@/lib/alternativas";
 import { filtrarExercicios, type FiltrosCatalogo } from "@/lib/catalogo";
 import { acharExercicio, equipamentoDisponivel, exerciciosComVariacoes } from "@/lib/dados";
 import { lerSelecaoDeEquipamento, tagsDoEquipamento } from "@/lib/equipamento-da-sessao";
-import { ajustesDoModeloConfirmados } from "@/lib/modelo-de-treino";
+import { ajustesDoModeloConfirmados, LIMITE_DO_NOME_DO_TREINO } from "@/lib/modelo-de-treino";
 import { mover } from "@/lib/ordem";
 import { descansoPadraoS, evitadosPorUltimo } from "@/lib/preferencias";
 import { excluirModeloDeTreino, salvarModeloDeTreino, type ModeloDeTreino } from "@/lib/queries/modelos-de-treino";
@@ -40,6 +40,11 @@ import type { Prefs } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const inventarioCompleto = equipamentoDisponivel();
+const gravacaoDoModelo = {
+  novo: { titulo: "Salvar treino", confirmacao: "Treino salvo." },
+  atualizar: { titulo: "Atualizar treino", confirmacao: "Treino atualizado." },
+  copia: { titulo: "Salvar como cópia", confirmacao: "Cópia salva." },
+};
 type Painel = { tipo: "editor" | "ordem" | "series" } | { tipo: "trocar"; id: string } | PainelDosModelos;
 
 function mapaAlterado(atual: Record<string, number>, salvo: Record<string, number>) {
@@ -82,6 +87,7 @@ export function Personalizar({ conta, prefs }: { conta: string; prefs?: Prefs })
   const edicaoDosDescansos = useRef<EdicaoDosDescansos>(null);
   const gatilhoDosSalvos = useRef<HTMLButtonElement>(null);
   const gatilhoDeSalvar = useRef<HTMLButtonElement>(null);
+  const gatilhoDaCopia = useRef<HTMLButtonElement>(null);
   const gatilhoDaConfirmacao = useRef<HTMLButtonElement | null>(null);
   const iniciando = useRef(false);
   const mutando = useRef(false);
@@ -121,7 +127,9 @@ export function Personalizar({ conta, prefs }: { conta: string; prefs?: Prefs })
         mostrar({ tipo: "editor" }, gatilhoDasSeries.current);
         break;
       case "salvos": mostrar({ tipo: "editor" }, gatilhoDosSalvos.current); break;
-      case "salvar": mostrar({ tipo: "editor" }, gatilhoDeSalvar.current); break;
+      case "salvar":
+        mostrar({ tipo: "editor" }, tela.modo === "copia" ? gatilhoDaCopia.current : gatilhoDeSalvar.current);
+        break;
     }
   }
 
@@ -179,13 +187,14 @@ export function Personalizar({ conta, prefs }: { conta: string; prefs?: Prefs })
     mutando.current = true;
     setGravando(true);
     setErro(null);
+    const atualizando = tela.modo === "atualizar";
     const modelo: ModeloDeTreino = {
       id: tela.id, user_id: conta, nome: nome.trim(), exercicios: [...escolhidos],
       equipamento_disponivel: material.size === inventarioCompleto.size ? null : tagsDoEquipamento(material),
-      ...(!carregado || seriesAlteradas ? {
+      ...(!atualizando || seriesAlteradas ? {
         series_por_exercicio: Object.keys(seriesPorExercicio).length ? seriesPorExercicio : null,
       } : {}),
-      ...(!carregado || descansosAlterados ? {
+      ...(!atualizando || descansosAlterados ? {
         descansos_por_exercicio: Object.keys(descansosPorExercicio).length ? descansosPorExercicio : null,
       } : {}),
     };
@@ -198,9 +207,9 @@ export function Personalizar({ conta, prefs }: { conta: string; prefs?: Prefs })
         setCarregado(salvo);
         setSeriesPorExercicio(salvo.series_por_exercicio ?? {});
         setDescansosPorExercicio(salvo.descansos_por_exercicio ?? {});
-        mostrar({ tipo: "editor" }, gatilhoDeSalvar.current);
+        mostrar({ tipo: "editor" }, tela.modo === "copia" ? gatilhoDaCopia.current : gatilhoDeSalvar.current);
       }
-      toast.success(carregado ? "Treino atualizado." : "Treino salvo.");
+      toast.success(gravacaoDoModelo[tela.modo].confirmacao);
     } catch {
       setErro("Não foi possível salvar. Tente novamente.");
     } finally {
@@ -321,6 +330,7 @@ export function Personalizar({ conta, prefs }: { conta: string; prefs?: Prefs })
 
       <SheetContent side="bottom" className={cn("flex max-h-[90dvh] flex-col pb-8",
         tela.tipo === "editor" && "pb-[max(0.5rem,env(safe-area-inset-bottom))]",
+        tela.tipo === "salvar" && "block overflow-y-auto",
         (tela.tipo === "series" || tela.tipo === "trocar") && "overflow-y-auto")}
         showCloseButton={tela.tipo !== "editor" && !ocupado && !gravando}
         onEscapeKeyDown={evento => {
@@ -333,13 +343,13 @@ export function Personalizar({ conta, prefs }: { conta: string; prefs?: Prefs })
             voltar();
           }
         }}>
-        {tela.tipo !== "editor" && <SheetHeader className="pb-0">
+        {tela.tipo !== "editor" && <SheetHeader className={tela.tipo === "salvar" ? "pb-4" : "pb-0"}>
           <SheetTitle ref={titulo} className="pr-10 wrap-anywhere">
             {tela.tipo === "ordem" && "Reordenar escolhidos"}
             {tela.tipo === "series" && "Séries e descanso"}
             {tela.tipo === "trocar" && "Trocar exercício"}
             {tela.tipo === "salvos" && "Treinos salvos"}
-            {tela.tipo === "salvar" && (carregado ? "Atualizar treino" : "Salvar treino")}
+            {tela.tipo === "salvar" && gravacaoDoModelo[tela.modo].titulo}
             {tela.tipo === "excluir" && "Excluir treino?"}
             {tela.tipo === "descartar" && "Descartar alterações?"}
           </SheetTitle>
@@ -370,7 +380,7 @@ export function Personalizar({ conta, prefs }: { conta: string; prefs?: Prefs })
               mostrar({ tipo: "excluir", modelo });
             }} />
         )}
-        {tela.tipo === "salvar" && <NomeDoTreino nome={nome} aoMudar={setNome} atualizando={!!carregado}
+        {tela.tipo === "salvar" && <NomeDoTreino nome={nome} aoMudar={setNome} atualizando={tela.modo === "atualizar"}
           gravando={gravando} erro={erro} aoSalvar={() => void salvar()} aoVoltar={voltar} />}
         {tela.tipo === "excluir" && <ConfirmacaoDoModelo gravando={gravando} erro={erro} aoCancelar={voltar}
           descricao={`“${tela.modelo.nome}” será removido dos seus treinos salvos.`}
@@ -404,9 +414,18 @@ export function Personalizar({ conta, prefs }: { conta: string; prefs?: Prefs })
                 <Button ref={gatilhoDeSalvar} type="button" variant="outline" disabled={ocupado}
                   className="alvo h-auto max-w-full whitespace-normal py-2" onClick={() => {
                     setNome(carregado?.nome ?? "");
-                    mostrar({ tipo: "salvar", id: carregado?.id ?? novoId() });
+                    mostrar({ tipo: "salvar", modo: carregado ? "atualizar" : "novo", id: carregado?.id ?? novoId() });
                   }}>
-                  {carregado ? "Atualizar treino" : "Salvar treino"}
+                  {carregado ? gravacaoDoModelo.atualizar.titulo : gravacaoDoModelo.novo.titulo}
+                </Button>
+              )}
+              {carregado && escolhidos.length > 0 && (
+                <Button ref={gatilhoDaCopia} type="button" variant="outline" disabled={ocupado}
+                  className="alvo h-auto max-w-full whitespace-normal py-2" onClick={() => {
+                    setNome([...`Cópia de ${carregado.nome}`].slice(0, LIMITE_DO_NOME_DO_TREINO).join("").trimEnd());
+                    mostrar({ tipo: "salvar", modo: "copia", id: novoId() });
+                  }}>
+                  {gravacaoDoModelo.copia.titulo}
                 </Button>
               )}
             </div>
