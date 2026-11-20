@@ -77,14 +77,15 @@ test("a lista do dia mostra como fazer a flexão com o tatame e só lembra a tro
   const abrir = lista.getByRole("button", { name: "Substituir Supino reto com barra" });
   await abrir.click();
   const folha = page.getByRole("dialog", { name: "Substituir hoje" });
-  await folha.getByText("Equipamentos disponíveis", { exact: true }).click();
+  const entradaDoMaterial = folha.locator("summary").filter({ hasText: "Equipamentos disponíveis" });
+  await entradaDoMaterial.click();
   const material = folha.getByRole("group", { name: "Equipamento de hoje", exact: true });
   await material.getByRole("button", { name: "Só peso do corpo" }).click();
   for (const nome of ["Tatame", "Elástico (Super Band)"]) {
     await material.getByRole("checkbox", { name: nome, exact: true }).check();
   }
   await expect(material.getByRole("checkbox", { checked: true })).toHaveCount(2);
-  await folha.getByText("Equipamentos disponíveis", { exact: true }).click();
+  await entradaDoMaterial.click();
 
   const tatame = folha.getByRole("button", { name: "Tatame", exact: true });
   await tatame.click();

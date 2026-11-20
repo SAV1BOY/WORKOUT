@@ -47,7 +47,7 @@ test("a busca no A1 respeita o equipamento, os movimentos ocupados e as trocas g
     "Ver execução de Remada baixa na polia", "Ver execução de Remada com elástico",
     "Ver execução de Remada curvada supinada", "Ver execução de Remada unilateral (serrote)",
   ]);
-  const equipamento = folha.getByText("Equipamentos disponíveis", { exact: true });
+  const equipamento = folha.locator("summary").filter({ hasText: "Equipamentos disponíveis" });
   await equipamento.click();
   const material = folha.getByRole("group", { name: "Equipamento de hoje" });
   await material.getByRole("button", { name: "Só peso do corpo" }).click();

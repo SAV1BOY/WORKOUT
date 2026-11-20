@@ -4,6 +4,7 @@ import { Plus, Search, Undo2 } from "lucide-react";
 import { useRef, useState } from "react";
 import { EquipamentoDeHoje, nomeDoMaterial, type MaterialDoTreino } from "@/components/exercicio/equipamento-de-hoje";
 import { FiltroGrupoMuscular } from "@/components/exercicio/filtro-grupo-muscular";
+import { PreviaDeExecucao, recolherPreviaDeExecucao } from "@/components/exercicio/previa-de-execucao";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Miniatura } from "@/components/ui/miniatura";
@@ -33,6 +34,7 @@ export function AdicionarExercicio({ sessao, material, prefs, aoAdicionar, aoDes
   const [aviso, setAviso] = useState("");
   const emGravacao = useRef(false);
   const botaoAdicionar = useRef<HTMLButtonElement>(null);
+  const campoBusca = useRef<HTMLInputElement>(null);
   const inclusao = ultimaInclusaoDesfazivel(sessao);
   const ocupados = exerciciosOcupadosNaSessao(sessao);
   const opcoes = aberto ? evitadosPorUltimo(
@@ -56,7 +58,7 @@ export function AdicionarExercicio({ sessao, material, prefs, aoAdicionar, aoDes
     }
   }
 
-  async function escolher(exercicio: Exercicio) {
+  async function escolher(exercicio: Exercicio, botao: HTMLButtonElement) {
     if (emGravacao.current) return;
     emGravacao.current = true;
     setSalvando(true);
@@ -64,10 +66,15 @@ export function AdicionarExercicio({ sessao, material, prefs, aoAdicionar, aoDes
     try {
       await aoAdicionar(exercicio.id);
       setAberto(false);
-      setAviso(`${exercicio.nome} entrou no fim do treino.`);
+      setAviso(`${exercicio.nome} está no treino.`);
     } catch (falha) {
-      setErro(falha instanceof Error && falha.message === MENSAGEM_EQUIPAMENTO_ALTERADO
-        ? MENSAGEM_EQUIPAMENTO_ALTERADO : "Não foi possível adicionar o exercício. Tente de novo.");
+      if (falha instanceof Error && falha.message === MENSAGEM_EQUIPAMENTO_ALTERADO) {
+        setErro(MENSAGEM_EQUIPAMENTO_ALTERADO);
+        const foco = document.activeElement;
+        if (foco === document.body || botao.closest("li")?.contains(foco)) campoBusca.current?.focus();
+      } else {
+        setErro("Não foi possível adicionar o exercício. Tente de novo.");
+      }
     } finally {
       emGravacao.current = false;
       setSalvando(false);
@@ -106,14 +113,15 @@ export function AdicionarExercicio({ sessao, material, prefs, aoAdicionar, aoDes
             <Plus aria-hidden="true" /> Adicionar exercício
           </Button>
         </SheetTrigger>
-        <SheetContent side="bottom" className="flex max-h-[85dvh] flex-col overflow-y-auto pb-4 [&>*]:shrink-0">
+        <SheetContent side="bottom" className="flex max-h-[85dvh] flex-col overflow-y-auto pb-4 [&>*]:shrink-0"
+          onEscapeKeyDown={recolherPreviaDeExecucao}>
           <SheetHeader className="pr-16 pb-0">
             <SheetTitle>Adicionar exercício</SheetTitle>
             <SheetDescription>Escolha um exercício para o fim deste treino.</SheetDescription>
           </SheetHeader>
           <div className="relative mx-4">
             <Search aria-hidden="true" className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
-            <Input type="search" inputMode="search" aria-label="Buscar exercício pelo nome"
+            <Input ref={campoBusca} type="search" inputMode="search" aria-label="Buscar exercício pelo nome"
               placeholder="Buscar exercício" value={busca} onChange={e => setBusca(e.target.value)}
               className="alvo h-12 pl-9 text-base" />
           </div>
@@ -125,10 +133,10 @@ export function AdicionarExercicio({ sessao, material, prefs, aoAdicionar, aoDes
             {opcoes.length ? (
               <ul aria-label="Exercícios disponíveis" className="divide-y">
                 {opcoes.map(({ exercicio, equipamento }) => (
-                  <li key={exercicio.id}>
+                  <li key={exercicio.id} className="min-w-0 py-1">
                     <button type="button" aria-label={`Adicionar ${exercicio.nome}`}
                       aria-describedby={`detalhes-adicionar-${exercicio.id}`}
-                      aria-disabled={salvando} onClick={() => void escolher(exercicio)}
+                      aria-disabled={salvando} onClick={evento => void escolher(exercicio, evento.currentTarget)}
                       className="alvo hover:bg-muted/40 flex w-full items-center gap-3 rounded-md py-2 text-left">
                       <Miniatura exercicioId={exercicio.id} />
                       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
@@ -140,6 +148,7 @@ export function AdicionarExercicio({ sessao, material, prefs, aoAdicionar, aoDes
                       </span>
                       <Plus aria-hidden="true" className="size-4 shrink-0" />
                     </button>
+                    <PreviaDeExecucao exercicio={exercicio} />
                   </li>
                 ))}
               </ul>

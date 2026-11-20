@@ -7,7 +7,8 @@ import { toast } from "sonner";
 import { useSessaoLivre } from "@/components/colecoes/usar-sessao-livre";
 import { EquipamentoDeHoje, nomeDoMaterial } from "@/components/exercicio/equipamento-de-hoje";
 import { FiltroGrupoMuscular } from "@/components/exercicio/filtro-grupo-muscular";
-import { OpcoesDeAlternativa, recolherExecucaoDaAlternativa } from "@/components/exercicio/seletor-alternativa";
+import { recolherPreviaDeExecucao } from "@/components/exercicio/previa-de-execucao";
+import { OpcoesDeAlternativa } from "@/components/exercicio/seletor-alternativa";
 import { EscolhidosDoPersonalizado } from "@/components/treino/escolhidos-do-personalizado";
 import { OrdemDosEscolhidos } from "@/components/treino/ordem-dos-escolhidos";
 import { SeriesDosEscolhidos, type EdicaoDosDescansos } from "@/components/treino/series-dos-escolhidos";
@@ -378,7 +379,7 @@ export function Personalizar({ conta, prefs }: { conta: string; prefs?: Prefs })
             return;
           }
           if (tela.tipo === "trocar") {
-            recolherExecucaoDaAlternativa(evento);
+            recolherPreviaDeExecucao(evento);
             if (evento.defaultPrevented) return;
           }
           if (tela.tipo !== "editor") {
