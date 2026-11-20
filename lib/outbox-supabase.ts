@@ -73,6 +73,11 @@ function ehEscrita(valor: unknown): valor is EscritaTabela {
 /** Envia um item da fila. Lançar aqui faz a fila tentar de novo depois. */
 export async function enviarItem(item: ItemSaida): Promise<ResultadoDoEnvio> {
   const pLocal = item.payload as Record<string, unknown> | null;
+  if (item.tipo === "sessao" && pLocal?.tabela === "sessions" && !Object.hasOwn(pLocal, "op") &&
+      (pLocal.equipamentoDaSessao || pLocal.conciliacaoDeMaterial)) {
+    const { enviarMaterialDaSessao } = await import("@/lib/material-pendente");
+    return enviarMaterialDaSessao(item);
+  }
   if (item.tipo === "cardio" && pLocal?.tabela === "cardio_sessions" &&
       pLocal.conciliacaoDosSaltos && !Object.hasOwn(pLocal, "op")) {
     const { enviarSaltosEmConciliacao } = await import("@/lib/saltos-pendentes");
@@ -169,6 +174,11 @@ export async function enviarItem(item: ItemSaida): Promise<ResultadoDoEnvio> {
       consulta = consulta.eq(coluna, valor);
     }
     const { error } = await consulta;
+    if (error?.code === "PT409" && error.message === "PLANO_DA_SESSAO_DIVERGIU" && item.tipo === "sessao" &&
+        editaTreino && Object.hasOwn(p.linha ?? {}, "plano") && p.filtro?.status === "em_andamento") {
+      const { protegerPlanoLegado } = await import("@/lib/material-pendente");
+      return protegerPlanoLegado(item, p);
+    }
     if (error) throw new Error(error.message);
     return;
   }

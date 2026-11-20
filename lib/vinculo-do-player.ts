@@ -14,10 +14,10 @@ export interface VinculoDoPlayer {
 
 export const EVENTO_DE_LOGIN_CONFIRMADO = "treino:login-confirmado";
 
-export type CaminhoDeAbaLocal = "/" | "/relatorio" | "/calendario";
+export type CaminhoDeAbaLocal = "/" | "/relatorio" | "/calendario" | "/mais";
 
 export function ehAbaLocal(caminho: string): caminho is CaminhoDeAbaLocal {
-  return caminho === "/" || caminho === "/relatorio" || caminho === "/calendario";
+  return caminho === "/" || caminho === "/relatorio" || caminho === "/calendario" || caminho === "/mais";
 }
 
 export function idDoPlayerNoCaminho(caminho: string): string | null {

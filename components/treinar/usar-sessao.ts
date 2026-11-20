@@ -5,6 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { salvarTrocaDoPrograma, useTrocasDoPrograma } from "@/lib/queries/trocas-do-programa";
 import type { RecorrenciaDaTroca } from "@/components/exercicio/seletor-alternativa";
 import { useMaterialDaSessao } from "@/components/treinar/usar-material-da-sessao";
+import { useSerieDaInclusao } from "@/components/treinar/usar-serie-da-inclusao";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -16,6 +17,7 @@ import {
 } from "@/lib/barra-fixa";
 import { idsDaSessaoRemota, sessaoLocalComExercicioDesconhecido, sessaoLocalRepresentaServidor } from "@/lib/compatibilidade-da-sessao";
 import { confirmarIdsDaSessaoProtegida, lerIdsDaSessaoProtegida, lerRevisaoDaProtecao, liberarSessaoProtegida } from "@/lib/queries/compatibilidade-da-sessao";
+import { conferirMudancaDeOutroAparelho, haInclusaoRemota, lerMaterialConfirmado } from "@/lib/queries/material-confirmado";
 import { acharTreino, exercicioPorId } from "@/lib/dados";
 import { equipamentoDaSessao } from "@/lib/equipamento-da-sessao";
 import { decidirTela, servidorTerminouDeBuscar } from "@/lib/estado-do-player";
@@ -196,6 +198,8 @@ export function useSessaoDeTreino(sessaoId: string, userId: string) {
 
   const refazerLinha = sessaoQ.refetch;
   const refazerSeries = seriesQ.refetch;
+  const avisoSerieRecebida = useSerieDaInclusao({ conta: userId, id: sessaoId, sessao, ultima, series: seriesDaConta, refazer: refazerSeries,
+    bloqueada: edicaoBloqueada, adotar });
   const liberarSeConferido = useCallback(async (revisao: string, linha: LinhaSessao | null | undefined, series: LinhaSerie[] | undefined) => {
     if (!idsGuardados.length || localIncompativel || sessaoLida === undefined ||
         !linha || linha.id !== sessaoId || linha.user_id !== userId || !Object.hasOwn(linha, "plano") ||
@@ -426,6 +430,46 @@ export function useSessaoDeTreino(sessaoId: string, userId: string) {
     },
     [adotar],
   );
+
+  // O retorno de uma escolha de material pode conter um exercício já usado no outro aparelho.
+  useEffect(() => {
+    if (!idNoAparelho) return;
+    let leitura = 0;
+    const assinatura = liveQuery(() => lerMaterialConfirmado(userId, sessaoId)).subscribe({
+      next: aviso => {
+        if (!aviso) return;
+        const turno = ++leitura;
+        const antes = ultima.current;
+        const guardarEdicaoAtual = aviso.edicaoArquivada && antes ? confirmarToquesPendentes(antes) : Promise.resolve();
+        void guardarEdicaoAtual.then(() => carregarSessaoLocal(sessaoId)).then(salva => {
+          const atual = ultima.current;
+          if (turno !== leitura || !salva || !atual || atual.id !== sessaoId || atual.userId !== userId ||
+            salva.userId !== userId || salva.status !== "em_andamento") return;
+          if (aviso.edicaoArquivada && antes === atual) {
+            adotar(salva);
+            return;
+          }
+          let nova = haInclusaoRemota(atual, salva.plano) ? conciliarBlocosAcrescentados(atual, salva) : atual;
+          if (salva.revisaoEquipamento === aviso.revisao) {
+            nova = definirEquipamentoDaSessao(nova, equipamentoDaSessao(salva));
+            if (nova.revisaoEquipamento !== aviso.revisao) nova = { ...nova, revisaoEquipamento: aviso.revisao };
+          }
+          if (nova !== atual) adotar(nova);
+        }).catch(() => {});
+      },
+    });
+    return () => { leitura++; assinatura.unsubscribe(); };
+  }, [adotar, idNoAparelho, sessaoId, userId]);
+
+  useEffect(() => {
+    const atual = ultima.current;
+    if (!atual || atual.id !== sessaoId || atual.userId !== userId || naFila || !navigator.onLine ||
+      !linhaDaConta || linhaDaConta.status !== "em_andamento" || !sessaoQ.isFetchedAfterMount ||
+      (!haInclusaoRemota(atual, linhaDaConta.plano) && (atual.revisaoEquipamento ?? null) === (linhaDaConta.revisao_equipamento ?? null))) return;
+    const controle = new AbortController();
+    void conferirMudancaDeOutroAparelho(atual, controle.signal).catch(() => {});
+    return () => controle.abort();
+  }, [idNoAparelho, linhaDaConta, naFila, sessaoId, sessaoQ.isFetchedAfterMount, userId]);
 
   // O cache de consultas pode estar pendente na recarga sem rede. O padrão que a
   // conta realmente usou acompanha a cópia local da sessão, inclusive o valor nulo.
@@ -687,7 +731,9 @@ export function useSessaoDeTreino(sessaoId: string, userId: string) {
 
   const material = useMaterialDaSessao(sessao, (id, tags, confirmada, anterior) => {
     const atual = ultima.current;
-    if (atual?.id === id) adotar(atual === anterior ? confirmada : definirEquipamentoDaSessao(atual, tags));
+    if (atual?.id === id) adotar(atual === anterior ? confirmada : {
+      ...definirEquipamentoDaSessao(atual, tags), revisaoEquipamento: confirmada.revisaoEquipamento,
+    });
   });
   const aguardarMaterial = material?.aguardar;
 
@@ -918,6 +964,7 @@ export function useSessaoDeTreino(sessaoId: string, userId: string) {
 
   return {
     sessao,
+    avisoSerieRecebida,
     perfil,
     tela,
     recarregar,

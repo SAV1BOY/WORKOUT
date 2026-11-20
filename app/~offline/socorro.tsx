@@ -46,16 +46,18 @@ export function Socorro({ videos, children }: { videos: string[]; children: Reac
       try {
         const { vinculoDoLoginAtual, vinculoParaAbaLocal, vinculoParaPlayerLocal } = await import("@/lib/player-sem-rede");
         let proxima: PlayerDoAparelho | AbaDoAparelho | null = null;
-        if (aba) {
+        if (aba === "/mais" || cardio) {
+          // A fila em Mais verifica a identidade e vive no aparelho mesmo se o perfil ainda não chegou.
+          const vinculo = await vinculoDoLoginAtual();
+          const destino = aba ?? cardio;
+          if (vinculo && destino) proxima = { aba: destino, vinculo, Componente: (await import("./aba-local")).default };
+        } else if (aba) {
           const local = await vinculoParaAbaLocal(aba);
           if (local) {
             const Componente = (await import("./aba-local")).default;
             if (versao !== vez) return;
             proxima = { aba, vinculo: local.vinculo, perfil: local.perfil, Componente };
           }
-        } else if (cardio) {
-          const vinculo = await vinculoDoLoginAtual();
-          if (vinculo) proxima = { aba: cardio, vinculo, Componente: (await import("./aba-local")).default };
         } else if (sessaoId) {
           const vinculo = await vinculoParaPlayerLocal(sessaoId);
           if (vinculo) proxima = { sessaoId, vinculo, Componente: (await import("./player-local")).default };

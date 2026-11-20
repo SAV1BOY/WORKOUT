@@ -15,7 +15,10 @@ import { conferirCatalogoParaEditar } from "@/lib/queries/compatibilidade-da-ses
 import { AVISO_CATALOGO_DA_SESSAO, planoComExercicioDesconhecido } from "@/lib/compatibilidade-da-sessao";
 import { bd, temIndexedDB } from "@/lib/db";
 import { acharTreino, exercicioPorId } from "@/lib/dados";
-import { equipamentoDaSessao } from "@/lib/equipamento-da-sessao";
+import { equipamentoDaSessao, materialEscolhido, planoComMaterial } from "@/lib/equipamento-da-sessao";
+import { comandoDeMaterialDaSessao, comandoDeMaterialNaFila, type MaterialDaSessao } from "@/lib/material-pendente";
+import { lerMaterialConfirmado } from "@/lib/queries/material-confirmado";
+import { conservarRascunhoDaInclusao } from "@/lib/queries/serie-da-inclusao-remota";
 import {
   WORKOUT_LIVRE,
   itensDeIds,
@@ -53,6 +56,7 @@ import {
   montarSessaoAvulsa,
   MENSAGEM_NOTA_GERAL_ALTERADA,
   notasDaSessao,
+  planoAtualOuDosBlocos,
   planoParaGravar,
   type BlocoLocal,
   type Conclusao,
@@ -63,7 +67,8 @@ import {
   type SessaoLocal,
 } from "@/lib/sessao";
 import type { TipoSaida } from "@/lib/db";
-import type { PlanoDaSessao, StatusSessao } from "@/lib/types";
+import type { EquipamentoTag } from "@/lib/schemas";
+import type { LinhaSessao, PlanoDaSessao, StatusSessao } from "@/lib/types";
 import { clienteNavegador } from "@/lib/supabase/client";
 
 /** Id novo, gerado no cliente (SPEC §8). */
@@ -87,7 +92,7 @@ let relogio: ReturnType<typeof setTimeout> | null = null;
 
 /** A aba pode ainda ter o plano anterior ao último exercício, material ou intervalo guardado. */
 function preservarPlanoSalvo(
-  plano: PlanoDaSessao | null, salva: SessaoLocal | null, manterMaterial: boolean,
+  plano: PlanoDaSessao | null, salva: SessaoLocal | null,
 ): PlanoDaSessao | null {
   if (!salva) return plano;
   const base = plano ?? salva.plano;
@@ -98,10 +103,8 @@ function preservarPlanoSalvo(
   if (Array.isArray(ordem)) atualizado.ordem_execucao = ordem;
   if (persistido?.descansos_por_exercicio) atualizado.descansos_por_exercicio = persistido.descansos_por_exercicio;
   else delete atualizado.descansos_por_exercicio;
-  if (manterMaterial) {
-    if (persistido?.equipamento_disponivel) atualizado.equipamento_disponivel = persistido.equipamento_disponivel;
-    else delete atualizado.equipamento_disponivel;
-  }
+  if (persistido?.equipamento_disponivel) atualizado.equipamento_disponivel = persistido.equipamento_disponivel;
+  else delete atualizado.equipamento_disponivel;
   const inclusao = persistido?.ultima_inclusao;
   if (salva.workoutId === WORKOUT_LIVRE && inclusao) {
     // Só os comandos atômicos de adicionar e desfazer podem mudar a lista ou o token da inclusão.
@@ -192,7 +195,7 @@ export function conciliarBlocosAcrescentados(atual: SessaoLocal, salva: SessaoLo
   const passoRemovido = ordem != null && (!blocos[ordem - 1] ||
     (!mesmaLista && !blocosCompartilhamSeries(atual.blocos[ordem - 1], blocos[ordem - 1])));
   return {
-    ...atual, blocos, plano: preservarPlanoSalvo(atual.plano, salva, true),
+    ...atual, blocos, plano: preservarPlanoSalvo(atual.plano, salva),
     ...(passoRemovido ? { player: salva.player } : {}),
   };
 }
@@ -236,13 +239,15 @@ async function gravar(sessao: SessaoLocal, antes?: SessaoLocal): Promise<void> {
   if (!temIndexedDB()) return;
   const banco = bd();
   const mudouPlano = await banco.transaction("rw", banco.sessaoAtiva, banco.outbox, banco.cache, async () => {
-    const salva = await lerSessaoNaTransacao(sessao.id, sessao.userId);
+    let salva = await lerSessaoNaTransacao(sessao.id, sessao.userId);
     if (antes && (!salva || salva.status !== "em_andamento")) throw new Error("Esta sessão não está aberta neste aparelho.");
     if (salva && salva.userId !== sessao.userId) throw new Error("A sessão pertence a outra conta.");
     // Uma reconstrução pela rede pode terminar depois que a cópia local já avançou.
     if (!antes && (salva?.plano?.ultima_inclusao || salva?.ordemExecucao || salva?.plano?.ordem_execucao)) return false;
-    const plano = antes && salva && sessao.plano === antes.plano ? salva.plano : preservarPlanoSalvo(sessao.plano, salva, true);
+    if (salva && antes) salva = await conservarRascunhoDaInclusao(salva, antes, sessao);
+    const plano = antes && salva && sessao.plano === antes.plano ? salva.plano : preservarPlanoSalvo(sessao.plano, salva);
     const nova = { ...(salva ? conciliarBlocosAcrescentados(sessao, salva) : sessao), plano };
+    if (salva?.revisaoEquipamento !== undefined) nova.revisaoEquipamento = salva.revisaoEquipamento;
     // Só o editor altera esta nota. Um toque em uma série pode partir de uma aba com a versão anterior.
     if (salva?.notaGeral !== undefined) {
       nova.notaGeral = salva.notaGeral;
@@ -588,7 +593,7 @@ function escritaDoPlano(id: string, userId: string, plano: PlanoDaSessao | null)
 }
 
 /** Releitura e enfileiramento na mesma transação mantêm a ordem em relação ao editor de descanso. */
-async function enfileirarComPlanoAtual(id: string, conta: string, escrita: EscritaTabela, blocosDaTroca?: BlocoLocal[]): Promise<SessaoLocal | null> {
+async function enfileirarComPlanoAtual(id: string, conta: string, escrita: EscritaTabela, blocosDaTroca: BlocoLocal[]): Promise<SessaoLocal | null> {
   const banco = bd();
   const confirmada = await banco.transaction("rw", banco.sessaoAtiva, banco.outbox, banco.cache, async () => {
     const salva = await lerSessaoNaTransacao(id, conta);
@@ -596,9 +601,9 @@ async function enfileirarComPlanoAtual(id: string, conta: string, escrita: Escri
     // As trocas e a lista da sessão livre já foram conciliadas ao descarregar a edição de tela.
     const recebido = escrita.linha?.plano as PlanoDaSessao | null;
     if (planoComExercicioDesconhecido(recebido)) throw new Error(AVISO_CATALOGO_DA_SESSAO);
-    let plano = preservarPlanoSalvo(recebido, salva, !!blocosDaTroca);
+    let plano = preservarPlanoSalvo(recebido, salva);
     // Uma troca enviada diretamente só pode arquivar o movimento que a aba realmente conhecia.
-    const trocaDesatualizada = salva && blocosDaTroca?.some(bloco => {
+    const trocaDesatualizada = salva && blocosDaTroca.some(bloco => {
       const gravado = salva.blocos.find(b => b.ordem === bloco.ordem);
       if (!gravado || gravado.exercicioId === bloco.exercicioId) return false;
       const arquivado = bloco.trocados?.find(b => b.exercicioId === gravado.exercicioId);
@@ -606,7 +611,6 @@ async function enfileirarComPlanoAtual(id: string, conta: string, escrita: Escri
     });
     if (salva && (salva.plano?.ultima_inclusao || trocaDesatualizada)) {
       plano = planoParaGravar(salva);
-      if (!blocosDaTroca && plano) plano = { ...plano, equipamento_disponivel: recebido?.equipamento_disponivel };
     }
     const completa = { ...escrita, linha: { ...escrita.linha, plano } };
     await guardarNaFila("sessao", completa, alvoDaEscrita(completa));
@@ -614,11 +618,6 @@ async function enfileirarComPlanoAtual(id: string, conta: string, escrita: Escri
   });
   void processar();
   return confirmada;
-}
-
-/** A fila ordena as edições do plano pelo mesmo ID da sessão. */
-export async function gravarPlanoDaSessao(id: string, userId: string, plano: PlanoDaSessao | null): Promise<void> {
-  await enfileirarComPlanoAtual(id, userId, escritaDoPlano(id, userId, plano));
 }
 
 export async function enviarPlanoDaSessao(sessao: SessaoLocal): Promise<SessaoLocal | null> {
@@ -666,9 +665,100 @@ async function guardarAjusteDoPlano(
   return salva;
 }
 
-export function guardarMaterialDaSessao(sessao: SessaoLocal): Promise<SessaoLocal> {
+/** Grava a intenção separada do plano. Uma nova escolha pode depender desta revisão antes do envio. */
+async function enfileirarMaterial(
+  conta: string, id: string, revisao: string | null, de: MaterialDaSessao, para: MaterialDaSessao, inicial?: PlanoDaSessao,
+): Promise<string> {
+  const escrita = comandoDeMaterialDaSessao(conta, id, revisao, de, para, inicial);
+  await guardarNaFila("sessao", escrita, `sessions:${id}`);
+  return escrita.equipamentoDaSessao.comando;
+}
+
+async function guardarMaterialNaCopia(atual: SessaoLocal, equipamento: ReadonlySet<EquipamentoTag>): Promise<SessaoLocal> {
+  const nova = definirEquipamentoDaSessao(atual, equipamento);
+  if (nova === atual) return atual;
+  const revisao = await enfileirarMaterial(
+    atual.userId, atual.id, atual.revisaoEquipamento ?? null,
+    atual.plano?.equipamento_disponivel ?? null, nova.plano?.equipamento_disponivel ?? null,
+    atual.plano ? undefined : planoParaGravar(atual) ?? planoAtualOuDosBlocos(atual),
+  );
+  const confirmada = { ...nova, revisaoEquipamento: revisao };
+  await bd().sessaoAtiva.put({ id: atual.id, dados: confirmada, atualizadoEm: Date.now() });
+  return confirmada;
+}
+
+export async function guardarMaterialDaSessao(sessao: SessaoLocal): Promise<SessaoLocal> {
+  await confirmarContaDoTreino(sessao.userId, "Esta sessão não está aberta nesta conta e aparelho.");
+  await confirmarToquesPendentes(sessao);
   const equipamento = equipamentoDaSessao(sessao);
-  return guardarAjusteDoPlano(sessao, atual => definirEquipamentoDaSessao(atual, equipamento));
+  const banco = bd();
+  const salva = await banco.transaction("rw", banco.sessaoAtiva, banco.outbox, banco.cache, async () => {
+    const atual = await lerSessaoNaTransacao(sessao.id, sessao.userId);
+    if (atual?.userId !== sessao.userId || atual.status !== "em_andamento") {
+      throw new SessaoNaoEstaAberta("Esta sessão não está aberta nesta conta e aparelho.");
+    }
+    return guardarMaterialNaCopia(atual, equipamento);
+  });
+  if (pendente?.id === sessao.id && pendente.userId === sessao.userId) {
+    pendente = { ...definirEquipamentoDaSessao(pendente, equipamento), revisaoEquipamento: salva.revisaoEquipamento };
+  }
+  void processar();
+  return salva;
+}
+
+type LinhaDeMaterial = Pick<LinhaSessao, "id" | "user_id" | "status" | "plano" | "revisao_equipamento">;
+
+/** A seleção exibida e a base da próxima escolha usam a mesma revisão, mesmo após recarga. */
+export async function lerMaterialDaSessaoRemota(linha: LinhaDeMaterial, lidaEm?: number) {
+  const { id, user_id: conta } = linha;
+  const banco = bd();
+  return banco.transaction("r", banco.outbox, banco.cache, async () => {
+    // A fila e o recibo não podem ser lidos em lados diferentes da confirmação de um envio.
+    const ultimo = await banco.outbox.where("tipo").equals("sessao").filter(item => {
+      const comando = comandoDeMaterialNaFila(item);
+      return comando?.filtro.id === id && comando.filtro.user_id === conta;
+    }).last();
+    const anterior = ultimo && comandoDeMaterialNaFila(ultimo)?.equipamentoDaSessao;
+    if (anterior) return { equipamento: anterior.para, revisao: anterior.comando, escolhaLocal: true };
+
+    const recibo = await lerMaterialConfirmado(conta, id);
+    const revisao = linha.revisao_equipamento ?? null;
+    if (recibo && (revisao === recibo.revisaoBase || (lidaEm !== undefined && lidaEm < recibo.atualizadoEm))) {
+      return { equipamento: recibo.equipamento, revisao: recibo.revisao, escolhaLocal: true };
+    }
+    return { equipamento: linha.plano?.equipamento_disponivel ?? null, revisao, escolhaLocal: false };
+  });
+}
+
+/** O cartão pode editar um treino aberto em outro aparelho antes de haver um player local. */
+export async function gravarMaterialDaSessaoRemota(
+  linha: LinhaDeMaterial,
+  equipamento: ReadonlySet<EquipamentoTag>, prescricao: () => PlanoDaSessao, lidaEm?: number,
+): Promise<Pick<LinhaSessao, "plano" | "revisao_equipamento">> {
+  const { id, user_id: conta } = linha;
+  await confirmarContaDoTreino(conta, "Esta sessão não está aberta nesta conta e aparelho.");
+  if (linha.status !== "em_andamento") throw new SessaoNaoEstaAberta("Este treino já foi encerrado.");
+  if (planoComExercicioDesconhecido(linha.plano)) throw new Error(AVISO_CATALOGO_DA_SESSAO);
+  const banco = bd();
+  const confirmada = await banco.transaction("rw", banco.sessaoAtiva, banco.outbox, banco.cache, async () => {
+    const local = await lerSessaoNaTransacao(id, conta);
+    if (local) {
+      if (local.userId !== conta || local.status !== "em_andamento") throw new SessaoNaoEstaAberta("Esta sessão não está aberta nesta conta e aparelho.");
+      const salva = await guardarMaterialNaCopia(local, equipamento);
+      return { plano: salva.plano, revisao_equipamento: salva.revisaoEquipamento };
+    }
+    const baseLocal = await lerMaterialDaSessaoRemota(linha, lidaEm);
+    const de = baseLocal.equipamento;
+    let revisao = baseLocal.revisao;
+    const para = materialEscolhido(equipamento);
+    const igual = de === null || para === null ? de === para : de.length === para.length && para.every(t => de.includes(t));
+    if (igual && !linha.plano && !baseLocal.escolhaLocal && para === null) return { plano: null, revisao_equipamento: revisao };
+    const base = linha.plano ?? prescricao();
+    if (!igual) revisao = await enfileirarMaterial(conta, id, revisao, de, para, linha.plano ? undefined : base);
+    return { plano: planoComMaterial(base, para), revisao_equipamento: revisao };
+  });
+  void processar();
+  return confirmada;
 }
 
 export { MENSAGEM_NOTA_GERAL_ALTERADA } from "@/lib/sessao";

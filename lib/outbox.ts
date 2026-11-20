@@ -12,7 +12,8 @@ export function mensagemDeRegistro(texto: string, online = typeof navigator === 
 
 // A conciliação confirma/retira várias escritas na mesma transação dos dados locais.
 export const AVISO_DE_CONFLITO_DE_CONTAGEM = "Confira em Mais os valores desta série para continuar.";
-export type ResultadoDoEnvio = void | "fila-reconciliada" | "aguarda-conciliacao";
+export const AVISO_DE_CONFLITO_DE_MATERIAL = "Confira em Mais o equipamento deste treino para continuar.";
+export type ResultadoDoEnvio = void | "fila-reconciliada" | "aguarda-conciliacao" | "aguarda-material";
 export type Enviador = (item: ItemSaida) => Promise<ResultadoDoEnvio>;
 
 const ATRASO_BASE_MS = 2_000;
@@ -217,9 +218,10 @@ async function umaRodada(): Promise<number> {
 
     try {
       const resultado = await enviar(item);
-      if (resultado === "aguarda-conciliacao") {
+      if (resultado === "aguarda-conciliacao" || resultado === "aguarda-material") {
         const proximaTentativa = agora + ATRASO_MAX_MS;
-        await bd().outbox.update(item.id, { proximaTentativa, tentativas: 0, erro: AVISO_DE_CONFLITO_DE_CONTAGEM });
+        const erro = resultado === "aguarda-material" ? AVISO_DE_CONFLITO_DE_MATERIAL : AVISO_DE_CONFLITO_DE_CONTAGEM;
+        await bd().outbox.update(item.id, { proximaTentativa, tentativas: 0, erro });
         if (item.alvo) travados.set(item.alvo, proximaTentativa);
         continue;
       }

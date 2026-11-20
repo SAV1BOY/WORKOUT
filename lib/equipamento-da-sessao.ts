@@ -1,5 +1,6 @@
 import { equipamentoDisponivel } from "@/lib/dados";
 import type { EquipamentoTag, TreinoId } from "@/lib/schemas";
+import type { PlanoDaSessao } from "@/lib/types";
 import type { SessaoLocal } from "@/lib/sessao";
 
 /** A ordem e os itens válidos vêm do inventário, inclusive ao ler um backup. */
@@ -15,6 +16,19 @@ export function equipamentoDaSessao(sessao: Pick<SessaoLocal, "plano">): Readonl
 
 export function tagsDoEquipamento(disponiveis: ReadonlySet<EquipamentoTag>): EquipamentoTag[] {
   return [...equipamentoDisponivel()].filter((tag) => disponiveis.has(tag));
+}
+
+/** A seleção completa usa o padrão da sessão. Uma lista vazia significa só o corpo. */
+export function materialEscolhido(disponiveis: ReadonlySet<EquipamentoTag>): EquipamentoTag[] | null {
+  const tags = tagsDoEquipamento(disponiveis);
+  return tags.length === equipamentoDisponivel().size ? null : tags;
+}
+
+export function planoComMaterial(plano: PlanoDaSessao, material: EquipamentoTag[] | null): PlanoDaSessao {
+  const atualizado = { ...plano };
+  if (material === null) delete atualizado.equipamento_disponivel;
+  else atualizado.equipamento_disponivel = material;
+  return atualizado;
 }
 
 export function chaveDoEquipamentoDoDia(conta: string, data: string, treinoId: TreinoId): string {

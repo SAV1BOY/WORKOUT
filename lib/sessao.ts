@@ -13,7 +13,7 @@ import { alternativasPara } from "@/lib/alternativas";
 import { carimbarUltimaInclusao, chavesDosItensDoPlano, ordensDeExecucao } from "@/lib/ordem-da-sessao";
 import { descansoPersonalizadoDaSessao, limitarTempoDeDescanso } from "@/lib/descanso-da-sessao";
 export { descansoPersonalizadoDaSessao } from "@/lib/descanso-da-sessao";
-import { equipamentoDaSessao, tagsDoEquipamento } from "@/lib/equipamento-da-sessao";
+import { equipamentoDaSessao, materialEscolhido, planoComMaterial, tagsDoEquipamento } from "@/lib/equipamento-da-sessao";
 import { resolverTrocasDoTreino } from "@/lib/trocas";
 import {
   acharExercicio,
@@ -161,6 +161,7 @@ export interface SessaoLocal {
   plano: PlanoDaSessao | null;
   /** Coluna da sessão livre. O plano contém uma cópia para clientes antigos. */
   ordemExecucao?: string[] | null;
+  revisaoEquipamento?: string | null;
   /** Identifica localmente a escolha para descartar respostas remotas anteriores. */
   revisaoOrdemExecucao?: string;
   sensacao: number | null;
@@ -443,6 +444,15 @@ function exerciciosDoTreinoTipado(id: TreinoId) {
   }));
 }
 
+export function serieLocalDaLinha(r: LinhaSerie): SerieLocal {
+  return {
+    id: r.id, tipo: r.tipo, setIndex: r.set_index, repsAlvoMin: r.reps_alvo_min, repsAlvoMax: r.reps_alvo_max,
+    reps: r.reps, repsLado2: r.reps_lado2, tempoS: r.tempo_s, tempoSLado2: r.tempo_s_lado2,
+    passos: r.passos, cargaKg: r.carga_kg, assistencia: r.assistencia,
+    concluida: r.concluida, registradaEm: r.registrada_em,
+  };
+}
+
 /**
  * Reconstrói a sessão a partir do que está no banco (a sessão sumiu do
  * aparelho: outro celular, dados do site limpos). As séries gravadas vencem as
@@ -460,6 +470,7 @@ export function reconstruirSessao(
     | "iniciada_em"
     | "nota_geral"
     | "ordem_execucao"
+    | "revisao_equipamento"
   > & { semana_plano?: number | null; plano?: PlanoDaSessao | null },
   series: LinhaSerie[],
   resto: Omit<EntradaMontagem, "id" | "userId" | "data" | "treinoId" | "fase" | "equipamentosDisponiveis"> & {
@@ -524,12 +535,7 @@ export function reconstruirSessao(
           const r = remoto.find((r) => r.tipo === tipo && r.set_index === indice);
           const padrao = inicial.series.find((s) => s.tipo === tipo && s.setIndex === indice);
           if (r) {
-            series.push({
-              id: r.id, tipo, setIndex: indice, repsAlvoMin: r.reps_alvo_min, repsAlvoMax: r.reps_alvo_max,
-              reps: r.reps, repsLado2: r.reps_lado2, tempoS: r.tempo_s, tempoSLado2: r.tempo_s_lado2,
-              passos: r.passos, cargaKg: r.carga_kg, assistencia: r.assistencia,
-              concluida: r.concluida, registradaEm: r.registrada_em,
-            });
+            series.push(serieLocalDaLinha(r));
           } else if (padrao) {
             series.push(padrao);
           } else if (tipo === "trabalho") {
@@ -553,6 +559,7 @@ export function reconstruirSessao(
   const refeita = bloquearDesfazerSeIniciado({
     ...base, status: linha.status, blocos,
     ...(linha.nota_geral !== undefined && { notaGeral: linha.nota_geral }),
+    ...(linha.revisao_equipamento !== undefined && { revisaoEquipamento: linha.revisao_equipamento }),
   });
   return Array.isArray(linha.ordem_execucao) ? aplicarOrdemRemotaDaSessao(refeita, linha.ordem_execucao) : refeita;
 }
@@ -1234,7 +1241,7 @@ export interface Escrita {
   filtro?: Record<string, string | number | boolean>;
 }
 
-function planoAtualOuDosBlocos(sessao: SessaoLocal): PlanoDaSessao {
+export function planoAtualOuDosBlocos(sessao: SessaoLocal): PlanoDaSessao {
   return sessao.plano ?? planoDaSessao(sessao.blocos.map((bloco) => {
     const original = [bloco, ...(bloco.trocados ?? [])].find((b) => b.exercicioId === bloco.originalId) ?? bloco;
     return { exercicioId: original.exercicioId, prescricao: original.prescricao, descansoS: original.descansoS, descansoTexto: original.descansoTexto };
@@ -1246,7 +1253,7 @@ export function definirEquipamentoDaSessao(sessao: SessaoLocal, disponiveis: Rea
   const tags = tagsDoEquipamento(disponiveis);
   const atual = equipamentoDaSessao(sessao);
   if (tags.length === atual.size && tags.every((tag) => atual.has(tag))) return sessao;
-  return { ...sessao, plano: { ...planoAtualOuDosBlocos(sessao), equipamento_disponivel: tags } };
+  return { ...sessao, plano: planoComMaterial(planoAtualOuDosBlocos(sessao), materialEscolhido(disponiveis)) };
 }
 
 /** Guarda o intervalo para o movimento executado. A prescrição original continua no bloco. */

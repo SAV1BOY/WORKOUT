@@ -101,6 +101,7 @@ export interface LinhaSessao {
   plano: PlanoDaSessao | null;
   /** Sequência escolhida na sessão livre. Os registros mantêm suas posições físicas. */
   ordem_execucao?: string[] | null;
+  revisao_equipamento?: string | null;
   sensacao: number | null;
   peso_corporal: number | null;
   notas: string | null;

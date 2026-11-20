@@ -14,10 +14,11 @@ import type { CaminhoDeAbaLocal, VinculoDoPlayer } from "@/lib/vinculo-do-player
 const Treino = dynamic(() => import("@/components/treino/tela-treino").then(m => m.TelaTreino));
 const Relatorio = dynamic(() => import("@/components/relatorio/tela-relatorio").then(m => m.TelaRelatorio));
 const Calendario = dynamic(() => import("@/components/calendario/tela-calendario").then(m => m.TelaCalendario));
+const Mais = dynamic(() => import("@/components/mais/tela-mais").then(m => m.TelaMais));
 const Cardio = dynamic(() => import("@/components/cardio/tela-cardio").then(m => m.TelaCardio));
 
 export type DestinoLocal = CaminhoDeAbaLocal | { tipo: TipoCardio; sessaoId: string };
-const titulos: Record<CaminhoDeAbaLocal, string> = { "/": "Treino", "/relatorio": "Relatório", "/calendario": "Calendário" };
+const titulos: Record<CaminhoDeAbaLocal, string> = { "/": "Treino", "/relatorio": "Relatório", "/calendario": "Calendário", "/mais": "Mais" };
 
 export default function AbaLocal({ aba, vinculo, videos, children }: {
   aba: DestinoLocal; vinculo: VinculoDoPlayer; videos: string[]; children: ReactNode;
@@ -35,6 +36,7 @@ export default function AbaLocal({ aba, vinculo, videos, children }: {
           {aba === "/" && <Treino userId={vinculo.conta} />}
           {aba === "/relatorio" && <Relatorio userId={vinculo.conta} />}
           {aba === "/calendario" && <Calendario userId={vinculo.conta} />}
+          {aba === "/mais" && <Mais userId={vinculo.conta} />}
           {typeof aba === "object" && <Cardio userId={vinculo.conta} {...aba} semanaPedida={null} />}
         </Miolo>
       </VideosDoApp>
