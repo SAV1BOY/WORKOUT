@@ -39,6 +39,8 @@ export function EquipamentoDeHoje({
 }) {
   const { disponiveis, aoMudar } = material;
   const marcados = inventario.filter(tag => disponiveis.has(tag));
+  const soPesoDoCorpo = marcados.length === 0;
+  const todoEquipamento = marcados.length === inventario.length;
 
   function mudar(tag: EquipamentoTag, presente: boolean) {
     const proximo = new Set(disponiveis);
@@ -60,12 +62,14 @@ export function EquipamentoDeHoje({
         <legend className="sr-only">Equipamento de hoje</legend>
         <p className="text-muted-foreground mb-2 text-sm">{descricao}</p>
         <div className="flex flex-wrap gap-2">
-          <Button type="button" size="sm" variant="outline" disabled={!marcados.length}
-            className="alvo h-auto whitespace-normal px-2" onClick={() => aoMudar(new Set())}>
+          <Button type="button" size="sm" variant="outline" aria-disabled={soPesoDoCorpo}
+            className="alvo h-auto max-w-full whitespace-normal px-2 wrap-anywhere aria-disabled:bg-muted"
+            onClick={() => { if (!soPesoDoCorpo) aoMudar(new Set()); }}>
             Só peso do corpo
           </Button>
-          <Button type="button" size="sm" variant="outline" disabled={marcados.length === inventario.length}
-            className="alvo h-auto whitespace-normal px-2" onClick={() => aoMudar(new Set(inventario))}>
+          <Button type="button" size="sm" variant="outline" aria-disabled={todoEquipamento}
+            className="alvo h-auto max-w-full whitespace-normal px-2 wrap-anywhere aria-disabled:bg-muted"
+            onClick={() => { if (!todoEquipamento) aoMudar(new Set(inventario)); }}>
             Usar todo o equipamento
           </Button>
         </div>

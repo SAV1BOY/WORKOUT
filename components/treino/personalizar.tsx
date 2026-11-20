@@ -2,10 +2,12 @@
 
 import { useQueryClient } from "@tanstack/react-query";
 import { ArrowUpDown, Bookmark, Check, Plus, Search, SearchX, X } from "lucide-react";
-import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useSessaoLivre } from "@/components/colecoes/usar-sessao-livre";
 import { EquipamentoDeHoje, nomeDoMaterial } from "@/components/exercicio/equipamento-de-hoje";
+import { OpcoesDeAlternativa, recolherExecucaoDaAlternativa } from "@/components/exercicio/seletor-alternativa";
+import { EscolhidosDoPersonalizado } from "@/components/treino/escolhidos-do-personalizado";
 import { OrdemDosEscolhidos } from "@/components/treino/ordem-dos-escolhidos";
 import { SeriesDosEscolhidos, type EdicaoDosDescansos } from "@/components/treino/series-dos-escolhidos";
 import { ConfirmacaoDoModelo, NomeDoTreino, TreinosSalvos, type PainelDosModelos } from "@/components/treino/treinos-salvos";
@@ -16,6 +18,7 @@ import { Miniatura } from "@/components/ui/miniatura";
 import { Vazio } from "@/components/ui/vazio";
 import {
   Sheet,
+  SheetClose,
   SheetContent,
   SheetDescription,
   SheetHeader,
@@ -31,11 +34,12 @@ import { mover } from "@/lib/ordem";
 import { descansoPadraoS, evitadosPorUltimo } from "@/lib/preferencias";
 import { excluirModeloDeTreino, salvarModeloDeTreino, type ModeloDeTreino } from "@/lib/queries/modelos-de-treino";
 import { novoId } from "@/lib/queries/sessao";
+import { desfazerTrocaNaMontagem, podeDesfazerTrocaNaMontagem, trocarEscolhido, type EscolhaNaMontagem, type TrocaNaMontagem } from "@/lib/troca-na-montagem";
 import type { Prefs } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const inventarioCompleto = equipamentoDisponivel();
-type Painel = { tipo: "editor" | "ordem" | "series" } | PainelDosModelos;
+type Painel = { tipo: "editor" | "ordem" | "series" } | { tipo: "trocar"; id: string } | PainelDosModelos;
 
 function mapaAlterado(atual: Record<string, number>, salvo: Record<string, number>) {
   return Object.keys(atual).length !== Object.keys(salvo).length
@@ -61,6 +65,7 @@ export function Personalizar({ conta, prefs }: { conta: string; prefs?: Prefs })
   const [escolhidos, setEscolhidos] = useState<string[]>([]);
   const [seriesPorExercicio, setSeriesPorExercicio] = useState<Record<string, number>>({});
   const [descansosPorExercicio, setDescansosPorExercicio] = useState<Record<string, number>>({});
+  const [ultimaTroca, setUltimaTroca] = useState<TrocaNaMontagem | null>(null);
   const [material, setMaterial] = useState(inventarioCompleto);
   const [tela, setTela] = useState<Painel>({ tipo: "editor" });
   const [carregado, setCarregado] = useState<ModeloDeTreino | null>(null);
@@ -77,16 +82,23 @@ export function Personalizar({ conta, prefs }: { conta: string; prefs?: Prefs })
   const gatilhoDaConfirmacao = useRef<HTMLButtonElement | null>(null);
   const iniciando = useRef(false);
   const mutando = useRef(false);
-  const focoAoAlternar = useRef<HTMLElement | "titulo" | null>(null);
+  const idDoEditor = useId();
+  const focoAoAlternar = useRef<HTMLElement | string | null>(null);
+
+  function idDoBotaoDeTroca(id: string) {
+    return `${idDoEditor}-trocar-${id}`;
+  }
 
   useLayoutEffect(() => {
     const foco = focoAoAlternar.current;
     if (!foco) return;
     focoAoAlternar.current = null;
-    (foco === "titulo" || !foco.isConnected ? titulo.current : foco)?.focus();
+    // O botão do substituto é montado no mesmo commit que retorna ao editor.
+    const alvo = foco === "titulo" ? titulo.current : typeof foco === "string" ? document.getElementById(foco) : foco;
+    (alvo?.isConnected ? alvo : titulo.current)?.focus();
   }, [tela]);
 
-  function mostrar(proxima: Painel, foco?: HTMLElement | null) {
+  function mostrar(proxima: Painel, foco?: HTMLElement | string | null) {
     focoAoAlternar.current = foco ?? "titulo";
     setErro(null);
     setTela(proxima);
@@ -99,6 +111,7 @@ export function Personalizar({ conta, prefs }: { conta: string; prefs?: Prefs })
       case "descartar":
         mostrar({ tipo: "salvos" }, gatilhoDaConfirmacao.current);
         break;
+      case "trocar": mostrar({ tipo: "editor" }, idDoBotaoDeTroca(tela.id)); break;
       case "ordem": mostrar({ tipo: "editor" }, gatilhoDaOrdem.current); break;
       case "series":
         edicaoDosDescansos.current?.aplicarValidos();
@@ -142,6 +155,7 @@ export function Personalizar({ conta, prefs }: { conta: string; prefs?: Prefs })
 
   function carregar(modelo: ModeloDeTreino | null, destino: Painel = { tipo: "editor" }) {
     setCarregado(modelo);
+    setUltimaTroca(null);
     setEscolhidos(modelo?.exercicios ?? []);
     setSeriesPorExercicio(modelo?.series_por_exercicio ?? {});
     setDescansosPorExercicio(modelo?.descansos_por_exercicio ?? {});
@@ -213,7 +227,32 @@ export function Personalizar({ conta, prefs }: { conta: string; prefs?: Prefs })
     setSeriesPorExercicio(atuais => comAjuste(atuais, id, quantidade));
   }
 
+  function aplicarEscolha(escolha: EscolhaNaMontagem) {
+    setEscolhidos(escolha.escolhidos);
+    setSeriesPorExercicio(escolha.seriesPorExercicio);
+    setDescansosPorExercicio(escolha.descansosPorExercicio);
+  }
+
+  function substituir(substituto: string) {
+    if (tela.tipo !== "trocar") return;
+    const resultado = trocarEscolhido({ escolhidos, seriesPorExercicio, descansosPorExercicio }, tela.id, substituto, material);
+    if (!resultado) return;
+    aplicarEscolha(resultado);
+    setUltimaTroca(resultado.troca);
+    mostrar({ tipo: "editor" }, idDoBotaoDeTroca(substituto));
+  }
+
+  function desfazerTroca() {
+    if (!ultimaTroca) return;
+    const resultado = desfazerTrocaNaMontagem({ escolhidos, seriesPorExercicio, descansosPorExercicio }, ultimaTroca);
+    if (!resultado) return;
+    aplicarEscolha(resultado);
+    setUltimaTroca(null);
+    mostrar({ tipo: "editor" }, idDoBotaoDeTroca(ultimaTroca.anterior));
+  }
+
   function alternar(id: string) {
+    if (id === ultimaTroca?.substituto) setUltimaTroca(null);
     ajustarSeries(id, undefined);
     setDescansosPorExercicio(atuais => comAjuste(atuais, id, undefined));
     setEscolhidos((atuais) =>
@@ -276,30 +315,45 @@ export function Personalizar({ conta, prefs }: { conta: string; prefs?: Prefs })
       </SheetTrigger>
 
       <SheetContent side="bottom" className={cn("flex max-h-[90dvh] flex-col pb-8",
-        tela.tipo === "series" && "overflow-y-auto")}
-        showCloseButton={!ocupado && !gravando}
+        tela.tipo === "editor" && "pb-[max(0.5rem,env(safe-area-inset-bottom))]",
+        (tela.tipo === "series" || tela.tipo === "trocar") && "overflow-y-auto")}
+        showCloseButton={tela.tipo !== "editor" && !ocupado && !gravando}
         onEscapeKeyDown={evento => {
+          if (tela.tipo === "trocar") {
+            recolherExecucaoDaAlternativa(evento);
+            if (evento.defaultPrevented) return;
+          }
           if (tela.tipo !== "editor") {
             evento.preventDefault();
             voltar();
           }
         }}>
-        <SheetHeader className="pb-0">
+        {tela.tipo !== "editor" && <SheetHeader className="pb-0">
           <SheetTitle ref={titulo} className="pr-10 wrap-anywhere">
-            {tela.tipo === "editor" && "Crie o seu próprio"}
             {tela.tipo === "ordem" && "Reordenar escolhidos"}
             {tela.tipo === "series" && "Séries e descanso"}
+            {tela.tipo === "trocar" && "Trocar exercício"}
             {tela.tipo === "salvos" && "Treinos salvos"}
             {tela.tipo === "salvar" && (carregado ? "Atualizar treino" : "Salvar treino")}
             {tela.tipo === "excluir" && "Excluir treino?"}
             {tela.tipo === "descartar" && "Descartar alterações?"}
           </SheetTitle>
           {tela.tipo === "ordem" && <SheetDescription>{escolhidos.length} exercícios no treino.</SheetDescription>}
+          {tela.tipo === "trocar" && <SheetDescription className="wrap-anywhere">
+            Escolha uma alternativa para {acharExercicio(tela.id).nome}.
+          </SheetDescription>}
           {tela.tipo === "series" && <SheetDescription>O descanso vale para as séries de trabalho.</SheetDescription>}
           {tela.tipo === "salvos" && <SheetDescription>Escolha um treino para abrir no editor.</SheetDescription>}
           {tela.tipo === "salvar" && <SheetDescription>Guarde a seleção, a ordem, as séries, o descanso e os equipamentos para outro dia.</SheetDescription>}
-        </SheetHeader>
+        </SheetHeader>}
 
+        {tela.tipo === "trocar" && (
+          <div className="flex flex-none flex-col gap-3 px-4">
+            <OpcoesDeAlternativa key={tela.id} exercicioId={tela.id} ocupados={escolhidos.filter(id => id !== tela.id)}
+              material={{ disponiveis: material, aoMudar: setMaterial }} prefs={prefs} aoSubstituir={substituir} />
+            <Button type="button" variant="outline" className="alvo h-auto self-start py-2" onClick={voltar}>Voltar</Button>
+          </div>
+        )}
         {tela.tipo === "ordem" && <OrdemDosEscolhidos ids={escolhidos} aoMover={moverEscolhido} aoFechar={voltar} />}
         {tela.tipo === "series" && <SeriesDosEscolhidos ref={edicaoDosDescansos} ids={escolhidos} ajustes={seriesPorExercicio}
           descansos={descansosPorExercicio} descansoDaConta={descansoPadraoS(prefs)} aoMudar={ajustarSeries}
@@ -319,13 +373,22 @@ export function Personalizar({ conta, prefs }: { conta: string; prefs?: Prefs })
         {tela.tipo === "descartar" && <ConfirmacaoDoModelo gravando={false} erro={null} aoCancelar={voltar}
           descricao="A seleção atual tem alterações que ainda não foram salvas."
           acao="Descartar alterações" aoConfirmar={() => carregar(tela.proximo)} />}
-        <div className={cn("flex min-h-0 flex-1 flex-col gap-3 px-4", tela.tipo !== "editor" && "hidden")}>
+        {/* Cabeçalho e catálogo rolam juntos. O rodapé tem seu próprio espaço e não encobre o controle focado. */}
+        <div className={cn("flex min-h-0 flex-1 flex-col gap-2 px-4", tela.tipo !== "editor" && "hidden")}>
           <div className="min-h-0 overflow-y-auto px-1">
             {tela.tipo === "editor" && (
-              <SheetDescription className="mb-3">
-                {carregado ? <strong className="text-foreground wrap-anywhere">{carregado.nome}</strong>
-                  : "Escolha os exercícios, a ordem, as séries e o descanso. As cargas seguem a sua progressão."}
-              </SheetDescription>
+              <SheetHeader className="relative px-0 pt-4 pb-3">
+                <SheetTitle ref={titulo} className="pr-12 wrap-anywhere">Crie o seu próprio</SheetTitle>
+                <SheetDescription className="mt-2">
+                  {carregado ? <strong className="text-foreground wrap-anywhere">{carregado.nome}</strong>
+                    : "Escolha os exercícios, a ordem, as séries e o descanso. As cargas seguem a sua progressão."}
+                </SheetDescription>
+                {!ocupado && <SheetClose asChild>
+                  <Button type="button" variant="ghost" size="icon-sm" className="alvo absolute top-3 right-0" aria-label="Fechar">
+                    <X aria-hidden="true" />
+                  </Button>
+                </SheetClose>}
+              </SheetHeader>
             )}
             <div className="mb-3 flex flex-wrap gap-2">
               <Button ref={gatilhoDosSalvos} type="button" variant="outline" disabled={ocupado}
@@ -386,42 +449,15 @@ export function Personalizar({ conta, prefs }: { conta: string; prefs?: Prefs })
                 )}
               </div>
             )}
-            {escolhidos.length > 0 ? (
-              <ul aria-label="Escolhidos" className="mt-3 flex flex-wrap gap-2">
-                {escolhidos.map((id, i) => {
-                  const nome = acharExercicio(id).nome;
-                  const faltaMaterial = !equipamentoPorExercicio.has(id);
-                  const series = seriesPorExercicio[id];
-                  const descanso = descansosPorExercicio[id];
-                  const aviso = faltaMaterial ? `material-escolhido-${id}` : undefined;
-                  const contagem = series !== undefined ? `series-escolhidas-${id}` : undefined;
-                  const intervalo = descanso !== undefined ? `descanso-escolhido-${id}` : undefined;
-                  return (
-                    <li key={id} className="max-w-full">
-                      <button
-                        type="button"
-                        disabled={ocupado}
-                        onClick={() => alternar(id)}
-                        aria-label={`Tirar ${nome}`}
-                        aria-describedby={[contagem, intervalo, aviso].filter(Boolean).join(" ") || undefined}
-                        className="border-primary bg-primary/10 alvo flex min-h-11 max-w-full items-center gap-1 rounded-full border px-3 py-1 text-left text-xs wrap-anywhere"
-                      >
-                        <span className="numero">{i + 1}.</span>
-                        <span className="min-w-0">
-                          {nome}
-                          {series !== undefined && <span id={contagem} className="numero block">
-                            {series} {series === 1 ? "série" : "séries"} de trabalho
-                          </span>}
-                          {descanso !== undefined && <span id={intervalo} className="numero block">{descanso} s de descanso</span>}
-                          {faltaMaterial && <span id={aviso} className="block font-medium">Requer outro material</span>}
-                        </span>
-                        <X aria-hidden="true" className="size-3.5" />
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            ) : null}
+            {escolhidos.length > 0 && (
+              <EscolhidosDoPersonalizado ids={escolhidos} series={seriesPorExercicio} descansos={descansosPorExercicio}
+                equipamento={equipamentoPorExercicio} ocupado={ocupado} idDoBotaoDeTroca={idDoBotaoDeTroca}
+                aoTirar={alternar} aoTrocar={id => mostrar({ tipo: "trocar", id })} />
+            )}
+            {ultimaTroca && podeDesfazerTrocaNaMontagem(escolhidos, ultimaTroca) && (
+              <Button type="button" variant="outline" disabled={ocupado} className="alvo mt-2 h-auto max-w-full whitespace-normal py-2"
+                onClick={desfazerTroca}>Desfazer troca</Button>
+            )}
 
             <ul
               aria-label="Catálogo"
@@ -475,7 +511,7 @@ export function Personalizar({ conta, prefs }: { conta: string; prefs?: Prefs })
           </div>
 
           <BotaoLargo
-            className="h-auto min-h-14 shrink-0 py-2 whitespace-normal"
+            className="h-auto min-h-14 shrink-0 px-2 py-2 whitespace-normal"
             disabled={!pronto || ocupado || escolhidos.length === 0}
             onClick={() => void iniciar()}
           >

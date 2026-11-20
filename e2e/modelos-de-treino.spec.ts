@@ -30,7 +30,7 @@ async function escolher(page: Page, nome: string) {
 }
 
 async function conferirEscolhidos(page: Page, nomes: string[]) {
-  const botoes = editor(page).getByRole("list", { name: "Escolhidos" }).getByRole("button");
+  const botoes = editor(page).getByRole("list", { name: "Escolhidos" }).getByRole("button", { name: /^Tirar / });
   await expect(botoes).toHaveCount(nomes.length);
   for (const [i, nome] of nomes.entries()) await expect(botoes.nth(i)).toHaveAccessibleName(`Tirar ${nome}`);
 }

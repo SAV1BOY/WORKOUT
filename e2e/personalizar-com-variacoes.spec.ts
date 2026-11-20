@@ -36,7 +36,7 @@ test("Personalizar inicia só com elástico e tatame e retoma a série marcada s
   await expect(remada).toHaveAttribute("aria-pressed", "true");
   await busca.fill("ponte de glúteos");
   await opcoes.filter({ hasText: "Ponte de glúteos no tatame" }).click();
-  const escolhidos = folha.getByRole("list", { name: "Escolhidos" }).getByRole("button");
+  const escolhidos = folha.getByRole("list", { name: "Escolhidos" }).getByRole("button", { name: /^Tirar / });
   await expect(escolhidos.nth(0)).toHaveAccessibleName("Tirar Remada com elástico");
   await expect(escolhidos.nth(1)).toHaveAccessibleName("Tirar Ponte de glúteos no tatame");
   await folha.getByRole("button", { name: "Começar com 2 exercícios" }).click();
