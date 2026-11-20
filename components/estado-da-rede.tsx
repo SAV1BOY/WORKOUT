@@ -8,21 +8,22 @@ import { useEffect, useState } from "react";
 import { lerUltimaSincronizacao } from "@/lib/persistencia-query";
 import { useRede } from "@/lib/usar-rede";
 
-export function EstadoDaRede() {
+export function EstadoDaRede({ conta }: { conta: string }) {
   const online = useRede();
   const caminho = usePathname();
   const quantos = useFilaPendente();
-  const [sincronizadoEm, setSincronizadoEm] = useState<number | null>(null);
+  const [ultimaLeitura, setUltimaLeitura] = useState<{ conta: string; horario: number | null } | null>(null);
   useEffect(() => {
     if (online) return;
-    const assinatura = liveQuery(lerUltimaSincronizacao).subscribe({
-      next: setSincronizadoEm,
+    const assinatura = liveQuery(() => lerUltimaSincronizacao(conta)).subscribe({
+      next: horario => setUltimaLeitura({ conta, horario }),
       error: () => {},
     });
     return () => assinatura.unsubscribe();
-  }, [online]);
+  }, [conta, online]);
 
   if (online && (!quantos || caminho === "/mais")) return null;
+  const sincronizadoEm = ultimaLeitura?.conta === conta ? ultimaLeitura.horario : null;
   const hora = sincronizadoEm && new Date(sincronizadoEm).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
   return (
     <aside className="bg-muted text-muted-foreground mx-auto max-w-lg px-4 py-1.5 text-xs">

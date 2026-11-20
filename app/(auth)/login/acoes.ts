@@ -101,6 +101,7 @@ export async function criarConta(
 export async function sair() {
   if (!supabaseConfigurado()) redirect("/login");
   // o escopo é "local" e mora em `lib/sair.ts`, onde o Vitest alcança (§22.11)
-  await sairDesteAparelho(await criarClienteServidor());
+  const { error } = await sairDesteAparelho(await criarClienteServidor());
+  if (error) return { erro: traduzirErroAuth(error.message) };
   redirect("/login");
 }

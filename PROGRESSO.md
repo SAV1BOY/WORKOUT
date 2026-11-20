@@ -13605,3 +13605,11 @@ O build, o lint e os 2.441 testes unitários em 130 arquivos passaram localmente
 A validação móvel também reproduziu um aviso provisório sobre o centro do cartão **Personalizar treino** após tocar em **Continuar depois**. Com o relógio real do navegador, o aviso desapareceu e o centro respondeu em 5,34 segundos. O título do cartão continuou acessível ao toque enquanto o aviso estava visível. O cenário de edição e exclusão passou ao tocar no título.
 
 Na versão #62, duas contas de teste salvaram uma rotina com Rosca com elástico e mudaram o descanso para 95 segundos durante o treino. A sessão seguinte do mesmo modelo voltou a 60 segundos na conta que usava o catálogo e a 70 segundos na conta com preferência própria. O próximo ponto a conferir é guardar um descanso entre séries de trabalho para um exercício ao montar a rotina. [Descanso por exercício no Hevy](https://www.hevyapp.com/features/workout-rest-timer/) · [Temporizador do Strong](https://help.strongapp.io/article/231-rest-timer)
+
+### Troca de conta no mesmo aparelho
+
+Em uma das repetições, sair da primeira conta e entrar na segunda deixou a aba Treino em **Carregando**. A limpeza do IndexedDB já tinha terminado quando uma gravação atrasada repôs o perfil anterior. Um teste que segurou a resposta da limpeza do cache reproduziu o problema em três execuções do build oficial `8EA3f1Tac_jkflnmHkdse`. O servidor confirmou o segundo login, mas o navegador não buscou o perfil correspondente.
+
+A saída agora interrompe os novos salvamentos e aguarda as gravações de cache em andamento antes de limpar o aparelho. A conta seguinte abre suas próprias consultas. O mesmo percurso passou três vezes no build corrigido, inclusive ao recarregar e voltar para a primeira conta. Em uma nova aba sem rede, a segunda conta abriu seu treino e sua biblioteca tanto após a saída normal quanto após confirmar a saída com itens na fila. Uma interrupção da conexão antes de o pedido chegar ao servidor passou a oferecer **Tentar sair novamente**. [Regressão da troca de conta](e2e/troca-de-conta-cache.spec.ts)
+
+Na revisão com a correção de conta, passaram o lint, a compilação com 135 recursos no precache, a checagem dos tipos e 2.448 testes unitários em 130 arquivos. Os três GETs de mudança de conta e a releitura do perfil de B após recarregar foram confirmados pelo servidor de teste em cada repetição.

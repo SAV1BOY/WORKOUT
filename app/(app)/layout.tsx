@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
+import { ConsultasDaConta } from "@/app/providers";
 import { AquecerMidia } from "@/components/aquecer-midia";
 import { ConfigurarSupabase } from "@/components/configurar-supabase";
 import { SpriteMuscular } from "@/components/sprite-muscular";
@@ -38,17 +39,19 @@ export default async function LayoutApp({
   await garantirPerfil(supabase, user.id, { dono: ehDono(user.email) });
 
   return (
-    <div className="min-h-dvh">
-      <ConfigurarSupabase url={SUPABASE_URL} chave={SUPABASE_ANON_KEY} conta={user.id} impressao={user.impressao} />
-      <SpriteMuscular />
-      <TemaDoPerfil />
-      <AquecerMidia />
-      {/* a lista de vídeos é lida do disco aqui e desce pronta (§22.2 item 7) */}
-      <VideosDoApp ids={idsComVideo()}>
-        <EstadoDaRede />
-        <Miolo>{children}</Miolo>
-      </VideosDoApp>
-      <NavInferior />
-    </div>
+    <ConsultasDaConta key={user.id} conta={user.id}>
+      <div className="min-h-dvh">
+        <ConfigurarSupabase url={SUPABASE_URL} chave={SUPABASE_ANON_KEY} conta={user.id} impressao={user.impressao} />
+        <SpriteMuscular />
+        <TemaDoPerfil />
+        <AquecerMidia />
+        {/* a lista de vídeos é lida do disco aqui e desce pronta (§22.2 item 7) */}
+        <VideosDoApp ids={idsComVideo()}>
+          <EstadoDaRede conta={user.id} />
+          <Miolo>{children}</Miolo>
+        </VideosDoApp>
+        <NavInferior />
+      </div>
+    </ConsultasDaConta>
   );
 }

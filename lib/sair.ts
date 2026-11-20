@@ -18,17 +18,16 @@
 export const ESCOPO_DO_SAIR = "local" as const;
 
 /** O pedaço do cliente do Supabase que sair() usa — nada além disto. */
-export interface ClienteQueSai {
+export interface ClienteQueSai<T = unknown> {
   auth: {
-    signOut: (opcoes: { scope: "global" | "local" | "others" }) => Promise<unknown>;
+    signOut: (opcoes: { scope: "global" | "local" | "others" }) => Promise<T>;
   };
 }
 
 /**
  * Encerra a sessão **deste** aparelho. Devolve o que o cliente devolver, para
- * quem chamar poder olhar o erro se um dia quiser; hoje ninguém olha, porque
- * a tela de login é o destino mesmo quando o servidor recusa.
+ * a ação apresentar uma nova tentativa quando o servidor recusa.
  */
-export async function sairDesteAparelho(supabase: ClienteQueSai): Promise<unknown> {
+export async function sairDesteAparelho<T>(supabase: ClienteQueSai<T>): Promise<T> {
   return supabase.auth.signOut({ scope: ESCOPO_DO_SAIR });
 }

@@ -78,7 +78,7 @@ export async function lerCardioRegistrado(cliente: QueryClient, conta: string, c
     const daConta = consulta.length === chave.length;
     const memoria = cliente.getQueryState(consulta);
     if (memoria && memoria.data !== undefined) aceitar(memoria.data, memoria.dataUpdatedAt, daConta);
-    const salva = temIndexedDB() ? await lerConsultaGuardadaComData(consulta).catch(() => undefined) : undefined;
+    const salva = temIndexedDB() ? await lerConsultaGuardadaComData(consulta, conta).catch(() => undefined) : undefined;
     if (salva) aceitar(salva.valor, salva.atualizadoEm, daConta);
   }
   if (temIndexedDB() && chave[0] !== "cardio-desde") {

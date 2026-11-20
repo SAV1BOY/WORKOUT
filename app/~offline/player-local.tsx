@@ -18,7 +18,7 @@ export default function PlayerLocal({ sessaoId, vinculo, videos, children }: {
       <TemaDoPerfil />
       {children}
       <VideosDoApp ids={videos}>
-        <EstadoDaRede />
+        <EstadoDaRede conta={vinculo.conta} />
         <main className="pt-segura mx-auto w-full max-w-lg px-4 pt-4">
           <TelaPlayer userId={vinculo.conta} sessaoId={sessaoId} videos={videos} />
         </main>

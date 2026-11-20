@@ -26,7 +26,7 @@ async function faixaNoAparelho(cliente: QueryClient, conta: string, de: string, 
     const guardada = await bd().cache.get(chave).catch(() => undefined);
     faixas.push(...faixasValidas(guardada?.valor, conta));
     // A primeira abertura após atualizar o app pode vir antes da hidratação da janela antiga.
-    const antiga = await lerConsultaGuardadaComData<LinhaExcecaoAgenda[]>(["overrides", de, ate]).catch(() => undefined);
+    const antiga = await lerConsultaGuardadaComData<LinhaExcecaoAgenda[]>(["overrides", de, ate], conta).catch(() => undefined);
     if (antiga?.valor.some(l => l.user_id === conta)) {
       faixas.push({ de, ate, linhas: antiga.valor.filter(l => l.user_id === conta), atualizadoEm: antiga.atualizadoEm });
     }

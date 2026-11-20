@@ -244,7 +244,7 @@ export async function lerFonteDoRelatorio<T>(
   }
 
   const pegar = async <R>(chave: readonly string[]): Promise<R | undefined> =>
-    cliente.getQueryData<R>(chave) ?? (temIndexedDB() ? await lerConsultaGuardada<R>(chave) : undefined);
+    cliente.getQueryData<R>(chave) ?? (temIndexedDB() ? await lerConsultaGuardada<R>(chave, conta) : undefined);
   type Antiga = T & { id?: string; user_id?: string; session_id?: string };
   const antigas = await pegar<Antiga[]>(antiga);
   if (!antigas?.length && fonte !== "cardio") return { linhas: aplicarPendentes([], antes, true), completa: false };
@@ -264,7 +264,7 @@ export async function lerFonteDoRelatorio<T>(
   const completa = fonte === "series" && linhas.length === antigas?.length && linhas.every(l => typeof l.id === "string");
   if (fonte === "cardio") {
     const desde = cliente.getQueryState(antiga)?.dataUpdatedAt ??
-      (temIndexedDB() ? (await lerConsultaGuardadaComData(antiga))?.atualizadoEm : undefined) ?? 0;
+      (temIndexedDB() ? (await lerConsultaGuardadaComData(antiga, conta))?.atualizadoEm : undefined) ?? 0;
     linhas = await aplicarAlteracoesDoCardio(conta, linhas, desde, ["cardio-todos", conta]).catch(() => linhas);
   }
   return { linhas: aplicarPendentes(linhas, antes, !completa), completa };
