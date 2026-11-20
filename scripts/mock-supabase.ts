@@ -12,6 +12,7 @@
  *
  * Rodar:  npx tsx scripts/mock-supabase.ts
  */
+import { isDeepStrictEqual } from "node:util";
 import { createHmac, randomUUID } from "node:crypto";
 import {
   createServer,
@@ -48,7 +49,10 @@ const VALIDADE_S = 3600;
 //  utilidades
 // =====================================================================
 
-type Linha = Record<string, unknown>;
+// Os recibos da tabela privada seguem a linha nas cópias de transação e ficam fora do JSON público.
+const recibosDeMaterial = Symbol("recibosMaterial");
+interface ReciboDeMaterial { material: unknown; descansos: unknown; descansoConciliado?: unknown }
+type Linha = Record<string, unknown> & { [recibosDeMaterial]?: Map<string, ReciboDeMaterial> };
 
 function agora(): string {
   return new Date().toISOString();
@@ -328,6 +332,7 @@ const ESQUEMA: Record<string, EspecTabela> = {
       duracao_s: nulo,
       semana_plano: nulo,
       plano: nulo,
+      revisao_equipamento: nulo,
       sensacao: nulo,
       peso_corporal: nulo,
       notas: nulo,
@@ -965,8 +970,90 @@ function novaLinha(tabela: string, entrada: Linha): Linha {
   return linha;
 }
 
-function linhaAtualizada(tabela: string, anterior: Linha, mudancas: Linha): Linha {
+function semCampos(plano: Linha | null, ignorados: string[]) {
+  return plano && Object.fromEntries(Object.entries(plano).filter(([campo]) => !ignorados.includes(campo)));
+}
+
+function guardarReciboDeMaterial(anterior: Linha, nova: Linha, comando: unknown) {
+  const id = String(comando);
+  if (anterior[recibosDeMaterial]?.has(id)) return;
+  const plano = anterior.plano as Linha | null;
+  nova[recibosDeMaterial] = new Map(anterior[recibosDeMaterial]).set(id, {
+    material: plano?.equipamento_disponivel ?? null, descansos: plano?.descansos_por_exercicio,
+  });
+}
+
+/** Espelha conferir_plano_da_sessao no PostgREST local, incluindo os recibos do material. */
+function conferirPlanoAtualizado(anterior: Linha, nova: Linha, patch: boolean) {
+  const original = anterior.plano as Linha | null;
+  const recebido = nova.plano as Linha | null;
+  const antigos: Linha[] = Array.isArray(original?.itens) ? original.itens : [];
+  const novos: Linha[] = Array.isArray(recebido?.itens) ? recebido.itens : [];
+  const material = original?.equipamento_disponivel ?? null;
+  const mesmoMaterial = isDeepStrictEqual(material, recebido?.equipamento_disponivel ?? null);
+  const anteriorInclusao = original?.ultima_inclusao as Linha | undefined;
+  const inclusao = recebido?.ultima_inclusao as Linha | undefined;
+  const edicao = patch && anterior.status === "em_andamento" && nova.status === "em_andamento";
+  let mudouInclusao = false;
+  const divergente = () => { throw new ErroMock(409, "PLANO_DA_SESSAO_DIVERGIU", { code: "PT409" }); };
+  if (patch && anterior.status !== "em_andamento" && !mesmoMaterial) divergente();
+  if (edicao && anterior.workout_id === "livre" && antigos.length) {
+    if (novos.length < antigos.length) {
+      const desfez = novos.length > 0 && isDeepStrictEqual(novos, antigos.slice(0, -1)) &&
+        anteriorInclusao?.sessao_id === anterior.id && anteriorInclusao?.estado === "disponivel" &&
+        anteriorInclusao.ordem === antigos.length && anteriorInclusao.id &&
+        anteriorInclusao.exercicio_id === antigos.at(-1)?.exercicio_id &&
+        isDeepStrictEqual(inclusao, { ...anteriorInclusao, estado: "desfeita" });
+      if (!desfez || linhas("session_sets").some(s =>
+        s.session_id === anterior.id && s.user_id === anterior.user_id && s.ordem_ex === antigos.length)) divergente();
+      mudouInclusao = true;
+    } else if (novos.length > antigos.length) {
+      const tokenValido = inclusao ? inclusao.id && inclusao.id !== anteriorInclusao?.id &&
+        inclusao.sessao_id === anterior.id && inclusao.ordem === novos.length &&
+        inclusao.estado === "disponivel" && inclusao.exercicio_id === novos.at(-1)?.exercicio_id : !anteriorInclusao;
+      if (!isDeepStrictEqual(novos.slice(0, -1), antigos) || !tokenValido) divergente();
+      mudouInclusao = true;
+    } else if (anteriorInclusao && !isDeepStrictEqual(inclusao, anteriorInclusao)) {
+      if (anteriorInclusao.estado === "iniciada" && isDeepStrictEqual(inclusao, { ...anteriorInclusao, estado: "disponivel" }) &&
+          isDeepStrictEqual(semCampos(original, ["ultima_inclusao", "equipamento_disponivel"]), semCampos(recebido, ["ultima_inclusao", "equipamento_disponivel"]))) {
+        nova.plano = original;
+        return;
+      }
+      if (anteriorInclusao.estado !== "disponivel" || !isDeepStrictEqual(novos, antigos) ||
+        !isDeepStrictEqual(inclusao, { ...anteriorInclusao, estado: "iniciada" })) divergente();
+      mudouInclusao = true;
+    }
+  }
+  if (mesmoMaterial) return;
+  const ignorarDescanso = ["equipamento_disponivel", "descansos_por_exercicio", "ultima_inclusao"];
+  const recibos = [...anterior[recibosDeMaterial] ?? []].filter(([, r]) => isDeepStrictEqual(r.material, recebido?.equipamento_disponivel ?? null));
+  const descansoMudou = !isDeepStrictEqual(original?.descansos_por_exercicio, recebido?.descansos_por_exercicio);
+  const descansoAnterior = edicao && descansoMudou && isDeepStrictEqual(semCampos(original, ignorarDescanso), semCampos(recebido, ignorarDescanso))
+    ? recibos.filter(([, r]) => isDeepStrictEqual(r.descansos, original?.descansos_por_exercicio))
+      .sort(([a], [b]) => Number(b === anterior.revisao_equipamento) - Number(a === anterior.revisao_equipamento) || a.localeCompare(b))[0]
+    : undefined;
+  const descansoRecebido = recebido?.descansos_por_exercicio ?? null;
+  if (descansoAnterior) {
+    const [id, recibo] = descansoAnterior;
+    nova[recibosDeMaterial] = new Map(anterior[recibosDeMaterial]).set(id, { ...recibo, descansoConciliado: descansoRecebido });
+  } else if (edicao && !mudouInclusao && isDeepStrictEqual(semCampos(original, ["equipamento_disponivel"]), semCampos(recebido, ["equipamento_disponivel"])) &&
+      recibos.some(([, r]) => isDeepStrictEqual(r.descansoConciliado, descansoRecebido))) divergente();
+  const ignorarInclusao = ["equipamento_disponivel", "itens", "ultima_inclusao"];
+  if (mudouInclusao && !descansoAnterior && !isDeepStrictEqual(semCampos(original, ignorarInclusao), semCampos(recebido, ignorarInclusao))) divergente();
+  if ((mudouInclusao || descansoAnterior) && recebido) {
+    const preservado = { ...recebido };
+    if (material === null) delete preservado.equipamento_disponivel;
+    else preservado.equipamento_disponivel = material;
+    nova.plano = preservado;
+  } else {
+    if (!nova.revisao_equipamento || nova.revisao_equipamento === anterior.revisao_equipamento) nova.revisao_equipamento = randomUUID();
+    guardarReciboDeMaterial(anterior, nova, nova.revisao_equipamento);
+  }
+}
+
+function linhaAtualizada(tabela: string, anterior: Linha, mudancas: Linha, patch = false): Linha {
   const nova = { ...anterior, ...mudancas };
+  if (tabela === "sessions" && "plano" in mudancas) conferirPlanoAtualizado(anterior, nova, patch);
   // Cada versão envia apenas os ajustes que conhece. Um exercício retirado
   // perde os respectivos ajustes também nos campos omitidos pelo cliente.
   if (tabela === "modelos_de_treino" && Array.isArray(mudancas.exercicios)) {
@@ -1274,6 +1361,10 @@ function rotaRpc(req: IncomingMessage, url: URL, corpo: unknown): Resposta {
   const nome = url.pathname.replace(/^\/rest\/v1\/rpc\//, "");
   const usuario = usuarioDaRequisicao(req);
 
+  if (nome === "alterar_material_da_sessao") {
+    if (!usuario) throw new ErroMock(401, "permissão negada", { code: "42501" });
+    return rpcMaterialDaSessao(usuario.id, (corpo ?? {}) as Linha);
+  }
   if (nome === "lembretes_resultado") return rpcLembretesResultado(corpo);
 
   if (nome === "vagas_para_conta") {
@@ -1301,6 +1392,43 @@ function rotaRpc(req: IncomingMessage, url: URL, corpo: unknown): Resposta {
   }
 
   throw new ErroMock(404, `mock: função ${nome} não existe`, { code: "PGRST202" });
+}
+
+function rpcMaterialDaSessao(conta: string, p: Linha): Resposta {
+  const sessao = linhas("sessions").find(s => s.id === p.p_sessao && s.user_id === conta);
+  if (!sessao) return { status: 200, corpo: null, cabecalhos: {} };
+  if (p.p_comando == null) throw new ErroMock(400, "Comando de material sem identificação.", { code: "22023" });
+  const comando = String(p.p_comando);
+  if (sessao.status === "em_andamento" && !sessao[recibosDeMaterial]?.has(comando)) {
+    for (const selecao of [p.p_de, p.p_para]) {
+      if (selecao != null && (!Array.isArray(selecao) || selecao.some(tag => typeof tag !== "string" || !tag.trim()) ||
+        new Set(selecao).size !== selecao.length)) throw new ErroMock(400, "Seleção de material inválida.", { code: "22023" });
+    }
+    const atual = sessao.plano as Linha | null;
+    const equipamento = atual?.equipamento_disponivel ?? null;
+    if ((sessao.revisao_equipamento ?? null) !== p.p_revisao_base || !isDeepStrictEqual(equipamento, p.p_de)) {
+      throw new ErroMock(409, "MATERIAL_DA_SESSAO_ALTERADO", { code: "PT409" });
+    }
+    let base = atual;
+    if (base == null && p.p_para != null) {
+      const inicial = p.p_plano_inicial as Linha | null;
+      if (sessao.workout_id === "livre" || !Array.isArray(inicial?.itens) || !inicial.itens.length ||
+        inicial.itens.some(i => typeof i?.exercicio_id !== "string" || !i.exercicio_id.trim())) {
+        throw new ErroMock(400, "O plano inicial precisa conter a prescrição do treino.", { code: "22023" });
+      }
+      base = { titulo: inicial.titulo ?? null, colecao: inicial.colecao ?? null, itens: inicial.itens };
+    }
+    guardarReciboDeMaterial(sessao, sessao, comando);
+    if (base) {
+      const plano = { ...base };
+      if (p.p_para == null) delete plano.equipamento_disponivel;
+      else plano.equipamento_disponivel = p.p_para;
+      sessao.plano = plano;
+    }
+    sessao.revisao_equipamento = p.p_comando;
+  }
+  const { id, user_id, status, plano, revisao_equipamento } = sessao;
+  return { status: 200, corpo: { id, user_id, status, plano, revisao_equipamento }, cabecalhos: {} };
 }
 
 /**
@@ -1555,7 +1683,7 @@ async function rotaRest(
       throw new ErroMock(403, "mock: RLS — user_id diferente do dono da sessão", { code: "42501" });
     }
     // Valida o lote inteiro antes de alterar a primeira linha.
-    const atualizadas = alvo.map(linha => linhaAtualizada(recurso, linha, mudancas));
+    const atualizadas = alvo.map(linha => linhaAtualizada(recurso, linha, mudancas, true));
     for (const [i, linha] of alvo.entries()) {
       Object.assign(linha, atualizadas[i]);
       linha.user_id = usuario.id;

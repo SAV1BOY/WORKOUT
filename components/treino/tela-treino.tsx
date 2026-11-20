@@ -38,7 +38,7 @@ import { acharFase, acharTreino, exerciciosDoTreino } from "@/lib/dados";
 import {
   planoComExercicioDesconhecido, seriesComExercicioDesconhecido, sessaoLocalComExercicioDesconhecido,
 } from "@/lib/compatibilidade-da-sessao";
-import { equipamentoDaSessao, tagsDoEquipamento } from "@/lib/equipamento-da-sessao";
+import { equipamentoDaSessao, lerSelecaoDeEquipamento, planoComMaterial } from "@/lib/equipamento-da-sessao";
 import { planoDaSessao } from "@/lib/livre";
 import { guardarConsultasAgora } from "@/lib/persistencia-query";
 import { formatarDiaEData } from "@/lib/formato";
@@ -88,7 +88,7 @@ import {
   useUltimoPeso,
 } from "@/lib/queries/dados";
 import {
-  carregarSessaoLocal, gravarPlanoDaSessao, lembrarSessaoAberta, sessaoLocalComCriacaoPendente, sessaoLocalMaisRecente,
+  carregarSessaoLocal, gravarMaterialDaSessaoRemota, lembrarSessaoAberta, lerMaterialDaSessaoRemota, sessaoLocalComCriacaoPendente, sessaoLocalMaisRecente,
 } from "@/lib/queries/sessao";
 import { definirEquipamentoDaSessao, itensDoTreino, progressoDaSessao, type SessaoLocal } from "@/lib/sessao";
 import type { EquipamentoTag } from "@/lib/schemas";
@@ -335,7 +335,9 @@ export function TelaTreino({ userId }: { userId: string }) {
   const idDoDia = aberta && aberta.data === hoje && aberta.workoutId === treinoId ? aberta.id : null;
   const confirmarMaterial = useCallback((id: string, tags: ReadonlySet<EquipamentoTag>, confirmada: SessaoLocal, anterior: SessaoLocal) => {
     setLeituraLocal((atual) => atual?.busca.conta === userId && atual.sessao?.id === id
-      ? { ...atual, sessao: atual.sessao === anterior ? confirmada : definirEquipamentoDaSessao(atual.sessao, tags) } : atual);
+      ? { ...atual, sessao: atual.sessao === anterior ? confirmada : {
+        ...definirEquipamentoDaSessao(atual.sessao, tags), revisaoEquipamento: confirmada.revisaoEquipamento,
+      } } : atual);
   }, [userId]);
   const semCopia = idDoDia && leuAberta && !abertaLocal;
   const linhaQ = useSessao(semCopia ? idDoDia : null, userId);
@@ -354,9 +356,18 @@ export function TelaTreino({ userId }: { userId: string }) {
   const materialLocal = useMaterialDaSessao(!protegerDia && abertaLocal?.id === idDoDia ? abertaLocal : null, confirmarMaterial);
   const [edicaoRemota, setEdicaoRemota] = useState<{ id: string; conta: string; tags: ReadonlySet<EquipamentoTag> } | null>(null);
   const gravacaoRemota = useRef(Promise.resolve());
-  const materialRemoto: MaterialDoTreino | undefined = remota && treinoId ? {
+  const [materialLido, setMaterialLido] = useState<{ id: string; conta: string; tags: ReadonlySet<EquipamentoTag> } | null>(null);
+  useEffect(() => {
+    if (!remota) return;
+    const assinatura = liveQuery(() => lerMaterialDaSessaoRemota(remota, linhaQ.dataUpdatedAt)).subscribe({
+      next: ({ equipamento }) => setMaterialLido({ id: remota.id, conta: remota.user_id, tags: lerSelecaoDeEquipamento(equipamento) }),
+      error: () => setMaterialLido({ id: remota.id, conta: remota.user_id, tags: equipamentoDaSessao(remota) }),
+    });
+    return () => assinatura.unsubscribe();
+  }, [remota, linhaQ.dataUpdatedAt]);
+  const materialRemoto: MaterialDoTreino | undefined = remota && treinoId && materialLido?.id === remota.id && materialLido.conta === userId ? {
     disponiveis: edicaoRemota?.conta === userId && edicaoRemota.id === remota.id
-      ? edicaoRemota.tags : equipamentoDaSessao(remota),
+      ? edicaoRemota.tags : materialLido.tags,
     aoMudar: (tags) => {
       const edicao = { id: remota.id, conta: userId, tags };
       setEdicaoRemota(edicao);
@@ -367,13 +378,17 @@ export function TelaTreino({ userId }: { userId: string }) {
         const resumo = cliente.getQueryData<SessaoResumo[]>(chaves.sessoesAbertas())?.find(s => s.id === remota.id && s.user_id === userId);
         if (planoComExercicioDesconhecido(resumo?.plano) ||
           seriesComExercicioDesconhecido(cliente.getQueryData(chaves.series(remota.id)), userId, remota.id)) return;
-        const plano = { ...(ultima.plano ?? planoDaSessao(itensDoTreino(treinoId))), equipamento_disponivel: tagsDoEquipamento(tags) };
-        await gravarPlanoDaSessao(remota.id, userId, plano);
+        const material = await gravarMaterialDaSessaoRemota(
+          ultima, tags, () => planoDaSessao(itensDoTreino(treinoId)), cliente.getQueryState(chave)?.dataUpdatedAt,
+        );
+        const atualizar = <T extends Pick<SessaoResumo, "plano">>(linha: T) => ({
+          ...linha, ...material, plano: linha.plano ? planoComMaterial(linha.plano, material.plano?.equipamento_disponivel ?? null) : material.plano,
+        });
         // Um GET iniciado antes do toque ainda pode ter o plano antigo.
         await Promise.all([chave, chaves.sessoesAbertas()].map((queryKey) => cliente.cancelQueries({ queryKey, exact: true })));
-        cliente.setQueryData<LinhaSessao | null>(chave, (linha) => linha?.user_id === userId && linha.status === "em_andamento" ? { ...linha, plano } : linha);
+        cliente.setQueryData<LinhaSessao | null>(chave, (linha) => linha?.user_id === userId && linha.status === "em_andamento" ? atualizar(linha) : linha);
         cliente.setQueryData<SessaoResumo[]>(chaves.sessoesAbertas(), (linhas) =>
-          linhas?.map((linha) => linha.id === remota.id ? { ...linha, plano } : linha));
+          linhas?.map((linha) => linha.id === remota.id && linha.user_id === userId ? atualizar(linha) : linha));
         await guardarConsultasAgora(cliente).catch(() => {
           toast.error("A mudança está na fila. Não foi possível atualizar a cópia para consulta sem rede.");
         });

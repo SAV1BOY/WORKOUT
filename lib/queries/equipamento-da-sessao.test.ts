@@ -105,7 +105,7 @@ describe("rascunho por conta, dia e treino", () => {
 });
 
 describe("material da sessão aberta e fila de saída", () => {
-  it("uma falha no PATCH preserva a seleção anterior e a série que aguardava gravação", async () => {
+  it("uma falha ao guardar o material preserva a seleção anterior e a série que aguardava gravação", async () => {
     const sessao = await criarSessaoComEquipamentoDoDia(entrada());
     const serie = sessao.blocos[0]!.series[0]!;
     const comSerie = marcarSerie(sessao, 1, serie.id, true);
@@ -121,7 +121,11 @@ describe("material da sessão aberta e fila de saída", () => {
     expect(salvo.blocos[0]?.series[0]?.concluida).toBe(true);
     expect(equipamentoDaSessao(salvo)).toEqual(new Set());
     expect(guardarNaFila).toHaveBeenLastCalledWith("sessao", {
-      tabela: "sessions", op: "update", linha: { plano: salvo.plano }, filtro: { id: sessao.id, user_id: "ana", status: "em_andamento" },
+      tabela: "sessions", filtro: { id: sessao.id, user_id: "ana" },
+      equipamentoDaSessao: {
+        comando: salvo.revisaoEquipamento, revisaoBase: null, de: null, para: [],
+        planoInicial: expect.objectContaining({ itens: salvo.plano!.itens }),
+      },
     }, "sessions:sessao");
   });
 
