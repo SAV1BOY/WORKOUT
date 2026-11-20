@@ -29,7 +29,8 @@ async function abrirAbaTreino(page: Page) {
   const sessao = await usuarioComPerfil();
   await fixarData(page, SEGUNDA);
   await entrarNoApp(page);
-  await esperarAbaTreino(page);
+  // A região Treino já existe no esqueleto. A lista do dia dá à página a altura para rolar.
+  await expect(page.getByRole("button", { name: /^Substituir / }).last()).toBeVisible();
   return sessao;
 }
 
