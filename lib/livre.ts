@@ -10,6 +10,7 @@
  * reps, descanso) sai de `data/exercicios.json` por `lib/dados.ts`.
  */
 import { acharExercicio, exercicioPorId } from "@/lib/dados";
+import { duracaoDeDescansoValida } from "@/lib/descanso-da-sessao";
 import { formatarMinutos } from "@/lib/formato";
 import { aplicarOrdem } from "@/lib/ordem";
 import { prescricaoPadrao, quantidadeDeSeriesValida } from "@/lib/progressao";
@@ -81,13 +82,28 @@ export function itemParaPlano(item: ItemDaSessao): ItemDoPlano {
 /** O que vai para `sessions.plano`. */
 export function planoDaSessao(
   itens: readonly ItemDaSessao[],
-  rotulos: { titulo?: string | null; colecao?: string | null } = {},
+  opcoes: {
+    titulo?: string | null;
+    colecao?: string | null;
+    descansosPorExercicio?: Readonly<Record<string, number>>;
+  } = {},
 ): PlanoDaSessao {
-  return {
-    titulo: rotulos.titulo ?? null,
-    colecao: rotulos.colecao ?? null,
+  const plano: PlanoDaSessao = {
+    titulo: opcoes.titulo ?? null,
+    colecao: opcoes.colecao ?? null,
     itens: itens.map(itemParaPlano),
   };
+  // O descanso do modelo vale entre séries de trabalho. O item conserva a
+  // prescrição para aquecimentos, transições e para restaurar o padrão.
+  if (opcoes.descansosPorExercicio) {
+    for (const { exercicioId } of itens) {
+      const segundos = opcoes.descansosPorExercicio[exercicioId];
+      if (duracaoDeDescansoValida(segundos)) {
+        (plano.descansos_por_exercicio ??= {})[exercicioId] = segundos;
+      }
+    }
+  }
+  return plano;
 }
 
 const TIPOS: readonly PrescricaoTipo[] = [

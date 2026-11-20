@@ -391,6 +391,7 @@ export type EntradaCriacaoLivre = Omit<EntradaAvulsa, "id" | "workoutId" | "iten
   titulo?: string | null;
   /** O id da coleção derivada ("grupo:Core"), quando veio de uma. */
   colecao?: string | null;
+  descansosPorExercicio?: Readonly<Record<string, number>>;
   /** Na repetição, retoma uma sessão que outra aba possa ter criado durante a leitura. */
   retomarSeAberta?: { encerradas: ReadonlySet<string> };
 } & (
@@ -407,7 +408,7 @@ export type EntradaCriacaoLivre = Omit<EntradaAvulsa, "id" | "workoutId" | "iten
 export async function criarSessaoLivre(
   entrada: EntradaCriacaoLivre,
 ): Promise<SessaoLocal> {
-  const { cliente, exercicios, itens: prescritos, titulo, colecao, retomarSeAberta, ...resto } = entrada;
+  const { cliente, exercicios, itens: prescritos, titulo, colecao, descansosPorExercicio, retomarSeAberta, ...resto } = entrada;
   const id = entrada.id ?? novoId();
   const itens = prescritos ? [...prescritos] : itensDeIds(exercicios);
   if (itens.length === 0) throw new Error("sessão livre sem exercício");
@@ -417,7 +418,7 @@ export async function criarSessaoLivre(
     novoId,
     workoutId: WORKOUT_LIVRE,
     itens,
-    plano: planoDaSessao(itens, { titulo, colecao }),
+    plano: planoDaSessao(itens, { titulo, colecao, descansosPorExercicio }),
   });
   return registrarSessaoNova(sessao, cliente, retomarSeAberta);
 }

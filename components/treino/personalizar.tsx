@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { useSessaoLivre } from "@/components/colecoes/usar-sessao-livre";
 import { EquipamentoDeHoje, nomeDoMaterial } from "@/components/exercicio/equipamento-de-hoje";
 import { OrdemDosEscolhidos } from "@/components/treino/ordem-dos-escolhidos";
-import { SeriesDosEscolhidos } from "@/components/treino/series-dos-escolhidos";
+import { SeriesDosEscolhidos, type EdicaoDosDescansos } from "@/components/treino/series-dos-escolhidos";
 import { ConfirmacaoDoModelo, NomeDoTreino, TreinosSalvos, type PainelDosModelos } from "@/components/treino/treinos-salvos";
 import { Button } from "@/components/ui/button";
 import { BotaoLargo } from "@/components/ui/botao-largo";
@@ -26,8 +26,9 @@ import { equipamentosDaAlternativa } from "@/lib/alternativas";
 import { filtrarExercicios } from "@/lib/catalogo";
 import { acharExercicio, equipamentoDisponivel, exerciciosComVariacoes } from "@/lib/dados";
 import { lerSelecaoDeEquipamento, tagsDoEquipamento } from "@/lib/equipamento-da-sessao";
+import { ajustesDoModeloConfirmados } from "@/lib/modelo-de-treino";
 import { mover } from "@/lib/ordem";
-import { evitadosPorUltimo } from "@/lib/preferencias";
+import { descansoPadraoS, evitadosPorUltimo } from "@/lib/preferencias";
 import { excluirModeloDeTreino, salvarModeloDeTreino, type ModeloDeTreino } from "@/lib/queries/modelos-de-treino";
 import { novoId } from "@/lib/queries/sessao";
 import type { Prefs } from "@/lib/types";
@@ -35,6 +36,19 @@ import { cn } from "@/lib/utils";
 
 const inventarioCompleto = equipamentoDisponivel();
 type Painel = { tipo: "editor" | "ordem" | "series" } | PainelDosModelos;
+
+function mapaAlterado(atual: Record<string, number>, salvo: Record<string, number>) {
+  return Object.keys(atual).length !== Object.keys(salvo).length
+    || Object.entries(atual).some(([id, valor]) => valor !== salvo[id]);
+}
+
+function comAjuste(atual: Record<string, number>, id: string, valor?: number) {
+  if (atual[id] === valor) return atual;
+  const proximo = { ...atual };
+  if (valor === undefined) delete proximo[id];
+  else proximo[id] = valor;
+  return proximo;
+}
 
 /**
  * Começa um treino livre com os movimentos do catálogo e suas variações,
@@ -46,6 +60,7 @@ export function Personalizar({ conta, prefs }: { conta: string; prefs?: Prefs })
   const [busca, setBusca] = useState("");
   const [escolhidos, setEscolhidos] = useState<string[]>([]);
   const [seriesPorExercicio, setSeriesPorExercicio] = useState<Record<string, number>>({});
+  const [descansosPorExercicio, setDescansosPorExercicio] = useState<Record<string, number>>({});
   const [material, setMaterial] = useState(inventarioCompleto);
   const [tela, setTela] = useState<Painel>({ tipo: "editor" });
   const [carregado, setCarregado] = useState<ModeloDeTreino | null>(null);
@@ -56,6 +71,7 @@ export function Personalizar({ conta, prefs }: { conta: string; prefs?: Prefs })
   const titulo = useRef<HTMLHeadingElement>(null);
   const gatilhoDaOrdem = useRef<HTMLButtonElement>(null);
   const gatilhoDasSeries = useRef<HTMLButtonElement>(null);
+  const edicaoDosDescansos = useRef<EdicaoDosDescansos>(null);
   const gatilhoDosSalvos = useRef<HTMLButtonElement>(null);
   const gatilhoDeSalvar = useRef<HTMLButtonElement>(null);
   const gatilhoDaConfirmacao = useRef<HTMLButtonElement | null>(null);
@@ -84,7 +100,10 @@ export function Personalizar({ conta, prefs }: { conta: string; prefs?: Prefs })
         mostrar({ tipo: "salvos" }, gatilhoDaConfirmacao.current);
         break;
       case "ordem": mostrar({ tipo: "editor" }, gatilhoDaOrdem.current); break;
-      case "series": mostrar({ tipo: "editor" }, gatilhoDasSeries.current); break;
+      case "series":
+        edicaoDosDescansos.current?.aplicarValidos();
+        mostrar({ tipo: "editor" }, gatilhoDasSeries.current);
+        break;
       case "salvos": mostrar({ tipo: "editor" }, gatilhoDosSalvos.current); break;
       case "salvar": mostrar({ tipo: "editor" }, gatilhoDeSalvar.current); break;
     }
@@ -116,16 +135,16 @@ export function Personalizar({ conta, prefs }: { conta: string; prefs?: Prefs })
   const { comecar, ocupado, pronto } = useSessaoLivre(carregado ? [] : escolhidos);
   const materialSalvo = lerSelecaoDeEquipamento(carregado?.equipamento_disponivel);
   const ordemSalva = carregado?.exercicios ?? [];
-  const seriesSalvas = carregado?.series_por_exercicio ?? {};
-  const seriesAlteradas = Object.keys(seriesPorExercicio).length !== Object.keys(seriesSalvas).length
-    || Object.entries(seriesPorExercicio).some(([id, n]) => n !== seriesSalvas[id]);
-  const alterado = seriesAlteradas || escolhidos.length !== ordemSalva.length || escolhidos.some((id, i) => id !== ordemSalva[i])
+  const seriesAlteradas = mapaAlterado(seriesPorExercicio, carregado?.series_por_exercicio ?? {});
+  const descansosAlterados = mapaAlterado(descansosPorExercicio, carregado?.descansos_por_exercicio ?? {});
+  const alterado = seriesAlteradas || descansosAlterados || escolhidos.length !== ordemSalva.length || escolhidos.some((id, i) => id !== ordemSalva[i])
     || material.size !== materialSalvo.size || [...material].some(tag => !materialSalvo.has(tag));
 
   function carregar(modelo: ModeloDeTreino | null, destino: Painel = { tipo: "editor" }) {
     setCarregado(modelo);
     setEscolhidos(modelo?.exercicios ?? []);
     setSeriesPorExercicio(modelo?.series_por_exercicio ?? {});
+    setDescansosPorExercicio(modelo?.descansos_por_exercicio ?? {});
     setMaterial(lerSelecaoDeEquipamento(modelo?.equipamento_disponivel));
     setBusca("");
     mostrar(destino);
@@ -148,15 +167,19 @@ export function Personalizar({ conta, prefs }: { conta: string; prefs?: Prefs })
       ...(!carregado || seriesAlteradas ? {
         series_por_exercicio: Object.keys(seriesPorExercicio).length ? seriesPorExercicio : null,
       } : {}),
+      ...(!carregado || descansosAlterados ? {
+        descansos_por_exercicio: Object.keys(descansosPorExercicio).length ? descansosPorExercicio : null,
+      } : {}),
     };
     try {
       const salvo = await salvarModeloDeTreino(cliente, modelo);
-      if (salvo.series_por_exercicio === undefined) {
+      if (!ajustesDoModeloConfirmados(salvo)) {
         // Outra aba com a versão antiga pode ter trocado a cópia enquanto o nome era editado.
         carregar(null, { tipo: "salvos" });
       } else {
         setCarregado(salvo);
         setSeriesPorExercicio(salvo.series_por_exercicio ?? {});
+        setDescansosPorExercicio(salvo.descansos_por_exercicio ?? {});
         mostrar({ tipo: "editor" }, gatilhoDeSalvar.current);
       }
       toast.success(carregado ? "Treino atualizado." : "Treino salvo.");
@@ -187,17 +210,12 @@ export function Personalizar({ conta, prefs }: { conta: string; prefs?: Prefs })
   }
 
   function ajustarSeries(id: string, quantidade?: number) {
-    setSeriesPorExercicio(atuais => {
-      if (atuais[id] === quantidade) return atuais;
-      const proximas = { ...atuais };
-      if (quantidade === undefined) delete proximas[id];
-      else proximas[id] = quantidade;
-      return proximas;
-    });
+    setSeriesPorExercicio(atuais => comAjuste(atuais, id, quantidade));
   }
 
   function alternar(id: string) {
     ajustarSeries(id, undefined);
+    setDescansosPorExercicio(atuais => comAjuste(atuais, id, undefined));
     setEscolhidos((atuais) =>
       atuais.includes(id) ? atuais.filter((x) => x !== id) : [...atuais, id],
     );
@@ -218,6 +236,7 @@ export function Personalizar({ conta, prefs }: { conta: string; prefs?: Prefs })
         titulo: carregado?.nome ?? "Treino personalizado",
         equipamentosDisponiveis: material,
         seriesPorExercicio,
+        descansosPorExercicio,
         contaDoModelo: carregado?.user_id,
       });
     } finally {
@@ -230,6 +249,7 @@ export function Personalizar({ conta, prefs }: { conta: string; prefs?: Prefs })
       open={aberto}
       onOpenChange={(v) => {
         if (!v && (ocupado || mutando.current)) return;
+        if (!v && tela.tipo === "series") edicaoDosDescansos.current?.aplicarValidos();
         setAberto(v);
         if (!v) {
           focoAoAlternar.current = null;
@@ -267,20 +287,22 @@ export function Personalizar({ conta, prefs }: { conta: string; prefs?: Prefs })
           <SheetTitle ref={titulo} className="pr-10 wrap-anywhere">
             {tela.tipo === "editor" && "Crie o seu próprio"}
             {tela.tipo === "ordem" && "Reordenar escolhidos"}
-            {tela.tipo === "series" && "Ajustar séries"}
+            {tela.tipo === "series" && "Séries e descanso"}
             {tela.tipo === "salvos" && "Treinos salvos"}
             {tela.tipo === "salvar" && (carregado ? "Atualizar treino" : "Salvar treino")}
             {tela.tipo === "excluir" && "Excluir treino?"}
             {tela.tipo === "descartar" && "Descartar alterações?"}
           </SheetTitle>
           {tela.tipo === "ordem" && <SheetDescription>{escolhidos.length} exercícios no treino.</SheetDescription>}
-          {tela.tipo === "series" && <SheetDescription>Escolha as séries de trabalho de cada exercício.</SheetDescription>}
+          {tela.tipo === "series" && <SheetDescription>O descanso vale para as séries de trabalho.</SheetDescription>}
           {tela.tipo === "salvos" && <SheetDescription>Escolha um treino para abrir no editor.</SheetDescription>}
-          {tela.tipo === "salvar" && <SheetDescription>Guarde os exercícios, as séries, a ordem e os equipamentos para outro dia.</SheetDescription>}
+          {tela.tipo === "salvar" && <SheetDescription>Guarde a seleção, a ordem, as séries, o descanso e os equipamentos para outro dia.</SheetDescription>}
         </SheetHeader>
 
         {tela.tipo === "ordem" && <OrdemDosEscolhidos ids={escolhidos} aoMover={moverEscolhido} aoFechar={voltar} />}
-        {tela.tipo === "series" && <SeriesDosEscolhidos ids={escolhidos} ajustes={seriesPorExercicio} aoMudar={ajustarSeries} aoFechar={voltar} />}
+        {tela.tipo === "series" && <SeriesDosEscolhidos ref={edicaoDosDescansos} ids={escolhidos} ajustes={seriesPorExercicio}
+          descansos={descansosPorExercicio} descansoDaConta={descansoPadraoS(prefs)} aoMudar={ajustarSeries}
+          aoConfirmarDescansos={setDescansosPorExercicio} aoFechar={() => mostrar({ tipo: "editor" }, gatilhoDasSeries.current)} />}
         {(tela.tipo === "salvos" || tela.tipo === "excluir" || tela.tipo === "descartar") && (
           <TreinosSalvos conta={conta} oculto={tela.tipo !== "salvos"} aoVoltar={voltar} aoEscolher={escolher}
             aoExcluir={(modelo, gatilho) => {
@@ -301,7 +323,7 @@ export function Personalizar({ conta, prefs }: { conta: string; prefs?: Prefs })
             {tela.tipo === "editor" && (
               <SheetDescription className="mb-3">
                 {carregado ? <strong className="text-foreground wrap-anywhere">{carregado.nome}</strong>
-                  : "Escolha os exercícios, a ordem e as séries. As cargas seguem a sua progressão."}
+                  : "Escolha os exercícios, a ordem, as séries e o descanso. As cargas seguem a sua progressão."}
               </SheetDescription>
             )}
             <div className="mb-3 flex flex-wrap gap-2">
@@ -352,7 +374,7 @@ export function Personalizar({ conta, prefs }: { conta: string; prefs?: Prefs })
               <div className="mt-3 flex flex-wrap gap-2">
                 <Button ref={gatilhoDasSeries} type="button" variant="outline" disabled={ocupado}
                   className="alvo h-auto max-w-full whitespace-normal py-2" onClick={() => mostrar({ tipo: "series" })}>
-                  Ajustar séries
+                  Séries e descanso
                 </Button>
                 {escolhidos.length >= 2 && (
                   <Button ref={gatilhoDaOrdem} type="button" variant="outline" disabled={ocupado}
@@ -369,8 +391,10 @@ export function Personalizar({ conta, prefs }: { conta: string; prefs?: Prefs })
                   const nome = acharExercicio(id).nome;
                   const faltaMaterial = !equipamentoPorExercicio.has(id);
                   const series = seriesPorExercicio[id];
+                  const descanso = descansosPorExercicio[id];
                   const aviso = faltaMaterial ? `material-escolhido-${id}` : undefined;
                   const contagem = series !== undefined ? `series-escolhidas-${id}` : undefined;
+                  const intervalo = descanso !== undefined ? `descanso-escolhido-${id}` : undefined;
                   return (
                     <li key={id} className="max-w-full">
                       <button
@@ -378,7 +402,7 @@ export function Personalizar({ conta, prefs }: { conta: string; prefs?: Prefs })
                         disabled={ocupado}
                         onClick={() => alternar(id)}
                         aria-label={`Tirar ${nome}`}
-                        aria-describedby={[contagem, aviso].filter(Boolean).join(" ") || undefined}
+                        aria-describedby={[contagem, intervalo, aviso].filter(Boolean).join(" ") || undefined}
                         className="border-primary bg-primary/10 alvo flex min-h-11 max-w-full items-center gap-1 rounded-full border px-3 py-1 text-left text-xs wrap-anywhere"
                       >
                         <span className="numero">{i + 1}.</span>
@@ -387,6 +411,7 @@ export function Personalizar({ conta, prefs }: { conta: string; prefs?: Prefs })
                           {series !== undefined && <span id={contagem} className="numero block">
                             {series} {series === 1 ? "série" : "séries"} de trabalho
                           </span>}
+                          {descanso !== undefined && <span id={intervalo} className="numero block">{descanso} s de descanso</span>}
                           {faltaMaterial && <span id={aviso} className="block font-medium">Requer outro material</span>}
                         </span>
                         <X aria-hidden="true" className="size-3.5" />

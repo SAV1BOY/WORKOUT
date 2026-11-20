@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { acharExercicio } from "@/lib/dados";
+import { sequenciaDoPlayer } from "@/lib/player";
 import {
   EXERCICIOS_DA_SESSAO_LIVRE,
   WORKOUT_LIVRE,
@@ -76,6 +77,37 @@ describe("itens da sessão livre", () => {
 });
 
 describe("sessions.plano (o jsonb) — ida e volta", () => {
+  it("guarda o descanso do modelo apenas entre séries de trabalho do movimento escolhido", () => {
+    const agachamento = "agachamento-livre";
+    const itens = itensDeIds([agachamento, "rosca-com-elastico"], { [agachamento]: 2 });
+    const ajustes = { [agachamento]: 95, prancha: 42 };
+    const plano = planoDaSessao(itens, { descansosPorExercicio: ajustes });
+    ajustes[agachamento] = 60;
+    expect(plano.descansos_por_exercicio).toEqual({ [agachamento]: 95 });
+    expect(itensDoPlano(plano)).toEqual(itens);
+
+    let n = 0;
+    const montada = montarSessaoAvulsa({
+      id: "s1", userId: "u1", data: "2026-11-20", fase: "fase1", workoutId: WORKOUT_LIVRE,
+      itens, plano, novoId: () => `serie-${++n}`,
+    });
+    const pausas = sequenciaDoPlayer(montada, { descansoPadraoS: 70 }).filter(passo => passo.tipo === "descanso");
+    expect(pausas.filter(p => p.ordem === 1).map(p => [p.entreExercicios, p.segundos])).toEqual([
+      [false, 70], [false, 70], [false, 95], [true, 70],
+    ]);
+    expect(pausas.filter(p => p.ordem === 2).map(p => p.segundos)).toEqual([70, 70]);
+  });
+
+  it("aceita os limites e omite o campo quando faltam descansos válidos para os itens selecionados", () => {
+    const itens = itensDeIds(IDS);
+    expect(planoDaSessao(itens, { descansosPorExercicio: { escalador: 5, superman: 900 } }).descansos_por_exercicio)
+      .toEqual({ escalador: 5, superman: 900 });
+    for (const invalido of [4, 901, 8.5, NaN]) {
+      expect(planoDaSessao(itens, { descansosPorExercicio: { superman: invalido, prancha: 95 } }))
+        .toEqual(planoDaSessao(itens));
+    }
+  });
+
   it("guarda o que refaz a sessão", () => {
     const plano = planoDaSessao(itensDeIds(IDS), {
       titulo: "Core no tatame",

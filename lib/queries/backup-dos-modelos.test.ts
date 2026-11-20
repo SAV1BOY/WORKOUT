@@ -1,7 +1,7 @@
 import "fake-indexeddb/auto";
 import { QueryClient } from "@tanstack/react-query";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { lerBackup, previaDaImportacao, textoDoBackup } from "@/lib/backup";
+import { lerBackup, montarBackup, previaDaImportacao, textoDoBackup } from "@/lib/backup";
 import { bd } from "@/lib/db";
 import type { ModeloDeTreino } from "@/lib/modelo-de-treino";
 import { FalhaDeRedeNaTabela, lerTabelaCompleta } from "@/lib/queries/ler";
@@ -17,7 +17,7 @@ const modelo: ModeloDeTreino = {
   user_id: "ana", id: "aaaaaaaa-1234-4000-8000-000000000001", nome: "Treino da manhã",
   exercicios: ["prancha", "flexao-de-braco"], equipamento_disponivel: [],
 };
-const segundo = { ...modelo, id: "bbbbbbbb-1234-4000-8000-000000000002" };
+const segundo = { ...modelo, id: "bbbbbbbb-1234-4000-8000-000000000002", series_por_exercicio: null, descansos_por_exercicio: null };
 const dia = "2026-11-20";
 
 beforeEach(async () => {
@@ -48,7 +48,7 @@ it("exporta o que ficou salvo se a fila sincronizar durante a leitura e restaura
   await pedido.promise;
   await excluirModeloDeTreino(outraAba, "ana", modelo.id);
   await bd().outbox.clear();
-  resposta.resolve([modelo]);
+  resposta.resolve([{ ...modelo, series_por_exercicio: null, descansos_por_exercicio: null }]);
   const arquivo = lerBackup(textoDoBackup(await exportacao));
   expect(arquivo.tabelas.modelos_de_treino).toEqual([segundo]);
   expect(arquivo.tabelas.sessions).toEqual([]);
@@ -71,14 +71,15 @@ it("exporta o que ficou salvo se a fila sincronizar durante a leitura e restaura
   expect(await bd().sessaoAtiva.count()).toBe(0);
 });
 
-it("reexporta os modelos atuais e os de outra versão, com a ordem e o material originais", async () => {
+it("reexporta os modelos atuais e os de outra versão com a ordem, o material, as séries e as pausas originais", async () => {
   const cliente = new QueryClient();
   const futuro = { ...segundo, nome: "Salvo em outro aparelho",
     exercicios: ["flexao-de-braco", "movimento-de-outra-versao", "prancha"],
     equipamento_disponivel: ["material-de-outra-versao", "tatame"],
     series_por_exercicio: { "movimento-de-outra-versao": 1, prancha: 4 },
+    descansos_por_exercicio: { "flexao-de-braco": 5, "movimento-de-outra-versao": 900 },
   };
-  const modelos = [modelo, futuro];
+  const modelos = [{ ...modelo, series_por_exercicio: null, descansos_por_exercicio: null }, futuro];
   vi.mocked(lerTabelaCompleta).mockImplementation(async (tabela, _colunas, _nome, conta) =>
     tabela === "modelos_de_treino" && conta === "ana" ? modelos : [],
   );
@@ -99,6 +100,37 @@ it("reexporta os modelos atuais e os de outra versão, com a ordem e o material 
   expect(reexportado.tabelas.modelos_de_treino).toEqual(destino);
   expect(reexportado.tabelas.sessions).toEqual([]);
   expect(reexportado.tabelas.session_sets).toEqual([]);
+});
+
+it.each([
+  { caso: "modelo sem séries nem pausas", campos: {}, series: { prancha: 3 }, pausas: { prancha: 30 } },
+  { caso: "modelo com séries e sem pausas", campos: { series_por_exercicio: { prancha: 8 } },
+    series: { prancha: 8 }, pausas: { prancha: 30 } },
+  { caso: "pausas nulas", campos: { descansos_por_exercicio: null }, series: { prancha: 3 }, pausas: null },
+  { caso: "mapa de pausas vazio", campos: { descansos_por_exercicio: {} }, series: { prancha: 3 }, pausas: {} },
+])("restaura $caso e preserva os ajustes omitidos na conta de destino", async ({ campos, series, pausas }) => {
+  const origem = { ...modelo, series_por_exercicio: null, descansos_por_exercicio: { prancha: 150 } };
+  const destino = { ...modelo, user_id: "bia", series_por_exercicio: { prancha: 3 },
+    descansos_por_exercicio: { prancha: 30, "flexao-de-braco": 45 } };
+  vi.mocked(lerTabelaCompleta).mockImplementation(async (_tabela, _colunas, _nome, conta) => [conta === "ana" ? origem : destino]);
+  const cliente = new QueryClient();
+  await lerModelosDeTreino(cliente, "ana");
+  await lerModelosDeTreino(cliente, "bia");
+  const linha = { ...modelo, exercicios: ["prancha"], ...campos };
+  const arquivo = lerBackup(textoDoBackup(montarBackup({
+    userId: "ana", exportadoEm: dia, tabelas: { modelos_de_treino: [linha] },
+  })));
+
+  vi.stubGlobal("navigator", { onLine: false });
+  expect(await importarBackup({ backup: arquivo, userId: "bia", cliente })).toBe(1);
+  const esperada = { ...linha, user_id: "bia", series_por_exercicio: series, descansos_por_exercicio: pausas };
+  expect(await lerModelosDeTreino(new QueryClient(), "bia")).toEqual([esperada]);
+  expect(await lerModelosDeTreino(new QueryClient(), "ana")).toEqual([origem]);
+  expect((await bd().outbox.toArray()).map(item => item.payload)).toStrictEqual([{
+    tabela: "modelos_de_treino", op: "upsert", onConflict: "user_id,id", linha: { ...linha, user_id: "bia" },
+  }]);
+  vi.stubGlobal("navigator", { onLine: true });
+  expect(await lerModelosDeTreino(new QueryClient(), "bia")).toEqual([esperada]);
 });
 
 it("uma leitura incompleta interrompe a exportação, mesmo com um modelo guardado no aparelho", async () => {

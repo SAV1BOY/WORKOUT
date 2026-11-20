@@ -5,42 +5,17 @@ import {
   naFila, requisicoesDoMock, resetarMock, semRolagemHorizontal, usuarioComPerfil,
 } from "./fixtures";
 import { comRedeNoWorker, semRedeNoWorker, workerDoApp } from "./rede-do-worker";
-import { geral } from "./treino-livre-ativo";
+import { geral, planoSalvo } from "./treino-livre-ativo";
+import { ajustar, ajustes, campo, carregar, descanso, dialogo, editor, escolher, iniciar, personalizar, pronto } from "./montar-modelo";
 
 const AGACHAMENTO = "Agachamento livre";
 const REMADA = "Remada com elástico";
 const TABELA = "modelos_de_treino";
-const dialogo = (p: Page, name: string) => p.getByRole("dialog", { name, exact: true });
-const editor = (p: Page) => dialogo(p, "Crie o seu próprio");
-const ajustar = (p: Page) => editor(p).getByRole("button", { name: "Ajustar séries", exact: true });
-const ajustes = (p: Page) => dialogo(p, "Ajustar séries");
-const campo = (p: Page, nome: string) => ajustes(p).getByRole("combobox", { name: `Séries de trabalho de ${nome}`, exact: true });
-const personalizar = (p: Page) => p.getByRole("button", { name: /Personalizar treino/ });
-
 async function preparar(page: Page) {
   const conta = await usuarioComPerfil({ prefs: { preparacao_s: 0, avancar_sozinho: false } });
   await entrarNoApp(page);
   await personalizar(page).press("Enter");
   return conta;
-}
-
-async function escolher(page: Page, nome: string) {
-  await editor(page).getByRole("searchbox").fill(nome);
-  const resultado = editor(page).getByRole("list", { name: "Catálogo" }).getByRole("button")
-    .filter({ has: page.getByText(nome, { exact: true }) });
-  await resultado.press("Space");
-  await expect(resultado).toHaveAttribute("aria-pressed", "true");
-}
-
-async function pronto(page: Page) {
-  await ajustes(page).getByRole("button", { name: "Pronto", exact: true }).press("Enter");
-  await expect(ajustar(page)).toBeFocused();
-}
-
-async function iniciar(page: Page) {
-  await editor(page).getByRole("button", { name: "Começar com 2 exercícios", exact: true }).click();
-  await expect(page).toHaveURL(/\/treinar\/[a-f\d-]{36}$/);
-  return new URL(page.url()).pathname.split("/").at(-1)!;
 }
 
 async function conferirSessao(page: Page, agachamentos: number, remadas: number) {
@@ -50,13 +25,6 @@ async function conferirSessao(page: Page, agachamentos: number, remadas: number)
   await expect(visao.getByRole("group", { name: /^Aquecimento \d+ — Agachamento livre$/ })).toHaveCount(2);
   await expect(visao.getByRole("group", { name: /^Série \d+ — Remada com elástico$/ })).toHaveCount(remadas);
   await expect(visao.getByRole("group", { name: /^Aquecimento \d+ — Remada com elástico$/ })).toHaveCount(0);
-}
-
-async function carregar(page: Page, nome: string) {
-  await personalizar(page).press("Enter");
-  await editor(page).getByRole("button", { name: "Treinos salvos", exact: true }).click();
-  await dialogo(page, "Treinos salvos").getByRole("button", { name: `Carregar ${nome}`, exact: true }).click();
-  await expect(ajustar(page)).toBeVisible();
 }
 
 async function enviosDeModelos() {
@@ -76,6 +44,8 @@ test("o treino avulso mantém as séries de cada movimento ao reordenar e volta 
   await expect(campo(page, AGACHAMENTO).getByRole("option", { selected: true })).toHaveText("Padrão (3)");
   await campo(page, AGACHAMENTO).selectOption("2");
   await campo(page, REMADA).selectOption("5");
+  await descanso(page, AGACHAMENTO).fill("100");
+  await descanso(page, REMADA).fill("90");
   await pronto(page);
   await editor(page).getByRole("button", { name: "Reordenar escolhidos", exact: true }).click();
   const ordem = dialogo(page, "Reordenar escolhidos");
@@ -85,12 +55,16 @@ test("o treino avulso mantém as séries de cada movimento ao reordenar e volta 
   await expect(ajustes(page).getByRole("combobox").first()).toHaveAccessibleName(`Séries de trabalho de ${AGACHAMENTO}`);
   await expect(campo(page, AGACHAMENTO)).toHaveValue("2");
   await expect(campo(page, REMADA)).toHaveValue("5");
+  await expect(descanso(page, AGACHAMENTO)).toHaveValue("100");
+  await expect(descanso(page, REMADA)).toHaveValue("90");
   await pronto(page);
   await editor(page).getByRole("button", { name: `Tirar ${REMADA}`, exact: true }).click();
   await escolher(page, REMADA);
   await ajustar(page).click();
   await expect(campo(page, AGACHAMENTO)).toHaveValue("2");
   await expect(campo(page, REMADA).getByRole("option", { selected: true })).toHaveText("Padrão (3)");
+  await expect(descanso(page, REMADA)).toHaveValue("");
+  await expect(descanso(page, AGACHAMENTO)).toHaveValue("100");
   await pronto(page);
   const id = await iniciar(page);
   await abrirVisaoGeral(page);
@@ -98,6 +72,7 @@ test("o treino avulso mantém as séries de cada movimento ao reordenar e volta 
   await expect.poll(() => lerDoMock(conta, "sessions")).toMatchObject([{ id, plano: { titulo: "Treino personalizado", itens: [
     { exercicio_id: "agachamento-livre", series: 2 }, { exercicio_id: "remada-com-elastico", series: 3 },
   ] } }]);
+  expect((await planoSalvo(conta, id))?.descansos_por_exercicio).toEqual({ "agachamento-livre": 100 });
   expect(await lerDoMock(conta, TABELA)).toHaveLength(0);
 });
 
@@ -110,6 +85,7 @@ test("editar o modelo sem rede altera as séries da próxima sessão e sincroniz
   await ajustar(page).click();
   await campo(page, AGACHAMENTO).selectOption("2");
   await campo(page, REMADA).selectOption("4");
+  await descanso(page, AGACHAMENTO).fill("105");
   await pronto(page);
   const nome = "Barra e faixa";
   await editor(page).getByRole("button", { name: "Salvar treino", exact: true }).click();
@@ -118,7 +94,7 @@ test("editar o modelo sem rede altera as séries da próxima sessão e sincroniz
   await formulario.getByRole("button", { name: "Salvar", exact: true }).click();
   const modelos = () => lerDoMock<ModeloDeTreino>(conta, TABELA);
   const iniciais = { "agachamento-livre": 2, "remada-com-elastico": 4 };
-  await expect.poll(modelos).toMatchObject([{ nome, series_por_exercicio: iniciais }]);
+  await expect.poll(modelos).toMatchObject([{ nome, series_por_exercicio: iniciais, descansos_por_exercicio: { "agachamento-livre": 105 } }]);
   const [modelo] = await modelos();
   expect(await lerDoMock(conta, "sessions")).toHaveLength(0);
 
@@ -148,12 +124,14 @@ test("editar o modelo sem rede altera as séries da próxima sessão e sincroniz
   await semRedeNoWorker(worker);
   await context.setOffline(true);
   await campo(page, REMADA).selectOption("6");
+  await ajustes(page).getByRole("button", { name: `Restaurar descanso padrão de ${AGACHAMENTO}`, exact: true }).click();
+  await descanso(page, REMADA).fill("95");
   await pronto(page);
   await editor(page).getByRole("button", { name: "Atualizar treino", exact: true }).click();
   await dialogo(page, "Atualizar treino").getByRole("button", { name: "Salvar alterações", exact: true }).click();
   await expect(editor(page)).toBeVisible();
   await expect.poll(() => naFila(page)).toBe(1);
-  expect(await modelos()).toMatchObject([{ id: modelo!.id, series_por_exercicio: iniciais }]);
+  expect(await modelos()).toEqual([modelo]);
   expect(await enviosDeModelos()).toBe(postagens);
   await page.keyboard.press("Escape");
   await expect(personalizar(page)).toBeFocused();
@@ -163,6 +141,8 @@ test("editar o modelo sem rede altera as séries da próxima sessão e sincroniz
   await ajustar(page).click();
   await expect(campo(page, AGACHAMENTO)).toHaveValue("2");
   await expect(campo(page, REMADA)).toHaveValue("6");
+  await expect(descanso(page, AGACHAMENTO)).toHaveValue("");
+  await expect(descanso(page, REMADA)).toHaveValue("95");
   await pronto(page);
   const segunda = await iniciar(page);
   expect(segunda).not.toBe(primeira);
@@ -173,21 +153,25 @@ test("editar o modelo sem rede altera as séries da próxima sessão e sincroniz
   await context.setOffline(false);
   await expect.poll(() => naFila(page)).toBe(0);
   expect(await enviosDeModelos()).toBe(postagens + 1);
-  expect(await modelos()).toMatchObject([{ id: modelo!.id, nome, series_por_exercicio: { "agachamento-livre": 2, "remada-com-elastico": 6 } }]);
-  expect(await lerDoMock(conta, "sessions", `id=eq.${segunda}`)).toMatchObject([{ plano: { titulo: nome, itens: [
+  const salvos = await modelos();
+  expect(salvos[0]?.descansos_por_exercicio).toEqual({ "remada-com-elastico": 95 });
+  expect(salvos).toMatchObject([{ id: modelo!.id, nome, series_por_exercicio: { "agachamento-livre": 2, "remada-com-elastico": 6 } }]);
+  const plano = await planoSalvo(conta, segunda);
+  expect(plano).toMatchObject({ titulo: nome, itens: [
     { exercicio_id: "agachamento-livre", series: 2 }, { exercicio_id: "remada-com-elastico", series: 6 },
-  ] } }]);
+  ] });
+  expect(plano?.descansos_por_exercicio).toEqual({ "remada-com-elastico": 95 });
   expect(await lerDoMock(conta, "sessions", `id=eq.${primeira}`)).toEqual(anterior);
 });
 
-test("o teclado alcança o padrão e os limites de séries a 320 px com fonte ampliada", async ({ page }) => {
+test("o teclado ajusta séries e valida os limites do descanso a 320 px com fonte ampliada", async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 740 });
   await preparar(page);
   await page.addStyleTag({ content: "html { font-size: 200% !important; }" });
   const nome = "Desenvolvimento sentado com barra";
   await escolher(page, nome);
   await ajustar(page).press("Enter");
-  await expect(ajustes(page).getByRole("heading", { name: "Ajustar séries" })).toBeFocused();
+  await expect(ajustes(page).getByRole("heading", { name: "Séries e descanso" })).toBeFocused();
   await page.keyboard.press("Tab");
   const seletor = campo(page, nome);
   await expect(seletor).toBeFocused();
@@ -207,15 +191,38 @@ test("o teclado alcança o padrão e os limites de séries a 320 px com fonte am
   await page.keyboard.press("End");
   await expect(seletor).toHaveValue("10");
   await page.keyboard.press("Tab");
-  await expect(ajustes(page).getByRole("button", { name: "Pronto", exact: true })).toBeFocused();
-  await page.keyboard.press("Enter");
-  await expect(ajustar(page)).toBeFocused();
-  await page.keyboard.press("Enter");
+  const segundos = descanso(page, nome);
+  await expect(segundos).toBeFocused();
+  await expect(segundos).toHaveValue("");
+  await expect(ajustes(page).getByText(/^Padrão do catálogo:/)).toBeVisible();
+  const erro = ajustes(page).getByText("Use um número inteiro de 5 a 900 segundos.", { exact: true });
+  for (const [invalido, valido] of [["4", "5"], ["901", "900"]] as const) {
+    await segundos.fill(invalido);
+    await segundos.press("Enter");
+    await expect(erro).toBeVisible();
+    await expect(segundos).toBeFocused();
+    await semRolagemHorizontal(page);
+    const alvo = await segundos.boundingBox();
+    expect(alvo!.x).toBeGreaterThanOrEqual(0);
+    expect(alvo!.x + alvo!.width).toBeLessThanOrEqual(320);
+    expect(alvo!.height).toBeGreaterThanOrEqual(44);
+    await segundos.fill(valido);
+    await segundos.press("Enter");
+    await expect(ajustar(page)).toBeFocused();
+    await expect(editor(page).getByRole("list", { name: "Escolhidos" })).toContainText(`${valido} s de descanso`);
+    await ajustar(page).press("Enter");
+    await expect(segundos).toHaveValue(valido);
+  }
   await page.keyboard.press("Tab");
+  await expect(seletor).toBeFocused();
   await expect(seletor).toHaveValue("10");
   await page.keyboard.press("Home");
   await expect(seletor).toHaveValue("");
-  await page.keyboard.press("Escape");
+  await segundos.fill("4");
+  await segundos.press("Escape");
   await expect(ajustar(page)).toBeFocused();
   await expect(editor(page).getByRole("searchbox")).toHaveValue(nome);
+  await ajustar(page).press("Enter");
+  await expect(seletor).toHaveValue("");
+  await expect(segundos).toHaveValue("900");
 });

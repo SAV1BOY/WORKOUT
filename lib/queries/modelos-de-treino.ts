@@ -4,7 +4,7 @@ import { useQuery, useQueryClient, type QueryClient } from "@tanstack/react-quer
 import { liveQuery } from "dexie";
 import { useEffect } from "react";
 import { bd, guardarCache, lerCache, temIndexedDB } from "@/lib/db";
-import { idDeModeloValido, modeloCompativelComCatalogo, modeloDeTreinoValido, type ModeloDeTreino } from "@/lib/modelo-de-treino";
+import { ajustesDoModeloConfirmados, camposDeAjusteDoModelo, idDeModeloValido, modeloCompativelComCatalogo, modeloDeTreinoValido, type ModeloDeTreino } from "@/lib/modelo-de-treino";
 import { guardarNaFila, processar } from "@/lib/outbox";
 import { alvoDaEscrita, type EscritaTabela } from "@/lib/outbox-supabase";
 import { FalhaDeRedeNaTabela, lerTabelaCompleta } from "@/lib/queries/ler";
@@ -33,11 +33,16 @@ async function guardar(conta: string, copia: Copia) {
   return copia.modelos;
 }
 
-/** Simula o upsert sem a coluna: mantém as séries apenas dos exercícios que continuam no modelo. */
-function comSeriesAnteriores(modelo: ModeloDeTreino, anteriores: ModeloDeTreino["series_por_exercicio"]) {
-  if (modelo.series_por_exercicio !== undefined || anteriores === undefined) return modelo;
-  const series = anteriores === null ? null : Object.fromEntries(Object.entries(anteriores).filter(([id]) => modelo.exercicios.includes(id)));
-  return { ...modelo, series_por_exercicio: series };
+/** Reproduz a poda do banco em colunas omitidas. Uma exclusão anterior (null) zera os dois mapas. */
+function comAjustesAnteriores(modelo: ModeloDeTreino, anterior: ModeloDeTreino | null | undefined) {
+  if (anterior === undefined || ajustesDoModeloConfirmados(modelo)) return modelo;
+  const efetivo = { ...modelo };
+  for (const campo of camposDeAjusteDoModelo) {
+    const mapa = anterior === null ? null : anterior[campo];
+    if (modelo[campo] !== undefined || mapa === undefined) continue;
+    efetivo[campo] = mapa === null ? null : Object.fromEntries(Object.entries(mapa).filter(([id]) => modelo.exercicios.includes(id)));
+  }
+  return efetivo;
 }
 
 type Pendencias = Map<string, (ModeloDeTreino | null)[]>;
@@ -57,12 +62,10 @@ async function pendenciasDaConta(conta: string): Promise<Pendencias> {
   return pendentes;
 }
 
-function ultimoModeloDaFila(anteriores: ModeloDeTreino["series_por_exercicio"], escritas: (ModeloDeTreino | null)[]) {
-  let series = anteriores;
-  let ultimo: ModeloDeTreino | null = null;
+function ultimoModeloDaFila(anterior: ModeloDeTreino | undefined, escritas: (ModeloDeTreino | null)[]) {
+  let ultimo: ModeloDeTreino | null | undefined = anterior;
   for (const escrita of escritas) {
-    ultimo = escrita && comSeriesAnteriores(escrita, series);
-    series = ultimo === null ? null : ultimo.series_por_exercicio;
+    ultimo = escrita === null ? null : comAjustesAnteriores(escrita, ultimo);
   }
   return ultimo;
 }
@@ -71,11 +74,14 @@ async function copiaDoDisco(conta: string) {
   const banco = bd();
   return banco.transaction("r", banco.cache, banco.outbox, async () => {
     const copia = await lerCache<Copia>(chaveNoDisco(conta));
-    if (!copia?.modelos.some(m => m.series_por_exercicio === undefined)) return copia;
-    // Uma aba #62 pode substituir a cópia ainda com uma contagem explícita na fila.
+    if (!copia?.modelos.some(m => !ajustesDoModeloConfirmados(m))) return copia;
+    // As versões #62 e #63 podem ter lido menos colunas que as já presentes na fila.
     const pendentes = await pendenciasDaConta(conta);
-    return { ...copia, modelos: copia.modelos.map(m => m.series_por_exercicio !== undefined ? m
-      : comSeriesAnteriores(m, ultimoModeloDaFila(undefined, pendentes.get(m.id) ?? [])?.series_por_exercicio)) };
+    return { ...copia, modelos: copia.modelos.flatMap(m => {
+      if (ajustesDoModeloConfirmados(m)) return [m];
+      const ultima = ultimoModeloDaFila(undefined, pendentes.get(m.id) ?? []);
+      return ultima === null ? [] : [comAjustesAnteriores(m, ultima)];
+    }) };
   });
 }
 
@@ -108,7 +114,7 @@ export async function lerModelosDeTreino(cliente: QueryClient, conta: string, si
   const prazo = exigirRemoto ? undefined : setTimeout(() => rede.abort(), 3_000);
   let remotos: ModeloDeTreino[];
   try {
-    remotos = await lerTabelaCompleta<ModeloDeTreino>(TABELA, "id,user_id,nome,exercicios,equipamento_disponivel,series_por_exercicio", "os modelos de treino", conta, rede.signal);
+    remotos = await lerTabelaCompleta<ModeloDeTreino>(TABELA, "id,user_id,nome,exercicios,equipamento_disponivel,series_por_exercicio,descansos_por_exercicio", "os modelos de treino", conta, rede.signal);
   } catch (erro) {
     sinal?.throwIfAborted();
     if (exigirRemoto || (!rede.signal.aborted && !(erro instanceof FalhaDeRedeNaTabela))) throw erro;
@@ -123,9 +129,9 @@ export async function lerModelosDeTreino(cliente: QueryClient, conta: string, si
   return banco.transaction("rw", banco.cache, banco.outbox, async () => {
     const atual = await copiaLocal(cliente, conta);
     sinal?.throwIfAborted();
-    const mudouNaLeitura = "A lista mudou em outra aba. Tente novamente para confirmar as séries de trabalho.";
+    const mudouNaLeitura = "A lista mudou em outra aba. Tente novamente para confirmar as séries e os descansos.";
     if ((atual.ultimaConsulta ?? 0) > ordem) {
-      if (exigirRemoto && atual.modelos.some(m => m.series_por_exercicio === undefined)) throw new Error(mudouNaLeitura);
+      if (exigirRemoto && atual.modelos.some(m => !ajustesDoModeloConfirmados(m))) throw new Error(mudouNaLeitura);
       return atual.modelos;
     }
     const mudaram = (id: string) => atual.revisoes[id] !== revisoes[id];
@@ -134,14 +140,14 @@ export async function lerModelosDeTreino(cliente: QueryClient, conta: string, si
     for (const local of atual.modelos) {
       if (mudaram(local.id)) {
         // A versão anterior pode ter renomeado, retirado e até recolocado exercícios
-        // durante o GET e já drenado a fila. A projeção de cinco colunas é parcial.
-        if (exigirRemoto && local.series_por_exercicio === undefined) throw new Error(mudouNaLeitura);
+        // durante o GET e já drenado a fila sem conhecer todos os campos.
+        if (exigirRemoto && !ajustesDoModeloConfirmados(local)) throw new Error(mudouNaLeitura);
         modelos.push(local);
       } else {
-        // Reaplica em ordem: retirar e recolocar uma ficha elimina sua contagem antiga.
+        // Retirar e recolocar um exercício elimina os ajustes que ele tinha antes.
         const escritas = pendentes.get(local.id);
         if (!escritas) continue;
-        const ultima = ultimoModeloDaFila(porId.get(local.id)?.series_por_exercicio, escritas);
+        const ultima = ultimoModeloDaFila(porId.get(local.id), escritas);
         if (ultima) modelos.push(ultima);
       }
     }
@@ -175,8 +181,13 @@ async function gravarAlteracao(cliente: QueryClient, conta: string, id: string, 
   const modelos = await banco.transaction("rw", banco.cache, banco.outbox, async () => {
     const copia = await copiaLocal(cliente, conta);
     const porId = new Map(copia.modelos.map(m => [m.id, m]));
-    if (modelo) porId.set(id, comSeriesAnteriores(modelo, porId.get(id)?.series_por_exercicio));
-    else porId.delete(id);
+    if (modelo) {
+      let anterior: ModeloDeTreino | null | undefined = porId.get(id);
+      if (!anterior && !ajustesDoModeloConfirmados(modelo)) {
+        anterior = ultimoModeloDaFila(undefined, (await pendenciasDaConta(conta)).get(id) ?? []);
+      }
+      porId.set(id, comAjustesAnteriores(modelo, anterior));
+    } else porId.delete(id);
     await guardarNaFila(TIPO, pedido, alvoDaEscrita(escrita));
     const revisoes = { ...copia.revisoes, [id]: (copia.revisoes[id] ?? 0) + 1 };
     return guardar(conta, { ...copia, modelos: [...porId.values()], revisoes });
@@ -189,11 +200,12 @@ async function gravarAlteracao(cliente: QueryClient, conta: string, id: string, 
 async function gravarModelo(cliente: QueryClient, modelo: ModeloDeTreino, origem: "editor" | "backup") {
   const { id, user_id, exercicios, equipamento_disponivel } = modelo;
   const nome = origem === "editor" ? modelo.nome.trim() : modelo.nome;
-  const linha = { id, user_id, nome, exercicios, equipamento_disponivel,
-    ...(modelo.series_por_exercicio === undefined ? {} : { series_por_exercicio: modelo.series_por_exercicio }),
-  };
+  const linha: ModeloDeTreino = { id, user_id, nome, exercicios, equipamento_disponivel };
+  for (const campo of camposDeAjusteDoModelo) {
+    if (modelo[campo] !== undefined) linha[campo] = modelo[campo];
+  }
   if (!modeloDeTreinoValido(linha) || (origem === "editor" && !modeloCompativelComCatalogo(linha))) {
-    throw new Error("Confira o nome, os exercícios e o material do modelo.");
+    throw new Error("Confira o nome, o material, os exercícios e seus ajustes.");
   }
   const salvos = await gravarAlteracao(cliente, user_id, id, linha);
   return salvos.find(m => m.id === id)!;

@@ -55,7 +55,7 @@ export function useSessaoLivre(ids: readonly string[]) {
   const comecar = useCallback(
     async (
       escolhidos: readonly string[],
-      opcoes: Pick<EntradaCriacaoLivre, "titulo" | "colecao" | "equipamentosDisponiveis"> & {
+      opcoes: Pick<EntradaCriacaoLivre, "titulo" | "colecao" | "equipamentosDisponiveis" | "descansosPorExercicio"> & {
         contaDoModelo?: string;
         seriesPorExercicio?: Readonly<Record<string, number>>;
       } = {},
@@ -87,6 +87,7 @@ export function useSessaoLivre(ids: readonly string[]) {
           titulo: opcoes.titulo ?? null,
           colecao: opcoes.colecao ?? null,
           equipamentosDisponiveis: opcoes.equipamentosDisponiveis,
+          descansosPorExercicio: opcoes.descansosPorExercicio,
           // as barras já pesadas na balança mudam a escala (SPEC §3.9)
           opcoesMontagem: opcoesDeMontagem(perfil.prefs),
         });
