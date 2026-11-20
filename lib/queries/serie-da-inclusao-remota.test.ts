@@ -67,7 +67,7 @@ it("só recebe a posição comprovadamente incorporada pela conta, com o mesmo e
 it("respeita o rascunho da tela, a correção em andamento, a escrita na fila e o ajuste de outra aba no disco", async () => {
   const { recebida, linha, token, provisoria } = await cenario();
   const editada = atualizarSerie(recebida, 3, provisoria.id, { reps: 17 });
-  const corrigindo = { ...recebida, player: { chave: "serie:" + provisoria.id, ordem: 3 } };
+  const corrigindo = { ...recebida, player: { chave: "serie:" + provisoria.id, ordem: 3, fimEm: null, totalS: null } };
   expect(await guardarSeriesQueChegaram(conta, id, token, [linha], () => editada)).toBeUndefined();
   expect(await guardarSeriesQueChegaram(conta, id, token, [linha], () => corrigindo)).toBeUndefined();
   await guardarNaFila("serie", escritaDaSerie(recebida, recebida.blocos[2]!, provisoria), "sessions:" + id);
