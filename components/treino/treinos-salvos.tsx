@@ -12,6 +12,7 @@ import { useRede } from "@/lib/usar-rede";
 export type PainelDosModelos =
   | { tipo: "salvos" }
   | { tipo: "salvar"; id: string; modo: "novo" | "atualizar" | "copia" }
+  | { tipo: "iniciar"; modelo: ModeloDeTreino }
   | { tipo: "excluir"; modelo: ModeloDeTreino }
   | { tipo: "descartar"; proximo: ModeloDeTreino | null };
 
@@ -26,9 +27,12 @@ function impedimentoParaAbrir(modelo: ModeloDeTreino): string | null {
   return "As séries e o descanso deste treino precisam ser confirmados online.";
 }
 
-export function TreinosSalvos({ conta, oculto, aoEscolher, aoExcluir, aoVoltar }: {
+export function TreinosSalvos({ conta, oculto, ocupado, pronto, aoIniciar, aoEscolher, aoExcluir, aoVoltar }: {
   conta: string;
   oculto: boolean;
+  ocupado: boolean;
+  pronto: boolean;
+  aoIniciar: (modelo: ModeloDeTreino, gatilho: HTMLButtonElement) => void;
   aoEscolher: (modelo: ModeloDeTreino | null, gatilho: HTMLButtonElement) => void;
   aoExcluir: (modelo: ModeloDeTreino, gatilho: HTMLButtonElement) => void;
   aoVoltar: () => void;
@@ -55,20 +59,25 @@ export function TreinosSalvos({ conta, oculto, aoEscolher, aoExcluir, aoVoltar }
           {modelos.map(modelo => {
             const motivo = impedimentoParaAbrir(modelo);
             const aviso = motivo ? `aviso-modelo-${modelo.id}` : undefined;
+            const carregar = `carregar-modelo-${modelo.id}`;
             return (
-              <li key={modelo.id} className="flex items-center gap-1 py-1">
-                <button type="button" aria-label={`Carregar ${modelo.nome}`} aria-describedby={aviso} disabled={!!motivo}
-                  className="alvo enabled:hover:bg-muted/50 flex min-w-0 flex-1 flex-col items-start rounded-lg p-2 text-left"
-                  onClick={evento => aoEscolher(modelo, evento.currentTarget)}>
-                  <span className="text-sm font-semibold wrap-anywhere">{modelo.nome}</span>
-                  <span id={aviso} className="text-muted-foreground text-xs wrap-anywhere">
+              <li key={modelo.id} className="space-y-1 py-3">
+                <label htmlFor={carregar} className="block cursor-pointer wrap-anywhere">
+                  <span className="block text-sm font-semibold">{modelo.nome}</span>
+                  <span id={aviso} className="text-muted-foreground block text-xs">
                     {motivo ?? `${modelo.exercicios.length} ${modelo.exercicios.length === 1 ? "exercício" : "exercícios"}`}
                   </span>
-                </button>
-                <Button type="button" size="icon" variant="ghost" className="alvo shrink-0" aria-label={`Excluir ${modelo.nome}`}
-                  onClick={evento => aoExcluir(modelo, evento.currentTarget)}>
-                  <Trash2 aria-hidden="true" />
-                </Button>
+                </label>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button type="button" className={botao} aria-label={`Começar ${modelo.nome}`} aria-describedby={aviso}
+                    disabled={!!motivo || ocupado || !pronto} onClick={evento => aoIniciar(modelo, evento.currentTarget)}>Começar</Button>
+                  <Button id={carregar} type="button" variant="outline" className={botao} aria-label={`Carregar ${modelo.nome}`} aria-describedby={aviso}
+                    disabled={!!motivo || ocupado} onClick={evento => aoEscolher(modelo, evento.currentTarget)}>Carregar</Button>
+                  <Button type="button" size="icon" variant="ghost" className="alvo" disabled={ocupado} aria-label={`Excluir ${modelo.nome}`}
+                    onClick={evento => aoExcluir(modelo, evento.currentTarget)}>
+                    <Trash2 aria-hidden="true" />
+                  </Button>
+                </div>
               </li>
             );
           })}
@@ -76,12 +85,12 @@ export function TreinosSalvos({ conta, oculto, aoEscolher, aoExcluir, aoVoltar }
       )}
       <div className="mt-3 flex flex-wrap gap-2">
         {online && !consulta.isError && modelos.some(m => !ajustesDoModeloConfirmados(m) && modeloCompativelComCatalogo(m)) && (
-          <Button type="button" variant="outline" className={botao} disabled={consulta.isFetching}
+          <Button type="button" variant="outline" className={botao} disabled={consulta.isFetching || ocupado}
             onClick={() => void consulta.refetch()}>{consulta.isFetching ? "Conferindo ajustes…" : "Conferir ajustes"}</Button>
         )}
-        <Button type="button" variant="outline" className={botao}
+        <Button type="button" variant="outline" className={botao} disabled={ocupado}
           onClick={evento => aoEscolher(null, evento.currentTarget)}>Novo treino</Button>
-        <Button type="button" variant="ghost" className={botao} onClick={aoVoltar}>Voltar</Button>
+        <Button type="button" variant="ghost" className={botao} disabled={ocupado} onClick={aoVoltar}>Voltar</Button>
       </div>
     </div>
   );
@@ -129,7 +138,7 @@ export function ConfirmacaoDoModelo({ gravando, erro, aoCancelar, acao, descrica
   gravando: boolean;
   erro: string | null;
   aoCancelar: () => void;
-  acao: "Excluir treino" | "Descartar alterações";
+  acao: "Excluir treino" | "Descartar alterações" | "Começar treino";
   descricao: string;
   aoConfirmar: () => void;
 }) {
@@ -139,8 +148,8 @@ export function ConfirmacaoDoModelo({ gravando, erro, aoCancelar, acao, descrica
       {erro && <p role="alert" className="text-destructive mb-2 text-sm">{erro}</p>}
       <div className="flex flex-wrap gap-2">
         <Button type="button" variant="outline" className={botao} disabled={gravando} onClick={aoCancelar}>Cancelar</Button>
-        <Button type="button" variant="destructive" className={botao} disabled={gravando} onClick={aoConfirmar}>
-          {gravando ? "Excluindo…" : acao}
+        <Button type="button" variant={acao === "Começar treino" ? "default" : "destructive"} className={botao} disabled={gravando} onClick={aoConfirmar}>
+          {gravando ? (acao === "Começar treino" ? "Começando…" : "Excluindo…") : acao}
         </Button>
       </div>
     </div>

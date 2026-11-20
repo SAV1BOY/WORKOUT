@@ -91,7 +91,13 @@ export function useSessaoLivre(ids: readonly string[]) {
           // as barras já pesadas na balança mudam a escala (SPEC §3.9)
           opcoesMontagem: opcoesDeMontagem(perfil.prefs),
         });
-        router.push(`/treinar/${sessao.id}`);
+        try {
+          router.push(`/treinar/${sessao.id}`);
+        } catch {
+          setOcupado(false);
+          toast.error("O treino foi criado, mas não foi possível abri-lo.");
+        }
+        return sessao.id;
       } catch {
         setOcupado(false);
         toast.error("Não consegui começar o treino agora.");
