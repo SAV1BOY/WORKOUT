@@ -77,7 +77,7 @@ export const COLUNAS_DA_TABELA: Record<TabelaBackup, string[]> = {
   ],
   progress_photos: ["id", "user_id", "data", "angulo", "storage_path", "notas"],
   trocas_do_programa: ["user_id", "workout_id", "exercicio_original_id", "substituto_id"],
-  modelos_de_treino: ["user_id", "id", "nome", "exercicios", "equipamento_disponivel"],
+  modelos_de_treino: ["user_id", "id", "nome", "exercicios", "equipamento_disponivel", "series_por_exercicio"],
   schedule_overrides: [
     "id", "user_id", "data", "tipo", "workout_id", "sessao", "motivo",
   ],

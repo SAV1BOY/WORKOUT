@@ -37,6 +37,32 @@ describe("itens da sessão livre", () => {
     expect(itensDeIds([])).toEqual([]);
   });
 
+  it("mantém aquecimentos e aplica a quantidade por exercício, inclusive no plano reaberto", () => {
+    const agachamento = "agachamento-livre";
+    const ids = ["prancha", agachamento];
+    const itens = itensDeIds(ids, { [agachamento]: 2 });
+    const plano = planoDaSessao(itens);
+    expect(itensDoPlano(plano)).toEqual(itens);
+    let n = 0;
+    const sessao = montarSessaoAvulsa({
+      id: "s1", userId: "u1", data: "2026-11-20", fase: "fase1",
+      workoutId: WORKOUT_LIVRE, itens, plano, novoId: () => `serie-${++n}`,
+    });
+    expect(sessao.blocos.map(b => b.exercicioId)).toEqual(ids);
+    expect(sessao.blocos[0]!.prescricao).toEqual(itemDoExercicio(acharExercicio("prancha")).prescricao);
+    expect(sessao.blocos[1]!.series.map(s => [s.tipo, s.setIndex, s.concluida])).toEqual([
+      ["aquecimento", 1, false], ["aquecimento", 2, false], ["trabalho", 1, false], ["trabalho", 2, false],
+    ]);
+    expect(itensDeIds([agachamento])[0]!.prescricao.series).toBe(3);
+  });
+
+  it("respeita os limites das séries e conserva o padrão se o ajuste recebido é inválido", () => {
+    for (const series of [0, 11, 2.5, NaN]) {
+      expect(itensDeIds(IDS, { superman: series })).toEqual(itensDeIds(IDS));
+    }
+    expect(itensDeIds(IDS, { superman: 10, escalador: 1 }).map(i => i.prescricao.series)).toEqual([3, 1, 10]);
+  });
+
   it("a ordem escolhida vale e ninguém some", () => {
     const itens = itensDeIds(IDS);
     const trocados = itensNaOrdem(itens, ["superman", "escalador"]);

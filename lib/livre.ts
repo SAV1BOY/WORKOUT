@@ -12,7 +12,7 @@
 import { acharExercicio, exercicioPorId } from "@/lib/dados";
 import { formatarMinutos } from "@/lib/formato";
 import { aplicarOrdem } from "@/lib/ordem";
-import { prescricaoPadrao } from "@/lib/progressao";
+import { prescricaoPadrao, quantidadeDeSeriesValida } from "@/lib/progressao";
 import type { Exercicio, Implemento, PrescricaoTipo } from "@/lib/schemas";
 import type { ItemDaSessao } from "@/lib/sessao";
 import type { ItemDoPlano, PlanoDaSessao, WorkoutId } from "@/lib/types";
@@ -40,8 +40,13 @@ export function itemDoExercicio(exercicio: Exercicio): ItemDaSessao {
 }
 
 /** Os itens de uma lista de ids (a ordem entra como veio). */
-export function itensDeIds(ids: readonly string[]): ItemDaSessao[] {
-  return ids.filter((id) => exercicioPorId.has(id)).map((id) => itemDoExercicio(acharExercicio(id)));
+export function itensDeIds(ids: readonly string[], seriesPorExercicio?: Readonly<Record<string, number>>): ItemDaSessao[] {
+  return ids.filter(id => exercicioPorId.has(id)).map(id => {
+    const item = itemDoExercicio(acharExercicio(id));
+    const series = seriesPorExercicio?.[id];
+    if (quantidadeDeSeriesValida(series)) item.prescricao.series = series;
+    return item;
+  });
 }
 
 /** Os itens na ordem escolhida em "Editar" (SPEC §14.3); ninguém some. */
