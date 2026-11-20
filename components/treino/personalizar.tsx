@@ -275,7 +275,8 @@ export function Personalizar({ conta, prefs }: { conta: string; prefs?: Prefs })
         </button>
       </SheetTrigger>
 
-      <SheetContent side="bottom" className="flex max-h-[90dvh] flex-col pb-8"
+      <SheetContent side="bottom" className={cn("flex max-h-[90dvh] flex-col pb-8",
+        tela.tipo === "series" && "overflow-y-auto")}
         showCloseButton={!ocupado && !gravando}
         onEscapeKeyDown={evento => {
           if (tela.tipo !== "editor") {

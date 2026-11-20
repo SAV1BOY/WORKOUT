@@ -1,7 +1,7 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 import type { ModeloDeTreino } from "../lib/modelo-de-treino";
 import {
-  abrirVisaoGeral, entrarNoApp, esperarAbaTreino, esperarServiceWorker, fixarData, lerDoMock,
+  abrirVisaoGeral, entrarNoApp, esperarAbaTreino, esperarServiceWorker, fixarData, inserirNoMock, lerDoMock,
   naFila, requisicoesDoMock, resetarMock, semRolagemHorizontal, usuarioComPerfil,
 } from "./fixtures";
 import { comRedeNoWorker, semRedeNoWorker, workerDoApp } from "./rede-do-worker";
@@ -225,4 +225,60 @@ test("o teclado ajusta séries e valida os limites do descanso a 320 px com font
   await ajustar(page).press("Enter");
   await expect(seletor).toHaveValue("");
   await expect(segundos).toHaveValue("900");
+});
+
+async function tocarNoCentro(page: Page, alvo: Locator) {
+  const ponto = await alvo.evaluate(el => {
+    el.scrollIntoView({ block: "center", inline: "nearest", behavior: "instant" });
+    const { left, top, width, height } = el.getBoundingClientRect();
+    const x = left + width / 2;
+    const y = top + height / 2;
+    return { x, y, recebeToque: el.contains(document.elementFromPoint(x, y)) };
+  });
+  expect(ponto, `O centro de ${alvo} deve receber o toque`).toMatchObject({ recebeToque: true });
+  await page.touchscreen.tap(ponto.x, ponto.y);
+}
+
+test("o sexto descanso permite digitar e restaurar por toque quando a altura cai para 420 px", async ({ page }) => {
+  const conta = await usuarioComPerfil({ prefs: { descanso_padrao_s: 70 } });
+  const nome = "Sequência com seis";
+  await inserirNoMock(conta, TABELA, [{
+    id: crypto.randomUUID(), user_id: conta.userId, nome,
+    exercicios: ["supino-reto-com-barra", "supino-inclinado-com-barra", "supino-declinado-com-barra",
+      "supino-reto-com-halteres", "supino-inclinado-com-halteres", "crucifixo-reto"],
+    equipamento_disponivel: null, series_por_exercicio: null, descansos_por_exercicio: null,
+  }]);
+  await page.setViewportSize({ width: 320, height: 740 });
+  await entrarNoApp(page);
+  await carregar(page, nome);
+  await page.addStyleTag({ content: "html { font-size: 200% !important; }" });
+  await ajustar(page).tap();
+  const ultimo = descanso(page, "Crucifixo reto");
+  const confirmar = ajustes(page).getByRole("button", { name: "Pronto", exact: true });
+  const escolhido = editor(page).getByRole("button", { name: "Tirar Crucifixo reto", exact: true });
+  await expect(ajustes(page).getByRole("textbox")).toHaveCount(6);
+  await ultimo.tap();
+  await expect(ultimo).toBeFocused();
+
+  // A redução representa a área que sobra quando o teclado do celular abre.
+  await page.setViewportSize({ width: 320, height: 420 });
+  await tocarNoCentro(page, ultimo);
+  await page.keyboard.type("95");
+  await expect(ultimo).toHaveValue("95");
+  await tocarNoCentro(page, confirmar);
+  await expect(ajustar(page)).toBeFocused();
+  await expect(escolhido).toHaveAccessibleDescription("95 s de descanso");
+
+  await page.setViewportSize({ width: 320, height: 740 });
+  await ajustar(page).tap();
+  await ultimo.tap();
+  await page.setViewportSize({ width: 320, height: 420 });
+  const restaurar = ajustes(page).getByRole("button", { name: "Restaurar descanso padrão de Crucifixo reto", exact: true });
+  await tocarNoCentro(page, restaurar);
+  await expect(ultimo).toBeFocused();
+  await expect(ultimo).toHaveValue("");
+  await expect(ultimo).toHaveAttribute("placeholder", "70");
+  await tocarNoCentro(page, confirmar);
+  await expect(ajustar(page)).toBeFocused();
+  await expect(escolhido).not.toHaveAccessibleDescription("95 s de descanso");
 });

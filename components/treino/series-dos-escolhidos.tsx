@@ -56,7 +56,7 @@ export function SeriesDosEscolhidos({ ref, ids, ajustes, descansos, descansoDaCo
   useImperativeHandle(ref, () => ({ aplicarValidos }));
 
   return (
-    <form ref={formulario} noValidate className="flex min-h-0 flex-1 flex-col gap-3 px-4"
+    <form ref={formulario} noValidate className="flex flex-none flex-col gap-3 px-4"
       onSubmit={evento => {
         evento.preventDefault();
         const invalido = ids.find(id => descansoInvalido(textos[id] ?? ""));
@@ -68,7 +68,7 @@ export function SeriesDosEscolhidos({ ref, ids, ajustes, descansos, descansoDaCo
         aplicarValidos();
         aoFechar();
       }}>
-      <ol aria-label="Séries e descanso dos escolhidos" className="min-h-0 overflow-y-auto divide-y px-1">
+      <ol aria-label="Séries e descanso dos escolhidos" className="divide-y px-1">
         {ids.map(id => {
           const exercicio = acharExercicio(id);
           const padrao = descansoDaConta ?? exercicio.prescricao_padrao.descanso_s;

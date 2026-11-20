@@ -193,25 +193,27 @@ test("§22.8-4: os sete marcadores da faixa têm a mesma caixa e a mesma linha d
   ]);
   await fixarRelogio(page, QUARTA);
   await entrarNoApp(page);
-  await esperarAbaTreino(page);
+  const semana = page.getByRole("region", { name: "Semana", exact: true });
+  const marcadores = semana.locator("[data-dia] [data-glifo]");
+  // O perfil desenha a faixa antes de a consulta de sessões marcar a segunda como feita.
+  await expect(semana.locator('[data-dia="2026-09-14"] [data-glifo]')).toHaveAttribute(
+    "data-glifo", "feito",
+  );
+  const caixas = await marcadores.evaluateAll((els) =>
+    els.map((el) => {
+      const r = el.getBoundingClientRect();
+      return {
+        glifo: (el as HTMLElement).dataset.glifo ?? "",
+        largura: Math.round(r.width),
+        altura: Math.round(r.height),
+        topo: Math.round(r.top),
+      };
+    }),
+  );
 
-  const caixas = await page
-    .locator("[data-dia] [data-glifo]")
-    .evaluateAll((els) =>
-      els.map((el) => {
-        const r = el.getBoundingClientRect();
-        return {
-          glifo: (el as HTMLElement).dataset.glifo ?? "",
-          largura: Math.round(r.width),
-          altura: Math.round(r.height),
-          topo: Math.round(r.top),
-        };
-      }),
-    );
-
-  expect(caixas).toHaveLength(7);
-  // a semana da quarta tem feito, faltou, aberto e descanso: nenhum é igual
-  expect(new Set(caixas.map((c) => c.glifo)).size).toBeGreaterThan(2);
+  expect(caixas.map((c) => c.glifo)).toEqual([
+    "feito", "faltou", "aberto", "descanso", "aberto", "aberto", "descanso",
+  ]);
   for (const c of caixas) {
     expect(c.largura, `caixa de “${c.glifo}”`).toBe(20);
     expect(c.altura, `caixa de “${c.glifo}”`).toBe(20);
