@@ -118,8 +118,13 @@ test("salva a composição final offline, permite cancelar e reabrir sem iniciar
 
   await detalhe(page).getByRole("button", { name: "Fechar", exact: true }).click();
   await irNaAba(page, "Treino");
+  // O clique pode terminar enquanto o roteador ainda está em /relatorio.
+  await expect(page).toHaveURL(url => url.pathname === "/");
+  await esperarAbaTreino(page);
   await semRedeNoWorker(worker);
-  expect((await page.reload())?.fromServiceWorker()).toBe(true);
+  const documento = await page.reload();
+  expect(documento?.fromServiceWorker()).toBe(true);
+  expect(documento?.url()).toBe(new URL("/", page.url()).href);
   await esperarAbaTreino(page);
   await expect(page.getByRole("region", { name: "Treino aberto", exact: true })).toHaveCount(0);
   await carregar(page, nome);
