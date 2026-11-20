@@ -215,7 +215,7 @@ function idsDoModeloValidos(valor: unknown): boolean {
 }
 
 function conferirModeloDeTreino(linha: Linha) {
-  const { id, nome, exercicios, equipamento_disponivel } = linha;
+  const { id, nome, exercicios, equipamento_disponivel, series_por_exercicio } = linha;
   if (typeof id !== "string" || !/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(id)) {
     throw new ErroMock(400, "mock: o id do modelo precisa ser um UUID", { code: "22P02" });
   }
@@ -223,6 +223,13 @@ function conferirModeloDeTreino(linha: Linha) {
   if (!nomeValido || !Array.isArray(exercicios) || exercicios.length === 0 ||
       !idsDoModeloValidos(exercicios) || (equipamento_disponivel !== null && !idsDoModeloValidos(equipamento_disponivel))) {
     throw new ErroMock(400, "mock: nome ou lista inválida no modelo de treino", { code: "23514" });
+  }
+  if (series_por_exercicio === null) return;
+  const selecionados = new Set(exercicios);
+  if (typeof series_por_exercicio !== "object" || Array.isArray(series_por_exercicio) ||
+      !Object.entries(series_por_exercicio).every(([exercicio, series]) =>
+        selecionados.has(exercicio) && typeof series === "number" && Number.isInteger(series) && series >= 1 && series <= 10)) {
+    throw new ErroMock(400, "mock: séries inválidas no modelo de treino", { code: "23514" });
   }
 }
 
@@ -293,7 +300,7 @@ const ESQUEMA: Record<string, EspecTabela> = {
     tocaUpdatedAt: false,
   },
   modelos_de_treino: {
-    colunas: { user_id: nulo, id: nulo, nome: nulo, exercicios: nulo, equipamento_disponivel: nulo },
+    colunas: { user_id: nulo, id: nulo, nome: nulo, exercicios: nulo, equipamento_disponivel: nulo, series_por_exercicio: nulo },
     chave: ["user_id", "id"],
     obrigatorias: ["user_id", "id", "nome", "exercicios"],
     validar: conferirModeloDeTreino,
@@ -950,6 +957,20 @@ function novaLinha(tabela: string, entrada: Linha): Linha {
   return linha;
 }
 
+function linhaAtualizada(tabela: string, anterior: Linha, mudancas: Linha): Linha {
+  const nova = { ...anterior, ...mudancas };
+  // A versão anterior envia a lista completa sem conhecer as séries por exercício.
+  if (tabela === "modelos_de_treino" && !Object.hasOwn(mudancas, "series_por_exercicio") &&
+      Array.isArray(mudancas.exercicios) && anterior.series_por_exercicio != null) {
+    const selecionados = new Set(mudancas.exercicios);
+    nova.series_por_exercicio = Object.fromEntries(
+      Object.entries(anterior.series_por_exercicio).filter(([id]) => selecionados.has(id)),
+    );
+  }
+  ESQUEMA[tabela]?.validar?.(nova);
+  return nova;
+}
+
 function comparar(a: unknown, b: unknown): number {
   if (typeof a === "number" && typeof b === "number") return a - b;
   const sa = String(a);
@@ -1479,9 +1500,7 @@ async function rotaRest(
             code: "23505",
           });
         }
-        for (const [c, v] of Object.entries(entrada)) {
-          if (c in espec.colunas) existente[c] = v;
-        }
+        Object.assign(existente, linhaAtualizada(recurso, existente, entrada));
         if (espec.tocaUpdatedAt) existente.updated_at = agora();
         gravadas.push(existente);
       } else {
@@ -1523,14 +1542,13 @@ async function rotaRest(
       }
     }
     if (espec.semUpdate) alvo.length = 0; // sem policy de update: nada muda
-    if (espec.validar && alvo.length) {
-      if ("user_id" in mudancas && mudancas.user_id !== usuario.id) {
-        throw new ErroMock(403, "mock: RLS — user_id diferente do dono da sessão", { code: "42501" });
-      }
-      for (const linha of alvo) espec.validar({ ...linha, ...mudancas });
+    if (espec.validar && alvo.length && "user_id" in mudancas && mudancas.user_id !== usuario.id) {
+      throw new ErroMock(403, "mock: RLS — user_id diferente do dono da sessão", { code: "42501" });
     }
-    for (const linha of alvo) {
-      Object.assign(linha, mudancas);
+    // Valida o lote inteiro antes de alterar a primeira linha.
+    const atualizadas = alvo.map(linha => linhaAtualizada(recurso, linha, mudancas));
+    for (const [i, linha] of alvo.entries()) {
+      Object.assign(linha, atualizadas[i]);
       linha.user_id = usuario.id;
       if (espec.tocaUpdatedAt) linha.updated_at = agora();
     }

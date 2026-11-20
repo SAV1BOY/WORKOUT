@@ -130,19 +130,19 @@ async function guardar(conta: string, ids: string[], atual: string | undefined, 
   });
 }
 
-async function consultaAntiga<T>(cliente: QueryClient, chave: readonly string[]) {
+async function consultaAntiga<T>(cliente: QueryClient, conta: string, chave: readonly string[]) {
   const memoria = cliente.getQueryState<T>(chave);
   if (memoria?.data !== undefined && Date.now() - memoria.dataUpdatedAt <= VALIDADE_MS) {
     return { valor: memoria.data, atualizadoEm: memoria.dataUpdatedAt };
   }
   if (temIndexedDB()) {
-    const guardada = await lerConsultaGuardadaComData<T>(chave).catch(() => undefined);
+    const guardada = await lerConsultaGuardadaComData<T>(chave, conta).catch(() => undefined);
     if (guardada && Date.now() - guardada.atualizadoEm <= VALIDADE_MS) return guardada;
   }
 }
 
 async function doLegado(cliente: QueryClient, conta: string, ids: readonly string[], faltam: Set<string>, arquivo?: FonteDeSeries) {
-  const antiga = await consultaAntiga<UltimaSerie[]>(cliente, ["ultimas-series", [...ids].sort().join(",")]);
+  const antiga = await consultaAntiga<UltimaSerie[]>(cliente, conta, ["ultimas-series", [...ids].sort().join(",")]);
   const completo = arquivo?.linhas.filter(s => faltam.has(s.exercise_id));
   // O recorte antigo de 120 não comprova que as séries de uma sessão estão todas presentes.
   if (!Array.isArray(antiga?.valor) || antiga.valor.length >= PAGINA ||
@@ -156,12 +156,12 @@ async function doLegado(cliente: QueryClient, conta: string, ids: readonly strin
   const reconhecer = (lista: Dono[] | undefined) => {
     if (Array.isArray(lista)) for (const s of lista) if (s?.user_id === conta) sessoes.add(s.id);
   };
-  reconhecer((await consultaAntiga<Dono[]>(cliente, ["sessoes"]))?.valor);
+  reconhecer((await consultaAntiga<Dono[]>(cliente, conta, ["sessoes"]))?.valor);
   if (candidatas.some(s => s.user_id === undefined && !sessoes.has(s.session_id))) {
     const disco = temIndexedDB() ? await bd().cache.get(chaveDoHistoricoNoDisco(conta)).catch(() => undefined) : undefined;
     if (disco && Date.now() - disco.atualizadoEm <= VALIDADE_MS) reconhecer(disco.valor as Dono[]);
-    reconhecer((await consultaAntiga<Dono[]>(cliente, chaveDoHistorico(conta)))?.valor);
-    reconhecer((await consultaAntiga<Dono[]>(cliente, ["progresso", "sessoes"]))?.valor);
+    reconhecer((await consultaAntiga<Dono[]>(cliente, conta, chaveDoHistorico(conta)))?.valor);
+    reconhecer((await consultaAntiga<Dono[]>(cliente, conta, ["progresso", "sessoes"]))?.valor);
   }
   const proprias = candidatas.filter(s => s.user_id === undefined ? sessoes.has(s.session_id) : s.user_id === conta);
   if (!completo) return { linhas: proprias, atualizadoEm: antiga.atualizadoEm };

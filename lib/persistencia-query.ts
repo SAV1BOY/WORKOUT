@@ -24,31 +24,55 @@ const INTERVALO_MS = 1_000;
 
 interface Guardado {
   salvoEm: number;
+  conta?: string;
   /** Versões antigas só guardavam o horário da cópia. */
   sincronizadoEm?: number | null;
   estado: DehydratedState;
 }
 
-const leiturasDaRede = new WeakMap<QueryClient, number>();
+interface Persistencia {
+  conta?: string;
+  sincronizadoEm?: number;
+  situacao: "ativa" | "inativa" | "encerrada";
+  parar?: () => void;
+  gravacoes: Set<Promise<void>>;
+}
+
+const persistencias = new WeakMap<QueryClient, Persistencia>();
+function controle(cliente: QueryClient): Persistencia {
+  let estado = persistencias.get(cliente);
+  if (!estado) {
+    estado = { situacao: "ativa", gravacoes: new Set() };
+    persistencias.set(cliente, estado);
+  }
+  return estado;
+}
+
+function pertenceAConta(cache: Guardado, conta?: string, exigirDono = false): boolean {
+  if (!conta) return true;
+  const perfil = cache.estado?.queries.find(q => q.queryKey.length === 1 && q.queryKey[0] === "perfil")?.state.data as { user_id?: unknown } | undefined;
+  return (!cache.conta || cache.conta === conta) && (typeof perfil?.user_id !== "string" || perfil.user_id === conta) &&
+    (!exigirDono || cache.conta === conta || perfil?.user_id === conta);
+}
 
 function horarioDaSincronizacao(cache: Guardado): number | null {
   return cache.sincronizadoEm === undefined ? cache.salvoEm : cache.sincronizadoEm;
 }
 
-export async function lerUltimaSincronizacao(): Promise<number | null> {
+export async function lerUltimaSincronizacao(conta?: string): Promise<number | null> {
   const cache = await lerCache<Guardado>(CHAVE_CACHE);
-  return cache ? horarioDaSincronizacao(cache) : null;
+  return cache && pertenceAConta(cache, conta) ? horarioDaSincronizacao(cache) : null;
 }
 
 /** Primeira leitura depois de atualizar o app, mesmo antes de o React Query hidratar o cache. */
-export async function lerConsultaGuardada<T>(chave: readonly string[]): Promise<T | undefined> {
-  return (await lerConsultaGuardadaComData<T>(chave))?.valor;
+export async function lerConsultaGuardada<T>(chave: readonly string[], conta?: string): Promise<T | undefined> {
+  return (await lerConsultaGuardadaComData<T>(chave, conta))?.valor;
 }
 
 /** Usa a data da leitura ou edição para comparar a consulta com uma cópia gravada separadamente. */
-export async function lerConsultaGuardadaComData<T>(chave: readonly string[]): Promise<{ valor: T; atualizadoEm: number } | undefined> {
+export async function lerConsultaGuardadaComData<T>(chave: readonly string[], conta?: string): Promise<{ valor: T; atualizadoEm: number } | undefined> {
   const cache = await lerCache<Guardado>(CHAVE_CACHE);
-  if (!cache || Date.now() - cache.salvoEm > VALIDADE_MS) return undefined;
+  if (!cache || !pertenceAConta(cache, conta) || Date.now() - cache.salvoEm > VALIDADE_MS) return undefined;
   const consulta = cache.estado.queries.find(q => q.queryKey.length === chave.length && chave.every((v, i) => q.queryKey[i] === v));
   if (!consulta || consulta.state.data === undefined) return undefined;
   return { valor: consulta.state.data as T, atualizadoEm: consulta.state.dataUpdatedAt ?? cache.salvoEm };
@@ -74,7 +98,8 @@ function temCopiaPropria(chave: readonly unknown[]): boolean {
 
 /** Grava o estado atual sem aguardar o intervalo das escritas em segundo plano. */
 export async function guardarConsultasAgora(cliente: QueryClient): Promise<void> {
-  if (!temIndexedDB()) return;
+  const registro = controle(cliente);
+  if (!temIndexedDB() || registro.situacao !== "ativa") return;
   const estado = dehydrate(cliente, {
     /*
      * Tudo que TEM dado, não só o que está com `status: "success"`. Sem rede
@@ -87,19 +112,22 @@ export async function guardarConsultasAgora(cliente: QueryClient): Promise<void>
       q.state.data !== undefined && q.state.status !== "pending" &&
       !temUrlLocalDeFoto(q.queryKey, q.state.data) && !temCopiaPropria(q.queryKey),
   });
-  await guardarCache(CHAVE_CACHE, {
-    salvoEm: Date.now(),
-    sincronizadoEm: leiturasDaRede.get(cliente) ?? null,
-    estado,
+  const gravacao = guardarCache(CHAVE_CACHE, {
+    conta: registro.conta, salvoEm: Date.now(), sincronizadoEm: registro.sincronizadoEm ?? null, estado,
   } satisfies Guardado);
+  registro.gravacoes.add(gravacao);
+  try { await gravacao; } finally { registro.gravacoes.delete(gravacao); }
 }
 
 /**
  * Restaura o que foi salvo da última vez e passa a salvar as mudanças.
  * Devolve a função que desliga a assinatura.
  */
-export function persistirQueryClient(cliente: QueryClient): () => void {
-  if (!temIndexedDB()) return () => {};
+export function persistirQueryClient(cliente: QueryClient, conta?: string): () => void {
+  const registro = controle(cliente);
+  if (!temIndexedDB() || registro.situacao === "encerrada") return () => {};
+  registro.situacao = "ativa";
+  registro.conta = conta;
 
   let vivo = true;
   let agendado: ReturnType<typeof setTimeout> | null = null;
@@ -112,11 +140,11 @@ export function persistirQueryClient(cliente: QueryClient): () => void {
   void (async () => {
     try {
       const guardado = await lerCache<Guardado>(CHAVE_CACHE);
-      if (!vivo || !guardado) return;
+      if (!vivo || !guardado || !pertenceAConta(guardado, conta, true)) return;
       if (Date.now() - guardado.salvoEm > VALIDADE_MS) return;
       const anterior = horarioDaSincronizacao(guardado);
-      if (anterior != null && anterior > (leiturasDaRede.get(cliente) ?? 0)) {
-        leiturasDaRede.set(cliente, anterior);
+      if (anterior != null && anterior > (registro.sincronizadoEm ?? 0)) {
+        registro.sincronizadoEm = anterior;
       }
       // Os caches gravados por versões anteriores também podem conter URLs vencidas.
       hydrate(cliente, {
@@ -132,15 +160,29 @@ export function persistirQueryClient(cliente: QueryClient): () => void {
     if (!vivo) return;
     // Atualizações otimistas e gravações no aparelho não são novas leituras da rede.
     if (evento.type === "updated" && evento.action.type === "success" && !evento.action.manual && navigator.onLine) {
-      leiturasDaRede.set(cliente, Date.now());
+      registro.sincronizadoEm = Date.now();
     }
     if (agendado !== null) return;
     agendado = setTimeout(salvar, INTERVALO_MS);
   });
 
-  return () => {
+  const parar = () => {
     vivo = false;
     if (agendado !== null) clearTimeout(agendado);
     cancelar();
+    if (registro.situacao === "ativa") registro.situacao = "inativa";
+    registro.parar = undefined;
   };
+  registro.parar = parar;
+  return parar;
+}
+
+/** Impede inclusive gravações diretas e espera o último put antes de apagar o IndexedDB. */
+export async function encerrarConsultasParaSair(cliente: QueryClient): Promise<void> {
+  const registro = controle(cliente);
+  registro.situacao = "encerrada";
+  registro.parar?.();
+  await cliente.cancelQueries();
+  cliente.clear();
+  await Promise.allSettled(registro.gravacoes);
 }

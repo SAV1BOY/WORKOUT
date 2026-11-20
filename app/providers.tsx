@@ -3,7 +3,8 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { observarInstalacao } from "@/lib/instalar-app";
 import { useTheme, ThemeProvider } from "next-themes";
-import { useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import type { LinhaPerfil } from "@/lib/types";
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
 import { observarConciliacoesDoCardio } from "@/lib/espelhos-dos-saltos";
@@ -38,28 +39,35 @@ function CorDoTema() {
   return null;
 }
 
-export function Providers({ children }: { children: ReactNode }) {
-  const [cliente] = useState(
-    () =>
-      new QueryClient({
-        defaultOptions: {
-          queries: {
-            staleTime: 30_000,
-            retry: 2,
-            refetchOnWindowFocus: false,
-          },
-        },
-      }),
-  );
+// Uma falha de transporte pode deixar a conta aberta após a limpeza. Um novo
+// cliente volta a ler essa conta e o botão oferece repetir a saída.
+const SaidaDaConta = createContext({ falhou: false, recuperar: () => {} });
+export const useSaidaDaConta = () => useContext(SaidaDaConta);
 
+type PropsDaConta = { conta: string; perfilInicial?: { valor: LinhaPerfil; atualizadoEm: number }; children: ReactNode };
+
+export function ConsultasDaConta(props: PropsDaConta) {
+  const [tentativa, renovar] = useState(0);
+  return (
+    <SaidaDaConta.Provider value={{ falhou: tentativa > 0, recuperar: () => renovar(n => n + 1) }}>
+      <ClienteDaConta key={`${props.conta}:${tentativa}`} {...props} />
+    </SaidaDaConta.Provider>
+  );
+}
+
+function ClienteDaConta({ conta, perfilInicial, children }: PropsDaConta) {
+  const [cliente] = useState(() => {
+    const novo = new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, retry: 2, refetchOnWindowFocus: false } } });
+    if (perfilInicial) novo.setQueryData(["perfil"], perfilInicial.valor, { updatedAt: perfilInicial.atualizadoEm });
+    return novo;
+  });
   useEffect(() => {
-    // o React hidratou: o vigia da tela morta pode descansar (lib/vigia.ts)
-    marcarAppVivo();
-    iniciarOutbox((n) => toast.success(n === 1 ? "1 registro subiu." : `${n} registros subiram.`));
-    const pararPedidoDeControle = pedirControleDaPagina(navigator.serviceWorker, location.origin);
-    // SPEC §8: a tela abre com os dados da última sincronização
-    const pararInstalacao = observarInstalacao();
-    const pararCache = persistirQueryClient(cliente);
+    if (perfilInicial && perfilInicial.atualizadoEm > (cliente.getQueryState(["perfil"])?.dataUpdatedAt ?? 0)) {
+      cliente.setQueryData(["perfil"], perfilInicial.valor, { updatedAt: perfilInicial.atualizadoEm });
+    }
+  }, [cliente, perfilInicial]);
+  useEffect(() => {
+    const pararCache = persistirQueryClient(cliente, conta);
     const pararCardio = observarConciliacoesDoCardio(cliente);
     const pararConciliacoes = observarConciliacoesDeSeries(cliente);
     // Uma página aberta sem rede recebe o primeiro evento online sem ter visto a desconexão anterior.
@@ -71,26 +79,27 @@ export function Providers({ children }: { children: ReactNode }) {
     window.addEventListener("online", relerCardio);
     return () => {
       window.removeEventListener("online", relerCardio);
-      pararPedidoDeControle();
-      pararInstalacao();
       pararCache();
       pararConciliacoes();
       pararCardio();
     };
-  }, [cliente]);
+  }, [cliente, conta]);
+  return <QueryClientProvider client={cliente}>{children}</QueryClientProvider>;
+}
 
+export function Providers({ children }: { children: ReactNode }) {
+  useEffect(() => {
+    marcarAppVivo();
+    iniciarOutbox((n) => toast.success(n === 1 ? "1 registro subiu." : `${n} registros subiram.`));
+    const pararPedidoDeControle = pedirControleDaPagina(navigator.serviceWorker, location.origin);
+    const pararInstalacao = observarInstalacao();
+    return () => { pararPedidoDeControle(); pararInstalacao(); };
+  }, []);
   return (
-    <ThemeProvider
-      attribute="class"
-      defaultTheme="system"
-      enableSystem
-      disableTransitionOnChange
-    >
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
       <CorDoTema />
-      <QueryClientProvider client={cliente}>
-        {children}
-        <Toaster position="bottom-center" offset={88} mobileOffset={{ bottom: "calc(5rem + env(safe-area-inset-bottom))" }} richColors />
-      </QueryClientProvider>
+      {children}
+      <Toaster position="bottom-center" offset={88} mobileOffset={{ bottom: "calc(5rem + env(safe-area-inset-bottom))" }} richColors />
     </ThemeProvider>
   );
 }

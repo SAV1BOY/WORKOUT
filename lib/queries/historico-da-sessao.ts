@@ -45,8 +45,8 @@ export async function baseDoHistoricoNoDisco(cliente: QueryClient | undefined, c
   if (arquivo && (cobertura?.completa || (!cobertura && (!arquivo.length ||
       arquivo.some(s => s.seriesDeTrabalhoLocais === undefined))))) return recuperarOrdensDoClienteAnterior(conta, daConta(arquivo));
   const anteriores = ["progresso", "sessoes"] as const, recentes = ["sessoes"] as const;
-  const legado = cliente?.getQueryData<SessaoBruta[]>(anteriores) ?? await lerConsultaGuardada<SessaoBruta[]>(anteriores);
-  const resumo = cliente?.getQueryData<SessaoBruta[]>(recentes) ?? await lerConsultaGuardada<SessaoBruta[]>(recentes);
+  const legado = cliente?.getQueryData<SessaoBruta[]>(anteriores) ?? await lerConsultaGuardada<SessaoBruta[]>(anteriores, conta);
+  const resumo = cliente?.getQueryData<SessaoBruta[]>(recentes) ?? await lerConsultaGuardada<SessaoBruta[]>(recentes, conta);
   const memoria = cliente?.getQueryData<SessaoBruta[]>(chaveDoHistorico(conta));
   if (!resumo && !legado && !memoria && !arquivo) return;
   const ausentes = new Set(cobertura?.ausentes);

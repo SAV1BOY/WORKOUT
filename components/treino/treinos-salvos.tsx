@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { SheetDescription } from "@/components/ui/sheet";
 import { modeloCompativelComCatalogo } from "@/lib/modelo-de-treino";
 import { useModelosDeTreino, type ModeloDeTreino } from "@/lib/queries/modelos-de-treino";
+import { useRede } from "@/lib/usar-rede";
 
 export type PainelDosModelos =
   | { tipo: "salvos" }
@@ -24,6 +25,7 @@ export function TreinosSalvos({ conta, oculto, aoEscolher, aoExcluir, aoVoltar }
   aoVoltar: () => void;
 }) {
   const consulta = useModelosDeTreino(conta);
+  const online = useRede();
   const modelos = [...(consulta.data ?? [])].sort((a, b) =>
     a.nome.localeCompare(b.nome, "pt-BR") || a.id.localeCompare(b.id),
   );
@@ -42,17 +44,17 @@ export function TreinosSalvos({ conta, oculto, aoEscolher, aoExcluir, aoVoltar }
       {modelos.length > 0 && (
         <ul aria-label="Treinos salvos" className="divide-y">
           {modelos.map(modelo => {
-            const compativel = modeloCompativelComCatalogo(modelo);
-            const aviso = compativel ? undefined : `modelo-incompativel-${modelo.id}`;
+            const motivo = !modeloCompativelComCatalogo(modelo) ? "Atualize o app para usar este treino"
+              : modelo.series_por_exercicio === undefined ? "As séries deste treino precisam ser confirmadas online." : null;
+            const aviso = motivo ? `aviso-modelo-${modelo.id}` : undefined;
             return (
               <li key={modelo.id} className="flex items-center gap-1 py-1">
-                <button type="button" aria-label={`Carregar ${modelo.nome}`} aria-describedby={aviso} disabled={!compativel}
+                <button type="button" aria-label={`Carregar ${modelo.nome}`} aria-describedby={aviso} disabled={!!motivo}
                   className="alvo enabled:hover:bg-muted/50 flex min-w-0 flex-1 flex-col items-start rounded-lg p-2 text-left"
                   onClick={evento => aoEscolher(modelo, evento.currentTarget)}>
                   <span className="text-sm font-semibold wrap-anywhere">{modelo.nome}</span>
                   <span id={aviso} className="text-muted-foreground text-xs wrap-anywhere">
-                    {compativel ? `${modelo.exercicios.length} ${modelo.exercicios.length === 1 ? "exercício" : "exercícios"}`
-                      : "Atualize o app para usar este treino"}
+                    {motivo ?? `${modelo.exercicios.length} ${modelo.exercicios.length === 1 ? "exercício" : "exercícios"}`}
                   </span>
                 </button>
                 <Button type="button" size="icon" variant="ghost" className="alvo shrink-0" aria-label={`Excluir ${modelo.nome}`}
@@ -65,6 +67,10 @@ export function TreinosSalvos({ conta, oculto, aoEscolher, aoExcluir, aoVoltar }
         </ul>
       )}
       <div className="mt-3 flex flex-wrap gap-2">
+        {online && !consulta.isError && modelos.some(m => m.series_por_exercicio === undefined && modeloCompativelComCatalogo(m)) && (
+          <Button type="button" variant="outline" className={botao} disabled={consulta.isFetching}
+            onClick={() => void consulta.refetch()}>{consulta.isFetching ? "Conferindo séries…" : "Conferir séries"}</Button>
+        )}
         <Button type="button" variant="outline" className={botao}
           onClick={evento => aoEscolher(null, evento.currentTarget)}>Novo treino</Button>
         <Button type="button" variant="ghost" className={botao} onClick={aoVoltar}>Voltar</Button>

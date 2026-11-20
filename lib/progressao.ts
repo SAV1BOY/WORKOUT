@@ -31,6 +31,14 @@ import type { LinhaEstadoExercicio, MotivoProgressao, TipoSerie } from "@/lib/ty
 
 /* ------------------------------------------------------------ constantes */
 
+export const MIN_SERIES_DA_SESSAO = 1;
+export const MAX_SERIES_DA_SESSAO = 10;
+
+export function quantidadeDeSeriesValida(valor: unknown): valor is number {
+  return typeof valor === "number" && Number.isInteger(valor) &&
+    valor >= MIN_SERIES_DA_SESSAO && valor <= MAX_SERIES_DA_SESSAO;
+}
+
 /** Menor passo possível com este estoque de anilhas: 1 kg de cada lado. */
 export const PASSO_MINIMO_KG = 2;
 

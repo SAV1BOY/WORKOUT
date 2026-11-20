@@ -1,7 +1,7 @@
 import { dehydrate, QueryClient } from "@tanstack/react-query";
 import { afterEach, expect, it, vi } from "vitest";
 import { guardarCache, lerCache } from "@/lib/db";
-import { guardarConsultasAgora, lerUltimaSincronizacao, persistirQueryClient } from "@/lib/persistencia-query";
+import { encerrarConsultasParaSair, guardarConsultasAgora, lerConsultaGuardada, lerUltimaSincronizacao, persistirQueryClient } from "@/lib/persistencia-query";
 
 vi.mock("@/lib/db", () => ({
   temIndexedDB: () => true,
@@ -80,4 +80,70 @@ it("o detalhe de uma sessão permanece só no seu próprio cache e a ficha antig
     reaberto.clear();
     agrupadas.clear();
   }
+});
+
+
+it("encerra timer, hidratação e escritas diretas e espera todos os puts iniciados antes da limpeza do aparelho", async () => {
+  vi.useFakeTimers();
+  vi.stubGlobal("navigator", { onLine: true });
+  const a = new QueryClient();
+  const leituraAntiga = Promise.withResolvers<unknown>();
+  vi.mocked(lerCache).mockReturnValueOnce(leituraAntiga.promise);
+  const parar = persistirQueryClient(a, "ana");
+  a.setQueryData(["perfil"], { user_id: "ana" });
+  const tentativa1 = Promise.withResolvers<void>(), tentativa2 = Promise.withResolvers<void>();
+  vi.mocked(guardarCache).mockReturnValueOnce(tentativa1.promise).mockReturnValueOnce(tentativa2.promise);
+  const direta = guardarConsultasAgora(a);
+  await vi.advanceTimersByTimeAsync(1_000); // a escrita automática também já começou.
+  a.setQueryData(["outra"], "agendada");
+  let podeLimpar = false;
+  const conclusao = encerrarConsultasParaSair(a).then(() => { podeLimpar = true; });
+  const antiga = dehydrate(a);
+  leituraAntiga.resolve({ conta: "ana", salvoEm: Date.now(), estado: antiga });
+  await vi.advanceTimersByTimeAsync(2_000);
+  expect(a.getQueryData(["perfil"])).toBeUndefined();
+  await guardarConsultasAgora(a);
+  expect(guardarCache).toHaveBeenCalledTimes(2);
+  expect(podeLimpar).toBe(false);
+  tentativa2.resolve();
+  await Promise.resolve();
+  expect(podeLimpar).toBe(false);
+  tentativa1.resolve();
+  await Promise.all([direta, conclusao]);
+  expect(podeLimpar).toBe(true);
+  parar();
+
+  // O novo login usa outro cliente inclusive ao navegar no mesmo documento.
+  const b = new QueryClient();
+  vi.mocked(lerCache).mockResolvedValue(null);
+  const pararB = persistirQueryClient(b, "bia");
+  b.setQueryData(["perfil"], { user_id: "bia" });
+  await guardarConsultasAgora(a);
+  await guardarConsultasAgora(b);
+  expect(guardarCache).toHaveBeenCalledTimes(3);
+  expect(guardarCache).toHaveBeenLastCalledWith("react-query-v1", expect.objectContaining({ conta: "bia" }));
+  pararB();
+});
+
+it.each([
+  { caso: "legado do próprio perfil", marca: undefined, perfil: "bia", aceita: true },
+  { caso: "legado com perfil de outra conta", marca: undefined, perfil: "ana", aceita: false },
+  { caso: "legado sem prova da conta", marca: undefined, perfil: undefined, aceita: false },
+  { caso: "marcado pela própria conta antes de ler o perfil", marca: "bia", perfil: undefined, aceita: true },
+  { caso: "marcador de outra conta", marca: "ana", perfil: undefined, aceita: false },
+  { caso: "perfil diferente do marcador", marca: "bia", perfil: "ana", aceita: false },
+])("a hidratação da conta confere o dono do snapshot $caso", async ({ marca, perfil, aceita }) => {
+  const origem = new QueryClient(), destino = new QueryClient();
+  if (perfil) origem.setQueryData(["perfil"], { user_id: perfil });
+  origem.setQueryData(["series"], [{ user_id: "bia", reps: 7 }]);
+  vi.mocked(lerCache).mockResolvedValue({ conta: marca, salvoEm: Date.now(), estado: dehydrate(origem) });
+  const parar = persistirQueryClient(destino, "bia");
+  await Promise.resolve();
+  expect(destino.getQueryData(["series"])).toEqual(aceita ? [{ user_id: "bia", reps: 7 }] : undefined);
+  // Os leitores legados inspecionam os donos linha a linha quando não havia perfil ou marcador.
+  const podeLerLinhas = aceita || (!marca && !perfil);
+  expect(await lerConsultaGuardada(["series"], "bia")).toEqual(podeLerLinhas ? [{ user_id: "bia", reps: 7 }] : undefined);
+  parar();
+  origem.clear();
+  destino.clear();
 });

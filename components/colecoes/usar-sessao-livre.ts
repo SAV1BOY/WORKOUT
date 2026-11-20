@@ -4,6 +4,7 @@ import { useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useCallback, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { itensDeIds } from "@/lib/livre";
 import { estadosPorExercicio } from "@/lib/hoje";
 import { opcoesDeMontagem } from "@/lib/preferencias";
 import { confirmarContaDoTreino } from "@/lib/queries/conta-do-treino";
@@ -54,7 +55,10 @@ export function useSessaoLivre(ids: readonly string[]) {
   const comecar = useCallback(
     async (
       escolhidos: readonly string[],
-      opcoes: Pick<EntradaCriacaoLivre, "titulo" | "colecao" | "equipamentosDisponiveis"> & { contaDoModelo?: string } = {},
+      opcoes: Pick<EntradaCriacaoLivre, "titulo" | "colecao" | "equipamentosDisponiveis"> & {
+        contaDoModelo?: string;
+        seriesPorExercicio?: Readonly<Record<string, number>>;
+      } = {},
     ) => {
       const perfil = perfilQ.data;
       if (!perfil || !hoje || escolhidos.length === 0) return;
@@ -79,7 +83,7 @@ export function useSessaoLivre(ids: readonly string[]) {
           userId: perfil.user_id,
           data: hoje,
           fase: perfil.fase_atual,
-          exercicios: escolhidos,
+          itens: itensDeIds(escolhidos, opcoes.seriesPorExercicio),
           titulo: opcoes.titulo ?? null,
           colecao: opcoes.colecao ?? null,
           equipamentosDisponiveis: opcoes.equipamentosDisponiveis,

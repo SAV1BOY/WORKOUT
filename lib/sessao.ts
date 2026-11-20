@@ -34,6 +34,8 @@ import {
   type OpcoesMontagem,
 } from "@/lib/montagem";
 import {
+  MAX_SERIES_DA_SESSAO,
+  MIN_SERIES_DA_SESSAO,
   cargaDeHoje,
   decidir,
   prescricaoDoTreino,
@@ -787,8 +789,7 @@ export function marcarSerie(
 
 /* --------------------------------- prescrição só de hoje (SPEC §14.2) */
 
-export const MIN_SERIES_DA_SESSAO = 1;
-export const MAX_SERIES_DA_SESSAO = 10;
+export { MAX_SERIES_DA_SESSAO, MIN_SERIES_DA_SESSAO } from "@/lib/progressao";
 
 /**
  * O stepper Duração / Repetições / Séries da ficha (SPEC §14.2): muda **só a

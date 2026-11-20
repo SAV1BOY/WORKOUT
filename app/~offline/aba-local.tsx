@@ -30,7 +30,7 @@ export default function AbaLocal({ aba, vinculo, videos, children }: {
       {children}
       <TemaDoPerfil />
       <VideosDoApp ids={videos}>
-        <EstadoDaRede />
+        <EstadoDaRede conta={vinculo.conta} />
         <Miolo>
           {aba === "/" && <Treino userId={vinculo.conta} />}
           {aba === "/relatorio" && <Relatorio userId={vinculo.conta} />}

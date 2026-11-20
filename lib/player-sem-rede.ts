@@ -58,7 +58,7 @@ export async function vinculoParaAbaLocal(aba: CaminhoDeAbaLocal) {
   if (aba === "/relatorio") {
     // Antes da nota do treino, a consulta global já trazia o dono em cada linha.
     const sessoes = await lerCache<{ user_id: string }[]>(chaveDoHistoricoNoDisco(vinculo.conta))
-      ?? await lerConsultaGuardada<{ user_id: string }[]>(["progresso", "sessoes"]);
+      ?? await lerConsultaGuardada<{ user_id: string }[]>(["progresso", "sessoes"], vinculo.conta);
     if (!Array.isArray(sessoes) || !sessoes.every(s => s?.user_id === vinculo.conta)) return null;
   }
   return { vinculo, perfil };

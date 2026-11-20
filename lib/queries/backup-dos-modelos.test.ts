@@ -76,6 +76,7 @@ it("reexporta os modelos atuais e os de outra versão, com a ordem e o material 
   const futuro = { ...segundo, nome: "Salvo em outro aparelho",
     exercicios: ["flexao-de-braco", "movimento-de-outra-versao", "prancha"],
     equipamento_disponivel: ["material-de-outra-versao", "tatame"],
+    series_por_exercicio: { "movimento-de-outra-versao": 1, prancha: 4 },
   };
   const modelos = [modelo, futuro];
   vi.mocked(lerTabelaCompleta).mockImplementation(async (tabela, _colunas, _nome, conta) =>

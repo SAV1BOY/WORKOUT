@@ -226,9 +226,10 @@ test("editar e excluir o modelo preserva as sessões e a progressão usada em ca
   await expect.poll(() => series(conta, segunda)).toMatchObject([{ id: expect.stringMatching(UUID), concluida: true, carga_kg: 31.5 }]);
   const seriesNovas = await series(conta, segunda);
   expect(seriesNovas[0]!.id).not.toBe(seriesAnteriores[0]!.id);
-  await geral(page).getByRole("link", { name: "Continuar depois", exact: true }).click();
+  await geral(page).getByRole("link", { name: "Continuar depois", exact: true }).tap();
   await esperarAbaTreino(page);
-  await personalizar(page).click();
+  // O aviso de retomada pode cobrir o centro do cartão enquanto seu título continua visível.
+  await personalizar(page).getByText("Personalizar treino", { exact: true }).tap();
   await abrirBiblioteca(page);
   const excluir = botao(biblioteca(page), `Excluir ${atual}`);
   await excluir.press("Enter");

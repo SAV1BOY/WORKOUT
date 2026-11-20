@@ -16,8 +16,12 @@ export async function guardarPerfilLido(perfil: LinhaPerfil, lidoEm: number, sin
 
 /** O gate já conferiu o login. Um snapshot de outra conta pode trazer outras consultas pessoais e impede abrir a aba. */
 export async function lerPerfilDoAparelho(conta: string): Promise<{ valor: LinhaPerfil; atualizadoEm: number } | undefined> {
-  const geral = await lerConsultaGuardadaComData<LinhaPerfil | null>(["perfil"]);
-  if (geral?.valor && geral.valor.user_id !== conta) return undefined;
+  const geral = await lerConsultaGuardadaComData<LinhaPerfil | null>(["perfil"], conta);
+  if (!geral) {
+    // A cópia isolada do perfil só abre a aba quando o login e o dono do snapshot concordam.
+    const snapshot = await lerConsultaGuardadaComData<Pick<LinhaPerfil, "user_id"> | null>(["perfil"]);
+    if (snapshot?.valor && snapshot.valor.user_id !== conta) return undefined;
+  }
   const propria = await bd().cache.get(`perfil-lido:${conta}`);
   const perfil = propria?.valor as LinhaPerfil | undefined;
   if (propria && perfil?.user_id === conta && Date.now() - propria.atualizadoEm <= VALIDADE_MS &&
