@@ -13535,3 +13535,27 @@ Em 320 px com fonte a 200%, o primeiro candidato deixava apenas 32 px para o nom
 O build local passou em lint, 2.412 testes unitários em 127 arquivos e nove fluxos de Chromium de reordenação do treino do dia e treino personalizado. No WebKit emulado, sete toques permitiram adiantar o último exercício e usar Voltar duas vezes. A primeira volta devolveu o foco a **Reordenar escolhidos** no catálogo, com a busca e a ordem escolhidas. A segunda fechou a folha e devolveu o foco a **Personalizar treino**.
 
 Na revisão `5661334`, 867 dos 868 cenários de Chromium passaram. O teste da sombra escura da faixa fixa tentou rolar a aba Treino antes de o treino do dia aparecer. No ensaio com a resposta do perfil retida, a tela de carregamento e a janela tinham ambas 740 px. A rolagem permaneceu em zero. Depois que os seis exercícios apareceram, a mesma página media 2.488 px. A preparação do teste agora aguarda a lista do treino antes de rolar e medir a sombra. O tema claro e o escuro passaram no próprio binário da rodada. [Primeira validação do PR #60](https://github.com/SAV1BOY/WORKOUT/actions/runs/44651501089)
+
+### Publicação da reordenação no treino personalizado
+
+O Treino do Terraço publicou **Reordenar escolhidos** em **Treino → Personalizar treino**. A revisão `8d261a2` passou no lint, no build, em 2.412 testes unitários (127 arquivos) e em 868 cenários de Chromium (226, 218, 236 e 188). A integração `144206d9da7705d63ff3ec4b4484d872941bece5` tem a mesma árvore `c9673267d896c5e02fa64914094a356403f027d2`. A Vercel confirmou a publicação e o domínio respondeu HTTP 200 com esse commit. [PR #60](https://github.com/SAV1BOY/WORKOUT/pull/60) · [Testes da revisão](https://github.com/SAV1BOY/WORKOUT/actions/runs/44653888943) · [Versão em produção](https://treino-terraco.vercel.app/versao)
+
+A integração acionou a repetição da suíte sobre a `main`. [Testes da integração do #60](https://github.com/SAV1BOY/WORKOUT/actions/runs/44655790212)
+
+### Escolher o material antes de começar um treino personalizado
+
+No binário oficial do #60, marquei tatame e elástico para o A1 e abri **Treino → Personalizar treino**. O catálogo ofereceu os 93 exercícios, inclusive supino com barra. Ao escolher Remada com elástico e começar, a sessão livre abriu com os 12 itens do inventário. Só dentro da sessão foi possível indicar o material para procurar o próximo exercício. O Hevy também permite filtrar os exercícios por equipamento durante a montagem de uma rotina. [Filtros da biblioteca do Hevy](https://www.hevyapp.com/features/exercise-library/)
+
+A escolha de material do treino livre pertence à sessão que a pessoa está montando. O campo existente `sessions.plano.equipamento_disponivel` já permite conservar esse material no aparelho, no backup e em outros clientes do app.
+
+O Chromium verificou os 9 exercícios só com o corpo e os 24 com tatame e elástico. A Flexão de braço mostrou “Peso do corpo” quando o tatame estava desmarcado. A busca por supino só ofereceu a versão com halteres quando halteres, banco e anilhas estavam presentes. Desmarcar material preservou o movimento já escolhido e sua posição. O aviso **Requer outro material** acompanhou o botão de retirar e foi possível restaurar a barra pelo teclado em 320 px com fonte a 200%.
+
+Antes de iniciar uma sessão sem rede, a pessoa escolheu tatame e elástico e levou a Remada com elástico para o primeiro lugar. Depois de recarregar, a Visão geral mostrou a remada seguida da flexão, com uma série marcada e o mesmo material disponível para acrescentar exercícios. Ao recuperar a rede, o servidor de teste recebeu uma sessão e uma série de 11 repetições. O rascunho do A1 conservou seus halteres e o treino livre seguinte abriu com o inventário completo.
+
+Passaram o lint, o build e 2.418 unidades em 128 arquivos. Na prova de falta de espaço ao criar a sessão, o banco desfez a transação por inteiro e a nova tentativa gravou uma sessão e uma saída para sincronização. Uma sessão com 43,5 kg reabriu com essa carga nas três séries de trabalho. [Teste da gravação](lib/queries/material-do-treino-personalizado.test.ts) · [Fluxo no celular](e2e/material-no-personalizador.spec.ts) · [Teclado e fonte ampliada](e2e/material-no-personalizador-layout.spec.ts)
+
+Em WebKit com iPhone 13 emulado, foi possível marcar tatame e elástico por toque, buscar “remada com elastico” e iniciar a sessão com esses dois itens. No mesmo navegador Chromium, sair pelo menu Mais e entrar com outra conta abriu um catálogo completo, com 93 exercícios e nenhuma seleção anterior.
+
+O leitor do #60 recuperou offline a sessão criada no candidato com 2 dos 12 materiais marcados. No sentido inverso, o leitor novo reconheceu os 12 materiais de uma sessão criada no #60 que omitia o campo. Nas duas atualizações, a remada permaneceu concluída, os IDs da sessão e da série foram preservados e a reconexão enviou uma linha de cada.
+
+No #60, a seleção de Remada com elástico e Ponte de glúteos no tatame permaneceu ao fechar e reabrir o personalizador. Ao recarregar o app antes de começar, os dois movimentos desapareceram e o Histórico continuou vazio. Quem já concluiu uma sessão pode usar **Repetir treino**. A próxima necessidade a conferir é poder guardar pelo nome uma composição que a pessoa pretende fazer outro dia, ainda antes da primeira sessão. [Rotinas pessoais do Hevy](https://www.hevyapp.com/features/gym-routines/)
