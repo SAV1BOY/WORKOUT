@@ -8,6 +8,7 @@ import { bd } from "@/lib/db";
 import { chaveDoHistoricoNoDisco } from "@/lib/chaves-do-historico";
 import { guardarConsultasAgora } from "@/lib/persistencia-query";
 import type { SessaoBruta } from "@/lib/progresso";
+import { confirmarIdsDaSessaoProtegida } from "./compatibilidade-da-sessao";
 import { guardarDescarteNoHistorico, lerHistoricoDaConta } from "./historico-da-sessao";
 import { guardarOrdemLocal, lerComOrdemLocal } from "./ordem-local-da-sessao";
 import { montarSessaoAvulsa } from "@/lib/sessao";
@@ -40,6 +41,22 @@ it("conserva o horário e a duração das duas forças anteriores às sessenta m
   expect(resultado.filter(s => s.data === data)).toEqual([antiga, outra, expect.objectContaining({ id: "livre", status: "em_andamento" })]);
   expect(reunirSessoesDoCalendario("bia", lista, locais)).toEqual([]);
   expect(await lerSessoesLocaisDoCalendario("bia")).toMatchObject({ abertas: [{id: "outro"}], historico: null });
+});
+
+it.each(["snapshot", "resumo", "cache"] as const)("preserva o treino aberto quando o %s indica um exercício de outra versão", async origem => {
+  const cliente = new QueryClient();
+  const plano = planoDaSessao(itensDeIds(["prancha"]));
+  plano.itens[0]!.exercicio_id = "movimento-de-outra-versao";
+  const incompativel = { ...aberta, plano };
+  const local = foto(origem === "snapshot" ? incompativel : aberta);
+  await banco.sessaoAtiva.put(local);
+  if (origem === "cache") await confirmarIdsDaSessaoProtegida(conta, aberta.id, ["movimento-de-outra-versao"]);
+
+  await expect(guardarDescarteNoHistorico(cliente, conta, aberta.id, origem === "resumo" ? incompativel : aberta))
+    .rejects.toThrow(/atualize o app/i);
+  expect(await banco.sessaoAtiva.get(aberta.id)).toEqual(local);
+  expect(await banco.outbox.count()).toBe(0);
+  expect(await banco.cache.get(chaveDoHistoricoNoDisco(conta))).toBeUndefined();
 });
 
 it("ao descartar uma sessão editada no cliente antigo, leva a ordem local ao histórico e libera a cópia do player", async () => {

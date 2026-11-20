@@ -2,6 +2,7 @@
 
 import { useQueryClient } from "@tanstack/react-query";
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Erro, EsqueletoCard } from "@/components/carregando";
@@ -12,7 +13,8 @@ import { SeletorAlternativa } from "@/components/exercicio/seletor-alternativa";
 import { TelaDescanso } from "@/components/player/descanso";
 import { TelaExercicio } from "@/components/player/exercicio";
 import { TelaPreparacao } from "@/components/player/preparacao";
-import { useSessaoDeTreino } from "@/components/treinar/usar-sessao";
+import { Button } from "@/components/ui/button";
+import { useSessaoDeTreino, type SessaoDeTreino } from "@/components/treinar/usar-sessao";
 import { VisaoGeralDaSessao } from "@/components/treinar/visao-geral";
 import {
   Sheet,
@@ -22,6 +24,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { apitar, vibrar } from "@/lib/apito";
+import { AVISO_CATALOGO_DA_SESSAO } from "@/lib/compatibilidade-da-sessao";
 import { semanaDaFase } from "@/lib/calendario";
 import { acharExercicio } from "@/lib/dados";
 import { formatarDuracao, formatarKg, rotuloDaCarga } from "@/lib/formato";
@@ -100,10 +103,57 @@ export function TelaPlayer({
   videos?: string[];
 }) {
   const router = useRouter();
+  const dados = useSessaoDeTreino(sessaoId, userId);
+  const focarAviso = useCallback((titulo: HTMLHeadingElement | null) => titulo?.focus(), []);
+  /* -------------------------------------------------- renderizar */
+
+  /*
+   * SPEC §22.11: "não achei" é uma afirmação, e só sai quando as duas buscas
+   * — o aparelho e o servidor — terminaram sem sessão. Enquanto qualquer uma
+   * corre, esqueleto; erro de rede é "tentar de novo", que agora refaz as
+   * consultas em vez de mandar o usuário para outra tela.
+   */
+  if (dados.tela === "erro" || dados.tela === "erro-aparelho") {
+    return (
+      <Erro
+        mensagem={dados.tela === "erro-aparelho" ? "Não consegui ler os dados deste treino no aparelho." : "Não consegui carregar este treino agora. Confira a conexão."}
+        aoTentarDeNovo={dados.recarregar}
+      />
+    );
+  }
+
+  if (dados.tela === "carregando") return <EsqueletoCard linhas={6} />;
+
+  if (dados.tela === "atualizar") {
+    return (
+      <section aria-labelledby="atualizar-treino" className="bg-card border-border flex flex-col gap-3 rounded-xl border p-4">
+        <h1 id="atualizar-treino" ref={focarAviso} tabIndex={-1} className="text-lg font-semibold">{AVISO_CATALOGO_DA_SESSAO}</h1>
+        <p className="text-muted-foreground text-sm">Este treino tem um exercício que precisa de uma versão mais recente do app.</p>
+        <Button asChild variant="outline"><Link href="/relatorio#historico">Ver histórico</Link></Button>
+      </section>
+    );
+  }
+
+  if (!dados.sessao) {
+    return (
+      <Erro
+        mensagem="Não achei este treino. Ele pode ter sido registrado em outro aparelho."
+        aoTentarDeNovo={() => router.push("/treinar")}
+      />
+    );
+  }
+
+  return <PlayerDaSessao dados={dados} sessao={dados.sessao} videos={videos} />;
+}
+
+function PlayerDaSessao({ dados, sessao, videos }: {
+  dados: SessaoDeTreino; sessao: SessaoLocal; videos: string[];
+}) {
+  const router = useRouter();
   const cliente = useQueryClient();
   const hoje = useHoje();
-  const dados = useSessaoDeTreino(sessaoId, userId);
-  const { sessao, prefs, perfil } = dados;
+  const { prefs, perfil } = dados;
+  const { id: sessaoId, userId } = sessao;
   const pesoQ = useUltimoPeso();
 
   const [estado, setEstado] = useState<EstadoPlayer | null>(null);
@@ -382,34 +432,6 @@ export function TelaPlayer({
     },
     [perfil, cliente],
   );
-
-  /* -------------------------------------------------- renderizar */
-
-  /*
-   * SPEC §22.11: "não achei" é uma afirmação, e só sai quando as duas buscas
-   * — o aparelho e o servidor — terminaram sem sessão. Enquanto qualquer uma
-   * corre, esqueleto; erro de rede é "tentar de novo", que agora refaz as
-   * consultas em vez de mandar o usuário para outra tela.
-   */
-  if (dados.tela === "erro") {
-    return (
-      <Erro
-        mensagem="Não consegui carregar este treino agora. Confira a conexão."
-        aoTentarDeNovo={dados.recarregar}
-      />
-    );
-  }
-
-  if (dados.tela === "carregando") return <EsqueletoCard linhas={6} />;
-
-  if (!sessao) {
-    return (
-      <Erro
-        mensagem="Não achei este treino. Ele pode ter sido registrado em outro aparelho."
-        aoTentarDeNovo={() => router.push("/treinar")}
-      />
-    );
-  }
 
   const nomeDoTreino = nomeDaSessao(dados);
   if (visaoGeral) {

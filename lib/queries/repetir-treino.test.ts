@@ -8,6 +8,7 @@ import type { SessaoBruta } from "@/lib/progresso";
 import { chaveDoHistorico } from "@/lib/chaves-do-historico";
 import { chaves } from "@/lib/queries/dados";
 import { lerMotorParaRepetir } from "@/lib/queries/motor-repetir-treino";
+import { confirmarIdsDaSessaoProtegida } from "@/lib/queries/compatibilidade-da-sessao";
 import { abrirRepeticaoDoTreino } from "@/lib/queries/repetir-treino";
 import {
   acrescentarExercicioNaSessao, confirmarMarcacaoDaSerie, criarSessaoLivre, descarregarSessao, enviarPlanoDaTroca, finalizarSessao,
@@ -178,6 +179,29 @@ describe("acrescentar ao treino livre que está no aparelho", () => {
   });
   const incluir = (s: SessaoLocal, id: string) => acrescentarExercicioNaSessao(cache, s, id);
   const fechar = (s: SessaoLocal) => finalizarSessao({ sessao: s, status: "concluida", cliente: cache });
+
+  it.each(["blocos", "evidência"] as const)("uma aba antiga conserva o treino ao editar ou concluir após a incompatibilidade nos %s", async origem => {
+    const antiga = await iniciar();
+    const futura = structuredClone(antiga);
+    futura.plano!.trocas = { 1: [{
+      exercicio_id: "movimento-de-outra-versao", nota: "Do outro aparelho",
+      trabalho: [1, 2], aquecimento: [], ultima_firme: null,
+    }] };
+    const guardada = origem === "blocos" ? futura : antiga;
+    locais.set(antiga.id, guardada);
+    if (origem === "evidência") await confirmarIdsDaSessaoProtegida(antiga.userId, antiga.id, ["movimento-de-outra-versao"]);
+    vi.mocked(guardarNaFila).mockClear();
+    put.mockClear();
+
+    const idDaSerie = antiga.blocos[0]!.series[0]!.id;
+    await expect(confirmarMarcacaoDaSerie(antiga, 1, idDaSerie, true)).rejects.toThrow(/atualize o app/i);
+    await expect(guardarMaterialDaSessao(definirEquipamentoDaSessao(antiga, new Set()))).rejects.toThrow(/atualize o app/i);
+    await expect(enviarPlanoDaTroca(antiga)).rejects.toThrow(/atualize o app/i);
+    await expect(fechar(antiga)).rejects.toThrow(/atualize o app/i);
+    expect(locais.get(antiga.id)).toEqual(guardada);
+    expect(guardarNaFila).not.toHaveBeenCalled();
+    expect(put).not.toHaveBeenCalled();
+  });
 
   it("serializa duas abas do mesmo aparelho, mantém os IDs e só enfileira os acréscimos distintos", async () => {
     const s = await iniciar();

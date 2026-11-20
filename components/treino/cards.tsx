@@ -40,7 +40,7 @@ export function BannerSessaoAberta({
 }: {
   texto: string;
   href: string;
-  aoDescartar: () => void;
+  aoDescartar?: () => void;
   /**
    * SPEC §22.7 item 9: quando a sessão aberta não é a do dia — uma sessão
    * livre, ou a de ontem —, o "Continuar" está aqui, e não no card do dia.
@@ -66,9 +66,11 @@ export function BannerSessaoAberta({
         <Button asChild className="alvo flex-1">
           <Link href={href}>Continuar</Link>
         </Button>
-        <Button variant="outline" className="alvo flex-1" onClick={aoDescartar}>
-          Descartar
-        </Button>
+        {aoDescartar && (
+          <Button variant="outline" className="alvo flex-1" onClick={aoDescartar}>
+            Descartar
+          </Button>
+        )}
       </div>
     </div>
   );
@@ -146,6 +148,7 @@ export function CardForca({
   destacado = false,
   aoComecar,
   criando,
+  procurandoAberta = false,
 }: {
   resumo: ResumoDoTreino;
   aviso: string | null;
@@ -153,7 +156,7 @@ export function CardForca({
   /** Em que semana da fase este treino cai (SPEC §16.4). */
   semanaDaFase?: number;
   /** Sessão em andamento deste treino: o card vira "Continuar". */
-  aberta: { id: string; progresso: string } | null;
+  aberta: { id: string; progresso: string; incompativel?: boolean } | null;
   /**
    * SPEC §22.7 item 9: quem volta do player cai na aba Treino sem explicação
    * nenhuma. Por alguns segundos o card "em andamento" fica destacado, junto
@@ -163,6 +166,7 @@ export function CardForca({
   /** Cria a sessão e entra no player, sem tela intermediária (§14.5.1). */
   aoComecar: () => void;
   criando: boolean;
+  procurandoAberta?: boolean;
 }) {
   const raios = dificuldadeDaColecao(
     exerciciosDoTreino(resumo.id).map(({ exercicio }) => exercicio),
@@ -178,9 +182,9 @@ export function CardForca({
     <CardCapa
       titulo={resumo.nome}
       subtitulo={resumo.foco}
-      detalhe={detalhe}
+      detalhe={aberta?.incompativel ? undefined : detalhe}
       foto={capaDoTreino(resumo.id)}
-      raios={mostrarRaios ? raios : null}
+      raios={mostrarRaios && !aberta?.incompativel ? raios : null}
       etiqueta={aberta ? "em andamento" : "hoje"}
       className={destacado ? "ring-primary/60 ring-2" : undefined}
     >
@@ -195,8 +199,8 @@ export function CardForca({
           <Link href={`/treinar/${aberta.id}`}>Continuar</Link>
         </BotaoLargo>
       ) : (
-        <BotaoLargo disabled={criando} onClick={aoComecar}>
-          {criando ? "Começando…" : "Começar treino"}
+        <BotaoLargo disabled={criando || procurandoAberta} onClick={aoComecar}>
+          {procurandoAberta ? "Procurando treino em andamento…" : criando ? "Começando…" : "Começar treino"}
         </BotaoLargo>
       )}
       {aberta ? (
