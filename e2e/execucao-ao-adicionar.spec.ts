@@ -1,6 +1,7 @@
-import { expect, test, type Locator } from "@playwright/test";
+import { expect, test, type Locator, type Request } from "@playwright/test";
 import { acharExercicio } from "../lib/dados";
-import { abrirVisaoGeral, esperarServiceWorker, fixarData, HOJE_FIXO, naFila, requisicoesDoMock, resetarMock } from "./fixtures";
+import type { LinhaSessao } from "../lib/types";
+import { abrirVisaoGeral, esperarServiceWorker, fixarData, HOJE_FIXO, lerDoMock, naFila, requisicoesDoMock, resetarMock } from "./fixtures";
 import { comRedeNoWorker, semRedeNoWorker, workerDoApp } from "./rede-do-worker";
 import { abrirCatalogo, busca, catalogo, geral, planoSalvo, series, timer, treinoAberto } from "./treino-livre-ativo";
 
@@ -18,8 +19,16 @@ async function conferirInstrucoes(folha: Locator, exercicio: typeof flexao) {
   await expect(previa.getByRole("listitem")).toHaveText(exercicio.passos);
 }
 
+const materialDaSessao = "/rest/v1/rpc/alterar_material_da_sessao";
+const planoDaSessao = "/rest/v1/sessions";
+const uuid = /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
+
+function alteraSessao(metodo: string, caminho: string) {
+  return (metodo === "PATCH" && caminho === planoDaSessao) || (metodo === "POST" && caminho === materialDaSessao);
+}
+
 async function alteracoesDeSessao() {
-  return (await requisicoesDoMock()).filter(r => r.metodo === "PATCH" && r.caminho === "/rest/v1/sessions").length;
+  return (await requisicoesDoMock()).filter(r => alteraSessao(r.metodo, r.caminho)).map(r => r.caminho);
 }
 
 test.beforeEach(async ({ page }) => {
@@ -94,7 +103,7 @@ test("comparar duas execuções mantém os filtros e os dois Escapes devolvem o 
   expect(await planoSalvo(conta, id)).toEqual(anterior);
   expect(await series(conta, id)).toEqual([]);
   expect(await naFila(page)).toBe(0);
-  expect(await alteracoesDeSessao()).toBe(alteracoesAntes);
+  expect(await alteracoesDeSessao()).toEqual(alteracoesAntes);
 });
 
 test("ler a execução no descanso offline só altera o plano ao adicionar e retoma a próxima série", async ({ page, context }) => {
@@ -140,7 +149,7 @@ test("ler a execução no descanso offline só altera o plano ao adicionar e ret
   }
   await expect.poll(() => naFila(page)).toBe(0);
   expect((await planoSalvo(conta, id))?.itens.map(item => item.exercicio_id)).toEqual(["rosca-com-elastico", "remada-com-elastico", flexao.id]);
-  expect(await alteracoesDeSessao()).toBe(alteracoesAntes + 1);
+  expect(await alteracoesDeSessao()).toEqual([...alteracoesAntes, planoDaSessao]);
   expect(await series(conta, id)).toEqual([serie]);
 });
 
@@ -170,6 +179,11 @@ test("o catálogo adota o material alterado em outra aba e deixa escolher um aga
   await abrirCatalogo(outra).click();
   await expect.poll(() => naFila(page)).toBe(0);
   const alteracoesAntes = await alteracoesDeSessao();
+  const confirmadas: Request[] = [];
+  context.on("response", resposta => {
+    const pedido = resposta.request();
+    if (resposta.ok() && alteraSessao(pedido.method(), new URL(pedido.url()).pathname)) confirmadas.push(pedido);
+  });
   const worker = await workerDoApp(context);
   await semRedeNoWorker(worker);
   await context.setOffline(true);
@@ -198,9 +212,20 @@ test("o catálogo adota o material alterado em outra aba e deixa escolher um aga
     await context.setOffline(false);
   }
   await expect.poll(() => naFila(page)).toBe(0);
-  expect(await planoSalvo(conta, id)).toMatchObject({
-    equipamento_disponivel: [], itens: [...plano.itens, { exercicio_id: corporal.id }],
+  const [gravada] = await lerDoMock<LinhaSessao>(conta, "sessions", "id=eq." + id);
+  expect(gravada).toMatchObject({
+    id, user_id: conta.userId, revisao_equipamento: expect.stringMatching(uuid), plano: {
+      equipamento_disponivel: [], itens: [...plano.itens, { exercicio_id: corporal.id }],
+      ultima_inclusao: { id: expect.stringMatching(uuid), sessao_id: id, exercicio_id: corporal.id, ordem: 3, estado: "disponivel" },
+    },
   });
-  expect(await alteracoesDeSessao()).toBe(alteracoesAntes + 2);
+  expect(await alteracoesDeSessao()).toEqual([...alteracoesAntes, materialDaSessao, planoDaSessao]);
+  expect(confirmadas.map(pedido => new URL(pedido.url()).pathname)).toEqual([materialDaSessao, planoDaSessao]);
+  const [material, inclusao] = confirmadas;
+  expect(material!.postDataJSON()).toMatchObject({
+    p_sessao: id, p_comando: gravada!.revisao_equipamento, p_de: plano.equipamento_disponivel, p_para: [],
+  });
+  expect(Object.fromEntries(new URL(inclusao!.url()).searchParams)).toMatchObject({ id: "eq." + id, user_id: "eq." + conta.userId, status: "eq.em_andamento" });
+  expect(inclusao!.postDataJSON()).toEqual({ plano: gravada!.plano });
   expect(await series(conta, id)).toEqual([anterior]);
 });
