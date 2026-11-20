@@ -206,8 +206,12 @@ describe("treinos salvos no backup v1", () => {
   };
 
   it("preserva ordem e material e compara nomes repetidos pela chave da conta de destino", () => {
-    const modelos = [modelo, { ...modelo, id: OUTRO, equipamento_disponivel: null, series_por_exercicio: null },
-      { ...modelo, id: EU, equipamento_disponivel: ["tatame", "super-band"], series_por_exercicio: { prancha: 2 } }];
+    const modelos = [
+      modelo,
+      { ...modelo, id: OUTRO, equipamento_disponivel: null, series_por_exercicio: null, descansos_por_exercicio: null },
+      { ...modelo, id: EU, equipamento_disponivel: ["tatame", "super-band"], series_por_exercicio: { prancha: 2 },
+        descansos_por_exercicio: { "flexao-de-braco": 5, prancha: 900 } },
+    ];
     const backup = montarBackup({ userId: OUTRO, exportadoEm: AGORA, tabelas: { modelos_de_treino: modelos } });
     const arquivo = lerBackup(textoDoBackup(backup));
     expect(arquivo.versao).toBe(1);
@@ -232,6 +236,8 @@ describe("treinos salvos no backup v1", () => {
       { ...modelo, equipamento_disponivel: ["tatame", "tatame"] },
       { ...modelo, equipamento_disponivel: undefined },
       { ...modelo, series_por_exercicio: { prancha: 2.5 } }, { ...modelo, series_por_exercicio: { escalador: 4 } },
+      ...[[], { prancha: 4 }, { prancha: 901 }, { prancha: 5.5 }, { prancha: "30" }, { escalador: 30 }]
+        .map(descansos_por_exercicio => ({ ...modelo, descansos_por_exercicio })),
     ];
     const arquivo = lerBackup(textoDoBackup(montarBackup({
       userId: OUTRO, exportadoEm: AGORA, tabelas: { modelos_de_treino: [...invalidas, modelo] },

@@ -214,8 +214,13 @@ function idsDoModeloValidos(valor: unknown): boolean {
     valor.every(id => typeof id === "string" && id.length > 0 && id.trim() === id);
 }
 
+const limitesDosAjustesDoModelo = {
+  series_por_exercicio: { minimo: 1, maximo: 10 },
+  descansos_por_exercicio: { minimo: 5, maximo: 900 },
+};
+
 function conferirModeloDeTreino(linha: Linha) {
-  const { id, nome, exercicios, equipamento_disponivel, series_por_exercicio } = linha;
+  const { id, nome, exercicios, equipamento_disponivel } = linha;
   if (typeof id !== "string" || !/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(id)) {
     throw new ErroMock(400, "mock: o id do modelo precisa ser um UUID", { code: "22P02" });
   }
@@ -224,12 +229,15 @@ function conferirModeloDeTreino(linha: Linha) {
       !idsDoModeloValidos(exercicios) || (equipamento_disponivel !== null && !idsDoModeloValidos(equipamento_disponivel))) {
     throw new ErroMock(400, "mock: nome ou lista inválida no modelo de treino", { code: "23514" });
   }
-  if (series_por_exercicio === null) return;
   const selecionados = new Set(exercicios);
-  if (typeof series_por_exercicio !== "object" || Array.isArray(series_por_exercicio) ||
-      !Object.entries(series_por_exercicio).every(([exercicio, series]) =>
-        selecionados.has(exercicio) && typeof series === "number" && Number.isInteger(series) && series >= 1 && series <= 10)) {
-    throw new ErroMock(400, "mock: séries inválidas no modelo de treino", { code: "23514" });
+  for (const [campo, { minimo, maximo }] of Object.entries(limitesDosAjustesDoModelo)) {
+    const ajustes = linha[campo];
+    if (ajustes === null) continue;
+    if (typeof ajustes !== "object" || Array.isArray(ajustes) ||
+      !Object.entries(ajustes).every(([id, valor]) => selecionados.has(id) &&
+        typeof valor === "number" && Number.isInteger(valor) && valor >= minimo && valor <= maximo)) {
+      throw new ErroMock(400, `mock: ${campo} inválido no modelo de treino`, { code: "23514" });
+    }
   }
 }
 
@@ -300,7 +308,7 @@ const ESQUEMA: Record<string, EspecTabela> = {
     tocaUpdatedAt: false,
   },
   modelos_de_treino: {
-    colunas: { user_id: nulo, id: nulo, nome: nulo, exercicios: nulo, equipamento_disponivel: nulo, series_por_exercicio: nulo },
+    colunas: { user_id: nulo, id: nulo, nome: nulo, exercicios: nulo, equipamento_disponivel: nulo, series_por_exercicio: nulo, descansos_por_exercicio: nulo },
     chave: ["user_id", "id"],
     obrigatorias: ["user_id", "id", "nome", "exercicios"],
     validar: conferirModeloDeTreino,
@@ -959,13 +967,14 @@ function novaLinha(tabela: string, entrada: Linha): Linha {
 
 function linhaAtualizada(tabela: string, anterior: Linha, mudancas: Linha): Linha {
   const nova = { ...anterior, ...mudancas };
-  // A versão anterior envia a lista completa sem conhecer as séries por exercício.
-  if (tabela === "modelos_de_treino" && !Object.hasOwn(mudancas, "series_por_exercicio") &&
-      Array.isArray(mudancas.exercicios) && anterior.series_por_exercicio != null) {
+  // Cada versão envia apenas os ajustes que conhece. Um exercício retirado
+  // perde os respectivos ajustes também nos campos omitidos pelo cliente.
+  if (tabela === "modelos_de_treino" && Array.isArray(mudancas.exercicios)) {
     const selecionados = new Set(mudancas.exercicios);
-    nova.series_por_exercicio = Object.fromEntries(
-      Object.entries(anterior.series_por_exercicio).filter(([id]) => selecionados.has(id)),
-    );
+    for (const campo of Object.keys(limitesDosAjustesDoModelo)) {
+      if (Object.hasOwn(mudancas, campo) || anterior[campo] == null) continue;
+      nova[campo] = Object.fromEntries(Object.entries(anterior[campo]).filter(([id]) => selecionados.has(id)));
+    }
   }
   ESQUEMA[tabela]?.validar?.(nova);
   return nova;

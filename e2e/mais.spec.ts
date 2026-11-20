@@ -338,10 +338,10 @@ test.describe("/mais/backup (SPEC §9)", () => {
 
     const modelos = [
       { id: "77777777-7777-4777-8777-000000000001", nome: "Ao ar livre",
-        exercicios: ["prancha", "flexao-de-braco"], equipamento_disponivel: [], series_por_exercicio: { prancha: 2 } },
+        exercicios: ["prancha", "flexao-de-braco"], equipamento_disponivel: [], series_por_exercicio: { prancha: 2 }, descansos_por_exercicio: { prancha: 95 } },
       { id: "77777777-7777-4777-8777-000000000002", nome: "Salvo com catálogo futuro",
         exercicios: ["escalador", "movimento-de-outra-versao"], equipamento_disponivel: ["tatame", "material-de-outra-versao"],
-        series_por_exercicio: { "movimento-de-outra-versao": 5 } },
+        series_por_exercicio: { "movimento-de-outra-versao": 5 }, descansos_por_exercicio: { "movimento-de-outra-versao": 105 } },
     ];
     await inserirNoMock(antes, "modelos_de_treino", modelos.map(m => ({ ...m, user_id: antes.userId })));
     const trocas = ["A1", "SA"].map((workout_id) => ({

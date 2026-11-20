@@ -3,7 +3,7 @@ import { createClient, type Session } from "@supabase/supabase-js";
 import { QueryClient } from "@tanstack/react-query";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { bd, guardarCache } from "@/lib/db";
-import { modeloCompativelComCatalogo, modeloDeTreinoValido } from "@/lib/modelo-de-treino";
+import { ajustesDoModeloConfirmados, modeloCompativelComCatalogo, modeloDeTreinoValido } from "@/lib/modelo-de-treino";
 import { definirEnviador, guardarNaFila, processar, tentarAgora } from "@/lib/outbox";
 import { enviarItem, type EscritaTabela } from "@/lib/outbox-supabase";
 import { clienteNavegador } from "@/lib/supabase/client";
@@ -165,9 +165,10 @@ it("percorre até a última página sem misturar contas quando o servidor limita
   expect(pedidos).toEqual([null, `gt.${linhas[999]!.id}`, `gt.${linhas[1000]!.id}`]);
 });
 
-it("conserva o mapa na cópia, omite a coluna ao renomear e registra as limpezas explícitas", async () => {
+it("conserva os dois mapas ao renomear e poda as chaves retiradas antes de recolocar um exercício", async () => {
   const cliente = novoCliente();
-  const ajustado = { ...modelo, series_por_exercicio: { escalador: 1, "flexao-de-braco": 10 } };
+  const ajustado = { ...modelo, series_por_exercicio: { escalador: 1, "flexao-de-braco": 10 },
+    descansos_por_exercicio: { escalador: 5, "flexao-de-braco": 900 } };
   await salvarModeloDeTreino(cliente, ajustado);
   const nomeNovo = { ...modelo, nome: "Terça" };
   expect(await salvarModeloDeTreino(cliente, nomeNovo)).toEqual({ ...ajustado, nome: nomeNovo.nome });
@@ -177,12 +178,19 @@ it("conserva o mapa na cópia, omite a coluna ao renomear e registra as limpezas
   await banco.outbox.clear();
   expect(await ler()).toEqual([{ ...ajustado, nome: nomeNovo.nome }]);
   await salvarModeloDeTreino(cliente, { ...modelo, exercicios: ["escalador"] });
-  expect(await salvarModeloDeTreino(cliente, modelo)).toEqual({ ...modelo, series_por_exercicio: { escalador: 1 } });
+  const podado = { ...modelo, series_por_exercicio: { escalador: 1 }, descansos_por_exercicio: { escalador: 5 } };
+  expect(await salvarModeloDeTreino(cliente, modelo)).toEqual(podado);
   for (const limpa of [{}, null]) {
-    await salvarModeloDeTreino(cliente, { ...modelo, series_por_exercicio: limpa });
-    const pedido = (await banco.outbox.toArray()).at(-1)!.payload as EscritaTabela;
-    expect(pedido.linha).toHaveProperty("series_por_exercicio", limpa);
-    expect(await ler()).toEqual([{ ...modelo, series_por_exercicio: limpa }]);
+    await salvarModeloDeTreino(cliente, podado);
+    expect(await salvarModeloDeTreino(cliente, { ...modelo, series_por_exercicio: limpa })).toEqual({
+      ...podado, series_por_exercicio: limpa,
+    });
+    await salvarModeloDeTreino(cliente, { ...modelo, descansos_por_exercicio: limpa });
+    const escritas = (await banco.outbox.toArray()).slice(-2).map(item => (item.payload as EscritaTabela).linha);
+    expect(escritas).toEqual([{ ...modelo, series_por_exercicio: limpa }, { ...modelo, descansos_por_exercicio: limpa }]);
+    const reabertos = await ler();
+    expect(reabertos).toEqual([{ ...modelo, series_por_exercicio: limpa, descansos_por_exercicio: limpa }]);
+    expect(ajustesDoModeloConfirmados(reabertos[0]!)).toBe(true);
   }
 });
 
@@ -195,13 +203,14 @@ it("confere a projeção antiga com a rede e reaplica a fila #62 mesmo quando o 
       `modelos_de_treino:ana:${modelo.id}`);
   }
   expect((await ler())[0]).not.toHaveProperty("series_por_exercicio");
-  const remota = { ...modelo, series_por_exercicio: { "flexao-de-braco": 9, escalador: 4 } };
+  const remota = { ...modelo, series_por_exercicio: { "flexao-de-braco": 9, escalador: 4 },
+    descansos_por_exercicio: { "flexao-de-braco": 180, escalador: 45 } };
   rede(true);
   usarServidor(async entrada => {
-    expect(new URL(String(entrada)).searchParams.get("select")?.split(",")).toContain("series_por_exercicio");
+    expect(new URL(String(entrada)).searchParams.get("select")?.split(",")).toEqual(expect.arrayContaining(["series_por_exercicio", "descansos_por_exercicio"]));
     return pagina([remota]);
   });
-  const esperada = { ...modelo, series_por_exercicio: { escalador: 4 } };
+  const esperada = { ...modelo, series_por_exercicio: { escalador: 4 }, descansos_por_exercicio: { escalador: 45 } };
   expect(await ler()).toEqual([esperada]);
   await banco.outbox.clear();
   rede(false);
@@ -224,8 +233,51 @@ it("recupera offline uma contagem explícita que está na fila quando a cópia f
   expect(await ler()).toEqual([{ ...nomeNovo, series_por_exercicio: null }]);
 });
 
-it("pede nova leitura do backup se a fila #62 já drenou durante o GET e a cópia de cinco colunas perdeu as séries", async () => {
-  const renomeado = { ...modelo, nome: "Nome da aba anterior" };
+it("recupera o descanso da fila pelo dono após uma leitura #63 e confirma uma projeção parcial quando a rede volta", async () => {
+  const ana = { ...modelo, series_por_exercicio: { escalador: 6 }, descansos_por_exercicio: { escalador: 90, "flexao-de-braco": 45 } };
+  const bia = { ...ana, user_id: "bia", descansos_por_exercicio: { escalador: 55 } };
+  await salvarModeloDeTreino(novoCliente(), ana);
+  await salvarModeloDeTreino(novoCliente(), bia);
+  const legado = { ...modelo, nome: "Salvo com #63", series_por_exercicio: { escalador: 2 } };
+  for (const exercicios of [["escalador"], modelo.exercicios]) {
+    const linha = { ...legado, exercicios };
+    await guardarNaFila("modelo_de_treino", { tabela: "modelos_de_treino", op: "upsert", linha, onConflict: "user_id,id" });
+  }
+  await guardarCache(JSON.stringify(chaveDosModelos("ana")), { modelos: [legado], revisoes: { [modelo.id]: 3 } });
+  expect(await ler()).toEqual([{ ...legado, descansos_por_exercicio: { escalador: 90 } }]);
+  expect(await ler("bia")).toEqual([bia]);
+  await banco.outbox.clear();
+  expect(await ler()).toEqual([legado]);
+  expect(ajustesDoModeloConfirmados(legado)).toBe(false);
+  expect(ajustesDoModeloConfirmados({ ...modelo, descansos_por_exercicio: {} })).toBe(false);
+
+  rede(true);
+  const padrao = { ...legado, descansos_por_exercicio: null };
+  const busca = vi.fn(async () => pagina([padrao]));
+  usarServidor(busca);
+  expect(await ler()).toEqual([padrao]);
+  expect(busca).toHaveBeenCalledTimes(1);
+  rede(false);
+  expect(ajustesDoModeloConfirmados((await ler())[0]!)).toBe(true);
+  expect(await ler("bia")).toEqual([bia]);
+});
+
+it("uma exclusão anterior à recriação pela versão #63 comprova que o descanso voltou ao padrão mesmo sem rede", async () => {
+  const cliente = novoCliente();
+  await salvarModeloDeTreino(cliente, { ...modelo, descansos_por_exercicio: { escalador: 75 }, series_por_exercicio: { escalador: 4 } });
+  await excluirModeloDeTreino(cliente, "ana", modelo.id);
+  const legado = { ...modelo, series_por_exercicio: { escalador: 2 } };
+  const esperado = { ...legado, descansos_por_exercicio: null };
+  expect(await salvarModeloDeTreino(cliente, legado)).toEqual(esperado);
+  expect(((await banco.outbox.toArray()).at(-1)!.payload as EscritaTabela).linha).toEqual(legado);
+  await guardarCache(JSON.stringify(chaveDosModelos("ana")), { modelos: [legado], revisoes: { [modelo.id]: 3 } });
+  expect(await ler()).toEqual([esperado]);
+  expect(ajustesDoModeloConfirmados((await ler())[0]!)).toBe(true);
+});
+
+it.each([{ versao: 62, campos: {} }, { versao: 63, campos: { series_por_exercicio: {} } }])(
+  "pede nova leitura do backup se a fila #$versao já drenou durante o GET e a cópia é parcial", async ({ campos }) => {
+  const renomeado = { ...modelo, ...campos, nome: "Nome da aba anterior" };
   const entrou = Promise.withResolvers<void>();
   const resposta = Promise.withResolvers<Response>();
   rede(true);
@@ -233,23 +285,27 @@ it("pede nova leitura do backup se a fila #62 já drenou durante o GET e a cópi
   const leitura = lerModelosDeTreino(novoCliente(), "ana", undefined, true);
   await entrou.promise;
   await guardarCache(JSON.stringify(chaveDosModelos("ana")), { modelos: [renomeado], revisoes: { [modelo.id]: 2 } });
-  resposta.resolve(pagina([{ ...modelo, series_por_exercicio: { escalador: 5 } }]));
+  resposta.resolve(pagina([{ ...modelo, series_por_exercicio: { escalador: 5 }, descansos_por_exercicio: { escalador: 80 } }]));
   await expect(leitura).rejects.toThrow("Tente novamente");
   // Entre os dois GETs o app antigo retirou e recolocou o exercício da contagem antiga.
-  usarServidor(async () => pagina([{ ...renomeado, series_por_exercicio: {} }]));
-  expect(await lerModelosDeTreino(novoCliente(), "ana", undefined, true)).toEqual([{ ...renomeado, series_por_exercicio: {} }]);
+  const podado = { ...renomeado, series_por_exercicio: {}, descansos_por_exercicio: {} };
+  usarServidor(async () => pagina([podado]));
+  expect(await lerModelosDeTreino(novoCliente(), "ana", undefined, true)).toEqual([podado]);
 });
 
-it("um nome local pendente preserva a contagem nova de outro aparelho que chegou na leitura do servidor", async () => {
+it.each([
+  { caso: "um nome", campos: {}, series: { escalador: 7 } },
+  { caso: "uma edição de séries", campos: { series_por_exercicio: { escalador: 4 } }, series: { escalador: 4 } },
+])("$caso na fila preserva os ajustes que outro aparelho alterou antes da consulta", async ({ campos, series }) => {
   const cliente = novoCliente();
-  await salvarModeloDeTreino(cliente, { ...modelo, series_por_exercicio: { escalador: 3 } });
+  await salvarModeloDeTreino(cliente, { ...modelo, series_por_exercicio: { escalador: 3 }, descansos_por_exercicio: { escalador: 30 } });
   await banco.outbox.clear();
-  const novo = { ...modelo, nome: "Renomeado" };
+  const novo = { ...modelo, nome: "Renomeado", ...campos };
   await salvarModeloDeTreino(cliente, novo);
   rede(true);
-  usarServidor(async () => pagina([{ ...modelo, series_por_exercicio: { escalador: 7 } }]));
-  expect(await ler()).toEqual([{ ...novo, series_por_exercicio: { escalador: 7 } }]);
-  expect(((await banco.outbox.toArray())[0]!.payload as EscritaTabela).linha).not.toHaveProperty("series_por_exercicio");
+  usarServidor(async () => pagina([{ ...modelo, series_por_exercicio: { escalador: 7 }, descansos_por_exercicio: { escalador: 70 } }]));
+  expect(await ler()).toEqual([{ ...novo, series_por_exercicio: series, descansos_por_exercicio: { escalador: 70 } }]);
+  expect(((await banco.outbox.toArray())[0]!.payload as EscritaTabela).linha).toEqual(novo);
 });
 
 it("valida o mapa esparso dos movimentos selecionados, inclusive de catálogos futuros", async () => {
@@ -259,8 +315,14 @@ it("valida o mapa esparso dos movimentos selecionados, inclusive de catálogos f
     expect(modeloDeTreinoValido(linha)).toBe(false);
     await expect(salvarModeloDeTreino(novoCliente(), linha as ModeloDeTreino)).rejects.toThrow();
   }
+  for (const invalida of [[], 30, { escalador: 4 }, { escalador: 901 }, { escalador: 6.5 }, { escalador: "30" }, { prancha: 30 }]) {
+    const linha: unknown = { ...modelo, descansos_por_exercicio: invalida };
+    expect(modeloDeTreinoValido(linha)).toBe(false);
+    await expect(salvarModeloDeTreino(novoCliente(), linha as ModeloDeTreino)).rejects.toThrow();
+  }
   expect(await banco.outbox.count()).toBe(0);
-  const futura = { ...modelo, exercicios: ["exercicio-futuro"], series_por_exercicio: { "exercicio-futuro": 10 } };
+  const futura = { ...modelo, exercicios: ["exercicio-futuro"], series_por_exercicio: { "exercicio-futuro": 10 },
+    descansos_por_exercicio: { "exercicio-futuro": 900 } };
   expect(modeloDeTreinoValido(futura)).toBe(true);
   expect(modeloCompativelComCatalogo(futura)).toBe(false);
 });
