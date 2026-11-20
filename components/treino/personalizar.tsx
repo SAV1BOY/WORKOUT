@@ -6,6 +6,7 @@ import { useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useSessaoLivre } from "@/components/colecoes/usar-sessao-livre";
 import { EquipamentoDeHoje, nomeDoMaterial } from "@/components/exercicio/equipamento-de-hoje";
+import { FiltroGrupoMuscular } from "@/components/exercicio/filtro-grupo-muscular";
 import { OpcoesDeAlternativa, recolherExecucaoDaAlternativa } from "@/components/exercicio/seletor-alternativa";
 import { EscolhidosDoPersonalizado } from "@/components/treino/escolhidos-do-personalizado";
 import { OrdemDosEscolhidos } from "@/components/treino/ordem-dos-escolhidos";
@@ -26,7 +27,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { equipamentosDaAlternativa } from "@/lib/alternativas";
-import { filtrarExercicios } from "@/lib/catalogo";
+import { filtrarExercicios, type FiltrosCatalogo } from "@/lib/catalogo";
 import { acharExercicio, equipamentoDisponivel, exerciciosComVariacoes } from "@/lib/dados";
 import { lerSelecaoDeEquipamento, tagsDoEquipamento } from "@/lib/equipamento-da-sessao";
 import { ajustesDoModeloConfirmados } from "@/lib/modelo-de-treino";
@@ -62,6 +63,7 @@ export function Personalizar({ conta, prefs }: { conta: string; prefs?: Prefs })
   const cliente = useQueryClient();
   const [aberto, setAberto] = useState(false);
   const [busca, setBusca] = useState("");
+  const [grupo, setGrupo] = useState<FiltrosCatalogo["grupo"]>("todos");
   const [escolhidos, setEscolhidos] = useState<string[]>([]);
   const [seriesPorExercicio, setSeriesPorExercicio] = useState<Record<string, number>>({});
   const [descansosPorExercicio, setDescansosPorExercicio] = useState<Record<string, number>>({});
@@ -73,6 +75,7 @@ export function Personalizar({ conta, prefs }: { conta: string; prefs?: Prefs })
   const [gravando, setGravando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const campoBusca = useRef<HTMLInputElement>(null);
+  const campoGrupo = useRef<HTMLSelectElement>(null);
   const titulo = useRef<HTMLHeadingElement>(null);
   const gatilhoDaOrdem = useRef<HTMLButtonElement>(null);
   const gatilhoDasSeries = useRef<HTMLButtonElement>(null);
@@ -137,11 +140,11 @@ export function Personalizar({ conta, prefs }: { conta: string; prefs?: Prefs })
   const achados = useMemo(
     () =>
       evitadosPorUltimo(
-        filtrarExercicios(exerciciosComVariacoes, { busca }).filter(e => equipamentoPorExercicio.has(e.id)),
+        filtrarExercicios(exerciciosComVariacoes, { busca, grupo }).filter(e => equipamentoPorExercicio.has(e.id)),
         (e) => e.id,
         prefs,
       ),
-    [busca, equipamentoPorExercicio, prefs],
+    [busca, grupo, equipamentoPorExercicio, prefs],
   );
 
   // O modelo lê as cargas da conta ao iniciar. Só o avulso antecipa a consulta pela seleção.
@@ -161,6 +164,7 @@ export function Personalizar({ conta, prefs }: { conta: string; prefs?: Prefs })
     setDescansosPorExercicio(modelo?.descansos_por_exercicio ?? {});
     setMaterial(lerSelecaoDeEquipamento(modelo?.equipamento_disponivel));
     setBusca("");
+    setGrupo("todos");
     mostrar(destino);
   }
 
@@ -294,6 +298,7 @@ export function Personalizar({ conta, prefs }: { conta: string; prefs?: Prefs })
           focoAoAlternar.current = null;
           if (tela.tipo !== "salvar") setTela({ tipo: "editor" });
           setBusca("");
+          setGrupo("todos");
         }
       }}
     >
@@ -429,7 +434,8 @@ export function Personalizar({ conta, prefs }: { conta: string; prefs?: Prefs })
               )}
             </div>
 
-            <div className="mt-3">
+            <div className="mt-3 flex flex-col gap-2">
+              <FiltroGrupoMuscular ref={campoGrupo} grupo={grupo} aoMudar={setGrupo} desabilitado={ocupado} />
               <EquipamentoDeHoje material={{ disponiveis: material, aoMudar: setMaterial }} noSeletor
                 desabilitado={ocupado} descricao="O catálogo mostra os exercícios que você pode fazer com o material marcado." />
             </div>
@@ -497,17 +503,18 @@ export function Personalizar({ conta, prefs }: { conta: string; prefs?: Prefs })
                   </li>
                 );
               })}
-              {achados.length === 0 ? (
-                <li>
-                  <Vazio
-                    icone={SearchX}
-                    titulo="Nenhum exercício com os filtros atuais"
-                    frase="Tente outro nome ou ajuste os equipamentos disponíveis."
-                    className="border-0"
-                  />
-                </li>
-              ) : null}
             </ul>
+            {achados.length === 0 && (
+              <div role="status">
+                <Vazio icone={SearchX} titulo="Nenhum exercício com os filtros atuais"
+                  frase={grupo === "todos" ? "Tente outro nome ou ajuste os equipamentos disponíveis."
+                    : "Escolha outro grupo muscular ou ajuste a busca e os equipamentos."}
+                  acao={grupo !== "todos" && !ocupado ? { rotulo: "Limpar grupo", aoTocar: () => {
+                    setGrupo("todos");
+                    campoGrupo.current?.focus();
+                  } } : undefined} className="border-0" />
+              </div>
+            )}
           </div>
 
           <BotaoLargo

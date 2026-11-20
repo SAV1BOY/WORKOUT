@@ -3,20 +3,19 @@
 import { Plus, Search, Undo2 } from "lucide-react";
 import { useRef, useState } from "react";
 import { EquipamentoDeHoje, nomeDoMaterial, type MaterialDoTreino } from "@/components/exercicio/equipamento-de-hoje";
+import { FiltroGrupoMuscular } from "@/components/exercicio/filtro-grupo-muscular";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Miniatura } from "@/components/ui/miniatura";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { equipamentosDaAlternativa } from "@/lib/alternativas";
-import { filtrarExercicios, opcoesDoCatalogo } from "@/lib/catalogo";
+import { filtrarExercicios, type FiltrosCatalogo } from "@/lib/catalogo";
 import { acharExercicio, exerciciosComVariacoes } from "@/lib/dados";
 import { evitado, evitadosPorUltimo } from "@/lib/preferencias";
 import { MENSAGEM_EQUIPAMENTO_ALTERADO, MENSAGEM_INCLUSAO_ALTERADA } from "@/lib/queries/sessao";
-import type { Exercicio, Grupo } from "@/lib/schemas";
+import type { Exercicio } from "@/lib/schemas";
 import { exerciciosOcupadosNaSessao, ultimaInclusaoDesfazivel, type SessaoLocal } from "@/lib/sessao";
 import type { Prefs } from "@/lib/types";
-
-const { grupos } = opcoesDoCatalogo(exerciciosComVariacoes);
 
 export function AdicionarExercicio({ sessao, material, prefs, aoAdicionar, aoDesfazer }: {
   sessao: SessaoLocal;
@@ -27,7 +26,7 @@ export function AdicionarExercicio({ sessao, material, prefs, aoAdicionar, aoDes
 }) {
   const [aberto, setAberto] = useState(false);
   const [busca, setBusca] = useState("");
-  const [grupo, setGrupo] = useState<Grupo | "todos">("todos");
+  const [grupo, setGrupo] = useState<FiltrosCatalogo["grupo"]>("todos");
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState("");
   const [erroAoDesfazer, setErroAoDesfazer] = useState("");
@@ -107,7 +106,7 @@ export function AdicionarExercicio({ sessao, material, prefs, aoAdicionar, aoDes
             <Plus aria-hidden="true" /> Adicionar exercício
           </Button>
         </SheetTrigger>
-        <SheetContent side="bottom" className="flex max-h-[85dvh] flex-col pb-4">
+        <SheetContent side="bottom" className="flex max-h-[85dvh] flex-col overflow-y-auto pb-4 [&>*]:shrink-0">
           <SheetHeader className="pr-16 pb-0">
             <SheetTitle>Adicionar exercício</SheetTitle>
             <SheetDescription>Escolha um exercício para o fim deste treino.</SheetDescription>
@@ -120,15 +119,8 @@ export function AdicionarExercicio({ sessao, material, prefs, aoAdicionar, aoDes
           </div>
           {erro && <p role="alert" className="text-destructive px-4 text-sm">{erro}</p>}
           {salvando && <p role="status" className="px-4 text-sm">Adicionando exercício…</p>}
-          <div className="flex min-h-0 flex-col gap-2 overflow-y-auto px-4 pb-2">
-            <label className="flex items-center gap-3 text-sm font-medium">
-              Grupo muscular
-              <select value={grupo} onChange={e => setGrupo(e.target.value as Grupo | "todos")}
-                className="alvo foco border-input bg-background min-w-0 flex-1 rounded-md border px-2 text-base font-normal">
-                <option value="todos">Todos</option>
-                {grupos.map(g => <option key={g} value={g}>{g}</option>)}
-              </select>
-            </label>
+          <div className="flex flex-col gap-2 px-4 pb-2">
+            <FiltroGrupoMuscular grupo={grupo} aoMudar={setGrupo} />
             <EquipamentoDeHoje material={material} noSeletor />
             {opcoes.length ? (
               <ul aria-label="Exercícios disponíveis" className="divide-y">
