@@ -1,20 +1,30 @@
 "use client";
 
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useCallback, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { estadosPorExercicio } from "@/lib/hoje";
 import { opcoesDeMontagem } from "@/lib/preferencias";
+import { confirmarContaDoTreino } from "@/lib/queries/conta-do-treino";
 import {
   useEstados,
   usePerfil,
   useRecordes,
   useSeriesAnteriores,
 } from "@/lib/queries/dados";
+import { lerMotorParaRepetir } from "@/lib/queries/motor-repetir-treino";
 import { criarSessaoLivre, type EntradaCriacaoLivre } from "@/lib/queries/sessao";
 import { useHoje } from "@/lib/relogio";
 import { seriesAnterioresPorExercicio, type RecordeAntes } from "@/lib/sessao";
+
+async function motorDoModelo(cliente: QueryClient, conta: string, escolhidos: readonly string[]) {
+  const confirmar = () => confirmarContaDoTreino(conta, "Não foi possível confirmar a conta do treino.");
+  await confirmar();
+  const motor = await lerMotorParaRepetir(cliente, conta, escolhidos, confirmar);
+  await confirmar();
+  return motor;
+}
 
 /**
  * "Começar" numa coleção, na Parte do corpo em foco ou no Personalizar
@@ -44,7 +54,7 @@ export function useSessaoLivre(ids: readonly string[]) {
   const comecar = useCallback(
     async (
       escolhidos: readonly string[],
-      opcoes: Pick<EntradaCriacaoLivre, "titulo" | "colecao" | "equipamentosDisponiveis"> = {},
+      opcoes: Pick<EntradaCriacaoLivre, "titulo" | "colecao" | "equipamentosDisponiveis"> & { contaDoModelo?: string } = {},
     ) => {
       const perfil = perfilQ.data;
       if (!perfil || !hoje || escolhidos.length === 0) return;
@@ -53,7 +63,18 @@ export function useSessaoLivre(ids: readonly string[]) {
         const recordes: Record<string, RecordeAntes> = {};
         for (const r of recordesQ.data ?? []) recordes[r.exercise_id] = r;
 
+        if (opcoes.contaDoModelo && opcoes.contaDoModelo !== perfil.user_id) {
+          throw new Error("O treino salvo pertence a outra conta.");
+        }
+        const motor = opcoes.contaDoModelo ? await motorDoModelo(cliente, opcoes.contaDoModelo, escolhidos) : {
+          estados: estadosPorExercicio(estadosQ.data ?? []),
+          anteriores: seriesAnterioresPorExercicio(anterioresQ.data ?? []),
+          recordes,
+          // Sem conseguir ler as cargas, uma sessão avulsa registra as séries sem avaliar a progressão.
+          estadoConhecido: estadosQ.data !== undefined && recordesQ.data !== undefined,
+        };
         const sessao = await criarSessaoLivre({
+          ...motor,
           cliente,
           userId: perfil.user_id,
           data: hoje,
@@ -62,15 +83,6 @@ export function useSessaoLivre(ids: readonly string[]) {
           titulo: opcoes.titulo ?? null,
           colecao: opcoes.colecao ?? null,
           equipamentosDisponiveis: opcoes.equipamentosDisponiveis,
-          estados: estadosPorExercicio(estadosQ.data ?? []),
-          anteriores: seriesAnterioresPorExercicio(anterioresQ.data ?? []),
-          recordes,
-          /*
-           * Sem conseguir ler `exercise_state` a sessão registra tudo mas não
-           * avalia: uma carga inventada apagaria a progressão real (§6.3).
-           */
-          estadoConhecido:
-            estadosQ.data !== undefined && recordesQ.data !== undefined,
           // as barras já pesadas na balança mudam a escala (SPEC §3.9)
           opcoesMontagem: opcoesDeMontagem(perfil.prefs),
         });

@@ -300,7 +300,7 @@ const TREINO: SecaoDoGuia = {
       id: "personalizar",
       nome: "Personalizar treino",
       oQueFaz:
-        "Marque o material que tem à mão e busque os exercícios pelo nome, como Remada com elástico e Ponte de glúteos no tatame. Com dois ou mais, use Reordenar escolhidos. O treino começa com o material e a sequência que você escolheu.",
+        "Marque o material que tem à mão, busque exercícios como Remada com elástico e use Reordenar escolhidos para ajustar a sequência. Em Salvar treino, dê um nome para usar essa seleção outro dia. Para carregá-la, abra Treinos salvos.",
       caminho: ["Treino", "Personalizar treino"],
       grupo: TELA,
     },

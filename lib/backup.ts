@@ -8,6 +8,7 @@
  * `lib/queries/mais.ts`; quem guarda offline é a fila de saída (§8).
  */
 import { z } from "zod";
+import { modeloDeTreinoValido } from "@/lib/modelo-de-treino";
 import { trocaDoProgramaValida } from "@/lib/trocas";
 import { ANGULOS, caminhoDaFoto } from "@/lib/corpo";
 import { CHAVE_DA_TABELA, TABELAS_BACKUP, type TabelaBackup } from "@/lib/tabelas-do-usuario";
@@ -29,6 +30,7 @@ export const NOME_DA_TABELA: Record<TabelaBackup, string> = {
   progress_photos: "fotos de progresso",
   schedule_overrides: "trocas do calendário",
   trocas_do_programa: "trocas lembradas no programa",
+  modelos_de_treino: "treinos salvos",
 };
 
 /**
@@ -75,6 +77,7 @@ export const COLUNAS_DA_TABELA: Record<TabelaBackup, string[]> = {
   ],
   progress_photos: ["id", "user_id", "data", "angulo", "storage_path", "notas"],
   trocas_do_programa: ["user_id", "workout_id", "exercicio_original_id", "substituto_id"],
+  modelos_de_treino: ["user_id", "id", "nome", "exercicios", "equipamento_disponivel"],
   schedule_overrides: [
     "id", "user_id", "data", "tipo", "workout_id", "sessao", "motivo",
   ],
@@ -209,6 +212,21 @@ function trocaValida(linha: Linha): boolean {
     trocaDoProgramaValida(workout_id, exercicio_original_id, substituto_id);
 }
 
+/** A prévia e a escrita aceitam os mesmos dados de modelos e trocas. */
+function validarLinhaDaTabela(tabela: TabelaBackup, linha: Linha, userId?: string): Linha | null {
+  if (tabela === "modelos_de_treino") {
+    const modelo = {
+      ...linha,
+      user_id: userId ?? linha.user_id,
+      id: typeof linha.id === "string" ? linha.id.toLowerCase() : linha.id,
+      nome: typeof linha.nome === "string" ? linha.nome.trim() : linha.nome,
+    };
+    return modeloDeTreinoValido(modelo) ? modelo : null;
+  }
+  if (tabela === "trocas_do_programa" && !trocaValida(linha)) return null;
+  return linha;
+}
+
 export interface ItemPrevia {
   tabela: TabelaBackup;
   nome: string;
@@ -216,7 +234,7 @@ export interface ItemPrevia {
   total: number;
   novas: number;
   atualizadas: number;
-  /** Linhas descartadas por chave incompleta ou troca inválida. */
+  /** Linhas descartadas por chave incompleta ou dados inválidos. */
   invalidas: number;
 }
 
@@ -255,9 +273,10 @@ export function previaDaImportacao(
     let atualizadas = 0;
     let invalidas = 0;
 
-    for (const linha of linhas) {
-      const chave = chaveDaLinha(tabela, linha, userId);
-      if (chave === null || (tabela === "trocas_do_programa" && !trocaValida(linha))) {
+    for (const bruta of linhas) {
+      const linha = validarLinhaDaTabela(tabela, bruta, userId);
+      const chave = linha && chaveDaLinha(tabela, linha, userId);
+      if (chave === null) {
         invalidas += 1;
         continue;
       }
@@ -357,10 +376,11 @@ export function linhasParaImportar(
     const vistas = new Set<string>();
 
     for (const bruta of backup.tabelas[tabela] ?? []) {
-      if (tabela === "trocas_do_programa" && !trocaValida(bruta)) continue;
+      const valida = validarLinhaDaTabela(tabela, bruta, userId);
+      if (!valida) continue;
       const limpa: Linha = {};
       for (const coluna of colunas) {
-        if (coluna in bruta) limpa[coluna] = bruta[coluna];
+        if (coluna in valida) limpa[coluna] = valida[coluna];
       }
       if (tabela === "exercise_state" && !("nota_pessoal" in limpa) && typeof limpa.notas === "string") {
         limpa.nota_pessoal = limpa.notas;

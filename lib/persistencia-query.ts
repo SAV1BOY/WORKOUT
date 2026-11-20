@@ -60,13 +60,13 @@ function temUrlLocalDeFoto(chave: readonly unknown[], dados: unknown): boolean {
     && Object.values(dados).some((url) => typeof url === "string" && url.startsWith("blob:"));
 }
 
-/** O Histórico guarda as listas da conta e o detalhe de cada sessão em chaves próprias. */
+/** Estas consultas já guardam sua cópia por conta no IndexedDB. */
 function temCopiaPropria(chave: readonly unknown[]): boolean {
   if (chave.length === 4 && chave[0] === "progresso" && chave[1] === "series-da-sessao") {
     return typeof chave[2] === "string" && typeof chave[3] === "string";
   }
   if (chave.length === 2 && typeof chave[1] === "string") {
-    return chave[0] === "cardio-todos" || chave[0] === "soltas-todas";
+    return chave[0] === "cardio-todos" || chave[0] === "soltas-todas" || chave[0] === "modelos-de-treino";
   }
   return chave.length === 3 && chave[0] === "progresso" && typeof chave[2] === "string" &&
     (chave[1] === "sessoes" || chave[1] === "eventos-todos" || chave[1] === "series-todas");

@@ -3,14 +3,14 @@ import type { EquipamentoTag, TreinoId } from "@/lib/schemas";
 import type { SessaoLocal } from "@/lib/sessao";
 
 /** A ordem e os itens válidos vêm do inventário, inclusive ao ler um backup. */
-function lerSelecao(valor: unknown): ReadonlySet<EquipamentoTag> {
+export function lerSelecaoDeEquipamento(valor: unknown): ReadonlySet<EquipamentoTag> {
   const inventario = equipamentoDisponivel();
   if (!Array.isArray(valor)) return inventario;
   return new Set([...inventario].filter((tag) => valor.includes(tag)));
 }
 
 export function equipamentoDaSessao(sessao: Pick<SessaoLocal, "plano">): ReadonlySet<EquipamentoTag> {
-  return lerSelecao(sessao.plano?.equipamento_disponivel);
+  return lerSelecaoDeEquipamento(sessao.plano?.equipamento_disponivel);
 }
 
 export function tagsDoEquipamento(disponiveis: ReadonlySet<EquipamentoTag>): EquipamentoTag[] {
@@ -24,7 +24,7 @@ export function chaveDoEquipamentoDoDia(conta: string, data: string, treinoId: T
 export function lerEquipamentoDoDia(conta: string, data: string, treinoId: TreinoId): ReadonlySet<EquipamentoTag> {
   try {
     const bruto = window.localStorage.getItem(chaveDoEquipamentoDoDia(conta, data, treinoId));
-    return lerSelecao(bruto === null ? null : JSON.parse(bruto));
+    return lerSelecaoDeEquipamento(bruto === null ? null : JSON.parse(bruto));
   } catch {
     return equipamentoDisponivel();
   }

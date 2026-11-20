@@ -54,7 +54,9 @@ it("o detalhe de uma sessão permanece só no seu próprio cache e a ficha antig
   const detalhe = ["progresso", "series-da-sessao", "conta-a", "sessao-a"];
   const ficha = ["progresso", "series-ex", "supino"];
   const anteriores = ["progresso", "series-todas"];
+  const modelos = ["modelos-de-treino", "conta-a"];
   const agrupadas = new QueryClient();
+  agrupadas.setQueryData(modelos, [{ id: "modelo-antigo" }]);
   agrupadas.setQueryData(detalhe, { completa: true, linhas: [{ reps: 8 }] });
   agrupadas.setQueryData(ficha, [{ session_id: "sessao-a", reps: 6 }]);
   agrupadas.setQueryData(anteriores, []);
@@ -72,6 +74,7 @@ it("o detalhe de uma sessão permanece só no seu próprio cache e a ficha antig
     await vi.waitFor(() => expect(reaberto.getQueryData(ficha)).toEqual(agrupadas.getQueryData(ficha)));
     expect(reaberto.getQueryData(anteriores)).toEqual([]);
     expect(reaberto.getQueryData(detalhe)).toBeUndefined();
+    expect(reaberto.getQueryData(modelos)).toBeUndefined();
   } finally {
     parar();
     reaberto.clear();

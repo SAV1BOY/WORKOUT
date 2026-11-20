@@ -55,13 +55,14 @@ export function TelaBackup({ userId }: { userId: string }) {
 
 function Exportar({ userId }: { userId: string }) {
   const online = useRede();
+  const cliente = useQueryClient();
   const [ocupado, setOcupado] = useState(false);
 
   const baixar = async () => {
     setOcupado(true);
     try {
       const agora = new Date().toISOString();
-      const backup = await exportarBackup({ userId, agora });
+      const backup = await exportarBackup({ userId, agora, cliente });
       const nome = nomeDoArquivoBackup(agora);
 
       const blob = new Blob([textoDoBackup(backup)], {
@@ -128,7 +129,7 @@ function Importar({ userId }: { userId: string }) {
     setOcupado(true);
     try {
       const backup = lerBackup(await arquivo.text());
-      const existentes = await lerChavesExistentes(userId);
+      const existentes = await lerChavesExistentes(userId, cliente, backup);
       setEscolhido({
         nome: arquivo.name,
         backup,

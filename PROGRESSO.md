@@ -13540,7 +13540,7 @@ Na revisão `5661334`, 867 dos 868 cenários de Chromium passaram. O teste da so
 
 O Treino do Terraço publicou **Reordenar escolhidos** em **Treino → Personalizar treino**. A revisão `8d261a2` passou no lint, no build, em 2.412 testes unitários (127 arquivos) e em 868 cenários de Chromium (226, 218, 236 e 188). A integração `144206d9da7705d63ff3ec4b4484d872941bece5` tem a mesma árvore `c9673267d896c5e02fa64914094a356403f027d2`. A Vercel confirmou a publicação e o domínio respondeu HTTP 200 com esse commit. [PR #60](https://github.com/SAV1BOY/WORKOUT/pull/60) · [Testes da revisão](https://github.com/SAV1BOY/WORKOUT/actions/runs/44653888943) · [Versão em produção](https://treino-terraco.vercel.app/versao)
 
-A integração acionou a repetição da suíte sobre a `main`. [Testes da integração do #60](https://github.com/SAV1BOY/WORKOUT/actions/runs/44655790212)
+A repetição pós-publicação da main também aprovou lint, build, 2.412 unidades e 868 cenários nos grupos de 226, 218, 236 e 188. O caso da faixa fixa escura passou em 809 ms. Depois da suíte, o domínio voltou a servir `144206d` com HTTP 200. [Testes da main](https://github.com/SAV1BOY/WORKOUT/actions/runs/44655790212)
 
 ### Escolher o material antes de começar um treino personalizado
 
@@ -13559,3 +13559,27 @@ Em WebKit com iPhone 13 emulado, foi possível marcar tatame e elástico por toq
 O leitor do #60 recuperou offline a sessão criada no candidato com 2 dos 12 materiais marcados. No sentido inverso, o leitor novo reconheceu os 12 materiais de uma sessão criada no #60 que omitia o campo. Nas duas atualizações, a remada permaneceu concluída, os IDs da sessão e da série foram preservados e a reconexão enviou uma linha de cada.
 
 No #60, a seleção de Remada com elástico e Ponte de glúteos no tatame permaneceu ao fechar e reabrir o personalizador. Ao recarregar o app antes de começar, os dois movimentos desapareceram e o Histórico continuou vazio. Quem já concluiu uma sessão pode usar **Repetir treino**. A próxima necessidade a conferir é poder guardar pelo nome uma composição que a pessoa pretende fazer outro dia, ainda antes da primeira sessão. [Rotinas pessoais do Hevy](https://www.hevyapp.com/features/gym-routines/)
+
+### Publicação do material no treino personalizado
+
+**Treino → Personalizar treino → Equipamentos disponíveis** permite montar o treino com os materiais que a pessoa tem. Ao tocar em **Começar**, o treino livre leva o inventário para a sessão e para a retomada sem rede. O domínio público devolveu HTTP 200 com `c1cb30a0120624d7c7222a8e61fc7e4883f6ada8` e a Vercel confirmou a publicação. A integração tem a mesma árvore `68a5c02c99b2f19c2d63a9cc048a36c75d844f7a` da revisão aprovada `8de9df7`. O GitHub passou em lint, build, 2.418 testes unitários (128 arquivos) e 872 cenários de Chromium (226, 222, 236 e 188). A sessão usa o campo de material já existente no plano. [PR #61](https://github.com/SAV1BOY/WORKOUT/pull/61) · [Suíte da revisão](https://github.com/SAV1BOY/WORKOUT/actions/runs/44657395132) · [Versão em produção](https://treino-terraco.vercel.app/versao)
+
+Os binários oficiais das duas versões passaram no teste de troca de versão sem rede. O #60 mostrou apenas tatame e elástico na sessão criada no #61. O #61 abriu com todo o material ao ler a sessão antiga. Ao reconectar cada aparelho emulado, o servidor de teste recebeu uma sessão e uma série com seus identificadores originais.
+
+A suíte da `main` repetiu lint, build, 2.418 testes unitários e 872 cenários de Chromium. Os grupos passaram com 226, 222, 236 e 188 testes. Após a conclusão, `/versao` voltou a confirmar o commit `c1cb30a` com HTTP 200. [Validação pós-publicação do #61](https://github.com/SAV1BOY/WORKOUT/actions/runs/44659513049)
+
+### Guardar um treino personalizado antes da primeira sessão
+
+Em **Treino → Personalizar treino**, escolhi Remada com elástico e Ponte de glúteos no tatame no #61. Fechar e reabrir a tela recuperou as duas escolhas. Recarregar o aplicativo deixou a seleção vazia e o Histórico permaneceu sem sessões. Já era possível repetir pelo Histórico um treino concluído. Guardar um treino por nome permite separar a montagem dos movimentos do dia em que a pessoa vai realizá-los. O Hevy documenta esse uso em sua biblioteca de rotinas. [Rotinas do Hevy](https://www.hevyapp.com/features/gym-routines/)
+
+**Salvar treino** guarda nome, ordem e material antes de iniciar uma sessão. **Treinos salvos** permite carregar, atualizar e excluir um modelo. No teste em celular emulado, duas tentativas seguidas de salvar resultaram em uma gravação na reconexão. A recarga sem rede recuperou o modelo e deixou o Histórico vazio. Ao começar de novo depois de alterar o estado do exercício de 15,5 para 31,5 kg, o player usou 31,5 kg. Excluir o modelo preservou as duas sessões já criadas e suas séries.
+
+Em 320 px com fonte a 200%, foi possível salvar usando o teclado, abrir a lista, cancelar a exclusão de um nome longo e voltar ao botão de origem. No teste de troca de versão, uma exclusão feita sem rede continuou na fila quando o mesmo aparelho reabriu o #61. Ao voltar à versão que reconhece o modelo, a sincronização confirmou a exclusão e esvaziou a fila.
+
+No primeiro candidato, um modelo com exercício e material de uma versão futura fazia a biblioteca mostrar zero de dois modelos. Na revisão corrigida, o modelo conhecido abriu pelo nome. O que precisava de um catálogo mais novo ficou visível com aviso de atualização. O backup v1 exportou as duas linhas, restaurou-as em outra conta e preservou os identificadores originais dos movimentos e do material. O leitor do #60 reconheceu os demais dados do arquivo e ignorou a tabela nova, como previsto no formato v1. Para transportar os treinos salvos em uma nova exportação é preciso usar uma versão que os reconheça. [Validação do backup](lib/queries/backup-dos-modelos.test.ts) · [Fluxos no celular](e2e/modelos-de-treino.spec.ts)
+
+A migração cria a tabela `modelos_de_treino` com chave composta por conta e UUID. Em PostgreSQL 18.6 local (PGlite), duas contas usaram o mesmo UUID e só puderam ler, editar ou excluir suas próprias linhas. O ensaio também verificou a reaplicação do SQL, as permissões e a validade do nome e das listas. [Migração](supabase/migracoes/2026-11-20-modelos-de-treino.sql) · [Provas de isolamento](supabase/testes/modelos-de-treino.sql)
+
+O candidato passou em 2.433 testes unitários em 130 arquivos, lint e build. O binário local passou nos quatro fluxos móveis de modelos, no fluxo de backup e nos nove cenários de teclado, filtro de material e reordenação.
+
+Ao salvar um modelo com Agachamento livre, a primeira sessão começou com três séries de trabalho. Na ficha, **Só nesta sessão** permitiu reduzir para duas, mantendo os dois aquecimentos. Carregar o mesmo modelo depois de concluir iniciou a segunda sessão com três séries de trabalho novamente. A próxima necessidade a verificar é guardar a quantidade de séries de trabalho desejada ao montar o treino, conservando os aquecimentos da prescrição. [Configuração das séries na rotina do Hevy](https://www.hevyapp.com/features/how-to-write-sets-and-reps/)

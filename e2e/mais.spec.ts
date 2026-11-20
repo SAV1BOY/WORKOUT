@@ -336,6 +336,13 @@ test.describe("/mais/backup (SPEC §9)", () => {
       { id: "66666666-6666-4666-8666-000000000001", data: "2026-09-13", peso_kg: 82.4 },
     ]);
 
+    const modelos = [
+      { id: "77777777-7777-4777-8777-000000000001", nome: "Ao ar livre",
+        exercicios: ["prancha", "flexao-de-braco"], equipamento_disponivel: [] },
+      { id: "77777777-7777-4777-8777-000000000002", nome: "Salvo com catálogo futuro",
+        exercicios: ["escalador", "movimento-de-outra-versao"], equipamento_disponivel: ["tatame", "material-de-outra-versao"] },
+    ];
+    await inserirNoMock(antes, "modelos_de_treino", modelos.map(m => ({ ...m, user_id: antes.userId })));
     const trocas = ["A1", "SA"].map((workout_id) => ({
       workout_id, exercicio_original_id: "supino-reto-com-barra", substituto_id: "flexao-de-braco",
     }));
@@ -356,6 +363,7 @@ test.describe("/mais/backup (SPEC §9)", () => {
       tabelas: Record<string, unknown[]>;
     };
     expect(conteudo.app).toBe("treino-terraco");
+    expect(conteudo.tabelas.modelos_de_treino).toEqual(modelos.map(m => ({ ...m, user_id: antes.userId })));
     expect(conteudo.tabelas.sessions).toHaveLength(1);
     expect(conteudo.tabelas.session_sets).toHaveLength(1);
     expect(conteudo.tabelas.body_weights).toHaveLength(1);
@@ -365,6 +373,7 @@ test.describe("/mais/backup (SPEC §9)", () => {
     await resetarMock();
     const depois = await usuarioComPerfil();
     expect(depois.userId).not.toBe(antes.userId);
+    await inserirNoMock(depois, "modelos_de_treino", [{ ...modelos[0], user_id: depois.userId, nome: "Nome no destino" }]);
     await inserirNoMock(depois, "trocas_do_programa", [{
       ...trocas[1], user_id: depois.userId, substituto_id: "supino-inclinado-com-halteres",
     }]);
@@ -373,7 +382,9 @@ test.describe("/mais/backup (SPEC §9)", () => {
 
     await page.setInputFiles("#arquivo-backup", caminho);
     await expect(page.getByText(/linhas novas/)).toBeVisible();
-    await expect(page.getByRole("cell", { name: "treinos" })).toBeVisible();
+    await expect(page.getByRole("cell", { name: "treinos", exact: true })).toBeVisible();
+    const linhaDosModelos = page.getByRole("row", { name: /treinos salvos/ });
+    await expect(linhaDosModelos.getByRole("cell")).toHaveText(["treinos salvos", "1", "1"]);
     const linhaDasTrocas = page.getByRole("row", { name: /trocas lembradas no programa/ });
     await expect(linhaDasTrocas.getByRole("cell")).toHaveText(["trocas lembradas no programa", "1", "1"]);
     await page.getByRole("button", { name: "Importar tudo" }).click();
@@ -381,6 +392,10 @@ test.describe("/mais/backup (SPEC §9)", () => {
     await esperarFila(page);
 
     /* -------------------------------------------- 3) o estado voltou igual */
+    const modelosRestaurados = modelos.map(m => ({ ...m, user_id: depois.userId }));
+    const lerModelos = async () => (await lerDoMock<(typeof modelosRestaurados)[number]>(depois, "modelos_de_treino"))
+      .sort((a, b) => a.id.localeCompare(b.id));
+    await expect.poll(lerModelos).toEqual(modelosRestaurados);
     const trocasRestauradas = trocas.map((t) => ({ ...t, user_id: depois.userId }));
     const lerTrocas = async () => (await lerDoMock<(typeof trocasRestauradas)[number]>(depois, "trocas_do_programa"))
       .sort((a, b) => a.workout_id.localeCompare(b.workout_id));
@@ -420,9 +435,11 @@ test.describe("/mais/backup (SPEC §9)", () => {
     /* ------------------------------ 4) importar de novo não duplica nada */
     await page.setInputFiles("#arquivo-backup", caminho);
     await expect(page.getByText(/linhas novas/)).toBeVisible();
+    await expect(linhaDosModelos.getByRole("cell")).toHaveText(["treinos salvos", "0", "2"]);
     await page.getByRole("button", { name: "Importar tudo" }).click();
     await esperarFila(page);
 
+    await expect.poll(lerModelos).toEqual(modelosRestaurados);
     await expect.poll(lerTrocas).toEqual(trocasRestauradas);
     expect(await lerDoMock(depois, "sessions")).toHaveLength(1);
     expect(await lerDoMock(depois, "session_sets")).toHaveLength(1);

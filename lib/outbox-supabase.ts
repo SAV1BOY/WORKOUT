@@ -88,10 +88,17 @@ export async function enviarItem(item: ItemSaida): Promise<ResultadoDoEnvio> {
     await enviarArquivo(item.payload);
     return;
   }
-  if (!ehEscrita(item.payload)) {
+  // A versão anterior enviaria um DELETE genérico com a conta errada e
+  // aceitaria o sucesso de zero linhas da RLS. Ela mantém este pedido na fila.
+  let escrita = item.payload;
+  if (item.tipo === "modelo_de_treino" && pLocal?.tabela === "modelos_de_treino" &&
+      pLocal.removerModelo === true && !Object.hasOwn(pLocal, "op")) {
+    escrita = { tabela: "modelos_de_treino", op: "delete", filtro: pLocal.filtro };
+  }
+  if (!ehEscrita(escrita)) {
     throw new Error("item da fila sem tabela ou operação");
   }
-  const p = item.payload;
+  const p = escrita;
   /*
    * Rede de proteção: sem `.eq()` nenhum, o PostgREST aplica o update ou o
    * delete na TABELA INTEIRA (a RLS limita ao dono — que é o único usuário
@@ -111,12 +118,14 @@ export async function enviarItem(item: ItemSaida): Promise<ResultadoDoEnvio> {
   }
   const cliente = clienteNavegador();
   const apagaTroca = p.tabela === "trocas_do_programa" && p.op === "delete";
+  const apagaModelo = p.tabela === "modelos_de_treino" && p.op === "delete";
   const editaTreino = p.tabela === "sessions" && p.op === "update" &&
     typeof p.filtro?.user_id === "string" &&
     (Object.hasOwn(p.linha ?? {}, "plano") || Object.hasOwn(p.linha ?? {}, "nota_geral"));
   const editaCardio = p.tabela === "cardio_sessions" && p.op === "update" && typeof p.filtro?.user_id === "string";
   if (apagaTroca && !alvoDaEscrita(p)) throw new Error("A remoção precisa indicar uma posição do treino.");
-  if (apagaTroca || editaTreino || editaCardio) {
+  if (apagaModelo && !alvoDaEscrita(p)) throw new Error("A remoção precisa indicar a conta e o modelo de treino.");
+  if (apagaTroca || apagaModelo || editaTreino || editaCardio) {
     // Sob RLS, a conta errada receberia sucesso com zero linhas afetadas.
     const { data } = await cliente.auth.getSession();
     if (!data.session || data.session.user.id !== p.filtro?.user_id) {
@@ -199,6 +208,10 @@ export function registrarEnviador(): void {
  * ser concluída. Devolver `undefined` quer dizer "pode ir em qualquer ordem".
  */
 export function alvoDaEscrita(escrita: EscritaTabela): string | undefined {
+  if (escrita.tabela === "modelos_de_treino") {
+    const { user_id, id } = (escrita.op === "delete" ? escrita.filtro : escrita.linha) ?? {};
+    if (typeof user_id === "string" && user_id && typeof id === "string" && id) return `modelos_de_treino:${user_id}:${id}`;
+  }
   if (escrita.tabela === "trocas_do_programa") {
     const { user_id, workout_id, exercicio_original_id } =
       (escrita.op === "delete" ? escrita.filtro : escrita.linha) ?? {};

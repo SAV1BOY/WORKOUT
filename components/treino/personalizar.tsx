@@ -1,10 +1,13 @@
 "use client";
 
-import { ArrowUpDown, Check, Plus, Search, SearchX, X } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { ArrowUpDown, Bookmark, Check, Plus, Search, SearchX, X } from "lucide-react";
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 import { useSessaoLivre } from "@/components/colecoes/usar-sessao-livre";
 import { EquipamentoDeHoje, nomeDoMaterial } from "@/components/exercicio/equipamento-de-hoje";
 import { OrdemDosEscolhidos } from "@/components/treino/ordem-dos-escolhidos";
+import { ConfirmacaoDoModelo, NomeDoTreino, TreinosSalvos, type PainelDosModelos } from "@/components/treino/treinos-salvos";
 import { Button } from "@/components/ui/button";
 import { BotaoLargo } from "@/components/ui/botao-largo";
 import { Input } from "@/components/ui/input";
@@ -21,38 +24,66 @@ import {
 import { equipamentosDaAlternativa } from "@/lib/alternativas";
 import { filtrarExercicios } from "@/lib/catalogo";
 import { acharExercicio, equipamentoDisponivel, exerciciosComVariacoes } from "@/lib/dados";
+import { lerSelecaoDeEquipamento, tagsDoEquipamento } from "@/lib/equipamento-da-sessao";
 import { mover } from "@/lib/ordem";
 import { evitadosPorUltimo } from "@/lib/preferencias";
+import { excluirModeloDeTreino, salvarModeloDeTreino, type ModeloDeTreino } from "@/lib/queries/modelos-de-treino";
+import { novoId } from "@/lib/queries/sessao";
 import type { Prefs } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const inventarioCompleto = equipamentoDisponivel();
+type Painel = { tipo: "editor" | "ordem" } | PainelDosModelos;
 
 /**
  * Começa um treino livre com os movimentos do catálogo e suas variações,
  * na ordem escolhida antes de começar.
  */
-export function Personalizar({ prefs }: { prefs?: Prefs }) {
+export function Personalizar({ conta, prefs }: { conta: string; prefs?: Prefs }) {
+  const cliente = useQueryClient();
   const [aberto, setAberto] = useState(false);
   const [busca, setBusca] = useState("");
   const [escolhidos, setEscolhidos] = useState<string[]>([]);
   const [material, setMaterial] = useState(inventarioCompleto);
-  const [reordenando, setReordenando] = useState(false);
+  const [tela, setTela] = useState<Painel>({ tipo: "editor" });
+  const [carregado, setCarregado] = useState<ModeloDeTreino | null>(null);
+  const [nome, setNome] = useState("");
+  const [gravando, setGravando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
   const campoBusca = useRef<HTMLInputElement>(null);
   const titulo = useRef<HTMLHeadingElement>(null);
   const gatilhoDaOrdem = useRef<HTMLButtonElement>(null);
+  const gatilhoDosSalvos = useRef<HTMLButtonElement>(null);
+  const gatilhoDeSalvar = useRef<HTMLButtonElement>(null);
+  const gatilhoDaConfirmacao = useRef<HTMLButtonElement | null>(null);
   const iniciando = useRef(false);
-  const focoAoAlternar = useRef(false);
+  const mutando = useRef(false);
+  const focoAoAlternar = useRef<HTMLElement | "titulo" | null>(null);
 
   useLayoutEffect(() => {
-    if (!focoAoAlternar.current) return;
-    focoAoAlternar.current = false;
-    (reordenando ? titulo.current : gatilhoDaOrdem.current)?.focus();
-  }, [reordenando]);
+    const foco = focoAoAlternar.current;
+    if (!foco) return;
+    focoAoAlternar.current = null;
+    (foco === "titulo" || !foco.isConnected ? titulo.current : foco)?.focus();
+  }, [tela]);
 
-  function mostrarOrdem(mostrar: boolean) {
-    focoAoAlternar.current = true;
-    setReordenando(mostrar);
+  function mostrar(proxima: Painel, foco?: HTMLElement | null) {
+    focoAoAlternar.current = foco ?? "titulo";
+    setErro(null);
+    setTela(proxima);
+  }
+
+  function voltar() {
+    if (mutando.current) return;
+    switch (tela.tipo) {
+      case "excluir":
+      case "descartar":
+        mostrar({ tipo: "salvos" }, gatilhoDaConfirmacao.current);
+        break;
+      case "ordem": mostrar({ tipo: "editor" }, gatilhoDaOrdem.current); break;
+      case "salvos": mostrar({ tipo: "editor" }, gatilhoDosSalvos.current); break;
+      case "salvar": mostrar({ tipo: "editor" }, gatilhoDeSalvar.current); break;
+    }
   }
 
   const equipamentoPorExercicio = useMemo(() => {
@@ -77,7 +108,66 @@ export function Personalizar({ prefs }: { prefs?: Prefs }) {
     [busca, equipamentoPorExercicio, prefs],
   );
 
-  const { comecar, ocupado, pronto } = useSessaoLivre(escolhidos);
+  // O modelo lê as cargas da conta ao iniciar. Só o avulso antecipa a consulta pela seleção.
+  const { comecar, ocupado, pronto } = useSessaoLivre(carregado ? [] : escolhidos);
+  const materialSalvo = lerSelecaoDeEquipamento(carregado?.equipamento_disponivel);
+  const ordemSalva = carregado?.exercicios ?? [];
+  const alterado = escolhidos.length !== ordemSalva.length || escolhidos.some((id, i) => id !== ordemSalva[i])
+    || material.size !== materialSalvo.size || [...material].some(tag => !materialSalvo.has(tag));
+
+  function carregar(modelo: ModeloDeTreino | null) {
+    setCarregado(modelo);
+    setEscolhidos(modelo?.exercicios ?? []);
+    setMaterial(lerSelecaoDeEquipamento(modelo?.equipamento_disponivel));
+    setBusca("");
+    mostrar({ tipo: "editor" });
+  }
+
+  function escolher(modelo: ModeloDeTreino | null, gatilho: HTMLButtonElement) {
+    if (!alterado) return carregar(modelo);
+    gatilhoDaConfirmacao.current = gatilho;
+    mostrar({ tipo: "descartar", proximo: modelo });
+  }
+
+  async function salvar() {
+    if (tela.tipo !== "salvar" || mutando.current || !nome.trim() || !escolhidos.length) return;
+    mutando.current = true;
+    setGravando(true);
+    setErro(null);
+    const modelo: ModeloDeTreino = {
+      id: tela.id, user_id: conta, nome: nome.trim(), exercicios: [...escolhidos],
+      equipamento_disponivel: material.size === inventarioCompleto.size ? null : tagsDoEquipamento(material),
+    };
+    try {
+      await salvarModeloDeTreino(cliente, modelo);
+      setCarregado(modelo);
+      mostrar({ tipo: "editor" }, gatilhoDeSalvar.current);
+      toast.success(carregado ? "Treino atualizado." : "Treino salvo.");
+    } catch {
+      setErro("Não foi possível salvar. Tente novamente.");
+    } finally {
+      mutando.current = false;
+      setGravando(false);
+    }
+  }
+
+  async function excluir(modelo: ModeloDeTreino) {
+    if (mutando.current) return;
+    mutando.current = true;
+    setGravando(true);
+    setErro(null);
+    try {
+      await excluirModeloDeTreino(cliente, conta, modelo.id);
+      if (modelo.id === carregado?.id) setCarregado(null);
+      mostrar({ tipo: "salvos" });
+      toast.success("Treino excluído.");
+    } catch {
+      setErro("Não foi possível excluir. Tente novamente.");
+    } finally {
+      mutando.current = false;
+      setGravando(false);
+    }
+  }
 
   const alternar = (id: string) =>
     setEscolhidos((atuais) =>
@@ -95,7 +185,11 @@ export function Personalizar({ prefs }: { prefs?: Prefs }) {
     if (iniciando.current || ocupado || !pronto || escolhidos.length === 0) return;
     iniciando.current = true;
     try {
-      await comecar(escolhidos, { titulo: "Treino personalizado", equipamentosDisponiveis: material });
+      await comecar(escolhidos, {
+        titulo: carregado?.nome ?? "Treino personalizado",
+        equipamentosDisponiveis: material,
+        contaDoModelo: carregado?.user_id,
+      });
     } finally {
       iniciando.current = false;
     }
@@ -105,11 +199,11 @@ export function Personalizar({ prefs }: { prefs?: Prefs }) {
     <Sheet
       open={aberto}
       onOpenChange={(v) => {
-        if (!v && ocupado) return;
+        if (!v && (ocupado || mutando.current)) return;
         setAberto(v);
         if (!v) {
-          focoAoAlternar.current = false;
-          setReordenando(false);
+          focoAoAlternar.current = null;
+          if (tela.tipo !== "salvar") setTela({ tipo: "editor" });
           setBusca("");
         }
       }}
@@ -132,28 +226,66 @@ export function Personalizar({ prefs }: { prefs?: Prefs }) {
       </SheetTrigger>
 
       <SheetContent side="bottom" className="flex max-h-[90dvh] flex-col pb-8"
-        showCloseButton={!ocupado}
+        showCloseButton={!ocupado && !gravando}
         onEscapeKeyDown={evento => {
-          if (reordenando) {
+          if (tela.tipo !== "editor") {
             evento.preventDefault();
-            mostrarOrdem(false);
+            voltar();
           }
         }}>
         <SheetHeader className="pb-0">
           <SheetTitle ref={titulo} className="pr-10 wrap-anywhere">
-            {reordenando ? "Reordenar escolhidos" : "Crie o seu próprio"}
+            {tela.tipo === "editor" && "Crie o seu próprio"}
+            {tela.tipo === "ordem" && "Reordenar escolhidos"}
+            {tela.tipo === "salvos" && "Treinos salvos"}
+            {tela.tipo === "salvar" && (carregado ? "Atualizar treino" : "Salvar treino")}
+            {tela.tipo === "excluir" && "Excluir treino?"}
+            {tela.tipo === "descartar" && "Descartar alterações?"}
           </SheetTitle>
-          {reordenando && <SheetDescription>{escolhidos.length} exercícios no treino.</SheetDescription>}
+          {tela.tipo === "ordem" && <SheetDescription>{escolhidos.length} exercícios no treino.</SheetDescription>}
+          {tela.tipo === "salvos" && <SheetDescription>Escolha um treino para abrir no editor.</SheetDescription>}
+          {tela.tipo === "salvar" && <SheetDescription>Guarde os exercícios, a ordem e os equipamentos para outro dia.</SheetDescription>}
         </SheetHeader>
 
-        {reordenando && <OrdemDosEscolhidos ids={escolhidos} aoMover={moverEscolhido} aoFechar={() => mostrarOrdem(false)} />}
-        <div className={cn("flex min-h-0 flex-1 flex-col gap-3 px-4", reordenando && "hidden")}>
+        {tela.tipo === "ordem" && <OrdemDosEscolhidos ids={escolhidos} aoMover={moverEscolhido} aoFechar={voltar} />}
+        {(tela.tipo === "salvos" || tela.tipo === "excluir" || tela.tipo === "descartar") && (
+          <TreinosSalvos conta={conta} oculto={tela.tipo !== "salvos"} aoVoltar={voltar} aoEscolher={escolher}
+            aoExcluir={(modelo, gatilho) => {
+              gatilhoDaConfirmacao.current = gatilho;
+              mostrar({ tipo: "excluir", modelo });
+            }} />
+        )}
+        {tela.tipo === "salvar" && <NomeDoTreino nome={nome} aoMudar={setNome} atualizando={!!carregado}
+          gravando={gravando} erro={erro} aoSalvar={() => void salvar()} aoVoltar={voltar} />}
+        {tela.tipo === "excluir" && <ConfirmacaoDoModelo gravando={gravando} erro={erro} aoCancelar={voltar}
+          descricao={`“${tela.modelo.nome}” será removido dos seus treinos salvos.`}
+          acao="Excluir treino" aoConfirmar={() => void excluir(tela.modelo)} />}
+        {tela.tipo === "descartar" && <ConfirmacaoDoModelo gravando={false} erro={null} aoCancelar={voltar}
+          descricao="A seleção atual tem alterações que ainda não foram salvas."
+          acao="Descartar alterações" aoConfirmar={() => carregar(tela.proximo)} />}
+        <div className={cn("flex min-h-0 flex-1 flex-col gap-3 px-4", tela.tipo !== "editor" && "hidden")}>
           <div className="min-h-0 overflow-y-auto px-1">
-            {!reordenando && (
+            {tela.tipo === "editor" && (
               <SheetDescription className="mb-3">
-                Escolha e ordene seus exercícios. Cada um mantém a prescrição do catálogo e a sua progressão.
+                {carregado ? <strong className="text-foreground wrap-anywhere">{carregado.nome}</strong>
+                  : "Escolha e ordene seus exercícios. Cada um mantém a prescrição do catálogo e a sua progressão."}
               </SheetDescription>
             )}
+            <div className="mb-3 flex flex-wrap gap-2">
+              <Button ref={gatilhoDosSalvos} type="button" variant="outline" disabled={ocupado}
+                className="alvo h-auto max-w-full whitespace-normal py-2" onClick={() => mostrar({ tipo: "salvos" })}>
+                <Bookmark aria-hidden="true" /> Treinos salvos
+              </Button>
+              {escolhidos.length > 0 && (
+                <Button ref={gatilhoDeSalvar} type="button" variant="outline" disabled={ocupado}
+                  className="alvo h-auto max-w-full whitespace-normal py-2" onClick={() => {
+                    setNome(carregado?.nome ?? "");
+                    mostrar({ tipo: "salvar", id: carregado?.id ?? novoId() });
+                  }}>
+                  {carregado ? "Atualizar treino" : "Salvar treino"}
+                </Button>
+              )}
+            </div>
             <div className="relative flex items-center gap-1">
               {!busca && <Search
                 className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2"
@@ -186,7 +318,7 @@ export function Personalizar({ prefs }: { prefs?: Prefs }) {
             {escolhidos.length >= 2 && (
               <Button ref={gatilhoDaOrdem} type="button" variant="outline" disabled={ocupado}
                 className="alvo mt-3 h-auto max-w-full whitespace-normal py-2"
-                onClick={() => mostrarOrdem(true)}>
+                onClick={() => mostrar({ tipo: "ordem" })}>
                 <ArrowUpDown aria-hidden="true" className="size-4 shrink-0" />
                 Reordenar escolhidos
               </Button>
