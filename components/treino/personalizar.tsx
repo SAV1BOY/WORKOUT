@@ -371,6 +371,12 @@ export function Personalizar({ conta, prefs }: { conta: string; prefs?: Prefs })
           gatilho.focus();
         }}
         onEscapeKeyDown={evento => {
+          if (tela.tipo === "salvos" && evento.target instanceof HTMLInputElement && evento.target.type === "search"
+            && (evento.isComposing || evento.keyCode === 229)) {
+            // O primeiro Escape pertence ao método de entrada que está compondo a busca.
+            evento.preventDefault();
+            return;
+          }
           if (tela.tipo === "trocar") {
             recolherExecucaoDaAlternativa(evento);
             if (evento.defaultPrevented) return;
