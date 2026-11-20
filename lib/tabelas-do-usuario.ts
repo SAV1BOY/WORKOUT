@@ -12,6 +12,7 @@ export const TABELAS_BACKUP = [
   "progress_photos",
   "schedule_overrides",
   "trocas_do_programa",
+  "modelos_de_treino",
 ] as const;
 
 export type TabelaBackup = (typeof TABELAS_BACKUP)[number];
@@ -30,4 +31,5 @@ export const CHAVE_DA_TABELA: Record<TabelaBackup, string[]> = {
   progress_photos: ["id"],
   schedule_overrides: ["id"],
   trocas_do_programa: ["user_id", "workout_id", "exercicio_original_id"],
+  modelos_de_treino: ["user_id", "id"],
 };

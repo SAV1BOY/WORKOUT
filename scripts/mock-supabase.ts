@@ -181,6 +181,7 @@ interface EspecTabela {
    * Tabelas sem esta lista seguem com o `user_id` posto pelo mock.
    */
   obrigatorias?: string[];
+  validar?: (linha: Linha) => void;
   /** Colunas de contagem que o PostgREST converte para integer. */
   inteiras?: string[];
   /** Sem policy de update: o PATCH não altera nenhuma linha (RLS). */
@@ -205,6 +206,23 @@ function conferirTrocaDoPrograma(linha: Linha) {
       typeof exercicio_original_id !== "string" || !exercicio_original_id.trim() ||
       typeof substituto_id !== "string" || !substituto_id.trim() || substituto_id === exercicio_original_id) {
     throw new ErroMock(400, "mock: alternativa inválida na posição do treino", { code: "23514" });
+  }
+}
+
+function idsDoModeloValidos(valor: unknown): boolean {
+  return Array.isArray(valor) && new Set(valor).size === valor.length &&
+    valor.every(id => typeof id === "string" && id.length > 0 && id.trim() === id);
+}
+
+function conferirModeloDeTreino(linha: Linha) {
+  const { id, nome, exercicios, equipamento_disponivel } = linha;
+  if (typeof id !== "string" || !/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(id)) {
+    throw new ErroMock(400, "mock: o id do modelo precisa ser um UUID", { code: "22P02" });
+  }
+  const nomeValido = typeof nome === "string" && nome === nome.trim() && nome.length > 0 && [...nome].length <= 80;
+  if (!nomeValido || !Array.isArray(exercicios) || exercicios.length === 0 ||
+      !idsDoModeloValidos(exercicios) || (equipamento_disponivel !== null && !idsDoModeloValidos(equipamento_disponivel))) {
+    throw new ErroMock(400, "mock: nome ou lista inválida no modelo de treino", { code: "23514" });
   }
 }
 
@@ -270,6 +288,15 @@ const ESQUEMA: Record<string, EspecTabela> = {
     colunas: { user_id: nulo, workout_id: nulo, exercicio_original_id: nulo, substituto_id: nulo },
     chave: ["user_id", "workout_id", "exercicio_original_id"],
     obrigatorias: ["user_id", "workout_id", "exercicio_original_id", "substituto_id"],
+    validar: conferirTrocaDoPrograma,
+    unicos: [],
+    tocaUpdatedAt: false,
+  },
+  modelos_de_treino: {
+    colunas: { user_id: nulo, id: nulo, nome: nulo, exercicios: nulo, equipamento_disponivel: nulo },
+    chave: ["user_id", "id"],
+    obrigatorias: ["user_id", "id", "nome", "exercicios"],
+    validar: conferirModeloDeTreino,
     unicos: [],
     tocaUpdatedAt: false,
   },
@@ -1154,11 +1181,14 @@ function conferirContagens(espec: EspecTabela, entrada: Linha) {
   }
 }
 
-function chavesDeConflito(tabela: string, url: URL): string[] {
+function chavesDeConflito(espec: EspecTabela, url: URL): string[] {
   const pedido = url.searchParams.get("on_conflict");
-  if (pedido) return pedido.split(",").map((c) => c.trim());
-  const espec = ESQUEMA[tabela];
-  return espec ? espec.chave : ["id"];
+  if (!pedido) return espec.chave;
+  const colunas = pedido.split(",").map(c => c.trim());
+  const chave = [espec.chave, ...espec.unicos].find(cs =>
+    cs.length === colunas.length && cs.every(c => colunas.includes(c)));
+  if (!chave) throw new ErroMock(400, "mock: on_conflict precisa de uma chave única", { code: "42P10" });
+  return chave;
 }
 
 function mesmaChave(a: Linha, b: Linha, chaves: string[]): boolean {
@@ -1405,8 +1435,9 @@ async function rotaRest(
     const entradas = (Array.isArray(corpo) ? corpo : [corpo]) as Linha[];
     const espec = ESQUEMA[recurso];
     if (!espec) throw new ErroMock(400, `mock: tabela ${recurso} não implementada`);
-    const chaves = chavesDeConflito(recurso, url);
-    const tabela = linhas(recurso);
+    const chaves = chavesDeConflito(espec, url);
+    const salvas = linhas(recurso);
+    const tabela = entradas.length > 1 ? salvas.map(linha => ({ ...linha })) : salvas;
     const gravadas: Linha[] = [];
 
     // A conversão do lote inteiro ocorre antes de o PostgreSQL gravar a primeira linha.
@@ -1434,7 +1465,7 @@ async function rotaRest(
         });
       }
       const candidata = novaLinha(recurso, { ...entrada, user_id: usuario.id });
-      if (recurso === "trocas_do_programa") conferirTrocaDoPrograma(candidata);
+      espec.validar?.(candidata);
       const conflitos = [chaves, espec.chave, ...espec.unicos];
       const existente = tabela.find((l) =>
         conflitos.some((cs) => cs.every((c) => c in candidata) && mesmaChave(l, candidata, cs)),
@@ -1459,6 +1490,7 @@ async function rotaRest(
       }
     }
 
+    tabelas[recurso] = tabela;
     if (!prefer.representacao) {
       return { status: 201, corpo: null, cabecalhos: {} };
     }
@@ -1491,11 +1523,11 @@ async function rotaRest(
       }
     }
     if (espec.semUpdate) alvo.length = 0; // sem policy de update: nada muda
-    if (recurso === "trocas_do_programa" && alvo.length) {
+    if (espec.validar && alvo.length) {
       if ("user_id" in mudancas && mudancas.user_id !== usuario.id) {
-        throw new ErroMock(403, "mock: a troca só pode pertencer ao dono da sessão", { code: "42501" });
+        throw new ErroMock(403, "mock: RLS — user_id diferente do dono da sessão", { code: "42501" });
       }
-      for (const linha of alvo) conferirTrocaDoPrograma({ ...linha, ...mudancas });
+      for (const linha of alvo) espec.validar({ ...linha, ...mudancas });
     }
     for (const linha of alvo) {
       Object.assign(linha, mudancas);

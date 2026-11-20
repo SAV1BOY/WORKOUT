@@ -9,9 +9,10 @@
  */
 "use client";
 
-import { useQuery, type QueryClient, type UseQueryResult } from "@tanstack/react-query";
+import { QueryClient, useQuery, type UseQueryResult } from "@tanstack/react-query";
 import { CHAVE_DA_TABELA, TABELAS_BACKUP, type TabelaBackup } from "@/lib/tabelas-do-usuario";
 import type { Backup, Linha } from "@/lib/backup";
+import type { ModeloDeTreino } from "@/lib/modelo-de-treino";
 import { adiarFase2 } from "@/lib/calendario";
 import { esperarFila } from "@/lib/outbox";
 import { guardarConsultasAgora } from "@/lib/persistencia-query";
@@ -277,25 +278,34 @@ export async function salvarIncremento(opcoes: {
 /* ------------------------------------------------------------ backup */
 
 /** A exportação e a prévia percorrem as mesmas tabelas e chaves da conta. */
-async function lerTabelasDoBackup(userId: string | undefined, soChaves: boolean) {
+async function lerTabelasDoBackup(
+  userId: string, soChaves: boolean, cliente: QueryClient, consultar: readonly TabelaBackup[],
+) {
   const tabelas: Partial<Record<TabelaBackup, Linha[]>> = {};
-  for (const tabela of TABELAS_BACKUP) {
-    const colunas = soChaves ? CHAVE_DA_TABELA[tabela].join(",") : "*";
-    tabelas[tabela] = await lerTabelaCompleta<Linha>(tabela, colunas, tabela, userId);
+  for (const tabela of consultar) {
+    if (tabela === "modelos_de_treino") {
+      const { lerModelosDeTreino } = await import("@/lib/queries/modelos-de-treino");
+      const modelos = await lerModelosDeTreino(cliente, userId, undefined, true);
+      tabelas[tabela] = soChaves ? modelos.map(({ user_id, id }) => ({ user_id, id })) : modelos;
+    } else {
+      const colunas = soChaves ? CHAVE_DA_TABELA[tabela].join(",") : "*";
+      tabelas[tabela] = await lerTabelaCompleta<Linha>(tabela, colunas, tabela, userId);
+    }
   }
   return tabelas;
 }
 
-export function lerTudo(userId?: string) {
-  return lerTabelasDoBackup(userId, false);
+export function lerTudo(userId: string, cliente = new QueryClient()) {
+  return lerTabelasDoBackup(userId, false, cliente, TABELAS_BACKUP);
 }
 
 export async function exportarBackup(opcoes: {
   userId: string;
   agora: string;
+  cliente?: QueryClient;
 }): Promise<Backup> {
   const [{ montarBackup }, tabelas] = await Promise.all([
-    import("@/lib/backup"), lerTudo(opcoes.userId),
+    import("@/lib/backup"), lerTudo(opcoes.userId, opcoes.cliente),
   ]);
   return montarBackup({
     userId: opcoes.userId,
@@ -304,9 +314,10 @@ export async function exportarBackup(opcoes: {
   });
 }
 
-/** Só as chaves do que já existe, para a prévia da importação (§3.9). */
-export function lerChavesExistentes(userId?: string) {
-  return lerTabelasDoBackup(userId, true);
+/** Só as chaves das tabelas que o arquivo traz, para a prévia da importação (§3.9). */
+export function lerChavesExistentes(userId: string, cliente = new QueryClient(), backup?: Backup) {
+  const consultar = backup ? TABELAS_BACKUP.filter((tabela) => backup.tabelas[tabela]?.length) : TABELAS_BACKUP;
+  return lerTabelasDoBackup(userId, true, cliente, consultar);
 }
 
 /** O tipo da fila que cada tabela usa (só para o item ficar legível). */
@@ -314,6 +325,7 @@ const TIPO_DA_TABELA: Record<TabelaBackup, Parameters<typeof enfileirarEscrita>[
   profiles: "perfil",
   exercise_state: "estado_exercicio",
   trocas_do_programa: "troca_do_programa",
+  modelos_de_treino: "modelo_de_treino",
   sessions: "sessao",
   session_sets: "serie",
   progression_events: "evento_progressao",
@@ -340,6 +352,15 @@ export async function importarBackup(opcoes: {
   let linhas = 0;
 
   for (const escrita of linhasParaImportar(backup, userId)) {
+    if (escrita.tabela === "modelos_de_treino") {
+      const { importarModeloDeTreino } = await import("@/lib/queries/modelos-de-treino");
+      for (const linha of escrita.linhas) {
+        // linhasParaImportar validou o modelo e já aplicou o dono de destino.
+        await importarModeloDeTreino(cliente, linha as ModeloDeTreino);
+        linhas++;
+      }
+      continue;
+    }
     if (escrita.tabela === "trocas_do_programa") {
       const { salvarTrocaDoPrograma } = await import("@/lib/queries/trocas-do-programa");
       for (const linha of escrita.linhas) {

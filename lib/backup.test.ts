@@ -199,6 +199,59 @@ describe("trocas lembradas no programa", () => {
   });
 });
 
+describe("treinos salvos no backup v1", () => {
+  const modelo = {
+    user_id: OUTRO, id: "abcdef01-2345-4000-8000-000000000001", nome: "Meu treino",
+    exercicios: ["flexao-de-braco", "prancha"], equipamento_disponivel: [],
+  };
+
+  it("preserva ordem e material e compara nomes repetidos pela chave da conta de destino", () => {
+    const modelos = [modelo, { ...modelo, id: OUTRO, equipamento_disponivel: null },
+      { ...modelo, id: EU, equipamento_disponivel: ["tatame", "super-band"] }];
+    const backup = montarBackup({ userId: OUTRO, exportadoEm: AGORA, tabelas: { modelos_de_treino: modelos } });
+    const arquivo = lerBackup(textoDoBackup(backup));
+    expect(arquivo.versao).toBe(1);
+    expect(arquivo.tabelas.modelos_de_treino).toEqual(modelos);
+    expect(arquivo.tabelas.sessions).toEqual([]);
+    arquivo.tabelas.modelos_de_treino!.unshift({ ...modelo, id: modelo.id.toUpperCase(), nome: " Meu treino  ", extra: 1 });
+    const previa = previaDaImportacao(arquivo, { modelos_de_treino: [
+      { user_id: EU, id: modelo.id }, { user_id: OUTRO, id: OUTRO },
+    ] }, EU);
+    expect(previa.itens).toEqual([{ tabela: "modelos_de_treino", nome: "treinos salvos",
+      total: 3, novas: 2, atualizadas: 1, invalidas: 0 }]);
+    expect(linhasParaImportar(arquivo, EU)).toEqual([{ tabela: "modelos_de_treino", onConflict: "user_id,id",
+      linhas: modelos.map(linha => ({ ...linha, user_id: EU })) }]);
+  });
+
+  it("conta as inválidas na prévia e só regrava os modelos completos", () => {
+    const invalidas = [
+      { ...modelo, nome: "   " }, { ...modelo, nome: "x".repeat(81) },
+      { ...modelo, id: "sem-uuid" }, { ...modelo, exercicios: [] },
+      { ...modelo, exercicios: [""] }, { ...modelo, exercicios: [42] }, { ...modelo, exercicios: ["prancha", "prancha"] },
+      { ...modelo, equipamento_disponivel: [" "] }, { ...modelo, equipamento_disponivel: [7] },
+      { ...modelo, equipamento_disponivel: ["tatame", "tatame"] },
+      { ...modelo, equipamento_disponivel: undefined },
+    ];
+    const arquivo = lerBackup(textoDoBackup(montarBackup({
+      userId: OUTRO, exportadoEm: AGORA, tabelas: { modelos_de_treino: [...invalidas, modelo] },
+    })));
+    expect(previaDaImportacao(arquivo, {}, EU)).toMatchObject({ total: 1, novas: 1, invalidas: invalidas.length });
+    expect(linhasParaImportar(arquivo, EU)).toEqual([{ tabela: "modelos_de_treino", onConflict: "user_id,id",
+      linhas: [{ ...modelo, user_id: EU }] }]);
+  });
+
+  it("importa somente as tabelas presentes em um arquivo anterior ou sem modelos", () => {
+    const legado = lerBackup(JSON.stringify({ app: APP_BACKUP, versao: 1, exportado_em: AGORA,
+      tabelas: { body_weights: [{ id: "peso", peso_kg: 73 }] } }));
+    for (const tabelas of [legado.tabelas, { ...legado.tabelas, modelos_de_treino: [] }]) {
+      const backup = { ...legado, tabelas };
+      expect(previaDaImportacao(backup, { modelos_de_treino: [modelo] }, OUTRO).total).toBe(1);
+      expect(linhasParaImportar(backup, OUTRO)).toEqual([{ tabela: "body_weights", onConflict: "id",
+        linhas: [{ id: "peso", peso_kg: 73, user_id: OUTRO }] }]);
+    }
+  });
+});
+
 describe("equipamento e descansos da sessão no backup v1", () => {
   const titulo = "Treino reordenado";
   const plano = planoDaSessao(itensDeIds(["supino-reto-com-barra", "agachamento-livre"]), { titulo });
