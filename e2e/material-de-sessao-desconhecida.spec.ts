@@ -145,8 +145,8 @@ test("uma sessão incompatível de ontem guardada no aparelho preserva as escolh
   expect(await lerDoMock(conta, "sessions")).toMatchObject([{ id, plano: null, status: "em_andamento" }]);
 });
 
-for (const retirarResumo of [false, true]) {
-  test(`ao voltar sem rede o A1 protegido é retomado ${retirarResumo ? "sem a lista guardada" : "com o resumo antigo"}`, async ({ page, context }) => {
+for (const situacao of ["com o resumo antigo", "sem a lista guardada", "após tentar a leitura de novo"]) {
+  test(`ao voltar sem rede o A1 protegido é retomado ${situacao}`, async ({ page, context }) => {
     const conta = await usuarioComPerfil(), id = crypto.randomUUID();
     const plano = planoDaSessao(itensDoTreino("A1"));
     await inserirNoMock(conta, "sessions", [{
@@ -169,18 +169,49 @@ for (const retirarResumo of [false, true]) {
     const observadora = await context.newPage();
     await observadora.goto("/manifest.webmanifest"); // mesma origem, sem React gravando consultas
     await page.goto("/manifest.webmanifest");
-    expect(await consultaGuardada(observadora, "sessoes-abertas", retirarResumo)).toMatchObject([{ id, plano }]);
+    expect(await consultaGuardada(observadora, "sessoes-abertas", situacao !== "com o resumo antigo")).toMatchObject([{ id, plano }]);
+    if (situacao === "após tentar a leitura de novo") {
+      await page.addInitScript(() => {
+        const abrir = IDBIndex.prototype.openCursor;
+        IDBIndex.prototype.openCursor = function (...args) {
+          const modo = sessionStorage.getItem("teste-leitura-local");
+          if (location.pathname !== "/" || this.name !== "atualizadoEm" || this.objectStore.name !== "sessaoAtiva" || modo === "normal") {
+            return abrir.apply(this, args);
+          }
+          if (modo === "erro") {
+            sessionStorage.setItem("teste-erro-observado", "sim");
+            throw new DOMException("Leitura indisponível", "UnknownError");
+          }
+          const pedido = abrir.apply(this, args);
+          this.objectStore.transaction.abort();
+          return pedido;
+        };
+      });
+    }
     const worker = await workerDoApp(context);
     await semRedeNoWorker(worker);
     await context.setOffline(true);
     try {
-      const liberar = retirarResumo ? await ocuparArmazenamentoDaSessao(observadora, id) : undefined;
+      const liberar = situacao === "sem a lista guardada" ? await ocuparArmazenamentoDaSessao(observadora, id) : undefined;
       try {
         const volta = await page.goto("/");
         expect(volta?.fromServiceWorker()).toBe(true);
         if (liberar) await expect(hoje.getByRole("button", { name: "Procurando treino em andamento…" })).toBeDisabled();
       } finally {
         await liberar?.();
+      }
+      if (situacao === "após tentar a leitura de novo") {
+        const tentar = hoje.getByRole("button", { name: "Tentar de novo", exact: true });
+        const comecar = hoje.getByRole("button", { name: "Começar treino", exact: true });
+        await expect(hoje.getByRole("status")).toHaveText("Não foi possível consultar o treino salvo neste aparelho.");
+        await expect(comecar).toHaveCount(0);
+        await page.evaluate(() => sessionStorage.setItem("teste-leitura-local", "erro"));
+        await tentar.press("Enter");
+        await expect.poll(() => page.evaluate(() => sessionStorage.getItem("teste-erro-observado"))).toBe("sim");
+        await expect(tentar).toBeVisible();
+        await expect(comecar).toHaveCount(0);
+        await page.evaluate(() => sessionStorage.setItem("teste-leitura-local", "normal"));
+        await tentar.tap();
       }
       await expect(hoje.getByText(aviso)).toBeVisible();
       await expect(continuar).toHaveAttribute("href", "/treinar/" + id);

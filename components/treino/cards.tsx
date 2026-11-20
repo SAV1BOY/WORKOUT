@@ -149,6 +149,7 @@ export function CardForca({
   aoComecar,
   criando,
   procurandoAberta = false,
+  aoReverSessao,
 }: {
   resumo: ResumoDoTreino;
   aviso: string | null;
@@ -167,6 +168,7 @@ export function CardForca({
   aoComecar: () => void;
   criando: boolean;
   procurandoAberta?: boolean;
+  aoReverSessao?: () => void;
 }) {
   const raios = dificuldadeDaColecao(
     exerciciosDoTreino(resumo.id).map(({ exercicio }) => exercicio),
@@ -198,6 +200,8 @@ export function CardForca({
         <BotaoLargo asChild>
           <Link href={`/treinar/${aberta.id}`}>Continuar</Link>
         </BotaoLargo>
+      ) : aoReverSessao ? (
+        <p role="status" className="text-muted-foreground text-center text-sm">Não foi possível consultar o treino salvo neste aparelho.</p>
       ) : (
         <BotaoLargo disabled={criando || procurandoAberta} onClick={aoComecar}>
           {procurandoAberta ? "Procurando treino em andamento…" : criando ? "Começando…" : "Começar treino"}
@@ -208,6 +212,7 @@ export function CardForca({
           {aberta.progresso}
         </p>
       ) : null}
+      {aoReverSessao && <Button variant="outline" className="alvo w-full" onClick={aoReverSessao}>Tentar de novo</Button>}
     </CardCapa>
   );
 }

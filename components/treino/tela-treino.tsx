@@ -287,23 +287,31 @@ export function TelaTreino({ userId }: { userId: string }) {
   // A sessão e a fila já podem ter sido gravadas quando o cache da lista ainda não foi salvo.
   const procurarNoAparelho = !idDaLista && !(abertasQ.isSuccess && abertasQ.isFetchedAfterMount && abertasQ.fetchStatus === "idle");
   const excluirDaBusca = procurarNoAparelho ? encerradas : undefined;
-  const buscaLocal = useMemo(() => ({ id: idDaLista, conta: userId, excluir: excluirDaBusca }), [idDaLista, userId, excluirDaBusca]);
-  const [leituraLocal, setLeituraLocal] = useState<{ busca: typeof buscaLocal; sessao: SessaoLocal | null; protegida: boolean } | null>(null);
+  const [tentativa, setTentativa] = useState(0);
+  const buscaLocal = useMemo(() => ({ id: idDaLista, conta: userId, excluir: excluirDaBusca, tentativa }), [idDaLista, userId, excluirDaBusca, tentativa]);
+  const [leituraLocal, setLeituraLocal] = useState<{ busca: typeof buscaLocal; sessao: SessaoLocal | null; protegida: boolean; falhou: boolean } | null>(null);
   const leuAberta = leituraLocal?.busca === buscaLocal;
   const abertaLocal = leuAberta ? leituraLocal.sessao : null;
   useEffect(() => {
     const { id, conta, excluir } = buscaLocal;
     if (!id && !excluir) return;
+    const falha = { busca: buscaLocal, sessao: null, protegida: false, falhou: true };
     const assinatura = liveQuery(async () => {
-      const sessao = id ? await carregarSessaoLocal(id) : await sessaoLocalMaisRecente(conta, excluir);
-      const encontrada = id ?? sessao?.id;
-      return { sessao, ids: encontrada ? await lerIdsDaSessaoProtegida(conta, encontrada) : [] };
+      try {
+        const sessao = id ? await carregarSessaoLocal(id) : await sessaoLocalMaisRecente(conta, excluir);
+        const encontrada = id ?? sessao?.id;
+        const ids = encontrada ? await lerIdsDaSessaoProtegida(conta, encontrada) : [];
+        return {
+          busca: buscaLocal, sessao: sessao?.userId === conta && (!id || sessao.id === id) ? sessao : null,
+          protegida: ids.length > 0, falhou: false,
+        };
+      } catch {
+        // Uma transação abortada não chega ao observador de erros do liveQuery.
+        return falha;
+      }
     }).subscribe({
-      next: ({ sessao, ids }) => setLeituraLocal({
-        busca: buscaLocal, sessao: sessao?.userId === conta && (!id || sessao.id === id) ? sessao : null,
-        protegida: ids.length > 0,
-      }),
-      error: () => setLeituraLocal({ busca: buscaLocal, sessao: null, protegida: false }),
+      next: setLeituraLocal,
+      error: () => setLeituraLocal(falha),
     });
     return () => assinatura.unsubscribe();
   }, [buscaLocal]);
@@ -312,6 +320,8 @@ export function TelaTreino({ userId }: { userId: string }) {
   const abertaId = aberta?.id;
   const resumoDaAberta = abertas.find(s => s.id === abertaId);
   const procurandoAberta = procurarNoAparelho && !leuAberta;
+  const leituraFalhou = leuAberta && leituraLocal.falhou;
+  const bloquearInicio = procurandoAberta || (procurarNoAparelho && leituraFalhou);
   const idDoDia = aberta && aberta.data === hoje && aberta.workoutId === treinoId ? aberta.id : null;
   const confirmarMaterial = useCallback((id: string, tags: ReadonlySet<EquipamentoTag>, confirmada: SessaoLocal, anterior: SessaoLocal) => {
     setLeituraLocal((atual) => atual?.busca.conta === userId && atual.sessao?.id === id
@@ -329,8 +339,8 @@ export function TelaTreino({ userId }: { userId: string }) {
     seriesComExercicioDesconhecido(seriesDaAbertaQ.data, userId, abertaId)
   ));
   const verificandoAberta = Boolean(abertaId && (!leuAberta || (!abertaLocal && (seriesDaAbertaQ.isLoading || (semCopia && linhaQ.isLoading)))));
-  const protegerAberta = abertaIncompativel || verificandoAberta;
-  const protegerDia = procurandoAberta || Boolean(idDoDia && protegerAberta);
+  const protegerAberta = abertaIncompativel || verificandoAberta || leituraFalhou;
+  const protegerDia = bloquearInicio || Boolean(idDoDia && protegerAberta);
   const materialLocal = useMaterialDaSessao(!protegerDia && abertaLocal?.id === idDoDia ? abertaLocal : null, confirmarMaterial);
   const [edicaoRemota, setEdicaoRemota] = useState<{ id: string; conta: string; tags: ReadonlySet<EquipamentoTag> } | null>(null);
   const gravacaoRemota = useRef(Promise.resolve());
@@ -457,6 +467,7 @@ export function TelaTreino({ userId }: { userId: string }) {
           id: aberta.id,
           incompativel: abertaIncompativel,
           progresso: abertaIncompativel ? "Atualize o app para continuar este treino"
+            : leituraFalhou ? "Não foi possível consultar o treino salvo neste aparelho."
             : verificandoAberta ? "Carregando o treino…"
             : abertaLocal?.id === aberta.id
             ? progressoDaSessao(abertaLocal).texto
@@ -481,7 +492,7 @@ export function TelaTreino({ userId }: { userId: string }) {
   };
 
   const comecarTreinoDeHoje = () => {
-    if (procurandoAberta || !treinoId || pedirDecisao()) return;
+    if (bloquearInicio || !treinoId || pedirDecisao()) return;
     void comecar({
       userId, perfil, hoje, treinoId, lembradas, ordemTemporaria,
       equipamentosDisponiveis: materialDoDia?.disponiveis,
@@ -595,6 +606,7 @@ export function TelaTreino({ userId }: { userId: string }) {
             destacado={destacarAberta && abertaDoDia !== null}
             criando={criando !== null}
             procurandoAberta={procurandoAberta}
+            aoReverSessao={leituraFalhou && (procurarNoAparelho || idDoDia) ? () => setTentativa(n => n + 1) : undefined}
             aoComecar={comecarTreinoDeHoje}
           />
         ) : null}
@@ -684,7 +696,7 @@ export function TelaTreino({ userId }: { userId: string }) {
         de cardio e de descanso a aba cabe em pouco mais de uma tela e o card
         do dia continua à vista.
       */}
-      {passouDoCard && !procurandoAberta && dia.tipo === "forca" && treinoId ? (
+      {passouDoCard && !bloquearInicio && dia.tipo === "forca" && treinoId ? (
         <FaixaFixaDoDia
           titulo={resumoDoTreino(treinoId).nome}
           detalhe={abertaDoDia ? abertaDoDia.progresso : detalheDoTreino(treinoId)}
